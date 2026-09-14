@@ -212,7 +212,7 @@
     <value>Конфигурация стабилизатора</value>
   </data>
   <data name="textBox15.Text" xml:space="preserve">
-    <value>Энергия[keV] = ax^4 + bx^3 + cx^2 + dx + e (x = номер канала)</value>
+    <value>Энергия[кэВ] = ax^4 + bx^3 + cx^2 + dx + e (x = номер канала)</value>
   </data>
   <data name="textBox15.ToolTip" xml:space="preserve">
     <value />
@@ -4593,5 +4593,8 @@
   </data>
   <data name="$this.ToolTip" xml:space="preserve">
     <value />
+  </data>
+  <data name="textColumn1.Text" xml:space="preserve">
+    <value>#</value>
   </data>
 </root>

@@ -214,7 +214,7 @@ namespace XPTable.Editors
             this.Value = this.Minimum;
 
             // attempt to get the cells data
-            this.Value = Convert.ToDouble(this.EditingCell.Data);
+            this.Value = Convert.ToDouble(this.EditingCell.Data, CultureInfo.InvariantCulture);
         }
 
 
@@ -390,7 +390,7 @@ namespace XPTable.Editors
 
             this.ChangingText = true;
 
-            this.Control.Text = this.currentValue.ToString(this.Format);
+            this.Control.Text = this.currentValue.ToString(this.Format, CultureInfo.InvariantCulture);
         }
 
 
@@ -411,7 +411,12 @@ namespace XPTable.Editors
         {
             try
             {
-                this.Value = this.Constrain(double.Parse(this.Control.Text));
+                // (A244) Printed with a dot -> read back with a dot. NumberStyles.Float is
+                //   what double.Parse(string) uses MINUS AllowThousands: under the
+                //   invariant culture the group separator is a comma, and allowing it
+                //   would turn a typed "1,5" into 15 without a word.
+                this.Value = this.Constrain(double.Parse(this.Control.Text,
+                                                         NumberStyles.Float, CultureInfo.InvariantCulture));
             }
             catch (Exception)
             {
@@ -731,15 +736,19 @@ namespace XPTable.Editors
             // netus fix by Richard Sadler on 2006-01-13 - added backspace key
             char backspace = AsciiChars.Backspace;
 
-            NumberFormatInfo info = CultureInfo.CurrentCulture.NumberFormat;
+            // (A244) The keys that may be typed come from the INVARIANT culture, so
+            // that what can be entered is exactly what ParseEditText() reads back.
+            // The group separator is deliberately no longer accepted: invariant it is
+            // a comma, i.e. the very character a Russian or German user types meaning
+            // a decimal point, and taking it would silently make "1,5" into 15.
+            NumberFormatInfo info = CultureInfo.InvariantCulture.NumberFormat;
 
             string decimalSeparator = info.NumberDecimalSeparator;
-            string groupSeparator = info.NumberGroupSeparator;
             string negativeSign = info.NegativeSign;
-            string character = e.KeyChar.ToString();
+            string character = e.KeyChar.ToString(CultureInfo.InvariantCulture);
 
             // netus fix by Richard Sadler on 2006-01-13 - added backspace key
-            if ((!char.IsDigit(e.KeyChar) && !character.Equals(decimalSeparator) && !character.Equals(groupSeparator)) &&
+            if ((!char.IsDigit(e.KeyChar) && !character.Equals(decimalSeparator)) &&
                 !character.Equals(negativeSign) && (e.KeyChar != tab) && (e.KeyChar != backspace))
             {
                 if ((Control.ModifierKeys & (Keys.Alt | Keys.Control)) == Keys.None)

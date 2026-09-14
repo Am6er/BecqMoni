@@ -1,0 +1,6 @@
+usage: check_interpolation.py [-h] [--matdb MATDB] [--samples SAMPLES]
+
+options:
+  -h, --help         show this help message and exit
+  --matdb MATDB
+  --samples SAMPLES  проб внутри интервала (1 — логарифмическая середина)

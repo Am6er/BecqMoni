@@ -1,0 +1,255 @@
+# Артефакты полосы B2, 05.09.2026 (T156, T139). Собрано машинно, UTF-8.
+
+## 1. Формат всех *.resx ДО правки (scratchpad/resx_format.py)
+всего .resx: 75
+  BOM    CRLF   60
+  BOM    LF     3
+  BOM    MIXED  4
+  noBOM  CRLF   4
+  noBOM  LF     4
+--- не BOM+CRLF:
+   BecquerelMonitor/AtomSpectraVCPDeviceForm.ru.resx BOM MIXED(crlf=156,lf=1,cr=0)
+   BecquerelMonitor/DCEnergyCalibrationView.resx noBOM CRLF
+   BecquerelMonitor/DCFwhmCalibrationView.resx BOM MIXED(crlf=3,lf=5118,cr=0)
+   BecquerelMonitor/DCFwhmCalibrationView.ru.resx BOM MIXED(crlf=3,lf=4495,cr=0)
+   BecquerelMonitor/DCPeakDetectionView.ru.resx BOM MIXED(crlf=159,lf=13,cr=0)
+   BecquerelMonitor/DocEnergySpectrum.resx noBOM LF
+   BecquerelMonitor/DocEnergySpectrum.ru.resx BOM LF
+   BecquerelMonitor/EfficiencyMakerForm.resx BOM LF
+   BecquerelMonitor/EfficiencyMakerForm.ru.resx BOM LF
+   BecquerelMonitor/NuclideDefinitionForm.resx noBOM LF
+   BecquerelMonitor/NuclideDefinitionForm.ru.resx noBOM CRLF
+   BecquerelMonitor/ObsidianDeviceForm.resx noBOM LF
+   BecquerelMonitor/ObsidianDeviceForm.ru.resx noBOM LF
+   BecquerelMonitor/XPTable/Models/Table.resx noBOM CRLF
+   BecquerelMonitor/XPTable/Models/TableModel.resx noBOM CRLF
+
+## 2. git ls-files --eol '*.resx' (индекс/рабочее дерево) ДО правки — счёт
+     64 i/lf w/crlf
+      7 i/lf w/lf
+      4 i/lf w/mixed
+core.autocrlf=true из C:/Program Files/Git/etc/gitconfig; .gitattributes в дереве нет
+
+## 3. Нормализация 12 файлов (scratchpad/normalize_resx.py)
+AtomSpectraVCPDeviceForm.ru.resx              было: BOM crlf=156 lf=1 -> стало BOM CRLF; многострочных <value>: 1
+DCEnergyCalibrationView.resx                  было: noBOM crlf=5411 lf=0 -> стало BOM CRLF; многострочных <value>: 1
+DCFwhmCalibrationView.resx                    было: BOM crlf=3 lf=5118 -> стало BOM CRLF; многострочных <value>: 1
+DCFwhmCalibrationView.ru.resx                 было: BOM crlf=3 lf=4495 -> стало BOM CRLF; многострочных <value>: 1
+DocEnergySpectrum.resx                        было: noBOM crlf=0 lf=5447 -> стало BOM CRLF; многострочных <value>: 1
+DocEnergySpectrum.ru.resx                     было: BOM crlf=0 lf=296 -> стало BOM CRLF; многострочных <value>: 0
+NuclideDefinitionForm.resx                    было: noBOM crlf=0 lf=5141 -> стало BOM CRLF; многострочных <value>: 1
+NuclideDefinitionForm.ru.resx                 было: noBOM crlf=182 lf=0 -> стало BOM CRLF; многострочных <value>: 0
+ObsidianDeviceForm.resx                       было: noBOM crlf=0 lf=202 -> стало BOM CRLF; многострочных <value>: 0
+ObsidianDeviceForm.ru.resx                    было: noBOM crlf=0 lf=77 -> стало BOM CRLF; многострочных <value>: 0
+XPTable/Models/Table.resx                     было: noBOM crlf=42 lf=0 -> стало BOM CRLF; многострочных <value>: 0
+XPTable/Models/TableModel.resx                было: noBOM crlf=42 lf=0 -> стало BOM CRLF; многострочных <value>: 0
+всего многострочных <value> в нормализованных файлах: 6
+
+## 4. Формат всех *.resx ПОСЛЕ правки
+����� .resx: 75
+  BOM    CRLF   72
+  BOM    LF     2
+  BOM    MIXED  1
+--- �� BOM+CRLF:
+   BecquerelMonitor/DCPeakDetectionView.ru.resx BOM MIXED(crlf=159,lf=13,cr=0)
+   BecquerelMonitor/EfficiencyMakerForm.resx BOM LF
+   BecquerelMonitor/EfficiencyMakerForm.ru.resx BOM LF
+
+## 5. git diff --stat по *.resx после правки (только BOM; перевод строк git не видит)
+ BecquerelMonitor/DCEnergyCalibrationView.resx   | 2 +-
+ BecquerelMonitor/DocEnergySpectrum.resx         | 2 +-
+ BecquerelMonitor/NuclideDefinitionForm.resx     | 2 +-
+ BecquerelMonitor/NuclideDefinitionForm.ru.resx  | 2 +-
+ BecquerelMonitor/ObsidianDeviceForm.resx        | 2 +-
+ BecquerelMonitor/ObsidianDeviceForm.ru.resx     | 2 +-
+ BecquerelMonitor/XPTable/Models/Table.resx      | 2 +-
+ BecquerelMonitor/XPTable/Models/TableModel.resx | 2 +-
+ 8 files changed, 8 insertions(+), 8 deletions(-)
+
+## 6. Сборка в bin\Debug_B2 / obj\B2 (хвост build_B2.log)
+
+  BecquerelMonitor -> C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_B2\BecquerelMonitor.exe
+EXIT=0
+287443 BecquerelMonitor/obj/B2/BecquerelMonitor.DCFwhmCalibrationView.resources
+313583 BecquerelMonitor/obj/B2/BecquerelMonitor.DocEnergySpectrum.resources
+.resources в obj/B2: 75
+
+## 7. check_resx.py на дереве ПОСЛЕ правки (хвост)
+файлов с расхождением: 0
+непереведённых осмысленных строк: 0
+ключей, которых нет в английской паре: 0
+ФОРМАТ  BecquerelMonitor/DCPeakDetectionView.ru.resx: переводы строк смешаны (CRLF 159, LF 13, CR 0)
+ФОРМАТ  BecquerelMonitor/EfficiencyMakerForm.resx: переводы строк LF, а не CRLF
+ФОРМАТ  BecquerelMonitor/EfficiencyMakerForm.ru.resx: переводы строк LF, а не CRLF
+файлов чужого формата (не BOM+CRLF): 3
+РАЗОШЛОСЬ
+
+## 7. check_resx_letters.py на дереве ПОСЛЕ правки (хвост)
+английских resx просмотрено: 44, русских: 31
+генерируемых *.Designer.cs: 45, значений в них: 3672
+находок: 0
+ФОРМАТ  BecquerelMonitor/DCPeakDetectionView.ru.resx: переводы строк смешаны (CRLF 159, LF 13, CR 0)
+ФОРМАТ  BecquerelMonitor/EfficiencyMakerForm.resx: переводы строк LF, а не CRLF
+ФОРМАТ  BecquerelMonitor/EfficiencyMakerForm.ru.resx: переводы строк LF, а не CRLF
+файлов чужого формата (не BOM+CRLF): 3
+РАЗОШЛОСЬ
+
+## 7. check_resx_designer.py на дереве ПОСЛЕ правки (хвост)
+обращений с вычисляемым именем (проверке недоступны): 0
+      обёртки: GetResourceText(аргумент 1)
+      члены:   Resource
+ФОРМАТ  BecquerelMonitor/DCPeakDetectionView.ru.resx: переводы строк смешаны (CRLF 159, LF 13, CR 0)
+ФОРМАТ  BecquerelMonitor/EfficiencyMakerForm.resx: переводы строк LF, а не CRLF
+ФОРМАТ  BecquerelMonitor/EfficiencyMakerForm.ru.resx: переводы строк LF, а не CRLF
+файлов чужого формата (не BOM+CRLF): 3
+РАЗОШЛОСЬ
+
+## 7. check_resx_zorder.py на дереве ПОСЛЕ правки (хвост)
+пар Foo.Designer.cs / Foo.resx: 42
+контейнеров проверено: 78, с расхождением: 0
+файлов чужого формата (не BOM+CRLF): 1
+==========================================================================
+ФОРМАТ  C:/Users/moroz/source/repos/BQ Eng res .NET 4.8/BecquerelMonitor/EfficiencyMakerForm.resx: переводы строк LF, а не CRLF
+
+## 8. Положительный контроль плеча формата: подброшенный Foo.resx (LF, без BOM) + Foo.ru.resx (BOM, CRLF)
+
+файлов с расхождением: 0
+непереведённых осмысленных строк: 0
+ключей, которых нет в английской паре: 0
+ФОРМАТ  C:/Users/moroz/AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/65d67d52-e7c9-4061-9d92-7ccf2e96ff5c/scratchpad/fmt_ctl/BecquerelMonitor/Foo.resx: без BOM; переводы строк LF, а не CRLF
+файлов чужого формата (не BOM+CRLF): 1
+РАЗОШЛОСЬ
+exit=1
+СОШЛОСЬ
+exit с --no-format=0
+==========================================================================
+ФОРМАТ  C:/Users/moroz/AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/65d67d52-e7c9-4061-9d92-7ccf2e96ff5c/scratchpad/fmt_ctl/BecquerelMonitor/Foo.resx: без BOM; переводы строк LF, а не CRLF
+zorder exit=0
+
+## 9. check_menu_accelerators.py на текущем дереве (--list)
+  [en] menuStrip1                         fileFToolStripMenuItem             &F U+0046
+  [en] menuStrip1                         spectrumSToolStripMenuItem         &S U+0053
+  [en] menuStrip1                         viewTToolStripMenuItem             &V U+0056
+  [en] menuStrip1                         toolsTToolStripMenuItem1           &T U+0054
+  [en] menuStrip1                         helpHToolStripMenuItem             &H U+0048
+  [en] helpHToolStripMenuItem             manualMToolStripMenuItem           &M U+004D
+  [en] helpHToolStripMenuItem             UpdatesAToolStripMenuItem          &C U+0043
+  [en] helpHToolStripMenuItem             versionInfoAToolStripMenuItem      &A U+0041
+  [en] toolsTToolStripMenuItem1           editDeviceConfigurationDToolStripMenuItem &D U+0044
+  [en] toolsTToolStripMenuItem1           roiDefinitionRToolStripMenuItem    &R U+0052
+  [en] toolsTToolStripMenuItem1           NuclideDefinitionToolStripMenuItem &N U+004E
+  [en] toolsTToolStripMenuItem1           basicSettingsBToolStripMenuItem    &P U+0050
+  [en] viewTToolStripMenuItem             controlPanelCToolStripMenuItem     &C U+0043
+  [en] viewTToolStripMenuItem             sampleInfoSToolStripMenuItem       &S U+0053
+  [en] viewTToolStripMenuItem             spectrumListLToolStripMenuItem     &i U+0069
+  [en] viewTToolStripMenuItem             energyCalibrationStripMenuItem     &E U+0045
+  [en] viewTToolStripMenuItem             peakDetectionDToolStripMenuItem    &D U+0044
+  [en] viewTToolStripMenuItem             pulseViewPToolStripMenuItem        &P U+0050
+  [en] viewTToolStripMenuItem             countsRateStripMenuItem            &a U+0061
+  [en] viewTToolStripMenuItem             measurementResultsRToolStripMenuItem &R U+0052
+  [en] viewTToolStripMenuItem             languageToolStripMenuItem          &L U+004C
+  [en] spectrumSToolStripMenuItem         newSpectrumNToolStripMenuItem1     &N U+004E
+  [en] spectrumSToolStripMenuItem         deleteDToolStripMenuItem           &D U+0044
+  [en] spectrumSToolStripMenuItem         addFromExistingFileFToolStripMenuItem &I U+0049
+  [en] spectrumSToolStripMenuItem         exportToFileStripMenuItem          &E U+0045
+  [en] spectrumSToolStripMenuItem         startMeasurementSToolStripMenuItem &S U+0053
+  [en] spectrumSToolStripMenuItem         stopMeasurementTToolStripMenuItem  &t U+0074
+  [en] spectrumSToolStripMenuItem         clearDataCToolStripMenuItem        &C U+0043
+  [en] fileFToolStripMenuItem             newSpectrumNToolStripMenuItem      &N U+004E
+  [en] fileFToolStripMenuItem             openDataToolStripMenuItem          &O U+004F
+  [en] fileFToolStripMenuItem             saveDataSToolStripMenuItem         &S U+0053
+  [en] fileFToolStripMenuItem             saveDataAsRToolStripMenuItem       &A U+0041
+  [en] fileFToolStripMenuItem             closeDataCToolStripMenuItem        &C U+0043
+  [en] fileFToolStripMenuItem             CombineSpectrasToolStripMenuItem   &m U+006D
+  [en] fileFToolStripMenuItem             CloseAllToolStripMenuItem          &l U+006C
+  [en] fileFToolStripMenuItem             importIToolStripMenuItem           &I U+0049
+  [en] fileFToolStripMenuItem             exportEToolStripMenuItem           &E U+0045
+  [en] fileFToolStripMenuItem             exitXToolStripMenuItem             &x U+0078
+  [en] exportEToolStripMenuItem           cSVCToolStripMenuItem              &C U+0043
+  [en] exportEToolStripMenuItem           ECSVToolStripMenuItem              &E U+0045
+  [ru] menuStrip1                         fileFToolStripMenuItem             &Ф U+0424
+  [ru] menuStrip1                         spectrumSToolStripMenuItem         &С U+0421
+  [ru] menuStrip1                         viewTToolStripMenuItem             &В U+0412
+  [ru] menuStrip1                         toolsTToolStripMenuItem1           &И U+0418
+  [ru] menuStrip1                         helpHToolStripMenuItem             &П U+041F
+  [ru] helpHToolStripMenuItem             manualMToolStripMenuItem           &И U+0418
+  [ru] helpHToolStripMenuItem             UpdatesAToolStripMenuItem          &П U+041F
+  [ru] helpHToolStripMenuItem             versionInfoAToolStripMenuItem      &О U+041E
+  [ru] toolsTToolStripMenuItem1           editDeviceConfigurationDToolStripMenuItem &К U+041A
+  [ru] toolsTToolStripMenuItem1           roiDefinitionRToolStripMenuItem    &г U+0433
+  [ru] toolsTToolStripMenuItem1           NuclideDefinitionToolStripMenuItem &б U+0431
+  [ru] toolsTToolStripMenuItem1           basicSettingsBToolStripMenuItem    &Н U+041D
+  [ru] viewTToolStripMenuItem             controlPanelCToolStripMenuItem     &У U+0423
+  [ru] viewTToolStripMenuItem             sampleInfoSToolStripMenuItem       &И U+0418
+  [ru] viewTToolStripMenuItem             spectrumListLToolStripMenuItem     &С U+0421
+  [ru] viewTToolStripMenuItem             energyCalibrationStripMenuItem     &э U+044D
+  [ru] viewTToolStripMenuItem             peakDetectionDToolStripMenuItem    &О U+041E
+  [ru] viewTToolStripMenuItem             pulseViewPToolStripMenuItem        &М U+041C
+  [ru] viewTToolStripMenuItem             countsRateStripMenuItem            &к U+043A
+  [ru] viewTToolStripMenuItem             measurementResultsRToolStripMenuItem &Р U+0420
+  [ru] viewTToolStripMenuItem             languageToolStripMenuItem          &Я U+042F
+  [ru] spectrumSToolStripMenuItem         newSpectrumNToolStripMenuItem1     &Н U+041D
+  [ru] spectrumSToolStripMenuItem         deleteDToolStripMenuItem           &У U+0423
+  [ru] spectrumSToolStripMenuItem         addFromExistingFileFToolStripMenuItem &И U+0418
+  [ru] spectrumSToolStripMenuItem         exportToFileStripMenuItem          &Э U+042D
+  [ru] spectrumSToolStripMenuItem         startMeasurementSToolStripMenuItem &м U+043C
+  [ru] spectrumSToolStripMenuItem         stopMeasurementTToolStripMenuItem  &с U+0441
+  [ru] spectrumSToolStripMenuItem         clearDataCToolStripMenuItem        &О U+041E
+  [ru] fileFToolStripMenuItem             newSpectrumNToolStripMenuItem      &Н U+041D
+  [ru] fileFToolStripMenuItem             openDataToolStripMenuItem          &О U+041E
+  [ru] fileFToolStripMenuItem             saveDataSToolStripMenuItem         &С U+0421
+  [ru] fileFToolStripMenuItem             saveDataAsRToolStripMenuItem       &к U+043A
+  [ru] fileFToolStripMenuItem             closeDataCToolStripMenuItem        &З U+0417
+  [ru] fileFToolStripMenuItem             CombineSpectrasToolStripMenuItem   &б U+0431
+  [ru] fileFToolStripMenuItem             CloseAllToolStripMenuItem          &В U+0412
+  [ru] fileFToolStripMenuItem             importIToolStripMenuItem           &И U+0418
+  [ru] fileFToolStripMenuItem             exportEToolStripMenuItem           &Э U+042D
+  [ru] fileFToolStripMenuItem             exitXToolStripMenuItem             &х U+0445
+  [ru] exportEToolStripMenuItem           cSVCToolStripMenuItem              &Ф U+0424
+  [ru] exportEToolStripMenuItem           ECSVToolStripMenuItem              &Р U+0420
+
+АНГЛИЙСКИЙ: узлов 10, пунктов 68, с ускорителем 40, столкновений 0
+РУССКИЙ:    узлов 10, пунктов 68, с ускорителем 40, столкновений 0
+узлов AddRange в Designer всего 11, из них в дереве меню 10
+подписей, заданных кодом (MainForm.cs): 1
+      showLogToolStripMenuItem <- Resources.MenuShowLog  (строка 1718): en 'Show log' / ru 'Показать журнал'
+пунктов, добавляемых в меню кодом (разбору недоступны): 0
+СОШЛОСЬ
+
+## 10. Положительный контроль: MainForm.resx / .ru.resx из 8d58ec52 (родитель A103)
+СТОЛКНОВЕНИЕ viewTToolStripMenuItem [en] : 'L' -> Spectrum List, Language
+СТОЛКНОВЕНИЕ fileFToolStripMenuItem [en] : 'A' -> Save As..., Close All
+СТОЛКНОВЕНИЕ spectrumSToolStripMenuItem [ru] : 'Н' -> Новый, Начало измерения
+
+АНГЛИЙСКИЙ: узлов 10, пунктов 68, с ускорителем 40, столкновений 2
+РУССКИЙ:    узлов 10, пунктов 68, с ускорителем 29, столкновений 1
+узлов AddRange в Designer всего 11, из них в дереве меню 10
+подписей, заданных кодом (MainForm.cs): 1
+      showLogToolStripMenuItem <- Resources.MenuShowLog  (строка 1718): en 'Show log' / ru 'Показать журнал'
+пунктов, добавляемых в меню кодом (разбору недоступны): 0
+РАЗОШЛОСЬ
+exit=1
+
+## 11. Положительный контроль подписи кодом: общий resx с MenuShowLog = '&About log' / '&О журнале'
+СТОЛКНОВЕНИЕ helpHToolStripMenuItem [en] : 'A' -> About log, About...
+СТОЛКНОВЕНИЕ helpHToolStripMenuItem [ru] : 'О' -> О журнале, О BQMoni...
+
+АНГЛИЙСКИЙ: узлов 10, пунктов 68, с ускорителем 41, столкновений 1
+РУССКИЙ:    узлов 10, пунктов 68, с ускорителем 41, столкновений 1
+узлов AddRange в Designer всего 11, из них в дереве меню 10
+подписей, заданных кодом (MainForm.cs): 1
+      showLogToolStripMenuItem <- Resources.MenuShowLog  (строка 1718): en 'About log' / ru 'О журнале'
+пунктов, добавляемых в меню кодом (разбору недоступны): 0
+РАЗОШЛОСЬ
+exit=1
+
+## 12. Положительный контроль: общий resx без ключа MenuShowLog
+НЕТ КЛЮЧА  C:/Users/moroz/source/repos/BQ Eng res .NET 4.8/BecquerelMonitor/MainForm.cs:1718  showLogToolStripMenuItem.Text = Resources.MenuShowLog — ключа нет в shared_empty.resx
+
+АНГЛИЙСКИЙ: узлов 10, пунктов 67, с ускорителем 40, столкновений 0
+РУССКИЙ:    узлов 10, пунктов 67, с ускорителем 40, столкновений 0
+узлов AddRange в Designer всего 11, из них в дереве меню 10
+подписей, заданных кодом (MainForm.cs): 0
+пунктов, добавляемых в меню кодом (разбору недоступны): 0
+РАЗОШЛОСЬ
+exit=1

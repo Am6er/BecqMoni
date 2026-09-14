@@ -1,0 +1,170 @@
+diff --git a/BecquerelMonitor/EfficiencyMaker/GeometryPresets.cs b/BecquerelMonitor/EfficiencyMaker/GeometryPresets.cs
+index 768d0db6..f08a3c3d 100644
+--- a/BecquerelMonitor/EfficiencyMaker/GeometryPresets.cs
++++ b/BecquerelMonitor/EfficiencyMaker/GeometryPresets.cs
+@@ -82,6 +82,25 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 Box(g, 10.0, 10.0, 10.0);
+                 Wrapping(g, 1.0, 1.0, 1.0, 1.0, 1.0);
+                 Crystal(g, "Cesium iodide");
++
++                // ⛔ ЗАЗОР МЕЖДУ ОТРАЖАТЕЛЕМ И КОРПУСОМ — 3.5 мм У ТОРЦА (`E43`,
++                // приказ Amber 14.09.2026: «Зазор для RC103 из V10 вноси прямо
++                // сейчас в геометрию без вопросов, раз совпало. Разрешаю.
++                // Который 3.5 мм»). Число ИЗМЕРЕНО, а не взято из чертежа
++                // (~~`V10`~~, П73): Cs-137 паспортным источником на 50 мм от
++                // корпуса даёт изм/ожид 1.05 — кристалл, мёртвый слой и окно
++                // целы, — а вплотную к корпусу 0.443, и обе точки на оси
++                // сшивает только «кристалл утоплен за корпусом» на 3.3–3.6 мм;
++                // тот же зазор чинит и банку лютеция впритык (0.806 → ~1.05).
++                // Единицы — МИЛЛИМЕТРЫ модели (в файле `.in` — `0.35 cm`).
++                // Расстояния сцены отсчитываются от переднего торца корпуса,
++                // поэтому на постановке впритык кристалл уходит с 2 мм под
++                // торцом на 5.5, и эффективность пика 662 кэВ падает ~×2.3.
++                // ⚠ Цена, измеренная там же: точка в 50 мм с этим зазором
++                // выходит 1.15–1.22 — контакт несёт ещё и положение источника
++                // у корпуса, которого две осевые точки не разводят. «RadiaCode-
++                // 101» зазора не получил — отдельное решение Amber (`B30`).
++                g.FrontGapThickness = 3.5;
+                 Fwhm(g, 8.49);                        // корпус, группа RC103
+             }));
+ 
+diff --git a/tools/effmaker/probes/CorpusGeomProbe.cs b/tools/effmaker/probes/CorpusGeomProbe.cs
+index 2c20e5da..1049b57f 100644
+--- a/tools/effmaker/probes/CorpusGeomProbe.cs
++++ b/tools/effmaker/probes/CorpusGeomProbe.cs
+@@ -24,7 +24,13 @@ using System.Threading;
+ // Что откуда берётся, и это здесь главное:
+ //
+ //   ДЕТЕКТОР   — целиком из `GeometryPresets`, по ИМЕНИ. Ни одного размера
+-//                кристалла или обвязки в этом файле не набрано.
++//                кристалла или обвязки в этом файле не набрано. Зазор между
++//                отражателем и корпусом (`AMBER1`) — тоже оттуда: 21.7 мм у
++//                «Atom Spectra Pro 80x80», 3.5 мм у «RadiaCode-103» (`E43`,
++//                приказ Amber 14.09.2026; измерен П73 по контакту Cs-137 и
++//                точке 50 мм). Единственное исключение названо у самой сцены:
++//                `RC103_marinelli05_kcl` ставит ноль поверх пресета (приказ
++//                «маринелли не трогать»; зазор её и не двигает — П73).
+ //   СОСУД      — «восстановлен из объёма» (решение Amber): ОДИН размер принят
+ //                по виду посуды, остальные ВЫВЕДЕНЫ из паспортного объёма.
+ //                Принятое помечено в печати словом «принято», выведенное —
+@@ -839,6 +845,16 @@ class CorpusGeomProbe
+             Shape = g => { g.SourceType = GeometrySourceType.Point; g.PointDistance = 0.0; },
+         });
+ 
++        // ⛔ ЗАЗОР 3.5 мм У ТОРЦА RC103 (`E43`, приказ Amber 14.09.2026 «Зазор для
++        // RC103 из V10 вноси прямо сейчас в геометрию без вопросов, раз совпало.
++        // Разрешаю. Который 3.5 мм») приходит СЮДА ИЗ ПРЕСЕТА «RadiaCode-103»
++        // (`GeometryPresets.cs`, `FrontGapThickness = 3.5`) — тем же движением,
++        // каким приходит вся обвязка: в этом файле ни одного размера детектора
++        // не набрано, и зазор — не исключение (так же 21.7 мм у `AS80_*` с
++        // `AMBER1`). Число измерено П73 (~~`V10`~~): контакт Cs-137 0.443 и точка
++        // 50 мм 1.05 сшиваются осевым зазором 3.3–3.6 мм; тот же зазор чинит
++        // `RC103_lu_front` (0.806 → ~1.05). Сцены `RC103_point0` и
++        // `RC103_lu_front` его несут; `RC103_marinelli05_kcl` — НЕТ, явно (ниже).
+         list.Add(new Geom
+         {
+             Key = "RC103_point0",
+@@ -947,7 +963,17 @@ class CorpusGeomProbe
+             PassportMassG = 680.0,
+             SourceMaterial = "Potassium chloride",
+             Assumed = "ничего — сосуд взят целиком из заготовки редактора",
+-            Shape = g => { g.SourceType = GeometrySourceType.Marinelli; },
++            // ⛔ БЕЗ зазора — ЯВНО, поверх пресета (`E43`, 14.09.2026): приказ
++            // Amber велел зазор 3.5 мм КОНТАКТНЫМ сценам RC103 и «маринелли не
++            // трогать». Измерено П73 (`sweep2`): у этого сосуда ε(1461) при
++            // зазоре 0 / 3 / 4 / 5 мм — 6.28 / 6.49 / 5.89 / 6.37 e-5 при
++            // разбросе МК ±5–6 %, то есть зазор её не двигает, а недобор
++            // маринелли RC103 (0.658) — своя причина (сосуд из шаблона ЛСРМ без
++            // чертежа). Ноль стоит здесь, а не «пресет без зазора для
++            // маринелли»: пресет — прибор, один на все сцены; исключение
++            // названо у сцены, к которой относится, и видно в файле `.in`
++            // (`DS_CrystalFrontGapThickness = 0 cm`), клеймо матрицы прежнее.
++            Shape = g => { g.SourceType = GeometrySourceType.Marinelli; g.FrontGapThickness = 0.0; },
+         });
+ 
+         // ⚠ Шесть прежних сосудных сцен G1S (`G1S_denta_th232`, `_ra226`,
+diff --git a/tools/effmaker/probes/GapProbeAmber1.cs b/tools/effmaker/probes/GapProbeAmber1.cs
+index 10fae9bf..9ab15d21 100644
+--- a/tools/effmaker/probes/GapProbeAmber1.cs
++++ b/tools/effmaker/probes/GapProbeAmber1.cs
+@@ -16,8 +16,9 @@ namespace GapProbeAmber1
+     ///
+     /// Что проверяется и ПОЧЕМУ именно это:
+     ///
+-    /// 1. **Пресеты.** 21.7 мм стоит у `Atom Spectra Pro 80x80` и НИ У КОГО
+-    ///    больше, а наполнитель у всех воздух. Контроль обязателен: пресет
++    /// 1. **Пресеты.** 21.7 мм стоит у `Atom Spectra Pro 80x80`, 3.5 мм — у
++    ///    `RadiaCode-103` (`E43`, приказ Amber 14.09.2026) и НИ У КОГО больше,
++    ///    а наполнитель у всех воздух. Контроль обязателен: пресет
+     ///    накладывается на уже набранные поля, и «поставил всем» здесь ошибка
+     ///    того же разряда, что «не поставил никому».
+     /// 2. **Сцена переноса.** Зазор обязан стать НАСТОЯЩИМ слоем, а не числом
+@@ -141,9 +142,16 @@ namespace GapProbeAmber1
+                     preset.Name, g.FrontGapThickness, g.SideGapThickness,
+                     g.Gap.Name, g.Gap.Density);
+ 
+-                bool as80 = preset.Name == "Atom Spectra Pro 80x80";
+-                Check(preset.Name + ": торец",
+-                      as80 ? 21.7 : 0.0, g.FrontGapThickness, 1e-9);
++                // Зазор у торца измерен у ДВУХ приборов, у остальных — ноль:
++                // 21.7 мм `Atom Spectra Pro 80x80` (`AMBER1`, 07.09.2026) и
++                // 3.5 мм `RadiaCode-103` (`E43`, приказ Amber 14.09.2026 по
++                // измерению П73). «RadiaCode-101» — тот же кристалл, но зазор
++                // ему НЕ ставился: отдельное решение Amber (`B30`), и проба
++                // ждёт у него ноль нарочно.
++                double wantFront = preset.Name == "Atom Spectra Pro 80x80" ? 21.7
++                                 : preset.Name == "RadiaCode-103" ? 3.5
++                                 : 0.0;
++                Check(preset.Name + ": торец", wantFront, g.FrontGapThickness, 1e-9);
+                 Check(preset.Name + ": бок", 0.0, g.SideGapThickness, 1e-9);
+                 Check(preset.Name + ": наполнитель воздух",
+                       "Air, dry", g.Gap.Name);
+@@ -550,7 +558,7 @@ namespace GapProbeAmber1
+         }
+ 
+         // ------------------------------------------------------------------
+-        // 8. Корпусные геометрии AS80
++        // 8. Корпусные геометрии AS80 и RC103
+         // ------------------------------------------------------------------
+ 
+         static void Corpus(string root)
+@@ -578,6 +586,39 @@ namespace GapProbeAmber1
+                 Check(Path.GetFileName(path) + ": бок ноль", 0.0, g.SideGapThickness, 1e-12);
+                 Check(Path.GetFileName(path) + ": наполнитель воздух", "Air, dry", g.Gap.Name);
+             }
++
++            // Корпусные геометрии RC103 (`E43`, 14.09.2026): зазор 3.5 мм у
++            // КОНТАКТНЫХ сцен (точка впритык, банка лютеция впритык), и ноль у
++            // маринелли — приказ Amber «маринелли не трогать» (зазор её и не
++            // двигает, П73). Три файла названы поимённо, а не маской: маска
++            // прошла бы и на корпусе, где одна из сцен потерялась.
++            Head("Корпусные геометрии RC103");
++            string[][] rc103 =
++            {
++                new[] { "RC103_point0.in", "3.5" },
++                new[] { "RC103_lu_front.in", "3.5" },
++                new[] { "RC103_marinelli05_kcl.in", "0" },
++            };
++            foreach (string[] row in rc103)
++            {
++                string path = Path.Combine(dir, row[0]);
++                if (!File.Exists(path))
++                {
++                    Fail("нет файла " + path);
++                    continue;
++                }
++
++                GeometryModel g = GeometryModel.Load(path);
++                double want = double.Parse(row[1], CultureInfo.InvariantCulture);
++                Say("{0,-24} торец {1,7:F2} бок {2,7:F2}  наполнитель \"{3}\"",
++                    row[0], g.FrontGapThickness, g.SideGapThickness, g.Gap.Name);
++                Check(row[0] + ": торец " + row[1], want, g.FrontGapThickness, 1e-6);
++                Check(row[0] + ": бок ноль", 0.0, g.SideGapThickness, 1e-12);
++                if (want > 0.0)
++                {
++                    Check(row[0] + ": наполнитель воздух", "Air, dry", g.Gap.Name);
++                }
++            }
+         }
+ 
+         // ------------------------------------------------------------------

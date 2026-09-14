@@ -1,0 +1,12 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p22\config\BecquerelMonitor.xml
+Привязка кривой и матрицы к спектрам понятной части (B1)
+кривая: 5-3000 кэВ, 200000 историй на узел
+
+== AS80_th_disk ==
+   guid     : c2b5212c-6b5a-50d8-7870-0b0c3104daa2
+   кривая   : 43 точек, клеймо phys=16; hist=200000; grid=10-3000 keV/43 std; kdip=1
+   матрица  : AS80_th_disk.rmx -> response\c2b5212c-6b5a-50d8-7870-0b0c3104daa2.rmx
+   спектр   : AS80_Th232Medal (1 записей ResultData)
+
+геометрий в описи: 45, взято по --only=AS80_th_disk: 1 — посчитано 1, пропущено 0 (клеймо и геометрия сошлись); записей проставлено: 1
+ВСЕ СОШЛИСЬ

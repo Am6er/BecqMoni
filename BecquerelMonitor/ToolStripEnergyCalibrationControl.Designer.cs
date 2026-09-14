@@ -7,9 +7,9 @@ namespace BecquerelMonitor
     {
         IContainer components = null;
 
-        NumericUpDown numericUpDown1;
+        InvariantNumericUpDown numericUpDown1;
 
-        NumericUpDown numericUpDown2;
+        InvariantNumericUpDown numericUpDown2;
 
         Label label1;
 
@@ -21,7 +21,7 @@ namespace BecquerelMonitor
 
         Button button2;
 
-        NumericUpDown numericUpDown3;
+        InvariantNumericUpDown numericUpDown3;
 
         Button button3;
 
@@ -39,14 +39,14 @@ namespace BecquerelMonitor
         void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ToolStripEnergyCalibrationControl));
-            this.numericUpDown1 = new NumericUpDown();
-            this.numericUpDown2 = new NumericUpDown();
+            this.numericUpDown1 = new InvariantNumericUpDown();
+            this.numericUpDown2 = new InvariantNumericUpDown();
             this.label1 = new Label();
             this.label2 = new Label();
             this.label3 = new Label();
             this.button1 = new Button();
             this.button2 = new Button();
-            this.numericUpDown3 = new NumericUpDown();
+            this.numericUpDown3 = new InvariantNumericUpDown();
             this.button3 = new Button();
             this.label4 = new Label();
             ((ISupportInitialize)this.numericUpDown1).BeginInit();
@@ -62,7 +62,7 @@ namespace BecquerelMonitor
                 0,
                 262144
             });
-            NumericUpDown numericUpDown = this.numericUpDown1;
+            InvariantNumericUpDown numericUpDown = this.numericUpDown1;
             int[] array = new int[4];
             array[0] = 10;
             numericUpDown.Maximum = new decimal(array);
@@ -85,7 +85,7 @@ namespace BecquerelMonitor
                 0,
                 131072
             });
-            NumericUpDown numericUpDown2 = this.numericUpDown2;
+            InvariantNumericUpDown numericUpDown2 = this.numericUpDown2;
             int[] array2 = new int[4];
             array2[0] = 1000;
             numericUpDown2.Maximum = new decimal(array2);
@@ -129,7 +129,7 @@ namespace BecquerelMonitor
                 0,
                 131072
             });
-            NumericUpDown numericUpDown3 = this.numericUpDown3;
+            InvariantNumericUpDown numericUpDown3 = this.numericUpDown3;
             int[] array3 = new int[4];
             array3[0] = 10000;
             numericUpDown3.Maximum = new decimal(array3);

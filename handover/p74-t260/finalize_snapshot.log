@@ -1,0 +1,23 @@
+→ python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\check_fsa_showcase.py --snapshot
+каталог проб: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build (заверен 2026-09-14 23:15:28 из C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_Codex)
+  ⚠ сверено: набор приложения 3abaafccbbc1 (549 файлов), набор FsaStackShot 714e5d59d573 (6 файлов), sha двух exe
+свежесть каталога проб: сошлась с деревом (T226, 0.8 с)
+рабочий каталог: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\fsa_showcase\wd (скопировано 414, снято 0; приборов 3, матриц 4)
+прогон FsaStackShot (5 спектров, 7 пар):
+  ASN16_Cs137_house / infer_eq: 1.9 с
+  AS80_Th232_disk / infer_eq: 5.0 с
+  ASN16_Radon_filter2 / chain_eq: 4.6 с
+  ASN16_Radon_filter2 / chain_noeq: 6.3 с
+  G1S24_Rn222Coal_eq01 / sample_eq: 3.6 с
+  G1S24_Rn222Coal_eq01 / sample_noeq: 3.0 с
+  ASN16_Cs137_10cm / sample_nomatrix: 1.1 с
+  ASN16_Cs137_house / infer_eq: эталон снят ВПЕРВЫЕ
+  AS80_Th232_disk / infer_eq: эталон снят ВПЕРВЫЕ
+  ASN16_Radon_filter2 / chain_eq: эталон снят ВПЕРВЫЕ
+  ASN16_Radon_filter2 / chain_noeq: эталон снят ВПЕРВЫЕ
+  G1S24_Rn222Coal_eq01 / sample_eq: эталон снят ВПЕРВЫЕ
+  G1S24_Rn222Coal_eq01 / sample_noeq: эталон снят ВПЕРВЫЕ
+  ASN16_Cs137_10cm / sample_nomatrix: эталон снят ВПЕРВЫЕ
+
+ЭТАЛОН ОБЪЯВЛЕН 2026-09-14 23:15 (HEAD cf4788a7): 7 пар, из них с изменившимися числами 0 — C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\fsa_showcase\reference
+эталон переобъявлен — diff выше в отчёт полосы; файлы reference\*.json — в коммит

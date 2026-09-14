@@ -1,0 +1,39 @@
+/usr/bin/bash: line 1: bc: command not found
+/usr/bin/bash: line 1: printf: : invalid number
+tools/check_build_recipe.py              exit=0  0.0s
+/usr/bin/bash: line 1: bc: command not found
+/usr/bin/bash: line 1: printf: : invalid number
+tools/check_corpus_library.py            exit=1  0.0s
+/usr/bin/bash: line 1: bc: command not found
+/usr/bin/bash: line 1: printf: : invalid number
+tools/check_done_headers.py              exit=1  0.0s
+/usr/bin/bash: line 1: bc: command not found
+/usr/bin/bash: line 1: printf: : invalid number
+tools/check_fsa_docs.py                  exit=0  0.0s
+/usr/bin/bash: line 1: bc: command not found
+/usr/bin/bash: line 1: printf: : invalid number
+tools/check_headless.py                  exit=0  0.0s
+/usr/bin/bash: line 1: bc: command not found
+/usr/bin/bash: line 1: printf: : invalid number
+tools/check_menu_accelerators.py         exit=0  0.0s
+/usr/bin/bash: line 1: bc: command not found
+/usr/bin/bash: line 1: printf: : invalid number
+tools/check_registry.py                  exit=1  0.0s
+/usr/bin/bash: line 1: bc: command not found
+/usr/bin/bash: line 1: printf: : invalid number
+tools/check_registry_refs.py             exit=1  0.0s
+/usr/bin/bash: line 1: bc: command not found
+/usr/bin/bash: line 1: printf: : invalid number
+tools/check_resx.py                      exit=0  0.0s
+/usr/bin/bash: line 1: bc: command not found
+/usr/bin/bash: line 1: printf: : invalid number
+tools/check_resx_designer.py             exit=0  0.0s
+/usr/bin/bash: line 1: bc: command not found
+/usr/bin/bash: line 1: printf: : invalid number
+tools/check_resx_letters.py              exit=0  0.0s
+/usr/bin/bash: line 1: bc: command not found
+/usr/bin/bash: line 1: printf: : invalid number
+tools/check_resx_zorder.py               exit=0  0.0s
+/usr/bin/bash: line 1: bc: command not found
+/usr/bin/bash: line 1: printf: : invalid number
+tools/check_scheme_gaps.py               exit=0  0.0s

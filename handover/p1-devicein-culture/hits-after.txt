@@ -1,0 +1,179 @@
+=== BecquerelMonitor/RadiaCodeIn.cs : 72 ===
+    222 print    string.Format    UNK                                BecquerelMonitor.Properties.Resources.ER
+    255 print    interpolation    UNK                                
+    268 print    interpolation    UNK                                
+    279 print    ToString         UNK   device.ConnectionStatus      
+    377 print    string.Format    UNK                                BecquerelMonitor.Properties.Resources.ER
+    384 print    interpolation    UNK                                
+    389 print    interpolation    UNK                                
+    391 print    interpolation    UNK                                
+    395 print    interpolation    UNK                                
+    396 print    interpolation    UNK                                
+    404 print    string.Format    UNK                                BecquerelMonitor.Properties.Resources.ER
+    410 print    interpolation    UNK                                
+    411 print    interpolation    UNK                                
+    413 print    string.Format    UNK                                BecquerelMonitor.Properties.Resources.ER
+    433 print    interpolation    UNK                                
+    442 print    interpolation    UNK                                
+    443 print    interpolation    UNK                                
+    449 print    interpolation    UNK                                
+    450 print    interpolation    UNK                                
+    488 print    interpolation    UNK                                
+    489 print    interpolation    UNK                                
+    493 print    interpolation    UNK                                
+    503 print    ToString         UNK   localDevice.ConnectionStatus 
+    504 print    interpolation    UNK                                
+    507 parse    Guid.Parse       NONUM Guid                         RC_BLE_Service
+    510 print    interpolation    UNK                                
+    513 print    interpolation    UNK                                
+    516 parse    Guid.Parse       NONUM Guid                         RC_BLE_Characteristic
+    519 print    interpolation    UNK                                
+    526 print    interpolation    UNK                                
+    530 parse    Guid.Parse       NONUM Guid                         RC_BLE_Notify
+    533 print    interpolation    UNK                                
+    540 print    interpolation    UNK                                
+    550 print    interpolation    UNK                                
+    553 print    interpolation    UNK                                
+    569 print    interpolation    UNK                                
+    570 print    interpolation    UNK                                
+    603 print    interpolation    UNK                                
+    612 print    interpolation    UNK                                
+    715 print    interpolation    UNK                                
+    728 print    interpolation    UNK                                
+    729 print    interpolation    UNK                                
+    736 print    interpolation    UNK                                
+    746 print    interpolation    UNK                                
+    747 print    interpolation    UNK                                
+    855 print    interpolation    UNK                                
+    862 parse    Convert.ToSingle NUM                                calibration.Coefficients[0]
+    863 parse    Convert.ToSingle NUM                                calibration.Coefficients[1]
+    864 parse    Convert.ToSingle NUM                                calibration.Coefficients[2]
+    883 print    interpolation    UNK                                
+    891 print    interpolation    UNK                                
+    923 print    interpolation    UNK                                
+   1023 print    interpolation    UNK                                
+   1069 print    interpolation    UNK                                
+   1095 print    interpolation    UNK                                
+   1096 print    interpolation    UNK                                
+   1127 print    interpolation    UNK                                
+   1128 print    interpolation    UNK                                
+   1142 print    interpolation    UNK                                
+   1147 print    interpolation    UNK                                
+   1197 print    interpolation    UNK                                
+   1226 print    interpolation    UNK                                
+   1227 print    interpolation    UNK                                
+   1237 print    interpolation    UNK                                
+   1238 print    interpolation    UNK                                
+   1254 print    interpolation    UNK                                
+   1255 print    interpolation    UNK                                
+   1271 print    interpolation    UNK                                
+   1324 print    ToString         UNK   dev.ConnectionStatus         
+   1333 print    interpolation    UNK                                
+   1337 print    interpolation    UNK                                
+   1367 print    interpolation    UNK                                
+=== BecquerelMonitor/ObsidianIn.cs : 63 ===
+    263 print    string.Format    UNK                                BecquerelMonitor.Properties.Resources.ER
+    290 print    interpolation    UNK                                
+    301 print    ToString         UNK   device.ConnectionStatus      
+    323 print    interpolation    UNK                                
+    418 print    string.Format    UNK                                BecquerelMonitor.Properties.Resources.ER
+    425 print    interpolation    UNK                                
+    430 print    interpolation    UNK                                
+    432 print    interpolation    UNK                                
+    436 print    interpolation    UNK                                
+    437 print    interpolation    UNK                                
+    444 print    string.Format    UNK                                BecquerelMonitor.Properties.Resources.ER
+    450 print    interpolation    UNK                                
+    451 print    interpolation    UNK                                
+    453 print    string.Format    UNK                                BecquerelMonitor.Properties.Resources.ER
+    476 print    interpolation    UNK                                
+    485 print    interpolation    UNK                                
+    486 print    interpolation    UNK                                
+    493 print    interpolation    UNK                                
+    494 print    interpolation    UNK                                
+    532 print    interpolation    UNK                                
+    533 print    interpolation    UNK                                
+    537 print    interpolation    UNK                                
+    547 print    ToString         UNK   localDevice.ConnectionStatus 
+    548 print    interpolation    UNK                                
+    551 parse    Guid.Parse       NONUM Guid                         OBS_HISTORY_SERVICE
+    554 print    interpolation    UNK                                
+    557 print    interpolation    UNK                                
+    560 parse    Guid.Parse       NONUM Guid                         OBS_COMMAND_CHARACTERISTIC
+    563 print    interpolation    UNK                                
+    570 print    interpolation    UNK                                
+    574 parse    Guid.Parse       NONUM Guid                         OBS_NOTIFY_CHARACTERISTIC
+    577 print    interpolation    UNK                                
+    584 print    interpolation    UNK                                
+    595 print    interpolation    UNK                                
+    598 print    interpolation    UNK                                
+    610 print    interpolation    UNK                                
+    611 print    interpolation    UNK                                
+    644 print    interpolation    UNK                                
+    692 print    interpolation    UNK                                
+    714 print    interpolation    UNK                                
+    715 print    interpolation    UNK                                
+    733 print    interpolation    UNK                                
+    768 print    interpolation    UNK                                
+    870 print    interpolation    UNK                                
+    916 print    interpolation    UNK                                
+    942 print    interpolation    UNK                                
+    943 print    interpolation    UNK                                
+    990 print    interpolation    UNK                                
+   1014 print    interpolation    UNK                                
+   1018 print    interpolation    UNK                                
+   1028 print    interpolation    UNK                                
+   1029 print    interpolation    UNK                                
+   1045 print    interpolation    UNK                                
+   1046 print    interpolation    UNK                                
+   1062 print    interpolation    UNK                                
+   1104 print    ToString         UNK   dev.ConnectionStatus         
+   1113 print    interpolation    UNK                                
+   1117 print    interpolation    UNK                                
+   1145 print    interpolation    UNK                                
+   1197 print    interpolation    UNK                                
+   1313 parse    Guid.Parse       NONUM Guid                         OBS_SETTINGS_SERVICE
+   1390 parse    Guid.Parse       NONUM Guid                         uuid
+   1430 print    string.Format    UNK                                BecquerelMonitor.Properties.Resources.ER
+=== BecquerelMonitor/AtomSpectraVCPDeviceForm.cs : 15 ===
+     42 print    ToString         UNK   comPortsBox.SelectedItem     
+     43 print    ToString         UNK   baudratesBox.SelectedItem    
+     48 print    ToString         UNK   Guid.NewGuid()               
+    199 print    ToString         UNK   comPortsBox.SelectedItem     
+    200 print    ToString         UNK   baudratesBox.SelectedItem    
+    230 print    ToString         UNK   comPortsBox.SelectedItem     
+    231 print    ToString         UNK   baudratesBox.SelectedItem    
+    236 print    ToString         UNK   Guid.NewGuid()               
+    285 print    ToString         UNK   Guid.NewGuid()               
+    337 print    string.Format    UNK                                Resources.VCPDeviceStatusReason
+    347 print    string.Format    UNK                                Resources.LabelVCPSpectraInfo
+    361 print    concat           NUM   status                       
+    366 print    string.Format    UNK                                Resources.LabelVCPSpectraInfo
+    375 print    string.Format    UNK                                Resources.LabelVCPSpectraInfo
+    381 print    string.Format    UNK                                Resources.LabelVCPSpectraInfo
+=== BecquerelMonitor/AudioInputDeviceForm.cs : 0 ===
+=== BecquerelMonitor/ObsidianDeviceForm.cs : 12 ===
+     73 print    interpolation    UNK                                
+     79 print    interpolation    UNK                                
+     91 print    string.Format    UNK                                Resources.ERRBTEnableFailed
+    116 print    interpolation    UNK                                
+    146 print    interpolation    UNK                                
+    163 print    interpolation    UNK                                
+    204 print    string.Format    UNK                                Resources.LoadDefaultPeakFinderSettingsQ
+    263 print    ToString         UNK   comboBox1.SelectedItem       
+    308 print    interpolation    UNK                                
+    310 print    interpolation    UNK                                
+    328 print    interpolation    UNK                                
+    332 print    interpolation    UNK                                
+=== BecquerelMonitor/RadiaCodeDeviceForm.cs : 10 ===
+     73 print    interpolation    UNK                                
+     80 print    interpolation    UNK                                
+    102 print    string.Format    UNK                                Resources.ERRBTEnableFailed
+    126 print    interpolation    UNK                                
+    150 print    interpolation    UNK                                
+    167 print    interpolation    UNK                                
+    189 print    string.Format    UNK                                Resources.LoadDefaultPeakFinderSettingsQ
+    246 print    ToString         UNK   comboBox1.SelectedItem       
+    298 print    interpolation    UNK                                
+    300 print    interpolation    UNK                                
+»“Œ√Œ œŒ ÿ≈—“» ‘¿…À¿Ã: 172

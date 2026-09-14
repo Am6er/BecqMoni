@@ -1,0 +1,193 @@
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p51
+  сборка   : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p51
+  пробы    : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p51
+  собрана  : 2026-09-14 01:26:13 из C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p51
+  наборы   : приложение 29962d23ec9e (549 файлов), пробы 8308a2f8aa44 (186)
+  сверено  : 476 файлов по sha256 за 2.34 с
+  библиотека: в оснастке корпуса НЕТ по правилу AMBER19 — состав из manifest.csv, линии из nucdb/matdb
+  перекладка: клейма склада и оснастки сошлись
+  ОСНАСТКА СВЕЖАЯ: 476 файлов сошлись
+
+запуск: CorpusFsaProbe.exe --corpus=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus --out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p51_full_a --weights=data
+гейт библиотеки (AMBER19): поставочного config\NuclideDefinition.xml в каталоге прогона НЕТ — проверено: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p51\config\NuclideDefinition.xml
+оснастка (T68): 476 файлов из .appwd.json сошлись с манифестом sha256(содержимое)/v1 по sha256 за 0.18 с
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p51\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p51\config\device: 24 loaded
+корпус: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus
+спектров под отбор: 123 (часть: all, режим: spline)
+библиотека: --lib=sample — состав из manifest.csv, линии из nucdb/matdb; поставочный config\NuclideDefinition.xml в РАЗБОРЕ НЕ УЧАСТВУЕТ: проба его не читает и спектру не предъявляет (правило Amber 01.09.2026); гейт AMBER19 (12.09.2026): файл в каталоге прогона или подъём NuclideDefinitionManager — отказ кодом 12
+суммирование вкл, наложения вкл, рассеяние вкл, вылеты вкл
+KEYS	ключи пробы против умолчаний (T115, отражением по Options; настройки анализатора — строка SETUP): Weights нет → data
+библиотека: ПО ОБЪЯВЛЕННОЙ ПРОБЕ (S56, manifest.csv + materials.csv)
+⚠ мерки сменили смысл: recall и фантомы считаются относительно ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать
+изомеры по sandia_symbol: вкл
+время жизни уровня: ВЕРОЯТНОСТНО (A289, умолчание)
+атомные партнёры каскада: рентген вкл, аннигиляция вкл; окно совпадения 1.000E-006 с (умолчание)
+сетка дрейфа: ноль ±8.00 кэВ, узлов 1 (один узел, дрейф не ищется); усиление ±2.00 %, узлов 1 (один узел, дрейф не ищется)
+полоса ОБОИХ концов: анализатор LibraryToFitByCurve/10.00 кэВ, библиотека LibraryToFitByCurve/10.00 кэВ — СОШЛИСЬ
+доля пола по кривой: 1.000 % (поставочная)
+пол ПОЛОСЫ ФИТА: ПОРОГ ПО РАМПЕ обоих спектров (проба и фон, пол = больший; доля уровня 0.70, окно 3.0 кэВ, рампа не шире 5 кэВ) (поставочный)
+SETUP	против поставочного разбора изменено: ModelWeights True → False
+
+ASN16_Th232            ASN16      unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN16_Charoite         ASN16      unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN16_UGlass           ASN16      unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN16_Granite          ASN16      unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+AS80_Th232_v2          AS80x80    unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+AS80_UGlass            AS80x80    unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+AS80_Charoite          AS80x80    unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+GS4000_Ra226           GS4000     unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+GS4000_Th232           GS4000     unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+GS4000_U               GS4000     unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+GS4000_Lu176           GS4000     unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN3_Tile              ASN3       unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN8_Th232_1024        ASN8_1024  unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN8_Th232_2048        ASN8_2048  unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN8_Th232_3000        ASN8_3000  unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN8_Th232_4096        ASN8_4096  unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN8_Th232_8192        ASN8_8192  unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN8_UGlass            ASN8_8192  unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN8_Am241             ASN8_8192  unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+OBS_UGlass             OBS        unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+⚠ RC101_I131: сборка не знает узлов SpectrumName, Comment — они ПРОПУЩЕНЫ молча (T41: сборка старше исходников?)
+RC101_I131             RC101      unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+AS1Pro_Ra226           AS1PRO     unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN16_Charoite_v2      ASN16      unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN16_Th232_Am241      ASN16      unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN16_Am241            ASN16      unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+полоса ПЕРВОГО разбора (ASN16_Cs137): полоса сведена ПОЛОМ ПО КРИВОЙ 16.0 кэВ (1.0 % от максимума, Min_Range 30.0), фит на всём спектре (умолчание); пол ПОЛОСЫ ФИТА — порог по рампе обоих спектров, доля уровня 0.70: проба рампа 0.34→6.81 кэВ (каналы 18→35; подошва 2.24, середина в канале 31 при уровне 131059, хвост 4); фон жёсткий рез 0.34 кэВ (канал 18 уже на уровне 330) → пол 6.81 кэВ (умолчание); фит 35…8190 (6.8…3345.1 кэВ)
+ASN16_Cs137            ASN16      unknown  chi2/ndf   26.635  σ× 5.161  пиков  13  комп.  3  матрица: файла нет                                               164 мс
+ASN16_Cs137_10cm       ASN16      unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+ASN16_BrazilNuts       ASN16      unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+RC103_Th232WT20        RC103      unknown  chi2/ndf   26.075  σ× 5.106  пиков  13  комп. 13  матрица: файла нет                                                26 мс
+AS80_Th232Medal        AS80x80    known    chi2/ndf   12.631  σ× 3.554  пиков  21  комп. 14  матрица: НАЙДЕНА, применена                                     1309 мс
+AS80_Onyx              AS80x80    unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+AS80_K40               AS80x80    unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+AS80_Th232WT20         AS80x80    unknown  chi2/ndf   20.745  σ× 4.555  пиков  19  комп. 12  матрица: файла нет                                               118 мс
+RC103_K40              RC103      known    chi2/ndf    1.718  σ× 1.311  пиков   3  комп.  5  матрица: НАЙДЕНА, применена                                       67 мс
+AS80_Cs137_0cm         AS80x80    known    chi2/ndf    4.574  σ× 2.139  пиков  11  комп.  2  матрица: НАЙДЕНА, применена                                      207 мс
+RC103_Cs137_0cm        RC103      known    chi2/ndf    2.407  σ× 1.551  пиков   4  комп.  2  матрица: НАЙДЕНА, применена                                       34 мс
+ASN16_Lu176            ASN16      known    chi2/ndf    3.776  σ× 1.943  пиков  11  комп.  4  матрица: НАЙДЕНА, применена                                      236 мс
+ASN16_Lu176_P0         ASN16      known    chi2/ndf    0.428  σ× 1.000  пиков   5  комп.  4  матрица: НАЙДЕНА, применена                                      241 мс
+AS80_Lu176             AS80x80    known    chi2/ndf    2.286  σ× 1.512  пиков  11  комп.  4  матрица: НАЙДЕНА, применена                                      226 мс
+AS80_Lu176_v2          AS80x80    known    chi2/ndf    1.918  σ× 1.385  пиков  14  комп.  4  матрица: НАЙДЕНА, применена                                      212 мс
+AS80_Am241             AS80x80    known    chi2/ndf    2.818  σ× 1.679  пиков   6  комп.  3  матрица: НАЙДЕНА, применена                                      189 мс
+⚠ RC103_K40Village: сборка не знает узлов SpectrumName, Comment, SP2DR_Table — они ПРОПУЩЕНЫ молча (T41: сборка старше исходников?)
+RC103_K40Village       RC103      unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+RC103_Th232Village     RC103      unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+RC103_Charoite         RC103      unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+RC103_Lu176            RC103      known    chi2/ndf    0.945  σ× 1.000  пиков   6  комп.  4  матрица: НАЙДЕНА, применена                                       44 мс
+LaBrBril_Th228         LABR_BRIL  unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+LaBrBril_Eu152         LABR_BRIL  unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+G1S16_Th232_Mar        G1S16      unknown  ОШИБКА: нет геометрии — разбора не было (A277: кристалл описывается в редакторе геометрии у кривой эффективности)
+G1S16_Mix_Denta100     G1S16      known    chi2/ndf    8.788  σ× 2.964  пиков  12  комп. 13  матрица: НАЙДЕНА, применена                                      292 мс
+G1S16_Th232_Denta100   G1S16      known    chi2/ndf    1.512  σ× 1.230  пиков  13  комп. 10  матрица: НАЙДЕНА, применена                                      931 мс
+G1S16_Mix_Mar          G1S16      known    chi2/ndf   22.392  σ× 4.732  пиков  16  комп. 13  матрица: НАЙДЕНА, применена                                      265 мс
+G1S16_Cs137_Mar        G1S16      known    chi2/ndf    1.647  σ× 1.283  пиков   4  комп.  2  матрица: НАЙДЕНА, применена                                       37 мс
+G1S16_Cs137_Mar_2      G1S16      known    chi2/ndf    2.037  σ× 1.427  пиков   4  комп.  2  матрица: НАЙДЕНА, применена                                       42 мс
+G1S16_K40_Mar          G1S16      known    chi2/ndf    1.063  σ× 1.031  пиков   4  комп.  5  матрица: НАЙДЕНА, применена                                       46 мс
+G1S16_K40_Mar_2        G1S16      known    chi2/ndf    1.161  σ× 1.077  пиков   4  комп.  5  матрица: НАЙДЕНА, применена                                       54 мс
+G1S16_Ra226_Mar        G1S16      known    chi2/ndf    2.735  σ× 1.654  пиков  16  комп. 10  матрица: НАЙДЕНА, применена                                      622 мс
+G1S16_Ra226_Mar_2      G1S16      known    chi2/ndf    4.528  σ× 2.128  пиков  17  комп. 10  матрица: НАЙДЕНА, применена                                      591 мс
+G1S16_Th232_Mar_2      G1S16      known    chi2/ndf    3.328  σ× 1.824  пиков  17  комп. 10  матрица: НАЙДЕНА, применена                                      920 мс
+G1S16_Th232_Mar_3      G1S16      known    chi2/ndf    4.455  σ× 2.111  пиков  19  комп. 10  матрица: НАЙДЕНА, применена                                      898 мс
+G1S16_Mix_Petri        G1S16      known    chi2/ndf    8.302  σ× 2.881  пиков  13  комп. 13  матрица: НАЙДЕНА, применена                                      272 мс
+G1S16_Th232_Petri      G1S16      known    chi2/ndf    1.590  σ× 1.261  пиков  12  комп. 10  матрица: НАЙДЕНА, применена                                      956 мс
+G1S16_Am241_P25        G1S16      known    chi2/ndf    1.657  σ× 1.287  пиков   2  комп.  3  матрица: НАЙДЕНА, применена                                       25 мс
+G1S16_Ba133_P25        G1S16      known    chi2/ndf    2.655  σ× 1.629  пиков  10  комп.  3  матрица: НАЙДЕНА, применена                                       61 мс
+G1S16_Cd109_P25        G1S16      known    chi2/ndf    1.429  σ× 1.196  пиков   5  комп.  3  матрица: НАЙДЕНА, применена                                       38 мс
+G1S16_Ce139_P25        G1S16      known    chi2/ndf    1.288  σ× 1.135  пиков   8  комп.  3  матрица: НАЙДЕНА, применена                                       46 мс
+G1S16_Co60_P25         G1S16      known    chi2/ndf    1.776  σ× 1.333  пиков   6  комп.  7  матрица: НАЙДЕНА, применена                                       78 мс
+G1S16_Cs137_P25        G1S16      known    chi2/ndf    2.078  σ× 1.442  пиков   8  комп.  2  матрица: НАЙДЕНА, применена                                       38 мс
+G1S16_Eu152_P25        G1S16      known    chi2/ndf    3.432  σ× 1.852  пиков  14  комп. 10  матрица: НАЙДЕНА, применена                                      247 мс
+G1S16_Mn54_P25         G1S16      known    chi2/ndf    1.641  σ× 1.281  пиков   7  комп.  2  матрица: НАЙДЕНА, применена                                       61 мс
+G1S16_Na22_P25         G1S16      known    chi2/ndf    4.157  σ× 2.039  пиков   9  комп.  5  матрица: НАЙДЕНА, применена                                       70 мс
+G1S16_Th228_P25        G1S16      known    chi2/ndf    1.278  σ× 1.130  пиков  12  комп.  8  матрица: НАЙДЕНА, применена                                      116 мс
+G1S16_Y88_P25          G1S16      known    chi2/ndf    1.209  σ× 1.100  пиков   9  комп.  5  матрица: НАЙДЕНА, применена                                       90 мс
+G1S16_Am241_P5         G1S16      known    chi2/ndf    2.310  σ× 1.520  пиков   3  комп.  3  матрица: НАЙДЕНА, применена                                       25 мс
+G1S16_Ba133_P5         G1S16      known    chi2/ndf   10.871  σ× 3.297  пиков   9  комп.  3  матрица: НАЙДЕНА, применена                                       51 мс
+G1S16_Cd109_P5         G1S16      known    chi2/ndf    3.026  σ× 1.739  пиков   3  комп.  3  матрица: НАЙДЕНА, применена                                       23 мс
+G1S16_Ce139_P5         G1S16      known    chi2/ndf    3.119  σ× 1.766  пиков   6  комп.  3  матрица: НАЙДЕНА, применена                                       29 мс
+G1S16_Co57_P5          G1S16      known    chi2/ndf    1.036  σ× 1.018  пиков   3  комп.  3  матрица: НАЙДЕНА, применена                                       50 мс
+G1S16_Co60_P5          G1S16      known    chi2/ndf    9.340  σ× 3.056  пиков   9  комп.  7  матрица: НАЙДЕНА, применена                                       65 мс
+G1S16_Cs137_P5         G1S16      known    chi2/ndf    8.144  σ× 2.854  пиков   5  комп.  2  матрица: НАЙДЕНА, применена                                       37 мс
+G1S16_Eu152_P5         G1S16      known    chi2/ndf   12.273  σ× 3.503  пиков  14  комп. 10  матрица: НАЙДЕНА, применена                                      267 мс
+G1S16_Mn54_P5          G1S16      known    chi2/ndf    2.788  σ× 1.670  пиков   6  комп.  2  матрица: НАЙДЕНА, применена                                       40 мс
+G1S16_Na22_P5          G1S16      known    chi2/ndf   11.832  σ× 3.440  пиков  11  комп.  5  матрица: НАЙДЕНА, применена                                       60 мс
+G1S16_Th228_P5         G1S16      known    chi2/ndf    4.369  σ× 2.090  пиков  14  комп.  8  матрица: НАЙДЕНА, применена                                      124 мс
+G1S16_Y88_P5           G1S16      known    chi2/ndf    1.322  σ× 1.150  пиков   6  комп.  5  матрица: НАЙДЕНА, применена                                       82 мс
+G1S24_Cs137_Denta120   G1S24      known    chi2/ndf    1.199  σ× 1.095  пиков   4  комп.  2  матрица: НАЙДЕНА, применена                                       36 мс
+G1S24_Cs137_Denta120_2 G1S24      known    chi2/ndf    1.806  σ× 1.344  пиков   5  комп.  2  матрица: НАЙДЕНА, применена                                       38 мс
+G1S24_K40_Denta120     G1S24      known    chi2/ndf    1.121  σ× 1.059  пиков  10  комп.  5  матрица: НАЙДЕНА, применена                                       40 мс
+G1S24_K40_Denta120_2   G1S24      known    chi2/ndf    1.226  σ× 1.107  пиков   8  комп.  5  матрица: НАЙДЕНА, применена                                       49 мс
+G1S24_Ra226_Denta120   G1S24      known    chi2/ndf    1.490  σ× 1.221  пиков  15  комп. 10  матрица: НАЙДЕНА, применена                                      579 мс
+G1S24_Ra226_Denta120_2 G1S24      known    chi2/ndf    3.268  σ× 1.808  пиков  17  комп. 10  матрица: НАЙДЕНА, применена                                      592 мс
+G1S24_Th232_Denta120   G1S24      known    chi2/ndf    1.173  σ× 1.083  пиков  12  комп. 10  матрица: НАЙДЕНА, применена                                      930 мс
+G1S24_Th232_Denta120_2 G1S24      known    chi2/ndf    2.048  σ× 1.431  пиков  15  комп. 10  матрица: НАЙДЕНА, применена                                      919 мс
+G1S24_Cs137_Mar        G1S24      known    chi2/ndf    2.368  σ× 1.539  пиков   6  комп.  2  матрица: НАЙДЕНА, применена                                       38 мс
+G1S24_Cs137_Mar_2      G1S24      known    chi2/ndf    4.673  σ× 2.162  пиков   7  комп.  2  матрица: НАЙДЕНА, применена                                       34 мс
+G1S24_K40_Mar          G1S24      known    chi2/ndf    1.348  σ× 1.161  пиков   4  комп.  5  матрица: НАЙДЕНА, применена                                       49 мс
+G1S24_K40_Mar_2        G1S24      known    chi2/ndf    1.410  σ× 1.188  пиков   5  комп.  5  матрица: НАЙДЕНА, применена                                       51 мс
+G1S24_Ra226_Mar        G1S24      known    chi2/ndf    2.287  σ× 1.512  пиков  16  комп. 10  матрица: НАЙДЕНА, применена                                      587 мс
+G1S24_Ra226_Mar_2      G1S24      known    chi2/ndf    4.751  σ× 2.180  пиков  17  комп. 10  матрица: НАЙДЕНА, применена                                      591 мс
+G1S24_Th232_Mar        G1S24      known    chi2/ndf    2.622  σ× 1.619  пиков  12  комп. 10  матрица: НАЙДЕНА, применена                                      913 мс
+G1S24_Th232_Mar_2      G1S24      known    chi2/ndf    6.574  σ× 2.564  пиков  16  комп. 10  матрица: НАЙДЕНА, применена                                      887 мс
+G1S24_Cs137_Petri      G1S24      known    chi2/ndf    1.219  σ× 1.104  пиков   3  комп.  2  матрица: НАЙДЕНА, применена                                       40 мс
+G1S24_Cs137_Petri_2    G1S24      known    chi2/ndf    1.720  σ× 1.312  пиков   6  комп.  2  матрица: НАЙДЕНА, применена                                       38 мс
+G1S24_K40_Petri        G1S24      known    chi2/ndf    1.328  σ× 1.152  пиков   6  комп.  5  матрица: НАЙДЕНА, применена                                       53 мс
+G1S24_K40_Petri_2      G1S24      known    chi2/ndf    1.116  σ× 1.057  пиков   4  комп.  5  матрица: НАЙДЕНА, применена                                       51 мс
+G1S24_Ra226_Petri      G1S24      known    chi2/ndf    1.517  σ× 1.232  пиков  15  комп. 10  матрица: НАЙДЕНА, применена                                      603 мс
+G1S24_Ra226_Petri_2    G1S24      known    chi2/ndf    2.872  σ× 1.695  пиков  16  комп. 10  матрица: НАЙДЕНА, применена                                      605 мс
+G1S24_Th232_Petri      G1S24      known    chi2/ndf    1.996  σ× 1.413  пиков  15  комп. 10  матрица: НАЙДЕНА, применена                                      943 мс
+G1S24_Th232_Petri_2    G1S24      known    chi2/ndf    4.475  σ× 2.115  пиков  17  комп. 10  матрица: НАЙДЕНА, применена                                      946 мс
+G1S24_Cs137_P25        G1S24      known    chi2/ndf    3.652  σ× 1.911  пиков   8  комп.  2  матрица: НАЙДЕНА, применена                                       37 мс
+G1S24_Na22_P25         G1S24      known    chi2/ndf    6.015  σ× 2.453  пиков  11  комп.  5  матрица: НАЙДЕНА, применена                                       56 мс
+G1S24_Th228_P25        G1S24      known    chi2/ndf    4.440  σ× 2.107  пиков  15  комп.  8  матрица: НАЙДЕНА, применена                                      117 мс
+G1S24_Y88_P25          G1S24      known    chi2/ndf    2.065  σ× 1.437  пиков  10  комп.  5  матрица: НАЙДЕНА, применена                                       76 мс
+G1S24_Am241_P5         G1S24      known    chi2/ndf    7.029  σ× 2.651  пиков   4  комп.  3  матрица: НАЙДЕНА, применена                                       27 мс
+G1S24_Ba133_P5         G1S24      known    chi2/ndf   16.935  σ× 4.115  пиков   9  комп.  3  матрица: НАЙДЕНА, применена                                       51 мс
+G1S24_Bi207_P5         G1S24      known    chi2/ndf   20.350  σ× 4.511  пиков  12  комп.  8  матрица: НАЙДЕНА, применена                                       93 мс
+G1S24_Cd109_P5         G1S24      known    chi2/ndf    2.363  σ× 1.537  пиков   3  комп.  3  матрица: НАЙДЕНА, применена                                       28 мс
+G1S24_Co60_P5          G1S24      known    chi2/ndf   11.144  σ× 3.338  пиков  12  комп.  7  матрица: НАЙДЕНА, применена                                       64 мс
+G1S24_Cs137_P5         G1S24      known    chi2/ndf   12.901  σ× 3.592  пиков   7  комп.  2  матрица: НАЙДЕНА, применена                                       35 мс
+G1S24_Eu152_P5         G1S24      known    chi2/ndf   29.429  σ× 5.425  пиков  13  комп. 10  матрица: НАЙДЕНА, применена                                      265 мс
+G1S24_Na22_P5          G1S24      known    chi2/ndf   32.989  σ× 5.744  пиков  13  комп.  5  матрица: НАЙДЕНА, применена                                       57 мс
+G1S24_Th228_P5         G1S24      known    chi2/ndf   20.801  σ× 4.561  пиков  17  комп.  8  матрица: НАЙДЕНА, применена                                      125 мс
+G1S24_Y88_P5           G1S24      known    chi2/ndf    8.193  σ× 2.862  пиков  11  комп.  5  матрица: НАЙДЕНА, применена                                       81 мс
+G1S24_Zn65_P5          G1S24      known    chi2/ndf    1.132  σ× 1.064  пиков   5  комп.  3  матрица: НАЙДЕНА, применена                                       61 мс
+гейт библиотеки (AMBER19): NuclideDefinitionManager за прогон не поднимался (обращений 0)
+APPLIED	применено по свидетельствам точек применения (T115): Atomic=True ×123; Background=True ×123; CrystalShield=False ×123; Equilibrium=True ×123; Matrix=True ×123
+
+записано групп: 16 -> C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p51_full_a
+
+=== итог по частям корпуса (22 с на часах, 23 с ЦП) ===
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+known            85       85        85      425.1       2.41        0        0        0
+           привязка шкалы (AMBER17): с опорами 85, без опор 0; крупнейшие сдвиги: G1S16_Am241_P5 (1 оп., усил. -13.56 %, ноль +0.00 кэВ); G1S16_Am241_P25 (1 оп., усил. -13.02 %, ноль +0.00 кэВ); AS80_Am241 (1 оп., усил. -12.66 %, ноль +0.00 кэВ); G1S24_Am241_P5 (1 оп., усил. -10.83 %, ноль +0.00 кэВ); G1S24_Th228_P5 (7 оп., усил. +1.92 %, ноль -6.20 кэВ)
+           положение по свету (F11 в): ключ (умолчание анализатора), форма line; со светом CsI:Tl 5, NaI:Tl 80; без кривой 0
+           нуль шкалы образа (S169): ключ (умолчание анализатора); карта adc включилась у 85 из 85 (нуль по съёмке 48, по прибору 37; заказана и не включилась 0)
+           образ наложений по свету (S107): ключ (умолчание анализатора); формой по свету CsI:Tl 5, NaI:Tl 80 из 85
+unknown          38        0         0       73.5      26.07       35        0        0
+           ⛔ БЕЗ ГЕОМЕТРИИ — РАЗБОРА НЕ БЫЛО (гейт A277): 35 из 38 — AS1Pro_Ra226, AS80_Charoite, AS80_K40, AS80_Onyx, AS80_Th232_v2, AS80_UGlass, ASN16_Am241, ASN16_BrazilNuts, ASN16_Charoite, ASN16_Charoite_v2, ASN16_Cs137_10cm, ASN16_Granite, ASN16_Th232, ASN16_Th232_Am241, ASN16_UGlass, ASN3_Tile, ASN8_Am241, ASN8_Th232_1024, ASN8_Th232_2048, ASN8_Th232_3000, ASN8_Th232_4096, ASN8_Th232_8192, ASN8_UGlass, G1S16_Th232_Mar, GS4000_Lu176, GS4000_Ra226, GS4000_Th232, GS4000_U, LaBrBril_Eu152, LaBrBril_Th228, OBS_UGlass, RC101_I131, RC103_Charoite, RC103_K40Village, RC103_Th232Village
+           ⛔ БЕЗ МАТРИЦЫ (файла нет либо отпечаток не сошёлся): 3 — узел кривой у них ЕСТЬ, а матрицы под него нет, и считались они из одних пиков
+           привязка шкалы (AMBER17): с опорами 0, без опор 3
+           образ наложений по свету (S107): ключ (умолчание анализатора); формой по свету energy 3 из 3
+
+отсев по значимости (~~`T240`~~): ПРИМЕНЁН у 85, отключился сам (порог выше значимости ВСЕХ судимых) у 0, выбрасывать было некого у 3, не заказан у 35
+  наибольшая значимость первого прохода: от 0.00 до 872.72 — с ней и сличается доля `RefitZRelative`
+  наименьшие вершины среди судимых: G1S16_Mix_Petri 27.58, G1S16_Mix_Denta100 31.32, G1S16_Y88_P25 42.99, G1S24_K40_Petri 44.70, G1S24_K40_Petri_2 44.75
+  доля вершины связала порог (ниже абсолютного) у 0
+
+ПРИМЕЧАНИЯ БАЗЫ КАСКАДОВ: 1 — работа при них ШЛА, это не отказ
+    22NA: нет ω_K для Z=10; 
+отказов базы каскадов НЕ БЫЛО
+
+УГЛОВЫЕ КОРРЕЛЯЦИИ В ПАРАХ (N14): ключ ВКЛ у 0 из 88 спектров; таблица Q_k сцены нашлась у 45; спектров с парами A_kk≠0 0, пар 0
+
+⚠ числа каждой строки принадлежат ТОЛЬКО своей части корпуса;
+  «понятная» считана с матрицей отклика, «непонятная» — из одних пиков.
+Фантомы и recall — C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p51_full_a\..\score.py по этим же файлам:
+  python tools/pie/score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p51_full_a --part=all
+клеймо прогона: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p51_full_a\.run.json (corpus 3d61851a7999, sources d66010e840f0, HEAD 391f9b71, ГРЯЗНОЕ дерево: tools/CORPUS/corpus/spectra/AS80_Am241.xml, tools/CORPUS/corpus/spectra/AS80_Cs137_0cm.xml, tools/CORPUS/corpus/spectra/AS80_Lu176.xml, tools/CORPUS/corpus/spectra/AS80_Lu176_v2.xml, tools/CORPUS/corpus/spectra/AS80_Th232Medal.xml, tools/CORPUS/corpus/spectra/ASN16_Lu176.xml, tools/CORPUS/corpus/spectra/ASN16_Lu176_P0.xml, tools/CORPUS/corpus/spectra/G1S16_Am241_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Am241_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Ba133_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Ba133_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Cd109_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Cd109_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Ce139_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Ce139_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Co57_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Co60_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Co60_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Cs137_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Cs137_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Cs137_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Cs137_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Eu152_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Eu152_P5.xml, tools/CORPUS/corpus/spectra/G1S16_K40_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_K40_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Mix_Denta100.xml, tools/CORPUS/corpus/spectra/G1S16_Mix_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Mix_Petri.xml, tools/CORPUS/corpus/spectra/G1S16_Mn54_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Mn54_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Na22_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Na22_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Ra226_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Ra226_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Th228_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Th228_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Denta100.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Mar_3.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Petri.xml, tools/CORPUS/corpus/spectra/G1S16_Y88_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Y88_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Am241_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Ba133_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Bi207_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Cd109_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Co60_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Denta120.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Denta120_2.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_P25.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Petri.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Petri_2.xml, tools/CORPUS/corpus/spectra/G1S24_Eu152_P5.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Denta120.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Denta120_2.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Petri.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Petri_2.xml, tools/CORPUS/corpus/spectra/G1S24_Na22_P25.xml, tools/CORPUS/corpus/spectra/G1S24_Na22_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Denta120.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Denta120_2.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Petri.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Petri_2.xml, tools/CORPUS/corpus/spectra/G1S24_Th228_P25.xml, tools/CORPUS/corpus/spectra/G1S24_Th228_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Denta120.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Denta120_2.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Petri.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Petri_2.xml, tools/CORPUS/corpus/spectra/G1S24_Y88_P25.xml, tools/CORPUS/corpus/spectra/G1S24_Y88_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Zn65_P5.xml, tools/CORPUS/corpus/spectra/RC103_Cs137_0cm.xml, tools/CORPUS/corpus/spectra/RC103_K40.xml, tools/CORPUS/corpus/spectra/RC103_Lu176.xml)

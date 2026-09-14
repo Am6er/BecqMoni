@@ -1,0 +1,213 @@
+﻿# Запуск корпусного прогона ЧЕРЕЗ СТОРОЖА (`T63`) — то есть читатель отказа.
+#
+#   & 'tools\CORPUS\scripts\run_appwd.ps1' -Out <каталог>
+#   & 'tools\CORPUS\scripts\run_appwd.ps1' -Out <каталог> -Extra '--lib=sample','--share-thr=0.30'
+#   & 'tools\CORPUS\scripts\run_appwd.ps1' -Out <каталог> -Bin <сборка> -Wd <оснастка> -Force
+#
+# ⛔ ЗВАТЬ ОПЕРАТОРОМ ВЫЗОВА `&`, А НЕ ЗАПУСКАТЬ ФАЙЛОМ (`T84`; причина уточнена
+#    заморозкой 27.08.2026 и записана здесь 05.09.2026 по `T91`). ⛔ Дело НЕ в
+#    том, что порождается процесс, — процесс порождается в обоих опытах. Дело в
+#    том, КТО РАЗБИРАЕТ АРГУМЕНТЫ: при запуске ФАЙЛОМ (`pwsh <файл>.ps1 …`,
+#    `pwsh -File <файл> …`) их разбирает командная строка, и массив `-Extra`
+#    схлопывается вместе с кавычками; при разборе PowerShell-парсером — хоть в
+#    текущей сессии (`& <файл> …`), хоть в новом процессе
+#    (`pwsh -NoProfile -Command "& <файл> …"`) — массив доезжает целым.
+#    Измерено 27.08.2026 на копии этой же шапки `param()`, два ключа:
+#      * `& <файл> …` из текущей сессии          -> `$Extra` = ДВА элемента;
+#      * `pwsh -NoProfile -Command "& <файл> …"` -> `$Extra` = ДВА элемента;
+#      * `pwsh <файл> …` / `pwsh -File <файл> …` -> ОДИН элемент, и в нём лежат
+#        сами кавычки: `'--lib=sample','--share-thr=0.30'`. Проба на такой
+#        аргумент печатает «неизвестный ключ» и возвращает 2;
+#      * `pwsh -File <файл> -Extra @('a','b')`   -> `$Extra` первый ключ,
+#        `$Rest` второй, то есть код 64 ниже.
+#    ⚠ С ОДНИМ ключом разницы не видно (один элемент и там, и там) — ломается
+#      молча начиная со второго. Склеенный аргумент ловит проверка ниже, код 65.
+#    Приёмка числом — `check_appwd.ps1 -SelfTest`: сколько ключей доезжает при
+#    каждом способе запуска (1/2/3), и ловит ли мерка склейки плохой вход.
+#    ⚠ Ключа `--sthr` у пробы НЕТ («неизвестный ключ», код 2; полоса C6,
+#      05.09.2026) — прежний пример шапки учил несуществующему ключу. Живой
+#      однокоренной ключ — `--share-thr`.
+#
+# ⛔ Зачем эта обёртка вообще нужна. Признак без читателя — главная грабля этого
+#    проекта: `B20` завела `matrix_note` «отпечаток НЕ сошёлся», и с 18.08 по
+#    23.08 весь корпус гонялся БЕЗ матрицы, потому что этот признак никто не
+#    спрашивал. Сторож оснастки, который только печатает предупреждение, — ровно
+#    то же самое. Здесь отказ ОСТАНАВЛИВАЕТ прогон: проба не запускается,
+#    код возврата 2, ни одного файла в `-Out` не появляется. Код 6 — план
+#    оснастки не строится вовсе (нет каталога проб, нет `CorpusFsaProbe.exe`),
+#    код 64 — лишние аргументы, код 65 — склеенный ключ пробы (`T84`).
+#
+# ⛔ Сторож спрашивает и БИБЛИОТЕКУ НУКЛИДОВ (`T66`, `Test-AppWdLibrary`).
+#    Прежде эта проверка жила только в `mk_appwd.ps1`, то есть мимо прогона:
+#    сверка по sha256 её не заменяет — она сравнивает копию с ИСТОЧНИКОМ, а
+#    вырожденный источник даёт вырожденную копию, совпадающую с ним побайтно.
+#    Опыт 26.08.2026: 4-записная заготовка в обеих точках — сторож печатал
+#    «свежая», и проба запускалась с кодом 0.
+#    ⛔ С 12.09.2026 (`AMBER19`) проверка ПЕРЕВЁРНУТА: в оснастке корпуса
+#    `config\NuclideDefinition.xml` быть НЕ ДОЛЖНО — корпус считается по
+#    нуклидам из базы по `manifest.csv`; файл в оснастке — отказ сторожа, а
+#    сама проба отказывает кодом 12 на старте (файл) и в конце (менеджер
+#    поднимали). Прежний довод «без файла прогон возьмёт заготовку» был
+#    ложным: безоконный запуск без файла бросает, а не пишет (`S100`).
+#
+# ⛔ Ключи пробы передаются ИМЕНОВАННЫМИ параметрами, а не россыпью. Причина
+#    измерена 25.08.2026 при первой же проверке этого файла: PowerShell рвёт
+#    хвостовой аргумент `--out=C:\путь` ПО ДВОЕТОЧИЮ (синтаксис `-Имя:Значение`),
+#    и проба получила `--out=C` и `\путь` двумя кусками — то есть молча писала
+#    бы результат не туда. Здесь строку для пробы собирает сам скрипт.
+#
+# ⛔ ОТНОСИТЕЛЬНЫЙ `-Out` ДОСТРАИВАЕТСЯ ОТ КАТАЛОГА POWERSHELL (`T136`, закрыта
+#    12.09.2026). До того он уходил пробе как есть, а проба запускается ИЗ
+#    оснастки: `-Out tools\pie\out_mini` ложился в `wd_app\tools\pie\out_mini`
+#    кодом 0 (`S136`, 04.09.2026) — заметил это `score.py`, а не прогон. Теперь
+#    все пути (`-Out`, `-Corpus`, `-Bin`, `-Wd`, `-ProbeBuild`, `-Store`)
+#    достраиваются от `Get-Location`, а не от каталога .NET-процесса (тот
+#    `Set-Location` не двигает — вторая половина той же беды, П13).
+#
+# `-Force` есть, и он громкий: бывает нужно нарочно прогнать старой оснасткой
+# (A/B по сборкам). Такой прогон обязан быть осознанным, а не случайным.
+param(
+    [Parameter(Mandatory)][string]$Out,
+    [string]$Corpus = '',
+    [string[]]$Extra = @(),
+    [string]$Bin = '',
+    [string]$Wd  = '',
+    [string]$ProbeBuild = '',
+    # `S138`: склад матриц плеча; пустой — штатный склад корпуса.
+    [string]$Store = '',
+    [switch]$Force,
+    [Parameter(ValueFromRemainingArguments = $true)][string[]]$Rest
+)
+$ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'appwd_plan.ps1')
+
+if ($Rest -and $Rest.Count -gt 0) {
+    Write-Host "⛔ ЛИШНИЕ АРГУМЕНТЫ: $($Rest -join ' ')" -ForegroundColor Red
+    Write-Host "   Ключи пробы передавайте так: -Out <каталог> -Extra '--lib=sample','--share-thr=0.30'" -ForegroundColor Red
+    Write-Host "   Россыпью нельзя: PowerShell рвёт '--out=C:\путь' по двоеточию." -ForegroundColor Red
+    Write-Host "   И звать ОПЕРАТОРОМ ВЫЗОВА из текущей сессии: & '<путь>\run_appwd.ps1' … (T84)." -ForegroundColor Red
+    Write-Host "   Форма 'pwsh -File <файл> -Extra @(a,b)' даёт ровно этот отказ: второй ключ уезжает сюда." -ForegroundColor Red
+    exit 64
+}
+
+# ⛔ СКЛЕЕННЫЙ КЛЮЧ — ЭТО ГРАБЛЯ ЗАПУСКА, А НЕ ОПЕЧАТКА (`T84`, 27.08.2026).
+#    Без этой проверки склейку называет ПРОБА, и называет неверно: «неизвестный
+#    ключ: '--lib=sample','--sthr=0.30'», код 2, — из чего следует вывод «сломан
+#    ключ» вместо «сломан способ запуска». Мерка ловит ровно три признака,
+#    и все три невозможны у настоящего ключа:
+#      * кавычка ВНУТРИ аргумента — её вносит расщепление командной строки;
+#      * `--` после запятой или пробела — это ВТОРОЙ ключ в том же аргументе
+#        (запятая сама по себе законна: `--groups=G1S,ASN16`, `--only=a,b`);
+#      * аргумент, не начинающийся с `--`, — ключей иного вида у пробы нет.
+$glued = [System.Collections.Generic.List[string]]::new()
+foreach ($e in @($Extra)) {
+    if ($e -match '["'']')      { $glued.Add("кавычки внутри аргумента: $e"); continue }
+    if ($e -match '[,\s]\s*--') { $glued.Add("два ключа в одном аргументе: $e"); continue }
+    if ($e -notmatch '^--')     { $glued.Add("ключ пробы обязан начинаться с --: $e") }
+}
+if ($glued.Count -gt 0) {
+    Write-Host ""
+    Write-Host "⛔⛔ ОТКАЗ: КЛЮЧИ ПРОБЫ СКЛЕИЛИСЬ ПРИ ЗАПУСКЕ — ПРОБА НЕ ЗАПУЩЕНА" -ForegroundColor Red
+    foreach ($g in $glued) { Write-Host ("   " + $g) -ForegroundColor Red }
+    Write-Host ""
+    Write-Host '   Дело не в самом ключе, а в способе запуска: у `pwsh <файл>.ps1 -Extra a,b`' -ForegroundColor Red
+    Write-Host "   аргументы разбирает КОМАНДНАЯ СТРОКА, а не PowerShell-парсер, и массив" -ForegroundColor Red
+    Write-Host "   приходит одной строкой вместе с кавычками. Процесс тут ни при чём:" -ForegroundColor Red
+    Write-Host '   `pwsh -NoProfile -Command "& <файл> …"` передаёт тот же массив ЦЕЛЫМ.' -ForegroundColor Red
+    Write-Host "   Звать надо ОПЕРАТОРОМ ВЫЗОВА:" -ForegroundColor Red
+    Write-Host ("       & '{0}\run_appwd.ps1' -Out <каталог> -Extra '--lib=sample','--share-thr=0.30'" -f $PSScriptRoot) -ForegroundColor Red
+    Write-Host ""
+    exit 65
+}
+
+$repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+if (-not $Wd) { $Wd = Join-Path $PSScriptRoot 'wd_app' }
+# ⛔ ВСЕ ПУТИ — В АБСОЛЮТНЫЕ ДО ПЕРВОГО ЧТЕНИЯ, И ОТ КАТАЛОГА POWERSHELL, А НЕ
+#    ПРОЦЕССА (`T91`, `T136`).
+#    `-Wd` (`T91`, 05.09.2026): отметку и пробу этот скрипт ищет САМ, помимо
+#    плана, а план сверяет обход каталога (абсолютные `FullName`) со склейкой
+#    от того, что дали параметром. На относительном `-Wd` сторож объявлял ВСЮ
+#    оснастку посторонней — отказ был, но диагноз («ЛИШНЕЕ В ОСНАСТКЕ» ×235)
+#    не тот.
+#    `-Out` (`T136`, 04.09.2026, `S136`): проба запускается ИЗ оснастки и
+#    относительный `--out=` трактует от НЕЁ — `-Out tools\pie\out_mini` ложился
+#    в `wd_app\tools\pie\out_mini`, прогон проходил кодом 0, и поймал это лишь
+#    `score.py`, не найдя каталога. Та же участь ждала бы `-Corpus`; `-Bin`,
+#    `-ProbeBuild` и `-Store` уходят в план и в отметку, где относительный путь
+#    читают уже из другого каталога.
+#    ⛔ Достраивать НЕ `[IO.Path]::GetFullPath` (так стояло здесь до 12.09.2026
+#    с фразой «делает то же, что `Test-Path`» — фраза была ложной): он берёт
+#    каталог .NET-ПРОЦЕССА, который `Set-Location` не двигает, — после смены
+#    каталога `build_all.ps1` собирал пробы в ИСХОДНОЕ дерево (П13, 06.09.2026),
+#    а в сеансе pwsh MCP этот каталог вовсе `C:\WINDOWS\system32` (измерено
+#    12.09.2026, полоса П28). `GetUnresolvedProviderPathFromPSPath` достраивает
+#    от каталога PowerShell (`Get-Location`) — ровно как `Test-Path`, `Copy-Item`
+#    и `New-Item`; абсолютный путь возвращает как есть, существования не требует.
+foreach ($name in @('Out', 'Corpus', 'Bin', 'Wd', 'ProbeBuild', 'Store')) {
+    $v = Get-Variable -Name $name -ValueOnly
+    if ($v) { Set-Variable -Name $name -Value ($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($v).TrimEnd('\')) }
+}
+$st = Read-AppWdStamp -Wd $Wd
+if (-not $Bin) {
+    if ($st -and $st.bin) { $Bin = [string]$st.bin }
+    else { $Bin = Join-Path $repo 'BecquerelMonitor\bin\Debug_Codex' }
+}
+if (-not $ProbeBuild -and $st -and $st.probes) { $ProbeBuild = [string]$st.probes }
+
+$plan = New-AppWdPlanOrDie -Repo $repo -Bin $Bin -Wd $Wd -ProbeBuild $ProbeBuild -Store $Store
+if (-not $Corpus) { $Corpus = $plan.Corpus }
+$bad = Invoke-AppWdGuard -Plan $plan
+
+if ($bad -gt 0) {
+    if (-not $Force) {
+        Write-Host ("⛔ ПРОБА НЕ ЗАПУЩЕНА. Соберите оснастку заново: & '{0}\mk_appwd.ps1' -Wd '{1}'" -f $PSScriptRoot, $Wd) -ForegroundColor Red
+        Write-Host "   (осознанный прогон протухшей оснасткой — ключ -Force)" -ForegroundColor Red
+        exit 2
+    }
+    Write-Host "⚠⚠ -Force: ПРОГОН НА ПРОТУХШЕЙ ОСНАСТКЕ. Числа этого прогона" -ForegroundColor Yellow
+    Write-Host "   в журнал и в базу корпуса НЕ ГОДЯТСЯ." -ForegroundColor Yellow
+}
+
+$probe = Join-Path $Wd 'CorpusFsaProbe.exe'
+if (-not (Test-Path -LiteralPath $probe)) { throw "нет $probe" }
+
+# ⛔ КЛЕЙМО ПРОГОНА (`T249`, 12.09.2026, П33). Объявление базы несёт отпечаток
+#    корпуса и сборки, которыми снят прогон, и `tools/check_declared_base.py`
+#    сверяет его с `<Out>\.run.json`. Клеймо пишет ТОТ ЖЕ сторож
+#    (`--write-run-stamp`): один код и на запись, и на чтение. Старое клеймо
+#    снимается ДО запуска пробы, новое кладётся только при коде 0 — иначе
+#    отказавший прогон оставил бы в каталоге клеймо удачного прошлого.
+$stampTool = Join-Path $repo 'tools\check_declared_base.py'
+$stampFile = Join-Path $Out '.run.json'
+if (Test-Path -LiteralPath $stampFile) { Remove-Item -LiteralPath $stampFile -Force }
+
+$argv = @("--corpus=$Corpus", "--out=$Out") + $Extra
+Write-Host ("запуск: CorpusFsaProbe.exe " + ($argv -join ' '))
+
+Push-Location -LiteralPath $Wd
+try {
+    & $probe @argv
+    $rc = $LASTEXITCODE
+} finally {
+    Pop-Location
+}
+
+if ($rc -eq 0 -and (Test-Path -LiteralPath $Out)) {
+    # ⚠ Имя переменной НЕ `$bin`: параметр `[string]$Bin` выше — та же переменная
+    #   (регистр PowerShell не различает), и объект отметки, присвоенный ей,
+    #   молча превращался в строку — поле `app_sha` уходило пустым (П33, 12.09.2026).
+    $binaries = $(if ($st -and $st.sources -and $st.sources.binaries) { $st.sources.binaries } else { $null })
+    $fields = @(
+        "--field", ("keys=" + ($Extra -join ' ')),
+        "--field", "wd=$Wd", "--field", "bin=$Bin", "--field", "probes=$ProbeBuild", "--field", "store=$Store",
+        "--field", ("app_sha=" + $(if ($binaries) { [string]$binaries.app } else { '' })),
+        "--field", ("probe_sha=" + $(if ($binaries -and $binaries.probes -and $binaries.probes.PSObject.Properties['corpusfsaprobe']) { [string]$binaries.probes.corpusfsaprobe } else { '' }))
+    )
+    $env:PYTHONIOENCODING = 'utf-8'
+    & python $stampTool "--write-run-stamp=$Out" "--corpus=$Corpus" @fields
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "⛔ КЛЕЙМО ПРОГОНА НЕ ЗАПИСАНО (код $LASTEXITCODE): каталог $Out объявлять нельзя (T249)" -ForegroundColor Red
+        exit 66
+    }
+}
+exit $rc

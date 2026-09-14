@@ -1,0 +1,20 @@
+{
+ "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
+ "corpus": "218ee6aa3609c5c549aaa16941af3fe42ae1ac3130601762cd6c15f69c628cb5",
+ "corpus_dir": "D:\\BqMoni_Claude\\p76\\wt\\tools\\CORPUS\\corpus",
+ "corpus_files": 211,
+ "dirty": [],
+ "fields": {
+  "app_sha": "4db3fb551d6aed00cdca5742652cc576621a2c9a4ed589d64d3f62ebe6e9931e",
+  "bin": "D:\\BqMoni_Claude\\p76\\wt\\BecquerelMonitor\\bin\\Release_p76",
+  "keys": "",
+  "probe_sha": "5d9c38db8d1f90bc75f977eed9f5d49fa2950cff64581306876bc58ac86e7ae2",
+  "probes": "D:\\BqMoni_Claude\\p76\\wt\\tools\\effmaker\\probes\\build_p76",
+  "store": "",
+  "wd": "D:\\BqMoni_Claude\\p76\\wt\\tools\\CORPUS\\scripts\\wd_p76a"
+ },
+ "head": "97ccef9f56550f627f8a6ee9034ef55a475cdc9c",
+ "sources": "8c4d788c6f06c016aca621cd03260811212620d76d8f6af34da7dc63534ee3d5",
+ "sources_files": 558,
+ "written": "2026-09-14 22:47:27"
+}

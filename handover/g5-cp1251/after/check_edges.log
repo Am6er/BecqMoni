@@ -1,0 +1,5 @@
+usage: check_edges.py [-h] [--db DB]
+
+options:
+  -h, --help  show this help message and exit
+  --db DB

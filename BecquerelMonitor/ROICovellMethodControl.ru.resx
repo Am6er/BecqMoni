@@ -178,4 +178,25 @@
   <data name="label12.Text" xml:space="preserve">
     <value>Шир. прав. границы</value>
   </data>
+  <data name="label13.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
+  <data name="label14.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
+  <data name="label15.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
+  <data name="label16.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
+  <data name="label4.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
+  <data name="label5.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
+  <data name="label6.Text" xml:space="preserve">
+    <value>±</value>
+  </data>
 </root>

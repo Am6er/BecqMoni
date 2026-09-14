@@ -1,0 +1,8 @@
+usage: mx_swap.py [-h] --from SRC [--wd WD] [--store] [--into INTO]
+
+options:
+  -h, --help   show this help message and exit
+  --from SRC   каталог с <ключ>.rmx
+  --wd WD      каталог прогона (копия wd_app)
+  --store      класть в СКЛАД КОРПУСА geometries/response, а не в прогон
+  --into INTO  каталог склада ПЛЕЧА: кладём в <каталог>/response

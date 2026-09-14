@@ -1,0 +1,8 @@
+файл          : C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\geom\ASN16_lu_side.rmx (680 Б)
+формат        : 7  клеймо: phys=16;bee7ee3c96426e05…  историй: 400000  узлов: 2  каналов: 4
+раскладка, Б  : шапка 0..109, параметры 109..153, ТЕЛО 153..537 (384 Б), NOIS с 537 да, хвост BODY со смещения 644 (4 метка + 32 SHA-256), конец 680
+SHA-256 тела  : 916b377f246324546fcb70b533403692990d76e0029a6592d50e06aa6e2266b7
+в хвосте BODY : 916b377f246324546fcb70b533403692990d76e0029a6592d50e06aa6e2266b7
+СХОДИТСЯ
+порченое тело : байт 244 (старший байт float последнего бина первой непустой строки) -> C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\geom\flip_body.rmx
+порченая шапка: байт 107 (BuildSeconds) -> C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\geom\flip_head.rmx

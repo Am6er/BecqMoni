@@ -1,0 +1,11 @@
+exe: 14.09.2026 16:22:45  sha256 906B6B8632512B98
+as80_free    код 0  chi2/ndf 12.596, невязка модели 18.6 %, суммирование да  | CUT Esc-NaI Nuisance z=0.00 |  | meta,response_matrix,,,1,,,,,,,,,,,,,
+as80_eq      код 0  chi2/ndf 14.115, невязка модели 21.3 %, суммирование да  | CUT Esc-NaI Nuisance z=0.00 |  | meta,response_matrix,,,1,,,,,,,,,,,,,
+as80_nomx    код 0  chi2/ndf 11.975, невязка модели 17.2 %, суммирование нет  | CUT Esc-NaI Nuisance z=0.00 |  | meta,response_matrix,,,0,,,,,,,,,,,,,
+radon1_free  код 0  chi2/ndf 1.132, невязка модели 59.0 %, суммирование да  | ROW Esc-CsI Nuisance 6.083 - - |  | meta,response_matrix,,,1,,,,,,,,,,,,,
+radon1_eq    код 0  chi2/ndf 1.260, невязка модели 56.9 %, суммирование да  | CUT Esc-CsI Nuisance z=0.21 |  | meta,response_matrix,,,1,,,,,,,,,,,,,
+radon1_nomx  код 0  chi2/ndf 1.143, невязка модели 57.0 %, суммирование нет  | ROW Esc-CsI Nuisance 8.189 - - |  | meta,response_matrix,,,0,,,,,,,,,,,,,
+radon2_free  код 0  chi2/ndf 1.287, невязка модели 79.7 %, суммирование да  | ROW Esc-CsI Nuisance 45.663 - - |  | meta,response_matrix,,,1,,,,,,,,,,,,,
+radon2_eq    код 0  chi2/ndf 1.129, невязка модели 74.8 %, суммирование да  | ROW Esc-CsI Nuisance 38.222 - - |  | meta,response_matrix,,,1,,,,,,,,,,,,,
+radon2_nomx  код 0  chi2/ndf 1.283, невязка модели 80.3 %, суммирование нет  | ROW Esc-CsI Nuisance 33.839 - - |  | meta,response_matrix,,,0,,,,,,,,,,,,,
+коды: as80_free=0 as80_eq=0 as80_nomx=0 radon1_free=0 radon1_eq=0 radon1_nomx=0 radon2_free=0 radon2_eq=0 radon2_nomx=0

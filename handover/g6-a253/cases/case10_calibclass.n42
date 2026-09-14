@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RadInstrumentData xmlns="http://physics.nist.gov/N42/2011/N42" n42DocUUID="probe-a136-case10">
+  <RadInstrumentInformation id="RadInstrument">
+    <RadInstrumentManufacturerName>PROBE</RadInstrumentManufacturerName>
+    <RadInstrumentModelName>A136</RadInstrumentModelName>
+    <RadInstrumentClassCode>Radionuclide Identifier</RadInstrumentClassCode>
+    <RadInstrumentVersion>
+      <RadInstrumentComponentName>Hardware</RadInstrumentComponentName>
+      <RadInstrumentComponentVersion>1</RadInstrumentComponentVersion>
+    </RadInstrumentVersion>
+  </RadInstrumentInformation>
+  <EnergyCalibration id="EC1">
+    <CoefficientValues>3.5 12.5</CoefficientValues>
+  </EnergyCalibration>
+  <RadMeasurement id="M1">
+    <MeasurementClassCode>Foreground</MeasurementClassCode>
+    <StartDateTime>2026-09-05T12:00:00Z</StartDateTime>
+    <RealTimeDuration>PT300S</RealTimeDuration>
+    <Spectrum id="S-M1" energyCalibrationReference="EC1">
+      <LiveTimeDuration>PT295S</LiveTimeDuration>
+      <ChannelData>1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1</ChannelData>
+    </Spectrum>
+  </RadMeasurement>
+  <RadMeasurement id="M2">
+    <MeasurementClassCode>Calibration</MeasurementClassCode>
+    <StartDateTime>2026-09-05T13:00:00Z</StartDateTime>
+    <RealTimeDuration>PT300S</RealTimeDuration>
+    <Spectrum id="S-M2" energyCalibrationReference="EC1">
+      <LiveTimeDuration>PT295S</LiveTimeDuration>
+      <ChannelData>2 3 4 5 6 7 8 2 3 4 5 6 7 8 2 3 4 5 6 7 8 2 3 4 5 6 7 8 2 3 4 5 6 7 8 2 3 4 5 6 7 8 2 3 4 5 6 7 8 2 3 4 5 6 7 8 2 3 4 5 6 7 8 2</ChannelData>
+    </Spectrum>
+  </RadMeasurement>
+</RadInstrumentData>

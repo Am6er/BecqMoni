@@ -1,0 +1,11 @@
+ours RC103_point0_1460.82_ref code=0 n=40000000 09:15:46 dt=222s
+ours ASN16_lu_side_1460.82_RC103_point0_1460.82_ref code=0 n=8000000 09:17:00 dt=75s
+ours AS80_point0_1460.82_ASN16_lu_side_1460.82_RC103_point0_1460.82_ref code=0 n=4000000 09:17:28 dt=28s
+ours AS80_th_disk_2614.511_AS80_point0_1460.82_ASN16_lu_side_1460.82_RC103_point0_1460.82_ref code=0 n=8000000 09:19:32 dt=124s
+ours RC103_point0_661.657_AS80_th_disk_2614.511_AS80_point0_1460.82_ASN16_lu_side_1460.82_RC103_point0_1460.82_ref code=0 n=40000000 09:24:30 dt=298s
+ours ASN16_lu_side_661.657_RC103_point0_661.657_AS80_th_disk_2614.511_AS80_point0_1460.82_ASN16_lu_side_1460.82_RC103_point0_1460.82_ref code=0 n=8000000 09:26:08 dt=98s
+ours AS80_point0_661.657_ASN16_lu_side_661.657_RC103_point0_661.657_AS80_th_disk_2614.511_AS80_point0_1460.82_ASN16_lu_side_1460.82_RC103_point0_1460.82_ref code=0 n=4000000 09:26:49 dt=41s
+ours RC103_point0_59.541_AS80_point0_661.657_ASN16_lu_side_661.657_RC103_point0_661.657_AS80_th_disk_2614.511_AS80_point0_1460.82_ASN16_lu_side_1460.82_RC103_point0_1460.82_ref code=0 n=40000000 09:33:11 dt=382s
+ours ASN16_lu_side_59.541_RC103_point0_59.541_AS80_point0_661.657_ASN16_lu_side_661.657_RC103_point0_661.657_AS80_th_disk_2614.511_AS80_point0_1460.82_ASN16_lu_side_1460.82_RC103_point0_1460.82_ref code=0 n=8000000 09:34:25 dt=75s
+ours RC103_point0_2614.511_ASN16_lu_side_59.541_RC103_point0_59.541_AS80_point0_661.657_ASN16_lu_side_661.657_RC103_point0_661.657_AS80_th_disk_2614.511_AS80_point0_1460.82_ASN16_lu_side_1460.82_RC103_point0_1460.82_ref code=0 n=40000000 09:37:51 dt=205s
+done ours RC103_point0_2614.511_ASN16_lu_side_59.541_RC103_point0_59.541_AS80_point0_661.657_ASN16_lu_side_661.657_RC103_point0_661.657_AS80_th_disk_2614.511_AS80_point0_1460.82_ASN16_lu_side_1460.82_RC103_point0_1460.82_ref 09:37:51

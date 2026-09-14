@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -99,7 +100,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
         {
             if (arr.Length != this.centroids.Length)
             {
-                throw new PeakFinderError(String.Format("Sorting array has length " + arr.Length + "  but must have length " + this.centroids.Length));
+                throw new PeakFinderError("Sorting array has length " + arr.Length.ToString(CultureInfo.InvariantCulture) + "  but must have length " + this.centroids.Length.ToString(CultureInfo.InvariantCulture));
             }
             int[] sortedarg = this.argsort(arr, descending);
             List<double> _centroids = new List<double>();
@@ -155,7 +156,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
 
             if (xpeak < xmin || xpeak > xmax)
             {
-                throw new PeakFinderError(String.Format("Peak x " + xpeak + " is outside of range " + xmin + " - " + xmax));
+                throw new PeakFinderError("Peak x " + xpeak.ToString(CultureInfo.InvariantCulture) + " is outside of range " + xmin.ToString(CultureInfo.InvariantCulture) + " - " + xmax.ToString(CultureInfo.InvariantCulture));
             }
             bool is_New_x = true;
             if (this.centroids != null)
@@ -316,7 +317,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
 
             if (max_num < 1)
             {
-                throw new PeakFinderError("Must keep at least 1 peak, not " +  max_num);
+                throw new PeakFinderError("Must keep at least 1 peak, not " +  max_num.ToString(CultureInfo.InvariantCulture));
             }
 
             //find maxima

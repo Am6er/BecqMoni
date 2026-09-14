@@ -375,87 +375,6 @@
   <data name="&gt;&gt;button14.ZOrder" xml:space="preserve">
     <value>11</value>
   </data>
-  <data name="button15.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="button15.Location" type="System.Drawing.Point, System.Drawing">
-    <value>6, 326</value>
-  </data>
-  <data name="button15.Size" type="System.Drawing.Size, System.Drawing">
-    <value>66, 25</value>
-  </data>
-  <data name="button15.TabIndex" type="System.Int32, mscorlib">
-    <value>50</value>
-  </data>
-  <data name="button15.Text" xml:space="preserve">
-    <value>New</value>
-  </data>
-  <data name="&gt;&gt;button15.Name" xml:space="preserve">
-    <value>button15</value>
-  </data>
-  <data name="&gt;&gt;button15.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button15.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;button15.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="button16.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="button16.Location" type="System.Drawing.Point, System.Drawing">
-    <value>93, 326</value>
-  </data>
-  <data name="button16.Size" type="System.Drawing.Size, System.Drawing">
-    <value>66, 25</value>
-  </data>
-  <data name="button16.TabIndex" type="System.Int32, mscorlib">
-    <value>50</value>
-  </data>
-  <data name="button16.Text" xml:space="preserve">
-    <value>Delete</value>
-  </data>
-  <data name="&gt;&gt;button16.Name" xml:space="preserve">
-    <value>button16</value>
-  </data>
-  <data name="&gt;&gt;button16.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button16.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;button16.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="buttonClearDoseRate.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="buttonClearDoseRate.Location" type="System.Drawing.Point, System.Drawing">
-    <value>350, 326</value>
-  </data>
-  <data name="buttonClearDoseRate.Size" type="System.Drawing.Size, System.Drawing">
-    <value>75, 25</value>
-  </data>
-  <data name="buttonClearDoseRate.TabIndex" type="System.Int32, mscorlib">
-    <value>51</value>
-  </data>
-  <data name="buttonClearDoseRate.Text" xml:space="preserve">
-    <value>Clear all</value>
-  </data>
-  <data name="&gt;&gt;buttonClearDoseRate.Name" xml:space="preserve">
-    <value>buttonClearDoseRate</value>
-  </data>
-  <data name="&gt;&gt;buttonClearDoseRate.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;buttonClearDoseRate.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;buttonClearDoseRate.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
   <data name="label18.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -893,6 +812,60 @@
   </data>
   <data name="&gt;&gt;label24.ZOrder" xml:space="preserve">
     <value>14</value>
+  </data>
+  <data name="crystalMaterialLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="crystalMaterialLabel.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="crystalMaterialLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>6, 139</value>
+  </data>
+  <data name="crystalMaterialLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>82, 13</value>
+  </data>
+  <data name="crystalMaterialLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>94</value>
+  </data>
+  <data name="crystalMaterialLabel.Text" xml:space="preserve">
+    <value>Crystal Material</value>
+  </data>
+  <data name="crystalMaterialNotSet" xml:space="preserve">
+    <value>(not specified)</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialLabel.Name" xml:space="preserve">
+    <value>crystalMaterialLabel</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialLabel.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialLabel.ZOrder" xml:space="preserve">
+    <value>18</value>
+  </data>
+  <data name="crystalMaterialCombo.Location" type="System.Drawing.Point, System.Drawing">
+    <value>140, 136</value>
+  </data>
+  <data name="crystalMaterialCombo.Size" type="System.Drawing.Size, System.Drawing">
+    <value>202, 21</value>
+  </data>
+  <data name="crystalMaterialCombo.TabIndex" type="System.Int32, mscorlib">
+    <value>95</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialCombo.Name" xml:space="preserve">
+    <value>crystalMaterialCombo</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialCombo.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialCombo.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialCombo.ZOrder" xml:space="preserve">
+    <value>19</value>
   </data>
   <data name="tabPage1.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 22</value>
@@ -2469,357 +2442,6 @@
   <data name="&gt;&gt;groupBox2.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
-  <data name="deconvolutionGroupBox.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Left, Right</value>
-  </data>
-  <data name="deconvolutionEnabledLabel.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="deconvolutionEnabledLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>18, 25</value>
-  </data>
-  <data name="deconvolutionEnabledLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>46, 13</value>
-  </data>
-  <data name="deconvolutionEnabledLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>0</value>
-  </data>
-  <data name="deconvolutionEnabledLabel.Text" xml:space="preserve">
-    <value>Enabled</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionEnabledLabel.Name" xml:space="preserve">
-    <value>deconvolutionEnabledLabel</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionEnabledLabel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionEnabledLabel.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionEnabledLabel.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="deconvolutionEnabledCheckBox.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="deconvolutionEnabledCheckBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>118, 24</value>
-  </data>
-  <data name="deconvolutionEnabledCheckBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>15, 14</value>
-  </data>
-  <data name="deconvolutionEnabledCheckBox.TabIndex" type="System.Int32, mscorlib">
-    <value>1</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionEnabledCheckBox.Name" xml:space="preserve">
-    <value>deconvolutionEnabledCheckBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionEnabledCheckBox.Type" xml:space="preserve">
-    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionEnabledCheckBox.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionEnabledCheckBox.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="deconvolutionBurnInLabel.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="deconvolutionBurnInLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>18, 52</value>
-  </data>
-  <data name="deconvolutionBurnInLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>43, 13</value>
-  </data>
-  <data name="deconvolutionBurnInLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
-  </data>
-  <data name="deconvolutionBurnInLabel.Text" xml:space="preserve">
-    <value>Burn-in</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionBurnInLabel.Name" xml:space="preserve">
-    <value>deconvolutionBurnInLabel</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionBurnInLabel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionBurnInLabel.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionBurnInLabel.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="deconvolutionBurnInNumericUpDown.Location" type="System.Drawing.Point, System.Drawing">
-    <value>118, 49</value>
-  </data>
-  <data name="deconvolutionBurnInNumericUpDown.Size" type="System.Drawing.Size, System.Drawing">
-    <value>73, 20</value>
-  </data>
-  <data name="deconvolutionBurnInNumericUpDown.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
-  </data>
-  <data name="deconvolutionBurnInNumericUpDown.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionBurnInNumericUpDown.Name" xml:space="preserve">
-    <value>deconvolutionBurnInNumericUpDown</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionBurnInNumericUpDown.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionBurnInNumericUpDown.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionBurnInNumericUpDown.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="deconvolutionSamplesLabel.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="deconvolutionSamplesLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>18, 79</value>
-  </data>
-  <data name="deconvolutionSamplesLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>47, 13</value>
-  </data>
-  <data name="deconvolutionSamplesLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>4</value>
-  </data>
-  <data name="deconvolutionSamplesLabel.Text" xml:space="preserve">
-    <value>Samples</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionSamplesLabel.Name" xml:space="preserve">
-    <value>deconvolutionSamplesLabel</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionSamplesLabel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionSamplesLabel.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionSamplesLabel.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="deconvolutionSamplesNumericUpDown.Location" type="System.Drawing.Point, System.Drawing">
-    <value>118, 76</value>
-  </data>
-  <data name="deconvolutionSamplesNumericUpDown.Size" type="System.Drawing.Size, System.Drawing">
-    <value>73, 20</value>
-  </data>
-  <data name="deconvolutionSamplesNumericUpDown.TabIndex" type="System.Int32, mscorlib">
-    <value>5</value>
-  </data>
-  <data name="deconvolutionSamplesNumericUpDown.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionSamplesNumericUpDown.Name" xml:space="preserve">
-    <value>deconvolutionSamplesNumericUpDown</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionSamplesNumericUpDown.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionSamplesNumericUpDown.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionSamplesNumericUpDown.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
-  <data name="deconvolutionMaxRoisLabel.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="deconvolutionMaxRoisLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>18, 106</value>
-  </data>
-  <data name="deconvolutionMaxRoisLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>54, 13</value>
-  </data>
-  <data name="deconvolutionMaxRoisLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>6</value>
-  </data>
-  <data name="deconvolutionMaxRoisLabel.Text" xml:space="preserve">
-    <value>Max ROIs</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxRoisLabel.Name" xml:space="preserve">
-    <value>deconvolutionMaxRoisLabel</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxRoisLabel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxRoisLabel.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxRoisLabel.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <data name="deconvolutionMaxRoisNumericUpDown.Location" type="System.Drawing.Point, System.Drawing">
-    <value>118, 103</value>
-  </data>
-  <data name="deconvolutionMaxRoisNumericUpDown.Size" type="System.Drawing.Size, System.Drawing">
-    <value>73, 20</value>
-  </data>
-  <data name="deconvolutionMaxRoisNumericUpDown.TabIndex" type="System.Int32, mscorlib">
-    <value>7</value>
-  </data>
-  <data name="deconvolutionMaxRoisNumericUpDown.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxRoisNumericUpDown.Name" xml:space="preserve">
-    <value>deconvolutionMaxRoisNumericUpDown</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxRoisNumericUpDown.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxRoisNumericUpDown.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxRoisNumericUpDown.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
-  <data name="deconvolutionMaxExtraPeaksPerRoiLabel.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="deconvolutionMaxExtraPeaksPerRoiLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>18, 133</value>
-  </data>
-  <data name="deconvolutionMaxExtraPeaksPerRoiLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>53, 13</value>
-  </data>
-  <data name="deconvolutionMaxExtraPeaksPerRoiLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>8</value>
-  </data>
-  <data name="deconvolutionMaxExtraPeaksPerRoiLabel.Text" xml:space="preserve">
-    <value>Max extra</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiLabel.Name" xml:space="preserve">
-    <value>deconvolutionMaxExtraPeaksPerRoiLabel</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiLabel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiLabel.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiLabel.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
-  <data name="deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Location" type="System.Drawing.Point, System.Drawing">
-    <value>118, 130</value>
-  </data>
-  <data name="deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Size" type="System.Drawing.Size, System.Drawing">
-    <value>73, 20</value>
-  </data>
-  <data name="deconvolutionMaxExtraPeaksPerRoiNumericUpDown.TabIndex" type="System.Int32, mscorlib">
-    <value>9</value>
-  </data>
-  <data name="deconvolutionMaxExtraPeaksPerRoiNumericUpDown.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Name" xml:space="preserve">
-    <value>deconvolutionMaxExtraPeaksPerRoiNumericUpDown</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiNumericUpDown.ZOrder" xml:space="preserve">
-    <value>9</value>
-  </data>
-  <data name="deconvolutionRoiRadiusFwhmLabel.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="deconvolutionRoiRadiusFwhmLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>225, 52</value>
-  </data>
-  <data name="deconvolutionRoiRadiusFwhmLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
-  </data>
-  <data name="deconvolutionRoiRadiusFwhmLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>10</value>
-  </data>
-  <data name="deconvolutionRoiRadiusFwhmLabel.Text" xml:space="preserve">
-    <value>ROI radius</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmLabel.Name" xml:space="preserve">
-    <value>deconvolutionRoiRadiusFwhmLabel</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmLabel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmLabel.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmLabel.ZOrder" xml:space="preserve">
-    <value>10</value>
-  </data>
-  <data name="deconvolutionRoiRadiusFwhmNumericUpDown.Location" type="System.Drawing.Point, System.Drawing">
-    <value>347, 49</value>
-  </data>
-  <data name="deconvolutionRoiRadiusFwhmNumericUpDown.Size" type="System.Drawing.Size, System.Drawing">
-    <value>73, 20</value>
-  </data>
-  <data name="deconvolutionRoiRadiusFwhmNumericUpDown.TabIndex" type="System.Int32, mscorlib">
-    <value>11</value>
-  </data>
-  <data name="deconvolutionRoiRadiusFwhmNumericUpDown.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmNumericUpDown.Name" xml:space="preserve">
-    <value>deconvolutionRoiRadiusFwhmNumericUpDown</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmNumericUpDown.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmNumericUpDown.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmNumericUpDown.ZOrder" xml:space="preserve">
-    <value>11</value>
-  </data>
-  <data name="deconvolutionGroupBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 289</value>
-  </data>
-  <data name="deconvolutionGroupBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>440, 165</value>
-  </data>
-  <data name="deconvolutionGroupBox.TabIndex" type="System.Int32, mscorlib">
-    <value>21</value>
-  </data>
-  <data name="deconvolutionGroupBox.Text" xml:space="preserve">
-    <value>Deconvolution</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionGroupBox.Name" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionGroupBox.Type" xml:space="preserve">
-    <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionGroupBox.Parent" xml:space="preserve">
-    <value>tabPage5</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionGroupBox.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="deconvolutionEnabled.ToolTip" xml:space="preserve">
-    <value>Enables RJMCMC deconvolution after deterministic FWHM peak detection for this device configuration.</value>
-  </data>
-  <data name="deconvolutionBurnIn.ToolTip" xml:space="preserve">
-    <value>Number of initial RJMCMC iterations discarded before collecting candidate samples.</value>
-  </data>
-  <data name="deconvolutionSamples.ToolTip" xml:space="preserve">
-    <value>Number of RJMCMC iterations used to collect candidate peak samples after burn-in.</value>
-  </data>
-  <data name="deconvolutionMaxRois.ToolTip" xml:space="preserve">
-    <value>Maximum number of ROI regions processed by the deconvolution step.</value>
-  </data>
-  <data name="deconvolutionMaxExtraPeaksPerRoi.ToolTip" xml:space="preserve">
-    <value>Maximum number of additional unresolved peaks RJMCMC can add inside one ROI.</value>
-  </data>
-  <data name="deconvolutionRoiRadiusFwhm.ToolTip" xml:space="preserve">
-    <value>ROI half-width around each deterministic peak, expressed in FWHM units.</value>
-  </data>
   <data name="tabPage5.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 22</value>
   </data>
@@ -2985,84 +2607,6 @@
   <data name="&gt;&gt;textBox17.ZOrder" xml:space="preserve">
     <value>4</value>
   </data>
-  <data name="effROIText.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Left, Right</value>
-  </data>
-  <data name="effROIText.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="effROIText.Location" type="System.Drawing.Point, System.Drawing">
-    <value>15, 122</value>
-  </data>
-  <data name="effROIText.Size" type="System.Drawing.Size, System.Drawing">
-    <value>448, 17</value>
-  </data>
-  <data name="effROIText.TabIndex" type="System.Int32, mscorlib">
-    <value>40</value>
-  </data>
-  <data name="effROIText.Text" xml:space="preserve">
-    <value>Select ROI with efficiency curve data:</value>
-  </data>
-  <data name="&gt;&gt;effROIText.Name" xml:space="preserve">
-    <value>effROIText</value>
-  </data>
-  <data name="&gt;&gt;effROIText.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;effROIText.Parent" xml:space="preserve">
-    <value>tabPage4</value>
-  </data>
-  <data name="&gt;&gt;effROIText.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
-  <data name="selectEffROI.Location" type="System.Drawing.Point, System.Drawing">
-    <value>30, 144</value>
-  </data>
-  <data name="selectEffROI.Size" type="System.Drawing.Size, System.Drawing">
-    <value>288, 21</value>
-  </data>
-  <data name="selectEffROI.TabIndex" type="System.Int32, mscorlib">
-    <value>9</value>
-  </data>
-  <data name="&gt;&gt;selectEffROI.Name" xml:space="preserve">
-    <value>selectEffROI</value>
-  </data>
-  <data name="&gt;&gt;selectEffROI.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;selectEffROI.Parent" xml:space="preserve">
-    <value>tabPage4</value>
-  </data>
-  <data name="&gt;&gt;selectEffROI.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <data name="clearEffROI.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="clearEffROI.Location" type="System.Drawing.Point, System.Drawing">
-    <value>328, 142</value>
-  </data>
-  <data name="clearEffROI.Size" type="System.Drawing.Size, System.Drawing">
-    <value>65, 25</value>
-  </data>
-  <data name="clearEffROI.TabIndex" type="System.Int32, mscorlib">
-    <value>50</value>
-  </data>
-  <data name="clearEffROI.Text" xml:space="preserve">
-    <value>Clear</value>
-  </data>
-  <data name="&gt;&gt;clearEffROI.Name" xml:space="preserve">
-    <value>clearEffROI</value>
-  </data>
-  <data name="&gt;&gt;clearEffROI.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;clearEffROI.Parent" xml:space="preserve">
-    <value>tabPage4</value>
-  </data>
-  <data name="&gt;&gt;clearEffROI.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
   <data name="tabPage4.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 22</value>
   </data>
@@ -3093,375 +2637,9 @@
   <metadata name="columnModel4.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>527, 17</value>
   </metadata>
-  <data name="numberColumn5.Text" xml:space="preserve">
-    <value>Lower bound, keV</value>
-  </data>
-  <data name="numberColumn5.ToolTipText" xml:space="preserve">
-    <value />
-  </data>
-  <data name="numberColumn5.Width" type="System.Int32, mscorlib">
-    <value>100</value>
-  </data>
-  <data name="numberColumn6.Text" xml:space="preserve">
-    <value>Upper bound, keV</value>
-  </data>
-  <data name="numberColumn6.ToolTipText" xml:space="preserve">
-    <value />
-  </data>
-  <data name="numberColumn6.Width" type="System.Int32, mscorlib">
-    <value>100</value>
-  </data>
-  <data name="numberColumn7.Text" xml:space="preserve">
-    <value>CPS</value>
-  </data>
-  <data name="numberColumn7.ToolTipText" xml:space="preserve">
-    <value />
-  </data>
-  <data name="numberColumn7.Width" type="System.Int32, mscorlib">
-    <value>60</value>
-  </data>
-  <data name="numberColumn8.Text" xml:space="preserve">
-    <value>Reference Dose Rate, μSv/h</value>
-  </data>
-  <data name="numberColumn8.ToolTipText" xml:space="preserve">
-    <value />
-  </data>
-  <data name="numberColumn8.Width" type="System.Int32, mscorlib">
-    <value>153</value>
-  </data>
-  <data name="table4.Location" type="System.Drawing.Point, System.Drawing">
-    <value>5, 16</value>
-  </data>
-  <data name="table4.NoItemsText" xml:space="preserve">
-    <value>No calibration points</value>
-  </data>
-  <data name="table4.Size" type="System.Drawing.Size, System.Drawing">
-    <value>438, 304</value>
-  </data>
-  <data name="table4.TabIndex" type="System.Int32, mscorlib">
-    <value>0</value>
-  </data>
   <metadata name="tableModel4.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>662, 17</value>
   </metadata>
-  <data name="table4.Text" xml:space="preserve">
-    <value>table4</value>
-  </data>
-  <data name="&gt;&gt;table4.Name" xml:space="preserve">
-    <value>table4</value>
-  </data>
-  <data name="&gt;&gt;table4.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;table4.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;table4.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="groupBox3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>9, 6</value>
-  </data>
-  <data name="groupBox3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>456, 362</value>
-  </data>
-  <data name="groupBox3.TabIndex" type="System.Int32, mscorlib">
-    <value>20</value>
-  </data>
-  <data name="groupBox3.Text" xml:space="preserve">
-    <value>Dose Rate</value>
-  </data>
-  <data name="&gt;&gt;groupBox3.Name" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;groupBox3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;groupBox3.Parent" xml:space="preserve">
-    <value>tabPage7</value>
-  </data>
-  <data name="&gt;&gt;groupBox3.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="labelDREstimateTitle.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="labelDREstimateTitle.Location" type="System.Drawing.Point, System.Drawing">
-    <value>6, 371</value>
-  </data>
-  <data name="labelDREstimateTitle.Size" type="System.Drawing.Size, System.Drawing">
-    <value>401, 20</value>
-  </data>
-  <data name="labelDREstimateTitle.TabIndex" type="System.Int32, mscorlib">
-    <value>21</value>
-  </data>
-  <data name="labelDREstimateTitle.Text" xml:space="preserve">
-    <value>Experimental: predict doserate curve based on LSRM model and sample spectrum</value>
-  </data>
-  <data name="&gt;&gt;labelDREstimateTitle.Name" xml:space="preserve">
-    <value>labelDREstimateTitle</value>
-  </data>
-  <data name="&gt;&gt;labelDREstimateTitle.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;labelDREstimateTitle.Parent" xml:space="preserve">
-    <value>tabPage7</value>
-  </data>
-  <data name="&gt;&gt;labelDREstimateTitle.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="textBoxEffFile.Location" type="System.Drawing.Point, System.Drawing">
-    <value>116, 446</value>
-  </data>
-  <data name="textBoxEffFile.Size" type="System.Drawing.Size, System.Drawing">
-    <value>336, 20</value>
-  </data>
-  <data name="textBoxEffFile.TabIndex" type="System.Int32, mscorlib">
-    <value>22</value>
-  </data>
-  <data name="&gt;&gt;textBoxEffFile.Name" xml:space="preserve">
-    <value>textBoxEffFile</value>
-  </data>
-  <data name="&gt;&gt;textBoxEffFile.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;textBoxEffFile.Parent" xml:space="preserve">
-    <value>tabPage7</value>
-  </data>
-  <data name="&gt;&gt;textBoxEffFile.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="textBoxDoseRateSpectrumFile.Location" type="System.Drawing.Point, System.Drawing">
-    <value>116, 397</value>
-  </data>
-  <data name="textBoxDoseRateSpectrumFile.Size" type="System.Drawing.Size, System.Drawing">
-    <value>336, 20</value>
-  </data>
-  <data name="textBoxDoseRateSpectrumFile.TabIndex" type="System.Int32, mscorlib">
-    <value>23</value>
-  </data>
-  <data name="&gt;&gt;textBoxDoseRateSpectrumFile.Name" xml:space="preserve">
-    <value>textBoxDoseRateSpectrumFile</value>
-  </data>
-  <data name="&gt;&gt;textBoxDoseRateSpectrumFile.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;textBoxDoseRateSpectrumFile.Parent" xml:space="preserve">
-    <value>tabPage7</value>
-  </data>
-  <data name="&gt;&gt;textBoxDoseRateSpectrumFile.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="buttonEstimateDRConf.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="buttonEstimateDRConf.Location" type="System.Drawing.Point, System.Drawing">
-    <value>9, 521</value>
-  </data>
-  <data name="buttonEstimateDRConf.Size" type="System.Drawing.Size, System.Drawing">
-    <value>181, 25</value>
-  </data>
-  <data name="buttonEstimateDRConf.TabIndex" type="System.Int32, mscorlib">
-    <value>24</value>
-  </data>
-  <data name="buttonEstimateDRConf.Text" xml:space="preserve">
-    <value>Calculate Dose Rate Config</value>
-  </data>
-  <data name="&gt;&gt;buttonEstimateDRConf.Name" xml:space="preserve">
-    <value>buttonEstimateDRConf</value>
-  </data>
-  <data name="&gt;&gt;buttonEstimateDRConf.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;buttonEstimateDRConf.Parent" xml:space="preserve">
-    <value>tabPage7</value>
-  </data>
-  <data name="&gt;&gt;buttonEstimateDRConf.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="labelDoseRateValue.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="labelDoseRateValue.Location" type="System.Drawing.Point, System.Drawing">
-    <value>81, 493</value>
-  </data>
-  <data name="labelDoseRateValue.Size" type="System.Drawing.Size, System.Drawing">
-    <value>136, 25</value>
-  </data>
-  <data name="labelDoseRateValue.TabIndex" type="System.Int32, mscorlib">
-    <value>25</value>
-  </data>
-  <data name="labelDoseRateValue.Text" xml:space="preserve">
-    <value>uSv/h, source dose rate</value>
-  </data>
-  <data name="&gt;&gt;labelDoseRateValue.Name" xml:space="preserve">
-    <value>labelDoseRateValue</value>
-  </data>
-  <data name="&gt;&gt;labelDoseRateValue.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;labelDoseRateValue.Parent" xml:space="preserve">
-    <value>tabPage7</value>
-  </data>
-  <data name="&gt;&gt;labelDoseRateValue.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
-  <data name="upDownDoseRateValue.Location" type="System.Drawing.Point, System.Drawing">
-    <value>9, 491</value>
-  </data>
-  <data name="upDownDoseRateValue.Size" type="System.Drawing.Size, System.Drawing">
-    <value>66, 20</value>
-  </data>
-  <data name="upDownDoseRateValue.TabIndex" type="System.Int32, mscorlib">
-    <value>26</value>
-  </data>
-  <data name="&gt;&gt;upDownDoseRateValue.Name" xml:space="preserve">
-    <value>upDownDoseRateValue</value>
-  </data>
-  <data name="&gt;&gt;upDownDoseRateValue.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;upDownDoseRateValue.Parent" xml:space="preserve">
-    <value>tabPage7</value>
-  </data>
-  <data name="&gt;&gt;upDownDoseRateValue.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <data name="labelEffNote.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="labelEffNote.Location" type="System.Drawing.Point, System.Drawing">
-    <value>6, 471</value>
-  </data>
-  <data name="labelEffNote.Size" type="System.Drawing.Size, System.Drawing">
-    <value>303, 17</value>
-  </data>
-  <data name="labelEffNote.TabIndex" type="System.Int32, mscorlib">
-    <value>27</value>
-  </data>
-  <data name="labelEffNote.Text" xml:space="preserve">
-    <value>*only curve shape is important (LSRM effcalc, 40 keV - 3MeV)</value>
-  </data>
-  <data name="&gt;&gt;labelEffNote.Name" xml:space="preserve">
-    <value>labelEffNote</value>
-  </data>
-  <data name="&gt;&gt;labelEffNote.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;labelEffNote.Parent" xml:space="preserve">
-    <value>tabPage7</value>
-  </data>
-  <data name="&gt;&gt;labelEffNote.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
-  <data name="buttonLoadEff.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="buttonLoadEff.Location" type="System.Drawing.Point, System.Drawing">
-    <value>6, 443</value>
-  </data>
-  <data name="buttonLoadEff.Size" type="System.Drawing.Size, System.Drawing">
-    <value>104, 25</value>
-  </data>
-  <data name="buttonLoadEff.TabIndex" type="System.Int32, mscorlib">
-    <value>28</value>
-  </data>
-  <data name="buttonLoadEff.Text" xml:space="preserve">
-    <value>Load Efficiency Data*</value>
-  </data>
-  <data name="&gt;&gt;buttonLoadEff.Name" xml:space="preserve">
-    <value>buttonLoadEff</value>
-  </data>
-  <data name="&gt;&gt;buttonLoadEff.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;buttonLoadEff.Parent" xml:space="preserve">
-    <value>tabPage7</value>
-  </data>
-  <data name="&gt;&gt;buttonLoadEff.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
-  <data name="labelSpectrumNote.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="labelSpectrumNote.Location" type="System.Drawing.Point, System.Drawing">
-    <value>6, 422</value>
-  </data>
-  <data name="labelSpectrumNote.Size" type="System.Drawing.Size, System.Drawing">
-    <value>157, 18</value>
-  </data>
-  <data name="labelSpectrumNote.TabIndex" type="System.Int32, mscorlib">
-    <value>29</value>
-  </data>
-  <data name="labelSpectrumNote.Text" xml:space="preserve">
-    <value>*source with a known dose rate</value>
-  </data>
-  <data name="&gt;&gt;labelSpectrumNote.Name" xml:space="preserve">
-    <value>labelSpectrumNote</value>
-  </data>
-  <data name="&gt;&gt;labelSpectrumNote.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;labelSpectrumNote.Parent" xml:space="preserve">
-    <value>tabPage7</value>
-  </data>
-  <data name="&gt;&gt;labelSpectrumNote.ZOrder" xml:space="preserve">
-    <value>9</value>
-  </data>
-  <data name="buttonLoadDoseRateSpectrum.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="buttonLoadDoseRateSpectrum.Location" type="System.Drawing.Point, System.Drawing">
-    <value>3, 394</value>
-  </data>
-  <data name="buttonLoadDoseRateSpectrum.Size" type="System.Drawing.Size, System.Drawing">
-    <value>97, 25</value>
-  </data>
-  <data name="buttonLoadDoseRateSpectrum.TabIndex" type="System.Int32, mscorlib">
-    <value>30</value>
-  </data>
-  <data name="buttonLoadDoseRateSpectrum.Text" xml:space="preserve">
-    <value>Load Spectrum*</value>
-  </data>
-  <data name="&gt;&gt;buttonLoadDoseRateSpectrum.Name" xml:space="preserve">
-    <value>buttonLoadDoseRateSpectrum</value>
-  </data>
-  <data name="&gt;&gt;buttonLoadDoseRateSpectrum.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;buttonLoadDoseRateSpectrum.Parent" xml:space="preserve">
-    <value>tabPage7</value>
-  </data>
-  <data name="&gt;&gt;buttonLoadDoseRateSpectrum.ZOrder" xml:space="preserve">
-    <value>10</value>
-  </data>
-  <data name="tabPage7.Location" type="System.Drawing.Point, System.Drawing">
-    <value>4, 22</value>
-  </data>
-  <data name="tabPage7.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
-    <value>3, 3, 3, 3</value>
-  </data>
-  <data name="tabPage7.Size" type="System.Drawing.Size, System.Drawing">
-    <value>490, 599</value>
-  </data>
-  <data name="tabPage7.TabIndex" type="System.Int32, mscorlib">
-    <value>5</value>
-  </data>
-  <data name="tabPage7.Text" xml:space="preserve">
-    <value>Dose Rate</value>
-  </data>
-  <data name="&gt;&gt;tabPage7.Name" xml:space="preserve">
-    <value>tabPage7</value>
-  </data>
-  <data name="&gt;&gt;tabPage7.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;tabPage7.Parent" xml:space="preserve">
-    <value>tabControl1</value>
-  </data>
-  <data name="&gt;&gt;tabPage7.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
   <data name="tabControl1.Location" type="System.Drawing.Point, System.Drawing">
     <value>408, 4</value>
   </data>
@@ -7914,42 +7092,6 @@
   <data name="&gt;&gt;tableModel2.Type" xml:space="preserve">
     <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
-  <data name="&gt;&gt;columnModel4.Name" xml:space="preserve">
-    <value>columnModel4</value>
-  </data>
-  <data name="&gt;&gt;columnModel4.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;numberColumn5.Name" xml:space="preserve">
-    <value>numberColumn5</value>
-  </data>
-  <data name="&gt;&gt;numberColumn5.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;numberColumn6.Name" xml:space="preserve">
-    <value>numberColumn6</value>
-  </data>
-  <data name="&gt;&gt;numberColumn6.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;numberColumn7.Name" xml:space="preserve">
-    <value>numberColumn7</value>
-  </data>
-  <data name="&gt;&gt;numberColumn7.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;numberColumn8.Name" xml:space="preserve">
-    <value>numberColumn8</value>
-  </data>
-  <data name="&gt;&gt;numberColumn8.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;tableModel4.Name" xml:space="preserve">
-    <value>tableModel4</value>
-  </data>
-  <data name="&gt;&gt;tableModel4.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
   <data name="&gt;&gt;columnModel1.Name" xml:space="preserve">
     <value>columnModel1</value>
   </data>
@@ -7974,10 +7116,67 @@
   <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
     <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
+  <data name="&gt;&gt;labelWidenFactor.Name" xml:space="preserve">
+    <value>labelWidenFactor</value>
+  </data>
+  <data name="&gt;&gt;labelWidenFactor.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;labelWidenFactor.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;labelWidenFactor.ZOrder" xml:space="preserve">
+    <value>17</value>
+  </data>
+  <data name="&gt;&gt;numericUpDownWidenFactor.Name" xml:space="preserve">
+    <value>numericUpDownWidenFactor</value>
+  </data>
+  <data name="&gt;&gt;numericUpDownWidenFactor.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDownWidenFactor.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDownWidenFactor.ZOrder" xml:space="preserve">
+    <value>18</value>
+  </data>
+  <data name="&gt;&gt;centroidComCheckBox.Name" xml:space="preserve">
+    <value>centroidComCheckBox</value>
+  </data>
+  <data name="&gt;&gt;centroidComCheckBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;centroidComCheckBox.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;centroidComCheckBox.ZOrder" xml:space="preserve">
+    <value>19</value>
+  </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
     <value>DeviceConfigForm</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
     <value>System.Windows.Forms.Form, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="labelWidenFactor.Text" xml:space="preserve">
+    <value>Peak width widen factor</value>
+  </data>
+  <data name="centroidComCheckBox.Text" xml:space="preserve">
+    <value>Centroid by center of mass</value>
+  </data>
+  <data name="lsrmGeometryDialogTitle" xml:space="preserve">
+    <value>Geometry of the LSRM curve: the .in file it was computed for (Cancel - import without geometry)</value>
+  </data>
+  <data name="lsrmGeometryProblem" xml:space="preserve">
+    <value>The geometry could not be attached to the curve "{0}":
+{1}
+
+The curve is imported without geometry; the dose rate has no scale until a geometry is added with Edit...</value>
+  </data>
+  <data name="lsrmGeometryNoCrystal" xml:space="preserve">
+    <value>{0}: no scintillator crystal dimensions found (DS_CrystalDiameter / DS_CrystalHeight or DS_CrystalBoxX / Y / Z) - not an LSRM scintillator geometry.</value>
+  </data>
+  <data name="lsrmGeometryFieldScene" xml:space="preserve">
+    <value>{0}: a field scene (DS_Scene = ISO) cannot be the geometry of an LSRM curve - the LSRM efficiency is per emitted quantum, not per unit fluence.</value>
   </data>
 </root>

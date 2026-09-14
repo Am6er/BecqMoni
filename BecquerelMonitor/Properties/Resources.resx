@@ -137,7 +137,7 @@
     <value>Failed to load application configuration file.</value>
   </data>
   <data name="ERRDuplicateDeviceConfigGUID" xml:space="preserve">
-    <value>Duplicate GUID for deivce configuration "{0}"</value>
+    <value>Duplicate GUID for device configuration "{0}"</value>
   </data>
   <data name="ROIPrimitiveOperationTypeSubtraction" xml:space="preserve">
     <value>Subtraction</value>
@@ -147,6 +147,15 @@
   </data>
   <data name="MSGSavingNuclideSet" xml:space="preserve">
     <value>Nuclide set(s) has been modified. Save?</value>
+  </data>
+  <data name="NuclideSetAssignColor" xml:space="preserve">
+    <value>Assign peak color:</value>
+  </data>
+  <data name="NuclideSetAssignColorButton" xml:space="preserve">
+    <value>Assign</value>
+  </data>
+  <data name="NuclideSetAssignColorEmpty" xml:space="preserve">
+    <value>The set contains no nuclides - there is nothing to paint.</value>
   </data>
   <data name="ERRDeviceConfigNotSelected" xml:space="preserve">
     <value>Device configuration is not selected.</value>
@@ -3735,8 +3744,18 @@
   <data name="ERRLoadingDeviceConfigFailed" xml:space="preserve">
     <value>Failed to load device configuration file(s).</value>
   </data>
+  <data name="ERRNucBaseOpenDatabase" xml:space="preserve">
+    <value>Cannot open the nuclide database. Nothing was read from it, so every nuclide card and line search will come back empty.
+{0}
+{1}</value>
+  </data>
   <data name="MSGDeleteNuclideDefinition" xml:space="preserve">
     <value>Delete nuclide definition "{0}"?</value>
+  </data>
+  <data name="MSGDeleteNuclideDefinitions" xml:space="preserve">
+    <value>Delete {0} nuclide definitions?
+
+{1}{2}</value>
   </data>
   <data name="LibraryLicensesMessage" xml:space="preserve">
     <value>BecqMoni icons from Maks Vasilev
@@ -8109,13 +8128,13 @@ http://xptable.sourceforge.net/</value>
     <value>FWHM:</value>
   </data>
   <data name="ERRBackgroundLoadFailure" xml:space="preserve">
-    <value>Failed to load background spectrum "{0}" Messsage: {1}.</value>
+    <value>Failed to load background spectrum "{0}" Message: {1}.</value>
   </data>
   <data name="MessageRemoveDeviceConfig" xml:space="preserve">
     <value>Remove device configuration "{0}"?</value>
   </data>
   <data name="MSGSaveEnergyCalibration" xml:space="preserve">
-    <value>Save energy calibration parmeters to current device configuration?</value>
+    <value>Save energy calibration parameters to current device configuration?</value>
   </data>
   <data name="BG" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
@@ -8284,8 +8303,19 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRSavingDeviceConfigFailed" xml:space="preserve">
     <value>Failed to save device configuration file.</value>
   </data>
+  <data name="ERRConfigFileRenameFailed" xml:space="preserve">
+    <value>The configuration was not renamed and not saved: the previous file "{0}" could not be deleted.
+It is probably open in another program or write-protected. Nothing on disk has been changed and the configuration is still in the list - free the file and save again.</value>
+  </data>
+  <data name="ERRConfigFileDeleteFailed" xml:space="preserve">
+    <value>The configuration file "{0}" could not be deleted, so the configuration has not been removed and is still in the list.
+It is probably open in another program or write-protected.</value>
+  </data>
   <data name="ERRLoadingROIConfigFailed" xml:space="preserve">
     <value>Failed to load ROI configuration file(s).</value>
+  </data>
+  <data name="ERRFailureReason" xml:space="preserve">
+    <value>Reason: {0}</value>
   </data>
   <data name="ROIPrimitiveTypeBGDifference" xml:space="preserve">
     <value>BG Difference</value>
@@ -8332,10 +8362,6 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="MSGPickUpChannel1" xml:space="preserve">
     <value>Pick up channel #1 from spectrum chart.</value>
-  </data>
-  <data name="ERRCannotRetreiveDeviceData" xml:space="preserve">
-    <value>Unable to retreive device data. (prohibited while measurement processing)
-</value>
   </data>
   <data name="ExportSpectraToFileDialogTitle" xml:space="preserve">
     <value>Export Selected Spectra To File</value>
@@ -8398,6 +8424,161 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="DeviceTypeLEMCA" xml:space="preserve">
     <value>LEMCA USB Adaptor</value>
+  </data>
+  <data name="FSAStatusCompleted" xml:space="preserve">
+    <value>FSA completed</value>
+  </data>
+  <data name="FSAStatusRunning" xml:space="preserve">
+    <value>FSA in progress</value>
+  </data>
+  <data name="FSAStatusError" xml:space="preserve">
+    <value>FSA error</value>
+  </data>
+  <data name="FSAStatusIdle" xml:space="preserve">
+    <value>FSA idle</value>
+  </data>
+  <data name="FSACalculating" xml:space="preserve">
+    <value>Full-spectrum decomposition: calculating…</value>
+  </data>
+  <data name="FSANoComponents" xml:space="preserve">
+    <value>Full-spectrum decomposition: no identified peaks to build the library from — run peak detection first</value>
+  </data>
+  <data name="FSANotPossible" xml:space="preserve">
+    <value>Full-spectrum decomposition is not possible for this spectrum</value>
+  </data>
+  <data name="FSANoGeometry" xml:space="preserve">
+    <value>Full-spectrum decomposition needs a detector geometry: describe the crystal in the geometry editor of the efficiency curve</value>
+  </data>
+  <data name="FSAFailed" xml:space="preserve">
+    <value>Full-spectrum decomposition failed.</value>
+  </data>
+  <data name="FSALegendModel" xml:space="preserve">
+    <value>model</value>
+  </data>
+  <data name="FSALegendContinuum" xml:space="preserve">
+    <value>continuum</value>
+  </data>
+  <data name="FSANoEfficiencyMark" xml:space="preserve">
+    <value> (no eff)</value>
+  </data>
+  <data name="FSAMatrixMark" xml:space="preserve">
+    <value> · matrix</value>
+  </data>
+  <data name="FSANoMatrixMark" xml:space="preserve">
+    <value> · no matrix</value>
+  </data>
+  <data name="FSAOldMatrixMark" xml:space="preserve">
+    <value> · old matrix</value>
+  </data>
+  <data name="FSAMatrixOldFormat" xml:space="preserve">
+    <value>The response matrix of efficiency curve “{0}” was computed with file format {1}, while this build reads format {2}. The decomposition is computed WITHOUT the matrix.
+
+Recompute it: device configuration → Efficiency → “Response matrix...”.
+
+{3}</value>
+  </data>
+  <data name="FSANoBackgroundMark" xml:space="preserve">
+    <value>NO BACKGROUND SUBTRACTED</value>
+  </data>
+  <data name="FSABackgroundRejectedMark" xml:space="preserve">
+    <value> (bg rejected)</value>
+  </data>
+  <data name="FSABackgroundNoCounts" xml:space="preserve">
+    <value>the background spectrum carries no counts</value>
+  </data>
+  <data name="FSABackgroundChannelMismatch" xml:space="preserve">
+    <value>the background has {0} channels, the spectrum {1}</value>
+  </data>
+  <data name="FSABackgroundNoLiveTime" xml:space="preserve">
+    <value>the background has no measurement time</value>
+  </data>
+  <data name="FSACascadeMark" xml:space="preserve">
+    <value> · summing</value>
+  </data>
+  <data name="FSASuppressedMark" xml:space="preserve">
+    <value> · suppressed</value>
+    <comment>S104: one instrument image outweighs the whole nuclide composition</comment>
+  </data>
+  <data name="FSAXrayName" xml:space="preserve">
+    <value>X-ray {0}</value>
+    <comment>A29/A34: own characteristic X-rays of a material (sample, shield, crystal)</comment>
+  </data>
+  <data name="FSAEscapeName" xml:space="preserve">
+    <value>Escape {0}</value>
+    <comment>A34: K X-ray escape from the crystal, a peak at E-Kalpha of every library line</comment>
+  </data>
+  <data name="FSASumPeakRow" xml:space="preserve">
+    <value>{0} — sum peak</value>
+  </data>
+  <data name="EfficiencyMakerCalcRestored" xml:space="preserve">
+    <value>Calculation parameters restored from the existing curve: {0}</value>
+  </data>
+  <data name="EfficiencyMakerRangeFromCurve" xml:space="preserve">
+    <value>Energy range taken from the existing curve: {0:0.#}–{1:0.#} keV</value>
+  </data>
+  <data name="GeometryMaterialsDensityFromParts" xml:space="preserve">
+    <value>From composition</value>
+  </data>
+  <data name="GeometryMaterialsDensityNeedsMixture" xml:space="preserve">
+    <value>Density can only be derived for a mixture whose parts have known densities. A formula gives the composition, not the packing.</value>
+  </data>
+  <data name="GeometryMaterialsDensityNoPart" xml:space="preserve">
+    <value>No density known for the part «{0}».</value>
+  </data>
+  <data name="GeometryMaterialsDensityGasInSolid" xml:space="preserve">
+    <value>«{0}» is given a gas density ({1:0.####} g/cm³) inside a dense mixture: it would take almost the whole volume and the result would be {2:0.###} g/cm³. The element is bound in a compound - name that compound as the part.</value>
+  </data>
+  <data name="GeometryMaterialsDensityDone" xml:space="preserve">
+    <value>Density from composition: {0:0.###} g/cm³.</value>
+  </data>
+  <data name="FSAModelResidualRow" xml:space="preserve">
+    <value>model residual</value>
+  </data>
+  <data name="FSAModelResidualValue" xml:space="preserve">
+    <value>{0} %</value>
+  </data>
+  <data name="FSAResidualCountsValue" xml:space="preserve">
+    <value>+{0} / −{1} %</value>
+  </data>
+  <data name="FSAPresentNoShare" xml:space="preserve">
+    <value>present</value>
+    <comment>S85: backscatter has no reliable share — presence only</comment>
+  </data>
+  <data name="FSAMdaValue" xml:space="preserve">
+    <value>&lt; {0} %</value>
+  </data>
+  <data name="FSANotResolvedNoShare" xml:space="preserve">
+    <value>not resolved</value>
+  </data>
+  <data name="FSANotResolvedHint" xml:space="preserve">
+    <value>The image was offered to the fit and got zero: the model continuum holds that band. Its size needs the detector geometry.</value>
+  </data>
+  <data name="FSAContinuumLayerHint" xml:space="preserve">
+    <value>Model baseline that belongs to no nuclide: above the highest line of the composition there is nothing to attribute it to.</value>
+  </data>
+  <data name="FSAContinuumLayerHintFloor" xml:space="preserve">
+    <value>Model baseline that belongs to no nuclide: below {0} keV the response matrix is not trusted (ADC threshold, shielding X-rays, room return), and above the highest line of the composition there is nothing to attribute it to. Above {0} keV the baseline is spread over the nuclide layers.</value>
+  </data>
+  <data name="FSAUndetectedFoldedRow" xml:space="preserve">
+    <value>not determined ({0})</value>
+  </data>
+  <data name="FSAChainMemberRow" xml:space="preserve">
+    <value>{0} — {1} chain</value>
+  </data>
+  <data name="FSAChainRow" xml:space="preserve">
+    <value>{0} — chain</value>
+  </data>
+  <data name="FSATiedMemberRow" xml:space="preserve">
+    <value>{0} — by {1}</value>
+  </data>
+  <data name="FSAEquilibriumNeedsDbLookups" xml:space="preserve">
+    <value>Equilibrium works only when the composition comes from the databases: turn on "Enable DB lookups for FSA". The other path builds components from peak labels and knows nothing about decay chains.</value>
+  </data>
+  <data name="FSAPileUpName" xml:space="preserve">
+    <value>Pile-up</value>
+  </data>
+  <data name="FSADriftEdgeMark" xml:space="preserve">
+    <value> !</value>
   </data>
   <data name="UnknownNuclide" xml:space="preserve">
     <value>(unknown)</value>
@@ -41682,11 +41863,14 @@ http://xptable.sourceforge.net/</value>
   <data name="N42ExportDialogTitle" xml:space="preserve">
     <value>Export N42 file</value>
   </data>
+  <data name="MSGN42ExportLosesEfficiency" xml:space="preserve">
+    <value>The N42 format does not carry the efficiency curve. The efficiency curve, the detector geometry and the link to the response matrix are NOT written to the file; spectra with a curve in this document: {0} of {1}. A file re-imported into a NEW document therefore gets no activity of the selection, no activity of the ROIs, no full-spectrum analysis (FSA) and no normalization by efficiency. The spectra themselves, the energy calibration and the measurement times are exported in full.</value>
+  </data>
   <data name="CalibrationFunctionError" xml:space="preserve">
     <value>The calibration function should be monotonically increasing at channel &gt; 0. Re-check Calibration points!</value>
   </data>
   <data name="ERRDeviceMismatchConfiguration" xml:space="preserve">
-    <value>Missmatched device configuration: to solve this create new file and use Audio Input device.</value>
+    <value>Mismatched device configuration: to solve this create new file and use Audio Input device.</value>
   </data>
   <data name="ERREmptyCoefficients" xml:space="preserve">
     <value>This device doesn't contain calibration coefficients. Write them first.</value>
@@ -41698,7 +41882,7 @@ http://xptable.sourceforge.net/</value>
     <value>Error. Expected empty line separator, got: {0}</value>
   </data>
   <data name="ERRIncorrectCRC" xml:space="preserve">
-    <value>Incrorrect Crc32 checksum! Possible borken coefficients. Try to upload them again.</value>
+    <value>Incorrect Crc32 checksum! Possible broken coefficients. Try to upload them again.</value>
   </data>
   <data name="ERROpenAtomSpectraFormat" xml:space="preserve">
     <value>Error. Can not open this file. Expected format 3, got: {0}</value>
@@ -41712,8 +41896,32 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRReadDataFromPort_Empty" xml:space="preserve">
     <value>Couldn't read device data from Port!</value>
   </data>
-  <data name="ERRUnsuportedEnergyBoundaryN42" xml:space="preserve">
-    <value>N42 EnergyBoundaryValues not supported. Using current calibration.</value>
+  <data name="ERRChannelEdgeNotFinite" xml:space="preserve">
+    <value>boundary #{0} is not a finite number: {1}</value>
+  </data>
+  <data name="ERRChannelEdgesNotIncreasing" xml:space="preserve">
+    <value>boundaries do not increase: #{0} = {1}, #{2} = {3}</value>
+  </data>
+  <data name="ERRChannelEdgesInvalidSpecUtils" xml:space="preserve">
+    <value>channel energy boundaries in the file are invalid ({0}); they were not used, and the scale stayed y = x, i.e. the channel number is declared to be the energy (measurements: {1})</value>
+  </data>
+  <data name="ERRNoEnergyCalibrationN42" xml:space="preserve">
+    <value>The N42 file has no EnergyCalibration element. Using the default calibration y=x: the channel number is taken as the energy.</value>
+  </data>
+  <data name="ERRTooFewCalibrationPointsN42" xml:space="preserve">
+    <value>The N42 file has fewer than five calibration points, so no polynomial is fitted. Using the default calibration y=x: the channel number is taken as the energy.</value>
+  </data>
+  <data name="ERRSkippedMeasurementClassN42" xml:space="preserve">
+    <value>The N42 file contains measurements of class {0}; they are skipped, because the application imports foreground and background spectra only. Spectra imported: {1}.</value>
+  </data>
+  <data name="ERRMissingStartDateTime" xml:space="preserve">
+    <value>The file carries no start time for {0} measurement(s); the start time is set to 1970-01-01 to mark it as unknown, so that a made-up date is not taken for a measured one. Everything else in the spectrum is imported.</value>
+  </data>
+  <data name="ERRUnreadableStartDateTimeN42" xml:space="preserve">
+    <value>The start time of the measurement could not be read in {0} measurement(s) of the N42 file (first one: {1}); the start time is set to 1970-01-01 to mark it as unknown. Everything else in the spectrum is imported.</value>
+  </data>
+  <data name="ERRUnsupportedPolynomialOrderN42" xml:space="preserve">
+    <value>The N42 energy calibration is a polynomial of order {0}, and the application reads polynomials up to order 4.</value>
   </data>
   <data name="ERRUnsupportedCalibrationMethod" xml:space="preserve">
     <value>Unsupported calibration method polynom order {0}. Only 2,3,4,5 points exist.</value>
@@ -41724,14 +41932,14 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRUpdateApp" xml:space="preserve">
     <value>This application works in standalone mode. If you want to use update re-install it.</value>
   </data>
-  <data name="ERRUploadCoefficeintsToDevice" xml:space="preserve">
-    <value>Error! Сoefficients uploaded with error! Check connection and reupload it again.</value>
+  <data name="ERRUploadCoefficientsToDevice" xml:space="preserve">
+    <value>Error! Coefficients uploaded with error! Check connection and reupload it again.</value>
   </data>
-  <data name="MSGCoefficientsUploadedSuccesfull" xml:space="preserve">
+  <data name="MSGCoefficientsUploadedSuccessful" xml:space="preserve">
     <value>Coefficients uploaded to device successfully.</value>
   </data>
   <data name="MSGNoNewVersion" xml:space="preserve">
-    <value>No new version avalable. Current version: {0}</value>
+    <value>No new version available. Current version: {0}</value>
   </data>
   <data name="MSGRestartNeeded" xml:space="preserve">
     <value>Update finished. Application WILL RESTART.</value>
@@ -41747,7 +41955,7 @@ You must be completely sure, what you are doing.</value>
     <value>COM Port:</value>
   </data>
   <data name="ERRUpdateExc" xml:space="preserve">
-    <value>Cann't install the latest version. Error happens.
+    <value>Can't install the latest version. Error happens.
 {0}</value>
   </data>
   <data name="MSGUpdateLong" xml:space="preserve">
@@ -41756,7 +41964,7 @@ Before updating save all unsaved data. Application WILL RESTART!
 Install update?</value>
   </data>
   <data name="MSGUpdateShort" xml:space="preserve">
-    <value>Update avalable</value>
+    <value>Update available</value>
   </data>
   <data name="ERRImportAtomSpectra" xml:space="preserve">
     <value>Channel mismatch between device and imported spectra file.
@@ -41792,23 +42000,8 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="AtomSpectraExportDialogTitle" xml:space="preserve">
     <value>Export Atom Spectra v3 file</value>
   </data>
-  <data name="NucBase.API.Data.Method" xml:space="preserve">
-    <value>decay_rads</value>
-  </data>
-  <data name="NucBase.API.IAEA" xml:space="preserve">
-    <value>https://www-nds.iaea.org/relnsd/v0/data?fields={0}&amp;nuclides={1}&amp;rad_types={2}</value>
-  </data>
-  <data name="NucBase.Gamma" xml:space="preserve">
-    <value>g</value>
-  </data>
   <data name="NucBase.Gamma.Label" xml:space="preserve">
     <value>γ</value>
-  </data>
-  <data name="NucBase.User-Agent" xml:space="preserve">
-    <value>Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:77.0) Gecko/20100101 Firefox/77.0</value>
-  </data>
-  <data name="NucBase.X-Ray" xml:space="preserve">
-    <value>x</value>
   </data>
   <data name="NucBase.Alpha.Label" xml:space="preserve">
     <value>α</value>
@@ -41818,9 +42011,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="NucBase.DaughtersFetchError" xml:space="preserve">
     <value>Not all daughters fetched for isotope {0}. Message: {1}</value>
-  </data>
-  <data name="NucBase.DecayRadsFetchError" xml:space="preserve">
-    <value>Failed to fetch decay radiation. SQL string: {0}. Message: {1}</value>
   </data>
   <data name="NucBase.EC" xml:space="preserve">
     <value>EC</value>
@@ -41848,7 +42038,13 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>β+</value>
   </data>
   <data name="NucBase.IsotopeTextBoxTooltip1" xml:space="preserve">
-    <value>Example: AM-241, AM241, 241AM. Isomer: PA234m1, 234PAm1, PA-234m1</value>
+    <value>Example: AM-241, AM241, 241AM. Isomer: PA234m1, 234PAm1, PA-234m1. An element symbol without a mass number (W, Pb) gives its characteristic X-rays</value>
+  </data>
+  <data name="NucBase.Fluorescence" xml:space="preserve">
+    <value>X-ray fluorescence</value>
+  </data>
+  <data name="NucBase.NoFluorescence" xml:space="preserve">
+    <value>The database has no K-shell fluorescence for {0}. The table covers elements from Z = 30: below that there is no L2/L3 edge pair to compute the line energies from.</value>
   </data>
   <data name="CombineEmptySpectrum" xml:space="preserve">
     <value>Open spectrum first, then select Combine menu to another spectrum file.</value>
@@ -41867,6 +42063,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="Bkg" xml:space="preserve">
     <value>Bq/g</value>
+  </data>
+  <data name="FSA" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\FSA.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="CONT" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\CONT.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -41932,7 +42131,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Combined spectra {0} has incorrect calibration, so channel by channel combine method will be used.</value>
   </data>
   <data name="ERRVCPComPortsNumeration" xml:space="preserve">
-    <value>Error while look ANY COM port in OS. OS returns emtpy list. Now program sets port from device config file, but you shuld check what's happend with your USB system hub.</value>
+    <value>Error while look ANY COM port in OS. OS returns empty list. Now program sets port from device config file, but you should check what's happened with your USB system hub.</value>
   </data>
   <data name="ResetCalibrationToDeviceSettingsConflict" xml:space="preserve">
     <value>Device calibration is polynom order {0}. Spectrum calibration is polynom order {1}. Do you want to reset whole calibration points to device calibration?</value>
@@ -42036,11 +42235,17 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="NuclideDefImportSuccess" xml:space="preserve">
     <value>Import successful. Added - {0} item(s), updated - {1} item(s).</value>
   </data>
+  <data name="NucBase_KSeriesRedundantHint" xml:space="preserve">
+    <value>This line duplicates its neighbours in the same K-beta series: KB is the total, KpB1 + KpB2 is the same total split in two. Take one or the other, never both — adding them counts K-beta twice (Lu-176: 40.53 % instead of 33.49 %).</value>
+  </data>
+  <data name="NucBase_KSeriesRedundantSkipped" xml:space="preserve">
+    <value>K-beta lines skipped as duplicates: {0}. The total (KB) and its split (KpB1 + KpB2) were both selected; only one of them is imported.</value>
+  </data>
   <data name="UpdateDeadTime" xml:space="preserve">
     <value>Update Dead Time</value>
   </data>
   <data name="DeadTimeLblText" xml:space="preserve">
-    <value>Dead Time: {0} μs</value>
+    <value>Dead Time: {0} µs</value>
   </data>
   <data name="RefreshBG" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\RefreshBG.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -42069,8 +42274,8 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="AutoSaveExclamationTitle" xml:space="preserve">
     <value>Autosave disabled on this file!</value>
   </data>
-  <data name="ERRAppAllreadyRunning" xml:space="preserve">
-    <value>BecqMoni allready running! To avoid layout config files damage this app start is canceled. Check task manager for running processes BecquerelMonitor.exe!</value>
+  <data name="ERRAppAlreadyRunning" xml:space="preserve">
+    <value>BecqMoni already running! To avoid layout config files damage this app start is canceled. Check task manager for running processes BecquerelMonitor.exe!</value>
   </data>
   <data name="MinPeaksRequirement" xml:space="preserve">
     <value>Minimum peaks requirement: {0}</value>
@@ -42079,7 +42284,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Save FWHM calibration to current device configuration?</value>
   </data>
   <data name="ERRPeakExist" xml:space="preserve">
-    <value>Selected peak FWHM allready exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch</value>
+    <value>Selected peak FWHM already exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch</value>
   </data>
   <data name="ImportSpecUtilsFileDialogTitle" xml:space="preserve">
     <value>Import using SpecUtils</value>
@@ -42123,6 +42328,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="PeakFitChiTableChi2PerNdpColumn" xml:space="preserve">
     <value>chi2/ndp</value>
   </data>
+  <data name="PeakFitChiTableScoreColumn" xml:space="preserve">
+    <value>AIC (chi2 + parameter penalty)</value>
+  </data>
   <data name="PeakFitChiTableParametersColumn" xml:space="preserve">
     <value>Parameters</value>
   </data>
@@ -42137,5 +42345,1226 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="Lq_counts" xml:space="preserve">
     <value>Lq counts</value>
+  </data>
+  <data name="EfficiencyMakerMenu" xml:space="preserve">
+    <value>Efficiency maker...</value>
+  </data>
+  <data name="EfficiencyMakerNoGeometry" xml:space="preserve">
+    <value>No geometry file loaded.</value>
+  </data>
+  <data name="EfficiencyMakerGeometryNotScintillator" xml:space="preserve">
+    <value>This geometry is not a scintillator: only scintillation detectors are simulated.</value>
+  </data>
+  <data name="EfficiencyMakerGeometryUnknownElement" xml:space="preserve">
+    <value>No attenuation data for element Z = {0}.</value>
+  </data>
+  <data name="EfficiencyMakerGeometryNoCurve" xml:space="preserve">
+    <value>The calculation produced no usable points.</value>
+  </data>
+  <data name="EfficiencyMakerGeometryLoaded" xml:space="preserve">
+    <value>Geometry loaded: {0}</value>
+  </data>
+  <data name="EfficiencyMakerGeometryFilter" xml:space="preserve">
+    <value>LSRM geometry (*.in)|*.in|All files (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyMakerCalculating" xml:space="preserve">
+    <value>Calculating the curve from geometry...</value>
+  </data>
+  <data name="EfficiencyMakerCrossSections" xml:space="preserve">
+    <value>Cross sections</value>
+  </data>
+  <data name="EfficiencyMakerCrossSectionsPartial" xml:space="preserve">
+    <value>partial, per element</value>
+  </data>
+  <data name="EfficiencyMakerCrossSectionsApprox" xml:space="preserve">
+    <value>approximation (element missing from the table)</value>
+  </data>
+  <data name="EfficiencyMakerBremsstrahlung" xml:space="preserve">
+    <value>bremsstrahlung escape</value>
+  </data>
+  <data name="EfficiencyMakerBremsstrahlungNoData" xml:space="preserve">
+    <value>no data for this crystal</value>
+  </data>
+  <data name="EfficiencyMakerHistories" xml:space="preserve">
+    <value>{0:F0} histories per point</value>
+  </data>
+  <data name="EfficiencyMakerLevelSimulation" xml:space="preserve">
+    <value>level: calculated from geometry</value>
+  </data>
+  <data name="EfficiencyMakerCalcStatus" xml:space="preserve">
+    <value>Calculated from geometry: {0} points, {1}-{2} keV, {3}</value>
+  </data>
+  <data name="GeometrySourcePoint" xml:space="preserve">
+    <value>point, {0:F1} mm</value>
+  </data>
+  <data name="GeometrySourceCylinder" xml:space="preserve">
+    <value>cylinder D={0:F1} H={1:F1} at {2:F1} mm</value>
+  </data>
+  <data name="GeometrySourceBox" xml:space="preserve">
+    <value>box {0:F1}x{1:F1} H={2:F1} at {3:F1} mm</value>
+  </data>
+  <data name="GeometryEditorSourceBox" xml:space="preserve">
+    <value>Rectangular box</value>
+  </data>
+  <data name="GeometryEditorBoxSourceX" xml:space="preserve">
+    <value>Box side X</value>
+  </data>
+  <data name="GeometryEditorBoxSourceY" xml:space="preserve">
+    <value>Box side Y</value>
+  </data>
+  <data name="GeometrySourceMarinelli" xml:space="preserve">
+    <value>Marinelli D={0:F1} Dhole={1:F1} H={2:F1} at {3:F1} mm</value>
+  </data>
+  <data name="GeometryCrystalBox" xml:space="preserve">
+    <value>box {0:F1}x{1:F1}x{2:F1}</value>
+  </data>
+  <data name="GeometryCrystalCylinder" xml:space="preserve">
+    <value>cylinder {0:F2}x{1:F2}</value>
+  </data>
+  <data name="GeometryDescription" xml:space="preserve">
+    <value>{0}: crystal {1} {2} mm, rho {3:F3}; source - {4}, {5}</value>
+  </data>
+  <data name="GeometryWriterUnrepresentable" xml:space="preserve">
+    <value>{0}: the character "{1}" (U+{2:X4}) does not fit code page 1251, and the geometry file is written in that page only - line {3}: {4}</value>
+  </data>
+  <data name="EfficiencyMakerCancelled" xml:space="preserve">
+    <value>Stopped by user.</value>
+  </data>
+  <data name="EfficiencyMakerNoDeviceConfig" xml:space="preserve">
+    <value>Device config not found: {0}</value>
+  </data>
+  <data name="EfficiencyMakerNoFwhm" xml:space="preserve">
+    <value>No FWHM calibration for this spectrum.</value>
+  </data>
+  <data name="EfficiencyMakerStop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="EfficiencyMakerSaved" xml:space="preserve">
+    <value>Saved: {0}</value>
+  </data>
+  <data name="EfficiencyMakerCsvFilter" xml:space="preserve">
+    <value>CSV (*.csv)|*.csv|All files (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyMakerGraphEmpty" xml:space="preserve">
+    <value>No curve yet</value>
+  </data>
+  <data name="EfficiencyMakerGraphXAxis" xml:space="preserve">
+    <value>E, keV</value>
+  </data>
+  <data name="EfficiencyMakerTabCalculate" xml:space="preserve">
+    <value>Calculate from geometry</value>
+  </data>
+  <data name="EfficiencyMakerCalcHint" xml:space="preserve">
+    <value>The curve is computed from the geometry file by Monte-Carlo transport - no spectra needed. Unlike the fit, this gives the ABSOLUTE level, not just the shape.</value>
+  </data>
+  <data name="EfficiencyMakerGrid" xml:space="preserve">
+    <value>Grid:</value>
+  </data>
+  <data name="EfficiencyMakerGridStandard" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="EfficiencyMakerGridLogarithmic" xml:space="preserve">
+    <value>Logarithmic</value>
+  </data>
+  <data name="EfficiencyMakerGridSummary" xml:space="preserve">
+    <value>grid: {0} points, {1:F0}-{2:F0} keV ({3}); threads: {4}</value>
+  </data>
+  <data name="EfficiencyMakerGridWidened" xml:space="preserve">
+    <value>range widened: the upper bound {0:F1} keV is not above the lower one, computed up to {2:F1} keV ({1:F1} + 1 keV)</value>
+  </data>
+  <data name="EfficiencyMakerGridFallback" xml:space="preserve">
+    <value>the standard grid keeps only {0} of its nodes within {1:F1}-{2:F1} keV: computed on a LOGARITHMIC grid of {3} points</value>
+  </data>
+  <data name="EfficiencyMakerSampleIsAir" xml:space="preserve">
+    <value>WARNING: the sample material is still air ("{0}", {1:F6} g/cm3) while the sample is {2:F1} mm high - self-absorption is NOT accounted for, and the curve can be off by a factor</value>
+  </data>
+  <data name="EfficiencyMakerNodeSpread" xml:space="preserve">
+    <value>spread per point: median {0:F2} %, worst {1:F2} % at {2:F1} keV (effective sample {3:F0} of {4:F0} histories)</value>
+  </data>
+  <data name="EfficiencyMakerNodeSpreadWarning" xml:space="preserve">
+    <value>WARNING: the curve is NOISY - a typical point carries {0:F1} % spread against the {1:F0} % limit ({2:F0} histories promise about a percent; {3} of {4} points are above the limit). On a large sample (detector on the ground, in a borehole) the histories are spent on far soil that contributes nothing; raise the histories per point or narrow the sample</value>
+  </data>
+  <data name="EfficiencyMakerImportanceAuto" xml:space="preserve">
+    <value>importance sampling of the emission point is ON: field scene (detector on the ground / in a borehole) - the curve is stamped imp=1; a vessel is still sampled uniformly</value>
+  </data>
+  <data name="EfficiencyMakerPoints" xml:space="preserve">
+    <value>Points:</value>
+  </data>
+  <data name="EfficiencyMakerHistoriesLabel" xml:space="preserve">
+    <value>Histories per point:</value>
+  </data>
+  <data name="GeometryEditorTitle" xml:space="preserve">
+    <value>Geometry editor</value>
+  </data>
+  <data name="GeometryEditorTabDetector" xml:space="preserve">
+    <value>Detector</value>
+  </data>
+  <data name="GeometryEditorTabSource" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="GeometryEditorFile" xml:space="preserve">
+    <value>Geometry file:</value>
+  </data>
+  <data name="GeometryEditorBrowse" xml:space="preserve">
+    <value>Browse...</value>
+  </data>
+  <data name="GeometryEditorSave" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="GeometryEditorCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="GeometryEditorNew" xml:space="preserve">
+    <value>New...</value>
+  </data>
+  <data name="GeometryEditorEdit" xml:space="preserve">
+    <value>Edit...</value>
+  </data>
+  <data name="GeometryEditorShapeCylinder" xml:space="preserve">
+    <value>Cylindrical crystal</value>
+  </data>
+  <data name="GeometryEditorShapeBox" xml:space="preserve">
+    <value>Rectangular crystal</value>
+  </data>
+  <data name="GeometryEditorCrystalDiameter" xml:space="preserve">
+    <value>Crystal diameter</value>
+  </data>
+  <data name="GeometryEditorCrystalHeight" xml:space="preserve">
+    <value>Crystal length</value>
+  </data>
+  <data name="GeometryEditorBoxX" xml:space="preserve">
+    <value>Crystal X (face)</value>
+  </data>
+  <data name="GeometryEditorBoxY" xml:space="preserve">
+    <value>Crystal Y (face)</value>
+  </data>
+  <data name="GeometryEditorBoxZ" xml:space="preserve">
+    <value>Crystal Z (along the axis)</value>
+  </data>
+  <data name="GeometryEditorEquivalent" xml:space="preserve">
+    <value>Equivalent cylinder for the .in file: D = {0:F3} mm (equal face area, the LSRM rule). Crystal volume {1:F3} cm3.</value>
+  </data>
+  <data name="GeometryEditorFrontReflector" xml:space="preserve">
+    <value>Crystal front reflector thickness</value>
+  </data>
+  <data name="GeometryEditorSideReflector" xml:space="preserve">
+    <value>Crystal side reflector thickness</value>
+  </data>
+  <data name="GeometryEditorFrontCladding" xml:space="preserve">
+    <value>Crystal front cladding thickness</value>
+  </data>
+  <data name="GeometryEditorSideCladding" xml:space="preserve">
+    <value>Crystal side cladding thickness</value>
+  </data>
+  <data name="GeometryEditorMounting" xml:space="preserve">
+    <value>Detector mounting thickness (behind the crystal)</value>
+  </data>
+  <data name="GeometryEditorCrystalMaterial" xml:space="preserve">
+    <value>Crystal</value>
+  </data>
+  <data name="GeometryEditorFrontGap" xml:space="preserve">
+    <value>Crystal front gap thickness</value>
+  </data>
+  <data name="GeometryEditorSideGap" xml:space="preserve">
+    <value>Crystal side gap thickness</value>
+  </data>
+  <data name="GeometryEditorGapMaterial" xml:space="preserve">
+    <value>Gap filler</value>
+  </data>
+  <data name="GeometryEditorReflectorMaterial" xml:space="preserve">
+    <value>Reflector</value>
+  </data>
+  <data name="GeometryEditorCladdingMaterial" xml:space="preserve">
+    <value>Crystal cladding</value>
+  </data>
+  <data name="GeometryEditorSourceType" xml:space="preserve">
+    <value>Source type</value>
+  </data>
+  <data name="GeometryEditorSourcePoint" xml:space="preserve">
+    <value>Point</value>
+  </data>
+  <data name="GeometryEditorSourceCylinder" xml:space="preserve">
+    <value>Cylinder</value>
+  </data>
+  <data name="GeometryEditorSourceMarinelli" xml:space="preserve">
+    <value>Marinelli</value>
+  </data>
+  <data name="GeometryEditorPointDistance" xml:space="preserve">
+    <value>Distance to detector front</value>
+  </data>
+  <data name="GeometryEditorBeakerDiameter" xml:space="preserve">
+    <value>Beaker diameter</value>
+  </data>
+  <data name="GeometryEditorBeakerHeight" xml:space="preserve">
+    <value>Beaker height</value>
+  </data>
+  <data name="GeometryEditorBeakerSideWall" xml:space="preserve">
+    <value>Beaker side wall thickness</value>
+  </data>
+  <data name="GeometryEditorBeakerEndWall" xml:space="preserve">
+    <value>Beaker end wall thickness</value>
+  </data>
+  <data name="GeometryEditorSourceHeight" xml:space="preserve">
+    <value>Source height</value>
+  </data>
+  <data name="GeometryEditorBeakerToDetector" xml:space="preserve">
+    <value>Beaker to detector front distance</value>
+  </data>
+  <data name="GeometryEditorHoleDiameter" xml:space="preserve">
+    <value>Beaker hole diameter</value>
+  </data>
+  <data name="GeometryEditorHoleHeight" xml:space="preserve">
+    <value>Beaker hole height</value>
+  </data>
+  <data name="GeometryEditorHoleSideWall" xml:space="preserve">
+    <value>Beaker hole side thickness</value>
+  </data>
+  <data name="GeometryEditorHoleEndWall" xml:space="preserve">
+    <value>Beaker hole end wall thickness</value>
+  </data>
+  <data name="GeometryEditorWallMaterial" xml:space="preserve">
+    <value>Beaker wall</value>
+  </data>
+  <data name="GeometryEditorSourceMaterial" xml:space="preserve">
+    <value>Sample</value>
+  </data>
+  <data name="GeometryEditorUnitMm" xml:space="preserve">
+    <value>mm</value>
+  </data>
+  <data name="GeometryEditorUnitPercent" xml:space="preserve">
+    <value>%</value>
+  </data>
+  <data name="GeometryEditorFwhm662" xml:space="preserve">
+    <value>FWHM at 662 keV (scatter tolerance)</value>
+  </data>
+  <data name="GeometryEditorFwhmFromDevice" xml:space="preserve">
+    <value>From device calibration</value>
+  </data>
+  <data name="GeometryEditorInShield" xml:space="preserve">
+    <value>Measured inside a shield (lead castle)</value>
+  </data>
+  <data name="GeometryEditorInShieldHint" xml:space="preserve">
+    <value>The shield is not part of the simulated scene and does not change the response matrix. It tells the analysis that photons scatter back from the surroundings, so the backscatter component is kept even when a matrix is used.</value>
+  </data>
+  <data name="GeometryEditorUnitDensity" xml:space="preserve">
+    <value>g/cm3</value>
+  </data>
+  <data name="GeometryEditorErrorCrystal" xml:space="preserve">
+    <value>Crystal size must be greater than zero.</value>
+  </data>
+  <data name="GeometryEditorErrorDensity" xml:space="preserve">
+    <value>Crystal density must be greater than zero.</value>
+  </data>
+  <data name="GeometryEditorErrorMarinelliHole" xml:space="preserve">
+    <value>The Marinelli beaker diameter must be greater than the hole diameter.</value>
+  </data>
+  <data name="GeometryEditorErrorLinked" xml:space="preserve">
+    <value>These sizes cannot hold together:</value>
+  </data>
+  <data name="GeometryEditorErrorHoleNarrow" xml:space="preserve">
+    <value>The well is narrower than the probe: {0:F1} mm against an outer size of {1:F1} mm.</value>
+  </data>
+  <data name="GeometryEditorErrorRingGone" xml:space="preserve">
+    <value>No sample is left between the well and the beaker wall: {0:F1} mm outside against {1:F1} mm inside.</value>
+  </data>
+  <data name="GeometryEditorErrorHoleDeeper" xml:space="preserve">
+    <value>The well is deeper than the sample: {0:F1} mm against {1:F1} mm.</value>
+  </data>
+  <data name="GeometryEditorErrorSampleTaller" xml:space="preserve">
+    <value>The sample is taller than its vessel: {0:F1} mm against {1:F1} mm.</value>
+  </data>
+  <data name="GeometryEditorErrorWallEatsSample" xml:space="preserve">
+    <value>The wall eats the whole clearance: {0:F1} mm against a limit of {1:F1} mm.</value>
+  </data>
+  <data name="GeometryEditorErrorSourceSize" xml:space="preserve">
+    <value>Source size must be greater than zero.</value>
+  </data>
+  <data name="GeometryEditorErrorNumber" xml:space="preserve">
+    <value>Some values are not numbers - they are highlighted. An unreadable value would silently become zero.</value>
+  </data>
+  <data name="GeometryWarningNoMaterial" xml:space="preserve">
+    <value>WARNING - {0}: thickness {1} mm is set, but the material has no density or composition. The layer is treated as vacuum; otherwise the surrounding layer would silently fill its place.</value>
+  </data>
+  <data name="GeometryWarningAtomFractions" xml:space="preserve">
+    <value>{0}: fractions are atomic (FractionType = ATOM), converted to mass fractions.</value>
+  </data>
+  <data name="GeometryWarningFractionType" xml:space="preserve">
+    <value>WARNING - {0}: unknown fraction type "{1}", read as mass fractions.</value>
+  </data>
+  <data name="GeometryEditorPreset" xml:space="preserve">
+    <value>Known detector:</value>
+  </data>
+  <data name="GeometryEditorPresetPrompt" xml:space="preserve">
+    <value>(choose to fill in)</value>
+  </data>
+  <data name="GeometryEditorTemplateSave" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="GeometryEditorTemplateClone" xml:space="preserve">
+    <value>Clone...</value>
+  </data>
+  <data name="GeometryEditorTemplateDelete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="GeometryEditorTemplateOwn" xml:space="preserve">
+    <value>{0} (own)</value>
+  </data>
+  <data name="GeometryEditorTemplateSaveTip" xml:space="preserve">
+    <value>Overwrite the selected own template with the current detector fields</value>
+  </data>
+  <data name="GeometryEditorTemplateCloneTip" xml:space="preserve">
+    <value>New own template from the current detector fields (built-in ones stay as they are)</value>
+  </data>
+  <data name="GeometryEditorTemplateDeleteTip" xml:space="preserve">
+    <value>Delete the selected own template</value>
+  </data>
+  <data name="GeometryEditorTemplateNameTitle" xml:space="preserve">
+    <value>Detector template name</value>
+  </data>
+  <data name="GeometryEditorTemplateDeleteConfirm" xml:space="preserve">
+    <value>Delete the detector template "{0}"?</value>
+  </data>
+  <data name="GeometryEditorTemplateNameEmpty" xml:space="preserve">
+    <value>The template name is empty.</value>
+  </data>
+  <data name="GeometryEditorTemplateNameBuiltin" xml:space="preserve">
+    <value>"{0}" is a built-in detector, and built-in ones cannot be changed. Choose another name.</value>
+  </data>
+  <data name="GeometryEditorTemplateNameTaken" xml:space="preserve">
+    <value>An own template named "{0}" already exists.</value>
+  </data>
+  <data name="GeometryEditorTemplateWriteError" xml:space="preserve">
+    <value>The detector template file was not written: {0}</value>
+  </data>
+  <data name="GeometryEditorTemplateLoadError" xml:space="preserve">
+    <value>The detector template file could not be read, so only built-in detectors are listed and nothing is written over it: {0}</value>
+  </data>
+  <data name="EfficiencyMakerGridEdge" xml:space="preserve">
+    <value>K edge of Z={0} at {1:F2} keV resolved by a pair of nodes: attenuation of "{3}" steps up {2:F1} times</value>
+  </data>
+  <data name="GeometryEditorSceneDiameter" xml:space="preserve">
+    <value>Scene diameter</value>
+  </data>
+  <data name="GeometryEditorSceneDepth" xml:space="preserve">
+    <value>Soil depth</value>
+  </data>
+  <data name="GeometryEditorSceneGap" xml:space="preserve">
+    <value>Ground to detector face</value>
+  </data>
+  <data name="GeometryEditorSceneHoleDiameter" xml:space="preserve">
+    <value>Borehole diameter</value>
+  </data>
+  <data name="GeometryEditorSceneHoleDepth" xml:space="preserve">
+    <value>Borehole depth</value>
+  </data>
+  <data name="GeometryEditorSceneStandoff" xml:space="preserve">
+    <value>Borehole bottom to detector face</value>
+  </data>
+  <data name="GeometryEditorSourceGround" xml:space="preserve">
+    <value>Detector on the ground</value>
+  </data>
+  <data name="GeometryEditorSourceBorehole" xml:space="preserve">
+    <value>Detector in a borehole</value>
+  </data>
+  <data name="GeometryEditorScene" xml:space="preserve">
+    <value>Mean free path {0:F1} cm at {1:F0} keV · sample {2:F0} L, {3:F0} kg</value>
+  </data>
+  <data name="GeometryEditorSceneMaterial" xml:space="preserve">
+    <value> · sample material set to "{0}"</value>
+  </data>
+  <data name="GeometryEditorSourceIso" xml:space="preserve">
+    <value>Isotropic field (ISO)</value>
+  </data>
+  <data name="GeometryEditorFieldRadius" xml:space="preserve">
+    <value>Field sphere radius</value>
+  </data>
+  <data name="GeometryEditorSceneIso" xml:space="preserve">
+    <value>Isotropic field from 4π: the curve and the matrix are the effective area, cm² (response per unit fluence, not per source quantum). Sphere radius {0:F0} cm; the answer does not depend on it as long as it exceeds {1:F1} cm.</value>
+  </data>
+  <data name="GeometryEditorErrorFieldRadiusSmall" xml:space="preserve">
+    <value>The field sphere does not enclose the detector: {0:F1} mm against a minimum of {1:F1} mm.</value>
+  </data>
+  <data name="GeometrySourceIso" xml:space="preserve">
+    <value>isotropic field, sphere radius {0:F0} mm</value>
+  </data>
+  <data name="EfficiencySketchIso" xml:space="preserve">
+    <value>Isotropic field, sphere radius</value>
+  </data>
+  <data name="BqCoeffAuto" xml:space="preserve">
+    <value>Auto from efficiency</value>
+  </data>
+  <data name="BqCoeffNoIntensity" xml:space="preserve">
+    <value>Intensity of the line is not set for this zone, so K cannot be computed from the curve. The stored value is used.</value>
+  </data>
+  <data name="BqCoeffNoEnergy" xml:space="preserve">
+    <value>Peak energy is not set for this zone, so K cannot be computed from the curve. The stored value is used.</value>
+  </data>
+  <data name="BqCoeffNoCurve" xml:space="preserve">
+    <value>No efficiency curve is chosen for this spectrum. The stored value is used.</value>
+  </data>
+  <data name="ResultNoCoefficient" xml:space="preserve">
+    <value>no K</value>
+  </data>
+  <data name="ResultNoWeight" xml:space="preserve">
+    <value>no weight</value>
+  </data>
+  <data name="ResultNoVolume" xml:space="preserve">
+    <value>no volume</value>
+  </data>
+  <data name="BqCoeffOutOfRange" xml:space="preserve">
+    <value>{0:0.##} keV is outside the curve ({1:0.##} to {2:0.##} keV): the curve is not continued past its ends. The stored value is used.</value>
+  </data>
+  <data name="BqCoeffFromCurve" xml:space="preserve">
+    <value>K = {0:G6} +/- {1:G3} from the curve</value>
+  </data>
+  <data name="ActivityFromLine" xml:space="preserve">
+    <value>from line:</value>
+  </data>
+  <data name="ActivityLabelDisputed" xml:space="preserve">
+    <value>label disputed: {0} more line(s), up to x{1:0.#}</value>
+  </data>
+  <data name="ActivityXrayRefused" xml:space="preserve">
+    <value>element X-ray: no yield per decay</value>
+  </data>
+  <data name="ActivityLowYieldRefused" xml:space="preserve">
+    <value>line yield below {0:0.#} % per decay: activity not shown</value>
+  </data>
+  <data name="ActivityOutOfCurveRefused" xml:space="preserve">
+    <value>{0:0.##} keV is outside the efficiency curve ({1:0.##} to {2:0.##} keV): activity not shown</value>
+  </data>
+  <data name="ActivityNoEpsilonRefused" xml:space="preserve">
+    <value>the efficiency curve gives no value at {0:0.##} keV: activity not shown</value>
+  </data>
+  <data name="ActivityNoBackgroundRefused" xml:space="preserve">
+    <value>no background spectrum: activity not shown</value>
+  </data>
+  <data name="ActivityNoCurveRefused" xml:space="preserve">
+    <value>no efficiency curve is chosen for this spectrum: activity not shown</value>
+  </data>
+  <data name="ActivityNetNotPositiveRefused" xml:space="preserve">
+    <value>net count is not above zero: activity not shown</value>
+  </data>
+  <data name="ActivityLcZeroRefused" xml:space="preserve">
+    <value>the background is empty in the selection: the detection limit is undefined</value>
+  </data>
+  <data name="BqCoeffTipAuto" xml:space="preserve">
+    <value>K converts the count rate into becquerels: Bq = cps * K. Ticked, it is computed from the efficiency curve chosen for the spectrum and the Intensity of this zone: K = 100 / (efficiency * Intensity). Unticked, the number in the field is used, as before. The stored number stays either way and is used when there is no curve.</value>
+  </data>
+  <data name="EfficiencySketchCylinder" xml:space="preserve">
+    <value>Cylinder</value>
+  </data>
+  <data name="EfficiencySketchBox" xml:space="preserve">
+    <value>Box</value>
+  </data>
+  <data name="EfficiencySketchPoint" xml:space="preserve">
+    <value>Point source, distance</value>
+  </data>
+  <data name="EfficiencySketchBeaker" xml:space="preserve">
+    <value>Beaker</value>
+  </data>
+  <data name="EfficiencySketchDetector" xml:space="preserve">
+    <value>Detector</value>
+  </data>
+  <data name="EfficiencySketchDistance" xml:space="preserve">
+    <value>Distance to detector</value>
+  </data>
+  <data name="EfficiencySketchMarinelli" xml:space="preserve">
+    <value>Marinelli beaker</value>
+  </data>
+  <data name="DeviceConfigEfficiencyTab" xml:space="preserve">
+    <value>Efficiency</value>
+  </data>
+  <data name="EfficiencyTabList" xml:space="preserve">
+    <value>Efficiency configuration:</value>
+  </data>
+  <data name="EfficiencyTabNew" xml:space="preserve">
+    <value>New...</value>
+  </data>
+  <data name="EfficiencyTabEdit" xml:space="preserve">
+    <value>Edit...</value>
+  </data>
+  <data name="EfficiencyTabRename" xml:space="preserve">
+    <value>Rename...</value>
+  </data>
+  <data name="EfficiencyTabDuplicate" xml:space="preserve">
+    <value>Duplicate</value>
+  </data>
+  <data name="EfficiencyTabDelete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="EfficiencyTabImport" xml:space="preserve">
+    <value>Import from LSRM...</value>
+  </data>
+  <data name="EfficiencyTabNone" xml:space="preserve">
+    <value>(none)</value>
+  </data>
+  <data name="EfficiencyFromFile" xml:space="preserve">
+    <value>{0} - from the spectrum file</value>
+  </data>
+  <data name="EfficiencyTabEmpty" xml:space="preserve">
+    <value>This device has no efficiency configuration. Activity is not calculated until one is created or imported.</value>
+  </data>
+  <data name="EfficiencyTabNoGeometry" xml:space="preserve">
+    <value>Curve without geometry: add it with Edit... to recompute.</value>
+  </data>
+  <data name="EfficiencyTabSummary" xml:space="preserve">
+    <value>{0} curve points, {1} to {2} keV</value>
+  </data>
+  <data name="EfficiencyTabComputeStamp" xml:space="preserve">
+    <value>computed with: {0}</value>
+  </data>
+  <data name="EfficiencyTabCurveOldPhysics" xml:space="preserve">
+    <value>Curve computed with transport generation {0}, this build computes generation {1} — recompute it.</value>
+  </data>
+  <data name="EfficiencyTabCurveVsMatrix" xml:space="preserve">
+    <value>Curve is generation {0}, its response matrix is generation {1} — two generations side by side.</value>
+  </data>
+  <data name="ResponseMatrixUseInFsa" xml:space="preserve">
+    <value>Use the matrix in full-spectrum analysis (FSA)</value>
+  </data>
+  <data name="EfficiencyTabRenameTitle" xml:space="preserve">
+    <value>Configuration name</value>
+  </data>
+  <data name="EfficiencyTabDeleteConfirm" xml:space="preserve">
+    <value>Delete efficiency configuration "{0}"?</value>
+  </data>
+  <data name="EfficiencyTabCopySuffix" xml:space="preserve">
+    <value>{0} (copy)</value>
+  </data>
+  <data name="EfficiencyTabNewName" xml:space="preserve">
+    <value>New configuration</value>
+  </data>
+  <data name="EfficiencyImportGeometryTitle" xml:space="preserve">
+    <value>LSRM geometry file (.in)</value>
+  </data>
+  <data name="EfficiencyImportCurveTitle" xml:space="preserve">
+    <value>Exported efficiency curve (.txt)</value>
+  </data>
+  <data name="EfficiencyImportGeometryFilter" xml:space="preserve">
+    <value>LSRM geometry (*.in)|*.in|All files (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyImportCurveFilter" xml:space="preserve">
+    <value>Exported curve (*.txt)|*.txt|All files (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyImportEmpty" xml:space="preserve">
+    <value>No usable points in "{0}".</value>
+  </data>
+  <data name="EfficiencyImportDone" xml:space="preserve">
+    <value>Imported: {0} points, {1} to {2} keV.</value>
+  </data>
+  <data name="EfficiencyImportDropped" xml:space="preserve">
+    <value>Dropped {0} point(s) as impossible: {1}</value>
+  </data>
+  <data name="EfficiencyImportDroppedItem" xml:space="preserve">
+    <value>{0:F0} keV (efficiency {1:G4}, uncertainty {2:F0} %)</value>
+  </data>
+  <data name="EfficiencyImportFailed" xml:space="preserve">
+    <value>Cannot read "{0}": {1}</value>
+  </data>
+  <data name="EfficiencyMakerTabGeometry" xml:space="preserve">
+    <value>Geometry editor</value>
+  </data>
+  <data name="EfficiencyMakerDirtyMark" xml:space="preserve">
+    <value>*</value>
+  </data>
+  <data name="EfficiencyMakerTitle" xml:space="preserve">
+    <value>Efficiency maker</value>
+  </data>
+  <data name="EfficiencyMakerSavedToConfig" xml:space="preserve">
+    <value>Saved into efficiency configuration "{0}".</value>
+  </data>
+  <data name="PickOneAccept" xml:space="preserve">
+    <value>Choose</value>
+  </data>
+  <data name="PickOneCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="FsaNoFwhmTitle" xml:space="preserve">
+    <value>Full-spectrum analysis: no FWHM calibration</value>
+  </data>
+  <data name="FsaNoFwhmQuestion" xml:space="preserve">
+    <value>This spectrum carries no FWHM calibration, and the decomposition needs it to build line shapes. Take the calibration from a device configuration:</value>
+  </data>
+  <data name="FsaNoEfficiencyTitle" xml:space="preserve">
+    <value>Full-spectrum analysis: no efficiency curve</value>
+  </data>
+  <data name="FsaNoEfficiencyQuestion" xml:space="preserve">
+    <value>No efficiency curve is chosen for this spectrum. Without one the relative weights of lines inside a template are wrong and the low-energy part gets skewed. Choose a curve, or leave it out deliberately:</value>
+  </data>
+  <data name="FsaNoFwhmSource" xml:space="preserve">
+    <value>Device configuration "{0}" has no FWHM calibration either.</value>
+  </data>
+  <data name="EfficiencyTabImportLsrm" xml:space="preserve">
+    <value>Import LSRM...</value>
+  </data>
+  <data name="EfficiencyTabImportLsrmTitle" xml:space="preserve">
+    <value>LSRM EffCalcMC.txt -&gt; efficiency curve</value>
+  </data>
+  <data name="EfficiencyTabResponseMatrix" xml:space="preserve">
+    <value>Response matrix...</value>
+  </data>
+  <data name="ResponseMatrixTitle" xml:space="preserve">
+    <value>Response matrix</value>
+  </data>
+  <data name="ResponseMatrixStateMissing" xml:space="preserve">
+    <value>Not computed for this geometry.</value>
+  </data>
+  <data name="ResponseMatrixStateStale" xml:space="preserve">
+    <value>Out of date: the geometry or the settings have changed since it was computed. Recompute it.</value>
+  </data>
+  <data name="ResponseMatrixStateStaleVersions" xml:space="preserve">
+    <value>Out of date: computed by another generation of the transport code. Recompute it.</value>
+  </data>
+  <data name="ResponseMatrixStateOldFormat" xml:space="preserve">
+    <value>Out of date: computed with file format {0}, while this build reads format {1}. Recompute it.</value>
+  </data>
+  <data name="ResponseMatrixStateUnreadable" xml:space="preserve">
+    <value>The file is ours and of the current format, but reading it broke off — the file is truncated. Recompute it.</value>
+  </data>
+  <data name="ResponseMatrixStateNotOurs" xml:space="preserve">
+    <value>There is a file where the matrix is kept, but it is not a response matrix. Computing will replace it.</value>
+  </data>
+  <data name="ResponseMatrixVersionsCurrent" xml:space="preserve">
+    <value>Current generation: physics {0}, file format {1}.</value>
+  </data>
+  <data name="ResponseMatrixVersionsBoth" xml:space="preserve">
+    <value>Matrix generation: physics {0}, file format {1} — current code: physics {2}, format {3}.</value>
+  </data>
+  <data name="ResponseMatrixRangeFromCurve" xml:space="preserve">
+    <value>Range taken from the efficiency curve of this configuration: {0:F0}–{1:F0} keV.</value>
+  </data>
+  <data name="ResponseMatrixRangeDiffers" xml:space="preserve">
+    <value>The efficiency curve covers {0:F0}–{1:F0} keV, this matrix {2:F0}–{3:F0} keV. The fields keep the matrix range, so that Recompute repeats it.</value>
+  </data>
+  <data name="GeometryEditorFacingFront" xml:space="preserve">
+    <value>Sample faces the front end</value>
+  </data>
+  <data name="GeometryEditorFacingSide" xml:space="preserve">
+    <value>Sample faces the wide side</value>
+  </data>
+  <data name="EfficiencySketchFacingSide" xml:space="preserve">
+    <value>Rotated: the sample faces the wide side of the crystal</value>
+  </data>
+  <data name="ResponseMatrixStateValid" xml:space="preserve">
+    <value>Valid for the current geometry.</value>
+  </data>
+  <data name="ResponseMatrixNoGeometry" xml:space="preserve">
+    <value>This efficiency curve has no geometry, so a response matrix cannot be computed.</value>
+  </data>
+  <data name="ResponseMatrixDetails" xml:space="preserve">
+    <value>Nodes: {0} from {1:F0} to {2:F0} keV
+Bin: {3:F0} keV, histories per node: {4}
+Data: {5:F0} KB, file: {6:F0} KB
+Computed: {7}, took {8:F0} s</value>
+  </data>
+  <data name="ResponseMatrixNodesRequested" xml:space="preserve">
+    <value>{0} ({1} requested)</value>
+  </data>
+  <data name="ResponseMatrixParameters" xml:space="preserve">
+    <value>Parameters</value>
+  </data>
+  <data name="ResponseMatrixMinEnergy" xml:space="preserve">
+    <value>From, keV:</value>
+  </data>
+  <data name="ResponseMatrixMaxEnergy" xml:space="preserve">
+    <value>to, keV:</value>
+  </data>
+  <data name="ResponseMatrixNodes" xml:space="preserve">
+    <value>Nodes:</value>
+  </data>
+  <data name="ResponseMatrixBin" xml:space="preserve">
+    <value>Bin, keV:</value>
+  </data>
+  <data name="ResponseMatrixHistories" xml:space="preserve">
+    <value>Histories per node:</value>
+  </data>
+  <data name="ResponseMatrixThreads" xml:space="preserve">
+    <value>Threads:</value>
+  </data>
+  <data name="ResponseMatrixCompute" xml:space="preserve">
+    <value>Compute</value>
+  </data>
+  <data name="ResponseMatrixRecompute" xml:space="preserve">
+    <value>Recompute</value>
+  </data>
+  <data name="ResponseMatrixCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ResponseMatrixSave" xml:space="preserve">
+    <value>Save to the current geometry</value>
+  </data>
+  <data name="ResponseMatrixClose" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="ResponseMatrixProgress" xml:space="preserve">
+    <value>Node {0} of {1}, {2:F0} keV.</value>
+  </data>
+  <data name="ResponseMatrixDone" xml:space="preserve">
+    <value>Done in {0}. Not saved yet.</value>
+  </data>
+  <data name="ResponseMatrixContinuumNoise" xml:space="preserve">
+    <value> Continuum statistics are thin: {0} % on the row integral, averaged over nodes by their contribution — the peak is fine, the continuum is noisy. Raise the number of histories.</value>
+  </data>
+  <data name="ResponseMatrixCancelled" xml:space="preserve">
+    <value>Cancelled.</value>
+  </data>
+  <data name="ResponseMatrixSaved" xml:space="preserve">
+    <value>Saved: {0}</value>
+  </data>
+  <data name="ResponseMatrixFailed" xml:space="preserve">
+    <value>Could not compute the matrix: {0}</value>
+  </data>
+  <data name="ResponseMatrixWhatFor" xml:space="preserve">
+    <value>The matrix describes how the detector spreads the energy of a photon that hits it: the full-energy peak, the Compton plateau, the escape peaks. Full-spectrum analysis uses it to model the continuum of each nuclide instead of leaving it to a free baseline.
+
+The matrix is stored next to the device configuration, one file per geometry, and does not travel inside spectrum files.</value>
+  </data>
+  <data name="ResponseMatrixInheritedHistories" xml:space="preserve">
+    <value>Computed with {0:F0} histories per node, nominal is {1:F0}; field raised to nominal</value>
+  </data>
+  <data name="ResponseMatrixFingerprint" xml:space="preserve">
+    <value>Body fingerprint: {0}</value>
+  </data>
+  <data name="ResponseMatrixFingerprintNone" xml:space="preserve">
+    <value>none (taken from the file)</value>
+  </data>
+  <data name="ResponseMatrixFingerprintNotStored" xml:space="preserve">
+    <value>{0} (not stored in the file)</value>
+  </data>
+  <data name="ResponseMatrixFingerprintMismatch" xml:space="preserve">
+    <value>{0} ⚠ DOES NOT MATCH the one stored in the file</value>
+  </data>
+  <data name="NuclideSetAllNuclides" xml:space="preserve">
+    <value>--- All Nuclides ---</value>
+  </data>
+  <data name="GeometryEditorMaterialsEdit" xml:space="preserve">
+    <value>…</value>
+  </data>
+  <data name="GeometryEditorMaterialsEditHint" xml:space="preserve">
+    <value>Edit the material library: add your own substance, formula and density</value>
+  </data>
+  <data name="GeometryMaterialsTitle" xml:space="preserve">
+    <value>Materials</value>
+  </data>
+  <data name="GeometryMaterialsKindAll" xml:space="preserve">
+    <value>--- All materials ---</value>
+  </data>
+  <data name="GeometryMaterialsKindCrystal" xml:space="preserve">
+    <value>Crystal</value>
+  </data>
+  <data name="GeometryMaterialsKindReflector" xml:space="preserve">
+    <value>Reflector</value>
+  </data>
+  <data name="GeometryMaterialsKindCladding" xml:space="preserve">
+    <value>Housing and mounting</value>
+  </data>
+  <data name="GeometryMaterialsKindBeakerWall" xml:space="preserve">
+    <value>Beaker wall</value>
+  </data>
+  <data name="GeometryMaterialsKindSource" xml:space="preserve">
+    <value>Sample</value>
+  </data>
+  <data name="GeometryMaterialsKind" xml:space="preserve">
+    <value>Used as</value>
+  </data>
+  <data name="GeometryMaterialsAbbr" xml:space="preserve">
+    <value>Short name</value>
+  </data>
+  <data name="GeometryMaterialsName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="GeometryMaterialsNameHint" xml:space="preserve">
+    <value>The name goes into the geometry file and identifies the material inside mixtures. Keep the LSRM spelling for the standard ones.</value>
+  </data>
+  <data name="GeometryMaterialsDensity" xml:space="preserve">
+    <value>Density</value>
+  </data>
+  <data name="GeometryMaterialsByFormula" xml:space="preserve">
+    <value>Given by a formula</value>
+  </data>
+  <data name="GeometryMaterialsByMixture" xml:space="preserve">
+    <value>Mixture of materials</value>
+  </data>
+  <data name="GeometryMaterialsFormula" xml:space="preserve">
+    <value>Formula</value>
+  </data>
+  <data name="GeometryMaterialsFormulaHint" xml:space="preserve">
+    <value>Element symbols with atom counts, separated by spaces: Bi4 Ge3 O12. Mass fractions are computed from atomic masses — they are never typed in by hand.</value>
+  </data>
+  <data name="GeometryMaterialsMixtureHint" xml:space="preserve">
+    <value>Materials of the library and their mass weights. Weights are relative: 1 and 1 mean the same as 50 and 50.</value>
+  </data>
+  <data name="GeometryMaterialsComponent" xml:space="preserve">
+    <value>Material</value>
+  </data>
+  <data name="GeometryMaterialsWeight" xml:space="preserve">
+    <value>Mass weight</value>
+  </data>
+  <data name="GeometryMaterialsComposition" xml:space="preserve">
+    <value>Composition</value>
+  </data>
+  <data name="GeometryMaterialsAdd" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="GeometryMaterialsRemove" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="GeometryMaterialsSave" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="GeometryMaterialsCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="GeometryMaterialsNewName" xml:space="preserve">
+    <value>New material</value>
+  </data>
+  <data name="GeometryMaterialsRemoveAsk" xml:space="preserve">
+    <value>Delete the material "{0}" from the library?</value>
+  </data>
+  <data name="GeometryMaterialsErrorNoName" xml:space="preserve">
+    <value>The material has no name. The name identifies it inside geometry files and mixtures.</value>
+  </data>
+  <data name="GeometryMaterialsErrorDuplicate" xml:space="preserve">
+    <value>The name "{0}" is used more than once. Names identify materials, so they must be unique.</value>
+  </data>
+  <data name="GeometryMaterialsErrorDensity" xml:space="preserve">
+    <value>Density must be greater than zero.</value>
+  </data>
+  <data name="GeometryMaterialsErrorFormula" xml:space="preserve">
+    <value>The formula yields no elements. Expected element symbols with atom counts: Cs1 I1.</value>
+  </data>
+  <data name="GeometryMaterialsErrorEmptyMixture" xml:space="preserve">
+    <value>The mixture is empty: it needs at least one material with a positive weight.</value>
+  </data>
+  <data name="GeometryMaterialsErrorNoComponent" xml:space="preserve">
+    <value>The mixture refers to "{0}", which is not in the library.</value>
+  </data>
+  <data name="GeometryMaterialsErrorCycle" xml:space="preserve">
+    <value>The mixture contains itself, directly or through another mixture.</value>
+  </data>
+  <data name="GeometryMaterialsErrorInUse" xml:space="preserve">
+    <value>"{0}" cannot be deleted: it is part of {1}. Such a mixture would then be computed without it, and no error would be raised.</value>
+  </data>
+  <data name="GeometryMaterialsErrorAt" xml:space="preserve">
+    <value>Material "{0}": {1}</value>
+  </data>
+  <data name="GeometryMaterialsLoadFailed" xml:space="preserve">
+    <value>The material library {0} could not be read ({1}). The built-in list is shown; saving will replace the file.</value>
+  </data>
+  <data name="GeometryMaterialsSaveFailed" xml:space="preserve">
+    <value>The material library could not be written to {0}: {1}</value>
+  </data>
+  <data name="GeometryMaterialsKindOther" xml:space="preserve">
+    <value>Not assigned</value>
+  </data>
+  <data name="GeometryMaterialsByTable" xml:space="preserve">
+    <value>Fractions from the LSRM table</value>
+  </data>
+  <data name="NucBase_SearchFound" xml:space="preserve">
+    <value>Lines found: {0}.</value>
+  </data>
+  <data name="NucBase_SearchEmpty" xml:space="preserve">
+    <value>Nothing found: the query ran, but no line matches the search conditions.</value>
+  </data>
+  <data name="NucBase_LinesFetchError" xml:space="preserve">
+    <value>SEARCH FAILED for {0}. The table is empty because the query did not run — not because there are no lines. {1}</value>
+  </data>
+  <data name="NucBase_ElementDataFetchError" xml:space="preserve">
+    <value>THE ELEMENT DATABASE (matdb.sqlite) COULD NOT BE READ, so the element number and the characteristic X-ray lines are missing — they were not looked up, not found empty. {0}</value>
+  </data>
+  <data name="NucBase_ChainLinesRefused" xml:space="preserve">
+    <value>SEARCH FAILED for {0} chain member(s): their lines did not make it into the table, so what is shown is incomplete. {1}</value>
+  </data>
+  <data name="NucBase_CardEmpty" xml:space="preserve">
+    <value>No card for {0}: the nuclide table has no such row, or its half-life is not measured.</value>
+  </data>
+  <data name="ImportSpectrumLimitTitle" xml:space="preserve">
+    <value>Importing spectra</value>
+  </data>
+  <data name="ImportSpectrumLimitReached" xml:space="preserve">
+    <value>Imported spectra: {0}.
+A document holds no more than {1} spectra, so the rest was not taken. Spectra that did not fit: {2}. Files not read at all: {3}.</value>
+  </data>
+  <data name="LayoutSaveFailedTitle" xml:space="preserve">
+    <value>Panel layout</value>
+  </data>
+  <data name="LayoutSaveFailed" xml:space="preserve">
+    <value>The panel layout could not be saved to {0}.
+Reason: {1}
+The previous arrangement will come back the next time the application starts.</value>
+  </data>
+  <data name="LayoutSaveFailedOnExit" xml:space="preserve">
+    <value>When the application was closing on {0}, the panel layout could not be saved to {1}.
+Reason: {2}
+{3}</value>
+  </data>
+  <data name="LayoutSaveRescued" xml:space="preserve">
+    <value>The arrangement was written to {0} instead. Copy that file over the one above to get it back.</value>
+  </data>
+  <data name="LayoutSaveNotRescued" xml:space="preserve">
+    <value>The arrangement could not be preserved and is lost.</value>
+  </data>
+  <data name="ERRCalibrationNotSavedToDevice" xml:space="preserve">
+    <value>The calibration was NOT written to the device configuration. The device keeps its previous calibration and the spectrum is left unchanged - correct the cause and save again.</value>
+  </data>
+  <data name="PeakDetectionFailed" xml:space="preserve">
+    <value>Peak detection failed - the peak list is cleared</value>
+  </data>
+  <data name="AboutVersionFormat" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="UnitKilogram" xml:space="preserve">
+    <value>kg</value>
+  </data>
+  <data name="UnitGram" xml:space="preserve">
+    <value>g</value>
+  </data>
+  <data name="UnitLiter" xml:space="preserve">
+    <value>l</value>
+  </data>
+  <data name="UnitMilliliter" xml:space="preserve">
+    <value>ml</value>
+  </data>
+  <data name="UnitMicroSievertPerHour" xml:space="preserve">
+    <value>µSv/h</value>
+  </data>
+  <data name="UnitMilliSievertPerHour" xml:space="preserve">
+    <value>mSv/h</value>
+  </data>
+  <data name="UnitSievertPerHour" xml:space="preserve">
+    <value>Sv/h</value>
+  </data>
+  <data name="PulseViewWaveHeight" xml:space="preserve">
+    <value>Wave height: </value>
+  </data>
+  <data name="PulseViewMaxWaveHeight" xml:space="preserve">
+    <value>Max Wave height: </value>
+  </data>
+  <data name="ScreenshotDialogTitle" xml:space="preserve">
+    <value>Screenshot</value>
+  </data>
+  <data name="PNGFileFilter" xml:space="preserve">
+    <value>png file (*.png)|*.png</value>
+  </data>
+  <data name="WAVFileFilter" xml:space="preserve">
+    <value>WAV Files (*.wav)|*.wav|All Files (*.*)|*.*</value>
+  </data>
+  <data name="SelectSoundFileTitle" xml:space="preserve">
+    <value>Please select a sound file.</value>
+  </data>
+  <data name="ERRNoBackgroundSpectrum" xml:space="preserve">
+    <value>Background spectrum is not available for the active spectrum.</value>
+  </data>
+  <data name="ERRAudioDeviceDisconnected" xml:space="preserve">
+    <value>Device disconnected from audio port!</value>
+  </data>
+  <data name="ERROpenLinkFailure" xml:space="preserve">
+    <value>Link "{0}" couldn't be opened.
+({1})</value>
+  </data>
+  <data name="MenuShowLog" xml:space="preserve">
+    <value>Show log</value>
+  </data>
+  <data name="ERROpenLogFailure" xml:space="preserve">
+    <value>Log file "{0}" couldn't be shown.
+({1})</value>
+  </data>
+  <data name="ERRBTEnableFailed" xml:space="preserve">
+    <value>Bluetooth couldn't be turned on: {0}
+Turn it on in Windows settings and search again.</value>
+  </data>
+  <data name="VCPDeviceStatusReason" xml:space="preserve">
+    <value>Reason: {0}</value>
+  </data>
+  <data name="ERRTroubleshootDeviceBusy" xml:space="preserve">
+    <value>Device "{0}" is recording a spectrum right now. Troubleshoot takes over the device connection, so the running measurement would keep counting time without receiving any data. Stop that measurement first.</value>
+  </data>
+  <data name="ERRDeviceNoData" xml:space="preserve">
+    <value>NO DATA FROM DEVICE: {0}</value>
+  </data>
+  <data name="ERRBTUnavailable" xml:space="preserve">
+    <value>Bluetooth is off or unavailable: {0}</value>
+  </data>
+  <data name="ERRBTNotAllowed" xml:space="preserve">
+    <value>no permission to use the radio module</value>
+  </data>
+  <data name="ERRBTNoAdapter" xml:space="preserve">
+    <value>Bluetooth adapter not found</value>
+  </data>
+  <data name="ERRObsCalNoAddress" xml:space="preserve">
+    <value>device address is not set</value>
+  </data>
+  <data name="ERRObsCalNoDevice" xml:space="preserve">
+    <value>device not found at this address</value>
+  </data>
+  <data name="ERRObsCalNoService" xml:space="preserve">
+    <value>the device has no settings service</value>
+  </data>
+  <data name="ERRObsCalNoCharacteristics" xml:space="preserve">
+    <value>calibration fields are unavailable on the device</value>
+  </data>
+  <data name="ERRObsCalBadCalibration" xml:space="preserve">
+    <value>the calibration is empty or of too low an order</value>
+  </data>
+  <data name="ERRObsCalWriteRejected" xml:space="preserve">
+    <value>the device rejected the write: {0}</value>
+  </data>
+  <data name="FSAReportNoSpectrum" xml:space="preserve">
+    <value>No spectrum selected</value>
+  </data>
+  <data name="FSAReportTipCalculation" xml:space="preserve">
+    <value>Changes the calculation: the decomposition is recomputed.</value>
+  </data>
+  <data name="FSAReportTipGrouping" xml:space="preserve">
+    <value>Changes only how rows and bands are grouped; nothing is recomputed.</value>
+  </data>
+  <data name="FSAReportTipParentsNeedNucBase" xml:space="preserve">
+    <value>Parent nuclides are available only with the composition from NucBase and chain equilibrium on.</value>
+  </data>
+  <data name="FSAReportTipParentsRefused" xml:space="preserve">
+    <value>Parent nuclides are not available for this result: {0}</value>
+  </data>
+  <data name="FSAReportRefusalFreeChainMembers" xml:space="preserve">
+    <value>chain members have free amplitudes, the parent detection limit is undefined</value>
+  </data>
+  <data name="FSAReportRefusalNoDecayChain" xml:space="preserve">
+    <value>there is no decay chain in the composition</value>
+  </data>
+  <data name="FSAReportTipEquilibriumNeedsNucBase" xml:space="preserve">
+    <value>Chain equilibrium works only when the composition comes from NucBase; the peak-label path knows nothing about decay chains.</value>
+  </data>
+  <data name="FSAReportTipMatrixExtra" xml:space="preserve">
+    <value>With a response matrix this switch controls only the separate additional component; the contribution already inside the matrix stays.</value>
+  </data>
+  <data name="PeakLabelAnnihilationSum" xml:space="preserve">
+    <value>{0} (sum 511+511)</value>
+    <comment>Instrumental peak label for the 1022 keV sum of two annihilation quanta. {0} is the name of the annihilation-image record of the nuclide library, so that the 511 and 1022 labels can be told apart on the chart. Keep {0} first and keep a SPACE right after it: the nuclide token is read as everything before the first space (NuclideDefinition.NuclideNameOf), the way "Tl-208 SE" is.</comment>
+  </data>
+  <data name="PeakLabelCandidateSeparator" xml:space="preserve">
+    <value> / </value>
+    <comment>Separates the names of a peak label when several library lines fall inside the same peak and the position does not settle the argument, e.g. "W x-ray / Am-241". The FIRST name is the winner: every number computed from the label (activity, chain, composition) uses that one alone. Keep the surrounding spaces, and do not use a character that could be read as part of a nuclide name.</comment>
+  </data>
+  <data name="DoseRateBadEfficiency" xml:space="preserve">
+    <value>Dose rate: the efficiency curve gives {0} at {1:f0} keV — division by it is meaningless.</value>
+  </data>
+  <data name="DoseRateBadScale" xml:space="preserve">
+    <value>Dose rate: the energy scale is degenerate ({0}...{1} keV over {2} channels).</value>
+  </data>
+  <data name="DoseRateCurveAboveOne" xml:space="preserve">
+    <value>Dose rate: the efficiency curve gives {0} at {1:f1} keV. Efficiency is the fraction of the emitted photons registered and cannot exceed 1.</value>
+  </data>
+  <data name="DoseRateCurveBadEnergy" xml:space="preserve">
+    <value>Dose rate: the efficiency curve has a point at {0} keV.</value>
+  </data>
+  <data name="DoseRateCurveBadValue" xml:space="preserve">
+    <value>Dose rate: the efficiency curve gives {0} at {1:f1} keV.</value>
+  </data>
+  <data name="DoseRateCurveTooShort" xml:space="preserve">
+    <value>Dose rate: the efficiency curve has {0} point(s), at least two are needed.</value>
+  </data>
+  <data name="DoseRateEmptyRange" xml:space="preserve">
+    <value>Dose rate: the device scale ({0:f0}...{1:f0} keV) does not overlap the range where the coefficients are defined ({2:f0}...{3:f0} keV).</value>
+  </data>
+  <data name="DoseRateEmptySpectrum" xml:space="preserve">
+    <value>Dose rate: the reference spectrum has no channels.</value>
+  </data>
+  <data name="DoseRateEnergyNotPositive" xml:space="preserve">
+    <value>Dose rate: energy {0} keV is not positive.</value>
+  </data>
+  <data name="DoseRateEtalonEmpty" xml:space="preserve">
+    <value>Dose rate: the reference spectrum has no counts inside the ranges — there is nothing to calibrate against.</value>
+  </data>
+  <data name="DoseRateFileUnusable" xml:space="preserve">
+    <value>Dose rate: {0} has no spectrum with an energy calibration, channels and a non-zero measurement time.</value>
+  </data>
+  <data name="DoseRateLsrmNoHeader" xml:space="preserve">
+    <value>Dose rate: {0} does not start with the LSRM header "Energy, keV / Efficiency / Uncertainty, %" — the first line reads "{1}".</value>
+  </data>
+  <data name="DoseRateLsrmNoPoints" xml:space="preserve">
+    <value>Dose rate: {0} yielded {1} curve point(s) — at least {2} are needed ({3} more were dropped as declared to more than {4:f0} % uncertainty).</value>
+  </data>
+  <data name="DoseRateLsrmShortLine" xml:space="preserve">
+    <value>Dose rate: {0} (line {1}) has {2} column(s) instead of three (energy, efficiency, uncertainty): "{3}".</value>
+  </data>
+  <data name="DoseRateNoCalibration" xml:space="preserve">
+    <value>Dose rate: the reference spectrum has no energy calibration — the channels cannot be turned into keV.</value>
+  </data>
+  <data name="DoseRateNoEfficiency" xml:space="preserve">
+    <value>Dose rate: no efficiency curve is selected.</value>
+  </data>
+  <data name="DoseRateNoGeometry" xml:space="preserve">
+    <value>Dose rate: the curve "{0}" has no geometry — without it the emission rate cannot be turned into a fluence at the detector, and the dose has no scale.</value>
+  </data>
+  <data name="DoseRateForeignMatrix" xml:space="preserve">
+    <value>Dose rate: the response matrix does not match the geometry of the curve "{0}".</value>
+  </data>
+  <data name="DoseRateEmptyMatrix" xml:space="preserve">
+    <value>Dose rate: the response matrix of the curve "{0}" has no rows.</value>
+  </data>
+  <data name="DoseRateOutsideMatrix" xml:space="preserve">
+    <value>Dose rate: {0:f1} keV is outside the response matrix ({1:f1}...{2:f1} keV).</value>
+  </data>
+  <data name="DoseRateNoGeometryModel" xml:space="preserve">
+    <value>Dose rate: the curve has no geometry.</value>
+  </data>
+  <data name="DoseRateNoCrystal" xml:space="preserve">
+    <value>Dose rate: the geometry has a crystal of zero depth.</value>
+  </data>
+  <data name="DoseRateSourceInCrystal" xml:space="preserve">
+    <value>Dose rate: the point source sits at the crystal centre — the fluence is undefined.</value>
+  </data>
+  <data name="DoseRateNoSampleVolume" xml:space="preserve">
+    <value>Dose rate: the sample in the geometry has no volume — there is nothing to average the fluence over.</value>
+  </data>
+  <data name="DoseRateAreaAboveBound" xml:space="preserve">
+    <value>Dose rate: the field-scene curve gives {0} cm² at {1:f1} keV — more than the projected area of the sphere around the detector ({2:f1} cm²).</value>
+  </data>
+  <data name="DoseRateCurveNormalizationMismatch" xml:space="preserve">
+    <value>Dose rate: the curve "{0}" is normalised {1}, but its geometry ({2}) requires {3} — recompute the curve from the geometry.</value>
+  </data>
+  <data name="DoseRateMatrixNormalizationMismatch" xml:space="preserve">
+    <value>Dose rate: the response matrix is normalised {1}, but the curve "{0}" is {2} — square centimetres and fractions do not mix; recompute the matrix.</value>
+  </data>
+  <data name="DoseRateNoElement" xml:space="preserve">
+    <value>Dose rate: element Z={0} is missing from the material database.</value>
+  </data>
+  <data name="DoseRateNoExpected" xml:space="preserve">
+    <value>Dose rate: the declared dose rate of the source must be positive.</value>
+  </data>
+  <data name="DoseRateNoGrid" xml:space="preserve">
+    <value>Dose rate: the energy grid is empty.</value>
+  </data>
+  <data name="DoseRateNoScale" xml:space="preserve">
+    <value>Dose rate: neither the device configuration nor the spectrum has an energy scale — there is nothing to build the ranges on.</value>
+  </data>
+  <data name="DoseRateNoSpectrum" xml:space="preserve">
+    <value>Dose rate: no reference spectrum is selected.</value>
+  </data>
+  <data name="DoseRateNoTime" xml:space="preserve">
+    <value>Dose rate: the reference spectrum has zero measurement time.</value>
+  </data>
+  <data name="DoseRateNotFinite" xml:space="preserve">
+    <value>Dose rate: the sum over the ranges is not a finite number — the calibration points are unusable.</value>
+  </data>
+  <data name="DoseRateOutsideCurve" xml:space="preserve">
+    <value>Dose rate: {0:f1} keV is outside the efficiency curve ({1:f1}...{2:f1} keV).</value>
+  </data>
+  <data name="DoseRateOutsideIcrp" xml:space="preserve">
+    <value>Dose rate: {0} keV is outside the ICRP 74 h*(10)/Ka table ({1}...{2} keV).</value>
+  </data>
+  <data name="DoseRateOutsideXcom" xml:space="preserve">
+    <value>Dose rate: {0} keV is outside the XCOM table for Z={1} ({2}...{3} keV).</value>
+  </data>
+  <data name="DoseRatePartialCoverage" xml:space="preserve">
+    <value>(covers {0:f0} % of counts)</value>
+  </data>
+  <data name="ERRNoFwhmCalibrationImport" xml:space="preserve">
+    <value>{0}: {1} of {2} imported spectra have no resolution model (FWHM calibration). Peak search cannot run on them. Reason: {3}</value>
+  </data>
+  <data name="ERRFwhmDefaultNotMonotonic" xml:space="preserve">
+    <value>the default cannot be built from the device settings — the straight line through (channel 0, FWHM {0}) and (channel {1}, FWHM {2}) does not grow, while the width must not decrease along the scale.</value>
+  </data>
+  <data name="ERRFwhmCalibrationUnset" xml:space="preserve">
+    <value>the spectrum carries no FWHM calibration and none was built for it.</value>
   </data>
 </root>

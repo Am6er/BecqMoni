@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 
@@ -51,10 +52,22 @@ namespace BecquerelMonitor
 
         public override string GetFormula()
         {
-            return String.Format(formula, "b", "k");
+            return String.Format(CultureInfo.InvariantCulture, formula, "b", "k");
         }
 
 
+
+        /// <summary>
+        /// F² = c0 + c1·ch — тот же ход, что у <see cref="SqrtFwhmCalibration"/>
+        /// без квадратичного члена: c_i' = c_i·mul^(i−2) (`S54`).
+        /// </summary>
+        public override void RescaleCoefficients(double mul)
+        {
+            for (int i = 0; i < coefficients.Length; i++)
+            {
+                coefficients[i] = coefficients[i] * Math.Pow(mul, i - 2);
+            }
+        }
 
         public override int MinPeaksRequirement()
         {
@@ -70,7 +83,7 @@ namespace BecquerelMonitor
 
         public override string ToString()
         {
-            return String.Format(formula, coefficients[0], coefficients[1]);
+            return String.Format(CultureInfo.InvariantCulture, formula, coefficients[0], coefficients[1]);
         }
 
         public override bool NotCalibrated()

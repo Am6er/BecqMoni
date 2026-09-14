@@ -1,0 +1,48 @@
+=== Nano 16 - cilinder - 5cm dist.txt
+152
+Energy, keV	Efficiency	Uncertainty, %
+20.0			1.40534E-05		625
+40.0			2.74157E-03		38.7
+3020.0			2.71587E-04		7.62
+=== Nano 16 - cilinder.txt
+152
+Energy, keV	Efficiency	Uncertainty, %
+20.0			1.80392E-03		927
+40.0			4.00862E-02		56
+3020.0			2.36069E-03		12.9
+=== Nano 16 - marinelli.txt
+61
+Energy, keV	Efficiency	Uncertainty, %
+10.0			9.76E-17		3830
+60.0			1.45493E-02		1.63
+2960.0			7.54984E-04		6.86
+=== Obsidian - marinelli 0.5.txt
+151
+Energy, keV	Efficiency	Uncertainty, %
+20.0			1.47185E+03		554
+40.0			5.55793E-03		30.5
+3000.0			2.80456E-05		11
+=== RadiaCode - author marinelli 0.2.txt
+151
+Energy, keV	Efficiency	Uncertainty, %
+20.0			3.84173E-03		1100
+40.0			4.94988E-03		61.5
+3000.0			6.37685E-05		22.5
+=== RadiaCode - author marinelli 0.5.txt
+151
+Energy, keV	Efficiency	Uncertainty, %
+20.0			1.12419E-01		1170
+40.0			3.39528E-03		65.9
+3000.0			4.19508E-05		22.6
+=== RadiaCode - cilinder.txt
+152
+Energy, keV	Efficiency	Uncertainty, %
+20.0			2.43683E-03		622
+40.0			9.32679E-03		34.7
+3020.0			1.35734E-04		12.3
+=== RadiaCode - marinelli 0.5.txt
+151
+Energy, keV	Efficiency	Uncertainty, %
+20.0			4.55616E-02		1150
+40.0			2.76634E-03		63.9
+3000.0			2.48089E-05		21.4

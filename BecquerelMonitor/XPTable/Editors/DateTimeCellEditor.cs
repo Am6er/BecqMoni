@@ -136,7 +136,7 @@ namespace XPTable.Editors
             }
 
             this.calendar.SelectionStart = date;
-            this.TextBox.Text = date.ToString(format);
+            this.TextBox.Text = date.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
         }
 
 

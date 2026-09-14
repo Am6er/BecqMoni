@@ -1,0 +1,106 @@
+diff --git a/tools/CORPUS/scripts/run_appwd.ps1 b/tools/CORPUS/scripts/run_appwd.ps1
+index 236f8097..affe341c 100644
+--- a/tools/CORPUS/scripts/run_appwd.ps1
++++ b/tools/CORPUS/scripts/run_appwd.ps1
+@@ -1,21 +1,30 @@
+ ﻿# Запуск корпусного прогона ЧЕРЕЗ СТОРОЖА (`T63`) — то есть читатель отказа.
+ #
+ #   & 'tools\CORPUS\scripts\run_appwd.ps1' -Out <каталог>
+-#   & 'tools\CORPUS\scripts\run_appwd.ps1' -Out <каталог> -Extra '--lib=sample','--sthr=0.30'
++#   & 'tools\CORPUS\scripts\run_appwd.ps1' -Out <каталог> -Extra '--band=whole','--share-thr=0.30'
+ #   & 'tools\CORPUS\scripts\run_appwd.ps1' -Out <каталог> -Bin <сборка> -Wd <оснастка> -Force
+ #
+-# ⛔ ЗВАТЬ ОПЕРАТОРОМ ВЫЗОВА `&` ИЗ ТЕКУЩЕЙ СЕССИИ, А НЕ ПОРОЖДАТЬ `pwsh` НА ФАЙЛ
+-#    (`T84`). Массив `-Extra` уходит в порождённый процесс ЧЕРЕЗ КОМАНДНУЮ
+-#    СТРОКУ и схлопывается. Измерено 27.08.2026 на копии этой же шапки `param()`,
+-#    аргумент `-Extra '--lib=sample','--sthr=0.30'`:
+-#      * `& <файл> …` из текущей сессии  -> `$Extra` = ДВА элемента, как задумано;
+-#      * `pwsh <файл> …` / `pwsh -File <файл> …` -> ОДИН элемент, и в нём лежат
+-#        сами кавычки: `'--lib=sample','--sthr=0.30'`. Проба на такой аргумент
+-#        печатает «неизвестный ключ» и возвращает 2;
+-#      * `pwsh -File <файл> -Extra @('--lib=sample','--sthr=0.30')` -> `$Extra`
+-#        первый ключ, `$Rest` второй, то есть код 64 ниже.
++# ⛔ ЗВАТЬ ОПЕРАТОРОМ ВЫЗОВА `&` ИЗ ТЕКУЩЕЙ СЕССИИ, А НЕ ЗАПУСКАТЬ ФАЙЛОМ
++#    (`T84`, причина уточнена 27.08.2026 заморозкой и записана здесь 05.09.2026
++#    по `T91`). ⛔ Дело НЕ в том, что порождается процесс: процесс порождается в
++#    обоих опытах. Дело в том, КТО РАЗБИРАЕТ АРГУМЕНТЫ. При запуске ФАЙЛОМ
++#    (`pwsh <файл>.ps1 …`, `pwsh -File <файл> …`) их разбирает командная строка,
++#    и массив схлопывается вместе с кавычками; при разборе PowerShell-парсером —
++#    хоть в текущей сессии (`& <файл> …`), хоть в новом процессе
++#    (`pwsh -NoProfile -Command "& <файл> …"`) — массив доезжает целым.
++#    Измерено 27.08.2026 на копии этой же шапки `param()`, аргумент из двух ключей:
++#      * `& <файл> …` из текущей сессии            -> `$Extra` = ДВА элемента;
++#      * `pwsh -NoProfile -Command "& <файл> …"`   -> `$Extra` = ДВА элемента;
++#      * `pwsh <файл> …` / `pwsh -File <файл> …`   -> ОДИН элемент, и в нём лежат
++#        сами кавычки: `'--band=whole','--share-thr=0.30'`. Проба на такой
++#        аргумент печатает «неизвестный ключ» и возвращает 2;
++#      * `pwsh -File <файл> -Extra @('a','b')`     -> `$Extra` первый ключ,
++#        `$Rest` второй, то есть код 64 ниже.
+ #    ⚠ С ОДНИМ ключом разницы не видно (один элемент и там, и там) — ломается
+ #      молча начиная со второго. Склеенный аргумент ловит проверка ниже, код 65.
++#    ⚠ Ключа `--sthr` у пробы НЕТ (проверено 05.09.2026: код 2, «неизвестный
++#      ключ»); прежний пример в этой шапке учил несуществующему ключу. Живой
++#      однокоренной ключ называется `--share-thr`.
+ #
+ # ⛔ Зачем эта обёртка вообще нужна. Признак без читателя — главная грабля этого
+ #    проекта: `B20` завела `matrix_note` «отпечаток НЕ сошёлся», и с 18.08 по
+@@ -58,7 +67,7 @@ $ErrorActionPreference = 'Stop'
+ 
+ if ($Rest -and $Rest.Count -gt 0) {
+     Write-Host "⛔ ЛИШНИЕ АРГУМЕНТЫ: $($Rest -join ' ')" -ForegroundColor Red
+-    Write-Host "   Ключи пробы передавайте так: -Out <каталог> -Extra '--lib=sample','--sthr=0.30'" -ForegroundColor Red
++    Write-Host "   Ключи пробы передавайте так: -Out <каталог> -Extra '--band=whole','--share-thr=0.30'" -ForegroundColor Red
+     Write-Host "   Россыпью нельзя: PowerShell рвёт '--out=C:\путь' по двоеточию." -ForegroundColor Red
+     Write-Host "   И звать ОПЕРАТОРОМ ВЫЗОВА из текущей сессии: & '<путь>\run_appwd.ps1' … (T84)." -ForegroundColor Red
+     Write-Host "   Форма 'pwsh -File <файл> -Extra @(a,b)' даёт ровно этот отказ: второй ключ уезжает сюда." -ForegroundColor Red
+@@ -73,28 +82,40 @@ if ($Rest -and $Rest.Count -gt 0) {
+ #      * кавычка ВНУТРИ аргумента — её вносит расщепление командной строки;
+ #      * `--` после запятой или пробела — это ВТОРОЙ ключ в том же аргументе
+ #        (запятая сама по себе законна: `--groups=G1S,ASN16`, `--only=a,b`);
++#      * ЛЮБОЙ пробел внутри аргумента (05.09.2026): у пробы нет ни одного
++#        ключа с пробелом, и ни одного ключа корпуса с пробелом в значении —
++#        проверено по `manifest.csv`, имён спектров с пробелом ноль. Прежняя
++#        мерка требовала после пробела ещё и `--`, поэтому `--only=ASN16 Cs137`
++#        проходил насквозь: проба отвечала «под отбор не попал ни один спектр»
++#        и кодом 2 — то есть отказ был, а ДИАГНОЗ не тот, и ошибку идут искать
++#        в имени спектра вместо способа запуска (измерено 05.09.2026);
+ #      * аргумент, не начинающийся с `--`, — ключей иного вида у пробы нет.
+-$glued = [System.Collections.Generic.List[string]]::new()
+-foreach ($e in @($Extra)) {
+-    if ($e -match '["'']')      { $glued.Add("кавычки внутри аргумента: $e"); continue }
+-    if ($e -match '[,\s]\s*--') { $glued.Add("два ключа в одном аргументе: $e"); continue }
+-    if ($e -notmatch '^--')     { $glued.Add("ключ пробы обязан начинаться с --: $e") }
+-}
++# ⛔ САМА МЕРКА ЖИВЁТ В `appwd_plan.ps1` (`Get-AppWdGluedExtra`) и оттуда же
++#    зовётся приёмкой `check_appwd.ps1 -SelfTest`, которая подбрасывает ей
++#    плохие и хорошие входы. Проверка, написанная отдельно от работающей,
++#    проверяет не её.
++$glued = @(Get-AppWdGluedExtra -Extra $Extra)
+ if ($glued.Count -gt 0) {
+     Write-Host ""
+     Write-Host "⛔⛔ ОТКАЗ: КЛЮЧИ ПРОБЫ СКЛЕИЛИСЬ ПРИ ЗАПУСКЕ — ПРОБА НЕ ЗАПУЩЕНА" -ForegroundColor Red
+     foreach ($g in $glued) { Write-Host ("   " + $g) -ForegroundColor Red }
+     Write-Host ""
+-    Write-Host '   Дело не в самом ключе, а в способе запуска: pwsh <файл>.ps1 -Extra a,b' -ForegroundColor Red
+-    Write-Host "   порождает процесс, и массив уходит туда одной строкой вместе с кавычками." -ForegroundColor Red
+-    Write-Host "   Звать надо ОПЕРАТОРОМ ВЫЗОВА из текущей сессии:" -ForegroundColor Red
+-    Write-Host ("       & '{0}\run_appwd.ps1' -Out <каталог> -Extra '--lib=sample','--sthr=0.30'" -f $PSScriptRoot) -ForegroundColor Red
++    Write-Host '   Дело не в самом ключе, а в способе запуска: у `pwsh <файл>.ps1 -Extra a,b`' -ForegroundColor Red
++    Write-Host "   аргументы разбирает КОМАНДНАЯ СТРОКА, а не PowerShell-парсер, и массив" -ForegroundColor Red
++    Write-Host "   приходит одной строкой вместе с кавычками. Процесс тут ни при чём:" -ForegroundColor Red
++    Write-Host '   `pwsh -NoProfile -Command "& <файл> …"` передаёт тот же массив ЦЕЛЫМ.' -ForegroundColor Red
++    Write-Host "   Звать надо ОПЕРАТОРОМ ВЫЗОВА:" -ForegroundColor Red
++    Write-Host ("       & '{0}\run_appwd.ps1' -Out <каталог> -Extra '--band=whole','--share-thr=0.30'" -f $PSScriptRoot) -ForegroundColor Red
+     Write-Host ""
+     exit 65
+ }
+ 
+ $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+ if (-not $Wd) { $Wd = Join-Path $PSScriptRoot 'wd_app' }
++# ⛔ ПУТЬ ОСНАСТКИ — В АБСОЛЮТНЫЙ ДО ПЕРВОГО ЧТЕНИЯ (05.09.2026): отметку и
++#    пробу этот скрипт ищет САМ, помимо плана, и относительный путь развёл бы
++#    его с планом ровно так же, как развёл сборщика с его же обходом каталога.
++$Wd = Resolve-AppWdPath $Wd
+ $st = Read-AppWdStamp -Wd $Wd
+ if (-not $Bin) {
+     if ($st -and $st.bin) { $Bin = [string]$st.bin }

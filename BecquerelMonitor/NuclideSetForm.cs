@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor.Properties;
+using System.Globalization;
 using System;
 using System.Windows.Forms;
 using Windows.UI.Notifications;
@@ -9,9 +10,9 @@ namespace BecquerelMonitor
     public partial class NuclideSetForm : Form
     {
         private const int NuclideCheckboxColumnIndex = 0;
-        private const int NuclideAnchorColumnIndex = 3;
         private const int SetNameColumnIndex = 0;
         private const int SetHidePeaksColumnIndex = 1;
+        private const int SetIntensityLinesColumnIndex = 2;
 
         bool dirty = false;
         NuclideSet selectedSet = null;
@@ -64,8 +65,7 @@ namespace BecquerelMonitor
             bool included = nuclideDefinition.Sets.Contains(selectedSetId);
             row.Cells.Add(new Cell() { Checked = included });
             row.Cells.Add(new Cell(nuclideDefinition.Name));
-            row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(), nuclideDefinition.Energy));
-            row.Cells.Add(new Cell() { Checked = nuclideDefinition.IsAnchor });
+            row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(CultureInfo.InvariantCulture), nuclideDefinition.Energy));
             row.Tag = nuclideDefinition;
 
             return row;
@@ -90,7 +90,7 @@ namespace BecquerelMonitor
             NuclideSet set = new NuclideSet()
             {
                 Id = Guid.NewGuid(),
-                Name = $"New set {this.tableModelSets.Rows.Count + 1}"
+                Name = "New set " + (this.tableModelSets.Rows.Count + 1).ToString(CultureInfo.InvariantCulture)
             };
 
             this.tableSets.SuspendLayout();
@@ -105,8 +105,13 @@ namespace BecquerelMonitor
         private Row CreateNuclideSetRow(NuclideSet set)
         {
             Row row = new Row();
+            // Набор — в Tag строки: обработчики галок и правки имени должны
+            // брать набор ИЗ СТРОКИ СОБЫТИЯ, а не из выделения — событие может
+            // прийти по строке, которая выделенной не является.
+            row.Tag = set;
             row.Cells.Add(new Cell(set.Name));
             row.Cells.Add(new Cell() { Checked = set.HideUnknownPeaks });
+            row.Cells.Add(new Cell() { Checked = set.ShowIntensityLines });
             return row;
         }
 
@@ -130,7 +135,94 @@ namespace BecquerelMonitor
             }
 
             this.buttonDeleteSet.Enabled = this.selectedSet != null;
+            this.buttonAssignColor.Enabled = this.selectedSet != null;
+            this.ShowSetColor();
             this.UpdateTableNuclides();
+        }
+
+        /// <summary>
+        /// Показать в поле выбора цвет набора, если он у набора один. Разные
+        /// цвета внутри набора оставляют поле как есть: подставить любой из них
+        /// значило бы назвать его цветом набора, которым он не является.
+        /// </summary>
+        void ShowSetColor()
+        {
+            if (this.selectedSet == null)
+            {
+                return;
+            }
+
+            bool first = true;
+            System.Drawing.Color common = System.Drawing.Color.Empty;
+            foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
+            {
+                if (!nuclideDefinition.Sets.Contains(this.selectedSet.Id))
+                {
+                    continue;
+                }
+
+                System.Drawing.Color color = nuclideDefinition.NuclideColor.Color;
+                if (first)
+                {
+                    common = color;
+                    first = false;
+                }
+                else if (common != color)
+                {
+                    return;
+                }
+            }
+
+            if (!first)
+            {
+                this.assignColorComboBox.SelectedColor = common;
+            }
+        }
+
+        /// <summary>
+        /// Покрасить все нуклиды выбранного набора в один цвет.
+        ///
+        /// Цвет хранится у НУКЛИДА (<see cref="NuclideDefinition.NuclideColor"/>),
+        /// а не у набора: им же красятся пики и вертикальные линии интенсивностей,
+        /// и второго источника цвета заводить не за чем. Набор здесь — способ
+        /// выбрать, кого красить, разом: ввозимые из NucBase определения все
+        /// получают зелёный, и в зелёной заливке спектра их линии не видно.
+        /// </summary>
+        void buttonAssignColor_Click(object sender, EventArgs e)
+        {
+            if (this.selectedSet == null)
+            {
+                return;
+            }
+
+            System.Drawing.Color color = this.assignColorComboBox.SelectedColor;
+            int painted = 0;
+            foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
+            {
+                if (!nuclideDefinition.Sets.Contains(this.selectedSet.Id))
+                {
+                    continue;
+                }
+
+                nuclideDefinition.NuclideColor.Color = color;
+                painted++;
+            }
+
+            if (painted == 0)
+            {
+                // ⛔ `T106`. Обработчик зовёт отражением `SetColorProbe`
+                // (`Click(form, "buttonAssignColor_Click")`) — безоконный
+                // путь (`S100`).
+                AppUi.Report(Resources.NuclideSetAssignColorEmpty,
+                             Resources.ConfirmationDialogTitle,
+                             MessageBoxIcon.Information);
+                return;
+            }
+
+            this.MarkAsDirty();
+            // Цветом красятся линии интенсивностей и подписи пиков — перерисовать
+            // сразу, иначе действие выглядит несработавшим.
+            this.RefreshActiveChart();
         }
 
         private void tableNuclides_CellClick(object sender, XPTable.Events.CellMouseEventArgs e)
@@ -144,18 +236,6 @@ namespace BecquerelMonitor
             {
                 bool include = !e.Cell.Checked;
                 this.UpdateNuclideDefinition(this.tableModelNuclides.Rows[e.Row].Tag as NuclideDefinition, include);
-            }
-            else if (e.Cell.Index == NuclideAnchorColumnIndex)
-            {
-                // Якорная линия library-fit: флаг глобальный для линии (не
-                // пер-сетовый) — линия, выбранная якорем, обычно якорь во всех
-                // сетах, где присутствует (например, Tl-208 2614.5).
-                NuclideDefinition nuclideDefinition = this.tableModelNuclides.Rows[e.Row].Tag as NuclideDefinition;
-                if (nuclideDefinition != null)
-                {
-                    nuclideDefinition.IsAnchor = !e.Cell.Checked;
-                    this.MarkAsDirty();
-                }
             }
         }
 
@@ -239,6 +319,16 @@ namespace BecquerelMonitor
             if (indexToRemove > -1)
             {
                 this.nuclideManager.NuclideSets.RemoveAt(indexToRemove);
+                // Удалённый набор мог быть выбран для поиска пиков. Оставить на
+                // него ссылку значило бы искать по набору, которого нет, и
+                // прятать линии всех остальных: выбор непустой, а совпасть с ним
+                // уже некому.
+                if (this.nuclideManager.ActiveSet != null
+                    && this.nuclideManager.ActiveSet.Id == this.selectedSet.Id)
+                {
+                    this.nuclideManager.ActiveSet = null;
+                }
+
                 foreach (NuclideDefinition nuclide in this.nuclideManager.NuclideDefinitions)
                 {
                     nuclide.Sets.Remove(this.selectedSet.Id);
@@ -250,6 +340,9 @@ namespace BecquerelMonitor
 
                 this.selectedSet = null;
                 this.MarkAsDirty();
+                // Удалённый сет мог рисовать линии интенсивностей — убрать их
+                // с графика сразу, как это делает и сама галка.
+                this.RefreshActiveChart();
             }
         }
 
@@ -269,34 +362,97 @@ namespace BecquerelMonitor
                 }
             }
 
-            this.mainForm.RefresNuclideSetList();
+            // Конструктор без MainForm существует (его зовёт дизайнер форм и
+            // проба, снимающая окно) — и на закрытии окна это падало NRE.
+            if (this.mainForm != null)
+            {
+                this.mainForm.RefresNuclideSetList();
+
+                // ⛔ (`A31`) СОСТАВ НАБОРА ПОМЕНЯЛСЯ — ПЕРЕСЧИТАТЬ. Прежде здесь
+                // стоял только перебор выпадающего списка, и добавленный в набор
+                // нуклид никуда не доезжал: подписи пиков ставит набор, состав
+                // разложения идёт от подписей, а никто из них не пересчитывался,
+                // пока человек не трогал что-нибудь ещё. Ровно то же делает
+                // `NuclideDefinitionForm` после сохранения определений.
+                //
+                // ⚠ Условие — `dirty`, а не «всегда»: правки живут в объектах
+                // менеджера с той минуты, как их внесли, поэтому пересчитывать
+                // надо и когда человек отказался писать их в файл; а вот
+                // открытое и закрытое без правок окно дёргать поиск пиков не
+                // должно.
+                if (this.dirty)
+                {
+                    this.mainForm.UpdateDetectedPeakView();
+                    if (this.mainForm.ActiveDocument != null)
+                    {
+                        this.mainForm.ActiveDocument.UpdateEnergySpectrum();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Набор строки события — из её Tag. Писать в <see cref="selectedSet"/>
+        /// нельзя: XPTable может поднять событие ячейки до смены выделения, и
+        /// значение легло бы на чужой набор.
+        /// </summary>
+        private NuclideSet SetOfRow(int rowIndex)
+        {
+            return rowIndex >= 0 && rowIndex < this.tableModelSets.Rows.Count
+                ? this.tableModelSets.Rows[rowIndex].Tag as NuclideSet
+                : null;
         }
 
         private void tableSets_EditingStopped(object sender, XPTable.Events.CellEditEventArgs e)
         {
-            if (this.selectedSet == null)
+            NuclideSet set = this.SetOfRow(e.Row);
+            if (set == null)
             {
                 return;
             }
 
             if (e.Cell.Index == SetNameColumnIndex)
             {
-                this.selectedSet.Name = e.Cell.Text;
+                set.Name = e.Cell.Text;
                 this.MarkAsDirty();
             }
         }
 
         private void tableSets_CellCheckChanged(object sender, XPTable.Events.CellCheckBoxEventArgs e)
         {
-            if (this.selectedSet == null)
+            NuclideSet set = this.SetOfRow(e.Row);
+            if (set == null)
             {
                 return;
             }
 
             if (e.Cell.Index == SetHidePeaksColumnIndex)
             {
-                this.selectedSet.HideUnknownPeaks = e.Cell.Checked;
+                set.HideUnknownPeaks = e.Cell.Checked;
                 this.MarkAsDirty();
+            }
+            else if (e.Cell.Index == SetIntensityLinesColumnIndex)
+            {
+                set.ShowIntensityLines = e.Cell.Checked;
+                this.MarkAsDirty();
+                // График перерисовывается сразу: окно стоит рядом со спектром
+                // (перерисовка доходит и под модальным диалогом), и галка,
+                // действующая только после закрытия, читалась бы как
+                // неработающая.
+                this.RefreshActiveChart();
+            }
+        }
+
+        /// <summary>
+        /// Перерисовать спектр открытого документа. Набор, галку которого
+        /// щёлкнули, может быть и не выбран в панели поиска пиков — тогда на
+        /// картинке ничего не изменится, и это правильно.
+        /// </summary>
+        private void RefreshActiveChart()
+        {
+            if (this.mainForm != null && this.mainForm.ActiveDocument != null)
+            {
+                this.mainForm.ActiveDocument.EnergySpectrumView.Invalidate();
             }
         }
 

@@ -1,0 +1,13 @@
+start 23:45:18
+HEAD стенда: 6eb56f0db517a6260a21e2c4e74d25d2df7931db
+BecquerelMonitor\FullSpectrumAnalysis\FsaAnalyzer.cs sha256 3C89B9B5E0A4D7A9
+tools\effmaker\probes\CorpusFsaProbe.cs sha256 10DF544265D05712
+tools\effmaker\probes\FsaFitFloorProfileProbe.cs sha256 343945A580ECC7F4
+rmx copied: geometries 45, response 45
+23:45:21 msbuild  exit=0 (2 s)
+  exe: 11342848 байт, 12.09.2026 23:45:21, sha256 1C9588EC7502032D
+23:46:28 probes   exit=0 (67 s)
+23:46:34 mkwd     exit=0 (6 s)
+  матриц в оснастке: 45
+  sha256 exe проб = приложения: True
+СБОРКА ПРОШЛА

@@ -1,0 +1,40 @@
+НЕТ КЛЮЧА  BecquerelMonitor/DeviceConfigForm.cs:2623  GetString через Text()("DoseRateFileUnusable")
+НЕТ КЛЮЧА  BecquerelMonitor/DeviceConfigForm.cs:2751  GetString через Text()("DoseRateLsrmNoHeader")
+НЕТ КЛЮЧА  BecquerelMonitor/DeviceConfigForm.cs:2785  GetString через Text()("DoseRateLsrmShortLine")
+НЕТ КЛЮЧА  BecquerelMonitor/DeviceConfigForm.cs:2820  GetString через Text()("DoseRateLsrmNoPoints")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:146  GetString через Text()("DoseRatePartialCoverage")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:323  GetString через Text()("DoseRateEnergyNotPositive")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:340  GetString через Text()("DoseRateNoElement")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:353  GetString через Text()("DoseRateOutsideXcom")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:401  GetString через Text()("DoseRateOutsideIcrp")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:584  GetString через Text()("DoseRateOutsideCurve")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:647  GetString через Text()("DoseRateEmptyRange")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:697  GetString через Text()("DoseRateNoScale")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:710  GetString через Text()("DoseRateBadScale")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:730  GetString через Text()("DoseRateNoSpectrum")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:736  GetString через Text()("DoseRateNoCalibration")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:743  GetString через Text()("DoseRateEmptySpectrum")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:749  GetString через Text()("DoseRateNoTime")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:755  GetString через Text()("DoseRateNoEfficiency")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:761  GetString через Text()("DoseRateNoExpected")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:767  GetString через Text()("DoseRateNoGrid")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:792  GetString через Text()("DoseRateBadEfficiency")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:843  GetString через Text()("DoseRateEtalonEmpty")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:973  GetString через Text()("DoseRateCurveTooShort")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:987  GetString через Text()("DoseRateCurveBadEnergy")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:996  GetString через Text()("DoseRateCurveBadValue")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:1015  GetString через Text()("DoseRateCurveTooShort")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRateManager.cs:170  GetString через Text()("DoseRateEmptySpectrum")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRateManager.cs:181  GetString через Text()("DoseRateNoCalibration")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRateManager.cs:189  GetString через Text()("DoseRateNoTime")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRateManager.cs:277  GetString через Text()("DoseRateNotFinite")
+
+обращений с литеральным именем проверено: 772
+  из них через ОДИН шаг (обёртка или член): 47
+ключей, которых нет в нейтральном resx: 30
+обращений с вычисляемым именем: 3, из них разобрано одним шагом: 3
+обращений с вычисляемым именем (проверке недоступны): 0
+      обёртки: GetResourceText(аргумент 1), Text(аргумент 1)
+      члены:   Resource
+файлов чужого формата (не BOM+CRLF): 0
+РАЗОШЛОСЬ

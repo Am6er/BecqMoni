@@ -1,0 +1,15 @@
+=== слова отказа (A89, A95) ===
+каталог сборки: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_b15\
+
+ПЛЕЧО fsa — FsaAnalysisSession.EnsureUpToDate на том же спектре
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_b15\config\NuclideDefinition.xml: 152 entries
+  подготовка       : библиотека нуклидов (NuclideDefinitionManager, config\NuclideDefinition.xml) — поднялось
+  строка на экране : Полноспектральное разложение не удалось. Причина: InvalidOperationException: EnergySpectrum.Clone: у спектра нет энергетической калибровки (EnergyCalibration == null, каналов 128). Снять копию нечего: без шкалы энергии спектр не годен ни для разложения, ни для поиска пиков, а подставить калибровку значило бы объявить номер канала энергией.
+  поток ошибок     : BecqMoni: Полноспектральное разложение не удалось. Причина: InvalidOperationException: EnergySpectrum.Clone: у спектра нет энергетической калибровки (EnergyCalibration == null, каналов 128). Снять копию нечего: без шкалы энергии спектр не годен ни для разложения, ни для поиска пиков, а подставить калибровку значило бы объявить номер канала энергией.
+  называет недостающее человеку за экраном : ДА
+  называет недостающее в потоке ошибок     : ДА
+  называет класс причины                   : ДА
+  ИТОГ fsa: ПРИЧИНА НАЗВАНА
+
+
+ВСЕ СОШЛИСЬ

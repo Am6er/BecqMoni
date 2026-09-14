@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Globalization;
 
 namespace BecquerelMonitor
 {
@@ -21,8 +22,8 @@ namespace BecquerelMonitor
         
         public void UpdateInfo(double Cps, int sEffRatio, double deadTime)
         {
-            this.LossCountsRatioValLbl.Text = sEffRatio.ToString();
-            this.cpslabel.Text = Cps.ToString("f2");
+            this.LossCountsRatioValLbl.Text = sEffRatio.ToString(CultureInfo.InvariantCulture);
+            this.cpslabel.Text = Cps.ToString("f2", CultureInfo.InvariantCulture);
             if (deadTime <= 20.0)
             {
                 this.DeadTimeValLbl.ForeColor = Color.Black;
@@ -36,7 +37,7 @@ namespace BecquerelMonitor
                 this.DeadTimeValLbl.ForeColor = Color.DarkRed;
             }
             this.DeadTimeValLbl.BackColor = this.DeadTimeValLbl.BackColor;
-            this.DeadTimeValLbl.Text = deadTime.ToString("f4");
+            this.DeadTimeValLbl.Text = deadTime.ToString("f4", CultureInfo.InvariantCulture);
         }
 
         GlobalConfigManager globalConfigManager = GlobalConfigManager.GetInstance();

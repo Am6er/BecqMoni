@@ -1,0 +1,11 @@
+exe=D:\BqMoni_Claude\p66\wt2\tools\effmaker\probes\build_p66c\BecquerelMonitor.exe
+sha256=42babe75769fea899b2a2d793fceaefd9bca5fe31ebdd66743a9bb0d4bac8126
+PhysicsVersion=18
+  ElectronAnyMaterial=True
+  BremAlongPath=2
+  ImportanceSampling=False
+  Histories=3000000
+  NodeCount=140
+  ContinuumErrorTarget=3
+FsaComponent.CrystalEscape (S172): есть
+сборка 16de7feb (build_p66): FsaComponent.CrystalEscape: НЕТ (отдельный процесс)

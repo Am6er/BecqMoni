@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -469,7 +469,7 @@
     <value>$this</value>
   </data>
   <data name="checkBox1.Text" xml:space="preserve">
-    <value>AutoСalibration</value>
+    <value>AutoCalibration</value>
   </data>
   <data name="&gt;&gt;button14.Parent" xml:space="preserve">
     <value>panel1</value>

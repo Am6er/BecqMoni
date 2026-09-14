@@ -1,0 +1,3423 @@
+﻿using BecquerelMonitor.EfficiencyMaker;
+using Microsoft.Data.Sqlite;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
+
+namespace BecquerelMonitor.FullSpectrumAnalysis
+{
+    /// <summary>
+    /// Каскадное суммирование поверх фотонной матрицы отклика (TODO F1, п. «г»).
+    ///
+    /// ЗАЧЕМ. Матрица отвечает на вопрос «что оставит в кристалле ОДИН квант
+    /// энергии E», и этого достаточно, пока кванты независимы. В каскаде они не
+    /// независимы: вместе с квантом линии k из того же распада вылетает партнёр,
+    /// и если партнёр тоже что-то оставил в кристалле, событие уезжает из пика k
+    /// вверх по шкале. Линейной комбинацией столбцов матрицы это невыразимо —
+    /// эффект принадлежит нуклиду и схеме распада, а не фотону. Поэтому он
+    /// вносится множителем на площадь пика (CF) и отдельными сумм-пиками, а
+    /// матрица остаётся тем, чем была.
+    ///
+    /// ФОРМУЛЫ — детерминированный путь EFFTRAN, тот же, что в пробе
+    /// `CoincCfProbe` (сверен с ион-режимом Geant4: все линии в ≤2.2σ,
+    /// Cs-134 1365.2 — 0.8515 против 0.8516):
+    ///
+    ///     CF(k) = 1 / [ (1 − L_out) + Σ_in / (p_k · ε_p(k)) ]
+    ///     L_out = Σ_j P(j|k) · ε_T(E_j)
+    ///     Σ_in  = Σ_{(i,j): E_i+E_j ≈ E_k} p_ij · ε_p(i) · ε_p(j) · S_ij
+    ///     S_ij  = 1 − Σ_{m∉{i,j}} max(P(m|i), P(m|j)) · ε_T(m)
+    ///
+    /// ОТКУДА ЭФФЕКТИВНОСТИ. Из САМОЙ матрицы, а не вторым розыгрышем:
+    /// ε_p(E) — сумма строки канала <see cref="EfficiencySimulator.ResponseChannel.Peak"/>
+    /// (полное поглощение), ε_T(E) — сумма всей строки узла (вероятность
+    /// оставить в кристалле хоть что-нибудь). Обе нормированы на квант,
+    /// испущенный источником в 4π, — ровно то, что нужно формулам. Второй
+    /// розыгрыш дал бы те же числа с другим шумом ГСЧ и стоил бы минуты счёта.
+    ///
+    /// ЧТО ПОПРАВКА ТРОГАЕТ. Только канал ПИКА. Вынос из пика — чистая потеря,
+    /// а континуум одновременно теряет свои события и получает чужие суммы, и
+    /// в первом порядке остаётся при своём; красить его тем же множителем
+    /// значило бы выдумать потерю, которой нет. Пики вылета (511, K-рентген)
+    /// теряют наравне с пиком, но их поправка здесь НЕ применяется — они малы,
+    /// а разделять правило на три случая ради этого рано.
+    ///
+    /// РЕНТГЕН И АННИГИЛЯЦИЯ В ПАРАХ (S27, 18.08.2026). Таблицы SandiaDecay
+    /// держат только пары γ-γ, а из распада вылетает и не-гамма: K-рентген
+    /// дочернего атома (до 115 % на распад у захватных) и два кванта по
+    /// 511 кэВ у β⁺. Они заводятся в те же `Pairs` и `Partners`, что и ядерные
+    /// пары, — поэтому весь счёт ниже (CF, сумм-пики, тройные суммы,
+    /// сумм-континуум) работает над ними БЕЗ ЕДИНОЙ ПРАВКИ. Откуда берутся
+    /// вероятности — см. <see cref="CascadeAtomicData"/>.
+    ///
+    /// ГЕЙТ ПО ВРЕМЕНИ. Совпадение — это два кванта в ОДНОМ импульсе, а
+    /// длительность импульса и есть мёртвое время прибора
+    /// (`InputDeviceConfig.DeadTime()`; у AtomSpectra оно прямо считается как
+    /// `(rise + fall + 1)/f` и на AS80x80 измерено 1.357 мкс). Кванты,
+    /// разделённые долгоживущим уровнем, в один импульс не попадают, и пара
+    /// между ними — выдумка. Разводится это начисто: у Hf-176 уровень 88 кэВ
+    /// живёт 1.43 нс (совпадение есть), у Ag-109 тот же по энергии уровень —
+    /// 39.79 с, а у Ba-137 уровень 661.7 кэВ — 153 с (совпадений нет). Без
+    /// гейта модель поставила бы Cd-109 сумму 22 + 88 = 110 кэВ, которой не
+    /// бывает. ⚠ Порог НЕ безразличен: 1.04 % уровней `g4_level` лежат в полосе
+    /// 1…10 мкс, и среди них Sc-44 146 кэВ (51 мкс) — из-за него рентген Ti-44
+    /// не совпадает с его же гаммами 67.9 и 78.3.
+    ///
+    /// ЧЕГО НЕТ, сознательно (наследуется от пробы):
+    ///   * тройных влётов (E_i+E_j+E_m = E_k) — на два порядка мельче;
+    ///   * пары 511 + 511 — кванты летят спина к спине, изотропная формула
+    ///     завышает их совместное попадание в разы (решение Amber 18.08.2026,
+    ///     разобрано в <see cref="CascadeAtomicData.AnnihilationQuanta"/>);
+    ///   * L-серии рентгена — у неё своя бухгалтерия вакансий, TODO S58;
+    ///   * угловых корреляций (`database/scheme.md`, D-1) — совпадения
+    ///     изотропны; геометрическая половина живёт своей строкой, TODO N14.
+    ///
+    /// ⚠ СУММ-КОНТИНУУМ ЕСТЬ (~~`T252`~~, поправка 07.09.2026): он числился в
+    /// списке отсутствующего, хотя реализован ещё по `S19` — тип
+    /// <see cref="SumContinuum"/>, список <see cref="Correction.SumContinua"/>,
+    /// построение в <see cref="CollectSumPeaks"/>. Приближение таково: пара
+    /// поглощается ПОЛНОСТЬЮ, а третий квант каскада — ЧАСТИЧНО, и его
+    /// комптоновский недобор размазывает сумм-пик вниз непрерывной подложкой.
+    /// Чисел прежняя запись не портила, но описывала не ту границу модели.
+    /// </summary>
+    public sealed class FsaCascadeSummer
+    {
+        /// <summary>Сумм-пик: энергия и площадь в долях на распад родителя.</summary>
+        public sealed class SumPeak
+        {
+            public SumPeak(double energy, double area, string nuclide,
+                           double fromKev, double withKev)
+                : this(energy, area)
+            {
+                this.Nuclide = nuclide ?? "";
+                this.FromKev = fromKev;
+                this.WithKev = withKev;
+            }
+
+            /// <summary>Нуклид, чей это каскад; пусто — конструктор без разбора.</summary>
+            public string Nuclide { get; private set; }
+
+            /// <summary>Первая линия пары, кэВ.</summary>
+            public double FromKev { get; private set; }
+
+            /// <summary>Вторая линия пары, кэВ.</summary>
+            public double WithKev { get; private set; }
+
+            /// <summary>
+            /// Третий квант каскада, кэВ; 0 — сумма двойная. Тройные суммы
+            /// заведены по S19: множитель выживания `S_ij` вычитал события,
+            /// у которых третий квант тоже попал в кристалл, и никуда их не
+            /// перекладывал — а полное поглощение третьего даёт СВОЙ пик.
+            /// </summary>
+            public double ThirdKev { get; private set; }
+
+            /// <summary>Сумма трёх, а не двух.</summary>
+            public bool IsTriple
+            {
+                get { return this.ThirdKev > 0.0; }
+            }
+
+            public SumPeak(double energy, double area, string nuclide,
+                           double fromKev, double withKev, double thirdKev)
+                : this(energy, area, nuclide, fromKev, withKev)
+            {
+                this.ThirdKev = thirdKev;
+            }
+
+            public SumPeak(double energy, double area)
+            {
+                this.Energy = energy;
+                this.Area = area;
+            }
+
+            public double Energy { get; private set; }
+
+            /// <summary>
+            /// Площадь пика полного поглощения СУММЫ, уже с обеими пиковыми
+            /// эффективностями внутри: `p_ij · ε_p(i) · ε_p(j) · S_ij`. Второй
+            /// раз эффективность к ней применяться не должна.
+            /// </summary>
+            public double Area { get; private set; }
+        }
+
+        /// <summary>
+        /// Сумм-КОНТИНУУМ: пара поглощена целиком, а третий квант каскада
+        /// оставил ЧАСТЬ своей энергии. Не пик, а сплошной подъём от видимой
+        /// суммы пары до неё же плюс энергия третьего — то есть отклик третьего
+        /// кванта БЕЗ пикового канала, сдвинутый на сумму пары (S19).
+        /// </summary>
+        public sealed class SumContinuum
+        {
+            public SumContinuum(double shiftKev, double thirdKev, double weight, string nuclide)
+            {
+                this.ShiftKev = shiftKev;
+                this.ThirdKev = thirdKev;
+                this.Weight = weight;
+                this.Nuclide = nuclide ?? "";
+            }
+
+            /// <summary>Видимая сумма пары, на которую сдвинут отклик, кэВ.</summary>
+            public double ShiftKev { get; private set; }
+
+            /// <summary>Энергия третьего кванта — чей отклик берётся, кэВ.</summary>
+            public double ThirdKev { get; private set; }
+
+            /// <summary>
+            /// Вес отклика: `p_ij · ε_p(i) · ε_p(j) · P(m)`. Эффективности
+            /// третьего кванта внутри НЕТ — она придёт из самой строки матрицы,
+            /// поэтому второй раз применять её нельзя.
+            /// </summary>
+            public double Weight { get; private set; }
+
+            public string Nuclide { get; private set; }
+        }
+
+        /// <summary>Поправки одного компонента: множители линий и его сумм-пики.</summary>
+        public sealed class Correction
+        {
+            /// <summary>
+            /// Множитель на площадь пика В ОБРАЗЕ, параллельно `component.Lines`.
+            /// Это НАБЛЮДАЕМАЯ площадь, делённая на идеальную, то есть 1/CF, а
+            /// не сам CF: образ моделирует то, что детектор видит, а CF по
+            /// принятому смыслу восстанавливает истинную площадь из
+            /// наблюдённой (A_ист = A_набл · CF). Знак путается на раз — при
+            /// первом же прогоне множитель стоял вверх ногами и приподнимал
+            /// пики вместо того, чтобы их срезать.
+            /// </summary>
+            public double[] LineFactors { get; set; }
+
+            public List<SumPeak> SumPeaks { get; set; }
+
+            /// <summary>
+            /// Сумм-континуум (S19): частичное поглощение третьего кванта.
+            /// Отдельным списком, а не внутри <see cref="SumPeaks"/>, потому что
+            /// кладётся в образ иначе — сдвинутым откликом, а не дельтой в бин
+            /// пика, — и срез <see cref="MaxSumPeaks"/> к нему не применяется:
+            /// у него нет «высоты», по которой отбирать.
+            /// </summary>
+            public List<SumContinuum> SumContinua { get; set; }
+
+            /// <summary>
+            /// Разбор поправки по линиям — только для отчёта
+            /// (<see cref="FsaCascadeSummer.Describe"/>). В счёте не участвует:
+            /// счёт идёт по <see cref="LineFactors"/>.
+            /// </summary>
+            public List<LineNote> Notes { get; set; }
+
+            /// <summary>Есть ли вообще что применять — иначе быстрый путь.</summary>
+            public bool Any { get; set; }
+        }
+
+        /// <summary>
+        /// Что именно сделано с одной линией: сам CF и обе его половины —
+        /// вынос (партнёр задел кристалл) и влёт (сумма пары попала в окно
+        /// линии). Без этой раскладки CF есть одно число, и увидеть, почему
+        /// оно такое, нельзя — ровно то, чего не хватало при сверке с ЛСРМ.
+        /// </summary>
+        public sealed class LineNote
+        {
+            public string Nuclide { get; set; }
+
+            public double EnergyKev { get; set; }
+
+            /// <summary>CF в принятом смысле: A_ист = A_набл · CF.</summary>
+            public double Cf { get; set; }
+
+            /// <summary>Доля событий, вынесенных из пика партнёром.</summary>
+            public double Loss { get; set; }
+
+            /// <summary>Влёт: площадь сумм-событий в окне линии, к прямой площади.</summary>
+            public double InShare { get; set; }
+
+            /// <summary>Прямая площадь линии на распад родителя.</summary>
+            public double DirectArea { get; set; }
+        }
+
+        /// <summary>Пары и выходы одного нуклида, как они лежат в базе.</summary>
+        sealed class NuclideData
+        {
+            /// <summary>Ключ нуклида, каким его звали (`N14`): им берутся переходы и спины.</summary>
+            public string Key;
+
+            public Dictionary<double, double> Intensity;                        // E → I, %
+            public List<double[]> Pairs;                                        // {E, Ecoinc, P(Ecoinc|E)}
+            public Dictionary<double, Dictionary<double, double>> Partners;     // P(m|a), обе стороны
+
+            /// <summary>
+            /// СКОЛЬКО КВАНТОВ несёт партнёр этой энергии: 1 у всех, кроме
+            /// аннигиляции, у которой их ДВА (`S147`). Пусто — единица.
+            ///
+            /// ⛔ Заведено потому, что `Partners` хранит для 511 кэВ не
+            /// вероятность, а ОЖИДАЕМОЕ ЧИСЛО квантов на распад (2·доля β⁺), и
+            /// подставлять его в формулу вероятности нельзя: при доле 1 и
+            /// эффективности 0.6 верная потеря 0.84, а число 2·0.6 = 1.2
+            /// зажималось в единицу, то есть в «пик потерян целиком».
+            /// </summary>
+            public Dictionary<double, double> PartnerQuanta;
+
+            /// <summary>
+            /// (`D49`) ОТКУДА ВЗЯЛАСЬ ДОЛЯ: ключи «опорная линия → партнёр»,
+            /// значение которых списано из поставки ДОСЛОВНО (столбец
+            /// `fraction` таблицы `v_gamma_coincidence`). Всё, чего здесь нет,
+            /// приложение посчитало само — обратной условной
+            /// `P(A|B) = P(B|A)·I(A)/I(B)` или дополнением атомными
+            /// партнёрами (<see cref="Augment"/>).
+            ///
+            /// ⛔ Заведено ради счётчика зажима, и различие это не косметика:
+            /// доля больше единицы у списанной строки — ДЕФЕКТ ПОСТАВКИ
+            /// (1820 пар у 99 родителей), а у посчитанной — законный исход
+            /// счёта. У `Co-60` поставка безупречна (`fraction` = 0.999872),
+            /// а зажим срабатывает четыре раза: отношение выходов двух линий
+            /// перескакивает единицу само собой. Счётчик, не различающий эти
+            /// два случая, велит чинить поставку там, где чинить нечего.
+            /// </summary>
+            public Dictionary<double, HashSet<double>> SupplyPartners;
+        }
+
+        /// <summary>
+        /// Сумма пары попадает в окно линии — тогда влёт учитывается её CF, а
+        /// отдельного сумм-пика ставить нельзя (двойной счёт). Полуширина как
+        /// у `g4cf` и пробы: ±0.5 кэВ.
+        /// </summary>
+        const double SumWindowKev = 0.5;
+
+        /// <summary>
+        /// Энергии одной линии внутри таблиц совпадений совпадают до 0.001 кэВ —
+        /// это одна поставка данных.
+        /// </summary>
+        const double SamePairLineKev = 0.05;
+
+        /// <summary>
+        /// А вот линия КОМПОНЕНТА приходит из справочника нуклидов пользователя,
+        /// и там та же линия записана со своим округлением: у Lu-176 сильнейшая
+        /// 306.78 против 306.880 в таблицах совпадений — 0.10 кэВ. С допуском
+        /// 0.05 она не сходилась, и САМАЯ СИЛЬНАЯ линия нуклида (I = 93.6 %)
+        /// молча оставалась без поправки. 0.3 кэВ покрывает такие разночтения и
+        /// остаётся много меньше ПШПВ любого сцинтиллятора; ближайшая из
+        /// подошедших всё равно выбирается по минимуму расхождения.
+        /// </summary>
+        const double SameLineKev = 0.3;
+
+        /// <summary>
+        /// Сумм-пик ниже этой доли от самого сильного пика компонента не
+        /// ставится: он не виден, а массив поглощения ради него тянулся бы до
+        /// удвоенной энергии.
+        /// </summary>
+        const double SumPeakFloor = 1.0E-4;
+
+        /// <summary>Больше этого числа сумм-пиков на компонент не берём.</summary>
+        const int MaxSumPeaks = 24;
+
+        /// <summary>
+        /// ЖУРНАЛ ТРОЙНЫХ СУММ (`S19`, диагностика). Каждая рассмотренная тройка
+        /// с её площадью, порогом и решением — иначе не узнать, почему тройной
+        /// суммы нет в перечне: отсев идёт в трёх местах, а наружу видно только
+        /// выжившее.
+        ///
+        /// ⚠ Копится только когда включён <see cref="LogTriples"/>: на корпусном
+        /// прогоне это сотни строк на спектр, и держать их незачем.
+        /// </summary>
+        public static bool LogTriples;
+
+        /// <summary>Строки журнала троек; чистится вызывающим.</summary>
+        public static readonly List<string> TripleLog = new List<string>();
+
+        /// <summary>
+        /// (`S165`) СКОЛЬКО РАЗ ДВА НОСИТЕЛЯ ПОПАЛИ В ОДИН КЛЮЧ и их вероятности
+        /// пришлось сложить. Счётчик, а не журнал: вопрос к нему один — бывает
+        /// ли это вообще на живой библиотеке.
+        ///
+        /// ⚠ Заведён потому, что без него правка непроверяема: `Match` сводит
+        /// носителей к ключу ТОЛЬКО когда оба попали в одну линию таблицы
+        /// выходов, а иначе каждый идёт со своей энергией и никакого слияния
+        /// нет. Отличить «слияние сработало и дало то же число» от «слияния не
+        /// было вовсе» по одним лишь CF нельзя — а это разные утверждения.
+        ///
+        /// Копится всегда (цена — одно сложение), чистится вызывающим.
+        /// </summary>
+        public static int CarrierKeyMerges;
+
+        /// <summary>
+        /// (`D49`) ЧТО ДЕЛАТЬ С ДОЛЕЙ СОВПАДЕНИЯ БОЛЬШЕ ЕДИНИЦЫ. С 10.09.2026
+        /// это ПРАВИЛО ПРИЛОЖЕНИЯ (`Clamp`, решение Amber), а прочие значения
+        /// остались замерным рычагом для `CascadeClampProbe`.
+        ///
+        /// ⛔ Величина больше единицы физически невозможна для условной
+        /// вероятности, а в поставке SandiaDecay она есть: 1820 пар (1.42 %) у
+        /// 99 родителей, максимум 205 835 у `Er151m`. Рычаг заводился НЕ ЧТОБЫ
+        /// чинить, а чтобы измерить цену каждого исхода на одной и той же
+        /// матрице; по этим числам Amber и выбрала `Clamp` 10.09.2026.
+        /// </summary>
+        public enum SuperUnitRule
+        {
+            /// <summary>Поведение дерева ДО 10.09.2026: зажим в выживании, сумм-пик БЕЗ зажима.</summary>
+            AsIs = 0,
+            /// <summary>✅ ПРАВИЛО ПРИЛОЖЕНИЯ: зажим в ОБОИХ потребителях — и в выносе, и во влёте.</summary>
+            Clamp = 1,
+            /// <summary>Пары нет вовсе — так выглядел бы отсев при импорте.</summary>
+            Drop = 2,
+            /// <summary>Без зажима нигде — что поставка сказала, то и считаем.</summary>
+            Raw = 3
+        }
+
+        /// <summary>
+        /// ✅ ДЕЙСТВУЮЩЕЕ ПРАВИЛО ДЛЯ ДОЛИ БОЛЬШЕ ЕДИНИЦЫ — решение Amber
+        /// 10.09.2026 (вопросником), дословно: **«Зажимать в ОБОИХ
+        /// потребителях + счётчик»** (`D49`).
+        ///
+        /// То есть долю зажимает не только <see cref="SurviveAll"/> (вынос из
+        /// пика), но и <see cref="PairBase"/> (площадь сумм-события и влёт
+        /// `inShare` в CF линии-соседа), а у зажима есть счётчик, различающий
+        /// дефект поставки и законный счёт.
+        ///
+        /// ⚠ Цена названа при ответе и принята: сумм-пики задетых нуклидов
+        /// падают до физичных (`Ir-192` −63.1 %, `Sn-115m` −85.0 %,
+        /// `In-114m` −71.3 %, `Cs-132` −11.7 %, `Bi-207` −1.0 %), вынос из
+        /// пика не меняется ВОВСЕ (0.000000 %), на корпусе сдвиг ниже
+        /// разрешения отчёта.
+        ///
+        /// ⛔ Довод за это правило против отсева при импорте: правка в ОДНОМ
+        /// файле приложения, записи в базу не требует, и ловит случай
+        /// `Co-60`, где доля рождается счётом, а не приходит из файла, —
+        /// отсев его не лечит.
+        ///
+        /// Прочие значения остаются ЗАМЕРНЫМИ: `AsIs` — поведение дерева до
+        /// 10.09.2026, `Drop` — как выглядел бы отсев при импорте, `Raw` — что
+        /// поставка сказала. Ими меряет `CascadeClampProbe`; приложение их не
+        /// ставит.
+        /// </summary>
+        public static SuperUnitRule SuperUnitPolicy = SuperUnitRule.Clamp;
+
+        /// <summary>
+        /// (`D49`) Сколько раз доля партнёра в <see cref="SurviveAll"/>
+        /// оказалась больше единицы. ⚠ Считает ШИРЕ, чем 1820 испорченных
+        /// строк поставки: обратная условная считается как
+        /// `P(B|A)·I(A)/I(B)` и перескакивает единицу и при согласной поставке,
+        /// когда выходы двух линий разнятся. Чистится вызывающим.
+        /// </summary>
+        public static int SuperUnitShares;
+
+        /// <summary>
+        /// (`D49`) Из них — на доле, СПИСАННОЙ ИЗ ПОСТАВКИ дословно, то есть
+        /// на дефекте `sandia.decay.xml`. Только это число говорит о поставке.
+        /// </summary>
+        public static int SuperUnitSharesSupply;
+
+        /// <summary>
+        /// (`D49`) Из них — на доле, ПОСЧИТАННОЙ приложением (обратная
+        /// условная `P(A|B) = P(B|A)·I(A)/I(B)`, атомные партнёры). ⚠ Это
+        /// ЗАКОННЫЙ исход счёта, а не порча данных: у `Co-60` при безупречной
+        /// поставке (`fraction` = 0.999872) счётчик набирает четыре.
+        /// </summary>
+        public static int SuperUnitSharesDerived;
+
+        /// <summary>Худшая такая доля и энергия её партнёра, кэВ (`D49`).</summary>
+        public static double WorstSuperUnitShare;
+
+        /// <summary>Энергия партнёра худшей доли, кэВ (`D49`).</summary>
+        public static double WorstSuperUnitShareKev;
+
+        /// <summary>Худшая доля списана из поставки, а не посчитана (`D49`).</summary>
+        public static bool WorstSuperUnitShareFromSupply;
+
+        /// <summary>
+        /// (`D49`) Сколько раз доля пары больше единицы попала в ПЛОЩАДЬ
+        /// сумм-события (<see cref="PairBase"/>). ⛔ Второй потребитель той же
+        /// испорченной строки, и вот у него зажима нет вовсе: доля 129 у
+        /// `Ir192` множит площадь сумм-пика на 129. Чистится вызывающим.
+        /// </summary>
+        public static int SuperUnitPairs;
+
+        /// <summary>(`D49`) Из них — на паре, списанной из поставки дословно.</summary>
+        public static int SuperUnitPairsSupply;
+
+        /// <summary>
+        /// (`D49`) Из них — на паре, посчитанной приложением: рентген и
+        /// аннигиляция, где у 511 кэВ величина есть ожидаемое ЧИСЛО квантов на
+        /// событие и больше единицы бывает законно.
+        /// </summary>
+        public static int SuperUnitPairsDerived;
+
+        /// <summary>Худшая доля пары и энергии её квантов, кэВ (`D49`).</summary>
+        public static double WorstSuperUnitPair;
+
+        /// <summary>Первый квант худшей пары, кэВ (`D49`).</summary>
+        public static double WorstSuperUnitPairKev;
+
+        /// <summary>Второй квант худшей пары, кэВ (`D49`).</summary>
+        public static double WorstSuperUnitPairWithKev;
+
+        /// <summary>Худшая пара списана из поставки, а не посчитана (`D49`).</summary>
+        public static bool WorstSuperUnitPairFromSupply;
+
+        /// <summary>Обнулить счётчики доли больше единицы (`D49`).</summary>
+        public static void ResetSuperUnitCounters()
+        {
+            SuperUnitShares = 0;
+            SuperUnitSharesSupply = 0;
+            SuperUnitSharesDerived = 0;
+            SuperUnitPairs = 0;
+            SuperUnitPairsSupply = 0;
+            SuperUnitPairsDerived = 0;
+            WorstSuperUnitShare = 0.0;
+            WorstSuperUnitShareKev = 0.0;
+            WorstSuperUnitShareFromSupply = false;
+            WorstSuperUnitPair = 0.0;
+            WorstSuperUnitPairKev = 0.0;
+            WorstSuperUnitPairWithKev = 0.0;
+            WorstSuperUnitPairFromSupply = false;
+        }
+
+        /// <summary>
+        /// ⚡ ЗАМЕРНЫЙ РЫЧАГ (`S19`, `S50`): один множитель κ на все сумм-события.
+        ///
+        /// Площадь сумм-пика считается как `p_ij · ε_p(i) · ε_p(j)` — произведение
+        /// СРЕДНИХ по объёму эффективностей. Но точка распада у двух квантов
+        /// каскада ОДНА, и на протяжённом источнике их шансы связаны: верная
+        /// величина — среднее ПРОИЗВЕДЕНИЯ ⟨ε₁ε₂⟩, которое больше. Отношение
+        /// κ = ⟨ε₁ε₂⟩/(⟨ε₁⟩⟨ε₂⟩) меряет `CascadeJointProbe`: на банке Ø40×h15
+        /// вплотную к ASN16 оно 1.34 для пары 202+307 и 2.26 для 88+202, а на
+        /// точечном источнике 1.00 — то есть мерится именно протяжённость.
+        ///
+        /// ⚠ Ноль (умолчание) — рычага нет, и κ берётся ИЗ МАТРИЦЫ
+        /// (<see cref="ResponseMatrix.JointFactor"/>, `S112`, 09.09.2026). Ключ
+        /// остался ЗАМЕРНЫМ и теперь ПЕРЕКРЫВАЕТ таблицу одним числом на все
+        /// пары: `--joint=1` даёт счёт до правки на той же матрице, то есть
+        /// плечо A/B без второго построения. Матрица, посчитанная старее правки
+        /// или с `nojoint=1`, таблицы не несёт — там κ = 1 сама собой.
+        /// </summary>
+        public static double JointFactorOverride;
+
+        static readonly object Gate = new object();
+
+        static readonly Dictionary<string, NuclideData> Cache =
+            new Dictionary<string, NuclideData>(StringComparer.OrdinalIgnoreCase);
+
+        static bool databaseChecked;
+        static bool databasePresent;
+
+        /// <summary>
+        /// Почему база не отдала данные, если не отдала. Пусто — отказов не
+        /// было. Читатель — пробы и журнал: без него отказ выглядит как
+        /// «у нуклида нет каскадов», и поломка живёт незамеченной.
+        /// </summary>
+        public static string Failure { get; private set; }
+
+        /// <summary>
+        /// ⛔ ПРИМЕЧАНИЯ РАЗБОРА — то, что база СКАЗАЛА, отработав (10.09.2026).
+        /// Пусто — сказать нечего.
+        ///
+        /// Заведено потому, что признак отказа кричал на исправной работе.
+        /// <c>Augment</c> клал в <see cref="Failure"/> ЛЮБУЮ непустую записку
+        /// <see cref="CascadeAtomicData.Note"/>, а пробы печатают `Failure`
+        /// словами «ОТКАЗ БАЗЫ» — и законные оговорки («изомер: набор питаний
+        /// ENSDF уровня родителя не различает», «набора питаний X→Y нет вовсе,
+        /// пара 511 не строится») каждый прогон докладывались отказом. На
+        /// корпусных родителях это `228AC` и `234PA`, то есть ряды тория и
+        /// урана — самые частые нуклиды корпуса.
+        ///
+        /// ⚠ Беда тут не в слове, а в том, что признак отказа, срабатывающий
+        /// без отказа, перестают читать — и настоящий отказ тонет вместе с
+        /// ним. Разведены они ПРИЗНАКОМ (<see cref="CascadeAtomicData.Failed"/>),
+        /// а не разбором текста записки.
+        ///
+        /// Копится по всем нуклидам разбора: записка одного не должна затирать
+        /// записку другого — у `Failure` такое затирание есть и оно там уместно
+        /// (отказ важен сам по себе), а примечания читаются списком.
+        /// </summary>
+        public static string Notes { get; private set; }
+
+        static readonly object NoteGate = new object();
+
+        static readonly HashSet<string> NotesSaid =
+            new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Окно совпадения по умолчанию, секунды, — когда прибор своего
+        /// мёртвого времени не назвал (`DeadTime()` вернул 0 или конфигурация
+        /// его не держит вовсе, как все заглушки корпуса).
+        ///
+        /// Величина выбрана НЕ из середины, а с узкого края семейства: у
+        /// RadiaCode и Obsidian в коде стоит 5 мкс, у AS80x80 измерено 1.357,
+        /// у AudioInput это длина формы импульса. Узкое окно даёт МЕНЬШЕ
+        /// совпадений, то есть меньшую поправку, — и ошибается в сторону «не
+        /// выдумать суммирования», а не наоборот.
+        /// </summary>
+        public const double DefaultCoincidenceWindowSec = 1.0E-6;
+
+        readonly ResponseMatrix matrix;
+        readonly double[] peakAtNode;
+        readonly double[] totalAtNode;
+        readonly MaterialDatabase.LightYieldCurve light;
+        readonly double windowSec;
+        readonly bool withXrays;
+        readonly bool withAnnihilation;
+        readonly bool withIsomers;
+        readonly bool withTimeProbability;
+        readonly Dictionary<FsaComponent, Correction> corrections =
+            new Dictionary<FsaComponent, Correction>();
+
+        /// <summary>
+        /// Данные нуклида, уже дополненные рентгеном и аннигиляцией. Кэш
+        /// ЭКЗЕМПЛЯРА, а не общий: дополнение зависит от окна совпадения и от
+        /// абляционных ключей, а они у каждого разбора свои. Общий кэш
+        /// (<see cref="Cache"/>) держит то, что от них не зависит, — поставку
+        /// SandiaDecay.
+        /// </summary>
+        readonly Dictionary<string, NuclideData> augmented =
+            new Dictionary<string, NuclideData>(StringComparer.OrdinalIgnoreCase);
+
+        FsaCascadeSummer(ResponseMatrix matrix, double[] peakAtNode, double[] totalAtNode,
+                         MaterialDatabase.LightYieldCurve light, double windowSec,
+                         bool withXrays, bool withAnnihilation, bool withIsomers,
+                         bool withTimeProbability)
+        {
+            this.matrix = matrix;
+            this.peakAtNode = peakAtNode;
+            this.totalAtNode = totalAtNode;
+            this.light = light;
+            this.windowSec = windowSec > 0.0 ? windowSec : DefaultCoincidenceWindowSec;
+            this.withXrays = withXrays;
+            this.withAnnihilation = withAnnihilation;
+            this.withIsomers = withIsomers;
+            this.withTimeProbability = withTimeProbability;
+        }
+
+        /// <summary>Окно совпадения этого разбора, секунды — для отчёта проб.</summary>
+        public double CoincidenceWindowSec
+        {
+            get { return this.windowSec; }
+        }
+
+        /// <summary>Имя кривой света, по которой ставятся суммы; пусто — по энергии.</summary>
+        public string LightYieldName
+        {
+            get
+            {
+                if (this.PhotonLightCurve != null)
+                {
+                    return this.PhotonLightCurve + " (фотонная)";
+                }
+
+                return this.light == null ? "" : this.light.Material;
+            }
+        }
+
+        /// <summary>
+        /// (`S167`, П18-FSA-замеры 12.09.2026) ФОТОННАЯ кривая света для
+        /// <see cref="ApparentSum"/> — имя таблицы <see cref="FsaLightScale"/>
+        /// («NaI:Tl», «CsI:Tl»). null — прежний счёт: ЭЛЕКТРОННАЯ кривая из
+        /// `matdb` (<see cref="MaterialDatabase.LightYieldOf"/>), побитово.
+        ///
+        /// Зачем два имени одной величины. Таблиц света в дереве ДВЕ (полоса
+        /// П10 12.09.2026): электронная — выход на электрон энергии E, 70 узлов
+        /// `scint_electron_light_yield`; фотонная — свет ПИКА ПОЛНОГО
+        /// ПОГЛОЩЕНИЯ на кэВ линии (снята `LightScaleProbe` тем же переносом,
+        /// что считает матрицу, с K-провалом). Привязка шкалы
+        /// (<c>FsaAnalyzer.AnchorLightPosition</c>) и образ наложений
+        /// (<c>PileUpLightForm</c>) берут фотонную; каскадная сумма — пока
+        /// электронную, и на 662+662 они расходятся на 3–4 кэВ (CsI 1325.1
+        /// против 1328.3). Физически у суммы двух ПОЛНОСТЬЮ поглощённых квантов
+        /// свет складывается из светов двух пиков полного поглощения — то есть
+        /// из фотонной кривой; электронная верна лишь для кванта, отдавшего
+        /// энергию одним электроном. Что ставит сумм-пик на данные — вопрос
+        /// замера (`S167`), умолчание — решение Amber; рычаг проб —
+        /// `--sum-light=electron|photon` у `CorpusFsaProbe`.
+        ///
+        /// Ставится СНАРУЖИ сразу после <see cref="Create(ResponseMatrix, string)"/>,
+        /// до первого <see cref="For"/>: поправки кэшируются на экземпляре, и
+        /// кривая, сменённая после первого расчёта, до кэша уже не доедет.
+        /// </summary>
+        public string PhotonLightCurve { get; set; }
+
+        /// <summary>
+        /// (`S166`, П18-FSA-замеры 12.09.2026) ВЫНОС ИЗ ПИКА С СОВМЕСТНОЙ
+        /// ЭФФЕКТИВНОСТЬЮ: в <see cref="SurviveAll"/> для потери линии k
+        /// полная эффективность партнёра j домножается на κ(k,j) из таблицы
+        /// матрицы — той же, что у сумм-пиков (`JNTK`, κ_pp): κ_pT измерена
+        /// равной κ_pp в пределах шума. false — прежний счёт, побитово.
+        /// Выживание ПАРЫ (третий квант при обоих в пике) не трогается: это
+        /// тройная совместность, и таблицы под неё нет. Умолчание — у
+        /// анализатора (<c>FsaAnalyzer.CascadeLossJointFactor</c>), рычаг проб —
+        /// `--loss-joint=0|1` у `CorpusFsaProbe`. Ставится до первого
+        /// <see cref="For"/>, как и <see cref="PhotonLightCurve"/>.
+        /// </summary>
+        public bool LossJointFactor { get; set; }
+
+        /// <summary>
+        /// (`N14`, П49 13.09.2026) УГЛОВАЯ КОРРЕЛЯЦИЯ В ПАРАХ: площадь
+        /// сумм-события пары (<see cref="PairBase"/> — то есть сумм-пики, влёт,
+        /// тройные суммы и сумм-континуум) домножается на
+        /// `1 + A₂₂·Q₂(1)·Q₂(2) + A₄₄·Q₄(1)·Q₄(2)`, где A_kk — ядерная
+        /// половина (<see cref="AngularCorrelation.ForPair"/>), Q_k(E) —
+        /// геометрическая (<see cref="AngularQk"/>). Без таблицы Q_k ключ
+        /// ничего не меняет — сцене нечем ослабить корреляцию, и это не отказ:
+        /// счёт идёт изотропно, как прежде, а состояние видно снаружи
+        /// (<see cref="AngularPairs"/>). Умолчание — у анализатора
+        /// (<c>FsaAnalyzer.CascadeSumAngular</c>), рычаг проб —
+        /// `--angcorr=0|1` у `CorpusFsaProbe`. Ставится до первого
+        /// <see cref="For"/>, как и <see cref="PhotonLightCurve"/>.
+        /// </summary>
+        public bool AngularCorrelations { get; set; }
+
+        /// <summary>
+        /// Таблица Q_k(E) сцены (`N14`); null — сайдкара рядом с матрицей нет.
+        /// Приходит снаружи тем же путём, что вещество кристалла (`S20`):
+        /// <c>FsaMatrixBinding.Bind</c> → анализатор → сюда.
+        /// </summary>
+        public AngularAttenuation AngularQk { get; set; }
+
+        /// <summary>Сколько пар с A_kk ≠ 0 получили множитель при включённом ключе — в <see cref="PairBase"/> и в выносе (<see cref="SurviveAll"/>).</summary>
+        public int AngularPairs { get; private set; }
+
+        /// <summary>Наименьший и наибольший множитель корреляции среди <see cref="AngularPairs"/>; 1 — не было.</summary>
+        public double AngularFactorMin { get; private set; }
+        public double AngularFactorMax { get; private set; }
+
+        /// <summary>
+        /// Множитель корреляции пары: `1 + Σ_k A_kk·Q_k(E₁)·Q_k(E₂)`; единица,
+        /// когда ключ выключен, таблицы нет или пара изотропна. Коэффициенты
+        /// кэшируются по нуклиду и энергиям на экземпляре.
+        /// </summary>
+        double AngularFactor(NuclideData data, double[] pair)
+        {
+            if (!this.AngularCorrelations || this.AngularQk == null
+                || data.Key == null || data.Key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            {
+                return 1.0;
+            }
+
+            AngularCorrelation.Coefficients w = this.CoefficientsOf(data.Key, pair[0], pair[1]);
+            if (w == null || w.IsIsotropic)
+            {
+                return 1.0;
+            }
+
+            double factor = 1.0
+                            + w.A22 * this.AngularQk.Q(2, pair[0]) * this.AngularQk.Q(2, pair[1])
+                            + w.A44 * this.AngularQk.Q(4, pair[0]) * this.AngularQk.Q(4, pair[1]);
+            this.NoteAngular(factor);
+            return factor;
+        }
+
+        readonly Dictionary<string, AngularCorrelation.Coefficients> angular =
+            new Dictionary<string, AngularCorrelation.Coefficients>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Множитель корреляции для ВЫНОСА линии k партнёром j:
+        /// `1 + Σ_k A_kk·Q_k^p(E_k)·Q_k^T(E_j)`; единица — ключ выключен,
+        /// таблицы нет или пара изотропна. Коэффициенты — из того же кэша.
+        /// </summary>
+        double AngularLossFactor(NuclideData data, double lineKev, double partnerKev)
+        {
+            if (!this.AngularCorrelations || this.AngularQk == null
+                || data == null || data.Key == null || data.Key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            {
+                return 1.0;
+            }
+
+            AngularCorrelation.Coefficients w = this.CoefficientsOf(data.Key, lineKev, partnerKev);
+            if (w == null || w.IsIsotropic)
+            {
+                return 1.0;
+            }
+
+            double factor = 1.0
+                            + w.A22 * this.AngularQk.Q(2, lineKev) * this.AngularQk.QT(2, partnerKev)
+                            + w.A44 * this.AngularQk.Q(4, lineKev) * this.AngularQk.QT(4, partnerKev);
+            this.NoteAngular(factor);
+            return factor;
+        }
+
+        AngularCorrelation.Coefficients CoefficientsOf(string key, double firstKev, double secondKev)
+        {
+            // Ключ кэша — упорядоченная пара энергий: `ForPair` симметрична.
+            double lo = Math.Min(firstKev, secondKev), hi = Math.Max(firstKev, secondKev);
+            string cacheKey = key + "|" + lo.ToString("R", CultureInfo.InvariantCulture)
+                              + "|" + hi.ToString("R", CultureInfo.InvariantCulture);
+            AngularCorrelation.Coefficients w;
+            if (!this.angular.TryGetValue(cacheKey, out w))
+            {
+                w = AngularCorrelation.ForPair(key, lo, hi);
+                this.angular[cacheKey] = w;
+            }
+
+            return w;
+        }
+
+        void NoteAngular(double factor)
+        {
+            if (this.AngularPairs == 0)
+            {
+                this.AngularFactorMin = factor;
+                this.AngularFactorMax = factor;
+            }
+            else
+            {
+                if (factor < this.AngularFactorMin) this.AngularFactorMin = factor;
+                if (factor > this.AngularFactorMax) this.AngularFactorMax = factor;
+            }
+
+            this.AngularPairs++;
+        }
+
+        /// <summary>
+        /// Имя фотонной таблицы по веществу кристалла («NaI:Tl», «CsI:Tl»);
+        /// null — таблицы для вещества нет. Обёртка над внутренней
+        /// <see cref="FsaLightScale.CurveFor"/> для проб: у тех к внутреннему
+        /// классу доступа нет, а второй список «какому веществу какая кривая»
+        /// разошёлся бы молча.
+        /// </summary>
+        public static string PhotonCurveFor(string scintillator)
+        {
+            return FsaLightScale.CurveFor(scintillator);
+        }
+
+        /// <summary>
+        /// Суммирователь для этой матрицы; null — считать нечем: матрицы нет,
+        /// у неё нет раскладки по каналам (формат старше 3) или рядом с
+        /// программой нет `nucdb.sqlite`.
+        /// </summary>
+        public static FsaCascadeSummer Create(ResponseMatrix matrix)
+        {
+            return Create(matrix, null);
+        }
+
+        /// <summary>
+        /// То же, но с веществом кристалла: по нему берётся кривая светового
+        /// выхода, и суммы ставятся по СВЕТУ, а не по энергии (S20). Имя —
+        /// как в `scint_electron_light_yield` («CsI:Tl», «NaI:Tl»); пустое или
+        /// незнакомое даёт прежнее поведение, а не отказ: без кривой сумма по
+        /// энергии — приближение, а не ошибка.
+        ///
+        /// Вещество приходит СНАРУЖИ, потому что у матрицы его нет: она хранит
+        /// от геометрии только необратимый отпечаток (`ResponseMatrix.Stamp`).
+        /// </summary>
+        public static FsaCascadeSummer Create(ResponseMatrix matrix, string scintillator)
+        {
+            return Create(matrix, scintillator, 0.0, true, true, true, false);
+        }
+
+        /// <summary>
+        /// То же, но с ОКНОМ СОВПАДЕНИЯ и абляционными ключами (S27).
+        ///
+        /// `windowSec` — мёртвое время прибора, то есть длительность импульса:
+        /// два кванта попадают в один импульс и складываются, только если
+        /// разошлись во времени меньше, чем на неё. Ноль означает «прибор не
+        /// сказал» и заменяется <see cref="DefaultCoincidenceWindowSec"/>.
+        ///
+        /// `withXrays` / `withAnnihilation` — выключатели для РАЗДЕЛЯЮЩЕГО
+        /// замера: цена правки меряется при одной версии физики, «было/стало»
+        /// на одном бинаре. По правилу T42 в клеймо матрицы они не идут — и не
+        /// должны: матрицу они не трогают вовсе, это слой поверх неё.
+        /// </summary>
+        public static FsaCascadeSummer Create(ResponseMatrix matrix, string scintillator,
+                                              double windowSec, bool withXrays,
+                                              bool withAnnihilation, bool withIsomers,
+                                              bool withTimeProbability)
+        {
+            if (matrix == null || !matrix.HasChannels || matrix.Energies == null
+                || matrix.Energies.Length == 0 || matrix.Rows == null)
+            {
+                return null;
+            }
+
+            if (!DatabasePresent())
+            {
+                return null;
+            }
+
+            float[][] peakRows = matrix.ChannelRows[(int)EfficiencySimulator.ResponseChannel.Peak];
+            int nodes = matrix.Energies.Length;
+            double[] peak = new double[nodes];
+            double[] total = new double[nodes];
+            for (int i = 0; i < nodes; i++)
+            {
+                peak[i] = Sum(peakRows != null && i < peakRows.Length ? peakRows[i] : null);
+                total[i] = Sum(i < matrix.Rows.Length ? matrix.Rows[i] : null);
+            }
+
+            MaterialDatabase.LightYieldCurve curve = null;
+            if (!string.IsNullOrEmpty(scintillator))
+            {
+                try
+                {
+                    curve = MaterialDatabase.LightYieldOf(scintillator);
+                }
+                catch (Exception ex)
+                {
+                    // Отказ базы не должен ронять разбор, но и молчать о нём
+                    // нельзя: без кривой суммы поедут на единицы кэВ, а
+                    // выглядеть это будет как «модель промахнулась».
+                    Failure = "кривая света для «" + scintillator + "»: " + ex.Message;
+                }
+            }
+
+            return new FsaCascadeSummer(matrix, peak, total, curve, windowSec,
+                                        withXrays, withAnnihilation, withIsomers,
+                                        withTimeProbability);
+        }
+
+        /// <summary>
+        /// Где на ШКАЛЕ окажется сумма нескольких полностью поглощённых квантов.
+        ///
+        /// В сцинтилляторе шкалу задаёт свет, а он непропорционален энергии
+        /// (F11): энергетическая калибровка снята по ОДИНОЧНЫМ линиям, то есть
+        /// связывает канал с Λ(E) = L(E)·E одного кванта. У пары свет
+        /// складывается, и видимая энергия суммы решает уравнение
+        ///
+        ///     L(E_вид)·E_вид = Σ_k L(E_k)·E_k,
+        ///
+        /// а не равна Σ E_k. По кривой CsI:Tl это +2.96 кэВ на 508.61
+        /// (201.83+306.78), +3.64 на 290.17 и +6.30 на тройной 596.95 — величины
+        /// порядка десятой доли полуширины, но систематические и в одну сторону.
+        ///
+        /// ⚠ Приближение названо: L(E) — выход для ЭЛЕКТРОНА энергии E, а квант
+        /// отдаёт энергию каскадом электронов разной энергии. Точная Λ(E) есть
+        /// только у симулятора (`EfficiencySimulator.lightDeposit`), суммирователю
+        /// она недоступна. Это ровно та формула, которой мерена цена в S20.
+        /// (`S167`, П18 12.09.2026) Снятая с того же симулятора ФОТОННАЯ кривая
+        /// (свет пика полного поглощения на кэВ) подставляется вместо L(E)
+        /// через <see cref="PhotonLightCurve"/>; без неё счёт прежний.
+        /// </summary>
+        public double ApparentSum(double first, double second, double third = 0.0)
+        {
+            double plain = first + second + third;
+            if ((this.light == null && this.PhotonLightCurve == null) || !(plain > 0.0))
+            {
+                return plain;
+            }
+
+            double target = Light(first) + Light(second) + (third > 0.0 ? Light(third) : 0.0);
+
+            // Обращение Λ(E) деление пополам: кривая монотонна по построению
+            // (свет растёт с энергией), а аналитического обратного у неё нет.
+            double lo = plain * 0.5, hi = plain * 1.5;
+            for (int i = 0; i < 60; i++)
+            {
+                double mid = 0.5 * (lo + hi);
+                if (Light(mid) < target)
+                {
+                    lo = mid;
+                }
+                else
+                {
+                    hi = mid;
+                }
+            }
+
+            return 0.5 * (lo + hi);
+        }
+
+        /// <summary>
+        /// Λ(E) = L(E)·E — свет одного полностью поглощённого кванта. Кривая —
+        /// фотонная (<see cref="PhotonLightCurve"/>), если названа, иначе
+        /// электронная; ниже первого узла и выше последнего фотонная таблица
+        /// отдаёт крайнее значение (так же, как в привязке шкалы).
+        /// </summary>
+        double Light(double energyKev)
+        {
+            if (this.PhotonLightCurve != null)
+            {
+                double r = FsaLightScale.Relative(this.PhotonLightCurve, energyKev);
+                if (!double.IsNaN(r) && r > 0.0)
+                {
+                    return r * energyKev;
+                }
+            }
+
+            return this.light != null ? this.light.Of(energyKev) * energyKev : energyKev;
+        }
+
+        /// <summary>
+        /// Сколько пар совпадений известно про этот нуклид. Ноль значит либо
+        /// «имя не разбирается», либо «каскадов у нуклида нет» — но эти два
+        /// случая для отчёта различает <see cref="Nucid"/>. Заведено ради проб:
+        /// «поправка ничего не сделала» без такого различения — сигнал, по
+        /// которому нельзя понять, сломано что-то или так и должно быть.
+        /// </summary>
+        public int PairCount(string nuclide)
+        {
+            NuclideData data = Data(nuclide);
+            return data != null ? data.Pairs.Count : 0;
+        }
+
+        /// <summary>
+        /// Есть ли у нуклида линия с такой энергией в таблицах совпадений —
+        /// то есть сойдётся ли линия компонента с линией базы. Разъезд имён и
+        /// округлений здесь тише всего: поправка просто не применяется.
+        /// </summary>
+        public bool HasLine(string nuclide, double energyKev)
+        {
+            NuclideData data = Data(nuclide);
+            double found;
+            return data != null && Match(data.Intensity, energyKev, out found);
+        }
+
+        /// <summary>
+        /// Поправки компонента; null — этому компоненту поправлять нечего
+        /// (нуклид не разбирается, пар нет, всё вышло единицей).
+        /// </summary>
+        public Correction For(FsaComponent component)
+        {
+            if (component == null || component.Lines == null || component.Lines.Count == 0)
+            {
+                return null;
+            }
+
+            Correction correction;
+            if (this.corrections.TryGetValue(component, out correction))
+            {
+                return correction;
+            }
+
+            correction = this.Compute(component);
+            this.corrections[component] = correction;
+            return correction;
+        }
+
+        /// <summary>
+        /// Перечень того, что каскадное суммирование сделало с компонентом:
+        /// сумм-пики с породившими их парами и раскладка CF по линиям.
+        ///
+        /// ЗАЧЕМ ОТДЕЛЬНЫМ ВЫХОДОМ. Сумм-пики у нас считаются формулой, и
+        /// наружу выходит только их действие — подправленный образ. При сверке
+        /// с ЛСРМ этого мало: у них в отчёте есть разделы «Coincidence sum
+        /// peaks» и «xray_peaks», то есть видно, ЧТО именно они посчитали
+        /// суммой, а у нас видно было только «на сколько всё съехало» (наш
+        /// F25). Сравнивать два числа, пришедших разными путями, без такого
+        /// перечня нельзя.
+        ///
+        /// Печатается всё, что посчитано, включая отброшенное порогом
+        /// (`SumPeakFloor`) и срезанное `MaxSumPeaks`: в `Correction` попадает
+        /// только выжившее, а знать надо и то, что не выжило.
+        ///
+        /// Рентгеновских линий здесь нет и быть пока не может: библиотека FSA
+        /// не различает γ и рентген (у `FsaLine` нет вида линии, см. TODO R2),
+        /// так что раздела «xray_peaks» у нас нет не потому, что его не
+        /// напечатали, а потому, что его нечем наполнить.
+        /// </summary>
+        public string Describe(FsaComponent component)
+        {
+            Correction correction = this.For(component);
+            var sb = new StringBuilder();
+            sb.Append("компонент: ").Append(component == null ? "(нет)" : component.Name)
+              .AppendLine();
+            if (correction == null)
+            {
+                sb.AppendLine("поправлять нечего: нуклид не разбирается или пар нет");
+                return sb.ToString();
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("Coincidence sum peaks — площади на распад родителя цепочки");
+            sb.AppendLine("(площадь уже с обеими пиковыми эффективностями и с множителем");
+            sb.AppendLine(" выживания третьего кванта S_ij; второй раз эффективность не применять)");
+            sb.AppendLine();
+            if (correction.SumPeaks == null || correction.SumPeaks.Count == 0)
+            {
+                sb.AppendLine("  нет: либо пары не нашлись, либо все суммы попали в окна линий");
+                sb.AppendLine("  (попавшая сумма учтена влётом в CF своей линии — см. ниже)");
+            }
+            else
+            {
+                sb.AppendLine("   E сумм, кэВ        слагаемые, кэВ         нуклид        площадь");
+                foreach (SumPeak peak in correction.SumPeaks)
+                {
+                    // Энергия печатается ВИДИМАЯ (по свету), поэтому рядом с
+                    // ней стоят слагаемые: без них разница «сумма не равна
+                    // сумме» читается как опечатка, а это сдвиг S20.
+                    string parts = peak.IsTriple
+                        ? string.Format(CultureInfo.InvariantCulture, "{0:F2}+{1:F2}+{2:F2}",
+                                        peak.FromKev, peak.WithKev, peak.ThirdKev)
+                        : string.Format(CultureInfo.InvariantCulture, "{0:F2}+{1:F2}",
+                                        peak.FromKev, peak.WithKev);
+                    sb.AppendFormat(CultureInfo.InvariantCulture,
+                        "  {0,11:F2}   {1,-22}  {2,-10}  {3,12:E4}",
+                        peak.Energy, parts, peak.Nuclide, peak.Area);
+                    sb.AppendLine();
+                }
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("Раскладка CF по линиям (A_ист = A_набл · CF)");
+            sb.AppendLine("вынос — партнёр задел кристалл; влёт — сумма пары попала в окно линии");
+            sb.AppendLine();
+            if (correction.Notes == null || correction.Notes.Count == 0)
+            {
+                sb.AppendLine("  нет линий, сошедшихся с базой совпадений");
+            }
+            else
+            {
+                sb.AppendLine("     E, кэВ   нуклид          CF     вынос     влёт   прямая площадь");
+                foreach (LineNote note in correction.Notes)
+                {
+                    sb.AppendFormat(CultureInfo.InvariantCulture,
+                        "  {0,9:F2}   {1,-10}  {2,8:F4}  {3,8:F4} {4,8:F4}   {5,12:E4}",
+                        note.EnergyKev, note.Nuclide, note.Cf, note.Loss,
+                        note.InShare, note.DirectArea);
+                    sb.AppendLine();
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        // ------------------------------------------------------------------
+        // Счёт
+        // ------------------------------------------------------------------
+
+        Correction Compute(FsaComponent component)
+        {
+            int count = component.Lines.Count;
+            double[] factors = new double[count];
+            for (int i = 0; i < count; i++)
+            {
+                factors[i] = 1.0;
+            }
+
+            List<SumPeak> sumPeaks = new List<SumPeak>();
+            List<SumContinuum> continua = new List<SumContinuum>();
+            List<LineNote> notes = new List<LineNote>();
+            bool any = false;
+
+            // Пары совпадений живут ВНУТРИ одного нуклида: у компонента-цепочки
+            // линии разных дочерних, и мешать их каскады нельзя.
+            foreach (string nuclide in DistinctNuclides(component))
+            {
+                NuclideData data = Data(nuclide);
+                if (data == null)
+                {
+                    continue;
+                }
+
+                // Масштаб нормировки: интенсивности компонента даны на распад
+                // РОДИТЕЛЯ цепочки, база — на распад самого нуклида. Отношение
+                // берётся по самой сильной сошедшейся линии; в CF оно
+                // сокращается, а площади сумм-пиков без него уехали бы.
+                double scale = Scale(component, nuclide, data);
+                double strongest = 0.0;
+                for (int i = 0; i < count; i++)
+                {
+                    FsaLine line = component.Lines[i];
+                    if (!Belongs(line, nuclide))
+                    {
+                        continue;
+                    }
+
+                    double area = line.Intensity / 100.0 * this.PeakEfficiency(line.Energy);
+                    if (area > strongest)
+                    {
+                        strongest = area;
+                    }
+
+                    double baseEnergy;
+                    if (!Match(data.Intensity, line.Energy, out baseEnergy))
+                    {
+                        continue;
+                    }
+
+                    // В образ идёт ОБРАТНАЯ величина: см. Correction.LineFactors.
+                    double loss, inShare, direct;
+                    double cf = this.CoincidenceFactor(data, baseEnergy,
+                                                       out loss, out inShare, out direct);
+                    notes.Add(new LineNote
+                    {
+                        Nuclide = nuclide,
+                        EnergyKev = line.Energy,
+                        Cf = cf,
+                        Loss = loss,
+                        InShare = inShare,
+                        DirectArea = direct
+                    });
+
+                    if (cf > 0.0 && Math.Abs(cf - 1.0) > 1.0E-6)
+                    {
+                        factors[i] = 1.0 / cf;
+                        any = true;
+                    }
+                }
+
+                this.CollectSumPeaks(component, nuclide, data, scale, strongest, sumPeaks, continua);
+            }
+
+            if (sumPeaks.Count > 0)
+            {
+                any = true;
+                sumPeaks.Sort((a, b) => b.Area.CompareTo(a.Area));
+                if (sumPeaks.Count > MaxSumPeaks)
+                {
+                    sumPeaks.RemoveRange(MaxSumPeaks, sumPeaks.Count - MaxSumPeaks);
+                }
+            }
+
+            if (continua.Count > 0)
+            {
+                any = true;
+            }
+
+            return new Correction
+            {
+                LineFactors = factors,
+                SumPeaks = sumPeaks,
+                SumContinua = continua,
+                Notes = notes,
+                Any = any
+            };
+        }
+
+        /// <summary>
+        /// CF одной линии по формуле EFFTRAN — в принятом смысле: во столько
+        /// раз наблюдённая площадь МЕНЬШЕ истинной (A_ист = A_набл · CF).
+        /// Больше единицы — суммирование выносит из пика больше, чем вносит.
+        /// </summary>
+        /// <summary>
+        /// Потолок поправки: при нём образ линии множится на 1e-6, что для
+        /// фита неотличимо от «линии нет». Величина не физическая, а
+        /// численная — см. возврат <see cref="CoincidenceFactor"/>.
+        /// </summary>
+        const double MaxCoincidenceFactor = 1.0E6;
+
+        double CoincidenceFactor(NuclideData data, double energy)
+        {
+            double loss, inShare, direct;
+            return this.CoincidenceFactor(data, energy, out loss, out inShare, out direct);
+        }
+
+        /// <summary>
+        /// То же с раскладкой на составляющие — для отчёта
+        /// (<see cref="Describe"/>). Один и тот же счёт, две подписи: копия
+        /// формулы ради печати однажды разошлась бы с той, по которой считают.
+        /// </summary>
+        double CoincidenceFactor(NuclideData data, double energy,
+                                 out double loss, out double inShare, out double direct)
+        {
+            loss = 0.0;
+            inShare = 0.0;
+            direct = 0.0;
+
+            double intensity;
+            if (!data.Intensity.TryGetValue(energy, out intensity) || !(intensity > 0.0))
+            {
+                return 1.0;
+            }
+
+            // Вынос: любой партнёр, оставивший в кристалле хоть что-нибудь,
+            // уносит событие из пика. Нужна вероятность ОБЪЕДИНЕНИЯ «хоть один
+            // зарегистрирован», и считается она через выживание.
+            loss = 1.0 - this.SurviveAll(data, Partners(data, energy), SupplyOf(data, energy),
+                                         this.LossJointFactor ? energy : 0.0, energy);
+
+            // Влёт: пары, сумма которых попадает в окно этой линии. Сравнивается
+            // ВИДИМАЯ сумма (по свету, S20) — окно задано на шкале прибора, а
+            // сумма встаёт на неё сдвинутой на единицы кэВ.
+            double sumIn = 0.0;
+            foreach (double[] pair in data.Pairs)
+            {
+                if (Math.Abs(this.ApparentSum(pair[0], pair[1]) - energy) >= SumWindowKev)
+                {
+                    continue;
+                }
+
+                sumIn += this.PairArea(data, pair);
+            }
+
+            direct = intensity / 100.0 * this.PeakEfficiency(energy);
+            inShare = direct > 0.0 ? sumIn / direct : 0.0;
+
+            // Знаменатель — ДОЛЯ ВЫЖИВШИХ в полном пике: именно она уходит
+            // в образ (`factors[i] = 1 / cf`, см. Correction.LineFactors).
+            double denominator = (1.0 - loss) + inShare;
+
+            // ⛔ ПРЕЖДЕ ЗДЕСЬ СТОЯЛО `: 1.0`, И ЭТО БЫЛО НАОБОРОТ (`S144`).
+            // Ноль знаменателя означает «из полного пика не выжило ничего»,
+            // то есть линия обязана ИСЧЕЗНУТЬ из образа; возврат единицы
+            // оставлял её нетронутой — поправка молча выключалась ровно там,
+            // где она сильнейшая. Потолок нужен лишь затем, чтобы вместо
+            // бесконечности в образ ушёл множитель 1e-6, то есть та же
+            // исчезнувшая линия, но без NaN дальше по счёту.
+            return denominator > 0.0
+                ? Math.Min(1.0 / denominator, MaxCoincidenceFactor)
+                : MaxCoincidenceFactor;
+        }
+
+        /// <summary>
+        /// Сумм-пики нуклида: пары, чья сумма НЕ попала ни в одну линию этого
+        /// компонента. Попавшие уже учтены влётом в CF той линии, и ставить их
+        /// вторично значило бы посчитать одно и то же дважды.
+        /// </summary>
+        void CollectSumPeaks(FsaComponent component, string nuclide, NuclideData data,
+                             double scale, double strongest, List<SumPeak> sumPeaks,
+                             List<SumContinuum> continua)
+        {
+            if (!(scale > 0.0))
+            {
+                return;
+            }
+
+            double floor = strongest * SumPeakFloor;
+
+            // ⛔ У ТРОЕК СВОЙ ПОРОГ, И СЧИТАЕТСЯ ОН ОТ СИЛЬНЕЙШЕЙ ПАРЫ
+            // (`S113`, решение Amber 10.09.2026 вопросником: «Свой порог
+            // тройкам»).
+            //
+            // Прежде тройная площадь судилась тем же `floor`, что и парная, —
+            // долей от сильнейшей ЛИНИИ компонента. Но тройная меньше парной
+            // ровно на `третий.Value · ε_p(третьего)`, то есть на порядок-два,
+            // и порог срезал их ВСЕ: журнал `LogTriples` на `ASN16_Lu176`
+            // показал 13 029 рассмотренных троек и НОЛЬ прошедших, а у самой
+            // близкой (603.35 = 201.82+88.35+306.88) площадь 4.009E-6 против
+            // порога 4.557E-6 — ниже на 12 %. Механизм жил с 13.08.2026 и всё
+            // это время был мёртв целиком.
+            //
+            // Мерка тройки — сильнейшая ПАРНАЯ сумма того же компонента: она
+            // одного рода с тройкой (обе — суммы, обе несут эффективности), и
+            // отношение «тройная к сильнейшей парной» отвечает на тот же
+            // вопрос, на который у пар отвечает доля от сильнейшей линии.
+            //
+            // ⚠ Правка трогает ТОЛЬКО тройки: `floor` парных остаётся прежним
+            // бит в бит, и цена ограничена вкладом троек — по Geant4 это 0.8 %
+            // от суммы пары (четыре события из 200 000 на тройную 596.95).
+            double strongestPair = 0.0;
+            foreach (double[] pair in data.Pairs)
+            {
+                double pairArea = scale * this.PairArea(data, pair);
+                if (pairArea > strongestPair)
+                {
+                    strongestPair = pairArea;
+                }
+            }
+
+            double tripleFloor = strongestPair * SumPeakFloor;
+            foreach (double[] pair in data.Pairs)
+            {
+                // Энергия сумм-пика — ВИДИМАЯ (по свету, S20): именно на это
+                // место шкалы событие ложится, и именно с этим местом надо
+                // сверять окна линий компонента.
+                double energy = this.ApparentSum(pair[0], pair[1]);
+                if (this.PeakEfficiency(energy) <= 0.0)
+                {
+                    continue;
+                }
+
+                bool absorbed = false;
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (Belongs(line, nuclide) && Math.Abs(line.Energy - energy) < SumWindowKev)
+                    {
+                        absorbed = true;
+                        break;
+                    }
+                }
+
+                if (absorbed)
+                {
+                    continue;
+                }
+
+                double area = scale * this.PairArea(data, pair);
+                if (area > floor)
+                {
+                    sumPeaks.Add(new SumPeak(energy, area, nuclide, pair[0], pair[1]));
+                }
+
+                this.CollectTripleSums(component, nuclide, data, pair, scale, tripleFloor, sumPeaks,
+                                       continua);
+            }
+        }
+
+        /// <summary>
+        /// Тройные суммы пары (S19). Множитель выживания `S_ij` вычитает из пары
+        /// те случаи, когда третий квант каскада тоже попал в кристалл, и до
+        /// 13.08.2026 вычтенное просто пропадало. Между тем часть его —
+        /// ε_p(m) из ε_T(m) — это ПОЛНОЕ поглощение третьего, то есть свой пик
+        /// на E_i+E_j+E_m. Мерено на Lu-176: сумма всех трёх (88.34+201.83+306.78)
+        /// стоит отдельным пиком на пустом месте, и модель его не ставила вовсе.
+        ///
+        /// Остаток `ε_T(m) − ε_p(m)` — частичное поглощение третьего — по-прежнему
+        /// пропадает: он даёт не пик, а сплошной подъём между E_i+E_j и
+        /// E_i+E_j+E_m, и для него нужен отдельный образ (вторая половина S19).
+        /// </summary>
+        /// <param name="floor">
+        /// Порог ТРОЕК (`S113`): доля от сильнейшей ПАРНОЙ суммы компонента, а
+        /// не от сильнейшей линии. Порог пар сюда не годится — тройная меньше
+        /// парной на `ε_p(третьего)`, и общим порогом их срезало все до одной.
+        /// Считает его <see cref="CollectSumPeaks"/>, там же и довод.
+        /// </param>
+        void CollectTripleSums(FsaComponent component, string nuclide, NuclideData data,
+                               double[] pair, double scale, double floor, List<SumPeak> sumPeaks,
+                               List<SumContinuum> continua)
+        {
+            double baseArea = this.PairBase(data, pair);
+            if (!(baseArea > 0.0))
+            {
+                return;
+            }
+
+            double pairEnergy = this.ApparentSum(pair[0], pair[1]);
+            HashSet<double> thirdSupply;
+            foreach (KeyValuePair<double, double> third
+                     in MergedThird(data, pair[0], pair[1], out thirdSupply))
+            {
+                double peakThird = this.PeakEfficiency(third.Key);
+                double totalThird = this.TotalEfficiency(third.Key);
+
+                // Частичное поглощение третьего кванта — сумм-континуум (S19,
+                // вторая половина). Именно эту долю `S_ij` вычитал и терял:
+                // пика она не даёт, но и в нуль не обращается. Вес идёт БЕЗ
+                // эффективности третьего — она придёт из строки матрицы.
+                if (totalThird > peakThird && third.Value > 0.0 && baseArea > 0.0)
+                {
+                    continua.Add(new SumContinuum(pairEnergy, third.Key,
+                                                  scale * baseArea * third.Value, nuclide));
+                }
+
+                if (!(peakThird > 0.0))
+                {
+                    continue;
+                }
+
+                // κ пары уже внутри `baseArea`; третий квант идёт БЕЗ
+                // поправки — для тройки нужна своя, трёхчастичная, а её никто
+                // не мерил. Занижение названное: тройные суммы срезает порог
+                // все до одной (`S113`), их вклад 0.8 % от суммы пары.
+                double area = scale * baseArea * third.Value * peakThird;
+                double energy = this.ApparentSum(pair[0], pair[1], third.Key);
+                if (LogTriples)
+                {
+                    TripleLog.Add(string.Format(CultureInfo.InvariantCulture,
+                        "  {0,9:F2} = {1:F2}+{2:F2}+{3:F2}  {4,-8}  площадь {5:E3}  порог {6:E3}  {7}",
+                        energy, pair[0], pair[1], third.Key, nuclide, area, floor,
+                        area > floor ? "проходит" : "НИЖЕ ПОРОГА"));
+                }
+
+                if (!(area > floor))
+                {
+                    continue;
+                }
+
+                if (this.PeakEfficiency(energy) <= 0.0)
+                {
+                    continue;
+                }
+
+                // Та же защита от двойного счёта, что у пар: сумма, попавшая в
+                // окно линии компонента, уже учтена влётом в CF этой линии.
+                bool absorbed = false;
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (Belongs(line, nuclide) && Math.Abs(line.Energy - energy) < SumWindowKev)
+                    {
+                        absorbed = true;
+                        break;
+                    }
+                }
+
+                if (absorbed)
+                {
+                    continue;
+                }
+
+                // И защита от двойного счёта между самими тройками: пара (i,j) с
+                // третьим m и пара (i,m) с третьим j дают ОДНО И ТО ЖЕ событие.
+                // Держим первую встреченную — суммы уже стоят на одном месте
+                // шкалы, и вторая была бы чистым удвоением.
+                bool already = false;
+                foreach (SumPeak have in sumPeaks)
+                {
+                    if (have.IsTriple && Math.Abs(have.Energy - energy) < SamePairLineKev)
+                    {
+                        already = true;
+                        break;
+                    }
+                }
+
+                if (!already)
+                {
+                    sumPeaks.Add(new SumPeak(energy, area, nuclide, pair[0], pair[1], third.Key));
+                }
+            }
+        }
+
+        /// <summary>
+        /// ⚡ МНОЖИТЕЛЬ СОВМЕСТНОЙ ЭФФЕКТИВНОСТИ ПАРЫ (`S112`).
+        ///
+        /// Замерный рычаг перекрывает таблицу; иначе κ(E₁,E₂) берётся из матрицы,
+        /// а у матрицы без таблицы он равен единице — то есть счёт до правки.
+        /// </summary>
+        double JointFactor(double firstKev, double secondKev)
+        {
+            if (JointFactorOverride > 0.0)
+            {
+                return JointFactorOverride;
+            }
+
+            return this.matrix != null ? this.matrix.JointFactor(firstKev, secondKev) : 1.0;
+        }
+
+        /// <summary>
+        /// Площадь сумм-события пары на распад: оба кванта поглощены целиком и
+        /// ТРЕТИЙ квант каскада не помешал.
+        /// </summary>
+        double PairArea(NuclideData data, double[] pair)
+        {
+            double survive = this.Survive(data, pair);
+            return survive > 0.0 ? this.PairBase(data, pair) * survive : 0.0;
+        }
+
+        /// <summary>
+        /// Площадь пары БЕЗ множителя выживания: оба кванта поглощены целиком, а
+        /// что делает третий — ещё не решено. Отделено от <see cref="PairArea"/>
+        /// ради S19: та часть, которую `S_ij` вычитает, не исчезает — при полном
+        /// поглощении третьего она даёт тройной сумм-пик.
+        /// </summary>
+        double PairBase(NuclideData data, double[] pair)
+        {
+            double intensity;
+            if (!data.Intensity.TryGetValue(pair[0], out intensity) || !(intensity > 0.0))
+            {
+                return 0.0;
+            }
+
+            // ⚡ κ СТОИТ ЗДЕСЬ, А НЕ У СУММ-ПИКА (`S112`, решение Amber
+            // 09.09.2026 «сумм-пики + влёт Σ_in, одна таблица κ_pp»).
+            //
+            // Через `PairBase` проходят ВСЕ места, где перемножаются пиковые
+            // эффективности двух квантов одного распада: площадь сумм-пика,
+            // влёт `Σ_in` в `CoincidenceFactor`, тройные суммы и сумм-континуум.
+            // Пока множитель стоял только у сумм-пика, одна и та же сумма была
+            // поднята на 34 % как отдельный пик и НЕ поднята, когда попадала в
+            // окно чужой линии, — модель спорила сама с собой.
+            // ⛔ ВТОРОЙ ПОТРЕБИТЕЛЬ ИСПОРЧЕННОЙ СТРОКИ ПОСТАВКИ (`D49`), и
+            // зажима у него в дереве НЕТ вовсе: доля 129 у `Ir192` множит
+            // площадь сумм-события на 129, а через `inShare` поднимает и образ
+            // линии, в чьё окно эта сумма попала.
+            double joint = pair[2];
+
+            // ⛔ СУДИТСЯ ДОЛЯ СОБЫТИЯ, А НЕ ЧИСЛО КВАНТОВ (`D49`, та же беда,
+            // что `S147` уже вылечила в выносе). У аннигиляции величина в паре
+            // — ОЖИДАЕМОЕ ЧИСЛО квантов на распад (2·доля β⁺), и для Na-22 она
+            // законно равна 1.806. Зажим «в единицу», поставленный ей, срезает
+            // сумм-пик 511+1274 почти вдвое.
+            //
+            // ⚠ ИЗМЕРЕНО, а не выведено: с зажимом в 1.0 малая база теряет на
+            // четырёх спектрах Na-22 — χ²/ndf 4.5265 → 4.5528, 18.9646 →
+            // 19.3547, 18.1857 → 18.3052, 57.8650 → 58.6707, Σχ² понятной
+            // части 566.4 → 567.7. Ни один задетый `D49` нуклид при этом не
+            // шелохнулся: правило било по здоровому.
+            //
+            // Делится на кратность — и величина снова становится ВЕРОЯТНОСТЬЮ,
+            // для которой «больше единицы» действительно невозможно. Зажим
+            // тогда ставит не 1.0, а `quanta`: максимум, физически достижимый
+            // для этой пары.
+            double quanta = PairQuanta(data, pair);
+            double share = quanta > 0.0 ? joint / quanta : joint;
+            if (share > 1.0)
+            {
+                // (`D49`) Тот же раздел, что и в выносе: ядерная пара приходит
+                // из поставки дословно, а атомная (рентген, аннигиляция)
+                // посчитана нами. ⚠ «Посчитана» не значит «безупречна»: у
+                // `Ir-192` вероятность рентгена собирается из тех же
+                // испорченных условных и перескакивает единицу вслед за ними.
+                bool listed = IsSupply(data, pair[0], pair[1]);
+                SuperUnitPairs++;
+                if (listed)
+                {
+                    SuperUnitPairsSupply++;
+                }
+                else
+                {
+                    SuperUnitPairsDerived++;
+                }
+
+                if (share > WorstSuperUnitPair)
+                {
+                    WorstSuperUnitPair = share;
+                    WorstSuperUnitPairKev = pair[0];
+                    WorstSuperUnitPairWithKev = pair[1];
+                    WorstSuperUnitPairFromSupply = listed;
+                }
+
+                if (SuperUnitPolicy == SuperUnitRule.Drop)
+                {
+                    return 0.0;
+                }
+
+                if (SuperUnitPolicy == SuperUnitRule.Clamp)
+                {
+                    joint = quanta > 0.0 ? quanta : 1.0;
+                }
+            }
+
+            // (`N14`) Угловая корреляция — ЗДЕСЬ ЖЕ, где κ: через `PairBase`
+            // проходят все места, где перемножаются пиковые эффективности двух
+            // квантов одного распада, и множитель, поставленный только у
+            // сумм-пика, спорил бы сам с собой во влёте (`S112`).
+            return intensity / 100.0 * joint
+                   * this.PeakEfficiency(pair[0]) * this.PeakEfficiency(pair[1])
+                   * this.JointFactor(pair[0], pair[1])
+                   * this.AngularFactor(data, pair);
+        }
+
+        /// <summary>
+        /// Доля пар, которым третий квант каскада не помешал:
+        /// `S_ij = ∏_m (1 − P(m) · ε_T(m))` (`S144`).
+        /// </summary>
+        double Survive(NuclideData data, double[] pair)
+        {
+            HashSet<double> supply;
+            Dictionary<double, double> third = MergedThird(data, pair[0], pair[1], out supply);
+            // (`S166`, П18) Условие «оба кванта пары в пике» — тройная
+            // совместность, таблицы под неё нет; третий квант считается
+            // по-прежнему, без множителя.
+            return this.SurviveAll(data, third, supply, 0.0, 0.0);
+        }
+
+        /// <summary>
+        /// Доля событий, в которых НЕ зарегистрирован НИ ОДИН из партнёров:
+        /// `∏_j (1 − p_j)`, где `p_j = P(j|k) · ε_T(j)` (`S144`).
+        ///
+        /// ⛔ БЫЛО `1 − Σ p_j`, И ЭТО РАЗНЫЕ ВЕЛИЧИНЫ. Сумма маргинальных
+        /// вероятностей равна вероятности объединения только у ВЗАИМНО
+        /// ИСКЛЮЧАЮЩИХ событий; здесь же класс сам строит ТРОЙНЫЕ сумм-пики,
+        /// то есть прямо допускает регистрацию двух партнёров сразу. Для двух
+        /// независимых верно `p₁ + p₂ − p₁p₂`, а сумма учитывала пересечение
+        /// дважды — тем сильнее, чем больше партнёров и чем ближе геометрия.
+        ///
+        /// ⛔ Вторая половина той же беды была ОТКАЗОМ БЕЗ ОТКАЗА: завышенная
+        /// сумма перескакивала единицу, знаменатель `(1 − loss) + inShare`
+        /// становился неположительным, и метод возвращал `CF = 1` — поправка
+        /// МОЛЧА выключалась ровно там, где она сильнейшая. У произведения
+        /// такого исхода нет по построению: оно лежит в [0, 1].
+        ///
+        /// ⚠ ПРИБЛИЖЕНИЕ НАЗВАНО: партнёры считаются независимыми при данном
+        /// опорном кванте. У ВЗАИМНО ИСКЛЮЧАЮЩИХ ветвей это чуть занижает
+        /// потерю (верна была бы сумма), но разводить их нечем — условные
+        /// вероятности поставки не несут признака ветви. Родня: `S145`.
+        /// </summary>
+        double SurviveAll(NuclideData data, Dictionary<double, double> partners,
+                          HashSet<double> supply, double referenceKev, double angularKev)
+        {
+            double survive = 1.0;
+            foreach (KeyValuePair<double, double> partner in partners)
+            {
+                double efficiency = this.TotalEfficiency(partner.Key);
+                if (!(efficiency > 0.0) || !(partner.Value > 0.0))
+                {
+                    continue;
+                }
+
+                // (`N14`) Угловая корреляция В ВЫНОСЕ: партнёр уносит событие,
+                // куда бы он ни попал, поэтому условная вероятность его задеть
+                // при опорном кванте в пике — ε_T(j)·(1 + Σ A_kk·Q_k^p(k)·Q_k^T(j))
+                // с моментами ПОЛНОЙ эффективности партнёра. Именно здесь живёт
+                // цена из строки (Cs-134 1365: CF 0.807 против 0.854 у ЛСРМ) —
+                // сумм-пик её только показывает. Ноль опорной энергии — не
+                // считается (третий квант пары, тройная совместность).
+                if (angularKev > 0.0)
+                {
+                    efficiency = Math.Min(1.0, efficiency * this.AngularLossFactor(data, angularKev, partner.Key));
+                }
+
+                // (`S166`, П18 12.09.2026) Полная эффективность партнёра —
+                // УСЛОВНАЯ на том, что опорный квант поглощён целиком:
+                // ⟨ε_p(k)·ε_T(j)⟩/⟨ε_p(k)⟩ = κ_pT(k,j)·ε_T(j). Своей таблицы у
+                // κ_pT нет; замер `KappaPeakTotalProbe` на двух сценах Lu-176
+                // дал κ_pT = κ_pp в пределах ±2 % (1.293 против 1.289…1.293 на
+                // `ASN16_lu_side`, 1.106 против 1.104…1.106 на `AS80_lu_front`),
+                // поэтому берётся таблица κ_pp матрицы (`JointFactor`). Ноль
+                // опорной энергии — множителя нет (прежний счёт, побитово).
+                if (referenceKev > 0.0)
+                {
+                    efficiency = Math.Min(1.0, efficiency * this.JointFactor(referenceKev, partner.Key));
+                }
+
+                // ⛔ КРАТНОСТЬ ПАРТНЁРА (`S147`). У аннигиляции `Partners` несёт
+                // не вероятность, а ОЖИДАЕМОЕ ЧИСЛО квантов (2·доля β⁺). Два
+                // фотона рождаются ВМЕСТЕ, а не независимо, поэтому верная
+                // потеря равна q·(1−(1−ε)ᵐ), где q — доля события, а m — число
+                // квантов в нём. Прежнее `value·ε` при q = 1 и ε = 0.6 давало
+                // 1.2, зажималось в единицу — «пик потерян целиком» вместо
+                // верных 0.84.
+                double quanta = 1.0;
+                if (data != null && data.PartnerQuanta != null)
+                {
+                    double had;
+                    if (data.PartnerQuanta.TryGetValue(partner.Key, out had) && had > 0.0)
+                    {
+                        quanta = had;
+                    }
+                }
+
+                double share = partner.Value / quanta;
+                if (share > 1.0)
+                {
+                    // Доля события больше единицы физически невозможна: значит
+                    // поставка даёт на распад больше одного такого кванта, и
+                    // осторожнее считать событие достоверным.
+                    //
+                    // ⚡ (`D49`) Счётчик и рычаг. Зажим — максимальный
+                    // возможный вынос линии из пика, и до 10.09.2026 он стоял
+                    // МОЛЧА: отличить «зажали 1820 раз» от «ни разу» было
+                    // нечем.
+                    //
+                    // ⛔ СЧЁТЧИК РАЗДЕЛЁН НА ДВА СЛУЧАЯ, и это не украшение.
+                    // Доля, СПИСАННАЯ из поставки и большая единицы, — дефект
+                    // `sandia.decay.xml` (1820 пар у 99 родителей). Доля,
+                    // ПОСЧИТАННАЯ нами, перескакивает единицу законно:
+                    // обратная условная `P(A|B) = P(B|A)·I(A)/I(B)` при разных
+                    // выходах двух линий, и дополнение атомными партнёрами.
+                    // У `Co-60` поставка безупречна (0.999872), а зажим
+                    // срабатывает четыре раза — сложенный счётчик послал бы
+                    // чинить поставку там, где чинить нечего.
+                    bool listed = supply != null && supply.Contains(partner.Key);
+                    SuperUnitShares++;
+                    if (listed)
+                    {
+                        SuperUnitSharesSupply++;
+                    }
+                    else
+                    {
+                        SuperUnitSharesDerived++;
+                    }
+
+                    if (share > WorstSuperUnitShare)
+                    {
+                        WorstSuperUnitShare = share;
+                        WorstSuperUnitShareKev = partner.Key;
+                        WorstSuperUnitShareFromSupply = listed;
+                    }
+
+                    if (SuperUnitPolicy == SuperUnitRule.Drop)
+                    {
+                        continue;
+                    }
+
+                    if (SuperUnitPolicy != SuperUnitRule.Raw)
+                    {
+                        share = 1.0;
+                    }
+                }
+
+                double miss = Math.Pow(1.0 - efficiency, quanta);
+                double p = share * (1.0 - miss);
+                survive *= p < 1.0 ? 1.0 - p : 0.0;
+            }
+
+            return survive;
+        }
+
+        /// <summary>
+        /// Третий квант каскада для пары (i, j): тройная условная из парных
+        /// данных невосстановима, берётся P(m|i∧j) ≈ max(P(m|i), P(m|j)) — для
+        /// каскада i→j квант ниже j воспроизводится точно, выше i консервативно.
+        /// </summary>
+        static Dictionary<double, double> MergedThird(NuclideData data, double i, double j,
+                                                      out HashSet<double> supply)
+        {
+            Dictionary<double, double> merged = new Dictionary<double, double>();
+
+            // (`D49`) Метка происхождения едет за ПОБЕДИВШИМ значением: у
+            // максимума одно происхождение, и приписывать ему чужое нельзя.
+            supply = new HashSet<double>();
+            foreach (double side in new[] { i, j })
+            {
+                HashSet<double> marks = SupplyOf(data, side);
+                foreach (KeyValuePair<double, double> entry in Partners(data, side))
+                {
+                    if (Math.Abs(entry.Key - i) < SamePairLineKev || Math.Abs(entry.Key - j) < SamePairLineKev)
+                    {
+                        continue;
+                    }
+
+                    double have;
+                    if (!merged.TryGetValue(entry.Key, out have) || entry.Value > have)
+                    {
+                        merged[entry.Key] = entry.Value;
+                        if (marks != null && marks.Contains(entry.Key))
+                        {
+                            supply.Add(entry.Key);
+                        }
+                        else
+                        {
+                            supply.Remove(entry.Key);
+                        }
+                    }
+                }
+            }
+
+            return merged;
+        }
+
+        static Dictionary<double, double> Partners(NuclideData data, double energy)
+        {
+            Dictionary<double, double> bag;
+            return data.Partners.TryGetValue(energy, out bag)
+                ? bag
+                : new Dictionary<double, double>();
+        }
+
+        /// <summary>
+        /// Отношение «выход в компоненте / выход в базе» по самой сильной
+        /// сошедшейся линии нуклида.
+        /// </summary>
+        static double Scale(FsaComponent component, string nuclide, NuclideData data)
+        {
+            double best = 0.0;
+            double scale = 1.0;
+            foreach (FsaLine line in component.Lines)
+            {
+                double baseEnergy;
+                if (!Belongs(line, nuclide) || !(line.Intensity > 0.0)
+                    || !Match(data.Intensity, line.Energy, out baseEnergy))
+                {
+                    continue;
+                }
+
+                double baseIntensity = data.Intensity[baseEnergy];
+                if (baseIntensity > best && baseIntensity > 0.0)
+                {
+                    best = baseIntensity;
+                    scale = line.Intensity / baseIntensity;
+                }
+            }
+
+            return scale;
+        }
+
+        static IEnumerable<string> DistinctNuclides(FsaComponent component)
+        {
+            List<string> names = new List<string>();
+            foreach (FsaLine line in component.Lines)
+            {
+                string name = line.Nuclide ?? "";
+                if (name.Length > 0 && !names.Contains(name, StringComparer.OrdinalIgnoreCase))
+                {
+                    names.Add(name);
+                }
+            }
+
+            return names;
+        }
+
+        static bool Belongs(FsaLine line, string nuclide)
+        {
+            return string.Equals(line.Nuclide ?? "", nuclide, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Линия компонента и линия базы — одна и та же?</summary>
+        static bool Match(Dictionary<double, double> table, double energy, out double found)
+        {
+            found = 0.0;
+            double best = SameLineKev;
+            bool ok = false;
+            foreach (double key in table.Keys)
+            {
+                double delta = Math.Abs(key - energy);
+                if (delta < best)
+                {
+                    best = delta;
+                    found = key;
+                    ok = true;
+                }
+            }
+
+            return ok;
+        }
+
+        // ------------------------------------------------------------------
+        // Эффективности из матрицы
+        // ------------------------------------------------------------------
+
+        /// <summary>Пиковая эффективность: сумма строки канала полного поглощения.</summary>
+        public double PeakEfficiency(double energyKev)
+        {
+            return this.Interpolate(this.peakAtNode, energyKev);
+        }
+
+        /// <summary>Полная эффективность: сумма всей строки узла.</summary>
+        public double TotalEfficiency(double energyKev)
+        {
+            return this.Interpolate(this.totalAtNode, energyKev);
+        }
+
+        /// <summary>
+        /// Между узлами — логарифмическая интерполяция: сетка узлов
+        /// логарифмическая, и эффективность на ней ложится почти прямой, а
+        /// линейная по энергии заметно врала бы внизу шкалы. За краями
+        /// ЗАЖИМАЕТСЯ: экстраполировать степенным ходом на энергии, где физика
+        /// другая (ниже порога, выше сетки), — верный способ получить ерунду.
+        /// </summary>
+        double Interpolate(double[] values, double energyKev)
+        {
+            double[] grid = this.matrix.Energies;
+            if (!(energyKev > 0.0) || grid.Length == 0)
+            {
+                return 0.0;
+            }
+
+            if (energyKev <= grid[0])
+            {
+                return values[0];
+            }
+
+            int last = grid.Length - 1;
+            if (energyKev >= grid[last])
+            {
+                return values[last];
+            }
+
+            int hi = Array.BinarySearch(grid, energyKev);
+            if (hi >= 0)
+            {
+                return values[hi];
+            }
+
+            hi = ~hi;
+            int lo = hi - 1;
+            double a = values[lo], b = values[hi];
+            double t = (Math.Log(energyKev) - Math.Log(grid[lo]))
+                       / (Math.Log(grid[hi]) - Math.Log(grid[lo]));
+            if (a > 0.0 && b > 0.0)
+            {
+                return Math.Exp(Math.Log(a) + t * (Math.Log(b) - Math.Log(a)));
+            }
+
+            return a + t * (b - a);
+        }
+
+        static double Sum(float[] row)
+        {
+            if (row == null)
+            {
+                return 0.0;
+            }
+
+            double total = 0.0;
+            foreach (float value in row)
+            {
+                total += value;
+            }
+
+            return total;
+        }
+
+        // ------------------------------------------------------------------
+        // База
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Пары и выходы нуклида, УЖЕ дополненные рентгеном и аннигиляцией;
+        /// null — имя не разбирается (пики вылета) либо у нуклида нет ни
+        /// совпадений, ни атомных партнёров (K-40).
+        ///
+        /// ⚠ Стала методом ЭКЗЕМПЛЯРА при S27: дополнение зависит от окна
+        /// совпадения прибора и от абляционных ключей, а они принадлежат
+        /// разбору, не процессу. Поставка SandiaDecay по-прежнему лежит в общем
+        /// статическом кэше — она от разбора не зависит.
+        /// </summary>
+        NuclideData Data(string nuclide)
+        {
+            string key = ParentKey(nuclide);
+            if (key == null)
+            {
+                return null;
+            }
+
+            // Выключатель прежнего поведения (S27, пункт «изомеры»): до правки
+            // `Nucid` возвращал на именах вида «Ba-137m» null, и такой
+            // компонент оставался без поправки молча. Ключ нужен, чтобы цену
+            // именно этой половины можно было снять отдельно.
+            if (!this.withIsomers && key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            NuclideData ready;
+            if (this.augmented.TryGetValue(key, out ready))
+            {
+                return ready;
+            }
+
+            NuclideData raw = BaseData(key);
+            ready = this.Augment(key, raw);
+            this.augmented[key] = ready;
+            return ready;
+        }
+
+        /// <summary>Поставка SandiaDecay как есть; кэш общий на процесс.</summary>
+        static NuclideData BaseData(string key)
+        {
+            lock (Gate)
+            {
+                NuclideData data;
+                if (Cache.TryGetValue(key, out data))
+                {
+                    return data;
+                }
+
+                data = Load(key);
+                Cache[key] = data;
+                return data;
+            }
+        }
+
+        /// <summary>
+        /// Ключ родителя совпадений по имени нуклида: либо наш `nucid`
+        /// («Pb-214» → «214PB»), либо — для ИЗОМЕРОВ — символ Sandia
+        /// («Ba-137m» → «Ba137m»), с приставкой, отличающей одно от другого.
+        ///
+        /// ⚠ Почему у изомеров отдельный путь (S27, пункт «изомеры
+        /// пропускаются»). Наш `l_seqno` — это НОМЕР УРОВНЯ в схеме, а не
+        /// порядковый номер изомера: у Sandia он лежит отдельным полем
+        /// `isomer`, и 418 изомеров поставки нашей нумерации не приписаны
+        /// вовсе (`database/scheme.md`, §8). Искать их поэтому надо по
+        /// `sandia_symbol`. До S27 <see cref="Nucid"/> возвращал на таких
+        /// именах null, и «Ba-137m» молча оставался без поправки.
+        /// </summary>
+        public static string ParentKey(string name)
+        {
+            string nucid = Nucid(name);
+            if (nucid != null)
+            {
+                return nucid;
+            }
+
+            string symbol = SandiaSymbol(name);
+            return symbol != null ? IsomerPrefix + symbol : null;
+        }
+
+        /// <summary>
+        /// Приставка ключа изомера. Нужна, чтобы «Ba137m» нельзя было спутать с
+        /// нашим `nucid`: пространство ключей одно, а таблицы разные.
+        /// </summary>
+        const string IsomerPrefix = "sandia:";
+
+        /// <summary>
+        /// Имя изомера в символ Sandia: «Ba-137m» → «Ba137m», «Tb-154m2» →
+        /// «Tb154m2». Не изомер (нет буквенного хвоста после массы) — null:
+        /// такие имена идут обычным путём, через `nucid`.
+        /// </summary>
+        public static string SandiaSymbol(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return null;
+            }
+
+            int dash = name.IndexOf('-');
+            if (dash <= 0 || dash + 1 >= name.Length)
+            {
+                return null;
+            }
+
+            string element = name.Substring(0, dash);
+            string tail = name.Substring(dash + 1);
+            foreach (char c in element)
+            {
+                if (!char.IsLetter(c))
+                {
+                    return null;
+                }
+            }
+
+            // Масса, затем хвост изомера: «137m», «154m2». Без хвоста это не
+            // изомер, и сюда попадать не должно.
+            int digits = 0;
+            while (digits < tail.Length && char.IsDigit(tail[digits]))
+            {
+                digits++;
+            }
+
+            if (digits == 0 || digits == tail.Length)
+            {
+                return null;
+            }
+
+            string suffix = tail.Substring(digits);
+            foreach (char c in suffix)
+            {
+                if (!char.IsLetterOrDigit(c))
+                {
+                    return null;
+                }
+            }
+
+            return char.ToUpperInvariant(element[0])
+                   + element.Substring(1).ToLowerInvariant()
+                   + tail.Substring(0, digits)
+                   + suffix.ToLowerInvariant();
+        }
+
+        static NuclideData Load(string key)
+        {
+            NuclideData data = new NuclideData
+            {
+                Key = key,
+                Intensity = new Dictionary<double, double>(),
+                Pairs = new List<double[]>(),
+                Partners = new Dictionary<double, Dictionary<double, double>>(),
+                PartnerQuanta = new Dictionary<double, double>(),
+                SupplyPartners = new Dictionary<double, HashSet<double>>()
+            };
+
+            try
+            {
+                using (SqliteConnection connection = new SqliteConnection(
+                    "Data Source=" + DatabasePath() + ";Mode=ReadOnly;Cache=Shared;"))
+                {
+                    connection.Open();
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        // Изомер ищется по символу Sandia, обычный нуклид — по
+                        // нашему `nucid` при `isomer = 0`. Разные столбцы, одни
+                        // и те же представления.
+                        bool isomer = key.StartsWith(IsomerPrefix, StringComparison.Ordinal);
+                        string parameter = isomer ? key.Substring(IsomerPrefix.Length) : key;
+                        string filter = isomer
+                            ? " where sandia_symbol = $n"
+                            : " where nucid = $n and isomer = 0";
+
+                        command.CommandText =
+                            "select energy_kev, intensity_pct from v_gamma_coincidence_line"
+                            + filter;
+                        command.Parameters.AddWithValue("$n", parameter);
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                data.Intensity[reader.GetDouble(0)] = reader.GetDouble(1);
+                            }
+                        }
+
+                        command.CommandText =
+                            "select energy_kev, coinc_energy_kev, fraction from v_gamma_coincidence"
+                            + filter;
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                data.Pairs.Add(new[]
+                                {
+                                    reader.GetDouble(0), reader.GetDouble(1), reader.GetDouble(2)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception error)
+            {
+                // База читается только ради поправки: не прочлась — работаем
+                // без неё, как работали до неё. Но МОЛЧА этого делать нельзя:
+                // «поправка ничего не сделала» и «поправка не смогла» с виду
+                // одно и то же, и без записанной причины разница теряется.
+                Failure = key + ": " + error.Message;
+                return null;
+            }
+
+            // ⚠ Пустой набор пар БОЛЬШЕ НЕ ЗНАЧИТ «поправлять нечего» (S27): у
+            // нуклида с одной гаммой (Ce-139, Cd-109, Na-22) пар γ-γ нет и в
+            // поставке его нет вовсе, а совпадение с рентгеном или с
+            // аннигиляционным квантом у него есть. Решение «ничего нет»
+            // принимается теперь ПОСЛЕ дополнения, в Augment.
+
+            // Пара лежит в базе ОДИН раз и направленно; обратная условная
+            // считается через отношение выходов: P(A|B) = P(B|A)·I(A)/I(B)
+            // (database/scheme.md, §8).
+            foreach (double[] pair in data.Pairs)
+            {
+                // Прямая сторона — ЧИСЛО ПОСТАВКИ, обратная — наше (`D49`).
+                Put(data, pair[0], pair[1], pair[2], true);
+                double ia, ib;
+                if (data.Intensity.TryGetValue(pair[0], out ia)
+                    && data.Intensity.TryGetValue(pair[1], out ib) && ib > 0.0)
+                {
+                    Put(data, pair[1], pair[0], pair[2] * ia / ib, false);
+                }
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// Дополнить ядерные пары АТОМНЫМИ участниками распада: K-рентгеном
+        /// дочернего атома и аннигиляционными квантами (S27).
+        ///
+        /// ГЛАВНЫЙ ХОД. Новые партнёры кладутся в те же `Pairs`, `Partners` и
+        /// `Intensity`, что и ядерные, — и после этого весь счёт выше
+        /// (CF, сумм-пики, тройные суммы, сумм-континуум, защита от двойного
+        /// счёта) работает над ними без единой правки. Отдельной ветки «а тут
+        /// у нас рентген» в формулах нет нигде, и это сознательно: две ветки
+        /// разошлись бы при первой же правке одной из них.
+        ///
+        /// ВЕРОЯТНОСТЬ РЕНТГЕНА ПРИ ГАММЕ k. Складывается из двух источников
+        /// вакансии, и они совпадают по-разному (см.
+        /// <see cref="CascadeAtomicData"/>):
+        ///
+        ///     P(K-вакансия | γ_k) = V_захв·[γ_k пришла вовремя]
+        ///                         + Σ_{T ≠ k} P(γ_T | γ_k)·α_K(T)·[T и k рядом]
+        ///
+        /// Второе слагаемое выводится так: доля событий, где ПЕРЕХОД T вообще
+        /// случился, при известной γ_k равна P(γ_T|γ_k)·(1 + α_tot(T)), а
+        /// вакансию он даёт с вероятностью α_K(T)/(1 + α_tot(T)) — полные
+        /// коэффициенты сокращаются, и остаётся ровно P(γ_T|γ_k)·α_K(T).
+        /// Слагаемого T = k нет НАРОЧНО: если k вылетела гаммой, значит она не
+        /// конвертировала, и вакансии от неё в этом событии не было.
+        /// </summary>
+        NuclideData Augment(string key, NuclideData raw)
+        {
+            bool hasPairs = raw != null && raw.Pairs.Count > 0;
+            if (!this.withXrays && !this.withAnnihilation)
+            {
+                return hasPairs ? raw : null;
+            }
+
+            // Изомеру своей строки в `decay_radiations` нет: выходы у нас
+            // сложены на родителя цепочки (Cs-137 держит и линию Ba-137m).
+            // Значит атомных данных для него взять неоткуда, и это не отказ.
+            if (key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            {
+                return hasPairs ? raw : null;
+            }
+
+            CascadeAtomicData atomic = CascadeAtomicData.Of(key);
+            if (atomic == null)
+            {
+                return hasPairs ? raw : null;
+            }
+
+            // ⛔ ЗАПИСКА — НЕ ОТКАЗ (10.09.2026). Отказ называет себя сам
+            // признаком `Failed`; всё прочее — примечание, и работа при нём
+            // идёт. Прежде здесь стояло «любая непустая записка = Failure», и
+            // пробы печатали её словами «ОТКАЗ БАЗЫ» у `228AC` и `234PA`,
+            // хотя ни та ни другая база не отказывала. Подробности — у
+            // <see cref="Notes"/>.
+            if (!string.IsNullOrEmpty(atomic.Note))
+            {
+                if (atomic.Failed)
+                {
+                    Failure = key + ": " + atomic.Note;
+                }
+                else
+                {
+                    // ⚠ Каждая записка ОДИН РАЗ: `Augment` зовётся на каждый
+                    // разбор, а данные нуклида лежат в общем кэше, и без этого
+                    // строка росла бы на каждом прогоне одним и тем же.
+                    string said = key + ": " + atomic.Note;
+                    lock (NoteGate)
+                    {
+                        if (NotesSaid.Add(said))
+                        {
+                            Notes = string.IsNullOrEmpty(Notes) ? said : Notes + " | " + said;
+                        }
+                    }
+                }
+            }
+
+            // Копия, а не правка на месте: `raw` лежит в ОБЩЕМ кэше, и дописать
+            // в него окно этого разбора значило бы отдать его следующему.
+            NuclideData data = Copy(raw);
+
+            // Выходы гамма-линий: у кого нет строки в поставке SandiaDecay,
+            // берутся из `decay_radiations`. Уже имеющиеся НЕ трогаем — иначе
+            // прежние замеры сдвинулись бы без всякой связи с S27 (у Lu-176
+            // поставки расходятся: 91.0 % против 77.97 на линии 201.83).
+            // ⛔ У ОБЩЕГО КЛЮЧА ВЫХОД — СУММА СТРОК (`S161`). Прежде вторая
+            // строка той же энергии находила ключ занятым и молча пропадала:
+            // у межканального дубля `33NA` на 221 кэВ оставалось 1.914 %
+            // вместо 0.31 + 1.914 = 2.224 %. Складывать можно ТОЛЬКО со
+            // своими же строками — ключ, пришедший из поставки совпадений,
+            // не трогаем: там выход уже полный, и прибавка удвоила бы его.
+            var ownKeys = new HashSet<double>();
+            foreach (CascadeAtomicData.GammaLine line in atomic.GammaIntensity)
+            {
+                double had;
+                if (!Match(data.Intensity, line.EnergyKev, out had))
+                {
+                    data.Intensity[line.EnergyKev] = line.IntensityPct;
+                    ownKeys.Add(line.EnergyKev);
+                    continue;
+                }
+
+                double ownKey;
+                if (Match(data.Intensity, line.EnergyKev, out ownKey) && ownKeys.Contains(ownKey))
+                {
+                    data.Intensity[ownKey] += line.IntensityPct;
+                }
+            }
+
+            // Носитель: энергия, доля внутри своей серии и признак «это
+            // вакансия» (рентген) против «это аннигиляция».
+            //
+            // ⛔ У КАЖДОЙ ВЕТВИ СВОИ НОСИТЕЛИ (`S145`). K-рентген принадлежит
+            // атому, в который распад ПРИШЁЛ, и с гаммой ДРУГОЙ ветви совпасть
+            // не может: это два разных события распада. Прежде носители
+            // строились одним списком по сильнейшей ветви и раздавались всем.
+            // Ключ — НОМЕР ВЕТВИ (`S148`): по `Z` ветви сливаются, и носители
+            // одной затирали носителей другой.
+            var carriersOf = new Dictionary<int, List<Carrier>>();
+            var annihilation = new List<Carrier>();
+            if (this.withAnnihilation && atomic.AnnihilationQuanta > 0.0)
+            {
+                annihilation.Add(new Carrier
+                {
+                    EnergyKev = AnnihilationKev,
+                    IntensityPct = atomic.AnnihilationQuanta * 100.0,
+                    Share = 1.0,
+                    FromVacancy = false
+                });
+            }
+
+            for (int index = 0; index < atomic.Branches.Count; index++)
+            {
+                CascadeAtomicData.Branch branch = atomic.Branches[index];
+                var own = new List<Carrier>();
+                if (this.withXrays && branch.KIntensityPct > 0.0 && branch.OmegaK > 0.0)
+                {
+                    foreach (double[] line in branch.KLines)
+                    {
+                        // Вакансия одна, а ответить она может любой линией серии —
+                        // отсюда доля.
+                        own.Add(new Carrier
+                        {
+                            EnergyKev = line[0],
+                            IntensityPct = line[1],
+                            Share = line[1] / branch.KIntensityPct,
+                            FromVacancy = true
+                        });
+                    }
+                }
+
+                // ⛔ АННИГИЛЯЦИЯ ДОСТАЁТСЯ ТОЛЬКО β⁺-ВЕТВИ (`S147`). Прежде она
+                // добавлялась КАЖДОЙ ветви, и у смешанного распада гамма
+                // β⁻-ветви получала партнёром 511 кэВ, которого в её событии
+                // нет.
+                //
+                // ⛔ СПРАШИВАЕМ У ДАННЫХ, А НЕ У ТАБЛИЦЫ КОДОВ (`S150`). Здесь
+                // стоял разбор `dec_type` со списком «`1` — β⁺/EC, `7` — чистый
+                // EC», и список был ПРОСТО НЕВЕРЕН: у `20NA` весь β⁺ (100 %
+                // ветвь, 6 строк `B+`) записан каналом `7`, у `56CU` — каналом
+                // `15`. Ветвь несёт позитроны тогда, когда у неё есть строки
+                // `B+` своего канала, и это уже посчитано при чтении.
+                if (branch.BetaPlusShare > 0.0)
+                {
+                    own.AddRange(annihilation);
+                }
+
+                carriersOf[index] = own;
+            }
+
+            // Запасной список — для гамм, ветвь которых не определилась.
+            var carriers = new List<Carrier>();
+            if (this.withXrays && atomic.KIntensityPct > 0.0 && atomic.OmegaK > 0.0)
+            {
+                foreach (double[] line in atomic.KLines)
+                {
+                    carriers.Add(new Carrier
+                    {
+                        EnergyKev = line[0],
+                        IntensityPct = line[1],
+                        Share = line[1] / atomic.KIntensityPct,
+                        FromVacancy = true
+                    });
+                }
+            }
+
+            carriers.AddRange(annihilation);
+            if (carriers.Count == 0)
+            {
+                bool any = false;
+                foreach (KeyValuePair<int, List<Carrier>> entry in carriersOf)
+                {
+                    any = any || entry.Value.Count > 0;
+                }
+
+                if (!any)
+                {
+                    return data.Pairs.Count > 0 ? data : null;
+                }
+            }
+
+            // ⛔ НОСИТЕЛЬ НИЖЕ СЕТКИ МАТРИЦЫ НЕ БЕРЁТСЯ ВОВСЕ, и это не мелочь.
+            // `Interpolate` за нижним краем ЗАЖИМАЕТ значение первым узлом —
+            // для линии самого нуклида это осторожно, а для партнёра совпадения
+            // это выдумка: квант в 2.96 кэВ (Ar K у K-40) из пробы и корпуса не
+            // выйдет никогда, а зажим выдаёт ему полную эффективность НИЖНЕГО
+            // УЗЛА, то есть десятки процентов. Померено: K-40, у которого
+            // никакого совпадения быть не может, ехал на 0.65 % χ²/ndf — ровно
+            // отсюда. Матрица про такие энергии не знает ничего, и честный
+            // ответ «не знаю» здесь — не заводить пару.
+            //
+            // Заодно это объясняет, у кого правка обязана быть невидимой:
+            // Mn-54 (5.4 кэВ), Ti-44 (4.1), Co-57 (6.4), Zn-65 (8.0), Y-88
+            // (14.1) — их K-рентген слишком мягок, чтобы дойти до кристалла, и
+            // ноль у них ФИЗИЧЕСКИЙ, а не признак поломки.
+            double lowestNode = this.matrix.Energies.Length > 0
+                ? this.matrix.Energies[0]
+                : 0.0;
+            carriers.RemoveAll(c => c.EnergyKev < lowestNode);
+            bool anyCarrier = carriers.Count > 0;
+            foreach (KeyValuePair<int, List<Carrier>> entry in carriersOf)
+            {
+                entry.Value.RemoveAll(c => c.EnergyKev < lowestNode);
+                anyCarrier = anyCarrier || entry.Value.Count > 0;
+            }
+
+            if (!anyCarrier)
+            {
+                return data.Pairs.Count > 0 ? data : null;
+            }
+
+            // Выходы носителей — в таблицу выходов ДО построения пар: обратная
+            // условная считается через них, и на полпути их там быть уже
+            // должно.
+            foreach (Carrier carrier in AllCarriers(carriers, carriersOf))
+            {
+                // ⛔ У АННИГИЛЯЦИИ КЛЮЧ СВОЙ, И ИСКАТЬ ЕГО СРЕДИ ЯДЕРНЫХ ЛИНИЙ
+                // НЕЛЬЗЯ (`S152`). Поиск шёл допуском 0.3 кэВ, и у нуклида с
+                // настоящей гаммой около 511 кэВ отдельного ключа не возникало
+                // вовсе: аннигиляция садилась на ключ ЧУЖОЙ линии. Дальше
+                // `PartnerQuanta[ключ] = 2` объявляло двухквантовыми ВСЕ
+                // партнёрства этой энергии, включая ядерные, а выход самой
+                // аннигиляции в таблицу не попадал — и обратная условная
+                // делилась не на то число. Таких родителей в поставке 11
+                // (`110SB`, `208TL`, `77RB`, …).
+                //
+                // 511.0 — величина физическая, у неё нет разнобоя округлений
+                // между поставками, ради которого `Match` здесь и заведён.
+                if (!carrier.FromVacancy)
+                {
+                    double before;
+                    data.Intensity.TryGetValue(AnnihilationKev, out before);
+                    data.Intensity[AnnihilationKev] = before + carrier.IntensityPct;
+                    continue;
+                }
+
+                double had;
+                if (!Match(data.Intensity, carrier.EnergyKev, out had))
+                {
+                    data.Intensity[carrier.EnergyKev] = carrier.IntensityPct;
+                }
+            }
+
+            // ⛔ УСЛОВНЫЕ ОДНОГО КЛЮЧА СЛИВАЮТСЯ ПО ИНТЕНСИВНОСТЯМ (`S161`),
+            // а не затираются последней строкой:
+            //
+            //     P(C|E) = Σ Iᵢ·P(C|E,i) / Σ Iᵢ
+            //
+            // Прежде `Put` писал `bag[to] = p`, то есть у межканального дубля
+            // ответ давала ТА строка, что обошлась последней. И пара клалась в
+            // `Pairs` ДВАЖДЫ под одним ключом, а площадь сумм-пика берёт выход
+            // по ключу — то есть общий выход считался дважды.
+            //
+            // Ключ накопителя — пара «опорный ключ → ключ партнёра»; значение
+            // — {Σ I·p, Σ I} и то же для ОБРАТНОЙ условной.
+            var merged = new Dictionary<double, Dictionary<double, double[]>>();
+
+            // ⛔ ПОРЯДОК ВЫГРУЗКИ — ПЕРВОГО ПОЯВЛЕНИЯ, А НЕ СЛОВАРНЫЙ. Перебор
+            // `Dictionary` порядка не обещает вовсе, а `Pairs` дальше
+            // складываются в площадь сумм-пика: смена порядка двигает последние
+            // разряды на ровном месте. Померено: без этого списка у `88Y`
+            // уезжал четвёртый знак χ² на двух корпусных спектрах при
+            // неизменной физике.
+            var order = new List<double[]>();
+            foreach (CascadeAtomicData.GammaLine gamma in atomic.GammaIntensity)
+            {
+                double decayEnergy = gamma.EnergyKev;
+
+                // ⛔ КЛЮЧ ПАРЫ — ТОТ ЖЕ, ЧТО У ЯДЕРНЫХ ПАР, а он приходит из
+                // ДРУГОЙ поставки и округлён иначе: у Lu-176 линия 306.780 в
+                // `decay_radiations` против 306.880 в таблицах совпадений.
+                // `Partners` и `PairBase` ищут по ТОЧНОМУ ключу, поэтому пара,
+                // положенная под энергией распада, для них не существует —
+                // проверено измерением: первый прогон дал побитово те же
+                // невязки, что и с выключенным ключом. Величина, не
+                // шелохнувшаяся там, где обязана была двинуться, — это про
+                // инструмент, а не про правку.
+                double pairKey;
+                if (!Match(data.Intensity, decayEnergy, out pairKey))
+                {
+                    pairKey = decayEnergy;
+                }
+
+                // ⛔ ВРЕМЯ, ПУТЬ И ВЕТВЬ — У САМОЙ СТРОКИ (`S157`). Прежде их
+                // искали по ЭНЕРГИИ, и у межканального дубля вторая строка
+                // получала переход и ветвь ПЕРВОГО канала.
+                double delay = DelayOf(gamma);
+                CascadeAtomicData.Phase[] phases = PhasesOf(gamma);
+
+                // (`S145`) Носители — СВОЕЙ ветви этой гаммы.
+                CascadeAtomicData.Branch branch = atomic.BranchOfLine(gamma);
+                int branchIndex = branch != null ? atomic.Branches.IndexOf(branch) : -1;
+                List<Carrier> own;
+                if (branchIndex < 0 || !carriersOf.TryGetValue(branchIndex, out own))
+                {
+                    own = carriers;
+                }
+                if (delay < 0.0)
+                {
+                    // Перехода в схеме не нашлось — времени вылета не знаем.
+                    // Считаем квант мгновенным: это сторона, где совпадение
+                    // остаётся, а сам факт виден в отчёте пробы.
+                    delay = 0.0;
+                }
+
+                // (`A289`) Доля распадов, у которых этот квант успел выйти
+                // внутри окна. При выключенном ключе — прежняя ступенька.
+                double inWindow = this.withTimeProbability
+                    ? PassProbability(phases, this.windowSec)
+                    : (delay < this.windowSec ? 1.0 : 0.0);
+
+                foreach (Carrier carrier in own)
+                {
+                    // ⛔ У АННИГИЛЯЦИИ ДОЛЯ УСЛОВНАЯ ПРИ ЭТОЙ ГАММЕ (`S150`).
+                    // Прежде сюда шёл `AnnihilationQuanta` — МАРГИНАЛЬНЫЙ выход
+                    // 511 на распад родителя, — и он выдавался за вероятность
+                    // при каждой линии подряд. У K-40 это строило совпадение
+                    // 511 ↔ 1461, которого не бывает: позитрон уходит только в
+                    // основное состояние Ar-40, а 1460.8 кэВ следует за
+                    // ЗАХВАТОМ. Условное число знает `CascadeAtomicData`, потому
+                    // что связь «канал → уровень → гамма» лежит в поставке.
+                    double probability = carrier.FromVacancy
+                        ? carrier.Share
+                          * this.VacancyGiven(atomic, branch, branchIndex, raw,
+                                              gamma, delay, phases)
+                        : atomic.AnnihilationQuantaOfLine(gamma) * inWindow;
+                    if (!(probability > 0.0))
+                    {
+                        continue;
+                    }
+
+                    // (`S152`) Ключ аннигиляции — свой, ядерные линии рядом его
+                    // не занимают.
+                    double carrierKey;
+                    if (!carrier.FromVacancy)
+                    {
+                        carrierKey = AnnihilationKev;
+                    }
+                    else if (!Match(data.Intensity, carrier.EnergyKev, out carrierKey))
+                    {
+                        carrierKey = carrier.EnergyKev;
+                    }
+
+                    // Вес слияния — выход ЭТОЙ строки. У одиночной линии он
+                    // сокращается и ответ прежний, знак в знак.
+                    double weight = gamma.IntensityPct > 0.0 ? gamma.IntensityPct : 0.0;
+                    // ⛔ КЛЮЧ НАКОПИТЕЛЯ — СОБСТВЕННАЯ ЭНЕРГИЯ НОСИТЕЛЯ, А НЕ
+                    // ЕГО ОТОБРАЖЁННЫЙ КЛЮЧ, и это не мелочь. `Match` сводит
+                    // носителей допуском 0.3 кэВ, а Kα1 и Kα2 стоят ближе (у
+                    // Sr это 14.165 и 14.098, разница 0.067) — то есть ДВА
+                    // РАЗНЫХ носителя попадают в один `carrierKey`. Слив их
+                    // взвешенным средним, я поменял бы физику там, где
+                    // `S161` ничего не просила: у `88Y` уезжал четвёртый
+                    // знак χ² на двух корпусных спектрах. Слияние идёт
+                    // ТОЛЬКО по строкам гаммы, ради которых `S161` и заведена.
+                    //
+                    // ⚠ Что ОСТАЛОСЬ как было: у двух носителей одного ключа
+                    // `Partners` хранит ПОСЛЕДНЕГО, а `Pairs` — обоих. Эта
+                    // несогласованность прежняя и отдельная от `S161` — строка `S165`.
+                    Accumulate(merged, order, pairKey, carrier.EnergyKev, carrierKey,
+                               probability, weight);
+
+                    // (`S147`) У аннигиляции партнёр — ПАРА квантов, и `Partners`
+                    // держит их ожидаемое ЧИСЛО. Кратность записывается рядом,
+                    // чтобы вероятность объединения считалась по ней, а площадь
+                    // сумм-пика — по прежнему числу.
+                    if (!carrier.FromVacancy)
+                    {
+                        data.PartnerQuanta[carrierKey] = AnnihilationQuantaPerEvent;
+                    }
+                }
+            }
+
+            // ⛔ ДВА НОСИТЕЛЯ ОДНОГО КЛЮЧА — ОДНА ЗАПИСЬ, ВЕРОЯТНОСТИ СЛОЖЕНЫ
+            // (`S165`, решение Amber 10.09.2026 вопросником: «Складывать
+            // вероятности»).
+            //
+            // `Match` сводит носителей допуском `SameLineKev` = 0.3 кэВ, а Kα1
+            // и Kα2 стоят ближе (у Sr это 14.165 и 14.098, разница 0.067), —
+            // значит ДВА РАЗНЫХ носителя получают один `carrierKey`. Копилка
+            // выше ведёт их порознь, по СОБСТВЕННОЙ энергии, и это верно: их
+            // условные вероятности считаются по-разному. А вот дальше они
+            // обязаны сойтись, и до 10.09.2026 не сходились:
+            //
+            //   * `Partners` хранил ПОСЛЕДНЕГО — `Put` писал `bag[to] = p`,
+            //     затирая первого, и вынос из пика считался по одному носителю
+            //     из двух, то есть был занижен;
+            //   * `Pairs` нёс ОБОИХ двумя записями с одинаковыми ключами —
+            //     значит и сумм-пик строился ДВАЖДЫ на одной энергии.
+            //
+            // Физически верно ни то, ни другое: два носителя — два
+            // альтернативных ответа ОДНОЙ вакансии, доли серии уже нормированы,
+            // и вероятности складываются. Сложение здесь, на общем ключе,
+            // делает обе величины одним числом — расходиться им больше негде.
+            //
+            // ⚠ Складывается ЗДЕСЬ, а не в `Put`: тот же `Put` зовут ядерные
+            // пары (см. `PairsOf`), и накапливающий `+=` в нём поменял бы их
+            // поведение там, где никакой пары ключей не задваивается.
+            var byKeys = new Dictionary<double, Dictionary<double, double>>();
+            var keyOrder = new List<double[]>();
+            foreach (double[] pair in order)
+            {
+                double fromKey = pair[0];
+                double carrierEnergy = pair[1];
+                double toKey = pair[2];
+                double[] acc = merged[fromKey][carrierEnergy];
+                if (!(acc[1] > 0.0))
+                {
+                    continue;
+                }
+
+                double probability = acc[0] / acc[1];
+                if (!(probability > 0.0))
+                {
+                    continue;
+                }
+
+                Dictionary<double, double> bag;
+                if (!byKeys.TryGetValue(fromKey, out bag))
+                {
+                    byKeys[fromKey] = bag = new Dictionary<double, double>();
+                }
+
+                double had;
+                if (bag.TryGetValue(toKey, out had))
+                {
+                    bag[toKey] = had + probability;
+                    CarrierKeyMerges++;
+                }
+                else
+                {
+                    bag[toKey] = probability;
+                    keyOrder.Add(new[] { fromKey, toKey });
+                }
+            }
+
+            // Слитые условные — В ОДНУ запись на пару ключей, и `Pairs` тоже
+            // по одной: общий выход этой энергии учитывается ровно раз.
+            foreach (double[] keys in keyOrder)
+            {
+                double fromKey = keys[0];
+                double toKey = keys[1];
+                double probability = byKeys[fromKey][toKey];
+
+                data.Pairs.Add(new[] { fromKey, toKey, probability });
+                // Атомный партнёр посчитан НАМИ, в поставке такой строки нет (`D49`).
+                Put(data, fromKey, toKey, probability, false);
+
+                // Обратная условная — тем же правилом, что у ядерных пар:
+                // P(A|B) = P(B|A)·I(A)/I(B). Считается ПОСЛЕ слияния, потому
+                // что `I(A)` — уже суммарный выход ключа.
+                double ia, ib;
+                if (data.Intensity.TryGetValue(fromKey, out ia)
+                    && data.Intensity.TryGetValue(toKey, out ib) && ib > 0.0)
+                {
+                    Put(data, toKey, fromKey, probability * ia / ib, false);
+                }
+            }
+
+            return data.Pairs.Count > 0 ? data : null;
+        }
+
+        /// <summary>Неядерный участник каскада: линия рентгена или 511.</summary>
+        sealed class Carrier
+        {
+            public double EnergyKev;
+
+            /// <summary>Выход на распад, %.</summary>
+            public double IntensityPct;
+
+            /// <summary>Доля внутри своей серии; у аннигиляции единица.</summary>
+            public double Share;
+
+            /// <summary>
+            /// true — квант родился из K-вакансии (тогда вероятность считает
+            /// <see cref="VacancyGiven"/>), false — из аннигиляции позитрона.
+            /// </summary>
+            public bool FromVacancy;
+        }
+
+        /// <summary>Аннигиляционная линия, кэВ.</summary>
+        const double AnnihilationKev = 511.0;
+
+        /// <summary>Квантов у аннигиляции на одно событие — два (`S147`).</summary>
+        const double AnnihilationQuantaPerEvent = 2.0;
+
+        /// <summary>Все носители — запасные и поветвевые, без повторов по энергии.</summary>
+        static IEnumerable<Carrier> AllCarriers(List<Carrier> fallback,
+                                                Dictionary<int, List<Carrier>> byBranch)
+        {
+            var seen = new HashSet<double>();
+            foreach (Carrier carrier in fallback)
+            {
+                if (seen.Add(carrier.EnergyKev))
+                {
+                    yield return carrier;
+                }
+            }
+
+            foreach (KeyValuePair<int, List<Carrier>> entry in byBranch)
+            {
+                foreach (Carrier carrier in entry.Value)
+                {
+                    if (seen.Add(carrier.EnergyKev))
+                    {
+                        yield return carrier;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Число K-вакансий, приходящееся на событие с гаммой `energyKev`, —
+        /// формула из шапки <see cref="Augment"/>, уже с гейтом по времени.
+        /// </summary>
+        double VacancyGiven(CascadeAtomicData atomic, CascadeAtomicData.Branch branch,
+                            int branchIndex, NuclideData raw,
+                            CascadeAtomicData.GammaLine gamma, double delaySec,
+                            CascadeAtomicData.Phase[] phases)
+        {
+            double energyKev = gamma != null ? gamma.EnergyKev : 0.0;
+            // (`S145`) Захватные вакансии и ω_K берутся У СВОЕЙ ВЕТВИ. Ветви нет
+            // (линия не нашлась ни в одной схеме) — прежние сводные поля.
+            double promptVacancy = branch != null ? branch.PromptVacancy : atomic.PromptVacancy;
+
+            // ⛔ ВАКАНСИЯ СЧИТАНА НА РАСПАД, А НУЖНА УСЛОВНАЯ ПРИ ГАММЕ (`S149`).
+            // `PromptVacancy` = I_K/ω_K − Σ I_γ·α_K, и все выходы там заданы на
+            // распад РОДИТЕЛЯ, то есть уже несут долю ветви. Но гамма к этому
+            // месту УЖЕ отнесена к своей ветви, значит событие принадлежит ей, и
+            // делить надо на ту же долю — иначе она войдёт дважды: первый раз в
+            // интенсивности гаммы, второй раз в ненормированном остатке.
+            // У Eu-152 ветвь Sm даёт 0.5933 на распад при доле 0.7208, то есть
+            // на событие ветви приходится 0.8231.
+            //
+            // ⚠ ПРИБЛИЖЕНИЕ НАЗВАНО: точная условность зависит от населённого
+            // уровня и оболочки захвата, а здесь взята маргинальная нормировка с
+            // зажимом в единицу. Это ближе верного, чем прежняя подстановка
+            // величины на распад, но моделью населённости не является.
+            if (branch != null && branch.Perc > 0.0 && branch.Perc < 100.0)
+            {
+                promptVacancy = promptVacancy / (branch.Perc / 100.0);
+                if (promptVacancy > 1.0)
+                {
+                    promptVacancy = 1.0;
+                }
+            }
+            double omegaK = branch != null ? branch.OmegaK : atomic.OmegaK;
+            double vacancy = 0.0;
+
+            // Захватная вакансия рождается в момент распада, значит от неё до
+            // гаммы прошло ровно время жизни пути. (`A289`) При включённом
+            // ключе это не «успел / не успел», а ДОЛЯ успевших.
+            double prompt = this.withTimeProbability
+                ? PassProbability(phases, this.windowSec)
+                : (delaySec < this.windowSec ? 1.0 : 0.0);
+            vacancy += promptVacancy * prompt;
+
+            // (`S158`) Переход САМОЙ этой гаммы — чтобы спросить схему, может ли
+            // другой переход случиться в том же событии. Не нашёлся (линии нет в
+            // схеме) — судить нечем, и запасной ход остаётся прежним.
+            // (`S157`) Берётся У СТРОКИ, а не по энергии.
+            CascadeAtomicData.Transition mine = gamma != null ? gamma.Transition : null;
+
+            foreach (CascadeAtomicData.GammaLine other in atomic.GammaIntensity)
+            {
+                // ⚠ Правило прежнее и НАРОЧНО не тронуто (`S157`): линия ближе
+                // `SamePairLineKev` к опорной партнёром не берётся. Соблазн
+                // сравнивать здесь по ССЫЛКЕ (две строки дубля — разные) был
+                // отвергнут: это правка сверх задачи, а у самого дубля ветви
+                // разные, и его всё равно отсеет проверка ветви ниже.
+                if (Math.Abs(other.EnergyKev - energyKev) < SamePairLineKev)
+                {
+                    continue;
+                }
+
+                CascadeAtomicData.Transition transition = other.Transition;
+                if (transition == null || !(transition.AlphaK > 0.0))
+                {
+                    continue;
+                }
+
+                // ⛔ ГАММА ЧУЖОЙ ВЕТВИ ПАРТНЁРОМ НЕ БЫВАЕТ (`S145`): у Eu-152
+                // линия схемы Gd-152 и линия схемы Sm-152 приходят из РАЗНЫХ
+                // событий распада и совпасть не могут ни при каком окне.
+                if (branchIndex >= 0 && transition.BranchIndex >= 0
+                    && transition.BranchIndex != branchIndex)
+                {
+                    continue;
+                }
+
+                // (`A289`) Гейт по РАЗНОСТИ времён вылета двух квантов одного
+                // каскада. Выключен ключ — прежняя ступенька.
+                double together = this.withTimeProbability
+                    ? PairProbability(phases, transition.EmitPhases, this.windowSec)
+                    : (Math.Abs(transition.EmitDelaySec - delaySec) < this.windowSec ? 1.0 : 0.0);
+                if (!(together > 0.0))
+                {
+                    continue;
+                }
+
+                vacancy += Conditional(raw, energyKev, other, branch, mine, transition)
+                           * transition.AlphaK * together;
+            }
+
+            return vacancy * omegaK;
+        }
+
+        /// <summary>
+        /// P(γ_other | γ_energy) — из поставки совпадений, если пара там есть.
+        ///
+        /// ⛔ ПАРЫ НЕТ — ЭТО ДВА РАЗНЫХ СЛУЧАЯ, И ПРЕЖДЕ ОНИ БЫЛИ СЛИТЫ
+        /// (`S158`). Отсечка поставки (обе линии ≥0.1 %, доля ≥0.1 %) выбрасывает
+        /// слабые пары — там безусловный выход разумное приближение. Но строки
+        /// нет и у пары, которой НЕ БЫВАЕТ: ядро снимает возбуждение ОДНИМ
+        /// путём вниз, и два перехода вне общего пути в одном событии не
+        /// происходят никогда. Условная там не «мала», а ТОЧНО НОЛЬ, и схема
+        /// уровней это знает.
+        ///
+        /// Поставочный контрпример, дошедший до корпуса, — `133BA`. Из уровня 4
+        /// выходят альтернативы 356.013 (4→1), 53.162 (4→3) и 276.399 (4→2).
+        /// Строки `356↔53` в `v_gamma_coincidence` нет — и правильно, — а
+        /// каскадные `53↔302.853` (0.638) и `53↔383.848` (0.311) есть, то есть
+        /// поставка сама по себе верна. Прежний запасной ход подставлял выход
+        /// 53.162 (2.140725 %) и при `α_K = 4.783` с `ω_K = 0.894` добавлял
+        /// **0.0945 ложного K-кванта** на событие 356 кэВ — 16 % честного
+        /// захватного члена.
+        ///
+        /// ⚠ Мерка сплошной сверкой поставки: пар с ОДНИМ `from_seq` (прямые
+        /// альтернативы) — 22 662, а пар БЕЗ ОБЩЕГО ПУТИ вовсе — **477 755**,
+        /// то есть отбор по одному `from_seq` закрыл бы около 5 % доказуемых
+        /// нулей. Поэтому судит достижимость, а не совпадение номера уровня
+        /// (решение Amber 07.09.2026, вопросником).
+        ///
+        /// ⚠ Что ОСТАЛОСЬ приближением: там, где общий путь ЕСТЬ, а строки
+        /// совпадения нет, по-прежнему берётся безусловный выход. Это прежняя
+        /// названная договорённость, и `S158` её не отменяет.
+        /// </summary>
+        static double Conditional(NuclideData raw, double energyKev,
+                                  CascadeAtomicData.GammaLine otherLine,
+                                  CascadeAtomicData.Branch branch,
+                                  CascadeAtomicData.Transition mine,
+                                  CascadeAtomicData.Transition other)
+        {
+            double otherKev = otherLine != null ? otherLine.EnergyKev : 0.0;
+            if (raw != null)
+            {
+                double have;
+                if (Match(raw.Intensity, energyKev, out have))
+                {
+                    Dictionary<double, double> bag;
+                    if (raw.Partners.TryGetValue(have, out bag))
+                    {
+                        foreach (KeyValuePair<double, double> entry in bag)
+                        {
+                            if (Math.Abs(entry.Key - otherKev) < SameLineKev)
+                            {
+                                return entry.Value;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ⛔ ЗДЕСЬ РАЗВОДЯТСЯ ДВА «ПАРЫ НЕТ» (`S158`).
+            if (!CanCoexist(branch, mine, other))
+            {
+                return 0.0;
+            }
+
+            // (`S157`) Выход берётся У ТОЙ САМОЙ строки, а не у первой с
+            // такой энергией: у межканального дубля выходы разные.
+            return otherLine != null ? otherLine.IntensityPct / 100.0 : 0.0;
+        }
+
+        /// <summary>
+        /// Могут ли два перехода случиться в ОДНОМ событии распада (`S158`).
+        ///
+        /// Могут ровно тогда, когда один лежит на пути другого: либо конец
+        /// первого достижим сверху до начала второго, либо наоборот. Прямые
+        /// альтернативы из одного уровня — частный случай: у них `FromSeq`
+        /// совпадает, ни один не ведёт к началу другого, и ответ НЕТ.
+        ///
+        /// ⚠ Не знаем — отвечаем ДА. Нет ветви, нет перехода у одной из линий,
+        /// пуста карта достижимости (схемы не нашлось) — судить нечем, и
+        /// молчаливый ноль был бы хуже прежнего приближения: он выключил бы
+        /// поправку там, где про неё просто ничего не известно.
+        /// </summary>
+        static bool CanCoexist(CascadeAtomicData.Branch branch,
+                               CascadeAtomicData.Transition mine,
+                               CascadeAtomicData.Transition other)
+        {
+            if (branch == null || mine == null || other == null)
+            {
+                return true;
+            }
+
+            return branch.Reaches(mine.ToSeq, other.FromSeq)
+                   || branch.Reaches(other.ToSeq, mine.FromSeq);
+        }
+
+
+        /// <summary>Пустой путь — общая ссылка, чтобы не плодить массивов.</summary>
+        static readonly CascadeAtomicData.Phase[] NoPhases = new CascadeAtomicData.Phase[0];
+
+        /// <summary>
+        /// Во сколько раз период полураспада должен быть КОРОЧЕ окна, чтобы
+        /// уровень считался мгновенным и из свёртки выбрасывался. При 64
+        /// отброшенный уровень не успевает с вероятностью 2^-64 ≈ 5.4e-20, то
+        /// есть вклад его меньше точности итога.
+        ///
+        /// ⚠ Порог здесь не только про точность, но и про СХОДИМОСТЬ: он же
+        /// ограничивает λ·t сверху величиной ln2·64 ≈ 44, а от неё зависит
+        /// число шагов равномеризации ниже. Без отсечки уровень с T½ = 1 фс
+        /// потребовал бы сотни миллионов шагов ради того же ответа «успел».
+        /// </summary>
+        const double PromptPhaseRatio = 64.0;
+
+        /// <summary>
+        /// Потолок шагов равномеризации. λ·t ≤ ln2·<see cref="PromptPhaseRatio"/>
+        /// ≈ 44 по построению, а у пуассоновского распределения с таким средним
+        /// хвост выше 512 в двойной точности не существует; значение стоит
+        /// СТОРОЖЕМ от неверной отсечки, а не рабочим пределом.
+        /// </summary>
+        const int UniformizationSteps = 512;
+
+        /// <summary>
+        /// Доля распадов, у которых сумма времён жизни уровней `halfLives`
+        /// уложилась в `t` секунд (`A289`).
+        ///
+        /// ⛔ ПЕРИОД ПОЛУРАСПАДА — НЕ ЗАДЕРЖКА. Время жизни уровня распределено
+        /// экспоненциально, и у ОДНОГО уровня доля равна 1 − 2^(−t/T½): при
+        /// T½ = t это ровно половина, а не «не успел» и не «успел». Складывать
+        /// периоды и сравнивать сумму с окном — значит ставить на границе окна
+        /// скачок 100 → 0 %, которого в природе нет. Для нескольких уровней
+        /// нужна СВЁРТКА распределений (гипоэкспоненциальное), а не сумма
+        /// периодов.
+        ///
+        /// Считается равномеризацией (метод Йенсена): непрерывная цепь фаз
+        /// заменяется пуассоновским потоком с частотой Λ = max λ и вложенной
+        /// дискретной цепью, ответ — сумма НЕОТРИЦАТЕЛЬНЫХ слагаемых.
+        /// ⛔ Замкнутая формула гипоэкспоненциального распределения здесь НЕ
+        /// годится: у неё в знаменателях стоят разности λ, а близкие периоды
+        /// на одном пути — обычное дело (у Mg-29 это 1.400 и 1.270 нс), и
+        /// разность двух почти равных чисел съедает всю точность. Здесь
+        /// вычитания нет вовсе.
+        /// </summary>
+        static double PassProbability(CascadeAtomicData.Phase[] halfLives, double t)
+        {
+            if (!(t > 0.0))
+            {
+                return 0.0;
+            }
+
+            if (halfLives == null || halfLives.Length == 0)
+            {
+                return 1.0;
+            }
+
+            double ln2 = Math.Log(2.0);
+            List<double> rates = new List<double>(halfLives.Length);
+            double top = 0.0;
+            foreach (CascadeAtomicData.Phase phase in halfLives)
+            {
+                double half = phase.HalfLifeSec;
+                if (!(half > 0.0) || half * PromptPhaseRatio < t)
+                {
+                    // Мгновенный для этого окна уровень — см. PromptPhaseRatio.
+                    continue;
+                }
+
+                double lambda = ln2 / half;
+                rates.Add(lambda);
+                if (lambda > top)
+                {
+                    top = lambda;
+                }
+            }
+
+            if (rates.Count == 0)
+            {
+                return 1.0;
+            }
+
+            if (rates.Count == 1)
+            {
+                return 1.0 - Math.Exp(-rates[0] * t);
+            }
+
+            double lt = top * t;
+            int n = rates.Count;
+            double[] v = new double[n];
+            v[0] = 1.0;
+            double survive = 0.0;
+            double poisson = Math.Exp(-lt);
+            double mass = 0.0;
+
+            // Хвост Пуассона обрывается по НАКОПЛЕННОЙ массе, а не по числу
+            // шагов: так обрыв судится тем же, чем и точность ответа.
+            for (int k = 0; k < UniformizationSteps; k++)
+            {
+                double alive = 0.0;
+                for (int i = 0; i < n; i++)
+                {
+                    alive += v[i];
+                }
+
+                survive += poisson * alive;
+                mass += poisson;
+                if (k > lt && 1.0 - mass < 1.0E-13)
+                {
+                    break;
+                }
+
+                double carry = 0.0;
+                for (int i = 0; i < n; i++)
+                {
+                    double move = v[i] * (rates[i] / top);
+                    v[i] = v[i] - move + carry;
+                    carry = move;
+                }
+
+                // `carry`, ушедший из последней фазы, поглощён — квант вылетел.
+                poisson *= lt / (k + 1);
+            }
+
+            double p = 1.0 - survive;
+            return p > 0.0 ? (p < 1.0 ? p : 1.0) : 0.0;
+        }
+
+        /// <summary>
+        /// Доля распадов, у которых два кванта ОДНОГО каскада разошлись во
+        /// времени меньше чем на `t` (`A289`).
+        ///
+        /// Пути обоих строит <see cref="CascadeAtomicData"/> ходом сверху вниз,
+        /// и путь верхнего кванта — ПРИСТАВКА пути нижнего, когда один уровень
+        /// лежит над другим. Общая приставка в разности сокращается ТОЧНО (это
+        /// одни и те же уровни одного и того же распада, а не две одинаково
+        /// распределённых величины), поэтому она снимается, и остаётся ровно
+        /// то, что кванты разводит. Доля общих приставок мерена 07.09.2026 по
+        /// схемам дочерних ядер 23 корпусных нуклидов и считана ПО НОМЕРАМ
+        /// УРОВНЕЙ (`A290`): 246 434 пары из 246 467, то есть 99.9866 %.
+        ///
+        /// ⛔ ПРЕЖДЕ ОБЪЯВЛЕННЫЕ 99.95 % ВРАЛИ ДВУМЯ ОШИБКАМИ В РАЗНЫЕ СТОРОНЫ
+        /// (`T251`), поэтому «признак завышает» и «число было завышено» — РАЗНЫЕ
+        /// утверждения, и второе неверно. Сравнение ПЕРИОДОВ вместо уровней
+        /// приставки прибавляет: при том же пороге оно даёт 99.9959 % против
+        /// верных 99.9866 %, то есть 23 пары лишку. Но порог мгновенности в том
+        /// счёте стоял 1/1000 окна вместо кодовых 1/64 (см. PromptPhaseRatio), и
+        /// это работало в обратную сторону и сильнее. Итог 99.95 % оказался НИЖЕ
+        /// верного, а не выше. Разбор — в журнале захода.
+        ///
+        /// Оставшиеся 33 пары (0.0134 %) — ветвление, когда кванты идут разными
+        /// ветвями после общего предка. Остатки их независимы, и доля считается
+        /// разбиением по одному из них (<see cref="BranchProbability"/>).
+        /// </summary>
+        static double PairProbability(CascadeAtomicData.Phase[] first, CascadeAtomicData.Phase[] second, double t)
+        {
+            CascadeAtomicData.Phase[] a = first ?? NoPhases;
+            CascadeAtomicData.Phase[] b = second ?? NoPhases;
+
+            // ⛔ СОКРАЩАЕТСЯ ТОЛЬКО ОДИН И ТОТ ЖЕ УРОВЕНЬ (`A290`), поэтому
+            // сверяется `Seq`, а не период. Равные периоды тождества НЕ
+            // доказывают: у разных уровней разных ветвей они совпадают (в
+            // `schemedb` — `Au-183` seq 4 и 8 по 1 мкс, `Pm-141` seq 49 и 51
+            // по 2 мкс), и сокращение по ЧИСЛУ объявляло бы две НЕЗАВИСИМЫЕ
+            // задержки одной и той же. Цена измерена: два независимых уровня
+            // с T½ = окно давали 1 вместо верных 0.5.
+            int common = 0;
+            while (common < a.Length && common < b.Length
+                   && a[common].Seq == b[common].Seq)
+            {
+                common++;
+            }
+
+            CascadeAtomicData.Phase[] restA = Suffix(a, common);
+            CascadeAtomicData.Phase[] restB = Suffix(b, common);
+            if (restA.Length == 0)
+            {
+                return PassProbability(restB, t);
+            }
+
+            if (restB.Length == 0)
+            {
+                return PassProbability(restA, t);
+            }
+
+            return BranchProbability(restA, restB, t);
+        }
+
+        static CascadeAtomicData.Phase[] Suffix(CascadeAtomicData.Phase[] source, int from)
+        {
+            if (from >= source.Length)
+            {
+                return NoPhases;
+            }
+
+            CascadeAtomicData.Phase[] rest = new CascadeAtomicData.Phase[source.Length - from];
+            Array.Copy(source, from, rest, 0, rest.Length);
+            return rest;
+        }
+
+        /// <summary>
+        /// P(|A − B| &lt; t) для независимых A и B — случай ветвления путей.
+        /// Считается разбиением по B: масса B в ячейке умножается на долю A,
+        /// попавшую в окно вокруг середины ячейки. Верх разбиения — квантиль B,
+        /// выше которой остаётся 1e-6 массы; отброшенный хвост вносит не
+        /// больше её самой.
+        ///
+        /// ⚠ Точность разбиения ЗАМЕРЕНА, а не обещана (07.09.2026): на сцене
+        /// A ~ Exp(T½ = 2 мкс), B ~ Exp(T½ = 0.5 мкс), окно 1 мкс аналитический
+        /// ответ 0.384314575, здесь выходит 0.384316471 — расхождение 1.9e-6,
+        /// то есть 0.0005 %. На 128 ячейках было 1.1e-4, и это единственная
+        /// причина, по которой их 1024.
+        /// </summary>
+        static double BranchProbability(CascadeAtomicData.Phase[] a, CascadeAtomicData.Phase[] b, double t)
+        {
+            const int Cells = 1024;
+            const double Tail = 1.0E-6;
+
+            double top = Quantile(b, 1.0 - Tail);
+            if (!(top > 0.0))
+            {
+                return PassProbability(a, t);
+            }
+
+            double step = top / Cells;
+            double previous = 0.0;
+            double total = 0.0;
+            for (int i = 1; i <= Cells; i++)
+            {
+                double edge = i * step;
+                double cdf = PassProbability(b, edge);
+                double weight = cdf - previous;
+                previous = cdf;
+                if (!(weight > 0.0))
+                {
+                    continue;
+                }
+
+                double middle = edge - 0.5 * step;
+                double lower = middle - t;
+                double inside = PassProbability(a, middle + t)
+                                - (lower > 0.0 ? PassProbability(a, lower) : 0.0);
+                if (inside > 0.0)
+                {
+                    total += weight * inside;
+                }
+            }
+
+            return total > 0.0 ? (total < 1.0 ? total : 1.0) : 0.0;
+        }
+
+        /// <summary>Время, к которому уложилась доля `level` — делением пополам.</summary>
+        static double Quantile(CascadeAtomicData.Phase[] halfLives, double level)
+        {
+            double high = 0.0;
+            foreach (CascadeAtomicData.Phase phase in halfLives)
+            {
+                if (phase.HalfLifeSec > 0.0)
+                {
+                    high += phase.HalfLifeSec;
+                }
+            }
+
+            if (!(high > 0.0))
+            {
+                return 0.0;
+            }
+
+            // Вверх до перекрытия: сумма периодов — не квантиль, и для уровня
+            // 1−1e-6 её заведомо мало.
+            while (high < 1.0E12 && PassProbability(halfLives, high) < level)
+            {
+                high *= 2.0;
+            }
+
+            double low = 0.0;
+            for (int i = 0; i < 80; i++)
+            {
+                double mid = 0.5 * (low + high);
+                if (PassProbability(halfLives, mid) < level)
+                {
+                    low = mid;
+                }
+                else
+                {
+                    high = mid;
+                }
+            }
+
+            return high;
+        }
+
+        /// <summary>Через сколько секунд после распада вылетает эта гамма; −1 — не знаем.</summary>
+        static double DelayOf(CascadeAtomicData.GammaLine gamma)
+        {
+            return gamma != null && gamma.Transition != null
+                ? gamma.Transition.EmitDelaySec
+                : -1.0;
+        }
+
+        /// <summary>
+        /// Периоды полураспада уровней на пути этой гаммы (`A289`). Пусто —
+        /// путь мгновенный ЛИБО перехода в схеме нет: обе новости для гейта
+        /// означают одно и то же — «задержки не знаем, считаем мгновенным», и
+        /// это та же осторожная сторона, что у <see cref="DelayOf"/>.
+        /// </summary>
+        static CascadeAtomicData.Phase[] PhasesOf(CascadeAtomicData.GammaLine gamma)
+        {
+            return gamma != null && gamma.Transition != null
+                   && gamma.Transition.EmitPhases != null
+                ? gamma.Transition.EmitPhases
+                : NoPhases;
+        }
+
+        static NuclideData Copy(NuclideData source)
+        {
+            NuclideData data = new NuclideData
+            {
+                Key = source != null ? source.Key : null,
+                Intensity = new Dictionary<double, double>(),
+                Pairs = new List<double[]>(),
+                Partners = new Dictionary<double, Dictionary<double, double>>(),
+                PartnerQuanta = new Dictionary<double, double>()
+            };
+
+            if (source == null)
+            {
+                return data;
+            }
+
+            foreach (KeyValuePair<double, double> entry in source.Intensity)
+            {
+                data.Intensity[entry.Key] = entry.Value;
+            }
+
+            foreach (double[] pair in source.Pairs)
+            {
+                data.Pairs.Add(new[] { pair[0], pair[1], pair[2] });
+            }
+
+            foreach (KeyValuePair<double, Dictionary<double, double>> entry in source.Partners)
+            {
+                var bag = new Dictionary<double, double>();
+                foreach (KeyValuePair<double, double> inner in entry.Value)
+                {
+                    bag[inner.Key] = inner.Value;
+                }
+
+                data.Partners[entry.Key] = bag;
+            }
+
+            // ⛔ Метки происхождения копируются ВМЕСТЕ со значениями (`D49`):
+            // без этого копия объявила бы все доли посчитанными нами, и
+            // счётчик перестал бы находить дефект поставки после `Augment`.
+            if (source.SupplyPartners != null)
+            {
+                data.SupplyPartners = new Dictionary<double, HashSet<double>>();
+                foreach (KeyValuePair<double, HashSet<double>> entry in source.SupplyPartners)
+                {
+                    data.SupplyPartners[entry.Key] = new HashSet<double>(entry.Value);
+                }
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// Копит взвешенную сумму условной для одной пары ключей (`S161`):
+        /// `[0]` — Σ I·p, `[1]` — Σ I. Деление — при выгрузке.
+        /// </summary>
+        static void Accumulate(Dictionary<double, Dictionary<double, double[]>> merged,
+                               List<double[]> order, double from,
+                               double carrierEnergy, double to,
+                               double probability, double weight)
+        {
+            if (!(weight > 0.0))
+            {
+                return;
+            }
+
+            Dictionary<double, double[]> bag;
+            if (!merged.TryGetValue(from, out bag))
+            {
+                merged[from] = bag = new Dictionary<double, double[]>();
+            }
+
+            double[] acc;
+            if (!bag.TryGetValue(carrierEnergy, out acc))
+            {
+                bag[carrierEnergy] = acc = new double[2];
+                order.Add(new[] { from, carrierEnergy, to });
+            }
+
+            acc[0] += weight * probability;
+            acc[1] += weight;
+        }
+
+        /// <summary>
+        /// Положить долю партнёра. <paramref name="fromSupply"/> — величина
+        /// списана из поставки ДОСЛОВНО, а не посчитана нами (`D49`); метка
+        /// нужна счётчику зажима, чтобы отличать дефект поставки от законного
+        /// исхода счёта.
+        /// </summary>
+        static void Put(NuclideData data, double from, double to, double probability,
+                        bool fromSupply)
+        {
+            Dictionary<double, double> bag;
+            if (!data.Partners.TryGetValue(from, out bag))
+            {
+                data.Partners[from] = bag = new Dictionary<double, double>();
+            }
+
+            bag[to] = probability;
+
+            if (data.SupplyPartners == null)
+            {
+                data.SupplyPartners = new Dictionary<double, HashSet<double>>();
+            }
+
+            HashSet<double> marks;
+            if (!data.SupplyPartners.TryGetValue(from, out marks))
+            {
+                if (!fromSupply)
+                {
+                    // Метки и не было — заводить пустое множество незачем.
+                    return;
+                }
+
+                data.SupplyPartners[from] = marks = new HashSet<double>();
+            }
+
+            // ⛔ Метка живёт ВМЕСТЕ со значением: перезапись посчитанной
+            // величиной снимает её. Иначе счётчик отнёс бы к поставке число,
+            // которого в поставке уже нет.
+            if (fromSupply)
+            {
+                marks.Add(to);
+            }
+            else
+            {
+                marks.Remove(to);
+            }
+        }
+
+        /// <summary>
+        /// КРАТНОСТЬ ПАРЫ: сколько квантов несёт её многоквантовый конец
+        /// (`D49`, по образцу `S147`). Единица у всех, кроме аннигиляции, у
+        /// которой квантов ДВА. Берётся больший из двух концов: у пары
+        /// «гамма ↔ 511» многоквантовый один, и какой именно — зависит от
+        /// стороны, которой пара записана.
+        /// </summary>
+        static double PairQuanta(NuclideData data, double[] pair)
+        {
+            if (data == null || data.PartnerQuanta == null || pair == null || pair.Length < 2)
+            {
+                return 1.0;
+            }
+
+            double quanta = 1.0;
+            for (int end = 0; end < 2; end++)
+            {
+                double had;
+                if (data.PartnerQuanta.TryGetValue(pair[end], out had) && had > quanta)
+                {
+                    quanta = had;
+                }
+            }
+
+            return quanta;
+        }
+
+        /// <summary>Доля партнёра списана из поставки дословно (`D49`).</summary>
+        static bool IsSupply(NuclideData data, double from, double to)
+        {
+            HashSet<double> marks;
+            return data != null && data.SupplyPartners != null
+                   && data.SupplyPartners.TryGetValue(from, out marks)
+                   && marks.Contains(to);
+        }
+
+        /// <summary>
+        /// Метки происхождения для партнёров опорной линии (`D49`); `null` —
+        /// списанных из поставки среди них нет вовсе.
+        /// </summary>
+        static HashSet<double> SupplyOf(NuclideData data, double energy)
+        {
+            HashSet<double> marks;
+            return data != null && data.SupplyPartners != null
+                   && data.SupplyPartners.TryGetValue(energy, out marks)
+                ? marks
+                : null;
+        }
+
+        /// <summary>
+        /// Имя нуклида в наш `nucid`: «Pb-214» → «214PB». Изомеры («Ba-137m»)
+        /// возвращают null: у совпадений своя нумерация Sandia, искать их надо
+        /// по `sandia_symbol`, а не по нашему номеру уровня.
+        /// </summary>
+        public static string Nucid(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return null;
+            }
+
+            int dash = name.IndexOf('-');
+            if (dash <= 0 || dash + 1 >= name.Length)
+            {
+                return null;
+            }
+
+            string element = name.Substring(0, dash);
+            string mass = name.Substring(dash + 1);
+            foreach (char c in element)
+            {
+                if (!char.IsLetter(c))
+                {
+                    return null;
+                }
+            }
+
+            foreach (char c in mass)
+            {
+                if (!char.IsDigit(c))
+                {
+                    return null;
+                }
+            }
+
+            int number;
+            if (!int.TryParse(mass, NumberStyles.None, CultureInfo.InvariantCulture, out number)
+                || number <= 0)
+            {
+                return null;
+            }
+
+            return number.ToString(CultureInfo.InvariantCulture)
+                   + element.ToUpperInvariant();
+        }
+
+        static string DatabasePath()
+        {
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
+        }
+
+        static bool DatabasePresent()
+        {
+            lock (Gate)
+            {
+                if (!databaseChecked)
+                {
+                    databasePresent = File.Exists(DatabasePath());
+                    databaseChecked = true;
+                }
+
+                return databasePresent;
+            }
+        }
+    }
+}

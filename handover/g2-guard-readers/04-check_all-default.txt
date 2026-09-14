@@ -1,0 +1,50 @@
+читатель сторожей: 11 к вызову (заведомо красных по строкам реестра пропущено 2 — см. --all)
+  пропущен tools/check_registry.py — красен по T102: check_done_headers внутри него держит противоречие в DONE.md, правит только Amber
+  пропущен tools/check_done_headers.py — красен по T102: две строки DONE.md противоречат сами себе, правит только Amber
+
+→ зову: python tools/check_registry_refs.py
+✅ tools/check_registry_refs.py: код 0, 1.2 с
+
+→ зову: python tools/check_build_recipe.py
+✅ tools/check_build_recipe.py: код 0, 1.9 с
+
+→ зову: python tools/check_resx.py
+✅ tools/check_resx.py: код 0, 4.4 с
+
+→ зову: python tools/check_resx_designer.py
+✅ tools/check_resx_designer.py: код 0, 9.2 с
+
+→ зову: python tools/check_resx_letters.py
+✅ tools/check_resx_letters.py: код 0, 3.3 с
+
+→ зову: python tools/check_resx_zorder.py
+✅ tools/check_resx_zorder.py: код 0, 2.9 с
+
+→ зову: python tools/check_headless.py
+✅ tools/check_headless.py: код 0, 3.1 с
+
+→ зову: python tools/check_menu_accelerators.py
+✅ tools/check_menu_accelerators.py: код 0, 0.1 с
+
+→ зову: python tools/check_fsa_docs.py
+✅ tools/check_fsa_docs.py: код 0, 0.1 с
+
+→ зову: python tools/check_scheme_gaps.py
+✅ tools/check_scheme_gaps.py: код 0, 0.1 с
+
+→ зову: python tools/check_corpus_library.py
+✅ tools/check_corpus_library.py: код 0, 0.0 с
+
+=== сводка ===
+  ✅ check_registry_refs.py — код 0, 1.2 с — ссылки `T<n>` в оснастке, приложении и журналах против TODO.md/DONE.md
+  ✅ check_build_recipe.py — код 0, 1.9 с — копии рецепта MSBuild без /p:GenerateManifests=false
+  ✅ check_resx.py — код 0, 4.4 с — пары Foo.resx / Foo.ru.resx: непереведённое
+  ✅ check_resx_designer.py — код 0, 9.2 с — GetString("X") без X в парном resx
+  ✅ check_resx_letters.py — код 0, 3.3 с — кириллица в английских resx и наоборот
+  ✅ check_resx_zorder.py — код 0, 2.9 с — >>X.Parent / >>X.ZOrder против designer-кода
+  ✅ check_headless.py — код 0, 3.1 с — окна на безоконном пути
+  ✅ check_menu_accelerators.py — код 0, 0.1 с — столкновения ускорителей главного меню
+  ✅ check_fsa_docs.py — код 0, 0.1 с — XML-описания настроек разбора против конструктора
+  ✅ check_scheme_gaps.py — код 0, 0.1 с — раздел «чего не хватает» scheme.md против реестра
+  ✅ check_corpus_library.py — код 0, 0.0 с — корпус не читает поставочную библиотеку
+ВСЕ ЗЕЛЕНЫ: 11 из 11 сторожей дали 0.

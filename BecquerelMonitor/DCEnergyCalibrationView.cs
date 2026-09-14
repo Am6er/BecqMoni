@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
 using XPTable.Editors;
@@ -75,21 +76,21 @@ namespace BecquerelMonitor
             this.energyCalibration = (PolynomialEnergyCalibration)energyCalibration.Clone();
             this.defaultEnergyCalibration = (PolynomialEnergyCalibration)defaultEnergyCalibration.Clone();
             this.SyncRcEnergyCalibration();
-            this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
-            this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
+            this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
+            this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
 
 
             if (this.energyCalibration.PolynomialOrder >= 2)
             {
-                this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
+                this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
             }
             if (this.energyCalibration.PolynomialOrder >= 3)
             {
-                this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
+                this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString(CultureInfo.InvariantCulture);
             }
             if (this.energyCalibration.PolynomialOrder == 4)
             {
-                this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
+                this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
             }
             //this.calibrationPoints.Clear();
             this.ShowCalibrationPoints();
@@ -98,7 +99,7 @@ namespace BecquerelMonitor
 
         bool ResetCalibrationDialog()
         {
-            String text = String.Format(Resources.ResetCalibrationToDeviceSettingsConflict, defaultEnergyCalibration.PolynomialOrder, energyCalibration.PolynomialOrder);
+            String text = String.Format(CultureInfo.InvariantCulture, Resources.ResetCalibrationToDeviceSettingsConflict, defaultEnergyCalibration.PolynomialOrder, energyCalibration.PolynomialOrder);
             DialogResult res = MessageBox.Show(text, Resources.ResetCalibrationQuestion, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (res == DialogResult.No) return false;
             return true;
@@ -122,21 +123,21 @@ namespace BecquerelMonitor
             this.numericUpDown4.ForeColor = Color.Black;
             this.numericUpDown5.ForeColor = Color.Black;
 
-            this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
-            this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
+            this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
+            this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
 
 
             if (this.energyCalibration.PolynomialOrder >= 2)
             {
-                this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
+                this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
             }
             if (this.energyCalibration.PolynomialOrder >= 3)
             {
-                this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
+                this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString(CultureInfo.InvariantCulture);
             }
             if (this.energyCalibration.PolynomialOrder == 4)
             {
-                this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
+                this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
             }
 
             this.UpdateEnergyCalibration();
@@ -240,10 +241,23 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
+            // ⛔ СНИМОК ПРЕЖНИХ ЗНАЧЕНИЙ (`A2`). Всё, что ниже, правится в
+            // конфигурации прибора ДО записи на диск, а объект конфигурации в
+            // памяти один на всех. Сорвись запись — у прибора до конца сеанса
+            // стояла бы новая калибровка, а в файле лежала бы прежняя, и
+            // расхождение это ничем не видно: следующий запуск молча вернёт
+            // старые числа. Поэтому при отказе всё возвращается на место.
+            EnergyCalibration previousEnergyCalibration = deviceConfig.EnergyCalibration;
+            RadiaCodeDeviceConfig rc_deviceConfig = deviceConfig.InputDeviceConfig as RadiaCodeDeviceConfig;
+            ObsidianDeviceConfig obs_deviceConfig = deviceConfig.InputDeviceConfig as ObsidianDeviceConfig;
+            PolynomialEnergyCalibration previousRcCalibration =
+                rc_deviceConfig != null ? rc_deviceConfig.RC_EnergyCalibration : null;
+            PolynomialEnergyCalibration previousObsCalibration =
+                obs_deviceConfig != null ? obs_deviceConfig.OBS_EnergyCalibration : null;
+
             deviceConfig.EnergyCalibration = this.energyCalibration;
-            if (deviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig)
+            if (rc_deviceConfig != null)
             {
-                RadiaCodeDeviceConfig rc_deviceConfig = (RadiaCodeDeviceConfig)deviceConfig.InputDeviceConfig;
                 if (this.energyCalibration.PolynomialOrder == 2)
                 {
                     rc_deviceConfig.RC_EnergyCalibration = (PolynomialEnergyCalibration)this.energyCalibration.Clone();
@@ -257,9 +271,8 @@ namespace BecquerelMonitor
                     rc_deviceConfig.RC_EnergyCalibration = null;
                 }
             }
-            else if (deviceConfig.InputDeviceConfig is ObsidianDeviceConfig)
+            else if (obs_deviceConfig != null)
             {
-                ObsidianDeviceConfig obs_deviceConfig = (ObsidianDeviceConfig)deviceConfig.InputDeviceConfig;
                 if (this.energyCalibration.PolynomialOrder == 2)
                 {
                     obs_deviceConfig.OBS_EnergyCalibration = (PolynomialEnergyCalibration)this.energyCalibration.Clone();
@@ -273,7 +286,34 @@ namespace BecquerelMonitor
                     obs_deviceConfig.OBS_EnergyCalibration = null;
                 }
             }
-            DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig);
+            // ⛔ ОТВЕТ МЕНЕДЖЕРА ЧИТАЕТСЯ (`A2`). Прежде он выбрасывался, и
+            // калибровка применялась ВСЕГДА: человек видел окно с ошибкой и тут
+            // же — что калибровка встала, хотя на диск не легло ничего. Сам
+            // менеджер уже чинили ровно от этого (`DeviceConfigManager.cs:236`,
+            // «Was "return true" … the user's edits silently disappeared»).
+            //
+            // При отказе НЕ ПРИМЕНЯЕМ НИЧЕГО, и это не осторожность, а
+            // единственный объяснимый исход: кнопка называется «сохранить в
+            // конфигурацию прибора», её обещание — запись. Половинный исход
+            // (спектр пересчитан, файл прежний) и есть та самая тихая беда:
+            // после перезапуска у прибора старая калибровка, а спектр посчитан
+            // по новой. Правка человека при этом не теряется — она остаётся в
+            // полях вида, и, устранив причину, он нажимает кнопку снова.
+            if (!DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig))
+            {
+                deviceConfig.EnergyCalibration = previousEnergyCalibration;
+                if (rc_deviceConfig != null)
+                {
+                    rc_deviceConfig.RC_EnergyCalibration = previousRcCalibration;
+                }
+                if (obs_deviceConfig != null)
+                {
+                    obs_deviceConfig.OBS_EnergyCalibration = previousObsCalibration;
+                }
+                MessageBox.Show(Resources.ERRCalibrationNotSavedToDevice, Resources.ErrorDialogTitle,
+                                MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                return;
+            }
             activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration = this.energyCalibration;
             this.mainForm.UpdateDeviceConfigForm();
         }
@@ -626,7 +666,7 @@ namespace BecquerelMonitor
             foreach (CalibrationPoint calibrationPoint in this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints)
             {
                 Row row = new Row();
-                row.Cells.Add(new Cell(num.ToString()));
+                row.Cells.Add(new Cell(num.ToString(CultureInfo.InvariantCulture)));
                 row.Cells.Add(new Cell(calibrationPoint.Channel));
                 row.Cells.Add(new Cell(calibrationPoint.Energy));
                 row.Cells.Add(new Cell(calibrationPoint.Count));
@@ -653,7 +693,7 @@ namespace BecquerelMonitor
                 if (e.Column == 1)
                 {
                     string text = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Channel = (int)decimal.Parse(text);
+                    this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Channel = (int)UserNumber.ParseDecimal(text);
                     if (this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum.Length > this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Channel)
                     {
                         this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Count = this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum[this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Channel];
@@ -670,7 +710,7 @@ namespace BecquerelMonitor
                 else if (e.Column == 2)
                 {
                     string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Energy = decimal.Parse(text2);
+                    this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Energy = UserNumber.ParseDecimal(text2);
                     this.multipointModified = true;
                     this.calibrationDone = false;
                     this.UpdateMultipointButtonState();
@@ -678,7 +718,7 @@ namespace BecquerelMonitor
                 else if (e.Column == 3)
                 {
                     string text3 = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Count = int.Parse(text3);
+                    this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Count = UserNumber.ParseInt(text3);
                     this.multipointModified = true;
                     this.calibrationDone = false;
                     this.UpdateMultipointButtonState();
@@ -769,13 +809,21 @@ namespace BecquerelMonitor
             }
             try
             {
-                if (this.checkBox2.Checked)
-                {
-                    matrix = Utils.CalibrationSolver.SolveWeighted(points, PolynomOrder);
-                } else
-                {
-                    matrix = Utils.CalibrationSolver.Solve(points, PolynomOrder);
-                }
+                // ⛔ `S42` (полоса F77, 06.09.2026): степень, которую человек
+                //    поставил крутилкой, теперь ЗАПРАШИВАЕТСЯ, а не берётся
+                //    силой. Принимается наибольшая степень, чья кривая годна
+                //    (`CheckCalibration`) и не гнётся за своими опорами дальше
+                //    допустимого (`CalibrationSolver.BendOk`); иначе степень
+                //    понижается и подгонка повторяется. Перенос сторожа
+                //    `bend_ok` + понижения порядка из конвейера корпуса
+                //    (`tools/CORPUS/scripts/calibrate.py`, `fit_ecal`).
+                //    Понижение видно человеку сразу: старший коэффициент в
+                //    полях ниже остаётся нулём.
+                int usedOrder;
+                matrix = Utils.CalibrationSolver.SolveGuarded(
+                    points, PolynomOrder,
+                    this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels,
+                    this.checkBox2.Checked, out usedOrder);
                 if (matrix == null) throw new Exception("Error");
             }
             catch (Exception)
@@ -821,19 +869,19 @@ namespace BecquerelMonitor
             this.numericUpDown3.Text = "0";
             this.numericUpDown4.Text = "0";
             this.numericUpDown5.Text = "0";
-            this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
-            this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
+            this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
+            this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
             if (this.energyCalibration.PolynomialOrder >= 2)
             {
-                this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
+                this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
             }
             if (this.energyCalibration.PolynomialOrder >= 3)
             {
-                this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
+                this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString(CultureInfo.InvariantCulture);
             }
             if (this.energyCalibration.PolynomialOrder == 4)
             {
-                this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
+                this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
             }
             if (!this.energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
             {
@@ -848,7 +896,7 @@ namespace BecquerelMonitor
             {
                 mse = Utils.CalibrationSolver.MSE(matrix, points);
             }
-            this.mainForm.SetStatusTextLeft(String.Format("{0} {1}: {2:0.00000}", Resources.MSGCalibrationDone, Resources.MSGMSE, mse));
+            this.mainForm.SetStatusTextLeft(String.Format(CultureInfo.InvariantCulture, "{0} {1}: {2:0.00000}", Resources.MSGCalibrationDone, Resources.MSGMSE, mse));
             if (zeroPointAdded) points.RemoveAt(1);
             this.multipointModified = false;
             this.calibrationDone = true;
@@ -859,10 +907,7 @@ namespace BecquerelMonitor
         double fromStringtoDouble(string str)
         {
             double result;
-            if (double.TryParse(str.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out result))
+            if (UserNumber.TryParseDouble(str, out result))
             {
                 return result;
 

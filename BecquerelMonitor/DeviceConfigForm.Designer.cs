@@ -43,9 +43,6 @@ namespace BecquerelMonitor
             this.button6 = new System.Windows.Forms.Button();
             this.button13 = new System.Windows.Forms.Button();
             this.button14 = new System.Windows.Forms.Button();
-            this.button15 = new System.Windows.Forms.Button();
-            this.button16 = new System.Windows.Forms.Button();
-            this.buttonClearDoseRate = new System.Windows.Forms.Button();
             this.label18 = new System.Windows.Forms.Label();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
@@ -64,6 +61,8 @@ namespace BecquerelMonitor
             this.label25 = new System.Windows.Forms.Label();
             this.textBox18 = new System.Windows.Forms.TextBox();
             this.label24 = new System.Windows.Forms.Label();
+            this.crystalMaterialLabel = new System.Windows.Forms.Label();
+            this.crystalMaterialCombo = new System.Windows.Forms.ComboBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.tabPage6 = new System.Windows.Forms.TabPage();
             this.tabPage2 = new System.Windows.Forms.TabPage();
@@ -106,18 +105,18 @@ namespace BecquerelMonitor
             this.textBox16 = new System.Windows.Forms.TextBox();
             this.tabPage5 = new System.Windows.Forms.TabPage();
             this.peakSpecgroupBox = new System.Windows.Forms.GroupBox();
-            this.rightSkewnumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.rightSkewnumericUpDown = new InvariantNumericUpDown();
             this.rightSkewlabel = new System.Windows.Forms.Label();
-            this.leftSkewnumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.leftSkewnumericUpDown = new InvariantNumericUpDown();
             this.leftSkewlabel = new System.Windows.Forms.Label();
             this.peakTypecomboBox = new System.Windows.Forms.ComboBox();
             this.peakTypelabel = new System.Windows.Forms.Label();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.label40 = new System.Windows.Forms.Label();
             this.label42 = new System.Windows.Forms.Label();
-            this.numericUpDown4 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown6 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown3 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown4 = new InvariantNumericUpDown();
+            this.numericUpDown6 = new InvariantNumericUpDown();
+            this.numericUpDown3 = new InvariantNumericUpDown();
             this.label41 = new System.Windows.Forms.Label();
             this.label39 = new System.Windows.Forms.Label();
             this.label47 = new System.Windows.Forms.Label();
@@ -125,56 +124,20 @@ namespace BecquerelMonitor
             this.label50 = new System.Windows.Forms.Label();
             this.label51 = new System.Windows.Forms.Label();
             this.label52 = new System.Windows.Forms.Label();
-            this.numericUpDown12 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown13 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown14 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown15 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown16 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDownWidenFactor = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown12 = new InvariantNumericUpDown();
+            this.numericUpDown13 = new InvariantNumericUpDown();
+            this.numericUpDown14 = new InvariantNumericUpDown();
+            this.numericUpDown15 = new InvariantNumericUpDown();
+            this.numericUpDown16 = new InvariantNumericUpDown();
+            this.numericUpDownWidenFactor = new InvariantNumericUpDown();
             this.labelWidenFactor = new System.Windows.Forms.Label();
             this.centroidComCheckBox = new System.Windows.Forms.CheckBox();
-            this.deconvolutionGroupBox = new System.Windows.Forms.GroupBox();
-            this.deconvolutionEnabledLabel = new System.Windows.Forms.Label();
-            this.deconvolutionEnabledCheckBox = new System.Windows.Forms.CheckBox();
-            this.deconvolutionBurnInLabel = new System.Windows.Forms.Label();
-            this.deconvolutionBurnInNumericUpDown = new System.Windows.Forms.NumericUpDown();
-            this.deconvolutionSamplesLabel = new System.Windows.Forms.Label();
-            this.deconvolutionSamplesNumericUpDown = new System.Windows.Forms.NumericUpDown();
-            this.deconvolutionMaxRoisLabel = new System.Windows.Forms.Label();
-            this.deconvolutionMaxRoisNumericUpDown = new System.Windows.Forms.NumericUpDown();
-            this.deconvolutionMaxExtraPeaksPerRoiLabel = new System.Windows.Forms.Label();
-            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown = new System.Windows.Forms.NumericUpDown();
-            this.deconvolutionRoiRadiusFwhmLabel = new System.Windows.Forms.Label();
-            this.deconvolutionRoiRadiusFwhmNumericUpDown = new System.Windows.Forms.NumericUpDown();
-            this.deconvolutionToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.tabPage4 = new System.Windows.Forms.TabPage();
             this.label31 = new System.Windows.Forms.Label();
             this.label16 = new System.Windows.Forms.Label();
             this.button7 = new System.Windows.Forms.Button();
             this.label23 = new System.Windows.Forms.Label();
             this.textBox17 = new System.Windows.Forms.TextBox();
-            this.effROIText = new System.Windows.Forms.Label();
-            this.selectEffROI = new System.Windows.Forms.ComboBox();
-            this.clearEffROI = new System.Windows.Forms.Button();
-            this.tabPage7 = new System.Windows.Forms.TabPage();
-            this.groupBox3 = new System.Windows.Forms.GroupBox();
-            this.table4 = new XPTable.Models.Table();
-            this.columnModel4 = new XPTable.Models.ColumnModel();
-            this.numberColumn5 = new XPTable.Models.NumberColumn();
-            this.numberColumn6 = new XPTable.Models.NumberColumn();
-            this.numberColumn7 = new XPTable.Models.NumberColumn();
-            this.numberColumn8 = new XPTable.Models.NumberColumn();
-            this.tableModel4 = new XPTable.Models.TableModel();
-            this.labelDREstimateTitle = new System.Windows.Forms.Label();
-            this.textBoxEffFile = new System.Windows.Forms.TextBox();
-            this.textBoxDoseRateSpectrumFile = new System.Windows.Forms.TextBox();
-            this.buttonEstimateDRConf = new System.Windows.Forms.Button();
-            this.labelDoseRateValue = new System.Windows.Forms.Label();
-            this.upDownDoseRateValue = new System.Windows.Forms.NumericUpDown();
-            this.labelEffNote = new System.Windows.Forms.Label();
-            this.buttonLoadEff = new System.Windows.Forms.Button();
-            this.labelSpectrumNote = new System.Windows.Forms.Label();
-            this.buttonLoadDoseRateSpectrum = new System.Windows.Forms.Button();
             this.button12 = new System.Windows.Forms.Button();
             this.table1 = new XPTable.Models.Table();
             this.columnModel1 = new XPTable.Models.ColumnModel();
@@ -203,17 +166,7 @@ namespace BecquerelMonitor
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown15)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown16)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownWidenFactor)).BeginInit();
-            this.deconvolutionGroupBox.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.deconvolutionBurnInNumericUpDown)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.deconvolutionSamplesNumericUpDown)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.deconvolutionMaxRoisNumericUpDown)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.deconvolutionRoiRadiusFwhmNumericUpDown)).BeginInit();
             this.tabPage4.SuspendLayout();
-            this.tabPage7.SuspendLayout();
-            this.groupBox3.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.table4)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.upDownDoseRateValue)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -275,27 +228,6 @@ namespace BecquerelMonitor
             this.button14.UseVisualStyleBackColor = true;
             this.button14.Click += new System.EventHandler(this.button14_Click);
             // 
-            // button15
-            // 
-            resources.ApplyResources(this.button15, "button15");
-            this.button15.Name = "button15";
-            this.button15.UseVisualStyleBackColor = true;
-            this.button15.Click += new System.EventHandler(this.button15_Click);
-            // 
-            // button16
-            // 
-            resources.ApplyResources(this.button16, "button16");
-            this.button16.Name = "button16";
-            this.button16.UseVisualStyleBackColor = true;
-            this.button16.Click += new System.EventHandler(this.button16_Click);
-            // 
-            // buttonClearDoseRate
-            // 
-            resources.ApplyResources(this.buttonClearDoseRate, "buttonClearDoseRate");
-            this.buttonClearDoseRate.Name = "buttonClearDoseRate";
-            this.buttonClearDoseRate.UseVisualStyleBackColor = true;
-            this.buttonClearDoseRate.Click += new System.EventHandler(this.buttonClearDoseRate_Click);
-            // 
             // label18
             // 
             resources.ApplyResources(this.label18, "label18");
@@ -310,7 +242,6 @@ namespace BecquerelMonitor
             this.tabControl1.Controls.Add(this.tabPage2);
             this.tabControl1.Controls.Add(this.tabPage5);
             this.tabControl1.Controls.Add(this.tabPage4);
-            this.tabControl1.Controls.Add(this.tabPage7);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
             this.tabControl1.Selecting += new System.Windows.Forms.TabControlCancelEventHandler(this.tabControl1_Selecting);
@@ -336,6 +267,8 @@ namespace BecquerelMonitor
             this.tabPage1.Controls.Add(this.textBox1);
             this.tabPage1.Controls.Add(this.label18);
             this.tabPage1.Controls.Add(this.label4);
+            this.tabPage1.Controls.Add(this.crystalMaterialLabel);
+            this.tabPage1.Controls.Add(this.crystalMaterialCombo);
             resources.ApplyResources(this.tabPage1, "tabPage1");
             this.tabPage1.Name = "tabPage1";
             // 
@@ -425,7 +358,20 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.label24, "label24");
             this.label24.Name = "label24";
-            // 
+            //
+            // crystalMaterialLabel
+            //
+            resources.ApplyResources(this.crystalMaterialLabel, "crystalMaterialLabel");
+            this.crystalMaterialLabel.Name = "crystalMaterialLabel";
+            //
+            // crystalMaterialCombo
+            //
+            this.crystalMaterialCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.crystalMaterialCombo.FormattingEnabled = true;
+            resources.ApplyResources(this.crystalMaterialCombo, "crystalMaterialCombo");
+            this.crystalMaterialCombo.Name = "crystalMaterialCombo";
+            this.crystalMaterialCombo.SelectedIndexChanged += new System.EventHandler(this.crystalMaterialCombo_SelectedIndexChanged);
+            //
             // tabPage3
             // 
             this.tabPage3.BackColor = System.Drawing.SystemColors.Control;
@@ -737,7 +683,6 @@ namespace BecquerelMonitor
             // tabPage5
             // 
             this.tabPage5.BackColor = System.Drawing.SystemColors.Control;
-            this.tabPage5.Controls.Add(this.deconvolutionGroupBox);
             this.tabPage5.Controls.Add(this.peakSpecgroupBox);
             this.tabPage5.Controls.Add(this.groupBox2);
             resources.ApplyResources(this.tabPage5, "tabPage5");
@@ -958,13 +903,13 @@ namespace BecquerelMonitor
             //
             // labelWidenFactor
             //
+            resources.ApplyResources(this.labelWidenFactor, "labelWidenFactor");
             this.labelWidenFactor.AutoSize = true;
             this.labelWidenFactor.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.labelWidenFactor.Location = new System.Drawing.Point(225, 117);
             this.labelWidenFactor.Name = "labelWidenFactor";
             this.labelWidenFactor.Size = new System.Drawing.Size(113, 13);
             this.labelWidenFactor.TabIndex = 20;
-            this.labelWidenFactor.Text = "Peak width widen factor";
             //
             // numericUpDownWidenFactor
             //
@@ -978,113 +923,15 @@ namespace BecquerelMonitor
             //
             // centroidComCheckBox
             //
+            resources.ApplyResources(this.centroidComCheckBox, "centroidComCheckBox");
             this.centroidComCheckBox.AutoSize = true;
             this.centroidComCheckBox.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.centroidComCheckBox.Location = new System.Drawing.Point(225, 143);
             this.centroidComCheckBox.Name = "centroidComCheckBox";
             this.centroidComCheckBox.Size = new System.Drawing.Size(180, 17);
             this.centroidComCheckBox.TabIndex = 21;
-            this.centroidComCheckBox.Text = "Centroid by center of mass";
             this.centroidComCheckBox.UseVisualStyleBackColor = true;
             this.centroidComCheckBox.CheckedChanged += new System.EventHandler(this.centroidComCheckBox_CheckedChanged);
-            //
-            // deconvolutionGroupBox
-            // 
-            resources.ApplyResources(this.deconvolutionGroupBox, "deconvolutionGroupBox");
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionEnabledLabel);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionEnabledCheckBox);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionBurnInLabel);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionBurnInNumericUpDown);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionSamplesLabel);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionSamplesNumericUpDown);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionMaxRoisLabel);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionMaxRoisNumericUpDown);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionMaxExtraPeaksPerRoiLabel);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionRoiRadiusFwhmLabel);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionRoiRadiusFwhmNumericUpDown);
-            this.deconvolutionGroupBox.Name = "deconvolutionGroupBox";
-            this.deconvolutionGroupBox.TabStop = false;
-            // 
-            // deconvolutionEnabledLabel
-            // 
-            resources.ApplyResources(this.deconvolutionEnabledLabel, "deconvolutionEnabledLabel");
-            this.deconvolutionEnabledLabel.Name = "deconvolutionEnabledLabel";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionEnabledLabel, resources.GetString("deconvolutionEnabled.ToolTip"));
-            // 
-            // deconvolutionEnabledCheckBox
-            // 
-            resources.ApplyResources(this.deconvolutionEnabledCheckBox, "deconvolutionEnabledCheckBox");
-            this.deconvolutionEnabledCheckBox.Name = "deconvolutionEnabledCheckBox";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionEnabledCheckBox, resources.GetString("deconvolutionEnabled.ToolTip"));
-            this.deconvolutionEnabledCheckBox.UseVisualStyleBackColor = true;
-            this.deconvolutionEnabledCheckBox.CheckedChanged += new System.EventHandler(this.deconvolutionConfig_ValueChanged);
-            // 
-            // deconvolutionBurnInLabel
-            // 
-            resources.ApplyResources(this.deconvolutionBurnInLabel, "deconvolutionBurnInLabel");
-            this.deconvolutionBurnInLabel.Name = "deconvolutionBurnInLabel";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionBurnInLabel, resources.GetString("deconvolutionBurnIn.ToolTip"));
-            // 
-            // deconvolutionBurnInNumericUpDown
-            // 
-            resources.ApplyResources(this.deconvolutionBurnInNumericUpDown, "deconvolutionBurnInNumericUpDown");
-            this.deconvolutionBurnInNumericUpDown.Name = "deconvolutionBurnInNumericUpDown";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionBurnInNumericUpDown, resources.GetString("deconvolutionBurnIn.ToolTip"));
-            this.deconvolutionBurnInNumericUpDown.ValueChanged += new System.EventHandler(this.deconvolutionConfig_ValueChanged);
-            // 
-            // deconvolutionSamplesLabel
-            // 
-            resources.ApplyResources(this.deconvolutionSamplesLabel, "deconvolutionSamplesLabel");
-            this.deconvolutionSamplesLabel.Name = "deconvolutionSamplesLabel";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionSamplesLabel, resources.GetString("deconvolutionSamples.ToolTip"));
-            // 
-            // deconvolutionSamplesNumericUpDown
-            // 
-            resources.ApplyResources(this.deconvolutionSamplesNumericUpDown, "deconvolutionSamplesNumericUpDown");
-            this.deconvolutionSamplesNumericUpDown.Name = "deconvolutionSamplesNumericUpDown";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionSamplesNumericUpDown, resources.GetString("deconvolutionSamples.ToolTip"));
-            this.deconvolutionSamplesNumericUpDown.ValueChanged += new System.EventHandler(this.deconvolutionConfig_ValueChanged);
-            // 
-            // deconvolutionMaxRoisLabel
-            // 
-            resources.ApplyResources(this.deconvolutionMaxRoisLabel, "deconvolutionMaxRoisLabel");
-            this.deconvolutionMaxRoisLabel.Name = "deconvolutionMaxRoisLabel";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionMaxRoisLabel, resources.GetString("deconvolutionMaxRois.ToolTip"));
-            // 
-            // deconvolutionMaxRoisNumericUpDown
-            // 
-            resources.ApplyResources(this.deconvolutionMaxRoisNumericUpDown, "deconvolutionMaxRoisNumericUpDown");
-            this.deconvolutionMaxRoisNumericUpDown.Name = "deconvolutionMaxRoisNumericUpDown";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionMaxRoisNumericUpDown, resources.GetString("deconvolutionMaxRois.ToolTip"));
-            this.deconvolutionMaxRoisNumericUpDown.ValueChanged += new System.EventHandler(this.deconvolutionConfig_ValueChanged);
-            // 
-            // deconvolutionMaxExtraPeaksPerRoiLabel
-            // 
-            resources.ApplyResources(this.deconvolutionMaxExtraPeaksPerRoiLabel, "deconvolutionMaxExtraPeaksPerRoiLabel");
-            this.deconvolutionMaxExtraPeaksPerRoiLabel.Name = "deconvolutionMaxExtraPeaksPerRoiLabel";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionMaxExtraPeaksPerRoiLabel, resources.GetString("deconvolutionMaxExtraPeaksPerRoi.ToolTip"));
-            // 
-            // deconvolutionMaxExtraPeaksPerRoiNumericUpDown
-            // 
-            resources.ApplyResources(this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown, "deconvolutionMaxExtraPeaksPerRoiNumericUpDown");
-            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Name = "deconvolutionMaxExtraPeaksPerRoiNumericUpDown";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown, resources.GetString("deconvolutionMaxExtraPeaksPerRoi.ToolTip"));
-            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.ValueChanged += new System.EventHandler(this.deconvolutionConfig_ValueChanged);
-            // 
-            // deconvolutionRoiRadiusFwhmLabel
-            // 
-            resources.ApplyResources(this.deconvolutionRoiRadiusFwhmLabel, "deconvolutionRoiRadiusFwhmLabel");
-            this.deconvolutionRoiRadiusFwhmLabel.Name = "deconvolutionRoiRadiusFwhmLabel";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionRoiRadiusFwhmLabel, resources.GetString("deconvolutionRoiRadiusFwhm.ToolTip"));
-            // 
-            // deconvolutionRoiRadiusFwhmNumericUpDown
-            // 
-            this.deconvolutionRoiRadiusFwhmNumericUpDown.DecimalPlaces = 1;
-            resources.ApplyResources(this.deconvolutionRoiRadiusFwhmNumericUpDown, "deconvolutionRoiRadiusFwhmNumericUpDown");
-            this.deconvolutionRoiRadiusFwhmNumericUpDown.Name = "deconvolutionRoiRadiusFwhmNumericUpDown";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionRoiRadiusFwhmNumericUpDown, resources.GetString("deconvolutionRoiRadiusFwhm.ToolTip"));
-            this.deconvolutionRoiRadiusFwhmNumericUpDown.ValueChanged += new System.EventHandler(this.deconvolutionConfig_ValueChanged);
             // 
             // tabPage4
             // 
@@ -1094,9 +941,6 @@ namespace BecquerelMonitor
             this.tabPage4.Controls.Add(this.button7);
             this.tabPage4.Controls.Add(this.label23);
             this.tabPage4.Controls.Add(this.textBox17);
-            this.tabPage4.Controls.Add(this.effROIText);
-            this.tabPage4.Controls.Add(this.selectEffROI);
-            this.tabPage4.Controls.Add(this.clearEffROI);
             resources.ApplyResources(this.tabPage4, "tabPage4");
             this.tabPage4.Name = "tabPage4";
             // 
@@ -1127,197 +971,7 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.textBox17, "textBox17");
             this.textBox17.Name = "textBox17";
             this.textBox17.TextChanged += new System.EventHandler(this.textBox17_TextChanged);
-            // 
-            // effROIText
-            // 
-            resources.ApplyResources(this.effROIText, "effROIText");
-            this.effROIText.Name = "effROIText";
-            // 
-            // selectEffROI
-            // 
-            this.selectEffROI.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.selectEffROI.FormattingEnabled = true;
-            resources.ApplyResources(this.selectEffROI, "selectEffROI");
-            this.selectEffROI.Name = "selectEffROI";
-            this.selectEffROI.SelectedIndexChanged += new System.EventHandler(this.selectEffROI_SelectedIndexChanged);
-            // 
-            // clearEffROI
-            // 
-            resources.ApplyResources(this.clearEffROI, "clearEffROI");
-            this.clearEffROI.Name = "clearEffROI";
-            this.clearEffROI.UseVisualStyleBackColor = true;
-            this.clearEffROI.Click += new System.EventHandler(this.clearEffROI_Click);
-            // 
-            // tabPage7
-            // 
-            this.tabPage7.BackColor = System.Drawing.SystemColors.Control;
-            this.tabPage7.Controls.Add(this.groupBox3);
-            this.tabPage7.Controls.Add(this.labelDREstimateTitle);
-            this.tabPage7.Controls.Add(this.textBoxEffFile);
-            this.tabPage7.Controls.Add(this.textBoxDoseRateSpectrumFile);
-            this.tabPage7.Controls.Add(this.buttonEstimateDRConf);
-            this.tabPage7.Controls.Add(this.labelDoseRateValue);
-            this.tabPage7.Controls.Add(this.upDownDoseRateValue);
-            this.tabPage7.Controls.Add(this.labelEffNote);
-            this.tabPage7.Controls.Add(this.buttonLoadEff);
-            this.tabPage7.Controls.Add(this.labelSpectrumNote);
-            this.tabPage7.Controls.Add(this.buttonLoadDoseRateSpectrum);
-            resources.ApplyResources(this.tabPage7, "tabPage7");
-            this.tabPage7.Name = "tabPage7";
-            // 
-            // groupBox3
-            // 
-            this.groupBox3.Controls.Add(this.table4);
-            this.groupBox3.Controls.Add(this.button15);
-            this.groupBox3.Controls.Add(this.button16);
-            this.groupBox3.Controls.Add(this.buttonClearDoseRate);
-            resources.ApplyResources(this.groupBox3, "groupBox3");
-            this.groupBox3.Name = "groupBox3";
-            this.groupBox3.TabStop = false;
-            // 
-            // table4
-            // 
-            this.table4.BorderColor = System.Drawing.Color.Black;
-            this.table4.ColumnModel = this.columnModel4;
-            this.table4.DataMember = null;
-            this.table4.DataSourceColumnBinder = dataSourceColumnBinder1;
-            this.table4.DragDropRenderer = dragDropRenderer1;
-            this.table4.FullRowSelect = true;
-            this.table4.GridLines = XPTable.Models.GridLines.Both;
-            this.table4.GridLinesContrainedToData = false;
-            this.table4.HeaderFont = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            resources.ApplyResources(this.table4, "table4");
-            this.table4.Name = "table4";
-            this.table4.TableModel = this.tableModel4;
-            this.table4.UnfocusedBorderColor = System.Drawing.Color.Black;
-            this.table4.EditingStopped += new XPTable.Events.CellEditEventHandler(this.table4_EditingStopped);
-            // 
-            // columnModel4
-            // 
-            this.columnModel4.Columns.AddRange(new XPTable.Models.Column[] {
-            ((XPTable.Models.Column)(this.numberColumn5)),
-            ((XPTable.Models.Column)(this.numberColumn6)),
-            ((XPTable.Models.Column)(this.numberColumn7)),
-            ((XPTable.Models.Column)(this.numberColumn8))});
-            // 
-            // numberColumn5
-            // 
-            this.numberColumn5.IsTextTrimmed = false;
-            this.numberColumn5.Maximum = new decimal(new int[] {
-            2999,
-            0,
-            0,
-            0});
-            this.numberColumn5.Sortable = false;
-            resources.ApplyResources(this.numberColumn5, "numberColumn5");
-            // 
-            // numberColumn6
-            // 
-            this.numberColumn6.IsTextTrimmed = false;
-            this.numberColumn6.Maximum = new decimal(new int[] {
-            3000,
-            0,
-            0,
-            0});
-            this.numberColumn6.Minimum = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            this.numberColumn6.Sortable = false;
-            resources.ApplyResources(this.numberColumn6, "numberColumn6");
-            // 
-            // numberColumn7
-            // 
-            this.numberColumn7.IsTextTrimmed = false;
-            this.numberColumn7.Maximum = new decimal(new int[] {
-            100000,
-            0,
-            0,
-            0});
-            this.numberColumn7.Sortable = false;
-            resources.ApplyResources(this.numberColumn7, "numberColumn7");
-            // 
-            // numberColumn8
-            // 
-            this.numberColumn8.IsTextTrimmed = false;
-            this.numberColumn8.Maximum = new decimal(new int[] {
-            100000,
-            0,
-            0,
-            0});
-            this.numberColumn8.Sortable = false;
-            resources.ApplyResources(this.numberColumn8, "numberColumn8");
-            // 
-            // labelDREstimateTitle
-            // 
-            resources.ApplyResources(this.labelDREstimateTitle, "labelDREstimateTitle");
-            this.labelDREstimateTitle.Name = "labelDREstimateTitle";
-            // 
-            // textBoxEffFile
-            // 
-            resources.ApplyResources(this.textBoxEffFile, "textBoxEffFile");
-            this.textBoxEffFile.Name = "textBoxEffFile";
-            this.textBoxEffFile.ReadOnly = true;
-            // 
-            // textBoxDoseRateSpectrumFile
-            // 
-            resources.ApplyResources(this.textBoxDoseRateSpectrumFile, "textBoxDoseRateSpectrumFile");
-            this.textBoxDoseRateSpectrumFile.Name = "textBoxDoseRateSpectrumFile";
-            this.textBoxDoseRateSpectrumFile.ReadOnly = true;
-            // 
-            // buttonEstimateDRConf
-            // 
-            resources.ApplyResources(this.buttonEstimateDRConf, "buttonEstimateDRConf");
-            this.buttonEstimateDRConf.Name = "buttonEstimateDRConf";
-            this.buttonEstimateDRConf.UseVisualStyleBackColor = true;
-            this.buttonEstimateDRConf.Click += new System.EventHandler(this.buttonEstimateDRConf_Click);
-            // 
-            // labelDoseRateValue
-            // 
-            resources.ApplyResources(this.labelDoseRateValue, "labelDoseRateValue");
-            this.labelDoseRateValue.Name = "labelDoseRateValue";
-            // 
-            // upDownDoseRateValue
-            // 
-            this.upDownDoseRateValue.DecimalPlaces = 2;
-            this.upDownDoseRateValue.Increment = new decimal(new int[] {
-            1,
-            0,
-            0,
-            65536});
-            resources.ApplyResources(this.upDownDoseRateValue, "upDownDoseRateValue");
-            this.upDownDoseRateValue.Name = "upDownDoseRateValue";
-            this.upDownDoseRateValue.Value = new decimal(new int[] {
-            5,
-            0,
-            0,
-            65536});
-            // 
-            // labelEffNote
-            // 
-            resources.ApplyResources(this.labelEffNote, "labelEffNote");
-            this.labelEffNote.Name = "labelEffNote";
-            // 
-            // buttonLoadEff
-            // 
-            resources.ApplyResources(this.buttonLoadEff, "buttonLoadEff");
-            this.buttonLoadEff.Name = "buttonLoadEff";
-            this.buttonLoadEff.UseVisualStyleBackColor = true;
-            this.buttonLoadEff.Click += new System.EventHandler(this.buttonLoadEff_Click);
-            // 
-            // labelSpectrumNote
-            // 
-            resources.ApplyResources(this.labelSpectrumNote, "labelSpectrumNote");
-            this.labelSpectrumNote.Name = "labelSpectrumNote";
-            // 
-            // buttonLoadDoseRateSpectrum
-            // 
-            resources.ApplyResources(this.buttonLoadDoseRateSpectrum, "buttonLoadDoseRateSpectrum");
-            this.buttonLoadDoseRateSpectrum.Name = "buttonLoadDoseRateSpectrum";
-            this.buttonLoadDoseRateSpectrum.UseVisualStyleBackColor = true;
-            this.buttonLoadDoseRateSpectrum.Click += new System.EventHandler(this.buttonLoadDoseRateSpectrum_Click);
-            // 
+            //
             // button12
             // 
             resources.ApplyResources(this.button12, "button12");
@@ -1407,20 +1061,8 @@ namespace BecquerelMonitor
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown15)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown16)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownWidenFactor)).EndInit();
-            this.deconvolutionGroupBox.ResumeLayout(false);
-            this.deconvolutionGroupBox.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.deconvolutionBurnInNumericUpDown)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.deconvolutionSamplesNumericUpDown)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.deconvolutionMaxRoisNumericUpDown)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.deconvolutionRoiRadiusFwhmNumericUpDown)).EndInit();
             this.tabPage4.ResumeLayout(false);
             this.tabPage4.PerformLayout();
-            this.tabPage7.ResumeLayout(false);
-            this.tabPage7.PerformLayout();
-            this.groupBox3.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.table4)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.upDownDoseRateValue)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -1469,10 +1111,6 @@ namespace BecquerelMonitor
 
 		System.Windows.Forms.Button button14;
 
-        System.Windows.Forms.Button button15;
-
-        System.Windows.Forms.Button button16;
-
         // Token: 0x04000269 RID: 617
         XPTable.Models.TextColumn textColumn2;
 
@@ -1508,6 +1146,14 @@ namespace BecquerelMonitor
 
 		// Token: 0x04000274 RID: 628
 		System.Windows.Forms.Label label24;
+
+		// ВЕЩЕСТВО КРИСТАЛЛА (`A276`, решение Amber 06.09.2026). Имена
+		// осмысленные, а не `label53`/`comboBox5`: номерные достались от
+		// декомпилятора, и продолжать ряд значило бы прятать новое поле среди
+		// восемнадцати безымянных.
+		System.Windows.Forms.Label crystalMaterialLabel;
+
+		System.Windows.Forms.ComboBox crystalMaterialCombo;
 
 		// Token: 0x04000275 RID: 629
 		System.Windows.Forms.Label label26;
@@ -1549,22 +1195,22 @@ namespace BecquerelMonitor
 		System.Windows.Forms.Label label40;
 
 		// Token: 0x04000283 RID: 643
-		System.Windows.Forms.NumericUpDown numericUpDown3;
+		InvariantNumericUpDown numericUpDown3;
 
 		// Token: 0x04000284 RID: 644
-		System.Windows.Forms.NumericUpDown numericUpDown4;
+		InvariantNumericUpDown numericUpDown4;
 
-		System.Windows.Forms.NumericUpDown numericUpDown12;
+		InvariantNumericUpDown numericUpDown12;
 
-		System.Windows.Forms.NumericUpDown numericUpDown13;
+		InvariantNumericUpDown numericUpDown13;
 
-		System.Windows.Forms.NumericUpDown numericUpDown14;
+		InvariantNumericUpDown numericUpDown14;
 
-		System.Windows.Forms.NumericUpDown numericUpDown15;
+		InvariantNumericUpDown numericUpDown15;
 
-        System.Windows.Forms.NumericUpDown numericUpDown16;
+        InvariantNumericUpDown numericUpDown16;
 
-        System.Windows.Forms.NumericUpDown numericUpDownWidenFactor;
+        InvariantNumericUpDown numericUpDownWidenFactor;
 
         System.Windows.Forms.Label labelWidenFactor;
 
@@ -1574,7 +1220,7 @@ namespace BecquerelMonitor
 		System.Windows.Forms.Label label42;
 
 		// Token: 0x04000287 RID: 647
-		System.Windows.Forms.NumericUpDown numericUpDown6;
+		InvariantNumericUpDown numericUpDown6;
 
 		// Token: 0x04000288 RID: 648
 		System.Windows.Forms.Label label41;
@@ -1596,8 +1242,6 @@ namespace BecquerelMonitor
 
 		// Token: 0x0400028E RID: 654
 		System.Windows.Forms.TabPage tabPage6;
-
-        System.Windows.Forms.TabPage tabPage7;
 
         // Token: 0x0400028F RID: 655
         System.Windows.Forms.Label label2;
@@ -1675,9 +1319,6 @@ namespace BecquerelMonitor
 		// Token: 0x040002A4 RID: 676
 		System.Windows.Forms.Label label9;
 
-		// Token: 0x040002A5 RID: 677
-		System.Windows.Forms.GroupBox groupBox3;
-
 		// Token: 0x040002A6 RID: 678
 		//System.Windows.Forms.Label label15;
 
@@ -1702,20 +1343,14 @@ namespace BecquerelMonitor
 
 		// Token: 0x040002B1 RID: 689
 		XPTable.Models.Table table3;
-        XPTable.Models.Table table4;
-
         // Token: 0x040002B2 RID: 690
         XPTable.Models.ColumnModel columnModel3;
-
-        XPTable.Models.ColumnModel columnModel4;
 
         // Token: 0x040002B3 RID: 691
         XPTable.Models.TextColumn textColumn4;
 
 		// Token: 0x040002B4 RID: 692
 		XPTable.Models.TableModel tableModel3;
-
-        XPTable.Models.TableModel tableModel4;
 
         // Token: 0x040002B5 RID: 693
         System.Windows.Forms.Label label19;
@@ -1741,46 +1376,12 @@ namespace BecquerelMonitor
 		// Token: 0x040002BA RID: 698
 		XPTable.Models.NumberColumn numberColumn4;
 
-        XPTable.Models.NumberColumn numberColumn5;
-        XPTable.Models.NumberColumn numberColumn6;
-        XPTable.Models.NumberColumn numberColumn7;
-        XPTable.Models.NumberColumn numberColumn8;
-		System.Windows.Forms.Label effROIText;
-		System.Windows.Forms.Button clearEffROI;
-		System.Windows.Forms.ComboBox selectEffROI;
-
-		// dose rate calculation
-        private System.Windows.Forms.Button buttonLoadDoseRateSpectrum;
-        private System.Windows.Forms.Label labelSpectrumNote;
-        private System.Windows.Forms.Label labelEffNote;
-        private System.Windows.Forms.Button buttonLoadEff;
-        private System.Windows.Forms.Button buttonEstimateDRConf;
-        private System.Windows.Forms.Label labelDoseRateValue;
-        private System.Windows.Forms.NumericUpDown upDownDoseRateValue;
-        private System.Windows.Forms.TextBox textBoxEffFile;
-        private System.Windows.Forms.TextBox textBoxDoseRateSpectrumFile;
-        private System.Windows.Forms.Label labelDREstimateTitle;
-        private System.Windows.Forms.Button buttonClearDoseRate;
         private GroupBox peakSpecgroupBox;
         private ComboBox peakTypecomboBox;
         private Label peakTypelabel;
-        private NumericUpDown rightSkewnumericUpDown;
+        private InvariantNumericUpDown rightSkewnumericUpDown;
         private Label rightSkewlabel;
-        private NumericUpDown leftSkewnumericUpDown;
+        private InvariantNumericUpDown leftSkewnumericUpDown;
         private Label leftSkewlabel;
-        private GroupBox deconvolutionGroupBox;
-        private Label deconvolutionEnabledLabel;
-        private CheckBox deconvolutionEnabledCheckBox;
-        private Label deconvolutionBurnInLabel;
-        private NumericUpDown deconvolutionBurnInNumericUpDown;
-        private Label deconvolutionSamplesLabel;
-        private NumericUpDown deconvolutionSamplesNumericUpDown;
-        private Label deconvolutionMaxRoisLabel;
-        private NumericUpDown deconvolutionMaxRoisNumericUpDown;
-        private Label deconvolutionMaxExtraPeaksPerRoiLabel;
-        private NumericUpDown deconvolutionMaxExtraPeaksPerRoiNumericUpDown;
-        private Label deconvolutionRoiRadiusFwhmLabel;
-        private NumericUpDown deconvolutionRoiRadiusFwhmNumericUpDown;
-        private ToolTip deconvolutionToolTip;
     }
 }

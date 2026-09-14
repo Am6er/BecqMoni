@@ -29,6 +29,7 @@ namespace BecquerelMonitor
         public MainForm()
         {
             this.InitializeComponent();
+            this.InitializeAppLogMenuItem();
             this.InitializeDockPanelTheme();
         }
 
@@ -119,7 +120,24 @@ namespace BecquerelMonitor
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Message);
+                    // ⛔ НЕ бросок, и это разобрано, а не отложено (остаток `S100`).
+                    //    Копирование поставочного `config` в пользовательский
+                    //    каталог — разовый посев ПЕРВОГО запуска, и он не последний
+                    //    рубеж: если конфигурации после него действительно нет,
+                    //    отказывает уже `GlobalConfigManager.LoadConfigFile` (там
+                    //    без окон стоит бросок), а `globalConfig == null` ниже
+                    //    закрывает форму. Бросок же ИЗ КОНСТРУКТОРА оболочки
+                    //    превратил бы неудачу с ОДНИМ занятым файлом в падение
+                    //    приложения на старте — то есть сделал бы хуже человеку,
+                    //    ради которого правка и делается.
+                    //
+                    // ⚠ Голое `ex.Message` («не найдена часть пути…») не называет
+                    //    ни того, что копировалось, ни куда. Окно оставлено прежним
+                    //    (текст, отсутствие заголовка и значка), а недостающее
+                    //    сказано отдельной строкой, которую видно ТОЛЬКО без окон.
+                    AppUi.Note("config copy to the user directory failed: "
+                               + AppUi.Where(userDirectoryConfig) + ": " + ex.Message);
+                    AppUi.Report(ex.Message, "", MessageBoxIcon.None);
                 }
             }
             this.UpdateApplicationTitle();
@@ -131,19 +149,33 @@ namespace BecquerelMonitor
                 return;
             }
             //CustomCulture
-            try
-            {
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(this.globalConfig.Language);
-            }
-            catch (CultureNotFoundException)
-            {
-                // The default config value is the fake culture "OS"; on systems where
-                // GetCultureInfo throws for unknown names this used to crash before the
-                // main window appeared. Keep the system UI culture instead.
-            }
-            System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
-            customCulture.NumberFormat.NumberDecimalSeparator = ".";
-            System.Threading.Thread.CurrentThread.CurrentCulture = customCulture;
+            // (`A238`) Язык выставляется ВСЕМ потокам, а не одному этому: потоку,
+            // вошедшему без контекста исполнения, культура этого потока не
+            // достаётся, и строка ресурса выходила на языке ОС. Здесь же
+            // разбирается метка «OS» — она НЕ имя культуры, хотя и принимается
+            // за него молча. И то и другое с замером — в `Program.ApplyLanguage`.
+            Program.ApplyLanguage(this.globalConfig.Language);
+            // ⛔ КОСТЫЛЬ СНЯТ 06.09.2026, полоса F50 — ФИНАЛ `A244`.
+            //
+            // Здесь стоял клон системной культуры с подменённым разделителем дробной
+            // части (`CurrentCulture.Clone()` + `NumberDecimalSeparator = «.»`). Это была
+            // подделка культуры: `CurrentCulture` управляет не только печатью, но и
+            // РАЗБОРОМ, а держалась подмена ровно на ТОМ потоке, который её
+            // сделал: поток пула, вошедший без переноса контекста исполнения,
+            // её не получал (измерено 05.09.2026, `CultureProbeO14`: `1,5` против `1.5`).
+            //
+            // Снимать его было нельзя, пока на нём держалась точка у непереведённых
+            // мест (05.09.2026 их было 1097). Сейчас их нет: сплошной разбор собранного
+            // `BecquerelMonitor.exe` (9342 тела методов, `RestCultureProbeF47 --sweep`)
+            // даёт ДРОБНЫХ чисел без культуры 0 — ни в печати, ни в разборе.
+            // Оставшиеся 23 места без культуры — все ЦЕЛЫЕ, а вид целого от
+            // культуры не зависит и костыль их не касался (измерено: клон давал
+            // «1234567» и «1.5»).
+            //
+            // ⚙ Почему здесь теперь НИЧЕГО: культура потока — это раскладка
+            // человека (даты, сортировка, регистр), и её надо оставить ему. Точка
+            // у чисел держится теперь явной `CultureInfo.InvariantCulture` в каждом
+            // месте печати и разбора, а не подменой культуры целиком.
 
             DeviceType.InitializeDeviceTypes();
             ThermometerType.InitializeThermometerTypes();
@@ -154,6 +186,7 @@ namespace BecquerelMonitor
             this.doseRateManager = new DoseRateManager(this.globalConfigManager);
             this.countsRateManager = new CountsRateManager();
             this.InitializeComponent();
+            this.InitializeAppLogMenuItem();
             this.InitializeDockPanelTheme();
             base.Icon = BecquerelMonitor.Properties.Resources.becqmoni;
             this.toolStripMenuItem7.Visible = false;
@@ -230,6 +263,18 @@ namespace BecquerelMonitor
             {
                 this.OpenExistingDocument(this.OpenFileName);
             }
+
+            // ЧИТАТЕЛЬ записки о том, что прошлое закрытие не сумело записать
+            // раскладку (`A13`). Ставится на Shown, а не зовётся здесь: во
+            // время Load окно ещё не нарисовано, и сообщение висело бы над
+            // пустым местом.
+            base.Shown += this.MainForm_ShownReportLayout;
+        }
+
+        void MainForm_ShownReportLayout(object sender, EventArgs e)
+        {
+            base.Shown -= this.MainForm_ShownReportLayout;
+            this.ReportPendingLayoutFailure();
         }
 
         void InitializeDockPanelTheme()
@@ -259,6 +304,13 @@ namespace BecquerelMonitor
             this.dcEnergyCalibrationView = new DCEnergyCalibrationView(this);
             this.dcCountRateView = new DCCountRateView(this);
             this.dcCFwhmCalibrationView = new DCFwhmCalibrationView(this);
+            if (this.dcFsaReportView != null && !this.dcFsaReportView.IsDisposed)
+            {
+                // Смена раскладки пересоздаёт tool-view: прежнее окно отчёта
+                // отписывается от сеанса, чтобы не читать закрытый документ.
+                this.dcFsaReportView.SetDocument(null);
+            }
+            this.dcFsaReportView = new FSAReportView(this);
             this.dcControlPanel.Enabled = false;
             this.dcSampleInfoView.Enabled = false;
             this.dcSpectrumListView.Enabled = false;
@@ -307,14 +359,9 @@ namespace BecquerelMonitor
                     docEnergySpectrum.Close();
                 }
             }
-            string fileName = this.LayoutConfigFile();
-            try
-            {
-                this.dockPanel1.SaveAsXml(fileName);
-            }
-            catch (Exception)
-            {
-            }
+            // ⛔ Окно здесь НЕ поднимается — довод в SaveLayoutXml. Отказ
+            // уходит запиской, читатель записки — следующий запуск.
+            this.SaveLayoutXml(this.LayoutConfigFile(), false);
             if (this.deviceConfigForm != null && !this.deviceConfigForm.IsDisposed)
             {
                 this.deviceConfigForm.Close();
@@ -369,6 +416,14 @@ namespace BecquerelMonitor
             if (a == typeof(DCFwhmCalibrationView).ToString())
             {
                 return this.dcCFwhmCalibrationView;
+            }
+            if (a == typeof(FSAReportView).ToString())
+            {
+                if (this.dcFsaReportView == null || this.dcFsaReportView.IsDisposed)
+                {
+                    this.dcFsaReportView = new FSAReportView(this);
+                }
+                return this.dcFsaReportView;
             }
             if (a == typeof(DCResultView).ToString())
             {
@@ -525,11 +580,11 @@ namespace BecquerelMonitor
                     }
                     if (activeDocument != null && activeDocument.ActiveResultData.MeasurementController.DeviceController is RadiaCodeDeviceController)
                     {
-                        SetStatusTextCenter($"Radiacode BLE status: {activeDocument.ActiveResultData.DetectorFeature}", false);
+                        SetStatusTextCenter($"Radiacode BLE status: {activeDocument.ActiveResultData.DetectorFeature}{DeviceFailureTail(activeDocument.ActiveResultData)}", false);
                     }
                     if (activeDocument != null && activeDocument.ActiveResultData.MeasurementController.DeviceController is ObsidianDeviceController)
                     {
-                        SetStatusTextCenter($"Obsidian BLE status: {activeDocument.ActiveResultData.DetectorFeature}", false);
+                        SetStatusTextCenter($"Obsidian BLE status: {activeDocument.ActiveResultData.DetectorFeature}{DeviceFailureTail(activeDocument.ActiveResultData)}", false);
                     }
                 }
                 this.countChart += 100;
@@ -627,16 +682,29 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A4E RID: 2638 RVA: 0x0003D3C0 File Offset: 0x0003B5C0
+        /// <summary>
+        /// Мощность дозы в строке состояния — от кривой эффективности,
+        /// ВЫБРАННОЙ НА ПАНЕЛИ (`AMBER18`, задача Amber 11.09.2026:
+        /// «Привязаться к текущей выбранной эффективности на ControlPanel»).
+        ///
+        /// ⛔ До 12.09.2026 гейт стоял на ручных точках
+        /// `DeviceConfig.DoseRateConfig.DoseRateCalibrationPoints.Count > 0`, и
+        /// с 10.09.2026 (точки под `[XmlIgnore]`) строка была ПУСТА у всех
+        /// приборов. Теперь: кривая не выбрана или без точек — пусто
+        /// (`Calculate` отдаёт null); есть матрица — число по полной
+        /// эффективности; нет матрицы — число со знаком «≈»; нет геометрии —
+        /// отказ словами. Всё это решает `DoseRateManager`, здесь только показ.
+        /// </summary>
         public void ShowDoseRate()
         {
-            if (this.activeDocument != null && this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig != null && 
-                this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig.DoseRateCalibrationPoints.Count > 0)
+            DoseRate doseRate = this.activeDocument == null
+                ? null
+                : this.doseRateManager.Calculate(this.activeDocument.ActiveResultData);
+            if (doseRate != null)
             {
-                DoseRate doseRate = this.doseRateManager.Calculate(this.activeDocument.ActiveResultData,
-                    this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig,
-                    this.activeDocument.EnergySpectrumView.BackgroundMode);
                 SetStatusTextRight(Resources.DoseRate + " " + doseRate.ToString());
-            } else
+            }
+            else
             {
                 ClearStatusTextRight();
             }
@@ -668,6 +736,62 @@ namespace BecquerelMonitor
             ShowFwhmCalibration();
         }
 
+        /// <summary>«Вид → Отчёт FSA»: показать и активировать окно независимо от режима графика.</summary>
+        void fsaReportStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.ShowFsaReportView(true);
+        }
+
+        /// <summary>
+        /// (`A145`, этап 3) Показать окно отчёта разложения. <paramref name="activate"/>:
+        /// true — окно получает фокус (команда меню, явная команда документа);
+        /// false — окно показывается, а клавиатура остаётся у графика
+        /// (циклическая кнопка режима фона). Закрытие окна — скрытие
+        /// (`HideOnClose`), поэтому пересоздаётся оно только после `Dispose`.
+        /// </summary>
+        public void ShowFsaReportView(bool activate)
+        {
+            if (this.dcFsaReportView == null || this.dcFsaReportView.IsDisposed)
+            {
+                this.dcFsaReportView = new FSAReportView(this);
+                this.dcFsaReportView.SetDocument(this.activeDocument);
+            }
+
+            IDockContent focused = this.dockPanel1.ActiveContent;
+            this.dcFsaReportView.Show(this.dockPanel1);
+            if (!activate && this.activeDocument != null && !this.activeDocument.IsDisposed)
+            {
+                // Вернуть фокус документу: `Show` активирует показанное окно,
+                // а человек листал режимы кнопкой на графике.
+                this.activeDocument.Activate();
+                if (focused != null && ReferenceEquals(focused, this.activeDocument)
+                    && this.activeDocument.EnergySpectrumView != null)
+                {
+                    this.activeDocument.EnergySpectrumView.Focus();
+                }
+            }
+        }
+
+        /// <summary>Окно отчёта разложения (пробы).</summary>
+        public FSAReportView FsaReportView
+        {
+            get { return this.dcFsaReportView; }
+        }
+
+        /// <summary>
+        /// Документ вошёл в режим разложения: явная команда показывает и
+        /// активирует отчёт, циклическая кнопка — только показывает.
+        /// </summary>
+        void DocEnergySpectrum_FsaModeEntered(object sender, FsaModeEnteredEventArgs e)
+        {
+            if (!ReferenceEquals(sender, this.activeDocument))
+            {
+                return;
+            }
+
+            this.ShowFsaReportView(e.Explicit);
+        }
+
         public void ShowDetectorFeature()
         {
             if (this.activeDocument != null 
@@ -680,12 +804,12 @@ namespace BecquerelMonitor
                 }
                 if (this.activeDocument.ActiveResultData.DeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig)
                 {
-                    SetStatusTextCenter($"Radiacode BLE status: {this.activeDocument.ActiveResultData.DetectorFeature}", false);
+                    SetStatusTextCenter($"Radiacode BLE status: {this.activeDocument.ActiveResultData.DetectorFeature}{DeviceFailureTail(this.activeDocument.ActiveResultData)}", false);
                     return;
                 }
                 if (this.activeDocument.ActiveResultData.DeviceConfig.InputDeviceConfig is ObsidianDeviceConfig)
                 {
-                    SetStatusTextCenter($"Obsidian BLE status: {this.activeDocument.ActiveResultData.DetectorFeature}", false);
+                    SetStatusTextCenter($"Obsidian BLE status: {this.activeDocument.ActiveResultData.DetectorFeature}{DeviceFailureTail(this.activeDocument.ActiveResultData)}", false);
                     return;
                 }
             }
@@ -1029,6 +1153,7 @@ namespace BecquerelMonitor
                 this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
                 this.dcEnergyCalibrationView.Enabled = true;
                 this.activeDocument.ActiveEnergyCalibration = this.dcEnergyCalibrationView.Visible;
+                this.dcFsaReportView.SetDocument(this.activeDocument);
                 if (this.activeDocument.PulseDetector != null)
                 {
                     this.activeDocument.PulseDetector.PulseView = this.dcPulseView.PulseView;
@@ -1054,6 +1179,7 @@ namespace BecquerelMonitor
                 this.dcPeakDetectionView.Enabled = false;
                 this.dcEnergyCalibrationView.Enabled = false;
                 this.dcCFwhmCalibrationView.Enabled = false;
+                this.dcFsaReportView.SetDocument(null);
             }
             this.UpdateApplicationTitle();
         }
@@ -1086,6 +1212,7 @@ namespace BecquerelMonitor
                 dcresultView.Enabled = true;
             }
             this.dcSpectrumListView.Enabled = true;
+            this.dcFsaReportView.ActiveResultDataChanged();
             this.UpdateApplicationTitle();
             this.RefreshDocumentChart(this.activeDocument);
         }
@@ -1222,6 +1349,7 @@ namespace BecquerelMonitor
         {
             ShowNucBaseView();
         }
+
 
         void ShowNucBaseView()
         {
@@ -1387,34 +1515,27 @@ namespace BecquerelMonitor
 
         void NormalizeSpectrum(DocEnergySpectrum docEnergySpectrum)
         {
-            ROIConfigData rOIConfigData = null;
-            DeviceConfigInfo deviceConfigInfo = null;
-
-            if (this.deviceConfigManager.DeviceConfigMap.ContainsKey(this.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid))
+            // Кривую больше не выбирают отдельным диалогом из наборов зон: она
+            // своя у спектра, её выбирают в панели измерения. Спрашивать здесь
+            // второй раз значило бы позволить поделить спектр на одну кривую, а
+            // активность в нём считать по другой.
+            EfficiencyConfigData efficiency = docEnergySpectrum.ActiveResultData.Efficiency;
+            if (FullSpectrumAnalysis.FsaEfficiency.FromConfig(efficiency) == null)
             {
-                deviceConfigInfo = this.deviceConfigManager.DeviceConfigMap[this.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid];
+                MessageBox.Show(Resources.BqCoeffNoCurve, Resources.ErrorDialogTitle,
+                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
             }
-
-            using (SelectROIDialog dialog = new SelectROIDialog(this))
-            {
-                dialog.ShowDialog();
-                string roiGUID = dialog.SendData();
-                if (roiGUID == null) return;
-                rOIConfigData = roiConfigManager.ROIConfigMap[roiGUID];
-            }
-
-
-            if (rOIConfigData == null || rOIConfigData.Guid == null) return;
 
             CreateDocument();
             this.activeDocument.ActiveResultData.ROIConfigReference = null;
             this.activeDocument.ActiveResultData.ROIConfig = null;
-            this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, rOIConfigData);
+            this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, efficiency);
             this.activeDocument.ActiveResultData.DeviceConfigReference = null;
             this.activeDocument.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
             if (docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum != null && docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum.MeasurementTime != 0)
             {
-                this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, rOIConfigData);
+                this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, efficiency);
                 this.activeDocument.ActiveResultData.BackgroundSpectrumFile = docEnergySpectrum.ActiveResultData.BackgroundSpectrumFile;
             }
             this.activeDocument.ActiveResultData.ResultDataStatus = docEnergySpectrum.ActiveResultData.ResultDataStatus.Clone();
@@ -1673,6 +1794,116 @@ namespace BecquerelMonitor
             }.ShowDialog();
         }
 
+        /// <summary>
+        /// Подпись и доступность пункта «Показать журнал».
+        ///
+        /// ⛔ `A15`, вторая половина. Журнал заведён (<see cref="AppLog"/>), но до
+        /// этой правки человек не знал, ГДЕ он лежит, и найти его не мог — то
+        /// есть болезнь «у отказа нет читателя» осталась ровно там, ради чего
+        /// строка и заводилась.
+        ///
+        /// Подпись ставится кодом, а не <c>resources.ApplyResources</c>: строка
+        /// живёт в паре <c>Properties/Resources.resx</c> / <c>.ru.resx</c>, а
+        /// культура выбрана выше по конструктору, ДО <c>InitializeComponent</c>.
+        /// Смена языка в приложении требует перезапуска
+        /// (<c>RestartRequiredMessage</c>), поэтому разового вызова достаточно.
+        ///
+        /// Пустой <see cref="AppLog.Path"/> — признак того, что журнал завести
+        /// не удалось; пункт на нём гаснет, а не лжёт пустым окном проводника.
+        /// </summary>
+        void InitializeAppLogMenuItem()
+        {
+            if (this.showLogToolStripMenuItem == null)
+            {
+                return;
+            }
+            this.showLogToolStripMenuItem.Text = Resources.MenuShowLog;
+            this.showLogToolStripMenuItem.Enabled = !string.IsNullOrEmpty(AppLog.Path);
+        }
+
+        /// <summary>
+        /// Показать журнал в проводнике.
+        ///
+        /// ⚠ Открывается КАТАЛОГ с выделенным файлом, а не сам файл: у
+        /// <c>.log</c> может не быть обработчика вовсе, а рядом лежит
+        /// подрезанный <c>becqmoni.log.1</c>, который человеку тоже нужен.
+        ///
+        /// ⚠ Отказ НАЗЫВАЕТСЯ, как это делает <c>AboutForm.OpenLink</c>
+        /// (закрытая `A14`), а не глотается пустым <c>catch</c>: щелчок, после
+        /// которого не произошло ничего, — это ровно та беда, что чинится.
+        /// </summary>
+        void showLogToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string path = AppLog.Path;
+            if (string.IsNullOrEmpty(path))
+            {
+                return;
+            }
+            try
+            {
+                Process.Start("explorer.exe", "/select,\"" + path + "\"");
+            }
+            catch (Exception ex)
+            {
+                AppUi.Report(string.Format(Resources.ERROpenLogFailure, path, ex.Message),
+                    Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
+            }
+        }
+
+        /// <summary>
+        /// Хвост строки состояния: то, чем прибор ОБЪЯСНЯЕТ отсутствие данных.
+        ///
+        /// ⛔ `A15`, разряд 1, два места в ПУТИ ИЗМЕРЕНИЯ —
+        /// <c>RadiaCodeIn</c> «Spectrum polling exception» и близнец у
+        /// <c>ObsidianIn</c>. Окно там поднимать нельзя (закрытая `S100`), а
+        /// молчания достаточно, чтобы человек час собирал пустой спектр:
+        /// состояние в строке уже меняется на «Reconnecting», но ПРИЧИНЫ в нём
+        /// нет, и постоянный отказ выглядит как мгновенная заминка.
+        ///
+        /// Место выбрано то, где слово уже стоит и обновляется каждые 200 мс, —
+        /// середина строки состояния (<see cref="SetStatusTextCenter"/>).
+        /// Пустая строка возвращается, когда прибора нет или он молчит без
+        /// отказа, — тогда строка состояния остаётся прежней.
+        /// </summary>
+        internal static string DeviceFailureTail(string failure)
+        {
+            if (string.IsNullOrEmpty(failure))
+            {
+                return string.Empty;
+            }
+            return " — " + string.Format(Resources.ERRDeviceNoData, failure);
+        }
+
+        /// <summary>
+        /// Тот же хвост, но по спектру: находит ЖИВОЙ экземпляр прибора этого
+        /// спектра и спрашивает его о последнем отказе.
+        ///
+        /// ⚠ Спрашивается <c>GetFailure</c>, а не <c>getInstance</c>: фабрика
+        /// СОЗДАЁТ экземпляр, если его нет, а звать её из таймера отрисовки
+        /// каждые 200 мс — значит поднимать прибору потоки BLE на пустом месте.
+        /// </summary>
+        internal static string DeviceFailureTail(ResultData resultData)
+        {
+            if (resultData == null || resultData.DeviceConfig == null)
+            {
+                return string.Empty;
+            }
+            string guid = resultData.DeviceConfig.Guid;
+            if (string.IsNullOrEmpty(guid))
+            {
+                return string.Empty;
+            }
+            if (resultData.DeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig)
+            {
+                return DeviceFailureTail(RadiaCodeIn.GetFailure(guid));
+            }
+            if (resultData.DeviceConfig.InputDeviceConfig is ObsidianDeviceConfig)
+            {
+                return DeviceFailureTail(ObsidianIn.GetFailure(guid));
+            }
+            return string.Empty;
+        }
+
         void UpdatesAToolStripMenuItem_Click(object sender, EventArgs e)
         {
             try
@@ -1749,6 +1980,8 @@ namespace BecquerelMonitor
             doc.SetUpperThreshold += this.DocEnergySpectrum_SetUpperThreshold;
             doc.ShowEnergyCalibrationView += this.DocEnergySpectrum_ShowEnergyCalibrationView;
             doc.AddSpectrumToDocument += this.DocEnergySpectrum_AddSpectrumToDocument;
+            doc.EfficiencyChanged += this.DocEnergySpectrum_EfficiencyChanged;
+            doc.FsaModeEntered += this.DocEnergySpectrum_FsaModeEntered;
             foreach (ResultData resultData in doc.ResultDataFile.ResultDataList)
             {
                 MeasurementController measurementController = resultData.MeasurementController;
@@ -1772,10 +2005,29 @@ namespace BecquerelMonitor
             doc.SetUpperThreshold -= this.DocEnergySpectrum_SetUpperThreshold;
             doc.ShowEnergyCalibrationView -= this.DocEnergySpectrum_ShowEnergyCalibrationView;
             doc.AddSpectrumToDocument -= this.DocEnergySpectrum_AddSpectrumToDocument;
+            doc.EfficiencyChanged -= this.DocEnergySpectrum_EfficiencyChanged;
+            doc.FsaModeEntered -= this.DocEnergySpectrum_FsaModeEntered;
             foreach (ResultData resultData in doc.ResultDataFile.ResultDataList)
             {
                 this.CleanupMeasurementController(resultData.MeasurementController);
             }
+        }
+
+        /// <summary>
+        /// Кривую эффективности сменили из документа — диалогом перед
+        /// разложением. Панель управления измерением показывает ту кривую, по
+        /// которой считается активность, и обновляется только отсюда; вместе с
+        /// ней пересчитывается и сама активность — она от кривой и зависит.
+        /// Ровно то же делает ряд «Efficiency» самой панели.
+        /// </summary>
+        void DocEnergySpectrum_EfficiencyChanged(object sender, EventArgs e)
+        {
+            if (sender != this.activeDocument)
+            {
+                return;
+            }
+            this.dcControlPanel.ShowDocumentStatus();
+            this.ShowMeasurementResult(true);
         }
 
         // Tear down a MeasurementController: unsubscribe our event, release any device lease,
@@ -2019,36 +2271,10 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            DocEnergySpectrum docEnergySpectrum = (DocEnergySpectrum)sender;
-            foreach (string pathname in e.Pathnames)
-            {
-                ResultDataFile resultDataFile = this.documentManager.LoadDocument(docEnergySpectrum, pathname);
-                if (resultDataFile == null)
-                {
-                    // LoadDocument returns null on a broken file or user refusal;
-                    // dereferencing it crashed drag&drop onto an open document.
-                    continue;
-                }
-                foreach (ResultData resultData in resultDataFile.ResultDataList)
-                {
-                    if (docEnergySpectrum.ResultDataFile.ResultDataList.Count >= this.globalConfigManager.MaximumSpectrumPerFile)
-                    {
-                        break;
-                    }
-                    docEnergySpectrum.ResultDataFile.ResultDataList.Add(resultData);
-                    // LoadDocument already created a MeasurementController for this ResultData.
-                    if (resultData.MeasurementController == null)
-                    {
-                        resultData.MeasurementController = new MeasurementController(docEnergySpectrum, resultData);
-                    }
-                    resultData.MeasurementController.MeasurementTerminated += this.activeDocument_MeasurementTerminated;
-                }
-            }
-            if (docEnergySpectrum == this.activeDocument)
-            {
-                this.dcSpectrumListView.ShowSpectrumList(docEnergySpectrum);
-                docEnergySpectrum.UpdateEnergySpectrum();
-            }
+            // Ввоз — общей дверью с пунктом меню (`A5`): считает принятое и
+            // отброшенное, говорит о них вслух и не читает с диска то, чему в
+            // документ уже не попасть.
+            this.ImportSpectraIntoDocument((DocEnergySpectrum)sender, e.Pathnames);
         }
 
         // Token: 0x06000A8D RID: 2701 RVA: 0x0003ED80 File Offset: 0x0003CF80
@@ -2229,26 +2455,99 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            bool flag = false;
-            foreach (string pathname in openFileDialog.FileNames)
+            this.ImportSpectraIntoDocument(doc, openFileDialog.FileNames);
+        }
+
+        /// <summary>
+        /// Ввоз спектров в открытый документ — ОДНОЙ дверью для обеих веток:
+        /// пункт меню «Ввезти спектры из файла» (<see cref="LoadSpectrumFromFile"/>)
+        /// и перетаскивание файлов на документ
+        /// (<c>DocEnergySpectrum_AddSpectrumToDocument</c>). Строка `A5`.
+        ///
+        /// ⛔ ЧТО БЫЛО. Предел <c>GlobalConfigInfo.MaximumSpectrumPerFile</c>
+        /// (16) — ЗАМЫСЕЛ, и он честно отражён кнопками:
+        /// <c>DCSpectrumListView</c> гасит «добавить» и «загрузить», когда
+        /// документ полон. Но обе ветки ввоза резали УЖЕ НАЧАТУЮ работу
+        /// МОЛЧА: выбрал десять файлов, в документ попала часть, ни слова.
+        /// Множественный выбор (<c>Multiselect = true</c>) делает это обычным
+        /// случаем, а не краем: кнопка активна при пятнадцати спектрах, а
+        /// файлов в диалоге отмечают пять.
+        ///
+        /// У перетаскивания было хуже: <c>break</c> выходил ТОЛЬКО из
+        /// внутреннего цикла, поэтому остальные файлы всё равно читались с
+        /// диска целиком — с разбором XML, с разбором ссылок на прибор и с
+        /// вопросом «сбросить калибровку?» по дороге, — и всё прочитанное
+        /// выбрасывалось.
+        ///
+        /// ⚠ ПРЕДЕЛ НЕ ТРОГАЕТСЯ. Чинится молчание: сказано, сколько принято
+        /// и сколько отброшено, и файлы, которым в документ уже не попасть,
+        /// с диска НЕ ЧИТАЮТСЯ.
+        ///
+        /// Отброшенное считается ДВУМЯ числами, и в одно они не сливаются
+        /// нарочно: «спектров» — то, что прочитано и не поместилось,
+        /// «файлов» — то, что не открывалось вовсе. Второе число и есть
+        /// видимый признак того, что чтение остановлено; в сумме читатель
+        /// этого признака лишится.
+        ///
+        /// Сообщение идёт дверью <see cref="AppUi.Report"/>: в приложении это
+        /// окно, как и прежде, в безоконном прогоне — строка в поток ошибок
+        /// (`S100`), а не намертво поднятое окно.
+        ///
+        /// ⚠ Две мелочи, в которых ветки расходились, сведены к варианту
+        /// перетаскивания, и это НЕ косметика:
+        ///   * <c>MeasurementController</c> заводится только когда его нет.
+        ///     <c>DocumentManager.LoadDocument</c> уже завёл его каждому
+        ///     прочитанному спектру; ветка меню заводила ВТОРОЙ поверх;
+        ///   * <c>doc.Dirty</c> ставится и при перетаскивании тоже. Прежде
+        ///     ветка перетаскивания его не ставила, то есть добавленные
+        ///     мышью спектры не делали документ изменённым и при закрытии о
+        ///     сохранении не спрашивали.
+        /// </summary>
+        /// <returns>сколько спектров принято в документ</returns>
+        int ImportSpectraIntoDocument(DocEnergySpectrum doc, IList<string> pathnames)
+        {
+            if (doc == null || pathnames == null)
             {
-                ResultDataFile resultDataFile = this.documentManager.LoadDocument(doc, pathname);
-                if (resultDataFile == null) continue;
+                return 0;
+            }
+            int limit = this.globalConfigManager.MaximumSpectrumPerFile;
+            int accepted = 0;
+            int droppedSpectra = 0;
+            int unreadFiles = 0;
+            for (int i = 0; i < pathnames.Count; i++)
+            {
+                if (doc.ResultDataFile.ResultDataList.Count >= limit)
+                {
+                    // Документ полон — остальные файлы НЕ ОТКРЫВАЮТСЯ ВОВСЕ.
+                    unreadFiles = pathnames.Count - i;
+                    break;
+                }
+                ResultDataFile resultDataFile = this.documentManager.LoadDocument(doc, pathnames[i]);
+                if (resultDataFile == null)
+                {
+                    // LoadDocument returns null on a broken file or user refusal;
+                    // dereferencing it crashed drag&drop onto an open document.
+                    // О самом отказе он сказал сам.
+                    continue;
+                }
                 foreach (ResultData resultData in resultDataFile.ResultDataList)
                 {
-                    if (doc.ResultDataFile.ResultDataList.Count >= this.globalConfigManager.MaximumSpectrumPerFile)
+                    if (doc.ResultDataFile.ResultDataList.Count >= limit)
                     {
-                        flag = true;
-                        break;
+                        // Файл уже прочитан; сосчитать остаток поимённо, а не
+                        // бросить цикл, — иначе человеку нечего назвать.
+                        droppedSpectra++;
+                        continue;
                     }
                     doc.ResultDataFile.ResultDataList.Add(resultData);
                     doc.Dirty = true;
-                    resultData.MeasurementController = new MeasurementController(doc, resultData);
+                    // LoadDocument already created a MeasurementController for this ResultData.
+                    if (resultData.MeasurementController == null)
+                    {
+                        resultData.MeasurementController = new MeasurementController(doc, resultData);
+                    }
                     resultData.MeasurementController.MeasurementTerminated += this.activeDocument_MeasurementTerminated;
-                }
-                if (flag)
-                {
-                    break;
+                    accepted++;
                 }
             }
             if (doc == this.activeDocument)
@@ -2256,6 +2555,16 @@ namespace BecquerelMonitor
                 this.dcSpectrumListView.ShowSpectrumList(doc);
                 doc.UpdateEnergySpectrum();
             }
+            if (droppedSpectra > 0 || unreadFiles > 0)
+            {
+                // Список обновлён ДО сообщения: за окном должно быть видно
+                // то, о чём оно говорит.
+                AppUi.Report(
+                    string.Format(Resources.ImportSpectrumLimitReached, accepted, limit, droppedSpectra, unreadFiles),
+                    Resources.ImportSpectrumLimitTitle,
+                    MessageBoxIcon.Information);
+            }
+            return accepted;
         }
 
         public void SaveHardSubtractSpectrumToFile()
@@ -2263,7 +2572,8 @@ namespace BecquerelMonitor
             EnergySpectrum backgroundSpectrum = this.activeDocument.ActiveResultData.BackgroundEnergySpectrum;
             if (backgroundSpectrum == null)
             {
-                MessageBox.Show("Background spectrum is not available for the active spectrum.", Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                // ⚠ `A12`: заголовок брался из ресурсов, а текст был литералом.
+                MessageBox.Show(Resources.ERRNoBackgroundSpectrum, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 return;
             }
             SaveFileDialog saveFileDialog = new SaveFileDialog();
@@ -2312,7 +2622,8 @@ namespace BecquerelMonitor
             EnergySpectrum backgroundSpectrum = this.activeDocument.ActiveResultData.BackgroundEnergySpectrum;
             if (backgroundSpectrum == null)
             {
-                MessageBox.Show("Background spectrum is not available for the active spectrum.", Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                // ⚠ `A12`: заголовок брался из ресурсов, а текст был литералом.
+                MessageBox.Show(Resources.ERRNoBackgroundSpectrum, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 return;
             }
             SaveFileDialog saveFileDialog = new SaveFileDialog();
@@ -2407,32 +2718,6 @@ namespace BecquerelMonitor
             }
         }
 
-        void EffCalcMCFileToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = Resources.EffCalcMCImportDialogTitle;
-            openFileDialog.Filter = Resources.EffCalcMCFileFilter;
-            openFileDialog.FilterIndex = 1;
-            openFileDialog.RestoreDirectory = true;
-            if (openFileDialog.ShowDialog() != DialogResult.OK)
-            {
-                return;
-            }
-            using (EffCalcMCDialog dialog = new EffCalcMCDialog(this))
-            {
-                dialog.ShowDialog();
-                string roiName = dialog.SendData();
-                if (roiName == null) return;
-                if (this.roiConfigManager.ImportEffCalcMCtoROI(roiName, openFileDialog.FileName))
-                {
-                    if (this.dcControlPanel != null)
-                    {
-                        this.dcControlPanel.UpdateROIConfigList();
-                    }
-                    MessageBox.Show(Resources.ROICreationSucces);
-                }
-            }
-        }
 
         void GBSFileToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -2549,6 +2834,74 @@ namespace BecquerelMonitor
             if (easyControlConfig.DeviceConfigReference != null)
             {
                 easyControlConfig.DeviceConfig = this.deviceConfigManager.DeviceConfigMap[easyControlConfig.DeviceConfigReference.Guid];
+            }
+
+            this.ApplyDeviceConfigToDocuments(e.Guid);
+        }
+
+        /// <summary>
+        /// Сохранение конфигурации прибора — открытым спектрам, которые на ней
+        /// стоят. Так же поступает <see cref="manager_ROIConfigListChanged"/>.
+        ///
+        /// Открытый спектр держит СВОЮ копию: и объекта конфигурации (сохранение
+        /// кладёт в менеджер клон, а документ остаётся при прежнем), и настроек
+        /// поиска пиков (они правятся для одного спектра в панели поиска). Копии
+        /// снимались один раз, при открытии документа, и правка на вкладке
+        /// Analysis до открытого спектра не доходила: на экране оставались пики,
+        /// найденные по старому SNR, а сказать об этом было нечему.
+        ///
+        /// Что спектр не отдаёт — перечислено в
+        /// <see cref="FWHMPeakDetectionMethodConfig.AdoptFrom"/>. Калибровки,
+        /// энергетическая и ПШПВ, здесь тоже не трогаются: они принадлежат
+        /// спектру и подбираются по нему, а перенести их из прибора можно
+        /// нарочно — выбором конфигурации в панели управления измерением.
+        /// </summary>
+        void ApplyDeviceConfigToDocuments(string guid)
+        {
+            DeviceConfigInfo saved;
+            if (string.IsNullOrEmpty(guid)
+                || !this.deviceConfigManager.DeviceConfigMap.TryGetValue(guid, out saved))
+            {
+                // Конфигурацию удалили: подставлять спектру нечего, и пусть он
+                // остаётся при своей копии — по ней он и посчитан.
+                return;
+            }
+
+            bool activeTouched = false;
+            foreach (DocEnergySpectrum document in this.documentManager.DocumentList)
+            {
+                bool touched = false;
+                foreach (ResultData resultData in document.ResultDataFile.ResultDataList)
+                {
+                    if (resultData.DeviceConfigReference == null
+                        || resultData.DeviceConfigReference.Guid != guid)
+                    {
+                        continue;
+                    }
+
+                    resultData.DeviceConfig = saved;
+                    resultData.DeviceConfigReference = saved.CreateReference();
+                    resultData.PeakDetectionMethodConfig = FWHMPeakDetectionMethodConfig.AdoptFrom(
+                        saved.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig,
+                        resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig);
+                    touched = true;
+                }
+
+                if (!touched)
+                {
+                    continue;
+                }
+
+                document.UpdateDetectedPeaks = true;
+                document.UpdateEnergySpectrum();
+                activeTouched |= document == this.activeDocument;
+            }
+
+            if (activeTouched)
+            {
+                // Пересчёт сразу, а не по таймеру: пользователь только что нажал
+                // «Сохранить» и смотрит на этот спектр.
+                this.UpdateDetectedPeakView();
             }
         }
 
@@ -2954,7 +3307,15 @@ namespace BecquerelMonitor
                         {
                             double num6 = (double)energySpectrum.Spectrum[i] / energySpectrum.MeasurementTime;
                             num6 -= (double)(num2 - i) / (double)(num2 - num) * (num3 - num4);
-                            streamWriter.WriteLine(num5 + " " + num6);
+                            // ⛔ В ФАЙЛ — ИНВАРИАНТОМ (`A242`). Оба числа double,
+                            // и склейка со строкой зовёт `ToString()` по культуре
+                            // потока: на русской системе без подмены разделителя
+                            // строка вышла бы «662,3 1,7» — два числа, разделённые
+                            // пробелом, читаются как четыре.
+                            streamWriter.WriteLine(
+                                num5.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                + " "
+                                + num6.ToString(System.Globalization.CultureInfo.InvariantCulture));
                         }
                     }
                 }
@@ -3058,13 +3419,9 @@ namespace BecquerelMonitor
                 return;
             }
             string text = this.LayoutConfigFile();
-            try
-            {
-                this.dockPanel1.SaveAsXml(text);
-            }
-            catch (Exception)
-            {
-            }
+            // Человек здесь на месте и смена раскладки СОТРЁТ нынешнюю с
+            // экрана — об отказе записи говорится сразу (`A13`).
+            this.SaveLayoutXml(text, true);
             this.layoutMode = LayoutMode.UserMode;
             this.UpdateLayoutCheckState();
             text = this.LayoutConfigFile();
@@ -3086,13 +3443,8 @@ namespace BecquerelMonitor
                 return;
             }
             string text = this.LayoutConfigFile();
-            try
-            {
-                this.dockPanel1.SaveAsXml(text);
-            }
-            catch (Exception)
-            {
-            }
+            // То же, что и в пользовательской раскладке (`A13`).
+            this.SaveLayoutXml(text, true);
             this.layoutMode = LayoutMode.ExpertMode;
             this.UpdateLayoutCheckState();
             text = this.LayoutConfigFile();
@@ -3110,6 +3462,158 @@ namespace BecquerelMonitor
         string LayoutConfigFile()
         {
             return userDirectoryLayout + "ExpertMode.xml";
+        }
+
+        /// <summary>
+        /// Записать раскладку панелей — и дать отказу ЧИТАТЕЛЯ. Строка `A13`.
+        ///
+        /// ⛔ ЧТО БЫЛО. Все три места записи — закрытие программы,
+        /// «Пользовательская раскладка», «Экспертная раскладка» — стояли под
+        /// <c>try { this.dockPanel1.SaveAsXml(fileName); } catch (Exception) { }</c>
+        /// с ПУСТЫМ телом. Разложил панели, закрыл программу, запустил снова —
+        /// расстановка прежняя, и узнать почему неоткуда: отказ съеден на
+        /// месте. Причины житейские: файл держит второй экземпляр приложения,
+        /// каталог профиля перенесён политикой, у файла снят доступ на запись.
+        ///
+        /// ⛔ ПОЧЕМУ ПРИ ЗАКРЫТИИ ОКНА НЕТ (<paramref name="canReportNow"/> =
+        /// false), и это не осторожность:
+        ///   * <c>MainForm_FormClosing</c> исполняется и при завершении
+        ///     сеанса Windows (<c>CloseReason.WindowsShutDown</c>). Модальное
+        ///     окно там держит выключение, а система через свой срок убивает
+        ///     приложение — то есть сообщение не прочитает НИКТО, зато
+        ///     выключение встанет;
+        ///   * человек уже нажал «выход»; окно после этого читается как
+        ///     зависание, а не как ответ;
+        ///   * ответить на него в тот миг всё равно нечем: повторять запись
+        ///     некуда, а причина отказа снаружи приложения.
+        ///
+        /// Вместо окна делается ДВА дела, и оба — не для тишины:
+        ///   1. раскладка спасается копией во временный каталог, то есть
+        ///      работа человека не теряется, а получает адрес;
+        ///   2. пишется записка, и её читает СЛЕДУЮЩИЙ ЗАПУСК
+        ///      (<see cref="ReportPendingLayoutFailure"/>) — там окно уместно,
+        ///      и там сказанное уже можно исполнить: снять запрет и вернуть
+        ///      файл на место.
+        ///
+        /// ⚠ Записка и копия ложатся в <c>Path.GetTempPath()</c>, а НЕ рядом с
+        /// файлом раскладки. Причина мерена делом: в опыте отказ вызван именно
+        /// недоступностью того самого файла, и записка рядом с ним легла бы
+        /// ровно с тем же отказом — читатель признака сгинул бы вместе с
+        /// признаком.
+        /// </summary>
+        /// <param name="fileName">куда записать раскладку</param>
+        /// <param name="canReportNow">
+        /// true — человек за экраном и об отказе говорится немедленно;
+        /// false — приложение закрывается, окна нет, отказ уходит запиской.
+        /// </param>
+        /// <returns>true, если запись состоялась</returns>
+        bool SaveLayoutXml(string fileName, bool canReportNow)
+        {
+            try
+            {
+                this.dockPanel1.SaveAsXml(fileName);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (canReportNow)
+                {
+                    AppUi.Report(
+                        string.Format(Resources.LayoutSaveFailed, AppUi.Where(fileName), ex.Message),
+                        Resources.LayoutSaveFailedTitle,
+                        MessageBoxIcon.Warning);
+                }
+                else
+                {
+                    this.RecordLayoutSaveFailure(fileName, ex);
+                }
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Отказ записи раскладки при ЗАКРЫТИИ: спасти раскладку копией и
+        /// оставить записку следующему запуску. Довод — в
+        /// <see cref="SaveLayoutXml"/>.
+        /// </summary>
+        void RecordLayoutSaveFailure(string fileName, Exception cause)
+        {
+            string rescued = null;
+            try
+            {
+                string rescue = Path.Combine(Path.GetTempPath(), "BecqMoni.layout-rescued.xml");
+                this.dockPanel1.SaveAsXml(rescue);
+                rescued = rescue;
+            }
+            catch (Exception)
+            {
+                // Спасти не вышло — тогда записка скажет и об этом тоже.
+                rescued = null;
+            }
+            string text = string.Format(
+                Resources.LayoutSaveFailedOnExit,
+                DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+                AppUi.Where(fileName),
+                cause != null ? cause.Message : "",
+                (rescued != null)
+                    ? string.Format(Resources.LayoutSaveRescued, rescued)
+                    : Resources.LayoutSaveNotRescued);
+            try
+            {
+                File.WriteAllText(this.LayoutFailureNoteFile(), text, Encoding.UTF8);
+            }
+            catch (Exception)
+            {
+                // Не легла и записка: сказать больше нечем и НЕКОМУ — окно при
+                // закрытии не поднимается. Дальше идёт обычное завершение.
+            }
+        }
+
+        /// <summary>
+        /// Записка «раскладка не записалась» — одна на пользователя, во
+        /// временном каталоге (см. <see cref="SaveLayoutXml"/>).
+        /// </summary>
+        string LayoutFailureNoteFile()
+        {
+            return Path.Combine(Path.GetTempPath(), "BecqMoni.layout-not-saved.txt");
+        }
+
+        /// <summary>
+        /// ЧИТАТЕЛЬ записки: сказать при запуске, что прошлое закрытие не
+        /// сумело записать раскладку, и убрать записку. Без него запись при
+        /// закрытии осталась бы признаком без читателя, то есть остатком.
+        ///
+        /// Записка снимается ДО показа: иначе окно, закрытое крестиком или
+        /// отказ удаления, повторяли бы одно и то же сообщение каждый запуск.
+        /// </summary>
+        void ReportPendingLayoutFailure()
+        {
+            string note = this.LayoutFailureNoteFile();
+            string text;
+            try
+            {
+                if (!File.Exists(note))
+                {
+                    return;
+                }
+                text = File.ReadAllText(note, Encoding.UTF8);
+            }
+            catch (Exception)
+            {
+                return;
+            }
+            try
+            {
+                File.Delete(note);
+            }
+            catch (Exception)
+            {
+            }
+            if (string.IsNullOrEmpty(text))
+            {
+                return;
+            }
+            AppUi.Report(text, Resources.LayoutSaveFailedTitle, MessageBoxIcon.Warning);
         }
 
         // Token: 0x06000AB1 RID: 2737 RVA: 0x0003FD20 File Offset: 0x0003DF20
@@ -3201,6 +3705,8 @@ namespace BecquerelMonitor
         DCCountRateView dcCountRateView;
 
         DCFwhmCalibrationView dcCFwhmCalibrationView;
+
+        FSAReportView dcFsaReportView;
 
         NucBase.NucBase nucBaseView;
 

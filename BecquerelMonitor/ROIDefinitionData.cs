@@ -126,6 +126,26 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Считать ли K по кривой эффективности вместо сохранённого числа.
+        ///
+        /// Включено по умолчанию — но сохранённое значение никуда не девается и
+        /// остаётся ЗАПАСНЫМ: пока у спектра не выбрана кривая, считается по
+        /// нему, как считалось всегда. Числа меняются только тогда, когда
+        /// кривую выбрали руками, и это видно.
+        /// </summary>
+        public bool AutoBecquerelCoefficient
+        {
+            get
+            {
+                return this.autoBecquerelCoefficient;
+            }
+            set
+            {
+                this.autoBecquerelCoefficient = value;
+            }
+        }
+
         // Token: 0x17000137 RID: 311
         // (get) Token: 0x060002E5 RID: 741 RVA: 0x0000D7BC File Offset: 0x0000B9BC
         // (set) Token: 0x060002E6 RID: 742 RVA: 0x0000D7C4 File Offset: 0x0000B9C4
@@ -284,6 +304,7 @@ namespace BecquerelMonitor
             this.intencity = roi.intencity;
             this.becquerelCoefficient = roi.becquerelCoefficient;
             this.becquerelCoefficientError = roi.becquerelCoefficientError;
+            this.autoBecquerelCoefficient = roi.autoBecquerelCoefficient;
             this.note = new CDATA(roi.note);
             this.roiPrimitives = new List<ROIPrimitiveData>();
             for (int i = 0; i < roi.roiPrimitives.Count; i++)
@@ -330,6 +351,8 @@ namespace BecquerelMonitor
 
         // Token: 0x04000109 RID: 265
         double becquerelCoefficientError;
+
+        bool autoBecquerelCoefficient = true;
 
         // Token: 0x0400010A RID: 266
         CDATA note = "";

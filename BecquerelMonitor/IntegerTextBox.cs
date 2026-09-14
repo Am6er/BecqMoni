@@ -23,9 +23,18 @@ namespace BecquerelMonitor
                 this.Text = "0";
             }
             int num;
-            if (!int.TryParse(this.Text, out num))
+            // `A244`: разбор ввода человека — инвариантом, с уступкой культуре
+            // системы (см. `UserNumber` в `DoubleTextBox.cs`).
+            if (!UserNumber.TryParseInt(this.Text, out num))
             {
-                MessageBox.Show(Resources.ERRInputInteger, Resources.InvalidValueDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                // ⛔ `A245`, полоса F20 05.09.2026 — то же, что в
+                //    `DoubleTextBox_Validating`: голое модальное окно на
+                //    безоконном пути. Сторож `check_headless.py` этого места
+                //    не называл только потому, что до него не дотягивалась ни
+                //    одна проба; чинится вместе с соседом, иначе одно поле
+                //    ввода из двух осталось бы с окном, а разницы между ними
+                //    нет никакой.
+                AppUi.Report(Resources.ERRInputInteger, Resources.InvalidValueDialogTitle, MessageBoxIcon.Exclamation);
                 base.SelectAll();
                 e.Cancel = true;
             }
@@ -35,7 +44,7 @@ namespace BecquerelMonitor
         public int GetValue()
         {
             int result = 0;
-            int.TryParse(this.Text, out result);
+            UserNumber.TryParseInt(this.Text, out result);
             return result;
         }
     }

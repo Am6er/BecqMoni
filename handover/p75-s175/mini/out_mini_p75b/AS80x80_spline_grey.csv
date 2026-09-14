@@ -1,0 +1,5 @@
+﻿spectrum,det,part,matrix_applied,grey_below_floor,grey_above_lines,grey_pct,spread_floor_kev,spread_floor_ch,residual_floor_kev,residual_floor_ch,first_ch,last_ch,stack_total,missing_pct,excess_pct
+AS80_Th232Medal,AS80x80,known,1,0.0,0.0,0.000,0.0,0,30.0,117,66,8190,24802569.7,6.726,4.624
+AS80_Th232WT20,AS80x80,unknown,0,0.0,17468.8,0.038,0.0,0,30.0,99,69,8190,46005544.7,6.193,7.390
+AS80_Cs137_0cm,AS80x80,known,1,0.0,28219.9,0.358,0.0,0,30.0,92,66,8190,7884621.8,4.228,2.550
+AS80_Lu176,AS80x80,known,1,0.0,5501.5,0.631,0.0,0,30.0,104,64,8190,871384.5,4.659,10.336

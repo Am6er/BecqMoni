@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -399,6 +399,12 @@
   <data name="ShowConToolStripMenuItem.Text" xml:space="preserve">
     <value>Show Continuum with peaks</value>
   </data>
+  <data name="ShowFsaToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>310, 22</value>
+  </data>
+  <data name="ShowFsaToolStripMenuItem.Text" xml:space="preserve">
+    <value>Show FSA (full-spectrum decomposition)</value>
+  </data>
   <data name="NormByEffToolStripMenuItem.Enabled" type="System.Boolean, mscorlib">
     <value>False</value>
   </data>
@@ -703,7 +709,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;toolStripContainer1.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>0</value>
   </data>
   <metadata name="contextMenuStrip1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>227, 17</value>
@@ -733,7 +739,7 @@
     <value>496, 22</value>
   </data>
   <data name="setUpperThresholdHToolStripMenuItem.Text" xml:space="preserve">
-    <value>Set the upper threshold limit from the position of the cursor on the spectrum(&amp;Н)</value>
+    <value>Set the upper threshold limit from the position of the cursor on the spectrum(&amp;H)</value>
   </data>
   <data name="toolStripMenuItem2.Size" type="System.Drawing.Size, System.Drawing">
     <value>203, 22</value>

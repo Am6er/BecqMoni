@@ -1,0 +1,127 @@
+=== 0-30 кэВ ===
+                       А (HEAD)     Б (правка)
+net                       14800          14800
+fit                           0          14800
+model                      1044           1044
+net-model                 13757          13757
+fit-model                 -1044          13757
+continuum_raw              1035           1035
+untied_tail               15780          15780
+Ac-228                      343              0
+Bi-212                       61              9
+Pb-212                      420              0
+Ra-224                       21              0
+Rn-220                        0              0
+Th-228                        9              0
+Th-232                        2              0
+Tl-208                      187              0
+continuum                     0           1035
+=== 30-40 кэВ ===
+                       А (HEAD)     Б (правка)
+net                        1040           1040
+fit                           0           1027
+model                      1903           1903
+net-model                  -863           -863
+fit-model                 -1903           -875
+continuum_raw              1877           1877
+untied_tail                 232            232
+Ac-228                      631              4
+Bi-212                      103             21
+Pb-212                      767              0
+Ra-224                       39              0
+Rn-220                        1              0
+Th-228                       17              0
+Th-232                        3              0
+Tl-208                      342              0
+continuum                     0           1877
+=== 40-64 кэВ ===
+                       А (HEAD)     Б (правка)
+net                        9727           9727
+fit                           0           9727
+model                      8336           8336
+net-model                  1392           1392
+fit-model                 -8336           1392
+continuum_raw              8215           8215
+untied_tail                   0              0
+Ac-228                     2773             58
+Bi-212                      279             34
+Pb-212                     3468             19
+Ra-224                      178              0
+Rn-220                        2              0
+Th-228                       78              0
+Th-232                       14              1
+Tl-208                     1544              9
+continuum                     0           8215
+=== 64-100 кэВ ===
+                       А (HEAD)     Б (правка)
+net                       18646          18646
+fit                           0          18619
+model                     15725          15725
+net-model                  2921           2921
+fit-model                -15725           2894
+continuum_raw             15099          15099
+untied_tail                   0              0
+Ac-228                     5509             88
+Bi-212                      452              4
+Pb-212                     6119            461
+Ra-224                      371              7
+Rn-220                        5              0
+Th-228                      144             16
+Th-232                        8              3
+Tl-208                     3118             48
+continuum                     0          15099
+=== 30-100 кэВ ===
+                       А (HEAD)     Б (правка)
+net                       29414          29414
+fit                           0          29374
+model                     25964          25964
+net-model                  3450           3450
+fit-model                -25964           3410
+continuum_raw             25192          25192
+untied_tail                 232            232
+Ac-228                     8912            150
+Bi-212                      834             59
+Pb-212                    10354            480
+Ra-224                      588              7
+Rn-220                        8              0
+Th-228                      240             16
+Th-232                       25              4
+Tl-208                     5004             57
+continuum                     0          25192
+=== 100-230 кэВ ===
+                       А (HEAD)     Б (правка)
+net                        1678           1678
+fit                           0          -6962
+model                      5678           5678
+net-model                 -4000          -4000
+fit-model                 -5678         -12640
+continuum_raw              5233           5233
+untied_tail                   0              0
+Ac-228                     2249           2249
+Bi-212                      197            197
+Pb-212                     1738           1738
+Ra-224                      150            150
+Rn-220                        2              2
+Th-228                       25             25
+Th-232                        1              1
+Tl-208                     1314           1314
+continuum                     0              0
+=== 230-3000 кэВ ===
+                       А (HEAD)     Б (правка)
+net                        9486           9486
+fit                           0           1303
+model                      4162           4162
+net-model                  5324           5324
+fit-model                 -4162          -2859
+continuum_raw              2945           2945
+untied_tail                   0              0
+Ac-228                     1323           1323
+Bi-212                      162            162
+Pb-212                      532            532
+Ra-224                       47             47
+Rn-220                        1              1
+Th-228                        0              0
+Th-232                        0              0
+Tl-208                     2096           2096
+continuum                     0              0
+тождество стека max|Σ слоёв − model|: А 3.000e-03 (8 слоёв), Б 3.000e-03 (9 слоёв)

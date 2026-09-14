@@ -695,12 +695,12 @@ namespace XPTable.Renderers
             string text;
             if (cellData is ushort || cellData is uint || cellData is ulong)
             {
-                ulong value = Convert.ToUInt64(cellData);
+                ulong value = Convert.ToUInt64(cellData, CultureInfo.InvariantCulture);
                 text = value.ToString(format, formatProvider);
             }
             else if (cellData is short || cellData is int || cellData is long)
             {
-                long value = Convert.ToInt64(cellData);
+                long value = Convert.ToInt64(cellData, CultureInfo.InvariantCulture);
                 text = value.ToString(format, formatProvider);
             }
             else

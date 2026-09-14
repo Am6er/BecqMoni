@@ -3,6 +3,7 @@ using MathNet.Numerics;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
@@ -56,9 +57,29 @@ namespace BecquerelMonitor.Utils
         // сравнения методов (переключается флагом в конфиге детекции).
         public double FindCentroid(EnergySpectrum energySpectrum, int centroid, int low_boundary, int high_boundary, bool useCenterOfMass = true)
         {
-            int[] spectrum = energySpectrum.Spectrum;
+            int[] source = energySpectrum.Spectrum;
+            double[] counts = new double[source.Length];
+            for (int i = 0; i < source.Length; i++)
+            {
+                counts[i] = source[i];
+            }
+
+            return FindCentroid(counts, energySpectrum.NumberOfChannels, centroid,
+                                low_boundary, high_boundary, useCenterOfMass);
+        }
+
+        /// <summary>
+        /// То же по ГОТОВЫМ отсчётам (`A45`) — для видов, где нарисованное не
+        /// лежит в `EnergySpectrum`: в режиме FSA центроид выделенного пика обязан
+        /// считаться по спектру ЗА ВЫЧЕТОМ ФОНА, иначе фон тянет центр масс на
+        /// себя.
+        /// </summary>
+        public double FindCentroid(double[] spectrum, int numberOfChannels, int centroid, int low_boundary, int high_boundary, bool useCenterOfMass = true)
+        {
+            if (spectrum == null) return low_boundary;
             if (low_boundary < 0) low_boundary = 0;
-            if (high_boundary >= energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
+            if (high_boundary >= numberOfChannels) high_boundary = numberOfChannels - 1;
+            if (high_boundary >= spectrum.Length) high_boundary = spectrum.Length - 1;
             if (high_boundary <= low_boundary)
             {
                 return low_boundary;
@@ -80,11 +101,11 @@ namespace BecquerelMonitor.Utils
 
             // Вершина и фон (минимум) в окне.
             int apex = low_boundary;
-            int apexCounts = spectrum[low_boundary];
-            int bg = spectrum[low_boundary];
+            double apexCounts = spectrum[low_boundary];
+            double bg = spectrum[low_boundary];
             for (int i = low_boundary; i <= high_boundary; i++)
             {
-                int v = spectrum[i];
+                double v = spectrum[i];
                 if (v > apexCounts) { apexCounts = v; apex = i; }
                 if (v < bg) { bg = v; }
             }
@@ -149,6 +170,23 @@ namespace BecquerelMonitor.Utils
         /// <param name="y1"></param>
         /// <param name="y2"></param>
         /// <returns></returns>
+        /// <summary>
+        /// То же по ДРОБНЫМ точкам (`A45`). Спектр за вычетом фона живёт в
+        /// `double`, и подложка под пиком там тоже дробная; целочисленный вход
+        /// ниже остаётся для сырых отсчётов и считает ровно как раньше.
+        /// </summary>
+        public static double getY(double X, double x1, double x2, double y1, double y2)
+        {
+            if (x1 - x2 != 0.0)
+            {
+                double k = (y1 - y2) / (x1 - x2);
+                double b = y1 - k * x1;
+                return k * X + b;
+            }
+
+            return 0.0;
+        }
+
         public static double getY(int X, int x1, int x2, int y1, int y2)
         {
             if (x1 - x2 != 0)
@@ -163,6 +201,29 @@ namespace BecquerelMonitor.Utils
             }
         }
 
+        /// <summary>
+        /// ⛔ Оба сообщения этого метода ВЕШАЛИ БЕЗОКОННЫЙ ПРОГОН (`S100`).
+        /// Измерено 27.08.2026 на собранном коде: плечи `combine-badcal` и
+        /// `combine-channels` — процесс убит по сроку 20 с, класс окна
+        /// <c>#32770</c>, заголовок пуст (это <c>MessageBox.Show(text)</c> об
+        /// одном доводе). Оба идут теперь единственной дверью
+        /// <see cref="AppUi"/>, но РАЗНЫМИ путями, и разница здесь смысловая.
+        ///
+        /// ⚠ Испорченная калибровка прибавляемого спектра — УВЕДОМЛЕНИЕ, не
+        /// отказ: строкой ниже стоит <c>|| !checkCalibration</c>, то есть
+        /// поканальное сложение — заранее объявленный запасной путь, и сам
+        /// текст ресурса обещает именно его («channel by channel combine method
+        /// will be used»). Результат определён и полон, считать дальше можно,
+        /// поэтому без окон довольно строки в поток ошибок.
+        ///
+        /// ⛔ Разное число каналов — ОТКАЗ: сложения не было вовсе, метод
+        /// возвращает главный спектр НЕТРОНУТЫМ, а единственный вызывающий
+        /// (<c>MainForm.CombineSpectrums</c>) сразу ставит <c>Dirty</c> и
+        /// перерисовывает виды. В окнах человек читает «выберите подходящий
+        /// файл» и понимает, что ничего не произошло; без окон это молчаливое
+        /// «сложил» с прежними числами — ровно тот случай, где продолжение
+        /// хуже зависания, потому что даёт ЧИСЛА.
+        /// </summary>
         public DocEnergySpectrum CombineWith(DocEnergySpectrum docenergySpectrum)
         {
             EnergySpectrum mainSpectrum = this.MainSpectrum.ActiveResultData.EnergySpectrum;
@@ -174,7 +235,8 @@ namespace BecquerelMonitor.Utils
                 bool checkCalibration = CombinedSpectrumEnergyCalibration.CheckCalibration(addedSpectrum.NumberOfChannels);
                 if (!checkCalibration)
                 {
-                    MessageBox.Show(String.Format(Resources.ERRCombineBadCalibratedSpectra, docenergySpectrum.Filename));
+                    AppUi.Report(String.Format(Resources.ERRCombineBadCalibratedSpectra, docenergySpectrum.Filename),
+                        Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
                 }
                 // Count what is ACTUALLY added to the array so that the totals stay
                 // consistent with it. The old code zeroed the last channel of the SOURCE
@@ -249,7 +311,20 @@ namespace BecquerelMonitor.Utils
                 this.MainSpectrum.ActiveResultData.ResultDataStatus.TotalTime += docenergySpectrum.ActiveResultData.ResultDataStatus.TotalTime;
             } else
             {
-               MessageBox.Show(Resources.CombineIncorrectChannels);
+                // Отказ, а не уведомление: см. примечание к методу. Без окон
+                // читатель у отказа — код возврата пробы; с окнами всё как
+                // было, и человеку есть что нажать.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: spectra cannot be combined and there is no UI to report it to: the main spectrum has "
+                        + mainSpectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture)
+                        + " channels, the added one "
+                        + addedSpectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture)
+                        + ". Nothing was added; continuing would return the UNCHANGED main spectrum, and the caller "
+                        + "cannot tell that from a successful combine. " + Resources.CombineIncorrectChannels);
+                }
+                AppUi.Report(Resources.CombineIncorrectChannels, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
             }
 
             return this.MainSpectrum;
@@ -301,22 +376,23 @@ namespace BecquerelMonitor.Utils
             return substractedEnergySpectrum;
         }
 
-        public static EnergySpectrum NormalizeSpectrum(EnergySpectrum spectrum, ROIConfigData roi)
+        /// <summary>
+        /// Спектр, поделённый на эффективность поканально. Кривая приходит СВОЯ
+        /// у спектра: раньше её брали из набора зон, но кривая оттуда уехала в
+        /// конфигурацию прибора, и набор зон о ней больше ничего не знает.
+        /// </summary>
+        public static EnergySpectrum NormalizeSpectrum(EnergySpectrum spectrum, EfficiencyConfigData efficiency)
         {
             EnergySpectrum normalizedSpectrum = spectrum.Clone();
-            if (roi == null)
+            FullSpectrumAnalysis.FsaEfficiency curve =
+                FullSpectrumAnalysis.FsaEfficiency.FromConfig(efficiency);
+            if (curve == null)
             {
                 return normalizedSpectrum;
             }
 
-            ROIAriphmetics roiAriphmetics = new ROIAriphmetics(roi);
-            if (!roiAriphmetics.HasValidCurve)
-            {
-                return normalizedSpectrum;
-            }
-
-            int minChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(roiAriphmetics.MinEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
-            int maxChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(roiAriphmetics.MaxEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
+            int minChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(curve.MinEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
+            int maxChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(curve.MaxEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
             normalizedSpectrum.TotalPulseCount = 0;
             Parallel.For(0, normalizedSpectrum.NumberOfChannels, i =>
             {
@@ -327,10 +403,10 @@ namespace BecquerelMonitor.Utils
                 else
                 {
                     double enrg = normalizedSpectrum.EnergyCalibration.ChannelToEnergy(i);
-                    ROIEfficiencyData effData = roiAriphmetics.CalculateEfficiency(enrg);
-                    if (effData != null && effData.Efficiency > 0)
+                    double eps, errorPercent;
+                    if (curve.TryEval(enrg, out eps, out errorPercent) && eps > 0)
                     {
-                        double normChannelValue = normalizedSpectrum.Spectrum[i] / effData.Efficiency;
+                        double normChannelValue = normalizedSpectrum.Spectrum[i] / eps;
                         if (normChannelValue < 0 || normChannelValue >= int.MaxValue) 
                         { 
                             normalizedSpectrum.Spectrum[i] = 0; 
@@ -931,14 +1007,6 @@ namespace BecquerelMonitor.Utils
         public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum)
         {
             double amplitude = this.EnergySpectrum.Spectrum[peak.Channel] - continuum.Spectrum[peak.Channel];
-            if (peak != null &&
-                peak.PeakSearchOrigin == PeakSearchOrigin.RJMCMC &&
-                peak.DeconvolutionInfo != null &&
-                IsFinite(peak.DeconvolutionInfo.Amplitude) &&
-                peak.DeconvolutionInfo.Amplitude > 0.0)
-            {
-                amplitude = peak.DeconvolutionInfo.Amplitude;
-            }
             double fwhm = peak.FWHM;
             int median = peak.Channel;
             if (!IsFinite(fwhm) || fwhm <= 0.0)
@@ -1360,10 +1428,64 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
+        /// <summary>
+        /// НАЗВАТЬ ПРИЧИНУ, ПО КОТОРОЙ КАЛИБРОВКУ СПЕКТРА ВЗЯТЬ НЕЛЬЗЯ (`A114`).
+        /// </summary>
+        /// <remarks>
+        /// ⛔ Двери этого класса берут калибровку жёстким приведением
+        /// <c>(PolynomialEnergyCalibration)</c> и отдают её копирующему
+        /// конструктору без единой проверки. Спектр без калибровки давал здесь
+        /// БЕЗЫМЯННЫЙ <c>NullReferenceException</c> — тот же, что жил в
+        /// <see cref="EnergySpectrum.Clone"/> до `A95`, только в другой двери;
+        /// спектр с калибровкой другого вида — голый
+        /// <c>InvalidCastException</c>, не называющий ни двери, ни спектра.
+        ///
+        /// ⚠ Причина называется здесь, а НЕ у каждого потребителя, по той же
+        /// причине, по какой у приложения одна дверь
+        /// <see cref="AppUi.Reason"/>: второго соглашения о том, как называется
+        /// причина, быть не должно.
+        ///
+        /// ⚠ Подставить калибровку взамен отсутствующей нельзя — единственное,
+        /// что можно подставить, это <c>new PolynomialEnergyCalibration()</c>,
+        /// то есть объявить номер канала энергией (`A95`).
+        ///
+        /// <paramref name="door"/> — имя двери: без него сообщение не говорит,
+        /// ГДЕ это случилось, а дверей с таким приведением в классе несколько.
+        /// </remarks>
+        static PolynomialEnergyCalibration PolynomialOf(EnergySpectrum spectrum, string door)
+        {
+            EnergyCalibration calibration = spectrum.EnergyCalibration;
+            if (calibration == null)
+            {
+                throw new InvalidOperationException(
+                    "SpectrumAriphmetics." + door + ": у спектра нет энергетической"
+                    + " калибровки (EnergyCalibration == null, каналов "
+                    + spectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture)
+                    + "). Обрезать нечего: без шкалы"
+                    + " энергии у краёв нет смысла, а подставить калибровку значило"
+                    + " бы объявить номер канала энергией.");
+            }
+
+            PolynomialEnergyCalibration polynomial = calibration as PolynomialEnergyCalibration;
+            if (polynomial == null)
+            {
+                throw new InvalidOperationException(
+                    "SpectrumAriphmetics." + door + ": калибровка спектра — "
+                    + calibration.GetType().Name + " (каналов "
+                    + spectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture)
+                    + "), а здесь умеют только PolynomialEnergyCalibration: обрезка"
+                    + " пересчитывает коэффициенты многочлена, и у калибровки другого"
+                    + " вида их попросту нет.");
+            }
+
+            return polynomial;
+        }
+
         public static EnergySpectrum CutoffSpectrumChannels(EnergySpectrum energySpectrum, int newChan)
         {
+            PolynomialEnergyCalibration source = PolynomialOf(energySpectrum, "CutoffSpectrumChannels");
             EnergySpectrum newSpectrum = new EnergySpectrum(energySpectrum.ChannelPitch, newChan);
-            PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration((PolynomialEnergyCalibration)energySpectrum.EnergyCalibration);
+            PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration(source);
             newSpectrum.EnergyCalibration = calibration;
             newSpectrum.NumberOfChannels = newChan;
             Array.Copy(energySpectrum.Spectrum, newSpectrum.Spectrum, newChan);

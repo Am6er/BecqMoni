@@ -1,0 +1,5 @@
+проба : C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\aebc304d-5735-4e42-96c6-4bf53152b58d\scratchpad\geom_after
+корпус: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries
+.in: у пробы 44, в корпусе 44, побитово равных 44, разных 0, только у пробы 0, только в корпусе 0
+index.csv: ПОБАЙТНО РАВНЫ, 10547 байт, строк 83
+ИТОГ: СОШЛОСЬ

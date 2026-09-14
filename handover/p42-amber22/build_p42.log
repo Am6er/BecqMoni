@@ -1,0 +1,7 @@
+start 10:55:47 tag=p42 commit=60a2a5d5
+10:55:50 msbuild  exit=0 (2 s)
+  exe: 11342848 байт, 13.09.2026 10:55:49, sha256 1AE1D69173870E70
+10:56:56 probes   exit=0 (66 s)
+  sha256 exe проб = приложения: True
+  FsaStackShot.exe sha256 1FDCAF12E5A8DE46
+СБОРКА ПРОШЛА

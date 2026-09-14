@@ -1,0 +1,12 @@
+out_p51_full_a   corpus=3d61851a7999384f (206 файлов) sources=d66010e840f0baa7 (558) head=391f9b71d7f85f040bc7164cc68eed4e77cac4b3 dirty=85: []
+     fields = {'app_sha': '6387907f5951377880a97df60297591201b32e4c14aab382e2d2871a58ca2045', 'bin': 'C:\\Users\\m
+     written = 2026-09-14 01:27:20
+out_p51_mini_a   corpus=3d61851a7999384f (206 файлов) sources=d66010e840f0baa7 (558) head=391f9b71d7f85f040bc7164cc68eed4e77cac4b3 dirty=85: []
+     fields = {'app_sha': '6387907f5951377880a97df60297591201b32e4c14aab382e2d2871a58ca2045', 'bin': 'C:\\Users\\m
+     written = 2026-09-14 01:27:28
+out_rev22_full   corpus=3d61851a7999384f (206 файлов) sources=d66010e840f0baa7 (558) head=391f9b71d7f85f040bc7164cc68eed4e77cac4b3 dirty=85: []
+     fields = {'app_sha': '6387907f5951377880a97df60297591201b32e4c14aab382e2d2871a58ca2045', 'bin': 'C:\\Users\\m
+     written = 2026-09-14 01:28:16
+out_rev22_mini   corpus=3d61851a7999384f (206 файлов) sources=d66010e840f0baa7 (558) head=391f9b71d7f85f040bc7164cc68eed4e77cac4b3 dirty=85: []
+     fields = {'app_sha': '6387907f5951377880a97df60297591201b32e4c14aab382e2d2871a58ca2045', 'bin': 'C:\\Users\\m
+     written = 2026-09-14 01:28:25

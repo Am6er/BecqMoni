@@ -1,0 +1,15 @@
+Файлы в этом каталоге взяты из InterSpec (Sandia National Laboratories):
+
+  gadras/*                     — data/GenericGadrasDetectors/*
+  common_drfs.tsv              — data/common_drfs.tsv
+  NuclideSearchCatagories.xml  — data/NuclideSearchCatagories.xml
+
+Copyright 2018 National Technology & Engineering Solutions of Sandia, LLC
+(NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S.
+Government retains certain rights in this software.
+
+Условия — LGPL v2.1, полный текст в LICENSE-InterSpec.txt. Пункт 3 лицензии
+разрешает распространять эти файлы на условиях GPL, под которой идёт наш
+репозиторий.
+
+Источник: https://github.com/sandialabs/InterSpec

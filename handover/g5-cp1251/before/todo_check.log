@@ -1,0 +1,10 @@
+usage: todo_check.py [-h] [--todo TODO] [--tally] [--series SERIES] snapshot
+
+positional arguments:
+  snapshot
+
+options:
+  -h, --help       show this help message and exit
+  --todo TODO
+  --tally
+  --series SERIES  считать только эту серию, напр. A

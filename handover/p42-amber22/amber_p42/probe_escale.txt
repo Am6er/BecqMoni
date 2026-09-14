@@ -1,0 +1,34 @@
+BecqMoni: main config: C:\Users\moroz\bqp42_amber\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\bqp42_amber\config\device: 9 loaded
+BecqMoni: nuclide library: C:\Users\moroz\bqp42_amber\config\NuclideDefinition.xml: 34 entries
+SETUP	прибор: Atom Spectra 80x80
+SETUP	SNR=10	допуск=20	диапазон=15…2800 кэВ	мёртвое=1.357E-06 с
+SETUP	найдено пиков: 16
+состав: выведено из пиков: 13 из 16 подписаны, родителей 2 из 4, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; K-40 100 % (1/1, пиков 1) — доля выше порога; Th-232 53 % (8/15, пиков 8) — доля выше порога; Ba-131 17 % (1/6, пиков 1) — доля ниже порога; Ra-226 15 % (2/13, пиков 2) — доля ниже порога; оборванный ряд: подцепочка разобрана у 0 кандидатов
+SETUP	против поставочного разбора изменено: CoincidenceWindowSec 0 → 1.35714285714286E-06; MinEnergy 40 → 15; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → NaI:Tl
+шкала: усиление 1.007928, сдвиг -16.526 канала
+chi2/ndf 2.059, невязка модели 12.0 %, суммирование да
+отсев по значимости: ПРИМЕНЁН, порог 3.0000 = min(абс 3, доля 0.3 от вершины), судимых 10 (отсеяно 7), наибольшая значимость 225.71
+ROW	Ac-228	Single	36.745	Th-232
+ROW	Tl-208	Single	27.465	Th-232
+ROW	Pb-212	Single	18.857	Th-232
+ROW	Bi-212	Single	4.908	Th-232
+ROW	Ra-224	Single	1.488	Th-232
+ROW	Th-228	Single	0.224	Th-232
+ROW	Rn-220	Single	0.040	Th-232
+ROW	Th-232	Single	0.013	Th-232
+ROW	Xray-Pb	Nuisance	8.106	-
+ROW	Xray-Th	Nuisance	2.154	-
+CUT	Esc-NaI	Nuisance	z=0.00
+CUT	K-40	Single	z=1.60
+CUT	Xray-Ba	Nuisance	z=0.00
+CUT	Xray-La	Nuisance	z=0.00
+CUT	Xray-Pb-L	Nuisance	z=0.00
+CUT	Xray-Th-L	Nuisance	z=0.00
+CUT	pile-up	Nuisance	z=0.00
+отрисовано: True
+строка состояния на графике: «»
+отчёт: строк в таблице 26
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p42-amber22\amber_p42\escale\stack.png: 15–2800 кэВ, потолок 3733, шкала pow
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p42-amber22\amber_p42\escale\dump.csv: 8192 каналов, колонок слоёв 10
+nnls-dump: вызовов 19, записано целиком 1, код снимка 0, каталог C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p42-amber22\amber_p42\escale

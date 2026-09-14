@@ -18,7 +18,7 @@ namespace BecquerelMonitor
 
         static Control CreateControlInstance()
         {
-            return new NumericUpDown();
+            return new InvariantNumericUpDown();
         }
 
         [Browsable(false)]

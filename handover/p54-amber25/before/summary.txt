@@ -1,0 +1,9 @@
+MakerSaveProbe : exit=0  1 s
+CalcRestoreProbe : exit=1  1 s
+GeometryLayoutProbe : exit=0  5 s
+FwhmReaderProbeF62 : exit=0  1 s
+BoundProbeF59 : exit=1  2 s
+ChainProbe : exit=0  1 s
+XrayLinesProbe : exit=0  0 s
+CurveGenerationProbe : exit=0  0 s
+DoseRateFromCurveProbe : exit=1  1 s

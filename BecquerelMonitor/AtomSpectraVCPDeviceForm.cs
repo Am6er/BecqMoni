@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.IO.Ports;
 using System.Text;
 using System.Windows.Forms;
@@ -29,7 +30,7 @@ namespace BecquerelMonitor
         private void Button1_Click(object sender, EventArgs e)
         {
             fillPorts();
-            TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
+            TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem, CultureInfo.InvariantCulture));
         }
 
         private void deadTimeBtn_Click(object sender, EventArgs e)
@@ -39,7 +40,7 @@ namespace BecquerelMonitor
                 AtomSpectraVCPIn device = null;
                 string temporaryGuid = null;
                 string comPort = comPortsBox.SelectedItem.ToString();
-                int baudRate = int.Parse(baudratesBox.SelectedItem.ToString());
+                int baudRate = int.Parse(baudratesBox.SelectedItem.ToString(), CultureInfo.InvariantCulture);
 
                 device = AtomSpectraVCPIn.findByPort(comPort);
                 if (device == null)
@@ -50,11 +51,11 @@ namespace BecquerelMonitor
                 }
                 device.sendCommand("-inf");
                 string[] output = device.getCommandOutput(2000).Split(' ');
-                int rise = int.Parse(output[3]);
-                int fall = int.Parse(output[5]);
-                double f = double.Parse(output[9]);
+                int rise = int.Parse(output[3], CultureInfo.InvariantCulture);
+                int fall = int.Parse(output[5], CultureInfo.InvariantCulture);
+                double f = double.Parse(output[9], CultureInfo.InvariantCulture);
                 this.deadTime = ((double)rise + (double)fall + 1.0) / f;
-                this.deadTimeLbl.Text = String.Format(Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
+                this.deadTimeLbl.Text = String.Format(CultureInfo.InvariantCulture, Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
                 SetActiveDeviceConfigDirty();
                 if (temporaryGuid != null)
                 {
@@ -98,7 +99,7 @@ namespace BecquerelMonitor
                     if (this.ComPort != null)
                     {
                         comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
-                        baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
+                        baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString(CultureInfo.InvariantCulture));
                     } else
                     {
                         this.ComPort = "-------";
@@ -116,14 +117,14 @@ namespace BecquerelMonitor
 
             comPortsBox.Items.Add(this.ComPort);
             comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
-            baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
+            baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString(CultureInfo.InvariantCulture));
         }
 
         private void ComPortsBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (comPortsBox.SelectedItem != null && baudratesBox.SelectedItem != null && !this.formLoading)
             {
-                TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
+                TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem, CultureInfo.InvariantCulture));
                 SetActiveDeviceConfigDirty();
             }
         }
@@ -132,7 +133,7 @@ namespace BecquerelMonitor
         {
             if (comPortsBox.SelectedItem != null && baudratesBox.SelectedItem != null && !this.formLoading)
             {
-                TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
+                TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem, CultureInfo.InvariantCulture));
                 SetActiveDeviceConfigDirty();
             }
         }
@@ -182,7 +183,7 @@ namespace BecquerelMonitor
             this.BaudRate = atomSpectraVCPInputDevice.BaudRate;
             fillPorts();
             this.deadTime = atomSpectraVCPInputDevice.DeadTimeValue;
-            this.deadTimeLbl.Text = String.Format(Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
+            this.deadTimeLbl.Text = String.Format(CultureInfo.InvariantCulture, Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
             this.formLoading = false;
             TestConnection(this.ComPort, this.BaudRate);
         }
@@ -196,7 +197,7 @@ namespace BecquerelMonitor
                 if (comPortsBox.Items.Count > 0 && comPortsBox.SelectedItem != null)
                 {
                     atomSpectraVCPInputDevice.ComPortName = comPortsBox.SelectedItem.ToString();
-                    atomSpectraVCPInputDevice.BaudRate = int.Parse(baudratesBox.SelectedItem.ToString());
+                    atomSpectraVCPInputDevice.BaudRate = int.Parse(baudratesBox.SelectedItem.ToString(), CultureInfo.InvariantCulture);
                     atomSpectraVCPInputDevice.DeadTimeValue = deadTime;
                 }
                 else
@@ -227,7 +228,7 @@ namespace BecquerelMonitor
                     AtomSpectraVCPIn device = null;
                     string temporaryGuid = null;
                     string comPort = comPortsBox.SelectedItem.ToString();
-                    int baudRate = int.Parse(baudratesBox.SelectedItem.ToString());
+                    int baudRate = int.Parse(baudratesBox.SelectedItem.ToString(), CultureInfo.InvariantCulture);
 
                     device = AtomSpectraVCPIn.findByPort(comPort);
                     if (device == null)
@@ -252,9 +253,21 @@ namespace BecquerelMonitor
             }
         }
 
-        (int, string) TestSerialNumber(string comPort, int baudRate)
+        /// <summary>
+        /// Опросить прибор на этом порту. Третьим отдаётся ПРИЧИНА отказа —
+        /// пустая строка, если отказа не было.
+        ///
+        /// ⛔ `A15`, разряд 1. Прежде отказ уходил только в
+        /// <c>Trace.WriteLine</c>, у которого читателя не было, а наружу
+        /// возвращалось состояние −1 — та же самая «Unknown», что и у прибора,
+        /// ответившего невнятицей. Человек видел красную подпись без единого
+        /// слова о том, ПОЧЕМУ не вышло: «порт занят другой программой» и
+        /// «прибор не отвечает» выглядели одинаково.
+        /// </summary>
+        (int, string, string) TestSerialNumber(string comPort, int baudRate)
         {
             string returnvalue = null;
+            string failure = null;
             int returnstatus = -1;
             AtomSpectraVCPIn device = null;
             string temporaryGuid = null;
@@ -264,8 +277,8 @@ namespace BecquerelMonitor
                 if (device != null && device.BaudRate != baudRate)
                 {
                     returnstatus = 1;
-                    returnvalue = device.BaudRate.ToString();
-                    return (returnstatus, returnvalue);
+                    returnvalue = device.BaudRate.ToString(CultureInfo.InvariantCulture);
+                    return (returnstatus, returnvalue, failure);
                 }
                 if (device == null)
                 {
@@ -277,7 +290,7 @@ namespace BecquerelMonitor
                 String result = device.getCommandOutput(2000);
                 string[] separator = new string[] { "\r\n" };
                 string[] result_arr = result.Split(separator, StringSplitOptions.None);
-                Trace.WriteLine("result -cal array, size: " + result_arr.Length);
+                Trace.WriteLine("result -cal array, size: " + result_arr.Length.ToString(CultureInfo.InvariantCulture));
                 if (result_arr.Length > 2)
                 {
                     returnvalue = result_arr[result_arr.Length - 2];
@@ -292,9 +305,36 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 Trace.WriteLine(ex.Message + " " + ex.StackTrace);
+                // ⛔ `A15`. Причина отказа больше не остаётся в следе, у
+                //    которого нет читателя: её уносят наружу и приписывают к
+                //    красной подписи (`StatusReasonTail`).
+                failure = ex.Message;
             }
             Trace.WriteLine("Return value: " + returnvalue);
-            return (returnstatus, returnvalue);
+            return (returnstatus, returnvalue, failure);
+        }
+
+        /// <summary>
+        /// Хвост подписи о состоянии прибора: причина, по которой опрос не
+        /// удался. Пустая строка, когда причины нет, — подпись остаётся
+        /// прежней.
+        ///
+        /// ⚠ Метод отдельный и статический НАРОЧНО: только так его берёт проба
+        /// приёмки, не поднимая формы (тот же приём, что у
+        /// <c>RadiaCodeDeviceForm.ReportBtEnableFailure</c>).
+        ///
+        /// ⚠ Здесь строка, а не окно, и это не смягчение: <c>TestConnection</c>
+        /// зовётся ещё и из <see cref="LoadFormContents"/>, то есть при КАЖДОМ
+        /// открытии настройки прибора, — модальное окно вставало бы поперёк
+        /// человека, зашедшего поменять совсем другое поле.
+        /// </summary>
+        internal static string StatusReasonTail(string reason)
+        {
+            if (string.IsNullOrEmpty(reason))
+            {
+                return string.Empty;
+            }
+            return Environment.NewLine + string.Format(Resources.VCPDeviceStatusReason, reason);
         }
 
         void TestConnection(string comPort, int baudRate)
@@ -307,17 +347,18 @@ namespace BecquerelMonitor
             this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusTesting);
 
             string serialNumber = null;
+            string failure = null;
             int status = -2;
 
             BackgroundWorker worker = new BackgroundWorker();
             worker.DoWork += new DoWorkEventHandler(delegate (object o, DoWorkEventArgs args)
             {
-                (status, serialNumber) = TestSerialNumber(comPort, baudRate);
+                (status, serialNumber, failure) = TestSerialNumber(comPort, baudRate);
             });
 
             worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(delegate (object o, RunWorkerCompletedEventArgs args)
             {
-                Trace.WriteLine("Got status: " + status.ToString());
+                Trace.WriteLine("Got status: " + status.ToString(CultureInfo.InvariantCulture));
                 switch (status)
                 {
                     case 0:
@@ -328,7 +369,11 @@ namespace BecquerelMonitor
                         break;
                     case -1:
                         this.label3.ForeColor = Color.Red;
-                        this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusUnknown);
+                        // ⛔ `A15`. К «Unknown» приписывается ПРИЧИНА, если она
+                        //    известна: без неё отказ прибора и отказ порта
+                        //    выглядели одинаково.
+                        this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusUnknown)
+                            + StatusReasonTail(failure);
                         this.deadTimeBtn.Enabled = false;
                         break;
                     case 1:

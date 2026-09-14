@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace BecquerelMonitor
 {
@@ -19,43 +20,70 @@ namespace BecquerelMonitor
         {
             ROICovellMethodData roicovellMethodData = (ROICovellMethodData)prim;
             this.comboBox1.SelectedIndex = ROIPrimitiveOperation.GetOperationIndex(roicovellMethodData.OperationType);
-            this.doubleTextBox3.Text = roicovellMethodData.Coefficient.ToString();
-            this.doubleTextBox4.Text = roicovellMethodData.CoefficientError.ToString();
-            this.doubleTextBox1.Text = roicovellMethodData.LowerLimit.ToString();
-            this.doubleTextBox2.Text = roicovellMethodData.UpperLimit.ToString();
-            this.doubleTextBox5.Text = roicovellMethodData.LeftRegionCenter.ToString();
-            this.doubleTextBox6.Text = roicovellMethodData.RightRegionCenter.ToString();
-            this.doubleTextBox7.Text = roicovellMethodData.LeftRegionWidth.ToString();
-            this.doubleTextBox8.Text = roicovellMethodData.RightRegionWidth.ToString();
+            this.doubleTextBox3.Text = roicovellMethodData.Coefficient.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox4.Text = roicovellMethodData.CoefficientError.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox1.Text = roicovellMethodData.LowerLimit.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox2.Text = roicovellMethodData.UpperLimit.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox5.Text = roicovellMethodData.LeftRegionCenter.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox6.Text = roicovellMethodData.RightRegionCenter.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox7.Text = roicovellMethodData.LeftRegionWidth.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox8.Text = roicovellMethodData.RightRegionWidth.ToString(CultureInfo.InvariantCulture);
             this.textBox1.Text = roicovellMethodData.Note;
         }
 
+        /// <summary>
+        /// ⛔ СНАЧАЛА РАЗОБРАТЬ ВСЁ, ПОТОМ ПИСАТЬ — см. пояснение в
+        /// <see cref="ROISimpleDifferenceControl.SaveFormContents"/> (`A7`).
+        /// Здесь цена ошибки выше всего: девять полей подряд, и мусор в
+        /// последнем оставлял восемь уже переписанными.
+        /// </summary>
         public override bool SaveFormContents(ROIPrimitiveData prim)
         {
             ROICovellMethodData roicovellMethodData = (ROICovellMethodData)prim;
+            ROIPrimitiveOperation roiprimitiveOperation;
+            double coefficient;
+            double coefficientError;
+            double lowerLimit;
+            double upperLimit;
+            double leftRegionCenter;
+            double rightRegionCenter;
+            double leftRegionWidth;
+            double rightRegionWidth;
             try
             {
-                ROIPrimitiveOperation roiprimitiveOperation = ROIPrimitiveOperation.Operations[this.comboBox1.SelectedIndex];
-                roicovellMethodData.Operation = roiprimitiveOperation;
-                roicovellMethodData.OperationType = roiprimitiveOperation.Name;
-                roicovellMethodData.Coefficient = double.Parse(this.doubleTextBox3.Text);
-                roicovellMethodData.CoefficientError = double.Parse(this.doubleTextBox4.Text);
-                roicovellMethodData.LowerLimit = double.Parse(this.doubleTextBox1.Text);
-                roicovellMethodData.UpperLimit = double.Parse(this.doubleTextBox2.Text);
-                if (roicovellMethodData.UpperLimit < roicovellMethodData.LowerLimit)
-                {
-                    roicovellMethodData.UpperLimit = roicovellMethodData.LowerLimit;
-                    this.doubleTextBox2.Text = roicovellMethodData.LowerLimit.ToString();
-                }
-                roicovellMethodData.LeftRegionCenter = double.Parse(this.doubleTextBox5.Text);
-                roicovellMethodData.RightRegionCenter = double.Parse(this.doubleTextBox6.Text);
-                roicovellMethodData.LeftRegionWidth = double.Parse(this.doubleTextBox7.Text);
-                roicovellMethodData.RightRegionWidth = double.Parse(this.doubleTextBox8.Text);
-                roicovellMethodData.Note = this.textBox1.Text;
+                roiprimitiveOperation = ROIPrimitiveOperation.Operations[this.comboBox1.SelectedIndex];
+                coefficient = UserNumber.ParseDouble(this.doubleTextBox3.Text);
+                coefficientError = UserNumber.ParseDouble(this.doubleTextBox4.Text);
+                lowerLimit = UserNumber.ParseDouble(this.doubleTextBox1.Text);
+                upperLimit = UserNumber.ParseDouble(this.doubleTextBox2.Text);
+                leftRegionCenter = UserNumber.ParseDouble(this.doubleTextBox5.Text);
+                rightRegionCenter = UserNumber.ParseDouble(this.doubleTextBox6.Text);
+                leftRegionWidth = UserNumber.ParseDouble(this.doubleTextBox7.Text);
+                rightRegionWidth = UserNumber.ParseDouble(this.doubleTextBox8.Text);
             }
             catch (Exception)
             {
                 return false;
+            }
+            bool clamped = upperLimit < lowerLimit;
+            if (clamped)
+            {
+                upperLimit = lowerLimit;
+            }
+            roicovellMethodData.Operation = roiprimitiveOperation;
+            roicovellMethodData.OperationType = roiprimitiveOperation.Name;
+            roicovellMethodData.Coefficient = coefficient;
+            roicovellMethodData.CoefficientError = coefficientError;
+            roicovellMethodData.LowerLimit = lowerLimit;
+            roicovellMethodData.UpperLimit = upperLimit;
+            roicovellMethodData.LeftRegionCenter = leftRegionCenter;
+            roicovellMethodData.RightRegionCenter = rightRegionCenter;
+            roicovellMethodData.LeftRegionWidth = leftRegionWidth;
+            roicovellMethodData.RightRegionWidth = rightRegionWidth;
+            roicovellMethodData.Note = this.textBox1.Text;
+            if (clamped)
+            {
+                this.doubleTextBox2.Text = upperLimit.ToString(CultureInfo.InvariantCulture);
             }
             return true;
         }

@@ -1,5 +1,6 @@
 ﻿using CoreAudioApi;
 using System;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -61,7 +62,14 @@ namespace BecquerelMonitor
         {
             Guid guid = new Guid("b3f8fa53-0004-438e-9003-51a46e139bfc");
             PropertyStore properties = device.Properties;
-            return device.FriendlyName + "(" + properties[guid].Value.ToString() + ")";
+            // `A244`. Значение свойства прибора — `object` из PROPVARIANT: у одних
+            // ключей там строка, у других число. `object.ToString()` для числа идёт
+            // по культуре потока, поэтому печать проходит единственной дверью с
+            // инвариантом. `Convert.ToString(null, ...)` отдаёт пустую строку там,
+            // где прежний код бросал бы NullReferenceException, — и это лучше:
+            // отсутствующее свойство не должно ронять сбор имени устройства.
+            return device.FriendlyName + "("
+                + Convert.ToString(properties[guid].Value, CultureInfo.InvariantCulture) + ")";
         }
 
         // Token: 0x04000938 RID: 2360

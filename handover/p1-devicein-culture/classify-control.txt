@@ -1,0 +1,10 @@
+разобрано мест: 173
+    81  чисел в дырах нет
+    44  ИНВАРИАНТ (FormattableString.Invariant)
+    25  не число
+    18  чисел в аргументах нет
+     3  не разбор строки
+     1  ИНВАРИАНТ (ToString(InvariantCulture) после склейки)
+     1  ОТКАЗ — число без инварианта
+ОТКАЗОВ: 1
+   BecquerelMonitor/AudioInputDeviceForm.cs:126 ToString() — ОТКАЗ — число без инварианта: prahomageMethodConfig.LowerThreshold

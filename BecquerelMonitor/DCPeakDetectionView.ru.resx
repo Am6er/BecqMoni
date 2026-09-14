@@ -136,9 +136,6 @@
   <data name="label1.Text" xml:space="preserve">
     <value>Мин SNR</value>
   </data>
-  <data name="checkBoxDeconvolution.Text" xml:space="preserve">
-    <value>Деконволюция</value>
-  </data>
   <data name="label3.Text" xml:space="preserve">
     <value>Допуск</value>
   </data>
@@ -165,8 +162,5 @@
   </data>
   <data name="labelSetName.Text" xml:space="preserve">
     <value>Набор:</value>
-  </data>
-  <data name="ComboBoxNuclSetAllNuclides" xml:space="preserve">
-    <value>--- Все изотопы ---</value>
   </data>
 </root>

@@ -223,10 +223,10 @@
     <value>Bottom, Left, Right</value>
   </data>
   <data name="&gt;&gt;vScrollBar1.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>1</value>
   </data>
   <data name="&gt;&gt;hScrollBar1.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>2</value>
   </data>
   <data name="&gt;&gt;hScrollBar1.Name" xml:space="preserve">
     <value>hScrollBar1</value>

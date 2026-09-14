@@ -1,0 +1,23 @@
+# Артефакты конвейера: всё это пересоздаётся и весит сотни МБ.
+# Порядок: library_inventory.py -> library_screen.py -> build_corpus.py ->
+#          check_corpus.py -> mkconfig.py
+
+# перекалиброванные копии спектров (apply_calibration.py / calibrate.py).
+# Не путать с corpus/spectra: ТОТ каталог в коммите, это — промежуточный.
+scripts/spectra/
+
+# промежуточное отбора и сборки корпуса: опись библиотеки, разбор содержимого,
+# вынутый ResultData до калибровки, состояние прогона build_corpus.py
+scripts/inventory.json
+scripts/screen.json
+scripts/_corpus_raw/
+scripts/corpus_state.json
+
+# рабочие каталоги прогона: копия приложения + конфиг на каждый детектор
+scripts/wd_*/
+
+# копия калибровок, которую mkconfig.py ждёт рядом с собой
+scripts/calibration.json
+
+# байт-код python
+scripts/__pycache__/

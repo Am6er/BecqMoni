@@ -1,5 +1,7 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Xml.Serialization;
 
 namespace BecquerelMonitor
@@ -24,11 +26,72 @@ namespace BecquerelMonitor
             SimpleSqrtFwhmCalibration,
 
             [XmlEnum(Name = "Square root polynomial")]
-            SqrtFwhmCalibration
+            SqrtFwhmCalibration,
+
+            // V2: степенная FWHM = a * ch^p. Заведена ТРЕТЬЕЙ, а не взамен:
+            // корпус измерил, что показатель у сцинтилляторов выше половины,
+            // но у германия ниже, и одной формой оба класса не описать.
+            [XmlEnum(Name = "Power law")]
+            PowerFwhmCalibration
         }
 
+        /// <summary>
+        /// Умолчание модели разрешения по настройкам поиска пиков. Отдаёт
+        /// <c>null</c>, когда его построить нельзя, — и ПРИЧИНУ этого больше не
+        /// теряет: см. перегрузку с <c>out refusal</c>.
+        /// </summary>
         public static SimpleSqrtFwhmCalibration DefaultCalibration(FWHMPeakDetectionMethodConfig fwhmConfig, EnergyCalibration energyCalibration)
         {
+            string refusal;
+            return DefaultCalibration(fwhmConfig, energyCalibration, out refusal);
+        }
+
+        /// <summary>
+        /// То же, но с ПРИЧИНОЙ ОТКАЗА СЛОВАМИ (`A235`, 05.09.2026).
+        ///
+        /// ⛔ Здесь стоял авторский <c>TODO</c> «может, чтобы избежать null,
+        /// влепить некую дефолтную кривую по аналогии с y = x». Подставлять её
+        /// НЕЛЬЗЯ, и это не осторожность, а арифметика: кривая разрешения
+        /// задаёт ширину окна поиска пиков и форму образа в полноспектральном
+        /// разборе, то есть выдуманная кривая даёт ЧИСЛА, неотличимые от
+        /// измеренных. Отказ остаётся отказом; чинится не он, а его немота.
+        ///
+        /// ⛔ Немота стоила падения: <c>null</c> расползался по документу без
+        /// единого слова и всплывал <c>NullReferenceException</c> в чужом месте
+        /// (`A212`, ввоз через SpecUtils). У отказа обязан быть читатель
+        /// (`A140`, `A22`, `A95`), и <c>refusal</c> заведён затем, чтобы этот
+        /// читатель у него был: обе двери ввоза его цитируют.
+        ///
+        /// ⚠ Причина называет ТРИ ЧИСЛА настроек, а не «не получилось»:
+        /// прямая через (0, <c>FWHM_AT_0</c>) и (<c>Ch_Fwhm</c>,
+        /// <c>Width_Fwhm</c>) не проходит <c>PerformCalibration</c> ровно
+        /// тогда, когда ширина вдоль шкалы УБЫВАЕТ
+        /// (<c>SimpleSqrtFwhmCalibration.CheckCalibration</c>). Без этих трёх
+        /// чисел человеку негде искать причину: на форме их нет вовсе, они
+        /// приходят из <c>config\device\*.xml</c>.
+        ///
+        /// ⚠ Прежняя подпись сохранена и ведёт сюда же.
+        ///
+        /// ⚠ СКОЛЬКО ИХ ОСТАЛОСЬ — СЧЁТОМ ПО ДЕРЕВУ, а не по памяти (`A240`,
+        /// полоса F62, 06.09.2026; счёт по ВЫЗОВАМ, не по строкам, — аргументы
+        /// бывают на двух строках). В приложении было 9 вызовов старой
+        /// подписью, стало 5; новой — было 2, стало 6. Из оставшихся пяти
+        /// четыре оставлены НАМЕРЕННО, и у каждого причина написана на месте:
+        /// три конструктора копии и заготовки (<c>DeviceConfigInfo</c>,
+        /// <c>FWHMPeakDetectionMethodConfig</c> дважды) и
+        /// <c>DocEnergySpectrum.CreateResultData</c>, у которого оба пути уже
+        /// имеют своего читателя. Пятый — <c>DocumentManager.CheckDocument</c>.
+        /// Довод у всех четырёх ОДИН и проверяемый: метод НИЧЕГО НЕ МЕНЯЕТ и
+        /// зависит только от трёх чисел настроек и энергетической кривой,
+        /// поэтому причину спрашивает заново тот, у кого есть человек, — так и
+        /// устроен <c>DocumentManager.WhyNoFwhmCalibration</c>.
+        ///
+        /// ⚠ Сверх приложения старой подписью зовут 26 мест оснастки (пробы и
+        /// <c>tools\pie</c>) — там читателя нет и не нужно, они мерят.
+        /// </summary>
+        public static SimpleSqrtFwhmCalibration DefaultCalibration(FWHMPeakDetectionMethodConfig fwhmConfig, EnergyCalibration energyCalibration, out string refusal)
+        {
+            refusal = null;
             SimpleSqrtFwhmCalibration simpleSqrtFwhmCalibration = new SimpleSqrtFwhmCalibration();
             CalibrationPeak peak = new CalibrationPeak
             {
@@ -59,7 +122,24 @@ namespace BecquerelMonitor
             }
             else
             {
-                // TODO Может чтобы избежать null нужно тут влепить некую дефолтную кривую по аналогии с y = x? На подумать.
+                // ⛔ Кривая НЕ ВЫДУМЫВАЕТСЯ (см. заглавие метода). Возвращается
+                //    null, но теперь вместе с причиной, которую есть кому
+                //    прочесть.
+                // ⛔ КУЛЬТУРА ИНВАРИАНТНАЯ, А НЕ ПОТОКА (`A242`, правило Amber
+                //    05.09.2026: разделитель дробной части ВСЕГДА ТОЧКА).
+                //    Инвариантной культурой печатаются ЧИСЛА, а текст остаётся
+                //    из ресурса, то есть переведённым.
+                //    ⚠ Измерено 05.09.2026 (`ImportEmptyConfigProbeF23`, плечо
+                //    «УМОЛЧАНИЕ НЕ СТРОИТСЯ»): на потоке ru-RU без подпорки
+                //    `MainForm.cs:158-160` строка выходила «ПШПВ 40,5 … ПШПВ 1,25»
+                //    — с запятой. Подпорка держит точку только у окон; здесь же
+                //    читатель бывает и безоконный, и вообще любой, а число обязано
+                //    печататься точкой само по себе, а не по чужой милости.
+                refusal = string.Format(CultureInfo.InvariantCulture,
+                                        Resources.ERRFwhmDefaultNotMonotonic,
+                                        fwhmConfig.FWHM_AT_0,
+                                        fwhmConfig.Ch_Fwhm,
+                                        fwhmConfig.Width_Fwhm);
                 return null;
             }
         }
@@ -78,6 +158,33 @@ namespace BecquerelMonitor
 
         public abstract FwhmCalibration Clone();
 
+        /// <summary>
+        /// Пересчёт коэффициентов кривой под другой масштаб канала:
+        /// <c>mul</c> — во сколько раз новый канал ШИРЕ старого. Реализация
+        /// зависит от формы кривой, поэтому метод абстрактный, а не общий:
+        /// формула корневых для степенной неверна, и наоборот.
+        /// </summary>
+        public abstract void RescaleCoefficients(double mul);
+
+        /// <summary>
+        /// Кривая ПШПВ под другое число каналов.
+        ///
+        /// ⚠ `S54`: раньше здесь пересчитывались ТОЛЬКО опорные точки, а
+        /// результат <see cref="PerformCalibration"/> отбрасывался — и у
+        /// кривой БЕЗ опорных точек (а корпус пишет именно такие,
+        /// <c>&lt;CalibrationPeaks /&gt;</c>) наружу МОЛЧА уходила кривая для
+        /// ПРЕЖНЕГО числа каналов. Хуже: неудачная подгонка успевала записать
+        /// в клон мусор от решателя — <c>PerformCalibration</c> кладёт ответ
+        /// решателя ДО проверки, — то есть «ничего не поменялось» было не
+        /// худшим исходом.
+        ///
+        /// Теперь: есть точки и подгонка прошла — берём подгонку, как раньше;
+        /// иначе считаем коэффициенты ТОЧНО, от ИСХОДНОЙ кривой (клон к этому
+        /// моменту мог быть испорчен). Пересчёт точный и приближением не
+        /// является: и канал, и ширина меряются в каналах, значит
+        /// F'(ch') = F(ch'·mul)/mul — ровно тем же приёмом пересчитывается
+        /// энергетическая кривая.
+        /// </summary>
         public FwhmCalibration RecalcWithNewChannelNum(int oldchannelnum, int newchannelnum)
         {
             FwhmCalibration newFwhmCalibration = Clone();
@@ -90,7 +197,17 @@ namespace BecquerelMonitor
                 peak.Channel = (int)Math.Round(peak.Channel / mul);
                 peak.FWHM = peak.FWHM / mul;
             }
-            newFwhmCalibration.PerformCalibration(newchannelnum);
+
+            if (newFwhmCalibration.CalibrationPeaks.Count >= MinPeaksRequirement()
+                && newFwhmCalibration.PerformCalibration(newchannelnum))
+            {
+                return newFwhmCalibration;
+            }
+
+            // Точек нет или подгонка не прошла: коэффициенты берём у СЕБЯ, а не
+            // у клона, и пересчитываем по форме кривой.
+            newFwhmCalibration.Coefficients = (double[])this.Coefficients.Clone();
+            newFwhmCalibration.RescaleCoefficients(mul);
             return newFwhmCalibration;
         }
 

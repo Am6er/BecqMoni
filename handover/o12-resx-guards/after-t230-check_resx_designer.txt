@@ -1,0 +1,12 @@
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:323  GetString через Text()("DoseRateEnergyNotPositive")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:340  GetString через Text()("DoseRateNoElement")
+
+обращений с литеральным именем проверено: 744
+  из них через ОДИН шаг (обёртка или член): 19
+ключей, которых нет в нейтральном resx: 2
+обращений с вычисляемым именем: 3, из них разобрано одним шагом: 3
+обращений с вычисляемым именем (проверке недоступны): 0
+      обёртки: GetResourceText(аргумент 1), Text(аргумент 1)
+      члены:   Resource
+файлов чужого формата (не BOM+CRLF): 0
+РАЗОШЛОСЬ

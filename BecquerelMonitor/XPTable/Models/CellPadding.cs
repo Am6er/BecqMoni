@@ -380,7 +380,12 @@ namespace XPTable.Models
                     return null;
                 }
 
-                return new CellPadding(int.Parse(s[0]), int.Parse(s[1]), int.Parse(s[2]), int.Parse(s[3]));
+                // (A244) The four numbers are written and read with the invariant culture;
+                // the list separator stays cultural, as it is not a number.
+                return new CellPadding(int.Parse(s[0], CultureInfo.InvariantCulture),
+                                       int.Parse(s[1], CultureInfo.InvariantCulture),
+                                       int.Parse(s[2], CultureInfo.InvariantCulture),
+                                       int.Parse(s[3], CultureInfo.InvariantCulture));
             }
 
             return base.ConvertFrom(context, culture, value);
@@ -421,10 +426,10 @@ namespace XPTable.Models
 
                 string[] s = new string[4];
 
-                s[0] = converter.ConvertToString(context, culture, p.Left);
-                s[1] = converter.ConvertToString(context, culture, p.Top);
-                s[2] = converter.ConvertToString(context, culture, p.Right);
-                s[3] = converter.ConvertToString(context, culture, p.Bottom);
+                s[0] = converter.ConvertToString(context, CultureInfo.InvariantCulture, p.Left);
+                s[1] = converter.ConvertToString(context, CultureInfo.InvariantCulture, p.Top);
+                s[2] = converter.ConvertToString(context, CultureInfo.InvariantCulture, p.Right);
+                s[3] = converter.ConvertToString(context, CultureInfo.InvariantCulture, p.Bottom);
 
                 return string.Join(separator, s);
             }

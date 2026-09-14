@@ -1899,16 +1899,16 @@ namespace XPTable.Editors
                         m_hsl = AdobeColors.RGB_to_HSL(m_rgb);
                         m_cmyk = AdobeColors.RGB_to_CMYK(m_rgb);
 
-                        m_txt_Hue.Text = Round(m_hsl.H * 360).ToString();
-                        m_txt_Sat.Text = Round(m_hsl.S * 100).ToString();
-                        m_txt_Black.Text = Round(m_hsl.L * 100).ToString();
-                        m_txt_Red.Text = m_rgb.R.ToString();
-                        m_txt_Green.Text = m_rgb.G.ToString();
-                        m_txt_Blue.Text = m_rgb.B.ToString();
-                        m_txt_Cyan.Text = Round(m_cmyk.C * 100).ToString();
-                        m_txt_Magenta.Text = Round(m_cmyk.M * 100).ToString();
-                        m_txt_Yellow.Text = Round(m_cmyk.Y * 100).ToString();
-                        m_txt_K.Text = Round(m_cmyk.K * 100).ToString();
+                        m_txt_Hue.Text = Round(m_hsl.H * 360).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Sat.Text = Round(m_hsl.S * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Black.Text = Round(m_hsl.L * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Red.Text = m_rgb.R.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Green.Text = m_rgb.G.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Blue.Text = m_rgb.B.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Cyan.Text = Round(m_cmyk.C * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Magenta.Text = Round(m_cmyk.M * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Yellow.Text = Round(m_cmyk.Y * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_K.Text = Round(m_cmyk.K * 100).ToString(CultureInfo.InvariantCulture);
 
                         m_txt_Hue.Update();
                         m_txt_Sat.Update();
@@ -2520,16 +2520,16 @@ namespace XPTable.Editors
                         m_rgb = AdobeColors.HSL_to_RGB(m_hsl);
                         m_cmyk = AdobeColors.RGB_to_CMYK(m_rgb);
 
-                        m_txt_Hue.Text = Round(m_hsl.H * 360).ToString();
-                        m_txt_Sat.Text = Round(m_hsl.S * 100).ToString();
-                        m_txt_Black.Text = Round(m_hsl.L * 100).ToString();
-                        m_txt_Red.Text = m_rgb.R.ToString();
-                        m_txt_Green.Text = m_rgb.G.ToString();
-                        m_txt_Blue.Text = m_rgb.B.ToString();
-                        m_txt_Cyan.Text = Round(m_cmyk.C * 100).ToString();
-                        m_txt_Magenta.Text = Round(m_cmyk.M * 100).ToString();
-                        m_txt_Yellow.Text = Round(m_cmyk.Y * 100).ToString();
-                        m_txt_K.Text = Round(m_cmyk.K * 100).ToString();
+                        m_txt_Hue.Text = Round(m_hsl.H * 360).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Sat.Text = Round(m_hsl.S * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Black.Text = Round(m_hsl.L * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Red.Text = m_rgb.R.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Green.Text = m_rgb.G.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Blue.Text = m_rgb.B.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Cyan.Text = Round(m_cmyk.C * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Magenta.Text = Round(m_cmyk.M * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Yellow.Text = Round(m_cmyk.Y * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_K.Text = Round(m_cmyk.K * 100).ToString(CultureInfo.InvariantCulture);
 
                         m_txt_Hue.Update();
                         m_txt_Sat.Update();
@@ -2561,16 +2561,16 @@ namespace XPTable.Editors
                         m_rgb = AdobeColors.HSL_to_RGB(m_hsl);
                         m_cmyk = AdobeColors.RGB_to_CMYK(m_rgb);
 
-                        m_txt_Hue.Text = Round(m_hsl.H * 360).ToString();
-                        m_txt_Sat.Text = Round(m_hsl.S * 100).ToString();
-                        m_txt_Black.Text = Round(m_hsl.L * 100).ToString();
-                        m_txt_Red.Text = m_rgb.R.ToString();
-                        m_txt_Green.Text = m_rgb.G.ToString();
-                        m_txt_Blue.Text = m_rgb.B.ToString();
-                        m_txt_Cyan.Text = Round(m_cmyk.C * 100).ToString();
-                        m_txt_Magenta.Text = Round(m_cmyk.M * 100).ToString();
-                        m_txt_Yellow.Text = Round(m_cmyk.Y * 100).ToString();
-                        m_txt_K.Text = Round(m_cmyk.K * 100).ToString();
+                        m_txt_Hue.Text = Round(m_hsl.H * 360).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Sat.Text = Round(m_hsl.S * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Black.Text = Round(m_hsl.L * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Red.Text = m_rgb.R.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Green.Text = m_rgb.G.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Blue.Text = m_rgb.B.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Cyan.Text = Round(m_cmyk.C * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Magenta.Text = Round(m_cmyk.M * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Yellow.Text = Round(m_cmyk.Y * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_K.Text = Round(m_cmyk.K * 100).ToString(CultureInfo.InvariantCulture);
 
                         m_txt_Hue.Update();
                         m_txt_Sat.Update();
@@ -2647,16 +2647,16 @@ namespace XPTable.Editors
 
                         m_cmyk = AdobeColors.RGB_to_CMYK(m_rgb);
 
-                        m_txt_Hue.Text = Round(m_hsl.H * 360).ToString();
-                        m_txt_Sat.Text = Round(m_hsl.S * 100).ToString();
-                        m_txt_Black.Text = Round(m_hsl.L * 100).ToString();
-                        m_txt_Red.Text = m_rgb.R.ToString();
-                        m_txt_Green.Text = m_rgb.G.ToString();
-                        m_txt_Blue.Text = m_rgb.B.ToString();
-                        m_txt_Cyan.Text = Round(m_cmyk.C * 100).ToString();
-                        m_txt_Magenta.Text = Round(m_cmyk.M * 100).ToString();
-                        m_txt_Yellow.Text = Round(m_cmyk.Y * 100).ToString();
-                        m_txt_K.Text = Round(m_cmyk.K * 100).ToString();
+                        m_txt_Hue.Text = Round(m_hsl.H * 360).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Sat.Text = Round(m_hsl.S * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Black.Text = Round(m_hsl.L * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Red.Text = m_rgb.R.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Green.Text = m_rgb.G.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Blue.Text = m_rgb.B.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Cyan.Text = Round(m_cmyk.C * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Magenta.Text = Round(m_cmyk.M * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Yellow.Text = Round(m_cmyk.Y * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_K.Text = Round(m_cmyk.K * 100).ToString(CultureInfo.InvariantCulture);
 
                         m_txt_Hue.Update();
                         m_txt_Sat.Update();
@@ -2684,16 +2684,16 @@ namespace XPTable.Editors
 
                         m_cmyk = AdobeColors.RGB_to_CMYK(m_rgb);
 
-                        m_txt_Hue.Text = Round(m_hsl.H * 360).ToString();
-                        m_txt_Sat.Text = Round(m_hsl.S * 100).ToString();
-                        m_txt_Black.Text = Round(m_hsl.L * 100).ToString();
-                        m_txt_Red.Text = m_rgb.R.ToString();
-                        m_txt_Green.Text = m_rgb.G.ToString();
-                        m_txt_Blue.Text = m_rgb.B.ToString();
-                        m_txt_Cyan.Text = Round(m_cmyk.C * 100).ToString();
-                        m_txt_Magenta.Text = Round(m_cmyk.M * 100).ToString();
-                        m_txt_Yellow.Text = Round(m_cmyk.Y * 100).ToString();
-                        m_txt_K.Text = Round(m_cmyk.K * 100).ToString();
+                        m_txt_Hue.Text = Round(m_hsl.H * 360).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Sat.Text = Round(m_hsl.S * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Black.Text = Round(m_hsl.L * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Red.Text = m_rgb.R.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Green.Text = m_rgb.G.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Blue.Text = m_rgb.B.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Cyan.Text = Round(m_cmyk.C * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Magenta.Text = Round(m_cmyk.M * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Yellow.Text = Round(m_cmyk.Y * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_K.Text = Round(m_cmyk.K * 100).ToString(CultureInfo.InvariantCulture);
 
                         m_txt_Hue.Update();
                         m_txt_Sat.Update();
@@ -2800,7 +2800,7 @@ namespace XPTable.Editors
                             return;
                         }
 
-                        int hue = int.Parse(text);
+                        int hue = int.Parse(text, CultureInfo.InvariantCulture);
 
                         if (hue < 0)
                         {
@@ -2853,7 +2853,7 @@ namespace XPTable.Editors
                             return;
                         }
 
-                        int sat = int.Parse(text);
+                        int sat = int.Parse(text, CultureInfo.InvariantCulture);
 
                         if (sat < 0)
                         {
@@ -2906,7 +2906,7 @@ namespace XPTable.Editors
                             return;
                         }
 
-                        int lum = int.Parse(text);
+                        int lum = int.Parse(text, CultureInfo.InvariantCulture);
 
                         if (lum < 0)
                         {
@@ -2959,7 +2959,7 @@ namespace XPTable.Editors
                             return;
                         }
 
-                        int red = int.Parse(text);
+                        int red = int.Parse(text, CultureInfo.InvariantCulture);
 
                         if (red < 0)
                         {
@@ -3012,7 +3012,7 @@ namespace XPTable.Editors
                             return;
                         }
 
-                        int green = int.Parse(text);
+                        int green = int.Parse(text, CultureInfo.InvariantCulture);
 
                         if (green < 0)
                         {
@@ -3065,7 +3065,7 @@ namespace XPTable.Editors
                             return;
                         }
 
-                        int blue = int.Parse(text);
+                        int blue = int.Parse(text, CultureInfo.InvariantCulture);
 
                         if (blue < 0)
                         {
@@ -3118,7 +3118,7 @@ namespace XPTable.Editors
                             return;
                         }
 
-                        int cyan = int.Parse(text);
+                        int cyan = int.Parse(text, CultureInfo.InvariantCulture);
 
                         if (cyan < 0)
                         {
@@ -3169,7 +3169,7 @@ namespace XPTable.Editors
                             return;
                         }
 
-                        int magenta = int.Parse(text);
+                        int magenta = int.Parse(text, CultureInfo.InvariantCulture);
 
                         if (magenta < 0)
                         {
@@ -3222,7 +3222,7 @@ namespace XPTable.Editors
                             return;
                         }
 
-                        int yellow = int.Parse(text);
+                        int yellow = int.Parse(text, CultureInfo.InvariantCulture);
 
                         if (yellow < 0)
                         {
@@ -3275,7 +3275,7 @@ namespace XPTable.Editors
                             return;
                         }
 
-                        int key = int.Parse(text);
+                        int key = int.Parse(text, CultureInfo.InvariantCulture);
 
                         if (key < 0)
                         {
@@ -3325,12 +3325,12 @@ namespace XPTable.Editors
 
                     private void WriteHexData(Color rgb)
                     {
-                        string red = Convert.ToString(rgb.R, 16);
-                        if (red.Length < 2) red = "0" + red;
-                        string green = Convert.ToString(rgb.G, 16);
-                        if (green.Length < 2) green = "0" + green;
-                        string blue = Convert.ToString(rgb.B, 16);
-                        if (blue.Length < 2) blue = "0" + blue;
+                        // (A244) Hex is printed with an EXPLICIT invariant culture:
+                        // Convert.ToString(x, 16) takes no culture at all, and the "x2"
+                        // format already yields the two digits the zero padding was for.
+                        string red = rgb.R.ToString("x2", CultureInfo.InvariantCulture);
+                        string green = rgb.G.ToString("x2", CultureInfo.InvariantCulture);
+                        string blue = rgb.B.ToString("x2", CultureInfo.InvariantCulture);
 
                         m_txt_Hex.Text = red.ToUpper() + green.ToUpper() + blue.ToUpper();
                         m_txt_Hex.Update();
@@ -3349,9 +3349,9 @@ namespace XPTable.Editors
                         g_text = hex_data.Substring(2, 2);
                         b_text = hex_data.Substring(4, 2);
 
-                        r = int.Parse(r_text, System.Globalization.NumberStyles.HexNumber);
-                        g = int.Parse(g_text, System.Globalization.NumberStyles.HexNumber);
-                        b = int.Parse(b_text, System.Globalization.NumberStyles.HexNumber);
+                        r = int.Parse(r_text, System.Globalization.NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                        g = int.Parse(g_text, System.Globalization.NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                        b = int.Parse(b_text, System.Globalization.NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 
                         return Color.FromArgb(r, g, b);
                     }
@@ -3359,16 +3359,16 @@ namespace XPTable.Editors
 
                     private void UpdateTextBoxes()
                     {
-                        m_txt_Hue.Text = Round(m_hsl.H * 360).ToString();
-                        m_txt_Sat.Text = Round(m_hsl.S * 100).ToString();
-                        m_txt_Black.Text = Round(m_hsl.L * 100).ToString();
-                        m_txt_Cyan.Text = Round(m_cmyk.C * 100).ToString();
-                        m_txt_Magenta.Text = Round(m_cmyk.M * 100).ToString();
-                        m_txt_Yellow.Text = Round(m_cmyk.Y * 100).ToString();
-                        m_txt_K.Text = Round(m_cmyk.K * 100).ToString();
-                        m_txt_Red.Text = m_rgb.R.ToString();
-                        m_txt_Green.Text = m_rgb.G.ToString();
-                        m_txt_Blue.Text = m_rgb.B.ToString();
+                        m_txt_Hue.Text = Round(m_hsl.H * 360).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Sat.Text = Round(m_hsl.S * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Black.Text = Round(m_hsl.L * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Cyan.Text = Round(m_cmyk.C * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Magenta.Text = Round(m_cmyk.M * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Yellow.Text = Round(m_cmyk.Y * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_K.Text = Round(m_cmyk.K * 100).ToString(CultureInfo.InvariantCulture);
+                        m_txt_Red.Text = m_rgb.R.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Green.Text = m_rgb.G.ToString(CultureInfo.InvariantCulture);
+                        m_txt_Blue.Text = m_rgb.B.ToString(CultureInfo.InvariantCulture);
 
                         m_txt_Red.Update();
                         m_txt_Green.Update();
@@ -3400,12 +3400,12 @@ namespace XPTable.Editors
                             m_rgb = value;
                             m_hsl = AdobeColors.RGB_to_HSL(m_rgb);
 
-                            m_txt_Hue.Text = Round(m_hsl.H * 360).ToString();
-                            m_txt_Sat.Text = Round(m_hsl.S * 100).ToString();
-                            m_txt_Black.Text = Round(m_hsl.L * 100).ToString();
-                            m_txt_Red.Text = m_rgb.R.ToString();
-                            m_txt_Green.Text = m_rgb.G.ToString();
-                            m_txt_Blue.Text = m_rgb.B.ToString();
+                            m_txt_Hue.Text = Round(m_hsl.H * 360).ToString(CultureInfo.InvariantCulture);
+                            m_txt_Sat.Text = Round(m_hsl.S * 100).ToString(CultureInfo.InvariantCulture);
+                            m_txt_Black.Text = Round(m_hsl.L * 100).ToString(CultureInfo.InvariantCulture);
+                            m_txt_Red.Text = m_rgb.R.ToString(CultureInfo.InvariantCulture);
+                            m_txt_Green.Text = m_rgb.G.ToString(CultureInfo.InvariantCulture);
+                            m_txt_Blue.Text = m_rgb.B.ToString(CultureInfo.InvariantCulture);
 
                             m_txt_Hue.Update();
                             m_txt_Sat.Update();

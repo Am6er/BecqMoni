@@ -1,0 +1,31 @@
+build start 2026-09-13 19:27:39
+restore code=0 19:28:42
+app code=0 19:28:46
+probes code=0 19:29:40
+app exe sha256 c356a9030f7787c70b91189e2535485589a46a931934d7ed42de153d7e0db66f
+probes exe sha256 c356a9030f7787c70b91189e2535485589a46a931934d7ed42de153d7e0db66f
+build end 19:29:40
+live snapshot before: 149 files 19:30:22
+ctrl_a start 2026-09-13 19:30:53
+ctrl_a matrix code=0 19:34:25
+ctrl_a diff code=0 19:34:26
+ctrl_a tails code=0 19:34:26
+ctrl_a end 19:34:26
+ctrl_b start 2026-09-13 19:34:51; rmx in store before: 0
+ctrl_b matrix code=0 19:44:05
+ctrl_b diff AS80_point0 code=0
+ctrl_b diff AS80_th_disk code=0
+ctrl_b tails code=0
+ctrl_b nodes AS80_point0 code=0
+ctrl_b nodes AS80_th_disk code=0
+ctrl_b end 19:44:06
+ctrl_a2 start 2026-09-13 19:45:17
+ctrl_a2 matrix code=0 19:50:52
+ctrl_a2 diff code=0 19:50:52
+ctrl_a2 tails code=0 19:50:52
+ctrl_a2 end 19:50:52
+store full run start 2026-09-13 19:54:42 cmd pid 8404
+curves start 2026-09-14 00:59:02; rmx in store: 45
+curves code=0 01:03:19
+curves end 01:03:19
+live snapshot after: 149 files 01:06:35

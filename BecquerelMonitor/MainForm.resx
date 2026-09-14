@@ -162,7 +162,7 @@
     <value>180, 22</value>
   </data>
   <data name="CloseAllToolStripMenuItem.Text" xml:space="preserve">
-    <value>Close &amp;All</value>
+    <value>Close A&amp;ll</value>
   </data>
   <data name="toolStripSeparator6.Size" type="System.Drawing.Size, System.Drawing">
     <value>177, 6</value>
@@ -381,7 +381,7 @@
     <value>190, 22</value>
   </data>
   <data name="spectrumListLToolStripMenuItem.Text" xml:space="preserve">
-    <value>Spectrum &amp;List</value>
+    <value>Spectrum L&amp;ist</value>
   </data>
   <data name="energyCalibrationStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>190, 22</value>
@@ -412,6 +412,12 @@
   </data>
   <data name="FWHMCalStripMenuItem.Text" xml:space="preserve">
     <value>FWHM Calibration</value>
+  </data>
+  <data name="fsaReportStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>190, 22</value>
+  </data>
+  <data name="fsaReportStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;FSA Report</value>
   </data>
   <data name="measurementResultsRToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>190, 22</value>
@@ -574,7 +580,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;menuStrip1.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>2</value>
   </data>
   <metadata name="statusStrip1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>132, 17</value>
@@ -613,7 +619,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;statusStrip1.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>1</value>
   </data>
   <data name="dockPanel1.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
     <value>Fill</value>
@@ -637,7 +643,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;dockPanel1.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>0</value>
   </data>
   <metadata name="imageList1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>247, 17</value>
@@ -5268,6 +5274,12 @@
     <value>FWHMCalStripMenuItem</value>
   </data>
   <data name="&gt;&gt;FWHMCalStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;fsaReportStripMenuItem.Name" xml:space="preserve">
+    <value>fsaReportStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;fsaReportStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;measurementResultsRToolStripMenuItem.Name" xml:space="preserve">

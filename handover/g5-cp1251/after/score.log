@@ -1,0 +1,22 @@
+usage: score.py [-h] [--sthr STHR] [--zthr ZTHR] [--mode {snip,spline}]
+                [--out-dir OUT_DIR] [--verbose] [--min-fwhm MIN_FWHM]
+                [--part {all,known,unknown}] [--members] [--only ONLY]
+
+options:
+  -h, --help            show this help message and exit
+  --sthr STHR           порог доли, %
+  --zthr ZTHR           порог z
+  --mode {snip,spline}
+  --out-dir OUT_DIR     каталог с <группа>_<режим>_{components,runs}.csv
+  --verbose
+  --min-fwhm MIN_FWHM   нижняя граница ПШПВ на 662 кэВ, % (3 — только
+                        сцинтилляторы)
+  --part {all,known,unknown}
+                        часть корпуса по corpus/parts.csv; германий (excluded)
+                        не считается никогда
+  --members             состав назван ДОЧЕРНИМИ нуклидами (разбор приложения),
+                        а не цепочками: развернуть цепочки манифеста в их
+                        членов
+  --only ONLY           ограничить объявленным списком: имена через запятую
+                        либо путь к csv/txt, где ключ — первый столбец (строки
+                        с # и заголовок пропускаются)

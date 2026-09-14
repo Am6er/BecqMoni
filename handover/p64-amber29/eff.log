@@ -1,0 +1,92 @@
+BecqMoni: main config: D:\BqMoni_Claude\p64\wt\tools\effmaker\probes\build_p64\config\BecquerelMonitor.xml
+Привязка кривой и матрицы к спектрам понятной части (B1)
+кривая: 5-3000 кэВ, 200000 историй на узел; розыгрыш точки вылета: автоматика (полевая сцена — важностный, клеймо imp=1; прочие — равномерный); порог шумной кривой (медиана узлов) 5 %
+
+== G1S_coal_omasn ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.54 %, худший узел 3.48 % на 10.0 кэВ (ESS 821 из 200000 историй), узлов выше 5 %: 0 из 37
+   guid     : 54fb3817-8e8f-5469-60fd-7bf985e9805d
+   кривая   : 37 точек, клеймо phys=18; hist=200000; grid=10-3000 keV/37 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   матрица  : G1S_coal_omasn.rmx -> response\54fb3817-8e8f-5469-60fd-7bf985e9805d.rmx
+   спектр   : coalA_t20m (1 записей ResultData)
+   спектр   : coalA_t2h (1 записей ResultData)
+   спектр   : coalA_t3h (1 записей ResultData)
+   спектр   : coalA_e01 (1 записей ResultData)
+   спектр   : coalA_e02 (1 записей ResultData)
+   спектр   : coalA_e03 (1 записей ResultData)
+   спектр   : coalA_e04 (1 записей ResultData)
+   спектр   : coalA_e05 (1 записей ResultData)
+   спектр   : coalA_e06 (1 записей ResultData)
+   спектр   : coalA_e07 (1 записей ResultData)
+   спектр   : coalA_e08 (1 записей ResultData)
+   спектр   : coalA_e09 (1 записей ResultData)
+   спектр   : coalA_e10 (1 записей ResultData)
+   спектр   : coalA_e11 (1 записей ResultData)
+   спектр   : coalA_e12 (1 записей ResultData)
+   спектр   : coalA_e13 (1 записей ResultData)
+   спектр   : coalA_e14 (1 записей ResultData)
+   спектр   : coalA_e15 (1 записей ResultData)
+   спектр   : coalA_e16 (1 записей ResultData)
+   спектр   : coalA_e17 (1 записей ResultData)
+   спектр   : coalA_e18 (1 записей ResultData)
+   спектр   : coalA_e19 (1 записей ResultData)
+   спектр   : coalA_e20 (1 записей ResultData)
+   спектр   : coalA_e21 (1 записей ResultData)
+   спектр   : coalA_e22 (1 записей ResultData)
+   спектр   : coalA_e23 (1 записей ResultData)
+   спектр   : coalA_e24 (1 записей ResultData)
+   спектр   : coalA_e25 (1 записей ResultData)
+   спектр   : coalA_e26 (1 записей ResultData)
+   спектр   : coalA_e27 (1 записей ResultData)
+   спектр   : coalA_e28 (1 записей ResultData)
+   спектр   : coalA_e29 (1 записей ResultData)
+   спектр   : coalA_e30 (1 записей ResultData)
+   спектр   : coalA_t20m_bg2 (1 записей ResultData)
+   спектр   : coalA_e01_bg2 (1 записей ResultData)
+   спектр   : coalA_e30_bg2 (1 записей ResultData)
+
+== G1S_coal_corpus ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.65 %, худший узел 2.54 % на 10.0 кэВ (ESS 1536 из 200000 историй), узлов выше 5 %: 0 из 37
+   guid     : fd8971f3-79fc-de98-4f19-51e8c3374c40
+   кривая   : 37 точек, клеймо phys=18; hist=200000; grid=10-3000 keV/37 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   матрица  : G1S_coal_corpus.rmx -> response\fd8971f3-79fc-de98-4f19-51e8c3374c40.rmx
+   спектр   : coalB_t20m (1 записей ResultData)
+   спектр   : coalB_t2h (1 записей ResultData)
+   спектр   : coalB_t3h (1 записей ResultData)
+   спектр   : coalB_e01 (1 записей ResultData)
+   спектр   : coalB_e02 (1 записей ResultData)
+   спектр   : coalB_e03 (1 записей ResultData)
+   спектр   : coalB_e04 (1 записей ResultData)
+   спектр   : coalB_e05 (1 записей ResultData)
+   спектр   : coalB_e06 (1 записей ResultData)
+   спектр   : coalB_e07 (1 записей ResultData)
+   спектр   : coalB_e08 (1 записей ResultData)
+   спектр   : coalB_e09 (1 записей ResultData)
+   спектр   : coalB_e10 (1 записей ResultData)
+   спектр   : coalB_e11 (1 записей ResultData)
+   спектр   : coalB_e12 (1 записей ResultData)
+   спектр   : coalB_e13 (1 записей ResultData)
+   спектр   : coalB_e14 (1 записей ResultData)
+   спектр   : coalB_e15 (1 записей ResultData)
+   спектр   : coalB_e16 (1 записей ResultData)
+   спектр   : coalB_e17 (1 записей ResultData)
+   спектр   : coalB_e18 (1 записей ResultData)
+   спектр   : coalB_e19 (1 записей ResultData)
+   спектр   : coalB_e20 (1 записей ResultData)
+   спектр   : coalB_e21 (1 записей ResultData)
+   спектр   : coalB_e22 (1 записей ResultData)
+   спектр   : coalB_e23 (1 записей ResultData)
+   спектр   : coalB_e24 (1 записей ResultData)
+   спектр   : coalB_e25 (1 записей ResultData)
+   спектр   : coalB_e26 (1 записей ResultData)
+   спектр   : coalB_e27 (1 записей ResultData)
+   спектр   : coalB_e28 (1 записей ResultData)
+   спектр   : coalB_e29 (1 записей ResultData)
+   спектр   : coalB_e30 (1 записей ResultData)
+   спектр   : coalB_t20m_bg2 (1 записей ResultData)
+   спектр   : coalB_e01_bg2 (1 записей ResultData)
+   спектр   : coalB_e30_bg2 (1 записей ResultData)
+
+геометрий в описи: 2 — посчитано 2, пропущено 0 (клеймо и геометрия сошлись); записей проставлено: 72
+ВСЕ СОШЛИСЬ

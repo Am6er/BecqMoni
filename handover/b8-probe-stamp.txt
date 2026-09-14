@@ -1,0 +1,13 @@
+настройки расчёта: раскладок 128, разных отпечатков 128, пример: peaks|free|-xray|-sum|-bs|-esc|-pu
+СОШЛОСЬ : 128 раскладок настроек — 128 разных отпечатков
+СОШЛОСЬ : переключение любого расчётного флага меняет отпечаток
+BecqMoni: main config: C:\Users\moroz\source\repos\bq_b8\tools\CORPUS\scripts\wd_b8\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\bq_b8\tools\CORPUS\scripts\wd_b8\config\device: 24 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\bq_b8\tools\CORPUS\scripts\wd_b8\config\NuclideDefinition.xml: 152 entries
+все нуклиды      : all
+набор «Th-232»: Th-232:26
+СОШЛОСЬ : выбор набора меняет отпечаток
++ «Low Bremsstrahlung x-rays»       : Th-232:27
+СОШЛОСЬ : правка состава набора меняет отпечаток
+СОШЛОСЬ : возврат состава возвращает отпечаток
+ВСЕ СОШЛИСЬ

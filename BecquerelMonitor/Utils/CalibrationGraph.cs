@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Security.Policy;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
@@ -104,7 +105,7 @@ namespace BecquerelMonitor.Utils
                 int y_low = this.height;
                 g.DrawLine(pen, x_high, y_high, x_low, y_low);
                 Rectangle r = new Rectangle(x_low, y_low - 16, 32, 32);
-                g.DrawString((i * ch_step).ToString(), this.Font, brush, r);
+                g.DrawString((i * ch_step).ToString(CultureInfo.InvariantCulture), this.Font, brush, r);
             }
 
             for (int i = 1; i < y_points; i++)
@@ -115,7 +116,7 @@ namespace BecquerelMonitor.Utils
                 int y_right = y_left;
                 g.DrawLine(pen, x_left, y_left, x_right, y_right);
                 Rectangle r = new Rectangle(x_left, y_left - 16, 32, 32);
-                g.DrawString((i * (int)en_step).ToString(), this.Font, brush, r);
+                g.DrawString((i * (int)en_step).ToString(CultureInfo.InvariantCulture), this.Font, brush, r);
             }
 
             Rectangle rlabel = new Rectangle(this.startwidth, this.startheight, 120, 32);
@@ -194,42 +195,48 @@ namespace BecquerelMonitor.Utils
                         label = new Rectangle(this.mouseX - 120, this.mouseY - 48, 120, 48);
                     }
                         
+                    // A244 / П9: числа склеивались через string.Concat(object[]) —
+                    // ToString() звала сама склейка, по культуре потока. Печатаем
+                    // каждое число явной инвариантной культурой.
                     string labeltext;
+                    string channelText = point.Channel.ToString(CultureInfo.InvariantCulture);
+                    string energyText = point.Energy.ToString(CultureInfo.InvariantCulture);
+                    string deltaChannelText = ((int)(point.Channel - this.calibration.EnergyToChannel((double)point.Energy, maxCh: this.maxChannels))).ToString(CultureInfo.InvariantCulture);
                     if (!this.weights)
                     {
                         labeltext = string.Concat(
-                            Resources.ChartHeaderChannel, 
-                            " ", 
-                            point.Channel, 
-                            "\n", 
-                            Resources.ChartHeaderEnergy, 
-                            " ", 
-                            point.Energy,
+                            Resources.ChartHeaderChannel,
+                            " ",
+                            channelText,
+                            "\n",
+                            Resources.ChartHeaderEnergy,
+                            " ",
+                            energyText,
                             "\n",
                             Resources.Delta,
                             Resources.ChartHeaderChannel,
                             " ",
-                            (int)(point.Channel - this.calibration.EnergyToChannel((double)point.Energy, maxCh: this.maxChannels))
+                            deltaChannelText
                          );
                     } else
                     {
                         labeltext = string.Concat(
                             Resources.ChartHeaderChannel,
                             " ",
-                            point.Channel,
+                            channelText,
                             "\n",
                             Resources.ChartHeaderEnergy,
                             " ",
-                            point.Energy,
+                            energyText,
                             "\n",
                             Resources.ChartHeaderWeight,
                             " ",
-                            point.Count,
+                            point.Count.ToString(CultureInfo.InvariantCulture),
                             "\n",
                             Resources.Delta,
                             Resources.ChartHeaderChannel,
                             " ",
-                            (int)(point.Channel - this.calibration.EnergyToChannel((double)point.Energy, maxCh: this.maxChannels))
+                            deltaChannelText
                          );
                     }
                     g.DrawString(labeltext, this.Font, textbrush, label);
@@ -252,14 +259,14 @@ namespace BecquerelMonitor.Utils
             if (this.weights)
             {
                 functiontext += "\n" + Resources.MSGMSE + ":" + "\n"
-                    + "\t" + Resources.Default + ": " + Utils.CalibrationSolver.WMSE(this.originalcalibration.Coefficients, this.originalpoints).ToString("f4") + "\n"
-                    + "\t" + Resources.Current + ": " + Utils.CalibrationSolver.WMSE(this.calibration.Coefficients, this.points).ToString("f4");
+                    + "\t" + Resources.Default + ": " + Utils.CalibrationSolver.WMSE(this.originalcalibration.Coefficients, this.originalpoints).ToString("f4", CultureInfo.InvariantCulture) + "\n"
+                    + "\t" + Resources.Current + ": " + Utils.CalibrationSolver.WMSE(this.calibration.Coefficients, this.points).ToString("f4", CultureInfo.InvariantCulture);
 
             } else
             {
                 functiontext += "\n" + Resources.MSGMSE + ":" + "\n"
-                    + "\t" + Resources.Default + ": " + Utils.CalibrationSolver.MSE(this.originalcalibration.Coefficients, this.originalpoints).ToString("f4") + "\n"
-                    + "\t" + Resources.Current + ": " + Utils.CalibrationSolver.MSE(this.calibration.Coefficients, this.points).ToString("f4");
+                    + "\t" + Resources.Default + ": " + Utils.CalibrationSolver.MSE(this.originalcalibration.Coefficients, this.originalpoints).ToString("f4", CultureInfo.InvariantCulture) + "\n"
+                    + "\t" + Resources.Current + ": " + Utils.CalibrationSolver.MSE(this.calibration.Coefficients, this.points).ToString("f4", CultureInfo.InvariantCulture);
             }
             if (!this.polycorrect)
             {

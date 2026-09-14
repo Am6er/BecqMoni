@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Windows.Devices.Bluetooth.Advertisement;
 using Windows.Devices.Bluetooth;
 using BecquerelMonitor.Properties;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Diagnostics;
@@ -77,7 +78,29 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 Trace.WriteLine($"Exception while enabling BT: {ex.Message} {ex.StackTrace}");
+                ReportBtEnableFailure(ex);
             }
+        }
+
+        /// <summary>
+        /// Сказать человеку, что Bluetooth включить не вышло.
+        ///
+        /// ⛔ `A15`, разряд 1. Человек нажал «поиск», отказ включения радио
+        /// уходил только в <c>Trace.WriteLine</c>, поиск продолжался при
+        /// выключенном радио и НИЧЕГО не находил: молчание было неотличимо от
+        /// «приборов рядом нет».
+        ///
+        /// ⚠ Сообщение идёт через <see cref="AppUi.Report"/> — единственную
+        /// дверь дерева: в безоконном запуске она печатает строку в поток
+        /// ошибок, а не вешает прогон на модальном окне (закрытая `S100`).
+        ///
+        /// ⚠ Метод отдельный и статический НАРОЧНО: только так его зовёт проба
+        /// приёмки, не поднимая формы.
+        /// </summary>
+        internal static void ReportBtEnableFailure(Exception ex)
+        {
+            AppUi.Report(string.Format(Resources.ERRBTEnableFailed, ex == null ? "" : ex.Message),
+                Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
         }
 
         private async void ScanBLEDevices()
@@ -124,24 +147,24 @@ namespace BecquerelMonitor
                     return;
                 }
 
-                Trace.WriteLine($"Found {deviceName} with addr {args.BluetoothAddress}");
+                Trace.WriteLine(FormattableString.Invariant($"Found {deviceName} with addr {args.BluetoothAddress}"));
                 devices.Add(args.BluetoothAddress);
 
                 string[] nameParts = deviceName.Split('#');
                 string model = nameParts.Length > 0 ? nameParts[0] : deviceName;
                 string name = nameParts.Length > 1 ? nameParts[1] : deviceName;
-                devicePreset[args.BluetoothAddress.ToString()] = model;
+                devicePreset[args.BluetoothAddress.ToString(CultureInfo.InvariantCulture)] = model;
 
                 comboBox1.Invoke(new Action(() =>
                 {
-                    adressBLE.Add(args.BluetoothAddress.ToString());
+                    adressBLE.Add(args.BluetoothAddress.ToString(CultureInfo.InvariantCulture));
                     int item = comboBox1.Items.IndexOf(name);
                     if (item == -1) comboBox1.Items.Add(name);
                     if (!comboBox1.DroppedDown) comboBox1.DroppedDown = true;
                 }));
                 TroubleshootText.Invoke(new Action(() =>
                 {
-                    TroubleshootText.AppendText($"Found device {name} with BLE addr {args.BluetoothAddress}" + System.Environment.NewLine);
+                    TroubleshootText.AppendText(FormattableString.Invariant($"Found device {name} with BLE addr {args.BluetoothAddress}") + System.Environment.NewLine);
                 }));
             }
             catch (Exception)
@@ -250,19 +273,31 @@ namespace BecquerelMonitor
                 return;
             }
             if (!troubleShootbtn.Enabled) return;
+            // ⛔ `A17`. Разбор ЗАБИРАЕТ связь с прибором себе: ниже создаётся
+            //    свежий экземпляр, а прежний уничтожается. Идущее измерение
+            //    держит прибор не ссылкой, а достаёт заново по `guid`
+            //    (`RadiaCodeDeviceController`), поэтому после разбора оно молча
+            //    получало неподключённый экземпляр — счётчик идёт, данных нет.
+            //    Настройку прибора при этом ОТКРЫТЬ МОЖНО: окно немодальное
+            //    (`MainForm.ShowDeviceConfigForm` зовёт `Show()`), пункт меню
+            //    «Edit device configuration» не гаснет никогда, а кнопка разбора
+            //    гаснет только по пустому серийнику. Поэтому спрашиваем аренду.
+            string refusal;
+            bool wasRunning;
+            if (!RadiaCodeIn.TryClaimForTroubleshoot(deviceConfigForm.ActiveDeviceConfig.Guid,
+                    deviceConfigForm.ActiveDeviceConfig.Name, out refusal, out wasRunning))
+            {
+                AppUi.Report(refusal, Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
+                return;
+            }
             troubleShootbtn.Enabled = false;
             TroubleshootText.Clear();
             tshootText = "";
-            List<RadiaCodeIn> instances = RadiaCodeIn.getAllInstances();
-            foreach (RadiaCodeIn instance in instances)
+            if (wasRunning)
             {
-                if (instance.GUID == deviceConfigForm.ActiveDeviceConfig.Guid) {
-                    tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")} Radiacode instance with {deviceConfigForm.ActiveDeviceConfig.Guid} allready running. Shutdown it first." + Environment.NewLine;
-                    RadiaCodeIn.cleanUp(deviceConfigForm.ActiveDeviceConfig.Guid);
-                    break;
-                }
+                tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture)} Radiacode instance with {deviceConfigForm.ActiveDeviceConfig.Guid} allready running. Shutdown it first." + Environment.NewLine;
             }
-            tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")} Starting new RadiaCodeIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}" + Environment.NewLine;
+            tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture)} Starting new RadiaCodeIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}" + Environment.NewLine;
             RadiaCodeIn radiaCodeIn = RadiaCodeIn.getInstance(deviceConfigForm.ActiveDeviceConfig.Guid, troubleshoot: true);
             radiaCodeIn.TroubleShoot += RadiaCodeIn_TroubleShoot;
             radiaCodeIn.setDeviceSerial(config.DeviceSerial, config.AddressBLE);
@@ -298,7 +333,7 @@ namespace BecquerelMonitor
                 isRunning = false;
                 return;
             }
-            tshootText += System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss") + " " + e.Text + Environment.NewLine;
+            tshootText += System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture) + " " + e.Text + Environment.NewLine;
         }
     }
 

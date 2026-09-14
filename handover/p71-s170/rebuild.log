@@ -1,0 +1,24 @@
+build_all code 0 (1267 s)
+mk_wd code 0
+
+  [7mоснастка[0m : D:\BqMoni_Claude\p71\wt\tools\CORPUS\scripts\wd_p71a
+  [7mОСНАСТКА[0m СВЕЖАЯ: 483 файлов сошлись
+коды плеча A: G1S16_Co60_P5=0 G1S24_Co60_P5=0 G1S16_Co60_P25=0
+mk_appwd code 0
+
+  [7mположено[0m файлов: 433
+  [7mоснастка[0m : D:\BqMoni_Claude\p71\wt\tools\CORPUS\scripts\wd_p71d7
+  [7mОСНАСТКА[0m СВЕЖАЯ: 433 файлов сошлись
+
+[32;1mName   : [0ma1438401-8aeb-009d-edc5-210a2a14ecdd.rmx
+[32;1mLength : [0m622586
+
+
+[32;1mName   : [0mG1S_point5.qk
+[32;1mLength : [0m2714
+
+коды: G1S16_Co60_P5=0 G1S24_Co60_P5=0
+
+run_d7 code 0 (1519 s)
+DONE
+

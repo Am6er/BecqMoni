@@ -34,7 +34,6 @@ namespace BecquerelMonitor
             this.AtomSpectraStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.N42StripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.cSVFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.EffCalcMCFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.cSVEnFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.GBSFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.SpecUtilsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -72,6 +71,7 @@ namespace BecquerelMonitor
             this.pulseViewPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.countsRateStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.FWHMCalStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.fsaReportStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.measurementResultsRToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator8 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripMenuItem7 = new System.Windows.Forms.ToolStripMenuItem();
@@ -93,6 +93,7 @@ namespace BecquerelMonitor
             this.basicSettingsBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpHToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.manualMToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showLogToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.UpdatesAToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.versionInfoAToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -195,7 +196,6 @@ namespace BecquerelMonitor
             this.AtomSpectraStripMenuItem,
             this.N42StripMenuItem,
             this.cSVFileToolStripMenuItem,
-            this.EffCalcMCFileToolStripMenuItem,
             this.cSVEnFileToolStripMenuItem,
             this.GBSFileToolStripMenuItem,
             this.SpecUtilsToolStripMenuItem,
@@ -221,11 +221,7 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.cSVFileToolStripMenuItem, "cSVFileToolStripMenuItem");
             this.cSVFileToolStripMenuItem.Click += new System.EventHandler(this.csvFileImportToolStripMenuItem_Click);
             // 
-            // EffCalcMCFileToolStripMenuItem
             // 
-            this.EffCalcMCFileToolStripMenuItem.Name = "EffCalcMCFileToolStripMenuItem";
-            resources.ApplyResources(this.EffCalcMCFileToolStripMenuItem, "EffCalcMCFileToolStripMenuItem");
-            this.EffCalcMCFileToolStripMenuItem.Click += new System.EventHandler(this.EffCalcMCFileToolStripMenuItem_Click);
             // 
             // cSVEnFileToolStripMenuItem
             // 
@@ -431,6 +427,7 @@ namespace BecquerelMonitor
             this.pulseViewPToolStripMenuItem,
             this.countsRateStripMenuItem,
             this.FWHMCalStripMenuItem,
+            this.fsaReportStripMenuItem,
             this.measurementResultsRToolStripMenuItem,
             this.toolStripSeparator8,
             this.toolStripMenuItem7,
@@ -486,6 +483,12 @@ namespace BecquerelMonitor
             this.FWHMCalStripMenuItem.Name = "FWHMCalStripMenuItem";
             resources.ApplyResources(this.FWHMCalStripMenuItem, "FWHMCalStripMenuItem");
             this.FWHMCalStripMenuItem.Click += new System.EventHandler(this.FWHMCalStripMenuItem_Click);
+            //
+            // fsaReportStripMenuItem
+            //
+            this.fsaReportStripMenuItem.Name = "fsaReportStripMenuItem";
+            resources.ApplyResources(this.fsaReportStripMenuItem, "fsaReportStripMenuItem");
+            this.fsaReportStripMenuItem.Click += new System.EventHandler(this.fsaReportStripMenuItem_Click);
             // 
             // measurementResultsRToolStripMenuItem
             // 
@@ -587,9 +590,10 @@ namespace BecquerelMonitor
             this.NuclideSetToolStripMenuItem.Name = "NuclideSetToolStripMenuItem";
             resources.ApplyResources(this.NuclideSetToolStripMenuItem, "NuclideSetToolStripMenuItem");
             this.NuclideSetToolStripMenuItem.Click += new System.EventHandler(this.NuclideSetToolStripMenuItem_Click);
-            // 
+            //
+            //
             // NucDB
-            // 
+            //
             this.NucDB.Name = "NucDB";
             resources.ApplyResources(this.NucDB, "NucDB");
             this.NucDB.Click += new System.EventHandler(this.NucDB_Click);
@@ -617,6 +621,7 @@ namespace BecquerelMonitor
             this.manualMToolStripMenuItem,
             this.toolStripSeparator3,
             this.UpdatesAToolStripMenuItem,
+            this.showLogToolStripMenuItem,
             this.versionInfoAToolStripMenuItem});
             this.helpHToolStripMenuItem.Name = "helpHToolStripMenuItem";
             resources.ApplyResources(this.helpHToolStripMenuItem, "helpHToolStripMenuItem");
@@ -637,9 +642,14 @@ namespace BecquerelMonitor
             this.UpdatesAToolStripMenuItem.Name = "UpdatesAToolStripMenuItem";
             resources.ApplyResources(this.UpdatesAToolStripMenuItem, "UpdatesAToolStripMenuItem");
             this.UpdatesAToolStripMenuItem.Click += new System.EventHandler(this.UpdatesAToolStripMenuItem_Click);
-            // 
+            //
+            // showLogToolStripMenuItem
+            //
+            this.showLogToolStripMenuItem.Name = "showLogToolStripMenuItem";
+            this.showLogToolStripMenuItem.Click += new System.EventHandler(this.showLogToolStripMenuItem_Click);
+            //
             // versionInfoAToolStripMenuItem
-            // 
+            //
             this.versionInfoAToolStripMenuItem.Name = "versionInfoAToolStripMenuItem";
             resources.ApplyResources(this.versionInfoAToolStripMenuItem, "versionInfoAToolStripMenuItem");
             this.versionInfoAToolStripMenuItem.Click += new System.EventHandler(this.versionInfoAToolStripMenuItem_Click);
@@ -778,6 +788,12 @@ namespace BecquerelMonitor
 		// Token: 0x0400059C RID: 1436
 		global::System.Windows.Forms.ToolStripMenuItem manualMToolStripMenuItem;
 
+		// ⛔ `A15`. Читатель журнала приложения. Подпись и доступность ставит
+		//    `MainForm.InitializeAppLogMenuItem()` — не `resources.ApplyResources`:
+		//    строка живёт в `Properties/Resources` (обе культуры), а доступность
+		//    зависит от того, завёлся ли журнал.
+		global::System.Windows.Forms.ToolStripMenuItem showLogToolStripMenuItem;
+
 		// Token: 0x0400059D RID: 1437
 		global::System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
 
@@ -852,7 +868,6 @@ namespace BecquerelMonitor
 		// Token: 0x040005AF RID: 1455
 		global::System.Windows.Forms.ToolStripMenuItem stopMeasurementTToolStripMenuItem;
 
-		global::System.Windows.Forms.ToolStripMenuItem EffCalcMCFileToolStripMenuItem;
 
         global::System.Windows.Forms.ToolStripMenuItem GBSFileToolStripMenuItem;
 
@@ -880,6 +895,7 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem OpenConfigNToolStripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem NucDB;
+
 
 		// Token: 0x040005B5 RID: 1461
 		global::System.Windows.Forms.ToolStripMenuItem forFwhmToolStripMenuItem;
@@ -920,6 +936,8 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem countsRateStripMenuItem;
 
         global::System.Windows.Forms.ToolStripMenuItem FWHMCalStripMenuItem;
+
+        global::System.Windows.Forms.ToolStripMenuItem fsaReportStripMenuItem;
 
         // Token: 0x040005C1 RID: 1473
         global::System.Windows.Forms.ToolStripMenuItem cSVFileToolStripMenuItem;

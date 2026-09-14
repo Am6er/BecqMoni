@@ -1,0 +1,10 @@
+mk_appwd code=0 21:51:09
+ctl code=0 21:51:21 extra=[]
+f20 code=0 21:51:33 extra=[--fit-floor=20]
+adc code=0 21:51:44 extra=[--fit-floor=adc]
+h0 code=0 21:51:55 extra=[--huber=0]
+f20_h0 code=0 21:52:06 extra=[--fit-floor=20 --huber=0]
+done 21:52:06
+f35 code=0 21:55:36 extra=[--fit-floor=35]
+f35_h0 code=0 21:55:49 extra=[--fit-floor=35 --huber=0]
+done 21:55:49

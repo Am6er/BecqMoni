@@ -1,0 +1,685 @@
+читатель сторожей: 37 к вызову (заведомо красных по строкам реестра пропущено 1 — см. --all)
+  пропущен tools/check_registry.py — ЗЕЛЕН, но идёт 100 с и потому не в умолчании: восемь ссылок на файлы, лежавшие только на диске (S61, S134, T134, T223), переписаны на копии в handover/registry-artefacts/; противоречия DONE.md по T102 сняты по решению Amber. ⚠ 06.09–07.09.2026 он снова был КРАСЕН четырьмя ложными находками (T250) — и запись здесь этого не знала: сторож вне умолчания меряется только тогда, когда его позовут руками. Починен 07.09.2026
+
+→ зову: python tools/check_registry_refs.py
+    реестры: DONE.md — 897 строк, TODO.md — 107 строк
+    известных номеров всего: 1002, буквы: ABCDEFMNPRSTVWX
+    обойдено файлов: 1762 (из них журналов-записей 345), строгих ссылок проверено: 14173
+    исключено по правилу: 202 ссылок (A0, A200 ×15, A231 ×2, A232 ×2, A233 ×2, A9998, C12 ×11, F0 ×26, F33 ×3, F36 ×7, F38 ×2, F42 ×5, F61 ×19, F63, F64 ×2, F76 ×6, F77, N0 ×27, N42 ×8, P0 ×2, P1 ×15, P25 ×10, T1 ×8, T39 ×7, T51 ×6, T224 ×2, T998, T999, T9999 ×2, V0, W0 ×3, X12 ×3)
+      правило «удалена решением Amber; ссылка в журнале историчная»: A200 ×15, A231 ×2, A232 ×2, A233 ×2, T1 ×8, T39 ×7, T51 ×6, T224 ×2
+        A200 — удалена приказом Amber 05.09.2026 вместе с A231–A233, T224 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        A231 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        A232 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        A233 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        T1 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо»: «Удалить задачу T1»)
+        T224 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        T39 — убрана решением Amber 18.08.2026 (handover/handover-2026-08-18-small-rows.md:18)
+        T51 — убрана решением Amber 18.08.2026 (handover/handover-2026-08-18-small-rows.md:18)
+      правило «приоритет строки P0–P3, а не её номер»: P0 ×2, P1 ×15
+      правило «формат числа .NET (номер 0 или буква DEFGNX на строке о печати чисел)»: A0, F0 ×26, N0 ×27, N42 ×3, V0, W0 ×3, X12 ×3
+      правило «имя полосы захода на строке о полосе/журнале/обрыве»: C12 ×11, F33 ×3, F36 ×5, F38 ×2, F42 ×5, F61 ×18, F63, F64 ×2, F76 ×6, F77, P25 ×3
+      правило «цитата положительного контроля (строка сама так себя называет)»: A9998, F61, T998, T999, T9999 ×2
+      правило «поимённо, NOT_A_REF с причиной»: F36 ×2, N42 ×5, P25 ×7
+        F36 — полоса захода 05.09.2026, оборвана (журнал handover-2026-09-05-f37-s132.md), а не строка
+        N42 — формат файла ANSI N42 (стандарт спектров), а не строка реестра
+        P25 — 25-й процентиль в записи статистики (handover-2026-09-05-f5-v18-v19.md), а не строка
+    битых строгих ссылок: 0
+✅ tools/check_registry_refs.py: код 0, 2.1 с
+
+→ зову: python tools/check_build_recipe.py
+    обойдено файлов: 4167 (из них журналов-записей 2371, вне git 379)
+    копий рецепта найдено: 90; судимых 51 (с ключом 51, БЕЗ ключа 0)
+    не судим по правилу «журнал — запись» (T219): 34 копий, из них без ключа — историчных 16
+        запись: handover/g2-guard-readers/00-recipe-baseline-tree.txt:7
+        запись: handover/g2-guard-readers/00-recipe-baseline-tree.txt:15
+        запись: handover/g2-guard-readers/05-control-bad-recipe.txt:7
+        запись: handover/g2-guard-readers/05-control-reader-stops.txt:32
+        запись: handover/handover-2026-08-13.md:200
+        запись: handover/handover-2026-08-14.md:256
+        запись: handover/handover-2026-08-15-evening.md:202
+        запись: handover/handover-2026-08-15.md:274
+        запись: handover/handover-2026-08-16-evening.md:311
+        запись: handover/handover-2026-08-16-night.md:193
+        запись: handover/handover-2026-08-16.md:132
+        запись: handover/handover-2026-08-17-fluorescence.md:202
+        запись: handover/handover-2026-08-17-matrix-speed.md:447
+        запись: handover/handover-2026-08-17.md:190
+        запись: handover/handover-2026-08-18-cascade-xray.md:228
+        запись: handover/handover-2026-09-05-f19-cleanup.md:239
+    не судим по правилу «вне git — за Amber»: 5 копий, из них без ключа 1
+        ⚠ ПРЕДУПРЕЖДЕНИЕ (за Amber): .claude/settings.local.json:6 — без ключа
+    копий без ключа среди судимых: 0
+    
+    с ключом (для сверки):
+      handover/f11-a230/run_f11.ps1:5
+      handover/f16-a246-a247/build_f16.ps1:14
+      handover/f18-p8a/build_f18.ps1:9
+      handover/f20-f17-accept/build_f20.ps1:16
+      handover/f21-a248/build_f21.ps1:30
+      handover/f22-a245-p5p6/build_f22.ps1:16
+      handover/f23-a212/build_f23.ps1:31
+      handover/f25-f22-finish/build_f25.ps1:16
+      handover/f26-a249/build_f26.ps1:17
+      handover/f27-p4/build_f27.ps1:17
+      handover/f28-p8/build_f28.ps1:16
+      handover/f29-a250/build_f29.ps1:17
+      handover/f30-a251/build_f30.ps1:13
+      handover/f34-p8-finish/build_f34.ps1:15
+      handover/f35-p9/build_f35.ps1:15
+      handover/f4-a185/build_f4.ps1:7
+      handover/f41-a211-t119/build_f41.ps1:20
+      handover/f43-e17-e19/build_f43.ps1:14
+      handover/f45-e17-e19/build_f45.ps1:20
+      handover/f47-p8-tail/build_f47.ps1:17
+      handover/f48-s44-nan/build_before_f48.ps1:20
+      handover/f48-s44-nan/build_f48.ps1:20
+      handover/f49-a190-a228/build_f49.ps1:31
+      handover/f50-final/build_f50.ps1:16
+      handover/f51-a205/build_f51.ps1:18
+      handover/f53-a252/build_f53.ps1:32
+      handover/f8-a219/build_f8.ps1:8
+      handover/f8-a219/run_f8.ps1:3
+      handover/g1-doserateprobe/build_g1.ps1:15
+      handover/g10-a193-a195/build_g10.ps1:26
+      handover/g11-a240/build_g11.ps1:20
+      handover/g9-a255/build_g9.ps1:25
+      handover/p23-physics17-keys/build.ps1:10
+      handover/p23-physics17-keys/build_ref.ps1:10
+      handover/p23-physics17-keys/build_ref.ps1:19
+      handover/p26-amber22/build_p26.ps1:7
+      handover/p26-amber22/build_wt.ps1:10
+      handover/p26-amber22/build_wt.ps1:19
+      handover/p27-electron-transport/build.ps1:9
+      handover/p27-electron-transport/build_ref.ps1:10
+      handover/p28-t-rig/build_app.ps1:10
+      handover/p29-huber/build_wt.ps1:19
+      handover/p31-a308-nnls/build_wt.ps1:20
+      handover/p32-g4/build.ps1:9
+      handover/p36-e10/scripts/build_both_p36.ps1:9
+      handover/p37-store/build_wt.ps1:11
+      handover/p38-rev21/build_p38.ps1:11
+      handover/p39-probe-truth/build_p39.ps1:10
+      handover/p40-sim-defaults/build_p40.ps1:11
+      handover/p41-e29/build_p41.ps1:10
+      tools/effmaker/run.ps1:36
+✅ tools/check_build_recipe.py: код 0, 3.5 с
+
+→ зову: python tools/check_resx.py
+    
+    русских resx просмотрено: 32, из них с английской парой: 32
+    файлов с расхождением: 0
+    непереведённых осмысленных строк: 0
+      из них ключ есть, а значение пусто: 0
+    ключей, которых нет в английской паре: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx.py: код 0, 7.2 с
+
+→ зову: python tools/check_resx_designer.py
+    
+    обращений с литеральным именем проверено: 863
+      из них через ОДИН шаг (обёртка или член): 58
+    ключей, которых нет в нейтральном resx: 0
+    обращений с вычисляемым именем: 4, из них разобрано одним шагом: 3
+    обращений с вычисляемым именем (проверке недоступны): 1
+          обёртки: DCFwhmCalibrationView.GetResourceText(аргумент 1), DoseRateCoefficients.Text(аргумент 1)
+          члены:   Resource
+    вызовов с именем обёртки, но не её самой (чужой получатель либо другой класс): 10
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx_designer.py: код 0, 15.6 с
+
+→ зову: python tools/check_resx_letters.py
+    
+    английских resx просмотрено: 45, русских: 32
+    генерируемых *.Designer.cs: 46, значений в них: 3838
+    находок: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx_letters.py: код 0, 6.0 с
+
+→ зову: python tools/check_resx_zorder.py
+    пар Foo.Designer.cs / Foo.resx: 43
+    контейнеров проверено: 85, с расхождением: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    ==========================================================================
+    расхождений нет
+✅ tools/check_resx_zorder.py: код 0, 5.1 с
+
+→ зову: python tools/check_headless.py
+    Сторож безоконного пути (S100). Дверь: AppUi.Report — BecquerelMonitor/GlobalConfigManager.cs:37
+      файлов приложения: 502, типов: 710, проб: 185
+      оконных типов по наследованию: 83; засев от проб: 275 типов
+      достижимо БЕЗ окон: 565 типов; барьер (оконные): 23
+      оконных типов, которые пробы СТРОЯТ (`new T(...)`): 36 — их конструкторы ALLOW не обеляет
+      живых MessageBox.Show: 146
+    
+    
+    итого: безоконный путь 0, оконные 146, вне разряда 0
+    ЧИСТО: в безоконном пути модальных окон нет.
+✅ tools/check_headless.py: код 0, 4.0 с
+
+→ зову: python tools/check_menu_accelerators.py
+    
+      DCPeakDetectionView              корней 1, узлов 1, пунктов en/ru 2/2, с ускорителем 0/0, столкновений 0/0
+      DocEnergySpectrum                корней 3, узлов 15, пунктов en/ru 54/54, с ускорителем 9/9, столкновений 0/0
+      MainForm                         корней 1, узлов 10, пунктов en/ru 69/69, с ускорителем 41/41, столкновений 0/0; пропущено не-меню: statusStrip1 (StatusStrip)
+          подпись кодом: showLogToolStripMenuItem <- Resources.MenuShowLog (MainForm.cs:1820): en 'Show log' / ru 'Показать журнал'
+      ToolWindow                       корней 1, узлов 1, пунктов en/ru 3/3, с ускорителем 3/3, столкновений 0/0
+      Utils/CalibrationGraph           корней 1, узлов 1, пунктов en/ru 2/2, с ускорителем 0/0, столкновений 0/0
+      Utils/FWHMCalibrationGraph       корней 1, узлов 1, пунктов en/ru 2/2, с ускорителем 0/0, столкновений 0/0
+    ФОРМ судится 6, корней меню 8, узлов 29
+    АНГЛИЙСКИЙ: пунктов 132, с ускорителем 53, столкновений 0
+    РУССКИЙ:    пунктов 132, с ускорителем 53, столкновений 0
+    подписей, заданных кодом: 1
+    пунктов, добавляемых в меню кодом (разбору недоступны): 0
+    СОШЛОСЬ
+✅ tools/check_menu_accelerators.py: код 0, 1.7 с
+
+→ зову: python tools/check_numeric_updown.py
+    самопроверка: подброшенных образцов 5, заведомо чистых 5
+      САМОПРОВЕРКА ПРОШЛА
+    обойдено файлов: 548 (из них с общим полем 13; не судится сам InvariantNumericUpDown.cs — 1)
+    мест мимо общего приёма: 0
+✅ tools/check_numeric_updown.py: код 0, 0.4 с
+
+→ зову: python tools/check_fsa_docs.py
+    FsaAnalyzer.cs: описаний 284, умолчаний 88 (из них конструктор ставит 54)
+    ОПИСАНИЯ СОШЛИСЬ С КОНСТРУКТОРОМ: копий значений в описаниях нет.
+✅ tools/check_fsa_docs.py: код 0, 0.1 с
+
+→ зову: python tools/nucdb/check_ensdf_numbers.py
+      ✓ schemedb.ensdf_datasets           наборов ENSDF                            документ     3484, в базе     3484
+      ✓ schemedb.ensdf_datasets           разных дочерних нуклидов                 документ     1919, в базе     1919
+      ✓ schemedb.ensdf_datasets           наборов с номером уровня родителя        документ      662, в базе      662
+      ✓ schemedb.ensdf_levels             уровней                                  документ    35220, в базе    35220
+      ✓ schemedb.ensdf_gammas             переходов                                документ    79613, в базе    79613
+      ✓ schemedb.ensdf_gammas             гамм с полным коэффициентом конверсии    документ    19954, в базе    19954
+      ✓ schemedb.ensdf_gammas             гамм с мультипольностью                  документ    25906, в базе    25906
+      ✓ schemedb.ensdf_gammas             гамм без конечного уровня                документ     5283, в базе     5283
+      ✓ schemedb.ensdf_feedings           записей питания уровня                   документ    23498, в базе    23498
+      ✓ nucdb.gamma_coincidence        пар совпадений                           документ   128429, в базе   128429
+      ✓ nucdb.gamma_coincidence        пар с долей > 1                          документ     1820, в базе     1820
+      ✓ nucdb.gamma_coincidence        родителей с долей > 1                    документ       99, в базе       99
+      ✓ nucdb.gamma_coincidence_line   линий, участвующих в парах               документ    43231, в базе    43231
+      ✓ nucdb.gamma_coincidence_parent родителей                                документ     1643, в базе     1643
+    ✓ все 14 чисел §7/§8 сходятся с базами
+✅ tools/nucdb/check_ensdf_numbers.py: код 0, 0.1 с
+
+→ зову: python tools/nucdb/check_db_marks.py
+    # Колонки-признаки в базах против правила (`D36`, `D38`)
+    
+    ## Сверка: колонка против механического правила
+       в колонке 81, по правилу 81
+       СОШЛОСЬ до единицы
+    
+    1. `nuclides.half_life_is_limit` (`D36`): по правилу 81, разрешено 81
+    
+    ## Контроль правила: четыре набора `110AG`
+    
+       1103  110AG EC DECAY (24.6 S)      ждём пусто  вышло пусто   СОШЛОСЬ
+       1104  110AG IT DECAY (249.76 D)    ждём 2      вышло 2       СОШЛОСЬ
+       1105  110AG B- DECAY (24.6 S)      ждём пусто  вышло пусто   СОШЛОСЬ
+       1106  110AG B- DECAY (249.76 D)    ждём 2      вышло 2       СОШЛОСЬ
+    
+    ## Сверка: колонка `parent_l_seqno` против правила
+    
+      в колонке непустых 662, по правилу 662
+      СОШЛОСЬ до единицы
+    
+    2. `ensdf_datasets.parent_l_seqno` (`D38`): по правилу 662, разрешено 662
+    
+    ОБЕ КОЛОНКИ СОШЛИСЬ с правилом и с разрешёнными числами (81 и 662).
+✅ tools/nucdb/check_db_marks.py: код 0, 0.2 с
+
+→ зову: python tools/nucdb/check_isomer_levels.py
+    # Изомерная разметка `nucdb`: имя против уровня (`D40`, `D41`, `D47`)
+    база: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\nucdb.sqlite
+    
+    1. `D41` дубли имени в `nuclides`: в базе 1, ожидалось 1
+       ✔ 144TBm: уровни 4/6/7
+    
+    2. `D40` свой уровень отсутствует в `decay_radiations`: в базе 1, ожидалось 1
+       ✔ 123CSm2: в таблице 5, в nuclides 8
+    
+    3. `D40` свой уровень отсутствует в `l_decays`: в базе 2, ожидалось 2
+       ✔ 123CSm2: в таблице 5, в nuclides 8
+       ✔ 179AUm: в таблице 2, в nuclides 7
+    
+    4. `D47` строки более чем на одном уровне в `decay_radiations`: в базе 4, ожидалось 4
+       ✔ 116AGm2: уровни 1/4, свой 4
+       ✔ 118INm2: уровни 1/3, свой 3
+       ✔ 190Wm2: уровни 6/7, свой 7
+       ✔ 70CUm2: уровни 1/3, свой 3
+    
+    5. `D47` строки более чем на одном уровне в `l_decays`: в базе 5, ожидалось 5
+       ✔ 116AGm2: уровни 1/4, свой 4
+       ✔ 118INm2: уровни 1/3, свой 3
+       ✔ 190Wm2: уровни 6/7, свой 7
+       ✔ 198BIm2: уровни 1/3, свой 3
+       ✔ 70CUm2: уровни 1/3, свой 3
+    
+    6. `D40` набор `123CSm2` против строк `123CSm1`
+       строк под `123CSm2`: 9; строк под `123CSm1`: 9; ожидалось по 9
+       ✔ совпали побитово по всем шести колонкам
+    
+    7. запасная ветвь `DecayParentRule.LevelClause`
+       ✔ найдено `coalesce`
+       ✔ найдено `min(y.parent_l_seqno)`
+    
+    8. числа `database/scheme.md` против базы
+       в базе: строк 4429, различных имён 4427
+       ✔ таблица §0: 4429
+       ✔ §2, заголовок таблицы: 4429
+       ✔ §2, различных имён: 4427
+    
+    ИЗОМЕРНАЯ РАЗМЕТКА СОШЛАСЬ: 1 дубль имени, 1 сирота в `decay_radiations`, 2 в `l_decays`, 4 и 5 имён на двух уровнях.
+✅ tools/nucdb/check_isomer_levels.py: код 0, 1.6 с
+
+→ зову: python tools/check_decay_numeric.py
+    самопроверка: 6 плохих поймано, 7 добрых пропущено
+    текстовых колонок `decay_radiations` под арифметикой не найдено
+✅ tools/check_decay_numeric.py: код 0, 2.2 с
+
+→ зову: python tools/check_parent_rule.py
+    === 1. КОПИИ ПРАВИЛА «РОДИТЕЛЬ» В КОДЕ ===
+      разрешён BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs вхождений 4 (ожидалось 4) — само правило — единственный носитель текста (три строки LevelClause, одна ChainLevelClause)
+      разрешён tools/CORPUS/scripts/chains.py                       вхождений 1 (ожидалось 1) — `fallbacks()`: диагностика «кому достался чужой уровень» тем же `exists`, что у правила; текст правила читается из .cs (`_level_clause`)
+      разрешён tools/check_parent_rule.py                           вхождений 0 (ожидалось 0) — этот сторож: образцы в его тексте — не SQL
+      разрешён tools/effmaker/probes/ChainRuleProbeF58.cs           вхождений 1 (ожидалось 1) — мера снятого варианта B (`perc not null` внутри минимума) — плечо «было», копией нарочно, как и RetiredClauseC
+      разрешён tools/effmaker/probes/DecayReadersProbe.cs           вхождений 1 (ожидалось 1) — `Fallbacks()`: та же диагностика в пробе, сверяющей обоих читателей (`S89`)
+      разрешён tools/nucdb/check_isomer_levels.py                   вхождений 1 (ожидалось 1) — сторож ищет текст запасной ветви правила — проверка, что она жива
+      файлов просмотрено: 924; копий вне правила: 0
+    
+    === 2. ТРИ НОСИТЕЛЯ НОМЕРА УРОВНЯ РОДИТЕЛЯ ===
+      2а gamma_coincidence_parent: основных 1225 (l_seqno = 0 у всех: да), изомеров с привязкой 236, расхождений 0
+      2б ensdf_datasets.parent_l_seqno: заполнено 662, расхождений с nuclides/периодом 0
+      2в крест с decay_radiations: имён проверено 1645 (без строк излучений 132), расхождений с LevelClause 0
+    
+    === сводка ===
+      копий правила вне DecayParentRule: 0
+      расхождений между носителями: 0
+    ПРАВИЛО «РОДИТЕЛЬ» ОДНО: копий нет, три носителя согласны с nuclides и LevelClause.
+✅ tools/check_parent_rule.py: код 0, 8.3 с
+
+→ зову: python tools/check_corpus_readme.py
+    === сторож журнала корпуса (T113) ===
+    действующие базы (из таблицы объявления): out_rev21_full, out_rev21_mini
+    R1 «действующая база X» с чужим X: 0
+    R2 раздел на снятой базе без пометки: 0
+    R3 шапка против дерева: 0
+    R4 состав частей против parts.csv: 0
+    СОШЛОСЬ: снятое подаётся снятым, шапка сходится с деревом
+✅ tools/check_corpus_readme.py: код 0, 0.1 с
+
+→ зову: python tools/check_scheme_gaps.py
+    # §9а: строки и владельцы
+    
+    строк в таблицах: 34
+    
+    # Открытые строки, которые не называют задачи
+    
+      нет
+    
+    # Ссылки в пустоту
+    
+      нет
+    
+    # Открытые строки, чья задача уже в DONE.md
+    
+      К глазам: либо дыра закрыта и здесь не отмечена, либо
+      закрыто другое. Прогон этим не валится.
+      B-1   строка 1528  -> N9 (в DONE.md)
+      B-2   строка 1529  -> M2 (в DONE.md)
+      D-4   строка 1550  -> W8 (в DONE.md)
+      D-10  строка 1551  -> W8 (в DONE.md)
+      D-5   строка 1552  -> D9 (в DONE.md)
+      E-3   строка 1564  -> D10 (в DONE.md)
+      F-2   строка 1575  -> T27 (в DONE.md)
+    
+    §9а СОШЁЛСЯ С РЕЕСТРОМ
+✅ tools/check_scheme_gaps.py: код 0, 0.2 с
+
+→ зову: python tools/check_corpus_library.py
+    ⛔ поставочный NuclideDefinition.xml на корпусе не используется (правило Amber 01.09.2026; гейт AMBER19 12.09.2026)
+      ЧИСТО   tools/effmaker/probes/FsaChannelSplitProbe.cs (проба оснастки: тождества каналов отклика — матрица из склада (`ResponseMatrixStore.Load`))
+      ЧИСТО   tools/effmaker/probes/FsaDoubleCountProbe.cs (проба оснастки: клетки A168 {матрица есть/нет} — матрица из склада по Guid кривой)
+      ЧИСТО   tools/effmaker/probes/ResponseRowDumpProbe.cs (проба оснастки: строки матрицы отклика — из склада; состава у пробы нет вовсе)
+      ЧИСТО   tools/effmaker/probes/FsaChannelShot.cs (проба оснастки: картинки каналов отклика — матрица из склада, без неё каналов нет)
+      ЧИСТО   tools/effmaker/probes/FsaComponentDumpProbe.cs (проба оснастки: ленты компонентов по каналам — матрица из склада)
+      ЧИСТО   tools/effmaker/probes/FsaSumPeakAccountProbe.cs (проба оснастки: сумм-пики строятся только с матрицей — из склада)
+      ЧИСТО   tools/effmaker/probes/FsaCascadeProbe.cs (проба оснастки: три прогона с матрицей из склада; `--rebuild` пишет туда же)
+      ЧИСТО   tools/effmaker/probes/CrystalXrayGateProbe.cs (проба оснастки: раздел 1 — вылет K-рентгена по строкам матрицы из склада)
+      ЧИСТО   tools/effmaker/probes/PeakOriginProbe.cs (проба оснастки: обход всего корпуса: состав каждого спектра из manifest.csv (`P5`, П19))
+      ЧИСТО   BecquerelMonitor/PeakDetector.cs (менеджер только лениво, внутри метода)
+      ЧИСТО   tools/effmaker/probes/CorpusFsaProbe.cs
+      ЧИСТО   tools/CORPUS/scripts/mkconfig.py
+    НАХОДОК: 0
+✅ tools/check_corpus_library.py: код 0, 0.1 с
+
+→ зову: python tools/check_corpus_truth.py
+    ⛔ истина корпуса: corpus_def ↔ manifest.csv, поля chains, nuclides
+    манифест: tools\CORPUS\corpus\manifest.csv (131 строк), corpus_def: 131 записей
+    РАСХОЖДЕНИЙ: 0
+✅ tools/check_corpus_truth.py: код 0, 0.1 с
+
+→ зову: python tools/check_done_headers.py
+    === счёт ===
+    строк таблицы в DONE.md: 898
+    разобрано (заголовок выделен): 892
+    заголовков со словами незнания: 11
+    ПРОТИВОРЕЧИЙ (незнание в заголовке + ответ в теле): 0
+    порядок: противоречий не найдено
+✅ tools/check_done_headers.py: код 0, 0.2 с
+
+→ зову: python tools/check_corpus_coverage.py
+    === 1. КОДЫ ВОЗВРАТА МЕРОК ОХВАТА ===
+    → зову: python tools/CORPUS/scripts/gaussfit_check.py --coverage-only
+        в _corpus_raw спектров сверх corpus_def.ALL: 28 — AS1Pro_UGlass, AS21_PuAm, AS80_Background, ASN16_Background, ASN8_Background, CZTTeCd_Mix, CZT_Cs137, CZT_Th232, …
+        ASN16_Th232              НЕТ своей копии в _corpus_raw
+        ASN16_Charoite           НЕТ своей копии в _corpus_raw
+        ASN16_UGlass             НЕТ своей копии в _corpus_raw
+        ASN16_Granite            НЕТ своей копии в _corpus_raw
+        AS80_Th232_v2            НЕТ своей копии в _corpus_raw
+        AS80_UGlass              НЕТ своей копии в _corpus_raw
+        AS80_Charoite            НЕТ своей копии в _corpus_raw
+        
+        === ОХВАТ МЕРКИ: ПОСЧИТАНО / ОБЪЯВЛЕНО В corpus/parts.csv ===
+        заморожено (отсутствие ОЖИДАЕМО): AS80_Charoite, AS80_Th232_v2, AS80_UGlass, ASN16_Charoite, ASN16_Granite, ASN16_Th232, ASN16_UGlass
+        стадия                                       known     unknown    excluded       ВСЕГО
+        прочитано из _corpus_raw                     85/85     31/38 !         8/8   124/131 !
+        
+          «прочитано из _corpus_raw»: вне мерки 7 из 131
+            ОЖИДАЕМО — семёрка corpus_def.LEGACY, стадий 1 и 2 у неё в корпусе нет (7): AS80_Charoite, AS80_Th232_v2, AS80_UGlass, ASN16_Charoite, ASN16_Granite, ASN16_Th232, ASN16_UGlass
+        
+        --coverage-only: считана ТОЛЬКО стадия чтения; чисел мерки нет.
+    ✅ tools/CORPUS/scripts/gaussfit_check.py: код 0
+    
+      пропущена gate_blind_check.py — долгая (~мин); звать ключом --deep
+      пропущена ecal_accept_check.py — долгая (~мин); звать ключом --deep
+      пропущена ecal_extrapolation.py — долгая (~мин); звать ключом --deep
+    ⚠ коды 4 (`V16`) и 5 (`V17`) у gate_blind_check.py этим сторожем НЕ читаются: их даёт только полный прогон мерки, без --coverage-only.
+    
+    === 2. МЕРКИ НА СЫРЬЕ БЕЗ ОХВАТА ===
+      освобождён build_corpus.py          — не мерка: стадия 1, которая _corpus_raw и СОЗДАЁТ
+      нарушителей: 0
+    
+    === сводка ===
+      ✅ gaussfit_check.py        код 0
+    ОХВАТ ЦЕЛ: позвано мерок 1, все дали 0; мерок на сырье без охвата нет.
+✅ tools/check_corpus_coverage.py: код 0, 0.8 с
+
+→ зову: python tools/check_declared_base.py
+    ОБЪЯВЛЕНИЕ: tools\CORPUS\README.md, раздел «ДЕЙСТВУЮЩАЯ БАЗА»
+    ИЗМЕРЕНИЕ:  tools/pie/score.py по файлам самого каталога
+    строк объявления взято: 4
+    
+    [ ОК ] полная `out_rev21_full` / понятная
+          каталог: tools\pie\out_rev21_full (назван объявлением)
+          счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev21_full --part=known --members
+          сошлось: спектров 85, sum chi2/ndf 423.2, медиана 2.43, recall, % 100, фантомов 0, подавлен 0
+    
+    [ ОК ] полная `out_rev21_full` / непонятная
+          каталог: tools\pie\out_rev21_full (назван объявлением)
+          счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev21_full --part=unknown --members
+          сошлось: sum chi2/ndf 73.5, медиана 26.07, recall, % 5, фантомов 0, подавлен 0
+    
+    [ ОК ] малая `out_rev21_mini` / понятная
+          каталог: tools\pie\out_rev21_mini (назван объявлением)
+          счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev21_mini --part=known --members --only=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\mini.csv
+          сошлось: спектров 43, sum chi2/ndf 295.0, медиана 3.53, recall, % 100, фантомов 0, подавлен 0
+    
+    [ ОК ] малая `out_rev21_mini` / непонятная
+          каталог: tools\pie\out_rev21_mini (назван объявлением)
+          счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev21_mini --part=unknown --members --only=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\mini.csv
+          сошлось: sum chi2/ndf 47.4, медиана 23.69, recall, % 7, фантомов 0, подавлен 0
+    
+    ОТПЕЧАТОК ОБЪЯВЛЕНИЯ (T249):
+      [ ОК ] корпус: объявлено 41207672a684 = 41207672a684 (206 файлов, дерево)
+      [ ОК ] сборка: объявлено d9c100217f0d = d9c100217f0d (558 файлов, коммит объявления 83f79e86)
+      [ ОК ] полная `out_rev21_full`: клеймо прогона сошлось (снято 2026-09-13 09:33:19, HEAD 0e5fa2ba, ГРЯЗНОЕ дерево: BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs, tools/CORPUS/corpus/devices/Obsidian.xml, tools/CORPUS/corpus/devices/RC-101.xml, tools/CORPUS/corpus/devices/RC-103.xml, tools/CORPUS/corpus/spectra/AS80_Am241.xml, tools/CORPUS/corpus/spectra/AS80_Cs137_0cm.xml, tools/CORPUS/corpus/spectra/AS80_Lu176.xml, tools/CORPUS/corpus/spectra/AS80_Lu176_v2.xml, tools/CORPUS/corpus/spectra/AS80_Th232Medal.xml, tools/CORPUS/corpus/spectra/ASN16_Lu176.xml, tools/CORPUS/corpus/spectra/ASN16_Lu176_P0.xml, tools/CORPUS/corpus/spectra/G1S16_Am241_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Am241_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Ba133_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Ba133_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Cd109_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Cd109_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Ce139_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Ce139_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Co57_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Co60_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Co60_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Cs137_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Cs137_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Cs137_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Cs137_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Eu152_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Eu152_P5.xml, tools/CORPUS/corpus/spectra/G1S16_K40_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_K40_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Mix_Denta100.xml, tools/CORPUS/corpus/spectra/G1S16_Mix_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Mix_Petri.xml, tools/CORPUS/corpus/spectra/G1S16_Mn54_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Mn54_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Na22_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Na22_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Ra226_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Ra226_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Th228_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Th228_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Denta100.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Mar_3.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Petri.xml, tools/CORPUS/corpus/spectra/G1S16_Y88_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Y88_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Am241_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Ba133_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Bi207_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Cd109_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Co60_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Denta120.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Denta120_2.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_P25.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Petri.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Petri_2.xml, tools/CORPUS/corpus/spectra/G1S24_Eu152_P5.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Denta120.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Denta120_2.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Petri.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Petri_2.xml, tools/CORPUS/corpus/spectra/G1S24_Na22_P25.xml, tools/CORPUS/corpus/spectra/G1S24_Na22_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Denta120.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Denta120_2.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Petri.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Petri_2.xml, tools/CORPUS/corpus/spectra/G1S24_Th228_P25.xml, tools/CORPUS/corpus/spectra/G1S24_Th228_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Denta120.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Denta120_2.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Petri.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Petri_2.xml, tools/CORPUS/corpus/spectra/G1S24_Y88_P25.xml, tools/CORPUS/corpus/spectra/G1S24_Y88_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Zn65_P5.xml, tools/CORPUS/corpus/spectra/RC103_Cs137_0cm.xml, tools/CORPUS/corpus/spectra/RC103_K40.xml, tools/CORPUS/corpus/spectra/RC103_Lu176.xml)
+      [ ОК ] малая `out_rev21_mini`: клеймо прогона сошлось (снято 2026-09-13 09:33:29, HEAD 0e5fa2ba, ключи: --only=ASN16_Th232,ASN16_Charoite,ASN16_UGlass,ASN16_Granite,AS80_Th232_v2,AS80_UGlass,AS80_Charoite,ASN16_Charoite_v2,ASN16_Th232_Am241,ASN16_Am241,ASN16_Cs137,ASN16_Cs137_10cm,ASN16_BrazilNuts,AS80_Th232Medal,AS80_Onyx,AS80_K40,AS80_Th232WT20,AS80_Cs137_0cm,ASN16_Lu176,ASN16_Lu176_P0,AS80_Lu176,G1S16_Am241_P25,G1S16_Ba133_P25,G1S16_Cd109_P25,G1S16_Ce139_P25,G1S16_Co60_P25,G1S16_Cs137_P25,G1S16_Eu152_P25,G1S16_Mn54_P25,G1S16_Na22_P25,G1S16_Th228_P25,G1S16_Y88_P25,G1S16_Am241_P5,G1S16_Ba133_P5,G1S16_Cd109_P5,G1S16_Ce139_P5,G1S16_Co57_P5,G1S16_Co60_P5,G1S16_Cs137_P5,G1S16_Eu152_P5,G1S16_Mn54_P5,G1S16_Na22_P5,G1S16_Th228_P5,G1S16_Y88_P5,G1S24_Cs137_P25,G1S24_Na22_P25,G1S24_Th228_P25,G1S24_Y88_P25,G1S24_Am241_P5,G1S24_Ba133_P5,G1S24_Bi207_P5,G1S24_Cd109_P5,G1S24_Co60_P5,G1S24_Cs137_P5,G1S24_Eu152_P5,G1S24_Na22_P5,G1S24_Th228_P5,G1S24_Y88_P5,G1S24_Zn65_P5, ГРЯЗНОЕ дерево: BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs, tools/CORPUS/corpus/devices/Obsidian.xml, tools/CORPUS/corpus/devices/RC-101.xml, tools/CORPUS/corpus/devices/RC-103.xml, tools/CORPUS/corpus/spectra/AS80_Am241.xml, tools/CORPUS/corpus/spectra/AS80_Cs137_0cm.xml, tools/CORPUS/corpus/spectra/AS80_Lu176.xml, tools/CORPUS/corpus/spectra/AS80_Lu176_v2.xml, tools/CORPUS/corpus/spectra/AS80_Th232Medal.xml, tools/CORPUS/corpus/spectra/ASN16_Lu176.xml, tools/CORPUS/corpus/spectra/ASN16_Lu176_P0.xml, tools/CORPUS/corpus/spectra/G1S16_Am241_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Am241_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Ba133_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Ba133_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Cd109_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Cd109_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Ce139_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Ce139_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Co57_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Co60_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Co60_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Cs137_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Cs137_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Cs137_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Cs137_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Eu152_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Eu152_P5.xml, tools/CORPUS/corpus/spectra/G1S16_K40_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_K40_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Mix_Denta100.xml, tools/CORPUS/corpus/spectra/G1S16_Mix_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Mix_Petri.xml, tools/CORPUS/corpus/spectra/G1S16_Mn54_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Mn54_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Na22_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Na22_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Ra226_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Ra226_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Th228_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Th228_P5.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Denta100.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Mar_3.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Petri.xml, tools/CORPUS/corpus/spectra/G1S16_Y88_P25.xml, tools/CORPUS/corpus/spectra/G1S16_Y88_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Am241_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Ba133_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Bi207_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Cd109_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Co60_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Denta120.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Denta120_2.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_P25.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Petri.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Petri_2.xml, tools/CORPUS/corpus/spectra/G1S24_Eu152_P5.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Denta120.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Denta120_2.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Petri.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Petri_2.xml, tools/CORPUS/corpus/spectra/G1S24_Na22_P25.xml, tools/CORPUS/corpus/spectra/G1S24_Na22_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Denta120.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Denta120_2.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Petri.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Petri_2.xml, tools/CORPUS/corpus/spectra/G1S24_Th228_P25.xml, tools/CORPUS/corpus/spectra/G1S24_Th228_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Denta120.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Denta120_2.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Petri.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Petri_2.xml, tools/CORPUS/corpus/spectra/G1S24_Y88_P25.xml, tools/CORPUS/corpus/spectra/G1S24_Y88_P5.xml, tools/CORPUS/corpus/spectra/G1S24_Zn65_P5.xml, tools/CORPUS/corpus/spectra/RC103_Cs137_0cm.xml, tools/CORPUS/corpus/spectra/RC103_K40.xml, tools/CORPUS/corpus/spectra/RC103_Lu176.xml)
+    
+    ИТОГО: строк сверено 4, расхождений 0, без каталога 0; отпечатки: отказов 0
+✅ tools/check_declared_base.py: код 0, 1.6 с
+
+→ зову: python tools/check_pending_runs.py
+    сверяю: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\TODO.md
+      строк реестра вне раздела: 107; с признаком «ЖДЁТ СЧЁТНОГО ЗАХОДА»: 0
+      строк в разделе «Отложенные прогоны» (файл:445): 0
+      разряды ожидания: пересборка файлов корпуса | пересчёт склада матриц | один прогон FSA на готовых матрицах
+    
+    СХОДИТСЯ: 0 строк ждут счётного захода, все названы в разделе и разряд у каждой один.
+✅ tools/check_pending_runs.py: код 0, 0.1 с
+
+→ зову: python tools/check_probe_tuning.py
+    сторож отчёта о настройках (`T243`): правило живёт ОДНИМ местом — FsaTuningReport.cs; судятся довесок и 22 проб, считающих FSA
+      FsaTuningReport.cs         ЦЕЛ — единственное место, где живёт правило
+      проб, считающих FSA: 22; о настройках молчат 0 — таких нет
+      самопроверка: девять подставленных порч пойманы, целые довесок и проба чисты
+    ОТЧЁТ О НАСТРОЙКАХ ЦЕЛ: правило одно, зовут его все 22 проб, молчащих нет.
+✅ tools/check_probe_tuning.py: код 0, 0.2 с
+
+→ зову: python tools/check_matrix_keys.py
+    сторож состава ключей обоих путей (T242): реестр -- 40 настроек матрицы, 6 кривой, 48 полей симулятора
+      самопроверка: 10 подставленных порч пойманы, целое дерево чисто
+      путь матрицы: 40 настроек, в клейме 35, рычаг пробы у 38, поле формы у 6
+      путь кривой: 6 настроек; симулятору он ставит РОВНО 11 полей (ElectronTransport, Histories, ImportanceSampling, LYieldSupply, LightCascadeSplit, LightSubKevCurve, PeakHalfWidthKev, PositronOffset, PositronTransport, RayleighToCrystal, Seed), остальное -- умолчания симулятора
+      одно место истины (правило I): 11 полей симулятора берут умолчание склада (LightBinUnified, ImportanceSampling, PeakChannelByTolerance, LYieldSupply, ElectronTransport, PositronTransport, PositronOffset, RayleighToCrystal, LightSubKevCurve <- KDipCurveHalf(KDipLight), LightCascadeSplit <- KDipCascadeHalf(KDipLight), SplitXrayShells)
+      односторонних ключей: намеренно 55, неприменимо 18, забыто 0
+    СОСТАВ КЛЮЧЕЙ СОШЁЛСЯ: у каждой настройки есть потребитель, всё, что в клейме, лежит в файле, и у каждого одностороннего ключа названа причина.
+✅ tools/check_matrix_keys.py: код 0, 1.3 с
+
+→ зову: python tools/check_geometry_names.py
+    спектров всего 131, из них сверено с .in 85
+    расхождений нет, знаков замены нет
+✅ tools/check_geometry_names.py: код 0, 0.3 с
+
+→ зову: python tools/check_fsa_view_groups.py
+    === переключатели окна отчёта FSA: род против группы (A265) ===
+      поле                     группа             род
+      atomicXrayCheckBox       extrasGroupBox     РАСЧЁТНЫЙ
+      backscatterCheckBox      extrasGroupBox     РАСЧЁТНЫЙ
+      cascadeSummingCheckBox   extrasGroupBox     РАСЧЁТНЫЙ
+      daughtersRadio           displayGroupBox    отрисовочный
+      equilibriumCheckBox      chainGroupBox      РАСЧЁТНЫЙ
+      escapeCheckBox           extrasGroupBox     РАСЧЁТНЫЙ
+      parentsRadio             displayGroupBox    отрисовочный
+      pileUpCheckBox           extrasGroupBox     РАСЧЁТНЫЙ
+      residualBandCheckBox     displayGroupBox    отрисовочный
+      sourceNucBaseRadio       sourceGroupBox     РАСЧЁТНЫЙ
+      sourcePeaksRadio         sourceGroupBox     РАСЧЁТНЫЙ
+      всего 11: расчётных 8, отрисовочных 3
+    
+    === подписи группы показа ===
+      английская   displayGroupBox.Text: есть
+      русская      displayGroupBox.Text: есть
+    
+    === САМОПРОВЕРКА: порченая копия обязана быть названа ===
+      подставлено: residualBandCheckBox → extrasFlow; названо поимённо, лишнего нет
+    
+    СОШЛОСЬ: каждый переключатель в группе своего рода
+✅ tools/check_fsa_view_groups.py: код 0, 0.1 с
+
+→ зову: python tools/check_selection_panel_height.py
+      самопроверка «слагаемое без клейма»: код 1 
+      самопроверка «слагаемое отрисовки без пары в пробе»: код 1 
+      самопроверка «слагаемое пробы без пары в отрисовке»: код 1 
+      САМОПРОВЕРКА ПРОШЛА: все три порчи названы
+    отрисовка: слагаемых высоты 2, из них с клеймом 2 — подпись, спор
+    мерка пробы: клейм 3 — спор, подпись, спор
+    СОШЛОСЬ: 2 слагаемых высоты, у каждого клеймо и пара в мерке пробы
+✅ tools/check_selection_panel_height.py: код 0, 0.1 с
+
+→ зову: python tools/check_escape_parents.py
+    === ОТСЕВ РОДИТЕЛЕЙ ОБРАЗОВ ВЫЛЕТА (`A271`) ===
+      запас над порогом пар: 124.0 кэВ
+      все шесть правил сошлись
+    
+    === САМОПРОВЕРКА: две порченые копии обязаны быть названы ===
+      подставлено: запас снят из условия отбора — названо поимённо
+      подставлено: возвращена форма !double.IsNaN(x) && !(…) — названо поимённо
+    
+    СОШЛОСЬ: отсев родителей вылета работает и без вещества кристалла
+✅ tools/check_escape_parents.py: код 0, 0.1 с
+
+→ зову: python tools/check_crystal_material.py
+    === вещество кристалла у прибора: геометрия первична (A276) ===
+      1. свойство CrystalMaterialName объявлено
+      1. умолчание поля — пустая строка (старый конфиг читается)
+      2. глубокая копия переносит поле
+      3. FsaSampleSpec.CrystalMaterialName объявлено
+      4. порядок источников: геометрия -> поле прибора -> элементы
+      5. вывод состава берёт имя у конфигурации прибора (общим входом FsaSampleSpec.OfSpectrum)
+      6. путь по пикам берёт поле только там, где геометрии нет
+      7. форма связана с обоих концов: показ и запись
+      8. подписи поля и пункта «не задано» есть в обоих resx
+      9. имён веществ в коде разбора нет (сверено 38 имён засева)
+      10. проба CrystalMaterialProbe.cs на месте
+    
+    --- САМОПРОВЕРКА: две порченые копии ---
+      (а) источники переставлены  -> 4. ПОРЯДОК ИСТОЧНИКОВ НАРУШЕН: геометрия на 758, поле на 170, элементы на 899 — геометрия обязана быть первой
+      (б) умолчание не пусто      -> 1. поле crystalMaterialName не инициализировано пустой строкой — старая конфигурация без этого элемента получит не «пусто»
+    
+    СОШЛОСЬ: поле прибора читается запасным источником, геометрия первична
+✅ tools/check_crystal_material.py: код 0, 0.1 с
+
+→ зову: python tools/check_refit_z_class.py
+    === ОТСЕВ ПО ЗНАЧИМОСТИ И КЛАСС КОМПОНЕНТА (`A275`) ===
+      кусок приговора отсева: 2188 знаков
+      все шесть правил сошлись
+    
+    === САМОПРОВЕРКА: три порченые копии обязаны быть названы ===
+      подставлено: возврат распространён на мешающие образы — названо поимённо
+      подставлено: условие возврата переписано на общий счётчик — названо поимённо
+      подставлено: снят сброс счётчика возвращённых — названо поимённо
+    
+    СОШЛОСЬ: отсев не может оставить разбор без единого объявленного нуклида
+✅ tools/check_refit_z_class.py: код 0, 0.1 с
+
+→ зову: python tools/check_roi_listup.py
+    # Перестроение списка ROI не правит то, по чему идёт (A296)
+    
+    
+    ФОРМА ПРАВИЛА ЦЕЛА
+    положительный контроль: python tools/check_roi_listup.py --selftest
+✅ tools/check_roi_listup.py: код 0, 0.0 с
+
+→ зову: python tools/nucdb/check_edges.py
+    # Края поглощения: правило старшинства (D18)
+    
+    1. Порог и линии вылета (`xray_fluorescence`) против `xcom_edges`:
+       расходится 0 из 71 — ХОРОШО
+    2. Группа EADL (`eadl_binding` против `compton_profile_shell`):
+       элементов 100, макс 0.0000 %, медиана 0.0000 % — одна поставка
+    3. Группа EPICS/ESTAR (`epics_photo_subshell` против `estar_shells`):
+       элементов 100, макс 0.0040 %, медиана 0.0000 %
+    
+    Остаточное смешение, единственное: `MaterialDatabase` берёт полное
+    сечение из XCOM, а долю K-оболочки — из EPICS (`epics_photo_fit`).
+       элементов 90, макс 0.788 % (143090.0 против 141962.0 эВ), медиана 0.0148 %
+       Максимум приходится на Z = 98…100, которых в наших веществах не
+       бывает; на реальных составах расхождение ≤ 0.28 %.
+    
+    Правило соблюдается: каждая величина берёт край своей поставки.
+✅ tools/nucdb/check_edges.py: код 0, 0.1 с
+
+→ зову: python tools/check_probe_numbers.py
+    сторож печати чисел в оснастке (T245, T247): разделитель — только инвариантом, формат P — не применяется, у каждого числа — поставщик культуры; судятся 189 файлов tools/effmaker
+      законных подмен, помеченных «T245: НАРОЧНО»: 5
+      самопроверка: семь подставленных порч пойманы, целые файлы чисты (в том числе имя «P3» и проба, у которой культура — ПРЕДМЕТ замера)
+    ПЕЧАТЬ ЧИСЕЛ ЦЕЛА: подмен разделителя без метки нет, форматов P нет ни одного, числа печатаются только с поставщиком культуры.
+✅ tools/check_probe_numbers.py: код 0, 0.4 с
+
+→ зову: python tools/check_curve_generation.py
+    === поколение кривой против поколения матрицы и сборки (A119) ===
+      поколение сборки: 17
+      1. клеймо кривой печатается версией сборки
+      2. решение статическое, клеймо разбирается общим приёмом
+      3. литерального номера поколения в решении нет
+      4. вкладка зовёт решение и даёт ему версию сборки
+      5. вкладка спрашивает склад о поколении матрицы
+      6. обёртка склада делегирует общему чтению заголовка
+      7. обе подписи в обоих resx, по два места подстановки
+      8. обе подписи объявлены в Designer
+      9. замер на месте: CurveGenerationProbe.cs
+      10. сообщения идут своей подписью, а не хвостом к сводке
+      11. высота подписи считается по настоящему тексту
+    
+    --- САМОПРОВЕРКА: семь порченых копий и две сцены склада ---
+      (а) вызов решения снят                 -> 4. `UpdateEfficiencyView` не зовёт `GenerationNotes` — вкладка молчит
+      (б) поколение сборки числом            -> 4. `GenerationNotes` зовётся НЕ с `ResponseMatrix.PhysicsVersion`
+      (в) склад не спрашивается              -> 5. `UpdateEfficiencyView` не спрашивает склад (`ResponseMatrixStore.PeekVersions`) — поколение матрицы всегда 0
+      (г) клеймо кривой числом               -> 1. клеймо кривой не берёт `ResponseMatrix.PhysicsVersion` — поколение окаменеет
+      (д) сообщения хвостом к сводке         -> 10. сообщения дописываются в сводку (`parts`) — подпись 466×30 обрежет их МОЛЧА
+      (е) высота подписи числом              -> 11. `GenerationLabelHeight` не меряет текст `TextRenderer.MeasureText` — высота числом устареет на первом же переводе
+      (ё) русской подписи нет                -> 7. `EfficiencyTabCurveVsMatrix` нет в русской поставке ресурсов
+      (ж) склад с расхождением               -> кривая «Цилиндр» (дежурный.xml): поколение 11, сборка 16; кривая «Цилиндр» (дежурный.xml): поколение 11, а её матрица — 16
+      (з) склад согласный (контроль)         -> молчит
+    
+    СОШЛОСЬ: расхождение поколений названо словами и сравнение не обездвижено
+✅ tools/check_curve_generation.py: код 0, 0.1 с
+
+→ зову: python tools/check_dump_readers.py
+    сторож читателей дампа (T254, A284): столбец `net` (показная кривая) рядом с `model` — только у названных по пути; судятся 163 файлов tools/**/*.py, разрешённых 2
+      разрешён: tools/CORPUS/scripts/wave_owner.py (есть) — `S88`: читает дамп через `wave_shape.load` (сам ключей не берёт; назван, потому что назван строкой `T254`)
+      разрешён: tools/CORPUS/scripts/wave_shape.py (есть) — `S88`: волна отношения модель/измерение — мерится ФОРМА, а не χ²; тот же формат без `fit` пишет `FsaStackShot --dump=`
+      самопроверка: плохой читатель и чужой wave_shape.py пойманы; читатель по `fit`, читатель одного `net` и комментарий чисты
+    ЧИТАТЕЛИ ДАМПА ЧИСТЫ: столбец `net` рядом с `model` берут только разрешённые.
+✅ tools/check_dump_readers.py: код 0, 1.6 с
+
+→ зову: python tools/check_corpus_generator.py
+    корпус: tools\CORPUS\corpus
+    
+    == клеймо генератора корпуса (T244) ==
+      набор генератора в дереве: 10 файлов, отпечаток 467ef20a88cd30eb
+      клеймо: собрано на HEAD 0e5fa2ba, отпечаток 467ef20a88cd30eb
+      СОШЛОСЬ: корпус собран ТЕМ генератором, что лежит в дереве (10 файлов)
+    
+    == сводка корпуса — пересборкой в памяти (T244, доля П6) ==
+      manifest.csv: 131 спектров; пересобрано строк сводки: 131
+      summary.csv СОШЛОСЬ побайтно (45064 байт)
+      SUMMARY.md  СОШЛОСЬ побайтно (36016 байт)
+    
+    СОШЛОСЬ: корпус собран нынешним генератором, сводка — этим корпусом.
+✅ tools/check_corpus_generator.py: код 0, 0.8 с
+
+=== сводка ===
+  ✅ tools/check_registry_refs.py — код 0, 2.1 с — ссылки `T<n>` в оснастке, приложении и журналах против TODO.md/DONE.md
+  ✅ tools/check_build_recipe.py — код 0, 3.5 с — копии рецепта MSBuild без /p:GenerateManifests=false
+  ✅ tools/check_resx.py — код 0, 7.2 с — пары Foo.resx / Foo.ru.resx: непереведённое
+  ✅ tools/check_resx_designer.py — код 0, 15.6 с — GetString("X") без X в парном resx
+  ✅ tools/check_resx_letters.py — код 0, 6.0 с — кириллица в английских resx и наоборот; ускоритель в скобках не латиницей (`T132`)
+  ✅ tools/check_resx_zorder.py — код 0, 5.1 с — >>X.Parent / >>X.ZOrder против designer-кода
+  ✅ tools/check_headless.py — код 0, 4.0 с — окна на безоконном пути
+  ✅ tools/check_menu_accelerators.py — код 0, 1.7 с — столкновения ускорителей ВСЕХ меню дерева (`T167`)
+  ✅ tools/check_numeric_updown.py — код 0, 0.4 с — поля со стрелками мимо общего InvariantNumericUpDown; группировка разрядов
+  ✅ tools/check_fsa_docs.py — код 0, 0.1 с — XML-описания настроек разбора против конструктора
+  ✅ tools/nucdb/check_ensdf_numbers.py — код 0, 0.1 с — числа §7/§8 scheme.md против schemedb/nucdb (`W8`, `D10`)
+  ✅ tools/nucdb/check_db_marks.py — код 0, 0.2 с — колонки-признаки в базах против правила (`D36`, `D38`)
+  ✅ tools/nucdb/check_isomer_levels.py — код 0, 1.6 с — изомерная разметка nucdb: имя против уровня (`D40`, `D41`, `D47`)
+  ✅ tools/check_decay_numeric.py — код 0, 2.2 с — текстовые колонки decay_radiations под сравнением/порядком (`D35`)
+  ✅ tools/check_parent_rule.py — код 0, 8.3 с — правило «родитель» одно: копии зажима по уровню в коде; три носителя уровня против nuclides/LevelClause (`D48`)
+  ✅ tools/check_corpus_readme.py — код 0, 0.1 с — журнал корпуса: снятое помечено снятым; шапка и состав частей — против дерева
+  ✅ tools/check_scheme_gaps.py — код 0, 0.2 с — раздел «чего не хватает» scheme.md против реестра
+  ✅ tools/check_corpus_library.py — код 0, 0.1 с — корпус не читает поставочную библиотеку
+  ✅ tools/check_corpus_truth.py — код 0, 0.1 с — поля истины корпуса (chains, nuclides): corpus_def против manifest.csv
+  ✅ tools/check_done_headers.py — код 0, 0.2 с — заголовок строки DONE.md против её тела
+  ✅ tools/check_corpus_coverage.py — код 0, 0.8 с — охват корпусных мерок: коды возврата и мерки на сырье без Coverage
+  ✅ tools/check_declared_base.py — код 0, 1.6 с — объявление базы: числа каталога, отпечаток корпуса и сборки, клеймо прогона
+  ✅ tools/check_pending_runs.py — код 0, 0.1 с — признак «ЖДЁТ СЧЁТНОГО ЗАХОДА» против раздела «Отложенные прогоны»
+  ✅ tools/check_probe_tuning.py — код 0, 0.2 с — отчёт проб FSA о настройках: вызов, эталон, снимок полосы, порядок
+  ✅ tools/check_matrix_keys.py — код 0, 1.3 с — состав ключей обоих путей: матрица отклика против расчёта в UI
+  ✅ tools/check_geometry_names.py — код 0, 0.3 с — имена веществ в узле <Efficiency> против corpus/geometries/*.in
+  ✅ tools/check_fsa_view_groups.py — код 0, 0.1 с — переключатели окна отчёта FSA: расчётные и отрисовочные по своим группам
+  ✅ tools/check_selection_panel_height.py — код 0, 0.1 с — слагаемые высоты панели выделения: отрисовка против мерки пробы
+  ✅ tools/check_escape_parents.py — код 0, 0.1 с — отсев родителей образов вылета SE/DE не выключается сам при NaN
+  ✅ tools/check_crystal_material.py — код 0, 0.1 с — вещество кристалла у прибора: геометрия первична, поле — запасной источник
+  ✅ tools/check_refit_z_class.py — код 0, 0.1 с — отсев по значимости не оставляет разбор без единого нуклида
+  ✅ tools/check_roi_listup.py — код 0, 0.0 с — перестроение списка ROI не правит то, по чему идёт
+  ✅ tools/nucdb/check_edges.py — код 0, 0.1 с — края поглощения: каждая величина берёт край своей поставки (D18)
+  ✅ tools/check_probe_numbers.py — код 0, 0.4 с — печать чисел в оснастке: подмена разделителя без метки, форматы P, число без поставщика культуры
+  ✅ tools/check_curve_generation.py — код 0, 0.1 с — поколение кривой эффективности против поколения матрицы и сборки
+  ✅ tools/check_dump_readers.py — код 0, 1.6 с — читатели дампа разбора: показная кривая рядом с моделью — только у разрешённых (`T254`)
+  ✅ tools/check_corpus_generator.py — код 0, 0.8 с — корпус собран нынешним генератором (клеймо T244); сводка — этим корпусом
+ВСЕ ЗЕЛЕНЫ: 37 из 37 сторожей дали 0.

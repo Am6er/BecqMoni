@@ -148,15 +148,6 @@
   <data name="button14.Text" xml:space="preserve">
     <value>Записать в устройство</value>
   </data>
-  <data name="button15.Text" xml:space="preserve">
-    <value>Добавить</value>
-  </data>
-  <data name="button16.Text" xml:space="preserve">
-    <value>Удалить</value>
-  </data>
-  <data name="buttonClearDoseRate.Text" xml:space="preserve">
-    <value>Очистить все</value>
-  </data>
   <data name="label18.Size" type="System.Drawing.Size, System.Drawing">
     <value>86, 13</value>
   </data>
@@ -183,6 +174,15 @@
   </data>
   <data name="label21.Text" xml:space="preserve">
     <value>Шаг канала</value>
+  </data>
+  <data name="crystalMaterialLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>114, 13</value>
+  </data>
+  <data name="crystalMaterialLabel.Text" xml:space="preserve">
+    <value>Вещество кристалла</value>
+  </data>
+  <data name="crystalMaterialNotSet" xml:space="preserve">
+    <value>(не задано)</value>
   </data>
   <data name="label28.Size" type="System.Drawing.Size, System.Drawing">
     <value>28, 13</value>
@@ -317,7 +317,7 @@
     <value>Выберите параметры так, чтобы пики соответствовали известным энергиям.</value>
   </data>
   <data name="textBox15.Text" xml:space="preserve">
-    <value>Энергия[keV] = ax^4 + bx^3 + cx^2 + dx + e (x = номер канала)</value>
+    <value>Энергия[кэВ] = ax^4 + bx^3 + cx^2 + dx + e (x = номер канала)</value>
   </data>
   <data name="tabPage5.Text" xml:space="preserve">
     <value>Анализ</value>
@@ -368,13 +368,13 @@
     <value>113, 13</value>
   </data>
   <data name="label47.Text" xml:space="preserve">
-    <value>Мин. поиск пика keV</value>
+    <value>Мин. поиск пика кэВ</value>
   </data>
   <data name="label48.Size" type="System.Drawing.Size, System.Drawing">
     <value>119, 13</value>
   </data>
   <data name="label48.Text" xml:space="preserve">
-    <value>Макс. поиск пика keV</value>
+    <value>Макс. поиск пика кэВ</value>
   </data>
   <data name="label50.Size" type="System.Drawing.Size, System.Drawing">
     <value>95, 13</value>
@@ -392,46 +392,7 @@
     <value>108, 13</value>
   </data>
   <data name="label52.Text" xml:space="preserve">
-    <value>Сжатие каналов, ch</value>
-  </data>
-  <data name="deconvolutionGroupBox.Text" xml:space="preserve">
-    <value>Деконволюция</value>
-  </data>
-  <data name="deconvolutionEnabledLabel.Text" xml:space="preserve">
-    <value>Включено</value>
-  </data>
-  <data name="deconvolutionBurnInLabel.Text" xml:space="preserve">
-    <value>Прогрев</value>
-  </data>
-  <data name="deconvolutionSamplesLabel.Text" xml:space="preserve">
-    <value>Сэмплы</value>
-  </data>
-  <data name="deconvolutionMaxRoisLabel.Text" xml:space="preserve">
-    <value>Макс ROI</value>
-  </data>
-  <data name="deconvolutionMaxExtraPeaksPerRoiLabel.Text" xml:space="preserve">
-    <value>Макс доп.</value>
-  </data>
-  <data name="deconvolutionRoiRadiusFwhmLabel.Text" xml:space="preserve">
-    <value>Радиус ROI</value>
-  </data>
-  <data name="deconvolutionEnabled.ToolTip" xml:space="preserve">
-    <value>Включает RJMCMC-деконволюцию после детерминированного FWHM-поиска пиков для текущего конфига устройства.</value>
-  </data>
-  <data name="deconvolutionBurnIn.ToolTip" xml:space="preserve">
-    <value>Число начальных итераций RJMCMC, которые отбрасываются перед сбором кандидатов.</value>
-  </data>
-  <data name="deconvolutionSamples.ToolTip" xml:space="preserve">
-    <value>Число итераций RJMCMC для сбора кандидатов пиков после прогрева.</value>
-  </data>
-  <data name="deconvolutionMaxRois.ToolTip" xml:space="preserve">
-    <value>Максимальное число ROI-областей, обрабатываемых деконволюцией.</value>
-  </data>
-  <data name="deconvolutionMaxExtraPeaksPerRoi.ToolTip" xml:space="preserve">
-    <value>Максимальное число дополнительных неразрешённых пиков, которые RJMCMC может добавить внутри одного ROI.</value>
-  </data>
-  <data name="deconvolutionRoiRadiusFwhm.ToolTip" xml:space="preserve">
-    <value>Полуширина ROI вокруг детерминированного пика, выраженная в единицах FWHM.</value>
+    <value>Сжатие каналов, кан.</value>
   </data>
   <data name="tabPage4.Text" xml:space="preserve">
     <value>Ссылки</value>
@@ -456,51 +417,6 @@
   </data>
   <data name="label23.Text" xml:space="preserve">
     <value>Фоновый спектр</value>
-  </data>
-  <data name="effROIText.Text" xml:space="preserve">
-    <value>Выберите ROI с данными по кривой эффективности:</value>
-  </data>
-  <data name="clearEffROI.Text" xml:space="preserve">
-    <value>Очистить</value>
-  </data>
-  <data name="tabPage7.Text" xml:space="preserve">
-    <value>МЭД</value>
-  </data>
-  <data name="groupBox3.Text" xml:space="preserve">
-    <value>Мощность дозы</value>
-  </data>
-  <data name="table4.NoItemsText" xml:space="preserve">
-    <value>Нет точек калибровки</value>
-  </data>
-  <data name="numberColumn5.Text" xml:space="preserve">
-    <value>Начало, keV</value>
-  </data>
-  <data name="numberColumn6.Text" xml:space="preserve">
-    <value>Конец, keV</value>
-  </data>
-  <data name="numberColumn8.Text" xml:space="preserve">
-    <value>Эталон МЭД, μSv/h</value>
-  </data>
-  <data name="labelDREstimateTitle.Text" xml:space="preserve">
-    <value>Экспериментально: оценка кривой мощности дозы по LSRM модели и спектру</value>
-  </data>
-  <data name="buttonEstimateDRConf.Text" xml:space="preserve">
-    <value>Рассчитать конфигурацию</value>
-  </data>
-  <data name="labelDoseRateValue.Text" xml:space="preserve">
-    <value>мкЗв/ч, мощность дозы от источника</value>
-  </data>
-  <data name="labelEffNote.Text" xml:space="preserve">
-    <value>*важна только форма кривой (LSRM effcalc, 40 кэВ - 3 МэВ)</value>
-  </data>
-  <data name="buttonLoadEff.Text" xml:space="preserve">
-    <value>Загрузить файл эфф.*</value>
-  </data>
-  <data name="labelSpectrumNote.Text" xml:space="preserve">
-    <value>*от источника с известной мощностью дозы</value>
-  </data>
-  <data name="buttonLoadDoseRateSpectrum.Text" xml:space="preserve">
-    <value>Загрузить файл спектра*</value>
   </data>
   <data name="button12.Text" xml:space="preserve">
     <value>Дубль</value>
@@ -4785,5 +4701,38 @@
   </data>
   <data name="$this.Text" xml:space="preserve">
     <value>Редактировать конфигурацию устройства</value>
+  </data>
+  <data name="textColumn3.Text" xml:space="preserve">
+    <value>#</value>
+  </data>
+  <data name="peakTypecomboBox.Items" xml:space="preserve">
+    <value>Gaussian</value>
+  </data>
+  <data name="peakTypecomboBox.Items1" xml:space="preserve">
+    <value>Exp-Gaussian-Exp</value>
+  </data>
+  <data name="peakTypecomboBox.Items2" xml:space="preserve">
+    <value>Voigt</value>
+  </data>
+  <data name="labelWidenFactor.Text" xml:space="preserve">
+    <value>Расширение пика</value>
+  </data>
+  <data name="centroidComCheckBox.Text" xml:space="preserve">
+    <value>Центроида по центру масс</value>
+  </data>
+  <data name="lsrmGeometryDialogTitle" xml:space="preserve">
+    <value>Геометрия кривой ЛСРМ: файл .in, для которого она посчитана (Отмена — ввезти без геометрии)</value>
+  </data>
+  <data name="lsrmGeometryProblem" xml:space="preserve">
+    <value>Геометрию не удалось привязать к кривой «{0}»:
+{1}
+
+Кривая ввезена без геометрии; у мощности дозы нет масштаба, пока геометрия не задана кнопкой «Изменить…».</value>
+  </data>
+  <data name="lsrmGeometryNoCrystal" xml:space="preserve">
+    <value>{0}: не найдены размеры сцинтилляционного кристалла (DS_CrystalDiameter / DS_CrystalHeight или DS_CrystalBoxX / Y / Z) — это не геометрия сцинтиллятора в формате ЛСРМ.</value>
+  </data>
+  <data name="lsrmGeometryFieldScene" xml:space="preserve">
+    <value>{0}: сцена поля (DS_Scene = ISO) не может быть геометрией кривой ЛСРМ — эффективность ЛСРМ нормирована на испущенный квант, а не на единичный флюенс.</value>
   </data>
 </root>

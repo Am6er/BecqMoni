@@ -1,0 +1,12 @@
+  (диск, ожидаемо) AS80_Th232Medal: part, chi2ndf, inflate, gain, offset_ch, matrix_applied, matrix_note, cascade
+runs: совпало 58, разошлось 1, только в базе 0, только в плече 0
+components: совпало 109, разошлось 0, только в базе 0, только в плече 9
+  только в плече: AS80_Th232Medal Ac-228 single (диск, ожидаемо)
+  только в плече: AS80_Th232Medal Bi-212 single (диск, ожидаемо)
+  только в плече: AS80_Th232Medal Pb-212 single (диск, ожидаемо)
+  только в плече: AS80_Th232Medal Po-216 single (диск, ожидаемо)
+  только в плече: AS80_Th232Medal Ra-224 single (диск, ожидаемо)
+  только в плече: AS80_Th232Medal Rn-220 single (диск, ожидаемо)
+  только в плече: AS80_Th232Medal Th-228 single (диск, ожидаемо)
+  только в плече: AS80_Th232Medal Th-232 single (диск, ожидаемо)
+  только в плече: AS80_Th232Medal Tl-208 single (диск, ожидаемо)

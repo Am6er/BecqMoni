@@ -1,0 +1,6 @@
+G1S_p25 hi seed1: exit=0 (101 s)
+G1S_p25 lo40_60 seed1: exit=0 (40 s)
+G1S_p25 lo100_200 seed1: exit=0 (35 s)
+ASN16 hi seed1: exit=0 (24 s)
+ASN16 lo40_60 seed1: exit=0 (36 s)
+ASN16 lo100_200 seed1: exit=0 (53 s)

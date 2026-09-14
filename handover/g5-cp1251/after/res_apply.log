@@ -1,0 +1,15 @@
+usage: res_apply.py [-h] [--mode {proj,power,power-node}] [--out OUT]
+                    [--dets DETS] [--split SPLIT] [--min-points MIN_POINTS]
+                    [--min-low MIN_LOW] [--tol TOL] [--dry] [--apply]
+
+options:
+  -h, --help            show this help message and exit
+  --mode {proj,power,power-node}
+  --out OUT             каталог копии корпуса
+  --dets DETS           только эти группы
+  --split SPLIT         граница низа, кэВ
+  --min-points MIN_POINTS
+  --min-low MIN_LOW
+  --tol TOL             предел отклонения записанной кривой от модели группы
+  --dry
+  --apply               писать в САМ корпус (только с разрешения Amber)

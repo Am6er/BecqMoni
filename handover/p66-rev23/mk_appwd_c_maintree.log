@@ -1,0 +1,21 @@
+
+⛔⛔ ОТКАЗ: ОСНАСТКУ НЕ ИЗ ЧЕГО СОБИРАТЬ
+   НАБОР ИСХОДНИКОВ ПРИЛОЖЕНИЯ РАЗОШЁЛСЯ С ЗАВЕРЕННЫМ (T226/T41): изменено 113, добавлено 0, удалено 0
+           becquerelmonitor\aboutform.designer.cs
+           becquerelmonitor\applog.cs
+           becquerelmonitor\atomspectravcpdeviceform.designer.cs
+           becquerelmonitor\audioinputdeviceform.designer.cs
+           becquerelmonitor\calibrationpeak.cs
+           becquerelmonitor\colorcombobox\colorcombobox.designer.cs
+           … и ещё 107
+           отпечаток набора: заверено 0f411b8baa40 -> в дереве e5307f999bce
+           Пересоберите приложение и перегоните build_all.ps1.
+   ПРОБЫ СОБРАНЫ ИЗ ДРУГОГО НАБОРА ИСХОДНИКОВ (T226/T233): 183 шт.
+           LsrmGeometryImportProbe.exe: заверено 9a58b1d317bf -> в дереве 5f76a51ba2ed
+           CorpusGeomProbe.exe: заверено 56f7ba1ed31d -> в дереве a2e86e64f82d
+           SeedStampProbeF69.exe: заверено dfa8e57c859c -> в дереве db7e743cc415
+           BoxDeadFieldsProbe.exe: заверено ec60e7ef784e -> в дереве 9c8c6e364fe8
+           CoincCfProbe.exe: заверено 4130648b0e2a -> в дереве 11d241a49e89
+           Содержимое разошлось с заверенным — по времени такое не всегда видно.
+
+   Пересоберите приложение и пробы. Осознанно — ключ -Force.

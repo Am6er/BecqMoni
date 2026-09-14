@@ -1,0 +1,13 @@
+# прокачка идёт и во время съёмки (окно 1 = 6964 с); накопление до старта tau
+tau=0.0h air 1:1.0:1.0  mean Bi/Pb over window = 1.423
+tau=0.0h air 1:0.7:0.5  mean Bi/Pb over window = 1.192
+tau=0.0h air 1:0.5:0.3  mean Bi/Pb over window = 1.090
+tau=0.5h air 1:1.0:1.0  mean Bi/Pb over window = 1.501
+tau=0.5h air 1:0.7:0.5  mean Bi/Pb over window = 1.278
+tau=0.5h air 1:0.5:0.3  mean Bi/Pb over window = 1.179
+tau=1.0h air 1:1.0:1.0  mean Bi/Pb over window = 1.567
+tau=1.0h air 1:0.7:0.5  mean Bi/Pb over window = 1.352
+tau=1.0h air 1:0.5:0.3  mean Bi/Pb over window = 1.256
+tau=2.0h air 1:1.0:1.0  mean Bi/Pb over window = 1.630
+tau=2.0h air 1:0.7:0.5  mean Bi/Pb over window = 1.421
+tau=2.0h air 1:0.5:0.3  mean Bi/Pb over window = 1.329

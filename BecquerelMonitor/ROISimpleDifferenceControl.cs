@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace BecquerelMonitor
 {
@@ -19,37 +20,55 @@ namespace BecquerelMonitor
         {
             ROISimpleDifferenceData roisimpleDifferenceData = (ROISimpleDifferenceData)prim;
             this.comboBox1.SelectedIndex = ROIPrimitiveOperation.GetOperationIndex(prim.OperationType);
-            this.doubleTextBox3.Text = roisimpleDifferenceData.Coefficient.ToString();
-            this.doubleTextBox4.Text = roisimpleDifferenceData.CoefficientError.ToString();
-            this.doubleTextBox1.Text = roisimpleDifferenceData.LowerLimit.ToString();
-            this.doubleTextBox2.Text = roisimpleDifferenceData.UpperLimit.ToString();
+            this.doubleTextBox3.Text = roisimpleDifferenceData.Coefficient.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox4.Text = roisimpleDifferenceData.CoefficientError.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox1.Text = roisimpleDifferenceData.LowerLimit.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox2.Text = roisimpleDifferenceData.UpperLimit.ToString(CultureInfo.InvariantCulture);
             this.textBox1.Text = roisimpleDifferenceData.Note;
         }
 
+        /// <summary>
+        /// ⛔ СНАЧАЛА РАЗОБРАТЬ ВСЁ, ПОТОМ ПИСАТЬ. Прежде поля присваивались по
+        /// одному прямо в объект, и первое же неразобранное число оставляло его
+        /// НАПОЛОВИНУ ИЗМЕНЁННЫМ при возврате <c>false</c> (`A7`): операция и
+        /// коэффициент уже новые, границы ещё старые. Читателю возврата от
+        /// этого не легче — список зон показывает старое, объект держит смесь,
+        /// а при следующем сохранении смесь уезжает на диск.
+        ///
+        /// Отказ обязан быть БЕЗ ПОСЛЕДСТВИЙ: не разобралось — объект не тронут.
+        /// </summary>
         public override bool SaveFormContents(ROIPrimitiveData prim)
         {
             ROISimpleDifferenceData roisimpleDifferenceData = (ROISimpleDifferenceData)prim;
+            ROIPrimitiveOperation roiprimitiveOperation;
+            double coefficient;
+            double coefficientError;
+            double lowerLimit;
+            double upperLimit;
             try
             {
-                ROIPrimitiveOperation roiprimitiveOperation = ROIPrimitiveOperation.Operations[this.comboBox1.SelectedIndex];
-                roisimpleDifferenceData.Operation = roiprimitiveOperation;
-                roisimpleDifferenceData.OperationType = roiprimitiveOperation.Name;
-                roisimpleDifferenceData.Coefficient = double.Parse(this.doubleTextBox3.Text);
-                roisimpleDifferenceData.CoefficientError = double.Parse(this.doubleTextBox4.Text);
-                roisimpleDifferenceData.LowerLimit = double.Parse(this.doubleTextBox1.Text);
-                roisimpleDifferenceData.UpperLimit = double.Parse(this.doubleTextBox2.Text);
-                if (roisimpleDifferenceData.UpperLimit < roisimpleDifferenceData.LowerLimit)
-                {
-                    roisimpleDifferenceData.UpperLimit = roisimpleDifferenceData.LowerLimit;
-                    this.doubleTextBox2.Text = roisimpleDifferenceData.LowerLimit.ToString();
-                }
-                this.doubleTextBox2.Text = roisimpleDifferenceData.UpperLimit.ToString();
-                prim.Note = this.textBox1.Text;
+                roiprimitiveOperation = ROIPrimitiveOperation.Operations[this.comboBox1.SelectedIndex];
+                coefficient = UserNumber.ParseDouble(this.doubleTextBox3.Text);
+                coefficientError = UserNumber.ParseDouble(this.doubleTextBox4.Text);
+                lowerLimit = UserNumber.ParseDouble(this.doubleTextBox1.Text);
+                upperLimit = UserNumber.ParseDouble(this.doubleTextBox2.Text);
             }
             catch (Exception)
             {
                 return false;
             }
+            if (upperLimit < lowerLimit)
+            {
+                upperLimit = lowerLimit;
+            }
+            roisimpleDifferenceData.Operation = roiprimitiveOperation;
+            roisimpleDifferenceData.OperationType = roiprimitiveOperation.Name;
+            roisimpleDifferenceData.Coefficient = coefficient;
+            roisimpleDifferenceData.CoefficientError = coefficientError;
+            roisimpleDifferenceData.LowerLimit = lowerLimit;
+            roisimpleDifferenceData.UpperLimit = upperLimit;
+            prim.Note = this.textBox1.Text;
+            this.doubleTextBox2.Text = upperLimit.ToString(CultureInfo.InvariantCulture);
             return true;
         }
 

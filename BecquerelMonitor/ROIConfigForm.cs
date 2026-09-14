@@ -3,6 +3,7 @@ using BecquerelMonitor.Utils;
 using ColorComboBox;
 using System;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Windows.Forms;
 using XPTable.Events;
@@ -92,30 +93,58 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x060008F4 RID: 2292 RVA: 0x00033A38 File Offset: 0x00031C38
+        /// <summary>
+        /// Перестроить список конфигураций в таблице.
+        ///
+        /// ⛔ ПЕРЕЧИСЛЯЕТСЯ СНИМОК, А НЕ ЖИВОЙ СПИСОК МЕНЕДЖЕРА, и это не
+        /// осторожность, а починка падения. `Selections.AddCell` ниже поднимает
+        /// `SelectionChanged`, тот зовёт <see cref="ConfirmSaveROIConfig"/>, а
+        /// он при грязной конфигурации — `manager.SaveConfig`, который делает
+        /// `roiConfigList.Remove`. То есть метод правил ту самую коллекцию, по
+        /// которой шёл, и получал «Collection was modified» прямо на открытии
+        /// окна (`ROIConfigForm_Load`).
+        ///
+        /// ⚠ Снимок лечит ПАДЕНИЕ, но не причину: без второго замка тот же путь
+        /// вызывал бы `ListupConfigFiles` рекурсивно из собственного цикла —
+        /// с диалогом сохранения посреди наполнения таблицы. Замок —
+        /// <see cref="listing"/>.
+        /// </summary>
         void ListupConfigFiles()
         {
-            this.table3.SuspendLayout();
-            this.tableModel3.Rows.Clear();
-            this.tableModel3.Selections.Clear();
-            foreach (ROIConfigData roiconfigData in this.manager.ROIConfigList)
+            if (this.listing)
             {
-                ROIConfigData roiconfigData2 = roiconfigData.Clone();
-                Row row = new Row();
-                row.Cells.Add(new Cell(roiconfigData2.Name));
-                row.Cells.Add(new Cell(roiconfigData2.LastUpdated.ToShortDateString() + " " + roiconfigData2.LastUpdated.ToLongTimeString()));
-                if (roiconfigData2.HasEfficiency)
-                {
-                    row.Cells.Add(new Cell("", true));
-                }
-                row.Tag = roiconfigData2;
-                this.tableModel3.Rows.Add(row);
-                if (this.activeROIConfig != null && this.activeROIConfig.Guid == roiconfigData2.Guid)
-                {
-                    this.activeROIConfig = roiconfigData2;
-                    this.tableModel3.Selections.AddCell(row.Index, 0);
-                }
+                // Перестроение уже идёт: повторный заход затёр бы строки,
+                // которые внешний цикл ещё раскладывает.
+                return;
             }
-            this.table3.ResumeLayout();
+
+            this.listing = true;
+            try
+            {
+                this.table3.SuspendLayout();
+                this.tableModel3.Rows.Clear();
+                this.tableModel3.Selections.Clear();
+                foreach (ROIConfigData roiconfigData in this.manager.ROIConfigList.ToArray())
+                {
+                    ROIConfigData roiconfigData2 = roiconfigData.Clone();
+                    Row row = new Row();
+                    row.Cells.Add(new Cell(roiconfigData2.Name));
+                    row.Cells.Add(new Cell(roiconfigData2.LastUpdated.ToShortDateString() + " " + roiconfigData2.LastUpdated.ToLongTimeString()));
+                    row.Tag = roiconfigData2;
+                    this.tableModel3.Rows.Add(row);
+                    if (this.activeROIConfig != null && this.activeROIConfig.Guid == roiconfigData2.Guid)
+                    {
+                        this.activeROIConfig = roiconfigData2;
+                        this.tableModel3.Selections.AddCell(row.Index, 0);
+                    }
+                }
+
+                this.table3.ResumeLayout();
+            }
+            finally
+            {
+                this.listing = false;
+            }
         }
 
         // Token: 0x060008F5 RID: 2293 RVA: 0x00033B84 File Offset: 0x00031D84
@@ -180,7 +209,11 @@ namespace BecquerelMonitor
             DialogResult dialogResult = MessageBox.Show(string.Format(Resources.MSGDeleteROIConfig, this.activeROIConfig.Name), Resources.ConfirmationDialogTitle, MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);
             if (dialogResult == DialogResult.OK)
             {
-                this.manager.DeleteConfig(this.activeROIConfig);
+                // ⛔ `A19`, довод — у близнеца в `DeviceConfigForm`.
+                if (!this.manager.DeleteConfig(this.activeROIConfig))
+                {
+                    return;
+                }
                 this.activeROIConfig = null;
                 this.EnableForm(false);
                 this.ListupConfigFiles();
@@ -188,6 +221,25 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x060008F9 RID: 2297 RVA: 0x00033D98 File Offset: 0x00031F98
+        /// <summary>
+        /// Вторая дверь к сохранению — вопрос «сохранить изменения?» при
+        /// закрытии окна и при всяком уходе с текущей конфигурации.
+        ///
+        /// ⛔ Прежде она звала сбор введённого и ВЫБРАСЫВАЛА его ответ (`A6`):
+        /// ерунда, которую кнопка «Сохранить» отвергала с
+        /// <c>ERRInvalidInputForm</c>, здесь проглатывалась молча и уезжала на
+        /// диск. Теперь ответ читается, и говорится то же самое, что по кнопке.
+        ///
+        /// ⚠ Почему при отказе окно ОСТАЁТСЯ ОТКРЫТЫМ. Человек ответил «да,
+        /// сохранить» — сохранить нельзя, и честных исходов ровно два:
+        /// сохранено либо не закрыто. Закрыть окно значило бы молча превратить
+        /// его «да» в «нет», то есть выбрать за него отказ от правок; отказ у
+        /// него уже есть отдельной кнопкой «Нет», которая возвращает
+        /// конфигурацию с диска. Соседняя беда в этом же методе
+        /// (<c>ERRDuplicateConfigName</c>) поступает так же — возвращает
+        /// <c>false</c>, а <c>ROIConfigForm_FormClosing</c> ставит
+        /// <c>e.Cancel = true</c>.
+        /// </summary>
         bool ConfirmSaveROIConfig()
         {
             if (this.activeROIConfig != null && this.activeROIConfig.Dirty)
@@ -195,8 +247,11 @@ namespace BecquerelMonitor
                 DialogResult dialogResult = MessageBox.Show(Resources.MSGConfirmSaveConfig, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
                 if (dialogResult == DialogResult.Yes)
                 {
-                    this.SaveFormContents(this.activeROIConfig);
-                    this.SaveROIDefinitionFormContents(this.activeROIDefinition);
+                    if (!this.CollectFormContents())
+                    {
+                        MessageBox.Show(Resources.ERRInvalidInputForm);
+                        return false;
+                    }
                     if (!this.manager.SaveConfig(this.activeROIConfig))
                     {
                         MessageBox.Show(Resources.ERRDuplicateConfigName);
@@ -259,12 +314,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            if (!this.SaveFormContents(this.activeROIConfig))
-            {
-                MessageBox.Show(Resources.ERRInvalidInputForm);
-                return;
-            }
-            if (this.activeROIDefinition != null && !this.SaveROIDefinitionFormContents(this.activeROIDefinition))
+            if (!this.CollectFormContents())
             {
                 MessageBox.Show(Resources.ERRInvalidInputForm);
                 return;
@@ -294,7 +344,7 @@ namespace BecquerelMonitor
         {
             for (int i = 1; i < 999; i++)
             {
-                string text = Resources.NewROIConfigPrefix + "(" + i.ToString() + ").xml";
+                string text = Resources.NewROIConfigPrefix + "(" + i.ToString(CultureInfo.InvariantCulture) + ").xml";
                 bool flag = false;
                 foreach (ROIConfigData roiconfigData in this.manager.ROIConfigList)
                 {
@@ -378,7 +428,7 @@ namespace BecquerelMonitor
             string text = "";
             for (int i = 0; i < 9999; i++)
             {
-                text = "New ROI(" + this.newROIIndex + ")";
+                text = "New ROI(" + this.newROIIndex.ToString(CultureInfo.InvariantCulture) + ")";
                 this.newROIIndex++;
                 bool flag = false;
                 foreach (ROIDefinitionData roidefinitionData in this.activeROIConfig.ROIDefinitions)
@@ -404,7 +454,24 @@ namespace BecquerelMonitor
             {
                 return;
             }
+
             this.reenter = true;
+            try
+            {
+                this.SelectionChangedCore();
+            }
+            finally
+            {
+                // ⛔ ЗАМОК СНИМАЕТСЯ ВСЕГДА. Прежде отказ `ConfirmSaveROIConfig`
+                // уходил из метода по `return`, оставив `reenter` поднятым
+                // навсегда, — и выбор строки переставал работать до закрытия
+                // окна, молча.
+                this.reenter = false;
+            }
+        }
+
+        void SelectionChangedCore()
+        {
             ROIConfigData roiconfigData = null;
             Row row = null;
             if (this.table3.SelectedItems.Length > 0)
@@ -412,10 +479,18 @@ namespace BecquerelMonitor
                 roiconfigData = (ROIConfigData)this.table3.SelectedItems[0].Tag;
                 row = this.table3.SelectedItems[0];
             }
-            if (!this.ConfirmSaveROIConfig())
+
+            // ⚠ ПОСРЕДИ ПЕРЕСТРОЕНИЯ О СОХРАНЕНИИ НЕ СПРАШИВАЮТ. Выбор здесь
+            // ставит не человек, а сам `ListupConfigFiles`, и `activeROIConfig`
+            // к этому мигу уже заменён свежим клоном из менеджера — спрашивать
+            // «сохранить правки?» не о чем, а `SaveConfig` внутри правил бы
+            // список, по которому идёт перестроение. Загрузку содержимого это
+            // НЕ отменяет: без неё окно открывалось бы с пустой правой частью.
+            if (!this.listing && !this.ConfirmSaveROIConfig())
             {
                 return;
             }
+
             if (roiconfigData != null)
             {
                 this.activeROIConfig = roiconfigData;
@@ -434,7 +509,6 @@ namespace BecquerelMonitor
             this.activeROIDefinition = null;
             this.button2.Enabled = false;
             this.tableModel1.Selections.Clear();
-            this.reenter = false;
         }
 
         // Token: 0x06000906 RID: 2310 RVA: 0x0003442C File Offset: 0x0003262C
@@ -520,9 +594,9 @@ namespace BecquerelMonitor
             {
                 Row row = new Row();
                 row.Cells.Add(new Cell(roidefinitionData.Name, roidefinitionData.Enabled));
-                string text = roidefinitionData.LowerLimit.ToString() + " - " + roidefinitionData.UpperLimit.ToString() + " keV";
+                string text = roidefinitionData.LowerLimit.ToString(CultureInfo.InvariantCulture) + " - " + roidefinitionData.UpperLimit.ToString(CultureInfo.InvariantCulture) + " " + Resources.kev;
                 row.Cells.Add(new Cell(text));
-                row.Cells.Add(new Cell(roidefinitionData.ROIPrimitives.Count.ToString()));
+                row.Cells.Add(new Cell(roidefinitionData.ROIPrimitives.Count.ToString(CultureInfo.InvariantCulture)));
                 row.Tag = roidefinitionData;
                 if (this.activeROIDefinition == roidefinitionData)
                 {
@@ -544,8 +618,8 @@ namespace BecquerelMonitor
                 ROIDefinitionData roidefinitionData = (ROIDefinitionData)row.Tag;
                 row.Cells[0].Checked = roidefinitionData.Enabled;
                 row.Cells[0].Text = roidefinitionData.Name;
-                row.Cells[1].Text = roidefinitionData.LowerLimit.ToString() + " - " + roidefinitionData.UpperLimit.ToString() + " keV";
-                row.Cells[2].Text = roidefinitionData.ROIPrimitives.Count.ToString();
+                row.Cells[1].Text = roidefinitionData.LowerLimit.ToString(CultureInfo.InvariantCulture) + " - " + roidefinitionData.UpperLimit.ToString(CultureInfo.InvariantCulture) + " " + Resources.kev;
+                row.Cells[2].Text = roidefinitionData.ROIPrimitives.Count.ToString(CultureInfo.InvariantCulture);
             }
             this.table1.EndUpdate();
         }
@@ -598,18 +672,131 @@ namespace BecquerelMonitor
             this.contentsLoading = true;
             this.textBox1.Text = roi.Name;
             this.checkBox1.Checked = roi.Enabled;
-            this.doubleTextBox3.Text = roi.BecquerelCoefficient.ToString();
-            this.doubleTextBox4.Text = roi.BecquerelCoefficientError.ToString();
-            this.doubleTextBox5.Text = roi.PeakEnergy.ToString();
-            this.doubleTextBox6.Text = roi.HalfLife.ToString();
-            this.doubleTextBox7.Text = roi.Intencity.ToString();
-            this.doubleTextBox1.Text = roi.LowerLimit.ToString();
-            this.doubleTextBox2.Text = roi.UpperLimit.ToString();
+            this.doubleTextBox3.Text = roi.BecquerelCoefficient.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox4.Text = roi.BecquerelCoefficientError.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox5.Text = roi.PeakEnergy.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox6.Text = roi.HalfLife.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox7.Text = roi.Intencity.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox1.Text = roi.LowerLimit.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox2.Text = roi.UpperLimit.ToString(CultureInfo.InvariantCulture);
             this.colorComboBox1.SelectedColor = roi.Color.Color;
             this.colorComboBox1.Refresh();
             this.textBox2.Text = roi.Note;
+            this.autoBqCheckBox.Checked = roi.AutoBecquerelCoefficient;
             this.ShowPrimitiveList(roi);
             this.contentsLoading = false;
+            this.ShowBecquerelCoefficient(roi);
+        }
+
+        /// <summary>
+        /// Показать, какой коэффициент действует на самом деле. С галочкой поле
+        /// недоступно: K — уже не число, а функция кривой и параметров зоны, и
+        /// правка поля ничего бы не изменила, только соврала бы.
+        ///
+        /// Причина отката называется поимённо: кривая не выбрана и энергия за
+        /// её краем — разные беды с разным лечением, а молча подставленное
+        /// старое число выглядит одинаково. Живёт эта строка в подсказке самой
+        /// галочки, а не отдельной надписью на форме.
+        /// </summary>
+        void ShowBecquerelCoefficient(ROIDefinitionData roi)
+        {
+            if (roi == null)
+            {
+                this.hints.SetToolTip(this.autoBqCheckBox, "");
+                return;
+            }
+
+            Utils.BecquerelCoefficient.Result k =
+                Utils.BecquerelCoefficient.Resolve(roi, this.ActiveEfficiency());
+
+            bool auto = roi.AutoBecquerelCoefficient;
+            this.doubleTextBox3.Enabled = !auto;
+            this.doubleTextBox4.Enabled = !auto;
+
+            if (!auto)
+            {
+                this.hints.SetToolTip(this.autoBqCheckBox, "");
+                return;
+            }
+
+            this.hints.SetToolTip(this.autoBqCheckBox, k.Problem ?? string.Format(
+                CultureInfo.InvariantCulture, Resources.BqCoeffFromCurve, k.Value, k.Error));
+
+            // В полях показывается ДЕЙСТВУЮЩЕЕ значение, а не сохранённое:
+            // иначе рядом с надписью «K посчитан по кривой» стояло бы другое
+            // число, и какое из них попало в активность — не понять.
+            this.contentsLoading = true;
+            try
+            {
+                this.doubleTextBox3.Text = k.Value.ToString(CultureInfo.InvariantCulture);
+                this.doubleTextBox4.Text = k.Error.ToString(CultureInfo.InvariantCulture);
+            }
+            finally
+            {
+                this.contentsLoading = false;
+            }
+        }
+
+        /// <summary>
+        /// Кривая активного спектра. Форма зон — не хозяйка спектра, поэтому
+        /// добирается до него через владельца; нет документа — нет и кривой.
+        /// </summary>
+        EfficiencyConfigData ActiveEfficiency()
+        {
+            MainForm owner = this.Owner as MainForm;
+            if (owner == null || owner.ActiveDocument == null)
+            {
+                return null;
+            }
+
+            ResultData active = owner.ActiveDocument.ActiveResultData;
+            return active == null ? null : active.Efficiency;
+        }
+
+        /// <summary>
+        /// Кривую спектра выбирают в панели измерения, а она рядом и окно зон
+        /// немодальное: пользователь меняет кривую, возвращается сюда — и видит
+        /// прежний коэффициент. Пока этого не было, поймать несоответствие
+        /// можно было единственным способом: закрыть окно и открыть заново.
+        /// </summary>
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+            if (this.activeROIDefinition != null)
+            {
+                this.ShowBecquerelCoefficient(this.activeROIDefinition);
+            }
+        }
+
+        void autoBqCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (this.contentsLoading || this.activeROIDefinition == null)
+            {
+                return;
+            }
+
+            this.activeROIDefinition.AutoBecquerelCoefficient = this.autoBqCheckBox.Checked;
+            if (!this.autoBqCheckBox.Checked)
+            {
+                // Снятая галочка возвращает СОХРАНЁННОЕ число, а не оставляет в
+                // поле последнее посчитанное: оно и есть запасное значение, и
+                // переписывать его расчётом молча нельзя.
+                this.contentsLoading = true;
+                try
+                {
+                    this.doubleTextBox3.Text = this.activeROIDefinition.BecquerelCoefficient
+                        .ToString(CultureInfo.InvariantCulture);
+                    this.doubleTextBox4.Text = this.activeROIDefinition.BecquerelCoefficientError
+                        .ToString(CultureInfo.InvariantCulture);
+                }
+                finally
+                {
+                    this.contentsLoading = false;
+                }
+            }
+
+            this.ShowBecquerelCoefficient(this.activeROIDefinition);
+            this.SetActiveROIConfigDirty();
         }
 
         // Token: 0x06000910 RID: 2320 RVA: 0x00034B7C File Offset: 0x00032D7C
@@ -639,7 +826,7 @@ namespace BecquerelMonitor
                 }
                 ROIPrimitiveControl roiprimitiveControl = (ROIPrimitiveControl)Activator.CreateInstance(primitive.TypeOfControl);
                 roiprimitiveControl.PrepareForm(this.activeROIConfig);
-                string text = (num + 1).ToString() + ") " + primitive.Translation;
+                string text = (num + 1).ToString(CultureInfo.InvariantCulture) + ") " + primitive.Translation;
                 TabPage tabPage = new TabPage(text);
                 roiprimitiveData.Control = roiprimitiveControl;
                 roiprimitiveControl.LoadFormContents(roiprimitiveData);
@@ -648,7 +835,7 @@ namespace BecquerelMonitor
                 roiprimitiveControl.ROIPrimitiveModified += this.control_ROIPrimitiveModified;
                 this.tabControl1.TabPages.Add(tabPage);
                 Row row = new Row();
-                row.Cells.Add(new Cell((num + 1).ToString()));
+                row.Cells.Add(new Cell((num + 1).ToString(CultureInfo.InvariantCulture)));
                 row.Cells.Add(new Cell(primitive.Translation));
                 Cell cell = new Cell(operation.Translation, operation.Bitmap);
                 row.Cells.Add(cell);
@@ -670,10 +857,10 @@ namespace BecquerelMonitor
                 ROISimpleDifferenceData roisimpleDifferenceData = (ROISimpleDifferenceData)prim;
                 result = string.Concat(new object[]
                 {
-                    roisimpleDifferenceData.LowerLimit,
+                    roisimpleDifferenceData.LowerLimit.ToString(CultureInfo.InvariantCulture),
                     " - ",
-                    roisimpleDifferenceData.UpperLimit,
-                    " keV"
+                    roisimpleDifferenceData.UpperLimit.ToString(CultureInfo.InvariantCulture),
+                    " " + Resources.kev
                 });
             }
             else if (prim is ROICovellMethodData)
@@ -681,10 +868,10 @@ namespace BecquerelMonitor
                 ROICovellMethodData roicovellMethodData = (ROICovellMethodData)prim;
                 result = string.Concat(new object[]
                 {
-                    roicovellMethodData.LowerLimit,
+                    roicovellMethodData.LowerLimit.ToString(CultureInfo.InvariantCulture),
                     " - ",
-                    roicovellMethodData.UpperLimit,
-                    " keV"
+                    roicovellMethodData.UpperLimit.ToString(CultureInfo.InvariantCulture),
+                    " " + Resources.kev
                 });
             }
             else if (prim is ROIReferenceData)
@@ -698,11 +885,13 @@ namespace BecquerelMonitor
         // Token: 0x06000912 RID: 2322 RVA: 0x00034E8C File Offset: 0x0003308C
         void UpdatePrimitiveList()
         {
-            this.table2.BeginUpdate();
+            // Проверка ДО BeginUpdate: ранний выход после него оставлял таблицу
+            // навсегда приостановленной — EndUpdate в этой ветви не звался.
             if (this.activeROIDefinition == null)
             {
                 return;
             }
+            this.table2.BeginUpdate();
             foreach (object obj in this.tableModel2.Rows)
             {
                 Row row = (Row)obj;
@@ -718,14 +907,40 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000913 RID: 2323 RVA: 0x00034FBC File Offset: 0x000331BC
+        /// <summary>
+        /// Человек правит примитив зоны.
+        ///
+        /// ⛔ Прежде первый же примитив, который не разобрался, уводил отсюда
+        /// <c>return</c>-ом ДО <see cref="UpdatePrimitiveList"/> и
+        /// <see cref="SetActiveROIConfigDirty"/> (`A7`): список показывал старые
+        /// границы, «грязь» не ставилась, при закрытии не спрашивали — а
+        /// кнопка «Сохранить» строкой выше уже загоралась. То есть две половины
+        /// одного признака «есть несохранённое» расходились между собой.
+        ///
+        /// ⚠ Окна отсюда НЕ поднимается намеренно: событие приходит на каждое
+        /// нажатие клавиши, и на полпути к числу («−», «1e») текст не
+        /// разбирается законно. Про неразобранное человеку говорят там, где это
+        /// имеет цену, — у обеих дверей сохранения (`A6`), через
+        /// <see cref="CollectFormContents"/>. Признак «есть несохранённое»
+        /// теперь ставится всегда, поэтому вопрос при закрытии задаётся, и
+        /// молчания больше нет.
+        ///
+        /// Цикл идёт до конца по всем примитивам: каждый из них пишет либо всё,
+        /// либо ничего, они друг от друга не зависят, и отказ одного не повод
+        /// потерять годную правку соседнего.
+        /// </summary>
         void control_ROIPrimitiveModified(object sender, EventArgs e)
         {
             this.buttonSave.Enabled = true;
+            if (this.activeROIDefinition == null)
+            {
+                return;
+            }
             foreach (ROIPrimitiveData roiprimitiveData in this.activeROIDefinition.ROIPrimitives)
             {
-                if (!roiprimitiveData.Control.SaveFormContents(roiprimitiveData))
+                if (roiprimitiveData.Control != null)
                 {
-                    return;
+                    roiprimitiveData.Control.SaveFormContents(roiprimitiveData);
                 }
             }
             this.UpdatePrimitiveList();
@@ -733,37 +948,119 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000914 RID: 2324 RVA: 0x00035044 File Offset: 0x00033244
+        /// <summary>
+        /// ⛔ СНАЧАЛА РАЗОБРАТЬ ВСЁ, ПОТОМ ПИСАТЬ (`A6`, `A7`). Прежде поля
+        /// присваивались по одному, и первое неразобранное число оставляло зону
+        /// наполовину изменённой при возврате <c>false</c> — а вторая дверь
+        /// («сохранить изменения?» при закрытии) этот <c>false</c> ВЫБРАСЫВАЛА,
+        /// и полуразобранная зона уезжала на диск без единого слова.
+        ///
+        /// Примитивы разбираются В ТОМ ЖЕ ПОРЯДКЕ: сперва спрашиваем каждый,
+        /// разберётся ли он, и только потом пишем зону. Отказ любого из них —
+        /// отказ всей зоны, без последствий.
+        /// </summary>
         bool SaveROIDefinitionFormContents(ROIDefinitionData roi)
         {
+            double becquerelCoefficient = roi.BecquerelCoefficient;
+            double becquerelCoefficientError = roi.BecquerelCoefficientError;
+            double peakEnergy;
+            double halfLife;
+            double intencity;
+            double lowerLimit;
+            double upperLimit;
             try
             {
-                roi.Name = this.textBox1.Text;
-                roi.Enabled = this.checkBox1.Checked;
-                roi.BecquerelCoefficient = double.Parse(this.doubleTextBox3.Text);
-                roi.BecquerelCoefficientError = double.Parse(this.doubleTextBox4.Text);
-                roi.PeakEnergy = double.Parse(this.doubleTextBox5.Text);
-                roi.HalfLife = double.Parse(this.doubleTextBox6.Text);
-                roi.Intencity = double.Parse(this.doubleTextBox7.Text);
-                roi.LowerLimit = double.Parse(this.doubleTextBox1.Text);
-                roi.UpperLimit = double.Parse(this.doubleTextBox2.Text);
-                roi.Color.Color = this.colorComboBox1.SelectedColor;
-                if (roi.UpperLimit < roi.LowerLimit)
+                // При включённом «авто» поля K показывают ДЕЙСТВУЮЩЕЕ, то есть
+                // посчитанное по кривой число (см. ShowBecquerelCoefficient).
+                // Парсить их обратно значило бы затереть сохранённый ручной K
+                // расчётным при любом сохранении конфигурации — а сохранённый
+                // и есть запасное значение на случай, когда кривой не станет.
+                if (!roi.AutoBecquerelCoefficient)
                 {
-                    roi.UpperLimit = roi.LowerLimit;
-                    this.doubleTextBox2.Text = roi.UpperLimit.ToString();
+                    becquerelCoefficient = UserNumber.ParseDouble(this.doubleTextBox3.Text);
+                    becquerelCoefficientError = UserNumber.ParseDouble(this.doubleTextBox4.Text);
                 }
-                roi.Note = this.textBox2.Text;
+                peakEnergy = UserNumber.ParseDouble(this.doubleTextBox5.Text);
+                halfLife = UserNumber.ParseDouble(this.doubleTextBox6.Text);
+                intencity = UserNumber.ParseDouble(this.doubleTextBox7.Text);
+                lowerLimit = UserNumber.ParseDouble(this.doubleTextBox1.Text);
+                upperLimit = UserNumber.ParseDouble(this.doubleTextBox2.Text);
             }
             catch (Exception)
             {
                 return false;
             }
+            // Зона без цвета роняла прежний код в его же catch и отвечала
+            // false; ответ сохраняется, но теперь он даётся ДО записи, а не
+            // посреди неё.
+            if (roi.Color == null)
+            {
+                return false;
+            }
+            // Примитивы спрашиваются ДО записи зоны: каждый из них тоже
+            // разбирает всё прежде, чем что-либо писать, так что отказ здесь
+            // не оставляет следов ни в зоне, ни в примитивах.
             foreach (ROIPrimitiveData roiprimitiveData in roi.ROIPrimitives)
             {
+                if (roiprimitiveData.Control == null)
+                {
+                    continue;
+                }
                 if (!roiprimitiveData.Control.SaveFormContents(roiprimitiveData))
                 {
                     return false;
                 }
+            }
+            bool clamped = upperLimit < lowerLimit;
+            if (clamped)
+            {
+                upperLimit = lowerLimit;
+            }
+            roi.Name = this.textBox1.Text;
+            roi.Enabled = this.checkBox1.Checked;
+            roi.BecquerelCoefficient = becquerelCoefficient;
+            roi.BecquerelCoefficientError = becquerelCoefficientError;
+            roi.PeakEnergy = peakEnergy;
+            roi.HalfLife = halfLife;
+            roi.Intencity = intencity;
+            roi.LowerLimit = lowerLimit;
+            roi.UpperLimit = upperLimit;
+            roi.Color.Color = this.colorComboBox1.SelectedColor;
+            roi.Note = this.textBox2.Text;
+            if (clamped)
+            {
+                this.doubleTextBox2.Text = upperLimit.ToString(CultureInfo.InvariantCulture);
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// ЕДИНСТВЕННАЯ дверь к «собрать введённое в объект конфигурации».
+        ///
+        /// ⛔ Прежде дверей было ДВЕ и с разной строгостью (`A6`): кнопка
+        /// «Сохранить» читала возврат и ругалась <c>ERRInvalidInputForm</c>, а
+        /// вопрос «сохранить изменения?» при закрытии звал то же самое и
+        /// возврат ВЫБРАСЫВАЛ. Одна и та же введённая ерунда по кнопке
+        /// отвергалась, а по вопросу проглатывалась и уезжала на диск. Теперь
+        /// обе двери зовут этот метод, и обе читают его ответ.
+        ///
+        /// Окон отсюда не поднимается: показывать беду — дело вызвавшего, и это
+        /// то, чем двери законно отличаются друг от друга.
+        /// </summary>
+        bool CollectFormContents()
+        {
+            if (this.activeROIConfig == null)
+            {
+                return false;
+            }
+            if (!this.SaveFormContents(this.activeROIConfig))
+            {
+                return false;
+            }
+            if (this.activeROIDefinition != null
+                && !this.SaveROIDefinitionFormContents(this.activeROIDefinition))
+            {
+                return false;
             }
             return true;
         }
@@ -948,19 +1245,10 @@ namespace BecquerelMonitor
             roidefinitionData.UpperLimit = Math.Round(nuclideDefinition.Energy + nuclideDefinition.Energy * num / 2.0);
             roidefinitionData.HalfLife = nuclideDefinition.HalfLife;
             roidefinitionData.Intencity = nuclideDefinition.Intencity;
-            if (this.activeROIConfig.HasEfficiency && nuclideDefinition.Intencity > 0)
-            {
-                ROIAriphmetics roiAriphmetics = new ROIAriphmetics(this.activeROIConfig);
-                ROIEfficiencyData effData = roiAriphmetics.CalculateEfficiency(nuclideDefinition.Energy);
-                if (effData != null && effData.Efficiency > 0)
-                {
-                    roidefinitionData.BecquerelCoefficient = (1 / effData.Efficiency) / (nuclideDefinition.Intencity / 100);
-                    if (effData.ErrorPercent > 0)
-                    {
-                        roidefinitionData.BecquerelCoefficientError = roidefinitionData.BecquerelCoefficient * (effData.ErrorPercent / 100);
-                    }
-                }
-            }
+            // K здесь больше не заполняется разово: зона заводится с
+            // включённой галочкой «считать по эффективности», и коэффициент
+            // берётся из кривой спектра при каждом счёте. Вписанное однажды
+            // число устаревало молча, стоило кривой смениться.
 
             this.activeROIConfig.ROIDefinitions.Add(roidefinitionData);
             this.ListupROIDefinitions(this.activeROIConfig);
@@ -1006,21 +1294,12 @@ namespace BecquerelMonitor
         // Token: 0x0400050D RID: 1293
         bool reenter;
 
-        private void buttonEfficiency_Click(object sender, EventArgs e)
-        {
-            if (this.activeROIConfig == null)
-            {
-                return;
-            }
+        /// <summary>
+        /// Идёт перестроение списка конфигураций. Держит два запрета: повторный
+        /// заход в <see cref="ListupConfigFiles"/> и вопрос о сохранении из
+        /// обработчика выбора, который поднимается тем же перестроением.
+        /// </summary>
+        bool listing;
 
-            using (ROIEditEfficiencyDialog dialog = new ROIEditEfficiencyDialog(this))
-            {
-                dialog.ShowDialog();
-                if (this.activeROIConfig.Dirty)
-                {
-                    this.buttonSave.Enabled = true;
-                }
-            }
-        }
     }
 }

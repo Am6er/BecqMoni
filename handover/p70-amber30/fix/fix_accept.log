@@ -1,0 +1,75 @@
+плечо правки: exe 20:34:17 sha256 3B8787121E06C2615DD2CC1B594E8F7EEEE2D247FF6AB8E535F26F7F553648A5
+wd: матриц 20, приборов 9
+--- cs_a (код 0)
+chi2/ndf 12.846, невязка модели 7.8 %, суммирование да
+ROW	Cs-137	Single	95.093	-	-
+ROW	Backscatter	Nuisance	3.568	-	-
+ROW	Xray-Pb-L	Nuisance	0.502	-	-
+ROW	Xray-Pb	Nuisance	0.490	-	-
+ROW	pile-up	Nuisance	0.347	-	-
+отвязанный хвост (в подложке, AMBER30; UntiedTail пуст по построению): нет
+--- cs_b (код 0)
+chi2/ndf 12.846, невязка модели 7.8 %, суммирование да
+ROW	Cs-137	Single	95.040	-	-
+ROW	Backscatter	Nuisance	3.572	-	-
+ROW	Xray-Pb-L	Nuisance	0.530	-	-
+ROW	Xray-Pb	Nuisance	0.499	-	-
+ROW	pile-up	Nuisance	0.357	-	-
+отвязанный хвост (в невязке, не в слоях — --tail-as-residual): Cs-137 13984949.0, Xray-Pb 433210.1; всего 14418159.1 отсч.
+  SETUP	против поставочного разбора изменено: BackscatterWithMatrix False → True; MinEnergy 40 → 5; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.Response
+--- cs_a_zoom (код 0)
+chi2/ndf 12.846, невязка модели 7.8 %, суммирование да
+ROW	Cs-137	Single	95.093	-	-
+ROW	Backscatter	Nuisance	3.568	-	-
+ROW	Xray-Pb-L	Nuisance	0.502	-	-
+ROW	Xray-Pb	Nuisance	0.490	-	-
+ROW	pile-up	Nuisance	0.347	-	-
+отвязанный хвост (в подложке, AMBER30; UntiedTail пуст по построению): нет
+--- cs_b_zoom (код 0)
+chi2/ndf 12.846, невязка модели 7.8 %, суммирование да
+ROW	Cs-137	Single	95.040	-	-
+ROW	Backscatter	Nuisance	3.572	-	-
+ROW	Xray-Pb-L	Nuisance	0.530	-	-
+ROW	Xray-Pb	Nuisance	0.499	-	-
+ROW	pile-up	Nuisance	0.357	-	-
+отвязанный хвост (в невязке, не в слоях — --tail-as-residual): Cs-137 13984949.0, Xray-Pb 433210.1; всего 14418159.1 отсч.
+  SETUP	против поставочного разбора изменено: BackscatterWithMatrix False → True; MinEnergy 40 → 5; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.Response
+--- cs_b_plant (код 0)
+⛔ ПОДСАДКА --plant-tail (S173): отвязанный хвост возвращён в подложку и разнесён по слоям — картинка ДО S173, числа этого прогона в журнал НЕ ГОДЯТСЯ
+chi2/ndf 12.846, невязка модели 7.8 %, суммирование да
+ROW	Cs-137	Single	95.093	-	-
+ROW	Backscatter	Nuisance	3.568	-	-
+ROW	Xray-Pb-L	Nuisance	0.502	-	-
+ROW	Xray-Pb	Nuisance	0.490	-	-
+ROW	pile-up	Nuisance	0.347	-	-
+отвязанный хвост (в невязке, не в слоях — --tail-as-residual): нет
+  SETUP	против поставочного разбора изменено: BackscatterWithMatrix False → True; MinEnergy 40 → 5; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.Response
+--- as80_a (код 0)
+chi2/ndf 14.255, невязка модели 21.7 %, суммирование да
+ROW	Ac-228	Single	41.319	Th-232	-
+ROW	Tl-208	Single	32.696	Th-232	-
+ROW	Pb-212	Single	18.773	Th-232	-
+ROW	Bi-212	Single	5.440	Th-232	-
+ROW	Ra-224	Single	1.510	Th-232	-
+ROW	Th-228	Single	0.207	Th-232	-
+ROW	Rn-220	Single	0.045	Th-232	-
+ROW	Th-232	Single	0.011	Th-232	-
+отвязанный хвост (в подложке, AMBER30; UntiedTail пуст по построению): нет
+--- as80_b (код 0)
+chi2/ndf 14.255, невязка модели 21.7 %, суммирование да
+ROW	Ac-228	Single	41.319	Th-232	-
+ROW	Tl-208	Single	32.696	Th-232	-
+ROW	Pb-212	Single	18.773	Th-232	-
+ROW	Bi-212	Single	5.440	Th-232	-
+ROW	Ra-224	Single	1.510	Th-232	-
+ROW	Th-228	Single	0.207	Th-232	-
+ROW	Rn-220	Single	0.045	Th-232	-
+ROW	Th-232	Single	0.011	Th-232	-
+отвязанный хвост (в невязке, не в слоях — --tail-as-residual): нет
+  SETUP	против поставочного разбора изменено: CoincidenceWindowSec 0 → 1.35714285714286E-06; MinEnergy 40 → 15; ResponseMatrix нет → BecquerelMonitor.EfficiencyMa
+dc_as80      AMBER30, А/Б: Model(А) = Model(Б) + UntiedTail(Б) по каналам           = True |   AMBER30, А/Б: Continuum(А) = Continuum(Б) + UntiedTail(Б) по каналам   = True | TAIL	всего	0.0	отсч.; χ²/ndf 14.255; не описано 8.82 %, приписано 6.58 % | ВСЕ СОШЛИСЬ
+dc_cs        AMBER30, А/Б: Continuum(А) = Continuum(Б) + UntiedTail(Б) по каналам   = True | TAIL	хвост	Cs-137	15193316.1 | TAIL	всего	15193316.1	отсч.; χ²/ndf 15.818; не описано 9.91 %, приписано 2.12 % | TAIL	подсадка	Cs-137	доля 99.63 → 99.64 %; не описано 9.91 → 4.04 %; хвост 15193316.1 отсч.
+tie        ВСЕ СОШЛИСЬ
+qrow       ВСЕ СОШЛИСЬ
+коды: cs_a=0 cs_b=0 cs_a_zoom=0 cs_b_zoom=0 cs_b_plant=0 as80_a=0 as80_b=0 dc_as80=0 dc_cs=1 tie=0 qrow=0
+⚠ НЕ НУЛЕВЫЕ: dc_cs=1

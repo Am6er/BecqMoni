@@ -1,0 +1,21 @@
+exe=D:\BqMoni_Claude\p66\wt\tools\effmaker\probes\build_p66\BecquerelMonitor.exe
+sha256=61c9d65fc4f30fa2f8314c0ee7d352effb753405fccf46f9146aa5e8085a3d21
+PhysicsVersion=18
+  ElectronAnyMaterial=True
+  BremAlongPath=2
+  ImportanceSampling=False
+  LightBinUnified=True
+  PeakChannelByTolerance=True
+  LYieldSupply=2
+  ElectronTransport=True
+  PositronTransport=True
+  PositronOffset=True
+  RayleighToCrystal=True
+  Histories=3000000
+  NodeCount=140
+  MinEnergyKev=5
+  MaxEnergyKev=3000
+  BinKev=2
+  ContinuumErrorTarget=3
+  Threads=0
+FsaAnalyzer.ModelWeights member: Property

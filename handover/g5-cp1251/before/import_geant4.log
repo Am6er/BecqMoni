@@ -1,0 +1,66 @@
+
+¬т€гивает в matdb.sqlite данные из поставки Geant4 G4EMLOW (проверено на 8.8).
+
+„то берЄм и зачем (нумераци€ дыр Ч database/scheme.md, І9а):
+
+  fluor/binding.dat          \u2192 eadl_binding        энергии св€зи ¬—≈’ подоболочек
+                               H 13.6 э¬ Е Fm, включа€ кра€ ниже 1 кэ¬ (A-3)
+  fluor/fl-tr-pr-Z.dat       \u2192 eadl_radiative      радиационные переходы EADL:
+                               веро€тности и энергии линий; сумма по вакансии
+                               K = \u03c9_K, по L1..L3 = \u03c9_L1..\u03c9_L3 (A-4)
+  auger/au-tr-pr-Z.dat       \u2192 eadl_auger          оже- и  остераЦ ронига переходы:
+                               выходы и энергии электронов (A-5)
+  epics2017/phot/pe-ss-cs-Z  \u2192 epics_photo_subshell пооболочечный фотоэффект,
+                               таблична€ часть у краЄв (A-2)
+  epics2017/phot/pe-high/low \u2192 epics_photo_fit     6-параметрические фиты фотоэффекта
+                               выше табличной части; строки  ”ћ”Ћя“»¬Ќџ (A-2)
+  livermore/rayl/re-ff-Z.dat \u2192 epdl_form_factor    атомный форм-фактор F(x,Z) (A-1)
+  comp/ce-sf-Z.dat           \u2192 epdl_scattering_function  функци€ инкогерентного
+                               рассе€ни€ S(x,Z) (A-1)
+  doppler/*                  \u2192 compton_profile*    профили  омптона Ѕиггса по
+                               оболочкам Ч доплеровское размытие кра€ (A-1)
+  brem_SB/brZ                \u2192 seltzer_berger*     дифференциальные сечени€
+                               тормозного «ельцераЦЅергера (B-3)
+
+‘орматы прочитаны не на глаз, а из читателей самого Geant4
+(geant4-v11.4.2/source/processes/electromagnetic/lowenergy/src):
+
+  * G4LivermorePhotoElectricModel.cc::ReadData / ComputeCrossSectionPerAtom /
+    SampleSecondaries Ч главные три факта о фотоэффекте:
+      1) в табличных файлах (pe-cs, pe-le-cs, pe-ss-cs) хранитс€ Ќ≈ сечение,
+         а \u03c3ЈE\xb3 в барнЈћэ¬\xb3 Ч код делит на E\xb3 (`cs = x3 * Value(energy)`).
+         ѕроверка: иод у K-кра€ 0.2697/0.033176\xb3 = 7385 б против 7393 б XCOM;
+      2) строки pe-high/pe-low Ч кумул€тивные суммы фитов по оболочкам:
+         выбор оболочки идЄт обходом Ђпока cs < randЈtotalї, и полное сечение
+         берЄтс€ из ѕќ—Ћ≈ƒЌ≈… строки (idx = 7Јn\u22125). —ечение отдельной оболочки
+         i Ч разность строк i и i\u22121;
+      3) формула фита: \u03c3(E) = (1/E)Ј(a1 + a2/E + a3/E\xb2 + a4/E\xb3 + a5/E\u2074 + a6/E\u2075),
+         E в ћэ¬, a\u1d62 в барнЈћэ¬\u2071, \u03c3 в барнах. ‘ит Ђlowї действует от
+         low_from_ev (K-край) до high_from_ev, Ђhighї Ч выше high_from_ev.
+         Ќиже K-кра€ Ч табличные pe-le-cs/pe-ss-cs.
+  * G4LivermorePolarizedRayleighModel.cc::GenerateCosTheta Ч аргумент
+    форм-фактора x = (E/hc)Јsin(\u03b8/2) в —ћ\u207b\xb9 (`xxfact = cm/(h_PlanckЈc_light)`);
+    сетка EPDL доходит до 1e17 см\u207b\xb9 = 1e9 \xc5\u207b\xb9. ” S(x,Z) аргумент тот же.
+  * doppler/README Ч профили Ѕиггса: 31 значение J(p) на оболочку, импульсна€
+    сетка p-biggs.dat в атомных единицах, заселЄнности и потенциалы оболочек Ч
+    shell-doppler.dat.
+  * brem_SB: формат «ельцераЦЅергера, как в G4SeltzerBergerModel: заголовок
+    Ђ? nk neї, сетка \u03ba = k/T (nk значений), сетка ln(E/ћэ¬) (ne значений),
+    затем ne строк по nk значений \u03c7(Z,E,\u03ba) = (\u03b2\xb2/Z\xb2)ЈkЈd\u03c3/dk в ћ»ЋЋ»барнах.
+
+Ќумераци€ оболочек. ¬ eadl_* Ч обозначени€ EADL: 1=K, 3=L1, 5=L2, 6=L3,
+9=M1, 10=M2, 11=M3, 13=M4, 14=M5, дальше N (17Е22) и O (28Е). —оставные
+обозначени€ (2=L, 7=M, 8=M12, 12=M45, Е) в файлах поставки не встречаютс€.
+ѕроверка на иоде: K\u03b11 = переход 6\u21921 с веро€тностью 0.472 и энергией
+28.61 кэ¬ Ч сошлось со справочником.
+¬ epics_photo_* Ч ѕќ–яƒ ќ¬џ… номер 0..n\u22121 по убыванию энергии св€зи (0=K,
+1=L1, Е), как в самих файлах pe-ss-cs (четвЄртое поле заголовка блока) и в
+пор€дке строк pe-high/pe-low. —опоставл€ть с EADL Ч по энергии кра€.
+
+ѕосле импорта скрипт «јћ≈Ќя≈“ xray_fluorescence.omega_k (аппроксимаци€
+Bambynek 1972 из import_xcom_star.py) на суммы радиационных веро€тностей EADL.
+ѕоэтому пор€док пересборки базы: сначала import_xcom_star.py, потом этот
+скрипт Ч иначе \u03c9_K останетс€ аппроксимацией.
+
+    python import_geant4.py <matdb.sqlite> <каталог G4EMLOW>
+

@@ -31,6 +31,20 @@ namespace BecquerelMonitor
                 double resultValue = measurementResult.ResultValue;
                 double resultError = measurementResult.ResultError;
                 double mda = measurementResult.MDA;
+                // Невалидный результат обязан остаться невалидным: перевод
+                // единиц создаёт НОВЫЕ объекты, и без переноса флага строка
+                // «Ошибка» превращалась в молчаливый честный ноль.
+                if (!measurementResult.IsValid)
+                {
+                    measurementResultCollection.ResultList.Add(
+                        new MeasurementResult(roidefinition, 0.0, 0.0)
+                        {
+                            IsValid = false,
+                            StatusText = measurementResult.StatusText,
+                        });
+                    continue;
+                }
+
                 if (this.measurementTime == 0.0)
                 {
                     MeasurementResult item = new MeasurementResult(roidefinition, 0.0, 0.0);
@@ -41,8 +55,48 @@ namespace BecquerelMonitor
                     double resultValue2 = 0.0;
                     double resultError2 = 0.0;
                     double mda2 = 0.0;
-                    double becquerelCoefficient = roidefinition.BecquerelCoefficient;
-                    double becquerelCoefficientError = roidefinition.BecquerelCoefficientError;
+                    // Точка счёта K одна, и она здесь. Раньше это было просто
+                    // поле зоны; теперь оно может быть функцией активной кривой
+                    // эффективности, и разводить эту развилку по вызывающим
+                    // значило бы иметь в программе две разные активности.
+                    Utils.BecquerelCoefficient.Result coefficient =
+                        Utils.BecquerelCoefficient.Resolve(roidefinition, this.resultData.Efficiency);
+                    double becquerelCoefficient = coefficient.Value;
+                    double becquerelCoefficientError = coefficient.Error;
+
+                    // Беккерели без K не считаются. Раньше нулевой коэффициент
+                    // молча давал 0 Бк — неотличимо от настоящего нуля
+                    // активности (TODO G7). Теперь строка получает статус.
+                    bool needsCoefficient =
+                        resultTranslation == ResultTranslation.Becquerels
+                        || resultTranslation == ResultTranslation.BecquerelsPerKilogram
+                        || resultTranslation == ResultTranslation.BecquerelsPerLiter;
+                    string cannot = null;
+                    if (needsCoefficient && !(becquerelCoefficient > 0.0))
+                    {
+                        cannot = Properties.Resources.ResultNoCoefficient;
+                    }
+                    else if (resultTranslation == ResultTranslation.BecquerelsPerKilogram
+                             && !(this.resultData.SampleInfo.Weight > 0.0))
+                    {
+                        cannot = Properties.Resources.ResultNoWeight;
+                    }
+                    else if (resultTranslation == ResultTranslation.BecquerelsPerLiter
+                             && !(this.resultData.SampleInfo.Volume > 0.0))
+                    {
+                        cannot = Properties.Resources.ResultNoVolume;
+                    }
+
+                    if (cannot != null)
+                    {
+                        measurementResultCollection.ResultList.Add(
+                            new MeasurementResult(roidefinition, 0.0, 0.0)
+                            {
+                                IsValid = false,
+                                StatusText = cannot,
+                            });
+                        continue;
+                    }
                     double resultCps = resultValue / this.measurementTime;
                     double resultErrorCps = Math.Abs(resultError) / this.measurementTime;
                     double resultBq = resultCps * becquerelCoefficient;
@@ -114,6 +168,19 @@ namespace BecquerelMonitor
             }
             foreach (MeasurementResult measurementResult in resultCollection.ResultList)
             {
+                // Тот же перенос невалидности, что в Translate: поправка на
+                // распад создаёт новые объекты и теряла флаг.
+                if (!measurementResult.IsValid)
+                {
+                    measurementResultCollection.ResultList.Add(
+                        new MeasurementResult(measurementResult.ROIDefinition, 0.0, 0.0)
+                        {
+                            IsValid = false,
+                            StatusText = measurementResult.StatusText,
+                        });
+                    continue;
+                }
+
                 ROIDefinitionData roidefinition = measurementResult.ROIDefinition;
                 double resultValue = measurementResult.ResultValue;
                 double resultError = measurementResult.ResultError;
@@ -229,15 +296,8 @@ namespace BecquerelMonitor
                     double upperLimit = roisimpleDifferenceData.UpperLimit;
                     int lowerLimitChannel;
                     int upperLimitChannel;
-                    try
-                    {
-                        lowerLimitChannel = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels));
-                        upperLimitChannel = (int)Math.Floor(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels));
-                    }
-                    catch (OutofChannelException)
-                    {
-                        return false;
-                    }
+                    lowerLimitChannel = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels));
+                    upperLimitChannel = (int)Math.Floor(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels));
                     double fgRegionCounts = 0.0;
                     double bgRegionCounts = 0.0;
                     for (int i = lowerLimitChannel; i <= upperLimitChannel; i++)
@@ -286,15 +346,8 @@ namespace BecquerelMonitor
                     double upperLimit2 = roicovellMethodData.UpperLimit;
                     int lowerLimitChannelIndex;
                     int upperLimitChannelIndex;
-                    try
-                    {
-                        lowerLimitChannelIndex = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(lowerLimit2, maxChannels: this.energySpectrum.NumberOfChannels));
-                        upperLimitChannelIndex = (int)Math.Floor(this.energyCalibration.EnergyToChannel(upperLimit2, maxChannels: this.energySpectrum.NumberOfChannels));
-                    }
-                    catch (OutofChannelException)
-                    {
-                        return false;
-                    }
+                    lowerLimitChannelIndex = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(lowerLimit2, maxChannels: this.energySpectrum.NumberOfChannels));
+                    upperLimitChannelIndex = (int)Math.Floor(this.energyCalibration.EnergyToChannel(upperLimit2, maxChannels: this.energySpectrum.NumberOfChannels));
                     double leftRegionCenter = roicovellMethodData.LeftRegionCenter;
                     double rightRegionCenter = roicovellMethodData.RightRegionCenter;
                     double leftRegionWidth = roicovellMethodData.LeftRegionWidth;
@@ -303,17 +356,10 @@ namespace BecquerelMonitor
                     int num18;
                     int num19;
                     int num20;
-                    try
-                    {
-                        num17 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(leftRegionCenter - leftRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
-                        num18 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(leftRegionCenter + leftRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
-                        num19 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(rightRegionCenter - rightRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
-                        num20 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(rightRegionCenter + rightRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
-                    }
-                    catch (OutofChannelException)
-                    {
-                        return false;
-                    }
+                    num17 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(leftRegionCenter - leftRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
+                    num18 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(leftRegionCenter + leftRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
+                    num19 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(rightRegionCenter - rightRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
+                    num20 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(rightRegionCenter + rightRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
                     double num21 = 0.0;
                     for (int j = lowerLimitChannelIndex; j <= upperLimitChannelIndex; j++)
                     {

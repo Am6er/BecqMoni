@@ -1,0 +1,2 @@
+﻿spectrum,det,part,component,kind,detected,decay_s,dt_decay_s,mda_decay_s,degenerate,collinearity,mda_peak_counts,total_yield_pct
+G1S24_Th228_P5,G1S24,known,Th-228,chain,1,5.9064E+004,2.2089E+002,4.4598E+002,0,0.7568,172555.2,237.9770

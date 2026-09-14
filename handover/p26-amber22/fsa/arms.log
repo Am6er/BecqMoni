@@ -1,0 +1,33 @@
+mk_appwd code=0 20:17:24
+нет плеча ctl,disk
+done 20:17:24
+ctl code=0 20:18:10 extra=[]
+disk code=0 20:18:20 extra=[]
+done 20:18:20
+huber0 code=0 20:18:49 extra=[--huber=0]
+nomatrix code=0 20:18:56 extra=[--no-matrix]
+nocascade code=0 20:19:04 extra=[--no-cascade]
+nopileup code=0 20:19:15 extra=[--no-pileup]
+knots32 code=0 20:19:26 extra=[--knots=32]
+knots512 code=0 20:19:36 extra=[--knots=512]
+kfwhm8 code=0 20:19:47 extra=[--knot-fwhm=8]
+kfwhm2 code=0 20:19:54 extra=[--knot-fwhm=2]
+rough10 code=0 20:20:04 extra=[--roughness=10]
+snip code=0 20:20:18 extra=[--mode=snip]
+noanchor code=0 20:20:27 extra=[--no-anchor]
+nobg code=0 20:20:39 extra=[--no-background]
+done 20:20:39
+noeq code=0 20:26:12 extra=[--no-equilibrium]
+floor200 code=0 20:26:17 extra=[--fit-floor=200]
+floor120 code=0 20:26:21 extra=[--fit-floor=120]
+noatomic code=0 20:26:25 extra=[--no-atomic]
+noxray code=0 20:26:29 extra=[--no-xray]
+noescape code=0 20:26:34 extra=[--no-escape]
+nobacksc code=0 20:26:39 extra=[--no-backscatter]
+stretch code=0 20:26:43 extra=[--matrix-transfer=stretch]
+nomx_noeq code=0 20:26:46 extra=[--no-matrix --no-equilibrium]
+huber0eq code=0 20:26:50 extra=[--huber=0 --no-equilibrium]
+done 20:26:50
+bswm code=0 20:35:56 extra=[--backscatter-with-matrix]
+bswm_noeq code=0 20:36:00 extra=[--backscatter-with-matrix --no-equilibrium]
+done 20:36:00

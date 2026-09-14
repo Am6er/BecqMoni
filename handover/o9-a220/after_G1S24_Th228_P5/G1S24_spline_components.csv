@@ -1,0 +1,10 @@
+﻿spectrum,det,part,component,kind,share_pct,z,decay_s,peak_counts,dt_decay_s,mda_decay_s,zone_chi2ndf,zone_dd,zone_n,peak_share_pct
+G1S24_Th228_P5,G1S24,known,Th-228,single,0.973,113.01,5.9064E+004,281229.7,2.2089E+002,4.4598E+002,,,0,1.292
+G1S24_Th228_P5,G1S24,known,Ra-224,single,2.759,113.01,5.9064E+004,652010.9,,,,,0,2.996
+G1S24_Th228_P5,G1S24,known,Rn-220,single,0.053,113.01,5.9064E+004,7132.6,,,,,0,0.033
+G1S24_Th228_P5,G1S24,known,Po-216,single,0.001,113.01,5.9064E+004,95.0,,,,,0,0.000
+G1S24_Th228_P5,G1S24,known,Pb-212,single,48.714,113.01,5.9064E+004,12901019.5,,,,,0,59.282
+G1S24_Th228_P5,G1S24,known,Bi-212,single,7.469,113.01,5.9064E+004,1631829.7,,,,,0,7.498
+G1S24_Th228_P5,G1S24,known,Tl-208,single,38.553,113.01,5.9064E+004,6011425.8,,,,,0,27.623
+G1S24_Th228_P5,G1S24,known,Xray-NaI,nuisance,0.374,5.66,8.0465E+002,120698.5,,,,,0,0.555
+G1S24_Th228_P5,G1S24,known,Ann-511,nuisance,1.103,11.79,1.3795E+003,156779.1,,,,,0,0.720

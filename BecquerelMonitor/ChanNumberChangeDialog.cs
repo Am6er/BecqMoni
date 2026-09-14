@@ -35,7 +35,7 @@ namespace BecquerelMonitor
 
         public int SendData()
         {
-            if (int.TryParse(textBox1.Text, out int newChan))
+            if (UserNumber.TryParseInt(textBox1.Text, out int newChan))
             {
                 if (resultStatus)
                 {

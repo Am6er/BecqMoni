@@ -37,7 +37,7 @@ namespace WinMM
                 string str = error.ToString();
                 string str2 = "(";
                 int num = (int)error;
-                text = str + str2 + num.ToString(CultureInfo.CurrentCulture) + ")";
+                text = str + str2 + num.ToString(CultureInfo.InvariantCulture) + ")";
             }
             else
             {

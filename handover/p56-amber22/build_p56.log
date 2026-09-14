@@ -1,0 +1,9 @@
+start 10:19:49 tag=p56
+HEAD стенда: a99b6038e69f71dc915f73a7ac781833bc6c0a8a
+rmx copied from C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries: geometries 45, response 45
+10:19:52 restore  exit=0 (3 s)
+10:19:59 msbuild  exit=0 (7 s)
+  exe: 11323904 байт, 14.09.2026 10:19:58, sha256 FE9D8A268394540D
+10:21:57 probes   exit=0 (118 s)
+  sha256 exe проб = приложения: True
+СБОРКА ПРОШЛА

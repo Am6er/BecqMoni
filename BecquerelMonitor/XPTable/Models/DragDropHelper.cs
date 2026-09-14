@@ -46,7 +46,7 @@ namespace XPTable.Models
         {
             if (_table.UseBuiltInDragDrop)
             {
-                if (drgevent.Data.GetDataPresent(typeof(DragItemData).ToString()))
+                if (drgevent.Data.GetDataPresent(typeof(DragItemData).FullName))
                 {
                     Point point = _table.PointToClient(new Point(drgevent.X, drgevent.Y));
                     int nRow = -1;
@@ -61,7 +61,7 @@ namespace XPTable.Models
 
                     Row hoverItem = _table.TableModel.Rows[nRow];
 
-                    DragItemData data = (DragItemData)drgevent.Data.GetData(typeof(DragItemData).ToString());
+                    DragItemData data = (DragItemData)drgevent.Data.GetData(typeof(DragItemData).FullName);
                     int srcIndex = -1;
                     if ((data.table == null) || (data.DragItems.Count == 0))
                     {
@@ -138,7 +138,7 @@ namespace XPTable.Models
 
         void table_DragOver(object sender, DragEventArgs drgevent)
         {
-            //if (!drgevent.Data.GetDataPresent(typeof(DragItemData).ToString()))
+            //if (!drgevent.Data.GetDataPresent(typeof(DragItemData).FullName))
             //{
             //    //drgevent.Effect = DragDropEffects.None;
             //    return;
@@ -178,22 +178,22 @@ namespace XPTable.Models
 
                 _previousRow = hoverItem;
 
-                if (drgevent.Data.GetDataPresent(typeof(DragItemData).ToString()) && _selectedRow == nRow && (((DragItemData)drgevent.Data.GetData(typeof(DragItemData).ToString())).table == _table))
+                if (drgevent.Data.GetDataPresent(typeof(DragItemData).FullName) && _selectedRow == nRow && (((DragItemData)drgevent.Data.GetData(typeof(DragItemData).FullName)).table == _table))
                 {
                     drgevent.Effect = DragDropEffects.None;
                 }
                 else
                 {
-                    if (drgevent.Data.GetDataPresent(typeof(DragItemData).ToString()))
+                    if (drgevent.Data.GetDataPresent(typeof(DragItemData).FullName))
                     {
-                        DragItemData data = (DragItemData)drgevent.Data.GetData(typeof(DragItemData).ToString());
+                        DragItemData data = (DragItemData)drgevent.Data.GetData(typeof(DragItemData).FullName);
                         if (!data.table.ExternalDropRemovesRows && (data.table != _table))
                             drgevent.Effect = DragDropEffects.Copy;
                         else
                             drgevent.Effect = DragDropEffects.Move;
                     }
                     else
-                        if (!drgevent.Data.GetDataPresent(typeof(DragItemData).ToString()))
+                        if (!drgevent.Data.GetDataPresent(typeof(DragItemData).FullName))
                         drgevent.Effect = _table.DragDropExternalTypeEffectSelector(sender, drgevent);
 
                     if (drgevent.Effect != DragDropEffects.None)
@@ -207,11 +207,11 @@ namespace XPTable.Models
         {
             if (_table.UseBuiltInDragDrop)
             {
-                if (!drgevent.Data.GetDataPresent(typeof(DragItemData).ToString()))
+                if (!drgevent.Data.GetDataPresent(typeof(DragItemData).FullName))
                     drgevent.Effect = _table.DragDropExternalTypeEffectSelector(sender, drgevent);
                 else
                 {
-                    DragItemData data = (DragItemData)drgevent.Data.GetData(typeof(DragItemData).ToString());
+                    DragItemData data = (DragItemData)drgevent.Data.GetData(typeof(DragItemData).FullName);
                     if (!data.table.ExternalDropRemovesRows && (data.table != _table))
                         drgevent.Effect = DragDropEffects.Copy;
                     else

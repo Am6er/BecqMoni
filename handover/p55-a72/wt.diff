@@ -1,0 +1,195 @@
+diff --git a/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs b/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs
+index 2328c7c0..cdfa67f6 100644
+--- a/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs
++++ b/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs
+@@ -1031,6 +1031,25 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// </summary>
+         public bool PositronOffset = new ResponseMatrixOptions().PositronOffset;
+ 
++        /// <summary>
++        /// П55 (оценка `A72` п. 4, 14.09.2026) — РЫЧАГ ЗАМЕРА, не настройка:
++        /// точка аннигиляции позитрона = КОНЕЦ ЕГО ТРЕКА из переноса
++        /// (<see cref="TransportElectron"/>: точка гибели внутри либо точка
++        /// выхода на грани), а не <see cref="PositronStop"/> эффективной
++        /// глубиной. Требует <see cref="ElectronTransport"/> и
++        /// <see cref="PositronOffset"/>. Выключенный — ни одного лишнего
++        /// случайного числа, побитово прежний результат.
++        /// </summary>
++        public bool PositronStopAtTrackEnd;
++
++        /// <summary>П55: конец последнего трека переноса (см; заполняет <see cref="TransportElectron"/>).</summary>
++        double trackEndX, trackEndY, trackEndZ;
++        bool trackEndValid;
++
++        /// <summary>П55: счётчики переноса — треков всего / погибло ранним выходом без шага / вышло через грань; энергия треков и унесённая, кэВ.</summary>
++        public long CountTransportTracks, CountTransportEarly, CountTransportEscapes;
++        public double SumTransportKev, SumTransportEscapeKev;
++
+         /// <summary>
+         /// Относительная ошибка КОНТИНУУМА последнего прогона отклика, % полной
+         /// суммы континуума строки; −1 — аналоговой ветки не было (F23).
+@@ -4749,10 +4768,18 @@ namespace BecquerelMonitor.EfficiencyMaker
+                     double share = this.Uniform();
+                     escaped = lost
+                            + this.ElectronLoss(x, y, z, kinetic * share, depth,
+-                                               ElectronBirth.Pair, ux, uy, uz)
+-                           + this.ElectronLoss(x, y, z, kinetic * (1.0 - share), depth,
+                                                ElectronBirth.Pair, ux, uy, uz);
+-                    if (this.PositronOffset)
++                    this.trackEndValid = false;     // П55: ниже — позитрон
++                    escaped += this.ElectronLoss(x, y, z, kinetic * (1.0 - share), depth,
++                                                 ElectronBirth.Pair, ux, uy, uz);
++                    if (this.PositronOffset && this.PositronStopAtTrackEnd && this.ElectronTransport
++                        && this.ElectronEscape && this.trackEndValid)
++                    {
++                        // П55: конец трека позитрона из переноса (последний
++                        // вызов ElectronLoss выше — позитрон).
++                        px = this.trackEndX; py = this.trackEndY; pz = this.trackEndZ;
++                    }
++                    else if (this.PositronOffset)
+                     {
+                         this.PositronStop(kinetic * (1.0 - share),
+                                           ref px, ref py, ref pz);
+diff --git a/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs b/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs
+index 220c8945..e3406df1 100644
+--- a/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs
++++ b/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs
+@@ -356,8 +356,11 @@ namespace BecquerelMonitor.EfficiencyMaker
+             double density = this.geometry.Crystal.Density;
+             double x0 = this.CrystalRadiationLength();
+             double residual = ElectronData.RangeOf(this.electron, te);     // г/см²
++            this.CountTransportTracks++;
++            this.SumTransportKev += te;
+             if (!(residual > 0.0) || !(density > 0.0))
+             {
++                this.SetTrackEnd(x, y, z);
+                 return 0.0;
+             }
+ 
+@@ -371,6 +374,8 @@ namespace BecquerelMonitor.EfficiencyMaker
+                     this.RestBremsstrahlung(x, y, z, ux, uy, uz, te, te, depth, ref radiated, ref lost);
+                 }
+ 
++                this.SetTrackEnd(x, y, z);      // П55: после рекурсии тормозного
++                this.CountTransportEarly++;
+                 return 0.0;
+             }
+ 
+@@ -395,7 +400,8 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 double toEdge = this.CrystalPath(x, y, z, ux, uy, uz);
+                 if (first >= toEdge)
+                 {
+-                    return this.EscapeEnergy(residual - toEdge * density, te - radiated);
++                    this.SetTrackEndOnFace(x, y, z, ux, uy, uz, toEdge);
++                    return this.CountEscape(this.EscapeEnergy(residual - toEdge * density, te - radiated));
+                 }
+ 
+                 x += ux * first;
+@@ -425,7 +431,8 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 toEdge = this.CrystalPath(x, y, z, ux, uy, uz);
+                 if (second >= toEdge)
+                 {
+-                    return this.EscapeEnergy(residual - (first + toEdge) * density, te - radiated);
++                    this.SetTrackEndOnFace(x, y, z, ux, uy, uz, toEdge);
++                    return this.CountEscape(this.EscapeEnergy(residual - (first + toEdge) * density, te - radiated));
+                 }
+ 
+                 x += ux * second;
+@@ -442,13 +449,40 @@ namespace BecquerelMonitor.EfficiencyMaker
+                         this.RestBremsstrahlung(x, y, z, ux, uy, uz, t, te, depth, ref radiated, ref lost);
+                     }
+ 
++                    this.SetTrackEnd(x, y, z);
+                     return 0.0;
+                 }
+             }
+ 
++            this.SetTrackEnd(x, y, z);
+             return 0.0;
+         }
+ 
++        /// <summary>П55: счёт вылета через грань (энергия > 0).</summary>
++        double CountEscape(double kev)
++        {
++            if (kev > 0.0)
++            {
++                this.CountTransportEscapes++;
++                this.SumTransportEscapeKev += kev;
++            }
++
++            return kev;
++        }
++
++        /// <summary>П55: конец трека переноса — точка внутри кристалла.</summary>
++        void SetTrackEnd(double x, double y, double z)
++        {
++            this.trackEndX = x; this.trackEndY = y; this.trackEndZ = z; this.trackEndValid = true;
++        }
++
++        /// <summary>П55: конец трека переноса — точка выхода на грани, чуть внутри (как зажим PositronStop).</summary>
++        void SetTrackEndOnFace(double x, double y, double z, double ux, double uy, double uz, double toEdge)
++        {
++            double m = Math.Max(0.0, toEdge - 1e-7);
++            this.SetTrackEnd(x + ux * m, y + uy * m, z + uz * m);
++        }
++
+         /// <summary>
+         /// (`M3`, П44) Кванты тормозного ОДНОГО ШАГА переноса: среднее число —
+         /// тонкая мишень при энергии <paramref name="tKev"/> на пути
+diff --git a/tools/effmaker/probes/G4RawProbe.cs b/tools/effmaker/probes/G4RawProbe.cs
+index 32e32167..3c48fec7 100644
+--- a/tools/effmaker/probes/G4RawProbe.cs
++++ b/tools/effmaker/probes/G4RawProbe.cs
+@@ -125,6 +125,7 @@ namespace G4RawProbe
+             // Пара: раздельный перенос позитрона и смещение вершины (`S126`);
+             // умолчание — склада (обе половины ВКЛ с 13.09.2026).
+             bool positron = store.PositronTransport, posoffset = store.PositronOffset;
++            bool posend = false;    // П55: точка аннигиляции = конец трека переноса
+             double escT0 = -1.0;      // <0 — не трогать умолчание (`A63`)
+             // Ключи АБЛЯЦИИ каналов утечки (`A63`): чем держится каждая полоса.
+             bool xray = true, esc = true, brem = true;
+@@ -158,6 +159,7 @@ namespace G4RawProbe
+                 // `S126` (П37): обе половины пары — умолчание склада, ключи для абляции.
+                 if (a.StartsWith("--positron=", StringComparison.Ordinal)) { positron = Flag01(a, 11); continue; }
+                 if (a.StartsWith("--posoffset=", StringComparison.Ordinal)) { posoffset = Flag01(a, 12); continue; }
++                if (a.StartsWith("--posend=", StringComparison.Ordinal)) { posend = Flag01(a, 9); continue; }
+                 if (a == "--no-xray") { xray = false; continue; }
+                 if (a == "--no-esc") { esc = false; continue; }
+                 if (a == "--no-brem") { brem = false; continue; }
+@@ -289,6 +291,7 @@ namespace G4RawProbe
+             }
+ 
+             GeometryModel geometry = null;
++            EfficiencySimulator simulatorForCounters = null;
+             if (geometryPath != null)
+             {
+                 if (!File.Exists(geometryPath))
+@@ -342,6 +345,9 @@ namespace G4RawProbe
+             simulator.RayleighToCrystal = rayl2;
+             simulator.PositronTransport = positron;     // `S126`, П37
+             simulator.PositronOffset = posoffset;
++            simulator.PositronStopAtTrackEnd = posend;
++            Console.WriteLine("П55 --posend=: точка аннигиляции = конец трека переноса {0}", posend ? "ВКЛ" : "выкл");
++            simulatorForCounters = simulator;
+             simulator.XrayEscape = xray;
+             simulator.ElectronEscape = esc;
+             simulator.Bremsstrahlung = brem;
+@@ -514,6 +520,18 @@ namespace G4RawProbe
+                     }
+                 }
+ 
++            if (simulatorForCounters != null)
++            {
++                Console.WriteLine("П55 перенос: треков {0}, ранний выход без шага {1} ({2:F2} %), вылетов через грань {3} ({4:F3} % треков, {5:F4} % историй), энергия треков {6:E3} кэВ, унесено {7:E3} кэВ ({8:F3} %)",
++                                  simulatorForCounters.CountTransportTracks, simulatorForCounters.CountTransportEarly,
++                                  100.0 * simulatorForCounters.CountTransportEarly / Math.Max(1, simulatorForCounters.CountTransportTracks),
++                                  simulatorForCounters.CountTransportEscapes,
++                                  100.0 * simulatorForCounters.CountTransportEscapes / Math.Max(1, simulatorForCounters.CountTransportTracks),
++                                  100.0 * simulatorForCounters.CountTransportEscapes / Math.Max(1, histories),
++                                  simulatorForCounters.SumTransportKev, simulatorForCounters.SumTransportEscapeKev,
++                                  100.0 * simulatorForCounters.SumTransportEscapeKev / Math.Max(1e-9, simulatorForCounters.SumTransportKev));
++            }
++
+                 Console.WriteLine("отклик: " + outPath);
+             }
+ 

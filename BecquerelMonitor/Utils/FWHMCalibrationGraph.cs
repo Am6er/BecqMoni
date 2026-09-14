@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
 
@@ -101,7 +102,7 @@ namespace BecquerelMonitor.Utils
                 int y_low = this.height;
                 g.DrawLine(pen, x_high, y_high, x_low, y_low);
                 Rectangle r = new Rectangle(x_low, y_low - 16, 32, 32);
-                g.DrawString((i * ch_step).ToString(), this.Font, brush, r);
+                g.DrawString((i * ch_step).ToString(CultureInfo.InvariantCulture), this.Font, brush, r);
             }
 
             for (int i = 1; i < y_points; i++)
@@ -112,7 +113,7 @@ namespace BecquerelMonitor.Utils
                 int y_right = y_left;
                 g.DrawLine(pen, x_left, y_left, x_right, y_right);
                 Rectangle r = new Rectangle(x_left, y_left - 16, 32, 32);
-                g.DrawString((i * (int)fwhm_step).ToString(), this.Font, brush, r);
+                g.DrawString((i * (int)fwhm_step).ToString(CultureInfo.InvariantCulture), this.Font, brush, r);
             }
 
             Rectangle rlabel = new Rectangle(this.startwidth, this.startheight, 120, 32);
@@ -196,23 +197,25 @@ namespace BecquerelMonitor.Utils
                         }
                     }
 
+                    // A244 / П9: канал и ПШПВ уходили в string.Concat(object[]) —
+                    // ToString() звала сама склейка, по культуре потока.
                     string labeltext = string.Concat(
                             Resources.ChartHeaderChannel,
                             " ",
-                            point.Channel,
+                            point.Channel.ToString(CultureInfo.InvariantCulture),
                             "\n",
                             Resources.ChartHeaderEnergy,
                             " ",
-                            point.Energy.ToString("f2"),
+                            point.Energy.ToString("f2", CultureInfo.InvariantCulture),
                             "\n",
                             Resources.ChartHeaderFWHM,
                             " ",
-                            point.FWHM,
+                            point.FWHM.ToString(CultureInfo.InvariantCulture),
                             " ch\n",
                             Resources.Delta,
                             Resources.ChartHeaderFWHM,
                             " ",
-                            (point.FWHM - this.fwhmCalibration.ChannelToFwhm(point.Channel)).ToString("f1")
+                            (point.FWHM - this.fwhmCalibration.ChannelToFwhm(point.Channel)).ToString("f1", CultureInfo.InvariantCulture)
                          );
                     g.DrawString(labeltext, this.Font, textbrush, label);
                     continue;
@@ -273,18 +276,20 @@ namespace BecquerelMonitor.Utils
             double energy = energyCalibration.ChannelToEnergy(channel);
             int fwhm = ChanToPy(channel);
 
+            // A244 / П9: канал и ПШПВ уходили в string.Concat(object[]) —
+            // ToString() звала сама склейка, по культуре потока.
             string labeltext = string.Concat(
                     Resources.ChartHeaderChannel,
                     " ",
-                    channel,
+                    channel.ToString(CultureInfo.InvariantCulture),
                     "\n",
                     Resources.ChartHeaderEnergy,
                     " ",
-                    energy.ToString("f2"),
+                    energy.ToString("f2", CultureInfo.InvariantCulture),
                     "\n",
                     Resources.ChartHeaderFWHM,
                     " ",
-                    PyToChan(this.height - this.mouseY),
+                    PyToChan(this.height - this.mouseY).ToString(CultureInfo.InvariantCulture),
                     " ch\n"
                  );
             g.DrawString(labeltext, this.Font, textbrush, label);
@@ -297,8 +302,8 @@ namespace BecquerelMonitor.Utils
             Rectangle label = new Rectangle(100, this.startheight, 1000, 62);
             string functiontext = this.fwhmCalibration.ToString();
             functiontext += "\n" + Resources.MSGMSE + ":" + "\n"
-            + "\t" + Resources.Default + ": " + Utils.CalibrationSolver.MSE(this.originalfwhmCalibration, this.originalpoints).ToString("f4") + "\n"
-            + "\t" + Resources.Current + ": " + Utils.CalibrationSolver.MSE(this.fwhmCalibration, this.points).ToString("f4");
+            + "\t" + Resources.Default + ": " + Utils.CalibrationSolver.MSE(this.originalfwhmCalibration, this.originalpoints).ToString("f4", CultureInfo.InvariantCulture) + "\n"
+            + "\t" + Resources.Current + ": " + Utils.CalibrationSolver.MSE(this.fwhmCalibration, this.points).ToString("f4", CultureInfo.InvariantCulture);
             if (!this.polycorrect)
             {
                 functiontext += "\n" + Resources.CalibrationFunctionError;
