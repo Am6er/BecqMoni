@@ -186,6 +186,18 @@ namespace BecquerelMonitor
         /// <summary>(`A300`) Подсказка к тому же признаку: почему число и лента расходятся.</summary>
         const string KeyResidualClampedTip = "FSAReport_ResidualClampedTip";
 
+        /// <summary>
+        /// (`S174`, решение Amber 14.09.2026 «Только в диапазоне прибора»)
+        /// Признак у строки невязки: ОТ КАКОЙ ЭНЕРГИИ СЧИТАНО ЧИСЛО —
+        /// `Min_Range` прибора (<see cref="FsaResult.ResidualFloorKev"/>).
+        /// Лента на графике идёт по всей шкале, а число — от этого пола;
+        /// ставится только когда пол и вправду режет полосу фита.
+        /// </summary>
+        const string KeyResidualFloor = "FSAReport_ResidualFloor";
+
+        /// <summary>(`S174`) Подсказка к тому же признаку: ниже пола лента есть, в проценте её нет.</summary>
+        const string KeyResidualFloorTip = "FSAReport_ResidualFloorTip";
+
         const string KeyChi2Row = "FSAReport_Chi2Row";
 
         /// <summary>
@@ -1128,14 +1140,38 @@ namespace BecquerelMonitor
             // целиком.
             int clamped = this.ResidualClampedChannels();
             string residualCaption = OwnText(KeyResidualRow);
-            string residualHint = null;
+            var residualMarks = new List<string>();
+            var residualTips = new List<string>();
             if (clamped > 0)
             {
-                residualCaption += " — " + string.Format(CultureInfo.InvariantCulture,
-                                                         OwnText(KeyResidualClamped), clamped);
-                residualHint = string.Format(CultureInfo.InvariantCulture,
-                                             OwnText(KeyResidualClampedTip), clamped);
+                residualMarks.Add(string.Format(CultureInfo.InvariantCulture,
+                                                OwnText(KeyResidualClamped), clamped));
+                residualTips.Add(string.Format(CultureInfo.InvariantCulture,
+                                               OwnText(KeyResidualClampedTip), clamped));
             }
+
+            // (`S174`, решение Amber 14.09.2026 «Только в диапазоне прибора»)
+            // Число считано от `Min_Range` прибора, лента идёт по всей шкале —
+            // и это ГОВОРИТСЯ, тем же движением, что подрезка показа (`A300`):
+            // порог АЦП 0–30 кэВ виден лентой, а в процент не входит. Пометка
+            // только когда пол режет полосу фита: при фите от `Min_Range` число
+            // и лента и так об одном.
+            FsaResult floorResult = this.session != null ? this.session.Result : null;
+            if (floorResult != null && floorResult.ResidualFloorKev > 0.0
+                && floorResult.ResidualFloorChannel > floorResult.FirstChannel)
+            {
+                string kev = floorResult.ResidualFloorKev.ToString("G", CultureInfo.InvariantCulture);
+                residualMarks.Add(string.Format(CultureInfo.InvariantCulture, OwnText(KeyResidualFloor), kev));
+                residualTips.Add(string.Format(CultureInfo.InvariantCulture, OwnText(KeyResidualFloorTip), kev));
+            }
+
+            if (residualMarks.Count > 0)
+            {
+                residualCaption += " — " + string.Join(", ", residualMarks.ToArray());
+            }
+
+            string residualHint = residualTips.Count > 0
+                ? string.Join(Environment.NewLine, residualTips.ToArray()) : null;
 
             string keep = this.selectedLayer;
             this.suspendSelection = true;

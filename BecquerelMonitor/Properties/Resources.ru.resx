@@ -507,6 +507,12 @@
   <data name="FSANotResolvedHint" xml:space="preserve">
     <value>Образ предъявлен фиту и получил ноль: полосу держит континуум модели. Величина требует геометрии детектора.</value>
   </data>
+  <data name="FSAContinuumLayerHint" xml:space="preserve">
+    <value>Подложка модели, не принадлежащая ни одному нуклиду: выше самой верхней линии состава приписать её некому.</value>
+  </data>
+  <data name="FSAContinuumLayerHintFloor" xml:space="preserve">
+    <value>Подложка модели, не принадлежащая ни одному нуклиду: ниже {0} кэВ матрице отклика нет доверия (порог АЦП, рентген защиты, возврат из домика), а выше самой верхней линии состава приписать её некому. Выше {0} кэВ подложка разнесена по слоям нуклидов.</value>
+  </data>
   <data name="FSAUndetectedFoldedRow" xml:space="preserve">
     <value>не определяются ({0})</value>
   </data>

@@ -8371,49 +8371,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 result.Model[i] = sum;
             }
 
-            // (`S111`, решение Amber 01.09.2026) НЕВЯЗКА В ОТСЧЁТАХ — обе
-            // половины, ровно те, что рисует лента на экране: измерение выше
-            // модели («не описано») и модель выше измерения («приписано
-            // лишнее»). Пара считается ЗДЕСЬ, а не в отрисовке, потому что то
-            // же число нужно пробам и корпусу, а второй копии правила в
-            // проекте быть не должно.
+            // (`S174`, два решения Amber 14.09.2026) ДВА ПОЛА ОТОБРАЖЕНИЯ, оба —
+            // каналом по калибровке файла (первый канал, чья энергия не ниже
+            // порога; правило то же, что у пола полосы фита выше — `A309`):
             //
-            // ⚠ Мера НЕ ТА ЖЕ, что <see cref="FsaResult.ModelResidual"/>: там ε,
-            // оценённая по χ² доля формы, и она остаётся — ею меряется корпус
-            // (медиана понятной части 10.7 %). Здесь отсчёты, и на одном и том
-            // же спектре числа расходятся: `G1S24_Th228_P5` — ε 34.2 %, а по
-            // отсчётам «не добавлено» 20.25 % и «добавлено лишнего» 6.80 %. На ЭКРАН идут
-            // отсчёты: человек читает строку как площадь нарисованной ленты.
+            //   * «Ниже порога не разносить — серый слой «континуум»»: сплайн
+            //     подложки разносится по слоям нуклидов (`S76`) только от
+            //     порога доверия матрицы (`ResponseContinuumTrustFloorKev`,
+            //     ~~`S11`~~) и выше; ниже — свой серый слой. Порог есть только у
+            //     разбора С МАТРИЦЕЙ: без неё образ — голые пики, подложка —
+            //     комптон целиком, и `S76` действует по всей шкале (0).
+            //   * «Только в диапазоне прибора»: невязка в отсчётах считается от
+            //     `Min_Range` прибора (`MinEnergy`, ~~`S108`~~) и выше.
             //
-            // ⛔ (`A284`) Измерение берётся у РЕЗУЛЬТАТА, кривой фита
-            // (<see cref="FsaResult.FitSpectrum"/>), а не считается здесь своим
-            // циклом: «спектр минус вычтенный фон» — правило одно на проект, и
-            // третьей его копии рядом с показной и с фитом быть не должно.
-            // Числа не меняются ни на знак: считалось ровно это.
-            //
-            // (`S173`) Модель здесь — БЕЗ отвязанных хвостов (`result.Model`,
-            // верх стека): их отсчёты входят в «не описано» — так решено Amber
-            // 14.09.2026, и ровно так лежит лента на экране.
-            double missingCounts = 0.0, excessCounts = 0.0, measuredCounts = 0.0;
-            int[] raw = spectrum.Spectrum;
-            double[] measured = result.FitSpectrum(raw);
-            for (int i = chLo; i <= chHi && i < raw.Length; i++)
-            {
-                double net = i < measured.Length ? measured[i] : 0.0;
-                double difference = net - result.Model[i];
-                measuredCounts += net;
-                if (difference > 0.0)
-                {
-                    missingCounts += difference;
-                }
-                else
-                {
-                    excessCounts -= difference;
-                }
-            }
+            // Это ОТОБРАЖЕНИЕ: фит, амплитуды, z, пределы и χ²/ndf посчитаны
+            // выше и от этих двух чисел не зависят.
+            result.ContinuumSpreadFloorKev = fit.FromResponseMatrix && this.ResponseContinuumTrustFloorKev > 0.0
+                ? this.ResponseContinuumTrustFloorKev : 0.0;
+            result.ContinuumSpreadFloorChannel = FloorChannel(calibration, result.ContinuumSpreadFloorKev, chLo, chHi);
+            result.ResidualFloorKev = this.MinEnergy > 0.0 ? this.MinEnergy : 0.0;
+            result.ResidualFloorChannel = FloorChannel(calibration, result.ResidualFloorKev, chLo, chHi);
 
-            result.ResidualMissingShare = measuredCounts > 0.0 ? missingCounts / measuredCounts : 0.0;
-            result.ResidualExcessShare = measuredCounts > 0.0 ? excessCounts / measuredCounts : 0.0;
+            // (`S111`, решение Amber 01.09.2026) НЕВЯЗКА В ОТСЧЁТАХ — обе
+            // половины, ровно те, что рисует лента на экране. Правило одно на
+            // проект и живёт у результата (`FsaResult.ComputeResidualShares`):
+            // то же число нужно пробам и корпусу. Модель — БЕЗ отвязанных
+            // хвостов (`S173`), полоса — от `Min_Range` (`S174`).
+            result.ComputeResidualShares(spectrum.Spectrum);
 
             // ДОЛЯ — ОДНА МЕРА НА ВЕСЬ ПРОЕКТ, доля СЛОЯ (`S76`, решение Amber
             // 23.08.2026), и считается она там же, где строятся слои.
@@ -8429,6 +8413,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             result.ComputeComponentShares();
 
             return result;
+        }
+
+        /// <summary>
+        /// (`S174`) КАНАЛ ПОЛА ОТОБРАЖЕНИЯ: первый канал полосы
+        /// [<paramref name="chLo"/>, <paramref name="chHi"/>], чья энергия по
+        /// калибровке файла не ниже <paramref name="kev"/>. Ноль или
+        /// отрицательный порог — пола нет, канал 0; полоса целиком ниже
+        /// порога — канал за её верхом (<c>chHi + 1</c>: ничего не разносится,
+        /// невязка не считается — а не «всё», как дал бы зажим к `chHi`).
+        ///
+        /// ⛔ ПО ЭНЕРГИИ КАНАЛА, а не пересчётом энергии в номер канала — тем
+        /// же доводом, что у пола полосы фита (`A309`): `EnergyToChannelSafe`
+        /// округляет, и канал чуть ниже порога оказался бы выше него.
+        /// </summary>
+        static int FloorChannel(EnergyCalibration calibration, double kev, int chLo, int chHi)
+        {
+            if (!(kev > 0.0) || calibration == null)
+            {
+                return 0;
+            }
+
+            int ch = Math.Max(0, chLo);
+            while (ch <= chHi && calibration.ChannelToEnergy(ch) < kev)
+            {
+                ch++;
+            }
+
+            return ch;
         }
 
         /// <summary>

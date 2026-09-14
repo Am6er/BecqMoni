@@ -190,6 +190,12 @@
   <data name="FSAReport_ResidualClampedTip" xml:space="preserve">
     <value>Число посчитано по кривой фита, без подрезки. Лента на графике рисуется против показной кривой, где отрицательное подрезано нулём на {0} каналах, поэтому её площадь меньше, чем говорит число.</value>
   </data>
+  <data name="FSAReport_ResidualFloor" xml:space="preserve">
+    <value>от {0} кэВ</value>
+  </data>
+  <data name="FSAReport_ResidualFloorTip" xml:space="preserve">
+    <value>Число считано от нижней границы диапазона прибора {0} кэВ и выше — там, где судит фит. Ниже лента на графике рисуется, но в процент не входит.</value>
+  </data>
   <data name="FSAReport_Chi2Row" xml:space="preserve">
     <value>χ²/ndf, качество подгонки</value>
   </data>
