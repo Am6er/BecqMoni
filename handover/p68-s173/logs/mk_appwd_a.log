@@ -1,0 +1,19 @@
+  положено файлов: 480
+
+рабочий каталог: D:\BqMoni_Claude\p68\wt\tools\CORPUS\scripts\wd_p68a
+  конфигураций приборов: 24, матриц: 45
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : D:\BqMoni_Claude\p68\wt\tools\CORPUS\scripts\wd_p68a
+  сборка   : D:\BqMoni_Claude\p68\wt\BecquerelMonitor\bin\Release_p68a
+  пробы    : D:\BqMoni_Claude\p68\wt\tools\effmaker\probes\build_p68a
+  сверено  : 480 файлов по sha256 за 61.24 с
+  библиотека: в оснастке корпуса НЕТ по правилу AMBER19 — состав из manifest.csv, линии из nucdb/matdb
+  перекладка: клейма склада и оснастки сошлись
+  ОСНАСТКА СВЕЖАЯ: 480 файлов сошлись
+
+запуск прогона — ТОЛЬКО через сторожа, оператором вызова & (T84/T91):
+  & 'D:\BqMoni_Claude\p68\wt\tools\CORPUS\scripts\run_appwd.ps1' -Wd 'D:\BqMoni_Claude\p68\wt\tools\CORPUS\scripts\wd_p68a' -Store 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries' -Out 'D:\BqMoni_Claude\p68\wt\tools\pie\out_app'
+  ключи пробы — массивом: -Extra '--band=whole','--only=ASN16_Cs137'
+проверить оснастку отдельно:
+  & 'D:\BqMoni_Claude\p68\wt\tools\CORPUS\scripts\check_appwd.ps1' -Wd 'D:\BqMoni_Claude\p68\wt\tools\CORPUS\scripts\wd_p68a' -Store 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries'

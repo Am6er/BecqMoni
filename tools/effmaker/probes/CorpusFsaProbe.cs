@@ -884,6 +884,8 @@ namespace CorpusFsaProbe
     /// Файлы на выходе — того же вида, что у `tools/pie`, чтобы считал их тот же
     /// `tools/pie/score.py`: `&lt;группа&gt;_&lt;режим&gt;_components.csv` и
     /// `&lt;группа&gt;_&lt;режим&gt;_runs.csv`; плюс свой
+    /// `&lt;группа&gt;_&lt;режим&gt;_tails.csv` — отвязанные хвосты матричных
+    /// образов (`S173`: чей, сколько отсчётов, невязка в отсчётах) и
     /// `&lt;группа&gt;_&lt;режим&gt;_limits.csv` — характеристические пределы S9
     /// по ВСЕМ кандидатам библиотеки, включая не вошедших в состав.
     ///
@@ -1978,7 +1980,9 @@ namespace CorpusFsaProbe
             // стека с именем `FsaResult.ContinuumLayerName` («continuum») идёт следом
             // в том же заголовке, и `csv.DictReader` молча брал ВТОРОЙ — «сплайн 0»
             // там, где он 223.9 (`S103`). На складе 05.09.2026 таких дампов 115 из 329.
-            var head = new StringBuilder("ch,keV,net,fit,model,continuum_raw");
+            // (`S173`) `untied_tail` — отвязанные хвосты матричных образов по
+            // каналам: в `model` (верх стека) и слои не входят, лежат в невязке.
+            var head = new StringBuilder("ch,keV,net,fit,model,continuum_raw,untied_tail");
             foreach (FsaStackLayer layer in layers)
             {
                 head.Append(',').Append(layer.Name.Replace(',', ';'));
@@ -1997,7 +2001,8 @@ namespace CorpusFsaProbe
                         .Append(Cell(net, i)).Append(',')
                         .Append(Cell(fit, i)).Append(',')
                         .Append(Cell(result.Model, i)).Append(',')
-                        .Append(Cell(result.Continuum, i));
+                        .Append(Cell(result.Continuum, i)).Append(',')
+                        .Append(Cell(result.UntiedTail, i));
                     foreach (FsaStackLayer layer in layers)
                     {
                         line.Append(',').Append(Cell(layer.Curve, i));
@@ -3690,6 +3695,12 @@ namespace CorpusFsaProbe
                 }
             }
 
+            // (`S173`) Среднее пуассона — МОДЕЛЬ ФИТА, с отвязанными хвостами
+            // матричных образов (`FsaResult.FitModel`): на экране хвост с
+            // 14.09.2026 идёт невязкой, но решатель его подгонял, и копия
+            // спектра без него потеряла бы низ шкалы, которого у измерения не
+            // убавилось.
+            double[] fitModel = result.FitModel();
             if (absent.Count > 0)
             {
                 double[] muFull = new double[channels];
@@ -3697,7 +3708,7 @@ namespace CorpusFsaProbe
                 {
                     muFull[i] = i < result.FirstChannel || i > result.LastChannel
                         ? raw[i]
-                        : Math.Max(0.0, result.Model[i])
+                        : Math.Max(0.0, fitModel[i])
                           + (result.Background != null ? result.Background[i] : 0.0);
                 }
 
@@ -3809,7 +3820,7 @@ namespace CorpusFsaProbe
                         familyCurve += member.Curve[i];
                     }
 
-                    double without = result.Model[i] - familyCurve;
+                    double without = fitModel[i] - familyCurve;
                     if (without < 0.0)
                     {
                         without = 0.0;
@@ -3879,7 +3890,7 @@ namespace CorpusFsaProbe
                     for (int i = result.FirstChannel; i <= result.LastChannel && i < channels; i++)
                     {
                         injected += mu1[i] - mu0[i];
-                        modelTotal += Math.Max(0.0, result.Model[i]);
+                        modelTotal += Math.Max(0.0, fitModel[i]);
                         foreach (FsaComponentResult member in family)
                         {
                             familyTotal += member.Curve[i];
@@ -5096,7 +5107,14 @@ namespace CorpusFsaProbe
                 // (`AMBER17`) Все кандидаты в опоры привязки, принятые и
                 // отвергнутые, — сырьё развёртки порога доли синего канала.
                 using (var anchors = new StreamWriter(prefix + "_anchors.csv", false, new UTF8Encoding(true)))
+                // (`S173`) Отвязанные хвосты матричных образов — чей и сколько
+                // отсчётов, рядом невязка в отсчётах (обе половины, доли ×100).
+                // СВОЙ файл, а не колонка в `runs`/`components`: шапки тех
+                // читает чужой разбор, и новый столбец сдвинул бы сверку
+                // плеч по всем спектрам, а хвост есть лишь у части.
+                using (var tails = new StreamWriter(prefix + "_tails.csv", false, new UTF8Encoding(true)))
                 {
+                    tails.WriteLine("spectrum,det,part,component,tail_counts,missing_pct,excess_pct");
                     anchors.WriteLine("spectrum,det,part,component,line_kev,model_kev,measured_kev,"
                                       + "shift_kev,sigma_kev,peak_share,z,ch_lo,ch_hi,used,refusal,"
                                       // (П18) сдвиг опоры по свету, кэВ — В КОНЕЦ строки
@@ -5226,6 +5244,18 @@ namespace CorpusFsaProbe
                                     an.LastChannel.ToString(CultureInfo.InvariantCulture),
                                     an.Used ? "1" : "0", Csv(an.Refusal ?? ""),
                                     F(an.LightShiftKev, "F3")));
+                            }
+                        }
+
+                        if (r.Result.UntiedTails != null)
+                        {
+                            foreach (FsaUntiedTail tail in r.Result.UntiedTails)
+                            {
+                                tails.WriteLine(string.Join(",",
+                                    Csv(r.Key), Csv(r.Det), Csv(r.Part), Csv(tail.Component),
+                                    F(tail.Counts, "F1"),
+                                    F(100.0 * r.Result.ResidualMissingShare, "F3"),
+                                    F(100.0 * r.Result.ResidualExcessShare, "F3")));
                             }
                         }
 
