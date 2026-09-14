@@ -1,0 +1,35 @@
+BecqMoni: main config: D:\BqMoni_Claude\p56\wt\tools\CORPUS\scripts\wd_p56\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p56\wt\tools\CORPUS\scripts\wd_p56\config\device: 24 loaded
+SETUP	прибор: Atom Spectra 80x80
+SETUP	SNR=4	допуск=10	диапазон=30…2800 кэВ	мёртвое=0.0003628 с
+состав объявлен: 40K; ряды: Th-232, Ra-226, U-238u, U-235; распад 5, атомных 5, линий 379; полоса сведена ПОЛОМ ПО КРИВОЙ 30.0 кэВ (1.0 % от максимума, Min_Range 30.0), фит на всём спектре (умолчание); членов ряда ниже порога ветвления 10; вылет от линий состава: SE-2615, DE-2615, SE-1764, DE-1764, SE-2204, DE-2204
+SETUP	найдено пиков: 21 (подписи из базы)
+SETUP	против поставочного разбора изменено: AngularQk нет → BecquerelMonitor.FullSpectrumAnalysis.AngularAttenuation; CoincidenceWindowSec 0 → 0.00036281179138322; MinEnergy 40 → 30; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → NaI:Tl
+шкала: усиление 1.030319, сдвиг -8.664 канала
+chi2/ndf 13.699, невязка модели 21.2 %, суммирование да
+отсев по значимости: ПРИМЕНЁН, порог 3.0000 = min(абс 3, доля 0.3 от вершины), судимых 10 (отсеяно 7), наибольшая значимость 183.29
+ROW	Ac-228	Single	38.771	Th-232
+ROW	Tl-208	Single	30.206	Th-232
+ROW	Pb-212	Single	18.290	Th-232
+ROW	Bi-212	Single	5.151	Th-232
+ROW	Bi-214	Single	2.844	Ra-226
+ROW	Pb-214	Single	1.708	Ra-226
+ROW	Ra-224	Single	1.468	Th-232
+ROW	K-40	Single	1.219	-
+ROW	Th-228	Single	0.204	Th-232
+ROW	other	Single	0.139	-
+CUT	Esc-NaI	Nuisance	z=0.00
+CUT	U-235	Chain	z=0.00
+CUT	U-238	Chain	z=0.00
+CUT	Xray-Ba	Nuisance	z=0.00
+CUT	Xray-La	Nuisance	z=0.00
+CUT	Xray-Th	Nuisance	z=0.00
+CUT	pile-up	Nuisance	z=0.00
+отрисовано: True
+строка состояния на графике: «»
+отчёт: строк в таблице 29
+D:\BqMoni_Claude\p56\fsa_disk\thrauk\stack.png: 15–2800 кэВ, потолок 46936, шкала pow
+НАДПИСЬ	Состав ОБЪЯВЛЕН ключом --sample= (nucdb: 40K; ряды --chain= Th-232, Ra-226, U-238u, U-235 → Th-232, Ra-226, U-238, U-235, K-40); поставочная библиотека не читалась.
+НАДПИСЬ	Переключатель «Источник состава» в окне отчёта — состояние приложения, положения «объявлен» у него нет; к этому снимку он не относится.
+D:\BqMoni_Claude\p56\fsa_disk\thrauk\dump.csv: 8192 каналов, колонок слоёв 10
+NuclideDefinitionManager за прогон: обращений 2 (код показа приложения); список у одиночки: определений 0, наборов 0 — пустышка пробы, поставочный файл не читался
