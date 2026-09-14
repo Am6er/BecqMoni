@@ -43,6 +43,21 @@ namespace FsaStackShot
     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
     ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
     ///                [--rates=rates.csv] [--screen] [--shield=82,74] [--tie=0.9] [--tie-lines]
+    ///                [--no-limit] [--limit-z=1000]
+    ///
+    /// `--no-limit` / `--limit-z=` (П63, `S171`, второе правило) — предел
+    /// неизмеримого члена ряда в режиме без связки
+    /// (`FsaAnalyzer.ChainLimitByExpectedZ` / `ChainLimitZ`): `--no-limit` —
+    /// правило выключено (плечо А); `--limit-z=` — подменённый порог ожидаемой
+    /// значимости для положительного контроля (заведомо высокий обязан сделать
+    /// пределом и члены с собственной линией); без ключей порог — у отсева.
+    /// После разбора печатаются приговоры по каждому судимому члену каждого
+    /// круга: `LIM\t<член>\t<опорный>\t<ожид. z>\t<z>\t<порог>\t<круг>\t<limit|below|free>`
+    /// (`limit` — снят в этом круге, `below` — ниже порога, но снят не он: за
+    /// круг снимается один, с наименьшей ожидаемой значимостью, и остальные
+    /// судятся снова после перефита);
+    /// у `--rates=` последний столбец `unmeasurable_at` — опорный член, при
+    /// амплитуде которого кандидат снят в предел (пусто — не этим правилом).
     ///
     /// `--tie=` (П60, `S171`) — порог привязки вырожденного члена ряда в режиме
     /// без связки (`FsaAnalyzer.ChainTieShare`; 0 — гейт выключен, плечо А).
@@ -163,6 +178,10 @@ namespace FsaStackShot
             double tieShare = double.NaN;
             // (`S171`) Мера гейта привязки по линиям (`--tie-lines`); умолчание анализатора — по колонкам.
             bool tieLines = false;
+            // (`S171`, второе правило) Предел неизмеримого члена: `--no-limit` — выключить;
+            // `--limit-z=` — подменённый порог (NaN — порог отсева, умолчание анализатора).
+            bool limitRule = true;
+            double limitZ = double.NaN;
             // (S69/S70) Ветка галки «состав из баз»: библиотеку собирает
             // `FsaSampleLibrary` по выведенному составу — ровно то, что видит
             // человек с включённой галкой. Без ключа остаётся прежний путь.
@@ -240,6 +259,9 @@ namespace FsaStackShot
                 else if (a.StartsWith("--tie=", StringComparison.Ordinal))
                     tieShare = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a == "--tie-lines") tieLines = true;
+                else if (a == "--no-limit") limitRule = false;
+                else if (a.StartsWith("--limit-z=", StringComparison.Ordinal))
+                    limitZ = double.Parse(a.Substring(10), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--scale=", StringComparison.Ordinal)) scale = a.Substring(8);
                 else if (a.StartsWith("--pow=", StringComparison.Ordinal)) pownum = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--dump=", StringComparison.Ordinal)) dumpPath = a.Substring(7);
@@ -636,6 +658,19 @@ namespace FsaStackShot
                 analyzer.ChainTieByLines = true;
             }
 
+            // (`S171`, второе правило) Ключи обязаны доехать до анализатора;
+            // читатель — `FsaTuningReport.Print` («ChainLimitByExpectedZ … → …»,
+            // «ChainLimitZ … → …») и строки `LIM` ниже.
+            if (!limitRule)
+            {
+                analyzer.ChainLimitByExpectedZ = false;
+            }
+
+            if (!double.IsNaN(limitZ))
+            {
+                analyzer.ChainLimitZ = limitZ;
+            }
+
             // (`T101`) ЧЕМ СНЯТ СНИМОК — ДО СЧЁТА И ВСЛУХ. Это ровно та проба,
             // которой ловят расхождение стенда с экраном (~~`S82`~~), и до
             // 06.09.2026 она о своих настройках не говорила НИ СТРОКИ: прогоны
@@ -699,6 +734,22 @@ namespace FsaStackShot
             }
 
             Console.WriteLine("привязка: {0}", analyzer.ChainTieNote ?? "гейт не судил");
+
+            // (`S171`, второе правило) Приговоры предела — по каждому судимому члену каждого круга.
+            if (analyzer.ChainLimitJudgements != null)
+            {
+                foreach (FsaChainLimit verdict in analyzer.ChainLimitJudgements)
+                {
+                    Console.WriteLine("LIM\t{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}", verdict.Member, verdict.Reference,
+                                      verdict.ExpectedZ.ToString("F3", CultureInfo.InvariantCulture),
+                                      verdict.Z.ToString("F2", CultureInfo.InvariantCulture),
+                                      verdict.Threshold.ToString("F3", CultureInfo.InvariantCulture),
+                                      verdict.Round.ToString(CultureInfo.InvariantCulture),
+                                      verdict.Limited ? "limit" : (verdict.Below ? "below" : "free"));
+                }
+            }
+
+            Console.WriteLine("предел: {0}", analyzer.ChainLimitNote ?? "правило не судило");
 
             foreach (FsaSuppressedImage cut in result.SuppressedImages)
             {
@@ -1265,24 +1316,38 @@ namespace FsaStackShot
         {
             using (var w = new StreamWriter(path, false, new UTF8Encoding(false)))
             {
-                // (`S171`) Последний столбец `tied_to` — партнёр привязки
-                // вырожденного члена (пусто — своя амплитуда); у строк `meta`
-                // пуст всегда.
+                // (`S171`) Столбец `tied_to` — партнёр привязки вырожденного
+                // члена (пусто — своя амплитуда); (`S171`, второе правило)
+                // последний столбец `unmeasurable_at` — опорный член, при
+                // амплитуде которого кандидат снят в предел (пусто — не этим
+                // правилом); у строк `meta` и `component` оба пусты всегда.
+                var unmeasurableAt = new Dictionary<string, string>(StringComparer.Ordinal);
+                if (result.ChainLimits != null)
+                {
+                    foreach (FsaChainLimit verdict in result.ChainLimits)
+                    {
+                        if (verdict.Limited)
+                        {
+                            unmeasurableAt[verdict.Member] = verdict.Reference;
+                        }
+                    }
+                }
+
                 w.WriteLine("section,name,kind,detected,count_rate,z,decision_threshold_rate,detection_limit_rate,"
-                            + "peak_counts,share_pct,chain_root,decay_chain_root,total_yield_pct,limit_peak_counts,degenerate,collinearity,tied_to");
-                w.WriteLine("meta,live_time,,,{0},,,,,,,,,,,,", R(result.LiveTime));
-                w.WriteLine("meta,chi2ndf,,,{0},,,,,,,,,,,,", R(result.Chi2Ndf));
-                w.WriteLine("meta,chi2ndf_pois,,,{0},,,,,,,,,,,,", R(result.Chi2NdfPoisson));
-                w.WriteLine("meta,model_residual,,,{0},,,,,,,,,,,,", R(result.ModelResidual));
-                w.WriteLine("meta,gain,,,{0},,,,,,,,,,,,", R(result.Gain));
-                w.WriteLine("meta,offset_channels,,,{0},,,,,,,,,,,,", R(result.OffsetChannels));
-                w.WriteLine("meta,cascade_summing,,,{0},,,,,,,,,,,,", result.CascadeSummingUsed ? "1" : "0");
-                w.WriteLine("meta,response_matrix,,,{0},,,,,,,,,,,,", result.ResponseMatrixUsed ? "1" : "0");
+                            + "peak_counts,share_pct,chain_root,decay_chain_root,total_yield_pct,limit_peak_counts,degenerate,collinearity,tied_to,unmeasurable_at");
+                w.WriteLine("meta,live_time,,,{0},,,,,,,,,,,,,", R(result.LiveTime));
+                w.WriteLine("meta,chi2ndf,,,{0},,,,,,,,,,,,,", R(result.Chi2Ndf));
+                w.WriteLine("meta,chi2ndf_pois,,,{0},,,,,,,,,,,,,", R(result.Chi2NdfPoisson));
+                w.WriteLine("meta,model_residual,,,{0},,,,,,,,,,,,,", R(result.ModelResidual));
+                w.WriteLine("meta,gain,,,{0},,,,,,,,,,,,,", R(result.Gain));
+                w.WriteLine("meta,offset_channels,,,{0},,,,,,,,,,,,,", R(result.OffsetChannels));
+                w.WriteLine("meta,cascade_summing,,,{0},,,,,,,,,,,,,", result.CascadeSummingUsed ? "1" : "0");
+                w.WriteLine("meta,response_matrix,,,{0},,,,,,,,,,,,,", result.ResponseMatrixUsed ? "1" : "0");
                 if (result.Components != null)
                 {
                     foreach (FsaComponentResult c in result.Components)
                     {
-                        w.WriteLine("component,{0},{1},1,{2},{3},{4},{5},{6},{7},{8},{9},,,,,{10}",
+                        w.WriteLine("component,{0},{1},1,{2},{3},{4},{5},{6},{7},{8},{9},,,,,{10},",
                                     Q(c.Name), c.Kind, R(c.CountRate), R(c.Z),
                                     R(c.DecisionThresholdRate), R(c.DetectionLimitRate),
                                     R(c.PeakCounts), R(c.SharePercent),
@@ -1294,12 +1359,14 @@ namespace FsaStackShot
                 {
                     foreach (FsaCharacteristicLimit L in result.CharacteristicLimits)
                     {
-                        w.WriteLine("limit,{0},{1},{2},{3},,{4},{5},,,,{6},{7},{8},{9},{10},{11}",
+                        string at;
+                        w.WriteLine("limit,{0},{1},{2},{3},,{4},{5},,,,{6},{7},{8},{9},{10},{11},{12}",
                                     Q(L.Name), L.Kind, L.Detected ? "1" : "0", R(L.CountRate),
                                     R(L.DecisionThresholdRate), R(L.DetectionLimitRate),
                                     Q(L.DecayChainRoot), R(L.TotalYieldPercent),
                                     R(L.DetectionLimitPeakCounts), L.Degenerate ? "1" : "0",
-                                    R(L.Collinearity), Q(L.TiedTo));
+                                    R(L.Collinearity), Q(L.TiedTo),
+                                    unmeasurableAt.TryGetValue(L.Name, out at) ? Q(at) : "");
                     }
                 }
             }

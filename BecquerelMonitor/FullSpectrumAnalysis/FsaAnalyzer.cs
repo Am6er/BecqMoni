@@ -1806,6 +1806,110 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public string ChainTieNote { get; private set; }
 
         /// <summary>
+        /// ⛔ (`S171`, второе правило) ПРЕДЕЛ НЕИЗМЕРИМОГО ЧЛЕНА РЯДА в режиме
+        /// БЕЗ связки равновесия — решение Amber 14.09.2026 (вопросником),
+        /// дословно: **«Не измерим при активности сильнейшего — предел»**.
+        ///
+        /// Что лечится. Привязка вырожденных (<see cref="ChainTieShare"/>)
+        /// сняла Ra-224, но не «стоки невязки»: слабая линия члена ряда
+        /// (Th-228 84.4 кэВ 1.19 %, Rn-220 549.7 кэВ 0.114 %, Th-232 63.8 кэВ
+        /// 0.26 %) невырождена — соседи представляют её образ лишь на
+        /// 0.4–10 % — и, получив свободную колонку, садится на то, чего
+        /// модель не описала (избыток K-рентгена 72–95 кэВ, впадина
+        /// 511–583): на эталоне `AS80_Th232Medal` без связки Th-228 ×14,
+        /// Rn-220 ×85, Th-232 ×40 от равновесного при z 7–43, вместе 7 %
+        /// модели на экране (журнал П60 §4).
+        ///
+        /// Правило (<see cref="JudgeUnmeasurableMembers"/>): после первого
+        /// прохода у каждого ряда берётся СИЛЬНЕЙШИЙ свободный член — тот,
+        /// чья амплитуда в этом фите измерена точнее всех (наименьшая σ:
+        /// свойство образов и весов, от самих амплитуд не зависит — сток с
+        /// огромной амплитудой сильнейшим не станет), и его амплитуда —
+        /// опорная активность ряда. Каждому прочему члену считается
+        /// ОЖИДАЕМАЯ значимость его собственного образа при опорной
+        /// активности — тем же счётом, что у отсева
+        /// (<c>z = a/σ</c>, σ того же фита, с тем же множителем χ²/ndf), с
+        /// опорной амплитудой вместо его собственной. Ниже порога отсева —
+        /// член неизмерим при активности ряда, свободной колонки не
+        /// получает и идёт строкой «&lt;» (предел, как у отсутствующих
+        /// членов, ~~`AMBER6`~~). Снимается ОДИН член за круг — с наименьшей
+        /// ожидаемой значимостью, — затем перефит, и оставшиеся судятся
+        /// снова, пока ниже порога нет никого: сток занижает опорную
+        /// амплитуду (на радоновом фильтре Th-228 держал K-рентген Pb-212),
+        /// и спорный член у порога обязан судиться при опоре, уже свободной
+        /// от заведомых стоков; снятый не возвращается.
+        ///
+        /// Порядок с гейтом привязки: сперва привязка (по образам, до
+        /// фита), затем предел (по фиту). Наоборот нельзя, и это измерено
+        /// (журнал П63): вырожденный член, судимый пределом ДО привязки,
+        /// уходит в «&lt;» (его σ огромна от коллинеарности с партнёром), и
+        /// первому решению Amber «привязать, пометить» не остаётся предмета.
+        ///
+        /// Принятая Amber цена (названа в вопроснике): свежий Th-228 без
+        /// дочерних покажется пределом, пока не вырастут дочерние.
+        ///
+        /// ⚠ Имён нуклидов в правиле нет и быть не должно (правило Amber):
+        /// член отличается ожидаемой значимостью образа при опорной
+        /// активности, а не списком. Положительный контроль обеими сторонами
+        /// — `FsaTieProbe` и журнал П63: члены с собственной сильной линией
+        /// свободны, а при заведомо высоком пороге (<see cref="ChainLimitZ"/>)
+        /// пределом становятся и они. При связке равновесия правило не судит
+        /// никого: у ряда одна колонка.
+        ///
+        /// Полярность ставит конструктор, второй копии тут нет (`T82`).
+        /// </summary>
+        public bool ChainLimitByExpectedZ { get; set; }
+
+        /// <summary>
+        /// (`S171`, второе правило) ПОРОГ ожидаемой значимости для проб и
+        /// плеч. Неположительное значение — порог ТОТ ЖЕ, что у отсева по
+        /// значимости (<see cref="RefitThreshold"/>: абсолютный
+        /// <see cref="RefitZ"/>, зажатый долей вершины
+        /// <see cref="RefitZRelative"/>), — второго порога у правила нет
+        /// нарочно; положительное — подмена для положительного контроля
+        /// («заведомо высокий порог обязан сделать пределом и члены с
+        /// собственной линией»). Само значение ставит конструктор (`T82`).
+        /// </summary>
+        public double ChainLimitZ { get; set; }
+
+        /// <summary>
+        /// (`S171`, второе правило) Сколько членов рядов правило предела
+        /// СУДИЛО в этом разборе (сумма по кругам; только режим без связки,
+        /// только ряды из двух и более свободных членов в фите). Ноль при
+        /// включённом правиле — судить было некого, и правка не изменила ни
+        /// одного бита.
+        /// </summary>
+        public int ChainLimitJudged { get; private set; }
+
+        /// <summary>(`S171`, второе правило) Сколько членов снято в предел в этом разборе.</summary>
+        public int ChainLimitSet { get; private set; }
+
+        /// <summary>
+        /// (`S171`, второе правило) Сколько кругов «судить — снять одного —
+        /// перефитить» прошло; ноль — правило не судило. Кругов на один
+        /// больше, чем снято, когда последний круг никого не снял, и ровно
+        /// столько, сколько снято, когда после последнего снятия судить
+        /// стало некого (в ряду остался один член).
+        /// </summary>
+        public int ChainLimitRounds { get; private set; }
+
+        /// <summary>
+        /// (`S171`, второе правило) Служебная строка правила предела: порог,
+        /// по каждому судимому члену — опорный член, ожидаемая и фактическая
+        /// значимость, исход; null — правило не судило.
+        /// </summary>
+        public string ChainLimitNote { get; private set; }
+
+        /// <summary>
+        /// (`S171`, второе правило) Приговоры правила предела по КАЖДОМУ
+        /// судимому члену каждого круга — и снятым, и оставленным
+        /// (<see cref="FsaChainLimit.Limited"/>). Для пробы и журнала;
+        /// null — правило не судило. Копия уходит в
+        /// <see cref="FsaResult.ChainLimits"/>.
+        /// </summary>
+        public List<FsaChainLimit> ChainLimitJudgements { get; private set; }
+
+        /// <summary>
         /// (`AMBER3`) Сколько нуклидных колонок гейт НЕ СУДИЛ, потому что их
         /// значимость достигла <see cref="GateZCeiling"/>. Ноль — потолок ни
         /// разу не вступил и правка не изменила НИ ОДНОГО БИТА; положительное
@@ -4392,6 +4496,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.ChainTieShare = 0.5;
             this.ChainTieByLines = false;
 
+            // (`S171`, второе правило) Предел неизмеримого члена ряда ВКЛЮЧЁН —
+            // решение Amber 14.09.2026 «Не измерим при активности сильнейшего
+            // — предел». Порог — у отсева по значимости (ноль здесь = «тот
+            // же»); полярность и значение стоят здесь, а не в описании (`T82`).
+            // Замер (журнал П63, эталон `AS80_Th232Medal` без связки): при
+            // опорной амплитуде Pb-212 ожидаемая значимость Th-228, Rn-220,
+            // Th-232 — ниже порога отсева, членов с собственной линией
+            // (Ac-228, Tl-208, Bi-212) — в десятки раз выше.
+            this.ChainLimitByExpectedZ = true;
+            this.ChainLimitZ = 0.0;
+
             // (`A277`) Гейт геометрии ВКЛЮЧЁН — решение Amber 10.09.2026 «нет
             // геометрии — нет FSA разбора». Полярность стоит здесь, у
             // присваивания, а не в описании (`T82`).
@@ -4817,6 +4932,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.ChainTieTied = 0;
             this.ChainTieNote = null;
             this.chainTies = null;
+            // (`S171`, второе правило) предел неизмеримого — состояние ЭТОГО разбора
+            this.ChainLimitJudged = 0;
+            this.ChainLimitSet = 0;
+            this.ChainLimitRounds = 0;
+            this.ChainLimitNote = null;
+            this.ChainLimitJudgements = null;
 
             int[] raw = spectrum.Spectrum;
             double[] y = new double[channels];
@@ -5598,6 +5719,97 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // ⛔ (`S171`, второе правило) ПРЕДЕЛ НЕИЗМЕРИМОГО ЧЛЕНА РЯДА —
+            // здесь, на первом проходе и ДО отсева по значимости: у стока
+            // невязки фактическая значимость огромна (Rn-220 z 43 при ×85 от
+            // равновесного), и отсев его не видит по построению; судится
+            // ОЖИДАЕМАЯ значимость при опорной амплитуде ряда. Снятые колонки
+            // не возвращаются: все следующие проходы (отсев, второй круг
+            // рассеяния, гейт формы) берут состав из `best.Columns`, а строка
+            // предела снятому считается по библиотеке кандидатов, как
+            // отсутствующему члену. Кругов несколько: после перефита опорная
+            // амплитуда сдвигается, и оставшиеся судятся заново.
+            if (this.ChainLimitByExpectedZ)
+            {
+                var limitJudgements = new List<FsaChainLimit>();
+                var limitNote = new StringBuilder();
+                var limited = new List<FsaComponent>();
+                double limitThreshold = double.NaN;
+                int rounds = 0;
+                while (true)
+                {
+                    limitThreshold = this.ChainLimitZ > 0.0
+                        ? this.ChainLimitZ
+                        : this.RefitThreshold(TopZ(best));
+                    if (!(limitThreshold > 0.0))
+                    {
+                        break;
+                    }
+
+                    FsaChainLimit worst;
+                    List<FsaComponent> unmeasurable = this.JudgeUnmeasurableMembers(
+                        best, limitThreshold, rounds + 1, limitJudgements, limitNote, out worst);
+                    if (unmeasurable == null)
+                    {
+                        break;
+                    }
+
+                    rounds++;
+                    if (unmeasurable.Count == 0)
+                    {
+                        break;
+                    }
+
+                    // ⛔ ОДИН ЗА КРУГ — с наименьшей ожидаемой значимостью.
+                    // Сток занижает опорную амплитуду ряда (на радоновом
+                    // фильтре Th-228 держал K-рентген Pb-212, и Pb-212 стоял
+                    // 5.9 вместо 11.1), и член у самого порога, снятый в том
+                    // же круге, что и сток, был бы осуждён при заниженной
+                    // опоре (Tl-208: ожидаемая 2.85 при 5.9, 5.4 при 11.1 —
+                    // журнал П63). Снятый не возвращается, поэтому снимать
+                    // надо от заведомого к спорному, перефитом между ними.
+                    limited.Add(unmeasurable[0]);
+                    worst.Limited = true;
+                    List<FsaComponent> keep = new List<FsaComponent>();
+                    for (int k = 0; k < best.Columns.Count; k++)
+                    {
+                        FsaComponent component = best.Columns[k].Component;
+                        if (component != null && !limited.Contains(component))
+                        {
+                            keep.Add(component);
+                        }
+                    }
+
+                    // (`AMBER8`) Вылет без родителя не живёт и здесь.
+                    this.EscapeOrphansDropped += this.DropOrphanEscapes(keep);
+                    FitResult refit = FitHuber(working, fixedColumns, calibration, fwhmCalibration, efficiency,
+                                               bestGain, bestOffset, chLo, chHi, channels, y, variance,
+                                               baseWeights, reportWeights, keep);
+                    if (refit == null)
+                    {
+                        // Перефит не удался — колонка в `best` осталась, и
+                        // считать её снятой нельзя: приговор отзывается.
+                        limited.RemoveAt(limited.Count - 1);
+                        worst.Limited = false;
+                        break;
+                    }
+
+                    best = refit;
+                    remember(best);
+                }
+
+                this.ChainLimitJudged = limitJudgements.Count;
+                this.ChainLimitSet = limited.Count;
+                this.ChainLimitRounds = rounds;
+                this.ChainLimitJudgements = limitJudgements.Count > 0 ? limitJudgements : null;
+                this.ChainLimitNote = limitJudgements.Count > 0
+                    ? string.Format(CultureInfo.InvariantCulture,
+                                    "предел (порог {0:G4}{1}): судимых {2}, пределом {3}, кругов {4}: {5}",
+                                    limitThreshold, this.ChainLimitZ > 0.0 ? " подменён" : " отсева",
+                                    limitJudgements.Count, limited.Count, rounds, limitNote.ToString())
+                    : null;
+            }
+
             // «Предварительный анализ состава»: второй проход без компонентов,
             // не прошедших порог значимости в первом.
             if (this.RefitZ > 0.0)
@@ -5626,21 +5838,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
-                // (`A266`) Порог = min(абсолютный, доля вершины). Оговорка про
-                // положительную вершину не косметика: при неположительной
-                // доля дала бы порог ≤ 0, то есть отсев, не отвергающий
-                // НИЧЕГО, — а это другая беда той же породы, что и `T240`,
-                // только с другого конца.
-                double threshold = this.RefitZ;
-                if (this.RefitZRelative > 0.0
-                    && !double.IsNaN(this.RefitZTopZ) && this.RefitZTopZ > 0.0)
-                {
-                    double relative = this.RefitZRelative * this.RefitZTopZ;
-                    if (relative < threshold)
-                    {
-                        threshold = relative;
-                    }
-                }
+                // (`A266`) Порог = min(абсолютный, доля вершины) — формула
+                // ОДНА, в <see cref="RefitThreshold"/>: тем же порогом судит
+                // правило предела неизмеримого члена (`S171`), и вторая копия
+                // разошлась бы молча.
+                double threshold = this.RefitThreshold(this.RefitZTopZ);
 
                 this.RefitZUsed = threshold;
 
@@ -6114,6 +6316,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (this.chainTies != null)
             {
                 result.Ties.AddRange(this.chainTies);
+            }
+
+            // (`S171`, второе правило) Приговоры предела — туда же.
+            if (this.ChainLimitJudgements != null)
+            {
+                result.ChainLimits.AddRange(this.ChainLimitJudgements);
             }
 
             result.SuppressedImages.Sort(
@@ -7323,6 +7531,287 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// (`A266`) Порог отсева по значимости при вершине
+        /// <paramref name="topZ"/>: абсолютный <see cref="RefitZ"/>, зажатый
+        /// долей вершины <see cref="RefitZRelative"/>. Оговорка про
+        /// положительную вершину не косметика: при неположительной (или
+        /// неизвестной, NaN) доля дала бы порог ≤ 0, то есть отсев, не
+        /// отвергающий НИЧЕГО, — а это другая беда той же породы, что и
+        /// `T240`, только с другого конца. Формула ОДНА на двоих: отсев и
+        /// правило предела неизмеримого члена ряда (`S171`).
+        /// </summary>
+        double RefitThreshold(double topZ)
+        {
+            double threshold = this.RefitZ;
+            if (this.RefitZRelative > 0.0 && !double.IsNaN(topZ) && topZ > 0.0)
+            {
+                double relative = this.RefitZRelative * topZ;
+                if (relative < threshold)
+                {
+                    threshold = relative;
+                }
+            }
+
+            return threshold;
+        }
+
+        /// <summary>
+        /// Наибольшая значимость среди колонок компонентов фита; NaN — судить
+        /// некого. Тот же знаменатель, что у отсева (`T240`).
+        /// </summary>
+        static double TopZ(FitResult fit)
+        {
+            double top = double.NaN;
+            for (int k = 0; k < fit.Columns.Count; k++)
+            {
+                if (fit.Columns[k].Component == null)
+                {
+                    continue;
+                }
+
+                if (double.IsNaN(top) || fit.Z[k] > top)
+                {
+                    top = fit.Z[k];
+                }
+            }
+
+            return top;
+        }
+
+        /// <summary>
+        /// (`S171`, второе правило) Погрешность амплитуды колонки
+        /// <paramref name="k"/> в фите — та самая σ, которой делится
+        /// амплитуда в значимости <c>z = a/σ</c>. У активной колонки она у
+        /// фита и есть (обратная Грама активного множества, надутая на
+        /// √(χ²/ndf)); у колонки, зажатой NNLS в ноль, фит держит грубую
+        /// оценку без проекции (1/√g_kk), и здесь она считается ТОЙ ЖЕ мерой,
+        /// что у активной, — дополнением Шура против активного множества, как
+        /// у пределов `S9`. Вырожденная колонка — +∞ (ожидаемая значимость
+        /// ноль); нет обратной Грама — NaN, судить нельзя.
+        /// </summary>
+        static double ColumnSigma(FitResult fit, int k)
+        {
+            if (fit.Active != null && fit.Active[k])
+            {
+                return fit.Sigma[k];
+            }
+
+            if (fit.Gram == null || fit.ActiveIndices == null || fit.ActiveInverse == null)
+            {
+                return double.NaN;
+            }
+
+            List<int> A = fit.ActiveIndices;
+            double[,] H = fit.ActiveInverse;
+            double gkk = fit.Gram[k, k];
+            if (!(gkk > 0.0))
+            {
+                return double.PositiveInfinity;
+            }
+
+            double cross = 0.0;
+            for (int a = 0; a < A.Count; a++)
+            {
+                double s = 0.0;
+                for (int b = 0; b < A.Count; b++)
+                {
+                    s += H[a, b] * fit.Gram[A[b], k];
+                }
+
+                cross += fit.Gram[A[a], k] * s;
+            }
+
+            double denominator = gkk - cross;
+            if (denominator <= 1.0E-10 * gkk)
+            {
+                return double.PositiveInfinity;
+            }
+
+            return fit.SigmaInflation / Math.Sqrt(denominator);
+        }
+
+        /// <summary>
+        /// ⛔ (`S171`, второе правило) СУД НАД ЧЛЕНАМИ РЯДОВ ПО ОЖИДАЕМОЙ
+        /// ЗНАЧИМОСТИ — решение Amber 14.09.2026 «Не измерим при активности
+        /// сильнейшего — предел» (описание правила — у
+        /// <see cref="ChainLimitByExpectedZ"/>).
+        ///
+        /// По колонкам фита <paramref name="fit"/>: свободные члены
+        /// (<see cref="FsaComponentKind.Single"/> с
+        /// <see cref="FsaComponent.DecayChainRoot"/>, не производные, не
+        /// готовые образы) собираются по рядам; ряд из одного члена не
+        /// судится. В ряду сильнейший — член с наименьшей σ
+        /// (<see cref="ColumnSigma"/>): точнее всех измеримый на единицу
+        /// активности, свойство образов и весов, а не амплитуд. Его амплитуда
+        /// — опорная (единицы у всех членов одни — распады корня ряда, веса
+        /// линий уже несут долю ветвления, так что при равновесии амплитуды
+        /// членов равны). Прочим членам: ожидаемая значимость
+        /// <c>a_опорн / σ_m</c>; ниже <paramref name="threshold"/> — снять.
+        /// Сильнейший не судится: его ожидаемая значимость — его собственная,
+        /// и её судит отсев.
+        ///
+        /// Возвращает членов ниже порога ПО ВОЗРАСТАНИЮ ожидаемой значимости
+        /// (первый — заведомейший; снимается за круг только он, см. вызов),
+        /// пустой список — судили, снимать некого; null — судить было
+        /// некого. Приговоры — в <paramref name="judgements"/> и служебную
+        /// строку; <paramref name="worst"/> — запись первого.
+        /// </summary>
+        List<FsaComponent> JudgeUnmeasurableMembers(FitResult fit, double threshold, int round,
+                                                    List<FsaChainLimit> judgements, StringBuilder note,
+                                                    out FsaChainLimit worst)
+        {
+            worst = null;
+            if (fit == null || fit.Columns == null || fit.Amplitude == null)
+            {
+                return null;
+            }
+
+            var groups = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+            var roots = new List<string>();
+            for (int k = 0; k < fit.Columns.Count; k++)
+            {
+                FsaComponent c = fit.Columns[k].Component;
+                if (c == null || c.Kind != FsaComponentKind.Single || string.IsNullOrEmpty(c.DecayChainRoot)
+                    || c.Derived || c.FixedTemplate != null)
+                {
+                    continue;
+                }
+
+                List<int> members;
+                if (!groups.TryGetValue(c.DecayChainRoot, out members))
+                {
+                    members = new List<int>();
+                    groups[c.DecayChainRoot] = members;
+                    roots.Add(c.DecayChainRoot);
+                }
+
+                members.Add(k);
+            }
+
+            List<FsaComponent> limited = null;
+            var below = new List<KeyValuePair<double, FsaComponent>>();
+            var records = new Dictionary<FsaComponent, FsaChainLimit>();
+            foreach (string root in roots)
+            {
+                List<int> members = groups[root];
+                if (members.Count < 2)
+                {
+                    continue;
+                }
+
+                var sigma = new Dictionary<int, double>();
+                int reference = -1;
+                foreach (int k in members)
+                {
+                    double s = ColumnSigma(fit, k);
+                    sigma[k] = s;
+                    if (double.IsNaN(s) || !(s > 0.0) || double.IsPositiveInfinity(s))
+                    {
+                        continue;
+                    }
+
+                    if (reference < 0 || s < sigma[reference])
+                    {
+                        reference = k;
+                    }
+                }
+
+                if (reference < 0)
+                {
+                    continue;
+                }
+
+                if (limited == null)
+                {
+                    limited = new List<FsaComponent>();
+                }
+
+                double referenceAmplitude = Math.Max(0.0, fit.Amplitude[reference]);
+                FsaComponent strongest = fit.Columns[reference].Component;
+                foreach (int m in members)
+                {
+                    if (m == reference)
+                    {
+                        continue;
+                    }
+
+                    double s = sigma[m];
+                    double expected;
+                    if (double.IsNaN(s))
+                    {
+                        // Судить нечем — оставить, а не снять молча.
+                        continue;
+                    }
+
+                    expected = double.IsPositiveInfinity(s) || !(s > 0.0) ? 0.0 : referenceAmplitude / s;
+                    bool under = expected < threshold;
+                    FsaComponent self = fit.Columns[m].Component;
+                    FsaChainLimit record = new FsaChainLimit
+                    {
+                        Member = self.Name,
+                        Reference = strongest.Name,
+                        ReferenceAmplitude = referenceAmplitude,
+                        Sigma = s,
+                        ExpectedZ = expected,
+                        Z = fit.Z[m],
+                        Threshold = threshold,
+                        Round = round,
+                        Below = under,
+                        Limited = false
+                    };
+                    judgements.Add(record);
+                    records[self] = record;
+
+                    if (note.Length > 0)
+                    {
+                        note.Append("; ");
+                    }
+
+                    note.Append(self.Name).Append(under ? " < " : " ≥ ").Append("при ").Append(strongest.Name)
+                        .Append(" ожид. z ").Append(expected.ToString("F2", CultureInfo.InvariantCulture))
+                        .Append(" (z ").Append(fit.Z[m].ToString("F1", CultureInfo.InvariantCulture))
+                        .Append(", круг ").Append(round.ToString(CultureInfo.InvariantCulture)).Append(')');
+                    if (under)
+                    {
+                        below.Add(new KeyValuePair<double, FsaComponent>(expected, self));
+                    }
+                }
+            }
+
+            if (limited == null)
+            {
+                return null;
+            }
+
+            // По возрастанию ожидаемой значимости; при равенстве — порядок
+            // колонок фита (устойчивая сортировка вставками, список короток).
+            for (int i = 1; i < below.Count; i++)
+            {
+                KeyValuePair<double, FsaComponent> item = below[i];
+                int j = i - 1;
+                while (j >= 0 && below[j].Key > item.Key)
+                {
+                    below[j + 1] = below[j];
+                    j--;
+                }
+
+                below[j + 1] = item;
+            }
+
+            foreach (KeyValuePair<double, FsaComponent> item in below)
+            {
+                limited.Add(item.Value);
+            }
+
+            if (limited.Count > 0)
+            {
+                worst = records[limited[0]];
+            }
+
+            return limited;
         }
 
         /// <summary>
