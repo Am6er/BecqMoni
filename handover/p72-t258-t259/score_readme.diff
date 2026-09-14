@@ -1,0 +1,116 @@
+diff --git a/tools/CORPUS/README.md b/tools/CORPUS/README.md
+index 056208f2..f93c3e26 100644
+--- a/tools/CORPUS/README.md
++++ b/tools/CORPUS/README.md
+@@ -236,10 +236,10 @@ Pro 80x80` (5), `RadiaCode-103` (3), `Atom Spectra Nano 16` (2). **39 сцен 
+   высота засыпки — из паспортного объёма (1 л → 86.06 мм над дном, 21 мм над потолком
+   колодца). До П66 все 17 сцен `G1S_mar1l_*` стояли на сосуде «из объёма» Ø135.2 × 104,
+   колодец Ø76 × 70 (по внешнему размеру прибора плюс 1.5 мм) — он давал эффективность
+-  в 1.22…1.23 раза выше (П64 §7). ⚠ Генератор сцен `CorpusGeomProbe` этот сосуд ещё не
+-  знает (в нём `Marinelli(m, 1.5, 70.0, 100.0, vol)`) — сцены правлены на диске
+-  (`handover/p66-rev23/mk_vessels.py`), повторный `corpusgeomprobe` вернул бы старый
+-  сосуд; строка за распорядителем;
++  в 1.22…1.23 раза выше (П64 §7). Генератор сцен `CorpusGeomProbe` знает сосуд ОМАСН с
++  `T258` (П72, 14.09.2026: `MarinelliOmasn`, сцена угля и закреплённый диск `AS80_th_disk`
++  — все 46 сцен воспроизводятся с точностью до клейма матрицы; сцены П66 правлены на
++  диске `handover/p66-rev23/mk_vessels.py` и генератором не переписывались);
+ * **остальные сосуды восстановлены из объёма** — у вида посуды принят ОДИН размер
+   (банка «Дента» — внутренний Ø 60 мм, чашка Петри — 100 мм), остальное выведено из
+   паспортного объёма; самопоглощение зависит от ФОРМЫ, а не только от объёма, и это
+diff --git a/tools/pie/score.py b/tools/pie/score.py
+index 81a72ff7..5b3d1dac 100644
+--- a/tools/pie/score.py
++++ b/tools/pie/score.py
+@@ -124,6 +124,10 @@ from collections import defaultdict
+ 
+ HERE = os.path.dirname(os.path.abspath(__file__))
+ MANIFEST = os.path.join(HERE, '..', 'CORPUS', 'corpus', 'manifest.csv')
++# Правило метки-члена ряда — общее с приложением (`T259`, `chain_labels.py`).
++sys.path.insert(0, os.path.join(HERE, '..', 'CORPUS', 'scripts'))
++import chain_labels                                   # noqa: E402
++import chains                                         # noqa: E402
+ DETECTORS = os.path.join(HERE, '..', 'CORPUS', 'corpus', 'detectors.csv')
+ PARTS = os.path.join(HERE, '..', 'CORPUS', 'corpus', 'parts.csv')
+ OUT = os.path.join(HERE, 'out')
+@@ -135,6 +139,37 @@ CHAIN_MAP = {
+     'Th-232': ['Th-232'], 'Th-228': ['Th-228'], 'Ra-226': ['Ra-226'],
+     'U-238': ['U-238', 'Ra-226'], 'U-238u': ['U-238'], 'U-235': ['U-235'],
+ }
++# (`T259`) Метка-ЧЛЕН ряда («Rn-222», «Rn-220», «Pb-214»…) — подряд от этого
++# члена по правилу приложения (`FsaSampleChain.FromLabel`; здесь —
++# `chain_labels.chain_root`: разбор «Xx-NNN», распадается ли по nucdb, обрыв
++# по периоду). В истине pie такой член засчитывается СЕМЕЙСТВОМ того ряда из
++# `CHAIN_MAP`, в чей обход он входит (Rn-222 → Ra-226; Rn-220 → торий): разбор
++# приложения называет дочерние (Pb-214, Bi-214), и семейство у них то же, что у
++# всего ряда. Неизвестная база метка — отказ словами, как у `CHAIN_MAP`.
++# Кэш — чтобы не ходить в базу на каждой строке манифеста.
++_MEMBER_CHAIN = {}
++
++
++def chain_components(label):
++    """Метка ряда манифеста → компоненты pie (истина)."""
++    if label in CHAIN_MAP:
++        return CHAIN_MAP[label]
++    if label in _MEMBER_CHAIN:
++        return _MEMBER_CHAIN[label]
++    root, _ = chain_labels.chain_root(label)          # ValueError — неизвестная метка
++    c = chains.conn()
++    try:
++        for series in CHAIN_MAP:
++            if series == chain_labels.GLASS_LABEL:
++                continue
++            if root in chains.chain_branches(chains.CHAINS[series], c):
++                _MEMBER_CHAIN[label] = CHAIN_MAP[series]
++                return CHAIN_MAP[series]
++    finally:
++        c.close()
++    raise ValueError('метка ряда %r: нуклид %s не входит ни в один ряд CHAIN_MAP (%s) — '
++                     'семейство истины назначить нечем (T259)'
++                     % (label, root, ', '.join(k for k in CHAIN_MAP if k != chain_labels.GLASS_LABEL)))
+ # ⛔ Ключ обязан быть здесь у КАЖДОГО нуклида манифеста: отсутствие ключа и
+ # явный `None` раньше значили одно и то же — молчаливый пропуск, — и девять
+ # нуклидов корпуса в истину не попадали вовсе (`S59`, найдено 18.08.2026).
+@@ -290,18 +325,19 @@ def load_resolutions():
+     return res
+ 
+ 
+-def load_truth():
++def load_truth(manifest=None):
+     truth = {}
+-    with open(MANIFEST, encoding='utf-8-sig') as fh:
++    with open(manifest or MANIFEST, encoding='utf-8-sig') as fh:
+         for row in csv.DictReader(fh):
+             comps = set()
+             for ch in (row['chains'] or '').split(';'):
+                 ch = ch.strip()
+                 if not ch:
+                     continue
+-                if ch not in CHAIN_MAP:
+-                    sys.exit('манифест: неизвестная цепочка %r у %s' % (ch, row['key']))
+-                comps.update(CHAIN_MAP[ch])
++                try:
++                    comps.update(chain_components(ch))
++                except ValueError as why:
++                    sys.exit('манифест: неизвестная цепочка %r у %s — %s' % (ch, row['key'], why))
+             for nu in (row['nuclides'] or '').split(';'):
+                 nu = nu.strip()
+                 if not nu:
+@@ -463,12 +499,17 @@ def main():
+                     help='ограничить объявленным списком: имена через запятую '
+                          'либо путь к csv/txt, где ключ — первый столбец '
+                          '(строки с # и заголовок пропускаются)')
++    # (`T259`) Плечо с ДРУГОЙ истиной судится по КОПИИ манифеста, а не по
++    # правке живого: смена истины меняет отпечаток объявленной базы.
++    ap.add_argument('--manifest', default=None,
++                    help='манифест истины (умолчание — corpus/manifest.csv); '
++                         'копия с изменённой истиной для плеча')
+     args = ap.parse_args()
+ 
+     if args.members:
+         enable_members()
+ 
+-    truth = load_truth()
++    truth = load_truth(args.manifest)
+ 
+     # Что вообще есть в манифесте — запоминается ДО отбора по части: иначе
+     # спектр, выброшенный отбором, попадает в предупреждение «есть в
