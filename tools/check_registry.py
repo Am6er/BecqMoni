@@ -74,6 +74,15 @@ u"""Машинная проверка реестра задач: `TODO.md` и `D
 лежат в репозитории и сверяются строго; память — вне его, и проверяется, только
 если найдена, а её отсутствие печатается словами.
 
+⛔ Грамматика заголовка переписана 14.09.2026 (П58): с 11.09.2026 в заголовке
+нет «вершины» — есть дата с пометкой «(утро)»/«(ночь)», а вершина живёт в
+`head=` строки отпечатка README (`T249`) и пишется только с чистого стенда.
+Прежний образец требовал «, вершина `sha`» и четыре дня давал две ложные
+находки «объявления НЕ НАЙДЕНО» на реестре, где база объявлена верно, — и
+никто не видел, потому что сторож вне умолчания `check_all.py`. Берутся ОБЕ
+формы; памятка сверяется ещё и именами баз из её первой таблицы; контроль —
+`--selftest`, плечи П58.
+
 **6. Форма графы состояния.** Заведена 05.09.2026 по `T100`. Графа бывает
 нечитаемой машинно: слово «открыто» стоит в ней И вычеркнутым, И нет — у
 `S102` и `T92` было «открыто ~~открыто~~ **СДЕЛАНО …**», у `T88` — «открыто,
@@ -175,12 +184,33 @@ HEADING = re.compile(u"^#{1,6}\\s+(.*)$")
 # полная и малая, — и имя каждой живёт в графе «база» таблицы под заголовком.
 # Старые образцы не находили объявления вовсе и печатали «базу забыли
 # объявить» на реестре, где она объявлена дважды и верно.
+#
+# ⛔ И ПЕРЕПИСАНА СНОВА 14.09.2026 (полоса П58). Образец 07.09 требовал после
+# даты «, вершина `sha`» — а с 11.09.2026 (`— 11.09.2026: корпус пересобран…`)
+# вершины в заголовке нет: объявление несёт ОТПЕЧАТОК (`T249`, строка «🔏»
+# раздела README, `head=` пишется только с чистого стенда), а за датой стоит
+# необязательная пометка в скобках — «(утро)», «(ночь)», «(ночь, вторая)».
+# Сторож при этом краснел ложно четыре дня подряд (11–14.09, семь
+# переобъявлений) и никто этого не видел: он вне умолчания `check_all.py`
+# (`KNOWN_RED`, «зелен, но медленный»), а запись там уже предупреждала, что
+# ровно так и бывает. Грамматика теперь берёт ОБЕ формы:
+#
+#   дата DD.MM.YYYY  +  [пометка «(…)»]  +  [«, вершина `sha`»]  +  разделитель
+#
+# где разделитель — двоеточие, тире, точка, `+` или запятая (в старых
+# объявлениях за вершиной шло «. ПОЛНАЯ …» и « + корпус …»). Вершина, если её
+# нет в заголовке, берётся из `head=` строки отпечатка README; нет и там —
+# это не ошибка, а «head не писан (грязный стенд)».
+_DECL_DATE = u"(\\d{2}\\.\\d{2}\\.\\d{4})"
+_DECL_MARK = u"(?:\\s*\\(([^)]*)\\))?"
+_DECL_HEAD = u"(?:,\\s*вершина\\s*`([0-9a-fA-F]{6,40})`)?"
+_DECL_TAIL = u"(?=\\s*(?:[:—–\\-+.,]|$))"
 BASE_IN_TODO = re.compile(
     u"^⛔ \\*\\*ДЕЙСТВУЮЩАЯ БАЗА КОРПУСА\\s*[—-]\\s*"
-    u"(\\d{2}\\.\\d{2}\\.\\d{4}),\\s*вершина\\s*`([0-9a-fA-F]{6,40})`")
+    + _DECL_DATE + _DECL_MARK + _DECL_HEAD + _DECL_TAIL)
 BASE_IN_CORPUS = re.compile(
     u"^#+ ✅ ДЕЙСТВУЮЩАЯ БАЗА:\\s*"
-    u"(\\d{2}\\.\\d{2}\\.\\d{4}),\\s*вершина\\s*`([0-9a-fA-F]{6,40})`")
+    + _DECL_DATE + _DECL_MARK + _DECL_HEAD + _DECL_TAIL)
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 CODE = re.compile(r"`([^`]+)`")
 FILEY = re.compile(r"\.(cs|py|ps1|md|xml|sqlite|resx|csproj|tsv|csv|json)$")
@@ -239,6 +269,13 @@ OUTSIDE_ON_PURPOSE = {
                     u"свой рабочий каталог <wd>\\config\\device\\ "
                     u"(tools/effmaker/probes/build_*/, в .gitignore); в "
                     u"реестре стоит шаблоном пути `<wd>\\…` (T153)",
+    # П58 (14.09.2026): тот же разряд, что `.appwd.json`, — клеймо прогона,
+    # которое `run_appwd.ps1` кладёт в каждый каталог прогона `tools/pie/out_*/`
+    # (в .gitignore); `DONE.md` `T249` называет его как признак, а не как файл
+    # проекта. До этой записи сторож считал его «лежит только на диске».
+    ".run.json": u"клеймо прогона, которое run_appwd.ps1 пишет в каждый "
+                 u"каталог прогона tools/pie/out_*/ (каталоги в .gitignore); "
+                 u"реестр ссылается на него как на признак (T249)",
 }
 
 
@@ -690,17 +727,47 @@ def fmt_bases(bases):
         if bases else u"нет"
 
 
+def table_bases(lines):
+    u"""Множество пар (род, каталог) из строк таблицы объявления.
+
+    Род — «полн»/«мал» (`check_declared_base.base_kind`), каталог — имя в
+    обратных кавычках графы «база». Один разбор на все три места: заголовок
+    имён баз не несёт (`T250`), и брать их надо из тела — что в `TODO.md`, что
+    в README, что в памятке.
+    """
+    bases = set()
+    for row in check_declared_base.parse_table(lines):
+        kind, _ = check_declared_base.base_kind(row[u"base"])
+        names = re.findall(u"`([^`]+)`", row[u"base"])
+        if kind and names:
+            bases.add((kind, names[0].strip()))
+    return frozenset(bases)
+
+
+def fmt_date(got):
+    u"""Дата объявления с пометкой: «14.09.2026 (ночь)»."""
+    return got[1] + (u" (%s)" % got[4] if got[4] else u"")
+
+
 def declared_base(path, pattern):
-    u"""Объявление действующей базы: (базы, дата, вершина, номер строки).
+    u"""Объявление действующей базы:
+    (базы, дата, вершина, номер строки, пометка, отпечаток).
 
     `базы` — множество пар (род, каталог) из ТАБЛИЦЫ под заголовком: род это
     «полн»/«мал», каталог — имя в обратных кавычках графы «база». Заголовок
     имён баз больше не несёт (`T250`), поэтому разбирать надо тело.
 
-    ⛔ Таблицу разбирает `check_declared_base` — ТОТ ЖЕ код, которым сверяются
-    сами числа. Своя вторая копия разбора одного и того же текста разошлась бы
-    с ним молча, и «объявление найдено» у одного сторожа значило бы не то же,
-    что у другого.
+    `вершина` — из заголовка («, вершина `sha`»), если она там есть; с
+    11.09.2026 её там нет (П58), и тогда None — вершину даёт `head=` из
+    строки отпечатка (`отпечаток`, словарь `check_declared_base.
+    parse_fingerprint` по телу раздела, либо None, если строки нет — в
+    `TODO.md` её нет по построению, числа и отпечаток живут в README).
+    `пометка` — «утро»/«ночь»/«ночь, вторая» из скобок за датой, либо None.
+
+    ⛔ Таблицу и отпечаток разбирает `check_declared_base` — ТОТ ЖЕ код,
+    которым сверяются сами числа. Своя вторая копия разбора одного и того же
+    текста разошлась бы с ним молча, и «объявление найдено» у одного сторожа
+    значило бы не то же, что у другого.
     """
     if not os.path.exists(path):
         return None
@@ -714,14 +781,31 @@ def declared_base(path, pattern):
             if other.startswith(u"## "):
                 break
             body.append(other.rstrip(u"\r\n"))
-        bases = set()
-        for row in check_declared_base.parse_table(body):
-            kind, _ = check_declared_base.base_kind(row[u"base"])
-            names = re.findall(u"`([^`]+)`", row[u"base"])
-            if kind and names:
-                bases.add((kind, names[0].strip()))
-        return (frozenset(bases), m.group(1), m.group(2), i + 1)
+        return (table_bases(body), m.group(1), m.group(3), i + 1, m.group(2),
+                check_declared_base.parse_fingerprint(body))
     return None
+
+
+def memory_note_bases(path):
+    u"""Базы из ПЕРВОЙ таблицы памятки `corpus-base-current.md`, либо None.
+
+    Памятка несёт и снятые базы ниже («Прежняя (СНЯТА …)»), каждую со своей
+    таблицей, — поэтому берётся только первая таблица: она у действующей.
+    Памятки без таблицы (или с таблицей, где нет графы «база») — None:
+    имена тогда машинно не сверяются, и сторож говорит об этом словами.
+    """
+    block, started = [], False
+    for line in read_lines(path):
+        line = line.rstrip(u"\r\n")
+        if line.startswith(u"|"):
+            block.append(line)
+            started = True
+        elif started:
+            break
+    if not block:
+        return None
+    bases = table_bases(block)
+    return bases if bases else None
 
 
 def find_memory_dir(root):
@@ -745,7 +829,7 @@ def find_memory_dir(root):
     return None
 
 
-def check_corpus_base(root, out):
+def check_corpus_base(root, out, memory=None):
     u"""Храповик по объявлению действующей базы корпуса. Возвращает число находок.
 
     Смена базы — это ТРИ МЕСТА: преамбула `TODO.md`, журнал корпуса и память
@@ -763,7 +847,14 @@ def check_corpus_base(root, out):
     Память лежит ВНЕ репозитория и на другой машине её может не быть вовсе,
     поэтому третье место проверяется, только если найдено, а отсутствие
     печатается словами — молчаливый пропуск здесь был бы той же слепотой,
-    какую эта проверка и ловит.
+    какую эта проверка и ловит. `memory` — каталог памяти вместо найденного
+    по имени дерева: так проверку зовёт положительный контроль (П58) на
+    временной копии, куда кладёт свою памятку.
+
+    Вершина (П58, 14.09.2026): в заголовке её с 11.09.2026 нет; берётся из
+    `head=` строки отпечатка README, а если стенд был грязен и `head=` не
+    писан — печатается словами, находкой это не является. Сверяются вершины
+    только тех мест, у которых она есть (своя или по отпечатку).
     """
     out.write(u"# Действующая база корпуса — объявлена ли в ТРЁХ местах\n\n")
     places = [
@@ -781,13 +872,28 @@ def check_corpus_base(root, out):
             bad += 1
             continue
         out.write(u"  %-24s %s, вершина %s, базы: %s (строка %d)\n"
-                  % (name, got[1], got[2], fmt_bases(got[0]), got[3]))
+                  % (name, fmt_date(got),
+                     (u"`%s`" % got[2]) if got[2] else u"в заголовке не названа",
+                     fmt_bases(got[0]), got[3]))
         found.append((name, got))
 
+    # вершина по отпечатку — у того места, где строка отпечатка есть (README)
+    fp_head = None
+    for _, g in found:
+        if g[5] and g[5].get(u"head"):
+            fp_head = g[5][u"head"]
+            break
+    if found:
+        out.write(u"  %-24s %s\n"
+                  % (u"вершина по отпечатку «🔏»",
+                     (u"`head=%s`" % fp_head) if fp_head
+                     else u"head не писан (грязный стенд)"))
+
+    agreed = None
     if len(found) == len(places):
         bases = set(g[0] for _, g in found)
-        dates = set(g[1] for _, g in found)
-        heads = set(g[2] for _, g in found)
+        dates = set(fmt_date(g) for _, g in found)
+        heads = set((g[2] or fp_head) for _, g in found) - {None}
         if not bases or frozenset() in bases:
             out.write(u"  ⛔ в объявлении НЕ НАЗВАН НИ ОДИН КАТАЛОГ базы —\n"
                       u"      имя базы живёт в графе «база» таблицы под\n"
@@ -800,7 +906,7 @@ def check_corpus_base(root, out):
                       % u" против ".join(sorted(fmt_bases(b) for b in bases)))
             bad += 1
         elif len(dates) > 1:
-            out.write(u"  ⛔ базы одни (%s), а ДАТЫ разные: %s\n"
+            out.write(u"  ⛔ базы одни (%s), а ДАТЫ (с пометкой) разные: %s\n"
                       % (fmt_bases(sorted(bases)[0]),
                          u" против ".join(sorted(dates))))
             bad += 1
@@ -808,13 +914,20 @@ def check_corpus_base(root, out):
             out.write(u"  ⛔ базы и дата одни, а ВЕРШИНЫ разные: %s\n"
                       % u" против ".join(sorted(heads)))
             bad += 1
+        else:
+            agreed = sorted(bases)[0]
 
     # Третье место — память. Сверяется НАЛИЧИЕМ памятки этой базы, а не
     # упоминанием её имени: указатель памяти называет и СНЯТЫЕ базы (реестром
     # «не цитировать»), поэтому подстрочная сверка даёт ложный пропуск —
     # поймано положительным контролем 03.09.2026, где плечо с откаченной
     # `out_v9` прошло со словами «назван в указателе».
-    mem = find_memory_dir(root)
+    #
+    # П58 (14.09.2026): наличие — по-прежнему находка, а сверх того имена баз
+    # из ПЕРВОЙ таблицы памятки (`memory_note_bases`) сверяются с объявленными,
+    # когда оба репозиторных места сошлись. Подстрочной сверки тут нет: берётся
+    # графа «база» той же формы, что в README; памятка без таблицы — к глазам.
+    mem = find_memory_dir(root) if memory is None else memory
     if mem is None:
         out.write(u"  ⚠ память агента на этой машине не найдена — ТРЕТЬЕ место\n"
                   u"      не проверено, сверь глазами\n")
@@ -829,13 +942,27 @@ def check_corpus_base(root, out):
                         glob.glob(os.path.join(mem, u"corpus-base-*.md"))
                         if os.path.basename(p) != os.path.basename(note))
         if os.path.exists(note):
-            out.write(u"  %-24s %s\n" % (u"память агента", os.path.basename(note)))
+            noted = memory_note_bases(note)
+            if noted is None:
+                out.write(u"  %-24s %s — таблицы с графой «база» в памятке нет,\n"
+                          u"      имена машинно не сверены, сверь глазами\n"
+                          % (u"память агента", os.path.basename(note)))
+            elif agreed is not None and noted != agreed:
+                out.write(u"  ⛔ памятка %s называет ДРУГУЮ базу: %s против\n"
+                          u"      объявленной %s — третье место отстало\n"
+                          % (os.path.basename(note), fmt_bases(noted),
+                             fmt_bases(agreed)))
+                bad += 1
+            else:
+                out.write(u"  %-24s %s, базы: %s\n"
+                          % (u"память агента", os.path.basename(note),
+                             fmt_bases(noted)))
         else:
             out.write(u"  ⛔ памятки %s НЕТ — третье место отстало\n"
                       % os.path.basename(note))
             bad += 1
-        out.write(u"      рядом лежат памятки СНЯТЫХ баз (%s) — какая из них\n"
-                  u"      действующая, машинно НЕ проверяется, только наличие\n"
+        out.write(u"      рядом лежат памятки СНЯТЫХ баз (%s) — они не\n"
+                  u"      сверяются, действующая одна: corpus-base-current\n"
                   % (u", ".join(others) if others else u"нет"))
 
     out.write(u"\n")
@@ -1136,34 +1263,66 @@ def selftest_projection_and_base(root, out):
     failures = []
 
     # --- 1 и 2: проекции ------------------------------------------------
-    hidden = projection_lines(todo)
+    #
+    # ⛔ ОБЕ СТРОКИ ПОДСАЖИВАЮТСЯ, А НЕ БЕРУТСЯ ИЗ РЕЕСТРА (П58, 14.09.2026).
+    # Первая редакция плеча считала, что в разделе «Отложенные прогоны»
+    # СЕГОДНЯ есть строки: снятые проекции считала по подлиннику, а `Z99`
+    # вписывала В ОДНУ ИЗ НИХ. 14.09.2026 раздел пуст (прогоны разобраны), и
+    # плечо краснело «проекций не снято ни одной» на исправном правиле — та же
+    # протухшая посылка, что у литералов даты ниже, только про состав реестра.
+    # Теперь в КОПИЮ под шапку раздела подсаживаются две строки: пересказ
+    # уже объявленного номера (обязан быть снят) и новый `Z99` (обязан
+    # остаться задачей) — и плечо меряет правило при любом содержимом раздела.
     rows = read_rows(todo)
     numbers = [num for num, _, _ in rows]
     dups = sorted(n for n, c in collections.Counter(numbers).items() if c > 1)
-    out.write(u"  проекций снято в TODO.md: %d, задвоенных номеров осталось: %d\n"
-              % (len(hidden), len(dups)))
-    if not hidden:
-        failures.append(u"проекций не снято ни одной — правило не работает")
+    out.write(u"  проекций снято в подлиннике TODO.md: %d, задвоенных номеров: %d\n"
+              % (len(projection_lines(todo)), len(dups)))
 
     tmp = tempfile.mkdtemp(prefix=u"check_registry_t250_")
     try:
-        # НОВЫЙ номер в проекционном разделе обязан остаться задачей
         dst = os.path.join(tmp, u"TODO.md")
         lines = read_lines(todo)
-        planted_line = None
+        section = None
         for i, line in enumerate(lines):
-            if i + 1 in hidden:
-                lines[i] = re.sub(u"[A-Z]{1,5}\\d{1,3}", u"Z99", line, count=1)
-                planted_line = i + 1
+            head = HEADING.match(line.rstrip(u"\r\n"))
+            if not head:
+                continue
+            title = head.group(1).replace(u"*", u"").replace(u"#", u"").strip()
+            if title.lstrip(u"⛔⚠✅⏳➕ ").strip() in PROJECTION_SECTIONS:
+                section = i
                 break
+        planted_line = None
+        if section is None or not numbers:
+            failures.append(u"в TODO.md нет раздела «%s» либо ни одной строки — "
+                            u"подсадить некуда" % u"», «".join(sorted(PROJECTION_SECTIONS)))
+        else:
+            # после шапки таблицы раздела (строка `|---|…`), иначе — сразу за заголовком
+            at = section + 1
+            for j in range(section + 1, min(section + 6, len(lines))):
+                if re.match(u"^\\|\\s*-{2,}", lines[j]):
+                    at = j + 1
+                    break
+            retold = numbers[0]
+            lines[at:at] = [u"| %s | ⏳ ждёт счётного захода | пересказ (контроль T250) | — |" % retold,
+                            u"| Z99 | открыто | новая задача (контроль T250) | — |"]
+            planted_line = at + 2
         io.open(dst, "w", encoding="utf-8-sig", newline=u"").write(u"\n".join(lines))
-        planted_rows = [num for num, _, _ in read_rows(dst)]
-        seen = u"Z99" in planted_rows
-        out.write(u"  НОВЫЙ номер Z99 в том же разделе (строка %s) виден как задача: %s\n"
-                  % (planted_line, u"да" if seen else u"НЕТ"))
-        if not seen:
-            failures.append(u"новый номер в проекционном разделе потерян — "
-                            u"раздел стал дырой для задач")
+        if planted_line is not None:
+            hidden = projection_lines(dst)
+            planted_rows = [num for num, _, _ in read_rows(dst)]
+            snapped = (planted_line - 1) in hidden
+            seen = u"Z99" in planted_rows
+            out.write(u"  пересказ %s в разделе (строка %d) снят как проекция: %s\n"
+                      % (retold, planted_line - 1, u"да" if snapped else u"НЕТ"))
+            out.write(u"  НОВЫЙ номер Z99 в том же разделе (строка %d) виден как задача: %s\n"
+                      % (planted_line, u"да" if seen else u"НЕТ"))
+            if not snapped:
+                failures.append(u"пересказ %s в проекционном разделе не снят — "
+                                u"правило не работает" % retold)
+            if not seen:
+                failures.append(u"новый номер в проекционном разделе потерян — "
+                                u"раздел стал дырой для задач")
 
         # --- 3 и 4: объявление базы -------------------------------------
         #
@@ -1183,7 +1342,7 @@ def selftest_projection_and_base(root, out):
         if real is None:
             failures.append(u"объявление базы не разбирается — портить нечего")
             out.write(u"  ⛔ объявление базы не разобралось: контроль 3 и 4 не проведён\n")
-            real = (frozenset(), u"", u"", 0)
+            real = (frozenset(), u"", None, 0, None, None)
 
         real_dirs = sorted(name for _, name in real[0])
         for what, spoil in ((u"ДАТА", u"date"), (u"КАТАЛОГ базы", u"dir")):
@@ -1222,7 +1381,7 @@ def selftest_projection_and_base(root, out):
                 failures.append(u"подделка %s: объявление перестало разбираться" % what)
                 out.write(u"  ⛔ подделка %s: объявление не разобралось вовсе\n" % what)
                 continue
-            differs = (first[0] != second[0] or first[1] != second[1]
+            differs = (first[0] != second[0] or fmt_date(first) != fmt_date(second)
                        or first[2] != second[2])
             out.write(u"  подделка %-14s замечена: %s\n"
                       % (what, u"да" if differs else u"НЕТ"))
@@ -1234,6 +1393,182 @@ def selftest_projection_and_base(root, out):
     ok = not failures
     out.write(u"\n  %s\n\n" % (u"КОНТРОЛЬ СОШЁЛСЯ: пересказ снят, новая задача видна, "
                                 u"подмена даты и каталога названа"
+                                if ok else
+                                u"⛔ КОНТРОЛЬ ПРОВАЛЕН: " + u"; ".join(failures)))
+    return 0 if ok else 1
+
+
+def _write_lines(path, lines):
+    d = os.path.dirname(path)
+    if not os.path.isdir(d):
+        os.makedirs(d)
+    with io.open(path, "w", encoding="utf-8", newline=u"") as f:
+        f.write(u"\n".join(lines))
+
+
+def _decl_body(lines, pattern):
+    u"""(номер строки заголовка, [номера строк тела]) объявления в `lines`."""
+    for i, line in enumerate(lines):
+        if pattern.match(line.rstrip(u"\r\n")):
+            body = []
+            for j in range(i + 1, len(lines)):
+                if lines[j].startswith(u"## "):
+                    break
+                body.append(j)
+            return i, body
+    return None, []
+
+
+def selftest_declaration_forms(root, out):
+    u"""Положительный контроль грамматики объявления (П58, 14.09.2026).
+
+    ⛔ Правка П58 делала сторожа ТИШЕ (две ложные находки сняты), а правка,
+    делающая сторожа тише, обязана доказать, что он не оглох (`A287`). Всё
+    ниже идёт на ВРЕМЕННОМ корне: копии `TODO.md` и `tools/CORPUS/README.md`
+    и своя памятка `corpus-base-current.md`, собранная из таблицы README, —
+    так плечи не зависят от того, есть ли память агента на этой машине, а
+    подлинники не открываются на запись.
+
+    Плечи (у каждого — ожидаемое число находок раздела):
+      0. чистые копии                                              → 0;
+      1. дата заголовка `TODO.md` в ДРУГОМ виде (`2026-09-14`)     → 1,
+         «TODO.md: объявления НЕ НАЙДЕНО»;
+      2. таблица `TODO.md` без имён баз (кавычки сняты)            → 1,
+         «НЕ НАЗВАН НИ ОДИН КАТАЛОГ»;
+      3. СТАРАЯ форма обоих заголовков «дата, вершина `sha`»
+         (так объявляли 06–10.09.2026)                             → 0;
+      4. вершина в заголовке `TODO.md`, а у README — только `head=`
+         в строке отпечатка: та же                                 → 0,
+         другая                                                    → 1,
+         «ВЕРШИНЫ разные»;
+      5. памятка называет другую базу                              → 1,
+         «называет ДРУГУЮ базу».
+    Подлинный корень печатается к сведению: там третье место — живая
+    память, и её отставание — находка сторожа, а не провал контроля.
+    """
+    out.write(u"# Положительный контроль грамматики объявления базы (П58)\n\n")
+    todo = os.path.join(root, u"TODO.md")
+    corpus = os.path.join(root, u"tools", u"CORPUS", u"README.md")
+    if not os.path.exists(todo) or not os.path.exists(corpus):
+        out.write(u"  ⛔ нет TODO.md либо tools/CORPUS/README.md — контроль не проведён\n\n")
+        return 1
+
+    failures = []
+    todo_src = read_lines(todo)
+    readme_src = read_lines(corpus)
+    t_head, t_body = _decl_body(todo_src, BASE_IN_TODO)
+    r_head, r_body = _decl_body(readme_src, BASE_IN_CORPUS)
+    if t_head is None or r_head is None:
+        out.write(u"  ⛔ объявление не разбирается в подлиннике (TODO.md: %s, README: %s)"
+                  u" — портить нечего\n\n"
+                  % (u"есть" if t_head is not None else u"НЕТ",
+                     u"есть" if r_head is not None else u"НЕТ"))
+        return 1
+    real = declared_base(corpus, BASE_IN_CORPUS)
+    real_dirs = sorted(name for _, name in real[0])
+    if not real_dirs:
+        out.write(u"  ⛔ в объявлении README не названо ни одного каталога — портить нечего\n\n")
+        return 1
+
+    # памятка контроля — таблица README дословно под своим заголовком
+    note_src = [u"⛔ **ДЕЙСТВУЮЩАЯ БАЗА — контроль П58**", u""] + \
+               [readme_src[j] for j in r_body if readme_src[j].startswith(u"|")] + [u""]
+
+    tmp = tempfile.mkdtemp(prefix=u"check_registry_p58_")
+    try:
+        mem = os.path.join(tmp, u"memory")
+
+        def run(todo_lines, readme_lines, note_lines):
+            _write_lines(os.path.join(tmp, u"TODO.md"), todo_lines)
+            _write_lines(os.path.join(tmp, u"tools", u"CORPUS", u"README.md"),
+                         readme_lines)
+            _write_lines(os.path.join(mem, u"corpus-base-current.md"), note_lines)
+            buf = io.StringIO()
+            n = check_corpus_base(tmp, buf, memory=mem)
+            return n, buf.getvalue()
+
+        def arm(title, want, todo_lines, readme_lines, note_lines, phrase=None):
+            n, text = run(todo_lines, readme_lines, note_lines)
+            named = phrase is None or phrase in text
+            out.write(u"  %-58s находок %d (ожидалось %d)%s\n"
+                      % (title, n, want,
+                         u"" if phrase is None else
+                         (u", названо: %s" % (u"да" if named else u"НЕТ"))))
+            if n != want:
+                failures.append(u"%s: находок %d вместо %d" % (title, n, want))
+            if not named:
+                failures.append(u"%s: «%s» не названо" % (title, phrase))
+            return text
+
+        # 0. чистые копии
+        arm(u"0. чистые копии", 0, todo_src, readme_src, note_src)
+
+        # 1. дата в другом виде
+        t = list(todo_src)
+        t[t_head] = re.sub(u"(\\d{2})\\.(\\d{2})\\.(\\d{4})", u"\\3-\\2-\\1",
+                           t[t_head], count=1)
+        arm(u"1. дата заголовка TODO.md в виде ГГГГ-ММ-ДД", 1, t, readme_src,
+            note_src, u"TODO.md: объявления НЕ НАЙДЕНО")
+
+        # 2. таблица без имён баз
+        t = list(todo_src)
+        for j in t_body:
+            if t[j].startswith(u"|"):
+                t[j] = t[j].replace(u"`", u"")
+        arm(u"2. таблица TODO.md без имён баз (кавычки сняты)", 1, t, readme_src,
+            note_src, u"НЕ НАЗВАН НИ ОДИН КАТАЛОГ")
+
+        # 3. старая форма «дата, вершина `sha`» в обоих заголовках, без пометки
+        sha = u"0123abcd"
+        old_t = re.sub(u"(\\d{2}\\.\\d{2}\\.\\d{4})(\\s*\\([^)]*\\))?\\s*[:—-]",
+                       u"\\1, вершина `%s`." % sha, todo_src[t_head], count=1)
+        old_r = re.sub(u"(\\d{2}\\.\\d{2}\\.\\d{4})(\\s*\\([^)]*\\))?\\s*[:—-]",
+                       u"\\1, вершина `%s` —" % sha, readme_src[r_head], count=1)
+        t, r = list(todo_src), list(readme_src)
+        t[t_head], r[r_head] = old_t, old_r
+        arm(u"3. старая форма «дата, вершина `sha`» в обоих местах", 0, t, r, note_src)
+        parsed_t = declared_base(os.path.join(tmp, u"TODO.md"), BASE_IN_TODO)
+        read_ok = parsed_t is not None and parsed_t[2] == sha and parsed_t[4] is None
+        out.write(u"     вершина `%s` из старого заголовка прочитана, пометки нет: %s\n"
+                  % (sha, u"да" if read_ok else u"НЕТ"))
+        if not read_ok:
+            failures.append(u"3: вершина `%s` из старого заголовка не прочитана" % sha)
+
+        # 4. вершина в TODO.md против head= отпечатка README
+        with_mark = re.sub(u"(\\d{2}\\.\\d{2}\\.\\d{4}(?:\\s*\\([^)]*\\))?)(\\s*[:—-])",
+                           u"\\1, вершина `%s`\\2" % sha, todo_src[t_head], count=1)
+        t = list(todo_src)
+        t[t_head] = with_mark
+        fp_line = [j for j in r_body if re.search(u"`corpus=[0-9a-f]{64}`", readme_src[j])]
+        if not fp_line:
+            failures.append(u"4: в README нет строки отпечатка — плечо не проведено")
+            out.write(u"  ⛔ 4. в README нет строки отпечатка `corpus=…` — плечо не проведено\n")
+        else:
+            j = fp_line[0]
+            for head, want, title in ((sha, 0, u"4а. вершина TODO.md = head= отпечатка README"),
+                                      (u"deadbeef", 1, u"4б. вершина TODO.md ≠ head= отпечатка README")):
+                r = list(readme_src)
+                r[j] = readme_src[j] + u" · `head=%s`" % head
+                text = arm(title, want, t, r, note_src,
+                           u"ВЕРШИНЫ разные" if want else None)
+                if want == 0 and (u"`head=%s`" % sha) not in text:
+                    failures.append(u"4а: head= отпечатка не напечатан")
+
+        # 5. памятка с другой базой
+        n = [ln.replace(real_dirs[0], u"out_podmena") for ln in note_src]
+        arm(u"5. памятка называет другую базу", 1, todo_src, readme_src, n,
+            u"называет ДРУГУЮ базу")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    quiet = io.StringIO()
+    live = check_corpus_base(root, quiet)
+    out.write(u"  подлинный корень (с живой памятью): находок %d — к сведению, "
+              u"не провал контроля\n" % live)
+
+    ok = not failures
+    out.write(u"\n  %s\n\n" % (u"КОНТРОЛЬ СОШЁЛСЯ: обе формы заголовка читаются, порча "
+                                u"даты, таблицы, вершины и памятки названа"
                                 if ok else
                                 u"⛔ КОНТРОЛЬ ПРОВАЛЕН: " + u"; ".join(failures)))
     return 0 if ok else 1
@@ -1292,8 +1627,9 @@ def main():
         rc = selftest_registry(a.root, out)
         failures2 = selftest_file_refs(a.root, out)
         rc3 = selftest_projection_and_base(a.root, out)
+        rc4 = selftest_declaration_forms(a.root, out)
         out.flush()
-        return 1 if (rc or failures2 or rc3) else 0
+        return 1 if (rc or failures2 or rc3 or rc4) else 0
 
     root = a.root
     out = io.open(1, "w", encoding="utf-8", closefd=False)
