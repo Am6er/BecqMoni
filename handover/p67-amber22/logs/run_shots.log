@@ -1,0 +1,197 @@
+edge93__AS80_p67_edge93_r33__eq                      код 0      29 с  chi2/ndf 1.719, невязка модели 14.1 %, суммирование да
+edge93__AS80_p67_edge93_r33__kf2                     код 0      49 с  chi2/ndf 1.677, невязка модели 14.4 %, суммирование да
+edge93__AS80_p67_edge93_r33__noeq                    код 0      66 с  chi2/ndf 1.631, невязка модели 13.1 %, суммирование да
+edge93__AS80_p67_edge93_r33_ring05: нет узла <Efficiency> — пропуск
+edge93__AS80_p67_edge93_r33_ring20: нет узла <Efficiency> — пропуск
+коды: edge93__AS80_p67_edge93_r33__eq=0 edge93__AS80_p67_edge93_r33__kf2=0 edge93__AS80_p67_edge93_r33__noeq=0
+contact52k__AS80_p67_contact_r33__eq                 ╨║╨╛╨┤ 0      13 ╤Б  chi2/ndf 12.101, ╨╜╨╡╨▓╤П╨╖╨║╨░ ╨╝╨╛╨┤╨╡╨╗╨╕ 11.2 %, ╤Б╤Г╨╝╨╝╨╕╤А╨╛╨▓╨░╨╜╨╕╨╡ ╨┤╨░
+contact_cal0809__AS80_p67_contact_r33__eq            ╨║╨╛╨┤ 0      28 ╤Б  chi2/ndf 2.817, ╨╜╨╡╨▓╤П╨╖╨║╨░ ╨╝╨╛╨┤╨╡╨╗╨╕ 17.6 %, ╤Б╤Г╨╝╨╝╨╕╤А╨╛╨▓╨░╨╜╨╕╨╡ ╨┤╨░
+╨║╨╛╨┤╤Л: contact52k__AS80_p67_contact_r33__eq=0 contact_cal0809__AS80_p67_contact_r33__eq=0
+contact52k__AS80_p67_contact_r28: нет узла <Efficiency> — пропуск
+contact_cal0809__AS80_p67_contact_r28__eq            код 1       6 с  
+face81__AS80_p67_face81_r28: нет узла <Efficiency> — пропуск
+edge93__AS80_p67_edge93_r28__eq                      код 0      20 с  chi2/ndf 1.643, невязка модели 13.3 %, суммирование да
+contact52k__AS80_p67_contact_r33__eq                 код 0      32 с  chi2/ndf 12.101, невязка модели 11.2 %, суммирование да
+contact_cal0809__AS80_p67_contact_r33__eq            код 0      48 с  chi2/ndf 2.817, невязка модели 17.6 %, суммирование да
+face81__AS80_p67_face81_r33__eq                      код 0      61 с  chi2/ndf 4.322, невязка модели 16.7 %, суммирование да
+edge93__AS80_p67_edge93_r33__eq                      код 0      78 с  chi2/ndf 1.719, невязка модели 14.1 %, суммирование да
+contact52k__AS80_p67_contact_r38: нет узла <Efficiency> — пропуск
+contact_cal0809__AS80_p67_contact_r38__eq            код 1      86 с  
+face81__AS80_p67_face81_r38: нет узла <Efficiency> — пропуск
+edge93__AS80_p67_edge93_r38: нет узла <Efficiency> — пропуск
+contact52k__AS80_p67_contact_r42: нет узла <Efficiency> — пропуск
+contact_cal0809__AS80_p67_contact_r42__eq            код 1      93 с  
+face81__AS80_p67_face81_r42: нет узла <Efficiency> — пропуск
+edge93__AS80_p67_edge93_r42: нет узла <Efficiency> — пропуск
+edge93__AS80_p67_edge93_r33_ring05: нет узла <Efficiency> — пропуск
+edge93__AS80_p67_edge93_r33_ring20: нет узла <Efficiency> — пропуск
+contact52k__AS80_p67_contact_p13: нет узла <Efficiency> — пропуск
+contact_cal0809__AS80_p67_contact_p13__eq            код 1      98 с  
+face81__AS80_p67_face81_p13: нет узла <Efficiency> — пропуск
+edge93__AS80_p67_edge93_p13: нет узла <Efficiency> — пропуск
+коды: contact_cal0809__AS80_p67_contact_r28__eq=1 edge93__AS80_p67_edge93_r28__eq=0 contact52k__AS80_p67_contact_r33__eq=0 contact_cal0809__AS80_p67_contact_r33__eq=0 face81__AS80_p67_face81_r33__eq=0 edge93__AS80_p67_edge93_r33__eq=0 contact_cal0809__AS80_p67_contact_r38__eq=1 contact_cal0809__AS80_p67_contact_r42__eq=1 contact_cal0809__AS80_p67_contact_p13__eq=1
+НЕ НУЛЕВЫЕ: contact_cal0809__AS80_p67_contact_r28__eq=1 contact_cal0809__AS80_p67_contact_r38__eq=1 contact_cal0809__AS80_p67_contact_r42__eq=1 contact_cal0809__AS80_p67_contact_p13__eq=1
+коды: 
+contact52k__AS80_p67_contact_r28__eq                 код 0      15 с  chi2/ndf 5.484, невязка модели 13.1 %, суммирование да
+contact52k__AS80_p67_contact_r28__asis               код 1      21 с  
+contact_cal0809__AS80_p67_contact_r28__eq            код 0      35 с  chi2/ndf 3.063, невязка модели 26.1 %, суммирование да
+contact_cal0809__AS80_p67_contact_r28__asis          код 1      42 с  
+face81__AS80_p67_face81_r28__eq                      код 0      56 с  chi2/ndf 4.350, невязка модели 16.5 %, суммирование да
+face81__AS80_p67_face81_r28__asis                    код 1      61 с  
+edge93__AS80_p67_edge93_r28__eq                      код 0      75 с  chi2/ndf 2.017, невязка модели 17.0 %, суммирование да
+edge93__AS80_p67_edge93_r28__asis                    код 0      91 с  chi2/ndf 1.643, невязка модели 13.3 %, суммирование да
+contact52k__AS80_p67_contact_r33__eq                 код 0     106 с  chi2/ndf 6.453, невязка модели 15.9 %, суммирование да
+contact52k__AS80_p67_contact_r33__asis               код 1     111 с  
+contact_cal0809__AS80_p67_contact_r33__eq            код 0     126 с  chi2/ndf 3.377, невязка модели 28.2 %, суммирование да
+contact_cal0809__AS80_p67_contact_r33__asis          код 0     140 с  chi2/ndf 2.817, невязка модели 17.6 %, суммирование да
+face81__AS80_p67_face81_r33__eq                      код 0     152 с  chi2/ndf 4.408, невязка модели 17.1 %, суммирование да
+face81__AS80_p67_face81_r33__asis                    код 0     164 с  chi2/ndf 4.322, невязка модели 16.7 %, суммирование да
+edge93__AS80_p67_edge93_r33__eq                      код 0     175 с  chi2/ndf 2.058, невязка модели 17.3 %, суммирование да
+edge93__AS80_p67_edge93_r33__asis                    код 0     188 с  chi2/ndf 1.719, невязка модели 14.1 %, суммирование да
+contact52k__AS80_p67_contact_r38: нет узла <Efficiency> сцены — пропуск
+contact_cal0809__AS80_p67_contact_r38: нет узла <Efficiency> сцены — пропуск
+face81__AS80_p67_face81_r38: нет узла <Efficiency> сцены — пропуск
+edge93__AS80_p67_edge93_r38: нет узла <Efficiency> сцены — пропуск
+contact52k__AS80_p67_contact_r42__eq                 код 0     202 с  chi2/ndf 7.117, невязка модели 18.5 %, суммирование да
+contact52k__AS80_p67_contact_r42__asis               код 1     206 с  
+contact_cal0809__AS80_p67_contact_r42__eq            код 0     219 с  chi2/ndf 3.749, невязка модели 30.4 %, суммирование да
+contact_cal0809__AS80_p67_contact_r42__asis          код 1     223 с  
+face81__AS80_p67_face81_r42: нет узла <Efficiency> сцены — пропуск
+edge93__AS80_p67_edge93_r42__eq                      код 0     235 с  chi2/ndf 2.186, невязка модели 18.6 %, суммирование да
+edge93__AS80_p67_edge93_r42__asis                    код 1     239 с  
+edge93__AS80_p67_edge93_r33_ring05: нет узла <Efficiency> сцены — пропуск
+edge93__AS80_p67_edge93_r33_ring20: нет узла <Efficiency> сцены — пропуск
+contact52k__AS80_p67_contact_p13: нет узла <Efficiency> сцены — пропуск
+contact_cal0809__AS80_p67_contact_p13: нет узла <Efficiency> сцены — пропуск
+face81__AS80_p67_face81_p13: нет узла <Efficiency> сцены — пропуск
+edge93__AS80_p67_edge93_p13: нет узла <Efficiency> сцены — пропуск
+коды: contact52k__AS80_p67_contact_r28__eq=0 contact52k__AS80_p67_contact_r28__asis=1 contact_cal0809__AS80_p67_contact_r28__eq=0 contact_cal0809__AS80_p67_contact_r28__asis=1 face81__AS80_p67_face81_r28__eq=0 face81__AS80_p67_face81_r28__asis=1 edge93__AS80_p67_edge93_r28__eq=0 edge93__AS80_p67_edge93_r28__asis=0 contact52k__AS80_p67_contact_r33__eq=0 contact52k__AS80_p67_contact_r33__asis=1 contact_cal0809__AS80_p67_contact_r33__eq=0 contact_cal0809__AS80_p67_contact_r33__asis=0 face81__AS80_p67_face81_r33__eq=0 face81__AS80_p67_face81_r33__asis=0 edge93__AS80_p67_edge93_r33__eq=0 edge93__AS80_p67_edge93_r33__asis=0 contact52k__AS80_p67_contact_r42__eq=0 contact52k__AS80_p67_contact_r42__asis=1 contact_cal0809__AS80_p67_contact_r42__eq=0 contact_cal0809__AS80_p67_contact_r42__asis=1 edge93__AS80_p67_edge93_r42__eq=0 edge93__AS80_p67_edge93_r42__asis=1
+НЕ НУЛЕВЫЕ: contact52k__AS80_p67_contact_r28__asis=1 contact_cal0809__AS80_p67_contact_r28__asis=1 face81__AS80_p67_face81_r28__asis=1 contact52k__AS80_p67_contact_r33__asis=1 contact52k__AS80_p67_contact_r42__asis=1 contact_cal0809__AS80_p67_contact_r42__asis=1 edge93__AS80_p67_edge93_r42__asis=1
+contact52k__AS80_p67_contact_r28__eq                 код 0      15 с  chi2/ndf 5.345, невязка модели 13.2 %, суммирование да
+contact52k__AS80_p67_contact_r28__asis               код 0      30 с  chi2/ndf 12.130, невязка модели 19.3 %, суммирование да
+contact_cal0809__AS80_p67_contact_r28__eq            код 0      43 с  chi2/ndf 4.881, невязка модели 50.6 %, суммирование да
+contact_cal0809__AS80_p67_contact_r28__asis          код 0      57 с  chi2/ndf 2.533, невязка модели 14.4 %, суммирование да
+face81__AS80_p67_face81_r28__eq                      код 0      71 с  chi2/ndf 3.813, невязка модели 30.7 %, суммирование да
+face81__AS80_p67_face81_r28__asis                    код 0      85 с  chi2/ndf 4.317, невязка модели 17.0 %, суммирование да
+edge93__AS80_p67_edge93_r28__eq                      код 0      97 с  chi2/ndf 7.064, невязка модели 50.6 %, суммирование да
+edge93__AS80_p67_edge93_r28__asis                    код 0     110 с  chi2/ndf 1.643, невязка модели 13.3 %, суммирование да
+contact52k__AS80_p67_contact_r33__eq                 код 0     124 с  chi2/ndf 6.287, невязка модели 16.0 %, суммирование да
+contact52k__AS80_p67_contact_r33__asis               код 0     140 с  chi2/ndf 12.887, невязка модели 20.4 %, суммирование да
+contact_cal0809__AS80_p67_contact_r33__eq            код 0     154 с  chi2/ndf 4.901, невязка модели 50.8 %, суммирование да
+contact_cal0809__AS80_p67_contact_r33__asis          код 0     171 с  chi2/ndf 2.817, невязка модели 17.6 %, суммирование да
+face81__AS80_p67_face81_r33__eq                      код 0     184 с  chi2/ndf 3.905, невязка модели 30.9 %, суммирование да
+face81__AS80_p67_face81_r33__asis                    код 0     191 с  chi2/ndf 4.322, невязка модели 16.7 %, суммирование да
+edge93__AS80_p67_edge93_r33__eq                      код 0     200 с  chi2/ndf 7.086, невязка модели 50.6 %, суммирование да
+edge93__AS80_p67_edge93_r33__asis                    код 0     210 с  chi2/ndf 1.719, невязка модели 14.1 %, суммирование да
+contact52k__AS80_p67_contact_r38__eq                 код 0     222 с  chi2/ndf 6.670, невязка модели 17.7 %, суммирование да
+contact52k__AS80_p67_contact_r38__asis               код 0     237 с  chi2/ndf 13.240, невязка модели 20.8 %, суммирование да
+contact_cal0809__AS80_p67_contact_r38__eq            код 0     252 с  chi2/ndf 4.919, невязка модели 51.0 %, суммирование да
+contact_cal0809__AS80_p67_contact_r38__asis          код 0     268 с  chi2/ndf 3.010, невязка модели 19.8 %, суммирование да
+face81__AS80_p67_face81_r38: нет узла <Efficiency> сцены — пропуск
+edge93__AS80_p67_edge93_r38__eq                      код 0     282 с  chi2/ndf 7.057, невязка модели 50.6 %, суммирование да
+edge93__AS80_p67_edge93_r38__asis                    код 0     299 с  chi2/ndf 1.839, невязка модели 17.9 %, суммирование да
+contact52k__AS80_p67_contact_r42__eq                 код 0     314 с  chi2/ndf 6.934, невязка модели 18.5 %, суммирование да
+contact52k__AS80_p67_contact_r42__asis               код 0     328 с  chi2/ndf 13.430, невязка модели 21.1 %, суммирование да
+contact_cal0809__AS80_p67_contact_r42__eq            код 0     342 с  chi2/ndf 4.945, невязка модели 51.2 %, суммирование да
+contact_cal0809__AS80_p67_contact_r42__asis          код 0     358 с  chi2/ndf 3.211, невязка модели 21.1 %, суммирование да
+face81__AS80_p67_face81_r42__eq                      код 0     371 с  chi2/ndf 4.578, невязка модели 32.2 %, суммирование да
+face81__AS80_p67_face81_r42__asis                    код 0     384 с  chi2/ndf 4.227, невязка модели 16.4 %, суммирование да
+edge93__AS80_p67_edge93_r42__eq                      код 0     396 с  chi2/ndf 7.417, невязка модели 51.0 %, суммирование да
+edge93__AS80_p67_edge93_r42__asis                    код 0     410 с  chi2/ndf 1.792, невязка модели 15.9 %, суммирование да
+edge93__AS80_p67_edge93_r33_ring05: нет узла <Efficiency> сцены — пропуск
+edge93__AS80_p67_edge93_r33_ring20: нет узла <Efficiency> сцены — пропуск
+contact52k__AS80_p67_contact_p13: нет узла <Efficiency> сцены — пропуск
+contact_cal0809__AS80_p67_contact_p13: нет узла <Efficiency> сцены — пропуск
+face81__AS80_p67_face81_p13: нет узла <Efficiency> сцены — пропуск
+edge93__AS80_p67_edge93_p13: нет узла <Efficiency> сцены — пропуск
+коды: contact52k__AS80_p67_contact_r28__eq=0 contact52k__AS80_p67_contact_r28__asis=0 contact_cal0809__AS80_p67_contact_r28__eq=0 contact_cal0809__AS80_p67_contact_r28__asis=0 face81__AS80_p67_face81_r28__eq=0 face81__AS80_p67_face81_r28__asis=0 edge93__AS80_p67_edge93_r28__eq=0 edge93__AS80_p67_edge93_r28__asis=0 contact52k__AS80_p67_contact_r33__eq=0 contact52k__AS80_p67_contact_r33__asis=0 contact_cal0809__AS80_p67_contact_r33__eq=0 contact_cal0809__AS80_p67_contact_r33__asis=0 face81__AS80_p67_face81_r33__eq=0 face81__AS80_p67_face81_r33__asis=0 edge93__AS80_p67_edge93_r33__eq=0 edge93__AS80_p67_edge93_r33__asis=0 contact52k__AS80_p67_contact_r38__eq=0 contact52k__AS80_p67_contact_r38__asis=0 contact_cal0809__AS80_p67_contact_r38__eq=0 contact_cal0809__AS80_p67_contact_r38__asis=0 edge93__AS80_p67_edge93_r38__eq=0 edge93__AS80_p67_edge93_r38__asis=0 contact52k__AS80_p67_contact_r42__eq=0 contact52k__AS80_p67_contact_r42__asis=0 contact_cal0809__AS80_p67_contact_r42__eq=0 contact_cal0809__AS80_p67_contact_r42__asis=0 face81__AS80_p67_face81_r42__eq=0 face81__AS80_p67_face81_r42__asis=0 edge93__AS80_p67_edge93_r42__eq=0 edge93__AS80_p67_edge93_r42__asis=0
+contact52k__AS80_p67_contact_r28__eq                 код 0      15 с  chi2/ndf 5.294, невязка модели 14.2 %, суммирование да
+contact52k__AS80_p67_contact_r28__asis               код 0      29 с  chi2/ndf 12.130, невязка модели 19.3 %, суммирование да
+contact_cal0809__AS80_p67_contact_r28__eq            код 0      49 с  chi2/ndf 2.533, невязка модели 14.4 %, суммирование да
+contact_cal0809__AS80_p67_contact_r28__asis          код 0      63 с  chi2/ndf 2.533, невязка модели 14.4 %, суммирование да
+face81__AS80_p67_face81_r28__eq                      код 0      76 с  chi2/ndf 3.881, невязка модели 29.9 %, суммирование да
+face81__AS80_p67_face81_r28__asis                    код 0      88 с  chi2/ndf 4.086, невязка модели 14.8 %, суммирование да
+edge93__AS80_p67_edge93_r28__eq                      код 0     100 с  chi2/ndf 7.184, невязка модели 74.4 %, суммирование да
+edge93__AS80_p67_edge93_r28__asis                    код 0     115 с  chi2/ndf 1.643, невязка модели 13.3 %, суммирование да
+contact52k__AS80_p67_contact_r33__eq                 код 0     128 с  chi2/ndf 6.196, невязка модели 16.3 %, суммирование да
+contact52k__AS80_p67_contact_r33__asis               код 0     141 с  chi2/ndf 12.887, невязка модели 20.4 %, суммирование да
+contact_cal0809__AS80_p67_contact_r33__eq            код 0     154 с  chi2/ndf 2.817, невязка модели 17.6 %, суммирование да
+contact_cal0809__AS80_p67_contact_r33__asis          код 0     165 с  chi2/ndf 2.817, невязка модели 17.6 %, суммирование да
+face81__AS80_p67_face81_r33__eq                      код 0     180 с  chi2/ndf 3.874, невязка модели 30.0 %, суммирование да
+face81__AS80_p67_face81_r33__asis                    код 0     193 с  chi2/ndf 4.022, невязка модели 14.6 %, суммирование да
+edge93__AS80_p67_edge93_r33__eq                      код 0     206 с  chi2/ndf 7.145, невязка модели 74.4 %, суммирование да
+edge93__AS80_p67_edge93_r33__asis                    код 0     222 с  chi2/ndf 1.719, невязка модели 14.1 %, суммирование да
+contact52k__AS80_p67_contact_r38__eq                 код 0     241 с  chi2/ndf 6.551, невязка модели 17.4 %, суммирование да
+contact52k__AS80_p67_contact_r38__asis               код 0     257 с  chi2/ndf 13.240, невязка модели 20.8 %, суммирование да
+contact_cal0809__AS80_p67_contact_r38__eq            код 0     273 с  chi2/ndf 3.010, невязка модели 19.8 %, суммирование да
+contact_cal0809__AS80_p67_contact_r38__asis          код 0     291 с  chi2/ndf 3.010, невязка модели 19.8 %, суммирование да
+face81__AS80_p67_face81_r38__eq                      код 0     308 с  chi2/ndf 3.873, невязка модели 30.1 %, суммирование да
+face81__AS80_p67_face81_r38__asis                    код 0     320 с  chi2/ndf 3.966, невязка модели 14.3 %, суммирование да
+edge93__AS80_p67_edge93_r38__eq                      код 0     331 с  chi2/ndf 7.105, невязка модели 74.5 %, суммирование да
+edge93__AS80_p67_edge93_r38__asis                    код 0     344 с  chi2/ndf 1.839, невязка модели 17.9 %, суммирование да
+contact52k__AS80_p67_contact_r42__eq                 код 0     363 с  chi2/ndf 6.746, невязка модели 18.0 %, суммирование да
+contact52k__AS80_p67_contact_r42__asis               код 0     379 с  chi2/ndf 13.430, невязка модели 21.1 %, суммирование да
+contact_cal0809__AS80_p67_contact_r42__eq            код 0     398 с  chi2/ndf 3.211, невязка модели 21.1 %, суммирование да
+contact_cal0809__AS80_p67_contact_r42__asis          код 0     414 с  chi2/ndf 3.211, невязка модели 21.1 %, суммирование да
+face81__AS80_p67_face81_r42__eq                      код 0     429 с  chi2/ndf 3.936, невязка модели 30.4 %, суммирование да
+face81__AS80_p67_face81_r42__asis                    код 0     444 с  chi2/ndf 3.956, невязка модели 14.2 %, суммирование да
+edge93__AS80_p67_edge93_r42__eq                      код 0     461 с  chi2/ndf 6.977, невязка модели 74.5 %, суммирование да
+edge93__AS80_p67_edge93_r42__asis                    код 0     490 с  chi2/ndf 1.792, невязка модели 15.9 %, суммирование да
+edge93__AS80_p67_edge93_r33_ring05__eq               код 0     509 с  chi2/ndf 7.141, невязка модели 74.4 %, суммирование да
+edge93__AS80_p67_edge93_r33_ring05__asis             код 0     531 с  chi2/ndf 1.666, невязка модели 13.5 %, суммирование да
+edge93__AS80_p67_edge93_r33_ring20: нет узла <Efficiency> сцены — пропуск
+contact52k__AS80_p67_contact_p13__eq                 код 0     549 с  chi2/ndf 6.854, невязка модели 18.5 %, суммирование да
+contact52k__AS80_p67_contact_p13__asis               код 0     566 с  chi2/ndf 13.726, невязка модели 21.0 %, суммирование да
+contact_cal0809__AS80_p67_contact_p13__eq            код 0     585 с  chi2/ndf 3.247, невязка модели 21.5 %, суммирование да
+contact_cal0809__AS80_p67_contact_p13__asis          код 0     601 с  chi2/ndf 3.247, невязка модели 21.5 %, суммирование да
+face81__AS80_p67_face81_p13: нет узла <Efficiency> сцены — пропуск
+edge93__AS80_p67_edge93_p13__eq                      код 0     613 с  chi2/ndf 6.866, невязка модели 74.5 %, суммирование да
+edge93__AS80_p67_edge93_p13__asis                    код 0     622 с  chi2/ndf 1.834, невязка модели 16.9 %, суммирование да
+коды: contact52k__AS80_p67_contact_r28__eq=0 contact52k__AS80_p67_contact_r28__asis=0 contact_cal0809__AS80_p67_contact_r28__eq=0 contact_cal0809__AS80_p67_contact_r28__asis=0 face81__AS80_p67_face81_r28__eq=0 face81__AS80_p67_face81_r28__asis=0 edge93__AS80_p67_edge93_r28__eq=0 edge93__AS80_p67_edge93_r28__asis=0 contact52k__AS80_p67_contact_r33__eq=0 contact52k__AS80_p67_contact_r33__asis=0 contact_cal0809__AS80_p67_contact_r33__eq=0 contact_cal0809__AS80_p67_contact_r33__asis=0 face81__AS80_p67_face81_r33__eq=0 face81__AS80_p67_face81_r33__asis=0 edge93__AS80_p67_edge93_r33__eq=0 edge93__AS80_p67_edge93_r33__asis=0 contact52k__AS80_p67_contact_r38__eq=0 contact52k__AS80_p67_contact_r38__asis=0 contact_cal0809__AS80_p67_contact_r38__eq=0 contact_cal0809__AS80_p67_contact_r38__asis=0 face81__AS80_p67_face81_r38__eq=0 face81__AS80_p67_face81_r38__asis=0 edge93__AS80_p67_edge93_r38__eq=0 edge93__AS80_p67_edge93_r38__asis=0 contact52k__AS80_p67_contact_r42__eq=0 contact52k__AS80_p67_contact_r42__asis=0 contact_cal0809__AS80_p67_contact_r42__eq=0 contact_cal0809__AS80_p67_contact_r42__asis=0 face81__AS80_p67_face81_r42__eq=0 face81__AS80_p67_face81_r42__asis=0 edge93__AS80_p67_edge93_r42__eq=0 edge93__AS80_p67_edge93_r42__asis=0 edge93__AS80_p67_edge93_r33_ring05__eq=0 edge93__AS80_p67_edge93_r33_ring05__asis=0 contact52k__AS80_p67_contact_p13__eq=0 contact52k__AS80_p67_contact_p13__asis=0 contact_cal0809__AS80_p67_contact_p13__eq=0 contact_cal0809__AS80_p67_contact_p13__asis=0 edge93__AS80_p67_edge93_p13__eq=0 edge93__AS80_p67_edge93_p13__asis=0
+contact52k__AS80_p67_contact_r28__eq                 код 0       6 с  chi2/ndf 5.294, невязка модели 14.2 %, суммирование да
+contact52k__AS80_p67_contact_r28__kf2                код 0      13 с  chi2/ndf 4.616, невязка модели 13.8 %, суммирование да
+contact_cal0809__AS80_p67_contact_r28__eq            код 0      19 с  chi2/ndf 3.063, невязка модели 26.1 %, суммирование да
+contact_cal0809__AS80_p67_contact_r28__kf2           код 0      25 с  chi2/ndf 2.480, невязка модели 24.0 %, суммирование да
+face81__AS80_p67_face81_r28__eq                      код 0      30 с  chi2/ndf 3.881, невязка модели 29.9 %, суммирование да
+face81__AS80_p67_face81_r28__kf2                     код 0      36 с  chi2/ndf 3.085, невязка модели 28.8 %, суммирование да
+edge93__AS80_p67_edge93_r28__eq                      код 0      41 с  chi2/ndf 3.939, невязка модели 55.2 %, суммирование да
+edge93__AS80_p67_edge93_r28__kf2                     код 0      46 с  chi2/ndf 3.009, невязка модели 51.4 %, суммирование да
+contact52k__AS80_p67_contact_r33__eq                 код 0      50 с  chi2/ndf 6.196, невязка модели 16.3 %, суммирование да
+contact52k__AS80_p67_contact_r33__kf2                код 0      54 с  chi2/ndf 5.083, невязка модели 15.0 %, суммирование да
+contact_cal0809__AS80_p67_contact_r33__eq            код 0      60 с  chi2/ndf 3.377, невязка модели 28.2 %, суммирование да
+contact_cal0809__AS80_p67_contact_r33__kf2           код 0      67 с  chi2/ndf 2.536, невязка модели 24.3 %, суммирование да
+face81__AS80_p67_face81_r33__eq                      код 0      72 с  chi2/ndf 3.874, невязка модели 30.0 %, суммирование да
+face81__AS80_p67_face81_r33__kf2                     код 0      78 с  chi2/ndf 3.148, невязка модели 29.0 %, суммирование да
+edge93__AS80_p67_edge93_r33__eq                      код 0      84 с  chi2/ndf 3.993, невязка модели 55.5 %, суммирование да
+edge93__AS80_p67_edge93_r33__kf2                     код 0      90 с  chi2/ndf 3.001, невязка модели 51.4 %, суммирование да
+contact52k__AS80_p67_contact_r38__eq                 код 0      96 с  chi2/ndf 6.551, невязка модели 17.4 %, суммирование да
+contact52k__AS80_p67_contact_r38__kf2                код 0     103 с  chi2/ndf 5.254, невязка модели 15.9 %, суммирование да
+contact_cal0809__AS80_p67_contact_r38__eq            код 0     109 с  chi2/ndf 3.582, невязка модели 29.7 %, суммирование да
+contact_cal0809__AS80_p67_contact_r38__kf2           код 0     115 с  chi2/ndf 2.584, невязка модели 24.5 %, суммирование да
+face81__AS80_p67_face81_r38__eq                      код 0     121 с  chi2/ndf 3.873, невязка модели 30.1 %, суммирование да
+face81__AS80_p67_face81_r38__kf2                     код 0     127 с  chi2/ndf 3.057, невязка модели 29.1 %, суммирование да
+edge93__AS80_p67_edge93_r38__eq                      код 0     134 с  chi2/ndf 4.022, невязка модели 55.6 %, суммирование да
+edge93__AS80_p67_edge93_r38__kf2                     код 0     140 с  chi2/ndf 3.020, невязка модели 51.4 %, суммирование да
+contact52k__AS80_p67_contact_r42__eq                 код 0     146 с  chi2/ndf 6.746, невязка модели 18.0 %, суммирование да
+contact52k__AS80_p67_contact_r42__kf2                код 0     152 с  chi2/ndf 5.321, невязка модели 16.1 %, суммирование да
+contact_cal0809__AS80_p67_contact_r42__eq            код 0     158 с  chi2/ndf 3.749, невязка модели 30.4 %, суммирование да
+contact_cal0809__AS80_p67_contact_r42__kf2           код 0     164 с  chi2/ndf 2.676, невязка модели 24.7 %, суммирование да
+face81__AS80_p67_face81_r42__eq                      код 0     170 с  chi2/ndf 3.936, невязка модели 30.4 %, суммирование да
+face81__AS80_p67_face81_r42__kf2                     код 0     176 с  chi2/ndf 3.193, невязка модели 29.1 %, суммирование да
+edge93__AS80_p67_edge93_r42__eq                      код 0     182 с  chi2/ndf 4.040, невязка модели 55.7 %, суммирование да
+edge93__AS80_p67_edge93_r42__kf2                     код 0     188 с  chi2/ndf 3.143, невязка модели 51.8 %, суммирование да
+edge93__AS80_p67_edge93_r33_ring05__eq               код 0     194 с  chi2/ndf 3.970, невязка модели 55.4 %, суммирование да
+edge93__AS80_p67_edge93_r33_ring05__kf2              код 0     200 с  chi2/ndf 2.989, невязка модели 51.3 %, суммирование да
+edge93__AS80_p67_edge93_r33_ring20__eq               код 0     207 с  chi2/ndf 4.024, невязка модели 55.6 %, суммирование да
+edge93__AS80_p67_edge93_r33_ring20__asis             код 0     213 с  chi2/ndf 1.840, невязка модели 17.9 %, суммирование да
+edge93__AS80_p67_edge93_r33_ring20__kf2              код 0     219 с  chi2/ndf 3.029, невязка модели 51.4 %, суммирование да
+contact52k__AS80_p67_contact_p13__eq                 код 0     225 с  chi2/ndf 6.854, невязка модели 18.5 %, суммирование да
+contact52k__AS80_p67_contact_p13__kf2                код 0     231 с  chi2/ndf 5.366, невязка модели 16.3 %, суммирование да
+contact_cal0809__AS80_p67_contact_p13__eq            код 0     237 с  chi2/ndf 3.777, невязка модели 30.8 %, суммирование да
+contact_cal0809__AS80_p67_contact_p13__kf2           код 0     244 с  chi2/ndf 2.699, невязка модели 24.9 %, суммирование да
+face81__AS80_p67_face81_p13__eq                      код 0     250 с  chi2/ndf 3.912, невязка модели 30.2 %, суммирование да
+face81__AS80_p67_face81_p13__asis                    код 0     255 с  chi2/ndf 3.962, невязка модели 14.0 %, суммирование да
+face81__AS80_p67_face81_p13__kf2                     код 0     261 с  chi2/ndf 2.890, невязка модели 28.8 %, суммирование да
+edge93__AS80_p67_edge93_p13__eq                      код 0     267 с  chi2/ndf 4.027, невязка модели 55.7 %, суммирование да
+edge93__AS80_p67_edge93_p13__kf2                     код 0     272 с  chi2/ndf 3.032, невязка модели 51.4 %, суммирование да
+коды: contact52k__AS80_p67_contact_r28__eq=0 contact52k__AS80_p67_contact_r28__kf2=0 contact_cal0809__AS80_p67_contact_r28__eq=0 contact_cal0809__AS80_p67_contact_r28__kf2=0 face81__AS80_p67_face81_r28__eq=0 face81__AS80_p67_face81_r28__kf2=0 edge93__AS80_p67_edge93_r28__eq=0 edge93__AS80_p67_edge93_r28__kf2=0 contact52k__AS80_p67_contact_r33__eq=0 contact52k__AS80_p67_contact_r33__kf2=0 contact_cal0809__AS80_p67_contact_r33__eq=0 contact_cal0809__AS80_p67_contact_r33__kf2=0 face81__AS80_p67_face81_r33__eq=0 face81__AS80_p67_face81_r33__kf2=0 edge93__AS80_p67_edge93_r33__eq=0 edge93__AS80_p67_edge93_r33__kf2=0 contact52k__AS80_p67_contact_r38__eq=0 contact52k__AS80_p67_contact_r38__kf2=0 contact_cal0809__AS80_p67_contact_r38__eq=0 contact_cal0809__AS80_p67_contact_r38__kf2=0 face81__AS80_p67_face81_r38__eq=0 face81__AS80_p67_face81_r38__kf2=0 edge93__AS80_p67_edge93_r38__eq=0 edge93__AS80_p67_edge93_r38__kf2=0 contact52k__AS80_p67_contact_r42__eq=0 contact52k__AS80_p67_contact_r42__kf2=0 contact_cal0809__AS80_p67_contact_r42__eq=0 contact_cal0809__AS80_p67_contact_r42__kf2=0 face81__AS80_p67_face81_r42__eq=0 face81__AS80_p67_face81_r42__kf2=0 edge93__AS80_p67_edge93_r42__eq=0 edge93__AS80_p67_edge93_r42__kf2=0 edge93__AS80_p67_edge93_r33_ring05__eq=0 edge93__AS80_p67_edge93_r33_ring05__kf2=0 edge93__AS80_p67_edge93_r33_ring20__eq=0 edge93__AS80_p67_edge93_r33_ring20__asis=0 edge93__AS80_p67_edge93_r33_ring20__kf2=0 contact52k__AS80_p67_contact_p13__eq=0 contact52k__AS80_p67_contact_p13__kf2=0 contact_cal0809__AS80_p67_contact_p13__eq=0 contact_cal0809__AS80_p67_contact_p13__kf2=0 face81__AS80_p67_face81_p13__eq=0 face81__AS80_p67_face81_p13__asis=0 face81__AS80_p67_face81_p13__kf2=0 edge93__AS80_p67_edge93_p13__eq=0 edge93__AS80_p67_edge93_p13__kf2=0
