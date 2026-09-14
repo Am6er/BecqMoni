@@ -1,0 +1,111 @@
+--- tools/g4cf/g4cf.cc	2026-09-10 17:54:41.406960800 +0300
++++ /d/BqMoni_Claude/p55/g4/g4cf.cc	2026-09-14 09:02:33.965600900 +0300
+@@ -49,6 +49,9 @@
+ #include "G4Gamma.hh"
+ #include "G4Event.hh"
+ #include "G4Step.hh"
++#include "G4Track.hh"
++#include "G4Electron.hh"
++#include "G4ProductionCutsTable.hh"
+ #include "G4Run.hh"
+ #include "G4UImanager.hh"
+ #include "G4SystemOfUnits.hh"
+@@ -96,6 +99,23 @@
+     // нет физики» на глазок. Ключ `vacuum` разводит их замером.
+     bool gVacuumWorld = false;
+ 
++    // ---- П55 (A72, оценка 14.09.2026): рычаги, которыми АРБИТР повторяет
++    // наши приближения переноса электрона. Все ВЫКЛ по умолчанию — без
++    // флагов поведение прежнее до бита.
++    //   nofluct — флуктуаций потерь энергии нет (/process/eLoss/fluct false):
++    //             непрерывные потери по среднему, как наш CSDA-шаг (п. 1 A72).
++    //   nodelta — порог рождения δ-электронов 10 км (e-): вторичных электронов
++    //             ионизации нет, вся потеря непрерывна (п. 2 A72).
++    //   lowcut  — порог e- 10 мкм: δ-электроны от ~десятков кэВ явно
++    //             (обратная сторона п. 2 — цена самого умолчания 0.7 мм).
++    //   killesc — e-, покинувший кристалл, убивается на грани: возврата из
++    //             обвязки нет, как у нас (п. 3 A72). e+ не трогается (у нас он
++    //             аннигилирует на грани — в обвязке в шаге от неё то же самое).
++    bool gNoFluct = false;
++    bool gNoDelta = false;
++    bool gLowCut = false;
++    bool gKillEscape = false;
++
+     // ---- Сцена из файла (effsim --dump-scene): материалы, области, источник.
+     struct SceneMat
+     {
+@@ -660,11 +680,25 @@
+ 
+     void UserSteppingAction(const G4Step* step) override
+     {
+-        if (step->GetPreStepPoint()->GetTouchableHandle()->GetVolume()
+-                ->GetLogicalVolume() == Detector::fCrystal)
++        bool preInCrystal = step->GetPreStepPoint()->GetTouchableHandle()->GetVolume()
++                ->GetLogicalVolume() == Detector::fCrystal;
++        if (preInCrystal)
+         {
+             fEvent->Add(step->GetTotalEnergyDeposit() / keV);
+         }
++
++        // П55 killesc: электрон вышел из кристалла — убить на грани.
++        // Вклад шага в кристалл уже засчитан выше; остаток энергии пропадает,
++        // ровно как у EfficiencySimulator (вылетевший e- обратно не ведётся).
++        if (gKillEscape && preInCrystal
++            && step->GetTrack()->GetDefinition() == G4Electron::Definition())
++        {
++            auto post = step->GetPostStepPoint()->GetTouchableHandle()->GetVolume();
++            if (post == nullptr || post->GetLogicalVolume() != Detector::fCrystal)
++            {
++                step->GetTrack()->SetTrackStatus(fStopAndKill);
++            }
++        }
+     }
+ 
+ private:
+@@ -703,10 +737,14 @@
+     // Файл сцены — вывод effsim --dump-scene; без него сцена вшитая (tube).
+     //      Перед всем этим может стоять `vacuum` — мир пустой вместо воздуха.
+     int base = 1;
+-    if (argc > base && std::strcmp(argv[base], "vacuum") == 0)
++    for (;;)
+     {
+-        gVacuumWorld = true;
+-        base++;
++        if (argc > base && std::strcmp(argv[base], "vacuum") == 0) { gVacuumWorld = true; base++; }
++        else if (argc > base && std::strcmp(argv[base], "nofluct") == 0) { gNoFluct = true; base++; }
++        else if (argc > base && std::strcmp(argv[base], "nodelta") == 0) { gNoDelta = true; base++; }
++        else if (argc > base && std::strcmp(argv[base], "lowcut") == 0) { gLowCut = true; base++; }
++        else if (argc > base && std::strcmp(argv[base], "killesc") == 0) { gKillEscape = true; base++; }
++        else break;
+     }
+ 
+     if (argc > base + 1 && std::strcmp(argv[base], "scene") == 0)
+@@ -770,7 +808,28 @@
+     runManager->SetUserInitialization(new Actions());
+ 
+     auto ui = G4UImanager::GetUIpointer();
++    // П55: рычаги ДО инициализации (флуктуации — параметр EM, cuts — таблица).
++    if (gNoFluct)
++    {
++        ui->ApplyCommand("/process/eLoss/fluct false");
++    }
++
++    if (gNoDelta)
++    {
++        ui->ApplyCommand("/run/setCutForAGivenParticle e- 10 km");
++    }
++    else if (gLowCut)
++    {
++        ui->ApplyCommand("/run/setCutForAGivenParticle e- 10 um");
++    }
++
+     ui->ApplyCommand("/run/initialize");
++    std::printf("P55 flags: vacuum=%d nofluct=%d nodelta=%d lowcut=%d killesc=%d\n",
++                int(gVacuumWorld), int(gNoFluct), int(gNoDelta), int(gLowCut), int(gKillEscape));
++    if (gNoDelta || gLowCut)
++    {
++        ui->ApplyCommand("/run/dumpCouples");
++    }
+     // Иначе Geant4 11.x молча считает стабильными нуклиды с периодом длиннее
+     // порога (по умолчанию ~1 год): Co-60 (5.3 г) просто не распадался.
+     ui->ApplyCommand("/process/had/rdm/thresholdForVeryLongDecayTime 1.0e+60 year");

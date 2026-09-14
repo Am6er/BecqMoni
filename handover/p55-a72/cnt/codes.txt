@@ -1,0 +1,17 @@
+cnt RC103_point0_59.541 code=0 09:38:46 dt=37s
+cnt RC103_point0_661.657 code=0 09:39:14 dt=28s
+cnt RC103_point0_1460.82 code=0 09:39:51 dt=37s
+cnt RC103_point0_2614.511 code=0 09:40:16 dt=25s
+cnt ASN16_lu_side_59.541 code=0 09:40:57 dt=41s
+cnt ASN16_lu_side_661.657 code=0 09:41:38 dt=41s
+cnt ASN16_lu_side_1460.82 code=0 09:42:15 dt=37s
+cnt ASN16_lu_side_2614.511 code=0 09:42:55 dt=40s
+cnt AS80_point0_59.541 code=0 09:43:27 dt=32s
+cnt AS80_point0_661.657 code=0 09:43:58 dt=31s
+cnt AS80_point0_1460.82 code=0 09:44:27 dt=29s
+cnt AS80_point0_2614.511 code=0 09:44:58 dt=31s
+cnt AS80_th_disk_59.541 code=0 09:46:05 dt=67s
+cnt AS80_th_disk_661.657 code=0 09:46:58 dt=53s
+cnt AS80_th_disk_1460.82 code=0 09:47:45 dt=47s
+cnt AS80_th_disk_2614.511 code=0 09:48:37 dt=52s
+done cnt 09:48:37

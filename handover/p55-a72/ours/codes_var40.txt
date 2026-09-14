@@ -1,0 +1,3 @@
+var40 ASN16_lu_side_2614.511_var40posend0 code=0 09:45:07 dt=384s
+var40 ASN16_lu_side_2614.511_var40posend1 code=0 09:51:07 dt=360s
+done var40 09:51:07
