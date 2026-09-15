@@ -1306,18 +1306,31 @@ namespace BecquerelMonitor
                                                   : oldFormat ? KeyMatrixOldFormat : KeyMatrixNotUsed),
                                       result.ResponseMatrixUsed,
                                       false));
+            // (`AMBER34`, решение Amber 15.09.2026 «Разбор идёт, Бк скрыты с
+            // причиной») Кривая СЦЕНЫ ПОЛЯ учтена формой, а беккерели из
+            // разбора не выводятся — причина стоит В ТОЙ ЖЕ строке, где
+            // «учтена/не учтена», и красным с вниманием: это не поломка, а
+            // предупреждение читающему числа. Строка — из общих ресурсов
+            // приложения (в двух языках), как и прочие слова разбора.
+            bool fieldCurve = result.EfficiencyUsed && result.EfficiencyPerUnitFluence;
             made.Add(this.MakeMarkRow(KeyEfficiencyRow,
-                                      OwnText(result.EfficiencyUsed ? KeyEfficiencyUsed : KeyEfficiencyNotUsed),
-                                      result.EfficiencyUsed,
-                                      false));
+                                      fieldCurve
+                                          ? Resources.FSAReportEfficiencyFieldCurve
+                                          : OwnText(result.EfficiencyUsed ? KeyEfficiencyUsed : KeyEfficiencyNotUsed),
+                                      result.EfficiencyUsed && !fieldCurve,
+                                      fieldCurve));
+            // (`AMBER34`) Матрица сцены поля: суммирование не применялось —
+            // причина ПОЧЕМУ, а не только факт, как у `KeySummingNoMatrix`.
             made.Add(this.MakeMarkRow(KeySummingRow,
-                                      OwnText(result.CascadeSummingUsed
-                                                  ? KeySummingUsed
-                                                  : result.ResponseMatrixUsed
-                                                      ? KeySummingNotUsed
-                                                      : KeySummingNoMatrix),
+                                      result.CascadeSummingUsed
+                                          ? OwnText(KeySummingUsed)
+                                          : result.CascadeSummingRefusedFieldMatrix
+                                              ? Resources.FSAReportSummingFieldMatrix
+                                              : OwnText(result.ResponseMatrixUsed
+                                                            ? KeySummingNotUsed
+                                                            : KeySummingNoMatrix),
                                       result.CascadeSummingUsed,
-                                      false));
+                                      result.CascadeSummingRefusedFieldMatrix));
 
             // (`S44`, решение Amber 01.09.2026) ФОН ПОДАН И НЕ ВЗЯТ — причина
             // словами. Стоит первой среди происшествий, как и в хвосте

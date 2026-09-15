@@ -293,8 +293,8 @@ namespace BecquerelMonitor
                 return;
             }
 
-            double scale = this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0
-                ? 1.0 / this.energySpectrum.MeasurementTime
+            double scale = this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0
+                ? 1.0 / this.energySpectrum.EffectiveLiveTime
                 : 1.0;
             int from = Math.Max(0, firstChannel);
             int to = Math.Min(model.Length - 1, lastChannel);
@@ -1148,9 +1148,9 @@ namespace BecquerelMonitor
 
         double ScaleFsaValue(double value)
         {
-            if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
+            if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
             {
-                return value / this.energySpectrum.MeasurementTime;
+                return value / this.energySpectrum.EffectiveLiveTime;
             }
 
             return value;

@@ -1520,10 +1520,16 @@ namespace BecquerelMonitor
             // второй раз значило бы позволить поделить спектр на одну кривую, а
             // активность в нём считать по другой.
             EfficiencyConfigData efficiency = docEnergySpectrum.ActiveResultData.Efficiency;
-            if (FullSpectrumAnalysis.FsaEfficiency.FromConfig(efficiency) == null)
+            // (`AMBER34`, П79 15.09.2026) Причина отказа — словами и та же, что у
+            // режима показа (`SpectrumAriphmetics.NormalizeRefusal`): кривая не
+            // выбрана, меньше двух точек, отвергнута точкой выше единицы,
+            // сцена поля (см²; деление int-спектра обнуляет малые каналы).
+            // Прежде здесь на ЛЮБУЮ из них стояло «кривая не выбрана … взято
+            // сохранённое значение» — текст про K зоны, не про нормировку.
+            string refusal = SpectrumAriphmetics.NormalizeRefusal(efficiency);
+            if (refusal != null)
             {
-                MessageBox.Show(Resources.BqCoeffNoCurve, Resources.ErrorDialogTitle,
-                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                AppUi.Report(refusal, Resources.ErrorDialogTitle, MessageBoxIcon.Information);
                 return;
             }
 
@@ -3296,8 +3302,12 @@ namespace BecquerelMonitor
             {
                 int num = (int)energySpectrum.EnergyCalibration.EnergyToChannel(530.0, maxChannels: activeResultData.EnergySpectrum.NumberOfChannels);
                 int num2 = (int)energySpectrum.EnergyCalibration.EnergyToChannel(780.0, maxChannels: activeResultData.EnergySpectrum.NumberOfChannels);
-                double num3 = (double)energySpectrum.Spectrum[num] / energySpectrum.MeasurementTime;
-                double num4 = (double)energySpectrum.Spectrum[num2] / energySpectrum.MeasurementTime;
+                // (`AMBER35`, 15.09.2026) имп/с — по знаменателю разбора
+                // (`EffectiveLiveTime`: живое, если задано, иначе полное), как
+                // везде в приложении.
+                double countingTime = energySpectrum.EffectiveLiveTime;
+                double num3 = (double)energySpectrum.Spectrum[num] / countingTime;
+                double num4 = (double)energySpectrum.Spectrum[num2] / countingTime;
                 using (StreamWriter streamWriter = new StreamWriter(text, false, Encoding.GetEncoding(932)))
                 {
                     for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
@@ -3305,7 +3315,7 @@ namespace BecquerelMonitor
                         double num5 = energySpectrum.EnergyCalibration.ChannelToEnergy((double)i);
                         if (num5 >= 627.0 && num5 <= 780.0)
                         {
-                            double num6 = (double)energySpectrum.Spectrum[i] / energySpectrum.MeasurementTime;
+                            double num6 = (double)energySpectrum.Spectrum[i] / countingTime;
                             num6 -= (double)(num2 - i) / (double)(num2 - num) * (num3 - num4);
                             // ⛔ В ФАЙЛ — ИНВАРИАНТОМ (`A242`). Оба числа double,
                             // и склейка со строкой зовёт `ToString()` по культуре

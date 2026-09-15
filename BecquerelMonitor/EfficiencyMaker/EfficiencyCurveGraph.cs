@@ -51,17 +51,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            List<PointF> points = new List<PointF>();
+            // Диапазон выбирается по исходным double: PointF округляет 0.001
+            // вверх через границу декады, а слабый хвост может обратить в ноль.
+            List<ROIEfficiencyData> points = new List<ROIEfficiencyData>();
             if (this.reference != null)
             {
-                points.AddRange(this.reference.Where(p => p.Energy > 0 && p.Efficiency > 0)
-                    .Select(p => new PointF((float)p.Energy, (float)p.Efficiency)));
+                points.AddRange(this.reference.Where(IsDrawable));
             }
 
             if (this.result != null)
             {
-                points.AddRange(this.result.Curve.Where(p => p.Energy > 0 && p.Efficiency > 0)
-                    .Select(p => new PointF((float)p.Energy, (float)p.Efficiency)));
+                points.AddRange(this.result.Curve.Where(IsDrawable));
             }
 
             if (points.Count < 2)
@@ -71,19 +71,21 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            double eLo = points.Min(p => p.X), eHi = points.Max(p => p.X);
-            double vLo = points.Min(p => p.Y), vHi = points.Max(p => p.Y);
+            double eLo = points.Min(p => p.Energy), eHi = points.Max(p => p.Energy);
+            double vLo = points.Min(p => p.Efficiency), vHi = points.Max(p => p.Efficiency);
             if (eHi <= eLo) eHi = eLo * 2.0;
             if (vHi <= vLo) vHi = vLo * 2.0;
             double lx0 = Math.Log10(eLo), lx1 = Math.Log10(eHi);
             double ly0 = Math.Log10(vLo), ly1 = Math.Log10(vHi);
             lx0 = Math.Floor(lx0 * 4) / 4.0; lx1 = Math.Ceiling(lx1 * 4) / 4.0;
             ly0 = Math.Floor(ly0); ly1 = Math.Ceiling(ly1);
+            // AMBER37: не более шести декад под верхней подписанной декадой.
+            ly0 = Math.Max(ly0, ly1 - 6);
 
             Func<double, float> mapX = v =>
                 (float)(plot.Left + (Math.Log10(Math.Max(v, 1e-12)) - lx0) / (lx1 - lx0) * plot.Width);
             Func<double, float> mapY = v =>
-                (float)(plot.Bottom - (Math.Log10(Math.Max(v, 1e-12)) - ly0) / (ly1 - ly0) * plot.Height);
+                (float)(plot.Bottom - (Math.Max(Math.Log10(v), ly0) - ly0) / (ly1 - ly0) * plot.Height);
 
             using (Pen grid = new Pen(Color.FromArgb(0xE0, 0xE0, 0xE0)))
             using (Pen axis = new Pen(Color.FromArgb(0x80, 0x80, 0x80)))
@@ -91,7 +93,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 for (int d = (int)Math.Floor(ly0); d <= (int)Math.Ceiling(ly1); d++)
                 {
-                    float y = mapY(Math.Pow(10, d));
+                    float y = (float)(plot.Bottom - (d - ly0) / (ly1 - ly0) * plot.Height);
                     if (y < plot.Top - 1 || y > plot.Bottom + 1) continue;
                     g.DrawLine(grid, plot.Left, y, plot.Right, y);
                     g.DrawString("1e" + d.ToString(CultureInfo.InvariantCulture), this.Font, text, 2, y - 7);
@@ -137,12 +139,18 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
+        static bool IsDrawable(ROIEfficiencyData point)
+        {
+            return point.Energy > 0 && !double.IsInfinity(point.Energy)
+                && point.Efficiency > 0 && !double.IsInfinity(point.Efficiency);
+        }
+
         static void DrawCurve(Graphics g, List<ROIEfficiencyData> curve,
                               Func<double, float> mapX, Func<double, float> mapY,
                               Rectangle plot, Color color, float width, DashStyle dash)
         {
             List<PointF> path = new List<PointF>();
-            foreach (ROIEfficiencyData point in curve.Where(p => p.Energy > 0 && p.Efficiency > 0)
+            foreach (ROIEfficiencyData point in curve.Where(IsDrawable)
                                                      .OrderBy(p => p.Energy))
             {
                 float x = mapX(point.Energy), y = mapY(point.Efficiency);

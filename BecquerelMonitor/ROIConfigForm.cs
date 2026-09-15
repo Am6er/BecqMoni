@@ -725,11 +725,17 @@ namespace BecquerelMonitor
             // В полях показывается ДЕЙСТВУЮЩЕЕ значение, а не сохранённое:
             // иначе рядом с надписью «K посчитан по кривой» стояло бы другое
             // число, и какое из них попало в активность — не понять.
+            //
+            // (`AMBER34`, решение Amber 15.09.2026) ОТКАЗ — кривая сцены поля:
+            // K не получен и не подменён, поля ПУСТЫ, причина — в подсказке
+            // галочки (она уже стоит выше, `k.Problem`). «0» здесь читался бы
+            // как число. Обратно эти поля при «авто» не разбираются
+            // (`SaveROIDefinitionFormContents`), сохранённому K пустота не грозит.
             this.contentsLoading = true;
             try
             {
-                this.doubleTextBox3.Text = k.Value.ToString(CultureInfo.InvariantCulture);
-                this.doubleTextBox4.Text = k.Error.ToString(CultureInfo.InvariantCulture);
+                this.doubleTextBox3.Text = k.Refused ? "" : k.Value.ToString(CultureInfo.InvariantCulture);
+                this.doubleTextBox4.Text = k.Refused ? "" : k.Error.ToString(CultureInfo.InvariantCulture);
             }
             finally
             {

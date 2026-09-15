@@ -420,7 +420,14 @@ namespace BecquerelMonitor
         private void EvaluateNormByEffMode()
         {
             bool normByEffIsAvailable = this.IsNormalizeByEfficiencyAvailable();
-            this.NormByEffToolStripMenuItem.Enabled = normByEffIsAvailable;
+            // (`AMBER34`, П79 15.09.2026) Пункт ЗАПЕРТ только когда кривой нет
+            // вовсе — как было. Кривая ВЫБРАНА, но нормировать по ней нельзя
+            // (отвергнута точкой выше единицы, сцена поля, меньше двух точек)
+            // — пункт остаётся доступным, а щелчок называет причину
+            // (`NormByEffToolStripMenuItem_Click`): запертый пункт без слов
+            // читался как «не выбрана», хотя кривая стоит в панели измерения.
+            this.NormByEffToolStripMenuItem.Enabled = normByEffIsAvailable
+                || (this.ActiveResultData != null && this.ActiveResultData.Efficiency != null);
 
             if (!normByEffIsAvailable && this.view.BackgroundMode == BackgroundMode.NormalizeByEfficiency)
             {
@@ -905,8 +912,10 @@ namespace BecquerelMonitor
         /// </summary>
         private bool IsNormalizeByEfficiencyAvailable()
         {
+            // (`AMBER34`) Тот же предикат, что у самой нормировки и у команды
+            // главного окна: одно правило, а не три копии `FromConfig != null`.
             return this.ActiveResultData != null
-                && FullSpectrumAnalysis.FsaEfficiency.FromConfig(this.ActiveResultData.Efficiency) != null;
+                && Utils.SpectrumAriphmetics.NormalizeRefusal(this.ActiveResultData.Efficiency) == null;
         }
 
         private bool IsBackgroundExists()
@@ -1265,6 +1274,18 @@ namespace BecquerelMonitor
 
         void NormByEffToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            // (`AMBER34`, П79) Кривая выбрана, но нормировать по ней нельзя —
+            // причина словами той же дверью, что прочие отказы приложения
+            // (`AppUi.Report`); режим не меняется.
+            string refusal = this.ActiveResultData != null
+                ? Utils.SpectrumAriphmetics.NormalizeRefusal(this.ActiveResultData.Efficiency)
+                : Properties.Resources.NormalizeNoCurve;
+            if (refusal != null)
+            {
+                AppUi.Report(refusal, Properties.Resources.ErrorDialogTitle, MessageBoxIcon.Information);
+                return;
+            }
+
             this.view.BackgroundMode = BackgroundMode.NormalizeByEfficiency;
             this.toolStripSplitButtonBgMode.Image = Properties.Resources.NORM;
             this.UpdateDetectedPeaks = true;
