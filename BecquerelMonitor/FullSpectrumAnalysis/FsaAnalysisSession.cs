@@ -445,6 +445,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public EnergySpectrum Background;
             public FwhmCalibration FwhmCalibration;
             public FsaEfficiency Efficiency;
+
+            /// <summary>
+            /// (`AMBER34`) Кривая выбрана, но ОТВЕРГНУТА с причиной
+            /// (<see cref="FsaEfficiency.FromConfig(EfficiencyConfigData, out string)"/>);
+            /// null — кривая есть либо не выбрана. Без этого отказ гейта
+            /// геометрии называл бы геометрию там, где чинить надо точку.
+            /// </summary>
+            public string EfficiencyRefusal;
             public ResultData CompositionInput;
             public List<NuclideDefinition> Definitions;
             public List<Peak> Peaks;
@@ -476,7 +484,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             EfficiencyConfigData efficiencyConfig = resultData.Efficiency != null
                 ? resultData.Efficiency.Copy()
                 : null;
-            job.Efficiency = FsaEfficiency.FromConfig(efficiencyConfig);
+            // (`AMBER34`) Кривая сцены поля (см²) доезжает до разбора КАК ФОРМА
+            // — `FromConfig` не отвечает на неё null (иначе гейт геометрии
+            // отказал бы разбору целиком, вопреки решению Amber 15.09.2026
+            // «Разбор идёт, Бк скрыты с причиной»); признак нормировки несёт
+            // сама кривая, читает его `FsaAnalyzer` → `FsaResult` → окно отчёта.
+            // Отвергнутая кривая (точка выше единицы у долей) — причина словами.
+            job.Efficiency = FsaEfficiency.FromConfig(efficiencyConfig, out job.EfficiencyRefusal);
             job.CompositionInput = CompositionInput(resultData.PeakDetectionMethodConfig,
                                                     efficiencyConfig, job.Spectrum, job.FwhmCalibration);
 
@@ -641,8 +655,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // одним описанием кристалла в редакторе геометрии.
                         // Решение о самом отказе принято ОДНИМ местом
                         // (`FsaAnalyzer.RequireGeometry`), здесь только слова.
+                        //
+                        // (`AMBER34`) Кривая выбрана и ОТВЕРГНУТА (точка выше
+                        // единицы у долей): гейт геометрии сработал от
+                        // `efficiency == null`, но чинить надо точку, а не
+                        // геометрию, — называется причина кривой.
                         message = job.Analyzer.GeometryRefused
-                            ? Properties.Resources.FSANoGeometry
+                            ? (job.EfficiencyRefusal != null
+                                ? string.Format(CultureInfo.InvariantCulture,
+                                                Properties.Resources.FSACurveRefused, job.EfficiencyRefusal)
+                                : Properties.Resources.FSANoGeometry)
                             : Properties.Resources.FSANotPossible;
                     }
                 }

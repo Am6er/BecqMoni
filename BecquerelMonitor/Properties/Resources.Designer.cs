@@ -3705,11 +3705,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string EfficiencyMakerCalcHint {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerCalcHint", resourceCulture);
-            }
-        }
 
         public static string EfficiencyMakerGrid {
             get {
@@ -6227,6 +6222,84 @@ namespace BecquerelMonitor.Properties {
         public static string ERRFwhmCalibrationUnset {
             get {
                 return ResourceManager.GetString("ERRFwhmCalibrationUnset", resourceCulture);
+            }
+        }
+
+        public static string FsaEfficiencyPointAboveUnity {
+            get {
+                return ResourceManager.GetString("FsaEfficiencyPointAboveUnity", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffCurveRefused {
+            get {
+                return ResourceManager.GetString("BqCoeffCurveRefused", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffFieldCurve {
+            get {
+                return ResourceManager.GetString("BqCoeffFieldCurve", resourceCulture);
+            }
+        }
+
+        public static string ResultFieldCurve {
+            get {
+                return ResourceManager.GetString("ResultFieldCurve", resourceCulture);
+            }
+        }
+
+        public static string ActivityFieldCurveRefused {
+            get {
+                return ResourceManager.GetString("ActivityFieldCurveRefused", resourceCulture);
+            }
+        }
+
+        public static string ActivityCurveRefused {
+            get {
+                return ResourceManager.GetString("ActivityCurveRefused", resourceCulture);
+            }
+        }
+
+        public static string FSACurveRefused {
+            get {
+                return ResourceManager.GetString("FSACurveRefused", resourceCulture);
+            }
+        }
+
+        public static string FSAReportEfficiencyFieldCurve {
+            get {
+                return ResourceManager.GetString("FSAReportEfficiencyFieldCurve", resourceCulture);
+            }
+        }
+
+        public static string FSAReportSummingFieldMatrix {
+            get {
+                return ResourceManager.GetString("FSAReportSummingFieldMatrix", resourceCulture);
+            }
+        }
+
+        public static string NormalizeNoCurve {
+            get {
+                return ResourceManager.GetString("NormalizeNoCurve", resourceCulture);
+            }
+        }
+
+        public static string NormalizeCurveEmpty {
+            get {
+                return ResourceManager.GetString("NormalizeCurveEmpty", resourceCulture);
+            }
+        }
+
+        public static string NormalizeCurveRefused {
+            get {
+                return ResourceManager.GetString("NormalizeCurveRefused", resourceCulture);
+            }
+        }
+
+        public static string NormalizeFieldCurve {
+            get {
+                return ResourceManager.GetString("NormalizeFieldCurve", resourceCulture);
             }
         }
 

@@ -1079,9 +1079,6 @@
   <data name="EfficiencyMakerTabCalculate" xml:space="preserve">
     <value>Расчёт из геометрии</value>
   </data>
-  <data name="EfficiencyMakerCalcHint" xml:space="preserve">
-    <value>Кривая считается из файла геометрии монте-карловским переносом — спектры не нужны. В отличие от подгонки, уровень получается АБСОЛЮТНЫЙ, а не только форма.</value>
-  </data>
   <data name="EfficiencyMakerGrid" xml:space="preserve">
     <value>Сетка:</value>
   </data>
@@ -2315,5 +2312,44 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="ERRFwhmCalibrationUnset" xml:space="preserve">
     <value>у спектра нет калибровки ПШПВ, и никто её ему не построил.</value>
+  </data>
+  <data name="FsaEfficiencyPointAboveUnity" xml:space="preserve">
+    <value>точка {0} кэВ: эффективность {1} выше единицы — доля на испущенный квант не может превышать единицу</value>
+  </data>
+  <data name="BqCoeffCurveRefused" xml:space="preserve">
+    <value>Кривая эффективности отвергнута: {0}. Взято сохранённое значение.</value>
+  </data>
+  <data name="BqCoeffFieldCurve" xml:space="preserve">
+    <value>Кривая эффективности «{0}» посчитана для сцены поля: её значения — площади в см² на единичный флюенс, а не доли на испущенный квант, и K по ней не считается. Активность не показывается.</value>
+  </data>
+  <data name="ResultFieldCurve" xml:space="preserve">
+    <value>кривая поля (см²), нет K</value>
+  </data>
+  <data name="ActivityFieldCurveRefused" xml:space="preserve">
+    <value>кривая эффективности «{0}» — кривая сцены поля (см² на единичный флюенс, не доли на квант): активность не показывается</value>
+  </data>
+  <data name="ActivityCurveRefused" xml:space="preserve">
+    <value>кривая эффективности отвергнута ({0}): активность не показывается</value>
+  </data>
+  <data name="FSACurveRefused" xml:space="preserve">
+    <value>Полноспектральный разбор: кривая эффективности отвергнута — {0}</value>
+  </data>
+  <data name="FSAReportEfficiencyFieldCurve" xml:space="preserve">
+    <value>учтена формой: кривая сцены поля (см² на единичный флюенс); беккерели по ней не выводятся</value>
+  </data>
+  <data name="FSAReportSummingFieldMatrix" xml:space="preserve">
+    <value>не применено: матрица сцены поля (см² на единичный флюенс), вероятностей на распад нет</value>
+  </data>
+  <data name="NormalizeNoCurve" xml:space="preserve">
+    <value>Нормировка на эффективность: кривая эффективности для этого спектра не выбрана.</value>
+  </data>
+  <data name="NormalizeCurveEmpty" xml:space="preserve">
+    <value>Нормировка на эффективность: у кривой эффективности «{0}» меньше двух годных точек.</value>
+  </data>
+  <data name="NormalizeCurveRefused" xml:space="preserve">
+    <value>Нормировка на эффективность: кривая эффективности «{0}» отвергнута — {1}.</value>
+  </data>
+  <data name="NormalizeFieldCurve" xml:space="preserve">
+    <value>Нормировка на эффективность: кривая «{0}» — кривая сцены поля (см² на единичный флюенс, значения больше единицы); деление целочисленного спектра на неё округляет малые каналы в ноль, и спектр по ней не нормируется.</value>
   </data>
 </root>

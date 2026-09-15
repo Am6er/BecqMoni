@@ -4188,6 +4188,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         FsaCascadeSummer cascade;
 
         /// <summary>
+        /// (`AMBER34`, П79) Суммирование НЕ создано потому, что матрица —
+        /// сцены поля (`NORM` = единичный флюенс, «эффективности» — см²).
+        /// Живёт один разбор, уходит в <see cref="FsaResult.CascadeSummingRefusedFieldMatrix"/>.
+        /// </summary>
+        bool cascadeRefusedFieldMatrix;
+
+        /// <summary>
         /// Поправка хоть где-то СРАБОТАЛА — не «включена», а изменила образ.
         /// Это разные вещи: суммирователь молча возвращает единицы, когда у
         /// нуклидов состава нет каскадов вовсе (Cs-137, K-40), и пометка
@@ -4683,7 +4690,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Каскадные поправки — на ту же матрицу, что и образы: она даёт им
             // обе эффективности. Кэш поправок внутри живёт один разбор, потому
             // что матрица между вызовами могла смениться.
-            this.cascade = this.CascadeSumming
+            //
+            // ⛔ (`AMBER34`, П79 15.09.2026) МАТРИЦА СЦЕНЫ ПОЛЯ — БЕЗ СУММИРОВАНИЯ.
+            // Её строки нормированы на единичный флюенс: сумма строки — площадь
+            // в см², а `FsaCascadeSummer` перемножает пиковую и полную
+            // «эффективности» как ВЕРОЯТНОСТИ регистрации квантов одного
+            // распада. У G1S Ø63×63 A_пик ≈ 14 см² против ε ≈ 0.05 — сумм-пик
+            // вышел бы в сотни раз выше физического, молча. И по существу у
+            // сцены без источника вероятности второго кванта того же распада
+            // нет: она зависит от того, где источник, а поле этого не знает.
+            // Образы (строки как формы) от нормировки не зависят — разбор идёт
+            // (решение Amber 15.09.2026 «Разбор идёт, Бк скрыты с причиной»);
+            // причина — в результат, окну отчёта.
+            this.cascadeRefusedFieldMatrix = this.CascadeSumming && this.ResponseMatrix != null
+                && this.ResponseMatrix.Normalization == EfficiencyMaker.ResponseMatrixNormalization.PerUnitFluence;
+            this.cascade = this.CascadeSumming && !this.cascadeRefusedFieldMatrix
                 ? FsaCascadeSummer.Create(this.ResponseMatrix, this.ScintillatorMaterial,
                                           this.CoincidenceWindowSec, this.CascadeXrayPartners,
                                           this.CascadeAnnihilationPartners,
@@ -4802,7 +4823,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 chLo = 1;
             }
 
-            double liveTime = spectrum.LiveTime > 0.0 ? spectrum.LiveTime : spectrum.MeasurementTime;
+            // (`AMBER35`, 15.09.2026) Правило знаменателя — ОБЩИЙ вход
+            // `EnergySpectrum.EffectiveLiveTime` (`Utils.LiveTime.Effective`):
+            // то же «живое, если > 0, иначе полное», что было здесь всегда,
+            // побитово; теперь на него же переведены выделение, зоны, доза,
+            // вычитание фона и график. Своя копия правила здесь снова
+            // разошлась бы с ними молча.
+            double liveTime = spectrum.EffectiveLiveTime;
             if (liveTime <= 0.0)
             {
                 liveTime = 1.0;
@@ -4835,7 +4862,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double backgroundScale = 0.0;
             if (background != null)
             {
-                double backgroundLive = background.LiveTime > 0.0 ? background.LiveTime : background.MeasurementTime;
+                double backgroundLive = background.EffectiveLiveTime;
                 if (backgroundLive > 0.0)
                 {
                     backgroundScale = liveTime / backgroundLive;
@@ -8168,6 +8195,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 OffsetChannels = offset,
                 LiveTime = liveTime,
                 EfficiencyUsed = efficiency != null,
+                // (`AMBER34`) кривая и матрица сцены поля — признаки окну отчёта
+                EfficiencyPerUnitFluence = efficiency != null && efficiency.IsPerUnitFluence,
+                CascadeSummingRefusedFieldMatrix = this.cascadeRefusedFieldMatrix && fit.FromResponseMatrix,
                 ResponseMatrixUsed = fit.FromResponseMatrix,
                 CascadeSummingUsed = this.cascadeApplied,
                 GainOnGridEdge = gainOnEdge,

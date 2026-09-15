@@ -27,6 +27,14 @@ namespace BecquerelMonitor.Utils
     /// Сохранённое число остаётся ЗАПАСНЫМ. Оно и подставляется, когда кривой
     /// нет: без этого включение расчёта по кривой обнулило бы активность всем,
     /// у кого кривая ещё не заведена.
+    ///
+    /// ⛔ (`AMBER34`, решение Amber 15.09.2026, дословно: «В автоматическом
+    /// режиме скрыть активность и показать причину; явно ручной режим
+    /// сохранить») Кривая СЦЕНЫ ПОЛЯ (`norm=fluence`, значения — см² на
+    /// единичный флюенс) — не «кривой нет» и не откат на запасное число:
+    /// в автоматическом режиме активность СКРЫВАЕТСЯ (<see cref="Result.Refused"/>),
+    /// причина называется; ручной режим (галочка снята) кривую не спрашивает
+    /// и остаётся как был.
     /// </summary>
     public static class BecquerelCoefficient
     {
@@ -37,6 +45,13 @@ namespace BecquerelMonitor.Utils
 
             /// <summary>Посчитан по кривой эффективности.</summary>
             Efficiency,
+
+            /// <summary>
+            /// (`AMBER34`) НЕ ПОЛУЧЕН И НЕ ПОДМЕНЁН: кривая сцены поля — по ней
+            /// K не считается, а запасное число подставлять нельзя, иначе
+            /// причина потонет в «каком-то» числе.
+            /// </summary>
+            Refused,
         }
 
         public struct Result
@@ -53,6 +68,22 @@ namespace BecquerelMonitor.Utils
             /// меняются, а сказать об этом некому.
             /// </summary>
             public string Problem;
+
+            /// <summary>
+            /// (`AMBER34`) ОТКАЗ, А НЕ ОТКАТ: коэффициента нет, и запасное
+            /// число НЕ подставлено — строка результата обязана стать
+            /// невалидной со статусом <see cref="StatusText"/>. Прежние мягкие
+            /// беды (кривой нет, энергия за краем, выхода нет) этого признака
+            /// не несут и ведут себя как раньше — сохранённым K.
+            /// </summary>
+            public bool Refused;
+
+            /// <summary>
+            /// Короткая причина для клетки таблицы результатов (там места на
+            /// фразу нет — «no K», «no weight»); полная — в <see cref="Problem"/>,
+            /// её показывает подсказка формы зон.
+            /// </summary>
+            public string StatusText;
         }
 
         /// <summary>
@@ -85,6 +116,21 @@ namespace BecquerelMonitor.Utils
 
             /// <summary>Кривая ответила, но неположительным числом.</summary>
             NoEpsilon,
+
+            /// <summary>
+            /// (`AMBER34`) Кривая СЦЕНЫ ПОЛЯ: значения — см² на единичный
+            /// флюенс, не доли на квант; активность по ней не считается.
+            /// Имя кривой — в <see cref="LineResult.Refusal"/>.
+            /// </summary>
+            FieldCurve,
+
+            /// <summary>
+            /// (`AMBER34`) Кривая ОТВЕРГНУТА с названной причиной
+            /// (<see cref="LineResult.Refusal"/>): у кривой долей есть точка
+            /// выше единицы. Не <see cref="NoCurve"/>: та — «не выбрана», а
+            /// здесь кривая выбрана и негодна.
+            /// </summary>
+            CurveRefused,
         }
 
         /// <summary>Ответ <see cref="ForLine"/>: коэффициент либо причина, почему его нет.</summary>
@@ -97,6 +143,13 @@ namespace BecquerelMonitor.Utils
             /// <summary>Края таблицы кривой, кэВ; нули, когда кривой нет.</summary>
             public double CurveMin;
             public double CurveMax;
+
+            /// <summary>
+            /// (`AMBER34`) Слова к <see cref="LineProblem.CurveRefused"/> (причина
+            /// отказа кривой) и к <see cref="LineProblem.FieldCurve"/> (имя
+            /// кривой); null у прочих.
+            /// </summary>
+            public string Refusal;
 
             public bool Ok
             {
@@ -127,6 +180,7 @@ namespace BecquerelMonitor.Utils
                 Problem = LineProblem.None,
                 CurveMin = 0.0,
                 CurveMax = 0.0,
+                Refusal = null,
             };
 
             if (!(energyKev > 0.0) || !(intensityPercent > 0.0))
@@ -135,15 +189,28 @@ namespace BecquerelMonitor.Utils
                 return result;
             }
 
-            FsaEfficiency curve = FsaEfficiency.FromConfig(efficiency);
+            string refusal;
+            FsaEfficiency curve = FsaEfficiency.FromConfig(efficiency, out refusal);
             if (curve == null)
             {
-                result.Problem = LineProblem.NoCurve;
+                // (`AMBER34`) Кривая выбрана, но отвергнута с причиной — не то
+                // же, что «не выбрана»: человеку называется точка.
+                result.Problem = refusal != null ? LineProblem.CurveRefused : LineProblem.NoCurve;
+                result.Refusal = refusal;
                 return result;
             }
 
             result.CurveMin = curve.MinEnergy;
             result.CurveMax = curve.MaxEnergy;
+            if (curve.IsPerUnitFluence)
+            {
+                // (`AMBER34`) см² на единичный флюенс: K = 100/(A·I) дал бы
+                // число в 1/(с·см²) под именем беккерелей — отказ словами.
+                result.Problem = LineProblem.FieldCurve;
+                result.Refusal = curve.Name ?? "";
+                return result;
+            }
+
             double eps, errorPercent;
             if (!curve.TryEval(energyKev, out eps, out errorPercent))
             {
@@ -188,8 +255,13 @@ namespace BecquerelMonitor.Utils
                 Error = roi == null ? 0.0 : roi.BecquerelCoefficientError,
                 From = Source.Stored,
                 Problem = null,
+                Refused = false,
+                StatusText = null,
             };
 
+            // ⛔ Ручной режим (галочка снята) — кривую не спрашиваем ВОВСЕ:
+            // решение Amber 15.09.2026 «явно ручной режим сохранить», и это
+            // касается и кривой сцены поля — сохранённый K действует побитово.
             if (roi == null || !roi.AutoBecquerelCoefficient)
             {
                 return result;
@@ -207,10 +279,29 @@ namespace BecquerelMonitor.Utils
                 return result;
             }
 
-            FsaEfficiency curve = FsaEfficiency.FromConfig(efficiency);
+            string refusal;
+            FsaEfficiency curve = FsaEfficiency.FromConfig(efficiency, out refusal);
             if (curve == null)
             {
-                result.Problem = Resources.BqCoeffNoCurve;
+                // (`AMBER34`) Отвергнутая кривая ведёт себя как «кривой нет»
+                // (сохранённый K), но причина названа — с точкой и энергией.
+                result.Problem = refusal != null
+                    ? string.Format(CultureInfo.InvariantCulture, Resources.BqCoeffCurveRefused, refusal)
+                    : Resources.BqCoeffNoCurve;
+                return result;
+            }
+
+            if (curve.IsPerUnitFluence)
+            {
+                // (`AMBER34`) Кривая сцены поля: см² на единичный флюенс. Не
+                // откат на сохранённое число, а ОТКАЗ — активность скрыта.
+                result.Value = 0.0;
+                result.Error = 0.0;
+                result.From = Source.Refused;
+                result.Refused = true;
+                result.Problem = string.Format(CultureInfo.InvariantCulture, Resources.BqCoeffFieldCurve,
+                                               curve.Name ?? "");
+                result.StatusText = Resources.ResultFieldCurve;
                 return result;
             }
 

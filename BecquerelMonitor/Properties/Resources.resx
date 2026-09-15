@@ -42454,9 +42454,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerTabCalculate" xml:space="preserve">
     <value>Calculate from geometry</value>
   </data>
-  <data name="EfficiencyMakerCalcHint" xml:space="preserve">
-    <value>The curve is computed from the geometry file by Monte-Carlo transport - no spectra needed. Unlike the fit, this gives the ABSOLUTE level, not just the shape.</value>
-  </data>
   <data name="EfficiencyMakerGrid" xml:space="preserve">
     <value>Grid:</value>
   </data>
@@ -43566,5 +43563,44 @@ Turn it on in Windows settings and search again.</value>
   </data>
   <data name="ERRFwhmCalibrationUnset" xml:space="preserve">
     <value>the spectrum carries no FWHM calibration and none was built for it.</value>
+  </data>
+  <data name="FsaEfficiencyPointAboveUnity" xml:space="preserve">
+    <value>point {0} keV: efficiency {1} is above 1 — a fraction per emitted quantum cannot exceed unity</value>
+  </data>
+  <data name="BqCoeffCurveRefused" xml:space="preserve">
+    <value>The efficiency curve is refused: {0}. The stored value is used.</value>
+  </data>
+  <data name="BqCoeffFieldCurve" xml:space="preserve">
+    <value>The efficiency curve “{0}” is computed for a field scene: its values are areas in cm² per unit fluence, not fractions per emitted quantum, so K cannot be computed from it. Activity is not shown.</value>
+  </data>
+  <data name="ResultFieldCurve" xml:space="preserve">
+    <value>field curve (cm²), no K</value>
+  </data>
+  <data name="ActivityFieldCurveRefused" xml:space="preserve">
+    <value>the efficiency curve “{0}” is a field-scene curve (cm² per unit fluence, not fractions per quantum): activity not shown</value>
+  </data>
+  <data name="ActivityCurveRefused" xml:space="preserve">
+    <value>the efficiency curve is refused ({0}): activity not shown</value>
+  </data>
+  <data name="FSACurveRefused" xml:space="preserve">
+    <value>Full-spectrum decomposition: the efficiency curve is refused — {0}</value>
+  </data>
+  <data name="FSAReportEfficiencyFieldCurve" xml:space="preserve">
+    <value>used as a shape: field-scene curve (cm² per unit fluence); becquerels are not derived from it</value>
+  </data>
+  <data name="FSAReportSummingFieldMatrix" xml:space="preserve">
+    <value>not applied: field-scene matrix (cm² per unit fluence), no per-decay probabilities</value>
+  </data>
+  <data name="NormalizeNoCurve" xml:space="preserve">
+    <value>Normalize by efficiency: no efficiency curve is chosen for this spectrum.</value>
+  </data>
+  <data name="NormalizeCurveEmpty" xml:space="preserve">
+    <value>Normalize by efficiency: the efficiency curve “{0}” has fewer than two usable points.</value>
+  </data>
+  <data name="NormalizeCurveRefused" xml:space="preserve">
+    <value>Normalize by efficiency: the efficiency curve “{0}” is refused — {1}.</value>
+  </data>
+  <data name="NormalizeFieldCurve" xml:space="preserve">
+    <value>Normalize by efficiency: the curve “{0}” is a field-scene curve (cm² per unit fluence, values above 1); dividing the integer spectrum by it rounds low channels to zero, so the spectrum is not normalized by it.</value>
   </data>
 </root>

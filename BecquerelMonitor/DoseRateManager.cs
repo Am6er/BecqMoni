@@ -452,7 +452,12 @@ namespace BecquerelMonitor
                 return doseRate;
             }
 
-            if (!(energySpectrum.MeasurementTime > 0.0))
+            // (`AMBER35`, решение Amber 15.09.2026) Знаменатель дозы — по
+            // правилу разбора FSA: живое время, если задано (> 0), иначе
+            // полное (`EnergySpectrum.EffectiveLiveTime`). Прежде делили на
+            // полное, и мкЗв/ч занижались на мёртвое время прибора — а оно
+            // поля не уменьшает. Спектр без живого — побитово прежние числа.
+            if (!(energySpectrum.EffectiveLiveTime > 0.0))
             {
                 doseRate.Refusal = DoseRateCoefficients.Text(
                     "DoseRateNoTime", "Dose rate: the reference spectrum has zero measurement time.");
@@ -490,7 +495,7 @@ namespace BecquerelMonitor
             // каналом молча теряло его.
             bool[] overflow = OverflowChannel.Mask(energySpectrum.Spectrum);
 
-            double seconds = energySpectrum.MeasurementTime;
+            double seconds = energySpectrum.EffectiveLiveTime;
 
             // Шаг 1. Отсчёты по диапазонам — с картой покрытых каналов.
             int bins = grid.Length - 1;
