@@ -197,13 +197,20 @@ namespace FsaCascadeProbe
             // (`N14`, П49) Плечо угловых корреляций — ДО первого `For`: поправки
             // кэшируются на экземпляре. Таблица Q_k — как у приложения
             // (`FsaMatrixBinding`): сайдкар в каталоге склада по отпечатку геометрии.
-            if (summer != null && angcorr >= 0)
+            // (П86, 15.09.2026) Без ключа — УМОЛЧАНИЕ АНАЛИЗАТОРА, своего проба
+            // не держит (`FsaAnalyzer.CascadeSumAngular`, с 15.09.2026 ВКЛ); и
+            // таблица ищется ВСЕГДА, как у приложения, — иначе умолчание ВКЛ
+            // без таблицы шло бы изотропно молча, и «ключ без значения» был бы
+            // неотличим от `--angcorr=0`.
+            bool angularOn = angcorr >= 0 ? angcorr == 1 : new FsaAnalyzer().CascadeSumAngular;
+            if (summer != null)
             {
-                summer.AngularCorrelations = angcorr == 1;
+                summer.AngularCorrelations = angularOn;
                 summer.AngularQk = AngularAttenuation.Find(ResponseMatrixStore.Directory,
                                                            rd.Efficiency != null ? rd.Efficiency.Geometry : null);
-                Console.WriteLine("угловые корреляции (N14): ключ {0}; таблица Q_k сцены {1}",
-                                  angcorr == 1 ? "ВКЛ" : "ВЫКЛ",
+                Console.WriteLine("угловые корреляции (N14): ключ {0}{1}; таблица Q_k сцены {2}",
+                                  angularOn ? "ВКЛ" : "ВЫКЛ",
+                                  angcorr >= 0 ? "" : " (умолчание анализатора)",
                                   summer.AngularQk != null
                                       ? "НАЙДЕНА (" + summer.AngularQk.Scene + ", узлов " + summer.AngularQk.Count.ToString(CultureInfo.InvariantCulture) + ")"
                                       : "НЕТ — счёт изотропный");
@@ -368,12 +375,10 @@ namespace FsaCascadeProbe
 
             analyzer.ResponseMatrix = matrix;
             analyzer.ScintillatorMaterial = scintillator;
-            // (`N14`, П49) то же плечо — и анализатору, тем же путём, что у приложения
-            if (angcorr >= 0)
-            {
-                analyzer.CascadeSumAngular = angcorr == 1;
-                analyzer.AngularQk = summer.AngularQk;
-            }
+            // (`N14`, П49) то же плечо — и анализатору, тем же путём, что у
+            // приложения; без ключа `angularOn` — его же умолчание (П86)
+            analyzer.CascadeSumAngular = angularOn;
+            analyzer.AngularQk = summer.AngularQk;
             analyzer.CascadeSumming = false;
             clock.Restart();
             FsaResult withMatrix = analyzer.Analyze(rd.EnergySpectrum, background, rd.FwhmCalibration,

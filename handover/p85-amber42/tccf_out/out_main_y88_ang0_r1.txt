@@ -1,0 +1,106 @@
+True coincidence factor calculation results.
+
+Decay branch(es):
+  Y-88   B+  Sr-88 (106.627 d) - 100%
+
+Date: 15/09/2026
+Time: 18:36:27
+
+Calculation settings:
+cp.xrays = true
+cp.annihilation = true
+cp.angular = false
+cp.angle_optimize = false
+cp.calc_full_eff = false
+cp.calc_spectrum = false
+cp.calc_coincidence = true
+cp.calc_scattered = true
+cp.calc_effc = false
+cp.calc_electron_ttb = true
+cp.threads_number = 1
+
+DetectorType = SCINTILLATOR
+DS_CrystalDiameter = 6.3 cm
+DS_CrystalHeight = 6.3 cm
+DS_CrystalFrontReflectorThickness = 0.13 cm
+DS_CrystalSideReflectorThickness = 0.1 cm
+DS_CrystalFrontCladdingThickness = 0.18 cm
+DS_CrystalSideCladdingThickness = 0.2 cm
+DS_DetectorFrontPackagingThickness = 0 cm
+DS_DetectorSidePackagingThickness = 0 cm
+DS_DetectorFrontCapThickness = 0 cm
+DS_DetectorSideCapThickness = 0 cm
+DS_DetectorMountingThickness = 0.2 cm
+
+DS_nCrystalElements = 2
+DS_ZCrystal[0] = 11
+DS_ZCrystal[1] = 53
+DS_FractionTypeCrystal = MASS
+DS_FractionsCrystal[0] = 0.153373
+DS_FractionsCrystal[1] = 0.846627
+DS_RoCrystal = 3.667
+DS_nCrystalCladdingElements = 1
+DS_ZCrystalCladding[0] = 13
+DS_FractionTypeCrystalCladding = MASS
+DS_FractionsCrystalCladding[0] = 1
+DS_RoCrystalCladding = 2.7
+DS_nCrystalReflectorElements = 2
+DS_ZCrystalReflector[0] = 6
+DS_ZCrystalReflector[1] = 9
+DS_FractionTypeReflector = MASS
+DS_FractionsCrystalReflector[0] = 0.240183
+DS_FractionsCrystalReflector[1] = 0.759817
+DS_RoCrystalReflector = 2.25
+DS_nDetectorCapElements = 1
+DS_ZDetectorCap[0] = 13
+DS_FractionTypeDetectorCap = MASS
+DS_FractionsDetectorCap[0] = 1
+DS_RoDetectorCap = 2.7
+DS_nDetectorPackagingElements = 1
+DS_ZDetectorPackaging[0] = 13
+DS_FractionTypeDetectorPackaging = MASS
+DS_FractionsDetectorPackaging[0] = 1
+DS_RoDetectorPackaging = 2.7
+
+SourceType = POINT
+pdistance = 5 cm
+prho = 0 cm
+
+
+Number of simulated decays: 40000000
+
+Results:
+-----------------------------------------------------------------------------------
+##	E, MeV	I	dI(%)	CF	dCF(%)	Eff	dEff(%)	Areas	AreasCoi
+-----------------------------------------------------------------------------------
+1	0.013888	1.9608e-06	3.0000	0.00000	0.00	0.000e+00	0.00	0.00	0.00
+2	0.014098	1.7865e-01	3.0000	1.08380	3.37	2.570e-04	2.34	1836.50	1694.50
+3	0.014165	3.4336e-01	3.0000	1.10316	2.32	2.846e-04	1.60	3908.50	3543.00
+4	0.015825	2.5534e-02	3.0000	1.03503	3.92	1.302e-03	2.75	1329.50	1284.50
+5	0.015836	4.9499e-02	3.0000	1.05556	2.80	1.329e-03	1.95	2631.50	2493.00
+6	0.015971	1.8911e-04	3.0000	1.05000	52.50	1.388e-03	34.01	10.50	10.00
+7	0.016085	8.8018e-03	3.0000	0.98670	6.00	1.581e-03	4.26	556.50	564.00
+8	0.511000	4.2000e-03	3.0000	1.04972	2.17	2.582e-02	1.52	4338.50	4133.00
+9	0.850600	6.5498e-04	19.6971	1.00806	7.35	1.431e-02	5.18	375.00	372.00
+10	0.898042	9.3683e-01	0.3255	1.03021	0.21	1.266e-02	0.15	474591.50	460676.00
+11	1.382200	2.0840e-04	28.5715	1.14961	17.40	8.757e-03	11.82	73.00	63.50
+12	1.836063	9.9240e-01	0.3082	1.04002	0.29	6.153e-03	0.20	244268.00	234868.00
+13	2.734000	7.1453e-03	9.7225	0.29530	3.30	4.174e-03	2.90	1193.00	4040.00
+14	3.219700	7.0460e-05	28.1691	2.40000	53.23	4.258e-03	28.87	12.00	5.00
+-----------------------------------------------------------------------------------
+
+Coincidence sum peaks:
+-----------------------------------------------------------------------------------
+E, MeV	AreasCoi
+0.91214	16
+0.91221	52
+0.91387	14
+0.91388	37
+0.91413	11
+1.74864	3
+1.85016	9
+1.85023	33
+1.85189	7
+1.85190	13
+2.34706	17
+-----------------------------------------------------------------------------------

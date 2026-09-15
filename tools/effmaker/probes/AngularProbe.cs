@@ -9,7 +9,7 @@ namespace AngularProbe
     /// Поверка угловых γ-γ корреляций (N5): коэффициенты A₂₂ и A₄₄ против
     /// справочных значений и против схем уровней в базе.
     ///
-    ///     angularprobe [--nuclide=28:60] [--pair=1173.2:1332.5]
+    ///     angularprobe [--nuclide=28:60] [--pair=1173.2:1332.5] [--old-sign]
     ///
     /// **Раздел 1 — учебные каскады.** Значения A₂₂ и A₄₄ для чистых
     /// переходов табличны и не зависят ни от чего, кроме спинов: это
@@ -24,6 +24,20 @@ namespace AngularProbe
     /// переходы, проверяется, что они каскад (конец первого = начало
     /// второго), и печатаются коэффициенты со спинами и мультипольностями,
     /// по которым они получены.
+    ///
+    /// **Раздел 4 — десять каскадов против прямой мерки Geant4** (П85/П86,
+    /// 15.09.2026, `AMBER42`): спины, мультипольности и δ берутся из схемы
+    /// базы (`g4_level`/`g4_gamma` — та же поставка PhotonEvaporation, по
+    /// которой Geant4 разыгрывал направления), A₂₂/A₄₄ сравниваются с
+    /// измеренными `g4cf angcorr` (5 млн распадов на пару, σ ≈ 0.001…0.009).
+    /// Учебные каскады раздела 1 все ЧИСТЫЕ (δ = 0) — знак δ заселяющего
+    /// перехода они не видят, а он у нас был неверен (П85, находка 1); этот
+    /// раздел ловит именно его: у смешанных каскадов A₂₂ ∝ 2δ·F′, а A₄₄ ∝ δ²
+    /// и знака не видит. Отказ — |наше − Geant4| > 3σ + 0.003 у любого из
+    /// двадцати чисел. Ключ `--old-sign` — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: считает
+    /// δ₁ с обратным знаком (то есть формулой ДО правки П86) и обязан
+    /// краснеть на Cs-134 563+605 (−0.168 против +0.026) и ещё четырёх
+    /// смешанных; без ключа обязан быть зелёным.
     /// </summary>
     static class Program
     {
@@ -34,6 +48,7 @@ namespace AngularProbe
 
             int z = 28, a = 60;
             double e1 = 1173.239, e2 = 1332.514;
+            bool oldSign = false;
             foreach (string s in args)
             {
                 if (s.StartsWith("--nuclide=", StringComparison.Ordinal))
@@ -48,6 +63,10 @@ namespace AngularProbe
                     e1 = double.Parse(parts[0], CultureInfo.InvariantCulture);
                     e2 = double.Parse(parts[1], CultureInfo.InvariantCulture);
                 }
+                else if (s == "--old-sign")
+                {
+                    oldSign = true;
+                }
                 else
                 {
                     Console.Error.WriteLine("неизвестный ключ: " + s);
@@ -60,6 +79,7 @@ namespace AngularProbe
             bad += Wigner();
             bad += Impostors();
             FromDatabase(z, a, e1, e2);
+            bad += Geant4Cascades(oldSign);
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "все сверки сошлись" : "НЕ СОШЛОСЬ: " + bad);
@@ -97,6 +117,9 @@ namespace AngularProbe
             Console.WriteLine("   Проверка знака смешивания: 2(M1+E2)→2→0. При δ = 0 это чистый");
             Console.WriteLine("   M1, при δ → ∞ — чистый E2, и коэффициент обязан перейти от");
             Console.WriteLine("   одного предела к другому непрерывно и через ноль.");
+            Console.WriteLine("   (δ здесь — у ЗАСЕЛЯЮЩЕГО перехода: с П86 его интерференционный");
+            Console.WriteLine("   член несёт (−1)^(L+L'), знак хода по δ — обратный прежнему;");
+            Console.WriteLine("   числом это судит раздел 4.)");
             Console.WriteLine();
             Console.WriteLine("        δ        A22");
             foreach (double d in new[] { 0.0, 0.2, 0.5, 1.0, 2.0, 5.0, 100.0 })
@@ -260,6 +283,138 @@ namespace AngularProbe
                 Console.WriteLine("      {0,4}    {1,7:F4}",
                                   angle, w.At(Math.Cos(angle * Math.PI / 180.0)));
             }
+        }
+
+        /// <summary>
+        /// Одна строка таблицы Geant4 (П85, `handover/p85-amber42/g4_angcorr_table.txt`,
+        /// режим `g4cf angcorr`, 5 млн распадов на пару): нуклид ДОЧЕРНЕЙ
+        /// схемы (Z, A — как в `g4_level`/`g4_gamma`), две линии и
+        /// измеренные A₂₂ ± σ, A₄₄ ± σ. Порядок квантов в каскаде проба
+        /// определяет по схеме, а не по порядку в строке.
+        /// </summary>
+        sealed class G4Case
+        {
+            public string Name;
+            public int Z, A;
+            public double E1, E2;
+            public double A22, S22, A44, S44;
+
+            public G4Case(string name, int z, int a, double e1, double e2,
+                          double a22, double s22, double a44, double s44)
+            {
+                this.Name = name; this.Z = z; this.A = a; this.E1 = e1; this.E2 = e2;
+                this.A22 = a22; this.S22 = s22; this.A44 = a44; this.S44 = s44;
+            }
+        }
+
+        // Geant4 11.4.2, `G4PhotonEvaporation` с `fCorrelatedGamma`, поставка
+        // PhotonEvaporation6.1.2 — та же, что в `schemedb.sqlite`. Числа — из
+        // таблицы П85 дословно. Первые три и последние два каскада ЧИСТЫЕ
+        // (δ = 0) — у них знак δ ничего не меняет, они держат остальную
+        // формулу; пять средних — СМЕШАННЫЕ, у них A₂₂ и решает знак.
+        static readonly G4Case[] Geant4Table =
+        {
+            new G4Case("Co-60  1173(E2+M3, δ=−0.0025)+1332", 28,  60, 1173.2, 1332.5,  0.0995, 0.0010,  0.0104, 0.0014),
+            new G4Case("Y-88   898(E1)+1836",                38,  88,  898.0, 1836.1, -0.0710, 0.0010,  0.0004, 0.0014),
+            new G4Case("Cs-134 605(E2)+796",                 56, 134,  604.7,  795.9,  0.1008, 0.0011,  0.0097, 0.0015),
+            new G4Case("Cs-134 569(M1+E2, δ=0.26)+796",      56, 134,  569.3,  795.9,  0.1029, 0.0026,  0.0083, 0.0035),
+            new G4Case("Cs-134 563(M1+E2, δ=−7.4)+605",      56, 134,  563.2,  604.7,  0.0255, 0.0036,  0.3230, 0.0048),
+            new G4Case("Eu-152 1408(E1+M2, δ=0.043)+122",    62, 152, 1408.0,  121.8,  0.2165, 0.0033,  0.0042, 0.0044),
+            new G4Case("Eu-152 1112(M1+E2, δ=−8.7)+122",     62, 152, 1112.1,  121.8, -0.2913, 0.0037, -0.0811, 0.0051),
+            new G4Case("Eu-152 964(E2+M1, δ=−9.3)+122",      62, 152,  964.1,  121.8,  0.3261, 0.0040,  0.0014, 0.0054),
+            new G4Case("Eu-152 779(E1)+344 (Gd)",            64, 152,  778.9,  344.3, -0.0748, 0.0028, -0.0019, 0.0038),
+            new G4Case("Eu-152 411(E2)+344 (Gd)",            64, 152,  411.1,  344.3,  0.1007, 0.0069,  0.0066, 0.0092),
+        };
+
+        /// <summary>Допуск к σ Geant4: три сигмы плюс 0.003 (шум формулы против 5 млн распадов).</summary>
+        const double G4Sigmas = 3.0, G4Floor = 0.003;
+
+        /// <summary>
+        /// Раздел 4: десять каскадов по схеме базы против Geant4. Переходы
+        /// берутся <see cref="AngularCorrelation.Scheme.Find"/> с допуском
+        /// 0.5 кэВ — тем же правилом «самый нижний уровень», что у сумматора;
+        /// порядок квантов — по смежности (конец первого = начало второго).
+        /// Печатаются три столбца A_kk: приложение, δ₁ с обратным знаком, Geant4;
+        /// судится столбец приложения, с ключом `--old-sign` — столбец с
+        /// обратным знаком (положительный контроль: обязан краснеть).
+        /// </summary>
+        static int Geant4Cascades(bool oldSign)
+        {
+            Console.WriteLine();
+            Console.WriteLine("4. Десять каскадов по схеме базы против прямой мерки Geant4 (П85; допуск 3σ + {0:F3})",
+                              G4Floor);
+            if (oldSign)
+            {
+                Console.WriteLine("   ⚠ --old-sign: судится столбец «δ₁ обратный» — формула ДО правки П86; ждём КРАСНОГО");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("   каскад                               спины      δ₁       A22 прил. | δ₁ обр. | Geant4 ± σ          A44 прил. | δ₁ обр. | Geant4 ± σ       ");
+            int bad = 0;
+            foreach (G4Case c in Geant4Table)
+            {
+                AngularCorrelation.Scheme scheme = AngularCorrelation.SchemeOf(c.Z, c.A);
+                if (scheme == null)
+                {
+                    Console.WriteLine("   {0,-36} схемы Z={1} A={2} в базе нет — ⛔ ПРОВАЛ", c.Name, c.Z, c.A);
+                    bad++;
+                    continue;
+                }
+
+                AngularCorrelation.Transition first = scheme.Find(c.E1, 0.5);
+                AngularCorrelation.Transition second = scheme.Find(c.E2, 0.5);
+                if (first == null || second == null)
+                {
+                    Console.WriteLine("   {0,-36} перехода нет в схеме ({1}) — ⛔ ПРОВАЛ", c.Name,
+                                      first == null ? c.E1 : c.E2);
+                    bad++;
+                    continue;
+                }
+
+                // Каскад — по смежности уровней; который квант первый, решает схема.
+                if (first.ToSeq != second.FromSeq)
+                {
+                    AngularCorrelation.Transition t = first; first = second; second = t;
+                }
+
+                double jStart, jMiddle, jEnd;
+                if (first.ToSeq != second.FromSeq
+                    || !scheme.Jpi.TryGetValue(first.FromSeq, out jStart)
+                    || !scheme.Jpi.TryGetValue(first.ToSeq, out jMiddle)
+                    || !scheme.Jpi.TryGetValue(second.ToSeq, out jEnd))
+                {
+                    Console.WriteLine("   {0,-36} не каскад или спина нет — ⛔ ПРОВАЛ", c.Name);
+                    bad++;
+                    continue;
+                }
+
+                jStart = Math.Abs(jStart); jMiddle = Math.Abs(jMiddle); jEnd = Math.Abs(jEnd);
+                AngularCorrelation.Coefficients app = AngularCorrelation.For(
+                    jStart, jMiddle, jEnd, first.Multipolarity, first.Mixing,
+                    second.Multipolarity, second.Mixing);
+                // Обратный знак δ₁: у всех смешанных переходов базы L′ = L ± 1,
+                // и множитель (−1)^(L+L′) правки П86 — это ровно −δ₁; значит
+                // −δ₁ на входе даёт формулу ДО правки побитово.
+                AngularCorrelation.Coefficients rev = AngularCorrelation.For(
+                    jStart, jMiddle, jEnd, first.Multipolarity, -first.Mixing,
+                    second.Multipolarity, second.Mixing);
+                AngularCorrelation.Coefficients judged = oldSign ? rev : app;
+
+                bool ok22 = Math.Abs(judged.A22 - c.A22) <= G4Sigmas * c.S22 + G4Floor;
+                bool ok44 = Math.Abs(judged.A44 - c.A44) <= G4Sigmas * c.S44 + G4Floor;
+                Console.WriteLine("   {0,-36} {1}→{2}→{3}  {4,7:F4}   {5,8:F4} | {6,7:F4} | {7,7:F4} ± {8:F4} {9,-3}  {10,8:F4} | {11,7:F4} | {12,7:F4} ± {13:F4} {14}",
+                                  c.Name, jStart, jMiddle, jEnd, first.Mixing,
+                                  app.A22, rev.A22, c.A22, c.S22, ok22 ? "ok" : "⛔",
+                                  app.A44, rev.A44, c.A44, c.S44, ok44 ? "ok" : "⛔ РАСХОЖДЕНИЕ");
+                bad += (ok22 ? 0 : 1) + (ok44 ? 0 : 1);
+            }
+
+            Console.WriteLine();
+            Console.WriteLine(bad == 0
+                                  ? "   все двадцать чисел в допуске Geant4"
+                                  : "   ⛔ вне допуска Geant4: " + bad.ToString(CultureInfo.InvariantCulture)
+                                    + (oldSign ? " (ожидаемо: судился обратный знак δ₁)" : ""));
+            return bad;
         }
 
         static void Describe(string tag, AngularCorrelation.Transition t,
