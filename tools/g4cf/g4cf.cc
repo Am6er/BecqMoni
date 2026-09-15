@@ -15,6 +15,20 @@
 // (/process/had/deex/correlatedGamma false) — то есть ион-режим отвечает
 // ровно на вопрос нашей формулы (изотропные совпадения), без примеси N5.
 //
+// Ключ `corr` (П85, `AMBER42`, 15.09.2026) ВКЛЮЧАЕТ их: до `/run/initialize`
+// ставится `G4DeexPrecoParameters::SetCorrelatedGamma(true)` (то же поле, что
+// у UI-команды выше; после инициализации оно заперто — `IsLocked`). Проверено по
+// исходникам geant4-v11.4.2: `G4PhotonEvaporation::EmittedFragment` при
+// `fCorrelatedGamma && fRDM` заводит `G4NuclearPolarization` дочернего ядра,
+// `G4GammaTransition::SampleTransition` при `polarFlag && isDiscrete && 2J <= TwoJMAX`
+// (умолчание 10) зовёт `G4PolarizationTransition::SampleGammaTransition` по
+// спинам/мультипольностям/δ из `PhotonEvaporation` (z28.a60: 2505.753 4+, 1173.239
+// «407» = E2+M3 δ=-0.0025; 1332.514 «4» = E2) — то есть RDM флаг ЧИТАЕТ, и
+// отдельных данных (ICC, `G4LEVELGAMMADATA` сверх обычного) ему не нужно.
+// Читатель флага — строка `SETUP correlatedGamma=…` в stdout (берётся ОБРАТНО
+// из параметров после инициализации) и сводка RDM «Enable correlated gamma
+// emission 1». Умолчание без ключа — прежнее, изотропное.
+//
 // ⛔ КЛЮЧ `vacuum` ОБЯЗАТЕЛЕН ДЛЯ СВЕРОК НА ГОЛОМ КРИСТАЛЛЕ (`T133`, `A85`,
 // 03.09.2026). Мир арбитра решает 42 % полосы: та же сцена голого NaI Ø80×80 в
 // полосе 55…59 кэВ даёт 8.232e-4 на историю с ВОЗДУШНЫМ миром против 5.794e-4 в
@@ -36,6 +50,9 @@
 #include "G4UserRunAction.hh"
 #include "G4UserEventAction.hh"
 #include "G4UserSteppingAction.hh"
+#include "G4UserStackingAction.hh"
+#include "G4Track.hh"
+#include "G4VProcess.hh"
 #include "G4VModularPhysicsList.hh"
 #include "G4EmStandardPhysics_option4.hh"
 #include "G4DecayPhysics.hh"
@@ -60,6 +77,8 @@
 #include "G4PrimaryParticle.hh"
 #include "G4PrimaryVertex.hh"
 #include "G4IonTable.hh"
+#include "G4NuclearLevelData.hh"
+#include "G4DeexPrecoParameters.hh"
 #include "Randomize.hh"
 #include <cmath>
 #include <cstdio>
@@ -95,6 +114,32 @@ namespace
     // подпиковой полке приходится делить между «у нас нет обстановки» и «у нас
     // нет физики» на глазок. Ключ `vacuum` разводит их замером.
     bool gVacuumWorld = false;
+
+    // Угловые γ–γ корреляции каскада в RDM (ключ `corr`, П85 `AMBER42`);
+    // умолчание — изотропно, как было всегда.
+    bool gCorrelatedGamma = false;
+
+    // Режим `angcorr` (П85, `AMBER42`): ПРЯМАЯ мерка угловой корреляции пары
+    // квантов распада — направления квантов РДМ снимаются в момент рождения
+    // (стек), сами кванты гасятся, детектор не участвует. Печатает
+    // A22 = 5·<P2(cos θ)>, A44 = 9·<P4(cos θ)> с σ и гистограмму cos θ.
+    // Это положительный контроль ключа `corr` без статистики сумм-пика.
+    bool gAngCorrMode = false;
+
+    // Зерно ГСЧ (ключ `seed <N>`, П85): без ключа Geant4 стартует с ОДНОГО и
+    // того же зерна, и два одинаковых прогона побитово равны — повтор ради
+    // статистики обязан менять зерно (Co-60 off 15.09.2026: два прогона по
+    // 40 млн дали 3561 = 3561 отсчёт в окне 2505.7).
+    long gSeed = 0;
+
+    // Моно-режим сценного генератора (П85): косинус угла вылета первички к оси
+    // сцены (ось z — на центр кристалла) запоминается на событие, чтобы в конце
+    // события накопить Q_k = <P_k(cos θ)> по событиям пика и по событиям с любым
+    // вкладом — геометрическая половина корреляции, посчитанная самим арбитром
+    // (сверка с AngularQkProbe). Печать: строки QK/QKT.
+    G4ThreadLocal double gPrimaryCos = 2.0;   // 2 = не задан (ион, GPS)
+    double gAngE1Kev = 0.0, gAngE2Kev = 0.0;
+    const int kAngBins = 20;
 
     // ---- Сцена из файла (effsim --dump-scene): материалы, области, источник.
     struct SceneMat
@@ -528,6 +573,7 @@ public:
             double cosT = 2.0 * G4UniformRand() - 1.0;
             double sinT = std::sqrt(std::max(0.0, 1.0 - cosT * cosT));
             double phi = 2.0 * CLHEP::pi * G4UniformRand();
+            gPrimaryCos = cosT;
             auto particle = new G4PrimaryParticle(
                 G4Gamma::GammaDefinition(),
                 sinT * std::cos(phi) * gSceneEnergyKev * keV,
@@ -545,10 +591,29 @@ public:
 class RunAction : public G4UserRunAction
 {
 public:
-    RunAction() : fAny("any", 0)
+    RunAction() : fAny("any", 0), fAngN("angN", 0), fAngS2("angS2", 0.0), fAngS4("angS4", 0.0),
+                  fAngS22("angS22", 0.0), fAngS44("angS44", 0.0),
+                  fQkN("qkN", 0), fQkS2("qkS2", 0.0), fQkS4("qkS4", 0.0),
+                  fQtN("qtN", 0), fQtS2("qtS2", 0.0), fQtS4("qtS4", 0.0)
     {
         auto manager = G4AccumulableManager::Instance();
         manager->Register(fAny);
+        manager->Register(fQkN);
+        manager->Register(fQkS2);
+        manager->Register(fQkS4);
+        manager->Register(fQtN);
+        manager->Register(fQtS2);
+        manager->Register(fQtS4);
+        manager->Register(fAngN);
+        manager->Register(fAngS2);
+        manager->Register(fAngS4);
+        manager->Register(fAngS22);
+        manager->Register(fAngS44);
+        for (int i = 0; i < kAngBins; ++i)
+        {
+            fAngHist.push_back(new G4Accumulable<G4int>("ah" + std::to_string(i), 0));
+            manager->Register(*fAngHist.back());
+        }
         for (size_t i = 0; i < gWindows.size(); ++i)
         {
             fPeaks.push_back(new G4Accumulable<G4int>("w" + std::to_string(i), 0));
@@ -577,6 +642,34 @@ public:
 
         long decays = run->GetNumberOfEvent();
         std::printf("RESULT decays=%ld\n", decays);
+        if (fQkN.GetValue() > 0 || fQtN.GetValue() > 0)
+        {
+            long n = fQkN.GetValue(), nt = fQtN.GetValue();
+            std::printf("QK window=%.3f peak_events=%ld Q2=%.5f Q4=%.5f\n", gWindows.empty() ? 0.0 : gWindows[0], n,
+                        n > 0 ? fQkS2.GetValue() / n : 0.0, n > 0 ? fQkS4.GetValue() / n : 0.0);
+            std::printf("QKT any_events=%ld Q2T=%.5f Q4T=%.5f\n", nt,
+                        nt > 0 ? fQtS2.GetValue() / nt : 0.0, nt > 0 ? fQtS4.GetValue() / nt : 0.0);
+        }
+
+        if (gAngCorrMode)
+        {
+            // W(cos θ) = 1 + A22·P2 + A44·P4 при нормировке <W> = 1 даёт
+            // <P_k> = A_kk/(2k+1); σ — по разбросу P_k в выборке.
+            long n = fAngN.GetValue();
+            double m2 = n > 0 ? fAngS2.GetValue() / n : 0.0;
+            double m4 = n > 0 ? fAngS4.GetValue() / n : 0.0;
+            double v2 = n > 1 ? (fAngS22.GetValue() / n - m2 * m2) / (n - 1) : 0.0;
+            double v4 = n > 1 ? (fAngS44.GetValue() / n - m4 * m4) / (n - 1) : 0.0;
+            std::printf("ANGCORR pairs=%ld A22=%.5f sigma=%.5f A44=%.5f sigma=%.5f E1=%.1f E2=%.1f corr=%d\n",
+                        n, 5.0 * m2, 5.0 * std::sqrt(std::max(0.0, v2)),
+                        9.0 * m4, 9.0 * std::sqrt(std::max(0.0, v4)),
+                        gAngE1Kev, gAngE2Kev, gCorrelatedGamma ? 1 : 0);
+            for (int i = 0; i < kAngBins; ++i)
+            {
+                std::printf("ANGHIST %d %.2f %.2f %d\n", i, -1.0 + 2.0 * i / kAngBins,
+                            -1.0 + 2.0 * (i + 1) / kAngBins, fAngHist[i]->GetValue());
+            }
+        }
         std::printf("RESULT any=%d eps_total=%.6e\n", fAny.GetValue(),
                     decays > 0 ? double(fAny.GetValue()) / decays : 0.0);
         for (size_t i = 0; i < gWindows.size(); ++i)
@@ -604,11 +697,50 @@ public:
         std::fflush(stdout);
     }
 
+    /// Пара квантов распада с косинусом угла между направлениями.
+    void CountPair(double cosTheta)
+    {
+        double c2 = cosTheta * cosTheta;
+        double p2 = 0.5 * (3.0 * c2 - 1.0);
+        double p4 = 0.125 * (35.0 * c2 * c2 - 30.0 * c2 + 3.0);
+        fAngN += 1;
+        fAngS2 += p2;
+        fAngS4 += p4;
+        fAngS22 += p2 * p2;
+        fAngS44 += p4 * p4;
+        int bin = int((cosTheta + 1.0) * 0.5 * kAngBins);
+        if (bin < 0) { bin = 0; }
+        if (bin >= kAngBins) { bin = kAngBins - 1; }
+        *fAngHist[bin] += 1;
+    }
+
     void Count(double edepKev)
     {
         if (edepKev > 1e-3)
         {
             fAny += 1;
+        }
+
+        // Q_k арбитра: cos θ первички (только сценный моно-режим) по событиям
+        // пика первого окна и по событиям с любым вкладом.
+        if (gPrimaryCos <= 1.0 && !gWindows.empty())
+        {
+            double c2 = gPrimaryCos * gPrimaryCos;
+            double p2 = 0.5 * (3.0 * c2 - 1.0);
+            double p4 = 0.125 * (35.0 * c2 * c2 - 30.0 * c2 + 3.0);
+            if (edepKev > 1e-3)
+            {
+                fQtN += 1;
+                fQtS2 += p2;
+                fQtS4 += p4;
+            }
+
+            if (std::fabs(edepKev - gWindows[0]) < kHalfWindowKev)
+            {
+                fQkN += 1;
+                fQkS2 += p2;
+                fQkS4 += p4;
+            }
         }
 
         for (size_t i = 0; i < gWindows.size(); ++i)
@@ -635,6 +767,13 @@ private:
     G4Accumulable<G4int> fAny;
     std::vector<G4Accumulable<G4int>*> fPeaks;
     std::vector<G4Accumulable<G4int>*> fHist;
+    G4Accumulable<G4int> fAngN;
+    G4Accumulable<G4double> fAngS2, fAngS4, fAngS22, fAngS44;
+    std::vector<G4Accumulable<G4int>*> fAngHist;
+    G4Accumulable<G4int> fQkN;
+    G4Accumulable<G4double> fQkS2, fQkS4;
+    G4Accumulable<G4int> fQtN;
+    G4Accumulable<G4double> fQtS2, fQtS4;
 };
 
 class EventAction : public G4UserEventAction
@@ -642,15 +781,81 @@ class EventAction : public G4UserEventAction
 public:
     explicit EventAction(RunAction* run) : fRun(run) {}
 
-    void BeginOfEventAction(const G4Event*) override { fEdepKev = 0.0; }
+    void BeginOfEventAction(const G4Event*) override
+    {
+        fEdepKev = 0.0;
+        fGammas.clear();
+    }
 
-    void EndOfEventAction(const G4Event*) override { fRun->Count(fEdepKev); }
+    void EndOfEventAction(const G4Event*) override
+    {
+        if (gAngCorrMode)
+        {
+            // Ровно один квант E1 и ровно один E2 (±1 кэВ) — иначе пара не та.
+            int i1 = -1, i2 = -1, n1 = 0, n2 = 0;
+            for (size_t i = 0; i < fGammas.size(); ++i)
+            {
+                if (std::fabs(fGammas[i].first - gAngE1Kev) < 1.0) { i1 = int(i); ++n1; }
+                else if (std::fabs(fGammas[i].first - gAngE2Kev) < 1.0) { i2 = int(i); ++n2; }
+            }
+
+            if (n1 == 1 && n2 == 1)
+            {
+                fRun->CountPair(fGammas[i1].second.dot(fGammas[i2].second));
+            }
+
+            return;
+        }
+
+        fRun->Count(fEdepKev);
+    }
 
     void Add(double edepKev) { fEdepKev += edepKev; }
+
+    void AddGamma(double eKev, const G4ThreeVector& dir) { fGammas.emplace_back(eKev, dir); }
 
 private:
     RunAction* fRun;
     double fEdepKev = 0.0;
+    std::vector<std::pair<double, G4ThreeVector>> fGammas;
+};
+
+/// Режим `angcorr`: квант распада записывается в момент постановки в стек и
+/// ГАСИТСЯ (перенос не нужен); ион и всё прочее идут как обычно.
+class StackingAction : public G4UserStackingAction
+{
+public:
+    explicit StackingAction(EventAction* event) : fEvent(event) {}
+
+    G4ClassificationOfNewTrack ClassifyNewTrack(const G4Track* track) override
+    {
+        if (!gAngCorrMode || track->GetParentID() <= 0)
+        {
+            return fUrgent;
+        }
+
+        if (track->GetDefinition() == G4Gamma::GammaDefinition())
+        {
+            const G4VProcess* creator = track->GetCreatorProcess();
+            if (creator != nullptr && creator->GetProcessName().find("adioactiv") != std::string::npos)
+            {
+                fEvent->AddGamma(track->GetKineticEnergy() / keV, track->GetMomentumDirection());
+            }
+
+            return fKill;
+        }
+
+        // электроны/нейтрино распада тоже не нужны; ионы (дочерние состояния) — нужны
+        if (track->GetDefinition()->GetPDGEncoding() < 1000000000)
+        {
+            return fKill;
+        }
+
+        return fUrgent;
+    }
+
+private:
+    EventAction* fEvent;
 };
 
 class SteppingAction : public G4UserSteppingAction
@@ -690,6 +895,7 @@ public:
         auto event = new EventAction(run);
         SetUserAction(event);
         SetUserAction(new SteppingAction(event));
+        SetUserAction(new StackingAction(event));
     }
 
     void BuildForMaster() const override { SetUserAction(new RunAction()); }
@@ -697,15 +903,32 @@ public:
 
 int main(int argc, char** argv)
 {
+    // g4cf [corr] angcorr <Z> <A> <N> <E1_кэВ> <E2_кэВ>   — прямая мерка A22/A44 пары
     // g4cf [scene <файл>] mono <E_кэВ> <N>
     //      | g4cf [scene <файл>] ion <Z> <A> <N> <окно1_кэВ> [окно2 ...]
     //      | g4cf [scene <файл>] hist <E_кэВ> <N> <шаг_бина_кэВ>
     // Файл сцены — вывод effsim --dump-scene; без него сцена вшитая (tube).
-    //      Перед всем этим может стоять `vacuum` — мир пустой вместо воздуха.
+    //      Перед всем этим могут стоять `vacuum` (мир пустой вместо воздуха),
+    //      `corr` (угловые γ–γ корреляции каскада в RDM) и `seed <N>` (зерно
+    //      ГСЧ) — в любом порядке.
     int base = 1;
-    if (argc > base && std::strcmp(argv[base], "vacuum") == 0)
+    while (argc > base && (std::strcmp(argv[base], "vacuum") == 0 || std::strcmp(argv[base], "corr") == 0
+                           || (std::strcmp(argv[base], "seed") == 0 && argc > base + 1)))
     {
-        gVacuumWorld = true;
+        if (std::strcmp(argv[base], "vacuum") == 0)
+        {
+            gVacuumWorld = true;
+        }
+        else if (std::strcmp(argv[base], "seed") == 0)
+        {
+            gSeed = std::atol(argv[base + 1]);
+            base++;
+        }
+        else
+        {
+            gCorrelatedGamma = true;
+        }
+
         base++;
     }
 
@@ -721,14 +944,17 @@ int main(int argc, char** argv)
 
     if (argc < base + 3)
     {
-        std::fprintf(stderr, "g4cf [vacuum] [scene <file>] mono <E_keV> <N> | ion <Z> <A> <N> <windows...>"
+        std::fprintf(stderr, "g4cf [vacuum] [corr] [seed <N>] [scene <file>] mono <E_keV> <N> | ion <Z> <A> <N> <windows...>"
                              " | hist <E_keV> <N> <bin_keV>\n"
                              "  vacuum: empty world instead of air. MANDATORY for bare-crystal"
-                             " checks (T133): air gives 8.232e-4 vs 5.794e-4 in 55...59 keV.\n");
+                             " checks (T133): air gives 8.232e-4 vs 5.794e-4 in 55...59 keV.\n"
+                             "  corr: gamma-gamma angular correlations in RDM (G4DeexPrecoParameters::"
+                             "SetCorrelatedGamma); default is isotropic.\n");
         return 2;
     }
 
-    bool ion = std::strcmp(argv[base], "ion") == 0;
+    bool angcorr = std::strcmp(argv[base], "angcorr") == 0;
+    bool ion = std::strcmp(argv[base], "ion") == 0 || angcorr;
     bool hist = std::strcmp(argv[base], "hist") == 0;
     int argAt = base + 1;
     double energyKev = 0.0;
@@ -738,13 +964,31 @@ int main(int argc, char** argv)
         z = std::atoi(argv[argAt++]);
         a = std::atoi(argv[argAt++]);
     }
-    else
+
+    if (angcorr)
+    {
+        if (argc < argAt + 3)
+        {
+            std::fprintf(stderr, "angcorr: нужны <N> <E1_кэВ> <E2_кэВ>\n");
+            return 2;
+        }
+
+        gAngCorrMode = true;
+        gAngE1Kev = std::atof(argv[argAt + 1]);
+        gAngE2Kev = std::atof(argv[argAt + 2]);
+    }
+    else if (!ion)
     {
         energyKev = std::atof(argv[argAt++]);
         gWindows.push_back(energyKev);
     }
 
     long decays = std::atol(argv[argAt++]);
+    if (angcorr)
+    {
+        argAt += 2;     // E1, E2 уже прочитаны
+    }
+
     if (hist)
     {
         if (argAt >= argc)
@@ -763,14 +1007,36 @@ int main(int argc, char** argv)
         gWindows.push_back(std::atof(argv[argAt]));
     }
 
+    if (gSeed != 0)
+    {
+        // До создания менеджера: мастер раздаёт зёрна потокам от своего ГСЧ.
+        G4Random::setTheSeed(gSeed);
+    }
+
     auto runManager = G4RunManagerFactory::CreateRunManager(G4RunManagerType::Default);
     runManager->SetNumberOfThreads(12);
     runManager->SetUserInitialization(new Detector());
     runManager->SetUserInitialization(new Physics());
     runManager->SetUserInitialization(new Actions());
 
+    // Угловые корреляции — ДО инициализации: после неё параметры деэкситации
+    // заперты (`G4DeexPrecoParameters::IsLocked`), и Set… молча ничего не делает.
+    // Ставится тем же полем, которое читает `/process/had/deex/correlatedGamma`.
+    if (gCorrelatedGamma)
+    {
+        G4NuclearLevelData::GetInstance()->GetParameters()->SetCorrelatedGamma(true);
+    }
+
     auto ui = G4UImanager::GetUIpointer();
     ui->ApplyCommand("/run/initialize");
+    // Читатель флага: значение берётся ОБРАТНО из параметров, а не из ключа —
+    // если Set… не доехал (заперт, перезаписан умолчанием), здесь будет 0.
+    {
+        const G4DeexPrecoParameters* deex = G4NuclearLevelData::GetInstance()->GetParameters();
+        std::printf("SETUP correlatedGamma=%d twoJmax=%d vacuum=%d seed=%ld\n",
+                    deex->CorrelatedGamma() ? 1 : 0, deex->GetTwoJMAX(), gVacuumWorld ? 1 : 0, gSeed);
+        std::fflush(stdout);
+    }
     // Иначе Geant4 11.x молча считает стабильными нуклиды с периодом длиннее
     // порога (по умолчанию ~1 год): Co-60 (5.3 г) просто не распадался.
     ui->ApplyCommand("/process/had/rdm/thresholdForVeryLongDecayTime 1.0e+60 year");
@@ -805,6 +1071,12 @@ int main(int argc, char** argv)
             std::snprintf(buffer, sizeof buffer, "/gps/energy %f keV", energyKev);
             ui->ApplyCommand(buffer);
         }
+    }
+
+    if (gAngCorrMode)
+    {
+        std::printf("SETUP angcorr Z=%d A=%d E1=%.1f E2=%.1f\n", z, a, gAngE1Kev, gAngE2Kev);
+        std::fflush(stdout);
     }
 
     std::snprintf(buffer, sizeof buffer, "/run/beamOn %ld", decays);

@@ -1,0 +1,118 @@
+runs        строк    59  разошлось   20
+   по столбцам: chi2ndf×20, chi2ndf_pois×20, inflate×18, gain×16, model_residual_pct×15, anchor_note×7, anchor_offset_kev×6, offset_ch×4
+   по спектрам (20): 
+      AS80_Lu176                   anchor_note, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      AS80_Th232Medal              anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, offset_ch
+      ASN16_Lu176                  chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      ASN16_Lu176_P0               chi2ndf, chi2ndf_pois, gain
+      G1S16_Ba133_P25              chi2ndf, chi2ndf_pois, gain, inflate
+      G1S16_Ba133_P5               anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S16_Co60_P25               chi2ndf, chi2ndf_pois, inflate, model_residual_pct
+      G1S16_Co60_P5                chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S16_Eu152_P25              chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S16_Eu152_P5               anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S16_Th228_P5               anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S16_Y88_P5                 chi2ndf, chi2ndf_pois, gain, model_residual_pct
+      G1S24_Ba133_P5               anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S24_Bi207_P5               chi2ndf, chi2ndf_pois, inflate
+      G1S24_Co60_P5                chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S24_Eu152_P5               chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S24_Th228_P25              chi2ndf, chi2ndf_pois, gain, inflate
+      G1S24_Th228_P5               anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S24_Y88_P25                chi2ndf, chi2ndf_pois, inflate, model_residual_pct
+      G1S24_Y88_P5                 chi2ndf, chi2ndf_pois, inflate, model_residual_pct
+components  строк   112  разошлось   91
+   по столбцам: share_pct×84, decay_s×61, z×59, peak_counts×54, inflate×51, peak_share_pct×27, dt_decay_s×22, mda_decay_s×22
+   по спектрам (43): 
+      AS80_Cs137_0cm               share_pct
+      AS80_Lu176                   decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, share_pct, z
+      AS80_Th232Medal              decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      ASN16_Lu176                  decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      ASN16_Lu176_P0               decay_s, dt_decay_s, mda_decay_s, peak_counts, share_pct, z
+      G1S16_Am241_P25              share_pct
+      G1S16_Am241_P5               share_pct
+      G1S16_Ba133_P25              decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, share_pct, z
+      G1S16_Ba133_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, share_pct, z
+      G1S16_Cd109_P25              share_pct
+      G1S16_Cd109_P5               share_pct
+      G1S16_Ce139_P25              share_pct
+      G1S16_Ce139_P5               share_pct
+      G1S16_Co57_P5                share_pct
+      G1S16_Co60_P25               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, share_pct, z
+      G1S16_Co60_P5                decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, share_pct, z
+      G1S16_Cs137_P25              share_pct
+      G1S16_Cs137_P5               share_pct
+      G1S16_Eu152_P25              decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, share_pct, z
+      G1S16_Eu152_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, share_pct, z
+      G1S16_Mn54_P25               share_pct
+      G1S16_Mn54_P5                share_pct
+      G1S16_Na22_P25               share_pct
+      G1S16_Na22_P5                share_pct
+      G1S16_Th228_P25              decay_s, dt_decay_s, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S16_Th228_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S16_Y88_P25                decay_s, dt_decay_s, mda_decay_s
+      G1S16_Y88_P5                 decay_s, dt_decay_s, mda_decay_s, peak_counts, share_pct, z
+      G1S24_Am241_P5               share_pct
+      G1S24_Ba133_P5               dt_decay_s, inflate, mda_decay_s, peak_counts, share_pct, z
+      G1S24_Bi207_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, share_pct, z
+      G1S24_Cd109_P5               share_pct
+      G1S24_Co60_P5                decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, share_pct, z
+      G1S24_Cs137_P25              share_pct
+      G1S24_Cs137_P5               share_pct
+      G1S24_Eu152_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, share_pct, z
+      G1S24_Na22_P25               share_pct
+      G1S24_Na22_P5                share_pct
+      G1S24_Th228_P25              decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Th228_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Y88_P25                decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, share_pct, z
+      G1S24_Y88_P5                 decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Zn65_P5                share_pct
+limits      строк    45  разошлось   22
+   по столбцам: dt_decay_s×22, mda_decay_s×22, decay_s×21, collinearity×18, mda_peak_counts×18
+   по спектрам (22): 
+      AS80_Lu176                   collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      AS80_Th232Medal              collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      ASN16_Lu176                  collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      ASN16_Lu176_P0               collinearity, decay_s, dt_decay_s, mda_decay_s
+      G1S16_Ba133_P25              collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Ba133_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Co60_P25               collinearity, decay_s, dt_decay_s, mda_decay_s
+      G1S16_Co60_P5                collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Eu152_P25              decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Eu152_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Th228_P25              decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Th228_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Y88_P25                decay_s, dt_decay_s, mda_decay_s
+      G1S16_Y88_P5                 collinearity, decay_s, dt_decay_s, mda_decay_s
+      G1S24_Ba133_P5               collinearity, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Bi207_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Co60_P5                collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Eu152_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Th228_P25              decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Th228_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Y88_P25                collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Y88_P5                 collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+anchors     строк   217  разошлось  157
+   по столбцам: z×133, measured_kev×128, shift_kev×125, peak_share×115, model_kev×111, sigma_kev×43, ch_lo×1, ch_hi×1
+   по спектрам (20): 
+      AS80_Lu176                   measured_kev, model_kev, peak_share, z
+      AS80_Th232Medal              measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      ASN16_Lu176                  measured_kev, model_kev, peak_share, shift_kev, z
+      ASN16_Lu176_P0               measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Ba133_P25              measured_kev, model_kev, peak_share, shift_kev, z
+      G1S16_Ba133_P5               measured_kev, model_kev, peak_share, shift_kev, z
+      G1S16_Co60_P25               measured_kev, shift_kev
+      G1S16_Co60_P5                measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Eu152_P25              measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Eu152_P5               measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Th228_P25              measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Th228_P5               ch_hi, ch_lo, measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Y88_P5                 measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Ba133_P5               measured_kev, model_kev, peak_share, shift_kev, z
+      G1S24_Co60_P5                measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Eu152_P5               measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Th228_P25              measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Th228_P5               measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Y88_P25                measured_kev
+      G1S24_Y88_P5                 measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+ИТОГО разошлось 290 — РАСХОЖДЕНИЕ

@@ -156,8 +156,8 @@
    3000
   ]
  ],
- "declared": "2026-09-14 23:15",
- "head": "cf4788a7",
+ "declared": "2026-09-15 23:37",
+ "head": "952911e9",
  "head_lines": {
   "chi2": "chi2/ndf 1.368, невязка модели 81.8 %, суммирование да",
   "composition": "состав объявлен: ; ряды: Ra-226, Th-232; распад 2, атомных 2, линий 226; полоса сведена ПОЛОМ ПО КРИВОЙ 20.0 кэВ (1.0 % от максимума, Min_Range 5.0), фит на всём спектре (умолчание); членов ряда ниже порога ветвления 4; вылет от линий состава: SE-2615, DE-2615, SE-1764, DE-1764, SE-2204, DE-2204",
@@ -179,11 +179,11 @@
    }
   },
   "probes": {
-   "app_sha": "f5222595dffda3b5",
-   "built": "2026-09-14 23:15:28",
-   "dir": "tools/effmaker/probes/build",
+   "app_sha": "369a9835829ef9dc",
+   "built": "2026-09-15 23:30:19",
+   "dir": "tools/effmaker/probes/build_p86",
    "freshness_checked": true,
-   "shot_sha": "301cb5b4092fcaa3"
+   "shot_sha": "afabbad31d1b8c9d"
   },
   "spectrum": "spectra/ASN16_Radon_filter2.xml",
   "spectrum_sha": "2a6d45f77aef3125"
@@ -538,7 +538,7 @@
    "Пики полного поглощения, по которым привязана шкала (+ опора, - отвергнут): компонент, центр модели кэВ, остаток кэВ, доля пика, причина"
   ]
  ],
- "seconds": 4.6,
+ "seconds": 2.4,
  "spectrum": "spectra/ASN16_Radon_filter2.xml",
  "tolerance": {
   "abs": 1e-06,

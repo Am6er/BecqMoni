@@ -656,8 +656,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ничего не меняет — сцене нечем ослабить корреляцию, и это не отказ:
         /// счёт идёт изотропно, как прежде, а состояние видно снаружи
         /// (<see cref="AngularPairs"/>). Умолчание — у анализатора
-        /// (<c>FsaAnalyzer.CascadeSumAngular</c>), рычаг проб —
-        /// `--angcorr=0|1` у `CorpusFsaProbe`. Ставится до первого
+        /// (<c>FsaAnalyzer.CascadeSumAngular</c>; с 15.09.2026, П86 — ВКЛ,
+        /// после правки знака δ заселяющего перехода в
+        /// <see cref="AngularCorrelation.For"/>), здесь поле пустое — false,
+        /// пока анализатор его не выставит; рычаг проб — `--angcorr=0|1` у
+        /// `CorpusFsaProbe`/`FsaCascadeProbe`. Ставится до первого
         /// <see cref="For"/>, как и <see cref="PhotonLightCurve"/>.
         /// </summary>
         public bool AngularCorrelations { get; set; }
