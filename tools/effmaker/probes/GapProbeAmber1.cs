@@ -401,7 +401,12 @@ namespace GapProbeAmber1
                 old.FrontGapThickness, old.SideGapThickness, old.Gap.Name);
             Check("старый файл: торец ноль", 0.0, old.FrontGapThickness, 1e-12);
             Check("старый файл: бок ноль", 0.0, old.SideGapThickness, 1e-12);
-            Check("старый файл: вещества нет", "", old.Gap.Name);
+            // (`AMBER47`, 17.09.2026) Вещество у старого файла — ВОЗДУХ, а не
+            // пустота: «GAP по умолчанию - воздух (Air, dry)» (слово Amber).
+            // До 17.09.2026 здесь ждали пустое имя; на сцену и клеймо смена не
+            // влияет — толщина ноль, слоя нет, вещество нулевого зазора в клеймо
+            // не входит (проверка `Stamp()` ниже). Полная приёмка — `GapDefaultProbe`.
+            Check("старый файл: вещество — воздух по умолчанию", "Air, dry", old.Gap.Name);
         }
 
         static GeometryModel LoadText(string text)
