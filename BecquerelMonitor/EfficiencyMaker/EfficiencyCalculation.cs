@@ -573,6 +573,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // счёта физики 18), чтобы кривая и склад считали одну физику.
                 ElectronAnyMaterial = storePhysics.ElectronAnyMaterial,
                 BremAlongPath = storePhysics.BremAlongPath,
+                // (`AMBER44`/`M12`, П94 17.09.2026) Перенос электрона в слоях
+                // обвязки (занос и возврат) — тем же путём: от умолчания
+                // настроек склада (ВЫКЛ до единого счёта физики 19), чтобы
+                // кривая и склад считали одну физику.
+                ElectronLayerTransport = storePhysics.ElectronLayerTransport,
             };
 
             log(geometry.Describe());
@@ -715,6 +720,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         ImportanceSampling = simulator.ImportanceSampling,
                         ElectronAnyMaterial = simulator.ElectronAnyMaterial,
                         BremAlongPath = simulator.BremAlongPath,
+                        ElectronLayerTransport = simulator.ElectronLayerTransport,
                     };
                 },
                 (range, loop, worker) =>
@@ -856,8 +862,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             // и клеймо обязано это нести; у сосуда — клеймо посимвольно прежнее.
             // `; ecomp=1` и `; bpath=N` (`N4`/`F11` (г), `M3`, П44 13.09.2026) —
             // теми же именами, что у клейма матрицы, только включёнными.
+            // `; eltr=1` (`AMBER44`/`M12`, П94 17.09.2026) — тем же именем, что у
+            // клейма матрицы, только включённым: при ВЫКЛ клеймо кривой
+            // посимвольно прежнее.
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
@@ -879,7 +888,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 storePhysics.ElectronAnyMaterial ? "; ecomp=1" : "",
                 storePhysics.BremAlongPath != 0
                     ? "; bpath=" + storePhysics.BremAlongPath.ToString(CultureInfo.InvariantCulture)
-                    : "");
+                    : "",
+                storePhysics.ElectronLayerTransport ? "; eltr=1" : "");
             return result;
         }
 

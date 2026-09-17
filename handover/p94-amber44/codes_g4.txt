@@ -1,0 +1,9 @@
+g4 RC103_point0_661.657_def code=0 n=40000000 keys=[] probe=build_p94 17:16:42 dt=211s
+g4 RC103_point0_59.541_def code=0 n=40000000 keys=[] probe=build_p94 17:21:00 dt=258s
+done g4 D:\BqMoni_Claude\p94\plan_g4.csv 17:21:00
+g4 RC103_point0_p55_2614.511_killcarry code=0 n=20000000 keys=[killcarry] probe=build_p94 17:52:34 dt=154s
+g4 RC103_point0_p55_2614.511_fullcarry code=0 n=20000000 keys=[fullcarry] probe=build_p94 17:55:21 dt=167s
+done g4 D:\BqMoni_Claude\p94\plan_4_diag2614.csv 17:55:21
+g4 RC103_point0_p55_bare_2614.511_def code=0 n=20000000 keys=[] probe=build_p94 18:06:29 dt=152s
+g4 RC103_point0_p55_nofront_2614.511_def code=0 n=20000000 keys=[] probe=build_p94 18:09:01 dt=152s
+done g4 D:\BqMoni_Claude\p94\plan_5_bare2614.csv 18:09:01

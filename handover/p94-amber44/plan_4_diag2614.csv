@@ -1,0 +1,5 @@
+# П94 — разложение 2614 на сцене П55 RC103: занос/возврат порознь у арбитра (killcarry/fullcarry, как П92 при 1461/662) и наши ВЫКЛ-плечи (off, detour0) — до правки эти плечи при 2614 не считались.
+g4;RC103_point0_p55;2614.511;20000000;killcarry;killcarry
+g4;RC103_point0_p55;2614.511;20000000;fullcarry;fullcarry
+ours;RC103_point0_p55;2614.511;40000000;off;
+ours;RC103_point0_p55;2614.511;20000000;off_detour0;--detour=0

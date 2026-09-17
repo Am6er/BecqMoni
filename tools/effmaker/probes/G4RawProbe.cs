@@ -25,7 +25,26 @@ namespace G4RawProbe
     ///                [--bands=1-12,13-25,55-59] [--peakw] [--lys=0|1|2]
     ///                [--etr=0|1] [--etr-step=0.1] [--kdip=0|1|2|3]
     ///                [--positron=0|1] [--posoffset=0|1] [--rayl2[=0|1]]
-    ///                [--ecomp=0|1] [--bpath=0|1|2]
+    ///                [--ecomp=0|1] [--bpath=0|1|2] [--detour=0.7] [--eltr=0|1]
+    ///
+    /// `--eltr=1` (`AMBER44` + правка заноса `M12`, П94 17.09.2026; решения Amber
+    /// «Перенос в слоях обвязки», «Одной полосой с AMBER44»): ключ
+    /// `ElectronLayerTransport` — электрон, вылетевший из кристалла, ведётся в
+    /// слоях обвязки (ESTAR слоя, Хайленд, переходы между слоями) и может
+    /// вернуться; занос рождённого в слое — тем же переносом, направление по
+    /// процессу, дошедший — в перенос по кристаллу. Умолчание — склада (ВЫКЛ до
+    /// единого счёта физики 19). Мерка: RC103 (П55 и живая) 662/1461/59.5, диск
+    /// AS80 1461/2614 против `g4cf` умолчанием (арбитр С возвратом) по полосам
+    /// П92 (`cmp92.py`); `--detour=0` у нас против `killcarry` у арбитра — что
+    /// вне заноса ничего не сдвинулось. ⚠ Доля `--detour=<x>` при `--eltr=1` не
+    /// читается (обхода по прямой там нет), но `--detour=0` значит «заноса нет»
+    /// в ОБОИХ режимах: плечо `--eltr=1 --detour=0` — возврат без заноса.
+    ///
+    /// `--detour=<x>` (`M12`, П92 17.09.2026) — РЫЧАГ АБЛЯЦИИ заноса электронов
+    /// из обвязки: `ElectronCarryDetour` (умолчание 0.7 — доля пробега CSDA по
+    /// прямой). `--detour=0` — заноса нет вовсе (зеркало ключа `killcarry` у
+    /// арбитра `g4cf`): «def − detour=0» у нас против «def − killcarry» у Geant4
+    /// мерит вклад заноса по полосам порознь. Не настройка склада — замер.
     ///
     /// `--ecomp=1` (`N4`/`F11` (г), П44 13.09.2026): электрон в произвольном
     /// веществе — пробег по составу слоя и тормозное электронов, рождённых вне
@@ -136,6 +155,8 @@ namespace G4RawProbe
             int kdip = store.KDipLight;                 // `F11` (а)/П17: K-провал и раздельный каскад — умолчание склада (1)
             bool ecomp = store.ElectronAnyMaterial;     // `N4`/`F11` (г), П44 — умолчание склада (ВКЛ с физики 18, П50)
             int bpath = store.BremAlongPath;            // `M3`, П44 — умолчание склада (2 с физики 18, П50)
+            double detour = -1.0;                       // <0 — умолчание симулятора (`M12`, П92)
+            bool eltr = store.ElectronLayerTransport;   // `AMBER44`/`M12`, П94 — умолчание склада (ВЫКЛ до физики 19)
             double escSlope = -1.0;
             double escSoft = -1.0, escSoftKev = -1.0;   // `A63`
             double escCurve = -1.0;                     // `A70`
@@ -225,6 +246,24 @@ namespace G4RawProbe
                     }
 
                     bpath = int.Parse(v, CultureInfo.InvariantCulture);
+                    continue;
+                }
+                // `M12` (П92): доля пробега заносимого электрона по прямой; 0 — заноса нет.
+                if (a.StartsWith("--detour=", StringComparison.Ordinal))
+                {
+                    detour = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
+                    if (detour < 0.0)
+                    {
+                        Console.Error.WriteLine("--detour= принимает число >= 0: " + a);
+                        return 2;
+                    }
+
+                    continue;
+                }
+                // `AMBER44`/`M12` (П94): перенос электрона в слоях обвязки — занос и возврат.
+                if (a.StartsWith("--eltr=", StringComparison.Ordinal))
+                {
+                    eltr = Flag01(a, 7);
                     continue;
                 }
                 if (a.StartsWith("--esc-soft=", StringComparison.Ordinal))
@@ -335,6 +374,8 @@ namespace G4RawProbe
             simulator.ElectronTransport = etr;          // `A72`, П27
             simulator.ElectronAnyMaterial = ecomp;      // `N4`/`F11` (г), П44
             simulator.BremAlongPath = bpath;            // `M3`, П44
+            if (detour >= 0.0) { simulator.ElectronCarryDetour = detour; }   // `M12`, П92
+            simulator.ElectronLayerTransport = eltr;    // `AMBER44`/`M12`, П94
             simulator.LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(kdip);
             simulator.LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(kdip);
             if (etrStep > 0.0) { simulator.ElectronStepFraction = etrStep; }
@@ -388,6 +429,14 @@ namespace G4RawProbe
             Console.WriteLine("электрон в произвольном веществе (`N4`, --ecomp=): {0}{1}",
                               ecomp ? "ВКЛ (пробег и тормозное обвязки по составу)" : "выкл (вода, тормозного обвязки нет)",
                               ecomp == store.ElectronAnyMaterial ? " (умолчание склада)" : " (ключом)");
+            Console.WriteLine("занос электрона из обвязки (`M12`, --detour=): доля пробега по прямой {0}{1}",
+                              simulator.ElectronCarryDetour.ToString("0.###", CultureInfo.InvariantCulture),
+                              detour < 0.0 ? " (умолчание симулятора)" : detour == 0.0 ? " (ключом — ЗАНОСА НЕТ)" : " (ключом)");
+            Console.WriteLine("перенос электрона в слоях обвязки — занос и возврат (`AMBER44`/`M12`, --eltr=): {0}{1}",
+                              eltr ? (detour == 0.0 ? "ВКЛ, ЗАНОСА НЕТ (--detour=0): только возврат вылетевшего из кристалла"
+                                                   : "ВКЛ (возврат вылетевшего из кристалла; занос переносом в слое и по кристаллу, доля --detour= не читается)")
+                                   : "выкл (вылет — конец истории; занос по прямой с detour, остаток куском)",
+                              eltr == store.ElectronLayerTransport ? " (умолчание склада)" : " (ключом)");
             Console.WriteLine("тормозное вдоль пути (`M3`, --bpath=): {0}{1}",
                               bpath == 0 ? "выкл (в точке рождения)" : bpath == 1 ? "1 (на шагах переноса, изотропно)" : "2 (на шагах переноса, по электрону)",
                               bpath == store.BremAlongPath ? " (умолчание склада)" : " (ключом)");
@@ -447,6 +496,13 @@ namespace G4RawProbe
             // одной пробой — печатаются здесь, чтобы отказ было видно.
             Console.WriteLine("отброшено переполнением: очередь квантов {0}, вылеты {1}",
                               simulator.CountPendingDropped, simulator.CountEscapeDropped);
+            // (`AMBER44`/`M12`, П94) Счётчики переноса электрона в слоях обвязки: без ключа все нули.
+            Console.WriteLine("перенос в слоях обвязки (`AMBER44`): вылетов из кристалла в слои {0}, из них вернулось {1} ({2} на историю, средняя энергия возврата {3} кэВ), занесено из слоя в кристалл {4} ({5} на историю)",
+                              simulator.CountLayerEscapes, simulator.CountLayerReturns,
+                              ((double)simulator.CountLayerReturns / histories).ToString("0.000E+00", CultureInfo.InvariantCulture),
+                              (simulator.CountLayerReturns > 0 ? simulator.SumLayerReturnKev / simulator.CountLayerReturns : 0.0).ToString("0.0", CultureInfo.InvariantCulture),
+                              simulator.CountLayerCarries,
+                              ((double)simulator.CountLayerCarries / histories).ToString("0.000E+00", CultureInfo.InvariantCulture));
             Console.WriteLine("комптонов в кристалле {0}, с вакансией {1}, ответили рентгеном {2} (`A61`)",
                               simulator.CountCrystalCompton, simulator.CountCrystalVacancy,
                               simulator.CountVacancyXray);

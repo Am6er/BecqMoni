@@ -856,6 +856,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // клеймо `ecomp=1`/`bpath=N` лгало бы о происхождении матрицы.
                 ElectronAnyMaterial = options.ElectronAnyMaterial,
                 BremAlongPath = options.BremAlongPath,
+                // ⛔ (`AMBER44`/`M12`, П94 17.09.2026) Перенос электрона в слоях
+                // обвязки (занос и возврат) — тем же путём: не доехав до
+                // построителя, ключ мёртв (`S130`), а клеймо `eltr=1` лгало бы
+                // о происхождении матрицы.
+                ElectronLayerTransport = options.ElectronLayerTransport,
                 // ⛔ (`E34`) ДОПУСК ПИКА. Ноль здесь стоял безусловно, и это
                 // запирало поправку на однократное рассеяние: `InPeak` требует
                 // `E − deposited ≤ допуск`, а у рассеявшегося кванта недобор
