@@ -59,3 +59,17 @@ tools/CORPUS/scripts/wd_key_guid.csv
 # `check_fsa_showcase.py` (копия каталога проб + конфиг витрины + выходы прогона).
 tools/fsa_showcase/store/
 tools/fsa_showcase/wd/
+# ⛔ Распоряжение Amber 17.09.2026: «никакие скриншоты не комитить». Снимки экрана и
+# картинки-свидетельства живут на диске (handover/<полоса>/ или D:\BqMoni_Claude\<полоса>\),
+# в git не кладутся; 240 картинок сняты из HEAD 17.09.2026, сторож — tools/check_no_images.py.
+handover/**/*.png
+handover/**/*.jpg
+handover/**/*.jpeg
+handover/**/*.bmp
+handover/**/*.gif
+handover/**/*.svg
+handover/**/*.emf
+handover/**/*.wmf
+handover/**/*.webp
+handover/**/*.tif
+handover/**/*.tiff
