@@ -44,6 +44,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// теряют наравне с пиком, но их поправка здесь НЕ применяется — они малы,
     /// а разделять правило на три случая ради этого рано.
     ///
+    /// ⛔ ДОЛЯ ПАРЫ — ИЗ СХЕМЫ УРОВНЕЙ, НЕ ИЗ ПОСТАВКИ (`S176`, 17.09.2026).
+    /// Таблица SandiaDecay даёт ПЕРЕЧЕНЬ пар γ-γ и выходы линий, а её
+    /// `fraction` несёт лишний множитель на каждый пройденный уровень (у
+    /// Eu-152 в Sm-152 — 0.37, оттого суммы 1408+122 и 1112+122 выходили в
+    /// 2.7 раза ниже обоих арбитров П85). P(B|A) считается теперь ходом по
+    /// схеме `g4_gamma` дочернего ядра — <see cref="RectifyBySchemes"/>,
+    /// <see cref="CascadeAtomicData.LevelScheme"/>; пары, которым в схеме
+    /// места не нашлось, остаются с долей поставки и считаются.
+    ///
     /// РЕНТГЕН И АННИГИЛЯЦИЯ В ПАРАХ (S27, 18.08.2026). Таблицы SandiaDecay
     /// держат только пары γ-γ, а из распада вылетает и не-гамма: K-рентген
     /// дочернего атома (до 115 % на распад у захватных) и два кванта по
@@ -119,6 +128,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 get { return this.ThirdKev > 0.0; }
             }
 
+            /// <summary>
+            /// Срезан ПРАВИЛОМ ПЛОЩАДИ (<see cref="SumPeakAreaShare"/> /
+            /// <see cref="MaxSumPeaks"/>), а не порогом `SumPeakFloor`. Имеет
+            /// смысл только у членов <see cref="Correction.DroppedSumPeaks"/>:
+            /// отчёт обязан различать «в образ не пошёл, потому что не виден»
+            /// и «не пошёл, потому что образ полон» — у Eu-152 на `G1S_point5`
+            /// подпороговых 86 пар на 3.6 % Σ, а срезанных правилом — тройки
+            /// по 2e-7 (П93, `S176`).
+            /// </summary>
+            public bool Trimmed { get; internal set; }
+
             public SumPeak(double energy, double area, string nuclide,
                            double fromKev, double withKev, double thirdKev)
                 : this(energy, area, nuclide, fromKev, withKev)
@@ -189,6 +209,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public double[] LineFactors { get; set; }
 
             public List<SumPeak> SumPeaks { get; set; }
+
+            /// <summary>
+            /// Сумм-пики, ПОСЧИТАННЫЕ, но в образ НЕ попавшие: срезанные по
+            /// площади (<see cref="SumPeakAreaShare"/>, <see cref="MaxSumPeaks"/>)
+            /// и не прошедшие порог `SumPeakFloor` (парные; тройки ведут свой
+            /// журнал `TripleLog`). Только для отчёта
+            /// (<see cref="FsaCascadeSummer.Describe"/>) — в счёте не
+            /// участвуют. Заведено 17.09.2026 (П90, `S176`): описание
+            /// `Describe` обещало печатать срезанное с 13.08.2026, а печатало
+            /// только выжившее, и «пары 444+1086 нет вовсе» (П85) читалось как
+            /// дефект модели, тогда как пара просто стояла за тогдашним срезом
+            /// числом (24 на компонент; снят тем же днём полосой П93).
+            /// </summary>
+            public List<SumPeak> DroppedSumPeaks { get; set; }
 
             /// <summary>
             /// Сумм-континуум (S19): частичное поглощение третьего кванта.
@@ -307,8 +341,49 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         const double SumPeakFloor = 1.0E-4;
 
-        /// <summary>Больше этого числа сумм-пиков на компонент не берём.</summary>
-        const int MaxSumPeaks = 24;
+        /// <summary>
+        /// СРЕЗ СУММ-ПИКОВ НУКЛИДА — ПО ПЛОЩАДИ. Пары (и тройки) одного
+        /// нуклида идут в образ по убыванию площади, пока не набрана эта доля
+        /// суммарной площади его сумм-пиков на сцене; остальное — «(не в
+        /// образе)», <see cref="Correction.DroppedSumPeaks"/> с пометкой
+        /// <see cref="SumPeak.Trimmed"/>.
+        ///
+        /// Σ — площадь КАНДИДАТОВ В ОБРАЗ: пар выше `SumPeakFloor` и троек выше
+        /// своего порога (`S113`). Подпороговое в Σ не входит нарочно: порог —
+        /// отдельное, старшее правило («не виден — не ставится»), и мерить
+        /// долю от него значило бы сделать 99 % недостижимыми там, где порог
+        /// держит больше 1 %: у Eu-152 на `G1S_point5` подпороговые 86 пар с
+        /// K-рентгеном Sm (каждая меньше 1e-4 линии 122) несут 3.6 % всего
+        /// посчитанного, и правило, считанное от всего, упиралось бы в предел
+        /// <see cref="MaxSumPeaks"/> на 95.8 % — не потому, что образ полон, а
+        /// потому, что порог уже забрал своё. `Describe` печатает обе доли —
+        /// от кандидатов (мера правила) и от всего посчитанного — и массу
+        /// подпорогового отдельно, чтобы цена порога была видна.
+        ///
+        /// Решение Amber 17.09.2026, вопросником, дословно: **«Срез по
+        /// площади: держать 99 % Σ»** (`S176`, исполнение П93). До того срез
+        /// шёл ЧИСЛОМ — 24 сумм-пика на компонент, — и число это ничем не
+        /// мерилось: у Eu-152 на `G1S_point5` оно резало **22.9 %** посчитанной
+        /// площади сумм (2.47e-4 из 1.08e-3 на распад; 54 срезанных пары выше
+        /// 1e-6, среди них 964+45.5 1.17e-5, 444+122 9.9e-6, 368+344 7.8e-6 —
+        /// П90), а пара 444+1086, которую оба арбитра (Geant4, TCCFCALC2)
+        /// считают в окне 1529.8 кэВ, стояла 48-й из 317 и в образ не попадала
+        /// — П85 прочёл это как «пары нет вовсе», то есть как дефект модели.
+        ///
+        /// Мера — нуклид, а не компонент: пары совпадений живут внутри одного
+        /// нуклида (см. <see cref="Compute"/>), и у компонента-цепочки срез
+        /// по общей сумме отдал бы весь образ сильнейшему дочернему, оставив
+        /// слабых (Ac-228 с сотнями мелких пар) без сумм вовсе.
+        /// </summary>
+        const double SumPeakAreaShare = 0.99;
+
+        /// <summary>
+        /// Верхний предел сумм-пиков ОДНОГО НУКЛИДА в образе — страховка среза
+        /// <see cref="SumPeakAreaShare"/> (то же решение Amber 17.09.2026:
+        /// «верхний предел 96 пар»): у нуклида с сотнями почти равных пар доля
+        /// набиралась бы хвостом, каждый член которого в образе не виден.
+        /// </summary>
+        const int MaxSumPeaks = 96;
 
         /// <summary>
         /// ЖУРНАЛ ТРОЙНЫХ СУММ (`S19`, диагностика). Каждая рассмотренная тройка
@@ -996,14 +1071,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// перечня нельзя.
         ///
         /// Печатается всё, что посчитано, включая отброшенное порогом
-        /// (`SumPeakFloor`) и срезанное `MaxSumPeaks`: в `Correction` попадает
-        /// только выжившее, а знать надо и то, что не выжило.
+        /// (`SumPeakFloor`) и срезанное по площади (`SumPeakAreaShare`,
+        /// `MaxSumPeaks`): в образ идёт только выжившее, а знать надо и то, что
+        /// не выжило. ⚠ До 17.09.2026 (П90, `S176`) это обещание не
+        /// исполнялось: печатался список ПОСЛЕ среза, и «пары 444+1086 нет
+        /// вовсе» (П85) читалось как дефект модели. Срезанное лежит в
+        /// <see cref="Correction.DroppedSumPeaks"/>; сводка среза по нуклидам
+        /// («в образе K сумм из N, доля площади») — приёмка правила 99 % Σ.
         ///
         /// Рентгеновских линий здесь нет и быть пока не может: библиотека FSA
         /// не различает γ и рентген (у `FsaLine` нет вида линии, см. TODO R2),
         /// так что раздела «xray_peaks» у нас нет не потому, что его не
         /// напечатали, а потому, что его нечем наполнить.
         /// </summary>
+        /// <summary>Счётчик сводки среза в <see cref="Describe"/>: площадь и число сумм по нуклиду.</summary>
+        static void Tally(SumPeak peak, Dictionary<string, double> area, Dictionary<string, int> count,
+                          List<string> order)
+        {
+            string key = peak.Nuclide ?? "";
+            if (!area.ContainsKey(key))
+            {
+                area[key] = 0.0;
+                count[key] = 0;
+            }
+
+            area[key] += peak.Area;
+            count[key] += 1;
+            if (!order.Contains(key))
+            {
+                order.Add(key);
+            }
+        }
+
         public string Describe(FsaComponent component)
         {
             Correction correction = this.For(component);
@@ -1046,6 +1145,86 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // Сводка среза по нуклидам (`S176`, П93): сколько сумм в образе из
+            // посчитанных и какая доля площади набрана — это и есть приёмка
+            // правила «держать 99 % Σ», иначе его исполнение не видно.
+            if (correction.SumPeaks != null && correction.SumPeaks.Count > 0)
+            {
+                sb.AppendLine();
+                var keptArea = new Dictionary<string, double>();
+                var keptCount = new Dictionary<string, int>();
+                var trimArea = new Dictionary<string, double>();
+                var trimCount = new Dictionary<string, int>();
+                var floorArea = new Dictionary<string, double>();
+                var floorCount = new Dictionary<string, int>();
+                var order = new List<string>();
+                foreach (SumPeak peak in correction.SumPeaks)
+                {
+                    Tally(peak, keptArea, keptCount, order);
+                }
+
+                if (correction.DroppedSumPeaks != null)
+                {
+                    foreach (SumPeak peak in correction.DroppedSumPeaks)
+                    {
+                        if (peak.Trimmed)
+                        {
+                            Tally(peak, trimArea, trimCount, order);
+                        }
+                        else
+                        {
+                            Tally(peak, floorArea, floorCount, order);
+                        }
+                    }
+                }
+
+                foreach (string nuclide in order)
+                {
+                    int kept = keptCount.ContainsKey(nuclide) ? keptCount[nuclide] : 0;
+                    int trimmed = trimCount.ContainsKey(nuclide) ? trimCount[nuclide] : 0;
+                    int below = floorCount.ContainsKey(nuclide) ? floorCount[nuclide] : 0;
+                    double keptSum = keptArea.ContainsKey(nuclide) ? keptArea[nuclide] : 0.0;
+                    double trimSum = trimArea.ContainsKey(nuclide) ? trimArea[nuclide] : 0.0;
+                    double floorSum = floorArea.ContainsKey(nuclide) ? floorArea[nuclide] : 0.0;
+                    double candidates = keptSum + trimSum;
+                    double everything = candidates + floorSum;
+                    sb.AppendFormat(CultureInfo.InvariantCulture,
+                        "  срез {0}: в образе {1} сумм из {2} кандидатов — {3:F2} % их площади (правило {4:F0} % Σ, не более {5}); срезано {6} (Σ {7:E2}); подпороговых (SumPeakFloor) {8} (Σ {9:E2}, {10:F2} % всего посчитанного); в образе {11:F2} % всего посчитанного",
+                        nuclide, kept, kept + trimmed,
+                        candidates > 0.0 ? keptSum / candidates * 100.0 : 0.0,
+                        SumPeakAreaShare * 100.0, MaxSumPeaks, trimmed, trimSum, below, floorSum,
+                        everything > 0.0 ? floorSum / everything * 100.0 : 0.0,
+                        everything > 0.0 ? keptSum / everything * 100.0 : 0.0);
+                    sb.AppendLine();
+                }
+            }
+
+            // Посчитанное, но в образ не попавшее — срез по площади и порог
+            // `SumPeakFloor` (П90, `S176`): без этого «суммы нет» неотличимо
+            // от «сумма не посчиталась».
+            if (correction.DroppedSumPeaks != null && correction.DroppedSumPeaks.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendFormat(CultureInfo.InvariantCulture,
+                    "  посчитано, но в образ НЕ идёт ({0}: срез {1:F0} % Σ площади нуклида, не более {2}, и порог SumPeakFloor):",
+                    correction.DroppedSumPeaks.Count, SumPeakAreaShare * 100.0, MaxSumPeaks);
+                sb.AppendLine();
+                var rest = new List<SumPeak>(correction.DroppedSumPeaks);
+                rest.Sort((a, b) => b.Area.CompareTo(a.Area));
+                foreach (SumPeak peak in rest)
+                {
+                    string parts = peak.IsTriple
+                        ? string.Format(CultureInfo.InvariantCulture, "{0:F2}+{1:F2}+{2:F2}",
+                                        peak.FromKev, peak.WithKev, peak.ThirdKev)
+                        : string.Format(CultureInfo.InvariantCulture, "{0:F2}+{1:F2}",
+                                        peak.FromKev, peak.WithKev);
+                    sb.AppendFormat(CultureInfo.InvariantCulture,
+                        "  {0,11:F2}   {1,-22}  {2,-10}  {3,12:E4}  (не в образе: {4})",
+                        peak.Energy, parts, peak.Nuclide, peak.Area, peak.Trimmed ? "срез" : "порог");
+                    sb.AppendLine();
+                }
+            }
+
             sb.AppendLine();
             sb.AppendLine("Раскладка CF по линиям (A_ист = A_набл · CF)");
             sb.AppendLine("вынос — партнёр задел кристалл; влёт — сумма пары попала в окно линии");
@@ -1084,6 +1263,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             List<SumPeak> sumPeaks = new List<SumPeak>();
+            List<SumPeak> dropped = new List<SumPeak>();
             List<SumContinuum> continua = new List<SumContinuum>();
             List<LineNote> notes = new List<LineNote>();
             bool any = false;
@@ -1145,17 +1325,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
-                this.CollectSumPeaks(component, nuclide, data, scale, strongest, sumPeaks, continua);
+                // Суммы нуклида собираются в СВОЙ список: срез по площади
+                // (`SumPeakAreaShare`, решение Amber 17.09.2026) меряется от
+                // суммарной площади сумм-пиков ЭТОГО нуклида, а не компонента.
+                var nuclidePeaks = new List<SumPeak>();
+                var nuclideDropped = new List<SumPeak>();
+                this.CollectSumPeaks(component, nuclide, data, scale, strongest, nuclidePeaks,
+                                     continua, nuclideDropped);
+                TrimByArea(nuclidePeaks, nuclideDropped);
+                sumPeaks.AddRange(nuclidePeaks);
+                dropped.AddRange(nuclideDropped);
             }
 
             if (sumPeaks.Count > 0)
             {
                 any = true;
+                // Порядок — по убыванию площади, как и печатает `Describe`;
+                // счёту он безразличен.
                 sumPeaks.Sort((a, b) => b.Area.CompareTo(a.Area));
-                if (sumPeaks.Count > MaxSumPeaks)
-                {
-                    sumPeaks.RemoveRange(MaxSumPeaks, sumPeaks.Count - MaxSumPeaks);
-                }
             }
 
             if (continua.Count > 0)
@@ -1167,6 +1354,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 LineFactors = factors,
                 SumPeaks = sumPeaks,
+                DroppedSumPeaks = dropped,
                 SumContinua = continua,
                 Notes = notes,
                 Any = any
@@ -1249,13 +1437,66 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// Срез сумм-пиков одного нуклида ПО ПЛОЩАДИ (`S176`, решение Amber
+        /// 17.09.2026 «Срез по площади: держать 99 % Σ»): <paramref name="peaks"/>
+        /// сортируется по убыванию площади, и в образе остаётся начальный
+        /// отрезок, набравший <see cref="SumPeakAreaShare"/> от Σ площади
+        /// кандидатов (самих <paramref name="peaks"/> — пар и троек, прошедших
+        /// свои пороги; подпороговое, уже лежащее в <paramref name="dropped"/>,
+        /// в Σ не входит — довод у константы), но не длиннее
+        /// <see cref="MaxSumPeaks"/>. Хвост переезжает в
+        /// <paramref name="dropped"/> с пометкой <see cref="SumPeak.Trimmed"/>
+        /// и печатается `Describe` как «(не в образе: срез)»: срезанное не
+        /// пропадает, отчёт обязан назвать, почему суммы нет в образе (П90).
+        /// </summary>
+        static void TrimByArea(List<SumPeak> peaks, List<SumPeak> dropped)
+        {
+            if (peaks.Count == 0)
+            {
+                return;
+            }
+
+            double total = 0.0;
+            foreach (SumPeak peak in peaks)
+            {
+                total += peak.Area;
+            }
+
+            peaks.Sort((a, b) => b.Area.CompareTo(a.Area));
+            double target = total * SumPeakAreaShare;
+            double cumulative = 0.0;
+            int keep = 0;
+            while (keep < peaks.Count && keep < MaxSumPeaks)
+            {
+                cumulative += peaks[keep].Area;
+                keep++;
+                if (cumulative >= target)
+                {
+                    break;
+                }
+            }
+
+            if (keep < peaks.Count)
+            {
+                List<SumPeak> tail = peaks.GetRange(keep, peaks.Count - keep);
+                foreach (SumPeak peak in tail)
+                {
+                    peak.Trimmed = true;
+                }
+
+                dropped.AddRange(tail);
+                peaks.RemoveRange(keep, peaks.Count - keep);
+            }
+        }
+
+        /// <summary>
         /// Сумм-пики нуклида: пары, чья сумма НЕ попала ни в одну линию этого
         /// компонента. Попавшие уже учтены влётом в CF той линии, и ставить их
         /// вторично значило бы посчитать одно и то же дважды.
         /// </summary>
         void CollectSumPeaks(FsaComponent component, string nuclide, NuclideData data,
                              double scale, double strongest, List<SumPeak> sumPeaks,
-                             List<SumContinuum> continua)
+                             List<SumContinuum> continua, List<SumPeak> dropped)
         {
             if (!(scale > 0.0))
             {
@@ -1326,6 +1567,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if (area > floor)
                 {
                     sumPeaks.Add(new SumPeak(energy, area, nuclide, pair[0], pair[1]));
+                }
+                else if (area > 0.0)
+                {
+                    // Ниже порога — в образ не идёт, но в отчёте называется.
+                    dropped.Add(new SumPeak(energy, area, nuclide, pair[0], pair[1]));
                 }
 
                 this.CollectTripleSums(component, nuclide, data, pair, scale, tripleFloor, sumPeaks,
@@ -2129,13 +2375,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // аннигиляционным квантом у него есть. Решение «ничего нет»
             // принимается теперь ПОСЛЕ дополнения, в Augment.
 
+            // (`S176`) ДОЛЯ КАЖДОЙ ПАРЫ — ИЗ СХЕМЫ УРОВНЕЙ, а не из поставки.
+            // Поставка оставляет за собой ПЕРЕЧЕНЬ пар и выходы линий; её
+            // `fraction` заменяется P(B|A), посчитанной ходом по схеме
+            // дочернего ядра. Пары, которым в схеме места не нашлось, остаются
+            // с долей поставки — и помечены как списанные из неё.
+            bool[] fromSupply = RectifyBySchemes(key, data);
+
             // Пара лежит в базе ОДИН раз и направленно; обратная условная
             // считается через отношение выходов: P(A|B) = P(B|A)·I(A)/I(B)
             // (database/scheme.md, §8).
-            foreach (double[] pair in data.Pairs)
+            for (int index = 0; index < data.Pairs.Count; index++)
             {
-                // Прямая сторона — ЧИСЛО ПОСТАВКИ, обратная — наше (`D49`).
-                Put(data, pair[0], pair[1], pair[2], true);
+                double[] pair = data.Pairs[index];
+
+                // Прямая сторона — число поставки ЛИБО схемы (`S176`), обратная
+                // — наше (`D49`). Метка «из поставки» стоит только там, где
+                // доля и впрямь списана из неё дословно.
+                Put(data, pair[0], pair[1], pair[2], fromSupply[index]);
                 double ia, ib;
                 if (data.Intensity.TryGetValue(pair[0], out ia)
                     && data.Intensity.TryGetValue(pair[1], out ib) && ib > 0.0)
@@ -2145,6 +2402,411 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return data;
+        }
+
+        /// <summary>
+        /// (`S176`) ТАБЛИЦА ПАР НУКЛИДА, какой её видит счёт: {E_A, E_B, P(B|A)}
+        /// после замены долей по схеме, ДО дополнения атомными партнёрами.
+        /// Читатель — проба `CascadePairProbe`: она сверяет эти числа с
+        /// независимым ходом по той же схеме на питоне
+        /// (`handover/p90-s176/sandia_vs_scheme.py`). Пусто — нуклид не
+        /// разбирается или пар у него нет. Копия: таблица лежит в общем кэше.
+        /// </summary>
+        public static List<double[]> PairTable(string nuclide)
+        {
+            var table = new List<double[]>();
+            string key = ParentKey(nuclide);
+            NuclideData data = key != null ? BaseData(key) : null;
+            if (data == null)
+            {
+                return table;
+            }
+
+            foreach (double[] pair in data.Pairs)
+            {
+                table.Add(new[] { pair[0], pair[1], pair[2] });
+            }
+
+            return table;
+        }
+
+        /// <summary>
+        /// Допуск сопоставления линии поставки совпадений с переходом схемы,
+        /// кэВ — тот же, что у <c>CascadeAtomicData.MatchKev</c>: энергии
+        /// приходят из разных оценок (у Hf-176 306.880 против 306.640).
+        /// </summary>
+        const double SchemeMatchKev = 0.6;
+
+        /// <summary>
+        /// Допуск РАВЕНСТВА покрытия у двух кандидатов на один носитель,
+        /// относительный (`S176`). ⛔ Без него решал бы пустяк: у Bi-214 линии
+        /// 304.2 кэВ оба перехода-кандидата (1847.4 → 1543.4 и 2508.1 → 2204.1)
+        /// объясняют всех партнёров поставки, кроме 806.17 с долей 0.0019, и
+        /// этот пустяк отдавал носителя переходу с уровня 2508 — после которого
+        /// P(934 | 304) выходила 0.008 вместо 0.9. Кандидаты, разошедшиеся по
+        /// покрытию меньше чем на эту долю, считаются равными, и их разводят
+        /// соседи по уровню.
+        /// </summary>
+        const double SchemeScoreTie = 0.02;
+
+        /// <summary>
+        /// (`S176`) Сколько пар получили долю ИЗ СХЕМЫ уровней за все загрузки.
+        /// Счётчик, а не журнал: вопрос к нему — работает ли замена вообще и
+        /// на какой доле пар. Чистится вызывающим.
+        /// </summary>
+        public static int SchemePairs;
+
+        /// <summary>
+        /// (`S176`) Сколько пар ОСТАЛИСЬ с долей поставки: носитель в схеме
+        /// нашёлся, а партнёра после него схема не знает (энергия разошлась
+        /// больше допуска, переход без γ-интенсивности). Чистится вызывающим.
+        /// </summary>
+        public static int SchemePairsKept;
+
+        /// <summary>
+        /// (`S176`) Сколько НОСИТЕЛЕЙ (линий-первых-в-паре) не сопоставилось со
+        /// схемой ни в одной дочерней ветви — все их пары остались с долей
+        /// поставки. Чистится вызывающим.
+        /// </summary>
+        public static int SchemeCarriersUnmatched;
+
+        /// <summary>
+        /// (`S176`) Худшее отношение «схема / поставка» среди заменённых долей
+        /// и пара, на которой оно достигнуто (носитель, партнёр, кэВ) — чтобы
+        /// цена замены была видна числом, а не только фактом.
+        /// </summary>
+        public static double WorstSchemeRatio = 1.0;
+
+        public static double WorstSchemeRatioKev;
+
+        public static double WorstSchemeRatioWithKev;
+
+        /// <summary>Обнулить счётчики замены долей по схеме (`S176`).</summary>
+        public static void ResetSchemeCounters()
+        {
+            SchemePairs = 0;
+            SchemePairsKept = 0;
+            SchemeCarriersUnmatched = 0;
+            WorstSchemeRatio = 1.0;
+            WorstSchemeRatioKev = 0.0;
+            WorstSchemeRatioWithKev = 0.0;
+        }
+
+        /// <summary>
+        /// (`S176`, 17.09.2026) ЗАМЕНИТЬ ДОЛИ ПАР ПОСТАВКИ ВЕРОЯТНОСТЯМИ ИЗ
+        /// СХЕМЫ УРОВНЕЙ. Возвращает по паре признак «доля осталась из
+        /// поставки».
+        ///
+        /// ЧТО БЫЛО. `fraction` SandiaDecay бралась как P(B|A) дословно, а она
+        /// несёт лишний множитель на каждый пройденный уровень (у Eu-152 в
+        /// Sm-152 — 0.37): суммы 1408+122 и 1112+122 выходили в 2.7 раза ниже
+        /// обоих арбитров П85, при согласии в 2…4 % на парах без такого
+        /// множителя (Co-60, Cs-134). Подозрение строки — «доля γ 1/(1+α)
+        /// применена дважды» — не подтвердилось: код конверсию в парах не
+        /// трогал вовсе, дефект сидел в числе поставки. Разбор —
+        /// <see cref="CascadeAtomicData.LevelScheme"/> и журнал
+        /// `handover/handover-2026-09-17-p90-s176-conversion-sum-peaks.md`.
+        ///
+        /// КАК СОПОСТАВЛЯЕТСЯ. Дочерние ядра родителя — из `decay_chain`
+        /// (все ветви, без петель); носитель A ищется по энергии во ВСЕХ
+        /// схемах (у Eu-152 линия 121.8 лежит в Sm-152, а 344.3 — в Gd-152, и
+        /// схема сама скажет, где она). Кандидатов у одной энергии бывает
+        /// несколько (у Eu-152 два перехода 443.96/443.97 с разных уровней;
+        /// у Hf-176 самозванцы с уровней 3467 и 3847 кэВ) — выбирается тот,
+        /// после которого схема ЗНАЕТ БОЛЬШЕ ВСЕГО ПАРТНЁРОВ носителя из
+        /// поставки (мера — Σ долей поставки по найденным партнёрам): набор
+        /// партнёров называет переход надёжнее, чем ближайшая энергия или
+        /// самый низкий уровень. При равенстве — ближайший по энергии, затем
+        /// с более низкого уровня. Партнёр, которого после выбранного
+        /// перехода схема не даёт, остаётся с долей поставки (счётчик
+        /// <see cref="SchemePairsKept"/>).
+        ///
+        /// ⚠ Направление пар поставки проверено на всём файле: из 125 966 пар
+        /// у 98 229 партнёр лежит НИЖЕ носителя по схеме, у 131 (0.1 %,
+        /// экзотика) — только выше; ход вниз от конечного уровня носителя
+        /// покрывает поставку.
+        /// </summary>
+        static bool[] RectifyBySchemes(string key, NuclideData data)
+        {
+            bool[] fromSupply = new bool[data.Pairs.Count];
+            for (int i = 0; i < fromSupply.Length; i++)
+            {
+                fromSupply[i] = true;
+            }
+
+            if (data.Pairs.Count == 0 || key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            {
+                // Изомеру дочерних в `decay_chain` не найти (S27: у него нет
+                // своей строки), доли остаются поставочными.
+                return fromSupply;
+            }
+
+            var schemes = new List<CascadeAtomicData.LevelScheme>();
+            foreach (int[] daughter in Daughters(key))
+            {
+                CascadeAtomicData.LevelScheme scheme =
+                    CascadeAtomicData.LevelScheme.Of(daughter[0], daughter[1]);
+                if (scheme != null && scheme.Count > 0)
+                {
+                    schemes.Add(scheme);
+                }
+            }
+
+            if (schemes.Count == 0)
+            {
+                return fromSupply;
+            }
+
+            // Пары группируются по носителю: энергия носителя в поставке —
+            // точный ключ одной линии.
+            var byCarrier = new Dictionary<double, List<int>>();
+            for (int index = 0; index < data.Pairs.Count; index++)
+            {
+                List<int> bag;
+                if (!byCarrier.TryGetValue(data.Pairs[index][0], out bag))
+                {
+                    byCarrier[data.Pairs[index][0]] = bag = new List<int>();
+                }
+
+                bag.Add(index);
+            }
+
+            int rectified = 0, kept = 0, unmatched = 0;
+            foreach (KeyValuePair<double, List<int>> carrier in byCarrier)
+            {
+                CascadeAtomicData.LevelScheme bestScheme = null;
+                Dictionary<int, double> bestReach = null;
+                double bestScore = 0.0, bestDelta = double.MaxValue, bestSibling = double.NaN;
+                int bestFrom = int.MaxValue;
+                double carrierIntensity;
+                if (!data.Intensity.TryGetValue(carrier.Key, out carrierIntensity))
+                {
+                    carrierIntensity = 0.0;
+                }
+
+                foreach (CascadeAtomicData.LevelScheme scheme in schemes)
+                {
+                    foreach (CascadeAtomicData.LevelScheme.Candidate candidate
+                             in scheme.Candidates(carrier.Key, SchemeMatchKev))
+                    {
+                        Dictionary<int, double> reach = scheme.Reach(candidate.Exit.ToSeq);
+                        double score = 0.0;
+                        foreach (int index in carrier.Value)
+                        {
+                            double[] pair = data.Pairs[index];
+                            if (scheme.GammaShare(reach, pair[1], SchemeMatchKev) > 0.0)
+                            {
+                                score += Math.Min(pair[2], 1.0);
+                            }
+                        }
+
+                        if (!(score > 0.0))
+                        {
+                            continue;
+                        }
+
+                        // Разводка ОДИНАКОВО объясняющих кандидатов — по
+                        // интенсивности соседей с того же уровня: сильнейший
+                        // сосед, у которого есть выход в поставке, предсказывает
+                        // выход носителя как I_сосед · I_rel(c) / I_rel(сосед).
+                        // У Eu-152 линии 443.96 (0.33 %) и 443.965 (2.82 %) в
+                        // двух оценках переставлены по энергии на 0.01 кэВ, и
+                        // только соседи (688.67 против 1408.0) говорят, чья
+                        // это линия. NaN — соседей с выходом нет, мера
+                        // неприменима.
+                        double sibling = double.NaN;
+                        if (carrierIntensity > 0.0 && candidate.Exit.Intensity > 0.0)
+                        {
+                            double strongest = 0.0;
+                            foreach (CascadeAtomicData.LevelScheme.Exit other
+                                     in scheme.ExitsOf(candidate.FromSeq))
+                            {
+                                double known;
+                                if (ReferenceEquals(other, candidate.Exit) || !(other.Intensity > 0.0)
+                                    || !MatchIntensity(data, other.EnergyKev, out known) || !(known > strongest))
+                                {
+                                    continue;
+                                }
+
+                                strongest = known;
+                                sibling = Math.Abs(Math.Log(
+                                    known * candidate.Exit.Intensity / other.Intensity / carrierIntensity));
+                            }
+                        }
+
+                        double delta = Math.Abs(candidate.Exit.EnergyKev - carrier.Key);
+                        bool better;
+                        if (bestScheme == null || score > bestScore * (1.0 + SchemeScoreTie))
+                        {
+                            better = true;
+                        }
+                        else if (score < bestScore * (1.0 - SchemeScoreTie))
+                        {
+                            better = false;
+                        }
+                        else if (!double.IsNaN(sibling) && !double.IsNaN(bestSibling)
+                                 && Math.Abs(sibling - bestSibling) > 1.0E-9)
+                        {
+                            better = sibling < bestSibling;
+                        }
+                        else if (candidate.FromSeq != bestFrom)
+                        {
+                            // Соседи не рассудили — берётся более низкий уровень,
+                            // как в `CascadeAtomicData.MatchTransition`: самозванец
+                            // с уровня в тысячи кэВ распадом не населяется.
+                            better = candidate.FromSeq < bestFrom;
+                        }
+                        else
+                        {
+                            better = delta < bestDelta;
+                        }
+
+                        if (better)
+                        {
+                            bestScheme = scheme;
+                            bestReach = reach;
+                            bestScore = score;
+                            bestDelta = delta;
+                            bestFrom = candidate.FromSeq;
+                            bestSibling = sibling;
+                        }
+                    }
+                }
+
+                if (bestScheme == null)
+                {
+                    unmatched++;
+                    continue;
+                }
+
+                foreach (int index in carrier.Value)
+                {
+                    double[] pair = data.Pairs[index];
+                    double share = bestScheme.GammaShare(bestReach, pair[1], SchemeMatchKev);
+                    if (!(share > 0.0))
+                    {
+                        kept++;
+                        continue;
+                    }
+
+                    double ratio = pair[2] > 0.0 ? share / pair[2] : double.PositiveInfinity;
+                    lock (Gate)
+                    {
+                        if (Math.Abs(Math.Log(ratio)) > Math.Abs(Math.Log(WorstSchemeRatio)))
+                        {
+                            WorstSchemeRatio = ratio;
+                            WorstSchemeRatioKev = pair[0];
+                            WorstSchemeRatioWithKev = pair[1];
+                        }
+                    }
+
+                    pair[2] = share;
+                    fromSupply[index] = false;
+                    rectified++;
+                }
+            }
+
+            lock (Gate)
+            {
+                SchemePairs += rectified;
+                SchemePairsKept += kept;
+                SchemeCarriersUnmatched += unmatched;
+            }
+
+            // Записка — ОДИН РАЗ на нуклид, как у атомных партнёров: чтобы в
+            // отчёте пробы было видно, какая доля пар считается по схеме.
+            if (kept > 0 || unmatched > 0)
+            {
+                string said = string.Format(CultureInfo.InvariantCulture,
+                    "{0}: доли по схеме уровней у {1} пар из {2} (S176), у {3} осталась доля поставки, носителей без перехода в схеме {4}",
+                    key, rectified, data.Pairs.Count, kept, unmatched);
+                lock (NoteGate)
+                {
+                    if (NotesSaid.Add(said))
+                    {
+                        Notes = string.IsNullOrEmpty(Notes) ? said : Notes + " | " + said;
+                    }
+                }
+            }
+
+            return fromSupply;
+        }
+
+        /// <summary>
+        /// Выход линии поставки, ближайшей по энергии к переходу схемы, в
+        /// допуске <see cref="SchemeMatchKev"/> (`S176`). Отдельно от
+        /// <see cref="Match"/>: там допуск линии КОМПОНЕНТА (0.3 кэВ), здесь —
+        /// сопоставления двух оценок ядерных данных.
+        /// </summary>
+        static bool MatchIntensity(NuclideData data, double energyKev, out double intensity)
+        {
+            intensity = 0.0;
+            double best = SchemeMatchKev;
+            bool ok = false;
+            foreach (KeyValuePair<double, double> entry in data.Intensity)
+            {
+                double delta = Math.Abs(entry.Key - energyKev);
+                if (delta < best)
+                {
+                    best = delta;
+                    intensity = entry.Value;
+                    ok = true;
+                }
+            }
+
+            return ok;
+        }
+
+        /// <summary>
+        /// Дочерние ядра родителя, (Z, A), по всем ветвям `decay_chain` — тем
+        /// же правилом уровня, что и у <see cref="CascadeAtomicData"/>; петли
+        /// (изомерный переход в самого себя) сняты. Пусто — родителя в
+        /// цепочках нет либо база не прочлась.
+        /// </summary>
+        static List<int[]> Daughters(string nucid)
+        {
+            var found = new List<int[]>();
+            try
+            {
+                using (SqliteConnection connection = new SqliteConnection(
+                    "Data Source=" + DatabasePath() + ";Mode=ReadOnly;Cache=Shared;"))
+                {
+                    connection.Open();
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "select distinct daughter_nucid from decay_chain d where nucid = $n"
+                            + DecayParentRule.ChainLevelClause;
+                        command.Parameters.AddWithValue("$n", nucid);
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                string name = reader.IsDBNull(0) ? null : reader.GetString(0);
+                                if (string.IsNullOrEmpty(name)
+                                    || string.Equals(name, nucid, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    continue;
+                                }
+
+                                int z = CascadeAtomicData.ChargeOf(name);
+                                int a = CascadeAtomicData.MassOf(name);
+                                if (z > 0 && a > 0)
+                                {
+                                    found.Add(new[] { z, a });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Без цепочки схемы не найти: доли остаются поставочными, и
+                // это видно по нулевому SchemePairs у нуклида с парами.
+            }
+
+            return found;
         }
 
         /// <summary>

@@ -1,0 +1,27 @@
+{
+ "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
+ "corpus": "a7699cefe5c8db86f47ccdc93730a1be97efb8f36fdbeae6d47ef46f091553df",
+ "corpus_dir": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\corpus",
+ "corpus_files": 211,
+ "dirty": [
+  "BecquerelMonitor/BecquerelMonitor.csproj",
+  "BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs",
+  "BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs",
+  "BecquerelMonitor/LayoutFile.cs",
+  "BecquerelMonitor/MainForm.cs",
+  "BecquerelMonitor/Properties/Resources.Designer.cs"
+ ],
+ "fields": {
+  "app_sha": "3a12439e97b7f7b29bdd115751169766306069932c56fcf7868fc17d5cf4faab",
+  "bin": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\BecquerelMonitor\\bin\\Release_p93",
+  "keys": "",
+  "probe_sha": "6be407b6691036df95aa4e62d628058d69403fca452f6f32a8c89eb017fc0777",
+  "probes": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\effmaker\\probes\\build_p93",
+  "store": "",
+  "wd": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\scripts\\wd_p93"
+ },
+ "head": "dd934a3b32b1bcbfcb2d61743f2db67f2a5443bd",
+ "sources": "6ffb36b4b6cf7ae42abf2f58d3a8537fbf9bc444950d954a57e926e0b60085b2",
+ "sources_files": 559,
+ "written": "2026-09-17 15:55:19"
+}

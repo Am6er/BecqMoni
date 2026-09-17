@@ -1,0 +1,17 @@
+## D:\BqMoni_Claude\p89\layout_probe_new
+      8 байт  42 41 44 20 6D 61 69 6E  core_read\ExpertMode.xml.broken-20260917-140144
+     10 байт  42 41 44 20 6D 61 69 6E  core_read\ExpertMode.xml.broken-20260917-140145
+     10 байт  42 41 44 20 6D 61 69 6E  core_read\ExpertMode.xml.broken-20260917-140146
+      4 байт  3C 41 2F 3E              core\ExpertMode.xml
+     19 байт  3C 42 3E D0 B2 D1 82 D0  core\ExpertMode.xml.bak
+   2092 байт  FF FE 3C 00 3F 00 78 00  layout\ExpertMode.xml
+   2092 байт  FF FE 3C 00 3F 00 78 00  layout\ExpertMode.xml.bak
+      0 байт                           layout\ExpertMode.xml.broken-20260917-140146
+   1046 байт  FF FE 3C 00 3F 00 78 00  layout\ExpertMode.xml.broken-20260917-140147
+      0 байт                           layout\ExpertMode.xml.broken-20260917-140148
+   2092 байт  FF FE 3C 00 3F 00 78 00  layout\library.xml
+   2092 байт  FF FE 3C 00 3F 00 78 00  layout\moment.xml
+
+## D:\BqMoni_Claude\p89\layout_probe_old
+      2 байт  FF FE                    layout_old\ExpertMode.xml
+

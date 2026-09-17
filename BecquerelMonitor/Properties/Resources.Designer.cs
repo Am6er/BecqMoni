@@ -5635,6 +5635,60 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The panel layout file {0} could not be read.
+        /// </summary>
+        public static string LayoutLoadFailed {
+            get {
+                return ResourceManager.GetString("LayoutLoadFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The damaged file was set aside as {0}.
+        /// </summary>
+        public static string LayoutLoadSetAside {
+            get {
+                return ResourceManager.GetString("LayoutLoadSetAside", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The damaged file could not be set aside ({0}); this message will repeat on every start until the file is removed.
+        /// </summary>
+        public static string LayoutLoadNotSetAside {
+            get {
+                return ResourceManager.GetString("LayoutLoadNotSetAside", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The previous good copy {0} was loaded instead.
+        /// </summary>
+        public static string LayoutLoadBackupUsed {
+            get {
+                return ResourceManager.GetString("LayoutLoadBackupUsed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The previous copy {0} could not be read either ({1}), so the default arrangement is shown.
+        /// </summary>
+        public static string LayoutLoadBackupBroken {
+            get {
+                return ResourceManager.GetString("LayoutLoadBackupBroken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to There was no previous copy, so the default arrangement is shown.
+        /// </summary>
+        public static string LayoutLoadNoBackup {
+            get {
+                return ResourceManager.GetString("LayoutLoadNoBackup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Version {0}.
         /// </summary>
         public static string AboutVersionFormat {

@@ -1,0 +1,14 @@
+каталог опыта: D:\BqMoni_Claude\p89\layout_probe_old
+сборка приложения: D:\BqMoni_Claude\p89\wt_h\tools\effmaker\probes\build_p89h\BecquerelMonitor.exe
+помощник BecquerelMonitor.LayoutFile: НЕТ (старая сборка)
+AppUi.HasWindows = False
+dockPanel1: тема VS2015BlueTheme, содержимого 0
+
+=== СТАРАЯ СБОРКА: прежний путь dockPanel1.LoadFromXml / SaveAsXml ===
+  годный файл: 2092 байт
+  (а) пустой файл: System.Xml.XmlException: Отсутствует корневой элемент.
+  (а) обрезанный файл: System.Xml.XmlException: Непредусмотренный конец файла при разборе Name., строка 10, позиция 15.
+  (б) SaveAsXml(имя) с отказом сериализации: InvalidOperationException: подсаженный отказ сериализации содержимого панели; файл после: 2 байт (было 2092), байты: FF FE, читается как XML: False
+  (б) MainForm.SaveLayoutXml: вернул False; файл после: 2 байт, читается как XML: False; поток ошибок: BecqMoni: Раскладка панелей: Не удалось записать раскладку панелей в D:\BqMoni_Claude\p89\layout_probe_old\layout_old\ExpertMode.xml. Причина: подсаженный отказ сериализации содержимого панели При следующем запуске вернётся прежняя расстановка.
+
+СТАРАЯ СБОРКА: дефект AMBER43 воспроизведён по всем четырём плечам — положительный контроль годен. Код 1.

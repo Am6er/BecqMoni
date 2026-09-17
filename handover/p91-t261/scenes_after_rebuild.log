@@ -1,0 +1,11 @@
+== сторож сцен генератора (T261): генератор → клеймо → живые .in / .rmx ==
+  каталог проб : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build
+  живые сцены  : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries
+  свежесть: сверено: набор приложения a96889a10e77 (550 файлов); CorpusGeomProbe.cs 33439ea4b5ff (6 файлов); MatrixStampProbe.cs 5f8510499eec (6 файлов); sha трёх exe (0.7 с)
+  генератор CorpusGeomProbe.exe --out=C:\Users\moroz\AppData\Local\Temp\bq_scenes_c41w2qaf\gen: код 0, 0.3 с; геометрий 46, спектров 89, ВСЕ СОШЛИСЬ; корень корпуса генератора: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS
+  сцен в корпусе 46, построено генератором 46
+  ✅ опись index.csv: побайтно равна (11674 байт, 90 строк)
+
+  сцен 46: сошлось 46, разошлось 0; клейма сняты у 46; матриц на месте 46 из 46, на своей сцене и рецепте 46
+  время 5.4 с: генератор 0.3, клейма 4.4 на 8 потоках (92 запусков), свежесть 0.7
+  ✅ СОШЛОСЬ: генератор воспроизводит корпус с точностью до клейма, опись побайтно, матрицы склада — на своих сценах штатным рецептом
