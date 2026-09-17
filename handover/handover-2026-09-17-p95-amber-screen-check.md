@@ -91,3 +91,7 @@ computed WITHOUT the matrix. Recompute it: device configuration → Efficiency �
   до П96 (дописка с находкой и решением); `AMBER46` — дописка о снятом окне отказа.
 * Песочница `D:\BqMoni_Claude\p95\` (приложение 60 МБ + копия config Amber + снимки) — ОСТАВЛЕНА до приёмки П96
   (тот же стенд для проверки поставочной раскладки экраном); её каталог `OneDrive\Desktop\Debug` не трогался.
+
+## 7. Проверка экраном правки П96 (19:20) — поставочная раскладка умолчанием — СХОДИТСЯ
+
+Песочница та же, exe пересобран П96 (`Debug_Codex` 18:57, копия exe/pdb/`ru`). Плечо (б) повторено: пустой `ExpertMode.xml`, `.bak` удалён → приложение живо, окно «The panel layout file … could not be read. Reason: XmlException: Root element is missing. The damaged file was set aside as …\ExpertMode.xml.broken-20260917-191946. There was no previous copy. The supplied default layout built into the application is shown instead.» (портативная сборка — встроенная копия); после OK — раскладка поставочного `config/layout/ExpertMode.xml`: справа Measurement Control с вкладками Energy Calibration / Spectrum List / Sample Information / Peak Detection / Measurement Result, ниже Counts Rate; область документов пуста (спектров не открыто — так и у поставочной). При закрытии записан `ExpertMode.xml` 8284 байта. Снимки `shot_30_p96_nobak.png`, `shot_31_p96_supply_layout.png` — `D:\BqMoni_Claude\p95\`, в git не кладутся. `AMBER43` закрыта проверкой распорядителя (решение Amber «Закрыть моей проверкой»).
