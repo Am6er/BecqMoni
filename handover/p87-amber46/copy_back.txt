@@ -1,0 +1,17 @@
+BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs        чист                                             скопирован (CRLF)
+BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs             чист                                             скопирован (CRLF)
+BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs      чист                                             скопирован (CRLF)
+BecquerelMonitor/FullSpectrumAnalysis/AngularCorrelation.cs    чист                                             скопирован (CRLF)
+BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs           чист                                             скопирован (CRLF)
+BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs      чист                                             скопирован (CRLF)
+BecquerelMonitor/FullSpectrumAnalysis/FsaMatrixBinding.cs      чист                                             скопирован (CRLF)
+tools/CORPUS/scripts/appwd_plan.ps1                            чист                                             скопирован (CRLF)
+tools/check_fsa_showcase.py                                    чист                                             скопирован (CRLF)
+tools/effmaker/probes/AngularQkProbe.cs                        чист                                             скопирован (CRLF)
+tools/effmaker/probes/CorpusFsaProbe.cs                        чист                                             скопирован (CRLF)
+tools/effmaker/probes/CorpusMatrixProbe.cs                     чист                                             скопирован (CRLF)
+tools/effmaker/probes/FsaCascadeProbe.cs                       чист                                             скопирован (CRLF)
+tools/effmaker/probes/MatrixDiffProbe.cs                       чист                                             скопирован (CRLF)
+tools/effmaker/probes/SumPeakProbe.cs                          чист                                             скопирован (CRLF)
+
+перенесено 15, отказано (чужая правка) 0, без изменений 0

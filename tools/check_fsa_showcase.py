@@ -382,11 +382,9 @@ def matrix_sources(member, guid):
         hint = (u' — сперва tools\\fsa_showcase\\rebuild_store.ps1' if kind == u'store'
                 else u' — живой склад корпуса без этой сцены (CorpusMatrixProbe)')
         return [], u'%s: нет матрицы %s%s' % (member[u'key'], rmx, hint)
-    out = [(rmx, guid + u'.rmx')]
-    qk = os.path.join(base, key + u'.qk')
-    if os.path.isfile(qk):
-        out.append((qk, guid + u'.qk'))
-    return out, None
+    # (`AMBER46`, П87 16.09.2026) Сайдкаров `.qk` больше нет: Q_k(E) сцены лежат в
+    # самой матрице (блок формата 9) и едут с `.rmx`.
+    return [(rmx, guid + u'.rmx')], None
 
 
 def assemble_wd(probes, manifest, members):
@@ -426,6 +424,8 @@ def assemble_wd(probes, manifest, members):
             response.append((src, dst_name))
             mine[u'matrices'][dst_name] = {u'from': rel_repo(src), u'sha': sha256_file(src)[:16]}
         inputs[u'members'][member[u'key']] = mine
+    # `.qk` в маске — чтобы сайдкары, оставшиеся в рабочем каталоге от прежних
+    # прогонов (до `AMBER46`), снимались: их никто не читает, но лежать им незачем.
     sync_dir_exact(response, os.path.join(cfg, u'device', u'response'), (u'.rmx', u'.qk'))
     out = os.path.join(WD, u'out')
     if not os.path.isdir(out):

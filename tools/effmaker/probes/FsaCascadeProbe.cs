@@ -196,7 +196,7 @@ namespace FsaCascadeProbe
             FsaCascadeSummer summer = FsaCascadeSummer.Create(matrix, scintillator);
             // (`N14`, П49) Плечо угловых корреляций — ДО первого `For`: поправки
             // кэшируются на экземпляре. Таблица Q_k — как у приложения
-            // (`FsaMatrixBinding`): сайдкар в каталоге склада по отпечатку геометрии.
+            // (`FsaMatrixBinding`): из САМОЙ матрицы (блок формата 9, `AMBER46`, П87).
             // (П86, 15.09.2026) Без ключа — УМОЛЧАНИЕ АНАЛИЗАТОРА, своего проба
             // не держит (`FsaAnalyzer.CascadeSumAngular`, с 15.09.2026 ВКЛ); и
             // таблица ищется ВСЕГДА, как у приложения, — иначе умолчание ВКЛ
@@ -206,14 +206,14 @@ namespace FsaCascadeProbe
             if (summer != null)
             {
                 summer.AngularCorrelations = angularOn;
-                summer.AngularQk = AngularAttenuation.Find(ResponseMatrixStore.Directory,
-                                                           rd.Efficiency != null ? rd.Efficiency.Geometry : null);
+                summer.AngularQk = matrix.AngularQk;
                 Console.WriteLine("угловые корреляции (N14): ключ {0}{1}; таблица Q_k сцены {2}",
                                   angularOn ? "ВКЛ" : "ВЫКЛ",
                                   angcorr >= 0 ? "" : " (умолчание анализатора)",
                                   summer.AngularQk != null
-                                      ? "НАЙДЕНА (" + summer.AngularQk.Scene + ", узлов " + summer.AngularQk.Count.ToString(CultureInfo.InvariantCulture) + ")"
-                                      : "НЕТ — счёт изотропный");
+                                      ? "В МАТРИЦЕ (узлов " + summer.AngularQk.Count.ToString(CultureInfo.InvariantCulture)
+                                        + ", Q2(662) " + summer.AngularQk.Q(2, 661.7).ToString("F4", CultureInfo.InvariantCulture) + ")"
+                                      : "НЕТ (матрица без блока Q_k) — счёт изотропный");
             }
             Console.WriteLine("кривая света: {0}",
                               summer != null && summer.LightYieldName.Length > 0

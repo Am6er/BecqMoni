@@ -200,6 +200,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             double[] nodeSeconds = new double[grid.Length];
             int[] nodeLast = new int[grid.Length];
 
+            // (`AMBER46`, П87) Моменты угловой эффективности узла — из ТЕХ ЖЕ
+            // историй, что дали его строку: у узла своя ячейка, пишет её тот
+            // поток, что считал узел, и ПОСЛЕДНИЙ проход перекрывает пробный —
+            // ровно как `store` перекрывает строки. Таблица Q_k собирается из
+            // них в конце (`AngularAttenuation.FromMoments`).
+            AngularMomentSums[] nodeAngular = new AngularMomentSums[grid.Length];
+
             // (`A41`) Цена узла, измеренная на его пробе: потокосекунд на одну
             // историю. По ней и считается остаток — в секундах, а не в историях.
             // Ноль — проба ещё не сделана, цена берётся средней по сделанным.
@@ -334,11 +341,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // приоритета оптимизации нужно именно это. Числом ЦП его
                         // называть нельзя, и в раскладке оно так и подписано.
                         long ticks0 = Stopwatch.GetTimestamp();
+                        AngularMomentSums angular;
                         double[][] histograms = RunNode(geometry, options, grid[index], index,
-                                                        histories, out achieved);
+                                                        histories, out achieved, out angular);
                         nodeSeconds[index] += (double)(Stopwatch.GetTimestamp() - ticks0)
                                               / Stopwatch.Frequency;
                         continuumError[index] = achieved;
+                        nodeAngular[index] = angular;
                         // Всего потрачено — с учётом выброшенных проходов: только
                         // так видно настоящую цену останова. Последний проход
                         // держится отдельно: от него считается следующий.
@@ -499,7 +508,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // (`AMBER13` (б)) Нормировка — по сцене, тем же правилом, что
                 // клеймо: у поля строки в см², у всех прочих — доли.
                 Normalization = ResponseMatrix.NormalizationOf(geometry),
-                CreatedUtc = DateTime.UtcNow
+                CreatedUtc = DateTime.UtcNow,
+                // (`AMBER46`, П87) Q_k(E) сцены — из тех же историй, что
+                // строки; формат 9 несёт их обязательным блоком.
+                AngularQk = AngularAttenuation.FromMoments(grid, nodeAngular)
             };
 
             matrix.RebuildTotals();
@@ -635,7 +647,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         static double[][] RunNode(GeometryModel geometry, ResponseMatrixOptions options,
                                   double energyKev, int index, int histories,
-                                  out double achieved)
+                                  out double achieved, out AngularMomentSums angular)
         {
             EfficiencySimulator sim = MakeSimulator(geometry, options, index, energyKev);
             sim.Histories = Math.Max(1, histories);
@@ -643,6 +655,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             double[][] histograms = sim.ResponseByChannel(energyKev, options.BinKev,
                                                           out relativeError);
             achieved = sim.LastContinuumRelativeError;
+            // (`AMBER46`) Моменты Q_k узла — из тех же историй взвешенной ветки,
+            // что дали строку; отдельного розыгрыша нет.
+            angular = sim.LastAngularMoments;
 
             // Счётчики работы геометрии — в общую сумму РАЗ на узел, а не на
             // вызов: внутри узла они считаются без блокировок (`T43`).

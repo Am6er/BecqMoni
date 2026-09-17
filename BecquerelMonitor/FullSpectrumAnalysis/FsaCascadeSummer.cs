@@ -666,11 +666,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool AngularCorrelations { get; set; }
 
         /// <summary>
-        /// Таблица Q_k(E) сцены (`N14`); null — сайдкара рядом с матрицей нет.
-        /// Приходит снаружи тем же путём, что вещество кристалла (`S20`):
-        /// <c>FsaMatrixBinding.Bind</c> → анализатор → сюда.
+        /// Таблица Q_k(E) сцены (`N14`); с 16.09.2026 (`AMBER46`, П87) — блок
+        /// формата 9 самой матрицы (<c>ResponseMatrix.AngularQk</c>), null —
+        /// матрица собрана руками без таблицы. Приходит снаружи тем же путём,
+        /// что вещество кристалла (`S20`): <c>FsaMatrixBinding.Bind</c> →
+        /// анализатор → сюда.
         /// </summary>
-        public AngularAttenuation AngularQk { get; set; }
+        public EfficiencyMaker.AngularAttenuation AngularQk { get; set; }
 
         /// <summary>Сколько пар с A_kk ≠ 0 получили множитель при включённом ключе — в <see cref="PairBase"/> и в выносе (<see cref="SurviveAll"/>).</summary>
         public int AngularPairs { get; private set; }

@@ -1057,6 +1057,26 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public double LastContinuumIntegralError = -1.0;
 
+        /// <summary>
+        /// ⚡ МОМЕНТЫ УГЛОВОЙ ЭФФЕКТИВНОСТИ ПОСЛЕДНЕГО ПРОГОНА (`AMBER46`,
+        /// П87 16.09.2026) — Σ s_i·P_k(cos θ_i) по историям взвешенной ветки
+        /// <see cref="Run"/>: из них построитель матрицы берёт коэффициенты
+        /// ослабления угловой корреляции Q₂/Q₄(E) узла (<see cref="AngularMomentSums"/>).
+        /// Копятся ТЕМИ ЖЕ историями, что строят узел, — не отдельным счётом и
+        /// не подсмотром отражением; случайных чисел не тянут, поток ГСЧ и
+        /// тело матрицы от них не меняются ни на бит. null — прогона ещё не было.
+        /// Выход прогона, не настройка (как <see cref="LastContinuumRelativeError"/>).
+        /// </summary>
+        public AngularMomentSums LastAngularMoments { get; private set; }
+
+        // (`AMBER46`) Косинус угла вылета ПОСЛЕДНЕЙ истории к оси «точка вылета →
+        // центр объемлющей сферы кристалла» и её полный занос (сумма долей,
+        // положенных в гистограмму, — то, что до П87 проба собирала тремя бинами).
+        // Пишутся в `OneHistory`/`ScatteredRun`, читаются в `Run` сразу после
+        // истории; присваивания розыгрыш не двигают.
+        double lastHistoryCos;
+        double historyDeposit;
+
         readonly GeometryModel geometry;
         readonly List<Region> regions = new List<Region>();
 
@@ -4165,6 +4185,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             // отклике он и должен лечь ниже по шкале, а не в пик.
             double deposited = scattered - sEscaped;
             double share = weight * sw;
+            // (`AMBER46`) Полный занос истории — тем же условием, что у
+            // `Deposit` (ноль не событие), и независимо от гистограммы.
+            if (deposited > 0.0 && share > 0.0)
+            {
+                this.historyDeposit += share;
+            }
+
             if (histogram != null)
             {
                 this.Deposit(histogram, binKev, energyKev, deposited, share);
@@ -7564,6 +7591,11 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             double sum = 0.0, sum2 = 0.0;
             int n = Math.Max(1000, this.Histories);
+            // (`AMBER46`, П87) Моменты угловой эффективности узла — из ТЕХ ЖЕ
+            // историй, что строят его строку: пиковый счёт истории, её полный
+            // занос и косинус угла вылета к оси. Случайных чисел не тянет,
+            // на `sum`/`sum2`/гистограмму не влияет — тело матрицы побитово прежнее.
+            var angular = new AngularMomentSums();
             this.source.Retune(this, energyKev);
             for (int i = 0; i < n; i++)
             {
@@ -7576,8 +7608,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double score = this.OneHistory(energyKev, x, y, z, histogram, binKev, pointWeight);
                 sum += score;
                 sum2 += score * score;
+                angular.Add(score, this.historyDeposit, this.lastHistoryCos);
             }
 
+            this.LastAngularMoments = angular;
             double mean = sum / n;
             double variance = Math.Max(0.0, sum2 / n - mean * mean);
             relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
@@ -7772,6 +7806,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // кроме поля, — умножение точное, прежние сцены побитово те же.
                 weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
 
+                // (`AMBER46`, П87) Угол вылета к оси «точка вылета → центр
+                // объемлющей сферы кристалла» — определение П49 §1.1, то же,
+                // которым считаны сайдкары и сцена Geant4 (П85); точка в центре
+                // сферы — ось z. Читает `Run` для моментов Q_k узла; розыгрыш
+                // не трогает. Занос истории обнуляется здесь же.
+                this.lastHistoryCos = dist > 0.0 ? (ux * (-x) + uy * (-y) + uz * dz) / dist : uz;
+                this.historyDeposit = 0.0;
+
                 double px = x, py = y, pz = z, tau;
                 double score = 0.0;
                 bool reached = this.ToCrystal(ref px, ref py, ref pz, ux, uy, uz, energyKev, out tau);
@@ -7815,9 +7857,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // сложения. Розыгрыш от этого не меняется — гистограмма
                         // не тянет ни одного случайного числа, поэтому кривая
                         // остаётся побитово прежней.
+                        //
+                        // (`AMBER46`) Доля истории считается и БЕЗ гистограммы:
+                        // она же — полный занос для моментов Q_k^T (условие то
+                        // же, что у `Deposit`: ноль не событие).
+                        double share = weight * Math.Exp(-tau);
+                        if (energyKev - escaped > 0.0 && share > 0.0)
+                        {
+                            this.historyDeposit += share;
+                        }
+
                         if (histogram != null)
                         {
-                            double share = weight * Math.Exp(-tau);
                             this.Deposit(histogram, binKev, energyKev, energyKev - escaped, share);
                             this.ScoreLight(binKev, energyKev, energyKev - escaped, share);
                             if (this.channelHistograms != null)
@@ -8745,6 +8796,133 @@ namespace BecquerelMonitor.EfficiencyMaker
                     error[j][i] = relative;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// ⚡ НАКОПИТЕЛИ МОМЕНТОВ УГЛОВОЙ ЭФФЕКТИВНОСТИ УЗЛА (`AMBER46`, П87
+    /// 16.09.2026; постановка Amber 16.09.2026, дословно: «Нет. Так не
+    /// устраивает. Никаких сайдкаров. Стоп.», «У нас есть матрица отклика. Не
+    /// нужно бояться менять физику, если это реально надо»).
+    ///
+    /// Коэффициенты ослабления угловой корреляции сцены (`N14`, П49 §1.1):
+    ///
+    ///     Q_k(E) = Σ_i s_i·P_k(cos θ_i) / Σ_i s_i,   k = 2, 4,
+    ///
+    /// s_i — пиковый счёт истории (вес × попадание в пик по допуску узла), θ_i —
+    /// угол вылета к оси «точка вылета → центр кристалла»; для ВЫНОСА те же
+    /// моменты по ПОЛНОМУ заносу истории t_i (партнёр уносит событие любым
+    /// заносом) — Q_k^T. Копятся в <see cref="EfficiencySimulator.Run"/> из ТЕХ
+    /// ЖЕ историй, что строят узел матрицы: отдельного розыгрыша нет, подсмотра
+    /// отражением нет, поток ГСЧ не тронут.
+    ///
+    /// ⛔ Выражения P₂/P₄ и порядок сложений здесь — ЕДИНСТВЕННЫЕ: читатель
+    /// `AngularQkProbe` копит ЭТИМ ЖЕ классом, и потому его Q_k при том же
+    /// зерне и числе историй обязаны совпасть с матрицей ДО БИТА. Вторая копия
+    /// формулы разъехалась бы молча (`S37`).
+    ///
+    /// Шум — дельта-методом: var(Q) = [var(sP) − 2Q·cov(sP,s) + Q²·var(s)] / (N·⟨s⟩²).
+    /// </summary>
+    public sealed class AngularMomentSums
+    {
+        /// <summary>Историй.</summary>
+        public long N { get; private set; }
+
+        /// <summary>Σ s, Σ s·P₂, Σ s·P₄ — пик.</summary>
+        public double S0 { get; private set; }
+        public double S2 { get; private set; }
+        public double S4 { get; private set; }
+
+        /// <summary>Суммы квадратов и произведений — для шума пиковых Q_k.</summary>
+        public double S00 { get; private set; }
+        public double S22 { get; private set; }
+        public double S44 { get; private set; }
+        public double S02 { get; private set; }
+        public double S04 { get; private set; }
+
+        /// <summary>То же по ПОЛНОМУ заносу истории.</summary>
+        public double T0 { get; private set; }
+        public double T2 { get; private set; }
+        public double T4 { get; private set; }
+        public double T00 { get; private set; }
+        public double T22 { get; private set; }
+        public double T44 { get; private set; }
+        public double T02 { get; private set; }
+        public double T04 { get; private set; }
+
+        /// <summary>
+        /// Одна история: пиковый счёт `score`, полный занос `total`, косинус
+        /// угла вылета к оси `cos`.
+        /// </summary>
+        public void Add(double score, double total, double cos)
+        {
+            double c2 = cos * cos;
+            double p2 = 0.5 * (3.0 * c2 - 1.0);
+            double p4 = 0.125 * (35.0 * c2 * c2 - 30.0 * c2 + 3.0);
+            double s2 = score * p2, s4 = score * p4;
+            this.S0 += score; this.S2 += s2; this.S4 += s4;
+            this.S00 += score * score; this.S22 += s2 * s2; this.S44 += s4 * s4;
+            this.S02 += score * s2; this.S04 += score * s4;
+            double t2 = total * p2, t4 = total * p4;
+            this.T0 += total; this.T2 += t2; this.T4 += t4;
+            this.T00 += total * total; this.T22 += t2 * t2; this.T44 += t4 * t4;
+            this.T02 += total * t2; this.T04 += total * t4;
+            this.N++;
+        }
+
+        /// <summary>Q_k пика; 0 — пик пуст.</summary>
+        public double Q(int k)
+        {
+            return this.S0 > 0.0 ? (k == 2 ? this.S2 : this.S4) / this.S0 : 0.0;
+        }
+
+        /// <summary>Q_k^T полного заноса; 0 — заноса не было.</summary>
+        public double QT(int k)
+        {
+            return this.T0 > 0.0 ? (k == 2 ? this.T2 : this.T4) / this.T0 : 0.0;
+        }
+
+        /// <summary>Шум Q_k пика (σ).</summary>
+        public double Err(int k)
+        {
+            return Err(this.N, this.S0, k == 2 ? this.S2 : this.S4, this.S00,
+                       k == 2 ? this.S22 : this.S44, k == 2 ? this.S02 : this.S04);
+        }
+
+        /// <summary>Шум Q_k^T (σ).</summary>
+        public double ErrT(int k)
+        {
+            return Err(this.N, this.T0, k == 2 ? this.T2 : this.T4, this.T00,
+                       k == 2 ? this.T22 : this.T44, k == 2 ? this.T02 : this.T04);
+        }
+
+        /// <summary>Средний пиковый счёт истории — эффективность пика узла.</summary>
+        public double PeakEfficiency
+        {
+            get { return this.N > 0 ? this.S0 / this.N : 0.0; }
+        }
+
+        /// <summary>Средний полный занос — взвешенная оценка ε_T узла (нужна её угловая форма, не уровень).</summary>
+        public double TotalEfficiency
+        {
+            get { return this.N > 0 ? this.T0 / this.N : 0.0; }
+        }
+
+        static double Err(long n, double s0, double sk, double s00, double skk, double s0k)
+        {
+            if (n < 2 || !(s0 > 0.0))
+            {
+                return 0.0;
+            }
+
+            double m0 = s0 / n;
+            double mk = sk / n;
+            double v0 = s00 / n - m0 * m0;
+            double vk = skk / n - mk * mk;
+            double c0k = s0k / n - m0 * mk;
+            double q = mk / m0;
+            double var = (vk - 2.0 * q * c0k + q * q * v0) / (n * m0 * m0);
+            return var > 0.0 ? Math.Sqrt(var) : 0.0;
         }
     }
 }

@@ -202,7 +202,8 @@ namespace SumPeakProbe
                 return 1;
             }
 
-            AngularAttenuation qk = AngularAttenuation.Find(ResponseMatrixStore.Directory, rd.Efficiency.Geometry);
+            // (`AMBER46`, П87) Таблица Q_k — из самой матрицы (формат 9), сайдкаров нет.
+            AngularAttenuation qk = matrix.AngularQk;
             double epsP1 = summer.PeakEfficiency(e1), epsP2 = summer.PeakEfficiency(e2);
             double epsT1 = summer.TotalEfficiency(e1), epsT2 = summer.TotalEfficiency(e2);
             double kappa = matrix.JointFactor(e1, e2);
