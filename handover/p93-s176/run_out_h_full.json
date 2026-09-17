@@ -1,0 +1,23 @@
+{
+ "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
+ "corpus": "a7699cefe5c8db86f47ccdc93730a1be97efb8f36fdbeae6d47ef46f091553df",
+ "corpus_dir": "D:\\BqMoni_Claude\\p93\\wt_h\\tools\\CORPUS\\corpus",
+ "corpus_files": 211,
+ "dirty": [
+  "BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs",
+  "BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs"
+ ],
+ "fields": {
+  "app_sha": "31ebd5ebde512f1736bdbea4ed878af8696d4505a5e68839e52fe32d67af0e7e",
+  "bin": "D:\\BqMoni_Claude\\p93\\wt_h\\BecquerelMonitor\\bin\\Release_p93h",
+  "keys": "",
+  "probe_sha": "31579147933485387843c7ab3540f70329cdcf657139906e895fd51d6304581a",
+  "probes": "D:\\BqMoni_Claude\\p93\\wt_h\\tools\\effmaker\\probes\\build_p93h",
+  "store": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\corpus\\geometries",
+  "wd": "D:\\BqMoni_Claude\\p93\\wt_h\\tools\\CORPUS\\scripts\\wd_p93h"
+ },
+ "head": "dd934a3b32b1bcbfcb2d61743f2db67f2a5443bd",
+ "sources": "93ea7e440dfcb96fddb906d31d2c33e64c364b37f4c04227d8c2cb7f6ea90b85",
+ "sources_files": 558,
+ "written": "2026-09-17 16:17:39"
+}

@@ -1,0 +1,18 @@
+склад: 17 .rmx, 17 .in
+D:\BqMoni_Claude\p88\py\mk_scenes_p88.py:7: SyntaxWarning: "\B" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\B"? A raw string is also an option.
+  *_bg0 — те же файлы ДО перекалибровки, копии из D:\BqMoni_Claude\p88\backup). face81 — «Не использовать» (Amber 14.09).
+сцена AS80_p88_edge93_r28_al
+сцена AS80_p88_edge93_r33_al
+сцена AS80_p88_edge93_r38_al
+сцена AS80_p88_contact_r33_al
+смесь ребром Al: ρ 0.9353, толщина 0.850 см, доли Z1 0.0411 Z6 0.2935 Z8 0.3258 Z13 0.3396
+смесь ребром сталь (П67): ρ 1.5435, толщина 0.850 см, доли Z1 0.0249 Z6 0.1778 Z8 0.1974 Z26 0.5998
+опись: 58 строк, новых сцен 4
+  contact_cal0809_bg0.xml        646489 байт  sha256 6a9151cef0a7a72a
+  contact_cal0809.xml            646467 байт  sha256 cd3386cc5dacd4e9
+  contact52k.xml                 642442 байт  sha256 7a3606da60ce1c4b
+  edge1709_bg0.xml               630115 байт  sha256 d8461cd8b261913c
+  edge1709.xml                   630063 байт  sha256 ab3efc60f4bcb2cd
+  edge93_bg0.xml                 625269 байт  sha256 169abc30b5c7a9cb
+  edge93.xml                     625247 байт  sha256 871c35925ade5aaa
+по-сценных копий создано: 58 (строк описи 58)

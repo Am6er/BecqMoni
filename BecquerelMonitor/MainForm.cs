@@ -243,11 +243,11 @@ namespace BecquerelMonitor
                 this.UpdateLanguageCheckState();
             }
             this.dockPanel1.SuspendLayout(true);
-            string text = this.LayoutConfigFile();
-            if (File.Exists(text))
-            {
-                this.dockPanel1.LoadFromXml(text, this.m_deserializeDockContent);
-            }
+            // `AMBER43`: чтение под заслоном. Здесь стояло голое
+            // `dockPanel1.LoadFromXml(text, …)`, и пустой файл раскладки валил
+            // приложение из OnLoad на каждом запуске. Слово об отказе — ПОСЛЕ
+            // показа окна (см. MainForm_ShownReportLayout), как записка `A13`.
+            this.pendingLayoutLoadReport = this.LoadLayoutXml(this.LayoutConfigFile(), false);
             this.dockPanel1.ResumeLayout(true, true);
             this.initialized = true;
             this.timer = new System.Windows.Forms.Timer();
@@ -265,7 +265,8 @@ namespace BecquerelMonitor
             }
 
             // ЧИТАТЕЛЬ записки о том, что прошлое закрытие не сумело записать
-            // раскладку (`A13`). Ставится на Shown, а не зовётся здесь: во
+            // раскладку (`A13`), и слова об отказе ЧТЕНИЯ раскладки на этом
+            // запуске (`AMBER43`). Ставится на Shown, а не зовётся здесь: во
             // время Load окно ещё не нарисовано, и сообщение висело бы над
             // пустым местом.
             base.Shown += this.MainForm_ShownReportLayout;
@@ -275,6 +276,14 @@ namespace BecquerelMonitor
         {
             base.Shown -= this.MainForm_ShownReportLayout;
             this.ReportPendingLayoutFailure();
+            // `AMBER43`: отказ чтения раскладки, отложенный из MainForm_Load.
+            // Тот же механизм и то же место, что у записки, — второго не заводим.
+            string loadReport = this.pendingLayoutLoadReport;
+            this.pendingLayoutLoadReport = null;
+            if (!string.IsNullOrEmpty(loadReport))
+            {
+                AppUi.Report(loadReport, Resources.LayoutSaveFailedTitle, MessageBoxIcon.Warning);
+            }
         }
 
         void InitializeDockPanelTheme()
@@ -3438,10 +3447,8 @@ namespace BecquerelMonitor
             this.dockPanel1.SuspendLayout(true);
             this.CloseAllDocuments();
             this.InitializeToolViews();
-            if (File.Exists(text))
-            {
-                this.dockPanel1.LoadFromXml(text, this.m_deserializeDockContent);
-            }
+            // `AMBER43`: чтение под заслоном; человек на месте — слово сразу.
+            this.LoadLayoutXml(text, true);
             this.dockPanel1.ResumeLayout(true, true);
         }
 
@@ -3461,10 +3468,8 @@ namespace BecquerelMonitor
             this.dockPanel1.SuspendLayout(true);
             this.CloseAllDocuments();
             this.InitializeToolViews();
-            if (File.Exists(text))
-            {
-                this.dockPanel1.LoadFromXml(text, this.m_deserializeDockContent);
-            }
+            // `AMBER43`: то же, что и в пользовательской раскладке.
+            this.LoadLayoutXml(text, true);
             this.dockPanel1.ResumeLayout(true, true);
         }
 
@@ -3473,6 +3478,53 @@ namespace BecquerelMonitor
         {
             return userDirectoryLayout + "ExpertMode.xml";
         }
+
+        /// <summary>
+        /// Прочитать раскладку панелей ПОД ЗАСЛОНОМ (`AMBER43`; решение Amber
+        /// 15.09.2026 дословно: «Не падать: отложить сломанный, поднять `.bak`,
+        /// иначе умолчание; сказать окном после показа»). Само чтение и
+        /// откладывание сломанного файла — <see cref="LayoutFile.Load"/>; здесь
+        /// только слово за экраном.
+        ///
+        /// Три места чтения — запуск и два пункта меню раскладки — идут одним
+        /// путём; до 17.09.2026 в каждом стояло голое <c>LoadFromXml</c>.
+        ///
+        /// ГДЕ ГОВОРИТСЯ:
+        ///   * <paramref name="canReportNow"/> = true (пункты меню) — человек
+        ///     на месте, окно сразу;
+        ///   * false (запуск, <c>MainForm_Load</c>) — окна ещё нет на экране,
+        ///     текст ВОЗВРАЩАЕТСЯ вызывающему и показывается из
+        ///     <c>MainForm_ShownReportLayout</c>, тем же путём, что записка
+        ///     `A13`;
+        ///   * без окон (<see cref="AppUi.HasWindows"/> = false) слово идёт
+        ///     сразу строкой в поток ошибок: ждать <c>Shown</c> там некому, а
+        ///     отказ чтения молчать не должен (память «Признак отказа без
+        ///     читателя»).
+        /// </summary>
+        /// <param name="fileName">файл раскладки</param>
+        /// <param name="canReportNow">true — окно сразу; false — отложить до показа</param>
+        /// <returns>текст отложенного сообщения (только при canReportNow = false в окнах), иначе null</returns>
+        string LoadLayoutXml(string fileName, bool canReportNow)
+        {
+            LayoutFile.LoadOutcome outcome = LayoutFile.Load(this.dockPanel1, fileName, this.m_deserializeDockContent);
+            if (!outcome.Failed)
+            {
+                return null;
+            }
+            string text = LayoutFile.Describe(outcome);
+            if (canReportNow || !AppUi.HasWindows)
+            {
+                AppUi.Report(text, Resources.LayoutSaveFailedTitle, MessageBoxIcon.Warning);
+                return null;
+            }
+            return text;
+        }
+
+        /// <summary>
+        /// Слово об отказе чтения раскладки на запуске, ждущее показа окна
+        /// (`AMBER43`); читает <c>MainForm_ShownReportLayout</c>.
+        /// </summary>
+        string pendingLayoutLoadReport;
 
         /// <summary>
         /// Записать раскладку панелей — и дать отказу ЧИТАТЕЛЯ. Строка `A13`.
@@ -3510,6 +3562,16 @@ namespace BecquerelMonitor
         /// недоступностью того самого файла, и записка рядом с ним легла бы
         /// ровно с тем же отказом — читатель признака сгинул бы вместе с
         /// признаком.
+        ///
+        /// ⛔ САМА ЗАПИСЬ — АТОМАРНАЯ (`AMBER43`, 17.09.2026). `A13` дала отказу
+        /// читателя, но не убрала поломку: <c>dockPanel1.SaveAsXml(имя)</c>
+        /// библиотеки сперва ОБРЕЗАЕТ файл до нуля и лишь потом пишет, и
+        /// процесс, остановленный между шагами (завершение сеанса Windows,
+        /// отказ сериализации, полный диск), оставлял пустой файл — а тот
+        /// валил следующий запуск. Теперь пишет <see cref="LayoutFile.Save"/>:
+        /// в память → <c>.tmp</c> рядом → <c>File.Replace</c> с копией
+        /// <c>.bak</c>. Отказ сериализации файла не касается вовсе; старый файл
+        /// остаётся целым и читаемым. Довод и замер — в <see cref="LayoutFile"/>.
         /// </summary>
         /// <param name="fileName">куда записать раскладку</param>
         /// <param name="canReportNow">
@@ -3521,7 +3583,7 @@ namespace BecquerelMonitor
         {
             try
             {
-                this.dockPanel1.SaveAsXml(fileName);
+                LayoutFile.Save(this.dockPanel1, fileName);
                 return true;
             }
             catch (Exception ex)
@@ -3552,7 +3614,9 @@ namespace BecquerelMonitor
             try
             {
                 string rescue = Path.Combine(Path.GetTempPath(), "BecqMoni.layout-rescued.xml");
-                this.dockPanel1.SaveAsXml(rescue);
+                // Та же атомарная запись, что и у основного файла (`AMBER43`):
+                // спасательная копия, обрезанная на полпути, спасением не была бы.
+                LayoutFile.Save(this.dockPanel1, rescue);
                 rescued = rescue;
             }
             catch (Exception)

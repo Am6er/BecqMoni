@@ -2050,6 +2050,27 @@ http://xptable.sourceforge.net/</value>
   <data name="LayoutSaveNotRescued" xml:space="preserve">
     <value>Сохранить расстановку не удалось — она потеряна.</value>
   </data>
+  <data name="LayoutLoadFailed" xml:space="preserve">
+    <value>Не удалось прочитать файл раскладки панелей {0}.
+Причина: {1}
+{2}
+{3}</value>
+  </data>
+  <data name="LayoutLoadSetAside" xml:space="preserve">
+    <value>Повреждённый файл отложен как {0}.</value>
+  </data>
+  <data name="LayoutLoadNotSetAside" xml:space="preserve">
+    <value>Повреждённый файл отложить не удалось ({0}); это сообщение будет повторяться при каждом запуске, пока файл не убрать.</value>
+  </data>
+  <data name="LayoutLoadBackupUsed" xml:space="preserve">
+    <value>Вместо него загружена прежняя удачная копия {0}.</value>
+  </data>
+  <data name="LayoutLoadBackupBroken" xml:space="preserve">
+    <value>Прежнюю копию {0} прочитать тоже не удалось ({1}) — показана раскладка по умолчанию.</value>
+  </data>
+  <data name="LayoutLoadNoBackup" xml:space="preserve">
+    <value>Прежней копии не было — показана раскладка по умолчанию.</value>
+  </data>
   <data name="ERRCalibrationNotSavedToDevice" xml:space="preserve">
     <value>Калибровка НЕ записана в конфигурацию прибора. У прибора осталась прежняя калибровка, спектр не изменён — устраните причину и сохраните снова.</value>
   </data>

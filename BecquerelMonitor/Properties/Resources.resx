@@ -43301,6 +43301,27 @@ Reason: {2}
   <data name="LayoutSaveNotRescued" xml:space="preserve">
     <value>The arrangement could not be preserved and is lost.</value>
   </data>
+  <data name="LayoutLoadFailed" xml:space="preserve">
+    <value>The panel layout file {0} could not be read.
+Reason: {1}
+{2}
+{3}</value>
+  </data>
+  <data name="LayoutLoadSetAside" xml:space="preserve">
+    <value>The damaged file was set aside as {0}.</value>
+  </data>
+  <data name="LayoutLoadNotSetAside" xml:space="preserve">
+    <value>The damaged file could not be set aside ({0}); this message will repeat on every start until the file is removed.</value>
+  </data>
+  <data name="LayoutLoadBackupUsed" xml:space="preserve">
+    <value>The previous good copy {0} was loaded instead.</value>
+  </data>
+  <data name="LayoutLoadBackupBroken" xml:space="preserve">
+    <value>The previous copy {0} could not be read either ({1}), so the default arrangement is shown.</value>
+  </data>
+  <data name="LayoutLoadNoBackup" xml:space="preserve">
+    <value>There was no previous copy, so the default arrangement is shown.</value>
+  </data>
   <data name="ERRCalibrationNotSavedToDevice" xml:space="preserve">
     <value>The calibration was NOT written to the device configuration. The device keeps its previous calibration and the spectrum is left unchanged - correct the cause and save again.</value>
   </data>

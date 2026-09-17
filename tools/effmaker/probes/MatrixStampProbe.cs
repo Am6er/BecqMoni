@@ -21,6 +21,18 @@ using System.Text;
 /// они обязаны ОТЛИЧАТЬСЯ от умолчаний, иначе матрица с новой физикой легла бы
 /// поверх старой под тем же именем.
 ///
+/// ⛔ Ключ в контроле ставится в значение, ПЕРЕВЁРНУТОЕ относительно умолчания
+/// самих <see cref="ResponseMatrixOptions"/>, а не в зашитое `true`. Что было:
+/// с 02.09.2026 (`S130`) контроль писал `o.PositronTransport = true` и
+/// `o.RayleighToCrystal = true` — тогда оба ключа были ВЫКЛ умолчанием, и
+/// `true` их переворачивал. С П37 (13.09.2026, физика 17) оба ВКЛ умолчанием,
+/// `true` стал равен умолчанию, клеймо не менялось, и проба на КАЖДОЙ сцене
+/// печатала «КЛЕЙМО ТО ЖЕ — расхождение» и возвращала код 1 — четыре дня, пока
+/// её читали только по строкам клейм (П72 `stamp_check.py`, П91
+/// `check_corpus_scenes.py`). Найдено и исправлено П91 17.09.2026: перевёрнутое
+/// значение не зависит от того, какое умолчание физика выберет завтра, а метка
+/// строки печатает то значение, которое реально подано (`--positron=0`).
+///
 ///     matrixstampprobe --geometry=X.in [--matrix=X.rmx]
 /// </summary>
 static class MatrixStampProbe
@@ -99,21 +111,32 @@ static class MatrixStampProbe
         }
 
         Console.WriteLine();
-        Console.WriteLine("а различает ли клеймо ключи физики 02.09.2026:");
+        Console.WriteLine("а различает ли клеймо ключи физики 02.09.2026 (ключ — перевёрнут против умолчания):");
         int bad = 0;
-        bad += Differs("--pairth=1", byDefaults, geometry, o => o.XcomPairThreshold = true);
-        bad += Differs("--positron=1", byDefaults, geometry, o => o.PositronTransport = true);
-        bad += Differs("--positron=1 --posoffset=0", byDefaults, geometry,
-                       o => { o.PositronTransport = true; o.PositronOffset = false; });
-        bad += Differs("--rayl2=1", byDefaults, geometry, o => o.RayleighToCrystal = true);
+        // Каждый ключ — в значение, ОБРАТНОЕ умолчанию `plain` (см. шапку: `true`
+        // здесь однажды совпало с умолчанием и ослепило контроль на четыре дня).
+        bad += Differs(Flag("--pairth", !plain.XcomPairThreshold), byDefaults, geometry,
+                       o => o.XcomPairThreshold = !plain.XcomPairThreshold);
+        bad += Differs(Flag("--positron", !plain.PositronTransport), byDefaults, geometry,
+                       o => o.PositronTransport = !plain.PositronTransport);
+        // Смещение позитрона имеет смысл только при ВКЛ переносе: перенос
+        // держится включённым, переворачивается само смещение.
+        bad += Differs(Flag("--positron", true) + " " + Flag("--posoffset", !plain.PositronOffset),
+                       byDefaults, geometry,
+                       o => { o.PositronTransport = true; o.PositronOffset = !plain.PositronOffset; });
+        bad += Differs(Flag("--rayl2", !plain.RayleighToCrystal), byDefaults, geometry,
+                       o => o.RayleighToCrystal = !plain.RayleighToCrystal);
         // `A57` — ОЦЕНЩИК, а не физика, но клеймо обязано различать и его:
         // числа матрицы с конусом другие, и подменять ими готовую нельзя.
-        bad += Differs("--cone=1", byDefaults, geometry, o => o.AnalogConeSampling = true);
+        bad += Differs(Flag("--cone", !plain.AnalogConeSampling), byDefaults, geometry,
+                       o => o.AnalogConeSampling = !plain.AnalogConeSampling);
 
         // Половины `S126` обязаны различаться и МЕЖДУ СОБОЙ, а не только от
-        // умолчаний: иначе гвард отдаст матрицу одной половины другой.
+        // умолчаний: иначе гвард отдаст матрицу одной половины другой. Обе — с
+        // ВКЛ переносом, различаются только смещением (одна — умолчание, другая
+        // — перевёрнутое).
         var a1 = new ResponseMatrixOptions(); a1.PositronTransport = true;
-        var a2 = new ResponseMatrixOptions(); a2.PositronTransport = true; a2.PositronOffset = false;
+        var a2 = new ResponseMatrixOptions(); a2.PositronTransport = true; a2.PositronOffset = !plain.PositronOffset;
         string s1 = ResponseMatrix.ComputeStamp(geometry, a1);
         string s2 = ResponseMatrix.ComputeStamp(geometry, a2);
         Console.WriteLine("  {0,-28} {1}", "половины S126 между собой",
@@ -128,6 +151,12 @@ static class MatrixStampProbe
             ? "СОШЛОСЬ: каждый ключ физики меняет клеймо"
             : "НЕ СОШЛОСЬ: клеймо не различает " + bad + " случаев");
         return bad == 0 ? 0 : 1;
+    }
+
+    /// <summary>Метка строки контроля — то значение, что РЕАЛЬНО подано ключу.</summary>
+    static string Flag(string key, bool value)
+    {
+        return key + "=" + (value ? "1" : "0");
     }
 
     static int Differs(string what, string reference, GeometryModel geometry,
