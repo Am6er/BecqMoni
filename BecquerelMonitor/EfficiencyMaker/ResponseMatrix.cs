@@ -107,7 +107,42 @@ namespace BecquerelMonitor.EfficiencyMaker
         //     и цена его названа при выборе: все 44 корпусные и 4 рабочие
         //     матрицы объявлены негодными разом и подлежат пересчёту, а до него
         //     разбор печатает «БЕЗ МАТРИЦЫ».
-        public const int FormatVersion = 8;
+        // 9 — КОЭФФИЦИЕНТЫ ОСЛАБЛЕНИЯ УГЛОВОЙ КОРРЕЛЯЦИИ Q_k(E) ВНУТРИ МАТРИЦЫ
+        //     (`AMBER46`, П87 16.09.2026). Постановка Amber 16.09.2026, консоль,
+        //     дословно: «Нет. Так не устраивает. Никаких сайдкаров. Стоп.» и
+        //     «У нас есть матрица отклика. Не нужно бояться менять физику, если
+        //     это реально надо»; решение вопросником, дословно: «FormatVersion 9
+        //     — старые негодны». До того геометрическая половина угловой
+        //     корреляции (`N14`, П49) жила ТЕКСТОВЫМ САЙДКАРОМ `<ключ>.qk` рядом
+        //     с `.rmx`, который считала только проба `AngularQkProbe`
+        //     подсмотром направления отражением, — приложение его не строило,
+        //     и на складе без сайдкара ключ `CascadeSumAngular` (ВКЛ с
+        //     15.09.2026) бездействовал молча (`A311`). Теперь Q₂/Q₄ пика и
+        //     Q₂ᵀ/Q₄ᵀ полного заноса с шумом копятся ПРИ ПОСТРОЕНИИ узла из
+        //     ТЕХ ЖЕ историй, что строят его строку (`AngularMomentSums` в
+        //     `EfficiencySimulator.Run`), и лежат ОБЯЗАТЕЛЬНЫМ блоком `ANGK`
+        //     основного формата сразу за телом — не хвостом (решение Amber),
+        //     потому что без них разбор считает сумм-пики другой моделью, и
+        //     матрица без блока годной числиться не должна. Тело (сетка и
+        //     строки по каналам) и его отпечаток `BODY` НЕ ИЗМЕНИЛИСЬ НИ НА
+        //     БАЙТ — поток ГСЧ построителя не тронут, что и проверяется
+        //     `MatrixDiffProbe` (формат 8 против 9: тело побайтно, Q_k добавлен).
+        //     Клеймо не менялось: Q_k выводятся из тех же историй и того же
+        //     рецепта. Цена подъёма названа при решении: все 46 матриц склада
+        //     и 2 витрины пересчитаны единым счётом (склад rev26), рабочие
+        //     матрицы Amber — ею в EffMaker «Посчитать из геометрии»; до
+        //     пересчёта разбор печатает «БЕЗ МАТРИЦЫ». Сайдкары `.qk`, их
+        //     чтение, запись и перенос сняты полностью.
+        public const int FormatVersion = 9;
+
+        /// <summary>
+        /// Прежний формат, который <see cref="Load(string, out MatrixRefusal, out int, int)"/>
+        /// СОГЛАШАЕТСЯ прочитать ТОЛЬКО по явной просьбе — ради сравнения тел
+        /// (`MatrixDiffProbe`: формат 8 против 9 обязаны совпасть побайтно по
+        /// телу). Приложение и все прочие читатели зовут `Load` без этого
+        /// довода и старый файл получают отказом `OldFormat`, как и положено.
+        /// </summary>
+        public const int PreviousFormatVersion = 8;
 
         /// <summary>
         /// Версия ФИЗИКИ. Поднимать при любой правке переноса, меняющей числа:
@@ -309,6 +344,18 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>Точек, разыгранных на замер κ; 0 — таблицы нет.</summary>
         public long JointPoints { get; set; }
+
+        /// <summary>
+        /// ⚡ КОЭФФИЦИЕНТЫ ОСЛАБЛЕНИЯ УГЛОВОЙ КОРРЕЛЯЦИИ Q_k(E) СЦЕНЫ (`AMBER46`,
+        /// формат 9): по узлам <see cref="Energies"/> — Q₂/Q₄ пика, Q₂ᵀ/Q₄ᵀ
+        /// полного заноса, их шум, эффективности узла и число историй, из
+        /// которых они набраны. Строит <see cref="ResponseMatrixBuilder"/> из
+        /// ТЕХ ЖЕ историй, что и строки; потребитель — сумматор каскада через
+        /// <c>FsaMatrixBinding.Bind</c> → <c>FsaAnalyzer.AngularQk</c>.
+        /// null — только у матрицы, собранной руками (пробы); построитель и
+        /// файл формата 9 таблицу несут всегда.
+        /// </summary>
+        public AngularAttenuation AngularQk { get; set; }
 
         /// <summary>
         /// ⚡ МНОЖИТЕЛЬ СОВМЕСТНОЙ ЭФФЕКТИВНОСТИ ПАРЫ (`S112`).
@@ -1776,6 +1823,40 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.BodyFingerprint = Hex(digest);
                 this.StoredBodyFingerprint = this.BodyFingerprint;
 
+                // ⛔ БЛОК `ANGK` — Q_k(E) УГЛОВОЙ КОРРЕЛЯЦИИ ПО УЗЛАМ (`AMBER46`,
+                // формат 9). ОСНОВНОЙ формат, не хвост, и читается БЕЗУСЛОВНО:
+                // решение Amber 16.09.2026 «FormatVersion 9 — старые негодны».
+                // Стоит СРАЗУ ЗА ТЕЛОМ и В ТЕЛО НЕ ВХОДИТ: отпечаток `BODY`
+                // снят с сетки и строк по каналам ровно как в формате 8, и
+                // матрица формата 9 обязана давать ТОТ ЖЕ отпечаток тела, что
+                // её предшественница формата 8 того же рецепта, — этим и
+                // проверяется, что поток ГСЧ построителя не тронут.
+                //
+                // На узел — одиннадцать чисел: Q₂, Q₄, σQ₂, σQ₄ пика; Q₂ᵀ, Q₄ᵀ,
+                // σQ₂ᵀ, σQ₄ᵀ полного заноса; ε_пика и ε_полн (взвешенная) узла;
+                // историй, из которых набраны. Число узлов блока равно числу
+                // узлов сетки; ноль — таблицы нет (матрица собрана руками, а не
+                // построителем), и `Load` читает её как `AngularQk = null`.
+                AngularAttenuation qk = this.AngularQk;
+                int qkNodes = qk != null && this.Energies != null && qk.Count == this.Energies.Length
+                    ? qk.Count : 0;
+                writer.Write(Encoding.ASCII.GetBytes("ANGK"));
+                writer.Write(qkNodes);
+                for (int i = 0; i < qkNodes; i++)
+                {
+                    writer.Write(qk.Q2[i]);
+                    writer.Write(qk.Q4[i]);
+                    writer.Write(qk.Q2Err != null ? qk.Q2Err[i] : 0.0);
+                    writer.Write(qk.Q4Err != null ? qk.Q4Err[i] : 0.0);
+                    writer.Write(qk.Q2T != null ? qk.Q2T[i] : qk.Q2[i]);
+                    writer.Write(qk.Q4T != null ? qk.Q4T[i] : qk.Q4[i]);
+                    writer.Write(qk.Q2TErr != null ? qk.Q2TErr[i] : 0.0);
+                    writer.Write(qk.Q4TErr != null ? qk.Q4TErr[i] : 0.0);
+                    writer.Write(qk.PeakEff != null ? qk.PeakEff[i] : 0.0);
+                    writer.Write(qk.TotalEff != null ? qk.TotalEff[i] : 0.0);
+                    writer.Write(qk.Histories != null ? qk.Histories[i] : 0L);
+                }
+
                 // ⛔ У 799 МАТРИЦ СКЛАДА ЭТОГО ХВОСТА НЕТ, И ДОПИСЫВАТЬ ЕГО НЕ
                 // НАДО — решение Amber 23.08.2026 (`T53`): ждём естественного
                 // обновления. Матрица пересчитывается сама при смене физики или
@@ -2557,8 +2638,20 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// ⚠ <paramref name="fileFormat"/> имеет смысл только при
         /// <see cref="MatrixRefusal.OldFormat"/> — это версия ФАЙЛА, ради
         /// сообщения «посчитана форматом N, читаем M». У остальных отказов он 0.
+        ///
+        /// ⚠ <paramref name="legacyFormatForComparison"/> (`AMBER46`, П87) —
+        /// ЕДИНСТВЕННЫЙ способ прочитать файл ПРЕЖНЕГО формата, и он заведён
+        /// только ради сравнения тел (`MatrixDiffProbe`: матрица формата 8
+        /// против её пересчёта форматом 9 обязаны совпасть по телу побайтно).
+        /// Годным по формату такой файл не становится: у него нет блока Q_k,
+        /// `AngularQk` остаётся null, а <paramref name="fileFormat"/> честно
+        /// несёт его версию. Ноль (умолчание) — прежнее поведение: любой формат,
+        /// кроме <see cref="FormatVersion"/>, — отказ <see cref="MatrixRefusal.OldFormat"/>.
+        /// Принимается только <see cref="PreviousFormatVersion"/>: раскладка
+        /// более старых форматов этому читателю неизвестна.
         /// </summary>
-        public static ResponseMatrix Load(string path, out MatrixRefusal refusal, out int fileFormat)
+        public static ResponseMatrix Load(string path, out MatrixRefusal refusal, out int fileFormat,
+                                          int legacyFormatForComparison = 0)
         {
             refusal = MatrixRefusal.NoFile;
             fileFormat = 0;
@@ -2580,12 +2673,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
 
                     int format = reader.ReadInt32();
-                    if (format != FormatVersion)
+                    bool legacy = format == PreviousFormatVersion
+                                  && legacyFormatForComparison == PreviousFormatVersion;
+                    if (format != FormatVersion && !legacy)
                     {
                         refusal = MatrixRefusal.OldFormat;
                         fileFormat = format;
                         return null;
                     }
+
+                    fileFormat = format;
 
                     var matrix = new ResponseMatrix
                     {
@@ -2630,6 +2727,63 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
 
                     long bodyEnd = stream.Position;
+
+                    // ⛔ БЛОК `ANGK` — Q_k(E) по узлам (`AMBER46`, формат 9):
+                    // ОСНОВНОЙ формат, читается БЕЗУСЛОВНО и ДО хвостов.
+                    // Метки нет или узлов блока не столько, сколько в сетке, —
+                    // файл обрублен или чужой: исключение, отказ `Unreadable`,
+                    // а не «матрица годна, таблицы нет». У файла прежнего
+                    // формата, допущенного ради сравнения, блока нет по
+                    // построению — он пропускается, `AngularQk` остаётся null.
+                    if (!legacy)
+                    {
+                        if (Encoding.ASCII.GetString(reader.ReadBytes(4)) != "ANGK")
+                        {
+                            throw new InvalidDataException("формат 9: за телом нет блока ANGK");
+                        }
+
+                        int qkNodes = reader.ReadInt32();
+                        if (qkNodes != 0 && qkNodes != nodes)
+                        {
+                            throw new InvalidDataException("формат 9: узлов Q_k " + qkNodes.ToString(CultureInfo.InvariantCulture)
+                                                           + " при " + nodes.ToString(CultureInfo.InvariantCulture) + " узлах сетки");
+                        }
+
+                        if (qkNodes > 0)
+                        {
+                            var qk = new AngularAttenuation
+                            {
+                                Energies = matrix.Energies,
+                                Q2 = new double[qkNodes],
+                                Q4 = new double[qkNodes],
+                                Q2Err = new double[qkNodes],
+                                Q4Err = new double[qkNodes],
+                                Q2T = new double[qkNodes],
+                                Q4T = new double[qkNodes],
+                                Q2TErr = new double[qkNodes],
+                                Q4TErr = new double[qkNodes],
+                                PeakEff = new double[qkNodes],
+                                TotalEff = new double[qkNodes],
+                                Histories = new long[qkNodes]
+                            };
+                            for (int i = 0; i < qkNodes; i++)
+                            {
+                                qk.Q2[i] = reader.ReadDouble();
+                                qk.Q4[i] = reader.ReadDouble();
+                                qk.Q2Err[i] = reader.ReadDouble();
+                                qk.Q4Err[i] = reader.ReadDouble();
+                                qk.Q2T[i] = reader.ReadDouble();
+                                qk.Q4T[i] = reader.ReadDouble();
+                                qk.Q2TErr[i] = reader.ReadDouble();
+                                qk.Q4TErr[i] = reader.ReadDouble();
+                                qk.PeakEff[i] = reader.ReadDouble();
+                                qk.TotalEff[i] = reader.ReadDouble();
+                                qk.Histories[i] = reader.ReadInt64();
+                            }
+
+                            matrix.AngularQk = qk;
+                        }
+                    }
 
                     // Хвост с достигнутым шумом (`T46`). У файлов, записанных
                     // раньше, его нет — поля остаются нулями и null, ровно тем
@@ -2778,6 +2932,194 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>Файл наш и формат нынешний, а чтение оборвалось (обрубок).</summary>
         Unreadable
+    }
+
+    /// <summary>
+    /// Коэффициенты ослабления угловой корреляции Q_k(E) сцены (`N14`) —
+    /// ГЕОМЕТРИЧЕСКАЯ половина корреляции квантов каскада; ядерная (A_kk) — у
+    /// <c>FullSpectrumAnalysis.AngularCorrelation</c>.
+    ///
+    /// ЧТО ЭТО. Моменты угловой эффективности пика по Лежандру:
+    ///
+    ///     Q_k(E) = ∫ ε_p(E, θ)·P_k(cos θ) dΩ / ∫ ε_p(E, θ) dΩ,   k = 2, 4,
+    ///
+    /// где θ — угол вылета кванта к оси «точка распада → центр кристалла»
+    /// (П49 §1.1; тем же определением считана сцена Geant4 П85), а для
+    /// протяжённой пробы среднее берётся и по точкам розыгрыша. Вероятность
+    /// поглотить в пике ОБА кванта каскада с корреляцией
+    /// W(θ₁₂) = 1 + Σ A_kk·P_k(cos θ₁₂) по теореме сложения полиномов Лежандра
+    /// (осевая симметрия, член m = 0):
+    ///
+    ///     ε_пары = ε_p(1)·ε_p(2)·(1 + A₂₂·Q₂(1)·Q₂(2) + A₄₄·Q₄(1)·Q₄(2)).
+    ///
+    /// ПРЕДЕЛЫ, по которым таблица проверяется: точечный источник далеко от
+    /// кристалла (малый телесный угол) — Q_k → 1, корреляция входит целиком
+    /// (П49 §2.2: 2000 мм от Ø63 — 0.9998/0.9994 против чёрного диска
+    /// 0.9998/0.9994). ⚠ Предел «4π → 0» для маринелли и поля НЕВЕРЕН (П49
+    /// §2.3): Q_k = 0 требует, чтобы из ТОЧКИ ВЫЛЕТА кристалл был виден во все
+    /// стороны — источник внутри кристалла или колодец; из точки маринелли он
+    /// виден в конусе, и Q₂ там 0.60…0.98.
+    ///
+    /// ⚠ ПРИБЛИЖЕНИЯ НАЗВАНЫ: (а) члены m ≠ 0 теоремы сложения у точки вне
+    /// оси отброшены — ось берётся на центр кристалла, где они наименьшие;
+    /// (б) среднее по точкам берётся ПОРОЗНЬ для двух энергий (Q_k(1)·Q_k(2)
+    /// вместо ⟨q_k(r,1)·q_k(r,2)⟩) — связь точек двух квантов уже несёт κ;
+    /// (в) ε_T для Q_k^T — взвешенная оценка (занижена по уровню на 12…15 %),
+    /// нужна лишь её угловая форма.
+    ///
+    /// ОТКУДА (`AMBER46`, П87 16.09.2026). Строит <see cref="ResponseMatrixBuilder"/>
+    /// из ТЕХ ЖЕ историй, что и строки матрицы (<see cref="AngularMomentSums"/>),
+    /// по узлам <see cref="ResponseMatrix.Energies"/>; лежит в файле матрицы
+    /// блоком `ANGK` формата 9 и приходит к сумматору с матрицей
+    /// (<c>FsaMatrixBinding.Bind</c>). До П87 жила текстовым сайдкаром `.qk`
+    /// рядом с `.rmx`, который считала одна проба, — механизм отвергнут Amber
+    /// 16.09.2026 («Никаких сайдкаров. Стоп.») и снят целиком.
+    /// </summary>
+    public sealed class AngularAttenuation
+    {
+        /// <summary>Узлы, кэВ — те же, что у матрицы.</summary>
+        public double[] Energies;
+
+        /// <summary>Моменты ПИКА и их шум (σ, дельта-метод по историям).</summary>
+        public double[] Q2;
+        public double[] Q4;
+        public double[] Q2Err;
+        public double[] Q4Err;
+
+        /// <summary>Эффективность пика узла — средний пиковый счёт истории (взвешенная ветвь).</summary>
+        public double[] PeakEff;
+
+        /// <summary>
+        /// Те же моменты для ПОЛНОГО ЗАНОСА (квант задел кристалл) — ими
+        /// считается вынос из пика: партнёр уносит событие, куда бы он ни
+        /// попал, и его угловое распределение — распределение ε_T, а не ε_p.
+        /// </summary>
+        public double[] Q2T;
+        public double[] Q4T;
+        public double[] Q2TErr;
+        public double[] Q4TErr;
+
+        /// <summary>Взвешенная ε_T узла (нужна лишь угловая форма, уровень занижен).</summary>
+        public double[] TotalEff;
+
+        /// <summary>
+        /// Историй, из которых набраны моменты узла — истории ПОСЛЕДНЕГО
+        /// прохода построителя, того, что дал строку. При останове по шуму это
+        /// не <see cref="ResponseMatrix.NodeHistories"/> (там — потраченное с
+        /// пробой); при плоском счёте склада (`--target=0`) числа равны.
+        /// Читатель-контроль `AngularQkProbe` повторяет узел ровно этим числом
+        /// и тем же зерном — и ждёт совпадения ДО БИТА.
+        /// </summary>
+        public long[] Histories;
+
+        public int Count
+        {
+            get { return this.Energies != null ? this.Energies.Length : 0; }
+        }
+
+        /// <summary>
+        /// Q_k при энергии — линейная интерполяция по ln E между узлами,
+        /// за краями — крайний узел. k = 2 или 4; иное — ноль (член выпадает).
+        /// </summary>
+        public double Q(int k, double energyKev)
+        {
+            return this.Interpolate(k == 2 ? this.Q2 : (k == 4 ? this.Q4 : null), energyKev);
+        }
+
+        /// <summary>Момент ПОЛНОГО заноса; без своих столбцов — момент пика.</summary>
+        public double QT(int k, double energyKev)
+        {
+            double[] values = k == 2 ? this.Q2T : (k == 4 ? this.Q4T : null);
+            if (values == null || values.Length != this.Count)
+            {
+                return this.Q(k, energyKev);
+            }
+
+            return this.Interpolate(values, energyKev);
+        }
+
+        double Interpolate(double[] values, double energyKev)
+        {
+            if (values == null || this.Energies == null || this.Energies.Length == 0
+                || values.Length != this.Energies.Length || !(energyKev > 0.0))
+            {
+                return 0.0;
+            }
+
+            int n = this.Energies.Length;
+            if (energyKev <= this.Energies[0])
+            {
+                return values[0];
+            }
+
+            if (energyKev >= this.Energies[n - 1])
+            {
+                return values[n - 1];
+            }
+
+            int i = 1;
+            while (i < n - 1 && this.Energies[i] < energyKev)
+            {
+                i++;
+            }
+
+            double x0 = Math.Log(this.Energies[i - 1]);
+            double x1 = Math.Log(this.Energies[i]);
+            double t = x1 > x0 ? (Math.Log(energyKev) - x0) / (x1 - x0) : 0.0;
+            return values[i - 1] + (values[i] - values[i - 1]) * t;
+        }
+
+        /// <summary>
+        /// Таблица из накопителей узлов построителя: узел без накопителя
+        /// (null) получает нули и ноль историй — это «пик пуст», как у узла
+        /// 5 кэВ, где отклика нет вовсе.
+        /// </summary>
+        public static AngularAttenuation FromMoments(double[] energies, AngularMomentSums[] nodes)
+        {
+            if (energies == null || nodes == null || nodes.Length != energies.Length)
+            {
+                return null;
+            }
+
+            int n = energies.Length;
+            var table = new AngularAttenuation
+            {
+                Energies = energies,
+                Q2 = new double[n],
+                Q4 = new double[n],
+                Q2Err = new double[n],
+                Q4Err = new double[n],
+                PeakEff = new double[n],
+                Q2T = new double[n],
+                Q4T = new double[n],
+                Q2TErr = new double[n],
+                Q4TErr = new double[n],
+                TotalEff = new double[n],
+                Histories = new long[n]
+            };
+            for (int i = 0; i < n; i++)
+            {
+                AngularMomentSums m = nodes[i];
+                if (m == null)
+                {
+                    continue;
+                }
+
+                table.Q2[i] = m.Q(2);
+                table.Q4[i] = m.Q(4);
+                table.Q2Err[i] = m.Err(2);
+                table.Q4Err[i] = m.Err(4);
+                table.PeakEff[i] = m.PeakEfficiency;
+                table.Q2T[i] = m.QT(2);
+                table.Q4T[i] = m.QT(4);
+                table.Q2TErr[i] = m.ErrT(2);
+                table.Q4TErr[i] = m.ErrT(4);
+                table.TotalEff[i] = m.TotalEfficiency;
+                table.Histories[i] = m.N;
+            }
+
+            return table;
+        }
     }
 
     /// <summary>

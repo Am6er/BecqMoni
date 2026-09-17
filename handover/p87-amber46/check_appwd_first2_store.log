@@ -1,0 +1,12 @@
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : D:\BqMoni_Claude\p87\wt\tools\CORPUS\scripts\wd_p87
+  сборка   : D:\BqMoni_Claude\p87\wt\BecquerelMonitor\bin\Release_p87
+  пробы    : D:\BqMoni_Claude\p87\wt\tools\effmaker\probes\build_p87
+  собрана  : 2026-09-17 13:06:12 из D:\BqMoni_Claude\p87\wt\BecquerelMonitor\bin\Release_p87
+  наборы   : приложение 585d3bb6671c (549 файлов), пробы fbec7b85c137 (194)
+  сверено  : 487 файлов по sha256 за 2.65 с
+  библиотека: в оснастке корпуса НЕТ по правилу AMBER19 — состав из manifest.csv, линии из nucdb/matdb
+  перекладка: клейма склада и оснастки сошлись
+  ОСНАСТКА СВЕЖАЯ: 487 файлов сошлись
+

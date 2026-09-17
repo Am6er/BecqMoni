@@ -4132,7 +4132,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `1 + Σ_k A_kk·Q_k(E₁)·Q_k(E₂)` — ядерная половина A_kk из спинов и
         /// мультипольностей схемы уровней (<see cref="AngularCorrelation"/>),
         /// геометрическая Q_k(E) — из таблицы сцены (<see cref="AngularQk"/>,
-        /// сайдкар `*.qk` рядом с матрицей); без таблицы ключ ничего не меняет.
+        /// с 16.09.2026 (`AMBER46`, П87) — внутри матрицы отклика, формат 9,
+        /// из тех же историй, что её строки); без матрицы каскад не считается.
         /// Без ключа пара идёт произведением эффективностей, то есть изотропно,
         /// как считалось до 15.09.2026 (<see cref="FsaCascadeSummer.AngularCorrelations"/>).
         /// С 15.09.2026 (П86, `AMBER42`) умолчание — ВКЛ: знак δ заселяющего
@@ -4145,12 +4146,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool CascadeSumAngular { get; set; }
 
         /// <summary>
-        /// Таблица Q_k(E) сцены (`N14`); null — сайдкара нет. Приходит с
-        /// матрицей тем же путём, что <see cref="ScintillatorMaterial"/>
+        /// Таблица Q_k(E) сцены (`N14`); с 16.09.2026 (`AMBER46`, П87) — это
+        /// <c>ResponseMatrix.AngularQk</c>, блок формата 9 самой матрицы: приходит
+        /// с ней тем же путём, что <see cref="ScintillatorMaterial"/>
         /// (<c>FsaMatrixBinding.Bind</c>), и уходит в сумматор до первого
-        /// расчёта поправок.
+        /// расчёта поправок. null — матрицы нет (тогда и каскада нет) либо
+        /// матрица собрана руками без таблицы.
         /// </summary>
-        public AngularAttenuation AngularQk { get; set; }
+        public EfficiencyMaker.AngularAttenuation AngularQk { get; set; }
 
         /// <summary>Пар с A_kk ≠ 0, прошедших через сумматор в последнем разборе (`N14`); ноль — сумматора не было.</summary>
         public int CascadeAngularPairs
@@ -4488,7 +4491,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // правки δ и перемера» — знак δ заселяющего перехода исправлен
             // тем же днём (`AngularCorrelation.For`, находка П85), плечо ВКЛ
             // перемерено после правки. Полярность стоит ЗДЕСЬ, у присваивания
-            // (`T82`). Числа плеч (склад rev24, 46 `.qk` физики 18, сборка
+            // (`T82`). Числа плеч (склад rev24, Q_k 46 сцен физики 18, сборка
             // П86): полный корпус, понятная 89 — Σχ²/ndf 465.4 (ВЫКЛ =
             // `out_rev24_full`) → 465.6 (+0.04 %), медиана 2.46 → 2.46, recall
             // 100 %, фантомов 0, состав тот же у 89, `share_pct` > 0.5 п.п. — 0;

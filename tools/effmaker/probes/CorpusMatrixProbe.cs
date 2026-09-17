@@ -726,6 +726,29 @@ class CorpusMatrixProbe
                               noisy ? string.Format(CultureInfo.InvariantCulture,
                                                     "ВЫШЕ ПОРОГА {0:F1} %", noiseLimit)
                                     : "тихо");
+            // (`AMBER46`, П87) Q_k угловой корреляции — из тех же историй,
+            // блок формата 9; печатается, чтобы было видно, что блок доехал
+            // до файла: узел у 662 кэВ и худший шум по узлам.
+            AngularAttenuation qk = matrix.AngularQk;
+            if (qk != null && qk.Count == matrix.Energies.Length)
+            {
+                int i662 = 0;
+                double worstQk = 0.0;
+                for (int i = 0; i < qk.Count; i++)
+                {
+                    if (Math.Abs(qk.Energies[i] - 661.7) < Math.Abs(qk.Energies[i662] - 661.7)) i662 = i;
+                    worstQk = Math.Max(worstQk, Math.Max(qk.Q2Err[i], qk.Q4Err[i]));
+                }
+
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                                  "   Q_k      : узлов {0}; у {1:F1} кэВ Q2 {2:F4} ± {3:F4}, Q4 {4:F4} ± {5:F4}, Q2T {6:F4}, Q4T {7:F4}; худший шум Q_k {8:F4}",
+                                  qk.Count, qk.Energies[i662], qk.Q2[i662], qk.Q2Err[i662], qk.Q4[i662], qk.Q4Err[i662],
+                                  qk.Q2T[i662], qk.Q4T[i662], worstQk));
+            }
+            else
+            {
+                Console.WriteLine("   Q_k      : ⛔ БЛОКА НЕТ — построитель не положил таблицу угловой корреляции");
+            }
             if (dump != null && matrix.NodeHistories != null)
             {
                 string dumpPath = files.Count > 1
@@ -738,7 +761,8 @@ class CorpusMatrixProbe
                     // потоках на 8 ядрах завышено, но узлы между собой сравнимы.
                     // `dropped_pct` — замер к `S55`: доля историй аналоговой
                     // ветки, выброшенных правилом «округлилось в бин пика».
-                    w.WriteLine("node,energy_kev,histories,error_pct,seconds_wall,dropped,scored,dropped_pct,dropped_scat,scat_pct");
+                    // (`AMBER46`) Q_k узла — те же числа, что в блоке ANGK файла.
+                    w.WriteLine("node,energy_kev,histories,error_pct,seconds_wall,dropped,scored,dropped_pct,dropped_scat,scat_pct,q2,q4,dq2,dq4,q2t,q4t,dq2t,dq4t,eps_peak,eps_total,qk_histories");
                     long[] dropped = ResponseMatrixBuilder.NodeDropped;
                     long[] scored = ResponseMatrixBuilder.NodeScored;
                     long[] droppedScat = ResponseMatrixBuilder.NodeDroppedScattered;
@@ -747,13 +771,19 @@ class CorpusMatrixProbe
                         long d = dropped != null && i < dropped.Length ? dropped[i] : 0L;
                         long sc = scored != null && i < scored.Length ? scored[i] : 0L;
                         long ds = droppedScat != null && i < droppedScat.Length ? droppedScat[i] : 0L;
+                        AngularAttenuation q = matrix.AngularQk;
+                        bool hasQ = q != null && q.Count == matrix.Energies.Length;
                         w.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                            "{0},{1:F3},{2},{3:F3},{4:F3},{5},{6},{7:F3},{8},{9:F3}", i, matrix.Energies[i],
+                            "{0},{1:F3},{2},{3:F3},{4:F3},{5},{6},{7:F3},{8},{9:F3},{10:R},{11:R},{12:R},{13:R},{14:R},{15:R},{16:R},{17:R},{18:R},{19:R},{20}",
+                            i, matrix.Energies[i],
                             matrix.NodeHistories[i],
                             matrix.NodeErrors != null ? matrix.NodeErrors[i] : 0.0,
                             matrix.NodeSeconds != null ? matrix.NodeSeconds[i] : 0.0,
                             d, sc, d + sc > 0L ? 100.0 * d / (d + sc) : 0.0,
-                            ds, d + sc > 0L ? 100.0 * ds / (d + sc) : 0.0));
+                            ds, d + sc > 0L ? 100.0 * ds / (d + sc) : 0.0,
+                            hasQ ? q.Q2[i] : 0.0, hasQ ? q.Q4[i] : 0.0, hasQ ? q.Q2Err[i] : 0.0, hasQ ? q.Q4Err[i] : 0.0,
+                            hasQ ? q.Q2T[i] : 0.0, hasQ ? q.Q4T[i] : 0.0, hasQ ? q.Q2TErr[i] : 0.0, hasQ ? q.Q4TErr[i] : 0.0,
+                            hasQ ? q.PeakEff[i] : 0.0, hasQ ? q.TotalEff[i] : 0.0, hasQ ? q.Histories[i] : 0L));
                     }
                 }
 

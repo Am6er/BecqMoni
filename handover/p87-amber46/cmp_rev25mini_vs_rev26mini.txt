@@ -1,0 +1,44 @@
+runs        строк    59  разошлось    8
+   по столбцам: chi2ndf_pois×8, chi2ndf×3, inflate×2, model_residual_pct×1
+   по спектрам (8): 
+      AS80_Th232Medal              chi2ndf_pois
+      ASN16_Lu176                  chi2ndf, chi2ndf_pois, inflate, model_residual_pct
+      G1S16_Ba133_P5               chi2ndf, chi2ndf_pois
+      G1S16_Co60_P5                chi2ndf_pois
+      G1S24_Ba133_P5               chi2ndf_pois, inflate
+      G1S24_Co60_P5                chi2ndf, chi2ndf_pois
+      G1S24_Eu152_P5               chi2ndf_pois
+      G1S24_Th228_P5               chi2ndf_pois
+components  строк   112  разошлось   27
+   по столбцам: peak_counts×23, decay_s×12, inflate×4, peak_share_pct×1, z×1, dt_decay_s×1, mda_decay_s×1
+   по спектрам (13): 
+      AS80_Lu176                   peak_counts
+      AS80_Th232Medal              decay_s, peak_counts, peak_share_pct
+      ASN16_Lu176                  decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      ASN16_Lu176_P0               peak_counts
+      G1S16_Ba133_P5               peak_counts
+      G1S16_Co60_P5                peak_counts
+      G1S16_Eu152_P5               peak_counts
+      G1S16_Th228_P5               peak_counts
+      G1S24_Ba133_P5               inflate, peak_counts
+      G1S24_Bi207_P5               peak_counts
+      G1S24_Co60_P5                peak_counts
+      G1S24_Eu152_P5               peak_counts
+      G1S24_Th228_P5               peak_counts
+limits      строк    45  разошлось    5
+   по столбцам: mda_peak_counts×5, decay_s×2, dt_decay_s×1, mda_decay_s×1
+   по спектрам (5): 
+      AS80_Th232Medal              decay_s, mda_peak_counts
+      ASN16_Lu176                  decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Co60_P5                mda_peak_counts
+      G1S24_Eu152_P5               mda_peak_counts
+      G1S24_Th228_P5               mda_peak_counts
+anchors     строк   217  разошлось   19
+   по столбцам: measured_kev×9, shift_kev×6, z×4, sigma_kev×4, model_kev×2, peak_share×2
+   по спектрам (5): 
+      AS80_Th232Medal              measured_kev, model_kev, peak_share, shift_kev, z
+      ASN16_Lu176                  measured_kev
+      ASN16_Lu176_P0               measured_kev, sigma_kev
+      G1S16_Th228_P5               measured_kev, shift_kev, sigma_kev
+      G1S24_Th228_P5               measured_kev, shift_kev, sigma_kev
+ИТОГО разошлось 59 — РАСХОЖДЕНИЕ

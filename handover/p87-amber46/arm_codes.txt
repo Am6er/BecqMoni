@@ -1,0 +1,22 @@
+arm first2 start 2026-09-17 13:06:02 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries extra=--only=G1S16_Co60_P5,G1S16_Eu152_P5
+arm first2 mk_appwd code=0
+arm first2 check_appwd code=1
+  response: rmx=46 qk=0
+arm first2 full code=0 13:06:18 (4 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p87_first2
+arm first2 end 13:06:18
+arm rev26 start 2026-09-17 13:07:29 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries extra=
+arm rev26 full code=0 13:07:59 (30 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev26_full
+arm rev26 mini code=0 13:08:09 (10 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev26_mini
+arm rev26 score full known code=0
+arm rev26 score mini known code=0
+arm rev26 score full unknown code=0
+arm rev26 score mini unknown code=0
+arm rev26 end 13:08:10
+arm off start 2026-09-17 13:10:11 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries extra=--angcorr=0
+arm off full code=0 13:10:40 (29 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p87_off_full
+arm off mini code=0 13:10:49 (9 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p87_off_mini
+arm off score full known code=0
+arm off score mini known code=0
+arm off score full unknown code=0
+arm off score mini unknown code=0
+arm off end 13:10:50
