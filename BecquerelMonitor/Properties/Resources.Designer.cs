@@ -5671,7 +5671,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The previous copy {0} could not be read either ({1}), so the default arrangement is shown.
+        ///   Looks up a localized string similar to The previous copy {0} could not be read either ({1}).
         /// </summary>
         public static string LayoutLoadBackupBroken {
             get {
@@ -5680,11 +5680,56 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to There was no previous copy, so the default arrangement is shown.
+        ///   Looks up a localized string similar to There was no previous copy.
         /// </summary>
         public static string LayoutLoadNoBackup {
             get {
                 return ResourceManager.GetString("LayoutLoadNoBackup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The supplied default layout {0} is shown instead.
+        /// </summary>
+        public static string LayoutLoadSupplyUsed {
+            get {
+                return ResourceManager.GetString("LayoutLoadSupplyUsed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The supplied layout {0} could not be read either ({1}).
+        /// </summary>
+        public static string LayoutLoadSupplyBroken {
+            get {
+                return ResourceManager.GetString("LayoutLoadSupplyBroken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The supplied default layout built into the application is shown instead.
+        /// </summary>
+        public static string LayoutLoadBuiltinUsed {
+            get {
+                return ResourceManager.GetString("LayoutLoadBuiltinUsed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The layout built into the application could not be read either ({0}).
+        /// </summary>
+        public static string LayoutLoadBuiltinBroken {
+            get {
+                return ResourceManager.GetString("LayoutLoadBuiltinBroken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An empty arrangement is shown; the panels can be opened one by one from the View menu.
+        /// </summary>
+        public static string LayoutLoadDefault {
+            get {
+                return ResourceManager.GetString("LayoutLoadDefault", resourceCulture);
             }
         }
         

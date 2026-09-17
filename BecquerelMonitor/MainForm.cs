@@ -3482,9 +3482,13 @@ namespace BecquerelMonitor
         /// <summary>
         /// Прочитать раскладку панелей ПОД ЗАСЛОНОМ (`AMBER43`; решение Amber
         /// 15.09.2026 дословно: «Не падать: отложить сломанный, поднять `.bak`,
-        /// иначе умолчание; сказать окном после показа»). Само чтение и
-        /// откладывание сломанного файла — <see cref="LayoutFile.Load"/>; здесь
-        /// только слово за экраном.
+        /// иначе умолчание; сказать окном после показа»; решение Amber
+        /// 17.09.2026 дословно: «Поставочная раскладка как умолчание»). Само
+        /// чтение — лестница целевой файл → <c>.bak</c> → поставочный
+        /// <c>config\layout\ExpertMode.xml</c> из каталога приложения →
+        /// встроенная копия → пусто — и откладывание сломанного файла —
+        /// <see cref="LayoutFile.Load(DockPanel, string, DeserializeDockContent)"/>;
+        /// здесь только слово за экраном.
         ///
         /// Три места чтения — запуск и два пункта меню раскладки — идут одним
         /// путём; до 17.09.2026 в каждом стояло голое <c>LoadFromXml</c>.
@@ -3500,6 +3504,10 @@ namespace BecquerelMonitor
         ///     сразу строкой в поток ошибок: ждать <c>Shown</c> там некому, а
         ///     отказ чтения молчать не должен (память «Признак отказа без
         ///     читателя»).
+        /// Файла НЕ БЫЛО — не отказ и не окно: показана поставочная раскладка
+        /// молча; отказала и она — строка в поток ошибок без окон
+        /// (<see cref="LayoutFile.DescribeAbsent"/>), чтобы битая поставочная
+        /// копия не молчала хотя бы пробе.
         /// </summary>
         /// <param name="fileName">файл раскладки</param>
         /// <param name="canReportNow">true — окно сразу; false — отложить до показа</param>
@@ -3509,6 +3517,11 @@ namespace BecquerelMonitor
             LayoutFile.LoadOutcome outcome = LayoutFile.Load(this.dockPanel1, fileName, this.m_deserializeDockContent);
             if (!outcome.Failed)
             {
+                string absent = LayoutFile.DescribeAbsent(outcome);
+                if (absent.Length > 0)
+                {
+                    AppUi.Note(absent);
+                }
                 return null;
             }
             string text = LayoutFile.Describe(outcome);

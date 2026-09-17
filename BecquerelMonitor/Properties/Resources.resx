@@ -43317,10 +43317,25 @@ Reason: {1}
     <value>The previous good copy {0} was loaded instead.</value>
   </data>
   <data name="LayoutLoadBackupBroken" xml:space="preserve">
-    <value>The previous copy {0} could not be read either ({1}), so the default arrangement is shown.</value>
+    <value>The previous copy {0} could not be read either ({1}).</value>
   </data>
   <data name="LayoutLoadNoBackup" xml:space="preserve">
-    <value>There was no previous copy, so the default arrangement is shown.</value>
+    <value>There was no previous copy.</value>
+  </data>
+  <data name="LayoutLoadSupplyUsed" xml:space="preserve">
+    <value>The supplied default layout {0} is shown instead.</value>
+  </data>
+  <data name="LayoutLoadSupplyBroken" xml:space="preserve">
+    <value>The supplied layout {0} could not be read either ({1}).</value>
+  </data>
+  <data name="LayoutLoadBuiltinUsed" xml:space="preserve">
+    <value>The supplied default layout built into the application is shown instead.</value>
+  </data>
+  <data name="LayoutLoadBuiltinBroken" xml:space="preserve">
+    <value>The layout built into the application could not be read either ({0}).</value>
+  </data>
+  <data name="LayoutLoadDefault" xml:space="preserve">
+    <value>An empty arrangement is shown; the panels can be opened one by one from the View menu.</value>
   </data>
   <data name="ERRCalibrationNotSavedToDevice" xml:space="preserve">
     <value>The calibration was NOT written to the device configuration. The device keeps its previous calibration and the spectrum is left unchanged - correct the cause and save again.</value>

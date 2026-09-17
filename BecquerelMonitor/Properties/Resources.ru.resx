@@ -2066,10 +2066,25 @@ http://xptable.sourceforge.net/</value>
     <value>Вместо него загружена прежняя удачная копия {0}.</value>
   </data>
   <data name="LayoutLoadBackupBroken" xml:space="preserve">
-    <value>Прежнюю копию {0} прочитать тоже не удалось ({1}) — показана раскладка по умолчанию.</value>
+    <value>Прежнюю копию {0} прочитать тоже не удалось ({1}).</value>
   </data>
   <data name="LayoutLoadNoBackup" xml:space="preserve">
-    <value>Прежней копии не было — показана раскладка по умолчанию.</value>
+    <value>Прежней копии не было.</value>
+  </data>
+  <data name="LayoutLoadSupplyUsed" xml:space="preserve">
+    <value>Показана поставочная раскладка {0}.</value>
+  </data>
+  <data name="LayoutLoadSupplyBroken" xml:space="preserve">
+    <value>Поставочную раскладку {0} прочитать тоже не удалось ({1}).</value>
+  </data>
+  <data name="LayoutLoadBuiltinUsed" xml:space="preserve">
+    <value>Показана поставочная раскладка, встроенная в приложение.</value>
+  </data>
+  <data name="LayoutLoadBuiltinBroken" xml:space="preserve">
+    <value>Встроенную в приложение раскладку прочитать тоже не удалось ({0}).</value>
+  </data>
+  <data name="LayoutLoadDefault" xml:space="preserve">
+    <value>Показана пустая расстановка — панели можно открыть по одной из меню «Вид».</value>
   </data>
   <data name="ERRCalibrationNotSavedToDevice" xml:space="preserve">
     <value>Калибровка НЕ записана в конфигурацию прибора. У прибора осталась прежняя калибровка, спектр не изменён — устраните причину и сохраните снова.</value>
