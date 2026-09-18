@@ -75,6 +75,25 @@ namespace BecquerelMonitor
         /// </summary>
         public bool UseMatrixTouched { get; private set; }
 
+        /// <summary>
+        /// Матрица записана в склад (`AMBER48`). Вкладка Efficiency читает
+        /// поколение матрицы из ЗАГОЛОВКА ФАЙЛА склада, а не из конфигурации, —
+        /// после записи файл сменил поколение, и подпись «two generations side
+        /// by side» обязана уйти тут же: вкладка видна за этим модальным окном
+        /// (снимок Amber 18.09.2026, «Нажал сохранить… Предупреждение не
+        /// исчезло»).
+        /// </summary>
+        public event EventHandler MatrixSaved;
+
+        void OnMatrixSaved()
+        {
+            EventHandler handler = this.MatrixSaved;
+            if (handler != null)
+            {
+                handler(this, EventArgs.Empty);
+            }
+        }
+
         void UseMatrixChanged(object sender, EventArgs e)
         {
             if (this.config != null && this.config.UseResponseMatrix != this.useMatrixCheck.Checked)
@@ -651,11 +670,15 @@ namespace BecquerelMonitor
                 // Отпечаток тела появляется при ЗАПИСИ (`A121`) — подробности
                 // после неё обязаны его показать, а не «нет».
                 this.SetDetails(this.Describe(this.computed));
+                this.OnMatrixSaved();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, ex.Message, Resources.ResponseMatrixTitle,
-                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                // `AppUi.Report`, не `MessageBox.Show`: обработчик назван в
+                // пробе `CurveGenerationProbe` (`AMBER48`) и стоит на
+                // безоконном пути (`S100`) — модальное окно там повесило бы
+                // пробу; в приложении `Report` показывает то же окно.
+                AppUi.Report(ex.Message, Resources.ResponseMatrixTitle, MessageBoxIcon.Warning);
             }
         }
 

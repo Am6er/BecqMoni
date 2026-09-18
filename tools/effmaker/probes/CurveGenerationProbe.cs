@@ -25,6 +25,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Windows.Forms;
 using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 
@@ -37,6 +38,7 @@ namespace BecquerelMonitor.Probes
         static readonly MethodInfo Notes = typeof(DeviceConfigForm).GetMethod(
             "GenerationNotes", BindingFlags.NonPublic | BindingFlags.Static);
 
+        [STAThread]
         static void Main()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
@@ -57,6 +59,7 @@ namespace BecquerelMonitor.Probes
             Cultures();
             LabelHeight();
             Header();
+            TabRefresh();
 
             Console.WriteLine();
             Console.WriteLine(failures == 0 ? "ВСЕ СОШЛИСЬ" : "РАСХОЖДЕНИЙ: " + failures);
@@ -365,6 +368,139 @@ namespace BecquerelMonitor.Probes
             {
                 try { Directory.Delete(dir, true); } catch (IOException) { }
             }
+        }
+
+        // ------------------------------------------------------------------
+        // `AMBER48`: вкладка освежается после ЗАПИСИ матрицы
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Задача Amber 18.09.2026 (три снимка): после «Response matrix…» →
+        /// пересчёт → «Save to the current geometry» подпись вкладки Efficiency
+        /// «Curve is generation 19, its response matrix is generation 18 — two
+        /// generations side by side» оставалась. Подпись читает ЗАГОЛОВОК ФАЙЛА
+        /// склада при каждом <c>UpdateEfficiencyView()</c>, а обработчик кнопки
+        /// после окна вкладку не освежал.
+        ///
+        /// Меряется настоящей формой без показа: файл склада за guid кривой —
+        /// сперва прежнего поколения (подпись называет его), потом нынешнего.
+        /// ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ — «без освежения подпись СТАРАЯ»: ровно
+        /// дефект Amber, воспроизведённый на стенде; без него проба прошла бы и
+        /// на подписи, которая читает файл при каждом обращении к тексту.
+        /// Обвязка окна (подписка на событие формы матрицы, освежение по
+        /// закрытию, событие из <c>SaveClick</c>) читается из IL обработчиков —
+        /// модальное окно на стенде не показать; читатель IL проверен на методе,
+        /// который вкладку заведомо не освежает.
+        /// </summary>
+        static void TabRefresh()
+        {
+            Console.WriteLine();
+            Console.WriteLine("== вкладка после записи матрицы (AMBER48) ==");
+
+            const BindingFlags NP = BindingFlags.NonPublic | BindingFlags.Instance;
+            MethodInfo load = typeof(DeviceConfigForm).GetMethod("LoadEfficiencyTab", NP);
+            MethodInfo saved = typeof(DeviceConfigForm).GetMethod("responseMatrixForm_MatrixSaved", NP);
+            MethodInfo click = typeof(DeviceConfigForm).GetMethod("efficiencyMatrixButton_Click", NP);
+            FieldInfo labelField = typeof(DeviceConfigForm).GetField("efficiencyGenerationLabel", NP);
+            EventInfo evt = typeof(ResponseMatrixForm).GetEvent("MatrixSaved");
+            MethodInfo raise = typeof(ResponseMatrixForm).GetMethod("OnMatrixSaved", NP);
+            MethodInfo saveClick = typeof(ResponseMatrixForm).GetMethod("SaveClick", NP);
+            if (load == null || saved == null || click == null || labelField == null
+                || evt == null || raise == null || saveClick == null)
+            {
+                Check(false, "члены формы (LoadEfficiencyTab / responseMatrixForm_MatrixSaved / "
+                             + "efficiencyMatrixButton_Click / efficiencyGenerationLabel / "
+                             + "ResponseMatrixForm.MatrixSaved / OnMatrixSaved / SaveClick) найдены");
+                return;
+            }
+
+            DeviceType.InitializeDeviceTypes();
+            ThermometerType.InitializeThermometerTypes();
+
+            EfficiencyConfigData eff = new EfficiencyConfigData("проба AMBER48");
+            eff.ComputeStamp = Stamp(ResponseMatrix.PhysicsVersion);
+            DeviceConfigInfo device = new DeviceConfigInfo();
+            device.EfficiencyConfigs.Add(eff);
+            device.ActiveEfficiencyGuid = eff.Guid;
+
+            int old = ResponseMatrix.PhysicsVersion - 1;
+            string path = ResponseMatrixStore.PathOf(eff.Guid);
+            Console.WriteLine("  файл склада стенда: {0}", path);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            try
+            {
+                using (DeviceConfigForm form = new DeviceConfigForm())
+                {
+                    Label label = (Label)labelField.GetValue(form);
+
+                    Write(path, "BQRM", ResponseMatrix.FormatVersion, Stamp(old) + ";deadbeef");
+                    load.Invoke(form, new object[] { device });
+                    string before = label.Text;
+                    Console.WriteLine("  файл физики {0} -> подпись «{1}»",
+                                      old.ToString(CultureInfo.InvariantCulture), before);
+                    Check(before.Length > 0
+                          && before.Contains(old.ToString(CultureInfo.InvariantCulture)),
+                          "подпись называет прежнее поколение матрицы");
+
+                    Write(path, "BQRM", ResponseMatrix.FormatVersion,
+                          Stamp(ResponseMatrix.PhysicsVersion) + ";deadbeef");
+                    Check(label.Text == before,
+                          "без освежения подпись прежняя (положительный контроль: дефект воспроизведён)");
+
+                    using (ResponseMatrixForm matrixForm = new ResponseMatrixForm(eff))
+                    {
+                        evt.AddEventHandler(matrixForm,
+                                            Delegate.CreateDelegate(evt.EventHandlerType, form, saved));
+                        raise.Invoke(matrixForm, null);
+                    }
+                    Console.WriteLine("  после MatrixSaved -> подпись «{0}»", label.Text);
+                    Check(label.Text.Length == 0, "после записи матрицы подпись о двух поколениях ушла");
+                }
+            }
+            finally
+            {
+                try { File.Delete(path); } catch (IOException) { }
+            }
+
+            Check(Calls(click, "add_MatrixSaved"),
+                  "efficiencyMatrixButton_Click подписывается на MatrixSaved");
+            Check(Calls(click, "UpdateEfficiencyView"),
+                  "efficiencyMatrixButton_Click освежает вкладку по закрытию окна");
+            Check(Calls(saveClick, "OnMatrixSaved"), "SaveClick поднимает MatrixSaved");
+            Check(!Calls(Notes, "UpdateEfficiencyView"),
+                  "читатель IL: GenerationNotes вкладку не освежает (контроль читателя)");
+        }
+
+        /// <summary>
+        /// Зовёт ли метод (по IL) метод с таким именем: коды `call`/`callvirt`
+        /// и разбор их операнда через модуль. Ложное совпадение возможно лишь
+        /// на байте операнда, равном коду вызова, за которым стоит годный
+        /// токен метода с ТЕМ ЖЕ именем, — на практике нет.
+        /// </summary>
+        static bool Calls(MethodInfo method, string name)
+        {
+            byte[] il = method.GetMethodBody().GetILAsByteArray();
+            for (int i = 0; i + 4 < il.Length; i++)
+            {
+                if (il[i] != 0x28 && il[i] != 0x6F)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    MethodBase m = method.Module.ResolveMethod(BitConverter.ToInt32(il, i + 1));
+                    if (m != null && m.Name == name)
+                    {
+                        return true;
+                    }
+                }
+                catch (ArgumentException)
+                {
+                }
+            }
+
+            return false;
         }
 
         static void Write(string path, string magic, int format, string stamp)

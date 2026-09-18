@@ -313,6 +313,15 @@ namespace BecquerelMonitor
 
             using (ResponseMatrixForm form = new ResponseMatrixForm(config))
             {
+                // `AMBER48`: подпись поколений и сводка вкладки читаются из
+                // ЗАГОЛОВКА ФАЙЛА склада при каждом `UpdateEfficiencyView()`,
+                // и больше ниоткуда. Запись матрицы меняет файл, а вкладку не
+                // трогала — «Curve is generation 19, its response matrix is
+                // generation 18» стояло после пересчёта и записи, пока не
+                // сменишь кривую или не откроешь окно заново (Amber
+                // 18.09.2026, три снимка). Освежаем при записи — вкладка видна
+                // за модальным окном — и ещё раз по закрытию, на любой исход.
+                form.MatrixSaved += this.responseMatrixForm_MatrixSaved;
                 form.ShowDialog(this);
                 // Выключатель матрицы (W11) пишет в ту же копию конфигурации —
                 // осталось пометить её изменённой, чтобы «Сохранить» ожило.
@@ -321,6 +330,13 @@ namespace BecquerelMonitor
                     this.SetActiveDeviceConfigDirty();
                 }
             }
+
+            this.UpdateEfficiencyView();
+        }
+
+        void responseMatrixForm_MatrixSaved(object sender, EventArgs e)
+        {
+            this.UpdateEfficiencyView();
         }
 
         void UpdateEfficiencyView()
