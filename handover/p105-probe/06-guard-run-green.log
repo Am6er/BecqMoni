@@ -1,0 +1,7 @@
+    == сторож окна отчёта FSA: FsaReportViewProbe на паре корпуса ==
+      каталог проб : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build
+      спектр (ряд) : tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+      контроль     : tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml
+      свежесть: сверено: набор приложения 2833b9cc5607 (550 файлов); FsaReportViewProbe.cs 5f8660592dce (6 файлов); sha двух exe (1.5 с)
+      проба: код 0, 32.9 с, строк ok 222, строк ⛔ 0, последняя строка «ВСЕ СОШЛИСЬ»
+    СОШЛОСЬ: окно отчёта FSA — проба прошла (ВСЕ СОШЛИСЬ)
