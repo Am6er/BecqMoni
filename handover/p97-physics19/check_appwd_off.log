@@ -1,0 +1,12 @@
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : D:\BqMoni_Claude\p97\wt\tools\CORPUS\scripts\wd_p97off
+  сборка   : D:\BqMoni_Claude\p97\wt\BecquerelMonitor\bin\Release_p97
+  пробы    : D:\BqMoni_Claude\p97\wt\tools\effmaker\probes\build_p97
+  собрана  : 2026-09-17 21:07:26 из D:\BqMoni_Claude\p97\wt\BecquerelMonitor\bin\Release_p97
+  наборы   : приложение f39597a921fe (550 файлов), пробы 1562bc73380d (198)
+  сверено  : 451 файлов по sha256 за 2.61 с
+  библиотека: в оснастке корпуса НЕТ по правилу AMBER19 — состав из manifest.csv, линии из nucdb/matdb
+  перекладка: клейма склада и оснастки сошлись
+  ОСНАСТКА СВЕЖАЯ: 451 файлов сошлись
+
