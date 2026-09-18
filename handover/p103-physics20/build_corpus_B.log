@@ -1,0 +1,325 @@
+точки модели разрешения пишутся в D:\BqMoni_Claude\p103\art\res_points_B.csv
+запасная ветвь правила родителя (T93): родителей в базе 1 — 123CSm2; спектров на ней 0 из 129
+девятка: скопировано 7
+HPGE_Uranium         HPGE      ch=16384  live=60260     R662= 0.24% lines=16 rms=  0.61 кэВ =  0.26 FWHM  affine/robust
+GS4000_Ra226         GS4000    ch=4000   live=43562     R662= 6.24% lines=12 rms=  6.37 кэВ =  0.15 FWHM  stored/robust
+GS4000_Th232         GS4000    ch=4000   live=6867      R662= 5.36% lines= 8 rms=  5.17 кэВ =  0.14 FWHM  affine/robust
+GS4000_U             GS4000    ch=4000   live=39418     R662= 7.16% lines= 7 rms=  4.13 кэВ =  0.13 FWHM  affine
+GS4000_Lu176         GS4000    ch=4000   live=57341     R662= 4.81% lines= 4 rms=  2.49 кэВ =  0.13 FWHM  gain
+ASN3_Tile            ASN3      ch=2500   live=179542    R662= 3.31% lines= 7 rms=  4.74 кэВ =  0.18 FWHM  stored
+ASN8_Th232_1024      ASN8_1024 ch=1024   live=55448     R662= 6.41% lines=11 rms=  4.02 кэВ =  0.08 FWHM  gain
+ASN8_Th232_2048      ASN8_2048 ch=2048   live=55471     R662= 6.82% lines=10 rms=  4.42 кэВ =  0.08 FWHM  stored
+ASN8_Th232_3000      ASN8_3000 ch=3000   live=130163    R662= 6.54% lines=10 rms=  5.50 кэВ =  0.11 FWHM  stored
+ASN8_Th232_4096      ASN8_4096 ch=4096   live=131722    R662= 6.29% lines=11 rms=  4.97 кэВ =  0.10 FWHM  stored
+ASN8_Th232_8192      ASN8_8192 ch=8192   live=131747    R662= 7.08% lines=10 rms=  6.05 кэВ =  0.11 FWHM  stored
+ASN8_UGlass          ASN8_8192 ch=8192   live=288018    R662= 6.30% lines= 4 rms=  5.37 кэВ =  0.23 FWHM  affine
+ASN8_Am241           ASN8_8192 ch=8192   live=62273     R662= 7.99% lines= 3 rms=  9.62 кэВ =  0.23 FWHM  gain
+OBS_UGlass           OBS       ch=1024   live=65535     R662= 6.88% lines= 2 rms= 17.51 кэВ =  0.30 FWHM  stored
+RC101_I131           RC101     ch=1024   live=690       R662=12.25% lines= 3 rms= 13.29 кэВ =  0.35 FWHM  affine/xlow
+AS1Pro_Ra226         AS1PRO    ch=8192   live=3600      R662= 7.21% lines=12 rms=  3.26 кэВ =  0.07 FWHM  poly2
+ASN16_Charoite_v2    ASN16     ch=8192   live=172703    R662= 5.81% lines=12 rms=  4.21 кэВ =  0.10 FWHM  affine/robust
+ASN16_Th232_Am241    ASN16     ch=8192   live=66131     R662= 5.02% lines=15 rms=  4.73 кэВ =  0.47 FWHM  affine/xlow
+ASN16_Am241          ASN16     ch=8192   live=180269    R662= 5.39% lines= 7 rms=  5.01 кэВ =  0.33 FWHM  affine/xlow
+ASN16_Cs137          ASN16     ch=8192   live=356491    R662= 6.22% lines= 7 rms=  5.94 кэВ =  0.20 FWHM  gain/xlow
+ASN16_Cs137_10cm     ASN16     ch=8192   live=3421      R662= 0.32% lines= 0 rms=   nan кэВ =   inf FWHM  stored
+ASN16_BrazilNuts     ASN16     ch=8192   live=196931    R662= 6.99% lines=11 rms=  4.05 кэВ =  0.09 FWHM  stored
+RC103_Th232WT20      RC103     ch=1024   live=225339    R662= 7.87% lines= 9 rms= 16.68 кэВ =  0.18 FWHM  affine/robust
+AS80_Th232Medal      AS80x80   ch=8192   live=52742     R662= 5.90% lines=13 rms= 11.65 кэВ =  0.18 FWHM  gain/robust
+AS80_Onyx            AS80x80   ch=8192   live=380498    R662= 8.80% lines= 7 rms=  6.24 кэВ =  0.08 FWHM  stored
+AS80_K40             AS80x80   ch=8192   live=323624    R662= 7.12% lines=11 rms= 17.74 кэВ =  0.24 FWHM  affine/robust
+AS80_Th232WT20       AS80x80   ch=8192   live=31556     R662= 5.87% lines=13 rms=  6.15 кэВ =  0.12 FWHM  affine/robust
+RC103_K40            RC103     ch=1024   live=314904    R662=13.73% lines= 1 rms=  0.08 кэВ =  0.00 FWHM  gain
+AS80_Cs137_0cm       AS80x80   ch=8192   live=10192     R662= 7.28% lines=10 rms=  8.84 кэВ =  0.15 FWHM  affine/xlow
+RC103_Cs137_0cm      RC103     ch=1024   live=872       R662= 8.02% lines= 3 rms=  0.60 кэВ =  0.02 FWHM  affine/recal/xlow
+RC103_Cs137_50mm     RC103     ch=1024   live=3561      R662= 8.01% lines= 2 rms= 11.13 кэВ =  0.67 FWHM  stored/xlow
+ASN16_Lu176          ASN16     ch=8192   live=29229     R662= 5.31% lines= 5 rms=  2.21 кэВ =  0.09 FWHM  stored
+ASN16_Lu176_P0       ASN16     ch=8192   live=573       R662= 5.15% lines= 4 rms=  1.99 кэВ =  0.07 FWHM  stored
+AS80_Lu176           AS80x80   ch=8192   live=3824      R662= 6.01% lines= 7 rms=  3.82 кэВ =  0.11 FWHM  stored
+AS80_Lu176_v2        AS80x80   ch=8192   live=12600     R662= 4.57% lines= 7 rms=  5.00 кэВ =  0.17 FWHM  poly2/robust
+AS80_Am241           AS80x80   ch=8192   live=590       R662=10.09% lines= 2 rms=  7.12 кэВ =  0.53 FWHM  stored/xlow
+RC103_K40Village     RC103     ch=1024   live=277612    R662= 9.41% lines= 2 rms= 20.74 кэВ =  0.24 FWHM  affine
+RC103_Th232Village   RC103     ch=1024   live=15848     R662= 7.51% lines= 4 rms=  2.69 кэВ =  0.06 FWHM  affine
+RC103_Charoite       RC103     ch=1024   live=76364     R662= 7.25% lines= 4 rms=  3.89 кэВ =  0.11 FWHM  affine/robust
+RC103_Lu176          RC103     ch=1024   live=2834      R662= 7.07% lines= 3 rms=  3.40 кэВ =  0.08 FWHM  affine
+HPGeGMX_Th232        HPGE_GMX  ch=8192   live=300       R662= 0.20% lines=13 rms=  0.20 кэВ =  0.13 FWHM  affine/robust
+HPGeGMX_Th228        HPGE_GMX  ch=8192   live=300       R662= 0.20% lines= 6 rms=  0.04 кэВ =  0.03 FWHM  affine
+HPGeGMX_Eu152        HPGE_GMX  ch=8192   live=300       R662= 0.19% lines= 7 rms=  0.03 кэВ =  0.02 FWHM  affine
+HPGeGMX_Background   HPGE_GMX  ch=8192   live=956       R662= 0.21% lines=11 rms=  0.12 кэВ =  0.10 FWHM  poly2
+HPGeGEM_Th232        HPGE_GEM  ch=8192   live=1800      R662= 0.20% lines=17 rms=  0.04 кэВ =  0.04 FWHM  affine
+HPGeGEM_Ra226        HPGE_GEM  ch=8192   live=1800      R662= 0.20% lines=12 rms=  0.03 кэВ =  0.02 FWHM  poly2
+HPGeGEM_K40          HPGE_GEM  ch=8192   live=3600      R662= 0.19% lines= 2 rms=  0.16 кэВ =  0.21 FWHM  gain
+LaBrBril_Th228       LABR_BRIL ch=1024   live=3600      R662= 2.91% lines=10 rms=  2.82 кэВ =  0.10 FWHM  affine/robust
+LaBrBril_Eu152       LABR_BRIL ch=1024   live=3600      R662= 2.89% lines=14 rms=  3.50 кэВ =  0.14 FWHM  affine/xlow
+G1S16_Th232_Mar      G1S16     ch=1024   live=3600      R662= 5.32% lines= 9 rms=  3.82 кэВ =  0.10 FWHM  affine
+G1S16_Mix_Denta100   G1S16     ch=1024   live=3600      R662= 6.53% lines=12 rms=  4.96 кэВ =  0.41 FWHM  affine/xlow
+G1S16_Th232_Denta100 G1S16     ch=1024   live=3600      R662= 5.66% lines= 8 rms=  6.25 кэВ =  0.12 FWHM  gain
+G1S16_Mix_Mar        G1S16     ch=1024   live=3600      R662= 6.23% lines=12 rms=  4.66 кэВ =  0.31 FWHM  affine/xlow
+G1S16_Cs137_Mar      G1S16     ch=1024   live=3600      R662= 6.79% lines= 4 rms=  9.10 кэВ =  0.45 FWHM  affine/xlow
+G1S16_Cs137_Mar_2    G1S16     ch=1024   live=3600      R662= 4.90% lines= 1 rms=  0.09 кэВ =  0.00 FWHM  gain
+G1S16_K40_Mar        G1S16     ch=1024   live=3600      R662=12.28% lines= 3 rms= 22.28 кэВ =  0.24 FWHM  stored
+G1S16_K40_Mar_2      G1S16     ch=1024   live=3600      R662=12.89% lines= 3 rms= 26.78 кэВ =  0.22 FWHM  gain
+G1S16_Ra226_Mar      G1S16     ch=1024   live=3600      R662= 6.51% lines=12 rms=  2.84 кэВ =  0.06 FWHM  affine
+G1S16_Ra226_Mar_2    G1S16     ch=1024   live=3600      R662= 6.61% lines=12 rms=  2.44 кэВ =  0.08 FWHM  affine
+G1S16_Th232_Mar_2    G1S16     ch=1024   live=3600      R662= 5.19% lines= 9 rms=  4.19 кэВ =  0.12 FWHM  gain
+G1S16_Th232_Mar_3    G1S16     ch=1024   live=3600      R662= 5.44% lines=11 rms=  3.10 кэВ =  0.08 FWHM  affine
+G1S16_Mix_Petri      G1S16     ch=1024   live=3600      R662= 6.34% lines=13 rms=  5.82 кэВ =  0.39 FWHM  affine/xlow
+G1S16_Th232_Petri    G1S16     ch=1024   live=3600      R662= 5.71% lines= 7 rms=  1.79 кэВ =  0.05 FWHM  poly2
+G1S16_Am241_P25      G1S16     ch=1024   live=600       R662= 4.98% lines= 2 rms=  4.16 кэВ =  0.56 FWHM  stored/xlow
+G1S16_Ba133_P25      G1S16     ch=1024   live=1800      R662= 4.94% lines= 6 rms=  4.35 кэВ =  0.24 FWHM  affine/xlow
+G1S16_Cd109_P25      G1S16     ch=1024   live=1800      R662= 4.90% lines= 4 rms=  7.58 кэВ =  0.24 FWHM  affine/xlow
+G1S16_Ce139_P25      G1S16     ch=1024   live=1800      R662= 6.61% lines= 7 rms=  5.56 кэВ =  0.18 FWHM  affine/xlow
+G1S16_Co60_P25       G1S16     ch=1024   live=1800      R662= 6.46% lines= 4 rms= 19.12 кэВ =  0.23 FWHM  affine
+G1S16_Cs137_P25      G1S16     ch=1024   live=1800      R662= 6.55% lines= 3 rms=  0.79 кэВ =  0.02 FWHM  affine/xlow
+G1S16_Eu152_P25      G1S16     ch=1024   live=3600      R662= 6.26% lines=11 rms=  5.10 кэВ =  0.16 FWHM  affine/xlow
+G1S16_Mn54_P25       G1S16     ch=1024   live=1800      R662= 5.31% lines= 4 rms=  4.55 кэВ =  0.08 FWHM  gain
+G1S16_Na22_P25       G1S16     ch=1024   live=1800      R662= 6.10% lines= 3 rms=  0.91 кэВ =  0.02 FWHM  affine
+G1S16_Th228_P25      G1S16     ch=1024   live=3600      R662= 5.62% lines= 6 rms=  5.73 кэВ =  0.09 FWHM  affine/robust
+G1S16_Y88_P25        G1S16     ch=1024   live=3600      R662= 6.99% lines= 7 rms=  4.67 кэВ =  0.09 FWHM  gain/recal
+G1S16_Am241_P5       G1S16     ch=1024   live=300       R662= 4.91% lines= 0 rms=   nan кэВ =   inf FWHM  stored
+G1S16_Ba133_P5       G1S16     ch=1024   live=1800      R662= 4.76% lines= 5 rms=  7.73 кэВ =  0.42 FWHM  affine/xlow
+G1S16_Cd109_P5       G1S16     ch=1024   live=1800      R662= 4.19% lines= 2 rms=  7.33 кэВ =  1.35 FWHM  stored/xlow
+G1S16_Ce139_P5       G1S16     ch=1024   live=1800      R662= 4.83% lines= 3 rms=  2.56 кэВ =  0.14 FWHM  affine/xlow
+G1S16_Co57_P5        G1S16     ch=1024   live=1800      R662= 4.45% lines= 1 rms=  4.18 кэВ =  0.33 FWHM  gain
+G1S16_Co60_P5        G1S16     ch=1024   live=1200      R662= 6.94% lines= 5 rms= 12.78 кэВ =  0.20 FWHM  gain
+G1S16_Cs137_P5       G1S16     ch=1024   live=1800      R662= 6.56% lines= 4 rms=  7.27 кэВ =  0.47 FWHM  affine/xlow
+G1S16_Eu152_P5       G1S16     ch=1024   live=1800      R662= 6.27% lines= 9 rms=  3.67 кэВ =  0.16 FWHM  affine/xlow
+G1S16_Mn54_P5        G1S16     ch=1024   live=600       R662=10.78% lines= 5 rms=  5.74 кэВ =  0.10 FWHM  affine
+G1S16_Na22_P5        G1S16     ch=1024   live=600       R662= 6.59% lines= 4 rms= 14.10 кэВ =  0.29 FWHM  affine
+G1S16_Th228_P5       G1S16     ch=1024   live=1800      R662= 6.50% lines= 6 rms=  1.06 кэВ =  0.02 FWHM  poly2
+G1S16_Y88_P5         G1S16     ch=1024   live=1200      R662= 6.70% lines= 4 rms=  7.67 кэВ =  0.12 FWHM  gain
+G1S24_Cs137_Denta120 G1S24     ch=1024   live=4820      R662= 7.35% lines= 3 rms=  6.48 кэВ =  0.31 FWHM  affine/xlow
+G1S24_Cs137_Denta120_2 G1S24     ch=1024   live=9588      R662= 8.16% lines= 4 rms=  6.53 кэВ =  0.09 FWHM  affine
+G1S24_K40_Denta120   G1S24     ch=1024   live=57055     R662= 8.62% lines= 8 rms=  9.98 кэВ =  0.13 FWHM  gain
+G1S24_K40_Denta120_2 G1S24     ch=1024   live=52710     R662=11.05% lines= 4 rms= 10.69 кэВ =  0.10 FWHM  poly2
+G1S24_Ra226_Denta120 G1S24     ch=1024   live=6938      R662= 6.32% lines=11 rms=  4.21 кэВ =  0.15 FWHM  affine
+G1S24_Ra226_Denta120_2 G1S24     ch=1024   live=11052     R662= 6.37% lines=11 rms=  4.72 кэВ =  0.08 FWHM  affine
+G1S24_Th232_Denta120 G1S24     ch=1024   live=4847      R662= 6.01% lines= 9 rms= 11.62 кэВ =  0.18 FWHM  gain/robust
+G1S24_Th232_Denta120_2 G1S24     ch=1024   live=6309      R662= 5.80% lines=11 rms=  6.85 кэВ =  0.13 FWHM  affine/robust
+G1S24_Cs137_Mar      G1S24     ch=1024   live=7578      R662= 8.76% lines= 4 rms=  6.55 кэВ =  0.25 FWHM  poly2/xlow
+G1S24_Cs137_Mar_2    G1S24     ch=1024   live=11131     R662= 6.62% lines= 4 rms=  7.55 кэВ =  0.13 FWHM  affine
+G1S24_K40_Mar        G1S24     ch=1024   live=8628      R662= 7.64% lines= 4 rms= 18.63 кэВ =  0.29 FWHM  stored
+G1S24_K40_Mar_2      G1S24     ch=1024   live=6814      R662= 6.78% lines= 2 rms= 21.72 кэВ =  0.24 FWHM  gain
+G1S24_Ra226_Mar      G1S24     ch=1024   live=5243      R662= 6.40% lines=12 rms=  1.90 кэВ =  0.07 FWHM  affine
+G1S24_Ra226_Mar_2    G1S24     ch=1024   live=5814      R662= 7.38% lines=13 rms=  2.51 кэВ =  0.04 FWHM  affine
+G1S24_Th232_Mar      G1S24     ch=1024   live=4285      R662= 7.07% lines= 9 rms=  3.34 кэВ =  0.06 FWHM  poly2
+G1S24_Th232_Mar_2    G1S24     ch=1024   live=11359     R662= 6.63% lines= 9 rms=  3.24 кэВ =  0.06 FWHM  affine
+G1S24_Cs137_Petri    G1S24     ch=1024   live=9074      R662= 7.27% lines= 4 rms= 11.21 кэВ =  0.57 FWHM  gain/xlow
+G1S24_Cs137_Petri_2  G1S24     ch=1024   live=11416     R662= 7.67% lines= 3 rms=  6.21 кэВ =  0.18 FWHM  poly2
+G1S24_K40_Petri      G1S24     ch=1024   live=58043     R662=10.45% lines= 8 rms=  9.38 кэВ =  0.10 FWHM  poly2
+G1S24_K40_Petri_2    G1S24     ch=1024   live=9758      R662= 8.37% lines= 2 rms=  5.40 кэВ =  0.06 FWHM  gain
+G1S24_Ra226_Petri    G1S24     ch=1024   live=9051      R662= 6.52% lines=10 rms=  4.21 кэВ =  0.08 FWHM  affine/robust
+G1S24_Ra226_Petri_2  G1S24     ch=1024   live=13301     R662= 6.95% lines=15 rms=  4.25 кэВ =  0.13 FWHM  affine
+G1S24_Th232_Petri    G1S24     ch=1024   live=55934     R662= 6.85% lines=11 rms=  7.10 кэВ =  0.12 FWHM  gain
+G1S24_Th232_Petri_2  G1S24     ch=1024   live=61929     R662= 5.63% lines= 9 rms=  3.21 кэВ =  0.08 FWHM  poly2
+G1S24_Cs137_P25      G1S24     ch=1024   live=3435      R662= 6.70% lines= 7 rms=  6.62 кэВ =  0.11 FWHM  affine/xlow
+G1S24_Na22_P25       G1S24     ch=1024   live=3187      R662= 7.69% lines= 4 rms=  2.95 кэВ =  0.04 FWHM  gain/robust
+G1S24_Th228_P25      G1S24     ch=1024   live=7634      R662= 7.21% lines= 9 rms=  3.98 кэВ =  0.12 FWHM  affine
+G1S24_Y88_P25        G1S24     ch=1024   live=2905      R662= 7.79% lines= 6 rms=  6.67 кэВ =  0.10 FWHM  affine
+G1S24_Am241_P5       G1S24     ch=1024   live=1811      R662= 6.58% lines= 2 rms=  4.87 кэВ =  0.56 FWHM  gain/recal/xlow
+G1S24_Ba133_P5       G1S24     ch=1024   live=6050      R662= 6.59% lines= 5 rms=  3.94 кэВ =  0.24 FWHM  affine/xlow
+G1S24_Bi207_P5       G1S24     ch=1024   live=1800      R662= 7.05% lines= 5 rms=  5.73 кэВ =  0.10 FWHM  affine
+G1S24_Cd109_P5       G1S24     ch=1024   live=1800      R662= 4.97% lines= 3 rms=  4.34 кэВ =  0.30 FWHM  affine/xlow
+G1S24_Co60_P5        G1S24     ch=1024   live=1800      R662= 7.36% lines= 7 rms=  7.45 кэВ =  0.10 FWHM  affine
+G1S24_Cs137_P5       G1S24     ch=1024   live=1800      R662= 8.26% lines= 4 rms=  1.56 кэВ =  0.07 FWHM  affine/xlow
+G1S24_Eu152_P5       G1S24     ch=1024   live=4168      R662= 6.70% lines= 8 rms=  3.81 кэВ =  0.10 FWHM  affine/xlow
+G1S24_Na22_P5        G1S24     ch=1024   live=1800      R662= 7.26% lines= 5 rms= 11.38 кэВ =  0.17 FWHM  affine
+G1S24_Th228_P5       G1S24     ch=1024   live=4905      R662= 6.86% lines= 8 rms=  3.64 кэВ =  0.13 FWHM  affine
+G1S24_Y88_P5         G1S24     ch=1024   live=2218      R662= 8.14% lines= 5 rms=  9.48 кэВ =  0.17 FWHM  affine
+G1S24_Zn65_P5        G1S24     ch=1024   live=2072      R662= 6.36% lines= 2 rms=  0.70 кэВ =  0.02 FWHM  gain
+G1S24_Rn222Coal_Mar_20m G1S24     ch=1024   live=1481      R662= 6.61% lines= 4 rms=  2.80 кэВ =  0.09 FWHM  affine/robust
+G1S24_Rn222Coal_Mar_2h G1S24     ch=1024   live=3529      R662= 7.42% lines= 7 rms= 16.57 кэВ =  0.28 FWHM  gain/robust
+G1S24_Rn222Coal_Mar_3h G1S24     ch=1024   live=3600      R662= 5.84% lines= 5 rms=  2.11 кэВ =  0.06 FWHM  affine
+G1S24_Rn222Coal_Mar_eq01 G1S24     ch=1024   live=14400     R662= 5.91% lines= 7 rms=  9.79 кэВ =  0.20 FWHM  gain/robust
+  B31 G1S16     G1S16_Mn54_P5: приведённая ширина против соседей группы по энергии ×1.79 (медиана по 3 точкам; допуск ×1.35) — 3 точек в модель разрешения не идут
+  проход 1: пересчитано по модели группы 91, оставлено прежних 38
+     прежняя лучше: GS4000_U (0.210 -> 0.288 FWHM, 7 -> 5 линий)
+     прежняя лучше: ASN8_Th232_1024 (0.102 -> 0.114 FWHM, 11 -> 10 линий)
+     прежняя лучше: ASN8_UGlass (0.160 -> 0.166 FWHM, 4 -> 5 линий)
+     прежняя лучше: AS1Pro_Ra226 (0.072 -> 0.118 FWHM, 12 -> 13 линий)
+     прежняя лучше: ASN16_Am241 (0.338 -> 0.356 FWHM, 7 -> 8 линий)
+     прежняя лучше: AS80_Th232Medal (0.189 -> 0.190 FWHM, 13 -> 13 линий)
+     прежняя лучше: AS80_K40 (0.185 -> 0.188 FWHM, 11 -> 8 линий)
+     прежняя лучше: RC103_K40 (0.044 -> 0.045 FWHM, 1 -> 2 линий)
+     прежняя лучше: AS80_Lu176_v2 (0.316 -> 0.647 FWHM, 7 -> 6 линий)
+     прежняя лучше: RC103_Th232Village (0.055 -> 0.060 FWHM, 4 -> 4 линий)
+     прежняя лучше: HPGeGMX_Th232 (0.151 -> 0.158 FWHM, 13 -> 14 линий)
+     прежняя лучше: HPGeGMX_Th228 (0.027 -> 0.028 FWHM, 6 -> 6 линий)
+     прежняя лучше: G1S16_Mix_Denta100 (0.410 -> 0.411 FWHM, 12 -> 12 линий)
+     прежняя лучше: G1S16_K40_Mar (0.411 -> 0.451 FWHM, 3 -> 1 линий)
+     прежняя лучше: G1S16_K40_Mar_2 (0.408 -> 0.433 FWHM, 3 -> 3 линий)
+     прежняя лучше: G1S16_Ra226_Mar (0.056 -> 0.056 FWHM, 12 -> 12 линий)
+     прежняя лучше: G1S16_Th232_Mar_2 (0.112 -> 0.116 FWHM, 9 -> 9 линий)
+     прежняя лучше: G1S16_Th232_Petri (0.051 -> 0.054 FWHM, 7 -> 7 линий)
+     прежняя лучше: G1S16_Cd109_P25 (0.200 -> 0.203 FWHM, 4 -> 4 линий)
+     прежняя лучше: G1S16_Mn54_P25 (0.071 -> 0.099 FWHM, 4 -> 3 линий)
+     прежняя лучше: G1S16_Eu152_P5 (0.164 -> 0.164 FWHM, 9 -> 9 линий)
+     прежняя лучше: G1S24_Cs137_Denta120_2 (0.090 -> 0.142 FWHM, 4 -> 4 линий)
+     прежняя лучше: G1S24_K40_Denta120_2 (0.163 -> 0.169 FWHM, 4 -> 6 линий)
+     прежняя лучше: G1S24_Ra226_Denta120_2 (0.082 -> 0.082 FWHM, 11 -> 11 линий)
+     прежняя лучше: G1S24_Cs137_Mar_2 (0.089 -> 0.139 FWHM, 4 -> 4 линий)
+     прежняя лучше: G1S24_K40_Mar (0.293 -> 0.300 FWHM, 4 -> 2 линий)
+     прежняя лучше: G1S24_Ra226_Mar_2 (0.042 -> 0.042 FWHM, 13 -> 13 линий)
+     прежняя лучше: G1S24_K40_Petri_2 (0.086 -> 0.092 FWHM, 2 -> 1 линий)
+     прежняя лучше: G1S24_Th232_Petri (0.142 -> 0.144 FWHM, 11 -> 10 линий)
+     прежняя лучше: G1S24_Th228_P25 (0.141 -> 0.154 FWHM, 9 -> 8 линий)
+     прежняя лучше: G1S24_Y88_P25 (0.112 -> 0.123 FWHM, 6 -> 6 линий)
+     прежняя лучше: G1S24_Ba133_P5 (0.238 -> 0.247 FWHM, 5 -> 5 линий)
+     прежняя лучше: G1S24_Cd109_P5 (0.333 -> 0.335 FWHM, 3 -> 3 линий)
+     прежняя лучше: G1S24_Eu152_P5 (0.111 -> 0.117 FWHM, 8 -> 9 линий)
+     прежняя лучше: G1S24_Na22_P5 (0.283 -> 0.286 FWHM, 5 -> 6 линий)
+     прежняя лучше: G1S24_Y88_P5 (0.165 -> 0.169 FWHM, 5 -> 5 линий)
+     прежняя лучше: G1S24_Zn65_P5 (0.285 -> 0.286 FWHM, 2 -> 4 линий)
+     прежняя лучше: G1S24_Rn222Coal_Mar_3h (0.051 -> 0.105 FWHM, 5 -> 5 линий)
+  B31 AS80x80   AS80_K40: приведённая ширина против соседей группы по энергии ×1.40 (медиана по 5 точкам; допуск ×1.35) — 5 точек в модель разрешения не идут
+  B31 G1S16     G1S16_Mn54_P5: приведённая ширина против соседей группы по энергии ×1.80 (медиана по 3 точкам; допуск ×1.35) — 3 точек в модель разрешения не идут
+  проход 2: пересчитано по модели группы 76, оставлено прежних 53
+     прежняя лучше: GS4000_Th232 (0.114 -> 0.114 FWHM, 8 -> 8 линий)
+     прежняя лучше: GS4000_U (0.202 -> 0.293 FWHM, 7 -> 4 линий)
+     прежняя лучше: ASN8_Th232_1024 (0.102 -> 0.114 FWHM, 11 -> 10 линий)
+     прежняя лучше: ASN8_Am241 (0.105 -> 0.229 FWHM, 3 -> 2 линий)
+     прежняя лучше: RC101_I131 (0.628 -> 0.725 FWHM, 4 -> 3 линий)
+     прежняя лучше: AS1Pro_Ra226 (0.072 -> 0.118 FWHM, 12 -> 13 линий)
+     прежняя лучше: ASN16_Charoite_v2 (0.075 -> 0.088 FWHM, 12 -> 13 линий)
+     прежняя лучше: ASN16_Am241 (0.333 -> 0.335 FWHM, 7 -> 8 линий)
+     прежняя лучше: ASN16_Cs137 (0.205 -> 0.206 FWHM, 7 -> 7 линий)
+     прежняя лучше: ASN16_Cs137_10cm (0.333 -> 0.341 FWHM, 3 -> 2 линий)
+     прежняя лучше: RC103_Th232WT20 (0.082 -> 0.083 FWHM, 6 -> 6 линий)
+     прежняя лучше: AS80_Th232Medal (0.184 -> 0.185 FWHM, 13 -> 13 линий)
+     прежняя лучше: AS80_K40 (0.172 -> 0.184 FWHM, 11 -> 7 линий)
+     прежняя лучше: AS80_Th232WT20 (0.138 -> 0.139 FWHM, 12 -> 12 линий)
+     прежняя лучше: AS80_Cs137_0cm (0.259 -> 0.263 FWHM, 8 -> 6 линий)
+     прежняя лучше: AS80_Lu176_v2 (0.242 -> 0.254 FWHM, 7 -> 7 линий)
+     прежняя лучше: AS80_Am241 (0.477 -> 0.883 FWHM, 3 -> 2 линий)
+     прежняя лучше: RC103_K40Village (0.283 -> 0.384 FWHM, 2 -> 2 линий)
+     прежняя лучше: RC103_Charoite (0.228 -> 0.324 FWHM, 5 -> 4 линий)
+     прежняя лучше: RC103_Lu176 (0.144 -> 0.144 FWHM, 4 -> 4 линий)
+     прежняя лучше: HPGeGMX_Th232 (0.151 -> 0.158 FWHM, 13 -> 14 линий)
+     прежняя лучше: HPGeGMX_Th228 (0.027 -> 0.028 FWHM, 6 -> 6 линий)
+     прежняя лучше: LaBrBril_Th228 (0.129 -> 0.152 FWHM, 11 -> 10 линий)
+     прежняя лучше: G1S16_Mix_Denta100 (0.410 -> 0.411 FWHM, 12 -> 12 линий)
+     прежняя лучше: G1S16_K40_Mar (0.412 -> 0.453 FWHM, 3 -> 1 линий)
+     прежняя лучше: G1S16_K40_Mar_2 (0.409 -> 0.435 FWHM, 3 -> 3 линий)
+     прежняя лучше: G1S16_Ra226_Mar (0.056 -> 0.056 FWHM, 12 -> 12 линий)
+     прежняя лучше: G1S16_Th232_Mar_2 (0.112 -> 0.116 FWHM, 9 -> 9 линий)
+     прежняя лучше: G1S16_Th232_Petri (0.051 -> 0.054 FWHM, 7 -> 7 линий)
+     прежняя лучше: G1S16_Cd109_P25 (0.200 -> 0.203 FWHM, 4 -> 4 линий)
+     прежняя лучше: G1S16_Mn54_P25 (0.066 -> 0.082 FWHM, 4 -> 4 линий)
+     прежняя лучше: G1S16_Eu152_P5 (0.164 -> 0.164 FWHM, 9 -> 9 линий)
+     прежняя лучше: G1S24_Cs137_Denta120_2 (0.090 -> 0.142 FWHM, 4 -> 4 линий)
+     прежняя лучше: G1S24_K40_Denta120 (0.170 -> 0.187 FWHM, 6 -> 9 линий)
+     прежняя лучше: G1S24_K40_Denta120_2 (0.163 -> 0.169 FWHM, 4 -> 6 линий)
+     прежняя лучше: G1S24_Ra226_Denta120_2 (0.082 -> 0.082 FWHM, 11 -> 11 линий)
+     прежняя лучше: G1S24_Th232_Denta120_2 (0.165 -> 0.165 FWHM, 11 -> 11 линий)
+     прежняя лучше: G1S24_Cs137_Mar_2 (0.089 -> 0.139 FWHM, 4 -> 4 линий)
+     прежняя лучше: G1S24_K40_Mar (0.294 -> 0.301 FWHM, 4 -> 2 линий)
+     прежняя лучше: G1S24_Ra226_Mar_2 (0.042 -> 0.042 FWHM, 13 -> 13 линий)
+     прежняя лучше: G1S24_Th232_Mar (0.090 -> 0.133 FWHM, 9 -> 7 линий)
+     прежняя лучше: G1S24_Th232_Mar_2 (0.084 -> 0.084 FWHM, 9 -> 10 линий)
+     прежняя лучше: G1S24_K40_Petri (0.100 -> 0.125 FWHM, 5 -> 6 линий)
+     прежняя лучше: G1S24_K40_Petri_2 (0.086 -> 0.093 FWHM, 2 -> 1 линий)
+     прежняя лучше: G1S24_Th232_Petri (0.142 -> 0.144 FWHM, 11 -> 10 линий)
+     прежняя лучше: G1S24_Th228_P25 (0.141 -> 0.154 FWHM, 9 -> 8 линий)
+     прежняя лучше: G1S24_Y88_P25 (0.112 -> 0.123 FWHM, 6 -> 6 линий)
+     прежняя лучше: G1S24_Ba133_P5 (0.238 -> 0.247 FWHM, 5 -> 5 линий)
+     прежняя лучше: G1S24_Cd109_P5 (0.333 -> 0.335 FWHM, 3 -> 3 линий)
+     прежняя лучше: G1S24_Eu152_P5 (0.111 -> 0.117 FWHM, 8 -> 9 линий)
+     прежняя лучше: G1S24_Na22_P5 (0.283 -> 0.286 FWHM, 5 -> 6 линий)
+     прежняя лучше: G1S24_Y88_P5 (0.165 -> 0.169 FWHM, 5 -> 5 линий)
+     прежняя лучше: G1S24_Zn65_P5 (0.285 -> 0.286 FWHM, 2 -> 4 линий)
+семья AS80_Lu176_v2 [AS80x80], 2 спектров, опор 10 (после отбраковки 10), 17.1…1460.8 кэВ, разрешение 1.4955, общий фит: poly2
+семья AS80_Th232Medal [AS80x80], 3 спектров, опор 29 (после отбраковки 29), 33.4…2614.5 кэВ, разрешение 1.4955, общий фит: affine
+семья ASN16_Charoite_v2 [ASN16], 4 спектров, опор 26 (после отбраковки 25), 33.4…2614.5 кэВ, разрешение 1.5405, общий фит: gain/robust
+семья ASN8_Th232_8192 [ASN8_8192], 3 спектров, опор 18 (после отбраковки 17), 50.3…2614.5 кэВ, разрешение 1.7729, общий фит: stored/robust
+семья G1S16_Eu152_P25 [G1S16], 11 спектров, опор 58 (после отбраковки 55), 17.1…2614.5 кэВ, разрешение 1.6267, общий фит: affine/robust
+семья G1S16_Eu152_P5 [G1S16], 11 спектров, опор 48 (после отбраковки 42), 17.1…1836.1 кэВ, разрешение 1.6267, общий фит: affine/robust
+семья G1S16_Mix_Mar [G1S16], 7 спектров, опор 59 (после отбраковки 57), 33.4…2614.5 кэВ, разрешение 1.6267, общий фит: affine/robust
+семья G1S16_Ra226_Mar_2 [G1S16], 3 спектров, опор 16 (после отбраковки 15), 186.2…2204.1 кэВ, разрешение 1.6267, общий фит: affine/robust
+   G1S16_Cs137_Mar_2      опор  1, было gain/grp           стало fam(G1S16_Ra226_Mar_2)   max|ΔE| 4.543 кэВ
+семья G1S16_Mix_Denta100 [G1S16], 2 спектров, опор 20 (после отбраковки 20), 17.1…2614.5 кэВ, разрешение 1.6267, общий фит: affine
+семья G1S16_Mix_Petri [G1S16], 2 спектров, опор 20 (после отбраковки 16), 73.2…2614.5 кэВ, разрешение 1.6267, общий фит: poly2/robust
+семья G1S24_Th228_P5 [G1S24], 11 спектров, опор 56 (после отбраковки 50), 17.1…2614.5 кэВ, разрешение 1.7917, общий фит: affine/robust
+семья G1S24_Ra226_Denta120 [G1S24], 8 спектров, опор 60 (после отбраковки 56), 33.4…2614.5 кэВ, разрешение 1.7917, общий фит: affine/robust
+семья G1S24_Ra226_Mar_2 [G1S24], 7 спектров, опор 48 (после отбраковки 47), 33.4…2614.5 кэВ, разрешение 1.7917, общий фит: affine/robust
+семья G1S24_Th228_P25 [G1S24], 4 спектров, опор 26 (после отбраковки 23), 33.4…2614.5 кэВ, разрешение 1.7917, общий фит: affine/robust
+семья G1S24_Ra226_Petri_2 [G1S24], 8 спектров, опор 59 (после отбраковки 58), 33.4…2614.5 кэВ, разрешение 1.7917, общий фит: affine/robust
+семья G1S24_Rn222Coal_Mar_20m [G1S24], 4 спектров, опор 22 (после отбраковки 19), 239.3…1759.2 кэВ, разрешение 1.7917, общий фит: gain/robust
+семья HPGeGEM_Ra226 [HPGE_GEM], 2 спектров, опор 14 (после отбраковки 14), 186.2…2204.1 кэВ, разрешение 0.0515, общий фит: affine
+семья HPGeGMX_Eu152 [HPGE_GMX], 2 спектров, опор 13 (после отбраковки 13), 510.8…2614.5 кэВ, разрешение 0.0502, общий фит: affine
+семья LaBrBril_Eu152 [LABR_BRIL], 2 спектров, опор 25 (после отбраковки 22), 39.9…1764.5 кэВ, разрешение 0.7465, общий фит: affine/robust
+семья RC103_Charoite [RC103], 3 спектров, опор 14 (после отбраковки 12), 187.4…2614.5 кэВ, разрешение 1.9790, общий фит: poly2/robust
+семья RC103_Th232WT20 [RC103], 2 спектров, опор 9 (после отбраковки 8), 33.4…2614.5 кэВ, разрешение 1.9790, общий фит: gain/robust
+  B31 AS80x80   AS80_K40: приведённая ширина против соседей группы по энергии ×1.40 (медиана по 5 точкам; допуск ×1.35) — 5 точек в модель разрешения не идут
+  B31 G1S16     G1S16_Mn54_P5: приведённая ширина против соседей группы по энергии ×1.79 (медиана по 3 точкам; допуск ×1.35) — 3 точек в модель разрешения не идут
+  B31 RC103     RC103_K40: приведённая ширина против соседей группы по энергии ×1.46 (медиана по 2 точкам; допуск ×1.35) — 2 точек в модель разрешения не идут
+  AS1PRO     FWHM: 60:19.9%  300:9.6%  662:7.1%  1461:5.7%  2615:5.0%
+  AS80x80    FWHM: 60:24.5%  300:10.9%  662:7.2%  1461:4.7%  2615:3.3%
+  ASN16      FWHM: 60:19.9%  300:9.1%  662:6.3%  1461:4.4%  2615:3.5%
+  ASN3       FWHM: 60:14.6%  300:6.5%  662:4.4%  1461:3.0%  2615:2.2%
+  ASN8_1024  FWHM: 60:19.8%  300:9.0%  662:6.2%  1461:4.4%  2615:3.6%
+  ASN8_2048  FWHM: 60:23.0%  300:10.4%  662:7.0%  1461:4.8%  2615:3.7%
+  ASN8_3000  FWHM: 60:22.4%  300:10.2%  662:7.0%  1461:4.9%  2615:3.9%
+  ASN8_4096  FWHM: 60:22.4%  300:10.1%  662:6.9%  1461:4.8%  2615:3.7%
+  ASN8_8192  FWHM: 60:21.3%  300:9.7%  662:6.7%  1461:4.7%  2615:3.7%
+  G1S16      FWHM: 60:21.3%  300:9.6%  662:6.6%  1461:4.6%  2615:3.6%
+  G1S24      FWHM: 60:23.5%  300:10.7%  662:7.3%  1461:5.2%  2615:4.1%
+  GS4000     FWHM: 60:20.1%  300:9.2%  662:6.3%  1461:4.5%  2615:3.6%
+  HPGE       FWHM: 60:0.6%  300:0.3%  662:0.2%  1461:0.2%  2615:0.1%
+  HPGE_GEM   FWHM: 60:0.6%  300:0.3%  662:0.2%  1461:0.1%  2615:0.1%
+  HPGE_GMX   FWHM: 60:0.7%  300:0.3%  662:0.2%  1461:0.1%  2615:0.1%
+  LABR_BRIL  FWHM: 60:9.7%  300:4.3%  662:2.9%  1461:2.0%  2615:1.5%
+  OBS        FWHM: 60:16.3%  300:7.3%  662:4.9%  1461:3.3%  2615:2.5%
+  RC101      FWHM: 60:43.6%  300:19.5%  662:13.1%  1461:8.8%  2615:6.6%
+  RC103      FWHM: 60:27.2%  300:12.2%  662:8.3%  1461:5.6%  2615:4.3%
+
+⚠ КОНФИГУРАЦИИ ПРИБОРОВ ИЗМЕНИЛИСЬ (B8): 3 из 19
+   AS80x80    Atom Spectra 80x80.xml
+      Width_Fwhm               189 -> 185
+   G1S16      Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2016).xml
+      энергокалибровка         -22.273 3.00638 0 -> -21.638 2.96974 7.32841e-05
+   RC103      RC-103.xml
+      Width_Fwhm               30 -> 28
+   Если правки не задумывалось — верните файлы: git checkout tools/CORPUS/corpus/devices
+устройства: 19
+   AS1PRO     Atom Spectra 1 Pro 8192 (corpus).xml          Ch_Concat=1170  20..2800 кэВ
+   AS80x80    Atom Spectra 80x80.xml                        Ch_Concat=1024  30..2800 кэВ
+   ASN16      1.Atom Spectra Nano 16 Pro RadiaScan 701A.xml Ch_Concat=1024  30..2800 кэВ
+   ASN3       Atom Spectra Nano 3 2500 (corpus).xml         Ch_Concat=2500  20..2800 кэВ
+   ASN8_1024  ASN8 1024 ch.xml                              Ch_Concat=1024  30..2800 кэВ
+   ASN8_2048  ASN8 2048 ch.xml                              Ch_Concat=1024  30..2800 кэВ
+   ASN8_3000  ASN8 3000 ch.xml                              Ch_Concat=1000  30..2800 кэВ
+   ASN8_4096  ASN8 4096 ch.xml                              Ch_Concat=1024  30..2800 кэВ
+   ASN8_8192  ASN8 8192 ch.xml                              Ch_Concat=1170  30..2800 кэВ
+   G1S16      Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2016).xml Ch_Concat=1024  30..2800 кэВ
+   G1S24      Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2024).xml Ch_Concat=1024  30..2800 кэВ
+   GS4000     Gamma-Spectra 4000 (corpus).xml               Ch_Concat=1333  20..2800 кэВ
+   HPGE       HPGe 16384 (corpus).xml                       Ch_Concat=16384  20..2700 кэВ
+   HPGE_GEM   HPGe GEM20P4 8192 (corpus).xml                Ch_Concat=8192  20..2800 кэВ
+   HPGE_GMX   HPGe GMX 8192 (corpus).xml                    Ch_Concat=8192  20..2800 кэВ
+   LABR_BRIL  LaBr3 BrilLanCe380 1024 (corpus).xml          Ch_Concat=1024  30..2800 кэВ
+   OBS        Obsidian.xml                                  Ch_Concat=1024  30..2800 кэВ
+   RC101      RC-101.xml                                    Ch_Concat=512  30..2800 кэВ
+   RC103      RC-103.xml                                    Ch_Concat=1024  30..2800 кэВ
+манифест: D:\BqMoni_Claude\p103\wt\tools\CORPUS\corpus\manifest.csv (136 строк)
+детекторы: D:\BqMoni_Claude\p103\wt\tools\CORPUS\corpus\detectors.csv (19 групп)
+
+== вход пересборки (B10) ==
+  ОТБОР ПОЕХАЛ  G1S16_Co57_P5: принятых линий 1 → 3 (файл ТОТ ЖЕ)
+  ОТБОР ПОЕХАЛ  G1S16_Mix_Mar: принятых линий 13 → 12 (файл ТОТ ЖЕ)
+  ОТБОР ПОЕХАЛ  G1S16_Y88_P5: принятых линий 3 → 4 (файл ТОТ ЖЕ)
+  ОТБОР ПОЕХАЛ  AS80x80: точки модели разрешения (ad7afeb7… → 916105f1…), линий 34 → 31
+  ОТБОР ПОЕХАЛ  G1S16: точки модели разрешения (de41389b… → 85f28533…), линий 129 → 130
+  ОТБОР ПОЕХАЛ  RC103: точки модели разрешения (9d21be56… → e168e227…), линий 15 → 13
+  МОДЕЛЬ ПОЕХАЛА AS80x80: res_c 0.0;4.313200638034454;-0.0006031111495370166 → 0.0;3.6288932847169844;-0.000268019609719484
+  МОДЕЛЬ ПОЕХАЛА G1S16: res_c 0.0;2.754335240211645;0.00022987437562361346 → 0.0;2.7088041351038004;0.00028020227207175007
+  МОДЕЛЬ ПОЕХАЛА RC103: res_c 0.0;4.846290915758988;0.00021290293740051426 → 0.0;4.439063766011845;0.00011493265895548317
+  ⚠ исходные файлы те же — поехал ОТБОР линий, а не данные
+клеймо генератора: D:\BqMoni_Claude\p103\wt\tools\CORPUS\corpus\generator.json (11 файлов, отпечаток 449a7d7f6183ff5f, HEAD 42291677; ⚠ генератор ГРЯЗЕН: tools/CORPUS/scripts/build_corpus.py)
+
+записано новых копий: 136
+
+⚠ УЗЕЛ <Efficiency> ПРОПАЛ: 87 из 94 копий
+   AS80_Cs137_0cm, AS80_Th232Medal, ASN16_Cs137_10cm, ASN16_Lu176_P0, G1S16_Am241_P25, G1S16_Am241_P5, G1S16_Ba133_P25, G1S16_Ba133_P5, G1S16_Cd109_P25, G1S16_Cd109_P5, G1S16_Ce139_P25, G1S16_Ce139_P5, …
+   Это кривая и матрица понятной части: без узла разбор идёт БЕЗ
+   них — молча, без единой ошибки. Вернуть ТЕ ЖЕ узлы из git:
+       python tools/CORPUS/scripts/restore_eff_nodes.py --apply
+   и затем сверить: python tools/CORPUS/scripts/check_corpus.py

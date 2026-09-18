@@ -1,0 +1,22 @@
+arm b31 start 2026-09-18 17:20:45 store=D:\BqMoni_Claude\p103\store_backup extra=
+arm b31 mk_appwd code=0
+arm b31 check_appwd code=0
+  response: rmx=49
+arm b31 full code=0 17:21:51 (48 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p103_b31_full
+arm b31 mini code=0 17:22:11 (20 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p103_b31_mini
+arm b31 score full known code=0
+arm b31 score mini known code=0
+arm b31 score full unknown code=0
+arm b31 score mini unknown code=0
+arm b31 end 17:22:13
+arm rev30main start 2026-09-18 23:24:34 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries extra=
+arm rev30main mk_appwd code=0
+arm rev30main check_appwd code=0
+  response: rmx=49
+arm rev30main full code=0 23:25:05 (22 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev30_full
+arm rev30main mini code=0 23:25:15 (10 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev30_mini
+arm rev30main score full known code=0
+arm rev30main score mini known code=0
+arm rev30main score full unknown code=0
+arm rev30main score mini unknown code=0
+arm rev30main end 23:25:16

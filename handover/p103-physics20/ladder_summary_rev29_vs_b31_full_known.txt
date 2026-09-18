@@ -1,0 +1,37 @@
+сдвинулось 45: улучшилось 21, ухудшилось 23, |Δ| ≤ 0.15 %: 17, |Δ| ≥ 1 %: 12
+--- лучшие 8:
+RC103_Lu176                  1.1365 ->   0.9939 -12.547 %  anchor_note, ch_hi, ch_lo, chi2ndf, chi2ndf_pois, collinearity; Lu-176 93.31→92.99; Xray-L
+AS80_Am241                   2.5609 ->   2.3758  -7.228 %  anchor_note, ch_hi, ch_lo, chi2ndf, chi2ndf_pois, collinearity
+G1S16_Mix_Mar               35.5529 ->  33.3620  -6.162 %  anchor_note, anchor_offset_kev, ch_hi, ch_lo, chi2ndf, chi2ndf_pois; Am-241 17.62→13.91; C
+G1S16_Co57_P5                1.0074 ->   0.9713  -3.583 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s; Co-57 97.75→97.99
+RC103_Cs137_0cm              2.4218 ->   2.3376  -3.477 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Cs137_Mar              1.5967 ->   1.5461  -3.169 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+RC103_K40                    1.8890 ->   1.8330  -2.965 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Y88_P5                 1.3380 ->   1.3010  -2.765 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+--- худшие 8:
+G1S16_Cs137_P25              1.8600 ->   1.8655  +0.296 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Ba133_P5              11.4891 ->  11.5242  +0.306 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Eu152_P25              3.4509 ->   3.4639  +0.377 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+AS80_Th232Medal             12.6578 ->  12.7124  +0.431 %  <число строк 20→21>, anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity; 
+G1S16_Cd109_P5               3.6201 ->   3.6371  +0.470 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Na22_P5               13.9115 ->  13.9777  +0.476 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+AS80_Cs137_0cm               3.9854 ->   4.0587  +1.839 %  anchor_note, ch_hi, ch_lo, chi2ndf, chi2ndf_pois, collinearity
+G1S16_Co60_P25               1.7397 ->   1.8293  +5.150 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s; Ann-511 0.35→0.48; Co-6
+--- RC103, ASN16, AS80 (мелкие кристаллы и диск):
+RC103_Lu176                  1.1365 ->   0.9939 -12.547 %  anchor_note, ch_hi, ch_lo, chi2ndf, chi2ndf_pois, collinearity; Lu-176 93.31→92.99; Xray-Lu 6.64→6.97
+AS80_Am241                   2.5609 ->   2.3758  -7.228 %  anchor_note, ch_hi, ch_lo, chi2ndf, chi2ndf_pois, collinearity
+RC103_Cs137_0cm              2.4218 ->   2.3376  -3.477 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+RC103_K40                    1.8890 ->   1.8330  -2.965 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+AS80_Lu176                   1.9483 ->   1.9128  -1.822 %  anchor_note, ch_hi, ch_lo, chi2ndf, chi2ndf_pois, collinearity
+RC103_Cs137_50mm             0.9571 ->   0.9480  -0.951 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+AS80_Lu176_v2                1.8404 ->   1.8259  -0.788 %  anchor_note, ch_hi, ch_lo, chi2ndf, chi2ndf_pois, collinearity
+AS80_Th232Medal             12.6578 ->  12.7124  +0.431 %  <число строк 20→21>, anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity; Ac-228 38.02→38.53; Pb-212 17.06→17.53; Tl-208 30.
+AS80_Cs137_0cm               3.9854 ->   4.0587  +1.839 %  anchor_note, ch_hi, ch_lo, chi2ndf, chi2ndf_pois, collinearity
+--- состав (share_pct > 0.05 п.п.):
+RC103_Lu176                Lu-176 93.31→92.99; Xray-Lu 6.64→6.97
+G1S16_Mix_Mar              Am-241 17.62→13.91; Cs-137 23.64→21.60; Eu-152 54.01→49.98; Ti-44 4.72→14.51
+G1S16_Co57_P5              Co-57 97.75→97.99
+G1S16_Th232_Denta100       Ac-228 37.62→37.44; Bi-212 4.70→4.88
+AS80_Th232Medal            Ac-228 38.02→38.53; Pb-212 17.06→17.53; Tl-208 30.39→30.65; Xray-Pb 6.17→5.57; Xray-Th 1.67→0.94
+G1S16_Co60_P25             Ann-511 0.35→0.48; Co-60 99.65→99.52
+спектров со сдвигом состава: 6

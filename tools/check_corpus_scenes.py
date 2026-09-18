@@ -27,8 +27,19 @@ u"""Сторож СЦЕН генератора (`T261`): генератор `Cor
   G — построенного генератором `.in` при тех же умолчаниях;
   M — записанное в живой `.rmx` (когда он есть: склад вне git).
 
-Сцена принята, когда G == L и (нет `.rmx` или M == L). Равенство именно
-клеймом, а не байтом: с `AMBER1` (08.09.2026) писатель геометрий печатает блок
+Сцена принята, когда G == L и (нет `.rmx` или M == L). ⚠ ГУСТЫЕ СЦЕНЫ
+(`DENSE_SCENES`; решение Amber 18.09.2026, вопросником, дословно: «Добить
+историями ночью: дальним точкам ×2», исполнено П103 19.09.2026 единым счётом
+физики 20): у дальней точки малого кристалла (`RC103_point50`,
+`ASN16_point10_house`, `G1S_point25` — шум худшего узла 11…12 % при 3 000 000
+историй) матрица склада считается штатным рецептом с K × 3 000 000 историй, и
+для неё принимается M == L_K, где L_K — клеймо живого `.in` при умолчаниях с
+K × историй (`MatrixStampProbe --hist=xK`, четвёртая строка). Именно РАВЕНСТВО
+клейма с названным числом, а не «историй больше»: гуще другим числом или иным
+ключом — расхождение, как и прежде. Реестр густых сцен — здесь, одно место
+(README корпуса, раздел рецепта склада, называет те же три); рычаг `--dense=`
+подменяет реестр (пустой — выключить: положительный контроль П103 — три сцены
+краснеют «ДРУГИМ РЕЦЕПТОМ»). Равенство именно клеймом, а не байтом: с `AMBER1` (08.09.2026) писатель геометрий печатает блок
 зазора, а 42 сцены корпуса записаны раньше и блока не несут; клеймо от блока
 не зависит по построению (`ResponseMatrix.StampView`). Байтно сравниваются
 только опись `index.csv` и СОСТАВ сцен (имена файлов): сцена, которой генератор
@@ -71,8 +82,8 @@ u"""Сторож СЦЕН генератора (`T261`): генератор `Cor
       100 мм — тот самый, что П72 подсаживала в генератор; клеймо подсаженной
       сцены при физике 18 — `phys=18;2c366cb9a0b76b09…`, то же, что П72 сняла с
       генератора со старым сосудом, `handover/p72-t258-t259/stamp_check_oldvessel.txt`;
-      с физики 19 (П97, `eltr=1` в клейме) число другое — контроль держится
-      не числом, а равенством/неравенством G, L и M) —
+      с физики 19 (П97, `eltr=1` в клейме) и 20 (П103, `elmix=1`) число другое —
+      контроль держится не числом, а равенством/неравенством G, L и M) —
       ОБЯЗАН отказать на этой сцене двумя строками (G ≠ L и M ≠ L) и принять
       контрольную;
   (б) подсадка МАТРИЦЫ: `.rmx` точки 5 мм положен под именем точки 25 см —
@@ -95,7 +106,9 @@ u"""Сторож СЦЕН генератора (`T261`): генератор `Cor
   --skip-freshness НЕ судить свежесть каталога проб (только стенд полосы, где
                    каталог собран из другого дерева — worktree);
   --quiet          печатать только расхождения и сводку;
-  --csv=<файл>     записать регистр клейм (сцена, живой, генератор, матрица, приговор).
+  --csv=<файл>     записать регистр клейм (сцена, живой, генератор, матрица, приговор);
+  --dense=<сцена>:<K>[,…]  реестр густых сцен взамен `DENSE_SCENES` (пусто — ни одной:
+                   тогда матрицы дальних точек ОБЯЗАНЫ краснеть «ДРУГИМ РЕЦЕПТОМ»).
 
 Коды возврата:
   0 — генератор воспроизводит корпус, опись побайтно, матрицы на своих сценах
@@ -132,6 +145,16 @@ STAMPER = u'MatrixStampProbe.exe'
 PROBE_KEYS = (u'corpusgeomprobe', u'matrixstampprobe')
 
 RE_DEFAULT = re.compile(r'клеймо при умолчаниях\s*:\s*(phys=\S+)')
+RE_DENSE = re.compile(r'клеймо при умолчаниях, историй\s+(\d+)\s*:\s*(phys=\S+)')
+
+#: Густые сцены склада: ключ → множитель историй к умолчанию (решение Amber
+#: 18.09.2026 «дальним точкам ×2»; П103). Матрица такой сцены годна, когда её
+#: клеймо равно клейму сцены при умолчаниях с K × историй — см. шапку.
+DENSE_SCENES = {
+    u'RC103_point50': 2,
+    u'ASN16_point10_house': 2,
+    u'G1S_point25': 2,
+}
 RE_INFILE = re.compile(r'клеймо в файле\s*:\s*(phys=\S+)')
 RE_BYOWN = re.compile(r'клеймо по НАСТРОЙКАМ ФАЙЛА\s*:\s*(phys=\S+)')
 RE_GRID = re.compile(r'узлов\s+(\S+)\s+\(умолчание\s+(\S+)\),\s+сетка\s+(\S+)\s+\(умолчание\s+(\S+)\)')
@@ -303,42 +326,56 @@ def run_generator(probes, out_dir):
 
 # ── клейма ───────────────────────────────────────────────────────────────────
 
-def stamps_of(probes, geometry, matrix):
+def stamps_of(probes, geometry, matrix, dense_k=None):
     u"""Три клейма `MatrixStampProbe`: при умолчаниях, в файле `.rmx`, по настройкам
-    файла; плюс строка сетки. Код возврата пробы НЕ читается (см. шапку)."""
+    файла; плюс строка сетки; с `dense_k` — четвёртое, при умолчаниях с K × историй
+    (`--hist=xK`, густые сцены). Код возврата пробы НЕ читается (см. шапку)."""
     exe = os.path.join(probes, STAMPER)
-    proc = subprocess.run([exe, u'--geometry=' + geometry, u'--matrix=' + matrix], cwd=probes,
-                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    cmd = [exe, u'--geometry=' + geometry, u'--matrix=' + matrix]
+    if dense_k:
+        cmd.append(u'--hist=x%d' % int(dense_k))
+    proc = subprocess.run(cmd, cwd=probes, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     text = decode_console(proc.stdout)
     m1 = RE_DEFAULT.search(text)
     m2 = RE_INFILE.search(text)
     m3 = RE_BYOWN.search(text)
     mg = RE_GRID.search(text)
+    md = RE_DENSE.search(text) if dense_k else None
     return {
         u'default': m1.group(1) if m1 else None,
         u'infile': m2.group(1) if m2 else None,
         u'byown': m3.group(1) if m3 else None,
+        u'dense': md.group(2) if md else None,
+        u'dense_hist': int(md.group(1)) if md else None,
         u'grid': mg.groups() if mg else None,
         u'text': text,
         u'code': proc.returncode,
     }
 
 
-def judge_scene(key, live_dir, gen_dir, probes, none_rmx):
-    u"""Приговор одной сцене: словарь с клеймами и списком расхождений (пусто = сошлось)."""
+def judge_scene(key, live_dir, gen_dir, probes, none_rmx, dense=None):
+    u"""Приговор одной сцене: словарь с клеймами и списком расхождений (пусто = сошлось).
+    `dense` — реестр густых сцен (ключ → K); у такой сцены матрица годна при M == L_K."""
     live_in = os.path.join(live_dir, key + u'.in')
     gen_in = os.path.join(gen_dir, key + u'.in')
     rmx = os.path.join(live_dir, key + u'.rmx')
     has_rmx = os.path.isfile(rmx)
-    row = {u'key': key, u'live': None, u'gen': None, u'rmx': None, u'has_rmx': has_rmx, u'bad': []}
+    dense = DENSE_SCENES if dense is None else dense
+    k_dense = dense.get(key)
+    row = {u'key': key, u'live': None, u'gen': None, u'rmx': None, u'has_rmx': has_rmx, u'bad': [],
+           u'dense_k': k_dense, u'dense_ok': False}
     if not os.path.isfile(live_in):
         row[u'bad'].append(u'в корпусе нет этой сцены, а генератор её строит')
     else:
-        s = stamps_of(probes, live_in, rmx if has_rmx else none_rmx)
+        s = stamps_of(probes, live_in, rmx if has_rmx else none_rmx, dense_k=k_dense)
         row[u'live'] = s[u'default']
         row[u'rmx'] = s[u'infile'] if has_rmx else None
         row[u'byown'] = s[u'byown']
+        row[u'dense'] = s.get(u'dense')
+        row[u'dense_hist'] = s.get(u'dense_hist')
         row[u'grid'] = s[u'grid']
+        if k_dense and row[u'live'] and row[u'dense'] is None:
+            row[u'bad'].append(u'густая сцена (×%d), а клейма с K × историй проба не напечатала' % k_dense)
         if row[u'live'] is None:
             tail = u' | '.join(l.strip() for l in s[u'text'].strip().splitlines()[-3:])
             row[u'bad'].append(u'живой .in не читается пробой клейма (код %d): %s' % (s[u'code'], tail))
@@ -356,10 +393,16 @@ def judge_scene(key, live_dir, gen_dir, probes, none_rmx):
     if has_rmx and row[u'live']:
         if row[u'rmx'] is None:
             row[u'bad'].append(u'матрица .rmx есть, а клейма из неё проба не прочла')
+        elif k_dense and row.get(u'dense') and row[u'rmx'] == row[u'dense']:
+            # густая сцена: матрица штатного рецепта с K × историй — годна по правилу Amber 18.09.2026
+            row[u'dense_ok'] = True
         elif row[u'rmx'] != row[u'live']:
             if row.get(u'byown') and row[u'byown'] == row[u'rmx']:
                 grid = row.get(u'grid')
                 detail = (u' (узлов %s против умолчания %s, сетка %s против %s)' % grid) if grid else u''
+                if k_dense:
+                    detail += u' [густая сцена ×%d: ждали клеймо при %s историях, не сошлось]' % (
+                        k_dense, row.get(u'dense_hist') or u'K × умолчание')
                 row[u'bad'].append(u'МАТРИЦА ПОСЧИТАНА НА ЭТУ СЦЕНУ, НО ДРУГИМ РЕЦЕПТОМ: клеймо файла %s '
                                    u'равно клейму по его настройкам, а не умолчаниям%s' % (short(row[u'rmx']), detail))
             else:
@@ -411,7 +454,7 @@ def compare_index(live_dir, gen_dir, out):
 # ── прогон ───────────────────────────────────────────────────────────────────
 
 def run_check(probes, live_dir, only=None, jobs=None, keep=None, skip_freshness=False,
-              quiet=False, silent=False, csv_path=None):
+              quiet=False, silent=False, csv_path=None, dense=None):
     u"""Полный приговор. Возвращает (код, Out, rows). `quiet` — не печатать сошедшиеся
     строки таблицы; `silent` — не печатать ничего (самопроверка читает буфер)."""
     out = Out(silent=silent)
@@ -502,7 +545,7 @@ def run_check(probes, live_dir, only=None, jobs=None, keep=None, skip_freshness=
         n_jobs = jobs or min(8, os.cpu_count() or 1)
         t = time.time()
         with ThreadPoolExecutor(max_workers=n_jobs) as pool:
-            rows = list(pool.map(lambda k: judge_scene(k, live_dir, gen_dir, probes, none_rmx), to_stamp))
+            rows = list(pool.map(lambda k: judge_scene(k, live_dir, gen_dir, probes, none_rmx, dense), to_stamp))
         t_stamp = time.time() - t
 
         # состав — сцены, у которых клейма не снимались (--only), тоже судятся по имени
@@ -521,6 +564,7 @@ def run_check(probes, live_dir, only=None, jobs=None, keep=None, skip_freshness=
         n_bad = 0
         n_rmx = 0
         n_rmx_ok = 0
+        n_dense_ok = 0
         header = False
         for r in rows:
             ok = not r[u'bad']
@@ -528,6 +572,9 @@ def run_check(probes, live_dir, only=None, jobs=None, keep=None, skip_freshness=
                 n_rmx += 1
                 if r[u'rmx'] and r[u'rmx'] == r[u'live']:
                     n_rmx_ok += 1
+                elif r.get(u'dense_ok'):
+                    n_rmx_ok += 1
+                    n_dense_ok += 1
             if not ok:
                 n_bad += 1
             if ok and quiet:
@@ -535,17 +582,19 @@ def run_check(probes, live_dir, only=None, jobs=None, keep=None, skip_freshness=
             if not header:
                 out.say(u'  %-30s %-24s %-24s %-24s %s' % (u'сцена', u'живой .in', u'генератор', u'матрица .rmx', u'приговор'))
                 header = True
-            out.say(u'  %-30s %-24s %-24s %-24s %s' % (
+            out.say(u'  %-30s %-24s %-24s %-24s %s%s' % (
                 r[u'key'], short(r[u'live']), short(r[u'gen']),
                 short(r[u'rmx']) if r[u'has_rmx'] else u'нет .rmx',
-                u'СОШЛОСЬ' if ok else u'РАЗОШЛОСЬ'))
+                u'СОШЛОСЬ' if ok else u'РАЗОШЛОСЬ',
+                (u' (рецепт ×%d, историй %s)' % (r[u'dense_k'], r.get(u'dense_hist') or u'?')) if r.get(u'dense_ok') else u''))
             for b in r[u'bad']:
                 out.say(u'  %-30s   ⛔ %s' % (u'', b))
         if header:
             out.say(u'')
         stamped = [r for r in rows if r[u'live'] is not None or r[u'gen'] is not None]
-        out.say(u'  сцен %d: сошлось %d, разошлось %d; клейма сняты у %d; матриц на месте %d из %d, на своей сцене и рецепте %d'
-                % (len(rows), len(rows) - n_bad, n_bad, len(stamped), n_rmx, len(live_keys), n_rmx_ok))
+        out.say(u'  сцен %d: сошлось %d, разошлось %d; клейма сняты у %d; матриц на месте %d из %d, на своей сцене и рецепте %d%s'
+                % (len(rows), len(rows) - n_bad, n_bad, len(stamped), n_rmx, len(live_keys), n_rmx_ok,
+                   (u' (из них густых ×K по правилу Amber 18.09.2026: %d)' % n_dense_ok) if n_dense_ok else u''))
         out.say(u'  время %.1f с: генератор %.1f, клейма %.1f на %d потоках (%d запусков), свежесть %.1f'
                 % (time.time() - t0, t_gen, t_stamp, n_jobs, 2 * len(to_stamp), t_fresh))
         if csv_path:
@@ -562,7 +611,8 @@ def run_check(probes, live_dir, only=None, jobs=None, keep=None, skip_freshness=
                 None if index_ok else u'опись index.csv'])))
             return 1, out, rows
         out.say(u'  ✅ СОШЛОСЬ: генератор воспроизводит корпус с точностью до клейма, опись побайтно, '
-                u'матрицы склада — на своих сценах штатным рецептом')
+                u'матрицы склада — на своих сценах штатным рецептом%s'
+                % (u' (густые сцены — ×K историй по реестру DENSE_SCENES)' if n_dense_ok else u''))
         return 0, out, rows
     finally:
         if tmp and os.path.isdir(tmp):
@@ -725,7 +775,19 @@ def main(argv=None):
     ap.add_argument('--selftest', action='store_true')
     ap.add_argument('--quiet', action='store_true')
     ap.add_argument('--csv', default=None)
+    ap.add_argument('--dense', default=None)
     args = ap.parse_args(argv)
+
+    dense = None
+    if args.dense is not None:
+        # реестр густых сцен с ключа: «сцена:K,сцена:K»; пустая строка — ни одной (контроль)
+        dense = {}
+        for item in args.dense.split(u','):
+            item = item.strip()
+            if not item:
+                continue
+            name, _, k = item.partition(u':')
+            dense[name.strip()] = int(k or 2)
 
     probes = find_probes(args.probes)
     live_dir = os.path.abspath(args.live) if args.live else LIVE_DEFAULT
@@ -734,7 +796,7 @@ def main(argv=None):
     only = [s.strip() for s in args.only.split(u',') if s.strip()] if args.only else None
     code, _, _ = run_check(probes, live_dir, only=only, jobs=args.jobs, keep=args.keep,
                            skip_freshness=args.skip_freshness, quiet=args.quiet,
-                           csv_path=os.path.abspath(args.csv) if args.csv else None)
+                           csv_path=os.path.abspath(args.csv) if args.csv else None, dense=dense)
     return code
 
 
