@@ -2316,4 +2316,61 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRFwhmCalibrationUnset" xml:space="preserve">
     <value>у спектра нет калибровки ПШПВ, и никто её ему не построил.</value>
   </data>
+  <data name="DeviceTypeAmplitudaUSB" xml:space="preserve">
+    <value>AmplitudaUSB</value>
+  </data>
+  <data name="ERRAmplitudaUsbChannels" xml:space="preserve">
+    <value>Amplituda USB: число каналов должно быть 4096, 2048, 1024, 512 или 256 (у спектра {0}). Задайте его в конфигурации устройства и примените конфигурацию к пустому спектру.</value>
+  </data>
+  <data name="ERRAmplitudaUsbNotFound" xml:space="preserve">
+    <value>Блок Amplituda USB не найден{0}. Проверьте кабель.</value>
+  </data>
+  <data name="ERRAmplitudaUsbBusy" xml:space="preserve">
+    <value>Блок Amplituda USB занят другой программой (Прогресс?). Закройте её и повторите.</value>
+  </data>
+  <data name="ERRAmplitudaUsbOpenFailed" xml:space="preserve">
+    <value>Ошибка блока Amplituda USB: {0}</value>
+  </data>
+  <data name="ERRAmplitudaUsbDisconnected" xml:space="preserve">
+    <value>Связь с блоком Amplituda USB потеряна (ошибка {0}). Измерение остановлено, набранные данные сохранены. Подключите блок и нажмите «Старт» — набор продолжится.</value>
+  </data>
+  <data name="ERRAmplitudaUsbSilent" xml:space="preserve">
+    <value>Блок Amplituda USB перестал передавать данные (кадров нет больше 10 с). Измерение остановлено, набранные данные сохранены. Проверьте блок и нажмите «Старт» — набор продолжится.</value>
+  </data>
+  <data name="MSGAmplitudaUsbFramesLost" xml:space="preserve">
+    <value>За это измерение потеряно {0:F1} с потока данных ({1:F1} %). На скорости счёта это не влияет: время считается по реально принятым кадрам.</value>
+  </data>
+  <data name="AmplitudaUsbDevice" xml:space="preserve">
+    <value>Блок :</value>
+  </data>
+  <data name="AmplitudaUsbRefresh" xml:space="preserve">
+    <value>Обновить</value>
+  </data>
+  <data name="AmplitudaUsbFirstFound" xml:space="preserve">
+    <value>(первый найденный)</value>
+  </data>
+  <data name="AmplitudaUsbNotConnected" xml:space="preserve">
+    <value>{0} (не подключён)</value>
+  </data>
+  <data name="AmplitudaUsbLowerThreshold" xml:space="preserve">
+    <value>Нижний порог, код АЦП :</value>
+  </data>
+  <data name="AmplitudaUsbUpperThreshold" xml:space="preserve">
+    <value>Верхний порог, код АЦП :</value>
+  </data>
+  <data name="AmplitudaUsbDeadTime" xml:space="preserve">
+    <value>Мёртвое время на импульс, мкс :</value>
+  </data>
+  <data name="AmplitudaUsbChannelsHint" xml:space="preserve">
+    <value>Число каналов: 4096, 2048, 1024, 512 или 256 — задаётся на общей вкладке. 12-битный код АЦП делится нацело; шаг канала всегда 1.</value>
+  </data>
+  <data name="AmplitudaUsbTest" xml:space="preserve">
+    <value>Проверка</value>
+  </data>
+  <data name="AmplitudaUsbTestRunning" xml:space="preserve">
+    <value>Проверяю…</value>
+  </data>
+  <data name="AmplitudaUsbTestResult" xml:space="preserve">
+    <value>{0:F1} кадров/с, {1:F1} имп/с, пропуски {2:F1} %, негодных кадров {3}</value>
+  </data>
 </root>

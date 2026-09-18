@@ -324,6 +324,17 @@ namespace BecquerelMonitor
                 AppUi.Report(Resources.ERRInvalidDeviceType, "", MessageBoxIcon.None);
                 return false;
             }
+            // A controller left over from a device config of another type must not be reused:
+            // the branches below only create one when there is none.
+            if (this.deviceController != null && this.deviceController.GetType() != deviceType.DeviceControllerType)
+            {
+                IDisposable stale = this.deviceController as IDisposable;
+                if (stale != null)
+                {
+                    stale.Dispose();
+                }
+                this.deviceController = null;
+            }
             if (deviceType.DeviceControllerType == typeof(AudioInputDeviceController))
             {
                 this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
@@ -348,6 +359,13 @@ namespace BecquerelMonitor
                 }
             }
             else if (deviceType.DeviceControllerType == typeof(ObsidianDeviceController))
+            {
+                if (this.deviceController == null)
+                {
+                    this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
+                }
+            }
+            else if (deviceType.DeviceControllerType == typeof(AmplitudaUsbDeviceController))
             {
                 if (this.deviceController == null)
                 {
