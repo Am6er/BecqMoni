@@ -1,0 +1,534 @@
+-- Configuring done (0.2s)
+-- Generating done (0.1s)
+-- Build files have been written to: D:/BqMoni_Claude/p102/g4/build
+ninja: Entering directory `D:\BqMoni_Claude\p102\g4\build'
+[1/2] Building CXX object CMakeFiles\g4cf.dir\g4cf.cc.obj
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4RunManagerFactory.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4MTRunManager.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4MTBarrier.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Threading.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Types.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4GlobalConfig.hh
+Примечание: включение файла:       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\complex
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\yvals_core.h
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\vcruntime.h
+Примечание: включение файла:          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\sal.h
+Примечание: включение файла:           C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\concurrencysal.h
+Примечание: включение файла:          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\vadefs.h
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xkeycheck.h
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\cmath
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\yvals.h
+Примечание: включение файла:          C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\crtdbg.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt.h
+Примечание: включение файла:           C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\vcruntime_new_debug.h
+Примечание: включение файла:            C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\vcruntime_new.h
+Примечание: включение файла:          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\crtdefs.h
+Примечание: включение файла:          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\use_ansi.h
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\cstdlib
+Примечание: включение файла:          C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\math.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_math.h
+Примечание: включение файла:          C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\stdlib.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_malloc.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_search.h
+Примечание: включение файла:            C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\stddef.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstdlib.h
+Примечание: включение файла:           C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\limits.h
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xtr1common
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\intrin0.h
+Примечание: включение файла:          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\intrin0.inl.h
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\cstdint
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\stdint.h
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\limits
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\cfloat
+Примечание: включение файла:          C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\float.h
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\climits
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\cwchar
+Примечание: включение файла:          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\cstdio
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\stdio.h
+Примечание: включение файла:            C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstdio.h
+Примечание: включение файла:             C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_stdio_config.h
+Примечание: включение файла:          C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\wchar.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_memcpy_s.h
+Примечание: включение файла:            C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\errno.h
+Примечание: включение файла:            C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\vcruntime_string.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wconio.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wctype.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wdirect.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wio.h
+Примечание: включение файла:            C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_share.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wprocess.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstring.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wtime.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\sys/stat.h
+Примечание: включение файла:            C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\sys/types.h
+Примечание: включение файла:           C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\intrin.h
+Примечание: включение файла:            C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\setjmp.h
+Примечание: включение файла:            C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\immintrin.h
+Примечание: включение файла:             C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\wmmintrin.h
+Примечание: включение файла:              C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\nmmintrin.h
+Примечание: включение файла:               C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\smmintrin.h
+Примечание: включение файла:                C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\tmmintrin.h
+Примечание: включение файла:                 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\pmmintrin.h
+Примечание: включение файла:                  C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\emmintrin.h
+Примечание: включение файла:                   C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmmintrin.h
+Примечание: включение файла:                    C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\mmintrin.h
+Примечание: включение файла:                    C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\malloc.h
+Примечание: включение файла:             C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\zmmintrin.h
+Примечание: включение файла:            C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\ammintrin.h
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\sstream
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\istream
+Примечание: включение файла:          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\__msvc_ostream.hpp
+Примечание: включение файла:           C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\ios
+Примечание: включение файла:            C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xlocnum
+Примечание: включение файла:             C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\iterator
+Примечание: включение файла:              C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\iosfwd
+Примечание: включение файла:               C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\cstring
+Примечание: включение файла:                C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\string.h
+Примечание: включение файла:                 C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_memory.h
+Примечание: включение файла:              C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xutility
+Примечание: включение файла:               C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\__msvc_iter_core.hpp
+Примечание: включение файла:                C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility
+Примечание: включение файла:                 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\initializer_list
+Примечание: включение файла:                  C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\cstddef
+Примечание: включение файла:                 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\type_traits
+Примечание: включение файла:             C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\streambuf
+Примечание: включение файла:              C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xiosbase
+Примечание: включение файла:               C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\share.h
+Примечание: включение файла:               C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\system_error
+Примечание: включение файла:                C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\__msvc_system_error_abi.hpp
+Примечание: включение файла:                C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\cerrno
+Примечание: включение файла:                C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\stdexcept
+Примечание: включение файла:                 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\exception
+Примечание: включение файла:                  C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\vcruntime_exception.h
+Примечание: включение файла:                   C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\eh.h
+Примечание: включение файла:                    C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_terminate.h
+Примечание: включение файла:                 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xstring
+Примечание: включение файла:                  C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\__msvc_sanitizer_annotate_container.hpp
+Примечание: включение файла:                  C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\__msvc_string_view.hpp
+Примечание: включение файла:                  C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory
+Примечание: включение файла:                   C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\new
+Примечание: включение файла:                   C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xatomic.h
+Примечание: включение файла:                  C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xpolymorphic_allocator.h
+Примечание: включение файла:                   C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\tuple
+Примечание: включение файла:                C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xcall_once.h
+Примечание: включение файла:                C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xerrc.h
+Примечание: включение файла:                C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\atomic
+Примечание: включение файла:                 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xthreads.h
+Примечание: включение файла:                  C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\__msvc_threads_core.hpp
+Примечание: включение файла:                  C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xtimec.h
+Примечание: включение файла:                   C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\ctime
+Примечание: включение файла:                    C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\time.h
+Примечание: включение файла:               C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xlocale
+Примечание: включение файла:                C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\memory
+Примечание: включение файла:                 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\typeinfo
+Примечание: включение файла:                  C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\vcruntime_typeinfo.h
+Примечание: включение файла:                C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xfacet
+Примечание: включение файла:                C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xlocinfo
+Примечание: включение файла:                 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\__msvc_xlocinfo_types.hpp
+Примечание: включение файла:                 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\cctype
+Примечание: включение файла:                  C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\ctype.h
+Примечание: включение файла:                 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\clocale
+Примечание: включение файла:                  C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\locale.h
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\string
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\ymath.h
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\__msvc_bit_utils.hpp
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\tls.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\globals.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ios.hh
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\iostream
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\ostream
+Примечание: включение файла:       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\algorithm
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\__msvc_heap_algorithms.hpp
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\__msvc_minmax.hpp
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4String.hh
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\string_view
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4String.icc
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\templates.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Exception.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ExceptionSeverity.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4EnvironmentUtils.hh
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\iomanip
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xlocmon
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xloctime
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\map
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xtree
+Примечание: включение файла:          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xnode_handle.h
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\mutex
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\__msvc_chrono.hpp
+Примечание: включение файла:          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\ratio
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\thread
+Примечание: включение файла:          C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\process.h
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_startup.h
+Примечание: включение файла:            C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\math.h
+Примечание: включение файла:            C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\vcruntime_startup.h
+Примечание: включение файла:      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\chrono
+Примечание: включение файла:       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xfilesystem_abi.h
+Примечание: включение файла:      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\condition_variable
+Примечание: включение файла:      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\future
+Примечание: включение файла:       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\functional
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\unordered_map
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xhash
+Примечание: включение файла:          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\list
+Примечание: включение файла:          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\vector
+Примечание: включение файла:          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xbit_ops.h
+Примечание: включение файла:       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\ppltasks.h
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\pplwin.h
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\pplinterface.h
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\ppltaskscheduler.h
+Примечание: включение файла:          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\crtdefs.h
+Примечание: включение файла:         C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\pplcancellation_token.h
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4RNGHelper.hh
+Примечание: включение файла:     C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\queue
+Примечание: включение файла:      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\deque
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4RunManager.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Event.hh
+Примечание: включение файла:      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\set
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\evtdefs.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Allocator.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AllocatorPool.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4PrimaryVertex.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4PrimaryParticle.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ThreeVector.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/ThreeVector.h
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Utility/defs.h
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/ThreeVector.icc
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\pwdefs.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4HCofThisEvent.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VHitsCollection.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4DCofThisEvent.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VDigiCollection.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4TrajectoryContainer.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VTrajectory.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VUserEventInformation.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4EventManager.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4StackManager.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4UserStackingAction.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ClassificationOfNewTrack.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4StackedTrack.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4TrackStack.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SmartTrackStack.hh
+Примечание: включение файла:        C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\array
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SubEventTrackStack.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SubEvent.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Track.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Units/PhysicalConstants.h
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Units/SystemOfUnits.h
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\trkdefs.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4LogicalVolume.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Region.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4GeomSplitter.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\geomwdefs.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AutoLock.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Region.icc
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VPhysicalVolume.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\geomdefs.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4RotationMatrix.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/Rotation.h
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/RotationInterfaces.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/LorentzVector.h
+Примечание: включение файла:              C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/LorentzVector.icc
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/AxisAngle.h
+Примечание: включение файла:              C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/AxisAngle.icc
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/RotationInterfaces.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/RotationX.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/RotationX.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/RotationY.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/RotationY.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/RotationZ.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/RotationZ.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/Rotation.icc
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VPhysicalVolume.icc
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4LogicalVolume.icc
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4DynamicParticle.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ElectronOccupancy.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Log.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4LorentzVector.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ParticleDefinition.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4PDefManager.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ParticleDefinition.icc
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ParticleMomentum.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4DynamicParticle.icc
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4TrackStatus.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4TouchableHandle.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VTouchable.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4TouchableHistory.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NavigationHistory.hh
+Примечание: включение файла:            C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\assert.h
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AffineTransform.hh
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Transform3D.hh
+Примечание: включение файла:              C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Geometry/Transform3D.h
+Примечание: включение файла:               C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Geometry/Transform3D.icc
+Примечание: включение файла:                C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Geometry/Point3D.h
+Примечание: включение файла:                 C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Geometry/BasicVector3D.h
+Примечание: включение файла:                C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Geometry/Vector3D.h
+Примечание: включение файла:                C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Geometry/Normal3D.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AffineTransform.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NavigationLevel.hh
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NavigationLevelRep.hh
+Примечание: включение файла:              C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NavigationLevelRep.icc
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NavigationLevel.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NavigationHistoryPool.hh
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NavigationHistory.icc
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4TouchableHistory.icc
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ReferenceCountedHandle.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VUserTrackInformation.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4PhysicsModelCatalog.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Material.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Element.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ElementTable.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ElementVector.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4IonisParamElm.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Isotope.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4IsotopeVector.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4IonisParamMat.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4DensityEffectCalculator.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4MaterialPropertiesTable.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4MaterialPropertiesIndex.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4MaterialPropertyVector.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4PhysicsFreeVector.hh
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4PhysicsVector.hh
+Примечание: включение файла:             C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\fstream
+Примечание: включение файла:              C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\__msvc_filebuf.hpp
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4PhysicsVectorType.hh
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4PhysicsVector.icc
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4MaterialTable.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SandiaTable.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4OrderedTable.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4DataVector.hh
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4DataVector.icc
+Примечание: включение файла:          C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\assert.h
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Track.icc
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Step.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4StepPoint.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SteppingControl.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4StepStatus.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4StepPoint.icc
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4TrackVector.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Step.icc
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Track.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4PrimaryTransformer.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ParticleTable.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ParticleTableIterator.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ParticleTable.icc
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4TrackingManager.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SteppingManager.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Navigator.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NormalNavigation.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VNavigation.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VSolid.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VSolid.icc
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AuxiliaryNavServices.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AuxiliaryNavServices.icc
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NormalNavigation.icc
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VoxelNavigation.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NavigationLogger.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4BlockingList.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4BlockingList.icc
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SmartVoxelProxy.hh
+Примечание: включение файла:           C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\assert.h
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SmartVoxelProxy.icc
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SmartVoxelNode.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SmartVoxelNode.icc
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SmartVoxelHeader.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SmartVoxelHeader.icc
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VoxelNavigation.icc
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ParameterisedNavigation.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VPVParameterisation.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VVolumeMaterialScanner.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ParameterisedNavigation.icc
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ReplicaNavigation.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ReplicaNavigation.icc
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4RegularNavigation.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VExternalNavigation.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Navigator.icc
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NoProcess.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VProcess.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\Randomize.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/Randomize.h
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/DualRand.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandomEngine.h
+Примечание: включение файла:              C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandomEngine.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/JamesRandom.h
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/MixMaxRng.h
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/MTwistEngine.h
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RanecuEngine.h
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RanluxEngine.h
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/Ranlux64Engine.h
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RanluxppEngine.h
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RanshiEngine.h
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandBinomial.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/Random.h
+Примечание: включение файла:              C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/Random.icc
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Utility/memory.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandBinomial.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandBreitWigner.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandFlat.h
+Примечание: включение файла:              C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Utility/thread_local.h
+Примечание: включение файла:              C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandFlat.icc
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandBreitWigner.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandChiSquare.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandChiSquare.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandExponential.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandExponential.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandExpZiggurat.h
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandBit.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandBit.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandGamma.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandGamma.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandGauss.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandGauss.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandGaussQ.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandGaussQ.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandGaussZiggurat.h
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandGeneral.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandGeneral.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandLandau.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandLandau.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandPoissonQ.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandPoisson.h
+Примечание: включение файла:              C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandPoisson.icc
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandPoissonQ.icc
+Примечание: включение файла:            C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandStudentT.h
+Примечание: включение файла:             C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Random/RandStudentT.icc
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4PhysicsTable.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4PhysicsTable.icc
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VParticleChange.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VParticleChange.icc
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ForceCondition.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4GPILSelection.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ParticleChange.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ParticleChange.icc
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ProcessType.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ProcessManager.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ProcessVector.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ProcessVector.icc
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ProcessManager.icc
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4UserSteppingAction.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VSteppingVerbose.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\trkgdefs.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4TrackingMessenger.hh
+Примечание: включение файла:        C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4UImessenger.hh
+Примечание: включение файла:         C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4UIdirectory.hh
+Примечание: включение файла:          C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4UIcommand.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ApplicationState.hh
+Примечание: включение файла:           C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4UIparameter.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4UserTrackingAction.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4RunManagerKernel.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\rundefs.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4TaskRunManager.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4TBBTaskGroup.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/TaskGroup.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/AutoLock.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/ConsumeParameters.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/Types.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/Config.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/JoinFunction.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/Macros.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/ScopeDestructor.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/Task.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/VTask.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/detail/CxxBackports.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/ThreadData.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/ThreadPool.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/Threading.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/VUserTaskQueue.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4TaskGroup.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4TaskManager.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL/TaskManager.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\PTL\TaskRunManager.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ThreadPool.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VUserTaskQueue.hh
+Примечание: включение файла:   C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\regex
+Примечание: включение файла:    C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\locale
+Примечание: включение файла:     C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xlocbuf
+Примечание: включение файла:     C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xlocmes
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VUserDetectorConstruction.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VUserPrimaryGeneratorAction.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VUserActionInitialization.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4UserRunAction.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4UserEventAction.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VModularPhysicsList.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VPhysicsConstructor.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4PhysicsListHelper.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4PhysicsListOrderingParameter.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ThreadLocalSingleton.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Cache.hh
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4CacheDetails.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VUPLSplitter.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VUserPhysicsList.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ProductionCutsTable.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4MaterialCutsCouple.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ProductionCuts.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4MCCIndexConversionTable.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\tls.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4EmStandardPhysics_option4.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4DecayPhysics.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Decay.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VRestDiscreteProcess.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ParticleChangeForDecay.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4DecayProcessType.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4RadioactiveDecayPhysics.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NistManager.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4ICRU90StoppingData.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NistElementBuilder.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NistMaterialBuilder.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Pow.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Exp.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Box.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4GeomTypes.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4GeomConfig.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4CSGSolid.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Polyhedron.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\HepPolyhedron.h
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4TwoVector.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/TwoVector.h
+Примечание: включение файла:       C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\CLHEP/Vector/TwoVector.icc
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Point3D.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Normal3D.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Visible.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Visible.icc
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Box.icc
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Tubs.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Tubs.icc
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4PVPlacement.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4GeneralParticleSource.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SingleParticleSource.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VPrimaryGenerator.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SPSPosDistribution.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SPSRandomGenerator.hh
+Примечание: включение файла:      C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4DataInterpolation.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SPSAngDistribution.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SPSEneDistribution.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4GeneralParticleSourceMessenger.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4GeneralParticleSourceData.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Gamma.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Electron.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Run.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4UImanager.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4UIcommandStatus.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VStateDependent.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\icomsdefs.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4SystemOfUnits.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AccumulableManager.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AccValue.hh
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VAccumulable.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AccType.hh
+Примечание: включение файла:      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\bitset
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4MergeMode.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4VAccumulable.icc
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AccValue.icc
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AccumulableManager.icc
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AccArray.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AccArray.icc
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AccMap.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AccMap.icc
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AccUnorderedMap.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AccUnorderedMap.icc
+Примечание: включение файла:    C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AccVector.hh
+Примечание: включение файла:     C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4AccVector.icc
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Accumulable.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4IonTable.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4Ions.hh
+Примечание: включение файла:  C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4NuclearLevelData.hh
+Примечание: включение файла:   C:\Users\moroz\source\repos\GEANT4\geant4-11.4.2-win64\include\Geant4\G4DeexPrecoParameters.hh
+[2/2] Linking CXX executable g4cf.exe

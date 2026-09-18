@@ -1,0 +1,8 @@
+start 2026-09-18 15:31:13 eu152 off iontag 20M seed3: seed 3 iontag ionhist 0.1 3000 scene G1S_point5.scene ion 63 152 20000000 <39 окон>
+exit=0 end 2026-09-18 15:52:27
+start 2026-09-18 15:59:30 eu152 off iontag v2 (признак * полного поглощения) 20M seed4: seed 4 iontag ionhist 0.1 3000 scene G1S_point5.scene ion 63 152 20000000 <39 окон>
+exit=0 end 2026-09-18 16:24:06
+start 2026-09-18 16:29:45 eu152 off iontag v3 (TAGFULL без среза) 20M seed5: seed 5 iontag ionhist 0.1 3000 scene G1S_point5.scene ion 63 152 20000000 <39 окон>
+exit=0 end 2026-09-18 17:02:57
+start 2026-09-18 17:22:54 emitpair 71 пар Eu-152 (ref_pairs.csv) 5M seed 7
+exit=0 end 2026-09-18 17:26:28

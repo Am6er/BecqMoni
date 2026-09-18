@@ -598,10 +598,15 @@ namespace SumPeakProbe
 
         static void Fill(double[] d, Window w, int bw)
         {
+            // (П102) Окно у нижнего/верхнего края шкалы: полоса подложки
+            // обрезается краем, а не выходит за массив (пара с K-рентгеном 40 кэВ
+            // на G1S16_Eu152_P5 ложилась ниже первого канала и роняла пробу
+            // IndexOutOfRange до печати ε_p матрицы).
             double bl = 0.0, br = 0.0;
-            for (int i = w.Lo - bw; i < w.Lo; i++) bl += d[i];
-            for (int i = w.Hi; i < w.Hi + bw; i++) br += d[i];
-            bl /= bw; br /= bw;
+            int nl = 0, nr = 0;
+            for (int i = Math.Max(0, w.Lo - bw); i < w.Lo; i++) { bl += d[i]; nl++; }
+            for (int i = w.Hi; i < Math.Min(d.Length, w.Hi + bw); i++) { br += d[i]; nr++; }
+            bl = nl > 0 ? bl / nl : 0.0; br = nr > 0 ? br / nr : 0.0;
             int n = w.Hi - w.Lo;
             double net = 0.0, cen = 0.0, gross = 0.0;
             for (int k = 0; k < n; k++)
