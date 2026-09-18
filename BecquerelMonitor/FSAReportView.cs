@@ -55,7 +55,11 @@ namespace BecquerelMonitor
     ///     на время работы приложения: в файл, конфигурацию и отпечаток не
     ///     входит, расчёт не запускает; одно значение на документ
     ///     (<see cref="DocEnergySpectrum.FsaGrouping"/>) читают и график, и
-    ///     таблица.
+    ///     таблица;
+    ///   * (`AMBER45`, 18.09.2026) слой матрицы отклика — комбо «Matrix layer»
+    ///     в той же группе «Display»: «All» (стопка как есть) или один канал;
+    ///     настройка ПОКАЗА графика на время работы приложения, таблицу не
+    ///     меняет, счёт не заказывает (<see cref="requestedMatrixLayer"/>).
     ///
     /// Родительский режим доступен только при источнике «Из NucBase» с
     /// включённым равновесием (условие настроек,
@@ -156,6 +160,69 @@ namespace BecquerelMonitor
 
         /// <summary>Ключ подсказки шестой галочки: «меняет только показ».</summary>
         const string KeyResidualBandTip = "FSAReport_ResidualBandTip";
+
+        // ------------------------------------------------------------------
+        // (`AMBER45`) СЛОЙ МАТРИЦЫ ОТКЛИКА — комбо «Matrix layer»
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`AMBER45`, задача Amber 15.09.2026, вид описан ею 18.09.2026:
+        /// «В FSA Report в группе Display добавить combo box: "Matrix layer".
+        /// Значение по умолчанию - All (отображать как это выглядит сейчас). И
+        /// доступные значения в этом комбо боксе - каждый слой из
+        /// существующих. При его выборе происходит его отрисовка на спектре.»)
+        /// ЧТО ПРОСИЛ ЧЕЛОВЕК: все каналы или один. Помнится и тогда, когда у
+        /// спектра нет матрицы и режим недостижим (комбо погашено, показывает
+        /// «All») — на следующем спектре с матрицей просьба вступает в силу,
+        /// как просьба о родителях (<see cref="requestedGrouping"/>).
+        ///
+        /// Настройка ПОКАЗА, а не расчёта, — той же природы, что
+        /// <see cref="showResidualBand"/>: не пишется ни в копию спектра, ни в
+        /// умолчание прибора, в отпечаток разбора не входит, пересчёта не
+        /// заказывает и ТАБЛИЦУ НЕ МЕНЯЕТ (фит не пересчитывается — доли,
+        /// невязка и χ²/ndf те же при любом слое). Меняется одна стопка на
+        /// графике: у каждого компонента рисуется только выбранный канал
+        /// (<see cref="EnergySpectrumView.FsaMatrixLayer"/>). Живёт в ОКНЕ и
+        /// переезжает на график того документа, который показывается сейчас.
+        /// </summary>
+        FsaMatrixLayer requestedMatrixLayer = FsaMatrixLayer.All;
+
+        /// <summary>Подсказка комбо при живой матрице: «меняет только график».</summary>
+        const string KeyMatrixLayerTip = "FSAReport_MatrixLayerTip";
+
+        /// <summary>Подсказка погашенного комбо: матрицы нет — каналов у модели нет.</summary>
+        const string KeyMatrixLayerNoMatrixTip = "FSAReport_MatrixLayerNoMatrixTip";
+
+        /// <summary>
+        /// Ключи ПОДПИСЕЙ пунктов комбо — по одному на член
+        /// <see cref="FsaMatrixLayer"/>, литералами (их ищут сторожа `resx`).
+        /// Имя канала человеку даётся здесь, а не именем члена перечисления:
+        /// `Compton` в коде — служебное имя канала неполного поглощения
+        /// (утечка рассеянного кванта, электрона, тормозного), и подпись
+        /// обязана сказать это по-человечески на обоих языках.
+        /// </summary>
+        static string MatrixLayerKey(FsaMatrixLayer layer)
+        {
+            switch (layer)
+            {
+                case FsaMatrixLayer.Peak: return "FSAReport_MatrixLayerPeak";
+                case FsaMatrixLayer.Compton: return "FSAReport_MatrixLayerCompton";
+                case FsaMatrixLayer.EscapeAnnihilation: return "FSAReport_MatrixLayerEscapeAnnihilation";
+                case FsaMatrixLayer.EscapeXrayK: return "FSAReport_MatrixLayerEscapeXrayK";
+                case FsaMatrixLayer.EscapeAnnihilationDouble: return "FSAReport_MatrixLayerEscapeAnnihilationDouble";
+                case FsaMatrixLayer.EscapeXrayL: return "FSAReport_MatrixLayerEscapeXrayL";
+                default: return "FSAReport_MatrixLayerAll";
+            }
+        }
+
+        /// <summary>
+        /// Подпись пункта комбо для слоя — на языке интерфейса (пробы и снимок
+        /// витрины читают её отсюда же, а не собирают свою).
+        /// </summary>
+        public static string MatrixLayerText(FsaMatrixLayer layer)
+        {
+            return OwnText(MatrixLayerKey(layer));
+        }
 
         // ------------------------------------------------------------------
         // (`A247`) БЛОК «КАЧЕСТВО РАЗБОРА»: ключи собственных строк окна
@@ -327,6 +394,27 @@ namespace BecquerelMonitor
 
             this.headerFont = new Font(this.Font, FontStyle.Bold);
 
+            // (`AMBER45`) Пункты комбо «Matrix layer» — кодом, из собственных
+            // ресурсов окна: «All» первым, за ним шесть каналов по номеру
+            // (<see cref="FsaMatrixLayers.Channels"/>). Список каналов один на
+            // проект — здесь он только подписывается.
+            this.loading = true;
+            try
+            {
+                this.matrixLayerComboBox.Items.Clear();
+                this.matrixLayerComboBox.Items.Add(MatrixLayerText(FsaMatrixLayer.All));
+                foreach (FsaMatrixLayer layer in FsaMatrixLayers.Channels)
+                {
+                    this.matrixLayerComboBox.Items.Add(MatrixLayerText(layer));
+                }
+
+                this.matrixLayerComboBox.SelectedIndex = 0;
+            }
+            finally
+            {
+                this.loading = false;
+            }
+
             this.SetToolTips();
             this.reportTable.Resize += this.ReportTable_Resize;
             this.reportTable.SelectionChanged += this.ReportTable_SelectionChanged;
@@ -488,6 +576,10 @@ namespace BecquerelMonitor
             // график того документа, который показывается сейчас: иначе
             // снятая лента возвращалась бы при каждой смене спектра.
             this.PushResidualBand();
+
+            // (`AMBER45`) Тот же довод для слоя матрицы: просьба живёт в окне
+            // и едет на график показываемого документа.
+            this.PushMatrixLayer();
             this.Consume();
             this.RefreshReport();
         }
@@ -736,6 +828,89 @@ namespace BecquerelMonitor
                 && this.document.EnergySpectrumView != null)
             {
                 this.document.EnergySpectrumView.FsaShowResidual = this.showResidualBand;
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER45`) Слой матрицы отклика — переключатель ПОКАЗА, не расчёта
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// ⛔ Комбо «Matrix layer» идёт ТОЙ ЖЕ дорогой, что галка ленты
+        /// невязки (<see cref="residualBandCheckBox_CheckedChanged"/>): не
+        /// <see cref="ApplyCalculationChange"/>, а одна перерисовка графика.
+        /// Ни записи в конфигурацию, ни <c>session.Invalidate()</c>, ни
+        /// <c>Consume()</c>, ни <see cref="RefreshReport"/>: строки таблицы от
+        /// слоя не зависят (уточнение Amber 18.09.2026 — фит не
+        /// пересчитывается, таблица прежняя), и дёргать их незачем.
+        /// </summary>
+        void matrixLayerComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (this.loading)
+            {
+                return;
+            }
+
+            this.requestedMatrixLayer = MatrixLayerAt(this.matrixLayerComboBox.SelectedIndex);
+            this.PushMatrixLayer();
+        }
+
+        /// <summary>Слой по номеру пункта комбо: 0 — «All», далее каналы по порядку.</summary>
+        static FsaMatrixLayer MatrixLayerAt(int index)
+        {
+            int channel = index - 1;
+            return channel >= 0 && channel < FsaMatrixLayers.Channels.Length
+                ? FsaMatrixLayers.Channels[channel]
+                : FsaMatrixLayer.All;
+        }
+
+        /// <summary>Номер пункта комбо для слоя: 0 — «All».</summary>
+        static int MatrixLayerIndex(FsaMatrixLayer layer)
+        {
+            return Array.IndexOf(FsaMatrixLayers.Channels, layer) + 1;
+        }
+
+        /// <summary>Что просил человек — и когда матрицы нет тоже (пробы).</summary>
+        public FsaMatrixLayer RequestedMatrixLayer
+        {
+            get
+            {
+                return this.requestedMatrixLayer;
+            }
+
+            set
+            {
+                this.requestedMatrixLayer = value;
+                this.PushMatrixLayer();
+                this.UpdateAvailability();
+            }
+        }
+
+        /// <summary>
+        /// Достижим ли режим слоя на показываемом спектре: у стопки есть слой
+        /// с раскладкой по каналам, то есть матрица отклика жива (пробы).
+        /// Правило одно на график и окно — <see cref="FsaMatrixLayers.HasChannels"/>.
+        /// </summary>
+        public bool MatrixLayerAvailable
+        {
+            get
+            {
+                return this.presentation != null && FsaMatrixLayers.HasChannels(this.presentation.Layers);
+            }
+        }
+
+        /// <summary>
+        /// Сказать графику, какой слой показывать. Уходит ПРОСЬБА, а не
+        /// «эффективное» значение: достижим ли режим, график решает сам по
+        /// результату (<see cref="FsaMatrixLayers.HasChannels"/>) — тем же
+        /// правилом, каким это окно гасит комбо, и потому оба всегда об одном.
+        /// ⛔ Ничего, кроме перерисовки стопки, это не меняет.
+        /// </summary>
+        void PushMatrixLayer()
+        {
+            if (this.document != null && !this.document.IsDisposed)
+            {
+                this.document.FsaMatrixLayer = this.requestedMatrixLayer;
             }
         }
 
@@ -1819,12 +1994,27 @@ namespace BecquerelMonitor
             this.toolTip.SetToolTip(this.backscatterCheckBox, extra);
             this.toolTip.SetToolTip(this.escapeCheckBox, extra);
 
+            // (`AMBER45`) Комбо «Matrix layer» живо только при живой матрице:
+            // без раскладки по каналам у слоёв (матрицы нет, старый формат,
+            // образы не по матрице) режим слоя недостижим, и комбо гаснет с
+            // подсказкой-причиной; просьба человека при этом ПОМНИТСЯ, а
+            // показывается «All» — то, что график и рисует. Судится тем же
+            // правилом, что у графика (`FsaMatrixLayers.HasChannels`), — иначе
+            // окно могло бы обещать слой, которого стопка не покажет.
+            bool matrixLayers = has && this.MatrixLayerAvailable;
+            this.matrixLayerComboBox.Enabled = matrixLayers;
+            this.toolTip.SetToolTip(this.matrixLayerComboBox,
+                                    !has || matrixLayers ? OwnText(KeyMatrixLayerTip) : OwnText(KeyMatrixLayerNoMatrixTip));
+            this.toolTip.SetToolTip(this.matrixLayerLabel,
+                                    !has || matrixLayers ? OwnText(KeyMatrixLayerTip) : OwnText(KeyMatrixLayerNoMatrixTip));
+
             this.loading = true;
             try
             {
                 bool parents = parentsAllowed && this.requestedGrouping == FsaGrouping.Parents;
                 this.parentsRadio.Checked = parents;
                 this.daughtersRadio.Checked = !parents;
+                this.matrixLayerComboBox.SelectedIndex = matrixLayers ? MatrixLayerIndex(this.requestedMatrixLayer) : 0;
             }
             finally
             {
@@ -1880,6 +2070,12 @@ namespace BecquerelMonitor
             // признак, а не единственный: с `A265` род переключателя виден
             // и без наведения — по группе, в которой он лежит.
             this.toolTip.SetToolTip(this.residualBandCheckBox, OwnText(KeyResidualBandTip));
+
+            // (`AMBER45`) Комбо слоя матрицы — того же рода «меняет только
+            // показ»; при мёртвой матрице подсказку подменяет причиной
+            // <see cref="UpdateAvailability"/>.
+            this.toolTip.SetToolTip(this.matrixLayerComboBox, OwnText(KeyMatrixLayerTip));
+            this.toolTip.SetToolTip(this.matrixLayerLabel, OwnText(KeyMatrixLayerTip));
         }
 
         /// <summary>Подсказка элемента сейчас (пробы).</summary>
@@ -1907,6 +2103,12 @@ namespace BecquerelMonitor
                 // вернуть её было бы нечем.
                 this.showResidualBand = true;
                 this.PushResidualBand();
+
+                // (`AMBER45`) И тот же довод для слоя матрицы: без окна вернуть
+                // графику все каналы было бы нечем — он остался бы стопкой
+                // одного канала навсегда.
+                this.requestedMatrixLayer = FsaMatrixLayer.All;
+                this.PushMatrixLayer();
 
                 // (`A295`) Подписку на такт вида снимаем здесь же: иначе
                 // документ держал бы ссылку на закрытое окно и звал бы

@@ -54,6 +54,13 @@ u"""Переключатель окна отчёта FSA — в группе С�
 переложена в чужую группу: он обязан назвать её поимённо. Не назвал —
 сторож красный, что бы ни показало настоящее дерево.
 
+(`AMBER45`, П104 18.09.2026) Переключателем считается и КОМБО (`ComboBox`,
+событие `SelectedIndexChanged`): комбо «Matrix layer» — слой матрицы отклика —
+переключатель ПОКАЗА и лежит в группе показа. Ему два своих плеча
+самопроверки: комбо переложено в расчётный поток — отказ поимённо; обработчику
+комбо подставлен вызов двери расчёта — контрол, объявленный расчётным при
+месте в группе показа, отказ поимённо.
+
 Коды возврата: 0 — сошлось; 1 — не сошлось; 2 — нечего читать.
 """
 import io
@@ -70,12 +77,19 @@ RESX_RU = os.path.join(REPO, 'BecquerelMonitor', 'FSAReportView.ru.resx')
 DISPLAY_GROUP = u'displayGroupBox'
 CALC_DOOR = u'ApplyCalculationChange'
 
-SWITCH_TYPES = (u'System.Windows.Forms.CheckBox', u'System.Windows.Forms.RadioButton')
+# (`AMBER45`, П104 18.09.2026) Комбо — тоже переключатель: комбо «Matrix layer»
+# (слой матрицы отклика) переключается выбором пункта, событие —
+# `SelectedIndexChanged`; род судится тем же обработчиком, что у галок.
+SWITCH_TYPES = (u'System.Windows.Forms.CheckBox', u'System.Windows.Forms.RadioButton',
+                u'System.Windows.Forms.ComboBox')
+
+# Поле комбо слоя матрицы — для двух плеч самопроверки ниже.
+LAYER_COMBO = u'matrixLayerComboBox'
 
 RE_NEW = re.compile(u'this\\.(\\w+) = new ([\\w.]+)\\(')
 RE_ADD = re.compile(u'this\\.(\\w+)\\.Controls\\.Add\\(this\\.(\\w+)\\)')
 RE_FORM_ADD = re.compile(u'^\\s*this\\.Controls\\.Add\\(this\\.(\\w+)\\)', re.M)
-RE_HANDLER = re.compile(u'this\\.(\\w+)\\.CheckedChanged \\+= new System\\.EventHandler\\(this\\.(\\w+)\\)')
+RE_HANDLER = re.compile(u'this\\.(\\w+)\\.(?:CheckedChanged|SelectedIndexChanged) \\+= new System\\.EventHandler\\(this\\.(\\w+)\\)')
 
 
 def _utf8_console():
@@ -187,6 +201,39 @@ def spoil(designer_text):
         anchor, anchor + u'            this.extrasFlow.Controls.Add(this.residualBandCheckBox);\n', 1)
 
 
+def spoil_combo_moved(designer_text):
+    u"""(`AMBER45`) Порченая копия designer-кода: комбо слоя матрицы переложено в
+    расчётный поток. Сторож обязан назвать его поимённо — иначе новый род
+    контрола (комбо) переписью не покрыт и лёг бы куда угодно молча."""
+    designer_text = designer_text.replace(u'\r\n', u'\n')
+    line = u'            this.displayFlow.Controls.Add(this.%s);\n' % LAYER_COMBO
+    if line not in designer_text:
+        return None
+    moved = designer_text.replace(line, u'', 1)
+    anchor = u'            this.extrasFlow.Controls.Add(this.pileUpCheckBox);\n'
+    if anchor not in moved:
+        return None
+    return moved.replace(
+        anchor, anchor + u'            this.extrasFlow.Controls.Add(this.%s);\n' % LAYER_COMBO, 1)
+
+
+def spoil_combo_calc(designer_text, code_text):
+    u"""(`AMBER45`) Порченая копия КОДА окна: обработчик комбо слоя матрицы зовёт
+    дверь расчёта. Контрол, объявленный расчётным, а лежащий в группе показа, —
+    отказ поимённо: ровно так выглядела бы правка, сделавшая переключатель
+    показа переключателем счёта. Возвращает None, если обработчик не найден."""
+    kinds, parent, handler = parse_designer(designer_text)
+    hook = handler.get(LAYER_COMBO)
+    if hook is None:
+        return None
+    body = method_body(code_text, hook)
+    if body is None or CALC_DOOR in body:
+        return None
+    head = re.search(u'\\bvoid %s\\s*\\(' % re.escape(hook), code_text)
+    start = code_text.find(u'{', head.end())
+    return code_text[:start + 1] + u' this.%s(cfg => { }); ' % CALC_DOOR + code_text[start + 1:]
+
+
 def resx_has(path, key):
     return (u'<data name="%s"' % key) in read(path)
 
@@ -245,6 +292,39 @@ def main():
             print(u'  подставлено: residualBandCheckBox → extrasFlow; названо поимённо, лишнего нет')
         else:
             print(u'  ⛔ САМОПРОВЕРКА ПРОВАЛЕНА: названо %s' % (u', '.join(others) or u'ничего'))
+            bad += 1
+
+    # (`AMBER45`) Два плеча на комбо слоя матрицы: переложено в расчётный поток;
+    # объявлено расчётным в коде (обработчик зовёт дверь расчёта) при месте в
+    # группе показа. Оба — отказ поимённо, лишнего нет.
+    spoiled = spoil_combo_moved(designer_text)
+    if spoiled is None:
+        print(u'  ⛔ порчу «%s → extrasFlow» подставить не удалось — самопроверка не состоялась' % LAYER_COMBO)
+        bad += 1
+    else:
+        rows_spoiled = judge(spoiled, code_text)[0]
+        caught = [n for n, _g, _c, t in rows_spoiled if t and n == LAYER_COMBO]
+        others = [n for n, _g, _c, t in rows_spoiled if t]
+        if caught and others == caught:
+            print(u'  подставлено: %s → extrasFlow; названо поимённо, лишнего нет' % LAYER_COMBO)
+        else:
+            print(u'  ⛔ САМОПРОВЕРКА ПРОВАЛЕНА (комбо в чужой группе): названо %s' % (u', '.join(others) or u'ничего'))
+            bad += 1
+
+    spoiled_code = spoil_combo_calc(designer_text, code_text)
+    if spoiled_code is None:
+        print(u'  ⛔ порчу «обработчик %s зовёт %s» подставить не удалось — самопроверка не состоялась'
+              % (LAYER_COMBO, CALC_DOOR))
+        bad += 1
+    else:
+        rows_spoiled = judge(designer_text, spoiled_code)[0]
+        caught = [n for n, _g, _c, t in rows_spoiled if t and n == LAYER_COMBO]
+        others = [n for n, _g, _c, t in rows_spoiled if t]
+        if caught and others == caught:
+            print(u'  подставлено: обработчик %s зовёт %s; назван РАСЧЁТНЫМ в группе показа, лишнего нет'
+                  % (LAYER_COMBO, CALC_DOOR))
+        else:
+            print(u'  ⛔ САМОПРОВЕРКА ПРОВАЛЕНА (комбо объявлено расчётным): названо %s' % (u', '.join(others) or u'ничего'))
             bad += 1
 
     print()

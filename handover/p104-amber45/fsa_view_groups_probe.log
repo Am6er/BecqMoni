@@ -1,0 +1,45 @@
+=== перепись переключателей окна отчёта FSA (A265) ===
+  поле                     группа             род           отпечаток
+  parentsRadio             displayGroupBox    отрисовочный  peaks|eq|xray|sum|bs|esc|pu
+  daughtersRadio           displayGroupBox    отрисовочный  peaks|eq|xray|sum|bs|esc|pu
+  residualBandCheckBox     displayGroupBox    отрисовочный  peaks|eq|xray|sum|bs|esc|pu
+  matrixLayerComboBox      displayGroupBox    отрисовочный  peaks|eq|xray|sum|bs|esc|pu
+  atomicXrayCheckBox       extrasGroupBox     РАСЧЁТНЫЙ     peaks|eq|xray|sum|bs|esc|pu -> peaks|eq|-xray|sum|bs|esc|pu
+  cascadeSummingCheckBox   extrasGroupBox     РАСЧЁТНЫЙ     peaks|eq|xray|sum|bs|esc|pu -> peaks|eq|xray|-sum|bs|esc|pu
+  backscatterCheckBox      extrasGroupBox     РАСЧЁТНЫЙ     peaks|eq|xray|sum|bs|esc|pu -> peaks|eq|xray|sum|-bs|esc|pu
+  escapeCheckBox           extrasGroupBox     РАСЧЁТНЫЙ     peaks|eq|xray|sum|bs|esc|pu -> peaks|eq|xray|sum|bs|-esc|pu
+  pileUpCheckBox           extrasGroupBox     РАСЧЁТНЫЙ     peaks|eq|xray|sum|bs|esc|pu -> peaks|eq|xray|sum|bs|esc|-pu
+  equilibriumCheckBox      chainGroupBox      РАСЧЁТНЫЙ     peaks|eq|xray|sum|bs|esc|pu -> peaks|free|xray|sum|bs|esc|pu
+  sourcePeaksRadio         sourceGroupBox     РАСЧЁТНЫЙ     db|eq|xray|sum|bs|esc|pu -> peaks|eq|xray|sum|bs|esc|pu
+  sourceNucBaseRadio       sourceGroupBox     РАСЧЁТНЫЙ     peaks|eq|xray|sum|bs|esc|pu -> db|eq|xray|sum|bs|esc|pu
+  всего 12: расчётных 8, отрисовочных 4
+
+=== принадлежность: род переключателя против его группы ===
+  все на своих местах
+
+=== порядок групп сверху вниз (решение Amber: показ НИЖЕ расчёта) ===
+  sourceGroupBox     верх    0, низ   43, высота  43, ширина 320
+  chainGroupBox      верх   43, низ   86, высота  43, ширина 320
+  extrasGroupBox     верх   86, низ  221, высота 135, ширина 320
+  displayGroupBox    верх  221, низ  363, высота 142, ширина 320
+  «displayGroupBox» ниже всех расчётных: верх 221 против низа 221 у «extrasGroupBox»
+
+=== ширина подписей групп и метки (A127) ===
+  шрифт Microsoft Sans Serif 8.0pt, ширина окна 320
+  --- культура en ---
+  sourceGroupBox     «Composition source» — нужно 99, есть 304, запас 205
+  chainGroupBox      «Chain model» — нужно 65, есть 304, запас 239
+  extrasGroupBox     «Additional model components» — нужно 145, есть 304, запас 159
+  displayGroupBox    «Display» — нужно 41, есть 304, запас 263
+  groupingLabel      «Result grouping» — нужно 81, есть 304, запас 223
+  matrixLayerLabel   «Matrix layer» — нужно 60, есть 304, запас 244
+  --- культура ru ---
+  sourceGroupBox     «Источник состава» — нужно 99, есть 304, запас 205
+  chainGroupBox      «Модель цепочек» — нужно 90, есть 304, запас 214
+  extrasGroupBox     «Дополнительные компоненты модели» — нужно 202, есть 304, запас 102
+  displayGroupBox    «Отрисовка» — нужно 62, есть 304, запас 242
+  groupingLabel      «Группировка результата» — нужно 132, есть 304, запас 172
+  matrixLayerLabel   «Слой матрицы» — нужно 80, есть 304, запас 224
+  контроль: 200 знаков не влезают — замер ширины работает
+
+ВСЕ СОШЛИСЬ: каждый переключатель в группе своего рода, подписи влезают
