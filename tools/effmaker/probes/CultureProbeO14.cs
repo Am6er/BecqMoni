@@ -619,12 +619,17 @@ static class CultureProbeO14
         return BecquerelMonitor.NucBase.NucBase.HalfLifeYearsFromCell(cell);
     }
 
+    /// <summary>
+    /// Геометрии дерева для плеча «не сломано»: `tools\effmaker\models` над пробой
+    /// (до 15.09.2026 — `LSRM Geometries\Models`; каталог снят решением Amber,
+    /// копии моделей с нашими ключами остаются).
+    /// </summary>
     static string FindModels()
     {
         string dir = AppDomain.CurrentDomain.BaseDirectory;
         for (int i = 0; i < 8 && dir != null; i++)
         {
-            string candidate = System.IO.Path.Combine(dir, "LSRM Geometries", "Models");
+            string candidate = System.IO.Path.Combine(dir, "tools", "effmaker", "models");
             if (Directory.Exists(candidate)) return candidate;
             DirectoryInfo up = Directory.GetParent(dir.TrimEnd('\\', '/'));
             dir = up == null ? null : up.FullName;

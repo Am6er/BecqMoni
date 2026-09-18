@@ -1,6 +1,0 @@
-D:\BqMoni_Claude\p63\out_a\rates_as80_head.csv vs D:\BqMoni_Claude\p63\out_b\rates_as80_tie.csv: строк 26, расхождений 0
-D:\BqMoni_Claude\p63\out_a\rates_as80_eq.csv vs D:\BqMoni_Claude\p63\out_b\rates_as80_eq.csv: строк 19, расхождений 0
-D:\BqMoni_Claude\p63\out_a\rates_radon1_head.csv vs D:\BqMoni_Claude\p63\out_b\rates_radon1_tie.csv: строк 32, расхождений 0
-D:\BqMoni_Claude\p63\out_a\rates_radon1_eq.csv vs D:\BqMoni_Claude\p63\out_b\rates_radon1_eq.csv: строк 27, расхождений 0
-D:\BqMoni_Claude\p63\out_a\rates_radon2_head.csv vs D:\BqMoni_Claude\p63\out_b\rates_radon2_tie.csv: строк 29, расхождений 0
-D:\BqMoni_Claude\p63\out_a\rates_radon2_eq.csv vs D:\BqMoni_Claude\p63\out_b\rates_radon2_eq.csv: строк 21, расхождений 0

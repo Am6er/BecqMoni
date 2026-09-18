@@ -244,17 +244,26 @@ FOREIGN = {"Ttb", "Elib", "ENSDF2", "MDATX3", "FCOMP", "Epdl97", "Glecs",
 #     против 99.754), то есть числа несопоставимы напрямую.
 #   * ROI/Obsidian Marinelli 0.5.xml — 34 точки кривой против 150.
 #   * ROI/RadiaCode Marinelli 0.5.xml — то же, кривая старой длины.
+#
+# ⛔ Отпечаток — sha256 содержимого с переводами строк, приведёнными к LF
+# (= тому, что лежит в индексе git у этих файлов), а не байтов рабочей копии
+# (П81, 15.09.2026). Рабочая копия после `git checkout master` переписана с
+# CRLF (`core.autocrlf=true`), и отпечатки байтов зависели от того, ЧЕМ и
+# КОГДА дерево выкладывалось: записанные 25.08.2026 три пары были СМЕШАННЫМИ —
+# `NuclideDefinition.xml` от LF, обе ROI от CRLF, — и один и тот же
+# неизменённый файл давал «ИЗВЕСТНОЕ РАСХОЖДЕНИЕ ИЗМЕНИЛОСЬ» при пустом
+# `git status`. Пары ROI ниже перезаписаны на LF; пара NuclideDefinition та же.
 CONFIG_COPIES = (u"config", os.path.join(u"BecquerelMonitor", u"config"))
 CONFIG_COPIES_KNOWN = {
     u"NuclideDefinition.xml":
         (u"82cbe1717447cc1a32fab220e2a6c674a6452ebe5f020385f9a2ca720f06f812",
          u"7aaa0b01c9bd4a7621b8ed1f642b7efbe5833a4b8b3a86bd7b3156b714efa380"),
     u"ROI/Obsidian Marinelli 0.5.xml":
-        (u"bee051b3fbf5c237acae6dbc9ea155ba207f126a1922a24cb1221f4bab64b764",
-         u"b153cfb1df418a2ea5b2104920b77719b6cb9b7f2d6de6344bb439681bc6cc14"),
+        (u"f183eeb09292e08a11965c0b387662165d312893644f69ae56cd87f2e4aef9b5",
+         u"9b992698ab11421cab31689ec2c247ea9a5738fd375633feb1564029a77b4781"),
     u"ROI/RadiaCode Marinelli 0.5.xml":
-        (u"ba12284b442620aca1f347316719ad27c91196cc768596f05512eaaaaafb034d",
-         u"2b0bd97b8b78d366b5f4f7bfdbcba1d5548d0363ff1d1bf5e24ef19f51c6ad39"),
+        (u"3e3ad482ef234b0941bef309e7507eb45da5bcb6cb55048cd9c9a4b0dbc19f15",
+         u"7fc4eeeed74c3b9f86ee638a4260f9952e1479d05e94dc3a59a40127f26df565"),
 }
 
 OUTSIDE_ON_PURPOSE = {
@@ -905,11 +914,11 @@ def selftest_code_names(root, out):
 
 
 def sha256_of(path):
-    h = hashlib.sha256()
+    """sha256 содержимого с CRLF → LF: отпечаток не зависит от `core.autocrlf`
+    (см. `CONFIG_COPIES_KNOWN`). Файл читается целиком — копии config/ мелкие."""
     with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1 << 16), b""):
-            h.update(chunk)
-    return h.hexdigest()
+        data = f.read()
+    return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
 
 
 def config_tree(root, base):
