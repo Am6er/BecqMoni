@@ -1,0 +1,8 @@
+    == сторож окна отчёта FSA: FsaReportViewProbe на паре корпуса ==
+      каталог проб : D:\BqMoni_Claude\p105\probes_stale
+      спектр (ряд) : tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+      контроль     : tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml
+      свежесть: сверено: набор приложения 2833b9cc5607 (550 файлов); FsaReportViewProbe.cs 5f8660592dce (6 файлов); sha двух exe (1.7 с)
+      ⛔ КАТАЛОГ ПРОБ ПРОТУХ (T226) — прогон старым кодом судил бы не то, что в дереве:
+         - FsaReportViewProbe.exe ПОДМЕНЁН ПОСЛЕ ЗАВЕРЕНИЯ КАТАЛОГА (T138/T233)
+   собрать: pwsh tools\effmaker\probes\build_all.ps1 -Bin BecquerelMonitor\bin\Debug_Codex

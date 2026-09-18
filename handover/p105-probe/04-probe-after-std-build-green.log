@@ -1,0 +1,491 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build\config\device: 10 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build\config\NuclideDefinition.xml: 152 entries
+
+=== 0. вид чисел блока качества: разделителя разрядов НЕТ ни на одной культуре (A244) ===
+  ru-RU: невязка «+1234.5 / −9876.5 %» | χ²/ndf «12345.68» | доля слоя «1234.50%»
+  ok   ru-RU: невязка, лишнее (FsaPresentationBuilder.cs:457) — 1234.5 без группировки True
+  ok   ru-RU: невязка, нехватка (FsaPresentationBuilder.cs:458) — 9876.5 без группировки True
+  ok   ru-RU: χ²/ndf (FsaPresentationBuilder.cs:468)                                12345.68
+  ok   ru-RU: доля слоя, ShareText (FsaPresentationBuilder.cs:566)                  1234.50%
+  ok   ru-RU: в невязке разделителя разрядов нет                                    
+  ok   ru-RU: в χ²/ndf разделителя разрядов нет                                     
+  ok   ru-RU: в доле слоя разделителя разрядов нет                                  
+  de-DE: невязка «+1234.5 / −9876.5 %» | χ²/ndf «12345.68» | доля слоя «1234.50%»
+  ok   de-DE: невязка, лишнее (FsaPresentationBuilder.cs:457) — 1234.5 без группировки True
+  ok   de-DE: невязка, нехватка (FsaPresentationBuilder.cs:458) — 9876.5 без группировки True
+  ok   de-DE: χ²/ndf (FsaPresentationBuilder.cs:468)                                12345.68
+  ok   de-DE: доля слоя, ShareText (FsaPresentationBuilder.cs:566)                  1234.50%
+  ok   de-DE: в невязке разделителя разрядов нет                                    
+  ok   de-DE: в χ²/ndf разделителя разрядов нет                                     
+  ok   de-DE: в доле слоя разделителя разрядов нет                                  
+  en-US: невязка «+1234.5 / −9876.5 %» | χ²/ndf «12345.68» | доля слоя «1234.50%»
+  ok   en-US: невязка, лишнее (FsaPresentationBuilder.cs:457) — 1234.5 без группировки True
+  ok   en-US: невязка, нехватка (FsaPresentationBuilder.cs:458) — 9876.5 без группировки True
+  ok   en-US: χ²/ndf (FsaPresentationBuilder.cs:468)                                12345.68
+  ok   en-US: доля слоя, ShareText (FsaPresentationBuilder.cs:566)                  1234.50%
+  ok   en-US: в невязке разделителя разрядов нет                                    
+  ok   en-US: в χ²/ndf разделителя разрядов нет                                     
+  ok   en-US: в доле слоя разделителя разрядов нет                                  
+  контроль мерки: прежний формат n2 на инвариантной культуре даёт «1,234.50»
+  ok   контроль: прежний вид «1,234.50» мерка не принимает                          отказал, как и должен
+SETUP	AS80_Th232Medal.xml: прибор прибора «Atom Spectra 80x80» (33100348-421f-475d-adda-33736e6af7f8) в конфигурации НЕТ — настройки поиска остаются умолчанием библиотеки
+SETUP	AS80_Th232Medal.xml: пиков 19, каналов 8192, кривая AS80_th_disk
+SETUP	AS80_Cs137_0cm.xml: прибор прибора «Atom Spectra 80x80» (33100348-421f-475d-adda-33736e6af7f8) в конфигурации НЕТ — настройки поиска остаются умолчанием библиотеки
+SETUP	AS80_Cs137_0cm.xml: пиков 7, каналов 8192, кривая AS80_point0
+BecqMoni: Матрица отклика кривой «AS80_point0» посчитана форматом файла 7, а эта сборка читает формат 9. Разложение считается БЕЗ матрицы.  Пересчитайте её: конфигурация прибора → «Эффективность» → «Матрица отклика...».  C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build\config\device\response\2992663a-84a9-9264-dfc8-2cf14a25cc21.rmx
+
+=== 1. гигиена: ручной таблицы на графике нет, FsaOverlay нет ===
+  ok   у EnergySpectrumView нет DrawFsaOwnTable                                     True
+  ok   у EnergySpectrumView нет DrawFsaRows                                         True
+  ok   у EnergySpectrumView нет DrawFsaSwatch                                       True
+  ok   у EnergySpectrumView нет DrawFsaQualityRow                                   True
+  ok   у EnergySpectrumView нет FsaTableBudget                                      True
+  ok   у EnergySpectrumView нет FsaTableRowCount                                    True
+  ok   у EnergySpectrumView нет FsaCollapsibleBudget                                True
+  ok   у EnergySpectrumView нет FsaQualityMarksWidth                                True
+  ok   у EnergySpectrumView нет FsaQualityMarksFormat                               True
+  ok   контроль: строка состояния DrawFsaStatus ЕСТЬ                                True
+  ok   контроль: ShowFsaTable (имя, которое зовёт чужой файл) ЕСТЬ                  True
+  ok   класса FsaOverlay в сборке нет                                               True
+  ok   контроль: класс FsaAnalysisSession есть                                      True
+  ok   ресурса FSARowsDidNotFit нет                                                 True
+  ok   контроль: ресурс FSACalculating есть                                         True
+  ok   у Properties.Resources нет свойства FSARowsDidNotFit                         True
+
+=== 2. окно: создание, persist-string, hide/show, активный документ ===
+  persist-string: BecquerelMonitor.FSAReportView
+  ok   persist-string — имя типа                                                    BecquerelMonitor.FSAReportView
+  ok   MainForm восстанавливает окно из persist-string                              True
+  ok   и второй раз отдаёт ТО ЖЕ окно, а не новое                                   True
+  ok   контроль: чужая строка окна не даёт                                          True
+  ok   документ A: результат у окна — результат сеанса A                            True
+  строк: A 22, B 18
+  ok   документ B: результат у окна — результат сеанса B                            True
+  ok   окно показывает B, а не A                                                    False
+  ok   без документа — одна строка                                                  1
+  ok   и это «спектр не выбран»                                                     Спектр не выбран
+  ok   без документа элементы управления выключены                                  False
+  ok   скрыто                                                                       False
+  ok   показано снова                                                               True
+  ok   после hide/show строки на месте                                              22
+
+=== 3. вход в ShowFSA: явный и циклический; закрытие отчёта режим не меняет ===
+  ok   явная команда: режим графика ShowFSA                                         ShowFSA
+  ok   явная команда: событие одно                                                  1
+  ok   явная команда: признак Explicit = true                                       True
+  ok   цикл: режим графика ShowFSA                                                  ShowFSA
+  ok   цикл: событие одно                                                           1
+  ok   цикл: признак Explicit = false                                               False
+  ok   контроль: выход из ShowFSA событие не поднимает                              0
+  ok   контроль: и режим уже не ShowFSA                                             True
+  ok   MainForm: после явной команды окно отчёта создано                            True
+  ok   MainForm: окно отчёта видно (в DockPanel)                                    True
+  ok   окно отчёта — активное содержимое своей панели                               True
+  после крестика вкладки: IsDisposed=False IsHidden=True Visible=False DockState=Hidden
+  ok   закрытие отчёта: окно скрыто, а не уничтожено                                True
+  ok   закрытие отчёта: режим графика остался ShowFSA                               ShowFSA
+  ok   закрытие отчёта: результат сеанса не сброшен                                 True
+  ok   выход графика из ShowFSA не прячет отчёт                                     False
+
+=== 4. один результат на график и таблицу, второго анализа нет ===
+  запусков сеанса: 1
+  ok   два потребителя — один запуск                                                1
+  ok   результат есть                                                               True
+  ok   таблица построена из результата сеанса                                       True
+  ok   график построен из ТОГО ЖЕ объекта результата                                True
+  ok   группировка графика = группировка окна                                       Daughters
+  ok   отпечаток сеанса — от активного спектра                                      59223347|8192|33656808|52788.0|bg|33620283|c2b5212c-6b5a-50d8-7870-0b0c3104daa2:639252958589938027:43|-|-15.234592330160265,1562.8915641679628,2868.3304757339424;0.21371024832980384;0.84594712185770338|peaks|eq|xray|sum|bs|esc|pu|all|Pb x-ray@73.0;Pb x-ray@86.7;Ac-228@129.0;Pb-212@239.4;Pb-214@291.7;Eu-152@342.1;Ac-228@458.9;Tl-208@507.3;Tl-208@582.3;Ac-228@907.0;Bi-214@1116.0;K-40@1471.2;Ac-228@1643.7;Bi-214@1823.9;Bi-214@2210.6;Bi-214@2403.1;Tl-208@2655.5;
+  ok   контроль: после Invalidate — ещё один запуск                                 2
+
+=== 4б. отчёт считает БЕЗ ShowFSA (A295) ===
+  ok   контроль: режим графика НЕ ShowFSA                                           True
+  ok   новые данные без ShowFSA: счёт ЗАКАЗАН                                       True
+  ok   и отпечаток сеанса — от нынешнего спектра                                    59223347|8192|33656808|52789.0|bg|33620283|c2b5212c-6b5a-50d8-7870-0b0c3104daa2:639252958589938027:43|-|-15.234592330160265,1562.8915641679628,2868.3304757339424;0.21371024832980384;0.84594712185770338|peaks|eq|xray|sum|bs|esc|pu|all|Pb x-ray@73.0;Pb x-ray@86.7;Ac-228@129.0;Pb-212@239.4;Pb-214@291.7;Eu-152@342.1;Ac-228@458.9;Tl-208@507.3;Tl-208@582.3;Ac-228@907.0;Bi-214@1116.0;K-40@1471.2;Ac-228@1643.7;Bi-214@1823.9;Bi-214@2210.6;Bi-214@2403.1;Tl-208@2655.5;
+  ok   контроль: без смены данных лишнего счёта нет                                 4
+
+=== 5. семь родов строк; таблица не отбрасывает по высоте ===
+  tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml (пики): 22 строк — Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Quality Quality Residual Quality Quality Quality Quality Quality
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	Ac-228	27.153792347030798	27.15%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	Tl-208	22.412388272999817	22.41%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	Pb-212	20.296487596772298	20.30%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	Eu-152	4.7819043317068122	4.78%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	Pb-214	4.6503517546258539	4.65%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	Bi-214	3.4330189043052908	3.43%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	K-40	0.68098578074966976	0.68%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	Pb	7.0834862769913514	7.08%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	Backscatter	5.6113555831780593	есть
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	DE-1764	1.4120163704137083	1.41%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	DE-2614	1.1763197650885557	1.18%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	SE-2204	1.034257922696691	1.03%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	SE-1764	0.26400821959230847	0.26%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	continuum	0.0096268738487926084	0.01%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	peaks	chi2/residual	11.248232749854349;0.031965158928542049;0.045553493292829393	+3.2 / −4.6 %;11.25;3.354;не учтена;учтена;не учтено: нет матрицы отклика
+  tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml (NucBase): 24 строк — Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Undetected Quality Quality Residual Quality Quality Quality Quality Quality
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	Ac-228	34.228905951772433	34.23%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	Tl-208	26.255678299961517	26.26%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	Pb-212	18.434949180738432	18.43%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	Bi-212	3.7510390387875332	3.75%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	Ra-224	1.4876791840791033	1.49%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	Th-228	0.19675045078169093	0.20%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	Rn-220	0.041656452185240396	0.04%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	Th-232	0.00968955741694702	0.01%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	Xray-Pb	6.8744311191947221	6.87%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	Backscatter	5.453724393911326	есть
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	DE-1588	1.36766532245167	1.37%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	Xray-Th	0.94066060239061011	0.94%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	SE-1588	0.90628626558742265	0.91%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	Xray-La	0.041047371139177224	0.04%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	continuum	0.00923430415593894	0.01%
+NUM	tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml	nucbase	chi2/residual	11.700516952245019;0.034088230235937877;0.05167860757872636	+3.4 / −5.2 %;11.70;3.421;не учтена;учтена;не учтено: нет матрицы отклика
+  tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml (пики): 18 строк — Layer Layer Layer Layer Layer Layer Layer Layer Undetected Undetected Quality Quality Residual Quality Quality Quality Quality Quality
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	peaks	Cs-137	89.033674713448249	89.03%
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	peaks	Eu-152	0.66266192994435591	0.66%
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	peaks	K-40	0.23993504008086766	0.24%
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	peaks	Backscatter	4.7935948485916651	есть
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	peaks	DE-1460	3.8811517940240519	3.88%
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	peaks	DE-1408	1.2147649568753125	1.21%
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	peaks	SE-1408	0.12072025865477336	0.12%
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	peaks	continuum	0.053496458380740124	0.05%
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	peaks	chi2/residual	7.3720632675772446;0.055186870812281845;0.10692075145416333	+5.5 / −10.7 %;7.37;2.715;прежний формат;учтена;не учтено: нет матрицы отклика
+  tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml (NucBase): 14 строк — Layer Layer Layer Layer Layer Undetected Quality Quality Residual Quality Quality Quality Quality Quality
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	nucbase	Cs-137	90.970893410981	90.97%
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	nucbase	K-40	0.51033339336010208	0.51%
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	nucbase	Backscatter	5.1754987897296338	есть
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	nucbase	DE-1461	3.2903578465225634	3.29%
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	nucbase	continuum	0.052916559406681322	0.05%
+NUM	tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml	nucbase	chi2/residual	7.579052881629476;0.0679978502377032;0.11029610021625906	+6.8 / −11.0 %;7.58;2.753;прежний формат;учтена;не учтено: нет матрицы отклика
+  ok   род строки в собранной сцене: Layer                                          True
+  ok   род строки в собранной сцене: SumPeaks                                       True
+  ok   род строки в собранной сцене: Undetected                                     True
+  ok   род строки в собранной сцене: UndetectedFolded                               True
+  ok   род строки в собранной сцене: NoBackground                                   True
+  ok   род строки в собранной сцене: Residual                                       True
+  ok   род строки в собранной сцене: Quality                                        True
+  роды на настоящих спектрах: Layer Quality Residual Undetected
+  окно 320×160: строк модели 34, в таблице 43 (черта, заголовок и 7 пометки блока), видимых без прокрутки 0
+  ok   малое окно: СОСТАВ строк таблицы по Tag.Kind = составу модели с развёрнутым блоком Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks Undetected UndetectedFolded Quality Quality NoBackground Residual Quality Quality Quality Quality Quality Quality Quality Quality
+  ok   малое окно: строки ВНЕ блока качества — один в один с моделью, и то же в ячейках 
+  ok   контроль: видимых без прокрутки МЕНЬШЕ — значит, прокрутка есть, а не потеря True
+  ok   контроль: подменённый Tag.Kind последней строки сверка не принимает          отказал, как и должен
+  ok   после возврата Tag состав снова сходится                                     Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks Undetected UndetectedFolded Quality Quality NoBackground Residual Quality Quality Quality Quality Quality Quality Quality Quality
+  ok   контроль: потерянную строку блока сверка не принимает                        отказал, как и должен
+  ok   после перестройки таблицы состав снова сходится                              Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks SumPeaks Undetected UndetectedFolded Quality Quality NoBackground Residual Quality Quality Quality Quality Quality Quality Quality Quality
+
+=== состояния: СТРОКА НАД таблицей и содержимое таблицы ===
+  ok   первый расчёт идёт: строка состояния «идёт расчёт»                           ППР: идёт расчёт
+  ok   и таблица ПУСТА — «считается» в ней больше нет                               0
+  ok   пересчёт при старом результате: строка состояния «идёт расчёт»               ППР: идёт расчёт
+  ok   и первая строка таблицы — СОСТАВ, а не «пересчёт»                            Layer
+  ok   старые строки остались (их больше одной)                                     True
+  ok   расчёт завершён: строка состояния «завершён»                                 ППР: расчёт завершён
+  ok   число строк таблицы НЕ изменилось — мигать больше нечему                     38
+  ok   первая строка — состав                                                       Layer
+  ok   ошибка: строка состояния несёт ПРИЧИНУ, а не одно слово                      ППР: ошибка: ОШИБКА: причина такая-то
+  ok   ошибка без результата: одна строка                                           1
+  ok   и это текст причины                                                          ОШИБКА: причина такая-то
+
+=== 6. блок «Качество разбора»: заголовок, χ²/ndf, по строке на пометку, обе культуры ===
+  ok   ru-RU: сцена «подавлен» собралась                                            True
+  ok   ru-RU: все подписи блока прочитаны из resx (ни одного имени ключа)           0
+  ru-RU: [0] «» |  (чёрный)
+  ru-RU: [1] «Качество разбора» |  (чёрный)
+  ru-RU: [2] «Невязка: + лишнее / − нехватка» | +0.0 / −0.0 % (чёрный)
+  ru-RU: [3] «χ²/ndf, качество подгонки» | 1234.57 (чёрный)
+  ru-RU: [4] «σ×, во сколько раз раздута погрешность» | 1.000 (чёрный)
+  ru-RU: [5] «Матрица отклика» | прежний формат (красный)
+  ru-RU: [6] «Кривая эффективности» | не учтена (красный)
+  ru-RU: [7] «Каскадное суммирование» | учтено (зелёный)
+  ru-RU: [8] «Подгонка дрейфа шкалы» | край сетки (красный)
+  ru-RU: [9] «Состав пересилен образом» | Backscatter (красный)
+  ok   ru-RU: блок «Качество разбора» собран верно                                  
+  ok   ru-RU: контроль — блок без строки χ²/ndf проверку не проходит                отказал, как и должен
+  ok   ru-RU: строка χ²/ndf возвращена, блок снова сходится                         
+  ok   ru-RU: контроль — подменённое слово состояния пометки проверку не проходит   отказал, как и должен
+  ok   ru-RU: контроль — «1,234.57» в колонке значения проверку не проходит         отказал, как и должен
+  ok   ru-RU: контроль — красная пометка, перекрашенная в зелёный, проверку не проходит отказал, как и должен
+  ok   ru-RU: контроль — блок без строки σ× проверку не проходит                    отказал, как и должен
+  ok   ru-RU: строка σ× возвращена, блок снова сходится                             
+  ok   ru-RU: контроль — «8.163» вместо зажатого «1.000» проверку не проходит       отказал, как и должен
+  ru-RU: [0] «» |  (чёрный)
+  ru-RU: [1] «Качество разбора» |  (чёрный)
+  ru-RU: [2] «Невязка: + лишнее / − нехватка» | +0.0 / −0.0 % (чёрный)
+  ru-RU: [3] «χ²/ndf, качество подгонки» | 1234.57 (чёрный)
+  ru-RU: [4] «σ×, во сколько раз раздута погрешность» | 8.163 (чёрный)
+  ru-RU: [5] «Матрица отклика» | учтена (зелёный)
+  ru-RU: [6] «Кривая эффективности» | учтена (зелёный)
+  ru-RU: [7] «Каскадное суммирование» | учтено (зелёный)
+  ru-RU: [8] «Привязка шкалы, опор» | нет (чёрный)
+  ok   ru-RU: раздутый множитель показан как 8.163                                  
+  ok   ru-RU: контроль — «1.000» на раздутой сцене проверку не проходит             отказал, как и должен
+  ru-RU: [0] «» |  (чёрный)
+  ru-RU: [1] «Качество разбора» |  (чёрный)
+  ru-RU: [2] «Невязка: + лишнее / − нехватка» | +0.0 / −0.0 % (чёрный)
+  ru-RU: [3] «χ²/ndf, качество подгонки» | 1234.57 (чёрный)
+  ru-RU: [4] «σ×, во сколько раз раздута погрешность» | 1.000 (чёрный)
+  ru-RU: [5] «Матрица отклика» | учтена (зелёный)
+  ru-RU: [6] «Кривая эффективности» | учтена (зелёный)
+  ru-RU: [7] «Каскадное суммирование» | учтено (зелёный)
+  ru-RU: [8] «Привязка шкалы, опор» | нет (чёрный)
+  ok   ru-RU: всё учтено — три пометки зелёные, опор нет                            
+  ok   ru-RU: контроль — зелёная пометка, перекрашенная в красный, проверку не проходит отказал, как и должен
+  ok   ru-RU: контроль — блок с матрицей БЕЗ строки опор проверку не проходит       отказал, как и должен
+  ok   ru-RU: строка опор возвращена, блок снова сходится                           
+  ru-RU: [0] «» |  (чёрный)
+  ru-RU: [1] «Качество разбора» |  (чёрный)
+  ru-RU: [2] «Невязка: + лишнее / − нехватка» | +0.0 / −0.0 % (чёрный)
+  ru-RU: [3] «χ²/ndf, качество подгонки» | 1234.57 (чёрный)
+  ru-RU: [4] «σ×, во сколько раз раздута погрешность» | 1.000 (чёрный)
+  ru-RU: [5] «Матрица отклика» | учтена (зелёный)
+  ru-RU: [6] «Кривая эффективности» | учтена (зелёный)
+  ru-RU: [7] «Каскадное суммирование» | учтено (зелёный)
+  ru-RU: [8] «Привязка шкалы, опор» | 2 (чёрный)
+  ru-RU: [9] «Усиление по опорам, %» | +1.23 (чёрный)
+  ru-RU: [10] «Ноль по опорам, кэВ» | -0.50 (чёрный)
+  ok   ru-RU: шкала привязана — опор 2, усиление +1.23, ноль -0.50                  
+  ok   ru-RU: подсказка строки опор — заголовок и три кандидата                     4
+  ok   ru-RU: в подсказке два принятых (+) и один отвергнутый (-)                   True
+  ok   ru-RU: контроль — «опор нет» на привязанной сцене проверку не проходит       отказал, как и должен
+  ok   ru-RU: контроль — без строки усиления проверку не проходит                   отказал, как и должен
+  ok   ru-RU: строка усиления возвращена, блок снова сходится                       
+  ok   ru-RU: контроль — «1» опора вместо двух проверку не проходит                 отказал, как и должен
+  ok   en-US: сцена «подавлен» собралась                                            True
+  ok   en-US: все подписи блока прочитаны из resx (ни одного имени ключа)           0
+  en-US: [0] «» |  (чёрный)
+  en-US: [1] «Analysis quality» |  (чёрный)
+  en-US: [2] «Residual: + excess / − missing» | +0.0 / −0.0 % (чёрный)
+  en-US: [3] «χ²/ndf, goodness of fit» | 1234.57 (чёрный)
+  en-US: [4] «σ×, uncertainty inflation» | 1.000 (чёрный)
+  en-US: [5] «Response matrix» | old format (красный)
+  en-US: [6] «Efficiency curve» | not used (красный)
+  en-US: [7] «Cascade summing» | applied (зелёный)
+  en-US: [8] «Scale drift fit» | at grid edge (красный)
+  en-US: [9] «Composition suppressed by» | Backscatter (красный)
+  ok   en-US: блок «Качество разбора» собран верно                                  
+  ok   en-US: контроль — блок без строки χ²/ndf проверку не проходит                отказал, как и должен
+  ok   en-US: строка χ²/ndf возвращена, блок снова сходится                         
+  ok   en-US: контроль — подменённое слово состояния пометки проверку не проходит   отказал, как и должен
+  ok   en-US: контроль — «1,234.57» в колонке значения проверку не проходит         отказал, как и должен
+  ok   en-US: контроль — красная пометка, перекрашенная в зелёный, проверку не проходит отказал, как и должен
+  ok   en-US: контроль — блок без строки σ× проверку не проходит                    отказал, как и должен
+  ok   en-US: строка σ× возвращена, блок снова сходится                             
+  ok   en-US: контроль — «8.163» вместо зажатого «1.000» проверку не проходит       отказал, как и должен
+  en-US: [0] «» |  (чёрный)
+  en-US: [1] «Analysis quality» |  (чёрный)
+  en-US: [2] «Residual: + excess / − missing» | +0.0 / −0.0 % (чёрный)
+  en-US: [3] «χ²/ndf, goodness of fit» | 1234.57 (чёрный)
+  en-US: [4] «σ×, uncertainty inflation» | 8.163 (чёрный)
+  en-US: [5] «Response matrix» | used (зелёный)
+  en-US: [6] «Efficiency curve» | used (зелёный)
+  en-US: [7] «Cascade summing» | applied (зелёный)
+  en-US: [8] «Scale anchoring, anchors» | none (чёрный)
+  ok   en-US: раздутый множитель показан как 8.163                                  
+  ok   en-US: контроль — «1.000» на раздутой сцене проверку не проходит             отказал, как и должен
+  en-US: [0] «» |  (чёрный)
+  en-US: [1] «Analysis quality» |  (чёрный)
+  en-US: [2] «Residual: + excess / − missing» | +0.0 / −0.0 % (чёрный)
+  en-US: [3] «χ²/ndf, goodness of fit» | 1234.57 (чёрный)
+  en-US: [4] «σ×, uncertainty inflation» | 1.000 (чёрный)
+  en-US: [5] «Response matrix» | used (зелёный)
+  en-US: [6] «Efficiency curve» | used (зелёный)
+  en-US: [7] «Cascade summing» | applied (зелёный)
+  en-US: [8] «Scale anchoring, anchors» | none (чёрный)
+  ok   en-US: всё учтено — три пометки зелёные, опор нет                            
+  ok   en-US: контроль — зелёная пометка, перекрашенная в красный, проверку не проходит отказал, как и должен
+  ok   en-US: контроль — блок с матрицей БЕЗ строки опор проверку не проходит       отказал, как и должен
+  ok   en-US: строка опор возвращена, блок снова сходится                           
+  en-US: [0] «» |  (чёрный)
+  en-US: [1] «Analysis quality» |  (чёрный)
+  en-US: [2] «Residual: + excess / − missing» | +0.0 / −0.0 % (чёрный)
+  en-US: [3] «χ²/ndf, goodness of fit» | 1234.57 (чёрный)
+  en-US: [4] «σ×, uncertainty inflation» | 1.000 (чёрный)
+  en-US: [5] «Response matrix» | used (зелёный)
+  en-US: [6] «Efficiency curve» | used (зелёный)
+  en-US: [7] «Cascade summing» | applied (зелёный)
+  en-US: [8] «Scale anchoring, anchors» | 2 (чёрный)
+  en-US: [9] «Gain from anchors, %» | +1.23 (чёрный)
+  en-US: [10] «Zero from anchors, keV» | -0.50 (чёрный)
+  ok   en-US: шкала привязана — опор 2, усиление +1.23, ноль -0.50                  
+  ok   en-US: подсказка строки опор — заголовок и три кандидата                     4
+  ok   en-US: в подсказке два принятых (+) и один отвергнутый (-)                   True
+  ok   en-US: контроль — «опор нет» на привязанной сцене проверку не проходит       отказал, как и должен
+  ok   en-US: контроль — без строки усиления проверку не проходит                   отказал, как и должен
+  ok   en-US: строка усиления возвращена, блок снова сходится                       
+  ok   en-US: контроль — «1» опора вместо двух проверку не проходит                 отказал, как и должен
+
+=== 7. родители/дочерние без счёта; расчётный флаг — один пересчёт ===
+  ok   исходно: результат есть                                                      True
+  ok   исходно: родители допустимы (Th-232, NucBase+равновесие)                     True
+  ok   радиокнопка родителей доступна                                               True
+  ok   родители: отпечаток сеанса тот же                                            59223347|8192|33656808|52789.0|bg|33620283|c2b5212c-6b5a-50d8-7870-0b0c3104daa2:639252958589938027:43|-|-15.234592330160265,1562.8915641679628,2868.3304757339424;0.21371024832980384;0.84594712185770338|db|eq|xray|sum|bs|esc|pu|all|Pb x-ray@73.0;Pb x-ray@86.7;Ac-228@129.0;Pb-212@239.4;Pb-214@291.7;Eu-152@342.1;Ac-228@458.9;Tl-208@507.3;Tl-208@582.3;Ac-228@907.0;Bi-214@1116.0;K-40@1471.2;Ac-228@1643.7;Bi-214@1823.9;Bi-214@2210.6;Bi-214@2403.1;Tl-208@2655.5;
+  ok   родители: запусков не прибавилось                                            5
+  ok   родители: событий не прибавилось                                             0
+  ok   родители: группировка документа = родители                                   Parents
+  ok   родители: строк стало меньше                                                 True
+  ok   дочерние: строк снова столько же                                             38
+  ok   дочерние: группировка документа = дочерние                                   Daughters
+  ok   дочерние: запусков не прибавилось                                            5
+  ok   флаг: конфигурация спектра записана                                          False
+  ok   флаг: отпечаток сменился                                                     False
+  ok   флаг: запуск ровно один                                                      6
+  ok   флаг: событие завершения ровно одно                                          1
+  ok   флаг: результат посчитан новым отпечатком                                    59223347|8192|33656808|52789.0|bg|33620283|c2b5212c-6b5a-50d8-7870-0b0c3104daa2:639252958589938027:43|-|-15.234592330160265,1562.8915641679628,2868.3304757339424;0.21371024832980384;0.84594712185770338|db|eq|-xray|sum|bs|esc|pu|all|Pb x-ray@73.0;Pb x-ray@86.7;Ac-228@129.0;Pb-212@239.4;Pb-214@291.7;Eu-152@342.1;Ac-228@458.9;Tl-208@507.3;Tl-208@582.3;Ac-228@907.0;Bi-214@1116.0;K-40@1471.2;Ac-228@1643.7;Bi-214@1823.9;Bi-214@2210.6;Bi-214@2403.1;Tl-208@2655.5;
+  ok   флаг: умолчание прибора записано                                             False
+  ok   контроль: обратное переключение — ещё один запуск                            7
+  ok   контроль: отпечаток вернулся к исходному                                     59223347|8192|33656808|52789.0|bg|33620283|c2b5212c-6b5a-50d8-7870-0b0c3104daa2:639252958589938027:43|-|-15.234592330160265,1562.8915641679628,2868.3304757339424;0.21371024832980384;0.84594712185770338|db|eq|xray|sum|bs|esc|pu|all|Pb x-ray@73.0;Pb x-ray@86.7;Ac-228@129.0;Pb-212@239.4;Pb-214@291.7;Eu-152@342.1;Ac-228@458.9;Tl-208@507.3;Tl-208@582.3;Ac-228@907.0;Bi-214@1116.0;K-40@1471.2;Ac-228@1643.7;Bi-214@1823.9;Bi-214@2210.6;Bi-214@2403.1;Tl-208@2655.5;
+  ok   серия из двух флагов: отпечаток последнего снимка                            59223347|8192|33656808|52789.0|bg|33620283|c2b5212c-6b5a-50d8-7870-0b0c3104daa2:639252958589938027:43|-|-15.234592330160265,1562.8915641679628,2868.3304757339424;0.21371024832980384;0.84594712185770338|db|eq|xray|sum|-bs|esc|-pu|all|Pb x-ray@73.0;Pb x-ray@86.7;Ac-228@129.0;Pb-212@239.4;Pb-214@291.7;Eu-152@342.1;Ac-228@458.9;Tl-208@507.3;Tl-208@582.3;Ac-228@907.0;Bi-214@1116.0;K-40@1471.2;Ac-228@1643.7;Bi-214@1823.9;Bi-214@2210.6;Bi-214@2403.1;Tl-208@2655.5;
+  ok   серия из двух флагов: публикация одна                                        3
+
+=== 8. родители недоступны без NucBase+равновесия; при допустимом — суммы сходятся ===
+  ok   по пикам: родители недоступны                                                False
+  ok   по пикам: равновесие недоступно                                              False
+  ok   по пикам: подсказка родителей — «нужен NucBase+равновесие»                   Parent nuclides are available only with the composition from NucBase and chain equilibrium on.
+  ok   по пикам: подсказка равновесия — «нужен NucBase»                             Chain equilibrium works only when the composition comes from NucBase; the peak-label path knows nothing about decay chains.
+  ok   по пикам: выбраны дочерние                                                   True
+  ok   просьба родителей при недоступности: показаны дочерние                       True
+  ok   просьба помнится                                                             Parents
+  ok   а к графику ушли дочерние                                                    Daughters
+  ok   NucBase + равновесие: равновесие доступно                                    True
+  ok   NucBase + равновесие: родители доступны                                      True
+  ok   NucBase + равновесие: просьба восстановлена — выбраны родители               True
+  ok   NucBase + равновесие: к графику ушли родители                                Parents
+  ok   подсказка родителей — «только группировка»                                   Changes only how rows and bands are grouped; nothing is recomputed.
+  ok   представление окна — родительское                                            Parents
+  корней 1; |Δкривой|/max 0.0E+000; |Δдоли| 0.0E+000
+  ok   корень ряда в родительском представлении есть                                True
+  ok   сумма кривых дочерних = кривая родителя (машинный ноль)                      True
+  ok   сумма долей дочерних = доля родителя                                         True
+  ok   равновесие выкл: родители недоступны                                         False
+  ok   равновесие выкл: показаны дочерние                                           True
+  ok   равновесие выкл: просьба помнится                                            Parents
+  ok   равновесие вкл: родители восстановлены                                       True
+  ok   без ряда: родители недоступны                                                False
+  ok   без ряда: подсказка называет причину результата                              True
+  подсказка без ряда: «Parent nuclides are not available for this result: there is no decay chain in the composition»
+
+=== 11. флаг в одном документе не меняет копию конфигурации другого ===
+  ok   A: флаг записан                                                              False
+  ok   B: копия конфигурации не тронута                                             peaks|eq|xray|sum|bs|esc|pu
+  ok   B: и не та же ссылка, что у A                                                False
+  ok   A: флаг возвращён                                                            True
+
+=== 13. повторяемость: один вход — побитово тот же отчёт (A250) ===
+  поток окон: 1
+  AS80_Th232Medal.xml: пересчётов 12, строк 24, различных снимков таблицы 1
+  ok   состав отчёта повторяется побитово на 12 пересчётах подряд                   1
+  событий Completed 12, из них с ЧУЖИХ потоков 8 (потоки: 4,7,8,11,14,5,9,10)
+  ok   контроль: подменённый ПОРЯДОК двух строк мерка не принимает                  отказал, как и должен
+  ok   после перестройки таблицы снимок вернулся                                    Layer|Ac-228 — Th-232 chain|34.23%
+Layer|Tl-208 — Th-232 chain|26.26%
+Layer|Pb-212 — Th-232 chain|18.43%
+Layer|Bi-212 — Th-232 chain|3.75%
+Layer|Ra-224 — Th-232 chain|1.49%
+Layer|Th-228 — Th-232 chain|0.20%
+Layer|Rn-220 — Th-232 chain|0.04%
+Layer|Th-232 — chain|0.01%
+Layer|X-ray Pb|6.87%
+Layer|Backscatter|present
+Layer|DE-1588|1.37%
+Layer|X-ray Th|0.94%
+Layer|SE-1588|0.91%
+Layer|X-ray La|0.04%
+Layer|continuum|0.01%
+Undetected|K-40|< 0.0351 %
+Quality||
+Quality|Analysis quality|
+Residual|Residual: + excess / − missing — display clipped on 121 channels, from 30 keV|+3.4 / −5.2 %
+Quality|χ²/ndf, goodness of fit|11.70
+Quality|σ×, uncertainty inflation|3.421
+Quality|Response matrix|not used
+Quality|Efficiency curve|used
+Quality|Cascade summing|not applied: no response matrix
+
+  ok   контроль: потерянную строку мерка не принимает                               отказал, как и должен
+  ok   и снова вернулся                                                             Layer|Ac-228 — Th-232 chain|34.23%
+Layer|Tl-208 — Th-232 chain|26.26%
+Layer|Pb-212 — Th-232 chain|18.43%
+Layer|Bi-212 — Th-232 chain|3.75%
+Layer|Ra-224 — Th-232 chain|1.49%
+Layer|Th-228 — Th-232 chain|0.20%
+Layer|Rn-220 — Th-232 chain|0.04%
+Layer|Th-232 — chain|0.01%
+Layer|X-ray Pb|6.87%
+Layer|Backscatter|present
+Layer|DE-1588|1.37%
+Layer|X-ray Th|0.94%
+Layer|SE-1588|0.91%
+Layer|X-ray La|0.04%
+Layer|continuum|0.01%
+Undetected|K-40|< 0.0351 %
+Quality||
+Quality|Analysis quality|
+Residual|Residual: + excess / − missing — display clipped on 121 channels, from 30 keV|+3.4 / −5.2 %
+Quality|χ²/ndf, goodness of fit|11.70
+Quality|σ×, uncertainty inflation|3.421
+Quality|Response matrix|not used
+Quality|Efficiency curve|used
+Quality|Cascade summing|not applied: no response matrix
+
+  AS80_Cs137_0cm.xml: пересчётов 12, строк 14, различных снимков таблицы 1
+  ok   состав отчёта повторяется побитово на 12 пересчётах подряд                   1
+  событий Completed 13, из них с ЧУЖИХ потоков 7 (потоки: 5,11,9,10,8,7,14)
+  ok   контроль: подменённый ПОРЯДОК двух строк мерка не принимает                  отказал, как и должен
+  ok   после перестройки таблицы снимок вернулся                                    Layer|Cs-137|90.97%
+Layer|K-40|0.51%
+Layer|Backscatter|present
+Layer|DE-1461|3.29%
+Layer|continuum|0.05%
+Undetected|Lu-176|< 0.175 %
+Quality||
+Quality|Analysis quality|
+Residual|Residual: + excess / − missing — display clipped on 1924 channels, from 30 keV|+6.8 / −11.0 %
+Quality|χ²/ndf, goodness of fit|7.58
+Quality|σ×, uncertainty inflation|2.753
+Quality|Response matrix|old format
+Quality|Efficiency curve|used
+Quality|Cascade summing|not applied: no response matrix
+
+  ok   контроль: потерянную строку мерка не принимает                               отказал, как и должен
+  ok   и снова вернулся                                                             Layer|Cs-137|90.97%
+Layer|K-40|0.51%
+Layer|Backscatter|present
+Layer|DE-1461|3.29%
+Layer|continuum|0.05%
+Undetected|Lu-176|< 0.175 %
+Quality||
+Quality|Analysis quality|
+Residual|Residual: + excess / − missing — display clipped on 1924 channels, from 30 keV|+6.8 / −11.0 %
+Quality|χ²/ndf, goodness of fit|7.58
+Quality|σ×, uncertainty inflation|2.753
+Quality|Response matrix|old format
+Quality|Efficiency curve|used
+Quality|Cascade summing|not applied: no response matrix
+
+
+=== 12. снимки en/ru; подписи не обрезаны и не наложены, шрифт формы ===
+  en-US: D:\BqMoni_Claude\p105\shots_std\b15-report-en.png
+  ok   en-US: обрезанных подписей нет                                               0
+  ok   en-US: наложений нет                                                         0
+  ok   en-US: подмены шрифта нет                                                    0
+  ok   en-US: шрифт заголовка таблицы — шрифт формы                                 Microsoft Sans Serif
+  ok   en-US: таблице досталось место (высота > 150)                                True
+  en-US: таблица 304×198, строк 24
+   ⛔ обрезано: escapeCheckBox «Escape peaks and 511 keV annihilation» {Width=40, Height=17} при нужных {Width=215, Height=18} в {Width=292, Height=119}
+  ok   en-US: подброшенное усечение сторож видит                                    отказал, как и должен
+   ⛔ наложение: sourceGroupBox и 
+   ⛔ чужой шрифт:  — Courier New
+  ok   en-US: подброшенный чужой шрифт сторож видит                                 отказал, как и должен
+  ru-RU: D:\BqMoni_Claude\p105\shots_std\b15-report-ru.png
+  ok   ru-RU: обрезанных подписей нет                                               0
+  ok   ru-RU: наложений нет                                                         0
+  ok   ru-RU: подмены шрифта нет                                                    0
+  ok   ru-RU: шрифт заголовка таблицы — шрифт формы                                 Microsoft Sans Serif
+  ok   ru-RU: таблице досталось место (высота > 150)                                True
+  ru-RU: таблица 304×198, строк 24
+   ⛔ обрезано: escapeCheckBox «Пики вылета и аннигиляция 511 кэВ» {Width=40, Height=17} при нужных {Width=209, Height=18} в {Width=292, Height=119}
+  ok   ru-RU: подброшенное усечение сторож видит                                    отказал, как и должен
+   ⛔ наложение: sourceGroupBox и 
+   ⛔ чужой шрифт:  — Courier New
+  ok   ru-RU: подброшенный чужой шрифт сторож видит                                 отказал, как и должен
+
+ВСЕ СОШЛИСЬ
