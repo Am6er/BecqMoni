@@ -1,0 +1,26 @@
+=== переключатели окна отчёта FSA: род против группы (A265) ===
+  поле                     группа             род
+  atomicXrayCheckBox       extrasGroupBox     РАСЧЁТНЫЙ
+  backscatterCheckBox      extrasGroupBox     РАСЧЁТНЫЙ
+  cascadeSummingCheckBox   extrasGroupBox     РАСЧЁТНЫЙ
+  daughtersRadio           displayGroupBox    отрисовочный
+  equilibriumCheckBox      chainGroupBox      РАСЧЁТНЫЙ
+  escapeCheckBox           extrasGroupBox     РАСЧЁТНЫЙ
+  matrixLayerComboBox      displayGroupBox    отрисовочный
+  parentsRadio             displayGroupBox    отрисовочный
+  pileUpCheckBox           extrasGroupBox     РАСЧЁТНЫЙ
+  residualBandCheckBox     displayGroupBox    отрисовочный
+  sourceNucBaseRadio       sourceGroupBox     РАСЧЁТНЫЙ
+  sourcePeaksRadio         sourceGroupBox     РАСЧЁТНЫЙ
+  всего 12: расчётных 8, отрисовочных 4
+
+=== подписи группы показа ===
+  английская   displayGroupBox.Text: есть
+  русская      displayGroupBox.Text: есть
+
+=== САМОПРОВЕРКА: порченая копия обязана быть названа ===
+  подставлено: residualBandCheckBox → extrasFlow; названо поимённо, лишнего нет
+  подставлено: matrixLayerComboBox → extrasFlow; названо поимённо, лишнего нет
+  подставлено: обработчик matrixLayerComboBox зовёт ApplyCalculationChange; назван РАСЧЁТНЫМ в группе показа, лишнего нет
+
+СОШЛОСЬ: каждый переключатель в группе своего рода
