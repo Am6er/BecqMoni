@@ -214,6 +214,243 @@ namespace BecquerelMonitor.EfficiencyMaker
             return x0;
         }
 
+        // ------------------------------------------------------------------
+        // (`M13`, П100 18.09.2026) СМЕШАННАЯ СХЕМА УПРУГОГО РАССЕЯНИЯ В СЛОЯХ
+        // ОБВЯЗКИ — под ключом <see cref="ElectronLayerMixedScattering"/>.
+        //
+        // ЧТО БЫЛО НЕ ТАК. Шарнир Хайленда несёт гауссово ядро многократного
+        // рассеяния; хвоста ОДНОКРАТНОГО рассеяния на большие углы (∝ 1/θ⁴)
+        // у него нет. Замер П100 (`diag/hinge_vs_rutherford.txt`): за один
+        // шаг переноса (0.1 пробега CSDA) в PTFE при 500 кэВ вероятность
+        // отклонения > 90° у шарнира 4.2e-5, у экранированного Резерфорда
+        // 6.1e-3 (×146; при 1000 кэВ ×650), при том что средний 1 − cos θ
+        // шага у обоих сходится в 5…14 %. В ТЯЖЁЛОМ веществе (CsI) шарнир
+        // за шаг почти изотропен (θ₀ ≈ 0.9 рад) — обратное рассеяние там
+        // диффузионное, и П27 поверила его по пику; в ЛЁГКОМ (PTFE, Al, MgO)
+        // заметную долю обратного рассеяния даёт именно хвост, и η выходило
+        // ×0.6…0.8 к Табате (П94 §5.5).
+        //
+        // ЧТО СДЕЛАНО (класс II по упругому рассеянию, как у PENELOPE):
+        // угол отсечки θ_c (<see cref="LayerHardCutoffDeg"/>, 20°) делит
+        // столкновения на ЖЁСТКИЕ (1 − cos θ > 1 − cos θ_c) и МЯГКИЕ.
+        // * Жёсткие разыгрываются ПО ОДНОМУ: свободный пробег между ними —
+        //   экспонента с Σ n_i σ_i(θ > θ_c) по элементам слоя, сечение —
+        //   экранированное Резерфорда (Вентцель) с экранированием Мольера
+        //   (A = (ħ/2pa)²(1.13 + 3.76(αZ/β)²), a = 0.885 a₀ Z^(−1/3)) и
+        //   множителем Z(Z+1) — тем же, что у Мольера/Хайленда; угол — точным
+        //   обращением ∫ dx/(x + 2A)² выше отсечки; поправка Мотта —
+        //   Мак-Кинли—Фешбаха (Z ≤ 30, т. е. вся лёгкая обвязка) отбором по
+        //   мажоранте 1 + παZβ/4, отвергнутое — пустое столкновение. Жёсткое
+        //   столкновение, выпавшее раньше конца шага, ОБРЫВАЕТ шаг: шаг
+        //   укорачивается до него, мягкий шарнир считается на укороченный шаг,
+        //   поворот жёсткого — в его конце.
+        // * Мягкие — тем же случайным шарниром, но ширина — из ТРАНСПОРТНОГО
+        //   сечения ниже отсечки: средний 1 − cos θ шага длины s равен
+        //   1 − exp(−s·Σ n_i σ_tr,soft,i), σ_tr,soft = ∫₀^{μ_c} μ dσ по тому же
+        //   экранированному Резерфорду. Полное среднеквадратичное отклонение
+        //   (мягкое + жёсткое) — транспортное сечение Резерфорда целиком; на
+        //   шаге 0.1 пробега оно сходится с θ₀² Хайленда в 5…14 % в лёгком
+        //   веществе (замер), так что ширина шага в целом сохранена.
+        //   ⚠ ПОЧЕМУ НЕ «Хайленд × √f_soft» (первая редакция П100): формула
+        //   Хайленда НЕ аддитивна по шагу — логарифмическая скобка при
+        //   дроблении шага теряет вклад хвоста, и η ВЫКЛ падало 0.062 → 0.027
+        //   при шаге 0.1 → 0.01 пробега, ВКЛ в той редакции — 0.070 → 0.056
+        //   (`handover/p100-m13/tables/lr_variantA_*`). Транспортное сечение
+        //   аддитивно по построению (⟨cos⟩ перемножается), и η под ключом
+        //   от шага не зависит (замер там же).
+        // В КРИСТАЛЛЕ (<see cref="TransportElectron"/>) ничего не меняется.
+        // Без ключа — ни одного лишнего случайного числа, ход прежний.
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`M13`) Выше этого Z поправка Мак-Кинли—Фешбаха не применяется
+        /// (она — первый порядок по αZ и годна до Z ≈ 30); дальше — чистый
+        /// экранированный Резерфорд. В тяжёлом слое (Pb, W, сталь) обратное
+        /// рассеяние диффузионное, и хвост там решает мало.
+        /// </summary>
+        const int MottMaxZ = 30;
+
+        /// <summary>(`M13`) Элемент вещества слоя для розыгрыша упругих столкновений.</summary>
+        sealed class ScatterElement
+        {
+            /// <summary>Заряд ядра.</summary>
+            public int Z;
+
+            /// <summary>Ядер в см³ вещества слоя.</summary>
+            public double AtomsPerCm3;
+
+            /// <summary>Z^(1/3) — для радиуса экранирования.</summary>
+            public double Z13;
+
+            /// <summary>Z(Z+1) — ядро и атомные электроны, как у Мольера.</summary>
+            public double ZZ1;
+
+            /// <summary>Поправка Мотта применима (Z ≤ <see cref="MottMaxZ"/>).</summary>
+            public bool Mott;
+        }
+
+        // (`M13`) Кэш элементов на вещество — по тому же ключу, что
+        // <see cref="LayerRadiationLength"/>; и рабочий массив долей жёстких
+        // сечений (на экземпляр — симулятор однопоточный).
+        readonly Dictionary<GeometryMaterial, ScatterElement[]> layerScatterCache =
+            new Dictionary<GeometryMaterial, ScatterElement[]>();
+        double[] layerHardShare = new double[8];
+
+        /// <summary>(`M13`) Элементы вещества слоя с плотностями ядер, кэш на вещество.</summary>
+        ScatterElement[] LayerScatterElements(GeometryMaterial material)
+        {
+            ScatterElement[] found;
+            if (this.layerScatterCache.TryGetValue(material, out found))
+            {
+                return found;
+            }
+
+            List<ScatterElement> list = new List<ScatterElement>();
+            Dictionary<int, double> mass = MaterialDatabase.AtomicMass;
+            foreach (KeyValuePair<int, double> pair in material.Fractions)
+            {
+                double a;
+                if (pair.Value > 0.0 && mass.TryGetValue(pair.Key, out a) && a > 0.0)
+                {
+                    list.Add(new ScatterElement
+                    {
+                        Z = pair.Key,
+                        AtomsPerCm3 = material.Density * pair.Value / a * Avogadro,
+                        Z13 = Math.Pow(pair.Key, 1.0 / 3.0),
+                        ZZ1 = pair.Key * (pair.Key + 1.0),
+                        Mott = pair.Key <= MottMaxZ,
+                    });
+                }
+            }
+
+            found = list.ToArray();
+            if (this.layerHardShare.Length < found.Length)
+            {
+                this.layerHardShare = new double[found.Length];
+            }
+
+            this.layerScatterCache[material] = found;
+            return found;
+        }
+
+        /// <summary>(`M13`) 1 − cos отсечки смешанной схемы из <see cref="LayerHardCutoffDeg"/>.</summary>
+        double LayerHardCutoffMu()
+        {
+            double deg = this.LayerHardCutoffDeg;
+            if (!(deg > 0.0) || deg >= 180.0)
+            {
+                deg = 20.0;
+            }
+
+            return 1.0 - Math.Cos(deg * Math.PI / 180.0);
+        }
+
+        /// <summary>
+        /// (`M13`) Удвоенный параметр экранирования Мольера 2A = 2(ħ/2pa)²
+        /// (1.13 + 3.76 (αZ/β)²), a = 0.885 a₀ Z^(−1/3): сечение
+        /// dσ/d(1 − cos θ) ∝ 1/(1 − cos θ + 2A)².
+        /// </summary>
+        static double ScreeningTwoA(int z, double z13, double beta2, double betaGamma)
+        {
+            double chi = ScatteringData.FineStructure * z13 / (1.77 * betaGamma);   // ħ/(2 p a)
+            double az = ScatteringData.FineStructure * z;
+            return 2.0 * chi * chi * (1.13 + 3.76 * az * az / beta2);
+        }
+
+        /// <summary>
+        /// (`M13`) Сечения упругого рассеяния слоя при энергии <paramref name="tKev"/>:
+        /// <paramref name="hardPerCm"/> — Σ n_i σ_i выше отсечки с мажорантой
+        /// Мотта, 1/см (обратный свободный пробег до кандидата жёсткого
+        /// столкновения); <paramref name="hardShare"/>[i] — вклад элемента в
+        /// него (выбор элемента); <paramref name="softTransportPerCm"/> —
+        /// транспортное сечение Σ n_i ∫₀^{μ_c} μ dσ_i НИЖЕ отсечки, 1/см:
+        /// средний 1 − cos θ мягкого шарнира на шаг s равен 1 − exp(−s·Σnσ_tr,soft)
+        /// — АДДИТИВНО по шагу (замер П100: ширина Хайленда × √f_soft не
+        /// аддитивна, и η падало вдвое при шаге 0.1 → 0.01).
+        /// </summary>
+        void LayerElasticStep(ScatterElement[] elements, double tKev, double muCut,
+                              out double hardPerCm, out double softTransportPerCm, double[] hardShare)
+        {
+            double gamma = 1.0 + tKev / ElectronMassKev;
+            double beta2 = 1.0 - 1.0 / (gamma * gamma);
+            double beta = Math.Sqrt(beta2);
+            double p2 = tKev * (tKev + 2.0 * ElectronMassKev);                  // (кэВ/c)²
+            double common = 2.0 * Math.PI * ClassicalRadiusCm * ClassicalRadiusCm
+                            * ElectronMassKev * ElectronMassKev / (beta2 * p2);   // см²
+            double hard = 0.0, trSoft = 0.0;
+            for (int i = 0; i < elements.Length; i++)
+            {
+                ScatterElement e = elements[i];
+                double a2 = ScreeningTwoA(e.Z, e.Z13, beta2, beta * gamma);
+                double pref = e.AtomsPerCm3 * common * e.ZZ1;                      // 1/см
+                double majorant = e.Mott ? 1.0 + Math.PI * ScatteringData.FineStructure * e.Z * beta / 4.0 : 1.0;
+                double h = pref * (1.0 / (muCut + a2) - 1.0 / (2.0 + a2)) * majorant;
+                hardShare[i] = h;
+                hard += h;
+
+                // Транспортное сечение НИЖЕ отсечки, 1/см:
+                // ∫₀^X x dx/(x + 2A)² = ln((X + 2A)/2A) + 2A/(X + 2A) − 1.
+                trSoft += pref * (Math.Log((muCut + a2) / a2) + a2 / (muCut + a2) - 1.0);
+            }
+
+            hardPerCm = hard;
+            softTransportPerCm = trSoft > 0.0 ? trSoft : 0.0;
+        }
+
+        /// <summary>
+        /// (`M13`) Одно жёсткое столкновение: элемент — по доле в
+        /// <paramref name="hardShare"/>, угол — обращением экранированного
+        /// Резерфорда выше отсечки, отбор Мак-Кинли—Фешбаха по мажоранте
+        /// (отвергнутое — пустое столкновение, направление не меняется).
+        /// Возвращает true, если поворот состоялся.
+        /// </summary>
+        bool LayerHardCollision(ScatterElement[] elements, double[] hardShare, double hardPerCm,
+                                double tKev, double muCut, ref double ux, ref double uy, ref double uz)
+        {
+            double pick = this.Uniform() * hardPerCm;
+            int i = 0;
+            for (; i < elements.Length - 1; i++)
+            {
+                pick -= hardShare[i];
+                if (pick <= 0.0)
+                {
+                    break;
+                }
+            }
+
+            ScatterElement e = elements[i];
+            double gamma = 1.0 + tKev / ElectronMassKev;
+            double beta2 = 1.0 - 1.0 / (gamma * gamma);
+            double beta = Math.Sqrt(beta2);
+            double a2 = ScreeningTwoA(e.Z, e.Z13, beta2, beta * gamma);
+            double lo = 1.0 / (muCut + a2), hi = 1.0 / (2.0 + a2);
+            double mu = 1.0 / (lo - this.Uniform() * (lo - hi)) - a2;
+            if (mu < muCut)
+            {
+                mu = muCut;
+            }
+            else if (mu > 2.0)
+            {
+                mu = 2.0;
+            }
+
+            if (e.Mott)
+            {
+                // Мак-Кинли—Фешбах для электрона: R = 1 − β² s² + παZβ s(1 − s),
+                // s = sin(θ/2) = √(μ/2); R ≤ 1 + παZβ/4.
+                double s = Math.Sqrt(0.5 * mu);
+                double paz = Math.PI * ScatteringData.FineStructure * e.Z * beta;
+                double r = 1.0 - beta2 * s * s + paz * s * (1.0 - s);
+                if (this.Uniform() * (1.0 + 0.25 * paz) > r)
+                {
+                    return false;
+                }
+            }
+
+            this.Rotate(ref ux, ref uy, ref uz, 1.0 - mu);
+            return true;
+        }
+
         /// <summary>Радиационная длина элемента по Цаю, г/см².</summary>
         static double TsaiRadiationLength(int z, double a)
         {
@@ -751,6 +988,15 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// ⚠ Обход зовёт <see cref="StepToBoundary"/> с НОВЫМ направлением на
         /// каждом шарнире — кэш луча собирается заново (O(областей)); электронов
         /// в обвязке 2…10 % историй континуума, шагов у каждого единицы.
+        ///
+        /// (`M13`, П100 18.09.2026) Под ключом <see cref="ElectronLayerMixedScattering"/>
+        /// упругое рассеяние в слое — СМЕШАННОЕ (шапка раздела выше): на каждом
+        /// шаге разыгрывается расстояние до жёсткого столкновения (выше угла
+        /// отсечки, по экранированному Резерфорду с поправкой Мотта); выпало
+        /// раньше конца шага — шаг обрывается на нём, и в его конце электрон
+        /// поворачивается на жёсткий угол; мягкий шарнир того же шага — с
+        /// шириной Хайленда × √(доля транспортного сечения ниже отсечки).
+        /// Без ключа — прежний ход без единого лишнего случайного числа.
         /// </summary>
         bool TransportInLayers(ref double x, ref double y, ref double z,
                                ref double ux, ref double uy, ref double uz,
@@ -764,6 +1010,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 fraction = 1.0;
             }
+
+            // (`M13`) Смешанная схема: отсечка одна на весь перенос.
+            bool mixed = this.ElectronLayerMixedScattering;
+            double muCut = mixed ? this.LayerHardCutoffMu() : 0.0;
 
             for (int step = 0; step < TransportMaxSteps && t > TransportCutKev; step++)
             {
@@ -808,6 +1058,32 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double stepG = residual * fraction;
                 double stepCm = stepG / density;
 
+                // (`M13`) Смешанная схема: расстояние до жёсткого столкновения;
+                // выпало раньше конца шага — шаг обрывается на нём. Мягкий
+                // шарнир — по транспортному сечению ниже отсечки на длину шага.
+                ScatterElement[] elements = null;
+                double hardPerCm = 0.0, softTransportPerCm = 0.0;
+                bool hardHit = false;
+                if (mixed)
+                {
+                    this.CountLayerSteps++;
+                    elements = this.LayerScatterElements(here.Material);
+                    if (elements.Length > 0)
+                    {
+                        this.LayerElasticStep(elements, t, muCut, out hardPerCm, out softTransportPerCm, this.layerHardShare);
+                        if (hardPerCm > 0.0)
+                        {
+                            double toHard = -Math.Log(this.Uniform()) / hardPerCm;
+                            if (toHard < stepCm)
+                            {
+                                stepCm = toHard;
+                                stepG = stepCm * density;
+                                hardHit = true;
+                            }
+                        }
+                    }
+                }
+
                 // Прямой ход до шарнира; граница области раньше — переход.
                 double first = stepCm * this.Uniform();
                 if (first >= toNext)
@@ -830,7 +1106,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                     tMid = TransportCutKev;
                 }
 
-                double theta0 = HighlandTheta0(tMid, stepG / x0);
+                // (`M13`) Под ключом ширина мягкого шарнира — средний 1 − cos θ
+                // мягких столкновений на длину шага, 1 − exp(−s·Σnσ_tr,soft)
+                // (аддитивно по шагу); без ключа — Хайленд на весь шаг, как было.
+                // Слой без опознанных элементов (состава нет) — Хайленд, как без ключа.
+                double theta0 = mixed && elements != null && elements.Length > 0
+                    ? Math.Sqrt(Math.Max(0.0, 1.0 - Math.Exp(-stepCm * softTransportPerCm)))
+                    : HighlandTheta0(tMid, stepG / x0);
                 this.Rotate(ref ux, ref uy, ref uz, 1.0 - this.SampleHingeMu(theta0));
 
                 // Прямой ход до конца шага — новым лучом.
@@ -856,6 +1138,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                 z += uz * second;
                 residual -= stepG;
                 t = ElectronData.EnergyOfRange(medium, residual);
+
+                // (`M13`) Жёсткое столкновение в конце оборванного шага — при
+                // энергии его конца; пустое (мажоранта Мотта) направления не меняет.
+                if (hardHit && t > TransportCutKev
+                    && this.LayerHardCollision(elements, this.layerHardShare, hardPerCm, t, muCut,
+                                               ref ux, ref uy, ref uz))
+                {
+                    this.CountLayerHardCollisions++;
+                }
             }
 
             return false;

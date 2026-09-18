@@ -861,6 +861,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // построителя, ключ мёртв (`S130`), а клеймо `eltr=1` лгало бы
                 // о происхождении матрицы.
                 ElectronLayerTransport = options.ElectronLayerTransport,
+                // ⛔ (`M13`, П100 18.09.2026) Смешанная схема упругого рассеяния
+                // в слоях обвязки — тем же путём: не доехав до построителя, ключ
+                // мёртв (`S130`), а клеймо `elmix=1` лгало бы о происхождении.
+                ElectronLayerMixedScattering = options.ElectronLayerMixedScattering,
                 // ⛔ (`E34`) ДОПУСК ПИКА. Ноль здесь стоял безусловно, и это
                 // запирало поправку на однократное рассеяние: `InPeak` требует
                 // `E − deposited ≤ допуск`, а у рассеявшегося кванта недобор

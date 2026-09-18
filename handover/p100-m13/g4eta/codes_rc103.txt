@@ -1,0 +1,13 @@
+PTFE1+Al1 100 angle=0 code=0 dt=11s 14:35:26
+PTFE1+Al1 100 angle=45 code=0 dt=13s 14:35:39
+PTFE1+Al1 100 angle=70 code=0 dt=16s 14:35:55
+PTFE1+Al1 500 angle=0 code=0 dt=23s 14:36:18
+PTFE1+Al1 500 angle=45 code=0 dt=18s 14:36:35
+PTFE1+Al1 500 angle=70 code=0 dt=21s 14:36:57
+PTFE1+Al1 1000 angle=0 code=0 dt=27s 14:37:24
+PTFE1+Al1 1000 angle=45 code=0 dt=23s 14:37:47
+PTFE1+Al1 1000 angle=70 code=0 dt=25s 14:38:12
+PTFE1+Al1 2000 angle=0 code=0 dt=25s 14:38:37
+PTFE1+Al1 2000 angle=45 code=0 dt=30s 14:39:07
+PTFE1+Al1 2000 angle=70 code=0 dt=33s 14:39:40
+done 14:39:40
