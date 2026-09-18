@@ -54,7 +54,7 @@ namespace AmplitudaUsbTests
                     frames / wallSeconds, events / (realMicros / 1e6), events > 0 ? min : 0, max, malformed, lost, stopping.ElapsedMilliseconds));
 
                 // One frame per ~11 ms is the idle rate; under load the device sends frames more often
-                // (about 500 per second at 6000 cps), so only the lower bound is fixed.
+                // (up to about 500 per second), so only the lower bound is fixed.
                 T.True(frames / wallSeconds > 85 && frames / wallSeconds < 1100, "at least ~91 frames per second (more under load)");
                 T.Eq(0, malformed, "no malformed frames");
                 T.True(lost < 0.01, "less than 1 % of the stream lost");
