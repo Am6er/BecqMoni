@@ -513,12 +513,13 @@ namespace BoundProbeF59
             Ok(!options.XcomPairThreshold && !options.AnalogConeSampling,
                "`XcomPairThreshold` и `AnalogConeSampling` умолчанием ВЫКЛЮЧЕНЫ (абляции, не физика склада)");
 
-            // Семь ключей физики 17 (П37/П38: `lbin` `pkch` `lys=2` `etr` `e+tr` `e+off` `rayl2`)
-            // и два ключа физики 18 (`ecomp=1` `bpath=2`, П50; решение Amber 13.09.2026
-            // «ecomp=1 + bpath=2») — умолчания КЛАССА, одно место истины (правило I
-            // `check_matrix_keys.py`): путь склада, путь кривой и поля симулятора берут их отсюда.
+            // Семь ключей физики 17 (П37/П38: `lbin` `pkch` `lys=2` `etr` `e+tr` `e+off` `rayl2`),
+            // два ключа физики 18 (`ecomp=1` `bpath=2`, П50; решение Amber 13.09.2026
+            // «ecomp=1 + bpath=2») и ключ физики 19 (`eltr=1`, П97 18.09.2026; решение Amber
+            // 17.09.2026 «ВКЛ сейчас, единый счёт ночью») — умолчания КЛАССА, одно место истины
+            // (правило I `check_matrix_keys.py`): путь склада, путь кривой и поля симулятора берут их отсюда.
             Say("");
-            Say("-- A120: умолчания физики 17 и 18 (склад = кривая = симулятор) --");
+            Say("-- A120: умолчания физики 17, 18 и 19 (склад = кривая = симулятор) --");
             Say(string.Format(CultureInfo.InvariantCulture, "   PhysicsVersion       = {0}", ResponseMatrix.PhysicsVersion));
             Say(string.Format(CultureInfo.InvariantCulture, "   LightBinUnified      = {0}", options.LightBinUnified));
             Say(string.Format(CultureInfo.InvariantCulture, "   PeakChannelByTolerance = {0}", options.PeakChannelByTolerance));
@@ -526,13 +527,16 @@ namespace BoundProbeF59
             Say(string.Format(CultureInfo.InvariantCulture, "   ElectronTransport    = {0}", options.ElectronTransport));
             Say(string.Format(CultureInfo.InvariantCulture, "   ElectronAnyMaterial  = {0}", options.ElectronAnyMaterial));
             Say(string.Format(CultureInfo.InvariantCulture, "   BremAlongPath        = {0}", options.BremAlongPath));
-            Ok(ResponseMatrix.PhysicsVersion == 18,
-               string.Format(CultureInfo.InvariantCulture, "версия физики склада — 18 (есть {0})", ResponseMatrix.PhysicsVersion));
+            Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerTransport = {0}", options.ElectronLayerTransport));
+            Ok(ResponseMatrix.PhysicsVersion == 19,
+               string.Format(CultureInfo.InvariantCulture, "версия физики склада — 19 (есть {0})", ResponseMatrix.PhysicsVersion));
             Ok(options.LightBinUnified && options.PeakChannelByTolerance && options.LYieldSupply == 2
                && options.ElectronTransport && options.PositronTransport && options.PositronOffset && options.RayleighToCrystal,
                "семь ключей физики 17 умолчанием ВКЛ: lbin=1 pkch=1 lys=2 etr=1 e+tr=1 e+off=1 rayl2=1");
             Ok(options.ElectronAnyMaterial && options.BremAlongPath == 2,
                "два ключа физики 18 умолчанием ВКЛ: ecomp=1 bpath=2");
+            Ok(options.ElectronLayerTransport,
+               "ключ физики 19 умолчанием ВКЛ: eltr=1");
         }
 
         /// <summary>
