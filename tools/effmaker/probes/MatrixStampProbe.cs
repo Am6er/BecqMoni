@@ -33,7 +33,14 @@ using System.Text;
 /// значение не зависит от того, какое умолчание физика выберет завтра, а метка
 /// строки печатает то значение, которое реально подано (`--positron=0`).
 ///
-///     matrixstampprobe --geometry=X.in [--matrix=X.rmx]
+///     matrixstampprobe --geometry=X.in [--matrix=X.rmx] [--hist=N|xK]
+///
+/// `--hist=N` (или `xK` — K умолчаний; П103 19.09.2026) печатает ЧЕТВЁРТОЕ
+/// клеймо — при умолчаниях, но с N историями на узел: «клеймо при умолчаниях,
+/// историй N: …». Нужно сторожу `check_corpus_scenes.py` для густых сцен склада
+/// (решение Amber 18.09.2026 «дальним точкам ×2»): матрица дальней точки
+/// посчитана штатным рецептом с удвоенным числом историй, и судить её надо
+/// РАВЕНСТВОМ клейма с этим числом, а не «историй больше — значит гуще».
 /// </summary>
 static class MatrixStampProbe
 {
@@ -42,7 +49,7 @@ static class MatrixStampProbe
         Console.OutputEncoding = Encoding.UTF8;
         CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
-        string geometryPath = null, matrixPath = null;
+        string geometryPath = null, matrixPath = null, histArg = null;
         foreach (string a in args)
         {
             if (a.StartsWith("--geometry=", StringComparison.Ordinal))
@@ -52,6 +59,10 @@ static class MatrixStampProbe
             else if (a.StartsWith("--matrix=", StringComparison.Ordinal))
             {
                 matrixPath = a.Substring(9);
+            }
+            else if (a.StartsWith("--hist=", StringComparison.Ordinal))
+            {
+                histArg = a.Substring(7);
             }
             else
             {
@@ -81,6 +92,31 @@ static class MatrixStampProbe
         var plain = new ResponseMatrixOptions();
         string byDefaults = ResponseMatrix.ComputeStamp(geometry, plain);
         Console.WriteLine("клеймо при умолчаниях : {0}", byDefaults);
+
+        if (histArg != null)
+        {
+            // Клеймо штатного рецепта с ДРУГИМ числом историй (правило «дальним
+            // точкам ×2»): те же умолчания, только `Histories`. Разбор строгий,
+            // инвариантной культурой (`A244`): `x2` — множитель умолчания, число —
+            // как есть; иное — отказ кодом 2, а не «молча умолчание».
+            int hist;
+            if (histArg.StartsWith("x", StringComparison.OrdinalIgnoreCase)
+                && int.TryParse(histArg.Substring(1), NumberStyles.None, CultureInfo.InvariantCulture, out hist) && hist > 0)
+            {
+                hist *= plain.Histories;
+            }
+            else if (!int.TryParse(histArg, NumberStyles.None, CultureInfo.InvariantCulture, out hist) || hist <= 0)
+            {
+                Console.Error.WriteLine("--hist= ждёт положительное целое или xK: " + histArg);
+                return 2;
+            }
+
+            var dense = new ResponseMatrixOptions();
+            dense.Histories = hist;
+            Console.WriteLine("клеймо при умолчаниях, историй {0}: {1}",
+                              hist.ToString(CultureInfo.InvariantCulture),
+                              ResponseMatrix.ComputeStamp(geometry, dense));
+        }
 
         ResponseMatrix have = File.Exists(matrixPath) ? ResponseMatrix.Load(matrixPath) : null;
         if (have == null)
