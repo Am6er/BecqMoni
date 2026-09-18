@@ -1,0 +1,12 @@
+bitwise\matrix_final_RC103_point0 code=1 keys=[--nodes=2 --n=300000] 15:07:20 dt=16s
+diff base/final RC103_point0 code=0 15:07:21
+lr final control code=0 15:07:25
+cost\matrix_off_RC103_point0_1 code=0 keys=[--nodes=3 --n=600000] 15:07:43 dt=18s
+cost\matrix_on_RC103_point0_1 code=0 keys=[--nodes=3 --n=600000 --elmix=1] 15:08:02 dt=18s
+cost\matrix_off_RC103_point0_2 code=0 keys=[--nodes=3 --n=600000] 15:08:20 dt=18s
+cost\matrix_on_RC103_point0_2 code=0 keys=[--nodes=3 --n=600000 --elmix=1] 15:08:38 dt=18s
+cost\matrix_off_AS80_th_disk_1 code=1 keys=[--nodes=3 --n=200000] 15:09:13 dt=36s
+cost\matrix_on_AS80_th_disk_1 code=1 keys=[--nodes=3 --n=200000 --elmix=1] 15:09:49 dt=36s
+cost\matrix_off_AS80_th_disk_2 code=1 keys=[--nodes=3 --n=200000] 15:10:24 dt=36s
+cost\matrix_on_AS80_th_disk_2 code=1 keys=[--nodes=3 --n=200000 --elmix=1] 15:11:00 dt=36s
+done 15:11:00

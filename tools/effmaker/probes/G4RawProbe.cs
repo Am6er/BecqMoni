@@ -26,6 +26,16 @@ namespace G4RawProbe
     ///                [--etr=0|1] [--etr-step=0.1] [--kdip=0|1|2|3]
     ///                [--positron=0|1] [--posoffset=0|1] [--rayl2[=0|1]]
     ///                [--ecomp=0|1] [--bpath=0|1|2] [--detour=0.7] [--eltr=0|1]
+    ///                [--elmix=0|1]
+    ///
+    /// `--elmix=1` (`M13`, П100 18.09.2026): ключ `ElectronLayerMixedScattering` —
+    /// смешанная схема упругого рассеяния в слоях обвязки (только под `eltr=1`):
+    /// жёсткие столкновения выше 20° по одному по экранированному Резерфорду с
+    /// поправкой Мотта, мягкие — шарниром Хайленда уменьшенной ширины; в
+    /// кристалле не трогается. Умолчание — склада (ВЫКЛ до решения Amber).
+    /// Мерка: RC103 П55 2614 (четверти ≤ 2 %, 0–100 кэВ ±3 %), 1461/662/59.5 и
+    /// диск AS80 не хуже П94 — против `g4cf` умолчанием по полосам П92/П94.
+    /// Печатает счётчики шагов в слоях и жёстких столкновений.
     ///
     /// `--eltr=1` (`AMBER44` + правка заноса `M12`, П94 17.09.2026; решения Amber
     /// «Перенос в слоях обвязки», «Одной полосой с AMBER44»): ключ
@@ -157,6 +167,7 @@ namespace G4RawProbe
             int bpath = store.BremAlongPath;            // `M3`, П44 — умолчание склада (2 с физики 18, П50)
             double detour = -1.0;                       // <0 — умолчание симулятора (`M12`, П92)
             bool eltr = store.ElectronLayerTransport;   // `AMBER44`/`M12`, П94 — умолчание склада (ВКЛ с физики 19, П97)
+            bool elmix = store.ElectronLayerMixedScattering;   // `M13`, П100 — умолчание склада (ВЫКЛ до решения Amber)
             double escSlope = -1.0;
             double escSoft = -1.0, escSoftKev = -1.0;   // `A63`
             double escCurve = -1.0;                     // `A70`
@@ -264,6 +275,12 @@ namespace G4RawProbe
                 if (a.StartsWith("--eltr=", StringComparison.Ordinal))
                 {
                     eltr = Flag01(a, 7);
+                    continue;
+                }
+                // `M13` (П100): смешанная схема упругого рассеяния в слоях обвязки.
+                if (a.StartsWith("--elmix=", StringComparison.Ordinal))
+                {
+                    elmix = Flag01(a, 8);
                     continue;
                 }
                 if (a.StartsWith("--esc-soft=", StringComparison.Ordinal))
@@ -376,6 +393,7 @@ namespace G4RawProbe
             simulator.BremAlongPath = bpath;            // `M3`, П44
             if (detour >= 0.0) { simulator.ElectronCarryDetour = detour; }   // `M12`, П92
             simulator.ElectronLayerTransport = eltr;    // `AMBER44`/`M12`, П94
+            simulator.ElectronLayerMixedScattering = elmix;   // `M13`, П100
             simulator.LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(kdip);
             simulator.LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(kdip);
             if (etrStep > 0.0) { simulator.ElectronStepFraction = etrStep; }
@@ -437,6 +455,10 @@ namespace G4RawProbe
                                                    : "ВКЛ (возврат вылетевшего из кристалла; занос переносом в слое и по кристаллу, доля --detour= не читается)")
                                    : "выкл (вылет — конец истории; занос по прямой с detour, остаток куском)",
                               eltr == store.ElectronLayerTransport ? " (умолчание склада)" : " (ключом)");
+            Console.WriteLine("смешанная схема упругого рассеяния в слоях обвязки (`M13`, --elmix=): {0}{1}",
+                              elmix ? (eltr ? "ВКЛ (жёсткие столкновения выше " + simulator.LayerHardCutoffDeg.ToString("0.#", CultureInfo.InvariantCulture) + "° по одному, мягкие — шарниром уменьшенной ширины)" : "ВКЛ, но без переноса в слоях (--eltr=0) бездействует")
+                                    : "выкл (шарнир Хайленда на весь шаг)",
+                              elmix == store.ElectronLayerMixedScattering ? " (умолчание склада)" : " (ключом)");
             Console.WriteLine("тормозное вдоль пути (`M3`, --bpath=): {0}{1}",
                               bpath == 0 ? "выкл (в точке рождения)" : bpath == 1 ? "1 (на шагах переноса, изотропно)" : "2 (на шагах переноса, по электрону)",
                               bpath == store.BremAlongPath ? " (умолчание склада)" : " (ключом)");
@@ -503,6 +525,10 @@ namespace G4RawProbe
                               (simulator.CountLayerReturns > 0 ? simulator.SumLayerReturnKev / simulator.CountLayerReturns : 0.0).ToString("0.0", CultureInfo.InvariantCulture),
                               simulator.CountLayerCarries,
                               ((double)simulator.CountLayerCarries / histories).ToString("0.000E+00", CultureInfo.InvariantCulture));
+            // (`M13`, П100) Счётчики смешанной схемы: без ключа нули.
+            Console.WriteLine("смешанная схема в слоях (`M13`): шагов переноса в слоях {0}, жёстких столкновений {1} ({2} на шаг)",
+                              simulator.CountLayerSteps, simulator.CountLayerHardCollisions,
+                              (simulator.CountLayerSteps > 0 ? (double)simulator.CountLayerHardCollisions / simulator.CountLayerSteps : 0.0).ToString("0.000", CultureInfo.InvariantCulture));
             Console.WriteLine("комптонов в кристалле {0}, с вакансией {1}, ответили рентгеном {2} (`A61`)",
                               simulator.CountCrystalCompton, simulator.CountCrystalVacancy,
                               simulator.CountVacancyXray);
