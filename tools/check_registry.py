@@ -408,12 +408,9 @@ def file_targets(text):
 #: вправе. Положительный контроль — `--selftest`: с датой ПОСЛЕ срока обе
 #: ссылки обязаны вернуться в счёт.
 KNOWN_UNTRACKED = {
-    (u"DONE.md", u"S64", u"tools/pie/out_c1_s134/rivals_before.csv"):
-        (u"2026-09-18", u"выгрузка прогона в gitignored tools/pie/out_*/ (N8): "
-                        u"скопировать в handover/registry-artefacts/ и переписать "
-                        u"ссылку в DONE.md — правит Amber, спрошена 14.09.2026"),
-    (u"DONE.md", u"S64", u"rivals_after.csv"):
-        (u"2026-09-18", u"то же, второй файл той же строки"),
+    # 19.09.2026: `S64` перенесена в handover/registry-artefacts/ по слову Amber
+    # («Я копирую файлы в handover/registry-artefacts и правлю ссылку в DONE.md»);
+    # словарь пуст, форма записи — (файл, номер, ссылка): (срок, причина).
 }
 
 
