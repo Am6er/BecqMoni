@@ -1,0 +1,24 @@
+сдвинулось 42: улучшилось 16, ухудшилось 18, |Δ| ≤ 0.15 %: 40, |Δ| ≥ 1 %: 0
+--- лучшие 5:
+ASN16_Lu176                  3.6601 ->   3.6459  -0.388 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S16_Ba133_P5              11.4952 ->  11.4891  -0.053 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S24_Th232_Denta120_2       2.0612 ->   2.0604  -0.039 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, decay_s, decay_s
+AS80_Lu176_v2                1.8411 ->   1.8404  -0.038 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+AS80_Th232Medal             12.6617 ->  12.6578  -0.031 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, decay_s, decay_s
+--- худшие 5:
+G1S16_Th232_Mar_3            5.3165 ->   5.3200  +0.066 %  anchor_offset_kev, chi2ndf, chi2ndf_pois, decay_s, decay_s, dt_decay_s
+G1S24_Ra226_Denta120_2       3.4170 ->   3.4212  +0.123 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S24_Th232_Mar_2            6.3958 ->   6.4044  +0.134 %  anchor_offset_kev, chi2ndf, chi2ndf_pois, decay_s, decay_s, dt_decay_s
+G1S24_Ba133_P5              17.3493 ->  17.3747  +0.146 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S24_Ra226_Petri_2          2.9690 ->   2.9754  +0.216 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+--- RC103, ASN16, AS80 (мелкие кристаллы и диск):
+ASN16_Lu176                  3.6601 ->   3.6459  -0.388 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+AS80_Lu176_v2                1.8411 ->   1.8404  -0.038 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+AS80_Th232Medal             12.6617 ->  12.6578  -0.031 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, decay_s, decay_s
+AS80_Lu176                   1.9484 ->   1.9483  -0.005 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s; Lu-176 98.96→98.66
+RC103_Lu176                  1.1365 ->   1.1365  +0.000 %  decay_s, dt_decay_s, dt_decay_s, gain, inflate, inflate
+ASN16_Lu176_P0               0.4126 ->   0.4127  +0.024 %  chi2ndf, chi2ndf_pois, decay_s, decay_s, dt_decay_s, dt_decay_s
+--- состав (share_pct > 0.05 п.п.):
+G1S16_Mix_Mar              Am-241 17.48→17.62; Ti-44 4.87→4.72
+AS80_Lu176                 Lu-176 98.96→98.66
+спектров со сдвигом состава: 2

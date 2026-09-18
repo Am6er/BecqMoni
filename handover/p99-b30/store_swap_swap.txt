@@ -1,0 +1,6 @@
+G1S_point5             phys=19;f459633cc3908920  guid a1438401-8aeb-009d-edc5-210a2a14ecdd  45751b48 -> cf78d98c (response 45751b48)
+G1S_point25            phys=19;556633af22e70b63  guid d373d6c3-467d-5a40-0410-ad5e3c60cb70  4e82bcff -> a9ba0ee7 (response 4e82bcff)
+RC103_point50          phys=19;7f9afdf663fffe7a  guid cac657e6-4b20-90ab-d6ef-febb7307eb06  НОВАЯ -> 10b6a575 (response НОВАЯ)
+ASN16_point0_house     phys=19;9abca9f2acfb2c45  guid 38a10446-95c7-4e73-09fa-39a98ff667de  НОВАЯ -> c6e16217 (response НОВАЯ)
+ASN16_point10_house    phys=19;a6c188077d5e688a  guid f483eddf-da8a-ed6b-6b19-093a23cb827a  НОВАЯ -> feabe00f (response НОВАЯ)
+перенесено матриц: 5 (по ключу и по guid), сцен .in: 5, опись index.csv

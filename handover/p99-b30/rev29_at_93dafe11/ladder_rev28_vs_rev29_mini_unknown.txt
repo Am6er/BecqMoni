@@ -1,0 +1,7 @@
+спектр                       часть     χ²/ndf до      после      Δ %  что разошлось; состав (доля %, до → после, > 0.05 п.п.)
+ASN16_Cs137                  unknown     28.4941    13.3034  -53.312  <число строк 0→3>, anchor_beta, anchor_form, anchor_light, anchor_note, anchor_offset_kev; Backscatter 9.04→2.44; Cs-137 89.62→96.30; Xray-Pb 0.68→0.88; pile-up 0.66→0.39
+ASN16_Cs137_10cm             unknown         nan        nan     +nan  <число строк 0→1>, <число строк 0→2>, <число строк 0→3>, anchor_beta, anchor_form, anchor_light; Backscatter 0.00→7.65; Cs-137 0.00→92.30
+
+unknown: разобранных 2, Σχ²/ndf 49.1357 -> 33.9450 (-30.9158 %)
+сдвинулось 2, побитово 14
+побитово: AS80_Charoite, AS80_K40, AS80_Onyx, AS80_Th232WT20, AS80_Th232_v2, AS80_UGlass, ASN16_Am241, ASN16_BrazilNuts, ASN16_Charoite, ASN16_Charoite_v2, ASN16_Granite, ASN16_Th232, ASN16_Th232_Am241, ASN16_UGlass

@@ -325,8 +325,15 @@ def sample_xrays(entry):
     """Весь рентген образца: одиночные нуклиды плюс цепочки."""
     rows = []
     for ch in entry.get('chains') or []:
-        root = '238U' if ch == 'U-238u' else CHAINS[ch]
-        for r in chain_lines(root, kinds=('X',)):
+        # (`T259`) метка-член ряда («Rn-222») — подряд от члена по правилу
+        # приложения (`chain_labels`); метки `CHAINS` и `U-238u` — как прежде.
+        if ch == 'U-238u' or ch in CHAINS:
+            root = '238U' if ch == 'U-238u' else CHAINS[ch]
+            xrows = chain_lines(root, kinds=('X',))
+        else:
+            import chain_labels
+            xrows = chain_labels.chain_lines(ch, kinds=('X',))
+        for r in xrows:
             if r['energy'] >= 5.0:
                 rows.append((r['energy'], r['i_chain'], r['name'] + ' X'))
     for nucid in entry.get('nuclides') or []:
@@ -591,7 +598,12 @@ def sample_lines(entry):
                 if r['nucid'] in ('238U', '234TH', '234PAm1', '234PA', '234U'):
                     rows.append((r['energy'], r['i_chain'], r['name']))
             continue
-        for r in chain_lines(CHAINS[ch]):
+        if ch in CHAINS:
+            lines = chain_lines(CHAINS[ch])
+        else:
+            import chain_labels                       # (`T259`) подряд от члена
+            lines = chain_labels.chain_lines(ch)
+        for r in lines:
             rows.append((r['energy'], r['i_chain'], r['name']))
     for nucid in entry.get('nuclides') or []:
         rows.extend(nuclide_lines(nucid))

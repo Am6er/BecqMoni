@@ -1,0 +1,19 @@
+  положено файлов: 500
+
+рабочий каталог: D:\BqMoni_Claude\p99\wt\tools\CORPUS\scripts\wd_p99
+  конфигураций приборов: 24, матриц: 49
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : D:\BqMoni_Claude\p99\wt\tools\CORPUS\scripts\wd_p99
+  сборка   : D:\BqMoni_Claude\p99\wt\BecquerelMonitor\bin\Release_p99
+  пробы    : D:\BqMoni_Claude\p99\wt\tools\effmaker\probes\build_p99
+  сверено  : 500 файлов по sha256 за 8.62 с
+  библиотека: в оснастке корпуса НЕТ по правилу AMBER19 — состав из manifest.csv, линии из nucdb/matdb
+  перекладка: клейма склада и оснастки сошлись
+  ОСНАСТКА СВЕЖАЯ: 500 файлов сошлись
+
+запуск прогона — ТОЛЬКО через сторожа, оператором вызова & (T84/T91):
+  & 'D:\BqMoni_Claude\p99\wt\tools\CORPUS\scripts\run_appwd.ps1' -Wd 'D:\BqMoni_Claude\p99\wt\tools\CORPUS\scripts\wd_p99' -Store 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries' -Out 'D:\BqMoni_Claude\p99\wt\tools\pie\out_app'
+  ключи пробы — массивом: -Extra '--band=whole','--only=ASN16_Cs137'
+проверить оснастку отдельно:
+  & 'D:\BqMoni_Claude\p99\wt\tools\CORPUS\scripts\check_appwd.ps1' -Wd 'D:\BqMoni_Claude\p99\wt\tools\CORPUS\scripts\wd_p99' -Store 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries'
