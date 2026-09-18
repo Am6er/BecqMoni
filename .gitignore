@@ -59,3 +59,5 @@ tools/CORPUS/scripts/wd_key_guid.csv
 # `check_fsa_showcase.py` (копия каталога проб + конфиг витрины + выходы прогона).
 tools/fsa_showcase/store/
 tools/fsa_showcase/wd/
+tools/AmplitudaUsbTests/*.exe
+tools/AmplitudaUsbTests/*.pdb

@@ -6230,5 +6230,176 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AmplitudaUSB.
+        /// </summary>
+        public static string DeviceTypeAmplitudaUSB {
+            get {
+                return ResourceManager.GetString("DeviceTypeAmplitudaUSB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Amplituda USB: the number of channels must be 4096, 2048, 1024, 512 or 256 (the spectrum has {0}). Set it in the device configuration and apply the configuration to an empty spectrum..
+        /// </summary>
+        public static string ERRAmplitudaUsbChannels {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbChannels", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Amplituda USB device not found{0}. Check the cable..
+        /// </summary>
+        public static string ERRAmplitudaUsbNotFound {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The Amplituda USB device is in use by another program (Progress?). Close it and try again..
+        /// </summary>
+        public static string ERRAmplitudaUsbBusy {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbBusy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Amplituda USB device error: {0}.
+        /// </summary>
+        public static string ERRAmplitudaUsbOpenFailed {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbOpenFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Connection to the Amplituda USB device was lost (error {0}). The measurement has been stopped, the collected data is kept. Reconnect the device and press Start to continue..
+        /// </summary>
+        public static string ERRAmplitudaUsbDisconnected {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbDisconnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The Amplituda USB device stopped sending data (no frames for more than 10 s). The measurement has been stopped, the collected data is kept. Check the device and press Start to continue..
+        /// </summary>
+        public static string ERRAmplitudaUsbSilent {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbSilent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0:F1} s of the data stream ({1:F1} %) was lost during this measurement. Count rates are not affected: time is taken from the frames actually received..
+        /// </summary>
+        public static string MSGAmplitudaUsbFramesLost {
+            get {
+                return ResourceManager.GetString("MSGAmplitudaUsbFramesLost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Device :.
+        /// </summary>
+        public static string AmplitudaUsbDevice {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbDevice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Refresh.
+        /// </summary>
+        public static string AmplitudaUsbRefresh {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbRefresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (first found).
+        /// </summary>
+        public static string AmplitudaUsbFirstFound {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbFirstFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} (not connected).
+        /// </summary>
+        public static string AmplitudaUsbNotConnected {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbNotConnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Lower threshold, ADC code :.
+        /// </summary>
+        public static string AmplitudaUsbLowerThreshold {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbLowerThreshold", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Upper threshold, ADC code :.
+        /// </summary>
+        public static string AmplitudaUsbUpperThreshold {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbUpperThreshold", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dead time per pulse, us :.
+        /// </summary>
+        public static string AmplitudaUsbDeadTime {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbDeadTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Channels: 4096, 2048, 1024, 512 or 256 - set on the common tab. The 12-bit ADC code is divided evenly; channel pitch is fixed at 1..
+        /// </summary>
+        public static string AmplitudaUsbChannelsHint {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbChannelsHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Test.
+        /// </summary>
+        public static string AmplitudaUsbTest {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbTest", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Testing....
+        /// </summary>
+        public static string AmplitudaUsbTestRunning {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbTestRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0:F1} frames/s, {1:F1} cps, lost {2:F1} %, bad frames {3}.
+        /// </summary>
+        public static string AmplitudaUsbTestResult {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbTestResult", resourceCulture);
+            }
+        }
     }
 }
