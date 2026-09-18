@@ -39,6 +39,15 @@
 // 0.05 % полной на 59.5 кэВ (замер 02.09.2026, `A52`), — и запрещать там ключ
 // незачем; ломается именно голый кристалл на мягком краю шкалы.
 //
+// Ключ `ionhist <шаг_кэВ> <E_max_кэВ>` (П101, `S177`, 18.09.2026) — ГИСТОГРАММА
+// поглощённой энергии в ион-режиме, тем же правилом бина, что у `hist`
+// (bin = int(edep/шаг + 0.5), последний бин собирает всё выше E_max). Зачем:
+// окна `ion` считают только названные суммы, а вопрос П93 (какие из 82 сумм
+// Eu-152 стоят не с той площадью) требует ВСЕЙ шкалы разом — и полос рядом с
+// каждым окном, чтобы вычесть континуум (П90 §4.3: окно ±0.5 кэВ держит и
+// комптоновский континуум линий выше). Печать — те же строки `HISTBEGIN`/`HIST`/
+// `HISTEND`; окна `ion` при этом считаются, как и прежде.
+//
 // Сборка — build_g4cf.bat рядом (vcvars64 обязан звать bat, не ps1: %PATH%
 // в cmd разворачивается при разборе строки). Прогон — run_g4cf.bat (env на
 // датасеты поставки). Сборка CF из логов — g4_cf.py, родные p_k — g4_pk.py.
@@ -971,6 +980,7 @@ int main(int argc, char** argv)
     // g4cf [scene <файл>] mono <E_кэВ> <N>
     //      | g4cf [scene <файл>] ion <Z> <A> <N> <окно1_кэВ> [окно2 ...]
     //      | g4cf [scene <файл>] hist <E_кэВ> <N> <шаг_бина_кэВ>
+    //      | g4cf ionhist <шаг_кэВ> <E_max_кэВ> [scene <файл>] ion <Z> <A> <N> [окна…]
     // Файл сцены — вывод effsim --dump-scene; без него сцена вшитая (tube).
     //      Перед всем этим могут стоять `vacuum` (мир пустой вместо воздуха),
     //      `corr` (угловые γ–γ корреляции каскада в RDM), `seed <N>` (зерно
@@ -980,11 +990,27 @@ int main(int argc, char** argv)
     while (argc > base && (std::strcmp(argv[base], "vacuum") == 0 || std::strcmp(argv[base], "corr") == 0
                            || std::strcmp(argv[base], "killesc") == 0 || std::strcmp(argv[base], "killcarry") == 0
                            || std::strcmp(argv[base], "fullcarry") == 0
-                           || (std::strcmp(argv[base], "seed") == 0 && argc > base + 1)))
+                           || (std::strcmp(argv[base], "seed") == 0 && argc > base + 1)
+                           || (std::strcmp(argv[base], "ionhist") == 0 && argc > base + 2)))
     {
         if (std::strcmp(argv[base], "vacuum") == 0)
         {
             gVacuumWorld = true;
+        }
+        else if (std::strcmp(argv[base], "ionhist") == 0)
+        {
+            // (П101) Гистограмма всей шкалы в ион-режиме: шаг и верх, кэВ.
+            // Длина — по правилу раскладки отклика (последний бин — всё выше).
+            gHistBinKev = std::atof(argv[base + 1]);
+            double maxKev = std::atof(argv[base + 2]);
+            if (!(gHistBinKev > 0.0) || !(maxKev > gHistBinKev))
+            {
+                std::fprintf(stderr, "ionhist: needs bin > 0 and Emax > bin, keV\n");
+                return 2;
+            }
+
+            gHistBins = int(maxKev / gHistBinKev + 0.5) + 1;
+            base += 2;
         }
         else if (std::strcmp(argv[base], "killesc") == 0)
         {
@@ -1023,7 +1049,7 @@ int main(int argc, char** argv)
 
     if (argc < base + 3)
     {
-        std::fprintf(stderr, "g4cf [vacuum] [corr] [seed <N>] [killesc] [killcarry] [fullcarry] [scene <file>] mono <E_keV> <N>"
+        std::fprintf(stderr, "g4cf [vacuum] [corr] [seed <N>] [ionhist <bin_keV> <Emax_keV>] [killesc] [killcarry] [fullcarry] [scene <file>] mono <E_keV> <N>"
                              " | ion <Z> <A> <N> <windows...> | hist <E_keV> <N> <bin_keV>\n"
                              "  vacuum: empty world instead of air. MANDATORY for bare-crystal"
                              " checks (T133): air gives 8.232e-4 vs 5.794e-4 in 55...59 keV.\n"
@@ -1117,9 +1143,9 @@ int main(int argc, char** argv)
     // если Set… не доехал (заперт, перезаписан умолчанием), здесь будет 0.
     {
         const G4DeexPrecoParameters* deex = G4NuclearLevelData::GetInstance()->GetParameters();
-        std::printf("SETUP correlatedGamma=%d twoJmax=%d vacuum=%d seed=%ld killesc=%d killcarry=%d fullcarry=%d\n",
+        std::printf("SETUP correlatedGamma=%d twoJmax=%d vacuum=%d seed=%ld killesc=%d killcarry=%d fullcarry=%d histbin=%.3f histbins=%d\n",
                     deex->CorrelatedGamma() ? 1 : 0, deex->GetTwoJMAX(), gVacuumWorld ? 1 : 0, gSeed,
-                    gKillEscape ? 1 : 0, gKillCarry ? 1 : 0, gFullCarry ? 1 : 0);
+                    gKillEscape ? 1 : 0, gKillCarry ? 1 : 0, gFullCarry ? 1 : 0, gHistBinKev, gHistBins);
         std::fflush(stdout);
     }
     // Пороги рождения вторичных (production cuts) по веществам сцены — в шапку

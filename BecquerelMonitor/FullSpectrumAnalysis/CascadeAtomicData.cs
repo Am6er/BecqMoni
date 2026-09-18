@@ -2677,6 +2677,99 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return found;
             }
 
+            /// <summary>Уровни схемы, у которых есть выходы с γ, по убыванию номера (порядок хода вниз).</summary>
+            public IList<int> Levels
+            {
+                get { return this.descending; }
+            }
+
+            /// <summary>Норма уровня Σ I_t(1+α_t) по выходам; ноль — уровня нет или выходов с γ у него нет.</summary>
+            public double NormOf(int level)
+            {
+                double total;
+                return this.norm.TryGetValue(level, out total) ? total : 0.0;
+            }
+
+            /// <summary>
+            /// БЛИЖАЙШИЙ по энергии выход уровня в допуске — то же правило, что
+            /// у <see cref="GammaShare"/> (один уровень редко несёт два выхода в
+            /// одной полосе); null — такого выхода у уровня нет. (`S177`)
+            /// </summary>
+            public Exit NearestExit(int level, double energyKev, double toleranceKev)
+            {
+                List<Exit> bag;
+                if (!this.exits.TryGetValue(level, out bag))
+                {
+                    return null;
+                }
+
+                Exit best = null;
+                double bestDelta = toleranceKev;
+                foreach (Exit exit in bag)
+                {
+                    double delta = Math.Abs(exit.EnergyKev - energyKev);
+                    if (delta < bestDelta)
+                    {
+                        best = exit;
+                        bestDelta = delta;
+                    }
+                }
+
+                return best;
+            }
+
+            /// <summary>Выход уровня <paramref name="fromSeq"/> НА уровень <paramref name="toSeq"/>; null — такого перехода с γ в схеме нет. (`S177`)</summary>
+            public Exit ExitTo(int fromSeq, int toSeq)
+            {
+                List<Exit> bag;
+                if (!this.exits.TryGetValue(fromSeq, out bag))
+                {
+                    return null;
+                }
+
+                foreach (Exit exit in bag)
+                {
+                    if (exit.ToSeq == toSeq)
+                    {
+                        return exit;
+                    }
+                }
+
+                return null;
+            }
+
+            /// <summary>
+            /// Вероятность, что с уровня <paramref name="level"/> ядро уйдёт
+            /// именно этим выходом И квантом (не электроном): I/Σ I_t(1+α_t).
+            /// Ноль — нормы у уровня нет. (`S177`)
+            /// </summary>
+            public double GammaShareOf(int level, Exit exit)
+            {
+                double total = this.NormOf(level);
+                return exit != null && total > 0.0 ? exit.Intensity / total : 0.0;
+            }
+
+            /// <summary>
+            /// P(достичь уровня <paramref name="level"/> | стоим на <paramref name="start"/>):
+            /// единица при равенстве, ноль — недостижим. Обёртка над
+            /// <see cref="Reach"/> для хода по паре (`S177`).
+            /// </summary>
+            public double ReachOf(int start, int level)
+            {
+                if (level == start)
+                {
+                    return 1.0;
+                }
+
+                if (level > start)
+                {
+                    return 0.0;
+                }
+
+                double have;
+                return this.Reach(start).TryGetValue(level, out have) ? have : 0.0;
+            }
+
             /// <summary>
             /// P(достичь уровня k | стоим на уровне <paramref name="start"/>) для
             /// всех k ниже. Ход по убыванию номера уровня: переход всегда
