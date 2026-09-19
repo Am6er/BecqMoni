@@ -5245,7 +5245,7 @@
     <value>L X-ray escape</value>
   </data>
   <data name="FSAReport_MatrixLayerTip" xml:space="preserve">
-    <value>Draws only this response-matrix channel of every component; nothing is recomputed, the table is unchanged.</value>
+    <value>Draws only this response-matrix channel of every component; the Compton channel also carries the component's untied tail below the matrix trust floor. Nothing is recomputed, the table is unchanged.</value>
   </data>
   <data name="FSAReport_MatrixLayerNoMatrixTip" xml:space="preserve">
     <value>No response matrix for this spectrum: the model has no channels to show, the whole stack is drawn.</value>

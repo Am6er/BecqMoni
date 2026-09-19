@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 
 namespace BecquerelMonitor.FullSpectrumAnalysis
@@ -39,8 +40,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// тех же слоёв, тем же порядком и теми же цветами (уточнение Amber
     /// 18.09.2026 вопросником: «Стопка по компонентам, как сейчас»); слои без
     /// раскладки по каналам — фон, сплайн, рассеяние, наложения, серый
-    /// «прочее», — а также разнесённая подложка и хвост слоёв в этом режиме не
-    /// рисуются («Спрятать — только канал и спектр»).
+    /// «прочее», — а также разнесённая подложка слоёв в этом режиме не
+    /// рисуются («Спрятать — только канал и спектр»). Отвязанный хвост слоя
+    /// (`S175`) с 19.09.2026 (П112) рисуется В КАНАЛЕ <see cref="Compton"/> —
+    /// решение Amber, дословно: «Класть хвост в слой Compton»; в остальных
+    /// каналах его нет (<see cref="FsaMatrixLayers.CurveOf"/>).
     ///
     /// ⛔ Числа членов ПРИВЯЗАНЫ к номерам каналов симулятора, а не выбраны:
     /// `(int)` члена — индекс в `ChannelCurves`, и расхождение с
@@ -137,6 +141,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <see cref="FsaStackLayer.ChannelCurves"/>[канал]. null — рисовать
         /// нечего: канала у слоя нет (старая матрица с меньшим числом каналов
         /// отдаёт пустой канал — рисуется пусто, не лента и не отказ).
+        ///
+        /// ⛔ (П112, 19.09.2026) КАНАЛ <see cref="FsaMatrixLayer.Compton"/>
+        /// РИСУЕТСЯ ВМЕСТЕ С ОТВЯЗАННЫМ ХВОСТОМ СЛОЯ
+        /// (<see cref="FsaStackLayer.TailCurve"/>, `S175`): кривая = канал +
+        /// хвост, новым массивом. Вопрос Amber 19.09.2026, дословно: «Почему
+        /// комптон на цезии имеет такую просадку в районе рентгена свинца?»;
+        /// решение вопросником того же дня, дословно: «Класть хвост в слой
+        /// Compton». Причина провала: ниже порога доверия матрицы континуум
+        /// образа идёт в фит отвязанным хвостом, и нож вынимает те же бины из
+        /// каналов исхода — в «All» хвост входит в ленту слоя, а в одиночном
+        /// канале ему было некуда лечь, и слой Cs-137 в 60–100 кэВ проваливался
+        /// на две декады (П109). По физике хвост — то же комптоновское плато
+        /// образа ниже порога (описание <see cref="FsaComponentResult.TailCurve"/>),
+        /// поэтому его место — в канале комптона. Сами
+        /// <see cref="FsaStackLayer.ChannelCurves"/> НЕ трогаются: их
+        /// тождество Σ каналов = лента − подложка − хвост стоит как было, и
+        /// на нём стоят пробы; складывается только кривая ДЛЯ ОТРИСОВКИ, и
+        /// только здесь — второй копии этого правила в отрисовке быть не должно.
+        /// Остальные каналы и «All» — без изменений.
         /// </summary>
         public static double[] CurveOf(FsaStackLayer layer, FsaMatrixLayer mode)
         {
@@ -151,9 +174,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             int channel = (int)mode;
-            return layer.ChannelCurves != null && channel >= 0 && channel < layer.ChannelCurves.Length
+            double[] curve = layer.ChannelCurves != null && channel >= 0 && channel < layer.ChannelCurves.Length
                 ? layer.ChannelCurves[channel]
                 : null;
+
+            if (mode != FsaMatrixLayer.Compton || curve == null || layer.TailCurve == null)
+            {
+                return curve;
+            }
+
+            // Канал + хвост — новым массивом: канал слоя остаётся тем, чем
+            // был (тождество каналов), хвост остаётся у слоя отдельной записью.
+            double[] tail = layer.TailCurve;
+            double[] drawn = new double[Math.Max(curve.Length, tail.Length)];
+            for (int i = 0; i < drawn.Length; i++)
+            {
+                drawn[i] = (i < curve.Length ? curve[i] : 0.0) + (i < tail.Length ? tail[i] : 0.0);
+            }
+
+            return drawn;
+        }
+
+        /// <summary>
+        /// (П112) Входит ли отвязанный хвост слоя в его кривую в этом режиме:
+        /// при «All» — да, лентой (<see cref="FsaStackLayer.Curve"/> его уже
+        /// несёт); при канале — только у <see cref="FsaMatrixLayer.Compton"/>
+        /// (см. <see cref="CurveOf"/>). Одно место ответа на вопрос «куда
+        /// делся хвост в этом режиме» — для отрисовки, проб и витрины.
+        /// </summary>
+        public static bool TailDrawn(FsaMatrixLayer mode)
+        {
+            return mode == FsaMatrixLayer.All || mode == FsaMatrixLayer.Compton;
         }
 
         /// <summary>Слои, которые рисуются в этом режиме, — в порядке стопки.</summary>

@@ -182,7 +182,9 @@ namespace BecquerelMonitor
         /// заказывает и ТАБЛИЦУ НЕ МЕНЯЕТ (фит не пересчитывается — доли,
         /// невязка и χ²/ndf те же при любом слое). Меняется одна стопка на
         /// графике: у каждого компонента рисуется только выбранный канал
-        /// (<see cref="EnergySpectrumView.FsaMatrixLayer"/>). Живёт в ОКНЕ и
+        /// (<see cref="EnergySpectrumView.FsaMatrixLayer"/>; канал комптона —
+        /// вместе с отвязанным хвостом компонента, П112 19.09.2026, правило —
+        /// <see cref="FsaMatrixLayers.CurveOf"/>). Живёт в ОКНЕ и
         /// переезжает на график того документа, который показывается сейчас.
         /// </summary>
         FsaMatrixLayer requestedMatrixLayer = FsaMatrixLayer.All;
