@@ -393,6 +393,39 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool ElectronLayerMixedScattering = new ResponseMatrixOptions().ElectronLayerMixedScattering;
 
         /// <summary>
+        /// (`M13`, вторая половина; П106 19.09.2026) ТОРМОЗНОЕ ЭЛЕКТРОНА В СЛОЯХ
+        /// ОБВЯЗКИ — ПО ХОДУ ПЕРЕНОСА — ключ сделан ВЫКЛ; решение о ВКЛ (=
+        /// физика 21, единый счёт склада) — за Amber. Умолчание ПОЛЯ — умолчание
+        /// СКЛАДА (<see cref="ResponseMatrixOptions.ElectronLayerBremAlongPath"/>,
+        /// правило I).
+        ///
+        /// Включённый — в переносе по слоям (`TransportInLayers`, только под
+        /// <see cref="ElectronLayerTransport"/>) на каждом шаге в веществе слоя
+        /// рождаются кванты тонкой мишени ЭТОГО вещества при энергии середины
+        /// шага (<see cref="ThickTargetBrem.StepPhotons"/> таблицы
+        /// <see cref="LayerBrem"/>, уровень подтянут к ESTAR множителем
+        /// <see cref="ThickTargetBrem.Anchor"/> по энергии входа в вещество),
+        /// направление — по электрону (модифицированный Цай, как `bpath=2` в
+        /// кристалле); электрон, который погибнет в слое (ранний выход), отдаёт
+        /// остаток толстой мишенью в точке гибели; ушедший из сцены — ничего.
+        /// Толстая мишень в точке рождения (<see cref="OutsideBremsstrahlung"/>)
+        /// и в точке выхода (`LayerBremsstrahlung`) у ведомых переносом
+        /// электронов при этом НЕ разыгрывается; электрон ниже 20 кэВ и занос при
+        /// `ElectronCarryDetour = 0` (абляция) — толстой мишенью, как без ключа.
+        /// Кванты идут туда же, куда шли кванты толстой мишени: у заноса — в
+        /// очередь обхода (<c>push</c>), у возврата — в очередь вылетов
+        /// (<see cref="NoteEscape"/>), когда она открыта.
+        ///
+        /// Зачем (П106 §3–§4, арбитр Geant4 плечами `killoutbrem`): остаток
+        /// RC103 1 см³ CsI при 2614 кэВ (+9 % в 0–50 кэВ) сидит в тормозном
+        /// электронов ОБВЯЗКИ — толстая мишень приписывает электрону из 1 мм
+        /// PTFE / 1 мм Al полный выход при пробеге 2…5 мм и светит изотропно.
+        /// Выключенный — прежний ход до последнего бита и без единого лишнего
+        /// случайного числа.
+        /// </summary>
+        public bool ElectronLayerBremAlongPath = new ResponseMatrixOptions().ElectronLayerBremAlongPath;
+
+        /// <summary>
         /// (`M13`, П100) Угол отсечки смешанной схемы в слоях, градусы:
         /// столкновения с отклонением больше него — жёсткие, по одному. Режим
         /// ЗАМЕРА, не настройка: двигает `LayerReturnProbe --cutoff=` для
@@ -426,6 +459,90 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// считаются).
         /// </summary>
         public long CountLayerSteps, CountLayerHardCollisions;
+
+        /// <summary>
+        /// (`M13`, П106 19.09.2026) РЫЧАГИ ЗАМЕРА, не настройки: состав
+        /// «возврата» электрона по населениям — зеркала рычагов арбитра `g4cf`
+        /// (`killescown` / `killesccarry` / `killret` / `killretsame` /
+        /// `killretother` / `killescbrem`), чтобы плечо «умолчание − рычаг»
+        /// у нас и у Geant4 мерило ОДНО И ТО ЖЕ население. Двигает только
+        /// `G4RawProbe --ret-kill=`; ни один штатный путь их не ставит, в клеймо
+        /// не входят. Всё под ключом <see cref="ElectronLayerTransport"/>.
+        ///
+        /// <see cref="LayerReturnOwn"/> false — электрон, РОЖДЁННЫЙ В КРИСТАЛЛЕ
+        /// (не занесённый), на грани списывается, как без ключа: ни возврата,
+        /// ни тормозного слоя (= `killescown`).
+        /// <see cref="LayerReturnCarried"/> false — то же для ЗАНЕСЁННОГО
+        /// электрона (перенос по кристаллу из <see cref="CarriedElectronDeposit"/>)
+        /// при его выходе из кристалла (= `killesccarry`).
+        /// <see cref="LayerExitBremsstrahlung"/> false — у своего электрона
+        /// тормозное слоя в точке выхода не разыгрывается, перенос в слоях
+        /// идёт (= `killescbrem`: кванты родословной вылетевшего гасятся).
+        /// <see cref="LayerReturnKill"/>: 0 — возврат как есть; 1 — свой
+        /// электрон, вернувшийся в кристалл, списывается на входе (тормозное
+        /// выхода уже разыграно; = `killret`); 2 — только вернувшийся через ТУ
+        /// ЖЕ грань, что вышел (= `killretsame`); 3 — только через ДРУГУЮ
+        /// (= `killretother`). Грань — по положению точки на поверхности
+        /// кристалла (<see cref="CrystalFaceId"/>).
+        /// </summary>
+        public bool LayerReturnOwn = true;
+        public bool LayerReturnCarried = true;
+        public bool LayerExitBremsstrahlung = true;
+        public int LayerReturnKill;
+
+        /// <summary>
+        /// (`M13`, П106) Рычаг замера: тормозное электрона, РОЖДЁННОГО В СЛОЕ
+        /// обвязки / пробе (<see cref="OutsideBremsstrahlung"/>, толстая мишень
+        /// в точке рождения), не разыгрывать — зеркало `killoutbrem` арбитра
+        /// (кванты, рождённые вне кристалла электронами, рождёнными вне
+        /// кристалла, гасятся). Умолчание ВКЛ — ход прежний; двигает только
+        /// `G4RawProbe --ret-kill=outbrem`.
+        /// </summary>
+        public bool LayerBornBremsstrahlung = true;
+
+        /// <summary>
+        /// (`M13`, П106) Счётчики населений возврата — читает `G4RawProbe`; не
+        /// настройки. Вылетов и возвратов ЗАНЕСЁННОГО электрона (остальное в
+        /// <see cref="CountLayerEscapes"/> / <see cref="CountLayerReturns"/> —
+        /// свои); возвратов своего через ту же грань / через другую; возвратов,
+        /// списанных рычагом <see cref="LayerReturnKill"/>.
+        /// </summary>
+        public long CountLayerEscapesCarried, CountLayerReturnsCarried;
+        /// <summary>(П106) Электронов, рождённых в обвязке/пробе и ОТДАННЫХ переносу в слоях (≥ 20 кэВ, занос не снят) — население заноса до отбора.</summary>
+        public long CountLayerBorn;
+        public long CountLayerReturnsSameFace, CountLayerReturnsOtherFace, CountLayerReturnsKilled;
+
+        /// <summary>
+        /// (`M13`, П106) Перенос по кристаллу идёт у ЗАНЕСЁННОГО электрона
+        /// (<see cref="CarriedElectronDeposit"/>) — чтобы
+        /// <see cref="EscapeOrReturn"/> знал, чьё население перед ним.
+        /// </summary>
+        bool carriedInCrystal;
+
+        /// <summary>
+        /// (`M13`, П106) Приёмник квантов тормозного ПО ХОДУ переноса в слоях
+        /// (<see cref="ElectronLayerBremAlongPath"/>) у ТЕКУЩЕГО вызова
+        /// `TransportInLayers`: у заноса — очередь обхода (<c>push</c>
+        /// <see cref="CarriedElectronEnters"/>), у возврата — null, и квант идёт в
+        /// очередь вылетов (<see cref="NoteEscape"/>), когда она открыта, иначе
+        /// унесён — как кванты толстой мишени `LayerBremsstrahlung`. Ставится и
+        /// снимается вызывающим вокруг переноса.
+        /// </summary>
+        Action<double, double, double, double, double, double, double> layerBremPush;
+
+        /// <summary>
+        /// (`M13`, П106) Тормозное по ходу у текущего переноса в слоях разрешено
+        /// рычагами замера (<see cref="LayerBornBremsstrahlung"/> у заноса,
+        /// <see cref="LayerExitBremsstrahlung"/> у своего вылетевшего).
+        /// </summary>
+        bool layerBremEnabled;
+
+        /// <summary>
+        /// (`M13`, П106) Счётчики тормозного по ходу переноса в слоях — квантов и
+        /// их энергия, кэВ; читает `G4RawProbe`; не настройки.
+        /// </summary>
+        public long CountLayerBremPhotons;
+        public double SumLayerBremKev;
 
         /// <summary>
         /// Сколько энергии событие может потерять и всё-таки остаться в пике,
@@ -6960,7 +7077,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Кэш луча кванта — спрятать на время переноса электрона и вернуть
             // (П94 §7.1): обход кванта продолжается своим кэшем.
             this.SaveRay();
+            // (П106) Тормозное по ходу переноса — в очередь обхода; рычаг замера
+            // `LayerBornBremsstrahlung` глушит его так же, как толстую мишень.
+            this.layerBremPush = push;
+            this.layerBremEnabled = this.LayerBornBremsstrahlung;
+            this.CountLayerBorn++;
             bool entered = this.TransportInLayers(ref xIn, ref yIn, ref zIn, ref uxIn, ref uyIn, ref uzIn, ref tIn, 0);
+            this.layerBremPush = null;
             this.RestoreRay();
             if (!entered)
             {
@@ -7013,7 +7136,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.escapeCount = 0;
             this.escapeLost = 0;
             this.escapeCollect = true;
+            // (П106) Метка населения для `EscapeOrReturn`: перенос занесённого.
+            this.carriedInCrystal = true;
             double lost = this.ElectronLoss(xIn, yIn, zIn, tIn, 0, ElectronBirth.Given, uxIn, uyIn, uzIn);
+            this.carriedInCrystal = false;
             this.escapeCollect = false;
             for (int k = 0; k < this.escapeCount; k++)
             {
@@ -7143,7 +7269,20 @@ namespace BecquerelMonitor.EfficiencyMaker
                                      Action<double, double, double, double, double, double, double> push)
         {
             const double MinKev = 5.0;
-            if (!this.ElectronAnyMaterial || !this.Bremsstrahlung || !(te > MinKev) || material == null)
+            // (П106) `LayerBornBremsstrahlung` — рычаг замера, умолчанием ВКЛ.
+            if (!this.ElectronAnyMaterial || !this.Bremsstrahlung || !this.LayerBornBremsstrahlung
+                || !(te > MinKev) || material == null)
+            {
+                return 0.0;
+            }
+
+            // (`M13`, П106) Под ключом `ElectronLayerBremAlongPath` электрон, которого
+            // перенос в слоях ПОВЕДЁТ (ключ `eltr`, занос не снят абляцией, энергия
+            // не ниже порога переноса 20 кэВ — тот же порог, что в
+            // `CarriedElectronEnters`), излучает по ходу переноса — толстая
+            // мишень в точке рождения не разыгрывается. Остальные — как без ключа.
+            if (this.ElectronLayerBremAlongPath && this.ElectronLayerTransport
+                && this.ElectronCarryDetour > 0.0 && te >= 20.0)
             {
                 return 0.0;
             }

@@ -1,0 +1,11 @@
+# П106 (M13): наша сторона, сборка build_p106 редакции 2 (+ --ret-kill=outbrem). Контроль (A77): def 200 тыс. побайтно = logs\smoke_def.csv редакции 1.
+ours;RC103_point0_p55;2614.511;200000;smoke2;
+ours;RC103_point0_p55;2614.511;20000000;outbrem0;--ret-kill=outbrem
+ours;RC103_point0_p55;2614.511;20000000;base0;--detour=0 --ret-kill=own
+ours;RC103_point0_p55;2614.511;20000000;photon0;--detour=0 --ret-kill=own,outbrem
+ours;AS80_th_disk;2614.511;8000000;outbrem0;--ret-kill=outbrem
+ours;AS80_th_disk;2614.511;8000000;base0;--detour=0 --ret-kill=own
+ours;AS80_th_disk;2614.511;8000000;photon0;--detour=0 --ret-kill=own,outbrem
+ours;RC103_point0_p55;1460.82;20000000;outbrem0;--ret-kill=outbrem
+ours;RC103_point0_p55;1460.82;20000000;base0;--detour=0 --ret-kill=own
+ours;RC103_point0_p55;1460.82;20000000;photon0;--detour=0 --ret-kill=own,outbrem

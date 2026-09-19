@@ -272,6 +272,14 @@ MATRIX = [
      u'только включённым (T42); ВЫКЛ до единого счёта, ВКЛ умолчанием с 19.09.2026 (физика 20, П103; '
      u'решение Amber 18.09.2026 «ВКЛ сейчас, единый счёт ночью»); --elmix=0 — абляция «как физика 19»: '
      u'тело побитово = склад rev29. Путь КРИВОЙ берёт ключ от этого же умолчания (реестр 3)'),
+    (u'ElectronLayerBremAlongPath', True, u'--lbrem=', None, u'намеренно',
+     u'M13 (вторая половина), П106 19.09.2026: ТОРМОЗНОЕ ЭЛЕКТРОНА В СЛОЯХ ОБВЯЗКИ ПО ХОДУ ПЕРЕНОСА '
+     u'(только под eltr=1) — кванты тонкой мишени вещества текущего слоя на шагах переноса, направление по '
+     u'электрону (Цай); толстые мишени в точке рождения (OutsideBremsstrahlung) и выхода (LayerBremsstrahlung) '
+     u'у ведомых электронов не разыгрываются. Двигает континуум сцен с обвязкой (мягкие полосы) и поток '
+     u'случайных чисел, поэтому входит в клеймо (lbrem=1) и пишется хвостом LBRM — только включённым (T42); '
+     u'ВЫКЛ умолчанием, решение о ВКЛ (= физика 21, единый счёт) — Amber по числам П106. Путь КРИВОЙ берёт '
+     u'ключ от этого же умолчания (реестр 3)'),
     (u'Seed', True, u'--seed=', None, u'намеренно',
      u'T43: независимая выборка тем же кодом, мерка «в пределах шума ГСЧ»'),
     (u'ResolveEdges', False, u'--edges=', None, u'намеренно',
@@ -446,10 +454,29 @@ SIM = [
      u'настроек (MakeSimulator), кривая от их умолчания (EfficiencyCalculation.Run, тем же путём, что '
      u'ElectronLayerTransport) — ВЫКЛ до единого счёта, ВКЛ умолчанием с 19.09.2026 (физика 20, П103); '
      u'в клеймо кривой — elmix=1 только включённым. Умолчание поля симулятора — умолчание склада (правило I)'),
+    (u'ElectronLayerBremAlongPath', True, True, u'общая',
+     u'M13, П106 19.09.2026: тормозное электрона в слоях обвязки по ходу переноса. Матрица от своих '
+     u'настроек (MakeSimulator), кривая от их умолчания (EfficiencyCalculation.Run, тем же путём, что '
+     u'ElectronLayerMixedScattering) — ВЫКЛ до решения Amber о едином счёте; в клеймо кривой — lbrem=1 '
+     u'только включённым. Умолчание поля симулятора — умолчание склада (правило I)'),
     (u'LayerHardCutoffDeg', False, False, u'неприменимо',
      u'M13, П100: угол отсечки жёстких столкновений смешанной схемы (умолчание 20°) — режим замера '
      u'независимости η от отсечки; двигает LayerReturnProbe --cutoff=; в клеймо не входит — единый счёт '
      u'идёт умолчанием'),
+    # (`M13`, П106 19.09.2026) Рычаги замера состава возврата электрона по
+    # населениям -- зеркала рычагов арбитра g4cf (killescown / killesccarry /
+    # killescbrem / killret*); двигает только G4RawProbe --ret-kill=. Тот же
+    # разряд, что ElectronTransportNoEarlyExit: ни один путь их не ставит.
+    (u'LayerReturnOwn', False, False, u'неприменимо',
+     u'M13, П106: рычаг замера — свой электрон на грани списывается (= killescown); двигает G4RawProbe --ret-kill=own'),
+    (u'LayerReturnCarried', False, False, u'неприменимо',
+     u'M13, П106: рычаг замера — занесённый электрон при выходе списывается (= killesccarry); двигает G4RawProbe --ret-kill=carry'),
+    (u'LayerExitBremsstrahlung', False, False, u'неприменимо',
+     u'M13, П106: рычаг замера — тормозное слоя в точке выхода своего электрона (= killescbrem); двигает G4RawProbe --ret-kill=brem'),
+    (u'LayerReturnKill', False, False, u'неприменимо',
+     u'M13, П106: рычаг замера — списать вернувшегося своего электрона на входе: 1 всех, 2 через ту же грань, 3 через другую (= killret/killretsame/killretother); двигает G4RawProbe --ret-kill=ret|same|other'),
+    (u'LayerBornBremsstrahlung', False, False, u'неприменимо',
+     u'M13, П106: рычаг замера — тормозное электронов, рождённых в обвязке/пробе (OutsideBremsstrahlung), не разыгрывать (= killoutbrem); двигает G4RawProbe --ret-kill=outbrem'),
     (u'ScatterRouletteWeight', True, False, u'намеренно', u'кривая берёт умолчание симулятора'),
     (u'SampleFluorescenceOutside', True, False, u'намеренно', u'кривая берёт умолчание симулятора'),
     # Ниже -- поля, которых НЕ СТАВИТ НИ ОДИН из двух путей. Расхождения между
@@ -511,6 +538,12 @@ SIM_NOT_SETTINGS = set([
     # (`M13`, П100) Счётчики смешанной схемы в слоях -- шагов и жёстких
     # столкновений; читаются `G4RawProbe`/`LayerReturnProbe` после прогона.
     u'CountLayerSteps', u'CountLayerHardCollisions',
+    # (`M13`, П106) Счётчики населений возврата -- вылеты/возвраты занесённого,
+    # возвраты своего по граням, списанные рычагом; читает `G4RawProbe`.
+    u'CountLayerEscapesCarried', u'CountLayerReturnsCarried', u'CountLayerBorn',
+    u'CountLayerReturnsSameFace', u'CountLayerReturnsOtherFace', u'CountLayerReturnsKilled',
+    # (`M13`, П106) Счётчики тормозного по ходу переноса в слоях -- квантов и энергия; читает `G4RawProbe`.
+    u'CountLayerBremPhotons', u'SumLayerBremKev',
     # Поля ВЛОЖЕННОГО типа (описание области сцены), а не настройки симулятора:
     # тело класса читается целиком, вложенные объявления попадают в тот же кусок.
     u'IsBox', u'IsCrystal',
@@ -561,6 +594,9 @@ ONE_TRUTH = (
     # (`M13`, П100 18.09.2026) Ключ, заведённый ВЫКЛ до единого счёта физики 20
     # (П103, 19.09.2026): то же правило -- пробы прямого вызова берут умолчание склада.
     (u'ElectronLayerMixedScattering', u'ElectronLayerMixedScattering', None),
+    # (`M13`, П106 19.09.2026) Ключ, заведённый ВЫКЛ до решения Amber о едином счёте
+    # (физика 21): то же правило -- пробы прямого вызова берут умолчание склада.
+    (u'ElectronLayerBremAlongPath', u'ElectronLayerBremAlongPath', None),
 )
 
 

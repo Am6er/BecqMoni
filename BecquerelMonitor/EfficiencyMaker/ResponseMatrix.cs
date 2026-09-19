@@ -378,6 +378,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         //      (`EfficiencyCalculation.Run`, П100) — «одна физика для кривой и
         //      матрицы»; умолчание ПОЛЯ симулятора — от этого же класса
         //      (правило I сторожа `check_matrix_keys.py`).
+        // (21 — ЗАРЕЗЕРВИРОВАНО за единым счётом склада: ключ П106 `lbrem`
+        //      (`M13`, вторая половина, 19.09.2026) — тормозное электрона в
+        //      слоях обвязки ПО ХОДУ переноса вместо толстой мишени в точке
+        //      рождения / выхода (`ResponseMatrixOptions.ElectronLayerBremAlongPath`);
+        //      сделан ВЫКЛ, решение о ВКЛ — за Amber по числам журнала П106.
+        //      Поднимать версию — только вместе с единым счётом склада.)
         public const int PhysicsVersion = 20;
 
         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
@@ -1173,6 +1179,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (options.ElectronLayerMixedScattering)
                 {
                     sb.Append("elmix=1;");
+                }
+
+                // ⛔ (`M13`, П106 19.09.2026) Тормозное электрона в слоях обвязки
+                // по ходу переноса — тем же правилом `T42`: пишется, ТОЛЬКО когда
+                // включено. Двигает континуум сцен с обвязкой (мягкие полосы:
+                // тормозное электронов обвязки) и поток случайных чисел. ВЫКЛ
+                // умолчанием: у склада физики 20 строки нет и тело прежнее.
+                if (options.ElectronLayerBremAlongPath)
+                {
+                    sb.Append("lbrem=1;");
                 }
             }
 
@@ -2281,6 +2297,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // при переходе 18 → 19.
                 writer.Write(Encoding.ASCII.GetBytes("ELMX"));
                 writer.Write(flags.ElectronLayerMixedScattering);
+
+                // ⛔ ДВАДЦАТЬ ВТОРОЙ ХВОСТ — `LBRM` (`M13`, П106 19.09.2026:
+                // тормозное электрона в слоях обвязки по ходу переноса). Те же
+                // два довода: ключ входит в клеймо (`lbrem=1`), и без хвоста
+                // матрица не сходилась бы сама с собой. Формат НЕ поднят: у
+                // файла без хвоста поле остаётся умолчанием класса (`false`) —
+                // чем оно и было при счёте склада физики 20; матрицы склада годны.
+                writer.Write(Encoding.ASCII.GetBytes("LBRM"));
+                writer.Write(flags.ElectronLayerBremAlongPath);
             }
 
             if (File.Exists(path))
@@ -2666,6 +2691,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                                         && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "ELMX")
                                                                     {
                                                                         matrix.Options.ElectronLayerMixedScattering = reader.ReadBoolean();
+
+                                                                        // ⛔ ХВОСТ `LBRM` (`M13`, П106
+                                                                        // 19.09.2026): у файлов до него
+                                                                        // поле остаётся умолчанием
+                                                                        // класса (`false`) — чем и было
+                                                                        // при их счёте; склад физики 20
+                                                                        // годен.
+                                                                        if (stream.Length - stream.Position >= 5
+                                                                            && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "LBRM")
+                                                                        {
+                                                                            matrix.Options.ElectronLayerBremAlongPath = reader.ReadBoolean();
+                                                                        }
                                                                     }
                                                                 }
                                                             }
@@ -4108,6 +4145,48 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// `LayerReturnProbe --elmix=0|1 --cutoff=<град>`.
         /// </summary>
         public bool ElectronLayerMixedScattering = true;
+
+        /// <summary>
+        /// (`M13`, вторая половина; П106 19.09.2026) ТОРМОЗНОЕ ЭЛЕКТРОНА В СЛОЯХ
+        /// ОБВЯЗКИ — ПО ХОДУ ПЕРЕНОСА, а не толстой мишенью в точке рождения /
+        /// выхода. **Ключ сделан ВЫКЛ; решение о ВКЛ (= физика 21, единый счёт
+        /// склада) — за Amber, по числам журнала П106.**
+        ///
+        /// Что делает — у <see cref="EfficiencySimulator.ElectronLayerBremAlongPath"/>
+        /// и в `ElectronTransport.cs` (`TransportInLayers`, только под
+        /// <see cref="ElectronLayerTransport"/>): кванты тормозного электрона,
+        /// идущего по слоям обвязки (занесённого — рождённого в PTFE/Al/пробе, и
+        /// своего — вылетевшего из кристалла), рождаются НА ШАГАХ переноса
+        /// тонкой мишенью ВЕЩЕСТВА ТЕКУЩЕГО СЛОЯ при энергии середины шага
+        /// (<see cref="ThickTargetBrem.StepPhotons"/>, уровень подтянут к ESTAR
+        /// множителем по энергии входа в вещество), направление — по электрону
+        /// (модифицированный Цай, как `bpath=2` в кристалле); электрон, который
+        /// погибнет в слое (ранний выход), отдаёт остаток толстой мишенью в
+        /// точке гибели; электрон, ушедший из сцены в пустоту, не излучает
+        /// больше ничего. Толстая мишень в точке рождения
+        /// (<see cref="EfficiencySimulator.OutsideBremsstrahlung"/>) и в точке
+        /// выхода (`LayerBremsstrahlung`) при этом НЕ разыгрываются — у тех
+        /// электронов, которых перенос в слоях ведёт; электрон ниже 20 кэВ (не
+        /// ведётся) и занос при абляции `--detour=0` — толстой мишенью, как без
+        /// ключа. Зачем: разложение плечами арбитра Geant4 (П106 §3) показало,
+        /// что остаток RC103 1 см³ CsI при 2614 кэВ (+9 % в 0–50 кэВ, +3 %
+        /// нижняя четверть) сидит НЕ в возврате электрона (свой возврат = арбитру
+        /// в 1σ), а в базе — в тормозном электронов ОБВЯЗКИ: толстая мишень
+        /// приписывает электрону из 1 мм PTFE / 1 мм Al полный выход при
+        /// пробеге 2…5 мм (он уходит в пустоту или в кристалл, не дорадировав),
+        /// и изотропно, тогда как у Geant4 квант летит по электрону.
+        ///
+        /// ⛔ Ключ двигает КОНТИНУУМ сцен с обвязкой (мягкие полосы) и ПОТОК
+        /// случайных чисел, поэтому входит в клеймо (`lbrem=1`) и пишется
+        /// хвостом `LBRM` — только включённым (`T42`). Выключенный — ход прежний
+        /// до последнего бита (приёмка `MatrixDiffProbe`, П106 §5). В летописи
+        /// над <see cref="ResponseMatrix.PhysicsVersion"/> стоит резерв
+        /// «(21 — ЗАРЕЗЕРВИРОВАНО …)»: ВКЛ поднимает версию единым счётом, не
+        /// полоса. Путь КРИВОЙ берёт ключ отсюда же (`EfficiencyCalculation.Run`);
+        /// в клеймо кривой уходит `lbrem=1` только включённым. Рычаги —
+        /// `CorpusMatrixProbe --lbrem=0|1`, `G4RawProbe --lbrem=0|1`.
+        /// </summary>
+        public bool ElectronLayerBremAlongPath = false;
 
         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
         public int Threads;

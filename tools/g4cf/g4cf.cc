@@ -64,6 +64,15 @@
 // подпись говорит, ЧЕМ окно заполнено, вместо гадания по схеме; спектр
 // эмиссии даёт доли Kα/Kβ Geant4 против `nucdb` (тип X) напрямую.
 //
+// Рычаги `escpop` / `killescown` / `killesccarry` / `killret` / `killretsame` /
+// `killretother` / `killescbrem` / `killescdelta` / `killoutbrem` (П106, `M13`, 19.09.2026) —
+// СОСТАВ «ВОЗВРАТА» ЭЛЕКТРОНА ПО НАСЕЛЕНИЯМ: свой (рождённый в кристалле) e-
+// против занесённого, возврат самого e- (через ту же грань / другую) против
+// тормозного и δ, рождённых им снаружи. Зачем: `def − killesc` гасит на грани
+// ВСЕ e-, и население этого плеча шире нашего `detour=0`-возврата (П100 §4.4
+// сравнивала эффект возврата ×0.34…0.53 разными населениями). Описание
+// рычагов — у флагов ниже; читатели — `SETUP …` и строка `ESCPOP` в конце.
+//
 // Сборка — build_g4cf.bat рядом (vcvars64 обязан звать bat, не ps1: %PATH%
 // в cmd разворачивается при разборе строки). Прогон — run_g4cf.bat (env на
 // датасеты поставки). Сборка CF из логов — g4_cf.py, родные p_k — g4_pk.py.
@@ -115,6 +124,7 @@
 #include <algorithm>
 #include <map>
 #include <mutex>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -211,6 +221,58 @@ namespace
     bool gKillEscape = false;
     bool gKillCarry = false;
     bool gFullCarry = false;
+
+    // ---- Рычаги П106 (`M13`, 19.09.2026): СОСТАВ «ВОЗВРАТА» ПО НАСЕЛЕНИЯМ.
+    // `def − killesc` гасит на грани ЛЮБОЙ e-, покидающий кристалл, — и
+    // рождённый в кристалле, и занесённый снаружи (тот же e-, что учтён и в
+    // `def − killcarry`: населения плеч пересекаются, и «ни возврата, ни
+    // заноса» ≈ killesc + killcarry − def несёт член пересечения). Наша сторона
+    // мерит возврат ТОЛЬКО рождённых в кристалле (`--detour=0` снимает занос
+    // целиком), поэтому П100 §4.4 сравнивала разные населения. Рычаги ниже
+    // разводят их; все ВЫКЛ по умолчанию, без ключей — прежний ход до бита.
+    //   killescown   — e-, РОЖДЁННЫЙ В КРИСТАЛЛЕ (`GetLogicalVolumeAtVertex`),
+    //                  гасится на выходе из него: нет ни его возврата, ни его
+    //                  тормозного/δ снаружи. `def − killescown` — весь эффект
+    //                  вылетевшего своего e- (наш `elmix1_detour0 − off_detour0`).
+    //   killesccarry — e-, рождённый ВНЕ кристалла, гасится на выходе из него:
+    //                  `def − killesccarry` — возврат занесённого e- (член
+    //                  пересечения плеч killesc/killcarry).
+    //   killret      — свой (рождённый в кристалле) e-, уже покидавший кристалл,
+    //                  гасится при ПОВТОРНОМ входе: `def − killret` — возврат
+    //                  самого электрона; тормозное и δ, рождённые снаружи до
+    //                  возврата, остаются. `killret − killescown` — их вклад.
+    //   killretsame / killretother — то же, но только если грань входа ТА ЖЕ,
+    //                  что грань последнего выхода / ДРУГАЯ (грани — по
+    //                  положению точки на поверхности области `crystal`
+    //                  сцены: брус — 6 граней, кольцо — торцы и бока).
+    //   killescbrem  — квант, РОЖДЁННЫЙ ВНЕ кристалла в родословной своего
+    //                  вылетевшего e- (сам e-, его потомки), гасится при
+    //                  постановке в стек: `def − killescbrem` — вклад тормозного
+    //                  (и флуоресценции) вылетевшего e-, поглощённого в кристалле.
+    //   killescdelta — e-/e+, рождённый ВНЕ кристалла в той же родословной
+    //                  (δ-электрон вылетевшего), гасится: `def − killescdelta`.
+    // Читатели: строка `SETUP … killescown=… `, счётчики `ESCPOP` в конце прогона
+    // (вылетов своих/занесённых, возвратов своих по граням, погашено квантов/δ
+    // родословной, самопроверка геометрии грани `facemiss`).
+    bool gKillEscOwn = false;
+    bool gKillEscCarry = false;
+    bool gKillRet = false;
+    bool gKillRetSame = false;
+    bool gKillRetOther = false;
+    bool gKillEscBrem = false;
+    bool gKillEscDelta = false;
+    //   killoutbrem  — квант ТОРМОЗНОГО (`eBrem`), рождённый ВНЕ кристалла лептоном
+    //                  (e-/e+), который и сам рождён вне кристалла (фото-/комптон-
+    //                  электрон обвязки, пробы), гасится при постановке в стек
+    //                  (кванты аннигиляции позитрона обвязки — НЕ гасятся, считаются):
+    //                  `def − killoutbrem` — вклад тормозного (и флуоресценции
+    //                  от ионизации) электронов обвязки — наше
+    //                  `OutsideBremsstrahlung` (толстая мишень в точке рождения,
+    //                  изотропно). Родословная вылетевших своих e- сюда не
+    //                  входит (у них свой рычаг `killescbrem`).
+    bool gKillOutBrem = false;
+    // Нужна ли родословная вылетевших (любой из рычагов П106 или их счётчики).
+    bool gEscPop = false;
 
     // Моно-режим сценного генератора (П85): косинус угла вылета первички к оси
     // сцены (ось z — на центр кристалла) запоминается на событие, чтобы в конце
@@ -360,6 +422,89 @@ namespace
         double qLo = q.box ? 0.0 : q.a;
         double qHi = q.box ? std::sqrt(q.a * q.a + q.b * q.b) : q.b;
         return pHi > qLo + eps && qHi > pLo + eps;
+    }
+
+    // (П106) Грань области `crystal` сцены, на которой лежит точка (мм, Geant4):
+    // ближайшая по расстоянию плоскость/поверхность. Брус: 1 z0, 2 z1, 3 −x,
+    // 4 +x, 5 −y, 6 +y; кольцо: 1 z0, 2 z1, 3 наружный бок, 4 внутренний бок.
+    // Без сцены (вшитый tube) — 0: грани не различаются. `miss` — точка дальше
+    // 1 мкм от всех граней (самопроверка: у выхода/входа такого быть не должно).
+    int CrystalFace(const G4ThreeVector& posMm, bool& miss)
+    {
+        miss = false;
+        const SceneRegion* c = nullptr;
+        for (const auto& r : gSceneRegions)
+        {
+            if (r.crystal) { c = &r; break; }
+        }
+
+        if (c == nullptr)
+        {
+            return 0;
+        }
+
+        double x = posMm.x() / 10.0, y = posMm.y() / 10.0, z = posMm.z() / 10.0;   // см сцены
+        double d[7];
+        int n = 0;
+        d[1] = std::fabs(z - c->z0);
+        d[2] = std::fabs(z - c->z1);
+        if (c->box)
+        {
+            d[3] = std::fabs(x + c->a);
+            d[4] = std::fabs(x - c->a);
+            d[5] = std::fabs(y + c->b);
+            d[6] = std::fabs(y - c->b);
+            n = 6;
+        }
+        else
+        {
+            double rho = std::sqrt(x * x + y * y);
+            d[3] = std::fabs(rho - c->b);
+            d[4] = c->a > 0.0 ? std::fabs(rho - c->a) : 1e30;
+            n = 4;
+        }
+
+        int best = 1;
+        for (int i = 2; i <= n; ++i)
+        {
+            if (d[i] < d[best]) { best = i; }
+        }
+
+        miss = d[best] > 1e-4;      // 1 мкм
+        return best;
+    }
+
+    // (П106) Точка (мм, Geant4) внутри области `crystal` сцены? Для вторичных
+    // при постановке в стек: `GetLogicalVolumeAtVertex` там ещё не выставлен
+    // (его ставит SetInitialStep перед первым шагом), а положение рождения
+    // известно. Точка рождения вторичного лежит строго внутри объёма шага,
+    // на границе процессы вторичных не рождают.
+    bool InCrystalGeom(const G4ThreeVector& posMm)
+    {
+        const SceneRegion* c = nullptr;
+        for (const auto& r : gSceneRegions)
+        {
+            if (r.crystal) { c = &r; break; }
+        }
+
+        if (c == nullptr)
+        {
+            return false;
+        }
+
+        double x = posMm.x() / 10.0, y = posMm.y() / 10.0, z = posMm.z() / 10.0;
+        if (z < c->z0 || z > c->z1)
+        {
+            return false;
+        }
+
+        if (c->box)
+        {
+            return std::fabs(x) <= c->a && std::fabs(y) <= c->b;
+        }
+
+        double rho = std::sqrt(x * x + y * y);
+        return rho >= c->a && rho <= c->b;
     }
 }
 
@@ -705,7 +850,44 @@ public:
             fHist.push_back(new G4Accumulable<G4int>("h" + std::to_string(i), 0));
             manager->Register(*fHist.back());
         }
+
+        // (П106) Счётчики населений вылета/возврата — см. EscWhat.
+        for (int i = 0; i < kEscN; ++i)
+        {
+            fEsc.push_back(new G4Accumulable<G4int>("esc" + std::to_string(i), 0));
+            manager->Register(*fEsc.back());
+        }
     }
+
+    /// (П106) Что считать в `ESCPOP`.
+    enum EscWhat
+    {
+        EscOwnExit = 0,      // выходов своего (рождённого в кристалле) e- из кристалла
+        EscCarryExit,        // выходов занесённого (рождённого вне) e- из кристалла
+        EscOwnReturn,        // повторных входов своего e- (всего)
+        EscOwnReturnSame,    // из них через ту же грань, что последний выход
+        EscOwnReturnOther,   // через другую грань
+        EscOwnReturnNoFace,  // грань не определена (сцены нет или нет записи выхода)
+        EscLineageGammaOut,  // квантов, рождённых вне кристалла в родословной вылетевшего
+        EscLineageLeptonOut, // e-/e+ там же
+        EscKilledGamma,      // погашено квантов (killescbrem)
+        EscKilledLepton,     // погашено e-/e+ (killescdelta)
+        EscFaceMiss,         // самопроверка: точка выхода/входа дальше 1 мкм от всех граней
+        EscLineageInside,    // самопроверка: потомок в родословной «вне» сделал первый шаг ИЗ кристалла
+        EscOutLepton,        // лептонов (e-/e+), рождённых вне кристалла (не в родословной вылетевших своих)
+        EscOutBremGamma,     // квантов, рождённых вне кристалла такими лептонами
+        EscKilledOutBrem,    // из них погашено (killoutbrem)
+        EscOutAnnihGamma,    // квантов аннигиляции позитрона, рождённого вне кристалла (рычаг их не трогает)
+        EscOutOtherGamma,    // прочих квантов от лептонов вне кристалла (самопроверка: ожидается ~0)
+        EscOutLeptonCompt,   // из лептонов вне кристалла: рождённых комптоном
+        EscOutLeptonPhot,    // фотоэффектом
+        EscOutLeptonConv,    // парой
+        EscOutLeptonIoni,    // ионизацией (δ-электроны)
+        EscOutLeptonAbove20, // из всех: с кинетикой ≥ 20 кэВ (наш порог переноса в слоях)
+        kEscN
+    };
+
+    void CountEsc(EscWhat what) { *fEsc[what] += 1; }
 
     void BeginOfRunAction(const G4Run*) override
     {
@@ -777,6 +959,25 @@ public:
             }
 
             std::printf("HISTEND\n");
+        }
+
+        if (gEscPop)
+        {
+            // (П106) Населения вылета/возврата — читатель рычагов killesc*/killret*.
+            std::printf("ESCPOP decays=%ld own_exit=%d carry_exit=%d own_return=%d same=%d other=%d noface=%d"
+                        " lineage_gamma_out=%d lineage_lepton_out=%d killed_gamma=%d killed_lepton=%d"
+                        " facemiss=%d lineage_inside=%d out_lepton=%d out_brem_gamma=%d killed_out_brem=%d out_annih_gamma=%d out_other_gamma=%d"
+                        " out_lepton_compt=%d out_lepton_phot=%d out_lepton_conv=%d out_lepton_ioni=%d out_lepton_ge20kev=%d\n",
+                        decays, fEsc[EscOwnExit]->GetValue(), fEsc[EscCarryExit]->GetValue(),
+                        fEsc[EscOwnReturn]->GetValue(), fEsc[EscOwnReturnSame]->GetValue(),
+                        fEsc[EscOwnReturnOther]->GetValue(), fEsc[EscOwnReturnNoFace]->GetValue(),
+                        fEsc[EscLineageGammaOut]->GetValue(), fEsc[EscLineageLeptonOut]->GetValue(),
+                        fEsc[EscKilledGamma]->GetValue(), fEsc[EscKilledLepton]->GetValue(),
+                        fEsc[EscFaceMiss]->GetValue(), fEsc[EscLineageInside]->GetValue(),
+                        fEsc[EscOutLepton]->GetValue(), fEsc[EscOutBremGamma]->GetValue(),
+                        fEsc[EscKilledOutBrem]->GetValue(), fEsc[EscOutAnnihGamma]->GetValue(), fEsc[EscOutOtherGamma]->GetValue(),
+                        fEsc[EscOutLeptonCompt]->GetValue(), fEsc[EscOutLeptonPhot]->GetValue(), fEsc[EscOutLeptonConv]->GetValue(),
+                        fEsc[EscOutLeptonIoni]->GetValue(), fEsc[EscOutLeptonAbove20]->GetValue());
         }
 
         if (gTagMode)
@@ -899,6 +1100,7 @@ private:
     G4Accumulable<G4int> fAny;
     std::vector<G4Accumulable<G4int>*> fPeaks;
     std::vector<G4Accumulable<G4int>*> fHist;
+    std::vector<G4Accumulable<G4int>*> fEsc;      // (П106) населения вылета/возврата
     G4Accumulable<G4int> fAngN;
     G4Accumulable<G4double> fAngS2, fAngS4, fAngS22, fAngS44;
     std::vector<G4Accumulable<G4int>*> fAngHist;
@@ -919,7 +1121,46 @@ public:
         fGammas.clear();
         fGammaDep.clear();
         fAncestor.clear();
+        if (gEscPop)
+        {
+            fEscLineage.clear();
+            fExitFace.clear();
+            fOutLeptons.clear();
+        }
     }
+
+    // ---- (П106) Лептоны, рождённые вне кристалла (обвязка, проба), — родители
+    // квантов рычага `killoutbrem`.
+    void MarkOutLepton(int trackId) { fOutLeptons.insert(trackId); }
+    bool IsOutLepton(int trackId) const { return fOutLeptons.count(trackId) != 0; }
+
+    // ---- (П106) Родословная вылетевших своих e-: сам e- (рождён в кристалле,
+    // покидал его) и все его потомки, где бы ни родились. Грань последнего
+    // выхода — по треку, для killretsame/killretother.
+    void MarkEscaped(int trackId, int face)
+    {
+        fEscLineage.insert(trackId);
+        fExitFace[trackId] = face;
+    }
+
+    bool InLineage(int trackId) const { return fEscLineage.count(trackId) != 0; }
+
+    void Inherit106(int trackId, int parentId)
+    {
+        if (fEscLineage.count(parentId) != 0)
+        {
+            fEscLineage.insert(trackId);
+        }
+    }
+
+    /// Грань последнего выхода трека; 0 — записи нет.
+    int ExitFace(int trackId) const
+    {
+        auto it = fExitFace.find(trackId);
+        return it == fExitFace.end() ? 0 : it->second;
+    }
+
+    RunAction* Run() const { return fRun; }
 
     void EndOfEventAction(const G4Event*) override
     {
@@ -1131,6 +1372,9 @@ private:
     std::vector<long> fPairN1, fPairN12;              // `emitpair`
     std::map<int, long> fEmit;
     long fEmitEvents = 0;
+    std::set<int> fEscLineage;                        // (П106) родословная вылетевших своих e-
+    std::map<int, int> fExitFace;                     // (П106) трек → грань последнего выхода
+    std::set<int> fOutLeptons;                        // (П106) e-/e+, рождённые вне кристалла
 };
 
 namespace
@@ -1156,6 +1400,88 @@ public:
 
     G4ClassificationOfNewTrack ClassifyNewTrack(const G4Track* track) override
     {
+        // (П106) Родословная вылетевшего своего e-: потомок, РОЖДЁННЫЙ ВНЕ
+        // кристалла, наследует метку, считается (квант / лептон) и по рычагу
+        // гасится. Потомок, рождённый в кристалле (тормозное вернувшегося e-),
+        // метки не наследует — это уже следствие возврата, а не судьба снаружи.
+        if (gEscPop && track->GetParentID() > 0 && fEvent->InLineage(track->GetParentID())
+            && !InCrystalGeom(track->GetPosition()))
+        {
+            fEvent->Inherit106(track->GetTrackID(), track->GetParentID());
+            bool gamma = track->GetDefinition() == G4Gamma::GammaDefinition();
+            int pdg = std::abs(track->GetDefinition()->GetPDGEncoding());
+            bool lepton = pdg == 11;
+            if (gamma)
+            {
+                fEvent->Run()->CountEsc(RunAction::EscLineageGammaOut);
+                if (gKillEscBrem)
+                {
+                    fEvent->Run()->CountEsc(RunAction::EscKilledGamma);
+                    return fKill;
+                }
+            }
+            else if (lepton)
+            {
+                fEvent->Run()->CountEsc(RunAction::EscLineageLeptonOut);
+                if (gKillEscDelta)
+                {
+                    fEvent->Run()->CountEsc(RunAction::EscKilledLepton);
+                    return fKill;
+                }
+            }
+        }
+        else if (gEscPop && track->GetParentID() > 0 && !InCrystalGeom(track->GetPosition()))
+        {
+            // (П106) Вне родословной вылетевших: лептон, рождённый вне кристалла,
+            // запоминается; квант от такого лептона — тормозное/флуоресценция
+            // обвязки (`killoutbrem`).
+            int pdg = std::abs(track->GetDefinition()->GetPDGEncoding());
+            if (pdg == 11)
+            {
+                fEvent->MarkOutLepton(track->GetTrackID());
+                fEvent->Run()->CountEsc(RunAction::EscOutLepton);
+                // Население по процессу-создателю и по нашему порогу переноса (20 кэВ).
+                const G4VProcess* cp = track->GetCreatorProcess();
+                std::string cname = cp != nullptr ? cp->GetProcessName() : std::string();
+                if (cname.find("compt") != std::string::npos) { fEvent->Run()->CountEsc(RunAction::EscOutLeptonCompt); }
+                else if (cname.find("phot") != std::string::npos) { fEvent->Run()->CountEsc(RunAction::EscOutLeptonPhot); }
+                else if (cname.find("conv") != std::string::npos) { fEvent->Run()->CountEsc(RunAction::EscOutLeptonConv); }
+                else if (cname.find("Ioni") != std::string::npos) { fEvent->Run()->CountEsc(RunAction::EscOutLeptonIoni); }
+                if (track->GetKineticEnergy() >= 20.0 * keV) { fEvent->Run()->CountEsc(RunAction::EscOutLeptonAbove20); }
+            }
+            else if (track->GetDefinition() == G4Gamma::GammaDefinition() && fEvent->IsOutLepton(track->GetParentID()))
+            {
+                // ⚠ Только ТОРМОЗНОЕ (`eBrem`): у позитрона, рождённого в обвязке
+                // парой, кванты аннигиляции тоже «рождены вне кристалла лептоном,
+                // рождённым вне», но это не тормозное — наша сторона ведёт их
+                // фотонным обходом (`A52`), и рычаг их не трогает. Первая редакция
+                // рычага (П106, 02:00) гасила и их: плечо арбитра выходило на
+                // 511-кэВных квантах шире нашего `--ret-kill=outbrem`, особенно у
+                // ториевого стекла (пары ∝ Z²). Флуоресценции от ионизации
+                // электронами у option4 нет (PIXE выкл) — прочие кванты считаются
+                // отдельно как самопроверка.
+                const G4VProcess* creator = track->GetCreatorProcess();
+                std::string pname = creator != nullptr ? creator->GetProcessName() : std::string();
+                if (pname.find("annihil") != std::string::npos)
+                {
+                    fEvent->Run()->CountEsc(RunAction::EscOutAnnihGamma);
+                }
+                else if (pname.find("Brem") != std::string::npos)
+                {
+                    fEvent->Run()->CountEsc(RunAction::EscOutBremGamma);
+                    if (gKillOutBrem)
+                    {
+                        fEvent->Run()->CountEsc(RunAction::EscKilledOutBrem);
+                        return fKill;
+                    }
+                }
+                else
+                {
+                    fEvent->Run()->CountEsc(RunAction::EscOutOtherGamma);
+                }
+            }
+        }
+
         if ((!gAngCorrMode && !gTagMode) || track->GetParentID() <= 0)
         {
             return fUrgent;
@@ -1226,6 +1552,70 @@ public:
             if (gTagMode)
             {
                 fEvent->AddTo(step->GetTrack()->GetTrackID(), step->GetTotalEnergyDeposit() / keV);
+            }
+        }
+
+        // (П106) Населения вылета/возврата e- по грани кристалла — см. шапку
+        // рычагов killescown/killesccarry/killret*/killescbrem/killescdelta.
+        if (gEscPop && step->GetTrack()->GetDefinition() == G4Electron::Definition())
+        {
+            G4Track* track = step->GetTrack();
+            RunAction* run = fEvent->Run();
+            // Самопроверка геометрического теста стека: потомок, помеченный
+            // «рождён вне кристалла», первый шаг делает ИЗ кристалла — расхождение.
+            if (track->GetCurrentStepNumber() == 1 && track->GetParentID() > 0 && preInCrystal
+                && fEvent->InLineage(track->GetTrackID()))
+            {
+                run->CountEsc(RunAction::EscLineageInside);
+            }
+
+            auto postVol = step->GetPostStepPoint()->GetTouchableHandle()->GetVolume();
+            bool postIn = postVol != nullptr && postVol->GetLogicalVolume() == Detector::fCrystal;
+            if (preInCrystal != postIn)
+            {
+                bool own = track->GetLogicalVolumeAtVertex() == Detector::fCrystal;
+                bool miss = false;
+                int face = CrystalFace(step->GetPostStepPoint()->GetPosition(), miss);
+                if (miss)
+                {
+                    run->CountEsc(RunAction::EscFaceMiss);
+                }
+
+                if (preInCrystal)
+                {
+                    // Выход из кристалла.
+                    if (own)
+                    {
+                        run->CountEsc(RunAction::EscOwnExit);
+                        fEvent->MarkEscaped(track->GetTrackID(), face);
+                        if (gKillEscOwn)
+                        {
+                            track->SetTrackStatus(fStopAndKill);
+                        }
+                    }
+                    else
+                    {
+                        run->CountEsc(RunAction::EscCarryExit);
+                        if (gKillEscCarry)
+                        {
+                            track->SetTrackStatus(fStopAndKill);
+                        }
+                    }
+                }
+                else if (own && fEvent->InLineage(track->GetTrackID()))
+                {
+                    // Повторный вход своего e-, уже покидавшего кристалл.
+                    run->CountEsc(RunAction::EscOwnReturn);
+                    int exitFace = fEvent->ExitFace(track->GetTrackID());
+                    bool known = face != 0 && exitFace != 0;
+                    bool same = known && face == exitFace;
+                    run->CountEsc(!known ? RunAction::EscOwnReturnNoFace
+                                  : same ? RunAction::EscOwnReturnSame : RunAction::EscOwnReturnOther);
+                    if (gKillRet || (gKillRetSame && same) || (gKillRetOther && known && !same))
+                    {
+                        track->SetTrackStatus(fStopAndKill);
+                    }
+                }
             }
         }
 
@@ -1312,10 +1702,18 @@ int main(int argc, char** argv)
     //      `corr` (угловые γ–γ корреляции каскада в RDM), `seed <N>` (зерно
     //      ГСЧ), `killesc`, `killcarry`, `fullcarry` (рычаги П55/П92, см. шапку) — в
     //      любом порядке.
+    //      Рычаги П106 (`M13`): `escpop` (только счётчики населений), `killescown`,
+    //      `killesccarry`, `killret`, `killretsame`, `killretother`, `killescbrem`,
+    //      `killescdelta` — там же, в любом порядке; грани — только со сценой.
     int base = 1;
     while (argc > base && (std::strcmp(argv[base], "vacuum") == 0 || std::strcmp(argv[base], "corr") == 0
                            || std::strcmp(argv[base], "killesc") == 0 || std::strcmp(argv[base], "killcarry") == 0
                            || std::strcmp(argv[base], "fullcarry") == 0 || std::strcmp(argv[base], "iontag") == 0
+                           || std::strcmp(argv[base], "escpop") == 0 || std::strcmp(argv[base], "killescown") == 0
+                           || std::strcmp(argv[base], "killesccarry") == 0 || std::strcmp(argv[base], "killret") == 0
+                           || std::strcmp(argv[base], "killretsame") == 0 || std::strcmp(argv[base], "killretother") == 0
+                           || std::strcmp(argv[base], "killescbrem") == 0 || std::strcmp(argv[base], "killescdelta") == 0
+                           || std::strcmp(argv[base], "killoutbrem") == 0
                            || (std::strcmp(argv[base], "emitpair") == 0 && argc > base + 1)
                            || (std::strcmp(argv[base], "seed") == 0 && argc > base + 1)
                            || (std::strcmp(argv[base], "ionhist") == 0 && argc > base + 2)))
@@ -1324,6 +1722,15 @@ int main(int argc, char** argv)
         {
             gVacuumWorld = true;
         }
+        else if (std::strcmp(argv[base], "escpop") == 0) { gEscPop = true; }
+        else if (std::strcmp(argv[base], "killescown") == 0) { gEscPop = gKillEscOwn = true; }
+        else if (std::strcmp(argv[base], "killesccarry") == 0) { gEscPop = gKillEscCarry = true; }
+        else if (std::strcmp(argv[base], "killret") == 0) { gEscPop = gKillRet = true; }
+        else if (std::strcmp(argv[base], "killretsame") == 0) { gEscPop = gKillRetSame = true; }
+        else if (std::strcmp(argv[base], "killretother") == 0) { gEscPop = gKillRetOther = true; }
+        else if (std::strcmp(argv[base], "killescbrem") == 0) { gEscPop = gKillEscBrem = true; }
+        else if (std::strcmp(argv[base], "killescdelta") == 0) { gEscPop = gKillEscDelta = true; }
+        else if (std::strcmp(argv[base], "killoutbrem") == 0) { gEscPop = gKillOutBrem = true; }
         else if (std::strcmp(argv[base], "ionhist") == 0)
         {
             // (П101) Гистограмма всей шкалы в ион-режиме: шаг и верх, кэВ.
@@ -1402,6 +1809,14 @@ int main(int argc, char** argv)
         base += 2;
     }
 
+    // (П106) Населения по граням и геометрический тест стека знают только
+    // область `crystal` СЦЕНЫ; на вшитом tube рычаги мерили бы пустоту — отказ.
+    if (gEscPop && !gSceneLoaded)
+    {
+        std::fprintf(stderr, "escpop/killescown/killesccarry/killret*/killescbrem/killescdelta/killoutbrem: need `scene <file>`\n");
+        return 2;
+    }
+
     if (argc < base + 3)
     {
         std::fprintf(stderr, "g4cf [vacuum] [corr] [seed <N>] [ionhist <bin_keV> <Emax_keV>] [iontag] [killesc] [killcarry] [fullcarry] [scene <file>] mono <E_keV> <N>"
@@ -1414,7 +1829,14 @@ int main(int argc, char** argv)
                              " EfficiencySimulator). killcarry: kill e- entering the crystal from"
                              " outside (no carry-in, as with --detour=0). fullcarry: an e- born outside"
                              " deposits its whole remaining energy when leaving the crystal (our"
-                             " ElectronCarryDeposit). Ablation levers, P55/P92.\n");
+                             " ElectronCarryDeposit). Ablation levers, P55/P92.\n"
+                             "  P106 (M13) return populations, scene only: escpop (counters only),"
+                             " killescown (kill crystal-born e- on exit), killesccarry (kill outside-born e-"
+                             " on exit), killret / killretsame / killretother (kill crystal-born e- on"
+                             " re-entry: any / same face / other face), killescbrem (kill gammas born"
+                             " outside in the lineage of an escaped crystal-born e-), killescdelta (same"
+                             " for e-/e+), killoutbrem (kill gammas born outside by e-/e+ born outside:"
+                             " bremsstrahlung of cladding electrons). Reader: SETUP flags and the ESCPOP line.\n");
         return 2;
     }
 
@@ -1498,9 +1920,12 @@ int main(int argc, char** argv)
     // если Set… не доехал (заперт, перезаписан умолчанием), здесь будет 0.
     {
         const G4DeexPrecoParameters* deex = G4NuclearLevelData::GetInstance()->GetParameters();
-        std::printf("SETUP correlatedGamma=%d twoJmax=%d vacuum=%d seed=%ld killesc=%d killcarry=%d fullcarry=%d histbin=%.3f histbins=%d iontag=%d\n",
+        std::printf("SETUP correlatedGamma=%d twoJmax=%d vacuum=%d seed=%ld killesc=%d killcarry=%d fullcarry=%d histbin=%.3f histbins=%d iontag=%d"
+                    " escpop=%d killescown=%d killesccarry=%d killret=%d killretsame=%d killretother=%d killescbrem=%d killescdelta=%d killoutbrem=%d\n",
                     deex->CorrelatedGamma() ? 1 : 0, deex->GetTwoJMAX(), gVacuumWorld ? 1 : 0, gSeed,
-                    gKillEscape ? 1 : 0, gKillCarry ? 1 : 0, gFullCarry ? 1 : 0, gHistBinKev, gHistBins, gTagMode ? 1 : 0);
+                    gKillEscape ? 1 : 0, gKillCarry ? 1 : 0, gFullCarry ? 1 : 0, gHistBinKev, gHistBins, gTagMode ? 1 : 0,
+                    gEscPop ? 1 : 0, gKillEscOwn ? 1 : 0, gKillEscCarry ? 1 : 0, gKillRet ? 1 : 0,
+                    gKillRetSame ? 1 : 0, gKillRetOther ? 1 : 0, gKillEscBrem ? 1 : 0, gKillEscDelta ? 1 : 0, gKillOutBrem ? 1 : 0);
         std::fflush(stdout);
     }
     // Пороги рождения вторичных (production cuts) по веществам сцены — в шапку
