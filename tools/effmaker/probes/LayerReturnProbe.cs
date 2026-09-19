@@ -43,7 +43,13 @@ using System.Text;
 ///     layerreturnprobe --geometry=RC103_point0_p55.in [--face=front|side]
 ///                      [--energies=50,100,200,300,500,1000,2000] [--angles=0,45,70]
 ///                      [--n=200000] [--seed=20260917] [--crystal] [--x0=<см>] [--z0=<см>]
-///                      [--elmix=0|1|both] [--cutoff=20] [--step=0.1] [--diag]
+///                      [--elmix=0|1|both] [--cutoff=20] [--step=0.1] [--diag] [--brem]
+///
+/// (`M13`, П106) `--brem` — ключ `ElectronLayerBremAlongPath` ВКЛ на время прогона: печатает
+/// квантов тормозного по ходу переноса в слоях на один пущенный электрон и их среднюю
+/// энергию против толстой мишени вещества первого слоя (`ThickTargetBrem.Photons(T)`) —
+/// поверка выхода тонкой мишени по пути: на толстом слое отношение обязано быть ≈ 1,
+/// на RC103 (PTFE 1 мм + Al 1 мм + пустота) — меньше ровно на долю пути, ушедшую в пустоту.
 ///
 /// Мерка П94 (RC103 П55, PTFE 1 мм + Al 1 мм + пустота, нормальное падение, ключ
 /// `elmix` ВЫКЛ): η = 0.062 (100 кэВ) / 0.047 (500) / 0.031 (1000) — ×0.6 к Табате
@@ -65,7 +71,7 @@ static class LayerReturnProbe
         var angles = new List<double> { 0, 45, 70 };
         int n = 200000;
         ulong seed = 20260917UL;
-        bool crystal = false, diag = false;
+        bool crystal = false, diag = false, brem = false;
         string elmix = "both";
         double cutoff = double.NaN, stepFraction = double.NaN;
         double x0Override = double.NaN, z0Override = double.NaN;   // точка на грани, см (замер)
@@ -95,6 +101,7 @@ static class LayerReturnProbe
             else if (a.StartsWith("--cutoff=", StringComparison.Ordinal)) cutoff = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--step=", StringComparison.Ordinal)) stepFraction = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
             else if (a == "--crystal") crystal = true;
+            else if (a == "--brem") brem = true;
             else if (a == "--diag") diag = true;
             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
         }
@@ -122,6 +129,11 @@ static class LayerReturnProbe
         // (измерено П100: 100 кэВ, 70°, N = 100 000 — η 0.71 и ⟨T′⟩/T 0.92 против 0.41 и
         // 0.72 при другом зерне). В симуляторе этого нет: там снимок делает `EscapeOrReturn`.
         MethodInfo saveRay = typeof(EfficiencySimulator).GetMethod("SaveRay", BindingFlags.NonPublic | BindingFlags.Instance);
+        // (П106) Тормозное по ходу: приватный рычаг `layerBremEnabled` (его ставит вызывающий переноса),
+        // область точки старта и таблица толстой мишени её вещества — отражением.
+        FieldInfo bremEnabled = typeof(EfficiencySimulator).GetField("layerBremEnabled", BindingFlags.NonPublic | BindingFlags.Instance);
+        MethodInfo atMethod = typeof(EfficiencySimulator).GetMethod("At", BindingFlags.NonPublic | BindingFlags.Instance);
+        MethodInfo layerBrem = typeof(EfficiencySimulator).GetMethod("LayerBrem", BindingFlags.NonPublic | BindingFlags.Instance);
         MethodInfo restoreRay = typeof(EfficiencySimulator).GetMethod("RestoreRay", BindingFlags.NonPublic | BindingFlags.Instance);
         if (walk == null || loss == null || saveRay == null || restoreRay == null)
         {
@@ -188,6 +200,7 @@ static class LayerReturnProbe
                     var sim = new EfficiencySimulator(geometry.Clone());
                     sim.ElectronLayerTransport = true;
                     sim.ElectronLayerMixedScattering = m;
+                    if (brem) { sim.ElectronLayerBremAlongPath = true; bremEnabled.SetValue(sim, true); }
                     if (!double.IsNaN(cutoff)) sim.LayerHardCutoffDeg = cutoff;
                     if (!double.IsNaN(stepFraction)) sim.ElectronStepFraction = stepFraction;   // сходимость по шагу (как G4RawProbe --etr-step=)
                     string name = sim.LightYieldName;          // EnsureBuilt
@@ -222,6 +235,19 @@ static class LayerReturnProbe
                     }
 
                     double eta = back / (double)n;
+                    if (brem)
+                    {
+                        object region = atMethod.Invoke(sim, new object[] { x0 + nx * 1e-7, 0.0, z0 + nz * 1e-7 });
+                        var material = region != null ? (GeometryMaterial)region.GetType().GetField("Material").GetValue(region) : null;
+                        var table = material != null ? (ThickTargetBrem)layerBrem.Invoke(sim, new object[] { material }) : null;
+                        double thick = table != null ? table.Photons(te) : 0.0;
+                        double perElectron = sim.CountLayerBremPhotons / (double)n;
+                        Console.WriteLine("    тормозное по ходу (--brem, T={0} кэВ, θ={1}°, elmix={2}): {3} квантов на электрон, средняя энергия {4} кэВ; толстая мишень вещества старта {5} квантов — отношение {6}",
+                                          te, ang, m ? 1 : 0, perElectron.ToString("0.00000", CultureInfo.InvariantCulture),
+                                          (sim.CountLayerBremPhotons > 0 ? sim.SumLayerBremKev / sim.CountLayerBremPhotons : 0.0).ToString("0.0", CultureInfo.InvariantCulture),
+                                          thick.ToString("0.00000", CultureInfo.InvariantCulture),
+                                          (thick > 0.0 ? perElectron / thick : 0.0).ToString("0.000", CultureInfo.InvariantCulture));
+                    }
                     row.AppendFormat(" | {0,11:0.0000} {1,7:0.0000} {2,7:0.000} {3,7:0.000} {4,8:0.000}",
                                      eta, Math.Sqrt(eta * (1 - eta) / n),
                                      back > 0 ? sumT / back / te : 0.0, back > 0 ? sumCos / back : 0.0,

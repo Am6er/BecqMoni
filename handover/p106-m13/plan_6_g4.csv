@@ -1,0 +1,7 @@
+# П106 (M13): вторая редакция рычага killoutbrem (только eBrem; кванты аннигиляции позитрона обвязки не гасятся) — те же плечи заново.
+g4;RC103_point0_p55;2614.511;20000000;killoutbrem2;killoutbrem
+g4;RC103_point0_p55;2614.511;20000000;photon2;killescown killcarry killoutbrem
+g4;RC103_point0_p55;1460.82;20000000;killoutbrem2;killoutbrem
+g4;RC103_point0_p55;1460.82;20000000;photon2;killescown killcarry killoutbrem
+g4;AS80_th_disk;2614.511;8000000;killoutbrem2;killoutbrem
+g4;AS80_th_disk;2614.511;8000000;photon2;killescown killcarry killoutbrem

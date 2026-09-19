@@ -864,10 +864,26 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return false;
             }
 
+            // (`M13`, П106) Население: занесённый электрон — только сам перенос
+            // из `CarriedElectronDeposit` (глубина 0 под меткой); всё, что
+            // родилось в кристалле (в том числе от его тормозного, глубина ≥ 1),
+            // — своё, как `GetLogicalVolumeAtVertex` у арбитра. Рычаги замера
+            // `LayerReturnOwn` / `LayerReturnCarried` списывают население на
+            // грани, как без ключа; умолчанием оба ВКЛ — ход прежний.
+            bool carried = this.carriedInCrystal && depth == 0;
+            if (carried ? !this.LayerReturnCarried : !this.LayerReturnOwn)
+            {
+                escaped += tExit;
+                return false;
+            }
+
             double advance = toEdge + 1e-7;
             x += ux * advance;
             y += uy * advance;
             z += uz * advance;
+            // (П106) Грань выхода своего электрона — для счётчиков и рычага
+            // `LayerReturnKill` 2/3; случайных чисел не тянет.
+            int exitFace = carried ? 0 : this.CrystalFaceId(x, y, z);
 
             // ⛔ КЭШ ЛУЧА — СНИМОК И ВОЗВРАТ (П94 §7.1). `At` доверяет
             // разобранному лучу, если точка лежит на нём в 10 нм и
@@ -881,14 +897,58 @@ namespace BecquerelMonitor.EfficiencyMaker
             // обход кванта продолжается ровно тем кэшем, что без ключа.
             this.SaveRay();
             this.CountLayerEscapes++;
-            double tOut = tExit - this.LayerBremsstrahlung(x, y, z, tExit);
+            if (carried)
+            {
+                this.CountLayerEscapesCarried++;
+            }
+
+            // (П106) Рычаг `LayerExitBremsstrahlung` false — своему электрону
+            // тормозное слоя не разыгрывать (зеркало `killescbrem`); у занесённого,
+            // выходящего из кристалла, тормозное снаружи глушит `LayerBornBremsstrahlung`
+            // (зеркало `killoutbrem`: его родословная — «рождён вне кристалла»).
+            bool bremAllowed = carried ? this.LayerBornBremsstrahlung : this.LayerExitBremsstrahlung;
+            // (`M13`, П106) Под ключом `ElectronLayerBremAlongPath` тормозное
+            // рождается ПО ХОДУ переноса в слоях (`TransportInLayers`), а не толстой
+            // мишенью в точке выхода; кванты — в очередь вылетов, когда она открыта.
+            double tOut = tExit - (bremAllowed && !this.ElectronLayerBremAlongPath ? this.LayerBremsstrahlung(x, y, z, tExit) : 0.0);
             double tBack = tOut;
+            this.layerBremPush = null;
+            this.layerBremEnabled = bremAllowed;
             bool back = this.TransportInLayers(ref x, ref y, ref z, ref ux, ref uy, ref uz, ref tBack, depth);
             this.RestoreRay();
             if (!back)
             {
                 escaped += tExit;
                 return false;
+            }
+
+            // (П106) Возврат своего электрона: грань входа против грани выхода
+            // (счётчики) и рычаг `LayerReturnKill` — списать вернувшегося на
+            // входе (всё, что вышло, осталось снаружи; тормозное выхода уже
+            // разыграно — как `killret*` у арбитра).
+            if (!carried)
+            {
+                int entryFace = this.CrystalFaceId(x, y, z);
+                bool same = entryFace == exitFace;
+                if (same)
+                {
+                    this.CountLayerReturnsSameFace++;
+                }
+                else
+                {
+                    this.CountLayerReturnsOtherFace++;
+                }
+
+                if (this.LayerReturnKill == 1 || (this.LayerReturnKill == 2 && same) || (this.LayerReturnKill == 3 && !same))
+                {
+                    this.CountLayerReturnsKilled++;
+                    escaped += tExit;
+                    return false;
+                }
+            }
+            else
+            {
+                this.CountLayerReturnsCarried++;
             }
 
             // Вернулся: осело снаружи `tExit − tBack` (тормозное слоя — тоже
@@ -899,6 +959,44 @@ namespace BecquerelMonitor.EfficiencyMaker
             t = tBack;
             residual = ElectronData.RangeOf(this.electron, t);
             return residual > 0.0;
+        }
+
+        /// <summary>
+        /// (`M13`, П106) Грань кристалла, на которой (или у которой) лежит
+        /// точка: ближайшая по расстоянию поверхность. Брус: 1 z-min, 2 z-max,
+        /// 3 −x, 4 +x, 5 −y, 6 +y; цилиндр/кольцо: 1 z-min, 2 z-max, 3 наружный
+        /// бок, 4 внутренний. Только для счётчиков и рычага `LayerReturnKill`
+        /// — на ход переноса не влияет.
+        /// </summary>
+        int CrystalFaceId(double x, double y, double z)
+        {
+            Region c = this.crystal;
+            int best = 1;
+            double d = Math.Abs(z - c.ZMin);
+            double dz1 = Math.Abs(c.ZMax - z);
+            if (dz1 < d) { d = dz1; best = 2; }
+            if (c.IsBox)
+            {
+                double dxm = Math.Abs(x + c.AX), dxp = Math.Abs(c.AX - x);
+                double dym = Math.Abs(y + c.AY), dyp = Math.Abs(c.AY - y);
+                if (dxm < d) { d = dxm; best = 3; }
+                if (dxp < d) { d = dxp; best = 4; }
+                if (dym < d) { d = dym; best = 5; }
+                if (dyp < d) { d = dyp; best = 6; }
+            }
+            else
+            {
+                double rad = Math.Sqrt(x * x + y * y);
+                double dro = Math.Abs(c.ROut - rad);
+                if (dro < d) { d = dro; best = 3; }
+                if (c.RIn > 0.0)
+                {
+                    double dri = Math.Abs(rad - c.RIn);
+                    if (dri < d) { d = dri; best = 4; }
+                }
+            }
+
+            return best;
         }
 
         /// <summary>
@@ -980,10 +1078,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// пробега, дальше шаг считается заново по таблице нового вещества.
         /// Пустота (области нет или плотности нет) — по прямой без потерь до
         /// следующей границы. Разброса потерь и δ-электронов нет — как в
-        /// кристалле. Тормозное здесь НЕ разыгрывается: у заноса оно снято в
-        /// точке рождения (<see cref="OutsideBremsstrahlung"/>), у возврата — в
-        /// точке выхода (<see cref="LayerBremsstrahlung"/>), толстой мишенью,
-        /// как у `M3`.
+        /// кристалле. Тормозное здесь без ключа НЕ разыгрывается: у заноса оно
+        /// снято в точке рождения (<see cref="OutsideBremsstrahlung"/>), у
+        /// возврата — в точке выхода (<see cref="LayerBremsstrahlung"/>), толстой
+        /// мишенью, как у `M3`. (`M13`, П106 19.09.2026) Под ключом
+        /// <see cref="ElectronLayerBremAlongPath"/> (сделан ВЫКЛ) тормозное
+        /// рождается ЗДЕСЬ, на шагах, тонкой мишенью вещества текущего слоя по
+        /// направлению электрона (<see cref="LayerStepBremsstrahlung"/>), остаток
+        /// у погибающего в слое — толстой мишенью в точке гибели
+        /// (<see cref="LayerRestBremsstrahlung"/>), а толстые мишени в точках
+        /// рождения и выхода не разыгрываются: у Geant4 (П106 §4) тормозное
+        /// электронов обвязки даёт в 0–50 кэВ при 2614 на RC103 вдвое меньше,
+        /// чем наша толстая мишень, — электрон из 1 мм PTFE / 1 мм Al уходит в
+        /// пустоту или в кристалл, не дорадировав, и светит вперёд, не изотропно.
         ///
         /// ⚠ Обход зовёт <see cref="StepToBoundary"/> с НОВЫМ направлением на
         /// каждом шарнире — кэш луча собирается заново (O(областей)); электронов
@@ -1014,6 +1121,18 @@ namespace BecquerelMonitor.EfficiencyMaker
             // (`M13`) Смешанная схема: отсечка одна на весь перенос.
             bool mixed = this.ElectronLayerMixedScattering;
             double muCut = mixed ? this.LayerHardCutoffMu() : 0.0;
+
+            // (`M13`, П106) Тормозное ПО ХОДУ переноса (ключ `ElectronLayerBremAlongPath`,
+            // те же ворота, что у толстой мишени слоя, плюс рычаг замера
+            // `layerBremEnabled`): таблица тонкой мишени и якорь ESTAR — на
+            // вещество, пересчитываются при смене вещества (якорь — по энергии
+            // входа в него); излучённое зажато энергией входа в перенос. Без ключа
+            // — ни одной ветки и ни одного случайного числа.
+            bool lbrem = this.ElectronLayerBremAlongPath && this.layerBremEnabled
+                         && this.ElectronAnyMaterial && this.Bremsstrahlung;
+            ThickTargetBrem bremTable = null;
+            GeometryMaterial bremMaterial = null;
+            double bremAnchor = 1.0, radiated = 0.0, tEntry = t;
 
             for (int step = 0; step < TransportMaxSteps && t > TransportCutKev; step++)
             {
@@ -1048,10 +1167,27 @@ namespace BecquerelMonitor.EfficiencyMaker
                     return false;
                 }
 
+                // (П106) Смена вещества — своя таблица тормозного и якорь по
+                // энергии входа в вещество (в кристалле якорь — по начальной
+                // энергии на весь путь; здесь путь составной).
+                if (lbrem && !ReferenceEquals(here.Material, bremMaterial))
+                {
+                    bremMaterial = here.Material;
+                    bremTable = this.LayerBrem(here.Material);
+                    bremAnchor = bremTable != null ? bremTable.Anchor(t) : 1.0;
+                }
+
                 // Ранний выход, как в кристалле: пробег короче расстояния до
                 // ближайшей границы области — погибнет в ней при любой траектории.
                 if (residual / density <= this.RegionNearestFace(here, x, y, z))
                 {
+                    // (П106) Погибнет здесь — остаток тормозного толстой мишенью
+                    // в точке гибели, как `RestBremsstrahlung` в кристалле.
+                    if (lbrem && bremTable != null)
+                    {
+                        this.LayerRestBremsstrahlung(x, y, z, ux, uy, uz, t, tEntry, bremTable, ref radiated);
+                    }
+
                     return false;
                 }
 
@@ -1088,6 +1224,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double first = stepCm * this.Uniform();
                 if (first >= toNext)
                 {
+                    // (П106) Тормозное ПРОЙДЕННОГО отрезка до границы — в точке
+                    // перехода, при энергии его середины. ⚠ Первая редакция ключа
+                    // излучала только в шарнире, за ВЕСЬ шаг, и отрезки, обрезанные
+                    // границей, не светили вовсе: в слоях 1 мм при шаге 0.3…0.5 мм
+                    // это большинство шагов — выход ключа был 0.55…0.80 от арбитра.
+                    if (lbrem && bremTable != null && toNext > 0.0)
+                    {
+                        this.LayerStepBremsstrahlung(x + ux * toNext, y + uy * toNext, z + uz * toNext, ux, uy, uz,
+                                                     LayerMidEnergy(medium, residual, 0.5 * toNext * density),
+                                                     toNext * density, bremAnchor, tEntry, bremTable, ref radiated);
+                    }
+
                     double through = toNext + 1e-7;
                     x += ux * through;
                     y += uy * through;
@@ -1104,6 +1252,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (tMid < TransportCutKev)
                 {
                     tMid = TransportCutKev;
+                }
+
+                // (`M13`, П106) Тормозное ПЕРВОГО ОТРЕЗКА шага — в точке шарнира,
+                // тонкой мишенью вещества слоя при энергии середины отрезка, по
+                // направлению электрона ДО поворота; второй отрезок излучает в своём
+                // конце (или на границе, если обрезан). Так число квантов
+                // пропорционально пути, ФАКТИЧЕСКИ пройденному в веществе.
+                if (lbrem && bremTable != null)
+                {
+                    this.LayerStepBremsstrahlung(x, y, z, ux, uy, uz,
+                                                 LayerMidEnergy(medium, residual, 0.5 * first * density),
+                                                 first * density, bremAnchor, tEntry, bremTable, ref radiated);
                 }
 
                 // (`M13`) Под ключом ширина мягкого шарнира — средний 1 − cos θ
@@ -1125,6 +1285,15 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (second >= toNext)
                 {
+                    // (П106) Тормозное второго отрезка, обрезанного границей, — в
+                    // точке перехода, по новому направлению.
+                    if (lbrem && bremTable != null && toNext > 0.0)
+                    {
+                        this.LayerStepBremsstrahlung(x + ux * toNext, y + uy * toNext, z + uz * toNext, ux, uy, uz,
+                                                     LayerMidEnergy(medium, residual - first * density, 0.5 * toNext * density),
+                                                     toNext * density, bremAnchor, tEntry, bremTable, ref radiated);
+                    }
+
                     double through = toNext + 1e-7;
                     x += ux * through;
                     y += uy * through;
@@ -1136,6 +1305,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                 x += ux * second;
                 y += uy * second;
                 z += uz * second;
+
+                // (П106) Тормозное второго отрезка — в его конце, по направлению
+                // после шарнира.
+                if (lbrem && bremTable != null && second > 0.0)
+                {
+                    this.LayerStepBremsstrahlung(x, y, z, ux, uy, uz,
+                                                 LayerMidEnergy(medium, residual - first * density, 0.5 * second * density),
+                                                 second * density, bremAnchor, tEntry, bremTable, ref radiated);
+                }
+
                 residual -= stepG;
                 t = ElectronData.EnergyOfRange(medium, residual);
 
@@ -1150,6 +1329,92 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// (`M13`, П106) Энергия электрона в середине отрезка пути в слое, кэВ:
+        /// остаточный пробег <paramref name="residualG"/> минус половина отрезка
+        /// <paramref name="halfG"/> (г/см²), не ниже порога переноса.
+        /// </summary>
+        static double LayerMidEnergy(ElectronData.Material medium, double residualG, double halfG)
+        {
+            double t = ElectronData.EnergyOfRange(medium, Math.Max(0.0, residualG - halfG));
+            return t < TransportCutKev ? TransportCutKev : t;
+        }
+
+        /// <summary>
+        /// (`M13`, П106) Кванты тормозного ОДНОГО ОТРЕЗКА переноса В СЛОЕ обвязки
+        /// (ключ <see cref="ElectronLayerBremAlongPath"/>): тонкая мишень
+        /// вещества слоя при энергии <paramref name="tKev"/> на пути
+        /// <paramref name="stepG"/> г/см², уровень — якорь ESTAR по энергии
+        /// входа в вещество; направление — по электрону (модифицированный Цай,
+        /// как `bpath=2`); сумма квантов не больше энергии входа в перенос
+        /// <paramref name="cap"/> за вычетом уже излучённого. Квант — в приёмник
+        /// (<see cref="LayerEmitBremsstrahlung"/>).
+        /// </summary>
+        void LayerStepBremsstrahlung(double x, double y, double z, double ux, double uy, double uz,
+                                     double tKev, double stepG, double anchor, double cap,
+                                     ThickTargetBrem table, ref double radiated)
+        {
+            int n = this.Poisson(table.StepPhotons(tKev, stepG, anchor));
+            for (int i = 0; i < n; i++)
+            {
+                double k = table.SampleStepKev(tKev, this.Uniform());
+                this.LayerEmitBremsstrahlung(x, y, z, ux, uy, uz, k, tKev, cap, ref radiated);
+            }
+        }
+
+        /// <summary>
+        /// (`M13`, П106) Остаток тормозного электрона, который погибнет в слое
+        /// (ранний выход по ближайшей границе области): толстая мишень вещества
+        /// слоя от текущей энергии <paramref name="tKev"/> в точке гибели — как
+        /// <see cref="RestBremsstrahlung"/> в кристалле.
+        /// </summary>
+        void LayerRestBremsstrahlung(double x, double y, double z, double ux, double uy, double uz,
+                                     double tKev, double cap, ThickTargetBrem table, ref double radiated)
+        {
+            if (!(tKev > table.MinKev))
+            {
+                return;
+            }
+
+            int n = this.Poisson(table.Photons(tKev));
+            for (int i = 0; i < n; i++)
+            {
+                double k = table.SampleKev(tKev, this.Uniform());
+                this.LayerEmitBremsstrahlung(x, y, z, ux, uy, uz, k, tKev, cap, ref radiated);
+            }
+        }
+
+        /// <summary>
+        /// (`M13`, П106) Один квант тормозного из точки (x, y, z) в слое: направление
+        /// по электрону (Цай), зажим суммой, приёмник — очередь обхода заноса
+        /// (<see cref="layerBremPush"/>) либо очередь вылетов
+        /// (<see cref="NoteEscape"/>), когда она открыта; иначе унесён — его
+        /// энергия уже в уносе электрона (как у `LayerBremsstrahlung`).
+        /// </summary>
+        void LayerEmitBremsstrahlung(double x, double y, double z, double ux, double uy, double uz,
+                                     double k, double tKev, double cap, ref double radiated)
+        {
+            double ax = ux, ay = uy, az = uz;
+            this.Rotate(ref ax, ref ay, ref az, this.TsaiCosine(tKev));
+            double kUse = Math.Min(k, cap - radiated);
+            if (!(kUse > 0.0))
+            {
+                return;
+            }
+
+            radiated += kUse;
+            this.CountLayerBremPhotons++;
+            this.SumLayerBremKev += kUse;
+            if (this.layerBremPush != null)
+            {
+                this.layerBremPush(x, y, z, ax, ay, az, kUse);
+            }
+            else if (this.escapeCollect)
+            {
+                this.NoteEscape(x, y, z, ax, ay, az, kUse);
+            }
         }
 
         /// <summary>

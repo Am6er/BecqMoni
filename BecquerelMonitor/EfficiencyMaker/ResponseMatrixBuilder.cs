@@ -865,6 +865,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // в слоях обвязки — тем же путём: не доехав до построителя, ключ
                 // мёртв (`S130`), а клеймо `elmix=1` лгало бы о происхождении.
                 ElectronLayerMixedScattering = options.ElectronLayerMixedScattering,
+                // ⛔ (`M13`, П106 19.09.2026) Тормозное электрона в слоях обвязки
+                // по ходу переноса — тем же путём: не доехав до построителя, ключ
+                // мёртв (`S130`), а клеймо `lbrem=1` лгало бы о происхождении.
+                ElectronLayerBremAlongPath = options.ElectronLayerBremAlongPath,
                 // ⛔ (`E34`) ДОПУСК ПИКА. Ноль здесь стоял безусловно, и это
                 // запирало поправку на однократное рассеяние: `InPeak` требует
                 // `E − deposited ≤ допуск`, а у рассеявшегося кванта недобор
