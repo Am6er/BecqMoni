@@ -32,7 +32,8 @@ namespace G4RawProbe
     /// `ElectronLayerBremAlongPath` — тормозное электрона в слоях обвязки ПО ХОДУ
     /// переноса (тонкая мишень вещества текущего слоя на шагах, направление по
     /// электрону) вместо толстой мишени в точке рождения / выхода. Умолчание —
-    /// склада (ВЫКЛ; решение о ВКЛ = физике 21 — Amber). Мерка: RC103 П55 2614
+    /// склада (ВКЛ с физики 21, П107 19.09.2026; `--lbrem=0` — плечо «как
+    /// физика 20»). Мерка: RC103 П55 2614
     /// база «ни возврата своего, ни заноса» и полное `def` против `g4cf`
     /// (`killescown killcarry`, `killoutbrem`, def) по полосам 0–50/0–100 кэВ и
     /// четвертям; 1461/662/59.5 и диск AS80 не хуже П103. Печатает счётчик
@@ -193,7 +194,7 @@ namespace G4RawProbe
             double detour = -1.0;                       // <0 — умолчание симулятора (`M12`, П92)
             bool eltr = store.ElectronLayerTransport;   // `AMBER44`/`M12`, П94 — умолчание склада (ВКЛ с физики 19, П97)
             bool elmix = store.ElectronLayerMixedScattering;   // `M13`, П100 — умолчание склада (ВКЛ с физики 20, П103)
-            bool lbrem = store.ElectronLayerBremAlongPath;     // `M13`, П106 — умолчание склада (ВЫКЛ)
+            bool lbrem = store.ElectronLayerBremAlongPath;     // `M13`, П106 — умолчание склада (ВКЛ с физики 21, П107)
             // `M13`, П106: рычаги замера состава возврата (--ret-kill=), все ВЫКЛ.
             bool retOwn = true, retCarry = true, retBrem = true, retOutBrem = true;
             int retKill = 0;

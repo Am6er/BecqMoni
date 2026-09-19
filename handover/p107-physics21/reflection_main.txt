@@ -1,0 +1,26 @@
+exe: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p107\BecquerelMonitor.exe
+mtime: 2026-09-19 11:48:59
+sha256: 80ca798a026fdcc662dd31fa54d35b50636199487efd882c975812a1dbf2ee98
+PhysicsVersion = 21
+FormatVersion = 9
+ResponseMatrixOptions.ElectronLayerBremAlongPath = True
+ResponseMatrixOptions.ElectronLayerMixedScattering = True
+ResponseMatrixOptions.ElectronLayerTransport = True
+ResponseMatrixOptions.ElectronAnyMaterial = True
+ResponseMatrixOptions.BremAlongPath = 2
+ResponseMatrixOptions.ElectronTransport = True
+ResponseMatrixOptions.PositronTransport = True
+ResponseMatrixOptions.PositronOffset = True
+ResponseMatrixOptions.RayleighToCrystal = True
+ResponseMatrixOptions.LightBinUnified = True
+ResponseMatrixOptions.PeakChannelByTolerance = True
+ResponseMatrixOptions.LYieldSupply = 2
+ResponseMatrixOptions.ImportanceSampling = False
+ResponseMatrixOptions.Histories = 3000000
+ResponseMatrixOptions.NodeCount = 140
+ResponseMatrixOptions.MinEnergyKev = 5
+ResponseMatrixOptions.MaxEnergyKev = 3000
+ResponseMatrixOptions.BinKev = 2
+ResponseMatrixOptions.Seed = 0
+ResponseMatrixOptions.JointNodes = 24
+ResponseMatrixOptions.JointHistories = 200000
