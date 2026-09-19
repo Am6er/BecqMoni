@@ -44,6 +44,14 @@ namespace FsaReportViewProbe
     ///   5. СЕМЬ РОДОВ СТРОК (критерий 5) и таблица без потерь по высоте.
     ///      ⛔ Судится СОСТАВ строк по `Tag.Kind`, а не их ЧИСЛО (`A249`):
     ///      после `A247` строки модели ложатся в таблицу не одна в одну.
+    ///      ⛔ (П108) Собранная сцена подкладывается под НЫНЕШНИЙ отпечаток
+    ///      спектра, чтобы окно-потребитель не заказало живой счёт, который
+    ///      молча подменял сцену (гонка П107 §9.1); покой сеанса
+    ///      утверждается ПЕРЕД снятием подписей. Подпись невязки ждётся с
+    ///      пометками `A300`/`S174`, вычисленными ИЗ РЕЗУЛЬТАТА тем же
+    ///      правилом, что у `RefreshReport`, — и на сцене (пометок нет), и на
+    ///      живом результате (есть); контроли: подброшенная пометка, голая
+    ///      подпись при живом результате, чужое число каналов — отказ.
     ///   6. БЛОК «КАЧЕСТВО РАЗБОРА» (критерий 6, переписан под `A247`): черта,
     ///      заголовок, χ²/ndf своей строкой, СРАЗУ ПОД НИМ множитель `σ×`
     ///      (`A281`, решение Amber 10.09.2026) и по строке на каждую пометку —
@@ -543,10 +551,32 @@ namespace FsaReportViewProbe
 
                 // Сцена со ВСЕМИ родами разом — собранная (реальные спектры дают их
                 // по частям): без фона, свёрнутые кандидаты, сумм-пики.
+                //
+                // ⛔ СЦЕНА ПОДКЛАДЫВАЕТСЯ ПОД НЫНЕШНИЙ ОТПЕЧАТОК СПЕКТРА (П108,
+                // 19.09.2026). Окно здесь — потребитель (`ProbeConsumer`), и
+                // `SetProbeSource` → `Consume` → `EnsureUpToDate` заказывает
+                // счёт всякий раз, когда отпечаток сеанса не равен отпечатку
+                // спектра. С выдуманным отпечатком («scene») сеанс сцены
+                // НАЧИНАЛ НАСТОЯЩИЙ СЧЁТ `--spectrum` (измерено: `IsRunning`,
+                // `RunCount=1` через 8 мс после `SetProbeSource`), и через
+                // секунду-другую живой результат молча ПОДМЕНЯЛ сцену: 18 строк
+                // вместо 34, ни сумм-пиков, ни свёрнутых, а у невязки —
+                // пометки `A300`/`S174` «показ подрезан на 121 каналах, от
+                // 30 кэВ». Кто успевал первым — счёт или проверки малого окна
+                // ниже, — решала загрузка машины: под `check_all` П107 проба
+                // была красна 3 из 3, сама по себе зелена 3 из 3 (П107 §9.1).
+                // Отпечаток сцены равен отпечатку спектра — и `EnsureUpToDate`
+                // считает её свежей; что счёта нет и результат — сама сцена,
+                // утверждается ниже ЯВНО, перед снятием подписей.
+                ResultData sceneData = a.ActiveResultData;
+                int[] sceneRaw = sceneData.EnergySpectrum.Spectrum;
                 FsaResult scene = SceneAllKinds(a.FsaSession.Result);
                 var synthetic = new FsaAnalysisSession();
-                Plant(synthetic, scene, "scene");
-                report.SetProbeSource(synthetic, a.ActiveResultData);
+                Plant(synthetic, scene, FsaAnalysisSession.BuildStamp(sceneData, sceneData.BackgroundEnergySpectrum != null));
+                report.SetProbeSource(synthetic, sceneData);
+                Same("сцена под нынешним отпечатком: окно-потребитель счёт НЕ заказало (RunCount)", 0, synthetic.RunCount);
+                Same("сцена: сеанс в покое", false, synthetic.IsRunning);
+                Same("сцена: результат сеанса — сама сцена, не живой пересчёт", true, ReferenceEquals(synthetic.Result, scene));
                 var sceneKinds = new HashSet<FsaReportRowKind>();
                 foreach (Row row in report.ReportTable.TableModel.Rows)
                 {
@@ -571,6 +601,13 @@ namespace FsaReportViewProbe
                 {
                     report.RefreshReport();
                     Application.DoEvents();
+
+                    // (П108) Состояние сеанса ПЕРЕД снятием подписей — явно: ни
+                    // счёта в пути, ни чужого результата. Иначе ячейки читаются
+                    // у того, кто успел первым, и зелёный зависит от того, кто
+                    // запустил пробу.
+                    Same("малое окно: сеанс сцены в покое перед снятием подписей", false, synthetic.IsRunning);
+                    Same("малое окно: в окне по-прежнему сцена (счёт её не подменил)", true, ReferenceEquals(synthetic.Result, scene));
                     int marks;
                     string want = Kinds(ExpectedKinds(report, out marks));
                     string have = Kinds(TableKinds(report));
@@ -580,10 +617,28 @@ namespace FsaReportViewProbe
                                       report.BuildRows().Count, rowsInTable, marks, visible);
                     Same("малое окно: СОСТАВ строк таблицы по Tag.Kind = составу модели с развёрнутым блоком",
                          want, have);
+                    Console.WriteLine("  подпись невязки, ожидаемая по сцене: «{0}»", ResidualCaption(scene, sceneRaw));
                     Same("малое окно: строки ВНЕ блока качества — один в один с моделью, и то же в ячейках",
-                         string.Empty, BodyMismatch(report));
+                         string.Empty, BodyMismatch(report, scene, sceneRaw));
                     Same("контроль: видимых без прокрутки МЕНЬШЕ — значит, прокрутка есть, а не потеря",
                          true, visible < rowsInTable);
+
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ПОДПИСИ НЕВЯЗКИ (П108). У сцены
+                    // фона нет — подрезать показ нечего, пометок быть не должно.
+                    // Ячейке подбрасывается пометка подрезки: сверка обязана
+                    // отказать. Портится ровно то, что читает проверка, — текст
+                    // ячейки, — и тут же возвращается.
+                    Row residualRow = ResidualTableRow(report);
+                    Same("контроль: строка невязки в таблице малого окна есть", true, residualRow != null);
+                    if (residualRow != null)
+                    {
+                        string keptCaption = residualRow.Cells[1].Text;
+                        residualRow.Cells[1].Text = ResidualCaption(scene, 1);
+                        Denies("контроль: подброшенная пометка подрезки у невязки сцены сверку не проходит",
+                               BodyMismatch(report, scene, sceneRaw).Length == 0);
+                        residualRow.Cells[1].Text = keptCaption;
+                        Same("после возврата подписи ячейки снова сходятся", string.Empty, BodyMismatch(report, scene, sceneRaw));
+                    }
 
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ (`A249`). Мягкая проверка вместо
                     // жёсткой хуже жёсткой: сверка состава обязана ОТКАЗАТЬ на
@@ -603,6 +658,54 @@ namespace FsaReportViewProbe
                            want == Kinds(TableKinds(report)));
                     report.RefreshReport();
                     Same("после перестройки таблицы состав снова сходится", want, Kinds(TableKinds(report)));
+
+                    // ⛔ ЖИВОЙ РЕЗУЛЬТАТ В ТОМ ЖЕ ОКНЕ (П108). У сцены пометок у
+                    // невязки нет, и ветка «голая подпись + пометки `A300`/`S174`»
+                    // на ней не мерится — а именно её П105 сверяла с голой
+                    // строкой ресурса и была права лишь пока в окне не было
+                    // живого результата. Живой разбор `--spectrum` (фон вычтен —
+                    // есть подрезка показа; `Min_Range` прибора выше первого
+                    // канала — есть пол) даёт подпись с пометками; ожидание
+                    // строится ИЗ РЕЗУЛЬТАТА тем же правилом, что у
+                    // `RefreshReport` (`ResidualCaption`), а не текстом руками.
+                    // Сеанс дожидается покоя ДО снятия подписей.
+                    FsaAnalysisSession liveSession = a.FsaSession;
+                    report.SetProbeSource(liveSession, sceneData);
+                    WaitIdle(liveSession);
+                    report.RefreshReport();
+                    Application.DoEvents();
+                    FsaResult live = liveSession.Result;
+                    Same("живой результат: есть, сеанс в покое перед снятием подписей", true,
+                         live != null && !liveSession.IsRunning);
+                    string liveCaption = ResidualCaption(live, sceneRaw);
+                    Console.WriteLine("  подпись невязки, ожидаемая по живому результату: «{0}» (подрезано каналов {1}, пол {2} кэВ с канала {3}, первый канал фита {4})",
+                                      liveCaption, live != null ? live.ClampedChannels(sceneRaw) : -1,
+                                      live != null ? live.ResidualFloorKev.ToString("G", CultureInfo.InvariantCulture) : "?",
+                                      live != null ? live.ResidualFloorChannel : -1, live != null ? live.FirstChannel : -1);
+                    Same("живой результат несёт пометки у невязки (подрезка показа и/или пол Min_Range) — иначе ветка пометок не мерится",
+                         true, liveCaption != Own("FSAReport_ResidualRow"));
+                    Same("малое окно, живой результат: строки ВНЕ блока — один в один с моделью, подпись невязки с пометками — как строит RefreshReport",
+                         string.Empty, BodyMismatch(report, live, sceneRaw));
+
+                    // Контроли обеих сторон: (а) голая подпись без пометок — ровно
+                    // то, что П105 принимала за верное, — обязана отказать; (б)
+                    // пометка с чужим числом каналов — тоже.
+                    Row liveRow = ResidualTableRow(report);
+                    Same("контроль: строка невязки живого результата в таблице есть", true, liveRow != null);
+                    if (liveRow != null && live != null)
+                    {
+                        string keptCaption = liveRow.Cells[1].Text;
+                        liveRow.Cells[1].Text = Own("FSAReport_ResidualRow");
+                        Denies("контроль: голая подпись невязки без пометок при живом результате сверку не проходит",
+                               BodyMismatch(report, live, sceneRaw).Length == 0);
+                        liveRow.Cells[1].Text = ResidualCaption(live, live.ClampedChannels(sceneRaw) + 1);
+                        Denies("контроль: пометка с чужим числом подрезанных каналов сверку не проходит",
+                               BodyMismatch(report, live, sceneRaw).Length == 0);
+                        liveRow.Cells[1].Text = keptCaption;
+                        Same("после возврата подписи ячейки живого результата снова сходятся", string.Empty,
+                             BodyMismatch(report, live, sceneRaw));
+                    }
+
                     host.Hide();
                 }
 
@@ -2065,9 +2168,16 @@ namespace FsaReportViewProbe
         /// в ячейках. Это и есть прежняя проверка «ничего не потеряно по
         /// высоте», только сверяется состав, а не число строк. Подпись
         /// подменяется ровно у невязки (`A247`), значение — никогда.
+        ///
+        /// ⛔ (П108) Подпись невязки ждётся С ПОМЕТКАМИ `A300`/`S174`, как её
+        /// строит `RefreshReport` по <paramref name="result"/> и спектру
+        /// <paramref name="raw"/> (<see cref="ResidualCaption(FsaResult, int[])"/>).
+        /// До П108 ждалась голая строка ресурса — и проверка проходила лишь
+        /// пока в окне не было живого результата (П107 §9.1).
         /// </summary>
-        static string BodyMismatch(FSAReportView report)
+        static string BodyMismatch(FSAReportView report, FsaResult result, int[] raw)
         {
+            string residualCaption = ResidualCaption(result, raw);
             var want = new List<string>();
             foreach (FsaReportRow row in report.BuildRows())
             {
@@ -2088,7 +2198,7 @@ namespace FsaReportViewProbe
                 }
 
                 have.Add(model.Kind + "|" + (model.Name ?? string.Empty) + "|" + (model.Value ?? string.Empty));
-                string caption = model.Kind == FsaReportRowKind.Residual ? Own("FSAReport_ResidualRow") : model.Name ?? string.Empty;
+                string caption = model.Kind == FsaReportRowKind.Residual ? residualCaption : model.Name ?? string.Empty;
                 if (row.Cells[1].Text != caption || row.Cells[2].Text != (model.Value ?? string.Empty))
                 {
                     cells.Add("ячейки «" + row.Cells[1].Text + " | " + row.Cells[2].Text
@@ -2110,6 +2220,54 @@ namespace FsaReportViewProbe
             }
 
             return cells.Count == 0 ? string.Empty : string.Join("; ", cells);
+        }
+
+        /// <summary>
+        /// (П108) ПОДПИСЬ СТРОКИ НЕВЯЗКИ, КАК ЕЁ СТРОИТ `FSAReportView.RefreshReport`:
+        /// голая строка ресурса плюс пометки `A300` (на скольких каналах показ
+        /// подрезан — <see cref="FsaResult.ClampedChannels"/> по спектру) и
+        /// `S174` (от какой энергии считано число — <see cref="FsaResult.ResidualFloorKev"/>,
+        /// только когда пол режет полосу фита: <c>ResidualFloorChannel &gt; FirstChannel</c>).
+        /// Ожидание считается ИЗ РЕЗУЛЬТАТА и ресурсов окна (`Own`), не текстом
+        /// руками; сцепка « — » и «, » — правило окна, повторённое здесь
+        /// нарочно: разойдётся — покраснеет ячейка, и это будет правдой.
+        /// </summary>
+        static string ResidualCaption(FsaResult result, int[] raw)
+        {
+            return ResidualCaption(result, result != null && raw != null ? result.ClampedChannels(raw) : 0);
+        }
+
+        /// <summary>То же с ЗАДАННЫМ числом подрезанных каналов — для подброса чужого числа в контроле.</summary>
+        static string ResidualCaption(FsaResult result, int clamped)
+        {
+            var marks = new List<string>();
+            if (clamped > 0)
+            {
+                marks.Add(string.Format(CultureInfo.InvariantCulture, Own("FSAReport_ResidualClamped"), clamped));
+            }
+
+            if (result != null && result.ResidualFloorKev > 0.0 && result.ResidualFloorChannel > result.FirstChannel)
+            {
+                marks.Add(string.Format(CultureInfo.InvariantCulture, Own("FSAReport_ResidualFloor"),
+                                        result.ResidualFloorKev.ToString("G", CultureInfo.InvariantCulture)));
+            }
+
+            string caption = Own("FSAReport_ResidualRow");
+            return marks.Count == 0 ? caption : caption + " — " + string.Join(", ", marks.ToArray());
+        }
+
+        /// <summary>Строка невязки в таблице окна — по `Tag.Kind`, не по тексту; null — её нет.</summary>
+        static Row ResidualTableRow(FSAReportView report)
+        {
+            foreach (Row row in report.ReportTable.TableModel.Rows)
+            {
+                if (((FsaReportRow)row.Tag).Kind == FsaReportRowKind.Residual)
+                {
+                    return row;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>Значения строк блока качества одной строкой — для сверки чисел между сборками.</summary>
