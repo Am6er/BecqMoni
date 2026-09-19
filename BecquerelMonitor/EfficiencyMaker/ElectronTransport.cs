@@ -653,6 +653,99 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// (`M13`, П111 19.09.2026) Косинус угла КВАНТА ТОРМОЗНОГО к электрону —
+        /// формула 2BS Коха—Моца (Rev. Mod. Phys. 31, 920 (1959)), розыгрыш отбором
+        /// по Белаеву (PIRS-0203) — переписан с `G4Generator2BS::SampleDirection`
+        /// Geant4 11.4.2 до последнего знака (у арбитра `option4` им направляется
+        /// тормозное обеих моделей — Зельцера—Бергера и релятивистской):
+        /// <paramref name="tKev"/> — кинетическая энергия электрона ДО излучения,
+        /// <paramref name="kKev"/> — энергия кванта, <paramref name="z"/> —
+        /// (эффективный) заряд ядра вещества. Переменная y — квадрат приведённого
+        /// угла (E₀θ)², плотность ∝ 1/(1+y)² на [0, y_max], отбор функцией
+        /// 4x − (1+r)² − ((1+r²) − x)·ln(δ + f_Z/(1+y)²), где r = E/E₀ (полные
+        /// энергии после и до), x = 4yr/(1+y)², f_Z = Z^{1/3}(Z+1)^{1/3}/111²,
+        /// δ = 0 (как у Geant4). Зачем: у модифицированного Цая (<see cref="TsaiCosine"/>)
+        /// в заднюю полусферу летит 4.1 % квантов при 1000 кэВ и 15 % при 100, у
+        /// 2BS — 5.7 % и 23 % (×1.4…1.5); в толстой мишени PTFE это ×0.65 нашей
+        /// доли назад против арбитра (П111 §3).
+        /// </summary>
+        double Brem2BSCosine(double tKev, double kKev, double z)
+        {
+            double energy = tKev + ElectronMassKev;                  // полная энергия до
+            double final = energy - kKev;
+            if (!(final > ElectronMassKev) || !(z >= 1.0))
+            {
+                return this.TsaiCosine(tKev);                        // квант унёс всё — предела у формулы нет
+            }
+
+            double ratio = final / energy;
+            double ratio1 = (1.0 + ratio) * (1.0 + ratio);
+            double ratio2 = 1.0 + ratio * ratio;
+            double gamma = energy / ElectronMassKev;
+            double beta = Math.Sqrt((gamma - 1.0) * (gamma + 1.0)) / gamma;
+            double fz = 0.00008116224 * Math.Pow(z, 1.0 / 3.0) * Math.Pow(z + 1.0, 1.0 / 3.0);
+            double yMax = 2.0 * beta * (1.0 + beta) * gamma * gamma;
+            double gMax = Math.Max(Brem2BSReject(0.0, ratio, ratio1, ratio2, fz),
+                                   Brem2BSReject(yMax, ratio, ratio1, ratio2, fz));
+            double y;
+            int guard = 0;
+            do
+            {
+                double q = this.Uniform();
+                y = q * yMax / (1.0 + yMax * (1.0 - q));
+            }
+            while ((this.Uniform() * gMax > Brem2BSReject(y, ratio, ratio1, ratio2, fz) || y > yMax) && ++guard < 1000);
+
+            return 1.0 - 2.0 * y / yMax;
+        }
+
+        /// <summary>Функция отбора 2BS (`G4Generator2BS::RejectionFunction`, δ = 0).</summary>
+        static double Brem2BSReject(double y, double ratio, double ratio1, double ratio2, double fz)
+        {
+            double y2 = (1.0 + y) * (1.0 + y);
+            double x = 4.0 * y * ratio / y2;
+            return 4.0 * x - ratio1 - (ratio2 - x) * Math.Log(fz / y2);
+        }
+
+        /// <summary>
+        /// (П111) Эффективный Z вещества слоя для углового розыгрыша 2BS
+        /// (<see cref="Brem2BSCosine"/>): средний Z элементов с весом их вклада в
+        /// тормозное, w·Z²/A (у PTFE — 8.6: фтор даёт 82 % выхода; у Al — 13).
+        /// Зависимость 2BS от Z слабая (только через f_Z под логарифмом; Z 9 и 13
+        /// неразличимы розыгрышем в 200 тыс.), поэтому одно число на вещество, а
+        /// не розыгрыш элемента на каждый квант. Кэш на экземпляр.
+        /// </summary>
+        double LayerBremZ(GeometryMaterial material)
+        {
+            double z;
+            if (this.layerBremZCache.TryGetValue(material, out z))
+            {
+                return z;
+            }
+
+            double num = 0.0, den = 0.0;
+            Dictionary<int, double> mass = MaterialDatabase.AtomicMass;
+            foreach (KeyValuePair<int, double> pair in material.Fractions)
+            {
+                double a;
+                if (pair.Value > 0.0 && mass.TryGetValue(pair.Key, out a) && a > 0.0)
+                {
+                    double w = pair.Value * pair.Key * pair.Key / a;
+                    num += w * pair.Key;
+                    den += w;
+                }
+            }
+
+            z = den > 0.0 ? num / den : 0.0;
+            this.layerBremZCache[material] = z;
+            return z;
+        }
+
+        /// <summary>(П111) Кэш <see cref="LayerBremZ"/> и Z текущего вещества у переноса в слоях.</summary>
+        readonly Dictionary<GeometryMaterial, double> layerBremZCache = new Dictionary<GeometryMaterial, double>();
+        double layerBremZ;
+
+        /// <summary>
         /// Направление рождения электрона по процессу (<see cref="ElectronBirth"/>):
         /// опорное направление <paramref name="rx"/>… — квант для `Photo`/`Pair`,
         /// сам электрон для `Given`; для `Isotropic` не читается.
@@ -1175,6 +1268,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                     bremMaterial = here.Material;
                     bremTable = this.LayerBrem(here.Material);
                     bremAnchor = bremTable != null ? bremTable.Anchor(t) : 1.0;
+                    // (П111) Эффективный Z вещества — для углового розыгрыша 2BS
+                    // (<see cref="ElectronLayerBremAngular2BS"/>); без ключа не читается.
+                    this.layerBremZ = this.ElectronLayerBremAngular2BS ? this.LayerBremZ(here.Material) : 0.0;
                 }
 
                 // Ранний выход, как в кристалле: пробег короче расстояния до
@@ -1188,6 +1284,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         this.LayerRestBremsstrahlung(x, y, z, ux, uy, uz, t, tEntry, bremTable, ref radiated);
                     }
 
+                    this.SumLayerPathG += residual;                  // (П111) остаток пробега — весь в этом веществе
                     return false;
                 }
 
@@ -1241,12 +1338,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                     y += uy * through;
                     z += uz * through;
                     t = ElectronData.EnergyOfRange(medium, residual - toNext * density);
+                    this.SumLayerPathG += toNext * density;      // (П111) счётчик пути в веществе
                     continue;
                 }
 
                 x += ux * first;
                 y += uy * first;
                 z += uz * first;
+                this.SumLayerPathG += first * density;               // (П111) счётчик пути в веществе
 
                 double tMid = ElectronData.EnergyOfRange(medium, residual - 0.5 * stepG);
                 if (tMid < TransportCutKev)
@@ -1299,12 +1398,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                     y += uy * through;
                     z += uz * through;
                     t = ElectronData.EnergyOfRange(medium, residual - (first + toNext) * density);
+                    this.SumLayerPathG += toNext * density;      // (П111) счётчик пути в веществе
                     continue;
                 }
 
                 x += ux * second;
                 y += uy * second;
                 z += uz * second;
+                this.SumLayerPathG += second * density;              // (П111) счётчик пути в веществе
 
                 // (П106) Тормозное второго отрезка — в его конце, по направлению
                 // после шарнира.
@@ -1388,8 +1489,9 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>
         /// (`M13`, П106) Один квант тормозного из точки (x, y, z) в слое: направление
-        /// по электрону (Цай), зажим суммой, приёмник — очередь обхода заноса
-        /// (<see cref="layerBremPush"/>) либо очередь вылетов
+        /// по электрону (Цай; под ключом <see cref="ElectronLayerBremAngular2BS"/> —
+        /// 2BS Коха—Моца, <see cref="Brem2BSCosine"/>), зажим суммой, приёмник —
+        /// очередь обхода заноса (<see cref="layerBremPush"/>) либо очередь вылетов
         /// (<see cref="NoteEscape"/>), когда она открыта; иначе унесён — его
         /// энергия уже в уносе электрона (как у `LayerBremsstrahlung`).
         /// </summary>
@@ -1397,7 +1499,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                                      double k, double tKev, double cap, ref double radiated)
         {
             double ax = ux, ay = uy, az = uz;
-            this.Rotate(ref ax, ref ay, ref az, this.TsaiCosine(tKev));
+            // (П111) Косинус разыгрывается ДО зажима, как и было у Цая, — число
+            // обращений к ГСЧ у выключенного ключа прежнее.
+            this.Rotate(ref ax, ref ay, ref az, this.ElectronLayerBremAngular2BS
+                                                    ? this.Brem2BSCosine(tKev, k, this.layerBremZ)
+                                                    : this.TsaiCosine(tKev));
             double kUse = Math.Min(k, cap - radiated);
             if (!(kUse > 0.0))
             {

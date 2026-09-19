@@ -1,0 +1,6 @@
+start 2026-09-19 15:55:40
+matrix off RC103_point0 code=0 dt=287s 16:00:27
+diff off RC103_point0 code=0
+matrix on RC103_point0 code=0 dt=287s 16:05:14
+diff on RC103_point0 code=0
+end 16:05:14

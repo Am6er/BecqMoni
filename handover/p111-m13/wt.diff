@@ -1,0 +1,719 @@
+diff --git a/BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs b/BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs
+index 01f37d93..7ccc0a1a 100644
+--- a/BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs
++++ b/BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs
+@@ -588,6 +588,10 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 // (ВЫКЛ до решения Amber о едином счёте), чтобы кривая и склад
+                 // считали одну физику.
+                 ElectronLayerBremAlongPath = storePhysics.ElectronLayerBremAlongPath,
++                // (`M13`, П111 19.09.2026) Направление кванта тормозного в слоях
++                // (2BS) — тем же путём, от умолчания настроек склада (ВЫКЛ до
++                // решения Amber о едином счёте).
++                ElectronLayerBremAngular2BS = storePhysics.ElectronLayerBremAngular2BS,
+             };
+ 
+             log(geometry.Describe());
+@@ -733,6 +737,7 @@ namespace BecquerelMonitor.EfficiencyMaker
+                         ElectronLayerTransport = simulator.ElectronLayerTransport,
+                         ElectronLayerMixedScattering = simulator.ElectronLayerMixedScattering,
+                         ElectronLayerBremAlongPath = simulator.ElectronLayerBremAlongPath,
++                        ElectronLayerBremAngular2BS = simulator.ElectronLayerBremAngular2BS,
+                     };
+                 },
+                 (range, loop, worker) =>
+@@ -883,8 +888,10 @@ namespace BecquerelMonitor.EfficiencyMaker
+             // `; lbrem=1` (`M13`, П106 19.09.2026) — тем же именем, что у клейма
+             // матрицы, только включённым; с физики 21 (П107, 19.09.2026) ключ
+             // ВКЛ умолчанием склада, и у кривой он в клейме всегда.
++            // `; lbang=1` (`M13`, П111 19.09.2026) — направление тормозного в слоях
++            // 2BS, только включённым (ВЫКЛ умолчанием склада).
+             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
+-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}",
++                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}{19}",
+                 ResponseMatrix.PhysicsVersion, simulator.Histories,
+                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
+                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
+@@ -909,7 +916,8 @@ namespace BecquerelMonitor.EfficiencyMaker
+                     : "",
+                 storePhysics.ElectronLayerTransport ? "; eltr=1" : "",
+                 storePhysics.ElectronLayerMixedScattering ? "; elmix=1" : "",
+-                storePhysics.ElectronLayerBremAlongPath ? "; lbrem=1" : "");
++                storePhysics.ElectronLayerBremAlongPath ? "; lbrem=1" : "",
++                storePhysics.ElectronLayerBremAngular2BS ? "; lbang=1" : "");
+             return result;
+         }
+ 
+diff --git a/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs b/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs
+index 801444c3..0a473860 100644
+--- a/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs
++++ b/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs
+@@ -426,6 +426,19 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// </summary>
+         public bool ElectronLayerBremAlongPath = new ResponseMatrixOptions().ElectronLayerBremAlongPath;
+ 
++        /// <summary>
++        /// (`M13`, остаток; П111 19.09.2026) НАПРАВЛЕНИЕ КВАНТА ТОРМОЗНОГО В
++        /// СЛОЯХ ОБВЯЗКИ — 2BS Коха—Моца (как `G4Generator2BS` у арбитра
++        /// option4) вместо модифицированного Цая — ключ сделан ВЫКЛ. Умолчание
++        /// ПОЛЯ — умолчание СКЛАДА
++        /// (<see cref="ResponseMatrixOptions.ElectronLayerBremAngular2BS"/>,
++        /// правило I). Действует только под <see cref="ElectronLayerBremAlongPath"/>
++        /// в `LayerEmitBremsstrahlung` (<see cref="Brem2BSCosine"/>); в кристалле
++        /// направление (`bpath=2`, Цай) не трогается. Выключенный — прежний ход
++        /// до последнего бита и без единого лишнего случайного числа.
++        /// </summary>
++        public bool ElectronLayerBremAngular2BS = new ResponseMatrixOptions().ElectronLayerBremAngular2BS;
++
+         /// <summary>
+         /// (`M13`, П100) Угол отсечки смешанной схемы в слоях, градусы:
+         /// столкновения с отклонением больше него — жёсткие, по одному. Режим
+@@ -545,6 +558,14 @@ namespace BecquerelMonitor.EfficiencyMaker
+         public long CountLayerBremPhotons;
+         public double SumLayerBremKev;
+ 
++        /// <summary>
++        /// (`M13`, П111) Путь электронов в ВЕЩЕСТВЕ слоёв обвязки за все вызовы
++        /// `TransportInLayers`, г/см² (пустота не считается) — читает
++        /// `LayerReturnProbe --brem`: квантов на г/см² пути против опоры Geant4;
++        /// не настройка, на ход переноса и на случайные числа не влияет.
++        /// </summary>
++        public double SumLayerPathG;
++
+         /// <summary>
+         /// Сколько энергии событие может потерять и всё-таки остаться в пике,
+         /// кэВ. Пик имеет ширину, и утечка в единицы кэВ из него не выводит.
+diff --git a/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs b/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs
+index 4200f894..ec6ab220 100644
+--- a/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs
++++ b/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs
+@@ -652,6 +652,99 @@ namespace BecquerelMonitor.EfficiencyMaker
+             return 1.0 - 2.0 * u * u / (uMax * uMax);
+         }
+ 
++        /// <summary>
++        /// (`M13`, П111 19.09.2026) Косинус угла КВАНТА ТОРМОЗНОГО к электрону —
++        /// формула 2BS Коха—Моца (Rev. Mod. Phys. 31, 920 (1959)), розыгрыш отбором
++        /// по Белаеву (PIRS-0203) — переписан с `G4Generator2BS::SampleDirection`
++        /// Geant4 11.4.2 до последнего знака (у арбитра `option4` им направляется
++        /// тормозное обеих моделей — Зельцера—Бергера и релятивистской):
++        /// <paramref name="tKev"/> — кинетическая энергия электрона ДО излучения,
++        /// <paramref name="kKev"/> — энергия кванта, <paramref name="z"/> —
++        /// (эффективный) заряд ядра вещества. Переменная y — квадрат приведённого
++        /// угла (E₀θ)², плотность ∝ 1/(1+y)² на [0, y_max], отбор функцией
++        /// 4x − (1+r)² − ((1+r²) − x)·ln(δ + f_Z/(1+y)²), где r = E/E₀ (полные
++        /// энергии после и до), x = 4yr/(1+y)², f_Z = Z^{1/3}(Z+1)^{1/3}/111²,
++        /// δ = 0 (как у Geant4). Зачем: у модифицированного Цая (<see cref="TsaiCosine"/>)
++        /// в заднюю полусферу летит 4.1 % квантов при 1000 кэВ и 15 % при 100, у
++        /// 2BS — 5.7 % и 23 % (×1.4…1.5); в толстой мишени PTFE это ×0.65 нашей
++        /// доли назад против арбитра (П111 §3).
++        /// </summary>
++        double Brem2BSCosine(double tKev, double kKev, double z)
++        {
++            double energy = tKev + ElectronMassKev;                  // полная энергия до
++            double final = energy - kKev;
++            if (!(final > ElectronMassKev) || !(z >= 1.0))
++            {
++                return this.TsaiCosine(tKev);                        // квант унёс всё — предела у формулы нет
++            }
++
++            double ratio = final / energy;
++            double ratio1 = (1.0 + ratio) * (1.0 + ratio);
++            double ratio2 = 1.0 + ratio * ratio;
++            double gamma = energy / ElectronMassKev;
++            double beta = Math.Sqrt((gamma - 1.0) * (gamma + 1.0)) / gamma;
++            double fz = 0.00008116224 * Math.Pow(z, 1.0 / 3.0) * Math.Pow(z + 1.0, 1.0 / 3.0);
++            double yMax = 2.0 * beta * (1.0 + beta) * gamma * gamma;
++            double gMax = Math.Max(Brem2BSReject(0.0, ratio, ratio1, ratio2, fz),
++                                   Brem2BSReject(yMax, ratio, ratio1, ratio2, fz));
++            double y;
++            int guard = 0;
++            do
++            {
++                double q = this.Uniform();
++                y = q * yMax / (1.0 + yMax * (1.0 - q));
++            }
++            while ((this.Uniform() * gMax > Brem2BSReject(y, ratio, ratio1, ratio2, fz) || y > yMax) && ++guard < 1000);
++
++            return 1.0 - 2.0 * y / yMax;
++        }
++
++        /// <summary>Функция отбора 2BS (`G4Generator2BS::RejectionFunction`, δ = 0).</summary>
++        static double Brem2BSReject(double y, double ratio, double ratio1, double ratio2, double fz)
++        {
++            double y2 = (1.0 + y) * (1.0 + y);
++            double x = 4.0 * y * ratio / y2;
++            return 4.0 * x - ratio1 - (ratio2 - x) * Math.Log(fz / y2);
++        }
++
++        /// <summary>
++        /// (П111) Эффективный Z вещества слоя для углового розыгрыша 2BS
++        /// (<see cref="Brem2BSCosine"/>): средний Z элементов с весом их вклада в
++        /// тормозное, w·Z²/A (у PTFE — 8.6: фтор даёт 82 % выхода; у Al — 13).
++        /// Зависимость 2BS от Z слабая (только через f_Z под логарифмом; Z 9 и 13
++        /// неразличимы розыгрышем в 200 тыс.), поэтому одно число на вещество, а
++        /// не розыгрыш элемента на каждый квант. Кэш на экземпляр.
++        /// </summary>
++        double LayerBremZ(GeometryMaterial material)
++        {
++            double z;
++            if (this.layerBremZCache.TryGetValue(material, out z))
++            {
++                return z;
++            }
++
++            double num = 0.0, den = 0.0;
++            Dictionary<int, double> mass = MaterialDatabase.AtomicMass;
++            foreach (KeyValuePair<int, double> pair in material.Fractions)
++            {
++                double a;
++                if (pair.Value > 0.0 && mass.TryGetValue(pair.Key, out a) && a > 0.0)
++                {
++                    double w = pair.Value * pair.Key * pair.Key / a;
++                    num += w * pair.Key;
++                    den += w;
++                }
++            }
++
++            z = den > 0.0 ? num / den : 0.0;
++            this.layerBremZCache[material] = z;
++            return z;
++        }
++
++        /// <summary>(П111) Кэш <see cref="LayerBremZ"/> и Z текущего вещества у переноса в слоях.</summary>
++        readonly Dictionary<GeometryMaterial, double> layerBremZCache = new Dictionary<GeometryMaterial, double>();
++        double layerBremZ;
++
+         /// <summary>
+         /// Направление рождения электрона по процессу (<see cref="ElectronBirth"/>):
+         /// опорное направление <paramref name="rx"/>… — квант для `Photo`/`Pair`,
+@@ -1175,6 +1268,9 @@ namespace BecquerelMonitor.EfficiencyMaker
+                     bremMaterial = here.Material;
+                     bremTable = this.LayerBrem(here.Material);
+                     bremAnchor = bremTable != null ? bremTable.Anchor(t) : 1.0;
++                    // (П111) Эффективный Z вещества — для углового розыгрыша 2BS
++                    // (<see cref="ElectronLayerBremAngular2BS"/>); без ключа не читается.
++                    this.layerBremZ = this.ElectronLayerBremAngular2BS ? this.LayerBremZ(here.Material) : 0.0;
+                 }
+ 
+                 // Ранний выход, как в кристалле: пробег короче расстояния до
+@@ -1188,6 +1284,7 @@ namespace BecquerelMonitor.EfficiencyMaker
+                         this.LayerRestBremsstrahlung(x, y, z, ux, uy, uz, t, tEntry, bremTable, ref radiated);
+                     }
+ 
++                    this.SumLayerPathG += residual;                  // (П111) остаток пробега — весь в этом веществе
+                     return false;
+                 }
+ 
+@@ -1241,12 +1338,14 @@ namespace BecquerelMonitor.EfficiencyMaker
+                     y += uy * through;
+                     z += uz * through;
+                     t = ElectronData.EnergyOfRange(medium, residual - toNext * density);
++                    this.SumLayerPathG += toNext * density;      // (П111) счётчик пути в веществе
+                     continue;
+                 }
+ 
+                 x += ux * first;
+                 y += uy * first;
+                 z += uz * first;
++                this.SumLayerPathG += first * density;               // (П111) счётчик пути в веществе
+ 
+                 double tMid = ElectronData.EnergyOfRange(medium, residual - 0.5 * stepG);
+                 if (tMid < TransportCutKev)
+@@ -1299,12 +1398,14 @@ namespace BecquerelMonitor.EfficiencyMaker
+                     y += uy * through;
+                     z += uz * through;
+                     t = ElectronData.EnergyOfRange(medium, residual - (first + toNext) * density);
++                    this.SumLayerPathG += toNext * density;      // (П111) счётчик пути в веществе
+                     continue;
+                 }
+ 
+                 x += ux * second;
+                 y += uy * second;
+                 z += uz * second;
++                this.SumLayerPathG += second * density;              // (П111) счётчик пути в веществе
+ 
+                 // (П106) Тормозное второго отрезка — в его конце, по направлению
+                 // после шарнира.
+@@ -1388,8 +1489,9 @@ namespace BecquerelMonitor.EfficiencyMaker
+ 
+         /// <summary>
+         /// (`M13`, П106) Один квант тормозного из точки (x, y, z) в слое: направление
+-        /// по электрону (Цай), зажим суммой, приёмник — очередь обхода заноса
+-        /// (<see cref="layerBremPush"/>) либо очередь вылетов
++        /// по электрону (Цай; под ключом <see cref="ElectronLayerBremAngular2BS"/> —
++        /// 2BS Коха—Моца, <see cref="Brem2BSCosine"/>), зажим суммой, приёмник —
++        /// очередь обхода заноса (<see cref="layerBremPush"/>) либо очередь вылетов
+         /// (<see cref="NoteEscape"/>), когда она открыта; иначе унесён — его
+         /// энергия уже в уносе электрона (как у `LayerBremsstrahlung`).
+         /// </summary>
+@@ -1397,7 +1499,11 @@ namespace BecquerelMonitor.EfficiencyMaker
+                                      double k, double tKev, double cap, ref double radiated)
+         {
+             double ax = ux, ay = uy, az = uz;
+-            this.Rotate(ref ax, ref ay, ref az, this.TsaiCosine(tKev));
++            // (П111) Косинус разыгрывается ДО зажима, как и было у Цая, — число
++            // обращений к ГСЧ у выключенного ключа прежнее.
++            this.Rotate(ref ax, ref ay, ref az, this.ElectronLayerBremAngular2BS
++                                                    ? this.Brem2BSCosine(tKev, k, this.layerBremZ)
++                                                    : this.TsaiCosine(tKev));
+             double kUse = Math.Min(k, cap - radiated);
+             if (!(kUse > 0.0))
+             {
+diff --git a/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs b/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs
+index b80f17e3..f2485f82 100644
+--- a/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs
++++ b/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs
+@@ -1233,6 +1233,17 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 {
+                     sb.Append("lbrem=1;");
+                 }
++
++                // ⛔ (`M13`, П111 19.09.2026) Направление кванта тормозного в
++                // слоях — 2BS Коха—Моца (как `G4Generator2BS` у арбитра option4)
++                // вместо модифицированного Цая — тем же правилом `T42`: пишется,
++                // ТОЛЬКО когда включено. Двигает континуум сцен с обвязкой (куда
++                // летит тормозное электронов обвязки) и поток случайных чисел;
++                // ВЫКЛ умолчанием до решения Amber о едином счёте.
++                if (options.ElectronLayerBremAngular2BS)
++                {
++                    sb.Append("lbang=1;");
++                }
+             }
+ 
+             // (`AMBER13` (б)) Нормировка — тем же правилом `T42`: строка
+@@ -2352,6 +2363,15 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 // при переходе 19 → 20.
+                 writer.Write(Encoding.ASCII.GetBytes("LBRM"));
+                 writer.Write(flags.ElectronLayerBremAlongPath);
++
++                // ⛔ ДВАДЦАТЬ ТРЕТИЙ ХВОСТ — `LBAN` (`M13`, П111 19.09.2026:
++                // направление кванта тормозного в слоях — 2BS Коха—Моца вместо
++                // Цая). Те же два довода: ключ входит в клеймо (`lbang=1`), и без
++                // хвоста матрица не сходилась бы сама с собой. Формат НЕ поднят:
++                // у файла без хвоста поле остаётся УМОЛЧАНИЕМ КЛАССА (`false` —
++                // ВЫКЛ до решения Amber), чем и был весь склад физики 21.
++                writer.Write(Encoding.ASCII.GetBytes("LBAN"));
++                writer.Write(flags.ElectronLayerBremAngular2BS);
+             }
+ 
+             if (File.Exists(path))
+@@ -2751,6 +2771,17 @@ namespace BecquerelMonitor.EfficiencyMaker
+                                                                             && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "LBRM")
+                                                                         {
+                                                                             matrix.Options.ElectronLayerBremAlongPath = reader.ReadBoolean();
++
++                                                                            // ⛔ ХВОСТ `LBAN` (`M13`, П111
++                                                                            // 19.09.2026): у файлов до него
++                                                                            // поле остаётся умолчанием
++                                                                            // класса (`false`) — чем и был
++                                                                            // весь склад физики 21.
++                                                                            if (stream.Length - stream.Position >= 5
++                                                                                && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "LBAN")
++                                                                            {
++                                                                                matrix.Options.ElectronLayerBremAngular2BS = reader.ReadBoolean();
++                                                                            }
+                                                                         }
+                                                                     }
+                                                                 }
+@@ -4251,6 +4282,49 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// </summary>
+         public bool ElectronLayerBremAlongPath = true;
+ 
++        /// <summary>
++        /// ✅ (`M13`, остаток «0.73 квантов на электрон»; П111 19.09.2026) —
++        /// **ключ сделан ВЫКЛ**: НАПРАВЛЕНИЕ КВАНТА ТОРМОЗНОГО В СЛОЯХ ОБВЯЗКИ —
++        /// 2BS Коха—Моца (Rev. Mod. Phys. 31, 920 (1959), формула 2BS; розыгрыш
++        /// отбором по PIRS-0203, как `G4Generator2BS` у арбитра
++        /// `G4EmStandardPhysics_option4`) вместо модифицированного Цая
++        /// (`G4ModifiedTsai`, как `bpath=2` в кристалле).
++        ///
++        /// Зачем. Стенд пластин П111 (`LayerReturnProbe --brem` против своей опоры
++        /// Geant4 `g4brem`, handover/p111-m13): число квантов ≥ 5 кэВ на электрон,
++        /// их спектр и путь в веществе у нас сходятся с арбитром в 1…4 % (PTFE/Al,
++        /// 300…2000 кэВ), а вот доля квантов В ЗАДНЮЮ ПОЛУСФЕРУ относительно
++        /// нормали слоя у нас ×0.6…0.7 от арбитра (PTFE 1000 кэВ: 0.17 против 0.27)
++        /// — и ровно столько же даёт сама формула: у Цая назад летит 4.1 % квантов
++        /// при 1000 кэВ, у 2BS 5.7 % (×1.4), при 100 кэВ 15 % против 23 %
++        /// (`tables/ang_2bs_vs_tsai.txt`). Сам «остаток 0.73» П106 оказался
++        /// ошибкой нормировки счётчика (П111 §1): по одноимённому населению мы
++        /// излучаем 1.07 квантов на историю от арбитра.
++        ///
++        /// Что делает — `ElectronTransport.cs`, `LayerEmitBremsstrahlung`: косинус
++        /// угла кванта к электрону — <see cref="EfficiencySimulator.Brem2BSCosine"/>
++        /// (энергия электрона до излучения, энергия кванта, эффективный Z вещества
++        /// слоя по весу тормозного Σ w·Z²/A) вместо `TsaiCosine`. Только в слоях
++        /// обвязки и только под <see cref="ElectronLayerBremAlongPath"/>; в
++        /// КРИСТАЛЛЕ (`bpath=2`) направление не трогается — оно поверено П44 по
++        /// полосам и не предмет строки.
++        ///
++        /// ⛔ Ключ двигает КОНТИНУУМ сцен с обвязкой (куда летит тормозное
++        /// электронов обвязки) и ПОТОК случайных чисел, поэтому входит в клеймо
++        /// (`lbang=1`) и пишется хвостом `LBAN` — только включённым (`T42`).
++        /// ВЫКЛ умолчанием: склад физики 21 (`out_rev31_*`) считан без него;
++        /// решение о ВКЛ (= единый счёт склада) — Amber. Рычаги —
++        /// `CorpusMatrixProbe --lbang=0|1`, `G4RawProbe --lbang=0|1`,
++        /// `LayerReturnProbe --lbang=0|1` (с `--brem`).
++        ///
++        /// ⚠ Файлы матриц БЕЗ хвоста `LBAN` при чтении остаются умолчанием класса
++        /// (`false`) — это и есть весь склад физики 21.
++        /// ⚠ Путь КРИВОЙ берёт ключ отсюда же (`EfficiencyCalculation.Run`) —
++        /// «одна физика для кривой и матрицы»; в клеймо кривой уходит `lbang=1`
++        /// только включённым.
++        /// </summary>
++        public bool ElectronLayerBremAngular2BS = false;
++
+         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
+         public int Threads;
+ 
+diff --git a/BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs b/BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs
+index 8402d6de..e8821a78 100644
+--- a/BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs
++++ b/BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs
+@@ -869,6 +869,10 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 // по ходу переноса — тем же путём: не доехав до построителя, ключ
+                 // мёртв (`S130`), а клеймо `lbrem=1` лгало бы о происхождении.
+                 ElectronLayerBremAlongPath = options.ElectronLayerBremAlongPath,
++                // ⛔ (`M13`, П111 19.09.2026) Направление кванта тормозного в слоях
++                // (2BS) — тем же путём: не доехав до построителя, ключ мёртв
++                // (`S130`), а клеймо `lbang=1` лгало бы о происхождении.
++                ElectronLayerBremAngular2BS = options.ElectronLayerBremAngular2BS,
+                 // ⛔ (`E34`) ДОПУСК ПИКА. Ноль здесь стоял безусловно, и это
+                 // запирало поправку на однократное рассеяние: `InPeak` требует
+                 // `E − deposited ≤ допуск`, а у рассеявшегося кванта недобор
+diff --git a/tools/check_matrix_keys.py b/tools/check_matrix_keys.py
+index d8ef148e..34c5e4a1 100644
+--- a/tools/check_matrix_keys.py
++++ b/tools/check_matrix_keys.py
+@@ -281,6 +281,14 @@ MATRIX = [
+      u'ВЫКЛ до единого счёта, ВКЛ умолчанием с 19.09.2026 (физика 21, П107; решение Amber 19.09.2026 по '
+      u'приёмке П106 «ВКЛ сейчас, единый счёт ночью»); --lbrem=0 — абляция «как физика 20»: тело побитово = '
+      u'склад rev30. Путь КРИВОЙ берёт ключ от этого же умолчания (реестр 3)'),
++    (u'ElectronLayerBremAngular2BS', True, u'--lbang=', None, u'намеренно',
++     u'M13 (остаток «0.73 квантов на электрон»), П111 19.09.2026: НАПРАВЛЕНИЕ КВАНТА ТОРМОЗНОГО В СЛОЯХ '
++     u'ОБВЯЗКИ — 2BS Коха—Моца (как G4Generator2BS у арбитра option4) вместо модифицированного Цая; только '
++     u'под lbrem=1, в кристалле (bpath=2) не трогается. Стенд пластин П111: число квантов, спектр и путь '
++     u'сходятся с арбитром в 1…4 %, а доля квантов назад у Цая ×0.65 от арбитра (толстая PTFE 1000 кэВ: 0.17 '
++     u'против 0.27). Двигает континуум сцен с обвязкой и поток случайных чисел, поэтому входит в клеймо '
++     u'(lbang=1) и пишется хвостом LBAN — только включённым (T42); ВЫКЛ умолчанием (склад физики 21 считан '
++     u'без него), решение о ВКЛ — Amber. Путь КРИВОЙ берёт ключ от этого же умолчания (реестр 3)'),
+     (u'Seed', True, u'--seed=', None, u'намеренно',
+      u'T43: независимая выборка тем же кодом, мерка «в пределах шума ГСЧ»'),
+     (u'ResolveEdges', False, u'--edges=', None, u'намеренно',
+@@ -460,6 +468,11 @@ SIM = [
+      u'настроек (MakeSimulator), кривая от их умолчания (EfficiencyCalculation.Run, тем же путём, что '
+      u'ElectronLayerMixedScattering) — ВЫКЛ до единого счёта, ВКЛ умолчанием с 19.09.2026 (физика 21, П107); '
+      u'в клеймо кривой — lbrem=1 только включённым. Умолчание поля симулятора — умолчание склада (правило I)'),
++    (u'ElectronLayerBremAngular2BS', True, True, u'общая',
++     u'M13, П111 19.09.2026: направление кванта тормозного в слоях обвязки — 2BS Коха—Моца вместо Цая. '
++     u'Матрица от своих настроек (MakeSimulator), кривая от их умолчания (EfficiencyCalculation.Run, тем же '
++     u'путём, что ElectronLayerBremAlongPath) — ВЫКЛ умолчанием до решения Amber о едином счёте; в клеймо '
++     u'кривой — lbang=1 только включённым. Умолчание поля симулятора — умолчание склада (правило I)'),
+     (u'LayerHardCutoffDeg', False, False, u'неприменимо',
+      u'M13, П100: угол отсечки жёстких столкновений смешанной схемы (умолчание 20°) — режим замера '
+      u'независимости η от отсечки; двигает LayerReturnProbe --cutoff=; в клеймо не входит — единый счёт '
+@@ -545,6 +558,8 @@ SIM_NOT_SETTINGS = set([
+     u'CountLayerReturnsSameFace', u'CountLayerReturnsOtherFace', u'CountLayerReturnsKilled',
+     # (`M13`, П106) Счётчики тормозного по ходу переноса в слоях -- квантов и энергия; читает `G4RawProbe`.
+     u'CountLayerBremPhotons', u'SumLayerBremKev',
++    # (`M13`, П111) Счётчик пути электронов в веществе слоёв, г/см²; читает `LayerReturnProbe --brem`.
++    u'SumLayerPathG',
+     # Поля ВЛОЖЕННОГО типа (описание области сцены), а не настройки симулятора:
+     # тело класса читается целиком, вложенные объявления попадают в тот же кусок.
+     u'IsBox', u'IsCrystal',
+@@ -598,6 +613,9 @@ ONE_TRUTH = (
+     # (`M13`, П106 19.09.2026) Ключ, заведённый ВЫКЛ до единого счёта физики 21
+     # (П107, 19.09.2026): то же правило -- пробы прямого вызова берут умолчание склада.
+     (u'ElectronLayerBremAlongPath', u'ElectronLayerBremAlongPath', None),
++    # (`M13`, П111 19.09.2026) Ключ, заведённый ВЫКЛ до решения Amber о едином
++    # счёте: то же правило -- пробы прямого вызова берут умолчание склада.
++    (u'ElectronLayerBremAngular2BS', u'ElectronLayerBremAngular2BS', None),
+ )
+ 
+ 
+diff --git a/tools/effmaker/probes/CorpusMatrixProbe.cs b/tools/effmaker/probes/CorpusMatrixProbe.cs
+index 3d083234..102fa8f0 100644
+--- a/tools/effmaker/probes/CorpusMatrixProbe.cs
++++ b/tools/effmaker/probes/CorpusMatrixProbe.cs
+@@ -40,7 +40,7 @@ using System.Threading;
+ //                     [--pairth=1] [--positron=1] [--posoffset=0] [--rayl2=1]
+ //                     [--cone=1] [--peakw=1] [--peakb=1] [--xrkl=1] [--kdip=1] [--eta=0.33]
+ //                     [--lbin=1] [--pkch=1] [--lys=1|2] [--etr=1] [--imp=1]
+-//                     [--ecomp=1] [--bpath=0|1|2] [--eltr=1] [--elmix=1] [--lbrem=1]
++//                     [--ecomp=1] [--bpath=0|1|2] [--eltr=1] [--elmix=1] [--lbrem=1] [--lbang=0|1]
+ //                     [--xray=0] [--coh=0] [--brem=0] [--bremsb=0]
+ //
+ // `--lbrem=1` (`M13`, вторая половина, П106 19.09.2026) — ТОРМОЗНОЕ ЭЛЕКТРОНА В
+@@ -438,6 +438,13 @@ class CorpusMatrixProbe
+                 // физики 21 (П107, 19.09.2026); `--lbrem=0` — абляция, матрица
+                 // честно другая по клейму (без `lbrem=1;`).
+                 options.ElectronLayerBremAlongPath = Flag(a, 8);
++            else if (a.StartsWith("--lbang=", StringComparison.Ordinal))
++                // ⛔ `M13`, П111: направление кванта тормозного в слоях обвязки —
++                // 2BS Коха—Моца (как у арбитра option4) вместо Цая; входит в
++                // клеймо (`lbang=1`), хвост `LBAN`. ВЫКЛ умолчанием (склад
++                // физики 21 считан без него); `--lbang=1` — матрица честно
++                // другая по клейму.
++                options.ElectronLayerBremAngular2BS = Flag(a, 8);
+             else if (a.StartsWith("--bpath=", StringComparison.Ordinal))
+             {
+                 // `M3`, П44: тормозное вдоль пути переноса, уровень 0/1/2;
+diff --git a/tools/effmaker/probes/G4RawProbe.cs b/tools/effmaker/probes/G4RawProbe.cs
+index 3bdea9c0..465ffd2b 100644
+--- a/tools/effmaker/probes/G4RawProbe.cs
++++ b/tools/effmaker/probes/G4RawProbe.cs
+@@ -26,7 +26,7 @@ namespace G4RawProbe
+     ///                [--etr=0|1] [--etr-step=0.1] [--kdip=0|1|2|3]
+     ///                [--positron=0|1] [--posoffset=0|1] [--rayl2[=0|1]]
+     ///                [--ecomp=0|1] [--bpath=0|1|2] [--detour=0.7] [--eltr=0|1]
+-    ///                [--elmix=0|1] [--lbrem=0|1] [--ret-kill=own,carry,brem,ret,same,other,outbrem]
++    ///                [--elmix=0|1] [--lbrem=0|1] [--lbang=0|1] [--ret-kill=own,carry,brem,ret,same,other,outbrem]
+     ///
+     /// `--lbrem=1` (`M13`, вторая половина, П106 19.09.2026): ключ
+     /// `ElectronLayerBremAlongPath` — тормозное электрона в слоях обвязки ПО ХОДУ
+@@ -195,6 +195,7 @@ namespace G4RawProbe
+             bool eltr = store.ElectronLayerTransport;   // `AMBER44`/`M12`, П94 — умолчание склада (ВКЛ с физики 19, П97)
+             bool elmix = store.ElectronLayerMixedScattering;   // `M13`, П100 — умолчание склада (ВКЛ с физики 20, П103)
+             bool lbrem = store.ElectronLayerBremAlongPath;     // `M13`, П106 — умолчание склада (ВКЛ с физики 21, П107)
++            bool lbang = store.ElectronLayerBremAngular2BS;    // `M13`, П111 — умолчание склада (ВЫКЛ; 2BS вместо Цая в слоях)
+             // `M13`, П106: рычаги замера состава возврата (--ret-kill=), все ВЫКЛ.
+             bool retOwn = true, retCarry = true, retBrem = true, retOutBrem = true;
+             int retKill = 0;
+@@ -320,6 +321,12 @@ namespace G4RawProbe
+                     lbrem = Flag01(a, 8);
+                     continue;
+                 }
++                // `M13` (П111): направление кванта тормозного в слоях — 2BS Коха—Моца (как option4) вместо Цая.
++                if (a.StartsWith("--lbang=", StringComparison.Ordinal))
++                {
++                    lbang = Flag01(a, 8);
++                    continue;
++                }
+                 // `M13` (П106): рычаги замера состава возврата — список через запятую.
+                 // ⛔ Незнакомое слово — ОТКАЗ: молча пропущенный рычаг — это плечо
+                 // «умолчание против умолчания», которое выглядит как «эффекта нет».
+@@ -457,6 +464,7 @@ namespace G4RawProbe
+             simulator.ElectronLayerTransport = eltr;    // `AMBER44`/`M12`, П94
+             simulator.ElectronLayerMixedScattering = elmix;   // `M13`, П100
+             simulator.ElectronLayerBremAlongPath = lbrem;     // `M13`, П106
++            simulator.ElectronLayerBremAngular2BS = lbang;    // `M13`, П111
+             simulator.LayerReturnOwn = retOwn;                // `M13`, П106 — рычаги замера
+             simulator.LayerReturnCarried = retCarry;
+             simulator.LayerExitBremsstrahlung = retBrem;
+@@ -534,6 +542,9 @@ namespace G4RawProbe
+                               lbrem ? (eltr ? "ВКЛ (тонкая мишень вещества слоя на шагах, по электрону; толстых мишеней рождения/выхода нет)" : "ВКЛ, но без переноса в слоях (--eltr=0) бездействует")
+                                     : "выкл (толстая мишень в точке рождения / выхода, изотропно)",
+                               lbrem == store.ElectronLayerBremAlongPath ? " (умолчание склада)" : " (ключом)");
++            Console.WriteLine("направление кванта тормозного в слоях обвязки (`M13` П111, --lbang=): {0}{1}",
++                              lbang ? "2BS Коха—Моца (как G4Generator2BS у арбитра option4)" : "модифицированный Цай (как bpath=2 в кристалле)",
++                              lbang == store.ElectronLayerBremAngular2BS ? " (умолчание склада)" : " (ключом)");
+             Console.WriteLine("рычаги замера состава возврата (`M13` П106, --ret-kill=): {0}",
+                               retKillArg == null ? "нет (умолчание: возврат как есть)"
+                               : retKillArg + " — свой возврат " + (retOwn ? "есть" : "СПИСАН на грани")
+diff --git a/tools/effmaker/probes/LayerReturnProbe.cs b/tools/effmaker/probes/LayerReturnProbe.cs
+index 63b767b3..3c398a0c 100644
+--- a/tools/effmaker/probes/LayerReturnProbe.cs
++++ b/tools/effmaker/probes/LayerReturnProbe.cs
+@@ -43,7 +43,7 @@ using System.Text;
+ ///     layerreturnprobe --geometry=RC103_point0_p55.in [--face=front|side]
+ ///                      [--energies=50,100,200,300,500,1000,2000] [--angles=0,45,70]
+ ///                      [--n=200000] [--seed=20260917] [--crystal] [--x0=<см>] [--z0=<см>]
+-///                      [--elmix=0|1|both] [--cutoff=20] [--step=0.1] [--diag] [--brem]
++///                      [--elmix=0|1|both] [--cutoff=20] [--step=0.1] [--diag] [--brem] [--lbang=0|1]
+ ///
+ /// (`M13`, П106) `--brem` — ключ `ElectronLayerBremAlongPath` ВКЛ на время прогона (с физики 21,
+ /// П107 19.09.2026, он ВКЛ умолчанием склада; `--brem` дополнительно включает счётчик квантов): печатает
+@@ -52,6 +52,15 @@ using System.Text;
+ /// поверка выхода тонкой мишени по пути: на толстом слое отношение обязано быть ≈ 1,
+ /// на RC103 (PTFE 1 мм + Al 1 мм + пустота) — меньше ровно на долю пути, ушедшую в пустоту.
+ ///
++/// (`M13`, П111 19.09.2026) С `--brem` печатаются ещё строки `BREM …` и `HIST all …` в формате своей
++/// опоры Geant4 `g4brem` (handover/p111-m13/g4brem): квантов k ≥ 5 кэВ на электрон, излучённая
++/// энергия, доли вперёд/назад (полусфера относительно нормали слоя; вперёд = глубже в слой), путь
++/// в веществе г/см² (`SumLayerPathG`), квантов на г/см², η, якорь ESTAR таблицы; гистограмма по
++/// полосам k опоры. Приёмник квантов — `layerBremPush` отражением. `--lbang=0|1` — направление
++/// кванта: Цай (умолчание склада, ВЫКЛ) или 2BS Коха—Моца как у арбитра option4
++/// (`ElectronLayerBremAngular2BS`); мерка П111 §3: доля квантов назад в толстой PTFE 1000 кэВ
++/// 0.17 (Цай) против 0.27 у Geant4.
++///
+ /// Мерка П94 (RC103 П55, PTFE 1 мм + Al 1 мм + пустота, нормальное падение, ключ
+ /// `elmix` ВЫКЛ): η = 0.062 (100 кэВ) / 0.047 (500) / 0.031 (1000) — ×0.6 к Табате
+ /// для PTFE (0.10 / 0.08 / 0.06); от кристалла CsI (голая сцена) η_esc = 0.46 /
+@@ -73,6 +82,7 @@ static class LayerReturnProbe
+         int n = 200000;
+         ulong seed = 20260917UL;
+         bool crystal = false, diag = false, brem = false;
++        int lbang = -1;                                   // −1 — умолчание склада (П111)
+         string elmix = "both";
+         double cutoff = double.NaN, stepFraction = double.NaN;
+         double x0Override = double.NaN, z0Override = double.NaN;   // точка на грани, см (замер)
+@@ -103,6 +113,12 @@ static class LayerReturnProbe
+             else if (a.StartsWith("--step=", StringComparison.Ordinal)) stepFraction = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+             else if (a == "--crystal") crystal = true;
+             else if (a == "--brem") brem = true;
++            else if (a.StartsWith("--lbang=", StringComparison.Ordinal))
++            {
++                string v = a.Substring(8);
++                if (v != "0" && v != "1") { Console.Error.WriteLine("--lbang= 0|1"); return 2; }
++                lbang = int.Parse(v, CultureInfo.InvariantCulture);
++            }
+             else if (a == "--diag") diag = true;
+             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
+         }
+@@ -136,9 +152,12 @@ static class LayerReturnProbe
+         MethodInfo atMethod = typeof(EfficiencySimulator).GetMethod("At", BindingFlags.NonPublic | BindingFlags.Instance);
+         MethodInfo layerBrem = typeof(EfficiencySimulator).GetMethod("LayerBrem", BindingFlags.NonPublic | BindingFlags.Instance);
+         MethodInfo restoreRay = typeof(EfficiencySimulator).GetMethod("RestoreRay", BindingFlags.NonPublic | BindingFlags.Instance);
+-        if (walk == null || loss == null || saveRay == null || restoreRay == null)
++        // (П111) Приёмник квантов по ходу (`layerBremPush`) — отражением, чтобы разложить кванты по энергии и
++        // полусфере против опоры Geant4 (`g4brem`, handover/p111-m13/g4brem): полосы k те же, что у опоры.
++        FieldInfo bremPush = typeof(EfficiencySimulator).GetField("layerBremPush", BindingFlags.NonPublic | BindingFlags.Instance);
++        if (walk == null || loss == null || saveRay == null || restoreRay == null || (brem && (bremEnabled == null || bremPush == null)))
+         {
+-            Console.Error.WriteLine("⛔ EfficiencySimulator.TransportInLayers / ElectronLoss / SaveRay / RestoreRay не найдены — сборка чужая");
++            Console.Error.WriteLine("⛔ EfficiencySimulator.TransportInLayers / ElectronLoss / SaveRay / RestoreRay / layerBremEnabled / layerBremPush не найдены — сборка чужая");
+             return 2;
+         }
+ 
+@@ -158,6 +177,14 @@ static class LayerReturnProbe
+             if (code != 0) return code;
+         }
+ 
++        if (brem)
++        {
++            // (П111) Таблицы тормозного вещества первого слоя числом: тонкая мишень N(T) на 1 г/см²
++            // (StepPhotons при пути 1 и якоре 1), толстая Photons(T) с якорем и без, и интеграл тонкой
++            // по пробегу CSDA ∫N(T′)dR — обязан сходиться с толстой (поверка BremPathProbe, П44).
++            BremTables(geometry, energies, atMethod, layerBrem);
++        }
++
+         // Грань кристалла: сцена ставит кристалл от z = 0 (передняя грань) до
+         // высоты; сторона — x = половина ширины бруса (или радиус).
+         double half = 0.05 * Math.Max(geometry.CrystalBoxX > 0 ? geometry.CrystalBoxX : geometry.CrystalDiameter,
+@@ -201,7 +228,26 @@ static class LayerReturnProbe
+                     var sim = new EfficiencySimulator(geometry.Clone());
+                     sim.ElectronLayerTransport = true;
+                     sim.ElectronLayerMixedScattering = m;
+-                    if (brem) { sim.ElectronLayerBremAlongPath = true; bremEnabled.SetValue(sim, true); }
++                    // (П111) Приёмник квантов: гистограмма по k (полосы опоры g4brem) и по полусфере
++                    // (вперёд = глубже в слой, направление кванта · нормаль наружу > 0).
++                    long[] hist = new long[BremEdges.Length], histFwd = new long[BremEdges.Length];
++                    double capturedKev = 0.0;
++                    double nxo = nx, nzo = nz;
++                    if (brem)
++                    {
++                        sim.ElectronLayerBremAlongPath = true;
++                        if (lbang >= 0) sim.ElectronLayerBremAngular2BS = lbang == 1;   // П111
++                        bremEnabled.SetValue(sim, true);
++                        Action<double, double, double, double, double, double, double> push =
++                            (px, py, pz, ax, ay, az, k) =>
++                            {
++                                int b = BremBin(k);
++                                hist[b]++;
++                                if (ax * nxo + az * nzo > 0.0) histFwd[b]++;
++                                capturedKev += k;
++                            };
++                        bremPush.SetValue(sim, push);
++                    }
+                     if (!double.IsNaN(cutoff)) sim.LayerHardCutoffDeg = cutoff;
+                     if (!double.IsNaN(stepFraction)) sim.ElectronStepFraction = stepFraction;   // сходимость по шагу (как G4RawProbe --etr-step=)
+                     string name = sim.LightYieldName;          // EnsureBuilt
+@@ -248,6 +294,26 @@ static class LayerReturnProbe
+                                           (sim.CountLayerBremPhotons > 0 ? sim.SumLayerBremKev / sim.CountLayerBremPhotons : 0.0).ToString("0.0", CultureInfo.InvariantCulture),
+                                           thick.ToString("0.00000", CultureInfo.InvariantCulture),
+                                           (thick > 0.0 ? perElectron / thick : 0.0).ToString("0.000", CultureInfo.InvariantCulture));
++                        // (П111) Строка в формате опоры g4brem (числа на пущенный электрон): квантов ≥ 5 кэВ,
++                        // излучённая энергия, вперёд/назад, путь в веществе (г/см²), квантов на г/см²; гистограмма по k.
++                        long fwd = 0, all = 0;
++                        for (int b = 0; b < hist.Length; b++) { all += hist[b]; fwd += histFwd[b]; }
++                        double pathG = sim.SumLayerPathG / n;
++                        Console.WriteLine("    BREM T={0} angle={1} elmix={2} lbang={12} brem_all={3} brem_E={4} fwd={5} back={6} path={7} per_g={8} eta={9} anchor={11} captured={10}",
++                                          te.ToString("0.###", CultureInfo.InvariantCulture), ang.ToString("0.#", CultureInfo.InvariantCulture), m ? 1 : 0,
++                                          perElectron.ToString("0.000000", CultureInfo.InvariantCulture),
++                                          (sim.SumLayerBremKev / n).ToString("0.0000", CultureInfo.InvariantCulture),
++                                          (fwd / (double)n).ToString("0.000000", CultureInfo.InvariantCulture),
++                                          ((all - fwd) / (double)n).ToString("0.000000", CultureInfo.InvariantCulture),
++                                          pathG.ToString("0.000000", CultureInfo.InvariantCulture),
++                                          (pathG > 0.0 ? perElectron / pathG : 0.0).ToString("0.00000", CultureInfo.InvariantCulture),
++                                          eta.ToString("0.00000", CultureInfo.InvariantCulture),
++                                          all == sim.CountLayerBremPhotons ? "ok" : "MISMATCH " + all + "/" + sim.CountLayerBremPhotons,
++                                          (table != null ? table.Anchor(te) : 0.0).ToString("0.0000", CultureInfo.InvariantCulture),
++                                          sim.ElectronLayerBremAngular2BS ? 1 : 0);
++                        var h = new StringBuilder("    HIST all");
++                        for (int b = 0; b < hist.Length; b++) h.Append(' ').Append((hist[b] / (double)n).ToString("0.000000E+00", CultureInfo.InvariantCulture));
++                        Console.WriteLine(h.ToString());
+                     }
+                     row.AppendFormat(" | {0,11:0.0000} {1,7:0.0000} {2,7:0.000} {3,7:0.000} {4,8:0.000}",
+                                      eta, Math.Sqrt(eta * (1 - eta) / n),
+@@ -307,6 +373,72 @@ static class LayerReturnProbe
+         return 0;
+     }
+ 
++    /// <summary>
++    /// (П111) Таблицы тормозного вещества ПЕРВОГО слоя (точка старта на передней
++    /// грани) числом: тонкая мишень на 1 г/см² при энергии T, толстая мишень
++    /// (квантов на электрон, с якорем ESTAR и без), и интеграл тонкой мишени по
++    /// пробегу CSDA вещества (шаг 1 % пробега) — сверка двух таблиц одного
++    /// сечения: у толстой квант считается интегралом по пути торможения, у
++    /// тонкой — на шаге при текущей энергии; расхождение — дефект интегрирования.
++    /// </summary>
++    static void BremTables(GeometryModel geometry, List<double> energies, MethodInfo atMethod, MethodInfo layerBrem)
++    {
++        var sim = new EfficiencySimulator(geometry.Clone());
++        sim.ElectronLayerTransport = true;
++        string built = sim.LightYieldName;
++        MethodInfo carry = typeof(EfficiencySimulator).GetMethod("CarryMedium", BindingFlags.NonPublic | BindingFlags.Instance);
++        object region = atMethod.Invoke(sim, new object[] { 0.0, 0.0, -1e-7 });
++        var material = region != null ? (GeometryMaterial)region.GetType().GetField("Material").GetValue(region) : null;
++        var table = material != null ? (ThickTargetBrem)layerBrem.Invoke(sim, new object[] { material }) : null;
++        if (material == null || table == null || carry == null)
++        {
++            Console.WriteLine("ТАБЛИЦЫ ТОРМОЗНОГО: вещества у передней грани нет или таблицы нет — пропуск");
++            return;
++        }
++
++        var medium = (ElectronData.Material)carry.Invoke(sim, new object[] { material });
++        Console.WriteLine();
++        Console.WriteLine("ТАБЛИЦЫ ТОРМОЗНОГО ({0}, MinKev {1}): тонкая N(T) на 1 г/см², толстая Photons(T) (с якорем ESTAR / без), интеграл тонкой ∫N dR по пробегу CSDA, отношение интеграл/толстая-без-якоря",
++                          material.Name, table.MinKev.ToString("0.#", CultureInfo.InvariantCulture));
++        Console.WriteLine("{0,9} {1,12} {2,12} {3,12} {4,8} {5,12} {6,9}", "T, кэВ", "N тонк/г", "толстая", "толст/якорь", "якорь", "∫N dR", "отн");
++        foreach (double te in energies)
++        {
++            double thin = table.StepPhotons(te, 1.0, 1.0);
++            double thick = table.Photons(te);
++            double anchor = table.Anchor(te);
++            double range = ElectronData.RangeOf(medium, te);
++            // интеграл по пробегу: 200 шагов по R от R(T) до 0, энергия середины шага обратной таблицей
++            double integral = 0.0;
++            const int Steps = 200;
++            for (int s = 0; s < Steps; s++)
++            {
++                double rMid = range * (1.0 - (s + 0.5) / Steps);
++                double tMid = ElectronData.EnergyOfRange(medium, rMid);
++                integral += table.StepPhotons(tMid, range / Steps, 1.0);
++            }
++
++            Console.WriteLine("{0,9:0.#} {1,12:0.00000} {2,12:0.00000} {3,12:0.00000} {4,8:0.0000} {5,12:0.00000} {6,9:0.000}",
++                              te, thin, thick, thick / anchor, anchor, integral, thick > 0.0 ? integral / (thick / anchor) : 0.0);
++        }
++
++        Console.WriteLine();
++    }
++
++    /// <summary>
++    /// (П111) Нижние границы полос энергии кванта, кэВ — те же, что у опоры Geant4
++    /// `g4brem` (handover/p111-m13/g4brem/g4brem.cc): 5-10, 10-20, 20-30, 30-50, 50-70,
++    /// 70-100, 100-150, 150-200, 200-300, 300-500, 500-700, 700-1000, 1000-1500,
++    /// 1500-2000, 2000+.
++    /// </summary>
++    static readonly double[] BremEdges = { 5, 10, 20, 30, 50, 70, 100, 150, 200, 300, 500, 700, 1000, 1500, 2000 };
++
++    static int BremBin(double kKev)
++    {
++        int b = 0;
++        while (b + 1 < BremEdges.Length && kKev >= BremEdges[b + 1]) b++;
++        return b;
++    }
++
+     /// <summary>
+     /// (`M13`, П100) Числа ОДНОГО ШАГА переноса (0.1 остаточного пробега CSDA)
+     /// по веществам сцены — отражением на тех же приватных функциях, что

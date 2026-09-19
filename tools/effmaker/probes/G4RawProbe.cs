@@ -26,7 +26,7 @@ namespace G4RawProbe
     ///                [--etr=0|1] [--etr-step=0.1] [--kdip=0|1|2|3]
     ///                [--positron=0|1] [--posoffset=0|1] [--rayl2[=0|1]]
     ///                [--ecomp=0|1] [--bpath=0|1|2] [--detour=0.7] [--eltr=0|1]
-    ///                [--elmix=0|1] [--lbrem=0|1] [--ret-kill=own,carry,brem,ret,same,other,outbrem]
+    ///                [--elmix=0|1] [--lbrem=0|1] [--lbang=0|1] [--ret-kill=own,carry,brem,ret,same,other,outbrem]
     ///
     /// `--lbrem=1` (`M13`, вторая половина, П106 19.09.2026): ключ
     /// `ElectronLayerBremAlongPath` — тормозное электрона в слоях обвязки ПО ХОДУ
@@ -195,6 +195,7 @@ namespace G4RawProbe
             bool eltr = store.ElectronLayerTransport;   // `AMBER44`/`M12`, П94 — умолчание склада (ВКЛ с физики 19, П97)
             bool elmix = store.ElectronLayerMixedScattering;   // `M13`, П100 — умолчание склада (ВКЛ с физики 20, П103)
             bool lbrem = store.ElectronLayerBremAlongPath;     // `M13`, П106 — умолчание склада (ВКЛ с физики 21, П107)
+            bool lbang = store.ElectronLayerBremAngular2BS;    // `M13`, П111 — умолчание склада (ВЫКЛ; 2BS вместо Цая в слоях)
             // `M13`, П106: рычаги замера состава возврата (--ret-kill=), все ВЫКЛ.
             bool retOwn = true, retCarry = true, retBrem = true, retOutBrem = true;
             int retKill = 0;
@@ -318,6 +319,12 @@ namespace G4RawProbe
                 if (a.StartsWith("--lbrem=", StringComparison.Ordinal))
                 {
                     lbrem = Flag01(a, 8);
+                    continue;
+                }
+                // `M13` (П111): направление кванта тормозного в слоях — 2BS Коха—Моца (как option4) вместо Цая.
+                if (a.StartsWith("--lbang=", StringComparison.Ordinal))
+                {
+                    lbang = Flag01(a, 8);
                     continue;
                 }
                 // `M13` (П106): рычаги замера состава возврата — список через запятую.
@@ -457,6 +464,7 @@ namespace G4RawProbe
             simulator.ElectronLayerTransport = eltr;    // `AMBER44`/`M12`, П94
             simulator.ElectronLayerMixedScattering = elmix;   // `M13`, П100
             simulator.ElectronLayerBremAlongPath = lbrem;     // `M13`, П106
+            simulator.ElectronLayerBremAngular2BS = lbang;    // `M13`, П111
             simulator.LayerReturnOwn = retOwn;                // `M13`, П106 — рычаги замера
             simulator.LayerReturnCarried = retCarry;
             simulator.LayerExitBremsstrahlung = retBrem;
@@ -534,6 +542,9 @@ namespace G4RawProbe
                               lbrem ? (eltr ? "ВКЛ (тонкая мишень вещества слоя на шагах, по электрону; толстых мишеней рождения/выхода нет)" : "ВКЛ, но без переноса в слоях (--eltr=0) бездействует")
                                     : "выкл (толстая мишень в точке рождения / выхода, изотропно)",
                               lbrem == store.ElectronLayerBremAlongPath ? " (умолчание склада)" : " (ключом)");
+            Console.WriteLine("направление кванта тормозного в слоях обвязки (`M13` П111, --lbang=): {0}{1}",
+                              lbang ? "2BS Коха—Моца (как G4Generator2BS у арбитра option4)" : "модифицированный Цай (как bpath=2 в кристалле)",
+                              lbang == store.ElectronLayerBremAngular2BS ? " (умолчание склада)" : " (ключом)");
             Console.WriteLine("рычаги замера состава возврата (`M13` П106, --ret-kill=): {0}",
                               retKillArg == null ? "нет (умолчание: возврат как есть)"
                               : retKillArg + " — свой возврат " + (retOwn ? "есть" : "СПИСАН на грани")

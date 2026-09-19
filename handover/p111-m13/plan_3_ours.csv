@@ -1,0 +1,3 @@
+# П111 (M13): плечо тормозного обвязки при ключе lbang=1 (2BS), 100 млн, сборка build_p111 (ключ заведён).
+ours;RC103_point0_p55;2614.511;100000000;lbang1_100;--lbang=1
+ours;RC103_point0_p55;2614.511;100000000;lbang1_outbrem0_100;--lbang=1 --ret-kill=outbrem

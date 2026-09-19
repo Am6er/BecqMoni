@@ -869,6 +869,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // по ходу переноса — тем же путём: не доехав до построителя, ключ
                 // мёртв (`S130`), а клеймо `lbrem=1` лгало бы о происхождении.
                 ElectronLayerBremAlongPath = options.ElectronLayerBremAlongPath,
+                // ⛔ (`M13`, П111 19.09.2026) Направление кванта тормозного в слоях
+                // (2BS) — тем же путём: не доехав до построителя, ключ мёртв
+                // (`S130`), а клеймо `lbang=1` лгало бы о происхождении.
+                ElectronLayerBremAngular2BS = options.ElectronLayerBremAngular2BS,
                 // ⛔ (`E34`) ДОПУСК ПИКА. Ноль здесь стоял безусловно, и это
                 // запирало поправку на однократное рассеяние: `InPeak` требует
                 // `E − deposited ≤ допуск`, а у рассеявшегося кванта недобор

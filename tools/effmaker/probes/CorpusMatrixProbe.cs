@@ -40,7 +40,7 @@ using System.Threading;
 //                     [--pairth=1] [--positron=1] [--posoffset=0] [--rayl2=1]
 //                     [--cone=1] [--peakw=1] [--peakb=1] [--xrkl=1] [--kdip=1] [--eta=0.33]
 //                     [--lbin=1] [--pkch=1] [--lys=1|2] [--etr=1] [--imp=1]
-//                     [--ecomp=1] [--bpath=0|1|2] [--eltr=1] [--elmix=1] [--lbrem=1]
+//                     [--ecomp=1] [--bpath=0|1|2] [--eltr=1] [--elmix=1] [--lbrem=1] [--lbang=0|1]
 //                     [--xray=0] [--coh=0] [--brem=0] [--bremsb=0]
 //
 // `--lbrem=1` (`M13`, вторая половина, П106 19.09.2026) — ТОРМОЗНОЕ ЭЛЕКТРОНА В
@@ -438,6 +438,13 @@ class CorpusMatrixProbe
                 // физики 21 (П107, 19.09.2026); `--lbrem=0` — абляция, матрица
                 // честно другая по клейму (без `lbrem=1;`).
                 options.ElectronLayerBremAlongPath = Flag(a, 8);
+            else if (a.StartsWith("--lbang=", StringComparison.Ordinal))
+                // ⛔ `M13`, П111: направление кванта тормозного в слоях обвязки —
+                // 2BS Коха—Моца (как у арбитра option4) вместо Цая; входит в
+                // клеймо (`lbang=1`), хвост `LBAN`. ВЫКЛ умолчанием (склад
+                // физики 21 считан без него); `--lbang=1` — матрица честно
+                // другая по клейму.
+                options.ElectronLayerBremAngular2BS = Flag(a, 8);
             else if (a.StartsWith("--bpath=", StringComparison.Ordinal))
             {
                 // `M3`, П44: тормозное вдоль пути переноса, уровень 0/1/2;

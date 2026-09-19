@@ -1,0 +1,21 @@
+-- The CXX compiler identification is MSVC 19.44.35228.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+-- Looking for pthread_create in pthreads
+-- Looking for pthread_create in pthreads - not found
+-- Looking for pthread_create in pthread
+-- Looking for pthread_create in pthread - not found
+-- Found Threads: TRUE
+-- Found OpenGL: opengl32
+-- Found Geant4: C:/Users/moroz/source/repos/GEANT4/geant4-11.4.2-win64/lib/cmake/Geant4/Geant4Config.cmake (found version "11.4.2")
+-- Configuring done (3.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: D:/BqMoni_Claude/p111/g4/build
+ninja: Entering directory `D:\BqMoni_Claude\p111\g4\build'
+[1/2] Building CXX object CMakeFiles\g4cf.dir\g4cf.cc.obj
+[2/2] Linking CXX executable g4cf.exe
