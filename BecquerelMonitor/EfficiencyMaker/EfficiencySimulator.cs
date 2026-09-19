@@ -427,6 +427,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool ElectronLayerBremAlongPath = new ResponseMatrixOptions().ElectronLayerBremAlongPath;
 
         /// <summary>
+        /// (`M13`, остаток; П111 19.09.2026) НАПРАВЛЕНИЕ КВАНТА ТОРМОЗНОГО В
+        /// СЛОЯХ ОБВЯЗКИ — 2BS Коха—Моца (как `G4Generator2BS` у арбитра
+        /// option4) вместо модифицированного Цая — ключ сделан ВЫКЛ. Умолчание
+        /// ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.ElectronLayerBremAngular2BS"/>,
+        /// правило I). Действует только под <see cref="ElectronLayerBremAlongPath"/>
+        /// в `LayerEmitBremsstrahlung` (<see cref="Brem2BSCosine"/>); в кристалле
+        /// направление (`bpath=2`, Цай) не трогается. Выключенный — прежний ход
+        /// до последнего бита и без единого лишнего случайного числа.
+        /// </summary>
+        public bool ElectronLayerBremAngular2BS = new ResponseMatrixOptions().ElectronLayerBremAngular2BS;
+
+        /// <summary>
         /// (`M13`, П100) Угол отсечки смешанной схемы в слоях, градусы:
         /// столкновения с отклонением больше него — жёсткие, по одному. Режим
         /// ЗАМЕРА, не настройка: двигает `LayerReturnProbe --cutoff=` для
@@ -544,6 +557,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public long CountLayerBremPhotons;
         public double SumLayerBremKev;
+
+        /// <summary>
+        /// (`M13`, П111) Путь электронов в ВЕЩЕСТВЕ слоёв обвязки за все вызовы
+        /// `TransportInLayers`, г/см² (пустота не считается) — читает
+        /// `LayerReturnProbe --brem`: квантов на г/см² пути против опоры Geant4;
+        /// не настройка, на ход переноса и на случайные числа не влияет.
+        /// </summary>
+        public double SumLayerPathG;
 
         /// <summary>
         /// Сколько энергии событие может потерять и всё-таки остаться в пике,

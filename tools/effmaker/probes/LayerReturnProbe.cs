@@ -43,7 +43,7 @@ using System.Text;
 ///     layerreturnprobe --geometry=RC103_point0_p55.in [--face=front|side]
 ///                      [--energies=50,100,200,300,500,1000,2000] [--angles=0,45,70]
 ///                      [--n=200000] [--seed=20260917] [--crystal] [--x0=<см>] [--z0=<см>]
-///                      [--elmix=0|1|both] [--cutoff=20] [--step=0.1] [--diag] [--brem]
+///                      [--elmix=0|1|both] [--cutoff=20] [--step=0.1] [--diag] [--brem] [--lbang=0|1]
 ///
 /// (`M13`, П106) `--brem` — ключ `ElectronLayerBremAlongPath` ВКЛ на время прогона (с физики 21,
 /// П107 19.09.2026, он ВКЛ умолчанием склада; `--brem` дополнительно включает счётчик квантов): печатает
@@ -51,6 +51,15 @@ using System.Text;
 /// энергию против толстой мишени вещества первого слоя (`ThickTargetBrem.Photons(T)`) —
 /// поверка выхода тонкой мишени по пути: на толстом слое отношение обязано быть ≈ 1,
 /// на RC103 (PTFE 1 мм + Al 1 мм + пустота) — меньше ровно на долю пути, ушедшую в пустоту.
+///
+/// (`M13`, П111 19.09.2026) С `--brem` печатаются ещё строки `BREM …` и `HIST all …` в формате своей
+/// опоры Geant4 `g4brem` (handover/p111-m13/g4brem): квантов k ≥ 5 кэВ на электрон, излучённая
+/// энергия, доли вперёд/назад (полусфера относительно нормали слоя; вперёд = глубже в слой), путь
+/// в веществе г/см² (`SumLayerPathG`), квантов на г/см², η, якорь ESTAR таблицы; гистограмма по
+/// полосам k опоры. Приёмник квантов — `layerBremPush` отражением. `--lbang=0|1` — направление
+/// кванта: Цай (умолчание склада, ВЫКЛ) или 2BS Коха—Моца как у арбитра option4
+/// (`ElectronLayerBremAngular2BS`); мерка П111 §3: доля квантов назад в толстой PTFE 1000 кэВ
+/// 0.17 (Цай) против 0.27 у Geant4.
 ///
 /// Мерка П94 (RC103 П55, PTFE 1 мм + Al 1 мм + пустота, нормальное падение, ключ
 /// `elmix` ВЫКЛ): η = 0.062 (100 кэВ) / 0.047 (500) / 0.031 (1000) — ×0.6 к Табате
@@ -73,6 +82,7 @@ static class LayerReturnProbe
         int n = 200000;
         ulong seed = 20260917UL;
         bool crystal = false, diag = false, brem = false;
+        int lbang = -1;                                   // −1 — умолчание склада (П111)
         string elmix = "both";
         double cutoff = double.NaN, stepFraction = double.NaN;
         double x0Override = double.NaN, z0Override = double.NaN;   // точка на грани, см (замер)
@@ -103,6 +113,12 @@ static class LayerReturnProbe
             else if (a.StartsWith("--step=", StringComparison.Ordinal)) stepFraction = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
             else if (a == "--crystal") crystal = true;
             else if (a == "--brem") brem = true;
+            else if (a.StartsWith("--lbang=", StringComparison.Ordinal))
+            {
+                string v = a.Substring(8);
+                if (v != "0" && v != "1") { Console.Error.WriteLine("--lbang= 0|1"); return 2; }
+                lbang = int.Parse(v, CultureInfo.InvariantCulture);
+            }
             else if (a == "--diag") diag = true;
             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
         }
@@ -136,9 +152,12 @@ static class LayerReturnProbe
         MethodInfo atMethod = typeof(EfficiencySimulator).GetMethod("At", BindingFlags.NonPublic | BindingFlags.Instance);
         MethodInfo layerBrem = typeof(EfficiencySimulator).GetMethod("LayerBrem", BindingFlags.NonPublic | BindingFlags.Instance);
         MethodInfo restoreRay = typeof(EfficiencySimulator).GetMethod("RestoreRay", BindingFlags.NonPublic | BindingFlags.Instance);
-        if (walk == null || loss == null || saveRay == null || restoreRay == null)
+        // (П111) Приёмник квантов по ходу (`layerBremPush`) — отражением, чтобы разложить кванты по энергии и
+        // полусфере против опоры Geant4 (`g4brem`, handover/p111-m13/g4brem): полосы k те же, что у опоры.
+        FieldInfo bremPush = typeof(EfficiencySimulator).GetField("layerBremPush", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (walk == null || loss == null || saveRay == null || restoreRay == null || (brem && (bremEnabled == null || bremPush == null)))
         {
-            Console.Error.WriteLine("⛔ EfficiencySimulator.TransportInLayers / ElectronLoss / SaveRay / RestoreRay не найдены — сборка чужая");
+            Console.Error.WriteLine("⛔ EfficiencySimulator.TransportInLayers / ElectronLoss / SaveRay / RestoreRay / layerBremEnabled / layerBremPush не найдены — сборка чужая");
             return 2;
         }
 
@@ -156,6 +175,14 @@ static class LayerReturnProbe
         {
             int code = Diagnose(geometry, energies, cutoff);
             if (code != 0) return code;
+        }
+
+        if (brem)
+        {
+            // (П111) Таблицы тормозного вещества первого слоя числом: тонкая мишень N(T) на 1 г/см²
+            // (StepPhotons при пути 1 и якоре 1), толстая Photons(T) с якорем и без, и интеграл тонкой
+            // по пробегу CSDA ∫N(T′)dR — обязан сходиться с толстой (поверка BremPathProbe, П44).
+            BremTables(geometry, energies, atMethod, layerBrem);
         }
 
         // Грань кристалла: сцена ставит кристалл от z = 0 (передняя грань) до
@@ -201,7 +228,26 @@ static class LayerReturnProbe
                     var sim = new EfficiencySimulator(geometry.Clone());
                     sim.ElectronLayerTransport = true;
                     sim.ElectronLayerMixedScattering = m;
-                    if (brem) { sim.ElectronLayerBremAlongPath = true; bremEnabled.SetValue(sim, true); }
+                    // (П111) Приёмник квантов: гистограмма по k (полосы опоры g4brem) и по полусфере
+                    // (вперёд = глубже в слой, направление кванта · нормаль наружу > 0).
+                    long[] hist = new long[BremEdges.Length], histFwd = new long[BremEdges.Length];
+                    double capturedKev = 0.0;
+                    double nxo = nx, nzo = nz;
+                    if (brem)
+                    {
+                        sim.ElectronLayerBremAlongPath = true;
+                        if (lbang >= 0) sim.ElectronLayerBremAngular2BS = lbang == 1;   // П111
+                        bremEnabled.SetValue(sim, true);
+                        Action<double, double, double, double, double, double, double> push =
+                            (px, py, pz, ax, ay, az, k) =>
+                            {
+                                int b = BremBin(k);
+                                hist[b]++;
+                                if (ax * nxo + az * nzo > 0.0) histFwd[b]++;
+                                capturedKev += k;
+                            };
+                        bremPush.SetValue(sim, push);
+                    }
                     if (!double.IsNaN(cutoff)) sim.LayerHardCutoffDeg = cutoff;
                     if (!double.IsNaN(stepFraction)) sim.ElectronStepFraction = stepFraction;   // сходимость по шагу (как G4RawProbe --etr-step=)
                     string name = sim.LightYieldName;          // EnsureBuilt
@@ -248,6 +294,26 @@ static class LayerReturnProbe
                                           (sim.CountLayerBremPhotons > 0 ? sim.SumLayerBremKev / sim.CountLayerBremPhotons : 0.0).ToString("0.0", CultureInfo.InvariantCulture),
                                           thick.ToString("0.00000", CultureInfo.InvariantCulture),
                                           (thick > 0.0 ? perElectron / thick : 0.0).ToString("0.000", CultureInfo.InvariantCulture));
+                        // (П111) Строка в формате опоры g4brem (числа на пущенный электрон): квантов ≥ 5 кэВ,
+                        // излучённая энергия, вперёд/назад, путь в веществе (г/см²), квантов на г/см²; гистограмма по k.
+                        long fwd = 0, all = 0;
+                        for (int b = 0; b < hist.Length; b++) { all += hist[b]; fwd += histFwd[b]; }
+                        double pathG = sim.SumLayerPathG / n;
+                        Console.WriteLine("    BREM T={0} angle={1} elmix={2} lbang={12} brem_all={3} brem_E={4} fwd={5} back={6} path={7} per_g={8} eta={9} anchor={11} captured={10}",
+                                          te.ToString("0.###", CultureInfo.InvariantCulture), ang.ToString("0.#", CultureInfo.InvariantCulture), m ? 1 : 0,
+                                          perElectron.ToString("0.000000", CultureInfo.InvariantCulture),
+                                          (sim.SumLayerBremKev / n).ToString("0.0000", CultureInfo.InvariantCulture),
+                                          (fwd / (double)n).ToString("0.000000", CultureInfo.InvariantCulture),
+                                          ((all - fwd) / (double)n).ToString("0.000000", CultureInfo.InvariantCulture),
+                                          pathG.ToString("0.000000", CultureInfo.InvariantCulture),
+                                          (pathG > 0.0 ? perElectron / pathG : 0.0).ToString("0.00000", CultureInfo.InvariantCulture),
+                                          eta.ToString("0.00000", CultureInfo.InvariantCulture),
+                                          all == sim.CountLayerBremPhotons ? "ok" : "MISMATCH " + all + "/" + sim.CountLayerBremPhotons,
+                                          (table != null ? table.Anchor(te) : 0.0).ToString("0.0000", CultureInfo.InvariantCulture),
+                                          sim.ElectronLayerBremAngular2BS ? 1 : 0);
+                        var h = new StringBuilder("    HIST all");
+                        for (int b = 0; b < hist.Length; b++) h.Append(' ').Append((hist[b] / (double)n).ToString("0.000000E+00", CultureInfo.InvariantCulture));
+                        Console.WriteLine(h.ToString());
                     }
                     row.AppendFormat(" | {0,11:0.0000} {1,7:0.0000} {2,7:0.000} {3,7:0.000} {4,8:0.000}",
                                      eta, Math.Sqrt(eta * (1 - eta) / n),
@@ -305,6 +371,72 @@ static class LayerReturnProbe
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// (П111) Таблицы тормозного вещества ПЕРВОГО слоя (точка старта на передней
+    /// грани) числом: тонкая мишень на 1 г/см² при энергии T, толстая мишень
+    /// (квантов на электрон, с якорем ESTAR и без), и интеграл тонкой мишени по
+    /// пробегу CSDA вещества (шаг 1 % пробега) — сверка двух таблиц одного
+    /// сечения: у толстой квант считается интегралом по пути торможения, у
+    /// тонкой — на шаге при текущей энергии; расхождение — дефект интегрирования.
+    /// </summary>
+    static void BremTables(GeometryModel geometry, List<double> energies, MethodInfo atMethod, MethodInfo layerBrem)
+    {
+        var sim = new EfficiencySimulator(geometry.Clone());
+        sim.ElectronLayerTransport = true;
+        string built = sim.LightYieldName;
+        MethodInfo carry = typeof(EfficiencySimulator).GetMethod("CarryMedium", BindingFlags.NonPublic | BindingFlags.Instance);
+        object region = atMethod.Invoke(sim, new object[] { 0.0, 0.0, -1e-7 });
+        var material = region != null ? (GeometryMaterial)region.GetType().GetField("Material").GetValue(region) : null;
+        var table = material != null ? (ThickTargetBrem)layerBrem.Invoke(sim, new object[] { material }) : null;
+        if (material == null || table == null || carry == null)
+        {
+            Console.WriteLine("ТАБЛИЦЫ ТОРМОЗНОГО: вещества у передней грани нет или таблицы нет — пропуск");
+            return;
+        }
+
+        var medium = (ElectronData.Material)carry.Invoke(sim, new object[] { material });
+        Console.WriteLine();
+        Console.WriteLine("ТАБЛИЦЫ ТОРМОЗНОГО ({0}, MinKev {1}): тонкая N(T) на 1 г/см², толстая Photons(T) (с якорем ESTAR / без), интеграл тонкой ∫N dR по пробегу CSDA, отношение интеграл/толстая-без-якоря",
+                          material.Name, table.MinKev.ToString("0.#", CultureInfo.InvariantCulture));
+        Console.WriteLine("{0,9} {1,12} {2,12} {3,12} {4,8} {5,12} {6,9}", "T, кэВ", "N тонк/г", "толстая", "толст/якорь", "якорь", "∫N dR", "отн");
+        foreach (double te in energies)
+        {
+            double thin = table.StepPhotons(te, 1.0, 1.0);
+            double thick = table.Photons(te);
+            double anchor = table.Anchor(te);
+            double range = ElectronData.RangeOf(medium, te);
+            // интеграл по пробегу: 200 шагов по R от R(T) до 0, энергия середины шага обратной таблицей
+            double integral = 0.0;
+            const int Steps = 200;
+            for (int s = 0; s < Steps; s++)
+            {
+                double rMid = range * (1.0 - (s + 0.5) / Steps);
+                double tMid = ElectronData.EnergyOfRange(medium, rMid);
+                integral += table.StepPhotons(tMid, range / Steps, 1.0);
+            }
+
+            Console.WriteLine("{0,9:0.#} {1,12:0.00000} {2,12:0.00000} {3,12:0.00000} {4,8:0.0000} {5,12:0.00000} {6,9:0.000}",
+                              te, thin, thick, thick / anchor, anchor, integral, thick > 0.0 ? integral / (thick / anchor) : 0.0);
+        }
+
+        Console.WriteLine();
+    }
+
+    /// <summary>
+    /// (П111) Нижние границы полос энергии кванта, кэВ — те же, что у опоры Geant4
+    /// `g4brem` (handover/p111-m13/g4brem/g4brem.cc): 5-10, 10-20, 20-30, 30-50, 50-70,
+    /// 70-100, 100-150, 150-200, 200-300, 300-500, 500-700, 700-1000, 1000-1500,
+    /// 1500-2000, 2000+.
+    /// </summary>
+    static readonly double[] BremEdges = { 5, 10, 20, 30, 50, 70, 100, 150, 200, 300, 500, 700, 1000, 1500, 2000 };
+
+    static int BremBin(double kKev)
+    {
+        int b = 0;
+        while (b + 1 < BremEdges.Length && kKev >= BremEdges[b + 1]) b++;
+        return b;
     }
 
     /// <summary>

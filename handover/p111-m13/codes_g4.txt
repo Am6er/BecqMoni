@@ -1,0 +1,6 @@
+g4 RC103_point0_p55_2614.511_escpop code=0 n=20000000 keys=[escpop] probe=build_p111 14:54:02 dt=120s
+g4 RC103_point0_p55_1460.82_escpop code=0 n=20000000 keys=[escpop] probe=build_p111 14:56:05 dt=123s
+done g4 D:\BqMoni_Claude\p111\plan_1_g4.csv 14:56:05
+g4 RC103_point0_p55_2614.511_def60 code=0 n=60000000 keys=[escpop] probe=build_p111 15:10:43 dt=391s
+g4 RC103_point0_p55_2614.511_killoutbrem60 code=0 n=60000000 keys=[killoutbrem] probe=build_p111 15:17:22 dt=400s
+done g4 D:\BqMoni_Claude\p111\plan_2_g4.csv 15:17:22

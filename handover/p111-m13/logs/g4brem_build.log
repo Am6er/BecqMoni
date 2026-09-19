@@ -1,0 +1,6 @@
+-- Configuring done (0.2s)
+-- Generating done (0.1s)
+-- Build files have been written to: D:/BqMoni_Claude/p111/g4brem/build
+ninja: Entering directory `D:\BqMoni_Claude\p111\g4brem\build'
+[1/2] Building CXX object CMakeFiles\g4brem.dir\g4brem.cc.obj
+[2/2] Linking CXX executable g4brem.exe

@@ -1233,6 +1233,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     sb.Append("lbrem=1;");
                 }
+
+                // ⛔ (`M13`, П111 19.09.2026) Направление кванта тормозного в
+                // слоях — 2BS Коха—Моца (как `G4Generator2BS` у арбитра option4)
+                // вместо модифицированного Цая — тем же правилом `T42`: пишется,
+                // ТОЛЬКО когда включено. Двигает континуум сцен с обвязкой (куда
+                // летит тормозное электронов обвязки) и поток случайных чисел;
+                // ВЫКЛ умолчанием до решения Amber о едином счёте.
+                if (options.ElectronLayerBremAngular2BS)
+                {
+                    sb.Append("lbang=1;");
+                }
             }
 
             // (`AMBER13` (б)) Нормировка — тем же правилом `T42`: строка
@@ -2352,6 +2363,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // при переходе 19 → 20.
                 writer.Write(Encoding.ASCII.GetBytes("LBRM"));
                 writer.Write(flags.ElectronLayerBremAlongPath);
+
+                // ⛔ ДВАДЦАТЬ ТРЕТИЙ ХВОСТ — `LBAN` (`M13`, П111 19.09.2026:
+                // направление кванта тормозного в слоях — 2BS Коха—Моца вместо
+                // Цая). Те же два довода: ключ входит в клеймо (`lbang=1`), и без
+                // хвоста матрица не сходилась бы сама с собой. Формат НЕ поднят:
+                // у файла без хвоста поле остаётся УМОЛЧАНИЕМ КЛАССА (`false` —
+                // ВЫКЛ до решения Amber), чем и был весь склад физики 21.
+                writer.Write(Encoding.ASCII.GetBytes("LBAN"));
+                writer.Write(flags.ElectronLayerBremAngular2BS);
             }
 
             if (File.Exists(path))
@@ -2751,6 +2771,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                                             && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "LBRM")
                                                                         {
                                                                             matrix.Options.ElectronLayerBremAlongPath = reader.ReadBoolean();
+
+                                                                            // ⛔ ХВОСТ `LBAN` (`M13`, П111
+                                                                            // 19.09.2026): у файлов до него
+                                                                            // поле остаётся умолчанием
+                                                                            // класса (`false`) — чем и был
+                                                                            // весь склад физики 21.
+                                                                            if (stream.Length - stream.Position >= 5
+                                                                                && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "LBAN")
+                                                                            {
+                                                                                matrix.Options.ElectronLayerBremAngular2BS = reader.ReadBoolean();
+                                                                            }
                                                                         }
                                                                     }
                                                                 }
@@ -4250,6 +4281,49 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// `G4RawProbe --lbrem=0|1`, `LayerReturnProbe --brem`.
         /// </summary>
         public bool ElectronLayerBremAlongPath = true;
+
+        /// <summary>
+        /// ✅ (`M13`, остаток «0.73 квантов на электрон»; П111 19.09.2026) —
+        /// **ключ сделан ВЫКЛ**: НАПРАВЛЕНИЕ КВАНТА ТОРМОЗНОГО В СЛОЯХ ОБВЯЗКИ —
+        /// 2BS Коха—Моца (Rev. Mod. Phys. 31, 920 (1959), формула 2BS; розыгрыш
+        /// отбором по PIRS-0203, как `G4Generator2BS` у арбитра
+        /// `G4EmStandardPhysics_option4`) вместо модифицированного Цая
+        /// (`G4ModifiedTsai`, как `bpath=2` в кристалле).
+        ///
+        /// Зачем. Стенд пластин П111 (`LayerReturnProbe --brem` против своей опоры
+        /// Geant4 `g4brem`, handover/p111-m13): число квантов ≥ 5 кэВ на электрон,
+        /// их спектр и путь в веществе у нас сходятся с арбитром в 1…4 % (PTFE/Al,
+        /// 300…2000 кэВ), а вот доля квантов В ЗАДНЮЮ ПОЛУСФЕРУ относительно
+        /// нормали слоя у нас ×0.6…0.7 от арбитра (PTFE 1000 кэВ: 0.17 против 0.27)
+        /// — и ровно столько же даёт сама формула: у Цая назад летит 4.1 % квантов
+        /// при 1000 кэВ, у 2BS 5.7 % (×1.4), при 100 кэВ 15 % против 23 %
+        /// (`tables/ang_2bs_vs_tsai.txt`). Сам «остаток 0.73» П106 оказался
+        /// ошибкой нормировки счётчика (П111 §1): по одноимённому населению мы
+        /// излучаем 1.07 квантов на историю от арбитра.
+        ///
+        /// Что делает — `ElectronTransport.cs`, `LayerEmitBremsstrahlung`: косинус
+        /// угла кванта к электрону — <see cref="EfficiencySimulator.Brem2BSCosine"/>
+        /// (энергия электрона до излучения, энергия кванта, эффективный Z вещества
+        /// слоя по весу тормозного Σ w·Z²/A) вместо `TsaiCosine`. Только в слоях
+        /// обвязки и только под <see cref="ElectronLayerBremAlongPath"/>; в
+        /// КРИСТАЛЛЕ (`bpath=2`) направление не трогается — оно поверено П44 по
+        /// полосам и не предмет строки.
+        ///
+        /// ⛔ Ключ двигает КОНТИНУУМ сцен с обвязкой (куда летит тормозное
+        /// электронов обвязки) и ПОТОК случайных чисел, поэтому входит в клеймо
+        /// (`lbang=1`) и пишется хвостом `LBAN` — только включённым (`T42`).
+        /// ВЫКЛ умолчанием: склад физики 21 (`out_rev31_*`) считан без него;
+        /// решение о ВКЛ (= единый счёт склада) — Amber. Рычаги —
+        /// `CorpusMatrixProbe --lbang=0|1`, `G4RawProbe --lbang=0|1`,
+        /// `LayerReturnProbe --lbang=0|1` (с `--brem`).
+        ///
+        /// ⚠ Файлы матриц БЕЗ хвоста `LBAN` при чтении остаются умолчанием класса
+        /// (`false`) — это и есть весь склад физики 21.
+        /// ⚠ Путь КРИВОЙ берёт ключ отсюда же (`EfficiencyCalculation.Run`) —
+        /// «одна физика для кривой и матрицы»; в клеймо кривой уходит `lbang=1`
+        /// только включённым.
+        /// </summary>
+        public bool ElectronLayerBremAngular2BS = false;
 
         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
         public int Threads;

@@ -1,0 +1,13 @@
+ours RC103_point0_p55_2614.511_def code=0 n=20000000 keys=[] probe=build_p111 14:51:32 dt=71s
+ours RC103_point0_p55_2614.511_brem0 code=0 n=20000000 keys=[--ret-kill=brem] probe=build_p111 14:53:30 dt=118s
+ours RC103_point0_p55_2614.511_outbrem0 code=0 n=20000000 keys=[--ret-kill=outbrem] probe=build_p111 14:56:06 dt=155s
+ours RC103_point0_p55_1460.82_def code=0 n=20000000 keys=[] probe=build_p111 14:57:20 dt=75s
+ours RC103_point0_p55_1460.82_brem0 code=0 n=20000000 keys=[--ret-kill=brem] probe=build_p111 14:58:33 dt=73s
+ours RC103_point0_p55_1460.82_outbrem0 code=0 n=20000000 keys=[--ret-kill=outbrem] probe=build_p111 14:59:41 dt=67s
+done ours D:\BqMoni_Claude\p111\plan_1_ours.csv 14:59:41
+ours RC103_point0_p55_2614.511_def100 code=0 n=100000000 keys=[] probe=build_p111 15:19:11 dt=748s
+ours RC103_point0_p55_2614.511_outbrem0_100 code=0 n=100000000 keys=[--ret-kill=outbrem] probe=build_p111 15:24:51 dt=340s
+done ours D:\BqMoni_Claude\p111\plan_2_ours.csv 15:24:51
+ours RC103_point0_p55_2614.511_lbang1_100 code=0 n=100000000 keys=[--lbang=1] probe=build_p111 15:37:37 dt=525s
+ours RC103_point0_p55_2614.511_lbang1_outbrem0_100 code=0 n=100000000 keys=[--lbang=1 --ret-kill=outbrem] probe=build_p111 15:47:24 dt=587s
+done ours D:\BqMoni_Claude\p111\plan_3_ours.csv 15:47:24
