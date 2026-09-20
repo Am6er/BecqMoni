@@ -76,6 +76,15 @@ namespace BecquerelMonitor
             deviceType.DeviceConfigType = typeof(AmplitudaUsbDeviceConfig);
             DeviceType.deviceTypeList.Add(deviceType);
             DeviceType.deviceTypeMap.Add(deviceType.Id, deviceType);
+
+            deviceType = new DeviceType();
+            deviceType.Id = AmplitudaSerialDeviceConfig.DeviceTypeId;
+            deviceType.Name = Resources.DeviceTypeAmplitudaSerial;
+            deviceType.DeviceConfigFormType = typeof(AmplitudaSerialDeviceForm);
+            deviceType.DeviceControllerType = typeof(AmplitudaSerialDeviceController);
+            deviceType.DeviceConfigType = typeof(AmplitudaSerialDeviceConfig);
+            DeviceType.deviceTypeList.Add(deviceType);
+            DeviceType.deviceTypeMap.Add(deviceType.Id, deviceType);
         }
 
         // Token: 0x17000156 RID: 342

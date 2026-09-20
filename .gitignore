@@ -61,3 +61,5 @@ tools/fsa_showcase/store/
 tools/fsa_showcase/wd/
 tools/AmplitudaUsbTests/*.exe
 tools/AmplitudaUsbTests/*.pdb
+tools/AmplitudaSerialTests/*.exe
+tools/AmplitudaSerialTests/*.pdb

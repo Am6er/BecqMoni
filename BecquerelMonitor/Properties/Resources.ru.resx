@@ -2373,4 +2373,154 @@ http://xptable.sourceforge.net/</value>
   <data name="AmplitudaUsbTestResult" xml:space="preserve">
     <value>{0:F1} кадров/с, {1:F1} имп/с, пропуски {2:F1} %, негодных кадров {3}</value>
   </data>
+  <data name="DeviceTypeAmplitudaSerial" xml:space="preserve">
+    <value>AmplitudaSerial</value>
+  </data>
+  <data name="ERRAmplitudaSerialChannels" xml:space="preserve">
+    <value>Amplituda Serial: число каналов должно быть кратно 512 и не больше 8192 (у спектра {0}). Задайте его в конфигурации устройства и примените конфигурацию к пустому спектру.</value>
+  </data>
+  <data name="ERRAmplitudaSerialNoPort" xml:space="preserve">
+    <value>Amplituda Serial: в конфигурации устройства не выбран COM-порт.</value>
+  </data>
+  <data name="ERRAmplitudaSerialPort" xml:space="preserve">
+    <value>Amplituda Serial: не удаётся открыть {0}: {1} Порт может быть занят другой программой (Прогресс, терминал), либо USB-переходник получил другой номер порта.</value>
+  </data>
+  <data name="ERRAmplitudaSerialSettingsDiffer" xml:space="preserve">
+    <value>Amplituda Serial: порт {0} уже открыт другой конфигурацией устройства с другой паузой. У всех блоков на одном порту пауза должна совпадать.</value>
+  </data>
+  <data name="ERRAmplitudaSerialNoAnswer" xml:space="preserve">
+    <value>Блок с адресом {1} на {0} не отвечает. Проверьте питание (после включения он отвечает через несколько секунд), кабель, адрес и общую землю между источником питания блока и ПК.</value>
+  </data>
+  <data name="ERRAmplitudaSerialLost" xml:space="preserve">
+    <value>Связь с блоком (адрес {1}, {0}) потеряна: верных ответов нет больше 30 с. Измерение остановлено, набранные данные сохранены. Проверьте блок и нажмите «Старт» — набор продолжится. Если у блока пропадало питание, после его возвращения подождите минуту, прежде чем нажимать «Старт»: блок заново настраивает высокое напряжение, и спектр в это время искажён.</value>
+  </data>
+  <data name="ERRAmplitudaSerialClearFailed" xml:space="preserve">
+    <value>Блок (адрес {1}, {0}) не выполняет команду очистки: в нём остались отсчёты. Измерение не запущено, чтобы чужие отсчёты не попали в спектр.</value>
+  </data>
+  <data name="ERRAmplitudaSerialStartFailed" xml:space="preserve">
+    <value>Блок (адрес {1}, {0}) не запускает набор.</value>
+  </data>
+  <data name="ERRAmplitudaSerialError" xml:space="preserve">
+    <value>Ошибка Amplituda Serial: {0}</value>
+  </data>
+  <data name="MSGAmplitudaSerialBlockReset" xml:space="preserve">
+    <value>Сработала защита спектра. Блок неожиданно обнулился — так бывает, когда у него на мгновение пропадает питание. После такого сбоя блок около минуты заново настраивает высокое напряжение по светодиоду, и всё, что он насчитал бы за это время, легло бы в спектр с искажённой шкалой. Поэтому набор остановлен, а всё набранное до сбоя сохранено. Подождите минуту и нажмите «Старт» — набор продолжится с того же места.</value>
+  </data>
+  <data name="MSGAmplitudaSerialBlockStopped" xml:space="preserve">
+    <value>Блок сам остановил набор. Его данные сохранены, блок запущен заново, набор продолжается.</value>
+  </data>
+  <data name="MSGAmplitudaSerialBlockCeiling" xml:space="preserve">
+    <value>Канал блока дошёл до 65535, и блок сам остановился раньше очередного опроса. Данные сохранены, набор продолжается, но загрузка слишком велика для такого периода опроса: уменьшите период или отодвиньте источник.</value>
+  </data>
+  <data name="AmplitudaSerialPort" xml:space="preserve">
+    <value>Порт :</value>
+  </data>
+  <data name="AmplitudaSerialRefresh" xml:space="preserve">
+    <value>Обновить</value>
+  </data>
+  <data name="AmplitudaSerialAddress" xml:space="preserve">
+    <value>Адрес блока :</value>
+  </data>
+  <data name="AmplitudaSerialPoll" xml:space="preserve">
+    <value>Период опроса, с :</value>
+  </data>
+  <data name="AmplitudaSerialGap" xml:space="preserve">
+    <value>Пауза перед адресным байтом, мс :</value>
+  </data>
+  <data name="AmplitudaSerialDeadTime" xml:space="preserve">
+    <value>Мёртвое время на импульс, мкс :</value>
+  </data>
+  <data name="AmplitudaSerialHint" xml:space="preserve">
+    <value>Число каналов: ровно столько, сколько в спектре блока (БДЭГ-3-2 — 1024; всегда кратно 512), задаётся на общей вкладке. Больше каналов, чем у него есть, блок дать не может. Живое время приходит из блока; мёртвое время выше нужно, только когда BecqMoni пересчитывает живое время по формуле.</value>
+  </data>
+  <data name="AmplitudaSerialTest" xml:space="preserve">
+    <value>Проверка</value>
+  </data>
+  <data name="AmplitudaSerialScan" xml:space="preserve">
+    <value>Найти блоки</value>
+  </data>
+  <data name="AmplitudaSerialTesting" xml:space="preserve">
+    <value>Опрашиваю линию…</value>
+  </data>
+  <data name="AmplitudaSerialTestResult" xml:space="preserve">
+    <value>Адрес {0} отвечает: {1}, время блока {2} с.</value>
+  </data>
+  <data name="AmplitudaSerialAcquiring" xml:space="preserve">
+    <value>набор идёт</value>
+  </data>
+  <data name="AmplitudaSerialStopped" xml:space="preserve">
+    <value>стоит</value>
+  </data>
+  <data name="AmplitudaSerialTestNoAnswer" xml:space="preserve">
+    <value>Адрес {0} не отвечает.</value>
+  </data>
+  <data name="AmplitudaSerialScanResult" xml:space="preserve">
+    <value>Блоки отвечают по адресам: {0}</value>
+  </data>
+  <data name="AmplitudaSerialScanNone" xml:space="preserve">
+    <value>По адресам 0–15 никто не ответил.</value>
+  </data>
+  <data name="MSGAmplitudaSerialBlockWontStop" xml:space="preserve">
+    <value>Блок не выполняет команду «стоп»: он по-прежнему сообщает, что набор идёт. Прочитанные из него данные сохранены; следующий «Старт» очистит блок. Проверьте кабель и общую землю.</value>
+  </data>
+  <data name="AmplitudaSerialInstruction" xml:space="preserve">
+    <value>Инструкция</value>
+  </data>
+  <data name="AmplitudaSerialInstructionTitle" xml:space="preserve">
+    <value>Amplituda Serial: как ведёт себя это устройство</value>
+  </data>
+  <data name="AmplitudaSerialInstructionOk" xml:space="preserve">
+    <value>ОК</value>
+  </data>
+  <data name="AmplitudaSerialInstructionOkCountdown" xml:space="preserve">
+    <value>ОК ({0})</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP01" xml:space="preserve">
+    <value>Блок детектирования копит спектр сам, а BecqMoni опрашивает его по COM-порту. Несколько вещей, похожих на зависание, для этого устройства нормальны — прочтите это один раз.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP02" xml:space="preserve">
+    <value>СТАРТ: первые 3–4 секунды ничего не считается. Драйвер останавливает блок, очищает его, проверяет, что он действительно пуст, и только потом пускает набор. Всё, что было в памяти блока, стирается: главный — документ, блок считает только прибавку к нему. Продолжение остановленного или сохранённого спектра работает так же — в документе ничего не пропадает.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP03" xml:space="preserve">
+    <value>ВО ВРЕМЯ НАБОРА: спектр обновляется раз в период опроса (по умолчанию 3 с; одно полное чтение блока на 1024 канала занимает 2,5 с). Время на экране между обновлениями идёт плавно. Живое время приходит из самого блока, реальное — по часам ПК.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP04" xml:space="preserve">
+    <value>СТОП: окно замирает на 3–4 секунды. Это последнее чтение уже остановленного блока — так сделано нарочно, чтобы итоговые отсчёты попали в документ до возможного сохранения.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP05" xml:space="preserve">
+    <value>ВКЛЮЧЕНИЕ: блок отвечает уже через несколько секунд после подачи питания, но около минуты настраивает высокое напряжение по встроенному светодиоду, и спектр, набранный в эту минуту, получается с искажённой шкалой. Сам блок об этом никак не сообщает, поэтому после включения подождите минуту, прежде чем нажимать «Старт» (лучшее разрешение — после прогрева 20–30 минут).</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP06" xml:space="preserve">
+    <value>ДЛИННЫЕ И ГОРЯЧИЕ НАБОРЫ: каналы и часы блока 16-битные. До их переполнения драйвер сам переносит накопленное блоком в документ и перезапускает блок. Это занимает несколько секунд, которые не входят ни в живое, ни в реальное время, поэтому скорости счёта не искажаются.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP07" xml:space="preserve">
+    <value>СООБЩЕНИЕ «сработала защита спектра»: блок неожиданно обнулился — скорее всего, мигнуло питание. Драйвер сразу останавливает набор, чтобы минута перенастройки высокого напряжения не попала в спектр; всё набранное до этого сохранено. «Старт» отказывает, пока не пройдёт время выхода на режим из настроек устройства (по умолчанию 60 с, 0 отключает защиту), затем продолжает тот же спектр.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP08" xml:space="preserve">
+    <value>СООБЩЕНИЕ «канал дошёл до 65535»: загрузка слишком велика для такого периода опроса. Отодвиньте источник или уменьшите период.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP09" xml:space="preserve">
+    <value>БЛОК НЕ ОТВЕЧАЕТ или отвечает урывками: проверьте питание, кабель и прежде всего общую землю между источником питания блока и ПК — без неё блок потребляет ток, но молчит или портит байты. Если верных ответов нет 30 секунд, измерение останавливается, данные сохраняются; «Старт» продолжит набор.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP10" xml:space="preserve">
+    <value>ПОРТ И АДРЕС: USB-переходник получает другой номер COM-порта, если переставить его в другое USB-гнездо. «Найти блоки» показывает, какие адреса отвечают на выбранном порту. Кнопка только читает, но если на этом порту идёт набор, его опрос задержится на несколько секунд. Несколько блоков на одном порту можно набирать одновременно — каждый в своём документе со своей конфигурацией устройства; пауза в настройках у всех должна совпадать.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP11" xml:space="preserve">
+    <value>МЁРТВОЕ ВРЕМЯ в этих настройках нужно, только когда BecqMoni пересчитывает живое время по формуле (пересборка спектра, назначение другого устройства). На идущий набор оно не влияет.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP12" xml:space="preserve">
+    <value>Этот текст можно открыть снова в любой момент кнопкой «Инструкция» в настройках устройства.</value>
+  </data>
+  <data name="ERRAmplitudaSerialChannelsExceedBlock" xml:space="preserve">
+    <value>У блока (адрес {1}, {0}) спектр короче, чем задано в конфигурации устройства: задано каналов — {2}, но спектру блока принадлежат только первые {3}, дальше блок отдаёт постороннюю память, которую команда очистки не трогает. Измерение не запущено. Задайте в конфигурации устройства {3} каналов и примените её к пустому спектру.</value>
+  </data>
+  <data name="ERRAmplitudaSerialSettling" xml:space="preserve">
+    <value>Блок ещё настраивается. Он перезапускался {0} с назад, а настройка высокого напряжения занимает около {1} с. Чтобы не испортить спектр, набор не запущен — нажмите «Старт» через {2} с.</value>
+  </data>
+  <data name="AmplitudaSerialSettle" xml:space="preserve">
+    <value>Выход на режим после сбоя, с :</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP13" xml:space="preserve">
+    <value>ЧИСЛО КАНАЛОВ: задавайте ровно длину спектра самого блока (БДЭГ-3-2 — 1024). Если задать больше, блок за пределами своего спектра отдаёт постороннюю память, и «Старт» откажет с сообщением, в котором названо верное число.</value>
+  </data>
 </root>
