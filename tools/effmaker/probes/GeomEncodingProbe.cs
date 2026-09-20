@@ -179,8 +179,8 @@ namespace GeomEncodingProbe
                 // 2. круг «открыл — сохранил»
                 //
                 // ⛔ Цель нумеруется, а не зовётся именем исходника: у каталогов
-                // есть ТЁЗКИ — `Nano16Pro.in` лежит и в `tools/effmaker/models`,
-                // и в `LSRM Geometries/Models`, всего таких пар семь. Общее имя
+                // есть ТЁЗКИ — `Nano16Pro.in` лежал и в `tools/effmaker/models`,
+                // и в `LSRM Geometries/Models` (снят 15.09.2026), таких пар было семь. Общее имя
                 // в одном временном каталоге затирало бы одну сцену другой.
                 string target = Path.Combine(tmp, lines.Count.ToString(CultureInfo.InvariantCulture)
                                                   + "_" + Path.GetFileName(path));

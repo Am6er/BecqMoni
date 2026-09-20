@@ -1,20 +1,23 @@
 {
  "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
- "dirty": [],
+ "dirty": [
+  "tools/CORPUS/scripts/build_corpus.py"
+ ],
  "files": {
   "BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs": "9e94a1a601f2896c63356e9c9680fcc4a7ac625a068516f37430c5cf400f6c34",
   "BecquerelMonitor/nucdb.sqlite": "238ca47cae7afae40f9312031ffb67382f67750cb776bb6b945779b72710f2ef",
-  "tools/CORPUS/scripts/build_corpus.py": "24cc7cdb6f9a24dfb4a305b13790ffe060a11ceb2c3c4f1cb2127553a580528e",
-  "tools/CORPUS/scripts/calibrate.py": "60a49fb9d053269c021d29db31297148a07781d4f8b93213d5fd52f2a6825238",
+  "tools/CORPUS/scripts/build_corpus.py": "e33ec1fa8e42c5993a6bd0e99c4b3a9c3b19aa39a9e1e84caf6ac3d926409892",
+  "tools/CORPUS/scripts/calibrate.py": "5c2548a831d15b9bb0641b356d132c54548808ffd2c8ebb8bb255bfc0d38d0ec",
+  "tools/CORPUS/scripts/chain_labels.py": "df1cd44c980c586a4f5461fd53e8048fe2aaf4d861c926e7b7f7dfe3ab94ee03",
   "tools/CORPUS/scripts/chains.py": "3247d38c21f4d74183c25187de0ae9d1c355a5939d408f059c9e41eb85321839",
   "tools/CORPUS/scripts/corpus_calib.py": "7f95a63386cb7ed5bd2d83afb919d28ff2a5da9691f3d01e1cc1b16b319e4931",
-  "tools/CORPUS/scripts/corpus_def.py": "c66ec0823517b1e39761b53eebd4e6cb6a74591b2bdfe4ffc4459332b6b1a7fc",
+  "tools/CORPUS/scripts/corpus_def.py": "d79793c526557e95f23a8aa1b8a51006fe8424dff82fcad23d4b7332aa6be7e3",
   "tools/CORPUS/scripts/corpus_paths.py": "7eceb4b891288ae5c229b7cc55e4a151c42330183799f4bb2f57de8603b44c2b",
   "tools/CORPUS/scripts/gaussfit.py": "09721c755be20cba3452255246140c54b7fcd5fecb8e19e613eb4986260ff3c7",
   "tools/CORPUS/scripts/spectrum.py": "a525983d3ddc94690c0c9a7508e406b3c2266a73b373b9ddbb7ef492bb5a2c1e"
  },
- "fp": "40e8ddc107ea3405f33b242af1e4fb06f4e2ae7e525d13bc1de7d2e1a5286fe0",
- "head": "25a35adb17ac360f54607421947c8279834077f0",
+ "fp": "449a7d7f6183ff5fa09b930b73d8291fef4ecf3d685e709aaf5f4b04fdff17e0",
+ "head": "422916773258a3d6dfd87b3ac19385df4c8ce8af",
  "reads": [
   "BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs",
   "BecquerelMonitor/nucdb.sqlite"

@@ -25,11 +25,26 @@ import re
 import sys
 
 
+EOL = {}  # путь -> перевод строки файла, каким он был прочитан
+
+
 def read(path):
-    return io.open(path, encoding="utf-8-sig").read()
+    """Читать нетронутым и ЗАПОМНИТЬ перевод строки файла.
+
+    ⚠ До 17.09.2026 читалось универсальными переводами (`\\r\\n` → `\\n`), а
+    писалось `newline=""` — и один перенос 12 строк молча переписал ОБА реестра
+    голым LF (439 + 1224 строки; `todo_check.py` тут же объявил реестр
+    повреждённым). Рабочая копия — CRLF, читатели режут по `\\r\\n`.
+    """
+    raw = io.open(path, encoding="utf-8-sig", newline="").read()
+    EOL[path] = "\r\n" if "\r\n" in raw else "\n"
+    return raw.replace("\r\n", "\n")
 
 
 def write(path, text):
+    eol = EOL.get(path, "\n")
+    if eol != "\n":
+        text = text.replace("\n", eol)
     io.open(path, "w", encoding="utf-8-sig", newline="").write(text)
 
 

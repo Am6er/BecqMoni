@@ -1,0 +1,1683 @@
+diff --git a/BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs b/BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs
+index 8920cb0b..442be05b 100644
+--- a/BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs
++++ b/BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs
+@@ -583,6 +583,11 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 // (ВЫКЛ до решения Amber о едином счёте), чтобы кривая и склад
+                 // считали одну физику.
+                 ElectronLayerMixedScattering = storePhysics.ElectronLayerMixedScattering,
++                // (`M13`, П106 19.09.2026) Тормозное электрона в слоях обвязки по
++                // ходу переноса — тем же путём: от умолчания настроек склада
++                // (ВЫКЛ до решения Amber о едином счёте), чтобы кривая и склад
++                // считали одну физику.
++                ElectronLayerBremAlongPath = storePhysics.ElectronLayerBremAlongPath,
+             };
+ 
+             log(geometry.Describe());
+@@ -727,6 +732,7 @@ namespace BecquerelMonitor.EfficiencyMaker
+                         BremAlongPath = simulator.BremAlongPath,
+                         ElectronLayerTransport = simulator.ElectronLayerTransport,
+                         ElectronLayerMixedScattering = simulator.ElectronLayerMixedScattering,
++                        ElectronLayerBremAlongPath = simulator.ElectronLayerBremAlongPath,
+                     };
+                 },
+                 (range, loop, worker) =>
+@@ -874,8 +880,10 @@ namespace BecquerelMonitor.EfficiencyMaker
+             // `; elmix=1` (`M13`, П100 18.09.2026) — тем же именем, что у клейма
+             // матрицы, только включённым; с физики 20 (П103, 19.09.2026) ключ
+             // ВКЛ умолчанием склада, и у кривой он в клейме всегда.
++            // `; lbrem=1` (`M13`, П106 19.09.2026) — тем же именем, что у клейма
++            // матрицы, только включённым (ВЫКЛ умолчанием склада).
+             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
+-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}",
++                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}",
+                 ResponseMatrix.PhysicsVersion, simulator.Histories,
+                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
+                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
+@@ -899,7 +907,8 @@ namespace BecquerelMonitor.EfficiencyMaker
+                     ? "; bpath=" + storePhysics.BremAlongPath.ToString(CultureInfo.InvariantCulture)
+                     : "",
+                 storePhysics.ElectronLayerTransport ? "; eltr=1" : "",
+-                storePhysics.ElectronLayerMixedScattering ? "; elmix=1" : "");
++                storePhysics.ElectronLayerMixedScattering ? "; elmix=1" : "",
++                storePhysics.ElectronLayerBremAlongPath ? "; lbrem=1" : "");
+             return result;
+         }
+ 
+diff --git a/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs b/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs
+index 0f7ac67b..55d69872 100644
+--- a/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs
++++ b/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs
+@@ -392,6 +392,39 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// </summary>
+         public bool ElectronLayerMixedScattering = new ResponseMatrixOptions().ElectronLayerMixedScattering;
+ 
++        /// <summary>
++        /// (`M13`, вторая половина; П106 19.09.2026) ТОРМОЗНОЕ ЭЛЕКТРОНА В СЛОЯХ
++        /// ОБВЯЗКИ — ПО ХОДУ ПЕРЕНОСА — ключ сделан ВЫКЛ; решение о ВКЛ (=
++        /// физика 21, единый счёт склада) — за Amber. Умолчание ПОЛЯ — умолчание
++        /// СКЛАДА (<see cref="ResponseMatrixOptions.ElectronLayerBremAlongPath"/>,
++        /// правило I).
++        ///
++        /// Включённый — в переносе по слоям (`TransportInLayers`, только под
++        /// <see cref="ElectronLayerTransport"/>) на каждом шаге в веществе слоя
++        /// рождаются кванты тонкой мишени ЭТОГО вещества при энергии середины
++        /// шага (<see cref="ThickTargetBrem.StepPhotons"/> таблицы
++        /// <see cref="LayerBrem"/>, уровень подтянут к ESTAR множителем
++        /// <see cref="ThickTargetBrem.Anchor"/> по энергии входа в вещество),
++        /// направление — по электрону (модифицированный Цай, как `bpath=2` в
++        /// кристалле); электрон, который погибнет в слое (ранний выход), отдаёт
++        /// остаток толстой мишенью в точке гибели; ушедший из сцены — ничего.
++        /// Толстая мишень в точке рождения (<see cref="OutsideBremsstrahlung"/>)
++        /// и в точке выхода (`LayerBremsstrahlung`) у ведомых переносом
++        /// электронов при этом НЕ разыгрывается; электрон ниже 20 кэВ и занос при
++        /// `ElectronCarryDetour = 0` (абляция) — толстой мишенью, как без ключа.
++        /// Кванты идут туда же, куда шли кванты толстой мишени: у заноса — в
++        /// очередь обхода (<c>push</c>), у возврата — в очередь вылетов
++        /// (<see cref="NoteEscape"/>), когда она открыта.
++        ///
++        /// Зачем (П106 §3–§4, арбитр Geant4 плечами `killoutbrem`): остаток
++        /// RC103 1 см³ CsI при 2614 кэВ (+9 % в 0–50 кэВ) сидит в тормозном
++        /// электронов ОБВЯЗКИ — толстая мишень приписывает электрону из 1 мм
++        /// PTFE / 1 мм Al полный выход при пробеге 2…5 мм и светит изотропно.
++        /// Выключенный — прежний ход до последнего бита и без единого лишнего
++        /// случайного числа.
++        /// </summary>
++        public bool ElectronLayerBremAlongPath = new ResponseMatrixOptions().ElectronLayerBremAlongPath;
++
+         /// <summary>
+         /// (`M13`, П100) Угол отсечки смешанной схемы в слоях, градусы:
+         /// столкновения с отклонением больше него — жёсткие, по одному. Режим
+@@ -427,6 +460,90 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// </summary>
+         public long CountLayerSteps, CountLayerHardCollisions;
+ 
++        /// <summary>
++        /// (`M13`, П106 19.09.2026) РЫЧАГИ ЗАМЕРА, не настройки: состав
++        /// «возврата» электрона по населениям — зеркала рычагов арбитра `g4cf`
++        /// (`killescown` / `killesccarry` / `killret` / `killretsame` /
++        /// `killretother` / `killescbrem`), чтобы плечо «умолчание − рычаг»
++        /// у нас и у Geant4 мерило ОДНО И ТО ЖЕ население. Двигает только
++        /// `G4RawProbe --ret-kill=`; ни один штатный путь их не ставит, в клеймо
++        /// не входят. Всё под ключом <see cref="ElectronLayerTransport"/>.
++        ///
++        /// <see cref="LayerReturnOwn"/> false — электрон, РОЖДЁННЫЙ В КРИСТАЛЛЕ
++        /// (не занесённый), на грани списывается, как без ключа: ни возврата,
++        /// ни тормозного слоя (= `killescown`).
++        /// <see cref="LayerReturnCarried"/> false — то же для ЗАНЕСЁННОГО
++        /// электрона (перенос по кристаллу из <see cref="CarriedElectronDeposit"/>)
++        /// при его выходе из кристалла (= `killesccarry`).
++        /// <see cref="LayerExitBremsstrahlung"/> false — у своего электрона
++        /// тормозное слоя в точке выхода не разыгрывается, перенос в слоях
++        /// идёт (= `killescbrem`: кванты родословной вылетевшего гасятся).
++        /// <see cref="LayerReturnKill"/>: 0 — возврат как есть; 1 — свой
++        /// электрон, вернувшийся в кристалл, списывается на входе (тормозное
++        /// выхода уже разыграно; = `killret`); 2 — только вернувшийся через ТУ
++        /// ЖЕ грань, что вышел (= `killretsame`); 3 — только через ДРУГУЮ
++        /// (= `killretother`). Грань — по положению точки на поверхности
++        /// кристалла (<see cref="CrystalFaceId"/>).
++        /// </summary>
++        public bool LayerReturnOwn = true;
++        public bool LayerReturnCarried = true;
++        public bool LayerExitBremsstrahlung = true;
++        public int LayerReturnKill;
++
++        /// <summary>
++        /// (`M13`, П106) Рычаг замера: тормозное электрона, РОЖДЁННОГО В СЛОЕ
++        /// обвязки / пробе (<see cref="OutsideBremsstrahlung"/>, толстая мишень
++        /// в точке рождения), не разыгрывать — зеркало `killoutbrem` арбитра
++        /// (кванты, рождённые вне кристалла электронами, рождёнными вне
++        /// кристалла, гасятся). Умолчание ВКЛ — ход прежний; двигает только
++        /// `G4RawProbe --ret-kill=outbrem`.
++        /// </summary>
++        public bool LayerBornBremsstrahlung = true;
++
++        /// <summary>
++        /// (`M13`, П106) Счётчики населений возврата — читает `G4RawProbe`; не
++        /// настройки. Вылетов и возвратов ЗАНЕСЁННОГО электрона (остальное в
++        /// <see cref="CountLayerEscapes"/> / <see cref="CountLayerReturns"/> —
++        /// свои); возвратов своего через ту же грань / через другую; возвратов,
++        /// списанных рычагом <see cref="LayerReturnKill"/>.
++        /// </summary>
++        public long CountLayerEscapesCarried, CountLayerReturnsCarried;
++        /// <summary>(П106) Электронов, рождённых в обвязке/пробе и ОТДАННЫХ переносу в слоях (≥ 20 кэВ, занос не снят) — население заноса до отбора.</summary>
++        public long CountLayerBorn;
++        public long CountLayerReturnsSameFace, CountLayerReturnsOtherFace, CountLayerReturnsKilled;
++
++        /// <summary>
++        /// (`M13`, П106) Перенос по кристаллу идёт у ЗАНЕСЁННОГО электрона
++        /// (<see cref="CarriedElectronDeposit"/>) — чтобы
++        /// <see cref="EscapeOrReturn"/> знал, чьё население перед ним.
++        /// </summary>
++        bool carriedInCrystal;
++
++        /// <summary>
++        /// (`M13`, П106) Приёмник квантов тормозного ПО ХОДУ переноса в слоях
++        /// (<see cref="ElectronLayerBremAlongPath"/>) у ТЕКУЩЕГО вызова
++        /// `TransportInLayers`: у заноса — очередь обхода (<c>push</c>
++        /// <see cref="CarriedElectronEnters"/>), у возврата — null, и квант идёт в
++        /// очередь вылетов (<see cref="NoteEscape"/>), когда она открыта, иначе
++        /// унесён — как кванты толстой мишени `LayerBremsstrahlung`. Ставится и
++        /// снимается вызывающим вокруг переноса.
++        /// </summary>
++        Action<double, double, double, double, double, double, double> layerBremPush;
++
++        /// <summary>
++        /// (`M13`, П106) Тормозное по ходу у текущего переноса в слоях разрешено
++        /// рычагами замера (<see cref="LayerBornBremsstrahlung"/> у заноса,
++        /// <see cref="LayerExitBremsstrahlung"/> у своего вылетевшего).
++        /// </summary>
++        bool layerBremEnabled;
++
++        /// <summary>
++        /// (`M13`, П106) Счётчики тормозного по ходу переноса в слоях — квантов и
++        /// их энергия, кэВ; читает `G4RawProbe`; не настройки.
++        /// </summary>
++        public long CountLayerBremPhotons;
++        public double SumLayerBremKev;
++
+         /// <summary>
+         /// Сколько энергии событие может потерять и всё-таки остаться в пике,
+         /// кэВ. Пик имеет ширину, и утечка в единицы кэВ из него не выводит.
+@@ -6960,7 +7077,13 @@ namespace BecquerelMonitor.EfficiencyMaker
+             // Кэш луча кванта — спрятать на время переноса электрона и вернуть
+             // (П94 §7.1): обход кванта продолжается своим кэшем.
+             this.SaveRay();
++            // (П106) Тормозное по ходу переноса — в очередь обхода; рычаг замера
++            // `LayerBornBremsstrahlung` глушит его так же, как толстую мишень.
++            this.layerBremPush = push;
++            this.layerBremEnabled = this.LayerBornBremsstrahlung;
++            this.CountLayerBorn++;
+             bool entered = this.TransportInLayers(ref xIn, ref yIn, ref zIn, ref uxIn, ref uyIn, ref uzIn, ref tIn, 0);
++            this.layerBremPush = null;
+             this.RestoreRay();
+             if (!entered)
+             {
+@@ -7013,7 +7136,10 @@ namespace BecquerelMonitor.EfficiencyMaker
+             this.escapeCount = 0;
+             this.escapeLost = 0;
+             this.escapeCollect = true;
++            // (П106) Метка населения для `EscapeOrReturn`: перенос занесённого.
++            this.carriedInCrystal = true;
+             double lost = this.ElectronLoss(xIn, yIn, zIn, tIn, 0, ElectronBirth.Given, uxIn, uyIn, uzIn);
++            this.carriedInCrystal = false;
+             this.escapeCollect = false;
+             for (int k = 0; k < this.escapeCount; k++)
+             {
+@@ -7143,7 +7269,20 @@ namespace BecquerelMonitor.EfficiencyMaker
+                                      Action<double, double, double, double, double, double, double> push)
+         {
+             const double MinKev = 5.0;
+-            if (!this.ElectronAnyMaterial || !this.Bremsstrahlung || !(te > MinKev) || material == null)
++            // (П106) `LayerBornBremsstrahlung` — рычаг замера, умолчанием ВКЛ.
++            if (!this.ElectronAnyMaterial || !this.Bremsstrahlung || !this.LayerBornBremsstrahlung
++                || !(te > MinKev) || material == null)
++            {
++                return 0.0;
++            }
++
++            // (`M13`, П106) Под ключом `ElectronLayerBremAlongPath` электрон, которого
++            // перенос в слоях ПОВЕДЁТ (ключ `eltr`, занос не снят абляцией, энергия
++            // не ниже порога переноса 20 кэВ — тот же порог, что в
++            // `CarriedElectronEnters`), излучает по ходу переноса — толстая
++            // мишень в точке рождения не разыгрывается. Остальные — как без ключа.
++            if (this.ElectronLayerBremAlongPath && this.ElectronLayerTransport
++                && this.ElectronCarryDetour > 0.0 && te >= 20.0)
+             {
+                 return 0.0;
+             }
+diff --git a/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs b/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs
+index 2629332c..4200f894 100644
+--- a/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs
++++ b/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs
+@@ -864,10 +864,26 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 return false;
+             }
+ 
++            // (`M13`, П106) Население: занесённый электрон — только сам перенос
++            // из `CarriedElectronDeposit` (глубина 0 под меткой); всё, что
++            // родилось в кристалле (в том числе от его тормозного, глубина ≥ 1),
++            // — своё, как `GetLogicalVolumeAtVertex` у арбитра. Рычаги замера
++            // `LayerReturnOwn` / `LayerReturnCarried` списывают население на
++            // грани, как без ключа; умолчанием оба ВКЛ — ход прежний.
++            bool carried = this.carriedInCrystal && depth == 0;
++            if (carried ? !this.LayerReturnCarried : !this.LayerReturnOwn)
++            {
++                escaped += tExit;
++                return false;
++            }
++
+             double advance = toEdge + 1e-7;
+             x += ux * advance;
+             y += uy * advance;
+             z += uz * advance;
++            // (П106) Грань выхода своего электрона — для счётчиков и рычага
++            // `LayerReturnKill` 2/3; случайных чисел не тянет.
++            int exitFace = carried ? 0 : this.CrystalFaceId(x, y, z);
+ 
+             // ⛔ КЭШ ЛУЧА — СНИМОК И ВОЗВРАТ (П94 §7.1). `At` доверяет
+             // разобранному лучу, если точка лежит на нём в 10 нм и
+@@ -881,8 +897,23 @@ namespace BecquerelMonitor.EfficiencyMaker
+             // обход кванта продолжается ровно тем кэшем, что без ключа.
+             this.SaveRay();
+             this.CountLayerEscapes++;
+-            double tOut = tExit - this.LayerBremsstrahlung(x, y, z, tExit);
++            if (carried)
++            {
++                this.CountLayerEscapesCarried++;
++            }
++
++            // (П106) Рычаг `LayerExitBremsstrahlung` false — своему электрону
++            // тормозное слоя не разыгрывать (зеркало `killescbrem`); у занесённого,
++            // выходящего из кристалла, тормозное снаружи глушит `LayerBornBremsstrahlung`
++            // (зеркало `killoutbrem`: его родословная — «рождён вне кристалла»).
++            bool bremAllowed = carried ? this.LayerBornBremsstrahlung : this.LayerExitBremsstrahlung;
++            // (`M13`, П106) Под ключом `ElectronLayerBremAlongPath` тормозное
++            // рождается ПО ХОДУ переноса в слоях (`TransportInLayers`), а не толстой
++            // мишенью в точке выхода; кванты — в очередь вылетов, когда она открыта.
++            double tOut = tExit - (bremAllowed && !this.ElectronLayerBremAlongPath ? this.LayerBremsstrahlung(x, y, z, tExit) : 0.0);
+             double tBack = tOut;
++            this.layerBremPush = null;
++            this.layerBremEnabled = bremAllowed;
+             bool back = this.TransportInLayers(ref x, ref y, ref z, ref ux, ref uy, ref uz, ref tBack, depth);
+             this.RestoreRay();
+             if (!back)
+@@ -891,6 +922,35 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 return false;
+             }
+ 
++            // (П106) Возврат своего электрона: грань входа против грани выхода
++            // (счётчики) и рычаг `LayerReturnKill` — списать вернувшегося на
++            // входе (всё, что вышло, осталось снаружи; тормозное выхода уже
++            // разыграно — как `killret*` у арбитра).
++            if (!carried)
++            {
++                int entryFace = this.CrystalFaceId(x, y, z);
++                bool same = entryFace == exitFace;
++                if (same)
++                {
++                    this.CountLayerReturnsSameFace++;
++                }
++                else
++                {
++                    this.CountLayerReturnsOtherFace++;
++                }
++
++                if (this.LayerReturnKill == 1 || (this.LayerReturnKill == 2 && same) || (this.LayerReturnKill == 3 && !same))
++                {
++                    this.CountLayerReturnsKilled++;
++                    escaped += tExit;
++                    return false;
++                }
++            }
++            else
++            {
++                this.CountLayerReturnsCarried++;
++            }
++
+             // Вернулся: осело снаружи `tExit − tBack` (тормозное слоя — тоже
+             // снаружи), дальше — перенос по кристаллу с остатком.
+             this.CountLayerReturns++;
+@@ -901,6 +961,44 @@ namespace BecquerelMonitor.EfficiencyMaker
+             return residual > 0.0;
+         }
+ 
++        /// <summary>
++        /// (`M13`, П106) Грань кристалла, на которой (или у которой) лежит
++        /// точка: ближайшая по расстоянию поверхность. Брус: 1 z-min, 2 z-max,
++        /// 3 −x, 4 +x, 5 −y, 6 +y; цилиндр/кольцо: 1 z-min, 2 z-max, 3 наружный
++        /// бок, 4 внутренний. Только для счётчиков и рычага `LayerReturnKill`
++        /// — на ход переноса не влияет.
++        /// </summary>
++        int CrystalFaceId(double x, double y, double z)
++        {
++            Region c = this.crystal;
++            int best = 1;
++            double d = Math.Abs(z - c.ZMin);
++            double dz1 = Math.Abs(c.ZMax - z);
++            if (dz1 < d) { d = dz1; best = 2; }
++            if (c.IsBox)
++            {
++                double dxm = Math.Abs(x + c.AX), dxp = Math.Abs(c.AX - x);
++                double dym = Math.Abs(y + c.AY), dyp = Math.Abs(c.AY - y);
++                if (dxm < d) { d = dxm; best = 3; }
++                if (dxp < d) { d = dxp; best = 4; }
++                if (dym < d) { d = dym; best = 5; }
++                if (dyp < d) { d = dyp; best = 6; }
++            }
++            else
++            {
++                double rad = Math.Sqrt(x * x + y * y);
++                double dro = Math.Abs(c.ROut - rad);
++                if (dro < d) { d = dro; best = 3; }
++                if (c.RIn > 0.0)
++                {
++                    double dri = Math.Abs(rad - c.RIn);
++                    if (dri < d) { d = dri; best = 4; }
++                }
++            }
++
++            return best;
++        }
++
+         /// <summary>
+         /// (`AMBER44`, П94) ТОРМОЗНОЕ ЭЛЕКТРОНА, ВЫШЕДШЕГО В СЛОЙ ОБВЯЗКИ —
+         /// как у заноса `M3`/П44 (<see cref="EfficiencySimulator.OutsideBremsstrahlung"/>):
+@@ -980,10 +1078,19 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// пробега, дальше шаг считается заново по таблице нового вещества.
+         /// Пустота (области нет или плотности нет) — по прямой без потерь до
+         /// следующей границы. Разброса потерь и δ-электронов нет — как в
+-        /// кристалле. Тормозное здесь НЕ разыгрывается: у заноса оно снято в
+-        /// точке рождения (<see cref="OutsideBremsstrahlung"/>), у возврата — в
+-        /// точке выхода (<see cref="LayerBremsstrahlung"/>), толстой мишенью,
+-        /// как у `M3`.
++        /// кристалле. Тормозное здесь без ключа НЕ разыгрывается: у заноса оно
++        /// снято в точке рождения (<see cref="OutsideBremsstrahlung"/>), у
++        /// возврата — в точке выхода (<see cref="LayerBremsstrahlung"/>), толстой
++        /// мишенью, как у `M3`. (`M13`, П106 19.09.2026) Под ключом
++        /// <see cref="ElectronLayerBremAlongPath"/> (сделан ВЫКЛ) тормозное
++        /// рождается ЗДЕСЬ, на шагах, тонкой мишенью вещества текущего слоя по
++        /// направлению электрона (<see cref="LayerStepBremsstrahlung"/>), остаток
++        /// у погибающего в слое — толстой мишенью в точке гибели
++        /// (<see cref="LayerRestBremsstrahlung"/>), а толстые мишени в точках
++        /// рождения и выхода не разыгрываются: у Geant4 (П106 §4) тормозное
++        /// электронов обвязки даёт в 0–50 кэВ при 2614 на RC103 вдвое меньше,
++        /// чем наша толстая мишень, — электрон из 1 мм PTFE / 1 мм Al уходит в
++        /// пустоту или в кристалл, не дорадировав, и светит вперёд, не изотропно.
+         ///
+         /// ⚠ Обход зовёт <see cref="StepToBoundary"/> с НОВЫМ направлением на
+         /// каждом шарнире — кэш луча собирается заново (O(областей)); электронов
+@@ -1015,6 +1122,18 @@ namespace BecquerelMonitor.EfficiencyMaker
+             bool mixed = this.ElectronLayerMixedScattering;
+             double muCut = mixed ? this.LayerHardCutoffMu() : 0.0;
+ 
++            // (`M13`, П106) Тормозное ПО ХОДУ переноса (ключ `ElectronLayerBremAlongPath`,
++            // те же ворота, что у толстой мишени слоя, плюс рычаг замера
++            // `layerBremEnabled`): таблица тонкой мишени и якорь ESTAR — на
++            // вещество, пересчитываются при смене вещества (якорь — по энергии
++            // входа в него); излучённое зажато энергией входа в перенос. Без ключа
++            // — ни одной ветки и ни одного случайного числа.
++            bool lbrem = this.ElectronLayerBremAlongPath && this.layerBremEnabled
++                         && this.ElectronAnyMaterial && this.Bremsstrahlung;
++            ThickTargetBrem bremTable = null;
++            GeometryMaterial bremMaterial = null;
++            double bremAnchor = 1.0, radiated = 0.0, tEntry = t;
++
+             for (int step = 0; step < TransportMaxSteps && t > TransportCutKev; step++)
+             {
+                 Region here = this.At(x, y, z);
+@@ -1048,10 +1167,27 @@ namespace BecquerelMonitor.EfficiencyMaker
+                     return false;
+                 }
+ 
++                // (П106) Смена вещества — своя таблица тормозного и якорь по
++                // энергии входа в вещество (в кристалле якорь — по начальной
++                // энергии на весь путь; здесь путь составной).
++                if (lbrem && !ReferenceEquals(here.Material, bremMaterial))
++                {
++                    bremMaterial = here.Material;
++                    bremTable = this.LayerBrem(here.Material);
++                    bremAnchor = bremTable != null ? bremTable.Anchor(t) : 1.0;
++                }
++
+                 // Ранний выход, как в кристалле: пробег короче расстояния до
+                 // ближайшей границы области — погибнет в ней при любой траектории.
+                 if (residual / density <= this.RegionNearestFace(here, x, y, z))
+                 {
++                    // (П106) Погибнет здесь — остаток тормозного толстой мишенью
++                    // в точке гибели, как `RestBremsstrahlung` в кристалле.
++                    if (lbrem && bremTable != null)
++                    {
++                        this.LayerRestBremsstrahlung(x, y, z, ux, uy, uz, t, tEntry, bremTable, ref radiated);
++                    }
++
+                     return false;
+                 }
+ 
+@@ -1088,6 +1224,18 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 double first = stepCm * this.Uniform();
+                 if (first >= toNext)
+                 {
++                    // (П106) Тормозное ПРОЙДЕННОГО отрезка до границы — в точке
++                    // перехода, при энергии его середины. ⚠ Первая редакция ключа
++                    // излучала только в шарнире, за ВЕСЬ шаг, и отрезки, обрезанные
++                    // границей, не светили вовсе: в слоях 1 мм при шаге 0.3…0.5 мм
++                    // это большинство шагов — выход ключа был 0.55…0.80 от арбитра.
++                    if (lbrem && bremTable != null && toNext > 0.0)
++                    {
++                        this.LayerStepBremsstrahlung(x + ux * toNext, y + uy * toNext, z + uz * toNext, ux, uy, uz,
++                                                     LayerMidEnergy(medium, residual, 0.5 * toNext * density),
++                                                     toNext * density, bremAnchor, tEntry, bremTable, ref radiated);
++                    }
++
+                     double through = toNext + 1e-7;
+                     x += ux * through;
+                     y += uy * through;
+@@ -1106,6 +1254,18 @@ namespace BecquerelMonitor.EfficiencyMaker
+                     tMid = TransportCutKev;
+                 }
+ 
++                // (`M13`, П106) Тормозное ПЕРВОГО ОТРЕЗКА шага — в точке шарнира,
++                // тонкой мишенью вещества слоя при энергии середины отрезка, по
++                // направлению электрона ДО поворота; второй отрезок излучает в своём
++                // конце (или на границе, если обрезан). Так число квантов
++                // пропорционально пути, ФАКТИЧЕСКИ пройденному в веществе.
++                if (lbrem && bremTable != null)
++                {
++                    this.LayerStepBremsstrahlung(x, y, z, ux, uy, uz,
++                                                 LayerMidEnergy(medium, residual, 0.5 * first * density),
++                                                 first * density, bremAnchor, tEntry, bremTable, ref radiated);
++                }
++
+                 // (`M13`) Под ключом ширина мягкого шарнира — средний 1 − cos θ
+                 // мягких столкновений на длину шага, 1 − exp(−s·Σnσ_tr,soft)
+                 // (аддитивно по шагу); без ключа — Хайленд на весь шаг, как было.
+@@ -1125,6 +1285,15 @@ namespace BecquerelMonitor.EfficiencyMaker
+ 
+                 if (second >= toNext)
+                 {
++                    // (П106) Тормозное второго отрезка, обрезанного границей, — в
++                    // точке перехода, по новому направлению.
++                    if (lbrem && bremTable != null && toNext > 0.0)
++                    {
++                        this.LayerStepBremsstrahlung(x + ux * toNext, y + uy * toNext, z + uz * toNext, ux, uy, uz,
++                                                     LayerMidEnergy(medium, residual - first * density, 0.5 * toNext * density),
++                                                     toNext * density, bremAnchor, tEntry, bremTable, ref radiated);
++                    }
++
+                     double through = toNext + 1e-7;
+                     x += ux * through;
+                     y += uy * through;
+@@ -1136,6 +1305,16 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 x += ux * second;
+                 y += uy * second;
+                 z += uz * second;
++
++                // (П106) Тормозное второго отрезка — в его конце, по направлению
++                // после шарнира.
++                if (lbrem && bremTable != null && second > 0.0)
++                {
++                    this.LayerStepBremsstrahlung(x, y, z, ux, uy, uz,
++                                                 LayerMidEnergy(medium, residual - first * density, 0.5 * second * density),
++                                                 second * density, bremAnchor, tEntry, bremTable, ref radiated);
++                }
++
+                 residual -= stepG;
+                 t = ElectronData.EnergyOfRange(medium, residual);
+ 
+@@ -1152,6 +1331,92 @@ namespace BecquerelMonitor.EfficiencyMaker
+             return false;
+         }
+ 
++        /// <summary>
++        /// (`M13`, П106) Энергия электрона в середине отрезка пути в слое, кэВ:
++        /// остаточный пробег <paramref name="residualG"/> минус половина отрезка
++        /// <paramref name="halfG"/> (г/см²), не ниже порога переноса.
++        /// </summary>
++        static double LayerMidEnergy(ElectronData.Material medium, double residualG, double halfG)
++        {
++            double t = ElectronData.EnergyOfRange(medium, Math.Max(0.0, residualG - halfG));
++            return t < TransportCutKev ? TransportCutKev : t;
++        }
++
++        /// <summary>
++        /// (`M13`, П106) Кванты тормозного ОДНОГО ОТРЕЗКА переноса В СЛОЕ обвязки
++        /// (ключ <see cref="ElectronLayerBremAlongPath"/>): тонкая мишень
++        /// вещества слоя при энергии <paramref name="tKev"/> на пути
++        /// <paramref name="stepG"/> г/см², уровень — якорь ESTAR по энергии
++        /// входа в вещество; направление — по электрону (модифицированный Цай,
++        /// как `bpath=2`); сумма квантов не больше энергии входа в перенос
++        /// <paramref name="cap"/> за вычетом уже излучённого. Квант — в приёмник
++        /// (<see cref="LayerEmitBremsstrahlung"/>).
++        /// </summary>
++        void LayerStepBremsstrahlung(double x, double y, double z, double ux, double uy, double uz,
++                                     double tKev, double stepG, double anchor, double cap,
++                                     ThickTargetBrem table, ref double radiated)
++        {
++            int n = this.Poisson(table.StepPhotons(tKev, stepG, anchor));
++            for (int i = 0; i < n; i++)
++            {
++                double k = table.SampleStepKev(tKev, this.Uniform());
++                this.LayerEmitBremsstrahlung(x, y, z, ux, uy, uz, k, tKev, cap, ref radiated);
++            }
++        }
++
++        /// <summary>
++        /// (`M13`, П106) Остаток тормозного электрона, который погибнет в слое
++        /// (ранний выход по ближайшей границе области): толстая мишень вещества
++        /// слоя от текущей энергии <paramref name="tKev"/> в точке гибели — как
++        /// <see cref="RestBremsstrahlung"/> в кристалле.
++        /// </summary>
++        void LayerRestBremsstrahlung(double x, double y, double z, double ux, double uy, double uz,
++                                     double tKev, double cap, ThickTargetBrem table, ref double radiated)
++        {
++            if (!(tKev > table.MinKev))
++            {
++                return;
++            }
++
++            int n = this.Poisson(table.Photons(tKev));
++            for (int i = 0; i < n; i++)
++            {
++                double k = table.SampleKev(tKev, this.Uniform());
++                this.LayerEmitBremsstrahlung(x, y, z, ux, uy, uz, k, tKev, cap, ref radiated);
++            }
++        }
++
++        /// <summary>
++        /// (`M13`, П106) Один квант тормозного из точки (x, y, z) в слое: направление
++        /// по электрону (Цай), зажим суммой, приёмник — очередь обхода заноса
++        /// (<see cref="layerBremPush"/>) либо очередь вылетов
++        /// (<see cref="NoteEscape"/>), когда она открыта; иначе унесён — его
++        /// энергия уже в уносе электрона (как у `LayerBremsstrahlung`).
++        /// </summary>
++        void LayerEmitBremsstrahlung(double x, double y, double z, double ux, double uy, double uz,
++                                     double k, double tKev, double cap, ref double radiated)
++        {
++            double ax = ux, ay = uy, az = uz;
++            this.Rotate(ref ax, ref ay, ref az, this.TsaiCosine(tKev));
++            double kUse = Math.Min(k, cap - radiated);
++            if (!(kUse > 0.0))
++            {
++                return;
++            }
++
++            radiated += kUse;
++            this.CountLayerBremPhotons++;
++            this.SumLayerBremKev += kUse;
++            if (this.layerBremPush != null)
++            {
++                this.layerBremPush(x, y, z, ax, ay, az, kUse);
++            }
++            else if (this.escapeCollect)
++            {
++                this.NoteEscape(x, y, z, ax, ay, az, kUse);
++            }
++        }
++
+         /// <summary>
+         /// (`M3`, П44) Кванты тормозного ОДНОГО ШАГА переноса: среднее число —
+         /// тонкая мишень при энергии <paramref name="tKev"/> на пути
+diff --git a/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs b/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs
+index 3d864434..e6d340f3 100644
+--- a/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs
++++ b/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs
+@@ -378,6 +378,12 @@ namespace BecquerelMonitor.EfficiencyMaker
+         //      (`EfficiencyCalculation.Run`, П100) — «одна физика для кривой и
+         //      матрицы»; умолчание ПОЛЯ симулятора — от этого же класса
+         //      (правило I сторожа `check_matrix_keys.py`).
++        // (21 — ЗАРЕЗЕРВИРОВАНО за единым счётом склада: ключ П106 `lbrem`
++        //      (`M13`, вторая половина, 19.09.2026) — тормозное электрона в
++        //      слоях обвязки ПО ХОДУ переноса вместо толстой мишени в точке
++        //      рождения / выхода (`ResponseMatrixOptions.ElectronLayerBremAlongPath`);
++        //      сделан ВЫКЛ, решение о ВКЛ — за Amber по числам журнала П106.
++        //      Поднимать версию — только вместе с единым счётом склада.)
+         public const int PhysicsVersion = 20;
+ 
+         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
+@@ -1174,6 +1180,16 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 {
+                     sb.Append("elmix=1;");
+                 }
++
++                // ⛔ (`M13`, П106 19.09.2026) Тормозное электрона в слоях обвязки
++                // по ходу переноса — тем же правилом `T42`: пишется, ТОЛЬКО когда
++                // включено. Двигает континуум сцен с обвязкой (мягкие полосы:
++                // тормозное электронов обвязки) и поток случайных чисел. ВЫКЛ
++                // умолчанием: у склада физики 20 строки нет и тело прежнее.
++                if (options.ElectronLayerBremAlongPath)
++                {
++                    sb.Append("lbrem=1;");
++                }
+             }
+ 
+             // (`AMBER13` (б)) Нормировка — тем же правилом `T42`: строка
+@@ -2281,6 +2297,15 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 // при переходе 18 → 19.
+                 writer.Write(Encoding.ASCII.GetBytes("ELMX"));
+                 writer.Write(flags.ElectronLayerMixedScattering);
++
++                // ⛔ ДВАДЦАТЬ ВТОРОЙ ХВОСТ — `LBRM` (`M13`, П106 19.09.2026:
++                // тормозное электрона в слоях обвязки по ходу переноса). Те же
++                // два довода: ключ входит в клеймо (`lbrem=1`), и без хвоста
++                // матрица не сходилась бы сама с собой. Формат НЕ поднят: у
++                // файла без хвоста поле остаётся умолчанием класса (`false`) —
++                // чем оно и было при счёте склада физики 20; матрицы склада годны.
++                writer.Write(Encoding.ASCII.GetBytes("LBRM"));
++                writer.Write(flags.ElectronLayerBremAlongPath);
+             }
+ 
+             if (File.Exists(path))
+@@ -2666,6 +2691,18 @@ namespace BecquerelMonitor.EfficiencyMaker
+                                                                         && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "ELMX")
+                                                                     {
+                                                                         matrix.Options.ElectronLayerMixedScattering = reader.ReadBoolean();
++
++                                                                        // ⛔ ХВОСТ `LBRM` (`M13`, П106
++                                                                        // 19.09.2026): у файлов до него
++                                                                        // поле остаётся умолчанием
++                                                                        // класса (`false`) — чем и было
++                                                                        // при их счёте; склад физики 20
++                                                                        // годен.
++                                                                        if (stream.Length - stream.Position >= 5
++                                                                            && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "LBRM")
++                                                                        {
++                                                                            matrix.Options.ElectronLayerBremAlongPath = reader.ReadBoolean();
++                                                                        }
+                                                                     }
+                                                                 }
+                                                             }
+@@ -4109,6 +4146,48 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// </summary>
+         public bool ElectronLayerMixedScattering = true;
+ 
++        /// <summary>
++        /// (`M13`, вторая половина; П106 19.09.2026) ТОРМОЗНОЕ ЭЛЕКТРОНА В СЛОЯХ
++        /// ОБВЯЗКИ — ПО ХОДУ ПЕРЕНОСА, а не толстой мишенью в точке рождения /
++        /// выхода. **Ключ сделан ВЫКЛ; решение о ВКЛ (= физика 21, единый счёт
++        /// склада) — за Amber, по числам журнала П106.**
++        ///
++        /// Что делает — у <see cref="EfficiencySimulator.ElectronLayerBremAlongPath"/>
++        /// и в `ElectronTransport.cs` (`TransportInLayers`, только под
++        /// <see cref="ElectronLayerTransport"/>): кванты тормозного электрона,
++        /// идущего по слоям обвязки (занесённого — рождённого в PTFE/Al/пробе, и
++        /// своего — вылетевшего из кристалла), рождаются НА ШАГАХ переноса
++        /// тонкой мишенью ВЕЩЕСТВА ТЕКУЩЕГО СЛОЯ при энергии середины шага
++        /// (<see cref="ThickTargetBrem.StepPhotons"/>, уровень подтянут к ESTAR
++        /// множителем по энергии входа в вещество), направление — по электрону
++        /// (модифицированный Цай, как `bpath=2` в кристалле); электрон, который
++        /// погибнет в слое (ранний выход), отдаёт остаток толстой мишенью в
++        /// точке гибели; электрон, ушедший из сцены в пустоту, не излучает
++        /// больше ничего. Толстая мишень в точке рождения
++        /// (<see cref="EfficiencySimulator.OutsideBremsstrahlung"/>) и в точке
++        /// выхода (`LayerBremsstrahlung`) при этом НЕ разыгрываются — у тех
++        /// электронов, которых перенос в слоях ведёт; электрон ниже 20 кэВ (не
++        /// ведётся) и занос при абляции `--detour=0` — толстой мишенью, как без
++        /// ключа. Зачем: разложение плечами арбитра Geant4 (П106 §3) показало,
++        /// что остаток RC103 1 см³ CsI при 2614 кэВ (+9 % в 0–50 кэВ, +3 %
++        /// нижняя четверть) сидит НЕ в возврате электрона (свой возврат = арбитру
++        /// в 1σ), а в базе — в тормозном электронов ОБВЯЗКИ: толстая мишень
++        /// приписывает электрону из 1 мм PTFE / 1 мм Al полный выход при
++        /// пробеге 2…5 мм (он уходит в пустоту или в кристалл, не дорадировав),
++        /// и изотропно, тогда как у Geant4 квант летит по электрону.
++        ///
++        /// ⛔ Ключ двигает КОНТИНУУМ сцен с обвязкой (мягкие полосы) и ПОТОК
++        /// случайных чисел, поэтому входит в клеймо (`lbrem=1`) и пишется
++        /// хвостом `LBRM` — только включённым (`T42`). Выключенный — ход прежний
++        /// до последнего бита (приёмка `MatrixDiffProbe`, П106 §5). В летописи
++        /// над <see cref="ResponseMatrix.PhysicsVersion"/> стоит резерв
++        /// «(21 — ЗАРЕЗЕРВИРОВАНО …)»: ВКЛ поднимает версию единым счётом, не
++        /// полоса. Путь КРИВОЙ берёт ключ отсюда же (`EfficiencyCalculation.Run`);
++        /// в клеймо кривой уходит `lbrem=1` только включённым. Рычаги —
++        /// `CorpusMatrixProbe --lbrem=0|1`, `G4RawProbe --lbrem=0|1`.
++        /// </summary>
++        public bool ElectronLayerBremAlongPath = false;
++
+         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
+         public int Threads;
+ 
+diff --git a/BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs b/BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs
+index f99307d1..8402d6de 100644
+--- a/BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs
++++ b/BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs
+@@ -865,6 +865,10 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 // в слоях обвязки — тем же путём: не доехав до построителя, ключ
+                 // мёртв (`S130`), а клеймо `elmix=1` лгало бы о происхождении.
+                 ElectronLayerMixedScattering = options.ElectronLayerMixedScattering,
++                // ⛔ (`M13`, П106 19.09.2026) Тормозное электрона в слоях обвязки
++                // по ходу переноса — тем же путём: не доехав до построителя, ключ
++                // мёртв (`S130`), а клеймо `lbrem=1` лгало бы о происхождении.
++                ElectronLayerBremAlongPath = options.ElectronLayerBremAlongPath,
+                 // ⛔ (`E34`) ДОПУСК ПИКА. Ноль здесь стоял безусловно, и это
+                 // запирало поправку на однократное рассеяние: `InPeak` требует
+                 // `E − deposited ≤ допуск`, а у рассеявшегося кванта недобор
+diff --git a/tools/check_matrix_keys.py b/tools/check_matrix_keys.py
+index 34bdca89..c13fc1dd 100644
+--- a/tools/check_matrix_keys.py
++++ b/tools/check_matrix_keys.py
+@@ -272,6 +272,14 @@ MATRIX = [
+      u'только включённым (T42); ВЫКЛ до единого счёта, ВКЛ умолчанием с 19.09.2026 (физика 20, П103; '
+      u'решение Amber 18.09.2026 «ВКЛ сейчас, единый счёт ночью»); --elmix=0 — абляция «как физика 19»: '
+      u'тело побитово = склад rev29. Путь КРИВОЙ берёт ключ от этого же умолчания (реестр 3)'),
++    (u'ElectronLayerBremAlongPath', True, u'--lbrem=', None, u'намеренно',
++     u'M13 (вторая половина), П106 19.09.2026: ТОРМОЗНОЕ ЭЛЕКТРОНА В СЛОЯХ ОБВЯЗКИ ПО ХОДУ ПЕРЕНОСА '
++     u'(только под eltr=1) — кванты тонкой мишени вещества текущего слоя на шагах переноса, направление по '
++     u'электрону (Цай); толстые мишени в точке рождения (OutsideBremsstrahlung) и выхода (LayerBremsstrahlung) '
++     u'у ведомых электронов не разыгрываются. Двигает континуум сцен с обвязкой (мягкие полосы) и поток '
++     u'случайных чисел, поэтому входит в клеймо (lbrem=1) и пишется хвостом LBRM — только включённым (T42); '
++     u'ВЫКЛ умолчанием, решение о ВКЛ (= физика 21, единый счёт) — Amber по числам П106. Путь КРИВОЙ берёт '
++     u'ключ от этого же умолчания (реестр 3)'),
+     (u'Seed', True, u'--seed=', None, u'намеренно',
+      u'T43: независимая выборка тем же кодом, мерка «в пределах шума ГСЧ»'),
+     (u'ResolveEdges', False, u'--edges=', None, u'намеренно',
+@@ -446,10 +454,29 @@ SIM = [
+      u'настроек (MakeSimulator), кривая от их умолчания (EfficiencyCalculation.Run, тем же путём, что '
+      u'ElectronLayerTransport) — ВЫКЛ до единого счёта, ВКЛ умолчанием с 19.09.2026 (физика 20, П103); '
+      u'в клеймо кривой — elmix=1 только включённым. Умолчание поля симулятора — умолчание склада (правило I)'),
++    (u'ElectronLayerBremAlongPath', True, True, u'общая',
++     u'M13, П106 19.09.2026: тормозное электрона в слоях обвязки по ходу переноса. Матрица от своих '
++     u'настроек (MakeSimulator), кривая от их умолчания (EfficiencyCalculation.Run, тем же путём, что '
++     u'ElectronLayerMixedScattering) — ВЫКЛ до решения Amber о едином счёте; в клеймо кривой — lbrem=1 '
++     u'только включённым. Умолчание поля симулятора — умолчание склада (правило I)'),
+     (u'LayerHardCutoffDeg', False, False, u'неприменимо',
+      u'M13, П100: угол отсечки жёстких столкновений смешанной схемы (умолчание 20°) — режим замера '
+      u'независимости η от отсечки; двигает LayerReturnProbe --cutoff=; в клеймо не входит — единый счёт '
+      u'идёт умолчанием'),
++    # (`M13`, П106 19.09.2026) Рычаги замера состава возврата электрона по
++    # населениям -- зеркала рычагов арбитра g4cf (killescown / killesccarry /
++    # killescbrem / killret*); двигает только G4RawProbe --ret-kill=. Тот же
++    # разряд, что ElectronTransportNoEarlyExit: ни один путь их не ставит.
++    (u'LayerReturnOwn', False, False, u'неприменимо',
++     u'M13, П106: рычаг замера — свой электрон на грани списывается (= killescown); двигает G4RawProbe --ret-kill=own'),
++    (u'LayerReturnCarried', False, False, u'неприменимо',
++     u'M13, П106: рычаг замера — занесённый электрон при выходе списывается (= killesccarry); двигает G4RawProbe --ret-kill=carry'),
++    (u'LayerExitBremsstrahlung', False, False, u'неприменимо',
++     u'M13, П106: рычаг замера — тормозное слоя в точке выхода своего электрона (= killescbrem); двигает G4RawProbe --ret-kill=brem'),
++    (u'LayerReturnKill', False, False, u'неприменимо',
++     u'M13, П106: рычаг замера — списать вернувшегося своего электрона на входе: 1 всех, 2 через ту же грань, 3 через другую (= killret/killretsame/killretother); двигает G4RawProbe --ret-kill=ret|same|other'),
++    (u'LayerBornBremsstrahlung', False, False, u'неприменимо',
++     u'M13, П106: рычаг замера — тормозное электронов, рождённых в обвязке/пробе (OutsideBremsstrahlung), не разыгрывать (= killoutbrem); двигает G4RawProbe --ret-kill=outbrem'),
+     (u'ScatterRouletteWeight', True, False, u'намеренно', u'кривая берёт умолчание симулятора'),
+     (u'SampleFluorescenceOutside', True, False, u'намеренно', u'кривая берёт умолчание симулятора'),
+     # Ниже -- поля, которых НЕ СТАВИТ НИ ОДИН из двух путей. Расхождения между
+@@ -511,6 +538,12 @@ SIM_NOT_SETTINGS = set([
+     # (`M13`, П100) Счётчики смешанной схемы в слоях -- шагов и жёстких
+     # столкновений; читаются `G4RawProbe`/`LayerReturnProbe` после прогона.
+     u'CountLayerSteps', u'CountLayerHardCollisions',
++    # (`M13`, П106) Счётчики населений возврата -- вылеты/возвраты занесённого,
++    # возвраты своего по граням, списанные рычагом; читает `G4RawProbe`.
++    u'CountLayerEscapesCarried', u'CountLayerReturnsCarried', u'CountLayerBorn',
++    u'CountLayerReturnsSameFace', u'CountLayerReturnsOtherFace', u'CountLayerReturnsKilled',
++    # (`M13`, П106) Счётчики тормозного по ходу переноса в слоях -- квантов и энергия; читает `G4RawProbe`.
++    u'CountLayerBremPhotons', u'SumLayerBremKev',
+     # Поля ВЛОЖЕННОГО типа (описание области сцены), а не настройки симулятора:
+     # тело класса читается целиком, вложенные объявления попадают в тот же кусок.
+     u'IsBox', u'IsCrystal',
+@@ -561,6 +594,9 @@ ONE_TRUTH = (
+     # (`M13`, П100 18.09.2026) Ключ, заведённый ВЫКЛ до единого счёта физики 20
+     # (П103, 19.09.2026): то же правило -- пробы прямого вызова берут умолчание склада.
+     (u'ElectronLayerMixedScattering', u'ElectronLayerMixedScattering', None),
++    # (`M13`, П106 19.09.2026) Ключ, заведённый ВЫКЛ до решения Amber о едином счёте
++    # (физика 21): то же правило -- пробы прямого вызова берут умолчание склада.
++    (u'ElectronLayerBremAlongPath', u'ElectronLayerBremAlongPath', None),
+ )
+ 
+ 
+diff --git a/tools/effmaker/handover-response-matrix.md b/tools/effmaker/handover-response-matrix.md
+index c7618949..5d010969 100644
+--- a/tools/effmaker/handover-response-matrix.md
++++ b/tools/effmaker/handover-response-matrix.md
+@@ -3650,3 +3650,68 @@ Geant4 option4 (`g4eta`): η обратного рассеяния от толс
+ (`B31` отдельно на складе rev29), витрина, объявление.
+ 
+ **Цена счёта и сдвиг по узлам:** 49 сцен за **401.6 мин** (три дальние по 6 000 000 — 34.6 мин; 46 по 3 000 000 — 367.0 мин), 16:32:23 → 23:13:58 18.09.2026, отказов 0, обрывов 0; машина делилась с П102/П104 (6…9.8 ядер из 10) — цена ключа по часам не мерится (П100: ×1.00 парами ABAB на тихой машине); сцена 285 с (`AS80_point0`) … 1272 с (`G1S_point25` при 6 000 000). Детерминизм: `RC103_point0` контроля = полного счёта по телу (`300cee70c3a4c5ba…`). Против снимка rev29 (`cmp_store.py`, сумма шести каналов, медианы по 49 сценам): пик 662/1461/2614 +0.00/−0.01/+0.03 %, нижняя четверть [0..25 %E) −0.06/+0.07/−0.07 %, полоса 0–100 кэВ −0.12/+0.10/+0.41 %, Σ строки +0.06/+0.07/−0.07 % — **ключ в шуме склада**, как обещал П100 (стенд ≤ 0.5 %); у штатных сцен с обвязкой: `RC103_point0` 0–100 кэВ при 1461 +1.6 %, при 2614 +4.6 %, `RC103_lu_front` +7.7 % при 1461 (шум сцены 2 %), `ASN16_lu_side`/`AS80_point0` в ±1 %; крайние ±5…15 % — густые и шумные сцены (другой поток случайных чисел; `RC103_point50` −6.2 % при 662 — теперь 6 000 000 против 3 000 000). Аудит `MatrixAuditProbe --phys=20 --hist=3000000 --except=×3 --noise=6`: физика 20 — 49, историй 3 000 000 — 46, 6 000 000 — 3, шумных четыре — дальние **8.32 / 7.81 / 8.45 %** (было 11.5 / 11.1 / 12.3) и `RC103_marinelli05_kcl` 8.87 %. Клеймо кривой всех 92: `phys=20; hist=200000; grid=…; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1`; против физики 19 медиана |Δ| 0.147 % по 3328 точкам (662 −0.09 %, 1461 +0.00 %, 2615 +0.41 %). Корпус: `out_rev29_*` 479.0 → `out_rev30_*` **476.4** (−0.55 %; из них `B31` −0.53 %, физика 20 с удвоением дальних −0.02 % — лестница двумя плечами), малая 322.7 → 323.1 (+0.13 %); непонятная часть при плече физики побитово 36/36. Журнал П103 §3–§6.
++
++## §23. Вторая половина `M13`: состав «возврата» электрона по населениям и ключ `lbrem` — тормозное в слоях обвязки по ходу переноса (П106, 19.09.2026; ВЫКЛ умолчанием)
++
++Строка `M13` (остаток после П100/П103): эффект возврата вылетевшего электрона у нас ×0.34…0.53 от арбитра Geant4 при сошедшихся η слоя и
++доле вернувшихся. Журнал `handover/handover-2026-09-19-p106-m13-return-effect.md`, артефакты `handover/p106-m13/`.
++
++**Мерка была шире физики.** «Возврат» арбитра `def − killesc` гасит на грани ЛЮБОЙ e⁻, покидающий кристалл, — и рождённый в нём, и
++ЗАНЕСЁННЫЙ из обвязки (дошедший до кристалла, рассеявшийся назад и вернувшийся); наш «возврат» (`elmix1_detour0 − off_detour0`) — только
++свой, занесённого `--detour=0` снимает целиком (его возврат у нас в плече заноса). Рычаги `g4cf` П106 разводят населения: `killescown`
++(свой e⁻ на выходе), `killesccarry` (занесённый на выходе), `killret`/`killretsame`/`killretother` (свой при повторном входе / та же
++грань / другая), `killescbrem`/`killescdelta` (тормозное и δ вылетевшего своего, рождённые снаружи), `killoutbrem` (тормозное `eBrem`
++электронов, рождённых вне кристалла), `escpop` (счётчики, строка `ESCPOP`); наши зеркала — `G4RawProbe --ret-kill=own,carry,brem,ret,
++same,other,outbrem` (поля замера `EfficiencySimulator.LayerReturnOwn`/`LayerReturnCarried`/`LayerReturnKill`/`LayerExitBremsstrahlung`/
++`LayerBornBremsstrahlung`, в клеймо не входят). **По одноимённым населениям стороны сходятся в 1σ** (RC103 П55 2614, доля на историю в
++нижней четверти / 0–50 / 0–100 кэВ): свой e⁻ весь эффект −1.75e-4 / −0.43e-4 / −0.54e-4 у нас против −1.74e-4 / −0.39e-4 / −0.72e-4
++(1.01 / 1.10 / 0.75), возврат самого e⁻ 1.19 / 1.05 / 0.73, через другую грань — ноль у обеих (1 % возвратов), тормозное/δ вылетевшего
++— ноль у обеих; возврат занесённого −1.66e-4 / −0.96e-4 / −1.34e-4 против −1.39e-4 / −1.13e-4 / −1.53e-4 (1.20 / 0.85 / 0.88). Кандидаты
++(а) прямой первый отрезок у грани и (б) тормозное вылетевшего в Al — не держатели.
++
++**Держатель остатка RC103 при 2614 — ТОРМОЗНОЕ ЭЛЕКТРОНОВ ОБВЯЗКИ.** База «ни возврата своего, ни заноса» (арбитр — прямой прогон
++`killescown killcarry`, наша `--detour=0 --ret-kill=own`): нижняя четверть 1.035, 0–50 кэВ **1.164**, 0–100 1.131; фотонная база (ещё и
++без тормозного электронов обвязки: `+ killoutbrem` / `+ outbrem`) **1.004 / 1.010 / 0.994** — фотонная физика обвязки сходится в 1 %;
++разность — `OutsideBremsstrahlung` (`M3`/П44: толстая мишень вещества точки рождения с полной энергией, изотропно): у нас +3.90e-4 в
++0–50 кэВ (в базе) против +2.20e-4 у арбитра (×1.78; в контексте def +2.41e-4 против +1.10e-4, ×2.19), при 1461 — ×1.3. Электрон из 1 мм
++PTFE / 1 мм Al при 1…2 МэВ (пробег 2…5 мм) уходит в пустоту или в кристалл, не дорадировав, и светит вперёд, а не изотропно. ⚠ Первая
++редакция рычага `killoutbrem` гасила и кванты аннигиляции позитрона обвязки (29 % «квантов от лептонов вне» на RC103, 43 % у диска с
++ториевым стеклом) и рисовала диску AS80 две ошибки навстречу, которых нет; исправлено проверкой процесса-создателя — рычаг обязан
++называть ПРОЦЕСС.
++
++**Что сделано** (ключ `ResponseMatrixOptions.ElectronLayerBremAlongPath`, клеймо `lbrem=1;` только включённым, хвост файла `LBRM`
++(двадцать второй; формат не поднят, у файлов без хвоста поле `false` — чем и было при счёте склада физики 20), `--lbrem=0|1` у
++`CorpusMatrixProbe`/`G4RawProbe`, `check_matrix_keys.py` код 0 — полей кривой 15 → 16; **ВЫКЛ умолчанием**, `PhysicsVersion` 20 не поднята
++— резерв «(21 — ЗАРЕЗЕРВИРОВАНО …)»): в `TransportInLayers` (только под `eltr=1`) кванты тормозного рождаются на отрезках пути в
++веществе слоя тонкой мишенью ВЕЩЕСТВА ТЕКУЩЕГО СЛОЯ при энергии середины отрезка (`ThickTargetBrem.StepPhotons` таблицы `LayerBrem`,
++якорь ESTAR по энергии входа в вещество), по направлению электрона (Цай, как `bpath=2`), пропорционально ФАКТИЧЕСКИ пройденному пути
++(отрезки, обрезанные границей области, излучают в точке перехода); электрон, погибающий в слое, отдаёт остаток толстой мишенью в точке
++гибели; ушедший из сцены не излучает; толстые мишени `OutsideBremsstrahlung` и `LayerBremsstrahlung` у ведомых переносом электронов не
++разыгрываются (электрон ниже 20 кэВ и занос при `--detour=0` — как без ключа). Выход поверен `LayerReturnProbe --brem`: на слоях RC103
++при нормальном падении 300/1000/2000 кэВ — 0.94 / 1.22 / 0.87 толстой мишени PTFE, от шага переноса не зависит (0.02 / 0.1 / 0.3 — ±3 %).
++
++**Приёмка:** ВЫКЛ побитово = HEAD `a7ad8933` (`MatrixDiffProbe` RC103_point0 / AS80_th_disk против сборки `wt_base`: клейма одинаковые,
++тела тождественны, Q_k побитово; наш `def` 2614 40 млн побайтно = П100 `elmix1`); цена **×1.00** (пары ABAB `--threads=1`, RC103_point0:
++HEAD 9.97/9.92, ВЫКЛ 9.97/9.97, ВКЛ 9.95/9.91 мкс на историю). Ключ меняет ровно своё население (`lbrem1_outbrem0` против `killoutbrem`
++1.014 / 0.999 / 0.994) — а само население тормозного обвязки под ключом 0.72 / 0.79 / 0.81 от арбитра (толстая мишень была ×2.28 / ×2.19
++/ ×2.32): по ходу мы излучаем 0.73 квантов на электрон при том же населении электронов (3.38e-2 против 3.52e-2 на историю ≥ 20 кэВ) —
++остаток ключа (путь в тонком слое или уровень тонкой мишени лёгких веществ; мерка `LayerReturnProbe --brem` при косом падении и на
++толстых PTFE/Al против опоры — следующий шаг). **Стенд П92 при ВКЛ** (наша сторона / арбитр def − 1, %):
++
++| связка | полоса | П103 / def | ВКЛ `lbrem1` / def |
++|---|---|---|---|
++| RC103 П55 2614 | четверти | +2.95/−0.23/−2.05/+1.13 | **+0.01/0.00/−1.80/+1.31** |
++| | 0–50 / 0–100 / 100–200 кэВ | +8.98 / +7.23 / +2.21 | **−2.85 / −2.64 / −0.59** (± 0.6/0.5/0.5) |
++| | пик | +5.38 | +5.37 (остаток голого кристалла) |
++| RC103 П55 1461 | четверти; 0–50 / 0–100 | −0.05/−0.53/+0.15/+1.76; −0.48/+0.02 | −0.37/−0.64/+0.33/+1.42; −1.41/−0.68 (± 0.6/0.4) |
++| RC103 П55 662 / 59.5 | 0–100; шельф 32–42 | −1.00; −0.04 | −1.29 ± 0.3; +0.59 ± 0.9 |
++| живая RC103 1461 / 662 | 0–100 | +2.12 / −1.01 | **−0.04** / −1.20 |
++| диск AS80 2614 | четверти; 0–100 | +0.44/−3.09/−1.81/−0.89; +0.90 | −0.76/−3.19/−1.73/−1.21; +0.57 (± 0.3…0.8) |
++| диск AS80 1461; ASN16 1461 / 662; AS80_point0 1461 | 0–100 | −0.25; +1.05 / −0.67; −0.04 | −0.12; −0.24 / −0.90; −0.01 |
++
++Полные сводки — `handover/p106-m13/tables/stand_*.md`, журнал §5.3.
++
++**Решение о ВКЛ (= физика 21, единый счёт склада ≈ 6.7 ч тем же порядком, что §22) — за Amber.** За: критерии строки на RC103 2614
++взяты впервые (четверти ≤ 2, 0–100 в ±3), физика тормозного обвязки стала честной (место, направление, путь), цена ×1.00, ВЫКЛ
++побитово. Против: ключ недобирает своё население на 20…30 % (остаток), у диска AS80 при 2614 мягкие полосы уходят на −1…−4 % (там
++толстая мишень стекла и Al 3 мм была близка к правде), на корпусе ожидаемый сдвиг — доли процента в мягких полосах сцен с обвязкой.
+diff --git a/tools/effmaker/probes/CorpusMatrixProbe.cs b/tools/effmaker/probes/CorpusMatrixProbe.cs
+index 532ca819..a2603bb6 100644
+--- a/tools/effmaker/probes/CorpusMatrixProbe.cs
++++ b/tools/effmaker/probes/CorpusMatrixProbe.cs
+@@ -40,9 +40,18 @@ using System.Threading;
+ //                     [--pairth=1] [--positron=1] [--posoffset=0] [--rayl2=1]
+ //                     [--cone=1] [--peakw=1] [--peakb=1] [--xrkl=1] [--kdip=1] [--eta=0.33]
+ //                     [--lbin=1] [--pkch=1] [--lys=1|2] [--etr=1] [--imp=1]
+-//                     [--ecomp=1] [--bpath=0|1|2] [--eltr=1] [--elmix=1]
++//                     [--ecomp=1] [--bpath=0|1|2] [--eltr=1] [--elmix=1] [--lbrem=1]
+ //                     [--xray=0] [--coh=0] [--brem=0] [--bremsb=0]
+ //
++// `--lbrem=1` (`M13`, вторая половина, П106 19.09.2026) — ТОРМОЗНОЕ ЭЛЕКТРОНА В
++// СЛОЯХ ОБВЯЗКИ ПО ХОДУ ПЕРЕНОСА (только под `eltr=1`): кванты тонкой мишени
++// вещества текущего слоя на шагах переноса, направление по электрону (Цай);
++// толстые мишени в точке рождения (`OutsideBremsstrahlung`) и в точке выхода
++// (`LayerBremsstrahlung`) у ведомых электронов не разыгрываются. Входит в
++// клеймо (`lbrem=1`), хвост `LBRM`. ВЫКЛ умолчанием (склад физики 20 не
++// тронут); ВКЛ = физика 21 — решение Amber по числам П106 (арбитр: тормозное
++// электронов обвязки у нас вдвое больше Geant4 в 0–50 кэВ RC103 при 2614).
++//
+ // `--elmix=1` (`M13`, П100 18.09.2026) — СМЕШАННАЯ СХЕМА УПРУГОГО РАССЕЯНИЯ В
+ // СЛОЯХ ОБВЯЗКИ (только под `eltr=1`): жёсткие столкновения выше 20° — по
+ // одному по экранированному Резерфорду с поправкой Мотта, мягкие — шарниром
+@@ -421,6 +430,11 @@ class CorpusMatrixProbe
+                 // физики 20 (П103, 19.09.2026); `--elmix=0` — абляция, матрица
+                 // честно другая по клейму (без `elmix=1;`).
+                 options.ElectronLayerMixedScattering = Flag(a, 8);
++            else if (a.StartsWith("--lbrem=", StringComparison.Ordinal))
++                // ⛔ `M13`, П106: тормозное электрона в слоях обвязки по ходу
++                // переноса; входит в клеймо (`lbrem=1`). ВЫКЛ умолчанием;
++                // `--lbrem=1` — матрица честно другая по клейму.
++                options.ElectronLayerBremAlongPath = Flag(a, 8);
+             else if (a.StartsWith("--bpath=", StringComparison.Ordinal))
+             {
+                 // `M3`, П44: тормозное вдоль пути переноса, уровень 0/1/2;
+diff --git a/tools/effmaker/probes/G4RawProbe.cs b/tools/effmaker/probes/G4RawProbe.cs
+index e71211b1..b5eab799 100644
+--- a/tools/effmaker/probes/G4RawProbe.cs
++++ b/tools/effmaker/probes/G4RawProbe.cs
+@@ -26,7 +26,31 @@ namespace G4RawProbe
+     ///                [--etr=0|1] [--etr-step=0.1] [--kdip=0|1|2|3]
+     ///                [--positron=0|1] [--posoffset=0|1] [--rayl2[=0|1]]
+     ///                [--ecomp=0|1] [--bpath=0|1|2] [--detour=0.7] [--eltr=0|1]
+-    ///                [--elmix=0|1]
++    ///                [--elmix=0|1] [--lbrem=0|1] [--ret-kill=own,carry,brem,ret,same,other,outbrem]
++    ///
++    /// `--lbrem=1` (`M13`, вторая половина, П106 19.09.2026): ключ
++    /// `ElectronLayerBremAlongPath` — тормозное электрона в слоях обвязки ПО ХОДУ
++    /// переноса (тонкая мишень вещества текущего слоя на шагах, направление по
++    /// электрону) вместо толстой мишени в точке рождения / выхода. Умолчание —
++    /// склада (ВЫКЛ; решение о ВКЛ = физике 21 — Amber). Мерка: RC103 П55 2614
++    /// база «ни возврата своего, ни заноса» и полное `def` против `g4cf`
++    /// (`killescown killcarry`, `killoutbrem`, def) по полосам 0–50/0–100 кэВ и
++    /// четвертям; 1461/662/59.5 и диск AS80 не хуже П103. Печатает счётчик
++    /// квантов тормозного по ходу в слоях.
++    ///
++    /// `--ret-kill=` (`M13`, П106 19.09.2026) — РЫЧАГИ ЗАМЕРА состава «возврата»
++    /// электрона по населениям, зеркала рычагов арбитра `g4cf` (список через
++    /// запятую): `own` — свой (рождённый в кристалле) электрон на грани
++    /// списывается, ни возврата, ни тормозного слоя (= `killescown`); `carry` —
++    /// то же для занесённого при выходе из кристалла (= `killesccarry`); `brem`
++    /// — своему тормозное слоя в точке выхода не разыгрывать (= `killescbrem`);
++    /// `ret` — свой вернувшийся списывается на входе (= `killret`); `same` /
++    /// `other` — только вернувшийся через ту же / другую грань (= `killretsame` /
++    /// `killretother`; `ret`, `same`, `other` взаимно исключают друг друга);
++    /// `outbrem` — тормозное электронов, РОЖДЁННЫХ в обвязке/пробе, не
++    /// разыгрывать (`OutsideBremsstrahlung`; = `killoutbrem`).
++    /// «Умолчание − рычаг» у нас против «def − рычаг» у Geant4 — ОДНО население.
++    /// Печатает счётчики населений (свои/занесённые вылеты и возвраты, грани).
+     ///
+     /// `--elmix=1` (`M13`, П100 18.09.2026): ключ `ElectronLayerMixedScattering` —
+     /// смешанная схема упругого рассеяния в слоях обвязки (только под `eltr=1`):
+@@ -169,6 +193,11 @@ namespace G4RawProbe
+             double detour = -1.0;                       // <0 — умолчание симулятора (`M12`, П92)
+             bool eltr = store.ElectronLayerTransport;   // `AMBER44`/`M12`, П94 — умолчание склада (ВКЛ с физики 19, П97)
+             bool elmix = store.ElectronLayerMixedScattering;   // `M13`, П100 — умолчание склада (ВКЛ с физики 20, П103)
++            bool lbrem = store.ElectronLayerBremAlongPath;     // `M13`, П106 — умолчание склада (ВЫКЛ)
++            // `M13`, П106: рычаги замера состава возврата (--ret-kill=), все ВЫКЛ.
++            bool retOwn = true, retCarry = true, retBrem = true, retOutBrem = true;
++            int retKill = 0;
++            string retKillArg = null;
+             double escSlope = -1.0;
+             double escSoft = -1.0, escSoftKev = -1.0;   // `A63`
+             double escCurve = -1.0;                     // `A70`
+@@ -284,6 +313,37 @@ namespace G4RawProbe
+                     elmix = Flag01(a, 8);
+                     continue;
+                 }
++                // `M13` (П106): тормозное электрона в слоях обвязки по ходу переноса.
++                if (a.StartsWith("--lbrem=", StringComparison.Ordinal))
++                {
++                    lbrem = Flag01(a, 8);
++                    continue;
++                }
++                // `M13` (П106): рычаги замера состава возврата — список через запятую.
++                // ⛔ Незнакомое слово — ОТКАЗ: молча пропущенный рычаг — это плечо
++                // «умолчание против умолчания», которое выглядит как «эффекта нет».
++                if (a.StartsWith("--ret-kill=", StringComparison.Ordinal))
++                {
++                    retKillArg = a.Substring(11);
++                    foreach (string word in retKillArg.Split(','))
++                    {
++                        switch (word.Trim())
++                        {
++                            case "own": retOwn = false; break;
++                            case "carry": retCarry = false; break;
++                            case "brem": retBrem = false; break;
++                            case "ret": retKill = 1; break;
++                            case "same": retKill = 2; break;
++                            case "other": retKill = 3; break;
++                            case "outbrem": retOutBrem = false; break;
++                            default:
++                                Console.Error.WriteLine("--ret-kill= принимает own, carry, brem, ret, same, other, outbrem через запятую: " + a);
++                                return 2;
++                        }
++                    }
++
++                    continue;
++                }
+                 if (a.StartsWith("--esc-soft=", StringComparison.Ordinal))
+                 {
+                     escSoft = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
+@@ -395,6 +455,12 @@ namespace G4RawProbe
+             if (detour >= 0.0) { simulator.ElectronCarryDetour = detour; }   // `M12`, П92
+             simulator.ElectronLayerTransport = eltr;    // `AMBER44`/`M12`, П94
+             simulator.ElectronLayerMixedScattering = elmix;   // `M13`, П100
++            simulator.ElectronLayerBremAlongPath = lbrem;     // `M13`, П106
++            simulator.LayerReturnOwn = retOwn;                // `M13`, П106 — рычаги замера
++            simulator.LayerReturnCarried = retCarry;
++            simulator.LayerExitBremsstrahlung = retBrem;
++            simulator.LayerReturnKill = retKill;
++            simulator.LayerBornBremsstrahlung = retOutBrem;
+             simulator.LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(kdip);
+             simulator.LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(kdip);
+             if (etrStep > 0.0) { simulator.ElectronStepFraction = etrStep; }
+@@ -463,6 +529,17 @@ namespace G4RawProbe
+             Console.WriteLine("тормозное вдоль пути (`M3`, --bpath=): {0}{1}",
+                               bpath == 0 ? "выкл (в точке рождения)" : bpath == 1 ? "1 (на шагах переноса, изотропно)" : "2 (на шагах переноса, по электрону)",
+                               bpath == store.BremAlongPath ? " (умолчание склада)" : " (ключом)");
++            Console.WriteLine("тормозное электрона в слоях обвязки по ходу переноса (`M13` П106, --lbrem=): {0}{1}",
++                              lbrem ? (eltr ? "ВКЛ (тонкая мишень вещества слоя на шагах, по электрону; толстых мишеней рождения/выхода нет)" : "ВКЛ, но без переноса в слоях (--eltr=0) бездействует")
++                                    : "выкл (толстая мишень в точке рождения / выхода, изотропно)",
++                              lbrem == store.ElectronLayerBremAlongPath ? " (умолчание склада)" : " (ключом)");
++            Console.WriteLine("рычаги замера состава возврата (`M13` П106, --ret-kill=): {0}",
++                              retKillArg == null ? "нет (умолчание: возврат как есть)"
++                              : retKillArg + " — свой возврат " + (retOwn ? "есть" : "СПИСАН на грани")
++                                + ", занесённого " + (retCarry ? "есть" : "СПИСАН на выходе")
++                                + ", тормозное выхода " + (retBrem ? "есть" : "НЕТ")
++                                + ", тормозное рождённых в обвязке " + (retOutBrem ? "есть" : "НЕТ")
++                                + ", вернувшийся " + (retKill == 0 ? "идёт" : retKill == 1 ? "СПИСАН на входе" : retKill == 2 ? "СПИСАН через ту же грань" : "СПИСАН через другую грань"));
+ 
+             if (scenePath != null)
+             {
+@@ -526,6 +603,18 @@ namespace G4RawProbe
+                               (simulator.CountLayerReturns > 0 ? simulator.SumLayerReturnKev / simulator.CountLayerReturns : 0.0).ToString("0.0", CultureInfo.InvariantCulture),
+                               simulator.CountLayerCarries,
+                               ((double)simulator.CountLayerCarries / histories).ToString("0.000E+00", CultureInfo.InvariantCulture));
++            // (`M13`, П106) Населения возврата: свои (рождённые в кристалле) против занесённых, грани возврата.
++            Console.WriteLine("населения возврата (`M13` П106): рождённых в обвязке и отданных переносу {7}; своих вылетов {0}, своих возвратов {1} (через ту же грань {2}, через другую {3}, списано рычагом {4}); занесённых вылетов из кристалла {5}, их возвратов {6}",
++                              simulator.CountLayerEscapes - simulator.CountLayerEscapesCarried,
++                              simulator.CountLayerReturns - simulator.CountLayerReturnsCarried,
++                              simulator.CountLayerReturnsSameFace, simulator.CountLayerReturnsOtherFace,
++                              simulator.CountLayerReturnsKilled,
++                              simulator.CountLayerEscapesCarried, simulator.CountLayerReturnsCarried, simulator.CountLayerBorn);
++            // (`M13`, П106) Тормозное по ходу переноса в слоях: без ключа нули.
++            Console.WriteLine("тормозное по ходу в слоях (`M13` П106): квантов {0}, энергия {1} кэВ ({2} на историю)",
++                              simulator.CountLayerBremPhotons,
++                              simulator.SumLayerBremKev.ToString("0.0", CultureInfo.InvariantCulture),
++                              ((double)simulator.CountLayerBremPhotons / histories).ToString("0.000E+00", CultureInfo.InvariantCulture));
+             // (`M13`, П100) Счётчики смешанной схемы: без ключа нули.
+             Console.WriteLine("смешанная схема в слоях (`M13`): шагов переноса в слоях {0}, жёстких столкновений {1} ({2} на шаг)",
+                               simulator.CountLayerSteps, simulator.CountLayerHardCollisions,
+diff --git a/tools/effmaker/probes/LayerReturnProbe.cs b/tools/effmaker/probes/LayerReturnProbe.cs
+index a68bd5ef..29146eea 100644
+--- a/tools/effmaker/probes/LayerReturnProbe.cs
++++ b/tools/effmaker/probes/LayerReturnProbe.cs
+@@ -43,7 +43,13 @@ using System.Text;
+ ///     layerreturnprobe --geometry=RC103_point0_p55.in [--face=front|side]
+ ///                      [--energies=50,100,200,300,500,1000,2000] [--angles=0,45,70]
+ ///                      [--n=200000] [--seed=20260917] [--crystal] [--x0=<см>] [--z0=<см>]
+-///                      [--elmix=0|1|both] [--cutoff=20] [--step=0.1] [--diag]
++///                      [--elmix=0|1|both] [--cutoff=20] [--step=0.1] [--diag] [--brem]
++///
++/// (`M13`, П106) `--brem` — ключ `ElectronLayerBremAlongPath` ВКЛ на время прогона: печатает
++/// квантов тормозного по ходу переноса в слоях на один пущенный электрон и их среднюю
++/// энергию против толстой мишени вещества первого слоя (`ThickTargetBrem.Photons(T)`) —
++/// поверка выхода тонкой мишени по пути: на толстом слое отношение обязано быть ≈ 1,
++/// на RC103 (PTFE 1 мм + Al 1 мм + пустота) — меньше ровно на долю пути, ушедшую в пустоту.
+ ///
+ /// Мерка П94 (RC103 П55, PTFE 1 мм + Al 1 мм + пустота, нормальное падение, ключ
+ /// `elmix` ВЫКЛ): η = 0.062 (100 кэВ) / 0.047 (500) / 0.031 (1000) — ×0.6 к Табате
+@@ -65,7 +71,7 @@ static class LayerReturnProbe
+         var angles = new List<double> { 0, 45, 70 };
+         int n = 200000;
+         ulong seed = 20260917UL;
+-        bool crystal = false, diag = false;
++        bool crystal = false, diag = false, brem = false;
+         string elmix = "both";
+         double cutoff = double.NaN, stepFraction = double.NaN;
+         double x0Override = double.NaN, z0Override = double.NaN;   // точка на грани, см (замер)
+@@ -95,6 +101,7 @@ static class LayerReturnProbe
+             else if (a.StartsWith("--cutoff=", StringComparison.Ordinal)) cutoff = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
+             else if (a.StartsWith("--step=", StringComparison.Ordinal)) stepFraction = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+             else if (a == "--crystal") crystal = true;
++            else if (a == "--brem") brem = true;
+             else if (a == "--diag") diag = true;
+             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
+         }
+@@ -122,6 +129,11 @@ static class LayerReturnProbe
+         // (измерено П100: 100 кэВ, 70°, N = 100 000 — η 0.71 и ⟨T′⟩/T 0.92 против 0.41 и
+         // 0.72 при другом зерне). В симуляторе этого нет: там снимок делает `EscapeOrReturn`.
+         MethodInfo saveRay = typeof(EfficiencySimulator).GetMethod("SaveRay", BindingFlags.NonPublic | BindingFlags.Instance);
++        // (П106) Тормозное по ходу: приватный рычаг `layerBremEnabled` (его ставит вызывающий переноса),
++        // область точки старта и таблица толстой мишени её вещества — отражением.
++        FieldInfo bremEnabled = typeof(EfficiencySimulator).GetField("layerBremEnabled", BindingFlags.NonPublic | BindingFlags.Instance);
++        MethodInfo atMethod = typeof(EfficiencySimulator).GetMethod("At", BindingFlags.NonPublic | BindingFlags.Instance);
++        MethodInfo layerBrem = typeof(EfficiencySimulator).GetMethod("LayerBrem", BindingFlags.NonPublic | BindingFlags.Instance);
+         MethodInfo restoreRay = typeof(EfficiencySimulator).GetMethod("RestoreRay", BindingFlags.NonPublic | BindingFlags.Instance);
+         if (walk == null || loss == null || saveRay == null || restoreRay == null)
+         {
+@@ -188,6 +200,7 @@ static class LayerReturnProbe
+                     var sim = new EfficiencySimulator(geometry.Clone());
+                     sim.ElectronLayerTransport = true;
+                     sim.ElectronLayerMixedScattering = m;
++                    if (brem) { sim.ElectronLayerBremAlongPath = true; bremEnabled.SetValue(sim, true); }
+                     if (!double.IsNaN(cutoff)) sim.LayerHardCutoffDeg = cutoff;
+                     if (!double.IsNaN(stepFraction)) sim.ElectronStepFraction = stepFraction;   // сходимость по шагу (как G4RawProbe --etr-step=)
+                     string name = sim.LightYieldName;          // EnsureBuilt
+@@ -222,6 +235,19 @@ static class LayerReturnProbe
+                     }
+ 
+                     double eta = back / (double)n;
++                    if (brem)
++                    {
++                        object region = atMethod.Invoke(sim, new object[] { x0 + nx * 1e-7, 0.0, z0 + nz * 1e-7 });
++                        var material = region != null ? (GeometryMaterial)region.GetType().GetField("Material").GetValue(region) : null;
++                        var table = material != null ? (ThickTargetBrem)layerBrem.Invoke(sim, new object[] { material }) : null;
++                        double thick = table != null ? table.Photons(te) : 0.0;
++                        double perElectron = sim.CountLayerBremPhotons / (double)n;
++                        Console.WriteLine("    тормозное по ходу (--brem, T={0} кэВ, θ={1}°, elmix={2}): {3} квантов на электрон, средняя энергия {4} кэВ; толстая мишень вещества старта {5} квантов — отношение {6}",
++                                          te, ang, m ? 1 : 0, perElectron.ToString("0.00000", CultureInfo.InvariantCulture),
++                                          (sim.CountLayerBremPhotons > 0 ? sim.SumLayerBremKev / sim.CountLayerBremPhotons : 0.0).ToString("0.0", CultureInfo.InvariantCulture),
++                                          thick.ToString("0.00000", CultureInfo.InvariantCulture),
++                                          (thick > 0.0 ? perElectron / thick : 0.0).ToString("0.000", CultureInfo.InvariantCulture));
++                    }
+                     row.AppendFormat(" | {0,11:0.0000} {1,7:0.0000} {2,7:0.000} {3,7:0.000} {4,8:0.000}",
+                                      eta, Math.Sqrt(eta * (1 - eta) / n),
+                                      back > 0 ? sumT / back / te : 0.0, back > 0 ? sumCos / back : 0.0,
+diff --git a/tools/g4cf/g4cf.cc b/tools/g4cf/g4cf.cc
+index d102197f..995e80f3 100644
+--- a/tools/g4cf/g4cf.cc
++++ b/tools/g4cf/g4cf.cc
+@@ -64,6 +64,15 @@
+ // подпись говорит, ЧЕМ окно заполнено, вместо гадания по схеме; спектр
+ // эмиссии даёт доли Kα/Kβ Geant4 против `nucdb` (тип X) напрямую.
+ //
++// Рычаги `escpop` / `killescown` / `killesccarry` / `killret` / `killretsame` /
++// `killretother` / `killescbrem` / `killescdelta` / `killoutbrem` (П106, `M13`, 19.09.2026) —
++// СОСТАВ «ВОЗВРАТА» ЭЛЕКТРОНА ПО НАСЕЛЕНИЯМ: свой (рождённый в кристалле) e-
++// против занесённого, возврат самого e- (через ту же грань / другую) против
++// тормозного и δ, рождённых им снаружи. Зачем: `def − killesc` гасит на грани
++// ВСЕ e-, и население этого плеча шире нашего `detour=0`-возврата (П100 §4.4
++// сравнивала эффект возврата ×0.34…0.53 разными населениями). Описание
++// рычагов — у флагов ниже; читатели — `SETUP …` и строка `ESCPOP` в конце.
++//
+ // Сборка — build_g4cf.bat рядом (vcvars64 обязан звать bat, не ps1: %PATH%
+ // в cmd разворачивается при разборе строки). Прогон — run_g4cf.bat (env на
+ // датасеты поставки). Сборка CF из логов — g4_cf.py, родные p_k — g4_pk.py.
+@@ -115,6 +124,7 @@
+ #include <algorithm>
+ #include <map>
+ #include <mutex>
++#include <set>
+ #include <sstream>
+ #include <string>
+ #include <vector>
+@@ -212,6 +222,58 @@ namespace
+     bool gKillCarry = false;
+     bool gFullCarry = false;
+ 
++    // ---- Рычаги П106 (`M13`, 19.09.2026): СОСТАВ «ВОЗВРАТА» ПО НАСЕЛЕНИЯМ.
++    // `def − killesc` гасит на грани ЛЮБОЙ e-, покидающий кристалл, — и
++    // рождённый в кристалле, и занесённый снаружи (тот же e-, что учтён и в
++    // `def − killcarry`: населения плеч пересекаются, и «ни возврата, ни
++    // заноса» ≈ killesc + killcarry − def несёт член пересечения). Наша сторона
++    // мерит возврат ТОЛЬКО рождённых в кристалле (`--detour=0` снимает занос
++    // целиком), поэтому П100 §4.4 сравнивала разные населения. Рычаги ниже
++    // разводят их; все ВЫКЛ по умолчанию, без ключей — прежний ход до бита.
++    //   killescown   — e-, РОЖДЁННЫЙ В КРИСТАЛЛЕ (`GetLogicalVolumeAtVertex`),
++    //                  гасится на выходе из него: нет ни его возврата, ни его
++    //                  тормозного/δ снаружи. `def − killescown` — весь эффект
++    //                  вылетевшего своего e- (наш `elmix1_detour0 − off_detour0`).
++    //   killesccarry — e-, рождённый ВНЕ кристалла, гасится на выходе из него:
++    //                  `def − killesccarry` — возврат занесённого e- (член
++    //                  пересечения плеч killesc/killcarry).
++    //   killret      — свой (рождённый в кристалле) e-, уже покидавший кристалл,
++    //                  гасится при ПОВТОРНОМ входе: `def − killret` — возврат
++    //                  самого электрона; тормозное и δ, рождённые снаружи до
++    //                  возврата, остаются. `killret − killescown` — их вклад.
++    //   killretsame / killretother — то же, но только если грань входа ТА ЖЕ,
++    //                  что грань последнего выхода / ДРУГАЯ (грани — по
++    //                  положению точки на поверхности области `crystal`
++    //                  сцены: брус — 6 граней, кольцо — торцы и бока).
++    //   killescbrem  — квант, РОЖДЁННЫЙ ВНЕ кристалла в родословной своего
++    //                  вылетевшего e- (сам e-, его потомки), гасится при
++    //                  постановке в стек: `def − killescbrem` — вклад тормозного
++    //                  (и флуоресценции) вылетевшего e-, поглощённого в кристалле.
++    //   killescdelta — e-/e+, рождённый ВНЕ кристалла в той же родословной
++    //                  (δ-электрон вылетевшего), гасится: `def − killescdelta`.
++    // Читатели: строка `SETUP … killescown=… `, счётчики `ESCPOP` в конце прогона
++    // (вылетов своих/занесённых, возвратов своих по граням, погашено квантов/δ
++    // родословной, самопроверка геометрии грани `facemiss`).
++    bool gKillEscOwn = false;
++    bool gKillEscCarry = false;
++    bool gKillRet = false;
++    bool gKillRetSame = false;
++    bool gKillRetOther = false;
++    bool gKillEscBrem = false;
++    bool gKillEscDelta = false;
++    //   killoutbrem  — квант ТОРМОЗНОГО (`eBrem`), рождённый ВНЕ кристалла лептоном
++    //                  (e-/e+), который и сам рождён вне кристалла (фото-/комптон-
++    //                  электрон обвязки, пробы), гасится при постановке в стек
++    //                  (кванты аннигиляции позитрона обвязки — НЕ гасятся, считаются):
++    //                  `def − killoutbrem` — вклад тормозного (и флуоресценции
++    //                  от ионизации) электронов обвязки — наше
++    //                  `OutsideBremsstrahlung` (толстая мишень в точке рождения,
++    //                  изотропно). Родословная вылетевших своих e- сюда не
++    //                  входит (у них свой рычаг `killescbrem`).
++    bool gKillOutBrem = false;
++    // Нужна ли родословная вылетевших (любой из рычагов П106 или их счётчики).
++    bool gEscPop = false;
++
+     // Моно-режим сценного генератора (П85): косинус угла вылета первички к оси
+     // сцены (ось z — на центр кристалла) запоминается на событие, чтобы в конце
+     // события накопить Q_k = <P_k(cos θ)> по событиям пика и по событиям с любым
+@@ -361,6 +423,89 @@ namespace
+         double qHi = q.box ? std::sqrt(q.a * q.a + q.b * q.b) : q.b;
+         return pHi > qLo + eps && qHi > pLo + eps;
+     }
++
++    // (П106) Грань области `crystal` сцены, на которой лежит точка (мм, Geant4):
++    // ближайшая по расстоянию плоскость/поверхность. Брус: 1 z0, 2 z1, 3 −x,
++    // 4 +x, 5 −y, 6 +y; кольцо: 1 z0, 2 z1, 3 наружный бок, 4 внутренний бок.
++    // Без сцены (вшитый tube) — 0: грани не различаются. `miss` — точка дальше
++    // 1 мкм от всех граней (самопроверка: у выхода/входа такого быть не должно).
++    int CrystalFace(const G4ThreeVector& posMm, bool& miss)
++    {
++        miss = false;
++        const SceneRegion* c = nullptr;
++        for (const auto& r : gSceneRegions)
++        {
++            if (r.crystal) { c = &r; break; }
++        }
++
++        if (c == nullptr)
++        {
++            return 0;
++        }
++
++        double x = posMm.x() / 10.0, y = posMm.y() / 10.0, z = posMm.z() / 10.0;   // см сцены
++        double d[7];
++        int n = 0;
++        d[1] = std::fabs(z - c->z0);
++        d[2] = std::fabs(z - c->z1);
++        if (c->box)
++        {
++            d[3] = std::fabs(x + c->a);
++            d[4] = std::fabs(x - c->a);
++            d[5] = std::fabs(y + c->b);
++            d[6] = std::fabs(y - c->b);
++            n = 6;
++        }
++        else
++        {
++            double rho = std::sqrt(x * x + y * y);
++            d[3] = std::fabs(rho - c->b);
++            d[4] = c->a > 0.0 ? std::fabs(rho - c->a) : 1e30;
++            n = 4;
++        }
++
++        int best = 1;
++        for (int i = 2; i <= n; ++i)
++        {
++            if (d[i] < d[best]) { best = i; }
++        }
++
++        miss = d[best] > 1e-4;      // 1 мкм
++        return best;
++    }
++
++    // (П106) Точка (мм, Geant4) внутри области `crystal` сцены? Для вторичных
++    // при постановке в стек: `GetLogicalVolumeAtVertex` там ещё не выставлен
++    // (его ставит SetInitialStep перед первым шагом), а положение рождения
++    // известно. Точка рождения вторичного лежит строго внутри объёма шага,
++    // на границе процессы вторичных не рождают.
++    bool InCrystalGeom(const G4ThreeVector& posMm)
++    {
++        const SceneRegion* c = nullptr;
++        for (const auto& r : gSceneRegions)
++        {
++            if (r.crystal) { c = &r; break; }
++        }
++
++        if (c == nullptr)
++        {
++            return false;
++        }
++
++        double x = posMm.x() / 10.0, y = posMm.y() / 10.0, z = posMm.z() / 10.0;
++        if (z < c->z0 || z > c->z1)
++        {
++            return false;
++        }
++
++        if (c->box)
++        {
++            return std::fabs(x) <= c->a && std::fabs(y) <= c->b;
++        }
++
++        double rho = std::sqrt(x * x + y * y);
++        return rho >= c->a && rho <= c->b;
++    }
+ }
+ 
+ class Detector : public G4VUserDetectorConstruction
+@@ -705,8 +850,45 @@ public:
+             fHist.push_back(new G4Accumulable<G4int>("h" + std::to_string(i), 0));
+             manager->Register(*fHist.back());
+         }
++
++        // (П106) Счётчики населений вылета/возврата — см. EscWhat.
++        for (int i = 0; i < kEscN; ++i)
++        {
++            fEsc.push_back(new G4Accumulable<G4int>("esc" + std::to_string(i), 0));
++            manager->Register(*fEsc.back());
++        }
+     }
+ 
++    /// (П106) Что считать в `ESCPOP`.
++    enum EscWhat
++    {
++        EscOwnExit = 0,      // выходов своего (рождённого в кристалле) e- из кристалла
++        EscCarryExit,        // выходов занесённого (рождённого вне) e- из кристалла
++        EscOwnReturn,        // повторных входов своего e- (всего)
++        EscOwnReturnSame,    // из них через ту же грань, что последний выход
++        EscOwnReturnOther,   // через другую грань
++        EscOwnReturnNoFace,  // грань не определена (сцены нет или нет записи выхода)
++        EscLineageGammaOut,  // квантов, рождённых вне кристалла в родословной вылетевшего
++        EscLineageLeptonOut, // e-/e+ там же
++        EscKilledGamma,      // погашено квантов (killescbrem)
++        EscKilledLepton,     // погашено e-/e+ (killescdelta)
++        EscFaceMiss,         // самопроверка: точка выхода/входа дальше 1 мкм от всех граней
++        EscLineageInside,    // самопроверка: потомок в родословной «вне» сделал первый шаг ИЗ кристалла
++        EscOutLepton,        // лептонов (e-/e+), рождённых вне кристалла (не в родословной вылетевших своих)
++        EscOutBremGamma,     // квантов, рождённых вне кристалла такими лептонами
++        EscKilledOutBrem,    // из них погашено (killoutbrem)
++        EscOutAnnihGamma,    // квантов аннигиляции позитрона, рождённого вне кристалла (рычаг их не трогает)
++        EscOutOtherGamma,    // прочих квантов от лептонов вне кристалла (самопроверка: ожидается ~0)
++        EscOutLeptonCompt,   // из лептонов вне кристалла: рождённых комптоном
++        EscOutLeptonPhot,    // фотоэффектом
++        EscOutLeptonConv,    // парой
++        EscOutLeptonIoni,    // ионизацией (δ-электроны)
++        EscOutLeptonAbove20, // из всех: с кинетикой ≥ 20 кэВ (наш порог переноса в слоях)
++        kEscN
++    };
++
++    void CountEsc(EscWhat what) { *fEsc[what] += 1; }
++
+     void BeginOfRunAction(const G4Run*) override
+     {
+         G4AccumulableManager::Instance()->Reset();
+@@ -779,6 +961,25 @@ public:
+             std::printf("HISTEND\n");
+         }
+ 
++        if (gEscPop)
++        {
++            // (П106) Населения вылета/возврата — читатель рычагов killesc*/killret*.
++            std::printf("ESCPOP decays=%ld own_exit=%d carry_exit=%d own_return=%d same=%d other=%d noface=%d"
++                        " lineage_gamma_out=%d lineage_lepton_out=%d killed_gamma=%d killed_lepton=%d"
++                        " facemiss=%d lineage_inside=%d out_lepton=%d out_brem_gamma=%d killed_out_brem=%d out_annih_gamma=%d out_other_gamma=%d"
++                        " out_lepton_compt=%d out_lepton_phot=%d out_lepton_conv=%d out_lepton_ioni=%d out_lepton_ge20kev=%d\n",
++                        decays, fEsc[EscOwnExit]->GetValue(), fEsc[EscCarryExit]->GetValue(),
++                        fEsc[EscOwnReturn]->GetValue(), fEsc[EscOwnReturnSame]->GetValue(),
++                        fEsc[EscOwnReturnOther]->GetValue(), fEsc[EscOwnReturnNoFace]->GetValue(),
++                        fEsc[EscLineageGammaOut]->GetValue(), fEsc[EscLineageLeptonOut]->GetValue(),
++                        fEsc[EscKilledGamma]->GetValue(), fEsc[EscKilledLepton]->GetValue(),
++                        fEsc[EscFaceMiss]->GetValue(), fEsc[EscLineageInside]->GetValue(),
++                        fEsc[EscOutLepton]->GetValue(), fEsc[EscOutBremGamma]->GetValue(),
++                        fEsc[EscKilledOutBrem]->GetValue(), fEsc[EscOutAnnihGamma]->GetValue(), fEsc[EscOutOtherGamma]->GetValue(),
++                        fEsc[EscOutLeptonCompt]->GetValue(), fEsc[EscOutLeptonPhot]->GetValue(), fEsc[EscOutLeptonConv]->GetValue(),
++                        fEsc[EscOutLeptonIoni]->GetValue(), fEsc[EscOutLeptonAbove20]->GetValue());
++        }
++
+         if (gTagMode)
+         {
+             std::lock_guard<std::mutex> lock(gTagMutex);
+@@ -899,6 +1100,7 @@ private:
+     G4Accumulable<G4int> fAny;
+     std::vector<G4Accumulable<G4int>*> fPeaks;
+     std::vector<G4Accumulable<G4int>*> fHist;
++    std::vector<G4Accumulable<G4int>*> fEsc;      // (П106) населения вылета/возврата
+     G4Accumulable<G4int> fAngN;
+     G4Accumulable<G4double> fAngS2, fAngS4, fAngS22, fAngS44;
+     std::vector<G4Accumulable<G4int>*> fAngHist;
+@@ -919,8 +1121,47 @@ public:
+         fGammas.clear();
+         fGammaDep.clear();
+         fAncestor.clear();
++        if (gEscPop)
++        {
++            fEscLineage.clear();
++            fExitFace.clear();
++            fOutLeptons.clear();
++        }
++    }
++
++    // ---- (П106) Лептоны, рождённые вне кристалла (обвязка, проба), — родители
++    // квантов рычага `killoutbrem`.
++    void MarkOutLepton(int trackId) { fOutLeptons.insert(trackId); }
++    bool IsOutLepton(int trackId) const { return fOutLeptons.count(trackId) != 0; }
++
++    // ---- (П106) Родословная вылетевших своих e-: сам e- (рождён в кристалле,
++    // покидал его) и все его потомки, где бы ни родились. Грань последнего
++    // выхода — по треку, для killretsame/killretother.
++    void MarkEscaped(int trackId, int face)
++    {
++        fEscLineage.insert(trackId);
++        fExitFace[trackId] = face;
+     }
+ 
++    bool InLineage(int trackId) const { return fEscLineage.count(trackId) != 0; }
++
++    void Inherit106(int trackId, int parentId)
++    {
++        if (fEscLineage.count(parentId) != 0)
++        {
++            fEscLineage.insert(trackId);
++        }
++    }
++
++    /// Грань последнего выхода трека; 0 — записи нет.
++    int ExitFace(int trackId) const
++    {
++        auto it = fExitFace.find(trackId);
++        return it == fExitFace.end() ? 0 : it->second;
++    }
++
++    RunAction* Run() const { return fRun; }
++
+     void EndOfEventAction(const G4Event*) override
+     {
+         if (gAngCorrMode)
+@@ -1131,6 +1372,9 @@ private:
+     std::vector<long> fPairN1, fPairN12;              // `emitpair`
+     std::map<int, long> fEmit;
+     long fEmitEvents = 0;
++    std::set<int> fEscLineage;                        // (П106) родословная вылетевших своих e-
++    std::map<int, int> fExitFace;                     // (П106) трек → грань последнего выхода
++    std::set<int> fOutLeptons;                        // (П106) e-/e+, рождённые вне кристалла
+ };
+ 
+ namespace
+@@ -1156,6 +1400,88 @@ public:
+ 
+     G4ClassificationOfNewTrack ClassifyNewTrack(const G4Track* track) override
+     {
++        // (П106) Родословная вылетевшего своего e-: потомок, РОЖДЁННЫЙ ВНЕ
++        // кристалла, наследует метку, считается (квант / лептон) и по рычагу
++        // гасится. Потомок, рождённый в кристалле (тормозное вернувшегося e-),
++        // метки не наследует — это уже следствие возврата, а не судьба снаружи.
++        if (gEscPop && track->GetParentID() > 0 && fEvent->InLineage(track->GetParentID())
++            && !InCrystalGeom(track->GetPosition()))
++        {
++            fEvent->Inherit106(track->GetTrackID(), track->GetParentID());
++            bool gamma = track->GetDefinition() == G4Gamma::GammaDefinition();
++            int pdg = std::abs(track->GetDefinition()->GetPDGEncoding());
++            bool lepton = pdg == 11;
++            if (gamma)
++            {
++                fEvent->Run()->CountEsc(RunAction::EscLineageGammaOut);
++                if (gKillEscBrem)
++                {
++                    fEvent->Run()->CountEsc(RunAction::EscKilledGamma);
++                    return fKill;
++                }
++            }
++            else if (lepton)
++            {
++                fEvent->Run()->CountEsc(RunAction::EscLineageLeptonOut);
++                if (gKillEscDelta)
++                {
++                    fEvent->Run()->CountEsc(RunAction::EscKilledLepton);
++                    return fKill;
++                }
++            }
++        }
++        else if (gEscPop && track->GetParentID() > 0 && !InCrystalGeom(track->GetPosition()))
++        {
++            // (П106) Вне родословной вылетевших: лептон, рождённый вне кристалла,
++            // запоминается; квант от такого лептона — тормозное/флуоресценция
++            // обвязки (`killoutbrem`).
++            int pdg = std::abs(track->GetDefinition()->GetPDGEncoding());
++            if (pdg == 11)
++            {
++                fEvent->MarkOutLepton(track->GetTrackID());
++                fEvent->Run()->CountEsc(RunAction::EscOutLepton);
++                // Население по процессу-создателю и по нашему порогу переноса (20 кэВ).
++                const G4VProcess* cp = track->GetCreatorProcess();
++                std::string cname = cp != nullptr ? cp->GetProcessName() : std::string();
++                if (cname.find("compt") != std::string::npos) { fEvent->Run()->CountEsc(RunAction::EscOutLeptonCompt); }
++                else if (cname.find("phot") != std::string::npos) { fEvent->Run()->CountEsc(RunAction::EscOutLeptonPhot); }
++                else if (cname.find("conv") != std::string::npos) { fEvent->Run()->CountEsc(RunAction::EscOutLeptonConv); }
++                else if (cname.find("Ioni") != std::string::npos) { fEvent->Run()->CountEsc(RunAction::EscOutLeptonIoni); }
++                if (track->GetKineticEnergy() >= 20.0 * keV) { fEvent->Run()->CountEsc(RunAction::EscOutLeptonAbove20); }
++            }
++            else if (track->GetDefinition() == G4Gamma::GammaDefinition() && fEvent->IsOutLepton(track->GetParentID()))
++            {
++                // ⚠ Только ТОРМОЗНОЕ (`eBrem`): у позитрона, рождённого в обвязке
++                // парой, кванты аннигиляции тоже «рождены вне кристалла лептоном,
++                // рождённым вне», но это не тормозное — наша сторона ведёт их
++                // фотонным обходом (`A52`), и рычаг их не трогает. Первая редакция
++                // рычага (П106, 02:00) гасила и их: плечо арбитра выходило на
++                // 511-кэВных квантах шире нашего `--ret-kill=outbrem`, особенно у
++                // ториевого стекла (пары ∝ Z²). Флуоресценции от ионизации
++                // электронами у option4 нет (PIXE выкл) — прочие кванты считаются
++                // отдельно как самопроверка.
++                const G4VProcess* creator = track->GetCreatorProcess();
++                std::string pname = creator != nullptr ? creator->GetProcessName() : std::string();
++                if (pname.find("annihil") != std::string::npos)
++                {
++                    fEvent->Run()->CountEsc(RunAction::EscOutAnnihGamma);
++                }
++                else if (pname.find("Brem") != std::string::npos)
++                {
++                    fEvent->Run()->CountEsc(RunAction::EscOutBremGamma);
++                    if (gKillOutBrem)
++                    {
++                        fEvent->Run()->CountEsc(RunAction::EscKilledOutBrem);
++                        return fKill;
++                    }
++                }
++                else
++                {
++                    fEvent->Run()->CountEsc(RunAction::EscOutOtherGamma);
++                }
++            }
++        }
++
+         if ((!gAngCorrMode && !gTagMode) || track->GetParentID() <= 0)
+         {
+             return fUrgent;
+@@ -1229,6 +1555,70 @@ public:
+             }
+         }
+ 
++        // (П106) Населения вылета/возврата e- по грани кристалла — см. шапку
++        // рычагов killescown/killesccarry/killret*/killescbrem/killescdelta.
++        if (gEscPop && step->GetTrack()->GetDefinition() == G4Electron::Definition())
++        {
++            G4Track* track = step->GetTrack();
++            RunAction* run = fEvent->Run();
++            // Самопроверка геометрического теста стека: потомок, помеченный
++            // «рождён вне кристалла», первый шаг делает ИЗ кристалла — расхождение.
++            if (track->GetCurrentStepNumber() == 1 && track->GetParentID() > 0 && preInCrystal
++                && fEvent->InLineage(track->GetTrackID()))
++            {
++                run->CountEsc(RunAction::EscLineageInside);
++            }
++
++            auto postVol = step->GetPostStepPoint()->GetTouchableHandle()->GetVolume();
++            bool postIn = postVol != nullptr && postVol->GetLogicalVolume() == Detector::fCrystal;
++            if (preInCrystal != postIn)
++            {
++                bool own = track->GetLogicalVolumeAtVertex() == Detector::fCrystal;
++                bool miss = false;
++                int face = CrystalFace(step->GetPostStepPoint()->GetPosition(), miss);
++                if (miss)
++                {
++                    run->CountEsc(RunAction::EscFaceMiss);
++                }
++
++                if (preInCrystal)
++                {
++                    // Выход из кристалла.
++                    if (own)
++                    {
++                        run->CountEsc(RunAction::EscOwnExit);
++                        fEvent->MarkEscaped(track->GetTrackID(), face);
++                        if (gKillEscOwn)
++                        {
++                            track->SetTrackStatus(fStopAndKill);
++                        }
++                    }
++                    else
++                    {
++                        run->CountEsc(RunAction::EscCarryExit);
++                        if (gKillEscCarry)
++                        {
++                            track->SetTrackStatus(fStopAndKill);
++                        }
++                    }
++                }
++                else if (own && fEvent->InLineage(track->GetTrackID()))
++                {
++                    // Повторный вход своего e-, уже покидавшего кристалл.
++                    run->CountEsc(RunAction::EscOwnReturn);
++                    int exitFace = fEvent->ExitFace(track->GetTrackID());
++                    bool known = face != 0 && exitFace != 0;
++                    bool same = known && face == exitFace;
++                    run->CountEsc(!known ? RunAction::EscOwnReturnNoFace
++                                  : same ? RunAction::EscOwnReturnSame : RunAction::EscOwnReturnOther);
++                    if (gKillRet || (gKillRetSame && same) || (gKillRetOther && known && !same))
++                    {
++                        track->SetTrackStatus(fStopAndKill);
++                    }
++                }
++            }
++        }
++
+         if (!gKillEscape && !gKillCarry && !gFullCarry)
+         {
+             return;
+@@ -1312,10 +1702,18 @@ int main(int argc, char** argv)
+     //      `corr` (угловые γ–γ корреляции каскада в RDM), `seed <N>` (зерно
+     //      ГСЧ), `killesc`, `killcarry`, `fullcarry` (рычаги П55/П92, см. шапку) — в
+     //      любом порядке.
++    //      Рычаги П106 (`M13`): `escpop` (только счётчики населений), `killescown`,
++    //      `killesccarry`, `killret`, `killretsame`, `killretother`, `killescbrem`,
++    //      `killescdelta` — там же, в любом порядке; грани — только со сценой.
+     int base = 1;
+     while (argc > base && (std::strcmp(argv[base], "vacuum") == 0 || std::strcmp(argv[base], "corr") == 0
+                            || std::strcmp(argv[base], "killesc") == 0 || std::strcmp(argv[base], "killcarry") == 0
+                            || std::strcmp(argv[base], "fullcarry") == 0 || std::strcmp(argv[base], "iontag") == 0
++                           || std::strcmp(argv[base], "escpop") == 0 || std::strcmp(argv[base], "killescown") == 0
++                           || std::strcmp(argv[base], "killesccarry") == 0 || std::strcmp(argv[base], "killret") == 0
++                           || std::strcmp(argv[base], "killretsame") == 0 || std::strcmp(argv[base], "killretother") == 0
++                           || std::strcmp(argv[base], "killescbrem") == 0 || std::strcmp(argv[base], "killescdelta") == 0
++                           || std::strcmp(argv[base], "killoutbrem") == 0
+                            || (std::strcmp(argv[base], "emitpair") == 0 && argc > base + 1)
+                            || (std::strcmp(argv[base], "seed") == 0 && argc > base + 1)
+                            || (std::strcmp(argv[base], "ionhist") == 0 && argc > base + 2)))
+@@ -1324,6 +1722,15 @@ int main(int argc, char** argv)
+         {
+             gVacuumWorld = true;
+         }
++        else if (std::strcmp(argv[base], "escpop") == 0) { gEscPop = true; }
++        else if (std::strcmp(argv[base], "killescown") == 0) { gEscPop = gKillEscOwn = true; }
++        else if (std::strcmp(argv[base], "killesccarry") == 0) { gEscPop = gKillEscCarry = true; }
++        else if (std::strcmp(argv[base], "killret") == 0) { gEscPop = gKillRet = true; }
++        else if (std::strcmp(argv[base], "killretsame") == 0) { gEscPop = gKillRetSame = true; }
++        else if (std::strcmp(argv[base], "killretother") == 0) { gEscPop = gKillRetOther = true; }
++        else if (std::strcmp(argv[base], "killescbrem") == 0) { gEscPop = gKillEscBrem = true; }
++        else if (std::strcmp(argv[base], "killescdelta") == 0) { gEscPop = gKillEscDelta = true; }
++        else if (std::strcmp(argv[base], "killoutbrem") == 0) { gEscPop = gKillOutBrem = true; }
+         else if (std::strcmp(argv[base], "ionhist") == 0)
+         {
+             // (П101) Гистограмма всей шкалы в ион-режиме: шаг и верх, кэВ.
+@@ -1402,6 +1809,14 @@ int main(int argc, char** argv)
+         base += 2;
+     }
+ 
++    // (П106) Населения по граням и геометрический тест стека знают только
++    // область `crystal` СЦЕНЫ; на вшитом tube рычаги мерили бы пустоту — отказ.
++    if (gEscPop && !gSceneLoaded)
++    {
++        std::fprintf(stderr, "escpop/killescown/killesccarry/killret*/killescbrem/killescdelta/killoutbrem: need `scene <file>`\n");
++        return 2;
++    }
++
+     if (argc < base + 3)
+     {
+         std::fprintf(stderr, "g4cf [vacuum] [corr] [seed <N>] [ionhist <bin_keV> <Emax_keV>] [iontag] [killesc] [killcarry] [fullcarry] [scene <file>] mono <E_keV> <N>"
+@@ -1414,7 +1829,14 @@ int main(int argc, char** argv)
+                              " EfficiencySimulator). killcarry: kill e- entering the crystal from"
+                              " outside (no carry-in, as with --detour=0). fullcarry: an e- born outside"
+                              " deposits its whole remaining energy when leaving the crystal (our"
+-                             " ElectronCarryDeposit). Ablation levers, P55/P92.\n");
++                             " ElectronCarryDeposit). Ablation levers, P55/P92.\n"
++                             "  P106 (M13) return populations, scene only: escpop (counters only),"
++                             " killescown (kill crystal-born e- on exit), killesccarry (kill outside-born e-"
++                             " on exit), killret / killretsame / killretother (kill crystal-born e- on"
++                             " re-entry: any / same face / other face), killescbrem (kill gammas born"
++                             " outside in the lineage of an escaped crystal-born e-), killescdelta (same"
++                             " for e-/e+), killoutbrem (kill gammas born outside by e-/e+ born outside:"
++                             " bremsstrahlung of cladding electrons). Reader: SETUP flags and the ESCPOP line.\n");
+         return 2;
+     }
+ 
+@@ -1498,9 +1920,12 @@ int main(int argc, char** argv)
+     // если Set… не доехал (заперт, перезаписан умолчанием), здесь будет 0.
+     {
+         const G4DeexPrecoParameters* deex = G4NuclearLevelData::GetInstance()->GetParameters();
+-        std::printf("SETUP correlatedGamma=%d twoJmax=%d vacuum=%d seed=%ld killesc=%d killcarry=%d fullcarry=%d histbin=%.3f histbins=%d iontag=%d\n",
++        std::printf("SETUP correlatedGamma=%d twoJmax=%d vacuum=%d seed=%ld killesc=%d killcarry=%d fullcarry=%d histbin=%.3f histbins=%d iontag=%d"
++                    " escpop=%d killescown=%d killesccarry=%d killret=%d killretsame=%d killretother=%d killescbrem=%d killescdelta=%d killoutbrem=%d\n",
+                     deex->CorrelatedGamma() ? 1 : 0, deex->GetTwoJMAX(), gVacuumWorld ? 1 : 0, gSeed,
+-                    gKillEscape ? 1 : 0, gKillCarry ? 1 : 0, gFullCarry ? 1 : 0, gHistBinKev, gHistBins, gTagMode ? 1 : 0);
++                    gKillEscape ? 1 : 0, gKillCarry ? 1 : 0, gFullCarry ? 1 : 0, gHistBinKev, gHistBins, gTagMode ? 1 : 0,
++                    gEscPop ? 1 : 0, gKillEscOwn ? 1 : 0, gKillEscCarry ? 1 : 0, gKillRet ? 1 : 0,
++                    gKillRetSame ? 1 : 0, gKillRetOther ? 1 : 0, gKillEscBrem ? 1 : 0, gKillEscDelta ? 1 : 0, gKillOutBrem ? 1 : 0);
+         std::fflush(stdout);
+     }
+     // Пороги рождения вторичных (production cuts) по веществам сцены — в шапку

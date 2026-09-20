@@ -1,0 +1,1446 @@
+diff --git a/BecquerelMonitor/BecquerelMonitor.csproj b/BecquerelMonitor/BecquerelMonitor.csproj
+index ac41eb9c..bbac6b08 100644
+--- a/BecquerelMonitor/BecquerelMonitor.csproj
++++ b/BecquerelMonitor/BecquerelMonitor.csproj
+@@ -1274,6 +1274,15 @@
+   <ItemGroup>
+     <Folder Include="config\sound\" />
+   </ItemGroup>
++  <ItemGroup>
++    <!-- AMBER43 (П96, 17.09.2026): поставочная раскладка ещё и ВСТРОЕНА в сборку — последняя ступень
++         лестницы чтения файла раскладки (LayoutFile.BuiltinLayout): целевой файл → .bak → поставочный
++         файл из каталога приложения → эта копия → пусто. Тот же файл, что и Content ниже, ссылкой:
++         поставочные config\* не копируются и не правятся (приказ Amber 05.09.2026). -->
++    <EmbeddedResource Include="config\layout\ExpertMode.xml">
++      <LogicalName>BecquerelMonitor.config.layout.ExpertMode.xml</LogicalName>
++    </EmbeddedResource>
++  </ItemGroup>
+   <ItemGroup>
+     <Content Include="BecquerelMonitor.ico" />
+     <Content Include="config\BecquerelMonitor.xml">
+diff --git a/BecquerelMonitor/LayoutFile.cs b/BecquerelMonitor/LayoutFile.cs
+index 8f8b16bf..b2b7b7f4 100644
+--- a/BecquerelMonitor/LayoutFile.cs
++++ b/BecquerelMonitor/LayoutFile.cs
+@@ -3,6 +3,7 @@ using System;
+ using System.Globalization;
+ using System.IO;
+ using System.Text;
++using System.Windows.Forms;
+ using WeifenLuo.WinFormsUI.Docking;
+ 
+ namespace BecquerelMonitor
+@@ -54,26 +55,50 @@ namespace BecquerelMonitor
+     ///
+     /// ЧТЕНИЕ (<see cref="Load"/> / <see cref="Read"/>) — под заслоном, по
+     /// решению Amber 15.09.2026 дословно: «Не падать: отложить сломанный,
+-    /// поднять `.bak`, иначе умолчание; сказать окном после показа». Отказ
+-    /// разбора → сломанный файл переименовывается в
+-    /// <c>ExpertMode.xml.broken-&lt;yyyyMMdd-HHmmss&gt;</c> (улика остаётся,
+-    /// и следующий запуск на него уже не наткнётся) → читается <c>.bak</c> →
+-    /// негоден и он — раскладка по умолчанию. Что случилось, метод НЕ
+-    /// решает сам: он возвращает <see cref="LoadOutcome"/>, а слово за экраном
+-    /// говорит <c>MainForm</c> (<c>LoadLayoutXml</c>) — после показа окна на
+-    /// запуске, сразу — из пунктов меню; без окон — строкой в поток ошибок.
+-    /// Отказ здесь НЕ молчит ни на одном пути (память «Признак отказа без
+-    /// читателя»).
++    /// поднять `.bak`, иначе умолчание; сказать окном после показа», и по
++    /// решению Amber 17.09.2026 дословно: «Поставочная раскладка как
++    /// умолчание». ЛЕСТНИЦА:
++    /// <list type="number">
++    /// <item>целевой файл; отказ разбора → сломанный переименовывается в
++    /// <c>ExpertMode.xml.broken-&lt;yyyyMMdd-HHmmss&gt;</c> (улика остаётся, и
++    /// следующий запуск на него уже не наткнётся);</item>
++    /// <item><c>.bak</c> — прежняя удачная копия;</item>
++    /// <item>ПОСТАВОЧНЫЙ файл <c>config\layout\ExpertMode.xml</c> из каталога
++    /// приложения (<see cref="SupplyPathFor"/>) — в установке ClickOnce он там
++    /// лежит, это посев первого запуска (<c>MainForm</c>, копирование
++    /// <c>config</c> в <c>%AppData%\BecqMoni</c>); берётся ТОЛЬКО если его путь
++    /// не совпадает с целевым — в портативной сборке (<c>Package.IsStandAlone</c>,
++    /// <c>Package.Layout</c> — каталог сборки) рабочий файл и есть поставочный,
++    /// и он уже отложен ступенью 1;</item>
++    /// <item>ВСТРОЕННАЯ копия того же файла (<see cref="BuiltinLayout"/> —
++    /// EmbeddedResource <c>config\layout\ExpertMode.xml</c> в сборке, тот же
++    /// файл, не копия: ссылка в <c>.csproj</c>);</item>
++    /// <item>пустое умолчание — панели по одной из меню «Вид».</item>
++    /// </list>
++    /// ⛔ ЗАЧЕМ СТУПЕНИ 3–4. Найдено экраном 17.09.2026 (П95): без <c>.bak</c>
++    /// — а это ровно случай Amber 15.09, первое падение, копии ещё нет —
++    /// «умолчание» было ПУСТЫМ окном: ни панелей, ни вкладок спектров
++    /// (документы живут в том же файле раскладки), панели открываются по одной
++    /// через меню. Файла НЕТ вовсе — та же лестница со ступени 3, и это не
++    /// отказ (слова нет): раскладка по умолчанию — поставочная, а не пустая.
+     ///
+-    /// ⚠ Почему <c>.bak</c> можно поднимать ПОСЛЕ отказа на той же панели:
+-    /// <c>Persistor.LoadFromXml</c> сперва разбирает ВЕСЬ XML в структуры и
+-    /// только затем зовёт <c>SuspendLayout</c> и строит панель (измерено по
+-    /// IL: <c>LoadContents</c> → <c>LoadPanes</c> → <c>LoadDockWindows</c> →
+-    /// <c>LoadFloatWindows</c> → <c>XmlReader.Close</c> →
+-    /// <c>DockPanel.SuspendLayout</c>). Отказ разбора панели не касается, и
+-    /// сторож «панель уже заполнена» на втором чтении не срабатывает.
++    /// Что случилось, метод НЕ решает сам: он возвращает <see cref="LoadOutcome"/>,
++    /// а слово за экраном говорит <c>MainForm</c> (<c>LoadLayoutXml</c>) —
++    /// после показа окна на запуске, сразу — из пунктов меню; без окон —
++    /// строкой в поток ошибок. Отказ здесь НЕ молчит ни на одном пути (память
++    /// «Признак отказа без читателя»).
++    ///
++    /// ⚠ Почему следующую ступень можно поднимать ПОСЛЕ отказа на той же
++    /// панели: <c>Persistor.LoadFromXml</c> сперва разбирает ВЕСЬ XML в
++    /// структуры и только затем зовёт <c>SuspendLayout</c> и строит панель
++    /// (измерено по IL: <c>LoadContents</c> → <c>LoadPanes</c> →
++    /// <c>LoadDockWindows</c> → <c>LoadFloatWindows</c> → <c>XmlReader.Close</c>
++    /// → <c>DockPanel.SuspendLayout</c>). Отказ разбора панели не касается, и
++    /// сторож «панель уже заполнена» на следующем чтении не срабатывает.
+     /// Удачно поднятый <c>.bak</c> копируется на место основного файла —
+     /// чтобы запуск, оборванный до закрытия, не потерял раскладку ещё раз.
++    /// Поставочная и встроенная копии на место НЕ кладутся: закрытие запишет
++    /// то, что человек расставил, а оборванный запуск придёт к той же ступени.
+     /// </summary>
+     public static class LayoutFile
+     {
+@@ -86,16 +111,30 @@ namespace BecquerelMonitor
+         /// <summary>Приставка хвоста отложенного сломанного файла; за ней — метка времени.</summary>
+         public const string BrokenSuffix = ".broken-";
+ 
+-        /// <summary>Как кончилось чтение.</summary>
++        /// <summary>Поставочный файл раскладки — от каталога приложения (тот, что сеет первый запуск).</summary>
++        public const string SupplyRelativePath = "config\\layout\\ExpertMode.xml";
++
++        /// <summary>
++        /// Имя встроенной копии поставочного файла (EmbeddedResource в
++        /// <c>.csproj</c>, <c>LogicalName</c>). Файл тот же —
++        /// <c>BecquerelMonitor/config/layout/ExpertMode.xml</c>, ссылкой, а не копией.
++        /// </summary>
++        public const string BuiltinResourceName = "BecquerelMonitor.config.layout.ExpertMode.xml";
++
++        /// <summary>Как кончилось чтение — откуда взята раскладка.</summary>
+         public enum LoadKind
+         {
+-            /// <summary>Файла нет — раскладка по умолчанию, и это не отказ.</summary>
++            /// <summary>Файла нет, и ни поставочной, ни встроенной копии не вышло — пусто, и это не отказ.</summary>
+             Absent,
+             /// <summary>Прочитан основной файл.</summary>
+             Loaded,
+             /// <summary>Основной негоден, поднята прежняя копия <c>.bak</c>.</summary>
+             LoadedFromBackup,
+-            /// <summary>Негодны и основной, и копия (или копии нет) — умолчание.</summary>
++            /// <summary>Показана поставочная раскладка из каталога приложения.</summary>
++            LoadedFromSupply,
++            /// <summary>Показана встроенная копия поставочной раскладки.</summary>
++            LoadedFromBuiltin,
++            /// <summary>Основной негоден, и ни одна ступень не поднялась — пустое умолчание.</summary>
+             Default,
+         }
+ 
+@@ -108,6 +147,8 @@ namespace BecquerelMonitor
+             public LoadKind Kind;
+             /// <summary>Основной файл.</summary>
+             public string Target;
++            /// <summary>Был ли основной файл на диске.</summary>
++            public bool TargetExisted;
+             /// <summary>Причина отказа основного файла (<c>AppUi.Reason</c>); null — не отказывал.</summary>
+             public string TargetError;
+             /// <summary>Куда отложен сломанный файл; null — отложить не удалось.</summary>
+@@ -120,8 +161,16 @@ namespace BecquerelMonitor
+             public bool BackupExisted;
+             /// <summary>Причина отказа прежней копии; null — не читалась или прочитана.</summary>
+             public string BackupError;
++            /// <summary>Путь поставочного файла; null — ступени нет (портативная сборка: он и есть целевой).</summary>
++            public string Supply;
++            /// <summary>Был ли поставочный файл на диске, когда до него дошло.</summary>
++            public bool SupplyExisted;
++            /// <summary>Причина отказа поставочного файла; null — не читался или прочитан.</summary>
++            public string SupplyError;
++            /// <summary>Причина отказа встроенной копии; null — не читалась или прочитана.</summary>
++            public string BuiltinError;
+ 
+-            /// <summary>Есть о чём сказать человеку: основной файл отказал.</summary>
++            /// <summary>Есть о чём сказать человеку: основной файл был и отказал.</summary>
+             public bool Failed
+             {
+                 get
+@@ -143,6 +192,51 @@ namespace BecquerelMonitor
+             return target + TempSuffix;
+         }
+ 
++        /// <summary>
++        /// Поставочный файл раскладки для данного целевого: <c>config\layout\ExpertMode.xml</c>
++        /// от каталога приложения (<c>Application.ExecutablePath</c> — тот же
++        /// корень, от которого <c>MainForm</c> сеет <c>config</c> в
++        /// <c>%AppData%\BecqMoni</c> на первом запуске). Возвращает null, когда
++        /// поставочный путь СОВПАДАЕТ с целевым — портативная сборка
++        /// (<c>Package.IsStandAlone</c>), где рабочий файл и есть поставочный:
++        /// читать «поставочный» после того, как он же отложен как сломанный,
++        /// нечего, ступень пропускается ко встроенной копии. Сравнение — по
++        /// полным путям без учёта регистра, а не по <c>Package.IsStandAlone</c>:
++        /// условие ступени — сам путь, и проба меряет его без ClickOnce.
++        /// </summary>
++        public static string SupplyPathFor(string target)
++        {
++            string appDir;
++            try
++            {
++                appDir = Path.GetDirectoryName(Application.ExecutablePath);
++            }
++            catch (Exception)
++            {
++                return null;
++            }
++            if (string.IsNullOrEmpty(appDir))
++            {
++                return null;
++            }
++            string supply = Path.Combine(appDir, SupplyRelativePath);
++            if (SamePath(supply, target))
++            {
++                return null;
++            }
++            return supply;
++        }
++
++        /// <summary>
++        /// Встроенная копия поставочного файла раскладки — поток ресурса
++        /// сборки; null, если ресурса в сборке нет (тогда ступень — отказ с
++        /// причиной, а не тишина).
++        /// </summary>
++        public static Stream BuiltinLayout()
++        {
++            return typeof(LayoutFile).Assembly.GetManifestResourceStream(BuiltinResourceName);
++        }
++
+         /// <summary>
+         /// Записать раскладку панели в <paramref name="target"/> атомарно
+         /// (довод — в описании класса). Отказ — исключением; файл при отказе
+@@ -237,35 +331,49 @@ namespace BecquerelMonitor
+ 
+         /// <summary>
+         /// Прочитать раскладку в панель под заслоном (довод — в описании
+-        /// класса). Не бросает на сломанном файле; итог — в
+-        /// <see cref="LoadOutcome"/>.
++        /// класса): целевой файл → <c>.bak</c> → поставочный файл из каталога
++        /// приложения → встроенная копия → пусто. Не бросает на сломанном
++        /// файле; итог — в <see cref="LoadOutcome"/>.
+         /// </summary>
+         public static LoadOutcome Load(DockPanel panel, string target, DeserializeDockContent deserialize)
++        {
++            return Load(panel, target, deserialize, SupplyPathFor(target), BuiltinLayout);
++        }
++
++        /// <summary>
++        /// То же с явными ступенями 3–4: <paramref name="supply"/> — путь
++        /// поставочного файла (null — ступени нет), <paramref name="builtin"/>
++        /// — поток встроенной копии (null — ступени нет). Проба подсаживает
++        /// сюда своё; у приложения — <see cref="SupplyPathFor"/> и
++        /// <see cref="BuiltinLayout"/>.
++        /// </summary>
++        public static LoadOutcome Load(DockPanel panel, string target, DeserializeDockContent deserialize,
++                                       string supply, Func<Stream> builtin)
+         {
+             if (panel == null)
+             {
+                 throw new ArgumentNullException("panel");
+             }
+-            return Read(target, delegate (string path)
++            return Read(target, supply, delegate (Stream stream)
+             {
+-                // Поток открывается здесь, а не строковой перегрузкой
+-                // библиотеки, чтобы его время жизни было нашим: после отказа
+-                // разбора файл переименовывается, и держать его нельзя.
+-                using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+-                {
+-                    panel.LoadFromXml(file, deserialize, false);
+-                }
+-            });
++                // Поток — наш, а не строковой перегрузки библиотеки: после
++                // отказа разбора файл переименовывается, и держать его нельзя;
++                // closeStream: false — закрывает тот, кто открыл.
++                panel.LoadFromXml(stream, deserialize, false);
++            }, builtin);
+         }
+ 
+         /// <summary>
+-        /// Ядро чтения: <paramref name="loadFrom"/> читает раскладку из данного
+-        /// пути и бросает на негодном файле. Отказ основного файла → сломанный
+-        /// откладывается в <c>.broken-&lt;дата&gt;</c> → читается <c>.bak</c> →
+-        /// иначе умолчание. Сам метод не бросает; отказ чтения — в итоге, и его
+-        /// обязан назвать вызывающий.
++        /// Ядро чтения: <paramref name="loadFrom"/> читает раскладку из потока
++        /// и бросает на негодном содержимом. Ступени — целевой файл (отказ →
++        /// сломанный откладывается в <c>.broken-&lt;дата&gt;</c>) → <c>.bak</c>
++        /// → поставочный файл <paramref name="supply"/> (null — ступени нет) →
++        /// встроенная копия <paramref name="builtin"/> (null — ступени нет) →
++        /// пусто. Файл, которого нет, — не отказ: лестница идёт со ступени
++        /// поставочного файла молча. Сам метод не бросает; отказ чтения — в
++        /// итоге, и его обязан назвать вызывающий.
+         /// </summary>
+-        public static LoadOutcome Read(string target, Action<string> loadFrom)
++        public static LoadOutcome Read(string target, string supply, Action<Stream> loadFrom, Func<Stream> builtin)
+         {
+             if (string.IsNullOrEmpty(target))
+             {
+@@ -279,80 +387,130 @@ namespace BecquerelMonitor
+             LoadOutcome outcome = new LoadOutcome();
+             outcome.Target = target;
+             outcome.Backup = BackupOf(target);
++            outcome.Supply = supply;
+ 
+-            if (!File.Exists(target))
++            // 1. Целевой файл.
++            outcome.TargetExisted = File.Exists(target);
++            if (outcome.TargetExisted)
+             {
+-                outcome.Kind = LoadKind.Absent;
+-                return outcome;
+-            }
++                if (TryLoadFile(target, loadFrom, out outcome.TargetError))
++                {
++                    outcome.Kind = LoadKind.Loaded;
++                    return outcome;
++                }
+ 
+-            try
+-            {
+-                loadFrom(target);
+-                outcome.Kind = LoadKind.Loaded;
+-                return outcome;
+-            }
+-            catch (Exception ex)
+-            {
+-                outcome.TargetError = AppUi.Reason(ex);
+-            }
++                // Отложить сломанный: улика остаётся, следующий запуск на неё не
++                // наткнётся. Метка времени — инвариантной культурой (правило Amber
++                // 05.09.2026 о культуре: печать — только явной инвариантной).
++                string broken = target + BrokenSuffix + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
++                for (int n = 1; File.Exists(broken) && n < 100; n++)
++                {
++                    broken = target + BrokenSuffix + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)
++                             + "-" + n.ToString(CultureInfo.InvariantCulture);
++                }
++                try
++                {
++                    File.Move(target, broken);
++                    outcome.BrokenPath = broken;
++                }
++                catch (Exception ex)
++                {
++                    outcome.BrokenMoveError = AppUi.Reason(ex);
++                }
+ 
+-            // Отложить сломанный: улика остаётся, следующий запуск на неё не
+-            // наткнётся. Метка времени — инвариантной культурой (правило Amber
+-            // 05.09.2026 о культуре: печать — только явной инвариантной).
+-            string broken = target + BrokenSuffix + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+-            for (int n = 1; File.Exists(broken) && n < 100; n++)
+-            {
+-                broken = target + BrokenSuffix + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)
+-                         + "-" + n.ToString(CultureInfo.InvariantCulture);
+-            }
+-            try
+-            {
+-                File.Move(target, broken);
+-                outcome.BrokenPath = broken;
++                // 2. Прежняя копия.
++                if (File.Exists(outcome.Backup))
++                {
++                    outcome.BackupExisted = true;
++                    if (TryLoadFile(outcome.Backup, loadFrom, out outcome.BackupError))
++                    {
++                        outcome.Kind = LoadKind.LoadedFromBackup;
++                        // Копия годна — вернуть её на место основного файла, чтобы
++                        // запуск, оборванный до закрытия, не пришёл к умолчанию.
++                        // Не вышло (файл ещё занят) — не беда: закрытие запишет.
++                        if (outcome.BrokenPath != null)
++                        {
++                            try
++                            {
++                                File.Copy(outcome.Backup, target, false);
++                            }
++                            catch (Exception)
++                            {
++                            }
++                        }
++                        return outcome;
++                    }
++                }
+             }
+-            catch (Exception ex)
++
++            // 3. Поставочный файл из каталога приложения (решение Amber
++            //    17.09.2026 «Поставочная раскладка как умолчание»). Ступени нет
++            //    (null) в портативной сборке — там он и есть целевой.
++            if (supply != null && File.Exists(supply))
+             {
+-                outcome.BrokenMoveError = AppUi.Reason(ex);
++                outcome.SupplyExisted = true;
++                if (TryLoadFile(supply, loadFrom, out outcome.SupplyError))
++                {
++                    outcome.Kind = LoadKind.LoadedFromSupply;
++                    return outcome;
++                }
+             }
+ 
+-            // Поднять прежнюю копию.
+-            if (File.Exists(outcome.Backup))
++            // 4. Встроенная копия того же файла.
++            if (builtin != null)
+             {
+-                outcome.BackupExisted = true;
+                 try
+                 {
+-                    loadFrom(outcome.Backup);
+-                    outcome.Kind = LoadKind.LoadedFromBackup;
+-                    // Копия годна — вернуть её на место основного файла, чтобы
+-                    // запуск, оборванный до закрытия, не пришёл к умолчанию.
+-                    // Не вышло (файл ещё занят) — не беда: закрытие запишет.
+-                    if (outcome.BrokenPath != null)
++                    using (Stream stream = builtin())
+                     {
+-                        try
+-                        {
+-                            File.Copy(outcome.Backup, target, false);
+-                        }
+-                        catch (Exception)
++                        if (stream == null)
+                         {
++                            throw new FileNotFoundException("embedded layout resource is missing", BuiltinResourceName);
+                         }
++                        loadFrom(stream);
+                     }
++                    outcome.Kind = LoadKind.LoadedFromBuiltin;
+                     return outcome;
+                 }
+                 catch (Exception ex)
+                 {
+-                    outcome.BackupError = AppUi.Reason(ex);
++                    outcome.BuiltinError = AppUi.Reason(ex);
+                 }
+             }
+ 
+-            outcome.Kind = LoadKind.Default;
++            // 5. Пусто. Файла не было — не отказ (Absent); был и негоден — Default.
++            outcome.Kind = outcome.TargetExisted ? LoadKind.Default : LoadKind.Absent;
+             return outcome;
+         }
+ 
++        /// <summary>
++        /// Одна ступень лестницы по файлу: поток открывается здесь и живёт
++        /// ровно на время чтения (<c>FileShare.Read</c>), чтобы отказавший
++        /// файл можно было тут же переименовать. Отказ — false с причиной.
++        /// </summary>
++        static bool TryLoadFile(string path, Action<Stream> loadFrom, out string error)
++        {
++            try
++            {
++                using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
++                {
++                    loadFrom(file);
++                }
++                error = null;
++                return true;
++            }
++            catch (Exception ex)
++            {
++                error = AppUi.Reason(ex);
++                return false;
++            }
++        }
++
+         /// <summary>
+         /// Слово за экраном об отказе чтения: файл, причина, куда отложен,
+-        /// чем кончилось. Ресурсы в двух языках (<c>LayoutLoad*</c>). Для
+-        /// итога без отказа — пустая строка.
++        /// чем кончилось — какая ступень лестницы поднялась (копия,
++        /// поставочная, встроенная) или что осталось пусто. Ресурсы в двух
++        /// языках (<c>LayoutLoad*</c>). Для итога без отказа — пустая строка.
+         /// </summary>
+         public static string Describe(LoadOutcome outcome)
+         {
+@@ -363,21 +521,86 @@ namespace BecquerelMonitor
+             string setAside = (outcome.BrokenPath != null)
+                 ? string.Format(Resources.LayoutLoadSetAside, AppUi.Where(outcome.BrokenPath))
+                 : string.Format(Resources.LayoutLoadNotSetAside, outcome.BrokenMoveError ?? "");
+-            string ending;
++            StringBuilder ending = new StringBuilder();
+             if (outcome.Kind == LoadKind.LoadedFromBackup)
+             {
+-                ending = string.Format(Resources.LayoutLoadBackupUsed, AppUi.Where(outcome.Backup));
+-            }
+-            else if (outcome.BackupExisted)
+-            {
+-                ending = string.Format(Resources.LayoutLoadBackupBroken, AppUi.Where(outcome.Backup), outcome.BackupError ?? "");
++                ending.Append(string.Format(Resources.LayoutLoadBackupUsed, AppUi.Where(outcome.Backup)));
+             }
+             else
+             {
+-                ending = Resources.LayoutLoadNoBackup;
++                ending.Append(outcome.BackupExisted
++                    ? string.Format(Resources.LayoutLoadBackupBroken, AppUi.Where(outcome.Backup), outcome.BackupError ?? "")
++                    : Resources.LayoutLoadNoBackup);
++                if (outcome.Kind == LoadKind.LoadedFromSupply)
++                {
++                    ending.Append(' ').Append(string.Format(Resources.LayoutLoadSupplyUsed, AppUi.Where(outcome.Supply)));
++                }
++                else
++                {
++                    if (outcome.SupplyExisted)
++                    {
++                        ending.Append(' ').Append(string.Format(Resources.LayoutLoadSupplyBroken,
++                                                                AppUi.Where(outcome.Supply), outcome.SupplyError ?? ""));
++                    }
++                    if (outcome.Kind == LoadKind.LoadedFromBuiltin)
++                    {
++                        ending.Append(' ').Append(Resources.LayoutLoadBuiltinUsed);
++                    }
++                    else
++                    {
++                        if (outcome.BuiltinError != null)
++                        {
++                            ending.Append(' ').Append(string.Format(Resources.LayoutLoadBuiltinBroken, outcome.BuiltinError));
++                        }
++                        ending.Append(' ').Append(Resources.LayoutLoadDefault);
++                    }
++                }
+             }
+             return string.Format(Resources.LayoutLoadFailed,
+-                                 AppUi.Where(outcome.Target), outcome.TargetError, setAside, ending);
++                                 AppUi.Where(outcome.Target), outcome.TargetError, setAside, ending.ToString());
++        }
++
++        /// <summary>
++        /// Строка для потока ошибок о том, что файла раскладки НЕ БЫЛО, а
++        /// поставочная или встроенная копия отказала. Это не отказ человеку
++        /// (файла и не ждали) и окна не заслуживает — читатель без окон
++        /// (<c>AppUi.Note</c>), чтобы битая поставочная копия в каталоге
++        /// приложения не молчала. Пустая строка — сказать нечего.
++        /// </summary>
++        public static string DescribeAbsent(LoadOutcome outcome)
++        {
++            if (outcome == null || outcome.TargetExisted)
++            {
++                return "";
++            }
++            if (outcome.SupplyError == null && outcome.BuiltinError == null)
++            {
++                return "";
++            }
++            StringBuilder text = new StringBuilder();
++            text.Append("layout file ").Append(AppUi.Where(outcome.Target)).Append(" is absent");
++            if (outcome.SupplyError != null)
++            {
++                text.Append("; supplied layout ").Append(AppUi.Where(outcome.Supply)).Append(" failed: ").Append(outcome.SupplyError);
++            }
++            if (outcome.BuiltinError != null)
++            {
++                text.Append("; built-in layout failed: ").Append(outcome.BuiltinError);
++            }
++            text.Append("; shown: ").Append(outcome.Kind.ToString());
++            return text.ToString();
++        }
++
++        static bool SamePath(string a, string b)
++        {
++            try
++            {
++                return string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
++            }
++            catch (Exception)
++            {
++                return false;
++            }
+         }
+ 
+         static void TryDelete(string path)
+diff --git a/BecquerelMonitor/MainForm.cs b/BecquerelMonitor/MainForm.cs
+index e5215112..e5db78d4 100644
+--- a/BecquerelMonitor/MainForm.cs
++++ b/BecquerelMonitor/MainForm.cs
+@@ -3482,9 +3482,13 @@ namespace BecquerelMonitor
+         /// <summary>
+         /// Прочитать раскладку панелей ПОД ЗАСЛОНОМ (`AMBER43`; решение Amber
+         /// 15.09.2026 дословно: «Не падать: отложить сломанный, поднять `.bak`,
+-        /// иначе умолчание; сказать окном после показа»). Само чтение и
+-        /// откладывание сломанного файла — <see cref="LayoutFile.Load"/>; здесь
+-        /// только слово за экраном.
++        /// иначе умолчание; сказать окном после показа»; решение Amber
++        /// 17.09.2026 дословно: «Поставочная раскладка как умолчание»). Само
++        /// чтение — лестница целевой файл → <c>.bak</c> → поставочный
++        /// <c>config\layout\ExpertMode.xml</c> из каталога приложения →
++        /// встроенная копия → пусто — и откладывание сломанного файла —
++        /// <see cref="LayoutFile.Load(DockPanel, string, DeserializeDockContent)"/>;
++        /// здесь только слово за экраном.
+         ///
+         /// Три места чтения — запуск и два пункта меню раскладки — идут одним
+         /// путём; до 17.09.2026 в каждом стояло голое <c>LoadFromXml</c>.
+@@ -3500,6 +3504,10 @@ namespace BecquerelMonitor
+         ///     сразу строкой в поток ошибок: ждать <c>Shown</c> там некому, а
+         ///     отказ чтения молчать не должен (память «Признак отказа без
+         ///     читателя»).
++        /// Файла НЕ БЫЛО — не отказ и не окно: показана поставочная раскладка
++        /// молча; отказала и она — строка в поток ошибок без окон
++        /// (<see cref="LayoutFile.DescribeAbsent"/>), чтобы битая поставочная
++        /// копия не молчала хотя бы пробе.
+         /// </summary>
+         /// <param name="fileName">файл раскладки</param>
+         /// <param name="canReportNow">true — окно сразу; false — отложить до показа</param>
+@@ -3509,6 +3517,11 @@ namespace BecquerelMonitor
+             LayoutFile.LoadOutcome outcome = LayoutFile.Load(this.dockPanel1, fileName, this.m_deserializeDockContent);
+             if (!outcome.Failed)
+             {
++                string absent = LayoutFile.DescribeAbsent(outcome);
++                if (absent.Length > 0)
++                {
++                    AppUi.Note(absent);
++                }
+                 return null;
+             }
+             string text = LayoutFile.Describe(outcome);
+diff --git a/tools/effmaker/probes/LayoutFileProbe.cs b/tools/effmaker/probes/LayoutFileProbe.cs
+index ac29a9ac..a509205c 100644
+--- a/tools/effmaker/probes/LayoutFileProbe.cs
++++ b/tools/effmaker/probes/LayoutFileProbe.cs
+@@ -14,7 +14,8 @@ namespace LayoutFileProbe
+ {
+     /// <summary>
+     /// ФАЙЛ РАСКЛАДКИ ПАНЕЛЕЙ `ExpertMode.xml`: запись без пустого файла и
+-    /// чтение без падения (`AMBER43`, полоса П89, 17.09.2026).
++    /// чтение без падения (`AMBER43`, полоса П89, 17.09.2026), а с полосы П96
++    /// (17.09.2026) — ещё и ЛЕСТНИЦА чтения до поставочной раскладки.
+     ///
+     /// ЗАЧЕМ. Задача Amber 15.09.2026: «Падение приложения, если файл настроек
+     /// расположения окон в UI поломался при сохранении. Основная задача -
+@@ -22,53 +23,83 @@ namespace LayoutFileProbe
+     /// <c>SaveAsXml(имя)</c> сперва обрезал файл до нуля и лишь потом писал;
+     /// голый <c>LoadFromXml</c> в <c>MainForm_Load</c> на пустом файле бросал
+     /// <c>XmlException</c> из <c>OnLoad</c>, и приложение падало на каждом
+-    /// запуске. Починка — <c>BecquerelMonitor.LayoutFile</c> (в память →
++    /// запуске. Починка П89 — <c>BecquerelMonitor.LayoutFile</c> (в память →
+     /// <c>.tmp</c> → <c>File.Replace</c> с <c>.bak</c>; чтение под заслоном:
+     /// сломанный → <c>.broken-&lt;дата&gt;</c>, поднять <c>.bak</c>, иначе
+     /// умолчание) и тонкие вызовы в <c>MainForm</c>.
+     ///
+-    /// ЧТО МЕРЯЕТСЯ (новая сборка, помощник есть):
++    /// ⛔ ОСТАТОК, найденный экраном 17.09.2026 (П95): без <c>.bak</c> — а это
++    /// ровно случай Amber 15.09, первое падение, копии ещё нет — «умолчание»
++    /// было ПУСТЫМ окном: ни панелей, ни вкладок. Решение Amber 17.09.2026,
++    /// дословно: «Поставочная раскладка как умолчание». Исполнение П96 —
++    /// лестница <c>LayoutFile.Read</c>: целевой файл → <c>.bak</c> →
++    /// поставочный <c>config\layout\ExpertMode.xml</c> из каталога приложения
++    /// (только если его путь ≠ целевому: в портативной сборке это один файл)
++    /// → встроенная копия того же файла (EmbeddedResource) → пусто; файла нет
++    /// вовсе — та же лестница со ступени поставочного, молча.
++    ///
++    /// ЧТО МЕРЯЕТСЯ (новая сборка, помощник с лестницей есть):
+     ///
+     ///   1. ЗАПИСЬ файлового ядра <c>LayoutFile.Write</c> подсаженным
+-    ///      сериализатором: (в) удачная вторая запись — <c>.bak</c> побайтно
+-    ///      равен прежнему файлу, <c>.tmp</c> убран; (б) сериализатор,
+-    ///      бросающий на полпути, и сериализатор, не пишущий ничего, — целевой
+-    ///      файл прежний побайтно, <c>.bak</c> прежний, <c>.tmp</c> убран;
+-    ///      осиротевший <c>.tmp</c> «убитого» процесса следующей записи не мешает.
+-    ///   2. ЧТЕНИЕ файлового ядра <c>LayoutFile.Read</c> подсаженным читателем:
+-    ///      нет файла — не отказ; годный — прочитан; сломанный при годном
+-    ///      <c>.bak</c> — отложен в <c>.broken-…</c>, поднята копия, копия
+-    ///      вернулась на место; сломанный при сломанном <c>.bak</c> — умолчание с
+-    ///      обеими причинами; сломанный без <c>.bak</c> — умолчание; слово
+-    ///      <c>Describe</c> называет пути.
+-    ///   3. НАСТОЯЩАЯ ПАНЕЛЬ <c>MainForm.dockPanel1</c> без окна: <c>Save</c>
+-    ///      даёт файл БАЙТ В БАЙТ тот же, что библиотечный <c>SaveAsXml(имя)</c>
+-    ///      (кодировка Unicode сохранена); (а) пустой файл и файл, обрезанный
+-    ///      посередине, — <c>Load</c> не бросает, сломанный отложен, <c>.bak</c>
+-    ///      поднят / умолчание; тонкие вызовы <c>MainForm.LoadLayoutXml</c> и
+-    ///      <c>MainForm.SaveLayoutXml</c> без окон называют отказ строкой в поток
+-    ///      ошибок (перехвачен), не бросают и файл не портят; (б) отказ
+-    ///      сериализации настоящей панели (содержимое с бросающим
+-    ///      <c>GetPersistString</c>) — файл прежний побайтно.
++    ///      сериализатором (П89, как было): (в) удачная вторая запись —
++    ///      <c>.bak</c> побайтно равен прежнему файлу, <c>.tmp</c> убран; (б)
++    ///      сериализатор, бросающий на полпути, и сериализатор, не пишущий
++    ///      ничего, — целевой файл прежний побайтно; осиротевший <c>.tmp</c>
++    ///      следующей записи не мешает.
++    ///   2. ЧТЕНИЕ файлового ядра <c>LayoutFile.Read</c> подсаженным читателем
++    ///      (поток; «BAD…» — негоден): прежние плечи П89 (нет файла; годный;
++    ///      сломанный при годном <c>.bak</c>; сломанный при сломанном
++    ///      <c>.bak</c>; сломанный без <c>.bak</c>) и новые ступени:
++    ///      (а) сломанный без <c>.bak</c> + поставочный файл → поставочный,
++    ///      слово называет его; (б) то же без поставочного файла → встроенная;
++    ///      (в) поставочный и встроенная тоже биты → умолчание, в слове ВСЕ
++    ///      причины; нет файла + встроенная → встроенная молча;
++    ///      встроенной нет в сборке (null) → отказ с причиной, не тишина.
++    ///   3. НАСТОЯЩАЯ ПАНЕЛЬ <c>MainForm.dockPanel1</c> без окна (П89, как
++    ///      было): <c>Save</c> байт в байт = библиотечный <c>SaveAsXml(имя)</c>;
++    ///      (а) пустой файл при <c>.bak</c> — поднята копия; обрезанный без
++    ///      <c>.bak</c> — не бросает, отложен (⚠ теперь исход
++    ///      <c>LoadedFromBuiltin</c>, а не <c>Default</c>: лестница дошла до
++    ///      встроенной, а десериализатор-пустышка содержимого не даёт);
++    ///      тонкие вызовы <c>MainForm.LoadLayoutXml</c> / <c>SaveLayoutXml</c>;
++    ///      (б) отказ сериализации настоящей панели — файл прежний.
++    ///   4. ЛЕСТНИЦА НА НАСТОЯЩЕЙ ПАНЕЛИ с десериализатором, дающим содержимое:
++    ///      <c>SupplyPathFor</c> (от каталога exe; свой же путь → null —
++    ///      портативная сборка); <c>BuiltinLayout</c> байт в байт = поставочный
++    ///      файл дерева; (а) пустой файл, нет <c>.bak</c>, поставочный рядом →
++    ///      панель получила ВСЁ содержимое поставочной (число <c>Contents</c> =
++    ///      <c>Count</c> из файла); (б) без поставочного → встроенная, то же
++    ///      содержимое; (в) поставочный бит + встроенная бита → пусто, обе
++    ///      причины в слове; поставочный бит + встроенная годна → встроенная;
++    ///      тонкий вызов <c>MainForm.LoadLayoutXml</c> на пустом файле без
++    ///      <c>.bak</c> — встроенная (случай портативной установки Amber),
++    ///      слово в потоке ошибок; тот же вызов с поставочным файлом, положенным
++    ///      НА ВРЕМЯ по пути приложения (<c>SupplyPathFor</c>), — поставочная,
++    ///      слово называет путь; файла нет вовсе — встроенная, слова НЕТ.
+     ///
+-    /// ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ — та же проба на СТАРОЙ сборке (без
+-    /// <c>LayoutFile</c>; ищется отражением, потому проба собирается против
+-    /// обеих). Там прогоняется прежний путь: (а) <c>dockPanel1.LoadFromXml</c>
+-    /// пустого и обрезанного файла ОБЯЗАН бросить <c>XmlException</c>; (б)
+-    /// <c>dockPanel1.SaveAsXml(имя)</c> с отказом сериализации ОБЯЗАН испортить
+-    /// годный файл (мерено: остаются 2 байта преамбулы `FF FE`, XML не
+-    /// читается — «Root element is missing», как в журнале падения Amber). Так
+-    /// «не бросает» и «файл прежний»
+-    /// на новой сборке — измерение, а не совпадение. Код возврата на старой
+-    /// сборке — 1 («СТАРАЯ СБОРКА: дефект воспроизведён»); если дефект НЕ
+-    /// воспроизвёлся — 2 (контроль сам сломан, верить нечему).
++    /// ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ — та же проба на ПРЕЖНИХ сборках (помощник
++    /// ищется отражением, потому проба собирается против любой):
++    ///   * сборка П89 (`0f738825`, помощник есть, лестницы нет — нет
++    ///     <c>Read(string, string, Action&lt;Stream&gt;, Func&lt;Stream&gt;)</c>):
++    ///     (а) пустой файл + нет <c>.bak</c> + поставочный рядом и (б) то же без
++    ///     поставочного ОБЯЗАНЫ дать <c>Default</c> и ПУСТУЮ панель — это и есть
++    ///     дефект «умолчание = пустое окно». Код 1 — воспроизведён; 2 — нет
++    ///     (контроль сам сломан);
++    ///   * сборка до П89 (помощника нет): прежний путь — (а)
++    ///     <c>LoadFromXml</c> пустого и обрезанного файла ОБЯЗАН бросить
++    ///     <c>XmlException</c>; (б) <c>SaveAsXml(имя)</c> с отказом сериализации
++    ///     ОБЯЗАН испортить годный файл (остаются 2 байта `FF FE`). Код 1 / 2.
+     ///
+-    /// Каталог опыта — ключ <c>--dir=&lt;путь&gt;</c> (умолчание
+-    /// <c>%TEMP%\BecqMoni.LayoutFileProbe</c>); каталог раскладки Amber
+-    /// (<c>%AppData%\BecqMoni</c>) не трогается. Файлы подсадок остаются в
+-    /// каталоге после прогона — это улики для журнала.
++    /// Ключи: <c>--dir=&lt;путь&gt;</c> — каталог опыта (умолчание
++    /// <c>%TEMP%\BecqMoni.LayoutFileProbe</c>); <c>--supply=&lt;файл&gt;</c> —
++    /// поставочная раскладка-эталон (умолчание — ищется вверх от каталога exe:
++    /// <c>BecquerelMonitor\config\layout\ExpertMode.xml</c> дерева). Каталог
++    /// раскладки Amber (<c>%AppData%\BecqMoni</c>) не трогается; в каталог exe
++    /// пробы на время одного плеча кладётся <c>config\layout\ExpertMode.xml</c>
++    /// и снимается в <c>finally</c>. Файлы подсадок остаются в каталоге опыта —
++    /// улики для журнала.
+     ///
+-    ///     layoutfileprobe --dir=D:\BqMoni_Claude\p89\layout_probe
++    ///     layoutfileprobe --dir=D:\BqMoni_Claude\p96\layout_probe
+     ///
+     /// Ожидание на новой сборке: «ВСЕ СОШЛИСЬ», код 0.
+     /// </summary>
+@@ -76,6 +107,7 @@ namespace LayoutFileProbe
+     {
+         static int bad;
+         static string dir;
++        static string supplyReference;
+ 
+         [STAThread]
+         static int Main(string[] args)
+@@ -85,12 +117,17 @@ namespace LayoutFileProbe
+             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+ 
+             dir = Path.Combine(Path.GetTempPath(), "BecqMoni.LayoutFileProbe");
++            supplyReference = null;
+             foreach (string a in args)
+             {
+                 if (a.StartsWith("--dir=", StringComparison.Ordinal))
+                 {
+                     dir = a.Substring("--dir=".Length).Trim('"');
+                 }
++                else if (a.StartsWith("--supply=", StringComparison.Ordinal))
++                {
++                    supplyReference = a.Substring("--supply=".Length).Trim('"');
++                }
+             }
+             if (Directory.Exists(dir))
+             {
+@@ -98,10 +135,20 @@ namespace LayoutFileProbe
+             }
+             Directory.CreateDirectory(dir);
+             Console.WriteLine("каталог опыта: {0}", dir);
++            if (supplyReference == null)
++            {
++                supplyReference = FindSupplyReference();
++            }
++            Console.WriteLine("поставочная раскладка-эталон: {0}", supplyReference ?? "НЕ НАЙДЕНА (--supply=)");
+ 
+             Type layoutFile = typeof(MainForm).Assembly.GetType("BecquerelMonitor.LayoutFile");
++            MethodInfo ladder = layoutFile == null ? null
++                : layoutFile.GetMethod("Read", new[] { typeof(string), typeof(string), typeof(Action<Stream>), typeof(Func<Stream>) });
+             Console.WriteLine("сборка приложения: {0}", typeof(MainForm).Assembly.Location);
+-            Console.WriteLine("помощник BecquerelMonitor.LayoutFile: {0}", layoutFile != null ? "ЕСТЬ" : "НЕТ (старая сборка)");
++            Console.WriteLine("помощник BecquerelMonitor.LayoutFile: {0}", layoutFile != null ? "ЕСТЬ" : "НЕТ (сборка до П89)");
++            Console.WriteLine("лестница Read(string, string, Action<Stream>, Func<Stream>): {0}",
++                              ladder != null ? "ЕСТЬ" : "НЕТ (сборка П89 без поставочной ступени)");
++            Console.WriteLine("Application.ExecutablePath = {0}", Application.ExecutablePath);
+             Console.WriteLine("AppUi.HasWindows = {0}", AppUi.HasWindows);
+ 
+             MainForm mainForm = new MainForm();
+@@ -117,11 +164,16 @@ namespace LayoutFileProbe
+                 {
+                     code = OldBuildSection(mainForm, panel, deserialize);
+                 }
++                else if (ladder == null)
++                {
++                    code = P89BuildSection(layoutFile, mainForm, panel);
++                }
+                 else
+                 {
+                     WriteCoreSection(layoutFile);
+                     ReadCoreSection(layoutFile);
+                     RealPanelSection(layoutFile, mainForm, panel, deserialize);
++                    LadderPanelSection(layoutFile, mainForm, panel);
+                     Console.WriteLine();
+                     Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : "НЕ СОШЛОСЬ: " + bad);
+                     code = bad == 0 ? 0 : 1;
+@@ -193,53 +245,89 @@ namespace LayoutFileProbe
+         }
+ 
+         // ------------------------------------------------------------------
+-        // 2. ЧТЕНИЕ — файловое ядро LayoutFile.Read(string, Action<string>)
++        // 2. ЧТЕНИЕ — файловое ядро LayoutFile.Read(string, string, Action<Stream>, Func<Stream>)
+         // ------------------------------------------------------------------
+ 
+         static void ReadCoreSection(Type layoutFile)
+         {
+             Console.WriteLine();
+-            Console.WriteLine("=== 2. чтение: LayoutFile.Read подсаженным читателем ===");
+-            MethodInfo read = layoutFile.GetMethod("Read", new[] { typeof(string), typeof(Action<string>) });
++            Console.WriteLine("=== 2. чтение: LayoutFile.Read подсаженным читателем (лестница) ===");
++            MethodInfo read = layoutFile.GetMethod("Read", new[] { typeof(string), typeof(string), typeof(Action<Stream>), typeof(Func<Stream>) });
+             MethodInfo describe = layoutFile.GetMethod("Describe");
+-            Same("метод Read(string, Action<string>) есть", true, read != null);
++            MethodInfo describeAbsent = layoutFile.GetMethod("DescribeAbsent");
++            Same("метод Read(string, string, Action<Stream>, Func<Stream>) есть", true, read != null);
+             Same("метод Describe есть", true, describe != null);
++            Same("метод DescribeAbsent есть", true, describeAbsent != null);
+             string target = Path.Combine(dir, "core_read", "ExpertMode.xml");
+             string bak = target + ".bak";
++            string supply = Path.Combine(dir, "core_read", "app", "config", "layout", "ExpertMode.xml");
+             Directory.CreateDirectory(Path.GetDirectoryName(target));
++            Directory.CreateDirectory(Path.GetDirectoryName(supply));
+ 
+-            // Подсаженный читатель: файл, начинающийся с «BAD», негоден.
++            // Подсаженный читатель: содержимое, начинающееся с «BAD», негодно.
++            // Имя ступени — из потока: файл называется, встроенная — «builtin».
+             List<string> seen = new List<string>();
+-            Action<string> loader = delegate (string path)
++            Action<Stream> loader = delegate (Stream s)
+             {
+-                seen.Add(Path.GetFileName(path));
+-                string text = File.ReadAllText(path);
++                FileStream fs = s as FileStream;
++                seen.Add(fs != null ? Path.GetFileName(fs.Name) : "builtin");
++                string text = new StreamReader(s, Encoding.UTF8).ReadToEnd();
+                 if (text.StartsWith("BAD", StringComparison.Ordinal))
+                 {
+-                    throw new XmlException("подсаженный отказ разбора: " + Path.GetFileName(path));
++                    throw new XmlException("подсаженный отказ разбора: " + (fs != null ? Path.GetFileName(fs.Name) : "builtin"));
+                 }
+             };
++            Func<Stream> goodBuiltin = delegate { return new MemoryStream(Encoding.UTF8.GetBytes("GOOD builtin")); };
++            Func<Stream> badBuiltin = delegate { return new MemoryStream(Encoding.UTF8.GetBytes("BAD builtin")); };
++            Func<Stream> noBuiltin = delegate { return null; };
+ 
+-            // 2.1 файла нет.
+-            object o = read.Invoke(null, new object[] { target, loader });
+-            Same("2.1 нет файла: Kind = Absent", "Absent", Kind(o));
++            // 2.1 файла нет, ступеней нет — как в П89: Absent, не отказ, читатель не звался.
++            object o = read.Invoke(null, new object[] { target, null, loader, null });
++            Same("2.1 нет файла, ступеней нет: Kind = Absent", "Absent", Kind(o));
+             Same("2.1 нет файла: не отказ", false, Failed(o));
+             Same("2.1 нет файла: читатель не звался", 0, seen.Count);
++            Same("2.1 нет файла: Describe пуст", "", (string)describe.Invoke(null, new[] { o }));
++            Same("2.1 нет файла: DescribeAbsent пуст (ничего не отказало)", "", (string)describeAbsent.Invoke(null, new[] { o }));
++
++            // 2.1б файла нет + встроенная: поднята молча.
++            seen.Clear();
++            o = read.Invoke(null, new object[] { target, supply, loader, goodBuiltin });
++            Same("2.1б нет файла + встроенная: Kind = LoadedFromBuiltin", "LoadedFromBuiltin", Kind(o));
++            Same("2.1б не отказ (файла и не ждали)", false, Failed(o));
++            Same("2.1б поставочного не было", false, (bool)Get(o, "SupplyExisted"));
++            Same("2.1б читатель звался один раз, встроенная", "builtin", string.Join("|", seen.ToArray()));
++            Same("2.1б Describe пуст — окна нет", "", (string)describe.Invoke(null, new[] { o }));
++            Same("2.1б DescribeAbsent пуст — ничего не отказало", "", (string)describeAbsent.Invoke(null, new[] { o }));
++
++            // 2.1в файла нет + поставочный бит + встроенная годна: встроенная, а отказ поставочного — строкой без окон.
++            File.WriteAllText(supply, "BAD supply");
++            seen.Clear();
++            o = read.Invoke(null, new object[] { target, supply, loader, goodBuiltin });
++            Same("2.1в нет файла, поставочный бит: Kind = LoadedFromBuiltin", "LoadedFromBuiltin", Kind(o));
++            Same("2.1в не отказ", false, Failed(o));
++            Same("2.1в читатель: поставочный, затем встроенная", "ExpertMode.xml|builtin", string.Join("|", seen.ToArray()));
++            Same("2.1в причина поставочного названа", true, ((string)Get(o, "SupplyError") ?? "").Contains("подсаженный отказ разбора"));
++            string note = (string)describeAbsent.Invoke(null, new[] { o });
++            Console.WriteLine("      строка без окон: {0}", note);
++            Same("2.1в DescribeAbsent называет поставочный и причину", true,
++                 note.Contains(Path.GetFullPath(supply)) && note.Contains("подсаженный отказ разбора"));
++            File.Delete(supply);
+ 
+             // 2.2 годный файл.
+             File.WriteAllText(target, "GOOD 1");
+             seen.Clear();
+-            o = read.Invoke(null, new object[] { target, loader });
++            o = read.Invoke(null, new object[] { target, supply, loader, goodBuiltin });
+             Same("2.2 годный: Kind = Loaded", "Loaded", Kind(o));
+             Same("2.2 годный: не отказ", false, Failed(o));
+             Same("2.2 годный: читатель звался один раз", 1, seen.Count);
+             Same("2.2 годный: Describe пуст", "", (string)describe.Invoke(null, new[] { o }));
+ 
+-            // 2.3 сломанный при годном .bak.
++            // 2.3 сломанный при годном .bak (поставочный и встроенная есть, но до них не доходит).
+             File.WriteAllText(target, "BAD main");
+             File.WriteAllText(bak, "GOOD bak");
++            File.WriteAllText(supply, "GOOD supply");
+             seen.Clear();
+-            o = read.Invoke(null, new object[] { target, loader });
++            o = read.Invoke(null, new object[] { target, supply, loader, goodBuiltin });
+             Same("2.3 сломанный+.bak: Kind = LoadedFromBackup", "LoadedFromBackup", Kind(o));
+             Same("2.3 сломанный+.bak: отказ назван", true, Failed(o));
+             Same("2.3 сломанный+.bak: читатель звался дважды (main, bak)", "ExpertMode.xml|ExpertMode.xml.bak", string.Join("|", seen.ToArray()));
+@@ -255,13 +343,14 @@ namespace LayoutFileProbe
+             Same("2.3 слово называет отложенный", true, broken != null && word.Contains(Path.GetFullPath(broken)));
+             Same("2.3 слово называет .bak", true, word.Contains(Path.GetFullPath(bak)));
+             Same("2.3 слово называет причину", true, word.Contains("подсаженный отказ разбора"));
++            Same("2.3 слово НЕ называет поставочный (до него не дошло)", false, word.Contains(Path.GetFullPath(supply)));
+ 
+-            // 2.4 сломанный при сломанном .bak.
++            // 2.4 сломанный при сломанном .bak, ступеней нет — умолчание с обеими причинами (П89).
+             Thread.Sleep(1100); // метка времени .broken- с точностью до секунды — не столкнуться с 2.3
+             File.WriteAllText(target, "BAD main 2");
+             File.WriteAllText(bak, "BAD bak 2");
+             seen.Clear();
+-            o = read.Invoke(null, new object[] { target, loader });
++            o = read.Invoke(null, new object[] { target, null, loader, null });
+             Same("2.4 сломанный+сломанный .bak: Kind = Default", "Default", Kind(o));
+             Same("2.4 отказ назван", true, Failed(o));
+             Same("2.4 .bak был", true, (bool)Get(o, "BackupExisted"));
+@@ -272,12 +361,12 @@ namespace LayoutFileProbe
+             Same("2.4 слово называет причину основного файла", true, word.Contains("подсаженный отказ разбора: ExpertMode.xml"));
+             Same("2.4 слово называет причину копии", true, word.Contains("подсаженный отказ разбора: ExpertMode.xml.bak"));
+ 
+-            // 2.5 сломанный без .bak.
++            // 2.5 сломанный без .bak, ступеней нет — умолчание (П89).
+             Thread.Sleep(1100);
+             File.Delete(bak);
+             File.WriteAllText(target, "BAD main 3");
+             seen.Clear();
+-            o = read.Invoke(null, new object[] { target, loader });
++            o = read.Invoke(null, new object[] { target, null, loader, null });
+             Same("2.5 сломанный без .bak: Kind = Default", "Default", Kind(o));
+             Same("2.5 .bak не было", false, (bool)Get(o, "BackupExisted"));
+             Same("2.5 читатель звался один раз", 1, seen.Count);
+@@ -285,12 +374,89 @@ namespace LayoutFileProbe
+             Console.WriteLine("      слово:\n        {0}", word.Replace("\n", "\n        "));
+             Same("2.5 слово непустое", true, word.Length > 0);
+ 
++            // 2.6 (а) сломанный без .bak + поставочный файл: поставочная, слово называет его.
++            Thread.Sleep(1100);
++            File.WriteAllText(target, "BAD main 4");
++            File.WriteAllText(supply, "GOOD supply");
++            seen.Clear();
++            o = read.Invoke(null, new object[] { target, supply, loader, goodBuiltin });
++            Same("2.6 (а) сломанный без .bak + поставочный: Kind = LoadedFromSupply", "LoadedFromSupply", Kind(o));
++            Same("2.6 (а) отказ назван", true, Failed(o));
++            Same("2.6 (а) читатель: основной, затем поставочный (не .bak, не встроенная)", "ExpertMode.xml|ExpertMode.xml", string.Join("|", seen.ToArray()));
++            Same("2.6 (а) поставочный был", true, (bool)Get(o, "SupplyExisted"));
++            Same("2.6 (а) сломанный отложен", true, Get(o, "BrokenPath") != null && File.Exists((string)Get(o, "BrokenPath")));
++            Same("2.6 (а) поставочный на место основного НЕ скопирован (закрытие запишет)", false, File.Exists(target));
++            word = (string)describe.Invoke(null, new[] { o });
++            Console.WriteLine("      слово:\n        {0}", word.Replace("\n", "\n        "));
++            Same("2.6 (а) слово называет поставочный файл", true, word.Contains(Path.GetFullPath(supply)));
++            Same("2.6 (а) слово говорит «поставочная»", true, SaysSupply(word));
++            Same("2.6 (а) слово НЕ говорит «встроенная»", false, SaysBuiltin(word));
++
++            // 2.7 (б) сломанный без .bak, поставочного файла нет — встроенная.
++            Thread.Sleep(1100);
++            File.Delete(supply);
++            File.WriteAllText(target, "BAD main 5");
++            seen.Clear();
++            o = read.Invoke(null, new object[] { target, supply, loader, goodBuiltin });
++            Same("2.7 (б) без поставочного файла: Kind = LoadedFromBuiltin", "LoadedFromBuiltin", Kind(o));
++            Same("2.7 (б) читатель: основной, затем встроенная", "ExpertMode.xml|builtin", string.Join("|", seen.ToArray()));
++            Same("2.7 (б) поставочного не было", false, (bool)Get(o, "SupplyExisted"));
++            word = (string)describe.Invoke(null, new[] { o });
++            Console.WriteLine("      слово:\n        {0}", word.Replace("\n", "\n        "));
++            Same("2.7 (б) слово говорит «встроенная»", true, SaysBuiltin(word));
++            Same("2.7 (б) слово НЕ называет отсутствующий поставочный", false, word.Contains(Path.GetFullPath(supply)));
++
++            // 2.8 (в) сломанный без .bak, поставочный бит, встроенная бита — умолчание, ВСЕ причины в слове.
++            Thread.Sleep(1100);
++            File.WriteAllText(target, "BAD main 6");
++            File.WriteAllText(supply, "BAD supply 6");
++            seen.Clear();
++            o = read.Invoke(null, new object[] { target, supply, loader, badBuiltin });
++            Same("2.8 (в) всё бито: Kind = Default", "Default", Kind(o));
++            Same("2.8 (в) читатель: основной, поставочный, встроенная", "ExpertMode.xml|ExpertMode.xml|builtin", string.Join("|", seen.ToArray()));
++            Same("2.8 (в) причина поставочного названа", true, ((string)Get(o, "SupplyError") ?? "").Contains("подсаженный отказ разбора: ExpertMode.xml"));
++            Same("2.8 (в) причина встроенной названа", true, ((string)Get(o, "BuiltinError") ?? "").Contains("подсаженный отказ разбора: builtin"));
++            word = (string)describe.Invoke(null, new[] { o });
++            Console.WriteLine("      слово:\n        {0}", word.Replace("\n", "\n        "));
++            Same("2.8 (в) слово называет основной файл", true, word.Contains(Path.GetFullPath(target)));
++            Same("2.8 (в) слово называет поставочный и его причину", true,
++                 word.Contains(Path.GetFullPath(supply)) && word.Contains("подсаженный отказ разбора: ExpertMode.xml"));
++            Same("2.8 (в) слово называет причину встроенной", true, word.Contains("подсаженный отказ разбора: builtin"));
++            Same("2.8 (в) слово говорит «пусто»/«View»", true, SaysEmpty(word));
++
++            // 2.9 сломанный + сломанный .bak + поставочный годен: поставочная, в слове отказ .bak и поставочный.
++            Thread.Sleep(1100);
++            File.WriteAllText(target, "BAD main 7");
++            File.WriteAllText(bak, "BAD bak 7");
++            File.WriteAllText(supply, "GOOD supply 7");
++            seen.Clear();
++            o = read.Invoke(null, new object[] { target, supply, loader, goodBuiltin });
++            Same("2.9 .bak бит, поставочный годен: Kind = LoadedFromSupply", "LoadedFromSupply", Kind(o));
++            Same("2.9 читатель: основной, .bak, поставочный", "ExpertMode.xml|ExpertMode.xml.bak|ExpertMode.xml", string.Join("|", seen.ToArray()));
++            word = (string)describe.Invoke(null, new[] { o });
++            Console.WriteLine("      слово:\n        {0}", word.Replace("\n", "\n        "));
++            Same("2.9 слово называет причину .bak", true, word.Contains("подсаженный отказ разбора: ExpertMode.xml.bak"));
++            Same("2.9 слово называет поставочный", true, word.Contains(Path.GetFullPath(supply)));
++            File.Delete(bak);
++            File.Delete(supply);
++
++            // 2.10 встроенной в сборке нет (поток null): отказ с причиной, не тишина.
++            Thread.Sleep(1100);
++            File.WriteAllText(target, "BAD main 8");
++            seen.Clear();
++            o = read.Invoke(null, new object[] { target, supply, loader, noBuiltin });
++            Same("2.10 встроенной нет (null): Kind = Default", "Default", Kind(o));
++            Same("2.10 причина встроенной названа (ресурса нет)", true, ((string)Get(o, "BuiltinError") ?? "").Contains("embedded layout resource is missing"));
++            word = (string)describe.Invoke(null, new[] { o });
++            Console.WriteLine("      слово:\n        {0}", word.Replace("\n", "\n        "));
++            Same("2.10 слово называет причину встроенной", true, word.Contains("embedded layout resource is missing"));
++
+             string[] brokenFiles = Directory.GetFiles(Path.GetDirectoryName(target), "ExpertMode.xml.broken-*");
+-            Same("2. отложенных улик три", 3, brokenFiles.Length);
++            Same("2. отложенных улик восемь (2.3–2.10)", 8, brokenFiles.Length);
+         }
+ 
+         // ------------------------------------------------------------------
+-        // 3. НАСТОЯЩАЯ ПАНЕЛЬ MainForm.dockPanel1 без окна
++        // 3. НАСТОЯЩАЯ ПАНЕЛЬ MainForm.dockPanel1 без окна (П89)
+         // ------------------------------------------------------------------
+ 
+         static void RealPanelSection(Type layoutFile, MainForm mainForm, DockPanel panel, DeserializeDockContent deserialize)
+@@ -348,6 +514,9 @@ namespace LayoutFileProbe
+             Same("3.2 (а) панель после подъёма копии пуста, как и раскладка", 0, panel.Contents.Count);
+ 
+             // 3.3 (а) файл, обрезанный посередине, без .bak.
++            //     ⚠ П96: исход теперь LoadedFromBuiltin, а не Default — лестница идёт до встроенной
++            //     копии (поставочного файла рядом с пробой нет); десериализатор-пустышка содержимого
++            //     не даёт, панель остаётся пустой (пустышки библиотека снимает).
+             Thread.Sleep(1100);
+             byte[] half = new byte[good.Length / 2];
+             Array.Copy(good, half, half.Length);
+@@ -358,13 +527,13 @@ namespace LayoutFileProbe
+             catch (TargetInvocationException ex) { thrown = ex.InnerException; }
+             Same("3.3 (а) обрезанный файл: Load не бросает", true, thrown == null);
+             if (thrown != null) Console.WriteLine("      бросил: {0}", thrown);
+-            Same("3.3 (а) обрезанный файл: Kind = Default (копии нет)", "Default", o != null ? Kind(o) : null);
++            Same("3.3 (а) обрезанный файл: Kind = LoadedFromBuiltin (копии нет, поставочного рядом нет)", "LoadedFromBuiltin", o != null ? Kind(o) : null);
+             Console.WriteLine("      причина: {0}", o != null ? Get(o, "TargetError") : null);
+             broken = o != null ? (string)Get(o, "BrokenPath") : null;
+             Same("3.3 (а) обрезанный отложен, улика = обрезанные байты", true,
+                  broken != null && File.Exists(broken) && Equal(half, File.ReadAllBytes(broken)));
+             Same("3.3 (а) основного файла на месте нет", false, File.Exists(target));
+-            Same("3.3 (а) после отказа разбора панель не тронута (пуста)", 0, panel.Contents.Count);
++            Same("3.3 (а) панель с десериализатором-пустышкой пуста", 0, panel.Contents.Count);
+             Same("3.3 (а) годный файл после этого читается (панель не «уже заполнена»)", true, Loads(panel, libraryFile, deserialize));
+ 
+             // 3.4 тонкий вызов MainForm.LoadLayoutXml без окон: слово в поток ошибок, не бросок.
+@@ -413,7 +582,6 @@ namespace LayoutFileProbe
+             Same("3.5 .tmp убран", false, File.Exists(tmp));
+ 
+             // 3.6 (б) отказ сериализации НАСТОЯЩЕЙ панели: содержимое с бросающим GetPersistString.
+-            //     Ставится последним: панель после него не пуста, и Load в неё уже не пойдёт.
+             byte[] before = File.ReadAllBytes(target);
+             ThrowingContent bomb = new ThrowingContent();
+             bomb.DockPanel = panel;
+@@ -441,10 +609,247 @@ namespace LayoutFileProbe
+             Same("3.6 (б) целевой файл и после тонкого вызова прежний", true, Equal(before, File.ReadAllBytes(target)));
+             bomb.DockPanel = null;
+             bomb.Dispose();
++            Same("3.6 после снятия подсадки панель пуста", 0, panel.Contents.Count);
++        }
++
++        // ------------------------------------------------------------------
++        // 4. ЛЕСТНИЦА НА НАСТОЯЩЕЙ ПАНЕЛИ — поставочная раскладка как умолчание (П96)
++        // ------------------------------------------------------------------
++
++        static void LadderPanelSection(Type layoutFile, MainForm mainForm, DockPanel panel)
++        {
++            Console.WriteLine();
++            Console.WriteLine("=== 4. лестница на настоящей панели: поставочная раскладка как умолчание ===");
++            MethodInfo load3 = layoutFile.GetMethod("Load", new[] { typeof(DockPanel), typeof(string), typeof(DeserializeDockContent) });
++            MethodInfo load5 = layoutFile.GetMethod("Load", new[] { typeof(DockPanel), typeof(string), typeof(DeserializeDockContent), typeof(string), typeof(Func<Stream>) });
++            MethodInfo supplyPathFor = layoutFile.GetMethod("SupplyPathFor", new[] { typeof(string) });
++            MethodInfo builtinLayout = layoutFile.GetMethod("BuiltinLayout", Type.EmptyTypes);
++            MethodInfo describe = layoutFile.GetMethod("Describe");
++            Same("метод Load(DockPanel, string, DeserializeDockContent, string, Func<Stream>) есть", true, load5 != null);
++            Same("метод SupplyPathFor(string) есть", true, supplyPathFor != null);
++            Same("метод BuiltinLayout() есть", true, builtinLayout != null);
++            Same("поставочная раскладка-эталон найдена", true, supplyReference != null && File.Exists(supplyReference));
++            if (supplyReference == null || !File.Exists(supplyReference))
++            {
++                Console.WriteLine("      ⛔ без эталона раздел 4 мерить нечем — задайте --supply=");
++                return;
++            }
++            byte[] reference = File.ReadAllBytes(supplyReference);
++            int expectedContents = ContentsCount(supplyReference);
++            Console.WriteLine("      эталон: {0} байт, Contents Count=\"{1}\"", reference.Length, expectedContents);
++            Same("эталон: содержимого больше нуля (иначе плечу нечего мерить)", true, expectedContents > 0);
++
++            string layoutDir = Path.Combine(dir, "ladder");
++            Directory.CreateDirectory(layoutDir);
++            string target = Path.Combine(layoutDir, "ExpertMode.xml");
++            string bak = target + ".bak";
++            string supply = Path.Combine(layoutDir, "app", "config", "layout", "ExpertMode.xml");
++            Directory.CreateDirectory(Path.GetDirectoryName(supply));
++            DeserializeDockContent makeContent = MakeContent;
++            Func<Stream> realBuiltin = delegate { return (Stream)builtinLayout.Invoke(null, null); };
++
++            // 4.1 SupplyPathFor: от каталога exe; свой же путь → null (портативная сборка).
++            string exeDir = Path.GetDirectoryName(Application.ExecutablePath);
++            string appSupply = Path.Combine(exeDir, "config", "layout", "ExpertMode.xml");
++            string computed = (string)supplyPathFor.Invoke(null, new object[] { target });
++            Console.WriteLine("      SupplyPathFor(опыт) = {0}", computed ?? "null");
++            Same("4.1 SupplyPathFor(чужой целевой) = <каталог exe>\\config\\layout\\ExpertMode.xml", true,
++                 computed != null && string.Equals(Path.GetFullPath(computed), Path.GetFullPath(appSupply), StringComparison.OrdinalIgnoreCase));
++            Same("4.1 SupplyPathFor(сам поставочный путь) = null — портативная сборка", null,
++                 supplyPathFor.Invoke(null, new object[] { appSupply }));
++            Same("4.1 SupplyPathFor(тот же путь другим регистром) = null", null,
++                 supplyPathFor.Invoke(null, new object[] { appSupply.ToUpperInvariant() }));
++            Same("4.1 поставочного файла рядом с пробой нет (иначе плечи (б) мерят не то)", false, File.Exists(appSupply));
++
++            // 4.2 BuiltinLayout: поток есть, байт в байт = поставочный файл дерева.
++            byte[] builtinBytes = null;
++            using (Stream s = (Stream)builtinLayout.Invoke(null, null))
++            {
++                Same("4.2 BuiltinLayout() даёт поток (ресурс в сборке есть)", true, s != null);
++                if (s != null)
++                {
++                    using (MemoryStream m = new MemoryStream()) { s.CopyTo(m); builtinBytes = m.ToArray(); }
++                }
++            }
++            Console.WriteLine("      встроенная: {0} байт", builtinBytes != null ? builtinBytes.Length : -1);
++            Same("4.2 встроенная байт в байт = поставочный файл дерева", true, builtinBytes != null && Equal(reference, builtinBytes));
++
++            // 4.3 (а) пустой файл, нет .bak, поставочный рядом (подсажен) — панель получила содержимое.
++            ClearPanel(panel);
++            File.WriteAllBytes(target, new byte[0]);
++            if (File.Exists(bak)) File.Delete(bak);
++            File.WriteAllBytes(supply, reference);
++            object o = Invoke(load5, panel, target, makeContent, supply, realBuiltin);
++            Same("4.3 (а) пустой файл без .bak + поставочный: Kind = LoadedFromSupply", "LoadedFromSupply", Kind(o));
++            Same("4.3 (а) отказ назван (пустой файл)", true, Failed(o));
++            Same("4.3 (а) причина — XmlException", true, ((string)Get(o, "TargetError") ?? "").Contains("XmlException"));
++            Same("4.3 (а) панель получила содержимое поставочной (Contents)", expectedContents, panel.Contents.Count);
++            Same("4.3 (а) панели построены (Panes > 0)", true, panel.Panes.Count > 0);
++            Console.WriteLine("      Contents={0}, Panes={1}, FloatWindows={2}", panel.Contents.Count, panel.Panes.Count, panel.FloatWindows.Count);
++            string word = (string)describe.Invoke(null, new[] { o });
++            Console.WriteLine("      слово:\n        {0}", word.Replace("\n", "\n        "));
++            Same("4.3 (а) слово называет поставочный файл", true, word.Contains(Path.GetFullPath(supply)));
++            Same("4.3 (а) слово говорит «поставочная»", true, SaysSupply(word));
++            Same("4.3 (а) сломанный отложен", true, Get(o, "BrokenPath") != null);
++            Same("4.3 (а) поставочный на место основного не скопирован", false, File.Exists(target));
++
++            // 4.4 (б) то же без поставочного файла — встроенная копия, то же содержимое.
++            ClearPanel(panel);
++            Same("4.4 панель очищена перед плечом", 0, panel.Contents.Count);
++            Thread.Sleep(1100);
++            File.Delete(supply);
++            File.WriteAllBytes(target, new byte[0]);
++            o = Invoke(load5, panel, target, makeContent, supply, realBuiltin);
++            Same("4.4 (б) пустой файл без .bak, без поставочного: Kind = LoadedFromBuiltin", "LoadedFromBuiltin", Kind(o));
++            Same("4.4 (б) панель получила содержимое встроенной (Contents)", expectedContents, panel.Contents.Count);
++            word = (string)describe.Invoke(null, new[] { o });
++            Console.WriteLine("      слово:\n        {0}", word.Replace("\n", "\n        "));
++            Same("4.4 (б) слово говорит «встроенная»", true, SaysBuiltin(word));
++
++            // 4.5 (в) поставочный бит + встроенная бита — пусто, обе причины в слове.
++            ClearPanel(panel);
++            Thread.Sleep(1100);
++            byte[] halfRef = new byte[reference.Length / 2];
++            Array.Copy(reference, halfRef, halfRef.Length);
++            File.WriteAllBytes(supply, halfRef);
++            File.WriteAllBytes(target, new byte[0]);
++            Func<Stream> brokenBuiltin = delegate { return new MemoryStream(halfRef); };
++            o = Invoke(load5, panel, target, makeContent, supply, brokenBuiltin);
++            Same("4.5 (в) поставочный бит + встроенная бита: Kind = Default", "Default", Kind(o));
++            Same("4.5 (в) панель пуста", 0, panel.Contents.Count);
++            Same("4.5 (в) причина поставочного — XmlException", true, ((string)Get(o, "SupplyError") ?? "").Contains("XmlException"));
++            Same("4.5 (в) причина встроенной — XmlException", true, ((string)Get(o, "BuiltinError") ?? "").Contains("XmlException"));
++            word = (string)describe.Invoke(null, new[] { o });
++            Console.WriteLine("      слово:\n        {0}", word.Replace("\n", "\n        "));
++            Same("4.5 (в) слово называет поставочный", true, word.Contains(Path.GetFullPath(supply)));
++            Same("4.5 (в) слово называет причины поставочного и встроенной (два XmlException сверх основного)", true, Count(word, "XmlException") >= 3);
++            Same("4.5 (в) слово говорит «пусто»/«View»", true, SaysEmpty(word));
++
++            // 4.5б поставочный бит, встроенная годна — встроенная (битый поставочный лестницу не рвёт).
++            ClearPanel(panel);
++            Thread.Sleep(1100);
++            File.WriteAllBytes(target, new byte[0]);
++            o = Invoke(load5, panel, target, makeContent, supply, realBuiltin);
++            Same("4.5б поставочный бит, встроенная годна: Kind = LoadedFromBuiltin", "LoadedFromBuiltin", Kind(o));
++            Same("4.5б панель получила содержимое встроенной", expectedContents, panel.Contents.Count);
++            word = (string)describe.Invoke(null, new[] { o });
++            Same("4.5б слово называет битый поставочный и говорит «встроенная»", true, word.Contains(Path.GetFullPath(supply)) && SaysBuiltin(word));
++            File.Delete(supply);
++
++            // 4.6 тонкий вызов MainForm.LoadLayoutXml без окон: пустой файл, нет .bak, поставочного
++            //     рядом с exe нет — встроенная (случай портативной установки Amber: файл = поставочный).
++            MethodInfo loadLayout = typeof(MainForm).GetMethod("LoadLayoutXml", BindingFlags.Instance | BindingFlags.NonPublic);
++            SetField(mainForm, "m_deserializeDockContent", makeContent);
++            ClearPanel(panel);
++            Thread.Sleep(1100);
++            File.WriteAllBytes(target, new byte[0]);
++            string err = CaptureError(delegate { loadLayout.Invoke(mainForm, new object[] { target, false }); });
++            Console.WriteLine("      поток ошибок: {0}", err.Trim());
++            Same("4.6 тонкий вызов, встроенная: панель получила содержимое", expectedContents, panel.Contents.Count);
++            Same("4.6 слово в потоке ошибок называет файл", true, err.Contains(Path.GetFullPath(target)));
++            Same("4.6 слово говорит «встроенная»", true, SaysBuiltin(err));
++
++            // 4.7 тонкий вызов с поставочным файлом, положенным НА ВРЕМЯ по пути приложения — ClickOnce.
++            ClearPanel(panel);
++            Thread.Sleep(1100);
++            File.WriteAllBytes(target, new byte[0]);
++            Directory.CreateDirectory(Path.GetDirectoryName(appSupply));
++            try
++            {
++                File.WriteAllBytes(appSupply, reference);
++                err = CaptureError(delegate { loadLayout.Invoke(mainForm, new object[] { target, false }); });
++            }
++            finally
++            {
++                if (File.Exists(appSupply)) File.Delete(appSupply);
++                TryRemoveEmptyDirs(exeDir, Path.GetDirectoryName(appSupply));
++            }
++            Console.WriteLine("      поток ошибок: {0}", err.Trim());
++            Same("4.7 тонкий вызов, поставочный по пути приложения: панель получила содержимое", expectedContents, panel.Contents.Count);
++            Same("4.7 слово называет поставочный по пути приложения", true, err.Contains(Path.GetFullPath(appSupply)));
++            Same("4.7 слово говорит «поставочная»", true, SaysSupply(err));
++            Same("4.7 подсадка снята: файла рядом с пробой нет", false, File.Exists(appSupply));
++            Same("4.7 подсадка снята: каталога config\\layout рядом с пробой нет", false, Directory.Exists(Path.GetDirectoryName(appSupply)));
++
++            // 4.8 файла нет вовсе, .bak нет — встроенная молча: не отказ, слова нет.
++            ClearPanel(panel);
++            if (File.Exists(target)) File.Delete(target);
++            if (File.Exists(bak)) File.Delete(bak);
++            o = Invoke(load3, panel, target, makeContent);
++            Same("4.8 файла нет: Kind = LoadedFromBuiltin", "LoadedFromBuiltin", Kind(o));
++            Same("4.8 файла нет: не отказ", false, Failed(o));
++            Same("4.8 файла нет: Describe пуст", "", (string)describe.Invoke(null, new[] { o }));
++            Same("4.8 файла нет: панель получила содержимое встроенной", expectedContents, panel.Contents.Count);
++            ClearPanel(panel);
++            err = CaptureError(delegate { loadLayout.Invoke(mainForm, new object[] { target, false }); });
++            Same("4.8 тонкий вызов без файла: поток ошибок пуст (слова нет)", "", err.Trim());
++            Same("4.8 тонкий вызов без файла: панель получила содержимое", expectedContents, panel.Contents.Count);
++            ClearPanel(panel);
+         }
+ 
+         // ------------------------------------------------------------------
+-        // СТАРАЯ СБОРКА — положительный контроль прежнего пути
++        // СБОРКА П89 — положительный контроль остатка П96 («умолчание = пустое окно»)
++        // ------------------------------------------------------------------
++
++        static int P89BuildSection(Type layoutFile, MainForm mainForm, DockPanel panel)
++        {
++            Console.WriteLine();
++            Console.WriteLine("=== СБОРКА П89: помощник без поставочной ступени — умолчание = пустое окно ===");
++            MethodInfo load3 = layoutFile.GetMethod("Load", new[] { typeof(DockPanel), typeof(string), typeof(DeserializeDockContent) });
++            if (load3 == null || supplyReference == null || !File.Exists(supplyReference))
++            {
++                Console.WriteLine("⛔ КОНТРОЛЬ НЕ СОБРАТЬ: Load(DockPanel, string, DeserializeDockContent) {0}, эталон {1}. Код 2.",
++                                  load3 != null ? "есть" : "НЕТ", supplyReference ?? "НЕ НАЙДЕН");
++                return 2;
++            }
++            byte[] reference = File.ReadAllBytes(supplyReference);
++            int expectedContents = ContentsCount(supplyReference);
++            string layoutDir = Path.Combine(dir, "ladder_p89");
++            Directory.CreateDirectory(layoutDir);
++            string target = Path.Combine(layoutDir, "ExpertMode.xml");
++            string exeDir = Path.GetDirectoryName(Application.ExecutablePath);
++            string appSupply = Path.Combine(exeDir, "config", "layout", "ExpertMode.xml");
++            DeserializeDockContent makeContent = MakeContent;
++            int reproduced = 0;
++
++            // (а) пустой файл + нет .bak + поставочный рядом с приложением (на время).
++            File.WriteAllBytes(target, new byte[0]);
++            Directory.CreateDirectory(Path.GetDirectoryName(appSupply));
++            object o;
++            try
++            {
++                File.WriteAllBytes(appSupply, reference);
++                o = Invoke(load3, panel, target, makeContent);
++            }
++            finally
++            {
++                if (File.Exists(appSupply)) File.Delete(appSupply);
++                TryRemoveEmptyDirs(exeDir, Path.GetDirectoryName(appSupply));
++            }
++            Console.WriteLine("  (а) пустой файл, нет .bak, поставочный рядом: Kind = {0}, Contents = {1} (у поставочной {2})",
++                              Kind(o), panel.Contents.Count, expectedContents);
++            if (Kind(o) == "Default" && panel.Contents.Count == 0) reproduced++;
++
++            // (б) то же без поставочного.
++            ClearPanel(panel);
++            Thread.Sleep(1100);
++            File.WriteAllBytes(target, new byte[0]);
++            o = Invoke(load3, panel, target, makeContent);
++            Console.WriteLine("  (б) пустой файл, нет .bak, поставочного нет: Kind = {0}, Contents = {1}", Kind(o), panel.Contents.Count);
++            if (Kind(o) == "Default" && panel.Contents.Count == 0) reproduced++;
++
++            Console.WriteLine();
++            if (reproduced == 2)
++            {
++                Console.WriteLine("СБОРКА П89: остаток AMBER43 воспроизведён по обоим плечам — «умолчание» = пустая панель. Код 1.");
++                return 1;
++            }
++            Console.WriteLine("⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ НЕ СРАБОТАЛ: воспроизведено {0} из 2 — контролю верить нельзя. Код 2.", reproduced);
++            return 2;
++        }
++
++        // ------------------------------------------------------------------
++        // СБОРКА ДО П89 — положительный контроль прежнего пути
+         // ------------------------------------------------------------------
+ 
+         static int OldBuildSection(MainForm mainForm, DockPanel panel, DeserializeDockContent deserialize)
+@@ -537,6 +942,127 @@ namespace LayoutFileProbe
+         // помощники
+         // ------------------------------------------------------------------
+ 
++        /// <summary>Десериализатор, дающий содержимое на КАЖДУЮ строку раскладки — чтобы панель наполнилась.</summary>
++        static IDockContent MakeContent(string persistString)
++        {
++            DockContent content = new DockContent();
++            content.Text = persistString;
++            return content;
++        }
++
++        /// <summary>Снять с панели всё содержимое (и его окна), чтобы следующее чтение не упёрлось в «уже заполнена».</summary>
++        static void ClearPanel(DockPanel panel)
++        {
++            List<IDockContent> contents = new List<IDockContent>();
++            foreach (IDockContent c in panel.Contents) contents.Add(c);
++            foreach (IDockContent c in contents)
++            {
++                c.DockHandler.DockPanel = null;
++                c.DockHandler.Form.Dispose();
++            }
++            List<FloatWindow> floats = new List<FloatWindow>();
++            foreach (FloatWindow f in panel.FloatWindows) floats.Add(f);
++            foreach (FloatWindow f in floats) f.Dispose();
++        }
++
++        /// <summary>Поставочный файл дерева: вверх от каталога exe до BecquerelMonitor\config\layout\ExpertMode.xml.</summary>
++        static string FindSupplyReference()
++        {
++            string d = Path.GetDirectoryName(Application.ExecutablePath);
++            for (int i = 0; i < 8 && d != null; i++)
++            {
++                string candidate = Path.Combine(d, "BecquerelMonitor", "config", "layout", "ExpertMode.xml");
++                if (File.Exists(candidate)) return candidate;
++                d = Path.GetDirectoryName(d);
++            }
++            return null;
++        }
++
++        /// <summary>Count из &lt;DockPanel&gt;&lt;Contents Count="…"&gt; файла раскладки — ожидание, не константа.</summary>
++        static int ContentsCount(string path)
++        {
++            using (XmlReader r = XmlReader.Create(path))
++            {
++                while (r.Read())
++                {
++                    if (r.NodeType == XmlNodeType.Element && r.Name == "Contents" && r.Depth == 1)
++                    {
++                        return int.Parse(r.GetAttribute("Count"), CultureInfo.InvariantCulture);
++                    }
++                }
++            }
++            return -1;
++        }
++
++        static void TryRemoveEmptyDirs(string root, string leaf)
++        {
++            try
++            {
++                string d = leaf;
++                while (d != null && d.Length > root.Length && Directory.Exists(d)
++                       && Directory.GetFileSystemEntries(d).Length == 0)
++                {
++                    Directory.Delete(d);
++                    d = Path.GetDirectoryName(d);
++                }
++            }
++            catch (Exception)
++            {
++            }
++        }
++
++        static string CaptureError(Action action)
++        {
++            using (StringWriter capture = new StringWriter())
++            {
++                TextWriter old = Console.Error;
++                Console.SetError(capture);
++                try { action(); }
++                catch (TargetInvocationException ex) { Console.WriteLine("      бросил: {0}", ex.InnerException); bad++; }
++                finally { Console.SetError(old); }
++                return capture.ToString();
++            }
++        }
++
++        static object Invoke(MethodInfo method, params object[] args)
++        {
++            try
++            {
++                return method.Invoke(null, args);
++            }
++            catch (TargetInvocationException ex)
++            {
++                Console.WriteLine("      бросил: {0}", ex.InnerException);
++                bad++;
++                return null;
++            }
++        }
++
++        static bool SaysSupply(string word)
++        {
++            return word.IndexOf("supplied", StringComparison.OrdinalIgnoreCase) >= 0
++                || word.IndexOf("поставочн", StringComparison.OrdinalIgnoreCase) >= 0;
++        }
++
++        static bool SaysBuiltin(string word)
++        {
++            return word.IndexOf("built into", StringComparison.OrdinalIgnoreCase) >= 0
++                || word.IndexOf("встроен", StringComparison.OrdinalIgnoreCase) >= 0;
++        }
++
++        static bool SaysEmpty(string word)
++        {
++            return word.IndexOf("empty arrangement", StringComparison.OrdinalIgnoreCase) >= 0
++                || word.IndexOf("пустая расстановка", StringComparison.OrdinalIgnoreCase) >= 0;
++        }
++
++        static int Count(string text, string piece)
++        {
++            int n = 0;
++            for (int i = text.IndexOf(piece, StringComparison.Ordinal); i >= 0; i = text.IndexOf(piece, i + piece.Length, StringComparison.Ordinal)) n++;
++            return n;
++        }
++
+         static Action<Stream> Bytes(byte[] data)
+         {
+             return delegate (Stream s) { s.Write(data, 0, data.Length); };
+@@ -605,6 +1131,7 @@ namespace LayoutFileProbe
+ 
+         static string Kind(object outcome)
+         {
++            if (outcome == null) return null;
+             object k = Get(outcome, "Kind");
+             return k != null ? k.ToString() : null;
+         }

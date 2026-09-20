@@ -1,0 +1,60 @@
+ours RC103_point0_p55_2614.511_def code=0 n=40000000 keys=[] probe=build_p106 01:29:21 dt=293s
+ours RC103_point0_p55_2614.511_detour0 code=0 n=20000000 keys=[--detour=0] probe=build_p106 01:31:20 dt=119s
+ours RC103_point0_p55_2614.511_own0 code=0 n=20000000 keys=[--ret-kill=own] probe=build_p106 01:33:43 dt=143s
+ours RC103_point0_p55_2614.511_carry0 code=0 n=20000000 keys=[--ret-kill=carry] probe=build_p106 01:36:14 dt=150s
+ours RC103_point0_p55_2614.511_ret0 code=0 n=20000000 keys=[--ret-kill=ret] probe=build_p106 01:38:43 dt=149s
+ours RC103_point0_p55_2614.511_brem0 code=0 n=20000000 keys=[--ret-kill=brem] probe=build_p106 01:41:10 dt=147s
+ours RC103_point0_p55_2614.511_same0 code=0 n=20000000 keys=[--ret-kill=same] probe=build_p106 01:43:33 dt=144s
+ours RC103_point0_p55_2614.511_other0 code=0 n=20000000 keys=[--ret-kill=other] probe=build_p106 01:45:59 dt=145s
+ours AS80_th_disk_2614.511_def code=0 n=8000000 keys=[] probe=build_p106 01:47:53 dt=114s
+ours AS80_th_disk_2614.511_own0 code=0 n=8000000 keys=[--ret-kill=own] probe=build_p106 01:50:26 dt=153s
+ours AS80_th_disk_2614.511_carry0 code=0 n=8000000 keys=[--ret-kill=carry] probe=build_p106 01:52:57 dt=152s
+ours AS80_th_disk_2614.511_ret0 code=0 n=8000000 keys=[--ret-kill=ret] probe=build_p106 01:55:37 dt=159s
+ours AS80_th_disk_2614.511_brem0 code=0 n=8000000 keys=[--ret-kill=brem] probe=build_p106 01:58:11 dt=155s
+ours RC103_point0_p55_1460.82_def code=0 n=20000000 keys=[] probe=build_p106 02:00:39 dt=147s
+ours RC103_point0_p55_1460.82_own0 code=0 n=20000000 keys=[--ret-kill=own] probe=build_p106 02:02:32 dt=114s
+ours RC103_point0_p55_1460.82_carry0 code=0 n=20000000 keys=[--ret-kill=carry] probe=build_p106 02:03:41 dt=68s
+ours RC103_point0_p55_1460.82_ret0 code=0 n=20000000 keys=[--ret-kill=ret] probe=build_p106 02:04:48 dt=67s
+ours RC103_point0_p55_1460.82_brem0 code=0 n=20000000 keys=[--ret-kill=brem] probe=build_p106 02:05:55 dt=67s
+done ours D:\BqMoni_Claude\p106\plan_2_ours.csv 02:05:55
+ours RC103_point0_p55_2614.511_smoke2 code=0 n=200000 keys=[] probe=build_p106 02:07:23 dt=1s
+ours RC103_point0_p55_2614.511_outbrem0 code=0 n=20000000 keys=[--ret-kill=outbrem] probe=build_p106 02:08:29 dt=66s
+ours RC103_point0_p55_2614.511_base0 code=0 n=20000000 keys=[--detour=0 --ret-kill=own] probe=build_p106 02:09:16 dt=48s
+ours RC103_point0_p55_2614.511_photon0 code=0 n=20000000 keys=[--detour=0 --ret-kill=own,outbrem] probe=build_p106 02:10:04 dt=47s
+ours AS80_th_disk_2614.511_outbrem0 code=0 n=8000000 keys=[--ret-kill=outbrem] probe=build_p106 02:11:10 dt=66s
+ours AS80_th_disk_2614.511_base0 code=0 n=8000000 keys=[--detour=0 --ret-kill=own] probe=build_p106 02:11:54 dt=44s
+ours AS80_th_disk_2614.511_photon0 code=0 n=8000000 keys=[--detour=0 --ret-kill=own,outbrem] probe=build_p106 02:12:33 dt=39s
+ours RC103_point0_p55_1460.82_outbrem0 code=0 n=20000000 keys=[--ret-kill=outbrem] probe=build_p106 02:13:40 dt=67s
+ours RC103_point0_p55_1460.82_base0 code=0 n=20000000 keys=[--detour=0 --ret-kill=own] probe=build_p106 02:14:25 dt=46s
+ours RC103_point0_p55_1460.82_photon0 code=0 n=20000000 keys=[--detour=0 --ret-kill=own,outbrem] probe=build_p106 02:15:11 dt=45s
+done ours D:\BqMoni_Claude\p106\plan_4_ours.csv 02:15:11
+ours RC103_point0_p55_2614.511_lbrem1 code=0 n=40000000 keys=[--lbrem=1] probe=build_p106 02:21:18 dt=134s
+ours RC103_point0_p55_2614.511_lbrem1_outbrem0 code=0 n=20000000 keys=[--lbrem=1 --ret-kill=outbrem] probe=build_p106 02:22:24 dt=66s
+ours RC103_point0_p55_2614.511_lbrem1_base0 code=0 n=20000000 keys=[--lbrem=1 --detour=0 --ret-kill=own] probe=build_p106 02:23:12 dt=47s
+ours RC103_point0_p55_1460.82_lbrem1 code=0 n=20000000 keys=[--lbrem=1] probe=build_p106 02:24:22 dt=71s
+ours RC103_point0_p55_661.657_lbrem1 code=0 n=20000000 keys=[--lbrem=1] probe=build_p106 02:25:44 dt=81s
+ours RC103_point0_p55_59.541_lbrem1 code=0 n=20000000 keys=[--lbrem=1] probe=build_p106 02:28:48 dt=185s
+ours AS80_th_disk_2614.511_lbrem1 code=0 n=8000000 keys=[--lbrem=1] probe=build_p106 02:31:22 dt=154s
+ours AS80_th_disk_1460.82_lbrem1 code=0 n=8000000 keys=[--lbrem=1] probe=build_p106 02:33:42 dt=139s
+ours RC103_point0_1460.82_lbrem1 code=0 n=20000000 keys=[--lbrem=1] probe=build_p106 02:35:32 dt=111s
+ours RC103_point0_661.657_lbrem1 code=0 n=20000000 keys=[--lbrem=1] probe=build_p106 02:36:29 dt=56s
+ours RC103_point0_59.541_lbrem1 code=0 n=20000000 keys=[--lbrem=1] probe=build_p106 02:37:31 dt=62s
+ours ASN16_lu_side_1460.82_lbrem1 code=0 n=8000000 keys=[--lbrem=1] probe=build_p106 02:38:22 dt=51s
+ours ASN16_lu_side_661.657_lbrem1 code=0 n=8000000 keys=[--lbrem=1] probe=build_p106 02:39:12 dt=50s
+ours AS80_point0_1460.82_lbrem1 code=0 n=4000000 keys=[--lbrem=1] probe=build_p106 02:39:30 dt=18s
+done ours D:\BqMoni_Claude\p106\plan_5_ours.csv 02:39:30
+ours RC103_point0_p55_2614.511_lbrem1 code=0 n=40000000 keys=[--lbrem=1] probe=build_p106 03:10:05 dt=142s
+ours RC103_point0_p55_2614.511_lbrem1_outbrem0 code=0 n=20000000 keys=[--lbrem=1 --ret-kill=outbrem] probe=build_p106 03:11:12 dt=67s
+ours RC103_point0_p55_2614.511_lbrem1_base0 code=0 n=20000000 keys=[--lbrem=1 --detour=0 --ret-kill=own] probe=build_p106 03:12:00 dt=48s
+ours RC103_point0_p55_1460.82_lbrem1 code=0 n=20000000 keys=[--lbrem=1] probe=build_p106 03:13:13 dt=73s
+ours RC103_point0_p55_661.657_lbrem1 code=0 n=20000000 keys=[--lbrem=1] probe=build_p106 03:14:21 dt=68s
+ours RC103_point0_p55_59.541_lbrem1 code=0 n=20000000 keys=[--lbrem=1] probe=build_p106 03:15:46 dt=85s
+ours AS80_th_disk_2614.511_lbrem1 code=0 n=8000000 keys=[--lbrem=1] probe=build_p106 03:17:02 dt=76s
+ours AS80_th_disk_1460.82_lbrem1 code=0 n=8000000 keys=[--lbrem=1] probe=build_p106 03:18:08 dt=66s
+ours RC103_point0_1460.82_lbrem1 code=0 n=20000000 keys=[--lbrem=1] probe=build_p106 03:19:10 dt=62s
+ours RC103_point0_661.657_lbrem1 code=0 n=20000000 keys=[--lbrem=1] probe=build_p106 03:20:07 dt=57s
+ours RC103_point0_59.541_lbrem1 code=0 n=20000000 keys=[--lbrem=1] probe=build_p106 03:21:08 dt=62s
+ours ASN16_lu_side_1460.82_lbrem1 code=0 n=8000000 keys=[--lbrem=1] probe=build_p106 03:22:03 dt=54s
+ours ASN16_lu_side_661.657_lbrem1 code=0 n=8000000 keys=[--lbrem=1] probe=build_p106 03:22:54 dt=51s
+ours AS80_point0_1460.82_lbrem1 code=0 n=4000000 keys=[--lbrem=1] probe=build_p106 03:23:13 dt=19s
+done ours D:\BqMoni_Claude\p106\plan_7_ours.csv 03:23:13

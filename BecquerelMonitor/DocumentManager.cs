@@ -2015,7 +2015,11 @@ namespace BecquerelMonitor
                     string title = info.Time.ToLocalTime().ToString("yyyy.MM.dd HH:mm:ss zzzz",
                                                                     CultureInfo.InvariantCulture);
                     title += " Counts: " + energySpectrum.TotalPulseCount.ToString(CultureInfo.InvariantCulture);
-                    title += ", ~cps: " + (energySpectrum.TotalPulseCount / energySpectrum.MeasurementTime).ToString("f3", CultureInfo.InvariantCulture);
+                    // (`AMBER35`, 15.09.2026) «~cps» — по знаменателю разбора
+                    // (`EffectiveLiveTime`: живое, если задано, иначе полное);
+                    // «Time:» и строка времени ниже — ПОЛНОЕ время, это подпись
+                    // формата, а не знаменатель, и свой ввоз читает её как есть.
+                    title += ", ~cps: " + (energySpectrum.TotalPulseCount / energySpectrum.EffectiveLiveTime).ToString("f3", CultureInfo.InvariantCulture);
                     title += ", Time: " + energySpectrum.MeasurementTime.ToString(CultureInfo.InvariantCulture) + " s";
                     writer.WriteLine(title);
                     //1643973675060 Measurement time

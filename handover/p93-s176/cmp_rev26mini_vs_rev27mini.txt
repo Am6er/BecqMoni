@@ -1,0 +1,17 @@
+runs        строк    59  разошлось   20
+   по столбцам: chi2ndf_pois×19, chi2ndf×17, inflate×15, model_residual_pct×15, gain×12, anchor_note×11, anchor_offset_kev×8, offset_ch×5
+   по спектрам (20): 
+      … ещё 20
+components  строк   112  разошлось   61
+   по столбцам: z×52, peak_counts×49, inflate×47, decay_s×41, share_pct×34, peak_share_pct×32, dt_decay_s×19, mda_decay_s×17
+   по спектрам (22): 
+      … ещё 22
+limits      строк    45  разошлось   21
+   по столбцам: dt_decay_s×19, mda_peak_counts×19, mda_decay_s×17, decay_s×16, collinearity×13
+   по спектрам (21): 
+      … ещё 21
+anchors     строк   217  разошлось  139
+   по столбцам: z×121, measured_kev×119, shift_kev×115, peak_share×111, model_kev×110, sigma_kev×42, ch_lo×3, ch_hi×3, line_kev×1, light_shift_kev×1
+   по спектрам (17): 
+      … ещё 17
+ИТОГО разошлось 241 — РАСХОЖДЕНИЕ

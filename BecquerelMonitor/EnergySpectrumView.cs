@@ -661,7 +661,7 @@ namespace BecquerelMonitor
             if (startChannel != endChannel)
             {
                 EnergySpectrum fwhmSpectrum = this.energySpectrum;
-                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.substractedEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.substractedEnergySpectrum != null && this.backgroundEnergySpectrum.EffectiveLiveTime != 0.0)
                 {
                     fwhmSpectrum = this.substractedEnergySpectrum;
                 }
@@ -728,9 +728,20 @@ namespace BecquerelMonitor
             analytics.SelectionCentroidkeV = this.selectionCentroidkeV;
             analytics.SelectionFWHMinkev = this.selectionFWHMinkev;
 
-            double fgTime = this.activeResultData.EnergySpectrum.MeasurementTime;
+            // ⛔ (`AMBER35`, решение Amber 15.09.2026 «согласовать все
+            // связанные пути по живому времени») Знаменатель выделения —
+            // `EffectiveLiveTime`: живое время, если задано (> 0), иначе
+            // полное; фон — отношением живых. Это правило разбора FSA, и
+            // с 15.09.2026 оно же у зон, дозы, вычитания фона и у ВСЕЙ
+            // отрисовки этого вида в имп/с (`EffectiveLiveTime` стоит во всех
+            // ~80 местах вида, где прежде было полное время). Прежде здесь
+            // было полное время, и при мёртвом времени d одна линия на одном
+            // экране несла две скорости: n/T_живое в отчёте FSA и n/T_полное
+            // на этой панели, а Бк, Бк/кг, Бк/л были занижены на d. Спектр
+            // без живого — побитово прежние числа.
+            double fgTime = this.activeResultData.EnergySpectrum.EffectiveLiveTime;
             double bgTime = this.activeResultData.BackgroundEnergySpectrum != null
-                ? this.activeResultData.BackgroundEnergySpectrum.MeasurementTime
+                ? this.activeResultData.BackgroundEnergySpectrum.EffectiveLiveTime
                 : 0.0;
             int[] fgSpectrum = this.energySpectrum.Spectrum;
             int[] bgSpectrum = this.backgroundEnergySpectrum != null
@@ -1155,6 +1166,25 @@ namespace BecquerelMonitor
             if (coeff.Problem == BecquerelCoefficient.LineProblem.NoCurve && noCurve)
             {
                 return Resources.ActivityNoCurveRefused;
+            }
+
+            // (`AMBER34`, П79 15.09.2026) Кривая СЦЕНЫ ПОЛЯ — см² на единичный
+            // флюенс: активность по ней не считается, и причина — та же, что у
+            // зон (`BecquerelCoefficient.Resolve`), тем же местом, что
+            // «за краем» и «кривой нет». У выделения ручного режима нет —
+            // здесь всегда отказ (решение Amber 15.09.2026).
+            if (coeff.Problem == BecquerelCoefficient.LineProblem.FieldCurve)
+            {
+                return string.Format(CultureInfo.InvariantCulture, Resources.ActivityFieldCurveRefused,
+                                     coeff.Refusal ?? "");
+            }
+
+            // (`AMBER34`) Кривая ОТВЕРГНУТА с названной точкой (доля выше
+            // единицы): человеку — саму причину, а не «кривая не даёт числа».
+            if (coeff.Problem == BecquerelCoefficient.LineProblem.CurveRefused)
+            {
+                return string.Format(CultureInfo.InvariantCulture, Resources.ActivityCurveRefused,
+                                     coeff.Refusal ?? "");
             }
 
             return string.Format(CultureInfo.InvariantCulture, Resources.ActivityNoEpsilonRefused, energyKev);
@@ -1783,7 +1813,7 @@ namespace BecquerelMonitor
         {
             if (this.backgroundMode == BackgroundMode.Substract)
             {
-                if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.EffectiveLiveTime != 0.0)
                 {
                     SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
                     this.substractedEnergySpectrum = sa.Substract(this.backgroundEnergySpectrum);
@@ -1835,7 +1865,7 @@ namespace BecquerelMonitor
             if (this.backgroundMode == BackgroundMode.NormalizeByEfficiency)
             {
                 EfficiencyConfigData efficiency = this.activeResultData.Efficiency;
-                if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.EffectiveLiveTime != 0.0)
                 {
                     this.normByEffBgEnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(this.backgroundEnergySpectrum, efficiency);
                 }
@@ -1937,11 +1967,11 @@ namespace BecquerelMonitor
                     double bgChannelValue;
                     if (this.verticalUnit == VerticalUnit.CountsPerSecond)
                     {
-                        bgChannelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] / this.backgroundEnergySpectrum.MeasurementTime;
+                        bgChannelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] / this.backgroundEnergySpectrum.EffectiveLiveTime;
                     }
                     else
                     {
-                        bgChannelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
+                        bgChannelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] * this.energySpectrum.EffectiveLiveTime / this.backgroundEnergySpectrum.EffectiveLiveTime;
                     }
 
                     if (bgChannelValue > this.totalMaxValue)
@@ -1961,9 +1991,9 @@ namespace BecquerelMonitor
                 for (int j = 0; j < energySpectrum.NumberOfChannels - 1; j++)
                 {
                     double channelValue = (double)energySpectrum.DrawingSpectrum[j];
-                    if (this.verticalUnit == VerticalUnit.CountsPerSecond && energySpectrum.MeasurementTime != 0.0)
+                    if (this.verticalUnit == VerticalUnit.CountsPerSecond && energySpectrum.EffectiveLiveTime != 0.0)
                     {
-                        channelValue /= energySpectrum.MeasurementTime;
+                        channelValue /= energySpectrum.EffectiveLiveTime;
                     }
                     if (channelValue > this.totalMaxValue)
                     {
@@ -2007,8 +2037,8 @@ namespace BecquerelMonitor
             {
                 double channelValue;
 
-                bool useBackground = (this.fittingMode == VerticalFittingMode.BackgroundMinMax || this.energySpectrum.MeasurementTime == 0.0)
-                                     && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0;
+                bool useBackground = (this.fittingMode == VerticalFittingMode.BackgroundMinMax || this.energySpectrum.EffectiveLiveTime == 0.0)
+                                     && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.EffectiveLiveTime != 0.0;
 
                 if (useBackground)
                 {
@@ -2023,19 +2053,19 @@ namespace BecquerelMonitor
 
                     if (this.verticalUnit == VerticalUnit.CountsPerSecond)
                     {
-                        channelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] / this.backgroundEnergySpectrum.MeasurementTime;
+                        channelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] / this.backgroundEnergySpectrum.EffectiveLiveTime;
                     }
                     else
                     {
-                        channelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
+                        channelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] * this.energySpectrum.EffectiveLiveTime / this.backgroundEnergySpectrum.EffectiveLiveTime;
                     }
                 }
                 else
                 {
                     channelValue = (double)this.energySpectrum.DrawingSpectrum[k];
-                    if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
+                    if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
                     {
-                        channelValue /= this.energySpectrum.MeasurementTime;
+                        channelValue /= this.energySpectrum.EffectiveLiveTime;
                     }
                 }
 
@@ -2069,18 +2099,18 @@ namespace BecquerelMonitor
                     this.maxValue = 1.0;
                 }
             }
-            else if (this.fittingMode == VerticalFittingMode.BackgroundMinMax && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+            else if (this.fittingMode == VerticalFittingMode.BackgroundMinMax && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.EffectiveLiveTime != 0.0)
             {
-                if (this.maxValue < 1.0 / this.backgroundEnergySpectrum.MeasurementTime)
+                if (this.maxValue < 1.0 / this.backgroundEnergySpectrum.EffectiveLiveTime)
                 {
-                    this.maxValue = 1.0 / this.backgroundEnergySpectrum.MeasurementTime;
+                    this.maxValue = 1.0 / this.backgroundEnergySpectrum.EffectiveLiveTime;
                 }
             }
-            else if (this.energySpectrum.MeasurementTime != 0.0)
+            else if (this.energySpectrum.EffectiveLiveTime != 0.0)
             {
-                if (this.maxValue < 1.0 / this.energySpectrum.MeasurementTime)
+                if (this.maxValue < 1.0 / this.energySpectrum.EffectiveLiveTime)
                 {
-                    this.maxValue = 1.0 / this.energySpectrum.MeasurementTime;
+                    this.maxValue = 1.0 / this.energySpectrum.EffectiveLiveTime;
                 }
             }
             else if (this.maxValue < 0.0001)
@@ -2120,18 +2150,18 @@ namespace BecquerelMonitor
                     {
                         this.totalMinValue = 0.7;
                     }
-                    else if (this.fittingMode == VerticalFittingMode.BackgroundMinMax && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    else if (this.fittingMode == VerticalFittingMode.BackgroundMinMax && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.EffectiveLiveTime != 0.0)
                     {
-                        this.totalMinValue = 1.0 / this.backgroundEnergySpectrum.MeasurementTime * 0.7;
+                        this.totalMinValue = 1.0 / this.backgroundEnergySpectrum.EffectiveLiveTime * 0.7;
                     }
                     else
                     {
-                        if (this.energySpectrum.MeasurementTime != 0.0)
+                        if (this.energySpectrum.EffectiveLiveTime != 0.0)
                         {
-                            this.totalMinValue = 1.0 / this.energySpectrum.MeasurementTime * 0.7;
+                            this.totalMinValue = 1.0 / this.energySpectrum.EffectiveLiveTime * 0.7;
                             foreach (ResultData resultData2 in this.resultDataList)
                             {
-                                double candidate = 1.0 / resultData2.EnergySpectrum.MeasurementTime * 0.7;
+                                double candidate = 1.0 / resultData2.EnergySpectrum.EffectiveLiveTime * 0.7;
                                 if (candidate < this.totalMinValue)
                                 {
                                     this.totalMinValue = candidate;
@@ -2151,13 +2181,13 @@ namespace BecquerelMonitor
                     {
                         this.minValue = 0.7;
                     }
-                    else if (this.fittingMode == VerticalFittingMode.BackgroundMinMax && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    else if (this.fittingMode == VerticalFittingMode.BackgroundMinMax && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.EffectiveLiveTime != 0.0)
                     {
-                        this.minValue = 1.0 / this.backgroundEnergySpectrum.MeasurementTime * 0.7;
+                        this.minValue = 1.0 / this.backgroundEnergySpectrum.EffectiveLiveTime * 0.7;
                     }
-                    else if (this.energySpectrum.MeasurementTime != 0.0)
+                    else if (this.energySpectrum.EffectiveLiveTime != 0.0)
                     {
-                        this.minValue = 1.0 / this.energySpectrum.MeasurementTime * 0.7;
+                        this.minValue = 1.0 / this.energySpectrum.EffectiveLiveTime * 0.7;
                     }
                     else
                     {
@@ -2299,7 +2329,7 @@ namespace BecquerelMonitor
                     {
                         source = this.substractedEnergySpectrum;
                     }
-                    else if (resultData.BackgroundEnergySpectrum != null && resultData.BackgroundEnergySpectrum.MeasurementTime > 0)
+                    else if (resultData.BackgroundEnergySpectrum != null && resultData.BackgroundEnergySpectrum.EffectiveLiveTime > 0)
                     {
                         SpectrumAriphmetics sa = new SpectrumAriphmetics(resultData.EnergySpectrum);
                         source = sa.Substract(resultData.BackgroundEnergySpectrum);
@@ -2316,7 +2346,7 @@ namespace BecquerelMonitor
                     {
                         source = this.normByEffEnergySpectrum;
                     }
-                    else if (FullSpectrumAnalysis.FsaEfficiency.FromConfig(resultData.Efficiency) != null)
+                    else if (SpectrumAriphmetics.NormalizeRefusal(resultData.Efficiency) == null)
                     {
                         source = SpectrumAriphmetics.NormalizeSpectrum(resultData.EnergySpectrum, resultData.Efficiency);
                     }
@@ -2327,6 +2357,14 @@ namespace BecquerelMonitor
                         // молча класть на одну шкалу разные величины. Пустая
                         // кривая — «нет значения»: спектр уходит в ноль, пока
                         // кривую не выберут.
+                        //
+                        // (`AMBER34`, П79) Признак — ТОТ ЖЕ предикат, что у
+                        // режима и у команды (`NormalizeRefusal`): кривая
+                        // сцены поля и отвергнутая кривая ведут себя как
+                        // отсутствующая — спектр в ноль, а не поделённый на
+                        // см² с обнулёнными каналами. Слов здесь нет по
+                        // устройству (это отрисовка спектра сравнения); их
+                        // говорит активному спектру пункт меню.
                         source = null;
                     }
                 }
@@ -2424,7 +2462,7 @@ namespace BecquerelMonitor
                             }
                         }
 
-                        if (!this.ShowFsaOverlay(g) && this.energySpectrum.MeasurementTime != 0.0)
+                        if (!this.ShowFsaOverlay(g) && this.energySpectrum.EffectiveLiveTime != 0.0)
                         {
                             int alpha2 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
                             Color color = this.backgroundMode == BackgroundMode.Substract
@@ -2443,7 +2481,7 @@ namespace BecquerelMonitor
                     else
                     {
                         // draw active spectrum first, then background/continuum
-                        if (!this.ShowFsaOverlay(g) && this.energySpectrum.MeasurementTime != 0.0)
+                        if (!this.ShowFsaOverlay(g) && this.energySpectrum.EffectiveLiveTime != 0.0)
                         {
                             int alpha3 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
                             Color color = this.backgroundMode == BackgroundMode.Substract
@@ -2517,7 +2555,7 @@ namespace BecquerelMonitor
                             this.DrawPeakOutline(g, this.peakEnergySpectrum[i]);
                         }
                     }
-                    if (!this.ShowFsaOverlay(g) && this.energySpectrum.MeasurementTime != 0.0)
+                    if (!this.ShowFsaOverlay(g) && this.energySpectrum.EffectiveLiveTime != 0.0)
                     {
                         Color color = this.backgroundMode == BackgroundMode.Substract
                             ? colorConfig.BgDiffColor.Color
@@ -2673,9 +2711,9 @@ namespace BecquerelMonitor
             for (int i = visibleFrom; i <= visibleTo; i++)
             {
                 double num4 = energyResolutionResult.StartValue + (energyResolutionResult.EndValue - energyResolutionResult.StartValue) * ((double)i - energyResolutionResult.StartChannel) / (energyResolutionResult.EndChannel - energyResolutionResult.StartChannel);
-                if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
+                if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
                 {
-                    num4 /= this.energySpectrum.MeasurementTime;
+                    num4 /= this.energySpectrum.EffectiveLiveTime;
                 }
                 int num5;
                 if (this.verticalScaleType == VerticalScaleType.LinearScale)
@@ -2723,10 +2761,10 @@ namespace BecquerelMonitor
             }
             double num10 = energyResolutionResult.MaxValue;
             double num11 = energyResolutionResult.MaxBaseValue;
-            if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
+            if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
             {
-                num10 /= this.energySpectrum.MeasurementTime;
-                num11 /= this.energySpectrum.MeasurementTime;
+                num10 /= this.energySpectrum.EffectiveLiveTime;
+                num11 /= this.energySpectrum.EffectiveLiveTime;
             }
             if (num10 < this.totalMinValue || num11 < this.totalMinValue) return;
             int y2;
@@ -2797,9 +2835,9 @@ namespace BecquerelMonitor
                     x2 = GdiCoordinate((energyResolutionResult.RightChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
                 }
                 double num14 = energyResolutionResult.HalfValue;
-                if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
+                if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
                 {
-                    num14 /= this.energySpectrum.MeasurementTime;
+                    num14 /= this.energySpectrum.EffectiveLiveTime;
                 }
                 int num5;
                 if (this.verticalScaleType == VerticalScaleType.LinearScale)
@@ -2875,16 +2913,16 @@ namespace BecquerelMonitor
                     {
                         if (this.verticalUnit == VerticalUnit.Counts)
                         {
-                            num4 = num4 * this.energySpectrum.MeasurementTime / spectrum.MeasurementTime;
+                            num4 = num4 * this.energySpectrum.EffectiveLiveTime / spectrum.EffectiveLiveTime;
                         }
-                        else if (this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                        else if (this.backgroundEnergySpectrum.EffectiveLiveTime != 0.0)
                         {
-                            num4 /= spectrum.MeasurementTime;
+                            num4 /= spectrum.EffectiveLiveTime;
                         }
                     }
-                    else if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.MeasurementTime != 0.0)
+                    else if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.EffectiveLiveTime != 0.0)
                     {
-                        num4 /= spectrum.MeasurementTime;
+                        num4 /= spectrum.EffectiveLiveTime;
                     }
                     if (num4 > 0.0)
                     {
@@ -3076,10 +3114,10 @@ namespace BecquerelMonitor
                 {
                     double peakv = spectrum.DrawingSpectrum[num3] + peakSpectrum[num3];
                     double num4 = spectrum.DrawingSpectrum[num3];
-                    if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.MeasurementTime != 0.0)
+                    if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.EffectiveLiveTime != 0.0)
                     {
-                        num4 /= spectrum.MeasurementTime;
-                        peakv /= spectrum.MeasurementTime;
+                        num4 /= spectrum.EffectiveLiveTime;
+                        peakv /= spectrum.EffectiveLiveTime;
                     }
                     if (peakv > 0.0)
                     {
@@ -3159,19 +3197,19 @@ namespace BecquerelMonitor
                 {
                     if (this.verticalUnit == VerticalUnit.Counts)
                     {
-                        if (spectrum.MeasurementTime != 0.0)
+                        if (spectrum.EffectiveLiveTime != 0.0)
                         {
-                            num = num * this.energySpectrum.MeasurementTime / spectrum.MeasurementTime;
+                            num = num * this.energySpectrum.EffectiveLiveTime / spectrum.EffectiveLiveTime;
                         }
                     }
-                    else if (spectrum.MeasurementTime != 0.0)
+                    else if (spectrum.EffectiveLiveTime != 0.0)
                     {
-                        num /= spectrum.MeasurementTime;
+                        num /= spectrum.EffectiveLiveTime;
                     }
                 }
-                else if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.MeasurementTime != 0.0)
+                else if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.EffectiveLiveTime != 0.0)
                 {
-                    num /= spectrum.MeasurementTime;
+                    num /= spectrum.EffectiveLiveTime;
                 }
                 int num3;
                 if (this.horizontalUnit == HorizontalUnit.Energy)
@@ -3326,9 +3364,9 @@ namespace BecquerelMonitor
             for (int i = startChannel; i <= endChannel; i++)
             {
                 double peakv = spectrum.DrawingSpectrum[i] + peakSpectrum[i];
-                if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.MeasurementTime != 0.0)
+                if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.EffectiveLiveTime != 0.0)
                 {
-                    peakv /= spectrum.MeasurementTime;
+                    peakv /= spectrum.EffectiveLiveTime;
                 }
                 int num3;
                 if (this.horizontalUnit == HorizontalUnit.Energy)
@@ -3638,13 +3676,13 @@ namespace BecquerelMonitor
                         if (ch >= 0 && ch < this.energySpectrum.Spectrum.Length)
                         {
                             double fgValue = this.energySpectrum.DrawingSpectrum[ch];
-                            if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
+                            if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
                             {
-                                fgValue /= this.energySpectrum.MeasurementTime;
+                                fgValue /= this.energySpectrum.EffectiveLiveTime;
                             }
 
                             double bgValue = 0.0;
-                            if (!(this.backgroundEnergySpectrum == null || this.backgroundEnergySpectrum.MeasurementTime == 0.0))
+                            if (!(this.backgroundEnergySpectrum == null || this.backgroundEnergySpectrum.EffectiveLiveTime == 0.0))
                             {
                                 int bgCh = ch;
                                 if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
@@ -3658,11 +3696,11 @@ namespace BecquerelMonitor
                                 }
                                 if (this.verticalUnit == VerticalUnit.CountsPerSecond)
                                 {
-                                    bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] / this.backgroundEnergySpectrum.MeasurementTime;
+                                    bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] / this.backgroundEnergySpectrum.EffectiveLiveTime;
                                 }
                                 else
                                 {
-                                    bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
+                                    bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] * this.energySpectrum.EffectiveLiveTime / this.backgroundEnergySpectrum.EffectiveLiveTime;
                                 }
                             }
 
@@ -3863,11 +3901,11 @@ namespace BecquerelMonitor
                             ? this.ScaleFsaValue(fsaNet[ch])
                             : this.energySpectrum.DrawingSpectrum[ch];
                         double bgValue = 0.0;
-                        if (!fsaNetHere && this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
+                        if (!fsaNetHere && this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
                         {
                             // В ветке FSA делить уже не надо: `ScaleFsaValue`
                             // сделала это тем же правилом, что и для линии.
-                            fgValue /= this.energySpectrum.MeasurementTime;
+                            fgValue /= this.energySpectrum.EffectiveLiveTime;
                         }
                         if (this.IsBackgroundVisible())
                         {
@@ -3884,11 +3922,11 @@ namespace BecquerelMonitor
                             }
                             if (this.verticalUnit == VerticalUnit.CountsPerSecond)
                             {
-                                bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] / this.backgroundEnergySpectrum.MeasurementTime;
+                                bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] / this.backgroundEnergySpectrum.EffectiveLiveTime;
                             }
                             else
                             {
-                                bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
+                                bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] * this.energySpectrum.EffectiveLiveTime / this.backgroundEnergySpectrum.EffectiveLiveTime;
                             }
                         }
 
@@ -3979,7 +4017,7 @@ namespace BecquerelMonitor
         private bool IsBackgroundVisible()
         {
             return (this.backgroundMode == BackgroundMode.Visible || this.backgroundMode == BackgroundMode.NormalizeByEfficiency)
-                && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0;
+                && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.EffectiveLiveTime != 0.0;
         }
 
         String FormatAs10Power(decimal val)
@@ -4426,7 +4464,7 @@ namespace BecquerelMonitor
                 // 13-50 % высоты пика).
                 num6 = fsaNet[channel2];
             }
-            else if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0
+            else if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.EffectiveLiveTime != 0.0
                 && this.substractedEnergySpectrum != null)
             {
                 num6 = this.substractedEnergySpectrum.DrawingSpectrum[channel2];
@@ -4434,9 +4472,9 @@ namespace BecquerelMonitor
             {
                 num6 = spectrum.DrawingSpectrum[channel2];
             }
-            if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.MeasurementTime != 0.0)
+            if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.EffectiveLiveTime != 0.0)
             {
-                num6 /= spectrum.MeasurementTime;
+                num6 /= spectrum.EffectiveLiveTime;
             }
             int y;
             if (this.verticalScaleType == VerticalScaleType.LinearScale)
@@ -4612,9 +4650,9 @@ namespace BecquerelMonitor
                     num = (int)(((num2 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
                 }
                 double num3 = spectrum.DrawingSpectrum[channel];
-                if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.MeasurementTime != 0.0)
+                if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.EffectiveLiveTime != 0.0)
                 {
-                    num3 /= spectrum.MeasurementTime;
+                    num3 /= spectrum.EffectiveLiveTime;
                 }
                 int y;
                 if (this.verticalScaleType == VerticalScaleType.LinearScale)
@@ -4718,9 +4756,9 @@ namespace BecquerelMonitor
             string intFormat = "f0";
             string floatFormat = "f2";
             string preciseFloatFormat = "f4";
-            double fg_time = this.activeResultData.EnergySpectrum.MeasurementTime;
+            double fg_time = this.activeResultData.EnergySpectrum.EffectiveLiveTime;
             double bg_time = this.activeResultData.BackgroundEnergySpectrum != null
-                ? this.activeResultData.BackgroundEnergySpectrum.MeasurementTime
+                ? this.activeResultData.BackgroundEnergySpectrum.EffectiveLiveTime
                 : 0.0;
             int[] fg_spectrum = this.energySpectrum.Spectrum;
             int[] bg_spectrum = this.backgroundEnergySpectrum != null 

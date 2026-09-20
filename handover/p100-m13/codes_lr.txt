@@ -1,0 +1,15 @@
+lr_thick_ptfe code=0 dt=38s 14:56:48
+lr_thick_al code=0 dt=46s 14:57:34
+lr_thick_mgo code=0 dt=40s 14:58:14
+lr_thick_c code=0 dt=33s 14:58:47
+lr_thick_cu code=0 dt=46s 14:59:33
+lr_rc103_p55_final code=0 dt=62s 15:00:35
+lr_as80_disk_final code=0 dt=45s 15:01:20
+lr_crystal_csi code=0 dt=4s 15:01:24
+lr_step_0.05 code=0 dt=9s 15:01:33
+lr_step_0.02 code=0 dt=18s 15:01:51
+lr_step_0.01 code=0 dt=34s 15:02:25
+lr_cutoff_10 code=0 dt=8s 15:02:33
+lr_cutoff_30 code=0 dt=7s 15:02:41
+lr_cutoff_45 code=0 dt=7s 15:02:48
+done 15:02:48

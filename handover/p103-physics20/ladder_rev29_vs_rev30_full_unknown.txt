@@ -1,0 +1,9 @@
+спектр                       часть     χ²/ndf до      после      Δ %  что разошлось; состав (доля %, до → после, > 0.05 п.п.)
+AS80_Charoite                unknown         nan        nan     +nan  peaks
+AS80_K40                     unknown         nan        nan     +nan  peaks
+AS80_Th232WT20               unknown     20.6416    20.1344   -2.457  <число строк 17→18>, chi2ndf, chi2ndf_pois, collinearity, decay_s, dt_decay_s; Ac-228 33.98→33.62; Backscatter 1.40→1.47; Bi-212 3.82→3.74; DE-1588 2.69→2.46; DE-1631 0.00→0.96; DE-2615 5.50→5.55; Pb-212 17.30→16.96; SE-1631 0.88→1.41; SE-2615 4.22→4.04; Tl-208 25.41→24.98
+RC103_Th232WT20              unknown     27.9491    27.9262   -0.082  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s; DE-1631 8.73→8.79
+
+unknown: разобранных 2, Σχ²/ndf 48.5907 -> 48.0606 (-1.0909 %)
+сдвинулось 4, побитово 32
+побитово: AS1Pro_Ra226, AS80_Onyx, AS80_Th232_v2, AS80_UGlass, ASN16_Am241, ASN16_BrazilNuts, ASN16_Charoite, ASN16_Charoite_v2, ASN16_Granite, ASN16_Th232, ASN16_Th232_Am241, ASN16_UGlass, ASN3_Tile, ASN8_Am241, ASN8_Th232_1024, ASN8_Th232_2048, ASN8_Th232_3000, ASN8_Th232_4096, ASN8_Th232_8192, ASN8_UGlass, G1S16_Th232_Mar, GS4000_Lu176, GS4000_Ra226, GS4000_Th232, GS4000_U, LaBrBril_Eu152, LaBrBril_Th228, OBS_UGlass, RC101_I131, RC103_Charoite, RC103_K40Village, RC103_Th232Village

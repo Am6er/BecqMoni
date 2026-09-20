@@ -4132,22 +4132,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `1 + Σ_k A_kk·Q_k(E₁)·Q_k(E₂)` — ядерная половина A_kk из спинов и
         /// мультипольностей схемы уровней (<see cref="AngularCorrelation"/>),
         /// геометрическая Q_k(E) — из таблицы сцены (<see cref="AngularQk"/>,
-        /// сайдкар `*.qk` рядом с матрицей); без таблицы ключ ничего не меняет.
+        /// с 16.09.2026 (`AMBER46`, П87) — внутри матрицы отклика, формат 9,
+        /// из тех же историй, что её строки); без матрицы каскад не считается.
         /// Без ключа пара идёт произведением эффективностей, то есть изотропно,
-        /// как считалось до этого дня (<see cref="FsaCascadeSummer.AngularCorrelations"/>).
-        /// Полярность умолчания и числа A/B — у присваивания в конструкторе;
-        /// рычаг проб — `--angcorr=0|1` у `CorpusFsaProbe`; читатель — `SETUP`
+        /// как считалось до 15.09.2026 (<see cref="FsaCascadeSummer.AngularCorrelations"/>).
+        /// С 15.09.2026 (П86, `AMBER42`) умолчание — ВКЛ: знак δ заселяющего
+        /// перехода в <see cref="AngularCorrelation.For"/> исправлен, плечо
+        /// перемерено. Полярность умолчания и числа A/B — у присваивания в
+        /// конструкторе; рычаг проб — `--angcorr=0|1` у `CorpusFsaProbe` и
+        /// `FsaCascadeProbe` (без ключа — умолчание отсюда); читатель — `SETUP`
         /// отражением.
         /// </summary>
         public bool CascadeSumAngular { get; set; }
 
         /// <summary>
-        /// Таблица Q_k(E) сцены (`N14`); null — сайдкара нет. Приходит с
-        /// матрицей тем же путём, что <see cref="ScintillatorMaterial"/>
+        /// Таблица Q_k(E) сцены (`N14`); с 16.09.2026 (`AMBER46`, П87) — это
+        /// <c>ResponseMatrix.AngularQk</c>, блок формата 9 самой матрицы: приходит
+        /// с ней тем же путём, что <see cref="ScintillatorMaterial"/>
         /// (<c>FsaMatrixBinding.Bind</c>), и уходит в сумматор до первого
-        /// расчёта поправок.
+        /// расчёта поправок. null — матрицы нет (тогда и каскада нет) либо
+        /// матрица собрана руками без таблицы.
         /// </summary>
-        public AngularAttenuation AngularQk { get; set; }
+        public EfficiencyMaker.AngularAttenuation AngularQk { get; set; }
 
         /// <summary>Пар с A_kk ≠ 0, прошедших через сумматор в последнем разборе (`N14`); ноль — сумматора не было.</summary>
         public int CascadeAngularPairs
@@ -4186,6 +4192,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>Живёт один разбор: матрицу могли подменить между вызовами.</summary>
         FsaCascadeSummer cascade;
+
+        /// <summary>
+        /// (`AMBER34`, П79) Суммирование НЕ создано потому, что матрица —
+        /// сцены поля (`NORM` = единичный флюенс, «эффективности» — см²).
+        /// Живёт один разбор, уходит в <see cref="FsaResult.CascadeSummingRefusedFieldMatrix"/>.
+        /// </summary>
+        bool cascadeRefusedFieldMatrix;
 
         /// <summary>
         /// Поправка хоть где-то СРАБОТАЛА — не «включена», а изменила образ.
@@ -4473,13 +4486,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // `handover/handover-2026-09-12-p24-out-rev19.md`). Обратное плечо —
             // `--loss-joint=0` у `CorpusFsaProbe`.
             this.CascadeLossJointFactor = true;
-            // (`N14`, П49 13.09.2026) Угловая корреляция в парах — ВЫКЛ до
-            // полного корпуса: ключ заведён полосой П49 с замером на малой
-            // базе; переворот умолчания — решение Amber по полному корпусу
-            // (журнал `handover/handover-2026-09-13-p49-n14-angular-cf.md`).
-            // Полярность стоит ЗДЕСЬ, у присваивания (`T82`). Обратное плечо
-            // — `--angcorr=1` у `CorpusFsaProbe`.
-            this.CascadeSumAngular = false;
+            // (`N14`/`AMBER42`, П86 15.09.2026) Угловая корреляция в парах —
+            // ВКЛ. Решение Amber 15.09.2026, вопросником, дословно: «ВКЛ после
+            // правки δ и перемера» — знак δ заселяющего перехода исправлен
+            // тем же днём (`AngularCorrelation.For`, находка П85), плечо ВКЛ
+            // перемерено после правки. Полярность стоит ЗДЕСЬ, у присваивания
+            // (`T82`). Числа плеч (склад rev24, Q_k 46 сцен физики 18, сборка
+            // П86): полный корпус, понятная 89 — Σχ²/ndf 465.4 (ВЫКЛ =
+            // `out_rev24_full`) → 465.6 (+0.04 %), медиана 2.46 → 2.46, recall
+            // 100 %, фантомов 0, состав тот же у 89, `share_pct` > 0.5 п.п. — 0;
+            // малая 43 — 310.4 → 310.6; 40 спектров без коррелированных пар и
+            // непонятная 38 — побитово. Физика ключа подтверждена П85 тремя
+            // арбитрами (Geant4, TCCFCALC2, по рукам): Co-60 сумм-пик ×1.08,
+            // Y-88 ×0.94; Q_k сцены = Geant4 до 0.1 %. Заведён П49 13.09.2026
+            // ВЫКЛ (журнал `handover/handover-2026-09-13-p49-n14-angular-cf.md`),
+            // перевёрнут П86 (журнал
+            // `handover/handover-2026-09-15-p86-amber42-delta-sign-rev25.md`).
+            // Обратное плечо — `--angcorr=0` у `CorpusFsaProbe`/`FsaCascadeProbe`.
+            this.CascadeSumAngular = true;
             this.PileUp = true;
             // (`S107`, П10/П13 12.09.2026) Форма образа наложений по свету —
             // ВКЛ умолчанием. Решение Amber 12.09.2026, вопросником, дословно:
@@ -4683,7 +4707,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Каскадные поправки — на ту же матрицу, что и образы: она даёт им
             // обе эффективности. Кэш поправок внутри живёт один разбор, потому
             // что матрица между вызовами могла смениться.
-            this.cascade = this.CascadeSumming
+            //
+            // ⛔ (`AMBER34`, П79 15.09.2026) МАТРИЦА СЦЕНЫ ПОЛЯ — БЕЗ СУММИРОВАНИЯ.
+            // Её строки нормированы на единичный флюенс: сумма строки — площадь
+            // в см², а `FsaCascadeSummer` перемножает пиковую и полную
+            // «эффективности» как ВЕРОЯТНОСТИ регистрации квантов одного
+            // распада. У G1S Ø63×63 A_пик ≈ 14 см² против ε ≈ 0.05 — сумм-пик
+            // вышел бы в сотни раз выше физического, молча. И по существу у
+            // сцены без источника вероятности второго кванта того же распада
+            // нет: она зависит от того, где источник, а поле этого не знает.
+            // Образы (строки как формы) от нормировки не зависят — разбор идёт
+            // (решение Amber 15.09.2026 «Разбор идёт, Бк скрыты с причиной»);
+            // причина — в результат, окну отчёта.
+            this.cascadeRefusedFieldMatrix = this.CascadeSumming && this.ResponseMatrix != null
+                && this.ResponseMatrix.Normalization == EfficiencyMaker.ResponseMatrixNormalization.PerUnitFluence;
+            this.cascade = this.CascadeSumming && !this.cascadeRefusedFieldMatrix
                 ? FsaCascadeSummer.Create(this.ResponseMatrix, this.ScintillatorMaterial,
                                           this.CoincidenceWindowSec, this.CascadeXrayPartners,
                                           this.CascadeAnnihilationPartners,
@@ -4802,7 +4840,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 chLo = 1;
             }
 
-            double liveTime = spectrum.LiveTime > 0.0 ? spectrum.LiveTime : spectrum.MeasurementTime;
+            // (`AMBER35`, 15.09.2026) Правило знаменателя — ОБЩИЙ вход
+            // `EnergySpectrum.EffectiveLiveTime` (`Utils.LiveTime.Effective`):
+            // то же «живое, если > 0, иначе полное», что было здесь всегда,
+            // побитово; теперь на него же переведены выделение, зоны, доза,
+            // вычитание фона и график. Своя копия правила здесь снова
+            // разошлась бы с ними молча.
+            double liveTime = spectrum.EffectiveLiveTime;
             if (liveTime <= 0.0)
             {
                 liveTime = 1.0;
@@ -4835,7 +4879,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double backgroundScale = 0.0;
             if (background != null)
             {
-                double backgroundLive = background.LiveTime > 0.0 ? background.LiveTime : background.MeasurementTime;
+                double backgroundLive = background.EffectiveLiveTime;
                 if (backgroundLive > 0.0)
                 {
                     backgroundScale = liveTime / backgroundLive;
@@ -8168,6 +8212,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 OffsetChannels = offset,
                 LiveTime = liveTime,
                 EfficiencyUsed = efficiency != null,
+                // (`AMBER34`) кривая и матрица сцены поля — признаки окну отчёта
+                EfficiencyPerUnitFluence = efficiency != null && efficiency.IsPerUnitFluence,
+                CascadeSummingRefusedFieldMatrix = this.cascadeRefusedFieldMatrix && fit.FromResponseMatrix,
                 ResponseMatrixUsed = fit.FromResponseMatrix,
                 CascadeSummingUsed = this.cascadeApplied,
                 GainOnGridEdge = gainOnEdge,

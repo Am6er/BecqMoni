@@ -1,0 +1,6 @@
+== сторож сцен генератора (T261): генератор → клеймо → живые .in / .rmx ==
+  каталог проб : D:\BqMoni_Claude\p91\stale
+  живые сцены  : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries
+  ⛔ КАТАЛОГ ПРОБ ПРОТУХ (T226) — прогон старым кодом судил бы не то, что в дереве:
+     - отметка .appwd.json не читается как запись набора исходников (нет, не разбирается или писана другим образцом отпечатка) — пересобрать build_all.ps1
+   собрать: pwsh tools\effmaker\probes\build_all.ps1 -Bin BecquerelMonitor\bin\Debug_Codex

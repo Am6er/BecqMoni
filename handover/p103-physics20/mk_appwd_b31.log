@@ -1,0 +1,19 @@
+  положено файлов: 500
+
+рабочий каталог: D:\BqMoni_Claude\p103\wt_b31\tools\CORPUS\scripts\wd_p103b
+  конфигураций приборов: 24, матриц: 49
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : D:\BqMoni_Claude\p103\wt_b31\tools\CORPUS\scripts\wd_p103b
+  сборка   : D:\BqMoni_Claude\p103\wt_b31\BecquerelMonitor\bin\Release_p103b
+  пробы    : D:\BqMoni_Claude\p103\wt_b31\tools\effmaker\probes\build_p103b
+  сверено  : 500 файлов по sha256 за 8.09 с
+  библиотека: в оснастке корпуса НЕТ по правилу AMBER19 — состав из manifest.csv, линии из nucdb/matdb
+  перекладка: клейма склада и оснастки сошлись
+  ОСНАСТКА СВЕЖАЯ: 500 файлов сошлись
+
+запуск прогона — ТОЛЬКО через сторожа, оператором вызова & (T84/T91):
+  & 'D:\BqMoni_Claude\p103\wt_b31\tools\CORPUS\scripts\run_appwd.ps1' -Wd 'D:\BqMoni_Claude\p103\wt_b31\tools\CORPUS\scripts\wd_p103b' -Store 'D:\BqMoni_Claude\p103\store_backup' -Out 'D:\BqMoni_Claude\p103\wt_b31\tools\pie\out_app'
+  ключи пробы — массивом: -Extra '--band=whole','--only=ASN16_Cs137'
+проверить оснастку отдельно:
+  & 'D:\BqMoni_Claude\p103\wt_b31\tools\CORPUS\scripts\check_appwd.ps1' -Wd 'D:\BqMoni_Claude\p103\wt_b31\tools\CORPUS\scripts\wd_p103b' -Store 'D:\BqMoni_Claude\p103\store_backup'

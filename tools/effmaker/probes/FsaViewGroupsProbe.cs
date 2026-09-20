@@ -49,6 +49,12 @@ namespace FsaViewGroupsProbe
     /// показанном виде. <c>Control.Visible</c> при этом лжёт, и приговор на
     /// него не опирается — смотрится только дерево <c>Parent</c>.
     ///
+    /// (`AMBER45`, П104 18.09.2026) Переписи подлежат и КОМБО: комбо «Matrix
+    /// layer» (слой матрицы отклика) переключается выбором соседнего пункта,
+    /// отпечаток снимается в обоих положениях — род тот же, что у галок.
+    /// Положительный контроль ему тот же: <c>--misplace=matrixLayerComboBox</c>
+    /// обязан дать отказ поимённо.
+    ///
     /// Коды возврата: 0 — сошлось; 1 — не сошлось; 2 — мерить нечем.
     /// </summary>
     static class Program
@@ -135,7 +141,10 @@ namespace FsaViewGroupsProbe
             List<Switch> found = new List<Switch>();
             foreach (Control control in Walk(panel))
             {
-                if (!(control is CheckBox) && !(control is RadioButton))
+                // (`AMBER45`) Комбо — тоже переключатель: комбо «Matrix layer»
+                // (слой матрицы отклика) переключается выбором пункта, и род у
+                // него судится тем же отпечатком, что у галок и радиокнопок.
+                if (!(control is CheckBox) && !(control is RadioButton) && !(control is ComboBox))
                 {
                     continue;
                 }
@@ -200,6 +209,7 @@ namespace FsaViewGroupsProbe
             EventHandler counter = delegate { fired++; };
             CheckBox box = control as CheckBox;
             RadioButton radio = control as RadioButton;
+            ComboBox combo = control as ComboBox;
             string a, b;
 
             if (box != null)
@@ -211,6 +221,31 @@ namespace FsaViewGroupsProbe
                 b = Stamp(cfg);
                 box.Checked = was;
                 box.CheckedChanged -= counter;
+            }
+            else if (combo != null)
+            {
+                // (`AMBER45`) У комбо «человек выбрал» — это ДРУГОЙ пункт: событие
+                // `SelectedIndexChanged` приходит на смене номера, и обработчик
+                // окна на ней и работает. Меньше двух пунктов — переключать
+                // нечего. ⚠ Погашенное комбо (спектр-заглушка без матрицы)
+                // программно переключается всё равно — событие приходит, и род
+                // измеряется; так и задумано: сама возможность выбрать пункт в
+                // окне здесь не судится, судится, что делает выбор.
+                if (combo.Items.Count < 2)
+                {
+                    item.Toggled = false;
+                    item.ChangesCalculation = false;
+                    return Stamp(cfg) + " (у комбо меньше двух пунктов)";
+                }
+
+                combo.SelectedIndexChanged += counter;
+                int was = combo.SelectedIndex;
+                int other = was == combo.Items.Count - 1 ? was - 1 : was + 1;
+                a = Stamp(cfg);
+                combo.SelectedIndex = other;
+                b = Stamp(cfg);
+                combo.SelectedIndex = was;
+                combo.SelectedIndexChanged -= counter;
             }
             else
             {
@@ -480,7 +515,9 @@ namespace FsaViewGroupsProbe
             // Число взято с запасом в БОЛЬШУЮ сторону: замер обязан ругаться
             // раньше, чем подпись обрежется на самом деле.
             const int Frame = 16;
-            string[] names = { "sourceGroupBox", "chainGroupBox", "extrasGroupBox", DisplayGroup, "groupingLabel" };
+            // (`AMBER45`) `matrixLayerLabel` — подпись комбо «Matrix layer», той же
+            // мерой, что метка группировки.
+            string[] names = { "sourceGroupBox", "chainGroupBox", "extrasGroupBox", DisplayGroup, "groupingLabel", "matrixLayerLabel" };
             foreach (string culture in new[] { "en", "ru" })
             {
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(culture);

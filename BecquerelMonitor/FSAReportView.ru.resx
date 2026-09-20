@@ -166,6 +166,9 @@
   <data name="residualBandCheckBox.Text" xml:space="preserve">
     <value>Невязка модели</value>
   </data>
+  <data name="matrixLayerLabel.Text" xml:space="preserve">
+    <value>Слой матрицы</value>
+  </data>
   <data name="componentColumn.Text" xml:space="preserve">
     <value>Компонент</value>
   </data>
@@ -273,5 +276,32 @@
   </data>
   <data name="FSAReport_ResidualBandTip" xml:space="preserve">
     <value>Меняет только график; ничего не пересчитывается.</value>
+  </data>
+  <data name="FSAReport_MatrixLayerAll" xml:space="preserve">
+    <value>Все</value>
+  </data>
+  <data name="FSAReport_MatrixLayerPeak" xml:space="preserve">
+    <value>Пик полного поглощения</value>
+  </data>
+  <data name="FSAReport_MatrixLayerCompton" xml:space="preserve">
+    <value>Комптон (неполное поглощение)</value>
+  </data>
+  <data name="FSAReport_MatrixLayerEscapeAnnihilation" xml:space="preserve">
+    <value>Одиночный вылет аннигиляции (511 кэВ)</value>
+  </data>
+  <data name="FSAReport_MatrixLayerEscapeXrayK" xml:space="preserve">
+    <value>Вылет K-рентгена кристалла</value>
+  </data>
+  <data name="FSAReport_MatrixLayerEscapeAnnihilationDouble" xml:space="preserve">
+    <value>Двойной вылет аннигиляции (1022 кэВ)</value>
+  </data>
+  <data name="FSAReport_MatrixLayerEscapeXrayL" xml:space="preserve">
+    <value>Вылет L-рентгена кристалла</value>
+  </data>
+  <data name="FSAReport_MatrixLayerTip" xml:space="preserve">
+    <value>Рисует у каждого компонента только этот канал матрицы отклика; ничего не пересчитывается, таблица прежняя.</value>
+  </data>
+  <data name="FSAReport_MatrixLayerNoMatrixTip" xml:space="preserve">
+    <value>У спектра нет матрицы отклика: каналов у модели нет, рисуется вся стопка.</value>
   </data>
 </root>

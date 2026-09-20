@@ -27,6 +27,13 @@ namespace FsaCascadeProbe
     ///   fsacascadeprobe --spectrum=X.xml --sample=152EU[,137CS] [--chain=Th-232]
     ///                   [--efficiency=Цилиндр] [--background=B.xml]
     ///                   [--rebuild] [--lines=12] [--sum-layer-continuum]
+    ///                   [--thirds=Eu-152:1408.01:121.78;Co-60:1173.23:1332.49]
+    ///
+    /// `--thirds=` (`S177`, П101 18.09.2026) — таблица третьих квантов названных
+    /// пар: прежнее правило max(P(m|i), P(m|j)) против хода по схеме уровней,
+    /// с ε_T и обоими множителями выживания S_ij (положительный контроль:
+    /// пара с конвертированным партнёром обязана разойтись, пара без третьего
+    /// — совпасть).
     ///
     /// Запускать из каталога с конфигурацией прибора и складом матриц
     /// (рабочий каталог корпуса, `mk_appwd.ps1`).
@@ -62,9 +69,16 @@ namespace FsaCascadeProbe
             int angcorr = -1;
             int maxLines = 12;
             double scanFrom = 0.0, scanTo = 0.0;
+            // (`S177`, П101) пары для таблицы третьих квантов: «Eu-152:1408.01:121.78;Co-60:1173.23:1332.49»
+            var thirds = new List<string>();
             foreach (string a in args)
             {
                 if (a == "--rebuild") { rebuild = true; continue; }
+                if (a.StartsWith("--thirds=", StringComparison.Ordinal))
+                {
+                    thirds.AddRange(a.Substring(9).Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries));
+                    continue;
+                }
                 if (a == "--force") { force = true; continue; }
                 if (a == "--describe") { describe = true; continue; }
                 if (a == "--angcorr=0") { angcorr = 0; continue; }
@@ -196,17 +210,24 @@ namespace FsaCascadeProbe
             FsaCascadeSummer summer = FsaCascadeSummer.Create(matrix, scintillator);
             // (`N14`, П49) Плечо угловых корреляций — ДО первого `For`: поправки
             // кэшируются на экземпляре. Таблица Q_k — как у приложения
-            // (`FsaMatrixBinding`): сайдкар в каталоге склада по отпечатку геометрии.
-            if (summer != null && angcorr >= 0)
+            // (`FsaMatrixBinding`): из САМОЙ матрицы (блок формата 9, `AMBER46`, П87).
+            // (П86, 15.09.2026) Без ключа — УМОЛЧАНИЕ АНАЛИЗАТОРА, своего проба
+            // не держит (`FsaAnalyzer.CascadeSumAngular`, с 15.09.2026 ВКЛ); и
+            // таблица ищется ВСЕГДА, как у приложения, — иначе умолчание ВКЛ
+            // без таблицы шло бы изотропно молча, и «ключ без значения» был бы
+            // неотличим от `--angcorr=0`.
+            bool angularOn = angcorr >= 0 ? angcorr == 1 : new FsaAnalyzer().CascadeSumAngular;
+            if (summer != null)
             {
-                summer.AngularCorrelations = angcorr == 1;
-                summer.AngularQk = AngularAttenuation.Find(ResponseMatrixStore.Directory,
-                                                           rd.Efficiency != null ? rd.Efficiency.Geometry : null);
-                Console.WriteLine("угловые корреляции (N14): ключ {0}; таблица Q_k сцены {1}",
-                                  angcorr == 1 ? "ВКЛ" : "ВЫКЛ",
+                summer.AngularCorrelations = angularOn;
+                summer.AngularQk = matrix.AngularQk;
+                Console.WriteLine("угловые корреляции (N14): ключ {0}{1}; таблица Q_k сцены {2}",
+                                  angularOn ? "ВКЛ" : "ВЫКЛ",
+                                  angcorr >= 0 ? "" : " (умолчание анализатора)",
                                   summer.AngularQk != null
-                                      ? "НАЙДЕНА (" + summer.AngularQk.Scene + ", узлов " + summer.AngularQk.Count.ToString(CultureInfo.InvariantCulture) + ")"
-                                      : "НЕТ — счёт изотропный");
+                                      ? "В МАТРИЦЕ (узлов " + summer.AngularQk.Count.ToString(CultureInfo.InvariantCulture)
+                                        + ", Q2(662) " + summer.AngularQk.Q(2, 661.7).ToString("F4", CultureInfo.InvariantCulture) + ")"
+                                      : "НЕТ (матрица без блока Q_k) — счёт изотропный");
             }
             Console.WriteLine("кривая света: {0}",
                               summer != null && summer.LightYieldName.Length > 0
@@ -293,6 +314,46 @@ namespace FsaCascadeProbe
             Console.WriteLine("слияний носителей одного ключа (`S165`): {0}",
                               FsaCascadeSummer.CarrierKeyMerges);
 
+            // (`S177`, П101) ТРЕТИЙ КВАНТ ПАРЫ — каким правилом считан. Ноль у
+            // «по схеме» при ненулевом «прежнее max» значит, что ход по схеме на
+            // этом составе не работал вовсе, и совпадение чисел «до/после»
+            // доказывает его бездействие, а не верность.
+            Console.WriteLine("третий квант пары (`S177`): пар γ+γ по схеме {0}, γ+K по источникам вакансии {1}, прежним правилом max {2}",
+                              FsaCascadeSummer.PairThirdGamma, FsaCascadeSummer.PairThirdXray,
+                              FsaCascadeSummer.PairThirdFallback);
+
+            // (`S177`) Таблица третьих квантов названных пар — прежнее правило
+            // против хода по схеме, с ε_T и множителями выживания. Это
+            // положительный контроль правки: пара с конвертированным партнёром
+            // или исключающим третьим обязана разойтись, пара без третьего — нет.
+            foreach (string pairSpec in thirds)
+            {
+                string[] parts = pairSpec.Split(':');
+                if (parts.Length != 3)
+                {
+                    Console.Error.WriteLine("--thirds: ждёт Нуклид:E1:E2, получено «{0}»", pairSpec);
+                    return 2;
+                }
+
+                double e1 = double.Parse(parts[1], CultureInfo.InvariantCulture);
+                double e2 = double.Parse(parts[2], CultureInfo.InvariantCulture);
+                double sMax, sScheme;
+                string how;
+                List<double[]> rows = summer.ThirdTable(parts[0], e1, e2, out sMax, out sScheme, out how);
+                Console.WriteLine();
+                Console.WriteLine("=== третьи кванты пары {0} {1:F2}+{2:F2} ({3}) ===", parts[0], e1, e2, how);
+                Console.WriteLine("      E_m, кэВ    P_max(старое)   P_схемы(новое)      ε_T(m)   вклад в S: старое / новое");
+                foreach (double[] row in rows)
+                {
+                    Console.WriteLine("  {0,12:F3}   {1,13:E5}   {2,13:E5}   {3,9:E3}   {4:F6} / {5:F6}",
+                                      row[0], row[1], row[2], row[3],
+                                      1.0 - Math.Min(1.0, row[1]) * row[3], 1.0 - Math.Min(1.0, row[2]) * row[3]);
+                }
+
+                Console.WriteLine("  S_ij: старое {0:F6}, новое {1:F6}, отношение новое/старое {2:F6}; третьих {3}",
+                                  sMax, sScheme, sMax > 0.0 ? sScheme / sMax : 0.0, rows.Count);
+            }
+
             // (`S19`) Тройные суммы: все рассмотренные, с площадью и порогом.
             if (FsaCascadeSummer.TripleLog.Count > 0)
             {
@@ -368,12 +429,10 @@ namespace FsaCascadeProbe
 
             analyzer.ResponseMatrix = matrix;
             analyzer.ScintillatorMaterial = scintillator;
-            // (`N14`, П49) то же плечо — и анализатору, тем же путём, что у приложения
-            if (angcorr >= 0)
-            {
-                analyzer.CascadeSumAngular = angcorr == 1;
-                analyzer.AngularQk = summer.AngularQk;
-            }
+            // (`N14`, П49) то же плечо — и анализатору, тем же путём, что у
+            // приложения; без ключа `angularOn` — его же умолчание (П86)
+            analyzer.CascadeSumAngular = angularOn;
+            analyzer.AngularQk = summer.AngularQk;
             analyzer.CascadeSumming = false;
             clock.Restart();
             FsaResult withMatrix = analyzer.Analyze(rd.EnergySpectrum, background, rd.FwhmCalibration,

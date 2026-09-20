@@ -1,0 +1,28 @@
+arm off start 2026-09-17 21:07:15 store=D:\BqMoni_Claude\p97\wt\tools\CORPUS\corpus\geometries extra=--only=RC103_Cs137_0cm,AS80_Cs137_0cm,AS80_Am241
+arm off mk_appwd code=0
+arm off check_appwd code=0
+  response: rmx=2
+arm off full code=0 21:07:36 (6 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p97_off
+arm off end 21:07:36
+arm rev28 start 2026-09-18 02:41:48 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries extra=
+arm rev28 mk_appwd code=0
+arm rev28 check_appwd code=0
+  response: rmx=46
+arm rev28 full code=0 02:42:26 (27 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev28_full
+arm rev28 mini code=0 02:42:35 (9 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev28_mini
+arm rev28 score full known code=0
+arm rev28 score mini known code=0
+arm rev28 score full unknown code=0
+arm rev28 score mini unknown code=0
+arm rev28 end 02:42:36
+arm rev28 start 2026-09-18 02:50:09 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries extra=
+arm rev28 mk_appwd code=0
+arm rev28 check_appwd code=0
+  response: rmx=46
+arm rev28 full code=0 02:51:21 (55 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev28_full
+arm rev28 mini code=0 02:51:39 (18 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev28_mini
+arm rev28 score full known code=0
+arm rev28 score mini known code=0
+arm rev28 score full unknown code=0
+arm rev28 score mini unknown code=0
+arm rev28 end 02:51:40

@@ -1,0 +1,18 @@
+=== build p96 (wt_h) контроль: чистый 0f738825, первая сборка 2026-09-17 18:31:28
+restore p96 (wt_h) code=0 18:31:29
+app p96 (wt_h) code=0 18:31:32
+probes p96 (wt_h) code=0 18:32:37
+done p96 (wt_h) 18:32:37
+=== build p96 (wt) правка П96, первая сборка 2026-09-17 18:47:20
+restore p96 (wt) code=0 18:47:22
+app p96 (wt) code=0 18:47:27
+probes p96 (wt) code=0 18:48:59
+done p96 (wt) 18:48:59
+probes wt_h (new probe src) code=0 18:52:02
+=== build p96 (wt) правка П96, вторая сборка (русские строки ступеней) 2026-09-17 18:52:24
+restore p96 (wt) code=0 18:52:25
+app p96 (wt) code=0 18:52:26
+probes p96 (wt) code=0 18:53:58
+done p96 (wt) 18:53:58
+app Debug_Codex (main) code=0 18:57:12
+probes build (main) code=0 18:59:01

@@ -1,0 +1,44 @@
+=== build p94 stand: wt.diff only 2026-09-17 16:52:56
+restore p94 code=0 16:52:57
+app p94 code=0 16:53:01
+probes p94 code=0 16:53:57
+done p94 16:53:57
+=== build p94 A+B+key eltr 2026-09-17 17:09:05
+restore p94 code=0 17:09:05
+app p94 code=1 17:09:07
+STOP: app build failed
+=== build p94 A+B+key eltr (fix dz) 2026-09-17 17:09:25
+restore p94 code=0 17:09:26
+app p94 code=0 17:09:28
+probes p94 code=0 17:10:25
+done p94 17:10:25
+=== build p94 final: +detour0 at ON, ray cache reset, early exit in layers, counters 2026-09-17 18:34:58
+restore p94 code=0 18:34:58
+app p94 code=0 18:35:01
+probes p94 code=0 18:36:03
+done p94 18:36:03
+=== build p94 final-2: ray cache save/restore instead of reset 2026-09-17 18:40:32
+restore p94 code=0 18:40:32
+app p94 code=0 18:40:34
+probes p94 code=1 18:41:31
+done p94 18:41:31
+=== build p94 final-2 retry after Rename-Item of busy G4RawProbe.exe 2026-09-17 18:41:50
+restore p94 code=0 18:41:50
+app p94 code=0 18:41:51
+probes p94 code=0 18:42:51
+done p94 18:42:51
+=== build p94 final-2 + LayerReturnProbe (проба замера, код приложения не менялся) 2026-09-17 19:32:34
+restore p94 code=0 19:32:35
+app p94 code=0 19:32:35
+probes p94 code=0 19:33:34
+done p94 19:33:34
+=== build p94 LayerReturnProbe --x0/--z0 2026-09-17 19:40:30
+restore p94 code=0 19:40:30
+app p94 code=0 19:40:31
+probes p94 code=0 19:41:30
+done p94 19:41:30
+=== build p94 LayerReturnProbe z0 fix 2026-09-17 19:53:22
+restore p94 code=0 19:53:23
+app p94 code=0 19:53:23
+probes p94 code=0 19:54:22
+done p94 19:54:22

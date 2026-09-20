@@ -31,6 +31,14 @@ using System.Text;
 ///
 /// Печатается расхождение в ПРОЦЕНТАХ: пик (последний бин), сумма строки
 /// (эффективность узла) и форма (L1 к сумме) — медиана и худший узел.
+///
+/// (`AMBER46`, П87 16.09.2026) Файл ПРЕЖНЕГО формата (8) проба читает ради
+/// сравнения тел — `ResponseMatrix.Load(…, legacyFormatForComparison: 8)`:
+/// матрица формата 9 обязана давать ТОТ ЖЕ отпечаток тела, что её
+/// предшественница того же рецепта, а разница — только блок Q_k. Блок
+/// сличается отдельно: «есть у обеих / у одной / ни у одной», по узлам —
+/// побитово, наибольшее |Δ| и в σ обеих; формат каждого файла печатается.
+/// Годным старый файл от этого не становится — приложение его не читает.
 /// </summary>
 static class MatrixDiffProbe
 {
@@ -63,8 +71,8 @@ static class MatrixDiffProbe
         // заставляло угадывать между прежним форматом и обрубком.
         MatrixRefusal refusalA, refusalB;
         int formatA, formatB;
-        ResponseMatrix a = ResponseMatrix.Load(aPath, out refusalA, out formatA);
-        ResponseMatrix b = ResponseMatrix.Load(bPath, out refusalB, out formatB);
+        ResponseMatrix a = ResponseMatrix.Load(aPath, out refusalA, out formatA, ResponseMatrix.PreviousFormatVersion);
+        ResponseMatrix b = ResponseMatrix.Load(bPath, out refusalB, out formatB, ResponseMatrix.PreviousFormatVersion);
         if (a == null || b == null)
         {
             Console.Error.WriteLine(string.Format(
@@ -150,8 +158,10 @@ static class MatrixDiffProbe
         }
 
         Console.WriteLine("Расхождение двух матриц (T43)");
-        Console.WriteLine("  A: {0}", Path.GetFileName(aPath));
-        Console.WriteLine("  B: {0}", Path.GetFileName(bPath));
+        Console.WriteLine("  A: {0}  (формат {1}{2})", Path.GetFileName(aPath), formatA,
+                          formatA == ResponseMatrix.FormatVersion ? "" : " — ПРЕЖНИЙ, прочитан только для сравнения");
+        Console.WriteLine("  B: {0}  (формат {1}{2})", Path.GetFileName(bPath), formatB,
+                          formatB == ResponseMatrix.FormatVersion ? "" : " — ПРЕЖНИЙ, прочитан только для сравнения");
         // Взвешенный шум и потраченные истории в файле НЕ ХРАНЯТСЯ (см.
         // `ResponseMatrix.Save`), поэтому здесь их нет и выдумывать нечего:
         // шум печатает та проба, которая матрицу построила.
@@ -190,6 +200,11 @@ static class MatrixDiffProbe
         {
             Console.WriteLine("  ⛔ ОТПЕЧАТОК НЕ СХОДИТСЯ С ЗАПИСАННЫМ: тело файла правлено после записи");
         }
+
+        // (`AMBER46`) Блок Q_k — ОТДЕЛЬНО от тела: он в отпечаток не входит
+        // нарочно, и «тело побайтно, Q_k добавлен» — штатный итог сравнения
+        // матрицы формата 8 с её пересчётом форматом 9.
+        CompareAngular(a, b);
         Console.WriteLine();
 
         int n = live.Count;
@@ -287,6 +302,72 @@ static class MatrixDiffProbe
         // файла, а не расхождение прогонов. Разные тела у двух матриц — штатный
         // предмет этой пробы, и кодом их не судят.
         return corrupt ? 1 : 0;
+    }
+
+    /// <summary>
+    /// Блок Q_k двух матриц (`AMBER46`): есть ли, и насколько расходится по
+    /// узлам — побитово, наибольшее |Δ| и в σ обеих (для двух зёрен одного
+    /// кода ожидание — в 3 σ; для того же зерна и числа историй — до бита).
+    /// </summary>
+    static void CompareAngular(ResponseMatrix a, ResponseMatrix b)
+    {
+        AngularAttenuation qa = a.AngularQk, qb = b.AngularQk;
+        Console.WriteLine("  блок Q_k угловой корреляции (формат 9):");
+        if (qa == null && qb == null)
+        {
+            Console.WriteLine("     нет ни у одной");
+            return;
+        }
+
+        if (qa == null || qb == null)
+        {
+            AngularAttenuation q = qa ?? qb;
+            Console.WriteLine("     Q_k ДОБАВЛЕН у {0}: у {1} блока нет (прежний формат либо собрана не построителем), у {0} {2} узлов",
+                              qa == null ? "B" : "A", qa == null ? "A" : "B", q.Count);
+            int i662 = 0;
+            for (int i = 0; i < q.Count; i++)
+            {
+                if (Math.Abs(q.Energies[i] - 661.7) < Math.Abs(q.Energies[i662] - 661.7)) i662 = i;
+            }
+
+            Console.WriteLine("     у узла {0:F1} кэВ: Q2 {1:F4} ± {2:F4}, Q4 {3:F4} ± {4:F4}, Q2T {5:F4}, Q4T {6:F4}, историй {7}",
+                              q.Energies[i662], q.Q2[i662], q.Q2Err[i662], q.Q4[i662], q.Q4Err[i662],
+                              q.Q2T[i662], q.Q4T[i662], q.Histories[i662]);
+            return;
+        }
+
+        if (qa.Count != qb.Count)
+        {
+            Console.WriteLine("     узлов РАЗНОЕ число: A {0}, B {1}", qa.Count, qb.Count);
+            return;
+        }
+
+        int bitwise = 0, worstNode = 0;
+        double worstAbs = 0.0, worstSigma = 0.0;
+        for (int i = 0; i < qa.Count; i++)
+        {
+            bool same = qa.Q2[i] == qb.Q2[i] && qa.Q4[i] == qb.Q4[i] && qa.Q2T[i] == qb.Q2T[i] && qa.Q4T[i] == qb.Q4T[i]
+                        && qa.Q2Err[i] == qb.Q2Err[i] && qa.Q4Err[i] == qb.Q4Err[i]
+                        && qa.PeakEff[i] == qb.PeakEff[i] && qa.TotalEff[i] == qb.TotalEff[i]
+                        && qa.Histories[i] == qb.Histories[i];
+            if (same) bitwise++;
+            double[] da = { qa.Q2[i] - qb.Q2[i], qa.Q4[i] - qb.Q4[i], qa.Q2T[i] - qb.Q2T[i], qa.Q4T[i] - qb.Q4T[i] };
+            double[] sa = { qa.Q2Err[i], qa.Q4Err[i], qa.Q2TErr[i], qa.Q4TErr[i] };
+            double[] sb = { qb.Q2Err[i], qb.Q4Err[i], qb.Q2TErr[i], qb.Q4TErr[i] };
+            for (int c = 0; c < 4; c++)
+            {
+                double d = Math.Abs(da[c]);
+                double s = Math.Sqrt(sa[c] * sa[c] + sb[c] * sb[c]);
+                double z = s > 0.0 ? d / s : (d > 0.0 ? double.PositiveInfinity : 0.0);
+                if (d > worstAbs) worstAbs = d;
+                if (z > worstSigma) { worstSigma = z; worstNode = i; }
+            }
+        }
+
+        Console.WriteLine("     есть у обеих, узлов {0}: побитово {1}; наибольшее |Δ| {2:F5}, худший узел в σ {3} (узел {4}, {5:F1} кэВ)",
+                          qa.Count, bitwise, worstAbs,
+                          double.IsInfinity(worstSigma) ? "∞ (σ = 0)" : worstSigma.ToString("F2", CultureInfo.InvariantCulture),
+                          worstNode, qa.Energies[worstNode]);
     }
 
     /// <summary>Отпечаток тела словами: пересчитанный, и сходится ли с записанным.</summary>

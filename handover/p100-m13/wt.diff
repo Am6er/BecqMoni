@@ -1,0 +1,1072 @@
+diff --git a/BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs b/BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs
+index 2314b870..0d7b87f1 100644
+--- a/BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs
++++ b/BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs
+@@ -578,6 +578,11 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 // настроек склада (ВЫКЛ до единого счёта физики 19), чтобы
+                 // кривая и склад считали одну физику.
+                 ElectronLayerTransport = storePhysics.ElectronLayerTransport,
++                // (`M13`, П100 18.09.2026) Смешанная схема упругого рассеяния в
++                // слоях обвязки — тем же путём: от умолчания настроек склада
++                // (ВЫКЛ до решения Amber о едином счёте), чтобы кривая и склад
++                // считали одну физику.
++                ElectronLayerMixedScattering = storePhysics.ElectronLayerMixedScattering,
+             };
+ 
+             log(geometry.Describe());
+@@ -721,6 +726,7 @@ namespace BecquerelMonitor.EfficiencyMaker
+                         ElectronAnyMaterial = simulator.ElectronAnyMaterial,
+                         BremAlongPath = simulator.BremAlongPath,
+                         ElectronLayerTransport = simulator.ElectronLayerTransport,
++                        ElectronLayerMixedScattering = simulator.ElectronLayerMixedScattering,
+                     };
+                 },
+                 (range, loop, worker) =>
+@@ -865,8 +871,10 @@ namespace BecquerelMonitor.EfficiencyMaker
+             // `; eltr=1` (`AMBER44`/`M12`, П94 17.09.2026) — тем же именем, что у
+             // клейма матрицы, только включённым; с физики 19 (П97, 18.09.2026)
+             // ключ ВКЛ умолчанием склада, и у кривой он в клейме всегда.
++            // `; elmix=1` (`M13`, П100 18.09.2026) — тем же именем, что у клейма
++            // матрицы, только включённым (ВЫКЛ умолчанием до решения Amber).
+             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
+-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}",
++                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}",
+                 ResponseMatrix.PhysicsVersion, simulator.Histories,
+                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
+                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
+@@ -889,7 +897,8 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 storePhysics.BremAlongPath != 0
+                     ? "; bpath=" + storePhysics.BremAlongPath.ToString(CultureInfo.InvariantCulture)
+                     : "",
+-                storePhysics.ElectronLayerTransport ? "; eltr=1" : "");
++                storePhysics.ElectronLayerTransport ? "; eltr=1" : "",
++                storePhysics.ElectronLayerMixedScattering ? "; elmix=1" : "");
+             return result;
+         }
+ 
+diff --git a/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs b/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs
+index f7fea16b..a768d660 100644
+--- a/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs
++++ b/BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs
+@@ -368,6 +368,38 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// </summary>
+         public bool ElectronLayerTransport = new ResponseMatrixOptions().ElectronLayerTransport;
+ 
++        /// <summary>
++        /// (`M13`, П100 18.09.2026) СМЕШАННАЯ СХЕМА УПРУГОГО РАССЕЯНИЯ В СЛОЯХ
++        /// ОБВЯЗКИ — ключом ВЫКЛ до решения Amber о едином счёте склада.
++        /// Умолчание ПОЛЯ — умолчание СКЛАДА
++        /// (<see cref="ResponseMatrixOptions.ElectronLayerMixedScattering"/>, правило I).
++        ///
++        /// Включённый — в переносе по слоям (`TransportInLayers`, только под
++        /// <see cref="ElectronLayerTransport"/>) упругое рассеяние делится
++        /// отсечкой по углу (<see cref="LayerHardCutoffDeg"/>): ЖЁСТКИЕ
++        /// столкновения выше отсечки разыгрываются ПО ОДНОМУ (экранированное
++        /// сечение Резерфорда с экранированием Мольера, Z(Z+1), поправка Мотта
++        /// Мак-Кинли—Фешбаха для Z ≤ 30; свободный пробег между ними обрывает
++        /// шаг), МЯГКИЕ — прежним шарниром Хайленда с шириной, уменьшенной на
++        /// долю транспортного сечения выше отсечки. В КРИСТАЛЛЕ ничего не
++        /// меняется (ширина шарнира поверена П27 по пику). Выключенный —
++        /// прежний ход до последнего бита и без единого лишнего случайного
++        /// числа. Зачем: гауссов шарнир не несёт хвоста однократного рассеяния
++        /// на большие углы, и в ЛЁГКОМ веществе (PTFE, Al, MgO) обратное
++        /// рассеяние выходило ×0.6…0.8 к Табате (П94 §5.5), а на RC103 при
++        /// 2614 кэВ четверти континуума расходились с Geant4 на +2.8/−2.1 %.
++        /// </summary>
++        public bool ElectronLayerMixedScattering = new ResponseMatrixOptions().ElectronLayerMixedScattering;
++
++        /// <summary>
++        /// (`M13`, П100) Угол отсечки смешанной схемы в слоях, градусы:
++        /// столкновения с отклонением больше него — жёсткие, по одному. Режим
++        /// ЗАМЕРА, не настройка: двигает `LayerReturnProbe --cutoff=` для
++        /// поверки независимости η от отсечки (10/20/30°); в клеймо не входит —
++        /// единый счёт идёт умолчанием 20°.
++        /// </summary>
++        public double LayerHardCutoffDeg = 20.0;
++
+         /// <summary>
+         /// (`M3`, П44) Счётчики квантов тормозного, рождённых в кристалле
+         /// (обе ветки — в точке рождения и вдоль пути), и их энергия, кэВ —
+@@ -386,6 +418,14 @@ namespace BecquerelMonitor.EfficiencyMaker
+         public long CountLayerEscapes, CountLayerReturns, CountLayerCarries;
+         public double SumLayerReturnKev;
+ 
++        /// <summary>
++        /// (`M13`, П100) Счётчики смешанной схемы в слоях — читаются пробами
++        /// после прогона; не настройки: шагов переноса в слоях и жёстких
++        /// столкновений среди них (пустые столкновения мажоранты Мотта не
++        /// считаются).
++        /// </summary>
++        public long CountLayerSteps, CountLayerHardCollisions;
++
+         /// <summary>
+         /// Сколько энергии событие может потерять и всё-таки остаться в пике,
+         /// кэВ. Пик имеет ширину, и утечка в единицы кэВ из него не выводит.
+diff --git a/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs b/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs
+index 4df346e0..6abf72f0 100644
+--- a/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs
++++ b/BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs
+@@ -214,6 +214,243 @@ namespace BecquerelMonitor.EfficiencyMaker
+             return x0;
+         }
+ 
++        // ------------------------------------------------------------------
++        // (`M13`, П100 18.09.2026) СМЕШАННАЯ СХЕМА УПРУГОГО РАССЕЯНИЯ В СЛОЯХ
++        // ОБВЯЗКИ — под ключом <see cref="ElectronLayerMixedScattering"/>.
++        //
++        // ЧТО БЫЛО НЕ ТАК. Шарнир Хайленда несёт гауссово ядро многократного
++        // рассеяния; хвоста ОДНОКРАТНОГО рассеяния на большие углы (∝ 1/θ⁴)
++        // у него нет. Замер П100 (`diag/hinge_vs_rutherford.txt`): за один
++        // шаг переноса (0.1 пробега CSDA) в PTFE при 500 кэВ вероятность
++        // отклонения > 90° у шарнира 4.2e-5, у экранированного Резерфорда
++        // 6.1e-3 (×146; при 1000 кэВ ×650), при том что средний 1 − cos θ
++        // шага у обоих сходится в 5…14 %. В ТЯЖЁЛОМ веществе (CsI) шарнир
++        // за шаг почти изотропен (θ₀ ≈ 0.9 рад) — обратное рассеяние там
++        // диффузионное, и П27 поверила его по пику; в ЛЁГКОМ (PTFE, Al, MgO)
++        // заметную долю обратного рассеяния даёт именно хвост, и η выходило
++        // ×0.6…0.8 к Табате (П94 §5.5).
++        //
++        // ЧТО СДЕЛАНО (класс II по упругому рассеянию, как у PENELOPE):
++        // угол отсечки θ_c (<see cref="LayerHardCutoffDeg"/>, 20°) делит
++        // столкновения на ЖЁСТКИЕ (1 − cos θ > 1 − cos θ_c) и МЯГКИЕ.
++        // * Жёсткие разыгрываются ПО ОДНОМУ: свободный пробег между ними —
++        //   экспонента с Σ n_i σ_i(θ > θ_c) по элементам слоя, сечение —
++        //   экранированное Резерфорда (Вентцель) с экранированием Мольера
++        //   (A = (ħ/2pa)²(1.13 + 3.76(αZ/β)²), a = 0.885 a₀ Z^(−1/3)) и
++        //   множителем Z(Z+1) — тем же, что у Мольера/Хайленда; угол — точным
++        //   обращением ∫ dx/(x + 2A)² выше отсечки; поправка Мотта —
++        //   Мак-Кинли—Фешбаха (Z ≤ 30, т. е. вся лёгкая обвязка) отбором по
++        //   мажоранте 1 + παZβ/4, отвергнутое — пустое столкновение. Жёсткое
++        //   столкновение, выпавшее раньше конца шага, ОБРЫВАЕТ шаг: шаг
++        //   укорачивается до него, мягкий шарнир считается на укороченный шаг,
++        //   поворот жёсткого — в его конце.
++        // * Мягкие — тем же случайным шарниром, но ширина — из ТРАНСПОРТНОГО
++        //   сечения ниже отсечки: средний 1 − cos θ шага длины s равен
++        //   1 − exp(−s·Σ n_i σ_tr,soft,i), σ_tr,soft = ∫₀^{μ_c} μ dσ по тому же
++        //   экранированному Резерфорду. Полное среднеквадратичное отклонение
++        //   (мягкое + жёсткое) — транспортное сечение Резерфорда целиком; на
++        //   шаге 0.1 пробега оно сходится с θ₀² Хайленда в 5…14 % в лёгком
++        //   веществе (замер), так что ширина шага в целом сохранена.
++        //   ⚠ ПОЧЕМУ НЕ «Хайленд × √f_soft» (первая редакция П100): формула
++        //   Хайленда НЕ аддитивна по шагу — логарифмическая скобка при
++        //   дроблении шага теряет вклад хвоста, и η ВЫКЛ падало 0.062 → 0.027
++        //   при шаге 0.1 → 0.01 пробега, ВКЛ в той редакции — 0.070 → 0.056
++        //   (`handover/p100-m13/tables/lr_variantA_*`). Транспортное сечение
++        //   аддитивно по построению (⟨cos⟩ перемножается), и η под ключом
++        //   от шага не зависит (замер там же).
++        // В КРИСТАЛЛЕ (<see cref="TransportElectron"/>) ничего не меняется.
++        // Без ключа — ни одного лишнего случайного числа, ход прежний.
++        // ------------------------------------------------------------------
++
++        /// <summary>
++        /// (`M13`) Выше этого Z поправка Мак-Кинли—Фешбаха не применяется
++        /// (она — первый порядок по αZ и годна до Z ≈ 30); дальше — чистый
++        /// экранированный Резерфорд. В тяжёлом слое (Pb, W, сталь) обратное
++        /// рассеяние диффузионное, и хвост там решает мало.
++        /// </summary>
++        const int MottMaxZ = 30;
++
++        /// <summary>(`M13`) Элемент вещества слоя для розыгрыша упругих столкновений.</summary>
++        sealed class ScatterElement
++        {
++            /// <summary>Заряд ядра.</summary>
++            public int Z;
++
++            /// <summary>Ядер в см³ вещества слоя.</summary>
++            public double AtomsPerCm3;
++
++            /// <summary>Z^(1/3) — для радиуса экранирования.</summary>
++            public double Z13;
++
++            /// <summary>Z(Z+1) — ядро и атомные электроны, как у Мольера.</summary>
++            public double ZZ1;
++
++            /// <summary>Поправка Мотта применима (Z ≤ <see cref="MottMaxZ"/>).</summary>
++            public bool Mott;
++        }
++
++        // (`M13`) Кэш элементов на вещество — по тому же ключу, что
++        // <see cref="LayerRadiationLength"/>; и рабочий массив долей жёстких
++        // сечений (на экземпляр — симулятор однопоточный).
++        readonly Dictionary<GeometryMaterial, ScatterElement[]> layerScatterCache =
++            new Dictionary<GeometryMaterial, ScatterElement[]>();
++        double[] layerHardShare = new double[8];
++
++        /// <summary>(`M13`) Элементы вещества слоя с плотностями ядер, кэш на вещество.</summary>
++        ScatterElement[] LayerScatterElements(GeometryMaterial material)
++        {
++            ScatterElement[] found;
++            if (this.layerScatterCache.TryGetValue(material, out found))
++            {
++                return found;
++            }
++
++            List<ScatterElement> list = new List<ScatterElement>();
++            Dictionary<int, double> mass = MaterialDatabase.AtomicMass;
++            foreach (KeyValuePair<int, double> pair in material.Fractions)
++            {
++                double a;
++                if (pair.Value > 0.0 && mass.TryGetValue(pair.Key, out a) && a > 0.0)
++                {
++                    list.Add(new ScatterElement
++                    {
++                        Z = pair.Key,
++                        AtomsPerCm3 = material.Density * pair.Value / a * Avogadro,
++                        Z13 = Math.Pow(pair.Key, 1.0 / 3.0),
++                        ZZ1 = pair.Key * (pair.Key + 1.0),
++                        Mott = pair.Key <= MottMaxZ,
++                    });
++                }
++            }
++
++            found = list.ToArray();
++            if (this.layerHardShare.Length < found.Length)
++            {
++                this.layerHardShare = new double[found.Length];
++            }
++
++            this.layerScatterCache[material] = found;
++            return found;
++        }
++
++        /// <summary>(`M13`) 1 − cos отсечки смешанной схемы из <see cref="LayerHardCutoffDeg"/>.</summary>
++        double LayerHardCutoffMu()
++        {
++            double deg = this.LayerHardCutoffDeg;
++            if (!(deg > 0.0) || deg >= 180.0)
++            {
++                deg = 20.0;
++            }
++
++            return 1.0 - Math.Cos(deg * Math.PI / 180.0);
++        }
++
++        /// <summary>
++        /// (`M13`) Удвоенный параметр экранирования Мольера 2A = 2(ħ/2pa)²
++        /// (1.13 + 3.76 (αZ/β)²), a = 0.885 a₀ Z^(−1/3): сечение
++        /// dσ/d(1 − cos θ) ∝ 1/(1 − cos θ + 2A)².
++        /// </summary>
++        static double ScreeningTwoA(int z, double z13, double beta2, double betaGamma)
++        {
++            double chi = ScatteringData.FineStructure * z13 / (1.77 * betaGamma);   // ħ/(2 p a)
++            double az = ScatteringData.FineStructure * z;
++            return 2.0 * chi * chi * (1.13 + 3.76 * az * az / beta2);
++        }
++
++        /// <summary>
++        /// (`M13`) Сечения упругого рассеяния слоя при энергии <paramref name="tKev"/>:
++        /// <paramref name="hardPerCm"/> — Σ n_i σ_i выше отсечки с мажорантой
++        /// Мотта, 1/см (обратный свободный пробег до кандидата жёсткого
++        /// столкновения); <paramref name="hardShare"/>[i] — вклад элемента в
++        /// него (выбор элемента); <paramref name="softTransportPerCm"/> —
++        /// транспортное сечение Σ n_i ∫₀^{μ_c} μ dσ_i НИЖЕ отсечки, 1/см:
++        /// средний 1 − cos θ мягкого шарнира на шаг s равен 1 − exp(−s·Σnσ_tr,soft)
++        /// — АДДИТИВНО по шагу (замер П100: ширина Хайленда × √f_soft не
++        /// аддитивна, и η падало вдвое при шаге 0.1 → 0.01).
++        /// </summary>
++        void LayerElasticStep(ScatterElement[] elements, double tKev, double muCut,
++                              out double hardPerCm, out double softTransportPerCm, double[] hardShare)
++        {
++            double gamma = 1.0 + tKev / ElectronMassKev;
++            double beta2 = 1.0 - 1.0 / (gamma * gamma);
++            double beta = Math.Sqrt(beta2);
++            double p2 = tKev * (tKev + 2.0 * ElectronMassKev);                  // (кэВ/c)²
++            double common = 2.0 * Math.PI * ClassicalRadiusCm * ClassicalRadiusCm
++                            * ElectronMassKev * ElectronMassKev / (beta2 * p2);   // см²
++            double hard = 0.0, trSoft = 0.0;
++            for (int i = 0; i < elements.Length; i++)
++            {
++                ScatterElement e = elements[i];
++                double a2 = ScreeningTwoA(e.Z, e.Z13, beta2, beta * gamma);
++                double pref = e.AtomsPerCm3 * common * e.ZZ1;                      // 1/см
++                double majorant = e.Mott ? 1.0 + Math.PI * ScatteringData.FineStructure * e.Z * beta / 4.0 : 1.0;
++                double h = pref * (1.0 / (muCut + a2) - 1.0 / (2.0 + a2)) * majorant;
++                hardShare[i] = h;
++                hard += h;
++
++                // Транспортное сечение НИЖЕ отсечки, 1/см:
++                // ∫₀^X x dx/(x + 2A)² = ln((X + 2A)/2A) + 2A/(X + 2A) − 1.
++                trSoft += pref * (Math.Log((muCut + a2) / a2) + a2 / (muCut + a2) - 1.0);
++            }
++
++            hardPerCm = hard;
++            softTransportPerCm = trSoft > 0.0 ? trSoft : 0.0;
++        }
++
++        /// <summary>
++        /// (`M13`) Одно жёсткое столкновение: элемент — по доле в
++        /// <paramref name="hardShare"/>, угол — обращением экранированного
++        /// Резерфорда выше отсечки, отбор Мак-Кинли—Фешбаха по мажоранте
++        /// (отвергнутое — пустое столкновение, направление не меняется).
++        /// Возвращает true, если поворот состоялся.
++        /// </summary>
++        bool LayerHardCollision(ScatterElement[] elements, double[] hardShare, double hardPerCm,
++                                double tKev, double muCut, ref double ux, ref double uy, ref double uz)
++        {
++            double pick = this.Uniform() * hardPerCm;
++            int i = 0;
++            for (; i < elements.Length - 1; i++)
++            {
++                pick -= hardShare[i];
++                if (pick <= 0.0)
++                {
++                    break;
++                }
++            }
++
++            ScatterElement e = elements[i];
++            double gamma = 1.0 + tKev / ElectronMassKev;
++            double beta2 = 1.0 - 1.0 / (gamma * gamma);
++            double beta = Math.Sqrt(beta2);
++            double a2 = ScreeningTwoA(e.Z, e.Z13, beta2, beta * gamma);
++            double lo = 1.0 / (muCut + a2), hi = 1.0 / (2.0 + a2);
++            double mu = 1.0 / (lo - this.Uniform() * (lo - hi)) - a2;
++            if (mu < muCut)
++            {
++                mu = muCut;
++            }
++            else if (mu > 2.0)
++            {
++                mu = 2.0;
++            }
++
++            if (e.Mott)
++            {
++                // Мак-Кинли—Фешбах для электрона: R = 1 − β² s² + παZβ s(1 − s),
++                // s = sin(θ/2) = √(μ/2); R ≤ 1 + παZβ/4.
++                double s = Math.Sqrt(0.5 * mu);
++                double paz = Math.PI * ScatteringData.FineStructure * e.Z * beta;
++                double r = 1.0 - beta2 * s * s + paz * s * (1.0 - s);
++                if (this.Uniform() * (1.0 + 0.25 * paz) > r)
++                {
++                    return false;
++                }
++            }
++
++            this.Rotate(ref ux, ref uy, ref uz, 1.0 - mu);
++            return true;
++        }
++
+         /// <summary>Радиационная длина элемента по Цаю, г/см².</summary>
+         static double TsaiRadiationLength(int z, double a)
+         {
+@@ -751,6 +988,15 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// ⚠ Обход зовёт <see cref="StepToBoundary"/> с НОВЫМ направлением на
+         /// каждом шарнире — кэш луча собирается заново (O(областей)); электронов
+         /// в обвязке 2…10 % историй континуума, шагов у каждого единицы.
++        ///
++        /// (`M13`, П100 18.09.2026) Под ключом <see cref="ElectronLayerMixedScattering"/>
++        /// упругое рассеяние в слое — СМЕШАННОЕ (шапка раздела выше): на каждом
++        /// шаге разыгрывается расстояние до жёсткого столкновения (выше угла
++        /// отсечки, по экранированному Резерфорду с поправкой Мотта); выпало
++        /// раньше конца шага — шаг обрывается на нём, и в его конце электрон
++        /// поворачивается на жёсткий угол; мягкий шарнир того же шага — с
++        /// шириной Хайленда × √(доля транспортного сечения ниже отсечки).
++        /// Без ключа — прежний ход без единого лишнего случайного числа.
+         /// </summary>
+         bool TransportInLayers(ref double x, ref double y, ref double z,
+                                ref double ux, ref double uy, ref double uz,
+@@ -765,6 +1011,10 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 fraction = 1.0;
+             }
+ 
++            // (`M13`) Смешанная схема: отсечка одна на весь перенос.
++            bool mixed = this.ElectronLayerMixedScattering;
++            double muCut = mixed ? this.LayerHardCutoffMu() : 0.0;
++
+             for (int step = 0; step < TransportMaxSteps && t > TransportCutKev; step++)
+             {
+                 Region here = this.At(x, y, z);
+@@ -808,6 +1058,32 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 double stepG = residual * fraction;
+                 double stepCm = stepG / density;
+ 
++                // (`M13`) Смешанная схема: расстояние до жёсткого столкновения;
++                // выпало раньше конца шага — шаг обрывается на нём. Мягкий
++                // шарнир — по транспортному сечению ниже отсечки на длину шага.
++                ScatterElement[] elements = null;
++                double hardPerCm = 0.0, softTransportPerCm = 0.0;
++                bool hardHit = false;
++                if (mixed)
++                {
++                    this.CountLayerSteps++;
++                    elements = this.LayerScatterElements(here.Material);
++                    if (elements.Length > 0)
++                    {
++                        this.LayerElasticStep(elements, t, muCut, out hardPerCm, out softTransportPerCm, this.layerHardShare);
++                        if (hardPerCm > 0.0)
++                        {
++                            double toHard = -Math.Log(this.Uniform()) / hardPerCm;
++                            if (toHard < stepCm)
++                            {
++                                stepCm = toHard;
++                                stepG = stepCm * density;
++                                hardHit = true;
++                            }
++                        }
++                    }
++                }
++
+                 // Прямой ход до шарнира; граница области раньше — переход.
+                 double first = stepCm * this.Uniform();
+                 if (first >= toNext)
+@@ -830,7 +1106,12 @@ namespace BecquerelMonitor.EfficiencyMaker
+                     tMid = TransportCutKev;
+                 }
+ 
+-                double theta0 = HighlandTheta0(tMid, stepG / x0);
++                // (`M13`) Под ключом ширина мягкого шарнира — средний 1 − cos θ
++                // мягких столкновений на длину шага, 1 − exp(−s·Σnσ_tr,soft)
++                // (аддитивно по шагу); без ключа — Хайленд на весь шаг, как было.
++                double theta0 = mixed
++                    ? Math.Sqrt(Math.Max(0.0, 1.0 - Math.Exp(-stepCm * softTransportPerCm)))
++                    : HighlandTheta0(tMid, stepG / x0);
+                 this.Rotate(ref ux, ref uy, ref uz, 1.0 - this.SampleHingeMu(theta0));
+ 
+                 // Прямой ход до конца шага — новым лучом.
+@@ -856,6 +1137,15 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 z += uz * second;
+                 residual -= stepG;
+                 t = ElectronData.EnergyOfRange(medium, residual);
++
++                // (`M13`) Жёсткое столкновение в конце оборванного шага — при
++                // энергии его конца; пустое (мажоранта Мотта) направления не меняет.
++                if (hardHit && t > TransportCutKev
++                    && this.LayerHardCollision(elements, this.layerHardShare, hardPerCm, t, muCut,
++                                               ref ux, ref uy, ref uz))
++                {
++                    this.CountLayerHardCollisions++;
++                }
+             }
+ 
+             return false;
+diff --git a/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs b/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs
+index 46879f7c..0ad17fbc 100644
+--- a/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs
++++ b/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs
+@@ -342,6 +342,14 @@ namespace BecquerelMonitor.EfficiencyMaker
+         //      класса (`EfficiencyCalculation.Run`, П94) — «одна физика для
+         //      кривой и матрицы»; умолчание ПОЛЯ симулятора — от этого же
+         //      класса (правило I сторожа `check_matrix_keys.py`).
++        // (20 — ЗАРЕЗЕРВИРОВАНО за единым счётом склада: ключ П100 `elmix`
++        //      (`M13` — смешанная схема упругого рассеяния в слоях обвязки:
++        //      жёсткие столкновения выше 20° по одному по экранированному
++        //      Резерфорду с поправкой Мотта, мягкие — шарниром Хайленда
++        //      уменьшенной ширины; в кристалле не трогается). ВЫКЛ умолчанием,
++        //      клеймо при ВЫКЛ посимвольно прежнее, тело побитово = склад
++        //      физики 19; поднимает единый счёт склада (≈ 5.5…6 ч, 46 сцен) по
++        //      отдельному решению Amber по числам П100 — не полоса.)
+         public const int PhysicsVersion = 19;
+ 
+         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
+@@ -1125,6 +1133,16 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 {
+                     sb.Append("eltr=1;");
+                 }
++
++                // ⛔ (`M13`, П100 18.09.2026) Смешанная схема упругого рассеяния
++                // в слоях обвязки — тем же правилом `T42`: пишется, ТОЛЬКО когда
++                // включена. Двигает континуум сцен с обвязкой (возврат из лёгкого
++                // слоя) и поток случайных чисел; выключенная — ни строки, клеймо
++                // склада физики 19 сходится побайтно.
++                if (options.ElectronLayerMixedScattering)
++                {
++                    sb.Append("elmix=1;");
++                }
+             }
+ 
+             // (`AMBER13` (б)) Нормировка — тем же правилом `T42`: строка
+@@ -2220,6 +2238,15 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 // `ECMP`/`BPTH` при переходе 17 → 18.
+                 writer.Write(Encoding.ASCII.GetBytes("ELTR"));
+                 writer.Write(flags.ElectronLayerTransport);
++
++                // ⛔ ДВАДЦАТЬ ПЕРВЫЙ ХВОСТ — `ELMX` (`M13`, П100 18.09.2026:
++                // смешанная схема упругого рассеяния в слоях обвязки). Те же два
++                // довода: ключ входит в клеймо (`elmix=1`), и без хвоста матрица
++                // не сходилась бы сама с собой. Формат НЕ поднят: у файла без
++                // хвоста поле остаётся умолчанием класса (`false`) — ровно тем,
++                // чем было при его счёте; 46 матриц склада физики 19 не устарели.
++                writer.Write(Encoding.ASCII.GetBytes("ELMX"));
++                writer.Write(flags.ElectronLayerMixedScattering);
+             }
+ 
+             if (File.Exists(path))
+@@ -2591,6 +2618,18 @@ namespace BecquerelMonitor.EfficiencyMaker
+                                                                     && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "ELTR")
+                                                                 {
+                                                                     matrix.Options.ElectronLayerTransport = reader.ReadBoolean();
++
++                                                                    // ⛔ ХВОСТ `ELMX` (`M13`, П100
++                                                                    // 18.09.2026): у файлов до
++                                                                    // 18.09.2026 его нет — поле
++                                                                    // остаётся умолчанием класса
++                                                                    // (`false`), чем и было при их
++                                                                    // счёте; склад физики 19 годен.
++                                                                    if (stream.Length - stream.Position >= 5
++                                                                        && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "ELMX")
++                                                                    {
++                                                                        matrix.Options.ElectronLayerMixedScattering = reader.ReadBoolean();
++                                                                    }
+                                                                 }
+                                                             }
+                                                         }
+@@ -3986,6 +4025,43 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// </summary>
+         public bool ElectronLayerTransport = true;
+ 
++        /// <summary>
++        /// ⛔ **СМЕШАННАЯ СХЕМА УПРУГОГО РАССЕЯНИЯ В СЛОЯХ ОБВЯЗКИ (`M13`,
++        /// П100 18.09.2026) — ключом ВЫКЛ до решения Amber о едином счёте
++        /// склада (ВКЛ = пересчёт 46 сцен, физика 20).**
++        ///
++        /// Что делает — у <see cref="EfficiencySimulator.ElectronLayerMixedScattering"/>
++        /// и в `ElectronTransport.cs` (`TransportInLayers`, только под
++        /// <see cref="ElectronLayerTransport"/>): упругое рассеяние электрона в
++        /// СЛОЕ делится углом отсечки (20°): жёсткие столкновения выше него
++        /// разыгрываются по одному (экранированное сечение Резерфорда с
++        /// экранированием Мольера, Z(Z+1), поправка Мотта Мак-Кинли—Фешбаха
++        /// для Z ≤ 30; свободный пробег между ними обрывает шаг), мягкие —
++        /// прежним шарниром Хайленда с шириной, уменьшенной на долю
++        /// транспортного сечения выше отсечки. В КРИСТАЛЛЕ ничего не меняется
++        /// (ширина шарнира поверена П27 по пику). Зачем: у гауссова шарнира
++        /// нет хвоста однократного рассеяния на большие углы, и в лёгком
++        /// веществе обратное рассеяние выходило ×0.6 (PTFE) … ×0.8 (MgO) к
++        /// Табате (П94 §5.5), а на RC103 1 см³ CsI при 2614 кэВ четверти
++        /// континуума против Geant4 расходились на +2.8/−2.1 % (критерий 2).
++        ///
++        /// ⛔ Ключ двигает КОНТИНУУМ сцен с обвязкой (возврат электрона из
++        /// лёгкого слоя) и ПОТОК случайных чисел, поэтому входит в клеймо
++        /// (`elmix=1`) и пишется хвостом `ELMX` — только включённым (`T42`,
++        /// «отличие от склада ДО ключа»); при ВЫКЛ клеймо посимвольно прежнее и
++        /// тело матрицы побитово = склад физики 19. Умолчание перевернёт
++        /// ТОЛЬКО единый счёт склада с подъёмом <see cref="ResponseMatrix.PhysicsVersion"/>
++        /// 19 → 20 — решение Amber по числам П100.
++        ///
++        /// ⚠ Путь КРИВОЙ («Посчитать из геометрии») берёт ключ ОТСЮДА ЖЕ — из
++        /// умолчания этого поля (`EfficiencyCalculation.Run`), как
++        /// <see cref="ElectronLayerTransport"/> — «одна физика для кривой и
++        /// матрицы»; в клеймо кривой уходит `elmix=1` только включённым.
++        /// Рычаги — `CorpusMatrixProbe --elmix=0|1`, `G4RawProbe --elmix=0|1`,
++        /// `LayerReturnProbe --elmix=0|1 --cutoff=<град>`.
++        /// </summary>
++        public bool ElectronLayerMixedScattering = false;
++
+         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
+         public int Threads;
+ 
+diff --git a/BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs b/BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs
+index 3d0dc63d..f99307d1 100644
+--- a/BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs
++++ b/BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs
+@@ -861,6 +861,10 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 // построителя, ключ мёртв (`S130`), а клеймо `eltr=1` лгало бы
+                 // о происхождении матрицы.
+                 ElectronLayerTransport = options.ElectronLayerTransport,
++                // ⛔ (`M13`, П100 18.09.2026) Смешанная схема упругого рассеяния
++                // в слоях обвязки — тем же путём: не доехав до построителя, ключ
++                // мёртв (`S130`), а клеймо `elmix=1` лгало бы о происхождении.
++                ElectronLayerMixedScattering = options.ElectronLayerMixedScattering,
+                 // ⛔ (`E34`) ДОПУСК ПИКА. Ноль здесь стоял безусловно, и это
+                 // запирало поправку на однократное рассеяние: `InPeak` требует
+                 // `E − deposited ≤ допуск`, а у рассеявшегося кванта недобор
+diff --git a/tools/check_matrix_keys.py b/tools/check_matrix_keys.py
+index eed4cf3e..55baffa9 100644
+--- a/tools/check_matrix_keys.py
++++ b/tools/check_matrix_keys.py
+@@ -263,6 +263,14 @@ MATRIX = [
+      u'с 18.09.2026 (физика 19, П97; решение Amber 17.09.2026 «ВКЛ сейчас, единый счёт ночью»; '
+      u'цена ×1.07…1.13 на матрице, П94 §5.6); --eltr=0 — абляция «как физика 18». Путь КРИВОЙ берёт ключ от '
+      u'этого же умолчания (реестр 3) — «одна физика для кривой и матрицы»'),
++    (u'ElectronLayerMixedScattering', True, u'--elmix=', None, u'намеренно',
++     u'M13, П100 18.09.2026: СМЕШАННАЯ СХЕМА упругого рассеяния в слоях обвязки (только под eltr=1) — '
++     u'жёсткие столкновения выше 20° по одному (экранированный Резерфорд, экранирование Мольера, Z(Z+1), '
++     u'поправка Мотта Мак-Кинли—Фешбаха для Z ≤ 30), мягкие — шарниром Хайленда уменьшенной ширины; '
++     u'в кристалле не трогается. Двигает континуум сцен с обвязкой (возврат из лёгкого слоя) и поток '
++     u'случайных чисел, поэтому входит в клеймо (elmix=1) и пишется хвостом ELMX — только включённым (T42); '
++     u'ВЫКЛ умолчанием до решения Amber о едином счёте склада (ВКЛ = физика 20); при ВЫКЛ тело побитово = '
++     u'склад физики 19. Путь КРИВОЙ берёт ключ от этого же умолчания (реестр 3)'),
+     (u'Seed', True, u'--seed=', None, u'намеренно',
+      u'T43: независимая выборка тем же кодом, мерка «в пределах шума ГСЧ»'),
+     (u'ResolveEdges', False, u'--edges=', None, u'намеренно',
+@@ -320,7 +328,7 @@ CURVE = [
+ #   имя, ставит ли путь матрицы (`MakeSimulator`), ставит ли путь кривой
+ #   (`EfficiencyCalculation.Run`), причина, довод.
+ #
+-# Путь кривой ставит РОВНО ЧЕТЫРНАДЦАТЬ полей -- `Histories`, `Seed`, `PeakHalfWidthKev`
++# Путь кривой ставит РОВНО ПЯТНАДЦАТЬ полей -- `Histories`, `Seed`, `PeakHalfWidthKev`
+ # и, с 12.09.2026 (решение Amber «Да -- одна физика для кривой и матрицы»), обе
+ # половины K-провала `LightSubKevCurve`/`LightCascadeSplit` от умолчания
+ # `ResponseMatrixOptions.KDipLight` плюс (П23, тот же день) `LYieldSupply` от
+@@ -333,8 +341,10 @@ CURVE = [
+ # от умолчаний тех же настроек (ВЫКЛ до единого счёта; ВКЛ и уровень 2 с
+ # 14.09.2026 -- физика 18, П50) и (П94, 17.09.2026, AMBER44/M12)
+ # `ElectronLayerTransport` от умолчания той же настройки (ВЫКЛ до единого
+-# счёта; ВКЛ с 18.09.2026 -- физика 19, П97) -- итого
+-# ЧЕТЫРНАДЦАТЬ; всё остальное берётся умолчаниями самого
++# счёта; ВКЛ с 18.09.2026 -- физика 19, П97) и (П100, 18.09.2026, M13)
++# `ElectronLayerMixedScattering` от умолчания той же настройки (ВЫКЛ до
++# решения Amber о едином счёте) -- итого
++# ПЯТНАДЦАТЬ; всё остальное берётся умолчаниями самого
+ # симулятора. Это и есть главное различие путей, и оно намеренное.
+ # ---------------------------------------------------------------------------
+ SIM = [
+@@ -430,6 +440,15 @@ SIM = [
+      u'своих настроек (MakeSimulator), кривая от их умолчания (EfficiencyCalculation.Run, тем же '
+      u'путём, что ElectronTransport) — ВЫКЛ до единого счёта, ВКЛ умолчанием с 18.09.2026 (физика 19, '
+      u'П97); в клеймо кривой — eltr=1 только включённым. Умолчание поля симулятора — умолчание склада (правило I)'),
++    (u'ElectronLayerMixedScattering', True, True, u'общая',
++     u'M13, П100 18.09.2026: смешанная схема упругого рассеяния в слоях обвязки. Матрица от своих '
++     u'настроек (MakeSimulator), кривая от их умолчания (EfficiencyCalculation.Run, тем же путём, что '
++     u'ElectronLayerTransport) — ВЫКЛ до решения Amber; в клеймо кривой — elmix=1 только включённым. '
++     u'Умолчание поля симулятора — умолчание склада (правило I)'),
++    (u'LayerHardCutoffDeg', False, False, u'неприменимо',
++     u'M13, П100: угол отсечки жёстких столкновений смешанной схемы (умолчание 20°) — режим замера '
++     u'независимости η от отсечки; двигает LayerReturnProbe --cutoff=; в клеймо не входит — единый счёт '
++     u'идёт умолчанием'),
+     (u'ScatterRouletteWeight', True, False, u'намеренно', u'кривая берёт умолчание симулятора'),
+     (u'SampleFluorescenceOutside', True, False, u'намеренно', u'кривая берёт умолчание симулятора'),
+     # Ниже -- поля, которых НЕ СТАВИТ НИ ОДИН из двух путей. Расхождения между
+@@ -488,6 +507,9 @@ SIM_NOT_SETTINGS = set([
+     # (`AMBER44`/`M12`, П94) Счётчики переноса электрона в слоях обвязки --
+     # читаются `G4RawProbe` после прогона, не настройки.
+     u'CountLayerEscapes', u'CountLayerReturns', u'CountLayerCarries', u'SumLayerReturnKev',
++    # (`M13`, П100) Счётчики смешанной схемы в слоях -- шагов и жёстких
++    # столкновений; читаются `G4RawProbe`/`LayerReturnProbe` после прогона.
++    u'CountLayerSteps', u'CountLayerHardCollisions',
+     # Поля ВЛОЖЕННОГО типа (описание области сцены), а не настройки симулятора:
+     # тело класса читается целиком, вложенные объявления попадают в тот же кусок.
+     u'IsBox', u'IsCrystal',
+@@ -535,6 +557,9 @@ ONE_TRUTH = (
+     # счёта физики 19: то же правило -- пробы прямого вызова обязаны брать
+     # умолчание склада, а не литерал.
+     (u'ElectronLayerTransport', u'ElectronLayerTransport', None),
++    # (`M13`, П100 18.09.2026) Ключ, заведённый ВЫКЛ до решения Amber о едином
++    # счёте: то же правило -- пробы прямого вызова берут умолчание склада.
++    (u'ElectronLayerMixedScattering', u'ElectronLayerMixedScattering', None),
+ )
+ 
+ 
+diff --git a/tools/effmaker/probes/CorpusMatrixProbe.cs b/tools/effmaker/probes/CorpusMatrixProbe.cs
+index fdd0d326..4dbf72fe 100644
+--- a/tools/effmaker/probes/CorpusMatrixProbe.cs
++++ b/tools/effmaker/probes/CorpusMatrixProbe.cs
+@@ -40,9 +40,16 @@ using System.Threading;
+ //                     [--pairth=1] [--positron=1] [--posoffset=0] [--rayl2=1]
+ //                     [--cone=1] [--peakw=1] [--peakb=1] [--xrkl=1] [--kdip=1] [--eta=0.33]
+ //                     [--lbin=1] [--pkch=1] [--lys=1|2] [--etr=1] [--imp=1]
+-//                     [--ecomp=1] [--bpath=0|1|2] [--eltr=1]
++//                     [--ecomp=1] [--bpath=0|1|2] [--eltr=1] [--elmix=1]
+ //                     [--xray=0] [--coh=0] [--brem=0] [--bremsb=0]
+ //
++// `--elmix=1` (`M13`, П100 18.09.2026) — СМЕШАННАЯ СХЕМА УПРУГОГО РАССЕЯНИЯ В
++// СЛОЯХ ОБВЯЗКИ (только под `eltr=1`): жёсткие столкновения выше 20° — по
++// одному по экранированному Резерфорду с поправкой Мотта, мягкие — шарниром
++// Хайленда уменьшенной ширины; в кристалле не трогается. Входит в клеймо
++// (`elmix=1`), хвост `ELMX`. ВЫКЛ умолчанием до решения Amber о едином счёте
++// склада (ВКЛ = физика 20); при ВЫКЛ тело побитово = склад физики 19.
++//
+ // `--eltr=1` (`AMBER44` + правка заноса `M12`, П94 17.09.2026; решения Amber
+ // 15.09.2026 «Перенос в слоях обвязки» и 17.09.2026 «Одной полосой с AMBER44»)
+ // — ПЕРЕНОС ЭЛЕКТРОНА В СЛОЯХ ОБВЯЗКИ: вылетевший из кристалла электрон
+@@ -405,6 +412,11 @@ class CorpusMatrixProbe
+                 // с физики 19 (П97, 18.09.2026); `--eltr=0` — абляция, матрица
+                 // честно другая по клейму (без `eltr=1;`).
+                 options.ElectronLayerTransport = Flag(a, 7);
++            else if (a.StartsWith("--elmix=", StringComparison.Ordinal))
++                // ⛔ `M13`, П100: смешанная схема упругого рассеяния в слоях
++                // обвязки; входит в клеймо (`elmix=1`). ВЫКЛ умолчанием до
++                // решения Amber; матрица с ним честно другая по клейму.
++                options.ElectronLayerMixedScattering = Flag(a, 8);
+             else if (a.StartsWith("--bpath=", StringComparison.Ordinal))
+             {
+                 // `M3`, П44: тормозное вдоль пути переноса, уровень 0/1/2;
+diff --git a/tools/effmaker/probes/G4RawProbe.cs b/tools/effmaker/probes/G4RawProbe.cs
+index 0f45505e..c7d5584e 100644
+--- a/tools/effmaker/probes/G4RawProbe.cs
++++ b/tools/effmaker/probes/G4RawProbe.cs
+@@ -26,6 +26,16 @@ namespace G4RawProbe
+     ///                [--etr=0|1] [--etr-step=0.1] [--kdip=0|1|2|3]
+     ///                [--positron=0|1] [--posoffset=0|1] [--rayl2[=0|1]]
+     ///                [--ecomp=0|1] [--bpath=0|1|2] [--detour=0.7] [--eltr=0|1]
++    ///                [--elmix=0|1]
++    ///
++    /// `--elmix=1` (`M13`, П100 18.09.2026): ключ `ElectronLayerMixedScattering` —
++    /// смешанная схема упругого рассеяния в слоях обвязки (только под `eltr=1`):
++    /// жёсткие столкновения выше 20° по одному по экранированному Резерфорду с
++    /// поправкой Мотта, мягкие — шарниром Хайленда уменьшенной ширины; в
++    /// кристалле не трогается. Умолчание — склада (ВЫКЛ до решения Amber).
++    /// Мерка: RC103 П55 2614 (четверти ≤ 2 %, 0–100 кэВ ±3 %), 1461/662/59.5 и
++    /// диск AS80 не хуже П94 — против `g4cf` умолчанием по полосам П92/П94.
++    /// Печатает счётчики шагов в слоях и жёстких столкновений.
+     ///
+     /// `--eltr=1` (`AMBER44` + правка заноса `M12`, П94 17.09.2026; решения Amber
+     /// «Перенос в слоях обвязки», «Одной полосой с AMBER44»): ключ
+@@ -157,6 +167,7 @@ namespace G4RawProbe
+             int bpath = store.BremAlongPath;            // `M3`, П44 — умолчание склада (2 с физики 18, П50)
+             double detour = -1.0;                       // <0 — умолчание симулятора (`M12`, П92)
+             bool eltr = store.ElectronLayerTransport;   // `AMBER44`/`M12`, П94 — умолчание склада (ВКЛ с физики 19, П97)
++            bool elmix = store.ElectronLayerMixedScattering;   // `M13`, П100 — умолчание склада (ВЫКЛ до решения Amber)
+             double escSlope = -1.0;
+             double escSoft = -1.0, escSoftKev = -1.0;   // `A63`
+             double escCurve = -1.0;                     // `A70`
+@@ -266,6 +277,12 @@ namespace G4RawProbe
+                     eltr = Flag01(a, 7);
+                     continue;
+                 }
++                // `M13` (П100): смешанная схема упругого рассеяния в слоях обвязки.
++                if (a.StartsWith("--elmix=", StringComparison.Ordinal))
++                {
++                    elmix = Flag01(a, 8);
++                    continue;
++                }
+                 if (a.StartsWith("--esc-soft=", StringComparison.Ordinal))
+                 {
+                     escSoft = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
+@@ -376,6 +393,7 @@ namespace G4RawProbe
+             simulator.BremAlongPath = bpath;            // `M3`, П44
+             if (detour >= 0.0) { simulator.ElectronCarryDetour = detour; }   // `M12`, П92
+             simulator.ElectronLayerTransport = eltr;    // `AMBER44`/`M12`, П94
++            simulator.ElectronLayerMixedScattering = elmix;   // `M13`, П100
+             simulator.LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(kdip);
+             simulator.LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(kdip);
+             if (etrStep > 0.0) { simulator.ElectronStepFraction = etrStep; }
+@@ -437,6 +455,10 @@ namespace G4RawProbe
+                                                    : "ВКЛ (возврат вылетевшего из кристалла; занос переносом в слое и по кристаллу, доля --detour= не читается)")
+                                    : "выкл (вылет — конец истории; занос по прямой с detour, остаток куском)",
+                               eltr == store.ElectronLayerTransport ? " (умолчание склада)" : " (ключом)");
++            Console.WriteLine("смешанная схема упругого рассеяния в слоях обвязки (`M13`, --elmix=): {0}{1}",
++                              elmix ? (eltr ? "ВКЛ (жёсткие столкновения выше " + simulator.LayerHardCutoffDeg.ToString("0.#", CultureInfo.InvariantCulture) + "° по одному, мягкие — шарниром уменьшенной ширины)" : "ВКЛ, но без переноса в слоях (--eltr=0) бездействует")
++                                    : "выкл (шарнир Хайленда на весь шаг)",
++                              elmix == store.ElectronLayerMixedScattering ? " (умолчание склада)" : " (ключом)");
+             Console.WriteLine("тормозное вдоль пути (`M3`, --bpath=): {0}{1}",
+                               bpath == 0 ? "выкл (в точке рождения)" : bpath == 1 ? "1 (на шагах переноса, изотропно)" : "2 (на шагах переноса, по электрону)",
+                               bpath == store.BremAlongPath ? " (умолчание склада)" : " (ключом)");
+@@ -503,6 +525,10 @@ namespace G4RawProbe
+                               (simulator.CountLayerReturns > 0 ? simulator.SumLayerReturnKev / simulator.CountLayerReturns : 0.0).ToString("0.0", CultureInfo.InvariantCulture),
+                               simulator.CountLayerCarries,
+                               ((double)simulator.CountLayerCarries / histories).ToString("0.000E+00", CultureInfo.InvariantCulture));
++            // (`M13`, П100) Счётчики смешанной схемы: без ключа нули.
++            Console.WriteLine("смешанная схема в слоях (`M13`): шагов переноса в слоях {0}, жёстких столкновений {1} ({2} на шаг)",
++                              simulator.CountLayerSteps, simulator.CountLayerHardCollisions,
++                              (simulator.CountLayerSteps > 0 ? (double)simulator.CountLayerHardCollisions / simulator.CountLayerSteps : 0.0).ToString("0.000", CultureInfo.InvariantCulture));
+             Console.WriteLine("комптонов в кристалле {0}, с вакансией {1}, ответили рентгеном {2} (`A61`)",
+                               simulator.CountCrystalCompton, simulator.CountCrystalVacancy,
+                               simulator.CountVacancyXray);
+diff --git a/tools/effmaker/probes/LayerReturnProbe.cs b/tools/effmaker/probes/LayerReturnProbe.cs
+index cee809c8..a6a02387 100644
+--- a/tools/effmaker/probes/LayerReturnProbe.cs
++++ b/tools/effmaker/probes/LayerReturnProbe.cs
+@@ -6,11 +6,12 @@ using System.Reflection;
+ using System.Text;
+ 
+ /// <summary>
+-/// Поверка П94 (17.09.2026, `AMBER44`): ОБРАТНОЕ РАССЕЯНИЕ ЭЛЕКТРОНА В СЛОЯХ
+-/// ОБВЯЗКИ переносом `TransportInLayers` (ключ `ElectronLayerTransport`) —
+-/// против табличных коэффициентов Табаты (1971, толстая мишень, нормальное
+-/// падение; числа П55 §2.3): PTFE η(100) 0.10, η(480) 0.08, η(1000) 0.06,
+-/// η(2000) 0.04; Al 0.16 / 0.14 / 0.11 / 0.08.
++/// Поверка П94 (17.09.2026, `AMBER44`) и П100 (18.09.2026, `M13`): ОБРАТНОЕ
++/// РАССЕЯНИЕ ЭЛЕКТРОНА В СЛОЯХ ОБВЯЗКИ переносом `TransportInLayers` (ключ
++/// `ElectronLayerTransport`) — против табличных коэффициентов Табаты (1971,
++/// толстая мишень, нормальное падение; числа П55 §2.3): PTFE η(100) 0.10,
++/// η(480) 0.08, η(1000) 0.06, η(2000) 0.04; Al 0.16 / 0.14 / 0.11 / 0.08;
++/// MgO ≈ 0.13 / 0.11 / 0.08 / 0.06.
+ ///
+ /// Электрон энергии T ставится ВПЛОТНУЮ к грани кристалла снаружи (сдвиг 1e-7,
+ /// как у выхода из кристалла в `EscapeOrReturn`) и пускается ОТ кристалла под
+@@ -25,15 +26,30 @@ using System.Text;
+ /// счётчику `CountLayerEscapes` при ключе ВКЛ на геометрии без обвязки)
+ /// доля вылетевших: обратное рассеяние от CsI/NaI (Табата Z≈50: η ≈ 0.45…0.5).
+ ///
++/// (`M13`, П100) `--elmix=0|1|both` — смешанная схема упругого рассеяния в
++/// слоях (`ElectronLayerMixedScattering`; `both` — оба столбца рядом, это и
++/// есть положительный контроль: ВЫКЛ обязан давать прежние 0.062/0.047/0.032
++/// на RC103 П55); `--cutoff=<град>` — угол отсечки жёстких столкновений
++/// (`LayerHardCutoffDeg`, умолчание 20; поверка независимости — 10/20/30);
++/// `--diag` — числа ОДНОГО ШАГА переноса по веществам сцены: пробег, шаг,
++/// θ₀ Хайленда, средний 1 − cos шага (Хайленд / мягкий транспорт / полный
++/// транспорт Резерфорда), свободный пробег до жёсткого столкновения,
++/// вероятность отклонения > 90° за шаг у шарнира и у однократного рассеяния
++/// — диагноз недобора хвоста числом; `--step=<доля>` —
++/// доля остаточного пробега на шаг (`ElectronStepFraction`, умолчание 0.1) для
++/// поверки сходимости η по шагу в слое.
++///
+ ///     layerreturnprobe --geometry=RC103_point0_p55.in [--face=front|side]
+ ///                      [--energies=50,100,200,300,500,1000,2000] [--angles=0,45,70]
+ ///                      [--n=200000] [--seed=20260917] [--crystal] [--x0=<см>] [--z0=<см>]
++///                      [--elmix=0|1|both] [--cutoff=20] [--step=0.1] [--diag]
+ ///
+-/// Мерка П94 (RC103 П55, PTFE 1 мм + Al 1 мм + пустота, нормальное падение): η =
+-/// 0.062 (100 кэВ) / 0.047 (500) / 0.031 (1000) — ×0.6 к Табате для PTFE (0.10 /
+-/// 0.08 / 0.06); от кристалла CsI (голая сцена) η_esc = 0.46 / 0.43 / 0.39 — как
+-/// у Табаты для Z ≈ 50. Недобор в лёгком веществе — хвост однократного рассеяния
+-/// на большие углы, которого у гауссова шарнира нет (журнал П94 §5.4, §8).
++/// Мерка П94 (RC103 П55, PTFE 1 мм + Al 1 мм + пустота, нормальное падение, ключ
++/// `elmix` ВЫКЛ): η = 0.062 (100 кэВ) / 0.047 (500) / 0.031 (1000) — ×0.6 к Табате
++/// для PTFE (0.10 / 0.08 / 0.06); от кристалла CsI (голая сцена) η_esc = 0.46 /
++/// 0.43 / 0.39 — как у Табаты для Z ≈ 50. Недобор в лёгком веществе — хвост
++/// однократного рассеяния на большие углы, которого у гауссова шарнира нет
++/// (журнал П94 §5.4, §8; П100 — смешанная схема, приёмка ±20 % к Табате).
+ ///
+ /// Код 0 — посчитано; 2 — ключи/геометрия. Порогов нет — это мерка, числа в журнал.
+ /// </summary>
+@@ -48,7 +64,9 @@ static class LayerReturnProbe
+         var angles = new List<double> { 0, 45, 70 };
+         int n = 200000;
+         ulong seed = 20260917UL;
+-        bool crystal = false;
++        bool crystal = false, diag = false;
++        string elmix = "both";
++        double cutoff = double.NaN, stepFraction = double.NaN;
+         double x0Override = double.NaN, z0Override = double.NaN;   // точка на грани, см (замер)
+         foreach (string a in args)
+         {
+@@ -68,7 +86,15 @@ static class LayerReturnProbe
+             }
+             else if (a.StartsWith("--n=", StringComparison.Ordinal)) n = int.Parse(a.Substring(4), CultureInfo.InvariantCulture);
+             else if (a.StartsWith("--seed=", StringComparison.Ordinal)) seed = ulong.Parse(a.Substring(7), CultureInfo.InvariantCulture);
++            else if (a.StartsWith("--elmix=", StringComparison.Ordinal))
++            {
++                elmix = a.Substring(8);
++                if (elmix != "0" && elmix != "1" && elmix != "both") { Console.Error.WriteLine("--elmix= 0|1|both"); return 2; }
++            }
++            else if (a.StartsWith("--cutoff=", StringComparison.Ordinal)) cutoff = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
++            else if (a.StartsWith("--step=", StringComparison.Ordinal)) stepFraction = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+             else if (a == "--crystal") crystal = true;
++            else if (a == "--diag") diag = true;
+             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
+         }
+ 
+@@ -85,12 +111,39 @@ static class LayerReturnProbe
+         MethodInfo loss = typeof(EfficiencySimulator).GetMethod(
+             "ElectronLoss", BindingFlags.NonPublic | BindingFlags.Instance, null,
+             new[] { typeof(double), typeof(double), typeof(double), typeof(double), typeof(int) }, null);
+-        if (walk == null || loss == null)
++        // ⛔ (П100) Кэш луча прячется и возвращается ВОКРУГ каждого вызова, как это делает
++        // `EscapeOrReturn` в симуляторе (`SaveRay`/`RestoreRay`, П94 §7.1). Без этого проба
++        // зовёт `TransportInLayers` подряд из ОДНОЙ точки в 1 нм от грани, и `At` доверяет
++        // лучу прошлой истории, если точка лежит на нём в 10 нм: электрон, вернувшийся в
++        // кристалл в нанометрах от начала (при смешанной схеме жёсткое столкновение бывает
++        // и в нанометрах от грани), оставляет луч, на котором лежит стартовая точка, — и
++        // все следующие истории «возвращаются» сразу с полной энергией, кэш залипает
++        // (измерено П100: 100 кэВ, 70°, N = 100 000 — η 0.71 и ⟨T′⟩/T 0.92 против 0.41 и
++        // 0.72 при другом зерне). В симуляторе этого нет: там снимок делает `EscapeOrReturn`.
++        MethodInfo saveRay = typeof(EfficiencySimulator).GetMethod("SaveRay", BindingFlags.NonPublic | BindingFlags.Instance);
++        MethodInfo restoreRay = typeof(EfficiencySimulator).GetMethod("RestoreRay", BindingFlags.NonPublic | BindingFlags.Instance);
++        if (walk == null || loss == null || saveRay == null || restoreRay == null)
+         {
+-            Console.Error.WriteLine("⛔ EfficiencySimulator.TransportInLayers / ElectronLoss не найдены — сборка чужая");
++            Console.Error.WriteLine("⛔ EfficiencySimulator.TransportInLayers / ElectronLoss / SaveRay / RestoreRay не найдены — сборка чужая");
+             return 2;
+         }
+ 
++        var store = new ResponseMatrixOptions();
++        var modes = new List<bool>();
++        if (elmix == "both") { modes.Add(false); modes.Add(true); }
++        else modes.Add(elmix == "1");
++        Console.WriteLine("смешанная схема в слоях (`M13`, --elmix=): {0}; умолчание склада — {1}; отсечка {2}",
++                          elmix, store.ElectronLayerMixedScattering ? "ВКЛ" : "ВЫКЛ",
++                          double.IsNaN(cutoff)
++                              ? "умолчание симулятора (" + new EfficiencySimulator(geometry.Clone()).LayerHardCutoffDeg.ToString("0.#", CultureInfo.InvariantCulture) + "°)"
++                              : cutoff.ToString("0.#", CultureInfo.InvariantCulture) + "° (ключом)");
++
++        if (diag)
++        {
++            int code = Diagnose(geometry, energies, cutoff);
++            if (code != 0) return code;
++        }
++
+         // Грань кристалла: сцена ставит кристалл от z = 0 (передняя грань) до
+         // высоты; сторона — x = половина ширины бруса (или радиус).
+         double half = 0.05 * Math.Max(geometry.CrystalBoxX > 0 ? geometry.CrystalBoxX : geometry.CrystalDiameter,
+@@ -114,47 +167,67 @@ static class LayerReturnProbe
+         Console.WriteLine("грань: {0}, точка ({1:0.####}, 0, {2:0.####}) см, нормаль наружу ({3}, 0, {4}); N = {5}, зерно {6}",
+                           face, x0, z0, nx, nz, n, seed);
+         Console.WriteLine();
+-        Console.WriteLine("ОБРАТНОЕ РАССЕЯНИЕ ОТ СЛОЁВ ОБВЯЗКИ (TransportInLayers, ключ ВКЛ): доля вернувшихся η, средняя энергия возврата ⟨T′⟩/T, средний |cos| угла возврата к нормали");
+-        Console.WriteLine("{0,8} {1,6} {2,9} {3,9} {4,9} {5,9}", "T, кэВ", "θ°", "η", "±", "⟨T′⟩/T", "⟨|cos|⟩");
++        Console.WriteLine("ОБРАТНОЕ РАССЕЯНИЕ ОТ СЛОЁВ ОБВЯЗКИ (TransportInLayers, ключ eltr ВКЛ): доля вернувшихся η, средняя энергия возврата ⟨T′⟩/T, средний |cos| угла возврата к нормали, жёстких столкновений на шаг; столбцы — по режимам elmix");
++        var head = new StringBuilder();
++        head.AppendFormat("{0,8} {1,6}", "T, кэВ", "θ°");
++        foreach (bool m in modes)
++        {
++            head.AppendFormat(" | {0,11} {1,7} {2,7} {3,7} {4,8}", (m ? "elmix=1" : "elmix=0") + " η", "±", "⟨T′⟩/T", "⟨|cos|⟩", "жёст/шаг");
++        }
++
++        Console.WriteLine(head.ToString());
+         foreach (double te in energies)
+         {
+             foreach (double ang in angles)
+             {
+-                var sim = new EfficiencySimulator(geometry.Clone());
+-                sim.ElectronLayerTransport = true;
+-                string name = sim.LightYieldName;          // EnsureBuilt
+-                sim.ResetStream(seed);
+-                double th = ang * Math.PI / 180.0;
+-                int back = 0; double sumT = 0.0, sumCos = 0.0;
+-                for (int i = 0; i < n; i++)
++                var row = new StringBuilder();
++                row.AppendFormat("{0,8:0.#} {1,6:0}", te, ang);
++                foreach (bool m in modes)
+                 {
+-                    // Азимут — случайный вокруг нормали: направление наружу под углом θ.
+-                    double phi = 2.0 * Math.PI * (i + 0.5) / n;
+-                    double ux, uy, uz;
+-                    if (nz != 0.0)
+-                    {
+-                        ux = Math.Sin(th) * Math.Cos(phi); uy = Math.Sin(th) * Math.Sin(phi); uz = nz * Math.Cos(th);
+-                    }
+-                    else
++                    var sim = new EfficiencySimulator(geometry.Clone());
++                    sim.ElectronLayerTransport = true;
++                    sim.ElectronLayerMixedScattering = m;
++                    if (!double.IsNaN(cutoff)) sim.LayerHardCutoffDeg = cutoff;
++                    if (!double.IsNaN(stepFraction)) sim.ElectronStepFraction = stepFraction;   // сходимость по шагу (как G4RawProbe --etr-step=)
++                    string name = sim.LightYieldName;          // EnsureBuilt
++                    sim.ResetStream(seed);
++                    double th = ang * Math.PI / 180.0;
++                    int back = 0; double sumT = 0.0, sumCos = 0.0;
++                    for (int i = 0; i < n; i++)
+                     {
+-                        ux = nx * Math.Cos(th); uy = Math.Sin(th) * Math.Cos(phi); uz = Math.Sin(th) * Math.Sin(phi);
+-                    }
++                        // Азимут — случайный вокруг нормали: направление наружу под углом θ.
++                        double phi = 2.0 * Math.PI * (i + 0.5) / n;
++                        double ux, uy, uz;
++                        if (nz != 0.0)
++                        {
++                            ux = Math.Sin(th) * Math.Cos(phi); uy = Math.Sin(th) * Math.Sin(phi); uz = nz * Math.Cos(th);
++                        }
++                        else
++                        {
++                            ux = nx * Math.Cos(th); uy = Math.Sin(th) * Math.Cos(phi); uz = Math.Sin(th) * Math.Sin(phi);
++                        }
+ 
+-                    object[] arg = { x0 + nx * 1e-7, 0.0, z0 + nz * 1e-7, ux, uy, uz, te, 0 };
+-                    bool entered = (bool)walk.Invoke(sim, arg);
+-                    if (entered)
+-                    {
+-                        back++;
+-                        sumT += (double)arg[6];
+-                        double cx = (double)arg[3], cz = (double)arg[5];
+-                        sumCos += Math.Abs(cx * nx + cz * nz);
++                        object[] arg = { x0 + nx * 1e-7, 0.0, z0 + nz * 1e-7, ux, uy, uz, te, 0 };
++                        saveRay.Invoke(sim, null);
++                        bool entered = (bool)walk.Invoke(sim, arg);
++                        restoreRay.Invoke(sim, null);
++                        if (entered)
++                        {
++                            back++;
++                            sumT += (double)arg[6];
++                            double cx = (double)arg[3], cz = (double)arg[5];
++                            sumCos += Math.Abs(cx * nx + cz * nz);
++                        }
+                     }
++
++                    double eta = back / (double)n;
++                    row.AppendFormat(" | {0,11:0.0000} {1,7:0.0000} {2,7:0.000} {3,7:0.000} {4,8:0.000}",
++                                     eta, Math.Sqrt(eta * (1 - eta) / n),
++                                     back > 0 ? sumT / back / te : 0.0, back > 0 ? sumCos / back : 0.0,
++                                     sim.CountLayerSteps > 0 ? (double)sim.CountLayerHardCollisions / sim.CountLayerSteps : 0.0);
+                 }
+ 
+-                double eta = back / (double)n;
+-                Console.WriteLine("{0,8:0.#} {1,6:0} {2,9:0.0000} {3,9:0.0000} {4,9:0.000} {5,9:0.000}",
+-                                  te, ang, eta, Math.Sqrt(eta * (1 - eta) / n),
+-                                  back > 0 ? sumT / back / te : 0.0, back > 0 ? sumCos / back : 0.0);
++                Console.WriteLine(row.ToString());
+             }
+         }
+ 
+@@ -205,4 +278,90 @@ static class LayerReturnProbe
+ 
+         return 0;
+     }
++
++    /// <summary>
++    /// (`M13`, П100) Числа ОДНОГО ШАГА переноса (0.1 остаточного пробега CSDA)
++    /// по веществам сцены — отражением на тех же приватных функциях, что
++    /// считает перенос: шаг, θ₀ Хайленда, доля мягкого транспортного сечения,
++    /// средний 1 − cos шага у Хайленда (θ₀²), у мягкой части (транспорт ниже
++    /// отсечки) и полный (транспорт Резерфорда), свободный пробег до жёсткого
++    /// столкновения выше отсечки, вероятность отклонения > 90° за шаг у шарнира
++    /// (экспонента по 1 − cos со средним θ₀²) и у однократного рассеяния
++    /// (1 − exp(−Σnσ(&gt;90°)·s), с мажорантой Мотта).
++    /// </summary>
++    static int Diagnose(GeometryModel geometry, List<double> energies, double cutoff)
++    {
++        Type simType = typeof(EfficiencySimulator);
++        BindingFlags priv = BindingFlags.NonPublic | BindingFlags.Instance;
++        MethodInfo highland = simType.GetMethod("HighlandTheta0", BindingFlags.NonPublic | BindingFlags.Static);
++        MethodInfo carry = simType.GetMethod("CarryMedium", priv);
++        MethodInfo x0Of = simType.GetMethod("LayerRadiationLength", priv);
++        MethodInfo elements = simType.GetMethod("LayerScatterElements", priv);
++        MethodInfo elastic = simType.GetMethod("LayerElasticStep", priv);
++        MethodInfo cutMu = simType.GetMethod("LayerHardCutoffMu", priv);
++        if (highland == null || carry == null || x0Of == null || elements == null || elastic == null || cutMu == null)
++        {
++            Console.Error.WriteLine("⛔ приватные HighlandTheta0 / CarryMedium / LayerRadiationLength / LayerScatterElements / LayerElasticStep / LayerHardCutoffMu не найдены — сборка чужая");
++            return 2;
++        }
++
++        var sim = new EfficiencySimulator(geometry.Clone());
++        sim.ElectronLayerTransport = true;
++        sim.ElectronLayerMixedScattering = true;
++        if (!double.IsNaN(cutoff)) sim.LayerHardCutoffDeg = cutoff;
++        string built = sim.LightYieldName;
++        double muCut = (double)cutMu.Invoke(sim, null);
++        Console.WriteLine();
++        Console.WriteLine("ДИАГНОЗ ОДНОГО ШАГА (0.1 CSDA) по веществам сцены: отсечка {0:0.#}° (1−cos = {1:0.0000}). θ₀ — Хайленд на шаг; ⟨μ⟩ — средний 1−cos θ шага: Хайленд θ₀², мягкий (транспорт ниже отсечки), полный (транспорт Резерфорда Z(Z+1)); P>90° — вероятность отклонения больше 90° за шаг у шарнира Хайленда и у однократного рассеяния (мажоранта Мотта)",
++                          sim.LayerHardCutoffDeg, muCut);
++        Console.WriteLine("{0,-26} {1,7} {2,10} {3,10} {4,7} {5,9} {6,9} {7,9} {8,7} {9,10} {10,9} {11,11} {12,11} {13,8}",
++                          "вещество", "T, кэВ", "R, г/см²", "шаг, см", "θ₀", "⟨μ⟩ Хайл", "⟨μ⟩ мягк", "⟨μ⟩ полн", "п/Х", "λ_hard, см", "жёст/шаг", "P>90° шарн", "P>90° одн", "отн");
++        var mats = new List<KeyValuePair<string, GeometryMaterial>>
++        {
++            new KeyValuePair<string, GeometryMaterial>("отражатель", geometry.Reflector),
++            new KeyValuePair<string, GeometryMaterial>("зазор", geometry.Gap),
++            new KeyValuePair<string, GeometryMaterial>("корпус", geometry.Cladding),
++            new KeyValuePair<string, GeometryMaterial>("стенка сосуда", geometry.BeakerWall),
++            new KeyValuePair<string, GeometryMaterial>("проба", geometry.Source),
++            new KeyValuePair<string, GeometryMaterial>("кристалл (справочно)", geometry.Crystal),
++        };
++        foreach (var pair in mats)
++        {
++            GeometryMaterial m = pair.Value;
++            if (m == null || m.Fractions.Count == 0 || !(m.Density > 0.0)) continue;
++            var medium = (ElectronData.Material)carry.Invoke(sim, new object[] { m });
++            double x0 = (double)x0Of.Invoke(sim, new object[] { m });
++            object el = elements.Invoke(sim, new object[] { m });
++            int count = ((Array)el).Length;
++            double[] share = new double[Math.Max(count, 1)];
++            foreach (double te in energies)
++            {
++                double range = ElectronData.RangeOf(medium, te);
++                double stepG = 0.1 * range, stepCm = stepG / m.Density;
++                double tMid = ElectronData.EnergyOfRange(medium, range - 0.5 * stepG);
++                double theta0 = (double)highland.Invoke(null, new object[] { tMid, stepG / x0 });
++                double s = theta0 * theta0;
++                double pHinge = s > 50.0 ? 0.5 : (Math.Exp(-1.0 / s) - Math.Exp(-2.0 / s)) / (1.0 - Math.Exp(-2.0 / s));
++                object[] argCut = { el, te, muCut, 0.0, 0.0, share };
++                elastic.Invoke(sim, argCut);
++                double hardPerCm = (double)argCut[3], softTr = (double)argCut[4];
++                object[] arg90 = { el, te, 1.0, 0.0, 0.0, share };
++                elastic.Invoke(sim, arg90);
++                double hard90 = (double)arg90[3];
++                object[] argAll = { el, te, 2.0, 0.0, 0.0, share };     // отсечка 180° — всё мягкое = полный транспорт
++                elastic.Invoke(sim, argAll);
++                double totalTr = (double)argAll[4];
++                double muSoft = 1.0 - Math.Exp(-softTr * stepCm), muTotal = 1.0 - Math.Exp(-totalTr * stepCm);
++                double pSingle = 1.0 - Math.Exp(-hard90 * stepCm);
++                Console.WriteLine("{0,-26} {1,7:0.#} {2,10:0.00000} {3,10:0.00000} {4,7:0.000} {5,9:0.0000} {6,9:0.0000} {7,9:0.0000} {8,7:0.00} {9,10:0.0000} {10,9:0.000} {11,11:0.00E+00} {12,11:0.00E+00} {13,8:0.#}",
++                                  pair.Key + " " + m.Name, te, range, stepCm, theta0, s, muSoft, muTotal, s > 0.0 ? muTotal / s : 0.0,
++                                  hardPerCm > 0.0 ? 1.0 / hardPerCm : double.PositiveInfinity,
++                                  1.0 - Math.Exp(-hardPerCm * stepCm), pHinge, pSingle,
++                                  pHinge > 0.0 ? pSingle / pHinge : double.PositiveInfinity);
++            }
++        }
++
++        Console.WriteLine();
++        return 0;
++    }
+ }

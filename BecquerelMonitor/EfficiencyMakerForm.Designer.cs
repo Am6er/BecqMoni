@@ -20,7 +20,6 @@ namespace BecquerelMonitor
                 new System.ComponentModel.ComponentResourceManager(typeof(EfficiencyMakerForm));
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabPageCalculate = new System.Windows.Forms.TabPage();
-            this.calcHintLabel = new System.Windows.Forms.Label();
             this.calculateButton = new System.Windows.Forms.Button();
             this.saveButton = new System.Windows.Forms.Button();
             this.exportButton = new System.Windows.Forms.Button();
@@ -56,7 +55,6 @@ namespace BecquerelMonitor
             //
             // tabPageCalculate
             //
-            this.tabPageCalculate.Controls.Add(this.calcHintLabel);
             this.tabPageCalculate.Controls.Add(this.calculateButton);
             this.tabPageCalculate.Location = new System.Drawing.Point(4, 22);
             this.tabPageCalculate.Name = "tabPageCalculate";
@@ -65,21 +63,6 @@ namespace BecquerelMonitor
             this.tabPageCalculate.TabIndex = 0;
             this.tabPageCalculate.Text = BecquerelMonitor.Properties.Resources.EfficiencyMakerTabCalculate;
             this.tabPageCalculate.UseVisualStyleBackColor = true;
-            //
-            // calcHintLabel
-            //
-            // AutoSize обязателен. Без него метка не появилась на вкладке вовсе
-            // — ни на экране, ни в дереве UI Automation, хотя текст был задан и
-            // размер выставлен руками. Заданный руками Size убран: пусть высоту
-            // считает сама метка по переносу в MaximumSize, иначе перевод
-            // другой длины опять её обрежет.
-            this.calcHintLabel.AutoSize = true;
-            this.calcHintLabel.ForeColor = System.Drawing.Color.DimGray;
-            this.calcHintLabel.Location = new System.Drawing.Point(10, 12);
-            this.calcHintLabel.MaximumSize = new System.Drawing.Size(600, 0);
-            this.calcHintLabel.Name = "calcHintLabel";
-            this.calcHintLabel.TabIndex = 4;
-            this.calcHintLabel.Text = BecquerelMonitor.Properties.Resources.EfficiencyMakerCalcHint;
             //
             // calculateButton
             //
@@ -193,9 +176,8 @@ namespace BecquerelMonitor
             // Подписи заданы выше по-английски и здесь перекрываются ресурсами:
             // ApplyResources молча пропускает отсутствующий ключ, поэтому
             // нейтральная сборка остаётся английской, а ru.resx — русской.
-            // Заголовок вкладки и подсказка расчёта в этот список не входят:
-            // они взяты прямо из общих Resources выше, где у них уже есть
-            // русская пара.
+            // Заголовок вкладки взят прямо из общих Resources выше,
+            // где у него уже есть русская пара.
             resources.ApplyResources(this, "$this");
             foreach (System.Windows.Forms.Control control in new System.Windows.Forms.Control[] {
                 this.saveButton, this.exportButton, this.calculateButton })
@@ -216,7 +198,6 @@ namespace BecquerelMonitor
 
         System.Windows.Forms.TabControl tabControl;
         System.Windows.Forms.TabPage tabPageCalculate;
-        System.Windows.Forms.Label calcHintLabel;
         System.Windows.Forms.Button calculateButton;
         System.Windows.Forms.Button saveButton;
         System.Windows.Forms.Button exportButton;

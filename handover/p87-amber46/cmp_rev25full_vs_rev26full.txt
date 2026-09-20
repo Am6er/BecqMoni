@@ -1,0 +1,116 @@
+runs        строк   127  разошлось   19
+   по столбцам: chi2ndf_pois×14, chi2ndf×6, inflate×4, model_residual_pct×3, gain×1
+   по спектрам (19): 
+      AS80_Th232Medal              chi2ndf_pois
+      ASN16_Lu176                  chi2ndf, chi2ndf_pois, inflate, model_residual_pct
+      G1S16_Ba133_P5               chi2ndf, chi2ndf_pois
+      G1S16_Co60_P5                chi2ndf_pois
+      G1S16_Th232_Denta100         chi2ndf_pois
+      G1S16_Th232_Mar_2            chi2ndf_pois
+      G1S16_Th232_Mar_3            chi2ndf, chi2ndf_pois, inflate
+      G1S24_Ba133_P5               chi2ndf_pois, inflate
+      G1S24_Co60_P5                chi2ndf, chi2ndf_pois
+      G1S24_Eu152_P5               chi2ndf_pois
+      G1S24_Ra226_Mar              chi2ndf_pois
+      G1S24_Ra226_Mar_2            model_residual_pct
+      G1S24_Ra226_Petri_2          gain
+      G1S24_Rn222Coal_Mar_20m      model_residual_pct
+      G1S24_Th228_P5               chi2ndf_pois
+      G1S24_Th232_Denta120_2       chi2ndf_pois, inflate
+      G1S24_Th232_Mar_2            chi2ndf_pois
+      G1S24_Th232_Petri            chi2ndf
+      G1S24_Th232_Petri_2          chi2ndf
+components  строк   369  разошлось  123
+   по столбцам: peak_counts×82, decay_s×61, inflate×22, dt_decay_s×5, mda_decay_s×5, peak_share_pct×2, z×1, share_pct×1
+   по спектрам (38): 
+      AS80_Lu176                   peak_counts
+      AS80_Lu176_v2                peak_counts
+      AS80_Th232Medal              decay_s, peak_counts, peak_share_pct
+      ASN16_Lu176                  decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      ASN16_Lu176_P0               peak_counts
+      G1S16_Ba133_P5               peak_counts
+      G1S16_Co60_P5                peak_counts
+      G1S16_Eu152_P5               peak_counts
+      G1S16_Mix_Denta100           mda_decay_s, peak_counts
+      G1S16_Mix_Mar                decay_s, mda_decay_s, peak_counts
+      G1S16_Mix_Petri              dt_decay_s
+      G1S16_Ra226_Mar              peak_counts
+      G1S16_Ra226_Mar_2            decay_s, peak_counts
+      G1S16_Th228_P5               peak_counts
+      G1S16_Th232_Denta100         peak_counts
+      G1S16_Th232_Mar_2            peak_counts
+      G1S16_Th232_Mar_3            decay_s, dt_decay_s, inflate, peak_counts
+      G1S24_Ba133_P5               inflate, peak_counts
+      G1S24_Bi207_P5               peak_counts
+      G1S24_Co60_P5                peak_counts
+      G1S24_Eu152_P5               peak_counts
+      G1S24_Ra226_Denta120         peak_counts, peak_share_pct
+      G1S24_Ra226_Denta120_2       peak_counts
+      G1S24_Ra226_Mar              mda_decay_s, peak_counts
+      G1S24_Ra226_Mar_2            dt_decay_s, peak_counts
+      G1S24_Ra226_Petri            dt_decay_s, mda_decay_s, peak_counts
+      G1S24_Ra226_Petri_2          peak_counts
+      G1S24_Rn222Coal_Mar_2h       decay_s, share_pct
+      G1S24_Rn222Coal_Mar_3h       decay_s
+      G1S24_Rn222Coal_Mar_eq01     peak_counts
+      G1S24_Th228_P5               peak_counts
+      G1S24_Th232_Denta120         peak_counts
+      G1S24_Th232_Denta120_2       decay_s, inflate, peak_counts
+      G1S24_Th232_Mar              decay_s, peak_counts
+      G1S24_Th232_Mar_2            peak_counts
+      G1S24_Th232_Petri            peak_counts
+      G1S24_Th232_Petri_2          peak_counts
+      RC103_Lu176                  peak_counts
+limits      строк   105  разошлось   19
+   по столбцам: mda_peak_counts×10, decay_s×9, dt_decay_s×5, mda_decay_s×5
+   по спектрам (18): 
+      AS80_Th232Medal              decay_s, mda_peak_counts
+      ASN16_Lu176                  decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Mix_Denta100           mda_decay_s, mda_peak_counts
+      G1S16_Mix_Mar                decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Mix_Petri              dt_decay_s, mda_peak_counts
+      G1S16_Ra226_Mar_2            decay_s
+      G1S16_Th232_Mar_3            decay_s, dt_decay_s
+      G1S24_Co60_P5                mda_peak_counts
+      G1S24_Eu152_P5               mda_peak_counts
+      G1S24_Ra226_Mar              mda_decay_s
+      G1S24_Ra226_Mar_2            dt_decay_s
+      G1S24_Ra226_Petri            dt_decay_s, mda_decay_s
+      G1S24_Rn222Coal_Mar_2h       decay_s
+      G1S24_Rn222Coal_Mar_3h       decay_s
+      G1S24_Th228_P5               mda_peak_counts
+      G1S24_Th232_Denta120_2       decay_s
+      G1S24_Th232_Mar              decay_s
+      G1S24_Th232_Petri_2          mda_peak_counts
+anchors     строк   702  разошлось  131
+   по столбцам: measured_kev×70, shift_kev×69, sigma_kev×31, model_kev×25, peak_share×12, z×10
+   по спектрам (28): 
+      AS80_Th232Medal              measured_kev, model_kev, peak_share, shift_kev, z
+      ASN16_Lu176                  measured_kev
+      ASN16_Lu176_P0               measured_kev, sigma_kev
+      G1S16_Mix_Denta100           measured_kev, shift_kev, z
+      G1S16_Mix_Petri              measured_kev, peak_share
+      G1S16_Ra226_Mar              measured_kev, model_kev, shift_kev
+      G1S16_Ra226_Mar_2            measured_kev, shift_kev
+      G1S16_Th228_P5               measured_kev, shift_kev, sigma_kev
+      G1S16_Th232_Denta100         measured_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Th232_Mar_2            measured_kev, shift_kev, sigma_kev, z
+      G1S16_Th232_Mar_3            measured_kev, shift_kev, sigma_kev
+      G1S24_Ra226_Denta120         measured_kev, model_kev, peak_share, shift_kev, sigma_kev
+      G1S24_Ra226_Denta120_2       measured_kev, model_kev, shift_kev
+      G1S24_Ra226_Mar              measured_kev, shift_kev
+      G1S24_Ra226_Mar_2            measured_kev, model_kev, peak_share, shift_kev, z
+      G1S24_Ra226_Petri            measured_kev, model_kev, shift_kev, sigma_kev
+      G1S24_Ra226_Petri_2          measured_kev, model_kev, peak_share, shift_kev
+      G1S24_Rn222Coal_Mar_20m      measured_kev, model_kev, shift_kev, sigma_kev
+      G1S24_Rn222Coal_Mar_2h       measured_kev, model_kev, shift_kev, sigma_kev
+      G1S24_Rn222Coal_Mar_3h       measured_kev, model_kev, shift_kev, sigma_kev
+      G1S24_Rn222Coal_Mar_eq01     measured_kev, shift_kev
+      G1S24_Th228_P5               measured_kev, shift_kev, sigma_kev
+      G1S24_Th232_Denta120         measured_kev, peak_share, shift_kev, sigma_kev
+      G1S24_Th232_Denta120_2       measured_kev, model_kev, peak_share, shift_kev, sigma_kev
+      G1S24_Th232_Mar              measured_kev, shift_kev, sigma_kev
+      G1S24_Th232_Mar_2            measured_kev, model_kev, shift_kev, z
+      G1S24_Th232_Petri            measured_kev, model_kev, shift_kev, sigma_kev
+      G1S24_Th232_Petri_2          measured_kev, model_kev, peak_share, shift_kev, sigma_kev
+ИТОГО разошлось 292 — РАСХОЖДЕНИЕ

@@ -30,6 +30,14 @@ u"""Сторож ВИТРИНЫ FSA (`T260`): картинка разбора н
 «лишнее» — против кривой фита (число строки отчёта) и против показной (лента
 на графике). Эталон — `tools/fsa_showcase/reference/<спектр>__<режим>.json`.
 
+(`AMBER45`, П104 18.09.2026) Режимы СЛОЯ МАТРИЦЫ — пары с ключом
+`--matrix-layer=` (`infer_eq_peak`, `infer_eq_compton` у «Cs 137 в домике»,
+решение Amber: «Да, два эталона на Cs-137 в домике»): столбцы слоёв дампа там —
+НАРИСОВАННАЯ стопка канала (только слои с каналами, кривые канала), `model`,
+`net`, `fit` — полная модель; в шапку эталона входят строки `MATRIX_LAYER` и
+`MATRIX_LAYER_COMBO` (просили — собран — слои; состояние комбо окна). У пар
+без ключа шапка прежняя ключ в ключ.
+
 Допуск — `rel`/`abs` в самом эталоне (умолчание 1e-9 / 1e-6): проба
 ДЕТЕРМИНИРОВАНА (замер П74 14.09.2026: три прогона подряд — дампы, rates и
 строки побайтно одинаковы), поэтому сравнение по сути побитовое; ключи
@@ -72,6 +80,8 @@ u"""Сторож ВИТРИНЫ FSA (`T260`): картинка разбора н
                                      [--snapshot] [--selftest] [--rel=1e-9] [--abs=1e-6]
                                      [--skip-freshness] [--reference=<каталог>]
 
+  --only=           член (`ключ`) или ПАРА (`ключ__режим`, `AMBER45`/П104) — так
+                    новым парам члена снимается эталон без переобъявления прежних;
   --snapshot        переобъявить эталон (снять заново) — печатает diff против
                     прежнего; зовётся из `tools/fsa_showcase/snapshot.ps1`;
   --selftest        положительный контроль (см. выше), нужен собранный склад;
@@ -382,11 +392,9 @@ def matrix_sources(member, guid):
         hint = (u' — сперва tools\\fsa_showcase\\rebuild_store.ps1' if kind == u'store'
                 else u' — живой склад корпуса без этой сцены (CorpusMatrixProbe)')
         return [], u'%s: нет матрицы %s%s' % (member[u'key'], rmx, hint)
-    out = [(rmx, guid + u'.rmx')]
-    qk = os.path.join(base, key + u'.qk')
-    if os.path.isfile(qk):
-        out.append((qk, guid + u'.qk'))
-    return out, None
+    # (`AMBER46`, П87 16.09.2026) Сайдкаров `.qk` больше нет: Q_k(E) сцены лежат в
+    # самой матрице (блок формата 9) и едут с `.rmx`.
+    return [(rmx, guid + u'.rmx')], None
 
 
 def assemble_wd(probes, manifest, members):
@@ -426,6 +434,8 @@ def assemble_wd(probes, manifest, members):
             response.append((src, dst_name))
             mine[u'matrices'][dst_name] = {u'from': rel_repo(src), u'sha': sha256_file(src)[:16]}
         inputs[u'members'][member[u'key']] = mine
+    # `.qk` в маске — чтобы сайдкары, оставшиеся в рабочем каталоге от прежних
+    # прогонов (до `AMBER46`), снимались: их никто не читает, но лежать им незачем.
     sync_dir_exact(response, os.path.join(cfg, u'device', u'response'), (u'.rmx', u'.qk'))
     out = os.path.join(WD, u'out')
     if not os.path.isdir(out):
@@ -531,6 +541,18 @@ def summarize(text, dump, rates, bands):
             result[u'head'][u'untied'] = line
         elif line.startswith(u'серый слой'):
             result[u'head'][u'grey'] = line
+        # (`AMBER45`) Режим слоя матрицы — в шапку эталона ТОЛЬКО когда слой
+        # просили: строки `MATRIX_LAYER\t<просили>\t<собран>\t…` и
+        # `MATRIX_LAYER_COMBO\t…` при «All» не пишутся, и шапки семи прежних
+        # пар остаются прежними ключ в ключ (их эталоны переобъявлять нельзя).
+        elif line.startswith(u'MATRIX_LAYER\t'):
+            parts = line.split(u'\t')
+            if len(parts) > 1 and parts[1] != u'All':
+                result[u'head'][u'matrix_layer'] = line
+                result[u'_matrix_layer'] = True
+        elif line.startswith(u'MATRIX_LAYER_COMBO\t') and result.get(u'_matrix_layer'):
+            result[u'head'][u'matrix_layer_combo'] = line
+    result.pop(u'_matrix_layer', None)
     return result
 
 
@@ -749,17 +771,33 @@ def main(argv=None):
     manifest = load_manifest()
     members = manifest[u'members']
     if args.only:
+        # (`AMBER45`, П104) `--only=` берёт и ЧЛЕНА (`ключ`), и ПАРУ
+        # (`ключ__режим`): переобъявить эталон двум новым парам члена, не
+        # переписывая клеймо его прежней пары, иначе нельзя.
         wanted = [s.strip() for s in args.only.split(u',') if s.strip()]
-        unknown = [w for w in wanted if w not in [m[u'key'] for m in members]]
+        pairs = set(u'%s__%s' % (m[u'key'], mode) for m in members for mode in m[u'modes'])
+        unknown = [w for w in wanted if w not in [m[u'key'] for m in members] and w not in pairs]
         if unknown:
             say(u'ОТКАЗ: в витрине нет %s' % u', '.join(unknown))
             return 2
-        members = [m for m in members if m[u'key'] in wanted]
+        chosen = []
+        for m in members:
+            modes = dict((mode, a) for mode, a in m[u'modes'].items()
+                         if m[u'key'] in wanted or u'%s__%s' % (m[u'key'], mode) in wanted)
+            if modes:
+                copy = dict(m)
+                copy[u'modes'] = modes
+                chosen.append(copy)
+        members = chosen
     if args.selftest:
         members = [m for m in members if m[u'key'] == u'ASN16_Cs137_house']
         if not members:
             say(u'ОТКАЗ: самопроверке нужен член ASN16_Cs137_house')
             return 2
+        # Самопроверка — на ПРЕЖНЕЙ паре члена (`infer_eq`): яма `AMBER30` и
+        # подсадка сняты на ней, и режимы слоя (`AMBER45`) в неё не входят.
+        first = list(members[0][u'modes'].keys())[0]
+        members = [dict(members[0], **{u'modes': {first: members[0][u'modes'][first]}})]
 
     inputs, code = stand(args, manifest, members)
     if code:

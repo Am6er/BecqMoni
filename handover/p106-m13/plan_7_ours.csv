@@ -1,0 +1,15 @@
+# П106 (M13): приёмка ключа lbrem (редакция 4c (окончательная, 1E2D9449…), build_p106; повтор плана 5). Плечи 2614 и стенд П92 при ВКЛ; «П103» = П100 elmix1 (умолчания физики 20).
+ours;RC103_point0_p55;2614.511;40000000;lbrem1;--lbrem=1
+ours;RC103_point0_p55;2614.511;20000000;lbrem1_outbrem0;--lbrem=1 --ret-kill=outbrem
+ours;RC103_point0_p55;2614.511;20000000;lbrem1_base0;--lbrem=1 --detour=0 --ret-kill=own
+ours;RC103_point0_p55;1460.82;20000000;lbrem1;--lbrem=1
+ours;RC103_point0_p55;661.657;20000000;lbrem1;--lbrem=1
+ours;RC103_point0_p55;59.541;20000000;lbrem1;--lbrem=1
+ours;AS80_th_disk;2614.511;8000000;lbrem1;--lbrem=1
+ours;AS80_th_disk;1460.82;8000000;lbrem1;--lbrem=1
+ours;RC103_point0;1460.82;20000000;lbrem1;--lbrem=1
+ours;RC103_point0;661.657;20000000;lbrem1;--lbrem=1
+ours;RC103_point0;59.541;20000000;lbrem1;--lbrem=1
+ours;ASN16_lu_side;1460.82;8000000;lbrem1;--lbrem=1
+ours;ASN16_lu_side;661.657;8000000;lbrem1;--lbrem=1
+ours;AS80_point0;1460.82;4000000;lbrem1;--lbrem=1

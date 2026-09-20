@@ -12,6 +12,13 @@ rem    самого Geant4 не будет. Ключ ставится ПЕРВЫ
 rem        run_g4cf.bat vacuum scene <файл> hist <E_кэВ> <N> <шаг_бина>
 rem    Ниже — предупреждение на случай, когда его забыли (это и есть читатель
 rem    признака: раньше признак был, а потребителя у него не было).
+rem
+rem Ключ `corr` (П85, `AMBER42`, 15.09.2026) — угловые γ–γ корреляции каскада в
+rem    RDM (`G4DeexPrecoParameters::SetCorrelatedGamma(true)` до `/run/initialize`);
+rem    без ключа арбитр изотропен, как и был. Ставится там же, где `vacuum`, в
+rem    любом порядке: run_g4cf.bat corr scene <файл> ion <Z> <A> <N> <окна…>.
+rem    Читатель: строка `SETUP correlatedGamma=1` в stdout и сводка RDM
+rem    «Enable correlated gamma emission 1». Шапка g4cf.cc — что именно читает флаг.
 
 set "G4CF_HAS_VACUUM="
 for %%A in (%*) do if /i "%%~A"=="vacuum" set "G4CF_HAS_VACUUM=1"

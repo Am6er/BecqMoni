@@ -1,0 +1,220 @@
+build_all.ps1: ╨╜╨░╤З╨░╨╗╨╛, pid 54428, 18.09 15:47:30
+  -Bin D:\BqMoni_Claude\p102\wt_a\BecquerelMonitor\bin\Release_p102
+  -Out D:\BqMoni_Claude\p102\wt_a\tools\effmaker\probes\build_p102_a
+╨┤╨╛╨▓╨╡╤Б╨║╨╕ ╨▒╨╡╨╖ Main: _TargetFramework.cs, FsaTuningReport.cs, GadrasDetector.cs, ProbeDeviceConfig.cs, ResidualScan.cs
+╤Ж╨╡╨╗╨╡╨▓╨░╤П ╨┐╨╗╨░╤В╤Д╨╛╤А╨╝╨░ ╨┐╤А╨╛╨▒: ╨┤╨╛╨▓╨╡╤Б╨╛╨║ _TargetFramework.cs
+ok   MeasuredPoint.cs
+ok   Simulate.cs
+ok   AngularProbe.cs
+ok   AngularQkProbe.cs
+ok   AnnihilationGateProbe.cs
+ok   BackscatterShapeProbe.cs
+ok   BoundProbeF59.cs
+ok   BoundScatterProbe.cs
+ok   BoxCylStampProbeF64.cs
+ok   BoxDeadFieldsProbe.cs
+ok   BoxSourceProbe.cs
+ok   BqActivityProbe.cs
+ok   BqCoeffProbe.cs
+ok   BremPathProbe.cs
+ok   BremSpectrumProbe.cs
+ok   CalcRestoreProbe.cs
+ok   CalibGraphProbeF35.cs
+ok   CalibGuardProbeF77.cs
+ok   CalibrationDoorsProbe.cs
+ok   CalibrationInverseProbeP78.cs
+ok   CalibrationNanProbeF48.cs
+ok   CascadeClampProbe.cs
+ok   CascadeJointProbe.cs
+ok   CascadePairProbe.cs
+ok   CascadeXrayProbe.cs
+ok   ChainProbe.cs
+ok   ChainRuleProbeF58.cs
+ok   CoincCfProbe.cs
+ok   CorpusEffProbe.cs
+ok   CorpusFsaProbe.cs
+ok   CorpusGeomProbe.cs
+ok   CorpusMatrixProbe.cs
+ok   CrashLogProbe.cs
+ok   CrystalMaterialProbe.cs
+ok   CrystalXrayGateProbe.cs
+ok   CultureProbeO14.cs
+ok   CurveGenerationProbe.cs
+ok   CylinderGeomProbe.cs
+ok   DecayReadersProbe.cs
+ok   DensityFromPartsProbe.cs
+ok   DeviceAnalysisProbe.cs
+ok   DeviceTabProbe.cs
+ok   DoseAirProbeF63.cs
+ok   DoseBoundProbeF65.cs
+ok   DoseCoefProbeO2.cs
+ok   DoseRateFromCurveProbe.cs
+ok   DoseRateProbe.cs
+ok   EditorProbe.cs
+ok   EditorShot.cs
+ok   EffCoverProbe.cs
+ok   EffDipProbe.cs
+ok   EffGridRangeProbe.cs
+ok   EfficiencyConfigProbe.cs
+ok   EfficiencyGraphDecadesProbeP77.cs
+ok   EfficiencyListProbe.cs
+ok   EscapeGateProbe.cs
+ok   EscapeMarginProbe.cs
+ok   EscapeOrphanProbe.cs
+ok   EscapeParentsProbe.cs
+ok   FacingProbe.cs
+ok   FsaAnchorGlyphProbe.cs
+ok   FsaBackgroundMarkProbeF48.cs
+ok   FsaCascadeProbe.cs
+ok   FsaChannelShot.cs
+ok   FsaChannelSplitProbe.cs
+ok   FsaComponentDumpProbe.cs
+ok   FsaCrystalMixFallbackProbe.cs
+ok   FsaDeterminismProbeF29.cs
+ok   FsaDoubleCountProbe.cs
+ok   FsaFitFloorProfileProbe.cs
+ok   FsaFlagsProbe.cs
+ok   FsaGateRescueProbe.cs
+ok   FsaInferProbeF51.cs
+ok   FsaMatchingProbe.cs
+ok   FsaMatrixFloorProbe.cs
+ok   FsaNdfProbe.cs
+ok   FsaNnlsDumpProbe.cs
+ok   FsaP42ArmProbe.cs
+ok   FsaPaletteProbe.cs
+ok   FsaQualityRowProbe.cs
+ok   FsaRefitZClassProbe.cs
+ok   FsaReportViewProbe.cs
+ok   FsaResidualProbeF21.cs
+ok   FsaRobustnessProbe.cs
+ok   FsaSelectionProbeF16.cs
+ok   FsaSessionProbe.cs
+ok   FsaStackShot.cs
+ok   FsaStampProbe.cs
+ok   FsaSumPeakAccountProbe.cs
+ok   FsaTieProbe.cs
+ok   FsaViewGroupsProbe.cs
+ok   FwhmOverflowProbe.cs
+ok   FwhmPowerProbe.cs
+ok   FwhmReaderProbeF62.cs
+ok   FwhmRescaleProbe.cs
+ok   FwhmViewReachProbeO13.cs
+ok   FwhmVoiceProbeF54.cs
+ok   G4CompareProbe.cs
+ok   G4RawProbe.cs
+ok   GadrasProbe.cs
+ok   GapDefaultProbe.cs
+ok   GapProbeAmber1.cs
+ok   GapTemplateProbeE43.cs
+ok   GeomEncodingProbe.cs
+ok   GeometryLayoutProbe.cs
+ok   GeometryLimitsProbe.cs
+ok   GeometryTemplateProbe.cs
+ok   GraphCultureProbeF27.cs
+ok   GridStampProbeF45.cs
+ok   GroundScenesProbe.cs
+ok   ImportEmptyConfigProbeF23.cs
+ok   IncidenceResponseProbe.cs
+ok   IntensityLinesProbe.cs
+ok   IsoCurveActivityProbeP79.cs
+ok   IsoFieldProbe.cs
+ok   KappaPeakTotalProbe.cs
+ok   LabelFitProbe.cs
+ok   LabelPathProbeF49.cs
+ok   LabelTruthProbe.cs
+ok   LayerProbe.cs
+ok   LayerReturnProbe.cs
+ok   LayoutFileProbe.cs
+ok   LightAnchorProbe.cs
+ok   LightScaleProbe.cs
+ok   LiveTimePathsProbeP80.cs
+ok   LSeriesProbe.cs
+ok   LsrmGeometryImportProbe.cs
+ok   LYieldProbe.cs
+ok   MakerSaveProbe.cs
+ok   MarinelliSelfAbsProbeE10.cs
+ok   MaterialDbProbe.cs
+ok   MaterialNameProbeF67.cs
+ok   MaterialOrderProbe.cs
+ok   MatrixAuditProbe.cs
+ok   MatrixDiffProbe.cs
+ok   MatrixLayoutProbe.cs
+ok   MatrixPeakProbeF76.cs
+ok   MatrixRangeProbe.cs
+ok   MatrixRebuildProbe.cs
+ok   MatrixRefusalProbeP8.cs
+ok   MatrixStampProbe.cs
+ok   MineProbe.cs
+ok   ModalReachProbeF22.cs
+ok   ModalThreadProbeO25.cs
+ok   N42BoundaryProbeG6.cs
+ok   N42DoorsProbeF54.cs
+ok   N42RoundTripProbe.cs
+ok   NucidProbe.cs
+ok   NuclideSetMemoryProbe.cs
+ok   NumericCultureProbeF68.cs
+ok   OmegaProbe.cs
+ok   PairThresholdProbe.cs
+ok   PeakAgreeProbe.cs
+ok   PeakFwhmUnitsProbeF41.cs
+ok   PeakHighlightProbeG9.cs
+ok   PeakListRowsProbeP57.cs
+ok   PeakOriginProbe.cs
+ok   RawCarryProbe.cs
+ok   ReasonProbe.cs
+ok   RecalibrateBackgroundProbe.cs
+ok   RefusalWordsProbe.cs
+ok   ResponseChannelProbe.cs
+ok   ResponseInterpProbe.cs
+ok   ResponseMatrixFormProbe.cs
+ok   ResponseMatrixProbe.cs
+ok   ResponseNoiseProbe.cs
+ok   ResponseProbe.cs
+ok   ResponseRowDumpProbe.cs
+ok   ResponseShapeProbe.cs
+ok   ResponseTransferProbe.cs
+ok   RestCultureProbeF28.cs
+ok   RestCultureProbeF47.cs
+ok   RoiActivityProbe.cs
+ok   RoiLoadProbe.cs
+ok   RoiSupplyProbe.cs
+ok   RoundTrip.cs
+ok   S109ActivityProbe.cs
+ok   SbKeysProbe.cs
+ok   SceneCostProbe.cs
+ok   SceneOfSpectrumProbe.cs
+ok   SeedStampProbeF69.cs
+ok   SelectionPanelProbeG10.cs
+ok   SetColorProbe.cs
+ok   SketchShot.cs
+ok   SpectrumEfficiencyProbe.cs
+ok   StartTimeProbeF52.cs
+ok   StringsProbeF55.cs
+ok   SumPeakLightProbe.cs
+ok   SumPeakProbe.cs
+ok   TrustFloorProbe.cs
+ok   UnitsProbe.cs
+ok   VisibleRuleProbe.cs
+ok   XrayLabelProbeF53.cs
+ok   XrayLinesProbe.cs
+----
+╤Б╨▓╨╡╤А╨╡╨╜╨╛ ╤А╤П╨┤╨╛╨╝ ╤Б ╨┐╤А╨╛╨▒╨░╨╝╨╕: 244 ╤Д╨░╨╣╨╗╨╛╨▓ ╨┐╨╛ sha256 ╤Б ╨╕╤Б╤В╨╛╤З╨╜╨╕╨║╨╛╨╝
+    ╨┐╨╛╤Б╤В╨░╨▓╨╛╤З╨╜╤Л╨╣ ╨║╨╛╨╜╤Д╨╕╨│         2
+    ╨┐╨╛╤Б╤В╨░╨▓╨╛╤З╨╜╤Л╨╣ ╨║╨╛╨╜╤Д╨╕╨│\device  10
+    ╨┐╨╛╤Б╤В╨░╨▓╨╛╤З╨╜╤Л╨╣ ╨║╨╛╨╜╤Д╨╕╨│\ROI     12
+    ╤Б╨▒╨╛╤А╨║╨░                     22
+    ╤Б╨▒╨╛╤А╨║╨░\ru                  1
+    ╤Б╨▒╨╛╤А╨║╨░\runtimes            3
+    exe.config ╨┐╤А╨╛╨▒╤Л           194
+  (╤Б╨▓╨╡╤А╤П╤В╤М ╨╜╨╡ ╤Б ╤З╨╡╨╝ ╨╡╤Й╤С ╤Г 194 ╨┐╤А╨╛╨▒ ╨╕ 0 ╨┐╨╛╤Б╤В╨╛╤А╨╛╨╜╨╜╨╕╤Е: ╨╕╤Е ╨╕╤Б╤В╨╛╤З╨╜╨╕╨║ тАФ ╤Б╨░╨╝ ╤Н╤В╨╛╤В ╨║╨░╤В╨░╨╗╨╛╨│)
+тЪа ╨▓ D:\BqMoni_Claude\p102\wt_a\tools\effmaker\probes\build_p102_a ╨╜╨╡╤В ╨╖╨░╨▓╨╡╤А╨╡╨╜╨╜╨╛╨╣ ╨╖╨░╨┐╨╕╤Б╨╕ ╨╜╨░╨▒╨╛╤А╨░ тАФ ╤Б╨▓╨╡╨╢╨╡╤Б╤В╤М ╤Б╤Г╨┤╨╕╤В╤Б╤П ╨Т╨а╨Х╨Ь╨Х╨Э╨Х╨Ь (╨┐╤А╨░╨▓╨╕╨╗╨╛ T41)
+╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╨╡ ╤А╤П╨┤╨╛╨╝ ╤Б ╨┐╤А╨╛╨▒╨░╨╝╨╕ ╤Б╨╛╤И╨╗╨╛╤Б╤М ╤Б╨╛ ╤Б╨▒╨╛╤А╨║╨╛╨╣: D:\BqMoni_Claude\p102\wt_a\BecquerelMonitor\bin\Release_p102
+╨▒╨╕╨▒╨╗╨╕╨╛╤В╨╡╨║╨░ ╨╜╤Г╨║╨╗╨╕╨┤╨╛╨▓: 152 ╨╖╨░╨┐╨╕╤Б╨╡╨╣, sha 7aaa0b01c9bd (╨┐╨╛╤Б╤В╨░╨▓╨╛╤З╨╜╨░╤П)
+╨▓╤Б╨╡ ╤Б╨╛╨▒╤А╨░╨╗╨╕╤Б╤М: 194 ╤Д╨░╨╣╨╗╨╛╨▓ (╨┐╨╗╤О╤Б 5 ╨▒╨╡╨╖ Main, ╨╕╨┤╤Г╤В ╨┤╨╛╨▓╨╡╤Б╨║╨╛╨╝)
+  ╤Б╤В╨╛╤А╨╛╨╢ ╨┐╨╛╨╗╨╛╤Б╤Л (`S101`): ╨╛╨┤╨╕╨╜ ╤А╤Л╤З╨░╨│ ╨┤╨▓╨╕╨│╨░╨╡╤В ╨Ю╨С╨Р ╨║╨╛╨╜╤Ж╨░ ╨╜╨░ ╨▓╤Б╨╡╤Е ╨з╨Х╨в╨л╨а╨Б╨е ╤А╨╡╨╢╨╕╨╝╨░╤Е; ╨┐╨╛╨┤╤Б╤В╨░╨▓╨╗╨╡╨╜╨╜╤Л╨╣ ╤А╨░╤Б╤Б╨╕╨╜╤Е╤А╨╛╨╜ ╨Э╨Р╨Ч╨Т╨Р╨Э, ╤Б╨╛╨│╨╗╨░╤Б╨╜╤Л╨╡ ╨║╨╛╨╜╤Ж╤Л ╨╜╨╡ ╤В╤А╨╡╨▓╨╛╨╢╨░╤В. ╨б╨Ю╨и╨Ы╨Ю╨б╨м.
+  ╨б╨Ю╨и╨Ы╨Ю╨б╨м: ╤Б╨╛╤Б╤В╨╛╤П╨╜╨╕╨╣ ╤А╨░╨╖╨╝╨╡╤В╨║╨╕ ╨┐╤А╨╛╨▓╨╡╤А╨╡╨╜╨╛ 56, ╤Г╨┐╨╛╨╗╨╖╤И╨╕╤Е ╨║╨╛╨╜╤В╤А╨╛╨╗╨╛╨▓ ╨╜╨╡╤В
+╨║╨░╤В╨░╨╗╨╛╨│ ╨╖╨░╨▓╨╡╤А╨╡╨╜ (T226): ╨╜╨░╨▒╨╛╤А╤Л тАФ ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╨╡ e75f23d3ce6c (550 ╤Д╨░╨╣╨╗╨╛╨▓), ╨┐╤А╨╛╨▒╤Л 66e1afd2b002 (199), ╨┤╨╛╨▓╨╡╤Б╨║╨╛╨▓ 5
+╨╛╨┐╨╕╤Б╨░╨╜╨╕╤П FSA ╤Б╨▓╨╡╤А╨╡╨╜╤Л ╤Б ╨║╨╛╨┤╨╛╨╝ (T86): tools\check_fsa_docs.py тАФ ╨║╨╛╨┤ 0
+  ╨б╨Р╨Ь╨Ю╨Я╨а╨Ю╨Т╨Х╨а╨Ъ╨Р ╨Я╨а╨Ю╨и╨Ы╨Р: ╨▓╤Б╨╡ 17 ╨╛╨▒╤А╨░╨╖╤Ж╨╛╨▓ ╨╕ 3 ╤Г╨▓╨╡╨┤╤С╨╜╨╜╤Л╤Е ╤Г╨╝╨╛╨╗╤З╨░╨╜╨╕╨╣ ╨┐╨╛╨╣╨╝╨░╨╜╤Л, ╤П╨║╨╛╤А╤П ╤А╨░╨╖╨╛╨▒╤А╨░╨╜╤Л.
+  FsaAnalyzer.cs: ╨╛╨┐╨╕╤Б╨░╨╜╨╕╨╣ 321, ╤Г╨╝╨╛╨╗╤З╨░╨╜╨╕╨╣ 94 (╨╕╨╖ ╨╜╨╕╤Е ╨║╨╛╨╜╤Б╤В╤А╤Г╨║╤В╨╛╤А ╤Б╤В╨░╨▓╨╕╤В 60)
+  ╨Ю╨Я╨Ш╨б╨Р╨Э╨Ш╨п ╨б╨Ю╨и╨Ы╨Ш╨б╨м ╨б ╨Ъ╨Ю╨Э╨б╨в╨а╨г╨Ъ╨в╨Ю╨а╨Ю╨Ь: ╨║╨╛╨┐╨╕╨╣ ╨╖╨╜╨░╤З╨╡╨╜╨╕╨╣ ╨▓ ╨╛╨┐╨╕╤Б╨░╨╜╨╕╤П╤Е ╨╜╨╡╤В.

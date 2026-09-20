@@ -24,6 +24,12 @@ namespace BoundProbeF59
     ///    снимает правило «погрешность выше 100 % не брать») и на СЫРЫХ данных.
     ///    Вторая половина строки — опорная кривая фиттера — мерилась здесь до
     ///    13.09.2026; снята вместе с самим фитом по спектрам (`AMBER25`).
+    ///    ⛔ Плечи A222.1 (сличение с экспортом) и A222.2 (весь набор из восьми
+    ///    экспортов) с 15.09.2026 идут ТОЛЬКО с `--lsrm=<каталог экспортов>`:
+    ///    `LSRM Geometries/` снят из дерева решением Amber («Удалить вместе с
+    ///    каталогом»). Без ключа они пропускаются вслух и отказом не считаются;
+    ///    A222.3 (поставочная кривая с точкой 1471.85) и A222.4 (сама граница)
+    ///    идут всегда — на них и держится `--break=bound`.
     /// 2. **`A183`, знак вне кодовой страницы 1251.** Положительный контроль —
     ///    ТА САМАЯ снятая строка `File.WriteAllText(..., Encoding.GetEncoding(1251))`,
     ///    выполняемая здесь дословно: она обязана дать `?` там, где новый
@@ -56,6 +62,13 @@ namespace BoundProbeF59
         static int failed;
         static string breakage = "";
         static string repo = ".";
+
+        /// <summary>
+        /// Каталог с восемью экспортами ЛСРМ — только ключом `--lsrm=`; умолчания
+        /// нет с 15.09.2026 (каталог снят из дерева, решение Amber).
+        /// </summary>
+        static string lsrm;
+
         static readonly List<string> report = new List<string>();
 
         static int Main(string[] args)
@@ -81,6 +94,7 @@ namespace BoundProbeF59
                 if (a.StartsWith("--repo=", StringComparison.Ordinal)) repo = a.Substring(7);
                 else if (a.StartsWith("--break=", StringComparison.Ordinal)) breakage = a.Substring(8);
                 else if (a.StartsWith("--report=", StringComparison.Ordinal)) reportPath = a.Substring(9);
+                else if (a.StartsWith("--lsrm=", StringComparison.Ordinal)) lsrm = a.Substring(7);
                 // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание. Опечатка
                 // молча меняла прогон, ничем этого не показывая.
                 else
@@ -99,8 +113,19 @@ namespace BoundProbeF59
 
             try
             {
-                A222_WhatIsInTheColumn();
-                A222_WholeLsrmSet();
+                if (lsrm != null)
+                {
+                    A222_WhatIsInTheColumn();
+                    A222_WholeLsrmSet();
+                }
+                else
+                {
+                    Say("");
+                    Say("-- A222.1 и A222.2 НЕ ГОНЯЮТСЯ: экспорты ЛСРМ сняты из дерева 15.09.2026"
+                        + " (решение Amber: «Удалить вместе с каталогом»); дать --lsrm=<каталог с восемью"
+                        + " экспортами>. Отказом не считается. --");
+                }
+
                 A222_ShippedCurve();
                 A222_BoundItself();
                 A183_Encoding();
@@ -146,8 +171,7 @@ namespace BoundProbeF59
             Say("");
             Say("-- A222.1: колонка `Efficiency` экспорта против поставочной кривой той же сцены --");
 
-            List<double[]> export = RawLsrm(Path.Combine(repo,
-                @"LSRM Geometries\Exported Curves\Obsidian - marinelli 0.5.txt"));
+            List<double[]> export = RawLsrm(Path.Combine(lsrm, "Obsidian - marinelli 0.5.txt"));
             List<double[]> roi = RoiCurve(Path.Combine(repo,
                 @"BecquerelMonitor\config\ROI\Obsidian Marinelli 0.5.xml"));
 
@@ -192,7 +216,7 @@ namespace BoundProbeF59
             Say("");
             Say("-- A222.2: весь набор экспортов ЛСРМ — что отвергает граница ε ≤ 1 --");
 
-            string dir = Path.Combine(repo, @"LSRM Geometries\Exported Curves");
+            string dir = lsrm;
             string[] files = Directory.GetFiles(dir, "*.txt").OrderBy(f => f, StringComparer.Ordinal).ToArray();
             Ok(files.Length == 8, string.Format(CultureInfo.InvariantCulture,
                                                 "экспортов в наборе: {0} (ждали 8)", files.Length));
@@ -489,12 +513,17 @@ namespace BoundProbeF59
             Ok(!options.XcomPairThreshold && !options.AnalogConeSampling,
                "`XcomPairThreshold` и `AnalogConeSampling` умолчанием ВЫКЛЮЧЕНЫ (абляции, не физика склада)");
 
-            // Семь ключей физики 17 (П37/П38: `lbin` `pkch` `lys=2` `etr` `e+tr` `e+off` `rayl2`)
-            // и два ключа физики 18 (`ecomp=1` `bpath=2`, П50; решение Amber 13.09.2026
-            // «ecomp=1 + bpath=2») — умолчания КЛАССА, одно место истины (правило I
-            // `check_matrix_keys.py`): путь склада, путь кривой и поля симулятора берут их отсюда.
+            // Семь ключей физики 17 (П37/П38: `lbin` `pkch` `lys=2` `etr` `e+tr` `e+off` `rayl2`),
+            // два ключа физики 18 (`ecomp=1` `bpath=2`, П50; решение Amber 13.09.2026
+            // «ecomp=1 + bpath=2»), ключ физики 19 (`eltr=1`, П97 18.09.2026; решение Amber
+            // 17.09.2026 «ВКЛ сейчас, единый счёт ночью»), ключ физики 20 (`elmix=1`, П103
+            // 19.09.2026; решение Amber 18.09.2026 по приёмке П100, дословно: «ВКЛ сейчас, единый
+            // счёт ночью») и ключ физики 21 (`lbrem=1`, П107 19.09.2026; решение Amber 19.09.2026
+            // по приёмке П106, дословно: «ВКЛ сейчас, единый счёт ночью») — умолчания КЛАССА, одно
+            // место истины (правило I `check_matrix_keys.py`):
+            // путь склада, путь кривой и поля симулятора берут их отсюда.
             Say("");
-            Say("-- A120: умолчания физики 17 и 18 (склад = кривая = симулятор) --");
+            Say("-- A120: умолчания физики 17, 18, 19, 20 и 21 (склад = кривая = симулятор) --");
             Say(string.Format(CultureInfo.InvariantCulture, "   PhysicsVersion       = {0}", ResponseMatrix.PhysicsVersion));
             Say(string.Format(CultureInfo.InvariantCulture, "   LightBinUnified      = {0}", options.LightBinUnified));
             Say(string.Format(CultureInfo.InvariantCulture, "   PeakChannelByTolerance = {0}", options.PeakChannelByTolerance));
@@ -502,13 +531,22 @@ namespace BoundProbeF59
             Say(string.Format(CultureInfo.InvariantCulture, "   ElectronTransport    = {0}", options.ElectronTransport));
             Say(string.Format(CultureInfo.InvariantCulture, "   ElectronAnyMaterial  = {0}", options.ElectronAnyMaterial));
             Say(string.Format(CultureInfo.InvariantCulture, "   BremAlongPath        = {0}", options.BremAlongPath));
-            Ok(ResponseMatrix.PhysicsVersion == 18,
-               string.Format(CultureInfo.InvariantCulture, "версия физики склада — 18 (есть {0})", ResponseMatrix.PhysicsVersion));
+            Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerTransport = {0}", options.ElectronLayerTransport));
+            Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerMixedScattering = {0}", options.ElectronLayerMixedScattering));
+            Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerBremAlongPath = {0}", options.ElectronLayerBremAlongPath));
+            Ok(ResponseMatrix.PhysicsVersion == 21,
+               string.Format(CultureInfo.InvariantCulture, "версия физики склада — 21 (есть {0})", ResponseMatrix.PhysicsVersion));
             Ok(options.LightBinUnified && options.PeakChannelByTolerance && options.LYieldSupply == 2
                && options.ElectronTransport && options.PositronTransport && options.PositronOffset && options.RayleighToCrystal,
                "семь ключей физики 17 умолчанием ВКЛ: lbin=1 pkch=1 lys=2 etr=1 e+tr=1 e+off=1 rayl2=1");
             Ok(options.ElectronAnyMaterial && options.BremAlongPath == 2,
                "два ключа физики 18 умолчанием ВКЛ: ecomp=1 bpath=2");
+            Ok(options.ElectronLayerTransport,
+               "ключ физики 19 умолчанием ВКЛ: eltr=1");
+            Ok(options.ElectronLayerMixedScattering,
+               "ключ физики 20 умолчанием ВКЛ: elmix=1");
+            Ok(options.ElectronLayerBremAlongPath,
+               "ключ физики 21 умолчанием ВКЛ: lbrem=1");
         }
 
         /// <summary>
@@ -701,7 +739,7 @@ namespace BoundProbeF59
         static double HealthyMax()
         {
             double max = 0.0;
-            foreach (string f in Directory.GetFiles(Path.Combine(repo, @"LSRM Geometries\Exported Curves"), "*.txt"))
+            foreach (string f in Directory.GetFiles(lsrm, "*.txt"))
             {
                 foreach (double[] p in RawLsrm(f))
                 {
@@ -770,10 +808,14 @@ namespace BoundProbeF59
             }
         }
 
+        /// <summary>
+        /// Геометрия для круга записи: та же `Nano16Pro.in`, что до 15.09.2026 была
+        /// первой по имени в `LSRM Geometries\Models`, — теперь из копий с нашими
+        /// ключами `tools\effmaker\models` (решение Amber 15.09.2026: копии остаются).
+        /// </summary>
         static string FirstGeometry()
         {
-            string dir = Path.Combine(repo, @"LSRM Geometries\Models");
-            return Directory.GetFiles(dir, "*.in").OrderBy(f => f, StringComparer.Ordinal).First();
+            return Path.Combine(repo, @"tools\effmaker\models\Nano16Pro.in");
         }
 
         static int CountQuestionMarksIn(string text, string before, string after)

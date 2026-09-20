@@ -38,10 +38,14 @@ namespace DoseRateProbe
     ///     годные данные обязаны пройти числом.
     ///
     ///  3. **Разбор экспорта ЛСРМ** (`ReadLsrmEfficiencyExport`): оба
-    ///     разделителя дробной части, пустой файл жалуется; `T174` — восемь
-    ///     настоящих экспортов против якоря, снятого глазами, порча файла
-    ///     обязана отказать; цена отсечения первой точки для покрытия Am-241
-    ///     — по пиковой, с геометрией корпусной ASN16.
+    ///     разделителя дробной части, пустой файл жалуется; порча файла
+    ///     обязана отказать (источник порчи — синтетический экспорт в формате
+    ///     настоящего). `T174` — восемь настоящих экспортов против якоря,
+    ///     снятого глазами, и цена отсечения первой точки для покрытия Am-241
+    ///     (по пиковой, с геометрией корпусной ASN16) — ТОЛЬКО с `--lsrm=`:
+    ///     ⛔ каталог `LSRM Geometries/` снят из дерева 15.09.2026 (решение
+    ///     Amber: «Удалить вместе с каталогом»), без ключа плечо пропускается
+    ///     вслух и отказом не считается.
     ///
     ///  4. **`A203` — канал переполнения.** Правило против корпуса; что
     ///     складывает `DoseRateManager` (сумма по диапазонам против независимой
@@ -49,8 +53,8 @@ namespace DoseRateProbe
     ///     линейность: вдвое больше отсчётов — вдвое больше дозы, вдвое больше
     ///     G — вдвое больше дозы.
     ///
-    ///   doserateprobe [--dir=&lt;корпус&gt;] [--lsrm=&lt;кривые&gt;]
-    ///   doserateprobe --sabotage=mu|lsrm|overflow   (ждёт ОТКАЗ)
+    ///   doserateprobe [--dir=&lt;корпус&gt;] [--lsrm=&lt;каталог с восемью экспортами ЛСРМ&gt;]
+    ///   doserateprobe --sabotage=mu|lsrm|overflow   (ждёт ОТКАЗ; `lsrm` — только с `--lsrm=`)
     ///
     /// ⛔ Приёмка, которая проходит всегда, не мерит ничего. `--sabotage`
     /// портит РОВНО ОДНУ вещь и требует отказа своего раздела; коды у него
@@ -82,7 +86,12 @@ namespace DoseRateProbe
 
         static string corpusDir = @"tools\CORPUS\corpus";
 
-        static string lsrmDir = @"LSRM Geometries\Exported Curves";
+        /// <summary>
+        /// Каталог с восемью настоящими экспортами ЛСРМ — только ключом `--lsrm=`.
+        /// ⛔ Умолчания нет: `LSRM Geometries/Exported Curves` снят из дерева
+        /// 15.09.2026 (решение Amber), и плечо `T174` без ключа не гоняется.
+        /// </summary>
+        static string lsrmDir;
 
         /// <summary>Что испортить ради положительного контроля; null — ничего.</summary>
         static string sabotage;
@@ -116,6 +125,15 @@ namespace DoseRateProbe
             if (sabotage != null && sabotage != "mu" && sabotage != "lsrm" && sabotage != "overflow")
             {
                 Console.Error.WriteLine("--sabotage= принимает mu, lsrm или overflow");
+                return 2;
+            }
+
+            if (sabotage == "lsrm" && lsrmDir == null)
+            {
+                // Порча якоря экспорта без самих экспортов «отказала» бы всегда —
+                // положительный контроль, который не может не пройти, не контроль.
+                Console.Error.WriteLine("--sabotage=lsrm нужен --lsrm=<каталог с восемью экспортами ЛСРМ>:"
+                                        + " экспорты сняты из дерева 15.09.2026");
                 return 2;
             }
 
@@ -498,9 +516,13 @@ namespace DoseRateProbe
         }
 
         /// <summary>
-        /// `T174`. Восемь НАСТОЯЩИХ экспортов ЛСРМ из дерева против якоря,
-        /// снятого из файлов глазами. Плюс положительный контроль: испорченный
-        /// файл обязан ОТКАЗАТЬ, а не прочитаться наполовину.
+        /// `T174`. Восемь НАСТОЯЩИХ экспортов ЛСРМ (каталог `--lsrm=`) против
+        /// якоря, снятого из файлов глазами. Плюс положительный контроль:
+        /// испорченный файл обязан ОТКАЗАТЬ, а не прочитаться наполовину.
+        /// ⛔ Без `--lsrm=` настоящих файлов нет (сняты из дерева 15.09.2026,
+        /// решение Amber): якорь и цена отсечения пропускаются ВСЛУХ и отказом
+        /// не считаются, а порча идёт по синтетическому экспорту того же
+        /// формата — читатель приложения судится и без файлов ЛСРМ.
         /// </summary>
         static void LsrmRealExports()
         {
@@ -508,6 +530,16 @@ namespace DoseRateProbe
             Console.WriteLine("== `T174`: восемь настоящих экспортов ЛСРМ ==");
             Console.WriteLine("   правило: точка с заявленной погрешностью выше {0:f0} % в кривую НЕ берётся"
                               + " (решение Amber 05.09.2026)", DeviceConfigForm_LsrmMaxErrorPercent());
+
+            if (lsrmDir == null)
+            {
+                Console.WriteLine("  ⚠ ПЛЕЧО НЕ ГОНЯЕТСЯ: экспорты ЛСРМ сняты из дерева 15.09.2026"
+                                  + " (решение Amber: «Удалить вместе с каталогом»);");
+                Console.WriteLine("    якорь восьми файлов и цена отсечения для Am-241 — только с"
+                                  + " --lsrm=<каталог с восемью экспортами>. Отказом не считается.");
+                LsrmCorruptions(SyntheticExport(), SyntheticRows);
+                return;
+            }
 
             if (!Directory.Exists(lsrmDir))
             {
@@ -578,8 +610,35 @@ namespace DoseRateProbe
                              + " ровно по одной, второй такой точки нет ни в одном",
                              totalDropped, LsrmAnchors.Length));
 
-            LsrmCorruptions();
+            LsrmCorruptions(Path.Combine(lsrmDir, LsrmAnchors[0].File), LsrmAnchors[0].DataRows);
             LsrmCutPrice();
+        }
+
+        /// <summary>Строк данных в синтетическом экспорте: 20…3000 кэВ шагом 20.</summary>
+        const int SyntheticRows = 150;
+
+        /// <summary>
+        /// Синтетический экспорт В ФОРМАТЕ НАСТОЯЩЕГО (шапка `Energy, keV`,
+        /// колонки через две-три табуляции, шесть значащих, CRLF): первая точка
+        /// с погрешностью выше 100 %, как у всех восьми настоящих, — правило
+        /// `T174` отсекает ровно её. Источник порчи, когда каталога `--lsrm=`
+        /// нет.
+        /// </summary>
+        static string SyntheticExport()
+        {
+            string path = Path.Combine(Path.GetTempPath(), "doserateprobe_lsrm_synthetic.txt");
+            var text = new StringBuilder();
+            text.Append("Energy, keV\tEfficiency\tUncertainty, %\r\n");
+            for (int i = 0; i < SyntheticRows; i++)
+            {
+                double e = 20.0 * (i + 1);
+                text.Append(string.Format(CultureInfo.InvariantCulture, "{0:f1}\t\t\t{1:E5}\t\t{2}\r\n",
+                                          e, 0.05 * Math.Pow(662.0 / e, 0.9), i == 0 ? "554" : "3.0"));
+            }
+
+            File.WriteAllText(path, text.ToString(), new UTF8Encoding(false));
+            Console.WriteLine("  источник порчи — синтетический экспорт " + path);
+            return path;
         }
 
         /// <summary>
@@ -687,15 +746,15 @@ namespace DoseRateProbe
         /// <summary>
         /// ⚠ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ разбора. Приёмка, которая на восьми целых
         /// файлах проходит, не меряет ничего, пока не показано, что на
-        /// испорченном она ПАДАЕТ. Порча берётся от настоящего файла, а не от
-        /// сочинённого: тем самым проверяется тот же вход, что и выше.
+        /// испорченном она ПАДАЕТ. Порча берётся от настоящего файла (с
+        /// `--lsrm=`), а без него — от синтетического того же формата;
+        /// <paramref name="dataRows"/> — сколько строк данных в источнике.
         /// </summary>
-        static void LsrmCorruptions()
+        static void LsrmCorruptions(string source, int dataRows)
         {
             Console.WriteLine();
             Console.WriteLine("  -- положительный контроль: испорченный файл обязан ОТКАЗАТЬ --");
 
-            string source = Path.Combine(lsrmDir, LsrmAnchors[0].File);
             if (!File.Exists(source))
             {
                 Ok(false, "нет исходного файла для порчи: " + source);
@@ -756,8 +815,9 @@ namespace DoseRateProbe
                 "одиночные табуляции читаются ЦЕЛИКОМ (решение полосы): точек {0}, у оригинала {1}, жалоб «{2}»",
                 collapsed.Count, original.Count, Short(problem)));
 
-            Ok(ignored == null && original.Count == LsrmAnchors[0].DataRows - 1,
-               string.Format("исходник порчи читается без жалоб: точек {0}", original.Count));
+            Ok(ignored == null && original.Count == dataRows - 1,
+               string.Format("исходник порчи читается без жалоб: точек {0} (строк данных {1}, отсечена одна)",
+                             original.Count, dataRows));
 
             File.Delete(tmp);
         }

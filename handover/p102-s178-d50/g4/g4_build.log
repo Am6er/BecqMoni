@@ -1,0 +1,6 @@
+-- Configuring done (0.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: D:/BqMoni_Claude/p102/g4/build
+ninja: Entering directory `D:\BqMoni_Claude\p102\g4\build'
+[1/2] Building CXX object CMakeFiles\g4cf.dir\g4cf.cc.obj
+[2/2] Linking CXX executable g4cf.exe

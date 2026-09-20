@@ -84,11 +84,26 @@ namespace BecquerelMonitor
         /// эффективность.
         ///
         /// Размеры — в МИЛЛИМЕТРАХ, как и везде в <see cref="GeometryModel"/>.
+        ///
+        /// (`AMBER47`) Зазору без вещества ставится воздух ПРИ ПРИСВОЕНИИ —
+        /// это и есть вход геометрии из XML: `XmlSerializer` собирает
+        /// `GeometryModel` целиком и лишь потом зовёт сеттер, так что сюда
+        /// приезжает конфигурация прибора до 08.09.2026 (без `&lt;Gap&gt;`
+        /// вовсе), файл с пустым блоком `&lt;Gap /&gt;` и спектр, несущий
+        /// свою кривую с геометрией. Заданное вещество (вода в живом конфиге
+        /// Amber в том числе) не трогается — <see cref="GeometryModel.ApplyGapDefault"/>.
         /// </summary>
         public GeometryModel Geometry
         {
             get { return this.geometry; }
-            set { this.geometry = value; }
+            set
+            {
+                this.geometry = value;
+                if (value != null)
+                {
+                    value.ApplyGapDefault();
+                }
+            }
         }
 
         public CDATA Note
