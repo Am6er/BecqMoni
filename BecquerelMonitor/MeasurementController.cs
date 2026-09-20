@@ -372,6 +372,13 @@ namespace BecquerelMonitor
                     this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
                 }
             }
+            else if (deviceType.DeviceControllerType == typeof(AmplitudaSerialDeviceController))
+            {
+                if (this.deviceController == null)
+                {
+                    this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
+                }
+            }
             if (this.deviceController == null)
             {
                 // Сюда попадает зарегистрированный тип прибора, у которого
@@ -474,9 +481,13 @@ namespace BecquerelMonitor
                     resultDataStatus.ElapsedTime = DateTime.Now - this.resultData.StartTime + resultDataStatus.TotalTime;
                 }
                 this.resultData.EnergySpectrum.MeasurementTime = resultDataStatus.ElapsedTime.TotalSeconds;
-                this.resultData.EnergySpectrum.LiveTime = Utils.LiveTime.Calculate(this.resultData.EnergySpectrum.MeasurementTime,
-                    this.resultData.EnergySpectrum.TotalPulseCount,
-                    this.resultData.DeviceConfig.InputDeviceConfig.DeadTime());
+                // A device that measures live time itself writes it from its controller.
+                if (!(this.resultData.MeasurementController.DeviceController is IDeviceLiveTimeSource))
+                {
+                    this.resultData.EnergySpectrum.LiveTime = Utils.LiveTime.Calculate(this.resultData.EnergySpectrum.MeasurementTime,
+                        this.resultData.EnergySpectrum.TotalPulseCount,
+                        this.resultData.DeviceConfig.InputDeviceConfig.DeadTime());
+                }
             }
             else
             {
