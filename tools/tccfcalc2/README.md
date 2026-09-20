@@ -1279,7 +1279,8 @@ gwmatrix.cpp  math_lib.cpp  metr_number.cpp  rnd_generator.cpp  str_utils.cpp  f
 Замысел был в том, что json разбирает ДРУГАЯ функция — `parseFromJson`, — и
 уж она-то ключи оставит. Не оставляет. Постановка везде одна: рабочая КОПИЯ
 каталога `TCCFCALC` (установку ЛСРМ не трогаем), геометрия
-`LSRM Geometries/Models/Nano16Pro.in` (CsI 18.54 × 59 мм, цилиндр 4 см × 6 мм
+`LSRM Geometries/Models/Nano16Pro.in` (копия — `tools/effmaker/models/Nano16Pro.in`; оригинал
+снят из дерева 15.09.2026; CsI 18.54 × 59 мм, цилиндр 4 см × 6 мм
 воды на 5.03 см), `threads_number = 1`, вход через `Prepare_Json`, два json,
 отличающихся РОВНО четвёркой. Шапка отчёта:
 

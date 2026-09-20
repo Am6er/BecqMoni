@@ -325,8 +325,15 @@ def sample_xrays(entry):
     """Весь рентген образца: одиночные нуклиды плюс цепочки."""
     rows = []
     for ch in entry.get('chains') or []:
-        root = '238U' if ch == 'U-238u' else CHAINS[ch]
-        for r in chain_lines(root, kinds=('X',)):
+        # (`T259`) метка-член ряда («Rn-222») — подряд от члена по правилу
+        # приложения (`chain_labels`); метки `CHAINS` и `U-238u` — как прежде.
+        if ch == 'U-238u' or ch in CHAINS:
+            root = '238U' if ch == 'U-238u' else CHAINS[ch]
+            xrows = chain_lines(root, kinds=('X',))
+        else:
+            import chain_labels
+            xrows = chain_labels.chain_lines(ch, kinds=('X',))
+        for r in xrows:
             if r['energy'] >= 5.0:
                 rows.append((r['energy'], r['i_chain'], r['name'] + ' X'))
     for nucid in entry.get('nuclides') or []:
@@ -591,7 +598,12 @@ def sample_lines(entry):
                 if r['nucid'] in ('238U', '234TH', '234PAm1', '234PA', '234U'):
                     rows.append((r['energy'], r['i_chain'], r['name']))
             continue
-        for r in chain_lines(CHAINS[ch]):
+        if ch in CHAINS:
+            lines = chain_lines(CHAINS[ch])
+        else:
+            import chain_labels                       # (`T259`) подряд от члена
+            lines = chain_labels.chain_lines(ch)
+        for r in lines:
             rows.append((r['energy'], r['i_chain'], r['name']))
     for nucid in entry.get('nuclides') or []:
         rows.extend(nuclide_lines(nucid))
@@ -1092,9 +1104,12 @@ def family_stage(state, res_hint=None, log=print):
     return result
 
 
-def collect_points(state, det, min_purity):
+def collect_points(state, det, min_purity, with_key=False):
+    """Точки (E, FWHM, вес) группы `det`; `with_key` — четвёртым элементом имя
+    спектра (нужно правилу `B31` и диагностике `--res-points=`; наружу, в
+    отпечаток `points_sha` и в фит, уходят прежние тройки)."""
     pts = []
-    for st in state.values():
+    for key, st in state.items():
         if st['det'] != det:
             continue
         for a in st['accepted']:
@@ -1104,28 +1119,199 @@ def collect_points(state, det, min_purity):
                 continue
             if a.get('purity', 1.0) < min_purity:
                 continue
-            pts.append((a['e_ref'], a['fwhm'] * abs(st['ecal'].dEdch(a['ch'])),
-                        min(a['sig'], 100.0) * a.get('purity', 1.0)))
+            p = (a['e_ref'], a['fwhm'] * abs(st['ecal'].dEdch(a['ch'])),
+                 min(a['sig'], 100.0) * a.get('purity', 1.0))
+            pts.append(p + (key,) if with_key else p)
     return pts
 
 
-def resolution_points(state, det):
+#: `B31` (решение Amber 18.09.2026, вопросником, дословно: «Ограничить вес
+#: одного спектра в модели группы»). Спектр судится ЦЕЛИКОМ до пофильтра:
+#: приведённая ширина FWHM/sqrt(E) каждой его точки — против медианы приведённых
+#: ширин ЧУЖИХ точек группы в окне энергий [E/w, E·w] (`RES_SPECTRUM_WINDOW`,
+#: соседей не меньше `RES_SPECTRUM_MIN_NEIGHBOURS`); отношение спектра —
+#: медиана по его точкам с соседями (точек с соседями не меньше двух — одна
+#: линия судится пофильтром, а не как свойство спектра). Спектр вне
+#: [1/tol, tol] точек в модель не даёт вовсе — сколько бы сильных линий у него
+#: ни было; так один спектр не двигает разрешение кристалла.
+#:
+#: Что было. П99 (18.09.2026): новый спектр группы RC103 → подсказка разрешения
+#: группы → `RC103_K40` (маринелли KCl, живое время 3.6 суток, собственная
+#: ширина 13.7 % на 662 против 7.1…8.0 % у остальных семи — дрейф усиления за
+#: долгую съёмку) принял линии ФОНА 1120 (Bi-214) и 2614 кэВ (Tl-208) с
+#: приведёнными ширинами 2.94 и 3.29 при медиане группы 2.09 (×1.41 и ×1.57);
+#: пофильтр `0.6…1.7 × медиана` их пропустил, и модель группы ушла 8.11 → 8.68 %
+#: на 662 (`detectors.csv`, `RC-103.xml` Width_Fwhm 28 → 30), а с ней
+#: `RC103_Lu176` χ²/ndf +14.6 %, `RC103_Cs137_0cm` +5.6 %. ⚠ Вес самих точек
+#: (Σ 31.5 из 708 у группы, 4.4 %) ни при чём — измерено П103 по дампу
+#: `--res-points=`: ограничивать надо не вес, а ПРАВО спектра голосовать за
+#: разрешение кристалла, когда его собственные линии систематически шире.
+#:
+#: Почему ЛОКАЛЬНО, а не против медианы группы. Редакция против плоской
+#: медианы приведённой ширины группы (П103, отвергнута замером по дампу 135
+#: спектров) путает ЭНЕРГИЮ со СПЕКТРОМ: показатель степени ширины у всех
+#: сцинтилляторов выше 0.5 (`V2`), поэтому спектр с одними низкими линиями
+#: (Am-241, Cd-109, Co-57 на 60…122 кэВ) выходит «уже» группы на 20…40 %, а с
+#: одной 1461 — «шире»; она резала 8 спектров из 35 у G1S16 и 7 из 43 у G1S24.
+#: Против соседей по энергии (окно ×2, не меньше двух точек с соседями)
+#: распределение 99 спектров корпуса тесное: медиана 1.00, 90-й процентиль
+#: 1.18, 95-й 1.28; хвост — `AS80_K40` 1.38 (живое время 3.7 суток),
+#: `RC103_K40` 1.46 (3.6 суток) — многосуточные съёмки K-40 с дрейфом
+#: усиления, `G1S16_Mn54_P5` 1.82 (1100 имп/с впритык — наложения)
+#: (`handover/p103-physics20/b31_eval_local.txt`).
+#:
+#: Порог 1.35: честный хвост кончается на 1.29 (спектры с двумя-тремя слабыми
+#: линиями, ±30 % — их статистика), а дрейфовые съёмки начинаются с 1.38;
+#: окно ×2 нужно, чтобы у линии 1120 кэВ (RC103_K40) нашлись соседи 584…662.
+#: Гейт молчит, когда в группе меньше трёх спектров с точками или после него
+#: осталось бы меньше двух спектров либо трёх точек. Рычаг замера —
+#: `--res-spectrum-tol=<число>` (1.0 = гейт выключен, прежнее поведение).
+#: Печать: кто отброшен и с каким отношением (лог пересборки).
+RES_SPECTRUM_TOL = 1.35
+RES_SPECTRUM_WINDOW = 2.0
+RES_SPECTRUM_MIN_NEIGHBOURS = 2
+
+
+def resolution_points(state, det, log=print):
     """Точки (E, FWHM, вес) группы, очищенные от выбросов.
 
     Одна плохо севшая линия портит модель на всю группу: у AS80x80 первый прогон
     дал 46 % на 60 кэВ — квадратичная по E модель с большим c0, вытянутая парой
     завышенных ширин. Отбрасываем то, что уходит от медианы приведённой ширины
     FWHM/sqrt(E) больше чем в полтора раза.
+
+    `B31`: ДО пофильтра судится каждый СПЕКТР целиком — приведённая ширина его
+    точек против чужих точек группы в окне энергий (`gate_spectra`,
+    `RES_SPECTRUM_TOL`); спектр, чьи линии систематически шире (дрейф за долгую
+    съёмку) или уже, точек в модель не даёт. Так один спектр не двигает
+    разрешение кристалла, сколько бы сильных линий у него ни было.
     """
-    pts = collect_points(state, det, 0.85)
+    pts = collect_points(state, det, 0.85, with_key=True)
     if len(pts) < 3:
-        pts = collect_points(state, det, 0.0)
+        pts = collect_points(state, det, 0.0, with_key=True)
     if len(pts) < 3:
-        return pts
-    red = np.array([f / np.sqrt(max(e, 1.0)) for e, f, _ in pts])
+        _res_points_log(det, pts, [True] * len(pts))
+        return [p[:3] for p in pts]
+    pts, gated = gate_spectra(det, pts, log)
+    red = np.array([f / np.sqrt(max(e, 1.0)) for e, f, _, _ in pts])
     med = float(np.median(red))
-    keep = [p for p, r in zip(pts, red) if 0.6 * med <= r <= 1.7 * med]
-    return keep if len(keep) >= 3 else pts
+    kept = [0.6 * med <= r <= 1.7 * med for r in red]
+    keep = [p for p, k in zip(pts, kept) if k]
+    if len(keep) < 3:
+        keep, kept = pts, [True] * len(pts)
+    _res_points_log(det, gated + pts, [False] * len(gated) + kept)
+    return [p[:3] for p in keep]
+
+
+def gate_spectra(det, pts, log=print):
+    """`B31`: (принятые точки, отброшенные точки) — приведённая ширина точек
+    спектра против медианы приведённых ширин ЧУЖИХ точек группы в окне энергий
+    [E/w, E·w]; отношение спектра — медиана по его точкам с соседями (не меньше
+    двух точек). Печатает отброшенных с отношением."""
+    tol = float(RES_SPECTRUM_TOL)
+    w = float(RES_SPECTRUM_WINDOW)
+    by_key = {}
+    for p in pts:
+        by_key.setdefault(p[3], []).append(p)
+    if tol <= 1.0 or len(by_key) < 3:
+        return pts, []
+
+    def red(p):
+        return p[1] / np.sqrt(max(p[0], 1.0))
+
+    ratio_of = {}
+    for k, mine in by_key.items():
+        others = [q for k2, v in by_key.items() if k2 != k for q in v]
+        ratios = []
+        for p in mine:
+            nb = [red(q) for q in others if p[0] / w <= q[0] <= p[0] * w]
+            if len(nb) >= RES_SPECTRUM_MIN_NEIGHBOURS:
+                ratios.append(red(p) / float(np.median(nb)))
+        if len(ratios) >= 2:
+            ratio_of[k] = (float(np.median(ratios)), len(ratios))
+    out = {k: r for k, r in ratio_of.items() if not (1.0 / tol <= r[0] <= tol)}
+    if not out:
+        return pts, []
+    keep = [p for p in pts if p[3] not in out]
+    if len(keep) < 3 or len(set(p[3] for p in keep)) < 2:
+        log(u'  B31 %-9s гейт молчит: без %s осталось бы %d точек от %d спектров'
+            % (det, u', '.join(sorted(out)), len(keep), len(set(p[3] for p in keep))))
+        return pts, []
+    for k in sorted(out):
+        log(u'  B31 %-9s %s: приведённая ширина против соседей группы по энергии ×%.2f (медиана по %d точкам; '
+            u'допуск ×%.2f) — %d точек в модель разрешения не идут'
+            % (det, k, out[k][0], out[k][1], tol, len(by_key[k])))
+    return keep, [p for p in pts if p[3] in out]
+
+
+def selftest_b31():
+    """`B31`: положительный контроль гейта на искусственной группе (без библиотеки).
+
+    Группа из четырёх честных спектров (приведённая ширина 2.0 ± 5 %, веса
+    10…100, энергии 186…2614 кэВ так, что у каждой есть соседи) и ОДНОГО
+    выброса — сильного спектра с шестью точками веса 100 при приведённой ширине
+    ×1.5 (как `RC103_K40` П99: ×1.41…1.57). Ожидание:
+    (1) с гейтом модель группы = модели честных четырёх (точки те же);
+    (2) без гейта (`tol = 1.0`) модель на 662 уходит больше чем на 5 %;
+    (3) честный пятый спектр в допуске (×1.10) гейтом не режется.
+    Код 0 — сошлось, 1 — нет. Зовётся `build_corpus.py --selftest-b31`.
+    """
+    global RES_SPECTRUM_TOL
+    saved = RES_SPECTRUM_TOL
+    rng = np.random.RandomState(20260918)
+    energies = [186.2, 351.9, 609.3, 661.7, 911.2, 1120.3, 1460.8, 1764.5, 2614.5]
+    honest = []
+    for i in range(4):
+        for e in energies[i::2]:
+            r = 2.0 * (1.0 + 0.05 * rng.uniform(-1.0, 1.0))
+            honest.append((e, r * np.sqrt(e), float(rng.uniform(10.0, 100.0)), 'honest_%d' % i))
+    outlier = [(e, 3.0 * np.sqrt(e), 100.0, 'drifted') for e in energies[::1][:6]]
+    within = [(e, 2.2 * np.sqrt(e), 100.0, 'honest_4') for e in energies[1::3]]
+    quiet = lambda *_a: None
+
+    def model(points):
+        return corpus_calib.resolution_fn(corpus_calib.fit_resolution_kev([q[:3] for q in points]))(662.0)
+
+    bad = 0
+    RES_SPECTRUM_TOL = 1.35
+    kept, gone = gate_spectra('TEST', honest + outlier, quiet)
+    ok1 = sorted(gone) == sorted(outlier) and abs(model(kept) / model(honest) - 1.0) < 1e-12
+    print('  (1) выброс ×1.5 отброшен, модель = честной: %s (662: %.3f против %.3f кэВ)'
+          % ('да' if ok1 else 'НЕТ', model(kept), model(honest)))
+    bad += 0 if ok1 else 1
+    RES_SPECTRUM_TOL = 1.0
+    kept0, gone0 = gate_spectra('TEST', honest + outlier, quiet)
+    shift = model(kept0) / model(honest) - 1.0
+    ok2 = not gone0 and shift > 0.05
+    print('  (2) гейт выключен: выброс в модели, сдвиг на 662 %+.1f %% (> 5 %%): %s' % (100 * shift, 'да' if ok2 else 'НЕТ'))
+    bad += 0 if ok2 else 1
+    RES_SPECTRUM_TOL = 1.35
+    kept2, gone2 = gate_spectra('TEST', honest + within, quiet)
+    ok3 = not gone2 and len(kept2) == len(honest) + len(within)
+    print('  (3) честный спектр ×1.10 в допуске не режется: %s' % ('да' if ok3 else 'НЕТ'))
+    bad += 0 if ok3 else 1
+    RES_SPECTRUM_TOL = saved
+    print('B31 самопроверка: %s' % ('СОШЛОСЬ' if bad == 0 else 'НЕ СОШЛОСЬ (%d)' % bad))
+    return bad
+
+
+#: Диагностика `B31`: `--res-points=<csv>` — все точки модели разрешения по
+#: группам с именем спектра и приговором фильтра (стадия 3 зовёт
+#: `resolution_points` последней — в файле остаётся её вызов).
+RES_POINTS_CSV = None
+_RES_POINTS = {}
+
+
+def _res_points_log(det, pts, kept):
+    if not RES_POINTS_CSV:
+        return
+    _RES_POINTS[det] = [(p[3], p[0], p[1], p[2], k) for p, k in zip(pts, kept)]
+    with io.open(RES_POINTS_CSV, 'w', encoding='utf-8', newline='') as fh:
+        fh.write(u'det,spectrum,e_kev,fwhm_kev,weight,reduced,kept\n')
+        for d in sorted(_RES_POINTS):
+            for key, e, f, w, k in sorted(_RES_POINTS[d]):
+                fh.write(u'%s,%s,%r,%r,%r,%r,%d\n' % (d, key, float(e), float(f), float(w),
+                                                        float(f) / np.sqrt(max(float(e), 1.0)), 1 if k else 0))
 
 
 # ---------------------------------------------------------------------------
@@ -1582,7 +1768,7 @@ def input_fingerprint(state, res_coef, legacy=None):
         result_data='', channels='', live_s='', counts='', lines='', res_c=''))
 
     for det in sorted(res_coef):
-        pts = resolution_points(state, det)
+        pts = resolution_points(state, det, log=lambda *_a: None)   # B31: гейт уже напечатан стадией 3
         rows.append(dict(
             scope='group', det=det, spectrum='',
             source='точки модели разрешения',
@@ -1791,6 +1977,9 @@ def library_permission(argv):
 
 def main():
     only = None
+    if '--selftest-b31' in sys.argv[1:]:
+        # (`B31`) самопроверка гейта — без библиотеки и без записи; код — приговор
+        sys.exit(selftest_b31())
     if not library_permission(sys.argv[1:]):
         return None
 
@@ -1804,6 +1993,17 @@ def main():
             global ECAL_ACCEPT
             ECAL_ACCEPT = a.split('=', 1)[1]
             print('приёмка второго прохода: %s' % ECAL_ACCEPT)
+        elif a.startswith('--res-points='):
+            # (`B31`) диагностика: точки модели разрешения по группам с именем спектра
+            global RES_POINTS_CSV
+            RES_POINTS_CSV = a.split('=', 1)[1]
+            print('точки модели разрешения пишутся в %s' % RES_POINTS_CSV)
+        elif a.startswith('--res-spectrum-tol='):
+            # (`B31`) рычаг замера: допуск спектра против медианы группы; 1.0 — гейт выключен
+            global RES_SPECTRUM_TOL
+            RES_SPECTRUM_TOL = float(a.split('=', 1)[1])
+            print('B31: допуск спектра в модели разрешения группы ×%.3f%s'
+                  % (RES_SPECTRUM_TOL, ' (гейт выключен)' if RES_SPECTRUM_TOL <= 1.0 else ''))
         elif a.startswith('--res-form='):
             # (`V2`) Форма модели разрешения группы. Умолчание не тронуто:
             # смена формы двигает ПШПВ-калибровку КАЖДОГО спектра, то есть базу.

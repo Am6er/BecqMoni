@@ -1,0 +1,15 @@
+читатель сторожей: 1 к вызову (заведомо красных по строкам реестра пропущено 0 — см. --all)
+
+→ зову: python tools/check_fsa_report_view.py
+        == сторож окна отчёта FSA: FsaReportViewProbe на паре корпуса ==
+          каталог проб : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build
+          спектр (ряд) : tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+          контроль     : tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml
+          свежесть: сверено: набор приложения df9670568cf8 (550 файлов); FsaReportViewProbe.cs c1a2f54590ab (6 файлов); sha двух exe (0.7 с)
+          проба: код 0, 15.5 с, строк ok 237, строк ⛔ 0, последняя строка «ВСЕ СОШЛИСЬ»
+        СОШЛОСЬ: окно отчёта FSA — проба прошла (ВСЕ СОШЛИСЬ)
+✅ tools/check_fsa_report_view.py: код 0, 16.2 с
+
+=== сводка ===
+  ✅ tools/check_fsa_report_view.py — код 0, 16.2 с — окно отчёта FSA: приёмка FsaReportViewProbe на паре корпуса — блок качества, привязка шкалы (AMBER17), состав строк, снимки
+ВСЕ ЗЕЛЕНЫ: 1 из 1 сторожей дали 0.

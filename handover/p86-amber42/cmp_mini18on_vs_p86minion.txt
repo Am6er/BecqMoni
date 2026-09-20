@@ -1,0 +1,71 @@
+runs        строк    59  разошлось   14
+   по столбцам: chi2ndf×13, chi2ndf_pois×13, inflate×11, gain×7, model_residual_pct×6, anchor_note×3, anchor_offset_kev×2, offset_ch×1
+   по спектрам (14): 
+      AS80_Th232Medal              anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, offset_ch
+      G1S16_Ba133_P25              chi2ndf, inflate
+      G1S16_Ba133_P5               anchor_note, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S16_Co60_P25               chi2ndf_pois
+      G1S16_Co60_P5                chi2ndf, chi2ndf_pois, inflate, model_residual_pct
+      G1S16_Eu152_P25              chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S16_Eu152_P5               chi2ndf, chi2ndf_pois
+      G1S16_Th228_P5               chi2ndf, chi2ndf_pois, gain, inflate
+      G1S24_Ba133_P5               anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S24_Bi207_P5               chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S24_Co60_P5                chi2ndf, chi2ndf_pois, inflate
+      G1S24_Eu152_P5               chi2ndf, chi2ndf_pois, inflate, model_residual_pct
+      G1S24_Th228_P25              chi2ndf, chi2ndf_pois
+      G1S24_Th228_P5               chi2ndf, chi2ndf_pois, gain, inflate
+components  строк   112  разошлось   45
+   по столбцам: decay_s×41, peak_counts×37, inflate×34, z×33, peak_share_pct×13, mda_decay_s×13, share_pct×12, dt_decay_s×12
+   по спектрам (15): 
+      AS80_Th232Medal              decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S16_Ba133_P25              dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      G1S16_Ba133_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      G1S16_Co60_P25               mda_decay_s
+      G1S16_Co60_P5                decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      G1S16_Eu152_P25              decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      G1S16_Eu152_P5               decay_s, dt_decay_s, mda_decay_s, peak_counts, z
+      G1S16_Th228_P25              peak_counts
+      G1S16_Th228_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Ba133_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      G1S24_Bi207_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, share_pct, z
+      G1S24_Co60_P5                decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      G1S24_Eu152_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      G1S24_Th228_P25              decay_s, peak_counts, peak_share_pct, share_pct
+      G1S24_Th228_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+limits      строк    45  разошлось   14
+   по столбцам: mda_decay_s×13, decay_s×12, dt_decay_s×12, mda_peak_counts×11, collinearity×6
+   по спектрам (14): 
+      AS80_Th232Medal              decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Ba133_P25              dt_decay_s, mda_decay_s
+      G1S16_Ba133_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Co60_P25               mda_decay_s
+      G1S16_Co60_P5                collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Eu152_P25              decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Eu152_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Th228_P5               decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Ba133_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Bi207_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Co60_P5                decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Eu152_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Th228_P25              decay_s
+      G1S24_Th228_P5               decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+anchors     строк   217  разошлось  124
+   по столбцам: z×89, shift_kev×85, measured_kev×84, peak_share×62, model_kev×61, sigma_kev×25
+   по спектрам (15): 
+      AS80_Th232Medal              measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Ba133_P25              peak_share
+      G1S16_Ba133_P5               measured_kev, model_kev, peak_share, shift_kev, z
+      G1S16_Co60_P25               z
+      G1S16_Co60_P5                measured_kev
+      G1S16_Eu152_P25              measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Eu152_P5               measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Th228_P25              measured_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Th228_P5               measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Ba133_P5               measured_kev, model_kev, peak_share, shift_kev, z
+      G1S24_Bi207_P5               measured_kev, model_kev, peak_share, shift_kev, z
+      G1S24_Co60_P5                measured_kev, shift_kev, sigma_kev, z
+      G1S24_Eu152_P5               measured_kev, model_kev, peak_share, shift_kev, z
+      G1S24_Th228_P25              measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Th228_P5               measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+ИТОГО разошлось 197 — РАСХОЖДЕНИЕ

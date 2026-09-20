@@ -1,0 +1,19 @@
+  положено файлов: 533
+
+рабочий каталог: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p86
+  конфигураций приборов: 24, матриц: 46
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p86
+  сборка   : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p86
+  пробы    : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p86
+  сверено  : 533 файлов по sha256 за 1.88 с
+  библиотека: в оснастке корпуса НЕТ по правилу AMBER19 — состав из manifest.csv, линии из nucdb/matdb
+  перекладка: клейма склада и оснастки сошлись
+  ОСНАСТКА СВЕЖАЯ: 533 файлов сошлись
+
+запуск прогона — ТОЛЬКО через сторожа, оператором вызова & (T84/T91):
+  & 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\run_appwd.ps1' -Wd 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p86' -Out 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_app'
+  ключи пробы — массивом: -Extra '--band=whole','--only=ASN16_Cs137'
+проверить оснастку отдельно:
+  & 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\check_appwd.ps1' -Wd 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p86'

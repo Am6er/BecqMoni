@@ -1,0 +1,51 @@
+== Th-232.xml
+   до: 646467 байт sha256 cd3386cc5dacd4e9c119a4a77ace9578785eaa8ac389ed53208529eaaab1345e | после: 646405 байт sha256 acbd8887c29a347cfcd7378921e51c0a54d4ea99f9fd344e19e5f9dd217b1e40 | BOM: True, CRLF: 17098, одиночных LF: 0
+   --- до
+   +++ после
+   @@ -605 +605 @@
+   -          <PolynomialOrder>4</PolynomialOrder>
+   +          <PolynomialOrder>3</PolynomialOrder>
+   @@ -607,5 +607,4 @@
+   -            <Coefficient>-7.7110608384241459</Coefficient>
+   -            <Coefficient>0.33565361134753019</Coefficient>
+   -            <Coefficient>1.186391148024677E-05</Coefficient>
+   -            <Coefficient>-4.6856467446400521E-09</Coefficient>
+   -            <Coefficient>4.5847656684996615E-13</Coefficient>
+   +            <Coefficient>-7.2007122666766481</Coefficient>
+   +            <Coefficient>0.33260645150374163</Coefficient>
+   +            <Coefficient>8.0828743968138572E-06</Coefficient>
+   +            <Coefficient>-7.1852847870359007E-10</Coefficient>
+== Th-232(медальон ребром) - дистанция 81мм.xml
+   до: 625247 байт sha256 871c35925ade5aaaf9108110b69cf2165fd7f7e5ebaa09eb883ec3eef1798bee | после: 625195 байт sha256 6338a7e929cbe1fb29738852593a473628dd4e91f1964d0434b341aff51a43e3 | BOM: True, CRLF: 16520, одиночных LF: 0
+   --- до
+   +++ после
+   @@ -27 +27 @@
+   -          <PolynomialOrder>4</PolynomialOrder>
+   +          <PolynomialOrder>3</PolynomialOrder>
+   @@ -29,5 +29,4 @@
+   -            <Coefficient>-7.71106083842415</Coefficient>
+   -            <Coefficient>0.33565361134753</Coefficient>
+   -            <Coefficient>1.18639114802468E-05</Coefficient>
+   -            <Coefficient>-4.68564674464005E-09</Coefficient>
+   -            <Coefficient>4.58476566849966E-13</Coefficient>
+   +            <Coefficient>-3.9125424384116219</Coefficient>
+   +            <Coefficient>0.33051774150372415</Coefficient>
+   +            <Coefficient>8.8487122706475926E-06</Coefficient>
+   +            <Coefficient>-7.8539513668363632E-10</Coefficient>
+== Th-232(медальон ребром) - дистанция 81мм с другого бока.xml
+   до: 630063 байт sha256 ab3efc60f4bcb2cd10cc3399ed85ee15c6158dba74618b65fe79103c62e2af4e | после: 630009 байт sha256 c740601a6b3649186f12b58f0463f8959991f61edd2c043f59de14cabb32b0ba | BOM: True, CRLF: 16523, одиночных LF: 0
+   --- до
+   +++ после
+   @@ -30 +30 @@
+   -          <PolynomialOrder>4</PolynomialOrder>
+   +          <PolynomialOrder>3</PolynomialOrder>
+   @@ -32,5 +32,4 @@
+   -            <Coefficient>-7.71106083842415</Coefficient>
+   -            <Coefficient>0.33565361134753</Coefficient>
+   -            <Coefficient>1.18639114802468E-05</Coefficient>
+   -            <Coefficient>-4.68564674464005E-09</Coefficient>
+   -            <Coefficient>4.58476566849966E-13</Coefficient>
+   +            <Coefficient>-4.1695972112121806</Coefficient>
+   +            <Coefficient>0.33007945521975762</Coefficient>
+   +            <Coefficient>8.84031746048613E-06</Coefficient>
+   +            <Coefficient>-7.8620297069448133E-10</Coefficient>

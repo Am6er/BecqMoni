@@ -1,0 +1,10 @@
+start 2026-09-17 20:48:04
+matrix on code=0 20:57:44
+matrix off code=0 21:00:27
+diff on G1S_point5 code=0
+diff on RC103_point0 code=0
+diff off RC103_point0 code=0
+end 21:00:27
+off AS80 start 21:01:20
+matrix off AS80 code=0 21:04:53
+diff off AS80_point0 code=0

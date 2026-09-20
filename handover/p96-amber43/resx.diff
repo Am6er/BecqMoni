@@ -1,0 +1,138 @@
+diff --git a/BecquerelMonitor/Properties/Resources.Designer.cs b/BecquerelMonitor/Properties/Resources.Designer.cs
+index 994bcadb..6abb2a71 100644
+--- a/BecquerelMonitor/Properties/Resources.Designer.cs
++++ b/BecquerelMonitor/Properties/Resources.Designer.cs
+@@ -5671,7 +5671,7 @@ namespace BecquerelMonitor.Properties {
+         }
+         
+         /// <summary>
+-        ///   Looks up a localized string similar to The previous copy {0} could not be read either ({1}), so the default arrangement is shown.
++        ///   Looks up a localized string similar to The previous copy {0} could not be read either ({1}).
+         /// </summary>
+         public static string LayoutLoadBackupBroken {
+             get {
+@@ -5680,7 +5680,7 @@ namespace BecquerelMonitor.Properties {
+         }
+         
+         /// <summary>
+-        ///   Looks up a localized string similar to There was no previous copy, so the default arrangement is shown.
++        ///   Looks up a localized string similar to There was no previous copy.
+         /// </summary>
+         public static string LayoutLoadNoBackup {
+             get {
+@@ -5688,6 +5688,51 @@ namespace BecquerelMonitor.Properties {
+             }
+         }
+         
++        /// <summary>
++        ///   Looks up a localized string similar to The supplied default layout {0} is shown instead.
++        /// </summary>
++        public static string LayoutLoadSupplyUsed {
++            get {
++                return ResourceManager.GetString("LayoutLoadSupplyUsed", resourceCulture);
++            }
++        }
++        
++        /// <summary>
++        ///   Looks up a localized string similar to The supplied layout {0} could not be read either ({1}).
++        /// </summary>
++        public static string LayoutLoadSupplyBroken {
++            get {
++                return ResourceManager.GetString("LayoutLoadSupplyBroken", resourceCulture);
++            }
++        }
++        
++        /// <summary>
++        ///   Looks up a localized string similar to The supplied default layout built into the application is shown instead.
++        /// </summary>
++        public static string LayoutLoadBuiltinUsed {
++            get {
++                return ResourceManager.GetString("LayoutLoadBuiltinUsed", resourceCulture);
++            }
++        }
++        
++        /// <summary>
++        ///   Looks up a localized string similar to The layout built into the application could not be read either ({0}).
++        /// </summary>
++        public static string LayoutLoadBuiltinBroken {
++            get {
++                return ResourceManager.GetString("LayoutLoadBuiltinBroken", resourceCulture);
++            }
++        }
++        
++        /// <summary>
++        ///   Looks up a localized string similar to An empty arrangement is shown; the panels can be opened one by one from the View menu.
++        /// </summary>
++        public static string LayoutLoadDefault {
++            get {
++                return ResourceManager.GetString("LayoutLoadDefault", resourceCulture);
++            }
++        }
++        
+         /// <summary>
+         ///   Looks up a localized string similar to Version {0}.
+         /// </summary>
+diff --git a/BecquerelMonitor/Properties/Resources.resx b/BecquerelMonitor/Properties/Resources.resx
+index 95486e02..fc07ea7a 100644
+--- a/BecquerelMonitor/Properties/Resources.resx
++++ b/BecquerelMonitor/Properties/Resources.resx
+@@ -43317,10 +43317,25 @@ Reason: {1}
+     <value>The previous good copy {0} was loaded instead.</value>
+   </data>
+   <data name="LayoutLoadBackupBroken" xml:space="preserve">
+-    <value>The previous copy {0} could not be read either ({1}), so the default arrangement is shown.</value>
++    <value>The previous copy {0} could not be read either ({1}).</value>
+   </data>
+   <data name="LayoutLoadNoBackup" xml:space="preserve">
+-    <value>There was no previous copy, so the default arrangement is shown.</value>
++    <value>There was no previous copy.</value>
++  </data>
++  <data name="LayoutLoadSupplyUsed" xml:space="preserve">
++    <value>The supplied default layout {0} is shown instead.</value>
++  </data>
++  <data name="LayoutLoadSupplyBroken" xml:space="preserve">
++    <value>The supplied layout {0} could not be read either ({1}).</value>
++  </data>
++  <data name="LayoutLoadBuiltinUsed" xml:space="preserve">
++    <value>The supplied default layout built into the application is shown instead.</value>
++  </data>
++  <data name="LayoutLoadBuiltinBroken" xml:space="preserve">
++    <value>The layout built into the application could not be read either ({0}).</value>
++  </data>
++  <data name="LayoutLoadDefault" xml:space="preserve">
++    <value>An empty arrangement is shown; the panels can be opened one by one from the View menu.</value>
+   </data>
+   <data name="ERRCalibrationNotSavedToDevice" xml:space="preserve">
+     <value>The calibration was NOT written to the device configuration. The device keeps its previous calibration and the spectrum is left unchanged - correct the cause and save again.</value>
+diff --git a/BecquerelMonitor/Properties/Resources.ru.resx b/BecquerelMonitor/Properties/Resources.ru.resx
+index 7c678ba6..38ef469c 100644
+--- a/BecquerelMonitor/Properties/Resources.ru.resx
++++ b/BecquerelMonitor/Properties/Resources.ru.resx
+@@ -2066,10 +2066,25 @@ http://xptable.sourceforge.net/</value>
+     <value>Вместо него загружена прежняя удачная копия {0}.</value>
+   </data>
+   <data name="LayoutLoadBackupBroken" xml:space="preserve">
+-    <value>Прежнюю копию {0} прочитать тоже не удалось ({1}) — показана раскладка по умолчанию.</value>
++    <value>Прежнюю копию {0} прочитать тоже не удалось ({1}).</value>
+   </data>
+   <data name="LayoutLoadNoBackup" xml:space="preserve">
+-    <value>Прежней копии не было — показана раскладка по умолчанию.</value>
++    <value>Прежней копии не было.</value>
++  </data>
++  <data name="LayoutLoadSupplyUsed" xml:space="preserve">
++    <value>Показана поставочная раскладка {0}.</value>
++  </data>
++  <data name="LayoutLoadSupplyBroken" xml:space="preserve">
++    <value>Поставочную раскладку {0} прочитать тоже не удалось ({1}).</value>
++  </data>
++  <data name="LayoutLoadBuiltinUsed" xml:space="preserve">
++    <value>Показана поставочная раскладка, встроенная в приложение.</value>
++  </data>
++  <data name="LayoutLoadBuiltinBroken" xml:space="preserve">
++    <value>Встроенную в приложение раскладку прочитать тоже не удалось ({0}).</value>
++  </data>
++  <data name="LayoutLoadDefault" xml:space="preserve">
++    <value>Показана пустая расстановка — панели можно открыть по одной из меню «Вид».</value>
+   </data>
+   <data name="ERRCalibrationNotSavedToDevice" xml:space="preserve">
+     <value>Калибровка НЕ записана в конфигурацию прибора. У прибора осталась прежняя калибровка, спектр не изменён — устраните причину и сохраните снова.</value>

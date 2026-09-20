@@ -1,0 +1,16 @@
+ours RC103_point0_p55_1460.82_off code=0 n=40000000 keys=[] probe=build_p100 14:10:54 dt=363s
+ours RC103_point0_p55_2614.511_elmix1 code=0 n=40000000 keys=[--elmix=1] probe=build_p100 14:18:41 dt=467s
+ours RC103_point0_p55_1460.82_elmix1 code=0 n=40000000 keys=[--elmix=1] probe=build_p100 14:26:02 dt=441s
+ours RC103_point0_p55_661.657_elmix1 code=0 n=40000000 keys=[--elmix=1] probe=build_p100 14:32:41 dt=399s
+ours RC103_point0_p55_59.541_elmix1 code=0 n=40000000 keys=[--elmix=1] probe=build_p100 14:40:20 dt=459s
+ours RC103_point0_p55_2614.511_elmix1_detour0 code=0 n=20000000 keys=[--elmix=1 --detour=0] probe=build_p100 14:42:45 dt=145s
+ours AS80_th_disk_2614.511_elmix1 code=0 n=8000000 keys=[--elmix=1] probe=build_p100 14:46:05 dt=200s
+ours AS80_th_disk_1460.82_elmix1 code=0 n=8000000 keys=[--elmix=1] probe=build_p100 14:48:53 dt=168s
+ours ASN16_lu_side_1460.82_elmix1 code=0 n=8000000 keys=[--elmix=1] probe=build_p100 14:51:20 dt=147s
+ours ASN16_lu_side_661.657_elmix1 code=0 n=8000000 keys=[--elmix=1] probe=build_p100 14:53:47 dt=147s
+ours ASN16_lu_side_59.541_elmix1 code=0 n=8000000 keys=[--elmix=1] probe=build_p100 14:56:05 dt=138s
+ours AS80_point0_1460.82_elmix1 code=0 n=4000000 keys=[--elmix=1] probe=build_p100 14:56:58 dt=53s
+ours RC103_point0_1460.82_elmix1 code=0 n=40000000 keys=[--elmix=1] probe=build_p100 15:00:49 dt=232s
+ours RC103_point0_661.657_elmix1 code=0 n=40000000 keys=[--elmix=1] probe=build_p100 15:03:04 dt=134s
+ours RC103_point0_59.541_elmix1 code=0 n=40000000 keys=[--elmix=1] probe=build_p100 15:05:10 dt=127s
+done ours D:\BqMoni_Claude\p100\plan_1_stand.csv 15:05:10

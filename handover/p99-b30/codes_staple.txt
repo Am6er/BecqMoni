@@ -1,0 +1,5 @@
+staple start 2026-09-18 14:57:05
+debug_codex rebuild code=0 14:57:32
+probes\build code=0 15:00:10
+каталог заверен (T226): наборы — приложение 08e6c21c0ca1 (550 файлов), пробы d66f223aaa1e (199), довесков 5
+debug exe sha256 706560988afc09f263747addfba1d5955e85b881ef446e5ae73304ef0a852911

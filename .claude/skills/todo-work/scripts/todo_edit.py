@@ -152,6 +152,12 @@ def main():
             cells_of(r, 'новая за ' + anchor)
         plan.append((i, rows))
     for i, rows in sorted(plan, reverse=True):
+        # Строки режутся по '\n', и у каждой остаётся свой хвостовой '\r';
+        # вставленной строке его надо дать самой, иначе в файле CRLF появляется
+        # одинокий LF (18.09.2026, `AMBER48`: git сказал «LF will be replaced
+        # by CRLF», а сторожа этого не видят).
+        tail = '\r' if lines[i].endswith('\r') else ''
+        rows = [r if r.endswith(tail) else r + tail for r in rows]
         lines[i + 1:i + 1] = rows
         print('вставлено %d за строкой %d' % (len(rows), i + 1))
 

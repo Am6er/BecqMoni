@@ -1,0 +1,24 @@
+{
+ "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
+ "corpus": "a7699cefe5c8db86f47ccdc93730a1be97efb8f36fdbeae6d47ef46f091553df",
+ "corpus_dir": "D:\\BqMoni_Claude\\p97\\wt\\tools\\CORPUS\\corpus",
+ "corpus_files": 211,
+ "dirty": [
+  "BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs",
+  "BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs",
+  "BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs"
+ ],
+ "fields": {
+  "app_sha": "73dd3a8a022242c24da9f65114f1137fef417dead2cdaedcf455fad92f729ebe",
+  "bin": "D:\\BqMoni_Claude\\p97\\wt\\BecquerelMonitor\\bin\\Release_p97",
+  "keys": "--only=RC103_Cs137_0cm,AS80_Cs137_0cm,AS80_Am241",
+  "probe_sha": "3c6f53b0e99dc1b907066b1d8c8bfac9f39c4ddccc8cc960f1fe89fcc0d9d52e",
+  "probes": "D:\\BqMoni_Claude\\p97\\wt\\tools\\effmaker\\probes\\build_p97",
+  "store": "D:\\BqMoni_Claude\\p97\\wt\\tools\\CORPUS\\corpus\\geometries",
+  "wd": "D:\\BqMoni_Claude\\p97\\wt\\tools\\CORPUS\\scripts\\wd_p97off"
+ },
+ "head": "69e6244f52f3007c3b61867cf4556323d94af448",
+ "sources": "f212e4dc27fd8c48007a7b7e80a78088195d1ef7bb200e403d64ed685b2ab580",
+ "sources_files": 559,
+ "written": "2026-09-17 21:07:36"
+}

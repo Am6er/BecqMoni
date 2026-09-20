@@ -1,0 +1,8 @@
+Enable correlated gamma emission                  1
+Max 2J for sampling of angular correlations       10
+SETUP correlatedGamma=1 twoJmax=10 vacuum=0
+RESULT decays=60000000
+RESULT any=3468075 eps_total=5.780125e-02
+RESULT window=898.000 counts=696729 eps=1.161215e-02
+RESULT window=1836.100 counts=369196 eps=6.153267e-03
+RESULT window=2734.100 counts=5895 eps=9.825000e-05

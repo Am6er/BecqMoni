@@ -339,12 +339,211 @@ namespace BecquerelMonitor.EfficiencyMaker
         public int BremAlongPath = new ResponseMatrixOptions().BremAlongPath;
 
         /// <summary>
+        /// ✅ **ПЕРЕНОС ЭЛЕКТРОНА В СЛОЯХ ОБВЯЗКИ: ЗАНОС И ВОЗВРАТ (`AMBER44` +
+        /// правка заноса `M12`, П94 17.09.2026) — ключом ВЫКЛ до единого счёта
+        /// склада (физика 19).** Задача Amber 15.09.2026, решение вопросником,
+        /// дословно: «Перенос в слоях обвязки»; 17.09.2026, дословно: «Одной
+        /// полосой с AMBER44». Умолчание ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.ElectronLayerTransport"/>, правило I).
+        ///
+        /// Включённый — одна машинерия (`TransportInLayers`, `ElectronTransport.cs`)
+        /// на два пути электрона через грань кристалла:
+        /// (1) ВОЗВРАТ: электрон, вылетевший из кристалла в переносе
+        /// (<see cref="ElectronTransport"/>), не списывается на грани, а ведётся
+        /// тем же шагом и шарниром в веществе слоя (ESTAR слоя, радиационная
+        /// длина слоя, переходы по пересечениям геометрии); вернулся в
+        /// кристалл — перенос по кристаллу продолжается с остатком энергии
+        /// и направлением входа; тормозное в слое — толстой мишенью в точке
+        /// выхода, как у заноса `M3`;
+        /// (2) ЗАНОС: электрон, рождённый в слое (фото / комптон / пара вне
+        /// кристалла), ведётся до кристалла тем же переносом вместо обхода по
+        /// прямой с <see cref="ElectronCarryDetour"/>, направление рождения —
+        /// по процессу (Заутер—Гаврила / кинематика комптона ПОСЛЕ поворота
+        /// кванта / Цай), а дошедший отдаётся переносу по кристаллу
+        /// (<see cref="ElectronLoss"/> с направлением входа) вместо куска
+        /// `AddLight` без переноса — держатель нижней четверти континуума
+        /// сцен с обвязкой (П92 §4: RC103 1461 −6.3 %, 0–100 кэВ −15 %).
+        /// Выключенный — прежний ход до последнего бита и без единого лишнего
+        /// случайного числа (`MatrixDiffProbe`, П94 §4).
+        /// </summary>
+        public bool ElectronLayerTransport = new ResponseMatrixOptions().ElectronLayerTransport;
+
+        /// <summary>
+        /// (`M13`, П100 18.09.2026) СМЕШАННАЯ СХЕМА УПРУГОГО РАССЕЯНИЯ В СЛОЯХ
+        /// ОБВЯЗКИ — ключ сделан ВЫКЛ; ВКЛ умолчанием с 19.09.2026 — физика 20
+        /// (П103, единый счёт склада; решение Amber 18.09.2026 «ВКЛ сейчас,
+        /// единый счёт ночью»). Умолчание ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.ElectronLayerMixedScattering"/>, правило I).
+        ///
+        /// Включённый — в переносе по слоям (`TransportInLayers`, только под
+        /// <see cref="ElectronLayerTransport"/>) упругое рассеяние делится
+        /// отсечкой по углу (<see cref="LayerHardCutoffDeg"/>): ЖЁСТКИЕ
+        /// столкновения выше отсечки разыгрываются ПО ОДНОМУ (экранированное
+        /// сечение Резерфорда с экранированием Мольера, Z(Z+1), поправка Мотта
+        /// Мак-Кинли—Фешбаха для Z ≤ 30; свободный пробег между ними обрывает
+        /// шаг), МЯГКИЕ — прежним шарниром Хайленда с шириной, уменьшенной на
+        /// долю транспортного сечения выше отсечки. В КРИСТАЛЛЕ ничего не
+        /// меняется (ширина шарнира поверена П27 по пику). Выключенный —
+        /// прежний ход до последнего бита и без единого лишнего случайного
+        /// числа. Зачем: гауссов шарнир не несёт хвоста однократного рассеяния
+        /// на большие углы, и в ЛЁГКОМ веществе (PTFE, Al, MgO) обратное
+        /// рассеяние выходило ×0.6…0.8 к Табате (П94 §5.5), а на RC103 при
+        /// 2614 кэВ четверти континуума расходились с Geant4 на +2.8/−2.1 %.
+        /// </summary>
+        public bool ElectronLayerMixedScattering = new ResponseMatrixOptions().ElectronLayerMixedScattering;
+
+        /// <summary>
+        /// (`M13`, вторая половина; П106 19.09.2026) ТОРМОЗНОЕ ЭЛЕКТРОНА В СЛОЯХ
+        /// ОБВЯЗКИ — ПО ХОДУ ПЕРЕНОСА — ключ сделан ВЫКЛ; ВКЛ умолчанием с
+        /// 19.09.2026 — физика 21 (П107, единый счёт склада; решение Amber
+        /// 19.09.2026 «ВКЛ сейчас, единый счёт ночью»). Умолчание ПОЛЯ — умолчание
+        /// СКЛАДА (<see cref="ResponseMatrixOptions.ElectronLayerBremAlongPath"/>,
+        /// правило I).
+        ///
+        /// Включённый — в переносе по слоям (`TransportInLayers`, только под
+        /// <see cref="ElectronLayerTransport"/>) на каждом шаге в веществе слоя
+        /// рождаются кванты тонкой мишени ЭТОГО вещества при энергии середины
+        /// шага (<see cref="ThickTargetBrem.StepPhotons"/> таблицы
+        /// <see cref="LayerBrem"/>, уровень подтянут к ESTAR множителем
+        /// <see cref="ThickTargetBrem.Anchor"/> по энергии входа в вещество),
+        /// направление — по электрону (модифицированный Цай, как `bpath=2` в
+        /// кристалле); электрон, который погибнет в слое (ранний выход), отдаёт
+        /// остаток толстой мишенью в точке гибели; ушедший из сцены — ничего.
+        /// Толстая мишень в точке рождения (<see cref="OutsideBremsstrahlung"/>)
+        /// и в точке выхода (`LayerBremsstrahlung`) у ведомых переносом
+        /// электронов при этом НЕ разыгрывается; электрон ниже 20 кэВ и занос при
+        /// `ElectronCarryDetour = 0` (абляция) — толстой мишенью, как без ключа.
+        /// Кванты идут туда же, куда шли кванты толстой мишени: у заноса — в
+        /// очередь обхода (<c>push</c>), у возврата — в очередь вылетов
+        /// (<see cref="NoteEscape"/>), когда она открыта.
+        ///
+        /// Зачем (П106 §3–§4, арбитр Geant4 плечами `killoutbrem`): остаток
+        /// RC103 1 см³ CsI при 2614 кэВ (+9 % в 0–50 кэВ) сидит в тормозном
+        /// электронов ОБВЯЗКИ — толстая мишень приписывает электрону из 1 мм
+        /// PTFE / 1 мм Al полный выход при пробеге 2…5 мм и светит изотропно.
+        /// Выключенный — прежний ход до последнего бита и без единого лишнего
+        /// случайного числа.
+        /// </summary>
+        public bool ElectronLayerBremAlongPath = new ResponseMatrixOptions().ElectronLayerBremAlongPath;
+
+        /// <summary>
+        /// (`M13`, П100) Угол отсечки смешанной схемы в слоях, градусы:
+        /// столкновения с отклонением больше него — жёсткие, по одному. Режим
+        /// ЗАМЕРА, не настройка: двигает `LayerReturnProbe --cutoff=` для
+        /// поверки независимости η от отсечки (10/20/30°); в клеймо не входит —
+        /// единый счёт идёт умолчанием 20°.
+        /// </summary>
+        public double LayerHardCutoffDeg = 20.0;
+
+        /// <summary>
         /// (`M3`, П44) Счётчики квантов тормозного, рождённых в кристалле
         /// (обе ветки — в точке рождения и вдоль пути), и их энергия, кэВ —
         /// читаются пробой `BremPathProbe` после прогона; не настройка.
         /// </summary>
         public long CountBremPhotons;
         public double SumBremKev;
+
+        /// <summary>
+        /// (`AMBER44`/`M12`, П94) Счётчики переноса электрона в слоях обвязки —
+        /// читаются `G4RawProbe` после прогона; не настройки. Вылетов из
+        /// кристалла, отданных переносу в слоях; из них ВЕРНУВШИХСЯ в кристалл;
+        /// занесённых из слоя электронов, ДОШЕДШИХ до кристалла (под ключом);
+        /// энергия, принесённая вернувшимися, кэВ.
+        /// </summary>
+        public long CountLayerEscapes, CountLayerReturns, CountLayerCarries;
+        public double SumLayerReturnKev;
+
+        /// <summary>
+        /// (`M13`, П100) Счётчики смешанной схемы в слоях — читаются пробами
+        /// после прогона; не настройки: шагов переноса в слоях и жёстких
+        /// столкновений среди них (пустые столкновения мажоранты Мотта не
+        /// считаются).
+        /// </summary>
+        public long CountLayerSteps, CountLayerHardCollisions;
+
+        /// <summary>
+        /// (`M13`, П106 19.09.2026) РЫЧАГИ ЗАМЕРА, не настройки: состав
+        /// «возврата» электрона по населениям — зеркала рычагов арбитра `g4cf`
+        /// (`killescown` / `killesccarry` / `killret` / `killretsame` /
+        /// `killretother` / `killescbrem`), чтобы плечо «умолчание − рычаг»
+        /// у нас и у Geant4 мерило ОДНО И ТО ЖЕ население. Двигает только
+        /// `G4RawProbe --ret-kill=`; ни один штатный путь их не ставит, в клеймо
+        /// не входят. Всё под ключом <see cref="ElectronLayerTransport"/>.
+        ///
+        /// <see cref="LayerReturnOwn"/> false — электрон, РОЖДЁННЫЙ В КРИСТАЛЛЕ
+        /// (не занесённый), на грани списывается, как без ключа: ни возврата,
+        /// ни тормозного слоя (= `killescown`).
+        /// <see cref="LayerReturnCarried"/> false — то же для ЗАНЕСЁННОГО
+        /// электрона (перенос по кристаллу из <see cref="CarriedElectronDeposit"/>)
+        /// при его выходе из кристалла (= `killesccarry`).
+        /// <see cref="LayerExitBremsstrahlung"/> false — у своего электрона
+        /// тормозное слоя в точке выхода не разыгрывается, перенос в слоях
+        /// идёт (= `killescbrem`: кванты родословной вылетевшего гасятся).
+        /// <see cref="LayerReturnKill"/>: 0 — возврат как есть; 1 — свой
+        /// электрон, вернувшийся в кристалл, списывается на входе (тормозное
+        /// выхода уже разыграно; = `killret`); 2 — только вернувшийся через ТУ
+        /// ЖЕ грань, что вышел (= `killretsame`); 3 — только через ДРУГУЮ
+        /// (= `killretother`). Грань — по положению точки на поверхности
+        /// кристалла (<see cref="CrystalFaceId"/>).
+        /// </summary>
+        public bool LayerReturnOwn = true;
+        public bool LayerReturnCarried = true;
+        public bool LayerExitBremsstrahlung = true;
+        public int LayerReturnKill;
+
+        /// <summary>
+        /// (`M13`, П106) Рычаг замера: тормозное электрона, РОЖДЁННОГО В СЛОЕ
+        /// обвязки / пробе (<see cref="OutsideBremsstrahlung"/>, толстая мишень
+        /// в точке рождения), не разыгрывать — зеркало `killoutbrem` арбитра
+        /// (кванты, рождённые вне кристалла электронами, рождёнными вне
+        /// кристалла, гасятся). Умолчание ВКЛ — ход прежний; двигает только
+        /// `G4RawProbe --ret-kill=outbrem`.
+        /// </summary>
+        public bool LayerBornBremsstrahlung = true;
+
+        /// <summary>
+        /// (`M13`, П106) Счётчики населений возврата — читает `G4RawProbe`; не
+        /// настройки. Вылетов и возвратов ЗАНЕСЁННОГО электрона (остальное в
+        /// <see cref="CountLayerEscapes"/> / <see cref="CountLayerReturns"/> —
+        /// свои); возвратов своего через ту же грань / через другую; возвратов,
+        /// списанных рычагом <see cref="LayerReturnKill"/>.
+        /// </summary>
+        public long CountLayerEscapesCarried, CountLayerReturnsCarried;
+        /// <summary>(П106) Электронов, рождённых в обвязке/пробе и ОТДАННЫХ переносу в слоях (≥ 20 кэВ, занос не снят) — население заноса до отбора.</summary>
+        public long CountLayerBorn;
+        public long CountLayerReturnsSameFace, CountLayerReturnsOtherFace, CountLayerReturnsKilled;
+
+        /// <summary>
+        /// (`M13`, П106) Перенос по кристаллу идёт у ЗАНЕСЁННОГО электрона
+        /// (<see cref="CarriedElectronDeposit"/>) — чтобы
+        /// <see cref="EscapeOrReturn"/> знал, чьё население перед ним.
+        /// </summary>
+        bool carriedInCrystal;
+
+        /// <summary>
+        /// (`M13`, П106) Приёмник квантов тормозного ПО ХОДУ переноса в слоях
+        /// (<see cref="ElectronLayerBremAlongPath"/>) у ТЕКУЩЕГО вызова
+        /// `TransportInLayers`: у заноса — очередь обхода (<c>push</c>
+        /// <see cref="CarriedElectronEnters"/>), у возврата — null, и квант идёт в
+        /// очередь вылетов (<see cref="NoteEscape"/>), когда она открыта, иначе
+        /// унесён — как кванты толстой мишени `LayerBremsstrahlung`. Ставится и
+        /// снимается вызывающим вокруг переноса.
+        /// </summary>
+        Action<double, double, double, double, double, double, double> layerBremPush;
+
+        /// <summary>
+        /// (`M13`, П106) Тормозное по ходу у текущего переноса в слоях разрешено
+        /// рычагами замера (<see cref="LayerBornBremsstrahlung"/> у заноса,
+        /// <see cref="LayerExitBremsstrahlung"/> у своего вылетевшего).
+        /// </summary>
+        bool layerBremEnabled;
+
+        /// <summary>
+        /// (`M13`, П106) Счётчики тормозного по ходу переноса в слоях — квантов и
+        /// их энергия, кэВ; читает `G4RawProbe`; не настройки.
+        /// </summary>
+        public long CountLayerBremPhotons;
+        public double SumLayerBremKev;
 
         /// <summary>
         /// Сколько энергии событие может потерять и всё-таки остаться в пике,
@@ -1056,6 +1255,26 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// старое с новым надо в одной величине, а не пересказом.
         /// </summary>
         public double LastContinuumIntegralError = -1.0;
+
+        /// <summary>
+        /// ⚡ МОМЕНТЫ УГЛОВОЙ ЭФФЕКТИВНОСТИ ПОСЛЕДНЕГО ПРОГОНА (`AMBER46`,
+        /// П87 16.09.2026) — Σ s_i·P_k(cos θ_i) по историям взвешенной ветки
+        /// <see cref="Run"/>: из них построитель матрицы берёт коэффициенты
+        /// ослабления угловой корреляции Q₂/Q₄(E) узла (<see cref="AngularMomentSums"/>).
+        /// Копятся ТЕМИ ЖЕ историями, что строят узел, — не отдельным счётом и
+        /// не подсмотром отражением; случайных чисел не тянут, поток ГСЧ и
+        /// тело матрицы от них не меняются ни на бит. null — прогона ещё не было.
+        /// Выход прогона, не настройка (как <see cref="LastContinuumRelativeError"/>).
+        /// </summary>
+        public AngularMomentSums LastAngularMoments { get; private set; }
+
+        // (`AMBER46`) Косинус угла вылета ПОСЛЕДНЕЙ истории к оси «точка вылета →
+        // центр объемлющей сферы кристалла» и её полный занос (сумма долей,
+        // положенных в гистограмму, — то, что до П87 проба собирала тремя бинами).
+        // Пишутся в `OneHistory`/`ScatteredRun`, читаются в `Run` сразу после
+        // истории; присваивания розыгрыш не двигают.
+        double lastHistoryCos;
+        double historyDeposit;
 
         readonly GeometryModel geometry;
         readonly List<Region> regions = new List<Region>();
@@ -3729,6 +3948,72 @@ namespace BecquerelMonitor.EfficiencyMaker
         int[] eventCode;
         readonly double[] spanBuf = new double[4];
 
+        // (`AMBER44`, П94 §7.1) СНИМОК КЭША ЛУЧА на время переноса электрона в
+        // слоях обвязки (`TransportInLayers`): тот разбирает луч заново лучами
+        // электрона, а `At` доверяет кэшу по близости точки к лучу в 10 нм — и
+        // обход кванта после электрона получил бы чужой кэш. Массивы не копируются,
+        // а МЕНЯЮТСЯ МЕСТАМИ с запасной парой той же длины; вложенности переноса
+        // нет (снимок один), глубина считается на случай, если появится.
+        double[] raySpareCross, raySaveCross;
+        Region[] raySpareSeg, raySaveSeg;
+        int raySaveCount, raySaveDepth;
+        double raySaveX, raySaveY, raySaveZ, raySaveUx, raySaveUy, raySaveUz;
+        bool raySaveValid, raySaveSwapped;
+
+        /// <summary>(П94 §7.1) Спрятать кэш луча кванта; сборщику подставляется запасная пара массивов.</summary>
+        void SaveRay()
+        {
+            if (this.raySaveDepth++ > 0)
+            {
+                return;                 // вложенный перенос — снимок уже есть
+            }
+
+            this.raySaveValid = this.rayValid;
+            this.raySaveSwapped = false;
+            if (this.rayCross != null)
+            {
+                if (this.raySpareCross == null || this.raySpareCross.Length != this.rayCross.Length)
+                {
+                    this.raySpareCross = new double[this.rayCross.Length];
+                    this.raySpareSeg = new Region[this.raySeg.Length];
+                }
+
+                this.raySaveCross = this.rayCross;
+                this.raySaveSeg = this.raySeg;
+                this.rayCross = this.raySpareCross;
+                this.raySeg = this.raySpareSeg;
+                this.raySaveCount = this.rayCount;
+                this.raySaveX = this.rayX; this.raySaveY = this.rayY; this.raySaveZ = this.rayZ;
+                this.raySaveUx = this.rayUx; this.raySaveUy = this.rayUy; this.raySaveUz = this.rayUz;
+                this.raySaveSwapped = true;
+            }
+
+            this.rayValid = false;
+        }
+
+        /// <summary>(П94 §7.1) Вернуть кэш луча кванта таким, каким он был до <see cref="SaveRay"/>.</summary>
+        void RestoreRay()
+        {
+            if (--this.raySaveDepth > 0)
+            {
+                return;
+            }
+
+            if (this.raySaveSwapped)
+            {
+                this.raySpareCross = this.rayCross;
+                this.raySpareSeg = this.raySeg;
+                this.rayCross = this.raySaveCross;
+                this.raySeg = this.raySaveSeg;
+                this.rayCount = this.raySaveCount;
+                this.rayX = this.raySaveX; this.rayY = this.raySaveY; this.rayZ = this.raySaveZ;
+                this.rayUx = this.raySaveUx; this.rayUy = this.raySaveUy; this.rayUz = this.raySaveUz;
+                this.raySaveSwapped = false;
+            }
+
+            this.rayValid = this.raySaveValid;
+        }
+
         /// <summary>
         /// Годен ли кэш для этой точки и направления, и на каком она расстоянии
         /// от точки сбора. Направление сравнивается точно (оно передаётся тем же
@@ -4165,6 +4450,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             // отклике он и должен лечь ниже по шкале, а не в пик.
             double deposited = scattered - sEscaped;
             double share = weight * sw;
+            // (`AMBER46`) Полный занос истории — тем же условием, что у
+            // `Deposit` (ноль не событие), и независимо от гистограммы.
+            if (deposited > 0.0 && share > 0.0)
+            {
+                this.historyDeposit += share;
+            }
+
             if (histogram != null)
             {
                 this.Deposit(histogram, binKev, energyKev, deposited, share);
@@ -6477,11 +6769,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 {
                                     // (`N4`, П44) Тормозное кинетики пары в веществе
                                     // слоя — под ключом, в свою очередь этого обхода.
-                                    if (this.ElectronReachesCrystal(x, y, z, ux, uy, uz,
-                                                                    e - 2.0 * ElectronMassKev
-                                                                    - this.OutsideBremsstrahlung(
-                                                                        x, y, z, e - 2.0 * ElectronMassKev,
-                                                                        here.Material, this.pushTotal)))
+                                    // (`AMBER44`/`M12`, П94) Под ключом переноса в
+                                    // слоях — тот же занос, что у аналогового обхода.
+                                    if (this.ElectronLayerTransport
+                                        ? this.CarriedElectronReaches(x, y, z, ElectronBirth.Pair,
+                                                                      e - 2.0 * ElectronMassKev,
+                                                                      ux, uy, uz, here.Material, this.pushTotal)
+                                        : this.ElectronReachesCrystal(x, y, z, ux, uy, uz,
+                                                                      e - 2.0 * ElectronMassKev
+                                                                      - this.OutsideBremsstrahlung(
+                                                                          x, y, z, e - 2.0 * ElectronMassKev,
+                                                                          here.Material, this.pushTotal)))
                                     {
                                         score = weight;
                                         break;
@@ -6513,11 +6811,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                                     ? this.SampleFluorescence(here, e) : 0.0;
                                 if (xrayOut > 0.0)
                                 {
+                                    // (`AMBER44`/`M12`, П94) Направление кванта — опора
+                                    // фотоэлектрона под ключом (см. аналоговый обход).
+                                    double gx = ux, gy = uy, gz = uz;
                                     this.Isotropic(out ux, out uy, out uz);
-                                    if (this.ElectronReachesCrystal(x, y, z, ux, uy, uz,
-                                                                    e - xrayOut - this.OutsideBremsstrahlung(
-                                                                        x, y, z, e - xrayOut,
-                                                                        here.Material, this.pushTotal)))
+                                    if (this.ElectronLayerTransport
+                                        ? this.CarriedElectronReaches(x, y, z, ElectronBirth.Photo, e - xrayOut,
+                                                                      gx, gy, gz, here.Material, this.pushTotal)
+                                        : this.ElectronReachesCrystal(x, y, z, ux, uy, uz,
+                                                                      e - xrayOut - this.OutsideBremsstrahlung(
+                                                                          x, y, z, e - xrayOut,
+                                                                          here.Material, this.pushTotal)))
                                     {
                                         score = weight;
                                         break;
@@ -6527,9 +6831,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                                     continue;           // квант летит дальше
                                 }
 
-                                if (this.ElectronReachesCrystal(x, y, z, ux, uy, uz,
-                                                                e - this.OutsideBremsstrahlung(
-                                                                    x, y, z, e, here.Material, this.pushTotal)))
+                                if (this.ElectronLayerTransport
+                                    ? this.CarriedElectronReaches(x, y, z, ElectronBirth.Photo, e,
+                                                                  ux, uy, uz, here.Material, this.pushTotal)
+                                    : this.ElectronReachesCrystal(x, y, z, ux, uy, uz,
+                                                                  e - this.OutsideBremsstrahlung(
+                                                                      x, y, z, e, here.Material, this.pushTotal)))
                                 {
                                     score = weight;
                                 }
@@ -6539,6 +6846,27 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                             double cos;
                             double after = this.ComptonScatter(here, e, out cos);
+                            if (this.ElectronLayerTransport)
+                            {
+                                // (`AMBER44`/`M12`, П94) Под ключом: поворот кванта,
+                                // направление электрона из кинематики, перенос в слоях
+                                // — как у аналогового обхода.
+                                double ux0 = ux, uy0 = uy, uz0 = uz;
+                                this.Rotate(ref ux, ref uy, ref uz, cos);
+                                double ex, ey, ez;
+                                ComptonElectronDirection(e, ux0, uy0, uz0, after, ux, uy, uz,
+                                                         out ex, out ey, out ez);
+                                if (this.CarriedElectronReaches(x, y, z, ElectronBirth.Given, e - after,
+                                                                ex, ey, ez, here.Material, this.pushTotal))
+                                {
+                                    score = weight;
+                                    break;
+                                }
+
+                                e = after;
+                                continue;
+                            }
+
                             // Комптон-электрон: занос считается ДО поворота
                             // фотона — направлением электрона берётся направление
                             // налетающего кванта (см. шапку ElectronReachesCrystal).
@@ -6659,6 +6987,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Вещества слоёв — по составу (ElectronData.Match: Al, PTFE, вода +
         /// кристаллы); не опознанное вещество считается водой (в г/см² пробеги
         /// лёгких веществ близки), пустота — воздухом на таблице воды.
+        ///
+        /// ⛔ (`AMBER44`/`M12`, П94 17.09.2026) Всё выше — ветка БЕЗ ключа
+        /// <see cref="ElectronLayerTransport"/>. С ключом оба обхода зовут
+        /// <see cref="CarriedElectronReaches"/> / <see cref="CarriedElectronDeposit"/>:
+        /// направление рождения по процессу, перенос в слоях шагом и шарниром
+        /// (`TransportInLayers`), в кристалле — перенос <see cref="ElectronLoss"/>;
+        /// <see cref="ElectronCarryDetour"/> там не читается.
         /// </summary>
         bool ElectronReachesCrystal(double x, double y, double z,
                                     double ux, double uy, double uz, double energyKev)
@@ -6700,6 +7035,122 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             this.AddLight(depositKev, depositKev);
             return true;
+        }
+
+        /// <summary>
+        /// (`AMBER44` + правка заноса `M12`, П94 17.09.2026) ЗАНОС ЭЛЕКТРОНА,
+        /// РОЖДЁННОГО ВНЕ КРИСТАЛЛА, ПОД КЛЮЧОМ <see cref="ElectronLayerTransport"/>
+        /// — общая половина обоих обходов (аналогового и полной эффективности):
+        /// (1) тормозное вещества слоя в точке рождения
+        /// (<see cref="OutsideBremsstrahlung"/>, как у `M3`; кванты — в очередь
+        /// <paramref name="push"/> обхода), электрон идёт дальше с остатком;
+        /// (2) направление рождения — по процессу <paramref name="birth"/>
+        /// относительно опорного направления (<paramref name="rx"/>…): квант
+        /// для `Photo`/`Pair`, готовый вектор кинематики комптона для `Given`
+        /// (<see cref="ElectronBirthDirection"/> — тот же розыгрыш, что у
+        /// электрона в кристалле); (3) перенос в слоях до кристалла
+        /// (<see cref="TransportInLayers"/>) — шаг, шарнир Хайленда, переходы
+        /// между слоями. Возвращает true, если электрон ВОШЁЛ в кристалл; точка
+        /// входа (чуть внутри), направление и энергия — в out-параметрах.
+        /// Ниже 20 кэВ — не долетит (пробег в PTFE/Al ≲ 10 мкм), как у
+        /// <see cref="ElectronWalkToCrystal"/>.
+        /// </summary>
+        bool CarriedElectronEnters(double x, double y, double z, ElectronBirth birth, double te,
+                                   double rx, double ry, double rz, GeometryMaterial material,
+                                   Action<double, double, double, double, double, double, double> push,
+                                   out double xIn, out double yIn, out double zIn,
+                                   out double uxIn, out double uyIn, out double uzIn, out double tIn)
+        {
+            xIn = x; yIn = y; zIn = z;
+            tIn = te - this.OutsideBremsstrahlung(x, y, z, te, material, push);
+            // Рычаг абляции `--detour=0` (П92) значит «заноса нет» в обоих
+            // режимах: под ключом доля пробега по прямой не читается, но ноль
+            // здесь снимает занос так же, как без ключа (тормозное слоя —
+            // разыграно, как и там). Так плечо «ключ ВКЛ без заноса» меряет
+            // возврат порознь от заноса.
+            if (!(tIn >= 20.0) || !(this.ElectronCarryDetour > 0.0))
+            {
+                uxIn = rx; uyIn = ry; uzIn = rz;
+                return false;               // пробег меньше ~10 мкм — не долетит
+            }
+
+            this.ElectronBirthDirection(birth, tIn, rx, ry, rz, out uxIn, out uyIn, out uzIn);
+            // Кэш луча кванта — спрятать на время переноса электрона и вернуть
+            // (П94 §7.1): обход кванта продолжается своим кэшем.
+            this.SaveRay();
+            // (П106) Тормозное по ходу переноса — в очередь обхода; рычаг замера
+            // `LayerBornBremsstrahlung` глушит его так же, как толстую мишень.
+            this.layerBremPush = push;
+            this.layerBremEnabled = this.LayerBornBremsstrahlung;
+            this.CountLayerBorn++;
+            bool entered = this.TransportInLayers(ref xIn, ref yIn, ref zIn, ref uxIn, ref uyIn, ref uzIn, ref tIn, 0);
+            this.layerBremPush = null;
+            this.RestoreRay();
+            if (!entered)
+            {
+                return false;
+            }
+
+            this.CountLayerCarries++;
+            return true;
+        }
+
+        /// <summary>
+        /// (`AMBER44`/`M12`, П94) Занос для ПОЛНОЙ ЭФФЕКТИВНОСТИ под ключом:
+        /// дошёл до кристалла с энергией — история засчитана (вклад в кристалле
+        /// не разыгрывается, довольно факта, как у <see cref="ElectronReachesCrystal"/>).
+        /// </summary>
+        bool CarriedElectronReaches(double x, double y, double z, ElectronBirth birth, double te,
+                                    double rx, double ry, double rz, GeometryMaterial material,
+                                    Action<double, double, double, double, double, double, double> push)
+        {
+            double xIn, yIn, zIn, uxIn, uyIn, uzIn, tIn;
+            return this.CarriedElectronEnters(x, y, z, birth, te, rx, ry, rz, material, push,
+                                              out xIn, out yIn, out zIn, out uxIn, out uyIn, out uzIn, out tIn)
+                   && tIn > TransportCutKev;
+        }
+
+        /// <summary>
+        /// (`AMBER44`/`M12`, П94) Занос для АНАЛОГОВОГО КОНТИНУУМА под ключом:
+        /// дошедший электрон отдаётся ПЕРЕНОСУ ПО КРИСТАЛЛУ
+        /// (<see cref="ElectronLoss"/> с направлением входа, `ElectronBirth.Given`)
+        /// — обратное рассеяние из CsI/NaI, вылет через соседнюю грань,
+        /// тормозное вдоль пути и (под тем же ключом) новый возврат — вместо
+        /// куска `AddLight(остаток)` без переноса (держатель `M12`, П92 §4).
+        /// Свет — внутри переноса, не дважды. Кванты, вылетевшие из кристалла
+        /// за время переноса (тормозное), собираются очередью вылетов и
+        /// кладутся в очередь истории — как у кванта, вошедшего в кристалл
+        /// (`A55`). Возвращает осевшую в кристалле энергию, кэВ (0 — не дошёл).
+        /// </summary>
+        double CarriedElectronDeposit(double x, double y, double z, ElectronBirth birth, double te,
+                                      double rx, double ry, double rz, GeometryMaterial material,
+                                      Action<double, double, double, double, double, double, double> push)
+        {
+            double xIn, yIn, zIn, uxIn, uyIn, uzIn, tIn;
+            if (!this.CarriedElectronEnters(x, y, z, birth, te, rx, ry, rz, material, push,
+                                            out xIn, out yIn, out zIn, out uxIn, out uyIn, out uzIn, out tIn)
+                || !(tIn > TransportCutKev))
+            {
+                return 0.0;
+            }
+
+            this.escapeCount = 0;
+            this.escapeLost = 0;
+            this.escapeCollect = true;
+            // (П106) Метка населения для `EscapeOrReturn`: перенос занесённого.
+            this.carriedInCrystal = true;
+            double lost = this.ElectronLoss(xIn, yIn, zIn, tIn, 0, ElectronBirth.Given, uxIn, uyIn, uzIn);
+            this.carriedInCrystal = false;
+            this.escapeCollect = false;
+            for (int k = 0; k < this.escapeCount; k++)
+            {
+                push(this.escX[k], this.escY[k], this.escZ[k],
+                     this.escUx[k], this.escUy[k], this.escUz[k], this.escE[k]);
+            }
+
+            this.CountEscapeDropped += this.escapeLost;
+            double deposit = tIn - lost;
+            return deposit > 0.0 ? deposit : 0.0;
         }
 
         bool ElectronWalkToCrystal(double x, double y, double z,
@@ -6819,7 +7270,20 @@ namespace BecquerelMonitor.EfficiencyMaker
                                      Action<double, double, double, double, double, double, double> push)
         {
             const double MinKev = 5.0;
-            if (!this.ElectronAnyMaterial || !this.Bremsstrahlung || !(te > MinKev) || material == null)
+            // (П106) `LayerBornBremsstrahlung` — рычаг замера, умолчанием ВКЛ.
+            if (!this.ElectronAnyMaterial || !this.Bremsstrahlung || !this.LayerBornBremsstrahlung
+                || !(te > MinKev) || material == null)
+            {
+                return 0.0;
+            }
+
+            // (`M13`, П106) Под ключом `ElectronLayerBremAlongPath` электрон, которого
+            // перенос в слоях ПОВЕДЁТ (ключ `eltr`, занос не снят абляцией, энергия
+            // не ниже порога переноса 20 кэВ — тот же порог, что в
+            // `CarriedElectronEnters`), излучает по ходу переноса — толстая
+            // мишень в точке рождения не разыгрывается. Остальные — как без ключа.
+            if (this.ElectronLayerBremAlongPath && this.ElectronLayerTransport
+                && this.ElectronCarryDetour > 0.0 && te >= 20.0)
             {
                 return 0.0;
             }
@@ -7564,6 +8028,11 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             double sum = 0.0, sum2 = 0.0;
             int n = Math.Max(1000, this.Histories);
+            // (`AMBER46`, П87) Моменты угловой эффективности узла — из ТЕХ ЖЕ
+            // историй, что строят его строку: пиковый счёт истории, её полный
+            // занос и косинус угла вылета к оси. Случайных чисел не тянет,
+            // на `sum`/`sum2`/гистограмму не влияет — тело матрицы побитово прежнее.
+            var angular = new AngularMomentSums();
             this.source.Retune(this, energyKev);
             for (int i = 0; i < n; i++)
             {
@@ -7576,8 +8045,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double score = this.OneHistory(energyKev, x, y, z, histogram, binKev, pointWeight);
                 sum += score;
                 sum2 += score * score;
+                angular.Add(score, this.historyDeposit, this.lastHistoryCos);
             }
 
+            this.LastAngularMoments = angular;
             double mean = sum / n;
             double variance = Math.Max(0.0, sum2 / n - mean * mean);
             relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
@@ -7772,6 +8243,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // кроме поля, — умножение точное, прежние сцены побитово те же.
                 weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
 
+                // (`AMBER46`, П87) Угол вылета к оси «точка вылета → центр
+                // объемлющей сферы кристалла» — определение П49 §1.1, то же,
+                // которым считаны сайдкары и сцена Geant4 (П85); точка в центре
+                // сферы — ось z. Читает `Run` для моментов Q_k узла; розыгрыш
+                // не трогает. Занос истории обнуляется здесь же.
+                this.lastHistoryCos = dist > 0.0 ? (ux * (-x) + uy * (-y) + uz * dz) / dist : uz;
+                this.historyDeposit = 0.0;
+
                 double px = x, py = y, pz = z, tau;
                 double score = 0.0;
                 bool reached = this.ToCrystal(ref px, ref py, ref pz, ux, uy, uz, energyKev, out tau);
@@ -7815,9 +8294,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // сложения. Розыгрыш от этого не меняется — гистограмма
                         // не тянет ни одного случайного числа, поэтому кривая
                         // остаётся побитово прежней.
+                        //
+                        // (`AMBER46`) Доля истории считается и БЕЗ гистограммы:
+                        // она же — полный занос для моментов Q_k^T (условие то
+                        // же, что у `Deposit`: ноль не событие).
+                        double share = weight * Math.Exp(-tau);
+                        if (energyKev - escaped > 0.0 && share > 0.0)
+                        {
+                            this.historyDeposit += share;
+                        }
+
                         if (histogram != null)
                         {
-                            double share = weight * Math.Exp(-tau);
                             this.Deposit(histogram, binKev, energyKev, energyKev - escaped, share);
                             this.ScoreLight(binKev, energyKev, energyKev - escaped, share);
                             if (this.channelHistograms != null)
@@ -8094,12 +8582,21 @@ namespace BecquerelMonitor.EfficiencyMaker
                                         // (`N4`, П44) Кинетика пары излучает
                                         // тормозное вещества слоя — под ключом;
                                         // без ключа ноль и ни одного розыгрыша.
-                                        if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
-                                                                      e - 2.0 * ElectronMassKev
-                                                                      - this.OutsideBremsstrahlung(
-                                                                          x, y, z, e - 2.0 * ElectronMassKev,
-                                                                          here.Material, this.pushAnalog),
-                                                                      out carried))
+                                        // (`AMBER44`/`M12`, П94) Под ключом переноса
+                                        // в слоях — лептон пары по Цаю от кванта,
+                                        // перенос в слое и в кристалле.
+                                        if (this.ElectronLayerTransport)
+                                        {
+                                            deposited += this.CarriedElectronDeposit(
+                                                x, y, z, ElectronBirth.Pair, e - 2.0 * ElectronMassKev,
+                                                ux, uy, uz, here.Material, this.pushAnalog);
+                                        }
+                                        else if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
+                                                                           e - 2.0 * ElectronMassKev
+                                                                           - this.OutsideBremsstrahlung(
+                                                                               x, y, z, e - 2.0 * ElectronMassKev,
+                                                                               here.Material, this.pushAnalog),
+                                                                           out carried))
                                         {
                                             deposited += carried;
                                         }
@@ -8123,13 +8620,24 @@ namespace BecquerelMonitor.EfficiencyMaker
                                         ? this.SampleFluorescence(here, e) : 0.0;
                                     if (xrayOut > 0.0)
                                     {
+                                        // (`AMBER44`/`M12`, П94) Направление КВАНТА —
+                                        // опора фотоэлектрона (Заутер—Гаврила) под
+                                        // ключом; без ключа электрон, как было, идёт
+                                        // по направлению рентгена (розыгрыш ниже).
+                                        double gx = ux, gy = uy, gz = uz;
                                         this.Isotropic(out ux, out uy, out uz);
-                                        if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
-                                                                      e - xrayOut
-                                                                      - this.OutsideBremsstrahlung(
-                                                                          x, y, z, e - xrayOut,
-                                                                          here.Material, this.pushAnalog),
-                                                                      out carried))
+                                        if (this.ElectronLayerTransport)
+                                        {
+                                            deposited += this.CarriedElectronDeposit(
+                                                x, y, z, ElectronBirth.Photo, e - xrayOut,
+                                                gx, gy, gz, here.Material, this.pushAnalog);
+                                        }
+                                        else if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
+                                                                           e - xrayOut
+                                                                           - this.OutsideBremsstrahlung(
+                                                                               x, y, z, e - xrayOut,
+                                                                               here.Material, this.pushAnalog),
+                                                                           out carried))
                                         {
                                             deposited += carried;
                                         }
@@ -8138,10 +8646,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                                         continue;           // квант летит дальше
                                     }
 
-                                    if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
-                                                                  e - this.OutsideBremsstrahlung(
-                                                                      x, y, z, e, here.Material, this.pushAnalog),
-                                                                  out carried))
+                                    if (this.ElectronLayerTransport)
+                                    {
+                                        deposited += this.CarriedElectronDeposit(
+                                            x, y, z, ElectronBirth.Photo, e,
+                                            ux, uy, uz, here.Material, this.pushAnalog);
+                                    }
+                                    else if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
+                                                                       e - this.OutsideBremsstrahlung(
+                                                                           x, y, z, e, here.Material, this.pushAnalog),
+                                                                       out carried))
                                     {
                                         deposited += carried;
                                     }
@@ -8152,6 +8666,25 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 double cos;
                                 double after = this.ComptonScatter(here, e, out cos);
                                 comptonOutside = true;              // замер `S55`
+                                if (this.ElectronLayerTransport)
+                                {
+                                    // (`AMBER44`/`M12`, П94) Под ключом: сперва поворот
+                                    // кванта, направление комптон-электрона — из
+                                    // кинематики (импульс до минус после,
+                                    // `ComptonElectronDirection`), как в кристалле;
+                                    // тормозное слоя и перенос — внутри.
+                                    double ux0 = ux, uy0 = uy, uz0 = uz;
+                                    this.Rotate(ref ux, ref uy, ref uz, cos);
+                                    double dx, dy, dz;
+                                    ComptonElectronDirection(e, ux0, uy0, uz0, after, ux, uy, uz,
+                                                             out dx, out dy, out dz);
+                                    deposited += this.CarriedElectronDeposit(
+                                        x, y, z, ElectronBirth.Given, e - after,
+                                        dx, dy, dz, here.Material, this.pushAnalog);
+                                    e = after;
+                                    continue;
+                                }
+
                                 // Занос комптон-электрона — ДО поворота фотона (см.
                                 // шапку ElectronReachesCrystal); фотон летит дальше.
                                 // (`N4`, П44) Сперва тормозное электрона в веществе
@@ -8745,6 +9278,133 @@ namespace BecquerelMonitor.EfficiencyMaker
                     error[j][i] = relative;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// ⚡ НАКОПИТЕЛИ МОМЕНТОВ УГЛОВОЙ ЭФФЕКТИВНОСТИ УЗЛА (`AMBER46`, П87
+    /// 16.09.2026; постановка Amber 16.09.2026, дословно: «Нет. Так не
+    /// устраивает. Никаких сайдкаров. Стоп.», «У нас есть матрица отклика. Не
+    /// нужно бояться менять физику, если это реально надо»).
+    ///
+    /// Коэффициенты ослабления угловой корреляции сцены (`N14`, П49 §1.1):
+    ///
+    ///     Q_k(E) = Σ_i s_i·P_k(cos θ_i) / Σ_i s_i,   k = 2, 4,
+    ///
+    /// s_i — пиковый счёт истории (вес × попадание в пик по допуску узла), θ_i —
+    /// угол вылета к оси «точка вылета → центр кристалла»; для ВЫНОСА те же
+    /// моменты по ПОЛНОМУ заносу истории t_i (партнёр уносит событие любым
+    /// заносом) — Q_k^T. Копятся в <see cref="EfficiencySimulator.Run"/> из ТЕХ
+    /// ЖЕ историй, что строят узел матрицы: отдельного розыгрыша нет, подсмотра
+    /// отражением нет, поток ГСЧ не тронут.
+    ///
+    /// ⛔ Выражения P₂/P₄ и порядок сложений здесь — ЕДИНСТВЕННЫЕ: читатель
+    /// `AngularQkProbe` копит ЭТИМ ЖЕ классом, и потому его Q_k при том же
+    /// зерне и числе историй обязаны совпасть с матрицей ДО БИТА. Вторая копия
+    /// формулы разъехалась бы молча (`S37`).
+    ///
+    /// Шум — дельта-методом: var(Q) = [var(sP) − 2Q·cov(sP,s) + Q²·var(s)] / (N·⟨s⟩²).
+    /// </summary>
+    public sealed class AngularMomentSums
+    {
+        /// <summary>Историй.</summary>
+        public long N { get; private set; }
+
+        /// <summary>Σ s, Σ s·P₂, Σ s·P₄ — пик.</summary>
+        public double S0 { get; private set; }
+        public double S2 { get; private set; }
+        public double S4 { get; private set; }
+
+        /// <summary>Суммы квадратов и произведений — для шума пиковых Q_k.</summary>
+        public double S00 { get; private set; }
+        public double S22 { get; private set; }
+        public double S44 { get; private set; }
+        public double S02 { get; private set; }
+        public double S04 { get; private set; }
+
+        /// <summary>То же по ПОЛНОМУ заносу истории.</summary>
+        public double T0 { get; private set; }
+        public double T2 { get; private set; }
+        public double T4 { get; private set; }
+        public double T00 { get; private set; }
+        public double T22 { get; private set; }
+        public double T44 { get; private set; }
+        public double T02 { get; private set; }
+        public double T04 { get; private set; }
+
+        /// <summary>
+        /// Одна история: пиковый счёт `score`, полный занос `total`, косинус
+        /// угла вылета к оси `cos`.
+        /// </summary>
+        public void Add(double score, double total, double cos)
+        {
+            double c2 = cos * cos;
+            double p2 = 0.5 * (3.0 * c2 - 1.0);
+            double p4 = 0.125 * (35.0 * c2 * c2 - 30.0 * c2 + 3.0);
+            double s2 = score * p2, s4 = score * p4;
+            this.S0 += score; this.S2 += s2; this.S4 += s4;
+            this.S00 += score * score; this.S22 += s2 * s2; this.S44 += s4 * s4;
+            this.S02 += score * s2; this.S04 += score * s4;
+            double t2 = total * p2, t4 = total * p4;
+            this.T0 += total; this.T2 += t2; this.T4 += t4;
+            this.T00 += total * total; this.T22 += t2 * t2; this.T44 += t4 * t4;
+            this.T02 += total * t2; this.T04 += total * t4;
+            this.N++;
+        }
+
+        /// <summary>Q_k пика; 0 — пик пуст.</summary>
+        public double Q(int k)
+        {
+            return this.S0 > 0.0 ? (k == 2 ? this.S2 : this.S4) / this.S0 : 0.0;
+        }
+
+        /// <summary>Q_k^T полного заноса; 0 — заноса не было.</summary>
+        public double QT(int k)
+        {
+            return this.T0 > 0.0 ? (k == 2 ? this.T2 : this.T4) / this.T0 : 0.0;
+        }
+
+        /// <summary>Шум Q_k пика (σ).</summary>
+        public double Err(int k)
+        {
+            return Err(this.N, this.S0, k == 2 ? this.S2 : this.S4, this.S00,
+                       k == 2 ? this.S22 : this.S44, k == 2 ? this.S02 : this.S04);
+        }
+
+        /// <summary>Шум Q_k^T (σ).</summary>
+        public double ErrT(int k)
+        {
+            return Err(this.N, this.T0, k == 2 ? this.T2 : this.T4, this.T00,
+                       k == 2 ? this.T22 : this.T44, k == 2 ? this.T02 : this.T04);
+        }
+
+        /// <summary>Средний пиковый счёт истории — эффективность пика узла.</summary>
+        public double PeakEfficiency
+        {
+            get { return this.N > 0 ? this.S0 / this.N : 0.0; }
+        }
+
+        /// <summary>Средний полный занос — взвешенная оценка ε_T узла (нужна её угловая форма, не уровень).</summary>
+        public double TotalEfficiency
+        {
+            get { return this.N > 0 ? this.T0 / this.N : 0.0; }
+        }
+
+        static double Err(long n, double s0, double sk, double s00, double skk, double s0k)
+        {
+            if (n < 2 || !(s0 > 0.0))
+            {
+                return 0.0;
+            }
+
+            double m0 = s0 / n;
+            double mk = sk / n;
+            double v0 = s00 / n - m0 * m0;
+            double vk = skk / n - mk * mk;
+            double c0k = s0k / n - m0 * mk;
+            double q = mk / m0;
+            double var = (vk - 2.0 * q * c0k + q * q * v0) / (n * m0 * m0);
+            return var > 0.0 ? Math.Sqrt(var) : 0.0;
         }
     }
 }

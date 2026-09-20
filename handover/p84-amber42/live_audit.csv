@@ -1,0 +1,3 @@
+﻿file,phys,histories,nodes,channels,noise_median,noise_worst,nodes_empty,cone,created,seconds,stamp,body_sha256,fingerprint
+G1S_point25.rmx,18,3000000,140,6,6.7596,10.7047,26,0,2026-09-13 21:37,292.7,phys=18;1a7858984392ca23cb186a58dc41d862fab9aafcf4592f8505224f86406cf3e4,e69608b62d5c6c32e7f9e807c1c9a08321768a663cf5b1f6a77953cba950ecb0,сходится
+G1S_point5.rmx,18,3000000,140,6,1.7537,2.5693,22,0,2026-09-13 21:43,371.1,phys=18;a56b959512b93db3a9d2e8a9f15e233cc4dfbe5a5aa2b5b65f50abea644bb33c,63dbaa9b5b01aef0ed3fdaeffb607e45cbc8c803cd45dfeaa2fdacde5da484d5,сходится

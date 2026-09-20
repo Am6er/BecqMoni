@@ -1,0 +1,270 @@
+каталог опыта: D:\BqMoni_Claude\p96\layout_probe_new
+поставочная раскладка-эталон: D:\BqMoni_Claude\p96\wt\BecquerelMonitor\config\layout\ExpertMode.xml
+сборка приложения: D:\BqMoni_Claude\p96\wt\tools\effmaker\probes\build_p96\BecquerelMonitor.exe
+помощник BecquerelMonitor.LayoutFile: ЕСТЬ
+лестница Read(string, string, Action<Stream>, Func<Stream>): ЕСТЬ
+Application.ExecutablePath = D:\BqMoni_Claude\p96\wt\tools\effmaker\probes\build_p96\LayoutFileProbe.exe
+AppUi.HasWindows = False
+dockPanel1: тема VS2015BlueTheme, содержимого 0
+
+=== 1. запись: LayoutFile.Write подсаженным сериализатором ===
+  ok   метод Write(string, Action<Stream>) есть                                     True
+  ok   1.1 первая запись: файл есть                                                 True
+  ok   1.1 первая запись: содержимое A                                              True
+  ok   1.1 первая запись: .tmp убран                                                False
+  ok   1.1 первая запись: .bak нет (нечего сохранять)                               False
+  ok   1.2 (в) вторая запись: содержимое B                                          True
+  ok   1.2 (в) .bak побайтно равен прежнему файлу (A)                               True
+  ok   1.2 (в) .tmp убран                                                           False
+  ok   1.3 (б) отказ сериализации: исключение дошло до вызывающего                  True
+      исключение: InvalidOperationException: подсаженный отказ сериализации
+  ok   1.3 (б) целевой файл прежний побайтно (B)                                    True
+  ok   1.3 (б) .bak прежний побайтно (A)                                            True
+  ok   1.3 (б) .tmp убран                                                           False
+  ok   1.4 (б) пустая сериализация: отказ, а не пустой файл                         True
+      исключение: InvalidOperationException: layout serializer produced no bytes; the existing file D:\BqMoni_Claude\p96\layout_probe_new\core\ExpertMode.xml is kept
+  ok   1.4 (б) целевой файл прежний побайтно (B)                                    True
+  ok   1.4 (б) .tmp убран                                                           False
+  ok   1.5 осиротевший .tmp перезаписан, файл A                                     True
+  ok   1.5 .bak = прежний B                                                         True
+  ok   1.5 .tmp убран                                                               False
+
+=== 2. чтение: LayoutFile.Read подсаженным читателем (лестница) ===
+  ok   метод Read(string, string, Action<Stream>, Func<Stream>) есть                True
+  ok   метод Describe есть                                                          True
+  ok   метод DescribeAbsent есть                                                    True
+  ok   2.1 нет файла, ступеней нет: Kind = Absent                                   Absent
+  ok   2.1 нет файла: не отказ                                                      False
+  ok   2.1 нет файла: читатель не звался                                            0
+  ok   2.1 нет файла: Describe пуст                                                 
+  ok   2.1 нет файла: DescribeAbsent пуст (ничего не отказало)                      
+  ok   2.1б нет файла + встроенная: Kind = LoadedFromBuiltin                        LoadedFromBuiltin
+  ok   2.1б не отказ (файла и не ждали)                                             False
+  ok   2.1б поставочного не было                                                    False
+  ok   2.1б читатель звался один раз, встроенная                                    builtin
+  ok   2.1б Describe пуст — окна нет                                                
+  ok   2.1б DescribeAbsent пуст — ничего не отказало                                
+  ok   2.1в нет файла, поставочный бит: Kind = LoadedFromBuiltin                    LoadedFromBuiltin
+  ok   2.1в не отказ                                                                False
+  ok   2.1в читатель: поставочный, затем встроенная                                 ExpertMode.xml|builtin
+  ok   2.1в причина поставочного названа                                            True
+      строка без окон: layout file D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml is absent; supplied layout D:\BqMoni_Claude\p96\layout_probe_new\core_read\app\config\layout\ExpertMode.xml failed: XmlException: подсаженный отказ разбора: ExpertMode.xml; shown: LoadedFromBuiltin
+  ok   2.1в DescribeAbsent называет поставочный и причину                           True
+  ok   2.2 годный: Kind = Loaded                                                    Loaded
+  ok   2.2 годный: не отказ                                                         False
+  ok   2.2 годный: читатель звался один раз                                         1
+  ok   2.2 годный: Describe пуст                                                    
+  ok   2.3 сломанный+.bak: Kind = LoadedFromBackup                                  LoadedFromBackup
+  ok   2.3 сломанный+.bak: отказ назван                                             True
+  ok   2.3 сломанный+.bak: читатель звался дважды (main, bak)                       ExpertMode.xml|ExpertMode.xml.bak
+      отложен как: D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.broken-20260917-185358
+  ok   2.3 сломанный отложен в .broken-<дата>                                       True
+  ok   2.3 улика: содержимое отложенного = сломанный                                BAD main
+  ok   2.3 копия вернулась на место основного файла                                 GOOD bak
+      слово:
+        Не удалось прочитать файл раскладки панелей D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.
+        Причина: XmlException: подсаженный отказ разбора: ExpertMode.xml
+        Повреждённый файл отложен как D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.broken-20260917-185358.
+        Вместо него загружена прежняя удачная копия D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.bak.
+  ok   2.3 слово называет основной файл                                             True
+  ok   2.3 слово называет отложенный                                                True
+  ok   2.3 слово называет .bak                                                      True
+  ok   2.3 слово называет причину                                                   True
+  ok   2.3 слово НЕ называет поставочный (до него не дошло)                         False
+  ok   2.4 сломанный+сломанный .bak: Kind = Default                                 Default
+  ok   2.4 отказ назван                                                             True
+  ok   2.4 .bak был                                                                 True
+  ok   2.4 причина .bak названа                                                     True
+  ok   2.4 основного файла на месте нет (отложен)                                   False
+      слово:
+        Не удалось прочитать файл раскладки панелей D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.
+        Причина: XmlException: подсаженный отказ разбора: ExpertMode.xml
+        Повреждённый файл отложен как D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.broken-20260917-185359.
+        Прежнюю копию D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.bak прочитать тоже не удалось (XmlException: подсаженный отказ разбора: ExpertMode.xml.bak). Показана пустая расстановка — панели можно открыть по одной из меню «Вид».
+  ok   2.4 слово называет причину основного файла                                   True
+  ok   2.4 слово называет причину копии                                             True
+  ok   2.5 сломанный без .bak: Kind = Default                                       Default
+  ok   2.5 .bak не было                                                             False
+  ok   2.5 читатель звался один раз                                                 1
+      слово:
+        Не удалось прочитать файл раскладки панелей D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.
+        Причина: XmlException: подсаженный отказ разбора: ExpertMode.xml
+        Повреждённый файл отложен как D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.broken-20260917-185400.
+        Прежней копии не было. Показана пустая расстановка — панели можно открыть по одной из меню «Вид».
+  ok   2.5 слово непустое                                                           True
+  ok   2.6 (а) сломанный без .bak + поставочный: Kind = LoadedFromSupply            LoadedFromSupply
+  ok   2.6 (а) отказ назван                                                         True
+  ok   2.6 (а) читатель: основной, затем поставочный (не .bak, не встроенная)       ExpertMode.xml|ExpertMode.xml
+  ok   2.6 (а) поставочный был                                                      True
+  ok   2.6 (а) сломанный отложен                                                    True
+  ok   2.6 (а) поставочный на место основного НЕ скопирован (закрытие запишет)      False
+      слово:
+        Не удалось прочитать файл раскладки панелей D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.
+        Причина: XmlException: подсаженный отказ разбора: ExpertMode.xml
+        Повреждённый файл отложен как D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.broken-20260917-185402.
+        Прежней копии не было. Показана поставочная раскладка D:\BqMoni_Claude\p96\layout_probe_new\core_read\app\config\layout\ExpertMode.xml.
+  ok   2.6 (а) слово называет поставочный файл                                      True
+  ok   2.6 (а) слово говорит «поставочная»                                          True
+  ok   2.6 (а) слово НЕ говорит «встроенная»                                        False
+  ok   2.7 (б) без поставочного файла: Kind = LoadedFromBuiltin                     LoadedFromBuiltin
+  ok   2.7 (б) читатель: основной, затем встроенная                                 ExpertMode.xml|builtin
+  ok   2.7 (б) поставочного не было                                                 False
+      слово:
+        Не удалось прочитать файл раскладки панелей D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.
+        Причина: XmlException: подсаженный отказ разбора: ExpertMode.xml
+        Повреждённый файл отложен как D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.broken-20260917-185403.
+        Прежней копии не было. Показана поставочная раскладка, встроенная в приложение.
+  ok   2.7 (б) слово говорит «встроенная»                                           True
+  ok   2.7 (б) слово НЕ называет отсутствующий поставочный                          False
+  ok   2.8 (в) всё бито: Kind = Default                                             Default
+  ok   2.8 (в) читатель: основной, поставочный, встроенная                          ExpertMode.xml|ExpertMode.xml|builtin
+  ok   2.8 (в) причина поставочного названа                                         True
+  ok   2.8 (в) причина встроенной названа                                           True
+      слово:
+        Не удалось прочитать файл раскладки панелей D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.
+        Причина: XmlException: подсаженный отказ разбора: ExpertMode.xml
+        Повреждённый файл отложен как D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.broken-20260917-185404.
+        Прежней копии не было. Поставочную раскладку D:\BqMoni_Claude\p96\layout_probe_new\core_read\app\config\layout\ExpertMode.xml прочитать тоже не удалось (XmlException: подсаженный отказ разбора: ExpertMode.xml). Встроенную в приложение раскладку прочитать тоже не удалось (XmlException: подсаженный отказ разбора: builtin). Показана пустая расстановка — панели можно открыть по одной из меню «Вид».
+  ok   2.8 (в) слово называет основной файл                                         True
+  ok   2.8 (в) слово называет поставочный и его причину                             True
+  ok   2.8 (в) слово называет причину встроенной                                    True
+  ok   2.8 (в) слово говорит «пусто»/«View»                                         True
+  ok   2.9 .bak бит, поставочный годен: Kind = LoadedFromSupply                     LoadedFromSupply
+  ok   2.9 читатель: основной, .bak, поставочный                                    ExpertMode.xml|ExpertMode.xml.bak|ExpertMode.xml
+      слово:
+        Не удалось прочитать файл раскладки панелей D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.
+        Причина: XmlException: подсаженный отказ разбора: ExpertMode.xml
+        Повреждённый файл отложен как D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.broken-20260917-185405.
+        Прежнюю копию D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.bak прочитать тоже не удалось (XmlException: подсаженный отказ разбора: ExpertMode.xml.bak). Показана поставочная раскладка D:\BqMoni_Claude\p96\layout_probe_new\core_read\app\config\layout\ExpertMode.xml.
+  ok   2.9 слово называет причину .bak                                              True
+  ok   2.9 слово называет поставочный                                               True
+  ok   2.10 встроенной нет (null): Kind = Default                                   Default
+  ok   2.10 причина встроенной названа (ресурса нет)                                True
+      слово:
+        Не удалось прочитать файл раскладки панелей D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.
+        Причина: XmlException: подсаженный отказ разбора: ExpertMode.xml
+        Повреждённый файл отложен как D:\BqMoni_Claude\p96\layout_probe_new\core_read\ExpertMode.xml.broken-20260917-185406.
+        Прежней копии не было. Встроенную в приложение раскладку прочитать тоже не удалось (FileNotFoundException: embedded layout resource is missing). Показана пустая расстановка — панели можно открыть по одной из меню «Вид».
+  ok   2.10 слово называет причину встроенной                                       True
+  ok   2. отложенных улик восемь (2.3–2.10)                                         8
+
+=== 3. настоящая панель dockPanel1 (без окна) ===
+  ok   метод Save(DockPanel, string) есть                                           True
+  ok   метод Load(DockPanel, string, DeserializeDockContent) есть                   True
+      библиотечный SaveAsXml(имя): 2092 байт, начало FF FE 3C 00; LayoutFile.Save: 2092 байт, начало FF FE 3C 00
+  ok   3.1 LayoutFile.Save байт в байт = SaveAsXml(имя)                             True
+  ok   3.1 файл начинается с BOM UTF-16 LE (кодировка Unicode сохранена)            True
+  ok   3.1 .tmp убран                                                               False
+  ok   3.1 записанное читается панелью                                              True
+  ok   3.1 (в) вторая раскладка отличается от первой                                False
+  ok   3.1 (в) .bak побайтно = первая раскладка                                     True
+  ok   3.2 (а) пустой файл: Load не бросает                                         True
+  ok   3.2 (а) пустой файл: Kind = LoadedFromBackup                                 LoadedFromBackup
+  ok   3.2 (а) причина — Root element is missing (XmlException)                     True
+      причина: XmlException: Отсутствует корневой элемент.
+  ok   3.2 (а) сломанный отложен в .broken-…, 0 байт                                True
+  ok   3.2 (а) копия вернулась на место основного                                   True
+  ok   3.2 (а) панель после подъёма копии пуста, как и раскладка                    0
+  ok   3.3 (а) обрезанный файл: Load не бросает                                     True
+  ok   3.3 (а) обрезанный файл: Kind = LoadedFromBuiltin (копии нет, поставочного рядом нет) LoadedFromBuiltin
+      причина: XmlException: Непредусмотренный конец файла при разборе Name., строка 10, позиция 15.
+  ok   3.3 (а) обрезанный отложен, улика = обрезанные байты                         True
+  ok   3.3 (а) основного файла на месте нет                                         False
+  ok   3.3 (а) панель с десериализатором-пустышкой пуста                            0
+  ok   3.3 (а) годный файл после этого читается (панель не «уже заполнена»)         True
+  ok   3.4 MainForm.LoadLayoutXml(string, bool) есть                                True
+  ok   3.4 LoadLayoutXml на пустом файле не бросает                                 True
+  ok   3.4 без окон слово сказано сразу (возврат null, ждать Shown некому)          null
+      поток ошибок: BecqMoni: Раскладка панелей: Не удалось прочитать файл раскладки панелей D:\BqMoni_Claude\p96\layout_probe_new\layout\ExpertMode.xml. Причина: XmlException: Отсутствует корневой элемент. Повреждённый файл отложен как D:\BqMoni_Claude\p96\layout_probe_new\layout\ExpertMode.xml.broken-20260917-185408. Вместо него загружена прежняя удачная копия D:\BqMoni_Claude\p96\layout_probe_new\layout\ExpertMode.xml.bak.
+  ok   3.4 слово в потоке ошибок называет файл                                      True
+  ok   3.4 слово в потоке ошибок называет причину                                   True
+  ok   3.4 и копия поднята на место                                                 True
+  ok   3.5 MainForm.SaveLayoutXml(string, bool) есть                                True
+  ok   3.5 SaveLayoutXml вернул true                                                True
+  ok   3.5 файл = библиотечная сериализация того же момента (байт в байт)           True
+  ok   3.5 .bak = прежний файл побайтно                                             True
+  ok   3.5 .tmp убран                                                               False
+  ok   3.6 (б) подсадка: содержимого в панели 1                                     1
+  ok   3.6 (б) LayoutFile.Save на бросающей панели бросает                          True
+      исключение: InvalidOperationException: подсаженный отказ сериализации содержимого панели
+  ok   3.6 (б) целевой файл прежний побайтно                                        True
+  ok   3.6 (б) целевой файл читается как XML                                        True
+  ok   3.6 (б) .tmp убран                                                           False
+  ok   3.6 (б) MainForm.SaveLayoutXml вернул false                                  False
+      поток ошибок: BecqMoni: Раскладка панелей: Не удалось записать раскладку панелей в D:\BqMoni_Claude\p96\layout_probe_new\layout\ExpertMode.xml. Причина: подсаженный отказ сериализации содержимого панели При следующем запуске вернётся прежняя расстановка.
+  ok   3.6 (б) отказ назван строкой с путём                                         True
+  ok   3.6 (б) целевой файл и после тонкого вызова прежний                          True
+  ok   3.6 после снятия подсадки панель пуста                                       0
+
+=== 4. лестница на настоящей панели: поставочная раскладка как умолчание ===
+  ok   метод Load(DockPanel, string, DeserializeDockContent, string, Func<Stream>) есть True
+  ok   метод SupplyPathFor(string) есть                                             True
+  ok   метод BuiltinLayout() есть                                                   True
+  ok   поставочная раскладка-эталон найдена                                         True
+      эталон: 8636 байт, Contents Count="9"
+  ok   эталон: содержимого больше нуля (иначе плечу нечего мерить)                  True
+      SupplyPathFor(опыт) = D:\BqMoni_Claude\p96\wt\tools\effmaker\probes\build_p96\config\layout\ExpertMode.xml
+  ok   4.1 SupplyPathFor(чужой целевой) = <каталог exe>\config\layout\ExpertMode.xml True
+  ok   4.1 SupplyPathFor(сам поставочный путь) = null — портативная сборка          null
+  ok   4.1 SupplyPathFor(тот же путь другим регистром) = null                       null
+  ok   4.1 поставочного файла рядом с пробой нет (иначе плечи (б) мерят не то)      False
+  ok   4.2 BuiltinLayout() даёт поток (ресурс в сборке есть)                        True
+      встроенная: 8636 байт
+  ok   4.2 встроенная байт в байт = поставочный файл дерева                         True
+  ok   4.3 (а) пустой файл без .bak + поставочный: Kind = LoadedFromSupply          LoadedFromSupply
+  ok   4.3 (а) отказ назван (пустой файл)                                           True
+  ok   4.3 (а) причина — XmlException                                               True
+  ok   4.3 (а) панель получила содержимое поставочной (Contents)                    9
+  ok   4.3 (а) панели построены (Panes > 0)                                         True
+      Contents=9, Panes=5, FloatWindows=5
+      слово:
+        Не удалось прочитать файл раскладки панелей D:\BqMoni_Claude\p96\layout_probe_new\ladder\ExpertMode.xml.
+        Причина: XmlException: Отсутствует корневой элемент.
+        Повреждённый файл отложен как D:\BqMoni_Claude\p96\layout_probe_new\ladder\ExpertMode.xml.broken-20260917-185408.
+        Прежней копии не было. Показана поставочная раскладка D:\BqMoni_Claude\p96\layout_probe_new\ladder\app\config\layout\ExpertMode.xml.
+  ok   4.3 (а) слово называет поставочный файл                                      True
+  ok   4.3 (а) слово говорит «поставочная»                                          True
+  ok   4.3 (а) сломанный отложен                                                    True
+  ok   4.3 (а) поставочный на место основного не скопирован                         False
+  ok   4.4 панель очищена перед плечом                                              0
+  ok   4.4 (б) пустой файл без .bak, без поставочного: Kind = LoadedFromBuiltin     LoadedFromBuiltin
+  ok   4.4 (б) панель получила содержимое встроенной (Contents)                     9
+      слово:
+        Не удалось прочитать файл раскладки панелей D:\BqMoni_Claude\p96\layout_probe_new\ladder\ExpertMode.xml.
+        Причина: XmlException: Отсутствует корневой элемент.
+        Повреждённый файл отложен как D:\BqMoni_Claude\p96\layout_probe_new\ladder\ExpertMode.xml.broken-20260917-185410.
+        Прежней копии не было. Показана поставочная раскладка, встроенная в приложение.
+  ok   4.4 (б) слово говорит «встроенная»                                           True
+  ok   4.5 (в) поставочный бит + встроенная бита: Kind = Default                    Default
+  ok   4.5 (в) панель пуста                                                         0
+  ok   4.5 (в) причина поставочного — XmlException                                  True
+  ok   4.5 (в) причина встроенной — XmlException                                    True
+      слово:
+        Не удалось прочитать файл раскладки панелей D:\BqMoni_Claude\p96\layout_probe_new\ladder\ExpertMode.xml.
+        Причина: XmlException: Отсутствует корневой элемент.
+        Повреждённый файл отложен как D:\BqMoni_Claude\p96\layout_probe_new\ladder\ExpertMode.xml.broken-20260917-185411.
+        Прежней копии не было. Поставочную раскладку D:\BqMoni_Claude\p96\layout_probe_new\ladder\app\config\layout\ExpertMode.xml прочитать тоже не удалось (XmlException: Непредусмотренный конец файла. Не закрыты следующие элементы: Contents, Pane, Panes, DockPanel., строка 30, позиция 6.). Встроенную в приложение раскладку прочитать тоже не удалось (XmlException: Непредусмотренный конец файла. Не закрыты следующие элементы: Contents, Pane, Panes, DockPanel., строка 30, позиция 6.). Показана пустая расстановка — панели можно открыть по одной из меню «Вид».
+  ok   4.5 (в) слово называет поставочный                                           True
+  ok   4.5 (в) слово называет причины поставочного и встроенной (два XmlException сверх основного) True
+  ok   4.5 (в) слово говорит «пусто»/«View»                                         True
+  ok   4.5б поставочный бит, встроенная годна: Kind = LoadedFromBuiltin             LoadedFromBuiltin
+  ok   4.5б панель получила содержимое встроенной                                   9
+  ok   4.5б слово называет битый поставочный и говорит «встроенная»                 True
+      поток ошибок: BecqMoni: Раскладка панелей: Не удалось прочитать файл раскладки панелей D:\BqMoni_Claude\p96\layout_probe_new\ladder\ExpertMode.xml. Причина: XmlException: Отсутствует корневой элемент. Повреждённый файл отложен как D:\BqMoni_Claude\p96\layout_probe_new\ladder\ExpertMode.xml.broken-20260917-185413. Прежней копии не было. Показана поставочная раскладка, встроенная в приложение.
+  ok   4.6 тонкий вызов, встроенная: панель получила содержимое                     9
+  ok   4.6 слово в потоке ошибок называет файл                                      True
+  ok   4.6 слово говорит «встроенная»                                               True
+      поток ошибок: BecqMoni: Раскладка панелей: Не удалось прочитать файл раскладки панелей D:\BqMoni_Claude\p96\layout_probe_new\ladder\ExpertMode.xml. Причина: XmlException: Отсутствует корневой элемент. Повреждённый файл отложен как D:\BqMoni_Claude\p96\layout_probe_new\ladder\ExpertMode.xml.broken-20260917-185414. Прежней копии не было. Показана поставочная раскладка D:\BqMoni_Claude\p96\wt\tools\effmaker\probes\build_p96\config\layout\ExpertMode.xml.
+  ok   4.7 тонкий вызов, поставочный по пути приложения: панель получила содержимое 9
+  ok   4.7 слово называет поставочный по пути приложения                            True
+  ok   4.7 слово говорит «поставочная»                                              True
+  ok   4.7 подсадка снята: файла рядом с пробой нет                                 False
+  ok   4.7 подсадка снята: каталога config\layout рядом с пробой нет                False
+  ok   4.8 файла нет: Kind = LoadedFromBuiltin                                      LoadedFromBuiltin
+  ok   4.8 файла нет: не отказ                                                      False
+  ok   4.8 файла нет: Describe пуст                                                 
+  ok   4.8 файла нет: панель получила содержимое встроенной                         9
+  ok   4.8 тонкий вызов без файла: поток ошибок пуст (слова нет)                    
+  ok   4.8 тонкий вызов без файла: панель получила содержимое                       9
+
+ВСЕ СОШЛИСЬ

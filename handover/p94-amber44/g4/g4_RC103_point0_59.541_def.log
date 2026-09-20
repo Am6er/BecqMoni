@@ -1,0 +1,83 @@
+SETUP correlatedGamma=0 twoJmax=10 vacuum=1 seed=0 killesc=0 killcarry=0 fullcarry=0
+CUTS (production thresholds per material couple):
+ Material : G4_Galactic
+ Range cuts        :  gamma  1 mm     e-  1 mm     e+  1 mm  proton 1 mm 
+ Energy thresholds :  gamma  990 eV     e-  990 eV     e+  990 eV  proton 100 keV
+ Material : scene_mat_3
+ Range cuts        :  gamma  1 mm     e-  1 mm     e+  1 mm  proton 1 mm 
+ Energy thresholds :  gamma  6.91691 keV    e-  597.603 keV    e+  574.29 keV proton 100 keV
+ Material : scene_mat_2
+ Range cuts        :  gamma  1 mm     e-  1 mm     e+  1 mm  proton 1 mm 
+ Energy thresholds :  gamma  990 eV     e-  990 eV     e+  990 eV  proton 100 keV
+ Material : scene_mat_1
+ Range cuts        :  gamma  1 mm     e-  1 mm     e+  1 mm  proton 1 mm 
+ Energy thresholds :  gamma  4.39533 keV    e-  541.252 keV    e+  522.087 keV proton 100 keV
+ Material : scene_mat_0
+ Range cuts        :  gamma  1 mm     e-  1 mm     e+  1 mm  proton 1 mm 
+ Energy thresholds :  gamma  38.4662 keV    e-  692.485 keV    e+  658.149 keV proton 100 keV
+RESULT decays=40000000
+RESULT any=5539506 eps_total=1.384876e-01
+RESULT window=59.541 counts=4351182 eps=1.087796e-01
+HISTBEGIN bins=61 bin_kev=1.000000 decays=40000000
+HIST 0 155
+HIST 1 500
+HIST 2 575
+HIST 3 612
+HIST 4 621
+HIST 5 1121
+HIST 6 1721
+HIST 7 1942
+HIST 8 2152
+HIST 9 2495
+HIST 10 2651
+HIST 11 2479
+HIST 12 1679
+HIST 13 1537
+HIST 14 1711
+HIST 15 1920
+HIST 16 2183
+HIST 17 2584
+HIST 18 3509
+HIST 19 4682
+HIST 20 5635
+HIST 21 6596
+HIST 22 7225
+HIST 23 7536
+HIST 24 15917
+HIST 25 38205
+HIST 26 8344
+HIST 27 75991
+HIST 28 6627
+HIST 29 310130
+HIST 30 3923
+HIST 31 256939
+HIST 32 1250
+HIST 33 1072
+HIST 34 1067
+HIST 35 990
+HIST 36 1072
+HIST 37 1236
+HIST 38 1283
+HIST 39 1226
+HIST 40 1410
+HIST 41 1605
+HIST 42 2057
+HIST 43 2598
+HIST 44 3003
+HIST 45 3430
+HIST 46 4015
+HIST 47 4926
+HIST 48 7366
+HIST 49 13805
+HIST 50 23212
+HIST 51 28863
+HIST 52 31817
+HIST 53 33077
+HIST 54 34866
+HIST 55 38815
+HIST 56 43404
+HIST 57 49210
+HIST 58 47426
+HIST 59 42217
+HIST 60 4333291
+HISTEND

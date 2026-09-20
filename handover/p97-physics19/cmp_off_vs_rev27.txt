@@ -1,0 +1,13 @@
+runs        AS80_Am241       строк  1/ 1  ПОБИТОВО
+runs        AS80_Cs137_0cm   строк  1/ 1  ПОБИТОВО
+runs        RC103_Cs137_0cm  строк  1/ 1  ПОБИТОВО
+components  AS80_Am241       строк  1/ 1  ПОБИТОВО
+components  AS80_Cs137_0cm   строк  1/ 1  ПОБИТОВО
+components  RC103_Cs137_0cm  строк  1/ 1  ПОБИТОВО
+limits      AS80_Am241       строк  1/ 1  ПОБИТОВО
+limits      AS80_Cs137_0cm   строк  1/ 1  ПОБИТОВО
+limits      RC103_Cs137_0cm  строк  1/ 1  ПОБИТОВО
+anchors     AS80_Am241       строк  2/ 2  ПОБИТОВО
+anchors     AS80_Cs137_0cm   строк  2/ 2  ПОБИТОВО
+anchors     RC103_Cs137_0cm  строк  2/ 2  ПОБИТОВО
+итого разошедшихся столбцов: 0

@@ -1,0 +1,17 @@
+bitwise\matrix_base_RC103_point0 code=1 keys=[--nodes=2 --n=300000] 03:03:11 dt=16s
+bitwise\matrix_new_RC103_point0 code=1 keys=[--nodes=2 --n=300000] 03:03:26 dt=16s
+diff base/new RC103_point0 code=0 03:03:26
+bitwise\matrix_base_AS80_th_disk code=1 keys=[--nodes=2 --n=100000] 03:03:57 dt=31s
+bitwise\matrix_new_AS80_th_disk code=1 keys=[--nodes=2 --n=100000] 03:04:29 dt=31s
+diff base/new AS80_th_disk code=0 03:04:29
+bitwise\cost_base_RC103_point0_1 code=0 keys=[--nodes=3 --n=600000] 03:04:47 dt=18s
+bitwise\cost_new_RC103_point0_1 code=0 keys=[--nodes=3 --n=600000] 03:05:05 dt=18s
+bitwise\cost_base_RC103_point0_2 code=0 keys=[--nodes=3 --n=600000] 03:05:23 dt=18s
+bitwise\cost_new_RC103_point0_2 code=0 keys=[--nodes=3 --n=600000] 03:05:42 dt=18s
+done 03:05:42
+bitwise\cost_off_RC103_point0_1 code=0 keys=[--nodes=3 --n=600000] 03:06:20 dt=18s
+bitwise\cost_on_RC103_point0_1 code=0 keys=[--nodes=3 --n=600000 --lbrem=1] 03:06:38 dt=18s
+bitwise\cost_off_RC103_point0_2 code=0 keys=[--nodes=3 --n=600000] 03:06:56 dt=18s
+bitwise\cost_on_RC103_point0_2 code=0 keys=[--nodes=3 --n=600000 --lbrem=1] 03:07:14 dt=18s
+diff off/on RC103_point0 code=0 03:07:14
+done cost_on 03:07:14

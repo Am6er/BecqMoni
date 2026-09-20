@@ -1,0 +1,19 @@
+# П100 (M13): стенд П92/П94 — сборка build_p100 (правка elmix, редакция Б). Сперва контроль (A77): ВЫКЛ 1461 40 млн побайтно = П94 eltr1 (тот же код при eltr ВКЛ умолчанием физики 19).
+ours;RC103_point0_p55;1460.82;40000000;off;
+# главная приёмка: RC103 П55 2614 при ВКЛ против арбитра def
+ours;RC103_point0_p55;2614.511;40000000;elmix1;--elmix=1
+ours;RC103_point0_p55;1460.82;40000000;elmix1;--elmix=1
+ours;RC103_point0_p55;661.657;40000000;elmix1;--elmix=1
+ours;RC103_point0_p55;59.541;40000000;elmix1;--elmix=1
+# разложение: ВКЛ без заноса против killcarry
+ours;RC103_point0_p55;2614.511;20000000;elmix1_detour0;--elmix=1 --detour=0
+# диск, ASN16, AS80_point0, живая RC103
+ours;AS80_th_disk;2614.511;8000000;elmix1;--elmix=1
+ours;AS80_th_disk;1460.82;8000000;elmix1;--elmix=1
+ours;ASN16_lu_side;1460.82;8000000;elmix1;--elmix=1
+ours;ASN16_lu_side;661.657;8000000;elmix1;--elmix=1
+ours;ASN16_lu_side;59.541;8000000;elmix1;--elmix=1
+ours;AS80_point0;1460.82;4000000;elmix1;--elmix=1
+ours;RC103_point0;1460.82;40000000;elmix1;--elmix=1
+ours;RC103_point0;661.657;40000000;elmix1;--elmix=1
+ours;RC103_point0;59.541;40000000;elmix1;--elmix=1

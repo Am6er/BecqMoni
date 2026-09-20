@@ -579,7 +579,8 @@ Tl-208.
   расхождение меньше 3 %, дальше избыток растёт монотонно с Z — это фотопоглощение
   и рождение пар, как и должно быть.
 - **[GeometryModel.cs](../../BecquerelMonitor/EfficiencyMaker/GeometryModel.cs)** —
-  разбор файлов `.in` конструктора геометрий LSRM (`LSRM Geometries/Models`):
+  разбор файлов `.in` конструктора геометрий LSRM (копии — `tools/effmaker/models/`;
+  оригиналы `LSRM Geometries/Models` сняты из дерева 15.09.2026, решение Amber):
   сцинтилляционная ветвь, три типа источника, вещества со своими плотностями и
   массовыми долями.
 - **[EfficiencySimulator.cs](../../BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs)** —
@@ -593,6 +594,11 @@ Tl-208.
 - **[Simulate.cs](Simulate.cs)** — харнесс: `effsim --geometry=X.in --ref=curve.txt`.
 
 ### Сверка с эталонами LSRM
+
+⛔ Каталог `LSRM Geometries/` снят из дерева 15.09.2026 (решение Amber: «Удалить вместе с каталогом»; копии моделей в `tools/effmaker/models/` остаются).
+Экспортированные кривые ЛСРМ в дереве больше не лежат — раздел ниже история; эталон
+сегодня — свежий TCCFCALC (`tools/tccfcalc2`, разбор 06.08.2026: старые экспорты устарели
+на ×1.25–1.42).
 
 Эталон — кривые `LSRM Geometries/Exported Curves`, посчитанные монте-карловской
 программой LSRM (`EffCalcMC.exe`) по тем же файлам геометрии. **Ни один параметр

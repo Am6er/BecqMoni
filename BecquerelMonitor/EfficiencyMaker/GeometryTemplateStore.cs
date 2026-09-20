@@ -137,6 +137,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.Crystal = Copy(this.Crystal);
             g.Reflector = Copy(this.Reflector);
             g.Gap = Copy(this.Gap);
+            // (`AMBER47`) Шаблон без вещества зазора (сохранён из геометрии, у
+            // которой его не было, или файл `GeometryTemplates.xml` без блока
+            // `<Gap>`) даёт ВОЗДУХ — тем же умолчанием, что вшитые пресеты.
+            // Заданное вещество шаблона переносится как есть.
+            g.ApplyGapDefault();
             g.Cladding = Copy(this.Cladding);
         }
 

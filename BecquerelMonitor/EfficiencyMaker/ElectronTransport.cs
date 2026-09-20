@@ -55,8 +55,34 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// 4. Вылет через грань — РЕАЛЬНЫЙ: прямой отрезок шага пересёк грань
     ///    кристалла (<see cref="EfficiencySimulator.CrystalPath"/>) — электрон
     ///    уходит с той энергией, что отвечает остаточному пробегу в точке
-    ///    выхода. Обратно из обвязки электрон не возвращается (вне кристалла
-    ///    его вести нечем — как и позитрон в `PositronStop`).
+    ///    выхода. Без ключа <see cref="EfficiencySimulator.ElectronLayerTransport"/>
+    ///    обратно из обвязки электрон не возвращается (как и позитрон в
+    ///    `PositronStop`).
+    ///    ✅ (`AMBER44`, П94 17.09.2026; задача Amber 15.09.2026, решение
+    ///    вопросником, дословно: «Перенос в слоях обвязки») Под ключом
+    ///    <see cref="EfficiencySimulator.ElectronLayerTransport"/> (клеймо
+    ///    `eltr=1`, хвост `ELTR`; ВКЛ умолчанием с 18.09.2026 — физика 19, П97,
+    ///    единый счёт склада по решению Amber «ВКЛ сейчас, единый счёт ночью»;
+    ///    `--eltr=0` — абляция) электрон на грани НЕ списывается: он ведётся дальше ТЕМ ЖЕ
+    ///    шагом и шарниром в веществе слоя обвязки
+    ///    (<see cref="TransportInLayers"/>: ESTAR слоя по составу из `matdb` —
+    ///    <see cref="EfficiencySimulator.CarryMedium"/>, радиационная длина
+    ///    слоя по Цаю — <see cref="LayerRadiationLength"/>, переходы между
+    ///    слоями по пересечениям геометрии, пустота — по прямой без потерь);
+    ///    вылет из сцены или гибель в слое — конец; возврат в кристалл — с
+    ///    остатком энергии и направлением, дальше обычный перенос по
+    ///    кристаллу от точки входа. Тормозное в слое — как у заноса `M3`/П44:
+    ///    толстая мишень вещества слоя в точке выхода
+    ///    (<see cref="LayerBremsstrahlung"/>), кванты — в очередь вылетов
+    ///    (<see cref="EfficiencySimulator.NoteEscape"/>), когда она открыта.
+    ///    ⛔ ТА ЖЕ машинерия ведёт и ЗАНОС — электрон, рождённый в слое
+    ///    (<see cref="EfficiencySimulator.ElectronCarryDeposit"/>): под ключом
+    ///    обход обвязки по прямой с `ElectronCarryDetour = 0.7` заменён этим же
+    ///    переносом, а дошедший электрон отдаётся переносу по кристаллу
+    ///    (<see cref="EfficiencySimulator.ElectronLoss"/> с направлением входа)
+    ///    вместо куска `AddLight` (держатель `M12`, П92 §4). Цена приближений
+    ///    без ключа измерена П55 §3.2 и П92 §3.1: 1 см³ CsI, 1461 кэВ — нижняя
+    ///    четверть −6.3 %, 0–100 кэВ −15 %; шельф 32–42 при 59.5 +5.6 %.
     /// 5. Тормозное — КАК БЫЛО: кванты разыгрываются в точке рождения по
     ///    <see cref="ThickTargetBrem"/>, излучённое зажимает уносимую энергию
     ///    (`M3` — отдельная строка, не трогается).
@@ -152,6 +178,279 @@ namespace BecquerelMonitor.EfficiencyMaker
             return this.crystalRadiationLength;
         }
 
+        // (`AMBER44`, П94) Радиационные длины веществ обвязки — кэш на экземпляр,
+        // по тому же ключу, что <see cref="CarryMedium"/> и <see cref="LayerBrem"/>.
+        readonly Dictionary<GeometryMaterial, double> layerRadiationCache =
+            new Dictionary<GeometryMaterial, double>();
+
+        /// <summary>
+        /// (`AMBER44`, П94) Радиационная длина вещества СЛОЯ обвязки, г/см² —
+        /// тем же счётом по Цаю, что <see cref="CrystalRadiationLength"/>, по
+        /// массовым долям слоя. Нужна ширине Хайленда у переноса электрона в
+        /// слое (<see cref="TransportInLayers"/>). Состава нет — единица (шаг
+        /// в таком слое всё равно не делается: плотности нет).
+        /// </summary>
+        double LayerRadiationLength(GeometryMaterial material)
+        {
+            double x0;
+            if (this.layerRadiationCache.TryGetValue(material, out x0))
+            {
+                return x0;
+            }
+
+            double inverse = 0.0;
+            Dictionary<int, double> mass = MaterialDatabase.AtomicMass;
+            foreach (KeyValuePair<int, double> pair in material.Fractions)
+            {
+                double a;
+                if (pair.Value > 0.0 && mass.TryGetValue(pair.Key, out a) && a > 0.0)
+                {
+                    inverse += pair.Value / TsaiRadiationLength(pair.Key, a);
+                }
+            }
+
+            x0 = inverse > 0.0 ? 1.0 / inverse : 1.0;
+            this.layerRadiationCache[material] = x0;
+            return x0;
+        }
+
+        // ------------------------------------------------------------------
+        // (`M13`, П100 18.09.2026) СМЕШАННАЯ СХЕМА УПРУГОГО РАССЕЯНИЯ В СЛОЯХ
+        // ОБВЯЗКИ — под ключом <see cref="ElectronLayerMixedScattering"/>.
+        //
+        // ЧТО БЫЛО НЕ ТАК. Шарнир Хайленда несёт гауссово ядро многократного
+        // рассеяния; хвоста ОДНОКРАТНОГО рассеяния на большие углы (∝ 1/θ⁴)
+        // у него нет. Замер П100 (`diag/hinge_vs_rutherford.txt`): за один
+        // шаг переноса (0.1 пробега CSDA) в PTFE при 500 кэВ вероятность
+        // отклонения > 90° у шарнира 4.2e-5, у экранированного Резерфорда
+        // 6.1e-3 (×146; при 1000 кэВ ×650), при том что средний 1 − cos θ
+        // шага у обоих сходится в 5…14 %. В ТЯЖЁЛОМ веществе (CsI) шарнир
+        // за шаг почти изотропен (θ₀ ≈ 0.9 рад) — обратное рассеяние там
+        // диффузионное, и П27 поверила его по пику; в ЛЁГКОМ (PTFE, Al, MgO)
+        // заметную долю обратного рассеяния даёт именно хвост, и η выходило
+        // ×0.6…0.8 к Табате (П94 §5.5).
+        //
+        // ЧТО СДЕЛАНО (класс II по упругому рассеянию, как у PENELOPE):
+        // угол отсечки θ_c (<see cref="LayerHardCutoffDeg"/>, 20°) делит
+        // столкновения на ЖЁСТКИЕ (1 − cos θ > 1 − cos θ_c) и МЯГКИЕ.
+        // * Жёсткие разыгрываются ПО ОДНОМУ: свободный пробег между ними —
+        //   экспонента с Σ n_i σ_i(θ > θ_c) по элементам слоя, сечение —
+        //   экранированное Резерфорда (Вентцель) с экранированием Мольера
+        //   (A = (ħ/2pa)²(1.13 + 3.76(αZ/β)²), a = 0.885 a₀ Z^(−1/3)) и
+        //   множителем Z(Z+1) — тем же, что у Мольера/Хайленда; угол — точным
+        //   обращением ∫ dx/(x + 2A)² выше отсечки; поправка Мотта —
+        //   Мак-Кинли—Фешбаха (Z ≤ 30, т. е. вся лёгкая обвязка) отбором по
+        //   мажоранте 1 + παZβ/4, отвергнутое — пустое столкновение. Жёсткое
+        //   столкновение, выпавшее раньше конца шага, ОБРЫВАЕТ шаг: шаг
+        //   укорачивается до него, мягкий шарнир считается на укороченный шаг,
+        //   поворот жёсткого — в его конце.
+        // * Мягкие — тем же случайным шарниром, но ширина — из ТРАНСПОРТНОГО
+        //   сечения ниже отсечки: средний 1 − cos θ шага длины s равен
+        //   1 − exp(−s·Σ n_i σ_tr,soft,i), σ_tr,soft = ∫₀^{μ_c} μ dσ по тому же
+        //   экранированному Резерфорду. Полное среднеквадратичное отклонение
+        //   (мягкое + жёсткое) — транспортное сечение Резерфорда целиком; на
+        //   шаге 0.1 пробега оно сходится с θ₀² Хайленда в 5…14 % в лёгком
+        //   веществе (замер), так что ширина шага в целом сохранена.
+        //   ⚠ ПОЧЕМУ НЕ «Хайленд × √f_soft» (первая редакция П100): формула
+        //   Хайленда НЕ аддитивна по шагу — логарифмическая скобка при
+        //   дроблении шага теряет вклад хвоста, и η ВЫКЛ падало 0.062 → 0.027
+        //   при шаге 0.1 → 0.01 пробега, ВКЛ в той редакции — 0.070 → 0.056
+        //   (`handover/p100-m13/tables/lr_variantA_*`). Транспортное сечение
+        //   аддитивно по построению (⟨cos⟩ перемножается), и η под ключом
+        //   от шага не зависит (замер там же).
+        // В КРИСТАЛЛЕ (<see cref="TransportElectron"/>) ничего не меняется.
+        // Без ключа — ни одного лишнего случайного числа, ход прежний.
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`M13`) Выше этого Z поправка Мак-Кинли—Фешбаха не применяется
+        /// (она — первый порядок по αZ и годна до Z ≈ 30); дальше — чистый
+        /// экранированный Резерфорд. В тяжёлом слое (Pb, W, сталь) обратное
+        /// рассеяние диффузионное, и хвост там решает мало.
+        /// </summary>
+        const int MottMaxZ = 30;
+
+        /// <summary>(`M13`) Элемент вещества слоя для розыгрыша упругих столкновений.</summary>
+        sealed class ScatterElement
+        {
+            /// <summary>Заряд ядра.</summary>
+            public int Z;
+
+            /// <summary>Ядер в см³ вещества слоя.</summary>
+            public double AtomsPerCm3;
+
+            /// <summary>Z^(1/3) — для радиуса экранирования.</summary>
+            public double Z13;
+
+            /// <summary>Z(Z+1) — ядро и атомные электроны, как у Мольера.</summary>
+            public double ZZ1;
+
+            /// <summary>Поправка Мотта применима (Z ≤ <see cref="MottMaxZ"/>).</summary>
+            public bool Mott;
+        }
+
+        // (`M13`) Кэш элементов на вещество — по тому же ключу, что
+        // <see cref="LayerRadiationLength"/>; и рабочий массив долей жёстких
+        // сечений (на экземпляр — симулятор однопоточный).
+        readonly Dictionary<GeometryMaterial, ScatterElement[]> layerScatterCache =
+            new Dictionary<GeometryMaterial, ScatterElement[]>();
+        double[] layerHardShare = new double[8];
+
+        /// <summary>(`M13`) Элементы вещества слоя с плотностями ядер, кэш на вещество.</summary>
+        ScatterElement[] LayerScatterElements(GeometryMaterial material)
+        {
+            ScatterElement[] found;
+            if (this.layerScatterCache.TryGetValue(material, out found))
+            {
+                return found;
+            }
+
+            List<ScatterElement> list = new List<ScatterElement>();
+            Dictionary<int, double> mass = MaterialDatabase.AtomicMass;
+            foreach (KeyValuePair<int, double> pair in material.Fractions)
+            {
+                double a;
+                if (pair.Value > 0.0 && mass.TryGetValue(pair.Key, out a) && a > 0.0)
+                {
+                    list.Add(new ScatterElement
+                    {
+                        Z = pair.Key,
+                        AtomsPerCm3 = material.Density * pair.Value / a * Avogadro,
+                        Z13 = Math.Pow(pair.Key, 1.0 / 3.0),
+                        ZZ1 = pair.Key * (pair.Key + 1.0),
+                        Mott = pair.Key <= MottMaxZ,
+                    });
+                }
+            }
+
+            found = list.ToArray();
+            if (this.layerHardShare.Length < found.Length)
+            {
+                this.layerHardShare = new double[found.Length];
+            }
+
+            this.layerScatterCache[material] = found;
+            return found;
+        }
+
+        /// <summary>(`M13`) 1 − cos отсечки смешанной схемы из <see cref="LayerHardCutoffDeg"/>.</summary>
+        double LayerHardCutoffMu()
+        {
+            double deg = this.LayerHardCutoffDeg;
+            if (!(deg > 0.0) || deg >= 180.0)
+            {
+                deg = 20.0;
+            }
+
+            return 1.0 - Math.Cos(deg * Math.PI / 180.0);
+        }
+
+        /// <summary>
+        /// (`M13`) Удвоенный параметр экранирования Мольера 2A = 2(ħ/2pa)²
+        /// (1.13 + 3.76 (αZ/β)²), a = 0.885 a₀ Z^(−1/3): сечение
+        /// dσ/d(1 − cos θ) ∝ 1/(1 − cos θ + 2A)².
+        /// </summary>
+        static double ScreeningTwoA(int z, double z13, double beta2, double betaGamma)
+        {
+            double chi = ScatteringData.FineStructure * z13 / (1.77 * betaGamma);   // ħ/(2 p a)
+            double az = ScatteringData.FineStructure * z;
+            return 2.0 * chi * chi * (1.13 + 3.76 * az * az / beta2);
+        }
+
+        /// <summary>
+        /// (`M13`) Сечения упругого рассеяния слоя при энергии <paramref name="tKev"/>:
+        /// <paramref name="hardPerCm"/> — Σ n_i σ_i выше отсечки с мажорантой
+        /// Мотта, 1/см (обратный свободный пробег до кандидата жёсткого
+        /// столкновения); <paramref name="hardShare"/>[i] — вклад элемента в
+        /// него (выбор элемента); <paramref name="softTransportPerCm"/> —
+        /// транспортное сечение Σ n_i ∫₀^{μ_c} μ dσ_i НИЖЕ отсечки, 1/см:
+        /// средний 1 − cos θ мягкого шарнира на шаг s равен 1 − exp(−s·Σnσ_tr,soft)
+        /// — АДДИТИВНО по шагу (замер П100: ширина Хайленда × √f_soft не
+        /// аддитивна, и η падало вдвое при шаге 0.1 → 0.01).
+        /// </summary>
+        void LayerElasticStep(ScatterElement[] elements, double tKev, double muCut,
+                              out double hardPerCm, out double softTransportPerCm, double[] hardShare)
+        {
+            double gamma = 1.0 + tKev / ElectronMassKev;
+            double beta2 = 1.0 - 1.0 / (gamma * gamma);
+            double beta = Math.Sqrt(beta2);
+            double p2 = tKev * (tKev + 2.0 * ElectronMassKev);                  // (кэВ/c)²
+            double common = 2.0 * Math.PI * ClassicalRadiusCm * ClassicalRadiusCm
+                            * ElectronMassKev * ElectronMassKev / (beta2 * p2);   // см²
+            double hard = 0.0, trSoft = 0.0;
+            for (int i = 0; i < elements.Length; i++)
+            {
+                ScatterElement e = elements[i];
+                double a2 = ScreeningTwoA(e.Z, e.Z13, beta2, beta * gamma);
+                double pref = e.AtomsPerCm3 * common * e.ZZ1;                      // 1/см
+                double majorant = e.Mott ? 1.0 + Math.PI * ScatteringData.FineStructure * e.Z * beta / 4.0 : 1.0;
+                double h = pref * (1.0 / (muCut + a2) - 1.0 / (2.0 + a2)) * majorant;
+                hardShare[i] = h;
+                hard += h;
+
+                // Транспортное сечение НИЖЕ отсечки, 1/см:
+                // ∫₀^X x dx/(x + 2A)² = ln((X + 2A)/2A) + 2A/(X + 2A) − 1.
+                trSoft += pref * (Math.Log((muCut + a2) / a2) + a2 / (muCut + a2) - 1.0);
+            }
+
+            hardPerCm = hard;
+            softTransportPerCm = trSoft > 0.0 ? trSoft : 0.0;
+        }
+
+        /// <summary>
+        /// (`M13`) Одно жёсткое столкновение: элемент — по доле в
+        /// <paramref name="hardShare"/>, угол — обращением экранированного
+        /// Резерфорда выше отсечки, отбор Мак-Кинли—Фешбаха по мажоранте
+        /// (отвергнутое — пустое столкновение, направление не меняется).
+        /// Возвращает true, если поворот состоялся.
+        /// </summary>
+        bool LayerHardCollision(ScatterElement[] elements, double[] hardShare, double hardPerCm,
+                                double tKev, double muCut, ref double ux, ref double uy, ref double uz)
+        {
+            double pick = this.Uniform() * hardPerCm;
+            int i = 0;
+            for (; i < elements.Length - 1; i++)
+            {
+                pick -= hardShare[i];
+                if (pick <= 0.0)
+                {
+                    break;
+                }
+            }
+
+            ScatterElement e = elements[i];
+            double gamma = 1.0 + tKev / ElectronMassKev;
+            double beta2 = 1.0 - 1.0 / (gamma * gamma);
+            double beta = Math.Sqrt(beta2);
+            double a2 = ScreeningTwoA(e.Z, e.Z13, beta2, beta * gamma);
+            double lo = 1.0 / (muCut + a2), hi = 1.0 / (2.0 + a2);
+            double mu = 1.0 / (lo - this.Uniform() * (lo - hi)) - a2;
+            if (mu < muCut)
+            {
+                mu = muCut;
+            }
+            else if (mu > 2.0)
+            {
+                mu = 2.0;
+            }
+
+            if (e.Mott)
+            {
+                // Мак-Кинли—Фешбах для электрона: R = 1 − β² s² + παZβ s(1 − s),
+                // s = sin(θ/2) = √(μ/2); R ≤ 1 + παZβ/4.
+                double s = Math.Sqrt(0.5 * mu);
+                double paz = Math.PI * ScatteringData.FineStructure * e.Z * beta;
+                double r = 1.0 - beta2 * s * s + paz * s * (1.0 - s);
+                if (this.Uniform() * (1.0 + 0.25 * paz) > r)
+                {
+                    return false;
+                }
+            }
+
+            this.Rotate(ref ux, ref uy, ref uz, 1.0 - mu);
+            return true;
+        }
+
         /// <summary>Радиационная длина элемента по Цаю, г/см².</summary>
         static double TsaiRadiationLength(int z, double a)
         {
@@ -191,6 +490,68 @@ namespace BecquerelMonitor.EfficiencyMaker
             else
             {
                 d = Math.Min(d, c.ROut - Math.Sqrt(x * x + y * y));
+            }
+
+            return d > 0.0 ? d : 0.0;
+        }
+
+        /// <summary>
+        /// (`AMBER44`, П94) То же для ЛЮБОЙ области сцены: расстояние от точки
+        /// внутри области до ближайшей её границы, см, — нижняя граница пути до
+        /// выхода из неё по любому направлению. ⚠ Области сцены ВЛОЖЕНЫ и
+        /// перекрываются, область точки — ПЕРВАЯ по списку из накрывающих
+        /// (<see cref="At"/>): боковой отражатель — брус, накрывающий и
+        /// кристалл, корпус накрывает отражатель. Значит, границы области —
+        /// не только её собственные стенки, но и тела всех областей, стоящих
+        /// в списке РАНЬШЕ (дыры в ней); до дыры берётся евклидово расстояние
+        /// до её тела. У кольца смотрится и внутренний радиус. Ранний выход
+        /// переноса в слое (<see cref="TransportInLayers"/>): пробег короче —
+        /// электрон погибнет в этой области при любой траектории, кристалла
+        /// ему не видать. Без этого на 59.5 кэВ каждый фотоэлектрон пробы и
+        /// оправы шёл десятками шагов с разбором луча на каждом (измерено:
+        /// ×3 к цене истории на RC103, ×5 на ASN16 с пробой Lu₂O₃).
+        /// </summary>
+        double RegionNearestFace(Region r, double x, double y, double z)
+        {
+            double d = Math.Min(z - r.ZMin, r.ZMax - z);
+            double rad = Math.Sqrt(x * x + y * y);
+            if (r.IsBox)
+            {
+                d = Math.Min(d, Math.Min(r.AX - Math.Abs(x), r.AY - Math.Abs(y)));
+            }
+            else
+            {
+                d = Math.Min(d, r.ROut - rad);
+                if (r.RIn > 0.0)
+                {
+                    d = Math.Min(d, rad - r.RIn);
+                }
+            }
+
+            // Дыры: области, стоящие в списке раньше этой.
+            Region[] all = this.regionArray;
+            for (int i = 0; i < all.Length && d > 0.0; i++)
+            {
+                Region h = all[i];
+                if (h == r)
+                {
+                    break;
+                }
+
+                double dz = Math.Max(0.0, Math.Max(h.ZMin - z, z - h.ZMax));
+                double dxy;
+                if (h.IsBox)
+                {
+                    double dx = Math.Max(0.0, Math.Abs(x) - h.AX);
+                    double dy = Math.Max(0.0, Math.Abs(y) - h.AY);
+                    dxy = Math.Sqrt(dx * dx + dy * dy);
+                }
+                else
+                {
+                    dxy = Math.Max(0.0, Math.Max(rad - h.ROut, h.RIn - rad));
+                }
+
+                d = Math.Min(d, Math.Sqrt(dxy * dxy + dz * dz));
             }
 
             return d > 0.0 ? d : 0.0;
@@ -348,6 +709,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// шагах здесь (<see cref="StepBremsstrahlung"/>), излучённое копится в
         /// <paramref name="radiated"/>, вылет квантов — в <paramref name="lost"/>;
         /// без него ни одного лишнего розыгрыша, ход тот же, что до П44.
+        ///
+        /// (`AMBER44`, П94) Под ключом <see cref="ElectronLayerTransport"/>
+        /// электрон, пересёкший грань, ведётся в слоях обвязки
+        /// (<see cref="EscapeOrReturn"/>) и может ВЕРНУТЬСЯ: тогда перенос по
+        /// кристаллу продолжается от точки входа с остатком энергии, а унесённым
+        /// считается лишь то, что осело снаружи. Без ключа ни одного лишнего
+        /// розыгрыша: вылет — конец, как было.
         /// </summary>
         double TransportElectron(double x, double y, double z, double ux, double uy, double uz,
                                  double te, bool alongPath, int depth,
@@ -384,6 +752,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             // весь путь: так интеграл шагов даёт число квантов толстой мишени.
             double anchor = alongPath ? this.bremTable.Anchor(te) : 1.0;
 
+            // (`AMBER44`) Унесено через грани и осело СНАРУЖИ; без ключа —
+            // энергия единственного вылета, как было.
+            double escaped = 0.0;
+
             double t = te;
             for (int step = 0; step < TransportMaxSteps && t > TransportCutKev; step++)
             {
@@ -395,7 +767,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double toEdge = this.CrystalPath(x, y, z, ux, uy, uz);
                 if (first >= toEdge)
                 {
-                    return this.EscapeEnergy(residual - toEdge * density, te - radiated);
+                    if (!this.EscapeOrReturn(ref x, ref y, ref z, ref ux, ref uy, ref uz, toEdge,
+                                             residual - toEdge * density, te - radiated - escaped,
+                                             depth, ref residual, ref t, ref escaped))
+                    {
+                        return escaped;
+                    }
+
+                    continue;               // вернулся — новый шаг от точки входа
                 }
 
                 x += ux * first;
@@ -425,7 +804,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 toEdge = this.CrystalPath(x, y, z, ux, uy, uz);
                 if (second >= toEdge)
                 {
-                    return this.EscapeEnergy(residual - (first + toEdge) * density, te - radiated);
+                    if (!this.EscapeOrReturn(ref x, ref y, ref z, ref ux, ref uy, ref uz, toEdge,
+                                             residual - (first + toEdge) * density, te - radiated - escaped,
+                                             depth, ref residual, ref t, ref escaped))
+                    {
+                        return escaped;
+                    }
+
+                    continue;
                 }
 
                 x += ux * second;
@@ -442,11 +828,593 @@ namespace BecquerelMonitor.EfficiencyMaker
                         this.RestBremsstrahlung(x, y, z, ux, uy, uz, t, te, depth, ref radiated, ref lost);
                     }
 
-                    return 0.0;
+                    return escaped;
                 }
             }
 
-            return 0.0;
+            return escaped;
+        }
+
+        /// <summary>
+        /// (`AMBER44`, П94) Электрон дошёл до грани кристалла на расстоянии
+        /// <paramref name="toEdge"/> по лучу с остаточным пробегом
+        /// <paramref name="residualAtFace"/> (г/см²). Без ключа
+        /// <see cref="ElectronLayerTransport"/> — прежний вылет: энергия грани
+        /// (<see cref="EscapeEnergy"/>, не больше <paramref name="cap"/>)
+        /// прибавляется к <paramref name="escaped"/>, и это конец (false).
+        /// Под ключом электрон переводится на грань, чуть наружу (сдвиг 1e-7,
+        /// как у <see cref="EfficiencySimulator.NoteEscape"/>), излучает
+        /// тормозное вещества слоя (<see cref="LayerBremsstrahlung"/>) и
+        /// ведётся в слоях (<see cref="TransportInLayers"/>). Вернулся — в
+        /// <paramref name="escaped"/> ложится только осевшее снаружи, точка,
+        /// направление, энергия <paramref name="t"/> и остаточный пробег
+        /// <paramref name="residual"/> становятся точкой входа (чуть внутри), и
+        /// перенос по кристаллу продолжается (true). Не вернулся — унесено всё,
+        /// что вышло (false).
+        /// </summary>
+        bool EscapeOrReturn(ref double x, ref double y, ref double z,
+                            ref double ux, ref double uy, ref double uz,
+                            double toEdge, double residualAtFace, double cap, int depth,
+                            ref double residual, ref double t, ref double escaped)
+        {
+            double tExit = this.EscapeEnergy(residualAtFace, cap);
+            if (!this.ElectronLayerTransport || !(tExit > TransportCutKev))
+            {
+                escaped += tExit;
+                return false;
+            }
+
+            // (`M13`, П106) Население: занесённый электрон — только сам перенос
+            // из `CarriedElectronDeposit` (глубина 0 под меткой); всё, что
+            // родилось в кристалле (в том числе от его тормозного, глубина ≥ 1),
+            // — своё, как `GetLogicalVolumeAtVertex` у арбитра. Рычаги замера
+            // `LayerReturnOwn` / `LayerReturnCarried` списывают население на
+            // грани, как без ключа; умолчанием оба ВКЛ — ход прежний.
+            bool carried = this.carriedInCrystal && depth == 0;
+            if (carried ? !this.LayerReturnCarried : !this.LayerReturnOwn)
+            {
+                escaped += tExit;
+                return false;
+            }
+
+            double advance = toEdge + 1e-7;
+            x += ux * advance;
+            y += uy * advance;
+            z += uz * advance;
+            // (П106) Грань выхода своего электрона — для счётчиков и рычага
+            // `LayerReturnKill` 2/3; случайных чисел не тянет.
+            int exitFace = carried ? 0 : this.CrystalFaceId(x, y, z);
+
+            // ⛔ КЭШ ЛУЧА — СНИМОК И ВОЗВРАТ (П94 §7.1). `At` доверяет
+            // разобранному лучу, если точка лежит на нём в 10 нм и
+            // `along > 1e-7`, — верно, пока луч разбирал сам обход, идущий по
+            // нему. Точка выхода электрона к лучу кванта не относится, а
+            // совпасть с ним в 10 нм на 20 млн историй успевает (измерено на
+            // голом кристалле: 6 бинов по одному отсчёту, а ключ там обязан
+            // быть инертен); и наоборот — луч электрона, оставшийся в кэше,
+            // сбил бы обход кванта. Потому кэш кванта прячется на время
+            // переноса электрона и возвращается тем же (`SaveRay`/`RestoreRay`):
+            // обход кванта продолжается ровно тем кэшем, что без ключа.
+            this.SaveRay();
+            this.CountLayerEscapes++;
+            if (carried)
+            {
+                this.CountLayerEscapesCarried++;
+            }
+
+            // (П106) Рычаг `LayerExitBremsstrahlung` false — своему электрону
+            // тормозное слоя не разыгрывать (зеркало `killescbrem`); у занесённого,
+            // выходящего из кристалла, тормозное снаружи глушит `LayerBornBremsstrahlung`
+            // (зеркало `killoutbrem`: его родословная — «рождён вне кристалла»).
+            bool bremAllowed = carried ? this.LayerBornBremsstrahlung : this.LayerExitBremsstrahlung;
+            // (`M13`, П106) Под ключом `ElectronLayerBremAlongPath` тормозное
+            // рождается ПО ХОДУ переноса в слоях (`TransportInLayers`), а не толстой
+            // мишенью в точке выхода; кванты — в очередь вылетов, когда она открыта.
+            double tOut = tExit - (bremAllowed && !this.ElectronLayerBremAlongPath ? this.LayerBremsstrahlung(x, y, z, tExit) : 0.0);
+            double tBack = tOut;
+            this.layerBremPush = null;
+            this.layerBremEnabled = bremAllowed;
+            bool back = this.TransportInLayers(ref x, ref y, ref z, ref ux, ref uy, ref uz, ref tBack, depth);
+            this.RestoreRay();
+            if (!back)
+            {
+                escaped += tExit;
+                return false;
+            }
+
+            // (П106) Возврат своего электрона: грань входа против грани выхода
+            // (счётчики) и рычаг `LayerReturnKill` — списать вернувшегося на
+            // входе (всё, что вышло, осталось снаружи; тормозное выхода уже
+            // разыграно — как `killret*` у арбитра).
+            if (!carried)
+            {
+                int entryFace = this.CrystalFaceId(x, y, z);
+                bool same = entryFace == exitFace;
+                if (same)
+                {
+                    this.CountLayerReturnsSameFace++;
+                }
+                else
+                {
+                    this.CountLayerReturnsOtherFace++;
+                }
+
+                if (this.LayerReturnKill == 1 || (this.LayerReturnKill == 2 && same) || (this.LayerReturnKill == 3 && !same))
+                {
+                    this.CountLayerReturnsKilled++;
+                    escaped += tExit;
+                    return false;
+                }
+            }
+            else
+            {
+                this.CountLayerReturnsCarried++;
+            }
+
+            // Вернулся: осело снаружи `tExit − tBack` (тормозное слоя — тоже
+            // снаружи), дальше — перенос по кристаллу с остатком.
+            this.CountLayerReturns++;
+            this.SumLayerReturnKev += tBack;
+            escaped += tExit - tBack;
+            t = tBack;
+            residual = ElectronData.RangeOf(this.electron, t);
+            return residual > 0.0;
+        }
+
+        /// <summary>
+        /// (`M13`, П106) Грань кристалла, на которой (или у которой) лежит
+        /// точка: ближайшая по расстоянию поверхность. Брус: 1 z-min, 2 z-max,
+        /// 3 −x, 4 +x, 5 −y, 6 +y; цилиндр/кольцо: 1 z-min, 2 z-max, 3 наружный
+        /// бок, 4 внутренний. Только для счётчиков и рычага `LayerReturnKill`
+        /// — на ход переноса не влияет.
+        /// </summary>
+        int CrystalFaceId(double x, double y, double z)
+        {
+            Region c = this.crystal;
+            int best = 1;
+            double d = Math.Abs(z - c.ZMin);
+            double dz1 = Math.Abs(c.ZMax - z);
+            if (dz1 < d) { d = dz1; best = 2; }
+            if (c.IsBox)
+            {
+                double dxm = Math.Abs(x + c.AX), dxp = Math.Abs(c.AX - x);
+                double dym = Math.Abs(y + c.AY), dyp = Math.Abs(c.AY - y);
+                if (dxm < d) { d = dxm; best = 3; }
+                if (dxp < d) { d = dxp; best = 4; }
+                if (dym < d) { d = dym; best = 5; }
+                if (dyp < d) { d = dyp; best = 6; }
+            }
+            else
+            {
+                double rad = Math.Sqrt(x * x + y * y);
+                double dro = Math.Abs(c.ROut - rad);
+                if (dro < d) { d = dro; best = 3; }
+                if (c.RIn > 0.0)
+                {
+                    double dri = Math.Abs(rad - c.RIn);
+                    if (dri < d) { d = dri; best = 4; }
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// (`AMBER44`, П94) ТОРМОЗНОЕ ЭЛЕКТРОНА, ВЫШЕДШЕГО В СЛОЙ ОБВЯЗКИ —
+        /// как у заноса `M3`/П44 (<see cref="EfficiencySimulator.OutsideBremsstrahlung"/>):
+        /// толстая мишень вещества слоя в точке выхода, число и энергии квантов по
+        /// сечениям слоя (<see cref="EfficiencySimulator.LayerBrem"/>), направление
+        /// изотропное, сумма не больше энергии электрона. Квант кладётся в очередь
+        /// вылетов (<see cref="EfficiencySimulator.NoteEscape"/>), если она
+        /// открыта, — оттуда его поведёт обход обвязки; иначе (взвешенная ветка,
+        /// где вылетевшие кванты не ведутся вовсе) он просто унесён — его
+        /// энергия уже вошла в унос электрона. Те же ворота, что у заноса:
+        /// <see cref="EfficiencySimulator.ElectronAnyMaterial"/> и
+        /// <see cref="EfficiencySimulator.Bremsstrahlung"/>; без них ноль и ни
+        /// одного розыгрыша. Точка в пустоте (зазор у грани) — вещества нет,
+        /// ноль. Возвращает излучённую энергию, кэВ.
+        /// </summary>
+        double LayerBremsstrahlung(double x, double y, double z, double te)
+        {
+            const double MinKev = 5.0;
+            if (!this.ElectronAnyMaterial || !this.Bremsstrahlung || !(te > MinKev))
+            {
+                return 0.0;
+            }
+
+            Region here = this.At(x, y, z);
+            if (here == null || here.IsCrystal || here.Material == null)
+            {
+                return 0.0;
+            }
+
+            ThickTargetBrem table = this.LayerBrem(here.Material);
+            if (table == null)
+            {
+                return 0.0;
+            }
+
+            double radiated = 0.0;
+            int n = this.Poisson(table.Photons(te));
+            for (int i = 0; i < n; i++)
+            {
+                double k = table.SampleKev(te, this.Uniform());
+                double ax, ay, az;
+                this.Isotropic(out ax, out ay, out az);
+                double kUse = Math.Min(k, te - radiated);
+                if (!(kUse > 0.0))
+                {
+                    continue;
+                }
+
+                radiated += kUse;
+                this.CountBremPhotons++;
+                this.SumBremKev += kUse;
+                if (this.escapeCollect)
+                {
+                    this.NoteEscape(x, y, z, ax, ay, az, kUse);
+                }
+            }
+
+            return radiated;
+        }
+
+        /// <summary>
+        /// (`AMBER44`, П94; решение Amber 15.09.2026 «Перенос в слоях обвязки»)
+        /// ПЕРЕНОС ЭЛЕКТРОНА ВНЕ КРИСТАЛЛА — в слоях обвязки, зазорах, пробе —
+        /// от точки (x, y, z) (в слое либо чуть снаружи грани кристалла) в
+        /// направлении (ux, uy, uz) с кинетической энергией <paramref name="t"/>
+        /// до входа в кристалл, гибели или выхода из сцены. Возвращает true,
+        /// если электрон ВОШЁЛ в кристалл; тогда точка (чуть внутри грани),
+        /// направление и энергия — состояние на входе.
+        ///
+        /// Та же сгущённая история, что по кристаллу (<see cref="TransportElectron"/>):
+        /// шаг — доля <see cref="ElectronStepFraction"/> остаточного пробега
+        /// CSDA по таблице ESTAR ВЕЩЕСТВА СЛОЯ (<see cref="CarryMedium"/>: состав
+        /// из `matdb` под `ecomp`, иначе вода); случайный шарнир с шириной
+        /// Хайленда по радиационной длине слоя (<see cref="LayerRadiationLength"/>);
+        /// граница области внутри отрезка — переход в соседнюю область на
+        /// пересечении (<see cref="StepToBoundary"/>) с энергией по остатку
+        /// пробега, дальше шаг считается заново по таблице нового вещества.
+        /// Пустота (области нет или плотности нет) — по прямой без потерь до
+        /// следующей границы. Разброса потерь и δ-электронов нет — как в
+        /// кристалле. Тормозное здесь без ключа НЕ разыгрывается: у заноса оно
+        /// снято в точке рождения (<see cref="OutsideBremsstrahlung"/>), у
+        /// возврата — в точке выхода (<see cref="LayerBremsstrahlung"/>), толстой
+        /// мишенью, как у `M3`. (`M13`, П106 19.09.2026) Под ключом
+        /// <see cref="ElectronLayerBremAlongPath"/> (сделан ВЫКЛ) тормозное
+        /// рождается ЗДЕСЬ, на шагах, тонкой мишенью вещества текущего слоя по
+        /// направлению электрона (<see cref="LayerStepBremsstrahlung"/>), остаток
+        /// у погибающего в слое — толстой мишенью в точке гибели
+        /// (<see cref="LayerRestBremsstrahlung"/>), а толстые мишени в точках
+        /// рождения и выхода не разыгрываются: у Geant4 (П106 §4) тормозное
+        /// электронов обвязки даёт в 0–50 кэВ при 2614 на RC103 вдвое меньше,
+        /// чем наша толстая мишень, — электрон из 1 мм PTFE / 1 мм Al уходит в
+        /// пустоту или в кристалл, не дорадировав, и светит вперёд, не изотропно.
+        ///
+        /// ⚠ Обход зовёт <see cref="StepToBoundary"/> с НОВЫМ направлением на
+        /// каждом шарнире — кэш луча собирается заново (O(областей)); электронов
+        /// в обвязке 2…10 % историй континуума, шагов у каждого единицы.
+        ///
+        /// (`M13`, П100 18.09.2026) Под ключом <see cref="ElectronLayerMixedScattering"/>
+        /// упругое рассеяние в слое — СМЕШАННОЕ (шапка раздела выше): на каждом
+        /// шаге разыгрывается расстояние до жёсткого столкновения (выше угла
+        /// отсечки, по экранированному Резерфорду с поправкой Мотта); выпало
+        /// раньше конца шага — шаг обрывается на нём, и в его конце электрон
+        /// поворачивается на жёсткий угол; мягкий шарнир того же шага — с
+        /// шириной Хайленда × √(доля транспортного сечения ниже отсечки).
+        /// Без ключа — прежний ход без единого лишнего случайного числа.
+        /// </summary>
+        bool TransportInLayers(ref double x, ref double y, ref double z,
+                               ref double ux, ref double uy, ref double uz,
+                               ref double t, int depth)
+        {
+            // ⚠ Зовущий обязан спрятать кэш луча кванта (`SaveRay`) и вернуть
+            // его после (`RestoreRay`): здесь луч разбирается заново лучами
+            // электрона, и кэш кванта после этого чужой (П94 §7.1).
+            double fraction = this.ElectronStepFraction;
+            if (!(fraction > 0.0) || fraction > 1.0)
+            {
+                fraction = 1.0;
+            }
+
+            // (`M13`) Смешанная схема: отсечка одна на весь перенос.
+            bool mixed = this.ElectronLayerMixedScattering;
+            double muCut = mixed ? this.LayerHardCutoffMu() : 0.0;
+
+            // (`M13`, П106) Тормозное ПО ХОДУ переноса (ключ `ElectronLayerBremAlongPath`,
+            // те же ворота, что у толстой мишени слоя, плюс рычаг замера
+            // `layerBremEnabled`): таблица тонкой мишени и якорь ESTAR — на
+            // вещество, пересчитываются при смене вещества (якорь — по энергии
+            // входа в него); излучённое зажато энергией входа в перенос. Без ключа
+            // — ни одной ветки и ни одного случайного числа.
+            bool lbrem = this.ElectronLayerBremAlongPath && this.layerBremEnabled
+                         && this.ElectronAnyMaterial && this.Bremsstrahlung;
+            ThickTargetBrem bremTable = null;
+            GeometryMaterial bremMaterial = null;
+            double bremAnchor = 1.0, radiated = 0.0, tEntry = t;
+
+            for (int step = 0; step < TransportMaxSteps && t > TransportCutKev; step++)
+            {
+                Region here = this.At(x, y, z);
+                if (here != null && here.IsCrystal)
+                {
+                    return true;
+                }
+
+                double toNext = this.StepToBoundary(x, y, z, ux, uy, uz);
+                if (toNext >= double.MaxValue)
+                {
+                    return false;           // ушёл из сцены
+                }
+
+                double density = here != null && here.Material != null ? here.Material.Density : 0.0;
+                if (!(density > 0.0))
+                {
+                    // Пустота — по прямой до следующей границы, без потерь.
+                    double through = toNext + 1e-7;
+                    x += ux * through;
+                    y += uy * through;
+                    z += uz * through;
+                    continue;
+                }
+
+                ElectronData.Material medium = this.CarryMedium(here.Material);
+                double x0 = this.LayerRadiationLength(here.Material);
+                double residual = ElectronData.RangeOf(medium, t);          // г/см²
+                if (!(residual > 0.0))
+                {
+                    return false;
+                }
+
+                // (П106) Смена вещества — своя таблица тормозного и якорь по
+                // энергии входа в вещество (в кристалле якорь — по начальной
+                // энергии на весь путь; здесь путь составной).
+                if (lbrem && !ReferenceEquals(here.Material, bremMaterial))
+                {
+                    bremMaterial = here.Material;
+                    bremTable = this.LayerBrem(here.Material);
+                    bremAnchor = bremTable != null ? bremTable.Anchor(t) : 1.0;
+                }
+
+                // Ранний выход, как в кристалле: пробег короче расстояния до
+                // ближайшей границы области — погибнет в ней при любой траектории.
+                if (residual / density <= this.RegionNearestFace(here, x, y, z))
+                {
+                    // (П106) Погибнет здесь — остаток тормозного толстой мишенью
+                    // в точке гибели, как `RestBremsstrahlung` в кристалле.
+                    if (lbrem && bremTable != null)
+                    {
+                        this.LayerRestBremsstrahlung(x, y, z, ux, uy, uz, t, tEntry, bremTable, ref radiated);
+                    }
+
+                    return false;
+                }
+
+                double stepG = residual * fraction;
+                double stepCm = stepG / density;
+
+                // (`M13`) Смешанная схема: расстояние до жёсткого столкновения;
+                // выпало раньше конца шага — шаг обрывается на нём. Мягкий
+                // шарнир — по транспортному сечению ниже отсечки на длину шага.
+                ScatterElement[] elements = null;
+                double hardPerCm = 0.0, softTransportPerCm = 0.0;
+                bool hardHit = false;
+                if (mixed)
+                {
+                    this.CountLayerSteps++;
+                    elements = this.LayerScatterElements(here.Material);
+                    if (elements.Length > 0)
+                    {
+                        this.LayerElasticStep(elements, t, muCut, out hardPerCm, out softTransportPerCm, this.layerHardShare);
+                        if (hardPerCm > 0.0)
+                        {
+                            double toHard = -Math.Log(this.Uniform()) / hardPerCm;
+                            if (toHard < stepCm)
+                            {
+                                stepCm = toHard;
+                                stepG = stepCm * density;
+                                hardHit = true;
+                            }
+                        }
+                    }
+                }
+
+                // Прямой ход до шарнира; граница области раньше — переход.
+                double first = stepCm * this.Uniform();
+                if (first >= toNext)
+                {
+                    // (П106) Тормозное ПРОЙДЕННОГО отрезка до границы — в точке
+                    // перехода, при энергии его середины. ⚠ Первая редакция ключа
+                    // излучала только в шарнире, за ВЕСЬ шаг, и отрезки, обрезанные
+                    // границей, не светили вовсе: в слоях 1 мм при шаге 0.3…0.5 мм
+                    // это большинство шагов — выход ключа был 0.55…0.80 от арбитра.
+                    if (lbrem && bremTable != null && toNext > 0.0)
+                    {
+                        this.LayerStepBremsstrahlung(x + ux * toNext, y + uy * toNext, z + uz * toNext, ux, uy, uz,
+                                                     LayerMidEnergy(medium, residual, 0.5 * toNext * density),
+                                                     toNext * density, bremAnchor, tEntry, bremTable, ref radiated);
+                    }
+
+                    double through = toNext + 1e-7;
+                    x += ux * through;
+                    y += uy * through;
+                    z += uz * through;
+                    t = ElectronData.EnergyOfRange(medium, residual - toNext * density);
+                    continue;
+                }
+
+                x += ux * first;
+                y += uy * first;
+                z += uz * first;
+
+                double tMid = ElectronData.EnergyOfRange(medium, residual - 0.5 * stepG);
+                if (tMid < TransportCutKev)
+                {
+                    tMid = TransportCutKev;
+                }
+
+                // (`M13`, П106) Тормозное ПЕРВОГО ОТРЕЗКА шага — в точке шарнира,
+                // тонкой мишенью вещества слоя при энергии середины отрезка, по
+                // направлению электрона ДО поворота; второй отрезок излучает в своём
+                // конце (или на границе, если обрезан). Так число квантов
+                // пропорционально пути, ФАКТИЧЕСКИ пройденному в веществе.
+                if (lbrem && bremTable != null)
+                {
+                    this.LayerStepBremsstrahlung(x, y, z, ux, uy, uz,
+                                                 LayerMidEnergy(medium, residual, 0.5 * first * density),
+                                                 first * density, bremAnchor, tEntry, bremTable, ref radiated);
+                }
+
+                // (`M13`) Под ключом ширина мягкого шарнира — средний 1 − cos θ
+                // мягких столкновений на длину шага, 1 − exp(−s·Σnσ_tr,soft)
+                // (аддитивно по шагу); без ключа — Хайленд на весь шаг, как было.
+                // Слой без опознанных элементов (состава нет) — Хайленд, как без ключа.
+                double theta0 = mixed && elements != null && elements.Length > 0
+                    ? Math.Sqrt(Math.Max(0.0, 1.0 - Math.Exp(-stepCm * softTransportPerCm)))
+                    : HighlandTheta0(tMid, stepG / x0);
+                this.Rotate(ref ux, ref uy, ref uz, 1.0 - this.SampleHingeMu(theta0));
+
+                // Прямой ход до конца шага — новым лучом.
+                double second = stepCm - first;
+                toNext = this.StepToBoundary(x, y, z, ux, uy, uz);
+                if (toNext >= double.MaxValue)
+                {
+                    return false;
+                }
+
+                if (second >= toNext)
+                {
+                    // (П106) Тормозное второго отрезка, обрезанного границей, — в
+                    // точке перехода, по новому направлению.
+                    if (lbrem && bremTable != null && toNext > 0.0)
+                    {
+                        this.LayerStepBremsstrahlung(x + ux * toNext, y + uy * toNext, z + uz * toNext, ux, uy, uz,
+                                                     LayerMidEnergy(medium, residual - first * density, 0.5 * toNext * density),
+                                                     toNext * density, bremAnchor, tEntry, bremTable, ref radiated);
+                    }
+
+                    double through = toNext + 1e-7;
+                    x += ux * through;
+                    y += uy * through;
+                    z += uz * through;
+                    t = ElectronData.EnergyOfRange(medium, residual - (first + toNext) * density);
+                    continue;
+                }
+
+                x += ux * second;
+                y += uy * second;
+                z += uz * second;
+
+                // (П106) Тормозное второго отрезка — в его конце, по направлению
+                // после шарнира.
+                if (lbrem && bremTable != null && second > 0.0)
+                {
+                    this.LayerStepBremsstrahlung(x, y, z, ux, uy, uz,
+                                                 LayerMidEnergy(medium, residual - first * density, 0.5 * second * density),
+                                                 second * density, bremAnchor, tEntry, bremTable, ref radiated);
+                }
+
+                residual -= stepG;
+                t = ElectronData.EnergyOfRange(medium, residual);
+
+                // (`M13`) Жёсткое столкновение в конце оборванного шага — при
+                // энергии его конца; пустое (мажоранта Мотта) направления не меняет.
+                if (hardHit && t > TransportCutKev
+                    && this.LayerHardCollision(elements, this.layerHardShare, hardPerCm, t, muCut,
+                                               ref ux, ref uy, ref uz))
+                {
+                    this.CountLayerHardCollisions++;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// (`M13`, П106) Энергия электрона в середине отрезка пути в слое, кэВ:
+        /// остаточный пробег <paramref name="residualG"/> минус половина отрезка
+        /// <paramref name="halfG"/> (г/см²), не ниже порога переноса.
+        /// </summary>
+        static double LayerMidEnergy(ElectronData.Material medium, double residualG, double halfG)
+        {
+            double t = ElectronData.EnergyOfRange(medium, Math.Max(0.0, residualG - halfG));
+            return t < TransportCutKev ? TransportCutKev : t;
+        }
+
+        /// <summary>
+        /// (`M13`, П106) Кванты тормозного ОДНОГО ОТРЕЗКА переноса В СЛОЕ обвязки
+        /// (ключ <see cref="ElectronLayerBremAlongPath"/>): тонкая мишень
+        /// вещества слоя при энергии <paramref name="tKev"/> на пути
+        /// <paramref name="stepG"/> г/см², уровень — якорь ESTAR по энергии
+        /// входа в вещество; направление — по электрону (модифицированный Цай,
+        /// как `bpath=2`); сумма квантов не больше энергии входа в перенос
+        /// <paramref name="cap"/> за вычетом уже излучённого. Квант — в приёмник
+        /// (<see cref="LayerEmitBremsstrahlung"/>).
+        /// </summary>
+        void LayerStepBremsstrahlung(double x, double y, double z, double ux, double uy, double uz,
+                                     double tKev, double stepG, double anchor, double cap,
+                                     ThickTargetBrem table, ref double radiated)
+        {
+            int n = this.Poisson(table.StepPhotons(tKev, stepG, anchor));
+            for (int i = 0; i < n; i++)
+            {
+                double k = table.SampleStepKev(tKev, this.Uniform());
+                this.LayerEmitBremsstrahlung(x, y, z, ux, uy, uz, k, tKev, cap, ref radiated);
+            }
+        }
+
+        /// <summary>
+        /// (`M13`, П106) Остаток тормозного электрона, который погибнет в слое
+        /// (ранний выход по ближайшей границе области): толстая мишень вещества
+        /// слоя от текущей энергии <paramref name="tKev"/> в точке гибели — как
+        /// <see cref="RestBremsstrahlung"/> в кристалле.
+        /// </summary>
+        void LayerRestBremsstrahlung(double x, double y, double z, double ux, double uy, double uz,
+                                     double tKev, double cap, ThickTargetBrem table, ref double radiated)
+        {
+            if (!(tKev > table.MinKev))
+            {
+                return;
+            }
+
+            int n = this.Poisson(table.Photons(tKev));
+            for (int i = 0; i < n; i++)
+            {
+                double k = table.SampleKev(tKev, this.Uniform());
+                this.LayerEmitBremsstrahlung(x, y, z, ux, uy, uz, k, tKev, cap, ref radiated);
+            }
+        }
+
+        /// <summary>
+        /// (`M13`, П106) Один квант тормозного из точки (x, y, z) в слое: направление
+        /// по электрону (Цай), зажим суммой, приёмник — очередь обхода заноса
+        /// (<see cref="layerBremPush"/>) либо очередь вылетов
+        /// (<see cref="NoteEscape"/>), когда она открыта; иначе унесён — его
+        /// энергия уже в уносе электрона (как у `LayerBremsstrahlung`).
+        /// </summary>
+        void LayerEmitBremsstrahlung(double x, double y, double z, double ux, double uy, double uz,
+                                     double k, double tKev, double cap, ref double radiated)
+        {
+            double ax = ux, ay = uy, az = uz;
+            this.Rotate(ref ax, ref ay, ref az, this.TsaiCosine(tKev));
+            double kUse = Math.Min(k, cap - radiated);
+            if (!(kUse > 0.0))
+            {
+                return;
+            }
+
+            radiated += kUse;
+            this.CountLayerBremPhotons++;
+            this.SumLayerBremKev += kUse;
+            if (this.layerBremPush != null)
+            {
+                this.layerBremPush(x, y, z, ax, ay, az, kUse);
+            }
+            else if (this.escapeCollect)
+            {
+                this.NoteEscape(x, y, z, ax, ay, az, kUse);
+            }
         }
 
         /// <summary>

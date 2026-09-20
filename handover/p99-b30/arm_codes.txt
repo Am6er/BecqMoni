@@ -1,0 +1,44 @@
+arm rev29 start 2026-09-18 14:34:21 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries extra=
+arm rev29 mk_appwd code=0
+arm rev29 check_appwd code=0
+  response: rmx=49
+arm rev29 full code=0 14:36:14 (89 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev29_full
+arm rev29 mini code=0 14:36:51 (37 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev29_mini
+arm rev29 score full known code=0
+arm rev29 score mini known code=0
+arm rev29 score full unknown code=0
+arm rev29 score mini unknown code=0
+arm rev29 end 14:36:56
+arm rev29 start 2026-09-18 14:52:31 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries extra=
+arm rev29 mk_appwd code=0
+arm rev29 check_appwd code=0
+  response: rmx=49
+arm rev29 full code=0 14:54:51 (103 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev29_full
+arm rev29 mini code=0 14:55:27 (36 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev29_mini
+arm rev29 score full known code=0
+arm rev29 score mini known code=0
+arm rev29 score full unknown code=0
+arm rev29 score mini unknown code=0
+arm rev29 end 14:55:29
+arm rev29 start 2026-09-18 15:14:55 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries extra=
+arm rev29 mk_appwd code=0
+arm rev29 check_appwd code=0
+  response: rmx=49
+arm rev29 full code=0 15:15:26 (22 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev29_full
+arm rev29 mini code=0 15:15:35 (10 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev29_mini
+arm rev29 score full known code=0
+arm rev29 score mini known code=0
+arm rev29 score full unknown code=0
+arm rev29 score mini unknown code=0
+arm rev29 end 15:15:36
+arm rev29 start 2026-09-18 15:32:20 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries extra=
+arm rev29 mk_appwd code=0
+arm rev29 check_appwd code=0
+  response: rmx=49
+arm rev29 full code=0 15:33:32 (52 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev29_full
+arm rev29 mini code=0 15:33:53 (21 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev29_mini
+arm rev29 score full known code=0
+arm rev29 score mini known code=0
+arm rev29 score full unknown code=0
+arm rev29 score mini unknown code=0
+arm rev29 end 15:33:55

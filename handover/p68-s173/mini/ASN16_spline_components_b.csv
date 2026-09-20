@@ -1,9 +1,0 @@
-﻿spectrum,det,part,component,kind,share_pct,z,inflate,decay_s,peak_counts,dt_decay_s,mda_decay_s,zone_chi2ndf,zone_dd,zone_n,peak_share_pct
-ASN16_Cs137,ASN16,unknown,Cs-137,single,89.619,829.55,5.3380,6.7287E+003,88220802.0,2.2799E+000,4.5751E+000,,,0,86.083
-ASN16_Cs137,ASN16,unknown,Xray-Pb,nuisance,0.679,29.13,5.3380,1.4529E+001,1299594.8,,,,,0,1.268
-ASN16_Cs137,ASN16,unknown,pile-up,nuisance,0.658,22.60,5.3380,1.5323E+000,0.0,,,,,0,0.000
-ASN16_Cs137,ASN16,unknown,Backscatter,nuisance,9.044,91.29,5.3380,3.1679E+000,12962532.0,,,,,0,12.648
-ASN16_Lu176,ASN16,known,Lu-176,single,97.463,506.82,1.9374,9.0590E+002,3721449.2,1.0699E+000,2.1455E+000,,,0,97.619
-ASN16_Lu176,ASN16,known,Xray-Lu,nuisance,2.216,24.93,1.9374,1.5700E+002,90761.5,,,,,0,2.381
-ASN16_Lu176,ASN16,known,pile-up,nuisance,0.321,3.31,1.9374,2.4337E-001,0.0,,,,,0,0.000
-ASN16_Lu176_P0,ASN16,known,Lu-176,single,99.951,140.64,1.0000,3.9597E+002,31876.4,1.5698E+000,3.1869E+000,,,0,100.000

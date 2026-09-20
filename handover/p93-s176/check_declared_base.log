@@ -1,0 +1,31 @@
+ОБЪЯВЛЕНИЕ: tools\CORPUS\README.md, раздел «ДЕЙСТВУЮЩАЯ БАЗА»
+ИЗМЕРЕНИЕ:  tools/pie/score.py по файлам самого каталога
+строк объявления взято: 4
+
+[ ОК ] полная `out_rev27_full` / понятная
+      каталог: tools\pie\out_rev27_full (назван объявлением)
+      счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev27_full --part=known --members
+      сошлось: спектров 89, sum chi2/ndf 464.7, медиана 2.47, recall, % 100, фантомов 0, подавлен 0
+
+[ ОК ] полная `out_rev27_full` / непонятная
+      каталог: tools\pie\out_rev27_full (назван объявлением)
+      счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev27_full --part=unknown --members
+      сошлось: sum chi2/ndf 77.1, медиана 27.96, recall, % 5, фантомов 0, подавлен 0
+
+[ ОК ] малая `out_rev27_mini` / понятная
+      каталог: tools\pie\out_rev27_mini (назван объявлением)
+      счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev27_mini --part=known --members --only=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\mini.csv
+      сошлось: спектров 43, sum chi2/ndf 309.4, медиана 3.58, recall, % 100, фантомов 0, подавлен 0
+
+[ ОК ] малая `out_rev27_mini` / непонятная
+      каталог: tools\pie\out_rev27_mini (назван объявлением)
+      счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev27_mini --part=unknown --members --only=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\mini.csv
+      сошлось: sum chi2/ndf 49.1, медиана 24.57, recall, % 7, фантомов 0, подавлен 0
+
+ОТПЕЧАТОК ОБЪЯВЛЕНИЯ (T249):
+  [ ОК ] корпус: объявлено a7699cefe5c8 = a7699cefe5c8 (211 файлов, дерево)
+  [ ОК ] сборка: объявлено 6ffb36b4b6cf = 6ffb36b4b6cf (559 файлов, рабочее дерево (строка ещё не закоммичена))
+  [ ОК ] полная `out_rev27_full`: клеймо прогона сошлось (снято 2026-09-17 15:55:19, HEAD dd934a3b, ГРЯЗНОЕ дерево: BecquerelMonitor/BecquerelMonitor.csproj, BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs, BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs, BecquerelMonitor/LayoutFile.cs, BecquerelMonitor/MainForm.cs, BecquerelMonitor/Properties/Resources.Designer.cs)
+  [ ОК ] малая `out_rev27_mini`: клеймо прогона сошлось (снято 2026-09-17 15:55:41, HEAD dd934a3b, ключи: --only=ASN16_Th232,ASN16_Charoite,ASN16_UGlass,ASN16_Granite,AS80_Th232_v2,AS80_UGlass,AS80_Charoite,ASN16_Charoite_v2,ASN16_Th232_Am241,ASN16_Am241,ASN16_Cs137,ASN16_Cs137_10cm,ASN16_BrazilNuts,AS80_Th232Medal,AS80_Onyx,AS80_K40,AS80_Th232WT20,AS80_Cs137_0cm,ASN16_Lu176,ASN16_Lu176_P0,AS80_Lu176,G1S16_Am241_P25,G1S16_Ba133_P25,G1S16_Cd109_P25,G1S16_Ce139_P25,G1S16_Co60_P25,G1S16_Cs137_P25,G1S16_Eu152_P25,G1S16_Mn54_P25,G1S16_Na22_P25,G1S16_Th228_P25,G1S16_Y88_P25,G1S16_Am241_P5,G1S16_Ba133_P5,G1S16_Cd109_P5,G1S16_Ce139_P5,G1S16_Co57_P5,G1S16_Co60_P5,G1S16_Cs137_P5,G1S16_Eu152_P5,G1S16_Mn54_P5,G1S16_Na22_P5,G1S16_Th228_P5,G1S16_Y88_P5,G1S24_Cs137_P25,G1S24_Na22_P25,G1S24_Th228_P25,G1S24_Y88_P25,G1S24_Am241_P5,G1S24_Ba133_P5,G1S24_Bi207_P5,G1S24_Cd109_P5,G1S24_Co60_P5,G1S24_Cs137_P5,G1S24_Eu152_P5,G1S24_Na22_P5,G1S24_Th228_P5,G1S24_Y88_P5,G1S24_Zn65_P5, ГРЯЗНОЕ дерево: BecquerelMonitor/BecquerelMonitor.csproj, BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs, BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs, BecquerelMonitor/LayoutFile.cs, BecquerelMonitor/MainForm.cs, BecquerelMonitor/Properties/Resources.Designer.cs)
+
+ИТОГО: строк сверено 4, расхождений 0, без каталога 0; отпечатки: отказов 0

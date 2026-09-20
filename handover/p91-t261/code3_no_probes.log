@@ -1,0 +1,5 @@
+== сторож сцен генератора (T261): генератор → клеймо → живые .in / .rmx ==
+  каталог проб : D:\BqMoni_Claude\p91\no_such_probes
+  живые сцены  : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries
+  ⛔ в каталоге проб нет CorpusGeomProbe.exe
+   собрать: pwsh tools\effmaker\probes\build_all.ps1 -Bin BecquerelMonitor\bin\Debug_Codex

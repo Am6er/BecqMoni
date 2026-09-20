@@ -19,7 +19,7 @@
 # Сцены (`scenes\*.in`, в git):
 #   * `ASN16_point_house` — геометрия «Точка в защите» из файла Amber `Cs 137 в домике
 #     24.11.2022.xml` (выписана `handover/p74-t260/ExportScene.cs`: круг Render побайтно,
-#     клеймо геометрии `phys=18;3d28966c…`); матрица кладётся сторожем под guid кривой
+#     клеймо геометрии при физике 18 `phys=18;3d28966c…`, с физики 19 — своё); матрица кладётся сторожем под guid кривой
 #     файла `c482e3bc-…`;
 #   * `ASN16_rn_side` — ватный диск Ø40×20 мм ρ 0.15 к широкой грани (П59, `AMBER27`),
 #     копия `handover/p59-amber27/scenes/ASN16_rn_side.in`; кривую и guid в
@@ -56,11 +56,19 @@ if (-not (Test-Path $stamp)) {
     Write-Host "⛔ каталог проб $Probes не заверен (.appwd.json нет) — собрать build_all.ps1 заново" -ForegroundColor Red
     exit 2
 }
+# Поколение физики — ЧИСЛОМ ИЗ ИСХОДНИКА, не из памяти (как `check_curve_generation.py`):
+# образец клейма контроля и `--phys=` аудита берутся отсюда, чтобы смена физики не
+# оставляла в скрипте старое число (П97 18.09.2026: 18 → 19, `phys=18` стояло здесь трижды).
+$phys = [int]([regex]::Match((Get-Content (Join-Path $repo 'BecquerelMonitor\EfficiencyMaker\ResponseMatrix.cs') -Raw), 'const int PhysicsVersion\s*=\s*(\d+)').Groups[1].Value)
+if ($phys -le 0) {
+    Write-Host '⛔ не прочитано `PhysicsVersion` из BecquerelMonitor\EfficiencyMaker\ResponseMatrix.cs' -ForegroundColor Red
+    exit 2
+}
 New-Item -ItemType Directory -Force $store | Out-Null
 Copy-Item (Join-Path $scenes '*.in') $store -Force
 Copy-Item (Join-Path $scenes 'index.csv') $store -Force
 $sceneNames = @(Get-ChildItem (Join-Path $scenes '*.in') | ForEach-Object { $_.BaseName })
-Write-Host ("склад витрины: {0}; сцен {1}: {2}; пробы: {3}" -f $store, $sceneNames.Count, ($sceneNames -join ', '), $Probes)
+Write-Host ("склад витрины: {0}; сцен {1}: {2}; пробы: {3}; физика {4}" -f $store, $sceneNames.Count, ($sceneNames -join ', '), $Probes, $phys)
 $exeInfo = Get-Item (Join-Path $Probes 'BecquerelMonitor.exe')
 Write-Host ("приложение у проб: {0} sha256 {1}" -f $exeInfo.LastWriteTime.ToString('dd.MM HH:mm:ss'), (Get-FileHash $exeInfo.FullName -Algorithm SHA256).Hash.Substring(0, 16))
 
@@ -77,8 +85,8 @@ try {
         $log = Join-Path $store 'control_2nodes.log'
         & .\CorpusMatrixProbe.exe "--dir=$check" --nodes=2 --emin=30 --emax=31 --n=400000 --threads=10 --target=0 --jnodes=0 *> $log
         $c = $LASTEXITCODE
-        $accepted = @(Select-String -Path $log -Pattern 'phys=18;').Count
-        Write-Host ("контроль на 2 узлах (A77): код {0} (1 = «есть шумные», ожидаемо на 400 k), сцен с клеймом phys=18: {1} из {2}, {3} с" -f $c, $accepted, $sceneNames.Count, [int]$sw.Elapsed.TotalSeconds)
+        $accepted = @(Select-String -Path $log -Pattern "phys=$phys;").Count
+        Write-Host ("контроль на 2 узлах (A77): код {0} (1 = «есть шумные», ожидаемо на 400 k), сцен с клеймом phys={4}: {1} из {2}, {3} с" -f $c, $accepted, $sceneNames.Count, [int]$sw.Elapsed.TotalSeconds, $phys)
         Get-Content $log | Select-String 'клейм|мкс|ОТКАЗ|исключ|Exception' | Select-Object -First 8 | ForEach-Object { Write-Host ('   ' + $_.Line.Substring(0, [Math]::Min(160, $_.Line.Length))) }
         if ($c -notin 0, 1 -or $accepted -lt $sceneNames.Count) {
             Write-Host '⛔ контроль на двух узлах не принял сцены — полный счёт не запускается' -ForegroundColor Red
@@ -109,7 +117,7 @@ try {
     if ($e -ne 0) { Write-Host "⛔ CorpusEffProbe отказал (код $e) — см. $log" -ForegroundColor Red; exit 5 }
 
     # 4. Приёмка склада — пять признаков каждой матрицы (клеймо, узлы, истории, шум, каналы).
-    & .\MatrixAuditProbe.exe "--dir=$store" --phys=18 2>&1 | Select-Object -Last 12 | ForEach-Object { Write-Host ('   ' + $_) }
+    & .\MatrixAuditProbe.exe "--dir=$store" "--phys=$phys" 2>&1 | Select-Object -Last 12 | ForEach-Object { Write-Host ('   ' + $_) }
 } finally {
     Pop-Location
 }
