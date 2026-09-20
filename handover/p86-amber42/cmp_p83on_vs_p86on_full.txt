@@ -1,0 +1,181 @@
+runs        строк   127  разошлось   41
+   по столбцам: chi2ndf_pois×40, chi2ndf×36, inflate×35, gain×28, model_residual_pct×27, anchor_offset_kev×21, anchor_note×21, offset_ch×15, anchors_used×1
+   по спектрам (41): 
+      AS80_Th232Medal              anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, offset_ch
+      ASN16_Lu176                  chi2ndf_pois, inflate
+      G1S16_Ba133_P25              chi2ndf, inflate
+      G1S16_Ba133_P5               anchor_note, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S16_Co60_P25               chi2ndf_pois
+      G1S16_Co60_P5                chi2ndf, chi2ndf_pois, inflate, model_residual_pct
+      G1S16_Eu152_P25              chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S16_Eu152_P5               chi2ndf_pois
+      G1S16_Mix_Denta100           chi2ndf, chi2ndf_pois, inflate
+      G1S16_Mix_Mar                anchor_offset_kev, chi2ndf, chi2ndf_pois, inflate
+      G1S16_Mix_Petri              chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S16_Ra226_Mar              anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S16_Ra226_Mar_2            anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S16_Th228_P5               chi2ndf, chi2ndf_pois, gain, inflate
+      G1S16_Th232_Denta100         chi2ndf, chi2ndf_pois, gain, model_residual_pct
+      G1S16_Th232_Mar_2            anchor_note, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S16_Th232_Mar_3            anchor_note, chi2ndf, chi2ndf_pois, gain, inflate
+      G1S16_Th232_Petri            anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S24_Ba133_P5               anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S24_Bi207_P5               chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S24_Co60_P5                chi2ndf, chi2ndf_pois, inflate
+      G1S24_Eu152_P5               chi2ndf, chi2ndf_pois, inflate, model_residual_pct
+      G1S24_Ra226_Denta120         anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S24_Ra226_Denta120_2       anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S24_Ra226_Mar              anchor_note, anchor_offset_kev, anchors_used, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S24_Ra226_Mar_2            anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S24_Ra226_Petri            anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S24_Ra226_Petri_2          anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S24_Rn222Coal_Mar_20m      anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S24_Rn222Coal_Mar_2h       anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S24_Rn222Coal_Mar_3h       anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S24_Rn222Coal_Mar_eq01     anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct, offset_ch
+      G1S24_Th228_P25              chi2ndf, chi2ndf_pois
+      G1S24_Th228_P5               chi2ndf, chi2ndf_pois, gain, inflate
+      G1S24_Th232_Denta120         anchor_offset_kev, chi2ndf_pois, gain, model_residual_pct
+      G1S24_Th232_Denta120_2       anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S24_Th232_Mar              anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, inflate, model_residual_pct, offset_ch
+      G1S24_Th232_Mar_2            chi2ndf, chi2ndf_pois, inflate, model_residual_pct
+      G1S24_Th232_Petri            anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, model_residual_pct
+      G1S24_Th232_Petri_2          anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, gain, inflate, offset_ch
+      G1S24_Y88_P5                 chi2ndf_pois
+components  строк   369  разошлось  265
+   по столбцам: decay_s×235, inflate×233, peak_counts×195, z×194, peak_share_pct×130, share_pct×118, mda_decay_s×50, dt_decay_s×46
+   по спектрам (44): 
+      AS80_Lu176                   peak_counts
+      AS80_Lu176_v2                peak_counts
+      AS80_Th232Medal              decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      ASN16_Lu176                  decay_s, inflate, peak_counts
+      ASN16_Lu176_P0               peak_counts
+      G1S16_Ba133_P25              dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      G1S16_Ba133_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      G1S16_Co60_P25               mda_decay_s
+      G1S16_Co60_P5                decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      G1S16_Eu152_P25              decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      G1S16_Eu152_P5               decay_s, dt_decay_s, mda_decay_s, peak_counts, z
+      G1S16_Mix_Denta100           decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S16_Mix_Mar                decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S16_Mix_Petri              decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S16_Ra226_Mar              decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S16_Ra226_Mar_2            decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S16_Th228_P25              peak_counts
+      G1S16_Th228_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S16_Th232_Denta100         decay_s, dt_decay_s, mda_decay_s, peak_counts, peak_share_pct, share_pct
+      G1S16_Th232_Mar_2            decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S16_Th232_Mar_3            decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S16_Th232_Petri            decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Ba133_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      G1S24_Bi207_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, share_pct, z
+      G1S24_Co60_P5                decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      G1S24_Eu152_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, z
+      G1S24_Ra226_Denta120         decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Ra226_Denta120_2       decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Ra226_Mar              decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Ra226_Mar_2            decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Ra226_Petri            decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Ra226_Petri_2          decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Rn222Coal_Mar_20m      decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Rn222Coal_Mar_2h       decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct
+      G1S24_Rn222Coal_Mar_3h       decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Rn222Coal_Mar_eq01     decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Th228_P25              decay_s, peak_counts, peak_share_pct, share_pct
+      G1S24_Th228_P5               decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Th232_Denta120         decay_s, dt_decay_s, mda_decay_s, peak_counts, peak_share_pct, share_pct
+      G1S24_Th232_Denta120_2       decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Th232_Mar              decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Th232_Mar_2            decay_s, dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Th232_Petri            inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+      G1S24_Th232_Petri_2          dt_decay_s, inflate, mda_decay_s, peak_counts, peak_share_pct, share_pct, z
+limits      строк   105  разошлось   53
+   по столбцам: mda_decay_s×50, mda_peak_counts×48, dt_decay_s×46, decay_s×45, collinearity×28
+   по спектрам (40): 
+      AS80_Lu176_v2                mda_peak_counts
+      AS80_Th232Medal              decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Ba133_P25              dt_decay_s, mda_decay_s
+      G1S16_Ba133_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Co60_P25               mda_decay_s
+      G1S16_Co60_P5                collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Eu152_P25              decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Eu152_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Mix_Denta100           collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Mix_Mar                collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Mix_Petri              collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Ra226_Mar              decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Ra226_Mar_2            collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Th228_P5               decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Th232_Denta100         decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Th232_Mar_2            collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Th232_Mar_3            decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S16_Th232_Petri            decay_s, dt_decay_s, mda_decay_s
+      G1S24_Ba133_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Bi207_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Co60_P5                decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Eu152_P5               collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Ra226_Denta120         collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Ra226_Denta120_2       collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Ra226_Mar              collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Ra226_Mar_2            collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Ra226_Petri            collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Ra226_Petri_2          collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Rn222Coal_Mar_20m      collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Rn222Coal_Mar_2h       collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Rn222Coal_Mar_3h       collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Rn222Coal_Mar_eq01     collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Th228_P25              decay_s
+      G1S24_Th228_P5               decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Th232_Denta120         decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Th232_Denta120_2       decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Th232_Mar              collinearity, decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Th232_Mar_2            decay_s, dt_decay_s, mda_decay_s, mda_peak_counts
+      G1S24_Th232_Petri            mda_decay_s, mda_peak_counts
+      G1S24_Th232_Petri_2          dt_decay_s, mda_decay_s, mda_peak_counts
+anchors     строк   702  разошлось  544
+   по столбцам: shift_kev×455, measured_kev×453, z×433, model_kev×391, peak_share×377, sigma_kev×246, ch_hi×11, ch_lo×10, used×1, refusal×1
+   по спектрам (43): 
+      AS80_Lu176_v2                measured_kev
+      AS80_Th232Medal              measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      ASN16_Lu176                  measured_kev
+      ASN16_Lu176_P0               measured_kev, shift_kev, sigma_kev
+      G1S16_Ba133_P25              peak_share
+      G1S16_Ba133_P5               measured_kev, model_kev, peak_share, shift_kev, z
+      G1S16_Co60_P25               z
+      G1S16_Co60_P5                measured_kev
+      G1S16_Eu152_P25              measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Eu152_P5               measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Mix_Denta100           measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Mix_Mar                measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Mix_Petri              ch_hi, ch_lo, measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Ra226_Mar              ch_hi, ch_lo, measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Ra226_Mar_2            ch_hi, ch_lo, measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Th228_P25              measured_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Th228_P5               measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Th232_Denta100         measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Th232_Mar_2            measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Th232_Mar_3            measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S16_Th232_Petri            measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Ba133_P5               measured_kev, model_kev, peak_share, shift_kev, z
+      G1S24_Bi207_P5               measured_kev, model_kev, peak_share, shift_kev, z
+      G1S24_Co60_P5                measured_kev, shift_kev, sigma_kev, z
+      G1S24_Eu152_P5               measured_kev, model_kev, peak_share, shift_kev, z
+      G1S24_Ra226_Denta120         ch_hi, ch_lo, measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Ra226_Denta120_2       measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Ra226_Mar              ch_hi, measured_kev, model_kev, peak_share, refusal, shift_kev, sigma_kev, used, z
+      G1S24_Ra226_Mar_2            measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Ra226_Petri            measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Ra226_Petri_2          ch_hi, ch_lo, measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Rn222Coal_Mar_20m      measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Rn222Coal_Mar_2h       measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Rn222Coal_Mar_3h       measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Rn222Coal_Mar_eq01     measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Th228_P25              measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Th228_P5               measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Th232_Denta120         measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Th232_Denta120_2       measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Th232_Mar              measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Th232_Mar_2            measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Th232_Petri            measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+      G1S24_Th232_Petri_2          ch_hi, ch_lo, measured_kev, model_kev, peak_share, shift_kev, sigma_kev, z
+ИТОГО разошлось 903 — РАСХОЖДЕНИЕ

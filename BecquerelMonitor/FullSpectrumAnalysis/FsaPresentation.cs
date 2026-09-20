@@ -23,6 +23,161 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// (`AMBER45`) РЕЖИМ ПОКАЗА СЛОЯ МАТРИЦЫ ОТКЛИКА — комбо «Matrix layer» в
+    /// группе «Display» окна отчёта. Описание вида Amber 18.09.2026, дословно:
+    /// «В FSA Report в группе Display добавить combo box: "Matrix layer".
+    /// Значение по умолчанию - All (отображать как это выглядит сейчас). И
+    /// доступные значения в этом комбо боксе - каждый слой из существующих.
+    /// При его выборе происходит его отрисовка на спектре.»
+    ///
+    /// Настройка ПОКАЗА, как <see cref="FsaGrouping"/>: в отпечаток расчёта
+    /// не входит, разбор не запускает, таблицу отчёта не меняет — меняется
+    /// только стопка на графике (<c>EnergySpectrumView.Fsa.cs</c>).
+    /// <see cref="All"/> — нынешняя картинка побитово; иное значение — НОМЕР
+    /// КАНАЛА <see cref="EfficiencyMaker.EfficiencySimulator.ResponseChannel"/>,
+    /// и стопка строится из <see cref="FsaStackLayer.ChannelCurves"/>[канал]
+    /// тех же слоёв, тем же порядком и теми же цветами (уточнение Amber
+    /// 18.09.2026 вопросником: «Стопка по компонентам, как сейчас»); слои без
+    /// раскладки по каналам — фон, сплайн, рассеяние, наложения, серый
+    /// «прочее», — а также разнесённая подложка и хвост слоёв в этом режиме не
+    /// рисуются («Спрятать — только канал и спектр»).
+    ///
+    /// ⛔ Числа членов ПРИВЯЗАНЫ к номерам каналов симулятора, а не выбраны:
+    /// `(int)` члена — индекс в `ChannelCurves`, и расхождение с
+    /// `ResponseChannel` дало бы стопку НЕ ТОГО канала под верной подписью.
+    /// Список членов — <see cref="FsaMatrixLayers.Channels"/>, и его длину
+    /// проба `FsaChannelViewProbe` сверяет с `ResponseChannelCount`.
+    /// </summary>
+    public enum FsaMatrixLayer
+    {
+        /// <summary>Все каналы — стопка лент как есть (умолчание).</summary>
+        All = -1,
+
+        /// <summary>Полное поглощение.</summary>
+        Peak = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak,
+
+        /// <summary>Неполное поглощение: утечка рассеянного кванта, электрона, тормозного.</summary>
+        Compton = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Compton,
+
+        /// <summary>Одиночный вылет аннигиляции (пик на E − 511).</summary>
+        EscapeAnnihilation = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeAnnihilation,
+
+        /// <summary>Вылет K-рентгена кристалла.</summary>
+        EscapeXrayK = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeXrayK,
+
+        /// <summary>Двойной вылет аннигиляции (пик на E − 1022).</summary>
+        EscapeAnnihilationDouble = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeAnnihilationDouble,
+
+        /// <summary>Вылет L-рентгена кристалла.</summary>
+        EscapeXrayL = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeXrayL
+    }
+
+    /// <summary>
+    /// (`AMBER45`) Правила режима слоя матрицы — ОДНИ на график, окно отчёта и
+    /// пробы: какой слой рисуется, какой кривой, и достижим ли режим вовсе.
+    /// Второй копии этих правил в отрисовке быть не должно (по тому же
+    /// доводу, что у <see cref="FsaPresentationBuilder"/>: две копии однажды
+    /// разойдутся, и стопка разошлась бы с тем, что говорит окно).
+    /// </summary>
+    public static class FsaMatrixLayers
+    {
+        /// <summary>
+        /// Каналы по номеру — порядок пунктов комбо после «All». Длина равна
+        /// <see cref="EfficiencyMaker.EfficiencySimulator.ResponseChannelCount"/>
+        /// (проверяет проба `FsaChannelViewProbe`).
+        /// </summary>
+        public static readonly FsaMatrixLayer[] Channels =
+        {
+            FsaMatrixLayer.Peak,
+            FsaMatrixLayer.Compton,
+            FsaMatrixLayer.EscapeAnnihilation,
+            FsaMatrixLayer.EscapeXrayK,
+            FsaMatrixLayer.EscapeAnnihilationDouble,
+            FsaMatrixLayer.EscapeXrayL
+        };
+
+        /// <summary>
+        /// Есть ли в стопке хоть один слой с раскладкой по каналам. Нет —
+        /// матрицы у спектра нет (или образы построены не по ней), режим слоя
+        /// недостижим: комбо в окне гаснет с подсказкой, график рисует
+        /// <see cref="FsaMatrixLayer.All"/>, что бы ни просили.
+        /// </summary>
+        public static bool HasChannels(IList<FsaStackLayer> layers)
+        {
+            if (layers == null)
+            {
+                return false;
+            }
+
+            foreach (FsaStackLayer layer in layers)
+            {
+                if (layer != null && layer.ChannelCurves != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Рисуется ли слой в этом режиме: при «All» — всякий; при канале —
+        /// только слой с раскладкой по каналам (у фона, сплайна, рассеяния,
+        /// наложений, серого «прочего» её нет — они и есть то, что решение
+        /// Amber велит спрятать).
+        /// </summary>
+        public static bool IsDrawn(FsaStackLayer layer, FsaMatrixLayer mode)
+        {
+            return layer != null && (mode == FsaMatrixLayer.All || layer.ChannelCurves != null);
+        }
+
+        /// <summary>
+        /// Кривая, которой слой рисуется в этом режиме: при «All» — лента
+        /// <see cref="FsaStackLayer.Curve"/>; при канале —
+        /// <see cref="FsaStackLayer.ChannelCurves"/>[канал]. null — рисовать
+        /// нечего: канала у слоя нет (старая матрица с меньшим числом каналов
+        /// отдаёт пустой канал — рисуется пусто, не лента и не отказ).
+        /// </summary>
+        public static double[] CurveOf(FsaStackLayer layer, FsaMatrixLayer mode)
+        {
+            if (layer == null)
+            {
+                return null;
+            }
+
+            if (mode == FsaMatrixLayer.All)
+            {
+                return layer.Curve;
+            }
+
+            int channel = (int)mode;
+            return layer.ChannelCurves != null && channel >= 0 && channel < layer.ChannelCurves.Length
+                ? layer.ChannelCurves[channel]
+                : null;
+        }
+
+        /// <summary>Слои, которые рисуются в этом режиме, — в порядке стопки.</summary>
+        public static List<FsaStackLayer> Drawn(IList<FsaStackLayer> layers, FsaMatrixLayer mode)
+        {
+            var drawn = new List<FsaStackLayer>();
+            if (layers == null)
+            {
+                return drawn;
+            }
+
+            foreach (FsaStackLayer layer in layers)
+            {
+                if (IsDrawn(layer, mode))
+                {
+                    drawn.Add(layer);
+                }
+            }
+
+            return drawn;
+        }
+    }
+
+    /// <summary>
     /// Семь смысловых родов строк отчёта (`A145`, «Таблица отчёта»), плюс
     /// служебная строка состояния. Смысл строки читается ОТСЮДА, а не обратным
     /// разбором локализованного текста.

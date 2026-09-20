@@ -1,0 +1,16 @@
+G4_TEFLON 100 angle=45 code=0 dt=12s 14:29:21
+G4_TEFLON 100 angle=70 code=0 dt=14s 14:29:34
+G4_TEFLON 500 angle=45 code=0 dt=15s 14:29:50
+G4_TEFLON 500 angle=70 code=0 dt=19s 14:30:09
+G4_TEFLON 1000 angle=45 code=0 dt=18s 14:30:27
+G4_TEFLON 1000 angle=70 code=0 dt=22s 14:30:49
+G4_Al 100 angle=45 code=0 dt=12s 14:31:00
+G4_Al 100 angle=70 code=0 dt=14s 14:31:15
+G4_Al 500 angle=45 code=0 dt=16s 14:31:30
+G4_Al 500 angle=70 code=0 dt=18s 14:31:48
+G4_Al 1000 angle=45 code=0 dt=18s 14:32:06
+G4_Al 1000 angle=70 code=0 dt=22s 14:32:27
+G4_TEFLON 100 foil=0.0785 code=0 dt=11s 14:32:39
+G4_TEFLON 500 foil=0.961 code=0 dt=14s 14:32:53
+G4_TEFLON 1000 foil=2.376 code=0 dt=16s 14:33:09
+done 14:33:09

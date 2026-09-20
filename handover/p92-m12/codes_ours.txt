@@ -1,0 +1,39 @@
+ours RC103_point0_p55_1460.82_ref code=0 n=40000000 keys=[] 15:21:47 dt=242s
+done ours D:\BqMoni_Claude\p92\plan_1.csv 15:21:47
+ours RC103_point0_p55_1460.82_detour0 code=0 n=20000000 keys=[--detour=0] 15:28:13 dt=108s
+ours RC103_point0_p55_1460.82_ecomp0 code=0 n=20000000 keys=[--ecomp=0] 15:29:56 dt=103s
+ours RC103_point0_p55_1460.82_bpath0 code=0 n=20000000 keys=[--bpath=0] 15:31:46 dt=110s
+ours RC103_point0_p55_1460.82_nobrem code=0 n=20000000 keys=[--no-brem] 15:33:24 dt=98s
+ours RC103_point0_p55_1460.82_detour1 code=0 n=20000000 keys=[--detour=1] 15:35:08 dt=103s
+ours RC103_point0_p55_bare_1460.82_ref code=0 n=20000000 keys=[] 15:35:56 dt=48s
+ours RC103_point0_p55_noback_1460.82_ref code=0 n=20000000 keys=[] 15:37:43 dt=107s
+ours RC103_point0_p55_nofront_1460.82_ref code=0 n=20000000 keys=[] 15:38:51 dt=67s
+ours RC103_point0_p55_noside_1460.82_ref code=0 n=20000000 keys=[] 15:40:25 dt=94s
+ours RC103_point0_p55_661.657_ref code=0 n=20000000 keys=[] 15:42:11 dt=107s
+ours RC103_point0_p55_661.657_detour0 code=0 n=20000000 keys=[--detour=0] 15:43:57 dt=106s
+ours RC103_point0_p55_661.657_ecomp0 code=0 n=20000000 keys=[--ecomp=0] 15:45:55 dt=118s
+ours RC103_point0_p55_661.657_bpath0 code=0 n=20000000 keys=[--bpath=0] 15:47:42 dt=107s
+ours RC103_point0_p55_661.657_nobrem code=0 n=20000000 keys=[--no-brem] 15:49:12 dt=90s
+ours RC103_point0_p55_bare_661.657_ref code=0 n=20000000 keys=[] 15:49:35 dt=22s
+ours RC103_point0_p55_noback_661.657_ref code=0 n=20000000 keys=[] 15:50:21 dt=47s
+ours RC103_point0_p55_nofront_661.657_ref code=0 n=20000000 keys=[] 15:50:49 dt=27s
+ours RC103_point0_p55_noside_661.657_ref code=0 n=20000000 keys=[] 15:51:33 dt=44s
+done ours D:\BqMoni_Claude\p92\plan_2.csv 15:51:33
+ours AS80_th_disk_2614.511_ref code=0 n=8000000 keys=[] 15:54:38 dt=96s
+ours AS80_th_disk_2614.511_detour0 code=0 n=8000000 keys=[--detour=0] 15:56:17 dt=99s
+ours AS80_th_disk_2614.511_ecomp0 code=0 n=8000000 keys=[--ecomp=0] 15:57:44 dt=87s
+ours AS80_th_disk_2614.511_bpath0 code=0 n=8000000 keys=[--bpath=0] 15:59:23 dt=99s
+ours AS80_th_disk_2614.511_nobrem code=0 n=8000000 keys=[--no-brem] 16:00:51 dt=88s
+ours AS80_th_disk_bare_2614.511_ref code=0 n=8000000 keys=[] 16:03:05 dt=134s
+ours AS80_th_disk_noback_2614.511_ref code=0 n=8000000 keys=[] 16:04:46 dt=102s
+ours AS80_th_disk_nofront_2614.511_ref code=0 n=8000000 keys=[] 16:06:51 dt=124s
+ours AS80_th_disk_noside_2614.511_ref code=0 n=8000000 keys=[] 16:08:19 dt=89s
+ours AS80_th_disk_1460.82_ref code=0 n=8000000 keys=[] 16:09:55 dt=96s
+ours AS80_th_disk_1460.82_detour0 code=0 n=8000000 keys=[--detour=0] 16:11:46 dt=111s
+ours AS80_th_disk_1460.82_ecomp0 code=0 n=8000000 keys=[--ecomp=0] 16:13:23 dt=97s
+ours AS80_th_disk_1460.82_bpath0 code=0 n=8000000 keys=[--bpath=0] 16:15:12 dt=109s
+ours AS80_th_disk_bare_1460.82_ref code=0 n=8000000 keys=[] 16:17:05 dt=113s
+ours AS80_th_disk_nofront_1460.82_ref code=0 n=8000000 keys=[] 16:18:55 dt=110s
+ours RC103_point0_1460.82_ref code=0 n=20000000 keys=[] 16:20:26 dt=92s
+ours RC103_point0_1460.82_detour0 code=0 n=20000000 keys=[--detour=0] 16:21:57 dt=91s
+done ours D:\BqMoni_Claude\p92\plan_rest.csv 16:21:57

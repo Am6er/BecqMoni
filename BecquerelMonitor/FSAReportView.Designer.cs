@@ -38,6 +38,8 @@ namespace BecquerelMonitor
             this.escapeCheckBox = new System.Windows.Forms.CheckBox();
             this.pileUpCheckBox = new System.Windows.Forms.CheckBox();
             this.residualBandCheckBox = new System.Windows.Forms.CheckBox();
+            this.matrixLayerLabel = new System.Windows.Forms.Label();
+            this.matrixLayerComboBox = new System.Windows.Forms.ComboBox();
             this.statusLabel = new System.Windows.Forms.Label();
             this.reportTable = new XPTable.Models.Table();
             this.columnModel = new XPTable.Models.ColumnModel();
@@ -112,6 +114,8 @@ namespace BecquerelMonitor
             this.displayFlow.Controls.Add(this.parentsRadio);
             this.displayFlow.Controls.Add(this.daughtersRadio);
             this.displayFlow.Controls.Add(this.residualBandCheckBox);
+            this.displayFlow.Controls.Add(this.matrixLayerLabel);
+            this.displayFlow.Controls.Add(this.matrixLayerComboBox);
             this.displayFlow.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
             this.displayFlow.Name = "displayFlow";
             this.displayFlow.WrapContents = false;
@@ -236,6 +240,26 @@ namespace BecquerelMonitor
             this.residualBandCheckBox.UseVisualStyleBackColor = true;
             this.residualBandCheckBox.CheckedChanged += new System.EventHandler(this.residualBandCheckBox_CheckedChanged);
             //
+            // matrixLayerLabel
+            //
+            // (`AMBER45`) Подпись и комбо «Matrix layer» — описание вида Amber
+            // 18.09.2026: «В FSA Report в группе Display добавить combo box:
+            // "Matrix layer"». Переключатель ОТРИСОВОЧНЫЙ (стопка канала
+            // строится из готовых `ChannelCurves`, счёт не заказывается),
+            // потому лежит в группе показа, а не в расчётных, — сторож
+            // `check_fsa_view_groups.py` судит это по обработчику.
+            //
+            resources.ApplyResources(this.matrixLayerLabel, "matrixLayerLabel");
+            this.matrixLayerLabel.Name = "matrixLayerLabel";
+            //
+            // matrixLayerComboBox
+            //
+            resources.ApplyResources(this.matrixLayerComboBox, "matrixLayerComboBox");
+            this.matrixLayerComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.matrixLayerComboBox.FormattingEnabled = true;
+            this.matrixLayerComboBox.Name = "matrixLayerComboBox";
+            this.matrixLayerComboBox.SelectedIndexChanged += new System.EventHandler(this.matrixLayerComboBox_SelectedIndexChanged);
+            //
             // reportTable
             //
             resources.ApplyResources(this.reportTable, "reportTable");
@@ -338,6 +362,8 @@ namespace BecquerelMonitor
         private System.Windows.Forms.CheckBox escapeCheckBox;
         private System.Windows.Forms.CheckBox pileUpCheckBox;
         private System.Windows.Forms.CheckBox residualBandCheckBox;
+        private System.Windows.Forms.Label matrixLayerLabel;
+        private System.Windows.Forms.ComboBox matrixLayerComboBox;
         private System.Windows.Forms.Label statusLabel;
         private XPTable.Models.Table reportTable;
         private XPTable.Models.ColumnModel columnModel;

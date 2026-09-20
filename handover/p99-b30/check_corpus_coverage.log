@@ -1,0 +1,34 @@
+=== 1. КОДЫ ВОЗВРАТА МЕРОК ОХВАТА ===
+→ зову: python tools/CORPUS/scripts/gaussfit_check.py --coverage-only
+    в _corpus_raw спектров сверх corpus_def.ALL: 28 — AS1Pro_UGlass, AS21_PuAm, AS80_Background, ASN16_Background, ASN8_Background, CZTTeCd_Mix, CZT_Cs137, CZT_Th232, …
+    ASN16_Th232              НЕТ своей копии в _corpus_raw
+    ASN16_Charoite           НЕТ своей копии в _corpus_raw
+    ASN16_UGlass             НЕТ своей копии в _corpus_raw
+    ASN16_Granite            НЕТ своей копии в _corpus_raw
+    AS80_Th232_v2            НЕТ своей копии в _corpus_raw
+    AS80_UGlass              НЕТ своей копии в _corpus_raw
+    AS80_Charoite            НЕТ своей копии в _corpus_raw
+    
+    === ОХВАТ МЕРКИ: ПОСЧИТАНО / ОБЪЯВЛЕНО В corpus/parts.csv ===
+    заморожено (отсутствие ОЖИДАЕМО): AS80_Charoite, AS80_Th232_v2, AS80_UGlass, ASN16_Charoite, ASN16_Granite, ASN16_Th232, ASN16_UGlass
+    стадия                                       known     unknown    excluded       ВСЕГО
+    прочитано из _corpus_raw                     92/92     29/36 !         8/8   129/136 !
+    
+      «прочитано из _corpus_raw»: вне мерки 7 из 136
+        ОЖИДАЕМО — семёрка corpus_def.LEGACY, стадий 1 и 2 у неё в корпусе нет (7): AS80_Charoite, AS80_Th232_v2, AS80_UGlass, ASN16_Charoite, ASN16_Granite, ASN16_Th232, ASN16_UGlass
+    
+    --coverage-only: считана ТОЛЬКО стадия чтения; чисел мерки нет.
+✅ tools/CORPUS/scripts/gaussfit_check.py: код 0
+
+  пропущена gate_blind_check.py — долгая (~мин); звать ключом --deep
+  пропущена ecal_accept_check.py — долгая (~мин); звать ключом --deep
+  пропущена ecal_extrapolation.py — долгая (~мин); звать ключом --deep
+⚠ коды 4 (`V16`) и 5 (`V17`) у gate_blind_check.py этим сторожем НЕ читаются: их даёт только полный прогон мерки, без --coverage-only.
+
+=== 2. МЕРКИ НА СЫРЬЕ БЕЗ ОХВАТА ===
+  освобождён build_corpus.py          — не мерка: стадия 1, которая _corpus_raw и СОЗДАЁТ
+  нарушителей: 0
+
+=== сводка ===
+  ✅ gaussfit_check.py        код 0
+ОХВАТ ЦЕЛ: позвано мерок 1, все дали 0; мерок на сырье без охвата нет.

@@ -1,0 +1,8 @@
+count_al start 14:13:48 ключи: AS80_p88_edge93_r33_al
+AS80_p88_edge93_r33_al n=1M code=0 171 s 14:16:39
+count_al done 14:16:39
+count_al start 14:17:43 ключи: AS80_p88_edge93_r28_al AS80_p88_edge93_r38_al AS80_p88_contact_r33_al
+AS80_p88_edge93_r28_al n=1M code=0 220 s 14:21:23
+AS80_p88_edge93_r38_al n=1M code=0 164 s 14:24:06
+AS80_p88_contact_r33_al n=1M code=0 188 s 14:27:14
+count_al done 14:27:14

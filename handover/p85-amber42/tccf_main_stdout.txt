@@ -1,0 +1,21 @@
+запущено процессов: 10, зерно 20260915, план: co60:40000000,y88:40000000x2,cs134:20000000,eu152:20000000
+  main_co60_ang0: rc=0 main_co60_ang0: A=60 Z=27 распадов 40000000 angular=0 зерно 20260915, 1786.9 с -> D:\BqMoni_Claude\p85\tccf_co60_ang0\out_main_co60_ang0.txt
+
+  main_co60_ang1: rc=0 main_co60_ang1: A=60 Z=27 распадов 40000000 angular=1 зерно 20260915, 1807.0 с -> D:\BqMoni_Claude\p85\tccf_co60_ang1\out_main_co60_ang1.txt
+
+  main_y88_ang0_r0: rc=0 main_y88_ang0_r0: A=88 Z=39 распадов 40000000 angular=0 зерно 20260915, 2098.8 с -> D:\BqMoni_Claude\p85\tccf_y88_ang0_r0\out_main_y88_ang0_r0.txt
+
+  main_y88_ang1_r0: rc=0 main_y88_ang1_r0: A=88 Z=39 распадов 40000000 angular=1 зерно 20260915, 2112.6 с -> D:\BqMoni_Claude\p85\tccf_y88_ang1_r0\out_main_y88_ang1_r0.txt
+
+  main_y88_ang0_r1: rc=0 main_y88_ang0_r1: A=88 Z=39 распадов 40000000 angular=0 зерно 20260916, 2124.2 с -> D:\BqMoni_Claude\p85\tccf_y88_ang0_r1\out_main_y88_ang0_r1.txt
+
+  main_y88_ang1_r1: rc=0 main_y88_ang1_r1: A=88 Z=39 распадов 40000000 angular=1 зерно 20260916, 2114.9 с -> D:\BqMoni_Claude\p85\tccf_y88_ang1_r1\out_main_y88_ang1_r1.txt
+
+  main_cs134_ang0: rc=0 main_cs134_ang0: A=134 Z=55 распадов 20000000 angular=0 зерно 20260915, 1097.4 с -> D:\BqMoni_Claude\p85\tccf_cs134_ang0\out_main_cs134_ang0.txt
+
+  main_cs134_ang1: rc=0 main_cs134_ang1: A=134 Z=55 распадов 20000000 angular=1 зерно 20260915, 1069.1 с -> D:\BqMoni_Claude\p85\tccf_cs134_ang1\out_main_cs134_ang1.txt
+
+  main_eu152_ang0: rc=0 main_eu152_ang0: A=152 Z=63 распадов 20000000 angular=0 зерно 20260915, 1124.8 с -> D:\BqMoni_Claude\p85\tccf_eu152_ang0\out_main_eu152_ang0.txt
+
+  main_eu152_ang1: rc=0 main_eu152_ang1: A=152 Z=63 распадов 20000000 angular=1 зерно 20260915, 1213.5 с -> D:\BqMoni_Claude\p85\tccf_eu152_ang1\out_main_eu152_ang1.txt
+

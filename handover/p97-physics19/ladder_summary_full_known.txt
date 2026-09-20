@@ -1,0 +1,46 @@
+сдвинулось 89: улучшилось 28, ухудшилось 61, |Δ| ≤ 0.15 %: 35, |Δ| ≥ 1 %: 17
+--- лучшие 8:
+G1S16_Co60_P25               1.7572 ->   1.7026  -3.107 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Mn54_P25               1.5796 ->   1.5419  -2.387 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Cs137_P25              1.9586 ->   1.9126  -2.349 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Cs137_P5               8.2573 ->   8.0675  -2.299 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S24_Cs137_P5              13.9477 ->  13.7566  -1.370 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Am241_P5               2.6969 ->   2.6782  -0.693 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S24_Th232_Denta120_2       2.0736 ->   2.0594  -0.685 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s; Ac-228 38.89
+G1S24_Y88_P5                 8.1996 ->   8.1510  -0.593 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+--- худшие 8:
+G1S16_Am241_P25              1.5801 ->   1.6038  +1.500 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S24_Na22_P25               6.2950 ->   6.4012  +1.687 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Cs137_Mar_2            1.7950 ->   1.8266  +1.760 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+RC103_Lu176                  0.9710 ->   0.9920  +2.163 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s; Lu-176 92.71→93.00; Xr
+G1S24_Th232_Mar_2            6.2285 ->   6.3920  +2.625 %  anchor_note, anchor_offset_kev, anchors_used, ch_hi, ch_lo, chi2ndf
+G1S24_Cs137_Mar_2            3.7365 ->   3.8369  +2.687 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S24_Cs137_P25              3.1721 ->   3.2893  +3.695 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+RC103_K40                    1.7228 ->   1.8962 +10.065 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+--- RC103, ASN16, AS80 (мелкие кристаллы и диск):
+AS80_Th232Medal             12.7045 ->  12.6617  -0.337 %  anchor_note, anchor_offset_kev, ch_hi, ch_lo, chi2ndf, chi2ndf_pois; Ac-228 38.08→38.01; Tl-208 30.30→30.40
+AS80_Am241                   2.5603 ->   2.5609  +0.023 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+ASN16_Lu176                  3.6583 ->   3.6601  +0.049 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+RC103_Cs137_0cm              2.2919 ->   2.2934  +0.065 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+ASN16_Lu176_P0               0.4120 ->   0.4126  +0.146 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+AS80_Lu176_v2                1.8382 ->   1.8411  +0.158 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+AS80_Lu176                   1.9420 ->   1.9484  +0.330 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+AS80_Cs137_0cm               3.9706 ->   3.9854  +0.373 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+RC103_Lu176                  0.9710 ->   0.9920  +2.163 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s; Lu-176 92.71→93.00; Xray-Lu 7.24→6.96
+RC103_K40                    1.7228 ->   1.8962 +10.065 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+--- состав (share_pct > 0.05 п.п.):
+G1S24_Th232_Denta120_2     Ac-228 38.89→38.84
+G1S24_Y88_P25              Ann-511 1.63→1.52; Y-88 98.37→98.48
+AS80_Th232Medal            Ac-228 38.08→38.01; Tl-208 30.30→30.40
+G1S16_Mix_Mar              Am-241 17.68→17.48; Eu-152 53.93→54.00; Ti-44 4.72→4.87
+G1S24_Th228_P25            Pb-212 45.80→45.72; Tl-208 42.55→42.63
+G1S24_Th232_Petri          Ac-228 36.19→36.13
+G1S16_Mix_Petri            Am-241 21.00→21.07
+G1S16_Th232_Petri          Pb-212 30.98→30.93
+G1S24_Ra226_Denta120       Bi-214 48.28→48.34; Pb-214 47.25→47.19
+G1S24_Ra226_Mar_2          Bi-214 56.85→56.92; Pb-214 40.75→40.68
+G1S16_Th228_P25            Pb-212 46.35→46.27; Tl-208 41.82→41.91
+G1S24_K40_Petri            K-40 92.78→92.72; pile-up 7.22→7.29
+G1S24_Th232_Petri_2        Tl-208 25.22→25.29
+RC103_Lu176                Lu-176 92.71→93.00; Xray-Lu 7.24→6.96
+спектров со сдвигом состава: 14

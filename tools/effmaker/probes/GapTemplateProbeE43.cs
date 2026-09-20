@@ -25,7 +25,13 @@ namespace GapTemplateProbeE43
     /// Без него «совпало» не отличимо от «сравнивал одно с одним».
     ///
     ///   GapTemplateProbeE43.exe --preset=RadiaCode-103 --scene=&lt;.in&gt;
-    ///                           [--distance=0] [--n=200000] [--out=&lt;csv&gt;]
+    ///                           [--distance=0] [--n=200000] [--out=&lt;csv&gt;] [--control=0.3:0.6]
+    ///
+    /// `--control=lo:hi` — окно положительного контроля (сцена / шаблон-без-зазора
+    /// на 662 кэВ). Умолчание 0.3…0.6 — постановка ВПРИТЫК (П73: 0.484 при 3 мм,
+    /// 0.381 при 4 мм). На расстоянии зазор двигает ε слабее: у точки 50 мм
+    /// (`RC103_point50`, `B30`, П99 18.09.2026) П73 мерила 0.917 при 3 мм и 0.857
+    /// при 4 мм — окно `--control=0.8:0.95` (измерено 0.882 при 3.5 мм).
     ///
     /// Коды возврата: 0 — совпало и контроль разошёлся; 1 — есть расхождения;
     /// 2 — не запустилась.
@@ -42,6 +48,7 @@ namespace GapTemplateProbeE43
 
             string presetName = null, scenePath = null, outCsv = null;
             double distance = 0.0;
+            double controlLo = 0.3, controlHi = 0.6;
             var options = new EfficiencyCalculationOptions();
             foreach (string arg in args)
             {
@@ -52,6 +59,19 @@ namespace GapTemplateProbeE43
                     distance = double.Parse(arg.Substring(11), CultureInfo.InvariantCulture);
                 else if (arg.StartsWith("--n=", StringComparison.Ordinal))
                     options.Histories = int.Parse(arg.Substring(4), CultureInfo.InvariantCulture);
+                else if (arg.StartsWith("--control=", StringComparison.Ordinal))
+                {
+                    // Окно контроля зависит от ПОСТАНОВКИ (расстояния), а не от шаблона:
+                    // впритык 0.3…0.6, точка 50 мм 0.8…0.95 (П99, `B30`).
+                    string[] lh = arg.Substring(10).Split(':');
+                    if (lh.Length != 2)
+                    {
+                        Console.Error.WriteLine("--control= ждёт lo:hi, например 0.3:0.6");
+                        return 2;
+                    }
+                    controlLo = double.Parse(lh[0], CultureInfo.InvariantCulture);
+                    controlHi = double.Parse(lh[1], CultureInfo.InvariantCulture);
+                }
                 else
                 {
                     Console.Error.WriteLine("неизвестный ключ: " + arg);
@@ -155,11 +175,13 @@ namespace GapTemplateProbeE43
             }
 
             // Контроль обязан РАЗОЙТИСЬ: при зазоре 3.5 мм впритык ε(662) — около
-            // 0.43 от ε без зазора (П73: 0.484 при 3 мм, 0.381 при 4 мм).
-            if (!(ratio662 > 0.3 && ratio662 < 0.6))
+            // 0.43 от ε без зазора (П73: 0.484 при 3 мм, 0.381 при 4 мм); окно —
+            // по постановке (`--control=`, умолчание впритык).
+            if (!(ratio662 > controlLo && ratio662 < controlHi))
             {
                 Fail(string.Format(CultureInfo.InvariantCulture,
-                    "контроль: сцена / шаблон-без-зазора на 662 = {0:F3}, ждали 0.3…0.6", ratio662));
+                    "контроль: сцена / шаблон-без-зазора на 662 = {0:F3}, ждали {1:F2}…{2:F2}",
+                    ratio662, controlLo, controlHi));
             }
 
             Say("");

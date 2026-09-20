@@ -1,0 +1,69 @@
+ours RC103_point0_p55_1460.82_stand code=0 n=40000000 keys=[] probe=build_stand 16:56:12 dt=88s
+done ours D:\BqMoni_Claude\p94\plan_0_stand.csv 16:56:12
+ours RC103_point0_p55_1460.82_off code=0 n=40000000 keys=[] probe=build_p94 17:16:35 dt=204s
+ours RC103_point0_p55_1460.82_off_detour0 code=0 n=20000000 keys=[--detour=0] probe=build_p94 17:18:23 dt=107s
+ours RC103_point0_p55_661.657_off code=0 n=40000000 keys=[] probe=build_p94 17:21:25 dt=182s
+done ours D:\BqMoni_Claude\p94\plan_1_off.csv 17:21:25
+ours RC103_point0_p55_661.657_off20 code=0 n=20000000 keys=[] probe=build_p94 17:23:58 dt=92s
+done ours D:\BqMoni_Claude\p94\plan_1b_off20.csv 17:23:58
+ours RC103_point0_p55_1460.82_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 17:30:05 dt=367s
+ours RC103_point0_p55_661.657_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 17:38:27 dt=502s
+ours RC103_point0_p55_59.541_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 17:45:22 dt=415s
+ours RC103_point0_p55_2614.511_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 17:48:28 dt=186s
+ours RC103_point0_1460.82_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 17:55:20 dt=412s
+ours RC103_point0_p55_2614.511_off code=0 n=40000000 keys=[] probe=build_p94 17:55:21 dt=321s
+ours RC103_point0_p55_2614.511_off_detour0 code=0 n=20000000 keys=[--detour=0] probe=build_p94 17:56:42 dt=81s
+done ours D:\BqMoni_Claude\p94\plan_4_diag2614.csv 17:56:42
+ours RC103_point0_661.657_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 18:02:08 dt=409s
+ours RC103_point0_p55_bare_2614.511_off code=0 n=20000000 keys=[] probe=build_p94 18:05:18 dt=81s
+ours RC103_point0_p55_bare_2614.511_eltr1 code=0 n=20000000 keys=[--eltr=1] probe=build_p94 18:06:50 dt=92s
+ours RC103_point0_661.657_off code=0 n=40000000 keys=[] probe=build_p94 18:09:21 dt=271s
+ours RC103_point0_p55_nofront_2614.511_eltr1 code=0 n=20000000 keys=[--eltr=1] probe=build_p94 18:09:24 dt=154s
+ours RC103_point0_p55_nofront_2614.511_off code=0 n=20000000 keys=[] probe=build_p94 18:10:18 dt=54s
+done ours D:\BqMoni_Claude\p94\plan_5_bare2614.csv 18:10:18
+ours RC103_point0_59.541_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 18:12:14 dt=606s
+ours RC103_point0_59.541_off code=0 n=40000000 keys=[] probe=build_p94 18:12:29 dt=188s
+done ours D:\BqMoni_Claude\p94\plan_6_liveoff.csv 18:12:29
+ours AS80_th_disk_1460.82_eltr1 code=0 n=8000000 keys=[--eltr=1] probe=build_p94 18:16:00 dt=225s
+ours AS80_th_disk_2614.511_eltr1 code=0 n=8000000 keys=[--eltr=1] probe=build_p94 18:19:25 dt=205s
+ours ASN16_lu_side_1460.82_eltr1 code=0 n=8000000 keys=[--eltr=1] probe=build_p94 18:21:26 dt=122s
+ours ASN16_lu_side_661.657_eltr1 code=0 n=8000000 keys=[--eltr=1] probe=build_p94 18:24:16 dt=169s
+ours ASN16_lu_side_59.541_eltr1 code=0 n=8000000 keys=[--eltr=1] probe=build_p94 18:31:56 dt=460s
+ours AS80_point0_1460.82_eltr1 code=0 n=4000000 keys=[--eltr=1] probe=build_p94 18:32:47 dt=51s
+ours AS80_point0_661.657_eltr1 code=0 n=4000000 keys=[--eltr=1] probe=build_p94 18:33:39 dt=53s
+done ours D:\BqMoni_Claude\p94\plan_2_on.csv 18:33:39
+ours RC103_point0_p55_1460.82_off SKIP (есть) 18:36:29
+ours RC103_point0_p55_bare_2614.511_off SKIP (есть) 18:36:29
+ours RC103_point0_p55_bare_2614.511_eltr1 code=0 n=20000000 keys=[--eltr=1] probe=build_p94 18:36:53 dt=23s
+ours RC103_point0_p55_1460.82_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 18:39:04 dt=131s
+ours RC103_point0_p55_661.657_eltr1 code=-1 n=40000000 keys=[--eltr=1] probe=build_p94 18:39:33 dt=30s
+ours RC103_point0_p55_1460.82_off code=0 n=40000000 keys=[] probe=build_p94 18:44:51 dt=89s
+ours RC103_point0_p55_bare_2614.511_off code=0 n=20000000 keys=[] probe=build_p94 18:45:13 dt=23s
+ours RC103_point0_p55_bare_2614.511_eltr1 code=0 n=20000000 keys=[--eltr=1] probe=build_p94 18:45:36 dt=23s
+ours RC103_point0_p55_1460.82_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 18:48:44 dt=188s
+ours RC103_point0_p55_661.657_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 18:51:56 dt=192s
+ours RC103_point0_p55_59.541_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 18:56:26 dt=271s
+ours RC103_point0_p55_2614.511_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 18:59:50 dt=204s
+ours RC103_point0_1460.82_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 19:02:45 dt=174s
+ours RC103_point0_661.657_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 19:05:21 dt=156s
+ours RC103_point0_59.541_eltr1 code=0 n=40000000 keys=[--eltr=1] probe=build_p94 19:08:38 dt=198s
+ours AS80_th_disk_1460.82_eltr1 code=0 n=8000000 keys=[--eltr=1] probe=build_p94 19:10:04 dt=86s
+ours AS80_th_disk_2614.511_eltr1 code=0 n=8000000 keys=[--eltr=1] probe=build_p94 19:11:37 dt=93s
+ours ASN16_lu_side_1460.82_eltr1 code=0 n=8000000 keys=[--eltr=1] probe=build_p94 19:12:42 dt=65s
+ours ASN16_lu_side_661.657_eltr1 code=0 n=8000000 keys=[--eltr=1] probe=build_p94 19:13:46 dt=64s
+ours ASN16_lu_side_59.541_eltr1 code=0 n=8000000 keys=[--eltr=1] probe=build_p94 19:15:00 dt=74s
+ours AS80_point0_1460.82_eltr1 code=0 n=4000000 keys=[--eltr=1] probe=build_p94 19:15:27 dt=27s
+ours AS80_point0_661.657_eltr1 code=0 n=4000000 keys=[--eltr=1] probe=build_p94 19:15:51 dt=23s
+ours RC103_point0_p55_1460.82_eltr1_detour0 code=0 n=20000000 keys=[--eltr=1 --detour=0] probe=build_p94 19:17:08 dt=77s
+ours RC103_point0_p55_661.657_eltr1_detour0 code=0 n=20000000 keys=[--eltr=1 --detour=0] probe=build_p94 19:18:25 dt=77s
+ours RC103_point0_p55_2614.511_eltr1_detour0 code=0 n=20000000 keys=[--eltr=1 --detour=0] probe=build_p94 19:19:45 dt=80s
+ours AS80_th_disk_2614.511_eltr1_detour0 code=0 n=8000000 keys=[--eltr=1 --detour=0] probe=build_p94 19:20:53 dt=67s
+ours RC103_point0_p55_nofront_2614.511_eltr1 code=0 n=20000000 keys=[--eltr=1] probe=build_p94 19:21:44 dt=52s
+done ours D:\BqMoni_Claude\p94\plan_7_final.csv 19:21:44
+ours RC103_point0_p55_1460.82_t_off code=0 n=10000000 keys=[] probe=build_p94 19:25:18 dt=23s
+ours RC103_point0_p55_1460.82_t_on code=0 n=10000000 keys=[--eltr=1] probe=build_p94 19:25:49 dt=31s
+ours AS80_th_disk_2614.511_t_off code=0 n=2000000 keys=[] probe=build_p94 19:26:00 dt=11s
+ours AS80_th_disk_2614.511_t_on code=0 n=2000000 keys=[--eltr=1] probe=build_p94 19:26:14 dt=14s
+ours RC103_point0_p55_59.541_t_off code=0 n=10000000 keys=[] probe=build_p94 19:26:54 dt=40s
+ours RC103_point0_p55_59.541_t_on code=0 n=10000000 keys=[--eltr=1] probe=build_p94 19:27:34 dt=40s
+done ours D:\BqMoni_Claude\p94\plan_3_time.csv 19:27:34

@@ -3705,11 +3705,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string EfficiencyMakerCalcHint {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerCalcHint", resourceCulture);
-            }
-        }
 
         public static string EfficiencyMakerGrid {
             get {
@@ -5640,6 +5635,105 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The panel layout file {0} could not be read.
+        /// </summary>
+        public static string LayoutLoadFailed {
+            get {
+                return ResourceManager.GetString("LayoutLoadFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The damaged file was set aside as {0}.
+        /// </summary>
+        public static string LayoutLoadSetAside {
+            get {
+                return ResourceManager.GetString("LayoutLoadSetAside", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The damaged file could not be set aside ({0}); this message will repeat on every start until the file is removed.
+        /// </summary>
+        public static string LayoutLoadNotSetAside {
+            get {
+                return ResourceManager.GetString("LayoutLoadNotSetAside", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The previous good copy {0} was loaded instead.
+        /// </summary>
+        public static string LayoutLoadBackupUsed {
+            get {
+                return ResourceManager.GetString("LayoutLoadBackupUsed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The previous copy {0} could not be read either ({1}).
+        /// </summary>
+        public static string LayoutLoadBackupBroken {
+            get {
+                return ResourceManager.GetString("LayoutLoadBackupBroken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to There was no previous copy.
+        /// </summary>
+        public static string LayoutLoadNoBackup {
+            get {
+                return ResourceManager.GetString("LayoutLoadNoBackup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The supplied default layout {0} is shown instead.
+        /// </summary>
+        public static string LayoutLoadSupplyUsed {
+            get {
+                return ResourceManager.GetString("LayoutLoadSupplyUsed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The supplied layout {0} could not be read either ({1}).
+        /// </summary>
+        public static string LayoutLoadSupplyBroken {
+            get {
+                return ResourceManager.GetString("LayoutLoadSupplyBroken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The supplied default layout built into the application is shown instead.
+        /// </summary>
+        public static string LayoutLoadBuiltinUsed {
+            get {
+                return ResourceManager.GetString("LayoutLoadBuiltinUsed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The layout built into the application could not be read either ({0}).
+        /// </summary>
+        public static string LayoutLoadBuiltinBroken {
+            get {
+                return ResourceManager.GetString("LayoutLoadBuiltinBroken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An empty arrangement is shown; the panels can be opened one by one from the View menu.
+        /// </summary>
+        public static string LayoutLoadDefault {
+            get {
+                return ResourceManager.GetString("LayoutLoadDefault", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Version {0}.
         /// </summary>
         public static string AboutVersionFormat {
@@ -6227,6 +6321,84 @@ namespace BecquerelMonitor.Properties {
         public static string ERRFwhmCalibrationUnset {
             get {
                 return ResourceManager.GetString("ERRFwhmCalibrationUnset", resourceCulture);
+            }
+        }
+
+        public static string FsaEfficiencyPointAboveUnity {
+            get {
+                return ResourceManager.GetString("FsaEfficiencyPointAboveUnity", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffCurveRefused {
+            get {
+                return ResourceManager.GetString("BqCoeffCurveRefused", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffFieldCurve {
+            get {
+                return ResourceManager.GetString("BqCoeffFieldCurve", resourceCulture);
+            }
+        }
+
+        public static string ResultFieldCurve {
+            get {
+                return ResourceManager.GetString("ResultFieldCurve", resourceCulture);
+            }
+        }
+
+        public static string ActivityFieldCurveRefused {
+            get {
+                return ResourceManager.GetString("ActivityFieldCurveRefused", resourceCulture);
+            }
+        }
+
+        public static string ActivityCurveRefused {
+            get {
+                return ResourceManager.GetString("ActivityCurveRefused", resourceCulture);
+            }
+        }
+
+        public static string FSACurveRefused {
+            get {
+                return ResourceManager.GetString("FSACurveRefused", resourceCulture);
+            }
+        }
+
+        public static string FSAReportEfficiencyFieldCurve {
+            get {
+                return ResourceManager.GetString("FSAReportEfficiencyFieldCurve", resourceCulture);
+            }
+        }
+
+        public static string FSAReportSummingFieldMatrix {
+            get {
+                return ResourceManager.GetString("FSAReportSummingFieldMatrix", resourceCulture);
+            }
+        }
+
+        public static string NormalizeNoCurve {
+            get {
+                return ResourceManager.GetString("NormalizeNoCurve", resourceCulture);
+            }
+        }
+
+        public static string NormalizeCurveEmpty {
+            get {
+                return ResourceManager.GetString("NormalizeCurveEmpty", resourceCulture);
+            }
+        }
+
+        public static string NormalizeCurveRefused {
+            get {
+                return ResourceManager.GetString("NormalizeCurveRefused", resourceCulture);
+            }
+        }
+
+        public static string NormalizeFieldCurve {
+            get {
+                return ResourceManager.GetString("NormalizeFieldCurve", resourceCulture);
             }
         }
 

@@ -1,0 +1,48 @@
+спектр                       часть     χ²/ndf до      после      Δ %  что разошлось; состав (доля %, до → после, > 0.05 п.п.)
+AS80_Cs137_0cm               known        3.9706     3.9854   +0.373  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+AS80_Lu176                   known        1.9420     1.9484   +0.330  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+AS80_Th232Medal              known       12.7045    12.6617   -0.337  anchor_note, anchor_offset_kev, ch_hi, ch_lo, chi2ndf, chi2ndf_pois; Ac-228 38.08→38.01; Tl-208 30.30→30.40
+ASN16_Lu176                  known        3.6583     3.6601   +0.049  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+ASN16_Lu176_P0               known        0.4120     0.4126   +0.146  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Am241_P25              known        1.5801     1.6038   +1.500  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Am241_P5               known        2.6969     2.6782   -0.693  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S16_Ba133_P25              known        2.6768     2.6781   +0.049  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Ba133_P5               known       11.6313    11.6543   +0.198  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Cd109_P25              known        1.3458     1.3489   +0.230  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Cd109_P5               known        3.5826     3.5807   -0.053  anchor_note, chi2ndf, chi2ndf_pois, decay_s, decay_s, dt_decay_s
+G1S16_Ce139_P25              known        1.1903     1.1906   +0.025  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Ce139_P5               known        3.2748     3.2782   +0.104  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Co57_P5                known        1.0076     1.0061   -0.149  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Co60_P25               known        1.7572     1.7026   -3.107  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Co60_P5                known        9.6326     9.7019   +0.719  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Cs137_P25              known        1.9586     1.9126   -2.349  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Cs137_P5               known        8.2573     8.0675   -2.299  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Eu152_P25              known        3.4275     3.4446   +0.499  anchor_note, anchor_offset_kev, ch_hi, ch_lo, chi2ndf, chi2ndf_pois
+G1S16_Eu152_P5               known       13.7753    13.8517   +0.555  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Mn54_P25               known        1.5796     1.5419   -2.387  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Mn54_P5                known        2.8640     2.8654   +0.049  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Na22_P25               known        4.3704     4.3584   -0.275  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Na22_P5                known       13.7339    13.8055   +0.521  ch_hi, ch_lo, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Th228_P25              known        1.1853     1.1891   +0.321  anchor_note, anchor_offset_kev, chi2ndf, collinearity, decay_s, decay_s; Pb-212 46.35→46.27; Tl-208 41.82→41.91
+G1S16_Th228_P5               known        4.4724     4.4636   -0.197  anchor_note, anchor_offset_kev, ch_hi, ch_lo, chi2ndf, chi2ndf_pois
+G1S16_Y88_P25                known        1.0705     1.0725   +0.187  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S16_Y88_P5                 known        1.3390     1.3376   -0.105  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S24_Am241_P5               known        5.8363     5.8146   -0.372  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S24_Ba133_P5               known       17.5089    17.5028   -0.035  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S24_Bi207_P5               known       23.3185    23.2399   -0.337  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S24_Cd109_P5               known        3.2101     3.2089   -0.037  anchor_note, chi2ndf, chi2ndf_pois, decay_s, decay_s, dt_decay_s
+G1S24_Co60_P5                known       11.9801    12.1252   +1.211  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S24_Cs137_P25              known        3.1721     3.2893   +3.695  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S24_Cs137_P5               known       13.9477    13.7566   -1.370  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S24_Eu152_P5               known       30.2283    30.5093   +0.930  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S24_Na22_P25               known        6.2950     6.4012   +1.687  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S24_Na22_P5                known       36.3487    36.5433   +0.535  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S24_Th228_P25              known        4.3834     4.3853   +0.043  anchor_note, anchor_offset_kev, ch_hi, ch_lo, chi2ndf, chi2ndf_pois; Pb-212 45.80→45.72; Tl-208 42.55→42.63
+G1S24_Th228_P5               known       20.7168    20.9496   +1.124  anchor_note, anchor_offset_kev, ch_hi, ch_lo, chi2ndf, chi2ndf_pois
+G1S24_Y88_P25                known        2.0839     2.0768   -0.341  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s; Ann-511 1.63→1.52; Y-88 98.37→98.48
+G1S24_Y88_P5                 known        8.1996     8.1510   -0.593  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+G1S24_Zn65_P5                known        1.0691     1.0752   +0.571  anchor_note, chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s
+
+known: разобранных 43, Σχ²/ndf 309.3957 -> 310.0310 (+0.2053 %)
+сдвинулось 43, побитово 0
+побитово: 

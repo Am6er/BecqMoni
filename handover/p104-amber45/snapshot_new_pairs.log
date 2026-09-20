@@ -1,0 +1,11 @@
+каталог проб: D:\BqMoni_Claude\p104\wt\tools\effmaker\probes\build_p104 (заверен 2026-09-18 16:26:47 из D:\BqMoni_Claude\p104\wt\BecquerelMonitor\bin\Debug_p104)
+  ⚠ сверено: набор приложения 386a57f54b09 (550 файлов), набор FsaStackShot 13494ce22634 (6 файлов), sha двух exe
+свежесть каталога проб: сошлась с деревом (T226, 1.4 с)
+рабочий каталог: D:\BqMoni_Claude\p104\wt\tools\fsa_showcase\wd (скопировано 0, снято 0; приборов 3, матриц 1)
+прогон FsaStackShot (1 спектров, 2 пар):
+  ASN16_Cs137_house / infer_eq_peak: 3.6 с
+  ASN16_Cs137_house / infer_eq_compton: 3.7 с
+  ASN16_Cs137_house / infer_eq_peak: эталон снят ВПЕРВЫЕ
+  ASN16_Cs137_house / infer_eq_compton: эталон снят ВПЕРВЫЕ
+
+ЭТАЛОН ОБЪЯВЛЕН 2026-09-18 16:29 (HEAD e1babbdc): 2 пар, из них с изменившимися числами 0 — D:\BqMoni_Claude\p104\wt\tools\fsa_showcase\reference

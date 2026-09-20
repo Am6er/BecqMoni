@@ -1,0 +1,36 @@
+g4 RC103_point0_p55_2614.511_escpop code=0 n=20000000 keys=[escpop] probe=build_p106 01:16:59 dt=109s
+g4 RC103_point0_p55_2614.511_killescown code=0 n=20000000 keys=[killescown] probe=build_p106 01:18:47 dt=108s
+g4 RC103_point0_p55_2614.511_killesccarry code=0 n=20000000 keys=[killesccarry] probe=build_p106 01:20:38 dt=110s
+g4 RC103_point0_p55_2614.511_killret code=0 n=20000000 keys=[killret] probe=build_p106 01:22:36 dt=118s
+g4 RC103_point0_p55_2614.511_killescbrem code=0 n=20000000 keys=[killescbrem] probe=build_p106 01:24:32 dt=116s
+g4 RC103_point0_p55_2614.511_killescdelta code=0 n=20000000 keys=[killescdelta] probe=build_p106 01:26:32 dt=119s
+g4 RC103_point0_p55_2614.511_killretsame code=0 n=20000000 keys=[killretsame] probe=build_p106 01:28:29 dt=118s
+g4 RC103_point0_p55_2614.511_killretother code=0 n=20000000 keys=[killretother] probe=build_p106 01:30:28 dt=119s
+g4 AS80_th_disk_2614.511_escpop code=0 n=8000000 keys=[escpop] probe=build_p106 01:31:46 dt=77s
+g4 AS80_th_disk_2614.511_killescown code=0 n=8000000 keys=[killescown] probe=build_p106 01:33:01 dt=76s
+g4 AS80_th_disk_2614.511_killesccarry code=0 n=8000000 keys=[killesccarry] probe=build_p106 01:34:17 dt=76s
+g4 AS80_th_disk_2614.511_killret code=0 n=8000000 keys=[killret] probe=build_p106 01:35:34 dt=76s
+g4 AS80_th_disk_2614.511_killescbrem code=0 n=8000000 keys=[killescbrem] probe=build_p106 01:36:50 dt=76s
+g4 RC103_point0_p55_1460.82_escpop code=0 n=20000000 keys=[escpop] probe=build_p106 01:38:46 dt=116s
+g4 RC103_point0_p55_1460.82_killescown code=0 n=20000000 keys=[killescown] probe=build_p106 01:40:42 dt=116s
+g4 RC103_point0_p55_1460.82_killesccarry code=0 n=20000000 keys=[killesccarry] probe=build_p106 01:42:36 dt=114s
+g4 RC103_point0_p55_1460.82_killret code=0 n=20000000 keys=[killret] probe=build_p106 01:44:31 dt=115s
+g4 RC103_point0_p55_1460.82_killescbrem code=0 n=20000000 keys=[killescbrem] probe=build_p106 01:46:26 dt=115s
+done g4 D:\BqMoni_Claude\p106\plan_1_g4.csv 01:46:26
+g4 RC103_point0_p55_2614.511_killoutbrem code=0 n=20000000 keys=[killoutbrem] probe=build_p106 01:49:03 dt=118s
+g4 RC103_point0_p55_2614.511_base code=0 n=20000000 keys=[killescown killcarry] probe=build_p106 01:50:56 dt=113s
+g4 RC103_point0_p55_2614.511_photon code=0 n=20000000 keys=[killescown killcarry killoutbrem] probe=build_p106 01:52:49 dt=113s
+g4 AS80_th_disk_2614.511_killoutbrem code=0 n=8000000 keys=[killoutbrem] probe=build_p106 01:54:00 dt=72s
+g4 AS80_th_disk_2614.511_base code=0 n=8000000 keys=[killescown killcarry] probe=build_p106 01:55:15 dt=74s
+g4 AS80_th_disk_2614.511_photon code=0 n=8000000 keys=[killescown killcarry killoutbrem] probe=build_p106 01:56:25 dt=70s
+g4 RC103_point0_p55_1460.82_killoutbrem code=0 n=20000000 keys=[killoutbrem] probe=build_p106 01:58:20 dt=115s
+g4 RC103_point0_p55_1460.82_base code=0 n=20000000 keys=[killescown killcarry] probe=build_p106 02:00:12 dt=112s
+g4 RC103_point0_p55_1460.82_photon code=0 n=20000000 keys=[killescown killcarry killoutbrem] probe=build_p106 02:02:04 dt=112s
+done g4 D:\BqMoni_Claude\p106\plan_3_g4.csv 02:02:04
+g4 RC103_point0_p55_2614.511_killoutbrem2 code=0 n=20000000 keys=[killoutbrem] probe=build_p106 02:27:10 dt=116s
+g4 RC103_point0_p55_2614.511_photon2 code=0 n=20000000 keys=[killescown killcarry killoutbrem] probe=build_p106 02:29:02 dt=112s
+g4 RC103_point0_p55_1460.82_killoutbrem2 code=0 n=20000000 keys=[killoutbrem] probe=build_p106 02:30:56 dt=114s
+g4 RC103_point0_p55_1460.82_photon2 code=0 n=20000000 keys=[killescown killcarry killoutbrem] probe=build_p106 02:32:49 dt=113s
+g4 AS80_th_disk_2614.511_killoutbrem2 code=0 n=8000000 keys=[killoutbrem] probe=build_p106 02:34:01 dt=72s
+g4 AS80_th_disk_2614.511_photon2 code=0 n=8000000 keys=[killescown killcarry killoutbrem] probe=build_p106 02:35:12 dt=71s
+done g4 D:\BqMoni_Claude\p106\plan_6_g4.csv 02:35:12

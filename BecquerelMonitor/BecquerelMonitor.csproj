@@ -420,6 +420,7 @@
     <Compile Include="InvariantNumericUpDown.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="LayoutFile.cs" />
     <Compile Include="LayoutMode.cs" />
     <Compile Include="LegendCellRenderer.cs" />
     <Compile Include="MagnificationReference.cs" />
@@ -1301,6 +1302,15 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="config\sound\" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- AMBER43 (П96, 17.09.2026): поставочная раскладка ещё и ВСТРОЕНА в сборку — последняя ступень
+         лестницы чтения файла раскладки (LayoutFile.BuiltinLayout): целевой файл → .bak → поставочный
+         файл из каталога приложения → эта копия → пусто. Тот же файл, что и Content ниже, ссылкой:
+         поставочные config\* не копируются и не правятся (приказ Amber 05.09.2026). -->
+    <EmbeddedResource Include="config\layout\ExpertMode.xml">
+      <LogicalName>BecquerelMonitor.config.layout.ExpertMode.xml</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <Content Include="BecquerelMonitor.ico" />

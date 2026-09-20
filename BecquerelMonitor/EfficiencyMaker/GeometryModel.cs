@@ -51,6 +51,26 @@ namespace BecquerelMonitor.EfficiencyMaker
         public readonly Dictionary<int, double> Fractions = new Dictionary<int, double>();
 
         /// <summary>
+        /// Вещества НЕТ: ни имени, ни состава, ни плотности (`AMBER47`). Ровно
+        /// то, что оставляет чтение файла `.in` без блока слоя, пустой блок
+        /// `&lt;Gap /&gt;` конфигурации прибора и заготовка
+        /// <c>new GeometryMaterial()</c>. Все три признака разом, а не любой из
+        /// них: вещество с именем и без состава — это ЗАДАННОЕ вещество, у
+        /// которого не хватает данных, и подменять его умолчанием нельзя —
+        /// о нём говорит <see cref="GeometryModel.CheckLayers"/>.
+        /// </summary>
+        [XmlIgnore]
+        public bool IsEmpty
+        {
+            get
+            {
+                return (this.Name == null || this.Name.Trim().Length == 0)
+                       && this.Fractions.Count == 0
+                       && !(this.Density > 0.0);
+            }
+        }
+
+        /// <summary>
         /// Тот же состав списком — потому что вещество теперь ХРАНИТСЯ, а не
         /// разбирается каждый раз из файла `.in`.
         ///
@@ -800,10 +820,83 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// Вещество зазора между отражателем и корпусом (`AMBER1`). По
         /// умолчанию ВОЗДУХ — по слову Amber; выбирается из той же библиотеки
-        /// веществ, что отражатель и корпус.
+        /// веществ, что отражатель и корпус. Умолчание ставит
+        /// <see cref="ApplyGapDefault"/> — на КАЖДОМ входе геометрии в
+        /// приложение (`AMBER47`), а не только в пресете и заготовке.
         /// </summary>
         public GeometryMaterial Gap = new GeometryMaterial();
         public GeometryMaterial Cladding = new GeometryMaterial();
+
+        /// <summary>Имя вещества зазора по умолчанию — как в библиотеке и в файлах LSRM.</summary>
+        public const string DefaultGapMaterialName = "Air, dry";
+
+        /// <summary>
+        /// Вещество зазора ПО УМОЛЧАНИЮ — сухой воздух (`AMBER47`, слово Amber
+        /// 17.09.2026 дословно: «Занеси в шаблоны приложения - что там GAP по
+        /// умолчанию - воздух (Air, dry). Если это влияет на корпус -
+        /// перезапускай.»).
+        ///
+        /// Берётся из ДЕЙСТВУЮЩЕЙ библиотеки веществ (у человека она своя и
+        /// правится), а если `Air, dry` там переименован или удалён — из
+        /// засева <see cref="GeometryMaterialLibrary.Seed"/> тем же именем:
+        /// умолчание не может зависеть от того, что человек сделал со своим
+        /// списком. Плотность — библиотечная (0.001205 г/см³).
+        ///
+        /// ⚠ Состав считается из формулы через атомные массы, то есть первый
+        /// вызов поднимает базу веществ (`matdb.sqlite`) — как любое
+        /// обращение к библиотеке. Зовётся он только у геометрии, у которой
+        /// вещества зазора НЕТ (см. <see cref="ApplyGapDefault"/>); у
+        /// геометрии с заданным веществом до базы дело не доходит.
+        /// </summary>
+        public static GeometryMaterial DefaultGapMaterial()
+        {
+            GeometryMaterialLibrary.Entry entry = GeometryMaterialLibrary.ByName(DefaultGapMaterialName);
+            if (entry == null)
+            {
+                foreach (GeometryMaterialLibrary.Entry seeded in GeometryMaterialLibrary.Seed())
+                {
+                    if (string.Equals(seeded.Name, DefaultGapMaterialName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        entry = seeded;
+                        break;
+                    }
+                }
+            }
+
+            return entry != null
+                ? GeometryMaterialLibrary.Make(entry, entry.Density)
+                : new GeometryMaterial();
+        }
+
+        /// <summary>
+        /// Поставить зазору воздух, если вещества у него НЕТ (`AMBER47`).
+        ///
+        /// ⛔ ЗАДАННОЕ вещество не подменяется НИКОГДА — ни вода, ни вещество с
+        /// именем без состава. Иначе это был бы `A303` наоборот: там редактор
+        /// молча ставил пустому зазору первую строку списка (воду), и след
+        /// этого до сих пор стоит в живом конфиге у «Точки» и «Точки 10 см»
+        /// прибора Atom Spectra 80x80. Умолчание — для ПУСТОГО, явное — чьё бы
+        /// оно ни было — остаётся явным; воду в зазоре человек чинит руками.
+        ///
+        /// Зовётся на трёх входах геометрии в приложение: чтение файла `.in`
+        /// (<see cref="Load"/>), чтение конфигурации прибора и файла спектра
+        /// (сеттер <c>EfficiencyConfigData.Geometry</c>) и наложение своего
+        /// шаблона (<c>GeometryTemplate.Apply</c>). Пресеты и заготовка
+        /// редактора ставят воздух сами с 08.09.2026.
+        ///
+        /// Клеймо матриц от этого не двигается: у зазора нулевой толщины
+        /// вещество в клеймо не входит (<c>ResponseMatrix.StampView</c>,
+        /// `dropGap`), а у шести корпусных сцен с ненулевым зазором воздух
+        /// записан в файле явно. Измерено пробой `GapDefaultProbe` на всех 61
+        /// файле `.in` корпуса и моделей.
+        /// </summary>
+        public void ApplyGapDefault()
+        {
+            if (this.Gap == null || this.Gap.IsEmpty)
+            {
+                this.Gap = DefaultGapMaterial();
+            }
+        }
         public GeometryMaterial BeakerWall = new GeometryMaterial();
         public GeometryMaterial Source = new GeometryMaterial();
 
@@ -1386,14 +1479,31 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.Cladding = Material(kv, "DS_", "CrystalCladding", "M_DS_Crystal_Cladding.MName",
                                   "DS_FractionTypeCrystalCladding", g.Warnings);
             // (`AMBER1`) Вещество зазора. У файла БЕЗ этих ключей — а таковы
-            // все файлы до 08.09.2026 и все чужие — выйдет пустое вещество, и
-            // это верно: толщина зазора у них тоже ноль, слоя нет вовсе.
-            // ⛔ Подставлять здесь воздух «по умолчанию» НЕЛЬЗЯ: умолчание
-            // ставят пресет и заготовка редактора, то есть места, где человек
-            // геометрию СОЗДАЁТ. Разбор чужого файла ничего не создаёт и обязан
-            // прочесть ровно то, что в файле написано.
+            // все файлы до 08.09.2026 и все чужие — разбор даёт пустое
+            // вещество; толщина зазора у них тоже ноль, слоя нет вовсе.
+            //
+            // (`AMBER47`) Пустому зазору ставится ВОЗДУХ — решение Amber
+            // 17.09.2026 дословно: «Занеси в шаблоны приложения - что там GAP
+            // по умолчанию - воздух (Air, dry). Если это влияет на корпус -
+            // перезапускай.» До этого здесь стоял запрет полосы П14 («разбор
+            // чужого файла обязан прочесть ровно то, что в файле написано»),
+            // и файл без блока зазора приезжал в редактор с ПУСТЫМ веществом:
+            // человек, набрав толщину, получал предупреждение «нет вещества»
+            // вместо воздуха. Запрет снят словом Amber.
+            //
+            // ⛔ Явно заданное вещество НЕ подменяется (`ApplyGapDefault`
+            // трогает только пустое): файл с `M_DS_Gap.MName = Water, liquid`
+            // читается водой — иначе это был бы `A303` наоборот.
+            //
+            // Клеймо матриц от подстановки не двигается: при нулевой толщине
+            // вещество зазора в клеймо не входит (`ResponseMatrix.StampView`,
+            // `dropGap` — блок «0 см, воздух» и файл без блока дают ОДНО клеймо
+            // с 08.09.2026), а у шести корпусных сцен с ненулевым зазором
+            // (`AS80_*`, `RC103_*`) воздух записан в файле явно и читается из
+            // файла. Измерено пробой `GapDefaultProbe` на 61 файле `.in`.
             g.Gap = Material(kv, "DS_", "CrystalGap", "M_DS_Gap.MName",
                              "DS_FractionTypeGap", g.Warnings);
+            g.ApplyGapDefault();
 
             string prefix = g.SourceType == GeometrySourceType.Marinelli ? "SM_" : "SC_";
             g.BeakerWall = Material(kv, prefix, "Wall", "M_" + prefix + "Beaker.MName",

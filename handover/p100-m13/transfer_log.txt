@@ -1,0 +1,10 @@
+✅ BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs: 50a74d6b5221… → a01d68c99b4c… (worktree a01d68c99b4c…) OK
+✅ BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs: 0df9e36108cd… → f1d078e1db6f… (worktree f1d078e1db6f…) OK
+✅ BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs: a836f68f7d3a… → 3f4be314d141… (worktree 3f4be314d141…) OK
+✅ BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs: 65f908b6dc6a… → 3dea69b453fd… (worktree 3dea69b453fd…) OK
+✅ BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs: e9aa290fb6aa… → be86721c40be… (worktree be86721c40be…) OK
+✅ tools/effmaker/probes/CorpusMatrixProbe.cs: 11405ca26fe1… → bd9b30ed331f… (worktree bd9b30ed331f…) OK
+✅ tools/effmaker/probes/G4RawProbe.cs: 70821e1d9465… → 28ffa7aea63f… (worktree 28ffa7aea63f…) OK
+⛔ tools/effmaker/probes/LayerReturnProbe.cs: в главном дереве НЕ основа (sha 03b429acc773… против ffd9f97e28a3…) — не копирую
+✅ tools/check_matrix_keys.py: 29bec16a6989… → 586e0c1eff43… (worktree 586e0c1eff43…) OK
+ЕСТЬ ОТКАЗЫ

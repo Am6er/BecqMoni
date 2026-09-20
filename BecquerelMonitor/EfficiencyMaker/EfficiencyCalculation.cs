@@ -573,6 +573,21 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // счёта физики 18), чтобы кривая и склад считали одну физику.
                 ElectronAnyMaterial = storePhysics.ElectronAnyMaterial,
                 BremAlongPath = storePhysics.BremAlongPath,
+                // (`AMBER44`/`M12`, П94 17.09.2026) Перенос электрона в слоях
+                // обвязки (занос и возврат) — тем же путём: от умолчания
+                // настроек склада (ВЫКЛ до единого счёта физики 19), чтобы
+                // кривая и склад считали одну физику.
+                ElectronLayerTransport = storePhysics.ElectronLayerTransport,
+                // (`M13`, П100 18.09.2026) Смешанная схема упругого рассеяния в
+                // слоях обвязки — тем же путём: от умолчания настроек склада
+                // (ВЫКЛ до решения Amber о едином счёте), чтобы кривая и склад
+                // считали одну физику.
+                ElectronLayerMixedScattering = storePhysics.ElectronLayerMixedScattering,
+                // (`M13`, П106 19.09.2026) Тормозное электрона в слоях обвязки по
+                // ходу переноса — тем же путём: от умолчания настроек склада
+                // (ВЫКЛ до решения Amber о едином счёте), чтобы кривая и склад
+                // считали одну физику.
+                ElectronLayerBremAlongPath = storePhysics.ElectronLayerBremAlongPath,
             };
 
             log(geometry.Describe());
@@ -715,6 +730,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                         ImportanceSampling = simulator.ImportanceSampling,
                         ElectronAnyMaterial = simulator.ElectronAnyMaterial,
                         BremAlongPath = simulator.BremAlongPath,
+                        ElectronLayerTransport = simulator.ElectronLayerTransport,
+                        ElectronLayerMixedScattering = simulator.ElectronLayerMixedScattering,
+                        ElectronLayerBremAlongPath = simulator.ElectronLayerBremAlongPath,
                     };
                 },
                 (range, loop, worker) =>
@@ -856,8 +874,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             // и клеймо обязано это нести; у сосуда — клеймо посимвольно прежнее.
             // `; ecomp=1` и `; bpath=N` (`N4`/`F11` (г), `M3`, П44 13.09.2026) —
             // теми же именами, что у клейма матрицы, только включёнными.
+            // `; eltr=1` (`AMBER44`/`M12`, П94 17.09.2026) — тем же именем, что у
+            // клейма матрицы, только включённым; с физики 19 (П97, 18.09.2026)
+            // ключ ВКЛ умолчанием склада, и у кривой он в клейме всегда.
+            // `; elmix=1` (`M13`, П100 18.09.2026) — тем же именем, что у клейма
+            // матрицы, только включённым; с физики 20 (П103, 19.09.2026) ключ
+            // ВКЛ умолчанием склада, и у кривой он в клейме всегда.
+            // `; lbrem=1` (`M13`, П106 19.09.2026) — тем же именем, что у клейма
+            // матрицы, только включённым; с физики 21 (П107, 19.09.2026) ключ
+            // ВКЛ умолчанием склада, и у кривой он в клейме всегда.
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
@@ -879,7 +906,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 storePhysics.ElectronAnyMaterial ? "; ecomp=1" : "",
                 storePhysics.BremAlongPath != 0
                     ? "; bpath=" + storePhysics.BremAlongPath.ToString(CultureInfo.InvariantCulture)
-                    : "");
+                    : "",
+                storePhysics.ElectronLayerTransport ? "; eltr=1" : "",
+                storePhysics.ElectronLayerMixedScattering ? "; elmix=1" : "",
+                storePhysics.ElectronLayerBremAlongPath ? "; lbrem=1" : "");
             return result;
         }
 

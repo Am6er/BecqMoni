@@ -1,0 +1,37 @@
+g4 RC103_point0_p55_1460.82_def code=0 n=40000000 keys=[] 15:22:05 dt=260s
+g4 RC103_point0_p55_1460.82_killesc code=0 n=40000000 keys=[killesc] 15:26:00 dt=235s
+done g4 D:\BqMoni_Claude\p92\plan_1.csv 15:26:00
+g4 RC103_point0_p55_1460.82_killcarry code=0 n=20000000 keys=[killcarry] 15:28:22 dt=117s
+g4 RC103_point0_p55_bare_1460.82_def code=0 n=20000000 keys=[] 15:30:03 dt=101s
+g4 RC103_point0_p55_noback_1460.82_def code=0 n=20000000 keys=[] 15:32:04 dt=120s
+g4 RC103_point0_p55_nofront_1460.82_def code=0 n=20000000 keys=[] 15:33:50 dt=106s
+g4 RC103_point0_p55_noside_1460.82_def code=0 n=20000000 keys=[] 15:35:41 dt=111s
+g4 RC103_point0_p55_661.657_def code=0 n=20000000 keys=[] 15:37:40 dt=120s
+g4 RC103_point0_p55_661.657_killesc code=0 n=20000000 keys=[killesc] 15:39:41 dt=121s
+g4 RC103_point0_p55_661.657_killcarry code=0 n=20000000 keys=[killcarry] 15:41:35 dt=114s
+g4 RC103_point0_p55_bare_661.657_def code=0 n=20000000 keys=[] 15:43:18 dt=103s
+g4 RC103_point0_p55_noback_661.657_def code=0 n=20000000 keys=[] 15:45:20 dt=122s
+g4 RC103_point0_p55_nofront_661.657_def code=0 n=20000000 keys=[] 15:47:12 dt=112s
+g4 RC103_point0_p55_noside_661.657_def code=0 n=20000000 keys=[] 15:49:03 dt=111s
+done g4 D:\BqMoni_Claude\p92\plan_2.csv 15:49:03
+g4 RC103_point0_p55_1460.82_fullcarry code=0 n=20000000 keys=[fullcarry] 15:54:57 dt=116s
+g4 RC103_point0_p55_661.657_fullcarry code=0 n=20000000 keys=[fullcarry] 15:56:57 dt=119s
+g4 AS80_th_disk_2614.511_def code=0 n=8000000 keys=[] 15:58:11 dt=74s
+g4 AS80_th_disk_2614.511_killesc code=0 n=8000000 keys=[killesc] 15:59:26 dt=76s
+g4 AS80_th_disk_2614.511_killcarry code=0 n=8000000 keys=[killcarry] 16:00:49 dt=83s
+g4 AS80_th_disk_bare_2614.511_def code=0 n=8000000 keys=[] 16:02:05 dt=75s
+g4 AS80_th_disk_noback_2614.511_def code=0 n=8000000 keys=[] 16:03:29 dt=84s
+g4 AS80_th_disk_nofront_2614.511_def code=0 n=8000000 keys=[] 16:04:40 dt=71s
+g4 AS80_th_disk_noside_2614.511_def code=0 n=8000000 keys=[] 16:05:55 dt=75s
+g4 AS80_th_disk_1460.82_def code=0 n=8000000 keys=[] 16:07:05 dt=70s
+g4 AS80_th_disk_1460.82_killesc code=0 n=8000000 keys=[killesc] 16:08:16 dt=70s
+g4 AS80_th_disk_1460.82_killcarry code=0 n=8000000 keys=[killcarry] 16:09:24 dt=69s
+g4 AS80_th_disk_bare_1460.82_def code=0 n=8000000 keys=[] 16:10:29 dt=64s
+g4 AS80_th_disk_nofront_1460.82_def code=0 n=8000000 keys=[] 16:11:42 dt=74s
+g4 AS80_th_disk_2614.511_fullcarry code=0 n=8000000 keys=[fullcarry] 16:13:04 dt=82s
+g4 AS80_th_disk_1460.82_fullcarry code=0 n=8000000 keys=[fullcarry] 16:14:20 dt=76s
+g4 RC103_point0_1460.82_def code=0 n=20000000 keys=[] 16:16:24 dt=124s
+g4 RC103_point0_1460.82_killesc code=0 n=20000000 keys=[killesc] 16:18:19 dt=114s
+g4 RC103_point0_1460.82_killcarry code=0 n=20000000 keys=[killcarry] 16:20:09 dt=110s
+g4 RC103_point0_1460.82_fullcarry code=0 n=20000000 keys=[fullcarry] 16:21:57 dt=108s
+done g4 D:\BqMoni_Claude\p92\plan_rest.csv 16:21:57

@@ -17,10 +17,13 @@ namespace BecquerelMonitor
             measurementResultCollection.ResultData = resultCollection.ResultData;
             measurementResultCollection.ROIConfig = resultCollection.ROIConfig;
             measurementResultCollection.MeasurementTime = resultCollection.MeasurementTime;
+            measurementResultCollection.LiveTime = resultCollection.LiveTime;
             this.roiConfig = resultCollection.ROIConfig;
             this.resultData = resultCollection.ResultData;
             this.energySpectrum = this.resultData.EnergySpectrum;
-            this.measurementTime = resultCollection.MeasurementTime;
+            // (`AMBER35`, 15.09.2026) Знаменатель — `CountingTime` коллекции:
+            // живое, если задано, иначе полное. Прежде делили на полное.
+            this.countingTime = resultCollection.CountingTime;
             if (this.roiConfig == null || this.energySpectrum == null)
             {
                 return null;
@@ -45,7 +48,7 @@ namespace BecquerelMonitor
                     continue;
                 }
 
-                if (this.measurementTime == 0.0)
+                if (this.countingTime == 0.0)
                 {
                     MeasurementResult item = new MeasurementResult(roidefinition, 0.0, 0.0);
                     measurementResultCollection.ResultList.Add(item);
@@ -72,7 +75,16 @@ namespace BecquerelMonitor
                         || resultTranslation == ResultTranslation.BecquerelsPerKilogram
                         || resultTranslation == ResultTranslation.BecquerelsPerLiter;
                     string cannot = null;
-                    if (needsCoefficient && !(becquerelCoefficient > 0.0))
+                    if (needsCoefficient && coefficient.Refused)
+                    {
+                        // (`AMBER34`, решение Amber 15.09.2026) Кривая сцены поля
+                        // (см²): K не получен И не подменён сохранённым числом —
+                        // строка невалидна со СВОЕЙ причиной, не с общим «no K».
+                        // Ручной режим сюда не попадает: `Resolve` кривую там не
+                        // спрашивает.
+                        cannot = coefficient.StatusText ?? Properties.Resources.ResultNoCoefficient;
+                    }
+                    else if (needsCoefficient && !(becquerelCoefficient > 0.0))
                     {
                         cannot = Properties.Resources.ResultNoCoefficient;
                     }
@@ -97,8 +109,8 @@ namespace BecquerelMonitor
                             });
                         continue;
                     }
-                    double resultCps = resultValue / this.measurementTime;
-                    double resultErrorCps = Math.Abs(resultError) / this.measurementTime;
+                    double resultCps = resultValue / this.countingTime;
+                    double resultErrorCps = Math.Abs(resultError) / this.countingTime;
                     double resultBq = resultCps * becquerelCoefficient;
                     double resultBqError = 0.0;
                     if (resultCps != 0.0 && becquerelCoefficient != 0.0)
@@ -106,7 +118,7 @@ namespace BecquerelMonitor
                         resultBqError = resultCps * becquerelCoefficient * Math.Sqrt(Math.Pow(resultErrorCps / resultCps, 2.0) + Math.Pow(becquerelCoefficientError / becquerelCoefficient, 2.0));
                         resultBqError = Math.Abs(resultBqError);
                     }
-                    double mdaCps = mda / this.measurementTime;
+                    double mdaCps = mda / this.countingTime;
                     double mdaBq = mdaCps * becquerelCoefficient;
                     switch (resultTranslation)
                     {
@@ -158,10 +170,11 @@ namespace BecquerelMonitor
             measurementResultCollection.ResultData = resultCollection.ResultData;
             measurementResultCollection.ROIConfig = resultCollection.ROIConfig;
             measurementResultCollection.MeasurementTime = resultCollection.MeasurementTime;
+            measurementResultCollection.LiveTime = resultCollection.LiveTime;
             this.roiConfig = resultCollection.ROIConfig;
             this.resultData = resultCollection.ResultData;
             this.energySpectrum = this.resultData.EnergySpectrum;
-            this.measurementTime = resultCollection.MeasurementTime;
+            this.countingTime = resultCollection.CountingTime;
             if (this.roiConfig == null || this.energySpectrum == null)
             {
                 return null;
@@ -217,15 +230,24 @@ namespace BecquerelMonitor
                 this.bg = true;
                 this.backgroundNumberOfChannels = this.backgroundEnergySpectrum.NumberOfChannels;
                 this.backgroundEnergyCalibration = this.backgroundEnergySpectrum.EnergyCalibration;
-                this.backgroundMeasurementTime = this.backgroundEnergySpectrum.MeasurementTime;
+                // (`AMBER35`, решение Amber 15.09.2026) Оба знаменателя — по
+                // правилу разбора FSA: живое, если задано (> 0), иначе полное
+                // (`EnergySpectrum.EffectiveLiveTime`); фон нормируется
+                // ОТНОШЕНИЕМ ЖИВЫХ. Прежде оба были полным временем, и Бк,
+                // Бк/кг, Бк/л зон занижались на мёртвое время прибора, а фон
+                // при разном мёртвом времени спектра и фона вычитался не в
+                // той доле. Спектр без живого — побитово прежние числа.
+                this.backgroundCountingTime = this.backgroundEnergySpectrum.EffectiveLiveTime;
             }
             this.numberOfChannels = this.energySpectrum.NumberOfChannels;
             this.energyCalibration = this.energySpectrum.EnergyCalibration;
-            this.measurementTime = this.energySpectrum.MeasurementTime;
+            this.countingTime = this.energySpectrum.EffectiveLiveTime;
             MeasurementResultCollection measurementResultCollection = new MeasurementResultCollection();
             measurementResultCollection.ResultData = resultData;
             measurementResultCollection.ROIConfig = this.roiConfig;
-            measurementResultCollection.MeasurementTime = this.measurementTime;
+            // Подпись — полное время, знаменатель (`CountingTime`) — по живому.
+            measurementResultCollection.MeasurementTime = this.energySpectrum.MeasurementTime;
+            measurementResultCollection.LiveTime = this.energySpectrum.LiveTime;
             List<MeasurementResult> resultList = measurementResultCollection.ResultList;
             foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
             {
@@ -237,7 +259,7 @@ namespace BecquerelMonitor
                 {
                     double resultValue = 0.0;
                     double resultError = 0.0;
-                    if (this.measurementTime == 0.0)
+                    if (this.countingTime == 0.0)
                     {
                         MeasurementResult item = new MeasurementResult(roidefinitionData2, 0.0, 0.0);
                         resultList.Add(item);
@@ -277,11 +299,11 @@ namespace BecquerelMonitor
                 return false;
             }
             double num = 0.0;
-            double fgTime = this.measurementTime;
+            double fgTime = this.countingTime;
             double bgTime = 0.0;
             if (this.bg)
             {
-                bgTime = this.backgroundMeasurementTime;
+                bgTime = this.backgroundCountingTime;
             }
             bool hasBg = false;
             foreach (ROIPrimitiveData roiprimitiveData in roi.ROIPrimitives)
@@ -327,9 +349,9 @@ namespace BecquerelMonitor
                         num6 = bgCps * (1.0 / fgTime + 1.0 / bgTime);
                         hasBg = true;
                     }
-                    if (this.bg && this.backgroundMeasurementTime != 0.0)
+                    if (this.bg && this.backgroundCountingTime != 0.0)
                     {
-                        double bgNormalizeCoeff = this.measurementTime / this.backgroundMeasurementTime;
+                        double bgNormalizeCoeff = this.countingTime / this.backgroundCountingTime;
                         bgRegionCounts *= bgNormalizeCoeff;
                         bgSigma *= bgNormalizeCoeff;
                     }
@@ -477,7 +499,7 @@ namespace BecquerelMonitor
                 // ROIAriphmetics.CalculateLd; the old expression solved x = k*sqrt(x/t + S)
                 // and understated the MDA up to ~2x for dominating background.
                 double mdaCps = detectionLevel * detectionLevel / fgTime + 2.0 * detectionLevel * Math.Sqrt(num);
-                roi.MDA = mdaCps * this.measurementTime;
+                roi.MDA = mdaCps * this.countingTime;
             }
             return true;
         }
@@ -516,10 +538,12 @@ namespace BecquerelMonitor
         EnergyCalibration backgroundEnergyCalibration;
 
         // Token: 0x04000311 RID: 785
-        double measurementTime;
+        /// <summary>(`AMBER35`) Знаменатель скорости спектра: живое, если задано, иначе полное.</summary>
+        double countingTime;
 
         // Token: 0x04000312 RID: 786
-        double backgroundMeasurementTime;
+        /// <summary>(`AMBER35`) То же у фона.</summary>
+        double backgroundCountingTime;
 
         // Token: 0x04000313 RID: 787
         decimal detectionLevel;

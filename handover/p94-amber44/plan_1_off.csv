@@ -1,0 +1,4 @@
+# П94 фаза 4 — ВЫКЛ побитово: сборка С правкой, ключ eltr ВЫКЛ (умолчание склада). Ожидание: ours CSV побайтно = handover/p92-m12/ours (ref и detour0).
+ours;RC103_point0_p55;1460.82;40000000;off;
+ours;RC103_point0_p55;1460.82;20000000;off_detour0;--detour=0
+ours;RC103_point0_p55;661.657;40000000;off;

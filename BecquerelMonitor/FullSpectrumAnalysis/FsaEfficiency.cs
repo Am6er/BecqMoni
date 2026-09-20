@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using BecquerelMonitor.EfficiencyMaker;
+using BecquerelMonitor.Properties;
 
 namespace BecquerelMonitor.FullSpectrumAnalysis
 {
@@ -80,18 +83,71 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// Кривая из конфигурации эффективности прибора или из снимка, который
-        /// спектр несёт в своём файле.
+        /// спектр несёт в своём файле. Причина отказа теряется — прежний вход,
+        /// оставлен читателям, которым нужен только сам факт «кривая есть»;
+        /// кто говорит с человеком, зовёт перегрузку с <c>refusal</c>.
         /// </summary>
         public static FsaEfficiency FromConfig(EfficiencyConfigData config)
         {
-            FsaEfficiency curve = config == null ? null : FromPoints(config.Curve);
+            string refusal;
+            return FromConfig(config, out refusal);
+        }
+
+        /// <summary>
+        /// (`AMBER34`, П79 15.09.2026) То же, но ОТКАЗ НАЗЫВАЕТ СЕБЯ:
+        /// <paramref name="refusal"/> — причина словами, когда кривой из
+        /// конфигурации не вышло, и null, когда вышла либо конфигурации нет
+        /// вовсе (это не отказ, а «кривая не выбрана» — его называет читатель).
+        ///
+        /// ⛔ Нормировка читается ЗДЕСЬ и одним правилом с дозой
+        /// (<see cref="DoseRateInput.StampNormalization"/>): клеймо
+        /// `norm=fluence` пишет только кривая сцены поля, её значения — площадь
+        /// в см² на единичный флюенс, а не доля на испущенный квант. Прежде
+        /// нормировку сверяла одна доза, а зоны, выделение, разбор и нормировка
+        /// спектра брали такую кривую как долю: у G1S Ø63×63 (A_пик = 13.8 см²,
+        /// П2) все точки выше единицы выбрасывались фильтром ниже — и человек
+        /// читал «кривой нет» при выбранной кривой; у RC-103 (A &lt; 1 см²)
+        /// точки проходили, и активность выходила в единицах 1/(с·см²) под
+        /// именем беккерелей, молча.
+        /// </summary>
+        public static FsaEfficiency FromConfig(EfficiencyConfigData config, out string refusal)
+        {
+            refusal = null;
+            if (config == null)
+            {
+                return null;
+            }
+
+            ResponseMatrixNormalization normalization = DoseRateInput.StampNormalization(config.ComputeStamp);
+            FsaEfficiency curve = FromPoints(config.Curve, normalization, out refusal);
             if (curve != null)
             {
                 curve.HasGeometry = config.HasGeometry;
+                curve.Normalization = normalization;
+                curve.Name = config.Name;
             }
 
             return curve;
         }
+
+        /// <summary>
+        /// (`AMBER34`) Нормировка кривой по её клейму: доля на испущенный квант
+        /// (все кривые ЛСРМ, руками, сцен с источником) либо площадь в см² на
+        /// единичный флюенс (сцена поля `ISO`). Кривая поля доезжает до всех
+        /// читателей КАК ФОРМА — пол полосы, гейт геометрии, веса линий образа
+        /// от неё не зависят по нормировке; кто считает беккерели, обязан
+        /// спросить <see cref="IsPerUnitFluence"/> и отказать словами.
+        /// </summary>
+        public ResponseMatrixNormalization Normalization { get; private set; }
+
+        /// <summary>Кривая сцены поля: значения — см², не доли.</summary>
+        public bool IsPerUnitFluence
+        {
+            get { return this.Normalization == ResponseMatrixNormalization.PerUnitFluence; }
+        }
+
+        /// <summary>Имя конфигурации, из которой кривая построена, — в отказы словами.</summary>
+        public string Name { get; private set; }
 
         /// <summary>
         /// ⛔ (`A277`) У КРИВОЙ, ИЗ КОТОРОЙ СЧИТАЕТСЯ ЭТОТ РАЗБОР, ЕСТЬ
@@ -117,22 +173,47 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// двух годных точек — кривой нет вовсе, и возвращается null, а не
         /// пустой объект: пустая кривая обязана отвечать «значения нет», а не
         /// подставлять единицу, как делала прежняя.
+        ///
+        /// ⛔ (`AMBER34`, П79) ТОЧКА ВЫШЕ ЕДИНИЦЫ — НЕ «ПРОПУСТИТЬ», А ОТКАЗ С
+        /// ИМЕНЕМ. До 15.09.2026 здесь стояло молчаливое `|| point.Efficiency
+        /// > 1.0 → continue`, написанное для доли на квант: оно резало рабочие
+        /// точки кривой поля (см²) и без единого слова превращало выбранную
+        /// кривую в «кривой нет». Теперь правило зависит от нормировки:
+        /// у кривой ДОЛЕЙ точка выше единицы физически невозможна — кривая
+        /// отказывается целиком, и <paramref name="refusal"/> называет точку и
+        /// энергию (подсадка 1.5 в кривую долей обязана быть НАЗВАНА — так её
+        /// и принимает `IsoCurveActivityProbeP79`); у кривой ПОЛЯ значения
+        /// выше единицы — норма, фильтра к ней нет.
         /// </summary>
-        static FsaEfficiency FromPoints(List<ROIEfficiencyData> source)
+        static FsaEfficiency FromPoints(List<ROIEfficiencyData> source,
+                                        ResponseMatrixNormalization normalization, out string refusal)
         {
+            refusal = null;
             if (source == null)
             {
                 return null;
             }
 
+            bool fraction = normalization != ResponseMatrixNormalization.PerUnitFluence;
             List<Point> points = new List<Point>();
             foreach (ROIEfficiencyData point in source)
             {
                 if (point == null || !Finite(point.Energy) || !Finite(point.Efficiency)
                     || !Finite(point.ErrorPercent) || point.Energy <= 0.0
-                    || point.Efficiency <= 0.0 || point.Efficiency > 1.0)
+                    || point.Efficiency <= 0.0)
                 {
                     continue;
+                }
+
+                if (fraction && point.Efficiency > 1.0)
+                {
+                    // Числа — инвариантной культурой (`A242`): причина уходит в
+                    // подсказку, на панель и в отчёт разбора как есть.
+                    refusal = string.Format(CultureInfo.InvariantCulture,
+                                            Resources.FsaEfficiencyPointAboveUnity,
+                                            point.Energy.ToString("0.##", CultureInfo.InvariantCulture),
+                                            point.Efficiency.ToString("G6", CultureInfo.InvariantCulture));
+                    return null;
                 }
 
                 points.Add(new Point

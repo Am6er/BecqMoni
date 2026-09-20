@@ -40,8 +40,40 @@ using System.Threading;
 //                     [--pairth=1] [--positron=1] [--posoffset=0] [--rayl2=1]
 //                     [--cone=1] [--peakw=1] [--peakb=1] [--xrkl=1] [--kdip=1] [--eta=0.33]
 //                     [--lbin=1] [--pkch=1] [--lys=1|2] [--etr=1] [--imp=1]
-//                     [--ecomp=1] [--bpath=0|1|2]
+//                     [--ecomp=1] [--bpath=0|1|2] [--eltr=1] [--elmix=1] [--lbrem=1]
 //                     [--xray=0] [--coh=0] [--brem=0] [--bremsb=0]
+//
+// `--lbrem=1` (`M13`, вторая половина, П106 19.09.2026) — ТОРМОЗНОЕ ЭЛЕКТРОНА В
+// СЛОЯХ ОБВЯЗКИ ПО ХОДУ ПЕРЕНОСА (только под `eltr=1`): кванты тонкой мишени
+// вещества текущего слоя на шагах переноса, направление по электрону (Цай);
+// толстые мишени в точке рождения (`OutsideBremsstrahlung`) и в точке выхода
+// (`LayerBremsstrahlung`) у ведомых электронов не разыгрываются. Входит в
+// клеймо (`lbrem=1`), хвост `LBRM`. ✅ ВКЛ умолчанием с 19.09.2026 — физика 21
+// (П107: единый счёт склада 49 сцен, база `out_rev31_*`; решение Amber 19.09.2026
+// по приёмке П106, дословно: «ВКЛ сейчас, единый счёт ночью»; арбитр: тормозное
+// электронов обвязки толстой мишенью у нас ×2.19 Geant4 в 0–50 кэВ RC103 при
+// 2614). `--lbrem=0` — плечо «как физика 20»: тело побитово = склад rev30.
+//
+// `--elmix=1` (`M13`, П100 18.09.2026) — СМЕШАННАЯ СХЕМА УПРУГОГО РАССЕЯНИЯ В
+// СЛОЯХ ОБВЯЗКИ (только под `eltr=1`): жёсткие столкновения выше 20° — по
+// одному по экранированному Резерфорду с поправкой Мотта, мягкие — шарниром
+// с шириной из транспортного сечения ниже отсечки; в кристалле не трогается.
+// Входит в клеймо (`elmix=1`), хвост `ELMX`. ✅ ВКЛ умолчанием с 19.09.2026 —
+// физика 20 (П103: единый счёт склада 49 сцен, база `out_rev30_*`; решение
+// Amber 18.09.2026 по приёмке П100, дословно: «ВКЛ сейчас, единый счёт ночью»);
+// `--elmix=0` — абляция «как физика 19»: тело побитово = склад rev29, клеймо
+// отличается только `phys=`.
+//
+// `--eltr=1` (`AMBER44` + правка заноса `M12`, П94 17.09.2026; решения Amber
+// 15.09.2026 «Перенос в слоях обвязки» и 17.09.2026 «Одной полосой с AMBER44»)
+// — ПЕРЕНОС ЭЛЕКТРОНА В СЛОЯХ ОБВЯЗКИ: вылетевший из кристалла электрон
+// ведётся в слоях (ESTAR слоя, Хайленд, переходы между слоями) и может
+// вернуться; занос рождённого в слое — тем же переносом с направлением по
+// процессу, дошедший — в перенос по кристаллу вместо куска без переноса.
+// Входит в клеймо (`eltr=1`), хвост `ELTR`. ✅ ВКЛ умолчанием с 18.09.2026 —
+// физика 19 (П97: единый счёт склада 46 сцен, база `out_rev28_*`; решение
+// Amber 17.09.2026 «ВКЛ сейчас, единый счёт ночью»); `--eltr=0` — абляция
+// «как физика 18» (тело побайтно = склад физики 18, клеймо только `phys=`).
 //
 // `--ecomp=1` (`N4`/`F11` (г), П44 13.09.2026) — ЭЛЕКТРОН В ПРОИЗВОЛЬНОМ
 // ВЕЩЕСТВЕ: пробег заносимого электрона по составу слоя (ESTAR из `matdb`, а
@@ -388,6 +420,24 @@ class CorpusMatrixProbe
                 // `N4`/`F11` (г), П44: электрон в произвольном веществе —
                 // пробег и тормозное по составу любого слоя; клеймо `ecomp=1`.
                 options.ElectronAnyMaterial = Flag(a, 8);
+            else if (a.StartsWith("--eltr=", StringComparison.Ordinal))
+                // ⛔ `AMBER44`/`M12`, П94: перенос электрона в слоях обвязки —
+                // занос и возврат; входит в клеймо (`eltr=1`). ВКЛ умолчанием
+                // с физики 19 (П97, 18.09.2026); `--eltr=0` — абляция, матрица
+                // честно другая по клейму (без `eltr=1;`).
+                options.ElectronLayerTransport = Flag(a, 7);
+            else if (a.StartsWith("--elmix=", StringComparison.Ordinal))
+                // ⛔ `M13`, П100: смешанная схема упругого рассеяния в слоях
+                // обвязки; входит в клеймо (`elmix=1`). ВКЛ умолчанием с
+                // физики 20 (П103, 19.09.2026); `--elmix=0` — абляция, матрица
+                // честно другая по клейму (без `elmix=1;`).
+                options.ElectronLayerMixedScattering = Flag(a, 8);
+            else if (a.StartsWith("--lbrem=", StringComparison.Ordinal))
+                // ⛔ `M13`, П106: тормозное электрона в слоях обвязки по ходу
+                // переноса; входит в клеймо (`lbrem=1`). ВКЛ умолчанием с
+                // физики 21 (П107, 19.09.2026); `--lbrem=0` — абляция, матрица
+                // честно другая по клейму (без `lbrem=1;`).
+                options.ElectronLayerBremAlongPath = Flag(a, 8);
             else if (a.StartsWith("--bpath=", StringComparison.Ordinal))
             {
                 // `M3`, П44: тормозное вдоль пути переноса, уровень 0/1/2;
@@ -726,6 +776,29 @@ class CorpusMatrixProbe
                               noisy ? string.Format(CultureInfo.InvariantCulture,
                                                     "ВЫШЕ ПОРОГА {0:F1} %", noiseLimit)
                                     : "тихо");
+            // (`AMBER46`, П87) Q_k угловой корреляции — из тех же историй,
+            // блок формата 9; печатается, чтобы было видно, что блок доехал
+            // до файла: узел у 662 кэВ и худший шум по узлам.
+            AngularAttenuation qk = matrix.AngularQk;
+            if (qk != null && qk.Count == matrix.Energies.Length)
+            {
+                int i662 = 0;
+                double worstQk = 0.0;
+                for (int i = 0; i < qk.Count; i++)
+                {
+                    if (Math.Abs(qk.Energies[i] - 661.7) < Math.Abs(qk.Energies[i662] - 661.7)) i662 = i;
+                    worstQk = Math.Max(worstQk, Math.Max(qk.Q2Err[i], qk.Q4Err[i]));
+                }
+
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                                  "   Q_k      : узлов {0}; у {1:F1} кэВ Q2 {2:F4} ± {3:F4}, Q4 {4:F4} ± {5:F4}, Q2T {6:F4}, Q4T {7:F4}; худший шум Q_k {8:F4}",
+                                  qk.Count, qk.Energies[i662], qk.Q2[i662], qk.Q2Err[i662], qk.Q4[i662], qk.Q4Err[i662],
+                                  qk.Q2T[i662], qk.Q4T[i662], worstQk));
+            }
+            else
+            {
+                Console.WriteLine("   Q_k      : ⛔ БЛОКА НЕТ — построитель не положил таблицу угловой корреляции");
+            }
             if (dump != null && matrix.NodeHistories != null)
             {
                 string dumpPath = files.Count > 1
@@ -738,7 +811,8 @@ class CorpusMatrixProbe
                     // потоках на 8 ядрах завышено, но узлы между собой сравнимы.
                     // `dropped_pct` — замер к `S55`: доля историй аналоговой
                     // ветки, выброшенных правилом «округлилось в бин пика».
-                    w.WriteLine("node,energy_kev,histories,error_pct,seconds_wall,dropped,scored,dropped_pct,dropped_scat,scat_pct");
+                    // (`AMBER46`) Q_k узла — те же числа, что в блоке ANGK файла.
+                    w.WriteLine("node,energy_kev,histories,error_pct,seconds_wall,dropped,scored,dropped_pct,dropped_scat,scat_pct,q2,q4,dq2,dq4,q2t,q4t,dq2t,dq4t,eps_peak,eps_total,qk_histories");
                     long[] dropped = ResponseMatrixBuilder.NodeDropped;
                     long[] scored = ResponseMatrixBuilder.NodeScored;
                     long[] droppedScat = ResponseMatrixBuilder.NodeDroppedScattered;
@@ -747,13 +821,19 @@ class CorpusMatrixProbe
                         long d = dropped != null && i < dropped.Length ? dropped[i] : 0L;
                         long sc = scored != null && i < scored.Length ? scored[i] : 0L;
                         long ds = droppedScat != null && i < droppedScat.Length ? droppedScat[i] : 0L;
+                        AngularAttenuation q = matrix.AngularQk;
+                        bool hasQ = q != null && q.Count == matrix.Energies.Length;
                         w.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                            "{0},{1:F3},{2},{3:F3},{4:F3},{5},{6},{7:F3},{8},{9:F3}", i, matrix.Energies[i],
+                            "{0},{1:F3},{2},{3:F3},{4:F3},{5},{6},{7:F3},{8},{9:F3},{10:R},{11:R},{12:R},{13:R},{14:R},{15:R},{16:R},{17:R},{18:R},{19:R},{20}",
+                            i, matrix.Energies[i],
                             matrix.NodeHistories[i],
                             matrix.NodeErrors != null ? matrix.NodeErrors[i] : 0.0,
                             matrix.NodeSeconds != null ? matrix.NodeSeconds[i] : 0.0,
                             d, sc, d + sc > 0L ? 100.0 * d / (d + sc) : 0.0,
-                            ds, d + sc > 0L ? 100.0 * ds / (d + sc) : 0.0));
+                            ds, d + sc > 0L ? 100.0 * ds / (d + sc) : 0.0,
+                            hasQ ? q.Q2[i] : 0.0, hasQ ? q.Q4[i] : 0.0, hasQ ? q.Q2Err[i] : 0.0, hasQ ? q.Q4Err[i] : 0.0,
+                            hasQ ? q.Q2T[i] : 0.0, hasQ ? q.Q4T[i] : 0.0, hasQ ? q.Q2TErr[i] : 0.0, hasQ ? q.Q4TErr[i] : 0.0,
+                            hasQ ? q.PeakEff[i] : 0.0, hasQ ? q.TotalEff[i] : 0.0, hasQ ? q.Histories[i] : 0L));
                     }
                 }
 
