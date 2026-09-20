@@ -202,7 +202,8 @@ namespace SumPeakProbe
                 return 1;
             }
 
-            AngularAttenuation qk = AngularAttenuation.Find(ResponseMatrixStore.Directory, rd.Efficiency.Geometry);
+            // (`AMBER46`, П87) Таблица Q_k — из самой матрицы (формат 9), сайдкаров нет.
+            AngularAttenuation qk = matrix.AngularQk;
             double epsP1 = summer.PeakEfficiency(e1), epsP2 = summer.PeakEfficiency(e2);
             double epsT1 = summer.TotalEfficiency(e1), epsT2 = summer.TotalEfficiency(e2);
             double kappa = matrix.JointFactor(e1, e2);
@@ -250,6 +251,11 @@ namespace SumPeakProbe
                 }
             }
 
+            // (П86, 15.09.2026) Множитель угловой корреляции сумм-пика W — из
+            // САМОГО сумматора (площадь ВКЛ / ВЫКЛ), а не числом: зашитое 1.0845
+            // было множителем Co-60 на `G1S_point5` при неверном знаке δ
+            // (П85 находка 1; с верным — 1.0825) и другой сцене не принадлежит.
+            double sumAreaIso = double.NaN, sumAreaAng = double.NaN;
             foreach (int ang in new[] { 0, 1 })
             {
                 FsaCascadeSummer s = FsaCascadeSummer.Create(matrix, scintillator);
@@ -278,6 +284,11 @@ namespace SumPeakProbe
 
                 Console.WriteLine("  сумматор ({0}):{1} угловых пар {2}{3}", ang == 1 ? "угловые ВКЛ" : "изотропно", sb, s.AngularPairs,
                                   s.AngularPairs > 0 ? string.Format(CultureInfo.InvariantCulture, " множитель {0:F4}", s.AngularFactorMax) : "");
+                if (corr.SumPeaks.Count > 0)
+                {
+                    if (ang == 1) sumAreaAng = corr.SumPeaks[0].Area; else sumAreaIso = corr.SumPeaks[0].Area;
+                }
+
                 if (aPass > 0.0 && corr.SumPeaks.Count > 0)
                 {
                     double area = corr.SumPeaks[0].Area;
@@ -460,8 +471,9 @@ namespace SumPeakProbe
                         Console.WriteLine("  по паспорту (полные): ε_p(E1) набл {0:F5}, ε_p(E2) набл {1:F5}; матрица набл/паспорт: E1 {2:F3}, E2 {3:F3}",
                                           eo1, eo2, f1 / (aFit * live * i1 / 100.0) / eo1, f2 / (aFit * live * i2 / 100.0) / eo2);
                         double aSum = n1 * n2 / (ns * live);
-                        Console.WriteLine("  метод сумм-пика (полные): A = {0:F0} Бк = {1:F3} паспорта; ×W 1.0845 → {2:F3}; Бринкман (+T/t) {3:F3}",
-                                          aSum, aSum / aPass, aSum * 1.0845 / aPass, (aSum + total / live) / aPass);
+                        double wAng = sumAreaIso > 0.0 && sumAreaAng > 0.0 ? sumAreaAng / sumAreaIso : double.NaN;
+                        Console.WriteLine("  метод сумм-пика (полные): A = {0:F0} Бк = {1:F3} паспорта; ×W {2:F4} (сумматор ВКЛ/ВЫКЛ) → {3:F3}; Бринкман (+T/t) {4:F3}",
+                                          aSum, aSum / aPass, wAng, aSum * wAng / aPass, (aSum + total / live) / aPass);
                         Console.WriteLine("  A_fit/паспорт {0:F3}; NΣ/N1 = {1:F5} = ε_p(E2)·W·(1+pu)/(1−L1); модели MΣ/M1 = {2:F5} = ε_p(E2)·κ/(1−L1)",
                                           aFit / aPass, ns / n1, sub / f1);
                     }
@@ -586,10 +598,15 @@ namespace SumPeakProbe
 
         static void Fill(double[] d, Window w, int bw)
         {
+            // (П102) Окно у нижнего/верхнего края шкалы: полоса подложки
+            // обрезается краем, а не выходит за массив (пара с K-рентгеном 40 кэВ
+            // на G1S16_Eu152_P5 ложилась ниже первого канала и роняла пробу
+            // IndexOutOfRange до печати ε_p матрицы).
             double bl = 0.0, br = 0.0;
-            for (int i = w.Lo - bw; i < w.Lo; i++) bl += d[i];
-            for (int i = w.Hi; i < w.Hi + bw; i++) br += d[i];
-            bl /= bw; br /= bw;
+            int nl = 0, nr = 0;
+            for (int i = Math.Max(0, w.Lo - bw); i < w.Lo; i++) { bl += d[i]; nl++; }
+            for (int i = w.Hi; i < Math.Min(d.Length, w.Hi + bw); i++) { br += d[i]; nr++; }
+            bl = nl > 0 ? bl / nl : 0.0; br = nr > 0 ? br / nr : 0.0;
             int n = w.Hi - w.Lo;
             double net = 0.0, cen = 0.0, gross = 0.0;
             for (int k = 0; k < n; k++)

@@ -1,0 +1,9 @@
+off RC103_point0 code=0 keys=[ ] threads=8 19:45:51 dt=170s
+on RC103_point0 code=0 keys=[--eltr=1 ] threads=8 19:48:53 dt=182s
+done RC103_point0 19:48:53
+off AS80_th_disk code=0 keys=[ --n=300000] threads=8 19:49:36 dt=43s
+on AS80_th_disk code=0 keys=[--eltr=1 --n=300000] threads=8 19:50:23 dt=47s
+done AS80_th_disk 19:50:23
+off ASN16_lu_side code=0 keys=[ --n=600000] threads=8 19:51:25 dt=61s
+on ASN16_lu_side code=0 keys=[--eltr=1 --n=600000] threads=8 19:52:34 dt=69s
+done ASN16_lu_side 19:52:34

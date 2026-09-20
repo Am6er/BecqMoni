@@ -1,0 +1,177 @@
+diff --git a/tools/g4cf/g4cf.cc b/tools/g4cf/g4cf.cc
+index e3222ef8..b3e86227 100644
+--- a/tools/g4cf/g4cf.cc
++++ b/tools/g4cf/g4cf.cc
+@@ -66,6 +66,8 @@
+ #include "G4Gamma.hh"
+ #include "G4Event.hh"
+ #include "G4Step.hh"
++#include "G4Electron.hh"
++#include "G4ProductionCutsTable.hh"
+ #include "G4Run.hh"
+ #include "G4UImanager.hh"
+ #include "G4SystemOfUnits.hh"
+@@ -132,6 +134,34 @@ namespace
+     // 40 млн дали 3561 = 3561 отсчёт в окне 2505.7).
+     long gSeed = 0;
+ 
++    // ---- Рычаги, которыми АРБИТР ПОВТОРЯЕТ НАШИ ПРИБЛИЖЕНИЯ переноса
++    // электрона (П55 `A72` 14.09.2026, в дерево — П92 `M12` 17.09.2026). Все
++    // ВЫКЛ по умолчанию — без ключей поведение прежнее до бита. Это НЕ физика
++    // арбитра, а плечи абляции: разность «умолчание − рычаг» у Geant4 против
++    // разности «умолчание − ключ» у нас мерит ОДИН И ТОТ ЖЕ член порознь.
++    //   killesc   — e-, у которого пред-точка шага в кристалле, а пост-точка
++    //               вне, гасится на грани (`fStopAndKill`): возврата электрона
++    //               из обвязки нет, как у нас (п. 3 `A72`, `AMBER44`). e+ не
++    //               трогается — у нас он аннигилирует на грани, у арбитра в
++    //               обвязке в шаге от неё, то же самое.
++    //   killcarry — e-, у которого пред-точка ВНЕ кристалла, а пост-точка
++    //               в нём, гасится на входе: заноса электронов из обвязки
++    //               (проба/отражатель/корпус) в кристалл нет. Зеркало нашего
++    //               `ElectronCarryDetour = 0` (`G4RawProbe --detour=0`):
++    //               «G4 def − G4 killcarry» — истинный вклад заноса по полосам,
++    //               «наша def − наша detour=0» — наш; сравнение — П92. e+ и
++    //               здесь не трогается (его 511 кэВ от заноса не зависят).
++    //   fullcarry — e-, РОЖДЁННЫЙ вне кристалла (`GetLogicalVolumeAtVertex`) и
++    //               вошедший в него, при выходе из кристалла отдаёт ему весь
++    //               остаток кинетической энергии и гасится: наше приближение
++    //               `ElectronCarryDeposit` («долетел — принёс весь остаток»),
++    //               без обратного рассеяния из CsI и вылета через другую грань.
++    //               «G4 fullcarry» против «наша ref» отделяет судьбу занесённого
++    //               электрона В КРИСТАЛЛЕ от его переноса В ОБВЯЗКЕ (П92 §3).
++    bool gKillEscape = false;
++    bool gKillCarry = false;
++    bool gFullCarry = false;
++
+     // Моно-режим сценного генератора (П85): косинус угла вылета первички к оси
+     // сцены (ось z — на центр кристалла) запоминается на событие, чтобы в конце
+     // события накопить Q_k = <P_k(cos θ)> по событиям пика и по событиям с любым
+@@ -865,11 +895,45 @@ public:
+ 
+     void UserSteppingAction(const G4Step* step) override
+     {
+-        if (step->GetPreStepPoint()->GetTouchableHandle()->GetVolume()
+-                ->GetLogicalVolume() == Detector::fCrystal)
++        bool preInCrystal = step->GetPreStepPoint()->GetTouchableHandle()->GetVolume()
++                ->GetLogicalVolume() == Detector::fCrystal;
++        if (preInCrystal)
+         {
+             fEvent->Add(step->GetTotalEnergyDeposit() / keV);
+         }
++
++        if (!gKillEscape && !gKillCarry && !gFullCarry)
++        {
++            return;
++        }
++
++        // Рычаги П55/П92 (см. шапку): судьба электрона на грани кристалла.
++        // Вклад шага в кристалл уже засчитан выше; остаток энергии пропадает
++        // — ровно как у EfficiencySimulator, где вылетевший e- обратно не
++        // ведётся (killesc), а при detour=0 заносимый e- до кристалла не
++        // доходит (killcarry).
++        // Только e-: позитрон в обоих рычагах не трогается (его 511 кэВ у нас
++        // летят из точки рождения пары независимо от заноса кинетики).
++        if (step->GetTrack()->GetDefinition() != G4Electron::Definition())
++        {
++            return;
++        }
++
++        auto postVolume = step->GetPostStepPoint()->GetTouchableHandle()->GetVolume();
++        bool postInCrystal = postVolume != nullptr && postVolume->GetLogicalVolume() == Detector::fCrystal;
++        if ((gKillEscape && preInCrystal && !postInCrystal) || (gKillCarry && !preInCrystal && postInCrystal))
++        {
++            step->GetTrack()->SetTrackStatus(fStopAndKill);
++        }
++
++        // fullcarry (П92): занесённый e- выходит из кристалла — остаток его
++        // кинетики засчитывается кристаллу, трек гасится (наше приближение).
++        if (gFullCarry && preInCrystal && !postInCrystal
++            && step->GetTrack()->GetLogicalVolumeAtVertex() != Detector::fCrystal)
++        {
++            fEvent->Add(step->GetPostStepPoint()->GetKineticEnergy() / keV);
++            step->GetTrack()->SetTrackStatus(fStopAndKill);
++        }
+     }
+ 
+ private:
+@@ -909,16 +973,31 @@ int main(int argc, char** argv)
+     //      | g4cf [scene <файл>] hist <E_кэВ> <N> <шаг_бина_кэВ>
+     // Файл сцены — вывод effsim --dump-scene; без него сцена вшитая (tube).
+     //      Перед всем этим могут стоять `vacuum` (мир пустой вместо воздуха),
+-    //      `corr` (угловые γ–γ корреляции каскада в RDM) и `seed <N>` (зерно
+-    //      ГСЧ) — в любом порядке.
++    //      `corr` (угловые γ–γ корреляции каскада в RDM), `seed <N>` (зерно
++    //      ГСЧ), `killesc`, `killcarry`, `fullcarry` (рычаги П55/П92, см. шапку) — в
++    //      любом порядке.
+     int base = 1;
+     while (argc > base && (std::strcmp(argv[base], "vacuum") == 0 || std::strcmp(argv[base], "corr") == 0
++                           || std::strcmp(argv[base], "killesc") == 0 || std::strcmp(argv[base], "killcarry") == 0
++                           || std::strcmp(argv[base], "fullcarry") == 0
+                            || (std::strcmp(argv[base], "seed") == 0 && argc > base + 1)))
+     {
+         if (std::strcmp(argv[base], "vacuum") == 0)
+         {
+             gVacuumWorld = true;
+         }
++        else if (std::strcmp(argv[base], "killesc") == 0)
++        {
++            gKillEscape = true;
++        }
++        else if (std::strcmp(argv[base], "killcarry") == 0)
++        {
++            gKillCarry = true;
++        }
++        else if (std::strcmp(argv[base], "fullcarry") == 0)
++        {
++            gFullCarry = true;
++        }
+         else if (std::strcmp(argv[base], "seed") == 0)
+         {
+             gSeed = std::atol(argv[base + 1]);
+@@ -944,12 +1023,17 @@ int main(int argc, char** argv)
+ 
+     if (argc < base + 3)
+     {
+-        std::fprintf(stderr, "g4cf [vacuum] [corr] [seed <N>] [scene <file>] mono <E_keV> <N> | ion <Z> <A> <N> <windows...>"
+-                             " | hist <E_keV> <N> <bin_keV>\n"
++        std::fprintf(stderr, "g4cf [vacuum] [corr] [seed <N>] [killesc] [killcarry] [fullcarry] [scene <file>] mono <E_keV> <N>"
++                             " | ion <Z> <A> <N> <windows...> | hist <E_keV> <N> <bin_keV>\n"
+                              "  vacuum: empty world instead of air. MANDATORY for bare-crystal"
+                              " checks (T133): air gives 8.232e-4 vs 5.794e-4 in 55...59 keV.\n"
+                              "  corr: gamma-gamma angular correlations in RDM (G4DeexPrecoParameters::"
+-                             "SetCorrelatedGamma); default is isotropic.\n");
++                             "SetCorrelatedGamma); default is isotropic.\n"
++                             "  killesc: kill e- leaving the crystal (no return from cladding, as in"
++                             " EfficiencySimulator). killcarry: kill e- entering the crystal from"
++                             " outside (no carry-in, as with --detour=0). fullcarry: an e- born outside"
++                             " deposits its whole remaining energy when leaving the crystal (our"
++                             " ElectronCarryDeposit). Ablation levers, P55/P92.\n");
+         return 2;
+     }
+ 
+@@ -1033,10 +1117,23 @@ int main(int argc, char** argv)
+     // если Set… не доехал (заперт, перезаписан умолчанием), здесь будет 0.
+     {
+         const G4DeexPrecoParameters* deex = G4NuclearLevelData::GetInstance()->GetParameters();
+-        std::printf("SETUP correlatedGamma=%d twoJmax=%d vacuum=%d seed=%ld\n",
+-                    deex->CorrelatedGamma() ? 1 : 0, deex->GetTwoJMAX(), gVacuumWorld ? 1 : 0, gSeed);
++        std::printf("SETUP correlatedGamma=%d twoJmax=%d vacuum=%d seed=%ld killesc=%d killcarry=%d fullcarry=%d\n",
++                    deex->CorrelatedGamma() ? 1 : 0, deex->GetTwoJMAX(), gVacuumWorld ? 1 : 0, gSeed,
++                    gKillEscape ? 1 : 0, gKillCarry ? 1 : 0, gFullCarry ? 1 : 0);
+         std::fflush(stdout);
+     }
++    // Пороги рождения вторичных (production cuts) по веществам сцены — в шапку
++    // каждого прогона (`M12`, П92; факт П55 §5.2). Измерено этой печатью
++    // 17.09.2026: range cut 1 мм (П55 писала 0.7 по памяти), порог явных
++    // δ-электронов e- в CsI 692 кэВ, NaI 620 (592 — это порог e+), Al 598,
++    // PTFE 541; без печати он невидим — все сверки вылета/заноса электронов
++    // (П20/П27/П44/П55/П92) идут при этом пороге. Печать, не
++    // настройка: умолчания арбитра не меняются. Таблицей, а не UI-командой
++    // `/run/dumpCouples`: команда рассылается рабочим потокам и печатается
++    // столько раз, сколько потоков.
++    std::printf("CUTS (production thresholds per material couple):\n");
++    G4ProductionCutsTable::GetProductionCutsTable()->DumpCouples();
++    std::fflush(stdout);
+     // Иначе Geant4 11.x молча считает стабильными нуклиды с периодом длиннее
+     // порога (по умолчанию ~1 год): Co-60 (5.3 г) просто не распадался.
+     ui->ApplyCommand("/process/had/rdm/thresholdForVeryLongDecayTime 1.0e+60 year");

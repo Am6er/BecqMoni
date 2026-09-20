@@ -1,0 +1,23 @@
+{
+ "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
+ "corpus": "a7699cefe5c8db86f47ccdc93730a1be97efb8f36fdbeae6d47ef46f091553df",
+ "corpus_dir": "D:\\BqMoni_Claude\\p93\\wt_h\\tools\\CORPUS\\corpus",
+ "corpus_files": 211,
+ "dirty": [
+  "BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs",
+  "BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs"
+ ],
+ "fields": {
+  "app_sha": "31ebd5ebde512f1736bdbea4ed878af8696d4505a5e68839e52fe32d67af0e7e",
+  "bin": "D:\\BqMoni_Claude\\p93\\wt_h\\BecquerelMonitor\\bin\\Release_p93h",
+  "keys": "--only=ASN16_Th232,ASN16_Charoite,ASN16_UGlass,ASN16_Granite,AS80_Th232_v2,AS80_UGlass,AS80_Charoite,ASN16_Charoite_v2,ASN16_Th232_Am241,ASN16_Am241,ASN16_Cs137,ASN16_Cs137_10cm,ASN16_BrazilNuts,AS80_Th232Medal,AS80_Onyx,AS80_K40,AS80_Th232WT20,AS80_Cs137_0cm,ASN16_Lu176,ASN16_Lu176_P0,AS80_Lu176,G1S16_Am241_P25,G1S16_Ba133_P25,G1S16_Cd109_P25,G1S16_Ce139_P25,G1S16_Co60_P25,G1S16_Cs137_P25,G1S16_Eu152_P25,G1S16_Mn54_P25,G1S16_Na22_P25,G1S16_Th228_P25,G1S16_Y88_P25,G1S16_Am241_P5,G1S16_Ba133_P5,G1S16_Cd109_P5,G1S16_Ce139_P5,G1S16_Co57_P5,G1S16_Co60_P5,G1S16_Cs137_P5,G1S16_Eu152_P5,G1S16_Mn54_P5,G1S16_Na22_P5,G1S16_Th228_P5,G1S16_Y88_P5,G1S24_Cs137_P25,G1S24_Na22_P25,G1S24_Th228_P25,G1S24_Y88_P25,G1S24_Am241_P5,G1S24_Ba133_P5,G1S24_Bi207_P5,G1S24_Cd109_P5,G1S24_Co60_P5,G1S24_Cs137_P5,G1S24_Eu152_P5,G1S24_Na22_P5,G1S24_Th228_P5,G1S24_Y88_P5,G1S24_Zn65_P5",
+  "probe_sha": "31579147933485387843c7ab3540f70329cdcf657139906e895fd51d6304581a",
+  "probes": "D:\\BqMoni_Claude\\p93\\wt_h\\tools\\effmaker\\probes\\build_p93h",
+  "store": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\corpus\\geometries",
+  "wd": "D:\\BqMoni_Claude\\p93\\wt_h\\tools\\CORPUS\\scripts\\wd_p93h"
+ },
+ "head": "dd934a3b32b1bcbfcb2d61743f2db67f2a5443bd",
+ "sources": "93ea7e440dfcb96fddb906d31d2c33e64c364b37f4c04227d8c2cb7f6ea90b85",
+ "sources_files": 558,
+ "written": "2026-09-17 16:17:59"
+}

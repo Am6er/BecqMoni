@@ -1,0 +1,61 @@
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p83
+  сборка   : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p83
+  пробы    : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p83
+  собрана  : 2026-09-15 18:02:58 из C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p83
+  наборы   : приложение fef7769ad5c6 (549 файлов), пробы 41f8c74365bd (194)
+  сверено  : 533 файлов по sha256 за 11.88 с
+  библиотека: в оснастке корпуса НЕТ по правилу AMBER19 — состав из manifest.csv, линии из nucdb/matdb
+  перекладка: клейма склада и оснастки сошлись
+  ОСНАСТКА СВЕЖАЯ: 533 файлов сошлись
+
+запуск: CorpusFsaProbe.exe --corpus=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus --out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p83_on_first2 --angcorr=1 --only=G1S16_Co60_P5,G1S16_Eu152_P5
+гейт библиотеки (AMBER19): поставочного config\NuclideDefinition.xml в каталоге прогона НЕТ — проверено: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p83\config\NuclideDefinition.xml
+оснастка (T68): 533 файлов из .appwd.json сошлись с манифестом sha256(содержимое)/v1 по sha256 за 0.80 с
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p83\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p83\config\device: 24 loaded
+корпус: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus
+спектров под отбор: 2 (часть: all, режим: spline)
+библиотека: --lib=sample — состав из manifest.csv, линии из nucdb/matdb; поставочный config\NuclideDefinition.xml в РАЗБОРЕ НЕ УЧАСТВУЕТ: проба его не читает и спектру не предъявляет (правило Amber 01.09.2026); гейт AMBER19 (12.09.2026): файл в каталоге прогона или подъём NuclideDefinitionManager — отказ кодом 12
+суммирование вкл, наложения вкл, рассеяние вкл, вылеты вкл
+KEYS	ключи пробы против умолчаний (T115, отражением по Options; настройки анализатора — строка SETUP): AngCorr -1 → 1; Only нет → {2: G1S16_Co60_P5, G1S16_Eu152_P5}
+библиотека: ПО ОБЪЯВЛЕННОЙ ПРОБЕ (S56, manifest.csv + materials.csv)
+⚠ мерки сменили смысл: recall и фантомы считаются относительно ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать
+изомеры по sandia_symbol: вкл
+время жизни уровня: ВЕРОЯТНОСТНО (A289, умолчание)
+атомные партнёры каскада: рентген вкл, аннигиляция вкл; окно совпадения 1.000E-006 с (умолчание)
+сетка дрейфа: ноль ±8.00 кэВ, узлов 1 (один узел, дрейф не ищется); усиление ±2.00 %, узлов 1 (один узел, дрейф не ищется)
+полоса ОБОИХ концов: анализатор LibraryToFitByCurve/10.00 кэВ, библиотека LibraryToFitByCurve/10.00 кэВ — СОШЛИСЬ
+доля пола по кривой: 1.000 % (поставочная)
+пол ПОЛОСЫ ФИТА: ПОРОГ ПО РАМПЕ обоих спектров (проба и фон, пол = больший; доля уровня 0.70, окно 3.0 кэВ, рампа не шире 5 кэВ) (поставочный)
+SETUP	против поставочного разбора изменено: CascadeSumAngular False → True
+
+полоса ПЕРВОГО разбора (G1S16_Co60_P5): полоса сведена ПОЛОМ ПО КРИВОЙ 20.0 кэВ (1.0 % от максимума, Min_Range 30.0), фит на всём спектре (умолчание); пол ПОЛОСЫ ФИТА — порог по рампе обоих спектров, доля уровня 0.70: проба подъём 6.96→15.55 кэВ (от подошвы к уровню 5111) шире рампы (5 кэВ) — порог по первому каналу 1.24; фон подъём 1.24→15.55 кэВ (от подошвы к уровню 976) шире рампы (5 кэВ) — порог по первому каналу 1.24 → пол 1.24 кэВ — НЕ ПРИМЕНЁН: ниже него нет ни одного отсчёта ни у пробы, ни у фона (умолчание); фит 0…1023 (-13.1…3027.8 кэВ)
+G1S16_Co60_P5          G1S16      known    chi2/ndf    9.633  σ× 3.104  пиков   9  комп.  7  матрица: НАЙДЕНА, применена                                     2324 мс
+G1S16_Eu152_P5         G1S16      known    chi2/ndf   13.950  σ× 3.735  пиков  14  комп. 10  матрица: НАЙДЕНА, применена                                      837 мс
+гейт библиотеки (AMBER19): NuclideDefinitionManager за прогон не поднимался (обращений 0)
+APPLIED	применено по свидетельствам точек применения (T115): Atomic=True ×2; Background=True ×2; CrystalShield=False ×2; Equilibrium=True ×2; Matrix=True ×2
+
+записано групп: 1 -> C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p83_on_first2
+
+=== итог по частям корпуса (3 с на часах, 2 с ЦП) ===
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+known             2        2         2       23.6      11.79        0        0        0
+           привязка шкалы (AMBER17): с опорами 2, без опор 0; крупнейшие сдвиги: G1S16_Eu152_P5 (4 оп., усил. +0.72 %, ноль -0.14 кэВ); G1S16_Co60_P5 (2 оп., усил. +0.38 %, ноль +0.00 кэВ)
+           положение по свету (F11 в): ключ (умолчание анализатора), форма line; со светом NaI:Tl 2; без кривой 0
+           нуль шкалы образа (S169): ключ (умолчание анализатора); карта adc включилась у 2 из 2 (нуль по съёмке 1, по прибору 1; заказана и не включилась 0)
+           образ наложений по свету (S107): ключ (умолчание анализатора); формой по свету NaI:Tl 2 из 2
+
+отсев по значимости (~~`T240`~~): ПРИМЕНЁН у 2, отключился сам (порог выше значимости ВСЕХ судимых) у 0, выбрасывать было некого у 0, не заказан у 0
+  наибольшая значимость первого прохода: от 176.00 до 291.78 — с ней и сличается доля `RefitZRelative`
+  наименьшие вершины среди судимых: G1S16_Eu152_P5 176.00, G1S16_Co60_P5 291.78
+  доля вершины связала порог (ниже абсолютного) у 0
+
+УГЛОВЫЕ КОРРЕЛЯЦИИ В ПАРАХ (N14): ключ ВКЛ у 2 из 2 спектров; таблица Q_k сцены нашлась у 2; спектров с парами A_kk≠0 2, пар 119; множитель 0.7877…1.2136
+
+⚠ числа каждой строки принадлежат ТОЛЬКО своей части корпуса;
+  «понятная» считана с матрицей отклика, «непонятная» — из одних пиков.
+Фантомы и recall — C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p83_on_first2\..\score.py по этим же файлам:
+  python tools/pie/score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p83_on_first2 --part=all
+клеймо прогона: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p83_on_first2\.run.json (corpus a7699cefe5c8, sources 898b05f3d564, HEAD 952911e9)

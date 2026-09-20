@@ -1,0 +1,6 @@
+5af84abfc5dfac0e1948b33a6032666fef8454807156264be33da0fa300cfd48 *ours/ours_RC103_point0_p55_1460.82_off.csv
+5af84abfc5dfac0e1948b33a6032666fef8454807156264be33da0fa300cfd48 */c/Users/moroz/source/repos/BQ Eng res .NET 4.8/handover/p92-m12/ours/ours_RC103_point0_p55_1460.82_ref.csv
+ca01dfb443c943d006a120119d545f230e74702c48d49be8003aa0fe5d984ea9 *ours/ours_RC103_point0_p55_1460.82_off_detour0.csv
+ca01dfb443c943d006a120119d545f230e74702c48d49be8003aa0fe5d984ea9 */c/Users/moroz/source/repos/BQ Eng res .NET 4.8/handover/p92-m12/ours/ours_RC103_point0_p55_1460.82_detour0.csv
+105d925a5eba7989652dca420f7e5277a0de404e08374bf8f4427524318deaa1 *ours/ours_RC103_point0_p55_661.657_off20.csv
+105d925a5eba7989652dca420f7e5277a0de404e08374bf8f4427524318deaa1 */c/Users/moroz/source/repos/BQ Eng res .NET 4.8/handover/p92-m12/ours/ours_RC103_point0_p55_661.657_ref.csv

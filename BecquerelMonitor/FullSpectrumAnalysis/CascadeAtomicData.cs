@@ -2443,6 +2443,439 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return 0;
         }
 
+        /// <summary>
+        /// СХЕМА УРОВНЕЙ ОДНОГО ЯДРА КАК СЧЁТНЫЙ ХОД ВНИЗ (`S176`, 17.09.2026).
+        ///
+        /// ЗАЧЕМ. Условная вероятность каскада P(γ_B | γ_A) — «если вылетел
+        /// квант A, с какой вероятностью в том же распаде вылетит квант B» —
+        /// до 17.09.2026 бралась ДОСЛОВНО из поставки SandiaDecay
+        /// (`nucdb.gamma_coincidence.fraction`). Сверка со схемой уровней
+        /// PhotonEvaporation (полоса П90, `handover/p90-s176/sandia_vs_scheme.py`)
+        /// показала, что у поставки на каждый ПРОЙДЕННЫЙ уровень стоит лишний
+        /// множитель, не имеющий отношения к физике: у Eu-152 в ветви Sm-152 —
+        /// 0.370 (P(122 | 1408) = 0.1716 против 0.464 = 1/(1+α)), в ветви
+        /// Gd-152 — 0.952, у Lu-176 — 0.936, у Sc-44 P(1157 | 1499) = 0.0999
+        /// при α ≈ 0 и физическом 1.0, у Bi-214 уровень 609 кэВ — 0.72 при
+        /// прочих уровнях Po-214 ровно 1.0. Из 1754 переходов поставки у 1254
+        /// медиана отношения к схеме вне [0.9, 1.1]; Co-60, Cs-134, Ba-133
+        /// сходятся до 0.1…4 %. Оба арбитра П85 (Geant4 по той же
+        /// PhotonEvaporation и TCCFCALC2 по ENSDF) дают для сумм Eu-152 с
+        /// 121.78 кэВ в 2.7 раза больше нашего — ровно обратный множитель.
+        ///
+        /// ЧТО СЧИТАЕТСЯ. Ядро снимает возбуждение одним путём вниз. С уровня L
+        /// переход t идёт с вероятностью I_t·(1+α_t) / Σ_t′ I_t′·(1+α_t′), где
+        /// I — ОТНОСИТЕЛЬНАЯ γ-интенсивность строки `g4_gamma` (у Cs-133 уровня
+        /// 160.6 кэВ отношение 100/24.07 = 4.15 против ENSDF 4.06 — это
+        /// γ-интенсивность, не полная вероятность перехода), а квантом, не
+        /// электроном, он выходит с долей 1/(1+α_t). Отсюда
+        ///
+        ///     P(γ_B | γ_A) = Σ_k P(достичь уровня k | стоим на конечном уровне A) · I_B / Σ_t I_t(1+α_t) на уровне k
+        ///
+        /// по всем уровням k ниже, у которых есть выход с энергией B. Это тот же
+        /// ход, которым идёт Geant4 (`G4PhotonEvaporation`) и TCCFCALC2.
+        ///
+        /// ЧЕГО ЗДЕСЬ НЕТ. Заселённости уровней распадом (β/ЭЗ-питания) — она
+        /// живёт в `RadioactiveDecay`, не в схеме, и здесь не нужна: обратная
+        /// условная P(A | B) = P(B | A)·I(A)/I(B) считается потребителем через
+        /// выходы на распад, как и прежде. Списка пар схема тоже не порождает —
+        /// ПЕРЕЧЕНЬ пар и выходы линий остаются у поставки, у схемы берётся
+        /// только ВЕРОЯТНОСТЬ. Пара, которой в схеме не нашлось (энергии
+        /// разошлись больше допуска, переход без γ-интенсивности), остаётся с
+        /// долей поставки, и это считается (<see cref="FsaCascadeSummer"/>).
+        ///
+        /// α выше <see cref="AlphaCeiling"/> зажимается тем же потолком, что и
+        /// в <see cref="LoadScheme"/>: E0-переходы записаны в поставке α ≈ 1e20,
+        /// и это «γ нет вовсе», а не число.
+        /// </summary>
+        public sealed class LevelScheme
+        {
+            /// <summary>Выход уровня: куда, с какой энергией, γ-интенсивность (относительная) и полный α.</summary>
+            public sealed class Exit
+            {
+                public int ToSeq;
+                public double EnergyKev;
+                public double Intensity;
+                public double AlphaTotal;
+            }
+
+            /// <summary>Переход-кандидат для линии: уровень, с которого идёт, и сам выход.</summary>
+            public struct Candidate
+            {
+                public int FromSeq;
+                public Exit Exit;
+            }
+
+            public readonly int Z;
+            public readonly int A;
+
+            /// <summary>Уровень → его выходы (только с ненулевой γ-интенсивностью).</summary>
+            readonly Dictionary<int, List<Exit>> exits = new Dictionary<int, List<Exit>>();
+
+            /// <summary>Уровень → Σ I_t(1+α_t) по выходам.</summary>
+            readonly Dictionary<int, double> norm = new Dictionary<int, double>();
+
+            /// <summary>Уровни по убыванию номера — порядок хода вниз.</summary>
+            readonly List<int> descending = new List<int>();
+
+            /// <summary>Кэш достижимости: стартовый уровень → (уровень k → P(достичь k)).</summary>
+            readonly Dictionary<int, Dictionary<int, double>> reachCache =
+                new Dictionary<int, Dictionary<int, double>>();
+
+            static readonly object SchemeGate = new object();
+
+            static readonly Dictionary<long, LevelScheme> SchemeCache =
+                new Dictionary<long, LevelScheme>();
+
+            LevelScheme(int z, int a)
+            {
+                this.Z = z;
+                this.A = a;
+            }
+
+            /// <summary>Сколько переходов схема держит; ноль — схемы у ядра нет.</summary>
+            public int Count
+            {
+                get
+                {
+                    int count = 0;
+                    foreach (KeyValuePair<int, List<Exit>> entry in this.exits)
+                    {
+                        count += entry.Value.Count;
+                    }
+
+                    return count;
+                }
+            }
+
+            /// <summary>
+            /// Схема ядра (Z, A); null — базы схем нет рядом с программой или
+            /// чтение отказало. Пустая схема (ядра нет в поставке) — объект с
+            /// <see cref="Count"/> = 0. Кэшируется: схема неизменяема, а
+            /// <see cref="Reach"/> и <see cref="GammaShare"/> ничего в ней не
+            /// правят, кроме собственного кэша достижимости под замком.
+            /// </summary>
+            public static LevelScheme Of(int z, int a)
+            {
+                if (z <= 0 || a <= 0)
+                {
+                    return null;
+                }
+
+                long key = ((long)z << 20) | (uint)a;
+                lock (SchemeGate)
+                {
+                    LevelScheme scheme;
+                    if (SchemeCache.TryGetValue(key, out scheme))
+                    {
+                        return scheme;
+                    }
+
+                    scheme = Read(z, a);
+                    SchemeCache[key] = scheme;
+                    return scheme;
+                }
+            }
+
+            static LevelScheme Read(int z, int a)
+            {
+                string path = SchemeDatabasePath();
+                if (!File.Exists(path))
+                {
+                    return null;
+                }
+
+                var scheme = new LevelScheme(z, a);
+                try
+                {
+                    using (SqliteConnection connection = OpenRead(path))
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "select from_seq, to_seq, energy_ev, intensity_ppm, icc_total"
+                            + " from g4_gamma where z = $z and a = $a and intensity_ppm > 0";
+                        command.Parameters.AddWithValue("$z", z);
+                        command.Parameters.AddWithValue("$a", a);
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                double alpha = reader.IsDBNull(4) ? 0.0 : reader.GetDouble(4);
+                                if (!(alpha > 0.0))
+                                {
+                                    alpha = 0.0;
+                                }
+                                else if (alpha > AlphaCeiling)
+                                {
+                                    alpha = AlphaCeiling;
+                                }
+
+                                int from = reader.GetInt32(0);
+                                var exit = new Exit
+                                {
+                                    ToSeq = reader.GetInt32(1),
+                                    EnergyKev = reader.GetDouble(2) / 1000.0,
+                                    Intensity = reader.GetDouble(3) / 1.0E4,
+                                    AlphaTotal = alpha
+                                };
+
+                                List<Exit> bag;
+                                if (!scheme.exits.TryGetValue(from, out bag))
+                                {
+                                    scheme.exits[from] = bag = new List<Exit>();
+                                }
+
+                                bag.Add(exit);
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Отказ чтения — «схемы нет»: потребитель остаётся при доле
+                    // поставки и считает такие пары отдельно.
+                    return null;
+                }
+
+                foreach (KeyValuePair<int, List<Exit>> entry in scheme.exits)
+                {
+                    double total = 0.0;
+                    foreach (Exit exit in entry.Value)
+                    {
+                        total += exit.Intensity * (1.0 + exit.AlphaTotal);
+                    }
+
+                    scheme.norm[entry.Key] = total;
+                    scheme.descending.Add(entry.Key);
+                }
+
+                scheme.descending.Sort((x, y) => y.CompareTo(x));
+                return scheme;
+            }
+
+            /// <summary>Выходы уровня (пусто — уровня нет или выходов с γ у него нет).</summary>
+            public IList<Exit> ExitsOf(int fromSeq)
+            {
+                List<Exit> bag;
+                return this.exits.TryGetValue(fromSeq, out bag) ? bag : (IList<Exit>)new Exit[0];
+            }
+
+            /// <summary>Все переходы схемы с энергией в допуске от названной.</summary>
+            public List<Candidate> Candidates(double energyKev, double toleranceKev)
+            {
+                var found = new List<Candidate>();
+                foreach (KeyValuePair<int, List<Exit>> entry in this.exits)
+                {
+                    foreach (Exit exit in entry.Value)
+                    {
+                        if (Math.Abs(exit.EnergyKev - energyKev) < toleranceKev)
+                        {
+                            found.Add(new Candidate { FromSeq = entry.Key, Exit = exit });
+                        }
+                    }
+                }
+
+                return found;
+            }
+
+            /// <summary>Уровни схемы, у которых есть выходы с γ, по убыванию номера (порядок хода вниз).</summary>
+            public IList<int> Levels
+            {
+                get { return this.descending; }
+            }
+
+            /// <summary>Норма уровня Σ I_t(1+α_t) по выходам; ноль — уровня нет или выходов с γ у него нет.</summary>
+            public double NormOf(int level)
+            {
+                double total;
+                return this.norm.TryGetValue(level, out total) ? total : 0.0;
+            }
+
+            /// <summary>
+            /// БЛИЖАЙШИЙ по энергии выход уровня в допуске — то же правило, что
+            /// у <see cref="GammaShare"/> (один уровень редко несёт два выхода в
+            /// одной полосе); null — такого выхода у уровня нет. (`S177`)
+            /// </summary>
+            public Exit NearestExit(int level, double energyKev, double toleranceKev)
+            {
+                List<Exit> bag;
+                if (!this.exits.TryGetValue(level, out bag))
+                {
+                    return null;
+                }
+
+                Exit best = null;
+                double bestDelta = toleranceKev;
+                foreach (Exit exit in bag)
+                {
+                    double delta = Math.Abs(exit.EnergyKev - energyKev);
+                    if (delta < bestDelta)
+                    {
+                        best = exit;
+                        bestDelta = delta;
+                    }
+                }
+
+                return best;
+            }
+
+            /// <summary>Выход уровня <paramref name="fromSeq"/> НА уровень <paramref name="toSeq"/>; null — такого перехода с γ в схеме нет. (`S177`)</summary>
+            public Exit ExitTo(int fromSeq, int toSeq)
+            {
+                List<Exit> bag;
+                if (!this.exits.TryGetValue(fromSeq, out bag))
+                {
+                    return null;
+                }
+
+                foreach (Exit exit in bag)
+                {
+                    if (exit.ToSeq == toSeq)
+                    {
+                        return exit;
+                    }
+                }
+
+                return null;
+            }
+
+            /// <summary>
+            /// Вероятность, что с уровня <paramref name="level"/> ядро уйдёт
+            /// именно этим выходом И квантом (не электроном): I/Σ I_t(1+α_t).
+            /// Ноль — нормы у уровня нет. (`S177`)
+            /// </summary>
+            public double GammaShareOf(int level, Exit exit)
+            {
+                double total = this.NormOf(level);
+                return exit != null && total > 0.0 ? exit.Intensity / total : 0.0;
+            }
+
+            /// <summary>
+            /// P(достичь уровня <paramref name="level"/> | стоим на <paramref name="start"/>):
+            /// единица при равенстве, ноль — недостижим. Обёртка над
+            /// <see cref="Reach"/> для хода по паре (`S177`).
+            /// </summary>
+            public double ReachOf(int start, int level)
+            {
+                if (level == start)
+                {
+                    return 1.0;
+                }
+
+                if (level > start)
+                {
+                    return 0.0;
+                }
+
+                double have;
+                return this.Reach(start).TryGetValue(level, out have) ? have : 0.0;
+            }
+
+            /// <summary>
+            /// P(достичь уровня k | стоим на уровне <paramref name="start"/>) для
+            /// всех k ниже. Ход по убыванию номера уровня: переход всегда
+            /// сбрасывает энергию, значит номер конечного уровня меньше
+            /// начального, и родители обработаны раньше потомков. Уровни с
+            /// нулевой нормой (нет выходов с γ) — тупик: вероятность в них
+            /// остаётся, дальше не идёт.
+            /// </summary>
+            public Dictionary<int, double> Reach(int start)
+            {
+                lock (this.reachCache)
+                {
+                    Dictionary<int, double> reach;
+                    if (this.reachCache.TryGetValue(start, out reach))
+                    {
+                        return reach;
+                    }
+
+                    reach = new Dictionary<int, double>();
+                    reach[start] = 1.0;
+                    foreach (int level in this.descending)
+                    {
+                        if (level > start)
+                        {
+                            continue;
+                        }
+
+                        double here;
+                        if (!reach.TryGetValue(level, out here) || !(here > 0.0))
+                        {
+                            continue;
+                        }
+
+                        double total = this.norm[level];
+                        if (!(total > 0.0))
+                        {
+                            continue;
+                        }
+
+                        foreach (Exit exit in this.exits[level])
+                        {
+                            // ⚠ Петля поставки (переход «вверх») дальше не идёт:
+                            // уровень не ниже текущего в ходе не участвует.
+                            if (exit.ToSeq >= level)
+                            {
+                                continue;
+                            }
+
+                            double had;
+                            reach.TryGetValue(exit.ToSeq, out had);
+                            reach[exit.ToSeq] = had + here * exit.Intensity * (1.0 + exit.AlphaTotal) / total;
+                        }
+                    }
+
+                    this.reachCache[start] = reach;
+                    return reach;
+                }
+            }
+
+            /// <summary>
+            /// P(квант энергии ≈ <paramref name="energyKev"/> | достигнутые уровни
+            /// <paramref name="reach"/>): по каждому достигнутому уровню берётся
+            /// БЛИЖАЙШИЙ по энергии выход в допуске — один уровень редко несёт два
+            /// выхода в одной полосе, а у РАЗНЫХ уровней переходы близкой энергии
+            /// — разные кванты, и складываются они законно (детектор их не
+            /// различит). Ноль — такого кванта после старта не бывает.
+            /// </summary>
+            public double GammaShare(Dictionary<int, double> reach, double energyKev, double toleranceKev)
+            {
+                double share = 0.0;
+                foreach (KeyValuePair<int, double> entry in reach)
+                {
+                    List<Exit> bag;
+                    if (!(entry.Value > 0.0) || !this.exits.TryGetValue(entry.Key, out bag))
+                    {
+                        continue;
+                    }
+
+                    double total = this.norm[entry.Key];
+                    if (!(total > 0.0))
+                    {
+                        continue;
+                    }
+
+                    Exit best = null;
+                    double bestDelta = toleranceKev;
+                    foreach (Exit exit in bag)
+                    {
+                        double delta = Math.Abs(exit.EnergyKev - energyKev);
+                        if (delta < bestDelta)
+                        {
+                            best = exit;
+                            bestDelta = delta;
+                        }
+                    }
+
+                    if (best != null)
+                    {
+                        share += entry.Value * best.Intensity / total;
+                    }
+                }
+
+                return share;
+            }
+        }
+
         static string NuclideDatabasePath()
         {
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");

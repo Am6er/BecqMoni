@@ -29,6 +29,13 @@ namespace BecquerelMonitor
     /// предупреждения, невязка числом и строка качества живут в окне отчёта
     /// <see cref="FSAReportView"/>; прежней ручной таблицы под панелью
     /// курсора, её бюджета высоты и усечения хвоста качества здесь больше нет.
+    ///
+    /// (`AMBER45`, 18.09.2026) Второй режим показа — ОДИН СЛОЙ МАТРИЦЫ ОТКЛИКА
+    /// (<see cref="FsaMatrixLayer"/>): та же стопка по компонентам, но каждый
+    /// слой — только выбранным каналом (<see cref="FsaStackLayer.ChannelCurves"/>),
+    /// без частей модели, у которых каналов нет. Либо он, либо прежний
+    /// («All»): выбирает комбо «Matrix layer» окна отчёта. Лента невязки и
+    /// метки опор в обоих режимах — от полной модели.
     /// </summary>
     public partial class EnergySpectrumView
     {
@@ -82,6 +89,56 @@ namespace BecquerelMonitor
 
         double[] fsaZeroLevel;
         double[] fsaNetSpectrum;
+
+        // ------------------------------------------------------------------
+        // (`AMBER45`) РЕЖИМ ПОКАЗА СЛОЯ МАТРИЦЫ ОТКЛИКА
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`AMBER45`) Что просит показать комбо «Matrix layer» окна отчёта:
+        /// все каналы (стопка как есть) или один канал. Настройка ПОКАЗА, в
+        /// отпечаток не входит; ставит окно через документ
+        /// (<see cref="DocEnergySpectrum.FsaMatrixLayer"/>).
+        /// </summary>
+        FsaMatrixLayer fsaMatrixLayer = FsaMatrixLayer.All;
+
+        /// <summary>
+        /// Режим, в котором СОБРАН кадр (<see cref="BuildFsaFrameData"/>):
+        /// равен <see cref="fsaMatrixLayer"/>, кроме случая, когда каналов у
+        /// стопки нет вовсе (матрицы нет) — тогда здесь
+        /// <see cref="FsaMatrixLayer.All"/>, что бы ни просили. Читают пробы:
+        /// «режим канала недостижим без матрицы» проверяется этим полем.
+        /// </summary>
+        FsaMatrixLayer fsaFrameLayer = FsaMatrixLayer.All;
+
+        /// <summary>
+        /// Слои, НАРИСОВАННЫЕ стопкой в этом кадре, по порядку снизу вверх:
+        /// при «All» — все слои представления (та же ссылка), при канале —
+        /// только слои с раскладкой по каналам (<see cref="FsaMatrixLayers.Drawn"/>).
+        /// Индекс k здесь — тот же, что у <see cref="fsaCumulative"/>[k].
+        /// </summary>
+        List<FsaStackLayer> fsaStack;
+
+        /// <summary>
+        /// Кривая, которой нарисован k-й слой стопки: при «All» — его лента
+        /// <see cref="FsaStackLayer.Curve"/>, при канале —
+        /// <see cref="FsaStackLayer.ChannelCurves"/>[канал] (пустой канал —
+        /// пустой массив). Держится ради проб (`FsaStackShot --dump=`,
+        /// `FsaChannelViewProbe`): выгружается то, что нарисовано, а не пересказ.
+        /// </summary>
+        double[][] fsaStackCurves;
+
+        /// <summary>
+        /// Верх ПОЛНОЙ модели — сумма лент ВСЕХ слоёв представления. При «All»
+        /// это та же ссылка, что верх стопки <see cref="fsaCumulative"/>[последний]
+        /// (побитово, тот же порядок сложения); при канале стопка ниже, а лента
+        /// невязки и метки опор по-прежнему идут от полной модели (уточнение
+        /// Amber 18.09.2026: невязка — «Как есть, по своей галке»).
+        /// </summary>
+        double[] fsaModelTop;
+
+        /// <summary>Пустая кривая для слоя, у которого запрошенного канала нет.</summary>
+        static readonly double[] FsaEmptyCurve = new double[0];
 
         /// <summary>
         /// Сеанс разбора, на который подписан вид. Присваивает документ при
@@ -142,6 +199,43 @@ namespace BecquerelMonitor
 
                 this.fsaGrouping = value;
                 this.ForgetFsaPresentation();
+                this.Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER45`) СЛОЙ МАТРИЦЫ ОТКЛИКА НА ГРАФИКЕ — «все» (стопка как
+        /// есть) или один канал <see cref="EfficiencyMaker.EfficiencySimulator.ResponseChannel"/>.
+        /// Ставит окно отчёта через документ (<see cref="DocEnergySpectrum.FsaMatrixLayer"/>),
+        /// как группировку; читает <see cref="BuildFsaFrameData"/>.
+        ///
+        /// ⛔ Это ПРАВКА ВИДА, И ТОЛЬКО ВИДА, как <see cref="FsaShowResidual"/>:
+        /// ни разбор, ни снимок представления (слои, цвета, строки таблицы) от
+        /// неё не меняются — перестраиваются только кадровые массивы стопки, и
+        /// пересчёт не заказывается. Поэтому здесь сбрасывается
+        /// <see cref="fsaCumulative"/>, а не всё представление: список слоёв и
+        /// раздача цветов те же, и строить их второй раз незачем.
+        ///
+        /// Просят канал, а каналов у стопки нет (матрицы нет) — кадр собирается
+        /// как «All» (<see cref="fsaFrameLayer"/>); просьба помнится и вступает
+        /// в силу на следующем спектре с матрицей, как просьба о родителях.
+        /// </summary>
+        internal FsaMatrixLayer FsaMatrixLayer
+        {
+            get
+            {
+                return this.fsaMatrixLayer;
+            }
+
+            set
+            {
+                if (this.fsaMatrixLayer == value)
+                {
+                    return;
+                }
+
+                this.fsaMatrixLayer = value;
+                this.fsaCumulative = null;
                 this.Invalidate();
             }
         }
@@ -293,8 +387,8 @@ namespace BecquerelMonitor
                 return;
             }
 
-            double scale = this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0
-                ? 1.0 / this.energySpectrum.MeasurementTime
+            double scale = this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0
+                ? 1.0 / this.energySpectrum.EffectiveLiveTime
                 : 1.0;
             int from = Math.Max(0, firstChannel);
             int to = Math.Min(model.Length - 1, lastChannel);
@@ -343,6 +437,10 @@ namespace BecquerelMonitor
             this.fsaSumPeakLevel = null;
             this.fsaZeroLevel = null;
             this.fsaNetSpectrum = null;
+            this.fsaStack = null;
+            this.fsaStackCurves = null;
+            this.fsaModelTop = null;
+            this.fsaFrameLayer = FsaMatrixLayer.All;
         }
 
         void FsaSessionCompleted(object sender, EventArgs e)
@@ -403,6 +501,12 @@ namespace BecquerelMonitor
                 this.fsaPresentation = FsaPresentationBuilder.Build(result, this.fsaGrouping, oldFormat);
                 this.BuildFsaFrameData(result);
             }
+            else if (this.fsaCumulative == null)
+            {
+                // (`AMBER45`) Сменился только слой матрицы: снимок тот же,
+                // пересобираются одни кадровые массивы стопки.
+                this.BuildFsaFrameData(result);
+            }
 
             return this.fsaPresentation;
         }
@@ -416,16 +520,37 @@ namespace BecquerelMonitor
         {
             List<FsaStackLayer> layers = this.fsaPresentation.Layers;
             int channels = this.energySpectrum != null ? this.energySpectrum.NumberOfChannels : 0;
-            int count = layers.Count;
+
+            // (`AMBER45`) РЕЖИМ СЛОЯ МАТРИЦЫ. При «All» стопка — все слои
+            // представления их лентами, кадр тот же, что до 18.09.2026,
+            // побитово. При канале стопка — ТЕ ЖЕ слои тем же порядком, но
+            // только те, у кого есть раскладка по каналам, и каждый — своей
+            // кривой канала (уточнение Amber: «Стопка по компонентам, как
+            // сейчас»); фон, сплайн подложки, рассеяние, наложения, серое
+            // «прочее» раскладки не имеют и не рисуются, а разнесённая подложка
+            // и хвост слоя в кривую канала не входят по построению («Спрятать
+            // — только канал и спектр»). Без единого слоя с каналами (матрицы
+            // нет) режим недостижим — кадр собирается как «All», и окно отчёта
+            // о том же говорит погашенным комбо.
+            FsaMatrixLayer mode = this.fsaMatrixLayer != FsaMatrixLayer.All && FsaMatrixLayers.HasChannels(layers)
+                ? this.fsaMatrixLayer
+                : FsaMatrixLayer.All;
+            List<FsaStackLayer> stack = mode == FsaMatrixLayer.All ? layers : FsaMatrixLayers.Drawn(layers, mode);
+            this.fsaFrameLayer = mode;
+            this.fsaStack = stack;
+
+            int count = stack.Count;
             this.fsaZeroLevel = new double[channels];
             this.fsaCumulative = new double[count][];
 
             this.fsaSumPeakLevel = new double[count][];
+            this.fsaStackCurves = new double[count][];
 
             double[] running = this.fsaZeroLevel;
             for (int k = 0; k < count; k++)
             {
-                double[] curve = layers[k].Curve;
+                double[] curve = FsaMatrixLayers.CurveOf(stack[k], mode) ?? FsaEmptyCurve;
+                this.fsaStackCurves[k] = curve;
                 double[] level = new double[channels];
                 for (int i = 0; i < channels; i++)
                 {
@@ -434,7 +559,15 @@ namespace BecquerelMonitor
 
                 // Подслой сумм-пиков кладётся на НИЗ ленты: так его высота
                 // читается от границы со слоем ниже, а не висит в середине.
-                double[] sums = layers[k].SumPeakCurve;
+                //
+                // (`AMBER45`) В режиме канала подслой рисуется ТОЛЬКО у канала
+                // полного поглощения: сумм-пик — это полное поглощение пары, и
+                // разбор кладёт его в канал `Peak` (`FsaAnalyzer.AccumulateSumPeaks`);
+                // в ленте комптона или вылета этого подслоя нет, и штриховать
+                // там нечего.
+                double[] sums = mode == FsaMatrixLayer.All || mode == FsaMatrixLayer.Peak
+                    ? stack[k].SumPeakCurve
+                    : null;
                 if (sums != null)
                 {
                     double[] sumLevel = new double[channels];
@@ -461,10 +594,43 @@ namespace BecquerelMonitor
                 running = level;
             }
 
+            // (`AMBER45`) Верх ПОЛНОЙ модели — для ленты невязки и меток опор.
+            // При «All» это верх стопки — ТА ЖЕ ссылка, ни одного сложения
+            // сверх прежних; при канале — сумма лент всех слоёв тем же
+            // порядком сложения, что у стопки «All» (то есть то же число
+            // побитово), и лента невязки от смены слоя не двигается.
+            this.fsaModelTop = mode == FsaMatrixLayer.All ? running : FsaFullModelTop(layers, channels);
+
             // Правило «чистого спектра» — у результата, одно на вид и на пробы
             // (`S88`): вторая его копия рядом разъехалась бы молча.
             this.fsaNetSpectrum = result.NetSpectrum(
                 this.energySpectrum != null ? this.energySpectrum.Spectrum : null);
+        }
+
+        /// <summary>
+        /// (`AMBER45`) Сумма лент всех слоёв представления — ровно тем же
+        /// накоплением, каким стопка «All» строит свой верх (снизу вверх, слой
+        /// за слоем), чтобы верх полной модели в режиме канала был побитово
+        /// равен верху стопки в режиме «All».
+        /// </summary>
+        static double[] FsaFullModelTop(List<FsaStackLayer> layers, int channels)
+        {
+            double[] top = new double[channels];
+            foreach (FsaStackLayer layer in layers)
+            {
+                double[] curve = layer.Curve;
+                if (curve == null)
+                {
+                    continue;
+                }
+
+                for (int i = 0; i < channels; i++)
+                {
+                    top[i] = top[i] + (i < curve.Length ? curve[i] : 0.0);
+                }
+            }
+
+            return top;
         }
 
         /// <summary>
@@ -498,6 +664,17 @@ namespace BecquerelMonitor
                 return false;
             }
 
+            // (`AMBER45`) Рисуется СТОПКА КАДРА: при «All» — те же слои
+            // представления, при канале — только слои с раскладкой по каналам
+            // (<see cref="BuildFsaFrameData"/>). Индексы `fsaCumulative` идут по
+            // ней, а не по списку представления.
+            List<FsaStackLayer> stack = this.fsaStack ?? layers;
+            int top = stack.Count - 1;
+            if (top < 0)
+            {
+                return false;
+            }
+
             // Заливка идёт БЕЗ антиалиасинга: ленты стека — вертикальные
             // однопиксельные полоски, сглаживать в них нечего, а GDI+ платит за
             // AA-путь полную цену (в отрисовке пиков это была разница 130 против
@@ -515,9 +692,9 @@ namespace BecquerelMonitor
             bool muting = false;
             if (highlight != null)
             {
-                for (int k = 0; k < layers.Count; k++)
+                for (int k = 0; k < stack.Count; k++)
                 {
-                    if (string.Equals(layers[k].Name, highlight, StringComparison.Ordinal))
+                    if (string.Equals(stack[k].Name, highlight, StringComparison.Ordinal))
                     {
                         muting = true;
                         break;
@@ -527,11 +704,11 @@ namespace BecquerelMonitor
 
             try
             {
-                for (int k = 0; k < layers.Count; k++)
+                for (int k = 0; k < stack.Count; k++)
                 {
                     double[] lower = k > 0 ? this.fsaCumulative[k - 1] : this.fsaZeroLevel;
-                    Color color = this.fsaPresentation.ColorOf(layers[k].Name);
-                    bool muted = muting && !string.Equals(layers[k].Name, highlight, StringComparison.Ordinal);
+                    Color color = this.fsaPresentation.ColorOf(stack[k].Name);
+                    bool muted = muting && !string.Equals(stack[k].Name, highlight, StringComparison.Ordinal);
                     Color painted = muted ? MuteFsaColor(color) : Color.FromArgb(230, color);
                     using (Brush brush = new SolidBrush(painted))
                     {
@@ -629,7 +806,13 @@ namespace BecquerelMonitor
             // ГОВОРИТСЯ ВСЛУХ: у строки невязки в окне отчёта стоит признак
             // «показ подрезан на N каналах»
             // (<see cref="FSAReportView"/>, ключ `FSAReport_ResidualClamped`).
-            this.DrawFsaResidual(g, this.fsaCumulative[layers.Count - 1], this.fsaNetSpectrum,
+            //
+            // (`AMBER45`) Лента идёт от верха ПОЛНОЙ модели (<see cref="fsaModelTop"/>),
+            // а не от верха стопки: в режиме канала стопка ниже модели на всё,
+            // что спрятано, и лента «от стопки» показала бы спрятанное как
+            // «не описано». Решение Amber 18.09.2026: невязка — «Как есть, по
+            // своей галке». При «All» это та же ссылка, что верх стопки.
+            this.DrawFsaResidual(g, this.fsaModelTop, this.fsaNetSpectrum,
                                  this.globalConfigManager.GlobalConfig.ColorConfig
                                      .ActiveSpectrumColor.Color);
 
@@ -638,9 +821,11 @@ namespace BecquerelMonitor
             try
             {
                 // Верх стека — сумма модели: белая линия отделяет его от спектра.
+                // (`AMBER45`) В режиме канала — верх СТОПКИ КАНАЛА: линия
+                // очерчивает то, что нарисовано, а не то, что спрятано.
                 using (Pen modelPen = new Pen(Color.FromArgb(200, Color.White)))
                 {
-                    this.DrawFsaCurve(g, modelPen, this.fsaCumulative[layers.Count - 1]);
+                    this.DrawFsaCurve(g, modelPen, this.fsaCumulative[top]);
                 }
 
                 ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
@@ -652,7 +837,10 @@ namespace BecquerelMonitor
                 }
 
                 // (`AMBER17`) Опоры привязки шкалы — метками над верхом стека.
-                this.DrawFsaAnchors(g, result, this.fsaCumulative[layers.Count - 1]);
+                // (`AMBER45`) Над верхом ПОЛНОЙ модели: опора — пик полного
+                // поглощения, к которому привязана шкала, и стоит она там же
+                // при любом слое, как и лента невязки.
+                this.DrawFsaAnchors(g, result, this.fsaModelTop);
             }
             finally
             {
@@ -1148,9 +1336,9 @@ namespace BecquerelMonitor
 
         double ScaleFsaValue(double value)
         {
-            if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
+            if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
             {
-                return value / this.energySpectrum.MeasurementTime;
+                return value / this.energySpectrum.EffectiveLiveTime;
             }
 
             return value;

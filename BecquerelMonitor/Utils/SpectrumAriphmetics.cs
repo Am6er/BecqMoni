@@ -300,8 +300,23 @@ namespace BecquerelMonitor.Utils
                     // and are intentionally NOT merged.
                 }
 
+                // (`AMBER35`, 15.09.2026) Живое время суммы — сумма живых,
+                // но ТОЛЬКО если оно известно у ОБОИХ слагаемых. Прежде
+                // стояло голое `+=`: слагаемое без живого (LiveTime == 0)
+                // прибавляло ноль, и у суммы «живое» оказывалось живым ОДНОГО
+                // спектра при полном времени ДВУХ — правило знаменателя
+                // (`EffectiveLiveTime`: живое, если > 0) брало это неполное
+                // живое, и все скорости суммы уезжали вверх молча. Теперь у
+                // такой суммы живого нет (0) — знаменатель откатывается на
+                // полное время, как у любого спектра без живого. Слагаемое
+                // без измерения вовсе (MeasurementTime == 0 — пустой документ,
+                // к которому прибавляют) живого не «теряет»: ему нечего знать.
+                bool mainKnowsLive = mainSpectrum.LiveTime > 0.0 || !(mainSpectrum.MeasurementTime > 0.0);
+                bool addedKnowsLive = addedSpectrum.LiveTime > 0.0 || !(addedSpectrum.MeasurementTime > 0.0);
                 mainSpectrum.MeasurementTime += addedSpectrum.MeasurementTime;
-                mainSpectrum.LiveTime += addedSpectrum.LiveTime;
+                mainSpectrum.LiveTime = mainKnowsLive && addedKnowsLive
+                    ? mainSpectrum.LiveTime + addedSpectrum.LiveTime
+                    : 0.0;
                 mainSpectrum.TotalPulseCount += addedCounts;
                 mainSpectrum.ValidPulseCount += addedCounts;
 
@@ -333,11 +348,24 @@ namespace BecquerelMonitor.Utils
         public EnergySpectrum Substract(EnergySpectrum bgenergySpectrum)
         {
             EnergySpectrum substractedEnergySpectrum = this.EnergySpectrum.Clone();
-            if (this.EnergySpectrum.MeasurementTime == 0 || bgenergySpectrum.MeasurementTime == 0)
+            // (`AMBER35`, решение Amber 15.09.2026) Нормировка фона —
+            // ОТНОШЕНИЕМ ЖИВЫХ времён (`EffectiveLiveTime`: живое, если > 0,
+            // иначе полное), как у разбора FSA. Отсюда вычтенный спектр идёт
+            // в поиск пиков (`PeakDetector.DetectPeak`, режим «фон вычтен»),
+            // в вывоз CSV с энергиями (`DocumentManager.ExportDocumentToECSV`),
+            // в «жёсткое вычитание» (`MainForm`) и на график
+            // (`EnergySpectrumView.CalculateDataForSpecificModes`) — все они
+            // получают ОДНУ нормировку, и она та же, что у панели выделения
+            // и зон. Прежде здесь стояло отношение ПОЛНЫХ времён, и при
+            // разном мёртвом времени спектра и фона фон вычитался не в той
+            // доле. У спектров без живого времени числа побитово прежние.
+            double fgTime = this.EnergySpectrum.EffectiveLiveTime;
+            double bgTime = bgenergySpectrum.EffectiveLiveTime;
+            if (fgTime == 0 || bgTime == 0)
             {
                 return substractedEnergySpectrum;
             }
-            double norm_coeff = this.EnergySpectrum.MeasurementTime / bgenergySpectrum.MeasurementTime;
+            double norm_coeff = fgTime / bgTime;
             substractedEnergySpectrum.TotalPulseCount = 0;
             if (this.EnergySpectrum.EnergyCalibration.Equals(bgenergySpectrum.EnergyCalibration))
             {
@@ -377,19 +405,76 @@ namespace BecquerelMonitor.Utils
         }
 
         /// <summary>
+        /// (`AMBER34`, П79 15.09.2026) ПОЧЕМУ спектр по этой кривой НЕ
+        /// нормируется — словами; null — нормируется. ОДИН предикат на всех
+        /// читателей режима «спектр, нормированный на эффективность»
+        /// (<c>DocEnergySpectrum.IsNormalizeByEfficiencyAvailable</c>,
+        /// <c>MainForm.NormalizeSpectrum</c>, спектр сравнения в
+        /// <c>EnergySpectrumView</c>) и на саму <see cref="NormalizeSpectrum"/>:
+        /// прежде каждый судил по `FsaEfficiency.FromConfig != null`, и
+        /// человек на отвергнутой кривой читал «не выбрана».
+        ///
+        /// Четыре причины, и все четыре — разные беды с разным лечением:
+        /// кривая не выбрана; у выбранной меньше двух годных точек; кривая
+        /// долей отвергнута (точка выше единицы — какая, названо); кривая
+        /// СЦЕНЫ ПОЛЯ. Последняя — не из-за единиц (отсчёты / см² — флюенс у
+        /// детектора, величина честная), а из-за ХРАНЕНИЯ: спектр — <c>int[]</c>,
+        /// и деление на A &gt; 1 см² округляет малые каналы в ноль (5 отсч. /
+        /// 13.82 см² → 0, 200 / 13.82 → 14 при 14.47) — у человека на графике
+        /// неверное число, а не «другая величина». У кривой долей ε ≤ 1 деление
+        /// только увеличивает число, и потери нет. Правило то же, что у
+        /// активности: отказ словами, ресурс в двух языках.
+        /// </summary>
+        public static string NormalizeRefusal(EfficiencyConfigData efficiency)
+        {
+            if (efficiency == null)
+            {
+                return Resources.NormalizeNoCurve;
+            }
+
+            string refusal;
+            FullSpectrumAnalysis.FsaEfficiency curve =
+                FullSpectrumAnalysis.FsaEfficiency.FromConfig(efficiency, out refusal);
+            string name = efficiency.Name ?? "";
+            if (curve == null)
+            {
+                return refusal != null
+                    ? string.Format(CultureInfo.InvariantCulture, Resources.NormalizeCurveRefused, name, refusal)
+                    : string.Format(CultureInfo.InvariantCulture, Resources.NormalizeCurveEmpty, name);
+            }
+
+            if (curve.IsPerUnitFluence)
+            {
+                return string.Format(CultureInfo.InvariantCulture, Resources.NormalizeFieldCurve, name);
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Спектр, поделённый на эффективность поканально. Кривая приходит СВОЯ
         /// у спектра: раньше её брали из набора зон, но кривая оттуда уехала в
         /// конфигурацию прибора, и набор зон о ней больше ничего не знает.
+        ///
+        /// (`AMBER34`, П79) Кривая, по которой нормировать нельзя
+        /// (<see cref="NormalizeRefusal"/> не null — в том числе кривая сцены
+        /// поля), оставляет спектр КАК ЕСТЬ — ровно то, что метод делал при
+        /// отсутствующей кривой всегда; слова отказа читатели берут у
+        /// предиката ДО вызова, здесь их показать некому. ⚠ До 15.09.2026
+        /// кривая поля сюда не доезжала вовсе (все точки выше единицы
+        /// выбрасывал фильтр `FsaEfficiency.FromPoints`), человек видел
+        /// «кривой нет» при выбранной кривой.
         /// </summary>
         public static EnergySpectrum NormalizeSpectrum(EnergySpectrum spectrum, EfficiencyConfigData efficiency)
         {
             EnergySpectrum normalizedSpectrum = spectrum.Clone();
-            FullSpectrumAnalysis.FsaEfficiency curve =
-                FullSpectrumAnalysis.FsaEfficiency.FromConfig(efficiency);
-            if (curve == null)
+            if (NormalizeRefusal(efficiency) != null)
             {
                 return normalizedSpectrum;
             }
+
+            FullSpectrumAnalysis.FsaEfficiency curve =
+                FullSpectrumAnalysis.FsaEfficiency.FromConfig(efficiency);
 
             int minChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(curve.MinEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
             int maxChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(curve.MaxEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));

@@ -44,7 +44,23 @@ namespace FsaStackShot
     ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
     ///                [--rates=rates.csv] [--screen] [--shield=82,74] [--tie=0.9] [--tie-lines]
     ///                [--plant-tail] [--plant-spread] [--tail-as-residual] [--tail-to-continuum] [--plant-grey-floor]
-    ///                [--no-limit] [--limit-z=1000]
+    ///                [--no-limit] [--limit-z=1000] [--matrix-layer=All|Peak|Compton|EscapeAnnihilation|
+    ///                 EscapeXrayK|EscapeAnnihilationDouble|EscapeXrayL]
+    ///
+    /// `--matrix-layer=` (`AMBER45`, П104 18.09.2026) — положение комбо «Matrix
+    /// layer» окна отчёта: «All» (умолчание — стопка как есть, снимок побитово
+    /// прежний) или один канал матрицы отклика (`FsaMatrixLayer`). Ставится
+    /// виду ТЕМ ЖЕ полем, каким его ставит окно через документ
+    /// (`EnergySpectrumView.FsaMatrixLayer`), и окну отчёта на снимке
+    /// (`FSAReportView.RequestedMatrixLayer`) — комбо на PNG стоит в том же
+    /// положении. После отрисовки печатается `MATRIX_LAYER\t<просили>\t<собран>\t<слоёв
+    /// нарисовано>\t<имена>`: «собран» — режим, в котором вид собрал кадр
+    /// (без матрицы канал недостижим и здесь стоит `All`), и
+    /// `MATRIX_LAYER_COMBO\t<enabled>\t<пункт>\t<подсказка>` — состояние комбо на
+    /// снятом окне. `--dump=` в режиме канала выгружает НАРИСОВАННУЮ стопку:
+    /// столбцы слоёв — только слои с каналами, значения — кривые канала, взятые
+    /// у вида (`fsaStackCurves`), а не пересказ; `model`, `net`, `fit` — как
+    /// были (полная модель: от неё идёт лента невязки и в этом режиме).
     ///
     /// `--no-limit` / `--limit-z=` (П63, `S171`, второе правило) — предел
     /// неизмеримого члена ряда в режиме без связки
@@ -275,9 +291,21 @@ namespace FsaStackShot
             bool screenRows = false;
             var shieldZ = new List<int>();
             double pownum = 4.0;
+            // (`AMBER45`) Слой матрицы отклика на снимке; умолчание — «All», стопка как есть.
+            FsaMatrixLayer matrixLayer = FsaMatrixLayer.All;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
+                else if (a.StartsWith("--matrix-layer=", StringComparison.Ordinal))
+                {
+                    string name = a.Substring(15);
+                    if (!Enum.TryParse(name, true, out matrixLayer) || !Enum.IsDefined(typeof(FsaMatrixLayer), matrixLayer))
+                    {
+                        Console.Error.WriteLine("--matrix-layer={0}: неизвестный слой; известные: {1}", name,
+                                                string.Join(", ", Enum.GetNames(typeof(FsaMatrixLayer))));
+                        return 2;
+                    }
+                }
                 else if (a.StartsWith("--efficiency=", StringComparison.Ordinal)) efficiencyName = a.Substring(13);
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
                 else if (a.StartsWith("--from=", StringComparison.Ordinal)) fromKev = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
@@ -1004,6 +1032,11 @@ namespace FsaStackShot
                 Set(view, "pixelPerEnergy", (width - left) / (toKev - fromKev));
                 Set(view, "dirty", false);
 
+                // (`AMBER45`) Слой матрицы — ТЕМ ЖЕ полем, каким его ставит
+                // окно отчёта через документ (`EnergySpectrumView.FsaMatrixLayer`);
+                // ставится ДО первого кадра, чтобы стопка собралась в нём сразу.
+                Set(view, "fsaMatrixLayer", matrixLayer);
+
                 // Готовое разложение — прямо в сеанс вида: считать его второй
                 // раз фоновым потоком пробе незачем. Вид без документа заводит
                 // сеанс сам при первом обращении к `FsaSession`.
@@ -1085,6 +1118,24 @@ namespace FsaStackShot
                     object drawn = show.Invoke(view, new object[] { g });
                     Console.WriteLine("отрисовано: {0}", drawn);
 
+                    // (`AMBER45`) Чем собран кадр: просили — собран — сколько
+                    // слоёв нарисовано и какие. «Собран» читается у вида
+                    // (`fsaFrameLayer`): без матрицы канал недостижим, и здесь
+                    // обязано стоять `All`, что бы ни просили.
+                    var stackLayers = Field(typeof(EnergySpectrumView), "fsaStack").GetValue(view) as List<FsaStackLayer>;
+                    var names = new List<string>();
+                    if (stackLayers != null)
+                    {
+                        foreach (FsaStackLayer layer in stackLayers)
+                        {
+                            names.Add(layer.Name);
+                        }
+                    }
+
+                    Console.WriteLine("MATRIX_LAYER\t{0}\t{1}\t{2}\t{3}", matrixLayer,
+                                      Field(typeof(EnergySpectrumView), "fsaFrameLayer").GetValue(view),
+                                      names.Count, string.Join(", ", names.ToArray()));
+
                     if (selectFrom >= 0)
                     {
                         Invoke(view, "ShowSelectionPart2", g);
@@ -1116,7 +1167,7 @@ namespace FsaStackShot
                 // Отчёт — настоящим окном на том же сеансе, справа от стека;
                 // надпись пробы (если есть) — полосой ПОД обоими.
                 using (Bitmap combined = WithReport(image, (FsaAnalysisSession)overlay, rd, infer, caption,
-                                                    screenRows, equilibrium, atomic))
+                                                    screenRows, equilibrium, atomic, matrixLayer))
                 {
                     combined.Save(outPath, ImageFormat.Png);
                 }
@@ -1132,9 +1183,9 @@ namespace FsaStackShot
 
                 if (dumpPath != null)
                 {
-                    Dump(dumpPath, view, spectrum, calibration, result, shot);
+                    int columns = Dump(dumpPath, view, spectrum, calibration, result, shot);
                     Console.WriteLine("{0}: {1} каналов, колонок слоёв {2}",
-                                      dumpPath, spectrum.NumberOfChannels, shot.Count);
+                                      dumpPath, spectrum.NumberOfChannels, columns);
                 }
             }
 
@@ -1306,13 +1357,45 @@ namespace FsaStackShot
         /// пробой: вычитание фона живёт в одном месте, и второе такое же
         /// правило рядом разъехалось бы молча (та же беда, что у `S37`).
         /// </summary>
-        static void Dump(string path, EnergySpectrumView view, EnergySpectrum spectrum,
-                         EnergyCalibration calibration, FsaResult result, List<FsaStackLayer> layers)
+        static int Dump(string path, EnergySpectrumView view, EnergySpectrum spectrum,
+                        EnergyCalibration calibration, FsaResult result, List<FsaStackLayer> layers)
         {
             double[] net = (double[])Field(typeof(EnergySpectrumView), "fsaNetSpectrum").GetValue(view);
             if (net == null)
             {
                 net = result.NetSpectrum(spectrum.Spectrum);
+            }
+
+            // (`AMBER45`) В режиме канала столбцы слоёв — НАРИСОВАННАЯ стопка,
+            // как её собрал вид: только слои с каналами, значения — кривые
+            // канала (`fsaStackCurves`). При «All» — прежний список слоёв и их
+            // ленты, столбец в столбец, как до 18.09.2026: эталоны семи пар
+            // витрины держатся на этом.
+            var columnNames = new List<string>();
+            var columnCurves = new List<double[]>();
+            var frameLayer = (FsaMatrixLayer)Field(typeof(EnergySpectrumView), "fsaFrameLayer").GetValue(view);
+            if (frameLayer != FsaMatrixLayer.All)
+            {
+                var stack = Field(typeof(EnergySpectrumView), "fsaStack").GetValue(view) as List<FsaStackLayer>;
+                var curves = Field(typeof(EnergySpectrumView), "fsaStackCurves").GetValue(view) as double[][];
+                if (stack == null || curves == null || stack.Count != curves.Length)
+                {
+                    throw new InvalidOperationException("--dump=: у вида нет нарисованной стопки канала (fsaStack/fsaStackCurves)");
+                }
+
+                for (int k = 0; k < stack.Count; k++)
+                {
+                    columnNames.Add(stack[k].Name);
+                    columnCurves.Add(curves[k]);
+                }
+            }
+            else
+            {
+                foreach (FsaStackLayer layer in layers)
+                {
+                    columnNames.Add(layer.Name);
+                    columnCurves.Add(layer.Curve);
+                }
             }
             // (`T103`) Сырой сплайн — `continuum_raw`: слой стека «continuum»
             // (`FsaResult.ContinuumLayerName`) идёт в том же заголовке следом, и
@@ -1330,9 +1413,9 @@ namespace FsaStackShot
             var head = new StringBuilder("ch,keV,net,model,continuum_raw,untied_tail,fit,tail");
             double[] fitCurve = result.FitSpectrum(spectrum.Spectrum);
             double[] tailSum = result.TailCurveSum();
-            foreach (FsaStackLayer layer in layers)
+            foreach (string name in columnNames)
             {
-                head.Append(',').Append(layer.Name.Replace(',', ';'));
+                head.Append(',').Append(name.Replace(',', ';'));
             }
 
             var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -1359,14 +1442,16 @@ namespace FsaStackShot
                         .Append(At(result.UntiedTail, i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
                         .Append(At(fitCurve, i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
                         .Append(At(tailSum, i).ToString("F3", CultureInfo.InvariantCulture));
-                    foreach (FsaStackLayer layer in layers)
+                    foreach (double[] curve in columnCurves)
                     {
-                        line.Append(',').Append(At(layer.Curve, i).ToString("F3", CultureInfo.InvariantCulture));
+                        line.Append(',').Append(At(curve, i).ToString("F3", CultureInfo.InvariantCulture));
                     }
 
                     w.WriteLine(line.ToString());
                 }
             }
+
+            return columnNames.Count;
         }
 
         static double At(double[] a, int i)
@@ -1387,7 +1472,8 @@ namespace FsaStackShot
         /// приложения.
         /// </summary>
         static Bitmap WithReport(Bitmap stack, FsaAnalysisSession session, ResultData rd, bool infer,
-                                 string caption, bool screenRows, bool equilibrium, bool atomic)
+                                 string caption, bool screenRows, bool equilibrium, bool atomic,
+                                 FsaMatrixLayer matrixLayer)
         {
             const int reportWidth = 320;
             string[] captionLines = caption != null ? caption.Split('\n') : new string[0];
@@ -1427,8 +1513,18 @@ namespace FsaStackShot
                 host.Controls.Add(report);
                 report.Show();
                 host.Show();
+                // (`AMBER45`) Просьба о слое — ДО источника: `SetProbeSource`
+                // перечитывает окно и сам ставит комбо по просьбе и по тому,
+                // жива ли матрица (без неё комбо гаснет и показывает «All»).
+                report.RequestedMatrixLayer = matrixLayer;
                 report.SetProbeSource(session, rd);
                 Application.DoEvents();
+
+                ComboBox layerCombo = (ComboBox)Field(typeof(FSAReportView), "matrixLayerComboBox").GetValue(report);
+                Console.WriteLine("MATRIX_LAYER_COMBO\t{0}\t{1}\t{2}",
+                                  layerCombo.Enabled ? "enabled" : "disabled",
+                                  layerCombo.SelectedItem ?? "",
+                                  report.ToolTipOf(layerCombo));
 
                 var combined = new Bitmap(stack.Width + reportWidth, stack.Height + captionHeight);
                 using (Graphics g = Graphics.FromImage(combined))

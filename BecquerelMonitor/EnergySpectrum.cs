@@ -91,6 +91,27 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (`AMBER35`, 15.09.2026) ЗНАМЕНАТЕЛЬ СКОРОСТИ СЧЁТА этого спектра —
+        /// живое время, если задано (&gt; 0), иначе полное. Правило одно на
+        /// всё приложение и живёт в <see cref="Utils.LiveTime.Effective"/>;
+        /// здесь только вход к нему. На него делят активность выделения, зоны,
+        /// мощность дозы, нормировку фона при вычитании, график в имп/с и
+        /// разбор FSA. ⛔ Делить на <see cref="MeasurementTime"/> напрямую —
+        /// дефект: при мёртвом времени одна линия несла бы две скорости.
+        /// Подписи «время измерения» (таблица, заголовок CSV, статус) —
+        /// по-прежнему <see cref="MeasurementTime"/>: это подпись, а не
+        /// знаменатель. Не сериализуется: производная величина.
+        /// </summary>
+        [XmlIgnore]
+        public double EffectiveLiveTime
+        {
+            get
+            {
+                return Utils.LiveTime.Effective(this.liveTime, this.measurementTime);
+            }
+        }
+
         public long NumberOfSamples
         {
             get

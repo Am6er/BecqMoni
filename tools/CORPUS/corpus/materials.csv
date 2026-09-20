@@ -25,8 +25,8 @@ AS1Pro_Ra226,AS1PRO,unknown,Cs;I,,,таблица mk_materials.py,,CsI — пр�
 ASN16_Charoite_v2,ASN16,unknown,Cs;I,,Pb,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; corpus_def: «Чароит БЕЗ свинцовой защиты»; свинец всё равно поставлен — приказ Amber 02.09.2026 на прямой вопрос
 ASN16_Th232_Am241,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide
 ASN16_Am241,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide
-ASN16_Cs137,ASN16,unknown,Cs;I,,Pb,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; corpus_def: съёмка в домике
-ASN16_Cs137_10cm,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide
+ASN16_Cs137,ASN16,known,,,Pb,из геометрии спектра,,corpus_def: съёмка в домике
+ASN16_Cs137_10cm,ASN16,known,,,Pb,из геометрии спектра,,"решение Amber 18.09.2026 «Ввести: 10 см, в домике» (B30); в записи спектра домик не назван"
 ASN16_BrazilNuts,ASN16,unknown,Cs;I,,Pb,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; орехи — лёгкая органика; защита оставлена от домика
 RC103_Th232WT20,RC103,unknown,Cs;I,W,Pb,таблица mk_materials.py,,"геометрия RC103_lu_front: Cesium iodide; corpus_def: extra='WT', электрод WT-20; свинец — прямое слово Amber 02.09.2026 (в записи спектра домик не назван)"
 AS80_Th232Medal,AS80x80,known,,,Pb,из геометрии спектра,,"ториевый стеклянный диск Amber Ø40×5 мм: с 12.09.2026 (П22, решение Amber по B17) проба берётся из геометрии AS80_th_disk («Ториевое стекло» П13: B, O, Ca, Ba, La, Th); прежнее «состав оправы НЕ УЗНАЕМ (Amber 18.08.2026)» снято данными — оправы нет, это диск; свинец — решение Amber 12.09.2026 (П24; замер П22 §4.3: 17.31 → 16.04)"
@@ -36,6 +36,7 @@ AS80_Th232WT20,AS80x80,unknown,Na;I,W,Pb,таблица mk_materials.py,,"гео
 RC103_K40,RC103,known,,,,из геометрии спектра,,
 AS80_Cs137_0cm,AS80x80,known,,,,из геометрии спектра,,
 RC103_Cs137_0cm,RC103,known,,,,из геометрии спектра,,
+RC103_Cs137_50mm,RC103,known,,,,из геометрии спектра,,
 ASN16_Lu176,ASN16,known,,,,из геометрии спектра,,
 ASN16_Lu176_P0,ASN16,known,,,,из геометрии спектра,,
 AS80_Lu176,AS80x80,known,,,,из геометрии спектра,,

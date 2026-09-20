@@ -1,0 +1,11 @@
+arm rev31main start 2026-09-19 11:53:19 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries extra=
+arm rev31main mk_appwd code=0
+arm rev31main check_appwd code=0
+  response: rmx=49
+arm rev31main full code=0 11:53:48 (21 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev31_full
+arm rev31main mini code=0 11:53:58 (9 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev31_mini
+arm rev31main score full known code=0
+arm rev31main score mini known code=0
+arm rev31main score full unknown code=0
+arm rev31main score mini unknown code=0
+arm rev31main end 11:53:58

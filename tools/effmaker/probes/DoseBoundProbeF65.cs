@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Xml;
 
 namespace DoseBoundProbeF65
 {
@@ -21,10 +22,16 @@ namespace DoseBoundProbeF65
     /// код 0. Поэтому судит отдельная проба, и судит ОБЕ половины:
     ///
     ///  1. **Граница жива на НАСТОЯЩЕЙ кривой.** Берётся не выдуманное число, а
-    ///     реальная точка реального файла: `LSRM Geometries\Exported Curves\
-    ///     Obsidian - marinelli 0.5.txt` несёт на 20 кэВ ε = 1.47185E+03 —
-    ///     единственное значение выше единицы среди всех восьми экспортов.
-    ///     `CurveOf` обязан ОТКАЗАТЬ и назвать величину с энергией.
+    ///     реальная точка реального файла: поставочная кривая
+    ///     `BecquerelMonitor\config\ROI\Obsidian Marinelli 0.5.xml` несёт на
+    ///     20 кэВ ε = 1471.85 — единственное значение выше единицы среди всех
+    ///     восьми экспортов ЛСРМ. ⛔ До 15.09.2026 читался сам экспорт
+    ///     `LSRM Geometries\Exported Curves\Obsidian - marinelli 0.5.txt`;
+    ///     каталог снят из дерева решением Amber, а поставочная кривая — ТОТ
+    ///     ЖЕ набор из 150 точек (сличено точка в точку полосой F59, `A222.1`,
+    ///     и повторно 15.09.2026 перед снятием). Поставочная только ЧИТАЕТСЯ
+    ///     (приказ Amber 05.09.2026). `CurveOf` обязан ОТКАЗАТЬ и назвать
+    ///     величину с энергией.
     ///     ⚠ Отрицательное плечо: тот же файл без первой строки обязан
     ///     ПОСТРОИТЬСЯ, иначе проба меряет «отказывает всегда».
     ///     ⚠ И граница обязана стоять РОВНО на единице: ε = 1 проходит,
@@ -152,9 +159,17 @@ namespace DoseBoundProbeF65
         // 1. Граница жива на НАСТОЯЩЕЙ кривой
         // ==================================================================
 
-        const string ExportPath = @"LSRM Geometries\Exported Curves\Obsidian - marinelli 0.5.txt";
+        /// <summary>
+        /// Поставочная кривая — тот же набор точек, что и снятый 15.09.2026 экспорт
+        /// `LSRM Geometries\Exported Curves\Obsidian - marinelli 0.5.txt`. ⛔ Только чтение.
+        /// </summary>
+        const string ExportPath = @"BecquerelMonitor\config\ROI\Obsidian Marinelli 0.5.xml";
 
-        /// <summary>Точки экспорта ЛСРМ: энергия, кэВ — эффективность — погрешность, %.</summary>
+        /// <summary>
+        /// Точки кривой: энергия, кэВ — эффективность — погрешность, %.
+        /// <paramref name="skipped"/> — узлов `ROIEfficiencyData`, у которых
+        /// не разобралось число (в поставочной кривой — ноль).
+        /// </summary>
         static List<ROIEfficiencyData> ReadExport(out int skipped)
         {
             skipped = 0;
@@ -162,24 +177,22 @@ namespace DoseBoundProbeF65
             string path = Path.Combine(repo, ExportPath);
             if (!File.Exists(path))
             {
-                throw new FileNotFoundException("нет экспорта ЛСРМ: " + Path.GetFullPath(path));
+                throw new FileNotFoundException("нет поставочной кривой: " + Path.GetFullPath(path));
             }
 
-            foreach (string raw in File.ReadAllLines(path))
+            var document = new XmlDocument();
+            document.Load(path);
+            foreach (XmlNode node in document.SelectNodes("//ROIEfficiency/ROIEfficiencyData"))
             {
-                string[] cells = raw.Split(new[] { '\t' }, StringSplitOptions.RemoveEmptyEntries);
-                if (cells.Length < 2)
-                {
-                    continue;
-                }
-
                 double energy, efficiency;
-                if (!double.TryParse(cells[0].Trim(), NumberStyles.Float,
-                                     CultureInfo.InvariantCulture, out energy)
-                    || !double.TryParse(cells[1].Trim(), NumberStyles.Float,
+                XmlNode e = node["Energy"], f = node["Efficiency"], r = node["ErrorPercent"];
+                if (e == null || f == null
+                    || !double.TryParse(e.InnerText.Trim(), NumberStyles.Float,
+                                        CultureInfo.InvariantCulture, out energy)
+                    || !double.TryParse(f.InnerText.Trim(), NumberStyles.Float,
                                         CultureInfo.InvariantCulture, out efficiency))
                 {
-                    skipped++;      // заголовок
+                    skipped++;
                     continue;
                 }
 
@@ -187,7 +200,7 @@ namespace DoseBoundProbeF65
                 {
                     Energy = energy,
                     Efficiency = efficiency,
-                    ErrorPercent = cells.Length > 2 ? Parse(cells[2]) : 1.0,
+                    ErrorPercent = r == null ? 1.0 : Parse(r.InnerText),
                 });
             }
 
@@ -204,7 +217,7 @@ namespace DoseBoundProbeF65
         static void BoundOnRealCurve()
         {
             Console.WriteLine();
-            Console.WriteLine("== граница ε ≤ 1 на НАСТОЯЩЕЙ кривой (экспорт ЛСРМ) ==");
+            Console.WriteLine("== граница ε ≤ 1 на НАСТОЯЩЕЙ кривой (поставочная = снятый экспорт ЛСРМ) ==");
 
             int skipped;
             List<ROIEfficiencyData> points = ReadExport(out skipped);
@@ -224,7 +237,7 @@ namespace DoseBoundProbeF65
             }
 
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "  {0}: точек {1} (строк-заголовков {2}), выше единицы {3}, наибольшая {4:g6} на {5:f1} кэВ",
+                "  {0}: точек {1} (узлов без числа {2}), выше единицы {3}, наибольшая {4:g6} на {5:f1} кэВ",
                 ExportPath, points.Count, skipped, above, worst, worstAt));
             Ok(above == 1 && worst > 1.0, string.Format(CultureInfo.InvariantCulture,
                 "в файле есть ровно одна точка выше единицы ({0:g6} на {1:f1} кэВ) — судить есть что",

@@ -1,0 +1,278 @@
+спектр               детектор   лин  медиана      p90     макс   ширина  вердикт
+ASN16_Th232          ASN16        5    0.016    0.032    0.037     0.98  ок
+ASN16_Charoite       ASN16        7    0.020    0.082    0.093     1.02  ок
+ASN16_UGlass         ASN16        3    0.006    0.032    0.039     0.96  ок
+ASN16_Granite        ASN16        5    0.014    0.036    0.047     0.99  ок
+AS80_Th232_v2        AS80x80      5    0.060    0.155    0.191     0.94  ок
+AS80_UGlass          AS80x80      6    0.087    0.840    1.221     1.00  ок
+AS80_Charoite        AS80x80      3    0.196    0.381    0.427     1.20  ок
+HPGE_Uranium         HPGE        10    0.031    0.555    0.855     1.04  ок
+GS4000_Ra226         GS4000       6    0.133    0.737    1.220     1.05  ок
+GS4000_Th232         GS4000       3    0.012    0.393    0.488     0.99  ок
+GS4000_U             GS4000       4    0.135    0.250    0.277     1.17  ок
+GS4000_Lu176         GS4000       5    0.159    0.991    1.220     1.06  ок
+ASN3_Tile            ASN3         3    0.250    0.387    0.421     1.11  на грани
+ASN8_Th232_1024      ASN8_1024    6    0.055    0.095    0.113     1.00  ок
+ASN8_Th232_2048      ASN8_2048    5    0.043    0.086    0.101     0.99  ок
+ASN8_Th232_3000      ASN8_3000    4    0.020    0.056    0.072     0.98  ок
+ASN8_Th232_4096      ASN8_4096    5    0.025    0.088    0.088     1.02  ок
+ASN8_Th232_8192      ASN8_8192    5    0.074    0.135    0.174     1.11  ок
+ASN8_UGlass          ASN8_8192    4    0.069    0.139    0.148     1.32  ок
+ASN8_Am241           ASN8_8192    3    0.019    0.518    0.643     1.24  ок
+OBS_UGlass           OBS          2    0.232    0.366    0.400     1.11  ок
+RC101_I131           RC101        2    0.258    0.319    0.335     0.92  на грани
+AS1Pro_Ra226         AS1PRO       5    0.046    0.089    0.101     1.00  ок
+ASN16_Charoite_v2    ASN16        5    0.086    0.187    0.208     1.12  ок
+ASN16_Th232_Am241    ASN16        7    0.059    0.282    0.492     0.91  ок
+ASN16_Am241          ASN16        4    0.058    0.276    0.363     0.85  ок
+ASN16_Cs137          ASN16        7    0.071    0.773    1.121     1.06  ок
+ASN16_Cs137_10cm     ASN16        1    0.012    0.012    0.012     1.04  ок
+ASN16_BrazilNuts     ASN16        6    0.075    0.084    0.089     1.20  ок
+RC103_Th232WT20      RC103        4    0.016    0.858    1.216     1.00  ок
+AS80_Th232Medal      AS80x80      5    0.064    0.252    0.367     0.79  ок
+AS80_Onyx            AS80x80      5    0.109    0.136    0.148     0.94  ок
+AS80_K40             AS80x80      4    0.121    0.302    0.349     0.99  ок
+AS80_Th232WT20       AS80x80      4    0.035    0.089    0.101     0.98  ок
+RC103_K40            RC103        3    0.396    0.905    1.032     1.36  на грани
+AS80_Cs137_0cm       AS80x80      6    0.163    0.723    1.235     0.93  ок
+RC103_Cs137_0cm      RC103        2    0.024    0.026    0.027     1.24  ок
+RC103_Cs137_50mm     RC103        2    0.266    0.449    0.495     1.42  на грани
+ASN16_Lu176          ASN16        5    0.089    0.665    1.041     1.01  ок
+ASN16_Lu176_P0       ASN16        3    0.033    0.042    0.044     1.01  ок
+AS80_Lu176           AS80x80      8    0.101    1.220    1.225     1.10  ок
+AS80_Lu176_v2        AS80x80      7    0.124    0.278    0.350     0.97  ок
+AS80_Am241           AS80x80      3    0.746    1.131    1.227     1.06  ПЛОХО
+RC103_K40Village     RC103        4    0.928    1.241    1.256     1.82  ПЛОХО
+RC103_Th232Village   RC103        3    0.050    0.074    0.080     1.02  ок
+RC103_Charoite       RC103        4    0.086    0.123    0.125     0.99  ок
+RC103_Lu176          RC103        3    0.038    0.211    0.255     0.97  ок
+HPGeGMX_Th232        HPGE_GMX    10    0.033    0.089    0.134     1.00  ок
+HPGeGMX_Th228        HPGE_GMX     7    0.018    0.115    0.224     1.02  ок
+HPGeGMX_Eu152        HPGE_GMX    11    0.022    0.166    0.368     1.02  ок
+HPGeGMX_Background   HPGE_GMX     5    0.067    0.088    0.096     0.89  ок
+HPGeGEM_Th232        HPGE_GEM    16    0.020    0.054    0.091     1.01  ок
+HPGeGEM_Ra226        HPGE_GEM    13    0.018    0.042    1.277     1.05  ок
+HPGeGEM_K40          HPGE_GEM     1    0.031    0.031    0.031     1.01  ок
+LaBrBril_Th228       LABR_BRIL    8    0.140    0.351    0.601     0.97  ок
+LaBrBril_Eu152       LABR_BRIL   11    0.138    0.287    1.213     1.03  ок
+G1S16_Th232_Mar      G1S16        3    0.014    0.026    0.028     0.97  ок
+G1S16_Mix_Denta100   G1S16        7    0.054    0.306    0.587     1.04  ок
+G1S16_Th232_Denta100 G1S16        3    0.042    0.099    0.113     0.89  ок
+G1S16_Mix_Mar        G1S16        6    0.073    0.349    0.604     1.02  ок
+G1S16_Cs137_Mar      G1S16        2    0.097    0.118    0.123     1.00  ок
+G1S16_Cs137_Mar_2    G1S16        3    0.108    0.135    0.142     1.10  ок
+G1S16_K40_Mar        G1S16        2    0.366    0.545    0.590     1.66  на грани
+G1S16_K40_Mar_2      G1S16        3    0.445    0.456    0.459     1.17  ПЛОХО
+G1S16_Ra226_Mar      G1S16        5    0.067    0.088    0.089     1.04  ок
+G1S16_Ra226_Mar_2    G1S16        5    0.053    0.200    0.240     1.05  ок
+G1S16_Th232_Mar_2    G1S16        4    0.083    0.129    0.143     0.96  ок
+G1S16_Th232_Mar_3    G1S16        4    0.020    0.031    0.033     0.96  ок
+G1S16_Mix_Petri      G1S16        8    0.072    0.658    0.786     1.04  ок
+G1S16_Th232_Petri    G1S16        3    0.021    0.046    0.052     0.98  ок
+G1S16_Am241_P25      G1S16        2    0.319    0.481    0.521     1.10  на грани
+G1S16_Ba133_P25      G1S16        5    0.177    0.335    0.393     0.95  ок
+G1S16_Cd109_P25      G1S16        3    0.157    0.303    0.339     1.04  ок
+G1S16_Ce139_P25      G1S16        3    0.164    1.034    1.252     0.93  ок
+G1S16_Co60_P25       G1S16        3    0.010    0.246    0.305     0.95  ок
+G1S16_Cs137_P25      G1S16        2    0.017    0.019    0.019     0.98  ок
+G1S16_Eu152_P25      G1S16        5    0.047    0.092    0.108     0.92  ок
+G1S16_Mn54_P25       G1S16        3    0.018    0.033    0.037     1.00  ок
+G1S16_Na22_P25       G1S16        3    0.006    0.014    0.016     0.96  ок
+G1S16_Th228_P25      G1S16        5    0.017    0.088    0.108     0.98  ок
+G1S16_Y88_P25        G1S16        4    0.055    0.554    0.762     1.17  ок
+G1S16_Am241_P5       G1S16        1    0.585    0.585    0.585     1.03  ПЛОХО
+G1S16_Ba133_P5       G1S16        3    0.208    0.553    0.639     0.92  ок
+G1S16_Cd109_P5       G1S16        2    0.157    0.247    0.270     0.88  ок
+G1S16_Ce139_P5       G1S16        3    0.118    0.167    0.180     1.01  ок
+G1S16_Co57_P5        G1S16        2    0.118    0.130    0.133     0.88  ок
+G1S16_Co60_P5        G1S16        4    0.021    0.505    0.709     0.95  ок
+G1S16_Cs137_P5       G1S16        2    0.263    0.427    0.468     1.22  на грани
+G1S16_Eu152_P5       G1S16        5    0.041    0.500    0.758     0.95  ок
+G1S16_Mn54_P5        G1S16        3    0.068    0.785    0.964     1.73  ок
+G1S16_Na22_P5        G1S16        4    0.263    0.297    0.309     1.07  на грани
+G1S16_Th228_P5       G1S16        6    0.038    0.642    1.235     1.00  ок
+G1S16_Y88_P5         G1S16        3    0.092    0.300    0.352     1.00  ок
+G1S24_Cs137_Denta120 G1S24        3    0.104    1.016    1.244     1.01  ок
+G1S24_Cs137_Denta120_2 G1S24        3    0.119    0.390    0.458     0.98  ок
+G1S24_K40_Denta120   G1S24        5    0.040    0.199    0.242     1.14  ок
+G1S24_K40_Denta120_2 G1S24        5    0.042    0.086    0.095     0.98  ок
+G1S24_Ra226_Denta120 G1S24        5    0.026    0.053    0.057     0.96  ок
+G1S24_Ra226_Denta120_2 G1S24        6    0.024    0.041    0.047     0.93  ок
+G1S24_Th232_Denta120 G1S24        3    0.008    0.062    0.075     0.88  ок
+G1S24_Th232_Denta120_2 G1S24        4    0.082    0.432    0.568     0.96  ок
+G1S24_Cs137_Mar      G1S24        4    0.294    0.767    0.914     1.03  на грани
+G1S24_Cs137_Mar_2    G1S24        3    0.086    0.374    0.446     1.04  ок
+G1S24_K40_Mar        G1S24        4    0.264    0.452    0.498     1.01  на грани
+G1S24_K40_Mar_2      G1S24        2    0.057    0.086    0.093     1.19  ок
+G1S24_Ra226_Mar      G1S24        5    0.040    0.052    0.060     1.03  ок
+G1S24_Ra226_Mar_2    G1S24        6    0.040    0.047    0.047     1.01  ок
+G1S24_Th232_Mar      G1S24        3    0.017    0.028    0.031     1.05  ок
+G1S24_Th232_Mar_2    G1S24        4    0.015    0.023    0.023     0.97  ок
+G1S24_Cs137_Petri    G1S24        3    0.102    0.289    0.336     1.00  ок
+G1S24_Cs137_Petri_2  G1S24        3    0.097    0.777    0.948     1.14  ок
+G1S24_K40_Petri      G1S24        6    0.075    0.143    0.186     1.08  ок
+G1S24_K40_Petri_2    G1S24        2    0.045    0.076    0.083     0.96  ок
+G1S24_Ra226_Petri    G1S24        5    0.027    0.103    0.136     0.98  ок
+G1S24_Ra226_Petri_2  G1S24        6    0.033    0.061    0.073     0.92  ок
+G1S24_Th232_Petri    G1S24        3    0.076    0.091    0.094     0.96  ок
+G1S24_Th232_Petri_2  G1S24        4    0.054    0.100    0.107     0.96  ок
+G1S24_Cs137_P25      G1S24        5    0.056    0.339    0.437     1.01  ок
+G1S24_Na22_P25       G1S24        4    0.191    0.301    0.331     1.07  ок
+G1S24_Th228_P25      G1S24        5    0.049    0.098    0.123     0.95  ок
+G1S24_Y88_P25        G1S24        4    0.026    0.155    0.206     1.01  ок
+G1S24_Am241_P5       G1S24        4    0.250    0.598    0.706     1.29  на грани
+G1S24_Ba133_P5       G1S24        3    0.130    0.323    0.371     1.12  ок
+G1S24_Bi207_P5       G1S24        5    0.088    0.539    0.657     0.97  ок
+G1S24_Cd109_P5       G1S24        2    0.532    0.781    0.843     1.52  ПЛОХО
+G1S24_Co60_P5        G1S24        4    0.061    0.222    0.283     0.94  ок
+G1S24_Cs137_P5       G1S24        3    0.575    0.840    0.907     1.25  ПЛОХО
+G1S24_Eu152_P5       G1S24        6    0.131    0.932    0.937     0.98  ок
+G1S24_Na22_P5        G1S24        4    0.209    0.482    0.583     1.05  ок
+G1S24_Th228_P5       G1S24        5    0.181    0.423    0.530     0.97  ок
+G1S24_Y88_P5         G1S24        4    0.144    0.882    1.186     1.10  ок
+G1S24_Zn65_P5        G1S24        3    0.042    0.561    0.690     0.96  ок
+G1S24_Rn222Coal_Mar_20m G1S24        3    0.077    0.154    0.174     0.95  ок
+G1S24_Rn222Coal_Mar_2h G1S24        3    0.021    0.066    0.077     1.01  ок
+G1S24_Rn222Coal_Mar_3h G1S24        5    0.043    0.066    0.070     0.96  ок
+G1S24_Rn222Coal_Mar_eq01 G1S24        4    0.097    0.239    0.278     1.05  ок
+
+плохих: 6 AS80_Am241, RC103_K40Village, G1S16_K40_Mar_2, G1S16_Am241_P5, G1S24_Cd109_P5, G1S24_Cs137_P5
+спорных/непроверенных: 11 ASN3_Tile, RC101_I131, RC103_K40, RC103_Cs137_50mm, G1S16_K40_Mar, G1S16_Am241_P25, G1S16_Cs137_P5, G1S16_Na22_P5, G1S24_Cs137_Mar, G1S24_K40_Mar, G1S24_Am241_P5
+спектров, где фит РАЗБЕЖАЛСЯ хотя бы на одной линии: 0 
+
+== раздел корпуса ==
+  known      92
+  unknown    36
+  excluded    8
+  матрицы нет у 49 геометрий (AS80_lu_front, AS80_point0, AS80_th_disk, ASN16_lu_side, ASN16_point0_house, ASN16_point10_house, G1S_denta100_oisn10_100_p16, G1S_denta100_risn379_100_p16, G1S_denta120_oisn06_057_p24, G1S_denta120_oisn06_062_p24, G1S_denta120_oisn06_064_p24, G1S_denta120_oisn06_066_p24, G1S_denta120_oisn16_155_p24, G1S_denta120_oisn16_160_p24, G1S_denta120_oisn16_166_p24, G1S_denta120_oisn16_167_p24, G1S_mar1l_coal_046_p24, G1S_mar1l_oisn06_055_p16, G1S_mar1l_oisn06_057_p16, G1S_mar1l_oisn06_057_p24, G1S_mar1l_oisn06_062_p16, G1S_mar1l_oisn06_062_p24, G1S_mar1l_oisn06_064_p24, G1S_mar1l_oisn06_066_p16, G1S_mar1l_oisn06_066_p24, G1S_mar1l_oisn16_155_p16, G1S_mar1l_oisn16_155_p24, G1S_mar1l_oisn16_160_p16, G1S_mar1l_oisn16_160_p24, G1S_mar1l_oisn16_166_p16, G1S_mar1l_oisn16_166_p24, G1S_mar1l_oisn16_167_p16, G1S_mar1l_oisn16_167_p24, G1S_mar1l_risn379_100_p16, G1S_petri60_oisn06_057_p24, G1S_petri60_oisn06_062_p24, G1S_petri60_oisn06_064_p24, G1S_petri60_oisn06_067_p24, G1S_petri60_oisn10_100_p16, G1S_petri60_oisn16_155_p24, G1S_petri60_oisn16_160_p24, G1S_petri60_oisn16_167_p24, G1S_petri60_risn379_100_p16, G1S_point25, G1S_point5, RC103_lu_front, RC103_marinelli05_kcl, RC103_point0, RC103_point50) — прогоните corpusmatrixprobe; в репозитории их нет нарочно
+  У НЕПОНЯТНОЙ ЧАСТИ ЕСТЬ УЗЕЛ КРИВОЙ: 2 — RC103_Th232WT20 (кривая «Цилиндр»), AS80_Th232WT20 (кривая «Цилиндр Lu»)
+     эти спектры разбираются С кривой, остальные без неё:
+     часть перестаёт быть однородной по модели (см. B11, W29)
+     ⚠ и это ТРЕТЬЯ модель, а не одна из двух: геометрии этих
+       кривых в корпусе нет, матрицы по guid тоже — то есть
+       кривая ЕСТЬ, а матрицы НЕТ; проверить поимённо:
+       python tools/CORPUS/scripts/restore_eff_nodes.py
+  СОШЛОСЬ
+
+== вещества вокруг кванта (S142) ==
+  строк 136; пустых клеток, разрешаемых геометрией: 92
+  СОШЛОСЬ
+
+== матрица там, откуда её берёт разбор (B14) ==
+  сверено спектров понятной части: 92
+  НЕТ ФАЙЛА В response/: 92
+    ASN16_Cs137 (guid 38a10446, геометрия ASN16_point0_house)
+    ASN16_Cs137_10cm (guid f483eddf, геометрия ASN16_point10_house)
+    AS80_Th232Medal (guid c2b5212c, геометрия AS80_th_disk)
+    RC103_K40 (guid 0b58cea4, геометрия RC103_marinelli05_kcl)
+    AS80_Cs137_0cm (guid 2992663a, геометрия AS80_point0)
+    RC103_Cs137_0cm (guid c4123ab9, геометрия RC103_point0)
+    RC103_Cs137_50mm (guid cac657e6, геометрия RC103_point50)
+    ASN16_Lu176 (guid bbc4db49, геометрия ASN16_lu_side)
+    ASN16_Lu176_P0 (guid bbc4db49, геометрия ASN16_lu_side)
+    AS80_Lu176 (guid a7eb945d, геометрия AS80_lu_front)
+    AS80_Lu176_v2 (guid a7eb945d, геометрия AS80_lu_front)
+    AS80_Am241 (guid 2992663a, геометрия AS80_point0)
+    RC103_Lu176 (guid 552a036a, геометрия RC103_lu_front)
+    G1S16_Mix_Denta100 (guid 6ed49f5c, геометрия G1S_denta100_risn379_100_p16)
+    G1S16_Th232_Denta100 (guid ed033f43, геометрия G1S_denta100_oisn10_100_p16)
+    G1S16_Mix_Mar (guid 10130f74, геометрия G1S_mar1l_risn379_100_p16)
+    G1S16_Cs137_Mar (guid 77ab0974, геометрия G1S_mar1l_oisn06_057_p16)
+    G1S16_Cs137_Mar_2 (guid 37f93a41, геометрия G1S_mar1l_oisn16_166_p16)
+    G1S16_K40_Mar (guid 80fe173b, геометрия G1S_mar1l_oisn06_066_p16)
+    G1S16_K40_Mar_2 (guid c6e83c91, геометрия G1S_mar1l_oisn16_155_p16)
+    G1S16_Ra226_Mar (guid 28b990e4, геометрия G1S_mar1l_oisn06_062_p16)
+    G1S16_Ra226_Mar_2 (guid 61d23db3, геометрия G1S_mar1l_oisn16_167_p16)
+    G1S16_Th232_Mar_2 (guid 8b274676, геометрия G1S_mar1l_oisn06_055_p16)
+    G1S16_Th232_Mar_3 (guid a43b8253, геометрия G1S_mar1l_oisn16_160_p16)
+    G1S16_Mix_Petri (guid eea37702, геометрия G1S_petri60_risn379_100_p16)
+    G1S16_Th232_Petri (guid 1eb5247c, геометрия G1S_petri60_oisn10_100_p16)
+    G1S16_Am241_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S16_Ba133_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S16_Cd109_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S16_Ce139_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S16_Co60_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S16_Cs137_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S16_Eu152_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S16_Mn54_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S16_Na22_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S16_Th228_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S16_Y88_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S16_Am241_P5 (guid a1438401, геометрия G1S_point5)
+    G1S16_Ba133_P5 (guid a1438401, геометрия G1S_point5)
+    G1S16_Cd109_P5 (guid a1438401, геометрия G1S_point5)
+    G1S16_Ce139_P5 (guid a1438401, геометрия G1S_point5)
+    G1S16_Co57_P5 (guid a1438401, геометрия G1S_point5)
+    G1S16_Co60_P5 (guid a1438401, геометрия G1S_point5)
+    G1S16_Cs137_P5 (guid a1438401, геометрия G1S_point5)
+    G1S16_Eu152_P5 (guid a1438401, геометрия G1S_point5)
+    G1S16_Mn54_P5 (guid a1438401, геометрия G1S_point5)
+    G1S16_Na22_P5 (guid a1438401, геометрия G1S_point5)
+    G1S16_Th228_P5 (guid a1438401, геометрия G1S_point5)
+    G1S16_Y88_P5 (guid a1438401, геометрия G1S_point5)
+    G1S24_Cs137_Denta120 (guid d8f04e41, геометрия G1S_denta120_oisn06_057_p24)
+    G1S24_Cs137_Denta120_2 (guid 9e1c51ab, геометрия G1S_denta120_oisn16_166_p24)
+    G1S24_K40_Denta120 (guid cce59946, геометрия G1S_denta120_oisn06_066_p24)
+    G1S24_K40_Denta120_2 (guid 6c14ccdc, геометрия G1S_denta120_oisn16_155_p24)
+    G1S24_Ra226_Denta120 (guid 04d28c74, геометрия G1S_denta120_oisn06_062_p24)
+    G1S24_Ra226_Denta120_2 (guid c2cf3bec, геометрия G1S_denta120_oisn16_167_p24)
+    G1S24_Th232_Denta120 (guid 2fecfdc4, геометрия G1S_denta120_oisn06_064_p24)
+    G1S24_Th232_Denta120_2 (guid f587e421, геометрия G1S_denta120_oisn16_160_p24)
+    G1S24_Cs137_Mar (guid 5a5c317a, геометрия G1S_mar1l_oisn06_057_p24)
+    G1S24_Cs137_Mar_2 (guid c157b4bb, геометрия G1S_mar1l_oisn16_166_p24)
+    G1S24_K40_Mar (guid 59d90fb3, геометрия G1S_mar1l_oisn06_066_p24)
+    G1S24_K40_Mar_2 (guid 38d9c7f8, геометрия G1S_mar1l_oisn16_155_p24)
+    G1S24_Ra226_Mar (guid 68449eb8, геометрия G1S_mar1l_oisn06_062_p24)
+    G1S24_Ra226_Mar_2 (guid e42f1d2c, геометрия G1S_mar1l_oisn16_167_p24)
+    G1S24_Th232_Mar (guid 34c0ad77, геометрия G1S_mar1l_oisn06_064_p24)
+    G1S24_Th232_Mar_2 (guid 6fafd956, геометрия G1S_mar1l_oisn16_160_p24)
+    G1S24_Cs137_Petri (guid b495efd5, геометрия G1S_petri60_oisn06_057_p24)
+    G1S24_Cs137_Petri_2 (guid c33e2b8d, геометрия G1S_petri60_oisn16_167_p24)
+    G1S24_K40_Petri (guid ec040922, геометрия G1S_petri60_oisn06_067_p24)
+    G1S24_K40_Petri_2 (guid 53bd04df, геометрия G1S_petri60_oisn16_155_p24)
+    G1S24_Ra226_Petri (guid 11d8337f, геометрия G1S_petri60_oisn06_062_p24)
+    G1S24_Ra226_Petri_2 (guid c33e2b8d, геометрия G1S_petri60_oisn16_167_p24)
+    G1S24_Th232_Petri (guid 0287f7f6, геометрия G1S_petri60_oisn06_064_p24)
+    G1S24_Th232_Petri_2 (guid 6b61f24c, геометрия G1S_petri60_oisn16_160_p24)
+    G1S24_Cs137_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S24_Na22_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S24_Th228_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S24_Y88_P25 (guid d373d6c3, геометрия G1S_point25)
+    G1S24_Am241_P5 (guid a1438401, геометрия G1S_point5)
+    G1S24_Ba133_P5 (guid a1438401, геометрия G1S_point5)
+    G1S24_Bi207_P5 (guid a1438401, геометрия G1S_point5)
+    G1S24_Cd109_P5 (guid a1438401, геометрия G1S_point5)
+    G1S24_Co60_P5 (guid a1438401, геометрия G1S_point5)
+    G1S24_Cs137_P5 (guid a1438401, геометрия G1S_point5)
+    G1S24_Eu152_P5 (guid a1438401, геометрия G1S_point5)
+    G1S24_Na22_P5 (guid a1438401, геометрия G1S_point5)
+    G1S24_Th228_P5 (guid a1438401, геометрия G1S_point5)
+    G1S24_Y88_P5 (guid a1438401, геометрия G1S_point5)
+    G1S24_Zn65_P5 (guid a1438401, геометрия G1S_point5)
+    G1S24_Rn222Coal_Mar_20m (guid 966a4a49, геометрия G1S_mar1l_coal_046_p24)
+    G1S24_Rn222Coal_Mar_2h (guid 966a4a49, геометрия G1S_mar1l_coal_046_p24)
+    G1S24_Rn222Coal_Mar_3h (guid 966a4a49, геометрия G1S_mar1l_coal_046_p24)
+    G1S24_Rn222Coal_Mar_eq01 (guid 966a4a49, геометрия G1S_mar1l_coal_046_p24)
+     эти спектры разберутся БЕЗ матрицы, назвавшись понятными;
+     положить туда матрицы: CorpusEffProbe.exe (ПОСЛЕ CorpusMatrixProbe)
+
+== форма узла кривой ПШПВ (T61) ==
+  сверено спектров: 136, групп со степенной формой: 8 (AS80x80, ASN16, ASN8_8192, G1S16, G1S24, GS4000, HPGE, RC103)
+  СОШЛОСЬ
+
+== запасная ветвь правила родителя (T93) ==
+  база: D:\BqMoni_Claude\p99\wt\BecquerelMonitor\nucdb.sqlite
+  родителей с запасной ветвью в базе: 1 — 123CSm2
+  спектров с линиями таких родителей: 0 из 136; признак сработал у: —
+  СОШЛОСЬ
+
+== клеймо генератора корпуса (T244) ==
+  набор генератора в дереве: 11 файлов, отпечаток 4e2849edfc9b62c2
+  клеймо: собрано на HEAD 93dafe11 (генератор был ГРЯЗНЫМ: tools/CORPUS/scripts/build_corpus.py, tools/CORPUS/scripts/calibrate.py, tools/CORPUS/scripts/corpus_def.py), отпечаток 4e2849edfc9b62c2
+  СОШЛОСЬ: корпус собран ТЕМ генератором, что лежит в дереве (11 файлов)
+  ⚠ в дереве есть незакоммиченные правки генератора: tools/CORPUS/scripts/build_corpus.py, tools/CORPUS/scripts/calibrate.py, tools/CORPUS/scripts/corpus_def.py — клеймо с ними СХОДИТСЯ,
+    то есть корпус собран ими; коммитить корпус без них нельзя.
+
+== набивка сцены против заголовка спектра (B13) ==
+  сверено сосудных спектров: 37
+  СОШЛОСЬ

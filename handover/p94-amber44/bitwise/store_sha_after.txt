@@ -1,0 +1,3 @@
+81fb97d61fbbf4445c0c9ea03ecd682365efe763b7fd1f623e25e54610104d2b *tools/CORPUS/corpus/geometries/RC103_point0.rmx
+5ba8600ce0cfbd30cec3222084d23dd69fd7b34a1fe143c827651115091031e5 *tools/CORPUS/corpus/geometries/AS80_th_disk.rmx
+274ab59d776de7ddf30ea54c090f0b548293a0448e937a78a2b89d745da090c2 *tools/CORPUS/corpus/geometries/ASN16_lu_side.rmx

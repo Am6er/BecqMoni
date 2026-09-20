@@ -1,0 +1,22 @@
+# П106 (M13): наша сторона, сборка build_p106 (рычаги замера --ret-kill=). Сперва контроли (A77):
+# def 40 млн побайтно = П100 ours_RC103_point0_p55_2614.511_elmix1.csv (физика 20 = elmix=1), detour0 20 млн = П100 elmix1_detour0.
+ours;RC103_point0_p55;2614.511;40000000;def;
+ours;RC103_point0_p55;2614.511;20000000;detour0;--detour=0
+# плечи по населениям — зеркала рычагов арбитра
+ours;RC103_point0_p55;2614.511;20000000;own0;--ret-kill=own
+ours;RC103_point0_p55;2614.511;20000000;carry0;--ret-kill=carry
+ours;RC103_point0_p55;2614.511;20000000;ret0;--ret-kill=ret
+ours;RC103_point0_p55;2614.511;20000000;brem0;--ret-kill=brem
+ours;RC103_point0_p55;2614.511;20000000;same0;--ret-kill=same
+ours;RC103_point0_p55;2614.511;20000000;other0;--ret-kill=other
+# контроль: диск AS80 2614 (8 млн), RC103 П55 1461 (20 млн)
+ours;AS80_th_disk;2614.511;8000000;def;
+ours;AS80_th_disk;2614.511;8000000;own0;--ret-kill=own
+ours;AS80_th_disk;2614.511;8000000;carry0;--ret-kill=carry
+ours;AS80_th_disk;2614.511;8000000;ret0;--ret-kill=ret
+ours;AS80_th_disk;2614.511;8000000;brem0;--ret-kill=brem
+ours;RC103_point0_p55;1460.82;20000000;def;
+ours;RC103_point0_p55;1460.82;20000000;own0;--ret-kill=own
+ours;RC103_point0_p55;1460.82;20000000;carry0;--ret-kill=carry
+ours;RC103_point0_p55;1460.82;20000000;ret0;--ret-kill=ret
+ours;RC103_point0_p55;1460.82;20000000;brem0;--ret-kill=brem

@@ -549,21 +549,20 @@ namespace MatrixRefusalProbeP8
             }
         }
 
-        /// <summary>Геометрия по умолчанию: первый `.in` из `LSRM Geometries\Models` над пробой.</summary>
+        /// <summary>
+        /// Геометрия по умолчанию: `tools\effmaker\models\Nano16Pro.in` над пробой —
+        /// та же сцена, что до 15.09.2026 была первой по имени в `LSRM Geometries\Models`
+        /// (каталог снят из дерева решением Amber; копии моделей остаются).
+        /// </summary>
         static string FindGeometry()
         {
             string dir = AppDomain.CurrentDomain.BaseDirectory;
             for (int up = 0; up < 8 && dir != null; up++)
             {
-                string models = Path.Combine(dir, "LSRM Geometries", "Models");
-                if (Directory.Exists(models))
+                string model = Path.Combine(dir, "tools", "effmaker", "models", "Nano16Pro.in");
+                if (File.Exists(model))
                 {
-                    string[] files = Directory.GetFiles(models, "*.in");
-                    Array.Sort(files, StringComparer.Ordinal);
-                    if (files.Length > 0)
-                    {
-                        return files[0];
-                    }
+                    return model;
                 }
 
                 DirectoryInfo parent = Directory.GetParent(dir.TrimEnd(Path.DirectorySeparatorChar));

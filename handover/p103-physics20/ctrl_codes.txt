@@ -1,0 +1,9 @@
+start 2026-09-18 16:13:18
+a77 2 nodes code=1 16:13:23
+matrix off RC103_point0 code=0 16:19:56
+diff off RC103_point0 code=0
+matrix on RC103_point0 code=0 16:25:22
+diff on RC103_point0 code=0
+matrix off AS80_point0 code=0 16:30:35
+diff off AS80_point0 code=0
+end 16:30:35

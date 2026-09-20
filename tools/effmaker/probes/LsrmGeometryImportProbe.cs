@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml;
 using System.Xml.Serialization;
 
 namespace LsrmGeometryImportProbe
@@ -19,7 +20,13 @@ namespace LsrmGeometryImportProbe
     /// проба зовёт тот же статический метод, что и кнопка.
     ///
     ///  §1 ВВОЗ ПАРЫ ЛСРМ (экспорт `RadiaCode - marinelli 0.5.txt` + модель
-    ///     `RadiaCode_Marinelli0.5.in` из `LSRM Geometries/`): в конфигурации
+    ///     `RadiaCode_Marinelli0.5.in`; ⛔ `LSRM Geometries/` снят из дерева
+    ///     15.09.2026 решением Amber, и без `--lsrm=` пара собирается ИЗ ДЕРЕВА:
+    ///     текст экспорта пишется в рабочий каталог пробы из поставочной кривой
+    ///     `BecquerelMonitor\config\ROI\RadiaCode Marinelli 0.5.xml` — тот же
+    ///     набор из 150 точек, сличён точка в точку 15.09.2026, — а модель
+    ///     берётся из копии `tools\effmaker\models\RadiaCode_Marinelli0.5.in`;
+    ///     с `--lsrm=` — настоящая пара из названного каталога): в конфигурации
     ///     прибора кривая с `Origin = Lsrm`, `Geometry != null`, клеймо
     ///     `ComputeStamp` ПУСТОЕ (кривая не выдаёт себя за посчитанную из
     ///     геометрии); размеры сцены сверяются с числами, прочитанными из
@@ -54,7 +61,7 @@ namespace LsrmGeometryImportProbe
     ///     читаются по обеим культурам и различаются (сторож `check_resx_designer`
     ///     обращений через `ComponentResourceManager` не видит).
     ///
-    ///   lsrmgeometryimportprobe [--dir=&lt;корпус&gt;] [--lsrm=&lt;каталог LSRM Geometries&gt;]
+    ///   lsrmgeometryimportprobe [--dir=&lt;корпус&gt;] [--lsrm=&lt;каталог с Exported Curves\ и Models\&gt;]
     ///   lsrmgeometryimportprobe --sabotage=badin|stamp     (ждёт ОТКАЗ пробы)
     ///
     /// ⛔ Приёмка, которая проходит всегда, не мерит ничего. `--sabotage`
@@ -77,12 +84,27 @@ namespace LsrmGeometryImportProbe
         static int failed;
         static int checks;
         static string corpusDir = @"tools\CORPUS\corpus";
-        static string lsrmDir = @"LSRM Geometries";
+
+        /// <summary>
+        /// Каталог с настоящей парой ЛСРМ (`Exported Curves\` + `Models\`) — только
+        /// ключом `--lsrm=`. ⛔ Умолчания нет: `LSRM Geometries/` снят из дерева
+        /// 15.09.2026 (решение Amber); без ключа пара собирается из дерева
+        /// (<see cref="PairFromTree"/>).
+        /// </summary>
+        static string lsrmDir;
         static string sabotage;
 
         /// <summary>Пара ЛСРМ для §1 и §2(а): экспорт и модель одной геометрии.</summary>
         const string LsrmExport = @"Exported Curves\RadiaCode - marinelli 0.5.txt";
         const string LsrmModel = @"Models\RadiaCode_Marinelli0.5.in";
+
+        /// <summary>
+        /// Та же пара из дерева: поставочная кривая (тот же набор из 150 точек, что
+        /// и снятый экспорт; ⛔ только чтение, приказ Amber 05.09.2026) и копия
+        /// модели с нашими ключами.
+        /// </summary>
+        const string TreeCurve = @"BecquerelMonitor\config\ROI\RadiaCode Marinelli 0.5.xml";
+        const string TreeModel = @"tools\effmaker\models\RadiaCode_Marinelli0.5.in";
 
         /// <summary>Журнал П1 §9: `AS80_Cs137_0cm` по пиковой — ≈ 0.195 мкЗв/ч.</summary>
         const double P1Approximate = 0.195;
@@ -106,18 +128,28 @@ namespace LsrmGeometryImportProbe
                 return 2;
             }
 
-            string exportPath = Path.Combine(lsrmDir, LsrmExport);
-            string modelPath = Path.Combine(lsrmDir, LsrmModel);
+            string scratch = Path.Combine(Path.GetTempPath(), "lsrmgeomimport-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(scratch);
+            Console.WriteLine("LsrmGeometryImportProbe — `AMBER18`, полоса П7 12.09.2026: геометрия при ввозе ЛСРМ");
+            Console.WriteLine("корпус: {0}; ЛСРМ: {1}; порча: {2}", corpusDir,
+                              lsrmDir ?? "пара из дерева (каталог снят 15.09.2026)", sabotage ?? "нет");
+
+            string exportPath, modelPath;
+            if (lsrmDir != null)
+            {
+                exportPath = Path.Combine(lsrmDir, LsrmExport);
+                modelPath = Path.Combine(lsrmDir, LsrmModel);
+            }
+            else if (!PairFromTree(scratch, out exportPath, out modelPath))
+            {
+                return 2;
+            }
+
             if (!File.Exists(exportPath) || !File.Exists(modelPath))
             {
                 Console.Error.WriteLine("нет пары ЛСРМ: " + exportPath + " / " + modelPath);
                 return 2;
             }
-
-            string scratch = Path.Combine(Path.GetTempPath(), "lsrmgeomimport-" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(scratch);
-            Console.WriteLine("LsrmGeometryImportProbe — `AMBER18`, полоса П7 12.09.2026: геометрия при ввозе ЛСРМ");
-            Console.WriteLine("корпус: {0}; ЛСРМ: {1}; порча: {2}", corpusDir, lsrmDir, sabotage ?? "нет");
 
             try
             {
@@ -221,8 +253,21 @@ namespace LsrmGeometryImportProbe
             Dictionary<string, double> raw = ReadInCentimeters(geometryPath);
             Console.WriteLine("  геометрия: " + g.Describe());
             Ok(g.SourceType == GeometrySourceType.Marinelli, "источник — маринелли: " + g.SourceType);
-            Number("DS_CrystalDiameter", raw, g.CrystalDiameter, "диаметр кристалла, мм");
-            Number("DS_CrystalHeight", raw, g.CrystalHeight, "высота кристалла, мм");
+            if (g.CrystalBoxX > 0.0)
+            {
+                // Копия из `tools\effmaker\models` несёт наши ключи `DS_CrystalBox*`
+                // (брусок); цилиндрические `DS_CrystalDiameter`/`Height` в ней —
+                // приведение ЛСРМ для чужих программ, у модели-бруска они нули.
+                Number("DS_CrystalBoxX", raw, g.CrystalBoxX, "брусок X, мм");
+                Number("DS_CrystalBoxY", raw, g.CrystalBoxY, "брусок Y, мм");
+                Number("DS_CrystalBoxZ", raw, g.CrystalBoxZ, "брусок Z, мм");
+            }
+            else
+            {
+                Number("DS_CrystalDiameter", raw, g.CrystalDiameter, "диаметр кристалла, мм");
+                Number("DS_CrystalHeight", raw, g.CrystalHeight, "высота кристалла, мм");
+            }
+
             Number("SM_BeakerDiameter", raw, g.MarinelliBeakerDiameter, "диаметр маринелли, мм");
             Number("SM_BeakerHoleDiameter", raw, g.MarinelliHoleDiameter, "диаметр колодца, мм");
             Number("SM_SourceHeight", raw, g.MarinelliSourceHeight, "высота пробы, мм");
@@ -266,9 +311,16 @@ namespace LsrmGeometryImportProbe
                 {
                     string again = GeometryWriter.Render(found.Geometry);
                     Ok(again == viaImport, "после XML текст .in геометрии тот же");
+                    // Кристалл сверяется тем размером, который у модели НЕ ноль:
+                    // у бруска (копии с `DS_CrystalBox*`) диаметр нулевой, и его
+                    // равенство ничего бы не мерило.
+                    double side = g.CrystalBoxX > 0.0 ? g.CrystalBoxX : g.CrystalDiameter;
+                    double sideAgain = g.CrystalBoxX > 0.0 ? found.Geometry.CrystalBoxX : found.Geometry.CrystalDiameter;
                     Ok(Math.Abs(found.Geometry.MarinelliSourceHeight - g.MarinelliSourceHeight) < 1e-9
-                       && Math.Abs(found.Geometry.CrystalDiameter - g.CrystalDiameter) < 1e-9,
-                       "после XML высота пробы и диаметр кристалла те же");
+                       && side > 0.0 && Math.Abs(sideAgain - side) < 1e-9,
+                       string.Format(CultureInfo.InvariantCulture,
+                           "после XML высота пробы и {0} кристалла те же ({1:R} мм)",
+                           g.CrystalBoxX > 0.0 ? "сторона бруска" : "диаметр", side));
                 }
             }
 
@@ -443,6 +495,42 @@ namespace LsrmGeometryImportProbe
             }
 
             File.WriteAllText(path, sb.ToString(), new UTF8Encoding(false));
+        }
+
+        /// <summary>
+        /// Пара §1 из дерева, когда каталога `--lsrm=` нет: текст экспорта
+        /// пишется в <paramref name="scratch"/> под именем снятого файла из точек
+        /// поставочной кривой <see cref="TreeCurve"/> — погрешности КАК ЕСТЬ,
+        /// чтобы правило `T174` отсекло ту же первую точку (20 кэВ, 1150 %), что и
+        /// в настоящем экспорте; модель — копия <see cref="TreeModel"/>.
+        /// </summary>
+        static bool PairFromTree(string scratch, out string exportPath, out string modelPath)
+        {
+            exportPath = Path.Combine(scratch, Path.GetFileName(LsrmExport));
+            modelPath = TreeModel;
+            if (!File.Exists(TreeCurve))
+            {
+                Console.Error.WriteLine("нет поставочной кривой " + TreeCurve + " — пары из дерева не собрать");
+                return false;
+            }
+
+            var document = new XmlDocument();
+            document.Load(TreeCurve);
+            var sb = new StringBuilder();
+            sb.Append("Energy, keV\tEfficiency\tUncertainty, %\r\n");
+            int rows = 0;
+            foreach (XmlNode node in document.SelectNodes("//ROIEfficiency/ROIEfficiencyData"))
+            {
+                sb.Append(node["Energy"].InnerText.Trim()).Append("\t\t\t")
+                  .Append(node["Efficiency"].InnerText.Trim()).Append("\t\t")
+                  .Append(node["ErrorPercent"].InnerText.Trim()).Append("\r\n");
+                rows++;
+            }
+
+            File.WriteAllText(exportPath, sb.ToString(), new UTF8Encoding(false));
+            Console.WriteLine("пара из дерева: экспорт {0} ({1} точек из {2}); модель {3}",
+                              exportPath, rows, TreeCurve, modelPath);
+            return rows > 0;
         }
 
         // ==================================================================

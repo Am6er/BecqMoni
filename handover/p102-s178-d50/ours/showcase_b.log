@@ -1,0 +1,21 @@
+каталог проб: D:\BqMoni_Claude\p102\wt\tools\effmaker\probes\build_p102 (заверен 2026-09-18 17:19:02 из D:\BqMoni_Claude\p102\wt\BecquerelMonitor\bin\Release_p102)
+  ⚠ сверено: набор приложения e75f23d3ce6c (550 файлов), набор FsaStackShot df91d565a344 (6 файлов), sha двух exe
+свежесть каталога проб: сошлась с деревом (T226, 1.4 с)
+рабочий каталог: D:\BqMoni_Claude\p102\wt\tools\fsa_showcase\wd (скопировано 428, снято 0; приборов 3, матриц 4)
+прогон FsaStackShot (5 спектров, 7 пар):
+  ASN16_Cs137_house / infer_eq: 4.2 с
+  AS80_Th232_disk / infer_eq: 5.3 с
+  ASN16_Radon_filter2 / chain_eq: 5.3 с
+  ASN16_Radon_filter2 / chain_noeq: 6.3 с
+  G1S24_Rn222Coal_eq01 / sample_eq: 3.6 с
+  G1S24_Rn222Coal_eq01 / sample_noeq: 3.4 с
+  ASN16_Cs137_10cm / sample_nomatrix: 2.2 с
+  ✅ ASN16_Cs137_house / infer_eq: совпало с эталоном (2026-09-18 14:31)
+  ✅ AS80_Th232_disk / infer_eq: совпало с эталоном (2026-09-18 14:31)
+  ✅ ASN16_Radon_filter2 / chain_eq: совпало с эталоном (2026-09-18 14:31)
+  ✅ ASN16_Radon_filter2 / chain_noeq: совпало с эталоном (2026-09-18 14:31)
+  ✅ G1S24_Rn222Coal_eq01 / sample_eq: совпало с эталоном (2026-09-18 14:31)
+  ✅ G1S24_Rn222Coal_eq01 / sample_noeq: совпало с эталоном (2026-09-18 14:31)
+  ✅ ASN16_Cs137_10cm / sample_nomatrix: совпало с эталоном (2026-09-18 14:31)
+
+ВИТРИНА СОШЛАСЬ С ЭТАЛОНОМ: 7 пар, 33 с.

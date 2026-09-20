@@ -1,0 +1,29 @@
+{
+ "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
+ "corpus": "a7699cefe5c8db86f47ccdc93730a1be97efb8f36fdbeae6d47ef46f091553df",
+ "corpus_dir": "D:\\BqMoni_Claude\\p87\\wt\\tools\\CORPUS\\corpus",
+ "corpus_files": 211,
+ "dirty": [
+  "BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs",
+  "BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs",
+  "BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs",
+  "BecquerelMonitor/FullSpectrumAnalysis/AngularCorrelation.cs",
+  "BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs",
+  "BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs",
+  "BecquerelMonitor/FullSpectrumAnalysis/FsaMatrixBinding.cs",
+  "tools/effmaker/probes/CorpusFsaProbe.cs"
+ ],
+ "fields": {
+  "app_sha": "c8b8ccf9f1cb92f722f4c4db86a95d29db55c5841daf1cc22f886f2416e06174",
+  "bin": "D:\\BqMoni_Claude\\p87\\wt\\BecquerelMonitor\\bin\\Release_p87",
+  "keys": "--only=G1S16_Co60_P5,G1S16_Eu152_P5",
+  "probe_sha": "3c67a9b0604fa6f289559c1c8492fb1486d6add34539abdc52c822fb08fc3f2a",
+  "probes": "D:\\BqMoni_Claude\\p87\\wt\\tools\\effmaker\\probes\\build_p87",
+  "store": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\corpus\\geometries",
+  "wd": "D:\\BqMoni_Claude\\p87\\wt\\tools\\CORPUS\\scripts\\wd_p87"
+ },
+ "head": "8b164a98c5a30e5e7b1927b086420feb8b5c1fc6",
+ "sources": "560145141102476329939e309eb53e0f6d00c3b335f261d11a08aba5627945ac",
+ "sources_files": 558,
+ "written": "2026-09-17 13:06:18"
+}

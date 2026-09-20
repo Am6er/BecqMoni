@@ -1,0 +1,26 @@
+# П94 фаза 5 (ОКОНЧАТЕЛЬНАЯ сборка 3: правка A+B+ключ eltr + рычаг --detour=0 при ВКЛ + сброс кэша луча + счётчики).
+# Все плечи ОДНОЙ сборкой. Сперва два контроля (A77): ВЫКЛ побайтно = П92, голый кристалл: eltr1 = off побайтно.
+ours;RC103_point0_p55;1460.82;40000000;off;
+ours;RC103_point0_p55_bare;2614.511;20000000;off;
+ours;RC103_point0_p55_bare;2614.511;20000000;eltr1;--eltr=1
+# приёмка ВКЛ против арбитра def
+ours;RC103_point0_p55;1460.82;40000000;eltr1;--eltr=1
+ours;RC103_point0_p55;661.657;40000000;eltr1;--eltr=1
+ours;RC103_point0_p55;59.541;40000000;eltr1;--eltr=1
+ours;RC103_point0_p55;2614.511;40000000;eltr1;--eltr=1
+ours;RC103_point0;1460.82;40000000;eltr1;--eltr=1
+ours;RC103_point0;661.657;40000000;eltr1;--eltr=1
+ours;RC103_point0;59.541;40000000;eltr1;--eltr=1
+ours;AS80_th_disk;1460.82;8000000;eltr1;--eltr=1
+ours;AS80_th_disk;2614.511;8000000;eltr1;--eltr=1
+ours;ASN16_lu_side;1460.82;8000000;eltr1;--eltr=1
+ours;ASN16_lu_side;661.657;8000000;eltr1;--eltr=1
+ours;ASN16_lu_side;59.541;8000000;eltr1;--eltr=1
+ours;AS80_point0;1460.82;4000000;eltr1;--eltr=1
+ours;AS80_point0;661.657;4000000;eltr1;--eltr=1
+# разложение: ВКЛ без заноса (только возврат) против арбитра killcarry (без заноса, с возвратом)
+ours;RC103_point0_p55;1460.82;20000000;eltr1_detour0;--eltr=1 --detour=0
+ours;RC103_point0_p55;661.657;20000000;eltr1_detour0;--eltr=1 --detour=0
+ours;RC103_point0_p55;2614.511;20000000;eltr1_detour0;--eltr=1 --detour=0
+ours;AS80_th_disk;2614.511;8000000;eltr1_detour0;--eltr=1 --detour=0
+ours;RC103_point0_p55_nofront;2614.511;20000000;eltr1;--eltr=1

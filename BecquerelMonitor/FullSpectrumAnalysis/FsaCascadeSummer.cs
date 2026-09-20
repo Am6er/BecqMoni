@@ -28,7 +28,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     ///     CF(k) = 1 / [ (1 − L_out) + Σ_in / (p_k · ε_p(k)) ]
     ///     L_out = Σ_j P(j|k) · ε_T(E_j)
     ///     Σ_in  = Σ_{(i,j): E_i+E_j ≈ E_k} p_ij · ε_p(i) · ε_p(j) · S_ij
-    ///     S_ij  = 1 − Σ_{m∉{i,j}} max(P(m|i), P(m|j)) · ε_T(m)
+    ///     S_ij  = ∏_{m∉{i,j}} (1 − P(m | i∧j) · ε_T(m))
+    ///
+    /// (`S177`, 18.09.2026) P(m | i∧j) — условная третьего кванта ПРИ ПАРЕ,
+    /// ходом по схеме уровней (<see cref="PairThird"/>): выше i — P(m|i),
+    /// между — по достижимости, ниже j — P(m|j), исключающий пару — ноль;
+    /// K-рентген при паре γ+γ — без конверсии партнёра (он вышел квантом).
+    /// До того стояло max(P(m|i), P(m|j)) — пробы сверены с ним, и оно
+    /// осталось запасным правилом там, где схемы нет (<see cref="MergedThird"/>).
     ///
     /// ОТКУДА ЭФФЕКТИВНОСТИ. Из САМОЙ матрицы, а не вторым розыгрышем:
     /// ε_p(E) — сумма строки канала <see cref="EfficiencySimulator.ResponseChannel.Peak"/>
@@ -43,6 +50,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// значило бы выдумать потерю, которой нет. Пики вылета (511, K-рентген)
     /// теряют наравне с пиком, но их поправка здесь НЕ применяется — они малы,
     /// а разделять правило на три случая ради этого рано.
+    ///
+    /// ⛔ ДОЛЯ ПАРЫ — ИЗ СХЕМЫ УРОВНЕЙ, НЕ ИЗ ПОСТАВКИ (`S176`, 17.09.2026).
+    /// Таблица SandiaDecay даёт ПЕРЕЧЕНЬ пар γ-γ и выходы линий, а её
+    /// `fraction` несёт лишний множитель на каждый пройденный уровень (у
+    /// Eu-152 в Sm-152 — 0.37, оттого суммы 1408+122 и 1112+122 выходили в
+    /// 2.7 раза ниже обоих арбитров П85). P(B|A) считается теперь ходом по
+    /// схеме `g4_gamma` дочернего ядра — <see cref="RectifyBySchemes"/>,
+    /// <see cref="CascadeAtomicData.LevelScheme"/>; пары, которым в схеме
+    /// места не нашлось, остаются с долей поставки и считаются.
     ///
     /// РЕНТГЕН И АННИГИЛЯЦИЯ В ПАРАХ (S27, 18.08.2026). Таблицы SandiaDecay
     /// держат только пары γ-γ, а из распада вылетает и не-гамма: K-рентген
@@ -119,6 +135,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 get { return this.ThirdKev > 0.0; }
             }
 
+            /// <summary>
+            /// Срезан ПРАВИЛОМ ПЛОЩАДИ (<see cref="SumPeakAreaShare"/> /
+            /// <see cref="MaxSumPeaks"/>), а не порогом `SumPeakFloor`. Имеет
+            /// смысл только у членов <see cref="Correction.DroppedSumPeaks"/>:
+            /// отчёт обязан различать «в образ не пошёл, потому что не виден»
+            /// и «не пошёл, потому что образ полон» — у Eu-152 на `G1S_point5`
+            /// подпороговых 86 пар на 3.6 % Σ, а срезанных правилом — тройки
+            /// по 2e-7 (П93, `S176`).
+            /// </summary>
+            public bool Trimmed { get; internal set; }
+
             public SumPeak(double energy, double area, string nuclide,
                            double fromKev, double withKev, double thirdKev)
                 : this(energy, area, nuclide, fromKev, withKev)
@@ -189,6 +216,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public double[] LineFactors { get; set; }
 
             public List<SumPeak> SumPeaks { get; set; }
+
+            /// <summary>
+            /// Сумм-пики, ПОСЧИТАННЫЕ, но в образ НЕ попавшие: срезанные по
+            /// площади (<see cref="SumPeakAreaShare"/>, <see cref="MaxSumPeaks"/>)
+            /// и не прошедшие порог `SumPeakFloor` (парные; тройки ведут свой
+            /// журнал `TripleLog`). Только для отчёта
+            /// (<see cref="FsaCascadeSummer.Describe"/>) — в счёте не
+            /// участвуют. Заведено 17.09.2026 (П90, `S176`): описание
+            /// `Describe` обещало печатать срезанное с 13.08.2026, а печатало
+            /// только выжившее, и «пары 444+1086 нет вовсе» (П85) читалось как
+            /// дефект модели, тогда как пара просто стояла за тогдашним срезом
+            /// числом (24 на компонент; снят тем же днём полосой П93).
+            /// </summary>
+            public List<SumPeak> DroppedSumPeaks { get; set; }
 
             /// <summary>
             /// Сумм-континуум (S19): частичное поглощение третьего кванта.
@@ -274,6 +315,108 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// два случая, велит чинить поставку там, где чинить нечего.
             /// </summary>
             public Dictionary<double, HashSet<double>> SupplyPartners;
+
+            /// <summary>
+            /// (`S177`) ПЕРЕХОД НОСИТЕЛЯ В СХЕМЕ УРОВНЕЙ — тот, что выбрал
+            /// <see cref="RectifyBySchemes"/> и по которому посчитаны доли его
+            /// пар: ключ носителя → (схема, откуда, куда). Нужен ходу по паре
+            /// (<see cref="GammaPairThird"/>): третий квант при паре (i, j)
+            /// считается от ТОГО ЖЕ перехода i, от которого считана P(j|i), —
+            /// иначе два числа одной пары шли бы от разных переходов. Пусто —
+            /// носителей со схемой нет (изомер, схемы не нашлось). Лежит в
+            /// общем кэше и копируется ссылкой: после загрузки не меняется.
+            /// </summary>
+            public Dictionary<double, SchemeRef> CarrierScheme;
+
+            /// <summary>
+            /// (`S177`) ЛИЧНОСТЬ ГАММА-ЛИНИИ РАСПАДА по ключу пары — строка
+            /// `decay_radiations` с её переходом и ветвью и разложение
+            /// K-вакансии при этой гамме по источникам (захват, конверсия
+            /// каждого соседа). Заполняется в <see cref="Augment"/>, где эти
+            /// данные уже собраны для рентгена; читают его ход по паре
+            /// (рентген при паре γ+γ — без конверсии партнёра) и пара γ+K
+            /// (третий квант при том, что вакансия дана). Пусто — атомных данных
+            /// у нуклида нет, и пары считаются прежним правилом max.
+            /// </summary>
+            public Dictionary<double, LineIdentity> Lines;
+
+            /// <summary>
+            /// (`S177`) НОСИТЕЛИ K-РЕНТГЕНА по ключу партнёра → доля линии в
+            /// серии (Kα1, Kα2, Kβ; у двух линий одного ключа доли сложены,
+            /// как их вероятности по `S165`). По нему пара узнаёт, что её
+            /// партнёр — рентген, а не гамма, и берёт другой ход.
+            /// </summary>
+            public Dictionary<double, double> XrayShare;
+
+            /// <summary>
+            /// (`S177`) Кэш третьих квантов пар ЭТОГО экземпляра данных:
+            /// «i|j» → набор. <see cref="PairArea"/> зовётся на каждую пару
+            /// из каждой линии компонента, и ход по схеме на каждом вызове
+            /// стоил бы заметно; набор от данных не зависит ничем, кроме них
+            /// самих, — потому кэш лежит на данных, а не на суммирователе.
+            /// </summary>
+            public Dictionary<string, ThirdSet> ThirdCache;
+        }
+
+        /// <summary>(`S177`) Переход в схеме уровней: сама схема и пара уровней «откуда → куда».</summary>
+        sealed class SchemeRef
+        {
+            public CascadeAtomicData.LevelScheme Scheme;
+            public int FromSeq;
+            public int ToSeq;
+        }
+
+        /// <summary>
+        /// (`S177`) Одно слагаемое K-вакансии при гамме k от КОНВЕРСИИ соседа T:
+        /// вклад в вакансию равен P(γ_T | γ_k) · α_K(T) · [T и k в одном окне]
+        /// (множители — в этом порядке, как в прежнем цикле). Держится
+        /// раздельно, чтобы ход по паре мог подставить вместо P(T|k) условную
+        /// при паре P(T|k∧j) — и выбросить слагаемое партнёра j целиком (он
+        /// вышел квантом, не конвертировал).
+        /// </summary>
+        sealed class VacancyTerm
+        {
+            /// <summary>Энергия строки T в `decay_radiations`, кэВ.</summary>
+            public double Kev;
+
+            /// <summary>Переход T в схеме (уровни и α_K); не null по построению.</summary>
+            public CascadeAtomicData.Transition Transition;
+
+            /// <summary>P(γ_T | γ_k) — из поставки/схемы либо запасной ход (<see cref="FsaCascadeSummer.Conditional"/>); больше нуля по построению.</summary>
+            public double Conditional;
+
+            /// <summary>α_K(T).</summary>
+            public double AlphaK;
+
+            /// <summary>Вероятность T и k уложиться в одно окно (гейт по времени, `A289`).</summary>
+            public double Together;
+        }
+
+        /// <summary>(`S177`) Гамма-линия распада: переход, ветвь и разложение K-вакансии при ней.</summary>
+        sealed class LineIdentity
+        {
+            public CascadeAtomicData.GammaLine Gamma;
+            public CascadeAtomicData.Branch Branch;
+            public int BranchIndex;
+
+            /// <summary>Захватная вакансия при этой гамме (на событие ветви, с гейтом по времени), ДО ω_K.</summary>
+            public double Capture;
+
+            /// <summary>ω_K атома этой ветви.</summary>
+            public double OmegaK;
+
+            /// <summary>Слагаемые конверсии соседей — в порядке обхода <c>atomic.GammaIntensity</c>.</summary>
+            public List<VacancyTerm> Terms;
+        }
+
+        /// <summary>(`S177`) Третьи кванты пары: партнёр → P(партнёр | пара) и метки происхождения (`D49`).</summary>
+        sealed class ThirdSet
+        {
+            public Dictionary<double, double> Partners;
+            public HashSet<double> Supply;
+
+            /// <summary>Сколько третьих внутри набора пришлось считать прежним правилом max (рентген без личности, 511).</summary>
+            public int Fallbacks;
         }
 
         /// <summary>
@@ -307,8 +450,49 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         const double SumPeakFloor = 1.0E-4;
 
-        /// <summary>Больше этого числа сумм-пиков на компонент не берём.</summary>
-        const int MaxSumPeaks = 24;
+        /// <summary>
+        /// СРЕЗ СУММ-ПИКОВ НУКЛИДА — ПО ПЛОЩАДИ. Пары (и тройки) одного
+        /// нуклида идут в образ по убыванию площади, пока не набрана эта доля
+        /// суммарной площади его сумм-пиков на сцене; остальное — «(не в
+        /// образе)», <see cref="Correction.DroppedSumPeaks"/> с пометкой
+        /// <see cref="SumPeak.Trimmed"/>.
+        ///
+        /// Σ — площадь КАНДИДАТОВ В ОБРАЗ: пар выше `SumPeakFloor` и троек выше
+        /// своего порога (`S113`). Подпороговое в Σ не входит нарочно: порог —
+        /// отдельное, старшее правило («не виден — не ставится»), и мерить
+        /// долю от него значило бы сделать 99 % недостижимыми там, где порог
+        /// держит больше 1 %: у Eu-152 на `G1S_point5` подпороговые 86 пар с
+        /// K-рентгеном Sm (каждая меньше 1e-4 линии 122) несут 3.6 % всего
+        /// посчитанного, и правило, считанное от всего, упиралось бы в предел
+        /// <see cref="MaxSumPeaks"/> на 95.8 % — не потому, что образ полон, а
+        /// потому, что порог уже забрал своё. `Describe` печатает обе доли —
+        /// от кандидатов (мера правила) и от всего посчитанного — и массу
+        /// подпорогового отдельно, чтобы цена порога была видна.
+        ///
+        /// Решение Amber 17.09.2026, вопросником, дословно: **«Срез по
+        /// площади: держать 99 % Σ»** (`S176`, исполнение П93). До того срез
+        /// шёл ЧИСЛОМ — 24 сумм-пика на компонент, — и число это ничем не
+        /// мерилось: у Eu-152 на `G1S_point5` оно резало **22.9 %** посчитанной
+        /// площади сумм (2.47e-4 из 1.08e-3 на распад; 54 срезанных пары выше
+        /// 1e-6, среди них 964+45.5 1.17e-5, 444+122 9.9e-6, 368+344 7.8e-6 —
+        /// П90), а пара 444+1086, которую оба арбитра (Geant4, TCCFCALC2)
+        /// считают в окне 1529.8 кэВ, стояла 48-й из 317 и в образ не попадала
+        /// — П85 прочёл это как «пары нет вовсе», то есть как дефект модели.
+        ///
+        /// Мера — нуклид, а не компонент: пары совпадений живут внутри одного
+        /// нуклида (см. <see cref="Compute"/>), и у компонента-цепочки срез
+        /// по общей сумме отдал бы весь образ сильнейшему дочернему, оставив
+        /// слабых (Ac-228 с сотнями мелких пар) без сумм вовсе.
+        /// </summary>
+        const double SumPeakAreaShare = 0.99;
+
+        /// <summary>
+        /// Верхний предел сумм-пиков ОДНОГО НУКЛИДА в образе — страховка среза
+        /// <see cref="SumPeakAreaShare"/> (то же решение Amber 17.09.2026:
+        /// «верхний предел 96 пар»): у нуклида с сотнями почти равных пар доля
+        /// набиралась бы хвостом, каждый член которого в образе не виден.
+        /// </summary>
+        const int MaxSumPeaks = 96;
 
         /// <summary>
         /// ЖУРНАЛ ТРОЙНЫХ СУММ (`S19`, диагностика). Каждая рассмотренная тройка
@@ -656,18 +840,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ничего не меняет — сцене нечем ослабить корреляцию, и это не отказ:
         /// счёт идёт изотропно, как прежде, а состояние видно снаружи
         /// (<see cref="AngularPairs"/>). Умолчание — у анализатора
-        /// (<c>FsaAnalyzer.CascadeSumAngular</c>), рычаг проб —
-        /// `--angcorr=0|1` у `CorpusFsaProbe`. Ставится до первого
+        /// (<c>FsaAnalyzer.CascadeSumAngular</c>; с 15.09.2026, П86 — ВКЛ,
+        /// после правки знака δ заселяющего перехода в
+        /// <see cref="AngularCorrelation.For"/>), здесь поле пустое — false,
+        /// пока анализатор его не выставит; рычаг проб — `--angcorr=0|1` у
+        /// `CorpusFsaProbe`/`FsaCascadeProbe`. Ставится до первого
         /// <see cref="For"/>, как и <see cref="PhotonLightCurve"/>.
         /// </summary>
         public bool AngularCorrelations { get; set; }
 
         /// <summary>
-        /// Таблица Q_k(E) сцены (`N14`); null — сайдкара рядом с матрицей нет.
-        /// Приходит снаружи тем же путём, что вещество кристалла (`S20`):
-        /// <c>FsaMatrixBinding.Bind</c> → анализатор → сюда.
+        /// Таблица Q_k(E) сцены (`N14`); с 16.09.2026 (`AMBER46`, П87) — блок
+        /// формата 9 самой матрицы (<c>ResponseMatrix.AngularQk</c>), null —
+        /// матрица собрана руками без таблицы. Приходит снаружи тем же путём,
+        /// что вещество кристалла (`S20`): <c>FsaMatrixBinding.Bind</c> →
+        /// анализатор → сюда.
         /// </summary>
-        public AngularAttenuation AngularQk { get; set; }
+        public EfficiencyMaker.AngularAttenuation AngularQk { get; set; }
 
         /// <summary>Сколько пар с A_kk ≠ 0 получили множитель при включённом ключе — в <see cref="PairBase"/> и в выносе (<see cref="SurviveAll"/>).</summary>
         public int AngularPairs { get; private set; }
@@ -991,14 +1180,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// перечня нельзя.
         ///
         /// Печатается всё, что посчитано, включая отброшенное порогом
-        /// (`SumPeakFloor`) и срезанное `MaxSumPeaks`: в `Correction` попадает
-        /// только выжившее, а знать надо и то, что не выжило.
+        /// (`SumPeakFloor`) и срезанное по площади (`SumPeakAreaShare`,
+        /// `MaxSumPeaks`): в образ идёт только выжившее, а знать надо и то, что
+        /// не выжило. ⚠ До 17.09.2026 (П90, `S176`) это обещание не
+        /// исполнялось: печатался список ПОСЛЕ среза, и «пары 444+1086 нет
+        /// вовсе» (П85) читалось как дефект модели. Срезанное лежит в
+        /// <see cref="Correction.DroppedSumPeaks"/>; сводка среза по нуклидам
+        /// («в образе K сумм из N, доля площади») — приёмка правила 99 % Σ.
         ///
         /// Рентгеновских линий здесь нет и быть пока не может: библиотека FSA
         /// не различает γ и рентген (у `FsaLine` нет вида линии, см. TODO R2),
         /// так что раздела «xray_peaks» у нас нет не потому, что его не
         /// напечатали, а потому, что его нечем наполнить.
         /// </summary>
+        /// <summary>Счётчик сводки среза в <see cref="Describe"/>: площадь и число сумм по нуклиду.</summary>
+        static void Tally(SumPeak peak, Dictionary<string, double> area, Dictionary<string, int> count,
+                          List<string> order)
+        {
+            string key = peak.Nuclide ?? "";
+            if (!area.ContainsKey(key))
+            {
+                area[key] = 0.0;
+                count[key] = 0;
+            }
+
+            area[key] += peak.Area;
+            count[key] += 1;
+            if (!order.Contains(key))
+            {
+                order.Add(key);
+            }
+        }
+
         public string Describe(FsaComponent component)
         {
             Correction correction = this.For(component);
@@ -1041,6 +1254,86 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // Сводка среза по нуклидам (`S176`, П93): сколько сумм в образе из
+            // посчитанных и какая доля площади набрана — это и есть приёмка
+            // правила «держать 99 % Σ», иначе его исполнение не видно.
+            if (correction.SumPeaks != null && correction.SumPeaks.Count > 0)
+            {
+                sb.AppendLine();
+                var keptArea = new Dictionary<string, double>();
+                var keptCount = new Dictionary<string, int>();
+                var trimArea = new Dictionary<string, double>();
+                var trimCount = new Dictionary<string, int>();
+                var floorArea = new Dictionary<string, double>();
+                var floorCount = new Dictionary<string, int>();
+                var order = new List<string>();
+                foreach (SumPeak peak in correction.SumPeaks)
+                {
+                    Tally(peak, keptArea, keptCount, order);
+                }
+
+                if (correction.DroppedSumPeaks != null)
+                {
+                    foreach (SumPeak peak in correction.DroppedSumPeaks)
+                    {
+                        if (peak.Trimmed)
+                        {
+                            Tally(peak, trimArea, trimCount, order);
+                        }
+                        else
+                        {
+                            Tally(peak, floorArea, floorCount, order);
+                        }
+                    }
+                }
+
+                foreach (string nuclide in order)
+                {
+                    int kept = keptCount.ContainsKey(nuclide) ? keptCount[nuclide] : 0;
+                    int trimmed = trimCount.ContainsKey(nuclide) ? trimCount[nuclide] : 0;
+                    int below = floorCount.ContainsKey(nuclide) ? floorCount[nuclide] : 0;
+                    double keptSum = keptArea.ContainsKey(nuclide) ? keptArea[nuclide] : 0.0;
+                    double trimSum = trimArea.ContainsKey(nuclide) ? trimArea[nuclide] : 0.0;
+                    double floorSum = floorArea.ContainsKey(nuclide) ? floorArea[nuclide] : 0.0;
+                    double candidates = keptSum + trimSum;
+                    double everything = candidates + floorSum;
+                    sb.AppendFormat(CultureInfo.InvariantCulture,
+                        "  срез {0}: в образе {1} сумм из {2} кандидатов — {3:F2} % их площади (правило {4:F0} % Σ, не более {5}); срезано {6} (Σ {7:E2}); подпороговых (SumPeakFloor) {8} (Σ {9:E2}, {10:F2} % всего посчитанного); в образе {11:F2} % всего посчитанного",
+                        nuclide, kept, kept + trimmed,
+                        candidates > 0.0 ? keptSum / candidates * 100.0 : 0.0,
+                        SumPeakAreaShare * 100.0, MaxSumPeaks, trimmed, trimSum, below, floorSum,
+                        everything > 0.0 ? floorSum / everything * 100.0 : 0.0,
+                        everything > 0.0 ? keptSum / everything * 100.0 : 0.0);
+                    sb.AppendLine();
+                }
+            }
+
+            // Посчитанное, но в образ не попавшее — срез по площади и порог
+            // `SumPeakFloor` (П90, `S176`): без этого «суммы нет» неотличимо
+            // от «сумма не посчиталась».
+            if (correction.DroppedSumPeaks != null && correction.DroppedSumPeaks.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendFormat(CultureInfo.InvariantCulture,
+                    "  посчитано, но в образ НЕ идёт ({0}: срез {1:F0} % Σ площади нуклида, не более {2}, и порог SumPeakFloor):",
+                    correction.DroppedSumPeaks.Count, SumPeakAreaShare * 100.0, MaxSumPeaks);
+                sb.AppendLine();
+                var rest = new List<SumPeak>(correction.DroppedSumPeaks);
+                rest.Sort((a, b) => b.Area.CompareTo(a.Area));
+                foreach (SumPeak peak in rest)
+                {
+                    string parts = peak.IsTriple
+                        ? string.Format(CultureInfo.InvariantCulture, "{0:F2}+{1:F2}+{2:F2}",
+                                        peak.FromKev, peak.WithKev, peak.ThirdKev)
+                        : string.Format(CultureInfo.InvariantCulture, "{0:F2}+{1:F2}",
+                                        peak.FromKev, peak.WithKev);
+                    sb.AppendFormat(CultureInfo.InvariantCulture,
+                        "  {0,11:F2}   {1,-22}  {2,-10}  {3,12:E4}  (не в образе: {4})",
+                        peak.Energy, parts, peak.Nuclide, peak.Area, peak.Trimmed ? "срез" : "порог");
+                    sb.AppendLine();
+                }
+            }
+
             sb.AppendLine();
             sb.AppendLine("Раскладка CF по линиям (A_ист = A_набл · CF)");
             sb.AppendLine("вынос — партнёр задел кристалл; влёт — сумма пары попала в окно линии");
@@ -1079,6 +1372,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             List<SumPeak> sumPeaks = new List<SumPeak>();
+            List<SumPeak> dropped = new List<SumPeak>();
             List<SumContinuum> continua = new List<SumContinuum>();
             List<LineNote> notes = new List<LineNote>();
             bool any = false;
@@ -1140,17 +1434,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
-                this.CollectSumPeaks(component, nuclide, data, scale, strongest, sumPeaks, continua);
+                // Суммы нуклида собираются в СВОЙ список: срез по площади
+                // (`SumPeakAreaShare`, решение Amber 17.09.2026) меряется от
+                // суммарной площади сумм-пиков ЭТОГО нуклида, а не компонента.
+                var nuclidePeaks = new List<SumPeak>();
+                var nuclideDropped = new List<SumPeak>();
+                this.CollectSumPeaks(component, nuclide, data, scale, strongest, nuclidePeaks,
+                                     continua, nuclideDropped);
+                TrimByArea(nuclidePeaks, nuclideDropped);
+                sumPeaks.AddRange(nuclidePeaks);
+                dropped.AddRange(nuclideDropped);
             }
 
             if (sumPeaks.Count > 0)
             {
                 any = true;
+                // Порядок — по убыванию площади, как и печатает `Describe`;
+                // счёту он безразличен.
                 sumPeaks.Sort((a, b) => b.Area.CompareTo(a.Area));
-                if (sumPeaks.Count > MaxSumPeaks)
-                {
-                    sumPeaks.RemoveRange(MaxSumPeaks, sumPeaks.Count - MaxSumPeaks);
-                }
             }
 
             if (continua.Count > 0)
@@ -1162,6 +1463,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 LineFactors = factors,
                 SumPeaks = sumPeaks,
+                DroppedSumPeaks = dropped,
                 SumContinua = continua,
                 Notes = notes,
                 Any = any
@@ -1244,13 +1546,66 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// Срез сумм-пиков одного нуклида ПО ПЛОЩАДИ (`S176`, решение Amber
+        /// 17.09.2026 «Срез по площади: держать 99 % Σ»): <paramref name="peaks"/>
+        /// сортируется по убыванию площади, и в образе остаётся начальный
+        /// отрезок, набравший <see cref="SumPeakAreaShare"/> от Σ площади
+        /// кандидатов (самих <paramref name="peaks"/> — пар и троек, прошедших
+        /// свои пороги; подпороговое, уже лежащее в <paramref name="dropped"/>,
+        /// в Σ не входит — довод у константы), но не длиннее
+        /// <see cref="MaxSumPeaks"/>. Хвост переезжает в
+        /// <paramref name="dropped"/> с пометкой <see cref="SumPeak.Trimmed"/>
+        /// и печатается `Describe` как «(не в образе: срез)»: срезанное не
+        /// пропадает, отчёт обязан назвать, почему суммы нет в образе (П90).
+        /// </summary>
+        static void TrimByArea(List<SumPeak> peaks, List<SumPeak> dropped)
+        {
+            if (peaks.Count == 0)
+            {
+                return;
+            }
+
+            double total = 0.0;
+            foreach (SumPeak peak in peaks)
+            {
+                total += peak.Area;
+            }
+
+            peaks.Sort((a, b) => b.Area.CompareTo(a.Area));
+            double target = total * SumPeakAreaShare;
+            double cumulative = 0.0;
+            int keep = 0;
+            while (keep < peaks.Count && keep < MaxSumPeaks)
+            {
+                cumulative += peaks[keep].Area;
+                keep++;
+                if (cumulative >= target)
+                {
+                    break;
+                }
+            }
+
+            if (keep < peaks.Count)
+            {
+                List<SumPeak> tail = peaks.GetRange(keep, peaks.Count - keep);
+                foreach (SumPeak peak in tail)
+                {
+                    peak.Trimmed = true;
+                }
+
+                dropped.AddRange(tail);
+                peaks.RemoveRange(keep, peaks.Count - keep);
+            }
+        }
+
+        /// <summary>
         /// Сумм-пики нуклида: пары, чья сумма НЕ попала ни в одну линию этого
         /// компонента. Попавшие уже учтены влётом в CF той линии, и ставить их
         /// вторично значило бы посчитать одно и то же дважды.
         /// </summary>
         void CollectSumPeaks(FsaComponent component, string nuclide, NuclideData data,
                              double scale, double strongest, List<SumPeak> sumPeaks,
-                             List<SumContinuum> continua)
+                             List<SumContinuum> continua, List<SumPeak> dropped)
         {
             if (!(scale > 0.0))
             {
@@ -1322,6 +1677,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     sumPeaks.Add(new SumPeak(energy, area, nuclide, pair[0], pair[1]));
                 }
+                else if (area > 0.0)
+                {
+                    // Ниже порога — в образ не идёт, но в отчёте называется.
+                    dropped.Add(new SumPeak(energy, area, nuclide, pair[0], pair[1]));
+                }
 
                 this.CollectTripleSums(component, nuclide, data, pair, scale, tripleFloor, sumPeaks,
                                        continua);
@@ -1359,7 +1719,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double pairEnergy = this.ApparentSum(pair[0], pair[1]);
             HashSet<double> thirdSupply;
             foreach (KeyValuePair<double, double> third
-                     in MergedThird(data, pair[0], pair[1], out thirdSupply))
+                     in this.PairThird(data, pair[0], pair[1], out thirdSupply))
             {
                 double peakThird = this.PeakEfficiency(third.Key);
                 double totalThird = this.TotalEfficiency(third.Key);
@@ -1563,16 +1923,714 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// Доля пар, которым третий квант каскада не помешал:
-        /// `S_ij = ∏_m (1 − P(m) · ε_T(m))` (`S144`).
+        /// `S_ij = ∏_m (1 − P(m | i∧j) · ε_T(m))` (`S144`); условная третьего
+        /// при паре — ходом по схеме уровней (`S177`, <see cref="PairThird"/>).
         /// </summary>
         double Survive(NuclideData data, double[] pair)
         {
             HashSet<double> supply;
-            Dictionary<double, double> third = MergedThird(data, pair[0], pair[1], out supply);
+            Dictionary<double, double> third = this.PairThird(data, pair[0], pair[1], out supply);
             // (`S166`, П18) Условие «оба кванта пары в пике» — тройная
             // совместность, таблицы под неё нет; третий квант считается
             // по-прежнему, без множителя.
             return this.SurviveAll(data, third, supply, 0.0, 0.0);
+        }
+
+        /// <summary>
+        /// (`S177`, 18.09.2026) ТРЕТИЙ КВАНТ ПАРЫ — УСЛОВНАЯ ПРИ ОБОИХ, ХОДОМ ПО
+        /// СХЕМЕ УРОВНЕЙ, а не max(P(m|i), P(m|j)).
+        ///
+        /// ЧТО БЫЛО. <see cref="MergedThird"/> брал для каждого третьего m
+        /// больший из двух парных условных. Для каскада i → j это точно у m
+        /// ниже j и «консервативно» у m выше i, а два случая считались не тем
+        /// числом вовсе: (1) m, ИСКЛЮЧАЮЩИЙ пару (альтернативная ветвь того же
+        /// уровня, переход в обход j), при паре невозможен — P = 0, а max
+        /// давал P(m|i) > 0; (2) K-рентген конверсии ПАРТНЁРА: `Partners[i]`
+        /// несёт вакансию от конверсии j с весом P(j|i)·α_K(j), а в паре
+        /// (γ_i, γ_j) партнёр вышел квантом, то есть НЕ конвертировал, и этой
+        /// вакансии в событии нет. На `G1S_point5` у Eu-152 1408+122 это
+        /// 0.315·ω_K·ε_T(40 кэВ) ≈ 1.8 % площади суммы (П90 §1.1), и того же
+        /// порядка у 964/1112/244 + 122.
+        ///
+        /// ЧТО СТАЛО. Ядро снимает возбуждение одним путём вниз, и при паре
+        /// (i выше j) третий квант m лежит ровно в одном из трёх мест:
+        ///
+        ///   * ВЫШЕ i (конечный уровень m достигает начального уровня i) —
+        ///     P(m | i∧j) = P(m | i): прошлое каскада от будущего независимо
+        ///     (марковость хода), берётся обратная условная, как и прежде;
+        ///   * МЕЖДУ i и j (с конечного уровня i достижим начальный уровень m,
+        ///     с конечного уровня m — начальный уровень j) —
+        ///     P = R(T_i→F_m)·s_m·R(T_m→F_j) / R(T_i→F_j), где R — достижимость
+        ///     (<see cref="CascadeAtomicData.LevelScheme.ReachOf"/>), s_m —
+        ///     доля кванта m на его уровне (I_m/Σ I(1+α));
+        ///   * НИЖЕ j — P = R(T_j→F_m)·s_m, то есть P(m | j) схемы;
+        ///   * иначе — НОЛЬ: m и пара в одном событии не бывают.
+        ///
+        /// Партнёр j ищется по энергии среди уровней, достижимых с конечного
+        /// уровня i (те же кандидаты и веса, из которых <see cref="RectifyBySchemes"/>
+        /// сложил P(j|i)), и по ним берётся взвешенное среднее; переход i —
+        /// тот, что выбран там же (<see cref="NuclideData.CarrierScheme"/>).
+        /// Третьи m перебираются по ПРЕЖНЕМУ перечню — партнёрам i и j из
+        /// поставки и атомным (перечень пар остаётся у поставки, П90 §3); у
+        /// каждого m складываются все переходы схемы с его энергией (ближайший
+        /// выход на уровень, как в <c>GammaShare</c>).
+        ///
+        /// K-РЕНТГЕН при паре γ+γ — <see cref="XrayGivenGammaPair"/>: захват
+        /// плюс конверсия соседей T ∉ {i, j} с P(γ_T | i∧j) тем же ходом.
+        /// ПАРА γ+K-РЕНТГЕН — <see cref="XrayPairThird"/>: вакансия дана, и
+        /// каждый источник вакансии (захват, конверсия T) даёт третьему m
+        /// свою условную; у m = T она ноль — T ушёл электроном, кванта нет.
+        ///
+        /// ЧЕГО НЕТ, названо: пары с аннигиляцией, носители без перехода в
+        /// схеме, партнёр выше носителя или вне его хода — прежнее правило max
+        /// (<see cref="PairThirdFallback"/> считает такие); второй K-рентген
+        /// при паре с первым и 511 при любой паре — по-прежнему max; гейт по
+        /// времени у соседей T берётся от носителя i, а не от тройки.
+        /// </summary>
+        Dictionary<double, double> PairThird(NuclideData data, double i, double j,
+                                             out HashSet<double> supply)
+        {
+            string cacheKey = i.ToString("R", CultureInfo.InvariantCulture) + "|"
+                              + j.ToString("R", CultureInfo.InvariantCulture);
+            ThirdSet set;
+            // ⚠ Под замком: когда атомных данных нет (изомер, ключи выключены),
+            // `Augment` отдаёт ОБЩИЙ кэшированный объект поставки, а не копию, и
+            // два разбора в разных потоках писали бы в один словарь. Набор от
+            // матрицы не зависит, так что общий кэш верен по числам — опасна
+            // только одновременная запись.
+            lock (data)
+            {
+                if (data.ThirdCache == null)
+                {
+                    data.ThirdCache = new Dictionary<string, ThirdSet>(StringComparer.Ordinal);
+                }
+
+                if (data.ThirdCache.TryGetValue(cacheKey, out set))
+                {
+                    supply = set.Supply;
+                    return set.Partners;
+                }
+            }
+
+            string how;
+            set = this.ComputeThird(data, i, j, out how);
+            lock (data)
+            {
+                data.ThirdCache[cacheKey] = set;
+            }
+
+            supply = set.Supply;
+            return set.Partners;
+        }
+
+        /// <summary>
+        /// (`S177`) Сам выбор хода для пары (i, j) — без кэша: γ+K по источникам
+        /// вакансии, γ+γ по схеме, иначе прежнее правило max; <paramref name="how"/>
+        /// называет выбранное словами (для читателя <see cref="ThirdTable"/>).
+        /// </summary>
+        ThirdSet ComputeThird(NuclideData data, double i, double j, out string how)
+        {
+            ThirdSet set = null;
+            how = "прежнее правило max";
+            bool annihilation = Math.Abs(i - AnnihilationKev) < SamePairLineKev
+                                || Math.Abs(j - AnnihilationKev) < SamePairLineKev;
+            if (!annihilation)
+            {
+                if (data.XrayShare != null && data.XrayShare.ContainsKey(j))
+                {
+                    set = this.XrayPairThird(data, i, j);
+                    if (set != null)
+                    {
+                        how = "γ+K по источникам вакансии";
+                        lock (Gate)
+                        {
+                            PairThirdXray++;
+                        }
+                    }
+                }
+                else if (data.XrayShare == null || !data.XrayShare.ContainsKey(i))
+                {
+                    set = this.GammaPairThird(data, i, j);
+                    if (set != null)
+                    {
+                        how = "γ+γ по схеме" + (set.Fallbacks > 0
+                            ? string.Format(CultureInfo.InvariantCulture, ", у {0} третьих — прежний max", set.Fallbacks)
+                            : "");
+                        lock (Gate)
+                        {
+                            PairThirdGamma++;
+                        }
+                    }
+                }
+            }
+
+            if (set == null)
+            {
+                HashSet<double> marks;
+                set = new ThirdSet { Partners = MergedThird(data, i, j, out marks), Supply = marks };
+                lock (Gate)
+                {
+                    PairThirdFallback++;
+                }
+            }
+
+            return set;
+        }
+
+        /// <summary>Нижний переход пары как кандидат: уровни и вес R(T_i→F)·s.</summary>
+        struct LowerCandidate
+        {
+            public int FromSeq;
+            public int ToSeq;
+            public double Weight;
+        }
+
+        /// <summary>
+        /// (`S177`) Кандидаты нижнего перехода пары по энергии среди уровней,
+        /// достижимых с уровня <paramref name="start"/>: вес — R(start→F)·s,
+        /// в сумме ровно P(j | i) схемы (<c>GammaShare</c>). Пусто — квант
+        /// такой энергии после старта не бывает.
+        /// </summary>
+        static List<LowerCandidate> LowerCandidates(CascadeAtomicData.LevelScheme scheme, int start,
+                                                    double energyKev, out double total)
+        {
+            var found = new List<LowerCandidate>();
+            total = 0.0;
+            foreach (KeyValuePair<int, double> entry in scheme.Reach(start))
+            {
+                if (!(entry.Value > 0.0))
+                {
+                    continue;
+                }
+
+                CascadeAtomicData.LevelScheme.Exit exit =
+                    scheme.NearestExit(entry.Key, energyKev, SchemeMatchKev);
+                if (exit == null)
+                {
+                    continue;
+                }
+
+                double weight = entry.Value * scheme.GammaShareOf(entry.Key, exit);
+                if (!(weight > 0.0))
+                {
+                    continue;
+                }
+
+                found.Add(new LowerCandidate { FromSeq = entry.Key, ToSeq = exit.ToSeq, Weight = weight });
+                total += weight;
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// (`S177`) Условная одного перехода m = (fm → tm) с долей кванта
+        /// <paramref name="shareM"/> при верхнем переходе (fu → tu) и нижних
+        /// кандидатах <paramref name="lower"/> (взвешенных, Σ весов
+        /// <paramref name="lowerTotal"/>; пусто — нижнего нет, условная при
+        /// одном верхнем): «между» и «ниже» — числом, «выше» — признаком,
+        /// потому что там нужна обратная условная с выходами на распад, а её
+        /// знает вызывающий.
+        /// </summary>
+        static double Segment(CascadeAtomicData.LevelScheme scheme, int fu, int tu,
+                              List<LowerCandidate> lower, double lowerTotal,
+                              int fm, int tm, double shareM, ref bool above)
+        {
+            if (tm >= fu)
+            {
+                // Выше верхнего: возможен, только если его конец ведёт к началу верхнего.
+                if (scheme.ReachOf(tm, fu) > 0.0)
+                {
+                    above = true;
+                }
+
+                return 0.0;
+            }
+
+            if (lower == null || lower.Count == 0)
+            {
+                // Одиночный верхний: всё, что ниже его конца.
+                return fm <= tu ? scheme.ReachOf(tu, fm) * shareM : 0.0;
+            }
+
+            if (!(lowerTotal > 0.0))
+            {
+                return 0.0;
+            }
+
+            double sum = 0.0;
+            foreach (LowerCandidate c in lower)
+            {
+                if (fm <= tu && tm >= c.FromSeq)
+                {
+                    // МЕЖДУ: путь T_u → F_m → (m) → T_m → F_j, отнесённый к T_u → F_j.
+                    double denominator = scheme.ReachOf(tu, c.FromSeq);
+                    if (denominator > 0.0)
+                    {
+                        sum += c.Weight * scheme.ReachOf(tu, fm) * shareM * scheme.ReachOf(tm, c.FromSeq)
+                               / denominator;
+                    }
+                }
+                else if (fm <= c.ToSeq)
+                {
+                    // НИЖЕ: с конца нижнего перехода.
+                    sum += c.Weight * scheme.ReachOf(c.ToSeq, fm) * shareM;
+                }
+            }
+
+            return sum / lowerTotal;
+        }
+
+        /// <summary>
+        /// (`S177`) P(квант энергии <paramref name="mKev"/> | верхний (fu→tu) ∧
+        /// нижние кандидаты): по всем уровням схемы с выходом этой энергии —
+        /// <see cref="Segment"/>; для случая «выше верхнего» — обратная
+        /// условная из `Partners` верхнего ключа (<paramref name="upperKey"/>,
+        /// посчитана при загрузке как P(i|m)·I(m)/I(i)), а нет её — тем же
+        /// правилом по схеме и выходам на распад.
+        /// </summary>
+        static double SchemeThird(NuclideData data, CascadeAtomicData.LevelScheme scheme,
+                                  int fu, int tu, List<LowerCandidate> lower, double lowerTotal,
+                                  double upperKey, double mKev)
+        {
+            double p = 0.0;
+            bool above = false;
+            foreach (int level in scheme.Levels)
+            {
+                CascadeAtomicData.LevelScheme.Exit exit = scheme.NearestExit(level, mKev, SchemeMatchKev);
+                if (exit == null)
+                {
+                    continue;
+                }
+
+                p += Segment(scheme, fu, tu, lower, lowerTotal, level, exit.ToSeq,
+                             scheme.GammaShareOf(level, exit), ref above);
+            }
+
+            if (above)
+            {
+                p += AboveConditional(data, scheme, fu, tu, upperKey, mKev);
+            }
+
+            return p;
+        }
+
+        /// <summary>
+        /// (`S177`) P(m | верхний), когда m стоит ВЫШЕ верхнего перехода: из
+        /// `Partners` верхнего ключа (там лежит обратная условная загрузки),
+        /// иначе — Σ по переходам m, ведущим к началу верхнего,
+        /// R(T_m→F_u)·s_u·I(m)/I(u) по выходам на распад. Нет выходов — ноль.
+        /// </summary>
+        static double AboveConditional(NuclideData data, CascadeAtomicData.LevelScheme scheme,
+                                       int fu, int tu, double upperKey, double mKev)
+        {
+            Dictionary<double, double> bag;
+            if (!double.IsNaN(upperKey) && data.Partners.TryGetValue(upperKey, out bag))
+            {
+                foreach (KeyValuePair<double, double> entry in bag)
+                {
+                    if (Math.Abs(entry.Key - mKev) < SamePairLineKev)
+                    {
+                        return entry.Value;
+                    }
+                }
+            }
+
+            double iu, im;
+            if (double.IsNaN(upperKey) || !data.Intensity.TryGetValue(upperKey, out iu) || !(iu > 0.0)
+                || !MatchIntensity(data, mKev, out im) || !(im > 0.0))
+            {
+                return 0.0;
+            }
+
+            CascadeAtomicData.LevelScheme.Exit upper = scheme.ExitTo(fu, tu);
+            double shareU = scheme.GammaShareOf(fu, upper);
+            if (!(shareU > 0.0))
+            {
+                return 0.0;
+            }
+
+            double p = 0.0;
+            foreach (int level in scheme.Levels)
+            {
+                CascadeAtomicData.LevelScheme.Exit exit = scheme.NearestExit(level, mKev, SchemeMatchKev);
+                if (exit == null || exit.ToSeq < fu)
+                {
+                    continue;
+                }
+
+                p += scheme.ReachOf(exit.ToSeq, fu) * shareU * im / iu;
+            }
+
+            return p;
+        }
+
+        /// <summary>Ключ пары для линии распада T: её ключ в таблице выходов (допуск `SameLineKev`) либо NaN.</summary>
+        static double PairKeyOf(NuclideData data, double decayKev)
+        {
+            double key;
+            return Match(data.Intensity, decayKev, out key) ? key : double.NaN;
+        }
+
+        /// <summary>
+        /// (`S177`) P(γ_T | пара) для соседа T с ЯВНЫМ переходом (не по
+        /// энергии): T ниже верхнего — <see cref="Segment"/> с его уровнями;
+        /// T выше верхнего — обратная условная <paramref name="aboveValue"/>
+        /// (при одиночном верхнем это прежнее P(T|i)); ни то ни другое — ноль.
+        /// </summary>
+        static double SchemeThirdOf(CascadeAtomicData.LevelScheme scheme, int fu, int tu,
+                                    List<LowerCandidate> lower, double lowerTotal,
+                                    CascadeAtomicData.Transition t, double aboveValue)
+        {
+            CascadeAtomicData.LevelScheme.Exit exit = scheme.ExitTo(t.FromSeq, t.ToSeq);
+            double shareT = scheme.GammaShareOf(t.FromSeq, exit);
+            if (!(shareT > 0.0))
+            {
+                return 0.0;
+            }
+
+            bool above = false;
+            double p = Segment(scheme, fu, tu, lower, lowerTotal, t.FromSeq, t.ToSeq, shareT, ref above);
+            return above ? aboveValue : p;
+        }
+
+        /// <summary>
+        /// (`S177`) Третьи кванты пары γ+γ ходом по схеме (см. <see cref="PairThird"/>).
+        /// Null — хода нет: у носителя нет перехода в схеме либо партнёр не
+        /// лежит ниже него по ходу (тогда прежнее правило max).
+        /// </summary>
+        ThirdSet GammaPairThird(NuclideData data, double i, double j)
+        {
+            SchemeRef upper;
+            if (data.CarrierScheme == null || !data.CarrierScheme.TryGetValue(i, out upper))
+            {
+                return null;
+            }
+
+            CascadeAtomicData.LevelScheme scheme = upper.Scheme;
+            double lowerTotal;
+            List<LowerCandidate> lower = LowerCandidates(scheme, upper.ToSeq, j, out lowerTotal);
+            if (lower.Count == 0 || !(lowerTotal > 0.0))
+            {
+                return null;
+            }
+
+            LineIdentity li = null, lj = null;
+            if (data.Lines != null)
+            {
+                data.Lines.TryGetValue(i, out li);
+                data.Lines.TryGetValue(j, out lj);
+            }
+
+            var set = new ThirdSet
+            {
+                Partners = new Dictionary<double, double>(),
+                Supply = new HashSet<double>()
+            };
+            foreach (double m in ThirdKeys(data, i, j))
+            {
+                double p;
+                if (data.XrayShare != null && data.XrayShare.ContainsKey(m))
+                {
+                    p = this.XrayGivenGammaPair(data, scheme, upper, lower, lowerTotal, li, j, m);
+                    if (double.IsNaN(p))
+                    {
+                        p = MaxOfSides(data, i, j, m, set.Supply);
+                        set.Fallbacks++;
+                    }
+                }
+                else if (Math.Abs(m - AnnihilationKev) < SamePairLineKev)
+                {
+                    p = MaxOfSides(data, i, j, m, set.Supply);
+                    set.Fallbacks++;
+                }
+                else
+                {
+                    p = SchemeThird(data, scheme, upper.FromSeq, upper.ToSeq, lower, lowerTotal, i, m);
+                }
+
+                set.Partners[m] = p;
+            }
+
+            return set;
+        }
+
+        /// <summary>
+        /// (`S177`) P(K-линия <paramref name="xKey"/> | γ_i ∧ γ_j): доля линии
+        /// в серии · ω_K · [захват при i + Σ_{T ∉ {i, j}} P(γ_T | i∧j)·α_K(T)·вместе].
+        /// Слагаемого партнёра j НЕТ — он вышел квантом; соседи — при паре, а
+        /// не при одной гамме. NaN — считать нечем (нет личности носителя, её
+        /// ветвь ведёт в другую схему), и вызывающий берёт прежнее правило.
+        /// </summary>
+        double XrayGivenGammaPair(NuclideData data, CascadeAtomicData.LevelScheme scheme,
+                                  SchemeRef upper, List<LowerCandidate> lower, double lowerTotal,
+                                  LineIdentity li, double jKey, double xKey)
+        {
+            if (li == null || li.Terms == null || li.Branch == null
+                || !ReferenceEquals(CascadeAtomicData.LevelScheme.Of(li.Branch.Z, li.Branch.A), scheme))
+            {
+                return double.NaN;
+            }
+
+            double share;
+            if (!data.XrayShare.TryGetValue(xKey, out share) || !(share > 0.0))
+            {
+                return double.NaN;
+            }
+
+            double vacancy = 0.0;
+            vacancy += li.Capture;
+            foreach (VacancyTerm term in li.Terms)
+            {
+                // Партнёр пары конвертировать не мог: он вышел квантом.
+                if (Math.Abs(term.Kev - jKey) < SameLineKev)
+                {
+                    continue;
+                }
+
+                double conditional = SchemeThirdOf(scheme, upper.FromSeq, upper.ToSeq, lower, lowerTotal,
+                                                   term.Transition, term.Conditional);
+                if (!(conditional > 0.0))
+                {
+                    continue;
+                }
+
+                vacancy += conditional * term.AlphaK * term.Together;
+            }
+
+            return share * vacancy * li.OmegaK;
+        }
+
+        /// <summary>
+        /// (`S177`) Третьи кванты пары γ_i + K-рентген: вакансия ДАНА, и каждый
+        /// её источник u_s (захват; конверсия соседа T с весом
+        /// P(T|i)·α_K(T)·вместе) даёт третьему m свою условную:
+        ///
+        ///     P(γ_m | i ∧ K) = [u_захв·P(m|i) + Σ_T u_T·P(m | i∧T)] / Σ u_s,
+        ///
+        /// где у m = T слагаемое НОЛЬ (T ушёл электроном — кванта T в событии
+        /// нет; прежний max ставил сюда P(122|1408) = 0.464 при паре 1408+Kα,
+        /// хотя вакансия Kα в этой паре по большей части и есть конверсия
+        /// 122), а P(m | i∧T) — ход по схеме с T нижним либо верхним. Второй
+        /// K-квант и 511 — прежним правилом. Null — считать нечем.
+        /// </summary>
+        ThirdSet XrayPairThird(NuclideData data, double i, double x)
+        {
+            LineIdentity li;
+            if (data.Lines == null || !data.Lines.TryGetValue(i, out li) || li == null || li.Terms == null)
+            {
+                return null;
+            }
+
+            // Переход носителя: выбранный при замене долей, иначе — переход
+            // самой строки распада (у нуклида с одной гаммой пар γ-γ нет, и
+            // носителем в схеме он не бывает).
+            CascadeAtomicData.LevelScheme scheme = null;
+            int fi = 0, ti = 0;
+            SchemeRef upper;
+            if (data.CarrierScheme != null && data.CarrierScheme.TryGetValue(i, out upper))
+            {
+                scheme = upper.Scheme;
+                fi = upper.FromSeq;
+                ti = upper.ToSeq;
+            }
+            else if (li.Branch != null && li.Gamma != null && li.Gamma.Transition != null)
+            {
+                scheme = CascadeAtomicData.LevelScheme.Of(li.Branch.Z, li.Branch.A);
+                fi = li.Gamma.Transition.FromSeq;
+                ti = li.Gamma.Transition.ToSeq;
+            }
+
+            if (scheme == null || scheme.Count == 0
+                || (li.Branch != null && !ReferenceEquals(CascadeAtomicData.LevelScheme.Of(li.Branch.Z, li.Branch.A), scheme)))
+            {
+                return null;
+            }
+
+            double total = li.Capture;
+            foreach (VacancyTerm term in li.Terms)
+            {
+                total += term.Conditional * term.AlphaK * term.Together;
+            }
+
+            if (!(total > 0.0))
+            {
+                return null;
+            }
+
+            var set = new ThirdSet
+            {
+                Partners = new Dictionary<double, double>(),
+                Supply = new HashSet<double>()
+            };
+            var single = new List<LowerCandidate>();
+            foreach (double m in ThirdKeys(data, i, x))
+            {
+                if ((data.XrayShare != null && data.XrayShare.ContainsKey(m))
+                    || Math.Abs(m - AnnihilationKev) < SamePairLineKev)
+                {
+                    set.Partners[m] = MaxOfSides(data, i, x, m, set.Supply);
+                    continue;
+                }
+
+                // P(m | i) — из партнёров носителя, иначе по схеме.
+                double pI;
+                Dictionary<double, double> bag;
+                if (!(data.Partners.TryGetValue(i, out bag) && bag.TryGetValue(m, out pI)))
+                {
+                    pI = SchemeThird(data, scheme, fi, ti, null, 0.0, i, m);
+                }
+
+                double acc = li.Capture * pI;
+                foreach (VacancyTerm term in li.Terms)
+                {
+                    double u = term.Conditional * term.AlphaK * term.Together;
+                    if (!(u > 0.0))
+                    {
+                        continue;
+                    }
+
+                    if (Math.Abs(term.Kev - m) < SameLineKev)
+                    {
+                        // Вакансия от конверсии самого m: кванта m нет.
+                        continue;
+                    }
+
+                    CascadeAtomicData.Transition t = term.Transition;
+                    double pMT;
+                    if (scheme.ReachOf(ti, t.FromSeq) > 0.0)
+                    {
+                        // T ниже носителя: пара (i, T), m — третий.
+                        single.Clear();
+                        single.Add(new LowerCandidate { FromSeq = t.FromSeq, ToSeq = t.ToSeq, Weight = 1.0 });
+                        pMT = SchemeThird(data, scheme, fi, ti, single, 1.0, i, m);
+                    }
+                    else if (scheme.ReachOf(t.ToSeq, fi) > 0.0)
+                    {
+                        // T выше носителя: пара (T, i), m — третий; «выше T» —
+                        // из партнёров ключа T.
+                        single.Clear();
+                        single.Add(new LowerCandidate { FromSeq = fi, ToSeq = ti, Weight = 1.0 });
+                        pMT = SchemeThird(data, scheme, t.FromSeq, t.ToSeq, single, 1.0,
+                                          PairKeyOf(data, term.Kev), m);
+                    }
+                    else
+                    {
+                        // Схема не связывает T с носителем — судить нечем.
+                        pMT = pI;
+                    }
+
+                    acc += u * pMT;
+                }
+
+                set.Partners[m] = acc / total;
+            }
+
+            return set;
+        }
+
+        /// <summary>Перечень третьих квантов пары — партнёры обоих её концов, без самих концов; порядок — первого появления.</summary>
+        static List<double> ThirdKeys(NuclideData data, double i, double j)
+        {
+            var keys = new List<double>();
+            foreach (double side in new[] { i, j })
+            {
+                foreach (KeyValuePair<double, double> entry in Partners(data, side))
+                {
+                    if (Math.Abs(entry.Key - i) < SamePairLineKev || Math.Abs(entry.Key - j) < SamePairLineKev)
+                    {
+                        continue;
+                    }
+
+                    if (!keys.Contains(entry.Key))
+                    {
+                        keys.Add(entry.Key);
+                    }
+                }
+            }
+
+            return keys;
+        }
+
+        /// <summary>Прежнее правило для одного третьего: max(P(m|i), P(m|j)) с меткой происхождения победителя (`D49`).</summary>
+        static double MaxOfSides(NuclideData data, double i, double j, double m, HashSet<double> supply)
+        {
+            double best = 0.0;
+            bool any = false;
+            foreach (double side in new[] { i, j })
+            {
+                double have;
+                if (!Partners(data, side).TryGetValue(m, out have))
+                {
+                    continue;
+                }
+
+                if (!any || have > best)
+                {
+                    best = have;
+                    any = true;
+                    HashSet<double> marks = SupplyOf(data, side);
+                    if (marks != null && marks.Contains(m))
+                    {
+                        supply.Add(m);
+                    }
+                    else
+                    {
+                        supply.Remove(m);
+                    }
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// (`S177`) ЧИТАТЕЛЬ ДЛЯ ПРОБ: третьи кванты пары (i, j) нуклида
+        /// прежним правилом max и новым ходом — строки {E_m, P_max, P_схемы,
+        /// ε_T(m)} и оба множителя выживания S_ij (на этой матрице, без κ и
+        /// корреляций — как в <see cref="Survive"/>). Пусто — нуклид не
+        /// разбирается или пары нет. Положительный контроль правки: у пары с
+        /// конвертированным партнёром или исключающим третьим два столбца
+        /// ОБЯЗАНЫ разойтись, у пары без третьего — совпасть.
+        /// </summary>
+        public List<double[]> ThirdTable(string nuclide, double iKev, double jKev,
+                                         out double surviveMax, out double surviveScheme, out string how)
+        {
+            surviveMax = 1.0;
+            surviveScheme = 1.0;
+            how = "";
+            var rows = new List<double[]>();
+            NuclideData data = this.Data(nuclide);
+            if (data == null)
+            {
+                how = "нуклид не разбирается";
+                return rows;
+            }
+
+            double i, j;
+            if (!Match(data.Intensity, iKev, out i) || !Match(data.Intensity, jKev, out j))
+            {
+                how = "линии нет в таблице выходов";
+                return rows;
+            }
+
+            HashSet<double> oldMarks;
+            Dictionary<double, double> old = MergedThird(data, i, j, out oldMarks);
+            // Мимо кэша: читателю нужен и сам выбор хода, а не только числа.
+            // Счётчики при этом сдвигаются на единицу — читатель идёт после
+            // счёта, и его строка в сводке пробы не участвует.
+            ThirdSet fresh = this.ComputeThird(data, i, j, out how);
+            surviveMax = this.SurviveAll(data, old, oldMarks, 0.0, 0.0);
+            surviveScheme = this.SurviveAll(data, fresh.Partners, fresh.Supply, 0.0, 0.0);
+            foreach (double m in ThirdKeys(data, i, j))
+            {
+                double a, b;
+                old.TryGetValue(m, out a);
+                fresh.Partners.TryGetValue(m, out b);
+                rows.Add(new[] { m, a, b, this.TotalEfficiency(m) });
+            }
+
+            return rows;
         }
 
         /// <summary>
@@ -1710,9 +2768,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Третий квант каскада для пары (i, j): тройная условная из парных
-        /// данных невосстановима, берётся P(m|i∧j) ≈ max(P(m|i), P(m|j)) — для
-        /// каскада i→j квант ниже j воспроизводится точно, выше i консервативно.
+        /// ЗАПАСНОЕ ПРАВИЛО третьего кванта пары (i, j) — из одних парных
+        /// данных: P(m|i∧j) ≈ max(P(m|i), P(m|j)) — для каскада i→j квант ниже
+        /// j воспроизводится точно, выше i консервативно, исключающий пару и
+        /// рентген конверсии партнёра — завышаются. С 18.09.2026 (`S177`)
+        /// рабочий путь — <see cref="PairThird"/> ходом по схеме; сюда
+        /// приходят пары без схемы (изомеры, носители без перехода, партнёр
+        /// вне хода, аннигиляция) — счётчик <see cref="PairThirdFallback"/>.
         /// </summary>
         static Dictionary<double, double> MergedThird(NuclideData data, double i, double j,
                                                       out HashSet<double> supply)
@@ -2124,13 +3186,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // аннигиляционным квантом у него есть. Решение «ничего нет»
             // принимается теперь ПОСЛЕ дополнения, в Augment.
 
+            // (`S176`) ДОЛЯ КАЖДОЙ ПАРЫ — ИЗ СХЕМЫ УРОВНЕЙ, а не из поставки.
+            // Поставка оставляет за собой ПЕРЕЧЕНЬ пар и выходы линий; её
+            // `fraction` заменяется P(B|A), посчитанной ходом по схеме
+            // дочернего ядра. Пары, которым в схеме места не нашлось, остаются
+            // с долей поставки — и помечены как списанные из неё.
+            bool[] fromSupply = RectifyBySchemes(key, data);
+
             // Пара лежит в базе ОДИН раз и направленно; обратная условная
             // считается через отношение выходов: P(A|B) = P(B|A)·I(A)/I(B)
             // (database/scheme.md, §8).
-            foreach (double[] pair in data.Pairs)
+            for (int index = 0; index < data.Pairs.Count; index++)
             {
-                // Прямая сторона — ЧИСЛО ПОСТАВКИ, обратная — наше (`D49`).
-                Put(data, pair[0], pair[1], pair[2], true);
+                double[] pair = data.Pairs[index];
+
+                // Прямая сторона — число поставки ЛИБО схемы (`S176`), обратная
+                // — наше (`D49`). Метка «из поставки» стоит только там, где
+                // доля и впрямь списана из неё дословно.
+                Put(data, pair[0], pair[1], pair[2], fromSupply[index]);
                 double ia, ib;
                 if (data.Intensity.TryGetValue(pair[0], out ia)
                     && data.Intensity.TryGetValue(pair[1], out ib) && ib > 0.0)
@@ -2140,6 +3213,450 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return data;
+        }
+
+        /// <summary>
+        /// (`S176`) ТАБЛИЦА ПАР НУКЛИДА, какой её видит счёт: {E_A, E_B, P(B|A)}
+        /// после замены долей по схеме, ДО дополнения атомными партнёрами.
+        /// Читатель — проба `CascadePairProbe`: она сверяет эти числа с
+        /// независимым ходом по той же схеме на питоне
+        /// (`handover/p90-s176/sandia_vs_scheme.py`). Пусто — нуклид не
+        /// разбирается или пар у него нет. Копия: таблица лежит в общем кэше.
+        /// </summary>
+        public static List<double[]> PairTable(string nuclide)
+        {
+            var table = new List<double[]>();
+            string key = ParentKey(nuclide);
+            NuclideData data = key != null ? BaseData(key) : null;
+            if (data == null)
+            {
+                return table;
+            }
+
+            foreach (double[] pair in data.Pairs)
+            {
+                table.Add(new[] { pair[0], pair[1], pair[2] });
+            }
+
+            return table;
+        }
+
+        /// <summary>
+        /// Допуск сопоставления линии поставки совпадений с переходом схемы,
+        /// кэВ — тот же, что у <c>CascadeAtomicData.MatchKev</c>: энергии
+        /// приходят из разных оценок (у Hf-176 306.880 против 306.640).
+        /// </summary>
+        const double SchemeMatchKev = 0.6;
+
+        /// <summary>
+        /// Допуск РАВЕНСТВА покрытия у двух кандидатов на один носитель,
+        /// относительный (`S176`). ⛔ Без него решал бы пустяк: у Bi-214 линии
+        /// 304.2 кэВ оба перехода-кандидата (1847.4 → 1543.4 и 2508.1 → 2204.1)
+        /// объясняют всех партнёров поставки, кроме 806.17 с долей 0.0019, и
+        /// этот пустяк отдавал носителя переходу с уровня 2508 — после которого
+        /// P(934 | 304) выходила 0.008 вместо 0.9. Кандидаты, разошедшиеся по
+        /// покрытию меньше чем на эту долю, считаются равными, и их разводят
+        /// соседи по уровню.
+        /// </summary>
+        const double SchemeScoreTie = 0.02;
+
+        /// <summary>
+        /// (`S176`) Сколько пар получили долю ИЗ СХЕМЫ уровней за все загрузки.
+        /// Счётчик, а не журнал: вопрос к нему — работает ли замена вообще и
+        /// на какой доле пар. Чистится вызывающим.
+        /// </summary>
+        public static int SchemePairs;
+
+        /// <summary>
+        /// (`S176`) Сколько пар ОСТАЛИСЬ с долей поставки: носитель в схеме
+        /// нашёлся, а партнёра после него схема не знает (энергия разошлась
+        /// больше допуска, переход без γ-интенсивности). Чистится вызывающим.
+        /// </summary>
+        public static int SchemePairsKept;
+
+        /// <summary>
+        /// (`S176`) Сколько НОСИТЕЛЕЙ (линий-первых-в-паре) не сопоставилось со
+        /// схемой ни в одной дочерней ветви — все их пары остались с долей
+        /// поставки. Чистится вызывающим.
+        /// </summary>
+        public static int SchemeCarriersUnmatched;
+
+        /// <summary>
+        /// (`S176`) Худшее отношение «схема / поставка» среди заменённых долей
+        /// и пара, на которой оно достигнуто (носитель, партнёр, кэВ) — чтобы
+        /// цена замены была видна числом, а не только фактом.
+        /// </summary>
+        public static double WorstSchemeRatio = 1.0;
+
+        public static double WorstSchemeRatioKev;
+
+        public static double WorstSchemeRatioWithKev;
+
+        /// <summary>Обнулить счётчики замены долей по схеме (`S176`) и хода по паре (`S177`).</summary>
+        public static void ResetSchemeCounters()
+        {
+            SchemePairs = 0;
+            SchemePairsKept = 0;
+            SchemeCarriersUnmatched = 0;
+            WorstSchemeRatio = 1.0;
+            WorstSchemeRatioKev = 0.0;
+            WorstSchemeRatioWithKev = 0.0;
+            PairThirdGamma = 0;
+            PairThirdXray = 0;
+            PairThirdFallback = 0;
+        }
+
+        /// <summary>
+        /// (`S177`) Сколько ПАР γ+γ получили третьи кванты ходом по схеме
+        /// (<see cref="GammaPairThird"/>) — считается один раз на пару и
+        /// экземпляр данных (кэш <see cref="NuclideData.ThirdCache"/>).
+        /// Счётчик, а не журнал: вопрос к нему — работает ли ход вообще и на
+        /// какой доле пар. Чистится вызывающим.
+        /// </summary>
+        public static int PairThirdGamma;
+
+        /// <summary>(`S177`) Сколько пар γ+K-рентген получили третьи кванты с учётом того, чей переход конвертировал (<see cref="XrayPairThird"/>).</summary>
+        public static int PairThirdXray;
+
+        /// <summary>
+        /// (`S177`) Сколько пар остались при ПРЕЖНЕМ правиле max(P(m|i), P(m|j))
+        /// (<see cref="MergedThird"/>): носитель без перехода в схеме, партнёр
+        /// выше носителя или вне его хода, пара с аннигиляцией, атомных данных
+        /// нет. Ноль здесь при ненулевых двух других — правило max больше
+        /// ничего не решает на этом составе.
+        /// </summary>
+        public static int PairThirdFallback;
+
+        /// <summary>
+        /// (`S176`, 17.09.2026) ЗАМЕНИТЬ ДОЛИ ПАР ПОСТАВКИ ВЕРОЯТНОСТЯМИ ИЗ
+        /// СХЕМЫ УРОВНЕЙ. Возвращает по паре признак «доля осталась из
+        /// поставки».
+        ///
+        /// ЧТО БЫЛО. `fraction` SandiaDecay бралась как P(B|A) дословно, а она
+        /// несёт лишний множитель на каждый пройденный уровень (у Eu-152 в
+        /// Sm-152 — 0.37): суммы 1408+122 и 1112+122 выходили в 2.7 раза ниже
+        /// обоих арбитров П85, при согласии в 2…4 % на парах без такого
+        /// множителя (Co-60, Cs-134). Подозрение строки — «доля γ 1/(1+α)
+        /// применена дважды» — не подтвердилось: код конверсию в парах не
+        /// трогал вовсе, дефект сидел в числе поставки. Разбор —
+        /// <see cref="CascadeAtomicData.LevelScheme"/> и журнал
+        /// `handover/handover-2026-09-17-p90-s176-conversion-sum-peaks.md`.
+        ///
+        /// КАК СОПОСТАВЛЯЕТСЯ. Дочерние ядра родителя — из `decay_chain`
+        /// (все ветви, без петель); носитель A ищется по энергии во ВСЕХ
+        /// схемах (у Eu-152 линия 121.8 лежит в Sm-152, а 344.3 — в Gd-152, и
+        /// схема сама скажет, где она). Кандидатов у одной энергии бывает
+        /// несколько (у Eu-152 два перехода 443.96/443.97 с разных уровней;
+        /// у Hf-176 самозванцы с уровней 3467 и 3847 кэВ) — выбирается тот,
+        /// после которого схема ЗНАЕТ БОЛЬШЕ ВСЕГО ПАРТНЁРОВ носителя из
+        /// поставки (мера — Σ долей поставки по найденным партнёрам): набор
+        /// партнёров называет переход надёжнее, чем ближайшая энергия или
+        /// самый низкий уровень. При равенстве — ближайший по энергии, затем
+        /// с более низкого уровня. Партнёр, которого после выбранного
+        /// перехода схема не даёт, остаётся с долей поставки (счётчик
+        /// <see cref="SchemePairsKept"/>).
+        ///
+        /// ⚠ Направление пар поставки проверено на всём файле: из 125 966 пар
+        /// у 98 229 партнёр лежит НИЖЕ носителя по схеме, у 131 (0.1 %,
+        /// экзотика) — только выше; ход вниз от конечного уровня носителя
+        /// покрывает поставку.
+        /// </summary>
+        static bool[] RectifyBySchemes(string key, NuclideData data)
+        {
+            bool[] fromSupply = new bool[data.Pairs.Count];
+            for (int i = 0; i < fromSupply.Length; i++)
+            {
+                fromSupply[i] = true;
+            }
+
+            if (data.Pairs.Count == 0 || key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            {
+                // Изомеру дочерних в `decay_chain` не найти (S27: у него нет
+                // своей строки), доли остаются поставочными.
+                return fromSupply;
+            }
+
+            var schemes = new List<CascadeAtomicData.LevelScheme>();
+            foreach (int[] daughter in Daughters(key))
+            {
+                CascadeAtomicData.LevelScheme scheme =
+                    CascadeAtomicData.LevelScheme.Of(daughter[0], daughter[1]);
+                if (scheme != null && scheme.Count > 0)
+                {
+                    schemes.Add(scheme);
+                }
+            }
+
+            if (schemes.Count == 0)
+            {
+                return fromSupply;
+            }
+
+            // Пары группируются по носителю: энергия носителя в поставке —
+            // точный ключ одной линии.
+            var byCarrier = new Dictionary<double, List<int>>();
+            for (int index = 0; index < data.Pairs.Count; index++)
+            {
+                List<int> bag;
+                if (!byCarrier.TryGetValue(data.Pairs[index][0], out bag))
+                {
+                    byCarrier[data.Pairs[index][0]] = bag = new List<int>();
+                }
+
+                bag.Add(index);
+            }
+
+            int rectified = 0, kept = 0, unmatched = 0;
+            foreach (KeyValuePair<double, List<int>> carrier in byCarrier)
+            {
+                CascadeAtomicData.LevelScheme bestScheme = null;
+                Dictionary<int, double> bestReach = null;
+                double bestScore = 0.0, bestDelta = double.MaxValue, bestSibling = double.NaN;
+                int bestFrom = int.MaxValue, bestTo = int.MaxValue;
+                double carrierIntensity;
+                if (!data.Intensity.TryGetValue(carrier.Key, out carrierIntensity))
+                {
+                    carrierIntensity = 0.0;
+                }
+
+                foreach (CascadeAtomicData.LevelScheme scheme in schemes)
+                {
+                    foreach (CascadeAtomicData.LevelScheme.Candidate candidate
+                             in scheme.Candidates(carrier.Key, SchemeMatchKev))
+                    {
+                        Dictionary<int, double> reach = scheme.Reach(candidate.Exit.ToSeq);
+                        double score = 0.0;
+                        foreach (int index in carrier.Value)
+                        {
+                            double[] pair = data.Pairs[index];
+                            if (scheme.GammaShare(reach, pair[1], SchemeMatchKev) > 0.0)
+                            {
+                                score += Math.Min(pair[2], 1.0);
+                            }
+                        }
+
+                        if (!(score > 0.0))
+                        {
+                            continue;
+                        }
+
+                        // Разводка ОДИНАКОВО объясняющих кандидатов — по
+                        // интенсивности соседей с того же уровня: сильнейший
+                        // сосед, у которого есть выход в поставке, предсказывает
+                        // выход носителя как I_сосед · I_rel(c) / I_rel(сосед).
+                        // У Eu-152 линии 443.96 (0.33 %) и 443.965 (2.82 %) в
+                        // двух оценках переставлены по энергии на 0.01 кэВ, и
+                        // только соседи (688.67 против 1408.0) говорят, чья
+                        // это линия. NaN — соседей с выходом нет, мера
+                        // неприменима.
+                        double sibling = double.NaN;
+                        if (carrierIntensity > 0.0 && candidate.Exit.Intensity > 0.0)
+                        {
+                            double strongest = 0.0;
+                            foreach (CascadeAtomicData.LevelScheme.Exit other
+                                     in scheme.ExitsOf(candidate.FromSeq))
+                            {
+                                double known;
+                                if (ReferenceEquals(other, candidate.Exit) || !(other.Intensity > 0.0)
+                                    || !MatchIntensity(data, other.EnergyKev, out known) || !(known > strongest))
+                                {
+                                    continue;
+                                }
+
+                                strongest = known;
+                                sibling = Math.Abs(Math.Log(
+                                    known * candidate.Exit.Intensity / other.Intensity / carrierIntensity));
+                            }
+                        }
+
+                        double delta = Math.Abs(candidate.Exit.EnergyKev - carrier.Key);
+                        bool better;
+                        if (bestScheme == null || score > bestScore * (1.0 + SchemeScoreTie))
+                        {
+                            better = true;
+                        }
+                        else if (score < bestScore * (1.0 - SchemeScoreTie))
+                        {
+                            better = false;
+                        }
+                        else if (!double.IsNaN(sibling) && !double.IsNaN(bestSibling)
+                                 && Math.Abs(sibling - bestSibling) > 1.0E-9)
+                        {
+                            better = sibling < bestSibling;
+                        }
+                        else if (candidate.FromSeq != bestFrom)
+                        {
+                            // Соседи не рассудили — берётся более низкий уровень,
+                            // как в `CascadeAtomicData.MatchTransition`: самозванец
+                            // с уровня в тысячи кэВ распадом не населяется.
+                            better = candidate.FromSeq < bestFrom;
+                        }
+                        else
+                        {
+                            better = delta < bestDelta;
+                        }
+
+                        if (better)
+                        {
+                            bestScheme = scheme;
+                            bestReach = reach;
+                            bestScore = score;
+                            bestDelta = delta;
+                            bestFrom = candidate.FromSeq;
+                            bestTo = candidate.Exit.ToSeq;
+                            bestSibling = sibling;
+                        }
+                    }
+                }
+
+                if (bestScheme == null)
+                {
+                    unmatched++;
+                    continue;
+                }
+
+                // (`S177`) Выбранный переход носителя — ходу по паре: третий
+                // квант при паре считается от того же перехода, что и её доля.
+                if (data.CarrierScheme == null)
+                {
+                    data.CarrierScheme = new Dictionary<double, SchemeRef>();
+                }
+
+                data.CarrierScheme[carrier.Key] = new SchemeRef
+                {
+                    Scheme = bestScheme,
+                    FromSeq = bestFrom,
+                    ToSeq = bestTo
+                };
+
+                foreach (int index in carrier.Value)
+                {
+                    double[] pair = data.Pairs[index];
+                    double share = bestScheme.GammaShare(bestReach, pair[1], SchemeMatchKev);
+                    if (!(share > 0.0))
+                    {
+                        kept++;
+                        continue;
+                    }
+
+                    double ratio = pair[2] > 0.0 ? share / pair[2] : double.PositiveInfinity;
+                    lock (Gate)
+                    {
+                        if (Math.Abs(Math.Log(ratio)) > Math.Abs(Math.Log(WorstSchemeRatio)))
+                        {
+                            WorstSchemeRatio = ratio;
+                            WorstSchemeRatioKev = pair[0];
+                            WorstSchemeRatioWithKev = pair[1];
+                        }
+                    }
+
+                    pair[2] = share;
+                    fromSupply[index] = false;
+                    rectified++;
+                }
+            }
+
+            lock (Gate)
+            {
+                SchemePairs += rectified;
+                SchemePairsKept += kept;
+                SchemeCarriersUnmatched += unmatched;
+            }
+
+            // Записка — ОДИН РАЗ на нуклид, как у атомных партнёров: чтобы в
+            // отчёте пробы было видно, какая доля пар считается по схеме.
+            if (kept > 0 || unmatched > 0)
+            {
+                string said = string.Format(CultureInfo.InvariantCulture,
+                    "{0}: доли по схеме уровней у {1} пар из {2} (S176), у {3} осталась доля поставки, носителей без перехода в схеме {4}",
+                    key, rectified, data.Pairs.Count, kept, unmatched);
+                lock (NoteGate)
+                {
+                    if (NotesSaid.Add(said))
+                    {
+                        Notes = string.IsNullOrEmpty(Notes) ? said : Notes + " | " + said;
+                    }
+                }
+            }
+
+            return fromSupply;
+        }
+
+        /// <summary>
+        /// Выход линии поставки, ближайшей по энергии к переходу схемы, в
+        /// допуске <see cref="SchemeMatchKev"/> (`S176`). Отдельно от
+        /// <see cref="Match"/>: там допуск линии КОМПОНЕНТА (0.3 кэВ), здесь —
+        /// сопоставления двух оценок ядерных данных.
+        /// </summary>
+        static bool MatchIntensity(NuclideData data, double energyKev, out double intensity)
+        {
+            intensity = 0.0;
+            double best = SchemeMatchKev;
+            bool ok = false;
+            foreach (KeyValuePair<double, double> entry in data.Intensity)
+            {
+                double delta = Math.Abs(entry.Key - energyKev);
+                if (delta < best)
+                {
+                    best = delta;
+                    intensity = entry.Value;
+                    ok = true;
+                }
+            }
+
+            return ok;
+        }
+
+        /// <summary>
+        /// Дочерние ядра родителя, (Z, A), по всем ветвям `decay_chain` — тем
+        /// же правилом уровня, что и у <see cref="CascadeAtomicData"/>; петли
+        /// (изомерный переход в самого себя) сняты. Пусто — родителя в
+        /// цепочках нет либо база не прочлась.
+        /// </summary>
+        static List<int[]> Daughters(string nucid)
+        {
+            var found = new List<int[]>();
+            try
+            {
+                using (SqliteConnection connection = new SqliteConnection(
+                    "Data Source=" + DatabasePath() + ";Mode=ReadOnly;Cache=Shared;"))
+                {
+                    connection.Open();
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "select distinct daughter_nucid from decay_chain d where nucid = $n"
+                            + DecayParentRule.ChainLevelClause;
+                        command.Parameters.AddWithValue("$n", nucid);
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                string name = reader.IsDBNull(0) ? null : reader.GetString(0);
+                                if (string.IsNullOrEmpty(name)
+                                    || string.Equals(name, nucid, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    continue;
+                                }
+
+                                int z = CascadeAtomicData.ChargeOf(name);
+                                int a = CascadeAtomicData.MassOf(name);
+                                if (z > 0 && a > 0)
+                                {
+                                    found.Add(new[] { z, a });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Без цепочки схемы не найти: доли остаются поставочными, и
+                // это видно по нулевому SchemePairs у нуклида с парами.
+            }
+
+            return found;
         }
 
         /// <summary>
@@ -2424,6 +3941,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // уезжал четвёртый знак χ² на двух корпусных спектрах при
             // неизменной физике.
             var order = new List<double[]>();
+            // (`S177`) Носители рентгена, чья доля в серии уже записана.
+            var seenCarriers = new HashSet<double>();
             foreach (CascadeAtomicData.GammaLine gamma in atomic.GammaIntensity)
             {
                 double decayEnergy = gamma.EnergyKev;
@@ -2471,6 +3990,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     ? PassProbability(phases, this.windowSec)
                     : (delay < this.windowSec ? 1.0 : 0.0);
 
+                // (`S177`) Разложение K-вакансии при этой гамме — ОДИН раз на
+                // строку (прежде считалось заново на каждый носитель), и та же
+                // сумма идёт носителям через `VacancyGiven`, знак в знак.
+                // Личность строки кладётся по ключу пары — первая строка ключа
+                // (у межканального дубля вторая идёт тем же переходом счёта,
+                // а личность ходу по паре нужна одна).
+                LineIdentity identity = this.IdentityOf(atomic, branch, branchIndex, raw,
+                                                        gamma, delay, phases);
+                if (data.Lines == null)
+                {
+                    data.Lines = new Dictionary<double, LineIdentity>();
+                }
+
+                if (!data.Lines.ContainsKey(pairKey))
+                {
+                    data.Lines[pairKey] = identity;
+                }
+
                 foreach (Carrier carrier in own)
                 {
                     // ⛔ У АННИГИЛЯЦИИ ДОЛЯ УСЛОВНАЯ ПРИ ЭТОЙ ГАММЕ (`S150`).
@@ -2482,9 +4019,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // ЗАХВАТОМ. Условное число знает `CascadeAtomicData`, потому
                     // что связь «канал → уровень → гамма» лежит в поставке.
                     double probability = carrier.FromVacancy
-                        ? carrier.Share
-                          * this.VacancyGiven(atomic, branch, branchIndex, raw,
-                                              gamma, delay, phases)
+                        ? carrier.Share * VacancyGiven(identity)
                         : atomic.AnnihilationQuantaOfLine(gamma) * inWindow;
                     if (!(probability > 0.0))
                     {
@@ -2501,6 +4036,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     else if (!Match(data.Intensity, carrier.EnergyKev, out carrierKey))
                     {
                         carrierKey = carrier.EnergyKev;
+                    }
+
+                    // (`S177`) Ключ носителя рентгена и доля линии в серии —
+                    // ходу по паре; у двух линий одного ключа доли складываются
+                    // (`S165`: два ответа одной вакансии). Один раз на носитель.
+                    if (carrier.FromVacancy)
+                    {
+                        if (data.XrayShare == null)
+                        {
+                            data.XrayShare = new Dictionary<double, double>();
+                        }
+
+                        if (!seenCarriers.Contains(carrier.EnergyKev))
+                        {
+                            seenCarriers.Add(carrier.EnergyKev);
+                            double hadShare;
+                            data.XrayShare.TryGetValue(carrierKey, out hadShare);
+                            data.XrayShare[carrierKey] = hadShare + carrier.Share;
+                        }
                     }
 
                     // Вес слияния — выход ЭТОЙ строки. У одиночной линии он
@@ -2672,13 +4226,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Число K-вакансий, приходящееся на событие с гаммой `energyKev`, —
-        /// формула из шапки <see cref="Augment"/>, уже с гейтом по времени.
+        /// Число K-вакансий, приходящееся на событие с гаммой, — формула из
+        /// шапки <see cref="Augment"/>, уже с гейтом по времени: захват плюс
+        /// конверсия соседей, умноженные на ω_K. (`S177`) Считается по
+        /// разложению <see cref="IdentityOf"/> в том же порядке слагаемых,
+        /// что и прежний прямой цикл, — знак в знак.
         /// </summary>
-        double VacancyGiven(CascadeAtomicData atomic, CascadeAtomicData.Branch branch,
-                            int branchIndex, NuclideData raw,
-                            CascadeAtomicData.GammaLine gamma, double delaySec,
-                            CascadeAtomicData.Phase[] phases)
+        static double VacancyGiven(LineIdentity identity)
+        {
+            double vacancy = 0.0;
+            vacancy += identity.Capture;
+            foreach (VacancyTerm term in identity.Terms)
+            {
+                vacancy += term.Conditional * term.AlphaK * term.Together;
+            }
+
+            return vacancy * identity.OmegaK;
+        }
+
+        /// <summary>
+        /// (`S177`) ЛИЧНОСТЬ ГАММА-ЛИНИИ И РАЗЛОЖЕНИЕ K-ВАКАНСИИ ПРИ НЕЙ по
+        /// источникам — то, что прежде складывал <c>VacancyGiven</c> в одно
+        /// число: захватная вакансия ветви (с гейтом по времени) и по каждому
+        /// соседу T — P(γ_T | γ_k), α_K(T) и гейт «вместе». Число остаётся
+        /// суммой этих слагаемых (<see cref="VacancyGiven(LineIdentity)"/>),
+        /// а ход по паре берёт их порознь: партнёра пары среди конвертировавших
+        /// не бывает, а условные прочих соседей — при паре, не при одной гамме.
+        /// </summary>
+        LineIdentity IdentityOf(CascadeAtomicData atomic, CascadeAtomicData.Branch branch,
+                                int branchIndex, NuclideData raw,
+                                CascadeAtomicData.GammaLine gamma, double delaySec,
+                                CascadeAtomicData.Phase[] phases)
         {
             double energyKev = gamma != null ? gamma.EnergyKev : 0.0;
             // (`S145`) Захватные вакансии и ω_K берутся У СВОЕЙ ВЕТВИ. Ветви нет
@@ -2707,7 +4285,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
             double omegaK = branch != null ? branch.OmegaK : atomic.OmegaK;
-            double vacancy = 0.0;
 
             // Захватная вакансия рождается в момент распада, значит от неё до
             // гаммы прошло ровно время жизни пути. (`A289`) При включённом
@@ -2715,7 +4292,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double prompt = this.withTimeProbability
                 ? PassProbability(phases, this.windowSec)
                 : (delaySec < this.windowSec ? 1.0 : 0.0);
-            vacancy += promptVacancy * prompt;
+            var identity = new LineIdentity
+            {
+                Gamma = gamma,
+                Branch = branch,
+                BranchIndex = branchIndex,
+                Capture = promptVacancy * prompt,
+                OmegaK = omegaK,
+                Terms = new List<VacancyTerm>()
+            };
 
             // (`S158`) Переход САМОЙ этой гаммы — чтобы спросить схему, может ли
             // другой переход случиться в том же событии. Не нашёлся (линии нет в
@@ -2760,11 +4345,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                vacancy += Conditional(raw, energyKev, other, branch, mine, transition)
-                           * transition.AlphaK * together;
+                // Нулевое слагаемое (переходы вне общего пути, `S158`) в сумму
+                // не входит — и ходу по паре оно не нужно: чего не бывает при
+                // одной гамме, не бывает и при паре с ней.
+                double conditional = Conditional(raw, energyKev, other, branch, mine, transition);
+                if (!(conditional > 0.0))
+                {
+                    continue;
+                }
+
+                identity.Terms.Add(new VacancyTerm
+                {
+                    Kev = other.EnergyKev,
+                    Transition = transition,
+                    Conditional = conditional,
+                    AlphaK = transition.AlphaK,
+                    Together = together
+                });
             }
 
-            return vacancy * omegaK;
+            return identity;
         }
 
         /// <summary>
@@ -3223,6 +4823,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     data.SupplyPartners[entry.Key] = new HashSet<double>(entry.Value);
                 }
             }
+
+            // (`S177`) Переходы носителей — ссылкой: после загрузки не меняются.
+            data.CarrierScheme = source.CarrierScheme;
 
             return data;
         }

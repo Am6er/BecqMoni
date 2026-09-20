@@ -102,7 +102,12 @@ def sample_lines(entry):
                 if r['nucid'] in ('238U', '234TH', '234PAm1', '234PA', '234U'):
                     rows.append((r['energy'], r['i_chain'], r['name']))
             continue
-        for r in chain_lines(CHAINS[ch]):
+        if ch in CHAINS:
+            lines = chain_lines(CHAINS[ch])
+        else:
+            import chain_labels                       # (`T259`) подряд от члена
+            lines = chain_labels.chain_lines(ch)
+        for r in lines:
             rows.append((r['energy'], r['i_chain'], r['name']))
     rows.extend(AMBIENT)
     if entry.get('extra') == 'WT':

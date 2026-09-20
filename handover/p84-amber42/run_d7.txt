@@ -1,0 +1,12 @@
+mx_swap code 0
+  куда: D:\BqMoni_Claude\p84\store\response
+  подменено матриц: 1
+mk_appwd code 0
+    положено файлов: 443
+    конфигураций приборов: 24, матриц: 1
+    оснастка : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p84d7
+    ОСНАСТКА СВЕЖАЯ: 443 файлов сошлись
+response: rmx 1, qk 1
+  a1438401-8aeb-009d-edc5-210a2a14ecdd.rmx              622586
+  G1S_point5.qk                                           2747
+коды: sp:G1S16_Co60_P5=0 sp:G1S24_Co60_P5=0 cf:G1S16_Co60_P5_ang0=0 cf:G1S24_Co60_P5_ang0=0 cf:G1S16_Co60_P5_ang1=0 cf:G1S24_Co60_P5_ang1=0

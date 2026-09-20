@@ -1,0 +1,7 @@
+== сторож сцен генератора (T261): генератор → клеймо → живые .in / .rmx ==
+  каталог проб : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build
+  живые сцены  : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries
+  свежесть: сверено: набор приложения 1d8f78b0adb6 (550 файлов); CorpusGeomProbe.cs 330de6f15968 (6 файлов); MatrixStampProbe.cs 5f8510499eec (6 файлов); sha трёх exe (0.7 с)
+  ⛔ КАТАЛОГ ПРОБ ПРОТУХ (T226) — прогон старым кодом судил бы не то, что в дереве:
+     - НАБОР ИСХОДНИКОВ ПРИЛОЖЕНИЯ РАЗОШЁЛСЯ С ЗАВЕРЕННЫМ (T226/T41): изменено 5, добавлено 0, удалено 0: becquerelmonitor\efficiencymaker\efficiencycalculation.cs, becquerelmonitor\efficiencymaker\efficiencysimulator.cs, becquerelmonitor\efficiencymaker\electrontransport.cs, becquerelmonitor\efficiencymaker\responsematrix.cs, becquerelmonitor\efficiencymaker\responsematrixbuilder.cs
+   собрать: pwsh tools\effmaker\probes\build_all.ps1 -Bin BecquerelMonitor\bin\Debug_Codex

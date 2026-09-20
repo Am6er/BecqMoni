@@ -1,0 +1,7 @@
+# П92 фаза 4 — живая геометрия RC103_point0 (зазор 3.5 мм, П76): держится ли находка M12 на действующей сцене
+ours;RC103_point0;1460.82;20000000;ref;
+g4;RC103_point0;1460.82;20000000;def;
+g4;RC103_point0;1460.82;20000000;killesc;killesc
+ours;RC103_point0;1460.82;20000000;detour0;--detour=0
+g4;RC103_point0;1460.82;20000000;killcarry;killcarry
+g4;RC103_point0;1460.82;20000000;fullcarry;fullcarry

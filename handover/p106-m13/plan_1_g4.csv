@@ -1,0 +1,21 @@
+# П106 (M13): плечи арбитра по населениям возврата. RC103 П55 2614 — главная связка (20 млн каждое, как killcarry/fullcarry П94).
+# def с escpop — те же числа, что def, плюс счётчики населений (положительный контроль: hist побитово ≠ нужен, статистика ≈ П55 def 40 млн).
+g4;RC103_point0_p55;2614.511;20000000;escpop;escpop
+g4;RC103_point0_p55;2614.511;20000000;killescown;killescown
+g4;RC103_point0_p55;2614.511;20000000;killesccarry;killesccarry
+g4;RC103_point0_p55;2614.511;20000000;killret;killret
+g4;RC103_point0_p55;2614.511;20000000;killescbrem;killescbrem
+g4;RC103_point0_p55;2614.511;20000000;killescdelta;killescdelta
+g4;RC103_point0_p55;2614.511;20000000;killretsame;killretsame
+g4;RC103_point0_p55;2614.511;20000000;killretother;killretother
+# контроль: диск AS80 2614 (8 млн, как П92) и RC103 П55 1461 (20 млн)
+g4;AS80_th_disk;2614.511;8000000;escpop;escpop
+g4;AS80_th_disk;2614.511;8000000;killescown;killescown
+g4;AS80_th_disk;2614.511;8000000;killesccarry;killesccarry
+g4;AS80_th_disk;2614.511;8000000;killret;killret
+g4;AS80_th_disk;2614.511;8000000;killescbrem;killescbrem
+g4;RC103_point0_p55;1460.82;20000000;escpop;escpop
+g4;RC103_point0_p55;1460.82;20000000;killescown;killescown
+g4;RC103_point0_p55;1460.82;20000000;killesccarry;killesccarry
+g4;RC103_point0_p55;1460.82;20000000;killret;killret
+g4;RC103_point0_p55;1460.82;20000000;killescbrem;killescbrem

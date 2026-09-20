@@ -43,12 +43,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             analyzer.ResponseMatrix = matrix;
             analyzer.ScintillatorMaterial = EfficiencySimulator.ScintillatorNameOf(geometry);
             analyzer.BackscatterWithMatrix = geometry != null && geometry.InShield;
-            // (`N14`, П49 13.09.2026) Таблица Q_k(E) сцены — сайдкар `*.qk` в
-            // том же каталоге, где лежит матрица (`ResponseMatrixStore`), по
-            // ОТПЕЧАТКУ геометрии, а не по имени: имя файла склада — guid
-            // кривой, а таблица считается на сцену. Нет файла — null, счёт
-            // идёт изотропно, состояние видно пробе (`AngularQk`).
-            analyzer.AngularQk = AngularAttenuation.Find(ResponseMatrixStore.Directory, geometry);
+            // (`N14`, П49; `AMBER46`, П87 16.09.2026) Таблица Q_k(E) сцены —
+            // ИЗ САМОЙ МАТРИЦЫ (блок `ANGK` формата 9, построена из тех же
+            // историй, что её строки). Сайдкар `*.qk` по отпечатку геометрии
+            // снят по постановке Amber 16.09.2026 («Никаких сайдкаров. Стоп.»):
+            // у матрицы, которую строит приложение, таблица есть всегда, и
+            // «ключ ВКЛ, а таблицы нет» (`A311`) больше невозможно. null —
+            // только у матрицы, собранной руками (пробы); состояние видно
+            // пробам (`AngularQk`).
+            analyzer.AngularQk = matrix.AngularQk;
         }
     }
 }

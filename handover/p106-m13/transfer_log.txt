@@ -1,0 +1,12 @@
+✅ BecquerelMonitor/EfficiencyMaker/ElectronTransport.cs: a01d68c99b4c… → 1fb7b1ed971a… (worktree 1fb7b1ed971a…) OK
+✅ BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs: fabd522babbc… → 562892c24b68… (worktree 562892c24b68…) OK
+✅ BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs: 1b166baee900… → 2e4398c6101f… (worktree 2e4398c6101f…) OK
+✅ BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs: 3dea69b453fd… → 96cb23b9150c… (worktree 96cb23b9150c…) OK
+✅ BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs: b2d3a1965524… → 96293d0b4b17… (worktree 96293d0b4b17…) OK
+✅ tools/effmaker/probes/CorpusMatrixProbe.cs: 2132f7ca0780… → 4e9e96992339… (worktree 4e9e96992339…) OK
+✅ tools/effmaker/probes/G4RawProbe.cs: 57ba0000ad48… → 31ab5a456932… (worktree 31ab5a456932…) OK
+✅ tools/effmaker/probes/LayerReturnProbe.cs: f292f43b42aa… → 596f1e20f0eb… (worktree 596f1e20f0eb…) OK
+✅ tools/check_matrix_keys.py: 7ed3ba4c7c30… → c26f76165e83… (worktree c26f76165e83…) OK
+✅ tools/g4cf/g4cf.cc: 6c8adf1cfc3a… → 539dca87b409… (worktree 539dca87b409…) OK
+✅ tools/effmaker/handover-response-matrix.md: 972088ecd55d… → 4f4848937ffd… (worktree 4f4848937ffd…) OK
+all ok

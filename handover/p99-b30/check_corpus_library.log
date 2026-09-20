@@ -1,0 +1,14 @@
+⛔ поставочный NuclideDefinition.xml на корпусе не используется (правило Amber 01.09.2026; гейт AMBER19 12.09.2026)
+  ЧИСТО   tools/effmaker/probes/FsaChannelSplitProbe.cs (проба оснастки: тождества каналов отклика — матрица из склада (`ResponseMatrixStore.Load`))
+  ЧИСТО   tools/effmaker/probes/FsaDoubleCountProbe.cs (проба оснастки: клетки A168 {матрица есть/нет} — матрица из склада по Guid кривой)
+  ЧИСТО   tools/effmaker/probes/ResponseRowDumpProbe.cs (проба оснастки: строки матрицы отклика — из склада; состава у пробы нет вовсе)
+  ЧИСТО   tools/effmaker/probes/FsaChannelShot.cs (проба оснастки: картинки каналов отклика — матрица из склада, без неё каналов нет)
+  ЧИСТО   tools/effmaker/probes/FsaComponentDumpProbe.cs (проба оснастки: ленты компонентов по каналам — матрица из склада)
+  ЧИСТО   tools/effmaker/probes/FsaSumPeakAccountProbe.cs (проба оснастки: сумм-пики строятся только с матрицей — из склада)
+  ЧИСТО   tools/effmaker/probes/FsaCascadeProbe.cs (проба оснастки: три прогона с матрицей из склада; `--rebuild` пишет туда же)
+  ЧИСТО   tools/effmaker/probes/CrystalXrayGateProbe.cs (проба оснастки: раздел 1 — вылет K-рентгена по строкам матрицы из склада)
+  ЧИСТО   tools/effmaker/probes/PeakOriginProbe.cs (проба оснастки: обход всего корпуса: состав каждого спектра из manifest.csv (`P5`, П19))
+  ЧИСТО   BecquerelMonitor/PeakDetector.cs (менеджер только лениво, внутри метода)
+  ЧИСТО   tools/effmaker/probes/CorpusFsaProbe.cs
+  ЧИСТО   tools/CORPUS/scripts/mkconfig.py
+НАХОДОК: 0

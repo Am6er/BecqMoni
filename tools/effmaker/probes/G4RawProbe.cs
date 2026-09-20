@@ -25,7 +25,62 @@ namespace G4RawProbe
     ///                [--bands=1-12,13-25,55-59] [--peakw] [--lys=0|1|2]
     ///                [--etr=0|1] [--etr-step=0.1] [--kdip=0|1|2|3]
     ///                [--positron=0|1] [--posoffset=0|1] [--rayl2[=0|1]]
-    ///                [--ecomp=0|1] [--bpath=0|1|2]
+    ///                [--ecomp=0|1] [--bpath=0|1|2] [--detour=0.7] [--eltr=0|1]
+    ///                [--elmix=0|1] [--lbrem=0|1] [--ret-kill=own,carry,brem,ret,same,other,outbrem]
+    ///
+    /// `--lbrem=1` (`M13`, вторая половина, П106 19.09.2026): ключ
+    /// `ElectronLayerBremAlongPath` — тормозное электрона в слоях обвязки ПО ХОДУ
+    /// переноса (тонкая мишень вещества текущего слоя на шагах, направление по
+    /// электрону) вместо толстой мишени в точке рождения / выхода. Умолчание —
+    /// склада (ВКЛ с физики 21, П107 19.09.2026; `--lbrem=0` — плечо «как
+    /// физика 20»). Мерка: RC103 П55 2614
+    /// база «ни возврата своего, ни заноса» и полное `def` против `g4cf`
+    /// (`killescown killcarry`, `killoutbrem`, def) по полосам 0–50/0–100 кэВ и
+    /// четвертям; 1461/662/59.5 и диск AS80 не хуже П103. Печатает счётчик
+    /// квантов тормозного по ходу в слоях.
+    ///
+    /// `--ret-kill=` (`M13`, П106 19.09.2026) — РЫЧАГИ ЗАМЕРА состава «возврата»
+    /// электрона по населениям, зеркала рычагов арбитра `g4cf` (список через
+    /// запятую): `own` — свой (рождённый в кристалле) электрон на грани
+    /// списывается, ни возврата, ни тормозного слоя (= `killescown`); `carry` —
+    /// то же для занесённого при выходе из кристалла (= `killesccarry`); `brem`
+    /// — своему тормозное слоя в точке выхода не разыгрывать (= `killescbrem`);
+    /// `ret` — свой вернувшийся списывается на входе (= `killret`); `same` /
+    /// `other` — только вернувшийся через ту же / другую грань (= `killretsame` /
+    /// `killretother`; `ret`, `same`, `other` взаимно исключают друг друга);
+    /// `outbrem` — тормозное электронов, РОЖДЁННЫХ в обвязке/пробе, не
+    /// разыгрывать (`OutsideBremsstrahlung`; = `killoutbrem`).
+    /// «Умолчание − рычаг» у нас против «def − рычаг» у Geant4 — ОДНО население.
+    /// Печатает счётчики населений (свои/занесённые вылеты и возвраты, грани).
+    ///
+    /// `--elmix=1` (`M13`, П100 18.09.2026): ключ `ElectronLayerMixedScattering` —
+    /// смешанная схема упругого рассеяния в слоях обвязки (только под `eltr=1`):
+    /// жёсткие столкновения выше 20° по одному по экранированному Резерфорду с
+    /// поправкой Мотта, мягкие — шарниром с шириной из транспортного сечения
+    /// ниже отсечки; в кристалле не трогается. Умолчание — склада (ВКЛ с
+    /// физики 20, П103 19.09.2026; `--elmix=0` — плечо «как физика 19»).
+    /// Мерка: RC103 П55 2614 (четверти ≤ 2 %, 0–100 кэВ ±3 %), 1461/662/59.5 и
+    /// диск AS80 не хуже П94 — против `g4cf` умолчанием по полосам П92/П94.
+    /// Печатает счётчики шагов в слоях и жёстких столкновений.
+    ///
+    /// `--eltr=1` (`AMBER44` + правка заноса `M12`, П94 17.09.2026; решения Amber
+    /// «Перенос в слоях обвязки», «Одной полосой с AMBER44»): ключ
+    /// `ElectronLayerTransport` — электрон, вылетевший из кристалла, ведётся в
+    /// слоях обвязки (ESTAR слоя, Хайленд, переходы между слоями) и может
+    /// вернуться; занос рождённого в слое — тем же переносом, направление по
+    /// процессу, дошедший — в перенос по кристаллу. Умолчание — склада (ВКЛ с
+    /// физики 19, П97 18.09.2026; `--eltr=0` — плечо «как физика 18»). Мерка: RC103 (П55 и живая) 662/1461/59.5, диск
+    /// AS80 1461/2614 против `g4cf` умолчанием (арбитр С возвратом) по полосам
+    /// П92 (`cmp92.py`); `--detour=0` у нас против `killcarry` у арбитра — что
+    /// вне заноса ничего не сдвинулось. ⚠ Доля `--detour=<x>` при `--eltr=1` не
+    /// читается (обхода по прямой там нет), но `--detour=0` значит «заноса нет»
+    /// в ОБОИХ режимах: плечо `--eltr=1 --detour=0` — возврат без заноса.
+    ///
+    /// `--detour=<x>` (`M12`, П92 17.09.2026) — РЫЧАГ АБЛЯЦИИ заноса электронов
+    /// из обвязки: `ElectronCarryDetour` (умолчание 0.7 — доля пробега CSDA по
+    /// прямой). `--detour=0` — заноса нет вовсе (зеркало ключа `killcarry` у
+    /// арбитра `g4cf`): «def − detour=0» у нас против «def − killcarry» у Geant4
+    /// мерит вклад заноса по полосам порознь. Не настройка склада — замер.
     ///
     /// `--ecomp=1` (`N4`/`F11` (г), П44 13.09.2026): электрон в произвольном
     /// веществе — пробег по составу слоя и тормозное электронов, рождённых вне
@@ -136,6 +191,14 @@ namespace G4RawProbe
             int kdip = store.KDipLight;                 // `F11` (а)/П17: K-провал и раздельный каскад — умолчание склада (1)
             bool ecomp = store.ElectronAnyMaterial;     // `N4`/`F11` (г), П44 — умолчание склада (ВКЛ с физики 18, П50)
             int bpath = store.BremAlongPath;            // `M3`, П44 — умолчание склада (2 с физики 18, П50)
+            double detour = -1.0;                       // <0 — умолчание симулятора (`M12`, П92)
+            bool eltr = store.ElectronLayerTransport;   // `AMBER44`/`M12`, П94 — умолчание склада (ВКЛ с физики 19, П97)
+            bool elmix = store.ElectronLayerMixedScattering;   // `M13`, П100 — умолчание склада (ВКЛ с физики 20, П103)
+            bool lbrem = store.ElectronLayerBremAlongPath;     // `M13`, П106 — умолчание склада (ВКЛ с физики 21, П107)
+            // `M13`, П106: рычаги замера состава возврата (--ret-kill=), все ВЫКЛ.
+            bool retOwn = true, retCarry = true, retBrem = true, retOutBrem = true;
+            int retKill = 0;
+            string retKillArg = null;
             double escSlope = -1.0;
             double escSoft = -1.0, escSoftKev = -1.0;   // `A63`
             double escCurve = -1.0;                     // `A70`
@@ -225,6 +288,61 @@ namespace G4RawProbe
                     }
 
                     bpath = int.Parse(v, CultureInfo.InvariantCulture);
+                    continue;
+                }
+                // `M12` (П92): доля пробега заносимого электрона по прямой; 0 — заноса нет.
+                if (a.StartsWith("--detour=", StringComparison.Ordinal))
+                {
+                    detour = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
+                    if (detour < 0.0)
+                    {
+                        Console.Error.WriteLine("--detour= принимает число >= 0: " + a);
+                        return 2;
+                    }
+
+                    continue;
+                }
+                // `AMBER44`/`M12` (П94): перенос электрона в слоях обвязки — занос и возврат.
+                if (a.StartsWith("--eltr=", StringComparison.Ordinal))
+                {
+                    eltr = Flag01(a, 7);
+                    continue;
+                }
+                // `M13` (П100): смешанная схема упругого рассеяния в слоях обвязки.
+                if (a.StartsWith("--elmix=", StringComparison.Ordinal))
+                {
+                    elmix = Flag01(a, 8);
+                    continue;
+                }
+                // `M13` (П106): тормозное электрона в слоях обвязки по ходу переноса.
+                if (a.StartsWith("--lbrem=", StringComparison.Ordinal))
+                {
+                    lbrem = Flag01(a, 8);
+                    continue;
+                }
+                // `M13` (П106): рычаги замера состава возврата — список через запятую.
+                // ⛔ Незнакомое слово — ОТКАЗ: молча пропущенный рычаг — это плечо
+                // «умолчание против умолчания», которое выглядит как «эффекта нет».
+                if (a.StartsWith("--ret-kill=", StringComparison.Ordinal))
+                {
+                    retKillArg = a.Substring(11);
+                    foreach (string word in retKillArg.Split(','))
+                    {
+                        switch (word.Trim())
+                        {
+                            case "own": retOwn = false; break;
+                            case "carry": retCarry = false; break;
+                            case "brem": retBrem = false; break;
+                            case "ret": retKill = 1; break;
+                            case "same": retKill = 2; break;
+                            case "other": retKill = 3; break;
+                            case "outbrem": retOutBrem = false; break;
+                            default:
+                                Console.Error.WriteLine("--ret-kill= принимает own, carry, brem, ret, same, other, outbrem через запятую: " + a);
+                                return 2;
+                        }
+                    }
+
                     continue;
                 }
                 if (a.StartsWith("--esc-soft=", StringComparison.Ordinal))
@@ -335,6 +453,15 @@ namespace G4RawProbe
             simulator.ElectronTransport = etr;          // `A72`, П27
             simulator.ElectronAnyMaterial = ecomp;      // `N4`/`F11` (г), П44
             simulator.BremAlongPath = bpath;            // `M3`, П44
+            if (detour >= 0.0) { simulator.ElectronCarryDetour = detour; }   // `M12`, П92
+            simulator.ElectronLayerTransport = eltr;    // `AMBER44`/`M12`, П94
+            simulator.ElectronLayerMixedScattering = elmix;   // `M13`, П100
+            simulator.ElectronLayerBremAlongPath = lbrem;     // `M13`, П106
+            simulator.LayerReturnOwn = retOwn;                // `M13`, П106 — рычаги замера
+            simulator.LayerReturnCarried = retCarry;
+            simulator.LayerExitBremsstrahlung = retBrem;
+            simulator.LayerReturnKill = retKill;
+            simulator.LayerBornBremsstrahlung = retOutBrem;
             simulator.LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(kdip);
             simulator.LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(kdip);
             if (etrStep > 0.0) { simulator.ElectronStepFraction = etrStep; }
@@ -388,9 +515,32 @@ namespace G4RawProbe
             Console.WriteLine("электрон в произвольном веществе (`N4`, --ecomp=): {0}{1}",
                               ecomp ? "ВКЛ (пробег и тормозное обвязки по составу)" : "выкл (вода, тормозного обвязки нет)",
                               ecomp == store.ElectronAnyMaterial ? " (умолчание склада)" : " (ключом)");
+            Console.WriteLine("занос электрона из обвязки (`M12`, --detour=): доля пробега по прямой {0}{1}",
+                              simulator.ElectronCarryDetour.ToString("0.###", CultureInfo.InvariantCulture),
+                              detour < 0.0 ? " (умолчание симулятора)" : detour == 0.0 ? " (ключом — ЗАНОСА НЕТ)" : " (ключом)");
+            Console.WriteLine("перенос электрона в слоях обвязки — занос и возврат (`AMBER44`/`M12`, --eltr=): {0}{1}",
+                              eltr ? (detour == 0.0 ? "ВКЛ, ЗАНОСА НЕТ (--detour=0): только возврат вылетевшего из кристалла"
+                                                   : "ВКЛ (возврат вылетевшего из кристалла; занос переносом в слое и по кристаллу, доля --detour= не читается)")
+                                   : "выкл (вылет — конец истории; занос по прямой с detour, остаток куском)",
+                              eltr == store.ElectronLayerTransport ? " (умолчание склада)" : " (ключом)");
+            Console.WriteLine("смешанная схема упругого рассеяния в слоях обвязки (`M13`, --elmix=): {0}{1}",
+                              elmix ? (eltr ? "ВКЛ (жёсткие столкновения выше " + simulator.LayerHardCutoffDeg.ToString("0.#", CultureInfo.InvariantCulture) + "° по одному, мягкие — шарниром уменьшенной ширины)" : "ВКЛ, но без переноса в слоях (--eltr=0) бездействует")
+                                    : "выкл (шарнир Хайленда на весь шаг)",
+                              elmix == store.ElectronLayerMixedScattering ? " (умолчание склада)" : " (ключом)");
             Console.WriteLine("тормозное вдоль пути (`M3`, --bpath=): {0}{1}",
                               bpath == 0 ? "выкл (в точке рождения)" : bpath == 1 ? "1 (на шагах переноса, изотропно)" : "2 (на шагах переноса, по электрону)",
                               bpath == store.BremAlongPath ? " (умолчание склада)" : " (ключом)");
+            Console.WriteLine("тормозное электрона в слоях обвязки по ходу переноса (`M13` П106, --lbrem=): {0}{1}",
+                              lbrem ? (eltr ? "ВКЛ (тонкая мишень вещества слоя на шагах, по электрону; толстых мишеней рождения/выхода нет)" : "ВКЛ, но без переноса в слоях (--eltr=0) бездействует")
+                                    : "выкл (толстая мишень в точке рождения / выхода, изотропно)",
+                              lbrem == store.ElectronLayerBremAlongPath ? " (умолчание склада)" : " (ключом)");
+            Console.WriteLine("рычаги замера состава возврата (`M13` П106, --ret-kill=): {0}",
+                              retKillArg == null ? "нет (умолчание: возврат как есть)"
+                              : retKillArg + " — свой возврат " + (retOwn ? "есть" : "СПИСАН на грани")
+                                + ", занесённого " + (retCarry ? "есть" : "СПИСАН на выходе")
+                                + ", тормозное выхода " + (retBrem ? "есть" : "НЕТ")
+                                + ", тормозное рождённых в обвязке " + (retOutBrem ? "есть" : "НЕТ")
+                                + ", вернувшийся " + (retKill == 0 ? "идёт" : retKill == 1 ? "СПИСАН на входе" : retKill == 2 ? "СПИСАН через ту же грань" : "СПИСАН через другую грань"));
 
             if (scenePath != null)
             {
@@ -447,6 +597,29 @@ namespace G4RawProbe
             // одной пробой — печатаются здесь, чтобы отказ было видно.
             Console.WriteLine("отброшено переполнением: очередь квантов {0}, вылеты {1}",
                               simulator.CountPendingDropped, simulator.CountEscapeDropped);
+            // (`AMBER44`/`M12`, П94) Счётчики переноса электрона в слоях обвязки: без ключа все нули.
+            Console.WriteLine("перенос в слоях обвязки (`AMBER44`): вылетов из кристалла в слои {0}, из них вернулось {1} ({2} на историю, средняя энергия возврата {3} кэВ), занесено из слоя в кристалл {4} ({5} на историю)",
+                              simulator.CountLayerEscapes, simulator.CountLayerReturns,
+                              ((double)simulator.CountLayerReturns / histories).ToString("0.000E+00", CultureInfo.InvariantCulture),
+                              (simulator.CountLayerReturns > 0 ? simulator.SumLayerReturnKev / simulator.CountLayerReturns : 0.0).ToString("0.0", CultureInfo.InvariantCulture),
+                              simulator.CountLayerCarries,
+                              ((double)simulator.CountLayerCarries / histories).ToString("0.000E+00", CultureInfo.InvariantCulture));
+            // (`M13`, П106) Населения возврата: свои (рождённые в кристалле) против занесённых, грани возврата.
+            Console.WriteLine("населения возврата (`M13` П106): рождённых в обвязке и отданных переносу {7}; своих вылетов {0}, своих возвратов {1} (через ту же грань {2}, через другую {3}, списано рычагом {4}); занесённых вылетов из кристалла {5}, их возвратов {6}",
+                              simulator.CountLayerEscapes - simulator.CountLayerEscapesCarried,
+                              simulator.CountLayerReturns - simulator.CountLayerReturnsCarried,
+                              simulator.CountLayerReturnsSameFace, simulator.CountLayerReturnsOtherFace,
+                              simulator.CountLayerReturnsKilled,
+                              simulator.CountLayerEscapesCarried, simulator.CountLayerReturnsCarried, simulator.CountLayerBorn);
+            // (`M13`, П106) Тормозное по ходу переноса в слоях: без ключа нули.
+            Console.WriteLine("тормозное по ходу в слоях (`M13` П106): квантов {0}, энергия {1} кэВ ({2} на историю)",
+                              simulator.CountLayerBremPhotons,
+                              simulator.SumLayerBremKev.ToString("0.0", CultureInfo.InvariantCulture),
+                              ((double)simulator.CountLayerBremPhotons / histories).ToString("0.000E+00", CultureInfo.InvariantCulture));
+            // (`M13`, П100) Счётчики смешанной схемы: без ключа нули.
+            Console.WriteLine("смешанная схема в слоях (`M13`): шагов переноса в слоях {0}, жёстких столкновений {1} ({2} на шаг)",
+                              simulator.CountLayerSteps, simulator.CountLayerHardCollisions,
+                              (simulator.CountLayerSteps > 0 ? (double)simulator.CountLayerHardCollisions / simulator.CountLayerSteps : 0.0).ToString("0.000", CultureInfo.InvariantCulture));
             Console.WriteLine("комптонов в кристалле {0}, с вакансией {1}, ответили рентгеном {2} (`A61`)",
                               simulator.CountCrystalCompton, simulator.CountCrystalVacancy,
                               simulator.CountVacancyXray);
