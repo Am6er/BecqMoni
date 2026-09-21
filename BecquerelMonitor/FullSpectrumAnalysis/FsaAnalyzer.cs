@@ -1255,6 +1255,67 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// (`A312`) ПОЧЕМУ <see cref="FsaAnalyzer.Analyze"/> ОТДАЛ <c>null</c>.
+    ///
+    /// ⛔ Отказ разбора ОБЯЗАН НАЗЫВАТЬ СЕБЯ — то же правило, которым `A277`
+    /// завела <see cref="FsaAnalyzer.GeometryRefused"/> для гейта геометрии.
+    /// До 21.09.2026 признак был у ОДНОЙ причины из семи, и остальные шесть
+    /// доезжали до окна одним словом «разложение невозможно»: на спектре
+    /// Amber `Am-241` (калибровка 08.09.2026, состав из NucBase — один образ
+    /// рентгена кристалла) матрица отклика сняла единственный образ, библиотека
+    /// опустела, и человек видел отказ, не зная, что лечится он СОСТАВОМ
+    /// (добавить нуклид), а не матрицей и не кривой.
+    ///
+    /// Решение о самом отказе принимается ОДНИМ местом —
+    /// <see cref="FsaAnalyzer.Refuse"/> у каждого <c>return null</c> внутри
+    /// <see cref="FsaAnalyzer.Analyze"/>; слова для человека — у сеанса
+    /// (<c>FsaAnalysisSession</c>, ресурсы `FSA…`), у проб — своя печать.
+    /// Порядок членов — порядок проверок в <c>Analyze</c>.
+    /// </summary>
+    public enum FsaRefusal
+    {
+        /// <summary>Отказа не было (последний разбор дал результат, либо разбора ещё не было).</summary>
+        None,
+
+        /// <summary>
+        /// Вырожденный вход: нет спектра, его отсчётов, энергетической
+        /// калибровки, калибровки ПШПВ или библиотека пуста УЖЕ НА ВХОДЕ.
+        /// Сеанс пустую библиотеку отсекает раньше своим словом
+        /// (`FSANoComponents`), так что для окна это — калибровки.
+        /// </summary>
+        Input,
+
+        /// <summary>Гейт геометрии (`A277`): кривой нет или у неё нет геометрии.</summary>
+        Geometry,
+
+        /// <summary>Каналов у спектра меньше <see cref="FsaAnalyzer.MinChannels"/>.</summary>
+        FewChannels,
+
+        /// <summary>
+        /// Полоса фита после сведения полос и пола уже
+        /// <see cref="FsaAnalyzer.MinBandChannels"/> каналов: диапазон поиска
+        /// пиков, пол по порогу и калибровка сошлись так, что фитовать нечего.
+        /// </summary>
+        NarrowBand,
+
+        /// <summary>
+        /// Библиотека ОПУСТЕЛА ВНУТРИ разбора: все образы сняты гейтами
+        /// матрицы (собственный рентген и K-вылет кристалла — их несёт
+        /// матрица, `AMBER4`/`S172`), ключом SE/DE и 511, либо нож линий ниже
+        /// первого узла матрицы (`A49`) оставил образы без линий. Лечится
+        /// составом — нуклидом, у которого есть линии в полосе, — а не
+        /// матрицей. Что именно снято — <see cref="FsaAnalyzer.RefusalNote"/>.
+        /// </summary>
+        LibraryEmptied,
+
+        /// <summary>
+        /// Ни один узел сетки дрейфа не дал решения, либо итоговый фит не
+        /// сошёлся: у библиотеки и полосы всё было, отказал сам счёт.
+        /// </summary>
+        NoFit
+    }
+
+    /// <summary>
     /// Полноспектральная декомпозиция (full-spectrum analysis).
     ///
     /// В отличие от поиска пиков вопрос ставится не «есть ли пик на 583 кэВ», а
@@ -1950,8 +2011,62 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// что <see cref="Analyze"/> отвечает <c>null</c> ещё на пяти причинах,
         /// и без этого поля человеку и прогону досталось бы одно слово
         /// «разложение не получилось» на шесть разных бед.
+        ///
+        /// (`A312`) С 21.09.2026 — ЧТЕНИЕ <see cref="Refusal"/>, а не своё
+        /// поле: причина у отказа одна, и хранить её дважды — значит однажды
+        /// разойтись. Читатели (сеанс, `CorpusFsaProbe`, `FsaGateRescueProbe`,
+        /// `IsoCurveActivityProbeP79`) видят прежний признак.
         /// </summary>
-        public bool GeometryRefused { get; private set; }
+        public bool GeometryRefused
+        {
+            get { return this.Refusal == FsaRefusal.Geometry; }
+        }
+
+        /// <summary>
+        /// (`A312`) ПРИЧИНА, по которой последний <see cref="Analyze"/> отдал
+        /// <c>null</c>; <see cref="FsaRefusal.None"/> — результат был. Ставится
+        /// ОДНИМ местом (<see cref="Refuse"/>) у каждого отказа внутри
+        /// <see cref="Analyze"/> и сбрасывается на его входе.
+        /// </summary>
+        public FsaRefusal Refusal { get; private set; }
+
+        /// <summary>
+        /// (`A312`) Подробность к <see cref="Refusal"/> для журнала и проб —
+        /// числа того отказа (сколько образов снято каким гейтом, края полосы,
+        /// число каналов); <c>null</c>, когда отказа не было или подробности
+        /// у причины нет. Слова для человека — НЕ отсюда: их даёт сеанс из
+        /// ресурсов, здесь текст служебный, инвариантной культурой.
+        /// </summary>
+        public string RefusalNote { get; private set; }
+
+        /// <summary>
+        /// (`A312`) Наименьшее число каналов спектра, с которым
+        /// <see cref="Analyze"/> берётся за разбор; меньше —
+        /// <see cref="FsaRefusal.FewChannels"/>. Число одно на проверку и на
+        /// слова сеанса — копии в ресурсах нет, туда оно едет аргументом.
+        /// </summary>
+        public const int MinChannels = 32;
+
+        /// <summary>
+        /// (`A312`) Полоса фита (после сведения полос и пола) не длиннее этого
+        /// числа каналов — <see cref="FsaRefusal.NarrowBand"/>. Одно число на
+        /// проверку и на слова сеанса, как <see cref="MinChannels"/>.
+        /// </summary>
+        public const int MinBandChannels = 10;
+
+        /// <summary>
+        /// (`A312`) ЕДИНСТВЕННОЕ место, где <see cref="Analyze"/> отказывает:
+        /// каждое <c>return null</c> там — <c>return this.Refuse(…)</c>.
+        /// Причина и подробность ложатся в <see cref="Refusal"/> /
+        /// <see cref="RefusalNote"/>, читателю отдаётся <c>null</c> — договор
+        /// метода не меняется, меняется лишь то, что об отказе можно спросить.
+        /// </summary>
+        FsaResult Refuse(FsaRefusal why, string note)
+        {
+            this.Refusal = why;
+            this.RefusalNote = note;
+            return null;
+        }
 
         /// <summary>
         /// (`AMBER4`) Снимать свободный образ собственного рентгена кристалла,
@@ -4613,7 +4728,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// Разложить спектр. Возвращает null, если разложение невозможно:
-        /// нет калибровок, вырожденный диапазон или пустая библиотека.
+        /// нет калибровок, вырожденный диапазон или пустая библиотека —
+        /// причина при этом названа в <see cref="Refusal"/> (`A312`).
         /// </summary>
         public FsaResult Analyze(
             EnergySpectrum spectrum,
@@ -4622,12 +4738,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<FsaComponent> originalLibrary,
             FsaEfficiency efficiency)
         {
-            this.GeometryRefused = false;
+            this.Refusal = FsaRefusal.None;
+            this.RefusalNote = null;
 
             if (spectrum == null || spectrum.Spectrum == null || fwhmCalibration == null
                 || spectrum.EnergyCalibration == null || originalLibrary == null || originalLibrary.Count == 0)
             {
-                return null;
+                return this.Refuse(FsaRefusal.Input, string.Format(CultureInfo.InvariantCulture,
+                    "spectrum={0} counts={1} fwhm={2} energyCalibration={3} library={4}",
+                    spectrum != null, spectrum != null && spectrum.Spectrum != null, fwhmCalibration != null,
+                    spectrum != null && spectrum.EnergyCalibration != null,
+                    originalLibrary == null ? -1 : originalLibrary.Count));
             }
 
             // ⛔ (`A277`) ГЕЙТ ГЕОМЕТРИИ — решение Amber 10.09.2026 «нет
@@ -4653,14 +4774,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // геометрии в отсутствующем объекте не бывает.
             if (this.RequireGeometry && (efficiency == null || !efficiency.HasGeometry))
             {
-                this.GeometryRefused = true;
-                return null;
+                return this.Refuse(FsaRefusal.Geometry,
+                                   efficiency == null ? "efficiency=null" : "efficiency without geometry");
             }
 
             int channels = spectrum.NumberOfChannels;
-            if (channels < 32)
+            if (channels < MinChannels)
             {
-                return null;
+                return this.Refuse(FsaRefusal.FewChannels,
+                                   "channels=" + channels.ToString(CultureInfo.InvariantCulture));
             }
 
             // Кэши уширения живут ровно один разбор: калибровку могли изменить
@@ -4939,9 +5061,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            if (chHi <= chLo + 10)
+            if (chHi <= chLo + MinBandChannels)
             {
-                return null;
+                return this.Refuse(FsaRefusal.NarrowBand, string.Format(CultureInfo.InvariantCulture,
+                    "band {0}..{1} of {2} channels ({3:F1}..{4:F1} keV), floor {5}",
+                    chLo, chHi, channels, calibration.ChannelToEnergy(chLo), calibration.ChannelToEnergy(chHi),
+                    floorApplied ? fitFloorKev.ToString("F1", CultureInfo.InvariantCulture) + " keV" : "off"));
             }
 
             // S98: полоса фита названа вслух и уносится читателю. Печатать её
@@ -5262,6 +5387,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // собираются из вещества), как у `FromCrystal`.
             bool dropCrystalEscape = this.EscapeGate && this.ResponseMatrix != null;
             this.CrystalEscapeDropped = 0;
+            // (`A312`) Счётчики двух остальных ножей — только для подробности
+            // отказа `LibraryEmptied`: у этих образов своих счётчиков-свойств
+            // нет, а отказ обязан сказать, КТО снял последний образ.
+            int escapeImagesDropped = 0;
+            int annihilationDropped = 0;
             if (dropEscapeImages || dropAnnihilation || dropCrystalXray || dropCrystalEscape)
             {
                 List<FsaComponent> kept = new List<FsaComponent>(library.Count);
@@ -5269,11 +5399,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     if (dropEscapeImages && FsaLibrary.IsEscapeImage(component.Name))
                     {
+                        escapeImagesDropped++;
                         continue;
                     }
 
                     if (dropAnnihilation && FsaResult.IsAnnihilationImage(component.Name))
                     {
+                        annihilationDropped++;
                         continue;
                     }
 
@@ -5379,9 +5511,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // это уже не разбор спектра, а подгонка фона, которую читатель
             // принял бы за FSA. Контракт `Analyze` для пустой библиотеки —
             // отказ (`null`), каким он был бы и на входе.
+            //
+            // (`A312`) Отказ НАЗЫВАЕТ, кто снял образы: до 21.09.2026 он был
+            // неотличим от вырожденного входа, и на спектре Amber `Am-241`
+            // (один образ рентгена кристалла в составе) человек видел
+            // «разложение невозможно» вместо «добавьте нуклид в состав».
             if (library.Count == 0)
             {
-                return null;
+                return this.Refuse(FsaRefusal.LibraryEmptied, string.Format(CultureInfo.InvariantCulture,
+                    "library {0} -> 0: crystal x-ray {1}, crystal escape {2}, SE/DE images {3}, annihilation {4}"
+                    + " (matrix {5}); lines below matrix grid {6}",
+                    originalLibrary.Count, this.CrystalXrayDropped, this.CrystalEscapeDropped,
+                    escapeImagesDropped, annihilationDropped, this.ResponseMatrix != null ? "on" : "off",
+                    this.MatrixFloorDroppedLines));
             }
 
             // ⛔ (`S171`) ГЕЙТ ВЫРОЖДЕННОСТИ ЧЛЕНОВ РЯДА — здесь, на готовой
@@ -5526,14 +5668,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (bestChi2 == Double.MaxValue)
             {
-                return null;
+                return this.Refuse(FsaRefusal.NoFit, "drift grid: no node gave a solution");
             }
 
             FitResult best = FitHuber(library, fixedColumns, calibration, fwhmCalibration, efficiency,
                                       bestGain, bestOffset, chLo, chHi, channels, y, variance, baseWeights, reportWeights, null);
             if (best == null)
             {
-                return null;
+                return this.Refuse(FsaRefusal.NoFit, "final Huber fit did not converge");
             }
 
             // ⛔ (`AMBER17`) ПРИВЯЗКА ШКАЛЫ ПО ПИКАМ ПОЛНОГО ПОГЛОЩЕНИЯ — здесь,

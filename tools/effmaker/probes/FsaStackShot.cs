@@ -783,7 +783,13 @@ namespace FsaStackShot
                                                 library, FsaEfficiency.FromConfig(rd.Efficiency));
             if (result == null)
             {
-                Console.Error.WriteLine("разложение не получилось");
+                // (`A312`) Отказ называет причину и её числа — тем же признаком,
+                // что читает сеанс приложения (`FsaAnalyzer.Refusal`): до
+                // 21.09.2026 «разложение не получилось» стояло на семь разных
+                // бед, и какая из них сработала на `Am-241` Amber, было нечем
+                // измерить.
+                Console.Error.WriteLine("разложение не получилось: {0}{1}", analyzer.Refusal,
+                                        analyzer.RefusalNote != null ? " — " + analyzer.RefusalNote : "");
                 return 1;
             }
 

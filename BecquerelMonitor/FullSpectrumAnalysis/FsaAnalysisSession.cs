@@ -390,6 +390,59 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// (`A312`) СЛОВА ОТКАЗА <see cref="FsaAnalyzer.Analyze"/> — по причине
+        /// <see cref="FsaAnalyzer.Refusal"/>, на языке окна (обе культуры в
+        /// `Resources.resx` / `Resources.ru.resx`).
+        ///
+        /// До 21.09.2026 слова были у ОДНОЙ причины из семи (геометрия,
+        /// `A277`), остальные шесть сливались в `FSANotPossible`, и на спектре
+        /// Amber `Am-241` (состав из NucBase — один образ рентгена кристалла,
+        /// который матрица отклика снимает по `AMBER4`) человек читал
+        /// «разложение невозможно», хотя лечится это одним нуклидом в составе.
+        ///
+        /// ⛔ Имён нуклидов и образов здесь нет и быть не должно: причина
+        /// называет РОД лекарства (состав, полоса, калибровка), а не то, что
+        /// именно снято, — подробность с числами уходит в `Trace`
+        /// (<see cref="FsaAnalyzer.RefusalNote"/>). Числа порогов приходят
+        /// аргументами из констант анализатора, копии в ресурсах нет.
+        ///
+        /// (`AMBER34`) Кривая выбрана и ОТВЕРГНУТА (точка выше единицы у долей):
+        /// гейт геометрии сработал от `efficiency == null`, но чинить надо
+        /// точку, а не геометрию, — называется причина кривой.
+        /// `FSANotPossible` остаётся ТОЛЬКО на причину, которой этот список не
+        /// знает (новый член перечисления без слов), — и это заметно.
+        ///
+        /// Открыт (а не <c>static</c> внутри) ради приёмки: `FsaReportViewProbe`
+        /// (раздел 14) судит, что у КАЖДОГО члена перечисления есть свои слова
+        /// в обеих культурах и ни один не падает в `FSANotPossible`.
+        /// </summary>
+        public static string RefusalText(FsaRefusal refusal, string efficiencyRefusal)
+        {
+            switch (refusal)
+            {
+                case FsaRefusal.Geometry:
+                    return efficiencyRefusal != null
+                        ? string.Format(CultureInfo.InvariantCulture,
+                                        Properties.Resources.FSACurveRefused, efficiencyRefusal)
+                        : Properties.Resources.FSANoGeometry;
+                case FsaRefusal.LibraryEmptied:
+                    return Properties.Resources.FSALibraryEmptied;
+                case FsaRefusal.NarrowBand:
+                    return string.Format(CultureInfo.InvariantCulture,
+                                         Properties.Resources.FSABandTooNarrow, FsaAnalyzer.MinBandChannels);
+                case FsaRefusal.FewChannels:
+                    return string.Format(CultureInfo.InvariantCulture,
+                                         Properties.Resources.FSATooFewChannels, FsaAnalyzer.MinChannels);
+                case FsaRefusal.NoFit:
+                    return Properties.Resources.FSANoFit;
+                case FsaRefusal.Input:
+                    return Properties.Resources.FSANoCalibration;
+                default:
+                    return Properties.Resources.FSANotPossible;
+            }
+        }
+
+        /// <summary>
         /// (`A205`) НАСКОЛЬКО СИЛЬНЕЙШИЙ КАНДИДАТ НЕ ДОТЯНУЛ — приписка к «нет
         /// компонентов», без которой пустой разбор молчит о причине.
         ///
@@ -649,23 +702,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                     library, job.Efficiency);
                     if (computed == null)
                     {
-                        // ⛔ (`A277`) ОТКАЗ ПО ГЕОМЕТРИИ НАЗЫВАЕТ СЕБЯ. Гаснущий
+                        // ⛔ (`A277`, `A312`) ОТКАЗ НАЗЫВАЕТ СЕБЯ. Гаснущий
                         // экран без слов — это ровно «признак без читателя»:
                         // человек видит пустоту и не знает, что лечится она
-                        // одним описанием кристалла в редакторе геометрии.
-                        // Решение о самом отказе принято ОДНИМ местом
-                        // (`FsaAnalyzer.RequireGeometry`), здесь только слова.
-                        //
-                        // (`AMBER34`) Кривая выбрана и ОТВЕРГНУТА (точка выше
-                        // единицы у долей): гейт геометрии сработал от
-                        // `efficiency == null`, но чинить надо точку, а не
-                        // геометрию, — называется причина кривой.
-                        message = job.Analyzer.GeometryRefused
-                            ? (job.EfficiencyRefusal != null
-                                ? string.Format(CultureInfo.InvariantCulture,
-                                                Properties.Resources.FSACurveRefused, job.EfficiencyRefusal)
-                                : Properties.Resources.FSANoGeometry)
-                            : Properties.Resources.FSANotPossible;
+                        // одним описанием кристалла в редакторе геометрии —
+                        // или одним нуклидом в составе. Решение о самом
+                        // отказе принято ОДНИМ местом (`FsaAnalyzer.Refuse`,
+                        // причина — `FsaAnalyzer.Refusal`), здесь только слова.
+                        message = RefusalText(job.Analyzer.Refusal, job.EfficiencyRefusal);
+                        Trace.WriteLine("FSA refused: " + job.Analyzer.Refusal
+                                        + (job.Analyzer.RefusalNote != null ? " — " + job.Analyzer.RefusalNote : ""));
                     }
                 }
             }
