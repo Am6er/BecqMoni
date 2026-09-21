@@ -2370,6 +2370,21 @@ http://xptable.sourceforge.net/</value>
   <data name="FSACurveRefused" xml:space="preserve">
     <value>Полноспектральный разбор: кривая эффективности отвергнута — {0}</value>
   </data>
+  <data name="FSALibraryEmptied" xml:space="preserve">
+    <value>Полноспектральное разложение: в составе не осталось ни одной компоненты для фита — при матрице отклика собственный рентген и вылет кристалла несёт матрица; добавьте нуклид в состав</value>
+  </data>
+  <data name="FSABandTooNarrow" xml:space="preserve">
+    <value>Полноспектральное разложение: полоса фита не длиннее {0} каналов — расширьте диапазон энергий поиска пиков или проверьте пол фита и энергетическую калибровку</value>
+  </data>
+  <data name="FSATooFewChannels" xml:space="preserve">
+    <value>Полноспектральному разложению нужно не меньше {0} каналов в спектре</value>
+  </data>
+  <data name="FSANoFit" xml:space="preserve">
+    <value>Полноспектральное разложение: ни один узел сетки дрейфа не дал решения для этого спектра</value>
+  </data>
+  <data name="FSANoCalibration" xml:space="preserve">
+    <value>Полноспектральному разложению нужны энергетическая калибровка и калибровка ПШПВ спектра</value>
+  </data>
   <data name="FSAReportEfficiencyFieldCurve" xml:space="preserve">
     <value>учтена формой: кривая сцены поля (см² на единичный флюенс); беккерели по ней не выводятся</value>
   </data>

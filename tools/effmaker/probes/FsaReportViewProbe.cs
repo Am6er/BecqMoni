@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor;
+using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
 using System.Collections.Generic;
@@ -71,6 +72,14 @@ namespace FsaReportViewProbe
     ///  12. СНИМКИ (критерий 12): `en` и `ru` в `--out`; по модели — ни одна
     ///      подпись не обрезана и не наложена, шрифт формы у всех, заголовок
     ///      таблицы тем же шрифтом.
+    ///  14. ОТКАЗ НАЗЫВАЕТ ПРИЧИНУ (`A312`, П118 21.09.2026): сцена Amber
+    ///      `Am-241` на контроле — состав из NucBase без нуклидов, один образ
+    ///      рентгена кристалла, малая матрица снимает его, библиотека пуста;
+    ///      состояние сеанса и строка таблицы — `FSALibraryEmptied` в `en` и
+    ///      `ru`, не общее `FSANotPossible`. Контроли: без матрицы разбор
+    ///      идёт; причина на анализаторе — `LibraryEmptied` с подробностью;
+    ///      остальные причины (вход, геометрия, каналы, полоса) — каждая
+    ///      своим членом и своими словами.
     ///
     /// Состояния таблицы (документ, «Состояния таблицы») — отдельным разделом.
     /// ⛔ У каждого раздела, где это возможно, ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ.
@@ -87,6 +96,12 @@ namespace FsaReportViewProbe
         {
             Console.OutputEncoding = Encoding.UTF8;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
+            // (`T243`) Эталон настроек — ДО разбора ключей: раздел 14 собирает
+            // анализатор руками, и проба обязана сказать, чем он отличается от
+            // поставочного (`check_probe_tuning`); правило живёт довеском
+            // `FsaTuningReport.cs`, здесь только два вызова.
+            FsaTuningReport.Snapshot();
 
             string spectrumPath = null, controlPath = null;
             foreach (string a in args)
@@ -197,6 +212,7 @@ namespace FsaReportViewProbe
             NeighbourSection(mainForm, thorium, control);
             RepeatabilitySection(mainForm, thorium, control);
             SnapshotSection(mainForm, thorium);
+            RefusalSection(mainForm, controlPath, nuclides);
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : "НЕ СОШЛОСЬ: " + bad);
@@ -1883,6 +1899,234 @@ namespace FsaReportViewProbe
         // ------------------------------------------------------------------
         // Оснастка
         // ------------------------------------------------------------------
+
+        // ------------------------------------------------------------------
+        // 14. ОТКАЗ РАЗБОРА НАЗЫВАЕТ ПРИЧИНУ (`A312`)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`A312`, П118 21.09.2026) Сцена Amber `Am-241` (калибровка 08.09.2026)
+        /// воспроизводится на контроле: состав из NucBase БЕЗ нуклидов (пики
+        /// сняты), в библиотеке остаётся один образ собственного рентгена
+        /// кристалла, живая матрица отклика снимает его (`AMBER4`) — библиотека
+        /// пуста, `Analyze` отдаёт null. Окно отчёта обязано назвать причину
+        /// словами `FSALibraryEmptied` (en и ru), а не общим `FSANotPossible`,
+        /// каким оно называло её до 21.09.2026.
+        ///
+        /// Матрица — МАЛАЯ, считается здесь же (10 узлов × 4000 историй, как у
+        /// `BoxCylStampProbeF64`; секунды) под СВОИМ guid кривой `a312-probe-…`:
+        /// файл в складе проб живёт только на время раздела и снимается в
+        /// finally; ни один настоящий спектр на такой guid не ссылается, и
+        /// брошенный при падении файл никому не годен. ⚠ Писать матрицу под
+        /// guid КОНТРОЛЯ нельзя: она осталась бы годной ему и молча сменила бы
+        /// разбор всех разделов выше при следующем прогоне.
+        ///
+        /// Положительные контроли: (а) тот же вход БЕЗ матрицы — образ
+        /// рентгена остаётся, разбор идёт; (б) причина на анализаторе —
+        /// `Refusal == LibraryEmptied`, подробность называет снятый рентген
+        /// кристалла, `GeometryRefused` ложен; (в) остальные причины
+        /// различимы — вырожденный вход, гейт геометрии, мало каналов, узкая
+        /// полоса — каждая своим членом; (г) у каждого члена перечисления свои
+        /// слова в обеих культурах, попарно разные, и только неизвестное
+        /// значение падает в `FSANotPossible`.
+        /// </summary>
+        static void RefusalSection(MainForm mainForm, string controlPath, NuclideDefinitionManager nuclides)
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== 14. отказ разбора называет причину (A312): библиотека, опустевшая с матрицей ===");
+            DocEnergySpectrum doc = Open(controlPath, nuclides);
+            if (doc == null)
+            {
+                Same("документ сцены A312 открыт", true, false);
+                return;
+            }
+
+            ResultData rd = doc.ActiveResultData;
+            string guid = "a312-probe-" + Guid.NewGuid().ToString("N");
+            FsaBandMode bandWas = FsaBand.DefaultMode;
+            try
+            {
+                if (rd.Efficiency == null || !rd.Efficiency.HasGeometry || rd.EnergySpectrum == null
+                    || rd.FwhmCalibration == null)
+                {
+                    Same("у контроля есть кривая с геометрией и калибровки (иначе сцену не построить)", true, false);
+                    return;
+                }
+
+                // Состав из NucBase без единого нуклида: пиков нет — вывод
+                // состава пуст, остаются приборные образы. Кривая — под guid
+                // пробы, матрица включена, атомный рентген включён.
+                SetSource(doc, true);
+                var cfg = (FWHMPeakDetectionMethodConfig)rd.PeakDetectionMethodConfig;
+                cfg.AtomicXrayForFsa = true;
+                rd.DetectedPeaks = new List<Peak>();
+                rd.Efficiency.Guid = guid;
+                rd.Efficiency.UseResponseMatrix = true;
+
+                // Библиотека сцены — как её соберёт сеанс: образы есть, и все от кристалла.
+                FsaCompositionInference.Report inferred;
+                FsaSampleSpec spec = FsaCompositionInference.Infer(rd.DetectedPeaks, rd, out inferred);
+                spec.AtomicXray = true;
+                List<FsaComponent> library = FsaSampleLibrary.Build(spec);
+                int fromCrystal = 0;
+                var names = new List<string>();
+                foreach (FsaComponent c in library)
+                {
+                    names.Add(c.Name);
+                    if (c.FromCrystal) fromCrystal++;
+                }
+
+                Console.WriteLine("  состав сцены: " + inferred);
+                Console.WriteLine("  библиотека сцены: " + (names.Count == 0 ? "(пусто)" : string.Join(", ", names)));
+                Same("сцена: библиотека без нуклидов не пуста", true, library.Count > 0);
+                Same("сцена: все образы библиотеки — рентген кристалла", library.Count, fromCrystal);
+
+                // Малая матрица под guid пробы — в склад рядом с пробой, как её ищет сеанс.
+                var options = new ResponseMatrixOptions { NodeCount = 10, Histories = 4000, BinKev = 4.0 };
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                ResponseMatrix matrix = ResponseMatrixBuilder.Build(rd.Efficiency.Geometry, options, null,
+                                                                    CancellationToken.None);
+                ResponseMatrixStore.Save(guid, matrix);
+                Console.WriteLine("  малая матрица: {0} узлов × {1} историй, {2} с, {3}",
+                                  options.NodeCount, options.Histories,
+                                  sw.Elapsed.TotalSeconds.ToString("F1", CultureInfo.InvariantCulture),
+                                  ResponseMatrixStore.PathOf(guid));
+                ResponseMatrix stored = ResponseMatrixStore.Load(guid);
+                Same("матрица прочитана из склада и годна геометрии сцены", true,
+                     stored != null && stored.IsValidFor(rd.Efficiency.Geometry));
+
+                // (б) Причина на анализаторе — тем же входом, что у сеанса.
+                var analyzer = new FsaAnalyzer();
+                FsaMatrixBinding.Bind(analyzer, rd.Efficiency.Geometry, stored);
+                FsaTuningReport.Print(analyzer);
+                FsaResult direct = analyzer.Analyze(rd.EnergySpectrum, null, rd.FwhmCalibration, library,
+                                                    FsaEfficiency.FromConfig(rd.Efficiency));
+                Same("анализатор: с матрицей разбора нет", true, direct == null);
+                Same("анализатор: причина — LibraryEmptied", FsaRefusal.LibraryEmptied, analyzer.Refusal);
+                Same("анализатор: GeometryRefused ложен", false, analyzer.GeometryRefused);
+                Same("анализатор: подробность называет снятый рентген кристалла", true,
+                     analyzer.RefusalNote != null
+                     && analyzer.RefusalNote.Contains("crystal x-ray " + fromCrystal.ToString(CultureInfo.InvariantCulture)));
+                Console.WriteLine("  подробность: " + analyzer.RefusalNote);
+
+                // (а) Контроль: без матрицы тот же вход разбирается.
+                var bare = new FsaAnalyzer();
+                FsaMatrixBinding.Bind(bare, rd.Efficiency.Geometry, null);
+                FsaResult bareResult = bare.Analyze(rd.EnergySpectrum, null, rd.FwhmCalibration, library,
+                                                    FsaEfficiency.FromConfig(rd.Efficiency));
+                Same("контроль: без матрицы разбор идёт", true, bareResult != null);
+                Same("контроль: без матрицы причина — None", FsaRefusal.None, bare.Refusal);
+                Same("контроль: без матрицы подробности нет", null, bare.RefusalNote);
+
+                // Окно отчёта — слова в обеих культурах, через живой сеанс документа.
+                foreach (string lang in new[] { "en-US", "ru-RU" })
+                {
+                    Language(lang);
+                    doc.FsaSession.Reset();
+                    doc.EnergySpectrumView.BackgroundMode = BackgroundMode.ShowFSA;
+                    using (var report = new FSAReportView(mainForm))
+                    {
+                        report.ProbeConsumer = true;
+                        report.SetDocument(doc);
+                        WaitIdle(doc.FsaSession);
+                        report.RefreshReport();
+                        string status = doc.FsaSession.Status;
+                        string expected = BecquerelMonitor.Properties.Resources.FSALibraryEmptied;
+                        Same(lang + ": результата сеанса нет", true, doc.FsaSession.Result == null);
+                        Same(lang + ": состояние сеанса — FSALibraryEmptied", expected, status);
+                        Same(lang + ": состояние — не общее FSANotPossible", false,
+                             string.Equals(status, BecquerelMonitor.Properties.Resources.FSANotPossible, StringComparison.Ordinal));
+                        int statusRows = 0;
+                        string rowText = null;
+                        foreach (Row row in report.ReportTable.TableModel.Rows)
+                        {
+                            var tag = (FsaReportRow)row.Tag;
+                            if (tag.Kind == FsaReportRowKind.Status)
+                            {
+                                statusRows++;
+                                rowText = tag.Name;
+                            }
+                        }
+
+                        Same(lang + ": в таблице одна строка состояния", 1, statusRows);
+                        Same(lang + ": строка таблицы несёт причину", expected, rowText);
+                        Console.WriteLine("  {0}: {1}", lang, status);
+                        report.SetDocument(null);
+                    }
+                }
+
+                Language("en-US");
+
+                // (в) Остальные причины различимы — на анализаторе, без матрицы.
+                var other = new FsaAnalyzer();
+                Same("вход: null-спектр — Input", FsaRefusal.Input,
+                     Refusal(other, other.Analyze(null, null, rd.FwhmCalibration, library, FsaEfficiency.FromConfig(rd.Efficiency))));
+                Same("вход: без калибровки ПШПВ — Input", FsaRefusal.Input,
+                     Refusal(other, other.Analyze(rd.EnergySpectrum, null, null, library, FsaEfficiency.FromConfig(rd.Efficiency))));
+                Same("вход: пустая библиотека на входе — Input", FsaRefusal.Input,
+                     Refusal(other, other.Analyze(rd.EnergySpectrum, null, rd.FwhmCalibration, new List<FsaComponent>(), FsaEfficiency.FromConfig(rd.Efficiency))));
+                other.RequireGeometry = true;
+                Same("геометрия: кривой нет — Geometry (A277)", FsaRefusal.Geometry,
+                     Refusal(other, other.Analyze(rd.EnergySpectrum, null, rd.FwhmCalibration, library, null)));
+                Same("геометрия: GeometryRefused читает тот же признак", true, other.GeometryRefused);
+                EnergySpectrum few = rd.EnergySpectrum.Clone();
+                few.NumberOfChannels = FsaAnalyzer.MinChannels - 1;
+                few.Spectrum = new int[FsaAnalyzer.MinChannels - 1];
+                Same("каналы: меньше MinChannels — FewChannels", FsaRefusal.FewChannels,
+                     Refusal(other, other.Analyze(few, null, rd.FwhmCalibration, library, FsaEfficiency.FromConfig(rd.Efficiency))));
+                Same("каналы: подробность называет число каналов", true,
+                     other.RefusalNote != null && other.RefusalNote.Contains("channels=" + (FsaAnalyzer.MinChannels - 1).ToString(CultureInfo.InvariantCulture)));
+                FsaBand.DefaultMode = FsaBandMode.FitToLibrary;
+                other.MinEnergy = 661.0;
+                other.MaxEnergy = 661.0;
+                Same("полоса: FitToLibrary с пустым диапазоном — NarrowBand", FsaRefusal.NarrowBand,
+                     Refusal(other, other.Analyze(rd.EnergySpectrum, null, rd.FwhmCalibration, library, FsaEfficiency.FromConfig(rd.Efficiency))));
+                Console.WriteLine("  полоса: " + other.RefusalNote);
+                FsaBand.DefaultMode = bandWas;
+
+                // (г) Слова: у каждого члена свои, попарно разные, не FSANotPossible; неизвестное — FSANotPossible.
+                foreach (string lang in new[] { "en-US", "ru-RU" })
+                {
+                    Language(lang);
+                    string generic = BecquerelMonitor.Properties.Resources.FSANotPossible;
+                    var texts = new HashSet<string>(StringComparer.Ordinal);
+                    foreach (FsaRefusal why in Enum.GetValues(typeof(FsaRefusal)))
+                    {
+                        if (why == FsaRefusal.None) continue;
+                        string text = FsaAnalysisSession.RefusalText(why, null);
+                        Same(lang + ": слова у " + why + " есть и не общие", true,
+                             !string.IsNullOrEmpty(text) && !string.Equals(text, generic, StringComparison.Ordinal));
+                        Same(lang + ": слова у " + why + " свои (не повтор другой причины)", true, texts.Add(text));
+                    }
+
+                    Same(lang + ": геометрия с отвергнутой кривой — слова кривой (AMBER34)", true,
+                         FsaAnalysisSession.RefusalText(FsaRefusal.Geometry, "probe").Contains("probe"));
+                    Same(lang + ": неизвестная причина — общее FSANotPossible", generic,
+                         FsaAnalysisSession.RefusalText((FsaRefusal)999, null));
+                }
+
+                Language("en-US");
+            }
+            finally
+            {
+                FsaBand.DefaultMode = bandWas;
+                Language("en-US");
+                ResponseMatrixStore.Delete(guid);
+                Same("уборка: файл малой матрицы снят из склада", false, File.Exists(ResponseMatrixStore.PathOf(guid)));
+                doc.Dispose();
+            }
+        }
+
+        /// <summary>Причина последнего разбора — при условии, что он действительно отказал.</summary>
+        static FsaRefusal Refusal(FsaAnalyzer analyzer, FsaResult result)
+        {
+            if (result != null)
+            {
+                Console.WriteLine("   (разбор не отказал — причины нет)");
+            }
+
+            return analyzer.Refusal;
+        }
 
         static void SetSource(DocEnergySpectrum doc, bool nucBase)
         {

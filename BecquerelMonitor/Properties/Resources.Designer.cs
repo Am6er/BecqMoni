@@ -6366,6 +6366,36 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string FSALibraryEmptied {
+            get {
+                return ResourceManager.GetString("FSALibraryEmptied", resourceCulture);
+            }
+        }
+
+        public static string FSABandTooNarrow {
+            get {
+                return ResourceManager.GetString("FSABandTooNarrow", resourceCulture);
+            }
+        }
+
+        public static string FSATooFewChannels {
+            get {
+                return ResourceManager.GetString("FSATooFewChannels", resourceCulture);
+            }
+        }
+
+        public static string FSANoFit {
+            get {
+                return ResourceManager.GetString("FSANoFit", resourceCulture);
+            }
+        }
+
+        public static string FSANoCalibration {
+            get {
+                return ResourceManager.GetString("FSANoCalibration", resourceCulture);
+            }
+        }
+
         public static string FSAReportEfficiencyFieldCurve {
             get {
                 return ResourceManager.GetString("FSAReportEfficiencyFieldCurve", resourceCulture);

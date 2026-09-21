@@ -43621,6 +43621,21 @@ Turn it on in Windows settings and search again.</value>
   <data name="FSACurveRefused" xml:space="preserve">
     <value>Full-spectrum decomposition: the efficiency curve is refused — {0}</value>
   </data>
+  <data name="FSALibraryEmptied" xml:space="preserve">
+    <value>Full-spectrum decomposition: no component of the composition is left to fit — with a response matrix the crystal's own X-ray and escape images are carried by the matrix; add a nuclide to the composition</value>
+  </data>
+  <data name="FSABandTooNarrow" xml:space="preserve">
+    <value>Full-spectrum decomposition: the fit band is {0} channels or fewer — widen the peak-search energy range or check the fit floor and the energy calibration</value>
+  </data>
+  <data name="FSATooFewChannels" xml:space="preserve">
+    <value>Full-spectrum decomposition needs at least {0} channels in the spectrum</value>
+  </data>
+  <data name="FSANoFit" xml:space="preserve">
+    <value>Full-spectrum decomposition: no fit converged on the drift grid for this spectrum</value>
+  </data>
+  <data name="FSANoCalibration" xml:space="preserve">
+    <value>Full-spectrum decomposition needs an energy calibration and an FWHM calibration of the spectrum</value>
+  </data>
   <data name="FSAReportEfficiencyFieldCurve" xml:space="preserve">
     <value>used as a shape: field-scene curve (cm² per unit fluence); becquerels are not derived from it</value>
   </data>
