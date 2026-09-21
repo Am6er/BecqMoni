@@ -1,0 +1,1 @@
+e4 | pid 26268 (pwsh.exe) | parent 17828 | inJob True | flags 0x0 [] | procs 8 | 19716:OmApSvcBroker 19216:MSI.TerminalServer 29320:cmd 13888:conhost 16924:PING 17828:cmd 9044:conhost 26268:pwsh

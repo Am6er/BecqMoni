@@ -1,0 +1,12 @@
+# Журнал System за 19.09.2026 19:40–19:45 (снято 21.09.2026, П116, Get-WinEvent) — момент гибели счёта П114 (count_done.txt: exit 1073807364 19.09.2026 19:42:11,30)
+
+2026-09-19 19:42:00 | Microsoft-Windows-Kernel-Power       |   566 | Системный сеанс переключил с 10 на 12. Причина InputPoUserPresent BootId: 123
+2026-09-19 19:42:01 | hcmon                                |     0 | Detected unrecognized USB driver (\Driver\USBPcap).
+2026-09-19 19:42:01 | hcmon                                |     0 | Detected unrecognized USB driver (\Driver\USBPcap).
+2026-09-19 19:42:10 | User32                               |  1074 | Процесс C:\WINDOWS\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe (AMBER-MSI) инициировал действие "Выключение питания" для компьютера AMBER-MSI от имени пользователя amber-msi\amber по причине: Другое (Незапланированное) Код причины: 0x0 Тип выключения: Выключение питания Комментарий: 
+2026-09-19 19:42:13 | Microsoft-Windows-Winlogon           |  7002 | Уведомление о выходе пользователя для программы улучшения качества ПО
+2026-09-19 19:42:14 | Microsoft-Windows-Kernel-Power       |   187 | Процесс пользовательского режима попытался изменить состояние системы путем вызова API SetSuspendState или SetSystemPowerState.
+2026-09-19 19:42:14 | Microsoft-Windows-Kernel-Power       |   566 | Системный сеанс переключил с 12 на 13. Причина InputPoUserPresent BootId: 123
+2026-09-19 19:42:14 | Microsoft-Windows-Kernel-Power       |    42 | Система переходит в спящий режим. Причина: Application API
+2026-09-19 19:42:16 | Microsoft-Windows-Kernel-General     |     1 | Системное время изменено на ‎2026‎-‎09‎-‎19T16:42:15.500000000Z с разницы во времени ‎2026‎-‎09‎-‎19T16:42:16.955712900Z. : -1455 мс Причина изменения: System time synchronized with the hardware clock. Процесс: '' (PID 4). Время RTC: ‎2026‎-‎09‎-‎19T19:42:15.500000000Z Текущее смещение часового пояса: -180 Время RTC в формате UTC: false Системное время было основано на времени RTC: false
+2026-09-19 19:42:18 | Microsoft-Windows-Kernel-Power       |   107 | Система возобновила работу после режима сна.

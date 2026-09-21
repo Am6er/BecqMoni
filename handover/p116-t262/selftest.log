@@ -1,0 +1,6 @@
+# detached_run.ps1 -SelfTest — прогон 2 (21.09.2026 18:29:52), из инструмента PowerShell; код 0, 20 с
+[detached] ДО: родитель pwsh 4968 в job 0x9a4; нагрузка cmd PID 19432 (родитель 6968 WmiPrvSE), ping PID 26996
+[detached] ПОСЛЕ Stop-Process родителя: cmd жив=True; ПОСЛЕ TerminateJobObject: cmd PID 19432 жив=True, ping PID 26996 жив=True
+[oldway] ДО: родитель pwsh 12492 в job 0xaac; нагрузка cmd PID 6088 (родитель 12492 pwsh), ping PID 16220
+[oldway] ПОСЛЕ Stop-Process родителя: cmd жив=True; ПОСЛЕ TerminateJobObject: cmd PID 6088 жив=False, ping PID 16220 жив=False
+САМОПРОВЕРКА ПРОШЛА: отсоединённый запуск пережил убийство родителя и его Job Object; старый Start-Process — погиб (положительный контроль убийцы)

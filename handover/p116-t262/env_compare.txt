@@ -1,0 +1,18 @@
+# Окружение нагрузки тремя способами запуска (П116 21.09.2026): имена переменных и ключевые пути; полные дампы (с личными переменными) — только в D:\BqMoni_Claude\p116\*_env.txt, в git не кладутся
+
+переменных: Start-Process из канала (e1) 34; задача планировщика Interactive (e4) 45; WMI Win32_Process.Create (e6) 45
+имена в e4, которых нет в e1: CLAUDE, CUDA_PATH, CUDA_PATH_V12_8, DriverData, GOPATH, IGCCSVC_DB, JAVA_HOME, LEVEL_ZERO_V1_SDK_PATH, POWERSHELL_DISTRIBUTION_CHANNEL, USERDOMAIN_ROAMINGPROFILE, ZES_ENABLE_SYSMAN
+имена в e1, которых нет в e4: 
+имена e6 против e4 — разница: нет
+
+USERPROFILE: e1=C:\Users\moroz | e4=C:\Users\moroz | e6=C:\Users\moroz
+APPDATA: e1=C:\Users\moroz\AppData\Roaming | e4=C:\Users\moroz\AppData\Roaming | e6=C:\Users\moroz\AppData\Roaming
+LOCALAPPDATA: e1=C:\Users\moroz\AppData\Local | e4=C:\Users\moroz\AppData\Local | e6=C:\Users\moroz\AppData\Local
+TEMP: e1=C:\Users\moroz\AppData\Local\Temp | e4=C:\Users\moroz\AppData\Local\Temp | e6=C:\Users\moroz\AppData\Local\Temp
+USERNAME: e1=amber | e4=amber | e6=amber
+USERDOMAIN: e1=AMBER-MSI | e4=AMBER-MSI | e6=AMBER-MSI
+SESSIONNAME: e1=(нет) | e4=(нет) | e6=(нет)
+ProgramData: e1=C:\ProgramData | e4=C:\ProgramData | e6=C:\ProgramData
+SystemRoot: e1=C:\WINDOWS | e4=C:\WINDOWS | e6=C:\WINDOWS
+
+PATH содержит PowerShell\7: e1=True e4=True e6=True
