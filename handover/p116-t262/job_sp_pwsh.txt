@@ -1,0 +1,1 @@
+сын через Start-Process pwsh | pid 21920 (pwsh.exe) | parent 12764 | inJob True | flags 0x0 [] | procs 2 | 21920:pwsh 4052:conhost

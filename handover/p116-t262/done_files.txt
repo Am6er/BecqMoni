@@ -1,0 +1,13 @@
+# *_done.txt всех нагрузок опытов П116 (21.09.2026): строка `exit %errorlevel% дата время`, как у store_run.cmd П114
+
+e1_done.txt: exit 0 21.09.2026 18:16:20,48
+e2_done.txt: exit 0 21.09.2026 18:17:15,79
+e2b_done.txt: exit 0 21.09.2026 18:29:37,48
+e3_done.txt: exit 0 21.09.2026 18:22:18,72
+e6b_done.txt: exit 0 21.09.2026 18:32:52,51
+e7_done.txt: exit 0 21.09.2026 18:29:02,70
+f1_done.txt: exit -1 21.09.2026 18:08:19,15
+f2_done.txt: exit 1 21.09.2026 18:08:19,28
+f3_done.txt: exit 0 21.09.2026 18:18:19,55
+
+e1 — Start-Process из отдельного pwsh, родитель убит Stop-Process 18:06:29 — дожил до конца (600 с); e2 — из канала pwsh 12764, канал снят хостом 18:17:33 после конца нагрузки; e2b — из канала pwsh 27688, канал и MCP-сервер сняты хостом 18:21:17 — дожил (exit 0 18:29:37); e3 — сирота первой попытки E3 (родитель 13904 снят Stop-Process) — дожил; e6b — WMI со скрытым окном — дожил; e7 — detached_run.ps1 — дожил; f1 — Stop-Process ping → -1; f2 — taskkill /F ping → 1; f3 — снят conhost скрытой консоли — cmd и ping без консоли дожили (exit 0); f4 — EndTask по окну консоли: cmd погиб без done-файла, ping остался сиротой; E3 (job) и старый способ в -SelfTest — done-файла нет: TerminateJobObject снимает cmd и ping разом
