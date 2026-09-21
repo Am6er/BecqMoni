@@ -1,0 +1,9 @@
+скопировано по ключам: 49
+sha256 после копии против склада полосы: расхождений 0
+mx_swap: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\mx_swap.py --from=D:\BqMoni_Claude\p114\store --store
+куда: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries\response
+геометрий в index.csv с guid: 49
+подменено матриц: 49
+
+
+mx_swap code=0

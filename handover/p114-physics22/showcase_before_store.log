@@ -1,0 +1,17 @@
+каталог проб: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build (заверен 2026-09-21 15:29:21 из C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_Codex)
+  ⚠ сверено: набор приложения 9116044ab082 (550 файлов), набор FsaStackShot 13494ce22634 (6 файлов), sha двух exe
+свежесть каталога проб: сошлась с деревом (T226, 0.7 с)
+рабочий каталог: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\fsa_showcase\wd (скопировано 397, снято 0; приборов 3, матриц 4)
+прогон FsaStackShot (5 спектров, 9 пар):
+⛔ СТЕНД: ASN16_Cs137_house / infer_eq: FsaStackShot вернул код 1 (0.7 с):
+      BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\fsa_showcase\wd\config\BecquerelMonitor.xml
+      BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\fsa_showcase\wd\config\device: 3 loaded
+      BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\fsa_showcase\wd\config\NuclideDefinition.xml: 33 entries
+      SETUP	прибор: 1.Atom Spectra Nano 16 Pro RadiaScan 701A
+      набор: Cs-137 + K-40
+      SETUP	SNR=10	допуск=11	диапазон=5…2800 кэВ	мёртвое=0 с
+      SETUP	найдено пиков: 3
+      состав: выведено из пиков: 3 из 3 подписаны, родителей 2 из 2, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; K-40 100 % (1/1, пиков 1) — доля выше порога; Cs-137 50 % (1/2, пиков 1) — доля выше порога; оборванный ряд: подцепочка разобрана у 0 кандидатов
+      ОТПЕЧАТОК НЕ СОШЁЛСЯ:
+        у матрицы : phys=21;cd6e01d120d455c1f14a2179d084cd2a3c15bba9c530c7091580c4ef389c3224
+        у геометрии спектра: phys=22;0561d6667a8b1e96304c5d88b46997406cfc7a27fd891363fcc7836fed3c2d96
