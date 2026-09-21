@@ -1,0 +1,15 @@
+16:52:28 MatrixRecomputeProbe: сборка физики 22, формат файла 9
+  config : C:\Users\moroz\OneDrive\Desktop\Debug\config
+  кривых с геометрией: 11
+  настройки клейма: emin=5 emax=3000 nodes=100 bin=2 hist=1000000
+STAMP	1.Atom Spectra Nano 16 Pro RadiaScan 701A	Точка	7fbb8fc3-24b8-440a-b750-80fb11b5a0e6	gap=0 мм/0 мм Air, dry	phys=22;71302f5e2429a5af99e6220aa83cf3cd81e7c839b47f6398f07af7d205620c0b
+STAMP	1.Atom Spectra Nano 16 Pro RadiaScan 701A	Маринелли	41dc6e6a-c186-474f-96d3-4cc500538ab7	gap=0 мм/0 мм Air, dry	phys=22;5ed02d5b185e552124c81e86bf4e2326711650240db528e0ffce2d22fde2a766
+STAMP	1.Atom Spectra Nano 16 Pro RadiaScan 701A	Цилиндр	42333387-5295-4665-8c82-6e85c8498a18	gap=0 мм/0 мм Water, liquid	phys=22;9ac11aea63de81cc95ebea238d4bad8705741b8c0eac04498c8453a63b2ac37c
+STAMP	1.Atom Spectra Nano 16 Pro RadiaScan 701A	Точка впритык	3b84ce13-d635-47d0-b734-62caa283e3f3	gap=0 мм/0 мм Water, liquid	phys=22;a5cf00bc68ca7c4eb38fd14987a4c04e4c2ebdc7b49d078389a73613d4ae2e6c
+STAMP	1.Atom Spectra Nano 16 Pro RadiaScan 701A	Цилиндр с боку	aa8a6ecb-5866-4f9d-b359-3c68dba82e5a	gap=0 мм/0 мм Water, liquid	phys=22;922169005e4b79c0480a0e3aa1db4a6957b79b02b3fd1660e7330006278e2bbe
+STAMP	1.Atom Spectra Nano 16 Pro RadiaScan 701A	Точка в защите	c482e3bc-e2a8-491f-8759-5df93827eaef	gap=0 мм/0 мм Air, dry	phys=22;e246a40e1a76fe4cb48f4296a86147082f39c517389e5172825734230e0002be
+STAMP	Atom Spectra 80x80	Точка	4c5aa26d-d776-481f-96d8-c01022590f39	gap=21.7 мм/0 мм Water, liquid	phys=22;10a2f81f0f4f3367fdc4d72ba662725fbe28f8c810ec0bb941891cdaa63e1460
+STAMP	Atom Spectra 80x80	Точка 10 см	5cb11287-beed-4fa3-bf52-21453effbdc8	gap=21.7 мм/0 мм Water, liquid	phys=22;c18a8cd60fbe2098e51e0f24252d5e9be7fc53d9fc200da24548f21e2c0f517f
+STAMP	Atom Spectra 80x80	Th медальон	04cb27d4-6b6e-4c6c-b665-b6175d78bdcb	gap=21.7 мм/0 мм Air, dry	phys=22;12f33d20d0adce7434c8cf6e3802216881cdc665462988767ad7b084e4f282e3
+STAMP	Atom Spectra 80x80	Цилиндр	50a57c5a-3237-4154-b269-b9fd1a2c7d88	gap=21.7 мм/0 мм Air, dry	phys=22;3d896b60b03420d19feb273b97134fbef41c00053889596ff499bc8781282e33
+STAMP	RC-103	Цилиндр	755bbe16-49f5-465c-8407-0e2520d106fd	gap=0 мм/0 мм Air, dry	phys=22;b29cea0ba4720466533325b6e6ae281977a2f20b1dc52764f76c51f55bf0cedc

@@ -1,0 +1,40 @@
+| № | прибор / кривая | guid | матрица: с на часах / с ЦП (ядер) | узлов | историй потрачено | шум конт. взвеш. | клеймо матрицы | кривая: с / точек | сетка в клейме кривой |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | Nano 16 Pro 701A / Точка | `7fbb8fc3…` | 183.8 / 2433.3 (13.2) | 100 | 838 314 294 | 3.86 % | `phys=22;71302f5e…` | 17.7 / 97 | `grid=6.1-3000 keV/97 log` |
+| 2 | Nano 16 Pro 701A / Маринелли | `41dc6e6a…` | 270.0 / 3723.0 (13.8) | 100 | 374 858 103 | 2.90 % | `phys=22;5ed02d5b…` | 59.1 / 97 | `grid=6.1-3000 keV/97 log; sample=air` |
+| 3 | Nano 16 Pro 701A / Цилиндр | `42333387…` | 203.2 / 2558.0 (12.6) | 100 | 309 791 713 | 2.88 % | `phys=22;9ac11aea…` | 50.1 / 96 | `grid=6.5-3000 keV/96 log` |
+| 4 | Nano 16 Pro 701A / Точка впритык | `3b84ce13…` | 110.8 / 1368.3 (12.3) | 100 | 238 166 327 | 2.69 % | `phys=22;a5cf00bc…` | 34.7 / 100 | `grid=5-3000 keV/100 log` |
+| 5 | Nano 16 Pro 701A / Цилиндр с боку | `aa8a6ecb…` | 174.7 / 2105.6 (12.1) | 100 | 287 307 909 | 2.85 % | `phys=22;92216900…` | 42.6 / 96 | `grid=6.5-3000 keV/96 log` |
+| 6 | Nano 16 Pro 701A / Точка в защите | `c482e3bc…` | 109.6 / 1364.0 (12.4) | 100 | 236 352 736 | 2.67 % | `phys=22;e246a40e…` | 35.3 / 100 | `grid=5-3000 keV/100 log` |
+| 7 | AS 80x80 / Точка | `4c5aa26d…` | 100.2 / 1230.5 (12.3) | 100 | 249 989 124 | 2.73 % | `phys=22;7e28ad9a…` | 30.8 / 100 | `grid=5-3000 keV/100 log` |
+| 8 | AS 80x80 / Точка 10 см | `5cb11287…` | 199.4 / 2636.0 (13.2) | 100 | 411 351 805 | 2.89 % | `phys=22;a9bd28e3…` | 47.5 / 94 | `grid=7.4-3000 keV/94 log` |
+| 9 | AS 80x80 / Th медальон | `04cb27d4…` | 177.1 / 2099.3 (11.9) | 100 | 267 852 720 | 2.78 % | `phys=22;12f33d20…` | 46.6 / 94 | `grid=7.4-3000 keV/94 log` |
+| 10 | AS 80x80 / Цилиндр | `50a57c5a…` | 179.9 / 2235.9 (12.4) | 100 | 264 425 380 | 2.86 % | `phys=22;3d896b60…` | 54.1 / 94 | `grid=7.4-3000 keV/94 log; sample=air` |
+| 11 | RC-103 / Цилиндр | `755bbe16…` | 189.6 / 2414.8 (12.7) | 100 | 338 704 065 | 2.85 % | `phys=22;b29cea0b…` | 43.2 / 99 | `grid=5.3-3000 keV/99 log` |
+
+матрицы 1898 с (31.6 мин) = 24169 ЦП-с (6.71 ЦП-ч), кривые 462 с (7.7 мин); историй в матрицах 3.82 млрд; всего 2360 с = 39.3 мин
+цена истории: 6.33 мкс ЦП
+
+полные клейма:
+  7fbb8fc3  phys=22;71302f5e2429a5af99e6220aa83cf3cd81e7c839b47f6398f07af7d205620c0b
+            phys=22; hist=1000000; grid=6.1-3000 keV/97 log; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1
+  41dc6e6a  phys=22;5ed02d5b185e552124c81e86bf4e2326711650240db528e0ffce2d22fde2a766
+            phys=22; hist=1000000; grid=6.1-3000 keV/97 log; sample=air; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1
+  42333387  phys=22;9ac11aea63de81cc95ebea238d4bad8705741b8c0eac04498c8453a63b2ac37c
+            phys=22; hist=1000000; grid=6.5-3000 keV/96 log; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1
+  3b84ce13  phys=22;a5cf00bc68ca7c4eb38fd14987a4c04e4c2ebdc7b49d078389a73613d4ae2e6c
+            phys=22; hist=1000000; grid=5-3000 keV/100 log; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1
+  aa8a6ecb  phys=22;922169005e4b79c0480a0e3aa1db4a6957b79b02b3fd1660e7330006278e2bbe
+            phys=22; hist=1000000; grid=6.5-3000 keV/96 log; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1
+  c482e3bc  phys=22;e246a40e1a76fe4cb48f4296a86147082f39c517389e5172825734230e0002be
+            phys=22; hist=1000000; grid=5-3000 keV/100 log; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1
+  4c5aa26d  phys=22;7e28ad9a9694ae5c1727d23937bbdee999bf63a380ac676ae6ce5b0dd6a298e5
+            phys=22; hist=1000000; grid=5-3000 keV/100 log; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1
+  5cb11287  phys=22;a9bd28e36f0c13701ad4416b3d2a6d1fbcea62d24e1636cabf68cc5cce49d510
+            phys=22; hist=1000000; grid=7.4-3000 keV/94 log; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1
+  04cb27d4  phys=22;12f33d20d0adce7434c8cf6e3802216881cdc665462988767ad7b084e4f282e3
+            phys=22; hist=1000000; grid=7.4-3000 keV/94 log; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1
+  50a57c5a  phys=22;3d896b60b03420d19feb273b97134fbef41c00053889596ff499bc8781282e33
+            phys=22; hist=1000000; grid=7.4-3000 keV/94 log; sample=air; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1
+  755bbe16  phys=22;b29cea0ba4720466533325b6e6ae281977a2f20b1dc52764f76c51f55bf0cedc
+            phys=22; hist=1000000; grid=5.3-3000 keV/99 log; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1
