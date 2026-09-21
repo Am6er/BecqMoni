@@ -39,6 +39,12 @@ namespace G4RawProbe
     /// четвертям; 1461/662/59.5 и диск AS80 не хуже П103. Печатает счётчик
     /// квантов тормозного по ходу в слоях.
     ///
+    /// `--lbang=1` (`M13`, остаток «0.73», П111 19.09.2026): ключ
+    /// `ElectronLayerBremAngular2BS` — направление кванта тормозного в слоях по
+    /// 2BS Коха—Моца (как `G4Generator2BS` у арбитра) вместо Цая. Умолчание —
+    /// склада (ВКЛ с физики 22, П114 19–21.09.2026; `--lbang=0` — плечо
+    /// «как физика 21»).
+    ///
     /// `--ret-kill=` (`M13`, П106 19.09.2026) — РЫЧАГИ ЗАМЕРА состава «возврата»
     /// электрона по населениям, зеркала рычагов арбитра `g4cf` (список через
     /// запятую): `own` — свой (рождённый в кристалле) электрон на грани
@@ -195,7 +201,7 @@ namespace G4RawProbe
             bool eltr = store.ElectronLayerTransport;   // `AMBER44`/`M12`, П94 — умолчание склада (ВКЛ с физики 19, П97)
             bool elmix = store.ElectronLayerMixedScattering;   // `M13`, П100 — умолчание склада (ВКЛ с физики 20, П103)
             bool lbrem = store.ElectronLayerBremAlongPath;     // `M13`, П106 — умолчание склада (ВКЛ с физики 21, П107)
-            bool lbang = store.ElectronLayerBremAngular2BS;    // `M13`, П111 — умолчание склада (ВЫКЛ; 2BS вместо Цая в слоях)
+            bool lbang = store.ElectronLayerBremAngular2BS;    // `M13`, П111 — умолчание склада (ВКЛ с физики 22, П114; 2BS вместо Цая в слоях)
             // `M13`, П106: рычаги замера состава возврата (--ret-kill=), все ВЫКЛ.
             bool retOwn = true, retCarry = true, retBrem = true, retOutBrem = true;
             int retKill = 0;

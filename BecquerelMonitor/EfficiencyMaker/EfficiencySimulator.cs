@@ -429,8 +429,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// (`M13`, остаток; П111 19.09.2026) НАПРАВЛЕНИЕ КВАНТА ТОРМОЗНОГО В
         /// СЛОЯХ ОБВЯЗКИ — 2BS Коха—Моца (как `G4Generator2BS` у арбитра
-        /// option4) вместо модифицированного Цая — ключ сделан ВЫКЛ. Умолчание
-        /// ПОЛЯ — умолчание СКЛАДА
+        /// option4) вместо модифицированного Цая — ключ сделан ВЫКЛ; ВКЛ
+        /// умолчанием с 19–21.09.2026 — физика 22 (П114, решение Amber «ВКЛ
+        /// единым счётом ночью»). Умолчание ПОЛЯ — умолчание СКЛАДА
         /// (<see cref="ResponseMatrixOptions.ElectronLayerBremAngular2BS"/>,
         /// правило I). Действует только под <see cref="ElectronLayerBremAlongPath"/>
         /// в `LayerEmitBremsstrahlung` (<see cref="Brem2BSCosine"/>); в кристалле

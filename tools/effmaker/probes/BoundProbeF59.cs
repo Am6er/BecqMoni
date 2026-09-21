@@ -518,12 +518,14 @@ namespace BoundProbeF59
             // «ecomp=1 + bpath=2»), ключ физики 19 (`eltr=1`, П97 18.09.2026; решение Amber
             // 17.09.2026 «ВКЛ сейчас, единый счёт ночью»), ключ физики 20 (`elmix=1`, П103
             // 19.09.2026; решение Amber 18.09.2026 по приёмке П100, дословно: «ВКЛ сейчас, единый
-            // счёт ночью») и ключ физики 21 (`lbrem=1`, П107 19.09.2026; решение Amber 19.09.2026
-            // по приёмке П106, дословно: «ВКЛ сейчас, единый счёт ночью») — умолчания КЛАССА, одно
+            // счёт ночью»), ключ физики 21 (`lbrem=1`, П107 19.09.2026; решение Amber 19.09.2026
+            // по приёмке П106, дословно: «ВКЛ сейчас, единый счёт ночью») и ключ физики 22
+            // (`lbang=1`, П114 19–21.09.2026; решение Amber 19.09.2026 по приёмке П111,
+            // дословно: «ВКЛ единым счётом ночью») — умолчания КЛАССА, одно
             // место истины (правило I `check_matrix_keys.py`):
             // путь склада, путь кривой и поля симулятора берут их отсюда.
             Say("");
-            Say("-- A120: умолчания физики 17, 18, 19, 20 и 21 (склад = кривая = симулятор) --");
+            Say("-- A120: умолчания физики 17, 18, 19, 20, 21 и 22 (склад = кривая = симулятор) --");
             Say(string.Format(CultureInfo.InvariantCulture, "   PhysicsVersion       = {0}", ResponseMatrix.PhysicsVersion));
             Say(string.Format(CultureInfo.InvariantCulture, "   LightBinUnified      = {0}", options.LightBinUnified));
             Say(string.Format(CultureInfo.InvariantCulture, "   PeakChannelByTolerance = {0}", options.PeakChannelByTolerance));
@@ -534,8 +536,9 @@ namespace BoundProbeF59
             Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerTransport = {0}", options.ElectronLayerTransport));
             Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerMixedScattering = {0}", options.ElectronLayerMixedScattering));
             Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerBremAlongPath = {0}", options.ElectronLayerBremAlongPath));
-            Ok(ResponseMatrix.PhysicsVersion == 21,
-               string.Format(CultureInfo.InvariantCulture, "версия физики склада — 21 (есть {0})", ResponseMatrix.PhysicsVersion));
+            Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerBremAngular2BS = {0}", options.ElectronLayerBremAngular2BS));
+            Ok(ResponseMatrix.PhysicsVersion == 22,
+               string.Format(CultureInfo.InvariantCulture, "версия физики склада — 22 (есть {0})", ResponseMatrix.PhysicsVersion));
             Ok(options.LightBinUnified && options.PeakChannelByTolerance && options.LYieldSupply == 2
                && options.ElectronTransport && options.PositronTransport && options.PositronOffset && options.RayleighToCrystal,
                "семь ключей физики 17 умолчанием ВКЛ: lbin=1 pkch=1 lys=2 etr=1 e+tr=1 e+off=1 rayl2=1");
@@ -547,6 +550,8 @@ namespace BoundProbeF59
                "ключ физики 20 умолчанием ВКЛ: elmix=1");
             Ok(options.ElectronLayerBremAlongPath,
                "ключ физики 21 умолчанием ВКЛ: lbrem=1");
+            Ok(options.ElectronLayerBremAngular2BS,
+               "ключ физики 22 умолчанием ВКЛ: lbang=1");
         }
 
         /// <summary>
