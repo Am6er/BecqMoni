@@ -231,7 +231,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                spectrum.EnergyCalibration, channels,
                                                result.Gain, result.OffsetChannels,
                                                result.AnchorLightCurve, result.AnchorLightBeta,
-                                               result.AnchorLightReferenceKev);
+                                               result.AnchorLightReferenceKev,
+                                               result.AdcScale, result.AdcE0Kev, result.AdcZeroKev);
                 foreach (LineGroup group in groups)
                 {
                     LineCheck check = Measure(group, data, model, continuum, background,
@@ -363,11 +364,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// калибровке спектра, затем найденный фитом дрейф
         /// <c>p = gain·position + offset</c>. Иначе окно встанет мимо пика на
         /// величину дрейфа, а он у корпуса доходит до трёх каналов.
+        ///
+        /// ⛔ (`S181`, П136 22.09.2026) «ТЕМ ЖЕ ХОДОМ» ВКЛЮЧАЕТ КАРТУ НУЛЯ
+        /// «adc». Анализатор кладёт каждый бин образа не прямой калибровкой, а
+        /// через E꜀(x) = E(0) + (x − z₀)·s (<c>FsaAnalyzer.LightEnergyKev</c>,
+        /// `S169`); сверка этого не делала и расходилась с образом на
+        /// Δ(x) = (s − 1)(x − x₁) — при E(0) = −13 кэВ и верхней линии 2614 это
+        /// −11.8 кэВ на 238 кэВ, больше половины ПШПВ NaI, а при E(0) = −44 —
+        /// две ПШПВ, то есть окно ±1 ПШПВ мимо пика целиком. `gain`/`offset`
+        /// не спасали: они найдены МНК опор ПОВЕРХ карты. Расхождение нулевое
+        /// только у верхней линии библиотеки, поэтому глазом его не видно.
+        ///
+        /// ⚠ Карта включается лишь при живой матрице и включённой привязке
+        /// (<c>FsaAnalyzer.AnchorScale</c>): на спектрах без матрицы `adcScale`
+        /// равен нулю, и здесь всё идёт прежней прямой — до бита.
         /// </summary>
         static List<LineGroup> Group(FsaComponent component, FwhmCalibration fwhmCalibration,
                                      EnergyCalibration calibration, int channels,
                                      double gain, double offset,
-                                     string lightCurve, double lightBeta, double lightReferenceKev)
+                                     string lightCurve, double lightBeta, double lightReferenceKev,
+                                     double adcScale, double adcE0Kev, double adcZeroKev)
         {
             var raw = new List<LineGroup>();
             foreach (FsaLine line in component.Lines)
@@ -377,10 +393,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                // (`S181`) Энергия калибровки, отвечающая свету линии, — то же
+                // число, какое анализатор отдаёт калибровке для бинов образа.
+                double lineKev = adcScale > 0.0
+                    ? adcE0Kev + (line.Energy - adcZeroKev) * adcScale
+                    : line.Energy;
+
                 double position;
                 try
                 {
-                    position = calibration.EnergyToChannel(line.Energy, maxChannels: channels);
+                    position = calibration.EnergyToChannel(lineKev, maxChannels: channels);
                 }
                 catch (Exception)
                 {

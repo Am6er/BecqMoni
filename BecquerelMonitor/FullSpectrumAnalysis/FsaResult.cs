@@ -1134,6 +1134,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double AnchorLightReferenceKev { get; set; }
 
         /// <summary>
+        /// (`S169`, наружу — `S181`, П136 22.09.2026) РАСТЯЖЕНИЕ КАРТЫ НУЛЯ
+        /// «adc» этого разбора: s из E꜀(x) = <see cref="AdcE0Kev"/> +
+        /// (x − <see cref="AdcZeroKev"/>)·s. Нуль — карта не включалась, и
+        /// свет идёт калибровкой как есть.
+        ///
+        /// ⛔ ЗАЧЕМ НАРУЖУ. Анализатор кладёт КАЖДЫЙ бин образа через эту
+        /// карту (`FsaAnalyzer.LightToChannel`), а сверка линий
+        /// (<see cref="FsaLineAudit"/>) ставила окно прямой калибровкой и
+        /// расходилась с образом на Δ(x) = (s − 1)(x − x₁) — при E(0) = −13 кэВ
+        /// и верхней линии 2614 это −11.8 кэВ на 238 кэВ, больше половины ПШПВ
+        /// NaI. `Gain`/`OffsetChannels` этого не чинят: они найдены МНК опор
+        /// ПОВЕРХ карты. Три поля, а не пересчёт у читателя: двух списков
+        /// карты быть не должно (`AMBER72`).
+        /// </summary>
+        public double AdcScale { get; set; }
+
+        /// <summary>
+        /// (`S181`) Энергия калибровки в НУЛЕВОМ канале, кэВ — E(0) карты
+        /// нуля. Читается только вместе с <see cref="AdcScale"/>.
+        /// </summary>
+        public double AdcE0Kev { get; set; }
+
+        /// <summary>
+        /// (`S181`) Свет z₀, который карта нуля ставит в нулевой канал, кэВ.
+        /// Читается только вместе с <see cref="AdcScale"/>.
+        /// </summary>
+        public double AdcZeroKev { get; set; }
+
+        /// <summary>
         /// (П19) Форма применения световой координаты этого разбора
         /// («bin» / «line» / «peak» / «anchor» — <c>FsaAnalyzer.AnchorLightForm</c>);
         /// пусто — координата выключена или кривой для вещества нет.

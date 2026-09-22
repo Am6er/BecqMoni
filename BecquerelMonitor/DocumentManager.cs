@@ -888,13 +888,27 @@ namespace BecquerelMonitor
         public void ImportDocumentSpecUtils(DocEnergySpectrum doc, string filepath, int presettime)
         {
             IntPtr file_h = IntPtr.Zero;
+            string tempCopy = null;
 
             try
             {
                 Cursor.Current = Cursors.WaitCursor;
                 string file_ext = Path.GetExtension(filepath);
                 if (file_ext != "") file_ext = file_ext.TrimStart('.').ToLowerInvariant();
-                file_h = SpecUtilsNative.Open(filepath, file_ext);
+                // ⛔ `AMBER75` (П138, 22.09.2026): ПУТЬ ГОТОВИТСЯ ДЛЯ НАТИВНОЙ
+                //    ДВЕРИ, А НЕ ОТДАЁТСЯ ЕЙ КАК ЕСТЬ. SpecUtilsNet!Open берёт
+                //    короткое имя 8.3 и переводит его в узкую строку КОДОВОЙ
+                //    СТРАНИЦЕЙ МАШИНЫ (здесь 1251), а сама SpecUtils понимает
+                //    узкое имя как UTF-8 — то есть всякий путь с кириллицей на
+                //    томе, где порождение имён 8.3 выключено (съёмный диск,
+                //    сетевая папка, D:\ этой машины), отдаёт NULL, и человек
+                //    читает «Unknown file format» о здоровом файле, который
+                //    соседняя дверь N42 открывает. Разбор механизма и цена
+                //    обхода — SpecUtilsPath. Расширение берётся у ИСХОДНОГО
+                //    пути нарочно: имя копии до SpecUtils доходит, но разбор
+                //    ведётся по этому ключу, и подменять его нечем.
+                string openPath = SpecUtilsPath.Prepare(filepath, out tempCopy);
+                file_h = SpecUtilsNative.Open(openPath, file_ext);
                 if (file_h == IntPtr.Zero) throw new FileLoadException("Unable to load file using SpecUtils. Unknown file format.");
 
                 string fileName = Path.GetFileNameWithoutExtension(filepath);
@@ -1242,7 +1256,16 @@ namespace BecquerelMonitor
 
                                     if (listCalibration.Count >= 5)
                                     {
-                                        double[] matrix = CalibrationSolver.Solve(listCalibration, 4);
+                                        // ⛔ `AMBER73` (П138, 22.09.2026): ТОТ ЖЕ
+                                        //    СДВИГ, ЧТО И У ПОЛИНОМА ПОПРОЩЕ НИЖЕ.
+                                        //    Точки набраны как (ch, poly(ch)) по
+                                        //    полиному ФАЙЛА, то есть это НИЖНИЕ
+                                        //    КРАЯ каналов, а приложение читает номер
+                                        //    канала центром. Перекладка идёт ПОСЛЕ
+                                        //    подгонки и тем же вызовом, что у двери
+                                        //    N42, — разойтись дверям нельзя (`A253`).
+                                        double[] matrix = N42.Util.EdgePolynomialToChannelCentres(
+                                            CalibrationSolver.Solve(listCalibration, 4));
                                         calibration.Coefficients = new double[matrix.Length];
                                         calibration.Coefficients = matrix;
                                         calibration.PolynomialOrder = matrix.Length - 1;
@@ -1262,9 +1285,26 @@ namespace BecquerelMonitor
                                 {
                                     if (cal.Sum() != 0)
                                     {
+                                        // ⛔ `AMBER73` (П138, 22.09.2026): SpecUtils
+                                        //    отдаёт полином файла как есть, а номер
+                                        //    канала в нём — НИЖНИЙ КРАЙ (это и её
+                                        //    собственное соглашение: тот же полином
+                                        //    она кладёт в channel energies ветви
+                                        //    LowerChannelEdge). Приложение читает
+                                        //    номер канала ЦЕНТРОМ, поэтому здесь
+                                        //    перекладка — тем же вызовом, что у
+                                        //    двери N42 (`A253`: одна шкала на две
+                                        //    двери).
+                                        //    ⚠ Положение 3 (UnspecifiedUsingDefault
+                                        //    Polynomial) сюда попадает вместе с
+                                        //    остальными нарочно: подставную прямую
+                                        //    [0, 47.619…] SpecUtils понимает теми же
+                                        //    краями, а о том, что шкалы в файле нет,
+                                        //    человеку говорится отдельно (`A216`).
+                                        double[] fileCoefficients = new double[cal_size];
+                                        for (int i = 0; i < cal_size; i++) fileCoefficients[i] = (double)cal[i];
                                         calibration.PolynomialOrder = cal_size - 1;
-                                        calibration.Coefficients = new double[cal_size];
-                                        for (int i = 0; i < cal_size; i++) calibration.Coefficients[i] = (double)cal[i];
+                                        calibration.Coefficients = N42.Util.EdgePolynomialToChannelCentres(fileCoefficients);
                                     }
                                     else if (energyCalType != 3)
                                     {
@@ -1336,7 +1376,29 @@ namespace BecquerelMonitor
 
                                     if (listCalibration.Count >= 5)
                                     {
-                                        double[] matrix = CalibrationSolver.Solve(listCalibration, 4);
+                                        // ⛔ `AMBER73` (П137, 22.09.2026): ПОЛИНОМ ПО
+                                        //    ГРАНИЦАМ ПЕРЕКЛАДЫВАЕТСЯ НА ЦЕНТРЫ КАНАЛОВ
+                                        //    — ТЕМ ЖЕ ВЫЗОВОМ, ЧТО И У СОСЕДНЕЙ ДВЕРИ.
+                                        //    Список, который сюда приходит, — channel
+                                        //    energies SpecUtils, то есть НИЖНИЕ ГРАНИЦЫ
+                                        //    каналов (их N + 1, и цикл выше последнюю
+                                        //    отбрасывает нарочно), а приложение всюду
+                                        //    понимает номер канала ЦЕНТРОМ: его
+                                        //    собственная шкала строится парами
+                                        //    (центроид пика, энергия линии), центрами
+                                        //    читают PeakDetector и FsaAnalyzer.Edges.
+                                        //    Без перекладки образ разбора и энергии
+                                        //    пиков стояли на h/2 ниже данных — замер
+                                        //    П137 на сочинённом файле с точно
+                                        //    известными краями: −0.25 кэВ при h = 0.5.
+                                        //    ⚠ Вызов ОДИН И ТОТ ЖЕ у обеих дверей
+                                        //    нарочно (`A253`): двери обязаны давать на
+                                        //    одном файле одну шкалу, и перекладка,
+                                        //    сделанная здесь своими руками, развела бы
+                                        //    их молча — ровно та беда, от которой
+                                        //    `A253` и заведена.
+                                        double[] matrix = N42.Util.EdgePolynomialToChannelCentres(
+                                            CalibrationSolver.Solve(listCalibration, 4));
                                         calibration.Coefficients = new double[matrix.Length];
                                         calibration.Coefficients = matrix;
                                         calibration.PolynomialOrder = matrix.Length - 1;
@@ -1473,6 +1535,10 @@ namespace BecquerelMonitor
             finally
             {
                 if (file_h != IntPtr.Zero) SpecUtilsNative.Close(file_h);
+                // `AMBER75`: временная копия снимается ВСЕГДА — и после отказа
+                //   тоже. Она нужна только на время разбора: содержимое уже
+                //   лежит в документе, а файл в TEMP остался бы мусором.
+                SpecUtilsPath.Drop(tempCopy);
             }
             Cursor.Current = Cursors.Default;
         }

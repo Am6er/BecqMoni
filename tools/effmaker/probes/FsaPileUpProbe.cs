@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
@@ -48,6 +48,9 @@ namespace FsaPileUpProbe
     /// Розыгрыш детерминирован зерном. `--huber=` — порог М-оценки Хубера
     /// анализатора (диагностика: при большой подсадке сумм-пик отбрасывается
     /// как выброс, и колонка недобирает; без ключа — умолчание анализатора).
+    /// `--anchor=` — доля <c>FsaAnalyzer.PileUpAnchorShare</c>, которой задана
+    /// защищаемая от Хубера сумм-область (`AMBER65`, П136); значение больше
+    /// единицы — плечо ПОРЧИ, защиты нет вовсе, то есть поведение до правки.
     ///
     /// Печатает строки `PILEUP\t&lt;форма&gt;\t&lt;f&gt;\t&lt;пар&gt;\t&lt;за шкалой&gt;\t
     /// &lt;A_on/A0−1&gt;\t&lt;A_off/A0−1&gt;\t&lt;χ² on&gt;\t&lt;χ² off&gt;\t&lt;амплитуда образа/N&gt;`
@@ -64,7 +67,7 @@ namespace FsaPileUpProbe
             string spectrumPath = null, setName = null, outPath = null, form = "both";
             var fracs = new List<double> { 0.02, 0.05 };
             int seed = 1;
-            double huberM = double.NaN;
+            double huberM = double.NaN, anchorShare = double.NaN;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
@@ -73,6 +76,7 @@ namespace FsaPileUpProbe
                 else if (a.StartsWith("--form=", StringComparison.Ordinal)) form = a.Substring(7);
                 else if (a.StartsWith("--seed=", StringComparison.Ordinal)) seed = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--huber=", StringComparison.Ordinal)) huberM = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                else if (a.StartsWith("--anchor=", StringComparison.Ordinal)) anchorShare = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--frac=", StringComparison.Ordinal))
                 {
                     fracs.Clear();
@@ -173,6 +177,11 @@ namespace FsaPileUpProbe
                 if (!double.IsNaN(huberM))
                 {
                     an.HuberM = huberM;
+                }
+
+                if (!double.IsNaN(anchorShare))
+                {
+                    an.PileUpAnchorShare = anchorShare;
                 }
 
                 return an;
@@ -315,10 +324,28 @@ namespace FsaPileUpProbe
 
                     // Контроль обязан видеть подсадку: без образа наложений
                     // убыль 2f никто не ловит; смещение слабее −f — отказ мерки.
+                    // ⚠ Опора — скорость на ЧИСТОМ спектре с образом, и правка
+                    // разбора её двигает; при сравнении плеч смотреть на
+                    // `bias_on`, а этот контроль — только про доезд подсадки.
                     if (double.IsNaN(biasOn) || double.IsNaN(biasOff) || biasOff > -f)
                     {
                         Console.WriteLine("   ⛔ контроль: без образа смещение {0} слабее −f — подсадка не доехала, мерка не мерит",
                                           F(biasOff, "+0.00000;-0.00000"));
+                        bad++;
+                    }
+
+                    // (`AMBER65`, П136 22.09.2026) ПРИГОВОР: с образом смещение
+                    // обязано остаться в пятой части подсадки. Довод порога —
+                    // не точность метода, а разделение плеч: до правки при
+                    // f = 5 % смещение было −0.76·f (сумм-пик душила М-оценка
+                    // Хубера), после — −0.11·f, и любой порог между ними делит
+                    // «починено» и «нет». Плечо порчи `--anchor=2` обязано
+                    // краснеть здесь при f = 5 %.
+                    double bound = 0.2 * f;
+                    if (Math.Abs(biasOn) > bound)
+                    {
+                        Console.WriteLine("   ⛔ ПРИГОВОР: с образом смещение {0} больше пятой части подсадки ({1}) — колонка недобирает",
+                                          F(biasOn, "+0.00000;-0.00000"), F(bound, "F5"));
                         bad++;
                     }
                 }

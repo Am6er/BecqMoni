@@ -1539,6 +1539,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         NoiseTerms noiseTerms;
 
+        /// <summary>
+        /// (`S180`) Слагаемые ОТЧЁТНОЙ дисперсии этого разбора: `Subtracted` —
+        /// что вычтено из сырого отсчёта (континуум SNIP, фон), `Extra` — всё,
+        /// что в отчётной дисперсии сверх пуассона (шум вычтенного континуума
+        /// ξ·C). Ставится там же, где <see cref="FsaResult.Chi2NdfPoisson"/>
+        /// берёт свои веса, и ДО составного шума `S43` — отчётная метрика его
+        /// не знает.
+        /// </summary>
+        NoiseTerms reportNoise;
+
+        /// <summary>
+        /// (`AMBER65`) Образ наложений этого разбора — по ССЫЛКЕ, а не по имени
+        /// слоя: имени нуклида и слоя в коде разбора быть не должно, а колонку
+        /// ещё и снимает отсев по z, и тогда защита сумм-области от М-оценки
+        /// обязана исчезнуть вместе с ней. Ставится в <c>Analyze</c> вместе с
+        /// самой колонкой, читается только <c>PileUpAnchor</c>.
+        /// </summary>
+        FsaComponent pileUpColumn;
+
         public double MinEnergy { get; set; }
 
         public double MaxEnergy { get; set; }
@@ -1585,6 +1604,46 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// читатель — `SETUP` отражением.
         /// </summary>
         public bool ModelWeights { get; set; }
+
+        /// <summary>
+        /// (`S180`) Считать ОТЧЁТНЫЕ <see cref="FsaResult.Chi2NdfPoisson"/> и
+        /// невязку модели ε (<see cref="FsaResult.ModelResidual"/>) весами от
+        /// ОЖИДАНИЯ — `1/(μ̂ + ξ²C²)`, μ̂ = модель прохода в шкале сырых
+        /// отсчётов (Пирсон), — а не от наблюдения `1/(max(N, 1) + ξ²C²)`
+        /// (Нейман).
+        ///
+        /// ⛔ ЗАЧЕМ. Ожидание χ² при ВЕРНОЙ модели равно ndf только для весов
+        /// от ожидания. Неймановский вес `1/y` смещён при малых отсчётах —
+        /// Baker &amp; Cousins, NIM 221 (1984) 437. Счётом по пуассоновскому
+        /// распределению: `E[(y − μ)²/max(y, 1)]` = 1.0769 / 1.4471 / 1.6366 /
+        /// 1.3071 / 1.1191 / 1.0426 при μ = 2 / 3 / 5 / 10 / 20 / 50, тогда как
+        /// `E[(y − μ)²/μ]` = 1.0000 при ЛЮБОМ μ (пол снят `S182`). То есть на бедных
+        /// каналах ВЕРНАЯ модель печаталась как χ²/ndf ≈ 1.3–1.6, а ε —
+        /// фантомной долей до 36 % при 5 отсч./канал; обещание «ε сравнима
+        /// между спектрами» на бедных спектрах не держалось.
+        ///
+        /// ⚠ ЧТО ЭТОТ КЛЮЧ НЕ ТРОГАЕТ. Веса, которыми взвешены ГЕЙТЫ
+        /// (`dWith`/`dWithout` отсева и добора), остаются прежними —
+        /// неймановскими: гейт сравнивает Δχ² ДВУХ моделей, и общая, от модели
+        /// НЕ зависящая мерка для такого сравнения и нужна. Значит приговоры
+        /// разбора ключом не двигаются, двигаются только два напечатанных
+        /// числа. Решатель не задет тем более: у него свои веса
+        /// (<see cref="ModelWeights"/>).
+        ///
+        /// ⚠ Довод «отчётная метрика не должна быть той величиной, которую
+        /// правка весов сама оптимизирует» остаётся в силе и здесь: μ̂ берётся
+        /// БЕЗ составного шума `S43` и без хуберовского смягчения, то есть
+        /// плечи `--weights`, `--noise-gamma` и `--huber` по-прежнему меряются
+        /// меркой, которую они не настраивают.
+        ///
+        /// ⚠ (`S182`, П136) Смена весов — только ПЕРВАЯ половина смещения.
+        /// Второй была ПОЛКА `max(·, 1)` у самой дисперсии: она сажала меру
+        /// вниз и у Пирсона тоже. Снята П136 — довод и числа у
+        /// <c>ReportWeights</c>.
+        ///
+        /// Полярность умолчания стоит В КОНСТРУКТОРЕ (`T82`).
+        /// </summary>
+        public bool ReportModelWeights { get; set; }
 
         /// <summary>
         /// (S43) Коэффициент γ составного шума: дисперсия канала берётся
@@ -2373,14 +2432,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         double LightToChannel(EnergyCalibration calibration, double lightKev, int channels)
         {
-            if (this.adcScale > 0.0)
-            {
-                return EnergyToChannelSafe(calibration,
-                                           this.adcE0 + (lightKev - this.adcZeroKev) * this.adcScale,
-                                           channels);
-            }
+            return EnergyToChannelSafe(calibration, this.LightEnergyKev(lightKev), channels);
+        }
 
-            return EnergyToChannelSafe(calibration, lightKev, channels);
+        /// <summary>
+        /// (`AMBER72`) Энергия КАЛИБРОВКИ, отвечающая свету x, — ровно то
+        /// число, которое <see cref="LightToChannel"/> отдаёт калибровке.
+        /// Отдельным местом, потому что спрашивает его ещё и таблица бинов
+        /// (<see cref="DepositChannels"/>): ей надо знать, лежит ли свет выше
+        /// верха шкалы, ДО обращения к калибровке — обращение это уже
+        /// зажимает (см. там же). Двух списков карты "adc" быть не должно.
+        /// </summary>
+        double LightEnergyKev(double lightKev)
+        {
+            return this.adcScale > 0.0
+                ? this.adcE0 + (lightKev - this.adcZeroKev) * this.adcScale
+                : lightKev;
         }
 
         /// <summary>
@@ -3283,6 +3350,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// после <see cref="Analyze"/>; сбрасывается в его начале.
         /// </summary>
         public string PileUpCurveUsed { get; private set; }
+
+        /// <summary>
+        /// (`AMBER65`, П136 22.09.2026) СУММ-ОБЛАСТЬ КОЛОНКИ НАЛОЖЕНИЙ — ВНЕ
+        /// М-ОЦЕНКИ ХУБЕРА, пока сама колонка стоит в модели.
+        ///
+        /// Хубер (<see cref="HuberM"/>) душит канал, чья невязка больше `m·σ`, —
+        /// защита от того, чего модель НЕ описывает. В сумм-области всё ровно
+        /// наоборот: большая невязка там и есть та структура, ради которой
+        /// колонка заведена, и, задушив её, оценщик отнимает у колонки
+        /// единственную опору амплитуды. Классическое маскирование М-оценки:
+        /// подавляется не выброс, а недооценённая компонента модели (Huber,
+        /// Ann. Math. Statist. 35 (1964) 73, §1 — «observations the model does
+        /// not describe»). Измерено `FsaPileUpProbe` подсадкой пар с известной
+        /// долей f: при f = 5 % колонка брала половину подсадки, смещение
+        /// нуклида −0.76·f; журнал
+        /// `handover/handover-2026-09-22-p136-huber-audit-measures.md`.
+        ///
+        /// Область берётся ИЗ САМОЙ МОДЕЛИ, а не из списка линий: доля прихода
+        /// колонки (`(s⊗s)/N − 2s` — величина знакопеременная) во всём
+        /// содержимом канала. Ни имён нуклидов, ни удвоенных энергий для этого
+        /// не нужно. Порог — доля от МОДЕЛИ канала, а не от наибольшего прихода
+        /// самой колонки: второе защищает и комптоновский континуум нуклида (у
+        /// спектра витрины — от 476 кэВ, четверть каналов полосы), и χ²/ндф
+        /// ЧИСТОГО спектра идёт 12.56 → 23.04 при −0.45 % скорости — защита
+        /// шире доказательства. 0 — вся положительная часть колонки; значение
+        /// больше единицы — защиты нет вовсе (плечо порчи). Подробности — у
+        /// <c>PileUpAnchor</c>.
+        ///
+        /// Защита включается только вместе с активной колонкой: снял её отсев
+        /// по z — и сумм-пик снова ничем не описан, значит Хубер обязан его
+        /// душить, как всякий выброс.
+        /// </summary>
+        public double PileUpAnchorShare { get; set; }
 
         /// <summary>
         /// Вещество кристалла в именах таблицы кривых света («CsI:Tl», «NaI:Tl»).
@@ -4439,6 +4539,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // `--weights=data` у `CorpusFsaProbe`; числа A/B — журнал
             // `handover/handover-2026-09-13-p47-a310-model-weights.md`.
             this.ModelWeights = true;
+            // (`S180`, П134 22.09.2026) ОТЧЁТНЫЕ веса по МОДЕЛИ (Пирсон) — ВКЛ.
+            // До этого дня `Chi2NdfPoisson` и ε считались весами по данным
+            // (Нейман, `1/max(N, 1)` плюс шум вычтенного континуума), и ВЕРНАЯ
+            // модель на бедных каналах печаталась как χ²/ndf 1.3–1.6 (счёт по
+            // пуассону — у описания свойства). Приговоры разбора ключом не
+            // двигаются: гейты остались на прежних весах. Обратное плечо —
+            // `ReportModelWeights = false` (проба `FsaReportWeightsProbe`);
+            // числа A/B — журнал
+            // `handover/handover-2026-09-22-p134-channel-conventions.md`.
+            this.ReportModelWeights = true;
             this.RefitZ = 3.0;
             // (`A266`, П11/П24 12.09.2026) ДОЛЯ ВЕРШИНЫ В ПОРОГЕ ОТСЕВА — ВКЛ.
             // Решение Amber 12.09.2026, вопросником, дословно: «ВКЛ 0.3 + полный
@@ -4668,6 +4778,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // плечо — `--pileup-light=0` у `CorpusFsaProbe`.
             this.PileUpLightForm = true;
             this.PileUpLightCurve = null;
+            // (`AMBER65`, П136 22.09.2026) Доля модели канала, ниже которой
+            // приход наложений слишком мал, чтобы снимать в этом канале
+            // М-оценку. Полярность и значение стоят ЗДЕСЬ, у присваивания
+            // (`T82`). Выбрано замером `FsaPileUpProbe` (ключ `--anchor=`):
+            // см. журнал полосы.
+            this.PileUpAnchorShare = 0.9;
             this.PartialResidualGate = true;
 
             // (`AMBER3`) Потолок значимости у гейта формы — решение Amber
@@ -4837,6 +4953,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.lightForm = LightForm.None;
             this.lightMarginBins = 0;
             this.PileUpCurveUsed = null;
+            // (`AMBER65`) Колонка наложений — на каждый разбор своя.
+            this.pileUpColumn = null;
             // (`S169`) карта нуля — слово разбирается на каждый разбор.
             // "adc-fixed" (форма П8) ставит растяжение ЗДЕСЬ, с нулём прибора;
             // "adc" (П13, нуль по съёмке) — после разведочного прохода
@@ -5692,6 +5810,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // вернула бы его молча.
                     library = new List<FsaComponent>(library);
                     library.Add(pileUp);
+                    this.pileUpColumn = pileUp;
                 }
             }
 
@@ -5705,6 +5824,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 reportWeights[i] = 1.0 / variance[i];
             }
+
+            // (`S180`, П134 22.09.2026) Слагаемые ОТЧЁТНОЙ дисперсии — чтобы
+            // напечатанный χ² можно было пересобрать от ОЖИДАНИЯ, а не от
+            // наблюдения (см. <see cref="ReportModelWeights"/>). Своя копия, а
+            // не <see cref="noiseTerms"/>: та живёт только при весах решателя
+            // по модели и вбирает составной шум `S43`, а отчётная метрика ни
+            // от того, ни от другого зависеть не должна. Снимается ЗДЕСЬ, до
+            // добавки `S43` к `variance`, — ровно тем же составом, каким взяты
+            // `reportWeights`.
+            NoiseTerms reportTerms = new NoiseTerms
+            {
+                Subtracted = new double[channels],
+                Extra = new double[channels]
+            };
+            for (int i = 0; i < channels; i++)
+            {
+                reportTerms.Subtracted[i] = raw[i] - y[i];
+                reportTerms.Extra[i] = variance[i] - Math.Max(raw[i], 1.0);
+            }
+
+            this.reportNoise = reportTerms;
 
             // (S43) Составной шум: D = F + γ²F² + β²B². Меняются только веса
             // РЕШАТЕЛЯ (и пределы S9 — они описывают тот же оценщик);
@@ -8504,7 +8644,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 AnchorLightBeta = this.driftLight,
                 AnchorLightReferenceKev = this.AnchorLightReferenceKev,
                 // (П19) форма применения — пусто без координаты
-                AnchorLightForm = LightFormName(this.lightForm)
+                AnchorLightForm = LightFormName(this.lightForm),
+                // (`S169`, наружу `S181` П136) КАРТА НУЛЯ «adc» — та самая, какой
+                // положен каждый бин образа (<see cref="LightEnergyKev"/>).
+                // Сверке линий она нужна, чтобы окно встало туда же, куда
+                // встал образ; нуль растяжения — карта не включалась.
+                AdcScale = this.adcScale,
+                AdcE0Kev = this.adcE0,
+                AdcZeroKev = this.adcZeroKev
             };
 
             if (snipContinuum != null)
@@ -9835,6 +9982,76 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public int FixedFirst;
         }
 
+        /// <summary>
+        /// (`AMBER65`) Сумм-область ЭТОГО фита: каналы, содержимое которых
+        /// модель объясняет ПРЕИМУЩЕСТВЕННО наложениями — приход колонки
+        /// положителен (перевесил убыль `−2s`) и составляет не меньше
+        /// <see cref="PileUpAnchorShare"/> всей модели канала.
+        ///
+        /// Считается на каждом проходе от самой модели, а не один раз от
+        /// шаблона: шаблон положителен на всём сумм-континууме (у спектра
+        /// витрины — от 476 кэВ, четверть каналов полосы), и защита по нему
+        /// снимает М-оценку там, где содержимое канала на самом деле задаёт
+        /// комптоновский континуум нуклида. Замерено: доля от наибольшего
+        /// прихода шаблона выправляет подсадку, но χ²/ндф ЧИСТОГО спектра
+        /// витрины 12.56 → 23.04, а скорость Cs-137 −0.45 % — защита шире
+        /// доказательства. Доля от модели канала оставляет ровно область выше
+        /// собственной структуры спектра.
+        ///
+        /// null — защищать нечего: колонки в модели нет (её мог снять отсев по
+        /// z), её амплитуда нулевая, доля выведена за единицу (плечо порчи)
+        /// или ни один канал полосы не прошёл.
+        /// </summary>
+        bool[] PileUpAnchor(FitResult fit, int chLo, int chHi, int channels)
+        {
+            if (fit == null || this.pileUpColumn == null || fit.Columns == null
+                || fit.Amplitude == null || fit.Model == null
+                || !(this.PileUpAnchorShare <= 1.0) || this.PileUpAnchorShare < 0.0)
+            {
+                return null;
+            }
+
+            double[] template = null;
+            double amplitude = 0.0;
+            for (int k = 0; k < fit.Columns.Count && k < fit.Amplitude.Length; k++)
+            {
+                if (ReferenceEquals(fit.Columns[k].Component, this.pileUpColumn))
+                {
+                    template = fit.Columns[k].Values;
+                    amplitude = fit.Amplitude[k];
+                    break;
+                }
+            }
+
+            if (template == null || !(amplitude > 0.0))
+            {
+                return null;
+            }
+
+            bool[] mask = new bool[channels];
+            bool any = false;
+            for (int i = chLo; i <= chHi && i < template.Length && i < fit.Model.Length; i++)
+            {
+                double arrival = amplitude * template[i];
+                if (!(arrival > 0.0))
+                {
+                    continue;
+                }
+
+                // Модель ≤ 0 при положительном приходе значит, что канал держит
+                // одна колонка наложений: доля её — единица, и порог пройден
+                // при любом его значении.
+                double model = fit.Model[i];
+                if (!(model > 0.0) || arrival >= this.PileUpAnchorShare * model)
+                {
+                    mask[i] = true;
+                    any = true;
+                }
+            }
+
+            return any ? mask : null;
+        }
+
         FitResult FitHuber(List<FsaComponent> library, List<double[]> fixedColumns,
                            EnergyCalibration calibration, FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
                            double gain, double offset, int chLo, int chHi, int channels,
@@ -9870,10 +10087,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     scale = this.ModelVariance(best, variance, chLo, chHi);
                 }
 
+                // (`AMBER65`, П136) Сумм-область колонки наложений — вне
+                // М-оценки, пока колонка стоит в модели: там большая невязка
+                // не выброс, а та самая структура, которой колонка задана, и
+                // задушить её значит отнять у амплитуды единственную опору.
+                // Довод и замер — у <see cref="PileUpAnchorShare"/>.
+                bool[] anchor = this.PileUpAnchor(best, chLo, chHi, channels);
                 for (int i = chLo; i <= chHi; i++)
                 {
                     double w = 1.0 / scale[i];
-                    if (this.HuberM > 0.0)
+                    if (this.HuberM > 0.0 && (anchor == null || !anchor[i]))
                     {
                         double sigma = Math.Sqrt(scale[i]);
                         double residual = Math.Abs(best.Residual[i]);
@@ -9897,12 +10120,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // прогоны с разными весами решателя сравнимы между собой.
             if (best != null && reportWeights != null)
             {
+                // ⛔ (`S180`, П134 22.09.2026) ВЕСА ОТЧЁТА — ОТ ОЖИДАНИЯ, А НЕ ОТ
+                // НАБЛЮДЕНИЯ. `1/max(N, 1)` (Нейман) смещает χ² ВВЕРХ при малых
+                // отсчётах даже у ВЕРНОЙ модели: `E[(y − μ)²/max(y, 1)]` = 1.45
+                // при μ = 3 и 1.64 при μ = 5 против 1.000 у Пирсона (Baker &
+                // Cousins, NIM 221 (1984) 437). Здесь дисперсия пересобирается
+                // от модели прохода — `μ̂ + Extra` (пол снят, `S182`), — теми же
+                // слагаемыми, какими взяты `reportWeights`
+                // (<see cref="reportNoise"/>), то есть без составного шума
+                // `S43`. Гейты остаются на `reportWeights`: им нужна мерка,
+                // общая для двух сравниваемых моделей.
+                double[] report = this.ReportWeights(best, reportWeights, chLo, chHi);
                 double chi2Base = 0.0;
                 double dataWeighted = 0.0;
                 for (int i = chLo; i <= chHi; i++)
                 {
-                    chi2Base += best.Residual[i] * best.Residual[i] * reportWeights[i];
-                    dataWeighted += y[i] * y[i] * reportWeights[i];
+                    chi2Base += best.Residual[i] * best.Residual[i] * report[i];
+                    dataWeighted += y[i] * y[i] * report[i];
                 }
 
                 // (`A291`) Второй ПОДСЧЁТ здесь был копией формулы и ошибался
@@ -9937,7 +10171,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // совпавших весах формула сводится ровно к `EffectiveNdf`
                 // (`n − 2tr S + tr S²`), а при λ = 0 — к `n − активных`.
                 // Поэтому отдельной ветки `SameWeights` больше нет.
-                double exact = ReportNdf(best, reportWeights, chLo, chHi);
+                double exact = ReportNdf(best, report, chLo, chHi);
                 if (exact > 0.0)
                 {
                     best.NdfBase = exact;
@@ -10013,11 +10247,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `n − 2tr S + tr S²` (то же, что <see cref="EffectiveNdf"/>), а при
         /// вдобавок нулевом штрафе — ровно `n − активных`.
         ///
-        /// Возвращает 0, когда считать нечем: нет активного множества, нет
-        /// обратной Грам, либо у какого-то канала полосы отчётный вес не
-        /// положителен (тогда `V₀` в этом канале бесконечна, и ожидание не
-        /// существует). Потребитель в этом случае остаётся на прежней
+        /// Возвращает 0, когда считать нечем: нет активного множества либо нет
+        /// обратной Грам. Потребитель в этом случае остаётся на прежней
         /// договорённости `n − активных` — приближении, но названном.
+        ///
+        /// ⛔ (`S182`) Канал с неположительным ОТЧЁТНЫМ весом счёт не обрывает,
+        /// а ПРОПУСКАЕТСЯ — довод у самого `continue` в теле.
         /// </summary>
         /// <summary>
         /// (`A310`) Дисперсия каналов ОТ МОДЕЛИ прохода: `max(μ̂, 1) + Extra`,
@@ -10042,6 +10277,58 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return v;
+        }
+
+        /// <summary>
+        /// (`S180`) Веса ОТЧЁТНОЙ метрики на этом проходе: при
+        /// <see cref="ReportModelWeights"/> — `1/(μ̂ + Extra)` от модели прохода
+        /// (Пирсон), иначе поданные `1/(max(N, 1) + Extra)` (Нейман). Массив
+        /// НОВЫЙ: поданный живёт у вызывающего, и гейты читают именно его. Вне
+        /// полосы фита веса не читаются вовсе, поэтому заполняется только
+        /// `[chLo, chHi]`, а остальное копируется как есть.
+        ///
+        /// ⛔ (`S182`, П136 22.09.2026) ПОЛА `max(μ̂, 1)` У ОТЧЁТНОЙ ДИСПЕРСИИ
+        /// НЕТ, И ЭТО НЕ НЕДОСМОТР. Пирсоновский член имеет ожидание РОВНО
+        /// единицу при ЛЮБОМ μ > 0: `E[(y − μ)²/μ] = Var(y)/μ = 1` (Baker &amp;
+        /// Cousins, NIM 221 (1984) 437, §2). Пол ломает именно это: канал с
+        /// μ ≪ 1 даёт в χ² не единицу, а μ, тогда как в `ndf`
+        /// (<see cref="ReportNdf"/>) считается целой единицей, — и у
+        /// сцинтиллятора, где выше линий почти пусто, отношение садится
+        /// вдвое-вчетверо. Измерено пуассоновскими копиями ЗАВЕДОМО ВЕРНОЙ
+        /// модели (`FsaReportWeightsProbe`): с полом мера 0.15…0.46 вместо 1.00
+        /// на всей лестнице μ = 0.2…50; журнал
+        /// `handover/handover-2026-09-22-p136-huber-audit-measures.md`.
+        ///
+        /// ⚠ Цена снятия пола — не смещение, а РАЗБРОС: дисперсия члена равна
+        /// `2 + 1/μ`, то есть на бедном канале мера шумит сильнее. Смещения она
+        /// не даёт ни при каком μ, и это ровно то, что от меры «1 = модель
+        /// верна» требуется. Отклонение Пуассона (правдоподобное отношение той
+        /// же работы) единицу даёт лишь асимптотически и внизу шкалы смещено,
+        /// поэтому взят Пирсон.
+        ///
+        /// Канал с неположительной или бесконечной дисперсией (модель, фон и
+        /// добавка разом нули — наблюдение там вырождено) получает НУЛЕВОЙ вес
+        /// и выпадает И из χ², И из `ndf`: <see cref="ReportNdf"/> такие каналы
+        /// не считает. Молча оставить ему пол значило бы вернуть ровно то
+        /// смещение, ради которого пол и снят.
+        /// </summary>
+        double[] ReportWeights(FitResult fit, double[] report, int chLo, int chHi)
+        {
+            NoiseTerms terms = this.reportNoise;
+            if (!this.ReportModelWeights || fit == null || fit.Model == null || terms == null)
+            {
+                return report;
+            }
+
+            double[] w = (double[])report.Clone();
+            for (int i = chLo; i <= chHi; i++)
+            {
+                double mu = fit.Model[i] + terms.Subtracted[i];
+                double variance = mu + terms.Extra[i];
+                w[i] = PositiveFinite(variance) ? 1.0 / variance : 0.0;
+            }
+
+            return w;
         }
 
         static double ReportNdf(FitResult fit, double[] report, int chLo, int chHi)
@@ -10090,9 +10377,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double w0 = report[i];
                 if (!(w0 > 0.0))
                 {
-                    // Канал полосы без отчётного веса: ожидание отчётной суммы
-                    // в нём не определено, и молча подставлять ноль нельзя.
-                    return 0.0;
+                    // ⛔ (`S182`, П136 22.09.2026) Канал без отчётного веса
+                    // ПРОПУСКАЕТСЯ, а не обрывает счёт. Нулевой вес ставит
+                    // `ReportWeights` там, где отчётная дисперсия μ̂ + Extra
+                    // выродилась в ноль: наблюдение в таком канале
+                    // детерминировано, его настоящая дисперсия тоже ноль, и в
+                    // разложении следа он даёт `w₀ = 0`, `V₀ = 0` — то есть
+                    // ровно ноль во все три матрицы и в `n`. Канал выпадает И
+                    // из χ² (там `r²·0`), И из `ndf`: иначе мера получила бы в
+                    // знаменатель степень свободы, которой в числителе нет.
+                    //
+                    // Прежний отказ («ожидание не определено») отправлял
+                    // ЦЕЛЫЙ разбор на приближение `n − активных` из-за ОДНОГО
+                    // вырожденного канала — то есть ради него терялась
+                    // точность у всех остальных.
+                    continue;
                 }
 
                 double w = solver[i];
@@ -12283,10 +12582,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return this.depositChannels;
             }
 
+            // ⛔ (`AMBER72`, П134 22.09.2026) СВЕТ ВЫШЕ ВЕРХА ШКАЛЫ ПРОДОЛЖАЕТСЯ
+            // ЗА НЕЁ, А НЕ ЗАЖИМАЕТСЯ В ПОСЛЕДНИЙ КАНАЛ. `EnergyToChannel`
+            // отдаёт `maxChannels` всему, что выше `E(N)`
+            // (`PolynomialEnergyCalibration.cs:253`), а `Splat` канал `N`
+            // принимает — и ВСЯ надшкальная часть отклика (сумм-пик каскада,
+            // наложения) садилась в один канал у края, откуда левая половина
+            // ядра расползалась по последним каналам образа ложным пиком.
+            // Мерено на `G1S24_Th232_Mar` (верх шкалы 3068.4 кэВ, сумм-пик
+            // Tl-208 583 + 2614 = 3198 кэВ).
+            //
+            // ⚠ Отбросить надшкальные бины было бы НЕВЕРНО: у пика за верхом
+            // шкалы левый хвост в окно фита попадает, и запас буфера
+            // (<see cref="SourcePad"/>) заведён ровно для него — см. довод у
+            // вызова этой таблицы. Поэтому позиция продолжается за шкалу
+            // линейно по ширине верхнего канала: пик стоит там, где он есть,
+            // хвост ложится куда следует, а что ушло дальше запаса — отбросит
+            // сам <see cref="Splat"/>.
+            double topKev = calibration.ChannelToEnergy(channels);
+            double stepKev = topKev - calibration.ChannelToEnergy(channels - 1);
+            bool extend = channels > 0 && Finite(topKev) && PositiveFinite(stepKev);
+
             double[] table = new double[count];
             for (int b = 0; b < count; b++)
             {
-                table[b] = this.LightToChannel(calibration, b * bin, channels);
+                double energyKev = this.LightEnergyKev(b * bin);
+                table[b] = extend && energyKev > topKev
+                    ? channels + (energyKev - topKev) / stepKev
+                    : this.LightToChannel(calibration, b * bin, channels);
             }
 
             this.depositChannels = table;
