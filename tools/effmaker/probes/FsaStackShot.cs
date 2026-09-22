@@ -45,7 +45,7 @@ namespace FsaStackShot
     ///                [--rates=rates.csv] [--screen] [--shield=82,74] [--tie=0.9] [--tie-lines]
     ///                [--plant-tail] [--plant-spread] [--tail-as-residual] [--tail-to-continuum] [--plant-grey-floor]
     ///                [--no-limit] [--limit-z=1000] [--matrix-layer=All|Peak|Compton|EscapeAnnihilation|
-    ///                 EscapeXrayK|EscapeAnnihilationDouble|EscapeXrayL]
+    ///                 EscapeXrayK|EscapeAnnihilationDouble|EscapeXrayL|AnnihilationOutside]
     ///
     /// `--matrix-layer=` (`AMBER45`, П104 18.09.2026) — положение комбо «Matrix
     /// layer» окна отчёта: «All» (умолчание — стопка как есть, снимок побитово

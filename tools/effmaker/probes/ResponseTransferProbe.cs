@@ -40,10 +40,12 @@ using System.Text;
 static class ResponseTransferProbe
 {
     // Имена каналов — как в `ResponseRowDumpProbe`, чтобы столбцы совпали; шестой
-    // (`esc_xray_l`, `AMBER16` п. 1) дописан в конец и у складских матриц пуст.
+    // (`esc_xray_l`, `AMBER16` п. 1) дописан в конец и у складских матриц пуст;
+    // седьмой (`ann_out`, `AMBER52`, формат 10) — аннигиляция вне кристалла,
+    // переносится сдвигом ноль.
     static readonly string[] ChannelNames =
     {
-        "peak", "compton", "esc_se", "esc_xray", "esc_de", "esc_xray_l"
+        "peak", "compton", "esc_se", "esc_xray", "esc_de", "esc_xray_l", "ann_out"
     };
 
     static int Main(string[] args)

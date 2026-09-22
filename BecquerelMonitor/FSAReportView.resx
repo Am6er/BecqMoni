@@ -5250,4 +5250,7 @@
   <data name="FSAReport_MatrixLayerNoMatrixTip" xml:space="preserve">
     <value>No response matrix for this spectrum: the model has no channels to show, the whole stack is drawn.</value>
   </data>
+  <data name="FSAReport_MatrixLayerAnnihilationOutside" xml:space="preserve">
+    <value>Annihilation outside the crystal (511, 1022, their Compton)</value>
+  </data>
 </root>

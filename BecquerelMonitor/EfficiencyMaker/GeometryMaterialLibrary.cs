@@ -198,11 +198,29 @@ namespace BecquerelMonitor.EfficiencyMaker
             add("PE", "Polyethylene", "C2 H4", 0.94, MaterialKind.BeakerWall);
             add("PP", "Polypropylene", "C3 H6", 0.905, MaterialKind.BeakerWall);
             add("PS", "Polystyrene", "C8 H8", 1.06, MaterialKind.BeakerWall);
-            add("SiO2", "Glass", "Si1 O2", 2.32, MaterialKind.BeakerWall);
+
+            // Стекло сосуда — «Glass, plate» NIST (`AMBER53`, П123 22.09.2026):
+            // ρ 2.40, O/Na/Si/Ca, строкой таблицы ЛСРМ ниже. До того здесь
+            // стояло «Glass» = кварц `Si1 O2` 2.32 — это NIST «Silicon dioxide»,
+            // а не стекло: без натрия и кальция стенка 2 мм на 60 кэВ пропускала
+            // 0.890 против 0.871 (+2.2 %), на 30 кэВ +16.6 %; измерено
+            // `MaterialAirGlassProbe`. Имя — родное NIST/ЛСРМ, чтобы файл `.in`
+            // читался их программой; сокращение «Glass» — для списка.
+            list.Add(Nist("Glass", "Glass, plate", "Glass, plate", MaterialKind.BeakerWall));
 
             // Пробы
             add("H2O", "Water, liquid", "H2 O1", 1.0, MaterialKind.Source);
-            add("Air", "Air, dry", "N2 O1", 0.001205, MaterialKind.Source);
+
+            // Воздух — состав NIST «Air, dry (near sea level)» (`AMBER53`): N
+            // 0.7553, O 0.2318, Ar 0.0128, C 0.0001. До того — формула `N2 O1`
+            // (N 0.6365 / O 0.3635, без аргона): μ/ρ на 30 кэВ 0.3325 против
+            // 0.3538 см²/г (−6.0 %), на 60 кэВ −1.3 %; на самом толстом зазоре
+            // поставки 21.7 мм пропускание расходится на 5.6e-5 — невидимо,
+            // но формула была не воздухом. Имя «Air, dry» ОСТАВЛЕНО: оно
+            // зашито умолчанием зазора (<see cref="GeometryModel.DefaultGapMaterialName"/>),
+            // пресетами, 49 сценами корпуса и оснасткой; строка ЛСРМ «Air, dry
+            // (near sea level)» ниже остаётся рядом тем же составом.
+            list.Add(Nist("Air", "Air, dry", "Air, dry (near sea level)", MaterialKind.Source));
             add("SiO2", "Silicon dioxide", "Si1 O2", 1.6, MaterialKind.Source);
             add("CaCO3", "Calcium carbonate", "Ca1 C1 O3", 1.5, MaterialKind.Source);
             add("KCl", "Potassium chloride", "K1 Cl1", 1.0, MaterialKind.Source);
@@ -377,8 +395,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Таблица веществ ЛСРМ (`materials.dat` их же GeometryMaster, 2008;
             // ввоз 16.08.2026 — `tools/effmaker/import_lsrm_materials.py`).
             // Двадцать девять строк выше — НАШИ, выверенные руками, и таблица их
-            // не трогает: у трёх плотность отличается НАРОЧНО (`SiO2` 1.6 и
-            // `CaCO3` 1.5 — насыпные, `M5`, против монолитных 2.32 и 2.8).
+            // не трогает: у двух плотность отличается НАРОЧНО (`SiO2` 1.6 и
+            // `CaCO3` 1.5 — насыпные, `M5`, против монолитных 2.32 и 2.8), а
+            // «Glass, plate» стоит выше СВОИМ видом (`BeakerWall`) и здесь
+            // пропускается по имени — состав и плотность у неё те же, что в
+            // строке таблицы (`AMBER53`).
             //
             // Состав ввезённых задан массовыми долями, а не формулой, и вид у
             // них `Other`: «куда годится» в файле ЛСРМ нет, а разложить 287
@@ -426,6 +447,74 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// Вещество засева СТРОКОЙ таблицы NIST/ЛСРМ (<see cref="GeometryMaterialSeed.Rows"/>):
+        /// массовые доли и плотность — из строки <paramref name="rowName"/>, имя,
+        /// сокращение и вид — свои (`AMBER53`). Так у «Air, dry» и стекла сосуда
+        /// состав — тот же NIST, что у остальных 268 строк, а не формула,
+        /// набранная рядом от руки: у формулы `N2 O1` не было аргона, а кварц
+        /// стоял стеклом.
+        ///
+        /// Строки нет — отказ, а не пустое вещество: таблица генерируется
+        /// вместе с кодом, и пропавшая строка — дефект сборки, который обязан
+        /// быть виден на первом же обращении к библиотеке, а не молча дать
+        /// воздуху пустой состав.
+        /// </summary>
+        static Entry Nist(string abbr, string name, string rowName, MaterialKind kind)
+        {
+            foreach (string[] row in GeometryMaterialSeed.Rows)
+            {
+                if (!string.Equals(row[0], rowName, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                double density;
+                if (!double.TryParse(row[2], NumberStyles.Float, CultureInfo.InvariantCulture, out density)
+                    || !(density > 0.0))
+                {
+                    break;
+                }
+
+                Entry entry = new Entry
+                {
+                    Abbr = abbr, Name = name, Formula = "", Density = density, Kind = kind,
+                };
+
+                foreach (KeyValuePair<int, double> pair in GeometryMaterialSeed.Fractions(row[3]))
+                {
+                    entry.ElementFractions[pair.Key] = pair.Value;
+                }
+
+                if (entry.ElementFractions.Count > 0)
+                {
+                    return entry;
+                }
+
+                break;
+            }
+
+            throw new InvalidOperationException(
+                "в таблице веществ засева (GeometryMaterialSeed) нет строки «" + rowName + "»");
+        }
+
+        /// <summary>
+        /// Сухой воздух ЗАСЕВА — «Air, dry» составом NIST «Air, dry (near sea
+        /// level)», плотность 0.001205 г/см³. Это умолчание для мест, которые
+        /// НЕ должны зависеть от библиотеки пользователя (её он правит):
+        /// «пустое место» сосуда у писателя `.in` (`GeometryWriter.CarrySlot`),
+        /// а с ним и клеймо матрицы, которое считается с того же текста. Для
+        /// зазора геометрии умолчание другое — <see cref="GeometryModel.DefaultGapMaterial"/>,
+        /// оно нарочно идёт через действующую библиотеку (`AMBER47`).
+        ///
+        /// Базу веществ не трогает: состав задан долями, атомные массы не нужны.
+        /// </summary>
+        public static GeometryMaterial SeedAir()
+        {
+            Entry air = Nist("Air", "Air, dry", "Air, dry (near sea level)", MaterialKind.Source);
+            return Make(air, air.Density, name => null);
         }
 
         /// <summary>Вещества, годные для этого места сцены.</summary>
