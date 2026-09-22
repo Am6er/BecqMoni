@@ -1,0 +1,108 @@
+корень: D:\BqMoni_Claude\p122\wt
+режим: штатный
+BecqMoni: main config: D:\BqMoni_Claude\p122\wt\tools\effmaker\probes\build_p123\config\BecquerelMonitor.xml
+
+=== (а) .in без ключей зазора: G1S_point5.in ===
+первый разбор (с подъёмом базы веществ): 14 мс; второй: 0 мс
+  ✗ в файле нет ключей зазора: ожидалось False, вышло True
+толщина зазора: торец 0 мм, бок 0 мм
+вещество: "Air, dry", плотность 0.001205, состав 7:0.636483 8:0.363517
+предупреждения: нет
+
+=== (б) .in с явным зазором: AS80_point0.in ===
+толщина зазора: торец 21.7 мм, бок 0 мм
+вещество: "Air, dry", плотность 0.001205, состав 7:0.636483 8:0.363517
+библиотечный воздух для сравнения: плотность 0.001205, состав 6:0.000124 7:0.755268 8:0.231781 18:0.012827
+файл и библиотека различимы по долям: да
+
+=== (в) EfficiencyConfigData через XmlSerializer ===
+без <Gap>                → вещество "Air, dry", плотность 0.001205, состав 6:0.000124 7:0.755268 8:0.231781 18:0.012827
+пустой <Gap>             → вещество "Air, dry", плотность 0.001205, состав 6:0.000124 7:0.755268 8:0.231781 18:0.012827
+<Gap> = вода             → вещество "Water, liquid", плотность 1, состав 1:0.11189440028420446 8:0.8881055997157955
+<Gap> = имя без состава  → вещество "Foam", плотность 0, состав (нет)
+
+=== (г) GeometryTemplate.Apply ===
+пустой зазор шаблона → "Air, dry", 0.001205, 6:0.000124 7:0.755268 8:0.231781 18:0.012827
+вода в шаблоне → "Water, liquid", 1, 1:0.11189440028420446 8:0.8881055997157955
+шаблон из XML без <Gap> → "Air, dry", 0.001205, 6:0.000124 7:0.755268 8:0.231781 18:0.012827
+
+=== (д) клеймо матриц: разбор новый против старого, все .in ===
+файл                                     зазор,мм вещество       старое    клеймо
+corpus\AS80_lu_front.in                     21.70 Air, dry       из файла  совпало
+corpus\AS80_point0.in                       21.70 Air, dry       из файла  совпало
+corpus\AS80_th_disk.in                      21.70 Air, dry       из файла  совпало
+corpus\ASN16_lu_side.in                      0.00 Air, dry       пусто     совпало
+corpus\ASN16_point0_house.in                 0.00 Air, dry       из файла  совпало
+corpus\ASN16_point10_house.in                0.00 Air, dry       из файла  совпало
+corpus\G1S_denta100_oisn10_100_p16.in        0.00 Air, dry       пусто     совпало
+corpus\G1S_denta100_risn379_100_p16.in       0.00 Air, dry       пусто     совпало
+corpus\G1S_denta120_oisn06_057_p24.in        0.00 Air, dry       пусто     совпало
+corpus\G1S_denta120_oisn06_062_p24.in        0.00 Air, dry       пусто     совпало
+corpus\G1S_denta120_oisn06_064_p24.in        0.00 Air, dry       пусто     совпало
+corpus\G1S_denta120_oisn06_066_p24.in        0.00 Air, dry       пусто     совпало
+corpus\G1S_denta120_oisn16_155_p24.in        0.00 Air, dry       пусто     совпало
+corpus\G1S_denta120_oisn16_160_p24.in        0.00 Air, dry       пусто     совпало
+corpus\G1S_denta120_oisn16_166_p24.in        0.00 Air, dry       пусто     совпало
+corpus\G1S_denta120_oisn16_167_p24.in        0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_coal_046_p24.in             0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn06_055_p16.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn06_057_p16.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn06_057_p24.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn06_062_p16.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn06_062_p24.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn06_064_p24.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn06_066_p16.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn06_066_p24.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn16_155_p16.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn16_155_p24.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn16_160_p16.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn16_160_p24.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn16_166_p16.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn16_166_p24.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn16_167_p16.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_oisn16_167_p24.in           0.00 Air, dry       пусто     совпало
+corpus\G1S_mar1l_risn379_100_p16.in          0.00 Air, dry       пусто     совпало
+corpus\G1S_petri60_oisn06_057_p24.in         0.00 Air, dry       пусто     совпало
+corpus\G1S_petri60_oisn06_062_p24.in         0.00 Air, dry       пусто     совпало
+corpus\G1S_petri60_oisn06_064_p24.in         0.00 Air, dry       пусто     совпало
+corpus\G1S_petri60_oisn06_067_p24.in         0.00 Air, dry       пусто     совпало
+corpus\G1S_petri60_oisn10_100_p16.in         0.00 Air, dry       пусто     совпало
+corpus\G1S_petri60_oisn16_155_p24.in         0.00 Air, dry       пусто     совпало
+corpus\G1S_petri60_oisn16_160_p24.in         0.00 Air, dry       пусто     совпало
+corpus\G1S_petri60_oisn16_167_p24.in         0.00 Air, dry       пусто     совпало
+corpus\G1S_petri60_risn379_100_p16.in        0.00 Air, dry       пусто     совпало
+corpus\G1S_point25.in                        0.00 Air, dry       из файла  совпало
+corpus\G1S_point5.in                         0.00 Air, dry       из файла  совпало
+corpus\pinned\AS80_th_disk.in               21.70 Air, dry       из файла  совпало
+corpus\RC103_lu_front.in                     3.50 Air, dry       из файла  совпало
+corpus\RC103_marinelli05_kcl.in              0.00 Air, dry       пусто     совпало
+corpus\RC103_point0.in                       3.50 Air, dry       из файла  совпало
+corpus\RC103_point50.in                      3.50 Air, dry       из файла  совпало
+models\AS80_bare.in                          0.00 Air, dry       пусто     совпало
+models\AS80_bare_gap5.in                     0.00 Air, dry       пусто     совпало
+models\AS80_point5.in                        0.00 Air, dry       пусто     совпало
+models\ASN16_Lu176_jar.in                    0.00 Air, dry       пусто     совпало
+models\Nano16Pro.in                          0.00 Air, dry       пусто     совпало
+models\Nano16Pro_box.in                      0.00 Air, dry       пусто     совпало
+models\Nano16Pro_cyl50.in                    0.00 Air, dry       пусто     совпало
+models\Nano16Pro_Marinelli.in                0.00 Air, dry       пусто     совпало
+models\Nano16Pro_point10.in                  0.00 Air, dry       пусто     совпало
+models\Nano16Pro_tube.in                     0.00 Air, dry       пусто     совпало
+models\Obsidian Marinelli 0.5.in             0.00 Air, dry       пусто     совпало
+models\RadiaCode_AuthorMarinelli0.2.in       0.00 Air, dry       пусто     совпало
+models\RadiaCode_AuthorMarinelli0.5.in       0.00 Air, dry       пусто     совпало
+models\RadiaCode_Marinelli0.5.in             0.00 Air, dry       пусто     совпало
+
+файлов: 64; у старого разбора зазор пустой: 53; с ненулевым зазором: 7
+разошлось 0 из 64
+  ✗ файлов ровно 61: ожидалось 61, вышло 64
+контроль: ненулевой зазор — снятое вещество меняет клеймо у 7 из 7
+  ✗ ненулевых зазоров ровно 6: ожидалось 6, вышло 7
+контроль: нулевой зазор — вода в зазоре клеймо НЕ меняет у 57 из 57
+склад не задан (--store=), сверка с матрицами пропущена
+
+=== (е) GeometryEditorPanel без окна: G1S_point5.in ===
+файл без зазора → список «Gap»: индекс 1, выбрано "Air, dry"
+пустой зазор мимо входов → список «Gap»: индекс -1
+
+РАСХОЖДЕНИЙ: 3
