@@ -1,0 +1,49 @@
+==== PATH as inherited ==== 
+==== COMSPEC=[C:\WINDOWS\system32\cmd.exe] PATHEXT=[.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC] 
+==== USERPROFILE=[C:\Users\moroz] APPDATA=[C:\Users\moroz\AppData\Roaming] TEMP=[C:\Users\moroz\AppData\Local\Temp] 
+==== full set ==== 
+ALLUSERSPROFILE=C:\ProgramData
+APPDATA=C:\Users\moroz\AppData\Roaming
+CLAUDE=C:\Users\moroz\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude
+CommonProgramFiles=C:\Program Files\Common Files
+CommonProgramFiles(x86)=C:\Program Files (x86)\Common Files
+CommonProgramW6432=C:\Program Files\Common Files
+COMPUTERNAME=AMBER-MSI
+ComSpec=C:\WINDOWS\system32\cmd.exe
+CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8
+CUDA_PATH_V12_8=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8
+DriverData=C:\Windows\System32\Drivers\DriverData
+GOPATH=C:\Users\moroz\go
+HOMEDRIVE=C:
+HOMEPATH=\Users\moroz
+IGCCSVC_DB=AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAAokrql+vsmU+gm7dpej7u/gQAAAACAAAAAAAQZgAAAAEAACAAAAAmYkXQsmcwrlCOBSSRo375P7Mz1RDUUydwi5O5yuLg2QAAAAAOgAAAAAIAACAAAAADvs2D1HToGAZjsRGputOnWGp0t764AsiuRkFKU/b4TWAAAABfcV2iL/iKMb/iWPOhtgpLuWkHSKdjnrIOS7nLhTNc8W8UtgXzHxE3wI+lEuzPfRP0bvT2FoaS15OlzgT2qLr7yZu+/rzn/6SPWaYYW2Hvx+WBo0FBtrqW2XHgAnZThmxAAAAARuwD8tLo563XcpI4y5IXoM0qCF5uVAXdL/Cq003kXxtahmFaLs+u2v2mHlMYzoWKkiJDOxKmE5/AP2zATurKWQ==
+JAVA_HOME=C:\Program Files\Android\Android Studio\jbr
+LEVEL_ZERO_V1_SDK_PATH=C:\Program Files\LevelZeroSDK\1.24.0\
+LOCALAPPDATA=C:\Users\moroz\AppData\Local
+LOGONSERVER=\\AMBER-MSI
+NUMBER_OF_PROCESSORS=16
+OS=Windows_NT
+Path=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\libnvvp;C:\Program Files\Android\Android Studio\jbr\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\dotnet\;C:\Program Files\WireGuard\;C:\Program Files\NVIDIA Corporation\NVIDIA app\NvDLISR;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Users\moroz\App\sing-box;C:\Program Files\Go\bin;C:\Program Files\GitHub CLI\;C:\Program Files\NVIDIA Corporation\Nsight Compute 2025.1.0\;C:\Program Files\PuTTY\;C:\Program Files\Git\cmd;C:\Program Files (x86)\Microsoft SQL Server\170\Tools\Binn\;C:\Program Files\Microsoft SQL Server\170\Tools\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\180\Tools\Binn\;C:\Program Files\Microsoft SQL Server\170\DTS\Binn";C:\Program Files\Microsoft SQL Server\170\DTS\Binn\;C:\Program Files\PowerShell\7\;C:\Users\moroz\AppData\Local\Programs\Jan\resources\bin;C:\Users\moroz\AppData\Local\Microsoft\WindowsApps;C:\Users\moroz\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\moroz\.dotnet\tools;C:\Users\moroz\App\platform-tools;C:\Users\moroz\go\bin;C:\Users\moroz\AppData\Local\Python\bin;C:\Users\moroz\AppData\Local\Microsoft\WinGet\Packages\ggml.llamacpp_Microsoft.Winget.Source_8wekyb3d8bbwe;C:\Users\moroz\AppData\Local\Python\pythoncore-3.14-64\Scripts;C:\Users\moroz\AppData\Roaming\anythingllm-desktop\storage\engines\ollama;C:\Users\moroz\AppData\Local\Programs\remindb\bin;C:\Program Files\Git\usr\bin;C:\Users\moroz\AppData\Local\Microsoft\WinGet\Links
+PATHEXT=.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC
+POWERSHELL_DISTRIBUTION_CHANNEL=MSI:Windows 10 Pro
+PROCESSOR_ARCHITECTURE=AMD64
+PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 141 Stepping 1, GenuineIntel
+PROCESSOR_LEVEL=6
+PROCESSOR_REVISION=8d01
+ProgramData=C:\ProgramData
+ProgramFiles=C:\Program Files
+ProgramFiles(x86)=C:\Program Files (x86)
+ProgramW6432=C:\Program Files
+PROMPT=$P$G
+PSModulePath=%ProgramFiles%\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules;C:\Program Files\Microsoft SQL Server\170\Tools\PowerShell\Modules\
+PUBLIC=C:\Users\Public
+SystemDrive=C:
+SystemRoot=C:\WINDOWS
+TEMP=C:\Users\moroz\AppData\Local\Temp
+TMP=C:\Users\moroz\AppData\Local\Temp
+USERDOMAIN=AMBER-MSI
+USERDOMAIN_ROAMINGPROFILE=AMBER-MSI
+USERNAME=amber
+USERPROFILE=C:\Users\moroz
+windir=C:\WINDOWS
+ZES_ENABLE_SYSMAN=1

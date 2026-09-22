@@ -1,0 +1,12 @@
+==== python by name ==== 
+C:\Users\moroz\AppData\Local\Python\pythoncore-3.14-64\python.exe
+python RC=0 
+==== pwsh by name ==== 
+pwsh-by-name RC=7 (expect 7) 
+==== pwsh full path + corpus_arm quoting, expect rc=2 ==== 
+pwsh-full RC=1 (expect 2) 
+==== git ==== 
+git version 2.55.0.windows.5
+git RC=0 
+==== score.py --help (python + tools/pie reachable) ==== 
+score RC=0 
