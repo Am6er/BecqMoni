@@ -1012,7 +1012,15 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// же переносом, что <see cref="TotalEfficiency"/>, а бин пика остаётся
         /// за взвешенной оценкой — у неё дисперсия пика на порядок лучше.
         /// Классы историй не пересекаются по построению: аналоговый вклад,
-        /// округлившийся в бин пика, отбрасывается.
+        /// попавший в пик, отбрасывается.
+        ///
+        /// ⛔ (`AMBER66`, П132 22.09.2026) ОДНА ОГОВОРКА: отбрасывается он
+        /// только у историй, чьё ПЕРВИЧНОЕ НАПРАВЛЕНИЕ лежало в конусе
+        /// взвешенной ветви (конус на сферу детектора). Направления вне этого
+        /// конуса взвешенная ветвь не рождает вовсе, и пик, набранный таким
+        /// лучом через рассеяние в пробе или обвязке, не считался НИГДЕ.
+        /// Теперь он складывается с взвешенной оценкой — множества «внутри
+        /// конуса» и «вне конуса» не пересекаются и вместе покрывают 4π.
         ///
         /// На кривую эффективности ключ не влияет вовсе: аналоговая ветка
         /// запускается только при счёте гистограммы отклика.
@@ -1874,10 +1882,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                     int lo = this.bracketLo[i];
                     if (lo >= 0)
                     {
-                        MaterialDatabase.Element element = this.elements[i];
-                        value = MaterialDatabase.Interpolate(
-                            element.EnergyKev, element.LogEnergyKev,
-                            element.Total, element.LogTotal, lo, this.bracketHi[i],
+                        // (`AMBER74`, П132) СУММОЙ КАНАЛОВ, как у кристалла.
+                        value = PartialCrossSections.MassTotal(
+                            this.elements[i], lo, this.bracketHi[i],
                             energyKev, this.logEnergy);
                     }
 
@@ -1903,13 +1910,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     int lo = this.bracketLo[i];
                     if (lo >= 0)
                     {
-                        MaterialDatabase.Element element = this.elements[i];
-                        int hi = this.bracketHi[i];
-                        value = MaterialDatabase.Interpolate(
-                            element.EnergyKev, element.LogEnergyKev,
-                            element.Total, element.LogTotal, lo, hi, energyKev, this.logEnergy);
-                        value -= PartialCrossSections.MassCrossSection(
-                            element, lo, hi, energyKev, this.logEnergy, PhotonProcess.Coherent);
+                        // (`AMBER74`, П132) СУММОЙ ТРЁХ КАНАЛОВ, а не разностью
+                        // «прямая по сумме минус когерентное».
+                        value = PartialCrossSections.MassTotalWithoutCoherent(
+                            this.elements[i], lo, this.bracketHi[i],
+                            energyKev, this.logEnergy);
                     }
 
                     mass += this.fractions[i] * Math.Max(0.0, value);
@@ -3536,8 +3541,9 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>
         /// Аналоговый обход (<see cref="AnalogContinuumRun"/>): сколько историй
-        /// отдано ПИКУ (не записано в континуум, пик — за взвешенной оценкой) и
-        /// сколько зачтено в континуум. ⚠ С физики 23 (`AMBER50`, П122) «пик»
+        /// отдано ПИКУ (не записано в континуум, пик — за взвешенной оценкой,
+        /// а вне её конуса — за <see cref="WeightPeakOutOfCone"/>) и сколько
+        /// зачтено в континуум. ⚠ С физики 23 (`AMBER50`, П122) «пик»
         /// здесь — по <see cref="BinOf"/>, то есть В ДОПУСКЕ (`InPeak`), а не
         /// «округлилось в бин пика»: определение то же, что у взвешенной ветви.
         /// До того округлившаяся в бин пика история вне допуска отбрасывалась
@@ -3552,6 +3558,31 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// оценка пика аналоговой ветвью, годная в обоих режимах.
         /// </summary>
         public double WeightPeakBinDropped;
+
+        /// <summary>
+        /// ⛔ (`AMBER66`, П132 22.09.2026) ПОТЕРЯННЫЙ КЛАСС: вес и число тех
+        /// историй бина пика аналоговой ветви, чьё ПЕРВИЧНОЕ направление лежало
+        /// ВНЕ конуса на сферу детектора, — то есть тех, которых взвешенная
+        /// ветвь не рождает вовсе.
+        ///
+        /// Взвешенная ветвь (<see cref="OneHistory"/>) разыгрывает направление в
+        /// конусе на `sphereR` — кристалл с отражателем и оправой, БЕЗ пробы, —
+        /// и луч мимо этого конуса у неё не появляется никогда. Между тем квант,
+        /// ушедший мимо детектора, может рассеяться в пробе или в обвязке
+        /// когерентно (энергия та же) либо комптоном на малый угол (потеря в
+        /// допуске пика) и поглотиться целиком. Ни одна ветвь этот класс не
+        /// считала: аналоговая его РОЖДАЕТ (её конус — на габарит сцены,
+        /// ~~`A57`~~, либо полная сфера), но историю в бине пика отбрасывала
+        /// целиком — «пик за взвешенной оценкой».
+        ///
+        /// Классы не пересекаются: внутри конуса пик считает взвешенная ветвь,
+        /// вне — эта сумма. Поток ГСЧ ни одной из ветвей не тронут: новых
+        /// розыгрышей нет, изменилась только судьба УЖЕ посчитанной истории.
+        /// </summary>
+        public double WeightPeakOutOfCone, WeightPeakOutOfCone2;
+
+        /// <summary>Число историй потерянного класса (`AMBER66`).</summary>
+        public long CountPeakOutOfCone;
 
         /// <summary>Счётчики канала вакансии (`A61`): комптонов в кристалле,
         /// из них с K-вакансией, из них ответивших рентгеном.</summary>
@@ -8221,14 +8252,58 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.LastAngularMoments = angular;
             double mean = sum / n;
             double variance = Math.Max(0.0, sum2 / n - mean * mean);
-            relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
 
             // Континуум — аналоговой веткой (физика 6): бины ниже пика
             // перезаписываются до нормировки, оба прогона на одних n.
             if (histogram != null && histogram.Length > 1 && this.AnalogContinuum)
             {
-                this.AnalogContinuumRun(energyKev, histogram, binKev, n);
+                double outside2, outsideLight;
+                double outside = this.AnalogContinuumRun(energyKev, histogram, binKev, n,
+                                                         out outside2, out outsideLight);
+                // ⛔ (`AMBER66`, П132 22.09.2026) ПОТЕРЯННЫЙ КЛАСС — В ПИК.
+                // Истории, чьё первичное направление лежало вне конуса
+                // взвешенной ветви, она не рождает вовсе, а поглотиться целиком
+                // они могут — рассеявшись в пробе или обвязке когерентно (та же
+                // энергия) либо комптоном на малый угол (потеря в допуске).
+                // Аналоговая ветвь их считает и прежде отбрасывала: класс не
+                // попадал НИКУДА. Теперь он складывается с взвешенной оценкой —
+                // множества не пересекаются (внутри конуса / вне его), и сумма
+                // покрывает все 4π.
+                //
+                // Бин пика ещё НЕ поделён на число историй (делит `FinishRun`),
+                // поэтому сюда кладётся вес, а в среднее — вес, делённый на n.
+                // Разброс складывается как у независимых слагаемых: розыгрыши у
+                // ветвей свои, и ковариации между ними нет.
+                if (outside > 0.0)
+                {
+                    double outMean = outside / n;
+                    histogram[histogram.Length - 1] += outside;
+                    // ⛔ И В КАНАЛ `Peak` ТОЖЕ. Строку матрицы собирает
+                    // `ResponseByChannel` из каналов, а полную гистограмму
+                    // выбрасывает: добавка, положенная только в неё, до склада
+                    // НЕ ДОЕХАЛА БЫ. Канал — `Peak`: история поглотилась
+                    // целиком в пределах допуска, тем же правилом, каким его
+                    // выбирает взвешенная ветвь (`A306`, `E34`).
+                    if (this.channelHistograms != null)
+                    {
+                        double[] peakChannel = this.channelHistograms[(int)ResponseChannel.Peak];
+                        peakChannel[peakChannel.Length - 1] += outside;
+                    }
+
+                    // Свет класса — в тот же бин: якорь световой шкалы есть
+                    // СРЕДНИЙ свет бина пика, и вес без своего света занизил
+                    // бы его (см. `AnalogContinuumRun`).
+                    if (this.lightSum != null)
+                    {
+                        this.lightSum[this.lightSum.Length - 1] += outsideLight;
+                    }
+
+                    mean += outMean;
+                    variance += Math.Max(0.0, outside2 / n - outMean * outMean);
+                }
             }
+
+            relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
 
             return this.FinishRun(energyKev, histogram, binKev, n, mean);
         }
@@ -8557,11 +8632,31 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// свет и розыгрыш не влияет.
         ///
         /// Бины [0, пик) гистограммы, каналов и света перезаписываются суммами
-        /// весов этого прогона; вклад, округлившийся в бин пика, отбрасывается —
-        /// пик остаётся за взвешенной оценкой, и классы не пересекаются.
+        /// весов этого прогона; вклад, попавший в бин пика, отбрасывается — пик
+        /// остаётся за взвешенной оценкой, и классы не пересекаются.
+        ///
+        /// ⛔ (`AMBER66`, П132) КРОМЕ историй, чьё первичное направление лежало
+        /// ВНЕ конуса взвешенной ветви: их она не рождает, и их пик считать
+        /// больше некому. Такие возвращаются вызывающему (значение функции —
+        /// их вес, `outsideWeight2` — сумма квадратов для разброса,
+        /// `outsideLight` — их свет для якоря световой шкалы), и `Run` кладёт
+        /// их в бин пика, в канал <see cref="ResponseChannel.Peak"/> и в
+        /// возвращаемую эффективность.
         /// </summary>
-        void AnalogContinuumRun(double energyKev, double[] histogram, double binKev, int n)
+        double AnalogContinuumRun(double energyKev, double[] histogram, double binKev, int n,
+                                  out double outsideWeight2, out double outsideLight)
         {
+            // (`AMBER66`, П132) Вес, сумма квадратов и СВЕТ потерянного класса
+            // ЭТОГО прогона: поля класса копят через все прогоны экземпляра, а
+            // `Run` нужна добавка одного узла.
+            //
+            // ⛔ Свет обязателен. Якорь световой шкалы (`RemapLightScale`) —
+            // СРЕДНИЙ свет бина пика, `lightSum[peak] / (histogram[peak]·n)`.
+            // Добавить вес в пик и не добавить его свет значило бы занизить
+            // якорь на ту же долю (до 7 % на 32 кэВ) и сдвинуть ВЕСЬ отклик.
+            double outsideWeight = 0.0;
+            outsideWeight2 = 0.0;
+            outsideLight = 0.0;
             int peak = histogram.Length - 1;
             double[] hist = new double[histogram.Length];
             // Сумма квадратов весов — для честной мерки шума при конусе (`A57`).
@@ -8610,6 +8705,26 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 // Вес по направлению источника: единица у всех, кроме поля.
                 weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
+
+                // ⛔ (`AMBER66`, П132) ЛЕЖИТ ЛИ ПЕРВИЧНОЕ НАПРАВЛЕНИЕ В КОНУСЕ
+                // ВЗВЕШЕННОЙ ВЕТВИ. Тот же конус, что у `OneHistory`: ось — на
+                // центр объемлющей сферы кристалла, полуугол — по `sphereR`.
+                // Направление ВНЕ него взвешенная ветвь не рождает, и попавшая
+                // в пик история такого луча не считается НИГДЕ, пока её здесь
+                // отбрасывают. Случайных чисел не тянет — это арифметика по уже
+                // разыгранному направлению.
+                bool inWeightedCone = true;
+                double coneDz = this.sphereZ - z;
+                double coneR2 = Math.Sqrt(x * x + y * y + coneDz * coneDz);
+                if (coneR2 > this.sphereR)
+                {
+                    // Точка внутри сферы детектора взвешенной ветвью берётся
+                    // полной сферой (`Isotropic`) — там терять нечего.
+                    double cosMaxDet = Math.Sqrt(Math.Max(
+                        0.0, 1.0 - this.sphereR * this.sphereR / (coneR2 * coneR2)));
+                    double cosToAxis = (ux * (-x) + uy * (-y) + uz * coneDz) / coneR2;
+                    inWeightedCone = cosToAxis >= cosMaxDet;
+                }
 
                 this.lossAnnihilation = 0.0;
                 this.annihilationEscapes = 0;
@@ -9011,6 +9126,25 @@ namespace BecquerelMonitor.EfficiencyMaker
                         this.CountPeakBinDroppedScattered++;
                     }
 
+                    // ⛔ (`AMBER66`, П132 22.09.2026) ВНЕ КОНУСА ВЗВЕШЕННОЙ
+                    // ВЕТВИ пик считать НЕКОМУ: такого луча она не рождает.
+                    // Копим его отдельной суммой — `Run` добавит её и в бин
+                    // пика, и в возвращаемую эффективность. Внутри конуса всё
+                    // по-прежнему: там пик за взвешенной оценкой, и классы не
+                    // пересекаются. Счётчик `WeightPeakBinDropped` продолжает
+                    // считать ВЕСЬ пик аналоговой ветви — иначе встречная
+                    // проверка ветвей (`A58`, `G4RawProbe`) потеряла бы свой
+                    // знаменатель.
+                    if (!inWeightedCone)
+                    {
+                        this.CountPeakOutOfCone++;
+                        this.WeightPeakOutOfCone += weight;
+                        this.WeightPeakOutOfCone2 += weight * weight;
+                        outsideWeight += weight;
+                        outsideWeight2 += weight * weight;
+                        outsideLight += weight * this.lightDeposit;
+                    }
+
                     continue;               // бин пика — за взвешенной оценкой
                 }
 
@@ -9066,6 +9200,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
                 }
             }
+
+            return outsideWeight;
         }
 
         /// <summary>
