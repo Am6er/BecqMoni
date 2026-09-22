@@ -1,0 +1,164 @@
+⬛ КРАСНЫЕ СТОРОЖА ЗАХОДА П131 (22.09.2026), worktree D:\BqMoni_Claude\p122\wt
+Выжимка из полного вывода `python tools/check_all.py`: тела шести отказавших сторожей и сводка.
+
+→ зову: python tools/check_corpus_coverage.py
+    === 1. КОДЫ ВОЗВРАТА МЕРОК ОХВАТА ===
+    → зову: python tools/CORPUS/scripts/gaussfit_check.py --coverage-only
+        Traceback (most recent call last):
+          File "D:\BqMoni_Claude\p122\wt\tools\CORPUS\scripts\gaussfit_check.py", line 715, in <module>
+            sys.exit(main())
+                     ~~~~^^
+          File "D:\BqMoni_Claude\p122\wt\tools\CORPUS\scripts\gaussfit_check.py", line 500, in main
+            stray = sorted(f[:-4] for f in os.listdir(raw_dir)
+                                           ~~~~~~~~~~^^^^^^^^^
+        FileNotFoundError: [WinError 3] Системе не удается найти указанный путь: 'D:\\BqMoni_Claude\\p122\\wt\\tools\\CORPUS\\scripts\\_corpus_raw'
+    ⛔ tools/CORPUS/scripts/gaussfit_check.py: код 1
+    
+      пропущена gate_blind_check.py — долгая (~мин); звать ключом --deep
+      пропущена ecal_accept_check.py — долгая (~мин); звать ключом --deep
+      пропущена ecal_extrapolation.py — долгая (~мин); звать ключом --deep
+    ⚠ коды 4 (`V16`) и 5 (`V17`) у gate_blind_check.py этим сторожем НЕ читаются: их даёт только полный прогон мерки, без --coverage-only.
+    
+    === 2. МЕРКИ НА СЫРЬЕ БЕЗ ОХВАТА ===
+      освобождён build_corpus.py          — не мерка: стадия 1, которая _corpus_raw и СОЗДАЁТ
+      нарушителей: 0
+    
+    === сводка ===
+      ⛔ gaussfit_check.py        код 1
+    ОСТАНОВ: охват корпусных мерок сломан — мерок с ненулевым кодом 1, мерок без охвата 0. Числа таких мерок корпус НЕ описывают.
+⛔ tools/check_corpus_coverage.py: код 1, 0.3 с
+
+→ зову: python tools/check_declared_base.py
+    ОБЪЯВЛЕНИЕ: tools\CORPUS\README.md, раздел «ДЕЙСТВУЮЩАЯ БАЗА»
+    ИЗМЕРЕНИЕ:  tools/pie/score.py по файлам самого каталога
+    строк объявления взято: 4
+    
+    ОТКАЗ СТОРОЖА: полная `out_rev32_full` / понятная: каталог tools\pie\out_rev32_full (назван объявлением) не найден
+⛔ tools/check_declared_base.py: код 2, 0.1 с
+
+→ зову: python tools/check_fsa_report_view.py
+        == сторож окна отчёта FSA: FsaReportViewProbe на паре корпуса ==
+          каталог проб : D:\BqMoni_Claude\p122\wt\tools\effmaker\probes\build
+          спектр (ряд) : tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+          контроль     : tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml
+          ⛔ ПРОБЫ НЕТ: D:\BqMoni_Claude\p122\wt\tools\effmaker\probes\build (FsaReportViewProbe.exe / BecquerelMonitor.exe)
+       собрать: pwsh tools\effmaker\probes\build_all.ps1 -Bin BecquerelMonitor\bin\Debug_Codex
+⛔ tools/check_fsa_report_view.py: код 3, 0.1 с
+
+→ зову: python tools/check_corpus_generator.py
+    корпус: tools\CORPUS\corpus
+    
+    == клеймо генератора корпуса (T244) ==
+      набор генератора в дереве: 11 файлов, отпечаток 449a7d7f6183ff5f
+      клеймо: собрано на HEAD 42291677 (генератор был ГРЯЗНЫМ: tools/CORPUS/scripts/build_corpus.py), отпечаток 449a7d7f6183ff5f
+      СОШЛОСЬ: корпус собран ТЕМ генератором, что лежит в дереве (11 файлов)
+    
+    == сводка корпуса — пересборкой в памяти (T244, доля П6) ==
+      manifest.csv: 136 спектров; пересобрано строк сводки: 136
+      ⛔ summary.csv РАЗОШЛОСЬ: на диске 137 строк, пересборка даёт 137
+         первая разошедшаяся строка 28:
+           на диске:    ✅,,ASN16_Cs137,ASN16,known,137CS,8192,356491.2,250626474,6.26,встроен,gain/xlow/grp,ASN16_point0_house,POINT,"точечный источник, вплотную к 
+           пересборка:  ❗,нет матрицы,ASN16_Cs137,ASN16,known,137CS,8192,356491.2,250626474,6.26,встроен,gain/xlow/grp,ASN16_point0_house,POINT,"точечный источник, 
+      ⛔ SUMMARY.md  РАЗОШЛОСЬ: на диске 184 строк, пересборка даёт 273
+         первая разошедшаяся строка 10:
+           на диске:    ## Состояние: ✅ 123, ❗ 13 из 136
+           пересборка:  ## Состояние: ✅ 34, ❗ 102 из 136
+      Лечится пересборкой сводки: python tools/CORPUS/scripts/corpus_summary.py
+      (сводку читают ЛЮДИ: SUMMARY.md показывал корпус двухдневной давности, П6).
+    
+    ОСТАНОВ: корпус или сводка отстают от своего генератора (см. выше).
+⛔ tools/check_corpus_generator.py: код 1, 0.8 с
+
+→ зову: python tools/check_corpus_scenes.py
+    == сторож сцен генератора (T261): генератор → клеймо → живые .in / .rmx ==
+      каталог проб : D:\BqMoni_Claude\p122\wt\tools\effmaker\probes\build
+      живые сцены  : D:\BqMoni_Claude\p122\wt\tools\CORPUS\corpus\geometries
+      ⛔ в каталоге проб нет CorpusGeomProbe.exe
+       собрать: pwsh tools\effmaker\probes\build_all.ps1 -Bin BecquerelMonitor\bin\Debug_Codex
+⛔ tools/check_corpus_scenes.py: код 3, 0.1 с
+
+→ зову: python tools/check_fsa_showcase.py
+    ⛔ ПРОБЫ НЕТ: D:\BqMoni_Claude\p122\wt\tools\effmaker\probes\build (FsaStackShot.exe / BecquerelMonitor.exe)
+       Сторож судить нечем, и молчать об этом нельзя.
+       собрать: pwsh tools\effmaker\probes\build_all.ps1 -Bin BecquerelMonitor\bin\Debug_Codex
+⛔ tools/check_fsa_showcase.py: код 3, 0.1 с
+
+=== сводка ===
+  ✅ tools/check_registry_refs.py — код 0, 3.6 с — ссылки `T<n>` в оснастке, приложении и журналах против TODO.md/DONE.md
+  ✅ tools/check_build_recipe.py — код 0, 5.1 с — копии рецепта MSBuild без /p:GenerateManifests=false
+  ✅ tools/check_resx.py — код 0, 0.4 с — пары Foo.resx / Foo.ru.resx: непереведённое
+  ✅ tools/check_resx_designer.py — код 0, 3.5 с — GetString("X") без X в парном resx
+  ✅ tools/check_resx_letters.py — код 0, 0.5 с — кириллица в английских resx и наоборот; ускоритель в скобках не латиницей (`T132`)
+  ✅ tools/check_resx_zorder.py — код 0, 0.3 с — >>X.Parent / >>X.ZOrder против designer-кода
+  ✅ tools/check_headless.py — код 0, 4.9 с — окна на безоконном пути
+  ✅ tools/check_menu_accelerators.py — код 0, 0.2 с — столкновения ускорителей ВСЕХ меню дерева (`T167`)
+  ✅ tools/check_numeric_updown.py — код 0, 0.4 с — поля со стрелками мимо общего InvariantNumericUpDown; группировка разрядов
+  ✅ tools/check_fsa_docs.py — код 0, 0.1 с — XML-описания настроек разбора против конструктора
+  ✅ tools/nucdb/check_ensdf_numbers.py — код 0, 0.1 с — числа §7/§8 scheme.md против schemedb/nucdb (`W8`, `D10`)
+  ✅ tools/nucdb/check_db_marks.py — код 0, 0.1 с — колонки-признаки в базах против правила (`D36`, `D38`)
+  ✅ tools/nucdb/check_isomer_levels.py — код 0, 1.5 с — изомерная разметка nucdb: имя против уровня (`D40`, `D41`, `D47`)
+  ✅ tools/check_decay_numeric.py — код 0, 1.7 с — текстовые колонки decay_radiations под сравнением/порядком (`D35`)
+  ✅ tools/check_parent_rule.py — код 0, 6.7 с — правило «родитель» одно: копии зажима по уровню в коде; три носителя уровня против nuclides/LevelClause (`D48`)
+  ✅ tools/check_corpus_readme.py — код 0, 0.1 с — журнал корпуса: снятое помечено снятым; шапка и состав частей — против дерева
+  ✅ tools/check_scheme_gaps.py — код 0, 0.2 с — раздел «чего не хватает» scheme.md против реестра
+  ✅ tools/check_corpus_library.py — код 0, 0.1 с — корпус не читает поставочную библиотеку
+  ✅ tools/check_corpus_truth.py — код 0, 0.1 с — поля истины корпуса (chains, nuclides): corpus_def против manifest.csv
+  ✅ tools/check_done_headers.py — код 0, 0.2 с — заголовок строки DONE.md против её тела
+  ⛔ tools/check_corpus_coverage.py — код 1, 0.3 с — охват корпусных мерок: коды возврата и мерки на сырье без Coverage
+  ⛔ tools/check_declared_base.py — код 2, 0.1 с — объявление базы: числа каталога, отпечаток корпуса и сборки, клеймо прогона
+  ✅ tools/check_pending_runs.py — код 0, 0.1 с — признак «ЖДЁТ СЧЁТНОГО ЗАХОДА» против раздела «Отложенные прогоны»
+  ✅ tools/check_probe_tuning.py — код 0, 0.2 с — отчёт проб FSA о настройках: вызов, эталон, снимок полосы, порядок
+  ✅ tools/check_matrix_keys.py — код 0, 1.5 с — состав ключей обоих путей: матрица отклика против расчёта в UI
+  ✅ tools/check_geometry_names.py — код 0, 0.6 с — имена веществ в узле <Efficiency> против corpus/geometries/*.in
+  ✅ tools/check_fsa_view_groups.py — код 0, 0.1 с — переключатели окна отчёта FSA: расчётные и отрисовочные по своим группам
+  ⛔ tools/check_fsa_report_view.py — код 3, 0.1 с — окно отчёта FSA: приёмка FsaReportViewProbe на паре корпуса — блок качества, привязка шкалы (AMBER17), состав строк, снимки
+  ✅ tools/check_selection_panel_height.py — код 0, 0.1 с — слагаемые высоты панели выделения: отрисовка против мерки пробы
+  ✅ tools/check_escape_parents.py — код 0, 0.1 с — отсев родителей образов вылета SE/DE не выключается сам при NaN
+  ✅ tools/check_crystal_material.py — код 0, 0.1 с — вещество кристалла у прибора: геометрия первична, поле — запасной источник
+  ✅ tools/check_refit_z_class.py — код 0, 0.1 с — отсев по значимости не оставляет разбор без единого нуклида
+  ✅ to
+
+=== сводка ===
+  ✅ tools/check_registry_refs.py — код 0, 3.6 с — ссылки `T<n>` в оснастке, приложении и журналах против TODO.md/DONE.md
+  ✅ tools/check_build_recipe.py — код 0, 5.1 с — копии рецепта MSBuild без /p:GenerateManifests=false
+  ✅ tools/check_resx.py — код 0, 0.4 с — пары Foo.resx / Foo.ru.resx: непереведённое
+  ✅ tools/check_resx_designer.py — код 0, 3.5 с — GetString("X") без X в парном resx
+  ✅ tools/check_resx_letters.py — код 0, 0.5 с — кириллица в английских resx и наоборот; ускоритель в скобках не латиницей (`T132`)
+  ✅ tools/check_resx_zorder.py — код 0, 0.3 с — >>X.Parent / >>X.ZOrder против designer-кода
+  ✅ tools/check_headless.py — код 0, 4.9 с — окна на безоконном пути
+  ✅ tools/check_menu_accelerators.py — код 0, 0.2 с — столкновения ускорителей ВСЕХ меню дерева (`T167`)
+  ✅ tools/check_numeric_updown.py — код 0, 0.4 с — поля со стрелками мимо общего InvariantNumericUpDown; группировка разрядов
+  ✅ tools/check_fsa_docs.py — код 0, 0.1 с — XML-описания настроек разбора против конструктора
+  ✅ tools/nucdb/check_ensdf_numbers.py — код 0, 0.1 с — числа §7/§8 scheme.md против schemedb/nucdb (`W8`, `D10`)
+  ✅ tools/nucdb/check_db_marks.py — код 0, 0.1 с — колонки-признаки в базах против правила (`D36`, `D38`)
+  ✅ tools/nucdb/check_isomer_levels.py — код 0, 1.5 с — изомерная разметка nucdb: имя против уровня (`D40`, `D41`, `D47`)
+  ✅ tools/check_decay_numeric.py — код 0, 1.7 с — текстовые колонки decay_radiations под сравнением/порядком (`D35`)
+  ✅ tools/check_parent_rule.py — код 0, 6.7 с — правило «родитель» одно: копии зажима по уровню в коде; три носителя уровня против nuclides/LevelClause (`D48`)
+  ✅ tools/check_corpus_readme.py — код 0, 0.1 с — журнал корпуса: снятое помечено снятым; шапка и состав частей — против дерева
+  ✅ tools/check_scheme_gaps.py — код 0, 0.2 с — раздел «чего не хватает» scheme.md против реестра
+  ✅ tools/check_corpus_library.py — код 0, 0.1 с — корпус не читает поставочную библиотеку
+  ✅ tools/check_corpus_truth.py — код 0, 0.1 с — поля истины корпуса (chains, nuclides): corpus_def против manifest.csv
+  ✅ tools/check_done_headers.py — код 0, 0.2 с — заголовок строки DONE.md против её тела
+  ⛔ tools/check_corpus_coverage.py — код 1, 0.3 с — охват корпусных мерок: коды возврата и мерки на сырье без Coverage
+  ⛔ tools/check_declared_base.py — код 2, 0.1 с — объявление базы: числа каталога, отпечаток корпуса и сборки, клеймо прогона
+  ✅ tools/check_pending_runs.py — код 0, 0.1 с — признак «ЖДЁТ СЧЁТНОГО ЗАХОДА» против раздела «Отложенные прогоны»
+  ✅ tools/check_probe_tuning.py — код 0, 0.2 с — отчёт проб FSA о настройках: вызов, эталон, снимок полосы, порядок
+  ✅ tools/check_matrix_keys.py — код 0, 1.5 с — состав ключей обоих путей: матрица отклика против расчёта в UI
+  ✅ tools/check_geometry_names.py — код 0, 0.6 с — имена веществ в узле <Efficiency> против corpus/geometries/*.in
+  ✅ tools/check_fsa_view_groups.py — код 0, 0.1 с — переключатели окна отчёта FSA: расчётные и отрисовочные по своим группам
+  ⛔ tools/check_fsa_report_view.py — код 3, 0.1 с — окно отчёта FSA: приёмка FsaReportViewProbe на паре корпуса — блок качества, привязка шкалы (AMBER17), состав строк, снимки
+  ✅ tools/check_selection_panel_height.py — код 0, 0.1 с — слагаемые высоты панели выделения: отрисовка против мерки пробы
+  ✅ tools/check_escape_parents.py — код 0, 0.1 с — отсев родителей образов вылета SE/DE не выключается сам при NaN
+  ✅ tools/check_crystal_material.py — код 0, 0.1 с — вещество кристалла у прибора: геометрия первична, поле — запасной источник
+  ✅ tools/check_refit_z_class.py — код 0, 0.1 с — отсев по значимости не оставляет разбор без единого нуклида
+  ✅ tools/check_roi_listup.py — код 0, 0.0 с — перестроение списка ROI не правит то, по чему идёт
+  ✅ tools/nucdb/check_edges.py — код 0, 0.1 с — края поглощения: каждая величина берёт край своей поставки (D18)
+  ✅ tools/check_probe_numbers.py — код 0, 0.4 с — печать чисел в оснастке: подмена разделителя без метки, форматы P, число без поставщика культуры
+  ✅ tools/check_curve_generation.py — код 0, 0.1 с — поколение кривой эффективности против поколения матрицы и сборки
+  ✅ tools/check_dump_readers.py — код 0, 0.2 с — читатели дампа разбора: показная кривая рядом с моделью — только у разрешённых (`T254`)
+  ⛔ tools/check_corpus_generator.py — код 1, 0.8 с — корпус собран нынешним генератором (клеймо T244); сводка — этим корпусом
+  ⛔ tools/check_corpus_scenes.py — код 3, 0.1 с — генератор сцен воспроизводит корпус с точностью до клейма; матрицы склада — на своих сценах (`T261`)
+  ✅ tools/check_no_images.py — код 0, 0.1 с — картинок (png/jpg/gif/…) под handover/ и tools/ в индексе git нет — распоряжение Amber 17.09.2026
+  ✅ tools/check_registry.py — код 0, 2.0 с — реестр: номера, ссылки на файлы, имена из кода, копии config/, объявление базы в трёх местах, графа состояния, заголовки DONE.md
+  ⛔ tools/check_fsa_showcase.py — код 3, 0.1 с — витрина FSA: картинка разбора на спектрах Amber против эталона (`T260`)
+ОСТАНОВ: отказали 6 из 42 — tools/check_corpus_coverage.py (код 1), tools/check_declared_base.py (код 2), tools/check_fsa_report_view.py (код 3), tools/check_corpus_generator.py (код 1), tools/check_corpus_scenes.py (код 3), tools/check_fsa_showcase.py (код 3). Приёмка НЕ пройдена; читать вывод отказавшего выше.

@@ -1899,6 +1899,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var kBetaSplitSeries = new HashSet<string>(StringComparer.Ordinal);
             var kBetaTotal = new List<double[]>();
             var lLumped = new List<double[]>();
+            var lShell = new List<double[]>();
             var lDetailed = new List<double[]>();
 
             // (`AMBER54`) Позитроны на распад, % — сумма ВСЕХ строк `B+` (каналов
@@ -2001,13 +2002,41 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             }
                             else if (series.Length == 0 || series[0] != 'K')
                             {
-                                if (series.Length == 1 && series[0] == 'L')
+                                // ⛔ (`AMBER68`, П130 22.09.2026) ТРИ ВИДА СТРОК
+                                // L-СЕРИИ, А НЕ ДВА. Рядом в поставке лежат
+                                // сводная `L`, ИТОГИ ПОДОБОЛОЧЕК `L1`/`L2`/`L3`
+                                // и отдельные линии `L1M2`, `L2N4`, `L3O1`… До
+                                // П130 итоги и линии валились в один список
+                                // «подробных» (длина имени > 1) и СКЛАДЫВАЛИСЬ:
+                                // у `229TH` 56.390 + 61.060 = 117.450 % против
+                                // сводной `L` 80.0 %, у `225RA` 22.171 + 23.329
+                                // против 29.107, у `225RN` 19.436 + 19.764
+                                // против 41.200 (замер 22.09.2026 по `nucdb`,
+                                // чтение `ro`; таких родителей в поставке ТРИ).
+                                // Вес L-рентгена в образе выходил завышен в
+                                // полтора раза.
+                                //
+                                // Признак — СТРУКТУРА имени, как у K-серии
+                                // (<see cref="KSeriesRule"/>): одна буква —
+                                // сводная, буква и цифра — итог подоболочки,
+                                // длиннее — линия (за цифрой стоит оболочка,
+                                // откуда пришёл электрон). Порядок предпочтения
+                                // тот же, что был: линии, если они есть, иначе
+                                // итоги подоболочек, иначе сводная.
+                                if (series.Length > 0 && series[0] == 'L')
                                 {
-                                    lLumped.Add(line);
-                                }
-                                else if (series.Length > 1 && series[0] == 'L')
-                                {
-                                    lDetailed.Add(line);
+                                    if (series.Length == 1)
+                                    {
+                                        lLumped.Add(line);
+                                    }
+                                    else if (series.Length == 2 && series[1] >= '0' && series[1] <= '9')
+                                    {
+                                        lShell.Add(line);
+                                    }
+                                    else
+                                    {
+                                        lDetailed.Add(line);
+                                    }
                                 }
                             }
                             else if (KSeriesRule.IsBetaTotal(series))
@@ -2047,9 +2076,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // «это своя аннигиляция нуклида», а по одной энергии слитой линии
             // этого не видно. Читатели `DecayLines` берут `[0]` и `[1]`, третьего
             // числа не замечают.
+            //
+            // (`AMBER69`, П130 22.09.2026) Выход берётся ЗАЖАТЫМ, и зажим не
+            // свой, а сумматора совпадений — см. <see cref="AnnihilationYieldPercent"/>.
             if (betaPlus > 0.0)
             {
-                double annihilation = 2.0 * betaPlus;
+                double annihilation = AnnihilationYieldPercent(nucid, betaPlus, report);
                 int same = -1;
                 for (int k = 0; k < gamma.Count; k++)
                 {
@@ -2081,10 +2113,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // занижало Kβ у 350 наборов.
             lines.AddRange(KSeriesRule.Beta(kBetaSplit, kBetaTotal, kBetaSplitSeries.Count));
 
-            // L-серия: та же развилка. Подробных строк в базе всего у трёх
-            // нуклидов (225RA, 225RN, 229TH), и ни один в корпусе не снят, —
-            // но правило дешевле проверки «а вдруг».
-            lines.AddRange(lDetailed.Count > 0 ? lDetailed : lLumped);
+            // L-серия: та же развилка, но по ТРЁМ спискам (`AMBER68`) — линии
+            // подоболочек, итоги подоболочек, сводная. Подробных строк в базе
+            // всего у трёх нуклидов (225RA, 225RN, 229TH), и ни один в корпусе
+            // не снят, — но правило дешевле проверки «а вдруг».
+            //
+            // ⚠ Линии НЕ ПОКРЫВАЮТ сводную целиком, и это измерено: у `229TH`
+            // они дают 61.060 % против сводной `L` 80.0 % (у `225RA` 23.329
+            // против 29.107, у `225RN` 19.764 против 41.200). Сложение итогов
+            // с линиями этого не лечило, а делало вдвое хуже с другой стороны
+            // (117.450 против 80.0). Что из двух представлений полнее —
+            // вопрос ОТДЕЛЬНЫЙ от двойного счёта, и здесь он не решается:
+            // порядок предпочтения оставлен прежним.
+            lines.AddRange(lDetailed.Count > 0 ? lDetailed
+                           : (lShell.Count > 0 ? lShell : lLumped));
 
             lines.Sort((a, b) => a[0].CompareTo(b[0]));
             lock (Gate)
@@ -2093,6 +2135,103 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return lines;
+        }
+
+        /// <summary>
+        /// (`AMBER69`, П130 22.09.2026) Выход аннигиляционной линии нуклида,
+        /// % на распад: два кванта на позитрон, а ΣI(β⁺) поставки — ЗАЖАТЫЙ
+        /// долей ветви и потолком в 100 % распадов.
+        ///
+        /// ⛔ ЧИСЛО ЗДЕСЬ НЕ СЧИТАЕТСЯ. Оно берётся у сумматора совпадений
+        /// (<see cref="CascadeAtomicData.AnnihilationQuanta"/>, ~~`S153`~~),
+        /// который читает те же строки `B+` тем же запросом с тем же зажимом
+        /// уровня (<see cref="DecayParentRule.LevelClause"/>) и зажимает сумму
+        /// долей ветвей своего канала. Двух редакций одной величины в проекте
+        /// быть не должно — тот же довод, что у `KSeriesRule` про Kβ. До П130
+        /// библиотека клала СЫРОЙ `2·ΣI(β⁺)`, и у 25 родителей поставки они
+        /// расходились: `20NA` 393.694 % в образе против 200 % у партнёра
+        /// совпадения, `128LAm` 450.0 против 200, `81Y` 268.6 против 200
+        /// (замер 22.09.2026 по `nucdb`, чтение `ro`). «Поставка местами даёт
+        /// позитронов больше, чем есть распадов» — довод, по которому зажим и
+        /// заведён. Корпусные β⁺ (`22NA` 179.8, `18F` 193.46, `65ZN` 2.842,
+        /// `88Y` 0.42, `152EU` 0.0512) сырьём равны зажатому — их числа
+        /// правкой не двигаются.
+        ///
+        /// ⚠ Потолок 200 % повторён здесь, и это НЕ третья редакция правила: у
+        /// сумматора есть ранний выход по неопределённому дочернему (`z &lt;= 0`),
+        /// после которого <see cref="CascadeAtomicData.AnnihilationQuanta"/>
+        /// остаётся сырым; на таком нуклиде без потолка вернулось бы ровно то,
+        /// что было до правки. Сказать сумматору нечего вовсе (нуклид не
+        /// разобран, отказ базы) — берётся сырое число с тем же потолком, и
+        /// причина уходит в <see cref="Report.Notes"/>, а не теряется.
+        /// </summary>
+        static double AnnihilationYieldPercent(string nucid, double rawBetaPlusPercent, Report report)
+        {
+            const double Ceiling = 200.0;
+            double raw = 2.0 * rawBetaPlusPercent;
+            CascadeAtomicData atomic = CascadeAtomicData.Of(nucid);
+            double clamped = atomic != null && !atomic.Failed
+                ? 100.0 * atomic.AnnihilationQuanta : 0.0;
+            if (!(clamped > 0.0))
+            {
+                if (report != null)
+                {
+                    report.Notes.Add("аннигиляция " + nucid
+                                     + ": сумматору совпадений сказать нечего, выход только по потолку");
+                }
+
+                return raw > Ceiling ? Ceiling : raw;
+            }
+
+            if (clamped > Ceiling)
+            {
+                clamped = Ceiling;
+            }
+
+            if (report != null && clamped < raw - 1.0E-9 * Math.Max(1.0, raw))
+            {
+                report.Notes.Add(string.Format(CultureInfo.InvariantCulture,
+                    "аннигиляция {0}: 2·ΣI(β⁺) поставки {1:F3} % зажато до {2:F3} %"
+                    + " (доля ветви и 100 % распадов)", nucid, raw, clamped));
+            }
+
+            return clamped;
+        }
+
+        /// <summary>
+        /// (`AMBER63`, П130 22.09.2026) Аннигиляционная линия нуклида ИЗ БАЗЫ:
+        /// {энергия, выход %, аннигиляционная часть выхода %} — ровно та, что
+        /// <see cref="DecayLines"/> кладёт в образ на пути «Из NucBase»; null —
+        /// позитронов у нуклида база не знает.
+        ///
+        /// ⛔ Открыта наружу РАДИ ПУТИ ПО УМОЛЧАНИЮ
+        /// (<see cref="FsaLibrary.BuildFromPeaks"/>): набор нуклидов признака
+        /// «аннигиляционная часть выхода» не несёт и нести не может — в нём у
+        /// линии три числа, имя, энергия и выход, — а гейт свободного образа
+        /// `Ann-511` без этого признака читает линию 511 как ГАММУ СОСТАВА и
+        /// снимает образ. Второй редакции числа здесь нет: оно то же самое и из
+        /// того же места, зажатое <see cref="AnnihilationYieldPercent"/>.
+        ///
+        /// ⚠ Возвращается КОПИЯ: строка кэша линий уходит в образы как есть, и
+        /// читателю, который её поправит, достался бы весь проект.
+        /// </summary>
+        public static double[] AnnihilationLine(string nucid)
+        {
+            if (string.IsNullOrEmpty(nucid))
+            {
+                return null;
+            }
+
+            foreach (double[] line in DecayLines(nucid, new Report()))
+            {
+                if (line != null && line.Length > 2 && line[2] > 0.0
+                    && Math.Abs(line[0] - FsaAnalyzer.AnnihilationKev) < 0.05)
+                {
+                    return new[] { line[0], line[1], line[2] };
+                }
+            }
+
+            return null;
         }
 
         // ------------------------------------------------------------------
