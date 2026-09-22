@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<RadInstrumentData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" n42DocUUID="c3dc774f-e2ed-4573-b3b7-b7a8727dbb31" xmlns="http://physics.nist.gov/N42/2011/N42">
+<RadInstrumentData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" n42DocUUID="721e20bf-45b2-48be-ace8-ec0739942a93" xmlns="http://physics.nist.gov/N42/2011/N42">
   <RadInstrumentInformation id="RadInstrument">
     <RadInstrumentManufacturerName>KB Radar</RadInstrumentManufacturerName>
     <RadInstrumentModelName>ATOM Spectra</RadInstrumentModelName>
@@ -18,10 +18,10 @@
     </RadInstrumentVersion>
   </RadInstrumentInformation>
   <EnergyCalibration id="SpectrumCalibration-0">
-    <CoefficientValues>-4.7782895908622782 2.7457324099170597 0.0007623344266956411 -9.4367475382825218E-07 3.6662989099473916E-10 </CoefficientValues>
+    <CoefficientValues>-4.3189425359369187 2.7353041849059032 0.00076106128281631718 -9.410827029343105E-07 3.6533896771468382E-10 </CoefficientValues>
   </EnergyCalibration>
   <EnergyCalibration id="BackgroundCalibration-0">
-    <CoefficientValues>-4.7782895908622782 2.7457324099170597 0.0007623344266956411 -9.4367475382825218E-07 3.6662989099473916E-10 </CoefficientValues>
+    <CoefficientValues>-4.3189425359369187 2.7353041849059032 0.00076106128281631718 -9.410827029343105E-07 3.6533896771468382E-10 </CoefficientValues>
   </EnergyCalibration>
   <RadMeasurement id="SpectrumMeasurement-0">
     <MeasurementClassCode>Foreground</MeasurementClassCode>
