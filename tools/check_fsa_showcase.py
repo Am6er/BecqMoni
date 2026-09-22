@@ -78,7 +78,7 @@ u"""Сторож ВИТРИНЫ FSA (`T260`): картинка разбора н
 
   python tools/check_fsa_showcase.py [--probes=<каталог проб>] [--only=<ключ>[,…]]
                                      [--snapshot] [--selftest] [--rel=1e-9] [--abs=1e-6]
-                                     [--skip-freshness] [--reference=<каталог>]
+                                     [--skip-freshness] [--reference=<каталог>] [--limit=N]
 
   --only=           член (`ключ`) или ПАРА (`ключ__режим`, `AMBER45`/П104) — так
                     новым парам члена снимается эталон без переобъявления прежних;
@@ -90,7 +90,10 @@ u"""Сторож ВИТРИНЫ FSA (`T260`): картинка разбора н
                     такие числа не кладутся: `--snapshot` с этим ключом пишет
                     только в сторонний `--reference=`, и говорит об этом вслух);
   --reference=      каталог эталона вместо `tools/fsa_showcase/reference` (стенд
-                    полосы: снять и сравнить, не трогая эталон git).
+                    полосы: снять и сравнить, не трогая эталон git);
+  --limit=N         сколько строк diff печатать на пару (умолчание 60, как было;
+                    0 — без обрезки: полная таблица в отчёт полосы, П126 22.09.2026).
+                    На приговор не влияет — обрезается только печать.
 
 Коды возврата:
   0 — картинка совпала с эталоном на всех парах (или эталон снят/самопроверка прошла);
@@ -627,10 +630,20 @@ def compare(ref, now, rel, abs_tol):
     return diffs
 
 
-def print_diffs(member_key, mode, diffs, limit=60):
+DIFF_LIMIT_DEFAULT = 60
+# строк diff на пару в печати; ставится ключом `--limit=` в `main` (П126)
+DIFF_LIMIT = DIFF_LIMIT_DEFAULT
+
+
+def print_diffs(member_key, mode, diffs, limit=None):
+    """Печать таблицы расхождений; `limit` — строк на пару (None — ключ `--limit=`
+    прогона, умолчание 60; 0 — без обрезки). Только печать: приговор считают
+    вызывающие по полному `diffs`."""
+    if limit is None:
+        limit = DIFF_LIMIT
     say(u'  %-22s %-14s %-16s %-28s %18s %18s %14s' % (u'спектр', u'режим', u'полоса', u'компонент', u'было', u'стало', u'Δ'))
     for i, (band, comp, a, b) in enumerate(diffs):
-        if i >= limit:
+        if limit > 0 and i >= limit:
             say(u'  … и ещё %d строк' % (len(diffs) - limit))
             break
         if isinstance(a, float) and isinstance(b, float):
@@ -762,10 +775,16 @@ def main(argv=None):
     ap.add_argument('--abs', dest='abs_tol', type=float, default=None)
     ap.add_argument('--skip-freshness', action='store_true')
     ap.add_argument('--reference', default=None)
+    ap.add_argument('--limit', type=int, default=None)
     args = ap.parse_args(argv)
-    global REFERENCE
+    global REFERENCE, DIFF_LIMIT
     if args.reference:
         REFERENCE = os.path.abspath(args.reference)
+    if args.limit is not None:
+        if args.limit < 0:
+            say(u'⛔ --limit= не бывает отрицательным: %d (0 — без обрезки)' % args.limit)
+            return 2
+        DIFF_LIMIT = args.limit
 
     t_all = time.time()
     manifest = load_manifest()

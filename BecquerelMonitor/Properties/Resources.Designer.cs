@@ -6396,6 +6396,21 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string FSANoLiveTime {
+            get {
+                return ResourceManager.GetString("FSANoLiveTime", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}: annihilation is its only measurable radiation — the other lines in the fit band yield {1} % per decay, below the {2} % floor; the free 511 image and the nuclide are one column, so the free image is dropped.
+        /// </summary>
+        public static string FSAAnnihilationDegenerate {
+            get {
+                return ResourceManager.GetString("FSAAnnihilationDegenerate", resourceCulture);
+            }
+        }
+
         public static string FSAReportEfficiencyFieldCurve {
             get {
                 return ResourceManager.GetString("FSAReportEfficiencyFieldCurve", resourceCulture);

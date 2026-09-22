@@ -38,6 +38,12 @@ namespace SumPeakProbe
     ///
     /// Запускать из оснастки корпуса (`mk_appwd.ps1`). Состав — из базы по
     /// ключам (`AMBER19`), как у `FsaCascadeProbe`.
+    ///
+    /// τ везде — РАЗРЕШАЮЩЕЕ ВРЕМЯ ПАРЫ (два импульса ближе τ складываются):
+    /// пар за время t — N·R·τ, из амплитуды колонки наложений τ = A/(R·N),
+    /// из площадей — NΣ/(2·τ·R1·R2·t) для разных линий и NΣ/(τ·R1²·t) для
+    /// одной (`--pair=E:E`). ⛔ До 22.09.2026 (П126) печаталось A/(2·R·N) —
+    /// половина; на «Cs 137 в домике» 1.395 → 2.790 мкс при 2.997 из площадей.
     /// </summary>
     static class Program
     {
@@ -165,14 +171,26 @@ namespace SumPeakProbe
             }
 
             // ---- случайные наложения: оценка по τ ------------------------
+            //
+            // τ здесь и ниже — РАЗРЕШАЮЩЕЕ ВРЕМЯ ПАРЫ: два импульса складываются,
+            // если пришли ближе τ друг к другу. У импульса линии E1 в среднем
+            // 2·R2·τ соседей E2 в окне ±τ, поэтому пар E1+E2 РАЗНЫХ линий за
+            // время t — 2·τ·R1·R2·t (обе очерёдности), а пар ОДНОЙ линии с
+            // самой собой — τ·R1²·t: неупорядоченная пара считается один раз
+            // (при E1 = E2 множитель 2 удвоил бы их, П126 22.09.2026). Из
+            // площади сумм-пика τ считается обратно — это путь БЕЗ модели,
+            // против которого ниже сверяется τ из амплитуды колонки наложений.
             {
                 double r1 = w1.Net / live, r2 = w2.Net / live;
+                double orderings = e1 == e2 ? 1.0 : 2.0;
+                double pairsPerTau = orderings * r1 * r2 * live * 1e-6;
                 double tauDead = total > 0 ? (real - live) / total * 1e6 : 0.0;
-                Console.WriteLine("  случайные совпадения E1+E2 за live: 2·τ·R1·R2·t = {0:F0}·τ[мкс]; τ по мёртвому времени {1:F2} мкс → {2:F0} отсчётов = {3:F1} % NΣ{4}",
-                                  2.0 * r1 * r2 * live * 1e-6, tauDead, 2.0 * r1 * r2 * live * tauDead * 1e-6,
-                                  100.0 * 2.0 * r1 * r2 * live * tauDead * 1e-6 / ws.Net,
+                double tauFromAreas = pairsPerTau > 0.0 ? ws.Net / pairsPerTau : 0.0;
+                Console.WriteLine("  случайные совпадения E1+E2 за live: {0} = {1:F0}·τ[мкс]; τ из площадей NΣ/(…) = {2:F3} мкс; мёртвое на импульс {3:F2} мкс → {4:F0} отсчётов = {5:F1} % NΣ{6}",
+                                  orderings == 1.0 ? "τ·R1²·t (E1 = E2, пара одной линии)" : "2·τ·R1·R2·t", pairsPerTau, tauFromAreas, tauDead, pairsPerTau * tauDead,
+                                  100.0 * pairsPerTau * tauDead / ws.Net,
                                   tauUs > 0.0 ? string.Format(CultureInfo.InvariantCulture, "; при τ = {0:F2} мкс → {1:F0} = {2:F1} %",
-                                                              tauUs, 2.0 * r1 * r2 * live * tauUs * 1e-6, 100.0 * 2.0 * r1 * r2 * live * tauUs * 1e-6 / ws.Net) : "");
+                                                              tauUs, pairsPerTau * tauUs, 100.0 * pairsPerTau * tauUs / ws.Net) : "");
             }
 
             // ---- библиотека, матрица, сумматор -------------------------
@@ -388,9 +406,19 @@ namespace SumPeakProbe
                         if (!string.Equals(c.Name, FsaResult.PileUpLayerName, StringComparison.Ordinal)) continue;
                         double rate = total / live;
                         double amplitude = c.CountRate * live;
-                        double tau = rate > 0.0 ? amplitude / (2.0 * rate * total) * 1e6 : 0.0;
-                        Console.WriteLine("      наложения: амплитуда {0:E3}, z = {1:F1}, τ = {2:F3} мкс; образ в окне суммы {3:F0}",
-                                          amplitude, c.Z, tau, SumOf(c.Curve, ws.Lo, ws.Hi));
+                        // Колонка наложений нормирована на полный счёт N, и её
+                        // амплитуда A — ЧИСЛО ПАР: A/N = R·τ (описание
+                        // `FsaAnalyzer.BuildPileUpComponent`, `AMBER49`); пар за
+                        // время t при скорости R и разрешающем времени τ —
+                        // N·R·τ, откуда τ = A/(R·N). ⛔ До 22.09.2026 (П126)
+                        // здесь стояло A/(2·R·N) — половина: двойка пришла из
+                        // ~~`S22`~~, где τ определяли по 2·τ·R²·t для пары ОДНОЙ
+                        // линии (удвоение неупорядоченных пар), и печать 1.400
+                        // мкс сходилась с 1.424 того же определения. Сверять с
+                        // «τ из площадей» выше — оба теперь одного определения.
+                        double tau = rate > 0.0 ? amplitude / (rate * total) * 1e6 : 0.0;
+                        Console.WriteLine("      наложения: амплитуда {0:E3} = {1:E3}·N, z = {2:F1}, τ = A/(R·N) = {3:F3} мкс; образ в окне суммы {4:F0}",
+                                          amplitude, amplitude / total, c.Z, tau, SumOf(c.Curve, ws.Lo, ws.Hi));
                     }
                 }
             }

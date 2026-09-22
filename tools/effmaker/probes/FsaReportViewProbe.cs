@@ -80,6 +80,14 @@ namespace FsaReportViewProbe
     ///      идёт; причина на анализаторе — `LibraryEmptied` с подробностью;
     ///      остальные причины (вход, геометрия, каналы, полоса) — каждая
     ///      своим членом и своими словами.
+    ///  15. СПЕКТР БЕЗ ВРЕМЕНИ — ОТКАЗ С ПРИЧИНОЙ (`AMBER51`, П120 22.09.2026):
+    ///      контроль с обнулёнными `LiveTime` и `MeasurementTime` — анализатор
+    ///      отказывает `NoLiveTime` с подробностью, сеанс документа и строка
+    ///      таблицы несут `FSANoLiveTime` в `en` и `ru` (не общее
+    ///      `FSANotPossible`); до правки знаменатель молча подменялся 1 с.
+    ///      Контроли: тот же спектр с одним лишь полным временем разбирается
+    ///      (живое — ноль, знаменатель — полное, `AMBER35`); с возвращённым
+    ///      временем скорости и доли равны разбору нетронутого клона до бита.
     ///
     /// Состояния таблицы (документ, «Состояния таблицы») — отдельным разделом.
     /// ⛔ У каждого раздела, где это возможно, ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ.
@@ -213,6 +221,7 @@ namespace FsaReportViewProbe
             RepeatabilitySection(mainForm, thorium, control);
             SnapshotSection(mainForm, thorium);
             RefusalSection(mainForm, controlPath, nuclides);
+            NoLiveTimeSection(mainForm, controlPath, nuclides);
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : "НЕ СОШЛОСЬ: " + bad);
@@ -2113,6 +2122,172 @@ namespace FsaReportViewProbe
                 Language("en-US");
                 ResponseMatrixStore.Delete(guid);
                 Same("уборка: файл малой матрицы снят из склада", false, File.Exists(ResponseMatrixStore.PathOf(guid)));
+                doc.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// 15. (`AMBER51`, П120 22.09.2026) СПЕКТР БЕЗ ВРЕМЕНИ — отказ с
+        /// причиной, а не знаменатель 1 с молча. На копии контрольного спектра
+        /// обнуляются `LiveTime` и `MeasurementTime` (`EffectiveLiveTime` = 0):
+        /// анализатор обязан отказать `NoLiveTime` с подробностью
+        /// `liveTime=0 measurementTime=0`; сеанс документа — печатать
+        /// `FSANoLiveTime` состоянием и строкой таблицы в обеих культурах.
+        /// Положительные контроли: (а) живое время ноль, полное есть —
+        /// разбор идёт (знаменатель — полное, `AMBER35`); (б) времена
+        /// возвращены — скорости счёта и доли компонентов равны разбору
+        /// нетронутого клона до бита; (в) сеанс с возвращённым временем даёт
+        /// результат, а не состояние отказа.
+        /// </summary>
+        static void NoLiveTimeSection(MainForm mainForm, string controlPath, NuclideDefinitionManager nuclides)
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== 15. спектр без времени — отказ с причиной (AMBER51), не знаменатель 1 с ===");
+            DocEnergySpectrum doc = Open(controlPath, nuclides);
+            if (doc == null)
+            {
+                Same("документ контроля открыт", true, false);
+                return;
+            }
+
+            try
+            {
+                ResultData rd = doc.ActiveResultData;
+                if (rd.EnergySpectrum == null || rd.FwhmCalibration == null || rd.Efficiency == null
+                    || !rd.Efficiency.HasGeometry)
+                {
+                    Same("у контроля есть спектр, калибровка ПШПВ и кривая с геометрией", true, false);
+                    return;
+                }
+
+                EnergySpectrum intact = rd.EnergySpectrum.Clone();
+                double liveWas = rd.EnergySpectrum.LiveTime, realWas = rd.EnergySpectrum.MeasurementTime;
+                Console.WriteLine("  контроль: живое {0} с, полное {1} с, EffectiveLiveTime {2} с",
+                                  liveWas.ToString("F3", CultureInfo.InvariantCulture),
+                                  realWas.ToString("F3", CultureInfo.InvariantCulture),
+                                  rd.EnergySpectrum.EffectiveLiveTime.ToString("F3", CultureInfo.InvariantCulture));
+                Same("у контроля есть время (иначе сцену не построить)", true, rd.EnergySpectrum.EffectiveLiveTime > 0.0);
+
+                // Библиотека — как её собирает сеанс по пикам контроля.
+                List<FsaComponent> library = FsaLibrary.BuildFromPeaks(rd.DetectedPeaks, nuclides.NuclideDefinitions);
+                Same("библиотека контроля не пуста", true, library.Count > 0);
+                FsaEfficiency efficiency = FsaEfficiency.FromConfig(rd.Efficiency);
+
+                // Опора: нетронутый клон.
+                var reference = new FsaAnalyzer();
+                FsaResult referenceResult = reference.Analyze(intact, null, rd.FwhmCalibration, library, efficiency);
+                Same("опора: нетронутый клон разбирается", true, referenceResult != null);
+
+                // (1) Без времени — отказ с причиной.
+                EnergySpectrum timeless = intact.Clone();
+                timeless.LiveTime = 0.0;
+                timeless.MeasurementTime = 0.0;
+                Same("без времени: EffectiveLiveTime равен нулю", 0.0, timeless.EffectiveLiveTime);
+                var analyzer = new FsaAnalyzer();
+                FsaResult none = analyzer.Analyze(timeless, null, rd.FwhmCalibration, library, efficiency);
+                Same("без времени: разбора нет", true, none == null);
+                Same("без времени: причина — NoLiveTime", FsaRefusal.NoLiveTime, analyzer.Refusal);
+                Same("без времени: подробность несёт оба времени", "liveTime=0 measurementTime=0", analyzer.RefusalNote);
+                Same("без времени: GeometryRefused ложен", false, analyzer.GeometryRefused);
+
+                // (а) Живое время ноль, полное есть — знаменатель полное, разбор идёт (AMBER35).
+                EnergySpectrum realOnly = intact.Clone();
+                realOnly.LiveTime = 0.0;
+                realOnly.MeasurementTime = realWas > 0.0 ? realWas : 100.0;
+                var onlyReal = new FsaAnalyzer();
+                FsaResult realResult = onlyReal.Analyze(realOnly, null, rd.FwhmCalibration, library, efficiency);
+                Same("контроль (а): только полное время — разбор идёт", true, realResult != null);
+                Same("контроль (а): причина — None", FsaRefusal.None, onlyReal.Refusal);
+                if (realResult != null)
+                {
+                    Same("контроль (а): знаменатель результата — полное время", realOnly.MeasurementTime, realResult.LiveTime);
+                }
+
+                // (б) Времена возвращены — до бита как у нетронутого клона.
+                EnergySpectrum restored = timeless.Clone();
+                restored.LiveTime = liveWas;
+                restored.MeasurementTime = realWas;
+                var again = new FsaAnalyzer();
+                FsaResult restoredResult = again.Analyze(restored, null, rd.FwhmCalibration, library, efficiency);
+                Same("контроль (б): с возвращённым временем разбор идёт", true, restoredResult != null);
+                if (referenceResult != null && restoredResult != null)
+                {
+                    Same("контроль (б): число компонентов равно опоре", referenceResult.Components.Count, restoredResult.Components.Count);
+                    int mismatched = 0;
+                    for (int i = 0; i < referenceResult.Components.Count && i < restoredResult.Components.Count; i++)
+                    {
+                        FsaComponentResult a = referenceResult.Components[i], b = restoredResult.Components[i];
+                        if (!string.Equals(a.Name, b.Name, StringComparison.Ordinal)
+                            || a.CountRate != b.CountRate || a.SharePercent != b.SharePercent)
+                        {
+                            mismatched++;
+                        }
+                    }
+
+                    Same("контроль (б): скорости и доли всех компонентов равны опоре до бита", 0, mismatched);
+                    Same("контроль (б): χ²/ndf равен опоре до бита", referenceResult.Chi2Ndf, restoredResult.Chi2Ndf);
+                    Same("контроль (б): знаменатель результата — живое время спектра", intact.EffectiveLiveTime, restoredResult.LiveTime);
+                }
+
+                // (2) Окно отчёта — слова в обеих культурах через живой сеанс документа.
+                rd.EnergySpectrum.LiveTime = 0.0;
+                rd.EnergySpectrum.MeasurementTime = 0.0;
+                foreach (string lang in new[] { "en-US", "ru-RU" })
+                {
+                    Language(lang);
+                    doc.FsaSession.Reset();
+                    doc.EnergySpectrumView.BackgroundMode = BackgroundMode.ShowFSA;
+                    using (var report = new FSAReportView(mainForm))
+                    {
+                        report.ProbeConsumer = true;
+                        report.SetDocument(doc);
+                        WaitIdle(doc.FsaSession);
+                        report.RefreshReport();
+                        string status = doc.FsaSession.Status;
+                        string expected = BecquerelMonitor.Properties.Resources.FSANoLiveTime;
+                        Same(lang + ": результата сеанса нет", true, doc.FsaSession.Result == null);
+                        Same(lang + ": состояние сеанса — FSANoLiveTime", expected, status);
+                        Same(lang + ": состояние — не общее FSANotPossible", false,
+                             string.Equals(status, BecquerelMonitor.Properties.Resources.FSANotPossible, StringComparison.Ordinal));
+                        int statusRows = 0;
+                        string rowText = null;
+                        foreach (Row row in report.ReportTable.TableModel.Rows)
+                        {
+                            var tag = (FsaReportRow)row.Tag;
+                            if (tag.Kind == FsaReportRowKind.Status)
+                            {
+                                statusRows++;
+                                rowText = tag.Name;
+                            }
+                        }
+
+                        Same(lang + ": в таблице одна строка состояния", 1, statusRows);
+                        Same(lang + ": строка таблицы несёт причину", expected, rowText);
+                        Console.WriteLine("  {0}: {1}", lang, status);
+                        report.SetDocument(null);
+                    }
+                }
+
+                Language("en-US");
+
+                // (в) Времена возвращены документу — сеанс даёт результат, не отказ.
+                rd.EnergySpectrum.LiveTime = liveWas;
+                rd.EnergySpectrum.MeasurementTime = realWas;
+                doc.FsaSession.Reset();
+                using (var report = new FSAReportView(mainForm))
+                {
+                    report.ProbeConsumer = true;
+                    report.SetDocument(doc);
+                    WaitIdle(doc.FsaSession);
+                    Same("контроль (в): сеанс с возвращённым временем дал результат", true, doc.FsaSession.Result != null);
+                    Same("контроль (в): состояние сеанса — не FSANoLiveTime", false,
+                         string.Equals(doc.FsaSession.Status, BecquerelMonitor.Properties.Resources.FSANoLiveTime, StringComparison.Ordinal));
+                    report.SetDocument(null);
+                }
+            }
+            finally
+            {
+                Language("en-US");
                 doc.Dispose();
             }
         }
