@@ -1,0 +1,7 @@
+сторож состава ключей обоих путей (T242): реестр -- 46 настроек матрицы, 6 кривой, 61 полей симулятора
+  самопроверка: 10 подставленных порч пойманы, целое дерево чисто
+  путь матрицы: 46 настроек, в клейме 41, рычаг пробы у 44, поле формы у 6
+  путь кривой: 6 настроек; симулятору он ставит РОВНО 17 полей (BremAlongPath, ElectronAnyMaterial, ElectronLayerBremAlongPath, ElectronLayerBremAngular2BS, ElectronLayerMixedScattering, ElectronLayerTransport, ElectronTransport, Histories, ImportanceSampling, LYieldSupply, LightCascadeSplit, LightSubKevCurve, PeakHalfWidthKev, PositronOffset, PositronTransport, RayleighToCrystal, Seed), остальное -- умолчания симулятора
+  одно место истины (правило I): 17 полей симулятора берут умолчание склада (LightBinUnified, ImportanceSampling, PeakChannelByTolerance, LYieldSupply, ElectronTransport, PositronTransport, PositronOffset, RayleighToCrystal, LightSubKevCurve <- KDipCurveHalf(KDipLight), LightCascadeSplit <- KDipCascadeHalf(KDipLight), SplitXrayShells, ElectronAnyMaterial, BremAlongPath, ElectronLayerTransport, ElectronLayerMixedScattering, ElectronLayerBremAlongPath, ElectronLayerBremAngular2BS)
+  односторонних ключей: намеренно 61, неприменимо 25, забыто 0
+СОСТАВ КЛЮЧЕЙ СОШЁЛСЯ: у каждой настройки есть потребитель, всё, что в клейме, лежит в файле, и у каждого одностороннего ключа названа причина.
