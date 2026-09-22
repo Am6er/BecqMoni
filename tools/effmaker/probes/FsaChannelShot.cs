@@ -87,7 +87,9 @@ namespace FsaChannelShot
             "полное поглощение",
             "неполное поглощение (комптон, электроны, тормозное)",
             "вылет аннигиляции одиночный (SE)", "вылет K-рентгена кристалла",
-            "вылет аннигиляции двойной (DE)", "вылет L-рентгена кристалла"
+            "вылет аннигиляции двойной (DE)", "вылет L-рентгена кристалла",
+            // (`AMBER52`, П125, формат 10) седьмой — постоянной энергии
+            "аннигиляция вне кристалла (511, 1022, их комптон)"
         };
 
         static readonly Color[] ChannelColors =
@@ -97,7 +99,8 @@ namespace FsaChannelShot
             Color.FromArgb(210, 150, 60, 190),   // одиночный вылет — фиолетовый
             Color.FromArgb(210, 205, 50, 60),    // вылет K-рентгена — красный
             Color.FromArgb(210, 90, 30, 130),    // двойной вылет — тёмно-фиолетовый
-            Color.FromArgb(210, 120, 20, 30)     // вылет L-рентгена — тёмно-красный
+            Color.FromArgb(210, 120, 20, 30),    // вылет L-рентгена — тёмно-красный
+            Color.FromArgb(210, 30, 140, 120)    // аннигиляция вне кристалла — бирюзовый
         };
 
         [STAThread]
@@ -418,8 +421,10 @@ namespace FsaChannelShot
                 // звалась K-вылетом, а на 32.194 кэВ держалась ИСКЛЮЧИТЕЛЬНО
                 // L-серией. Переименована в `esc_xray_k` нарочно: имя колонки
                 // обязано называть то, что в ней лежит.
+                // ⛔ (`AMBER52`, П125, формат 10) СЕДЬМАЯ — `ann_out`: аннигиляция
+                // вне кристалла (511, 1022, их комптон), вынута из `compton`.
                 rows.Add("channel;energy_kev;measured;model;peak;compton;esc_se;"
-                         + "esc_xray_k;esc_de;esc_xray_l");
+                         + "esc_xray_k;esc_de;esc_xray_l;ann_out");
                 for (int i = 0; i < channels; i++)
                 {
                     double e = calibration.ChannelToEnergy(i);
@@ -429,10 +434,10 @@ namespace FsaChannelShot
                     }
 
                     rows.Add(string.Format(CultureInfo.InvariantCulture,
-                        "{0};{1:F3};{2:F4};{3:F4};{4:F4};{5:F4};{6:F4};{7:F4};{8:F4};{9:F4}",
+                        "{0};{1:F3};{2:F4};{3:F4};{4:F4};{5:F4};{6:F4};{7:F4};{8:F4};{9:F4};{10:F4}",
                         i, e, measured[i], result.Model[i],
                         byChannel[0][i], byChannel[1][i], byChannel[2][i], byChannel[3][i],
-                        byChannel[4][i], byChannel[5][i]));
+                        byChannel[4][i], byChannel[5][i], byChannel[6][i]));
                 }
 
                 File.WriteAllLines(dumpPath, rows, new UTF8Encoding(true));
@@ -459,9 +464,9 @@ namespace FsaChannelShot
 
                 Console.WriteLine();
                 Console.WriteLine("=== кто даёт {0:F1} кЭВ (канал АЦП {1}) ===", who, bin);
-                Console.WriteLine("{0,-16} {1,12} {2,12} {3,12} {4,12} {5,12} {6,12}",
+                Console.WriteLine("{0,-16} {1,12} {2,12} {3,12} {4,12} {5,12} {6,12} {7,12}",
                                   "компонент", "пик", "комптон", "вылет SE", "вылет xK", "вылет DE",
-                                  "вылет xL");
+                                  "вылет xL", "анниг. извне");
                 foreach (FsaComponentResult component in result.Components)
                 {
                     if (component.ChannelCurves == null)
@@ -483,14 +488,14 @@ namespace FsaChannelShot
                         continue;
                     }
 
-                    Console.WriteLine("{0,-16} {1,12:F1} {2,12:F1} {3,12:F1} {4,12:F1} {5,12:F1} {6,12:F1}",
-                                      component.Name, v[0], v[1], v[2], v[3], v[4], v[5]);
+                    Console.WriteLine("{0,-16} {1,12:F1} {2,12:F1} {3,12:F1} {4,12:F1} {5,12:F1} {6,12:F1} {7,12:F1}",
+                                      component.Name, v[0], v[1], v[2], v[3], v[4], v[5], v[6]);
                 }
 
-                Console.WriteLine("{0,-16} {1,12:F1} {2,12:F1} {3,12:F1} {4,12:F1} {5,12:F1} {6,12:F1}   ← всего",
+                Console.WriteLine("{0,-16} {1,12:F1} {2,12:F1} {3,12:F1} {4,12:F1} {5,12:F1} {6,12:F1} {7,12:F1}   ← всего",
                                   "ИТОГО", byChannel[0][bin], byChannel[1][bin],
                                   byChannel[2][bin], byChannel[3][bin], byChannel[4][bin],
-                                  byChannel[5][bin]);
+                                  byChannel[5][bin], byChannel[6][bin]);
             }
 
             var files = new List<string>();

@@ -73,7 +73,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         EscapeAnnihilationDouble = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeAnnihilationDouble,
 
         /// <summary>Вылет L-рентгена кристалла.</summary>
-        EscapeXrayL = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeXrayL
+        EscapeXrayL = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeXrayL,
+
+        /// <summary>
+        /// (`AMBER52`, П125 22.09.2026, формат 10) Аннигиляция вне кристалла —
+        /// содержимое постоянной энергии: 511, 1022, их комптон. Строкой в
+        /// существующем списке, седьмым пунктом комбо, как принято.
+        /// </summary>
+        AnnihilationOutside = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.AnnihilationOutside
     }
 
     /// <summary>
@@ -97,7 +104,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             FsaMatrixLayer.EscapeAnnihilation,
             FsaMatrixLayer.EscapeXrayK,
             FsaMatrixLayer.EscapeAnnihilationDouble,
-            FsaMatrixLayer.EscapeXrayL
+            FsaMatrixLayer.EscapeXrayL,
+            FsaMatrixLayer.AnnihilationOutside
         };
 
         /// <summary>
