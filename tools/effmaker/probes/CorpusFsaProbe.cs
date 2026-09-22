@@ -3282,8 +3282,10 @@ namespace CorpusFsaProbe
                 // не часть модели.
                 if (o.Audit)
                 {
+                    // (`S179`) Фон — ТОТ ЖЕ, что подан анализатору выше: сверке
+                    // нужен масштаб T/T_фона дисперсии вычтенного фона.
                     row.Audit = FsaLineAudit.Run(rd.EnergySpectrum, result,
-                                                 rd.FwhmCalibration, library);
+                                                 rd.FwhmCalibration, library, background);
                 }
 
                 if (o.Residuals > 0)

@@ -778,6 +778,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static readonly Dictionary<string, HashSet<string>> EquilibriumCache =
             new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>(`AMBER55`) {корень → {член → множитель переходного равновесия}}.</summary>
+        static readonly Dictionary<string, Dictionary<string, double>> FactorCache =
+            new Dictionary<string, Dictionary<string, double>>(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>
         /// Библиотека образов по объявленному составу. Никогда не null; пустой
         /// список означает «состав не дал ни одной линии в рабочем диапазоне» —
@@ -971,7 +975,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    AddLine(component, self, line[0], line[1] * member.Value);
+                    // `member.Value` — равновесное отношение активностей члена и
+                    // корня: ветвление × множитель переходного равновесия
+                    // (`AMBER55`, <see cref="CollectChain"/>); у одиночного
+                    // нуклида — единица.
+                    // (`AMBER54`, П127) Третье число строки — аннигиляционная
+                    // часть выхода — едет в линию тем же весом.
+                    AddLine(component, self, line[0], line[1] * member.Value,
+                            line.Length > 2 ? line[2] * member.Value : 0.0);
                 }
             }
 
@@ -1115,7 +1126,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // рядов такого члена нет, и множество равно всему обходу; у «Rn-222»
             // оно обрывается на Pb-210. Что выброшено — в отчёт, не молча.
             HashSet<string> reachable = EquilibriumMembers(chain.Root, report);
+            // (`AMBER55`) Доля члена в образе корня — РАВНОВЕСНОЕ отношение
+            // активностей, а оно есть ветвление × множитель переходного
+            // равновесия по Бейтману, а не одно ветвление; см.
+            // <see cref="EquilibriumFactors"/>. Пороги ниже судят ВЕТВЛЕНИЕ,
+            // как и прежде: множитель не меньше единицы и в состав никого не
+            // добавляет и не выбрасывает.
+            Dictionary<string, double> factors = EquilibriumFactors(chain.Root, report);
             var cut = new List<string>();
+            var transient = new List<string>();
             foreach (KeyValuePair<string, double> member in members)
             {
                 if (chain.Only.Count > 0 && !chain.Only.Contains(member.Key))
@@ -1141,7 +1160,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                Remember(branch, owner, member.Key, member.Value, chain.Root);
+                double factor;
+                if (!factors.TryGetValue(member.Key, out factor) || !(factor > 0.0))
+                {
+                    factor = 1.0;
+                }
+
+                if (factor - 1.0 >= TransientNoteFloor)
+                {
+                    transient.Add(member.Key + " ×" + factor.ToString("F4", CultureInfo.InvariantCulture));
+                }
+
+                Remember(branch, owner, member.Key, member.Value * factor, chain.Root);
             }
 
             if (cut.Count > 0)
@@ -1150,6 +1180,236 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 report.Notes.Add("ряд от " + chain.Root + ": вне равновесия с корнем (период длиннее его) — "
                                  + string.Join(", ", cut) + "; в подряд не взяты (T259)");
             }
+
+            if (transient.Count > 0)
+            {
+                // Не молча: у природных рядов множитель виден только у Pb-210 и
+                // Po-210 радия (1.4 %), у подряда с коротким корнем он в разы.
+                transient.Sort(StringComparer.OrdinalIgnoreCase);
+                report.Notes.Add("ряд от " + chain.Root + ": переходное равновесие λ_д/(λ_д − λ_к) — "
+                                 + string.Join(", ", transient) + " (AMBER55)");
+            }
+        }
+
+        /// <summary>
+        /// Ниже этого множителя минус единица переходное равновесие в отчёт не
+        /// пишется: у Th-232 оно 5·10⁻¹⁰, у U-238 7·10⁻⁵ — шум записи, а не
+        /// сведение для человека. Порог сходимости долей ряда на три порядка
+        /// ниже (<see cref="ChainConverged"/>), и на само число он не влияет.
+        /// </summary>
+        const double TransientNoteFloor = 1.0e-3;
+
+        /// <summary>
+        /// Множитель переходного равновесия каждого члена подряда от корня
+        /// (`AMBER55`, П124 22.09.2026): в равновесии с корнем активность члена
+        /// `k` относится к активности корня как `BR_k · Π λ_j/(λ_j − λ_к)` по
+        /// пути от корня к члену (Бейтман при `t ≫ 1/λ_j`; Gilmore 2008 гл. 1,
+        /// Knoll гл. 1), и множитель — это произведение без ветвления. При
+        /// `λ_j ≫ λ_к` он единица («вековое» равновесие) — этим и жила
+        /// связка до П124; у Ra-226 → Pb-210 (22.2 г против 1600 л) он 1.0141,
+        /// у подряда от Pb-214 (`T259`) для Bi-214 — 3.68, у Th-228 для всех
+        /// членов — 1.005…1.006.
+        ///
+        /// Считается тем же способом, что доли ветвления в
+        /// <see cref="ChainBranches"/> (`S62`): релаксацией до неподвижной
+        /// точки по тем же рёбрам `decay_chain` с тем же зажимом уровня, но
+        /// только по членам, С КОТОРЫМИ РАВНОВЕСИЕ ВОЗМОЖНО
+        /// (<see cref="EquilibriumMembers"/>): x_к = 1, x_k = f_k · Σ_p x_p ·
+        /// BR(p→k), f_k = λ_k/(λ_k − λ_к); рядом та же сумма без f — и
+        /// множитель есть их отношение (у ряда без ветвлений — просто
+        /// произведение f по пути; у ветвящегося — взвешенное ветвлением
+        /// среднее по путям). Член длиннее корня в равновесии не бывает и в
+        /// словарь не входит — его уже отрезал <see cref="EquilibriumMembers"/>;
+        /// стабильный конец не излучает и множителя не получает. Корень без
+        /// периода, отказ базы — пустой словарь: связка идёт одним ветвлением,
+        /// как до П124, и <see cref="EquilibriumMembers"/> об этом уже сказал.
+        ///
+        /// ⚠ Множитель — АСИМПТОТА: он верен для пробы, прожившей много
+        /// периодов дочернего после разделения (природные ряды, старые
+        /// источники). У свежего фильтра с ДПР радона отношения Pb-214/Bi-214
+        /// меняются по часам, и никакая ОДНА связка их не опишет — там
+        /// равновесие выключают (`AMBER29`, П64: без связки отношение
+        /// Bi-214/Pb-214 радоновой части 0.997 ± 0.022 при f_Bi/f_Pb = 1.0036).
+        /// </summary>
+        internal static Dictionary<string, double> EquilibriumFactors(string root, Report report)
+        {
+            lock (Gate)
+            {
+                Dictionary<string, double> cached;
+                if (FactorCache.TryGetValue(root, out cached))
+                {
+                    return cached;
+                }
+            }
+
+            var factors = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                double rootSeconds;
+                if (TryHalfLifeSeconds(root, out rootSeconds) && rootSeconds > 0.0)
+                {
+                    double lambdaRoot = Math.Log(2.0) / rootSeconds;
+                    HashSet<string> reachable = EquilibriumMembers(root, report);
+
+                    // Шаг 1: рёбра между членами равновесия и множитель каждого
+                    // члена по его периоду. Тот же запрос и тот же зажим уровня,
+                    // что у `ChainBranches` (`A218`).
+                    var edges = new Dictionary<string, List<KeyValuePair<string, double>>>(
+                        StringComparer.OrdinalIgnoreCase);
+                    var factorOf = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                    var order = new List<string> { root };
+                    var known = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { root };
+                    using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
+                    using (SqliteCommand command = connection.CreateCommand())
+                    using (SqliteCommand life = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "select daughter_nucid, perc from decay_chain d"
+                            + " where nucid = $n and perc not null"
+                            + DecayParentRule.ChainLevelClause;
+                        command.Parameters.AddWithValue("$n", root);
+                        life.CommandText =
+                            "select half_life_sec from nuclides where nucid = $n"
+                            + " and half_life_sec is not null order by l_seqno limit 1";
+                        life.Parameters.AddWithValue("$n", root);
+                        for (int i = 0; i < order.Count && order.Count <= MaxChainNodes; i++)
+                        {
+                            string current = order[i];
+                            command.Parameters["$n"].Value = current;
+                            var step = new List<KeyValuePair<string, double>>();
+                            using (SqliteDataReader reader = command.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    string daughter = reader.IsDBNull(0) ? null : reader.GetString(0);
+                                    double percent;
+                                    if (string.IsNullOrEmpty(daughter)
+                                        || string.Equals(daughter, current, StringComparison.OrdinalIgnoreCase)
+                                        || !reachable.Contains(daughter)
+                                        || !TryNumber(reader, 1, out percent) || !(percent > 0.0))
+                                    {
+                                        continue;
+                                    }
+
+                                    step.Add(new KeyValuePair<string, double>(daughter, percent));
+                                    if (known.Add(daughter))
+                                    {
+                                        order.Add(daughter);
+                                    }
+                                }
+                            }
+
+                            edges[current] = step;
+                        }
+
+                        foreach (string member in order)
+                        {
+                            if (string.Equals(member, root, StringComparison.OrdinalIgnoreCase))
+                            {
+                                factorOf[member] = 1.0;
+                                continue;
+                            }
+
+                            life.Parameters["$n"].Value = member;
+                            double seconds = 0.0;
+                            bool decays;
+                            using (SqliteDataReader reader = life.ExecuteReader())
+                            {
+                                decays = reader.Read() && TryNumber(reader, 0, out seconds);
+                            }
+
+                            // Стабильный конец — множителя нет (и линий нет): в
+                            // `factorOf` не входит, в релаксации идёт с единицей и в
+                            // ответ не попадает. Период не короче корня сюда не
+                            // доходит (`reachable`).
+                            if (decays && seconds > 0.0 && seconds < rootSeconds)
+                            {
+                                double lambda = Math.Log(2.0) / seconds;
+                                factorOf[member] = lambda / (lambda - lambdaRoot);
+                            }
+                        }
+                    }
+
+                    // Шаг 2: релаксация, как у `ChainBranches` — с множителем и
+                    // без; отношение и есть множитель члена.
+                    var with = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                    var without = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                    for (int pass = 0; pass < MaxChainPasses; pass++)
+                    {
+                        var nextWith = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                        var nextWithout = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                        nextWith[root] = 1.0;
+                        nextWithout[root] = 1.0;
+                        foreach (string parent in order)
+                        {
+                            double haveWith, haveWithout;
+                            List<KeyValuePair<string, double>> outgoing;
+                            if (!with.TryGetValue(parent, out haveWith) || !(haveWith > 0.0)
+                                || !without.TryGetValue(parent, out haveWithout)
+                                || !edges.TryGetValue(parent, out outgoing))
+                            {
+                                continue;
+                            }
+
+                            foreach (KeyValuePair<string, double> edge in outgoing)
+                            {
+                                double f;
+                                if (!factorOf.TryGetValue(edge.Key, out f))
+                                {
+                                    f = 1.0;
+                                }
+
+                                double already;
+                                nextWith[edge.Key] = (nextWith.TryGetValue(edge.Key, out already) ? already : 0.0)
+                                                     + haveWith * edge.Value / 100.0 * f;
+                                nextWithout[edge.Key] = (nextWithout.TryGetValue(edge.Key, out already) ? already : 0.0)
+                                                        + haveWithout * edge.Value / 100.0;
+                            }
+                        }
+
+                        double drift = 0.0;
+                        foreach (KeyValuePair<string, double> row in nextWith)
+                        {
+                            double was;
+                            double gap = Math.Abs(row.Value - (with.TryGetValue(row.Key, out was) ? was : 0.0));
+                            if (gap > drift)
+                            {
+                                drift = gap;
+                            }
+                        }
+
+                        with = nextWith;
+                        without = nextWithout;
+                        if (drift <= ChainConverged)
+                        {
+                            break;
+                        }
+                    }
+
+                    foreach (KeyValuePair<string, double> row in with)
+                    {
+                        double plain;
+                        if (factorOf.ContainsKey(row.Key)
+                            && without.TryGetValue(row.Key, out plain) && plain > 0.0)
+                        {
+                            factors[row.Key] = row.Value / plain;
+                        }
+                    }
+                }
+            }
+            catch (Exception error)
+            {
+                report.Notes.Add("ряд от " + root + ": отказ базы при счёте переходного равновесия — "
+                                 + error.Message + "; связка одним ветвлением");
+                factors.Clear();
+            }
+
+            lock (Gate)
+            {
+                FactorCache[root] = factors;
+            }
+
+            return factors;
         }
 
         /// <summary>
@@ -1591,6 +1851,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// библиотека и суммирователь совпадений разойдутся в составе пробы
         /// при одинаковых с виду числах, `T50`). L-серия — подробными
         /// строками, если они есть, иначе обобщённой.
+        ///
+        /// ⛔ АННИГИЛЯЦИОННАЯ ЛИНИЯ β⁺-ИЗЛУЧАТЕЛЯ — ЛИНИЯ ЕГО РАСПАДА (`AMBER54`,
+        /// П124 22.09.2026): строки `B+` базы читаются тем же запросом, и на
+        /// <see cref="FsaAnalyzer.AnnihilationKev"/> в образ ложится линия с
+        /// выходом `2·ΣI(β⁺)` — два кванта на позитрон, ровно то число, что
+        /// суммирователь совпадений уже считал партнёром
+        /// (<see cref="CascadeAtomicData.AnnihilationQuanta"/>); второго
+        /// соглашения о нём здесь нет. До П124 запрос брал только `G` и `X`:
+        /// у 22NA сильнейшая линия (179.8 % на распад) в образ не входила и
+        /// уходила свободному `Ann-511`, 18F (одни позитроны) образа не имел
+        /// вовсе — «библиотека опустела». Настоящая гамма той же энергии, если
+        /// она есть у нуклида, СКЛАДЫВАЕТСЯ с аннигиляционной — две линии
+        /// одной энергии, как у `S161`. Имён нуклидов здесь нет: кто β⁺ —
+        /// говорит база. (П127 22.09.2026) Строка аннигиляционной линии несёт
+        /// ТРЕТЬЕ число — аннигиляционную часть выхода — и оно уезжает в
+        /// <see cref="FsaLine.AnnihilationIntensity"/>: гейт `Ann-511`
+        /// анализатора (`AMBER7` → `AMBER54`) различает по нему гамму состава
+        /// у 511 и свою аннигиляцию нуклида.
         /// </summary>
         /// ⚠ Открыт наружу РАДИ ЧИТАТЕЛЯ (`S89`): два места в проекте читают
         /// `decay_radiations` с разными зажимами, и «оба обязаны давать один
@@ -1623,6 +1901,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var lLumped = new List<double[]>();
             var lDetailed = new List<double[]>();
 
+            // (`AMBER54`) Позитроны на распад, % — сумма ВСЕХ строк `B+` (каналов
+            // и переходов): каждый позитрон аннигилирует, откуда бы ни пришёл.
+            double betaPlus = 0.0;
+
             try
             {
                 using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
@@ -1634,11 +1916,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // (`S89`) Само правило вынесено в `DecayParentRule` — двух
                     // соглашений о том, что такое «родитель», в проекте быть не
                     // должно, ровно как и о K-серии.
+                    // (`AMBER54`) Строки `B+` — тем же запросом: у них
+                    // `energy_num` — средняя энергия позитрона, и она здесь не
+                    // нужна, поэтому зажим «энергия не пуста» к ним не относится.
                     command.CommandText =
                         "select type_a, type_c, energy_num, intensity_num, dec_type"
                         + " from decay_radiations"
-                        + " where parent_nucid = $n and type_a in ('G', 'X')"
-                        + " and energy_num not null and intensity_num > 0"
+                        + " where parent_nucid = $n and type_a in ('G', 'X', 'B+')"
+                        + " and (energy_num not null or type_a = 'B+') and intensity_num > 0"
                         + DecayParentRule.LevelClause;
                     command.Parameters.AddWithValue("$n", nucid);
                     using (SqliteDataReader reader = command.ExecuteReader())
@@ -1649,6 +1934,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             string series = reader.IsDBNull(1) ? "" : reader.GetString(1).Trim();
                             string channel = reader.IsDBNull(4) ? "" : reader.GetString(4).Trim();
                             double energy, intensity;
+                            if (kind == "B+")
+                            {
+                                if (TryNumber(reader, 3, out intensity) && intensity > 0.0)
+                                {
+                                    betaPlus += intensity;
+                                }
+
+                                continue;
+                            }
+
                             if (!TryNumber(reader, 2, out energy) || !TryNumber(reader, 3, out intensity)
                                 || !(energy > 0.0) || !(intensity > 0.0))
                             {
@@ -1735,6 +2030,44 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             catch (Exception error)
             {
                 report.Notes.Add("линии " + nucid + ": отказ базы — " + error.Message);
+            }
+
+            // (`AMBER54`) Аннигиляционная линия: два кванта 511 кэВ на позитрон.
+            // Настоящая гамма той же энергии (у 17 родителей поставки есть строка
+            // `G` в 510.5…511.4) СКЛАДЫВАЕТСЯ, а не теряется: `AddLine` ниже по
+            // пути выбросил бы вторую линию той же энергии того же нуклида, и
+            // выход ушёл бы молча — тот же довод, что у `S161`. Допуск слияния —
+            // тот же, что у `AddLine` и `S161` (0.05 кэВ).
+            //
+            // (П127 22.09.2026) Строка аннигиляционной линии — ТРЁХ чисел:
+            // {энергия, выход, аннигиляционная часть выхода}; у гаммы и рентгена
+            // строки по-прежнему из двух. Третье число едет в
+            // <see cref="FsaLine.AnnihilationIntensity"/>: гейт `Ann-511`
+            // анализатора обязан отличать «столкнулся с гаммой состава» от
+            // «это своя аннигиляция нуклида», а по одной энергии слитой линии
+            // этого не видно. Читатели `DecayLines` берут `[0]` и `[1]`, третьего
+            // числа не замечают.
+            if (betaPlus > 0.0)
+            {
+                double annihilation = 2.0 * betaPlus;
+                int same = -1;
+                for (int k = 0; k < gamma.Count; k++)
+                {
+                    if (Math.Abs(gamma[k][0] - FsaAnalyzer.AnnihilationKev) < 0.05)
+                    {
+                        same = k;
+                        break;
+                    }
+                }
+
+                if (same >= 0)
+                {
+                    gamma[same] = new[] { gamma[same][0], gamma[same][1] + annihilation, annihilation };
+                }
+                else
+                {
+                    gamma.Add(new[] { FsaAnalyzer.AnnihilationKev, annihilation, annihilation });
+                }
             }
 
             var lines = new List<double[]>();
@@ -2607,11 +2940,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Аннигиляционная линия 511 кэВ: рождение пар жёсткими квантами в
-        /// защите и обвязке плюс β⁺-примеси. Нуклиду она не принадлежит, доля
-        /// зависит от домика и геометрии — поэтому свободный мешающий образ.
-        /// Правило то же, что у <see cref="FsaLibrary"/>: без образа NNLS вешает
-        /// 511 на ближайшую линию соседа.
+        /// Аннигиляционная линия 511 кэВ ПРИБОРА: рождение пар жёсткими квантами
+        /// в защите и обвязке. Нуклиду она не принадлежит, доля зависит от
+        /// домика и геометрии — поэтому свободный мешающий образ. Правило то
+        /// же, что у <see cref="FsaLibrary"/>: без образа NNLS вешает 511 на
+        /// ближайшую линию соседа.
+        ///
+        /// ⚠ Аннигиляция β⁺-ИЗЛУЧАТЕЛЯ сюда с П124 (`AMBER54`, 22.09.2026) НЕ
+        /// относится: она — линия распада и лежит в образе самого нуклида
+        /// (<see cref="DecayLines"/>, `2·ΣI(β⁺)`). Здесь прежде стояло «плюс
+        /// β⁺-примеси», и это было ровно тем местом, куда у 22NA уходили 70 %
+        /// модели. Судьбу свободного образа решает гейт анализатора
+        /// (`AMBER7` → `AMBER54`, `FsaAnalyzer.AnnihilationGate`, решение Amber
+        /// 22.09.2026 «Линию оставить + починить гейт Ann-511»): он снимается
+        /// при ГАММЕ состава у 511 (Tl-208 510.77 — один столбец с 511) и при
+        /// β⁺-нуклиде без иных линий, способных его закрепить (F-18); рядом с
+        /// аннигиляционной линией нуклида, у которого есть чем закрепиться
+        /// (Na-22 1274, Zn-65 1115), он ОСТАЁТСЯ и берёт избыток 511 —
+        /// позитроны, аннигилировавшие вне источника, и пары. Решение Amber
+        /// 01.09.2026 о СВОБОДНОМ образе от пар этим не отменено — образ
+        /// строится как прежде.
         /// </summary>
         static void AddAnnihilation(List<FsaComponent> result, Report report)
         {
@@ -3105,7 +3453,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// округлённой энергией, — и в образе она удваивает вес. Порог 0.05 кэВ:
         /// раздельных линий ближе не бывает.
         /// </summary>
-        static void AddLine(FsaComponent component, string nuclide, double energy, double intensity)
+        static void AddLine(FsaComponent component, string nuclide, double energy, double intensity,
+                            double annihilationIntensity = 0.0)
         {
             foreach (FsaLine line in component.Lines)
             {
@@ -3116,7 +3465,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            component.Lines.Add(new FsaLine(nuclide, energy, intensity));
+            component.Lines.Add(new FsaLine(nuclide, energy, intensity, annihilationIntensity));
         }
 
         /// <summary>

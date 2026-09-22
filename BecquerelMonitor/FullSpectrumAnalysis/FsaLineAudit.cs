@@ -59,11 +59,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     ///
     /// ЧТО ЗНАЧИТ «ОБЯЗАНА БЫТЬ» — выводится, а не назначается. Линия обязана
     /// быть видна, если площадь, предсказанная ЕЁ СОБСТВЕННЫМ компонентом,
-    /// превышает порог решения Карри для этого окна: ожидание ≥ k·√B, где
-    /// B — континуум плюс фон под окном, k = 1.645 (α = 5 %). Такой порог сам
+    /// превышает порог решения Карри для этого окна: ожидание ≥ k·σ₀, где
+    /// σ₀² — дисперсия чистой площади ПРИ ОТСУТСТВИИ пика: континуум плюс
+    /// фон под окном (пуассоновский шум брутто-счёта) плюс дисперсия
+    /// ВЫЧИТАЕМОГО фона s·B (см. ниже), k = 1.645 (α = 5 %). Такой порог сам
     /// учитывает и разрешение группы (ширина окна берётся из ПШПВ), и набранную
     /// статистику — то есть именно то, чего требовала строка `S57`: «порог
     /// вывести замером, а не назначить».
+    ///
+    /// ⛔ (`S179`, П126 22.09.2026) ФОН ВЫЧИТАЕТСЯ В МАСШТАБЕ ЖИВОГО ВРЕМЕНИ, И
+    /// ЕГО ДИСПЕРСИЯ — ТОЖЕ. <see cref="FsaResult.Background"/> — это
+    /// s·N_фона, где s = T/T_фона (`FsaAnalyzer`, `backgroundScale`), и
+    /// Var(s·N_фона) = s²·N_фона = s·B, а не B: так считает сам анализатор
+    /// (`FsaAnalyzer`, «дисперсия — от полного фона», `full·scale`). До
+    /// 22.09.2026 здесь стояло `variance += data + bg` — при фоне в 30 раз
+    /// длиннее пробы (G1S, 1800 с против 54 000 с) вклад фона в дисперсию
+    /// завышался в 1/s = 30 раз; измерено на `G1S24_K40_Petri_2` (s = 0.169,
+    /// 511 кэВ): σ 90.0 → 71.1, |Z| 0.70 → 0.89. Порог решения члена фона не
+    /// содержал вовсе. Формула порога — Карри (Currie L.A., Anal. Chem. 40
+    /// (1968) 586, «critical level» L_C = k·σ₀): σ₀² = Var(брутто) +
+    /// Var(вычитаемого) = (C + B) + s·B; при s = 1 и C = 0 это его же
+    /// 2.33·√B «парных наблюдений», при s → 0 — 1.645·√B «хорошо известного
+    /// фона». Дисперсия континуума фита, как и прежде, не учитывается (он
+    /// берётся как есть у обеих сторон сравнения).
+    ///
+    /// ⚠ (П126) РЯД — ОДНА КОЛОНКА, А ЕГО РЕЗУЛЬТАТ — ПО ЧЛЕНАМ. Компонент
+    /// вида <see cref="FsaComponentKind.Chain"/> (и хозяин привязки `S171`)
+    /// несёт линии всех членов под именем корня, а анализатор раскладывает
+    /// его колонку в <see cref="FsaResult.Components"/> ПОЧЛЕННО
+    /// (<see cref="FsaComponentResult.ChainRoot"/>, <see cref="FsaComponentResult.TiedTo"/>).
+    /// Поиск результата «по имени компонента» находил либо ничего (Th-232 без
+    /// линий — ряд пропускался целиком), либо крошечный образ головы (Rn-222:
+    /// 62 отсчёта из 168 000 ряда) — и все линии ряда получали чистоту 0.000 и
+    /// «не обязана». Измерено 22.09.2026 до правки: `G1S24_Th232_Petri` —
+    /// обязательных 1 из 25, `G1S24_Rn222Coal_Mar_eq01` — 0 из 42. Теперь
+    /// «свой» образ ряда — сумма образов всех его членов
+    /// (<see cref="OwnCurve"/>): амплитуда у них одна, и именно этим и держится
+    /// довод о N − 1 проверяемых степенях свободы из шапки.
     ///
     /// ⚠ Порог считается по СВОЕМУ компоненту, а не по всей модели окна. Иначе
     /// сосед-гигант объявлял бы обязательной линию, которой в спектре нет
@@ -144,9 +176,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// калибровок либо ни одна линия не попала в окно фита); это результат,
         /// а не отказ.
         /// </summary>
+        /// <param name="backgroundSpectrum">
+        /// (`S179`) Спектр фона, который анализатор ВЫЧЕЛ (тот же, что подан в
+        /// <c>FsaAnalyzer.Analyze</c>); null — фона не было. Нужен ради масштаба
+        /// s = T/T_фона: в <see cref="FsaResult"/> его нет, а без него дисперсия
+        /// вычтенного фона считается в 1/s раз неверно. Разбор, ВЗЯВШИЙ фон
+        /// (<see cref="FsaResult.BackgroundUsed"/>), без этого аргумента —
+        /// отказ (<see cref="ArgumentException"/>), а не молчаливая единица:
+        /// ровно молчаливая единица здесь и стояла до 22.09.2026.
+        /// </param>
         public static List<LineCheck> Run(EnergySpectrum spectrum, FsaResult result,
                                           FwhmCalibration fwhmCalibration,
-                                          List<FsaComponent> library)
+                                          List<FsaComponent> library,
+                                          EnergySpectrum backgroundSpectrum)
         {
             var checks = new List<LineCheck>();
             if (spectrum == null || result == null || fwhmCalibration == null || library == null
@@ -162,15 +204,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] model = result.FitModel();
             double[] continuum = result.FitContinuum();
             double[] background = result.Background;
-
-            // Амплитуды состава: по имени. Компонент, которого в разложении нет
-            // (отсеян по значимости), проверять нечем — его модель пуста, и
-            // «ожидание ноль» ничего не сказало бы.
-            var byName = new Dictionary<string, FsaComponentResult>(StringComparer.OrdinalIgnoreCase);
-            foreach (FsaComponentResult c in result.Components)
-            {
-                byName[c.Name] = c;
-            }
+            double backgroundScale = BackgroundScale(spectrum, result, backgroundSpectrum);
 
             foreach (FsaComponent component in library)
             {
@@ -182,8 +216,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                FsaComponentResult fitted;
-                if (!byName.TryGetValue(component.Name, out fitted) || fitted.Curve == null)
+                // Амплитуды состава: свой образ компонента — по имени, у ряда
+                // и хозяина привязки — сумма образов членов (см. шапку).
+                // Компонент, которого в разложении нет (отсеян по значимости),
+                // проверять нечем — его модель пуста, и «ожидание ноль» ничего
+                // не сказало бы.
+                double[] own = OwnCurve(component, result.Components, channels);
+                if (own == null)
                 {
                     continue;
                 }
@@ -196,7 +235,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 foreach (LineGroup group in groups)
                 {
                     LineCheck check = Measure(group, data, model, continuum, background,
-                                              fitted.Curve, result.FirstChannel,
+                                              backgroundScale, own, result.FirstChannel,
                                               result.LastChannel, channels);
                     if (check != null)
                     {
@@ -210,6 +249,100 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`S179`) Масштаб вычтенного фона s = T/T_фона — тем же правилом, что
+        /// у анализатора (<c>EnergySpectrum.EffectiveLiveTime</c> обеих сторон,
+        /// `AMBER35`). Ноль — фон не вычитался; тогда слагаемых фона в дисперсии
+        /// нет и масштаб не нужен.
+        /// </summary>
+        static double BackgroundScale(EnergySpectrum spectrum, FsaResult result,
+                                      EnergySpectrum backgroundSpectrum)
+        {
+            if (!result.BackgroundUsed || result.Background == null)
+            {
+                return 0.0;
+            }
+
+            if (backgroundSpectrum == null)
+            {
+                throw new ArgumentException(
+                    "FsaLineAudit.Run: разбор вычел фон (BackgroundUsed), а спектр фона не подан — "
+                    + "без него масштаб T/T_фона дисперсии фона неизвестен (S179)",
+                    "backgroundSpectrum");
+            }
+
+            double live = spectrum.EffectiveLiveTime;
+            double backgroundLive = backgroundSpectrum.EffectiveLiveTime;
+            if (!(live > 0.0) || !(backgroundLive > 0.0))
+            {
+                throw new ArgumentException(string.Format(CultureInfo.InvariantCulture,
+                    "FsaLineAudit.Run: живое время пробы {0} или фона {1} не положительно — "
+                    + "анализатор такой разбор не делает, сверять нечего (S179)",
+                    live, backgroundLive), "backgroundSpectrum");
+            }
+
+            return live / backgroundLive;
+        }
+
+        /// <summary>
+        /// Свой образ компонента в результате: сумма кривых всех строк
+        /// результата, принадлежащих ЭТОЙ колонке фита — одноимённой, членов
+        /// ряда с этим корнем (<see cref="FsaComponentResult.ChainRoot"/>) и
+        /// привязанных членов (`S171`, <see cref="FsaComponent.Ties"/>). null —
+        /// в разложении колонки нет.
+        /// </summary>
+        static double[] OwnCurve(FsaComponent component, List<FsaComponentResult> results, int channels)
+        {
+            if (results == null)
+            {
+                return null;
+            }
+
+            double[] own = null;
+            foreach (FsaComponentResult r in results)
+            {
+                if (r.Curve == null || !BelongsTo(component, r))
+                {
+                    continue;
+                }
+
+                if (own == null)
+                {
+                    own = new double[channels];
+                }
+
+                int n = Math.Min(channels, r.Curve.Length);
+                for (int i = 0; i < n; i++)
+                {
+                    own[i] += r.Curve[i];
+                }
+            }
+
+            return own;
+        }
+
+        static bool BelongsTo(FsaComponent component, FsaComponentResult r)
+        {
+            if (string.Equals(r.Name, component.Name, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(r.ChainRoot, component.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (component.Ties != null)
+            {
+                foreach (FsaTie tie in component.Ties)
+                {
+                    if (string.Equals(tie.Member, r.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
 
         sealed class LineGroup
         {
@@ -313,7 +446,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// null — окно с боковыми полосами не помещается в диапазон фита.
         /// </summary>
         static LineCheck Measure(LineGroup group, int[] data, double[] model, double[] continuum,
-                                 double[] background, double[] own,
+                                 double[] background, double backgroundScale, double[] own,
                                  int firstChannel, int lastChannel, int channels)
         {
             int lo = (int)Math.Floor(group.Channel - WindowFwhm * group.FwhmChannels);
@@ -328,7 +461,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double measured = 0.0, expected = 0.0, expectedOwn = 0.0;
-            double variance = 0.0, baseline = 0.0;
+            double variance = 0.0, nullVariance = 0.0;
             for (int i = lo; i <= hi; i++)
             {
                 double bg = background != null ? background[i] : 0.0;
@@ -342,14 +475,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 expectedOwn += own[i];
 
                 // Фон ВЫЧИТАЕТСЯ, а не делится, поэтому его дисперсия
-                // складывается с дисперсией переднего плана — отсюда
-                // `data + bg`, а не `data − bg`.
-                variance += data[i] + bg;
-                baseline += cont + bg;
+                // складывается с дисперсией переднего плана — отсюда плюс, а
+                // не минус. (`S179`) `bg` — уже s·N_фона, и его дисперсия —
+                // s²·N_фона = s·bg, как у анализатора; `data + bg` считало бы
+                // фон набранным за время пробы.
+                double backgroundVariance = backgroundScale * bg;
+                variance += data[i] + backgroundVariance;
+
+                // Порог решения Карри — от дисперсии чистой площади ПРИ
+                // ОТСУТСТВИИ пика: брутто-счёт тогда равен подложке плюс фон
+                // (пуассон: cont + bg), плюс дисперсия вычитаемого фона.
+                nullVariance += cont + bg + backgroundVariance;
             }
 
             double sigma = variance > 0.0 ? Math.Sqrt(variance) : 0.0;
-            double threshold = DecisionK * Math.Sqrt(Math.Max(baseline, 0.0));
+            double threshold = DecisionK * Math.Sqrt(Math.Max(nullVariance, 0.0));
 
             return new LineCheck
             {

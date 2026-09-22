@@ -1312,7 +1312,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Ни один узел сетки дрейфа не дал решения, либо итоговый фит не
         /// сошёлся: у библиотеки и полосы всё было, отказал сам счёт.
         /// </summary>
-        NoFit
+        NoFit,
+
+        /// <summary>
+        /// (`AMBER51`, П120 22.09.2026) У спектра НЕТ ВРЕМЕНИ:
+        /// <see cref="EnergySpectrum.EffectiveLiveTime"/> не больше нуля (ни
+        /// живого, ни полного). Скорости счёта, порогов решения и пределов
+        /// обнаружения у такого спектра не бывает, а фон с настоящим временем
+        /// нечем привести к его шкале. До 22.09.2026 знаменатель здесь молча
+        /// подменялся единицей: «имп/с» и пределы численно равнялись отсчётам,
+        /// поданный фон масштабировался как 1/T_фона — тогда как фон без
+        /// времени тот же разбор отвергал словами (`FSABackgroundNoLiveTime`).
+        /// Лечится временем измерения в файле спектра.
+        /// </summary>
+        NoLiveTime
     }
 
     /// <summary>
@@ -2155,17 +2168,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// (`AMBER7`) Снимать свободный образ `Ann-511`, когда в объявленном
-        /// составе есть СВОЯ линия в том же окне: два столбца на одну линию
-        /// разделить нечем. Довод и замер — у места применения.
+        /// составе есть ГАММА-линия в том же окне (два столбца на одну линию
+        /// разделить нечем) либо β⁺-нуклид, которому нечем закрепиться, кроме
+        /// своей аннигиляции (`AMBER54`, П127: с ним свободный образ — один
+        /// столбец). Аннигиляционную линию нуклида с якорем гейт не трогает.
+        /// Довод и замер — у места применения.
         /// </summary>
         public bool AnnihilationGate { get; set; }
 
         /// <summary>
-        /// (`AMBER7`) Чья линия столкнулась с 511 на последнем
-        /// <see cref="Analyze"/>; null — столкновения не было и правка не
-        /// изменила ни одного бита.
+        /// (`AMBER7`) Почему `Ann-511` снят на последнем <see cref="Analyze"/>:
+        /// «чья линия столкнулась» («Th-232 510.77 кэВ») либо, с П127
+        /// (`AMBER54`), текст ресурса `FSAAnnihilationDegenerate` о нуклиде без
+        /// якоря (см. <see cref="AnnihilationDegenerate"/>); null — гейт не
+        /// снимал и правка не изменила ни одного бита.
         /// </summary>
         public string AnnihilationCollides { get; private set; }
+
+        /// <summary>
+        /// (`AMBER54`, П127 22.09.2026) Имя компонента, ради которого `Ann-511`
+        /// снят по правилу (б) — β⁺-нуклид, у которого в полосе фита нет иных
+        /// линий с выходом не ниже
+        /// <see cref="FsaPresentationBuilder.MinTotalYieldPercent"/>; null —
+        /// снятия по (б) не было (столкновения с гаммой это не касается).
+        /// Для проб: приговор читается без разбора локализованного текста.
+        /// </summary>
+        public string AnnihilationDegenerate { get; private set; }
 
         /// <summary>
         /// (`AMBER17`) Кандидаты в опоры последнего прохода привязки — те же,
@@ -4352,6 +4380,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         readonly Dictionary<FsaComponent, Deposit> deposits = new Dictionary<FsaComponent, Deposit>();
 
         /// <summary>
+        /// (`AMBER62`) Пиковая эффективность отклика по энергии линии — для
+        /// мерки пикового окна (<see cref="PeakWindowMinPeakSharePercent"/>).
+        /// Величина зависит ТОЛЬКО от матрицы, поэтому живёт один разбор, как и
+        /// остальные кэши: между вызовами матрицу могли сменить. Положение по
+        /// свету её не трогает — перенос строки площадь сохраняет, а сдвиг
+        /// только переставляет бины.
+        /// </summary>
+        readonly Dictionary<double, double> peakEfficiencies = new Dictionary<double, double>();
+
+        /// <summary>
         /// Гистограмма поглощения компонента и всё, что от неё отрезано:
         /// подпороговый хвост отдельной колонкой и доля сумм для подслоя.
         /// Ножи применены ДО кэширования, поэтому все три части согласованы
@@ -4791,6 +4829,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.depositChannelsCalibration = null;
             this.kernelBank = null;
             this.deposits.Clear();
+            this.peakEfficiencies.Clear();
             this.driftLight = 0.0;
             this.lightShiftChannels = null;
             this.lightShiftMax = 0.0;
@@ -4968,10 +5007,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // побитово; теперь на него же переведены выделение, зоны, доза,
             // вычитание фона и график. Своя копия правила здесь снова
             // разошлась бы с ними молча.
+            //
+            // ⛔ (`AMBER51`, П120 22.09.2026) Нет времени — нет разбора. Прежде
+            // здесь стояло `liveTime = 1.0`, и спектр без времени получал
+            // «имп/с», численно равные отсчётам, пределы `a*`/`a#` в отсчётах
+            // и поданный фон, помноженный на `1/T_фона` (часовой фон — на
+            // 1/3600, то есть вычитался почти ноль), — молча. Фон без времени
+            // тот же код отвергает словами (`FSABackgroundNoLiveTime` ниже),
+            // доза — `DoseRateNoTime`; разбор один подменял число. Теперь —
+            // отказ с причиной, как у прочих (`A312`). `!(x > 0)` ловит и NaN.
             double liveTime = spectrum.EffectiveLiveTime;
-            if (liveTime <= 0.0)
+            if (!(liveTime > 0.0))
             {
-                liveTime = 1.0;
+                return this.Refuse(FsaRefusal.NoLiveTime, string.Format(CultureInfo.InvariantCulture,
+                    "liveTime={0} measurementTime={1}", spectrum.LiveTime, spectrum.MeasurementTime));
             }
 
             // Фон, поданный и НЕ ВЗЯТЫЙ, — это отказ, и он обязан быть назван
@@ -5120,6 +5169,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.GateNuclidesSpared = 0;
             this.EscapeOrphansDropped = 0;
             this.AnnihilationCollides = null;
+            this.AnnihilationDegenerate = null;
             // (`S171`) гейт привязки — состояние ЭТОГО разбора
             this.ChainTieJudged = 0;
             this.ChainTieTied = 0;
@@ -5302,6 +5352,44 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             //
             // ⚠ Где своей линии рядом НЕТ (цезий, лютеций), образ остаётся:
             // там он единственный, кто эти отсчёты выражает.
+            //
+            // ⛔ (`AMBER54`, П127 22.09.2026) СТОЛКНОВЕНИЕ — ТОЛЬКО С ГАММОЙ;
+            // АННИГИЛЯЦИОННАЯ ЛИНИЯ НУКЛИДА ОБРАЗ НЕ СНИМАЕТ. Решение Amber
+            // 22.09.2026, вопросником, дословно: «Линию оставить + починить гейт
+            // Ann-511». С П124 в образе β⁺-излучателя лежит своя линия 511
+            // (`2·ΣI(β⁺)`, <see cref="FsaLine.AnnihilationIntensity"/>), и
+            // прежнее правило «любая линия состава у 511» снимало `Ann-511` у
+            // Na-22, Zn-65 и даже у K-40 (β⁺ 0.001 %). Измерено П124 на четырёх
+            // точечных Na-22 корпуса: 511 в данных на 15–30 % БОЛЬШЕ, чем даёт
+            // образ из точки при верной активности, — позитроны покидают тонкий
+            // источник и аннигилируют у детектора и в обвязке; избытку стало
+            // некуда идти, активность Na-22 +9…+18 % (изм/ожид 1.10/1.11/1.05/1.01
+            // против 1.01/0.95/0.97/0.91 у соседей), χ²/ndf +9…+20 %; на витрине
+            // предел K-40 в `Cs137_house` 0.0012 → 0.00195 %.
+            //
+            // Правило теперь из двух частей, обе — без имён нуклидов:
+            //   (а) ГАММА состава в окне у 511 (гамма-часть линии,
+            //       `Intensity − AnnihilationIntensity`, больше нуля) — прежний
+            //       случай Tl-208 510.77: один столбец, `Ann-511` снимается,
+            //       линия называется (<see cref="AnnihilationCollides"/>).
+            //   (б) β⁺-нуклид, у которого НЕТ других линий, способных его
+            //       закрепить: аннигиляция — единственное его излучение в
+            //       полосе фита (F-18). Свободный `Ann-511` и такой нуклид —
+            //       один и тот же столбец, NNLS делит амплитуду произвольно;
+            //       снимается `Ann-511`, нуклид называется словами
+            //       (<see cref="AnnihilationDegenerate"/>, ресурс
+            //       `FSAAnnihilationDegenerate`).
+            // Мера «есть чем закрепиться» — суммарный выход ПРОЧИХ линий нуклида
+            // в полосе фита (вне окна 511), % на распад, против того же порога
+            // <see cref="FsaPresentationBuilder.MinTotalYieldPercent"/> (1 %,
+            // `S69`, назначен Amber 18.08.2026), которым отчёт судит, «может ли
+            // строка нуклида вообще что-то показать»: второго соглашения о
+            // том, какой выход мал, здесь нет. По базе: F-18 0 % (снимается),
+            // Cu-64 0.47 % (снимается — 1345 кэВ его не держит), Ga-68 3.6 %
+            // (остаётся: 1077 кэВ держит), Na-22 99.9 %, Zn-65 50 %, K-40 10.7 %.
+            // Аннигиляционная линия нуклида с якорем гейт НЕ трогает: активность
+            // держат его линии, а избыток 511 — аннигиляция вне источника и
+            // пары — берёт свободный `Ann-511`, названный честно.
             bool dropAnnihilation = !this.EscapeAndAnnihilation;
             if (!dropAnnihilation && this.AnnihilationGate && fwhmCalibration != null)
             {
@@ -5313,28 +5401,67 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     : 0.0;
                 if (windowKev > 0.0)
                 {
+                    double bandLoKev = calibration.ChannelToEnergy(chLo);
+                    double bandHiKev = calibration.ChannelToEnergy(chHi);
+                    string gammaCollision = null;
+                    string degenerate = null;
+                    double degenerateAnchor = 0.0;
                     foreach (FsaComponent component in library)
                     {
-                        if (component == null || component.Kind == FsaComponentKind.Nuisance)
+                        if (component == null || component.Kind == FsaComponentKind.Nuisance
+                            || component.Lines == null)
                         {
                             continue;
                         }
 
+                        bool ownAnnihilation = false;
+                        double anchorYield = 0.0;
                         foreach (FsaLine line in component.Lines)
                         {
                             if (Math.Abs(line.Energy - AnnihilationKev) <= windowKev)
                             {
-                                dropAnnihilation = true;
-                                this.AnnihilationCollides = component.Name + " "
-                                    + line.Energy.ToString("F2", CultureInfo.InvariantCulture) + " кэВ";
-                                break;
+                                if (line.Intensity - line.AnnihilationIntensity > 0.0)
+                                {
+                                    // (а) гамма состава у 511 — прежний случай
+                                    if (gammaCollision == null)
+                                    {
+                                        gammaCollision = component.Name + " "
+                                            + line.Energy.ToString("F2", CultureInfo.InvariantCulture) + " кэВ";
+                                    }
+                                }
+                                else if (line.AnnihilationIntensity > 0.0)
+                                {
+                                    ownAnnihilation = true;
+                                }
+                            }
+                            else if (line.Energy >= bandLoKev && line.Energy <= bandHiKev)
+                            {
+                                anchorYield += line.Intensity - line.AnnihilationIntensity;
                             }
                         }
 
-                        if (dropAnnihilation)
+                        // (б) своя аннигиляция без якоря
+                        if (ownAnnihilation && degenerate == null
+                            && anchorYield < FsaPresentationBuilder.MinTotalYieldPercent)
                         {
-                            break;
+                            degenerate = component.Name;
+                            degenerateAnchor = anchorYield;
                         }
+                    }
+
+                    if (gammaCollision != null)
+                    {
+                        dropAnnihilation = true;
+                        this.AnnihilationCollides = gammaCollision;
+                    }
+                    else if (degenerate != null)
+                    {
+                        dropAnnihilation = true;
+                        this.AnnihilationDegenerate = degenerate;
+                        this.AnnihilationCollides = string.Format(CultureInfo.InvariantCulture,
+                            Resources.FSAAnnihilationDegenerate, degenerate,
+                            degenerateAnchor.ToString("0.###", CultureInfo.InvariantCulture),
+                            FsaPresentationBuilder.MinTotalYieldPercent.ToString("0.###", CultureInfo.InvariantCulture));
                     }
                 }
             }
@@ -6315,7 +6442,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     gateJudged++;
 
-                    bool[] zone = this.PeakWindowMask(component, calibration, fwhmCalibration,
+                    bool[] zone = this.PeakWindowMask(component, efficiency, calibration, fwhmCalibration,
                                                       bestGain, bestOffset, chLo, chHi, channels);
                     if (zone == null)
                     {
@@ -6872,7 +6999,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // второе уже поделено на живое время, и делить второй раз
                 // значило бы применить его дважды.
                 limit.DetectionLimitPeakCounts = detection
-                    * this.PeakWindowCounts(component, phi, calibration, fwhmCalibration,
+                    * this.PeakWindowCounts(component, phi, efficiency, calibration, fwhmCalibration,
                                             gain, offset, chLo, chHi, channels);
             }
 
@@ -6926,7 +7053,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         if (image != null)
                         {
                             peakCounts = hostLimit.DetectionLimitRate * liveTime
-                                * this.PeakWindowCounts(part, image, calibration, fwhmCalibration,
+                                * this.PeakWindowCounts(part, image, efficiency, calibration, fwhmCalibration,
                                                         gain, offset, chLo, chHi, channels);
                         }
                     }
@@ -8519,7 +8646,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Curve = curve,
                     SumPeakCurve = sumOnly,
                     ChannelCurves = channelCurves,
-                    PeakCounts = this.PeakWindowCounts(column.Component, curve, calibration,
+                    PeakCounts = this.PeakWindowCounts(column.Component, curve, efficiency, calibration,
                                                        fwhmCalibration, gain, offset,
                                                        chLo, chHi, channels),
                     CountRate = amplitude / liveTime,
@@ -9020,7 +9147,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Curve = part,
                     SumPeakCurve = sumOnly,
                     ChannelCurves = memberChannels,
-                    PeakCounts = this.PeakWindowCounts(source, part, calibration, fwhmCalibration,
+                    PeakCounts = this.PeakWindowCounts(source, part, efficiency, calibration, fwhmCalibration,
                                                        gain, offset, chLo, chHi, channels),
                     CountRate = amplitude / liveTime,
 
@@ -9091,7 +9218,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// «пиковое окно» по-своему, однажды разойдутся. Перекрытия
         /// складываются один раз — маска по каналам, а не сумма по линиям.
         /// </summary>
-        double PeakWindowCounts(FsaComponent component, double[] curve, EnergyCalibration calibration,
+        double PeakWindowCounts(FsaComponent component, double[] curve, FsaEfficiency efficiency,
+                                EnergyCalibration calibration,
                                 FwhmCalibration fwhmCalibration, double gain, double offset,
                                 int chLo, int chHi, int channels)
         {
@@ -9100,7 +9228,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return 0.0;
             }
 
-            bool[] inWindow = this.PeakWindowMask(component, calibration, fwhmCalibration,
+            bool[] inWindow = this.PeakWindowMask(component, efficiency, calibration, fwhmCalibration,
                                                   gain, offset, chLo, chHi, channels);
             if (inWindow == null)
             {
@@ -9120,14 +9248,189 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Маска пиковых окон компонента (±2 ПШПВ вокруг каждой линии и
-        /// каждого сумм-пика, правило <see cref="PeakWindowCounts"/>).
+        /// ⛔ МЕРКА ПИКОВОГО ОКНА (`AMBER62`, 22.09.2026): наименьшая доля
+        /// ожидаемых ПИКОВЫХ отсчётов образа, при которой линия получает своё
+        /// окно, в процентах от САМОЙ ЯРКОЙ линии того же компонента.
+        ///
+        /// ⛔ Зачем. Прежде окно ±2 ПШПВ открывалось вокруг КАЖДОЙ линии с
+        /// ненулевым выходом, как бы мала она ни была, и в «пиковые отсчёты»
+        /// входил чужой континуум. Мерено П127 22.09.2026 на витринном
+        /// `Cs 137 в домике`: у выведенного K-40 линия 511 (аннигиляция
+        /// следового β⁺, она появилась с ~~`AMBER54`~~) открыла окно на 511, куда
+        /// через матрицу вошёл комптон собственной 1460 — пиковые отсчёты
+        /// предела выросли в полтора с лишним раза, и предел на экране поехал
+        /// вместе с ними, хотя ни одного лишнего отсчёта в спектре не стало.
+        ///
+        /// ⚠ Мерка — по ДОЛЕ ПИКОВЫХ ОТСЧЁТОВ (<see cref="PeakWindowLinePeakCounts"/>),
+        /// а не по голой интенсивности: слабая линия там, где эффективность
+        /// высока, несёт больше отсчётов, чем сильная в хвосте кривой, и
+        /// порог по интенсивности судил бы не о том.
+        ///
+        /// ⚠ Доля берётся от САМОЙ ЯРКОЙ линии компонента, а не от их суммы, и
+        /// это не вкусовщина: у ряда с сотней сопоставимых линий доля каждой в
+        /// сумме меньше порога по построению, и правило «от суммы» оставило бы
+        /// такой ряд БЕЗ ЕДИНОГО окна. От максимума же самая яркая линия
+        /// проходит всегда, а вырождается правило в «окно есть у всех».
+        ///
+        /// Родня, где тот же порог уже назначен: свёртка строки предела по
+        /// суммарному выходу (<see cref="FsaPresentationBuilder.MinTotalYieldPercent"/>,
+        /// решение Amber 18.08.2026), впуск линии в образ вылета
+        /// (<see cref="FsaLibrary.EscapeMinIntensity"/>), отбор линий в
+        /// нуклидный набор. Третьего соглашения о том, какой выход заметен,
+        /// здесь не заводится нарочно.
+        /// </summary>
+        public const double PeakWindowMinPeakSharePercent = 1.0;
+
+        /// <summary>
+        /// Ожидаемые ПИКОВЫЕ отсчёты каждой линии образа при единичной
+        /// амплитуде — та величина, по которой судится пиковое окно
+        /// (<see cref="PeakWindowMinPeakSharePercent"/>). Единица у неё одна на
+        /// оба пути построения образа: отсчёты в пике полного поглощения на
+        /// один распад.
+        ///
+        /// По матрице — выход ПИКОВОГО канала отклика
+        /// (<see cref="EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak"/>),
+        /// умноженный на выход линии и на каскадную поправку этой линии: ровно
+        /// то, что <see cref="BuildResponseDeposit"/> кладёт в пик. По кривой —
+        /// выход на эффективность, как в <see cref="BuildTemplate"/>; у
+        /// компонента с готовыми весами (<see cref="FsaComponent.WeightsAreFinal"/>)
+        /// эффективность не применяется ни там, ни здесь.
+        ///
+        /// Открыт наружу для пробы: мерку, по которой окна раздаются, сторож
+        /// обязан видеть тем же числом, каким её видит разбор.
+        /// </summary>
+        /// <returns>null — компонента нет; иначе массив по числу линий, ноль у
+        /// линии, которой в образе нет вовсе.</returns>
+        public double[] PeakWindowLinePeakCounts(FsaComponent component, FsaEfficiency efficiency)
+        {
+            if (component == null || component.Lines == null)
+            {
+                return null;
+            }
+
+            bool byMatrix = this.ResponseMatrix != null && !component.WeightsAreFinal;
+            FsaCascadeSummer.Correction correction =
+                byMatrix && this.cascade != null ? this.cascade.For(component) : null;
+            if (correction != null && !correction.Any)
+            {
+                correction = null;
+            }
+
+            double[] counts = new double[component.Lines.Count];
+            for (int i = 0; i < component.Lines.Count; i++)
+            {
+                FsaLine line = component.Lines[i];
+                if (!(line.Energy > 0.0) || !(line.Intensity > 0.0))
+                {
+                    continue;
+                }
+
+                double weight = line.Intensity / 100.0;
+                if (byMatrix)
+                {
+                    double cf = correction != null && correction.LineFactors != null
+                                && i < correction.LineFactors.Length
+                        ? correction.LineFactors[i]
+                        : 1.0;
+                    weight *= cf * this.MatrixPeakEfficiency(line.Energy);
+                }
+                else if (efficiency != null && !component.WeightsAreFinal)
+                {
+                    double e = efficiency.Eval(line.Energy);
+                    weight = e > 0.0 ? weight * e : 0.0;
+                }
+
+                counts[i] = weight > 0.0 ? weight : 0.0;
+            }
+
+            return counts;
+        }
+
+        /// <summary>
+        /// (`S169`) Канал линии ПО КАРТЕ НУЛЯ последнего разбора — тем же
+        /// правилом, каким образ ставит свои пики и каким открывается пиковое
+        /// окно (<see cref="MarkPeakWindow"/>). Дрейф сюда НЕ входит: усиление
+        /// и сдвиг читатель берёт из <see cref="FsaResult.Gain"/> и
+        /// <see cref="FsaResult.OffsetChannels"/>.
+        ///
+        /// Открыт наружу для пробы `AMBER62`: своей копии карты нуля у неё нет,
+        /// а построй она положение линии сама — отказывала бы на карте, а не на
+        /// мерке окна, то есть сторожила бы не то.
+        /// </summary>
+        public double LinePositionChannel(EnergyCalibration calibration, double energyKev, int channels)
+        {
+            return this.LightToChannel(calibration, energyKev, channels);
+        }
+
+        /// <summary>
+        /// Выход ПИКОВОГО канала матрицы на линию энергии
+        /// <paramref name="energyKev"/> — доля квантов, поглощённых целиком.
+        ///
+        /// ⚠ Маска замера каналов (<see cref="MatrixChannelMask"/>) здесь
+        /// НАРОЧНО не спрашивается: она — ключ опыта, снимающий канал у
+        /// ОБРАЗА, а мерка окна говорит о том, где у линии пик, а не сколько
+        /// его нынче нарисовано. Спроси её — и прогон со снятым пиковым
+        /// каналом остался бы без единого пикового окна во всём разборе.
+        /// </summary>
+        double MatrixPeakEfficiency(double energyKev)
+        {
+            EfficiencyMaker.ResponseMatrix matrix = this.ResponseMatrix;
+            if (matrix == null || !(energyKev > 0.0))
+            {
+                return 0.0;
+            }
+
+            double cached;
+            if (this.peakEfficiencies.TryGetValue(energyKev, out cached))
+            {
+                return cached;
+            }
+
+            double bin = matrix.BinKev;
+            double yield = 0.0;
+            if (bin > 0.0)
+            {
+                // Площадь переноса не зависит от длины приёмника: край
+                // ЗАЖИМАЕТСЯ, а не отбрасывается (`Stretch`), — поэтому массив
+                // ровно до энергии линии, и ни бина больше.
+                double[] row = new double[(int)(energyKev / bin + 0.5) + 2];
+                if (matrix.HasChannels)
+                {
+                    matrix.AccumulateChannel(row, energyKev, 1.0,
+                                             (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak);
+                }
+                else
+                {
+                    // ⚠ У матрицы без раскладки по каналам пикового канала нет
+                    // вовсе, и спросить его значит получить ноль у КАЖДОЙ линии
+                    // — то есть маску без единого окна. Такой матрице отвечает
+                    // весь отклик разом: он не «пиковый», но линии ранжирует
+                    // тем же порядком, а мерка относительная.
+                    matrix.Accumulate(row, energyKev, 1.0);
+                }
+
+                for (int b = 0; b < row.Length; b++)
+                {
+                    yield += row[b];
+                }
+            }
+
+            this.peakEfficiencies[energyKev] = yield;
+            return yield;
+        }
+
+        /// <summary>
+        /// Маска пиковых окон компонента (±2 ПШПВ вокруг каждой ЗАМЕТНОЙ линии
+        /// и каждого сумм-пика, правило <see cref="PeakWindowCounts"/>).
         /// null — ни одна линия не легла в окно фита: счёт по такой маске был
         /// бы не «пиковым», а случайным остатком. Одна на два потребителя
         /// (пиковый счёт и парциальные невязки P6) нарочно: два места,
         /// считающие «пиковое окно» по-своему, однажды разойдутся.
+        ///
+        /// (`AMBER62`) Заметность линии — <see cref="PeakWindowMinPeakSharePercent"/>.
         /// </summary>
-        bool[] PeakWindowMask(FsaComponent component, EnergyCalibration calibration,
+        bool[] PeakWindowMask(FsaComponent component, FsaEfficiency efficiency,
+                              EnergyCalibration calibration,
                               FwhmCalibration fwhmCalibration, double gain, double offset,
                               int chLo, int chHi, int channels)
         {
@@ -9139,11 +9442,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             bool[] inWindow = new bool[channels];
             bool any = false;
 
-            foreach (FsaLine line in component.Lines)
+            double[] linePeakCounts = this.PeakWindowLinePeakCounts(component, efficiency);
+            double brightest = 0.0;
+            for (int i = 0; linePeakCounts != null && i < linePeakCounts.Length; i++)
             {
-                if (line.Intensity > 0.0
-                    && MarkPeakWindow(inWindow, line.Energy, calibration, fwhmCalibration,
-                                      gain, offset, chLo, chHi, channels))
+                if (linePeakCounts[i] > brightest)
+                {
+                    brightest = linePeakCounts[i];
+                }
+            }
+
+            double floor = brightest * PeakWindowMinPeakSharePercent / 100.0;
+            for (int i = 0; i < component.Lines.Count; i++)
+            {
+                FsaLine line = component.Lines[i];
+                double peakCounts = linePeakCounts != null && i < linePeakCounts.Length
+                    ? linePeakCounts[i] : 0.0;
+                if (!(line.Intensity > 0.0) || !(peakCounts > 0.0) || !(peakCounts >= floor))
+                {
+                    continue;
+                }
+
+                if (MarkPeakWindow(inWindow, line.Energy, calibration, fwhmCalibration,
+                                   gain, offset, chLo, chHi, channels))
                 {
                     any = true;
                 }
@@ -9152,6 +9473,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Сумм-пик принадлежит своему нуклиду и стоит там, где линии нет
             // вовсе; без него у плотных каскадов (Lu-176) пиковый счёт терял бы
             // то, что каскадная поправка вынесла из линий.
+            //
+            // ⛔ Мерка `AMBER62` на сумм-пики НЕ распространяется, и это не
+            // недосмотр: его площадь — произведение ДВУХ пиковых эффективностей
+            // (`p_ij·ε_p(i)·ε_p(j)·S_ij`) и потому мала у каждого по
+            // отдельности. Судить её тем же полом, что и одиночную линию,
+            // значило бы отнять у плотного каскада все сумм-окна разом — то
+            // есть вернуть ровно ту потерю, ради которой сумм-пики сюда и
+            // заведены. Свой отсев у них есть и свой (`SumPeakFloor`,
+            // `SumPeakAreaShare`, `MaxSumPeaks`).
             FsaCascadeSummer.Correction correction =
                 this.cascade != null && this.CascadeSumPeaks ? this.cascade.For(component) : null;
             if (correction != null && correction.SumPeaks != null)
@@ -9252,7 +9582,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     break;
                 }
 
-                bool[] zone = this.PeakWindowMask(column.Component, calibration, fwhmCalibration,
+                bool[] zone = this.PeakWindowMask(column.Component, efficiency, calibration, fwhmCalibration,
                                                   gain, offset, chLo, chHi, channels);
                 if (zone == null)
                 {
@@ -10288,21 +10618,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// новой физики не нужно, и ширина получается правильной сама:
         /// свёртка двух пиков с ПШПВ w даёт w·√2, как и положено сумме.
         ///
-        /// СОБЫТИЯ ПЕРЕНОСЯТСЯ, А НЕ ДОБАВЛЯЮТСЯ. Наложившаяся пара уходит с
-        /// обеих своих энергий и приходит на сумму, поэтому образ равен
-        /// `(s⊗s)/N − s`: приход автосвёрткой И убыль самим спектром. Колонка
-        /// получается знакопеременной с НУЛЕВЫМ интегралом — как и положено
-        /// переносу. Одна убыль без прихода (или наоборот) — не приближение, а
-        /// другая физика: первая версия считала только приход, и фит,
-        /// получив колонку, которая умеет только добавлять счёт, разъехался —
+        /// СОБЫТИЯ ПЕРЕНОСЯТСЯ, А НЕ ДОБАВЛЯЮТСЯ — И ПЕРЕНОС НЕ СОХРАНЯЕТ
+        /// СЧЁТ. Наложившаяся пара уходит с ОБЕИХ своих энергий и приходит
+        /// ОДНИМ отсчётом на сумму, поэтому образ равен `(s⊗s)/N − 2·s`:
+        /// приход автосвёрткой И убыль удвоенным спектром (первый порядок по
+        /// доле пар Rτ: `s' = s·(1 − 2Rτ) + Rτ·(s⊗s)/N`, Wielopolski &amp;
+        /// Gardner, NIM 133 (1976) 303; Knoll, гл. 17). Колонка знакопеременна,
+        /// интеграл её равен −N: из каждой пары один отсчёт теряется.
+        ///
+        /// ⛔ (`AMBER49`, П120 22.09.2026) До того убыль вычиталась ОДИН раз
+        /// (`(s⊗s)/N − s`, интеграл ноль, «перенос»). Амплитуду колонки
+        /// закрепляет сумм-пик, поэтому из фотопиков вынималась половина
+        /// убыли, и вторую половину брали на себя образы нуклидов: активности
+        /// ВСЕХ нуклидов спектра выходили заниженными на долю пар Rτ.
+        /// Измерено `FsaPileUpProbe` подсадкой пар с известной долей f в
+        /// «Cs 137 в домике»: смещение Cs-137 −0.00507 / −0.01010 / −0.02037
+        /// при f = 0.005 / 0.01 / 0.02 (то есть ровно −f) до правки; после —
+        /// см. журнал `handover/handover-2026-09-22-p120-fsa-pileup-livetime.md`.
+        /// Одна убыль без прихода (или наоборот) — не приближение, а другая
+        /// физика: первая версия считала только приход, и фит, получив
+        /// колонку, которая умеет только добавлять счёт, разъехался —
         /// χ²/ndf 34.1 → 87.6, а τ вышло 1.37 мкс вместо измеренных 0.37.
         ///
         /// СВОБОДНАЯ АМПЛИТУДА ЗДЕСЬ ПРАВОМЕРНА — в отличие от сумм-пиков
         /// каскада, которым свободная колонка запрещена. Разница в том, чем
         /// задана величина: у каскада геометрией и схемой распада (значит она
         /// ИЗВЕСТНА, и свобода позволила бы подогнать её под континуум), у
-        /// наложений — произведением 2τR, где разрешающее время τ не записано
-        /// нигде. Фит его и находит: амплитуда колонки равна ровно 2τR.
+        /// наложений — долей пар Rτ, где разрешающее время τ не записано
+        /// нигде. Фит его и находит: амплитуда колонки (в единицах полного
+        /// счёта N, см. нормировку ниже) равна доле пар Rτ; доля ЗАТРОНУТЫХ
+        /// импульсов — 2Rτ.
         ///
         /// Считается ОДИН раз на разбор: от сетки дрейфа не зависит.
         ///
@@ -10423,18 +10768,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            // Убыль: пара ушла с обеих своих энергий. Интеграл колонки после
-            // этого равен нулю — перенос, а не добавка.
+            // Убыль: пара ушла с ОБЕИХ своих энергий — два отсчёта, а пришёл
+            // один. Интеграл колонки после этого равен −N (до деления): счёт
+            // при наложениях теряется, а не переносится. ⛔ (`AMBER49`) До
+            // 22.09.2026 здесь вычиталась одна масса `byEnergy[k]`, и модель
+            // вынимала из фотопиков вдвое меньше, чем надо; измерено
+            // `FsaPileUpProbe` — смещение активности ровно −f при подсадке пар
+            // долей f.
             //
             // И сразу ДЕЛИМ НА ПОЛНЫЙ СЧЁТ. Без этого колонка идёт в единицах
             // отсчётов (до миллиона на канал), а образы линий — в долях на
             // распад (порядка 1e-3): матрица Грама получает разброс норм в
             // десятки порядков и NNLS разъезжается. Первая версия без деления
             // давала χ²/ndf 34.1 → 87.8 на ровном месте. Цена нормировки —
-            // амплитуда колонки равна теперь 2τR·N, а не 2τR.
+            // амплитуда колонки равна теперь Rτ·N (число пар), а не Rτ.
             for (int k = 0; k < bins; k++)
             {
-                pile[k] = (pile[k] - byEnergy[k]) / total;
+                pile[k] = (pile[k] - 2.0 * byEnergy[k]) / total;
             }
 
             // Обратно на шкалу каналов, с сохранением площади: в канал идёт та

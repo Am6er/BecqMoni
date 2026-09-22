@@ -2385,6 +2385,12 @@ http://xptable.sourceforge.net/</value>
   <data name="FSANoCalibration" xml:space="preserve">
     <value>Полноспектральному разложению нужны энергетическая калибровка и калибровка ПШПВ спектра</value>
   </data>
+  <data name="FSANoLiveTime" xml:space="preserve">
+    <value>Полноспектральное разложение: у спектра нет времени измерения (живое и полное время — нули) — имп/с не образовать; задайте время измерения спектра</value>
+  </data>
+  <data name="FSAAnnihilationDegenerate" xml:space="preserve">
+    <value>{0}: аннигиляция — единственное его измеримое излучение: прочие линии в полосе фита дают {1} % на распад при поле {2} %; свободный образ 511 и нуклид — один столбец, свободный образ снят</value>
+  </data>
   <data name="FSAReportEfficiencyFieldCurve" xml:space="preserve">
     <value>учтена формой: кривая сцены поля (см² на единичный флюенс); беккерели по ней не выводятся</value>
   </data>

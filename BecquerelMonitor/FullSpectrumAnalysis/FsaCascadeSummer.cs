@@ -2634,6 +2634,89 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// (`AMBER59`, П121) ЧИТАТЕЛЬ ДЛЯ ПРОБ: партнёры линии нуклида ПОСЛЕ
+        /// дополнения атомными участниками — строки {E_партнёра, P(партнёр |
+        /// ключ), кратность, ε_T(партнёра)}, а также ключ таблицы выходов, к
+        /// которому сошлась линия, и выход этого ключа, %. Пусто и NaN —
+        /// нуклид не разбирается или линии нет в таблице выходов. Зачем: у
+        /// слитого ключа Kα (Kα1/Kα2 ближе <see cref="SameLineKev"/>) обратная
+        /// условная делится на выход ключа, и без читателя «выход одного Kα2»
+        /// и «выход всей пары» с виду одно и то же — обе дают CF.
+        /// </summary>
+        public List<double[]> PartnerTable(string nuclide, double energyKev,
+                                           out double key, out double intensity)
+        {
+            key = double.NaN;
+            intensity = double.NaN;
+            var rows = new List<double[]>();
+            NuclideData data = this.Data(nuclide);
+            if (data == null)
+            {
+                return rows;
+            }
+
+            double found;
+            if (!Match(data.Intensity, energyKev, out found))
+            {
+                return rows;
+            }
+
+            key = found;
+            intensity = data.Intensity[found];
+            foreach (KeyValuePair<double, double> partner in Partners(data, found))
+            {
+                double quanta = 1.0;
+                double had;
+                if (data.PartnerQuanta != null
+                    && data.PartnerQuanta.TryGetValue(partner.Key, out had) && had > 0.0)
+                {
+                    quanta = had;
+                }
+
+                rows.Add(new[] { partner.Key, partner.Value, quanta, this.TotalEfficiency(partner.Key) });
+            }
+
+            rows.Sort((a, b) => a[0].CompareTo(b[0]));
+            return rows;
+        }
+
+        /// <summary>
+        /// (`AMBER61`, П121) ЧИТАТЕЛЬ ДЛЯ ПРОБ: разложение K-вакансии при линии
+        /// нуклида по ИСТОЧНИКАМ — строки {E_перехода-источника (0 — захват),
+        /// P(вакансия от этого источника | линия)·ω_K}. Сумма строк — то самое
+        /// `V·ω_K`, на которое умножаются доли серии в `Partners`. Зачем: у
+        /// линии с двумя источниками вакансии (захват и конверсия соседа;
+        /// Ba-133 356: 0.74 + 0.47) сумма долей K-серии в партнёрах больше
+        /// единицы, и «исключающие ответы одной вакансии» надо считать по
+        /// каждому источнику отдельно — читателю нужны слагаемые, а не сумма.
+        /// Пусто — нуклид не разбирается, линии нет или личности у неё нет.
+        /// </summary>
+        public List<double[]> VacancyTable(string nuclide, double energyKev)
+        {
+            var rows = new List<double[]>();
+            NuclideData data = this.Data(nuclide);
+            double key;
+            LineIdentity identity;
+            if (data == null || data.Lines == null || !Match(data.Intensity, energyKev, out key)
+                || !data.Lines.TryGetValue(key, out identity))
+            {
+                return rows;
+            }
+
+            if (identity.Capture > 0.0)
+            {
+                rows.Add(new[] { 0.0, identity.Capture * identity.OmegaK });
+            }
+
+            foreach (VacancyTerm term in identity.Terms)
+            {
+                rows.Add(new[] { term.Kev, term.Conditional * term.AlphaK * term.Together * identity.OmegaK });
+            }
+
+            return rows;
+        }
+
+        /// <summary>
         /// Доля событий, в которых НЕ зарегистрирован НИ ОДИН из партнёров:
         /// `∏_j (1 − p_j)`, где `p_j = P(j|k) · ε_T(j)` (`S144`).
         ///
@@ -2650,14 +2733,45 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// МОЛЧА выключалась ровно там, где она сильнейшая. У произведения
         /// такого исхода нет по построению: оно лежит в [0, 1].
         ///
-        /// ⚠ ПРИБЛИЖЕНИЕ НАЗВАНО: партнёры считаются независимыми при данном
-        /// опорном кванте. У ВЗАИМНО ИСКЛЮЧАЮЩИХ ветвей это чуть занижает
-        /// потерю (верна была бы сумма), но разводить их нечем — условные
-        /// вероятности поставки не несут признака ветви. Родня: `S145`.
+        /// ⚠ ПРИБЛИЖЕНИЕ НАЗВАНО: ЯДЕРНЫЕ партнёры считаются независимыми при
+        /// данном опорном кванте. У ВЗАИМНО ИСКЛЮЧАЮЩИХ ветвей это чуть
+        /// занижает потерю (верна была бы сумма), но разводить их нечем —
+        /// условные вероятности поставки не несут признака ветви. Родня: `S145`.
+        ///
+        /// ⛔ K-СЕРИЯ ОПОРНОЙ ЛИНИИ — ИНАЧЕ (`AMBER61`, П121 22.09.2026,
+        /// решение Amber «вариант — ближе к арбитру»). Kα1, Kα2, Kβ — ответы
+        /// ОДНОЙ вакансии, исключающие друг друга, и разводить их ЕСТЬ чем:
+        /// доли серии (`XrayShare`) и разложение вакансии по источникам
+        /// (`LineIdentity`: захват, конверсия соседей — независимые события)
+        /// коду известны. Множитель выживания по K-серии —
+        ///
+        ///     ∏_v (1 − P_v·ε̄_K − [γ_T·ε_T]),   ε̄_K = Σ_i s_i·ε_i,
+        ///
+        /// по источникам вакансии v; у источника «конверсия перехода T» в тот
+        /// же множитель входит и партнёр-гамма γ_T (при конверсии γ_T нет —
+        /// исключающие исходы одного перехода). Прежнее произведение
+        /// `∏_i (1 − s_i·V·ε_i)` занижало потерю на ≈ 0.3·V²·ε̄² — на сцене P5
+        /// 0.04 % CF (не видно), на контактной сцене Ba-133 356 — CF 1.381
+        /// против 1.403 у формулы выше при 1.4158 ± 0.0022 у Geant4 (в системе
+        /// величин самого Geant4: произведение 1.3925, «вся серия одним
+        /// исключающим множеством» 1.4091, эта формула 1.4145 — журнал полосы
+        /// §5.4). Без личности линии (третий квант пары, `angularKev` = 0) —
+        /// прежний счёт побитово.
         /// </summary>
         double SurviveAll(NuclideData data, Dictionary<double, double> partners,
                           HashSet<double> supply, double referenceKev, double angularKev)
         {
+            // (`AMBER61`) Личность опорной линии — по её ключу (в
+            // `CoincidenceFactor` `angularKev` и есть ключ таблицы выходов).
+            LineIdentity identity = null;
+            if (angularKev > 0.0 && data != null && data.Lines != null && data.XrayShare != null)
+            {
+                data.Lines.TryGetValue(angularKev, out identity);
+            }
+
+            double vacancy = identity != null ? VacancyGiven(identity) : 0.0;
+            double kWeighted = 0.0;                                 // Σ P_i·ε_i' по носителям K-серии
+            Dictionary<double, double> linkedGammas = null;        // γ_T источника вакансии → p·ε'
             double survive = 1.0;
             foreach (KeyValuePair<double, double> partner in partners)
             {
@@ -2692,13 +2806,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     efficiency = Math.Min(1.0, efficiency * this.JointFactor(referenceKev, partner.Key));
                 }
 
+                // (`AMBER61`) Носитель K-серии опорной линии — в общий счёт по
+                // источникам вакансии ниже, а не множителем здесь. `Partners`
+                // держит s_i·V (доля серии на вакансию при линии, `Augment`),
+                // и Σ P_i·ε_i' / V — средняя по серии ε̄_K; носитель ниже сетки
+                // матрицы в `Partners` не попал и в ε̄ входит нулём — верно:
+                // до кристалла он не доходит.
+                if (identity != null && vacancy > 0.0 && data.XrayShare.ContainsKey(partner.Key)
+                    && !(data.PartnerQuanta != null && data.PartnerQuanta.ContainsKey(partner.Key)))
+                {
+                    kWeighted += partner.Value * efficiency;
+                    continue;
+                }
+
                 // ⛔ КРАТНОСТЬ ПАРТНЁРА (`S147`). У аннигиляции `Partners` несёт
                 // не вероятность, а ОЖИДАЕМОЕ ЧИСЛО квантов (2·доля β⁺). Два
-                // фотона рождаются ВМЕСТЕ, а не независимо, поэтому верная
-                // потеря равна q·(1−(1−ε)ᵐ), где q — доля события, а m — число
-                // квантов в нём. Прежнее `value·ε` при q = 1 и ε = 0.6 давало
-                // 1.2, зажималось в единицу — «пик потерян целиком» вместо
-                // верных 0.84.
+                // фотона рождаются ВМЕСТЕ, а не независимо, поэтому потеря
+                // равна q·P(хоть один задел), где q — доля события, а m —
+                // число квантов в нём; с `S147` (10.09.2026) это было
+                // q·(1−(1−ε)ᵐ) — кванты независимы по направлению, с П121
+                // (`AMBER60`) — q·min(1, m·ε), кванты спина к спине (ниже).
+                // Прежнее `value·ε` при q = 1 и ε = 0.6 давало 1.2, зажималось
+                // в единицу — «пик потерян целиком» вместо верных 0.84 (S147).
+                // ⚠ Сам пример с ε = 0.6 у внешнего источника нефизичен:
+                // выпуклое тело снаружи видно меньше чем в 2π, ε_T(511) ≤ 0.5,
+                // и `min(1, 2ε)` ниже единицы не достигает — зажим там только
+                // страховка от κ_pT > 1.
                 double quanta = 1.0;
                 if (data != null && data.PartnerQuanta != null)
                 {
@@ -2759,12 +2892,109 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
-                double miss = Math.Pow(1.0 - efficiency, quanta);
+                // ⛔ КВАНТЫ ОДНОЙ АННИГИЛЯЦИИ НЕСОВМЕСТНЫ В ЗАДЕВАНИИ (`AMBER60`,
+                // П121 22.09.2026). Два кванта 511 летят СТРОГО спина к спине,
+                // и у источника ВНЕ выпуклого кристалла (а все сцены
+                // суммирователя — точка, сосуд, маринелли — снаружи: любая точка
+                // маринелли тоже вне тела кристалла) прямая через точку распада
+                // пересекает кристалл одним отрезком — задеть его может ЛИШЬ
+                // ОДИН из двух. Вероятность «хоть один задел» — не
+                // `1 − (1 − ε)²` независимых, а сумма несовместных `2ε` (в
+                // единицу). То же решение Amber 18.08.2026 для пары 511 + 511
+                // (`CascadeAtomicData.AnnihilationQuanta`: «оба кванта попасть
+                // почти не могут вовсе»). Разница — `ε²`, то есть ε/2 от потери:
+                // на `G1S_point5` (ε_T(511) = 0.0335) вынос 1274.5 Na-22
+                // 0.05963 → 0.06065, CF 1.0632 → 1.0644; у контактной сцены
+                // (ε_T ≈ 0.3) — десятки процентов потери. Второй квант,
+                // рассеянный обвязкой в кристалл при первом в нём же, —
+                // поправка второго порядка, её судит арбитр Geant4 (журнал
+                // полосы). Одиночным партнёрам (`quanta` = 1) формула прежняя.
+                double miss = quanta > 1.0
+                    ? Math.Max(0.0, 1.0 - quanta * efficiency)
+                    : 1.0 - efficiency;
                 double p = share * (1.0 - miss);
+
+                // (`AMBER61`) Гамма перехода-источника вакансии (γ_T при
+                // конверсии T) — в множитель своего источника ниже: γ_T и
+                // K(T) — исключающие исходы одного перехода.
+                if (identity != null && vacancy > 0.0 && quanta <= 1.0
+                    && VacancySourceOf(identity, partner.Key) != null)
+                {
+                    if (linkedGammas == null)
+                    {
+                        linkedGammas = new Dictionary<double, double>();
+                    }
+
+                    linkedGammas[partner.Key] = p;
+                    continue;
+                }
+
                 survive *= p < 1.0 ? 1.0 - p : 0.0;
             }
 
+            // (`AMBER61`) Множители по источникам K-вакансии: ответы одной
+            // вакансии исключающи (сумма долей серии), вакансии разных
+            // источников независимы (произведение), γ_T — в множителе своего
+            // перехода.
+            if (identity != null && vacancy > 0.0)
+            {
+                double meanEfficiency = kWeighted / vacancy;
+                if (identity.Capture > 0.0)
+                {
+                    double p = Math.Min(1.0, identity.Capture * identity.OmegaK * meanEfficiency);
+                    survive *= 1.0 - p;
+                }
+
+                foreach (VacancyTerm term in identity.Terms)
+                {
+                    double p = term.Conditional * term.AlphaK * term.Together * identity.OmegaK * meanEfficiency;
+                    if (linkedGammas != null)
+                    {
+                        foreach (double gammaKey in new List<double>(linkedGammas.Keys))
+                        {
+                            if (Math.Abs(gammaKey - term.Kev) < SameLineKev)
+                            {
+                                p += linkedGammas[gammaKey];
+                                linkedGammas.Remove(gammaKey);
+                            }
+                        }
+                    }
+
+                    p = Math.Min(1.0, p);
+                    survive *= 1.0 - p;
+                }
+
+                // Гамма, чей источник совпал по энергии с двумя строками
+                // (межканальный дубль): второй экземпляр — прежним множителем.
+                if (linkedGammas != null)
+                {
+                    foreach (double p in linkedGammas.Values)
+                    {
+                        survive *= p < 1.0 ? 1.0 - p : 0.0;
+                    }
+                }
+            }
+
             return survive;
+        }
+
+        /// <summary>
+        /// (`AMBER61`) Слагаемое разложения вакансии, чей переход-источник —
+        /// линия с этим ключом (допуск <see cref="SameLineKev"/>: ключ — из
+        /// таблицы выходов, энергия слагаемого — из `decay_radiations`); null —
+        /// линия не источник вакансии при опорной.
+        /// </summary>
+        static VacancyTerm VacancySourceOf(LineIdentity identity, double key)
+        {
+            foreach (VacancyTerm term in identity.Terms)
+            {
+                if (Math.Abs(term.Kev - key) < SameLineKev)
+                {
+                    return term;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -3891,6 +4121,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Выходы носителей — в таблицу выходов ДО построения пар: обратная
             // условная считается через них, и на полпути их там быть уже
             // должно.
+            //
+            // ⛔ У ОБЩЕГО КЛЮЧА ВЫХОД — СУММА НОСИТЕЛЕЙ (`AMBER59`, П121
+            // 22.09.2026). `Match` сводит носителей допуском `SameLineKev` =
+            // 0.3 кэВ, а Kα1 и Kα2 при Z ≲ 53 стоят ближе (Te у I-125:
+            // 27.202 и 27.473, разница 0.271; In 22.983/23.173; Sr
+            // 13.336/13.396) — два носителя ложатся под ОДИН ключ. Прежде
+            // второй носитель находил ключ занятым и выход ключа оставался
+            // выходом ПЕРВОГО (у I-125 — 39.4 % одного Kα2 вместо 112.9 %
+            // пары), а обратная условная ниже делит на этот выход:
+            // P(γ | Kα) = P(Kα | γ)·I(γ)/I(ключа) выходила завышенной в
+            // (I_Kα1 + I_Kα2)/I_Kα2 ≈ 2.9 раза — померено на сцене
+            // `G1S_point5`: P(35.49 | 27.2) 0.096751 вместо 0.033803 (столько
+            // же, сколько у ключа Kβ, где сливать нечего). Складывать можно
+            // ТОЛЬКО с ключами, заведёнными здесь же носителями (`carrierKeys`):
+            // ключ ядерной линии или поставки совпадений несёт свой полный
+            // выход, и прибавка к нему удвоила бы площадь пар этой линии —
+            // то же правило, что у `ownKeys` для строк гамма выше (`S161`).
+            var carrierKeys = new HashSet<double>();
             foreach (Carrier carrier in AllCarriers(carriers, carriersOf))
             {
                 // ⛔ У АННИГИЛЯЦИИ КЛЮЧ СВОЙ, И ИСКАТЬ ЕГО СРЕДИ ЯДЕРНЫХ ЛИНИЙ
@@ -3913,10 +4161,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double had;
-                if (!Match(data.Intensity, carrier.EnergyKev, out had))
+                double sharedKey;
+                if (!Match(data.Intensity, carrier.EnergyKev, out sharedKey))
                 {
                     data.Intensity[carrier.EnergyKev] = carrier.IntensityPct;
+                    carrierKeys.Add(carrier.EnergyKev);
+                }
+                else if (carrierKeys.Contains(sharedKey))
+                {
+                    data.Intensity[sharedKey] += carrier.IntensityPct;
                 }
             }
 

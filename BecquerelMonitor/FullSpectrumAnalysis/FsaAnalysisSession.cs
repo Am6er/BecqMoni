@@ -437,6 +437,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return Properties.Resources.FSANoFit;
                 case FsaRefusal.Input:
                     return Properties.Resources.FSANoCalibration;
+                case FsaRefusal.NoLiveTime:
+                    return Properties.Resources.FSANoLiveTime;
                 default:
                     return Properties.Resources.FSANotPossible;
             }
