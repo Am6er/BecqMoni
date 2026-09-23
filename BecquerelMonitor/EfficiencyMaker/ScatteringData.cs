@@ -182,19 +182,29 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 double rest = target - cum[i];
                 double t0 = t[i];
-                double t1 = i + 1 < n ? t[i + 1] : tMax;
-                if (i == last)
-                {
-                    t1 = tMax;
-                }
-
+                // ⛔ (`AMBER57`, П122 22.09.2026, физика 23) НАКЛОН F² — ПО ПОЛНОМУ
+                // ОТРЕЗКУ СЕТКИ, `tMax` ОГРАНИЧИВАЕТ ТОЛЬКО Δ. До того при
+                // `i == last` ширина бралась `tMax − t[last]`, а правый конец —
+                // `f2[last + 1]`, значение в узле ЗА `tMax`: наклон выходил
+                // завышенным в `(t[last+1] − t[last])/(tMax − t[last])` раз
+                // (1.1…72× на измеренных парах Z/E), тогда как вес того же отрезка
+                // (`head`, <see cref="PartialIntegral"/>) считан с верным
+                // наклоном. Квадратное уравнение решалось не для той плотности,
+                // и часть розыгрышей упиралась в зажим `delta > dt`, садясь ровно
+                // на θ = 180°: замер П122 (`RayleighTailProbe`, 10⁶ розыгрышей) —
+                // Na 58 кэВ 0.106 %, I 33.5 кэВ 0.250 % всех когерентных на
+                // зажиме при верной доле хвоста (розыгрыш = аналитика). Узлов
+                // `i ≤ last ≤ n − 2`, так что `i + 1 < n` всегда.
+                double t1 = t[i + 1];
                 double a = f2[i];
-                double b = i + 1 < n ? f2[i + 1] : f2[i];
+                double b = f2[i + 1];
                 double dt = t1 - t0;
                 if (!(dt > 0.0))
                 {
                     return t0;
                 }
+
+                double limit = i == last ? tMax - t0 : dt;
 
                 // ∫ от t0 до t: a·Δ + (b−a)/dt·Δ²/2 = rest
                 double slope = (b - a) / dt;
@@ -210,7 +220,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 if (delta < 0.0) delta = 0.0;
-                if (delta > dt) delta = dt;
+                if (delta > limit) delta = limit;
                 return t0 + delta;
             }
 

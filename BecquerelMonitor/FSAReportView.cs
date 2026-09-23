@@ -213,6 +213,7 @@ namespace BecquerelMonitor
                 case FsaMatrixLayer.EscapeXrayK: return "FSAReport_MatrixLayerEscapeXrayK";
                 case FsaMatrixLayer.EscapeAnnihilationDouble: return "FSAReport_MatrixLayerEscapeAnnihilationDouble";
                 case FsaMatrixLayer.EscapeXrayL: return "FSAReport_MatrixLayerEscapeXrayL";
+                case FsaMatrixLayer.AnnihilationOutside: return "FSAReport_MatrixLayerAnnihilationOutside";
                 default: return "FSAReport_MatrixLayerAll";
             }
         }
@@ -397,7 +398,7 @@ namespace BecquerelMonitor
             this.headerFont = new Font(this.Font, FontStyle.Bold);
 
             // (`AMBER45`) Пункты комбо «Matrix layer» — кодом, из собственных
-            // ресурсов окна: «All» первым, за ним шесть каналов по номеру
+            // ресурсов окна: «All» первым, за ним семь каналов по номеру
             // (<see cref="FsaMatrixLayers.Channels"/>). Список каналов один на
             // проект — здесь он только подписывается.
             this.loading = true;

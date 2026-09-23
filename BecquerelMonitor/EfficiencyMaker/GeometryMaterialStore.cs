@@ -126,7 +126,22 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///     ториевый диск Ø40 × 5 мм стоял в геометрии как `Glass, plate`
         ///     2.4 г/см³ при взвешенных 4.345, и матрица отклика этой сцены
         ///     делала модель хуже, чем расчёт без матрицы вовсе.
-        public const int CurrentSeedVersion = 7;
+        /// 8 (22.09.2026) — ВОЗДУХ И СТЕКЛО по NIST (`AMBER53`): «Air, dry»
+        ///     получил состав NIST вместо формулы `N2 O1` (не было аргона), а
+        ///     стеклом стенки сосуда стала «Glass, plate» вместо кварца
+        ///     «Glass». Новых ИМЁН поколение не приносит, и потому одного
+        ///     сведения по именам мало — нужен ПЕРЕНОС
+        ///     (<see cref="MigrateAirGlass"/>, `AMBER67`).
+        public const int CurrentSeedVersion = 8;
+
+        /// <summary>
+        /// (`AMBER67`) Поколение, НАЧИНАЯ С КОТОРОГО воздух и стекло стоят по
+        /// NIST. Файл более старого поколения проходит перенос
+        /// <see cref="MigrateAirGlass"/>; отдельной постоянной — чтобы
+        /// следующее поколение засева (новое вещество) не заставляло перенос
+        /// повторяться и чтобы условие читалось словом, а не числом.
+        /// </summary>
+        const int AirGlassSeedVersion = 8;
 
         static List<GeometryMaterialLibrary.Entry> entries;
         static List<string> removed = new List<string>();
@@ -234,7 +249,314 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
+            // (`AMBER67`) ...а затем перенести то, у чего ИМЯ ОСТАЛОСЬ ПРЕЖНИМ,
+            // а содержимое в засеве переписано. Сведение выше такого не видит
+            // по построению: оно смотрит только на отсутствующие имена.
+            if (config.SeedVersion < AirGlassSeedVersion)
+            {
+                MigrateAirGlass(list, seed);
+            }
+
             entries = list;
+        }
+
+        /// <summary>
+        /// (`AMBER67`, решение Amber 22.09.2026 вопросником, дословно: «Да,
+        /// перенос кодом: только записи, ПОБИТОВО равные прежнему засеву»)
+        /// ПЕРЕНОС библиотеки пользователя на засев поколения 8 — воздух и
+        /// стекло по NIST (`AMBER53`).
+        ///
+        /// ⛔ Трогается ТОЛЬКО запись, побитово равная тому, чем её положил
+        /// ПРЕЖНИЙ засев: имя, сокращение, формула, плотность, вид, состав,
+        /// смесь — всё до последнего поля. Правленная рукой остаётся как есть,
+        /// даже если правка — одна цифра плотности: своё вещество человека
+        /// программа переписывать не вправе, а отличить «своё» от «нашего»
+        /// больше нечем — у записи нет пометки происхождения.
+        ///
+        /// Три движения, и все три — то же, что увидел бы новый пользователь:
+        ///
+        /// 1. «Air, dry» формулой `N2 O1` → составом NIST (N/O/Ar/C). Формула
+        ///    не была воздухом: без аргона μ/ρ на 30 кэВ 0.3325 против 0.3538
+        ///    см²/г (−6.0 %); на самом толстом зазоре поставки 21.7 мм
+        ///    пропускание расходится на 5.6e-5 (П123).
+        /// 2. «Glass» (кварц `Si1 O2` 2.32) СНИМАЕТСЯ: в засеве поколения 8
+        ///    его нет вовсе — стеклом стенки сосуда стала «Glass, plate».
+        ///    Геометрии этим не рвутся: вещество в них лежит СОСТАВОМ, а не
+        ///    ссылкой на библиотеку (<c>GeometryMaterial</c>), и список — лишь
+        ///    источник выбора в редакторе.
+        /// 3. «Glass, plate» строкой таблицы ЛСРМ (вид `Other`) → тем же
+        ///    составом, но видом `BeakerWall` и сокращением «Glass»: иначе
+        ///    плитного стекла в списке стенок сосуда у человека не будет
+        ///    вовсе — имя занято, и сведение по именам его не добавит.
+        ///
+        /// ⚠ Запись НЕ СОХРАНЯЕТСЯ: перенос живёт в памяти ровно так же, как
+        /// сведение по именам выше, а файл переписывает только редактор
+        /// (<see cref="Save"/>) — по движению человека, а не сам собой.
+        /// </summary>
+        static void MigrateAirGlass(List<GeometryMaterialLibrary.Entry> list,
+                                    List<GeometryMaterialLibrary.Entry> seed)
+        {
+            // Воздух: прежняя запись — формулой, без долей.
+            Migrate(list, PreviousAir(), Find(seed, "Air, dry"));
+
+            // Кварц под именем «Glass»: преемника в засеве нет — снять.
+            Migrate(list, PreviousGlass(), null);
+
+            // Плитное стекло: прежняя запись — строка таблицы, вид `Other`.
+            GeometryMaterialLibrary.Entry plate = Find(seed, "Glass, plate");
+            Migrate(list, PreviousPlate(plate), plate);
+        }
+
+        /// <summary>
+        /// Заменить запись <paramref name="before"/> на <paramref name="after"/>
+        /// (null — снять), и только если она в списке есть и побитово равна
+        /// прежнему засеву. Имя ищется тем же сравнением, каким библиотека
+        /// ищет вещество везде (<see cref="Find"/>).
+        /// </summary>
+        static void Migrate(List<GeometryMaterialLibrary.Entry> list,
+                            GeometryMaterialLibrary.Entry before,
+                            GeometryMaterialLibrary.Entry after)
+        {
+            if (before == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (!string.Equals(list[i].Name, before.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (!SameEntry(list[i], before))
+                {
+                    // Правлена рукой — не наша.
+                    return;
+                }
+
+                if (after == null)
+                {
+                    list.RemoveAt(i);
+                }
+                else
+                {
+                    list[i] = after.Clone();
+                }
+
+                return;
+            }
+        }
+
+        /// <summary>
+        /// «Air, dry» ПРЕЖНЕГО засева (до 22.09.2026): формула `N2 O1`,
+        /// 0.001205 г/см³, вид пробы. Стоит здесь строкой, а не берётся из
+        /// <see cref="GeometryMaterialLibrary"/>: в засеве её больше нет, а
+        /// перенос обязан узнавать ровно ту запись, которую положил прежний
+        /// код, — иначе он трогал бы чужое.
+        /// </summary>
+        static GeometryMaterialLibrary.Entry PreviousAir()
+        {
+            return new GeometryMaterialLibrary.Entry
+            {
+                Name = "Air, dry",
+                Abbr = "Air",
+                Formula = "N2 O1",
+                Density = 0.001205,
+                Kind = GeometryMaterialLibrary.MaterialKind.Source,
+            };
+        }
+
+        /// <summary>
+        /// «Glass» ПРЕЖНЕГО засева: кварц `Si1 O2` 2.32 г/см³ стенкой сосуда.
+        /// Это NIST «Silicon dioxide», а не стекло (`AMBER53`).
+        /// </summary>
+        static GeometryMaterialLibrary.Entry PreviousGlass()
+        {
+            return new GeometryMaterialLibrary.Entry
+            {
+                Name = "Glass",
+                Abbr = "SiO2",
+                Formula = "Si1 O2",
+                Density = 2.32,
+                Kind = GeometryMaterialLibrary.MaterialKind.BeakerWall,
+            };
+        }
+
+        /// <summary>
+        /// «Glass, plate» ПРЕЖНЕГО засева — строка таблицы ЛСРМ: тот же состав
+        /// и плотность, что у нынешней записи засева, но без сокращения и видом
+        /// `Other`. Выводится ИЗ НЕЁ ЖЕ, а не набирается числами: состав у
+        /// строки таблицы один и тот же до и после, и переписывать его сюда
+        /// значило бы завести вторую копию четырёх долей, которая молча
+        /// разойдётся с таблицей.
+        /// </summary>
+        static GeometryMaterialLibrary.Entry PreviousPlate(GeometryMaterialLibrary.Entry plate)
+        {
+            if (plate == null)
+            {
+                return null;
+            }
+
+            GeometryMaterialLibrary.Entry before = plate.Clone();
+            before.Abbr = "";
+            before.Kind = GeometryMaterialLibrary.MaterialKind.Other;
+            return before;
+        }
+
+        /// <summary>
+        /// (`AMBER67`, то же решение Amber 22.09.2026) ПЕРЕНОС ВЕЩЕСТВА СЛОТОВ
+        /// готовой геометрии на состав действующей библиотеки.
+        ///
+        /// Зачем отдельно от библиотеки. Вещество в геометрии лежит СНИМКОМ —
+        /// имя, плотность и массовые доли (<c>GeometryMaterial</c>), а не
+        /// ссылкой на библиотеку: сцена обязана считаться и тогда, когда
+        /// вещества в списке уже нет. Поэтому правка засева до слотов не
+        /// доезжает сама: у Amber 18 слотов трёх приборов (12 зазоров и 6 проб)
+        /// несут воздух долями N 0.636483 / O 0.363517 — тем, что давала
+        /// формула `N2 O1`, и после переноса библиотеки они остались бы с ним.
+        ///
+        /// ⛔ Трогается ТОЛЬКО снимок, побитово равный тому, что давал ПРЕЖНИЙ
+        /// засев: имя «Air, dry», плотность 0.001205 и ровно два элемента с
+        /// долями, посчитанными из формулы `N2 O1`. Воздух, заданный человеком
+        /// иначе (другая плотность, свои доли), не трогается — как и в
+        /// библиотеке.
+        ///
+        /// ⚠ Файлы `.in` этим путём НЕ идут: их читает
+        /// <c>GeometryModel.Load</c>, а не этот перенос, и 61 сцена корпуса и
+        /// моделей остаётся побитово прежней — вместе со своими клеймами и
+        /// матрицами склада.
+        ///
+        /// ⚠ Атомные массы (`matdb`) поднимаются ТОЛЬКО когда слот прошёл
+        /// дешёвую проверку «имя, плотность, два элемента»: эталон прежнего
+        /// состава считается из формулы, и считать его на каждой геометрии
+        /// незачем — у того, кто уже на новом засеве, до базы дело не доходит.
+        /// </summary>
+        public static void MigrateGeometry(GeometryModel model)
+        {
+            if (model == null)
+            {
+                return;
+            }
+
+            MigrateSlot(model.Crystal);
+            MigrateSlot(model.Reflector);
+            MigrateSlot(model.Gap);
+            MigrateSlot(model.Cladding);
+            MigrateSlot(model.BeakerWall);
+            MigrateSlot(model.Source);
+        }
+
+        /// <summary>Один слот геометрии — см. <see cref="MigrateGeometry"/>.</summary>
+        static void MigrateSlot(GeometryMaterial material)
+        {
+            if (material == null
+                || !string.Equals(material.Name, "Air, dry", StringComparison.OrdinalIgnoreCase)
+                || material.Density != 0.001205
+                || material.Fractions.Count != 2
+                || !material.Fractions.ContainsKey(7)
+                || !material.Fractions.ContainsKey(8))
+            {
+                return;
+            }
+
+            Dictionary<int, double> before = PreviousAirFractions();
+            if (before == null || before.Count != material.Fractions.Count)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<int, double> pair in before)
+            {
+                double got;
+                if (!material.Fractions.TryGetValue(pair.Key, out got) || got != pair.Value)
+                {
+                    return;
+                }
+            }
+
+            GeometryMaterialLibrary.Entry air = Find(Entries, "Air, dry");
+            if (air == null)
+            {
+                return;
+            }
+
+            GeometryMaterial now = GeometryMaterialLibrary.Make(air, material.Density);
+            if (now.Fractions.Count == 0)
+            {
+                return;
+            }
+
+            material.Fractions.Clear();
+            foreach (KeyValuePair<int, double> pair in now.Fractions)
+            {
+                material.Fractions[pair.Key] = pair.Value;
+            }
+        }
+
+        static Dictionary<int, double> previousAirFractions;
+
+        /// <summary>
+        /// Состав воздуха ПРЕЖНЕГО засева — тот, что давала формула `N2 O1`
+        /// через атомные массы. Считается один раз: он же сравнивается с
+        /// каждым слотом.
+        /// </summary>
+        static Dictionary<int, double> PreviousAirFractions()
+        {
+            if (previousAirFractions == null)
+            {
+                GeometryMaterial air = GeometryMaterialLibrary.Make(PreviousAir(), 0.001205, name => null);
+                previousAirFractions = new Dictionary<int, double>(air.Fractions);
+            }
+
+            return previousAirFractions.Count > 0 ? previousAirFractions : null;
+        }
+
+        /// <summary>
+        /// Побитовое равенство двух записей библиотеки: все поля, состав и
+        /// смесь. Числа сравниваются ТОЧНО — округления здесь нет и быть не
+        /// может: обе стороны либо пришли из одного и того же кода засева, либо
+        /// проехали через файл, который пишет и читает их без потери
+        /// (<c>XmlSerializer</c>, круговой формат double).
+        /// </summary>
+        static bool SameEntry(GeometryMaterialLibrary.Entry a, GeometryMaterialLibrary.Entry b)
+        {
+            if (a == null || b == null)
+            {
+                return false;
+            }
+
+            if (!string.Equals(a.Name ?? "", b.Name ?? "", StringComparison.Ordinal)
+                || !string.Equals(a.Abbr ?? "", b.Abbr ?? "", StringComparison.Ordinal)
+                || !string.Equals(a.Formula ?? "", b.Formula ?? "", StringComparison.Ordinal)
+                || a.Density != b.Density
+                || a.Kind != b.Kind
+                || a.ElementFractions.Count != b.ElementFractions.Count
+                || a.Components.Count != b.Components.Count)
+            {
+                return false;
+            }
+
+            foreach (KeyValuePair<int, double> pair in a.ElementFractions)
+            {
+                double other;
+                if (!b.ElementFractions.TryGetValue(pair.Key, out other) || other != pair.Value)
+                {
+                    return false;
+                }
+            }
+
+            for (int i = 0; i < a.Components.Count; i++)
+            {
+                if (!string.Equals(a.Components[i].Material ?? "", b.Components[i].Material ?? "",
+                                   StringComparison.Ordinal)
+                    || a.Components[i].Weight != b.Components[i].Weight)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

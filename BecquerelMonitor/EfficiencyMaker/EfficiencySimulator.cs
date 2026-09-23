@@ -1012,7 +1012,15 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// же переносом, что <see cref="TotalEfficiency"/>, а бин пика остаётся
         /// за взвешенной оценкой — у неё дисперсия пика на порядок лучше.
         /// Классы историй не пересекаются по построению: аналоговый вклад,
-        /// округлившийся в бин пика, отбрасывается.
+        /// попавший в пик, отбрасывается.
+        ///
+        /// ⛔ (`AMBER66`, П132 22.09.2026) ОДНА ОГОВОРКА: отбрасывается он
+        /// только у историй, чьё ПЕРВИЧНОЕ НАПРАВЛЕНИЕ лежало в конусе
+        /// взвешенной ветви (конус на сферу детектора). Направления вне этого
+        /// конуса взвешенная ветвь не рождает вовсе, и пик, набранный таким
+        /// лучом через рассеяние в пробе или обвязке, не считался НИГДЕ.
+        /// Теперь он складывается с взвешенной оценкой — множества «внутри
+        /// конуса» и «вне конуса» не пересекаются и вместе покрывают 4π.
         ///
         /// На кривую эффективности ключ не влияет вовсе: аналоговая ветка
         /// запускается только при счёте гистограммы отклика.
@@ -1874,10 +1882,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                     int lo = this.bracketLo[i];
                     if (lo >= 0)
                     {
-                        MaterialDatabase.Element element = this.elements[i];
-                        value = MaterialDatabase.Interpolate(
-                            element.EnergyKev, element.LogEnergyKev,
-                            element.Total, element.LogTotal, lo, this.bracketHi[i],
+                        // (`AMBER74`, П132) СУММОЙ КАНАЛОВ, как у кристалла.
+                        value = PartialCrossSections.MassTotal(
+                            this.elements[i], lo, this.bracketHi[i],
                             energyKev, this.logEnergy);
                     }
 
@@ -1903,13 +1910,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     int lo = this.bracketLo[i];
                     if (lo >= 0)
                     {
-                        MaterialDatabase.Element element = this.elements[i];
-                        int hi = this.bracketHi[i];
-                        value = MaterialDatabase.Interpolate(
-                            element.EnergyKev, element.LogEnergyKev,
-                            element.Total, element.LogTotal, lo, hi, energyKev, this.logEnergy);
-                        value -= PartialCrossSections.MassCrossSection(
-                            element, lo, hi, energyKev, this.logEnergy, PhotonProcess.Coherent);
+                        // (`AMBER74`, П132) СУММОЙ ТРЁХ КАНАЛОВ, а не разностью
+                        // «прямая по сумме минус когерентное».
+                        value = PartialCrossSections.MassTotalWithoutCoherent(
+                            this.elements[i], lo, this.bracketHi[i],
+                            energyKev, this.logEnergy);
                     }
 
                     mass += this.fractions[i] * Math.Max(0.0, value);
@@ -3444,6 +3449,23 @@ namespace BecquerelMonitor.EfficiencyMaker
         readonly double[] pendE = new double[PendMax];
         int pendCount;
 
+        // (`AMBER52`, П125 22.09.2026) ПРОИСХОЖДЕНИЕ кванта в очереди: рождён ли
+        // он аннигиляцией ВНЕ кристалла (или происходит от такого — рассеянием в
+        // обвязке, вылетом из кристалла `A55`, тормозным его электрона). Едет
+        // с квантом ровно так же, как его координаты и энергия: `PushPending`
+        // кладёт признак ТЕКУЩЕГО кванта, снятие из очереди его восстанавливает.
+        // Читается только каналом <see cref="ResponseChannel.AnnihilationOutside"/>;
+        // на розыгрыш не влияет — ни одного случайного числа.
+        readonly bool[] pendFromOutsideAnnihilation = new bool[PendMax];
+
+        /// <summary>
+        /// (`AMBER52`) Признак кванта, который обход ведёт СЕЙЧАС: рождён
+        /// аннигиляцией вне кристалла (см. <see cref="pendFromOutsideAnnihilation"/>).
+        /// Ставится в точке рождения пары вне кристалла
+        /// (<see cref="AnalogContinuumRun"/>), снимается началом истории.
+        /// </summary>
+        bool fromOutsideAnnihilation;
+
         /// <summary>
         /// Счётчики отброшенного по переполнению очередей (`A55`/`A54`).
         ///
@@ -3475,6 +3497,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.pendUy[k] = uy;
             this.pendUz[k] = uz;
             this.pendE[k] = energyKev;
+            // (`AMBER52`) Квант наследует происхождение того, кого обход ведёт
+            // сейчас: вылет из кристалла и тормозное электрона — потомки своего
+            // кванта; второй аннигиляционный от пары кладётся сюда уже с
+            // поднятым признаком (см. место рождения пары в `AnalogContinuumRun`).
+            this.pendFromOutsideAnnihilation[k] = this.fromOutsideAnnihilation;
         }
 
         // (`N4`, П44) Очередь квантов тормозного обвязки у обхода ПОЛНОЙ
@@ -3512,6 +3539,16 @@ namespace BecquerelMonitor.EfficiencyMaker
         Action<double, double, double, double, double, double, double> pushAnalog;
         Action<double, double, double, double, double, double, double> pushTotal;
 
+        /// <summary>
+        /// Аналоговый обход (<see cref="AnalogContinuumRun"/>): сколько историй
+        /// отдано ПИКУ (не записано в континуум, пик — за взвешенной оценкой,
+        /// а вне её конуса — за <see cref="WeightPeakOutOfCone"/>) и сколько
+        /// зачтено в континуум. ⚠ С физики 23 (`AMBER50`, П122) «пик»
+        /// здесь — по <see cref="BinOf"/>, то есть В ДОПУСКЕ (`InPeak`), а не
+        /// «округлилось в бин пика»: определение то же, что у взвешенной ветви.
+        /// До того округлившаяся в бин пика история вне допуска отбрасывалась
+        /// и терялась целиком.
+        /// </summary>
         public long CountPeakBinDropped, CountAnalogScored;
 
         /// <summary>
@@ -3521,6 +3558,31 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// оценка пика аналоговой ветвью, годная в обоих режимах.
         /// </summary>
         public double WeightPeakBinDropped;
+
+        /// <summary>
+        /// ⛔ (`AMBER66`, П132 22.09.2026) ПОТЕРЯННЫЙ КЛАСС: вес и число тех
+        /// историй бина пика аналоговой ветви, чьё ПЕРВИЧНОЕ направление лежало
+        /// ВНЕ конуса на сферу детектора, — то есть тех, которых взвешенная
+        /// ветвь не рождает вовсе.
+        ///
+        /// Взвешенная ветвь (<see cref="OneHistory"/>) разыгрывает направление в
+        /// конусе на `sphereR` — кристалл с отражателем и оправой, БЕЗ пробы, —
+        /// и луч мимо этого конуса у неё не появляется никогда. Между тем квант,
+        /// ушедший мимо детектора, может рассеяться в пробе или в обвязке
+        /// когерентно (энергия та же) либо комптоном на малый угол (потеря в
+        /// допуске пика) и поглотиться целиком. Ни одна ветвь этот класс не
+        /// считала: аналоговая его РОЖДАЕТ (её конус — на габарит сцены,
+        /// ~~`A57`~~, либо полная сфера), но историю в бине пика отбрасывала
+        /// целиком — «пик за взвешенной оценкой».
+        ///
+        /// Классы не пересекаются: внутри конуса пик считает взвешенная ветвь,
+        /// вне — эта сумма. Поток ГСЧ ни одной из ветвей не тронут: новых
+        /// розыгрышей нет, изменилась только судьба УЖЕ посчитанной истории.
+        /// </summary>
+        public double WeightPeakOutOfCone, WeightPeakOutOfCone2;
+
+        /// <summary>Число историй потерянного класса (`AMBER66`).</summary>
+        public long CountPeakOutOfCone;
 
         /// <summary>Счётчики канала вакансии (`A61`): комптонов в кристалле,
         /// из них с K-вакансией, из них ответивших рентгеном.</summary>
@@ -7446,7 +7508,64 @@ namespace BecquerelMonitor.EfficiencyMaker
             /// L-вылет лежит в <see cref="EscapeXrayK"/> ровно как до правки
             /// — побитово.
             /// </remarks>
-            EscapeXrayL = 5
+            EscapeXrayL = 5,
+
+            /// <summary>
+            /// СОДЕРЖИМОЕ ПОСТОЯННОЙ ЭНЕРГИИ: занос квантов, рождённых
+            /// АННИГИЛЯЦИЕЙ ВНЕ КРИСТАЛЛА (`A52` — пара в пробе, оправе,
+            /// стенке, домике; из кристалла при этом ничего не вылетало).
+            /// Линия 511 (один квант поглощён целиком), 1022 (оба), их
+            /// комптоновские континуумы в кристалле (край 340.7, обратное
+            /// 170.3) и K/L-вылеты от них — всё, чьё положение в строке от
+            /// энергии падающего кванта НЕ зависит; от неё зависит только
+            /// АМПЛИТУДА (выход пар растёт с E).
+            /// </summary>
+            /// <remarks>
+            /// ⛔ Заведён 22.09.2026 (`AMBER52`, П125) по решению Amber,
+            /// дословно: «Свой канал сейчас, на той же ветке (формат 10)».
+            /// Повод — замер П122 (`ComptonMapProbe`, склад `AS80_point0`):
+            /// эта линия лежала в <see cref="Compton"/>, а карта переноса
+            /// канала (`ResponseMatrix.ComptonKnots`) тянула её наклоном
+            /// отрезка `[back, edge]` ≈ `E/E_узла` — посередине между узлами
+            /// сетки (шаг 4.71 %) на ±2.4 %, и в образе K-40 (1460.8) одна
+            /// линия 511 стояла ДВУМЯ (бины 250 и 260 вместо 256). Прибитая
+            /// точка `511 → 511` (П122, формат 9) чинила только линию и только
+            /// от 1.3 МэВ, а 1022 и континуум квантов 511 тянулись дальше;
+            /// свой канал переносится СДВИГОМ НОЛЬ
+            /// (<c>ResponseMatrix.Transfer</c>) — положение как есть,
+            /// амплитуда интерполируется весами соседних узлов.
+            ///
+            /// Метка — ПРОИСХОЖДЕНИЕ кванта, а не статья потери: квант,
+            /// рождённый аннигиляцией вне кристалла, и всё его потомство
+            /// (рассеянный в обвязке, вылетевший из кристалла и вернувшийся
+            /// `A55`, тормозное его электронов) несут признак
+            /// <see cref="fromOutsideAnnihilation"/> через очередь квантов
+            /// истории. История приписывается каналу, когда такой занос —
+            /// БОЛЬШАЯ часть её заноса (правило то же, что у статей потери:
+            /// «побеждает унёсшая больше»; смешанная история «комптон
+            /// первичного + 511 извне» редка, и ошибка переноса меньше у той
+            /// половины, что больше). Аннигиляция ВНУТРИ кристалла сюда не
+            /// идёт: там положение зависит от E (пик, `E − 511`, `E − 1022` —
+            /// каналы <see cref="Peak"/>, <see cref="EscapeAnnihilation"/>,
+            /// <see cref="EscapeAnnihilationDouble"/>).
+            ///
+            /// Номер СЕДЬМОЙ по тому же доводу, что у двух предыдущих:
+            /// номер канала — индекс строки в файле матрицы. Ниже порога пар
+            /// (1022 кэВ) канал ПУСТ у всех узлов (строка нулевой длины,
+            /// четыре байта), их прежние каналы — побитово те же; выше —
+            /// содержимое ВЫНУТО из <see cref="Compton"/>, не добавлено:
+            /// сумма каналов узла прежняя (в пределах округления float32 при
+            /// иной группировке слагаемых).
+            ///
+            /// ⚠ НЕ здесь, а в <see cref="Compton"/> по-прежнему лежит
+            /// K-флуоресценция пробы и обвязки, рождённая вне кристалла
+            /// (Lu K 54–63, W K 58–59, Pb K 75–85 кэВ): её положение от E тоже
+            /// не зависит, но на отрезке `[0, back]` карта двигает её на
+            /// ≈ 0.3 % (замер П122), и решения Amber заводить ей канал нет.
+            /// Тормозное электронов обвязки — не постоянной энергии (спектр
+            /// его масштабируется с энергией электрона, то есть с E).
+            /// </remarks>
+            AnnihilationOutside = 6
         }
 
         /// <summary>
@@ -7456,8 +7575,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// наравне с полным: так номер канала остаётся одним и тем же в файле,
         /// посчитанном с ключом и без него. Ширина файла от ключа не зависит —
         /// зависит только наполнение.
+        ///
+        /// Семь с 22.09.2026 (`AMBER52`, П125, формат матрицы 10): седьмой —
+        /// <see cref="ResponseChannel.AnnihilationOutside"/>.
         /// </summary>
-        public const int ResponseChannelCount = 6;
+        public const int ResponseChannelCount = 7;
 
         /// <summary>
         /// Тот же отклик, разложенный по каналам исхода: `[канал][бин]`. Сумма
@@ -7470,6 +7592,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// статьям расхода, и берётся та, что унесла больше, — история, где
         /// ушли и рентген, и рассеянный квант, принадлежит тому, чей вклад в
         /// недобор больше.
+        ///
+        /// (`AMBER52`, П125) Седьмой канал —
+        /// <see cref="ResponseChannel.AnnihilationOutside"/> — выбирается
+        /// раньше статей расхода и по метке ИНОГО рода: не «что вылетело», а
+        /// «откуда пришёл занос». Признак происхождения ставится в точке
+        /// рождения пары вне кристалла, едет с квантом по очереди истории
+        /// (<see cref="fromOutsideAnnihilation"/>) и суммирует занос таких
+        /// квантов отдельно; канал берёт историю, когда этот занос — большая
+        /// её часть. Наполняется только аналоговой ветвью континуума
+        /// (<see cref="AnalogContinuumRun"/>): пары вне кристалла разыгрывает
+        /// только она; взвешенная ветвь (пик и однократное рассеяние до
+        /// кристалла) их не знает, и при выключенном
+        /// <see cref="AnalogContinuum"/> канал пуст.
         /// </summary>
         public double[][] ResponseByChannel(double energyKev, double binKev, out double relativeError)
         {
@@ -7707,13 +7842,52 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <see cref="SplitXrayShells"/> (до 12.09.2026 выключен: разведение
         /// двигает содержимое канала № 3, то есть числа всех матриц склада;
         /// с единого счёта П20 — ВКЛ, умолчание поля — умолчание склада с П40).
+        ///
+        /// ⛔ (`AMBER52`, П125 22.09.2026) СЕДЬМОЙ канал —
+        /// <see cref="ResponseChannel.AnnihilationOutside"/> — решается НЕ
+        /// здесь и не по статьям потери, а по ПРОИСХОЖДЕНИЮ заноса
+        /// (<see cref="ChannelOf(double, double, double)"/>): взвешенная ветвь
+        /// пар вне кристалла не знает, и у неё этот канал недостижим — здесь
+        /// прежний выбор до бита.
         /// </summary>
         ResponseChannel ChannelOf(double escaped)
         {
             ResponseChannel channel = this.PickChannel(escaped);
             if (TraceChannels)
             {
-                this.Trace(channel, escaped);
+                this.Trace(channel, escaped, 0.0);
+            }
+
+            return channel;
+        }
+
+        /// <summary>
+        /// (`AMBER52`, П125 22.09.2026) Канал истории АНАЛОГОВОЙ ветви: сперва
+        /// происхождение заноса, потом статьи потери. Занос квантов, рождённых
+        /// аннигиляцией вне кристалла (<paramref name="depositedOutside"/>),
+        /// сравнивается с остальным заносом истории (<paramref name="deposited"/>
+        /// минус он): он БОЛЬШЕ либо равен — канал
+        /// <see cref="ResponseChannel.AnnihilationOutside"/>, иначе — прежний
+        /// выбор <see cref="PickChannel"/> по меткам потери, до бита. Равенство
+        /// отдано новому каналу нарочно: при `deposited == depositedOutside`
+        /// (весь занос — от аннигиляции извне, обычный случай) разность —
+        /// точный ноль, и «больше» одного не хватило бы.
+        ///
+        /// Почему большинство, а не «хоть что-то»: смешанная история (комптон
+        /// первичного в кристалле + вернувшийся 511 извне) лежит на
+        /// `x·E/E_узла + 511`, и ни сдвиг ноль, ни карта комптона не переносят
+        /// её точно; ошибка меньше у правила той половины, что больше (1500 +
+        /// 511 при шаге сетки 4.7 %: карта ошибается на 19 кэВ, сдвиг ноль — на
+        /// 70; 300 + 511: 24 против 14).
+        /// </summary>
+        ResponseChannel ChannelOf(double escaped, double deposited, double depositedOutside)
+        {
+            ResponseChannel channel = depositedOutside > 0.0 && depositedOutside >= deposited - depositedOutside
+                ? ResponseChannel.AnnihilationOutside
+                : this.PickChannel(escaped);
+            if (TraceChannels)
+            {
+                this.Trace(channel, escaped, depositedOutside);
             }
 
             return channel;
@@ -7785,9 +7959,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// (`AMBER16`) Одна строка трассировки: по какой метке история попала
         /// в свой канал и чем эта метка набрана. Зовётся только при включённой
-        /// <see cref="TraceChannels"/>.
+        /// <see cref="TraceChannels"/>. (`AMBER52`) Последнее поле —
+        /// занос квантов аннигиляции извне, кэВ: по нему седьмой канал
+        /// отличается от остальных; у взвешенной ветви всегда 0.
         /// </summary>
-        void Trace(ResponseChannel channel, double escaped)
+        void Trace(ResponseChannel channel, double escaped, double depositedOutside)
         {
             if (TraceChannelOf >= 0 && (int)channel != TraceChannelOf)
             {
@@ -7805,7 +7981,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     System.Globalization.CultureInfo.InvariantCulture,
                     "канал={0} вылетело={1:F4} метка_рентген={2:F4} метка_аннигиляция={3:F4} "
                     + "остаток={4:F4} допуск={5:F4} | Z={6} оболочка={7} рентген={8:F4} "
-                    + "ушло_рентгена={9:F4} | метка_K={10:F4} метка_L={11:F4}",
+                    + "ушло_рентгена={9:F4} | метка_K={10:F4} метка_L={11:F4} | занос_аннигиляции_извне={12:F4}",
                     channel, escaped, this.lossXray, this.lossAnnihilation,
                     escaped - this.lossAnnihilation - this.lossXray, this.PeakHalfWidthKev,
                     this.traceZ, this.traceShell == '\0' ? '—' : this.traceShell,
@@ -7814,7 +7990,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // этой паре канал № 3 отличается от № 5. Печатается всегда,
                     // и при выключенном ключе тоже — тогда видно, СКОЛЬКО в
                     // канале K лежит L-вылета, то есть цена невключённого ключа.
-                    this.lossXrayK, this.lossXrayL));
+                    this.lossXrayK, this.lossXrayL,
+                    // (`AMBER52`) Занос квантов аннигиляции извне — признак
+                    // седьмого канала (`AnnihilationOutside`).
+                    depositedOutside));
             }
         }
 
@@ -8073,14 +8252,58 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.LastAngularMoments = angular;
             double mean = sum / n;
             double variance = Math.Max(0.0, sum2 / n - mean * mean);
-            relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
 
             // Континуум — аналоговой веткой (физика 6): бины ниже пика
             // перезаписываются до нормировки, оба прогона на одних n.
             if (histogram != null && histogram.Length > 1 && this.AnalogContinuum)
             {
-                this.AnalogContinuumRun(energyKev, histogram, binKev, n);
+                double outside2, outsideLight;
+                double outside = this.AnalogContinuumRun(energyKev, histogram, binKev, n,
+                                                         out outside2, out outsideLight);
+                // ⛔ (`AMBER66`, П132 22.09.2026) ПОТЕРЯННЫЙ КЛАСС — В ПИК.
+                // Истории, чьё первичное направление лежало вне конуса
+                // взвешенной ветви, она не рождает вовсе, а поглотиться целиком
+                // они могут — рассеявшись в пробе или обвязке когерентно (та же
+                // энергия) либо комптоном на малый угол (потеря в допуске).
+                // Аналоговая ветвь их считает и прежде отбрасывала: класс не
+                // попадал НИКУДА. Теперь он складывается с взвешенной оценкой —
+                // множества не пересекаются (внутри конуса / вне его), и сумма
+                // покрывает все 4π.
+                //
+                // Бин пика ещё НЕ поделён на число историй (делит `FinishRun`),
+                // поэтому сюда кладётся вес, а в среднее — вес, делённый на n.
+                // Разброс складывается как у независимых слагаемых: розыгрыши у
+                // ветвей свои, и ковариации между ними нет.
+                if (outside > 0.0)
+                {
+                    double outMean = outside / n;
+                    histogram[histogram.Length - 1] += outside;
+                    // ⛔ И В КАНАЛ `Peak` ТОЖЕ. Строку матрицы собирает
+                    // `ResponseByChannel` из каналов, а полную гистограмму
+                    // выбрасывает: добавка, положенная только в неё, до склада
+                    // НЕ ДОЕХАЛА БЫ. Канал — `Peak`: история поглотилась
+                    // целиком в пределах допуска, тем же правилом, каким его
+                    // выбирает взвешенная ветвь (`A306`, `E34`).
+                    if (this.channelHistograms != null)
+                    {
+                        double[] peakChannel = this.channelHistograms[(int)ResponseChannel.Peak];
+                        peakChannel[peakChannel.Length - 1] += outside;
+                    }
+
+                    // Свет класса — в тот же бин: якорь световой шкалы есть
+                    // СРЕДНИЙ свет бина пика, и вес без своего света занизил
+                    // бы его (см. `AnalogContinuumRun`).
+                    if (this.lightSum != null)
+                    {
+                        this.lightSum[this.lightSum.Length - 1] += outsideLight;
+                    }
+
+                    mean += outMean;
+                    variance += Math.Max(0.0, outside2 / n - outMean * outMean);
+                }
             }
+
+            relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
 
             return this.FinishRun(energyKev, histogram, binKev, n, mean);
         }
@@ -8395,17 +8618,45 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// розыгрыш пробега — та самая exp(−μ·путь)), и пролетевший квант
         /// продолжает путь с дальней грани — возврат рассеянием из-за кристалла
         /// был заметной частью недобора полос малых сумм. Квант, вылетевший из
-        /// кристалла ПОСЛЕ вклада, дальше не ведётся (повторный залёт после
-        /// вылета не смоделирован — как и во взвешенной ветке); аннигиляционные
-        /// кванты от пар ВНЕ кристалла не разыгрываются (фотон гибнет, занос
-        /// достаётся электронам) — обе оговорки записаны в журнале.
+        /// кристалла ПОСЛЕ вклада, ведётся дальше очередью истории (`A55`, с
+        /// 02.09.2026: возврат из обвязки), и аннигиляционные кванты от пар ВНЕ
+        /// кристалла разыгрываются той же очередью (`A52`); обе прежние
+        /// оговорки («не ведётся», «не разыгрываются») сняты теми правками.
+        ///
+        /// (`AMBER52`, П125) Занос истории ведётся ДВУМЯ суммами: весь
+        /// (`deposited`) и та его часть, что принесли кванты, рождённые
+        /// аннигиляцией вне кристалла (`depositedOutside`, признак
+        /// <see cref="fromOutsideAnnihilation"/> у текущего кванта). Вторая
+        /// решает канал <see cref="ResponseChannel.AnnihilationOutside"/>
+        /// (<see cref="ChannelOf(double, double, double)"/>); на бин, вес,
+        /// свет и розыгрыш не влияет.
         ///
         /// Бины [0, пик) гистограммы, каналов и света перезаписываются суммами
-        /// весов этого прогона; вклад, округлившийся в бин пика, отбрасывается —
-        /// пик остаётся за взвешенной оценкой, и классы не пересекаются.
+        /// весов этого прогона; вклад, попавший в бин пика, отбрасывается — пик
+        /// остаётся за взвешенной оценкой, и классы не пересекаются.
+        ///
+        /// ⛔ (`AMBER66`, П132) КРОМЕ историй, чьё первичное направление лежало
+        /// ВНЕ конуса взвешенной ветви: их она не рождает, и их пик считать
+        /// больше некому. Такие возвращаются вызывающему (значение функции —
+        /// их вес, `outsideWeight2` — сумма квадратов для разброса,
+        /// `outsideLight` — их свет для якоря световой шкалы), и `Run` кладёт
+        /// их в бин пика, в канал <see cref="ResponseChannel.Peak"/> и в
+        /// возвращаемую эффективность.
         /// </summary>
-        void AnalogContinuumRun(double energyKev, double[] histogram, double binKev, int n)
+        double AnalogContinuumRun(double energyKev, double[] histogram, double binKev, int n,
+                                  out double outsideWeight2, out double outsideLight)
         {
+            // (`AMBER66`, П132) Вес, сумма квадратов и СВЕТ потерянного класса
+            // ЭТОГО прогона: поля класса копят через все прогоны экземпляра, а
+            // `Run` нужна добавка одного узла.
+            //
+            // ⛔ Свет обязателен. Якорь световой шкалы (`RemapLightScale`) —
+            // СРЕДНИЙ свет бина пика, `lightSum[peak] / (histogram[peak]·n)`.
+            // Добавить вес в пик и не добавить его свет значило бы занизить
+            // якорь на ту же долю (до 7 % на 32 кэВ) и сдвинуть ВЕСЬ отклик.
+            double outsideWeight = 0.0;
+            outsideWeight2 = 0.0;
+            outsideLight = 0.0;
             int peak = histogram.Length - 1;
             double[] hist = new double[histogram.Length];
             // Сумма квадратов весов — для честной мерки шума при конусе (`A57`).
@@ -8455,6 +8706,26 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // Вес по направлению источника: единица у всех, кроме поля.
                 weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
 
+                // ⛔ (`AMBER66`, П132) ЛЕЖИТ ЛИ ПЕРВИЧНОЕ НАПРАВЛЕНИЕ В КОНУСЕ
+                // ВЗВЕШЕННОЙ ВЕТВИ. Тот же конус, что у `OneHistory`: ось — на
+                // центр объемлющей сферы кристалла, полуугол — по `sphereR`.
+                // Направление ВНЕ него взвешенная ветвь не рождает, и попавшая
+                // в пик история такого луча не считается НИГДЕ, пока её здесь
+                // отбрасывают. Случайных чисел не тянет — это арифметика по уже
+                // разыгранному направлению.
+                bool inWeightedCone = true;
+                double coneDz = this.sphereZ - z;
+                double coneR2 = Math.Sqrt(x * x + y * y + coneDz * coneDz);
+                if (coneR2 > this.sphereR)
+                {
+                    // Точка внутри сферы детектора взвешенной ветвью берётся
+                    // полной сферой (`Isotropic`) — там терять нечего.
+                    double cosMaxDet = Math.Sqrt(Math.Max(
+                        0.0, 1.0 - this.sphereR * this.sphereR / (coneR2 * coneR2)));
+                    double cosToAxis = (ux * (-x) + uy * (-y) + uz * coneDz) / coneR2;
+                    inWeightedCone = cosToAxis >= cosMaxDet;
+                }
+
                 this.lossAnnihilation = 0.0;
                 this.annihilationEscapes = 0;
                 this.lossXray = 0.0;
@@ -8465,6 +8736,13 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 double e = energyKev;
                 double deposited = 0.0;
+                // (`AMBER52`, П125) Часть заноса, принесённая квантами аннигиляции
+                // извне (признак `fromOutsideAnnihilation` у текущего кванта). Каждое
+                // `deposited += …` ниже дублируется в неё ПОД признаком — восемь
+                // мест, все на виду; канал решает `ChannelOf(escaped, deposited,
+                // depositedOutside)`.
+                double depositedOutside = 0.0;
+                this.fromOutsideAnnihilation = false;
                 double travelled = 0.0;
                 bool comptonOutside = false;        // замер `S55`, см. счётчики
 
@@ -8491,6 +8769,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                             if (e - escaped > 1e-9)
                             {
                                 deposited += e - escaped;
+                                if (this.fromOutsideAnnihilation)
+                                {
+                                    depositedOutside += e - escaped;
+                                }
 
                                 // ⛔ ВОЗВРАТ ИЗ ОБВЯЗКИ (`A55`). Вклад засчитан, но
                                 // история на этом НЕ кончается: то, что вылетело,
@@ -8541,6 +8823,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 double coherent = this.RayleighScatter
                                     ? here.Coherent(e) : 0.0;
                                 double carried;
+                                double gain;    // (`AMBER52`) занос одного сайта, для двух сумм
                                 double channel = this.Uniform() * muKill;
                                 if (channel < coherent)
                                 {
@@ -8607,11 +8890,20 @@ namespace BecquerelMonitor.EfficiencyMaker
                                         // (`AMBER44`/`M12`, П94) Под ключом переноса
                                         // в слоях — лептон пары по Цаю от кванта,
                                         // перенос в слое и в кристалле.
+                                        // Занос лептонов пары и их тормозное — от
+                                        // энергии E (`e − 1022`): считаются ДО подъёма
+                                        // признака происхождения, с признаком
+                                        // РОДИТЕЛЯ (`AMBER52`).
                                         if (this.ElectronLayerTransport)
                                         {
-                                            deposited += this.CarriedElectronDeposit(
+                                            gain = this.CarriedElectronDeposit(
                                                 x, y, z, ElectronBirth.Pair, e - 2.0 * ElectronMassKev,
                                                 ux, uy, uz, here.Material, this.pushAnalog);
+                                            deposited += gain;
+                                            if (this.fromOutsideAnnihilation)
+                                            {
+                                                depositedOutside += gain;
+                                            }
                                         }
                                         else if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
                                                                            e - 2.0 * ElectronMassKev
@@ -8621,10 +8913,24 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                                            out carried))
                                         {
                                             deposited += carried;
+                                            if (this.fromOutsideAnnihilation)
+                                            {
+                                                depositedOutside += carried;
+                                            }
                                         }
 
                                         double ax, ay, az;
                                         this.Isotropic(out ax, out ay, out az);
+                                        // ⛔ (`AMBER52`, П125 22.09.2026) ЗДЕСЬ РОЖДАЕТСЯ
+                                        // СОДЕРЖИМОЕ ПОСТОЯННОЙ ЭНЕРГИИ: оба кванта по
+                                        // 511 кэВ и всё их потомство несут признак
+                                        // происхождения, и их занос в кристалл идёт в
+                                        // канал `AnnihilationOutside` (перенос между
+                                        // узлами — сдвигом ноль). Признак поднимается ДО
+                                        // `PushPending`, чтобы второй квант лёг в очередь
+                                        // уже с ним; первый ведётся дальше этим же
+                                        // обходом. Розыгрыш не тронут: флаг и сумма.
+                                        this.fromOutsideAnnihilation = true;
                                         // Второй квант ждёт своей проводки в общей
                                         // очереди (`A55` расширила её с одного места
                                         // до шести — вылеты из кристалла кладутся
@@ -8650,9 +8956,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                                         this.Isotropic(out ux, out uy, out uz);
                                         if (this.ElectronLayerTransport)
                                         {
-                                            deposited += this.CarriedElectronDeposit(
+                                            gain = this.CarriedElectronDeposit(
                                                 x, y, z, ElectronBirth.Photo, e - xrayOut,
                                                 gx, gy, gz, here.Material, this.pushAnalog);
+                                            deposited += gain;
+                                            if (this.fromOutsideAnnihilation)
+                                            {
+                                                depositedOutside += gain;
+                                            }
                                         }
                                         else if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
                                                                            e - xrayOut
@@ -8662,6 +8973,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                                            out carried))
                                         {
                                             deposited += carried;
+                                            if (this.fromOutsideAnnihilation)
+                                            {
+                                                depositedOutside += carried;
+                                            }
                                         }
 
                                         e = xrayOut;
@@ -8670,9 +8985,14 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                                     if (this.ElectronLayerTransport)
                                     {
-                                        deposited += this.CarriedElectronDeposit(
+                                        gain = this.CarriedElectronDeposit(
                                             x, y, z, ElectronBirth.Photo, e,
                                             ux, uy, uz, here.Material, this.pushAnalog);
+                                        deposited += gain;
+                                        if (this.fromOutsideAnnihilation)
+                                        {
+                                            depositedOutside += gain;
+                                        }
                                     }
                                     else if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
                                                                        e - this.OutsideBremsstrahlung(
@@ -8680,6 +9000,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                                        out carried))
                                     {
                                         deposited += carried;
+                                        if (this.fromOutsideAnnihilation)
+                                        {
+                                            depositedOutside += carried;
+                                        }
                                     }
 
                                     break;
@@ -8700,9 +9024,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                                     double dx, dy, dz;
                                     ComptonElectronDirection(e, ux0, uy0, uz0, after, ux, uy, uz,
                                                              out dx, out dy, out dz);
-                                    deposited += this.CarriedElectronDeposit(
+                                    gain = this.CarriedElectronDeposit(
                                         x, y, z, ElectronBirth.Given, e - after,
                                         dx, dy, dz, here.Material, this.pushAnalog);
+                                    deposited += gain;
+                                    if (this.fromOutsideAnnihilation)
+                                    {
+                                        depositedOutside += gain;
+                                    }
+
                                     e = after;
                                     continue;
                                 }
@@ -8717,6 +9047,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                               out carried))
                                 {
                                     deposited += carried;
+                                    if (this.fromOutsideAnnihilation)
+                                    {
+                                        depositedOutside += carried;
+                                    }
                                 }
 
                                 e = after;
@@ -8747,6 +9081,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                         uy = this.pendUy[k];
                         uz = this.pendUz[k];
                         e = this.pendE[k];
+                        // (`AMBER52`) Происхождение кванта — вместе с ним из очереди.
+                        this.fromOutsideAnnihilation = this.pendFromOutsideAnnihilation[k];
                         travelled = 0.0;
                         continue;
                     }
@@ -8759,8 +9095,25 @@ namespace BecquerelMonitor.EfficiencyMaker
                     continue;
                 }
 
-                int bin = (int)(deposited / binKev + 0.5);
-                if (bin >= peak)
+                // ⛔ (`AMBER50`, П122 22.09.2026, физика 23) БИН — ТЕМ ЖЕ ПРАВИЛОМ,
+                // ЧТО У ВЗВЕШЕННОЙ ВЕТВИ (`BinOf`), И ОТБРАСЫВАЕТСЯ ТОЛЬКО БИН ПИКА.
+                // До того бин брался голым округлением, и история с `bin >= peak`
+                // отбрасывалась БЕЗ оговорки про допуск: округлившаяся в бин
+                // пика, но недобравшая больше допуска (`E − dep ∈ (допуск,
+                // допуск + δ]`, `δ = E_узла − peak·бин`) не попадала ни в пик
+                // (взвешенная ветвь её пиком не считает), ни в континуум (ниже
+                // `histogram[b] = hist[b]` перезаписывает бин `peak − 1`, куда её
+                // кладёт `BinOf`). Класс непуст ровно на узлах с `δ > 0`, около
+                // половины сетки, и растёт с `δ`: на `AS80_point0` (замер П122,
+                // `PeakBinLossProbe`) бин `peak − 1` шёл «пилой» по узлам —
+                // 1.85e−3 при δ = +0.90 против 3.45e−3 и 4.00e−3 у соседей с
+                // δ = −0.58 и +0.46; на узлах с δ ≤ 0 (661.657, δ = −0.343)
+                // правка не меняет ни бита. Счётчик `CountPeakBinDropped` с этой
+                // правки считает пик ПО ДОПУСКУ — тем же множеством, что и
+                // взвешенная ветвь, так что встречная проверка ветвей (`A58`,
+                // `G4RawProbe`) сравнивает одно определение с одним.
+                int bin = this.BinOf(peak, binKev, energyKev, deposited);
+                if (bin == peak)
                 {
                     this.CountPeakBinDropped++;
                     // Вес, а не штуки: при наведении конусом (`A57`) история
@@ -8771,6 +9124,25 @@ namespace BecquerelMonitor.EfficiencyMaker
                     if (comptonOutside)
                     {
                         this.CountPeakBinDroppedScattered++;
+                    }
+
+                    // ⛔ (`AMBER66`, П132 22.09.2026) ВНЕ КОНУСА ВЗВЕШЕННОЙ
+                    // ВЕТВИ пик считать НЕКОМУ: такого луча она не рождает.
+                    // Копим его отдельной суммой — `Run` добавит её и в бин
+                    // пика, и в возвращаемую эффективность. Внутри конуса всё
+                    // по-прежнему: там пик за взвешенной оценкой, и классы не
+                    // пересекаются. Счётчик `WeightPeakBinDropped` продолжает
+                    // считать ВЕСЬ пик аналоговой ветви — иначе встречная
+                    // проверка ветвей (`A58`, `G4RawProbe`) потеряла бы свой
+                    // знаменатель.
+                    if (!inWeightedCone)
+                    {
+                        this.CountPeakOutOfCone++;
+                        this.WeightPeakOutOfCone += weight;
+                        this.WeightPeakOutOfCone2 += weight * weight;
+                        outsideWeight += weight;
+                        outsideWeight2 += weight * weight;
+                        outsideLight += weight * this.lightDeposit;
                     }
 
                     continue;               // бин пика — за взвешенной оценкой
@@ -8789,7 +9161,11 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (channels != null)
                 {
-                    ResponseChannel channel = this.ChannelOf(energyKev - deposited);
+                    // (`AMBER52`, П125) Сперва происхождение заноса (седьмой
+                    // канал), потом статьи потери — см. `ChannelOf(escaped,
+                    // deposited, depositedOutside)`. Ниже порога пар
+                    // `depositedOutside` — точный ноль, выбор прежний до бита.
+                    ResponseChannel channel = this.ChannelOf(energyKev - deposited, deposited, depositedOutside);
                     if (channel == ResponseChannel.Peak)
                     {
                         channel = ResponseChannel.Compton;
@@ -8824,6 +9200,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
                 }
             }
+
+            return outsideWeight;
         }
 
         /// <summary>

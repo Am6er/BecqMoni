@@ -102,6 +102,13 @@ namespace BecquerelMonitor
                 if (value != null)
                 {
                     value.ApplyGapDefault();
+
+                    // (`AMBER67`) ...и ТУТ ЖЕ перенос вещества слотов на состав
+                    // действующей библиотеки: конфигурация прибора несёт
+                    // вещество СНИМКОМ, и правка засева до неё иначе не
+                    // доезжает. Трогается только снимок, побитово равный
+                    // прежнему засеву, — см. <see cref="GeometryMaterialStore.MigrateGeometry"/>.
+                    GeometryMaterialStore.MigrateGeometry(value);
                 }
             }
         }

@@ -92,9 +92,12 @@ namespace ResponseRowDumpProbe
         // 12.09.2026 (П3) имён было пять, и после разведения K/L (`AMBER16`
         // п. 1, склад пересчитан 12.09) `Emit` молча ронял канал L, а `total`
         // его включал — столбцы не сходились с суммой.
+        // (`AMBER52`, П125 22.09.2026, формат 10) седьмое — `ann_out`: аннигиляция
+        // вне кристалла (511, 1022, их комптон), содержимое постоянной энергии;
+        // у узлов ниже 1022 кэВ столбец пуст.
         static readonly string[] ChannelNames =
         {
-            "peak", "compton", "esc_se", "esc_xray", "esc_de", "esc_lx"
+            "peak", "compton", "esc_se", "esc_xray", "esc_de", "esc_lx", "ann_out"
         };
 
         /// <summary>
