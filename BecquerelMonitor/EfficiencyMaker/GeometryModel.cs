@@ -208,8 +208,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// 10° отнимает 0.2 % энергии), но здесь он НЕ учитывается: для этого
         /// нужен розыгрыш рассеяния, а не поправка к коэффициенту.
         ///
-        /// Если парциальных сечений для элемента нет, берётся полное
-        /// ослабление: занизить пропускание безопаснее, чем угадать вычет.
+        /// ⛔ (`AMBER74`, П132 22.09.2026) Остаток считается СУММОЙ ТРЁХ
+        /// КАНАЛОВ, а не разностью «прямая по сумме узлов минус канал
+        /// когерентного»: разность складывала две интерполяции по разным
+        /// правилам и несла ошибку первой целиком. См.
+        /// <see cref="PartialCrossSections.MassTotalWithoutCoherent"/>.
+        /// Оттого же отпала и прежняя оговорка «нет парциальных — берём полное»:
+        /// каналы и сумма приходят из ОДНОЙ таблицы `xcom_cross_sections`, и
+        /// «полное есть, каналов нет» не бывает.
         /// </summary>
         public double LinearAttenuationWithoutCoherent(double energyKev)
         {
@@ -219,10 +225,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return 0.0;
             }
 
-            // ⚡ (`A43`) Полное ослабление и когерентное — с ОДНОГО прохода по
-            // сетке элемента: она у них общая, энергия одна, и логарифм от неё
-            // берётся один на всё вещество. Было два поиска и два логарифма на
-            // каждый элемент.
+            // ⚡ (`A43`) Все каналы — с ОДНОГО прохода по сетке элемента: она у
+            // них общая, энергия одна, и логарифм от неё берётся один на всё
+            // вещество. Было два поиска и два логарифма на каждый элемент.
             double logEnergyKev = Math.Log(energyKev);
             double massAttenuation = 0.0;
             foreach (KeyValuePair<int, double> pair in this.Fractions)
@@ -231,13 +236,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 MaterialDatabase.Element element;
                 int lo, hi;
                 if (MaterialDatabase.TryGet(pair.Key, out element)
+                    && element.EnergyKev != null
                     && MaterialDatabase.Bracket(element.EnergyKev, energyKev, out lo, out hi))
                 {
-                    value = MaterialDatabase.Interpolate(
-                        element.EnergyKev, element.LogEnergyKev,
-                        element.Total, element.LogTotal, lo, hi, energyKev, logEnergyKev);
-                    value -= PartialCrossSections.MassCrossSection(
-                        element, lo, hi, energyKev, logEnergyKev, PhotonProcess.Coherent);
+                    value = PartialCrossSections.MassTotalWithoutCoherent(
+                        element, lo, hi, energyKev, logEnergyKev);
                 }
 
                 massAttenuation += pair.Value * Math.Max(0.0, value);

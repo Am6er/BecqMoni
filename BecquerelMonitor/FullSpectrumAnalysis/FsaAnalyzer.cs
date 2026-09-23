@@ -4232,7 +4232,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             FsaLine line = component.Lines[lineIndex];
-            double[] deposit = new double[(int)(line.Energy / bin + 0.5) + 1 + this.lightMarginBins];
+            // (`AMBER70`) длину образа считает сама матрица: `ceil(E/шаг)+1`, а
+            // не `round(E/шаг)+1`. У линии выше центра своего бина верхний сосед
+            // пика в прежнюю длину не влезал, `Add` зажимал его в последний бин,
+            // и дробный сдвиг пика на энергию линии был не виден вовсе.
+            double[] deposit = new double[EfficiencyMaker.ResponseMatrix.ImageBins(line.Energy, bin)
+                                          + this.lightMarginBins];
             FsaCascadeSummer.Correction correction =
                 this.cascade != null ? this.cascade.For(component) : null;
             if (correction != null && !correction.Any)
@@ -8545,7 +8550,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return null;
                 }
 
-                double[] deposit = new double[(int)(line.Energy / bin + 0.5) + 1 + this.lightMarginBins];
+                // (`AMBER70`) длина образа — от матрицы (`ceil(E/шаг)+1`); см.
+                // <see cref="BuildLineBlue"/>. Поверка линии обязана мерить тот
+                // же столбец, что стоит в фите, значит и длину брать ту же.
+                double[] deposit = new double[EfficiencyMaker.ResponseMatrix.ImageBins(line.Energy, bin)
+                                              + this.lightMarginBins];
                 FsaCascadeSummer.Correction correction =
                     this.cascade != null ? this.cascade.For(component) : null;
                 if (correction != null && !correction.Any)
@@ -11797,8 +11806,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
-            // (П19) запас под сдвиг пика вверх по свету — нуль без координаты
-            int length = (int)(topEnergy / bin + 0.5) + 1 + this.lightMarginBins;
+            // (П19) запас под сдвиг пика вверх по свету — нуль без координаты;
+            // (`AMBER70`) сама длина образа — от матрицы (`ceil(E/шаг)+1`): без
+            // лишнего бина `Add` зажимал верхнего соседа пика в последний бин, и
+            // у линий выше центра своего бина (половина всех) дробный сдвиг пика
+            // на энергию линии не доезжал до ленты.
+            int length = EfficiencyMaker.ResponseMatrix.ImageBins(topEnergy, bin) + this.lightMarginBins;
             int channelCount = EfficiencyMaker.EfficiencySimulator.ResponseChannelCount;
             int peak = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
             bool byChannels = matrix.HasChannels;

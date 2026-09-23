@@ -47,9 +47,13 @@ namespace FsaComponentDumpProbe
     /// </summary>
     static class Program
     {
+        // Имена по номерам каналов `ResponseChannel`. До П125 (22.09.2026) имён было
+        // ПЯТЬ при шести каналах — L-вылет (`AMBER16` п. 1) сюда не дописали;
+        // дописаны шестое и седьмое (`ann_out` — аннигиляция вне кристалла,
+        // `AMBER52`, формат 10).
         static readonly string[] ChannelNames =
         {
-            "peak", "compton", "esc_se", "esc_xray", "esc_de"
+            "peak", "compton", "esc_se", "esc_xray", "esc_de", "esc_xray_l", "ann_out"
         };
 
         static int Main(string[] args)

@@ -439,11 +439,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// I готового вещества из `star_materials`, если состав с ним совпал.
         ///
         /// ESTAR берёт I ИЗ ТАБЛИЦЫ, когда вещество выбрано из списка, и
-        /// считает по Брэггу, только когда состав ввели руками. Разница не
-        /// всегда мелкая: у иодида цезия и иодида натрия правило Брэгга даёт
-        /// табличное значение до сотых (553.10 и 452.01 против 553.1 и 452.0),
-        /// а у германата висмута — 523.5 против табличных 534.1, и это уже
-        /// 0.4 % в пробеге.
+        /// считает по Брэггу, только когда состав ввели руками. Правило Брэгга
+        /// с потенциалами «элемента в соединении» даёт табличное значение с
+        /// точностью округления таблицы: CsI 553.10, NaI 452.01, BGO 534.14
+        /// против 553.1, 452.0 и 534.1 (`AMBER56`; до 22.09.2026 у BGO
+        /// выходило 523.5 — кислороду шёл элементный потенциал 95 эВ вместо
+        /// 106, см. <see cref="BraggPotential"/>).
         ///
         /// ⚠ Порядок по `id` значащий: у воды состав совпадает у ДВУХ строк —
         /// жидкой (I = 75.0 эВ, id 276) и пара (71.6 эВ, id 277). Берётся
@@ -483,9 +484,29 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// I смеси по правилу Брэгга — `ESTAR.f:714-734`.
         ///
-        /// ln I = Σ wᵢ (Z/A)ᵢ ln Iᵢ / Σ wᵢ (Z/A)ᵢ, причём для элементов ТЯЖЕЛЕЕ
-        /// неона ESTAR берёт не табличное I элемента, а 1.13·I: в соединении
-        /// электроны связаны сильнее, чем в чистом веществе.
+        /// ln I = Σ wᵢ (Z/A)ᵢ ln Iᵢ / Σ wᵢ (Z/A)ᵢ. Потенциал элемента В
+        /// СОЕДИНЕНИИ — не тот, что у чистого элемента, и ESTAR берёт его двумя
+        /// способами: у элементов ЛЕГЧЕ неона (Z &lt; 10) — табличное ICRU 37
+        /// «элемент в соединении, конденсированная фаза» (`POTCON`: H 19.2,
+        /// C 81, N 82, O 106, F 112 — столбец `potential_cond_ev`), у остальных —
+        /// 1.13·I чистого элемента (`POTH`): в соединении электроны связаны
+        /// сильнее, чем в чистом веществе.
+        ///
+        /// ⛔ (`AMBER56`, П123 22.09.2026) До того при Z &lt; 10 брался
+        /// ЭЛЕМЕНТНЫЙ потенциал `potential_ev` (`POTH`: C 78, O 95) — тот, что
+        /// у чистого графита и газообразного кислорода. Цена измерена
+        /// `EstarPotentialProbe`: BGO по Брэггу 523.52 против табличных 534.1
+        /// (−1.98 %), вода 69.0 против 75.0 (−8.0 %); с `POTCON` — 534.14 и 75.32.
+        /// Задеты только составы, которых нет в `star_materials` (у них I
+        /// табличное): Lu₂O₃ 578.0 → 587.2 (+1.6 %), GSO 395.8 → 405.5 эВ (+2.4 %).
+        ///
+        /// ⚠ Что здесь по-прежнему НЕ различается: ESTAR для ГАЗООБРАЗНОГО
+        /// соединения берёт `POTGAS` (O 97, C 70), а признака фазы у
+        /// <see cref="Compound"/> нет — всякое соединение считается
+        /// конденсированным. В наших сценах газ один — воздух, и он идёт
+        /// табличным I (`star_materials` 104, 85.7 эВ); произвольная газовая
+        /// смесь получит I на ~3 % выше, чем дал бы ESTAR, при тормозной
+        /// способности, которая в газе ничего не решает.
         /// </summary>
         static double BraggPotential(Dictionary<int, double> fractions,
                                      Dictionary<int, double> weights)
@@ -497,7 +518,22 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 int z = pair.Key;
                 double za = z / weights[z];
-                double value = z < 10 ? elementPotential[z] : 1.13 * elementPotential[z];
+                double value;
+                if (z < 10)
+                {
+                    // `POTCON`; у строки без него (в поставке таких нет — все
+                    // девять заполнены) — прежний элементный, чтобы не молчать
+                    // нулём в логарифме.
+                    if (!elementPotentialCondensed.TryGetValue(z, out value) || !(value > 0.0))
+                    {
+                        value = elementPotential[z];
+                    }
+                }
+                else
+                {
+                    value = 1.13 * elementPotential[z];
+                }
+
                 zav += pair.Value * za;
                 acc += pair.Value * za * Math.Log(value);
             }
@@ -516,6 +552,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         static readonly object Gate = new object();
         static Dictionary<int, double> atomicWeight;
         static Dictionary<int, double> elementPotential;
+
+        /// <summary>
+        /// `potential_cond_ev` — I элемента в соединении (конденсированная
+        /// фаза, `POTCON`), только Z = 1…9; у остальных в базе NULL, и их тут нет.
+        /// </summary>
+        static Dictionary<int, double> elementPotentialCondensed;
         static List<StarMaterial> starMaterials;
         static double[] energyGrid;
         static readonly Dictionary<int, int[]> shellOccupation = new Dictionary<int, int[]>();
@@ -580,19 +622,28 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 Dictionary<int, double> loaded = new Dictionary<int, double>();
+                Dictionary<int, double> condensed = new Dictionary<int, double>();
                 using (SqliteConnection connection = Open())
                 using (SqliteCommand command = connection.CreateCommand())
                 {
-                    command.CommandText = "select z, potential_ev from estar_element_potential";
+                    // `potential_cond_ev` (`POTCON`) заполнен только у Z = 1…9,
+                    // дальше NULL — читается и складывается отдельно (`AMBER56`).
+                    command.CommandText = "select z, potential_ev, potential_cond_ev from estar_element_potential";
                     using (SqliteDataReader reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
-                            loaded[reader.GetInt32(0)] = reader.GetDouble(1);
+                            int z = reader.GetInt32(0);
+                            loaded[z] = reader.GetDouble(1);
+                            if (!reader.IsDBNull(2))
+                            {
+                                condensed[z] = reader.GetDouble(2);
+                            }
                         }
                     }
                 }
 
+                elementPotentialCondensed = condensed;
                 elementPotential = loaded;
             }
         }

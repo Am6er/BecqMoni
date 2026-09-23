@@ -1,0 +1,67 @@
+arm rev33 start 2026-09-23 15:10:36 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries bin=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p142
+arm rev33 mk_appwd code=0
+arm rev33 check_appwd code=0
+  response: rmx=49
+arm rev33 full code=0 15:11:06 (22 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev33_full
+arm rev33 mini code=0 15:11:15 (10 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev33_mini
+arm rev33 score full known code=0
+arm rev33 score mini known code=0
+arm rev33 score full unknown code=0
+arm rev33 score mini unknown code=0
+arm rev33 end 15:11:16
+arm ctrl start 2026-09-23 15:13:25 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries bin=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p142ctrl
+arm ctrl mk_appwd code=3
+arm ctrl check_appwd code=1
+  response: rmx=0
+arm ctrl full code=2 15:13:28 (1 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p142_ctrl_full
+arm ctrl mini code=2 15:13:29 (1 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p142_ctrl_mini
+arm ctrl score full known code=1
+arm ctrl score mini known code=1
+arm ctrl score full unknown code=1
+arm ctrl score mini unknown code=1
+arm ctrl end 15:13:29
+arm ctrl start 2026-09-23 15:13:55 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries bin=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p142ctrl
+arm ctrl mk_appwd code=0
+arm ctrl check_appwd code=0
+  response: rmx=49
+arm ctrl full code=0 15:14:25 (22 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p142_ctrl_full
+arm ctrl mini code=0 15:14:34 (10 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p142_ctrl_mini
+arm ctrl score full known code=0
+arm ctrl score mini known code=0
+arm ctrl score full unknown code=0
+arm ctrl score mini unknown code=0
+arm ctrl end 15:14:35
+arm rev33_nolight start 2026-09-23 15:15:54 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries bin=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p142
+arm rev33_nolight mini code=0 15:16:04 (10 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev33_mini_nolight
+arm rev33_nolight score mini known code=0
+arm rev33_nolight score mini unknown code=0
+arm rev33_nolight end 15:16:04
+arm ctrl_nolight start 2026-09-23 15:16:05 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries bin=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p142ctrl
+arm ctrl_nolight mini code=2 15:16:08 (3 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p142_ctrl_mini_nolight
+arm ctrl_nolight score mini known code=1
+arm ctrl_nolight score mini unknown code=1
+arm ctrl_nolight end 15:16:08
+arm rev33_nolight start 2026-09-23 15:16:40 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries bin=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p142
+arm rev33_nolight mini code=0 15:16:49 (9 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev33_mini_nolight
+arm rev33_nolight score mini known code=0
+arm rev33_nolight score mini unknown code=0
+arm rev33_nolight end 15:16:49
+arm ctrl_nolight start 2026-09-23 15:17:10 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries bin=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p142ctrl
+arm ctrl_nolight mk_appwd code=0
+arm ctrl_nolight check_appwd code=0
+  response: rmx=49
+arm ctrl_nolight mini code=0 15:17:26 (8 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p142_ctrl_mini_nolight
+arm ctrl_nolight score mini known code=0
+arm ctrl_nolight score mini unknown code=0
+arm ctrl_nolight end 15:17:27
+arm rev33 start 2026-09-23 15:20:35 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries bin=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p142
+arm rev33 mk_appwd code=0
+arm rev33 check_appwd code=0
+  response: rmx=49
+arm rev33 full code=0 15:21:05 (21 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev33_full
+arm rev33 mini code=0 15:21:15 (10 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev33_mini
+arm rev33 score full known code=0
+arm rev33 score mini known code=0
+arm rev33 score full unknown code=0
+arm rev33 score mini unknown code=0
+arm rev33 end 15:21:16

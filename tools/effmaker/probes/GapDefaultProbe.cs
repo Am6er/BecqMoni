@@ -225,6 +225,13 @@ namespace GapDefaultProbe
             Say("вещество: \"{0}\", плотность {1:R}, состав {2}", g.Gap.Name, g.Gap.Density, Fractions(g.Gap));
             Check("имя", "Air, dry", g.Gap.Name);
             Check("плотность", 0.001205, g.Gap.Density, 1e-12);
+            // ⚠ (П123 22.09.2026) Здесь состав ЧИТАЕТСЯ ИЗ ФАЙЛА, а не берётся
+            // умолчанием: `G1S_point5.in` в дереве с 18.09.2026 (`1c406579`, B30)
+            // несёт блок зазора (`N2 O1`, два элемента) — посылка раздела (а)
+            // «файл БЕЗ ключей зазора» устарела, о чём говорит и первая
+            // проверка выше. Ожидание «2» — состав ЭТОГО файла; умолчание засева
+            // (4 элемента NIST, с аргоном, `AMBER53`) меряется разделами (в) и
+            // (г) ниже.
             Check("элементов", 2, g.Gap.Fractions.Count);
             Check("есть азот", true, g.Gap.Fractions.ContainsKey(7));
             Check("есть кислород", true, g.Gap.Fractions.ContainsKey(8));
@@ -306,7 +313,7 @@ namespace GapDefaultProbe
             Check("без <Gap>: толщина зазора пережила", 2.5, a.Geometry.FrontGapThickness, 1e-12);
             Check("без <Gap>: имя", "Air, dry", a.Geometry.Gap.Name);
             Check("без <Gap>: плотность", 0.001205, a.Geometry.Gap.Density, 1e-12);
-            Check("без <Gap>: элементов", 2, a.Geometry.Gap.Fractions.Count);
+            Check("без <Gap>: элементов", 4, a.Geometry.Gap.Fractions.Count);
 
             // 2. Пустой блок — пустое имя, плотность 0, без долей.
             string empty = Regex.Replace(full, @"<Gap>.*?</Gap>",
@@ -317,7 +324,7 @@ namespace GapDefaultProbe
             Report("пустой <Gap>", b);
             Check("пустой <Gap>: имя", "Air, dry", b.Geometry.Gap.Name);
             Check("пустой <Gap>: плотность", 0.001205, b.Geometry.Gap.Density, 1e-12);
-            Check("пустой <Gap>: элементов", 2, b.Geometry.Gap.Fractions.Count);
+            Check("пустой <Gap>: элементов", 4, b.Geometry.Gap.Fractions.Count);
 
             // 3. Вода — ЗАДАННОЕ вещество, положительный контроль подмены.
             EfficiencyConfigData waterSource = new EfficiencyConfigData();
@@ -409,7 +416,7 @@ namespace GapDefaultProbe
             Say("пустой зазор шаблона → \"{0}\", {1:R}, {2}", g.Gap.Name, g.Gap.Density, Fractions(g.Gap));
             Check("пустой шаблон: имя", "Air, dry", g.Gap.Name);
             Check("пустой шаблон: плотность", 0.001205, g.Gap.Density, 1e-12);
-            Check("пустой шаблон: элементов", 2, g.Gap.Fractions.Count);
+            Check("пустой шаблон: элементов", 4, g.Gap.Fractions.Count);
             Check("пустой шаблон: диаметр перенесён", 40.0, g.CrystalDiameter, 1e-12);
 
             // Заданное вещество шаблона переносится как есть.
@@ -441,7 +448,7 @@ namespace GapDefaultProbe
             if (simulateOld) g3.Gap = new GeometryMaterial();
             Say("шаблон из XML без <Gap> → \"{0}\", {1:R}, {2}", g3.Gap.Name, g3.Gap.Density, Fractions(g3.Gap));
             Check("шаблон из XML: имя", "Air, dry", g3.Gap.Name);
-            Check("шаблон из XML: элементов", 2, g3.Gap.Fractions.Count);
+            Check("шаблон из XML: элементов", 4, g3.Gap.Fractions.Count);
         }
 
         // ------------------------------------------------------------------

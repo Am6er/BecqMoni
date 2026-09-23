@@ -110,6 +110,49 @@ namespace BecquerelMonitor.EfficiencyMaker
         public const double FieldRadiusMargin = 2.0;
 
         /// <summary>
+        /// Толщины обвязки В СИСТЕМЕ СЦЕНЫ (`AMBER64`): <paramref name="toSample"/>
+        /// — слой между пробой и кристаллом, <paramref name="lateral"/> — слой
+        /// на боковых гранях.
+        ///
+        /// ⛔ ЧИТАТЬ `Front*`/`Side*` «КАК НАЗВАНО» НЕЛЬЗЯ. При боковой
+        /// постановке (<see cref="GeometryDetectorFacing.Side"/>) к пробе
+        /// обращена БОКОВАЯ грань, и `EfficiencySimulator.Build` (~~`E21`~~),
+        /// `DoseRateGeometry` и `GeometrySketch` меняют толщины местами ещё до
+        /// того, как строить сцену. Размеры бруска сюда приходят уже
+        /// развёрнутыми (<see cref="GeometryModel.CrystalBoxInScene"/>), а
+        /// обвязка приходила неразвёрнутой, и три функции ниже считали
+        /// полумеру: у RC-103 (куб 10 мм, зазор 3.5 мм у торца и 0 с бока)
+        /// поперечник выходил 19.799 мм против 29.698 в самой сцене, вынос
+        /// середины кристалла 10.5 против 7.0, наименьший радиус поля 25.773
+        /// против 32.419; колодец `Borehole` — Ø 39.799 вместо 49.698, просвет
+        /// до угла корпуса 5.05 мм вместо обещанных 10, и точки пробы ложились
+        /// бы ВНУТРЬ корпуса без единого отказа (замер П131 22.09.2026,
+        /// `SceneFacingProbe`).
+        ///
+        /// Перестановка ровно та же, что в `Build`, и живёт ЗДЕСЬ в
+        /// единственном месте: три функции ниже читают обвязку только отсюда.
+        /// </summary>
+        public static void WrappingInScene(GeometryModel g, out double toSample, out double lateral)
+        {
+            double front = Math.Max(0.0, g.FrontReflectorThickness)
+                           + Math.Max(0.0, g.FrontGapThickness)
+                           + Math.Max(0.0, g.FrontCladdingThickness);
+            double side = Math.Max(0.0, g.SideReflectorThickness)
+                          + Math.Max(0.0, g.SideGapThickness)
+                          + Math.Max(0.0, g.SideCladdingThickness);
+            if (g.Facing == GeometryDetectorFacing.Side)
+            {
+                toSample = side;
+                lateral = front;
+            }
+            else
+            {
+                toSample = front;
+                lateral = side;
+            }
+        }
+
+        /// <summary>
         /// Наименьший радиус сферы поля, мм: габарит детектора с обвязкой и
         /// оправой (половина диагонали описанного цилиндра) с запасом
         /// <see cref="FieldRadiusMargin"/>. Считается из тех же полей, что
@@ -119,9 +162,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         public static double MinFieldRadiusMm(GeometryModel g)
         {
             double halfWidth = 0.5 * DetectorOuterDiameterMm(g);
-            double front = Math.Max(0.0, g.FrontReflectorThickness)
-                           + Math.Max(0.0, g.FrontGapThickness)
-                           + Math.Max(0.0, g.FrontCladdingThickness);
+            // (`AMBER64`) Обвязка — РАЗВЁРНУТАЯ: к пробе обращён слой той
+            // стороны, которой прибор к ней повёрнут.
+            double front, lateral;
+            WrappingInScene(g, out front, out lateral);
             double depth;
             if (g.Shape == CrystalShape.Box)
             {
@@ -330,9 +374,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             // (`AMBER1`) Зазор между отражателем и корпусом ВХОДИТ В ВЫНОС:
             // расстояния сцены отсчитываются от переднего торца корпуса, и
             // зазор углубляет кристалл ровно на свою толщину.
-            double front = Math.Max(0.0, g.FrontReflectorThickness)
-                           + Math.Max(0.0, g.FrontGapThickness)
-                           + Math.Max(0.0, g.FrontCladdingThickness);
+            // (`AMBER64`) И берётся он у ТОЙ стороны, которой прибор повёрнут
+            // к пробе, — см. <see cref="WrappingInScene"/>.
+            double front, lateral;
+            WrappingInScene(g, out front, out lateral);
 
             double depth;
             if (g.Shape == CrystalShape.Box)
@@ -355,9 +400,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public static double DetectorOuterDiameterMm(GeometryModel g)
         {
-            double side = Math.Max(0.0, g.SideReflectorThickness)
-                          + Math.Max(0.0, g.SideGapThickness)
-                          + Math.Max(0.0, g.SideCladdingThickness);
+            // (`AMBER64`) Боковой слой — тот, что при этой постановке
+            // действительно лежит на боках, а не тот, что так назван в файле.
+            double toSample, side;
+            WrappingInScene(g, out toSample, out side);
 
             if (g.Shape == CrystalShape.Box)
             {

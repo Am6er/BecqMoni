@@ -525,7 +525,7 @@ namespace BoundProbeF59
             // место истины (правило I `check_matrix_keys.py`):
             // путь склада, путь кривой и поля симулятора берут их отсюда.
             Say("");
-            Say("-- A120: умолчания физики 17, 18, 19, 20, 21 и 22 (склад = кривая = симулятор) --");
+            Say("-- A120: умолчания физики 17, 18, 19, 20, 21 и 22 (у физики 23 те же; склад = кривая = симулятор) --");
             Say(string.Format(CultureInfo.InvariantCulture, "   PhysicsVersion       = {0}", ResponseMatrix.PhysicsVersion));
             Say(string.Format(CultureInfo.InvariantCulture, "   LightBinUnified      = {0}", options.LightBinUnified));
             Say(string.Format(CultureInfo.InvariantCulture, "   PeakChannelByTolerance = {0}", options.PeakChannelByTolerance));
@@ -537,8 +537,10 @@ namespace BoundProbeF59
             Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerMixedScattering = {0}", options.ElectronLayerMixedScattering));
             Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerBremAlongPath = {0}", options.ElectronLayerBremAlongPath));
             Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerBremAngular2BS = {0}", options.ElectronLayerBremAngular2BS));
-            Ok(ResponseMatrix.PhysicsVersion == 22,
-               string.Format(CultureInfo.InvariantCulture, "версия физики склада — 22 (есть {0})", ResponseMatrix.PhysicsVersion));
+            // (П122 22.09.2026) Физика 23 — три безусловных исправления `AMBER50`/`AMBER52`/`AMBER57`
+            // без ключей: умолчания класса те же, что у физики 22, меняется только номер.
+            Ok(ResponseMatrix.PhysicsVersion == 23,
+               string.Format(CultureInfo.InvariantCulture, "версия физики склада — 23 (есть {0})", ResponseMatrix.PhysicsVersion));
             Ok(options.LightBinUnified && options.PeakChannelByTolerance && options.LYieldSupply == 2
                && options.ElectronTransport && options.PositronTransport && options.PositronOffset && options.RayleighToCrystal,
                "семь ключей физики 17 умолчанием ВКЛ: lbin=1 pkch=1 lys=2 etr=1 e+tr=1 e+off=1 rayl2=1");

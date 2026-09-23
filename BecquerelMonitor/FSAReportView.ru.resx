@@ -304,4 +304,7 @@
   <data name="FSAReport_MatrixLayerNoMatrixTip" xml:space="preserve">
     <value>У спектра нет матрицы отклика: каналов у модели нет, рисуется вся стопка.</value>
   </data>
+  <data name="FSAReport_MatrixLayerAnnihilationOutside" xml:space="preserve">
+    <value>Аннигиляция вне кристалла (511, 1022, их комптон)</value>
+  </data>
 </root>
