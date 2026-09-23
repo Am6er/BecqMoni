@@ -1,0 +1,5 @@
+[detached] ДО: родитель pwsh 11792 в job 0xa2c; нагрузка cmd PID 2944 (родитель 8088 WmiPrvSE), ping PID 22324
+[detached] ПОСЛЕ Stop-Process родителя: cmd жив=True; ПОСЛЕ TerminateJobObject: cmd PID 2944 жив=True, ping PID 22324 жив=True
+[oldway] ДО: родитель pwsh 18496 в job 0xb2c; нагрузка cmd PID 25508 (родитель 18496 pwsh), ping PID 13392
+[oldway] ПОСЛЕ Stop-Process родителя: cmd жив=True; ПОСЛЕ TerminateJobObject: cmd PID 25508 жив=False, ping PID 13392 жив=False
+САМОПРОВЕРКА ПРОШЛА: отсоединённый запуск пережил убийство родителя и его Job Object; старый Start-Process — погиб (положительный контроль убийцы)

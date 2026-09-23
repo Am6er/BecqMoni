@@ -1,0 +1,50 @@
+спектр                       часть     χ²/ndf до      после      Δ %  что разошлось; состав (доля %, до → после, > 0.05 п.п.)
+AS80_Cs137_0cm               known        4.0859     4.0859   +0.000  chi2ndf_pois, mda_peak_counts, model_residual_pct, peak_counts
+AS80_Lu176                   known        1.9071     1.9074   +0.016  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+AS80_Th232Medal              known       12.7321    12.7309   -0.009  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, decay_s, decay_s
+ASN16_Cs137                  known       13.4532    13.5059   +0.392  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+ASN16_Cs137_10cm             known        0.5365     0.5365   +0.000  chi2ndf_pois, mda_peak_counts, model_residual_pct, peak_counts
+ASN16_Lu176                  known        3.6363     3.6360   -0.008  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+ASN16_Lu176_P0               known        0.4118     0.4118   +0.000  chi2ndf_pois, decay_s, decay_s, dt_decay_s, dt_decay_s, gain
+G1S16_Am241_P25              known        1.5921     1.5921   +0.000  chi2ndf_pois, model_residual_pct
+G1S16_Am241_P5               known        2.6857     2.6857   +0.000  chi2ndf_pois, dt_decay_s, dt_decay_s, mda_decay_s, mda_decay_s, mda_peak_counts
+G1S16_Ba133_P25              known        2.6747     2.6747   +0.000  chi2ndf_pois, inflate, inflate, model_residual_pct, peak_counts
+G1S16_Ba133_P5               known       11.5274    11.5289   +0.013  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S16_Cd109_P25              known        1.3540     1.3540   +0.000  chi2ndf_pois, model_residual_pct
+G1S16_Cd109_P5               known        3.6346     3.6346   +0.000  chi2ndf_pois, model_residual_pct
+G1S16_Ce139_P25              known        1.1926     1.1926   +0.000  chi2ndf_pois, model_residual_pct
+G1S16_Ce139_P5               known        3.3016     3.3017   +0.003  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S16_Co57_P5                known        0.9711     0.9711   +0.000  chi2ndf_pois, model_residual_pct
+G1S16_Co60_P25               known        1.7176     1.7176   +0.000  chi2ndf_pois, model_residual_pct
+G1S16_Co60_P5                known        9.6196     9.6196   +0.000  chi2ndf_pois, model_residual_pct
+G1S16_Cs137_P25              known        1.8731     1.8731   +0.000  chi2ndf_pois, mda_peak_counts, model_residual_pct, peak_counts
+G1S16_Cs137_P5               known        8.1347     8.1401   +0.066  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Eu152_P25              known        3.4260     3.4236   -0.070  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S16_Eu152_P5               known       13.6885    13.6856   -0.021  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S16_Mn54_P25               known        1.5006     1.5006   +0.000  <число строк 1→2>, anchor_note, chi2ndf_pois, components, library_note, model_residual_pct
+G1S16_Mn54_P5                known        2.9009     2.9009   +0.000  <число строк 1→2>, anchor_note, chi2ndf_pois, components, library_note, model_residual_pct
+G1S16_Na22_P25               known        4.1818     4.1841   +0.055  anchor_note, chi2ndf, chi2ndf_pois, collinearity, component, components; Ann-511 70.17→10.54; Na-22 29.83→89.46
+G1S16_Na22_P5                known       14.0119    14.0161   +0.030  anchor_note, ch_hi, ch_lo, chi2ndf, chi2ndf_pois, collinearity; Ann-511 72.71→17.82; Na-22 27.28→82.17
+G1S16_Th228_P25              known        1.1808     1.1806   -0.017  anchor_note, chi2ndf, chi2ndf_pois, decay_s, decay_s, dt_decay_s
+G1S16_Th228_P5               known        4.4672     4.4584   -0.197  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S16_Y88_P25                known        1.0761     1.0478   -2.630  <число строк 1→2>, <число строк 2→3>, anchor_note, chi2ndf, chi2ndf_pois, collinearity; Y-88 100.00→97.02; pile-up 0.00→2.98
+G1S16_Y88_P5                 known        1.3015     1.3015   +0.000  ch_hi, ch_lo, chi2ndf_pois, collinearity, components, decay_s; Ann-511 1.53→1.27; Y-88 98.47→98.73
+G1S24_Am241_P5               known        5.7506     5.7506   +0.000  chi2ndf_pois, model_residual_pct, peak_counts, z
+G1S24_Ba133_P5               known       17.3558    17.3587   +0.017  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S24_Bi207_P5               known       22.9973    22.9974   +0.000  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S24_Cd109_P5               known        3.2313     3.2313   +0.000  chi2ndf_pois, model_residual_pct
+G1S24_Co60_P5                known       11.7765    11.7765   +0.000  chi2ndf_pois, model_residual_pct
+G1S24_Cs137_P25              known        3.1361     3.1361   +0.000  chi2ndf_pois, mda_peak_counts, model_residual_pct, peak_counts
+G1S24_Cs137_P5               known       13.7111    13.7287   +0.128  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S24_Eu152_P5               known       30.3754    30.2715   -0.342  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S24_Na22_P25               known        6.1750     6.2098   +0.564  anchor_note, anchor_offset_kev, ch_hi, ch_lo, chi2ndf, chi2ndf_pois; Ann-511 69.71→9.40; Na-22 30.29→90.60
+G1S24_Na22_P5                known       36.3994    35.8494   -1.511  <число строк 3→2>, anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity; Ann-511 70.98→12.90; Na-22 28.41→87.09; pile-up 0.60→0.00
+G1S24_Th228_P25              known        4.2079     4.2152   +0.173  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S24_Th228_P5               known       21.3838    21.2165   -0.782  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S24_Y88_P25                known        2.0726     2.0727   +0.005  chi2ndf, chi2ndf_pois, collinearity, components, decay_s, dt_decay_s; Ann-511 1.28→1.03; Y-88 98.72→98.97
+G1S24_Y88_P5                 known        8.2360     8.2363   +0.004  chi2ndf, chi2ndf_pois, collinearity, components, decay_s, dt_decay_s; Ann-511 1.21→0.96; Y-88 98.79→99.04
+G1S24_Zn65_P5                known        1.0668     1.0668   +0.000  chi2ndf_pois, collinearity, component, components, decay_s, dt_decay_s; Ann-511 7.73→1.57; Zn-65 92.06→98.22
+
+known: разобранных 45, Σχ²/ndf 322.6526 -> 321.9169 (-0.2280 %)
+сдвинулось 45, побитово 0
+побитово: 

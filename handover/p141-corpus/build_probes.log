@@ -1,0 +1,237 @@
+build_all.ps1: начало, pid 6616, 23.09 08:20:42
+  -Bin C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p141
+  -Out C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p141
+довески без Main: _TargetFramework.cs, FsaTuningReport.cs, GadrasDetector.cs, ProbeDeviceConfig.cs, ResidualScan.cs
+целевая платформа проб: довесок _TargetFramework.cs
+ok   MeasuredPoint.cs
+ok   Simulate.cs
+ok   AngularProbe.cs
+ok   AngularQkProbe.cs
+ok   AnnihilationGateProbe.cs
+ok   BackscatterShapeProbe.cs
+ok   BoundProbeF59.cs
+ok   BoundScatterProbe.cs
+ok   BoxCylStampProbeF64.cs
+ok   BoxDeadFieldsProbe.cs
+ok   BoxSourceProbe.cs
+ok   BqActivityProbe.cs
+ok   BqCoeffProbe.cs
+ok   BremPathProbe.cs
+ok   BremSpectrumProbe.cs
+ok   CalcRestoreProbe.cs
+ok   CalibGraphProbeF35.cs
+ok   CalibGuardProbeF77.cs
+ok   CalibrationDoorsProbe.cs
+ok   CalibrationInverseProbeP78.cs
+ok   CalibrationNanProbeF48.cs
+ok   CascadeClampProbe.cs
+ok   CascadeExclusiveProbe.cs
+ok   CascadeJointProbe.cs
+ok   CascadePairProbe.cs
+ok   CascadeXrayProbe.cs
+ok   ChainProbe.cs
+ok   ChainRuleProbeF58.cs
+ok   CoincCfProbe.cs
+ok   CorpusEffProbe.cs
+ok   CorpusFsaProbe.cs
+ok   CorpusGeomProbe.cs
+ok   CorpusMatrixProbe.cs
+ok   CrashLogProbe.cs
+ok   CrystalMaterialProbe.cs
+ok   CrystalXrayGateProbe.cs
+ok   CultureProbeO14.cs
+ok   CurveGenerationProbe.cs
+ok   CylinderGeomProbe.cs
+ok   DecayReadersProbe.cs
+ok   DensityFromPartsProbe.cs
+ok   DeviceAnalysisProbe.cs
+ok   DeviceTabProbe.cs
+ok   DoseAirProbeF63.cs
+ok   DoseBoundProbeF65.cs
+ok   DoseCoefProbeO2.cs
+ok   DoseRateFromCurveProbe.cs
+ok   DoseRateProbe.cs
+ok   EditorProbe.cs
+ok   EditorShot.cs
+ok   EffCoverProbe.cs
+ok   EffDipProbe.cs
+ok   EffGridRangeProbe.cs
+ok   EfficiencyConfigProbe.cs
+ok   EfficiencyGraphDecadesProbeP77.cs
+ok   EfficiencyListProbe.cs
+ok   EscapeGateProbe.cs
+ok   EscapeMarginProbe.cs
+ok   EscapeOrphanProbe.cs
+ok   EscapeParentsProbe.cs
+ok   FacingProbe.cs
+ok   FsaAnchorGlyphProbe.cs
+ok   FsaAnnihilationGateProbe.cs
+ok   FsaBackgroundMarkProbeF48.cs
+ok   FsaCascadeProbe.cs
+ok   FsaChannelShot.cs
+ok   FsaChannelSplitProbe.cs
+ok   FsaChannelViewProbe.cs
+ok   FsaComponentDumpProbe.cs
+ok   FsaCrystalMixFallbackProbe.cs
+ok   FsaDeterminismProbeF29.cs
+ok   FsaDoubleCountProbe.cs
+ok   FsaFitFloorProfileProbe.cs
+ok   FsaFlagsProbe.cs
+ok   FsaGateRescueProbe.cs
+ok   FsaInferProbeF51.cs
+ok   FsaLibraryBetaChainProbe.cs
+ok   FsaLibraryDefaultPathProbe.cs
+ok   FsaLibraryYieldProbe.cs
+ok   FsaLineAuditZeroMapProbe.cs
+ok   FsaMatchingProbe.cs
+ok   FsaMatrixFloorProbe.cs
+ok   FsaNdfProbe.cs
+ok   FsaNnlsDumpProbe.cs
+ok   FsaP42ArmProbe.cs
+ok   FsaPaletteProbe.cs
+ok   FsaPeakWindowProbe.cs
+ok   FsaPileUpProbe.cs
+ok   FsaQualityRowProbe.cs
+ok   FsaRefitZClassProbe.cs
+ok   FsaReportViewProbe.cs
+ok   FsaReportWeightsProbe.cs
+ok   FsaResidualProbeF21.cs
+ok   FsaRobustnessProbe.cs
+ok   FsaScaleTopProbe.cs
+ok   FsaSelectionProbeF16.cs
+ok   FsaSessionProbe.cs
+ok   FsaStackShot.cs
+ok   FsaStampProbe.cs
+ok   FsaSumPeakAccountProbe.cs
+ok   FsaTieProbe.cs
+ok   FsaViewGroupsProbe.cs
+ok   FwhmOverflowProbe.cs
+ok   FwhmPowerProbe.cs
+ok   FwhmReaderProbeF62.cs
+ok   FwhmRescaleProbe.cs
+ok   FwhmViewReachProbeO13.cs
+ok   FwhmVoiceProbeF54.cs
+ok   G4CompareProbe.cs
+ok   G4RawProbe.cs
+ok   GadrasProbe.cs
+ok   GapDefaultProbe.cs
+ok   GapProbeAmber1.cs
+ok   GapTemplateProbeE43.cs
+ok   GeomEncodingProbe.cs
+ok   GeometryLayoutProbe.cs
+ok   GeometryLimitsProbe.cs
+ok   GeometryTemplateProbe.cs
+ok   GraphCultureProbeF27.cs
+ok   GridStampProbeF45.cs
+ok   GroundScenesProbe.cs
+ok   ImportEmptyConfigProbeF23.cs
+ok   IncidenceResponseProbe.cs
+ok   IntensityLinesProbe.cs
+ok   IsoCurveActivityProbeP79.cs
+ok   IsoFieldProbe.cs
+ok   KappaPeakTotalProbe.cs
+ok   LabelFitProbe.cs
+ok   LabelPathProbeF49.cs
+ok   LabelTruthProbe.cs
+ok   LayerProbe.cs
+ok   LayerReturnProbe.cs
+ok   LayoutFileProbe.cs
+ok   LightAnchorProbe.cs
+ok   LightScaleProbe.cs
+ok   LineAuditScaleProbe.cs
+ok   LiveTimePathsProbeP80.cs
+ok   LSeriesProbe.cs
+ok   LsrmGeometryImportProbe.cs
+ok   LYieldProbe.cs
+ok   MakerSaveProbe.cs
+ok   MarinelliSelfAbsProbeE10.cs
+ok   MaterialDbProbe.cs
+ok   MaterialNameProbeF67.cs
+ok   MaterialOrderProbe.cs
+ok   MatrixAuditProbe.cs
+ok   MatrixDiffProbe.cs
+ok   MatrixLayoutProbe.cs
+ok   MatrixPeakProbeF76.cs
+ok   MatrixRangeProbe.cs
+ok   MatrixRebuildProbe.cs
+ok   MatrixRecomputeProbe.cs
+ok   MatrixRefusalProbeP8.cs
+ok   MatrixStampProbe.cs
+ok   MineProbe.cs
+ok   ModalReachProbeF22.cs
+ok   ModalThreadProbeO25.cs
+ok   N42BoundaryProbeG6.cs
+ok   N42ChannelCenterProbe.cs
+ok   N42DoorsProbeF54.cs
+ok   N42PolynomialCentreProbe.cs
+ok   N42RoundTripProbe.cs
+ok   N42SourceProbeP139.cs
+ok   NucidProbe.cs
+ok   NuclideSetMemoryProbe.cs
+ok   NumericCultureProbeF68.cs
+ok   OmegaProbe.cs
+ok   PairThresholdProbe.cs
+ok   PeakAgreeProbe.cs
+ok   PeakFwhmUnitsProbeF41.cs
+ok   PeakHighlightProbeG9.cs
+ok   PeakListRowsProbeP57.cs
+ok   PeakOriginProbe.cs
+ok   RawCarryProbe.cs
+ok   ReasonProbe.cs
+ok   RecalibrateBackgroundProbe.cs
+ok   RefusalWordsProbe.cs
+ok   ResponseChannelProbe.cs
+ok   ResponseInterpProbe.cs
+ok   ResponseMatrixFormProbe.cs
+ok   ResponseMatrixProbe.cs
+ok   ResponseNoiseProbe.cs
+ok   ResponseProbe.cs
+ok   ResponseRowDumpProbe.cs
+ok   ResponseShapeProbe.cs
+ok   ResponseTransferProbe.cs
+ok   RestCultureProbeF28.cs
+ok   RestCultureProbeF47.cs
+ok   RoiActivityProbe.cs
+ok   RoiLoadProbe.cs
+ok   RoiSupplyProbe.cs
+ok   RoundTrip.cs
+ok   S109ActivityProbe.cs
+ok   SbKeysProbe.cs
+ok   SceneCostProbe.cs
+ok   SceneOfSpectrumProbe.cs
+ok   SeedStampProbeF69.cs
+ok   SelectionPanelProbeG10.cs
+ok   SetColorProbe.cs
+ok   SketchShot.cs
+ok   SpectrumEfficiencyProbe.cs
+ok   SpecUtilsPathProbe.cs
+ok   StartTimeProbeF52.cs
+ok   StringsProbeF55.cs
+ok   SumPeakLightProbe.cs
+ok   SumPeakProbe.cs
+ok   TrustFloorProbe.cs
+ok   UnitsProbe.cs
+ok   VisibleRuleProbe.cs
+ok   XrayLabelProbeF53.cs
+ok   XrayLinesProbe.cs
+----
+сверено рядом с пробами: 261 файлов по sha256 с источником
+    поставочный конфиг         2
+    поставочный конфиг\device  10
+    поставочный конфиг\ROI     12
+    сборка                     22
+    сборка\ru                  1
+    сборка\runtimes            3
+    exe.config пробы           211
+  (сверять не с чем ещё у 211 проб и 0 посторонних: их источник — сам этот каталог)
+⚠ в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p141 нет заверенной записи набора — свежесть судится ВРЕМЕНЕМ (правило T41)
+приложение рядом с пробами сошлось со сборкой: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p141
+библиотека нуклидов: 152 записей, sha 7aaa0b01c9bd (поставочная)
+все собрались: 211 файлов (плюс 5 без Main, идут довеском)
+  сторож полосы (`S101`): один рычаг двигает ОБА конца на всех ЧЕТЫРЁХ режимах; подставленный рассинхрон НАЗВАН, согласные концы не тревожат. СОШЛОСЬ.
+  СОШЛОСЬ: состояний разметки проверено 56, уползших контролов нет
+каталог заверен (T226): наборы — приложение 1506468fb4f0 (550 файлов), пробы a69c2729202e (216), довесков 5
+описания FSA сверены с кодом (T86): tools\check_fsa_docs.py — код 0
+  САМОПРОВЕРКА ПРОШЛА: все 17 образцов и 3 уведённых умолчаний пойманы, якоря разобраны.
+  FsaAnalyzer.cs: описаний 348, умолчаний 99 (из них конструктор ставит 62)
+  ОПИСАНИЯ СОШЛИСЬ С КОНСТРУКТОРОМ: копий значений в описаниях нет.
