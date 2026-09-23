@@ -29,6 +29,8 @@ DS_CrystalDiameter = 6.3 cm
 DS_CrystalHeight = 6.3 cm
 DS_CrystalFrontReflectorThickness = 0.13 cm
 DS_CrystalSideReflectorThickness = 0.1 cm
+DS_CrystalFrontGapThickness = 0 cm
+DS_CrystalSideGapThickness = 0 cm
 DS_CrystalFrontCladdingThickness = 0.18 cm
 DS_CrystalSideCladdingThickness = 0.2 cm
 DS_DetectorMountingThickness = 0.2 cm
@@ -184,6 +186,23 @@ M_DS_Reflector.Nmaterials = 1
 M_DS_Reflector.Name[0] = Polytetrafluoroethylene                  
 M_DS_Reflector.MatRelWeight[0] = 1
 
+// Gap between reflector and cladding 
+DS_nCrystalGapElements = 4
+DS_RoCrystalGap = 0.001205
+DS_ZCrystalGap[0] = 6
+DS_FractionsCrystalGap[0] = 0.000124
+DS_ZCrystalGap[1] = 7
+DS_FractionsCrystalGap[1] = 0.755268
+DS_ZCrystalGap[2] = 8
+DS_FractionsCrystalGap[2] = 0.231781
+DS_ZCrystalGap[3] = 18
+DS_FractionsCrystalGap[3] = 0.012827
+DS_FractionTypeGap = MASS
+M_DS_Gap.MName = Air, dry
+M_DS_Gap.Nmaterials = 1
+M_DS_Gap.Name[0] = Air, dry                                 
+M_DS_Gap.MatRelWeight[0] = 1
+
 
 
 // Cylindrical beaker materials:
@@ -224,12 +243,16 @@ M_SC_Source.MatRelWeight[0] = 1
 
 
 // Empty space 
-SC_nEmptySpaceElements = 2
+SC_nEmptySpaceElements = 4
 SC_RoEmptySpace = 0.001205
-SC_ZEmptySpace[0] = 7
-SC_FractionsEmptySpace[0] = 0.636483
-SC_ZEmptySpace[1] = 8
-SC_FractionsEmptySpace[1] = 0.363517
+SC_ZEmptySpace[0] = 6
+SC_FractionsEmptySpace[0] = 0.000124
+SC_ZEmptySpace[1] = 7
+SC_FractionsEmptySpace[1] = 0.755268
+SC_ZEmptySpace[2] = 8
+SC_FractionsEmptySpace[2] = 0.231781
+SC_ZEmptySpace[3] = 18
+SC_FractionsEmptySpace[3] = 0.012827
 SC_FractionTypeEmptySpace = MASS
 M_SC_EmptySpace.MName = Air, dry
 M_SC_EmptySpace.Nmaterials = 1
@@ -278,12 +301,16 @@ M_SM_Source.MatRelWeight[0] = 1
 
 
 // Empty space 
-SM_nEmptySpaceElements = 2
+SM_nEmptySpaceElements = 4
 SM_RoEmptySpace = 0.001205
-SM_ZEmptySpace[0] = 7
-SM_FractionsEmptySpace[0] = 0.636483
-SM_ZEmptySpace[1] = 8
-SM_FractionsEmptySpace[1] = 0.363517
+SM_ZEmptySpace[0] = 6
+SM_FractionsEmptySpace[0] = 0.000124
+SM_ZEmptySpace[1] = 7
+SM_FractionsEmptySpace[1] = 0.755268
+SM_ZEmptySpace[2] = 8
+SM_FractionsEmptySpace[2] = 0.231781
+SM_ZEmptySpace[3] = 18
+SM_FractionsEmptySpace[3] = 0.012827
 SM_FractionTypeEmptySpace = MASS
 M_SM_EmptySpace.MName = Air, dry
 M_SM_EmptySpace.Nmaterials = 1
