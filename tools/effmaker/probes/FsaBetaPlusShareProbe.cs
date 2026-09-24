@@ -27,8 +27,18 @@ namespace FsaBetaPlusShareProbe
     /// поставок. Печатается и примечание базы (`Note`).
     ///
     ///     fsabetaplusshareprobe (--sample=22NA,88Y | --all) [--check] [--out=&lt;tsv&gt;]
+    ///                           [--formula=ensdf|supply]
     ///
-    /// `--check` — код 1, если у кого-то обратная условная больше 1 + 1e-9.
+    /// `--check` — код 1, если у кого-то обратная условная больше 1 + 1e-9
+    /// либо (`S188`) прямая есть, а обратной нет — пара потеряна.
+    ///
+    /// (`S188`, П152 24.09.2026) Обратная — ТА, ЧТО СТРОИТ СУММАТОР:
+    /// <see cref="CascadeAtomicData.AnnihilationReverseOfLine"/> — прежнее правило,
+    /// а где оно за единицей — поток ENSDF (`--formula=ensdf`, умолчание).
+    /// `--formula=supply` судит прежнее
+    /// правило P(511 | γ)·I(γ)/I(511) из двух поставок — положительный
+    /// контроль: на нынешней базе оно обязано дать `--check` код 1 (16 линий у
+    /// 13 родителей, замер П149). Печатаются обе.
     /// Имён нуклидов в пробе нет: кого печатать — ключи или база.
     /// </summary>
     static class Program
@@ -40,7 +50,7 @@ namespace FsaBetaPlusShareProbe
             CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 
             var samples = new List<string>();
-            bool all = false, check = false;
+            bool all = false, check = false, supplyFormula = false;
             string outPath = null;
             foreach (string a in args)
             {
@@ -49,6 +59,8 @@ namespace FsaBetaPlusShareProbe
                 else if (a == "--all") all = true;
                 else if (a == "--check") check = true;
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
+                else if (a == "--formula=supply") supplyFormula = true;
+                else if (a == "--formula=ensdf") supplyFormula = false;
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
 
@@ -81,8 +93,8 @@ namespace FsaBetaPlusShareProbe
             }
 
             bool verbose = !all;
-            int over = 0, parentsOver = 0, missing = 0;
-            var dump = new StringBuilder("nucid\tannihilation_quanta\tbranch\tdec_type\tperc\tbeta_plus_share\tgamma_kev\tintensity_pct\tp511_given_g\tpg_given_511\n");
+            int over = 0, parentsOver = 0, missing = 0, lost = 0, discrepancies = 0;
+            var dump = new StringBuilder("nucid\tannihilation_quanta\tbranch\tdec_type\tperc\tbeta_plus_share\tgamma_kev\tintensity_pct\tp511_given_g\tpg_given_511\tpg_given_511_supply\n");
             foreach (string raw in samples)
             {
                 string nucid = FsaSampleLibrary.NucidOf(raw);
@@ -103,9 +115,17 @@ namespace FsaBetaPlusShareProbe
                                       F(i511, "F6"), F(100.0 * i511, "F3"));
                     foreach (CascadeAtomicData.Branch branch in data.Branches)
                     {
-                        Console.WriteLine("  ветвь → {0}\tканал {1}\tperc {2} %\tP(β⁺ | ветвь) {3}",
+                        Console.WriteLine("  ветвь → {0}\tканал {1}\tperc {2} %\tP(β⁺ | ветвь) {3}\tдоля β⁺ родителя {4}",
                                           branch.Nucid, branch.DecType ?? "—", F(branch.Perc, "F4"),
-                                          F(branch.BetaPlusShare, "F6"));
+                                          F(branch.BetaPlusShare, "F6"), F(branch.BetaPlusOfParent, "F6"));
+                    }
+
+                    foreach (CascadeAtomicData.SupplyDiscrepancy item in data.Discrepancies)
+                    {
+                        Console.WriteLine("  расхождение поставок (окну): {0} {1}→{2} канал {3}: {4} / {5} → {6}{7}",
+                                          item.Kind, item.Parent, item.Daughter, item.Channel,
+                                          F(item.Supply, "F5"), F(item.Other, "F5"), F(item.Taken, "F3"),
+                                          item.LevelsKept ? " (уровни по ENSDF)" : "");
                     }
                 }
 
@@ -114,27 +134,33 @@ namespace FsaBetaPlusShareProbe
                 {
                     double p511 = data.AnnihilationQuantaOfLine(row);
                     if (!(p511 > 0.0)) continue;
-                    double inverse = i511 > 0.0 ? p511 * (row.IntensityPct / 100.0) / i511 : double.NaN;
+                    double fromSupply = i511 > 0.0 ? p511 * (row.IntensityPct / 100.0) / i511 : double.NaN;
+                    double ensdf = data.AnnihilationReverseOfLine(row);
+                    double inverse = supplyFormula ? fromSupply : ensdf;
                     bool bad = inverse > 1.0 + 1e-9;
+                    bool gone = !supplyFormula && !(ensdf > 0.0);
                     if (bad) { over++; parentOver = true; }
+                    if (gone) { lost++; parentOver = true; }
                     CascadeAtomicData.Branch owner = data.BranchOfLine(row);
-                    if (verbose || bad)
+                    if (verbose || bad || gone)
                     {
-                        Console.WriteLine("  {0}γ {1} кэВ\tI(γ) {2} %\tP(511 | γ) {3}\tP(γ | 511) {4}{5}",
+                        Console.WriteLine("  {0}γ {1} кэВ\tI(γ) {2} %\tP(511 | γ) {3}\tP(γ | 511) {4}\t(сумматор {5}, две поставки {6}){7}",
                                           verbose ? "" : nucid + " ", F(row.EnergyKev, "F3"), F(row.IntensityPct, "F4"),
-                                          F(p511, "F6"), F(inverse, "F6"), bad ? "\t⛔ > 1" : "");
+                                          F(p511, "F6"), F(inverse, "F6"), F(ensdf, "F6"), F(fromSupply, "F6"),
+                                          bad ? "\t⛔ > 1" : gone ? "\t⛔ обратной нет" : "");
                     }
 
-                    dump.AppendFormat(CultureInfo.InvariantCulture, "{0}\t{1:R}\t{2}\t{3}\t{4:R}\t{5:R}\t{6:R}\t{7:R}\t{8:R}\t{9:R}\n",
+                    dump.AppendFormat(CultureInfo.InvariantCulture, "{0}\t{1:R}\t{2}\t{3}\t{4:R}\t{5:R}\t{6:R}\t{7:R}\t{8:R}\t{9:R}\t{10:R}\n",
                                       nucid, i511, owner != null ? owner.Nucid : "", owner != null ? owner.DecType : "",
                                       owner != null ? owner.Perc : double.NaN, owner != null ? owner.BetaPlusShare : double.NaN,
-                                      row.EnergyKev, row.IntensityPct, p511, inverse);
+                                      row.EnergyKev, row.IntensityPct, p511, ensdf, fromSupply);
                 }
 
                 if (parentOver) parentsOver++;
+                discrepancies += data.Discrepancies.Count;
                 foreach (CascadeAtomicData.Branch branch in data.Branches)
                 {
-                    dump.AppendFormat(CultureInfo.InvariantCulture, "{0}\t{1:R}\t{2}\t{3}\t{4:R}\t{5:R}\t\t\t\t\n",
+                    dump.AppendFormat(CultureInfo.InvariantCulture, "{0}\t{1:R}\t{2}\t{3}\t{4:R}\t{5:R}\t\t\t\t\t\n",
                                       nucid, i511, branch.Nucid, branch.DecType, branch.Perc, branch.BetaPlusShare);
                 }
 
@@ -151,9 +177,15 @@ namespace FsaBetaPlusShareProbe
             }
 
             Console.WriteLine();
-            Console.WriteLine("родителей {0}, без данных сумматора {1}; линий с P(γ | 511) > 1: {2} у {3} родителей",
-                              samples.Count, missing, over, parentsOver);
-            return check && over > 0 ? 1 : 0;
+            Console.WriteLine("обратная: {0}", supplyFormula
+                ? "прежнее правило P(511 | γ)·I(γ)/I(511) из двух поставок (--formula=supply)"
+                : "сумматора: прежнее правило, за единицей — поток ENSDF (AnnihilationReverseOfLine)");
+            Console.WriteLine("родителей {0}, без данных сумматора {1}; линий с P(γ | 511) > 1: {2}, без обратной: {3}; у {4} родителей",
+                              samples.Count, missing, over, lost, parentsOver);
+            Console.WriteLine("расхождений поставок для окна отчёта (S187): {0}", discrepancies);
+            Console.WriteLine("обратных за единицей: заменено потоком ENSDF {0}, ENSDF интенсивности не дала {1}",
+                              CascadeAtomicData.ReverseReplaced, CascadeAtomicData.ReverseFallbacks);
+            return check && (over > 0 || lost > 0) ? 1 : 0;
         }
 
         static string F(double value, string format)

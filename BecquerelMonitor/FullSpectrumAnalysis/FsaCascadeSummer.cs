@@ -721,6 +721,52 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static string Notes { get; private set; }
 
+        /// <summary>
+        /// (`S187`, П152 24.09.2026) РАСХОЖДЕНИЯ ПОСТАВОК У НУКЛИДОВ СОСТАВА —
+        /// для окна отчёта (<see cref="FsaResult.SupplyDiscrepancies"/>).
+        ///
+        /// ⛔ ЗАЧЕМ. Слова `AMBER81` и `AMBER100` («perc прочитан как доля
+        /// другой моды», «доля β⁺ ветви: decay_radiations против ENSDF, доли
+        /// по уровням приведены») жили в <see cref="Notes"/> — статической
+        /// строке на весь процесс, которую читают только пробы. Человек за
+        /// экраном не видел, что выход линии 511 и совпадения с ней посчитаны
+        /// по долям, которые программа выбрала между двумя поставками.
+        ///
+        /// Нуклиды — строки СОСТАВА результата (то, что человек видит в
+        /// таблице), ключ — тот же, каким их зовёт сумматор (<see cref="Nucid"/>);
+        /// изомеры (ключ Sandia) и неядерные образы атомных данных не имеют и
+        /// пропускаются, как и в <c>Augment</c>. Отказ базы расхождением не
+        /// считается: у него свой признак.
+        /// </summary>
+        public static List<CascadeAtomicData.SupplyDiscrepancy> SupplyDiscrepanciesOf(FsaResult result)
+        {
+            var found = new List<CascadeAtomicData.SupplyDiscrepancy>();
+            if (result == null || result.Components == null)
+            {
+                return found;
+            }
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (FsaComponentResult component in result.Components)
+            {
+                string nucid = component != null ? Nucid(component.Name) : null;
+                if (string.IsNullOrEmpty(nucid) || !seen.Add(nucid))
+                {
+                    continue;
+                }
+
+                CascadeAtomicData atomic = CascadeAtomicData.Of(nucid);
+                if (atomic == null || atomic.Failed || atomic.Discrepancies == null)
+                {
+                    continue;
+                }
+
+                found.AddRange(atomic.Discrepancies);
+            }
+
+            return found;
+        }
+
         static readonly object NoteGate = new object();
 
         static readonly HashSet<string> NotesSaid =
@@ -4181,6 +4227,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var order = new List<double[]>();
             // (`S177`) Носители рентгена, чья доля в серии уже записана.
             var seenCarriers = new HashSet<double>();
+            // (`S188`) Обратная условная пары «гамма ↔ 511» по ключу гаммы:
+            // Σ по строкам ключа P(γ | β⁺)·окно (за единицей — поток ENSDF).
+            var annihilationReverse = new Dictionary<double, double>();
             foreach (CascadeAtomicData.GammaLine gamma in atomic.GammaIntensity)
             {
                 double decayEnergy = gamma.EnergyKev;
@@ -4314,6 +4363,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Accumulate(merged, order, pairKey, carrier.EnergyKev, carrierKey,
                                probability, weight);
 
+                    // (`S188`) Обратная сторона той же строки — тем же окном и
+                    // только там, где прямая легла в копилку (вес строки > 0).
+                    if (!carrier.FromVacancy && weight > 0.0)
+                    {
+                        double had;
+                        annihilationReverse.TryGetValue(pairKey, out had);
+                        annihilationReverse[pairKey] = had + atomic.AnnihilationReverseOfLine(gamma) * inWindow;
+                    }
+
                     // (`S147`) У аннигиляции партнёр — ПАРА квантов, и `Partners`
                     // держит их ожидаемое ЧИСЛО. Кратность записывается рядом,
                     // чтобы вероятность объединения считалась по ней, а площадь
@@ -4400,14 +4458,41 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // Атомный партнёр посчитан НАМИ, в поставке такой строки нет (`D49`).
                 Put(data, fromKey, toKey, probability, false);
 
+                // ⛔ (`S188`, П152 24.09.2026) ОБРАТНАЯ У АННИГИЛЯЦИИ — ПО СТРОКАМ.
+                // Правилом ядерных пар P(A|B) = P(B|A)·I(A)/I(B) она собиралась из
+                // ДВУХ поставок: P(511 | γ) — по уровням ENSDF, I(γ) и I(511) — из
+                // `decay_radiations`, и у 13 родителей базы выходила больше единицы
+                // (`44SC` 1.00013, `56CO` 1.0086, `100AG` 1.21), дальше её ловил
+                // зажим ~~`D49`~~. Здесь она — по строке
+                // (<see cref="CascadeAtomicData.AnnihilationReverseOfLine"/>: то же
+                // правило, а где оно за единицей — поток β⁺ через уровень по
+                // ENSDF; почему не «целиком по ENSDF» — там же), по строкам ключа
+                // сложенная, тем же окном, что и прямая. Там, где правило в
+                // единице, число побитово прежнее.
+                //
+                // Рентген (носитель вакансии) идёт прежним правилом: это `S188`
+                // не трогает.
                 // Обратная условная — тем же правилом, что у ядерных пар:
                 // P(A|B) = P(B|A)·I(A)/I(B). Считается ПОСЛЕ слияния, потому
-                // что `I(A)` — уже суммарный выход ключа.
-                double ia, ib;
+                // что `I(A)` — уже суммарный выход ключа. Условие «оба выхода
+                // есть» — общее для обоих путей: где пары прежде не было, её
+                // нет и теперь.
+                double ia, ib, reverse;
                 if (data.Intensity.TryGetValue(fromKey, out ia)
                     && data.Intensity.TryGetValue(toKey, out ib) && ib > 0.0)
                 {
-                    Put(data, toKey, fromKey, probability * ia / ib, false);
+                    if (toKey == AnnihilationKev
+                        && annihilationReverse.TryGetValue(fromKey, out reverse))
+                    {
+                        if (reverse > 0.0)
+                        {
+                            Put(data, toKey, fromKey, reverse, false);
+                        }
+                    }
+                    else
+                    {
+                        Put(data, toKey, fromKey, probability * ia / ib, false);
+                    }
                 }
             }
 

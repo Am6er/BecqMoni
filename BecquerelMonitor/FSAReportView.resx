@@ -5253,4 +5253,28 @@
   <data name="FSAReport_MatrixLayerAnnihilationOutside" xml:space="preserve">
     <value>Annihilation outside the crystal (511, 1022, their Compton)</value>
   </data>
+  <data name="FSAReport_SupplyRow" xml:space="preserve">
+    <value>Decay data sources disagree</value>
+  </data>
+  <data name="FSAReport_SupplyTip" xml:space="preserve">
+    <value>Two decay-data supplies disagree for these nuclides, and the analysis had to choose. What was taken:</value>
+  </data>
+  <data name="FSAReport_SupplyBetaPlusMode" xml:space="preserve">
+    <value>{0} → {1}: decay_chain gives {2} % for the β⁺ mode alone, not for the ε+β⁺ branch; the branch is taken as the remainder, {4} %</value>
+  </data>
+  <data name="FSAReport_SupplyOtherMode" xml:space="preserve">
+    <value>{0} → {1}: branch share in decay_chain {2} % is below the positron sum {3} % of decay_radiations; read as the share of the other mode, branch taken as {4} %</value>
+  </data>
+  <data name="FSAReport_SupplyExcess" xml:space="preserve">
+    <value>{0} → {1}: positron sum {3} % of decay_radiations exceeds what the other branches leave ({4} %); supply excess, clamped</value>
+  </data>
+  <data name="FSAReport_SupplyClamped" xml:space="preserve">
+    <value>{0} → {1}: positron sum {3} % of decay_radiations exceeds the branch share {2} %; clamped to it</value>
+  </data>
+  <data name="FSAReport_SupplyShareScaled" xml:space="preserve">
+    <value>{0} → {1}: β⁺ fraction of the branch {2} (decay_radiations) vs {3} (ENSDF), {4} %; level-by-level shares scaled to decay_radiations</value>
+  </data>
+  <data name="FSAReport_SupplyShareKept" xml:space="preserve">
+    <value>{0} → {1}: β⁺ fraction of the branch {2} (decay_radiations) vs {3} (ENSDF), {4} %; the branch share is saturated, level-by-level shares kept from ENSDF</value>
+  </data>
 </root>

@@ -1,0 +1,30 @@
+Фантомы и recall — D:\BqMoni_Claude\p152\out_mini_new\..\score.py по этим же файлам:
+  python tools/pie/score.py --mode=spline --out-dir=D:\BqMoni_Claude\p152\out_mini_new --part=all
+клеймо прогона: D:\BqMoni_Claude\p152\out_mini_new\.run.json (corpus 996a8c0a0ca7, sources 57753f98ce3a, HEAD 4857ce24, ГРЯЗНОЕ дерево: BecquerelMonitor/FSAReportView.cs, BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs, BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs, BecquerelMonitor/FullSpectrumAnalysis/FsaAnalysisSession.cs, BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs, BecquerelMonitor/FullSpectrumAnalysis/FsaResult.cs)
+
+ПРОГОН МАЛОЙ БАЗЫ: 18.0 с
+
+=== score.py --part=known ===
+детектор   спектров     recall   фантомов   подавлен
+AS80x80           3       100%          0          0
+ASN16             4       100%          0          0
+G1S16            23       100%          0          0
+G1S24            15       100%          0          0
+итого            45       100%          0          0  (+0 комнатных)  часть: known
+       ПРОМАХОВ 0: не найдено 0, ниже предела обнаружения 0 (доля >= 0.30%, но z < 4.0) (A279)
+       СОСТАВА НЕТ ВОВСЕ у 0 из 45: сумма нуклидных долей ноль, спектр объяснён приборным образом (T118)
+                 45  sum chi2/ndf 325.1   медиана 3.60
+                 45  model residual медиана 16.5 %   кварт. 8.9 .. 22.2 %
+
+=== score.py --part=unknown ===
+ASN16_UGlass           U-235+U-238                  -                                  НЕТ РЕЗУЛЬТАТА (ERROR в runs.csv) — весь спектр в промах
+
+детектор   спектров     recall   фантомов   подавлен
+AS80x80           6        10%          0          0
+ASN16             8         0%          0          0
+итого            14         4%          0          0  (+0 комнатных)  часть: unknown
+       ПРОМАХОВ 26: не найдено 26, ниже предела обнаружения 0 (доля >= 0.30%, но z < 4.0) (A279)
+       СОСТАВА НЕТ ВОВСЕ у 0 из 14: сумма нуклидных долей ноль, спектр объяснён приборным образом (T118)
+                  1  sum chi2/ndf 20.1   медиана 20.13
+                  1  model residual медиана 20.3 %   кварт. 20.3 .. 20.3 %
+EXIT=0

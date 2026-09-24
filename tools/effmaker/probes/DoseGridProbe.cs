@@ -37,11 +37,18 @@ namespace DoseGridProbe
     /// (2 %) у линий не ближе бина склада к границе диапазона и с центром
     /// тяжести строки, растущим с энергией хотя бы вполовину (прочие
     /// печатаются `[--]` с причиной); путь «≈» на одном пике — 1.5 % без
-    /// разрешения и 2.5 % с ним. Путь матрицы с разрешением не судится: там
-    /// утечка пика за границу диапазона, которой строка матрицы без
-    /// разрешения не знает, — печатается среднее |ошибки| по сцене (журнал
-    /// П145). Положительный контроль — та же проба на прежнем exe: 76 из 100
-    /// проверок красные.
+    /// разрешения и 2.5 % с ним. Положительный контроль — та же проба на
+    /// прежнем exe: 76 из 100 проверок красные.
+    ///
+    /// (`S185`, П153) Путь матрицы С РАЗРЕШЕНИЕМ судится при `--res=own` —
+    /// когда синтетика размыта той же шириной, что знает доза (калибровка
+    /// ширины спектра): |показание/ответ − 1| ≤ `--tolres` % (1 %) у ВСЕХ
+    /// линий, и доза диапазонов, не соседних с диапазоном линии (фантом), —
+    /// не больше `--tolres` % показания. При ширине `manifest.csv` (по
+    /// умолчанию) модель и синтетика расходятся на разницу двух моделей
+    /// ширины (до двух раз у 59.5 кэВ) — это плечо печатается, но не
+    /// судится. Положительный контроль судимого плеча — прежний exe (строка
+    /// без разрешения): AS80 59.5 +6.39 %, RC-103 1173/1461 +6.20/+5.37 %.
     ///
     /// ⚠ Склад матриц корпуса посчитан прежним поколением физики; клеймо, если
     /// не сходится, ПЕРЕСЧИТЫВАЕТСЯ в памяти (файл не пишется). На мерку это не
@@ -53,6 +60,7 @@ namespace DoseGridProbe
         static int checks;
         static string corpusDir = @"tools\CORPUS\corpus";
         static double tolPercent = 2.0;
+        static double tolResPercent = 1.0;
         static bool quiet;
         static string show;
 
@@ -95,6 +103,8 @@ namespace DoseGridProbe
                 else if (a == "--quiet") quiet = true;
                 else if (a.StartsWith("--show=", StringComparison.Ordinal)) show = a.Substring(7);
                 else if (a == "--res=own") resOwn = true;
+                else if (a.StartsWith("--tolres=", StringComparison.Ordinal))
+                    tolResPercent = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
                 else
                 {
                     Console.Error.WriteLine("неизвестный ключ: " + a);
@@ -150,6 +160,12 @@ namespace DoseGridProbe
                               Describe(withMatrix), withMatrix.Rate, withMatrix.Coverage);
             Console.WriteLine("  по пиковой: {0}; ПОБИТОВО {1:R}, покрытие {2:R}",
                               Describe(peak), peak.Rate, peak.Coverage);
+            // (`S185`, П153) Тот же спектр без калибровки ширины — строка без
+            // разрешения; у прежнего exe ширина не читалась вовсе.
+            DoseRate plain = null;
+            WithoutFwhm(data, () => { plain = manager.Calculate(data, DoseRateInput.Of(data.Efficiency, matrix)); return 0.0; });
+            Console.WriteLine("  с матрицей без калибровки ширины: {0}; ПОБИТОВО {1:R}, покрытие {2:R}",
+                              Describe(plain), plain.Rate, plain.Coverage);
             // Цена одного расчёта: строка состояния зовёт его каждые 200 мс.
             DoseRateInput timedInput = DoseRateInput.Of(data.Efficiency, matrix);
             var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -234,6 +250,7 @@ namespace DoseGridProbe
                         : x => fwhm662 * Math.Sqrt(Math.Max(x, 1.0) / 661.657) / 2.3548200450309493;
                     double[] dres = Place(row, step, edges, sigma, emittedPerSecond * seconds);
                     double rRes = Reading(manager, data, full, dres) / truth - 1.0;
+                    double phantom = Phantom(lastDose, e);
 
                     // --- путь пиковой кривой: только пик ---
                     double qNone = double.NaN, qRes = double.NaN;
@@ -322,6 +339,23 @@ namespace DoseGridProbe
                                scene.Matrix, e, PeakResTolPercent, 100.0 * qRes));
                     }
 
+                    // (`S185`, П153) Путь матрицы с разрешением — при своей
+                    // ширине синтетики судится у всех линий; фантом —
+                    // доза диапазонов, не соседних с диапазоном линии.
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                        "  {0,9:F3} кэВ: фантом с разрешением {1:F3} % показания", e, 100.0 * phantom));
+                    if (resOwn)
+                    {
+                        Ok(Math.Abs(rRes) <= tolResPercent / 100.0,
+                           string.Format(CultureInfo.InvariantCulture,
+                               "{0} {1:F1} кэВ: путь матрицы с разрешением (своя ширина) в пределах {2} % ({3:+0.000;-0.000} %)",
+                               scene.Matrix, e, tolResPercent, 100.0 * rRes));
+                        Ok(phantom <= tolResPercent / 100.0,
+                           string.Format(CultureInfo.InvariantCulture,
+                               "{0} {1:F1} кэВ: фантом с разрешением не больше {2} % показания ({3:F3} %)",
+                               scene.Matrix, e, tolResPercent, 100.0 * phantom));
+                    }
+
                     sumAbsRes += Math.Abs(rRes);
                     countRes++;
                 }
@@ -363,6 +397,31 @@ namespace DoseGridProbe
             };
             double d = 2.0 * step;
             return (centroid(e + d) - centroid(e - d)) / (2.0 * d);
+        }
+
+        /// <summary>
+        /// (`S185`, П153) Доля показания от диапазонов, не соседних с
+        /// диапазоном линии <paramref name="e"/>, — фантомные линии. Отказ или
+        /// пустое показание — NaN.
+        /// </summary>
+        static double Phantom(DoseRate d, double e)
+        {
+            if (d == null || !string.IsNullOrEmpty(d.Refusal) || !(d.Rate > 0.0))
+            {
+                return double.NaN;
+            }
+
+            int line = d.Ranges.FindIndex(r => r.LowKev <= e && e < r.HighKev);
+            double far = 0.0;
+            for (int k = 0; k < d.Ranges.Count; k++)
+            {
+                if (Math.Abs(k - line) > 1 && !d.Ranges[k].Skipped && d.Ranges[k].Attributed > 0.0)
+                {
+                    far += Math.Abs(d.Ranges[k].DoseRate);
+                }
+            }
+
+            return far / d.Rate;
         }
 
         /// <summary>Допуск пути «≈» на одном пике без разрешения, %.</summary>
