@@ -280,13 +280,13 @@ namespace BecquerelMonitor.Utils
                         int k = (int)Math.Floor(position);
                         return cumulative[k] + (position - k) * addedSpectrum.Spectrum[k];
                     };
-                    double startChannel = CombinedSpectrumEnergyCalibration.EnergyToChannel(
-                        MainSpectrumEnergyCalibration.ChannelToEnergy(0.0), maxCh: sourceChannels);
+                    double startChannel = PolynomialEnergyCalibration.ChannelOf(CombinedSpectrumEnergyCalibration,
+                        MainSpectrumEnergyCalibration.ChannelToEnergy(0.0), sourceChannels);
                     long previousRounded = (long)Math.Round(cumulativeAt(startChannel));
                     for (int i = 0; i < mainSpectrum.NumberOfChannels; i++)
                     {
-                        double edgeChannel = CombinedSpectrumEnergyCalibration.EnergyToChannel(
-                            MainSpectrumEnergyCalibration.ChannelToEnergy((double)(i + 1)), maxCh: sourceChannels);
+                        double edgeChannel = PolynomialEnergyCalibration.ChannelOf(CombinedSpectrumEnergyCalibration,
+                            MainSpectrumEnergyCalibration.ChannelToEnergy((double)(i + 1)), sourceChannels);
                         long rounded = (long)Math.Round(cumulativeAt(edgeChannel));
                         int add = (int)(rounded - previousRounded);
                         if (add > 0)
@@ -388,7 +388,7 @@ namespace BecquerelMonitor.Utils
                     // the old code passed the foreground's count, which both remapped to
                     // wrong channels for fg/bg with different binning and permanently
                     // poisoned the (stateful) bg calibration cache.
-                    int bgchan = Convert.ToInt32(bgenergySpectrum.EnergyCalibration.EnergyToChannel(enrg, maxChannels: bgenergySpectrum.NumberOfChannels));
+                    int bgchan = Convert.ToInt32(PolynomialEnergyCalibration.ChannelOf(bgenergySpectrum.EnergyCalibration, enrg, bgenergySpectrum.NumberOfChannels));
                     if (bgchan >= 0 && bgchan < bgenergySpectrum.NumberOfChannels)
                     {
                         substractedEnergySpectrum.Spectrum[i] = Convert.ToInt32(this.EnergySpectrum.Spectrum[i] - norm_coeff * bgenergySpectrum.Spectrum[bgchan]);
@@ -476,8 +476,8 @@ namespace BecquerelMonitor.Utils
             FullSpectrumAnalysis.FsaEfficiency curve =
                 FullSpectrumAnalysis.FsaEfficiency.FromConfig(efficiency);
 
-            int minChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(curve.MinEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
-            int maxChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(curve.MaxEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
+            int minChannel = Convert.ToInt32(PolynomialEnergyCalibration.ChannelOf(spectrum.EnergyCalibration, curve.MinEnergy, normalizedSpectrum.NumberOfChannels));
+            int maxChannel = Convert.ToInt32(PolynomialEnergyCalibration.ChannelOf(spectrum.EnergyCalibration, curve.MaxEnergy, normalizedSpectrum.NumberOfChannels));
             normalizedSpectrum.TotalPulseCount = 0;
             Parallel.For(0, normalizedSpectrum.NumberOfChannels, i =>
             {
@@ -1585,7 +1585,7 @@ namespace BecquerelMonitor.Utils
         public static EnergySpectrum CutoffSpectrumEnergy(EnergySpectrum energySpectrum, double energyVal)
         {
             PolynomialEnergyCalibration calibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
-            int newChan = Convert.ToInt32(calibration.EnergyToChannel(energyVal, maxCh: energySpectrum.NumberOfChannels));
+            int newChan = Convert.ToInt32(PolynomialEnergyCalibration.ChannelOf(calibration, energyVal, energySpectrum.NumberOfChannels));
             return CutoffSpectrumChannels(energySpectrum, newChan);
         }
 

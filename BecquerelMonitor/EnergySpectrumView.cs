@@ -763,7 +763,7 @@ namespace BecquerelMonitor
                     int bgChannel = i;
                     if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                     {
-                        bgChannel = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)i), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                        bgChannel = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, this.baseEnergyCalibration.ChannelToEnergy((double)i), this.backgroundEnergySpectrum.NumberOfChannels));
                     }
                     if (bgChannel >= 0 && bgChannel < this.backgroundNumberOfChannels)
                     {
@@ -1380,6 +1380,25 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// ⛔ `AMBER88` (П146, 24.09.2026): НОМЕР КАНАЛА — ЕГО ЦЕНТР, И НА ГРАФИКЕ
+        /// ТОЖЕ. Приложение объявило (`AMBER71`/`AMBER73`): энергия канала k —
+        /// `ChannelToEnergy(k)`, канал занимает отрезок k ± ½. График же жил по
+        /// соглашению «край»: точка канала — `ChannelToEnergy(k + 0.5)` (в режиме
+        /// каналов `(k + 0.5) · hs`), карта «пиксель → канал» — отбрасыванием
+        /// дробной части. Линии библиотеки, линейка, пределы ROI и опоры FSA
+        /// стоят ровно в E — и кривая, ленты FSA, флажки пиков и курсор были на
+        /// h/2 правее их (`ChartCentreProbeP146`: при h = 2.5 кэВ — 1.25 кэВ,
+        /// курсор на вершине пика показывал E + h/2). Теперь точка канала — его
+        /// центр, а дробная позиция относится к БЛИЖАЙШЕМУ центру — этим
+        /// методом, одним на весь вид (и соответствие каналов фона каналам
+        /// спектра при разных калибровках — тоже).
+        /// </summary>
+        static int NearestChannel(double channel)
+        {
+            return (int)Math.Floor(channel + 0.5);
+        }
+
         bool TryMapPixelToChannel(int pixelX, EnergySpectrum spectrum, EnergyCalibration calibration, bool isBackground, out int channel)
         {
             channel = 0;
@@ -1391,17 +1410,17 @@ namespace BecquerelMonitor
             if (this.horizontalUnit == HorizontalUnit.Energy)
             {
                 double energy = (double)(pixelX - this.scrollX - this.left) / this.horizontalScale / this.pixelPerEnergy + this.energyViewOffset;
-                channel = (int)calibration.EnergyToChannel(energy, maxChannels: spectrum.NumberOfChannels);
+                channel = NearestChannel(PolynomialEnergyCalibration.ChannelOf(calibration, energy, spectrum.NumberOfChannels));
             }
             else if (isBackground && this.backgroundEnergyCalibration != null && !this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
             {
                 double baseChannel = (double)(pixelX - this.scrollX - this.left) / this.horizontalScale;
                 double energy = this.baseEnergyCalibration.ChannelToEnergy(baseChannel);
-                channel = (int)this.backgroundEnergyCalibration.EnergyToChannel(energy, maxChannels: spectrum.NumberOfChannels);
+                channel = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, energy, spectrum.NumberOfChannels));
             }
             else
             {
-                channel = (int)((double)(pixelX - this.scrollX - this.left) / this.horizontalScale);
+                channel = NearestChannel((double)(pixelX - this.scrollX - this.left) / this.horizontalScale);
             }
 
             if (channel < 0)
@@ -1569,7 +1588,7 @@ namespace BecquerelMonitor
                 RecalcChartParameters();
                 this.dirty = false;
             }
-            return (int)(this.energyCalibration.EnergyToChannel((double)(scrollBarPos) / this.pixelPerEnergy / this.horizontalScale + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels));
+            return (int)(PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, (double)(scrollBarPos) / this.pixelPerEnergy / this.horizontalScale + this.energyViewOffset, this.energySpectrum.NumberOfChannels));
         }
 
         // Token: 0x060004AE RID: 1198 RVA: 0x0001666C File Offset: 0x0001486C
@@ -1957,7 +1976,7 @@ namespace BecquerelMonitor
                 {
                     double e = this.energyCalibration.ChannelToEnergy((double)i);
                     int bgChannel;
-                    bgChannel = (int)this.backgroundEnergyCalibration.EnergyToChannel(e, maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                    bgChannel = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, e, this.backgroundEnergySpectrum.NumberOfChannels));
 
                     if (bgChannel < 0 || bgChannel >= this.backgroundEnergySpectrum.NumberOfChannels)
                     {
@@ -2044,7 +2063,7 @@ namespace BecquerelMonitor
                 {
                     double e2 = this.energyCalibration.ChannelToEnergy((double)k);
                     int bgChannel;
-                    bgChannel = (int)this.backgroundEnergyCalibration.EnergyToChannel(e2, maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                    bgChannel = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, e2, this.backgroundEnergySpectrum.NumberOfChannels));
 
                     if (bgChannel < 0 || bgChannel >= this.backgroundEnergySpectrum.NumberOfChannels)
                     {
@@ -2736,12 +2755,12 @@ namespace BecquerelMonitor
                 }
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
-                    double num7 = this.energyCalibration.ChannelToEnergy((double)i + 0.5);
+                    double num7 = this.energyCalibration.ChannelToEnergy((double)i);
                     num8 = GdiCoordinate((num7 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
-                    num8 = GdiCoordinate(((double)i + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    num8 = GdiCoordinate((double)i * this.horizontalScale) + this.scrollX + this.left;
                 }
                 if (num3 > 0)
                 {
@@ -2752,12 +2771,12 @@ namespace BecquerelMonitor
             }
             if (this.horizontalUnit == HorizontalUnit.Energy)
             {
-                double num9 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.MaxChannel + 0.5);
+                double num9 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.MaxChannel);
                 num8 = GdiCoordinate((num9 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
             }
             else
             {
-                num8 = GdiCoordinate((energyResolutionResult.MaxChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                num8 = GdiCoordinate(energyResolutionResult.MaxChannel * this.horizontalScale) + this.scrollX + this.left;
             }
             double num10 = energyResolutionResult.MaxValue;
             double num11 = energyResolutionResult.MaxBaseValue;
@@ -2824,15 +2843,15 @@ namespace BecquerelMonitor
                 int x2;
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
-                    double num12 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.LeftChannel + 0.5);
-                    double num13 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.RightChannel + 0.5);
+                    double num12 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.LeftChannel);
+                    double num13 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.RightChannel);
                     x = GdiCoordinate((num12 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                     x2 = GdiCoordinate((num13 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
-                    x = GdiCoordinate((energyResolutionResult.LeftChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
-                    x2 = GdiCoordinate((energyResolutionResult.RightChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    x = GdiCoordinate(energyResolutionResult.LeftChannel * this.horizontalScale) + this.scrollX + this.left;
+                    x2 = GdiCoordinate(energyResolutionResult.RightChannel * this.horizontalScale) + this.scrollX + this.left;
                 }
                 double num14 = energyResolutionResult.HalfValue;
                 if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
@@ -2895,14 +2914,14 @@ namespace BecquerelMonitor
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
                     double num2 = (double)(i - this.scrollX - this.left) / this.horizontalScale;
-                    num3 = (int)calibration.EnergyToChannel(num2 / this.pixelPerEnergy + this.energyViewOffset, maxChannels: spectrum.NumberOfChannels);
+                    num3 = NearestChannel(PolynomialEnergyCalibration.ChannelOf(calibration, num2 / this.pixelPerEnergy + this.energyViewOffset, spectrum.NumberOfChannels));
                 }
                 else
                 {
-                    num3 = (int)((double)(i - this.scrollX - this.left) / this.horizontalScale);
+                    num3 = NearestChannel((double)(i - this.scrollX - this.left) / this.horizontalScale);
                     if (this.backgroundEnergyCalibration != null && isBackground && !this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                     {
-                        num3 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)num3), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                        num3 = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, this.baseEnergyCalibration.ChannelToEnergy((double)num3), this.backgroundEnergySpectrum.NumberOfChannels));
                     }
                 }
 
@@ -3060,11 +3079,11 @@ namespace BecquerelMonitor
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
                     double offset = (double)(pixel - this.scrollX - this.left) / this.horizontalScale;
-                    channel = (int)calibration.EnergyToChannel(offset / this.pixelPerEnergy + this.energyViewOffset, maxChannels: spectrum.NumberOfChannels);
+                    channel = NearestChannel(PolynomialEnergyCalibration.ChannelOf(calibration, offset / this.pixelPerEnergy + this.energyViewOffset, spectrum.NumberOfChannels));
                 }
                 else
                 {
-                    channel = (int)((double)(pixel - this.scrollX - this.left) / this.horizontalScale);
+                    channel = NearestChannel((double)(pixel - this.scrollX - this.left) / this.horizontalScale);
                 }
 
                 this.pixelChannelMap[filled] = channel;
@@ -3214,17 +3233,17 @@ namespace BecquerelMonitor
                 int num3;
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
-                    double num2 = calibration.ChannelToEnergy((double)i + 0.5);
+                    double num2 = calibration.ChannelToEnergy((double)i);
                     num3 = (int)((num2 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else if (this.backgroundEnergyCalibration != null && isBackground)
                 {
-                    double num4 = this.baseEnergyCalibration.EnergyToChannel(this.backgroundEnergyCalibration.ChannelToEnergy((double)i), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
-                    num3 = (int)((num4 + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    double num4 = PolynomialEnergyCalibration.ChannelOf(this.baseEnergyCalibration, this.backgroundEnergyCalibration.ChannelToEnergy((double)i), this.backgroundEnergySpectrum.NumberOfChannels);
+                    num3 = (int)(num4 * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
-                    num3 = (int)(((double)i + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    num3 = (int)((double)i * this.horizontalScale) + this.scrollX + this.left;
                 }
                 int num5 = GetSpectrumValueY(num);
                 if (num3 > this.left)
@@ -3371,12 +3390,12 @@ namespace BecquerelMonitor
                 int num3;
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
-                    double num2 = calibration.ChannelToEnergy((double)i + 0.5);
+                    double num2 = calibration.ChannelToEnergy((double)i);
                     num3 = (int)((num2 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
-                    num3 = (int)(((double)i + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    num3 = (int)((double)i * this.horizontalScale) + this.scrollX + this.left;
                 }
                 int peak = GetSpectrumValueY(peakv);
                 if (num3 > this.left)
@@ -3446,9 +3465,9 @@ namespace BecquerelMonitor
 
                     if (this.horizontalUnit == HorizontalUnit.Channel)
                     {
-                        leftX = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        leftX = (float)(PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, lowerLimit, this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
 
-                        rightX = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        rightX = (float)(PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, upperLimit, this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                     }
                     else
                     {
@@ -3551,7 +3570,7 @@ namespace BecquerelMonitor
                 float num;
                 if (this.horizontalUnit == HorizontalUnit.Channel)
                 {
-                    num = (float)(this.energyCalibration.EnergyToChannel(line.Energy, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                    num = (float)(PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, line.Energy, this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                 }
                 else
                 {
@@ -3594,9 +3613,9 @@ namespace BecquerelMonitor
 
                     if (this.horizontalUnit == HorizontalUnit.Channel)
                     {
-                        num = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        num = (float)(PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, lowerLimit, this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
 
-                        num2 = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        num2 = (float)(PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, upperLimit, this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                     }
                     else
                     {
@@ -3640,9 +3659,9 @@ namespace BecquerelMonitor
 
                     if (this.horizontalUnit == HorizontalUnit.Channel)
                     {
-                        leftX = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        leftX = (float)(PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, lowerLimit, this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
 
-                        rightX = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        rightX = (float)(PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, upperLimit, this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                     }
                     else
                     {
@@ -3665,14 +3684,14 @@ namespace BecquerelMonitor
                         if (this.horizontalUnit == HorizontalUnit.Energy)
                         {
                             double pixelEnergyPos = (double)(i - this.scrollX - this.left) / this.horizontalScale;
-                            channelIndex = this.energyCalibration.EnergyToChannel(pixelEnergyPos / this.pixelPerEnergy + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels);
+                            channelIndex = PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, pixelEnergyPos / this.pixelPerEnergy + this.energyViewOffset, this.energySpectrum.NumberOfChannels);
                         }
                         else
                         {
-                            channelIndex = (double)((int)((double)(i - this.scrollX - this.left) / this.horizontalScale));
+                            channelIndex = (double)(i - this.scrollX - this.left) / this.horizontalScale;
                         }
 
-                        int ch = (int)channelIndex;
+                        int ch = NearestChannel(channelIndex);
                         if (ch >= 0 && ch < this.energySpectrum.Spectrum.Length)
                         {
                             double fgValue = this.energySpectrum.DrawingSpectrum[ch];
@@ -3687,7 +3706,7 @@ namespace BecquerelMonitor
                                 int bgCh = ch;
                                 if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                                 {
-                                    bgCh = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(channelIndex), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                                    bgCh = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, this.baseEnergyCalibration.ChannelToEnergy(channelIndex), this.backgroundEnergySpectrum.NumberOfChannels));
                                 }
                                 if (bgCh < 0 || bgCh >= this.backgroundEnergySpectrum.Spectrum.Length)
                                 {
@@ -3805,16 +3824,16 @@ namespace BecquerelMonitor
                 num2++;
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
-                    double num3 = this.energyCalibration.ChannelToEnergy((double)num);
-                    double num4 = this.energyCalibration.ChannelToEnergy((double)num2);
+                    double num3 = this.energyCalibration.ChannelToEnergy((double)num - 0.5);
+                    double num4 = this.energyCalibration.ChannelToEnergy((double)num2 - 0.5);
                     int num5 = (int)((num3 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                     int num6 = (int)((num4 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                     g.FillRectangle(brush, num5, 0, num6 - num5, this.height - 1);
                 }
                 else
                 {
-                    int num7 = (int)((double)num * this.horizontalScale) + this.scrollX + this.left;
-                    int num8 = (int)((double)num2 * this.horizontalScale) + this.scrollX + this.left;
+                    int num7 = (int)(((double)num - 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    int num8 = (int)(((double)num2 - 0.5) * this.horizontalScale) + this.scrollX + this.left;
                     g.FillRectangle(brush, num7, 0, num8 - num7, this.height - 1);
                 }
             }
@@ -3845,15 +3864,15 @@ namespace BecquerelMonitor
             int num6;
             if (this.horizontalUnit == HorizontalUnit.Energy)
             {
-                double num3 = this.energyCalibration.ChannelToEnergy((double)num);
-                double num4 = this.energyCalibration.ChannelToEnergy((double)num2);
+                double num3 = this.energyCalibration.ChannelToEnergy((double)num - 0.5);
+                double num4 = this.energyCalibration.ChannelToEnergy((double)num2 - 0.5);
                 num5 = (int)((num3 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                 num6 = (int)((num4 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
             }
             else
             {
-                num5 = (int)((double)num * this.horizontalScale) + this.scrollX + this.left;
-                num6 = (int)((double)num2 * this.horizontalScale) + this.scrollX + this.left;
+                num5 = (int)(((double)num - 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                num6 = (int)(((double)num2 - 0.5) * this.horizontalScale) + this.scrollX + this.left;
             }
             using (Pen pen = new Pen(colorConfig.SelectionBorderColor.Color))
             {
@@ -3886,14 +3905,14 @@ namespace BecquerelMonitor
                     if (this.horizontalUnit == HorizontalUnit.Energy)
                     {
                         double pixelEnergyPos = (double)(i - this.scrollX - this.left) / this.horizontalScale;
-                        channelIndex = this.energyCalibration.EnergyToChannel(pixelEnergyPos / this.pixelPerEnergy + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels);
+                        channelIndex = PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, pixelEnergyPos / this.pixelPerEnergy + this.energyViewOffset, this.energySpectrum.NumberOfChannels);
                     }
                     else
                     {
-                        channelIndex = (double)((int)((double)(i - this.scrollX - this.left) / this.horizontalScale));
+                        channelIndex = (double)(i - this.scrollX - this.left) / this.horizontalScale;
                     }
 
-                    int ch = (int)channelIndex;
+                    int ch = NearestChannel(channelIndex);
                     if (ch >= 0 && ch < this.energySpectrum.Spectrum.Length)
                     {
                         bool fsaNetHere = fsaNet != null && ch < fsaNet.Length;
@@ -3912,7 +3931,7 @@ namespace BecquerelMonitor
                             int bgCh = ch;
                             if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                             {
-                                bgCh = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(channelIndex), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                                bgCh = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, this.baseEnergyCalibration.ChannelToEnergy(channelIndex), this.backgroundEnergySpectrum.NumberOfChannels));
                             }
                             if (bgCh < 0 || bgCh >= this.backgroundEnergySpectrum.Spectrum.Length)
                             {
@@ -4338,12 +4357,12 @@ namespace BecquerelMonitor
                 int num2;
                 if (this.horizontalUnit == HorizontalUnit.Channel)
                 {
-                    num2 = (int)(((double)channel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    num2 = (int)((double)channel * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
                     double num3 = this.energyCalibration.ChannelToEnergy((double)channel);
-                    num2 = (int)(((num3 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
+                    num2 = (int)((num3 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
                 }
                 if (this.cursorX >= num && this.cursorX < num2)
                 {
@@ -4382,12 +4401,12 @@ namespace BecquerelMonitor
                 int px;
                 if (this.horizontalUnit == HorizontalUnit.Channel)
                 {
-                    px = (int)(((double)channel3 + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    px = (int)((double)channel3 * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
                     double num8 = this.energyCalibration.ChannelToEnergy((double)channel3);
-                    px = (int)(((num8 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
+                    px = (int)((num8 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
                 }
                 this.DrawPeakFlag(g, peak, px, 0, pen2, brush, brush2);
             }
@@ -4440,10 +4459,10 @@ namespace BecquerelMonitor
         {
             if (this.horizontalUnit == HorizontalUnit.Channel)
             {
-                return (int)((channel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                return (int)(channel * this.horizontalScale) + this.scrollX + this.left;
             }
             double energy = this.energyCalibration.ChannelToEnergy(channel);
-            return (int)(((energy - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
+            return (int)((energy - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
         }
 
         /// <summary>
@@ -4642,12 +4661,12 @@ namespace BecquerelMonitor
                 int num;
                 if (this.horizontalUnit == HorizontalUnit.Channel)
                 {
-                    num = (int)(((double)channel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    num = (int)((double)channel * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
                     double num2 = this.energyCalibration.ChannelToEnergy((double)channel);
-                    num = (int)(((num2 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
+                    num = (int)((num2 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
                 }
                 double num3 = spectrum.DrawingSpectrum[channel];
                 if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.EffectiveLiveTime != 0.0)
@@ -4702,13 +4721,13 @@ namespace BecquerelMonitor
                 int num8;
                 if (this.horizontalUnit == HorizontalUnit.Channel)
                 {
-                    num7 = (int)(((double)leftChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
-                    num8 = (int)(((double)rightChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    num7 = (int)((double)leftChannel * this.horizontalScale) + this.scrollX + this.left;
+                    num8 = (int)((double)rightChannel * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
-                    num7 = (int)(((num5 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
-                    num8 = (int)(((num6 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
+                    num7 = (int)((num5 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
+                    num8 = (int)((num6 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
                 }
                 g.FillRectangle(Brushes.Orange, num7, 5, num8 - num7 + 1, 2);
                 g.DrawLine(Pens.Orange, num7, 3, num7, 8);
@@ -4797,12 +4816,12 @@ namespace BecquerelMonitor
                     int num4;
                     if (this.horizontalUnit == HorizontalUnit.Channel)
                     {
-                        num4 = (int)(((double)this.cursorChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                        num4 = (int)((double)this.cursorChannel * this.horizontalScale) + this.scrollX + this.left;
                     }
                     else
                     {
                         double num5 = this.energyCalibration.ChannelToEnergy((double)this.cursorChannel);
-                        num4 = (int)(((num5 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                        num4 = (int)((num5 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                     }
                     g.DrawLine(pen, num4, 0, num4, this.height);
                     this.EnsureCursorNuclidePeak();
@@ -4849,7 +4868,7 @@ namespace BecquerelMonitor
                         }
                         else
                         {
-                            bgChannelIndex = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)this.cursorChannel), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                            bgChannelIndex = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, this.baseEnergyCalibration.ChannelToEnergy((double)this.cursorChannel), this.backgroundEnergySpectrum.NumberOfChannels));
                         }
                         if (bgChannelIndex >= 0 && bgChannelIndex < this.backgroundNumberOfChannels)
                         {
@@ -5247,11 +5266,11 @@ namespace BecquerelMonitor
                 {
                     double num2 = (double)(this.cursorX - this.left - this.scrollX) / this.horizontalScale;
                     this.cursorEnergy = num2 / this.pixelPerEnergy + this.energyViewOffset;
-                    this.cursorChannel = (int)this.energyCalibration.EnergyToChannel(this.cursorEnergy, maxChannels: this.energySpectrum.NumberOfChannels);
+                    this.cursorChannel = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, this.cursorEnergy, this.energySpectrum.NumberOfChannels));
                 }
                 else
                 {
-                    this.cursorChannel = (int)((double)(this.cursorX - this.left - this.scrollX) / this.horizontalScale);
+                    this.cursorChannel = NearestChannel((double)(this.cursorX - this.left - this.scrollX) / this.horizontalScale);
                     this.cursorEnergy = this.energyCalibration.ChannelToEnergy((double)this.CursorChannel);
                 }
 

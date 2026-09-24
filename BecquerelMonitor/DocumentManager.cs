@@ -915,6 +915,27 @@ namespace BecquerelMonitor
                 doc.Filename = fileName + ".xml";
                 doc.Text = fileName;
 
+                // ⛔ `AMBER86` (П146, 24.09.2026): ПОЛКАНАЛА — ТОЛЬКО У N42.
+                //    SpecUtils отдаёт полином файла КАК ЕСТЬ для любого формата
+                //    (`set_polynomial(n, coefs)` в CHN, CNF, SPE, радиакодовском
+                //    XML; столбец Energy CSV — `set_lower_channel_energy`), а
+                //    «номер канала = нижний край» — её ВНУТРЕННЕЕ соглашение, не
+                //    свойство файла. Решение Amber (`AMBER73`) и замеры П137/П138
+                //    касались N42: там края — сам стандарт (`EnergyBoundaryValues`)
+                //    и её решение о `CoefficientValues`. П137/П138 перекладывали
+                //    на центры ВСЕ форматы, и свой XML приложения этой дверью
+                //    вставал на h/2 правее, чем родным «Открыть» (RC-103: +1.29 кэВ
+                //    на 662, до +1.59 на канале 1023; `ImportConventionProbeP146`),
+                //    свой ECSV — так же, LSRM SPE — на +1.51 кэВ. Формат, чьё
+                //    соглашение «край» подтверждено документом изготовителя,
+                //    добавляется сюда же — и только с таким документом.
+                //    ⛔ `AMBER87` (П151, 24.09.2026): N42, ЗАПИСАННЫЙ AtomSpectra, —
+                //    центрами, как его `.txt` и родная дверь N42 (решение Amber
+                //    «N42 AtomSpectra без сдвига»); признак — N42.Util.IsWrittenByAtomSpectra.
+                bool fileUsesChannelEdges = IsN42File(filepath) && !N42.Util.IsWrittenByAtomSpectra(filepath);
+                Func<double[], double[]> toAppChannels = c =>
+                    fileUsesChannelEdges ? N42.Util.EdgePolynomialToChannelCentres(c) : c;
+
                 int measurements_count = SpecUtilsNative.GetMeasurementsCount(file_h);
                 if (measurements_count == 0) throw new Exception("No measurements found in spectrum file");
 
@@ -1264,7 +1285,9 @@ namespace BecquerelMonitor
                                         //    канала центром. Перекладка идёт ПОСЛЕ
                                         //    подгонки и тем же вызовом, что у двери
                                         //    N42, — разойтись дверям нельзя (`A253`).
-                                        double[] matrix = N42.Util.EdgePolynomialToChannelCentres(
+                                        //    ⚠ `AMBER86` (П146): только у N42 —
+                                        //    см. `toAppChannels` в начале метода.
+                                        double[] matrix = toAppChannels(
                                             CalibrationSolver.Solve(listCalibration, 4));
                                         calibration.Coefficients = new double[matrix.Length];
                                         calibration.Coefficients = matrix;
@@ -1301,10 +1324,16 @@ namespace BecquerelMonitor
                                         //    [0, 47.619…] SpecUtils понимает теми же
                                         //    краями, а о том, что шкалы в файле нет,
                                         //    человеку говорится отдельно (`A216`).
+                                        //    ⚠ `AMBER86` (П146, 24.09.2026): перекладка
+                                        //    — только у N42 (`toAppChannels`). У прочих
+                                        //    форматов полином файла идёт как есть: так
+                                        //    его читает соседняя родная дверь того же
+                                        //    файла (свой XML, свой ECSV), и так было до
+                                        //    П137/П138.
                                         double[] fileCoefficients = new double[cal_size];
                                         for (int i = 0; i < cal_size; i++) fileCoefficients[i] = (double)cal[i];
                                         calibration.PolynomialOrder = cal_size - 1;
-                                        calibration.Coefficients = N42.Util.EdgePolynomialToChannelCentres(fileCoefficients);
+                                        calibration.Coefficients = toAppChannels(fileCoefficients);
                                     }
                                     else if (energyCalType != 3)
                                     {
@@ -1397,7 +1426,15 @@ namespace BecquerelMonitor
                                         //    сделанная здесь своими руками, развела бы
                                         //    их молча — ровно та беда, от которой
                                         //    `A253` и заведена.
-                                        double[] matrix = N42.Util.EdgePolynomialToChannelCentres(
+                                        //    ⚠ `AMBER86` (П146, 24.09.2026): границы
+                                        //    `EnergyBoundaryValues` — края по самому
+                                        //    стандарту N42, и перекладка здесь только у
+                                        //    N42 (`toAppChannels`). Столбец Energy CSV
+                                        //    SpecUtils тоже зовёт «нижним краем», но
+                                        //    это её соглашение: свой ECSV пишет туда
+                                        //    ЦЕНТРЫ (`ChannelToEnergy(i)`), и сдвиг
+                                        //    ставил его на h/2 правее исходного.
+                                        double[] matrix = toAppChannels(
                                             CalibrationSolver.Solve(listCalibration, 4));
                                         calibration.Coefficients = new double[matrix.Length];
                                         calibration.Coefficients = matrix;
@@ -1901,13 +1938,20 @@ namespace BecquerelMonitor
 
         public Type GetN42Type(string filename)
         {
-            FileStream stream = File.OpenRead(filename);
-            XmlReader reader = XmlReader.Create(stream);
-
-            reader.MoveToContent();
-
-            string rootName = reader.LocalName;
-            string ns = reader.NamespaceURI;
+            // ⛔ П146 (24.09.2026): ПОТОК ЗАКРЫВАЕТСЯ. Здесь стоял голый
+            //    `File.OpenRead` без `using`, и файл оставался открытым до сборки
+            //    мусора: сразу после ввоза N42 его нельзя было ни удалить, ни
+            //    перезаписать (замер `ImportConventionProbeP146 --lock=`: `File.Delete`
+            //    сразу после `GetN42Type` — IOException до правки, удалён после).
+            string rootName;
+            string ns;
+            using (FileStream stream = File.OpenRead(filename))
+            using (XmlReader reader = XmlReader.Create(stream))
+            {
+                reader.MoveToContent();
+                rootName = reader.LocalName;
+                ns = reader.NamespaceURI;
+            }
 
             if (rootName == "RadiologicalInstrumentData")
             {
@@ -1924,6 +1968,32 @@ namespace BecquerelMonitor
             else
             {
                 throw new InvalidOperationException($"Unknown root element in N42 format: {rootName}, namespace: {ns}");
+            }
+        }
+
+        /// <summary>
+        /// ⛔ `AMBER86` (П146, 24.09.2026): ЯВЛЯЕТСЯ ЛИ ФАЙЛ N42 — по корневому
+        /// элементу, тем же признаком, что `GetN42Type`, но без броска: двери
+        /// SpecUtils нужно знать, чьё соглашение о номере канала у полинома
+        /// файла. Не XML, битый XML, DTD, другой корень — «не N42».
+        /// </summary>
+        internal static bool IsN42File(string filename)
+        {
+            try
+            {
+                using (FileStream stream = File.OpenRead(filename))
+                using (XmlReader reader = XmlReader.Create(stream))
+                {
+                    reader.MoveToContent();
+                    string rootName = reader.LocalName;
+                    return rootName == "RadInstrumentData"
+                        || rootName == "N42InstrumentData"
+                        || rootName == "RadiologicalInstrumentData";
+                }
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
 

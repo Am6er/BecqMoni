@@ -1141,12 +1141,13 @@ namespace DoseRateFromCurveProbe
 
         /// <summary>
         /// (2) СВЕРКА РУКАМИ на диапазоне линии 662: отсчёты диапазона суммируются
-        /// по каналам спектра напрямую, A_own — из строки матрицы на середине
-        /// диапазона, сложенной по бинам внутри него; φ̇ = N/A_own; Ḣ = φ̇ ×
+        /// по каналам спектра напрямую, A_own — из строки матрицы на
+        /// представительной энергии диапазона (`AMBER77`, П145), сложенной по
+        /// бинам внутри него; φ̇ = N/A_own; Ḣ = φ̇ ×
         /// Ḣ*(10)/φ̇. Сравнивается с вкладом того же диапазона у пробы (допуск 1 %:
         /// у пробы из отсчётов ещё вычтен континуум линий выше — у Cs-137 их
         /// почти нет, доля печатается) и с константой 3.751 пЗв·см² на 662 кэВ
-        /// (допуск 3 %: диапазон представлен серединой, коэффициент там другой).
+        /// (допуск 3 %: энергия диапазона — центр тяжести, а не сама линия).
         /// Возвращает A_own, см².
         /// </summary>
         static double HandCheck(ResultData data, ResponseMatrix matrix, DoseRate dose)
@@ -1161,8 +1162,9 @@ namespace DoseRateFromCurveProbe
             EnergySpectrum spectrum = data.EnergySpectrum;
             int[] counts = spectrum.Spectrum;
             bool[] overflow = OverflowChannel.Mask(counts);
-            int startch = (int)spectrum.EnergyCalibration.EnergyToChannel(r.LowKev, spectrum.NumberOfChannels);
-            int endch = (int)spectrum.EnergyCalibration.EnergyToChannel(r.HighKev, spectrum.NumberOfChannels);
+            // (`AMBER101`, П145) Канал — по центру: `ceil` на обоих концах.
+            int startch = (int)Math.Ceiling(spectrum.EnergyCalibration.EnergyToChannel(r.LowKev, spectrum.NumberOfChannels));
+            int endch = (int)Math.Ceiling(spectrum.EnergyCalibration.EnergyToChannel(r.HighKev, spectrum.NumberOfChannels));
             if (startch < 0) startch = 0;
             if (endch > counts.Length) endch = counts.Length;
             double n = 0.0;
@@ -1174,27 +1176,30 @@ namespace DoseRateFromCurveProbe
             double seconds = spectrum.MeasurementTime;
             double step = matrix.BinKev;
             int cells = (int)Math.Ceiling(r.HighKev / step) + 2;
-            double[] row = matrix.Evaluate(r.CenterKev, cells);
+            // (`AMBER77`, П145) Строка — на ПРЕДСТАВИТЕЛЬНОЙ энергии диапазона,
+            // бин — по центру `b·шаг` (`AMBER71`); перекрытие бинов с каналами
+            // у пробы грубее, чем у приложения, — в пределах допуска 1 %.
+            double[] row = matrix.Evaluate(r.RepresentativeKev, cells);
             double own = 0.0, rowSum = 0.0;
             for (int b = 0; b < row.Length; b++)
             {
                 rowSum += row[b];
-                double e = (b + 0.5) * step;
+                double e = b * step;
                 if (e >= r.LowKev && e < r.HighKev) own += row[b];
             }
 
             double fluenceRate = n / seconds / own;
-            double coefficient = DoseRateCoefficients.DoseRatePerFluenceRate(r.CenterKev);
+            double coefficient = DoseRateCoefficients.DoseRatePerFluenceRate(r.RepresentativeKev);
             double handRate = fluenceRate * coefficient;
             double hand662 = fluenceRate * CsLineMicroSvPerHourPerFluenceRate;
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "  (2) руками, диапазон {0:f1}…{1:f1} кэВ (середина {2:f1}): N = {3:f0} отсч / {4:f0} с = {5:f2} отсч/с;"
+                "  (2) руками, диапазон {0:f1}…{1:f1} кэВ (представительная энергия {2:f1}): N = {3:f0} отсч / {4:f0} с = {5:f2} отсч/с;"
                 + " A_own = {6:f3} см² (сумма строки {7:f3}); φ̇ = {8:f4} квант/(см²·с)",
-                r.LowKev, r.HighKev, r.CenterKev, n, seconds, n / seconds, own, rowSum, fluenceRate));
+                r.LowKev, r.HighKev, r.RepresentativeKev, n, seconds, n / seconds, own, rowSum, fluenceRate));
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
                 "      Ḣ = φ̇ × {0:e4} (коэффициент на {1:f1} кэВ) = {2:f4} мкЗв/ч; проба на этом диапазоне {3:f4}"
                 + " (у пробы вычтен континуум сверху: {4:f2} % отсчётов); с 3.751 пЗв·см² (662 кэВ): {5:f4}",
-                coefficient, r.CenterKev, handRate, r.DoseRate, 100.0 * r.Explained / Math.Max(r.Counts, 1.0), hand662));
+                coefficient, r.RepresentativeKev, handRate, r.DoseRate, 100.0 * r.Explained / Math.Max(r.Counts, 1.0), hand662));
             Ok(r.DoseRate > 0.0 && Math.Abs(handRate - r.DoseRate) <= 0.01 * r.DoseRate,
                string.Format(CultureInfo.InvariantCulture,
                    "(2) число пробы на диапазоне 662 равно ручному: {0:f4} против {1:f4} мкЗв/ч ({2:+0.000;-0.000} %, допуск 1 %)",

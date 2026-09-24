@@ -128,10 +128,10 @@
    3000
   ]
  ],
- "declared": "2026-09-23 15:58",
- "head": "5730e982",
+ "declared": "2026-09-24 19:24",
+ "head": "4857ce24",
  "head_lines": {
-  "chi2": "chi2/ndf 0.546, невязка модели 49.8 %, суммирование нет",
+  "chi2": "chi2/ndf 0.546, невязка модели 14.3 %, суммирование нет",
   "composition": "состав объявлен: 137CS; ряды: нет; распад 1, атомных 2, линий 15; полоса сведена ПОЛОМ ПО КРИВОЙ 40.0 кэВ (1.0 % от максимума, Min_Range 5.0), фит на всём спектре (умолчание); аннигиляционный образ НЕ взят: в составе нет линии выше 1022 кэВ",
   "grey": "серый слой: ниже пола разноса 0.0 отсч. (в приложении пола нет — S175), выше последней линии 18.7 отсч.; всего 18.7 отсч. (0.046 % стека)",
   "scale": "шкала: усиление 1.000000, сдвиг 0.000 канала",
@@ -146,11 +146,11 @@
   "library_sha": "5ae488901f2defe7",
   "matrices": {},
   "probes": {
-   "app_sha": "277f3934eb836ac0",
-   "built": "2026-09-23 15:52:48",
+   "app_sha": "0f30af3d2b525869",
+   "built": "2026-09-24 19:23:18",
    "dir": "tools/effmaker/probes/build",
    "freshness_checked": true,
-   "shot_sha": "fd43a159496e6f4e"
+   "shot_sha": "b18dac8b561b6b72"
   },
   "spectrum": "../CORPUS/corpus/spectra/ASN16_Cs137_10cm.xml",
   "spectrum_sha": "a4378820856b2e49"
@@ -225,10 +225,10 @@
   "meta": {
    "cascade_summing": 0.0,
    "chi2ndf": 0.5463846546557553,
-   "chi2ndf_pois": 2.1147421871127046,
+   "chi2ndf_pois": 1.1883342714316496,
    "gain": 1.0,
    "live_time": 3421.0,
-   "model_residual": 0.4983480808412283,
+   "model_residual": 0.14342753949074974,
    "offset_channels": 0.0,
    "response_matrix": 0.0
   }
@@ -313,7 +313,7 @@
    ""
   ]
  ],
- "seconds": 1.1,
+ "seconds": 1.2,
  "spectrum": "../CORPUS/corpus/spectra/ASN16_Cs137_10cm.xml",
  "tolerance": {
   "abs": 1e-06,

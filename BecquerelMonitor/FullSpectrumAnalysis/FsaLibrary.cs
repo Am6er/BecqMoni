@@ -373,9 +373,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 pair += f.Value * PartialCrossSections.MassCrossSection(
                     element, lo, hi, energyKev, logEnergyKev,
                     PhotonProcess.PairProduction, true);
-                total += f.Value * MaterialDatabase.Interpolate(
-                    element.EnergyKev, element.LogEnergyKev,
-                    element.Total, element.LogTotal, lo, hi, energyKev, logEnergyKev);
+                // ⛔ (`AMBER80`, П149 24.09.2026) Полное ослабление — СУММОЙ
+                // КАНАЛОВ (<see cref="PartialCrossSections.MassTotal"/>, ~~`AMBER74`~~),
+                // тем же правилом, что у всех слоёв сцены. Здесь стояла прямая по
+                // `Element.Total` — сумме каналов в узлах, — и доля пар выходила
+                // занижена до 1.7 % на 2614.5 кэВ (CsI; NaI 1.5 %, LaBr₃ 1.4 %;
+                // замер `FsaTotalReadersProbe`). Строка `AMBER74` этого читателя
+                // называла, а до него правка не доехала.
+                total += f.Value * PartialCrossSections.MassTotal(
+                    element, lo, hi, energyKev, logEnergyKev);
             }
 
             return total > 0.0 ? pair / total : double.NaN;
@@ -605,6 +611,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // и правильно: по собственному утверждению набора это другая
                 // линия. У Tl-208 позитронов нет вовсе, и гейт на нём молчать
                 // не должен — случай (а) `AMBER54` остаётся как был.
+                //
+                // ⛔ (`AMBER78`, П149 24.09.2026) Имя здесь — подпись пика из
+                // набора КАК ЕЁ НАПИСАЛ НАБОР: `NucBase` по умолчанию пишет
+                // «Na22», запасной набор — «K40», «Cs137». До П149 `NucidOf`
+                // понимал одно «Na-22», и у таких имён всё сказанное выше не
+                // срабатывало вовсе — линия 511 молча не добавлялась. Разбор
+                // всех написаний — в <see cref="FsaSampleLibrary.NucidOf"/>.
                 if (kind == FsaComponentKind.Single && component.Lines.Count > 0)
                 {
                     double[] annihilation =

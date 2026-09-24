@@ -1,11 +1,13 @@
 using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.FullSpectrumAnalysis;
+using BecquerelMonitor.NucBase;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 
 namespace FsaLibraryDefaultPathProbe
@@ -33,6 +35,16 @@ namespace FsaLibraryDefaultPathProbe
     ///
     ///     fsalibrarydefaultpathprobe --spectrum=&lt;файл&gt; --sample=22NA
     ///                                [--chain=Th-232] [--no-matrix] [--out=&lt;tsv&gt;]
+    ///                                [--nucbase=0,1,2]
+    ///
+    /// (П149, 24.09.2026, `AMBER78`) `--nucbase=` добавляет плечи 4.N — НАБОР,
+    /// КАКИМ ЕГО ВВОЗИТ `NucBase`: линии нуклида из
+    /// `NucBaseFramework.getDecayRad` (ровно те строки, у которых форма ставит
+    /// галочку по умолчанию, — гаммы распада), имена — форматом N формы
+    /// (0 «137CS», 1 «Cs137» — умолчание формы, 2 «Cs-137»). Формат повторён
+    /// копией `NucBase.FormatIsotopeName` (закрыт в форме). Печатается и то,
+    /// взял ли разбор каскадное суммирование: имя, которое не разбирается,
+    /// лишает нуклид поправки на совпадения, а не только линии 511.
     ///
     /// Запускать ИЗ оснастки корпуса (`tools\CORPUS\scripts\wd_*`) — оттуда
     /// берутся приборы спектров и склад матриц, как у `FsaAnnihilationGateProbe`.
@@ -57,6 +69,7 @@ namespace FsaLibraryDefaultPathProbe
 
             string spectrum = null, sample = null, chainLabel = null, outPath = null;
             bool needMatrix = true;
+            var nucBaseFormats = new List<int>();
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrum = a.Substring(11);
@@ -64,6 +77,20 @@ namespace FsaLibraryDefaultPathProbe
                 else if (a.StartsWith("--chain=", StringComparison.Ordinal)) chainLabel = a.Substring(8);
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
                 else if (a == "--no-matrix") needMatrix = false;
+                else if (a.StartsWith("--nucbase=", StringComparison.Ordinal))
+                {
+                    foreach (string f in a.Substring(10).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        int format;
+                        if (!int.TryParse(f, NumberStyles.None, CultureInfo.InvariantCulture, out format) || format > 2)
+                        {
+                            Console.Error.WriteLine("--nucbase= ждёт форматы 0, 1, 2 через запятую");
+                            return 2;
+                        }
+
+                        nucBaseFormats.Add(format);
+                    }
+                }
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
 
@@ -176,6 +203,23 @@ namespace FsaLibraryDefaultPathProbe
             Arm(rd, spectrum, "3. УМОЛЧАНИЕ, НАБОР БЕЗ 511",
                 FsaLibrary.BuildFromPeaks(peaks3, withoutAnnihilation, crystal, true), needMatrix);
 
+            foreach (int format in nucBaseFormats)
+            {
+                List<NuclideDefinition> nucBaseSet = NucBaseSet(nuclides, format);
+                Console.WriteLine();
+                Console.WriteLine("набор NucBase, формат {0}: {1} записей, имена: {2}",
+                                  format.ToString(CultureInfo.InvariantCulture),
+                                  nucBaseSet.Count.ToString(CultureInfo.InvariantCulture),
+                                  string.Join(", ", DistinctNames(nucBaseSet)));
+                List<Peak> peaks4 = new PeakDetector().DetectPeak(
+                    rd, BackgroundMode.Invisible, SmoothingMethod.None, null, nucBaseSet);
+                Console.WriteLine("пиков найдено по набору NucBase: {0}",
+                                  peaks4.Count.ToString(CultureInfo.InvariantCulture));
+                Arm(rd, spectrum, "4." + format.ToString(CultureInfo.InvariantCulture)
+                                  + " УМОЛЧАНИЕ, НАБОР NucBase, ФОРМАТ " + format.ToString(CultureInfo.InvariantCulture),
+                    FsaLibrary.BuildFromPeaks(peaks4, nucBaseSet, crystal, true), needMatrix);
+            }
+
             if (outPath != null)
             {
                 File.WriteAllText(outPath, dump.ToString(), new UTF8Encoding(false));
@@ -275,9 +319,83 @@ namespace FsaLibraryDefaultPathProbe
                 Console.WriteLine("  CUT\t{0}\tz {1}", image.Name, F(image.Z, "F2"));
             }
 
-            Console.WriteLine("  χ²/ndf {0}; матрица {1}; образ 511 в библиотеке {2}; гейт: {3}; вырожден: {4}",
+            Console.WriteLine("  χ²/ndf {0}; матрица {1}; образ 511 в библиотеке {2}; гейт: {3}; вырожден: {4}; суммирование {5}",
                               F(result.Chi2Ndf, "F4"), result.ResponseMatrixUsed ? "учтена" : "НЕТ", inLibrary,
-                              analyzer.AnnihilationCollides ?? "молчит", analyzer.AnnihilationDegenerate ?? "—");
+                              analyzer.AnnihilationCollides ?? "молчит", analyzer.AnnihilationDegenerate ?? "—",
+                              result.CascadeSummingUsed ? "учтено" : "НЕТ");
+        }
+
+        static readonly Regex NucBaseName = new Regex("^([0-9]+){1}([A-Z]+){1}(m[0-9]+)?$");
+
+        /// <summary>
+        /// Набор так, как его ввозит `NucBase` (`buttonImportDef_Click`): строки
+        /// `getDecayRad` нуклида, у которых форма ставит галочку по умолчанию
+        /// (гаммы распада, `DecayLine == "G"`), имя — форматом формы.
+        /// </summary>
+        static List<NuclideDefinition> NucBaseSet(List<string> nuclides, int format)
+        {
+            var set = new List<NuclideDefinition>();
+            var framework = new NucBaseFramework();
+            foreach (string nucid in nuclides)
+            {
+                List<DecayRad> rows = framework.getDecayRad(nucid);
+                if (rows == null)
+                {
+                    Console.WriteLine("  ⛔ NucBase: линии {0} не прочитаны — {1}", nucid, framework.LastError);
+                    bad++;
+                    continue;
+                }
+
+                foreach (DecayRad row in rows)
+                {
+                    if (row.DecayLine != "G")
+                    {
+                        continue;
+                    }
+
+                    set.Add(new NuclideDefinition
+                    {
+                        Name = NucBaseFormat(row.Name ?? nucid, format),
+                        Energy = row.Energy,
+                        Intencity = row.Intensity,
+                        Visible = true
+                    });
+                }
+            }
+
+            return set;
+        }
+
+        /// <summary>Копия `NucBase.FormatIsotopeName` (закрыт в форме).</summary>
+        static string NucBaseFormat(string nameFromDb, int format)
+        {
+            Match match = NucBaseName.Match(nameFromDb);
+            if (!match.Success)
+            {
+                return nameFromDb;
+            }
+
+            string mass = match.Groups[1].Value;
+            string isotope = match.Groups[2].Value;
+            string isotopeLower = isotope.Substring(0, 1) + isotope.Substring(1).ToLower();
+            string isomer = match.Groups.Count > 3 ? match.Groups[3].Value : string.Empty;
+            switch (format)
+            {
+                case 0: return mass + isotope + isomer;
+                case 2: return isotopeLower + "-" + mass + isomer;
+                default: return isotopeLower + mass + isomer;
+            }
+        }
+
+        static List<string> DistinctNames(List<NuclideDefinition> set)
+        {
+            var names = new List<string>();
+            foreach (NuclideDefinition definition in set)
+            {
+                if (!names.Contains(definition.Name)) names.Add(definition.Name);
+            }
+
+            return names;
         }
 
         static string F(double value, string format)

@@ -702,6 +702,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     computed = job.Analyzer.Analyze(job.Spectrum, job.Background, job.FwhmCalibration,
                                                     library, job.Efficiency);
+                    if (computed != null)
+                    {
+                        // (`S187`) Расхождения поставок у нуклидов состава — здесь,
+                        // в фоне: чтение базы не должно идти в окне отчёта.
+                        computed.SupplyDiscrepancies = FsaCascadeSummer.SupplyDiscrepanciesOf(computed);
+                    }
+
                     if (computed == null)
                     {
                         // ⛔ (`A277`, `A312`) ОТКАЗ НАЗЫВАЕТ СЕБЯ. Гаснущий

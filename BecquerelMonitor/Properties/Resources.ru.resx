@@ -494,6 +494,10 @@
   <data name="FSAResidualCountsValue" xml:space="preserve">
     <value>+{0} / −{1} %</value>
   </data>
+  <data name="FSAResidualUndefinedHint" xml:space="preserve">
+    <value>Доля невязки не определена: чистый счёт полосы (проба минус фон) не выше трёх стандартных отклонений — брать долю не от чего. Лента невязки на графике нарисована как обычно.</value>
+    <comment>AMBER91: shown instead of "+0.0 / −0.0 %" when the sample is at background level</comment>
+  </data>
   <data name="FSAPresentNoShare" xml:space="preserve">
     <value>есть</value>
     <comment>S85: backscatter has no reliable share — presence only</comment>
@@ -1298,6 +1302,9 @@
   <data name="GeometryEditorErrorWallEatsSample" xml:space="preserve">
     <value>Стенка съедает весь просвет: {0:F1} мм при пределе {1:F1} мм.</value>
   </data>
+  <data name="GeometryEditorErrorNegativeLength" xml:space="preserve">
+    <value>«{2}» = {0} мм: расстояние и толщина не бывают отрицательными.</value>
+  </data>
   <data name="GeometryEditorErrorSourceSize" xml:space="preserve">
     <value>Размер источника должен быть больше нуля.</value>
   </data>
@@ -1914,7 +1921,7 @@ http://xptable.sourceforge.net/</value>
     <value>Формула</value>
   </data>
   <data name="GeometryMaterialsFormulaHint" xml:space="preserve">
-    <value>Символы элементов с числом атомов через пробел: Bi4 Ge3 O12. Массовые доли считаются из атомных масс — руками их не вписывают.</value>
+    <value>Символы элементов с числом атомов: Bi4Ge3O12 или Bi4 Ge3 O12. Массовые доли считаются из атомных масс — руками их не вписывают.</value>
   </data>
   <data name="GeometryMaterialsMixtureHint" xml:space="preserve">
     <value>Вещества библиотеки и их массовые веса. Веса относительные: «1 и 1» означает то же, что «50 и 50».</value>
@@ -1957,6 +1964,9 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="GeometryMaterialsErrorFormula" xml:space="preserve">
     <value>Из формулы не вышло ни одного элемента. Ожидаются символы элементов с числом атомов: Cs1 I1.</value>
+  </data>
+  <data name="GeometryMaterialsErrorFormulaPart" xml:space="preserve">
+    <value>Формула не читается с «{0}»: символ элемента — заглавная и строчные буквы, за ним число атомов — H2O, Bi4Ge3O12, Cs1 I1. Скобки не принимаются.</value>
   </data>
   <data name="GeometryMaterialsErrorEmptyMixture" xml:space="preserve">
     <value>Смесь пуста: нужно хотя бы одно вещество с положительным весом.</value>
@@ -2300,6 +2310,9 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="DoseRateNoSampleVolume" xml:space="preserve">
     <value>Мощность дозы: у пробы в геометрии нет объёма — усреднять плотность потока не по чему.</value>
+  </data>
+  <data name="DoseRateFieldScene" xml:space="preserve">
+    <value>Мощность дозы: кривая посчитана для полевой сцены (на земле или в лунке). Доза там требует потока у детектора вместе с квантами, рассеянными в грунте, а множитель точечного источника не даёт ни того, ни другого: без ослабления он завышает нерассеянный поток в 4–20 раз, а рассеянной части (около половины поля) в нём нет. Считайте дозу сценой поля ISO.</value>
   </data>
   <data name="DoseRateAreaAboveBound" xml:space="preserve">
     <value>Мощность дозы: кривая сцены поля даёт {0} см² на {1:f1} кэВ — больше площади проекции сферы, описанной вокруг детектора ({2:f1} см²).</value>

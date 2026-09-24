@@ -55,6 +55,35 @@ namespace FsaPileUpProbe
     /// Печатает строки `PILEUP\t&lt;форма&gt;\t&lt;f&gt;\t&lt;пар&gt;\t&lt;за шкалой&gt;\t
     /// &lt;A_on/A0−1&gt;\t&lt;A_off/A0−1&gt;\t&lt;χ² on&gt;\t&lt;χ² off&gt;\t&lt;амплитуда образа/N&gt;`
     /// и итоговую таблицу; `--out=` — та же таблица в csv (точка — разделитель).
+    ///
+    /// ⛔ (`AMBER76`, П148 24.09.2026) ПРАВИЛО ЖИВОГО ВРЕМЕНИ ПОДСАДКИ —
+    /// `--lt=dead|full|both` (умолчание `both`). До П148 подсадка была одна:
+    /// «два отсчёта ушли, один пришёл» при НЕТРОНУТОМ живом времени, то есть
+    /// та же посылка, что у правки `AMBER49` («спектр на полное время»), и
+    /// увидеть ошибку этой посылки мерка не могла. Теперь плеч два:
+    ///   `full` — копия спектра с живым временем 0 (знаменатель — полное
+    ///            время, мёртвого времени нет): пара уносит ДВА отсчёта,
+    ///            приносит один — прежняя подсадка;
+    ///   `dead` — спектр со своим живым временем (LT &lt; T, мёртвое время
+    ///            возмещено делением на него): второй импульс пары пришёл в
+    ///            мёртвое время первого и был бы потерян и без наложения, а
+    ///            живое время это уже возместило. Поэтому уходит ОДИН отсчёт
+    ///            (первый импульс), приходит один на сумму; партнёр
+    ///            разыгрывается по тому же спектру, но не вынимается.
+    /// Посылка `dead` проверена Монте-Карло цепочки импульсов (журнал П148,
+    /// `mc_pileup.py`): при LT по часам тракта или по правилу приложения
+    /// `LiveTime.Calculate` (T − n·τ_d) с окном наложения внутри мёртвого
+    /// записанный спектр на живое время равен R·[(1 − f)·s + f·(s⊗s)].
+    ///
+    /// `--loss=auto|1|2` — множитель убыли колонки
+    /// (<c>FsaAnalyzer.PileUpLossMultiplier</c>, П148) отражением; `auto` —
+    /// не трогать (правило разбора по времени спектра). На сборке без
+    /// свойства ключ не действует и проба об этом говорит.
+    ///
+    /// (`AMBER92`, П148) Строка `STACKTOP` — зазор ВЕРХА СТЕКА над моделью:
+    /// Σ полосы (Σ слоёв `BuildStackedLayers` − `Model`) к измеренным
+    /// отсчётам той же полосы, и «лишнее» ленты, посчитанное от верха стека,
+    /// против числа строки невязки (`ResidualExcessShare`, от `Model`).
     /// </summary>
     static class Program
     {
@@ -64,13 +93,15 @@ namespace FsaPileUpProbe
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             FsaTuningReport.Snapshot();
 
-            string spectrumPath = null, setName = null, outPath = null, form = "both";
+            string spectrumPath = null, setName = null, outPath = null, form = "both", ltMode = "both", loss = "auto";
             var fracs = new List<double> { 0.02, 0.05 };
             int seed = 1;
             double huberM = double.NaN, anchorShare = double.NaN;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
+                else if (a.StartsWith("--lt=", StringComparison.Ordinal)) ltMode = a.Substring(5);
+                else if (a.StartsWith("--loss=", StringComparison.Ordinal)) loss = a.Substring(7);
                 else if (a.StartsWith("--set=", StringComparison.Ordinal)) setName = a.Substring(6);
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
                 else if (a.StartsWith("--form=", StringComparison.Ordinal)) form = a.Substring(7);
@@ -101,6 +132,34 @@ namespace FsaPileUpProbe
             if (form != "energy" && form != "light" && form != "both")
             {
                 Console.Error.WriteLine("--form= принимает energy | light | both");
+                return 2;
+            }
+
+            if (ltMode != "dead" && ltMode != "full" && ltMode != "both")
+            {
+                Console.Error.WriteLine("--lt= принимает dead | full | both");
+                return 2;
+            }
+
+            double lossValue = double.NaN;
+            if (loss != "auto")
+            {
+                if (!double.TryParse(loss, NumberStyles.Float, CultureInfo.InvariantCulture, out lossValue)
+                    || !(lossValue >= 1.0 && lossValue <= 2.0))
+                {
+                    Console.Error.WriteLine("--loss= принимает auto | число от 1 до 2");
+                    return 2;
+                }
+            }
+
+            PropertyInfo lossProperty = typeof(FsaAnalyzer).GetProperty("PileUpLossMultiplier");
+            PropertyInfo lossUsedProperty = typeof(FsaAnalyzer).GetProperty("PileUpLossUsed");
+            Console.WriteLine("SETUP\tFsaAnalyzer.PileUpLossMultiplier {0}; --loss={1}; --lt={2}",
+                              lossProperty != null ? "есть" : "НЕТ (сборка до П148: множитель убыли 2 всегда)",
+                              loss, ltMode);
+            if (!double.IsNaN(lossValue) && lossProperty == null)
+            {
+                Console.Error.WriteLine("--loss= задан, а свойства PileUpLossMultiplier в сборке нет — ключ мёртв");
                 return 2;
             }
 
@@ -184,6 +243,11 @@ namespace FsaPileUpProbe
                     an.PileUpAnchorShare = anchorShare;
                 }
 
+                if (!double.IsNaN(lossValue))
+                {
+                    lossProperty.SetValue(an, lossValue, null);
+                }
+
                 return an;
             };
 
@@ -191,24 +255,54 @@ namespace FsaPileUpProbe
             if (form == "energy" || form == "both") forms.Add(false);
             if (form == "light" || form == "both") forms.Add(true);
 
+            // (`AMBER76`, П148) Плечи правила живого времени — см. шапку.
+            var arms = new List<string>();
+            if (ltMode == "full" || ltMode == "both") arms.Add("full");
+            if (ltMode == "dead" || ltMode == "both")
+            {
+                if (es.LiveTime > 0.0 && es.LiveTime < es.MeasurementTime)
+                {
+                    arms.Add("dead");
+                }
+                else
+                {
+                    Console.WriteLine("плечо dead пропущено: у спектра нет возмещённого мёртвого времени (живое {0} с, полное {1} с)",
+                                      F(es.LiveTime, "R"), F(es.MeasurementTime, "R"));
+                }
+            }
+
             var table = new StringBuilder();
-            table.AppendLine("form,frac,pairs,beyond_scale,bias_on,bias_off,chi2_clean,chi2_on,chi2_off,pile_amp_over_n_clean,pile_amp_over_n_on,target");
+            table.AppendLine("lt,form,frac,pairs,beyond_scale,bias_on,bias_off,chi2_clean,chi2_on,chi2_off,pile_amp_over_n_clean,pile_amp_over_n_on,loss_used,stack_gap_on,target");
             int bad = 0;
+            bool tuningPrinted = false;
+            foreach (string arm in arms)
             foreach (bool lightForm in forms)
             {
+                bool deadArm = arm == "dead";
+                EnergySpectrum esArm = es;
+                if (!deadArm)
+                {
+                    // Спектр на ПОЛНОЕ время: живого времени нет, знаменатель —
+                    // полное (`Utils.LiveTime.Effective`), мёртвого времени нет.
+                    esArm = es.Clone();
+                    esArm.LiveTime = 0.0;
+                }
+
                 string formName = lightForm ? "light" : "energy";
                 Console.WriteLine();
-                Console.WriteLine("=== форма {0} ===", formName);
+                Console.WriteLine("=== живое время {0} (знаменатель {1} с), форма {2} ===", arm,
+                                  F(esArm.EffectiveLiveTime, "F1"), formName);
 
                 // Чистый спектр — опора.
                 FsaAnalyzer a0 = make(true, lightForm);
-                if (forms.IndexOf(lightForm) == 0)
+                if (!tuningPrinted)
                 {
                     // (`T243`) Отчёт о настройках — ДО первого Analyze и один раз на пробу.
                     FsaTuningReport.Print(a0, "чистый спектр, наложения ВКЛ");
+                    tuningPrinted = true;
                 }
 
-                FsaResult r0 = a0.Analyze(es, rd.BackgroundEnergySpectrum, rd.FwhmCalibration, library, efficiency);
+                FsaResult r0 = a0.Analyze(esArm, rd.BackgroundEnergySpectrum, rd.FwhmCalibration, library, efficiency);
                 if (r0 == null)
                 {
                     Console.Error.WriteLine("чистый спектр: разложение не получилось: {0} — {1}", a0.Refusal, a0.RefusalNote);
@@ -260,6 +354,10 @@ namespace FsaPileUpProbe
                 Console.WriteLine("чистый: {0} = {1} 1/с; χ²/ndf {2}; образ наложений: амплитуда {3} = {4}·N, z {5}; кривая формы: {6}; полоса {7}…{8}",
                                   target, F(rate0, "F4"), F(r0.Chi2Ndf, "F3"), F(pile0, "E4"), F(pile0 / total, "E4"),
                                   F(ZOf(r0, FsaResult.PileUpLayerName), "F1"), curve ?? "(энергия)", r0.FirstChannel, r0.LastChannel);
+                Console.WriteLine("STACKTOP\t{0}\t{1}\tзазор верха стека над моделью {2} от измеренного полосы; «лишнее» ленты от верха стека {3}, число строки {4}; «не описано» ленты {5}, число строки {6}",
+                                  arm, formName, F(StackGap(r0, esArm.Spectrum), "E4"),
+                                  F(RibbonExcess(r0, esArm.Spectrum, true), "E4"), F(r0.ResidualExcessShare, "E4"),
+                                  F(RibbonExcess(r0, esArm.Spectrum, false), "E4"), F(r0.ResidualMissingShare, "E4"));
                 if (deadTime > 0.0)
                 {
                     // Амплитуда колонки в единицах N против Rτ прибора — с
@@ -288,7 +386,7 @@ namespace FsaPileUpProbe
                 foreach (double f in fracs)
                 {
                     long pairs, beyond;
-                    EnergySpectrum synth = Synthesize(es, f, seed, coord, r0.FirstChannel, r0.LastChannel, out pairs, out beyond);
+                    EnergySpectrum synth = Synthesize(esArm, f, seed, coord, r0.FirstChannel, r0.LastChannel, deadArm, out pairs, out beyond);
                     FsaAnalyzer aOn = make(true, lightForm);
                     FsaResult rOn = aOn.Analyze(synth, rd.BackgroundEnergySpectrum, rd.FwhmCalibration, library, efficiency);
                     FsaAnalyzer aOff = make(false, lightForm);
@@ -309,28 +407,35 @@ namespace FsaPileUpProbe
                                       F(WindowSum(rOn.Model, cal, sumLo, sumHi), "F0"),
                                       F(WindowSum(CurveOf(rOn, FsaResult.PileUpLayerName), cal, sumLo, sumHi), "F0"),
                                       F(WindowSum(rOff.Model, cal, sumLo, sumHi), "F0"));
-                    Console.WriteLine("PILEUP\t{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}",
-                                      formName, F(f, "F4"), pairs, beyond, F(biasOn, "+0.00000;-0.00000"),
+                    string lossUsed = lossUsedProperty != null ? F((double)lossUsedProperty.GetValue(aOn, null), "R") : "2(до П148)";
+                    double gapOn = StackGap(rOn, synth.Spectrum);
+                    Console.WriteLine("PILEUP\t{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}",
+                                      arm, formName, F(f, "F4"), pairs, beyond, F(biasOn, "+0.00000;-0.00000"),
                                       F(biasOff, "+0.00000;-0.00000"), F(rOn.Chi2Ndf, "F3"), F(rOff.Chi2Ndf, "F3"),
-                                      F(pileOn, "E4"));
-                    Console.WriteLine("   f={0}: пар {1} ({2} за шкалой); {3}: с образом {4} (ожидание: −f = {5} до правки, 0 после), без образа {6} (контроль: сильнее −f, убыль 2f = {7} ловить нечем); амплитуда образа/N {8} (было {9}, +f → {10})",
-                                      F(f, "F4"), pairs, beyond, target, F(biasOn, "+0.00000;-0.00000"), F(-f, "+0.00000;-0.00000"),
-                                      F(biasOff, "+0.00000;-0.00000"), F(-2 * f, "+0.00000;-0.00000"),
-                                      F(pileOn, "E4"), F(pile0 / total, "E4"), F(pile0 / total + f, "E4"));
-                    table.AppendLine(string.Join(",", formName, F(f, "R"), pairs.ToString(CultureInfo.InvariantCulture),
+                                      F(pileOn, "E4"), lossUsed);
+                    Console.WriteLine("   f={0}: пар {1} ({2} за шкалой); {3}: с образом {4} (ожидание 0), без образа {5} (контроль: убыль {6}·f ловить нечем); амплитуда образа/N {7} (было {8}, +f → {9}); множитель убыли {10}; зазор верха стека {11}",
+                                      F(f, "F4"), pairs, beyond, target, F(biasOn, "+0.00000;-0.00000"),
+                                      F(biasOff, "+0.00000;-0.00000"), deadArm ? "1" : "2",
+                                      F(pileOn, "E4"), F(pile0 / total, "E4"), F(pile0 / total + f, "E4"), lossUsed, F(gapOn, "E4"));
+                    table.AppendLine(string.Join(",", arm, formName, F(f, "R"), pairs.ToString(CultureInfo.InvariantCulture),
                                                  beyond.ToString(CultureInfo.InvariantCulture), F(biasOn, "R"), F(biasOff, "R"),
                                                  F(r0.Chi2Ndf, "R"), F(rOn.Chi2Ndf, "R"), F(rOff.Chi2Ndf, "R"),
-                                                 F(pile0 / total, "R"), F(pileOn, "R"), target));
+                                                 F(pile0 / total, "R"), F(pileOn, "R"), lossUsed, F(gapOn, "R"), target));
 
                     // Контроль обязан видеть подсадку: без образа наложений
-                    // убыль 2f никто не ловит; смещение слабее −f — отказ мерки.
+                    // убыль никто не ловит. На полном времени она 2f, и
+                    // смещение обязано быть сильнее −f (замер П120: между −f и
+                    // −2f); на живом времени убыль f (уходит один импульс), и
+                    // часть её забирает сумм-континуум — порог −0.1·f (замер
+                    // П148 — в журнале). Слабее — отказ мерки.
                     // ⚠ Опора — скорость на ЧИСТОМ спектре с образом, и правка
                     // разбора её двигает; при сравнении плеч смотреть на
                     // `bias_on`, а этот контроль — только про доезд подсадки.
-                    if (double.IsNaN(biasOn) || double.IsNaN(biasOff) || biasOff > -f)
+                    double controlBound = deadArm ? -0.1 * f : -f;
+                    if (double.IsNaN(biasOn) || double.IsNaN(biasOff) || biasOff > controlBound)
                     {
-                        Console.WriteLine("   ⛔ контроль: без образа смещение {0} слабее −f — подсадка не доехала, мерка не мерит",
-                                          F(biasOff, "+0.00000;-0.00000"));
+                        Console.WriteLine("   ⛔ контроль: без образа смещение {0} слабее {1} — подсадка не доехала, мерка не мерит",
+                                          F(biasOff, "+0.00000;-0.00000"), F(controlBound, "+0.00000;-0.00000"));
                         bad++;
                     }
 
@@ -372,7 +477,7 @@ namespace FsaPileUpProbe
         /// шкалы — потеря обоих отсчётов без прихода (считается отдельно).
         /// </summary>
         static EnergySpectrum Synthesize(EnergySpectrum es, double f, int seed, Func<double, double> coord,
-                                         int chLo, int chHi, out long pairs, out long beyond)
+                                         int chLo, int chHi, bool deadArm, out long pairs, out long beyond)
         {
             EnergySpectrum synth = es.Clone();
             int[] s = synth.Spectrum;
@@ -416,7 +521,14 @@ namespace FsaPileUpProbe
                 double xb = edge[b] + rng.NextDouble() * (edge[b + 1] - edge[b]);
                 double sum = xa + xb;
                 s[a]--;
-                s[b]--;
+                if (!deadArm)
+                {
+                    // (`AMBER76`, П148) На полном времени партнёр — записанный
+                    // импульс и уходит со своей энергии; на живом времени он
+                    // пришёл в мёртвое время первого, и его потеря уже
+                    // возмещена делением на живое время — см. шапку.
+                    s[b]--;
+                }
                 int target = Locate(edge, sum);
                 if (target < 0 || target >= channels)
                 {
@@ -462,6 +574,56 @@ namespace FsaPileUpProbe
             }
 
             return lo;
+        }
+
+        /// <summary>
+        /// (`AMBER92`, П148) Зазор верха нарисованного стека над моделью: Σ по
+        /// полосе невязки (Σ слоёв `BuildStackedLayers` − `Model`), к измеренным
+        /// отсчётам той же полосы (кривая фита).
+        /// </summary>
+        static double StackGap(FsaResult r, int[] raw)
+        {
+            double[] top = StackTop(r);
+            double[] fit = r.FitSpectrum(raw);
+            double gap = 0.0, measured = 0.0;
+            for (int i = Math.Max(r.FirstChannel, r.ResidualFloorChannel); i <= r.LastChannel && i < fit.Length; i++)
+            {
+                gap += top[i] - r.Model[i];
+                measured += fit[i];
+            }
+
+            return measured > 0.0 ? gap / measured : double.NaN;
+        }
+
+        /// <summary>
+        /// (`AMBER92`) Площадь ленты невязки от ВЕРХА СТЕКА (а не от `Model`), по
+        /// кривой фита, та же полоса и тот же знаменатель, что у
+        /// `ComputeResidualShares`: excess — «лишнее», иначе «не описано».
+        /// </summary>
+        static double RibbonExcess(FsaResult r, int[] raw, bool excess)
+        {
+            double[] top = StackTop(r);
+            double[] fit = r.FitSpectrum(raw);
+            double sum = 0.0, measured = 0.0;
+            for (int i = Math.Max(r.FirstChannel, r.ResidualFloorChannel); i <= r.LastChannel && i < fit.Length; i++)
+            {
+                double d = fit[i] - top[i];
+                if (excess ? d < 0.0 : d > 0.0) sum += Math.Abs(d);
+                measured += fit[i];
+            }
+
+            return measured > 0.0 ? sum / measured : double.NaN;
+        }
+
+        static double[] StackTop(FsaResult r)
+        {
+            double[] top = new double[r.Model.Length];
+            foreach (FsaStackLayer layer in r.BuildStackedLayers(int.MaxValue))
+            {
+                for (int i = 0; i < top.Length && i < layer.Curve.Length; i++) top[i] += layer.Curve[i];
+            }
+
+            return top;
         }
 
         static double RateOf(FsaResult r, string name)

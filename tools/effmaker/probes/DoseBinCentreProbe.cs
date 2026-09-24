@@ -83,6 +83,7 @@ namespace DoseBinCentreProbe
             }
 
             RealRanges(data, matrix);
+            LowScan(data, matrix);
             Application(data, matrix);
             Synthetic(data.Efficiency, matrix);
 
@@ -106,7 +107,7 @@ namespace DoseBinCentreProbe
             Console.WriteLine("  TransferByChannel у свежей матрицы: {0}", matrix.TransferByChannel);
 
             DoseRateInput input = DoseRateInput.Of(data.Efficiency, matrix);
-            foreach (double low in new[] { 11.0, 11.5, 12.0, 10.0 })
+            foreach (double low in new[] { 11.0, 11.5, 12.0, 10.0, 10.3 })
             {
                 double[] grid = DoseRateEstimator.BuildGrid(low, 3000.0);
                 DoseRateRange[] ranges = RangesOf(grid);
@@ -133,6 +134,86 @@ namespace DoseBinCentreProbe
                                       f[k][k], sum, sum > 0.0 ? f[k][k] / sum : 0.0);
                 }
             }
+        }
+
+        // ==================================================================
+        // §5. `AMBER82`: низ шкалы перебором
+        // ==================================================================
+
+        /// <summary>
+        /// (`AMBER82`, П145 24.09.2026) Доля «дома» у диапазона 0 при низе
+        /// шкалы 10.00…13.99 кэВ шагом 0.01. После `AMBER70` пик линии делится
+        /// на два бина, и при судействе бина по центру нижний бин у низа
+        /// шкалы 10.0…10.7 кэВ целиком уходил ниже `LowKev`: доля падала
+        /// СКАЧКОМ с 1.000 до ~0.78 (поток диапазона ×1.28). По перекрытию
+        /// бина с диапазоном она от положения низа зависит НЕПРЕРЫВНО — это и
+        /// судится: наибольший скачок между соседними низами. Число «ниже
+        /// 0.999» печатается для сверки с ревизией, но не судится: по
+        /// перекрытию бин — отрезок шириной в шаг, и часть его законно лежит
+        /// ниже шкалы.
+        /// </summary>
+        static void LowScan(ResultData data, ResponseMatrix matrix)
+        {
+            Head("§5. AMBER82: доля «дома» у диапазона 0, низ шкалы 10.00…13.99 кэВ шагом 0.01");
+            DoseRateInput input = DoseRateInput.Of(data.Efficiency, matrix);
+            Console.WriteLine("  (а) без раскладки каналов — бин против границ диапазона:");
+            LowScanOne(input, matrix, 0, 0.0, true);
+            // (б) Путь приложения: строка ложится на КАНАЛЫ спектра, каналы — в
+            // диапазон по центру (`AMBER101`). Шкала линейная, `E(0)` = низ.
+            Console.WriteLine("  (б) раскладка каналов 8192 × 0.3465 кэВ (как AS80), E(0) = низ:");
+            LowScanOne(input, matrix, 8192, 0.3465, false);
+            Console.WriteLine("  (в) раскладка каналов 1024 × 2.93 кэВ (как RC-103), E(0) = низ:");
+            LowScanOne(input, matrix, 1024, 2.93, false);
+            Console.WriteLine("  ⚠ (б) и (в) печатаются, но не судятся: там диапазон — целые каналы по центру, и");
+            Console.WriteLine("    доля скачет на долю ширины канала, когда граница переходит через центр канала, —");
+            Console.WriteLine("    ровно так же, как у самого спектра (согласие сторон мерит DoseGridProbe).");
+        }
+
+        static void LowScanOne(DoseRateInput input, ResponseMatrix matrix, int channels, double gain, bool judge)
+        {
+            int below = 0, total = 0;
+            double worst = 2.0, worstLow = 0.0, jump = 0.0, jumpLow = 0.0, previous = double.NaN;
+            for (int step = 0; step < 400; step++)
+            {
+                double low = 10.0 + 0.01 * step;
+                double top = channels > 0 ? Math.Min(3000.0, low + gain * channels) : 3000.0;
+                DoseRateRange[] ranges = RangesOf(DoseRateEstimator.BuildGrid(low, top));
+                object layout = channels > 0 ? Layout(low, gain, channels, ranges) : null;
+                double[][] f = Fractions(input, ranges, layout);
+                // ⚠ Знаменатель — ВСЯ строка (полная эффективность), а не
+                // сумма по сетке: бин, ушедший НИЖЕ `LowKev`, не попадает ни
+                // в один диапазон, и отношение к сумме по сетке его не видит
+                // (§1 печатает именно такое — там 1.000 при низе 10.3).
+                double sum = DoseRateInput.FullEfficiency(matrix, ranges[0].CenterKev);
+                double home = sum > 0.0 ? f[0][0] / sum : 0.0;
+                total++;
+                if (home < 0.999) below++;
+                if (home < worst) { worst = home; worstLow = low; }
+                if (!double.IsNaN(previous) && Math.Abs(home - previous) > jump)
+                {
+                    jump = Math.Abs(home - previous);
+                    jumpLow = low;
+                }
+
+                previous = home;
+                if (Math.Abs(low - 10.3) < 1e-9)
+                {
+                    Console.WriteLine("  низ 10.30 кэВ: диапазон 0 {0:F3}…{1:F3} кэВ, дома {2:F6}, поток ×{3:F4}",
+                                      ranges[0].LowKev, ranges[0].HighKev, home, home > 0.0 ? 1.0 / home : 0.0);
+                }
+            }
+
+            Console.WriteLine("  низов {0}; дома < 0.999 у {1} ({2:F2} %); худшее {3:F6} при низе {4:F2} кэВ",
+                              total, below, 100.0 * below / total, worst, worstLow);
+            Console.WriteLine("  наибольший скачок доли между соседними низами (0.01 кэВ): {0:F6} у низа {1:F2} кэВ",
+                              jump, jumpLow);
+            if (!judge)
+            {
+                return;
+            }
+
+            Ok(jump < 0.02, string.Format(CultureInfo.InvariantCulture,
+                "доля «дома» непрерывна по низу шкалы: скачок {0:F4} < 0.02 (судейство по центру давало ~0.2)", jump));
         }
 
         // ==================================================================
@@ -262,6 +343,31 @@ namespace DoseBinCentreProbe
         /// </summary>
         static double[][] Fractions(DoseRateInput input, DoseRateRange[] ranges)
         {
+            return Fractions(input, ranges, null);
+        }
+
+        /// <summary>
+        /// (`AMBER82`/`AMBER101`, П145) Раскладка каналов линейной шкалы
+        /// `E(i) = low + gain·i` — закрытым `DoseRateManager.ChannelLayout.Of`,
+        /// отражением: так §5 мерит тот путь, которым идёт приложение.
+        /// </summary>
+        static object Layout(double low, double gain, int channels, DoseRateRange[] ranges)
+        {
+            Type type = typeof(DoseRateManager).GetNestedType("ChannelLayout", BindingFlags.NonPublic);
+            MethodInfo of = type == null ? null : type.GetMethod("Of", BindingFlags.Public | BindingFlags.Static);
+            if (of == null)
+            {
+                throw new InvalidOperationException("в DoseRateManager нет ChannelLayout.Of — проба ослепла");
+            }
+
+            var calibration = new PolynomialEnergyCalibration();
+            calibration.PolynomialOrder = 1;
+            calibration.Coefficients = new double[] { low, gain };
+            return of.Invoke(null, new object[] { calibration, channels, channels, null, ranges });
+        }
+
+        static double[][] Fractions(DoseRateInput input, DoseRateRange[] ranges, object layout)
+        {
             MethodInfo m = typeof(DoseRateManager).GetMethod(
                 "ResponseFractions", BindingFlags.NonPublic | BindingFlags.Static);
             if (m == null)
@@ -272,7 +378,7 @@ namespace DoseBinCentreProbe
 
             try
             {
-                return (double[][])m.Invoke(null, new object[] { input, ranges });
+                return (double[][])m.Invoke(null, new object[] { input, ranges, layout });
             }
             catch (TargetInvocationException ex)
             {

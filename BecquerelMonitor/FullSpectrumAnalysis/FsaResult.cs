@@ -1053,6 +1053,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool BackgroundUsed { get; set; }
 
         /// <summary>
+        /// (`AMBER91`, П148 24.09.2026) Множитель, которым вычтенный фон
+        /// (<see cref="Background"/>) переведён на время пробы: живое пробы к
+        /// живому фона. Нужен дисперсии чистого счёта у
+        /// <see cref="ComputeResidualShares"/>: дисперсия приведённого фона —
+        /// множитель на сам фон. Ставит разбор; не задан (ноль) — берётся
+        /// единица, то есть дисперсия фона не занижается.
+        /// </summary>
+        public double BackgroundScale { get; set; }
+
+        /// <summary>
+        /// (`AMBER91`, П148 24.09.2026) Определены ли доли невязки
+        /// (<see cref="ResidualMissingShare"/>, <see cref="ResidualExcessShare"/>).
+        /// Ложно, когда чистый счёт полосы (проба минус фон) не выше
+        /// <see cref="ResidualDefinedSigmas"/> своих стандартных отклонений:
+        /// знаменатель тогда — шум около нуля или отрицателен, и доля от него
+        /// либо не существует, либо прыгает от нуля к тысячам процентов по
+        /// знаку шума. Обе доли в этом случае — не число, строка отчёта
+        /// печатает «—» с подсказкой; лента на графике рисуется как всегда.
+        /// У нового результата — истина (доли — какие положены); ложь ставит
+        /// только <see cref="ComputeResidualShares"/>.
+        /// </summary>
+        public bool ResidualSharesDefined { get; set; }
+
+        /// <summary>
+        /// (`AMBER91`) Порог определённости долей невязки в стандартных
+        /// отклонениях чистого счёта полосы. Три — знаменатель известен лучше
+        /// чем на треть; ниже доля не несёт смысла. Замер игрушки ревизии
+        /// (400 пуассоновских копий пробы без источника при фоне той же длины)
+        /// — журнал `handover/handover-2026-09-24-p148-pileup-summing.md`.
+        /// </summary>
+        public const double ResidualDefinedSigmas = 3.0;
+
+        /// <summary>
         /// (S44) Фон был ПОДАН на разбор, но НЕ ВЗЯТ — с причиной словами
         /// («the background has 1012 channels, the spectrum 1024»). null —
         /// фона не подавали либо он вычтен. Отказ обязан быть назван:
@@ -1236,6 +1269,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool CascadeSummingUsed { get; set; }
 
         /// <summary>
+        /// (`S187`, П152 24.09.2026) РАСХОЖДЕНИЯ ПОСТАВОК ДАННЫХ РАСПАДА у
+        /// нуклидов состава, которые двигают числа: доля ветви ε+β⁺ из
+        /// `decay_chain.perc` против ΣI(β⁺) `decay_radiations` (`AMBER81`,
+        /// `S189`), доля β⁺ ветви по `decay_radiations` против ENSDF
+        /// (`AMBER100`). Окно отчёта печатает их строкой блока «Качество
+        /// разбора» — прежде слова жили только в примечаниях базы, которые
+        /// читают пробы. Собирает <see cref="FsaCascadeSummer.SupplyDiscrepanciesOf"/>
+        /// в фоне сеанса, после разбора; null — не собирались (пробы, корпус),
+        /// пусто — сказать нечего.
+        /// </summary>
+        public List<CascadeAtomicData.SupplyDiscrepancy> SupplyDiscrepancies { get; set; }
+
+        /// <summary>
         /// (`A169`) РОДИТЕЛЬСКАЯ ГРУППИРОВКА СТРОК ДОПУСТИМА: в составе есть хоть
         /// один ряд, СВЯЗАННЫЙ равновесием (строки с непустым
         /// <see cref="FsaComponentResult.ChainRoot"/>). Только у такого ряда
@@ -1391,6 +1437,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.ChainLimits = new List<FsaChainLimit>();
             this.ScaleAnchors = new List<FsaScaleAnchor>();
             this.UntiedTails = new List<FsaUntiedTail>();
+            // (`AMBER91`) Пока доли не считались, они — те, что в них положены
+            // (так строят результат пробы); ложь ставит только счёт долей.
+            this.ResidualSharesDefined = true;
         }
 
         /// <summary>
@@ -1525,6 +1574,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             leftover = DistributeContinuum(full, channels);
+
+            // (`AMBER92`, П148) Отрицательная часть знакопеременных образов
+            // (убыль наложений) — вычтена из стека, а не выброшена: иначе верх
+            // стека стоит над `Model` на всю убыль, лента невязки рисуется от
+            // одного верха, а число строки считается от другого.
+            TakeDeficitFromStack(full, ordered, leftover, channels);
 
             weight = new double[full.Count];
             for (int k = 0; k < full.Count; k++)
@@ -1760,8 +1815,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public void ComputeResidualShares(int[] raw)
         {
-            double missingCounts = 0.0, excessCounts = 0.0, measuredCounts = 0.0;
+            double missingCounts = 0.0, excessCounts = 0.0, measuredCounts = 0.0, variance = 0.0;
             double[] measured = this.FitSpectrum(raw);
+            double scale = this.BackgroundScale > 0.0 ? this.BackgroundScale : 1.0;
             int from = Math.Max(this.FirstChannel, this.ResidualFloorChannel);
             for (int i = from; i <= this.LastChannel && raw != null && i < raw.Length; i++)
             {
@@ -1769,6 +1825,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double model = this.Model != null && i < this.Model.Length ? this.Model[i] : 0.0;
                 double difference = net - model;
                 measuredCounts += net;
+                // (`AMBER91`) Дисперсия чистого счёта: пуассон пробы плюс
+                // приведённый фон (множитель на сам фон, см. BackgroundScale).
+                variance += Math.Max(raw[i], 0);
+                if (this.Background != null && i < this.Background.Length)
+                {
+                    variance += scale * Math.Abs(this.Background[i]);
+                }
+
                 if (difference > 0.0)
                 {
                     missingCounts += difference;
@@ -1779,8 +1843,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            this.ResidualMissingShare = measuredCounts > 0.0 ? missingCounts / measuredCounts : 0.0;
-            this.ResidualExcessShare = measuredCounts > 0.0 ? excessCounts / measuredCounts : 0.0;
+            // ⛔ (`AMBER91`, П148 24.09.2026) Знаменатель около нуля или ниже —
+            // доли НЕТ, а не ноль. Прежде здесь стояло `measured > 0 ? … : 0.0`,
+            // и проба на уровне фона печатала «+0.0 / −0.0 %» («модель
+            // идеальна») при нарисованной ленте: игрушка ревизии — 217 копий
+            // из 400, остальные с медианой 1837 %. Условие `!(x > y)` ловит и NaN.
+            this.ResidualSharesDefined = measuredCounts > ResidualDefinedSigmas * Math.Sqrt(variance);
+            this.ResidualMissingShare = this.ResidualSharesDefined ? missingCounts / measuredCounts : double.NaN;
+            this.ResidualExcessShare = this.ResidualSharesDefined ? excessCounts / measuredCounts : double.NaN;
         }
 
         public List<FsaStackLayer> BuildStackedLayers(int maxNamedLayers)
@@ -2054,9 +2124,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>
         /// Копия кривой без отрицательной части. У ленты стека не бывает
         /// отрицательной высоты, а знакопеременные образы есть: наложения
-        /// ПЕРЕНОСЯТ счёт — снизу убыль, сверху приход. Рисуется приход,
-        /// убыль (доли процента) остаётся в модели, но не в стеке; из-за этого
-        /// верх стека расходится с суммой модели на ту же долю процента.
+        /// ПЕРЕНОСЯТ счёт — снизу убыль, сверху приход. Рисуется приход;
+        /// убыль (`AMBER92`, П148 24.09.2026) вычитается из прочих слоёв того
+        /// же канала — <see cref="TakeDeficitFromStack"/>, — и верх стека
+        /// равен <see cref="Model"/>.
         /// </summary>
         static double[] PositivePart(double[] curve)
         {
@@ -2067,6 +2138,102 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return copy;
+        }
+
+        /// <summary>
+        /// (`AMBER92`, П148 24.09.2026) УБЫЛЬ ЗНАКОПЕРЕМЕННЫХ ОБРАЗОВ — ИЗ СТЕКА.
+        /// Лента слоя не бывает отрицательной (<see cref="PositivePart"/>), и до
+        /// П148 отрицательная часть образа наложений просто выбрасывалась: верх
+        /// стека стоял над <see cref="Model"/> на всю убыль, а число строки
+        /// невязки (<see cref="ComputeResidualShares"/>) считалось от
+        /// `Model` — лента и число смотрели на разные верхи, хотя строка
+        /// обещает «число — площадь нарисованной ленты». Замер «Cs 137 в
+        /// домике» (Rτ 2.4e-3): верх стека выше модели на 0.36 % измеренного
+        /// полосы, «лишнее» ленты 2.28 % против числа 2.13 %.
+        ///
+        /// Физика: убыль наложений — это счёт, который ушёл со своих энергий
+        /// на сумму, и уходит он пропорционально самому спектру в канале (от
+        /// всего, что там лежит: нуклидов, приборных образов, подложки). Потому
+        /// в каждом канале убыль снимается со ВСЕХ неотрицательных слоёв
+        /// (включая неразнесённую подложку <paramref name="leftover"/>) одним
+        /// множителем — пропорционально их высоте. Множитель ложится и на
+        /// раскладку слоя (каналы отклика, подложку слоя, хвост, сумм-пики),
+        /// так что тождества слоя (`S3`, `S175`) сохраняются. После этого
+        /// Σ слоёв = `Model` в каждом канале, где слоёв хватает на убыль.
+        /// </summary>
+        static void TakeDeficitFromStack(List<FsaStackLayer> full, List<FsaComponentResult> ordered,
+                                         double[] leftover, int channels)
+        {
+            double[] deficit = null;
+            foreach (FsaComponentResult component in ordered)
+            {
+                double[] curve = component.Curve;
+                for (int i = 0; curve != null && i < curve.Length && i < channels; i++)
+                {
+                    if (curve[i] < 0.0)
+                    {
+                        if (deficit == null)
+                        {
+                            deficit = new double[channels];
+                        }
+
+                        deficit[i] -= curve[i];
+                    }
+                }
+            }
+
+            if (deficit == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < channels; i++)
+            {
+                if (!(deficit[i] > 0.0))
+                {
+                    continue;
+                }
+
+                double stack = leftover != null && i < leftover.Length ? leftover[i] : 0.0;
+                foreach (FsaStackLayer layer in full)
+                {
+                    stack += i < layer.Curve.Length ? layer.Curve[i] : 0.0;
+                }
+
+                if (!(stack > 0.0))
+                {
+                    continue;
+                }
+
+                double factor = Math.Max(0.0, 1.0 - deficit[i] / stack);
+                if (leftover != null && i < leftover.Length)
+                {
+                    leftover[i] *= factor;
+                }
+
+                foreach (FsaStackLayer layer in full)
+                {
+                    ScaleAt(layer.Curve, i, factor);
+                    ScaleAt(layer.SumPeakCurve, i, factor);
+                    ScaleAt(layer.ContinuumCurve, i, factor);
+                    ScaleAt(layer.TailCurve, i, factor);
+                    if (layer.ChannelCurves != null)
+                    {
+                        foreach (double[] channelCurve in layer.ChannelCurves)
+                        {
+                            ScaleAt(channelCurve, i, factor);
+                        }
+                    }
+                }
+            }
+        }
+
+        static void ScaleAt(double[] curve, int i, double factor)
+        {
+            if (curve != null && i < curve.Length)
+            {
+                curve[i] *= factor;
+            }
         }
 
         /// <summary>

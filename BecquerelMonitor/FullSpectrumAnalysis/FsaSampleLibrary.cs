@@ -2801,12 +2801,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// </summary>
             public double Attenuation(double kev)
             {
+                // ⛔ (`AMBER80`, П149 24.09.2026) Ослабление элемента — СУММОЙ
+                // КАНАЛОВ (<see cref="PartialCrossSections.MassTotal"/>,
+                // ~~`AMBER74`~~), а не прямой по `Element.Total`: одно правило со
+                // всеми слоями сцены и с матрицей. Прямая по сумме в узлах лежит
+                // выше кривой — на CsI +0.05…+0.17 % у своего Kα и до +1.7 % на
+                // 2614.5 кэВ, — и вес вылета выходил занижен на 0.02…0.25 %
+                // (замер `FsaTotalReadersProbe`). Строка `AMBER74` этот
+                // знаменатель называла, а до него правка не доехала.
                 double mu = 0.0;
+                double logKev = kev > 0.0 ? Math.Log(kev) : double.NaN;
                 for (int k = 0; k < this.Parts.Count; k++)
                 {
                     Part part = this.Parts[k];
-                    mu += part.Fraction * MaterialDatabase.Interpolate(
-                        part.Element.EnergyKev, part.Element.Total, kev);
+                    int lo, hi;
+                    if (!(kev > 0.0) || part.Element.EnergyKev == null
+                        || !MaterialDatabase.Bracket(part.Element.EnergyKev, kev, out lo, out hi))
+                    {
+                        continue;
+                    }
+
+                    mu += part.Fraction * PartialCrossSections.MassTotal(
+                        part.Element, lo, hi, kev, logKev);
                 }
 
                 return mu;
@@ -3640,10 +3656,54 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // (`AMBER78`, П149 24.09.2026) Режется только номер ПЕРВОГО изомера:
+            // «m1» и «m» — одно состояние в двух соглашениях базы, и
+            // <see cref="NucidOf"/> сводит «Pa-234m» обратно к «234PAm1». Номер
+            // второго и выше вырезать нельзя: «Rh-100m» из «100RHm2» обратным
+            // разбором попадал бы в ДРУГОЕ состояние («100RHm»), молча.
+            string number = state.Substring(letters.Length);
+            if (letters.Length > 0 && number.Length > 0 && number != "1"
+                && string.Equals(state, letters + number, StringComparison.OrdinalIgnoreCase))
+            {
+                letters += number;
+            }
+
             return char.ToUpperInvariant(symbol[0]) + symbol.Substring(1).ToLowerInvariant()
                    + "-" + mass.ToString(CultureInfo.InvariantCulture) + letters;
         }
-        /// <summary>Обратно: «Cs-137» → «137CS»; пусто — разобрать не вышло.</summary>
+        /// <summary>
+        /// Обратно: имя нуклида → `nucid` базы; пусто — разобрать не вышло.
+        ///
+        /// ⛔ (`AMBER78`, П149 24.09.2026) ВСЕ НАПИСАНИЯ, КОТОРЫЕ ПРОЕКТ ПИШЕТ
+        /// САМ, а не одно «Cs-137». Набор нуклидов, из которого путь FSA по
+        /// умолчанию (<see cref="FsaLibrary.BuildFromPeaks"/>) берёт имена
+        /// компонентов, пишет `NucBase` тремя форматами — «137CS, 234PAm1»,
+        /// «Cs137, Pa234m1» (УМОЛЧАНИЕ формы) и «Cs-137, Pa-234m1», — запасной
+        /// набор приложения пишет «K40», «Cs137», корпусная подпись
+        /// (<see cref="PrettyName"/>) — «Pa-234m» без номера изомера. До П149
+        /// здесь понималось одно написание через дефис, и остальные молча
+        /// давали пусто: у имени «Na22» из `NucBase` с настройками по умолчанию
+        /// линия 511 в образ не добавлялась (`AMBER63` не срабатывал), замер
+        /// `FsaNucidNameProbe` по 708 β⁺-родителям базы — до базы доходили
+        /// 0 / 0 / 570 имён трёх форматов и ни одного из 138 изомеров.
+        ///
+        /// Разбор — две формы: СИМВОЛ-МАССА-МЕТКА («Cs-137», «Cs137»,
+        /// «Pa-234m1») и МАССА-СИМВОЛ-МЕТКА («137CS», «234PAm1», «241Am»).
+        /// Где кончается символ и начинается метка изомера во второй форме,
+        /// по буквам не сказать («241Am» — америций, «38Km» — изомер калия), и
+        /// угадывать это правилом НЕ нужно: в базе нет двух `nucid`, которые
+        /// различались бы только регистром букв (замер 24.09.2026: 4427
+        /// `nuclides.nucid`, совпадений в верхнем регистре ноль), поэтому имя
+        /// сводится к «массе + буквам в верхнем регистре» и ищется в базе.
+        /// Метка «m» без номера и «m1» — один и тот же первый изомер в двух
+        /// соглашениях (в базе 392 `nucid` с «m» и 222 с «m1»; корпусная
+        /// подпись номер режет): не нашлось одно — берётся другое.
+        ///
+        /// Базы нет или нуклида в ней нет — ответ прежний: строка «масса +
+        /// символ заглавными + метка строчными», как её давал разбор через
+        /// дефис («SE-2615» → «2615SE»; такого `nucid` нет, и линий у него нет).
+        /// Имён нуклидов здесь нет — только разбор и справочник базы.
+        /// </summary>
         public static string NucidOf(string name)
         {
             if (string.IsNullOrEmpty(name))
@@ -3651,32 +3711,201 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return "";
             }
 
-            string text = name.Trim();
-            int dash = text.IndexOf('-');
-            if (dash <= 0 || dash + 1 >= text.Length)
+            string mass, letters, state;
+            bool symbolDashMass;
+            if (!SplitName(name.Trim(), out mass, out letters, out state, out symbolDashMass))
             {
                 return "";
             }
 
-            string symbol = text.Substring(0, dash);
-            string mass = text.Substring(dash + 1);
-            string isomer = "";
-            while (mass.Length > 0 && char.IsLetter(mass[mass.Length - 1]))
+            Dictionary<string, string> known = KnownNucids();
+            string key = mass + (letters + state).ToUpperInvariant();
+            string found;
+            if (known.TryGetValue(key, out found))
             {
-                isomer = char.ToLowerInvariant(mass[mass.Length - 1]) + isomer;
-                mass = mass.Substring(0, mass.Length - 1);
+                return found;
             }
 
-            foreach (char c in mass)
+            // Первый изомер в двух соглашениях: «m» и «m1».
+            string upper = state.ToUpperInvariant();
+            if (upper == "M" && known.TryGetValue(key + "1", out found))
             {
-                if (c < '0' || c > '9')
-                {
-                    return "";
-                }
+                return found;
             }
 
-            return mass.Length == 0 ? "" : mass + symbol.ToUpperInvariant() + isomer;
+            if (upper == "M1" && known.TryGetValue(key.Substring(0, key.Length - 1), out found))
+            {
+                return found;
+            }
+
+            // Прежняя строка — только там, где её давал прежний разбор («символ-
+            // масса» через дефис) или где спросить базу нечем. Новые написания
+            // без базы нуклидом не становятся: «Sum 1022» остаётся ничем, а не
+            // выдуманным `nucid` «1022SUM».
+            return symbolDashMass || known.Count == 0
+                ? mass + letters.ToUpperInvariant() + state.ToLowerInvariant()
+                : "";
         }
+
+        /// <summary>
+        /// Разбор имени нуклида на массу, буквы символа и метку состояния
+        /// (`AMBER78`). Форма «символ, масса, метка» однозначна: масса стоит
+        /// между символом и меткой. Форма «масса, буквы» метку от символа не
+        /// отделяет — тогда `letters` несёт всё, `state` пуст, и разводит их
+        /// справочник базы (<see cref="NucidOf"/>). Разделитель между символом
+        /// и массой — дефис, пробел или ничего.
+        /// </summary>
+        static bool SplitName(string text, out string mass, out string letters, out string state,
+                              out bool symbolDashMass)
+        {
+            mass = letters = state = "";
+            symbolDashMass = false;
+            int i = 0;
+            while (i < text.Length && IsLatin(text[i]))
+            {
+                i++;
+            }
+
+            if (i > 0)
+            {
+                // Символ, затем масса, затем метка.
+                letters = text.Substring(0, i);
+                if (i < text.Length && (text[i] == '-' || text[i] == ' '))
+                {
+                    symbolDashMass = text[i] == '-';
+                    i++;
+                }
+
+                int start = i;
+                while (i < text.Length && text[i] >= '0' && text[i] <= '9')
+                {
+                    i++;
+                }
+
+                if (i == start)
+                {
+                    return false;
+                }
+
+                mass = text.Substring(start, i - start);
+                state = text.Substring(i);
+                return IsState(state);
+            }
+
+            // Масса, затем буквы (и, быть может, номер изомера).
+            while (i < text.Length && text[i] >= '0' && text[i] <= '9')
+            {
+                i++;
+            }
+
+            if (i == 0 || i >= text.Length)
+            {
+                return false;
+            }
+
+            mass = text.Substring(0, i);
+            if (text[i] == '-' || text[i] == ' ')
+            {
+                i++;
+            }
+
+            int lettersStart = i;
+            while (i < text.Length && IsLatin(text[i]))
+            {
+                i++;
+            }
+
+            if (i == lettersStart)
+            {
+                return false;
+            }
+
+            letters = text.Substring(lettersStart, i - lettersStart);
+            while (i < text.Length && text[i] >= '0' && text[i] <= '9')
+            {
+                i++;
+            }
+
+            // Номер изомера держится при буквах: «234PAm1» — буквы «PAm», номер «1».
+            letters += text.Substring(lettersStart + letters.Length, i - lettersStart - letters.Length);
+            return i == text.Length;
+        }
+
+        /// <summary>Метка состояния: пусто либо буквы, за которыми цифры («m», «m1», «m2»).</summary>
+        static bool IsState(string state)
+        {
+            int i = 0;
+            while (i < state.Length && IsLatin(state[i]))
+            {
+                i++;
+            }
+
+            if (state.Length > 0 && i == 0)
+            {
+                return false;
+            }
+
+            while (i < state.Length && state[i] >= '0' && state[i] <= '9')
+            {
+                i++;
+            }
+
+            return i == state.Length;
+        }
+
+        static bool IsLatin(char c)
+        {
+            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+        }
+
+        /// <summary>
+        /// Справочник `nucid` базы: ключ — «масса + буквы в верхнем регистре»,
+        /// значение — `nucid` как он записан (`AMBER78`). Читается один раз
+        /// (`nuclides`, только чтение); отказ базы — пустой справочник, и
+        /// <see cref="NucidOf"/> отвечает прежней строкой.
+        /// </summary>
+        static Dictionary<string, string> KnownNucids()
+        {
+            lock (Gate)
+            {
+                if (knownNucids != null)
+                {
+                    return knownNucids;
+                }
+
+                var map = new Dictionary<string, string>(StringComparer.Ordinal);
+                try
+                {
+                    using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = "select nucid from nuclides where nucid is not null";
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                string nucid = reader.GetString(0).Trim();
+                                string upper = nucid.ToUpperInvariant();
+                                if (nucid.Length > 0 && !map.ContainsKey(upper))
+                                {
+                                    map[upper] = nucid;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Базы нет — разбор остаётся строковым, как до `AMBER78`.
+                    map.Clear();
+                }
+
+                knownNucids = map;
+                return map;
+            }
+        }
+
+        static Dictionary<string, string> knownNucids;
 
         static bool TryNumber(SqliteDataReader reader, int column, out double value)
         {
