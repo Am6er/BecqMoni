@@ -40,14 +40,16 @@ namespace DoseFloorProbe
     /// переходит порог «приписано не меньше пятой части отсчётов»
     /// (`DoseRateManager.RepresentativeMinShare`, `AMBER77`), его энергия
     /// прыгает с середины на подобранную; вес пола двигает приписку к нему
-    /// плавно, но сам этот порог — обрез (журнал П157 §4).
+    /// плавно, но сам этот порог — обрез (журнал П157 §4). ✅ `S194`, П159:
+    /// порог сделан плавным (<c>DoseRateManager.ShareTrust</c>), на сетке 1200
+    /// шагов скачка больше нет; мерка по доле — `DoseShareProbe`.
     ///
     /// Для каждого диапазона, который на сетке переходит через пол, печатается
     /// таблица показания вокруг его доли (0.5…3×) — пороги, на которых он
     /// входит и выходит.
     ///
     ///     dosefloorprobe [--dir=&lt;корпус&gt;] [--steps=300] [--lo=0.25] [--hi=4]
-    ///                    [--limit=1.0] [--jump=0.5] [--quiet]
+    ///                    [--limit=1.0] [--jump=0.5] [--quiet] [--set=&lt;рычаг&gt;=&lt;число&gt;]
     ///
     /// Положительный контроль — проба на прежнем расчёте (обрез) с тем же
     /// рычагом: краснеет на `ASN16_Cs137_10cm`.
@@ -100,6 +102,23 @@ namespace DoseFloorProbe
                 else if (a.StartsWith("--jump=", StringComparison.Ordinal))
                     jumpPercent = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
                 else if (a == "--quiet") quiet = true;
+                else if (a.StartsWith("--set=", StringComparison.Ordinal))
+                {
+                    // (`S194`, П159) Мерный рычаг расчёта: закрытое статическое
+                    // поле `DoseRateManager` — отражением, для замера вариантов.
+                    string[] kv = a.Substring(6).Split('=');
+                    FieldInfo lever = kv.Length == 2
+                        ? typeof(DoseRateManager).GetField(kv[0], BindingFlags.NonPublic | BindingFlags.Static)
+                        : null;
+                    if (lever == null || lever.FieldType != typeof(double))
+                    {
+                        Console.Error.WriteLine("нет рычага: " + a);
+                        return 2;
+                    }
+
+                    lever.SetValue(null, double.Parse(kv[1], CultureInfo.InvariantCulture));
+                    Console.WriteLine("рычаг " + kv[0] + " = " + kv[1]);
+                }
                 else
                 {
                     Console.Error.WriteLine("неизвестный ключ: " + a);
