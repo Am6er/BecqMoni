@@ -828,15 +828,111 @@ namespace BecquerelMonitor
         /// сверху), и её центр тяжести — шум вычитания: при рассогласовании
         /// континуума на δ он сдвигается на ~δ·(объяснено/приписано) ширины
         /// диапазона. Пятая часть держит сдвиг в пределах трети ширины при
-        /// δ ≈ 5 %. Ниже порога диапазон остаётся на середине, как было.
+        /// δ ≈ 5 %. Ниже порога диапазон остаётся на середине, как было (с
+        /// `S194` — ниже порога/√2, см. ниже).
+        ///
+        /// ⛔ (`S194`, П159 24.09.2026) ПОРОГ ПЛАВНЫЙ, А НЕ ОБРЕЗ — как пол
+        /// эффективности (`S192`). Доверие подобранной энергии
+        /// <see cref="ShareTrust"/> растёт по доле приписанного от 0 до 1 в
+        /// полосе <see cref="RepresentativeBand"/> ВОКРУГ порога (от
+        /// порога/√2 до порога·√2, половина — на самом пороге), и энергия
+        /// диапазона — между серединой и подобранной в меру доверия. Прежний
+        /// обрез переставлял энергию скачком: `ASN16_Cs137_10cm`, 17.22…22.59
+        /// кэВ — 19.90 → 18.64 кэВ, показание −0.19 % на сдвиге порога пола
+        /// 0.23 % (`DoseFloorProbe --steps=1200`) и −0.32 % на шаге набора
+        /// счёта 1/3200 (`DoseShareProbe`).
+        ///
+        /// Полоса ВОКРУГ порога, а не над ним (как у пола) — замером
+        /// (`DoseGridProbe`, ширина синтетики `manifest.csv`): полоса над
+        /// порогом (0.2…0.4) уводит к середине диапазоны с приписанным
+        /// 20…40 %, и синтетика там хуже — AS80 356 кэВ +0.06 → −0.11 %,
+        /// G1S 356 +0.03 → −0.15 %, RC-103 59.5 +1.81 → +1.93 %; полоса
+        /// вокруг порога не ухудшает ни одну линию больше чем на 0.002 п.п.
+        /// и лечит низ шкалы (ASN16 59.5 +2.21 → +1.21 %, фантом 1.71 → 1.03 %
+        /// показания; RC-103 356 −0.30 → −0.15 %), и в среднем по доле
+        /// приписанного доверие то же, что у обреза: вне полосы расчёт
+        /// прежний, внутри — обрез размазан.
+        ///
+        /// ⚠ ЦЕНА. Диапазон с приписанным 14…20 % получает часть подобранной
+        /// энергии (прежде — середина), с 20…28 % — не всю. Сдвиг от шума
+        /// вычитания (δ·(1 − доля)/доля ширины, выше) в полосе не больше
+        /// 0.13 ширины при δ = 5 % (у обреза на самом пороге было 0.2).
+        /// Показания настоящих спектров (П159): `AS80_Cs137_0cm` +0.015 %,
+        /// `G1S16_Cs137_P5` −0.008 %, `RC103_Cs137_0cm` +0.015 %,
+        /// `ASN16_Cs137_10cm` −0.018 % по матрице; путь «≈» — побитово
+        /// прежний (там континуума нет и доля — 1). Журнал
+        /// `handover-2026-09-24-p159-dose-representative.md`.
         /// </summary>
         public const double RepresentativeMinShare = 0.2;
+
+        /// <summary>
+        /// (`S194`, П159) Ширина полосы доверия представительной энергии, во
+        /// сколько раз её верх выше низа; полоса стоит вокруг
+        /// <see cref="RepresentativeMinShare"/> (геометрически). Вдвое — как у
+        /// пола (`S192`); ширины 1.5…4 разнятся в синтетике на сотые доли
+        /// процента (журнал П159).
+        /// </summary>
+        public const double RepresentativeBand = 2.0;
+
+        /// <summary>
+        /// Мерные рычаги проб (`DoseShareProbe`, `DoseGridProbe --set=`, П159):
+        /// ширина полосы и её середина в порогах (1 — на пороге; √2 — полоса
+        /// над порогом, отвергнутый вариант), которыми считает расчёт.
+        /// Приложение в них не пишет; проба двигает их отражением.
+        /// </summary>
+        static double representativeBand = RepresentativeBand;
+
+        static double representativeCentre = 1.0;
+
+        /// <summary>
+        /// (`S194`, П159) Доверие подобранной энергии по доле приписанного
+        /// <paramref name="attributed"/>/<paramref name="counts"/>: 0 при доле не
+        /// выше низа полосы, 1 от её верха, между — линейно по логарифму доли
+        /// (тем же законом, что у пола, <see cref="FloorWeight"/>), ½ на пороге.
+        /// </summary>
+        static double ShareTrust(double attributed, double counts)
+        {
+            if (!(attributed > 0.0) || !(counts > 0.0))
+            {
+                return 0.0;
+            }
+
+            double x = attributed / (representativeCentre * RepresentativeMinShare * counts);
+            double top = Math.Sqrt(representativeBand);
+            if (double.IsNaN(x) || !(x > 1.0 / top))
+            {
+                return 0.0;
+            }
+
+            return x >= top ? 1.0 : 0.5 + Math.Log(x) / Math.Log(representativeBand);
+        }
 
         /// <summary>Сколько раз уточнять представительную энергию (`AMBER77`).</summary>
         const int RepresentativeIterations = 8;
 
         /// <summary>Когда уточнение останавливается, кэВ.</summary>
         const double RepresentativeToleranceKev = 1e-3;
+
+        /// <summary>
+        /// (`S192`, П157) Строка матрицы на энергии <paramref name="energy"/>,
+        /// спроецированная на диапазоны: доли, моменты и — если задана проекция
+        /// без разрешения — её доли. Те же действия, что у подбора
+        /// <see cref="Representative"/>.
+        /// </summary>
+        static void RowAt(DoseRateInput input, double energy, int cells, RowProjection projection, RowProjection plain,
+                          out double[] share, out double[] moment, out double[] plainShare)
+        {
+            double[] row = input.Matrix.Evaluate(energy, cells);
+            share = new double[projection.Targets];
+            moment = new double[projection.Targets];
+            projection.Apply(row, share, moment);
+            plainShare = null;
+            if (plain != null)
+            {
+                plainShare = new double[plain.Targets];
+                plain.Apply(row, plainShare, null);
+            }
+        }
 
         /// <summary>
         /// (`AMBER77`) Энергия линии диапазона <paramref name="k"/>, чья строка
@@ -852,7 +948,7 @@ namespace BecquerelMonitor
         /// диапазоны (<paramref name="share"/>, <paramref name="moment"/>) и —
         /// если задана проекция без разрешения — её доли (<paramref name="plainShare"/>).
         /// </summary>
-        static double Representative(DoseRateInput input, DoseRateRange[] ranges, int k, bool[] window, double target,
+        static double Representative(DoseRateInput input, DoseRateRange[] ranges, int k, double[] window, double target,
                                      double start, ref double slope, int cells, RowProjection projection,
                                      RowProjection plain, double[][] known, out double[] share, out double[] moment,
                                      out double[] plainShare)
@@ -888,10 +984,16 @@ namespace BecquerelMonitor
                 double mass = 0.0, first = 0.0;
                 for (int i = 0; i < window.Length; i++)
                 {
-                    if (window[i])
+                    if (window[i] == 1.0)
                     {
                         mass += share[i];
                         first += moment[i];
+                    }
+                    else if (window[i] > 0.0)
+                    {
+                        // (`S192`) Сосед в полосе плавного пола — с его весом.
+                        mass += window[i] * share[i];
+                        first += window[i] * moment[i];
                     }
                 }
 
@@ -942,10 +1044,35 @@ namespace BecquerelMonitor
         /// 4 отсч/с) выходило 1200 квант/(см²·с) и 2.4 мкЗв/ч из 3.3. Отсчёты
         /// такого диапазона уходят из покрытия, и приписка это показывает.
         /// Одна сотая — от максимума ~0.2…0.26 это ε ≈ 2e-3, то есть ниже
-        /// ~15…17 кэВ у сцинтиллятора в обвязке; на числах корпуса порог
-        /// сдвигом вдвое в любую сторону меняет показание меньше чем на 1 %.
-        /// Пол ОТНОСИТЕЛЬНЫЙ нарочно: у сцены поля `ISO` те же величины идут
-        /// в см² (максимум ~46 у Ø63×63), и правило действует без пересчёта.
+        /// ~15…17 кэВ у сцинтиллятора в обвязке. Пол ОТНОСИТЕЛЬНЫЙ нарочно: у
+        /// сцены поля `ISO` те же величины идут в см² (максимум ~46 у Ø63×63),
+        /// и правило действует без пересчёта.
+        ///
+        /// ⛔ (`S192`, П157 24.09.2026) ПОЛ ПЛАВНЫЙ, А НЕ ОБРЕЗ. Решение Amber
+        /// 24.09.2026 вопросником, дословно: «Плавный пол (Рекомендую)». Вес
+        /// диапазона <see cref="FloorWeight"/> растёт от 0 на поле до 1 на
+        /// <see cref="FloorBand"/> полах — линейно по логарифму доли; тем же
+        /// весом доли на подобранной энергии диапазона решается, насколько
+        /// верить этой энергии (между серединой и ею). Прежний обрез давал
+        /// полную дозу диапазону чуть выше пола и ноль чуть ниже, и одна сотая
+        /// была не порогом, а переключателем: замер П157 (`DoseFloorProbe`,
+        /// сдвиг порога на 0.9 %) — `ASN16_Cs137_10cm` −9.4 % по матрице
+        /// (диапазон 13.1…17.2 кэВ, своя доля 1.63 пола, 11.2 % показания) и
+        /// −7.2 % по пиковой (10…13.1 кэВ, 1.03 пола), AS80 по пиковой −2.4 %
+        /// (17…22 кэВ, 2.9 пола), G1S −0.8/+0.3 %. Прежнее «сдвиг порога вдвое
+        /// меняет показание меньше чем на 1 %» для ASN16 было неверно.
+        ///
+        /// ⚠ ЦЕНА. (1) Показание зависит от выбора порога и теперь — в меру
+        /// доли диапазонов в полосе: |d ln Ḣ / d ln порога| ≈ (их доза)/ln 2;
+        /// на корпусе по порогам 0.25…4 от штатного — не больше 0.29
+        /// (`ASN16_Cs137_10cm` по матрице), прежде — скачок до 9.4 %. (2)
+        /// Диапазон в полосе даёт дозу не целиком: его отсчёты — кванты
+        /// низкой энергии с ε у самого нуля, и какая их часть настоящая, по
+        /// спектру не сказать; пол этого не решает, а только перестаёт дёргать
+        /// показание. На штатном пороге (П157): `ASN16_Cs137_10cm` −3.52 % по
+        /// матрице (вес 13…17 кэВ 0.70) и −6.94 % по пиковой (вес 10…13 кэВ
+        /// 0.04), `RC103_Cs137_0cm` по пиковой −0.006 %, прочее побитово
+        /// прежнее (журнал `handover-2026-09-24-p157-dose-soft-floor.md`).
         ///
         /// ⛔ (`S186`, П151 24.09.2026) ПОЛ — ТОЛЬКО НИЖЕ МАКСИМУМА КРИВОЙ.
         /// Решение Amber 24.09.2026 вопросником, дословно: «Пол только ниже
@@ -956,9 +1083,56 @@ namespace BecquerelMonitor
         /// не давала вовсе (`DoseGridProbe`, путь «≈» −100 %). Выше диапазона
         /// с наибольшей долей диапазон снимается только пустой строкой (доля
         /// не больше нуля) — делить на ноль нельзя, на малое, но честно
-        /// посчитанное, — можно: там отсчёты — кванты своей энергии.
+        /// посчитанное, — можно: там отсчёты — кванты своей энергии. Плавности
+        /// там нет: вес 1 при доле больше нуля.
         /// </summary>
         public const double MinOwnEfficiencyFraction = 0.01;
+
+        /// <summary>
+        /// (`S192`, П157) Ширина полосы плавного пола, в полах: вес диапазона
+        /// растёт от 0 на <see cref="MinOwnEfficiencyFraction"/> до 1 на
+        /// удвоенном поле. Вдвое — по прежнему описанию порога («сдвиг вдвое»):
+        /// то, что обрез переключал на одном значении, теперь размазано на
+        /// удвоение. Уже — круче производная (1/ln полосы), шире — больше
+        /// диапазонов теряют дозу на штатном пороге; замер ширин 1.25…4 —
+        /// журнал П157 §3.
+        /// </summary>
+        public const double FloorBand = 2.0;
+
+        /// <summary>
+        /// Мерные рычаги проб (`DoseFloorProbe`, П157): порог и ширина полосы,
+        /// которыми считает расчёт. Приложение в них не пишет; проба двигает их
+        /// отражением, чтобы мерить показание по порогу.
+        /// </summary>
+        static double floorFraction = MinOwnEfficiencyFraction;
+
+        static double floorBand = FloorBand;
+
+        /// <summary>
+        /// (`S192`, П157) Вес диапазона по полу эффективности: доля
+        /// <paramref name="own"/> в полах (<see cref="MinOwnEfficiencyFraction"/>
+        /// от <paramref name="maxOwn"/>) — 0 на поле и ниже, 1 от
+        /// <see cref="FloorBand"/> полов, между ними ln(доля)/ln(полоса).
+        /// Линейно по логарифму нарочно: из всех переходов 0 → 1 на отрезке
+        /// [1, полоса] у него наименьшая наибольшая производная по ln порога
+        /// (1/ln полосы; у кубической ступени — 1.5/ln полосы). Выше максимума
+        /// кривой (`S186`) пола нет: вес 1 при доле больше нуля, иначе 0.
+        /// </summary>
+        static double FloorWeight(double own, double maxOwn, bool floorApplies)
+        {
+            if (!floorApplies)
+            {
+                return own > 0.0 ? 1.0 : 0.0;
+            }
+
+            double x = own / (floorFraction * maxOwn);
+            if (double.IsNaN(x) || x >= floorBand)
+            {
+                return 1.0;
+            }
+
+            return x > 1.0 ? Math.Log(x) / Math.Log(floorBand) : 0.0;
+        }
 
         // Token: 0x060002B0 RID: 688 RVA: 0x0000D214 File Offset: 0x0000B414
         /// <summary>
@@ -1038,8 +1212,10 @@ namespace BecquerelMonitor
             }
 
             // Сколько отсчётов спектра вообще попало в диапазоны сетки.
-            // Считается по флажкам каналов, а не сложением длин.
-            bool[] covered = new bool[energySpectrum.Spectrum.Length];
+            // Считается по весам каналов, а не сложением длин: 1 — в дозе
+            // целиком, 0 — вне покрытия, между — диапазон в полосе плавного
+            // пола (`S192`), его отсчёты покрыты в меру его веса.
+            double[] covered = new double[energySpectrum.Spectrum.Length];
 
             // ⛔ `A203`. Каналы, которым нечего давать в дозу, названы вслух —
             // см. <see cref="OverflowChannel"/>. Прежде их роль исполнял зажим
@@ -1079,7 +1255,7 @@ namespace BecquerelMonitor
                     counts += energySpectrum.Spectrum[i];
                     moment += energySpectrum.Spectrum[i]
                               * calibration.ChannelToEnergy(i);
-                    covered[i] = true;
+                    covered[i] = 1.0;
                 }
 
                 countsMoment[k] = moment;
@@ -1200,7 +1376,8 @@ namespace BecquerelMonitor
                 // диапазон остаётся на середине: его вклад ноль при любой
                 // энергии; остаётся на середине и диапазон, где приписанное
                 // меньше пятой части отсчётов (<see cref="RepresentativeMinShare"/>):
-                // там центр тяжести — шум вычитания.
+                // там центр тяжести — шум вычитания. (`S194`, П159) Выше порога
+                // доверие растёт плавно (<see cref="ShareTrust"/>), без скачка.
                 //
                 // ⚠ Почему ПЕРВЫЙ момент, а не пик или квантиль: из всех мер
                 // положения только среднее не меняется от симметричного
@@ -1236,10 +1413,12 @@ namespace BecquerelMonitor
                     errorSquares += r.DoseRate * relative * (r.DoseRate * relative);
                 }
 
-                // Пропущенные диапазоны — вон из покрытия.
+                // Пропущенные диапазоны — вон из покрытия; диапазоны в полосе
+                // плавного пола (`S192`) — в меру своего веса.
                 for (int k = 0; k < bins; k++)
                 {
-                    if (!ranges[k].Skipped)
+                    double weight = ranges[k].Skipped ? 0.0 : ranges[k].Weight;
+                    if (weight == 1.0)
                     {
                         continue;
                     }
@@ -1249,7 +1428,7 @@ namespace BecquerelMonitor
                                 ranges[k].LowKev, ranges[k].HighKev, out startch, out endch);
                     for (int i = startch; i < endch; i++)
                     {
-                        covered[i] = false;
+                        covered[i] = weight;
                     }
                 }
 
@@ -1273,9 +1452,13 @@ namespace BecquerelMonitor
             {
                 if (overflow[i]) continue;
                 total += energySpectrum.Spectrum[i];
-                if (covered[i])
+                if (covered[i] == 1.0)
                 {
                     inside += energySpectrum.Spectrum[i];
+                }
+                else if (covered[i] > 0.0)
+                {
+                    inside += covered[i] * energySpectrum.Spectrum[i];
                 }
             }
 
@@ -1316,17 +1499,24 @@ namespace BecquerelMonitor
 
                 // (`S186`) Пол — только НИЖЕ максимума кривой; выше него
                 // диапазон снимается лишь пустой строкой (доля не > 0).
+                // (`S192`) Пол плавный: в полосе над ним доза диапазона — с
+                // весом <see cref="FloorWeight"/>.
                 bool floorApplies = k < maxOwnRange;
-                if (floorApplies ? ownAtCentre[k] < MinOwnEfficiencyFraction * maxOwn : !(ownAtCentre[k] > 0.0))
+                r.Weight = FloorWeight(ownAtCentre[k], maxOwn, floorApplies);
+                if (!(r.Weight > 0.0))
                 {
                     // Диапазон не приписывается никому: его отсчёты
                     // выходят из покрытия, о чём скажет приписка.
                     r.Skipped = true;
+                    r.Weight = 0.0;
                     r.Cps = r.Attributed / seconds;
                     continue;
                 }
 
-                if (r.Attributed > 0.0 && r.Attributed >= RepresentativeMinShare * r.Counts)
+                // (`S194`, П159) Доверие энергии по доле приписанного — плавное.
+                // Здесь континуума нет (объяснено 0) и доля — 1: побитово прежнее.
+                double shareTrust = ShareTrust(r.Attributed, r.Counts);
+                if (shareTrust > 0.0)
                 {
                     double target = countsMoment[k] / (r.Counts - explained);
                     if (double.IsNaN(target) || double.IsInfinity(target))
@@ -1344,8 +1534,21 @@ namespace BecquerelMonitor
                     // середине, и дал +2.6 % показания): остаёмся на середине.
                     // (`S186`) Выше максимума кривой пола нет и здесь — там
                     // нет и «края, где эффективность круто падает» к нулю.
-                    if ((floorApplies ? own >= MinOwnEfficiencyFraction * maxOwn : own > 0.0)
-                        && !double.IsInfinity(own))
+                    // (`S192`, П157) В полосе над полом — энергия между
+                    // серединой и подобранной, в меру веса доли на подобранной.
+                    double trust = double.IsNaN(own) || double.IsInfinity(own) ? 0.0 : FloorWeight(own, maxOwn, floorApplies);
+                    if (shareTrust != 1.0)
+                    {
+                        trust *= shareTrust;
+                    }
+
+                    if (trust > 0.0 && trust < 1.0)
+                    {
+                        energy = r.CenterKev + trust * (energy - r.CenterKev);
+                        own = input.EfficiencyAt(energy);
+                    }
+
+                    if (trust > 0.0)
                     {
                         r.RepresentativeKev = energy;
                         r.OwnEfficiency = own;
@@ -1357,6 +1560,11 @@ namespace BecquerelMonitor
                 r.Cps = r.Attributed / seconds;
                 double emitted = r.Cps / r.OwnEfficiency;    // N_k, квантов/с
                 r.FluenceRate = emitted * input.FluencePerPhoton;
+                if (r.Weight != 1.0)
+                {
+                    r.FluenceRate *= r.Weight;
+                }
+
                 r.DoseRate = r.FluenceRate * r.DoseRatePerFluenceRate;
             }
         }
@@ -1440,7 +1648,16 @@ namespace BecquerelMonitor
             // разрешения). Подбор повторяется, только если сдвинулась цель.
             var tried = new double[bins][][];
             var triedEnergy = new double[bins];
+            // (`S192`) Строка на энергии между серединой и подобранной — у
+            // диапазона, чья доля на подобранной энергии в полосе пола.
+            var blended = new double[bins][][];
+            var blendedEnergy = new double[bins];
             var merge = new int[bins];
+            // (`S192`) Вес диапазона по плавному полу: доза линии диапазона —
+            // с этим весом, и её отклик в ЧУЖИХ диапазонах (комптон, хвост
+            // пика) объясняет их отсчёты с тем же весом — иначе вход диапазона
+            // в систему на самом поле переставлял бы соседей скачком.
+            var weight = new double[bins];
             for (int k = 0; k < bins; k++)
             {
                 counts[k] = ranges[k].Counts;
@@ -1454,8 +1671,8 @@ namespace BecquerelMonitor
                 // (`S186`) Пол — только НИЖЕ максимума кривой; выше него
                 // диапазон снимается лишь пустой строкой (доля не > 0).
                 bool floorApplies = k < maxOwnRange;
-                active[k] = !(floorApplies ? floorOwn[k] < MinOwnEfficiencyFraction * maxOwn
-                                           : !(floorOwn[k] > 0.0));
+                weight[k] = FloorWeight(floorOwn[k], maxOwn, floorApplies);
+                active[k] = weight[k] > 0.0;
             }
 
             // Подобрать энергию линии диапазона k при известных прочих
@@ -1468,19 +1685,21 @@ namespace BecquerelMonitor
                 {
                     if (i != k && q[i] > 0.0)
                     {
-                        explained += q[i] * share[i][k];
+                        explained += weight[i] * q[i] * share[i][k];
                     }
                 }
 
-                var window = new bool[bins];
-                window[k] = true;
+                // Окно — с весами: сосед в полосе плавного пола (`S192`) входит
+                // в него в меру своего веса.
+                var window = new double[bins];
+                window[k] = 1.0;
                 int group = 0;
                 for (int side = 0; side < 2; side++)
                 {
                     int i = side == 0 ? k - 1 : k + 1;
                     if (i >= 0 && i < bins && (merge[i] == k || Spills(k, i, q, share, plainShare, active, merge)))
                     {
-                        window[i] = true;
+                        window[i] = weight[i];
                         group |= 1 << side;
                     }
                 }
@@ -1490,9 +1709,12 @@ namespace BecquerelMonitor
                 double[] newPlain = centrePlain == null ? null : centrePlain[k];
                 bool fit = false;
                 double attributed = counts[k] - explained;
-                if (attributed > 0.0 && attributed >= RepresentativeMinShare * counts[k])
+                // (`S194`, П159) Доверие подобранной энергии по доле
+                // приписанного — плавное, <see cref="ShareTrust"/>.
+                double shareTrust = ShareTrust(attributed, counts[k]);
+                if (shareTrust > 0.0)
                 {
-                    double target = WindowTarget(k, window, counts, countsMoment, q, share, moment, ranges);
+                    double target = WindowTarget(k, window, counts, countsMoment, q, share, moment, ranges, weight);
                     double known = slope[k] > 0.05 && slope[k] < 20.0 ? slope[k] : 1.0;
                     if (!(tried[k] != null && group == lastGroup[k]
                           && Math.Abs(target - lastTarget[k]) < 0.5 * Tolerance(ranges[k].CenterKev) * known))
@@ -1521,14 +1743,44 @@ namespace BecquerelMonitor
                     // уехал к низу 13.12 с долей в 18 раз меньше, чем на
                     // середине, и дал +2.6 % показания): остаёмся на середине.
                     // (`S186`) Выше максимума кривой пола нет и здесь.
+                    //
+                    // (`S192`, П157) И здесь пол плавный: в полосе над ним
+                    // энергия — между серединой и подобранной, в меру веса
+                    // доли на подобранной. Прежний обрез переставлял энергию
+                    // скачком: `ASN16_Cs137_10cm`, 17.2…22.6 кэВ — 18.05 → 19.90
+                    // кэВ на сдвиге порога 0.9 %, показание −0.76 %.
                     bool floorApplies = k < maxOwnRange;
-                    if ((floorApplies ? own >= MinOwnEfficiencyFraction * maxOwn : own > 0.0)
-                        && !double.IsInfinity(own))
+                    double trust = double.IsNaN(own) || double.IsInfinity(own) ? 0.0 : FloorWeight(own, maxOwn, floorApplies);
+                    // (`S194`, П159) И доверие по доле приписанного: энергия —
+                    // между серединой и подобранной в меру ОБОИХ доверий.
+                    if (shareTrust != 1.0)
+                    {
+                        trust *= shareTrust;
+                    }
+
+                    if (trust == 1.0)
                     {
                         newEnergy = triedEnergy[k];
                         newShare = ts;
                         newMoment = tried[k][1];
                         newPlain = tried[k][2];
+                        fit = true;
+                    }
+                    else if (trust > 0.0)
+                    {
+                        double blend = ranges[k].CenterKev + trust * (triedEnergy[k] - ranges[k].CenterKev);
+                        if (!(blended[k] != null && blendedEnergy[k] == blend))
+                        {
+                            double[] bs, bm, bp;
+                            RowAt(input, blend, cells, projection, plain, out bs, out bm, out bp);
+                            blended[k] = new[] { bs, bm, bp };
+                            blendedEnergy[k] = blend;
+                        }
+
+                        newEnergy = blend;
+                        newShare = blended[k][0];
+                        newMoment = blended[k][1];
+                        newPlain = blended[k][2];
                         fit = true;
                     }
                 }
@@ -1557,7 +1809,7 @@ namespace BecquerelMonitor
                 double explained = 0.0;
                 for (int i = k + 1; i < bins; i++)
                 {
-                    explained += quanta[i] * share[i][k];
+                    explained += weight[i] * quanta[i] * share[i][k];
                 }
 
                 double attributed = counts[k] - explained;
@@ -1571,16 +1823,16 @@ namespace BecquerelMonitor
             var banned = new bool[bins];
             for (int pass = 1; ; pass++)
             {
-                quanta = SolveCounts(share, counts, active, merge);
+                quanta = SolveCounts(share, counts, active, merge, weight);
                 if (pass > JointIterations)
                 {
                     break;
                 }
 
-                bool changed = MergeLeaks(share, plainShare, counts, active, quanta, merge, banned);
+                bool changed = MergeLeaks(share, plainShare, counts, active, quanta, merge, banned, weight);
                 if (changed)
                 {
-                    quanta = SolveCounts(share, counts, active, merge);
+                    quanta = SolveCounts(share, counts, active, merge, weight);
                 }
 
                 double shift = 0.0;
@@ -1605,7 +1857,7 @@ namespace BecquerelMonitor
                                 && Math.Abs(shift - shifts[n - 3]) <= 0.2 * shifts[n - 3];
                 if (converged && !changed || swinging)
                 {
-                    quanta = SolveCounts(share, counts, active, merge);
+                    quanta = SolveCounts(share, counts, active, merge, weight);
                     break;
                 }
             }
@@ -1618,16 +1870,18 @@ namespace BecquerelMonitor
                 {
                     if (i != k && quanta[i] > 0.0)
                     {
-                        explained += quanta[i] * share[i][k];
+                        explained += weight[i] * quanta[i] * share[i][k];
                     }
                 }
 
                 r.Explained = explained;
+                r.Weight = weight[k];
                 if (!active[k])
                 {
                     // Диапазон не приписывается никому: его отсчёты
                     // выходят из покрытия, о чём скажет приписка.
                     r.Skipped = true;
+                    r.Weight = 0.0;
                     r.Attributed = Math.Max(0.0, r.Counts - explained);
                     r.DoseRatePerFluenceRate = DoseRateCoefficients.DoseRatePerFluenceRate(r.CenterKev);
                     r.Cps = r.Attributed / seconds;
@@ -1645,6 +1899,12 @@ namespace BecquerelMonitor
                 r.Attributed = quanta[k] * share[k][k];
                 r.Cps = r.Attributed / seconds;
                 r.FluenceRate = quanta[k] / seconds * input.FluencePerPhoton;
+                if (weight[k] != 1.0)
+                {
+                    // (`S192`) Диапазон в полосе плавного пола.
+                    r.FluenceRate *= weight[k];
+                }
+
                 r.DoseRate = r.FluenceRate * r.DoseRatePerFluenceRate;
             }
         }
@@ -1676,7 +1936,7 @@ namespace BecquerelMonitor
         /// Возвращает, было ли что-то изменено.
         /// </summary>
         static bool MergeLeaks(double[][] share, double[][] plainShare, double[] counts, bool[] active,
-                               double[] quanta, int[] merge, bool[] banned)
+                               double[] quanta, int[] merge, bool[] banned, double[] weight)
         {
             int bins = counts.Length;
             bool changed = false;
@@ -1711,7 +1971,7 @@ namespace BecquerelMonitor
                 {
                     if (j != i && quanta[j] > 0.0)
                     {
-                        over += quanta[j] * share[j][i];
+                        over += weight[j] * quanta[j] * share[j][i];
                     }
                 }
 
@@ -1730,7 +1990,7 @@ namespace BecquerelMonitor
                         continue;
                     }
 
-                    double leak = quanta[j] * (share[j][i] - plainShare[j][i]);
+                    double leak = weight[j] * quanta[j] * (share[j][i] - plainShare[j][i]);
                     if (leak > bestLeak)
                     {
                         best = j;
@@ -1780,27 +2040,48 @@ namespace BecquerelMonitor
         /// вычетом отклика всех линий, кроме линии диапазона <paramref name="k"/>.
         /// Нечего приписать — середина диапазона k.
         /// </summary>
-        static double WindowTarget(int k, bool[] window, double[] counts, double[] countsMoment, double[] quanta,
-                                   double[][] share, double[][] moment, DoseRateRange[] ranges)
+        static double WindowTarget(int k, double[] window, double[] counts, double[] countsMoment, double[] quanta,
+                                   double[][] share, double[][] moment, DoseRateRange[] ranges, double[] weight)
         {
             double mass = 0.0, first = 0.0;
             for (int i = 0; i < window.Length; i++)
             {
-                if (!window[i])
+                if (!(window[i] > 0.0))
                 {
                     continue;
                 }
 
-                mass += counts[i];
-                first += countsMoment[i];
+                // (`S192`) Диапазон окна — в меру своего веса, отклик чужих
+                // линий — в меру их весов; при весах 1 — прежние числа побитово.
+                double win = window[i];
+                if (win == 1.0)
+                {
+                    mass += counts[i];
+                    first += countsMoment[i];
+                    for (int j = 0; j < quanta.Length; j++)
+                    {
+                        if (j != k && quanta[j] > 0.0)
+                        {
+                            mass -= weight[j] * quanta[j] * share[j][i];
+                            first -= weight[j] * quanta[j] * moment[j][i];
+                        }
+                    }
+
+                    continue;
+                }
+
+                double part = counts[i], partFirst = countsMoment[i];
                 for (int j = 0; j < quanta.Length; j++)
                 {
                     if (j != k && quanta[j] > 0.0)
                     {
-                        mass -= quanta[j] * share[j][i];
-                        first -= quanta[j] * moment[j][i];
+                        part -= weight[j] * quanta[j] * share[j][i];
+                        partFirst -= weight[j] * quanta[j] * moment[j][i];
                     }
                 }
+
+                mass += win * part;
+                first += win * partFirst;
             }
 
             double target = first / mass;
@@ -1816,8 +2097,14 @@ namespace BecquerelMonitor
         /// вырожденным столбцом) выходит из системы вместе со своим уравнением
         /// (и слитыми с ним), и система решается заново — не больше числа
         /// диапазонов раз. Вышедшим — ноль.
+        ///
+        /// (`S192`, П157) Веса плавного пола <paramref name="weight"/>: линия
+        /// диапазона в полосе объясняет отсчёты ЧУЖИХ диапазонов с его весом
+        /// (свой диапазон и слитые с ним — целиком), и уравнение слитого
+        /// диапазона в полосе складывается с уравнением соседа с его весом.
+        /// При весах 1 — прежняя система побитово.
         /// </summary>
-        static double[] SolveCounts(double[][] share, double[] counts, bool[] active, int[] merge)
+        static double[] SolveCounts(double[][] share, double[] counts, bool[] active, int[] merge, double[] weight)
         {
             int bins = counts.Length;
             var quanta = new double[bins];
@@ -1859,12 +2146,17 @@ namespace BecquerelMonitor
                             continue;
                         }
 
+                        // Уравнение слитого диапазона — с его весом.
+                        double rowWeight = i == row ? 1.0 : weight[i];
                         for (int c = 0; c < m; c++)
                         {
-                            a[r][c] += share[index[c]][i];
+                            int line = index[c];
+                            double lineWeight = i == line || merge[i] == line ? 1.0 : weight[line];
+                            double coefficient = rowWeight * lineWeight;
+                            a[r][c] += coefficient == 1.0 ? share[line][i] : coefficient * share[line][i];
                         }
 
-                        x[r] += counts[i];
+                        x[r] += rowWeight == 1.0 ? counts[i] : rowWeight * counts[i];
                     }
                 }
 
