@@ -276,14 +276,25 @@ namespace BecquerelMonitor
         /// <summary>
         /// Диапазон не приписан никому: эффективность ниже пола
         /// <see cref="DoseRateManager.MinOwnEfficiencyFraction"/>; его отсчёты
-        /// вне покрытия.
+        /// вне покрытия, <see cref="Weight"/> — 0.
         /// </summary>
         public bool Skipped;
 
         /// <summary>
+        /// (`S192`, П157) Вес диапазона по плавному полу эффективности: 1 —
+        /// доза целиком, 0 — снят (<see cref="Skipped"/>), между — диапазон в
+        /// полосе над полом (<see cref="DoseRateManager.FloorBand"/>): его
+        /// <see cref="FluenceRate"/> и <see cref="DoseRate"/> — с этим весом, и
+        /// в покрытие его отсчёты входят в той же мере. <see cref="Cps"/> и
+        /// <see cref="Attributed"/> — без веса.
+        /// </summary>
+        public double Weight = 1.0;
+
+        /// <summary>
         /// Плотность потока, квант/(см²·с): у сцены с источником — в центре
         /// кристалла (<see cref="DoseRateInput.FluencePerPhoton"/>), у сцены
-        /// поля `ISO` — само однородное поле (`Cps / A_эфф`, G ≡ 1).
+        /// поля `ISO` — само однородное поле (`Cps / A_эфф`, G ≡ 1). У диапазона
+        /// в полосе плавного пола — умноженная на <see cref="Weight"/>.
         /// </summary>
         public double FluenceRate;
 
