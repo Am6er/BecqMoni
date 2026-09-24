@@ -1018,9 +1018,12 @@ namespace DoseRateProbe
             }
 
             double counted = dose.Ranges.Sum(r => r.Counts);
-            // Независимо: каналы от низа сетки (тем же отбрасыванием) до конца
+            // Независимо: каналы от низа сетки (тем же правилом) до конца
             // шкалы, минус крайние каналы, которые правило называет переполнением.
-            int fromChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(dose.Ranges[0].LowKev, spectrum.NumberOfChannels);
+            // (`AMBER101`, П145) Канал — по ЦЕНТРУ: `ceil`, то же правило, что у
+            // `DoseRateManager.ChannelSpan`; отбрасывание дробной части судило
+            // канал по точке «центр + 1 канал».
+            int fromChannel = (int)Math.Ceiling(spectrum.EnergyCalibration.EnergyToChannel(dose.Ranges[0].LowKev, spectrum.NumberOfChannels));
             if (fromChannel < 0) fromChannel = 0;
             // Ниже сетки — БЕЗ насыпанного нулевого канала: он переполнение, и
             // ему положено оказаться среди «отброшенных», а не «ниже сетки».

@@ -985,6 +985,11 @@ namespace BecquerelMonitor.N42
 
             int SpectrumCount = rad.RadMeasurement.Length;
 
+            // ⛔ `AMBER87` (П151, 24.09.2026): ФАЙЛ, ЗАПИСАННЫЙ AtomSpectra, —
+            //    ЦЕНТРАМИ, без перекладки. Признак программы — свойство файла,
+            //    берётся один раз; разбор — <see cref="IsWrittenByAtomSpectra"/>.
+            bool writtenByAtomSpectra = IsWrittenByAtomSpectra(filename);
+
             string SpectrumName = Path.GetFileNameWithoutExtension(filename);
             doc.Filename = SpectrumName + ".xml";
             doc.Text = SpectrumName;
@@ -1249,7 +1254,8 @@ namespace BecquerelMonitor.N42
                     double[] coefficients;
                     if (HasEnergyBoundaryValues(radCalibration))
                     {
-                        coefficients = FitEnergyBoundaryValues(radCalibration.EnergyBoundaryValues, n42Spectrum, filename);
+                        coefficients = FitEnergyBoundaryValues(radCalibration.EnergyBoundaryValues, n42Spectrum, filename,
+                                                               channelEdges: !writtenByAtomSpectra);
                         PolynomialOrder = coefficients.Length - 1;
                     }
                     else
@@ -1293,6 +1299,27 @@ namespace BecquerelMonitor.N42
                         coefficients[k] = double.Parse(n42CalibrationCoeff[k], CultureInfo.InvariantCulture);
                     }
 
+                    // ⛔ П151 (24.09.2026): СТАРШИЙ НОЛЬ — НЕ СТЕПЕНЬ. AtomSpectra
+                    //    6.2.3 пишет прямую тремя числами («-26.5 0.294 0.00»), и
+                    //    полином второй степени с нулевым старшим членом
+                    //    CheckCalibration отвергает (`Coefficients[2] == 0`) — дверь
+                    //    N42 отказывала словами «функция калибровки должна
+                    //    монотонно возрастать» семи файлам Amber
+                    //    (`Разное с канала\MCA-2022-06-*.N42.N42`), которые дверь
+                    //    SpecUtils того же приложения читает прямой. Точные нули
+                    //    сверху снимаются до первой степени; ненулевой старший член
+                    //    не трогается.
+                    int topOrder = coefficients.Length - 1;
+                    while (topOrder > 1 && coefficients[topOrder] == 0.0)
+                    {
+                        topOrder--;
+                    }
+                    if (topOrder < coefficients.Length - 1)
+                    {
+                        Array.Resize(ref coefficients, topOrder + 1);
+                        PolynomialOrder = topOrder;
+                    }
+
                     // ⛔ `AMBER73` (П138, 22.09.2026): НОМЕР КАНАЛА В
                     //    CoefficientValues — НИЖНИЙ КРАЙ, а приложение читает
                     //    его ЦЕНТРОМ; перекладка тем же вызовом, что у ветви
@@ -1303,7 +1330,10 @@ namespace BecquerelMonitor.N42
                     //    канала объявлен энергией». Сдвинуть подстановку
                     //    значило бы превратить её в y = x + ½: шкала всё так же
                     //    выдуманная, но уже и не та, о которой говорит отказ.
-                    if (rad.EnergyCalibration != null)
+                    //    ⛔ `AMBER87` (П151): у файла AtomSpectra — БЕЗ
+                    //    перекладки (решение Amber 24.09.2026 «N42 AtomSpectra
+                    //    без сдвига»), см. IsWrittenByAtomSpectra.
+                    if (rad.EnergyCalibration != null && !writtenByAtomSpectra)
                     {
                         coefficients = EdgePolynomialToChannelCentres(coefficients);
                     }
@@ -1528,7 +1558,8 @@ namespace BecquerelMonitor.N42
         /// ChannelEnergies выше: (decimal)double округляет до 15 знаков, а
         /// прямой разбор текста ничего не теряет.
         /// </summary>
-        private static double[] FitEnergyBoundaryValues(string boundaryText, int[] spectrum, string filename)
+        private static double[] FitEnergyBoundaryValues(string boundaryText, int[] spectrum, string filename,
+                                                        bool channelEdges = true)
         {
             int channels = spectrum.Length;
             string[] tokens = boundaryText.Replace("\r", " ").Replace("\n", " ").Replace("\t", " ")
@@ -1575,7 +1606,106 @@ namespace BecquerelMonitor.N42
             {
                 points.Add(new CalibrationPoint(ch, edges[ch], spectrum[ch]));
             }
-            return EdgePolynomialToChannelCentres(CalibrationSolver.Solve(points, 4));
+            // `AMBER87` (П151): AtomSpectra пишет сюда poly(0..N) своего полинома
+            // «центром» — перекладки у такого файла нет (IsWrittenByAtomSpectra).
+            double[] fitted = CalibrationSolver.Solve(points, 4);
+            return channelEdges ? EdgePolynomialToChannelCentres(fitted) : fitted;
+        }
+
+        /// <summary>
+        /// ⛔ `AMBER87` (П151, 24.09.2026): ЗАПИСАН ЛИ ФАЙЛ N42 ПРОГРАММОЙ
+        /// AtomSpectra («AtomSpectra KB Radar», она же пишет за «KB Radar
+        /// Nano»). Решение Amber 24.09.2026 вопросником, дословно: «N42
+        /// AtomSpectra без сдвига (Рекомендую)». Основание — исходники
+        /// изготовителя (`github.com/Am6er/AtomSpectra`, П146): точки
+        /// калибровки ставятся ЦЕЛЫМ номером канала вершины, то есть полином
+        /// отображает центр канала, и тот же полином идёт в `.txt`, в XML
+        /// приложения, в N42 `CoefficientValues` и (6.2.4) в
+        /// `EnergyBoundaryValues = poly(0..N)`. Такой файл читается как `.txt`
+        /// той же программы и живой ввод — без перекладки на полканала;
+        /// прочие N42 — прежним правилом `AMBER73` (края).
+        ///
+        /// ⛔ ПРИЗНАК — ИМЯ ПРОГРАММЫ, А НЕ ИЗГОТОВИТЕЛЬ. `KB Radar` / `ATOM
+        /// Spectra` в <c>RadInstrumentManufacturerName</c>/<c>ModelName</c>
+        /// пишет и САМО ПРИЛОЖЕНИЕ при вывозе (<see cref="ExportToN42"/>), а
+        /// его файл несёт полином КРАЯМИ (<see cref="ChannelCentrePolynomialToEdges"/>):
+        /// судить по изготовителю значило бы развести круг «мы → файл → мы» на
+        /// h/2 (замер П151 на файлах Amber: 26 из 48 — наш вывоз с «KB Radar»).
+        /// Признак — пара <c>RadInstrumentVersion</c> «SoftwareName» =
+        /// «AtomSpectra» (так пишут все версии 6.2.2…6.5.0 в файлах Amber; наш
+        /// вывоз пишет «BecqMoni»), и НИКАКОЙ другой программы-создателя:
+        /// файл, пересохранённый InterSpec (<c>RadInstrumentDataCreatorName</c> =
+        /// «InterSpec», «Original Software»), несёт полином по соглашению
+        /// SpecUtils (край) и остаётся при `AMBER73`.
+        ///
+        /// Корень — только <c>RadInstrumentData</c> (N42-2012): других AtomSpectra
+        /// не пишет. Чтение — потоком до первого измерения или калибровки, без
+        /// броска: не N42, битый, нет файла — «не AtomSpectra», то есть прежнее
+        /// правило.
+        /// </summary>
+        internal static bool IsWrittenByAtomSpectra(string filename)
+        {
+            if (string.IsNullOrEmpty(filename) || !File.Exists(filename))
+            {
+                return false;
+            }
+            try
+            {
+                string creator = null;
+                bool softwareIsAtomSpectra = false;
+                XmlReaderSettings settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore };
+                using (FileStream stream = File.OpenRead(filename))
+                using (XmlReader reader = XmlReader.Create(stream, settings))
+                {
+                    reader.MoveToContent();
+                    if (reader.LocalName != "RadInstrumentData")
+                    {
+                        return false;
+                    }
+                    while (reader.Read())
+                    {
+                        if (reader.NodeType != XmlNodeType.Element)
+                        {
+                            continue;
+                        }
+                        string name = reader.LocalName;
+                        if (name == "RadMeasurement" || name == "EnergyCalibration")
+                        {
+                            break;
+                        }
+                        if (name == "RadInstrumentDataCreatorName")
+                        {
+                            creator = reader.ReadElementContentAsString();
+                        }
+                        else if (name == "RadInstrumentVersion")
+                        {
+                            string component = null;
+                            string version = null;
+                            using (XmlReader sub = reader.ReadSubtree())
+                            {
+                                while (sub.Read())
+                                {
+                                    if (sub.NodeType != XmlNodeType.Element) continue;
+                                    if (sub.LocalName == "RadInstrumentComponentName") component = sub.ReadElementContentAsString();
+                                    else if (sub.LocalName == "RadInstrumentComponentVersion") version = sub.ReadElementContentAsString();
+                                }
+                            }
+                            if (string.Equals((component ?? "").Trim(), "SoftwareName", StringComparison.OrdinalIgnoreCase)
+                                && string.Equals((version ?? "").Trim(), "AtomSpectra", StringComparison.OrdinalIgnoreCase))
+                            {
+                                softwareIsAtomSpectra = true;
+                            }
+                        }
+                    }
+                }
+                bool otherCreator = !string.IsNullOrWhiteSpace(creator)
+                    && !string.Equals(creator.Trim(), "AtomSpectra", StringComparison.OrdinalIgnoreCase);
+                return softwareIsAtomSpectra && !otherCreator;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         /// <summary>
@@ -1622,6 +1752,19 @@ namespace BecquerelMonitor.N42
         /// пишет CoefficientValues центрами, этот сдвиг ошибку УДВАИВАЕТ (с −h/2
         /// на +h/2). Прибора-свидетеля, пишущего оба положения и НЕ являющегося
         /// KB Radar, в наличии нет.
+        ///
+        /// ⛔ `AMBER86` (П146, 24.09.2026): ПРАВИЛО — ДЛЯ ФАЙЛОВ N42. Дверь
+        /// SpecUtils зовёт эту перекладку только когда файл — N42
+        /// (`DocumentManager.IsN42File`): у прочих форматов «край» — внутреннее
+        /// соглашение SpecUtils, а не файла, и свой XML приложения вставал ею на
+        /// h/2 правее, чем родным «Открыть».
+        ///
+        /// ⛔ `AMBER87` (П151, 24.09.2026): И НЕ ДЛЯ N42, ЗАПИСАННОГО AtomSpectra.
+        /// Довод П137 выше («KB Radar Nano пишет CoefficientValues тем же
+        /// полиномом, что свои границы») — одна программа, записавшая один
+        /// полином в два элемента, а строит она его ЦЕНТРАМИ (П146, исходники
+        /// изготовителя). Такой файл обе двери читают без перекладки
+        /// (<see cref="IsWrittenByAtomSpectra"/>); наш вывоз по-прежнему краями.
         /// </summary>
         internal static double[] EdgePolynomialToChannelCentres(double[] edgePolynomial)
         {

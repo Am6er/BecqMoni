@@ -125,6 +125,9 @@ namespace BecquerelMonitor
 
         GroupBox calcOptionsGroup;
 
+        /// <summary>Идёт `ApplyCalcOptions` — верх подаётся редактору без пересчёта сцены (`AMBER94`).</summary>
+        bool restoringCalcOptions;
+
         InvariantNumericUpDown calcMinEnergyBox, calcMaxEnergyBox, calcPointsBox,
                       calcHistoriesBox, calcThreadsBox;
 
@@ -271,7 +274,7 @@ namespace BecquerelMonitor
             // Сначала отдать верх редактору геометрии (E27), и только потом
             // разводить границы: у разведения есть ранний выход, и за ним
             // подача осталась бы несделанной.
-            this.geometryPanel.SetSceneEnergy((double)this.calcMaxEnergyBox.Value);
+            this.geometryPanel.SetSceneEnergy((double)this.calcMaxEnergyBox.Value, !this.restoringCalcOptions);
 
             if (this.calcMaxEnergyBox.Value > this.calcMinEnergyBox.Value)
             {
@@ -548,7 +551,19 @@ namespace BecquerelMonitor
             // заводским. И ВСЛУХ: молча подменённый диапазон неотличим от
             // выбранного человеком, а именно на этом и попались — кривую
             // строили от 20 кэВ, при следующем открытии предлагалось 40.
-            string restored = this.ApplyCalcOptions(config);
+            // (`AMBER94`) Восстановление верха — не правка человека: открытая
+            // полевая сцена под него НЕ пересчитывается.
+            string restored;
+            this.restoringCalcOptions = true;
+            try
+            {
+                restored = this.ApplyCalcOptions(config);
+            }
+            finally
+            {
+                this.restoringCalcOptions = false;
+            }
+
             if (!string.IsNullOrEmpty(restored))
             {
                 AppendLog(restored);

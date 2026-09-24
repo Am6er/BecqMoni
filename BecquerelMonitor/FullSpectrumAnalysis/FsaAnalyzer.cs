@@ -1558,6 +1558,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         FsaComponent pileUpColumn;
 
+        /// <summary>
+        /// (`AMBER91`, П148) Множитель приведения вычтенного фона ЭТОГО разбора
+        /// (ноль — фона нет) — в результат до счёта долей невязки
+        /// (<c>FsaResult.BackgroundScale</c>). Ставится в <c>Analyze</c> перед
+        /// <c>BuildResult</c>.
+        /// </summary>
+        double resultBackgroundScale;
+
         public double MinEnergy { get; set; }
 
         public double MaxEnergy { get; set; }
@@ -1644,6 +1652,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Полярность умолчания стоит В КОНСТРУКТОРЕ (`T82`).
         /// </summary>
         public bool ReportModelWeights { get; set; }
+
+        /// <summary>
+        /// (`S182`, П154 24.09.2026) Порог ОБЪЕДИНЕНИЯ каналов в ячейки
+        /// отчётной меры: соседние каналы полосы складываются, пока ожидаемый
+        /// счёт ячейки `Σ(μ̂ + Extra)` не достигнет порога, и
+        /// <see cref="FsaResult.Chi2NdfPoisson"/> и ε
+        /// (<see cref="FsaResult.ModelResidual"/>) считаются по ячейкам:
+        /// член `(Σr)²/Σv`, знаменатель — точный след по ячейкам
+        /// (<c>ReportNdfPooled</c>). Ноль и меньше — ячейка = канал, как до
+        /// этого дня. Работает только при <see cref="ReportModelWeights"/>:
+        /// правило — по ОЖИДАЕМОМУ счёту, при весах по наблюдению его нет.
+        ///
+        /// ⛔ ЗАЧЕМ. Пирсоновский член `(y − μ)²/μ` несмещён при любом μ > 0,
+        /// но при μ ≪ 1 его ожидание несут РЕДКИЕ события: `y = 1` с
+        /// вероятностью μ даёт вклад ≈ 1/μ, а почти всегда `y = 0` даёт μ.
+        /// Разброс члена `2 + 1/μ`. У сцинтиллятора выше линий таких каналов
+        /// большинство (измерено П154 на `G1S24_Cs137_Mar`: 760 из 1024
+        /// каналов полосы с истинным μ < 0.1), и на ОДНОМ спектре с верной
+        /// моделью мера читалась 0.70…0.76 вместо 1.00, изредка взлетая
+        /// (один канал с вкладом 838 поднял среднее 24 розыгрышей до 1.97).
+        /// Пол ~~`max(μ̂, 1)`~~ (снят П136) прятал это иначе — ценой смещения.
+        /// Объединение ячеек до ожидаемого счёта не ниже порога — правило
+        /// применимости χ² Пирсона (Cochran, Biometrics 10 (1954) 417): член ячейки снова
+        /// близок к χ²₁, а отсчёты «пустых» каналов остаются уликой —
+        /// лишняя линия там, где модель ничего не ждёт, по-прежнему видна.
+        ///
+        /// ⚠ Фит ключ не трогает вовсе: ячейки строятся после решения, из
+        /// отчётных весов; активности и χ² решателя от него не зависят.
+        /// Значение порога стоит В КОНСТРУКТОРЕ (`T82`).
+        /// </summary>
+        public double ReportPoolVariance { get; set; }
 
         /// <summary>
         /// (S43) Коэффициент γ составного шума: дисперсия канала берётся
@@ -2429,10 +2468,57 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (<see cref="adcScale"/>). Расходиться этим местам нельзя: пик,
         /// поставленный одной картой, и ядро опоры, построенное другой, дали
         /// бы промах привязки из ничего.
+        ///
+        /// ⛔ (`AMBER90`, `AMBER85`, П144 24.09.2026) ШКАЛА ПРОДОЛЖАЕТСЯ ЗА ОБА
+        /// КРАЯ, а не зажимается. Калибровка отдаёт `maxChannels` всему, что
+        /// выше E(N) (`PolynomialEnergyCalibration.cs:253`), и канал 0 всему,
+        /// что ниже E(0) или ниже нуля энергии (`:326`), — и позиция, взятая
+        /// отсюда как есть, сажала пик надшкальной линии полупиком на верхний
+        /// край, а свет ниже E(0) — стопкой в нулевой канал. Правка ~~`AMBER72`~~
+        /// продолжила шкалу вверх только в таблице бинов матричного образа
+        /// (<see cref="DepositChannels"/>); голые пики (<see cref="BuildTemplate"/>),
+        /// пиковое окно (<see cref="MarkPeakWindow"/>) и ядро опоры брали
+        /// зажатую позицию. Теперь продолжение живёт ЗДЕСЬ, в одном месте для
+        /// всех четырёх: выше E(N) — линейно по ширине верхнего канала, ниже
+        /// max(E(0), 0) — линейно по ширине нулевого. Что ушло дальше запаса
+        /// буфера, отбросит укладчик (<see cref="Splat"/>), что легло за полосу
+        /// фита — отрежут границы окна и образа.
+        ///
+        /// ⚠ Зажим в самой калибровке НЕ тронут и трогать его нельзя: её зовут
+        /// график, поиск пиков, калибровка, ROI, и «канал за шкалой» им не
+        /// нужен. Низ продолжается ТОЛЬКО там, где калибровка зажала (отдала
+        /// ноль): калибровка, умеющая честно обратить энергию между E(0) и
+        /// нулём, остаётся при своём ответе.
         /// </summary>
         double LightToChannel(EnergyCalibration calibration, double lightKev, int channels)
         {
-            return EnergyToChannelSafe(calibration, this.LightEnergyKev(lightKev), channels);
+            double energyKev = this.LightEnergyKev(lightKev);
+            double channel = EnergyToChannelSafe(calibration, energyKev, channels);
+            if (channels < 2 || !Finite(energyKev))
+            {
+                return channel;
+            }
+
+            // Верх берётся ПОСЛЕ обращения к калибровке: оно ставит ей число
+            // каналов, а `ChannelToEnergy` за ним зажимает номер канала.
+            double topKev = calibration.ChannelToEnergy(channels);
+            double topStep = topKev - calibration.ChannelToEnergy(channels - 1);
+            if (energyKev > topKev && Finite(topKev) && PositiveFinite(topStep))
+            {
+                return channels + (energyKev - topKev) / topStep;
+            }
+
+            if (channel <= 0.0)
+            {
+                double zeroKev = calibration.ChannelToEnergy(0);
+                double zeroStep = calibration.ChannelToEnergy(1) - zeroKev;
+                if (energyKev < Math.Max(zeroKev, 0.0) && Finite(zeroKev) && PositiveFinite(zeroStep))
+                {
+                    return (energyKev - zeroKev) / zeroStep;
+                }
+            }
+
+            return channel;
         }
 
         /// <summary>
@@ -3247,6 +3333,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool CascadeSumPeaks { get; set; }
 
         /// <summary>
+        /// (`AMBER99`, П148 24.09.2026) ВЫНОС ПАРТНЁРОМ КАСКАДА — И ИЗ ПИКОВ
+        /// ВЫЛЕТА. Партнёр, оставивший в кристалле хоть что-нибудь, уносит
+        /// событие не только из пика полного поглощения, но из ЛЮБОГО отклика
+        /// постоянного положения: одиночного и двойного вылета аннигиляции,
+        /// K- и L-вылета рентгена кристалла и заноса аннигиляции извне
+        /// (каналы <see cref="LosesWithPeak"/>). Доля та же — `L_out` линии
+        /// (<c>FsaCascadeSummer.LineNote.Loss</c>), притока нет: сумма
+        /// «вылет + партнёр» ложится не на энергию вылета. Континуум, как и
+        /// прежде, не трогается — он теряет и получает.
+        ///
+        /// Арбитр — Geant4 (журнал
+        /// `handover/handover-2026-09-24-p148-pileup-summing.md`): Tl-208 на
+        /// контактной сцене, отношение «на распад с каскадом / на квант без
+        /// каскада» у вылетов к тому же отношению у пика 2614.5 —
+        /// одиночный 0.996 ± 0.008, двойной 0.980 ± 0.011, 511 извне
+        /// 1.02 ± 0.04, K-вылет 583 1.003 ± 0.03; «вылет не теряет» дал бы
+        /// 1/(1 − L_out) = 1.48. Выключенный — поведение до П148 (рычаг
+        /// проб, `FsaEscapeLossProbeP148`); полярность — у присваивания в
+        /// конструкторе.
+        /// </summary>
+        public bool CascadeEscapeLoss { get; set; }
+
+        /// <summary>
         /// Идёт ли сумм-КОНТИНУУМ (S19) в подслой отрисовки. В МОДЕЛЬ он идёт
         /// всегда — это вопрос только про штриховку внутри ленты нуклида.
         ///
@@ -3368,7 +3477,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `handover/handover-2026-09-22-p136-huber-audit-measures.md`.
         ///
         /// Область берётся ИЗ САМОЙ МОДЕЛИ, а не из списка линий: доля прихода
-        /// колонки (`(s⊗s)/N − 2s` — величина знакопеременная) во всём
+        /// колонки (`(s⊗s)/N − m·s` — величина знакопеременная) во всём
         /// содержимом канала. Ни имён нуклидов, ни удвоенных энергий для этого
         /// не нужно. Порог — доля от МОДЕЛИ канала, а не от наибольшего прихода
         /// самой колонки: второе защищает и комптоновский континуум нуклида (у
@@ -3383,6 +3492,65 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// душить, как всякий выброс.
         /// </summary>
         public double PileUpAnchorShare { get; set; }
+
+        /// <summary>
+        /// (`AMBER76`, П148 24.09.2026) ПРИНУДИТЕЛЬНЫЙ МНОЖИТЕЛЬ УБЫЛИ колонки
+        /// наложений — рычаг проб: значение внутри отрезка от одной до двух
+        /// масс спектра ставит его, всё прочее (умолчание типа, не число) —
+        /// правило разбора по времени спектра, <see cref="PileUpLossFor"/>.
+        /// Физика и замер — у <see cref="BuildPileUpComponent"/>. В UI не
+        /// выводится.
+        /// </summary>
+        public double PileUpLossMultiplier { get; set; }
+
+        /// <summary>
+        /// (`AMBER76`, П148) Множитель убыли, которым построена колонка
+        /// наложений на ЭТОМ разборе; не число — колонки нет. Читается пробами
+        /// после <see cref="Analyze"/>; сбрасывается в его начале.
+        /// </summary>
+        public double PileUpLossUsed { get; private set; }
+
+        /// <summary>
+        /// (`AMBER76`, П148 24.09.2026) МНОЖИТЕЛЬ УБЫЛИ ПО ТОМУ, ЧЕМ НОРМИРОВАН
+        /// СПЕКТР. Пара наложившихся импульсов приходит одним отсчётом на
+        /// сумму; вопрос — сколько отсчётов она уносит со своих энергий В
+        /// СПЕКТРЕ, ДЕЛЁННОМ НА ЗНАМЕНАТЕЛЬ РАЗБОРА.
+        ///
+        ///   * Живое время задано и короче полного (мёртвое время возмещено):
+        ///     второй импульс пары пришёл в мёртвое время первого — тракт уже
+        ///     занят им, — и без наложения он был бы ПОТЕРЯН так же, а деление
+        ///     на живое время эту потерю уже возместило (Gedcke, ORTEC AN63).
+        ///     Не возмещён только первый импульс, записанный на чужой энергии:
+        ///     убыль ОДНА масса, колонка `(s⊗s)/N − s`.
+        ///   * Живого времени нет или оно равно полному: возмещать нечем, пара
+        ///     уносит ОБА импульса — убыль ДВЕ массы, `(s⊗s)/N − 2s`
+        ///     (Wielopolski &amp; Gardner, NIM 133 (1976) 303).
+        ///
+        /// Замер (журнал `handover/handover-2026-09-24-p148-pileup-summing.md`):
+        /// Монте-Карло цепочки импульсов (пуассоновский поток, окно наложения
+        /// внутри непродлевающегося и продлевающегося мёртвого, живое время по
+        /// часам тракта и по правилу приложения `Utils.LiveTime.Calculate`)
+        /// — нулевое смещение скорости даёт одна масса на живом времени и две
+        /// на полном; подсадка `FsaPileUpProbe --lt=dead` на «Cs 137 в домике»
+        /// до правки давала +f (ровно ошибку ревизии), после — шум.
+        ///
+        /// ⚠ ПОСЫЛКА: живое время возмещает ВСЁ окно наложения, то есть
+        /// мёртвое время на импульс не короче окна. У приборов корпуса это так
+        /// с запасом: `ASN16_Cs137` — мёртвое 14.0 мкс против окна по фиту
+        /// 3.05 мкс; `G1S16_Cs137_P5` 2.69 против 0.30; `G1S24_Cs137_P5` 2.71
+        /// против 0.27. Где окно длиннее мёртвого, верный множитель лежит
+        /// между (Монте-Карло: 2 − мёртвое/окно), и одна масса ошибается не
+        /// больше, чем две ошибались до правки, в другую сторону.
+        /// </summary>
+        public static double PileUpLossFor(EnergySpectrum spectrum)
+        {
+            if (spectrum == null)
+            {
+                return 2.0;
+            }
+
+            return spectrum.LiveTime > 0.0 && spectrum.LiveTime < spectrum.MeasurementTime ? 1.0 : 2.0;
+        }
 
         /// <summary>
         /// Вещество кристалла в именах таблицы кривых света («CsI:Tl», «NaI:Tl»).
@@ -4207,6 +4375,94 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// (`AMBER99`, П148) Каналы отклика, которые партнёр каскада выносит
+        /// НАРАВНЕ с пиком полного поглощения: отклики постоянного положения —
+        /// одиночный и двойной вылет аннигиляции, K- и L-вылет рентгена
+        /// кристалла, занос аннигиляции извне. Пик (свой множитель CF) и
+        /// комптоновский канал (теряет и получает) сюда не входят.
+        /// </summary>
+        static bool LosesWithPeak(int channel)
+        {
+            switch ((EfficiencyMaker.EfficiencySimulator.ResponseChannel)channel)
+            {
+                case EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeAnnihilation:
+                case EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeAnnihilationDouble:
+                case EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeXrayK:
+                case EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeXrayL:
+                case EfficiencyMaker.EfficiencySimulator.ResponseChannel.AnnihilationOutside:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER99`, П148) Вес линии в канале отклика: пик — с CF
+        /// (`peakFactor`, уже решённым вызывающим: единица, если поправки нет),
+        /// каналы <see cref="LosesWithPeak"/> — с долей, пережившей вынос,
+        /// прочие — без поправки. Умножение на единицу точное: у линии без
+        /// поправки вес побитово прежний.
+        /// </summary>
+        static double ChannelWeight(int channel, double weight, double peakFactor, double survive)
+        {
+            if (channel == (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak)
+            {
+                return weight * peakFactor;
+            }
+
+            return LosesWithPeak(channel) ? weight * survive : weight;
+        }
+
+        /// <summary>
+        /// (`AMBER99`, П148) Доля событий линии, ПЕРЕЖИВШАЯ вынос партнёром
+        /// каскада, `1 − L_out`, параллельно `component.Lines`; null — поправки
+        /// нет (суммирования нет, выключено <see cref="CascadeEscapeLoss"/> или
+        /// ни у одной линии выноса нет). `L_out` — та же, что сидит в CF пика
+        /// (<c>FsaCascadeSummer.LineNote.Loss</c>: CF = 1/((1 − L_out) + влёт)),
+        /// берётся по нуклиду и энергии линии; линия без записи — единица.
+        /// </summary>
+        double[] EscapeSurvivals(FsaCascadeSummer.Correction correction, FsaComponent component)
+        {
+            if (!this.CascadeEscapeLoss || correction == null || correction.Notes == null
+                || correction.Notes.Count == 0 || component == null || component.Lines == null)
+            {
+                return null;
+            }
+
+            double[] survive = null;
+            for (int i = 0; i < component.Lines.Count; i++)
+            {
+                FsaLine line = component.Lines[i];
+                foreach (FsaCascadeSummer.LineNote note in correction.Notes)
+                {
+                    if (note.EnergyKev != line.Energy
+                        || !string.Equals(note.Nuclide ?? "", line.Nuclide ?? "", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (note.Loss > 0.0)
+                    {
+                        if (survive == null)
+                        {
+                            survive = new double[component.Lines.Count];
+                            for (int k = 0; k < survive.Length; k++)
+                            {
+                                survive[k] = 1.0;
+                            }
+                        }
+
+                        survive[i] = Math.Max(0.0, Math.Min(1.0, 1.0 - note.Loss));
+                    }
+
+                    break;
+                }
+            }
+
+            return survive;
+        }
+
+        /// <summary>
         /// (`AMBER17`) СИНИЙ КАНАЛ ОДНОЙ ЛИНИИ компонента — пик полного
         /// поглощения, построенный тем же путём, что столбец линии
         /// (<see cref="BuildLineColumn"/>): та же матрица, тот же вес, та же
@@ -4554,6 +4810,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // числа A/B — журнал
             // `handover/handover-2026-09-22-p134-channel-conventions.md`.
             this.ReportModelWeights = true;
+            // (`S182`, П154 24.09.2026) Ячейки отчётной меры — до ожидаемого
+            // счёта 5 (правило Кокрена для χ² Пирсона, Biometrics 10 (1954)
+            // 417). Порог взят из правила ДО замера, не подобран по пробе.
+            // Обратное плечо — 0 (ячейка = канал; проба
+            // `FsaReportWeightsProbe --pool=0`); числа — журнал
+            // `handover/handover-2026-09-24-p154-service-measures.md`.
+            this.ReportPoolVariance = 5.0;
             this.RefitZ = 3.0;
             // (`A266`, П11/П24 12.09.2026) ДОЛЯ ВЕРШИНЫ В ПОРОГЕ ОТСЕВА — ВКЛ.
             // Решение Amber 12.09.2026, вопросником, дословно: «ВКЛ 0.3 + полный
@@ -4721,6 +4984,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.Backscatter = true;
             this.CascadeSumming = true;
             this.CascadeSumPeaks = true;
+            // (`AMBER99`, П148) Вынос партнёром и из пиков вылета — ВКЛ: это
+            // исправление физики (арбитр Geant4 в описании свойства), а не
+            // новая настройка; выключенное — плечо до правки.
+            this.CascadeEscapeLoss = true;
             // S27: атомные партнёры каскада включены умолчанием. Окно
             // совпадения ноль — «прибор не назвал»; кто знает мёртвое время,
             // ставит его сам (FsaAnalysisSession берёт у InputDeviceConfig.DeadTime()).
@@ -4958,6 +5225,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.lightForm = LightForm.None;
             this.lightMarginBins = 0;
             this.PileUpCurveUsed = null;
+            this.PileUpLossUsed = double.NaN;
             // (`AMBER65`) Колонка наложений — на каждый разбор своя.
             this.pileUpColumn = null;
             // (`S169`) карта нуля — слово разбирается на каждый разбор.
@@ -5807,7 +6075,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (this.PileUp)
             {
-                FsaComponent pileUp = this.BuildPileUpComponent(raw, calibration, chLo, chHi, channels);
+                // (`AMBER76`, П148) Множитель убыли — по тому, чем нормирован
+                // спектр (<see cref="PileUpLossFor"/>); рычаг проб — снаружи.
+                double loss = this.PileUpLossMultiplier >= 1.0 && this.PileUpLossMultiplier <= 2.0
+                    ? this.PileUpLossMultiplier
+                    : PileUpLossFor(spectrum);
+                FsaComponent pileUp = this.BuildPileUpComponent(raw, calibration, chLo, chHi, channels, loss);
+                this.PileUpLossUsed = pileUp != null ? loss : double.NaN;
                 if (pileUp != null)
                 {
                     // Копия делается с `library`, а НЕ с `originalLibrary`: выше
@@ -6688,6 +6962,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // (`AMBER91`, П148) Множитель фона — до `BuildResult`: там считаются
+            // доли невязки, и дисперсии чистого счёта он нужен уже там.
+            this.resultBackgroundScale = background != null && backgroundScale > 0.0 ? backgroundScale : 0.0;
             FsaResult result = BuildResult(best, spectrum, fwhmCalibration, backgroundCurve, snipContinuum,
                                chLo, chHi, channels,
                                bestGain, bestOffset, liveTime, efficiency,
@@ -6835,6 +7112,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 (left, right) => string.CompareOrdinal(left.Name, right.Name));
             result.BackgroundRejected = backgroundRejected;
             result.BackgroundUsed = background != null && backgroundScale > 0.0;
+            // (`AMBER91`, П148) Множитель фона — дисперсии чистого счёта у доли невязки.
+            result.BackgroundScale = result.BackgroundUsed ? backgroundScale : 0.0;
             // Пределы считаются по ТОЙ библиотеке, что пошла в фит (S47): образ,
             // снятый гейтом вылета, кандидатом не был, и печатать ему МДА
             // значило бы отвечать «не обнаружен» про то, чего не искали.
@@ -8567,8 +8846,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             && lineIndex < correction.LineFactors.Length
                     ? correction.LineFactors[lineIndex]
                     : 1.0;
-                bool corrected = Math.Abs(cf - 1.0) >= 1.0E-6;
-                int peak = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
+                // (`AMBER99`) Доля, пережившая вынос, — на каналы вылета.
+                double[] survivals = this.EscapeSurvivals(correction, component);
+                double survive = survivals != null ? survivals[lineIndex] : 1.0;
+                bool peakCorrected = Math.Abs(cf - 1.0) >= 1.0E-6;
+                bool corrected = peakCorrected || Math.Abs(survive - 1.0) >= 1.0E-6;
                 if (matrix.HasChannels)
                 {
                     // Тем же путём, что и лента (`S3`): по каналам и суммой их
@@ -8577,7 +8859,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     for (int c = 0; c < EfficiencyMaker.EfficiencySimulator.ResponseChannelCount; c++)
                     {
                         this.AccumulateLine(matrix, deposit, line.Energy,
-                                            c == peak && corrected ? weight * cf : weight, c);
+                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive), c);
                     }
                 }
                 else if (corrected)
@@ -8585,7 +8867,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     for (int c = 0; c < EfficiencyMaker.EfficiencySimulator.ResponseChannelCount; c++)
                     {
                         this.AccumulateLine(matrix, deposit, line.Energy,
-                                            c == peak ? weight * cf : weight, c);
+                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive), c);
                     }
                 }
                 else
@@ -8889,6 +9171,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // то же число нужно пробам и корпусу. Модель — верх стека, С
             // хвостами образов (`S175`; без них — только по ключу проб,
             // `S173`), полоса — от `Min_Range` (`S174`).
+            result.BackgroundScale = this.resultBackgroundScale;
             result.ComputeResidualShares(spectrum.Spectrum);
 
             // ДОЛЯ — ОДНА МЕРА НА ВЕСЬ ПРОЕКТ, доля СЛОЯ (`S76`, решение Amber
@@ -9512,10 +9795,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Открыт наружу для пробы `AMBER62`: своей копии карты нуля у неё нет,
         /// а построй она положение линии сама — отказывала бы на карте, а не на
         /// мерке окна, то есть сторожила бы не то.
+        ///
+        /// (`AMBER89`, П144) Позиция — линии МАТРИЧНОГО образа, то есть на
+        /// E + s(E) после привязки (<see cref="LinePositionKev"/>), как её
+        /// ставит окно у такого образа; без матрицы s = 0 и число прежнее.
         /// </summary>
         public double LinePositionChannel(EnergyCalibration calibration, double energyKev, int channels)
         {
-            return this.LightToChannel(calibration, energyKev, channels);
+            return this.LightToChannel(calibration,
+                this.ResponseMatrix != null ? this.LinePositionKev(energyKev) : energyKev, channels);
         }
 
         /// <summary>
@@ -9609,6 +9897,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double floor = brightest * PeakWindowMinPeakSharePercent / 100.0;
+            // (`AMBER89`) Окно стоит там же, где пик ОБРАЗА: матричный образ
+            // формы света "line"/"peak" кладёт пик на E + s(E), голый пик
+            // (<see cref="BuildTemplate"/>, в том числе у компонента с готовыми
+            // весами) — на E. Правило то же, что у <see cref="PeakWindowLinePeakCounts"/>.
+            bool imageShifted = this.ResponseMatrix != null && !component.WeightsAreFinal;
             for (int i = 0; i < component.Lines.Count; i++)
             {
                 FsaLine line = component.Lines[i];
@@ -9619,7 +9912,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                if (MarkPeakWindow(inWindow, line.Energy, calibration, fwhmCalibration,
+                if (MarkPeakWindow(inWindow, line.Energy, imageShifted, calibration, fwhmCalibration,
                                    gain, offset, chLo, chHi, channels))
                 {
                     any = true;
@@ -9644,7 +9937,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 foreach (FsaCascadeSummer.SumPeak peak in correction.SumPeaks)
                 {
-                    if (MarkPeakWindow(inWindow, peak.Energy, calibration, fwhmCalibration,
+                    // сумм-пик кладётся матрицей (`AccumulateSumPeaks`) — по свету
+                    if (MarkPeakWindow(inWindow, peak.Energy, imageShifted, calibration, fwhmCalibration,
                                        gain, offset, chLo, chHi, channels))
                     {
                         any = true;
@@ -9801,8 +10095,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Пометить в маске каналы окна ±2 ПШПВ вокруг линии с учётом дрейфа
         /// шкалы. Возвращает false, если линия за краем окна фита или ПШПВ там
         /// не определена.
+        ///
+        /// ⛔ (`AMBER89`, П144 24.09.2026) Окно — на ПИКЕ ОБРАЗА, а не на E.
+        /// Матричный образ формы света "line"/"peak" (умолчание с 12.09.2026)
+        /// ставит пик на <see cref="LinePositionKev"/> = E + s(E); окно стояло
+        /// на E и было смещено от пика на −s: мерено `FsaWindowCentreProbe` на
+        /// G1S24 (NaI) — 59.5 кэВ −0.41 ПШПВ, 238.6 −0.12, 1274.5 +0.07,
+        /// 2614.5 +0.16. Тем же местом стоят ядро опоры и нож подпорогового
+        /// хвоста. <paramref name="imageShifted"/> — образ линии матричный
+        /// (у голого пика <see cref="BuildTemplate"/> пик на E, и окно там же).
         /// </summary>
-        bool MarkPeakWindow(bool[] inWindow, double energy, EnergyCalibration calibration,
+        bool MarkPeakWindow(bool[] inWindow, double energy, bool imageShifted, EnergyCalibration calibration,
                             FwhmCalibration fwhmCalibration, double gain, double offset,
                             int chLo, int chHi, int channels)
         {
@@ -9811,8 +10114,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return false;
             }
 
-            // (`S169`) окно — той же картой нуля, что ставит образ
-            double position = this.LightToChannel(calibration, energy, channels);
+            // (`S169`) окно — той же картой нуля, что ставит образ;
+            // (`AMBER89`) и на той же позиции по свету
+            double position = this.LightToChannel(calibration,
+                imageShifted ? this.LinePositionKev(energy) : energy, channels);
             if (!Finite(position))
             {
                 return false;
@@ -9994,7 +10299,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>
         /// (`AMBER65`) Сумм-область ЭТОГО фита: каналы, содержимое которых
         /// модель объясняет ПРЕИМУЩЕСТВЕННО наложениями — приход колонки
-        /// положителен (перевесил убыль `−2s`) и составляет не меньше
+        /// положителен (перевесил убыль `−m·s`) и составляет не меньше
         /// <see cref="PileUpAnchorShare"/> всей модели канала.
         ///
         /// Считается на каждом проходе от самой модели, а не один раз от
@@ -10142,10 +10447,54 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double[] report = this.ReportWeights(best, reportWeights, chLo, chHi);
                 double chi2Base = 0.0;
                 double dataWeighted = 0.0;
-                for (int i = chLo; i <= chHi; i++)
+
+                // (`S182`, П154 24.09.2026) Ячейки меры — объединённые каналы
+                // (<see cref="ReportPoolVariance"/>): только при весах по
+                // ожиданию, потому что правило объединения — по ожидаемому
+                // счёту. Иначе ячейка — канал, как было.
+                double[] poolVariance = null;
+                int[] pool = this.ReportModelWeights && this.ReportPoolVariance > 0.0
+                             && this.reportNoise != null && best.Model != null
+                    ? PoolReportChannels(report, chLo, chHi, this.ReportPoolVariance, out poolVariance)
+                    : null;
+                if (pool == null)
                 {
-                    chi2Base += best.Residual[i] * best.Residual[i] * report[i];
-                    dataWeighted += y[i] * y[i] * report[i];
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        chi2Base += best.Residual[i] * best.Residual[i] * report[i];
+                        dataWeighted += y[i] * y[i] * report[i];
+                    }
+                }
+                else
+                {
+                    // Ячейка — отрезок подряд идущих каналов: член χ² —
+                    // `(Σr)²/Σv`, член знаменателя ε — `Σy²/Σv` (ошибка модели
+                    // канала независима, её дисперсия в ячейке складывается).
+                    // Для ячейки из одного канала оба совпадают с поканальными.
+                    int current = -1;
+                    double sumR = 0.0, sumY2 = 0.0;
+                    for (int i = chLo; i <= chHi + 1; i++)
+                    {
+                        int b = i <= chHi ? pool[i] : -1;
+                        if (b != current)
+                        {
+                            if (current >= 0 && poolVariance[current] > 0.0)
+                            {
+                                chi2Base += sumR * sumR / poolVariance[current];
+                                dataWeighted += sumY2 / poolVariance[current];
+                            }
+
+                            current = b;
+                            sumR = 0.0;
+                            sumY2 = 0.0;
+                        }
+
+                        if (b >= 0)
+                        {
+                            sumR += best.Residual[i];
+                            sumY2 += y[i] * y[i];
+                        }
+                    }
                 }
 
                 // (`A291`) Второй ПОДСЧЁТ здесь был копией формулы и ошибался
@@ -10180,15 +10529,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // совпавших весах формула сводится ровно к `EffectiveNdf`
                 // (`n − 2tr S + tr S²`), а при λ = 0 — к `n − активных`.
                 // Поэтому отдельной ветки `SameWeights` больше нет.
-                double exact = ReportNdf(best, report, chLo, chHi);
+                double exact = pool == null
+                    ? ReportNdf(best, report, chLo, chHi)
+                    : ReportNdfPooled(best, report, pool, poolVariance, chLo, chHi);
                 if (exact > 0.0)
                 {
                     best.NdfBase = exact;
                 }
 
+                int cells = chHi - chLo + 1;
+                if (pool != null)
+                {
+                    cells = 0;
+                    foreach (double v in poolVariance)
+                    {
+                        if (v > 0.0)
+                        {
+                            cells++;
+                        }
+                    }
+                }
+
                 double ndf = best.NdfBase > 0.0
                     ? best.NdfBase
-                    : Math.Max(1, (chHi - chLo + 1) - ActiveCount(best.Active));
+                    : Math.Max(1, cells - ActiveCount(best.Active));
                 best.Chi2NdfBase = chi2Base / ndf;
 
                 // (S51) НЕВЯЗКА МОДЕЛИ ε — доля формы спектра, которую модель НЕ
@@ -10461,6 +10825,230 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double ndf = n - 2.0 * traceH + traceMN;
+            return ndf > 1.0 ? ndf : 1.0;
+        }
+
+        /// <summary>
+        /// (`S182`, П154 24.09.2026) Ячейки ОТЧЁТНОЙ меры: каналы полосы
+        /// подряд, слева направо, собираются в отрезок, пока сумма отчётной
+        /// дисперсии `Σv` (`v = 1/w₀` = μ̂ + Extra, ожидаемый счёт) не
+        /// достигнет <paramref name="threshold"/>; хвост, порога не набравший,
+        /// приклеивается к последней ячейке. Канал с нулевым отчётным весом
+        /// (модель там не положительна) входит в ячейку с `v = 0`: его
+        /// отсчёты — улика против модели, и выбрасывать их нельзя.
+        /// Возвращает номер ячейки канала (−1 вне полосы) и `Σv` ячеек.
+        /// Довод и замер — у <see cref="ReportPoolVariance"/>.
+        /// </summary>
+        static int[] PoolReportChannels(double[] report, int chLo, int chHi, double threshold,
+                                        out double[] cellVariance)
+        {
+            int[] cell = new int[report.Length];
+            for (int i = 0; i < cell.Length; i++)
+            {
+                cell[i] = -1;
+            }
+
+            var sums = new List<double>();
+            int current = 0;
+            double acc = 0.0;
+            bool open = false;
+            for (int i = chLo; i <= chHi && i < report.Length; i++)
+            {
+                double v = report[i] > 0.0 ? 1.0 / report[i] : 0.0;
+                cell[i] = current;
+                acc += v;
+                open = true;
+                if (acc >= threshold)
+                {
+                    sums.Add(acc);
+                    current++;
+                    acc = 0.0;
+                    open = false;
+                }
+            }
+
+            if (open)
+            {
+                if (sums.Count > 0)
+                {
+                    for (int i = chLo; i <= chHi && i < report.Length; i++)
+                    {
+                        if (cell[i] == current)
+                        {
+                            cell[i] = current - 1;
+                        }
+                    }
+
+                    sums[current - 1] += acc;
+                }
+                else
+                {
+                    sums.Add(acc);
+                }
+            }
+
+            cellVariance = sums.ToArray();
+            return cell;
+        }
+
+        /// <summary>
+        /// (`S182`, П154 24.09.2026) Точное ожидание отчётного χ² ОБЪЕДИНЁННЫХ
+        /// ячеек — тот же след, что <see cref="ReportNdf"/>, но с агрегацией
+        /// `P` каналов в ячейки: `tr(PᵀDP(I−H)V(I−H)ᵀ)`, `D = diag(1/Σv)`,
+        /// `V = diag(v)`, `H = X G⁻¹ XᵀW`. Раскладывается снова на `p×p`:
+        ///
+        ///     tr = ячеек − 2·tr(G⁻¹A′) + tr(G⁻¹ M G⁻¹ N′),
+        ///     A′ = Σ_c (1/V_c)·u_c·s_cᵀ,  u_c = Σ_{i∈c} w_i v_i x_i,  s_c = Σ_{i∈c} x_i,
+        ///     M  = Σ_i w_i² v_i x_i x_iᵀ,  N′ = Σ_c (1/V_c)·s_c·s_cᵀ.
+        ///
+        /// Для ячейки из одного канала `A′`, `M`, `N′` совпадают с `A`, `M`,
+        /// `N` поканального следа (`v = 1/w₀`), то есть формула — обобщение,
+        /// а не вторая копия. Ячейка с `Σv = 0` выпадает И из χ², И отсюда.
+        /// </summary>
+        static double ReportNdfPooled(FitResult fit, double[] report, int[] cell, double[] cellVariance,
+                                      int chLo, int chHi)
+        {
+            if (fit == null || report == null || cell == null || cellVariance == null
+                || fit.Columns == null || fit.ActiveIndices == null || fit.ActiveInverse == null
+                || fit.Weights == null)
+            {
+                return 0.0;
+            }
+
+            int p = fit.ActiveIndices.Count;
+            if (p == 0)
+            {
+                return 0.0;
+            }
+
+            double[] solver = fit.Weights;
+            var x = new double[p][];
+            for (int a = 0; a < p; a++)
+            {
+                int index = fit.ActiveIndices[a];
+                if (index < 0 || index >= fit.Columns.Count)
+                {
+                    return 0.0;
+                }
+
+                x[a] = fit.Columns[index].Values;
+                if (x[a] == null)
+                {
+                    return 0.0;
+                }
+            }
+
+            var A = new double[p, p];
+            var M = new double[p, p];
+            var N = new double[p, p];
+            var u = new double[p];
+            var s = new double[p];
+            int cells = 0;
+            int current = -1;
+            for (int i = chLo; i <= chHi + 1; i++)
+            {
+                int c = -1;
+                if (i <= chHi)
+                {
+                    if (i >= report.Length || i >= solver.Length || i >= cell.Length)
+                    {
+                        return 0.0;
+                    }
+
+                    c = cell[i];
+                }
+
+                if (c != current)
+                {
+                    if (current >= 0 && current < cellVariance.Length && cellVariance[current] > 0.0)
+                    {
+                        double inv = 1.0 / cellVariance[current];
+                        cells++;
+                        for (int a = 0; a < p; a++)
+                        {
+                            if (u[a] == 0.0 && s[a] == 0.0)
+                            {
+                                continue;
+                            }
+
+                            for (int k = 0; k < p; k++)
+                            {
+                                A[a, k] += inv * u[a] * s[k];
+                                N[a, k] += inv * s[a] * s[k];
+                            }
+                        }
+                    }
+
+                    current = c;
+                    Array.Clear(u, 0, p);
+                    Array.Clear(s, 0, p);
+                }
+
+                if (c < 0)
+                {
+                    continue;
+                }
+
+                double v = report[i] > 0.0 ? 1.0 / report[i] : 0.0;
+                double w = solver[i];
+                double mw = w * w * v;
+                for (int a = 0; a < p; a++)
+                {
+                    double xa = x[a][i];
+                    if (xa == 0.0)
+                    {
+                        continue;
+                    }
+
+                    u[a] += w * v * xa;
+                    s[a] += xa;
+                    if (mw == 0.0)
+                    {
+                        continue;
+                    }
+
+                    for (int b = a; b < p; b++)
+                    {
+                        M[a, b] += mw * xa * x[b][i];
+                    }
+                }
+            }
+
+            for (int a = 0; a < p; a++)
+            {
+                for (int b = a + 1; b < p; b++)
+                {
+                    M[b, a] = M[a, b];
+                }
+            }
+
+            double[,] inverse = fit.ActiveInverse;
+            if (inverse.GetLength(0) < p || inverse.GetLength(1) < p || cells == 0)
+            {
+                return 0.0;
+            }
+
+            double traceH = 0.0;
+            for (int a = 0; a < p; a++)
+            {
+                for (int k = 0; k < p; k++)
+                {
+                    traceH += inverse[a, k] * A[k, a];
+                }
+            }
+
+            double[,] left = Multiply(inverse, M, p);    // G⁻¹M
+            double[,] right = Multiply(inverse, N, p);   // G⁻¹N′
+            double traceMN = 0.0;
+            for (int a = 0; a < p; a++)
+            {
+                for (int k = 0; k < p; k++)
+                {
+                    traceMN += left[a, k] * right[k, a];
+                }
+            }
+
+            double ndf = cells - 2.0 * traceH + traceMN;
             return ndf > 1.0 ? ndf : 1.0;
         }
 
@@ -10926,23 +11514,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// новой физики не нужно, и ширина получается правильной сама:
         /// свёртка двух пиков с ПШПВ w даёт w·√2, как и положено сумме.
         ///
-        /// СОБЫТИЯ ПЕРЕНОСЯТСЯ, А НЕ ДОБАВЛЯЮТСЯ — И ПЕРЕНОС НЕ СОХРАНЯЕТ
-        /// СЧЁТ. Наложившаяся пара уходит с ОБЕИХ своих энергий и приходит
-        /// ОДНИМ отсчётом на сумму, поэтому образ равен `(s⊗s)/N − 2·s`:
-        /// приход автосвёрткой И убыль удвоенным спектром (первый порядок по
-        /// доле пар Rτ: `s' = s·(1 − 2Rτ) + Rτ·(s⊗s)/N`, Wielopolski &amp;
-        /// Gardner, NIM 133 (1976) 303; Knoll, гл. 17). Колонка знакопеременна,
-        /// интеграл её равен −N: из каждой пары один отсчёт теряется.
+        /// СОБЫТИЯ ПЕРЕНОСЯТСЯ, А НЕ ДОБАВЛЯЮТСЯ. Наложившаяся пара приходит
+        /// ОДНИМ отсчётом на сумму, поэтому образ равен `(s⊗s)/N − m·s`:
+        /// приход автосвёрткой и убыль спектром, помноженным на `m` — столько
+        /// импульсов пары теряет спектр, ДЕЛЁННЫЙ НА ЗНАМЕНАТЕЛЬ РАЗБОРА.
+        /// На ПОЛНОМ времени `m = 2`: пара уходит с обеих своих энергий
+        /// (первый порядок по доле пар Rτ: `s' = s·(1 − 2Rτ) + Rτ·(s⊗s)/N`,
+        /// Wielopolski &amp; Gardner, NIM 133 (1976) 303; Knoll, гл. 17), интеграл
+        /// колонки −N. На ЖИВОМ времени `m = 1`: второй импульс пришёл в
+        /// мёртвое время первого, и его потерю уже возместило деление на живое
+        /// время (Gedcke, ORTEC AN63), интеграл ноль. Правило и замер — у
+        /// <see cref="PileUpLossFor"/> (`AMBER76`, П148 24.09.2026).
         ///
         /// ⛔ (`AMBER49`, П120 22.09.2026) До того убыль вычиталась ОДИН раз
-        /// (`(s⊗s)/N − s`, интеграл ноль, «перенос»). Амплитуду колонки
-        /// закрепляет сумм-пик, поэтому из фотопиков вынималась половина
-        /// убыли, и вторую половину брали на себя образы нуклидов: активности
-        /// ВСЕХ нуклидов спектра выходили заниженными на долю пар Rτ.
-        /// Измерено `FsaPileUpProbe` подсадкой пар с известной долей f в
-        /// «Cs 137 в домике»: смещение Cs-137 −0.00507 / −0.01010 / −0.02037
-        /// при f = 0.005 / 0.01 / 0.02 (то есть ровно −f) до правки; после —
-        /// см. журнал `handover/handover-2026-09-22-p120-fsa-pileup-livetime.md`.
+        /// на любом спектре; П120 поставила ДВЕ на любом — по подсадке, не
+        /// менявшей живого времени, то есть по той же посылке «спектр на
+        /// полное время» (журнал
+        /// `handover/handover-2026-09-22-p120-fsa-pileup-livetime.md`). ⛔
+        /// (`AMBER76`, П148 24.09.2026) На спектре с живым временем две массы
+        /// завышали активности ВСЕХ нуклидов на долю пар Rτ: подсадка
+        /// `FsaPileUpProbe --lt=dead` («уходит первый импульс, партнёр — из
+        /// мёртвого времени») на «Cs 137 в домике» — смещение Cs-137
+        /// +0.00541 / +0.01084 / +0.02059 при f = 0.005 / 0.01 / 0.02, то есть
+        /// ровно +f; числа после правки — журнал
+        /// `handover/handover-2026-09-24-p148-pileup-summing.md`.
         /// Одна убыль без прихода (или наоборот) — не приближение, а другая
         /// физика: первая версия считала только приход, и фит, получив
         /// колонку, которая умеет только добавлять счёт, разъехался —
@@ -10969,7 +11564,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// форма отличается ТОЛЬКО функцией координаты и делением бина суммы.
         /// </summary>
         FsaComponent BuildPileUpComponent(int[] raw, EnergyCalibration calibration,
-                                          int chLo, int chHi, int channels)
+                                          int chLo, int chHi, int channels, double loss)
         {
             const double BinKev = 4.0;
 
@@ -11076,13 +11671,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            // Убыль: пара ушла с ОБЕИХ своих энергий — два отсчёта, а пришёл
-            // один. Интеграл колонки после этого равен −N (до деления): счёт
-            // при наложениях теряется, а не переносится. ⛔ (`AMBER49`) До
-            // 22.09.2026 здесь вычиталась одна масса `byEnergy[k]`, и модель
-            // вынимала из фотопиков вдвое меньше, чем надо; измерено
-            // `FsaPileUpProbe` — смещение активности ровно −f при подсадке пар
-            // долей f.
+            // Убыль: `loss` масс спектра на пару — две на полном времени (пара
+            // ушла с обеих энергий, интеграл колонки −N), одна на живом (второй
+            // импульс возмещён делением на живое время, интеграл ноль).
+            // ⛔ (`AMBER49` → `AMBER76`) Множитель — по тому, чем нормирован
+            // спектр, а не одно число на всех: см. <see cref="PileUpLossFor"/>.
             //
             // И сразу ДЕЛИМ НА ПОЛНЫЙ СЧЁТ. Без этого колонка идёт в единицах
             // отсчётов (до миллиона на канал), а образы линий — в долях на
@@ -11092,7 +11685,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // амплитуда колонки равна теперь Rτ·N (число пар), а не Rτ.
             for (int k = 0; k < bins; k++)
             {
-                pile[k] = (pile[k] - 2.0 * byEnergy[k]) / total;
+                pile[k] = (pile[k] - loss * byEnergy[k]) / total;
             }
 
             // Обратно на шкалу каналов, с сохранением площади: в канал идёт та
@@ -11813,7 +12406,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // на энергию линии не доезжал до ленты.
             int length = EfficiencyMaker.ResponseMatrix.ImageBins(topEnergy, bin) + this.lightMarginBins;
             int channelCount = EfficiencyMaker.EfficiencySimulator.ResponseChannelCount;
-            int peak = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
             bool byChannels = matrix.HasChannels;
             double[] deposit = new double[length];
             double[][] channels = null;
@@ -11827,6 +12419,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             bool anyLine = false;
+            // (`AMBER99`) Доли, пережившие вынос партнёром, — по линиям.
+            double[] survivals = this.EscapeSurvivals(correction, component);
             for (int i = 0; i < component.Lines.Count; i++)
             {
                 FsaLine line = component.Lines[i];
@@ -11838,19 +12432,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // Эффективность НЕ применяется: она уже внутри отклика.
                 double weight = line.Intensity / 100.0;
                 double cf = correction != null ? correction.LineFactors[i] : 1.0;
-                bool corrected = Math.Abs(cf - 1.0) >= 1.0E-6;
+                double survive = survivals != null ? survivals[i] : 1.0;
+                bool peakCorrected = Math.Abs(cf - 1.0) >= 1.0E-6;
+                bool corrected = peakCorrected || Math.Abs(survive - 1.0) >= 1.0E-6;
                 if (byChannels)
                 {
-                    // Поправка ложится ТОЛЬКО на канал пика: вынос из пика —
-                    // чистая потеря, а континуум столько же теряет своих
-                    // событий, сколько получает чужих сумм, и в первом порядке
-                    // остаётся при своём. Ради ЭТОГО каналы и разделены: по
-                    // суммарной строке ту же поправку пришлось бы одинаково
-                    // растянуть и на пик, и на весь хвост.
+                    // Поправка на пик — CF (вынос и влёт); на каналы ВЫЛЕТА и
+                    // заноса аннигиляции извне — только вынос (`AMBER99`, П148:
+                    // партнёр уносит событие из любого отклика постоянного
+                    // положения, а сумма на энергию вылета не приходит). Континуум
+                    // столько же теряет своих событий, сколько получает чужих
+                    // сумм, и в первом порядке остаётся при своём. Ради ЭТОГО
+                    // каналы и разделены: по суммарной строке ту же поправку
+                    // пришлось бы одинаково растянуть и на пик, и на весь хвост.
                     for (int c = 0; c < channelCount; c++)
                     {
                         this.AccumulateLine(matrix, channels[c], line.Energy,
-                                            c == peak && corrected ? weight * cf : weight, c);
+                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive), c);
                     }
                 }
                 else if (corrected)
@@ -11858,7 +12456,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     for (int c = 0; c < channelCount; c++)
                     {
                         this.AccumulateLine(matrix, deposit, line.Energy,
-                                            c == peak ? weight * cf : weight, c);
+                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive), c);
                     }
                 }
                 else
@@ -12596,7 +13194,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             // ⛔ (`AMBER72`, П134 22.09.2026) СВЕТ ВЫШЕ ВЕРХА ШКАЛЫ ПРОДОЛЖАЕТСЯ
-            // ЗА НЕЁ, А НЕ ЗАЖИМАЕТСЯ В ПОСЛЕДНИЙ КАНАЛ. `EnergyToChannel`
+            // ЗА НЕЁ, А НЕ ЗАЖИМАЕТСЯ В ПОСЛЕДНИЙ КАНАЛ. (`AMBER90`/`AMBER85`,
+            // П144) Продолжение переехало в <see cref="LightToChannel"/> — одно
+            // на таблицу бинов, голые пики, окно и опоры, и вниз тоже: свет
+            // ниже E(0) прежде ложился стопкой в нулевой канал. `EnergyToChannel`
             // отдаёт `maxChannels` всему, что выше `E(N)`
             // (`PolynomialEnergyCalibration.cs:253`), а `Splat` канал `N`
             // принимает — и ВСЯ надшкальная часть отклика (сумм-пик каскада,
@@ -12612,17 +13213,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // линейно по ширине верхнего канала: пик стоит там, где он есть,
             // хвост ложится куда следует, а что ушло дальше запаса — отбросит
             // сам <see cref="Splat"/>.
-            double topKev = calibration.ChannelToEnergy(channels);
-            double stepKev = topKev - calibration.ChannelToEnergy(channels - 1);
-            bool extend = channels > 0 && Finite(topKev) && PositiveFinite(stepKev);
-
             double[] table = new double[count];
             for (int b = 0; b < count; b++)
             {
-                double energyKev = this.LightEnergyKev(b * bin);
-                table[b] = extend && energyKev > topKev
-                    ? channels + (energyKev - topKev) / stepKev
-                    : this.LightToChannel(calibration, b * bin, channels);
+                table[b] = this.LightToChannel(calibration, b * bin, channels);
             }
 
             this.depositChannels = table;

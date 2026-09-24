@@ -1,0 +1,131 @@
+BecqMoni: main config: D:\BqMoni_Claude\p148\wd_mb\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p148\wd_mb\config\device: 3 loaded
+BecqMoni: nuclide library: D:\BqMoni_Claude\p148\wd_mb\config\NuclideDefinition.xml: 33 entries
+SETUP	прибор: Atom Spectra 80x80
+состав: выведено из пиков: 9 из 16 подписаны, родителей 1 из 1, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; Th-232 53 % (8/15, пиков 8) — доля выше порога; оборванный ряд: подцепочка разобрана у 0 кандидатов
+SETUP	FsaAnalyzer.CascadeEscapeLoss НЕТ (сборка до П148)
+образ с самым сильным выносом из пика: Tl-208 (пик с/без 0.85612)
+
+компонент	канал	без суммирования	с суммированием	с/без	контроль (вылет без выноса)	контроль/без
+ESC	Th-232	Peak	1.53031E-001	1.53037E-001	1.00004	NaN	NaN
+ESC	Th-232	Compton	2.90165E-002	2.90211E-002	1.00016	NaN	NaN
+ESC	Th-232	EscapeAnnihilation	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Th-232	EscapeXrayK	1.59978E-003	1.59990E-003	1.00007	NaN	NaN
+   ⛔ КОНТРОЛЬ: Th-232 / EscapeXrayK: при CascadeEscapeLoss = false с/без NaN — не 1
+ESC	Th-232	EscapeAnnihilationDouble	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Th-232	EscapeXrayL	3.96367E-005	3.96454E-005	1.00022	NaN	NaN
+   ⛔ КОНТРОЛЬ: Th-232 / EscapeXrayL: при CascadeEscapeLoss = false с/без NaN — не 1
+ESC	Th-232	AnnihilationOutside	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Ra-228	Peak	5.87246E-005	5.80089E-005	0.98781	NaN	NaN
+ESC	Ra-228	Compton	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Ra-228	EscapeAnnihilation	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Ra-228	EscapeXrayK	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Ra-228	EscapeAnnihilationDouble	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Ra-228	EscapeXrayL	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Ra-228	AnnihilationOutside	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Ac-228	Peak	1.90841E+002	1.81036E+002	0.94862	NaN	NaN
+ESC	Ac-228	Compton	2.34246E+002	2.34298E+002	1.00022	NaN	NaN
+ESC	Ac-228	EscapeAnnihilation	2.40895E-001	2.40930E-001	1.00014	NaN	NaN
+   ⛔ КОНТРОЛЬ: Ac-228 / EscapeAnnihilation: при CascadeEscapeLoss = false с/без NaN — не 1
+   ⛔ ПРИГОВОР: Ac-228 / EscapeAnnihilation: пик теряет (0.94862), а вылет нет: с/без 1.00014 против контроля NaN
+ESC	Ac-228	EscapeXrayK	1.85294E+000	1.85415E+000	1.00065	NaN	NaN
+   ⛔ КОНТРОЛЬ: Ac-228 / EscapeXrayK: при CascadeEscapeLoss = false с/без NaN — не 1
+   ⛔ ПРИГОВОР: Ac-228 / EscapeXrayK: пик теряет (0.94862), а вылет нет: с/без 1.00065 против контроля NaN
+ESC	Ac-228	EscapeAnnihilationDouble	1.39971E-001	1.39972E-001	1.00001	NaN	NaN
+   ⛔ КОНТРОЛЬ: Ac-228 / EscapeAnnihilationDouble: при CascadeEscapeLoss = false с/без NaN — не 1
+   ⛔ ПРИГОВОР: Ac-228 / EscapeAnnihilationDouble: пик теряет (0.94862), а вылет нет: с/без 1.00001 против контроля NaN
+ESC	Ac-228	EscapeXrayL	2.57150E-003	2.57289E-003	1.00054	NaN	NaN
+ESC	Ac-228	AnnihilationOutside	2.03266E-001	2.03267E-001	1.00000	NaN	NaN
+   ⛔ КОНТРОЛЬ: Ac-228 / AnnihilationOutside: при CascadeEscapeLoss = false с/без NaN — не 1
+   ⛔ ПРИГОВОР: Ac-228 / AnnihilationOutside: пик теряет (0.94862), а вылет нет: с/без 1.00000 против контроля NaN
+ESC	Th-228	Peak	2.35320E+000	2.35324E+000	1.00001	NaN	NaN
+ESC	Th-228	Compton	6.42362E-001	6.42374E-001	1.00002	NaN	NaN
+ESC	Th-228	EscapeAnnihilation	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Th-228	EscapeXrayK	2.29751E-002	2.29755E-002	1.00002	NaN	NaN
+   ⛔ КОНТРОЛЬ: Th-228 / EscapeXrayK: при CascadeEscapeLoss = false с/без NaN — не 1
+ESC	Th-228	EscapeAnnihilationDouble	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Th-228	EscapeXrayL	1.38769E-004	1.38770E-004	1.00001	NaN	NaN
+ESC	Th-228	AnnihilationOutside	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Ra-224	Peak	1.28968E+001	1.28968E+001	1.00000	NaN	NaN
+ESC	Ra-224	Compton	5.46745E+000	5.46753E+000	1.00002	NaN	NaN
+ESC	Ra-224	EscapeAnnihilation	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Ra-224	EscapeXrayK	1.21023E-001	1.21024E-001	1.00001	NaN	NaN
+   ⛔ КОНТРОЛЬ: Ra-224 / EscapeXrayK: при CascadeEscapeLoss = false с/без NaN — не 1
+ESC	Ra-224	EscapeAnnihilationDouble	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Ra-224	EscapeXrayL	1.49886E-004	1.49888E-004	1.00001	NaN	NaN
+ESC	Ra-224	AnnihilationOutside	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Rn-220	Peak	2.28452E-001	2.28445E-001	0.99997	NaN	NaN
+ESC	Rn-220	Compton	2.16122E-001	2.16122E-001	1.00000	NaN	NaN
+ESC	Rn-220	EscapeAnnihilation	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Rn-220	EscapeXrayK	9.39036E-004	9.39057E-004	1.00002	NaN	NaN
+   ⛔ КОНТРОЛЬ: Rn-220 / EscapeXrayK: при CascadeEscapeLoss = false с/без NaN — не 1
+ESC	Rn-220	EscapeAnnihilationDouble	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Rn-220	EscapeXrayL	1.17984E-006	1.17980E-006	0.99997	NaN	NaN
+ESC	Rn-220	AnnihilationOutside	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Po-216	Peak	2.83002E-003	2.82997E-003	0.99998	NaN	NaN
+ESC	Po-216	Compton	4.37853E-003	4.37857E-003	1.00001	NaN	NaN
+ESC	Po-216	EscapeAnnihilation	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Po-216	EscapeXrayK	9.93847E-006	9.93826E-006	0.99998	NaN	NaN
+   ⛔ КОНТРОЛЬ: Po-216 / EscapeXrayK: при CascadeEscapeLoss = false с/без NaN — не 1
+ESC	Po-216	EscapeAnnihilationDouble	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Po-216	EscapeXrayL	1.99613E-008	1.99610E-008	0.99998	NaN	NaN
+ESC	Po-216	AnnihilationOutside	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Pb-212	Peak	1.69071E+002	1.68559E+002	0.99697	NaN	NaN
+ESC	Pb-212	Compton	6.68683E+001	6.68696E+001	1.00002	NaN	NaN
+ESC	Pb-212	EscapeAnnihilation	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Pb-212	EscapeXrayK	1.83636E+000	1.83650E+000	1.00007	NaN	NaN
+   ⛔ КОНТРОЛЬ: Pb-212 / EscapeXrayK: при CascadeEscapeLoss = false с/без NaN — не 1
+   ⛔ ПРИГОВОР: Pb-212 / EscapeXrayK: пик теряет (0.99697), а вылет нет: с/без 1.00007 против контроля NaN
+ESC	Pb-212	EscapeAnnihilationDouble	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Pb-212	EscapeXrayL	5.35286E-003	5.35290E-003	1.00001	NaN	NaN
+ESC	Pb-212	AnnihilationOutside	0.00000E+000	0.00000E+000	NaN	NaN	NaN
+ESC	Bi-212	Peak	1.82857E+001	1.76379E+001	0.96457	NaN	NaN
+ESC	Bi-212	Compton	3.97730E+001	3.97818E+001	1.00022	NaN	NaN
+ESC	Bi-212	EscapeAnnihilation	6.40997E-002	6.41063E-002	1.00010	NaN	NaN
+   ⛔ КОНТРОЛЬ: Bi-212 / EscapeAnnihilation: при CascadeEscapeLoss = false с/без NaN — не 1
+   ⛔ ПРИГОВОР: Bi-212 / EscapeAnnihilation: пик теряет (0.96457), а вылет нет: с/без 1.00010 против контроля NaN
+ESC	Bi-212	EscapeXrayK	1.23227E-001	1.23253E-001	1.00021	NaN	NaN
+   ⛔ КОНТРОЛЬ: Bi-212 / EscapeXrayK: при CascadeEscapeLoss = false с/без NaN — не 1
+   ⛔ ПРИГОВОР: Bi-212 / EscapeXrayK: пик теряет (0.96457), а вылет нет: с/без 1.00021 против контроля NaN
+ESC	Bi-212	EscapeAnnihilationDouble	3.80187E-002	3.80191E-002	1.00001	NaN	NaN
+   ⛔ КОНТРОЛЬ: Bi-212 / EscapeAnnihilationDouble: при CascadeEscapeLoss = false с/без NaN — не 1
+   ⛔ ПРИГОВОР: Bi-212 / EscapeAnnihilationDouble: пик теряет (0.96457), а вылет нет: с/без 1.00001 против контроля NaN
+ESC	Bi-212	EscapeXrayL	1.70666E-003	1.70770E-003	1.00061	NaN	NaN
+ESC	Bi-212	AnnihilationOutside	6.66179E-002	6.66291E-002	1.00017	NaN	NaN
+   ⛔ КОНТРОЛЬ: Bi-212 / AnnihilationOutside: при CascadeEscapeLoss = false с/без NaN — не 1
+   ⛔ ПРИГОВОР: Bi-212 / AnnihilationOutside: пик теряет (0.96457), а вылет нет: с/без 1.00017 против контроля NaN
+ESC	Tl-208	Peak	1.11829E+002	9.57391E+001	0.85612	NaN	NaN
+ESC	Tl-208	Compton	1.73237E+002	1.73319E+002	1.00047	NaN	NaN
+ESC	Tl-208	EscapeAnnihilation	6.02451E+000	6.02593E+000	1.00024	NaN	NaN
+   ⛔ КОНТРОЛЬ: Tl-208 / EscapeAnnihilation: при CascadeEscapeLoss = false с/без NaN — не 1
+   ⛔ ПРИГОВОР: Tl-208 / EscapeAnnihilation: пик теряет (0.85612), а вылет нет: с/без 1.00024 против контроля NaN
+   ⛔ ПРИГОВОР: Tl-208 / EscapeAnnihilation: с/без 1.00024 не ниже 0.92806 — вынос из вылета меньше половины выноса из пика
+ESC	Tl-208	EscapeXrayK	4.63326E-001	4.63439E-001	1.00024	NaN	NaN
+   ⛔ КОНТРОЛЬ: Tl-208 / EscapeXrayK: при CascadeEscapeLoss = false с/без NaN — не 1
+   ⛔ ПРИГОВОР: Tl-208 / EscapeXrayK: пик теряет (0.85612), а вылет нет: с/без 1.00024 против контроля NaN
+   ⛔ ПРИГОВОР: Tl-208 / EscapeXrayK: с/без 1.00024 не ниже 0.92806 — вынос из вылета меньше половины выноса из пика
+ESC	Tl-208	EscapeAnnihilationDouble	3.47713E+000	3.48031E+000	1.00091	NaN	NaN
+   ⛔ КОНТРОЛЬ: Tl-208 / EscapeAnnihilationDouble: при CascadeEscapeLoss = false с/без NaN — не 1
+   ⛔ ПРИГОВОР: Tl-208 / EscapeAnnihilationDouble: пик теряет (0.85612), а вылет нет: с/без 1.00091 против контроля NaN
+   ⛔ ПРИГОВОР: Tl-208 / EscapeAnnihilationDouble: с/без 1.00091 не ниже 0.92806 — вынос из вылета меньше половины выноса из пика
+ESC	Tl-208	EscapeXrayL	5.56750E-004	5.56886E-004	1.00024	NaN	NaN
+ESC	Tl-208	AnnihilationOutside	4.09914E+000	4.10483E+000	1.00139	NaN	NaN
+   ⛔ КОНТРОЛЬ: Tl-208 / AnnihilationOutside: при CascadeEscapeLoss = false с/без NaN — не 1
+   ⛔ ПРИГОВОР: Tl-208 / AnnihilationOutside: пик теряет (0.85612), а вылет нет: с/без 1.00139 против контроля NaN
+   ⛔ ПРИГОВОР: Tl-208 / AnnihilationOutside: с/без 1.00139 не ниже 0.92806 — вынос из вылета меньше половины выноса из пика
+
+χ²/ndf: без суммирования 2.7640, с суммированием 2.7200
+RATE	Th-232	Single	без 902.40326814550167	с 997.11699263348044	контроль NaN
+RATE	Ra-228	Single	без 902.40326814550167	с 997.11699263348044	контроль NaN
+RATE	Ac-228	Single	без 902.40326814550167	с 997.11699263348044	контроль NaN
+RATE	Th-228	Single	без 902.40326814550167	с 997.11699263348044	контроль NaN
+RATE	Ra-224	Single	без 902.40326814550167	с 997.11699263348044	контроль NaN
+RATE	Rn-220	Single	без 902.40326814550167	с 997.11699263348044	контроль NaN
+RATE	Po-216	Single	без 902.40326814550167	с 997.11699263348044	контроль NaN
+RATE	Pb-212	Single	без 902.40326814550167	с 997.11699263348044	контроль NaN
+RATE	Bi-212	Single	без 902.40326814550167	с 997.11699263348044	контроль NaN
+RATE	Tl-208	Single	без 902.40326814550167	с 997.11699263348044	контроль NaN
+RATE	Xray-Th-L	Nuisance	без 26612.535400699508	с 18966.490162198428	контроль NaN
+RATE	Xray-Th	Nuisance	без 156.6920433328138	с 143.34505504005202	контроль NaN
+RATE	Xray-Pb	Nuisance	без 1780.2161595180437	с 1748.0094544589076	контроль NaN
+НЕ СОШЛОСЬ: 36

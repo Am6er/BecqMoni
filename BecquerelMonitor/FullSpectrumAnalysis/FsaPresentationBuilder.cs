@@ -581,14 +581,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // `n` несёт разделитель РАЗРЯДОВ даже на инвариантной культуре
             // (`1234.5` → `1,234.50`), а группировки разрядов нет вовсе. То же
             // у χ²/ndf ниже и у доли слоя в <see cref="ShareText"/>.
+            //
+            // ⛔ (`AMBER91`, П148 24.09.2026) Доли нет — пишется «—» с подсказкой,
+            // а не «+0.0 / −0.0 %»: при чистом счёте полосы на уровне шума
+            // (проба на уровне фона) знаменатель не определён
+            // (<see cref="FsaResult.ResidualSharesDefined"/>), и ноль читался
+            // бы «модель идеальна» при нарисованной ленте.
+            bool residualDefined = result.ResidualSharesDefined;
             rows.Add(new FsaReportRow
             {
                 Kind = FsaReportRowKind.Residual,
                 Name = Resources.FSAModelResidualRow,
-                Value = string.Format(CultureInfo.InvariantCulture,
-                                      Resources.FSAResidualCountsValue,
-                                      (100.0 * result.ResidualExcessShare).ToString("f1", CultureInfo.InvariantCulture),
-                                      (100.0 * result.ResidualMissingShare).ToString("f1", CultureInfo.InvariantCulture)),
+                Value = residualDefined
+                    ? string.Format(CultureInfo.InvariantCulture,
+                                    Resources.FSAResidualCountsValue,
+                                    (100.0 * result.ResidualExcessShare).ToString("f1", CultureInfo.InvariantCulture),
+                                    (100.0 * result.ResidualMissingShare).ToString("f1", CultureInfo.InvariantCulture))
+                    : "—",
+                Hint = residualDefined ? null : Resources.FSAResidualUndefinedHint,
+                Warning = !residualDefined,
                 Swatch = FsaSwatchKind.ResidualCross,
                 Color = ResidualColor
             });
