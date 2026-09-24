@@ -599,7 +599,7 @@ def declaration_commit(decl_path, fp):
         rel = None
     if rel is None or rel.startswith('..'):
         rel = os.path.relpath(DECL, ROOT).replace('\\', '/')
-    out = _git('log', '--format=%H', '--reverse', '-S', 'sources=' + fp['sources'], '--', rel)
+    out = _git('log', '-m', '--first-parent', '--format=%H', '--reverse', '-S', 'sources=' + fp['sources'], '--', rel)
     if not out:
         return None
     return out.splitlines()[0]

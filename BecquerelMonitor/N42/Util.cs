@@ -1622,6 +1622,12 @@ namespace BecquerelMonitor.N42
         /// пишет CoefficientValues центрами, этот сдвиг ошибку УДВАИВАЕТ (с −h/2
         /// на +h/2). Прибора-свидетеля, пишущего оба положения и НЕ являющегося
         /// KB Radar, в наличии нет.
+        ///
+        /// ⛔ `AMBER86` (П146, 24.09.2026): ПРАВИЛО — ДЛЯ ФАЙЛОВ N42. Дверь
+        /// SpecUtils зовёт эту перекладку только когда файл — N42
+        /// (`DocumentManager.IsN42File`): у прочих форматов «край» — внутреннее
+        /// соглашение SpecUtils, а не файла, и свой XML приложения вставал ею на
+        /// h/2 правее, чем родным «Открыть».
         /// </summary>
         internal static double[] EdgePolynomialToChannelCentres(double[] edgePolynomial)
         {

@@ -1,0 +1,13 @@
+BecqMoni: main config: D:\BqMoni_Claude\p144\wt\tools\CORPUS\scripts\wd_p144\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p144\wt\tools\CORPUS\scripts\wd_p144\config\device: 24 loaded
+спектр : G1S24_Cs137_P5.xml
+прибор : Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2024)
+SETUP	против поставочного разбора изменено [окно пика]: CoincidenceWindowSec 0 → 0.00036281179138322; MinEnergy 40 → 30; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → NaI:Tl
+разбор : χ²/ndf 13.720; усиление 0.998581, сдвиг -0.595 кан.; полоса 0…1023; свет NaI:Tl β 1.000 форма line
+
+компонент	E, кэВ	s, кэВ	s/ПШПВ	пик образа	p(E)	p(E+s)	окно	окно на	образ−p(E+s), ПШПВ	окно−пик, ПШПВ	доля пика в окне
+Cs-137	661.657	0.00	0.000	230.95	230.95	230.95	199…263	неразличимо	0.000	0.000	1.0000
+ROW	Cs-137	пиковых отсчётов 2398204.342
+
+судимых линий 0, окно не на пике 0, неразличимо (|s| < канала) 1
+⛔ судить нечего: ни одна линия не различила E и E+s

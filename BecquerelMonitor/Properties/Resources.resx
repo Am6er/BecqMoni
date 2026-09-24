@@ -43549,6 +43549,9 @@ Turn it on in Windows settings and search again.</value>
   <data name="DoseRateNoSampleVolume" xml:space="preserve">
     <value>Dose rate: the sample in the geometry has no volume — there is nothing to average the fluence over.</value>
   </data>
+  <data name="DoseRateFieldScene" xml:space="preserve">
+    <value>Dose rate: the curve belongs to a field scene (on the ground or in a borehole). The dose there needs the fluence at the detector together with the photons scattered in the ground, and the point-source factor gives neither: without attenuation it overstates the unscattered fluence 4 to 20 times, and the scattered part (about half the field) is not in it. Compute the dose with an ISO field scene.</value>
+  </data>
   <data name="DoseRateAreaAboveBound" xml:space="preserve">
     <value>Dose rate: the field-scene curve gives {0} cm² at {1:f1} keV — more than the projected area of the sphere around the detector ({2:f1} cm²).</value>
   </data>
