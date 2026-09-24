@@ -1091,7 +1091,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 command.Parameters.Clear();
                 command.CommandText =
                     "select daughter_nucid, perc, dec_type," + DecayParentRule.ChainPercColumn
-                    + " from decay_chain d"
+                    + " from" + DecayParentRule.ChainTable + " d"
                     + " where nucid = $n"
                     + DecayParentRule.ChainLevelClause;
                 command.Parameters.AddWithValue("$n", nucid);

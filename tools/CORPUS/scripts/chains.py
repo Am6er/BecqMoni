@@ -242,6 +242,37 @@ def _chain_perc_column(rule_path=None):
 #: алиас `d`, строки одного родителя): доля ветви, %.
 CHAIN_PERC_COLUMN = _chain_perc_column()
 
+
+def _chain_table(rule_path=None):
+    """(Остаток `S191`, П158 24.09.2026) Источник строк ряда `DecayParentRule.ChainTable`.
+
+    `decay_chain`, где доля строки иного уровня взята у своего уровня из
+    `l_decays`, плюс ветви из `l_decays` родителю без своих рёбер. Текст —
+    из .cs, как `CHAIN_LEVEL_CLAUSE`; своей копии нет. Ставится в `from`:
+    ``"from" + CHAIN_TABLE + " d"``.
+    """
+    rule_path = rule_path or os.environ.get('LFL_DECAY_RULE_CS') or _RULE_CS
+    if not os.path.isfile(rule_path):
+        raise RuntimeError('не найден источник правила ряда: %s (S191).' % rule_path)
+    with io.open(rule_path, encoding='utf-8-sig') as handle:
+        body = re.search(r'const\s+string\s+ChainTable\s*=(.*?);', handle.read(), re.S)
+    if not body:
+        raise RuntimeError('в %s нет объявления const string ChainTable — '
+                           'источник ряда читать нечем (S191).' % rule_path)
+    table = _sql_literals(body.group(1), 'ChainTable')
+    for must in ('from decay_chain c', 'l_decays', 'union all'):
+        if must not in ' '.join(table.split()):
+            raise RuntimeError('ChainTable разобран неправдоподобно (нет %r): %r' % (must, table))
+    for bad in ('?', ':', '@', '$'):
+        if bad in table:
+            raise RuntimeError('в ChainTable появился параметр %r — связать нечем (S191): %r'
+                               % (bad, table))
+    return table
+
+
+#: Источник строк ряда вместо голой `decay_chain`: ``"from" + CHAIN_TABLE + " d"``.
+CHAIN_TABLE = _chain_table()
+
 _FALLBACK_CACHE = []
 _FALLBACK_SAID = set()
 #: (`T93`) Родители, у которых запасная ветвь СРАБОТАЛА в этом процессе —
@@ -349,7 +380,7 @@ def chain_branches(root, c, min_fraction=1e-6):
         # читается у приложения — `CHAIN_LEVEL_CLAUSE` (`T78`), см. выше.
         # (`S190`) Доля ветви — столбцом `CHAIN_PERC_COLUMN`, а не голым `perc`.
         rows = c.execute(
-            "select daughter_nucid," + CHAIN_PERC_COLUMN + " from decay_chain d "
+            "select daughter_nucid," + CHAIN_PERC_COLUMN + " from" + CHAIN_TABLE + " d "
             "where nucid = $n and perc not null" + CHAIN_LEVEL_CLAUSE,
             {LEVEL_PARAM: cur}).fetchall()
         step = []

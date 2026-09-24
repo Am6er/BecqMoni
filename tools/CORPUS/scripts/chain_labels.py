@@ -110,7 +110,7 @@ def equilibrium_members(root, c):
         cur = order[i]
         i += 1
         rows = c.execute("select daughter_nucid," + chains.CHAIN_PERC_COLUMN
-                         + " from decay_chain d where nucid = $n and perc not null"
+                         + " from" + chains.CHAIN_TABLE + " d where nucid = $n and perc not null"
                          + chains.CHAIN_LEVEL_CLAUSE, {chains.LEVEL_PARAM: cur}).fetchall()
         for daughter, perc in rows:
             if not daughter or daughter == cur or daughter in reachable:
