@@ -504,14 +504,16 @@ namespace BoundProbeF59
             //    (физика 16) и краснела «включённых умолчанием: 5 (ждали 3)» (П54 §6.2).
             //    `--break=defaults` подставляет прежние три — и обязан валить пробу.
             int trues = flags.Count(f => f.Value);
-            int expected = breakage == "defaults" ? 3 : 5;
+            // (П147 24.09.2026, физика 24) + `XcomPairThreshold` ВКЛ (решение Amber 24.09.2026
+            //    «ВКЛ в физике 24 (Рекомендую)»): включённых шесть, выключен один `AnalogConeSampling`.
+            int expected = breakage == "defaults" ? 3 : 6;
             Ok(trues == expected, string.Format(CultureInfo.InvariantCulture,
-                "включённых умолчанием: {0} (ждали {1}) — `LXrayEscape`, `KLCascade`, `PositronTransport`, `PositronOffset`, `RayleighToCrystal`",
+                "включённых умолчанием: {0} (ждали {1}) — `LXrayEscape`, `KLCascade`, `PositronTransport`, `PositronOffset`, `RayleighToCrystal`, `XcomPairThreshold`",
                 trues, expected));
             Ok(options.KLCascade,
                "умолчание `KLCascade` — ВКЛЮЧЕНО; прежний комментарий `Load` говорил «умолчание false»");
-            Ok(!options.XcomPairThreshold && !options.AnalogConeSampling,
-               "`XcomPairThreshold` и `AnalogConeSampling` умолчанием ВЫКЛЮЧЕНЫ (абляции, не физика склада)");
+            Ok(options.XcomPairThreshold && !options.AnalogConeSampling,
+               "`XcomPairThreshold` умолчанием ВКЛ (физика 24), `AnalogConeSampling` ВЫКЛ (абляция, не физика склада)");
 
             // Семь ключей физики 17 (П37/П38: `lbin` `pkch` `lys=2` `etr` `e+tr` `e+off` `rayl2`),
             // два ключа физики 18 (`ecomp=1` `bpath=2`, П50; решение Amber 13.09.2026

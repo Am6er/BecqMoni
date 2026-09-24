@@ -39,8 +39,13 @@ namespace PairTotalProbeA80
     ///
     ///     pairtotalprobea80
     ///
+    /// 5. УМОЛЧАНИЕ КЛЮЧА (физика 24, решение Amber 24.09.2026 «ВКЛ в физике 24
+    ///    (Рекомендую)»): склад, симулятор и все области сцены — ВКЛ, и полное Pb на
+    ///    2614.5 кэВ путём по умолчанию против сплайна.
+    ///
     /// Код 0 — вход с ключом есть, ВКЛ согласован с розыгрышем до 1e-12,
-    /// ВЫКЛ побитово прежний; 1 — нет (на коде до правки — ОЖИДАЕМО).
+    /// ВЫКЛ побитово прежний, умолчание ВКЛ везде; 1 — нет (на коде до правки —
+    /// ОЖИДАЕМО).
     /// </summary>
     static class Program
     {
@@ -388,6 +393,53 @@ namespace PairTotalProbeA80
                 {
                     failed++;
                 }
+            }
+
+            // (5) умолчание ключа (решение Amber 24.09.2026 «ВКЛ в физике 24 (Рекомендую)»):
+            // склад, симулятор и области сцены — ВКЛ; путь по умолчанию = пороговая форма.
+            Console.WriteLine();
+            bool store = new ResponseMatrixOptions().XcomPairThreshold;
+            string inPath = System.IO.Path.Combine("tools", "CORPUS", "corpus", "geometries", "RC103_point0.in");
+            bool simKey = false, regionsOn = false;
+            int regions = 0;
+            if (System.IO.File.Exists(inPath))
+            {
+                BecquerelMonitor.GlobalConfigManager.GetInstance();
+                var sim = new EfficiencySimulator(GeometryModel.Load(inPath));
+                simKey = sim.XcomPairThreshold;
+                typeof(EfficiencySimulator).GetMethod("EnsureBuilt", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .Invoke(sim, null);
+                var list = (System.Collections.IList)typeof(EfficiencySimulator)
+                    .GetField("regions", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(sim);
+                regionsOn = list.Count > 0;
+                foreach (object r in list)
+                {
+                    regions++;
+                    FieldInfo f = r.GetType().GetField("ThresholdPair");
+                    regionsOn &= f != null && (bool)f.GetValue(r);
+                }
+            }
+
+            MaterialDatabase.Element pb;
+            string pbLine = "";
+            if (MaterialDatabase.TryGet(82, out pb))
+            {
+                int lo, hi;
+                MaterialDatabase.Bracket(pb.EnergyKev, 2614.5, out lo, out hi);
+                double reference = Reference(pb, 2614.5, -1);
+                double path = keyed != null && store
+                    ? (double)keyed.Invoke(null, new object[] { pb, lo, hi, 2614.5, Math.Log(2614.5), true })
+                    : PartialCrossSections.MassTotal(pb, lo, hi, 2614.5, Math.Log(2614.5));
+                pbLine = "; полное Pb на 2614.5 кэВ путём по умолчанию против сплайна " + F(100.0 * (path / reference - 1.0), 2) + " %";
+            }
+
+            bool okDefault = store && simKey && regionsOn;
+            Console.WriteLine("(5) {0} умолчание XcomPairThreshold: склад {1}, симулятор {2}, областей сцены RC103_point0 с ключом {3} из {4}{5}",
+                              okDefault ? "✅" : "⛔", store ? "ВКЛ" : "ВЫКЛ", simKey ? "ВКЛ" : "ВЫКЛ",
+                              regionsOn ? regions : 0, regions, pbLine);
+            if (!okDefault)
+            {
+                failed++;
             }
 
             return failed == 0 ? 0 : 1;

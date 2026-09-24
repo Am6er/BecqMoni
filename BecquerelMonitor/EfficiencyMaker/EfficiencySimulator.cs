@@ -1125,17 +1125,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// по шкале цена меньше, но не исчезает: на 2614 кэВ ядерный канал
         /// Cs между узлами 2.044 и 3.0 МэВ выходит на 6 % больше.
         ///
-        /// Ключ измерительный и УМОЛЧАНИЕМ ВЫКЛЮЧЕН (решение Amber
-        /// 02.09.2026): выключенный, он оставляет прежнюю арифметику до
-        /// последнего бита, поэтому посчитанные матрицы и база корпуса
-        /// остаются годными. Сечение пар входит в кристалле и в ветвление,
-        /// и в длину свободного пробега, так что включённый ключ делает
-        /// матрицы устаревшими — включать после замера A/B.
-        ///
-        /// ⚠ Полное ослабление (<see cref="GeometryModel.Region"/>) берётся
-        /// из СУММЫ каналов таблицы и этой правкой не затронуто (`S124`).
+        /// Ключ был измерительным и умолчанием ВЫКЛЮЧЕННЫМ (решение Amber
+        /// 02.09.2026, подтверждено 04.09.2026 по `S125`). ✅ С физики 24 —
+        /// УМОЛЧАНИЕ ВКЛ (решение Amber 24.09.2026 вопросником, дословно:
+        /// «ВКЛ в физике 24 (Рекомендую)», полоса П147): вместе с `AMBER80`
+        /// пороговая форма пар идёт и в розыгрыш, и в ПОЛНОЕ ослабление
+        /// областей (`Region.ThresholdPair`), и ошибка полного Pb на 2614.5
+        /// кэВ против сплайна XCOM −1.15 % уходит в +0.15 %. Умолчание поля —
+        /// умолчание склада (правило I `check_matrix_keys.py`); `--pairth=0` —
+        /// абляция «как физика 23».
         /// </summary>
-        public bool XcomPairThreshold = false;
+        public bool XcomPairThreshold = new ResponseMatrixOptions().XcomPairThreshold;
 
         /// <summary>
         /// ⛔ (`A57`) Наводить направления АНАЛОГОВОГО континуума конусом на
@@ -1191,6 +1191,41 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// считается только при <see cref="AnalogContinuum"/>.
         /// </summary>
         public bool OutOfConePeakEverywhere = true;
+
+        /// <summary>
+        /// ⛔ (`AMBER79`, остаток; П147 24.09.2026, решение Amber 24.09.2026
+        /// вопросником, дословно: «Важностный розыгрыш (Рекомендую)») СВОЙ СЧЁТ
+        /// класса «вне конуса» у кривой и κ — ОЦЕНКА СЛЕДУЮЩЕГО СОБЫТИЯ
+        /// (next-event, «точечный детектор» у Lux &amp; Koblinger, гл. 7):
+        /// первичный квант вне конуса ведётся аналогово, пока у него есть шанс
+        /// на пик (когерентное и комптон с потерей в допуске), и в КАЖДОЙ точке
+        /// рассеяния вне кристалла к счёту добавляется ожидание «следующий
+        /// полёт — прямо в кристалл и полное поглощение»: направление берётся
+        /// равномерно в конусе на объемлющую сферу детектора, вес — плотность
+        /// рассеяния в это направление (форм-фактор F² и функция S(x,Z) тех же
+        /// таблиц, по которым разыгрывает угол аналоговая ветвь, нормированные
+        /// квадратурой по узлам таблиц) на телесный угол конуса, на
+        /// пропускание до кристалла; дальше квант доводится обычным переносом
+        /// (<see cref="AnalogTransport"/>) и проверяется допуск пика. Сам
+        /// первичный квант, дошедший до кристалла, не считается — его вклад и
+        /// есть это ожидание (класс вне конуса в кристалл без рассеяния не
+        /// попадает). Несмещённо: сумма по точкам рассеяния ожиданий «следующий
+        /// полёт в кристалл без столкновения» = вероятность класса.
+        ///
+        /// Зачем. Простой аналоговый счёт (коммит `09bb4c29`) набирал у
+        /// маринелли RC-103 при штатных 200 тыс. историй единицы попаданий на
+        /// узел (вероятность класса ~3e−5 на историю): шум кривой вырос вдвое.
+        ///
+        /// ⚠ Не входят (нарочно, названо): занос в кристалл электронами,
+        /// рождёнными в точках рассеяния вне кристалла до входа кванта, и
+        /// флуоресценция вещества вне кристалла — для кванта, чей занос обязан
+        /// лечь в допуск пика, это доли процента класса.
+        ///
+        /// Рычаг проб (положительный контроль: ВЫКЛ — простой аналоговый класс).
+        /// Путь МАТРИЦЫ не трогает: строки склада побитово те же. В клеймо не
+        /// входит (поколение — `PhysicsVersion` 24).
+        /// </summary>
+        public bool OutOfConeImportance = true;
 
         /// <summary>
         /// ⛔ (`E29`, решение Amber 10.09.2026, вопросником, дословно: «Ключом,
@@ -8486,6 +8521,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         double AnalogOutsidePeak(double energyKev, double x, double y, double z, ref double weight)
         {
+            if (this.OutOfConeImportance)
+            {
+                return this.OutsideNextEvent(energyKev, x, y, z, ref weight);
+            }
+
             bool inWeightedCone;
             double depositedOutside;
             bool comptonOutside;
@@ -8823,6 +8863,363 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// (`AMBER79`, П147) Класс вне конуса ОЦЕНКОЙ СЛЕДУЮЩЕГО СОБЫТИЯ (см.
+        /// <see cref="OutOfConeImportance"/>). Направление первичного кванта —
+        /// тем же розыгрышем, что у <see cref="AnalogHistory"/>; в конусе
+        /// взвешенной ветви — ноль. <paramref name="weight"/> на выходе — счёт
+        /// истории (вызывающему нужен его квадрат).
+        /// </summary>
+        double OutsideNextEvent(double energyKev, double x, double y, double z, ref double weight)
+        {
+            double limit = this.PathLimit(x, y, z);
+            double ux, uy, uz;
+            double coneZ, coneR;
+            double coneDist = 0.0;
+            if ((this.AnalogConeSampling || this.source.PreferCone)
+                && this.SceneBounds(out coneZ, out coneR)
+                && (coneDist = Math.Sqrt(x * x + y * y + (coneZ - z) * (coneZ - z))) > coneR)
+            {
+                double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - coneR * coneR / (coneDist * coneDist)));
+                weight *= 0.5 * (1.0 - cosMax);
+                this.InCone(-x / coneDist, -y / coneDist, (coneZ - z) / coneDist, cosMax,
+                            out ux, out uy, out uz);
+            }
+            else
+            {
+                this.Isotropic(out ux, out uy, out uz);
+            }
+
+            weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
+
+            double dz0 = this.sphereZ - z;
+            double r0 = Math.Sqrt(x * x + y * y + dz0 * dz0);
+            if (!(r0 > this.sphereR))
+            {
+                weight = 0.0;
+                return 0.0;                 // точка в сфере детектора — класса нет
+            }
+
+            double cosDet = Math.Sqrt(Math.Max(0.0, 1.0 - this.sphereR * this.sphereR / (r0 * r0)));
+            if ((ux * (-x) + uy * (-y) + uz * dz0) / r0 >= cosDet)
+            {
+                weight = 0.0;
+                return 0.0;                 // в конусе — за взвешенной ветвью
+            }
+
+            double e = energyKev;
+            double score = 0.0;
+            double travelled = 0.0;
+            for (int guard = 0; guard < 400 && weight > 0.0; guard++)
+            {
+                Region here = this.At(x, y, z);
+                if (here != null && here.IsCrystal)
+                {
+                    break;                  // дошёл сам — его ожидание уже сосчитано
+                }
+
+                double step = this.StepToBoundary(x, y, z, ux, uy, uz);
+                if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
+                {
+                    break;
+                }
+
+                double muKill = here == null ? 0.0 : this.AnalogMu(here, e);
+                if (muKill > 0.0)
+                {
+                    double free = -Math.Log(1.0 - this.Uniform()) / muKill;
+                    if (free < step)
+                    {
+                        x += ux * free;
+                        y += uy * free;
+                        z += uz * free;
+                        travelled += free;
+                        double coherent = this.RayleighScatter ? here.Coherent(e) : 0.0;
+                        double incoherent = here.Incoherent(e);
+                        score += this.NextEventScore(here, x, y, z, ux, uy, uz, e, energyKev, weight,
+                                                     coherent, incoherent, muKill, limit);
+
+                        // Сам квант — аналоговым розыгрышем канала, как в переносе.
+                        double channel = this.Uniform() * muKill;
+                        if (channel < coherent)
+                        {
+                            this.Rotate(ref ux, ref uy, ref uz, this.RayleighCosine(here, e));
+                            continue;
+                        }
+
+                        if (channel >= coherent + incoherent)
+                        {
+                            break;          // фотоэффект или пара — пика не будет
+                        }
+
+                        double cos;
+                        double after = this.ComptonScatter(here, e, out cos);
+                        this.Rotate(ref ux, ref uy, ref uz, cos);
+                        e = after;
+                        if (!this.InPeak(energyKev, e))
+                        {
+                            break;          // потеря больше допуска — пика не будет
+                        }
+
+                        continue;
+                    }
+                }
+
+                double next = step + 1e-7;
+                x += ux * next;
+                y += uy * next;
+                z += uz * next;
+                travelled += next;
+            }
+
+            if (score > 0.0)
+            {
+                this.CountPeakOutOfCone++;
+                this.WeightPeakOutOfCone += score;
+                this.WeightPeakOutOfCone2 += score * score;
+            }
+
+            weight = score;
+            return score;
+        }
+
+        /// <summary>
+        /// (`AMBER79`, П147) Ожидание в точке рассеяния: следующий полёт — в
+        /// кристалл без столкновения, дальше перенос, занос в допуске пика.
+        /// Направление — равномерно в конусе на объемлющую сферу детектора (в
+        /// самой сфере — по всей сфере), канал — когерентное или некогерентное
+        /// в доле их сечений, вес — (μ_ког + μ_неког)/μ · p_Ω(θ) · Ω_конуса ·
+        /// e^−τ, где p_Ω — плотность угла канала на стерадиан.
+        /// </summary>
+        double NextEventScore(Region here, double x, double y, double z, double ux, double uy, double uz,
+                              double e, double energyKev, double weight,
+                              double coherent, double incoherent, double muKill, double limit)
+        {
+            double scatter = coherent + incoherent;
+            if (!(scatter > 0.0) || !(muKill > 0.0))
+            {
+                return 0.0;
+            }
+
+            // Конус — на объемлющую сферу САМОГО КРИСТАЛЛА, а не детектора с
+            // обвязкой: направление мимо неё кристалла без столкновения не
+            // встретит, а узкий конус — меньше разброс веса.
+            double vx, vy, vz, omega;
+            double cz, cr;
+            this.CrystalSphere(out cz, out cr);
+            double dz = cz - z;
+            double dist = Math.Sqrt(x * x + y * y + dz * dz);
+            if (dist > cr)
+            {
+                double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - cr * cr / (dist * dist)));
+                this.InCone(-x / dist, -y / dist, dz / dist, cosMax, out vx, out vy, out vz);
+                omega = 2.0 * Math.PI * (1.0 - cosMax);
+            }
+            else
+            {
+                this.Isotropic(out vx, out vy, out vz);
+                omega = 4.0 * Math.PI;
+            }
+
+            double cos = ux * vx + uy * vy + uz * vz;
+            if (cos > 1.0) cos = 1.0;
+            if (cos < -1.0) cos = -1.0;
+            double density;
+            double eOut;
+            if (this.Uniform() * scatter < coherent)
+            {
+                ScatteringData.Atom atom = this.PickAtom(here.Material, e, PhotonProcess.Coherent, here);
+                density = CoherentCosDensity(atom, e, cos);
+                eOut = e;
+            }
+            else
+            {
+                ScatteringData.Atom atom = null;
+                if (this.BoundCompton || this.DopplerBroadening)
+                {
+                    atom = this.PickAtom(here.Material, e, PhotonProcess.Incoherent, here);
+                }
+
+                density = IncoherentCosDensity(this.BoundCompton ? atom : null, e, cos);
+                double freeKev = e / (1.0 + e / ElectronMassKev * (1.0 - cos));
+                double vacancyKev;
+                eOut = this.DopplerBroadening && atom != null && atom.ShellCount > 0
+                    ? this.DopplerEnergy(atom, e, cos, freeKev, out vacancyKev)
+                    : freeKev;
+            }
+
+            if (!(density > 0.0) || !this.InPeak(energyKev, eOut))
+            {
+                return 0.0;
+            }
+
+            // density — на единицу cos; на стерадиан — / 2π.
+            double w = weight * scatter / muKill * density / (2.0 * Math.PI) * omega;
+            double tau;
+            double px = x, py = y, pz = z;
+            double travelled = 0.0;
+            if (!this.AnalogToCrystal(ref px, ref py, ref pz, vx, vy, vz, eOut, limit, ref travelled, out tau))
+            {
+                return 0.0;
+            }
+
+            w *= Math.Exp(-tau);
+            if (!(w > 0.0))
+            {
+                return 0.0;
+            }
+
+            double depositedOutside;
+            bool comptonOutside;
+            double deposited = this.AnalogTransport(px, py, pz, vx, vy, vz, eOut, limit,
+                                                    out depositedOutside, out comptonOutside);
+            return deposited > 0.0 && this.InPeak(energyKev, deposited) ? w : 0.0;
+        }
+
+        /// <summary>
+        /// (`AMBER79`, П147) Объемлющая сфера кристалла (его области сцены):
+        /// центр на оси и радиус. Нет области кристалла — сфера детектора.
+        /// </summary>
+        void CrystalSphere(out double centerZ, out double radius)
+        {
+            Region c = this.crystal;
+            if (c == null)
+            {
+                centerZ = this.sphereZ;
+                radius = this.sphereR;
+                return;
+            }
+
+            double half = 0.5 * (c.ZMax - c.ZMin);
+            double across = c.IsBox ? Math.Sqrt(c.AX * c.AX + c.AY * c.AY) : c.ROut;
+            centerZ = 0.5 * (c.ZMin + c.ZMax);
+            radius = Math.Sqrt(across * across + half * half) + 1e-4;
+        }
+
+        /// <summary>
+        /// (`AMBER79`, П147) Полёт до входа в кристалл по ослаблению АНАЛОГОВОЙ
+        /// ветви без столкновения: копит оптическую толщину, ставит квант в
+        /// кристалл. false — кристалл не встретился.
+        /// </summary>
+        bool AnalogToCrystal(ref double x, ref double y, ref double z, double ux, double uy, double uz,
+                             double energyKev, double limit, ref double travelled, out double tau)
+        {
+            tau = 0.0;
+            for (int guard = 0; guard < 400; guard++)
+            {
+                Region here = this.At(x, y, z);
+                if (here != null && here.IsCrystal)
+                {
+                    return true;
+                }
+
+                double step = this.StepToBoundary(x, y, z, ux, uy, uz);
+                if (step >= double.MaxValue || travelled + step > limit)
+                {
+                    return false;
+                }
+
+                if (here != null)
+                {
+                    tau += this.AnalogMu(here, energyKev) * step;
+                    if (tau > 60.0)
+                    {
+                        return false;
+                    }
+                }
+
+                double next = step + 1e-7;
+                x += ux * next;
+                y += uy * next;
+                z += uz * next;
+                travelled += next;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// (`AMBER79`, П147) Плотность косинуса угла КОГЕРЕНТНОГО рассеяния на
+        /// атоме — ровно та, по которой разыгрывает <see cref="RayleighCosine"/>:
+        /// F²(t)·(1+cos²)/2 при t = tMax(1 − cos)/2 (t в пределах таблицы),
+        /// нормированная на [−1, 1] точной квадратурой по узлам таблицы F²
+        /// (F² линейна по t на отрезке, множитель — квадратичен: Гаусс по трём
+        /// точкам точен). Без атома — равномерно, как у розыгрыша.
+        /// </summary>
+        static double CoherentCosDensity(ScatteringData.Atom atom, double energyKev, double cos)
+        {
+            double xMax = ScatteringData.InverseCmPerKev * energyKev;
+            double tMax = xMax * xMax;
+            if (atom == null || !(tMax > 0.0))
+            {
+                return 0.5;
+            }
+
+            double norm = atom.CoherentNorm(energyKev);
+            if (!(norm > 0.0))
+            {
+                return 0.0;
+            }
+
+            double t = tMax * 0.5 * (1.0 - cos);
+            if (t > atom.FormFactorTop)
+            {
+                return 0.0;                 // розыгрыш за край таблицы не ходит
+            }
+
+            double f = atom.FormFactor(Math.Sqrt(t));
+            return f * f * 0.5 * (1.0 + cos * cos) / norm;
+        }
+
+        /// <summary>
+        /// (`AMBER79`, П147) Плотность косинуса угла НЕКОГЕРЕНТНОГО рассеяния —
+        /// та, по которой разыгрывает <see cref="ComptonCosine(double, ScatteringData.Atom)"/>:
+        /// Клейн — Нишина, с атомом — ещё и S(x,Z)/Z; нормировка квадратурой
+        /// (<see cref="ScatteringData.Atom.IncoherentNorm"/>, без атома —
+        /// аналитически по формуле Клейна — Нишины).
+        /// </summary>
+        static double IncoherentCosDensity(ScatteringData.Atom atom, double energyKev, double cos)
+        {
+            double a = energyKev / ElectronMassKev;
+            double kn = KleinNishinaCos(a, cos);
+            if (atom == null)
+            {
+                double norm = KleinNishinaIntegral(a);
+                return norm > 0.0 ? kn / norm : 0.0;
+            }
+
+            double k = ScatteringData.InverseCmPerKev * energyKev;
+            double normS = atom.IncoherentNorm(energyKev);
+            if (!(normS > 0.0))
+            {
+                return 0.0;
+            }
+
+            double x = k * Math.Sqrt(Math.Max(0.0, 0.5 * (1.0 - cos)));
+            return kn * atom.ScatteringFunction(x) / atom.Z / normS;
+        }
+
+        /// <summary>dσ_KN/dcos без множителя πr²: r²(r + 1/r − sin²θ), r = 1/(1 + a(1 − cos)).</summary>
+        internal static double KleinNishinaCos(double a, double cos)
+        {
+            double r = 1.0 / (1.0 + a * (1.0 - cos));
+            return r * r * (r + 1.0 / r - (1.0 - cos * cos));
+        }
+
+        /// <summary>∫ KleinNishinaCos по cos на [−1, 1] — аналитически.</summary>
+        internal static double KleinNishinaIntegral(double a)
+        {
+            if (a < 1e-4)
+            {
+                return 8.0 / 3.0 * (1.0 - 2.0 * a);   // томсоновский предел
+            }
+
+            double b = 1.0 + 2.0 * a;
+            double l = Math.Log(b);
+            return 2.0 * ((1.0 + a) / (a * a) * (2.0 * (1.0 + a) / b - l / a) + l / (2.0 * a)
+                          - (1.0 + 3.0 * a) / (b * b));
+        }
+
+        /// <summary>
         /// ⚡ ОДНА АНАЛОГОВАЯ ИСТОРИЯ ИЗ ЗАДАННОЙ ТОЧКИ (`AMBER79`, П147 24.09.2026).
         /// Выделено из <see cref="AnalogContinuumRun"/> без единой правки
         /// арифметики и порядка розыгрышей: направление (конус на габарит сцены
@@ -8902,6 +9299,25 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return 0.0;
             }
 
+            // (`AMBER79`, П147) Перенос — общим методом с оценкой следующего
+            // события (`OutsideNextEvent`): тот же цикл, те же розыгрыши.
+            return this.AnalogTransport(x, y, z, ux, uy, uz, energyKev, limit,
+                                        out depositedOutside, out comptonOutside);
+        }
+
+        /// <summary>
+        /// (`AMBER79`, П147 24.09.2026) ПЕРЕНОС АНАЛОГОВОЙ ИСТОРИИ из заданной
+        /// точки и направления: очередь квантов, кристалл, возврат из обвязки,
+        /// аннигиляция вне кристалла. Выделен из <see cref="AnalogHistory"/>
+        /// без единой правки арифметики и порядка розыгрышей (тела матриц —
+        /// побитово); второй его читатель — оценка следующего события
+        /// (<see cref="OutsideNextEvent"/>), доводящая квант от входа в
+        /// кристалл до конца истории. Возвращает занос в кристалл.
+        /// </summary>
+        double AnalogTransport(double x, double y, double z, double ux, double uy, double uz,
+                               double energyKev, double limit,
+                               out double depositedOutside, out bool comptonOutside)
+        {
             this.lossAnnihilation = 0.0;
             this.annihilationEscapes = 0;
             this.lossXray = 0.0;
