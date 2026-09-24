@@ -828,9 +828,84 @@ namespace BecquerelMonitor
         /// сверху), и её центр тяжести — шум вычитания: при рассогласовании
         /// континуума на δ он сдвигается на ~δ·(объяснено/приписано) ширины
         /// диапазона. Пятая часть держит сдвиг в пределах трети ширины при
-        /// δ ≈ 5 %. Ниже порога диапазон остаётся на середине, как было.
+        /// δ ≈ 5 %. Ниже порога диапазон остаётся на середине, как было (с
+        /// `S194` — ниже порога/√2, см. ниже).
+        ///
+        /// ⛔ (`S194`, П159 24.09.2026) ПОРОГ ПЛАВНЫЙ, А НЕ ОБРЕЗ — как пол
+        /// эффективности (`S192`). Доверие подобранной энергии
+        /// <see cref="ShareTrust"/> растёт по доле приписанного от 0 до 1 в
+        /// полосе <see cref="RepresentativeBand"/> ВОКРУГ порога (от
+        /// порога/√2 до порога·√2, половина — на самом пороге), и энергия
+        /// диапазона — между серединой и подобранной в меру доверия. Прежний
+        /// обрез переставлял энергию скачком: `ASN16_Cs137_10cm`, 17.22…22.59
+        /// кэВ — 19.90 → 18.64 кэВ, показание −0.19 % на сдвиге порога пола
+        /// 0.23 % (`DoseFloorProbe --steps=1200`) и −0.32 % на шаге набора
+        /// счёта 1/3200 (`DoseShareProbe`).
+        ///
+        /// Полоса ВОКРУГ порога, а не над ним (как у пола) — замером
+        /// (`DoseGridProbe`, ширина синтетики `manifest.csv`): полоса над
+        /// порогом (0.2…0.4) уводит к середине диапазоны с приписанным
+        /// 20…40 %, и синтетика там хуже — AS80 356 кэВ +0.06 → −0.11 %,
+        /// G1S 356 +0.03 → −0.15 %, RC-103 59.5 +1.81 → +1.93 %; полоса
+        /// вокруг порога не ухудшает ни одну линию больше чем на 0.002 п.п.
+        /// и лечит низ шкалы (ASN16 59.5 +2.21 → +1.21 %, фантом 1.71 → 1.03 %
+        /// показания; RC-103 356 −0.30 → −0.15 %), и в среднем по доле
+        /// приписанного доверие то же, что у обреза: вне полосы расчёт
+        /// прежний, внутри — обрез размазан.
+        ///
+        /// ⚠ ЦЕНА. Диапазон с приписанным 14…20 % получает часть подобранной
+        /// энергии (прежде — середина), с 20…28 % — не всю. Сдвиг от шума
+        /// вычитания (δ·(1 − доля)/доля ширины, выше) в полосе не больше
+        /// 0.13 ширины при δ = 5 % (у обреза на самом пороге было 0.2).
+        /// Показания настоящих спектров (П159): `AS80_Cs137_0cm` +0.015 %,
+        /// `G1S16_Cs137_P5` −0.008 %, `RC103_Cs137_0cm` +0.015 %,
+        /// `ASN16_Cs137_10cm` −0.018 % по матрице; путь «≈» — побитово
+        /// прежний (там континуума нет и доля — 1). Журнал
+        /// `handover-2026-09-24-p159-dose-representative.md`.
         /// </summary>
         public const double RepresentativeMinShare = 0.2;
+
+        /// <summary>
+        /// (`S194`, П159) Ширина полосы доверия представительной энергии, во
+        /// сколько раз её верх выше низа; полоса стоит вокруг
+        /// <see cref="RepresentativeMinShare"/> (геометрически). Вдвое — как у
+        /// пола (`S192`); ширины 1.5…4 разнятся в синтетике на сотые доли
+        /// процента (журнал П159).
+        /// </summary>
+        public const double RepresentativeBand = 2.0;
+
+        /// <summary>
+        /// Мерные рычаги проб (`DoseShareProbe`, `DoseGridProbe --set=`, П159):
+        /// ширина полосы и её середина в порогах (1 — на пороге; √2 — полоса
+        /// над порогом, отвергнутый вариант), которыми считает расчёт.
+        /// Приложение в них не пишет; проба двигает их отражением.
+        /// </summary>
+        static double representativeBand = RepresentativeBand;
+
+        static double representativeCentre = 1.0;
+
+        /// <summary>
+        /// (`S194`, П159) Доверие подобранной энергии по доле приписанного
+        /// <paramref name="attributed"/>/<paramref name="counts"/>: 0 при доле не
+        /// выше низа полосы, 1 от её верха, между — линейно по логарифму доли
+        /// (тем же законом, что у пола, <see cref="FloorWeight"/>), ½ на пороге.
+        /// </summary>
+        static double ShareTrust(double attributed, double counts)
+        {
+            if (!(attributed > 0.0) || !(counts > 0.0))
+            {
+                return 0.0;
+            }
+
+            double x = attributed / (representativeCentre * RepresentativeMinShare * counts);
+            double top = Math.Sqrt(representativeBand);
+            if (double.IsNaN(x) || !(x > 1.0 / top))
+            {
+                return 0.0;
+            }
+
+            return x >= top ? 1.0 : 0.5 + Math.Log(x) / Math.Log(representativeBand);
+        }
 
         /// <summary>Сколько раз уточнять представительную энергию (`AMBER77`).</summary>
         const int RepresentativeIterations = 8;
@@ -1301,7 +1376,8 @@ namespace BecquerelMonitor
                 // диапазон остаётся на середине: его вклад ноль при любой
                 // энергии; остаётся на середине и диапазон, где приписанное
                 // меньше пятой части отсчётов (<see cref="RepresentativeMinShare"/>):
-                // там центр тяжести — шум вычитания.
+                // там центр тяжести — шум вычитания. (`S194`, П159) Выше порога
+                // доверие растёт плавно (<see cref="ShareTrust"/>), без скачка.
                 //
                 // ⚠ Почему ПЕРВЫЙ момент, а не пик или квантиль: из всех мер
                 // положения только среднее не меняется от симметричного
@@ -1437,7 +1513,10 @@ namespace BecquerelMonitor
                     continue;
                 }
 
-                if (r.Attributed > 0.0 && r.Attributed >= RepresentativeMinShare * r.Counts)
+                // (`S194`, П159) Доверие энергии по доле приписанного — плавное.
+                // Здесь континуума нет (объяснено 0) и доля — 1: побитово прежнее.
+                double shareTrust = ShareTrust(r.Attributed, r.Counts);
+                if (shareTrust > 0.0)
                 {
                     double target = countsMoment[k] / (r.Counts - explained);
                     if (double.IsNaN(target) || double.IsInfinity(target))
@@ -1458,6 +1537,11 @@ namespace BecquerelMonitor
                     // (`S192`, П157) В полосе над полом — энергия между
                     // серединой и подобранной, в меру веса доли на подобранной.
                     double trust = double.IsNaN(own) || double.IsInfinity(own) ? 0.0 : FloorWeight(own, maxOwn, floorApplies);
+                    if (shareTrust != 1.0)
+                    {
+                        trust *= shareTrust;
+                    }
+
                     if (trust > 0.0 && trust < 1.0)
                     {
                         energy = r.CenterKev + trust * (energy - r.CenterKev);
@@ -1625,7 +1709,10 @@ namespace BecquerelMonitor
                 double[] newPlain = centrePlain == null ? null : centrePlain[k];
                 bool fit = false;
                 double attributed = counts[k] - explained;
-                if (attributed > 0.0 && attributed >= RepresentativeMinShare * counts[k])
+                // (`S194`, П159) Доверие подобранной энергии по доле
+                // приписанного — плавное, <see cref="ShareTrust"/>.
+                double shareTrust = ShareTrust(attributed, counts[k]);
+                if (shareTrust > 0.0)
                 {
                     double target = WindowTarget(k, window, counts, countsMoment, q, share, moment, ranges, weight);
                     double known = slope[k] > 0.05 && slope[k] < 20.0 ? slope[k] : 1.0;
@@ -1664,6 +1751,13 @@ namespace BecquerelMonitor
                     // кэВ на сдвиге порога 0.9 %, показание −0.76 %.
                     bool floorApplies = k < maxOwnRange;
                     double trust = double.IsNaN(own) || double.IsInfinity(own) ? 0.0 : FloorWeight(own, maxOwn, floorApplies);
+                    // (`S194`, П159) И доверие по доле приписанного: энергия —
+                    // между серединой и подобранной в меру ОБОИХ доверий.
+                    if (shareTrust != 1.0)
+                    {
+                        trust *= shareTrust;
+                    }
+
                     if (trust == 1.0)
                     {
                         newEnergy = triedEnergy[k];
