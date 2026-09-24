@@ -110,6 +110,20 @@ namespace BecquerelMonitor.EfficiencyMaker
         public const double FieldRadiusMargin = 2.0;
 
         /// <summary>
+        /// ⛔ (`AMBER97`, П147 24.09.2026) НАИБОЛЬШИЙ радиус сферы поля, мм:
+        /// 100 м. До физики 24 верхняя граница была, но НЕВИДИМАЯ: предел пути
+        /// симулятора (`40·sphereR + 200` см) засчитывал подлёт от сферы к
+        /// прибору, и у RC-103 поле радиусом больше 257.7 см давало ноль во всех
+        /// узлах без единого слова (замер П147: A_пик 0.0721 см² на 50 см и
+        /// 0.0000 на 300 см). Предел пути теперь от габарита сцены
+        /// (`EfficiencySimulator.PathLimit`), и ответ от радиуса не зависит;
+        /// граница здесь — то, докуда это ПРОВЕРЕНО (`IsoFieldProbe`: RC-103
+        /// до 10 000 см в пределах 3σ), а не свойство физики. Больше — отказ
+        /// словами (`GeometryEditorErrorFieldRadiusLarge`), а не ноль.
+        /// </summary>
+        public const double MaxFieldRadiusMm = 100000.0;
+
+        /// <summary>
         /// Толщины обвязки В СИСТЕМЕ СЦЕНЫ (`AMBER64`): <paramref name="toSample"/>
         /// — слой между пробой и кристаллом, <paramref name="lateral"/> — слой
         /// на боковых гранях.
@@ -479,6 +493,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                         Resource = "GeometryEditorErrorFieldRadiusSmall",
                         Value = g.FieldRadius,
                         Limit = floor,
+                    });
+                }
+                else if (g.FieldRadius > MaxFieldRadiusMm)
+                {
+                    // (`AMBER97`) Сверху — граница проверенного: отказ словами
+                    // вместо молчаливого нуля, каким он был до физики 24.
+                    issues.Add(new Issue
+                    {
+                        Field = "FieldRadius",
+                        Resource = "GeometryEditorErrorFieldRadiusLarge",
+                        Value = g.FieldRadius,
+                        Limit = MaxFieldRadiusMm,
                     });
                 }
 
