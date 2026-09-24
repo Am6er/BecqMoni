@@ -221,7 +221,7 @@ NaI/CsI-сцен ещё и сетка) — физика 23 шла 380…402 ми
 
 Последний прогон на коммите `09bb4c29` + этот журнал: **код 1, отказали 4 из 42** — ровно четыре отказа
 устройства worktree из §8 (`check_corpus_coverage` 1, `check_declared_base` 2, `check_corpus_generator`
-1, `check_fsa_showcase` 2); прочие 38 — код 0. Выписка — `D:\BqMoni_Claude\p147rt\check_all_2.log`.
+1, `check_fsa_showcase` 2); прочие 38 — код 0. Выписка — `D:\BqMoni_Claude\p147\art\check_all_2.log`.
 
 ## 10. Готовые тексты закрытия (для распорядителя)
 
