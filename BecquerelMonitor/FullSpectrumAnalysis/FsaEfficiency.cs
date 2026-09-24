@@ -283,6 +283,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 if (this.logEfficiency[i] >= want)
                 {
+                    // ⛔ (`AMBER95`, П147 24.09.2026) ПЕРЕСЕЧЕНИЕ, а не узел:
+                    // уровень пересекается между узлами i−1 и i, и тем же
+                    // лог-лог интерполянтом, что у `TryEval`, берётся точка
+                    // пересечения. Прежде возвращался узел i — пол вставал на
+                    // целый промежуток выше: у маринелли RC-103 на 20 кэВ при
+                    // пересечении ниже, и на RC-101 срезался L-рентген Np.
+                    if (i > 0 && this.logEfficiency[i] > this.logEfficiency[i - 1])
+                    {
+                        double t = (want - this.logEfficiency[i - 1])
+                                   / (this.logEfficiency[i] - this.logEfficiency[i - 1]);
+                        return Math.Exp(this.logEnergy[i - 1]
+                                        + t * (this.logEnergy[i] - this.logEnergy[i - 1]));
+                    }
+
                     return Math.Exp(this.logEnergy[i]);
                 }
             }

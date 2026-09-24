@@ -532,6 +532,12 @@ SIM = [
     # SceneCostProbe --ab.
     (u'ImportanceSamplingNoWeight', False, False, u'неприменимо',
      u'режим замера порчи; двигает SceneCostProbe --ab'),
+    # (`AMBER79`, П147 24.09.2026, физика 24) Рычаг АБЛЯЦИИ класса «вне конуса» в
+    # кривой и в κ: ВЫКЛ -- кривая и κ как в физике 23 (положительный контроль).
+    # Не настройка расчёта: склад и кривые считаются только умолчанием (ВКЛ), а
+    # поколение различает `PhysicsVersion` 24; двигает CurveVsMatrixProbeA79.
+    (u'OutOfConePeakEverywhere', False, False, u'неприменимо',
+     u'рычаг абляции проб; двигает CurveVsMatrixProbeA79'),
 ]
 
 # Поля `EfficiencySimulator`, которые настройками НЕ являются: выход прогона,
@@ -569,9 +575,14 @@ SIM_NOT_SETTINGS = set([
     # ни один путь, они ЧИТАЮТСЯ после прогона -- тот же разряд, что
     # `WeightPeakBinDropped`; читает `OutOfConePeakProbe`.
     u'WeightPeakOutOfCone', u'WeightPeakOutOfCone2', u'CountPeakOutOfCone',
+    # (`AMBER97`, П147 24.09.2026) Счётчик лучей, оборванных пределом пути
+    # (`PathLimit`); читается после прогона -- читает PathLimitProbeA97.
+    u'CountPathLimitCut',
     # Поля ВЛОЖЕННОГО типа (описание области сцены), а не настройки симулятора:
     # тело класса читается целиком, вложенные объявления попадают в тот же кусок.
-    u'IsBox', u'IsCrystal',
+    # (`AMBER80`, П147) `ThresholdPair` -- ключ пар области, ставится из
+    # `XcomPairThreshold` симулятора при регистрации области.
+    u'IsBox', u'IsCrystal', u'ThresholdPair',
 ])
 
 REASONS = (u'общая', u'намеренно', u'забыто', u'неприменимо')
