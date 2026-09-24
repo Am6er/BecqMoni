@@ -128,8 +128,8 @@
    3000
   ]
  ],
- "declared": "2026-09-24 19:24",
- "head": "4857ce24",
+ "declared": "2026-09-24 20:12",
+ "head": "603d5d41",
  "head_lines": {
   "chi2": "chi2/ndf 0.546, невязка модели 14.3 %, суммирование нет",
   "composition": "состав объявлен: 137CS; ряды: нет; распад 1, атомных 2, линий 15; полоса сведена ПОЛОМ ПО КРИВОЙ 40.0 кэВ (1.0 % от максимума, Min_Range 5.0), фит на всём спектре (умолчание); аннигиляционный образ НЕ взят: в составе нет линии выше 1022 кэВ",
@@ -146,11 +146,11 @@
   "library_sha": "5ae488901f2defe7",
   "matrices": {},
   "probes": {
-   "app_sha": "0f30af3d2b525869",
-   "built": "2026-09-24 19:23:18",
+   "app_sha": "1ce822a11503d1ce",
+   "built": "2026-09-24 20:11:21",
    "dir": "tools/effmaker/probes/build",
    "freshness_checked": true,
-   "shot_sha": "b18dac8b561b6b72"
+   "shot_sha": "0038add7813404c8"
   },
   "spectrum": "../CORPUS/corpus/spectra/ASN16_Cs137_10cm.xml",
   "spectrum_sha": "a4378820856b2e49"
