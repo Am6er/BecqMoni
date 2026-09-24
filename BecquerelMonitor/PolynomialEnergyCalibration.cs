@@ -321,9 +321,47 @@ namespace BecquerelMonitor
                 System.Windows.Forms.MessageBoxIcon.Hand);
         }
 
-        double EnrgToChannel(double enrg, int maxCh = 8192)
+        /// <summary>
+        /// ⛔ `S184` (П151, 24.09.2026): ЭНЕРГИЯ → КАНАЛ С ПРОДОЛЖЕНИЕМ ШКАЛЫ
+        /// В [E(0), 0). <see cref="EnergyToChannel"/> отдаёт канал 0 всякой
+        /// энергии ниже нуля, и при E(0) &lt; 0 это зажим ВНУТРИ шкалы: полином
+        /// даёт там каналы 0…k. Замер `EnergyScaleProbeP151`: у 118 из 125
+        /// спектров корпуса с E(0) &lt; 0 круг «канал → энергия → канал» ошибался
+        /// до 46 каналов; на графике в режиме энергии (`G1S16_Mn54_P5`,
+        /// E(0) = −43.9 кэВ) 425 из 440 колонок в [E(0), 0) брали канал 0, и
+        /// 14 каналов не рисовались вовсе.
+        ///
+        /// ⚠ ПОЧЕМУ ОТДЕЛЬНЫМ ВЫЗОВОМ, А НЕ В САМОЙ КАЛИБРОВКЕ. Проба той же
+        /// правкой в <see cref="EnrgToChannel"/> сдвинула разбор FSA: витрина
+        /// разошлась с эталоном на 3 парах из 9 (до −1.33 % у малой компоненты,
+        /// в основном 1E-5) — продолжение FSA (`LightToChannel`, `AMBER85`) идёт
+        /// прямой по ширине нулевого канала, и полином отличается от неё до
+        /// 0.085 канала (`AS80_Onyx`). Разбор FSA держит своё продолжение, а
+        /// вызывающие вне него (график, фон, сложение спектров, ROI) зовут это.
+        ///
+        /// Ниже E(0) и выше верха — как <see cref="EnergyToChannel"/> (канал 0 и
+        /// N: номер канала — индекс массива у вызывающих). Вне [E(0), 0) ответ
+        /// побитово тот же, что у <see cref="EnergyToChannel"/>. Калибровка не
+        /// полиномиальная (<c>NonlinearEnergyCalibration</c>) — её собственный
+        /// ответ как есть.
+        /// </summary>
+        public static double ChannelOf(EnergyCalibration calibration, double energy, int channels)
         {
-            if (enrg < 0 || enrg < this.coefficients[0])
+            double channel = calibration.EnergyToChannel(energy, channels);
+            PolynomialEnergyCalibration polynomial = calibration as PolynomialEnergyCalibration;
+            if (polynomial == null || channel > 0.0 || !(energy < 0.0) || !(energy >= polynomial.coefficients[0]))
+            {
+                return channel;
+            }
+
+            return polynomial.EnrgToChannel(energy, maxCh: channels, clampBelowZero: false);
+        }
+
+        double EnrgToChannel(double enrg, int maxCh = 8192, bool clampBelowZero = true)
+        {
+            // `S184`: `enrg < 0` — зажим ВНУТРИ шкалы при E(0) < 0; снимает его
+            // только <see cref="ChannelOf"/> (разбор FSA держит своё продолжение).
+            if ((clampBelowZero && enrg < 0) || enrg < this.coefficients[0])
             {
                 return 0;
             }

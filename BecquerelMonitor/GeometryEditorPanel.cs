@@ -254,10 +254,25 @@ namespace BecquerelMonitor
         /// </summary>
         public void SetSceneEnergy(double kev)
         {
+            this.SetSceneEnergy(kev, false);
+        }
+
+        /// <param name="recompute">
+        /// (`AMBER94`) Пересчитать полевую сцену под новый верх — true, когда
+        /// верх сменил ЧЕЛОВЕК. Восстановление полей расчёта при открытии
+        /// конфигурации подаёт false: сохранённые размеры принадлежат человеку.
+        /// </param>
+        public void SetSceneEnergy(double kev, bool recompute)
+        {
             if (kev > 0.0)
             {
+                bool changed = kev != this.sceneEnergyKev;
                 this.sceneEnergyKev = kev;
                 this.UpdateSceneHint("");
+                if (recompute && changed)
+                {
+                    this.RecomputeScene();
+                }
             }
         }
 
@@ -1219,6 +1234,8 @@ namespace BecquerelMonitor
                 TextAlign = HorizontalAlignment.Right,
             };
             density.TextChanged += this.ValueChanged;
+            // (`AMBER94`) Плотность пробы — вход полевой сцены (`SceneDetectorFields`).
+            density.Leave += (s, e) => this.FieldLeft(key + ".Density");
             parent.Controls.Add(density);
             group.Add(density);
             this.fields[key + ".Density"] = density;
@@ -1820,6 +1837,13 @@ namespace BecquerelMonitor
             this.compositions[key].Text = GeometryMaterialLibrary.Describe(
                 this.MaterialOf(key, this.Get(key + ".Density")));
             this.ReflowAfterComposition(key);
+
+            // (`AMBER94`) Вещество пробы задаёт свободный пробег, из которого
+            // посчитана полевая сцена.
+            if (key == "Source")
+            {
+                this.RecomputeScene();
+            }
         }
 
         void ValueChanged(object sender, EventArgs e)
@@ -2401,6 +2425,10 @@ namespace BecquerelMonitor
             // здесь оставил бы сцену посчитанной по прежнему прибору.
             "FrontGapThickness", "SideGapThickness",
             "FrontCladdingThickness", "SideCladdingThickness",
+            // (`AMBER94`, П150) Плотность пробы — через свободный пробег; её
+            // вещество зовёт пересчёт из `MaterialChanged`, верх энергии — из
+            // `SetSceneEnergy`. Пробег читают и глубина, и радиус сцены.
+            "Source.Density",
         };
 
         /// <summary>
@@ -2420,7 +2448,11 @@ namespace BecquerelMonitor
         /// </summary>
         void RecomputeScene()
         {
-            if (this.loading || this.applyingScene)
+            // (П150) `suppressChanged` — идёт `SetModel`: хвост `LoadFromModel`
+            // зовёт `ShapeChanged` уже со снятым `loading`, и открытая полевая
+            // сцена пересчитывалась, стирая сохранённые размеры (замер
+            // `GeometryEditorP150Probe`: Ø 1234.5 → 3075.3 мм при открытии).
+            if (this.loading || this.applyingScene || this.suppressChanged)
             {
                 return;
             }
@@ -2541,7 +2573,8 @@ namespace BecquerelMonitor
             // что руками такую сцену не набирают. Не при загрузке модели:
             // сохранённые размеры принадлежат человеку, и пересчитывать их за
             // ним значило бы стирать правку при каждом открытии.
-            if (scene != GeometrySceneKind.None && !this.loading && !this.applyingScene)
+            if (scene != GeometrySceneKind.None && !this.loading && !this.applyingScene
+                && !this.suppressChanged)
             {
                 // Сторож против рекурсии: LoadFromModel в конце сам зовёт этот
                 // обработчик, и без него пересчёт вызывал бы сам себя без конца.
@@ -2914,8 +2947,8 @@ namespace BecquerelMonitor
             return null;
         }
 
-        /// <summary>Текст несогласованности своей строкой ресурсов (E33).</summary>
-        static string IssueText(GeometryScenes.Issue issue)
+        /// <summary>Текст несогласованности своей строкой ресурсов (E33); {2} — подпись поля (`AMBER98`).</summary>
+        string IssueText(GeometryScenes.Issue issue)
         {
             string format = Resources.ResourceManager.GetString(issue.Resource);
             if (string.IsNullOrEmpty(format))
@@ -2923,7 +2956,10 @@ namespace BecquerelMonitor
                 return issue.Resource;
             }
 
-            return string.Format(CultureInfo.InvariantCulture, format, issue.Value, issue.Limit);
+            RowControls row;
+            string caption = issue.Field != null && this.rows.TryGetValue(issue.Field, out row)
+                ? row.Label.Text : issue.Field;
+            return string.Format(CultureInfo.InvariantCulture, format, issue.Value, issue.Limit, caption);
         }
 
     }

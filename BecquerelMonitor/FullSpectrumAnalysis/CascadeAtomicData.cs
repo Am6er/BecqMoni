@@ -196,6 +196,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public double BetaPlusShare;
 
             /// <summary>
+            /// (`AMBER100`, П149 24.09.2026) Доля β⁺ ветви УПЁРЛАСЬ в долю самой
+            /// ветви: ΣI(β⁺) канала не меньше `perc` (в пределах округления
+            /// поставки, 0.5 %), и <see cref="BetaPlusShare"/> вышел равным
+            /// единице по построению, а не по данным. Такая доля о разделе
+            /// β⁺/захват ничего не говорит, и приводить к ней доли по уровням
+            /// (<see cref="BetaPlusOfGamma"/>) нельзя — у `119TE` (`perc` 2.06
+            /// при ΣB+ 2.05, ~~`AMBER81`~~) это умножило бы их в полсотни раз.
+            /// </summary>
+            public bool BetaPlusSaturated;
+
+            /// <summary>
             /// Доля β⁺ У КАЖДОЙ ГАММЫ ветви: ключ — энергия линии, значение —
             /// `P(β⁺ | эта гамма испущена)` (`S150`). Пусто — поставка связи
             /// «канал → уровень» для этой ветви не даёт, и потребитель обязан
@@ -1401,6 +1412,64 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                // ⛔ (`AMBER81`, П149 24.09.2026; решение Amber 24.09.2026
+                // вопросником: «Только код (Рекомендую)» — базу не трогаем)
+                // ДОЛЯ ВЕТВИ НЕ МОЖЕТ БЫТЬ МЕНЬШЕ ПОЗИТРОНОВ ЭТОЙ ВЕТВИ. У части
+                // распадов ε+β⁺ графа `decay_chain.perc` хранит долю ОДНОЙ моды
+                // вместо суммы (сверено с ENSDF: `119I` 49 = доля захвата при
+                // ε+β⁺ 100 и β⁺ 51–55), и тогда ΣB+ поставки выходит больше
+                // `perc`. Прежде такой канал просто зажимался долей ветви: β⁺ в
+                // ветви становилась 100 % (`BetaPlusShare` = 1 вместо 0.55),
+                // партнёр 511 в суммах завышался, а выход линии 511 падал ниже
+                // поставки (`119I` 109.78 → 98.0 %). Теперь `perc` < ΣB+ читается
+                // как доля другой моды: ветвь — их СУММА, но не больше того, что
+                // оставляют ей ПРОЧИЕ ветви родителя (у `152HO` α 12 % — ветви
+                // ε+β⁺ больше 88 % взять неоткуда, и там ΣB+ 89.8 % — избыток
+                // самой поставки, а не одна мода), и расхождение называется
+                // словами в обоих случаях.
+                //
+                // ⚠ Каналы, где ΣB+ > 100 % само по себе (`20NA`, `81Y`, `128LAm`
+                // — поставка даёт позитронов больше, чем распадов), этим правилом
+                // не лечатся и не должны: у них `perc` = 100, сумма упирается в
+                // потолок, и зажим ниже работает как прежде (`S153`, `AMBER69`).
+                if (entry.Value > bound && bound < 100.0)
+                {
+                    double others = 0.0;
+                    foreach (Branch branch in data.Branches)
+                    {
+                        if (!own.Contains(branch) && branch.Perc > 0.0)
+                        {
+                            others += branch.Perc;
+                        }
+                    }
+
+                    double room = Math.Max(bound, 100.0 - others);
+                    double widened = Math.Min(bound + entry.Value, room);
+                    if (widened > bound)
+                    {
+                        notes.AppendFormat(CultureInfo.InvariantCulture,
+                            "β⁺ канала {0}: доля ветвей decay_chain.perc {1:F3} % меньше ΣI(β⁺) {2:F3} % —"
+                            + " perc прочитан как доля другой моды, ветвь взята суммой {3:F3} %; ",
+                            entry.Key, bound, entry.Value, widened);
+                        foreach (Branch branch in own)
+                        {
+                            if (branch.Perc > 0.0)
+                            {
+                                branch.Perc *= widened / bound;
+                            }
+                        }
+
+                        bound = widened;
+                    }
+                    else
+                    {
+                        notes.AppendFormat(CultureInfo.InvariantCulture,
+                            "β⁺ канала {0}: доля ветвей decay_chain.perc {1:F3} % меньше ΣI(β⁺) {2:F3} %,"
+                            + " а прочие ветви оставляют ей не больше {3:F3} % — избыток поставки, зажато ниже; ",
+                            entry.Key, bound, entry.Value, room);
+                    }
+                }
+
                 double kept = entry.Value;
                 if (kept > bound)
                 {
@@ -1411,8 +1480,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 double share = kept / bound;
+                bool saturated = kept >= bound * (1.0 - SupplyRounding);
                 foreach (Branch branch in own)
                 {
+                    branch.BetaPlusSaturated |= saturated;
                     branch.BetaPlusShare += share;
                     if (branch.BetaPlusShare > 1.0)
                     {
@@ -1547,6 +1618,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return (long)away[0][1];
         }
 
+        /// <summary>
+        /// Допуск «одно и то же число двух поставок» (`AMBER100`): расхождение
+        /// в пределах округления оценок — полпроцента, ровно та граница, за
+        /// которой ревизия П143 требует называть расхождение словами.
+        /// </summary>
+        const double SupplyRounding = 0.005;
+
         static void LoadBetaPlusOfGamma(string parentNucid, Branch branch,
                                         List<GammaLine> gammaIntensity,
                                         StringBuilder notes)
@@ -1574,6 +1652,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var inBeta = new Dictionary<int, double>();
             var inTotal = new Dictionary<int, double>();
             var transitions = new List<double[]>();
+
+            // (`AMBER100`) Прямые питания канала `E` набора: сколько β⁺ и сколько
+            // всего (β⁺ + захват). Их отношение — доля β⁺ ветви ПО ENSDF.
+            double feedBeta = 0.0, feedAll = 0.0;
 
             using (SqliteConnection connection = OpenRead(path))
             using (SqliteCommand command = connection.CreateCommand())
@@ -1673,6 +1755,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         {
                             inBeta.TryGetValue(seq, out had);
                             inBeta[seq] = had + beta;
+                            feedBeta += beta;
+                            feedAll += beta + capture;
                         }
                     }
                 }
@@ -1811,6 +1895,58 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // ⛔ (`AMBER100`, П149 24.09.2026) ДОЛЯ β⁺ ВЕТВИ — ИЗ ОДНОЙ ПОСТАВКИ
+            // НА ОБЕ СТОРОНЫ. Выход линии 511 (<see cref="AnnihilationQuanta"/>)
+            // и доля β⁺ ветви (<see cref="Branch.BetaPlusShare"/>) идут из
+            // `decay_radiations`, а доли по уровням — из `ensdf_feedings`, и это
+            // РАЗНЫЕ оценки: у `22NA` 89.9 % против 90.554 % на 100.056 питания.
+            // Сумматор строит из них обратную условную P(γ | 511) = P(511 | γ) ·
+            // I(γ) / I(511), и у исправного натрия она выходила 1.0060 > 1 —
+            // срабатывал зажим ~~`D49`~~, а сумма 1274 + 511 была на 0.67 %
+            // выше, чем согласуется с выходом самой линии 511.
+            //
+            // ENSDF остаётся тем, что умеет только она, — РАСПРЕДЕЛЕНИЕМ β⁺ по
+            // уровням; ИТОГ ветви берётся у той же поставки, что выход 511:
+            // все доли по уровням умножаются на f_rad / f_ENSDF. У натрия это
+            // 0.899 / 0.90503 = 0.99334: P(511 | 1274) 1.80996 → 1.79789, и
+            // P(1274 | 511) 1.00605 → 0.99934 (замер `FsaBetaPlusShareProbe`); по
+            // одной ENSDF доля β⁺ через уровень 1274 — 90.498 / 90.554 = 0.99938,
+            // остаток — выход 1274 кэВ 99.94 % против питания уровня 100.
+            //
+            // ⚠ Обратная условная больше единицы этим не исчезает ВСЮДУ: у 13
+            // родителей базы из 708 (было 36) она выше 1 по второй причине —
+            // выход линии из `decay_radiations` против потока уровня по ENSDF
+            // (`44SC` 1.00013, `56CO` 1.0086); там по-прежнему работает зажим
+            // ~~`D49`~~ со счётчиком.
+            //
+            // ⚠ Не приводится, когда доля ветви УПЁРЛАСЬ в `perc`
+            // (<see cref="Branch.BetaPlusSaturated"/>): тогда f_rad = 1 по
+            // построению, о разделе β⁺/захват не говорит, и приводить к ней
+            // значило бы перенести дефект `perc` (~~`AMBER81`~~) в доли по
+            // уровням, которые до того были верны. Расхождение поставок больше
+            // полупроцента называется словами в обоих случаях.
+            double scale = 1.0;
+            if (feedAll > 0.0 && feedBeta > 0.0 && branch.BetaPlusShare > 0.0)
+            {
+                double fromFeedings = feedBeta / feedAll;
+                double ratio = branch.BetaPlusShare / fromFeedings;
+                if (Math.Abs(ratio - 1.0) > SupplyRounding)
+                {
+                    notes.AppendFormat(CultureInfo.InvariantCulture,
+                        "доля β⁺ ветви {0}→{1}: decay_radiations {2:F5} против ENSDF {3:F5} ({4:+0.00;-0.00} %), {5}; ",
+                        parentNucid, branch.Nucid, branch.BetaPlusShare, fromFeedings,
+                        100.0 * (ratio - 1.0),
+                        branch.BetaPlusSaturated
+                            ? "доля ветви упёрлась в perc — доли по уровням оставлены по ENSDF"
+                            : "доли по уровням приведены к decay_radiations");
+                }
+
+                if (!branch.BetaPlusSaturated)
+                {
+                    scale = ratio;
+                }
+            }
+
             foreach (GammaLine row in gammaIntensity)
             {
                 if (!SameChannel(row.Channel, branch.DecType))
@@ -1852,7 +1988,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 if (found)
                 {
-                    branch.BetaPlusOfGamma[energyKev] = share;
+                    share *= scale;
+                    branch.BetaPlusOfGamma[energyKev] = share > 1.0 ? 1.0 : share;
                 }
             }
         }

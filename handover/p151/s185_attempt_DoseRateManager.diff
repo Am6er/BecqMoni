@@ -1,0 +1,307 @@
+diff --git a/BecquerelMonitor/DoseRateManager.cs b/BecquerelMonitor/DoseRateManager.cs
+index 9a033275..edf2788b 100644
+--- a/BecquerelMonitor/DoseRateManager.cs
++++ b/BecquerelMonitor/DoseRateManager.cs
+@@ -492,6 +492,160 @@ namespace BecquerelMonitor
+ 
+                 return layout;
+             }
++
++            /// <summary>
++            /// (`S185`) Для канала j — первый диапазон, куда уходит его
++            /// размытое содержимое, доли по диапазонам подряд и их первые
++            /// моменты (доля × кэВ). null у канала — разрешения нет (ширина не
++            /// число или ноль): канал идёт в свой диапазон целиком, как без
++            /// свёртки. Весь массив null — свёртки нет вовсе (прежний путь).
++            /// </summary>
++            public int[] LeakFirst;
++            public double[][] LeakShare;
++            public double[][] LeakMoment;
++
++            /// <summary>Сколько σ гаусса учитывается по обе стороны.</summary>
++            const double LeakSigmas = 6.0;
++
++            /// <summary>
++            /// ⛔ (`S185`, П151 24.09.2026) СТРОКА МАТРИЦЫ — С РАЗРЕШЕНИЕМ
++            /// ПРИБОРА. Строка склада — отклик БЕЗ разрешения, спектр — с ним:
++            /// линия у границы диапазона в спектре делится между соседями, а
++            /// строкой — нет, и своя доля, континуум вниз и центр тяжести
++            /// (представительная энергия, `AMBER77`) судились по разным
++            /// картинам. Замер П145 (`DoseGridProbe`, путь матрицы с
++            /// разрешением): AS80 59.5 +9.74 %, RC-103 1173.2 +6.24 % и 1460.8
++            /// +5.06 %, ASN16 2614.5 +4.43 %.
++            ///
++            /// Свёртка — в КАНАЛАХ, ширина — ПШПВ самого спектра
++            /// (<c>ResultData.FwhmCalibration.ChannelToFwhm</c>, она в каналах,
++            /// тот же вызов, что у разбора FSA): содержимое канала j после
++            /// раскладки строки размывается гауссом σ = ПШПВ(j)/2.3548, и каналы
++            /// идут в диапазон по центру, как отсчёты. Диапазону k (каналы
++            /// [Start, End)) достаётся Φ((End − ½ − j)/σ) − Φ((Start − ½ − j)/σ),
++            /// минус доля пропускаемых каналов; момент — по среднему усечённого
++            /// гаусса. Доли зависят только от шкалы, ширины и сетки — считаются
++            /// один раз на расчёт, а не на каждую строку.
++            ///
++            /// Нет калибровки ширины (null, не откалибрована) — свёртки нет, и
++            /// расчёт побитово прежний.
++            /// </summary>
++            public void Smear(EnergyCalibration calibration, FwhmCalibration fwhm)
++            {
++                if (fwhm == null || fwhm.NotCalibrated())
++                {
++                    return;
++                }
++
++                int n = this.Centres.Length;
++                int bins = this.Start.Length;
++                var first = new int[n];
++                var shares = new double[n][];
++                var moments = new double[n][];
++                bool any = false;
++                for (int j = 0; j < n; j++)
++                {
++                    double sigma = fwhm.ChannelToFwhm(j) / 2.3548200450309493;
++                    if (!(sigma > 0.0) || double.IsInfinity(sigma))
++                    {
++                        continue;
++                    }
++
++                    double reachLo = j - LeakSigmas * sigma, reachHi = j + LeakSigmas * sigma;
++                    int k0 = -1, k1 = -1;
++                    for (int k = 0; k < bins; k++)
++                    {
++                        if (this.End[k] <= this.Start[k])
++                        {
++                            continue;
++                        }
++
++                        if (this.End[k] - 0.5 > reachLo && this.Start[k] - 0.5 < reachHi)
++                        {
++                            if (k0 < 0) k0 = k;
++                            k1 = k;
++                        }
++                    }
++
++                    if (k0 < 0)
++                    {
++                        // Канал вне сетки и дальше 6σ от неё — ни в один
++                        // диапазон, как и без свёртки.
++                        first[j] = 0;
++                        shares[j] = new double[0];
++                        moments[j] = new double[0];
++                        any = true;
++                        continue;
++                    }
++
++                    var share = new double[k1 - k0 + 1];
++                    var moment = new double[k1 - k0 + 1];
++                    for (int k = k0; k <= k1; k++)
++                    {
++                        if (this.End[k] <= this.Start[k])
++                        {
++                            continue;
++                        }
++
++                        double za = (this.Start[k] - 0.5 - j) / sigma;
++                        double zb = (this.End[k] - 0.5 - j) / sigma;
++                        double f = Phi(zb) - Phi(za);
++                        if (!(f > 0.0))
++                        {
++                            continue;
++                        }
++
++                        // Среднее усечённого гаусса, каналы → кэВ калибровкой.
++                        double mean = j + sigma * (Pdf(za) - Pdf(zb)) / f;
++                        share[k - k0] = f;
++                        moment[k - k0] = f * calibration.ChannelToEnergy(mean);
++                    }
++
++                    // Пропускаемые каналы (переполнение) отсчётов не несут и у
++                    // спектра — снимается их кусок гаусса.
++                    int iLo = Math.Max(0, (int)Math.Floor(reachLo));
++                    int iHi = Math.Min(n - 1, (int)Math.Ceiling(reachHi));
++                    for (int i = iLo; i <= iHi; i++)
++                    {
++                        if (!this.Skip[i])
++                        {
++                            continue;
++                        }
++
++                        for (int k = k0; k <= k1; k++)
++                        {
++                            if (i >= this.Start[k] && i < this.End[k])
++                            {
++                                double slice = Phi((i + 0.5 - j) / sigma) - Phi((i - 0.5 - j) / sigma);
++                                share[k - k0] -= slice;
++                                moment[k - k0] -= slice * this.Centres[i];
++                            }
++                        }
++                    }
++
++                    first[j] = k0;
++                    shares[j] = share;
++                    moments[j] = moment;
++                    any = true;
++                }
++
++                if (any)
++                {
++                    this.LeakFirst = first;
++                    this.LeakShare = shares;
++                    this.LeakMoment = moments;
++                }
++            }
++
++            static double Pdf(double z)
++            {
++                return Math.Exp(-0.5 * z * z) / 2.5066282746310002;
++            }
++
++            static double Phi(double z)
++            {
++                return 0.5 * MathNet.Numerics.SpecialFunctions.Erfc(-z / 1.4142135623730951);
++            }
+         }
+ 
+         /// <summary>
+@@ -688,6 +842,65 @@ namespace BecquerelMonitor
+                 }
+             }
+ 
++            if (layout.LeakShare != null)
++            {
++                // (`S185`) Свёртка с разрешением: содержимое канала — по долям
++                // его гаусса (<see cref="ChannelLayout.Smear"/>); канал без
++                // ширины — в свой диапазон целиком, по прежнему правилу.
++                Array.Clear(share, 0, share.Length);
++                if (moment != null)
++                {
++                    Array.Clear(moment, 0, moment.Length);
++                }
++
++                for (int j = 0; j < n; j++)
++                {
++                    double v = mass[j];
++                    if (v == 0.0)
++                    {
++                        continue;
++                    }
++
++                    double[] leak = layout.LeakShare[j];
++                    if (leak == null)
++                    {
++                        if (layout.Skip[j])
++                        {
++                            continue;
++                        }
++
++                        for (int k = 0; k < share.Length; k++)
++                        {
++                            if (j >= layout.Start[k] && j < layout.End[k])
++                            {
++                                share[k] += v;
++                                if (moment != null)
++                                {
++                                    moment[k] += v * layout.Centres[j];
++                                }
++
++                                break;
++                            }
++                        }
++
++                        continue;
++                    }
++
++                    int k0 = layout.LeakFirst[j];
++                    double[] leakMoment = layout.LeakMoment[j];
++                    for (int t = 0; t < leak.Length; t++)
++                    {
++                        share[k0 + t] += v * leak[t];
++                        if (moment != null)
++                        {
++                            moment[k0 + t] += v * leakMoment[t];
++                        }
++                    }
++                }
++
++                return;
++            }
++
+             for (int k = 0; k < share.Length; k++)
+             {
+                 double s = 0.0, m = 0.0;
+@@ -722,6 +935,17 @@ namespace BecquerelMonitor
+         /// сдвигом вдвое в любую сторону меняет показание меньше чем на 1 %.
+         /// Пол ОТНОСИТЕЛЬНЫЙ нарочно: у сцены поля `ISO` те же величины идут
+         /// в см² (максимум ~46 у Ø63×63), и правило действует без пересчёта.
++        ///
++        /// ⛔ (`S186`, П151 24.09.2026) ПОЛ — ТОЛЬКО НИЖЕ МАКСИМУМА КРИВОЙ.
++        /// Решение Amber 24.09.2026 вопросником, дословно: «Пол только ниже
++        /// максимума (Рекомендую)». Пол задуман против низа шкалы (ε → 0
++        /// ниже 15 кэВ), но у малого кристалла пиковая кривая падает к верху
++        /// шкалы ниже сотой доли максимума: у RC-103 диапазоны 1657…2837 кэВ
++        /// (своя 5.2e-4 и 8.1e-4 против 0.118) снимались, и линия 2614.5 дозы
++        /// не давала вовсе (`DoseGridProbe`, путь «≈» −100 %). Выше диапазона
++        /// с наибольшей долей диапазон снимается только пустой строкой (доля
++        /// не больше нуля) — делить на ноль нельзя, на малое, но честно
++        /// посчитанное, — можно: там отсчёты — кванты своей энергии.
+         /// </summary>
+         public const double MinOwnEfficiencyFraction = 0.01;
+ 
+@@ -871,6 +1095,12 @@ namespace BecquerelMonitor
+                 {
+                     layout = ChannelLayout.Of(calibration, energySpectrum.NumberOfChannels,
+                                               energySpectrum.Spectrum.Length, overflow, ranges);
++                    // (`S185`) Строка — с разрешением прибора этого спектра.
++                    if (layout != null)
++                    {
++                        layout.Smear(calibration, resultData.FwhmCalibration);
++                    }
++
+                     fractions = ResponseFractions(input, ranges, layout);
+                 }
+ 
+@@ -882,6 +1112,7 @@ namespace BecquerelMonitor
+                 // диапазон — свойство сетки и входа, а не спектра, и от
+                 // представительной энергии (`AMBER77`) оно зависеть не должно.
+                 double maxOwn = 0.0;
++                int maxOwnRange = 0;
+                 var ownAtCentre = new double[bins];
+                 for (int k = 0; k < bins; k++)
+                 {
+@@ -902,7 +1133,11 @@ namespace BecquerelMonitor
+                             r.Efficiency, r.CenterKev));
+                     }
+ 
+-                    maxOwn = Math.Max(maxOwn, r.OwnEfficiency);
++                    if (r.OwnEfficiency > maxOwn)
++                    {
++                        maxOwn = r.OwnEfficiency;
++                        maxOwnRange = k;
++                    }
+                 }
+ 
+                 if (!(maxOwn > 0.0))
+@@ -965,7 +1200,10 @@ namespace BecquerelMonitor
+                     r.Attributed = Math.Max(0.0, r.Counts - explained);
+                     r.DoseRatePerFluenceRate = DoseRateCoefficients.DoseRatePerFluenceRate(r.CenterKev);
+ 
+-                    if (ownAtCentre[k] < MinOwnEfficiencyFraction * maxOwn)
++                    // (`S186`) Пол — только НИЖЕ максимума кривой; выше него
++                    // диапазон снимается лишь пустой строкой (доля не > 0).
++                    bool floorApplies = k < maxOwnRange;
++                    if (floorApplies ? ownAtCentre[k] < MinOwnEfficiencyFraction * maxOwn : !(ownAtCentre[k] > 0.0))
+                     {
+                         // Диапазон не приписывается никому: его отсчёты
+                         // выходят из покрытия, о чём скажет приписка.
+@@ -1002,7 +1240,10 @@ namespace BecquerelMonitor
+                         // падает (замер П145: остаток 3 % отсчётов в 13…17 кэВ
+                         // уехал к низу 13.12 с долей в 18 раз меньше, чем на
+                         // середине, и дал +2.6 % показания): остаёмся на середине.
+-                        if (own >= MinOwnEfficiencyFraction * maxOwn && !double.IsInfinity(own))
++                        // (`S186`) Выше максимума кривой пола нет и здесь — там
++                        // нет и «края, где эффективность круто падает» к нулю.
++                        if ((floorApplies ? own >= MinOwnEfficiencyFraction * maxOwn : own > 0.0)
++                            && !double.IsInfinity(own))
+                         {
+                             r.RepresentativeKev = energy;
+                             r.OwnEfficiency = own;
