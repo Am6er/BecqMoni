@@ -539,8 +539,10 @@ namespace BoundProbeF59
             Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerBremAngular2BS = {0}", options.ElectronLayerBremAngular2BS));
             // (П122 22.09.2026) Физика 23 — три безусловных исправления `AMBER50`/`AMBER52`/`AMBER57`
             // без ключей: умолчания класса те же, что у физики 22, меняется только номер.
-            Ok(ResponseMatrix.PhysicsVersion == 23,
-               string.Format(CultureInfo.InvariantCulture, "версия физики склада — 23 (есть {0})", ResponseMatrix.PhysicsVersion));
+            // (П147 24.09.2026) Физика 24 — пять безусловных исправлений `AMBER79`/`AMBER80`/
+            // `AMBER83`/`AMBER95`/`AMBER97`, тоже без ключей склада: умолчания те же.
+            Ok(ResponseMatrix.PhysicsVersion == 24,
+               string.Format(CultureInfo.InvariantCulture, "версия физики склада — 24 (есть {0})", ResponseMatrix.PhysicsVersion));
             Ok(options.LightBinUnified && options.PeakChannelByTolerance && options.LYieldSupply == 2
                && options.ElectronTransport && options.PositronTransport && options.PositronOffset && options.RayleighToCrystal,
                "семь ключей физики 17 умолчанием ВКЛ: lbin=1 pkch=1 lys=2 etr=1 e+tr=1 e+off=1 rayl2=1");

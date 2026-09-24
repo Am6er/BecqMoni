@@ -37,10 +37,12 @@ namespace EscapeAnchorProbeA83
     /// второго кванта пары, смесь линий K), и шум узла даёт десятые кэВ.
     ///
     ///     escapeanchorprobea83 --matrix=&lt;файл.rmx&gt; [--ch=3,2,4,6] [--emin=] [--emax=]
-    ///                          [--tol=0.3] [--csv=&lt;файл&gt;]
+    ///                          [--tol=0.5] [--csv=&lt;файл&gt;]
     ///
     /// Код 0 — |наклон| ≤ `--tol` у всех каналов с ≥ 10 узлами; 1 — больше
-    /// (на матрице физики ≤ 23 — ОЖИДАЕМО, это и есть дефект).
+    /// (на матрице физики ≤ 23 — ОЖИДАЕМО, это и есть дефект). Допуск 0.5, а не
+    /// меньше: у SE/DE/511 по 20–24 узла, и шум наклона на 3 млн историй — 0.15…0.2
+    /// (замер П147: после правки 0.05…0.40, до — 0.80…1.40).
     /// </summary>
     static class Program
     {
@@ -60,7 +62,7 @@ namespace EscapeAnchorProbeA83
             System.Threading.Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             string path = null, csv = null;
             int[] channels = { 3, 2, 4, 6 };
-            double emin = 0.0, emax = double.MaxValue, tol = 0.3;
+            double emin = 0.0, emax = double.MaxValue, tol = 0.5;
             foreach (string a in args)
             {
                 if (a.StartsWith("--matrix=", StringComparison.Ordinal)) path = a.Substring(9);

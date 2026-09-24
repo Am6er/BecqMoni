@@ -203,6 +203,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // попав в этот шаг, они растянули бы сетку до границы
                     // сотнями узлов.
                     Reach(picked, lo, hi);
+                    DensifyLow(picked);
                     AddEdges(picked, geometry, lo, hi, notes);
                     return picked.ToArray();
                 }
@@ -230,8 +231,85 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             // Края нужны и логарифмической сетке: она реже штатной внизу шкалы,
             // и провал в разы попадает между её узлами тем более.
+            DensifyLow(grid);
             AddEdges(grid, geometry, lo, hi, notes);
             return grid.ToArray();
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER95`, П147 24.09.2026, физика 24) Верх участка, где сетка
+        /// кривой гуще штатной: ниже 40 кэВ — первого узла
+        /// <see cref="EfficiencyCalculation.DefaultEnergies"/>.
+        /// </summary>
+        public const double LowGridTopKev = 40.0;
+
+        /// <summary>
+        /// (`AMBER95`) Наибольшее отношение соседних узлов кривой ниже
+        /// <see cref="LowGridTopKev"/> — ШАГ ШТАТНОЙ СЕТКИ МАТРИЦЫ
+        /// (<see cref="ResponseMatrixOptions"/>: 140 узлов на 5…3000 кэВ,
+        /// 1.0471), одно правило густоты для кривой и матрицы (решение Amber
+        /// 12.09.2026 «одна физика для кривой и матрицы»). Считается из умолчаний
+        /// матрицы, а не переписано числом: вторая копия разъехалась бы молча
+        /// (`S37`).
+        /// </summary>
+        public static readonly double LowGridRatio = MatrixGridRatio();
+
+        static double MatrixGridRatio()
+        {
+            ResponseMatrixOptions matrix = new ResponseMatrixOptions();
+            double lo = Math.Max(1.0, matrix.MinEnergyKev);
+            double hi = Math.Max(lo * 1.01, matrix.MaxEnergyKev);
+            int n = Math.Max(2, matrix.NodeCount);
+            return Math.Exp((Math.Log(hi) - Math.Log(lo)) / (n - 1));
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER95`, П147 24.09.2026, физика 24) СГУСТИТЬ СЕТКУ НИЖЕ 40 кэВ:
+        /// в каждый промежуток ниже <see cref="LowGridTopKev"/>, где соседние
+        /// узлы отстоят больше чем в <see cref="LowGridRatio"/> раз, вставить
+        /// узлы геометрически поровну.
+        ///
+        /// ЧТО БЫЛО НЕ ТАК. Штатная сетка начинается с 40 кэВ, ниже её
+        /// достраивал <see cref="Reach"/> шагом первой пары, 10 кэВ: узлы 5, 10,
+        /// 20, 30, 40. Эффективность там — пропускание корпуса и пробы
+        /// `exp(−μt)` при μ ∝ E⁻³, её логарифм по ln E вогнут, и лог-лог хорда
+        /// между узлами лежит НИЖЕ кривой. Замер П147 (`CurveGridProbeA95`,
+        /// 400 тыс. историй, арбитр — узел ровно на энергии): лог-лог
+        /// штатной против арбитра на 26.34 кэВ — 0.87 (RC-103 маринелли), 0.85
+        /// (NaI 63×63, 5 см), 0.75 (NaI 80×80 впритык); на 17.14 — 0.28 / 0.15
+        /// / 1.21; на 13.9 — 0.11 / 0.04 / 4.19. Беккерели по кривой на
+        /// линиях Am-241 26.34 и L-рентгене Np — в разы мимо.
+        /// </summary>
+        static void DensifyLow(List<double> grid)
+        {
+            if (grid == null || grid.Count < 2)
+            {
+                return;
+            }
+
+            grid.Sort();
+            double logRatio = Math.Log(LowGridRatio);
+            List<double> added = new List<double>();
+            for (int i = 1; i < grid.Count; i++)
+            {
+                double a = grid[i - 1], b = grid[i];
+                if (!(a > 0.0) || a >= LowGridTopKev)
+                {
+                    continue;
+                }
+
+                // Промежуток, выходящий за 40 кэВ (у логарифмической сетки),
+                // гущается по всей длине: его нижний конец уже в зоне.
+                double span = Math.Log(b / a);
+                int parts = (int)Math.Ceiling(span / logRatio - 1e-9);
+                for (int k = 1; k < parts; k++)
+                {
+                    added.Add(Math.Exp(Math.Log(a) + span * k / parts));
+                }
+            }
+
+            grid.AddRange(added);
+            grid.Sort();
         }
 
         /// <summary>
@@ -268,8 +346,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// принадлежит веществу, а не пробе, и стенка из свинца ступит кривую
         /// ровно так же, как проба из лютеция.
         ///
-        /// Кристалл сюда НЕ входит: его собственный край — это край СЧЁТА, а не
-        /// пропускания, и он уже сидит в штатных узлах у своих иода и цезия.
+        /// ⛔ (`AMBER95`, П147 24.09.2026, физика 24) И КРИСТАЛЛ ТОЖЕ. Прежде
+        /// здесь стояло «его собственный край — это край СЧЁТА, а не
+        /// пропускания, и он уже сидит в штатных узлах у своих иода и цезия» —
+        /// неверно дважды: штатных узлов 33 и 36 кэВ нет (ниже 40 сетка шла 30,
+        /// 40), а край счёта ступит кривую так же — над K-краем иода уходит
+        /// флуоресценция (пик вылета), и эффективность в пике падает скачком.
+        /// Замер П147 (`CurveGridProbeA95`, NaI 63×63 на 5 см): лог-лог
+        /// штатной против арбитра на 33.3 кэВ — 1.14, на 34.0 — 1.12, на 35.0
+        /// (Cs Kβ) — 1.10, на 32.2 (Ba Kα) — 0.93; у CsI маринелли 1.07 / 1.04 /
+        /// 1.00 / 0.93. Правило то же, что у прочих веществ: пара ±0.2 %,
+        /// скачок ослабления ≥ 10 %; сетка матрицы (`AddSampleEdges`) получает
+        /// те же пары.
         /// </summary>
         /// <summary>
         /// То же правило снаружи — им пользуется сетка МАТРИЦЫ отклика (`E31`),
@@ -290,7 +378,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            GeometryMaterial[] onPath = { geometry.Source, geometry.BeakerWall,
+            // (`AMBER95`) Кристалл — ПЕРВЫМ: его края видны у всякой сцены.
+            GeometryMaterial[] onPath = { geometry.Crystal, geometry.Source, geometry.BeakerWall,
                                           geometry.Reflector, geometry.Cladding };
             List<double> added = new List<double>();
             HashSet<int> seen = new HashSet<int>();
