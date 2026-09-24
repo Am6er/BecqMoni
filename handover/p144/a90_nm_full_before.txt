@@ -1,0 +1,30 @@
+BecqMoni: main config: D:\BqMoni_Claude\p144\wt\tools\CORPUS\scripts\wd_p144b\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p144\wt\tools\CORPUS\scripts\wd_p144b\config\device: 24 loaded
+спектр : G1S24_Th228_P5.xml
+прибор : Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2024)
+шкала  : каналов 1024, E(N-1) = 3050.76 кэВ, E(N) = 3053.74 кэВ
+⚠ БЕЗ МАТРИЦЫ (--no-matrix): образ — голые пики по кривой эффективности
+SETUP	против поставочного разбора изменено [верх шкалы]: CoincidenceWindowSec 0 → 0.00036281179138322; MinEnergy 40 → 30; ScintillatorMaterial нет → NaI:Tl
+разбор : chi2/ndf 66.528, состав 13, матрица НЕТ
+ROW	Th-228	Single	имп/с 6.80252E+004	z 99.86
+ROW	Ra-224	Single	имп/с 6.80252E+004	z 99.86
+ROW	Rn-220	Single	имп/с 6.80252E+004	z 99.86
+ROW	Po-216	Single	имп/с 6.80252E+004	z 99.86
+ROW	Pb-212	Single	имп/с 6.80252E+004	z 99.86
+ROW	Bi-212	Single	имп/с 6.80252E+004	z 99.86
+ROW	Tl-208	Single	имп/с 6.80252E+004	z 99.86
+ROW	Xray-NaI	Nuisance	имп/с 1.43664E+003	z 13.10
+ROW	SE-2615	Nuisance	имп/с 3.02206E+003	z 8.72
+ROW	DE-2615	Nuisance	имп/с 1.27037E+003	z 6.87
+ROW	SE-1620	Nuisance	имп/с 6.02726E+002	z 5.43
+ROW	DE-1620	Nuisance	имп/с 2.89985E+003	z 9.77
+ROW	Backscatter	Nuisance	имп/с 4.47737E+001	z 26.33
+
+=== ХВОСТ ШКАЛЫ: последние 20 каналов (2994.2…3050.8 кэВ) ===
+данные за вычетом фона : 3423.55
+модель                 : 3305.32
+превышение модели      : -118.22 отсчётов (-3.5 %)
+средний z по хвосту    : -0.434 (предел 3.00)
+наибольший z           : 2.107 в канале 1004 (2994.2 кэВ)
+NuclideDefinitionManager за прогон: обращений 0
+СОШЛОСЬ: край шкалы чист (средний z -0.43 ≤ 3.00)

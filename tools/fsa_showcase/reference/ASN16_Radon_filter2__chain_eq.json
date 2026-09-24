@@ -156,8 +156,8 @@
    3000
   ]
  ],
- "declared": "2026-09-23 15:58",
- "head": "5730e982",
+ "declared": "2026-09-24 15:39",
+ "head": "7ff7cf5c",
  "head_lines": {
   "chi2": "chi2/ndf 1.371, невязка модели 57.2 %, суммирование да",
   "composition": "состав объявлен: ; ряды: Ra-226, Th-232; распад 2, атомных 2, линий 225; полоса сведена ПОЛОМ ПО КРИВОЙ 20.0 кэВ (1.0 % от максимума, Min_Range 5.0), фит на всём спектре (умолчание); членов ряда ниже порога ветвления 4; ряд от 226RA: переходное равновесие λ_д/(λ_д − λ_к) — 210BI ×1.0141, 210PB ×1.0141, 210PO ×1.0143 (AMBER55); вылет от линий состава: SE-2615, DE-2615, SE-1764, DE-1764, SE-2204, DE-2204",
@@ -179,11 +179,11 @@
    }
   },
   "probes": {
-   "app_sha": "277f3934eb836ac0",
-   "built": "2026-09-23 15:52:48",
+   "app_sha": "ae9e51eac07e165d",
+   "built": "2026-09-24 15:18:06",
    "dir": "tools/effmaker/probes/build",
    "freshness_checked": true,
-   "shot_sha": "fd43a159496e6f4e"
+   "shot_sha": "78aa741d5f3b1117"
   },
   "spectrum": "spectra/ASN16_Radon_filter2.xml",
   "spectrum_sha": "e1e06a7d0b2a5141"
@@ -210,7 +210,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 576.6157352015362,
+    "peak_counts": 575.1865185644589,
     "share_pct": 34.757756897158856,
     "z": 1.8830033812374714
    },
@@ -220,7 +220,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 62.60446936346371,
+    "peak_counts": 62.63338801812103,
     "share_pct": 3.593008018312301,
     "z": 1.8830033812374714
    },
@@ -230,7 +230,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 666.5288571307644,
+    "peak_counts": 664.5117869616771,
     "share_pct": 36.305356831668696,
     "z": 1.8830033812374714
    },
@@ -240,7 +240,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 0.00261518660103159,
+    "peak_counts": 0.0026259392681128265,
     "share_pct": 0.0004711359596317798,
     "z": 1.8830033812374714
    },
@@ -250,7 +250,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 31.644655209040824,
+    "peak_counts": 31.588349242323122,
     "share_pct": 2.1614697381848083,
     "z": 1.8830033812374714
    },
@@ -260,7 +260,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 0.12218868875732239,
+    "peak_counts": 0.12218774286732605,
     "share_pct": 0.0012869076943839665,
     "z": 1.8830033812374714
    },
@@ -270,7 +270,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 0.2096337447373536,
+    "peak_counts": 0.20949562600495467,
     "share_pct": 0.030081735866302077,
     "z": 1.8830033812374714
    },
@@ -280,7 +280,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 15.842758198897405,
+    "peak_counts": 15.800028508710271,
     "share_pct": 0.7887194497150558,
     "z": 1.8830033812374714
    },
@@ -292,7 +292,7 @@
     "detected": "1",
     "detection_limit_rate": 1.926719820179957,
     "kind": "Single",
-    "peak_counts": 2.925204171748805,
+    "peak_counts": 2.9209271064918787,
     "share_pct": 0.09744717912264998,
     "z": 1.8830033812374714
    },
@@ -302,7 +302,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 201.9883988488449,
+    "peak_counts": 201.6183321544603,
     "share_pct": 22.26440210631731,
     "z": 1.8830033812374714
    }
@@ -341,7 +341,7 @@
     "detected": "0",
     "detection_limit_rate": 2.0379612684123276,
     "kind": "Chain",
-    "limit_peak_counts": 1989.8445190676007,
+    "limit_peak_counts": 1984.7827501430795,
     "total_yield_pct": 122.71895281633157
    },
    "Th-232": {
@@ -353,7 +353,7 @@
     "detected": "1",
     "detection_limit_rate": 1.926719820179957,
     "kind": "Chain",
-    "limit_peak_counts": 2886.9228396408557,
+    "limit_peak_counts": 2880.744574363391,
     "total_yield_pct": 237.97700000000003
    }
   },
@@ -489,7 +489,7 @@
   ],
   [
    "Ra-226 — ряд",
-   "< 4.05 %",
+   "< 4.04 %",
    ""
   ],
   [
@@ -548,7 +548,7 @@
    "Пики полного поглощения, по которым привязана шкала (+ опора, - отвергнут): компонент, центр модели кэВ, остаток кэВ, доля пика, причина"
   ]
  ],
- "seconds": 3.5,
+ "seconds": 11.1,
  "spectrum": "spectra/ASN16_Radon_filter2.xml",
  "tolerance": {
   "abs": 1e-06,

@@ -43,7 +43,14 @@ namespace FsaScaleTopProbe
     ///
     ///     fsascaletopprobe --spectrum=&lt;файл.xml&gt; [--chain=Th-232] [--sample=137CS]
     ///                      [--cut-kev=2000] [--tail=20] [--limit=3] [--out=&lt;csv&gt;]
-    ///                      [--matrix-any]
+    ///                      [--matrix-any] [--no-matrix]
+    ///
+    /// ⛔ `--no-matrix` (`AMBER90`, П144 24.09.2026) — тот же разрез, но разбор
+    /// БЕЗ матрицы: образ — голые пики по кривой (`BuildTemplate`). Правка
+    /// `AMBER72` продолжила шкалу за верх только в таблице бинов матричного
+    /// образа, а голый пик надшкальной линии садился полупиком на край. Плечо
+    /// печатает ещё и скорость счёта каждой строки — отношение её к прогону без
+    /// разреза и есть «куда уехала амплитуда».
     ///
     /// Состав — из базы по объявленному составу (`AMBER19`, общий вход
     /// `FsaSampleSpec.FromManifest`), поставочный список не поднимается.
@@ -64,6 +71,7 @@ namespace FsaScaleTopProbe
             int tail = 20;
             double limit = 3.0;
             bool matrixAny = false;
+            bool noMatrix = false;
 
             foreach (string a in args)
             {
@@ -78,6 +86,7 @@ namespace FsaScaleTopProbe
                 else if (a.StartsWith("--limit=", StringComparison.Ordinal))
                     limit = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (a == "--matrix-any") matrixAny = true;
+                else if (a == "--no-matrix") noMatrix = true;
                 else
                 {
                     Console.Error.WriteLine("неизвестный ключ: {0}", a);
@@ -126,22 +135,30 @@ namespace FsaScaleTopProbe
             Console.WriteLine("шкала  : каналов {0}, E(N-1) = {1} кэВ, E(N) = {2} кэВ",
                               channels, F(calibration.ChannelToEnergy(channels - 1), 2), F(topKev, 2));
 
-            MatrixRefusal refusal;
-            int fileFormat;
-            ResponseMatrix matrix = ResponseMatrixStore.Load(
-                rd.Efficiency != null ? rd.Efficiency.Guid : null, out refusal, out fileFormat);
-            if (matrix == null)
+            ResponseMatrix matrix = null;
+            if (noMatrix)
             {
-                Console.Error.WriteLine("⛔ матрицы НЕТ ({0}, формат {1})", refusal, fileFormat);
-                return 1;
+                Console.WriteLine("⚠ БЕЗ МАТРИЦЫ (--no-matrix): образ — голые пики по кривой эффективности");
             }
-
-            bool stampOk = rd.Efficiency != null && rd.Efficiency.HasGeometry
-                           && matrix.IsValidFor(rd.Efficiency.Geometry);
-            if (!stampOk && !matrixAny)
+            else
             {
-                Console.Error.WriteLine("⛔ ОТПЕЧАТОК НЕ СОШЁЛСЯ; осознанно — ключ --matrix-any");
-                return 1;
+                MatrixRefusal refusal;
+                int fileFormat;
+                matrix = ResponseMatrixStore.Load(
+                    rd.Efficiency != null ? rd.Efficiency.Guid : null, out refusal, out fileFormat);
+                if (matrix == null)
+                {
+                    Console.Error.WriteLine("⛔ матрицы НЕТ ({0}, формат {1})", refusal, fileFormat);
+                    return 1;
+                }
+
+                bool stampOk = rd.Efficiency != null && rd.Efficiency.HasGeometry
+                               && matrix.IsValidFor(rd.Efficiency.Geometry);
+                if (!stampOk && !matrixAny)
+                {
+                    Console.Error.WriteLine("⛔ ОТПЕЧАТОК НЕ СОШЁЛСЯ; осознанно — ключ --matrix-any");
+                    return 1;
+                }
             }
 
             FsaSampleSpec spec = FsaSampleSpec.FromManifest(rd, chains, NucidsOf(nuclides), true, true);
@@ -173,7 +190,14 @@ namespace FsaScaleTopProbe
                 return 1;
             }
 
-            Console.WriteLine("разбор : chi2/ndf {0}, состав {1}", F(result.Chi2Ndf, 3), result.Components.Count);
+            Console.WriteLine("разбор : chi2/ndf {0}, состав {1}, матрица {2}",
+                              F(result.Chi2Ndf, 3), result.Components.Count,
+                              result.ResponseMatrixUsed ? "учтена" : "НЕТ");
+            foreach (FsaComponentResult row in result.Components)
+            {
+                Console.WriteLine("ROW	{0}	{1}	имп/с {2}	z {3}",
+                                  row.Name, row.Kind, row.CountRate.ToString("E5", CultureInfo.InvariantCulture), F(row.Z, 2));
+            }
 
             int lo = Math.Max(0, channels - tail);
             var rows = new List<string> { "channel;energy_kev;measured;model;z" };

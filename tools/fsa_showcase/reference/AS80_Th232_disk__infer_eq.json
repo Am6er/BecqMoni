@@ -175,8 +175,8 @@
    3000
   ]
  ],
- "declared": "2026-09-23 15:58",
- "head": "5730e982",
+ "declared": "2026-09-24 15:39",
+ "head": "7ff7cf5c",
  "head_lines": {
   "chi2": "chi2/ndf 2.720, невязка модели 12.7 %, суммирование да",
   "composition": "состав: выведено из пиков: 9 из 16 подписаны, родителей 1 из 1, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; Th-232 53 % (8/15, пиков 8) — доля выше порога; оборванный ряд: подцепочка разобрана у 0 кандидатов",
@@ -198,11 +198,11 @@
    }
   },
   "probes": {
-   "app_sha": "277f3934eb836ac0",
-   "built": "2026-09-23 15:52:48",
+   "app_sha": "ae9e51eac07e165d",
+   "built": "2026-09-24 15:18:06",
    "dir": "tools/effmaker/probes/build",
    "freshness_checked": true,
-   "shot_sha": "fd43a159496e6f4e"
+   "shot_sha": "78aa741d5f3b1117"
   },
   "spectrum": "spectra/AS80_Th232_disk.xml",
   "spectrum_sha": "0bd671fe442c0e69"
@@ -232,7 +232,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 393150.8674774983,
+    "peak_counts": 392002.603248004,
     "share_pct": 36.46365995728635,
     "z": 184.21180424894885
    },
@@ -242,7 +242,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 30964.763962324487,
+    "peak_counts": 30943.51091202585,
     "share_pct": 4.8426555055832825,
     "z": 184.21180424894885
    },
@@ -252,7 +252,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 207727.96789031953,
+    "peak_counts": 207956.40687091483,
     "share_pct": 18.10701952357199,
     "z": 184.21180424894885
    },
@@ -262,7 +262,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 2.900358380278221,
+    "peak_counts": 2.90192178655233,
     "share_pct": 0.000654117660318071,
     "z": 184.21180424894885
    },
@@ -272,7 +272,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 15625.522477450062,
+    "peak_counts": 15677.654547922679,
     "share_pct": 1.4325262026638694,
     "z": 184.21180424894885
    },
@@ -282,7 +282,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 0.057738493199204134,
+    "peak_counts": 0.05782457097487271,
     "share_pct": 3.607782724843342e-06,
     "z": 184.21180424894885
    },
@@ -292,7 +292,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 238.56201685699017,
+    "peak_counts": 238.42226442260684,
     "share_pct": 0.03881086738403616,
     "z": 184.21180424894885
    },
@@ -302,7 +302,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 3003.909523362657,
+    "peak_counts": 2997.350653848266,
     "share_pct": 0.2147137205672226,
     "z": 184.21180424894885
    },
@@ -314,7 +314,7 @@
     "detected": "1",
     "detection_limit_rate": 8.73275712342622,
     "kind": "Single",
-    "peak_counts": 177.35353658225978,
+    "peak_counts": 175.4128718265405,
     "share_pct": 0.012372495131226511,
     "z": 184.21180424894885
    },
@@ -324,7 +324,7 @@
     "decay_chain_root": "Th-232",
     "detected": "1",
     "kind": "Single",
-    "peak_counts": 179120.09429334337,
+    "peak_counts": 180639.17215094765,
     "share_pct": 27.50181648080959,
     "z": 184.21180424894885
    },
@@ -332,7 +332,7 @@
     "count_rate": 1748.0094544589076,
     "detected": "1",
     "kind": "Nuisance",
-    "peak_counts": 140644.94100154593,
+    "peak_counts": 139998.81459441,
     "share_pct": 9.932945786207354,
     "z": 93.84467194762047
    },
@@ -340,7 +340,7 @@
     "count_rate": 143.34505504005202,
     "detected": "1",
     "kind": "Nuisance",
-    "peak_counts": 20897.209801096004,
+    "peak_counts": 20824.24236650358,
     "share_pct": 1.4043142332110141,
     "z": 10.31336033035628
    },
@@ -348,7 +348,7 @@
     "count_rate": 18966.490162198428,
     "detected": "1",
     "kind": "Nuisance",
-    "peak_counts": 777.3832328351904,
+    "peak_counts": 777.507753370797,
     "share_pct": 0.0485075021410124,
     "z": 3.930034031638986
    }
@@ -387,7 +387,7 @@
     "detected": "1",
     "detection_limit_rate": 8.73275712342622,
     "kind": "Chain",
-    "limit_peak_counts": 8437.148214594601,
+    "limit_peak_counts": 8413.114799638406,
     "total_yield_pct": 237.97700000000003
    }
   },
@@ -665,7 +665,7 @@
    "Пики полного поглощения, по которым привязана шкала (+ опора, - отвергнут): компонент, центр модели кэВ, остаток кэВ, доля пика, причина"
   ]
  ],
- "seconds": 3.4,
+ "seconds": 11.3,
  "spectrum": "spectra/AS80_Th232_disk.xml",
  "tolerance": {
   "abs": 1e-06,

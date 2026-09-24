@@ -2429,10 +2429,57 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (<see cref="adcScale"/>). Расходиться этим местам нельзя: пик,
         /// поставленный одной картой, и ядро опоры, построенное другой, дали
         /// бы промах привязки из ничего.
+        ///
+        /// ⛔ (`AMBER90`, `AMBER85`, П144 24.09.2026) ШКАЛА ПРОДОЛЖАЕТСЯ ЗА ОБА
+        /// КРАЯ, а не зажимается. Калибровка отдаёт `maxChannels` всему, что
+        /// выше E(N) (`PolynomialEnergyCalibration.cs:253`), и канал 0 всему,
+        /// что ниже E(0) или ниже нуля энергии (`:326`), — и позиция, взятая
+        /// отсюда как есть, сажала пик надшкальной линии полупиком на верхний
+        /// край, а свет ниже E(0) — стопкой в нулевой канал. Правка ~~`AMBER72`~~
+        /// продолжила шкалу вверх только в таблице бинов матричного образа
+        /// (<see cref="DepositChannels"/>); голые пики (<see cref="BuildTemplate"/>),
+        /// пиковое окно (<see cref="MarkPeakWindow"/>) и ядро опоры брали
+        /// зажатую позицию. Теперь продолжение живёт ЗДЕСЬ, в одном месте для
+        /// всех четырёх: выше E(N) — линейно по ширине верхнего канала, ниже
+        /// max(E(0), 0) — линейно по ширине нулевого. Что ушло дальше запаса
+        /// буфера, отбросит укладчик (<see cref="Splat"/>), что легло за полосу
+        /// фита — отрежут границы окна и образа.
+        ///
+        /// ⚠ Зажим в самой калибровке НЕ тронут и трогать его нельзя: её зовут
+        /// график, поиск пиков, калибровка, ROI, и «канал за шкалой» им не
+        /// нужен. Низ продолжается ТОЛЬКО там, где калибровка зажала (отдала
+        /// ноль): калибровка, умеющая честно обратить энергию между E(0) и
+        /// нулём, остаётся при своём ответе.
         /// </summary>
         double LightToChannel(EnergyCalibration calibration, double lightKev, int channels)
         {
-            return EnergyToChannelSafe(calibration, this.LightEnergyKev(lightKev), channels);
+            double energyKev = this.LightEnergyKev(lightKev);
+            double channel = EnergyToChannelSafe(calibration, energyKev, channels);
+            if (channels < 2 || !Finite(energyKev))
+            {
+                return channel;
+            }
+
+            // Верх берётся ПОСЛЕ обращения к калибровке: оно ставит ей число
+            // каналов, а `ChannelToEnergy` за ним зажимает номер канала.
+            double topKev = calibration.ChannelToEnergy(channels);
+            double topStep = topKev - calibration.ChannelToEnergy(channels - 1);
+            if (energyKev > topKev && Finite(topKev) && PositiveFinite(topStep))
+            {
+                return channels + (energyKev - topKev) / topStep;
+            }
+
+            if (channel <= 0.0)
+            {
+                double zeroKev = calibration.ChannelToEnergy(0);
+                double zeroStep = calibration.ChannelToEnergy(1) - zeroKev;
+                if (energyKev < Math.Max(zeroKev, 0.0) && Finite(zeroKev) && PositiveFinite(zeroStep))
+                {
+                    return (energyKev - zeroKev) / zeroStep;
+                }
+            }
+
+            return channel;
         }
 
         /// <summary>
@@ -9512,10 +9559,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Открыт наружу для пробы `AMBER62`: своей копии карты нуля у неё нет,
         /// а построй она положение линии сама — отказывала бы на карте, а не на
         /// мерке окна, то есть сторожила бы не то.
+        ///
+        /// (`AMBER89`, П144) Позиция — линии МАТРИЧНОГО образа, то есть на
+        /// E + s(E) после привязки (<see cref="LinePositionKev"/>), как её
+        /// ставит окно у такого образа; без матрицы s = 0 и число прежнее.
         /// </summary>
         public double LinePositionChannel(EnergyCalibration calibration, double energyKev, int channels)
         {
-            return this.LightToChannel(calibration, energyKev, channels);
+            return this.LightToChannel(calibration,
+                this.ResponseMatrix != null ? this.LinePositionKev(energyKev) : energyKev, channels);
         }
 
         /// <summary>
@@ -9609,6 +9661,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double floor = brightest * PeakWindowMinPeakSharePercent / 100.0;
+            // (`AMBER89`) Окно стоит там же, где пик ОБРАЗА: матричный образ
+            // формы света "line"/"peak" кладёт пик на E + s(E), голый пик
+            // (<see cref="BuildTemplate"/>, в том числе у компонента с готовыми
+            // весами) — на E. Правило то же, что у <see cref="PeakWindowLinePeakCounts"/>.
+            bool imageShifted = this.ResponseMatrix != null && !component.WeightsAreFinal;
             for (int i = 0; i < component.Lines.Count; i++)
             {
                 FsaLine line = component.Lines[i];
@@ -9619,7 +9676,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                if (MarkPeakWindow(inWindow, line.Energy, calibration, fwhmCalibration,
+                if (MarkPeakWindow(inWindow, line.Energy, imageShifted, calibration, fwhmCalibration,
                                    gain, offset, chLo, chHi, channels))
                 {
                     any = true;
@@ -9644,7 +9701,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 foreach (FsaCascadeSummer.SumPeak peak in correction.SumPeaks)
                 {
-                    if (MarkPeakWindow(inWindow, peak.Energy, calibration, fwhmCalibration,
+                    // сумм-пик кладётся матрицей (`AccumulateSumPeaks`) — по свету
+                    if (MarkPeakWindow(inWindow, peak.Energy, imageShifted, calibration, fwhmCalibration,
                                        gain, offset, chLo, chHi, channels))
                     {
                         any = true;
@@ -9801,8 +9859,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Пометить в маске каналы окна ±2 ПШПВ вокруг линии с учётом дрейфа
         /// шкалы. Возвращает false, если линия за краем окна фита или ПШПВ там
         /// не определена.
+        ///
+        /// ⛔ (`AMBER89`, П144 24.09.2026) Окно — на ПИКЕ ОБРАЗА, а не на E.
+        /// Матричный образ формы света "line"/"peak" (умолчание с 12.09.2026)
+        /// ставит пик на <see cref="LinePositionKev"/> = E + s(E); окно стояло
+        /// на E и было смещено от пика на −s: мерено `FsaWindowCentreProbe` на
+        /// G1S24 (NaI) — 59.5 кэВ −0.41 ПШПВ, 238.6 −0.12, 1274.5 +0.07,
+        /// 2614.5 +0.16. Тем же местом стоят ядро опоры и нож подпорогового
+        /// хвоста. <paramref name="imageShifted"/> — образ линии матричный
+        /// (у голого пика <see cref="BuildTemplate"/> пик на E, и окно там же).
         /// </summary>
-        bool MarkPeakWindow(bool[] inWindow, double energy, EnergyCalibration calibration,
+        bool MarkPeakWindow(bool[] inWindow, double energy, bool imageShifted, EnergyCalibration calibration,
                             FwhmCalibration fwhmCalibration, double gain, double offset,
                             int chLo, int chHi, int channels)
         {
@@ -9811,8 +9878,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return false;
             }
 
-            // (`S169`) окно — той же картой нуля, что ставит образ
-            double position = this.LightToChannel(calibration, energy, channels);
+            // (`S169`) окно — той же картой нуля, что ставит образ;
+            // (`AMBER89`) и на той же позиции по свету
+            double position = this.LightToChannel(calibration,
+                imageShifted ? this.LinePositionKev(energy) : energy, channels);
             if (!Finite(position))
             {
                 return false;
@@ -12596,7 +12665,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             // ⛔ (`AMBER72`, П134 22.09.2026) СВЕТ ВЫШЕ ВЕРХА ШКАЛЫ ПРОДОЛЖАЕТСЯ
-            // ЗА НЕЁ, А НЕ ЗАЖИМАЕТСЯ В ПОСЛЕДНИЙ КАНАЛ. `EnergyToChannel`
+            // ЗА НЕЁ, А НЕ ЗАЖИМАЕТСЯ В ПОСЛЕДНИЙ КАНАЛ. (`AMBER90`/`AMBER85`,
+            // П144) Продолжение переехало в <see cref="LightToChannel"/> — одно
+            // на таблицу бинов, голые пики, окно и опоры, и вниз тоже: свет
+            // ниже E(0) прежде ложился стопкой в нулевой канал. `EnergyToChannel`
             // отдаёт `maxChannels` всему, что выше `E(N)`
             // (`PolynomialEnergyCalibration.cs:253`), а `Splat` канал `N`
             // принимает — и ВСЯ надшкальная часть отклика (сумм-пик каскада,
@@ -12612,17 +12684,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // линейно по ширине верхнего канала: пик стоит там, где он есть,
             // хвост ложится куда следует, а что ушло дальше запаса — отбросит
             // сам <see cref="Splat"/>.
-            double topKev = calibration.ChannelToEnergy(channels);
-            double stepKev = topKev - calibration.ChannelToEnergy(channels - 1);
-            bool extend = channels > 0 && Finite(topKev) && PositiveFinite(stepKev);
-
             double[] table = new double[count];
             for (int b = 0; b < count; b++)
             {
-                double energyKev = this.LightEnergyKev(b * bin);
-                table[b] = extend && energyKev > topKev
-                    ? channels + (energyKev - topKev) / stepKev
-                    : this.LightToChannel(calibration, b * bin, channels);
+                table[b] = this.LightToChannel(calibration, b * bin, channels);
             }
 
             this.depositChannels = table;
