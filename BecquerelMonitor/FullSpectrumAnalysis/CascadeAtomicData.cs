@@ -159,8 +159,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public int Z;
             public int A;
 
-            /// <summary>Доля этой ветви, % (графа `perc` в `decay_chain`).</summary>
+            /// <summary>
+            /// Доля этой ветви, % — столбец <see cref="DecayParentRule.ChainPercColumn"/>
+            /// (`S190`): графа `perc` в `decay_chain`, а у канала «β⁺» — остаток
+            /// прочих ветвей, если он больше записанного.
+            /// </summary>
             public double Perc;
+
+            /// <summary>
+            /// (`S190`) Графа `perc` как записана в `decay_chain` — для слов о
+            /// расхождении поставок (`S187`): у канала «β⁺» это доля позитронов.
+            /// </summary>
+            public double SupplyPerc;
 
             /// <summary>
             /// Канал распада (`dec_type` в `decay_chain`). Держится потому, что
@@ -826,7 +836,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `perc` такой строки — доля ПОЗИТРОНОВ, а не ветви: у `119TE` 2.06 %
         /// при ε+β⁺ 100 % (LiveChart), у `164TM` 39 при 100.
         /// </summary>
-        const string BetaPlusModeDecType = "15";
+        const string BetaPlusModeDecType = DecayParentRule.BetaPlusChannel;
 
         /// <summary>
         /// Полный выход K-рентгена, % на распад. ⚠ `KB` в
@@ -1074,9 +1084,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // обходу ряда они нужны как изомерный переход, — а нам они
                 // означали бы «атом сам себе дочерний». В выборку они попадают
                 // у 511 родителей из 2535 и у 123 из них побеждают по `perc`.
+                //
+                // (`S190`, П158 24.09.2026) Доля ветви — столбцом
+                // `DecayParentRule.ChainPercColumn`, общим со всеми читателями
+                // рядов; сырой `perc` держится рядом ради слов о расхождении.
                 command.Parameters.Clear();
                 command.CommandText =
-                    "select daughter_nucid, perc, dec_type from decay_chain d"
+                    "select daughter_nucid, perc, dec_type," + DecayParentRule.ChainPercColumn
+                    + " from decay_chain d"
                     + " where nucid = $n"
                     + DecayParentRule.ChainLevelClause;
                 command.Parameters.AddWithValue("$n", nucid);
@@ -1091,11 +1106,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             continue;
                         }
 
-                        double perc;
+                        double supplyPerc;
                         if (string.IsNullOrEmpty(name)
                             || !double.TryParse(reader.IsDBNull(1) ? "" : reader.GetString(1),
                                                 NumberStyles.Float, CultureInfo.InvariantCulture,
-                                                out perc))
+                                                out supplyPerc))
+                        {
+                            supplyPerc = 0.0;
+                        }
+
+                        double perc;
+                        if (string.IsNullOrEmpty(name)
+                            || reader.IsDBNull(3)
+                            || !DecayParentRule.TryPercent(reader.GetValue(3), out perc))
                         {
                             perc = 0.0;
                         }
@@ -1118,6 +1141,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 Z = branchZ,
                                 A = branchA,
                                 Perc = perc,
+                                SupplyPerc = supplyPerc,
                                 DecType = reader.IsDBNull(2) ? null : reader.GetString(2)
                             });
                         }
@@ -1695,28 +1719,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // и доля β⁺ ветви выходила 0.995 вместо 0.02. Ветвь такого
                 // канала — всё, что оставляют ей прочие ветви родителя; строки
                 // «ε+β⁺» своего уровня в эту дочь у всех девяти строк кода нет.
-                if (AllOfChannel(own, BetaPlusModeDecType) && bound < 100.0)
+                //
+                // (`S190`, П158 24.09.2026) Остаток берёт уже ЗАПРОС — столбец
+                // `DecayParentRule.ChainPercColumn`, одно правило со всеми
+                // читателями рядов; здесь только слова о расхождении. Прежде
+                // остаток считался тут и лишь при β⁺-строках излучений, и у
+                // `143PM` (β⁺ 5.7·10⁻⁶ %, строк B+ нет) ветвь оставалась
+                // 5.7·10⁻⁶ %, а захватная вакансия при гамме зажималась в 1
+                // вместо 0.828.
+                double supplyBound = 0.0;
+                foreach (Branch branch in own)
                 {
-                    double room = 100.0 - OthersPerc(data, own);
-                    if (room > bound)
-                    {
-                        notes.AppendFormat(CultureInfo.InvariantCulture,
-                            "β⁺ канала {0}: decay_chain.perc {1:F3} % — доля позитронов, а не ветви ε+β⁺;"
-                            + " ветвь взята остатком {2:F3} %; ",
-                            entry.Key, bound, room);
-                        AddDiscrepancy(data, SupplyDiscrepancyKind.BetaPlusModeWidened, nucid, own,
-                                       entry.Key, bound, entry.Value, room,
-                                       Math.Abs(room - bound) >= 100.0 * SupplyRounding);
-                        foreach (Branch branch in own)
-                        {
-                            if (branch.Perc > 0.0)
-                            {
-                                branch.Perc *= room / bound;
-                            }
-                        }
+                    supplyBound += branch.SupplyPerc > 0.0 ? branch.SupplyPerc : 0.0;
+                }
 
-                        bound = room;
-                    }
+                if (AllOfChannel(own, BetaPlusModeDecType) && bound > supplyBound)
+                {
+                    notes.AppendFormat(CultureInfo.InvariantCulture,
+                        "β⁺ канала {0}: decay_chain.perc {1:F3} % — доля позитронов, а не ветви ε+β⁺;"
+                        + " ветвь взята остатком {2:F3} %; ",
+                        entry.Key, supplyBound, bound);
+                    AddDiscrepancy(data, SupplyDiscrepancyKind.BetaPlusModeWidened, nucid, own,
+                                   entry.Key, supplyBound, entry.Value, bound,
+                                   Math.Abs(bound - supplyBound) >= 100.0 * SupplyRounding);
                 }
 
                 if (entry.Value > bound && bound < 100.0)
@@ -1827,21 +1852,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return true;
-        }
-
-        /// <summary>Сумма `perc` ветвей родителя вне списка <paramref name="own"/>, %.</summary>
-        static double OthersPerc(CascadeAtomicData data, List<Branch> own)
-        {
-            double others = 0.0;
-            foreach (Branch branch in data.Branches)
-            {
-                if (!own.Contains(branch) && branch.Perc > 0.0)
-                {
-                    others += branch.Perc;
-                }
-            }
-
-            return others;
         }
 
         /// <summary>

@@ -152,16 +152,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `93MO`), и у ВСЕХ восьми LiveChart подтверждает, что строка — изомера
         /// (у `90TC` ветвь в 90MO шла дважды по 100 %).
         ///
-        /// ⚠ Строки иных уровней в ДРУГУЮ дочь правило по-прежнему берёт
-        /// минимумом, и это не недосмотр: одной `decay_chain` их не различить.
-        /// Из 28 таких троек у родителей со своими строками часть — распад
-        /// основного состояния, записанный не на тот уровень (`184AU` α 0.016 %
-        /// на уровне 3, `191PB` ε 100 % на уровне 2 — LiveChart даёт их
-        /// основному состоянию), часть — изомера (`150EU` β⁻ 89 %, `176LU` ε
-        /// 0.095 %). Своя строка «своего уровня» тут и есть то, чего нет;
-        /// судить их может только вторая поставка — остаток строкой реестра.
-        /// Родитель без строки своего уровня в эту дочь (и без записи в
-        /// `nuclides`) идёт прежним минимумом по тройке — побитово как было.
+        /// ⛔ (`S191`, П158 24.09.2026) СТРОКИ ИНЫХ УРОВНЕЙ В ДРУГУЮ ДОЧЬ СУДИТ
+        /// `l_decays`. Одной `decay_chain` их не различить: из 28 таких троек у
+        /// родителей со своими строками часть — распад основного состояния,
+        /// записанный не на тот уровень (`184AU` α 0.016 % на уровне 3, `191PB`
+        /// ε 100 % на уровне 2), часть — изомера (`150EU` β⁻ 89 %, `176LU` ε
+        /// 0.095 %). Судья — `l_decays` (моды распада по строкам `nuclides`, с
+        /// их `l_seqno`): у СВОЕГО уровня родителя там стоят ВСЕ его моды.
+        /// Строка иного уровня в дочь, в которую свой уровень по `l_decays` не
+        /// распадается вовсе, — распад другого состояния, и в ветви родителя
+        /// она не идёт. Замер 24.09.2026: таких строк 14 (`148HO`, `150EU`,
+        /// `171AU`, `176LU`, `185PT`, `199BI`, `201BI`, `242AM`, `258MD` ×2,
+        /// `53CO`, `93RU`, `94AG` ×2), и у ВСЕХ четырнадцати IAEA LiveChart
+        /// (ENSDF, выборка 24.09.2026) отдаёт эту моду изомеру, а не основному
+        /// состоянию.
+        ///
+        /// Судья молчит — строка остаётся, как была, и это нарочно:
+        ///   * у родителя нет строк своего уровня в ДРУГИЕ дочери (`157LU`,
+        ///     `95PD`: в `decay_chain` под именем основного лежит ТОЛЬКО набор
+        ///     изомера, и снять его — оставить родителя без ветвей вовсе);
+        ///   * у своего уровня в `l_decays` нет ни одной моды (14 троек) или
+        ///     родителя нет в `nuclides` (6) — судить нечем;
+        ///   * дочь у своего уровня есть (судья сравнивает ДОЧЬ, а не код
+        ///     канала: у `94AG` ε в 94PD записан кодом 7 здесь и 1 там). Среди
+        ///     них — строки изомера с ЧУЖОЙ долей в ту же дочь, что и у
+        ///     основного (`197BI` α 55 % при α основного 10⁻⁴ %, `183PT` ε 96.9
+        ///     при 100): долю основного знает только `l_decays`, а брать доли
+        ///     из второй поставки — решение Amber (журнал П158, варианты).
+        /// Петли `daughter = nucid` судья не трогает.
         /// </summary>
         public const string ChainLevelClause =
             " and l_seqno = coalesce("
@@ -171,6 +189,94 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             + "   (select min(l_seqno) from decay_chain x"
             + "     where x.nucid = d.nucid"
             + "       and x.daughter_nucid = d.daughter_nucid"
-            + "       and x.dec_type = d.dec_type))";
+            + "       and x.dec_type = d.dec_type))"
+            + " and not (d.daughter_nucid <> d.nucid"
+            + "   and not exists (select 1 from nuclides w where w.nucid = d.nucid and w.l_seqno = d.l_seqno)"
+            + "   and exists (select 1 from nuclides w, decay_chain o where w.nucid = d.nucid"
+            + "               and o.nucid = d.nucid and o.l_seqno = w.l_seqno and o.daughter_nucid <> o.nucid)"
+            + "   and exists (select 1 from nuclides w, l_decays j where w.nucid = d.nucid"
+            + "               and j.nucid = d.nucid and j.l_seqno = w.l_seqno)"
+            + "   and not exists (select 1 from nuclides w, l_decays j where w.nucid = d.nucid"
+            + "               and j.nucid = d.nucid and j.l_seqno = w.l_seqno"
+            + "               and j.daughter_nucid = d.daughter_nucid))";
+
+        /// <summary>
+        /// (`S190`, П158 24.09.2026) Код канала «β⁺» в `decay_chain.dec_type`
+        /// (подпись в `l_decays.decay_label` — «β+»). ⚠ Тот же код стоит
+        /// ЛИТЕРАЛОМ в тексте <see cref="ChainPercColumn"/> — выражение читает
+        /// питон, а склейку констант он не разбирает; согласие двух мест
+        /// держит `tools/check_parent_rule.py` (раздел 3).
+        /// </summary>
+        public const string BetaPlusChannel = "15";
+
+        /// <summary>
+        /// Столбец выборки вместо голого `perc` для обхода `decay_chain`: ДОЛЯ
+        /// ВЕТВИ, %, — одно правило для всех читателей рядов (`S190`, П158
+        /// 24.09.2026). Ставится в список `select` запроса с
+        /// <see cref="ChainLevelClause"/> (внешняя таблица — алиас `d`, строки
+        /// одного родителя), читается числом (<see cref="TryPercent"/>): у
+        /// расширенной строки это REAL, у прочих — прежний текст `perc`
+        /// побитово.
+        ///
+        /// ⛔ ЧТО ЧИНИТ. `perc` строки канала «β⁺» (<see cref="BetaPlusChannel"/>)
+        /// — доля ПОЗИТРОНОВ, а не ветви ε+β⁺: ENSDF пишет у распада два числа,
+        /// «%EC+%B+» и «%B+», и `decay_chain` местами сохранила только второе
+        /// (`l_decays` держит оба: код 1 «ec β+ 100%» и код 15 «β+ 39%»).
+        /// Читатели рядов брали его долей ветви, и ряд через такого родителя
+        /// терял дочь: `164TM` → 164ER 0.39, `131CE` → 131LA 0.11, `119TE` →
+        /// 119SB 0.0206, `117I` → 117TE 0.77, `143PM` → 143ND 5.7·10⁻⁸ при
+        /// истине 1.0 (ε+β⁺ 100 % по `l_decays` и IAEA LiveChart).
+        ///
+        /// ПРАВИЛО — то же, что у сумматора совпадений с `S189`: ветвь канала
+        /// «β⁺» — всё, что оставляют ей ПРОЧИЕ ветви родителя (петли
+        /// `daughter = nucid` — изомерный переход другого уровня — в «прочие» не
+        /// идут), если это больше записанного; несколько строк канала делят
+        /// остаток пропорционально своим `perc`. Канал, которому остатка не
+        /// хватает (`20MG`: β⁺ 100 и βp 30.3), остаётся как записан — это уже
+        /// не «доля позитронов вместо ветви», а избыток поставки.
+        ///
+        /// Окно `over ()` — строки ОДНОГО родителя, прошедшие `where` запроса,
+        /// поэтому столбец годится только там, где выборка идёт по одному
+        /// `nucid` (`where nucid = $n`), — так устроены все читатели.
+        /// </summary>
+        public const string ChainPercColumn =
+            " case when d.dec_type = '15'"
+            + "   and total(case when d.dec_type = '15' then cast(d.perc as real) end) over () > 0"
+            + "   and total(case when d.dec_type = '15' then cast(d.perc as real) end) over ()"
+            + "     < 100 - total(case when d.dec_type <> '15'"
+            + "                         and upper(d.daughter_nucid) <> upper(d.nucid)"
+            + "                        then cast(d.perc as real) end) over ()"
+            + " then (100 - total(case when d.dec_type <> '15'"
+            + "                         and upper(d.daughter_nucid) <> upper(d.nucid)"
+            + "                        then cast(d.perc as real) end) over ())"
+            + "   * (cast(d.perc as real)"
+            + "      / total(case when d.dec_type = '15' then cast(d.perc as real) end) over ())"
+            + " else d.perc end";
+
+        /// <summary>
+        /// Прочитать значение <see cref="ChainPercColumn"/> (или `perc`): REAL
+        /// у расширенной строки, текст у прочих. Текст — инвариантной
+        /// культурой (правило точки).
+        /// </summary>
+        public static bool TryPercent(object value, out double percent)
+        {
+            percent = 0.0;
+            if (value is double)
+            {
+                percent = (double)value;
+                return true;
+            }
+
+            if (value is long)
+            {
+                percent = (long)value;
+                return true;
+            }
+
+            string text = value as string;
+            return text != null
+                   && double.TryParse(text, System.Globalization.NumberStyles.Float,
+                                      System.Globalization.CultureInfo.InvariantCulture, out percent);
+        }
     }
 }
