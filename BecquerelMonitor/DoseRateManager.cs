@@ -947,11 +947,17 @@ namespace BecquerelMonitor
         /// измеренный. Возвращает энергию и строку на ней, спроецированную на
         /// диапазоны (<paramref name="share"/>, <paramref name="moment"/>) и —
         /// если задана проекция без разрешения — её доли (<paramref name="plainShare"/>).
+        ///
+        /// (`S195`, П160) Остановка секущей принимается, только если это корень
+        /// на восходящей ветви центра строки или край, к которому центр растёт
+        /// (<see cref="EdgeHolds"/>; ответ — в <paramref name="edges"/> по
+        /// диапазону, группе соседей <paramref name="group"/> и краю, один раз
+        /// на расчёт); иначе энергия — по правилу <see cref="RisingBranch"/>.
         /// </summary>
         static double Representative(DoseRateInput input, DoseRateRange[] ranges, int k, double[] window, double target,
                                      double start, ref double slope, int cells, RowProjection projection,
-                                     RowProjection plain, double[][] known, out double[] share, out double[] moment,
-                                     out double[] plainShare)
+                                     RowProjection plain, double[][] known, sbyte[] edges, int group,
+                                     out double[] share, out double[] moment, out double[] plainShare)
         {
             ResponseMatrix matrix = input.Matrix;
             double lo = Math.Max(ranges[k].LowKev, input.MinKev);
@@ -997,9 +1003,23 @@ namespace BecquerelMonitor
                     }
                 }
 
-                if (iteration >= RepresentativeIterations || !(share[k] > 0.0) || !(mass > 0.0))
+                if (!(share[k] > 0.0) || !(mass > 0.0))
                 {
                     return energy;
+                }
+
+                if (iteration >= RepresentativeIterations)
+                {
+                    // (`S195`) Предел шагов. Секущая на восходящей ветви и
+                    // последний шаг меньше допуска совместного решения — энергия
+                    // прежняя (как было); иначе — корень на восходящей ветви.
+                    if (slope > 0.0 && Math.Abs(energy - previousEnergy) < Tolerance(energy))
+                    {
+                        return energy;
+                    }
+
+                    return RisingBranch(input, k, window, target, lo, hi, ref slope, cells, projection, plain,
+                                        out share, out moment, out plainShare);
                 }
 
                 // Секущая, а не шаг «один к одному»: у линии, чей собственный
@@ -1013,10 +1033,42 @@ namespace BecquerelMonitor
                 }
 
                 double gain = slope > 0.05 && slope < 20.0 ? 1.0 / slope : 1.0;
-                double next = Clamp(energy + gain * (target - centre), lo, hi);
+                double step = energy + gain * (target - centre);
+                double next = Clamp(step, lo, hi);
                 if (Math.Abs(next - energy) < RepresentativeToleranceKev)
                 {
-                    return energy;
+                    // (`S195`, П160) Корень — только на ВОСХОДЯЩЕЙ ветви центра,
+                    // и край диапазона — только там, где центр к нему растёт.
+                    // Иначе (край, за который цель тянет дальше, а центр к
+                    // краю падает; корень, где центр падает) — не решение, а
+                    // ложная остановка, см. <see cref="RisingBranch"/>.
+                    bool root = Math.Abs(step - energy) < RepresentativeToleranceKev;
+                    bool holds;
+                    if (root)
+                    {
+                        holds = !(slope < 0.0);
+                    }
+                    else
+                    {
+                        // Держит ли край — от окна (диапазон и группа соседей)
+                        // и края, но не от отсчётов: один раз на расчёт.
+                        int memo = ((k << 2) + group) * 2 + (step > hi ? 1 : 0);
+                        if (edges[memo] == 0)
+                        {
+                            edges[memo] = EdgeHolds(input, k, window, energy, step > hi, lo, hi, cells, projection,
+                                                    centre) ? (sbyte)1 : (sbyte)-1;
+                        }
+
+                        holds = edges[memo] > 0;
+                    }
+
+                    if (holds)
+                    {
+                        return energy;
+                    }
+
+                    return RisingBranch(input, k, window, target, lo, hi, ref slope, cells, projection, plain,
+                                        out share, out moment, out plainShare);
                 }
 
                 previousEnergy = energy;
@@ -1028,6 +1080,252 @@ namespace BecquerelMonitor
         static double Clamp(double value, double lo, double hi)
         {
             return value < lo ? lo : (value > hi ? hi : value);
+        }
+
+        /// <summary>
+        /// (`S195`) Центр тяжести строки энергии <paramref name="energy"/> в окне
+        /// <paramref name="window"/> — теми же действиями, что в подборе
+        /// <see cref="Representative"/>. NaN — строка в окне пуста.
+        /// </summary>
+        static double WindowCentre(DoseRateInput input, int k, double[] window, double energy, int cells,
+                                   RowProjection projection)
+        {
+            double[] row = input.Matrix.Evaluate(energy, cells);
+            var share = new double[projection.Targets];
+            var moment = new double[projection.Targets];
+            projection.Apply(row, share, moment);
+            double mass = 0.0, first = 0.0;
+            for (int i = 0; i < window.Length; i++)
+            {
+                if (window[i] == 1.0)
+                {
+                    mass += share[i];
+                    first += moment[i];
+                }
+                else if (window[i] > 0.0)
+                {
+                    mass += window[i] * share[i];
+                    first += window[i] * moment[i];
+                }
+            }
+
+            return share[k] > 0.0 && mass > 0.0 ? first / mass : double.NaN;
+        }
+
+        /// <summary>
+        /// (`S195`) Держит ли край диапазона: подбор упёрся в край
+        /// <paramref name="energy"/> (нижний или верхний), цель тянет за него, —
+        /// и центр строки к верхнему краю РАСТЁТ (к нижнему — убывает). Тогда
+        /// край — ближайшее к цели, что даёт восходящая ветвь, и он
+        /// принимается. Центр, падающий к верхнему краю (пик линии
+        /// разрешением уходит в соседа, и центр оставшегося в диапазоне
+        /// падает), — край не решение.
+        /// </summary>
+        static bool EdgeHolds(DoseRateInput input, int k, double[] window, double energy, bool upper, double lo,
+                              double hi, int cells, RowProjection projection, double centre)
+        {
+            double delta = (hi - lo) / RisingGrid;
+            double inner = WindowCentre(input, k, window, upper ? energy - delta : energy + delta, cells, projection);
+            if (double.IsNaN(inner))
+            {
+                return true;
+            }
+
+            return upper ? inner < centre : inner > centre;
+        }
+
+        /// <summary>Шагов сетки по диапазону, по которой ищется восходящая ветвь центра строки (`S195`).</summary>
+        const int RisingGrid = 24;
+
+        /// <summary>
+        /// ⛔ (`S195`, П160 24.09.2026) ЭНЕРГИЯ ДИАПАЗОНА — КОРЕНЬ НА ВОСХОДЯЩЕЙ
+        /// ВЕТВИ ЦЕНТРА СТРОКИ, а не там, где секущая остановилась.
+        ///
+        /// Центр тяжести строки линии в своём диапазоне c(E) растёт с её
+        /// энергией не до верхнего края: у края пик разрешением уходит в
+        /// соседа, и центр оставшегося в диапазоне (комптон и часть пика)
+        /// падает. `ASN16_Cs137_10cm`, 1742.6…2286.5 кэВ: c растёт от 1766 до
+        /// 2012.8 (E ≈ 2232) и падает до 1981.8 на краю; цель 1991.5 — два
+        /// корня (≈ 2167 и ≈ 2275), и секущая то сходилась к 2167, то
+        /// останавливалась на КРАЮ 2286.5, где c = 1981.8, — не корень вовсе:
+        /// цель тянула за край, шаг зажимался в него. От этого на пути набора
+        /// счёта (`DoseShareProbe`) энергия прыгала 2286.5 ↔ 2167, за ней —
+        /// энергия соседа 3000 ↔ 2780 (его цель, 2664, выше всего, что даёт
+        /// его строка), и показание — −0.088/+0.087 % за шаг 1/3200 набора.
+        /// Слияние, окно `SpillShare`, выход при Q ≤ 0 и предел проходов тут
+        /// ни при чём: трасса П160 — оба решения сходятся за пять проходов,
+        /// без слияний, все Q > 0.
+        ///
+        /// Правило. Сетка в <see cref="RisingGrid"/> шагов по диапазону
+        /// проходится СВЕРХУ ВНИЗ: вершина ветви — первый сверху узел, ниже
+        /// которого центр уже не растёт (падающая ветвь у края пройдена),
+        /// уточнённая параболой по трём узлам. Цель не ниже вершины — энергия
+        /// в вершине; ниже — корень под вершиной на первом сверху отрезке
+        /// сетки, где центр переходит через цель, — ложным положением; центр
+        /// выше цели всюду под вершиной — нижний край. Энергия так —
+        /// непрерывная неубывающая функция цели, и выбор между двумя корнями
+        /// не зависит от того, откуда шла секущая.
+        ///
+        /// Зовётся только там, где секущая не дала корня на восходящей ветви
+        /// (край, к которому центр падает; корень с убывающим центром; предел
+        /// шагов), — всюду прочее подбор прежний. Цена — около дюжины строк
+        /// матрицы на вызов. Журнал `handover-2026-09-24-p160-dose-branch.md`.
+        /// </summary>
+        static double RisingBranch(DoseRateInput input, int k, double[] window, double target, double lo, double hi,
+                                   ref double slope, int cells, RowProjection projection, RowProjection plain,
+                                   out double[] share, out double[] moment, out double[] plainShare)
+        {
+            double step = (hi - lo) / RisingGrid;
+            Func<int, double> node = i => i == RisingGrid ? hi : lo + step * i;
+            // Спуск по сетке сверху, пока центр растёт вниз (падающая ветвь).
+            int top = RisingGrid;
+            double topCentre = WindowCentre(input, k, window, hi, cells, projection);
+            double upE = double.NaN, upC = double.NaN;         // узел над вершиной
+            double downE = double.NaN, downC = double.NaN;     // узел под вершиной
+            for (int i = RisingGrid - 1; i >= 0; i--)
+            {
+                double ci = WindowCentre(input, k, window, node(i), cells, projection);
+                if (double.IsNaN(topCentre) || ci > topCentre)
+                {
+                    upE = node(top);
+                    upC = topCentre;
+                    top = i;
+                    topCentre = ci;
+                    continue;
+                }
+
+                downE = node(i);
+                downC = ci;
+                break;
+            }
+
+            double energy;
+            if (double.IsNaN(topCentre))
+            {
+                energy = lo;
+            }
+            else
+            {
+                double apex = node(top), apexCentre = topCentre;
+                if (!double.IsNaN(upE) && !double.IsNaN(downE) && !double.IsNaN(upC) && !double.IsNaN(downC))
+                {
+                    // Вершина параболы по трём узлам (шаг сетки равный).
+                    double curvature = upC - 2.0 * topCentre + downC;
+                    if (curvature < 0.0)
+                    {
+                        double x = apex + 0.5 * step * (downC - upC) / curvature;
+                        if (x > downE && x < upE)
+                        {
+                            double cx = WindowCentre(input, k, window, x, cells, projection);
+                            if (cx > apexCentre)
+                            {
+                                apex = x;
+                                apexCentre = cx;
+                            }
+                        }
+                    }
+                }
+
+                if (!(target < apexCentre))
+                {
+                    energy = apex;
+                    slope = double.NaN;
+                }
+                else
+                {
+                    // Корень под вершиной: первый сверху отрезок, где центр
+                    // опускается до цели.
+                    double hiE = apex, hiC = apexCentre;
+                    double loE = double.NaN, loC = double.NaN;
+                    if (!double.IsNaN(downE))
+                    {
+                        int i = (int)Math.Round((downE - lo) / step);
+                        double ci = downC;
+                        for (;;)
+                        {
+                            if (double.IsNaN(ci))
+                            {
+                                break;
+                            }
+
+                            if (ci <= target)
+                            {
+                                loE = node(i);
+                                loC = ci;
+                                break;
+                            }
+
+                            hiE = node(i);
+                            hiC = ci;
+                            if (--i < 0)
+                            {
+                                break;
+                            }
+
+                            ci = WindowCentre(input, k, window, node(i), cells, projection);
+                        }
+                    }
+
+                    if (double.IsNaN(loE))
+                    {
+                        energy = double.IsNaN(downE) || hiE <= lo ? lo : hiE;
+                    }
+                    else
+                    {
+                        // Ложное положение с поправкой «Иллинойс».
+                        int side = 0;
+                        for (int it = 0; it < 60 && hiE - loE > RepresentativeToleranceKev; it++)
+                        {
+                            double x = loE - (loC - target) * (hiE - loE) / (hiC - loC);
+                            if (!(x > loE && x < hiE))
+                            {
+                                x = 0.5 * (loE + hiE);
+                            }
+
+                            double cx = WindowCentre(input, k, window, x, cells, projection);
+                            if (double.IsNaN(cx))
+                            {
+                                break;
+                            }
+
+                            if (Math.Abs(cx - target) < 1e-9 * Math.Abs(target))
+                            {
+                                loE = hiE = x;
+                                break;
+                            }
+
+                            if (cx < target)
+                            {
+                                loE = x;
+                                loC = cx;
+                                if (side == 1)
+                                {
+                                    hiC = target + 0.5 * (hiC - target);
+                                }
+
+                                side = 1;
+                            }
+                            else
+                            {
+                                hiE = x;
+                                hiC = cx;
+                                if (side == -1)
+                                {
+                                    loC = target + 0.5 * (loC - target);
+                                }
+
+                                side = -1;
+                            }
+                        }
+
+                        energy = 0.5 * (loE + hiE);
+                        slope = double.NaN;
+                    }
+                }
+            }
+
+            RowAt(input, energy, cells, projection, plain, out share, out moment, out plainShare);
+            return energy;
         }
 
         /// <summary>Длина строки отклика, накрывающая сетку, с запасом на верхний бин.</summary>
@@ -1653,6 +1951,9 @@ namespace BecquerelMonitor
             var blended = new double[bins][][];
             var blendedEnergy = new double[bins];
             var merge = new int[bins];
+            // (`S195`) Держит ли край диапазона подбор энергии: по диапазону,
+            // группе соседей в окне и краю — 0 не знаем, 1 держит, −1 нет.
+            var edges = new sbyte[bins * 8];
             // (`S192`) Вес диапазона по плавному полу: доза линии диапазона —
             // с этим весом, и её отклик в ЧУЖИХ диапазонах (комптон, хвост
             // пика) объясняет их отсчёты с тем же весом — иначе вход диапазона
@@ -1726,7 +2027,7 @@ namespace BecquerelMonitor
                         double[] s, m, ps;
                         double start = tried[k] != null ? triedEnergy[k] : target;
                         double e = Representative(input, ranges, k, window, target, start, ref sl, cells, projection,
-                                                  plain, tried[k], out s, out m, out ps);
+                                                  plain, tried[k], edges, group, out s, out m, out ps);
                         slope[k] = sl;
                         lastTarget[k] = target;
                         lastGroup[k] = group;
@@ -1821,6 +2122,8 @@ namespace BecquerelMonitor
             // известных числах квантов — до схождения.
             var shifts = new System.Collections.Generic.List<double>();
             var banned = new bool[bins];
+            // (`S195`) Последний сдвиг энергии каждого диапазона, со знаком.
+            var lastMove = new double[bins];
             for (int pass = 1; ; pass++)
             {
                 quanta = SolveCounts(share, counts, active, merge, weight);
@@ -1837,11 +2140,20 @@ namespace BecquerelMonitor
 
                 double shift = 0.0;
                 bool converged = true;
+                bool reversed = true;
                 for (int k = 0; k < bins; k++)
                 {
                     if (active[k] && merge[k] < 0)
                     {
+                        double before = energy[k];
                         double moved = refit(k, quanta);
+                        double move = energy[k] - before;
+                        if (moved >= Tolerance(ranges[k].CenterKev) && !(move * lastMove[k] < 0.0))
+                        {
+                            reversed = false;
+                        }
+
+                        lastMove[k] = move;
                         shift = Math.Max(shift, moved);
                         converged &= moved < Tolerance(ranges[k].CenterKev);
                     }
@@ -1851,9 +2163,17 @@ namespace BecquerelMonitor
                 // на сотые кэВ: сдвиг тот же, что два прохода назад, и мал —
                 // замер П153 на RC103_Cs137_0cm, 33.57 ↔ 33.59 кэВ) — тоже
                 // конец: дальше точность не растёт.
+                //
+                // ⛔ (`S195`, П160) «Качается» — только если КАЖДЫЙ не сошедшийся
+                // диапазон сменил направление сдвига. Прежде признаком было
+                // одно «сдвиг тот же, что два прохода назад», и его давал и
+                // медленный ДРЕЙФ в одну сторону (`ASN16_Cs137_10cm`, 17…30 кэВ:
+                // +0.05…0.1 кэВ за проход): выход то по «качается» на 11-м
+                // проходе, то по пределу на 12-м — ступенька показания 0.011 %
+                // на шаге набора 1/3200 (`DoseShareProbe`).
                 shifts.Add(shift);
                 int n = shifts.Count;
-                bool swinging = !changed && n >= 3 && shift < 0.1
+                bool swinging = !changed && reversed && n >= 3 && shift < 0.1
                                 && Math.Abs(shift - shifts[n - 3]) <= 0.2 * shifts[n - 3];
                 if (converged && !changed || swinging)
                 {
