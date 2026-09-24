@@ -35,7 +35,8 @@ namespace FsaReportWeightsProbe
     ///
     ///     fsareportweightsprobe --spectrum=&lt;файл.xml&gt; [--chain=Th-232] [--sample=137CS]
     ///                           [--mu=0.2,1,5,20,50] [--seed=20260922]
-    ///                           [--limit=0.15] [--wrong=0.05] [--huber=3] [--matrix-any] [--plain]
+    ///                           [--limit=0.15] [--wrong=0.05] [--huber=3] [--pool=5] [--diag]
+    ///                           [--set=Имя=значение] [--matrix-any] [--plain]
     ///
     /// `--plain` — без розыгрыша: только обе меры на самом спектре (числа для
     /// корпусного сравнения). Отказ кодом 1, если на верной модели новая мера
@@ -47,6 +48,23 @@ namespace FsaReportWeightsProbe
     /// счёта) — заметно больше единицы. До правки мера давала 0.15…0.46 на
     /// ВСЕЙ лестнице: канал с μ ≪ 1 упирался в пол `max(μ̂, 1)` дисперсии и
     /// давал в χ² не единицу, а μ, тогда как в ndf считался целым.
+    ///
+    /// (`S182`, П154 24.09.2026) После снятия пола мера на верной модели
+    /// держалась 0.70…0.76 при μ ≤ 3: пирсоновский член почти пустого
+    /// канала несмещён, но его ожидание несут редкие события (вклад ≈ 1/μ).
+    /// Мера умолчания считается по ЯЧЕЙКАМ (<c>ReportPoolVariance</c>),
+    /// приёмка `S182` — ею (столбец «мера ячейками»); отношение `S180` —
+    /// поканально (`--pool=0` у обоих плеч) и только справочно (гейт снят,
+    /// довод у печати). `--pool=` меняет порог плеча умолчания; `--diag`
+    /// раскладывает поканальную меру по корзинам истинного μ; `--set=`
+    /// ставит свойство анализатора всем разборам прогона.
+    ///
+    /// ⚠ ПРИЁМКА МЕРЫ — С `--set=AnchorScale=false`. С привязкой шкалы по
+    /// данным истина пробы на μ ≥ 10 копией НЕ воспроизводится: в каналах с
+    /// μ ≥ 10 поканальный член 1.22 (μ = 20) и 1.68 (μ = 50) при несмещённом
+    /// усилении (σ 0.00037 / 0.00025), и мера ячейками честно показывает
+    /// 1.25 / 1.68 — это свойство привязки, не меры (журнал П154). Без
+    /// привязки мера ячейками 0.96…1.01 на всей лестнице 0.2…50.
     /// </summary>
     static class Program
     {
@@ -67,6 +85,7 @@ namespace FsaReportWeightsProbe
             bool plain = false;
             double wrong = 0.05;
             double huber = double.NaN;
+            double pool = double.NaN;
 
             foreach (string a in args)
             {
@@ -89,8 +108,23 @@ namespace FsaReportWeightsProbe
                     wrong = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--huber=", StringComparison.Ordinal))
                     huber = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                else if (a.StartsWith("--pool=", StringComparison.Ordinal))
+                    pool = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
                 else if (a == "--matrix-any") matrixAny = true;
                 else if (a == "--plain") plain = true;
+                else if (a == "--diag") diag = true;
+                else if (a.StartsWith("--set=", StringComparison.Ordinal))
+                {
+                    // (`S182`, П154) Разводка причин: `--set=PileUp=false` и т.п. —
+                    // свойство анализатора ставится ВСЕМ разборам прогона (и
+                    // разбору, дающему истину, и копиям). Имя, которого нет, — отказ.
+                    string kv = a.Substring(6);
+                    int eq = kv.IndexOf('=');
+                    System.Reflection.PropertyInfo pi = eq > 0 ? typeof(FsaAnalyzer).GetProperty(kv.Substring(0, eq)) : null;
+                    if (pi == null || !pi.CanWrite) { Console.Error.WriteLine("нет свойства анализатора: {0}", kv); return 2; }
+                    sets.Add(new KeyValuePair<System.Reflection.PropertyInfo, object>(pi,
+                        Convert.ChangeType(kv.Substring(eq + 1), pi.PropertyType, CultureInfo.InvariantCulture)));
+                }
                 else { Console.Error.WriteLine("неизвестный ключ: {0}", a); return 2; }
             }
 
@@ -124,9 +158,10 @@ namespace FsaReportWeightsProbe
                 rd.Efficiency != null ? rd.Efficiency.Geometry : null);
 
             // --- 1. разбор как есть: обе меры на живом спектре ---
-            FsaResult neyman = Run(rd, rd.EnergySpectrum, spec, matrix, material, false);
-            FsaResult pearson = Run(rd, rd.EnergySpectrum, spec, matrix, material, true);
-            if (neyman == null || pearson == null)
+            FsaResult neyman = Run(rd, rd.EnergySpectrum, spec, matrix, material, false, 0.0);
+            FsaResult pearson = Run(rd, rd.EnergySpectrum, spec, matrix, material, true, 0.0);
+            FsaResult pooled = Run(rd, rd.EnergySpectrum, spec, matrix, material, true, pool);
+            if (neyman == null || pearson == null || pooled == null)
             {
                 Console.Error.WriteLine("⛔ разбор не состоялся");
                 return 1;
@@ -135,15 +170,24 @@ namespace FsaReportWeightsProbe
             double perChannel = MeanPerChannel(rd.EnergySpectrum);
             Console.WriteLine();
             Console.WriteLine("=== СПЕКТР КАК ЕСТЬ ({0} отсч./канал в среднем) ===", F(perChannel, 2));
-            Console.WriteLine("{0,-30} {1,14} {2,14}", "", "по наблюдению", "по ожиданию");
-            Console.WriteLine("{0,-30} {1,14} {2,14}", "chi2ndf_pois",
-                              F(neyman.Chi2NdfPoisson, 4), F(pearson.Chi2NdfPoisson, 4));
-            Console.WriteLine("{0,-30} {1,14} {2,14}", "model_residual_pct",
-                              F(100.0 * neyman.ModelResidual, 3), F(100.0 * pearson.ModelResidual, 3));
-            Console.WriteLine("{0,-30} {1,14} {2,14}", "chi2/ndf решателя",
-                              F(neyman.Chi2Ndf, 4), F(pearson.Chi2Ndf, 4));
-            Console.WriteLine("{0,-30} {1,14} {2,14}", "компонентов в разборе",
-                              neyman.Components.Count, pearson.Components.Count);
+            Console.WriteLine("{0,-30} {1,14} {2,14} {3,14}", "", "по наблюдению", "ожид., канал", "ожид., ячейки");
+            Console.WriteLine("{0,-30} {1,14} {2,14} {3,14}", "chi2ndf_pois",
+                              F(neyman.Chi2NdfPoisson, 4), F(pearson.Chi2NdfPoisson, 4), F(pooled.Chi2NdfPoisson, 4));
+            Console.WriteLine("{0,-30} {1,14} {2,14} {3,14}", "model_residual_pct",
+                              F(100.0 * neyman.ModelResidual, 3), F(100.0 * pearson.ModelResidual, 3),
+                              F(100.0 * pooled.ModelResidual, 3));
+            Console.WriteLine("{0,-30} {1,14} {2,14} {3,14}", "chi2/ndf решателя",
+                              F(neyman.Chi2Ndf, 4), F(pearson.Chi2Ndf, 4), F(pooled.Chi2Ndf, 4));
+            Console.WriteLine("{0,-30} {1,14} {2,14} {3,14}", "шкала: gain",
+                              F(neyman.Gain, 6), F(pearson.Gain, 6), F(pooled.Gain, 6));
+            Console.WriteLine("{0,-30} {1,14} {2,14} {3,14}", "шкала: сдвиг, кан.",
+                              F(neyman.OffsetChannels, 3), F(pearson.OffsetChannels, 3), F(pooled.OffsetChannels, 3));
+            Console.WriteLine("{0,-30} {1,14} {2,14} {3,14}", "свет: beta",
+                              F(neyman.AnchorLightBeta, 6), F(pearson.AnchorLightBeta, 6), F(pooled.AnchorLightBeta, 6));
+            Console.WriteLine("{0,-30} {1,14} {2,14} {3,14}", "шкала: якорей",
+                              neyman.ScaleAnchorsUsed, pearson.ScaleAnchorsUsed, pooled.ScaleAnchorsUsed);
+            Console.WriteLine("{0,-30} {1,14} {2,14} {3,14}", "компонентов в разборе",
+                              neyman.Components.Count, pearson.Components.Count, pooled.Components.Count);
 
             if (plain)
             {
@@ -171,31 +215,38 @@ namespace FsaReportWeightsProbe
             Console.WriteLine();
             Console.WriteLine("=== ПУАССОНОВСКИЕ КОПИИ ВЕРНОЙ МОДЕЛИ (зерно {0}, розыгрышей {1}) ===",
                               seed, repeats);
-            Console.WriteLine("⚠ ndf у обеих мер ОДИН, поэтому смещение весов читается ОТНОШЕНИЕМ");
-            Console.WriteLine("  (ожидание отношения — столбец «формула» выше: 1.08/1.45/1.64/1.31/1.12/1.04)");
+            Console.WriteLine("⚠ отношение «наблюд/ожид» — справочно: у Неймана пол max(N,1) остался, у Пирсона снят (П136),");
+            Console.WriteLine("  поэтому оно мерит пол, а не веса; приёмка — столбец «мера ячейками» (S182)");
             Console.WriteLine();
-            Console.WriteLine("{0,8} {1,10} {2,14} {3,14} {4,12} {5,12}",
-                              "mu цель", "mu вышло", "chi2 наблюд", "chi2 ожид", "отношение", "формула");
+            Console.WriteLine("{0,8} {1,10} {2,14} {3,14} {4,12} {5,12} {6,14}",
+                              "mu цель", "mu вышло", "chi2 наблюд", "chi2 ожид", "отношение", "формула", "мера ячейками");
 
             bool bad = formulaBad;
             var rng = new Random(seed);
             foreach (double mu in mus)
             {
                 double scale = mu / Math.Max(MeanOf(truth), 1.0E-12);
-                double sumA = 0.0, sumB = 0.0, sumMu = 0.0;
+                double sumA = 0.0, sumB = 0.0, sumP = 0.0, sumMu = 0.0;
                 int done = 0;
                 for (int r = 0; r < repeats; r++)
                 {
                     EnergySpectrum copy = PoissonCopy(rd.EnergySpectrum, truth, scale, rng);
                     ResultData copyData = Rewrap(rd, copy, scale);
-                    FsaResult a = Run(copyData, copy, spec, matrix, material, false);
-                    FsaResult b = Run(copyData, copy, spec, matrix, material, true);
-                    if (a == null || b == null) continue;
+                    // Отношение `S180` меряется на ОДНИХ ячейках-каналах (`--pool=0`
+                    // у обоих плеч): ndf у них один. Приёмка `S182` — плечом
+                    // умолчания (ячейки), тем, что печатается в `runs.csv`.
+                    FsaResult a = Run(copyData, copy, spec, matrix, material, false, 0.0);
+                    FsaResult b = Run(copyData, copy, spec, matrix, material, true, 0.0);
+                    FsaResult c = Run(copyData, copy, spec, matrix, material, true, pool);
+                    if (a == null || b == null || c == null) continue;
                     sumA += a.Chi2NdfPoisson;
                     sumB += b.Chi2NdfPoisson;
+                    sumP += c.Chi2NdfPoisson;
                     sumMu += MeanPerChannel(copy);
+                    if (diag) Diag.Add(b, copy, truth, scale);
                     done++;
                 }
+                if (diag) Diag.Print(mu, done);
 
                 if (done == 0)
                 {
@@ -207,25 +258,33 @@ namespace FsaReportWeightsProbe
                 double ney, pea;
                 Expectations(mu, out ney, out pea);
                 double ratio = sumB > 0.0 ? sumA / sumB : Double.NaN;
-                Console.WriteLine("{0,8} {1,10} {2,14} {3,14} {4,12} {5,12}",
+                Console.WriteLine("{0,8} {1,10} {2,14} {3,14} {4,12} {5,12} {6,14}",
                                   F(mu, 1), F(sumMu / done, 2), F(sumA / done, 4), F(sumB / done, 4),
-                                  F(ratio, 4), F(ney / pea, 4));
+                                  F(ratio, 4), F(ney / pea, 4), F(sumP / done, 4));
 
-                // Мера по наблюдению обязана быть ВЫШЕ меры по ожиданию там, где
-                // формула это обещает, — и тем сильнее, чем беднее канал.
+                // ⛔ (`S182`, П154 24.09.2026) Гейт отношения `S180` СНЯТ, печать
+                // оставлена. Его посылка — «ndf у мер один, разнятся лишь веса» —
+                // перестала быть верной 22.09.2026, когда П136 снял пол
+                // `max(μ̂, 1)` у Пирсона, а у Неймана пол `max(N, 1)` остался:
+                // отношение с тех пор мерит ПОЛ, а не веса (на HEAD 24.09.2026
+                // 0.33…0.43 при формуле 1.08…1.64, гейт красен на любом входе).
+                // Сама мера по ожиданию проверяется напрямую приёмкой `S182`
+                // ниже; плечо Неймана в приложении не живёт (умолчание —
+                // `ReportModelWeights`).
                 if (ney / pea - 1.0 > 0.2 && ratio < 1.0 + RatioMargin)
                 {
-                    bad = true;
+                    Console.WriteLine("   (S180, справочно) отношение {0} ниже 1+{1}: мерит пол Неймана, не веса",
+                                      F(ratio, 4), F(RatioMargin, 2));
                 }
 
                 // (`S182`, П136 22.09.2026) И САМА МЕРА ОБЯЗАНА ДАВАТЬ ЕДИНИЦУ.
                 // Отношение говорит лишь о смещении ВЕСОВ; «1 = модель верна»
                 // держится только без пола `max(·, 1)` у дисперсии. До правки
                 // мера выходила 0.15…0.46 на всей лестнице μ = 0.2…50.
-                double pearsonMeasure = sumB / done;
+                double pearsonMeasure = sumP / done;
                 if (!(Math.Abs(pearsonMeasure - 1.0) <= limit))
                 {
-                    Console.WriteLine("   ⛔ S182: мера по ожиданию {0} отошла от 1.00 больше чем на {1}",
+                    Console.WriteLine("   ⛔ S182: мера умолчания {0} отошла от 1.00 больше чем на {1}",
                                       F(pearsonMeasure, 4), F(limit, 2));
                     bad = true;
                 }
@@ -246,7 +305,7 @@ namespace FsaReportWeightsProbe
                 double[] broken = Broken(truth, wrong);
                 EnergySpectrum copy = PoissonCopy(rd.EnergySpectrum, broken, scale, rng);
                 ResultData copyData = Rewrap(rd, copy, scale);
-                FsaResult r = Run(copyData, copy, spec, matrix, material, true);
+                FsaResult r = Run(copyData, copy, spec, matrix, material, true, pool);
                 Console.WriteLine();
                 Console.WriteLine("=== ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: в истину подложена чужая линия долей {0} счёта (mu {1}) ===",
                                   F(wrong, 3), F(richest, 1));
@@ -304,6 +363,100 @@ namespace FsaReportWeightsProbe
         /// <summary>Отчёт о настройках печатается ОДИН раз на прогон: разборов здесь десятки.</summary>
         static bool printed;
 
+        /// <summary>(`S182`, П154) Разложение меры по каналам — ключ `--diag`.</summary>
+        static bool diag;
+
+        /// <summary>
+        /// (`S182`, П154 24.09.2026) ГДЕ живёт недобор меры на верной модели.
+        /// Истина пробе известна (`truth·scale`), поэтому каждый канал полосы
+        /// разбора кладётся в корзину по ИСТИННОМУ ожиданию μ и в ней
+        /// сравниваются: отчётный член `(y − μ̂)²/μ̂` (то, что складывает
+        /// `Chi2NdfPoisson`), член с истинным знаменателем `(y − μ̂)²/μ` и
+        /// чистый член `(y − μ)²/μ` (ожидание ровно 1 — проверка розыгрыша).
+        /// Знаменатель меры восстанавливается как χ²/`Chi2NdfPoisson`.
+        /// </summary>
+        static class Diag
+        {
+            static readonly double[] Edges = { 0.0, 0.1, 0.3, 1.0, 3.0, 10.0, double.PositiveInfinity };
+            static int K { get { return Edges.Length - 1; } }
+            static double[] n = new double[K], rep = new double[K], trueDen = new double[K],
+                            pure = new double[K], zeroHat = new double[K];
+            static double ndfSum, chi2Sum, bandSum;
+            static double gainSum, gain2Sum, offSum, anchorsSum, aoffSum, betaSum, beta2Sum;
+
+            public static void Add(FsaResult r, EnergySpectrum copy, double[] truth, double scale)
+            {
+                if (r == null || r.Model == null) return;
+                int lo = r.FirstChannel, hi = r.LastChannel;
+                double chi2 = 0.0;
+                for (int i = lo; i <= hi && i < r.Model.Length && i < truth.Length; i++)
+                {
+                    double mu = truth[i] * scale;
+                    double hat = r.Model[i];
+                    double y = copy.Spectrum[i];
+                    int k = 0;
+                    while (k < K - 1 && !(mu < Edges[k + 1])) k++;
+                    n[k] += 1.0;
+                    if (hat > 0.0)
+                    {
+                        double t = (y - hat) * (y - hat) / hat;
+                        rep[k] += t;
+                        chi2 += t;
+                    }
+                    else
+                    {
+                        zeroHat[k] += 1.0;
+                    }
+                    if (mu > 0.0)
+                    {
+                        trueDen[k] += (y - hat) * (y - hat) / mu;
+                        pure[k] += (y - mu) * (y - mu) / mu;
+                    }
+                }
+                chi2Sum += chi2;
+                ndfSum += r.Chi2NdfPoisson > 0.0 ? chi2 / r.Chi2NdfPoisson : 0.0;
+                bandSum += hi - lo + 1;
+                gainSum += r.Gain;
+                gain2Sum += r.Gain * r.Gain;
+                offSum += r.OffsetChannels;
+                aoffSum += r.AnchorOffsetKev;
+                anchorsSum += r.ScaleAnchorsUsed;
+                betaSum += r.AnchorLightBeta;
+                beta2Sum += r.AnchorLightBeta * r.AnchorLightBeta;
+            }
+
+            public static void Print(double muTarget, int done)
+            {
+                if (done <= 0) return;
+                double d = done;
+                Console.WriteLine("   [diag mu {0}] полоса {1} кан., χ² отчёта {2}, знаменатель (NdfBase) {3}, мера {4}",
+                                  F(muTarget, 1), F(bandSum / d, 1), F(chi2Sum / d, 2), F(ndfSum / d, 2),
+                                  F(chi2Sum / Math.Max(ndfSum, 1e-12), 4));
+                Console.WriteLine("   {0,-12} {1,9} {2,9} {3,12} {4,12} {5,12} {6,12}",
+                                  "μ истинное", "каналов", "μ̂≤0", "Σ отчёт/кан", "Σ μ-знам/кан", "Σ чистый/кан", "отчёт−чист");
+                for (int k = 0; k < K; k++)
+                {
+                    if (n[k] <= 0.0) continue;
+                    string name = "[" + F(Edges[k], 1) + "," + (double.IsInfinity(Edges[k + 1]) ? "∞" : F(Edges[k + 1], 1)) + ")";
+                    Console.WriteLine("   {0,-12} {1,9} {2,9} {3,12} {4,12} {5,12} {6,12}",
+                                      name, F(n[k] / d, 1), F(zeroHat[k] / d, 1),
+                                      F(rep[k] / n[k], 4), F(trueDen[k] / n[k], 4), F(pure[k] / n[k], 4),
+                                      F((rep[k] - pure[k]) / d, 2));
+                }
+                double gm = gainSum / d;
+                Console.WriteLine("   шкала копий: gain {0} ± {1} (σ одной), сдвиг {2} кан., якорный сдвиг {3} кэВ, якорей {4}",
+                                  F(gm, 6), F(Math.Sqrt(Math.Max(gain2Sum / d - gm * gm, 0.0)), 6),
+                                  F(offSum / d, 3), F(aoffSum / d, 3), F(anchorsSum / d, 2));
+                double bm = betaSum / d;
+                Console.WriteLine("   свет копий: beta {0} ± {1} (σ одной)", F(bm, 6),
+                                  F(Math.Sqrt(Math.Max(beta2Sum / d - bm * bm, 0.0)), 6));
+                gainSum = gain2Sum = offSum = aoffSum = anchorsSum = betaSum = beta2Sum = 0.0;
+                n = new double[K]; rep = new double[K]; trueDen = new double[K];
+                pure = new double[K]; zeroHat = new double[K];
+                ndfSum = chi2Sum = bandSum = 0.0;
+            }
+        }
+
         /// <summary>
         /// (`S182`, П136) Порог М-оценки Хубера этих разборов; NaN — умолчание
         /// анализатора. Диагностика остатка смещения: матрица влияния `H` у
@@ -312,8 +465,12 @@ namespace FsaReportWeightsProbe
         /// </summary>
         static double huberM = double.NaN;
 
+        /// <summary>(`S182`, П154) Свойства анализатора из `--set=Имя=значение`.</summary>
+        static readonly List<KeyValuePair<System.Reflection.PropertyInfo, object>> sets =
+            new List<KeyValuePair<System.Reflection.PropertyInfo, object>>();
+
         static FsaResult Run(ResultData rd, EnergySpectrum spectrum, FsaSampleSpec spec,
-                             ResponseMatrix matrix, string material, bool reportByModel)
+                             ResponseMatrix matrix, string material, bool reportByModel, double pool)
         {
             var analyzer = new FsaAnalyzer
             {
@@ -324,6 +481,15 @@ namespace FsaReportWeightsProbe
             if (!double.IsNaN(huberM))
             {
                 analyzer.HuberM = huberM;
+            }
+            // (`S182`, П154) NaN — порог ячеек умолчания анализатора.
+            if (!double.IsNaN(pool))
+            {
+                analyzer.ReportPoolVariance = pool;
+            }
+            foreach (var kv in sets)
+            {
+                kv.Key.SetValue(analyzer, kv.Value, null);
             }
             if (rd.DeviceConfig != null && rd.DeviceConfig.InputDeviceConfig != null)
             {

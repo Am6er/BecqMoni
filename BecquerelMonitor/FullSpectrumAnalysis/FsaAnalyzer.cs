@@ -1654,6 +1654,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool ReportModelWeights { get; set; }
 
         /// <summary>
+        /// (`S182`, П154 24.09.2026) Порог ОБЪЕДИНЕНИЯ каналов в ячейки
+        /// отчётной меры: соседние каналы полосы складываются, пока ожидаемый
+        /// счёт ячейки `Σ(μ̂ + Extra)` не достигнет порога, и
+        /// <see cref="FsaResult.Chi2NdfPoisson"/> и ε
+        /// (<see cref="FsaResult.ModelResidual"/>) считаются по ячейкам:
+        /// член `(Σr)²/Σv`, знаменатель — точный след по ячейкам
+        /// (<c>ReportNdfPooled</c>). Ноль и меньше — ячейка = канал, как до
+        /// этого дня. Работает только при <see cref="ReportModelWeights"/>:
+        /// правило — по ОЖИДАЕМОМУ счёту, при весах по наблюдению его нет.
+        ///
+        /// ⛔ ЗАЧЕМ. Пирсоновский член `(y − μ)²/μ` несмещён при любом μ > 0,
+        /// но при μ ≪ 1 его ожидание несут РЕДКИЕ события: `y = 1` с
+        /// вероятностью μ даёт вклад ≈ 1/μ, а почти всегда `y = 0` даёт μ.
+        /// Разброс члена `2 + 1/μ`. У сцинтиллятора выше линий таких каналов
+        /// большинство (измерено П154 на `G1S24_Cs137_Mar`: 760 из 1024
+        /// каналов полосы с истинным μ < 0.1), и на ОДНОМ спектре с верной
+        /// моделью мера читалась 0.70…0.76 вместо 1.00, изредка взлетая
+        /// (один канал с вкладом 838 поднял среднее 24 розыгрышей до 1.97).
+        /// Пол ~~`max(μ̂, 1)`~~ (снят П136) прятал это иначе — ценой смещения.
+        /// Объединение ячеек до ожидаемого счёта не ниже порога — правило
+        /// применимости χ² Пирсона (Cochran, Biometrics 10 (1954) 417): член ячейки снова
+        /// близок к χ²₁, а отсчёты «пустых» каналов остаются уликой —
+        /// лишняя линия там, где модель ничего не ждёт, по-прежнему видна.
+        ///
+        /// ⚠ Фит ключ не трогает вовсе: ячейки строятся после решения, из
+        /// отчётных весов; активности и χ² решателя от него не зависят.
+        /// Значение порога стоит В КОНСТРУКТОРЕ (`T82`).
+        /// </summary>
+        public double ReportPoolVariance { get; set; }
+
+        /// <summary>
         /// (S43) Коэффициент γ составного шума: дисперсия канала берётся
         /// D = F + γ²·F², где F — отсчёты канала. На больших статистиках чистый
         /// пуассон объявляет знание тысячных долей процента, и χ² жирных
@@ -4779,6 +4810,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // числа A/B — журнал
             // `handover/handover-2026-09-22-p134-channel-conventions.md`.
             this.ReportModelWeights = true;
+            // (`S182`, П154 24.09.2026) Ячейки отчётной меры — до ожидаемого
+            // счёта 5 (правило Кокрена для χ² Пирсона, Biometrics 10 (1954)
+            // 417). Порог взят из правила ДО замера, не подобран по пробе.
+            // Обратное плечо — 0 (ячейка = канал; проба
+            // `FsaReportWeightsProbe --pool=0`); числа — журнал
+            // `handover/handover-2026-09-24-p154-service-measures.md`.
+            this.ReportPoolVariance = 5.0;
             this.RefitZ = 3.0;
             // (`A266`, П11/П24 12.09.2026) ДОЛЯ ВЕРШИНЫ В ПОРОГЕ ОТСЕВА — ВКЛ.
             // Решение Amber 12.09.2026, вопросником, дословно: «ВКЛ 0.3 + полный
@@ -10409,10 +10447,54 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double[] report = this.ReportWeights(best, reportWeights, chLo, chHi);
                 double chi2Base = 0.0;
                 double dataWeighted = 0.0;
-                for (int i = chLo; i <= chHi; i++)
+
+                // (`S182`, П154 24.09.2026) Ячейки меры — объединённые каналы
+                // (<see cref="ReportPoolVariance"/>): только при весах по
+                // ожиданию, потому что правило объединения — по ожидаемому
+                // счёту. Иначе ячейка — канал, как было.
+                double[] poolVariance = null;
+                int[] pool = this.ReportModelWeights && this.ReportPoolVariance > 0.0
+                             && this.reportNoise != null && best.Model != null
+                    ? PoolReportChannels(report, chLo, chHi, this.ReportPoolVariance, out poolVariance)
+                    : null;
+                if (pool == null)
                 {
-                    chi2Base += best.Residual[i] * best.Residual[i] * report[i];
-                    dataWeighted += y[i] * y[i] * report[i];
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        chi2Base += best.Residual[i] * best.Residual[i] * report[i];
+                        dataWeighted += y[i] * y[i] * report[i];
+                    }
+                }
+                else
+                {
+                    // Ячейка — отрезок подряд идущих каналов: член χ² —
+                    // `(Σr)²/Σv`, член знаменателя ε — `Σy²/Σv` (ошибка модели
+                    // канала независима, её дисперсия в ячейке складывается).
+                    // Для ячейки из одного канала оба совпадают с поканальными.
+                    int current = -1;
+                    double sumR = 0.0, sumY2 = 0.0;
+                    for (int i = chLo; i <= chHi + 1; i++)
+                    {
+                        int b = i <= chHi ? pool[i] : -1;
+                        if (b != current)
+                        {
+                            if (current >= 0 && poolVariance[current] > 0.0)
+                            {
+                                chi2Base += sumR * sumR / poolVariance[current];
+                                dataWeighted += sumY2 / poolVariance[current];
+                            }
+
+                            current = b;
+                            sumR = 0.0;
+                            sumY2 = 0.0;
+                        }
+
+                        if (b >= 0)
+                        {
+                            sumR += best.Residual[i];
+                            sumY2 += y[i] * y[i];
+                        }
+                    }
                 }
 
                 // (`A291`) Второй ПОДСЧЁТ здесь был копией формулы и ошибался
@@ -10447,15 +10529,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // совпавших весах формула сводится ровно к `EffectiveNdf`
                 // (`n − 2tr S + tr S²`), а при λ = 0 — к `n − активных`.
                 // Поэтому отдельной ветки `SameWeights` больше нет.
-                double exact = ReportNdf(best, report, chLo, chHi);
+                double exact = pool == null
+                    ? ReportNdf(best, report, chLo, chHi)
+                    : ReportNdfPooled(best, report, pool, poolVariance, chLo, chHi);
                 if (exact > 0.0)
                 {
                     best.NdfBase = exact;
                 }
 
+                int cells = chHi - chLo + 1;
+                if (pool != null)
+                {
+                    cells = 0;
+                    foreach (double v in poolVariance)
+                    {
+                        if (v > 0.0)
+                        {
+                            cells++;
+                        }
+                    }
+                }
+
                 double ndf = best.NdfBase > 0.0
                     ? best.NdfBase
-                    : Math.Max(1, (chHi - chLo + 1) - ActiveCount(best.Active));
+                    : Math.Max(1, cells - ActiveCount(best.Active));
                 best.Chi2NdfBase = chi2Base / ndf;
 
                 // (S51) НЕВЯЗКА МОДЕЛИ ε — доля формы спектра, которую модель НЕ
@@ -10728,6 +10825,230 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double ndf = n - 2.0 * traceH + traceMN;
+            return ndf > 1.0 ? ndf : 1.0;
+        }
+
+        /// <summary>
+        /// (`S182`, П154 24.09.2026) Ячейки ОТЧЁТНОЙ меры: каналы полосы
+        /// подряд, слева направо, собираются в отрезок, пока сумма отчётной
+        /// дисперсии `Σv` (`v = 1/w₀` = μ̂ + Extra, ожидаемый счёт) не
+        /// достигнет <paramref name="threshold"/>; хвост, порога не набравший,
+        /// приклеивается к последней ячейке. Канал с нулевым отчётным весом
+        /// (модель там не положительна) входит в ячейку с `v = 0`: его
+        /// отсчёты — улика против модели, и выбрасывать их нельзя.
+        /// Возвращает номер ячейки канала (−1 вне полосы) и `Σv` ячеек.
+        /// Довод и замер — у <see cref="ReportPoolVariance"/>.
+        /// </summary>
+        static int[] PoolReportChannels(double[] report, int chLo, int chHi, double threshold,
+                                        out double[] cellVariance)
+        {
+            int[] cell = new int[report.Length];
+            for (int i = 0; i < cell.Length; i++)
+            {
+                cell[i] = -1;
+            }
+
+            var sums = new List<double>();
+            int current = 0;
+            double acc = 0.0;
+            bool open = false;
+            for (int i = chLo; i <= chHi && i < report.Length; i++)
+            {
+                double v = report[i] > 0.0 ? 1.0 / report[i] : 0.0;
+                cell[i] = current;
+                acc += v;
+                open = true;
+                if (acc >= threshold)
+                {
+                    sums.Add(acc);
+                    current++;
+                    acc = 0.0;
+                    open = false;
+                }
+            }
+
+            if (open)
+            {
+                if (sums.Count > 0)
+                {
+                    for (int i = chLo; i <= chHi && i < report.Length; i++)
+                    {
+                        if (cell[i] == current)
+                        {
+                            cell[i] = current - 1;
+                        }
+                    }
+
+                    sums[current - 1] += acc;
+                }
+                else
+                {
+                    sums.Add(acc);
+                }
+            }
+
+            cellVariance = sums.ToArray();
+            return cell;
+        }
+
+        /// <summary>
+        /// (`S182`, П154 24.09.2026) Точное ожидание отчётного χ² ОБЪЕДИНЁННЫХ
+        /// ячеек — тот же след, что <see cref="ReportNdf"/>, но с агрегацией
+        /// `P` каналов в ячейки: `tr(PᵀDP(I−H)V(I−H)ᵀ)`, `D = diag(1/Σv)`,
+        /// `V = diag(v)`, `H = X G⁻¹ XᵀW`. Раскладывается снова на `p×p`:
+        ///
+        ///     tr = ячеек − 2·tr(G⁻¹A′) + tr(G⁻¹ M G⁻¹ N′),
+        ///     A′ = Σ_c (1/V_c)·u_c·s_cᵀ,  u_c = Σ_{i∈c} w_i v_i x_i,  s_c = Σ_{i∈c} x_i,
+        ///     M  = Σ_i w_i² v_i x_i x_iᵀ,  N′ = Σ_c (1/V_c)·s_c·s_cᵀ.
+        ///
+        /// Для ячейки из одного канала `A′`, `M`, `N′` совпадают с `A`, `M`,
+        /// `N` поканального следа (`v = 1/w₀`), то есть формула — обобщение,
+        /// а не вторая копия. Ячейка с `Σv = 0` выпадает И из χ², И отсюда.
+        /// </summary>
+        static double ReportNdfPooled(FitResult fit, double[] report, int[] cell, double[] cellVariance,
+                                      int chLo, int chHi)
+        {
+            if (fit == null || report == null || cell == null || cellVariance == null
+                || fit.Columns == null || fit.ActiveIndices == null || fit.ActiveInverse == null
+                || fit.Weights == null)
+            {
+                return 0.0;
+            }
+
+            int p = fit.ActiveIndices.Count;
+            if (p == 0)
+            {
+                return 0.0;
+            }
+
+            double[] solver = fit.Weights;
+            var x = new double[p][];
+            for (int a = 0; a < p; a++)
+            {
+                int index = fit.ActiveIndices[a];
+                if (index < 0 || index >= fit.Columns.Count)
+                {
+                    return 0.0;
+                }
+
+                x[a] = fit.Columns[index].Values;
+                if (x[a] == null)
+                {
+                    return 0.0;
+                }
+            }
+
+            var A = new double[p, p];
+            var M = new double[p, p];
+            var N = new double[p, p];
+            var u = new double[p];
+            var s = new double[p];
+            int cells = 0;
+            int current = -1;
+            for (int i = chLo; i <= chHi + 1; i++)
+            {
+                int c = -1;
+                if (i <= chHi)
+                {
+                    if (i >= report.Length || i >= solver.Length || i >= cell.Length)
+                    {
+                        return 0.0;
+                    }
+
+                    c = cell[i];
+                }
+
+                if (c != current)
+                {
+                    if (current >= 0 && current < cellVariance.Length && cellVariance[current] > 0.0)
+                    {
+                        double inv = 1.0 / cellVariance[current];
+                        cells++;
+                        for (int a = 0; a < p; a++)
+                        {
+                            if (u[a] == 0.0 && s[a] == 0.0)
+                            {
+                                continue;
+                            }
+
+                            for (int k = 0; k < p; k++)
+                            {
+                                A[a, k] += inv * u[a] * s[k];
+                                N[a, k] += inv * s[a] * s[k];
+                            }
+                        }
+                    }
+
+                    current = c;
+                    Array.Clear(u, 0, p);
+                    Array.Clear(s, 0, p);
+                }
+
+                if (c < 0)
+                {
+                    continue;
+                }
+
+                double v = report[i] > 0.0 ? 1.0 / report[i] : 0.0;
+                double w = solver[i];
+                double mw = w * w * v;
+                for (int a = 0; a < p; a++)
+                {
+                    double xa = x[a][i];
+                    if (xa == 0.0)
+                    {
+                        continue;
+                    }
+
+                    u[a] += w * v * xa;
+                    s[a] += xa;
+                    if (mw == 0.0)
+                    {
+                        continue;
+                    }
+
+                    for (int b = a; b < p; b++)
+                    {
+                        M[a, b] += mw * xa * x[b][i];
+                    }
+                }
+            }
+
+            for (int a = 0; a < p; a++)
+            {
+                for (int b = a + 1; b < p; b++)
+                {
+                    M[b, a] = M[a, b];
+                }
+            }
+
+            double[,] inverse = fit.ActiveInverse;
+            if (inverse.GetLength(0) < p || inverse.GetLength(1) < p || cells == 0)
+            {
+                return 0.0;
+            }
+
+            double traceH = 0.0;
+            for (int a = 0; a < p; a++)
+            {
+                for (int k = 0; k < p; k++)
+                {
+                    traceH += inverse[a, k] * A[k, a];
+                }
+            }
+
+            double[,] left = Multiply(inverse, M, p);    // G⁻¹M
+            double[,] right = Multiply(inverse, N, p);   // G⁻¹N′
+            double traceMN = 0.0;
+            for (int a = 0; a < p; a++)
+            {
+                for (int k = 0; k < p; k++)
+                {
+                    traceMN += left[a, k] * right[k, a];
+                }
+            }
+
+            double ndf = cells - 2.0 * traceH + traceMN;
             return ndf > 1.0 ? ndf : 1.0;
         }
 

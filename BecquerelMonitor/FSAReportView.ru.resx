@@ -307,4 +307,28 @@
   <data name="FSAReport_MatrixLayerAnnihilationOutside" xml:space="preserve">
     <value>Аннигиляция вне кристалла (511, 1022, их комптон)</value>
   </data>
+  <data name="FSAReport_SupplyRow" xml:space="preserve">
+    <value>Поставки данных распада расходятся</value>
+  </data>
+  <data name="FSAReport_SupplyTip" xml:space="preserve">
+    <value>У этих нуклидов две поставки данных распада расходятся, и разбору пришлось выбрать. Что взято:</value>
+  </data>
+  <data name="FSAReport_SupplyBetaPlusMode" xml:space="preserve">
+    <value>{0} → {1}: в decay_chain {2} % — доля одних позитронов, а не ветви ε+β⁺; ветвь взята остатком, {4} %</value>
+  </data>
+  <data name="FSAReport_SupplyOtherMode" xml:space="preserve">
+    <value>{0} → {1}: доля ветви в decay_chain {2} % меньше суммы позитронов {3} % в decay_radiations; прочитана как доля другой моды, ветвь взята суммой {4} %</value>
+  </data>
+  <data name="FSAReport_SupplyExcess" xml:space="preserve">
+    <value>{0} → {1}: сумма позитронов {3} % в decay_radiations больше, чем оставляют прочие ветви ({4} %); избыток поставки, зажато</value>
+  </data>
+  <data name="FSAReport_SupplyClamped" xml:space="preserve">
+    <value>{0} → {1}: сумма позитронов {3} % в decay_radiations больше доли ветви {2} %; зажато ею</value>
+  </data>
+  <data name="FSAReport_SupplyShareScaled" xml:space="preserve">
+    <value>{0} → {1}: доля β⁺ ветви {2} (decay_radiations) против {3} (ENSDF), {4} %; доли по уровням приведены к decay_radiations</value>
+  </data>
+  <data name="FSAReport_SupplyShareKept" xml:space="preserve">
+    <value>{0} → {1}: доля β⁺ ветви {2} (decay_radiations) против {3} (ENSDF), {4} %; доля ветви упёрлась в perc, доли по уровням оставлены по ENSDF</value>
+  </data>
 </root>

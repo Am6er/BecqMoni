@@ -1269,6 +1269,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool CascadeSummingUsed { get; set; }
 
         /// <summary>
+        /// (`S187`, П152 24.09.2026) РАСХОЖДЕНИЯ ПОСТАВОК ДАННЫХ РАСПАДА у
+        /// нуклидов состава, которые двигают числа: доля ветви ε+β⁺ из
+        /// `decay_chain.perc` против ΣI(β⁺) `decay_radiations` (`AMBER81`,
+        /// `S189`), доля β⁺ ветви по `decay_radiations` против ENSDF
+        /// (`AMBER100`). Окно отчёта печатает их строкой блока «Качество
+        /// разбора» — прежде слова жили только в примечаниях базы, которые
+        /// читают пробы. Собирает <see cref="FsaCascadeSummer.SupplyDiscrepanciesOf"/>
+        /// в фоне сеанса, после разбора; null — не собирались (пробы, корпус),
+        /// пусто — сказать нечего.
+        /// </summary>
+        public List<CascadeAtomicData.SupplyDiscrepancy> SupplyDiscrepancies { get; set; }
+
+        /// <summary>
         /// (`A169`) РОДИТЕЛЬСКАЯ ГРУППИРОВКА СТРОК ДОПУСТИМА: в составе есть хоть
         /// один ряд, СВЯЗАННЫЙ равновесием (строки с непустым
         /// <see cref="FsaComponentResult.ChainRoot"/>). Только у такого ряда

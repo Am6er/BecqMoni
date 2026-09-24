@@ -331,6 +331,17 @@ namespace BecquerelMonitor
         const string KeySuppressedRow = "FSAReport_SuppressedRow";
         const string KeyBackgroundRejectedRow = "FSAReport_BackgroundRejectedRow";
 
+        // (`S187`) Расхождения поставок данных распада: подпись, шапка
+        // подсказки и по строке на вид расхождения.
+        const string KeySupplyRow = "FSAReport_SupplyRow";
+        const string KeySupplyTip = "FSAReport_SupplyTip";
+        const string KeySupplyBetaPlusMode = "FSAReport_SupplyBetaPlusMode";
+        const string KeySupplyOtherMode = "FSAReport_SupplyOtherMode";
+        const string KeySupplyExcess = "FSAReport_SupplyExcess";
+        const string KeySupplyClamped = "FSAReport_SupplyClamped";
+        const string KeySupplyShareScaled = "FSAReport_SupplyShareScaled";
+        const string KeySupplyShareKept = "FSAReport_SupplyShareKept";
+
         static readonly ComponentResourceManager OwnResources =
             new ComponentResourceManager(typeof(FSAReportView));
 
@@ -1548,7 +1559,82 @@ namespace BecquerelMonitor
                 made.Add(this.MakeMarkRow(KeySuppressedRow, result.SuppressorName ?? string.Empty, false, true));
             }
 
+            // (`S187`, П152 24.09.2026) РАСХОЖДЕНИЯ ПОСТАВОК ДАННЫХ РАСПАДА —
+            // только когда есть о чём сказать (происшествие, а не состояние).
+            // Справа — нуклиды, в подсказке — по строке на расхождение: ЧТО
+            // разбор взял. Прежде эти слова жили только в примечаниях базы и
+            // до человека не доходили.
+            if (result.SupplyDiscrepancies != null && result.SupplyDiscrepancies.Count > 0)
+            {
+                this.AddSupplyRow(made, result.SupplyDiscrepancies);
+            }
+
             return made;
+        }
+
+        /// <summary>
+        /// (`S187`) Строка «поставки данных распада расходятся»: справа —
+        /// родители через запятую (подпись нуклида та же, что в составе), в
+        /// подсказке — по строке на расхождение. Числа — один раз и
+        /// инвариантной культурой (`A242`); цвета нет, как у строк с числом:
+        /// это не суждение о разборе, а сказанное о данных.
+        /// </summary>
+        void AddSupplyRow(List<Row> made, List<CascadeAtomicData.SupplyDiscrepancy> found)
+        {
+            var parents = new List<string>();
+            var tip = new System.Text.StringBuilder(OwnText(KeySupplyTip));
+            foreach (CascadeAtomicData.SupplyDiscrepancy item in found)
+            {
+                if (item == null)
+                {
+                    continue;
+                }
+
+                string parent = FsaSampleLibrary.PrettyName(item.Parent ?? string.Empty);
+                if (!parents.Contains(parent))
+                {
+                    parents.Add(parent);
+                }
+
+                tip.AppendLine();
+                tip.Append(SupplyLine(item, parent));
+            }
+
+            made.Add(this.MakeNumberRow(KeySupplyRow, string.Join(", ", parents.ToArray()), tip.ToString()));
+        }
+
+        /// <summary>(`S187`) Одна строка подсказки: вид расхождения и числа.</summary>
+        static string SupplyLine(CascadeAtomicData.SupplyDiscrepancy item, string parent)
+        {
+            string daughter = FsaSampleLibrary.PrettyName(item.Daughter ?? string.Empty);
+            bool share = item.Kind == CascadeAtomicData.SupplyDiscrepancyKind.BetaPlusShareMismatch;
+            string format = share ? "F5" : "F3";
+            string supply = item.Supply.ToString(format, CultureInfo.InvariantCulture);
+            string other = item.Other.ToString(format, CultureInfo.InvariantCulture);
+            string taken = share
+                ? item.Taken.ToString("+0.00;-0.00", CultureInfo.InvariantCulture)
+                : item.Taken.ToString("F3", CultureInfo.InvariantCulture);
+            string key;
+            switch (item.Kind)
+            {
+                case CascadeAtomicData.SupplyDiscrepancyKind.BetaPlusModeWidened:
+                    key = KeySupplyBetaPlusMode;
+                    break;
+                case CascadeAtomicData.SupplyDiscrepancyKind.OtherModeWidened:
+                    key = KeySupplyOtherMode;
+                    break;
+                case CascadeAtomicData.SupplyDiscrepancyKind.BranchExcess:
+                    key = KeySupplyExcess;
+                    break;
+                case CascadeAtomicData.SupplyDiscrepancyKind.BetaPlusClamped:
+                    key = KeySupplyClamped;
+                    break;
+                default:
+                    key = item.LevelsKept ? KeySupplyShareKept : KeySupplyShareScaled;
+                    break;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(key), parent, daughter, supply, other, taken);
         }
 
         /// <summary>

@@ -56,8 +56,13 @@ namespace BecquerelMonitor.Probes
         /// <summary>Снятое правило C — только как «было». В приложении его нет.</summary>
         const string RetiredClauseC = " and l_seqno = 0";
 
-        /// <summary>Сколько обращений к правилу ждём в приложении.</summary>
-        const int ExpectedUses = 4;
+        // (`S189`, П152 24.09.2026) Жёсткого числа обращений больше нет: оно
+        // стояло 4 с `A218` и к 24.09.2026 отстало от дерева (читателей правила
+        // стало 7 — сумматор совпадений, четыре места библиотеки, атомные
+        // данные, `NucBase`), и проба была красна на чистом дереве без всякой
+        // копии. Обращений должно быть РОВНО столько, сколько запросов к
+        // `decay_chain` с правилом рядом: лишнее обращение без запроса или
+        // запрос, зажатый не правилом, — расхождение (копию ловит счёт копий).
 
         static int failures;
         static int top = 12;
@@ -167,7 +172,7 @@ namespace BecquerelMonitor.Probes
                 return;
             }
 
-            int copies = 0, uses = 0, declarations = 0, unclamped = 0;
+            int copies = 0, uses = 0, declarations = 0, unclamped = 0, ruled = 0;
             var where = new List<string>();
             var unclampedWhere = new List<string>();
 
@@ -202,6 +207,11 @@ namespace BecquerelMonitor.Probes
                         where.Add(string.Format(CultureInfo.InvariantCulture, "{0}:{1}", rel, i + 1));
                     }
 
+                    if (FromChain.IsMatch(code) && HasRuleNearby(lines, i))
+                    {
+                        ruled++;
+                    }
+
                     if (FromChain.IsMatch(code) && !HasClampNearby(lines, i))
                     {
                         unclamped++;
@@ -211,7 +221,7 @@ namespace BecquerelMonitor.Probes
             }
 
             Console.WriteLine("  объявлений ChainLevelClause: {0} (ждём 1)", declarations);
-            Console.WriteLine("  обращений к правилу:         {0} (ждём {1})", uses, ExpectedUses);
+            Console.WriteLine("  обращений к правилу:         {0} (ждём {1} — запросов к decay_chain с правилом рядом)", uses, ruled);
             Console.WriteLine("  копий зажима в приложении:   {0} (ждём 0){1}", copies,
                               copies == 0 ? "" : " — " + string.Join(", ", where.ToArray()));
             Console.WriteLine("  чтений decay_chain БЕЗ зажима: {0}{1}", unclamped,
@@ -221,9 +231,26 @@ namespace BecquerelMonitor.Probes
 
             if (declarations != 1) Fail("объявление ChainLevelClause должно быть РОВНО одно");
             if (copies != 0) Fail("в приложении осталась вторая запись зажима");
-            if (uses != ExpectedUses)
-                Fail("обращений к правилу " + uses + ", а запросов с зажимом " + ExpectedUses
+            if (uses != ruled)
+                Fail("обращений к правилу " + uses + ", а запросов с зажимом " + ruled
                      + " — одно место разошлось с общим правилом");
+        }
+
+        /// <summary>
+        /// (`S189`) Стоит ли рядом с запросом ИМЕННО обращение к правилу (не копия).
+        /// Окно то же, что у <see cref="HasClampNearby"/>.
+        /// </summary>
+        static bool HasRuleNearby(string[] lines, int i)
+        {
+            for (int k = Math.Max(0, i - 3); k < Math.Min(lines.Length, i + 6); k++)
+            {
+                if (UseRule.IsMatch(StripComment(lines[k])))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
