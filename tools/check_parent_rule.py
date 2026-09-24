@@ -40,6 +40,26 @@ u"""СТОРОЖ ПРАВИЛА «РОДИТЕЛЬ» (`D48`): копии заж�
       правила читается из .cs, как в `tools/CORPUS/scripts/chains.py`) РОВНО
       этот уровень — иначе два носителя зовут родителем разные состояния.
 
+**3. Ветви рядов — одно правило у C# и питона** (`S190`, `S191`; П158 24.09.2026):
+
+  3а. всякий запрос к `decay_chain`, зажатый правилом уровня (рядом стоит
+      `ChainLevelClause` / `CHAIN_LEVEL_CLAUSE`) и выбирающий что-то кроме
+      дочери, берёт долю ветви столбцом `ChainPercColumn` /
+      `CHAIN_PERC_COLUMN`, а не голым `perc` (у канала «β⁺» там доля
+      позитронов). Детектор проверяет себя на подложенном образце;
+  3б. код канала «β⁺» литералом в тексте `ChainPercColumn` равен
+      `DecayParentRule.BetaPlusChannel` (питон склейку констант не читает,
+      потому литерал — и потому это сверяется);
+  3в. питон (`tools/CORPUS/scripts/chains.py`) читает ТОТ ЖЕ текст обоих
+      выражений, что лежит в .cs, — копии нет;
+  3г. расширенная столбцом доля ветви «β⁺» равна ε+β⁺ (код 1) своего уровня
+      в `l_decays` в ту же дочь — вторая поставка как судья; положительный
+      контроль — сырой `perc` с судьёй расходится;
+  3д. судья уровня `S191` в `ChainLevelClause` сверяется с независимым
+      разбором на питоне: строки иного уровня в дочь, в которую свой уровень
+      по `l_decays` не распадается, у родителя со своими рёбрами — в выборке
+      правила их нет.
+
 ⚠ Что сторож НЕ судит: верность физики (`check_isomer_levels.py` держит
 известные особенности поставки — `144TBm`, запасная ветвь у `123CSm2`, четыре
 двухуровневых родителя), правило разметки `ensdf_datasets` целиком
@@ -314,6 +334,200 @@ def judge_carriers(nucdb, schemedb, rule_path, quiet):
     return bad
 
 
+# ---------------------------------------------------------------------------
+# 3. ветви рядов: `ChainPercColumn` и судья уровня (`S190`, `S191`)
+# ---------------------------------------------------------------------------
+CHAIN_READ = re.compile(r'from\s+decay_chain\b', re.I)
+CHAIN_RULE_NEAR = re.compile(r'ChainLevelClause|CHAIN_LEVEL_CLAUSE')
+CHAIN_PERC_NEAR = re.compile(r'ChainPercColumn|CHAIN_PERC_COLUMN')
+SELECTS_MORE = re.compile(r'select\s+(?:distinct\s+)?daughter_nucid\s*,', re.I)
+
+#: Читатели рядов, которым голый `perc` разрешён поимённо: файл -> (число, причина).
+ALLOWED_BARE = {
+    os.path.join('tools', 'nucdb', 'fill_intensity.py'):
+        (1, u'пишет поставочный NuclideDefinition.xml — по приказу Amber 05.09.2026 такое не '
+            u'трогаем; его четыре корня (232TH, 226RA, 238U, 235U) родителей канала «β⁺» не '
+            u'проходят, доля ветви там одна и та же (замер П158)'),
+}
+
+
+def bare_perc_readers(lines):
+    u"""[(строка, текст)] запросов с правилом уровня, берущих долю не столбцом."""
+    hits = []
+    for k, (no, line) in enumerate(lines):
+        if not line or ('"' not in line and "'" not in line) or not CHAIN_READ.search(line):
+            continue
+        window = u' '.join(l for _n, l in lines[max(0, k - NEAR):k + NEAR + 1])
+        if CHAIN_RULE_NEAR.search(window) and SELECTS_MORE.search(window) \
+                and not CHAIN_PERC_NEAR.search(window):
+            hits.append((no, line.strip()))
+    return hits
+
+
+def rule_literal(rule_path, name):
+    with io.open(rule_path, encoding='utf-8-sig') as h:
+        text = re.sub(r'//[^\n]*', '', h.read())
+    body = re.search(r'const\s+string\s+%s\s*=(.*?);' % name, text, re.S)
+    if not body:
+        raise RuntimeError(u'в %s нет объявления %s' % (rule_path, name))
+    return u''.join(re.findall(r'"((?:[^"\\]|\\.)*)"', body.group(1)))
+
+
+def judge_branches(root, nucdb, rule_path, quiet):
+    print(u'')
+    print(u'=== 3. ВЕТВИ РЯДОВ: ChainPercColumn и судья уровня (S190, S191) ===')
+    bad = []
+
+    # 3а — самопроверка детектора, потом дерево
+    probe = [(1, u'command.CommandText ='),
+             (2, u'    "select daughter_nucid, perc from decay_chain d"'),
+             (3, u'    + " where nucid = $n" + DecayParentRule.ChainLevelClause;')]
+    fixed = [(1, u'command.CommandText ='),
+             (2, u'    "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from decay_chain d"'),
+             (3, u'    + " where nucid = $n" + DecayParentRule.ChainLevelClause;')]
+    if len(bare_perc_readers(probe)) != 1 or bare_perc_readers(fixed):
+        bad.append((u'3а', u'детектор голого perc не поймал подложенный образец — сторож слеп'))
+    readers = hits = 0
+    for path in walk(root):
+        if rel(path, root) == u'tools/check_parent_rule.py':
+            continue                    # образцы самопроверки — не читатели
+        lines = code_lines(path)
+        for k, (no, line) in enumerate(lines):
+            if line and CHAIN_READ.search(line) and ('"' in line or "'" in line):
+                window = u' '.join(l for _n, l in lines[max(0, k - NEAR):k + NEAR + 1])
+                if (CHAIN_RULE_NEAR.search(window) and CHAIN_PERC_NEAR.search(window)
+                        and SELECTS_MORE.search(window)):
+                    readers += 1
+        found = bare_perc_readers(lines)
+        f_rel = rel(path, root)
+        allowed = {k.replace('\\', '/'): v for k, v in ALLOWED_BARE.items()}.get(f_rel)
+        if found and allowed and len(found) <= allowed[0]:
+            print(u'  разрешён %s: голым perc %d (ожидалось %d) — %s'
+                  % (f_rel, len(found), allowed[0], allowed[1]))
+            continue
+        for no, line in found:
+            hits += 1
+            bad.append((u'3а', u'%s:%d доля ветви голым perc: %s' % (f_rel, no, line[:100])))
+    print(u'  3а читателей рядов со столбцом ChainPercColumn: %d; с голым perc вне разрешённых: %d '
+          u'(детектор на подложенном образце — %s)'
+          % (readers, hits, u'ловит' if not any(b[0] == u'3а' and u'слеп' in b[1] for b in bad) else u'СЛЕП'))
+
+    # 3б
+    column = rule_literal(rule_path, 'ChainPercColumn')
+    clause = rule_literal(rule_path, 'ChainLevelClause')
+    with io.open(rule_path, encoding='utf-8-sig') as h:
+        m = re.search(r'const\s+string\s+BetaPlusChannel\s*=\s*"([^"]*)"', h.read())
+    code = m.group(1) if m else None
+    literals = set(re.findall(r"dec_type\s*(?:=|<>)\s*'([^']*)'", column))
+    if code is None or literals != {code}:
+        bad.append((u'3б', u'код канала в ChainPercColumn %s, BetaPlusChannel %r' % (sorted(literals), code)))
+    print(u'  3б код канала «β⁺»: BetaPlusChannel %r, в тексте столбца %s' % (code, sorted(literals)))
+
+    # 3в
+    scripts = os.path.join(root, 'tools', 'CORPUS', 'scripts')
+    saved = os.environ.get('LFL_DECAY_RULE_CS')
+    os.environ['LFL_DECAY_RULE_CS'] = rule_path
+    try:
+        sys.path.insert(0, scripts)
+        import chains as _chains  # noqa: E402
+        same = (u' '.join(_chains.CHAIN_PERC_COLUMN.split()) == u' '.join(column.split())
+                and u' '.join(_chains.CHAIN_LEVEL_CLAUSE.split()) == u' '.join(clause.split()))
+    except Exception as ex:          # noqa: BLE001 — отказ импорта и есть находка
+        same = False
+        bad.append((u'3в', u'chains.py не прочитал правило: %s' % ex))
+    finally:
+        if scripts in sys.path:
+            sys.path.remove(scripts)
+        if saved is None:
+            os.environ.pop('LFL_DECAY_RULE_CS', None)
+        else:
+            os.environ['LFL_DECAY_RULE_CS'] = saved
+    if not same and not any(b[0] == u'3в' for b in bad):
+        bad.append((u'3в', u'текст правила у питона и в .cs разошёлся'))
+    print(u'  3в питон читает те же тексты ChainPercColumn и ChainLevelClause: %s'
+          % (u'да' if same else u'НЕТ'))
+
+    nuc = ro(nucdb)
+    own = {}
+    for n, l in nuc.execute('select nucid, l_seqno from nuclides'):
+        own.setdefault(n, set()).add(l)
+    modes = {}
+    for n, l, dt, dn, pn in nuc.execute(
+            'select nucid, l_seqno, dec_type, daughter_nucid, perc_num from l_decays'):
+        modes.setdefault((n, l), []).append((dt, dn, pn))
+
+    # 3г
+    widened = raw_off = 0
+    parents = [r[0] for r in nuc.execute(
+        'select distinct nucid from decay_chain where dec_type = ? order by 1', (code or '15',))]
+    for n in parents:
+        rows = nuc.execute('select daughter_nucid, perc, dec_type,' + column
+                           + ' from decay_chain d where nucid = $n and perc not null' + clause,
+                           {'n': n}).fetchall()
+        for dn, perc, dt, got in rows:
+            if dt != code:
+                continue
+            try:
+                raw, val = float(perc), float(got)
+            except (TypeError, ValueError):
+                continue
+            if val == raw:
+                continue
+            widened += 1
+            judge = [pn for lv in own.get(n, ()) for (jdt, jdn, pn) in modes.get((n, lv), [])
+                     if jdt == 1 and jdn == dn and pn is not None]
+            if not judge:
+                bad.append((u'3г', u'%s → %s: ветвь β⁺ расширена до %.6g, судьи (ε+β⁺ своего уровня) нет'
+                            % (n, dn, val)))
+                continue
+            if abs(val - judge[0]) > 1e-9 * 100.0:
+                bad.append((u'3г', u'%s → %s: ветвь β⁺ %.6g, а ε+β⁺ по l_decays %.6g' % (n, dn, val, judge[0])))
+            if abs(raw - judge[0]) > 1e-9 * 100.0:
+                raw_off += 1
+    if widened and raw_off != widened:
+        bad.append((u'3г', u'положительный контроль: сырой perc расходится с судьёй у %d из %d'
+                    % (raw_off, widened)))
+    print(u'  3г строк канала «β⁺» расширено столбцом: %d, сошлись с ε+β⁺ l_decays: %d; '
+          u'сырой perc с судьёй расходится у %d (положительный контроль)'
+          % (widened, widened - sum(1 for b in bad if b[0] == u'3г' and u'l_decays' in b[1]), raw_off))
+
+    # 3д — независимый разбор судьи уровня
+    q = 'select nucid, l_seqno, daughter_nucid, dec_type from decay_chain d where nucid = $n'
+    chain = {}
+    for r in nuc.execute('select nucid, l_seqno, daughter_nucid, dec_type from decay_chain'):
+        chain.setdefault(r[0], []).append(r)
+    dropped = kept_wrong = 0
+    for n, rs in chain.items():
+        lv = own.get(n)
+        if not lv:
+            continue
+        own_edges = [r for r in rs if r[1] in lv and r[2] != n]
+        judge = set(dn for l in lv for (_dt, dn, _pn) in modes.get((n, l), []))
+        if not own_edges or not any(modes.get((n, l)) for l in lv):
+            continue
+        suspects = set(r for r in rs if r[2] != n and r[1] not in lv and r[2] not in judge
+                       and r[2] not in set(e[2] for e in own_edges))
+        if not suspects:
+            continue
+        got = set(nuc.execute(q + clause, {'n': n}).fetchall())
+        for r in suspects:
+            if r in got:
+                kept_wrong += 1
+                bad.append((u'3д', u'%s уровень %s → %s: мода не своего уровня по l_decays, '
+                            u'а правило её берёт' % (n, r[1], r[2])))
+            else:
+                dropped += 1
+    print(u'  3д судья уровня: строк иного уровня в чужую своему уровню дочь снято %d, '
+          u'оставлено вопреки судье %d' % (dropped, kept_wrong))
+    if dropped == 0 and kept_wrong == 0:
+        bad.append((u'3д', u'разбор не нашёл ни одной строки для судьи — проверка пуста'))
+    nuc.close()
+    if not quiet:
+        for where, what in bad:
+            print(u'⛔ %s %s' % (where, what))
+    return bad
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(add_help=True)
     ap.add_argument('--root', default=ROOT)
@@ -334,6 +548,7 @@ def main(argv=None):
     bad1 = judge_copies(root)
     try:
         bad2 = judge_carriers(nucdb, schemedb, rule, a.quiet)
+        bad3 = judge_branches(root, nucdb, rule, a.quiet)
     except (sqlite3.Error, RuntimeError) as ex:
         print(u'ОТКАЗ: базы не прочитаны — %s' % ex)
         return 2
@@ -342,11 +557,13 @@ def main(argv=None):
     print(u'=== сводка ===')
     print(u'  копий правила вне DecayParentRule: %d' % len(bad1))
     print(u'  расхождений между носителями: %d' % len(bad2))
-    if bad1 or bad2:
-        print(u'ОСТАНОВ: о том, что такое «родитель», в дереве больше одного соглашения '
-              u'либо носители зовут разные уровни.')
+    print(u'  находок по ветвям рядов (S190, S191): %d' % len(bad3))
+    if bad1 or bad2 or bad3:
+        print(u'ОСТАНОВ: о том, что такое «родитель» или ветвь ряда, в дереве больше одного '
+              u'соглашения либо носители зовут разные уровни.')
         return 1
-    print(u'ПРАВИЛО «РОДИТЕЛЬ» ОДНО: копий нет, три носителя согласны с nuclides и LevelClause.')
+    print(u'ПРАВИЛО «РОДИТЕЛЬ» ОДНО: копий нет, три носителя согласны с nuclides и LevelClause; '
+          u'ветви рядов у C# и питона — одним текстом, судьи согласны.')
     return 0
 
 

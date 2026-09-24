@@ -394,7 +394,7 @@ namespace FsaLibraryBetaChainProbe
             using (SqliteCommand command = connection.CreateCommand())
             {
                 command.CommandText =
-                    "select daughter_nucid, perc from decay_chain d"
+                    "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from decay_chain d"
                     + " where nucid = $n and perc not null"
                     + DecayParentRule.ChainLevelClause;
                 command.Parameters.AddWithValue("$n", root);
