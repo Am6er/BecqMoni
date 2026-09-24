@@ -36,7 +36,8 @@ namespace FsaReportWeightsProbe
     ///     fsareportweightsprobe --spectrum=&lt;файл.xml&gt; [--chain=Th-232] [--sample=137CS]
     ///                           [--mu=0.2,1,5,20,50] [--seed=20260922]
     ///                           [--limit=0.15] [--wrong=0.05] [--huber=3] [--pool=5] [--diag]
-    ///                           [--set=Имя=значение] [--matrix-any] [--plain]
+    ///                           [--set=Имя=значение] [--exact] [--dump=файл.csv]
+    ///                           [--matrix-any] [--plain]
     ///
     /// `--plain` — без розыгрыша: только обе меры на самом спектре (числа для
     /// корпусного сравнения). Отказ кодом 1, если на верной модели новая мера
@@ -59,12 +60,16 @@ namespace FsaReportWeightsProbe
     /// раскладывает поканальную меру по корзинам истинного μ; `--set=`
     /// ставит свойство анализатора всем разборам прогона.
     ///
-    /// ⚠ ПРИЁМКА МЕРЫ — С `--set=AnchorScale=false`. С привязкой шкалы по
-    /// данным истина пробы на μ ≥ 10 копией НЕ воспроизводится: в каналах с
-    /// μ ≥ 10 поканальный член 1.22 (μ = 20) и 1.68 (μ = 50) при несмещённом
-    /// усилении (σ 0.00037 / 0.00025), и мера ячейками честно показывает
-    /// 1.25 / 1.68 — это свойство привязки, не меры (журнал П154). Без
-    /// привязки мера ячейками 0.96…1.01 на всей лестнице 0.2…50.
+    /// (`S193`, П156 24.09.2026) До правки нуля съёмки (<c>ZeroFromRun</c>)
+    /// приёмка меры шла только с `--set=AnchorScale=false`: с привязкой
+    /// истина пробы на μ ≥ 10 копией не воспроизводилась (поканальный член в
+    /// каналах μ ≥ 10 — 1.22 / 1.68 при μ = 20 / 50), потому что нуль света
+    /// считался прямой в КАНАЛАХ, а карта "adc" ставит свет прямой в ЭНЕРГИИ,
+    /// и нуль не был неподвижной точкой. Теперь умолчание даёт 0.94…1.02 на
+    /// лестнице 0.2…50 (член в каналах μ ≥ 10: 0.95 / 0.96 / 0.97 при
+    /// μ = 5 / 20 / 50). `--exact` — копия без розыгрыша (детерминированное
+    /// расхождение разбора с истиной отдельно от шума), `--dump=<файл.csv>` —
+    /// поканально истина, средняя модель копий и средний счёт.
     /// </summary>
     static class Program
     {
@@ -113,6 +118,8 @@ namespace FsaReportWeightsProbe
                 else if (a == "--matrix-any") matrixAny = true;
                 else if (a == "--plain") plain = true;
                 else if (a == "--diag") diag = true;
+                else if (a == "--exact") exact = true;
+                else if (a.StartsWith("--dump=", StringComparison.Ordinal)) dumpPath = a.Substring(7);
                 else if (a.StartsWith("--set=", StringComparison.Ordinal))
                 {
                     // (`S182`, П154) Разводка причин: `--set=PileUp=false` и т.п. —
@@ -188,6 +195,7 @@ namespace FsaReportWeightsProbe
                               neyman.ScaleAnchorsUsed, pearson.ScaleAnchorsUsed, pooled.ScaleAnchorsUsed);
             Console.WriteLine("{0,-30} {1,14} {2,14} {3,14}", "компонентов в разборе",
                               neyman.Components.Count, pearson.Components.Count, pooled.Components.Count);
+            Console.WriteLine("привязка истины: {0}", pearson.AnchorNote ?? "—");
 
             if (plain)
             {
@@ -230,7 +238,8 @@ namespace FsaReportWeightsProbe
                 int done = 0;
                 for (int r = 0; r < repeats; r++)
                 {
-                    EnergySpectrum copy = PoissonCopy(rd.EnergySpectrum, truth, scale, rng);
+                    EnergySpectrum copy = exact ? ExactCopy(rd.EnergySpectrum, truth, scale)
+                                                : PoissonCopy(rd.EnergySpectrum, truth, scale, rng);
                     ResultData copyData = Rewrap(rd, copy, scale);
                     // Отношение `S180` меряется на ОДНИХ ячейках-каналах (`--pool=0`
                     // у обоих плеч): ndf у них один. Приёмка `S182` — плечом
@@ -244,9 +253,12 @@ namespace FsaReportWeightsProbe
                     sumP += c.Chi2NdfPoisson;
                     sumMu += MeanPerChannel(copy);
                     if (diag) Diag.Add(b, copy, truth, scale);
+                    if (diag && r == 0) Console.WriteLine("   привязка копии: {0}", b.AnchorNote ?? "—");
+                    if (dumpPath != null) Dump.Add(mu, b, copy, truth, scale);
                     done++;
                 }
                 if (diag) Diag.Print(mu, done);
+                if (dumpPath != null) Dump.Flush(mu, done, dumpPath);
 
                 if (done == 0)
                 {
@@ -365,6 +377,75 @@ namespace FsaReportWeightsProbe
 
         /// <summary>(`S182`, П154) Разложение меры по каналам — ключ `--diag`.</summary>
         static bool diag;
+
+        /// <summary>
+        /// (`S193`, П156) `--exact`: копия БЕЗ розыгрыша — истина, округлённая
+        /// до целых. Отделяет детерминированное расхождение разбора с истиной
+        /// (не неподвижная точка) от шума копий.
+        /// </summary>
+        static bool exact;
+
+        /// <summary>(`S193`, П156) `--dump=<файл.csv>`: поканально истина, средняя модель копий и средний счёт.</summary>
+        static string dumpPath;
+
+        static EnergySpectrum ExactCopy(EnergySpectrum source, double[] truth, double scale)
+        {
+            int channels = source.NumberOfChannels;
+            int[] counts = new int[channels];
+            long total = 0;
+            for (int i = 0; i < channels; i++)
+            {
+                counts[i] = (int)Math.Round(Math.Max(truth[i] * scale, 0.0));
+                total += counts[i];
+            }
+
+            return new EnergySpectrum
+            {
+                NumberOfChannels = channels,
+                Spectrum = counts,
+                EnergyCalibration = source.EnergyCalibration,
+                TotalPulseCount = total,
+                ValidPulseCount = total,
+                MeasurementTime = source.MeasurementTime,
+                ChannelPitch = source.ChannelPitch
+            };
+        }
+
+        /// <summary>(`S193`, П156) Поканальный дамп ключа `--dump=`: средние по копиям одной ступени μ.</summary>
+        static class Dump
+        {
+            static double[] model, count, truthScaled;
+            static bool header;
+
+            public static void Add(double mu, FsaResult r, EnergySpectrum copy, double[] truth, double scale)
+            {
+                if (r == null || r.Model == null) return;
+                int n = truth.Length;
+                if (model == null) { model = new double[n]; count = new double[n]; truthScaled = new double[n]; }
+                for (int i = 0; i < n; i++)
+                {
+                    model[i] += i < r.Model.Length ? r.Model[i] : 0.0;
+                    count[i] += copy.Spectrum[i];
+                    truthScaled[i] = truth[i] * scale;
+                }
+            }
+
+            public static void Flush(double mu, int done, string path)
+            {
+                if (model == null || done <= 0) { model = null; return; }
+                var sb = new StringBuilder();
+                if (!header) { sb.Append("mu,channel,truth,model,count").Append(Environment.NewLine); header = true; }
+                for (int i = 0; i < model.Length; i++)
+                {
+                    sb.Append(F(mu, 1)).Append(',').Append(i.ToString(CultureInfo.InvariantCulture)).Append(',')
+                      .Append(truthScaled[i].ToString("R", CultureInfo.InvariantCulture)).Append(',')
+                      .Append((model[i] / done).ToString("R", CultureInfo.InvariantCulture)).Append(',')
+                      .Append((count[i] / done).ToString("R", CultureInfo.InvariantCulture)).Append(Environment.NewLine);
+                }
+                File.AppendAllText(path, sb.ToString());
+                model = null;
+            }
+        }
 
         /// <summary>
         /// (`S182`, П154 24.09.2026) ГДЕ живёт недобор меры на верной модели.

@@ -32,6 +32,7 @@ namespace DoseGridProbe
     ///      которые видит человек, побитово (`R`), для сверки до/после.
     ///
     ///     dosegridprobe [--dir=&lt;корпус&gt;] [--tol=2.0] [--quiet] [--show=&lt;сцена&gt;:&lt;кэВ&gt;]
+    ///                   [--set=&lt;рычаг DoseRateManager&gt;=&lt;число&gt;] (П159, отражением)
     ///
     /// Приёмка: путь матрицы без разрешения — |показание/ответ − 1| ≤ `--tol` %
     /// (2 %) у линий не ближе бина склада к границе диапазона и с центром
@@ -105,6 +106,24 @@ namespace DoseGridProbe
                 else if (a == "--res=own") resOwn = true;
                 else if (a.StartsWith("--tolres=", StringComparison.Ordinal))
                     tolResPercent = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
+                else if (a.StartsWith("--set=", StringComparison.Ordinal))
+                {
+                    // (`S194`, П159) Мерный рычаг расчёта: закрытое статическое
+                    // поле `DoseRateManager` — отражением, для замера вариантов.
+                    string[] kv = a.Substring(6).Split('=');
+                    System.Reflection.FieldInfo lever = kv.Length == 2
+                        ? typeof(DoseRateManager).GetField(kv[0], System.Reflection.BindingFlags.NonPublic
+                                                                   | System.Reflection.BindingFlags.Static)
+                        : null;
+                    if (lever == null || lever.FieldType != typeof(double))
+                    {
+                        Console.Error.WriteLine("нет рычага: " + a);
+                        return 2;
+                    }
+
+                    lever.SetValue(null, double.Parse(kv[1], CultureInfo.InvariantCulture));
+                    Console.WriteLine("рычаг " + kv[0] + " = " + kv[1]);
+                }
                 else
                 {
                     Console.Error.WriteLine("неизвестный ключ: " + a);
