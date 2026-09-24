@@ -681,6 +681,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // (2BS) — тем же путём, от умолчания настроек склада (ВЫКЛ до
                 // решения Amber о едином счёте).
                 ElectronLayerBremAngular2BS = storePhysics.ElectronLayerBremAngular2BS,
+                // (`AMBER80`, П147 24.09.2026, физика 24) Пороговая форма пар —
+                // тем же путём, от умолчания настроек склада (ВКЛ с физики 24,
+                // решение Amber 24.09.2026): кривая и склад считают одно сечение.
+                XcomPairThreshold = storePhysics.XcomPairThreshold,
             };
 
             log(geometry.Describe());
@@ -827,6 +831,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         ElectronLayerMixedScattering = simulator.ElectronLayerMixedScattering,
                         ElectronLayerBremAlongPath = simulator.ElectronLayerBremAlongPath,
                         ElectronLayerBremAngular2BS = simulator.ElectronLayerBremAngular2BS,
+                        XcomPairThreshold = simulator.XcomPairThreshold,
                     };
                 },
                 (range, loop, worker) =>
@@ -981,8 +986,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             // 2BS, тем же именем, что у клейма матрицы, только включённым; с
             // физики 22 (П114, 19–21.09.2026) ключ ВКЛ умолчанием склада, и
             // у кривой он в клейме всегда.
+            // `; pairth=1` (`AMBER80`, П147 24.09.2026) — пороговая форма пар,
+            // тем же именем, что у клейма матрицы, только включённым; с физики
+            // 24 ключ ВКЛ умолчанием склада, и у кривой он в клейме всегда.
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}{19}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}{19}{20}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
@@ -1008,7 +1016,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 storePhysics.ElectronLayerTransport ? "; eltr=1" : "",
                 storePhysics.ElectronLayerMixedScattering ? "; elmix=1" : "",
                 storePhysics.ElectronLayerBremAlongPath ? "; lbrem=1" : "",
-                storePhysics.ElectronLayerBremAngular2BS ? "; lbang=1" : "");
+                storePhysics.ElectronLayerBremAngular2BS ? "; lbang=1" : "",
+                storePhysics.XcomPairThreshold ? "; pairth=1" : "");
             return result;
         }
 

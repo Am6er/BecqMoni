@@ -298,9 +298,10 @@ class CorpusMatrixProbe
                 options.LightNonproportionality = Flag(a, 6);
             else if (a.StartsWith("--pairth=", StringComparison.Ordinal))
                 // `S121`/`S130`: пороговая интерполяция сечения рождения пар
-                // (XCOM). Умолчанием ВЫКЛЮЧЕНА решением Amber; ключ — рычаг
-                // замера `S125`. Включённая меняет клеймо, поэтому пересчёт
-                // идёт честно, а прежние матрицы остаются годными.
+                // (XCOM). С физики 24 — умолчанием ВКЛ (решение Amber 24.09.2026
+                // «ВКЛ в физике 24 (Рекомендую)», П147, вместе с `AMBER80` —
+                // и в полном ослаблении); `--pairth=0` — абляция «как физика 23»,
+                // её матрица честно другая по клейму (нет `pairth=1`).
                 options.XcomPairThreshold = Flag(a, 9);
             else if (a.StartsWith("--positron=", StringComparison.Ordinal))
                 // `S120`/`S130`: раздельный перенос e− и e+ пары. Рычаг замера

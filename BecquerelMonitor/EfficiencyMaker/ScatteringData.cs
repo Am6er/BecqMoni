@@ -100,6 +100,203 @@ namespace BecquerelMonitor.EfficiencyMaker
                 get { return this.shellCum == null ? 0 : this.shellCum.Length; }
             }
 
+            // ------------------------------------------------------------------
+            // (`AMBER79`, П147 24.09.2026) НОРМИРОВКИ УГЛОВЫХ ПЛОТНОСТЕЙ для оценки
+            // следующего события (`EfficiencySimulator.OutsideNextEvent`): та
+            // плотность косинуса, по которой разыгрывают угол `RayleighCosine` и
+            // `ComptonCosine`, делённая на свой интеграл по [−1, 1]. Интеграл
+            // считается квадратурой по узлам самих таблиц на логарифмической
+            // сетке энергий 1 кэВ…30 МэВ (600 узлов, шаг 1.7 %) один раз на атом
+            // и читается лог-лог интерполяцией: нормировка по энергии гладкая,
+            // ошибка интерполяции ~1e−5 от величины.
+            // ------------------------------------------------------------------
+
+            /// <summary>Верхний край таблицы F² по t = x²: дальше розыгрыш не ходит.</summary>
+            public double FormFactorTop
+            {
+                get { return this.ffT[this.ffT.Length - 1]; }
+            }
+
+            const int NormNodes = 600;
+            const double NormLoKev = 1.0, NormHiKev = 30000.0;
+            double[] cohNormLog, incNormLog;
+            readonly object normGate = new object();
+
+            /// <summary>
+            /// ∫ F²(t)·(1 + cos²)/2 dcos по [−1, 1], t = tMax(1 − cos)/2, tMax =
+            /// (E/hc)² — нормировка плотности угла когерентного рассеяния.
+            /// </summary>
+            public double CoherentNorm(double energyKev)
+            {
+                this.EnsureNorms();
+                return Lookup(this.cohNormLog, energyKev, this.CoherentNormExact);
+            }
+
+            /// <summary>
+            /// ∫ KN(cos)·S(x,Z)/Z dcos по [−1, 1] — нормировка плотности угла
+            /// некогерентного рассеяния на атоме (KN без множителя πr²).
+            /// </summary>
+            public double IncoherentNorm(double energyKev)
+            {
+                this.EnsureNorms();
+                return Lookup(this.incNormLog, energyKev, this.IncoherentNormExact);
+            }
+
+            void EnsureNorms()
+            {
+                if (this.incNormLog != null)
+                {
+                    return;
+                }
+
+                lock (this.normGate)
+                {
+                    if (this.incNormLog != null)
+                    {
+                        return;
+                    }
+
+                    double[] coh = new double[NormNodes], inc = new double[NormNodes];
+                    for (int i = 0; i < NormNodes; i++)
+                    {
+                        double e = NormEnergy(i);
+                        coh[i] = Math.Log(Math.Max(1e-300, this.CoherentNormExact(e)));
+                        inc[i] = Math.Log(Math.Max(1e-300, this.IncoherentNormExact(e)));
+                    }
+
+                    this.cohNormLog = coh;
+                    System.Threading.Thread.MemoryBarrier();
+                    this.incNormLog = inc;
+                }
+            }
+
+            static double NormEnergy(int i)
+            {
+                return Math.Exp(Math.Log(NormLoKev)
+                                + (Math.Log(NormHiKev) - Math.Log(NormLoKev)) * i / (NormNodes - 1));
+            }
+
+            static double Lookup(double[] logs, double energyKev, Func<double, double> exact)
+            {
+                if (!(energyKev > NormLoKev) || !(energyKev < NormHiKev))
+                {
+                    return exact(energyKev);
+                }
+
+                double f = (Math.Log(energyKev) - Math.Log(NormLoKev))
+                           / (Math.Log(NormHiKev) - Math.Log(NormLoKev)) * (NormNodes - 1);
+                int i = (int)f;
+                if (i >= NormNodes - 1)
+                {
+                    i = NormNodes - 2;
+                }
+
+                double w = f - i;
+                return Math.Exp(logs[i] + w * (logs[i + 1] - logs[i]));
+            }
+
+            static readonly double[] G3X = { -0.7745966692414834, 0.0, 0.7745966692414834 };
+            static readonly double[] G3W = { 0.5555555555555556, 0.8888888888888888, 0.5555555555555556 };
+            static readonly double[] G8X =
+            {
+                -0.9602898564975363, -0.7966664774136267, -0.5255324099163290, -0.1834346424956498,
+                0.1834346424956498, 0.5255324099163290, 0.7966664774136267, 0.9602898564975363,
+            };
+            static readonly double[] G8W =
+            {
+                0.1012285362903763, 0.2223810344533745, 0.3137066458778873, 0.3626837833783620,
+                0.3626837833783620, 0.3137066458778873, 0.2223810344533745, 0.1012285362903763,
+            };
+
+            /// <summary>
+            /// Точная квадратура нормировки когерентного: по t, отрезками узлов
+            /// таблицы F² (F² линейна по t, (1 + cos²)/2 квадратична по t —
+            /// Гаусс по трём точкам точен), dcos = −2dt/tMax.
+            /// </summary>
+            double CoherentNormExact(double energyKev)
+            {
+                double xMax = InverseCmPerKev * energyKev;
+                double tMax = xMax * xMax;
+                if (!(tMax > 0.0))
+                {
+                    return 0.0;
+                }
+
+                double top = Math.Min(tMax, this.FormFactorTop);
+                var cuts = new System.Collections.Generic.List<double> { 0.0 };
+                foreach (double t in this.ffT)
+                {
+                    if (t > 0.0 && t < top)
+                    {
+                        cuts.Add(t);
+                    }
+                }
+
+                cuts.Add(top);
+                double sum = 0.0;
+                for (int k = 1; k < cuts.Count; k++)
+                {
+                    double a = cuts[k - 1], b = cuts[k];
+                    if (!(b > a))
+                    {
+                        continue;
+                    }
+
+                    double h = 0.5 * (b - a), m = 0.5 * (a + b);
+                    for (int j = 0; j < 3; j++)
+                    {
+                        double t = m + h * G3X[j];
+                        double f = this.FormFactor(Math.Sqrt(t));
+                        double c = 1.0 - 2.0 * t / tMax;
+                        sum += G3W[j] * h * f * f * 0.5 * (1.0 + c * c);
+                    }
+                }
+
+                return sum * 2.0 / tMax;
+            }
+
+            /// <summary>
+            /// Квадратура нормировки некогерентного: по cos, отрезками между
+            /// точками, где x = k·√((1 − cos)/2) проходит узлы таблицы S, Гаусс
+            /// по восьми точкам на отрезок.
+            /// </summary>
+            double IncoherentNormExact(double energyKev)
+            {
+                double k = InverseCmPerKev * energyKev;
+                double a = energyKev / 510.99895;
+                var cuts = new System.Collections.Generic.List<double> { 1.0 };
+                foreach (double x in this.sfX)
+                {
+                    if (x > 0.0 && x < k)
+                    {
+                        cuts.Add(1.0 - 2.0 * (x / k) * (x / k));
+                    }
+                }
+
+                cuts.Add(-1.0);
+                double sum = 0.0;
+                for (int i = 1; i < cuts.Count; i++)
+                {
+                    double hi = cuts[i - 1], lo = cuts[i];
+                    if (!(hi > lo))
+                    {
+                        continue;
+                    }
+
+                    double h = 0.5 * (hi - lo), m = 0.5 * (hi + lo);
+                    for (int j = 0; j < 8; j++)
+                    {
+                        double c = m + h * G8X[j];
+                        double r = 1.0 / (1.0 + a * (1.0 - c));
+                        double kn = r * r * (r + 1.0 / r - (1.0 - c * c));
+                        double x = k * Math.Sqrt(Math.Max(0.0, 0.5 * (1.0 - c)));
+                        sum += G8W[j] * h * kn * this.ScatteringFunction(x) / this.Z;
+                    }
+                }
+
+                return sum;
+            }
+
             /// <summary>
             /// Функция некогерентного рассеяния S(x,Z) — множитель отбора к
             /// Клейну — Нишине: dσ/dΩ = KN(θ)·S(x,Z), S(0)=0, S(∞)=Z.
