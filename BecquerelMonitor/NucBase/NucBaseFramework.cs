@@ -916,7 +916,8 @@ namespace BecquerelMonitor.NucBase
                     // `perc`: у канала «β⁺» там доля позитронов. Число читается
                     // значением (REAL у расширенной строки), а не текстом.
                     SqliteDataReader reader = db.ReadData(
-                        "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from decay_chain d where nucid = $n" +
+                        "select daughter_nucid," + DecayParentRule.ChainPercColumn
+                        + " from" + DecayParentRule.ChainTable + " d where nucid = $n" +
                         " and perc not null" + DecayParentRule.ChainLevelClause,
                         DataBase.Param("$n", current));
                     while (reader.Read())

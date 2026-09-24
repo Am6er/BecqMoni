@@ -167,19 +167,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (ENSDF, выборка 24.09.2026) отдаёт эту моду изомеру, а не основному
         /// состоянию.
         ///
-        /// Судья молчит — строка остаётся, как была, и это нарочно:
-        ///   * у родителя нет строк своего уровня в ДРУГИЕ дочери (`157LU`,
-        ///     `95PD`: в `decay_chain` под именем основного лежит ТОЛЬКО набор
-        ///     изомера, и снять его — оставить родителя без ветвей вовсе);
-        ///   * у своего уровня в `l_decays` нет ни одной моды (14 троек) или
-        ///     родителя нет в `nuclides` (6) — судить нечем;
-        ///   * дочь у своего уровня есть (судья сравнивает ДОЧЬ, а не код
-        ///     канала: у `94AG` ε в 94PD записан кодом 7 здесь и 1 там). Среди
-        ///     них — строки изомера с ЧУЖОЙ долей в ту же дочь, что и у
-        ///     основного (`197BI` α 55 % при α основного 10⁻⁴ %, `183PT` ε 96.9
-        ///     при 100): долю основного знает только `l_decays`, а брать доли
-        ///     из второй поставки — решение Amber (журнал П158, варианты).
+        /// (Остаток `S191`, решение Amber 24.09.2026 вопросником, дословно:
+        /// «Доли из l_decays кодом (Рекомендую)».) Судья снимает такую строку и
+        /// у родителя БЕЗ своих рёбер (`157LU` → 157YB, `95PD` → 94RU, `185TL` →
+        /// 181AU: под именем основного в `decay_chain` лежит только набор
+        /// изомера), а ветви такому родителю достраивает
+        /// <see cref="ChainTable"/> по `l_decays`. Долю строки иного уровня в
+        /// дочь, известную своему уровню, тоже берёт <see cref="ChainTable"/>.
+        ///
+        /// Судья молчит — строка остаётся, как была: у своего уровня в
+        /// `l_decays` нет ни одной моды (14 троек) или родителя нет в
+        /// `nuclides` (6) — судить нечем. Судья сравнивает ДОЧЬ, а не код
+        /// канала: у `94AG` ε в 94PD записан кодом 7 здесь и 1 там.
         /// Петли `daughter = nucid` судья не трогает.
+        ///
+        /// Третий член `coalesce` — для строк, которые <see cref="ChainTable"/>
+        /// достроил из `l_decays`: в `decay_chain` их тройки нет, и они идут
+        /// своим уровнем. У строк самой `decay_chain` второй член есть всегда
+        /// (тройка — это сама строка), так что до третьего дело не доходит.
         /// </summary>
         public const string ChainLevelClause =
             " and l_seqno = coalesce("
@@ -189,16 +194,84 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             + "   (select min(l_seqno) from decay_chain x"
             + "     where x.nucid = d.nucid"
             + "       and x.daughter_nucid = d.daughter_nucid"
-            + "       and x.dec_type = d.dec_type))"
+            + "       and x.dec_type = d.dec_type),"
+            + "   (select w.l_seqno from nuclides w where w.nucid = d.nucid and w.l_seqno = d.l_seqno))"
             + " and not (d.daughter_nucid <> d.nucid"
             + "   and not exists (select 1 from nuclides w where w.nucid = d.nucid and w.l_seqno = d.l_seqno)"
-            + "   and exists (select 1 from nuclides w, decay_chain o where w.nucid = d.nucid"
-            + "               and o.nucid = d.nucid and o.l_seqno = w.l_seqno and o.daughter_nucid <> o.nucid)"
             + "   and exists (select 1 from nuclides w, l_decays j where w.nucid = d.nucid"
             + "               and j.nucid = d.nucid and j.l_seqno = w.l_seqno)"
             + "   and not exists (select 1 from nuclides w, l_decays j where w.nucid = d.nucid"
             + "               and j.nucid = d.nucid and j.l_seqno = w.l_seqno"
             + "               and j.daughter_nucid = d.daughter_nucid))";
+
+        /// <summary>
+        /// Источник строк ряда вместо голой `decay_chain` (остаток `S191`, П158
+        /// 24.09.2026; решение Amber вопросником, дословно: «Доли из l_decays
+        /// кодом (Рекомендую)»). Ставится в `from` запроса ряда —
+        /// <c>"from" + ChainTable + " d"</c> — вместе с
+        /// <see cref="ChainLevelClause"/> и <see cref="ChainPercColumn"/>;
+        /// столбцы — те же, что у `decay_chain`.
+        ///
+        /// Судья — `l_decays` своего уровня родителя (`nuclides.l_seqno`), и
+        /// только его ЧИСЛО больше нуля (`perc_num`; «?» и «0» у поставки значат
+        /// «доля неизвестна», а не «распада нет» — `183TL` ε в 183HG записан
+        /// нулём при ε+β⁺ основного ~100 %):
+        ///
+        ///   * строка `decay_chain` ИНОГО уровня в дочь, которую свой уровень
+        ///     знает с числом, получает долю основного из `l_decays` (той же моды,
+        ///     а нет её — наибольшую в эту дочь): `197BI` α 55 % (изомер) → 10⁻⁴ %,
+        ///     `161RE` α 93 → 1.4, `90RH` εp 9.6 → 0.7, `183PT` ε 96.9 → 100;
+        ///   * родителю, у которого в `decay_chain` нет ни одного ребра своего
+        ///     уровня, недостающие дочери своего уровня достраиваются из
+        ///     `l_decays` (по одной строке на дочь — наибольшей; иначе ε+β⁺ и β⁺
+        ///     в одну дочь сложились бы): `179AU` → 179PT ε 78, `164RE` → 164W
+        ///     ε 42, `171IR` → 171OS ε 85.
+        ///
+        /// ⚠ Достраивается ТОЛЬКО родителю, который в `decay_chain` есть (у него
+        /// там лишь строки иных уровней или петли): родитель, которого
+        /// `decay_chain` не знает вовсе (изомеры под своим `nucid` — `99TCm`,
+        /// `26ALm`, … — 1192 родителя с долями в `l_decays`), идёт как прежде —
+        /// рядов у него не было, и их появление поменяло бы библиотеку разбора
+        /// таких образцов; это отдельный вопрос, а не остаток `S191`.
+        ///
+        /// Строки своего уровня и петли `daughter = nucid` — как записаны.
+        /// Родитель, которого нет в `nuclides` или у своего уровня которого в
+        /// `l_decays` доли нет, — побитово как было. Имён нуклидов здесь нет —
+        /// судит база.
+        /// </summary>
+        public const string ChainTable =
+            " (select c.nucid as nucid, c.l_seqno as l_seqno, c.daughter_nucid as daughter_nucid,"
+            + "         c.dec_type as dec_type,"
+            + "    case when c.daughter_nucid <> c.nucid"
+            + "      and not exists (select 1 from nuclides w where w.nucid = c.nucid and w.l_seqno = c.l_seqno)"
+            + "      and exists (select 1 from nuclides w, l_decays j where w.nucid = c.nucid"
+            + "                  and j.nucid = c.nucid and j.l_seqno = w.l_seqno"
+            + "                  and j.daughter_nucid = c.daughter_nucid and j.perc_num > 0)"
+            + "    then coalesce("
+            + "      (select j.perc_num from nuclides w, l_decays j where w.nucid = c.nucid"
+            + "         and j.nucid = c.nucid and j.l_seqno = w.l_seqno"
+            + "         and j.daughter_nucid = c.daughter_nucid and j.perc_num > 0"
+            + "         and j.dec_type = cast(c.dec_type as integer) limit 1),"
+            + "      (select max(j.perc_num) from nuclides w, l_decays j where w.nucid = c.nucid"
+            + "         and j.nucid = c.nucid and j.l_seqno = w.l_seqno"
+            + "         and j.daughter_nucid = c.daughter_nucid and j.perc_num > 0))"
+            + "    else c.perc end as perc"
+            + "  from decay_chain c"
+            + "  union all"
+            + "  select j.nucid, j.l_seqno, j.daughter_nucid, cast(j.dec_type as text), j.perc_num"
+            + "  from l_decays j, nuclides w"
+            + "  where w.nucid = j.nucid and w.l_seqno = j.l_seqno"
+            + "    and j.daughter_nucid is not null and j.daughter_nucid <> j.nucid and j.perc_num > 0"
+            + "    and not exists (select 1 from l_decays k where k.nucid = j.nucid and k.l_seqno = j.l_seqno"
+            + "                    and k.daughter_nucid = j.daughter_nucid and k.perc_num > 0"
+            + "                    and (k.perc_num > j.perc_num"
+            + "                         or (k.perc_num = j.perc_num and k.dec_type < j.dec_type)))"
+            + "    and exists (select 1 from decay_chain e where e.nucid = j.nucid)"
+            + "    and not exists (select 1 from decay_chain e where e.nucid = j.nucid"
+            + "                    and e.daughter_nucid = j.daughter_nucid)"
+            + "    and not exists (select 1 from nuclides v, decay_chain e where v.nucid = j.nucid"
+            + "                    and e.nucid = j.nucid and e.l_seqno = v.l_seqno"
+            + "                    and e.daughter_nucid <> e.nucid))";
 
         /// <summary>
         /// (`S190`, П158 24.09.2026) Код канала «β⁺» в `decay_chain.dec_type`
