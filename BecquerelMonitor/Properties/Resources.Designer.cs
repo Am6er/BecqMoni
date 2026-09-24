@@ -4276,6 +4276,12 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string GeometryEditorErrorFieldRadiusLarge {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorFieldRadiusLarge", resourceCulture);
+            }
+        }
+
         public static string GeometrySourceIso {
             get {
                 return ResourceManager.GetString("GeometrySourceIso", resourceCulture);

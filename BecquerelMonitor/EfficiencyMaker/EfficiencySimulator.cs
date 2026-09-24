@@ -1322,6 +1322,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         Region crystal;
         double sphereZ, sphereR;         // объемлющая сфера детектора — для сужения конуса
 
+        // (`AMBER97`) Габаритная сфера ВСЕЙ сцены для предела пути
+        // (<see cref="PathLimit"/>); снимается в `EnsureBuilt` после `Build`,
+        // ноль — сцена пуста, подлёт не добавляется.
+        double pathSceneZ, pathSceneR;
+
         // Габарит ВСЕЙ сцены — детектор вместе с сосудом и пробой (`A57`).
         // Копится в <see cref="Register"/>; вне его вещества нет вовсе, поэтому
         // конус на эту сферу не отсекает ни одной истории, которая могла бы
@@ -1542,6 +1547,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             this.Build();
+            if (!this.SceneBounds(out this.pathSceneZ, out this.pathSceneR))
+            {
+                this.pathSceneZ = 0.0;
+                this.pathSceneR = 0.0;
+            }
 
             // Разбиение луча держит накрывающие области битовой маской (`T43`),
             // а в ней 64 места. Сцена строится по жёсткой раскладке — шесть
@@ -1773,6 +1783,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             public GeometryMaterial Material;
             public bool IsCrystal;
 
+            /// <summary>
+            /// (`AMBER80`, П147) Ключ пороговой формы пар В ПОЛНОМ ослаблении —
+            /// = <see cref="EfficiencySimulator.XcomPairThreshold"/> симулятора,
+            /// ставится при регистрации области. Без него полное брало пары
+            /// хордой, а розыгрыш при ключе ВКЛ — пороговой формой.
+            /// </summary>
+            public bool ThresholdPair;
+
             // --- кэш ослабления на ОДНУ энергию (`T43`) ---
             //
             // Каждая из четырёх величин считается ПО ТРЕБОВАНИЮ, а не все разом:
@@ -1885,7 +1903,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // (`AMBER74`, П132) СУММОЙ КАНАЛОВ, как у кристалла.
                         value = PartialCrossSections.MassTotal(
                             this.elements[i], lo, this.bracketHi[i],
-                            energyKev, this.logEnergy);
+                            energyKev, this.logEnergy, this.ThresholdPair);
                     }
 
                     mass += this.fractions[i] * value;
@@ -1914,7 +1932,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // «прямая по сумме минус когерентное».
                         value = PartialCrossSections.MassTotalWithoutCoherent(
                             this.elements[i], lo, this.bracketHi[i],
-                            energyKev, this.logEnergy);
+                            energyKev, this.logEnergy, this.ThresholdPair);
                     }
 
                     mass += this.fractions[i] * Math.Max(0.0, value);
@@ -2359,6 +2377,10 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         void Register(Region region, bool isCrystal)
         {
+            // ⛔ (`AMBER80`, П147) Полное ослабление области — ТЕМ ЖЕ правилом
+            // пар, каким их разыгрывает `Region.Pair` и `CrystalChannels`:
+            // ключ ВЫКЛ — прежняя хорда до бита.
+            region.ThresholdPair = this.XcomPairThreshold;
             this.regions.Add(region);
             if (isCrystal)
             {
@@ -2565,6 +2587,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                         System.Globalization.CultureInfo.InvariantCulture,
                         "isotropic field: radius {0:F2} cm does not enclose the detector (needs > {1:F2} cm)",
                         g.FieldRadius, need));
+                }
+
+                // (`AMBER97`, П147) Сверху — граница проверенного, та же, что
+                // у редактора (`GeometryScenes.MaxFieldRadiusMm`): отказ, а не
+                // тихий ноль, каким большой радиус был до физики 24.
+                double most = GeometryScenes.MaxFieldRadiusMm / GeometryModel.MmPerCm;
+                if (g.FieldRadius > most)
+                {
+                    throw new InvalidOperationException(string.Format(
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        "isotropic field: radius {0:F2} cm is above the checked maximum {1:F2} cm",
+                        g.FieldRadius, most));
                 }
 
                 this.source = new IsoFieldSampler(this.sphereZ, g.FieldRadius, this.IsoFieldNoCosineWeight);
@@ -4425,6 +4459,66 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// ⛔ (`AMBER97`, П147 24.09.2026, физика 24) ПРЕДЕЛ ПУТИ ЛУЧА, см, от
+        /// точки <paramref name="x"/>, <paramref name="y"/>, <paramref name="z"/>:
+        /// прежние `40·sphereR + 200` — это запас на путь ВНУТРИ сцены, — плюс
+        /// ПОДЛЁТ точки к габаритной сфере сцены (`SceneBounds`), если точка за
+        /// ней.
+        ///
+        /// ЧТО БЫЛО НЕ ТАК. Предел `40·sphereR + 200` засчитывал и первый шаг от
+        /// источника (или от сферы поля) до сцены: у RC-103 (`sphereR` 1.44 см)
+        /// предел 257.7 см, у AS80 ≈ 522 см, и точка дальше предела или поле
+        /// ISO большего радиуса давали НОЛЬ во всех узлах — человек видел «нет
+        /// кривой» без причины, доза — отказ. Замер П147 (`IsoFieldProbe`,
+        /// `RC103_point0`, 200 тыс. историй, 661.657 кэВ): A_пик на R = 50 /
+        /// 250 / 256 см — 0.0721 / 0.0702 / 0.0704 см², на R = 300 см — 0.0000
+        /// (48.4σ), A_полн — 0.3109 → 0.0000 (99.8σ).
+        ///
+        /// Точка внутри габарита (проба, маринелли, вторичные кванты) получает
+        /// прежний предел до бита; у точки снаружи история, не упиравшаяся в
+        /// прежний предел, не упирается и в новый, — значит сцены, где предел
+        /// не срабатывал (`CountPathLimitCut` = 0), считаются побитово прежними.
+        /// </summary>
+        double PathLimit(double x, double y, double z)
+        {
+            double limit = 40.0 * this.sphereR + 200.0;
+            if (this.pathSceneR > 0.0)
+            {
+                double dz = z - this.pathSceneZ;
+                double d2 = x * x + y * y + dz * dz;
+                if (d2 > this.pathSceneR * this.pathSceneR)
+                {
+                    limit += Math.Sqrt(d2) - this.pathSceneR;
+                }
+            }
+
+            return limit;
+        }
+
+        /// <summary>
+        /// Упёрся ли путь в предел (`AMBER97`): считает срезы в
+        /// <see cref="CountPathLimitCut"/> — луч, оборванный пределом, а не
+        /// ушедший из сцены. Случайных чисел не тянет.
+        /// </summary>
+        bool PathCut(double wouldTravel, double limit)
+        {
+            if (wouldTravel > limit)
+            {
+                this.CountPathLimitCut++;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// (`AMBER97`) Сколько лучей оборвал предел пути (<see cref="PathLimit"/>)
+        /// — луч, у которого впереди ещё была граница сцены. Ноль на сцене —
+        /// предел на ней ни на что не влиял.
+        /// </summary>
+        public long CountPathLimitCut;
+
+        /// <summary>
         /// Ведёт фотон до кристалла, копя оптическую толщину. Возвращает false,
         /// если кристалл не встретился.
         /// </summary>
@@ -4433,7 +4527,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             tau = 0.0;
             double travelled = 0.0;
-            double limit = 40.0 * this.sphereR + 200.0;
+            double limit = this.PathLimit(x, y, z);
             for (int guard = 0; guard < 200; guard++)
             {
                 Region here = this.At(x, y, z);
@@ -4443,7 +4537,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 double step = this.StepToBoundary(x, y, z, ux, uy, uz);
-                if (step >= double.MaxValue || travelled + step > limit)
+                if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
                 {
                     return false;
                 }
@@ -4638,7 +4732,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             double accumulated = 0.0;
             Region here = null;
             double travelled = 0.0;
-            double limit = 40.0 * this.sphereR + 200.0;
+            double limit = this.PathLimit(px, py, pz);
             for (int guard = 0; guard < 200; guard++)
             {
                 here = this.At(px, py, pz);
@@ -4648,7 +4742,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 double step = this.StepToBoundary(px, py, pz, ux, uy, uz);
-                if (step >= double.MaxValue || travelled + step > limit)
+                if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
                 {
                     return false;
                 }
@@ -4734,12 +4828,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             double tau = 0.0;
             double travelled = 0.0;
-            double limit = 40.0 * this.sphereR + 200.0;
+            double limit = this.PathLimit(x, y, z);
             for (int guard = 0; guard < 200; guard++)
             {
                 Region here = this.At(x, y, z);
                 double step = this.StepToBoundary(x, y, z, ux, uy, uz);
-                if (step >= double.MaxValue || travelled + step > limit)
+                if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
                 {
                     return tau;
                 }
@@ -6715,7 +6809,6 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.EnsureBuilt();
             double sum = 0.0, sum2 = 0.0;
             int n = Math.Max(1000, this.Histories);
-            double limit = 40.0 * this.sphereR + 200.0;
             this.source.Retune(this, energyKev);
             for (int i = 0; i < n; i++)
             {
@@ -6723,6 +6816,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // (`E29`) Точка с весом розыгрыша: единица у всех, кроме
                 // важностного, — умножение точное.
                 double weight = this.source.NextWeighted(this, out x, out y, out z);
+                // (`AMBER97`) Предел пути — от точки вылета: подлёт к сцене не в счёт.
+                double limit = this.PathLimit(x, y, z);
                 double dz = this.sphereZ - z;
                 double dist = Math.Sqrt(x * x + y * y + dz * dz);
                 double ux, uy, uz;
@@ -6781,7 +6876,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
 
                     double step = this.StepToBoundary(x, y, z, ux, uy, uz);
-                    if (step >= double.MaxValue || travelled + step > limit)
+                    if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
                     {
                         break;              // ушёл из сцены
                     }
@@ -8672,7 +8767,6 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             double[] light = this.lightSum != null ? new double[histogram.Length] : null;
-            double limit = 40.0 * this.sphereR + 200.0;
             int scored = 0;
             this.source.Retune(this, energyKev);
             for (int i = 0; i < n; i++)
@@ -8682,6 +8776,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // важностного. Вес идёт в `hist` и в `hist2` — то есть и в
                 // отклик, и в его шум после свёртки (`A39`).
                 double weight = this.source.NextWeighted(this, out x, out y, out z);
+                // (`AMBER97`) Предел пути — от точки вылета: подлёт к сцене не в счёт.
+                double limit = this.PathLimit(x, y, z);
                 double ux, uy, uz;
 
                 // Наведение конусом на габарит сцены (`A57`) — сужение ради
@@ -8804,7 +8900,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         }
 
                         double step = this.StepToBoundary(x, y, z, ux, uy, uz);
-                        if (step >= double.MaxValue || travelled + step > limit)
+                        if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
                         {
                             break;              // ушёл из сцены
                         }
@@ -9265,7 +9361,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// среднему свету каждого бина (<see cref="LightNonproportionality"/>).
         ///
         /// Якорь — пик полного поглощения: его средний свет объявляется
-        /// равным его же бину, как у прибора, откалиброванного по пикам.
+        /// равным ЭНЕРГИИ УЗЛА (до физики 24 — центру его бина, `AMBER83`),
+        /// как у прибора, откалиброванного по пикам; сам бин пика остаётся
+        /// последним.
         /// Остальные бины встают по отношению своего среднего света к якорю,
         /// вес делится между двумя соседними бинами линейно. Каналы отклика
         /// переносятся ТОЙ ЖЕ картой, что и сумма, — их сумма остаётся равной
@@ -9310,14 +9408,37 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.LastPhotonLightScaleSplit =
                 (light[peak] - this.lightBinSplit) / peakWeight / energyKev;
 
-            // Внутренний якорь берётся к ЦЕНТРУ пикового бина, а не к энергии
-            // линии: бин пика обязан остаться последним, а энергия линии не
-            // кратна шагу, и якорь по ней увёл бы половину пика в соседний бин.
-            double anchorPerBin = light[peak] / peakWeight / (peak * binKev);
+            // ⛔ (`AMBER83`, П147 24.09.2026, физика 24) ЯКОРЬ — К ЭНЕРГИИ
+            // УЗЛА, а не к центру пикового бина. Прежде здесь стояло
+            // `light[peak] / peakWeight / (peak·binKev)` с доводом «бин пика
+            // обязан остаться последним»: вся строка, кроме пика, выходила
+            // растянутой множителем `peak·шаг/E = 1 − δ/E` (δ = E − peak·шаг,
+            // до ±1 кэВ при шаге 2). Пока читатель ставил и пик на центр бина,
+            // это сходилось; после `AMBER70` (П135) пик читается на `E`, а
+            // вылеты (сдвиг на `E_линии − E_узла`), край комптона и канал 6
+            // оставались растянутыми — соседние узлы ставили один вылет в
+            // разные места. Замер П147 (`EscapeAnchorProbeA83`, склад rev33):
+            // наклон разности положения вылета соседних узлов по разности
+            // растяжки `−центр·δ/E` — 1.02 (K), 0.96 (SE), 1.14 (DE), 1.40
+            // (511 извне) у `AS80_point0`; 0.98…1.17 у `RC103_point0`,
+            // 0.80…1.27 у `G1S_point5`; худшее раздвоение K-вылета соседних
+            // узлов 2.0…2.7 кэВ.
+            // «Бин пика — последний» держится теперь ЯВНО: бин пика идёт сам в
+            // себя (ниже), остальные — по отношению своего света к свету пика
+            // в шкале энергии узла; попавшие выше последнего бина зажимаются в
+            // него, как и прежде.
+            double anchorPerBin = light[peak] / peakWeight / energyKev;
             int[] lowBin = new int[histogram.Length];
             double[] lowShare = new double[histogram.Length];
             for (int b = 0; b <= peak; b++)
             {
+                if (b == peak)
+                {
+                    lowBin[b] = peak;
+                    lowShare[b] = 1.0;
+                    continue;
+                }
+
                 double w = histogram[b] * n;
                 double index = b;
                 if (w > 0.0 && light[b] > 0.0)
