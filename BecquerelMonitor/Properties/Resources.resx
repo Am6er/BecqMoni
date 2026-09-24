@@ -8540,6 +8540,10 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="FSAResidualCountsValue" xml:space="preserve">
     <value>+{0} / −{1} %</value>
   </data>
+  <data name="FSAResidualUndefinedHint" xml:space="preserve">
+    <value>Residual share is undefined: the net counts of the band (sample minus background) are not above three standard deviations, so there is nothing to take a share of. The residual ribbon on the chart is drawn as usual.</value>
+    <comment>AMBER91: shown instead of "+0.0 / −0.0 %" when the sample is at background level</comment>
+  </data>
   <data name="FSAPresentNoShare" xml:space="preserve">
     <value>present</value>
     <comment>S85: backscatter has no reliable share — presence only</comment>
@@ -42673,6 +42677,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorErrorWallEatsSample" xml:space="preserve">
     <value>The wall eats the whole clearance: {0:F1} mm against a limit of {1:F1} mm.</value>
   </data>
+  <data name="GeometryEditorErrorNegativeLength" xml:space="preserve">
+    <value>“{2}” is {0} mm: a distance or a thickness cannot be negative.</value>
+  </data>
   <data name="GeometryEditorErrorSourceSize" xml:space="preserve">
     <value>Source size must be greater than zero.</value>
   </data>
@@ -43186,7 +43193,7 @@ The matrix is stored next to the device configuration, one file per geometry, an
     <value>Formula</value>
   </data>
   <data name="GeometryMaterialsFormulaHint" xml:space="preserve">
-    <value>Element symbols with atom counts, separated by spaces: Bi4 Ge3 O12. Mass fractions are computed from atomic masses — they are never typed in by hand.</value>
+    <value>Element symbols with atom counts: Bi4Ge3O12 or Bi4 Ge3 O12. Mass fractions are computed from atomic masses — they are never typed in by hand.</value>
   </data>
   <data name="GeometryMaterialsMixtureHint" xml:space="preserve">
     <value>Materials of the library and their mass weights. Weights are relative: 1 and 1 mean the same as 50 and 50.</value>
@@ -43229,6 +43236,9 @@ The matrix is stored next to the device configuration, one file per geometry, an
   </data>
   <data name="GeometryMaterialsErrorFormula" xml:space="preserve">
     <value>The formula yields no elements. Expected element symbols with atom counts: Cs1 I1.</value>
+  </data>
+  <data name="GeometryMaterialsErrorFormulaPart" xml:space="preserve">
+    <value>The formula cannot be read at “{0}”: an element symbol is a capital plus lowercase letters, then its atom count — H2O, Bi4Ge3O12, Cs1 I1. Brackets are not accepted.</value>
   </data>
   <data name="GeometryMaterialsErrorEmptyMixture" xml:space="preserve">
     <value>The mixture is empty: it needs at least one material with a positive weight.</value>

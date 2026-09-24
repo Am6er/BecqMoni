@@ -44,12 +44,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// испущенный источником в 4π, — ровно то, что нужно формулам. Второй
     /// розыгрыш дал бы те же числа с другим шумом ГСЧ и стоил бы минуты счёта.
     ///
-    /// ЧТО ПОПРАВКА ТРОГАЕТ. Только канал ПИКА. Вынос из пика — чистая потеря,
-    /// а континуум одновременно теряет свои события и получает чужие суммы, и
-    /// в первом порядке остаётся при своём; красить его тем же множителем
-    /// значило бы выдумать потерю, которой нет. Пики вылета (511, K-рентген)
-    /// теряют наравне с пиком, но их поправка здесь НЕ применяется — они малы,
-    /// а разделять правило на три случая ради этого рано.
+    /// ЧТО ПОПРАВКА ТРОГАЕТ. Канал ПИКА — множителем 1/CF (вынос и влёт).
+    /// Каналы ВЫЛЕТА и заноса аннигиляции извне (одиночный и двойной вылет
+    /// аннигиляции, K- и L-вылет рентгена кристалла, `AnnihilationOutside`)
+    /// — множителем 1 − L_out той же линии, без влёта: партнёр уносит
+    /// событие из любого отклика постоянного положения, а сумма на энергию
+    /// вылета не приходит (`AMBER99`, П148 24.09.2026; арбитр Geant4 —
+    /// Tl-208 на контакте, r_вылета/r_пика 0.996 / 0.980 / 1.02 / 1.003 при
+    /// 1.48 у «не теряет»; журнал `handover/handover-2026-09-24-p148-pileup-summing.md`).
+    /// Применяет `FsaAnalyzer` (`EscapeSurvivals`, рычаг `CascadeEscapeLoss`),
+    /// L_out берётся из <see cref="LineNote.Loss"/>. Континуум одновременно
+    /// теряет свои события и получает чужие суммы и в первом порядке
+    /// остаётся при своём; красить его тем же множителем значило бы
+    /// выдумать потерю, которой нет.
     ///
     /// ⛔ ДОЛЯ ПАРЫ — ИЗ СХЕМЫ УРОВНЕЙ, НЕ ИЗ ПОСТАВКИ (`S176`, 17.09.2026).
     /// Таблица SandiaDecay даёт ПЕРЕЧЕНЬ пар γ-γ и выходы линий, а её
@@ -241,9 +248,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public List<SumContinuum> SumContinua { get; set; }
 
             /// <summary>
-            /// Разбор поправки по линиям — только для отчёта
-            /// (<see cref="FsaCascadeSummer.Describe"/>). В счёте не участвует:
-            /// счёт идёт по <see cref="LineFactors"/>.
+            /// Разбор поправки по линиям: отчёт (<see cref="FsaCascadeSummer.Describe"/>)
+            /// и — с `AMBER99` (П148) — вынос L_out для каналов вылета в
+            /// `FsaAnalyzer.EscapeSurvivals`. Пик считается по <see cref="LineFactors"/>;
+            /// `Loss` здесь — та же L_out, что сидит в CF пика.
             /// </summary>
             public List<LineNote> Notes { get; set; }
 
@@ -3294,53 +3302,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static string SandiaSymbol(string name)
         {
-            if (string.IsNullOrEmpty(name))
+            // ⛔ (`AMBER78`, П149 24.09.2026) Имя разбирает ОДНО место на проект —
+            // <see cref="FsaSampleLibrary.NucidOf"/>, во всех написаниях набора
+            // нуклидов («Ba-137m», «Ba137m1», «137BAm1»). Прежде здесь стоял свой
+            // разбор через дефис, и имя из `NucBase` с настройками по умолчанию
+            // («Ba137m1») ключа не получало — поправки на совпадения не было.
+            string nucid = FsaSampleLibrary.NucidOf(name);
+            int mass;
+            string symbol, state;
+            if (nucid.Length == 0
+                || !CascadeAtomicData.SplitNucid(nucid, out mass, out symbol, out state)
+                || state.Length == 0)
             {
+                // Без хвоста это не изомер, и сюда попадать не должно.
                 return null;
             }
 
-            int dash = name.IndexOf('-');
-            if (dash <= 0 || dash + 1 >= name.Length)
-            {
-                return null;
-            }
-
-            string element = name.Substring(0, dash);
-            string tail = name.Substring(dash + 1);
-            foreach (char c in element)
-            {
-                if (!char.IsLetter(c))
-                {
-                    return null;
-                }
-            }
-
-            // Масса, затем хвост изомера: «137m», «154m2». Без хвоста это не
-            // изомер, и сюда попадать не должно.
-            int digits = 0;
-            while (digits < tail.Length && char.IsDigit(tail[digits]))
-            {
-                digits++;
-            }
-
-            if (digits == 0 || digits == tail.Length)
-            {
-                return null;
-            }
-
-            string suffix = tail.Substring(digits);
-            foreach (char c in suffix)
-            {
-                if (!char.IsLetterOrDigit(c))
-                {
-                    return null;
-                }
-            }
-
-            return char.ToUpperInvariant(element[0])
-                   + element.Substring(1).ToLowerInvariant()
-                   + tail.Substring(0, digits)
-                   + suffix.ToLowerInvariant();
+            // Первый изомер у нас бывает и «m», и «m1» (две записи одного
+            // соглашения в базе), а у Sandia он «m»; второй и выше — «m2», «m3»
+            // у обоих.
+            string sandiaState = string.Equals(state, "m1", StringComparison.Ordinal) ? "m" : state;
+            return char.ToUpperInvariant(symbol[0])
+                   + symbol.Substring(1).ToLowerInvariant()
+                   + mass.ToString(CultureInfo.InvariantCulture)
+                   + sandiaState;
         }
 
         static NuclideData Load(string key)
@@ -5214,47 +5199,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Имя нуклида в наш `nucid`: «Pb-214» → «214PB». Изомеры («Ba-137m»)
         /// возвращают null: у совпадений своя нумерация Sandia, искать их надо
         /// по `sandia_symbol`, а не по нашему номеру уровня.
+        ///
+        /// ⛔ (`AMBER78`, П149 24.09.2026) Разбор — общий с библиотекой
+        /// (<see cref="FsaSampleLibrary.NucidOf"/>), во всех написаниях набора
+        /// нуклидов. Прежде здесь понималось одно «Pb-214», и на пути FSA по
+        /// умолчанию имя из `NucBase` с настройками по умолчанию («Na22», «Co60»)
+        /// или из запасного набора («Cs137») ключа совпадений не получало:
+        /// поправка на каскадное суммирование у такого нуклида не считалась
+        /// вовсе, молча (замер `FsaNucidNameProbe`: 0 из 627 ключей у форматов
+        /// 0 и 1 против 627 у «Cs-137»).
         /// </summary>
         public static string Nucid(string name)
         {
-            if (string.IsNullOrEmpty(name))
+            string nucid = FsaSampleLibrary.NucidOf(name);
+            int mass;
+            string symbol, state;
+            if (nucid.Length == 0
+                || !CascadeAtomicData.SplitNucid(nucid, out mass, out symbol, out state)
+                || mass <= 0 || state.Length > 0)
             {
                 return null;
             }
 
-            int dash = name.IndexOf('-');
-            if (dash <= 0 || dash + 1 >= name.Length)
-            {
-                return null;
-            }
-
-            string element = name.Substring(0, dash);
-            string mass = name.Substring(dash + 1);
-            foreach (char c in element)
-            {
-                if (!char.IsLetter(c))
-                {
-                    return null;
-                }
-            }
-
-            foreach (char c in mass)
-            {
-                if (!char.IsDigit(c))
-                {
-                    return null;
-                }
-            }
-
-            int number;
-            if (!int.TryParse(mass, NumberStyles.None, CultureInfo.InvariantCulture, out number)
-                || number <= 0)
-            {
-                return null;
-            }
-
-            return number.ToString(CultureInfo.InvariantCulture)
-                   + element.ToUpperInvariant();
+            return mass.ToString(CultureInfo.InvariantCulture) + symbol;
         }
 
         static string DatabasePath()

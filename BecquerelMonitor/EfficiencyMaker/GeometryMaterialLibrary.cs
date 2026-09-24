@@ -959,42 +959,97 @@ namespace BecquerelMonitor.EfficiencyMaker
             return false;
         }
 
-        /// <summary>«Bi4 Ge3 O12» -> {83:4, 32:3, 8:12}.</summary>
+        /// <summary>
+        /// «Bi4 Ge3 O12», «Bi4Ge3O12» -> {83:4, 32:3, 8:12}. Пустой словарь —
+        /// формула не разобрана; словами причину даёт <see cref="FormulaProblem"/>.
+        ///
+        /// ⛔ (`AMBER96`, П150 24.09.2026) Разбор — по правилу химической
+        /// формулы: символ = заглавная + строчные, за ним необязательное число,
+        /// пробелы между частями не нужны; РЕГИСТР ЗНАЧИМ. Прежде часть резалась
+        /// на «всё до первой цифры» и остаток, а неразобранный остаток молча
+        /// становился единицей: «H2O» давал чистый водород (μ воды ×1.58 на
+        /// 60 кэВ), «Bi4Ge3O12» — висмут, а «CO2» без регистра читался кобальтом.
+        /// Любой неразобранный кусок — теперь отказ всей формулы, а не её часть:
+        /// половина состава опаснее пустого. Записи засева и библиотек («Cs1 I1»)
+        /// разбираются побитово как прежде (`GeometryEditorP150Probe`).
+        /// </summary>
         public static Dictionary<int, double> ParseFormula(string formula)
         {
-            Dictionary<int, double> atoms = new Dictionary<int, double>();
+            Dictionary<int, double> atoms;
+            string bad;
+            return TryParseFormula(formula, out atoms, out bad) ? atoms : new Dictionary<int, double>();
+        }
+
+        /// <summary>Что не так с формулой, словами; null — формула годна.</summary>
+        public static string FormulaProblem(string formula)
+        {
+            Dictionary<int, double> atoms;
+            string bad;
+            if (!TryParseFormula(formula, out atoms, out bad))
+            {
+                return string.Format(CultureInfo.InvariantCulture, Resources.GeometryMaterialsErrorFormulaPart, bad);
+            }
+
+            return atoms.Count > 0 ? null : Resources.GeometryMaterialsErrorFormula;
+        }
+
+        static bool TryParseFormula(string formula, out Dictionary<int, double> atoms, out string bad)
+        {
+            atoms = new Dictionary<int, double>();
+            bad = null;
             if (string.IsNullOrEmpty(formula))
             {
-                return atoms;
+                return true;
             }
 
             foreach (string part in formula.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries))
             {
-                int split = 0;
-                while (split < part.Length && !char.IsDigit(part[split]))
+                int i = 0;
+                while (i < part.Length)
                 {
-                    split++;
-                }
+                    int start = i;
+                    if (part[i] < 'A' || part[i] > 'Z')
+                    {
+                        bad = part.Substring(start);
+                        return false;
+                    }
 
-                string symbol = part.Substring(0, split);
-                double count;
-                if (split >= part.Length
-                    || !double.TryParse(part.Substring(split), NumberStyles.Float,
-                                        CultureInfo.InvariantCulture, out count))
-                {
-                    count = 1.0;
-                }
+                    i++;
+                    while (i < part.Length && part[i] >= 'a' && part[i] <= 'z')
+                    {
+                        i++;
+                    }
 
-                int z = ZOf(symbol);
-                if (z > 0 && count > 0.0)
-                {
-                    double have;
-                    atoms.TryGetValue(z, out have);
-                    atoms[z] = have + count;
+                    string symbol = part.Substring(start, i - start);
+                    int digits = i;
+                    while (i < part.Length && ((part[i] >= '0' && part[i] <= '9') || part[i] == '.'))
+                    {
+                        i++;
+                    }
+
+                    // Точка — только МЕЖДУ цифрами: «H2.O» — опечатка, а не H2 O1.
+                    double count = 1.0;
+                    int z = ZOf(symbol);
+                    if (z <= 0 || !string.Equals(SymbolOf(z), symbol, StringComparison.Ordinal)
+                        || (i > digits && (part[digits] == '.' || part[i - 1] == '.'))
+                        || (i > digits && !double.TryParse(part.Substring(digits, i - digits),
+                                                           NumberStyles.AllowDecimalPoint,
+                                                           CultureInfo.InvariantCulture, out count)))
+                    {
+                        bad = part.Substring(start, i - start);
+                        return false;
+                    }
+
+                    if (count > 0.0)
+                    {
+                        double have;
+                        atoms.TryGetValue(z, out have);
+                        atoms[z] = have + count;
+                    }
                 }
             }
 
-            return atoms;
+            return true;
         }
 
         /// <summary>Состав одной строкой для показа рядом с выбором вещества.</summary>

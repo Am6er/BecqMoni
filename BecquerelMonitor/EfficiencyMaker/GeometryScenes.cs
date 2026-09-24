@@ -465,6 +465,26 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return issues;
             }
 
+            // (`AMBER98`, П150 24.09.2026) Длина не бывает отрицательной. Чертёж
+            // такие числа зажимал в ноль, а расчёт брал как есть: у RC-103
+            // расстояние −5 мм ставило точку в торцевой отражатель, и
+            // эффективность на 60 кэВ выходила ×3.2 при «на торце» на чертеже.
+            // Проверяются только поля, которые сцена ЧИТАЕТ: у точки минус в
+            // полях маринелли ни на что не влияет и сохранению не мешает.
+            foreach (KeyValuePair<string, double> length in Lengths(g))
+            {
+                if (length.Value < 0.0)
+                {
+                    issues.Add(new Issue
+                    {
+                        Field = length.Key,
+                        Resource = "GeometryEditorErrorNegativeLength",
+                        Value = length.Value,
+                        Limit = 0.0,
+                    });
+                }
+            }
+
             if (g.Scene == GeometrySceneKind.Iso)
             {
                 // (`AMBER13` (б)) Сфера поля обязана накрывать детектор с
@@ -586,6 +606,78 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return issues;
+        }
+
+        /// <summary>
+        /// Длины, которые читает сцена этого вида источника (`AMBER98`): обвязка
+        /// детектора всегда, размеры источника — только своего вида. Размеры
+        /// кристалла сюда не входят: их `GeometryEditorPanel.Validate` требует
+        /// строго положительными раньше. Ключ — имя поля редактора (оно же поле
+        /// модели), по нему поле подсвечивается.
+        /// </summary>
+        static IEnumerable<KeyValuePair<string, double>> Lengths(GeometryModel g)
+        {
+            var list = new List<KeyValuePair<string, double>>
+            {
+                Length("FrontReflectorThickness", g.FrontReflectorThickness),
+                Length("SideReflectorThickness", g.SideReflectorThickness),
+                Length("FrontGapThickness", g.FrontGapThickness),
+                Length("SideGapThickness", g.SideGapThickness),
+                Length("FrontCladdingThickness", g.FrontCladdingThickness),
+                Length("SideCladdingThickness", g.SideCladdingThickness),
+                Length("MountingThickness", g.MountingThickness),
+            };
+
+            switch (g.SourceType)
+            {
+                case GeometrySourceType.Point:
+                    // У поля ISO расстояние = радиус сферы, его стережёт
+                    // `GeometryEditorErrorFieldRadiusSmall`.
+                    if (g.Scene != GeometrySceneKind.Iso)
+                    {
+                        list.Add(Length("PointDistance", g.PointDistance));
+                    }
+
+                    break;
+
+                case GeometrySourceType.Cylinder:
+                    list.Add(Length("BeakerDiameter", g.BeakerDiameter));
+                    list.Add(Length("BeakerHeight", g.BeakerHeight));
+                    list.Add(Length("BeakerSideWallThickness", g.BeakerSideWallThickness));
+                    list.Add(Length("BeakerEndWallThickness", g.BeakerEndWallThickness));
+                    list.Add(Length("SourceHeight", g.SourceHeight));
+                    list.Add(Length("BeakerToDetectorDistance", g.BeakerToDetectorDistance));
+                    break;
+
+                case GeometrySourceType.Marinelli:
+                    list.Add(Length("MarinelliBeakerDiameter", g.MarinelliBeakerDiameter));
+                    list.Add(Length("MarinelliBeakerHeight", g.MarinelliBeakerHeight));
+                    list.Add(Length("MarinelliHoleDiameter", g.MarinelliHoleDiameter));
+                    list.Add(Length("MarinelliHoleHeight", g.MarinelliHoleHeight));
+                    list.Add(Length("MarinelliSideThickness", g.MarinelliSideThickness));
+                    list.Add(Length("MarinelliEndWallThickness", g.MarinelliEndWallThickness));
+                    list.Add(Length("MarinelliHoleSideThickness", g.MarinelliHoleSideThickness));
+                    list.Add(Length("MarinelliHoleEndWallThickness", g.MarinelliHoleEndWallThickness));
+                    list.Add(Length("MarinelliSourceHeight", g.MarinelliSourceHeight));
+                    list.Add(Length("MarinelliToDetectorDistance", g.MarinelliToDetectorDistance));
+                    break;
+
+                case GeometrySourceType.Box:
+                    list.Add(Length("BoxSourceX", g.BoxSourceX));
+                    list.Add(Length("BoxSourceY", g.BoxSourceY));
+                    list.Add(Length("BoxSourceHeight", g.BoxSourceHeight));
+                    list.Add(Length("BoxSideWallThickness", g.BoxSideWallThickness));
+                    list.Add(Length("BoxEndWallThickness", g.BoxEndWallThickness));
+                    list.Add(Length("BoxToDetectorDistance", g.BoxToDetectorDistance));
+                    break;
+            }
+
+            return list;
+        }
+
+        static KeyValuePair<string, double> Length(string field, double value)
+        {
+            return new KeyValuePair<string, double>(field, value);
         }
 
         /// <summary>

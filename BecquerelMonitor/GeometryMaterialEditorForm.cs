@@ -755,6 +755,17 @@ namespace BecquerelMonitor
                 }
             }
 
+            // (`AMBER96`) Формула с неразобранным куском — отказ, названный
+            // этим куском: «H2O)» или «co2» иначе молча сокращались бы.
+            if (!entry.IsMixture && entry.ElementFractions.Count == 0)
+            {
+                string formulaProblem = GeometryMaterialLibrary.FormulaProblem(entry.Formula);
+                if (formulaProblem != null)
+                {
+                    return formulaProblem;
+                }
+            }
+
             GeometryMaterial material = GeometryMaterialLibrary.Make(entry, entry.Density, this.Lookup);
             if (material.Fractions.Count == 0)
             {

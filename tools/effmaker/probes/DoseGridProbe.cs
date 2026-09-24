@@ -56,6 +56,16 @@ namespace DoseGridProbe
         static bool quiet;
         static string show;
 
+        /// <summary>
+        /// (`S185`, П151) `--res=own`: синтетика «с разрешением» размывается
+        /// ПШПВ САМОГО спектра (<c>ResultData.FwhmCalibration</c>, каналы → кэВ),
+        /// то есть той шириной, которой свёртка строки (попытка П151) её
+        /// сворачивала бы. По умолчанию —
+        /// ширина из `manifest.csv` ∝ √E, как у П145 (модель и спектр тогда
+        /// расходятся на разницу двух моделей ширины).
+        /// </summary>
+        static bool resOwn;
+
         sealed class Scene
         {
             public string Spectrum;
@@ -84,6 +94,7 @@ namespace DoseGridProbe
                     tolPercent = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a == "--quiet") quiet = true;
                 else if (a.StartsWith("--show=", StringComparison.Ordinal)) show = a.Substring(7);
+                else if (a == "--res=own") resOwn = true;
                 else
                 {
                     Console.Error.WriteLine("неизвестный ключ: " + a);
@@ -210,11 +221,17 @@ namespace DoseGridProbe
                     double emittedPerSecond = 2.0e8 / (seconds * rowSum);     // ~2e8 отсчётов
                     double truth = emittedPerSecond * full.FluencePerPhoton * h;
 
+                    // (`S185`, П151) Спектр БЕЗ разрешения — это спектр без
+                    // калибровки ширины: доза, сворачивающая строку с ПШПВ
+                    // спектра (попытка П151, откачена — журнал П151), тогда
+                    // её не свернёт. Нынешняя доза ширину не читает вовсе.
                     double[] dnone = Place(row, step, edges, null, emittedPerSecond * seconds);
-                    double rNone = Reading(manager, data, full, dnone) / truth - 1.0;
+                    double rNone = WithoutFwhm(data, () => Reading(manager, data, full, dnone)) / truth - 1.0;
 
                     double fwhm662 = scene.Fwhm662Percent / 100.0 * 661.657;
-                    Func<double, double> sigma = x => fwhm662 * Math.Sqrt(Math.Max(x, 1.0) / 661.657) / 2.3548200450309493;
+                    Func<double, double> sigma = resOwn && data.FwhmCalibration != null
+                        ? OwnSigma(data)
+                        : x => fwhm662 * Math.Sqrt(Math.Max(x, 1.0) / 661.657) / 2.3548200450309493;
                     double[] dres = Place(row, step, edges, sigma, emittedPerSecond * seconds);
                     double rRes = Reading(manager, data, full, dres) / truth - 1.0;
 
@@ -231,10 +248,25 @@ namespace DoseGridProbe
                         double truthPeak = emittedPeak * peakInput.FluencePerPhoton * h;
                         double[] pNone = PlacePoint(e, edges, null, area);
                         double[] pRes = PlacePoint(e, edges, sigma, area);
-                        qNone = Reading(manager, data, peakInput, pNone) / truthPeak - 1.0;
+                        qNone = WithoutFwhm(data, () => Reading(manager, data, peakInput, pNone)) / truthPeak - 1.0;
                         qRes = Reading(manager, data, peakInput, pRes) / truthPeak - 1.0;
                         peakSkipped = lastDose != null
                                       && lastDose.Ranges.Any(r => r.LowKev <= e && e < r.HighKev && r.Skipped);
+                        // (`S186`, П151) Пол — только ниже максимума кривой
+                        // (решение Amber 24.09.2026): диапазон ВЫШЕ диапазона с
+                        // наибольшей своей долей снят быть не может — такая
+                        // линия судится (на прежнем exe она −100 %).
+                        if (peakSkipped && lastDose.Ranges.Count > 0)
+                        {
+                            int lineRange = lastDose.Ranges.FindIndex(r => r.LowKev <= e && e < r.HighKev);
+                            int top = 0;
+                            for (int k = 1; k < lastDose.Ranges.Count; k++)
+                                if (lastDose.Ranges[k].OwnEfficiency > lastDose.Ranges[top].OwnEfficiency) top = k;
+                            if (lineRange > top)
+                            {
+                                peakSkipped = false;
+                            }
+                        }
                     }
 
                     Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
@@ -451,6 +483,40 @@ namespace DoseGridProbe
         static double Phi(double z)
         {
             return 0.5 * Erfc(-z / Math.Sqrt(2.0));
+        }
+
+        /// <summary>(`S185`, П151) Показание при снятой калибровке ширины спектра.</summary>
+        static double WithoutFwhm(ResultData data, Func<double> reading)
+        {
+            FwhmCalibration keep = data.FwhmCalibration;
+            data.FwhmCalibration = null;
+            try
+            {
+                return reading();
+            }
+            finally
+            {
+                data.FwhmCalibration = keep;
+            }
+        }
+
+        /// <summary>
+        /// (`S185`, П151) σ(E) в кэВ по ПШПВ самого спектра: канал E — обратной
+        /// калибровкой, ширина — `ChannelToFwhm` (каналы), в кэВ — шириной канала
+        /// там же. Нулевая ширина (канал 0 у степенной модели) — почти дельта.
+        /// </summary>
+        static Func<double, double> OwnSigma(ResultData data)
+        {
+            EnergyCalibration cal = data.EnergySpectrum.EnergyCalibration;
+            FwhmCalibration fwhm = data.FwhmCalibration;
+            int n = data.EnergySpectrum.NumberOfChannels;
+            return x =>
+            {
+                double ch = cal.EnergyToChannel(x, n);
+                double width = cal.ChannelToEnergy(ch + 0.5) - cal.ChannelToEnergy(ch - 0.5);
+                double s = fwhm.ChannelToFwhm(ch) * width / 2.3548200450309493;
+                return s > 1e-6 && !double.IsNaN(s) ? s : 1e-6;
+            };
         }
 
         /// <summary>erfc по Numerical Recipes (erfcc), относительная ошибка ниже 1.2e-7.</summary>

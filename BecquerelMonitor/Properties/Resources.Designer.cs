@@ -3254,6 +3254,15 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("FSAResidualCountsValue", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Residual share is undefined: the net counts of the band (sample minus background) are not above three standard deviations, so there is nothing to take a share of. The residual ribbon on the chart is drawn as usual..
+        /// </summary>
+        public static string FSAResidualUndefinedHint {
+            get {
+                return ResourceManager.GetString("FSAResidualUndefinedHint", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to present.
@@ -4140,6 +4149,15 @@ namespace BecquerelMonitor.Properties {
         public static string GeometryEditorErrorWallEatsSample {
             get {
                 return ResourceManager.GetString("GeometryEditorErrorWallEatsSample", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to “{2}” is {0} mm: a distance or a thickness cannot be negative..
+        /// </summary>
+        public static string GeometryEditorErrorNegativeLength {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorNegativeLength", resourceCulture);
             }
         }
 
@@ -5487,6 +5505,15 @@ namespace BecquerelMonitor.Properties {
         public static string GeometryMaterialsErrorFormula {
             get {
                 return ResourceManager.GetString("GeometryMaterialsErrorFormula", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The formula cannot be read at “{0}”: an element symbol is a capital plus lowercase letters, then its atom count — H2O, Bi4Ge3O12, Cs1 I1. Brackets are not accepted..
+        /// </summary>
+        public static string GeometryMaterialsErrorFormulaPart {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorFormulaPart", resourceCulture);
             }
         }
         

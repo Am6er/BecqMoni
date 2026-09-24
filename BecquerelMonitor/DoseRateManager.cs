@@ -722,6 +722,17 @@ namespace BecquerelMonitor
         /// сдвигом вдвое в любую сторону меняет показание меньше чем на 1 %.
         /// Пол ОТНОСИТЕЛЬНЫЙ нарочно: у сцены поля `ISO` те же величины идут
         /// в см² (максимум ~46 у Ø63×63), и правило действует без пересчёта.
+        ///
+        /// ⛔ (`S186`, П151 24.09.2026) ПОЛ — ТОЛЬКО НИЖЕ МАКСИМУМА КРИВОЙ.
+        /// Решение Amber 24.09.2026 вопросником, дословно: «Пол только ниже
+        /// максимума (Рекомендую)». Пол задуман против низа шкалы (ε → 0
+        /// ниже 15 кэВ), но у малого кристалла пиковая кривая падает к верху
+        /// шкалы ниже сотой доли максимума: у RC-103 диапазоны 1657…2837 кэВ
+        /// (своя 5.2e-4 и 8.1e-4 против 0.118) снимались, и линия 2614.5 дозы
+        /// не давала вовсе (`DoseGridProbe`, путь «≈» −100 %). Выше диапазона
+        /// с наибольшей долей диапазон снимается только пустой строкой (доля
+        /// не больше нуля) — делить на ноль нельзя, на малое, но честно
+        /// посчитанное, — можно: там отсчёты — кванты своей энергии.
         /// </summary>
         public const double MinOwnEfficiencyFraction = 0.01;
 
@@ -882,6 +893,7 @@ namespace BecquerelMonitor
                 // диапазон — свойство сетки и входа, а не спектра, и от
                 // представительной энергии (`AMBER77`) оно зависеть не должно.
                 double maxOwn = 0.0;
+                int maxOwnRange = 0;
                 var ownAtCentre = new double[bins];
                 for (int k = 0; k < bins; k++)
                 {
@@ -902,7 +914,17 @@ namespace BecquerelMonitor
                             r.Efficiency, r.CenterKev));
                     }
 
-                    maxOwn = Math.Max(maxOwn, r.OwnEfficiency);
+                    // Не число — как у прежнего Math.Max: максимум портится, и
+                    // ниже следует отказ.
+                    if (double.IsNaN(r.OwnEfficiency))
+                    {
+                        maxOwn = double.NaN;
+                    }
+                    else if (r.OwnEfficiency > maxOwn)
+                    {
+                        maxOwn = r.OwnEfficiency;
+                        maxOwnRange = k;
+                    }
                 }
 
                 if (!(maxOwn > 0.0))
@@ -965,7 +987,10 @@ namespace BecquerelMonitor
                     r.Attributed = Math.Max(0.0, r.Counts - explained);
                     r.DoseRatePerFluenceRate = DoseRateCoefficients.DoseRatePerFluenceRate(r.CenterKev);
 
-                    if (ownAtCentre[k] < MinOwnEfficiencyFraction * maxOwn)
+                    // (`S186`) Пол — только НИЖЕ максимума кривой; выше него
+                    // диапазон снимается лишь пустой строкой (доля не > 0).
+                    bool floorApplies = k < maxOwnRange;
+                    if (floorApplies ? ownAtCentre[k] < MinOwnEfficiencyFraction * maxOwn : !(ownAtCentre[k] > 0.0))
                     {
                         // Диапазон не приписывается никому: его отсчёты
                         // выходят из покрытия, о чём скажет приписка.
@@ -1002,7 +1027,10 @@ namespace BecquerelMonitor
                         // падает (замер П145: остаток 3 % отсчётов в 13…17 кэВ
                         // уехал к низу 13.12 с долей в 18 раз меньше, чем на
                         // середине, и дал +2.6 % показания): остаёмся на середине.
-                        if (own >= MinOwnEfficiencyFraction * maxOwn && !double.IsInfinity(own))
+                        // (`S186`) Выше максимума кривой пола нет и здесь — там
+                        // нет и «края, где эффективность круто падает» к нулю.
+                        if ((floorApplies ? own >= MinOwnEfficiencyFraction * maxOwn : own > 0.0)
+                            && !double.IsInfinity(own))
                         {
                             r.RepresentativeKev = energy;
                             r.OwnEfficiency = own;

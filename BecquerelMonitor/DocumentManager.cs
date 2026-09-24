@@ -929,7 +929,10 @@ namespace BecquerelMonitor
                 //    свой ECSV — так же, LSRM SPE — на +1.51 кэВ. Формат, чьё
                 //    соглашение «край» подтверждено документом изготовителя,
                 //    добавляется сюда же — и только с таким документом.
-                bool fileUsesChannelEdges = IsN42File(filepath);
+                //    ⛔ `AMBER87` (П151, 24.09.2026): N42, ЗАПИСАННЫЙ AtomSpectra, —
+                //    центрами, как его `.txt` и родная дверь N42 (решение Amber
+                //    «N42 AtomSpectra без сдвига»); признак — N42.Util.IsWrittenByAtomSpectra.
+                bool fileUsesChannelEdges = IsN42File(filepath) && !N42.Util.IsWrittenByAtomSpectra(filepath);
                 Func<double[], double[]> toAppChannels = c =>
                     fileUsesChannelEdges ? N42.Util.EdgePolynomialToChannelCentres(c) : c;
 
