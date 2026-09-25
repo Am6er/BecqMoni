@@ -324,6 +324,17 @@ namespace BecquerelMonitor
                 AppUi.Report(Resources.ERRInvalidDeviceType, "", MessageBoxIcon.None);
                 return false;
             }
+            // A controller left over from a device config of another type must not be reused:
+            // the branches below only create one when there is none.
+            if (this.deviceController != null && this.deviceController.GetType() != deviceType.DeviceControllerType)
+            {
+                IDisposable stale = this.deviceController as IDisposable;
+                if (stale != null)
+                {
+                    stale.Dispose();
+                }
+                this.deviceController = null;
+            }
             if (deviceType.DeviceControllerType == typeof(AudioInputDeviceController))
             {
                 this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
@@ -348,6 +359,20 @@ namespace BecquerelMonitor
                 }
             }
             else if (deviceType.DeviceControllerType == typeof(ObsidianDeviceController))
+            {
+                if (this.deviceController == null)
+                {
+                    this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
+                }
+            }
+            else if (deviceType.DeviceControllerType == typeof(AmplitudaUsbDeviceController))
+            {
+                if (this.deviceController == null)
+                {
+                    this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
+                }
+            }
+            else if (deviceType.DeviceControllerType == typeof(AmplitudaSerialDeviceController))
             {
                 if (this.deviceController == null)
                 {
@@ -456,9 +481,13 @@ namespace BecquerelMonitor
                     resultDataStatus.ElapsedTime = DateTime.Now - this.resultData.StartTime + resultDataStatus.TotalTime;
                 }
                 this.resultData.EnergySpectrum.MeasurementTime = resultDataStatus.ElapsedTime.TotalSeconds;
-                this.resultData.EnergySpectrum.LiveTime = Utils.LiveTime.Calculate(this.resultData.EnergySpectrum.MeasurementTime,
-                    this.resultData.EnergySpectrum.TotalPulseCount,
-                    this.resultData.DeviceConfig.InputDeviceConfig.DeadTime());
+                // A device that measures live time itself writes it from its controller.
+                if (!(this.resultData.MeasurementController.DeviceController is IDeviceLiveTimeSource))
+                {
+                    this.resultData.EnergySpectrum.LiveTime = Utils.LiveTime.Calculate(this.resultData.EnergySpectrum.MeasurementTime,
+                        this.resultData.EnergySpectrum.TotalPulseCount,
+                        this.resultData.DeviceConfig.InputDeviceConfig.DeadTime());
+                }
             }
             else
             {

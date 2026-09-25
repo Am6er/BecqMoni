@@ -541,6 +541,35 @@
       <DependentUpon>ObsidianDeviceForm.cs</DependentUpon>
     </Compile>
     <Compile Include="ObsidianIn.cs" />
+    <Compile Include="AmplitudaUsbAccumulator.cs" />
+    <Compile Include="AmplitudaUsbDeviceConfig.cs" />
+    <Compile Include="AmplitudaUsbDeviceController.cs" />
+    <Compile Include="AmplitudaUsbDeviceForm.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="AmplitudaUsbDeviceForm.Designer.cs">
+      <DependentUpon>AmplitudaUsbDeviceForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AmplitudaUsbProtocol.cs" />
+    <Compile Include="AmplitudaUsbReader.cs" />
+    <Compile Include="HidNative.cs" />
+    <Compile Include="AmplitudaSerialAcquisition.cs" />
+    <Compile Include="AmplitudaSerialDeviceConfig.cs" />
+    <Compile Include="AmplitudaSerialDeviceController.cs" />
+    <Compile Include="AmplitudaSerialDeviceForm.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="AmplitudaSerialDeviceForm.Designer.cs">
+      <DependentUpon>AmplitudaSerialDeviceForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AmplitudaSerialInstructionForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AmplitudaSerialLine.cs" />
+    <Compile Include="AmplitudaSerialPort.cs" />
+    <Compile Include="AmplitudaSerialProtocol.cs" />
+    <Compile Include="AmplitudaSerialSession.cs" />
+    <Compile Include="IDeviceLiveTimeSource.cs" />
     <Compile Include="RepeatButton.cs">
       <SubType>Component</SubType>
     </Compile>

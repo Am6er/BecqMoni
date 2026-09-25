@@ -6447,5 +6447,626 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AmplitudaUSB.
+        /// </summary>
+        public static string DeviceTypeAmplitudaUSB {
+            get {
+                return ResourceManager.GetString("DeviceTypeAmplitudaUSB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Amplituda USB: the number of channels must be 4096, 2048, 1024, 512 or 256 (the spectrum has {0}). Set it in the device configuration and apply the configuration to an empty spectrum..
+        /// </summary>
+        public static string ERRAmplitudaUsbChannels {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbChannels", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Amplituda USB device not found{0}. Check the cable..
+        /// </summary>
+        public static string ERRAmplitudaUsbNotFound {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The Amplituda USB device is in use by another program (Progress?). Close it and try again..
+        /// </summary>
+        public static string ERRAmplitudaUsbBusy {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbBusy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Amplituda USB device error: {0}.
+        /// </summary>
+        public static string ERRAmplitudaUsbOpenFailed {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbOpenFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Connection to the Amplituda USB device was lost (error {0}). The measurement has been stopped, the collected data is kept. Reconnect the device and press Start to continue..
+        /// </summary>
+        public static string ERRAmplitudaUsbDisconnected {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbDisconnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The Amplituda USB device stopped sending data (no frames for more than 10 s). The measurement has been stopped, the collected data is kept. Check the device and press Start to continue..
+        /// </summary>
+        public static string ERRAmplitudaUsbSilent {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbSilent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0:F1} s of the data stream ({1:F1} %) was lost during this measurement. Count rates are not affected: time is taken from the frames actually received..
+        /// </summary>
+        public static string MSGAmplitudaUsbFramesLost {
+            get {
+                return ResourceManager.GetString("MSGAmplitudaUsbFramesLost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Device :.
+        /// </summary>
+        public static string AmplitudaUsbDevice {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbDevice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Refresh.
+        /// </summary>
+        public static string AmplitudaUsbRefresh {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbRefresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (first found).
+        /// </summary>
+        public static string AmplitudaUsbFirstFound {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbFirstFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} (not connected).
+        /// </summary>
+        public static string AmplitudaUsbNotConnected {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbNotConnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Lower threshold, ADC code :.
+        /// </summary>
+        public static string AmplitudaUsbLowerThreshold {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbLowerThreshold", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Upper threshold, ADC code :.
+        /// </summary>
+        public static string AmplitudaUsbUpperThreshold {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbUpperThreshold", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dead time per pulse, us :.
+        /// </summary>
+        public static string AmplitudaUsbDeadTime {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbDeadTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Channels: 4096, 2048, 1024, 512 or 256 - set on the common tab. The 12-bit ADC code is divided evenly; channel pitch is fixed at 1..
+        /// </summary>
+        public static string AmplitudaUsbChannelsHint {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbChannelsHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Test.
+        /// </summary>
+        public static string AmplitudaUsbTest {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbTest", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Testing....
+        /// </summary>
+        public static string AmplitudaUsbTestRunning {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbTestRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0:F1} frames/s, {1:F1} cps, lost {2:F1} %, bad frames {3}.
+        /// </summary>
+        public static string AmplitudaUsbTestResult {
+            get {
+                return ResourceManager.GetString("AmplitudaUsbTestResult", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AmplitudaSerial.
+        /// </summary>
+        public static string DeviceTypeAmplitudaSerial {
+            get {
+                return ResourceManager.GetString("DeviceTypeAmplitudaSerial", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Amplituda Serial: the number of channels must be a multiple of 512, up to 8192 (the spectrum has {0}). Set it in the device configuration and apply the configuration to an empty spectrum..
+        /// </summary>
+        public static string ERRAmplitudaSerialChannels {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaSerialChannels", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Amplituda Serial: no COM port is selected in the device configuration..
+        /// </summary>
+        public static string ERRAmplitudaSerialNoPort {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaSerialNoPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Amplituda Serial: cannot open {0}: {1} The port may be in use by another program (Progress, a terminal), or the USB adapter got another port number..
+        /// </summary>
+        public static string ERRAmplitudaSerialPort {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaSerialPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Amplituda Serial: {0} is already open by another device configuration with a different pause setting. All blocks on one port must use the same pause..
+        /// </summary>
+        public static string ERRAmplitudaSerialSettingsDiffer {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaSerialSettingsDiffer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The block at address {1} on {0} does not answer. Check its power (it answers a few seconds after power-up), the cable, the address and the common ground between the block's power supply and the PC..
+        /// </summary>
+        public static string ERRAmplitudaSerialNoAnswer {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaSerialNoAnswer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Connection to the block at address {1} on {0} was lost (no valid answer for more than 30 s). The measurement has been stopped, the collected data is kept. Check the block and press Start to continue. If the block lost its power, give it a minute after power is back before pressing Start: it re-tunes its high voltage and the spectrum taken meanwhile is distorted..
+        /// </summary>
+        public static string ERRAmplitudaSerialLost {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaSerialLost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The block at address {1} on {0} does not obey the clear command: it still holds counts. The measurement was not started, so that foreign counts do not get into the spectrum..
+        /// </summary>
+        public static string ERRAmplitudaSerialClearFailed {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaSerialClearFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The block at address {1} on {0} does not start acquiring..
+        /// </summary>
+        public static string ERRAmplitudaSerialStartFailed {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaSerialStartFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Amplituda Serial error: {0}.
+        /// </summary>
+        public static string ERRAmplitudaSerialError {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaSerialError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Spectrum protection has tripped. The block suddenly came back empty - this happens when its power blinks for a moment. After such a glitch the block spends about a minute re-tuning its high voltage by its LED, and whatever it counted meanwhile would go into the spectrum with a distorted energy scale. So the measurement has been stopped, and everything collected before the glitch is kept. Wait a minute and press Start - the measurement will continue from where it stopped..
+        /// </summary>
+        public static string MSGAmplitudaSerialBlockReset {
+            get {
+                return ResourceManager.GetString("MSGAmplitudaSerialBlockReset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The block stopped acquiring by itself. Its data is kept, the block has been restarted, the measurement goes on..
+        /// </summary>
+        public static string MSGAmplitudaSerialBlockStopped {
+            get {
+                return ResourceManager.GetString("MSGAmplitudaSerialBlockStopped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A channel of the block reached 65535 and the block stopped itself before the next poll. Its data is kept and the measurement goes on, but the count rate is too high for this polling period: shorten the period or move the source away..
+        /// </summary>
+        public static string MSGAmplitudaSerialBlockCeiling {
+            get {
+                return ResourceManager.GetString("MSGAmplitudaSerialBlockCeiling", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Port :.
+        /// </summary>
+        public static string AmplitudaSerialPort {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Refresh.
+        /// </summary>
+        public static string AmplitudaSerialRefresh {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialRefresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Block address :.
+        /// </summary>
+        public static string AmplitudaSerialAddress {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialAddress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Polling period, s :.
+        /// </summary>
+        public static string AmplitudaSerialPoll {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialPoll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pause before the address byte, ms :.
+        /// </summary>
+        public static string AmplitudaSerialGap {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialGap", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dead time per pulse, us :.
+        /// </summary>
+        public static string AmplitudaSerialDeadTime {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialDeadTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Channels: exactly as many as the block's spectrum has (BDEG-3-2: 1024; always a multiple of 512) - set on the common tab. A block cannot give more channels than it has. Live time comes from the block; the dead time above is used only when BecqMoni recomputes live time by formula..
+        /// </summary>
+        public static string AmplitudaSerialHint {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Test.
+        /// </summary>
+        public static string AmplitudaSerialTest {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialTest", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Find blocks.
+        /// </summary>
+        public static string AmplitudaSerialScan {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialScan", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Asking the line....
+        /// </summary>
+        public static string AmplitudaSerialTesting {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialTesting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Address {0} answers: {1}, block time {2} s..
+        /// </summary>
+        public static string AmplitudaSerialTestResult {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialTestResult", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to acquiring.
+        /// </summary>
+        public static string AmplitudaSerialAcquiring {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialAcquiring", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to stopped.
+        /// </summary>
+        public static string AmplitudaSerialStopped {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialStopped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No answer from address {0}..
+        /// </summary>
+        public static string AmplitudaSerialTestNoAnswer {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialTestNoAnswer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Blocks answer at addresses: {0}.
+        /// </summary>
+        public static string AmplitudaSerialScanResult {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialScanResult", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No block answered at addresses 0-15..
+        /// </summary>
+        public static string AmplitudaSerialScanNone {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialScanNone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The block does not obey the stop command: it still reports that it is acquiring. The data read from it is kept; the block will be cleared by the next Start. Check the cable and the common ground..
+        /// </summary>
+        public static string MSGAmplitudaSerialBlockWontStop {
+            get {
+                return ResourceManager.GetString("MSGAmplitudaSerialBlockWontStop", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Instruction.
+        /// </summary>
+        public static string AmplitudaSerialInstruction {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstruction", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Amplituda Serial: how this device behaves.
+        /// </summary>
+        public static string AmplitudaSerialInstructionTitle {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OK.
+        /// </summary>
+        public static string AmplitudaSerialInstructionOk {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionOk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OK ({0}).
+        /// </summary>
+        public static string AmplitudaSerialInstructionOkCountdown {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionOkCountdown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The detector block accumulates the spectrum itself; BecqMoni polls it over the COM port. Several things that look like a hang are normal for this device - please read this once..
+        /// </summary>
+        public static string AmplitudaSerialInstructionP01 {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionP01", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to START: for the first 3-4 seconds nothing is counted. The driver stops the block, clears it, checks that it is really empty and only then starts it. Whatever was in the block's memory is erased: the document is the master, the block only counts what is added to it. Continuing a stopped or a saved spectrum works the same way - nothing in the document is lost..
+        /// </summary>
+        public static string AmplitudaSerialInstructionP02 {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionP02", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to DURING THE MEASUREMENT: the spectrum is refreshed once per polling period (3 s by default; one full read of a 1024-channel block takes 2.5 s). The time on the screen runs smoothly in between. Live time comes from the block itself; real time is the PC clock..
+        /// </summary>
+        public static string AmplitudaSerialInstructionP03 {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionP03", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to STOP: the window freezes for 3-4 seconds. This is the last read of the stopped block, done on purpose so that the final counts are in the document before it can be saved..
+        /// </summary>
+        public static string AmplitudaSerialInstructionP04 {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionP04", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to POWER-UP: the block answers a few seconds after power is applied, but for about a minute it is tuning its high voltage by an internal LED, and a spectrum taken during that minute has a distorted energy scale. The block gives no sign of it, so after switching it on wait a minute before pressing Start (a warm-up of 20-30 minutes gives the best resolution)..
+        /// </summary>
+        public static string AmplitudaSerialInstructionP05 {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionP05", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to LONG AND HOT MEASUREMENTS: the block's channels and clock are 16-bit. Before they run out the driver moves what the block has counted into the document and restarts the block. This takes a few seconds that belong to neither live nor real time, so count rates are not affected..
+        /// </summary>
+        public static string AmplitudaSerialInstructionP06 {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionP06", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to MESSAGE "spectrum protection has tripped": the block suddenly came back empty, most likely its power blinked. The driver stops the measurement at once so that the minute of high-voltage re-tuning does not get into the spectrum; everything collected before is kept. Start is refused until the settling time from the device settings has passed (60 s by default, 0 switches the protection off), then it continues the same spectrum..
+        /// </summary>
+        public static string AmplitudaSerialInstructionP07 {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionP07", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to MESSAGE "a channel reached 65535": the count rate is too high for the polling period. Move the source away or shorten the period..
+        /// </summary>
+        public static string AmplitudaSerialInstructionP08 {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionP08", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to THE BLOCK DOES NOT ANSWER, or answers in fits and starts: check its power, the cable, and above all the common ground between the block's power supply and the PC - without it the block draws current but stays silent or garbles bytes. If no valid answer comes for 30 seconds the measurement is stopped with the data kept; Start continues it..
+        /// </summary>
+        public static string AmplitudaSerialInstructionP09 {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionP09", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to PORT AND ADDRESS: a USB-to-COM adapter gets another port number when moved to another USB socket. "Find blocks" shows which addresses answer on the selected port. It only reads, but while a measurement is running on the same port it delays its polling by a few seconds. Several blocks on one port can be measured at the same time, each in its own document with its own device configuration; the pause setting must be the same for all of them..
+        /// </summary>
+        public static string AmplitudaSerialInstructionP10 {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionP10", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to DEAD TIME in these settings is used only when BecqMoni recomputes live time by formula (rebuilding a spectrum, assigning another device). It does not affect a running measurement..
+        /// </summary>
+        public static string AmplitudaSerialInstructionP11 {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionP11", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This text can be opened again at any time with the "Instruction" button in the device settings..
+        /// </summary>
+        public static string AmplitudaSerialInstructionP12 {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionP12", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The block at address {1} on {0} has a shorter spectrum than the device configuration asks for: {2} channels are configured, but only the first {3} belong to its spectrum - beyond them the block returns foreign memory that the clear command does not touch. The measurement was not started. Set the number of channels to {3} in the device configuration and apply it to an empty spectrum..
+        /// </summary>
+        public static string ERRAmplitudaSerialChannelsExceedBlock {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaSerialChannelsExceedBlock", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The block is still settling. It restarted {0} s ago, and re-tuning its high voltage takes about {1} s. To keep the spectrum clean the measurement was not started - press Start in {2} s..
+        /// </summary>
+        public static string ERRAmplitudaSerialSettling {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaSerialSettling", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Settling time after a block restart, s :.
+        /// </summary>
+        public static string AmplitudaSerialSettle {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialSettle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to NUMBER OF CHANNELS: set exactly the length of the block's own spectrum (BDEG-3-2: 1024). With more channels the block returns foreign memory beyond its spectrum, and Start refuses with a message that names the right number..
+        /// </summary>
+        public static string AmplitudaSerialInstructionP13 {
+            get {
+                return ResourceManager.GetString("AmplitudaSerialInstructionP13", resourceCulture);
+            }
+        }
     }
 }

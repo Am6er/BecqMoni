@@ -43660,4 +43660,211 @@ Turn it on in Windows settings and search again.</value>
   <data name="NormalizeFieldCurve" xml:space="preserve">
     <value>Normalize by efficiency: the curve “{0}” is a field-scene curve (cm² per unit fluence, values above 1); dividing the integer spectrum by it rounds low channels to zero, so the spectrum is not normalized by it.</value>
   </data>
+  <data name="DeviceTypeAmplitudaUSB" xml:space="preserve">
+    <value>AmplitudaUSB</value>
+  </data>
+  <data name="ERRAmplitudaUsbChannels" xml:space="preserve">
+    <value>Amplituda USB: the number of channels must be 4096, 2048, 1024, 512 or 256 (the spectrum has {0}). Set it in the device configuration and apply the configuration to an empty spectrum.</value>
+  </data>
+  <data name="ERRAmplitudaUsbNotFound" xml:space="preserve">
+    <value>Amplituda USB device not found{0}. Check the cable.</value>
+  </data>
+  <data name="ERRAmplitudaUsbBusy" xml:space="preserve">
+    <value>The Amplituda USB device is in use by another program (Progress?). Close it and try again.</value>
+  </data>
+  <data name="ERRAmplitudaUsbOpenFailed" xml:space="preserve">
+    <value>Amplituda USB device error: {0}</value>
+  </data>
+  <data name="ERRAmplitudaUsbDisconnected" xml:space="preserve">
+    <value>Connection to the Amplituda USB device was lost (error {0}). The measurement has been stopped, the collected data is kept. Reconnect the device and press Start to continue.</value>
+  </data>
+  <data name="ERRAmplitudaUsbSilent" xml:space="preserve">
+    <value>The Amplituda USB device stopped sending data (no frames for more than 10 s). The measurement has been stopped, the collected data is kept. Check the device and press Start to continue.</value>
+  </data>
+  <data name="MSGAmplitudaUsbFramesLost" xml:space="preserve">
+    <value>{0:F1} s of the data stream ({1:F1} %) was lost during this measurement. Count rates are not affected: time is taken from the frames actually received.</value>
+  </data>
+  <data name="AmplitudaUsbDevice" xml:space="preserve">
+    <value>Device :</value>
+  </data>
+  <data name="AmplitudaUsbRefresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="AmplitudaUsbFirstFound" xml:space="preserve">
+    <value>(first found)</value>
+  </data>
+  <data name="AmplitudaUsbNotConnected" xml:space="preserve">
+    <value>{0} (not connected)</value>
+  </data>
+  <data name="AmplitudaUsbLowerThreshold" xml:space="preserve">
+    <value>Lower threshold, ADC code :</value>
+  </data>
+  <data name="AmplitudaUsbUpperThreshold" xml:space="preserve">
+    <value>Upper threshold, ADC code :</value>
+  </data>
+  <data name="AmplitudaUsbDeadTime" xml:space="preserve">
+    <value>Dead time per pulse, us :</value>
+  </data>
+  <data name="AmplitudaUsbChannelsHint" xml:space="preserve">
+    <value>Channels: 4096, 2048, 1024, 512 or 256 - set on the common tab. The 12-bit ADC code is divided evenly; channel pitch is fixed at 1.</value>
+  </data>
+  <data name="AmplitudaUsbTest" xml:space="preserve">
+    <value>Test</value>
+  </data>
+  <data name="AmplitudaUsbTestRunning" xml:space="preserve">
+    <value>Testing...</value>
+  </data>
+  <data name="AmplitudaUsbTestResult" xml:space="preserve">
+    <value>{0:F1} frames/s, {1:F1} cps, lost {2:F1} %, bad frames {3}</value>
+  </data>
+  <data name="DeviceTypeAmplitudaSerial" xml:space="preserve">
+    <value>AmplitudaSerial</value>
+  </data>
+  <data name="ERRAmplitudaSerialChannels" xml:space="preserve">
+    <value>Amplituda Serial: the number of channels must be a multiple of 512, up to 8192 (the spectrum has {0}). Set it in the device configuration and apply the configuration to an empty spectrum.</value>
+  </data>
+  <data name="ERRAmplitudaSerialNoPort" xml:space="preserve">
+    <value>Amplituda Serial: no COM port is selected in the device configuration.</value>
+  </data>
+  <data name="ERRAmplitudaSerialPort" xml:space="preserve">
+    <value>Amplituda Serial: cannot open {0}: {1} The port may be in use by another program (Progress, a terminal), or the USB adapter got another port number.</value>
+  </data>
+  <data name="ERRAmplitudaSerialSettingsDiffer" xml:space="preserve">
+    <value>Amplituda Serial: {0} is already open by another device configuration with a different pause setting. All blocks on one port must use the same pause.</value>
+  </data>
+  <data name="ERRAmplitudaSerialNoAnswer" xml:space="preserve">
+    <value>The block at address {1} on {0} does not answer. Check its power (it answers a few seconds after power-up), the cable, the address and the common ground between the block's power supply and the PC.</value>
+  </data>
+  <data name="ERRAmplitudaSerialLost" xml:space="preserve">
+    <value>Connection to the block at address {1} on {0} was lost (no valid answer for more than 30 s). The measurement has been stopped, the collected data is kept. Check the block and press Start to continue. If the block lost its power, give it a minute after power is back before pressing Start: it re-tunes its high voltage and the spectrum taken meanwhile is distorted.</value>
+  </data>
+  <data name="ERRAmplitudaSerialClearFailed" xml:space="preserve">
+    <value>The block at address {1} on {0} does not obey the clear command: it still holds counts. The measurement was not started, so that foreign counts do not get into the spectrum.</value>
+  </data>
+  <data name="ERRAmplitudaSerialStartFailed" xml:space="preserve">
+    <value>The block at address {1} on {0} does not start acquiring.</value>
+  </data>
+  <data name="ERRAmplitudaSerialError" xml:space="preserve">
+    <value>Amplituda Serial error: {0}</value>
+  </data>
+  <data name="MSGAmplitudaSerialBlockReset" xml:space="preserve">
+    <value>Spectrum protection has tripped. The block suddenly came back empty - this happens when its power blinks for a moment. After such a glitch the block spends about a minute re-tuning its high voltage by its LED, and whatever it counted meanwhile would go into the spectrum with a distorted energy scale. So the measurement has been stopped, and everything collected before the glitch is kept. Wait a minute and press Start - the measurement will continue from where it stopped.</value>
+  </data>
+  <data name="MSGAmplitudaSerialBlockStopped" xml:space="preserve">
+    <value>The block stopped acquiring by itself. Its data is kept, the block has been restarted, the measurement goes on.</value>
+  </data>
+  <data name="MSGAmplitudaSerialBlockCeiling" xml:space="preserve">
+    <value>A channel of the block reached 65535 and the block stopped itself before the next poll. Its data is kept and the measurement goes on, but the count rate is too high for this polling period: shorten the period or move the source away.</value>
+  </data>
+  <data name="AmplitudaSerialPort" xml:space="preserve">
+    <value>Port :</value>
+  </data>
+  <data name="AmplitudaSerialRefresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="AmplitudaSerialAddress" xml:space="preserve">
+    <value>Block address :</value>
+  </data>
+  <data name="AmplitudaSerialPoll" xml:space="preserve">
+    <value>Polling period, s :</value>
+  </data>
+  <data name="AmplitudaSerialGap" xml:space="preserve">
+    <value>Pause before the address byte, ms :</value>
+  </data>
+  <data name="AmplitudaSerialDeadTime" xml:space="preserve">
+    <value>Dead time per pulse, us :</value>
+  </data>
+  <data name="AmplitudaSerialHint" xml:space="preserve">
+    <value>Channels: exactly as many as the block's spectrum has (BDEG-3-2: 1024; always a multiple of 512) - set on the common tab. A block cannot give more channels than it has. Live time comes from the block; the dead time above is used only when BecqMoni recomputes live time by formula.</value>
+  </data>
+  <data name="AmplitudaSerialTest" xml:space="preserve">
+    <value>Test</value>
+  </data>
+  <data name="AmplitudaSerialScan" xml:space="preserve">
+    <value>Find blocks</value>
+  </data>
+  <data name="AmplitudaSerialTesting" xml:space="preserve">
+    <value>Asking the line...</value>
+  </data>
+  <data name="AmplitudaSerialTestResult" xml:space="preserve">
+    <value>Address {0} answers: {1}, block time {2} s.</value>
+  </data>
+  <data name="AmplitudaSerialAcquiring" xml:space="preserve">
+    <value>acquiring</value>
+  </data>
+  <data name="AmplitudaSerialStopped" xml:space="preserve">
+    <value>stopped</value>
+  </data>
+  <data name="AmplitudaSerialTestNoAnswer" xml:space="preserve">
+    <value>No answer from address {0}.</value>
+  </data>
+  <data name="AmplitudaSerialScanResult" xml:space="preserve">
+    <value>Blocks answer at addresses: {0}</value>
+  </data>
+  <data name="AmplitudaSerialScanNone" xml:space="preserve">
+    <value>No block answered at addresses 0-15.</value>
+  </data>
+  <data name="MSGAmplitudaSerialBlockWontStop" xml:space="preserve">
+    <value>The block does not obey the stop command: it still reports that it is acquiring. The data read from it is kept; the block will be cleared by the next Start. Check the cable and the common ground.</value>
+  </data>
+  <data name="AmplitudaSerialInstruction" xml:space="preserve">
+    <value>Instruction</value>
+  </data>
+  <data name="AmplitudaSerialInstructionTitle" xml:space="preserve">
+    <value>Amplituda Serial: how this device behaves</value>
+  </data>
+  <data name="AmplitudaSerialInstructionOk" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="AmplitudaSerialInstructionOkCountdown" xml:space="preserve">
+    <value>OK ({0})</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP01" xml:space="preserve">
+    <value>The detector block accumulates the spectrum itself; BecqMoni polls it over the COM port. Several things that look like a hang are normal for this device - please read this once.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP02" xml:space="preserve">
+    <value>START: for the first 3-4 seconds nothing is counted. The driver stops the block, clears it, checks that it is really empty and only then starts it. Whatever was in the block's memory is erased: the document is the master, the block only counts what is added to it. Continuing a stopped or a saved spectrum works the same way - nothing in the document is lost.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP03" xml:space="preserve">
+    <value>DURING THE MEASUREMENT: the spectrum is refreshed once per polling period (3 s by default; one full read of a 1024-channel block takes 2.5 s). The time on the screen runs smoothly in between. Live time comes from the block itself; real time is the PC clock.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP04" xml:space="preserve">
+    <value>STOP: the window freezes for 3-4 seconds. This is the last read of the stopped block, done on purpose so that the final counts are in the document before it can be saved.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP05" xml:space="preserve">
+    <value>POWER-UP: the block answers a few seconds after power is applied, but for about a minute it is tuning its high voltage by an internal LED, and a spectrum taken during that minute has a distorted energy scale. The block gives no sign of it, so after switching it on wait a minute before pressing Start (a warm-up of 20-30 minutes gives the best resolution).</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP06" xml:space="preserve">
+    <value>LONG AND HOT MEASUREMENTS: the block's channels and clock are 16-bit. Before they run out the driver moves what the block has counted into the document and restarts the block. This takes a few seconds that belong to neither live nor real time, so count rates are not affected.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP07" xml:space="preserve">
+    <value>MESSAGE "spectrum protection has tripped": the block suddenly came back empty, most likely its power blinked. The driver stops the measurement at once so that the minute of high-voltage re-tuning does not get into the spectrum; everything collected before is kept. Start is refused until the settling time from the device settings has passed (60 s by default, 0 switches the protection off), then it continues the same spectrum.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP08" xml:space="preserve">
+    <value>MESSAGE "a channel reached 65535": the count rate is too high for the polling period. Move the source away or shorten the period.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP09" xml:space="preserve">
+    <value>THE BLOCK DOES NOT ANSWER, or answers in fits and starts: check its power, the cable, and above all the common ground between the block's power supply and the PC - without it the block draws current but stays silent or garbles bytes. If no valid answer comes for 30 seconds the measurement is stopped with the data kept; Start continues it.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP10" xml:space="preserve">
+    <value>PORT AND ADDRESS: a USB-to-COM adapter gets another port number when moved to another USB socket. "Find blocks" shows which addresses answer on the selected port. It only reads, but while a measurement is running on the same port it delays its polling by a few seconds. Several blocks on one port can be measured at the same time, each in its own document with its own device configuration; the pause setting must be the same for all of them.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP11" xml:space="preserve">
+    <value>DEAD TIME in these settings is used only when BecqMoni recomputes live time by formula (rebuilding a spectrum, assigning another device). It does not affect a running measurement.</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP12" xml:space="preserve">
+    <value>This text can be opened again at any time with the "Instruction" button in the device settings.</value>
+  </data>
+  <data name="ERRAmplitudaSerialChannelsExceedBlock" xml:space="preserve">
+    <value>The block at address {1} on {0} has a shorter spectrum than the device configuration asks for: {2} channels are configured, but only the first {3} belong to its spectrum - beyond them the block returns foreign memory that the clear command does not touch. The measurement was not started. Set the number of channels to {3} in the device configuration and apply it to an empty spectrum.</value>
+  </data>
+  <data name="ERRAmplitudaSerialSettling" xml:space="preserve">
+    <value>The block is still settling. It restarted {0} s ago, and re-tuning its high voltage takes about {1} s. To keep the spectrum clean the measurement was not started - press Start in {2} s.</value>
+  </data>
+  <data name="AmplitudaSerialSettle" xml:space="preserve">
+    <value>Settling time after a block restart, s :</value>
+  </data>
+  <data name="AmplitudaSerialInstructionP13" xml:space="preserve">
+    <value>NUMBER OF CHANNELS: set exactly the length of the block's own spectrum (BDEG-3-2: 1024). With more channels the block returns foreign memory beyond its spectrum, and Start refuses with a message that names the right number.</value>
+  </data>
 </root>

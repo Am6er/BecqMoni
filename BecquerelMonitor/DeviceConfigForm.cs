@@ -382,6 +382,47 @@ namespace BecquerelMonitor
                                 this.ActiveDeviceConfig.ChannelPitch = 1;
                                 break;
                             }
+                        case "AmplitudaUSB":
+                            {
+                                // no device-side calibration to read or write
+                                this.button13.Enabled = false;
+                                this.button13.Visible = false;
+                                this.button14.Enabled = false;
+                                this.button14.Visible = false;
+
+                                // the 12-bit ADC code maps onto 4096/2048/1024/512/256 channels, pitch = 1
+                                this.integerTextBox1.Enabled = true;
+                                this.doubleTextBox6.Enabled = false;
+                                this.doubleTextBox6.Text = "1";
+                                this.ActiveDeviceConfig.ChannelPitch = 1;
+                                int amplitudaShift;
+                                if (!AmplitudaUsbAccumulator.TryGetShift(this.ActiveDeviceConfig.NumberOfChannels, out amplitudaShift))
+                                {
+                                    this.integerTextBox1.Text = "4096";
+                                    this.ActiveDeviceConfig.NumberOfChannels = 4096;
+                                }
+                                break;
+                            }
+                        case "AmplitudaSerial":
+                            {
+                                // no device-side calibration to read or write
+                                this.button13.Enabled = false;
+                                this.button13.Visible = false;
+                                this.button14.Enabled = false;
+                                this.button14.Visible = false;
+
+                                // the block sends pages of 512 channels, pitch = 1
+                                this.integerTextBox1.Enabled = true;
+                                this.doubleTextBox6.Enabled = false;
+                                this.doubleTextBox6.Text = "1";
+                                this.ActiveDeviceConfig.ChannelPitch = 1;
+                                if (!AmplitudaSerialProtocol.IsValidChannelCount(this.ActiveDeviceConfig.NumberOfChannels))
+                                {
+                                    this.integerTextBox1.Text = "1024";
+                                    this.ActiveDeviceConfig.NumberOfChannels = 1024;
+                                }
+                                break;
+                            }
                         default:
                             {
                                 this.button13.Enabled = false;
