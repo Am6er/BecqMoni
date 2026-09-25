@@ -43660,4 +43660,61 @@ Turn it on in Windows settings and search again.</value>
   <data name="NormalizeFieldCurve" xml:space="preserve">
     <value>Normalize by efficiency: the curve “{0}” is a field-scene curve (cm² per unit fluence, values above 1); dividing the integer spectrum by it rounds low channels to zero, so the spectrum is not normalized by it.</value>
   </data>
+  <data name="DeviceTypeAmplitudaUSB" xml:space="preserve">
+    <value>AmplitudaUSB</value>
+  </data>
+  <data name="ERRAmplitudaUsbChannels" xml:space="preserve">
+    <value>Amplituda USB: the number of channels must be 4096, 2048, 1024, 512 or 256 (the spectrum has {0}). Set it in the device configuration and apply the configuration to an empty spectrum.</value>
+  </data>
+  <data name="ERRAmplitudaUsbNotFound" xml:space="preserve">
+    <value>Amplituda USB device not found{0}. Check the cable.</value>
+  </data>
+  <data name="ERRAmplitudaUsbBusy" xml:space="preserve">
+    <value>The Amplituda USB device is in use by another program (Progress?). Close it and try again.</value>
+  </data>
+  <data name="ERRAmplitudaUsbOpenFailed" xml:space="preserve">
+    <value>Amplituda USB device error: {0}</value>
+  </data>
+  <data name="ERRAmplitudaUsbDisconnected" xml:space="preserve">
+    <value>Connection to the Amplituda USB device was lost (error {0}). The measurement has been stopped, the collected data is kept. Reconnect the device and press Start to continue.</value>
+  </data>
+  <data name="ERRAmplitudaUsbSilent" xml:space="preserve">
+    <value>The Amplituda USB device stopped sending data (no frames for more than 10 s). The measurement has been stopped, the collected data is kept. Check the device and press Start to continue.</value>
+  </data>
+  <data name="MSGAmplitudaUsbFramesLost" xml:space="preserve">
+    <value>{0:F1} s of the data stream ({1:F1} %) was lost during this measurement. Count rates are not affected: time is taken from the frames actually received.</value>
+  </data>
+  <data name="AmplitudaUsbDevice" xml:space="preserve">
+    <value>Device :</value>
+  </data>
+  <data name="AmplitudaUsbRefresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="AmplitudaUsbFirstFound" xml:space="preserve">
+    <value>(first found)</value>
+  </data>
+  <data name="AmplitudaUsbNotConnected" xml:space="preserve">
+    <value>{0} (not connected)</value>
+  </data>
+  <data name="AmplitudaUsbLowerThreshold" xml:space="preserve">
+    <value>Lower threshold, ADC code :</value>
+  </data>
+  <data name="AmplitudaUsbUpperThreshold" xml:space="preserve">
+    <value>Upper threshold, ADC code :</value>
+  </data>
+  <data name="AmplitudaUsbDeadTime" xml:space="preserve">
+    <value>Dead time per pulse, us :</value>
+  </data>
+  <data name="AmplitudaUsbChannelsHint" xml:space="preserve">
+    <value>Channels: 4096, 2048, 1024, 512 or 256 - set on the common tab. The 12-bit ADC code is divided evenly; channel pitch is fixed at 1.</value>
+  </data>
+  <data name="AmplitudaUsbTest" xml:space="preserve">
+    <value>Test</value>
+  </data>
+  <data name="AmplitudaUsbTestRunning" xml:space="preserve">
+    <value>Testing...</value>
+  </data>
+  <data name="AmplitudaUsbTestResult" xml:space="preserve">
+    <value>{0:F1} frames/s, {1:F1} cps, lost {2:F1} %, bad frames {3}</value>
+  </data>
 </root>

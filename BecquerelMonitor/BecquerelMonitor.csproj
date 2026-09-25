@@ -541,6 +541,18 @@
       <DependentUpon>ObsidianDeviceForm.cs</DependentUpon>
     </Compile>
     <Compile Include="ObsidianIn.cs" />
+    <Compile Include="AmplitudaUsbAccumulator.cs" />
+    <Compile Include="AmplitudaUsbDeviceConfig.cs" />
+    <Compile Include="AmplitudaUsbDeviceController.cs" />
+    <Compile Include="AmplitudaUsbDeviceForm.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="AmplitudaUsbDeviceForm.Designer.cs">
+      <DependentUpon>AmplitudaUsbDeviceForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AmplitudaUsbProtocol.cs" />
+    <Compile Include="AmplitudaUsbReader.cs" />
+    <Compile Include="HidNative.cs" />
     <Compile Include="RepeatButton.cs">
       <SubType>Component</SubType>
     </Compile>
