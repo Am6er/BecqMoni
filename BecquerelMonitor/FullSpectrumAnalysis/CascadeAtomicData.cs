@@ -2006,6 +2006,113 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         const double SupplyRounding = 0.005;
 
+        /// <summary>
+        /// (`AMBER121`, остаток; П169 28.09.2026) Делить ли питание уровня,
+        /// данное только полным (TI), на β⁺ и захват теорией разрешённого
+        /// перехода (<see cref="AllowedCaptureRatio"/>). Решение Amber
+        /// вопросником, дословно: «Теорией ε/β⁺ по Q (Рекомендую)» — включено;
+        /// выключенное — поведение до П169 (такое питание не видно вовсе),
+        /// рычаг проб (`FsaBetaPlusShareProbe --ti-split=0`).
+        /// </summary>
+        public static bool SplitTotalFeedingByTheory = true;
+
+        /// <summary>Счётчик питаний, разделённых теорией (для проб).</summary>
+        public static int TotalFeedingSplits;
+
+        static bool HasColumn(SqliteCommand command, string table, string column)
+        {
+            string saved = command.CommandText;
+            command.CommandText = "select count(*) from pragma_table_info('" + table + "') where name = $col";
+            command.Parameters.AddWithValue("$col", column);
+            try
+            {
+                return Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture) > 0;
+            }
+            finally
+            {
+                command.Parameters.RemoveAt("$col");
+                command.CommandText = saved;
+            }
+        }
+
+        /// <summary>
+        /// Z и A дочери и энергии связи её атома для <see cref="AllowedCaptureRatio"/>:
+        /// Z — `nucdb.nuclides`, A — число в начале `nucid`, энергии связи —
+        /// `matdb.eadl_binding` (K, L1, M1). Нет чего-то — null, раздел не делается.
+        /// </summary>
+        sealed class TotalSplitContext
+        {
+            int z;
+            int mass;
+            readonly Dictionary<int, double> binding = new Dictionary<int, double>();
+
+            public static TotalSplitContext Load(string daughterNucid)
+            {
+                if (string.IsNullOrEmpty(daughterNucid))
+                {
+                    return null;
+                }
+
+                int digits = 0;
+                while (digits < daughterNucid.Length && char.IsDigit(daughterNucid[digits]))
+                {
+                    digits++;
+                }
+
+                int mass;
+                if (digits == 0 || !int.TryParse(daughterNucid.Substring(0, digits), NumberStyles.Integer,
+                                                 CultureInfo.InvariantCulture, out mass))
+                {
+                    return null;
+                }
+
+                var context = new TotalSplitContext { mass = mass };
+                string nuc = NuclideDatabasePath(), mat = MatterDatabasePath();
+                if (!File.Exists(nuc) || !File.Exists(mat))
+                {
+                    return null;
+                }
+
+                using (SqliteConnection connection = OpenRead(nuc))
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "select z from nuclides where upper(nucid) = $n limit 1";
+                    command.Parameters.AddWithValue("$n", daughterNucid.ToUpperInvariant());
+                    object z = command.ExecuteScalar();
+                    if (z == null || z == DBNull.Value)
+                    {
+                        return null;
+                    }
+
+                    context.z = Convert.ToInt32(z, CultureInfo.InvariantCulture);
+                }
+
+                using (SqliteConnection connection = OpenRead(mat))
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "select shell_id, binding_ev from eadl_binding where z = $z";
+                    command.Parameters.AddWithValue("$z", context.z);
+                    using (SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            if (!reader.IsDBNull(0) && !reader.IsDBNull(1))
+                            {
+                                context.binding[reader.GetInt32(0)] = reader.GetDouble(1) / 1000.0;
+                            }
+                        }
+                    }
+                }
+
+                return context.binding.Count > 0 ? context : null;
+            }
+
+            public double Share(double transitionKev)
+            {
+                return AllowedCaptureRatio.BetaPlusShare(z, mass, transitionKev, binding);
+            }
+        }
+
         static void LoadBetaPlusOfGamma(string parentNucid, Branch branch,
                                         List<GammaLine> gammaIntensity,
                                         StringBuilder notes,
@@ -2098,6 +2205,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 command.Parameters.Clear();
                 command.Parameters.AddWithValue("$s", chosen);
 
+                var levelEnergyKnown = new HashSet<int>();
                 command.CommandText =
                     "select seq, energy_kev from ensdf_levels where dataset_id = $s";
                 using (SqliteDataReader reader = command.ExecuteReader())
@@ -2106,11 +2214,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         levelEnergy[reader.GetInt32(0)] =
                             reader.IsDBNull(1) ? 0.0 : reader.GetDouble(1);
+                        if (!reader.IsDBNull(1))
+                        {
+                            levelEnergyKnown.Add(reader.GetInt32(0));
+                        }
                     }
                 }
 
+                // (`AMBER121`, остаток; П169) Питание, данное только ПОЛНЫМ (TI),
+                // делится на β⁺ и захват теорией разрешённого перехода
+                // (<see cref="AllowedCaptureRatio"/>). Энергия перехода — Q
+                // набора минус энергия уровня: родитель здесь всегда в основном
+                // состоянии (изомер отсечён `IsomerTail` выше), E(родителя) = 0.
+                // База без колонки `intensity_total` (до П169) — как прежде.
+                bool hasTotal = SplitTotalFeedingByTheory && HasColumn(command, "ensdf_feedings", "intensity_total");
+                double qValue = double.NaN;
+                if (hasTotal)
+                {
+                    command.CommandText = "select q_value_kev from ensdf_datasets where id = $s";
+                    object q = command.ExecuteScalar();
+                    if (q != null && q != DBNull.Value)
+                    {
+                        qValue = Convert.ToDouble(q, CultureInfo.InvariantCulture);
+                    }
+                }
+
+                TotalSplitContext split = null;
+                int splitDone = 0, splitSkipped = 0;
+
                 command.CommandText =
                     "select level_seq, kind, intensity, intensity_ec"
+                    + (hasTotal ? ", intensity_total" : "")
                     + " from ensdf_feedings where dataset_id = $s";
                 using (SqliteDataReader reader = command.ExecuteReader())
                 {
@@ -2125,6 +2259,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         string kind = reader.IsDBNull(1) ? "" : reader.GetString(1);
                         double beta = reader.IsDBNull(2) ? 0.0 : reader.GetDouble(2);
                         double capture = reader.IsDBNull(3) ? 0.0 : reader.GetDouble(3);
+
+                        if (hasTotal && kind == "E" && reader.IsDBNull(2) && reader.IsDBNull(3)
+                            && !reader.IsDBNull(4))
+                        {
+                            double total = reader.GetDouble(4);
+                            if (split == null)
+                            {
+                                split = TotalSplitContext.Load(branch.Nucid);
+                            }
+
+                            double share = split != null && !double.IsNaN(qValue)
+                                           && levelEnergyKnown.Contains(seq)
+                                ? split.Share(qValue - levelEnergy[seq])
+                                : double.NaN;
+                            if (double.IsNaN(share))
+                            {
+                                splitSkipped++;
+                            }
+                            else
+                            {
+                                beta = total * share;
+                                capture = total - beta;
+                                splitDone++;
+                                System.Threading.Interlocked.Increment(ref TotalFeedingSplits);
+                            }
+                        }
 
                         double had;
                         inTotal.TryGetValue(seq, out had);
@@ -2141,6 +2301,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             feedAll += beta + capture;
                         }
                     }
+                }
+
+                if (splitDone > 0 || splitSkipped > 0)
+                {
+                    notes.AppendFormat(CultureInfo.InvariantCulture,
+                        "питаний {0}→{1} только полным (TI): разделено теорией ε/β⁺ {2}, без раздела {3}; ",
+                        parentNucid, branch.Nucid, splitDone, splitSkipped);
                 }
 
                 command.CommandText =
