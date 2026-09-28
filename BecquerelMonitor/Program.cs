@@ -45,6 +45,11 @@ namespace BecquerelMonitor
                 // необработанного исключения не было вовсе — см. `CatchUnhandled`.
                 CatchUnhandled();
 
+                // (`S202`, П180) Отпечаток справочных данных переноса входит в
+                // клеймо матрицы и кривой; считается ~секунду — греется в фоне,
+                // чтобы первое клеймо на UI-потоке не ждало.
+                EfficiencyMaker.MaterialDatabase.PrefetchSimulatorDataFingerprint();
+
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
                 Application.Run(new MainForm(args));

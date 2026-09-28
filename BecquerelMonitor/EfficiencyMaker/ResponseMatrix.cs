@@ -765,7 +765,33 @@ namespace BecquerelMonitor.EfficiencyMaker
         //        122 кэВ — маринелли RC-103 1.029 / 1.039 / 1.027 / 1.019,
         //        маринелли G1S 1.019 / 1.021 / 1.023 / 1.017, AS80 впритык
         //        1.011 / 1.016 / 1.013 / 1.009.
-        public const int PhysicsVersion = 24;
+        // 25 — (ветка `p180-physics25`, полоса П180, 29.09.2026; решение Amber
+        //      28.09.2026 вопросником, дословно: «Ветка физики 25, ночь по
+        //      команде (Рекомендую)»; склад, кривые и корпус НЕ пересчитаны,
+        //      база rev35 в силе до ночного счёта по отдельной команде Amber).
+        //      Журнал — `handover/handover-2026-09-28-p180-physics25.md`.
+        //      `S202` — ОТПЕЧАТОК СОДЕРЖИМОГО `matdb` В КЛЕЙМЕ: `mdb=` у матрицы
+        //        и `; mdb=` у кривой (`MaterialDatabase.SimulatorDataFingerprint`,
+        //        таблицы `SimulatorTables`, сторож `check_matdb_fingerprint.py`).
+        //        До 25 правка справочных данных меняла тело матрицы при том же
+        //        клейме (П179: `kb_ev` — `G1S_point5` L1 0.36 %).
+        //      `S198` — (а) энергия Kβ в `matdb.xray_fluorescence.kb_ev` —
+        //        центр тяжести K-M и K-N (решение Amber 28.09.2026 вопросником,
+        //        дословно: «Перезалить kb_ev и разобрать провал (Рекомендую)»;
+        //        импортёр `tools/nucdb/import_xcom_star.py --kb-only`, 64
+        //        элемента из 71: Ba 36.827 → 36.542, I 32.680 → 32.426, Pb
+        //        86.022 → 85.212 кэВ); читает перенос — вылет K-рентгена,
+        //        флуоресценция пробы и защиты. (б) форма K-провала света:
+        //        обрыв короткого трека q(E) = 1/(1 + (E_q/E)^p), E_q 0.45 кэВ,
+        //        p 1.2 (было 1.0 и 2) — по рис. 6 Ходюка 2010, см.
+        //        `EfficiencySimulator.LightTrackEndKev`; меняет свет NaI/CsI у
+        //        K-краёв (провал вдвое мельче) и таблицу света FSA.
+        //      `S203` — второй обход полной эффективности
+        //        (`EfficiencySimulator.TotalEfficiency`) разыгрывает когерентное
+        //        в кристалле, как ветвь отклика; склад и кривые его не читают
+        //        (строка матрицы — сумма отклика), поколение он не меняет, но
+        //        вносится той же ветвью.
+        public const int PhysicsVersion = 25;
 
         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
         public double[] Energies { get; set; }
@@ -1215,6 +1241,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             // раздел `A244`), поэтому ни одна посчитанная матрица не устарела.
             var sb = new StringBuilder();
             sb.Append("phys=").Append(PhysicsVersion.ToString(CultureInfo.InvariantCulture)).Append(';');
+            // ⛔ (`S202`, П180, физика 25) Отпечаток СОДЕРЖИМОГО таблиц `matdb`,
+            // которые читает перенос (`MaterialDatabase.SimulatorDataFingerprint`):
+            // правка справочных данных меняет тело матрицы, и теперь — клеймо.
+            // Пишется всегда: у физики 25 прежних клейм нет.
+            sb.Append("mdb=").Append(MaterialDatabase.SimulatorDataFingerprint()).Append(';');
             if (options != null)
             {
                 sb.Append("emin=").Append(options.MinEnergyKev.ToString("R", CultureInfo.InvariantCulture)).Append(';');

@@ -520,6 +520,8 @@ SIM = [
     (u'ElectronCarryDetour', False, False, u'неприменимо', u'калибровка заноса; двигает CoincCfProbe'),
     (u'LightTrackEndKev', False, False, u'неприменимо',
      u'F11 (а), П17: калибровка обрыва короткого трека по K-провалу Ходюка; двигает LightScaleProbe --eq='),
+    (u'LightTrackEndPower', False, False, u'неприменимо',
+     u'S198, П180: показатель обрыва короткого трека (форма K-провала по рис. 6 Ходюка 2010); двигает LightScaleProbe --eqp='),
     (u'TotalFullSphere', False, False, u'неприменимо', u'мерка полной эффективности; двигает CoincCfProbe'),
     (u'KFractionByEnergy', False, False, u'неприменимо', u'константа модели, рычага нет нигде'),
     (u'MeasuredFluorescenceYield', False, False, u'неприменимо', u'константа модели, рычага нет нигде'),
