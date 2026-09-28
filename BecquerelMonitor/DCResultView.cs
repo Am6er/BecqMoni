@@ -111,6 +111,7 @@ namespace BecquerelMonitor
             {
                 this.columnModel1.Columns[2].Text = Resources.Uncertain + " " + errorLevel.ToString(CultureInfo.InvariantCulture) + Resources.Sigma;
             }
+            this.table1.EnableToolTips = true;
             this.table1.BeginUpdate();
             string format = "f2";
             int format_int = 2;
@@ -126,7 +127,7 @@ namespace BecquerelMonitor
                 {
                     MeasurementResult measurementResult = resultCollection.ResultList[i];
                     Row row = new Row();
-                    row.Cells.Add(new Cell(measurementResult.ROIDefinition.Name));
+                    row.Cells.Add(NameCell(measurementResult));
                     if (measurementResult.IsValid)
                     {
                         Cell cell = new Cell(measurementResult.ResultValue.ToString(format, CultureInfo.InvariantCulture), Math.Round(measurementResult.ResultValue, format_int));
@@ -182,6 +183,9 @@ namespace BecquerelMonitor
                     int index = (int)row2.Tag;
                     if (index >= resultCollection.ResultList.Count) { continue; }
                     MeasurementResult measurementResult2 = resultCollection.ResultList[index];
+                    // (`AMBER133`) приписка суммирования зависит от единиц — обновляется и здесь
+                    row2.Cells[0].Text = NameText(measurementResult2);
+                    row2.Cells[0].ToolTipText = measurementResult2.SummingProblem;
                     if (measurementResult2.IsValid)
                     {
                         bool flag2 = this.CheckDetected(measurementResult2);
@@ -232,6 +236,28 @@ namespace BecquerelMonitor
                 }
             }
             this.table1.EndUpdate();
+        }
+
+        /// <summary>
+        /// (`AMBER133`, П167 28.09.2026) Имя зоны с припиской каскадного
+        /// суммирования: «Σ×1.068», когда поправка вошла в беккерели, «без
+        /// поправки на Σ», когда её нет, а у нуклида линия стоит в каскаде.
+        /// Полная фраза — подсказкой клетки. Прежде таблица молчала, а FSA ту
+        /// же линию поправлял — два числа расходились без объяснения.
+        /// </summary>
+        static string NameText(MeasurementResult result)
+        {
+            string name = result.ROIDefinition.Name;
+            return string.IsNullOrEmpty(result.SummingNote) || !result.IsValid
+                ? name
+                : name + "  [" + result.SummingNote + "]";
+        }
+
+        static Cell NameCell(MeasurementResult result)
+        {
+            Cell cell = new Cell(NameText(result));
+            cell.ToolTipText = result.SummingProblem;
+            return cell;
         }
 
         // Token: 0x06000437 RID: 1079 RVA: 0x00013C68 File Offset: 0x00011E68

@@ -883,7 +883,15 @@ namespace BecquerelMonitor
 
             Peak peak = new Peak();
             peak.Channel = Math.Max(0, Math.Min(energySpectrum.NumberOfChannels - 1, Convert.ToInt32(Math.Round(centroid))));
-            peak.Energy = energySpectrum.EnergyCalibration.ChannelToEnergy(peak.Channel);
+            // ⛔ `AMBER111` (П170, 28.09.2026): ЭНЕРГИЯ — ОТ ДРОБНОГО ЦЕНТРОИДА,
+            //    номер канала остаётся целым (индекс массива у вызывающих).
+            //    Здесь стояло `ChannelToEnergy(peak.Channel)` — энергия
+            //    ОКРУГЛЁННОГО центра, и таблица пиков, отклонение от линии и
+            //    подпись нуклида (`MatchNuclides`) получали равномерную ошибку
+            //    ±h/2: замер `CalibPeaksProbeP170 --peak` — RC-103 до ±1.4 кэВ.
+            //    Центроид зажимается в те же [0, N−1], что и номер канала.
+            double fractional = Math.Max(0.0, Math.Min(energySpectrum.NumberOfChannels - 1, centroid));
+            peak.Energy = energySpectrum.EnergyCalibration.ChannelToEnergy(fractional);
             peak.SNR = snr;
             peak.FWHM = fwhm;
             peak.FWHM_DELTA = fwhmDelta;

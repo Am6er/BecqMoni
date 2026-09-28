@@ -1,0 +1,19 @@
+витрина FSA (FsaStackShot, 9 пар): сборка без AMBER111 (Debug_P170x) против сборки с ним (Debug_P170), sha256 выходов wd\out
+AS80_Th232_disk__infer_eq.curves.csv	466B62099DDE3054	одинаковы
+AS80_Th232_disk__infer_eq.rates.csv	62F41AB2B5F31851	одинаковы
+ASN16_Cs137_10cm__sample_nomatrix.curves.csv	EB42619DC0BE23EC	одинаковы
+ASN16_Cs137_10cm__sample_nomatrix.rates.csv	1AEFB284392E584E	одинаковы
+ASN16_Cs137_house__infer_eq_compton.curves.csv	DF4486A1604DD883	одинаковы
+ASN16_Cs137_house__infer_eq_compton.rates.csv	5847A8A1FCDBB77F	одинаковы
+ASN16_Cs137_house__infer_eq_peak.curves.csv	D9AF00DFFBF407B5	одинаковы
+ASN16_Cs137_house__infer_eq_peak.rates.csv	5847A8A1FCDBB77F	одинаковы
+ASN16_Cs137_house__infer_eq.curves.csv	CD4FA638FCD8BD30	одинаковы
+ASN16_Cs137_house__infer_eq.rates.csv	5847A8A1FCDBB77F	одинаковы
+ASN16_Radon_filter2__chain_eq.curves.csv	775608A48D87C75B	одинаковы
+ASN16_Radon_filter2__chain_eq.rates.csv	E6838B3E0B6532DA	одинаковы
+ASN16_Radon_filter2__chain_noeq.curves.csv	B84F0EAB0E002558	одинаковы
+ASN16_Radon_filter2__chain_noeq.rates.csv	0B102D15B05697CB	одинаковы
+G1S24_Rn222Coal_eq01__sample_eq.curves.csv	F1E5B42266DD9AF7	одинаковы
+G1S24_Rn222Coal_eq01__sample_eq.rates.csv	61AC1968A4ACD412	одинаковы
+G1S24_Rn222Coal_eq01__sample_noeq.curves.csv	1C5EF4889475DF33	одинаковы
+G1S24_Rn222Coal_eq01__sample_noeq.rates.csv	B4747ABC58A9C565	одинаковы

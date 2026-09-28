@@ -156,6 +156,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public sealed class Branch
         {
             public string Nucid;
+
+            /// <summary>
+            /// (`AMBER134`, П166) Родитель ветви — ключ набора ENSDF «родитель →
+            /// дочь» для <see cref="Walk"/>.
+            /// </summary>
+            public string ParentNucid;
+
+            /// <summary>
+            /// (`AMBER134`, П166 28.09.2026) Схема уровней ветви ПО ОДНОЙ ENSDF —
+            /// набор «родитель → дочь», переходы с полным уходом (γ + конверсия) и
+            /// фотонной долей. Нужна выносу по исключающим ветвям питания
+            /// (<c>FsaCascadeSummer.SurviveAll</c>): условная «каким путём пришли
+            /// на уровень линии» считается внутри ОДНОЙ поставки, и выход линии
+            /// тогда тот же, что у её питателей (прежде обратная условная делила
+            /// совместную на выход линии из другой поставки). Null — набора нет
+            /// или развести наборы нечем; читается лениво, один раз на ветвь.
+            /// </summary>
+            public EnsdfWalk Walk
+            {
+                get
+                {
+                    lock (this.walkGate)
+                    {
+                        if (!this.walkLoaded)
+                        {
+                            this.walk = EnsdfWalk.Load(this.ParentNucid, this.Nucid);
+                            this.walkLoaded = true;
+                        }
+
+                        return this.walk;
+                    }
+                }
+            }
+
+            readonly object walkGate = new object();
+            EnsdfWalk walk;
+            bool walkLoaded;
             public int Z;
             public int A;
 
@@ -341,8 +378,45 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `152EU`, `44SC`, `22NA`, `88Y`, `65ZN`, `40K` — получают долю по
         /// уровню. Из 123 неразведённых пар поставки позитроны есть у 31, и ни
         /// одной из них корпус не измеряет.
+        ///
+        /// ⛔ (`AMBER122`, П166 28.09.2026) У ПАРЫ ОДНА СОВМЕСТНАЯ ВЕРОЯТНОСТЬ.
+        /// Где обратная условная заменена потоком ENSDF (<c>ReverseOrFallback</c>:
+        /// прежнее правило вышло за единицу — поставки противоречат друг другу),
+        /// прямая берётся ИЗ ТОЙ ЖЕ совместной: P(511 | γ) = I(511)·P(γ | 511)/I(γ).
+        /// Прежде прямая оставалась прежней, и тождество
+        /// I(γ)·P(511 | γ) = I(511)·P(γ | 511) рвалось у всех заменённых линий:
+        /// `161ER` 211.15 −60.9 %, `100AG` 665.7 −30.7 %, `200BI` 462.3 −26.2 %,
+        /// `56CO` 1238.3 −1.0 % (15 линий, `FsaBetaPlusShareProbe --all --identity`).
+        /// Замена только УМЕНЬШАЕТ прямую (совместная не может превышать I(511)), у
+        /// незаменённых линий — побитово прежнее число.
         /// </summary>
         public double AnnihilationQuantaOfLine(GammaLine row)
+        {
+            double forward = this.AnnihilationQuantaSupply(row);
+            if (!(forward > 0.0) || !(this.AnnihilationQuanta > 0.0) || !(row.IntensityPct > 0.0))
+            {
+                return forward;
+            }
+
+            double supply = forward * row.IntensityPct / 100.0 / this.AnnihilationQuanta;
+            if (!(supply > 1.0 + ReverseRounding))
+            {
+                return forward;
+            }
+
+            double reverse = this.ReverseCore(row, false);
+            return reverse > 0.0 && reverse < supply
+                ? reverse * this.AnnihilationQuanta / (row.IntensityPct / 100.0)
+                : forward;
+        }
+
+        /// <summary>
+        /// Прямая по доле β⁺ уровня, как её даёт поставка, — без согласования с
+        /// обратной (`AMBER122`); читают <see cref="AnnihilationQuantaOfLine"/> и
+        /// <c>ReverseOrFallback</c> (прежнее правило двух поставок) и проба
+        /// `FsaBetaPlusShareProbe --formula=supply` (положительный контроль).
+        /// </summary>
+        public double AnnihilationQuantaSupply(GammaLine row)
         {
             if (row == null)
             {
@@ -397,6 +471,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public double AnnihilationReverseOfLine(GammaLine row)
         {
+            return this.ReverseCore(row, true);
+        }
+
+        /// <summary>
+        /// Тело <see cref="AnnihilationReverseOfLine"/>; <paramref name="count"/> —
+        /// вести ли счётчики замен (`AMBER122`: прямая спрашивает обратную ещё
+        /// раз, и считать замену дважды нельзя — проба печатает счётчик).
+        /// </summary>
+        double ReverseCore(GammaLine row, bool count)
+        {
             if (row == null)
             {
                 return 0.0;
@@ -407,7 +491,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (branch != null)
             {
                 return NearestValue(branch.GammaGivenBetaPlus, row.EnergyKev, out value)
-                    ? this.ReverseOrFallback(row, branch.BetaPlusOfParent, value) : 0.0;
+                    ? this.ReverseOrFallback(row, branch.BetaPlusOfParent, value, count) : 0.0;
             }
 
             for (int index = 0; index < this.Branches.Count; index++)
@@ -424,7 +508,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if (NearestShare(other, row.EnergyKev, out share))
                 {
                     return NearestValue(other.GammaGivenBetaPlus, row.EnergyKev, out value)
-                        ? this.ReverseOrFallback(row, other.BetaPlusOfParent, value) : 0.0;
+                        ? this.ReverseOrFallback(row, other.BetaPlusOfParent, value, count) : 0.0;
                 }
             }
 
@@ -463,10 +547,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `83Y` 259, `83ZR` 221) — прежнее правило как есть. Счётчики —
         /// <see cref="ReverseFallbacks"/> и <see cref="ReverseReplaced"/>.
         /// </summary>
-        double ReverseOrFallback(GammaLine row, double weight, double value)
+        double ReverseOrFallback(GammaLine row, double weight, double value, bool count)
         {
+            // Прямая — ПОСТАВКИ, до согласования (`AMBER122`): согласованная
+            // сама спрашивает обратную, и круг замкнулся бы.
             double supply = this.AnnihilationQuanta > 0.0
-                ? this.AnnihilationQuantaOfLine(row) * row.IntensityPct / 100.0 / this.AnnihilationQuanta
+                ? this.AnnihilationQuantaSupply(row) * row.IntensityPct / 100.0 / this.AnnihilationQuanta
                 : 0.0;
             // Допуск — округление деления: у `208FR` 635.8 правило даёт
             // 1.0000000000000002, и это не противоречие поставок.
@@ -477,11 +563,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (double.IsNaN(value))
             {
-                System.Threading.Interlocked.Increment(ref ReverseFallbacks);
+                if (count)
+                {
+                    System.Threading.Interlocked.Increment(ref ReverseFallbacks);
+                }
+
                 return supply;
             }
 
-            System.Threading.Interlocked.Increment(ref ReverseReplaced);
+            if (count)
+            {
+                System.Threading.Interlocked.Increment(ref ReverseReplaced);
+            }
+
             return weight * value;
         }
 
@@ -1135,7 +1229,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             // K-серия: Kα целиком плюс ОДНО из двух представлений Kβ.
             data.KLines.AddRange(kAlpha);
-            data.KLines.AddRange(KSeriesRule.Beta(kBetaSplit, kBetaTotal, kBetaSplitSeries.Count));
+            // (`AMBER120`) Та же энергия группы K-M, что у библиотеки образов.
+            data.KLines.AddRange(KSeriesRule.BetaAtGroupEnergy(kBetaSplit, kBetaTotal, kBetaSplitSeries.Count, kAlpha));
             data.KLines.Sort((a, b) => a[0].CompareTo(b[0]));
             data.KIntensityPct = 0.0;
             foreach (double[] kLine in data.KLines)
@@ -1183,6 +1278,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     Nucid = daughter, Z = z, A = mass, Perc = 100.0
                 });
+            }
+
+            // (`AMBER134`, П166) Родитель ветви — для ленивой схемы ENSDF.
+            foreach (Branch owned in data.Branches)
+            {
+                owned.ParentNucid = nucid;
             }
 
             BetaPlusByBranch(nucid, data, betaPlusOf, notes);
@@ -3048,6 +3149,243 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// в <see cref="LoadScheme"/>: E0-переходы записаны в поставке α ≈ 1e20,
         /// и это «γ нет вовсе», а не число.
         /// </summary>
+        /// <summary>
+        /// (`AMBER134`, П166 28.09.2026) СХЕМА УРОВНЕЙ ОДНОГО НАБОРА ENSDF для
+        /// точного выноса из пика. Переход — полный уход с уровня
+        /// (<see cref="Step.Weight"/>: γ·(1 + α)) и его фотонная доля
+        /// (<see cref="Step.Alpha"/>); питание уровня — баланс
+        /// «уход − приход» ТОЙ ЖЕ поставки (гаммы набора), а не графа
+        /// `ensdf_feedings`: у части наборов интенсивности гамм относительные, и
+        /// сложить их с питаниями в процентах распада было бы нельзя, а баланс
+        /// одной графы от нормировки не зависит. У `133BA` баланс уровня 81 кэВ
+        /// даёт 2.4 (графа питаний — 3.0), у 437 и 384 — само питание.
+        /// </summary>
+        public sealed class EnsdfWalk
+        {
+            /// <summary>Переход набора.</summary>
+            public sealed class Step
+            {
+                public int From;
+                public int To;
+                public double EnergyKev;
+
+                /// <summary>Полный уход с уровня по этому переходу: γ·(1 + α).</summary>
+                public double Weight;
+
+                /// <summary>Полный коэффициент конверсии; фотонная доля — 1/(1 + α).</summary>
+                public double Alpha;
+            }
+
+            /// <summary>Переходы набора.</summary>
+            public readonly List<Step> Steps = new List<Step>();
+
+            /// <summary>Уровень → энергия, кэВ.</summary>
+            public readonly Dictionary<int, double> LevelEnergy = new Dictionary<int, double>();
+
+            /// <summary>Уровень → Σ ухода (Σ Weight по выходам).</summary>
+            public readonly Dictionary<int, double> Out = new Dictionary<int, double>();
+
+            /// <summary>Уровень → населённость (питание по балансу плюс приход сверху).</summary>
+            public readonly Dictionary<int, double> Population = new Dictionary<int, double>();
+
+            /// <summary>Уровни по убыванию энергии — порядок хода сверху.</summary>
+            public readonly List<int> Descending = new List<int>();
+
+            /// <summary>Сколько схем прочитано за процесс (для проб).</summary>
+            public static int Loaded;
+
+            /// <summary>
+            /// Переход линии <paramref name="energyKev"/> (допуск <see cref="MatchKev"/>;
+            /// из близких — с большим уходом); null — линии в наборе нет.
+            /// </summary>
+            public Step StepOf(double energyKev)
+            {
+                Step best = null;
+                double bestDelta = MatchKev;
+                foreach (Step step in this.Steps)
+                {
+                    double delta = Math.Abs(step.EnergyKev - energyKev);
+                    if (delta > bestDelta || (best != null && delta == bestDelta && step.Weight <= best.Weight))
+                    {
+                        continue;
+                    }
+
+                    best = step;
+                    bestDelta = delta;
+                }
+
+                return best;
+            }
+
+            /// <summary>
+            /// Набор «родитель → дочь»: один — он; несколько — разводятся
+            /// периодом родителя (то же правило, что у питаний β⁺, `S155`);
+            /// изомер родителя — null (набор уровня родителя не различает).
+            /// </summary>
+            public static EnsdfWalk Load(string parentNucid, string daughterNucid)
+            {
+                if (string.IsNullOrEmpty(parentNucid) || string.IsNullOrEmpty(daughterNucid)
+                    || IsomerTail(parentNucid))
+                {
+                    return null;
+                }
+
+                string path = SchemeDatabasePath();
+                if (!File.Exists(path))
+                {
+                    return null;
+                }
+
+                var walk = new EnsdfWalk();
+                try
+                {
+                    using (SqliteConnection connection = OpenRead(path))
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "select id from ensdf_datasets"
+                            + " where upper(parent_nucid) = $p and upper(nucid) = $d"
+                            + " order by id";
+                        command.Parameters.AddWithValue("$p", parentNucid.ToUpperInvariant());
+                        command.Parameters.AddWithValue("$d", daughterNucid.ToUpperInvariant());
+                        var sets = new List<long>();
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                sets.Add(reader.GetInt64(0));
+                            }
+                        }
+
+                        long chosen = sets.Count == 1 ? sets[0]
+                            : sets.Count > 1 ? ByParentHalfLife(command, parentNucid, sets, new StringBuilder())
+                            : -1L;
+                        if (chosen < 0L)
+                        {
+                            return null;
+                        }
+
+                        command.Parameters.Clear();
+                        command.Parameters.AddWithValue("$s", chosen);
+                        command.CommandText = "select seq, energy_kev from ensdf_levels where dataset_id = $s";
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                walk.LevelEnergy[reader.GetInt32(0)] = reader.IsDBNull(1) ? 0.0 : reader.GetDouble(1);
+                            }
+                        }
+
+                        command.CommandText =
+                            "select from_level_seq, to_level_seq, energy_kev, intensity, total_intensity, conv_coef"
+                            + " from ensdf_gammas where dataset_id = $s";
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                if (reader.IsDBNull(0) || reader.IsDBNull(1) || reader.IsDBNull(2))
+                                {
+                                    continue;
+                                }
+
+                                double alpha = reader.IsDBNull(5) ? 0.0 : Math.Max(0.0, reader.GetDouble(5));
+                                double weight;
+                                if (!reader.IsDBNull(4))
+                                {
+                                    weight = reader.GetDouble(4);
+                                }
+                                else
+                                {
+                                    double gamma = reader.IsDBNull(3) ? 0.0 : reader.GetDouble(3);
+                                    weight = gamma * (1.0 + alpha);
+                                }
+
+                                if (!(weight > 0.0))
+                                {
+                                    continue;
+                                }
+
+                                walk.Steps.Add(new Step
+                                {
+                                    From = reader.GetInt32(0),
+                                    To = reader.GetInt32(1),
+                                    EnergyKev = reader.GetDouble(2),
+                                    Weight = weight,
+                                    Alpha = alpha
+                                });
+                            }
+                        }
+                    }
+                }
+                catch (SqliteException)
+                {
+                    return null;
+                }
+
+                if (walk.Steps.Count == 0)
+                {
+                    return null;
+                }
+
+                walk.Build();
+                System.Threading.Interlocked.Increment(ref Loaded);
+                return walk;
+            }
+
+            /// <summary>
+            /// Уход и населённость уровней: сверху вниз, питание уровня — баланс
+            /// max(0, уход − приход), населённость — питание плюс приход.
+            /// </summary>
+            void Build()
+            {
+                var levels = new HashSet<int>();
+                foreach (Step step in this.Steps)
+                {
+                    levels.Add(step.From);
+                    levels.Add(step.To);
+                    double had;
+                    this.Out.TryGetValue(step.From, out had);
+                    this.Out[step.From] = had + step.Weight;
+                }
+
+                this.Descending.AddRange(levels);
+                this.Descending.Sort(delegate(int a, int b)
+                {
+                    double ea, eb;
+                    this.LevelEnergy.TryGetValue(a, out ea);
+                    this.LevelEnergy.TryGetValue(b, out eb);
+                    int by = eb.CompareTo(ea);
+                    return by != 0 ? by : b.CompareTo(a);
+                });
+
+                var inflow = new Dictionary<int, double>();
+                foreach (int level in this.Descending)
+                {
+                    double came, away;
+                    inflow.TryGetValue(level, out came);
+                    this.Out.TryGetValue(level, out away);
+                    double population = Math.Max(came, away);
+                    this.Population[level] = population;
+                    if (!(away > 0.0))
+                    {
+                        continue;
+                    }
+
+                    foreach (Step step in this.Steps)
+                    {
+                        if (step.From != level)
+                        {
+                            continue;
+                        }
+
+                        double had;
+                        inflow.TryGetValue(step.To, out had);
+                        inflow[step.To] = had + population * step.Weight / away;
+                    }
+                }
+            }
+        }
+
         public sealed class LevelScheme
         {
             /// <summary>Выход уровня: куда, с какой энергией, γ-интенсивность (относительная) и полный α.</summary>

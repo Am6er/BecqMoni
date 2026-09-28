@@ -1,0 +1,82 @@
+BecqMoni: main config: D:\BqMoni_Claude\p168\wt\tools\effmaker\probes\build_p168base\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p168\wt\tools\effmaker\probes\build_p168base\config\device: 10 loaded
+BecqMoni: nuclide library: D:\BqMoni_Claude\p168\wt\tools\effmaker\probes\build_p168base\config\NuclideDefinition.xml: 143 entries
+SETUP	прибор: прибора «Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2024)» (9e5a1c00-000c-4a00-9000-11c0de00000c) в конфигурации НЕТ — настройки поиска остаются умолчанием библиотеки
+SETUP	спектр: G1S24_Ra226_Mar.xml
+SETUP	SNR=10	допуск=10	диапазон=30…2800 кэВ
+SETUP	кривая: G1S_mar1l_oisn06_062_p24 (геометрия есть)
+SETUP	найдено пиков: 16
+PEAK	48.7	Pb-210/x-rays
+PEAK	77.1	x-rays
+PEAK	151.4	U-235
+PEAK	185.9	Ra-226/U-235
+PEAK	238.1	Pb-212
+PEAK	296.3	Pb-214
+PEAK	355.0	Pb-214
+PEAK	610.2	Bi-214
+PEAK	772.3	Bi-214
+PEAK	941.3	Ac-228
+PEAK	1125.8	Bi-214
+PEAK	1252.9	Bi-214
+PEAK	1392.0	Bi-214
+PEAK	1753.7	Bi-214
+PEAK	2197.7	Bi-214
+PEAK	2447.0	Bi-214
+
+=== ОТЧЁТ ВЫВОДА СОСТАВА ===
+правило обрыва ряда: Only (умолчание приложения); новизна вкл
+REPORT	выведено из пиков: 16 из 16 подписаны, родителей 3 из 5, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; Ac-228 100 % (1/1, пиков 1) — доля выше порога; Bi-214 89 % (8/9, пиков 8) — доля выше порога; Pb-214 15 % (2/13, пиков 2), подцепочка 50 % (2/4, обрыв сверху —, снизу 214BI) — доля выше порога У ПОДЦЕПОЧКИ (ряд оборван); Pb-212 33 % (1/3, пиков 1) — своей структуры не приносит; U-235 20 % (1/5, пиков 1) — доля ниже порога; подпись «Pb-210/x-rays» не разобрана в nucid; подпись «Ra-226/U-235» не разобрана в nucid; ряд от 235U: вне равновесия с корнем (период длиннее его) — 205TL, 209BI; в подряд не взяты (T259); ряд от 212PB: переходное равновесие λ_д/(λ_д − λ_к) — 208TL ×1.1103, 212BI ×1.1050, 212PO ×1.1050 (AMBER55); ряд от 214PB: вне равновесия с корнем (период длиннее его) — 206HG, 206PB, 206TL, 210BI, 210PB, 210PO; в подряд не взяты (T259); ряд от 214PB: переходное равновесие λ_д/(λ_д − λ_к) — 214BI ×3.6816, 214PO ×3.6816 (AMBER55); ряд от 214BI: вне равновесия с корнем (период длиннее его) — 206HG, 206PB, 206TL, 210BI, 210PB, 210PO; в подряд не взяты (T259); ряд от 228AC: вне равновесия с корнем (период длиннее его) — 208PB, 208TL, 212BI, 212PB, 212PO, 216PO, 220RN, 224RA, 228TH; в подряд не взяты (T259); оборванный ряд: подцепочка разобрана у 1 кандидатов
+
+CAND	принят 	228AC	Ac-228 100 % (1/1, пиков 1) — доля выше порога
+CAND	принят 	214BI	Bi-214 89 % (8/9, пиков 8) — доля выше порога
+MEMBER	214BI	214BI@0 8/9
+MEMBER	214BI	214PO@1 0/0
+CAND	принят 	214PB	Pb-214 15 % (2/13, пиков 2), подцепочка 50 % (2/4, обрыв сверху —, снизу 214BI) — доля выше порога У ПОДЦЕПОЧКИ (ряд оборван)
+MEMBER	214PB	214PB@0 2/4
+MEMBER	214PB	214BI@1 0/9
+MEMBER	214PB	214PO@2 0/0
+CAND	отвергнут	212PB	Pb-212 33 % (1/3, пиков 1) — своей структуры не приносит
+MEMBER	212PB	212PB@0 1/2
+MEMBER	212PB	212BI@1 0/0
+MEMBER	212PB	208TL@2 0/1
+MEMBER	212PB	212PO@2 0/0
+MEMBER	212PB	208PB@3 0/0
+CAND	отвергнут	235U	U-235 20 % (1/5, пиков 1) — доля ниже порога
+MEMBER	235U	235U@0 1/2
+MEMBER	235U	231TH@1 0/0
+MEMBER	235U	231PA@2 0/0
+MEMBER	235U	227AC@3 0/0
+MEMBER	235U	223FR@4 0/0
+MEMBER	235U	227TH@4 0/0
+MEMBER	235U	223RA@5 0/2
+MEMBER	235U	219RN@6 0/0
+MEMBER	235U	215PO@7 0/0
+MEMBER	235U	211PB@8 0/0
+MEMBER	235U	211BI@9 0/1
+MEMBER	235U	207TL@10 0/0
+MEMBER	235U	211PO@10 0/0
+MEMBER	235U	207PB@11 0/0
+
+=== СОСТАВ (FsaSampleSpec) ===
+SPEC	рядов 2, одиночек 1, элементов пробы 0, кристалла 1
+SPEC	ряд	214BI	весь ряд
+SPEC	ряд	214PB	только 214PB
+SPEC	одиночка	228AC
+
+=== БИБЛИОТЕКА ===
+LIBSIZE	12
+LIB	Bi-214	Chain	28
+LIB	Pb-214	Single	13
+LIB	Ac-228	Single	43
+LIB	Xray-NaI	Nuisance	3
+LIB	Esc-NaI	Nuisance	18
+LIB	SE-1764	Nuisance	1
+LIB	DE-1764	Nuisance	1
+LIB	SE-2204	Nuisance	1
+LIB	DE-2204	Nuisance	1
+LIB	SE-2448	Nuisance	1
+LIB	DE-2448	Nuisance	1
+LIB	Ann-511	Nuisance	1
+
+ВЕРДИКТ	разбор не пуст (компонентов 12, родителей принято 3)
+модальных окон за прогон: 0

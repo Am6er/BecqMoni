@@ -14,7 +14,12 @@ namespace CascadeExclusiveProbe
     ///
     ///     cascadeexclusiveprobe --matrix=&lt;файл .rmx&gt; [--scint=NaI:Tl]
     ///                           [--nuclides=I-125,Ba-133] [--lines=I-125:27.2;Na-22:1274.5]
-    ///                           [--angcorr=0|1]
+    ///                           [--angcorr=0|1] [--branch-sum=0|1]
+    ///
+    /// (`AMBER134`, П166 28.09.2026) `--branch-sum=` — вынос ходом по схеме
+    /// ENSDF (<c>FsaCascadeSummer.BranchSum</c>, умолчание приложения — 1) или
+    /// прежним произведением (0, поведение до П166). Реплики раздела 3 —
+    /// формулы без схемы и от ключа не зависят.
     ///
     /// Три раздела, на ОДНОЙ матрице сцены (умолчание — то, что видит
     /// приложение: κ_pT в выносе ВКЛ, угловые корреляции — ключом; арбитр
@@ -52,6 +57,9 @@ namespace CascadeExclusiveProbe
     /// </summary>
     static class Program
     {
+        /// <summary>(`AMBER134`, П166) Ключ `--branch-sum=`: 1 — ход по схеме (умолчание приложения), 0 — до П166.</summary>
+        static int BranchSumKey = 1;
+
         static void Say(string format, params object[] args)
         {
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture, format, args));
@@ -73,6 +81,8 @@ namespace CascadeExclusiveProbe
                 else if (a.StartsWith("--scint=", StringComparison.Ordinal)) scint = a.Substring(8);
                 else if (a == "--angcorr=0") angcorr = 0;
                 else if (a == "--angcorr=1") angcorr = 1;
+                else if (a == "--branch-sum=0") BranchSumKey = 0;
+                else if (a == "--branch-sum=1") BranchSumKey = 1;
                 else if (a.StartsWith("--nuclides=", StringComparison.Ordinal))
                 {
                     nuclides.AddRange(a.Substring(11).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
@@ -148,7 +158,7 @@ namespace CascadeExclusiveProbe
         /// = true; ступенька отсекла бы Sr-85 — уровень Rb 514 живёт 1.015 мкс),
         /// κ_pT в выносе ВКЛ, корреляции — ключом.
         /// </summary>
-        static FsaCascadeSummer Summer(ResponseMatrix matrix, string scint, int angcorr)
+        static FsaCascadeSummer Summer(ResponseMatrix matrix, string scint, int angcorr, int branchSum)
         {
             FsaCascadeSummer summer = FsaCascadeSummer.Create(matrix, scint, 0.0, true, true, true, true);
             if (summer == null)
@@ -159,6 +169,7 @@ namespace CascadeExclusiveProbe
             summer.LossJointFactor = true;
             summer.AngularCorrelations = angcorr == 1;
             summer.AngularQk = matrix.AngularQk;
+            summer.BranchSum = branchSum == 1;
             return summer;
         }
 
@@ -227,7 +238,7 @@ namespace CascadeExclusiveProbe
             {
                 CascadeAtomicData atomic;
                 FsaComponent component = Build(name, out atomic);
-                FsaCascadeSummer summer = Summer(matrix, scint, angcorr);
+                FsaCascadeSummer summer = Summer(matrix, scint, angcorr, BranchSumKey);
                 if (component == null || summer == null)
                 {
                     Say("   {0}: атомных данных нет либо суммирователь не построился — пропущен", name);
@@ -310,7 +321,7 @@ namespace CascadeExclusiveProbe
                 double energy = double.Parse(parts[1], CultureInfo.InvariantCulture);
                 CascadeAtomicData atomic;
                 FsaComponent component = Build(name, out atomic);
-                FsaCascadeSummer summer = Summer(matrix, scint, angcorr);
+                FsaCascadeSummer summer = Summer(matrix, scint, angcorr, BranchSumKey);
                 if (component == null || summer == null)
                 {
                     Say("   {0} {1:F3}: атомных данных нет либо суммирователь не построился — пропущен", name, energy);

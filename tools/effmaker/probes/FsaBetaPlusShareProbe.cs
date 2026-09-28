@@ -27,7 +27,7 @@ namespace FsaBetaPlusShareProbe
     /// поставок. Печатается и примечание базы (`Note`).
     ///
     ///     fsabetaplusshareprobe (--sample=22NA,88Y | --all) [--check] [--out=&lt;tsv&gt;]
-    ///                           [--formula=ensdf|supply]
+    ///                           [--formula=ensdf|supply] [--identity]
     ///
     /// `--check` — код 1, если у кого-то обратная условная больше 1 + 1e-9
     /// либо (`S188`) прямая есть, а обратной нет — пара потеряна.
@@ -40,6 +40,14 @@ namespace FsaBetaPlusShareProbe
     /// контроль: на нынешней базе оно обязано дать `--check` код 1 (16 линий у
     /// 13 родителей, замер П149). Печатаются обе.
     /// Имён нуклидов в пробе нет: кого печатать — ключи или база.
+    ///
+    /// (`AMBER122`, П166 28.09.2026) `--identity` — код 1, если у кого-то
+    /// нарушено тождество совместной вероятности пары
+    /// I(γ)·P(511 | γ) = I(511)·P(γ | 511) (относительно больше 1e-9): прямая и
+    /// обратная обязаны браться из одной совместной. До П166 замена обратной
+    /// потоком ENSDF (`S188`) рвала его у 15 линий (`161ER` 211.15 −60.9 %,
+    /// `100AG` 665.7 −30.7 %). `--formula=supply` судит прямую ПОСТАВКИ
+    /// (`AnnihilationQuantaSupply`, до согласования) — контроль прежнего правила.
     /// </summary>
     static class Program
     {
@@ -50,7 +58,7 @@ namespace FsaBetaPlusShareProbe
             CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 
             var samples = new List<string>();
-            bool all = false, check = false, supplyFormula = false;
+            bool all = false, check = false, supplyFormula = false, identity = false;
             string outPath = null;
             foreach (string a in args)
             {
@@ -58,6 +66,7 @@ namespace FsaBetaPlusShareProbe
                     samples.AddRange(a.Substring(9).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
                 else if (a == "--all") all = true;
                 else if (a == "--check") check = true;
+                else if (a == "--identity") identity = true;
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
                 else if (a == "--formula=supply") supplyFormula = true;
                 else if (a == "--formula=ensdf") supplyFormula = false;
@@ -93,7 +102,8 @@ namespace FsaBetaPlusShareProbe
             }
 
             bool verbose = !all;
-            int over = 0, parentsOver = 0, missing = 0, lost = 0, discrepancies = 0;
+            int over = 0, parentsOver = 0, missing = 0, lost = 0, discrepancies = 0, broken = 0;
+            double worst = 0.0;
             var dump = new StringBuilder("nucid\tannihilation_quanta\tbranch\tdec_type\tperc\tbeta_plus_share\tgamma_kev\tintensity_pct\tp511_given_g\tpg_given_511\tpg_given_511_supply\n");
             foreach (string raw in samples)
             {
@@ -134,13 +144,27 @@ namespace FsaBetaPlusShareProbe
                 {
                     double p511 = data.AnnihilationQuantaOfLine(row);
                     if (!(p511 > 0.0)) continue;
-                    double fromSupply = i511 > 0.0 ? p511 * (row.IntensityPct / 100.0) / i511 : double.NaN;
+                    double fromSupply = i511 > 0.0 ? data.AnnihilationQuantaSupply(row) * (row.IntensityPct / 100.0) / i511 : double.NaN;
                     double ensdf = data.AnnihilationReverseOfLine(row);
                     double inverse = supplyFormula ? fromSupply : ensdf;
                     bool bad = inverse > 1.0 + 1e-9;
                     bool gone = !supplyFormula && !(ensdf > 0.0);
                     if (bad) { over++; parentOver = true; }
                     if (gone) { lost++; parentOver = true; }
+                    // (`AMBER122`) Совместная с двух сторон пары.
+                    double jointGamma = row.IntensityPct / 100.0 * p511;
+                    double jointAnn = i511 * ensdf;
+                    double mismatch = jointGamma > 0.0 ? jointAnn / jointGamma - 1.0 : double.NaN;
+                    bool torn = Math.Abs(mismatch) > 1e-9;
+                    if (torn)
+                    {
+                        broken++;
+                        if (Math.Abs(mismatch) > Math.Abs(worst)) worst = mismatch;
+                        Console.WriteLine("  {0} γ {1} кэВ: тождество совместной нарушено {2} % (I(γ)·P(511|γ) {3}, I(511)·P(γ|511) {4})",
+                                          nucid, F(row.EnergyKev, "F3"), F(100.0 * mismatch, "F2"),
+                                          F(jointGamma, "G6"), F(jointAnn, "G6"));
+                    }
+
                     CascadeAtomicData.Branch owner = data.BranchOfLine(row);
                     if (verbose || bad || gone)
                     {
@@ -185,7 +209,10 @@ namespace FsaBetaPlusShareProbe
             Console.WriteLine("расхождений поставок для окна отчёта (S187): {0}", discrepancies);
             Console.WriteLine("обратных за единицей: заменено потоком ENSDF {0}, ENSDF интенсивности не дала {1}",
                               CascadeAtomicData.ReverseReplaced, CascadeAtomicData.ReverseFallbacks);
-            return check && (over > 0 || lost > 0) ? 1 : 0;
+            Console.WriteLine("тождество совместной I(γ)·P(511|γ) = I(511)·P(γ|511) нарушено у {0} линий; худшее {1} %",
+                              broken, F(100.0 * worst, "F2"));
+            if (check && (over > 0 || lost > 0)) return 1;
+            return identity && broken > 0 ? 1 : 0;
         }
 
         static string F(double value, string format)
