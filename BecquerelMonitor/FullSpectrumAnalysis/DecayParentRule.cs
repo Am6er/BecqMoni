@@ -225,7 +225,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///     уровня, недостающие дочери своего уровня достраиваются из
         ///     `l_decays` (по одной строке на дочь — наибольшей; иначе ε+β⁺ и β⁺
         ///     в одну дочь сложились бы): `179AU` → 179PT ε 78, `164RE` → 164W
-        ///     ε 42, `171IR` → 171OS ε 85.
+        ///     ε 42, `171IR` → 171OS ε 85;
+        ///   * (`AMBER108`, П169 28.09.2026) родителю СО своими рёбрами
+        ///     достраивается ветвь `l_decays` своего уровня, которую
+        ///     `decay_chain` держит ПЕТЛЁЙ под дочерью — строкой (дочь, уровень
+        ///     родителя, дочь, та же мода): так записан изомерный переход, и
+        ///     читатели петли отбрасывают. Замер по `nucdb` 28.09.2026: во всей
+        ///     базе такая ветвь одна — `234PAm1` → 234PA IT 0.16 % в ряду U-238
+        ///     (до правки ряд знал только β⁻ 99.84 % в 234U).
+        ///     ⛔ Шире — «любая недостающая дочь `l_decays`» — НЕЛЬЗЯ: это 345
+        ///     строк, и среди них `234TH` → 234PA β⁻ 100 % при ребре
+        ///     `decay_chain` `234TH` → 234PAm1 100 %, то есть ряд U-238 удвоился
+        ///     бы (журнал П169).
         ///
         /// ⚠ Достраивается ТОЛЬКО родителю, который в `decay_chain` есть (у него
         /// там лишь строки иных уровней или петли): родитель, которого
@@ -269,9 +280,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             + "    and exists (select 1 from decay_chain e where e.nucid = j.nucid)"
             + "    and not exists (select 1 from decay_chain e where e.nucid = j.nucid"
             + "                    and e.daughter_nucid = j.daughter_nucid)"
-            + "    and not exists (select 1 from nuclides v, decay_chain e where v.nucid = j.nucid"
-            + "                    and e.nucid = j.nucid and e.l_seqno = v.l_seqno"
-            + "                    and e.daughter_nucid <> e.nucid))";
+            + "    and (not exists (select 1 from nuclides v, decay_chain e where v.nucid = j.nucid"
+            + "                     and e.nucid = j.nucid and e.l_seqno = v.l_seqno"
+            + "                     and e.daughter_nucid <> e.nucid)"
+            + "         or exists (select 1 from decay_chain p where p.nucid = j.daughter_nucid"
+            + "                    and p.daughter_nucid = p.nucid and p.l_seqno = j.l_seqno"
+            + "                    and cast(p.dec_type as integer) = j.dec_type)))";
 
         /// <summary>
         /// (`S190`, П158 24.09.2026) Код канала «β⁺» в `decay_chain.dec_type`
