@@ -1552,41 +1552,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    foreach (Primordial ancestor in PrimordialAncestors(unit, report))
+                    foreach (Companion companion in CompanionsOf(unit, present, report))
                     {
-                        double toUnit = 1.0;
-                        if (!string.Equals(ancestor.Nucid, unit, StringComparison.OrdinalIgnoreCase))
+                        FsaLineInterference hit = Interfere(component, companion.Isotope, companion.PerUnit,
+                                                            fwhmKev, efficiency, loKev, hiKev, report);
+                        if (hit != null)
                         {
-                            double branch;
-                            if (!ChainBranches(ancestor.Nucid, report).TryGetValue(unit, out branch)
-                                || !(branch > 0.0))
-                            {
-                                continue;
-                            }
-
-                            toUnit = branch;
-                        }
-
-                        HashSet<string> ancestorChain = EquilibriumMembers(ancestor.Nucid, report);
-                        foreach (Primordial companion in PrimordialIsotopes(ancestor.Z))
-                        {
-                            if (string.Equals(companion.Nucid, ancestor.Nucid, StringComparison.OrdinalIgnoreCase)
-                                || ancestorChain.Contains(companion.Nucid)
-                                || present.Contains(companion.Nucid))
-                            {
-                                continue;
-                            }
-
-                            double ratio = (companion.Abundance / companion.Seconds)
-                                           / (ancestor.Abundance / ancestor.Seconds);
-                            FsaLineInterference hit = Interfere(component, companion, ratio / toUnit,
-                                                                fwhmKev, efficiency, loKev, hiKev, report);
-                            if (hit != null)
-                            {
-                                hit.Reference = PrettyName(ancestor.Nucid);
-                                hit.ActivityRatio = ratio;
-                                found.Add(hit);
-                            }
+                            hit.Reference = companion.Reference;
+                            hit.ActivityRatio = companion.ActivityRatio;
+                            found.Add(hit);
                         }
                     }
                 }
@@ -1597,6 +1571,218 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return found;
+        }
+
+        /// <summary>(`AMBER118`/`S199`) Природный спутник компонента и его отношение.</summary>
+        sealed class Companion
+        {
+            /// <summary>Сам спутник — первичный изотоп того же элемента, что предок.</summary>
+            public Primordial Isotope;
+
+            /// <summary>Предок компонента, к которому взято природное отношение («U-238»).</summary>
+            public string Reference;
+
+            /// <summary>Отношение активностей спутника и предка при природном составе.</summary>
+            public double ActivityRatio;
+
+            /// <summary>Распадов спутника на один распад компонента (с долей ветвления предка к нему).</summary>
+            public double PerUnit;
+        }
+
+        /// <summary>
+        /// (`AMBER118`; вынесено `S199`, П174 28.09.2026) Природные спутники
+        /// нуклида <paramref name="unit"/> — ОДНО правило на оба пути (строка FSA и
+        /// зона ROI): первичный предок того же ряда (период ≥ 10⁸ лет, есть
+        /// распространённость, <paramref name="unit"/> — член его подряда), у
+        /// предка — первичные изотопы ТОГО ЖЕ элемента вне его ряда и вне
+        /// <paramref name="present"/>; отношение активностей — из
+        /// распространённостей и периодов. Имён в коде нет.
+        /// </summary>
+        static List<Companion> CompanionsOf(string unit, ICollection<string> present, Report report)
+        {
+            var list = new List<Companion>();
+            foreach (Primordial ancestor in PrimordialAncestors(unit, report))
+            {
+                double toUnit = 1.0;
+                if (!string.Equals(ancestor.Nucid, unit, StringComparison.OrdinalIgnoreCase))
+                {
+                    double branch;
+                    if (!ChainBranches(ancestor.Nucid, report).TryGetValue(unit, out branch)
+                        || !(branch > 0.0))
+                    {
+                        continue;
+                    }
+
+                    toUnit = branch;
+                }
+
+                HashSet<string> ancestorChain = EquilibriumMembers(ancestor.Nucid, report);
+                foreach (Primordial companion in PrimordialIsotopes(ancestor.Z))
+                {
+                    if (string.Equals(companion.Nucid, ancestor.Nucid, StringComparison.OrdinalIgnoreCase)
+                        || ancestorChain.Contains(companion.Nucid)
+                        || (present != null && present.Contains(companion.Nucid)))
+                    {
+                        continue;
+                    }
+
+                    double ratio = (companion.Abundance / companion.Seconds)
+                                   / (ancestor.Abundance / ancestor.Seconds);
+                    list.Add(new Companion
+                    {
+                        Isotope = companion,
+                        Reference = PrettyName(ancestor.Nucid),
+                        ActivityRatio = ratio,
+                        PerUnit = ratio / toUnit
+                    });
+                }
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// (`AMBER118`; вынесено `S199`) Линии ряда спутника в полосе: {энергия,
+        /// фотонов на распад КОМПОНЕНТА, %} — выход × доля ветвления в подряде
+        /// спутника × <paramref name="perUnit"/>; эффективности здесь нет.
+        /// </summary>
+        static List<double[]> CompanionLines(Primordial companion, double perUnit, double loKev, double hiKev,
+                                             Report report)
+        {
+            var lines = new List<double[]>();
+
+            // Ряд спутника — его подряд равновесия (`T259`) с долями ветвления.
+            Dictionary<string, double> branches = ChainBranches(companion.Nucid, report);
+            // ⚠ Копия: множество подряда кэшировано и общее для всех читателей.
+            var members = new HashSet<string>(EquilibriumMembers(companion.Nucid, report),
+                                              StringComparer.OrdinalIgnoreCase);
+            members.Add(companion.Nucid);
+            foreach (string member in members)
+            {
+                double branch;
+                if (!branches.TryGetValue(member, out branch))
+                {
+                    branch = string.Equals(member, companion.Nucid, StringComparison.OrdinalIgnoreCase) ? 1.0 : 0.0;
+                }
+
+                if (!(branch > 0.0))
+                {
+                    continue;
+                }
+
+                foreach (double[] line in DecayLines(member, report))
+                {
+                    if (line[0] < loKev || line[0] > hiKev)
+                    {
+                        continue;
+                    }
+
+                    double yield = line[1] * branch * perUnit;
+                    if (yield > 0.0)
+                    {
+                        lines.Add(new[] { line[0], yield });
+                    }
+                }
+            }
+
+            return lines;
+        }
+
+        /// <summary>
+        /// ⛔ (`S199`, П174 28.09.2026; решение Amber 28.09.2026, дословно: «Строка
+        /// AMBER: предупреждение об интерференции 186 кэВ» — на обоих путях)
+        /// ПОМЕХА ПРИРОДНОГО СПУТНИКА У ЗОНЫ ROI. Правило то же, что у строки FSA
+        /// (<see cref="NaturalCompanionInterference"/>: спутник по базе через
+        /// <see cref="CompanionsOf"/>, линии его ряда — <see cref="CompanionLines"/>),
+        /// отличие одно — ОКНО: у FSA окна нет, и строку держит главная группа
+        /// линий ±ПШПВ; зона же собирает в своё окно ВСЁ, что туда легло. Поэтому
+        /// и свои линии нуклида зоны, и линии ряда спутника взвешиваются долей
+        /// пика в окне (<paramref name="windowShare"/>) и эффективностью;
+        /// множитель = (своё + спутник) / своё. Сказать — от
+        /// <see cref="InterferenceWarnFactor"/>.
+        ///
+        /// ⚠ «Спутник объявлен» здесь зону НЕ освобождает, в отличие от FSA: там
+        /// фит делит пик между колонками, а зона U-235 рядом из зоны Ra-226
+        /// ничего не вычитает. Спутник по-прежнему в состав не добавляется
+        /// (~~`S110`~~): о нём говорится.
+        /// </summary>
+        /// <param name="nucid">Нуклид зоны (`nucid` базы).</param>
+        /// <param name="windowShare">Доля пика линии энергии E в окне зоны (0…1).</param>
+        /// <param name="efficiency">Эффективность на энергии; null — единица.</param>
+        /// <returns>Помеха с наибольшим множителем; null — помехи нет или база не читается.</returns>
+        public static FsaLineInterference ZoneCompanionInterference(string nucid, double loKev, double hiKev,
+                                                                    Func<double, double> windowShare,
+                                                                    Func<double, double> efficiency)
+        {
+            if (string.IsNullOrEmpty(nucid) || windowShare == null || !(hiKev > loKev))
+            {
+                return null;
+            }
+
+            try
+            {
+                var report = new Report();
+                double own = 0.0, strongest = 0.0, lineKev = double.NaN;
+                foreach (double[] line in DecayLines(nucid, report))
+                {
+                    double weight = line[1] * Eff(efficiency, line[0]) * Share(windowShare, line[0]);
+                    if (weight > 0.0)
+                    {
+                        own += weight;
+                        if (weight > strongest)
+                        {
+                            strongest = weight;
+                            lineKev = line[0];
+                        }
+                    }
+                }
+
+                if (!(own > 0.0))
+                {
+                    return null;
+                }
+
+                // Линии спутника, лежащие вне окна, в него не попадают и так;
+                // полоса расширена на шесть ширин окна — хвост гаусса широкой зоны.
+                double pad = 3.0 * (hiKev - loKev);
+                FsaLineInterference best = null;
+                foreach (Companion companion in CompanionsOf(nucid, null, report))
+                {
+                    double foreign = 0.0;
+                    foreach (double[] line in CompanionLines(companion.Isotope, companion.PerUnit,
+                                                             loKev - pad, hiKev + pad, report))
+                    {
+                        foreign += line[1] * Eff(efficiency, line[0]) * Share(windowShare, line[0]);
+                    }
+
+                    double factor = (own + foreign) / own;
+                    if (factor >= InterferenceWarnFactor && (best == null || factor > best.Factor))
+                    {
+                        best = new FsaLineInterference
+                        {
+                            LineKev = lineKev,
+                            Component = PrettyName(nucid),
+                            Companion = PrettyName(companion.Isotope.Nucid),
+                            Reference = companion.Reference,
+                            ActivityRatio = companion.ActivityRatio,
+                            Factor = factor
+                        };
+                    }
+                }
+
+                return best;
+            }
+            catch (Exception)
+            {
+                // Отказ базы — предупреждения нет; число зоны от него не зависит.
+                return null;
+            }
+        }
+
+        static double Share(Func<double, double> windowShare, double energy)
+        {
+            double value = windowShare(energy);
+            return value > 0.0 && !double.IsNaN(value) && !double.IsInfinity(value) ? Math.Min(value, 1.0) : 0.0;
         }
 
         /// <summary>
@@ -1660,56 +1846,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 groupOf[i] = groups.Count - 1;
             }
 
-            // Ряд спутника — его подряд равновесия (`T259`) с долями ветвления.
-            Dictionary<string, double> branches = ChainBranches(companion.Nucid, report);
-            // ⚠ Копия: множество подряда кэшировано и общее для всех читателей.
-            var members = new HashSet<string>(EquilibriumMembers(companion.Nucid, report),
-                                              StringComparer.OrdinalIgnoreCase);
-            members.Add(companion.Nucid);
-            foreach (string member in members)
+            // Ряд спутника — его подряд равновесия (`T259`) с долями ветвления
+            // (`CompanionLines`, одно место с зоной ROI, `S199`).
+            foreach (double[] line in CompanionLines(companion, perUnit, loKev, hiKev, report))
             {
-                double branch;
-                if (!branches.TryGetValue(member, out branch))
-                {
-                    branch = string.Equals(member, companion.Nucid, StringComparison.OrdinalIgnoreCase) ? 1.0 : 0.0;
-                }
-
-                if (!(branch > 0.0))
+                double window = fwhmKev(line[0]);
+                if (!(window > 0.0))
                 {
                     continue;
                 }
 
-                foreach (double[] line in DecayLines(member, report))
+                // Ложится на группу ближайшей линии компонента в пределах ПШПВ.
+                int target = -1;
+                double best = double.MaxValue;
+                for (int i = 0; i < ownLines.Count; i++)
                 {
-                    if (line[0] < loKev || line[0] > hiKev)
+                    double away = Math.Abs(ownLines[i][0] - line[0]);
+                    if (away <= window && away < best)
                     {
-                        continue;
+                        best = away;
+                        target = groupOf[i];
                     }
+                }
 
-                    double window = fwhmKev(line[0]);
-                    if (!(window > 0.0))
-                    {
-                        continue;
-                    }
-
-                    // Ложится на группу ближайшей линии компонента в пределах ПШПВ.
-                    int target = -1;
-                    double best = double.MaxValue;
-                    for (int i = 0; i < ownLines.Count; i++)
-                    {
-                        double away = Math.Abs(ownLines[i][0] - line[0]);
-                        if (away <= window && away < best)
-                        {
-                            best = away;
-                            target = groupOf[i];
-                        }
-                    }
-
-                    double weight = line[1] * branch * perUnit * Eff(efficiency, line[0]);
-                    if (target >= 0 && weight > 0.0)
-                    {
-                        groups[target][3] += weight;
-                    }
+                double weight = line[1] * Eff(efficiency, line[0]);
+                if (target >= 0 && weight > 0.0)
+                {
+                    groups[target][3] += weight;
                 }
             }
 

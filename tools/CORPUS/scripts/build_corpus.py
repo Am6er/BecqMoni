@@ -2033,12 +2033,26 @@ def main():
         print('  ⛔ такой корпус приёмку check_corpus.py НЕ ПРОЙДЁТ')
 
     # --- девятка: побайтная копия ---
+    # `S196` (П177, 28.09.2026): нет хоть одной рабочей копии — ОТКАЗ до первой
+    # записи, а не строка в логе. Прежде пропажа печаталась и пропускалась:
+    # 24.09.2026 (П161) пересборка в worktree без `scripts/spectra` (каталога
+    # нет в git) выкинула 7 строк из `manifest.csv` (136 -> 129), сдвинула модели
+    # разрешения групп и вышла кодом 0; повторено П177 тем же числом.
+    absent = [e['key'] for e in corpus_def.LEGACY
+              if not os.path.isfile(os.path.join(LEGACY_DIR, e['key'] + '.xml'))]
+    if absent:
+        print('⛔ ОТКАЗ (S196): нет рабочих копий девятки — %d из %d в %s:'
+              % (len(absent), len(corpus_def.LEGACY), LEGACY_DIR))
+        print('   %s' % ', '.join(absent))
+        print('   Без них манифест потеряет эти строки, а модели разрешения групп')
+        print('   ASN16/AS80x80 поедут. Корпус НЕ тронут. Каталог в git не лежит:')
+        print('   в worktree — скопировать из основного дерева и сверить sha256 со')
+        print('   строками scope=legacy в corpus/inputs.csv; apply_calibration.py')
+        print('   пишет копии из библиотеки заново и может сменить байты (B8).')
+        sys.exit(3)
     legacy_rows = []
     for e in corpus_def.LEGACY:
         src = os.path.join(LEGACY_DIR, e['key'] + '.xml')
-        if not os.path.isfile(src):
-            print('НЕТ рабочей копии девятки: %s (запусти apply_calibration.py)' % src)
-            continue
         shutil.copyfile(src, os.path.join(OUT_SPECTRA, e['key'] + '.xml'))
         legacy_rows.append(e)
     print('девятка: скопировано %d' % len(legacy_rows))

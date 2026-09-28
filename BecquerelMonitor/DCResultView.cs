@@ -185,7 +185,7 @@ namespace BecquerelMonitor
                     MeasurementResult measurementResult2 = resultCollection.ResultList[index];
                     // (`AMBER133`) приписка суммирования зависит от единиц — обновляется и здесь
                     row2.Cells[0].Text = NameText(measurementResult2);
-                    row2.Cells[0].ToolTipText = measurementResult2.SummingProblem;
+                    row2.Cells[0].ToolTipText = NameTip(measurementResult2);
                     if (measurementResult2.IsValid)
                     {
                         bool flag2 = this.CheckDetected(measurementResult2);
@@ -248,16 +248,72 @@ namespace BecquerelMonitor
         static string NameText(MeasurementResult result)
         {
             string name = result.ROIDefinition.Name;
-            return string.IsNullOrEmpty(result.SummingNote) || !result.IsValid
-                ? name
-                : name + "  [" + result.SummingNote + "]";
+            if (!result.IsValid)
+            {
+                return name;
+            }
+
+            if (!string.IsNullOrEmpty(result.SummingNote))
+            {
+                name += "  [" + result.SummingNote + "]";
+            }
+
+            // (`S199`, П174) помеха природного спутника в окне зоны
+            if (result.Interference != null)
+            {
+                name += "  [" + string.Format(CultureInfo.InvariantCulture, OwnText(KeyInterferenceCell),
+                                              result.Interference.Companion ?? string.Empty,
+                                              result.Interference.Factor.ToString("F2", CultureInfo.InvariantCulture))
+                        + "]";
+            }
+
+            return name;
+        }
+
+        /// <summary>
+        /// Подсказка клетки имени: фраза суммирования (`AMBER133`) и фраза
+        /// помехи природного спутника (`S199`), каждая своей строкой.
+        /// </summary>
+        static string NameTip(MeasurementResult result)
+        {
+            string tip = result.SummingProblem;
+            if (result.IsValid && result.Interference != null)
+            {
+                FullSpectrumAnalysis.FsaLineInterference item = result.Interference;
+                string said = string.Format(CultureInfo.InvariantCulture, OwnText(KeyInterferenceTip),
+                                            item.LineKev.ToString("F1", CultureInfo.InvariantCulture),
+                                            item.Companion ?? string.Empty, item.Reference ?? string.Empty,
+                                            item.Component ?? string.Empty,
+                                            item.Factor.ToString("F2", CultureInfo.InvariantCulture));
+                tip = string.IsNullOrEmpty(tip) ? said : tip + Environment.NewLine + said;
+            }
+
+            return tip;
         }
 
         static Cell NameCell(MeasurementResult result)
         {
             Cell cell = new Cell(NameText(result));
-            cell.ToolTipText = result.SummingProblem;
+            cell.ToolTipText = NameTip(result);
             return cell;
+        }
+
+        /// <summary>(`S199`) Ключ собственного resx: приписка «U-235 ×1.72» к имени зоны.</summary>
+        const string KeyInterferenceCell = "DCResult_InterferenceCell";
+
+        /// <summary>(`S199`) Ключ собственного resx: полная фраза помехи — подсказка клетки.</summary>
+        const string KeyInterferenceTip = "DCResult_InterferenceTip";
+
+        /// <summary>
+        /// (`S199`) Строки этого окна — из его собственного resx (как у окна
+        /// отчёта FSA): общий <c>Properties/Resources</c> делят другие полосы.
+        /// </summary>
+        static readonly System.ComponentModel.ComponentResourceManager OwnResources =
+            new System.ComponentModel.ComponentResourceManager(typeof(DCResultView));
+
+        static string OwnText(string key)
+        {
+            return OwnResources.GetString(key) ?? key;
         }
 
         // Token: 0x06000437 RID: 1079 RVA: 0x00013C68 File Offset: 0x00011E68

@@ -1,10 +1,12 @@
 {
  "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
- "dirty": [],
+ "dirty": [
+  "tools/CORPUS/scripts/build_corpus.py"
+ ],
  "files": {
   "BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs": "3ba79d9dbf4413c98087e307a0170f2ea836bbbcf8500f21c11a8d1eb46b71a4",
   "BecquerelMonitor/nucdb.sqlite": "85ae61dcd5254afaf40689af9bfed82afcfced6d8ced702129d8ae5bd235734d",
-  "tools/CORPUS/scripts/build_corpus.py": "e33ec1fa8e42c5993a6bd0e99c4b3a9c3b19aa39a9e1e84caf6ac3d926409892",
+  "tools/CORPUS/scripts/build_corpus.py": "19cd4f57aac7c96fd8a859bf47c31655af7ecc4b26d48e525ed44fb966fd1343",
   "tools/CORPUS/scripts/calibrate.py": "5c2548a831d15b9bb0641b356d132c54548808ffd2c8ebb8bb255bfc0d38d0ec",
   "tools/CORPUS/scripts/chain_labels.py": "4e7c43c459c6ca4d8bcfd4a4a70af3a6574546d673b158747e863d39148c2028",
   "tools/CORPUS/scripts/chains.py": "f88d39d4651f02a111b2954fbd6d8ea354b2164de2fd8d9b3d316f2f4f6d81db",
@@ -14,8 +16,8 @@
   "tools/CORPUS/scripts/gaussfit.py": "09721c755be20cba3452255246140c54b7fcd5fecb8e19e613eb4986260ff3c7",
   "tools/CORPUS/scripts/spectrum.py": "a525983d3ddc94690c0c9a7508e406b3c2266a73b373b9ddbb7ef492bb5a2c1e"
  },
- "fp": "f278809126c16617edca00061cb716d5dd5a5081556e0bd1b6d37ec9cac95eb6",
- "head": "f3b73c0f9b7a2f1dcf814d2d70209746d483ce52",
+ "fp": "99dcd31f76b5a47e014362231f589597b41bf58d6ca056def66eb0ac05106c8e",
+ "head": "be59ba4e580f6009c9aa88e0ae7441d0a529fbf4",
  "reads": [
   "BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs",
   "BecquerelMonitor/nucdb.sqlite"

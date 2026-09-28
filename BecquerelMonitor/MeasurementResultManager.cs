@@ -183,6 +183,9 @@ namespace BecquerelMonitor
                         SummingFactor = summing.Applied ? summing.Factor : 1.0,
                         SummingNote = summing.Note,
                         SummingProblem = summing.Problem,
+                        // (`S199`, П174) помеха природного спутника в окне зоны —
+                        // во всех единицах: окно собирает чужие отсчёты и в счёте.
+                        Interference = Utils.BecquerelCoefficient.InterferenceForZone(roidefinition, this.resultData),
                     };
                     measurementResultCollection.ResultList.Add(item);
                 }
@@ -239,6 +242,8 @@ namespace BecquerelMonitor
                     SummingFactor = measurementResult.SummingFactor,
                     SummingNote = measurementResult.SummingNote,
                     SummingProblem = measurementResult.SummingProblem,
+                    // (`S199`) и помеху спутника тоже
+                    Interference = measurementResult.Interference,
                 };
                 measurementResultCollection.ResultList.Add(item);
             }

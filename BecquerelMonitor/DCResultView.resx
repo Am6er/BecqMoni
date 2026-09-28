@@ -4602,4 +4602,10 @@
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
     <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
+  <data name="DCResult_InterferenceCell" xml:space="preserve">
+    <value>{0} not counted ×{1}</value>
+  </data>
+  <data name="DCResult_InterferenceTip" xml:space="preserve">
+    <value>{0} keV: the {1} contribution is not counted — at the natural {1}/{2} ratio the zone {3} is overestimated up to ×{4}</value>
+  </data>
 </root>

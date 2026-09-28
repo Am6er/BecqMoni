@@ -536,6 +536,98 @@ namespace BecquerelMonitor.Utils
             return Summing(roi.Name, roi.PeakEnergy, roi.Intencity, roi.LowerLimit, roi.UpperLimit, resultData);
         }
 
+        // ==================================================================
+        // Помеха природного спутника у зоны (`S199`, П174)
+        // ==================================================================
+
+        static readonly Dictionary<string, FsaLineInterference> InterferenceCache =
+            new Dictionary<string, FsaLineInterference>();
+
+        /// <summary>
+        /// ⛔ (`S199`, П174 28.09.2026; решение Amber 28.09.2026 «Строка AMBER:
+        /// предупреждение об интерференции 186 кэВ» — у FSA И у зоны ROI) ЗОНА,
+        /// В ОКНО КОТОРОЙ ЛОЖАТСЯ ЛИНИИ ПРИРОДНОГО СПУТНИКА ЕЁ НУКЛИДА. Типичный
+        /// случай — Ra-226 по 186.2 кэВ при природном уране: U-235 даёт 185.7 кэВ,
+        /// и число зоны завышено до ×1.7. Правило — у разбора
+        /// (<see cref="FsaSampleLibrary.ZoneCompanionInterference"/>, спутник по
+        /// базе, имён в коде нет); здесь — нуклид из имени зоны (как у
+        /// суммирования: весь текст, затем слова), окно зоны с долей гауссова
+        /// пика при ПШПВ спектра и эффективность кривой (нет кривой — единица:
+        /// в узком окне она почти постоянна). Число зоны НЕ правится — о помехе
+        /// говорится (~~`S110`~~ в силе); null — сказать нечего.
+        /// </summary>
+        public static FsaLineInterference InterferenceForZone(ROIDefinitionData roi, ResultData resultData)
+        {
+            if (roi == null || resultData == null)
+            {
+                return null;
+            }
+
+            double lo = Math.Min(roi.LowerLimit, roi.UpperLimit);
+            double hi = Math.Max(roi.LowerLimit, roi.UpperLimit);
+            if (!(hi > lo))
+            {
+                return null;
+            }
+
+            EfficiencyConfigData efficiency = resultData.Efficiency;
+            GeometryModel geometry = efficiency != null && efficiency.HasGeometry ? efficiency.Geometry : null;
+            double fwhm = FwhmKev(0.5 * (lo + hi), resultData, geometry);
+            string key = string.Format(CultureInfo.InvariantCulture, "{0}|{1:R}|{2:R}|{3}|{4:F4}",
+                                       roi.Name ?? "", lo, hi,
+                                       efficiency != null ? (efficiency.Guid ?? "") : "-", fwhm);
+            lock (InterferenceCache)
+            {
+                FsaLineInterference ready;
+                if (InterferenceCache.TryGetValue(key, out ready))
+                {
+                    return ready;
+                }
+            }
+
+            Func<double, double> eff = null;
+            if (efficiency != null)
+            {
+                string refusal;
+                FsaEfficiency curve = FsaEfficiency.FromConfig(efficiency, out refusal);
+                double probe, probeError;
+                // Кривая, не отвечающая в середине окна, не взвешивает ничего:
+                // смешать «эффективность» с единицей у соседних линий нельзя.
+                if (curve != null && curve.TryEval(0.5 * (lo + hi), out probe, out probeError) && probe > 0.0)
+                {
+                    eff = energy =>
+                    {
+                        double eps, errorPercent;
+                        return curve.TryEval(energy, out eps, out errorPercent) ? eps : probe;
+                    };
+                }
+            }
+
+            Func<double, double> share = energy => WindowShare(energy, lo, hi, resultData, geometry);
+            FsaLineInterference found = null;
+            foreach (string candidate in NuclideCandidates(roi.Name))
+            {
+                found = FsaSampleLibrary.ZoneCompanionInterference(FsaSampleLibrary.NucidOf(candidate), lo, hi,
+                                                                   share, eff);
+                if (found != null)
+                {
+                    break;
+                }
+            }
+
+            lock (InterferenceCache)
+            {
+                if (InterferenceCache.Count > 512)
+                {
+                    InterferenceCache.Clear();
+                }
+
+                InterferenceCache[key] = found;
+            }
+
+            return found;
+        }
+
         /// <summary>Доля гауссова пика энергии E в окне [lo, hi].</summary>
         static double WindowShare(double energyKev, double lo, double hi, ResultData resultData, GeometryModel geometry)
         {
