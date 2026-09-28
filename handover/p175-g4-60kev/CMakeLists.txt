@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.16)
+project(g4xs CXX)
+find_package(Geant4 REQUIRED)
+include(${Geant4_USE_FILE})
+add_executable(g4xs g4xs.cc)
+target_link_libraries(g4xs ${Geant4_LIBRARIES})
