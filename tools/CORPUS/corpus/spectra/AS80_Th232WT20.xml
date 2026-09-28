@@ -17,190 +17,480 @@
       </DeviceConfigReference>
       <ROIConfigReference />
       <Efficiency>
-        <Guid>57512f8b-1ef0-40af-9aae-aa26f7e51463</Guid>
-        <Name>Цилиндр Lu</Name>
-        <LastUpdated>2026-09-02T19:29:38.4533734+03:00</LastUpdated>
+        <Guid>985628b0-8fd8-45f0-9011-2773d1d847cd</Guid>
+        <Name>Цилиндр 14 мм</Name>
+        <LastUpdated>2026-09-21T20:07:48.3967078+03:00</LastUpdated>
         <Origin>Simulation</Origin>
         <Curve>
           <ROIEfficiencyData>
-            <Energy>20</Energy>
-            <Efficiency>0.0058448699794959591</Efficiency>
-            <ErrorPercent>0.1951289280799654</ErrorPercent>
+            <Energy>7.4000000000000012</Energy>
+            <Efficiency>9.3581986947004085E-28</Efficiency>
+            <ErrorPercent>0.78617602607930615</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>30</Energy>
-            <Efficiency>0.083118935464676885</Efficiency>
-            <ErrorPercent>0.1447930201030089</ErrorPercent>
+            <Energy>7.8935714186693673</Energy>
+            <Efficiency>2.1435329595683305E-23</Efficiency>
+            <ErrorPercent>1.4569961354004506</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>40</Energy>
-            <Efficiency>0.13331005059330847</Efficiency>
-            <ErrorPercent>0.15456159520858645</ErrorPercent>
+            <Energy>8.4200634785991735</Energy>
+            <Efficiency>9.2489417811225732E-20</Efficiency>
+            <ErrorPercent>0.76315741231519019</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>50</Energy>
-            <Efficiency>0.18129954144265573</Efficiency>
-            <ErrorPercent>0.14698271184630929</ErrorPercent>
+            <Energy>8.981671948385431</Energy>
+            <Efficiency>9.8795701507209733E-17</Efficiency>
+            <ErrorPercent>1.0386520089814717</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>60</Energy>
-            <Efficiency>0.21068187531660756</Efficiency>
-            <ErrorPercent>0.14263666713084283</ErrorPercent>
+            <Energy>9.5807390518431923</Energy>
+            <Efficiency>3.4423477964540284E-14</Efficiency>
+            <ErrorPercent>4.1454993032601593</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>70</Energy>
-            <Efficiency>0.22667308379320492</Efficiency>
-            <ErrorPercent>0.1403499245806733</ErrorPercent>
+            <Energy>10.219763236399846</Energy>
+            <Efficiency>4.2254562718045572E-12</Efficiency>
+            <ErrorPercent>0.883089739107774</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>80</Energy>
-            <Efficiency>0.23936099237297537</Efficiency>
-            <ErrorPercent>0.13859366360840633</ErrorPercent>
+            <Energy>10.901409593028882</Energy>
+            <Efficiency>2.5142735241922853E-10</Efficiency>
+            <ErrorPercent>2.519392921688314</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>90</Energy>
-            <Efficiency>0.2458446885976904</Efficiency>
-            <ErrorPercent>0.13761273752780945</ErrorPercent>
+            <Energy>11.628520971181192</Energy>
+            <Efficiency>7.5517806841555456E-09</Efficiency>
+            <ErrorPercent>3.1598678829363589</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>100</Energy>
-            <Efficiency>0.25051720018704643</Efficiency>
-            <ErrorPercent>0.13703531464794819</ErrorPercent>
+            <Energy>12.40412983506935</Energy>
+            <Efficiency>1.30271642668388E-07</Efficiency>
+            <ErrorPercent>4.3307372747905246</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>120</Energy>
-            <Efficiency>0.2528969388177213</Efficiency>
-            <ErrorPercent>0.13718376007519092</ErrorPercent>
+            <Energy>13.231470910752346</Energy>
+            <Efficiency>1.3844241290602641E-06</Efficiency>
+            <ErrorPercent>2.7426777033569545</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>150</Energy>
-            <Efficiency>0.24941139602026818</Efficiency>
-            <ErrorPercent>0.1397426065560182</ErrorPercent>
+            <Energy>14.113994676766188</Energy>
+            <Efficiency>9.75661648372217E-06</Efficiency>
+            <ErrorPercent>1.4038929312664077</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>186</Energy>
-            <Efficiency>0.23796748162771833</Efficiency>
-            <ErrorPercent>0.14524546422275522</ErrorPercent>
+            <Energy>15.055381754563939</Energy>
+            <Efficiency>5.0419000493201189E-05</Efficiency>
+            <ErrorPercent>0.68555521833663191</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>240</Energy>
-            <Efficiency>0.21433857485118743</Efficiency>
-            <ErrorPercent>0.15704143358588157</ErrorPercent>
+            <Energy>16.059558258781372</Energy>
+            <Efficiency>0.00019788008912728232</Efficiency>
+            <ErrorPercent>0.45427639322154778</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>300</Energy>
-            <Efficiency>0.18565286118508748</Efficiency>
-            <ErrorPercent>0.17351815705145143</ErrorPercent>
+            <Energy>17.130712171347586</Energy>
+            <Efficiency>0.00060932746620846246</Efficiency>
+            <ErrorPercent>0.33365237539175863</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>352</Energy>
-            <Efficiency>0.16506044897225269</Efficiency>
-            <ErrorPercent>0.18772232675525263</ErrorPercent>
+            <Energy>18.273310807729828</Energy>
+            <Efficiency>0.0015707005960347697</Efficiency>
+            <ErrorPercent>0.28105307306045607</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>400</Energy>
-            <Efficiency>0.14839589153740562</Efficiency>
-            <ErrorPercent>0.20109078843625577</ErrorPercent>
+            <Energy>19.492119448156512</Energy>
+            <Efficiency>0.0034837879416382534</Efficiency>
+            <ErrorPercent>0.25639687439997716</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>460</Energy>
-            <Efficiency>0.13203010217764527</Efficiency>
-            <ErrorPercent>0.2165198101578184</ErrorPercent>
+            <Energy>20.792221211521287</Energy>
+            <Efficiency>0.0066417857319658411</Efficiency>
+            <ErrorPercent>0.23961204706665426</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>510</Energy>
-            <Efficiency>0.12079463772130876</Efficiency>
-            <ErrorPercent>0.22879401147875264</ErrorPercent>
+            <Energy>22.179038254853417</Energy>
+            <Efficiency>0.011278293434104908</Efficiency>
+            <ErrorPercent>0.22913260615640174</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>583</Energy>
-            <Efficiency>0.10722065857764622</Efficiency>
-            <ErrorPercent>0.2460233295488311</ErrorPercent>
+            <Energy>23.6583543867683</Energy>
+            <Efficiency>0.017523732247555</Efficiency>
+            <ErrorPercent>0.22228565806974945</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>609</Energy>
-            <Efficiency>0.10341294494907119</Efficiency>
-            <ErrorPercent>0.25140311389662356</ErrorPercent>
+            <Energy>25.236339189208806</Energy>
+            <Efficiency>0.025662344419324388</Efficiency>
+            <ErrorPercent>0.21676437500486606</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>662</Energy>
-            <Efficiency>0.096145163366278763</Efficiency>
-            <ErrorPercent>0.26258055709772621</ErrorPercent>
+            <Energy>26.919573748078953</Energy>
+            <Efficiency>0.035055789671848171</Efficiency>
+            <ErrorPercent>0.21351504693395126</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>720</Energy>
-            <Efficiency>0.089616158379957234</Efficiency>
-            <ErrorPercent>0.27375950341449307</ErrorPercent>
+            <Energy>28.715078100080838</Energy>
+            <Efficiency>0.046059877202254053</Efficiency>
+            <ErrorPercent>0.21035618762525565</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>800</Energy>
-            <Efficiency>0.081876890993509047</Efficiency>
-            <ErrorPercent>0.28864570369156528</ErrorPercent>
+            <Energy>30.630340510223881</Energy>
+            <Efficiency>0.056595278356002206</Efficiency>
+            <ErrorPercent>0.20909166244172667</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>900</Energy>
-            <Efficiency>0.0741485985211033</Efficiency>
-            <ErrorPercent>0.30569823199872892</ErrorPercent>
+            <Energy>32.673348702109955</Energy>
+            <Efficiency>0.067066001737045883</Efficiency>
+            <ErrorPercent>0.20676134807531424</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>1000</Energy>
-            <Efficiency>0.067894246373778916</Efficiency>
-            <ErrorPercent>0.32156372752725393</ErrorPercent>
+            <Energy>34.852623171242286</Energy>
+            <Efficiency>0.060572828198895416</Efficiency>
+            <ErrorPercent>0.23183509151629753</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>1120</Energy>
-            <Efficiency>0.062043121951539236</Efficiency>
-            <ErrorPercent>0.33850854424580956</ErrorPercent>
+            <Energy>37.177252720293453</Energy>
+            <Efficiency>0.068940957591847526</Efficiency>
+            <ErrorPercent>0.23063235731646822</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>1250</Energy>
-            <Efficiency>0.056512882762494811</Efficiency>
-            <ErrorPercent>0.35678678407394793</ErrorPercent>
+            <Energy>39.656932364534633</Energy>
+            <Efficiency>0.077332247535106785</Efficiency>
+            <ErrorPercent>0.22913357771257026</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>1461</Energy>
-            <Efficiency>0.049168815445120348</Efficiency>
-            <ErrorPercent>0.38550643577571009</ErrorPercent>
+            <Energy>42.302003765512822</Energy>
+            <Efficiency>0.08516000985165352</Efficiency>
+            <ErrorPercent>0.22600637008519303</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>1600</Energy>
-            <Efficiency>0.04558472721309486</Efficiency>
-            <ErrorPercent>0.40199740884250834</ErrorPercent>
+            <Energy>45.123498361607531</Energy>
+            <Efficiency>0.091953310987618844</Efficiency>
+            <ErrorPercent>0.22450607610328141</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>1765</Energy>
-            <Efficiency>0.041867594392662126</Efficiency>
-            <ErrorPercent>0.42113463560326231</ErrorPercent>
+            <Energy>48.13318337534583</Energy>
+            <Efficiency>0.098927694152740317</Efficiency>
+            <ErrorPercent>0.2223569525445519</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>2000</Energy>
-            <Efficiency>0.037642114548774454</Efficiency>
-            <ErrorPercent>0.44630305108058177</ErrorPercent>
+            <Energy>51.343610889351524</Energy>
+            <Efficiency>0.10481153784089149</Efficiency>
+            <ErrorPercent>0.22119016383580506</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>2200</Energy>
-            <Efficiency>0.034349044164378104</Efficiency>
-            <ErrorPercent>0.46888436636273179</ErrorPercent>
+            <Energy>54.768170195603567</Energy>
+            <Efficiency>0.10945871596565665</Efficiency>
+            <ErrorPercent>0.22045189146117733</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>2450</Energy>
-            <Efficiency>0.030767853472381156</Efficiency>
-            <ErrorPercent>0.49728326219550406</ErrorPercent>
+            <Energy>58.421143636329148</Energy>
+            <Efficiency>0.11402447276041168</Efficiency>
+            <ErrorPercent>0.2197366942364809</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>2615</Energy>
-            <Efficiency>0.029466761166813564</Efficiency>
-            <ErrorPercent>0.509031773730616</ErrorPercent>
+            <Energy>62.3177661694196</Energy>
+            <Efficiency>0.11794224920447785</Efficiency>
+            <ErrorPercent>0.21891604430629841</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>2800</Energy>
-            <Efficiency>0.027086890777802061</Efficiency>
-            <ErrorPercent>0.53217284257325914</ErrorPercent>
+            <Energy>66.4742889067907</Energy>
+            <Efficiency>0.12005929780266054</Efficiency>
+            <ErrorPercent>0.2193660352753003</ErrorPercent>
           </ROIEfficiencyData>
           <ROIEfficiencyData>
-            <Energy>3000</Energy>
-            <Efficiency>0.025521586214119839</Efficiency>
-            <ErrorPercent>0.549407128071204</ErrorPercent>
+            <Energy>70.908046890677454</Energy>
+            <Efficiency>0.12368172614788045</Efficiency>
+            <ErrorPercent>0.21831112782809722</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>75.63753139052956</Energy>
+            <Efficiency>0.12572785649434362</Efficiency>
+            <ErrorPercent>0.21863828769034169</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>80.682467022025818</Energy>
+            <Efficiency>0.12780238896427878</Efficiency>
+            <ErrorPercent>0.218715866629683</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>86.0638940098373</Energy>
+            <Efficiency>0.12824620502566469</Efficiency>
+            <ErrorPercent>0.21959522854097432</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>91.804255937221882</Energy>
+            <Efficiency>0.12959642438890812</Efficiency>
+            <ErrorPercent>0.21958156899923009</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>97.9274933484137</Energy>
+            <Efficiency>0.13071327790570694</Efficiency>
+            <ErrorPercent>0.21973770274349097</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>104.45914359418552</Energy>
+            <Efficiency>0.1302350252987666</Efficiency>
+            <ErrorPercent>0.22124229515931587</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>111.42644733699215</Energy>
+            <Efficiency>0.13115096058530773</Efficiency>
+            <ErrorPercent>0.22108555342845343</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>118.85846215988492</Energy>
+            <Efficiency>0.12987841124813923</Efficiency>
+            <ErrorPercent>0.22296839223849524</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>126.78618375300837</Energy>
+            <Efficiency>0.12910635583539704</Efficiency>
+            <ErrorPercent>0.224473112894883</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>135.24267518309571</Energy>
+            <Efficiency>0.12743826236465039</Efficiency>
+            <ErrorPercent>0.22673036351468617</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>144.26320478509052</Energy>
+            <Efficiency>0.12605970469994884</Efficiency>
+            <ErrorPercent>0.22871966693801066</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>153.88539325097773</Energy>
+            <Efficiency>0.12431085185785345</Efficiency>
+            <ErrorPercent>0.23116583108760505</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>164.14937052927223</Energy>
+            <Efficiency>0.12224274583066794</Efficiency>
+            <ErrorPercent>0.23402797661816999</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>175.09794318951751</Energy>
+            <Efficiency>0.12007227654246895</Efficiency>
+            <ErrorPercent>0.23685756992813004</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>186.77677294980629</Energy>
+            <Efficiency>0.11653458443421826</Efficiency>
+            <ErrorPercent>0.24142542108240025</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>199.23456711187697</Energy>
+            <Efficiency>0.11374971114793646</Efficiency>
+            <ErrorPercent>0.24527952868773989</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>212.52328169801</Energy>
+            <Efficiency>0.11085994733205125</Efficiency>
+            <ErrorPercent>0.24938880397363705</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>226.69833813692318</Energy>
+            <Efficiency>0.10696924623954032</Efficiency>
+            <ErrorPercent>0.25481045838643224</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>241.81885440235951</Energy>
+            <Efficiency>0.10310524336965357</Efficiency>
+            <ErrorPercent>0.26064382203145364</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>257.94789156835589</Energy>
+            <Efficiency>0.099254387850840842</Efficiency>
+            <ErrorPercent>0.26685502549350093</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>275.15271680945904</Energy>
+            <Efficiency>0.095169286852351626</Efficiency>
+            <ErrorPercent>0.27355162510763065</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>293.50508394275295</Energy>
+            <Efficiency>0.0903341566685593</Efficiency>
+            <ErrorPercent>0.28208534594247814</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>313.08153268171179</Energy>
+            <Efficiency>0.0863308377897639</Efficiency>
+            <ErrorPercent>0.28977153150910351</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>333.96370784994042</Energy>
+            <Efficiency>0.082632162559849037</Efficiency>
+            <ErrorPercent>0.29730694210592584</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>356.23869988609943</Energy>
+            <Efficiency>0.0777499515014951</Efficiency>
+            <ErrorPercent>0.30785336812820746</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>379.99940806011426</Energy>
+            <Efficiency>0.074329670977566459</Efficiency>
+            <ErrorPercent>0.31624028881473321</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>405.34492791548621</Energy>
+            <Efficiency>0.070615644453464355</Efficiency>
+            <ErrorPercent>0.32575715104533082</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>432.38096455355043</Energy>
+            <Efficiency>0.066649322115522963</Efficiency>
+            <ErrorPercent>0.33664974717110241</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>461.22027348332404</Energy>
+            <Efficiency>0.063046446778567578</Efficiency>
+            <ErrorPercent>0.34723614997020374</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>491.98313087551821</Energy>
+            <Efficiency>0.059446216427231427</Efficiency>
+            <ErrorPercent>0.35885825153744433</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>524.79783518195359</Energy>
+            <Efficiency>0.055982602760867264</Efficiency>
+            <ErrorPercent>0.37100368047590904</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>559.80124221240931</Energy>
+            <Efficiency>0.053159538775578774</Efficiency>
+            <ErrorPercent>0.38203486411262338</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>597.13933590046986</Energy>
+            <Efficiency>0.050257322176035277</Efficiency>
+            <ErrorPercent>0.39424693746187756</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>636.96783713880461</Energy>
+            <Efficiency>0.047437999736960494</Efficiency>
+            <ErrorPercent>0.40717989118484671</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>679.45285322304267</Energy>
+            <Efficiency>0.0451545211971359</Efficiency>
+            <ErrorPercent>0.4187099614713915</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>724.77157061280491</Energy>
+            <Efficiency>0.042533334733787245</Efficiency>
+            <ErrorPercent>0.43275544858366677</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>773.11299389910039</Energy>
+            <Efficiency>0.039939392239649735</Efficiency>
+            <ErrorPercent>0.44751607724058257</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>824.67873405997864</Energy>
+            <Efficiency>0.038417989686440529</Efficiency>
+            <ErrorPercent>0.45770800522114041</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>879.68384929192928</Energy>
+            <Efficiency>0.03619012029607168</Efficiency>
+            <ErrorPercent>0.47275905934624585</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>938.35774192376061</Energy>
+            <Efficiency>0.034073905467992181</Efficiency>
+            <ErrorPercent>0.4884785953067371</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>1000.9451151535831</Energy>
+            <Efficiency>0.032156673996085273</Efficiency>
+            <ErrorPercent>0.50391688363709419</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>1067.7069935990594</Energy>
+            <Efficiency>0.030517414265337169</Efficiency>
+            <ErrorPercent>0.51868024081713049</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>1138.9218119171528</Energy>
+            <Efficiency>0.02912686630505365</Efficiency>
+            <ErrorPercent>0.5322701751324368</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>1214.8865760335627</Energy>
+            <Efficiency>0.027345113042716279</Efficiency>
+            <ErrorPercent>0.55020985519373933</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>1295.918101824813</Energy>
+            <Efficiency>0.026148087548395281</Efficiency>
+            <ErrorPercent>0.56377289351487148</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>1382.3543364190002</Energy>
+            <Efficiency>0.024702755540246722</Efficiency>
+            <ErrorPercent>0.58131680413170916</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>1474.5557676257656</Energy>
+            <Efficiency>0.023446667172805552</Efficiency>
+            <ErrorPercent>0.59769931923549979</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>1572.9069273736245</Energy>
+            <Efficiency>0.022210535757316286</Efficiency>
+            <ErrorPercent>0.61569074561775872</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>1677.8179954247948</Energy>
+            <Efficiency>0.02085303126358809</Efficiency>
+            <ErrorPercent>0.63672723001096487</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>1789.726510055985</Energy>
+            <Efficiency>0.019703524161687472</Efficiency>
+            <ErrorPercent>0.65581808675640008</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>1909.0991928395667</Energy>
+            <Efficiency>0.018578003663942841</Efficiency>
+            <ErrorPercent>0.67542980450438794</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>2036.43389513556</Energy>
+            <Efficiency>0.017701892849339516</Efficiency>
+            <ErrorPercent>0.69445446865238214</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>2172.2616744123784</Energy>
+            <Efficiency>0.016685093017930318</Efficiency>
+            <ErrorPercent>0.714914522941661</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>2317.1490090557309</Energy>
+            <Efficiency>0.015625084953951283</Efficiency>
+            <ErrorPercent>0.74051888403600841</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>2471.7001609027488</Energy>
+            <Efficiency>0.01490232291074872</Efficiency>
+            <ErrorPercent>0.75894088750086031</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>2636.55969535438</Energy>
+            <Efficiency>0.014224210411458382</Efficiency>
+            <ErrorPercent>0.77800232050384455</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>2812.4151695763462</Energy>
+            <Efficiency>0.013096437645646233</Efficiency>
+            <ErrorPercent>0.81133668109598467</ErrorPercent>
+          </ROIEfficiencyData>
+          <ROIEfficiencyData>
+            <Energy>2999.9999999999977</Energy>
+            <Efficiency>0.012492154703206106</Efficiency>
+            <ErrorPercent>0.83180112549379914</ErrorPercent>
           </ROIEfficiencyData>
         </Curve>
         <Geometry>
@@ -208,20 +498,24 @@
           <IsScintillator>true</IsScintillator>
           <SourceType>Cylinder</SourceType>
           <Scene>None</Scene>
+          <InShield>false</InShield>
           <CrystalDiameter>80</CrystalDiameter>
           <CrystalHeight>80</CrystalHeight>
           <Shape>Cylinder</Shape>
-          <CrystalBoxX>80</CrystalBoxX>
-          <CrystalBoxY>80</CrystalBoxY>
-          <CrystalBoxZ>80</CrystalBoxZ>
+          <CrystalBoxX>0</CrystalBoxX>
+          <CrystalBoxY>0</CrystalBoxY>
+          <CrystalBoxZ>0</CrystalBoxZ>
           <Facing>Front</Facing>
           <FwhmAt662Percent>7.65</FwhmAt662Percent>
           <FrontReflectorThickness>2</FrontReflectorThickness>
           <SideReflectorThickness>2</SideReflectorThickness>
+          <FrontGapThickness>21.7</FrontGapThickness>
+          <SideGapThickness>0</SideGapThickness>
           <FrontCladdingThickness>3</FrontCladdingThickness>
           <SideCladdingThickness>3</SideCladdingThickness>
           <MountingThickness>2</MountingThickness>
           <PointDistance>100</PointDistance>
+          <FieldRadius>0</FieldRadius>
           <BeakerToDetectorDistance>0</BeakerToDetectorDistance>
           <BeakerDiameter>40</BeakerDiameter>
           <BeakerHeight>15</BeakerHeight>
@@ -238,12 +532,12 @@
           <MarinelliHoleEndWallThickness>2</MarinelliHoleEndWallThickness>
           <MarinelliSourceHeight>85</MarinelliSourceHeight>
           <MarinelliToDetectorDistance>1</MarinelliToDetectorDistance>
-          <BoxSourceX>40</BoxSourceX>
-          <BoxSourceY>40</BoxSourceY>
-          <BoxSourceHeight>20</BoxSourceHeight>
-          <BoxToDetectorDistance>5</BoxToDetectorDistance>
-          <BoxSideWallThickness>1</BoxSideWallThickness>
-          <BoxEndWallThickness>1</BoxEndWallThickness>
+          <BoxSourceX>0</BoxSourceX>
+          <BoxSourceY>0</BoxSourceY>
+          <BoxSourceHeight>0</BoxSourceHeight>
+          <BoxToDetectorDistance>0</BoxToDetectorDistance>
+          <BoxSideWallThickness>0</BoxSideWallThickness>
+          <BoxEndWallThickness>0</BoxEndWallThickness>
           <Crystal>
             <Name>Sodium iodide</Name>
             <Density>3.667</Density>
@@ -260,6 +554,14 @@
               <Element Z="12" Fraction="0.60303589682516046" />
             </Fractions>
           </Reflector>
+          <Gap>
+            <Name>Air, dry</Name>
+            <Density>0.001205</Density>
+            <Fractions>
+              <Element Z="7" Fraction="0.63648302312054683" />
+              <Element Z="8" Fraction="0.36351697687945328" />
+            </Fractions>
+          </Gap>
           <Cladding>
             <Name>Aluminum</Name>
             <Density>2.7</Density>
@@ -285,7 +587,7 @@
           </Source>
         </Geometry>
         <Note />
-        <ComputeStamp>phys=13; hist=1200000; grid=20-3000 keV/36 std</ComputeStamp>
+        <ComputeStamp>phys=22; hist=1000000; grid=7.4-3000 keV/94 log; sample=air; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1</ComputeStamp>
         <UseResponseMatrix>true</UseResponseMatrix>
       </Efficiency>
       <BackgroundSpectrumFile>Фон деревня.xml</BackgroundSpectrumFile>
@@ -298,7 +600,7 @@
         <EnergyCalibration>
           <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-6.50653954131939</Coefficient><Coefficient>0.3685931336694417</Coefficient><Coefficient>2.0893140668849233e-06</Coefficient><Coefficient>-6.164969449248106e-11</Coefficient></Coefficients>
+            <Coefficient>-6.507397561858037</Coefficient><Coefficient>0.3685933112388244</Coefficient><Coefficient>2.089315073409938e-06</Coefficient><Coefficient>-6.164972419216127e-11</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>61396823</ValidPulseCount>
         <TotalPulseCount>61465417</TotalPulseCount>
@@ -8506,7 +8808,7 @@
         <EnergyCalibration>
           <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-6.50653954131939</Coefficient><Coefficient>0.3685931336694417</Coefficient><Coefficient>2.0893140668849233e-06</Coefficient><Coefficient>-6.164969449248106e-11</Coefficient></Coefficients>
+            <Coefficient>-6.507397561858037</Coefficient><Coefficient>0.3685933112388244</Coefficient><Coefficient>2.089315073409938e-06</Coefficient><Coefficient>-6.164972419216127e-11</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>41057941</ValidPulseCount>
         <TotalPulseCount>41102282</TotalPulseCount>
@@ -16713,6 +17015,6 @@
         <Format>Base64 encoded binary</Format>
         <Pulses />
       </PulseCollection>
-      <PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.7250681039449033</Coefficient><Coefficient>0.6772552263497017</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
+      <PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.7252485650449334</Coefficient><Coefficient>0.6772193869784486</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>
