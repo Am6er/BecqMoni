@@ -1,0 +1,15 @@
+Nuclide ; Po-212 
+Element ; Polonium
+Z ; 84
+Daughter(s) ; (alpha) ; Pb-208 ; 100
+Qalpha ; 8954.12
+Possible parent(s) ; (B-) ; Bi-212 ; 64.07
+Half-life (s) ; 300E-9 ; 2E-9
+Decay constant (1/s) ; 2.310E6 ; 0.015E6
+Specific activity (Bq/g) ; 6.563E27 ; 0.044E27
+Reference ; Surrey Univ. - 2010
+Emissions (1 line) sorted by increasing energy
+----------------------------------------------------------------------------------------------------------
+Energy (keV) ; Ener. unc. (keV) ; Intensity (%) ; Int. unc. (%) ; Type ; Origin ; Lvl. start ; Lvl. end
+8785.17 ; 0.11 ; 100 ;  ; a ; Po-212 ; 0 ; 0
+==========================================================================================================
