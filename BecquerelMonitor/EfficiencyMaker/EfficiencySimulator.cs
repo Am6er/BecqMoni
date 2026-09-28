@@ -1082,6 +1082,31 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool RayleighScatter = true;
 
         /// <summary>
+        /// (`S197`, П178 28.09.2026) РЫЧАГ ЗАМЕРА, не физика: множитель
+        /// сечения когерентного рассеяния В КРИСТАЛЛЕ (розыгрыш в
+        /// <c>InCrystal</c>, и в длине свободного пробега, и в выборе канала).
+        /// Нужен, чтобы подставить в кристалл сечение арбитра: под K-краем иода
+        /// (33.17 кэВ) наш XCOM даёт когерентное в CsI ×1.30 от Geant4
+        /// (Livermore/EPICS2014). Умолчание 1.0 — умножение на единицу,
+        /// результат прежний до бита; склад и клеймо поля не знают.
+        /// </summary>
+        public double CrystalCoherentScale = 1.0;
+
+        /// <summary>
+        /// (`S197`, П178 28.09.2026) РЫЧАГ ЗАМЕРА, не физика: множитель
+        /// сечения фотоэффекта во всех областях, КРОМЕ кристалла (проба,
+        /// сосуд, обвязка). Входит в ослабление области (<c>Region.Mu</c>) —
+        /// значит, и в проводку к кристаллу, и в розыгрыш аналоговой ветви
+        /// (поглощение там — остаток за вычетом рассеяний). Нужен, чтобы
+        /// подставить вне кристалла фотоэффект арбитра: у Geant4 он у лёгких
+        /// элементов считается формулой-фитом, на 60 кэВ на 2.2 % ниже
+        /// таблицы (П175). Флуоресценция пробы вакансии по-прежнему берёт
+        /// сечения по элементам без множителя. Умолчание 1.0 — ветка не
+        /// исполняется, результат прежний до бита; склад и клеймо поля не знают.
+        /// </summary>
+        public double OutsidePhotoScale = 1.0;
+
+        /// <summary>
         /// ⛔ (`N13`) Когерентное рассеяние своим разыгранным каналом и во
         /// ВЗВЕШЕННОЙ (пиковой) ветви — той, что ведёт квант к кристаллу по
         /// exp(−τ) и разыгрывает одно рассеяние
@@ -1856,6 +1881,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             /// </summary>
             public bool ThresholdPair;
 
+            /// <summary>
+            /// (`S197`, П178) = <see cref="EfficiencySimulator.OutsidePhotoScale"/>
+            /// для областей вне кристалла, 1 у кристалла; ставится при регистрации.
+            /// </summary>
+            public double PhotoScale = 1.0;
+
             // --- кэш ослабления на ОДНУ энергию (`T43`) ---
             //
             // Каждая из четырёх величин считается ПО ТРЕБОВАНИЮ, а не все разом:
@@ -2132,6 +2163,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                     if (!this.hasNoCoherent)
                     {
                         this.muNoCoherent = this.NoCoherent(energyKev);
+                        if (this.PhotoScale != 1.0)
+                        {
+                            // (`S197`, П178) рычаг замера: фотоэффект ×PhotoScale.
+                            this.muNoCoherent = Math.Max(0.0, this.muNoCoherent
+                                - (1.0 - this.PhotoScale) * this.Channel(energyKev, PhotonProcess.Photoelectric));
+                        }
+
                         this.hasNoCoherent = true;
                     }
 
@@ -2141,6 +2179,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (!this.hasTotal)
                 {
                     this.muTotal = this.Total(energyKev);
+                    if (this.PhotoScale != 1.0)
+                    {
+                        // (`S197`, П178) рычаг замера: фотоэффект ×PhotoScale.
+                        this.muTotal = Math.Max(0.0, this.muTotal
+                            - (1.0 - this.PhotoScale) * this.Channel(energyKev, PhotonProcess.Photoelectric));
+                    }
+
                     this.hasTotal = true;
                 }
 
@@ -2446,6 +2491,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // пар, каким их разыгрывает `Region.Pair` и `CrystalChannels`:
             // ключ ВЫКЛ — прежняя хорда до бита.
             region.ThresholdPair = this.XcomPairThreshold;
+            region.PhotoScale = isCrystal ? 1.0 : this.OutsidePhotoScale;   // `S197`, П178
             this.regions.Add(region);
             if (isCrystal)
             {
@@ -5019,7 +5065,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // Когерентное — отдельным каналом: энергии не оставляет, но
                 // поворачивает квант, а значит меняет и путь до выхода.
                 double coherent = this.RayleighScatter
-                    ? this.crystal.Coherent(e) : 0.0;
+                    ? this.crystal.Coherent(e) * this.CrystalCoherentScale : 0.0;
                 double total = photo + compton + pair + coherent;
                 if (!(total > 0.0))
                 {
