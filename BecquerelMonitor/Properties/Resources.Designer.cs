@@ -4109,6 +4109,24 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("GeometryEditorErrorDensity", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to “{0}”: density {1} g/cm³ — a density must be greater than zero..
+        /// </summary>
+        public static string GeometryEditorErrorDensityField {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorDensityField", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to “{0}”: the material “{1}” has no composition. Open the material library (…) and fix it..
+        /// </summary>
+        public static string GeometryEditorErrorMaterialEmpty {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorMaterialEmpty", resourceCulture);
+            }
+        }
 
         public static string GeometryEditorErrorMarinelliHole {
             get {
@@ -4285,6 +4303,15 @@ namespace BecquerelMonitor.Properties {
         public static string GeometryEditorSceneIso {
             get {
                 return ResourceManager.GetString("GeometryEditorSceneIso", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The dose rate from this curve is for a sample in this geometry. For the background (radiation from all sides) set up a separate curve with the scene “Isotropic field (ISO)”..
+        /// </summary>
+        public static string GeometryEditorSceneIsoHint {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneIsoHint", resourceCulture);
             }
         }
 
@@ -5514,6 +5541,24 @@ namespace BecquerelMonitor.Properties {
         public static string GeometryMaterialsErrorFormulaPart {
             get {
                 return ResourceManager.GetString("GeometryMaterialsErrorFormulaPart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to “{0}” reads two ways: a fractional count or a hydrate. Write a hydrate with “*” or “·” — CaSO4*2H2O; put a space after a fractional count — Si1.5 O3..
+        /// </summary>
+        public static string GeometryMaterialsErrorFormulaDot {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorFormulaDot", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to “{0}” read as {1} before the 24.09.2026 update and as {2} now: letter case in element symbols now matters. Retype the formula in the case you mean..
+        /// </summary>
+        public static string GeometryMaterialsErrorFormulaCase {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorFormulaCase", resourceCulture);
             }
         }
         

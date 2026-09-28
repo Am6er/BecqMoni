@@ -759,6 +759,16 @@ namespace BecquerelMonitor
             // этим куском: «H2O)» или «co2» иначе молча сокращались бы.
             if (!entry.IsMixture && entry.ElementFractions.Count == 0)
             {
+                // (`AMBER104`) Формула из старого файла, которую обновление
+                // 24.09.2026 читает иначе, — оба прочтения словами. «Сохранить»
+                // проверяет все вещества и не пройдёт, пока её не наберут
+                // заново: иначе пометка пропала бы вместе со старым поколением.
+                string legacy = GeometryMaterialLibrary.LegacyFormulaProblem(entry);
+                if (legacy != null)
+                {
+                    return legacy;
+                }
+
                 string formulaProblem = GeometryMaterialLibrary.FormulaProblem(entry.Formula);
                 if (formulaProblem != null)
                 {

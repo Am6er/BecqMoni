@@ -197,6 +197,39 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// (`AMBER103`, П171; решение Amber 28.09.2026, дословно: «Строка AMBER:
+        /// подпись «фотоны 10 кэВ…3 МэВ, H*(10)»») Подпись строки дозы: величина
+        /// H*(10) и область фотонов, которую покрыл счёт, — «Мощность дозы
+        /// H*(10), фотоны 10 кэВ…3 МэВ:». Числа — края сетки ЭТОГО расчёта
+        /// (первый и последний диапазон): у шкалы и матрицы до 3 МэВ подпись
+        /// читается ровно словами решения, у шкалы короче — своим верхом, и не
+        /// врёт. Космическое излучение и прочие частицы по спектру дозой не
+        /// становятся (мюоны уходят за верх шкалы); у отказа диапазонов нет —
+        /// подпись прежняя, <c>Resources.DoseRate</c>.
+        /// </summary>
+        public string QuantityLabel()
+        {
+            if (!string.IsNullOrEmpty(this.refusal) || this.ranges.Count == 0)
+            {
+                return Resources.DoseRate ?? "";
+            }
+
+            return string.Format(CultureInfo.InvariantCulture,
+                                 DoseRateCoefficients.Text("DoseRateQuantityLabel", "Dose rate H*(10), photons {0}…{1}:"),
+                                 EnergyText(this.ranges[0].LowKev), EnergyText(this.ranges[this.ranges.Count - 1].HighKev));
+        }
+
+        /// <summary>Энергия подписи: ниже 1 МэВ — целые кэВ, выше — МэВ до сотых.</summary>
+        static string EnergyText(double kev)
+        {
+            return kev >= 1000.0
+                ? string.Format(CultureInfo.InvariantCulture, DoseRateCoefficients.Text("DoseRateMev", "{0} MeV"),
+                                (kev / 1000.0).ToString("0.##", CultureInfo.InvariantCulture))
+                : string.Format(CultureInfo.InvariantCulture, DoseRateCoefficients.Text("DoseRateKev", "{0} keV"),
+                                kev.ToString("0", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
         /// (`AMBER102`, П165 28.09.2026) Число посчитано по кривой СЦЕНЫ С
         /// ИСТОЧНИКОМ (точка, сосуд, маринелли, кювета), а не сцены поля `ISO`.
         /// Эффективная площадь такой кривой `ε/G` описывает кванты, идущие от
@@ -521,12 +554,62 @@ namespace BecquerelMonitor
         /// свободном электроне; ниже 20 кэВ комптоновский член даёт меньше
         /// 0.1 % величины, и связь там роли не играет.
         ///
-        /// ⚠ Радиационные потери (тормозное от вторичных электронов,
-        /// аннигиляция на лету) НЕ вычитаются: μ_en/ρ = μ_tr/ρ·(1 − g), а g для
-        /// воздуха ниже 3 МэВ меньше 0.2 %. Это и есть главный источник
-        /// расхождения с опубликованной таблицей на верху шкалы.
+        /// ⛔ (`AMBER131`, П171 28.09.2026) Радиационные потери ВЫЧИТАЮТСЯ:
+        /// μ_en/ρ = μ_tr/ρ·(1 − g), g — <see cref="RadiativeFractionAir"/>. До
+        /// того не вычитались, а описание уверяло, что «g для воздуха ниже 3 МэВ
+        /// меньше 0.2 %»; замер против NIST (Hubbell &amp; Seltzer) дал 1250 кэВ
+        /// +0.21 %, 2000 +0.42, 3000 +0.74, 5000 +1.50, 10000 +3.63 % (проба
+        /// `DoseSumProbeP171` §2, прежняя сборка). Аннигиляция позитрона на лету
+        /// в g не входит — остаток против NIST печатает та же проба.
         /// </summary>
         public static double MassEnergyAbsorptionAir(double energyKev)
+        {
+            double transfer, radiative;
+            AirTransfer(energyKev, out transfer, out radiative);
+
+            // см²/г → м²/кг: старая вшитая таблица была именно в м²/кг.
+            return (transfer - radiative) / 10.0;
+        }
+
+        /// <summary>
+        /// (`AMBER131`) Массовый коэффициент ПЕРЕДАЧИ энергии сухому воздуху
+        /// μ_tr/ρ, **м²/кг** — то, что <see cref="MassEnergyAbsorptionAir"/>
+        /// возвращал до 28.09.2026.
+        /// </summary>
+        public static double MassEnergyTransferAir(double energyKev)
+        {
+            double transfer, radiative;
+            AirTransfer(energyKev, out transfer, out radiative);
+            return transfer / 10.0;
+        }
+
+        /// <summary>
+        /// (`AMBER131`, П171) Доля g энергии, переданной вторичным электронам
+        /// кванта энергии <paramref name="energyKev"/> в воздухе, которая уходит
+        /// в тормозное излучение: g = Σ μ_tr,к·ḡ_к / μ_tr по каналам —
+        ///
+        /// * фотоэффект — ḡ = Y(E);
+        /// * некогерентное — ḡ = ∫ T·Y(T) dσ_КН / ∫ T dσ_КН (та же квадратура
+        ///   Клейна — Нишины по углу, что у <see cref="ComptonTransferCrossSection"/>);
+        /// * пары (оба канала) — кинетическая энергия E − 2m_e c² делится между
+        ///   частицами равномерно: ḡ = 2∫₀ᴷ T·Y(T) dT / K².
+        ///
+        /// Y(T) — радиационный выход электрона в сухом воздухе, счёт ESTAR
+        /// (<see cref="EstarCalculator.Compute"/>; I = 85.7 эВ из
+        /// `star_materials` 104, плотность 1.20479e-3 г/см³). Аннигиляция
+        /// позитрона на лету НЕ учтена.
+        /// </summary>
+        public static double RadiativeFractionAir(double energyKev)
+        {
+            double transfer, radiative;
+            AirTransfer(energyKev, out transfer, out radiative);
+            return transfer > 0.0 ? radiative / transfer : 0.0;
+        }
+
+        /// <summary>
+        /// μ_tr/ρ воздуха и его радиационная часть μ_tr/ρ·g, см²/г.
+        /// </summary>
+        static void AirTransfer(double energyKev, out double transfer, out double radiative)
         {
             if (!(energyKev > 0.0))
             {
@@ -542,7 +625,11 @@ namespace BecquerelMonitor
                 : 0.0;
 
             double sum = 0.0;
+            double lost = 0.0;
             double electronsPerGram = 0.0;
+            double yieldPhoto = RadiativeYieldAir(energyKev);
+            double gPair = fPair > 0.0 ? MeanYield(energyKev, true) : 0.0;
+            double gCompton = MeanYield(energyKev, false);
             for (int i = 0; i < AirZ.Length; i++)
             {
                 MaterialDatabase.Element element;
@@ -582,6 +669,8 @@ namespace BecquerelMonitor
 
                 sum += AirWeight[i] * (photo * fPhoto
                                        + (pairNuclear + pairElectron) * fPair);
+                lost += AirWeight[i] * (photo * fPhoto * yieldPhoto
+                                        + (pairNuclear + pairElectron) * fPair * gPair);
 
                 // ⛔ Электроны считаются по ТОМУ ЖЕ атомному весу, каким
                 // `MaterialDatabase` перевела барны в см²/г. Взять вес из
@@ -593,9 +682,214 @@ namespace BecquerelMonitor
             }
 
             sum += electronsPerGram * comptonTransfer;
+            lost += electronsPerGram * comptonTransfer * gCompton;
 
-            // см²/г → м²/кг: старая вшитая таблица была именно в м²/кг.
-            return sum / 10.0;
+            transfer = sum;
+            radiative = lost;
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER131`, П171) Радиационный выход электрона в воздухе и средние
+        // по каналам. Считается один раз, лениво: ESTAR по составу воздуха и
+        // две таблицы ḡ по ln E (241 узел, 1 кэВ…20 МэВ); g гладкая, и
+        // линейная интерполяция по ln E между узлами шагом 3.9 % стоит меньше
+        // 1e-5 абсолютных — против квадратуры на каждый вызов (строка
+        // состояния зовёт расчёт каждые 200 мс, энергия диапазона плавает).
+        // ------------------------------------------------------------------
+
+        /// <summary>Плотность сухого воздуха, г/см³ (`star_materials` 104).</summary>
+        const double AirDensityGCm3 = 0.00120479;
+
+        const double YieldLowKev = 1.0;
+
+        const double YieldHighKev = 20000.0;
+
+        const int YieldNodes = 241;
+
+        static readonly object yieldLock = new object();
+
+        static double[] yieldLogKev;
+
+        static double[] yieldLog;
+
+        static double[] comptonTable;
+
+        static double[] pairTable;
+
+        /// <summary>Радиационный выход Y(T) электрона кинетической энергии T в воздухе.</summary>
+        static double RadiativeYieldAir(double kev)
+        {
+            EnsureYield();
+            return YieldAt(kev);
+        }
+
+        static double YieldAt(double kev)
+        {
+            if (!(kev > 0.0))
+            {
+                return 0.0;
+            }
+
+            double x = Math.Log(kev);
+            int n = yieldLogKev.Length;
+            if (x <= yieldLogKev[0])
+            {
+                // Ниже сетки выход линеен по T (тормозная доля ∝ T).
+                return Math.Exp(yieldLog[0]) * kev / YieldLowKev;
+            }
+
+            if (x >= yieldLogKev[n - 1])
+            {
+                return Math.Exp(yieldLog[n - 1]);
+            }
+
+            int lo = (int)((x - yieldLogKev[0]) / (yieldLogKev[1] - yieldLogKev[0]));
+            if (lo > n - 2)
+            {
+                lo = n - 2;
+            }
+
+            double t = (x - yieldLogKev[lo]) / (yieldLogKev[lo + 1] - yieldLogKev[lo]);
+            return Math.Exp(yieldLog[lo] + t * (yieldLog[lo + 1] - yieldLog[lo]));
+        }
+
+        /// <summary>ḡ канала на энергии кванта — по таблице узлов сетки, линейно по ln E.</summary>
+        static double MeanYield(double energyKev, bool pair)
+        {
+            EnsureYield();
+            double[] table = pair ? pairTable : comptonTable;
+            double x = Math.Log(energyKev);
+            int n = yieldLogKev.Length;
+            if (x <= yieldLogKev[0])
+            {
+                return table[0];
+            }
+
+            if (x >= yieldLogKev[n - 1])
+            {
+                return table[n - 1];
+            }
+
+            int lo = (int)((x - yieldLogKev[0]) / (yieldLogKev[1] - yieldLogKev[0]));
+            if (lo > n - 2)
+            {
+                lo = n - 2;
+            }
+
+            double t = (x - yieldLogKev[lo]) / (yieldLogKev[lo + 1] - yieldLogKev[lo]);
+            return table[lo] + t * (table[lo + 1] - table[lo]);
+        }
+
+        static void EnsureYield()
+        {
+            lock (yieldLock)
+            {
+                if (pairTable != null)
+                {
+                    return;
+                }
+
+                var logKev = new double[YieldNodes];
+                var gridMev = new double[YieldNodes];
+                for (int i = 0; i < YieldNodes; i++)
+                {
+                    logKev[i] = Math.Log(YieldLowKev) + i * (Math.Log(YieldHighKev) - Math.Log(YieldLowKev)) / (YieldNodes - 1);
+                    gridMev[i] = Math.Exp(logKev[i]) / 1000.0;
+                }
+
+                var atoms = new double[AirZ.Length];
+                for (int i = 0; i < AirZ.Length; i++)
+                {
+                    MaterialDatabase.Element element;
+                    if (!MaterialDatabase.TryGet(AirZ[i], out element) || !(element.AtomicWeight > 0.0))
+                    {
+                        throw new DoseRateRefusalException(string.Format(
+                            CultureInfo.InvariantCulture,
+                            Text("DoseRateNoElement", "Dose rate: element Z={0} is missing from the material database."),
+                            AirZ[i]));
+                    }
+
+                    atoms[i] = AirWeight[i] / element.AtomicWeight;
+                }
+
+                EstarCalculator.Result estar = EstarCalculator.Compute(new EstarCalculator.Compound
+                {
+                    Name = "AIR, DRY (NEAR SEA LEVEL)",
+                    Z = (int[])AirZ.Clone(),
+                    Atoms = atoms,
+                    DensityGCm3 = AirDensityGCm3,
+                }, gridMev);
+
+                var logYield = new double[YieldNodes];
+                for (int i = 0; i < YieldNodes; i++)
+                {
+                    logYield[i] = Math.Log(estar.Yield[i]);
+                }
+
+                yieldLogKev = logKev;
+                yieldLog = logYield;
+
+                var compton = new double[YieldNodes];
+                var pair = new double[YieldNodes];
+                for (int i = 0; i < YieldNodes; i++)
+                {
+                    double e = Math.Exp(logKev[i]);
+                    compton[i] = ComptonMeanYield(e);
+                    pair[i] = PairMeanYield(e);
+                }
+
+                comptonTable = compton;
+                pairTable = pair;
+            }
+        }
+
+        /// <summary>
+        /// ḡ некогерентного канала: ∫ T·Y(T) dσ_КН / ∫ T dσ_КН — квадратура по
+        /// углу та же, что у <see cref="KleinNishina"/>.
+        /// </summary>
+        static double ComptonMeanYield(double energyKev)
+        {
+            double alpha = energyKev / ElectronMassKev;
+            const int Steps = 4096;
+            double st = 0.0;
+            double sty = 0.0;
+            for (int i = 0; i < Steps; i++)
+            {
+                double theta = Math.PI * (i + 0.5) / Steps;
+                double cos = Math.Cos(theta);
+                double k = 1.0 / (1.0 + alpha * (1.0 - cos));
+                double d = k * k * (k + 1.0 / k - (1.0 - cos * cos));
+                double w = d * Math.Sin(theta) * (1.0 - k);
+                st += w;
+                sty += w * YieldAt(energyKev * (1.0 - k));
+            }
+
+            return st > 0.0 ? sty / st : 0.0;
+        }
+
+        /// <summary>
+        /// ḡ канала пар: K = E − 2m_e c² делится равномерно,
+        /// ḡ = 2∫₀ᴷ T·Y(T) dT / K² (Симпсон, 256 отрезков).
+        /// </summary>
+        static double PairMeanYield(double energyKev)
+        {
+            double kinetic = energyKev - 2.0 * ElectronMassKev;
+            if (!(kinetic > 0.0))
+            {
+                return 0.0;
+            }
+
+            const int Steps = 256;
+            double h = kinetic / Steps;
+            double s = 0.0;
+            for (int i = 0; i <= Steps; i++)
+            {
+                double t = i * h;
+                double f = t * YieldAt(t);
+                s += (i == 0 || i == Steps ? 1.0 : (i % 2 == 1 ? 4.0 : 2.0)) * f;
+            }
+
+            return 2.0 * (s * h / 3.0) / (kinetic * kinetic);
         }
 
         /// <summary>
@@ -608,6 +902,9 @@ namespace BecquerelMonitor
         /// сверка такой разницы не видит вовсе — между узлами схемы расходятся
         /// там, где в узлах совпадают. Разница двух схем на ОДНИХ узлах
         /// измерена и меньше 1 % (`A198`, проба `DoseCoefProbeO2`).
+        ///
+        /// ⚠ Кроме первого участка, 10…15 кэВ (`AMBER115`, П171): там ln h
+        /// линеен по μ воды — см. комментарий в теле.
         ///
         /// За краями таблицы — ОТКАЗ, а не крайнее значение: ниже 10 кэВ
         /// величина падает на два порядка на декаду, и удержание края завысило
@@ -650,10 +947,38 @@ namespace BecquerelMonitor
                 }
             }
 
+            // (`AMBER115`, П171 28.09.2026) Первый участок, 10…15 кэВ: h меняется
+            // в 32.5 раза, и значение, линейное по ln E, завышало его между узлами
+            // ×2.49 на 11 кэВ, ×1.92 на 12, ×1.30 на 13.5 (проба `DoseSumProbeP171`
+            // §1). Здесь h — это ослабление в 10 мм ткани шара ICRU:
+            // ln h = a − b·μ_воды(E), и b по соседним узлам самосогласовано —
+            // 0.952 г/см² на 10–15, 0.989 на 15–20 (≈ 1 г/см², те самые 10 мм).
+            // Поэтому ln h интерполируется ЛИНЕЙНО ПО μ_воды, а μ_воды между
+            // узлами — степенью E^−k по двум узлам NIST. На 15–20 и 20–30 кэВ
+            // прежняя схема сходится с той же моделью в 1.35 / 1.70 %, а ln h по
+            // ln E ошибся бы на 7.6 / 5.8 % — там схема не тронута, побитово.
+            if (lo == 0)
+            {
+                double k = Math.Log(WaterMu10Kev / WaterMu15Kev) / Math.Log(AmbientEnergyKev[1] / AmbientEnergyKev[0]);
+                double tMu = (1.0 - Math.Pow(energyKev / AmbientEnergyKev[0], -k))
+                             / (1.0 - Math.Pow(AmbientEnergyKev[1] / AmbientEnergyKev[0], -k));
+                return Math.Exp(Math.Log(AmbientConversion[0])
+                                + tMu * Math.Log(AmbientConversion[1] / AmbientConversion[0]));
+            }
+
             double t = (Math.Log(energyKev) - Math.Log(AmbientEnergyKev[lo]))
                        / (Math.Log(AmbientEnergyKev[hi]) - Math.Log(AmbientEnergyKev[lo]));
             return AmbientConversion[lo] + t * (AmbientConversion[hi] - AmbientConversion[lo]);
         }
+
+        /// <summary>
+        /// (`AMBER115`) μ/ρ воды на 10 и 15 кэВ, см²/г — NIST, Hubbell &amp; Seltzer
+        /// (NISTIR 5632), таблица 4, «Water, Liquid». Нужны только отношением:
+        /// показатель степени μ ∝ E^−k на первом участке таблицы ICRP 74.
+        /// </summary>
+        const double WaterMu10Kev = 5.329;
+
+        const double WaterMu15Kev = 1.673;
 
         /// <summary>
         /// Множитель (μ_en/ρ)_air · h*(10)/K_air · E — в единицах

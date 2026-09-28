@@ -1281,6 +1281,12 @@
   <data name="GeometryEditorErrorDensity" xml:space="preserve">
     <value>Плотность кристалла должна быть больше нуля.</value>
   </data>
+  <data name="GeometryEditorErrorDensityField" xml:space="preserve">
+    <value>«{0}»: плотность {1} г/см³ — плотность должна быть больше нуля.</value>
+  </data>
+  <data name="GeometryEditorErrorMaterialEmpty" xml:space="preserve">
+    <value>«{0}»: у вещества «{1}» нет состава. Откройте библиотеку веществ (…) и исправьте его.</value>
+  </data>
   <data name="GeometryEditorErrorMarinelliHole" xml:space="preserve">
     <value>Диаметр стакана Маринелли должен быть больше диаметра колодца.</value>
   </data>
@@ -1409,6 +1415,9 @@
   </data>
   <data name="GeometryEditorSceneIso" xml:space="preserve">
     <value>Изотропное поле из 4π: кривая и матрица — эффективная площадь, см² (отклик на единичный флюенс, а не на квант источника). Радиус сферы {0:F0} см; ответ от него не зависит, пока он больше {1:F1} см.</value>
+  </data>
+  <data name="GeometryEditorSceneIsoHint" xml:space="preserve">
+    <value>Мощность дозы по этой кривой — для пробы в этой геометрии. Для фона (излучение со всех сторон) заведите отдельную кривую со сценой «Изотропное поле (ISO)».</value>
   </data>
   <data name="GeometryEditorErrorFieldRadiusSmall" xml:space="preserve">
     <value>Сфера поля не накрывает детектор: {0:F1} мм при наименьшем {1:F1} мм.</value>
@@ -1965,6 +1974,12 @@ http://xptable.sourceforge.net/</value>
   <data name="GeometryMaterialsErrorFormulaPart" xml:space="preserve">
     <value>Формула не читается с «{0}»: символ элемента — заглавная и строчные буквы, за ним число атомов — H2O, Bi4Ge3O12, Cs1 I1. Скобки не принимаются.</value>
   </data>
+  <data name="GeometryMaterialsErrorFormulaDot" xml:space="preserve">
+    <value>«{0}» читается двояко: дробное число или гидрат. Гидрат пишите через «*» или «·» — CaSO4*2H2O, дробное число — с пробелом после — Si1.5 O3.</value>
+  </data>
+  <data name="GeometryMaterialsErrorFormulaCase" xml:space="preserve">
+    <value>«{0}» до обновления 24.09.2026 читалась как {1}, теперь — как {2}: регистр в символах элементов теперь значим. Наберите формулу заново.</value>
+  </data>
   <data name="GeometryMaterialsErrorEmptyMixture" xml:space="preserve">
     <value>Смесь пуста: нужно хотя бы одно вещество с положительным весом.</value>
   </data>
@@ -2316,6 +2331,18 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="DoseRateSourceSceneHint" xml:space="preserve">
     <value>Мощность дозы считается по геометрии кривой эффективности, выбранной на панели: кванты считаются пришедшими от источника этой сцены. Фон приходит со всех сторон, и такая кривая ошибается в нём на десятки процентов, сильнее всего на низких энергиях. Чтобы мерить дозу фона, заведите в редакторе геометрии кривую сцены изотропного поля (ISO) и выберите её.</value>
+  </data>
+  <data name="DoseRateQuantityLabel" xml:space="preserve">
+    <value>Мощность дозы H*(10), фотоны {0}…{1}:</value>
+  </data>
+  <data name="DoseRateKev" xml:space="preserve">
+    <value>{0} кэВ</value>
+  </data>
+  <data name="DoseRateMev" xml:space="preserve">
+    <value>{0} МэВ</value>
+  </data>
+  <data name="DoseRateScopeHint" xml:space="preserve">
+    <value>H*(10) считается только по фотонам спектра: космическое излучение (около 30 нЗв/ч на уровне моря) и прочие частицы в неё не входят. Истинное суммирование каскадов не учтено: вблизи детектора оно завышает показание Co-60 до 0.6 %, Na-22 до 3.2 %.</value>
   </data>
   <data name="DoseRateThickSample" xml:space="preserve">
     <value>Мощность дозы: проба слишком толстая для формулы дозы — к кристаллу выходит лишь {0:f2} нерассеянного потока (в среднем по дозе), а формула считает, что выходит весь, и не видит квантов, рассеянных в пробе; показание было бы завышено больше чем на 10 %. Дозу толстого слоя (грунт, большой сосуд) считайте сценой поля ISO.</value>

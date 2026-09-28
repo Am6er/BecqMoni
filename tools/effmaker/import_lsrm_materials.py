@@ -25,6 +25,14 @@ u"""Втянуть таблицу веществ ЛСРМ в засев библ
     файле дыра. Вещество с нулевой плотностью редактор не примет, и заводить
     его, выдумав число, нельзя.
 
+ОПЕЧАТКИ ЛСРМ (`AMBER107`, П172 28.09.2026). Две строки таблицы расходятся с
+NIST STAR, откуда таблица и взята, и доли у них подменяются долями из
+`matdb.star_material_composition` (только чтение, `ERRATA` ниже):
+  * `Freon-13ii` (CF3I) — Z 55 (цезий) вместо 53 (иод): μ ×1.09 на 60 кэВ,
+    ×0.21 между K-краями I и Cs;
+  * `Lanthanum oxysulfide` — доли La2OS вместо La2O2S: μ ×1.048.
+Прочие строки генератор выдаёт побайтно прежними (проверено перед правкой).
+
 ВИД («куда годится») у ввезённых — `Other`: в файле ЛСРМ его нет, а разложить
 287 веществ по нашим пяти видам можно только угадыванием. В списках редактора
 они идут после веществ своего вида, за разделителем; назначить вид — одно
@@ -69,6 +77,41 @@ def read_dat(path):
     return rows
 
 
+# (`AMBER107`) имя строки ЛСРМ -> имя вещества NIST STAR в matdb.
+ERRATA = {
+    'Freon-13ii': 'FREON-13I1',
+    'Lanthanum oxysulfide': 'LANTHANUM OXYSULFIDE',
+}
+MATDB = os.path.join(REPO, 'BecquerelMonitor', 'matdb.sqlite')
+
+
+def apply_errata(rows):
+    u"""Подменить доли опечаток долями NIST из matdb (открывается только на чтение)."""
+    import sqlite3
+    uri = 'file:' + MATDB.replace('\\', '/') + '?mode=ro'
+    con = sqlite3.connect(uri, uri=True)
+    try:
+        for r in rows:
+            star = ERRATA.get(r['name'])
+            if star is None:
+                continue
+            got = con.execute(
+                'select c.z, c.weight_fraction from star_materials m '
+                'join star_material_composition c on c.material_id = m.id '
+                'where m.star_name = ? order by c.z', (star,)).fetchall()
+            if not got:
+                raise ValueError(u'в matdb нет вещества %s' % star)
+            was = dict(r['fractions'])
+            r['fractions'] = dict((int(z), float(w)) for z, w in got)
+            print(u'опечатка ЛСРМ %-22s: %s -> %s (NIST %s)' % (
+                r['name'],
+                ' '.join('%d:%.6g' % (z, was[z]) for z in sorted(was)),
+                ' '.join('%d:%.6g' % (z, r['fractions'][z]) for z in sorted(r['fractions'])),
+                star))
+    finally:
+        con.close()
+
+
 def seeded_names():
     u"""Имена веществ вшитого списка — их таблица не трогает."""
     import re
@@ -88,6 +131,7 @@ def main():
     args = ap.parse_args()
 
     rows = read_dat(args.dat)
+    apply_errata(rows)
     have = seeded_names()
 
     taken, skipped_known, skipped_bad = [], [], []
@@ -116,6 +160,8 @@ def main():
     add(u'// Состав задан МАССОВЫМИ ДОЛЯМИ из того же файла, а не формулой:')
     add(u'// формула там записана для человека ((C2F4)n, и опечатка H20 у воды),')
     add(u'// а доли — величины NIST и сходятся к единице у всех строк.')
+    add(u'// Две опечатки ЛСРМ (Freon-13ii, Lanthanum oxysulfide) заменены долями')
+    add(u'// NIST из matdb.star_material_composition (AMBER107, П172 28.09.2026).')
     add(u'using System.Collections.Generic;')
     add(u'')
     add(u'namespace BecquerelMonitor.EfficiencyMaker')

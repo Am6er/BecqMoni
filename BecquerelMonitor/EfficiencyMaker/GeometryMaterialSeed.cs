@@ -5,6 +5,8 @@
 // Состав задан МАССОВЫМИ ДОЛЯМИ из того же файла, а не формулой:
 // формула там записана для человека ((C2F4)n, и опечатка H20 у воды),
 // а доли — величины NIST и сходятся к единице у всех строк.
+// Две опечатки ЛСРМ (Freon-13ii, Lanthanum oxysulfide) заменены долями
+// NIST из matdb.star_material_composition (AMBER107, П172 28.09.2026).
 using System.Collections.Generic;
 
 namespace BecquerelMonitor.EfficiencyMaker
@@ -103,7 +105,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             new[] { "Freon-12b2", "CF2Br2", "1.8", "6:0.057245 9:0.181096 35:0.761659" },
             new[] { "Freon-13", "CF3Cl", "0.95", "6:0.114983 9:0.545622 17:0.339396" },
             new[] { "Freon-13b1", "CF3Br", "1.5", "6:0.080659 9:0.382749 35:0.536592" },
-            new[] { "Freon-13ii", "CF3I", "1.8", "6:0.061309 9:0.290924 55:0.647767" },
+            new[] { "Freon-13ii", "CF3I", "1.8", "6:0.061309 9:0.290924 53:0.647767" },
             new[] { "Gadolinium", "Gd", "7.9", "64:1" },
             new[] { "Gadolinium oxysulfide", "Gd2O2S", "7.44", "8:0.084527 16:0.084704 64:0.830769" },
             new[] { "Gafchromic sensor", "", "1.3", "1:0.0897 6:0.6058 7:0.1122 8:0.1923" },
@@ -134,7 +136,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             new[] { "Krypton, liquid", "Kr", "0.002418", "36:1" },
             new[] { "Lanthanum", "La", "6.154", "57:1" },
             new[] { "Lanthanum oxybromide", "LaOBr", "6.28", "8:0.068138 35:0.340294 57:0.591568" },
-            new[] { "Lanthanum oxysulfide", "La2OS", "5.86", "8:0.049097 16:0.098383 57:0.85252" },
+            new[] { "Lanthanum oxysulfide", "La2OS", "5.86", "8:0.0936 16:0.093778 57:0.812622" },
             new[] { "Lead", "Pb", "11.35", "82:1" },
             new[] { "Lead oxide", "PbO", "9.53", "8:0.071682 82:0.928318" },
             new[] { "Lithium", "Li", "0.534", "3:1" },
