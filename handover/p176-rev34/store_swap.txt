@@ -1,0 +1,15 @@
+скопировано по ключам: 49
+sha256 после копии против склада полосы: расхождений 0
+mx_swap: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\mx_swap.py --from=D:\BqMoni_Claude\p161\store --store
+куда: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries\response
+геометрий в index.csv с guid: 49
+подменено матриц: 49
+
+
+mx_swap code=0
+swap_code=0
+живых .rmx 49, = складу полосы по sha256: 49, расхождений 0
+response/: 49; множество sha256 response = множеству по ключам: ДА
+форматы живых: {10: 49}; клейма: {'phys=24': 49}; без блока Q_k: 0
+ПЕРЕНОС ПРИНЯТ
+verify_after_code=0

@@ -1,0 +1,36 @@
+124LA idx 0 E=0 T=21 s: EC+B+ 100 || idx 2 E=0 T=29.21 s: EC+B+ 100
+125CE idx 0 E=0 T=9.7 s: EC+B+ 100; B+P 
+138PM idx 0 E=0 T=10 s: EC+B+ 100 || idx 1 E= T=3.24 m: EC+B+ 100
+143DY idx 0 E=0 T=5.6 s: EC+B+ 100; ECP  || idx 3 E=310.7 T=3.0 s: EC+B+ 100; ECP 
+148HO idx 0 E=0 T=2.2 s: EC+B+ 100 || idx 1 E=0 T=9.59 s: EC+B+ 100; ECP 0.08 || idx 12 E=694.4 T=2.36 ms: IT 100
+150EU idx 0 E=0 T=36.9 Y: EC+B+ 100 || idx 1 E=41.7 T=12.8 h: B- 89; EC+B+ 11; IT 0.00000005
+157LU idx 0 E=0 T=6.8 s: A 0 || idx 1 E=20.9 T=4.79 s: EC+B+ 94; A 6
+161RE idx 0 E=0 T=0.44 ms: P 100; A 1.4 || idx 1 E=123.8 T=14.7 ms: A 93; P 7
+164RE idx 0 E=0 T=0.70 s: A 58; EC+B+ 42 || idx 1 E=0 T=0.86 s: EC+B+ 97; A 3
+171AU idx 0 E=0 T=22 us: P 100 || idx 1 E=259 T=1.04 ms: A 60; P 40
+171IR idx 0 E=0 T=3.2 s: EC+B+ 85; A 15 || idx 1 E=0 T=1.2 s: A 54; EC+B+ 46; P 46
+176LU idx 0 E=0 T=3.76E+10 Y: B- 100 || idx 1 E=122.845 T=3.664 h: B- 99.905; EC 0.095
+179AU idx 0 E=0 T=7.1 s: EC+B+ 78; A 22 || idx 7 E=86 T=100 us: IT 
+183PT idx 0 E=0 T=6.5 m: EC+B+ 100; A 0.0096 || idx 1 E=34.74 T=43 s: EC+B+ 96.9; IT 3.1; A 0.0003
+184AU idx 0 E=0 T=20.6 s: EC+B+ 100; A 0.016 || idx 3 E=68.46 T=47.6 s: EC+B+ 70; IT 30; A 0.016
+184TL idx 0 E=0 T=10.1 s: EC+B+ 97.9; A 2.1
+185PT idx 0 E=0 T=70.9 m: EC+B+ 100 || idx 2 E=103.41 T=33.0 m: EC+B+ 99; IT 2
+185TL idx 0 E=0 T=19.5 s: EC+B+  || idx 3 E=454.8 T=1.93 s: IT ; A 
+187PB idx 0 E=0 T=15.2 s: EC+B+ 90.5; A 9.5 || idx 1 E=33 T=18.3 s: EC+B+ 88; A 12
+187TL idx 0 E=0 T=51 s: EC+B+ 100; A 0.03 || idx 2 E=334 T=15.60 s: IT 99.9; EC+B+ 99.9; A 0.15
+191PB idx 0 E=0 T=1.33 m: EC+B+ 99.987; A 0.013 || idx 1 E=55 T=2.18 m: EC+B+ 100; A 0.02
+197BI idx 0 E=0 T=9.33 m: EC+B+ 100; A 0.0001 || idx 1 E=500 T=5.04 m: A 55; EC+B+ 45; IT 0.3
+198BI idx 0 E=0 T=10.3 m: EC+B+ 100 || idx 1 E=0 T=11.6 m: EC+B+ 100 || idx 3 E=248.5 T=7.7 s: IT 100
+199BI idx 0 E=0 T=27 m: EC+B+ 100 || idx 1 E=667 T=24.70 m: EC+B+ 99; IT 2; A 0.01
+201BI idx 0 E=0 T=103 m: EC+B+ 100 || idx 1 E=846.35 T=58.5 m: EC+B+ 88.7; IT 11; A 0.3
+242AM idx 0 E=0 T=16.01 h: B- 83; EC 17; A 0.0001 || idx 2 E=48.603 T=141 Y: IT 99.55; A 0.45; SF 0.0000000047 || idx 215 E=2200 T=13.9 ms: SF 100; A 0.005; IT 
+246MD idx 0 E=0 T=0.9 s: A 100; SF ; EC+B+  || idx 1 E=0 T=4.4 s: EC+B+ 77; A 23
+253LR idx 0 E=0 T=0.57 s: A 98.7; SF 1.3 || idx 1 E=0 T=1.49 s: A 92; SF 8
+254ES idx 0 E=0 T=275.7 d: A 100; B- 0.000174; SF 0.000003 || idx 2 E=84.2 T=39.3 h: B- 98; IT 3; A 0.32
+258MD idx 0 E=0 T=51.50 d: A 100 || idx 1 E=0 T=57.0 m: EC 85; A 1.2
+53CO idx 0 E=0 T=240 ms: EC+B+ 100 || idx 3 E=3197 T=247 ms: EC+B+ 98.5; P 1.5
+60V idx 0 E=0 T=122 ms: B- 100; B-N ; B-2N  || idx 1 E=0 T=40 ms: B- 100; B-2N ; B-N  || idx 3 E=202.1 T=0.32 us: IT 100
+90RH idx 0 E=0 T=29 ms: EC+B+ 100; ECP 0.7 || idx 1 E=0 T=0.56 s: EC+B+ 100; ECP 9.6
+93RU idx 0 E=0 T=59.7 s: EC+B+ 100 || idx 1 E=734.4 T=10.8 s: EC+B+ 78; IT 22; ECP 0.027
+94AG idx 0 E=0 T=26 ms: EC+B+ 100; ECP  || idx 1 E=0 T=0.55 s: EC 100; ECP 20 || idx 2 E=6670 T=0.40 s: EC 95.4; ECP 27; P 4.1
+95PD idx 0 E=0 T=5 s: EC+B+ 100 || idx 5 E=1875.13 T=13.3 s: EC+B+ 89; IT 11; B+P 0.93

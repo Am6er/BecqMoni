@@ -1299,7 +1299,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     using (SqliteCommand life = connection.CreateCommand())
                     {
                         command.CommandText =
-                            "select daughter_nucid, perc from decay_chain d"
+                            "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from" + DecayParentRule.ChainTable + " d"
                             + " where nucid = $n and perc not null"
                             + DecayParentRule.ChainLevelClause;
                         command.Parameters.AddWithValue("$n", root);
@@ -1970,7 +1970,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     using (SqliteCommand life = connection.CreateCommand())
                     {
                         edges.CommandText =
-                            "select daughter_nucid, perc from decay_chain d"
+                            "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from" + DecayParentRule.ChainTable + " d"
                             + " where nucid = $n and perc not null"
                             + DecayParentRule.ChainLevelClause;
                         edges.Parameters.AddWithValue("$n", root);
@@ -2090,7 +2090,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // `parent_l_seqno`: второго соглашения о том, что считать
                     // ребром ряда, в проекте быть не должно.
                     command.CommandText =
-                        "select daughter_nucid, perc from decay_chain d"
+                        "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from" + DecayParentRule.ChainTable + " d"
                         + " where nucid = $n and perc not null"
                         + DecayParentRule.ChainLevelClause;
                     command.Parameters.AddWithValue("$n", root);
@@ -2247,7 +2247,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 using (SqliteCommand command = connection.CreateCommand())
                 {
                     command.CommandText =
-                        "select daughter_nucid, perc from decay_chain d"
+                        "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from" + DecayParentRule.ChainTable + " d"
                         + " where nucid = $n and perc not null"
                         + DecayParentRule.ChainLevelClause;
                     command.Parameters.AddWithValue("$n", root);

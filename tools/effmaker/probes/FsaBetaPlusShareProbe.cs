@@ -27,7 +27,10 @@ namespace FsaBetaPlusShareProbe
     /// поставок. Печатается и примечание базы (`Note`).
     ///
     ///     fsabetaplusshareprobe (--sample=22NA,88Y | --all) [--check] [--out=&lt;tsv&gt;]
-    ///                           [--formula=ensdf|supply] [--identity]
+    ///                           [--formula=ensdf|supply] [--identity] [--ti-split=1|0]
+    ///
+    /// `--ti-split=0` — питания, данные только полным (TI), не делить теорией
+    /// ε/β⁺ (`AMBER121`, П169: поведение до правки).
     ///
     /// `--check` — код 1, если у кого-то обратная условная больше 1 + 1e-9
     /// либо (`S188`) прямая есть, а обратной нет — пара потеряна.
@@ -38,7 +41,8 @@ namespace FsaBetaPlusShareProbe
     /// `--formula=supply` судит прежнее
     /// правило P(511 | γ)·I(γ)/I(511) из двух поставок — положительный
     /// контроль: на нынешней базе оно обязано дать `--check` код 1 (16 линий у
-    /// 13 родителей, замер П149). Печатаются обе.
+    /// 13 родителей, замер П149; 15 у 12 после перезаливки `ensdf_feedings`
+    /// с TI, `AMBER121` П169 28.09.2026). Печатаются обе.
     /// Имён нуклидов в пробе нет: кого печатать — ключи или база.
     ///
     /// (`AMBER122`, П166 28.09.2026) `--identity` — код 1, если у кого-то
@@ -70,6 +74,10 @@ namespace FsaBetaPlusShareProbe
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
                 else if (a == "--formula=supply") supplyFormula = true;
                 else if (a == "--formula=ensdf") supplyFormula = false;
+                // (`AMBER121`, П169) раздел питаний «только TI» теорией ε/β⁺: 1 — умолчание приложения, 0 — до П169
+                else if (a == "--ti-split=0") CascadeAtomicData.SplitTotalFeedingByTheory = false;
+                else if (a == "--ti-split=1") CascadeAtomicData.SplitTotalFeedingByTheory = true;
+                else if (a == "--ti-selftest") return TiSelfTest();
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
 
@@ -209,10 +217,70 @@ namespace FsaBetaPlusShareProbe
             Console.WriteLine("расхождений поставок для окна отчёта (S187): {0}", discrepancies);
             Console.WriteLine("обратных за единицей: заменено потоком ENSDF {0}, ENSDF интенсивности не дала {1}",
                               CascadeAtomicData.ReverseReplaced, CascadeAtomicData.ReverseFallbacks);
+            Console.WriteLine("питаний только полным (TI), разделённых теорией ε/β⁺: {0} (--ti-split={1})",
+                              CascadeAtomicData.TotalFeedingSplits,
+                              CascadeAtomicData.SplitTotalFeedingByTheory ? 1 : 0);
             Console.WriteLine("тождество совместной I(γ)·P(511|γ) = I(511)·P(γ|511) нарушено у {0} линий; худшее {1} %",
                               broken, F(100.0 * worst, "F2"));
             if (check && (over > 0 || lost > 0)) return 1;
             return identity && broken > 0 ? 1 : 0;
+        }
+
+        /// <summary>
+        /// (`AMBER121`, П169) `--ti-selftest`: доля β⁺ теории ε/β⁺ приложения
+        /// (<see cref="AllowedCaptureRatio"/>) против независимого прототипа на
+        /// питоне (`handover/p169/ecbeta.py`) и против раздела ENSDF, где он есть.
+        /// Код 1 — расхождение с прототипом больше 1e-6 относительно.
+        /// </summary>
+        static int TiSelfTest()
+        {
+            // Z дочери, A, E0 кэВ, доля прототипа, доля ENSDF (IB/(IB+IE), NaN — нет)
+            double[][] cases =
+            {
+                new[] { 10.0, 22.0, 1567.7, 0.9022459798818128, 90.5 / (90.5 + 9.502) },
+                new[] { 8.0, 18.0, 1655.9, 0.9684111919166027, 96.86 / 100.0 },
+                new[] { 28.0, 64.0, 1672.1, 0.28121887584934246, double.NaN },
+                new[] { 74.0, 180.0, 3691.5, 0.2732809359707026, double.NaN },
+                new[] { 16.0, 31.0, 9744.4, 0.9998927652963032, double.NaN },
+            };
+            string mat = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "matdb.sqlite");
+            int bad = 0;
+            using (var connection = new SqliteConnection("Data Source=" + mat + ";Mode=ReadOnly;"))
+            {
+                connection.Open();
+                foreach (double[] c in cases)
+                {
+                    var binding = new Dictionary<int, double>();
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = "select shell_id, binding_ev from eadl_binding where z = $z";
+                        command.Parameters.AddWithValue("$z", (int)c[0]);
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                binding[reader.GetInt32(0)] = reader.GetDouble(1) / 1000.0;
+                            }
+                        }
+                    }
+
+                    double share = AllowedCaptureRatio.BetaPlusShare((int)c[0], (int)c[1], c[2], binding);
+                    double rel = share / c[3] - 1.0;
+                    bool ok = Math.Abs(rel) <= 1e-6;
+                    if (!ok)
+                    {
+                        bad++;
+                    }
+
+                    Console.WriteLine("Z={0,-3} A={1,-4} E0={2,8:F1}  доля β⁺ {3:F10}  прототип {4:F10}  {5:+0.0E+0;-0.0E+0}  ENSDF {6}  {7}",
+                                      c[0], c[1], c[2], share, c[3], rel,
+                                      double.IsNaN(c[4]) ? "—" : c[4].ToString("F4", CultureInfo.InvariantCulture),
+                                      ok ? "ok" : "⛔");
+                }
+            }
+
+            Console.WriteLine(bad == 0 ? "САМОПРОВЕРКА ТЕОРИИ ε/β⁺ СОШЛАСЬ" : "САМОПРОВЕРКА ТЕОРИИ ε/β⁺: расхождений " + bad);
+            return bad == 0 ? 0 : 1;
         }
 
         static string F(double value, string format)

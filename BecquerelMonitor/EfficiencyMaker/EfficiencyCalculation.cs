@@ -203,6 +203,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // попав в этот шаг, они растянули бы сетку до границы
                     // сотнями узлов.
                     Reach(picked, lo, hi);
+                    DensifyLow(picked);
                     AddEdges(picked, geometry, lo, hi, notes);
                     return picked.ToArray();
                 }
@@ -230,8 +231,85 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             // Края нужны и логарифмической сетке: она реже штатной внизу шкалы,
             // и провал в разы попадает между её узлами тем более.
+            DensifyLow(grid);
             AddEdges(grid, geometry, lo, hi, notes);
             return grid.ToArray();
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER95`, П147 24.09.2026, физика 24) Верх участка, где сетка
+        /// кривой гуще штатной: ниже 40 кэВ — первого узла
+        /// <see cref="EfficiencyCalculation.DefaultEnergies"/>.
+        /// </summary>
+        public const double LowGridTopKev = 40.0;
+
+        /// <summary>
+        /// (`AMBER95`) Наибольшее отношение соседних узлов кривой ниже
+        /// <see cref="LowGridTopKev"/> — ШАГ ШТАТНОЙ СЕТКИ МАТРИЦЫ
+        /// (<see cref="ResponseMatrixOptions"/>: 140 узлов на 5…3000 кэВ,
+        /// 1.0471), одно правило густоты для кривой и матрицы (решение Amber
+        /// 12.09.2026 «одна физика для кривой и матрицы»). Считается из умолчаний
+        /// матрицы, а не переписано числом: вторая копия разъехалась бы молча
+        /// (`S37`).
+        /// </summary>
+        public static readonly double LowGridRatio = MatrixGridRatio();
+
+        static double MatrixGridRatio()
+        {
+            ResponseMatrixOptions matrix = new ResponseMatrixOptions();
+            double lo = Math.Max(1.0, matrix.MinEnergyKev);
+            double hi = Math.Max(lo * 1.01, matrix.MaxEnergyKev);
+            int n = Math.Max(2, matrix.NodeCount);
+            return Math.Exp((Math.Log(hi) - Math.Log(lo)) / (n - 1));
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER95`, П147 24.09.2026, физика 24) СГУСТИТЬ СЕТКУ НИЖЕ 40 кэВ:
+        /// в каждый промежуток ниже <see cref="LowGridTopKev"/>, где соседние
+        /// узлы отстоят больше чем в <see cref="LowGridRatio"/> раз, вставить
+        /// узлы геометрически поровну.
+        ///
+        /// ЧТО БЫЛО НЕ ТАК. Штатная сетка начинается с 40 кэВ, ниже её
+        /// достраивал <see cref="Reach"/> шагом первой пары, 10 кэВ: узлы 5, 10,
+        /// 20, 30, 40. Эффективность там — пропускание корпуса и пробы
+        /// `exp(−μt)` при μ ∝ E⁻³, её логарифм по ln E вогнут, и лог-лог хорда
+        /// между узлами лежит НИЖЕ кривой. Замер П147 (`CurveGridProbeA95`,
+        /// 400 тыс. историй, арбитр — узел ровно на энергии): лог-лог
+        /// штатной против арбитра на 26.34 кэВ — 0.87 (RC-103 маринелли), 0.85
+        /// (NaI 63×63, 5 см), 0.75 (NaI 80×80 впритык); на 17.14 — 0.28 / 0.15
+        /// / 1.21; на 13.9 — 0.11 / 0.04 / 4.19. Беккерели по кривой на
+        /// линиях Am-241 26.34 и L-рентгене Np — в разы мимо.
+        /// </summary>
+        static void DensifyLow(List<double> grid)
+        {
+            if (grid == null || grid.Count < 2)
+            {
+                return;
+            }
+
+            grid.Sort();
+            double logRatio = Math.Log(LowGridRatio);
+            List<double> added = new List<double>();
+            for (int i = 1; i < grid.Count; i++)
+            {
+                double a = grid[i - 1], b = grid[i];
+                if (!(a > 0.0) || a >= LowGridTopKev)
+                {
+                    continue;
+                }
+
+                // Промежуток, выходящий за 40 кэВ (у логарифмической сетки),
+                // гущается по всей длине: его нижний конец уже в зоне.
+                double span = Math.Log(b / a);
+                int parts = (int)Math.Ceiling(span / logRatio - 1e-9);
+                for (int k = 1; k < parts; k++)
+                {
+                    added.Add(Math.Exp(Math.Log(a) + span * k / parts));
+                }
+            }
+
+            grid.AddRange(added);
+            grid.Sort();
         }
 
         /// <summary>
@@ -268,8 +346,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// принадлежит веществу, а не пробе, и стенка из свинца ступит кривую
         /// ровно так же, как проба из лютеция.
         ///
-        /// Кристалл сюда НЕ входит: его собственный край — это край СЧЁТА, а не
-        /// пропускания, и он уже сидит в штатных узлах у своих иода и цезия.
+        /// ⛔ (`AMBER95`, П147 24.09.2026, физика 24) И КРИСТАЛЛ ТОЖЕ. Прежде
+        /// здесь стояло «его собственный край — это край СЧЁТА, а не
+        /// пропускания, и он уже сидит в штатных узлах у своих иода и цезия» —
+        /// неверно дважды: штатных узлов 33 и 36 кэВ нет (ниже 40 сетка шла 30,
+        /// 40), а край счёта ступит кривую так же — над K-краем иода уходит
+        /// флуоресценция (пик вылета), и эффективность в пике падает скачком.
+        /// Замер П147 (`CurveGridProbeA95`, NaI 63×63 на 5 см): лог-лог
+        /// штатной против арбитра на 33.3 кэВ — 1.14, на 34.0 — 1.12, на 35.0
+        /// (Cs Kβ) — 1.10, на 32.2 (Ba Kα) — 0.93; у CsI маринелли 1.07 / 1.04 /
+        /// 1.00 / 0.93. Правило то же, что у прочих веществ: пара ±0.2 %,
+        /// скачок ослабления ≥ 10 %; сетка матрицы (`AddSampleEdges`) получает
+        /// те же пары.
         /// </summary>
         /// <summary>
         /// То же правило снаружи — им пользуется сетка МАТРИЦЫ отклика (`E31`),
@@ -290,7 +378,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            GeometryMaterial[] onPath = { geometry.Source, geometry.BeakerWall,
+            // (`AMBER95`) Кристалл — ПЕРВЫМ: его края видны у всякой сцены.
+            GeometryMaterial[] onPath = { geometry.Crystal, geometry.Source, geometry.BeakerWall,
                                           geometry.Reflector, geometry.Cladding };
             List<double> added = new List<double>();
             HashSet<int> seen = new HashSet<int>();
@@ -592,6 +681,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // (2BS) — тем же путём, от умолчания настроек склада (ВЫКЛ до
                 // решения Amber о едином счёте).
                 ElectronLayerBremAngular2BS = storePhysics.ElectronLayerBremAngular2BS,
+                // (`AMBER80`, П147 24.09.2026, физика 24) Пороговая форма пар —
+                // тем же путём, от умолчания настроек склада (ВКЛ с физики 24,
+                // решение Amber 24.09.2026): кривая и склад считают одно сечение.
+                XcomPairThreshold = storePhysics.XcomPairThreshold,
             };
 
             log(geometry.Describe());
@@ -738,6 +831,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         ElectronLayerMixedScattering = simulator.ElectronLayerMixedScattering,
                         ElectronLayerBremAlongPath = simulator.ElectronLayerBremAlongPath,
                         ElectronLayerBremAngular2BS = simulator.ElectronLayerBremAngular2BS,
+                        XcomPairThreshold = simulator.XcomPairThreshold,
                     };
                 },
                 (range, loop, worker) =>
@@ -829,9 +923,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             // `E19` — «предупреждать, счёт разрешать»), но кривая названа
             // шумной здесь же, где напечатаны её узлы.
             EfficiencyNodeSpread spread = NodeSpread(result.Curve, simulator.Histories);
+            // (`AMBER128`, П164) медиана и приговор — по рабочему диапазону,
+            // низкая полоса — отдельной строкой.
             log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerNodeSpread,
                               spread.MedianPercent, spread.WorstPercent, spread.WorstEnergy,
-                              spread.WorstEss, simulator.Histories));
+                              spread.WorstEss, simulator.Histories, spread.WorkFromKev, spread.Nodes));
+            if (spread.LowNodes > 0)
+            {
+                log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerNodeSpreadLow,
+                                  spread.WorkFromKev, spread.LowNodes, spread.LowMedianPercent));
+            }
+
             if (spread.Noisy)
             {
                 log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerNodeSpreadWarning,
@@ -892,8 +994,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             // 2BS, тем же именем, что у клейма матрицы, только включённым; с
             // физики 22 (П114, 19–21.09.2026) ключ ВКЛ умолчанием склада, и
             // у кривой он в клейме всегда.
+            // `; pairth=1` (`AMBER80`, П147 24.09.2026) — пороговая форма пар,
+            // тем же именем, что у клейма матрицы, только включённым; с физики
+            // 24 ключ ВКЛ умолчанием склада, и у кривой он в клейме всегда.
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}{19}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}{19}{20}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
@@ -919,7 +1024,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 storePhysics.ElectronLayerTransport ? "; eltr=1" : "",
                 storePhysics.ElectronLayerMixedScattering ? "; elmix=1" : "",
                 storePhysics.ElectronLayerBremAlongPath ? "; lbrem=1" : "",
-                storePhysics.ElectronLayerBremAngular2BS ? "; lbang=1" : "");
+                storePhysics.ElectronLayerBremAngular2BS ? "; lbang=1" : "",
+                storePhysics.XcomPairThreshold ? "; pairth=1" : "");
             return result;
         }
 
@@ -979,6 +1085,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// число узлов выше порога и приговор «шумная» по медиане. Правило
         /// ОДНО — им пользуются и журнал расчёта, и `CorpusEffProbe`: второе
         /// правило для одной величины разъехалось бы молча (`S37`).
+        ///
+        /// ⛔ (`AMBER128`, П164 28.09.2026) Медиана и счёт шумных узлов — по
+        /// РАБОЧЕМУ ДИАПАЗОНУ, узлам от <see cref="EfficiencyCalculationOptions.LowGridTopKev"/> и выше.
+        /// После сгущения сетки ниже 40 кэВ (`AMBER95`) там 41–51 узел из
+        /// 77–87, и медиана всех узлов стала медианой низкой полосы, где узел
+        /// шумит по природе (ε падает на порядки к 5 кэВ): маринелли RC-103
+        /// на 200 000 историй — 3.98 % по всем узлам при 2.2 % на узлах от
+        /// 40 кэВ, `RC103_lu_front` — 5.47 % («шумная», кривая корпуса не
+        /// записана) при ≈ 2.7 %. Низкая полоса печатается отдельно
+        /// (<see cref="EfficiencyNodeSpread.LowMedianPercent"/>); худший узел —
+        /// по всей кривой, как и был. Кривая без узлов от 40 кэВ судится по
+        /// всем своим узлам — иначе судить нечем.
         /// </summary>
         public static EfficiencyNodeSpread NodeSpread(IList<ROIEfficiencyData> curve, int histories)
         {
@@ -988,7 +1106,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return spread;
             }
 
-            var errors = new List<double>();
+            var work = new List<double>();
+            var low = new List<double>();
+            var all = new List<double>();
             foreach (ROIEfficiencyData point in curve)
             {
                 double e = point.ErrorPercent;
@@ -997,10 +1117,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                     continue;
                 }
 
-                errors.Add(e);
-                if (e > NodeSpreadWarnPercent)
+                all.Add(e);
+                if (point.Energy >= EfficiencyCalculationOptions.LowGridTopKev)
                 {
-                    spread.NoisyNodes++;
+                    work.Add(e);
+                }
+                else
+                {
+                    low.Add(e);
                 }
 
                 if (e > spread.WorstPercent)
@@ -1010,34 +1134,74 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
-            spread.Nodes = errors.Count;
-            if (errors.Count == 0)
+            if (all.Count == 0)
             {
                 return spread;
             }
 
-            errors.Sort();
-            spread.MedianPercent = errors.Count % 2 == 1
-                ? errors[errors.Count / 2]
-                : 0.5 * (errors[errors.Count / 2 - 1] + errors[errors.Count / 2]);
+            // рабочий диапазон пуст — кривая целиком ниже 40 кэВ: судится вся
+            List<double> judged = work.Count > 0 ? work : all;
+            spread.WorkFromKev = work.Count > 0 ? EfficiencyCalculationOptions.LowGridTopKev : 0.0;
+            spread.Nodes = judged.Count;
+            foreach (double e in judged)
+            {
+                if (e > NodeSpreadWarnPercent)
+                {
+                    spread.NoisyNodes++;
+                }
+            }
+
+            spread.MedianPercent = Median(judged);
+            spread.LowNodes = work.Count > 0 ? low.Count : 0;
+            spread.LowMedianPercent = spread.LowNodes > 0 ? Median(low) : double.NaN;
             double n = Math.Max(1, histories);
             double delta = spread.WorstPercent / 100.0;
             spread.WorstEss = n / (1.0 + n * delta * delta);
             spread.Noisy = spread.MedianPercent > NodeSpreadWarnPercent;
             return spread;
         }
+
+        static double Median(List<double> values)
+        {
+            var sorted = new List<double>(values);
+            sorted.Sort();
+            return sorted.Count % 2 == 1
+                ? sorted[sorted.Count / 2]
+                : 0.5 * (sorted[sorted.Count / 2 - 1] + sorted[sorted.Count / 2]);
+        }
     }
 
     /// <summary>Разброс кривой по узлам — выход <see cref="EfficiencyCalculation.NodeSpread"/>.</summary>
     public sealed class EfficiencyNodeSpread
     {
-        /// <summary>Медиана `ErrorPercent` по узлам, %.</summary>
+        /// <summary>
+        /// Медиана `ErrorPercent` по узлам РАБОЧЕГО ДИАПАЗОНА (от
+        /// <see cref="WorkFromKev"/>), % (`AMBER128`).
+        /// </summary>
         public double MedianPercent;
 
-        /// <summary>Худший узел: его разброс, %, энергия, кэВ, и действующая выборка, историй.</summary>
+        /// <summary>
+        /// Нижняя граница рабочего диапазона, кэВ: <see cref="EfficiencyCalculationOptions.LowGridTopKev"/>;
+        /// ноль — узлов от неё нет, судились все узлы (`AMBER128`).
+        /// </summary>
+        public double WorkFromKev;
+
+        /// <summary>
+        /// Низкая полоса (ниже <see cref="WorkFromKev"/>) — отдельно: медиана, %,
+        /// и число узлов; NaN и ноль, если полосы нет (`AMBER128`).
+        /// </summary>
+        public double LowMedianPercent = double.NaN;
+
+        /// <summary>Узлов в низкой полосе (`AMBER128`).</summary>
+        public int LowNodes;
+
+        /// <summary>Худший узел по ВСЕЙ кривой: его разброс, %, энергия, кэВ, и действующая выборка, историй.</summary>
         public double WorstPercent, WorstEnergy, WorstEss;
 
-        /// <summary>Узлов выше порога <see cref="EfficiencyCalculation.NodeSpreadWarnPercent"/> и всего.</summary>
+        /// <summary>
+        /// Узлов рабочего диапазона выше порога <see cref="EfficiencyCalculation.NodeSpreadWarnPercent"/>
+        /// и всего узлов рабочего диапазона.
+        /// </summary>
         public int NoisyNodes, Nodes;
 
         /// <summary>Кривая шумная: медиана выше порога.</summary>

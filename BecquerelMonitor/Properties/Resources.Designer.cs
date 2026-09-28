@@ -3763,6 +3763,12 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string EfficiencyMakerNodeSpreadLow {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNodeSpreadLow", resourceCulture);
+            }
+        }
+
         public static string EfficiencyMakerNodeSpreadWarning {
             get {
                 return ResourceManager.GetString("EfficiencyMakerNodeSpreadWarning", resourceCulture);
@@ -4318,6 +4324,12 @@ namespace BecquerelMonitor.Properties {
         public static string GeometryEditorErrorFieldRadiusSmall {
             get {
                 return ResourceManager.GetString("GeometryEditorErrorFieldRadiusSmall", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorFieldRadiusLarge {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorFieldRadiusLarge", resourceCulture);
             }
         }
 
