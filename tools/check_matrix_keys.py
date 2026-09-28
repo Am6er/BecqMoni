@@ -552,6 +552,13 @@ SIM = [
     # CurveNoiseProbeA79.
     (u'OutOfConeImportance', False, False, u'неприменимо',
      u'рычаг абляции проб; двигает CurveNoiseProbeA79'),
+    # (`S197`, П178 28.09.2026) Множитель сечения когерентного в кристалле --
+    # рычаг замера против сечения арбитра (под K-краем иода XCOM ×1.30 от
+    # Geant4). Умолчание 1.0, ни один путь его не ставит; двигает G4RawProbe --cohx=.
+    (u'CrystalCoherentScale', False, False, u'неприменимо',
+     u'S197, П178: рычаг замера — множитель когерентного в кристалле; двигает G4RawProbe --cohx='),
+    (u'OutsidePhotoScale', False, False, u'неприменимо',
+     u'S197, П178: рычаг замера — множитель фотоэффекта вне кристалла (фит арбитра); двигает G4RawProbe --photox='),
 ]
 
 # Поля `EfficiencySimulator`, которые настройками НЕ являются: выход прогона,
@@ -596,7 +603,9 @@ SIM_NOT_SETTINGS = set([
     # тело класса читается целиком, вложенные объявления попадают в тот же кусок.
     # (`AMBER80`, П147) `ThresholdPair` -- ключ пар области, ставится из
     # `XcomPairThreshold` симулятора при регистрации области.
-    u'IsBox', u'IsCrystal', u'ThresholdPair',
+    # (`S197`, П178) `PhotoScale` -- множитель фотоэффекта области, ставится из
+    # `OutsidePhotoScale` симулятора при регистрации области (рычаг замера).
+    u'IsBox', u'IsCrystal', u'ThresholdPair', u'PhotoScale',
 ])
 
 REASONS = (u'общая', u'намеренно', u'забыто', u'неприменимо')
