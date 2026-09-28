@@ -466,6 +466,10 @@ namespace DoseCoefProbeO2
         /// Независимая запись объявленной схемы: значение линейно, энергия —
         /// логарифмически. Своя, а не вызов приложения: иначе проверка
         /// сравнивала бы код сам с собой.
+        ///
+        /// (`AMBER115`, П171 28.09.2026) Кроме первого участка 10…15 кэВ: там
+        /// ln h линеен по μ воды, μ ∝ E^−k по двум узлам NIST (5.329 и 1.673
+        /// см²/г) — проверка `DoseSumProbeP171` §1.
         /// </summary>
         static double LogLinear(double[] x, double[] y, double e)
         {
@@ -475,6 +479,13 @@ namespace DoseCoefProbeO2
             int lo = 0;
             while (lo + 1 < n && x[lo + 1] <= e) lo++;
             int hi = lo + 1;
+            if (lo == 0)
+            {
+                double k = Math.Log(5.329 / 1.673) / Math.Log(x[1] / x[0]);
+                double tMu = (1.0 - Math.Pow(e / x[0], -k)) / (1.0 - Math.Pow(x[1] / x[0], -k));
+                return Math.Exp(Math.Log(y[0]) + tMu * Math.Log(y[1] / y[0]));
+            }
+
             double t = (Math.Log(e) - Math.Log(x[lo])) / (Math.Log(x[hi]) - Math.Log(x[lo]));
             return y[lo] + t * (y[hi] - y[lo]);
         }

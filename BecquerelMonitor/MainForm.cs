@@ -714,8 +714,13 @@ namespace BecquerelMonitor
                 // Отказ уже начинается подписью («Dose rate: …» / «Мощность
                 // дозы: …») — второй раз её не ставить: прежде строка читалась
                 // «Dose rate: Dose rate: …» (проверка экраном П165).
+                // (`AMBER103`, решение Amber 28.09.2026 «Строка AMBER: подпись
+                // «фотоны 10 кэВ…3 МэВ, H*(10)»») У числа подпись называет
+                // величину и область фотонов; у отказа — прежняя.
                 string text = doseRate.ToString();
-                string label = Resources.DoseRate ?? "";
+                string label = string.IsNullOrEmpty(doseRate.Refusal)
+                    ? doseRate.QuantityLabel()
+                    : Resources.DoseRate ?? "";
                 if (string.IsNullOrEmpty(doseRate.Refusal)
                     || !text.StartsWith(label.Trim(), StringComparison.OrdinalIgnoreCase))
                 {
@@ -737,7 +742,20 @@ namespace BecquerelMonitor
             // экрана и ложится поверх самой строки состояния (проверка экраном П165).
             // У отказа подсказка — сам отказ целиком: длинный текст в строке
             // состояния обрезается слева.
+            //
+            // (`AMBER103`/`AMBER116`, П171) У числа подсказка кончается тем, чего
+            // оно НЕ содержит: космики (по спектру она дозой не становится) и
+            // поправки на истинное суммирование каскадов (замер
+            // `DoseSumProbeP171` §3 на матрицах корпуса вплотную: Co-60 до
+            // +0.6 %, Na-22 до +3.2 %).
             this.statusStrip1.ShowItemToolTips = true;
+            string scope = doseRate != null && string.IsNullOrEmpty(doseRate.Refusal)
+                ? WrapWords(DoseRateCoefficients.Text("DoseRateScopeHint",
+                    "H*(10) is counted from the photons of the spectrum only: cosmic radiation (about 30 nSv/h at sea"
+                    + " level) and other particles are not included. True coincidence summing of cascades is not"
+                    + " corrected: close to the detector it raises the reading of Co-60 by up to 0.6 % and of Na-22"
+                    + " by up to 3.2 %."), 80)
+                : "";
             this.toolStripStatusLabel3.ToolTipText =
                 doseRate != null && !string.IsNullOrEmpty(doseRate.Refusal)
                     ? WrapWords(doseRate.Refusal, 80)
@@ -748,7 +766,8 @@ namespace BecquerelMonitor
                         + " and such a curve misstates it by tens of percent, most at low energies. To measure the"
                         + " background dose, make a curve of the isotropic field scene (ISO) in the geometry editor"
                         + " and select it."), 80)
-                    : "";
+                      + Environment.NewLine + Environment.NewLine + scope
+                    : scope;
         }
 
         /// <summary>Перенос текста по словам на строки не длиннее <paramref name="width"/> знаков.</summary>

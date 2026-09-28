@@ -132,7 +132,34 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///     «Glass». Новых ИМЁН поколение не приносит, и потому одного
         ///     сведения по именам мало — нужен ПЕРЕНОС
         ///     (<see cref="MigrateAirGlass"/>, `AMBER67`).
-        public const int CurrentSeedVersion = 8;
+        /// 9 (28.09.2026, П172) — ОПЕЧАТКИ ТАБЛИЦЫ ЛСРМ по NIST (`AMBER107`):
+        ///     «Freon-13ii» (CF3I) нёс цезий (Z 55) вместо иода, «Lanthanum
+        ///     oxysulfide» — доли La2OS вместо La2O2S; доли — из
+        ///     `matdb.star_material_composition` (id 165, 181). Перенос — тем
+        ///     же правилом «только побитово прежний засев»
+        ///     (<see cref="MigrateSeedErrata"/>). С этого же поколения формула
+        ///     в файле считается набранной при нынешнем разборе (`AMBER104`,
+        ///     <see cref="CaseSeedVersion"/>).
+        public const int CurrentSeedVersion = 9;
+
+        /// <summary>
+        /// (`AMBER107`) Поколение, начиная с которого опечатки таблицы ЛСРМ
+        /// исправлены; файл старше проходит <see cref="MigrateSeedErrata"/>.
+        /// </summary>
+        const int SeedErrataVersion = 9;
+
+        /// <summary>
+        /// (`AMBER104`, П172 28.09.2026) Поколение, начиная с которого формулы
+        /// в файле набраны при РЕГИСТРОЗАВИСИМОМ разборе. Разбор сменился
+        /// 24.09.2026 (П150) при поколении 8, и файл поколения 8 мог быть
+        /// сохранён и до, и после — поэтому сравниваются оба прочтения у
+        /// всего, что старше 9, и при расхождении вещество теряет состав с
+        /// причиной словами (<see cref="GeometryMaterialLibrary.LegacyFormulaProblem"/>),
+        /// а не меняет его молча. Файл, сохранённый редактором после этого,
+        /// получает поколение 9 — редактор не сохранит его, пока помеченная
+        /// формула не набрана заново.
+        /// </summary>
+        const int CaseSeedVersion = 9;
 
         /// <summary>
         /// (`AMBER67`) Поколение, НАЧИНАЯ С КОТОРОГО воздух и стекло стоят по
@@ -220,7 +247,20 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     if (record != null && !string.IsNullOrEmpty(record.Name))
                     {
-                        list.Add(FromRecord(record));
+                        GeometryMaterialLibrary.Entry entry = FromRecord(record);
+
+                        // (`AMBER104`) Формула из файла, сохранённого до
+                        // регистрозависимого разбора, которую прежний разбор
+                        // читал целиком и иначе: «CS1 I1» — Cs I прежде, C S I
+                        // теперь. Помечается здесь, отказ даёт сама библиотека.
+                        if (config.SeedVersion < CaseSeedVersion
+                            && !entry.IsMixture && entry.ElementFractions.Count == 0
+                            && GeometryMaterialLibrary.LegacyReadingDiffers(entry.Formula))
+                        {
+                            entry.LegacyFormula = entry.Formula;
+                        }
+
+                        list.Add(entry);
                     }
                 }
             }
@@ -257,7 +297,61 @@ namespace BecquerelMonitor.EfficiencyMaker
                 MigrateAirGlass(list, seed);
             }
 
+            if (config.SeedVersion < SeedErrataVersion)
+            {
+                MigrateSeedErrata(list, seed);
+            }
+
             entries = list;
+        }
+
+        /// <summary>
+        /// (`AMBER107`, П172 28.09.2026) Опечатки таблицы ЛСРМ, исправленные
+        /// поколением 9: имя и ПРЕЖНИЕ доли строкой «Z:доля …» — ровно те, что
+        /// лежали в <c>GeometryMaterialSeed</c> до исправления. Новые доли
+        /// берутся из самого засева, второй их копии здесь нет.
+        /// </summary>
+        static readonly string[][] SeedErrata =
+        {
+            // CF3I: в `materials.dat` ЛСРМ (строка 92) Z 55 (Cs) вместо 53 (I).
+            new[] { "Freon-13ii", "6:0.061309 9:0.290924 55:0.647767" },
+            // La2O2S: в `materials.dat` ЛСРМ доли La2OS.
+            new[] { "Lanthanum oxysulfide", "8:0.049097 16:0.098383 57:0.85252" },
+        };
+
+        /// <summary>Запись засева с ПРЕЖНИМИ долями опечатки — то, что лежит у пользователя.</summary>
+        static GeometryMaterialLibrary.Entry PreviousErratum(GeometryMaterialLibrary.Entry now, string packed)
+        {
+            if (now == null)
+            {
+                return null;
+            }
+
+            GeometryMaterialLibrary.Entry before = now.Clone();
+            before.ElementFractions.Clear();
+            foreach (KeyValuePair<int, double> pair in GeometryMaterialSeed.Fractions(packed))
+            {
+                before.ElementFractions[pair.Key] = pair.Value;
+            }
+
+            return before;
+        }
+
+        /// <summary>
+        /// (`AMBER107`, по правилу решения Amber 22.09.2026 для `AMBER67`:
+        /// «только записи, ПОБИТОВО равные прежнему засеву») ПЕРЕНОС двух
+        /// опечаток таблицы ЛСРМ на доли NIST. Правленная рукой запись (хоть
+        /// одна цифра плотности) не трогается; перенос живёт в памяти, файл
+        /// переписывает только редактор.
+        /// </summary>
+        static void MigrateSeedErrata(List<GeometryMaterialLibrary.Entry> list,
+                                      List<GeometryMaterialLibrary.Entry> seed)
+        {
+            foreach (string[] erratum in SeedErrata)
+            {
+                GeometryMaterialLibrary.Entry now = Find(seed, erratum[0]);
+                Migrate(list, PreviousErratum(now, erratum[1]), now);
+            }
         }
 
         /// <summary>
@@ -439,12 +533,67 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            MigrateSlot(model.Crystal);
-            MigrateSlot(model.Reflector);
-            MigrateSlot(model.Gap);
-            MigrateSlot(model.Cladding);
-            MigrateSlot(model.BeakerWall);
-            MigrateSlot(model.Source);
+            foreach (GeometryMaterial slot in new[] { model.Crystal, model.Reflector, model.Gap,
+                                                      model.Cladding, model.BeakerWall, model.Source })
+            {
+                MigrateSlot(slot);
+                MigrateErratumSlot(slot);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER107`) Слот с веществом-опечаткой таблицы ЛСРМ: имя то же, а
+        /// доли ПОБИТОВО те, что давал прежний засев через
+        /// <c>GeometryMaterialLibrary.Make</c>,
+        /// — получает доли нынешнего засева. Плотность слота не трогается
+        /// (её мог набрать человек); чужой состав под тем же именем — тоже.
+        /// </summary>
+        static void MigrateErratumSlot(GeometryMaterial material)
+        {
+            if (material == null || material.Fractions.Count == 0)
+            {
+                return;
+            }
+
+            foreach (string[] erratum in SeedErrata)
+            {
+                if (!string.Equals(material.Name, erratum[0], StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                GeometryMaterialLibrary.Entry now = GeometryMaterialLibrary.Seed().Find(
+                    x => string.Equals(x.Name, erratum[0], StringComparison.OrdinalIgnoreCase));
+                GeometryMaterialLibrary.Entry before = PreviousErratum(now, erratum[1]);
+                if (before == null)
+                {
+                    return;
+                }
+
+                GeometryMaterial old = GeometryMaterialLibrary.Make(before, before.Density, name => null);
+                if (old.Fractions.Count != material.Fractions.Count)
+                {
+                    return;
+                }
+
+                foreach (KeyValuePair<int, double> pair in old.Fractions)
+                {
+                    double got;
+                    if (!material.Fractions.TryGetValue(pair.Key, out got) || got != pair.Value)
+                    {
+                        return;
+                    }
+                }
+
+                GeometryMaterial fixedMaterial = GeometryMaterialLibrary.Make(now, now.Density, name => null);
+                material.Fractions.Clear();
+                foreach (KeyValuePair<int, double> pair in fixedMaterial.Fractions)
+                {
+                    material.Fractions[pair.Key] = pair.Value;
+                }
+
+                return;
+            }
         }
 
         /// <summary>Один слот геометрии — см. <see cref="MigrateGeometry"/>.</summary>
