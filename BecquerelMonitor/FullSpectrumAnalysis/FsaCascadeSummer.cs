@@ -4283,7 +4283,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     using (SqliteCommand command = connection.CreateCommand())
                     {
                         command.CommandText =
-                            "select distinct daughter_nucid from decay_chain d where nucid = $n"
+                            "select distinct daughter_nucid from" + DecayParentRule.ChainTable + " d where nucid = $n"
                             + DecayParentRule.ChainLevelClause;
                         command.Parameters.AddWithValue("$n", nucid);
                         using (SqliteDataReader reader = command.ExecuteReader())

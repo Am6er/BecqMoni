@@ -1,0 +1,31 @@
+# S190: доля ветви канала «β⁺» у читателей рядов (py = chains.chain_branches, lib = FsaSampleLibrary.ChainBranches, eqf = EquilibriumFactors, nb = NucBaseFramework.GetChainBranches)
+## ДО (HEAD f5cf95ed)
+root    member           py         lib         eqf          nb
+117I    117TE          0.77        0.77           —        0.77
+119TE   119SB        0.0206      0.0206           —      0.0206
+131CE   131LA          0.11        0.11           —        0.11
+143PM   143ND             —     5.7e-08           —           —
+164TM   164ER          0.39        0.39           —        0.39
+20MG    20NA              1           1           —           1
+45CR    45V               1           1           —           1
+56CU    56NI              1           1           —           1
+## ПОСЛЕ (S190 + S191 + обход питона)
+root    member           py         lib         eqf          nb
+117I    117TE             1           1           —           1
+119TE   119SB             1           1           —           1
+131CE   131LA             1           1           —           1
+143PM   143ND             1           1           —           1
+164TM   164ER             1           1           —           1
+20MG    20NA              1           1           —           1
+45CR    45V               1           1           —           1
+56CU    56NI              1           1           —           1
+
+## корней с изменившимся рядом (S190, до правки обхода питона)
+py   корней с рядом 2535, изменилось  45: 117BA 117CS 117I 117XE 119CS 119I 119TE 119XE 131CE 131ND 131PM 131PR 143DY 143EU 143GD 143PM 143SM 143TB 147DY 147EU 147GD 147HO 147TB 151DY 151ER 151HO 151TM 151YB 155LU 155YB 159HF 159TA 164HF 164LU 164TA 164TM 164W 164YB 168OS 168RE 168W 172IR 172PT 176HG 180PB
+     из них корпусных: 0 []
+lib  корней с рядом 2535, изменилось  77: 117BA 117CS 117I 117XE 119CS 119I 119TE 119XE 131CE 131ND 131PM 131PR 132PM 143DY 143EU 143GD 143PM 143SM 143TB 147DY 147EU 147GD 147HO 147TB 148ER 148HO 148TM 149TM 149YB 150LU 151DY 151ER 151HO 151TB 151TM 151YB 152LU 155ER 155LU 155TM 155YB 159HF 159LU 159TA 163RE 163TA 163W 164HF 164LU 164TA 164TM 164W 164YB 167IR 167OS 167RE 168OS 168RE 168W 171AU 171IR 171PT 172IR 172OS 172PT 175AU 175HG 176HG 176PT 176TL 179TL 180HG 180PB 180TL 184BI 184PB 188PO
+     из них корпусных: 0 []
+eqf  корней с рядом 2449, изменилось   0: 
+     из них корпусных: 0 []
+nb   корней с рядом 2535, изменилось  45: 117BA 117CS 117I 117XE 119CS 119I 119TE 119XE 131CE 131ND 131PM 131PR 143DY 143EU 143GD 143PM 143SM 143TB 147DY 147EU 147GD 147HO 147TB 151DY 151ER 151HO 151TM 151YB 155LU 155YB 159HF 159TA 164HF 164LU 164TA 164TM 164W 164YB 168OS 168RE 168W 172IR 172PT 176HG 180PB
+     из них корпусных: 0 []

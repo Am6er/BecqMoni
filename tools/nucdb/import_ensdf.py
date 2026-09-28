@@ -26,7 +26,8 @@
   G  22-29 отн. выход, 30-31 погр., 32-41 мультипольность, 42-49 дельта
      смешивания, 56-62 полный коэффициент конверсии, 65-74 полная
      интенсивность перехода
-  B/E/A  22-29 интенсивность питания уровня (для E — 22-29 IB, 32-39 IE)
+  B/E/A  22-29 интенсивность питания уровня (для E — 22-29 IB, 32-39 IE,
+         65-74 TI — полное, когда раздела IB/IE нет; `AMBER121`)
 
 Записи продолжения (непробел в колонке 6) и комментарии (C/D/T в колонке 7) не
 разбираются, и вместе с ними — целые типы записей: `N` (нормировка), `H`
@@ -68,6 +69,8 @@
 держится весь каскад.
 
     python import_ensdf.py <schemedb.sqlite> <каталог ENSDF2>
+    python import_ensdf.py <schemedb.sqlite> <каталог ENSDF2> --feedings-only
+        (перезалить только ensdf_feedings, не трогая правленые руками таблицы)
 """
 import io
 import os
@@ -175,7 +178,10 @@ def parse_file(path):
             })
         elif kind in "BEA":
             # у E-записи в 22-29 стоит бета-плюс, а захват — в 32-39;
-            # складывать их здесь нельзя, храним оба поля
+            # складывать их здесь нельзя, храним оба поля. В 65-74 — TI,
+            # полное питание (β⁺ + захват); по руководству ENSDF оно стоит,
+            # когда раздела IB/IE нет (`AMBER121`, П169 28.09.2026: до того не
+            # читалось, и 625 из 852 пустых E-записей теряли питание целиком).
             current["feedings"].append({
                 "level_seq": level_seq,
                 "kind": kind,
@@ -183,6 +189,8 @@ def parse_file(path):
                 "intensity": num(line[21:29]),
                 "intensity_ec": num(line[31:39]) if kind == "E" else None,
                 "logft": line[41:49].strip() if kind in "BE" else "",
+                "intensity_total": num(line[64:74]) if kind == "E" else None,
+                "ec_from_ti": 0,
             })
         elif kind == "P":
             current["parent"] = {
@@ -194,6 +202,52 @@ def parse_file(path):
                 "q_value": num(line[64:74]),
             }
     return datasets
+
+
+# Порог β⁺: энергия перехода должна превышать две массы покоя электрона.
+TWO_ELECTRON_MASSES_KEV = 1021.998
+
+
+def apply_total_intensity(dataset):
+    """TI при пустых IB и IE: где β⁺ ЗАПРЕЩЁН энергией, TI и есть захват.
+
+    `AMBER121` (П169, 28.09.2026). E-запись без IB и IE, но с TI, означает, что
+    оценщик дал полное питание уровня и не разделил его на β⁺ и захват. Когда
+    энергия перехода Q + E(родителя) − E(уровня) не превышает 2·mₑc², позитрона
+    быть не может, и TI = IE ТОЖДЕСТВЕННО — это не раздел, а физика; такая запись
+    получает `intensity_ec = TI` и пометку `ec_from_ti = 1`.
+
+    ⛔ Где β⁺ энергетически разрешён, раздела в данных НЕТ, и он здесь не
+    придумывается: TI лежит только в `intensity_total`, IB и IE остаются пустыми
+    (читатели, берущие IB/IE, видят то же, что до правки). Раздел для них — по
+    теории ε/β⁺ или по чужой поставке — отдельное решение, см. журнал П169.
+
+    Возвращает (записей TI при пустых IB/IE, из них β⁺ запрещён, разрешён,
+    энергия перехода не определена).
+    """
+    parent = dataset.get("parent") or {}
+    q = parent.get("q_value")
+    e_parent = parent.get("energy")
+    level_energy = {l["seq"]: l["energy"] for l in dataset["levels"]
+                    if l["seq"] is not None}
+    n_ti = n_forbidden = n_allowed = n_unknown = 0
+    for f in dataset["feedings"]:
+        if f["kind"] != "E" or f["intensity_total"] is None:
+            continue
+        if f["intensity"] is not None or f["intensity_ec"] is not None:
+            continue
+        n_ti += 1
+        e_level = level_energy.get(f["level_seq"])
+        if q is None or e_parent is None or e_level is None:
+            n_unknown += 1
+            continue
+        if q + e_parent - e_level <= TWO_ELECTRON_MASSES_KEV:
+            f["intensity_ec"] = f["intensity_total"]
+            f["ec_from_ti"] = 1
+            n_forbidden += 1
+        else:
+            n_allowed += 1
+    return n_ti, n_forbidden, n_allowed, n_unknown
 
 
 def link_gammas(dataset):
@@ -224,7 +278,87 @@ def link_gammas(dataset):
     return unlinked
 
 
+# Питание уровня: B (бета-минус), E (захват и бета-плюс), A (альфа).
+# intensity_total — TI E-записи как записан (кол. 65-74), у B и A пусто;
+# ec_from_ti = 1 — IE взят из TI, потому что β⁺ запрещён энергией
+# (`apply_total_intensity`, `AMBER121`).
+FEEDINGS_DDL = """
+        drop table if exists ensdf_feedings;
+        create table ensdf_feedings (
+            id              integer primary key,
+            dataset_id      integer not null,
+            level_seq       integer,
+            kind            text not null,
+            energy_kev      real,
+            intensity       real,
+            intensity_ec    real,
+            logft           text,
+            intensity_total real,
+            ec_from_ti      integer not null default 0
+        );
+        create index if not exists ix_ensdf_feed_ds on ensdf_feedings(dataset_id);
+"""
+
+
+def insert_feedings(db, ds_id, ds):
+    db.executemany("insert into ensdf_feedings values (null,?,?,?,?,?,?,?,?,?)",
+                   [(ds_id, f["level_seq"], f["kind"], f["energy"],
+                     f["intensity"], f["intensity_ec"], f["logft"],
+                     f["intensity_total"], f["ec_from_ti"])
+                    for f in ds["feedings"]])
+
+
+def print_ti(n_ti):
+    print("ENSDF: E-записей с TI при пустых IB и IE %d: β⁺ запрещён энергией "
+          "(IE = TI) %d, β⁺ разрешён (раздела нет, TI только в intensity_total) "
+          "%d, энергия перехода не определена %d" % tuple(n_ti))
+
+
+def main_feedings_only(db_path, ensdf_dir):
+    """Перезалить ТОЛЬКО `ensdf_feedings` (`AMBER121`, П169).
+
+    Полная перезаливка здесь НЕ годится: после импорта база правилась руками
+    по разрешениям (колонка `ensdf_datasets.parent_l_seqno` — D11, снятые
+    строки `ensdf_gammas`), и `main` их молча откатил бы. Номер набора в
+    `ensdf_feedings` — порядковый номер набора при разборе; он обязан совпасть
+    с `ensdf_datasets` (id, nucid, dsid, файл) у КАЖДОГО набора, иначе отказ
+    без записи.
+    """
+    db = sqlite3.connect(db_path)
+    have = {r[0]: tuple(r[1:]) for r in
+            db.execute("select id, nucid, dsid, source_file from ensdf_datasets")}
+    parsed = []
+    for name in sorted(os.listdir(ensdf_dir)):
+        if not name.upper().endswith(".ENX"):
+            continue
+        for ds in parse_file(os.path.join(ensdf_dir, name)):
+            if ds["nucid"].upper().startswith("290XX") or "FAKE" in ds["dsid"].upper():
+                continue
+            parsed.append((name, ds))
+    bad = [i + 1 for i, (name, ds) in enumerate(parsed)
+           if have.get(i + 1) != (ds["nucid"], ds["dsid"], name)]
+    if len(parsed) != len(have) or bad:
+        print("ОТКАЗ: разбор (%d наборов) не совпадает с ensdf_datasets (%d); "
+              "расходятся номера: %s" % (len(parsed), len(have), bad[:10]))
+        sys.exit(2)
+    db.executescript(FEEDINGS_DDL)
+    n_ti = [0, 0, 0, 0]
+    n_feed = 0
+    for i, (name, ds) in enumerate(parsed):
+        n_ti = [a + b for a, b in zip(n_ti, apply_total_intensity(ds))]
+        insert_feedings(db, i + 1, ds)
+        n_feed += len(ds["feedings"])
+    db.commit()
+    print("ENSDF: перезалита только ensdf_feedings — наборов %d, питаний %d"
+          % (len(parsed), n_feed))
+    print_ti(n_ti)
+    db.close()
+
+
 def main():
+    if len(sys.argv) > 3 and sys.argv[3] == "--feedings-only":
+        main_feedings_only(sys.argv[1], sys.argv[2])
+        return
     db_path, ensdf_dir = sys.argv[1], sys.argv[2]
     db = sqlite3.connect(db_path)
     db.executescript("""
@@ -277,24 +411,12 @@ def main():
             total_intensity real
         );
 
-        -- Питание уровня: B (бета-минус), E (захват и бета-плюс), A (альфа).
-        create table ensdf_feedings (
-            id            integer primary key,
-            dataset_id    integer not null,
-            level_seq     integer,
-            kind          text not null,
-            energy_kev    real,
-            intensity     real,
-            intensity_ec  real,
-            logft         text
-        );
-
         create index if not exists ix_ensdf_gammas_ds on ensdf_gammas(dataset_id);
-        create index if not exists ix_ensdf_feed_ds on ensdf_feedings(dataset_id);
         create index if not exists ix_ensdf_ds_nucid on ensdf_datasets(nucid);
-    """)
+    """ + FEEDINGS_DDL)
 
     ds_id = 0
+    n_ti = [0, 0, 0, 0]
     # Счётчики РАЗОБРАННОГО и ЗАЛИТОГО ведутся порознь и печатаются оба.
     # Пока была одна цифра, она считала разобранное, а в таблицу ложилось на
     # 13 % меньше, и разошедшееся число уехало из печати в scheme.md (W17).
@@ -336,10 +458,8 @@ def main():
                              g["multipolarity"], g["mixing_ratio"], g["conv_coef"],
                              g["total_intensity"]) for g in ds["gammas"]])
             n_gam += len(ds["gammas"])
-            db.executemany("insert into ensdf_feedings values (null,?,?,?,?,?,?,?)",
-                           [(ds_id, f["level_seq"], f["kind"], f["energy"],
-                             f["intensity"], f["intensity_ec"], f["logft"])
-                            for f in ds["feedings"]])
+            n_ti = [a + b for a, b in zip(n_ti, apply_total_intensity(ds))]
+            insert_feedings(db, ds_id, ds)
             n_feed += len(ds["feedings"])
 
     db.commit()
@@ -347,6 +467,7 @@ def main():
           "%.1f%%), питаний %d; отброшено тестовых заглушек %d"
           % (ds_id, n_gam, n_unlinked, 100.0 * n_unlinked / max(1, n_gam),
              n_feed, n_fake))
+    print_ti(n_ti)
     # Уровни — ДВУМЯ цифрами. Число разобранного в таблицу не годится: это оно
     # однажды уехало в scheme.md как число строк (W17).
     print("ENSDF: уровней разобрано %d, ЗАЛИТО %d; без номера (пометка буквой "

@@ -1,0 +1,11 @@
+== C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev34_full
+   против D:\BqMoni_Claude\p147\wt\tools\pie\out_rev34c_full
+   known   спектров 92 / 92, общих 92, chi2ndf разошлось 0; Σ 473.2434 против 473.2434
+   unknown спектров 36 / 36, общих 36, chi2ndf разошлось 0; Σ 51.8930 против 51.8930
+   файлов: общих 96 — побитово 80, только время 16, содержательно 0; только в одном: []
+== C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev34_mini
+   против D:\BqMoni_Claude\p147\wt\tools\pie\out_rev34c_mini
+   known   спектров 45 / 45, общих 45, chi2ndf разошлось 0; Σ 320.0923 против 320.0923
+   unknown спектров 14 / 14, общих 14, chi2ndf разошлось 0; Σ 20.7529 против 20.7529
+   файлов: общих 24 — побитово 20, только время 4, содержательно 0; только в одном: []
+ИТОГ: ПОБИТОВО (без граф времени и клейма .run.json)

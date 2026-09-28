@@ -130,11 +130,240 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///
         /// Сводимость (второй копии в дереве нет) и цену правила поверяет
         /// `tools/effmaker/probes/ChainRuleProbeF58.cs`.
+        ///
+        /// ⛔ (`S189`, П152 24.09.2026) НО МИНИМУМ ПО ТРОЙКЕ — ЛИШЬ ЗАПАСНОЙ
+        /// ХОД, А ПЕРВЫМ СТОИТ СВОЙ УРОВЕНЬ РОДИТЕЛЯ ДЛЯ ЭТОЙ ДОЧКИ. Изомер,
+        /// «живущий сам по себе», своего `nucid` в `decay_chain` чаще НЕ имеет:
+        /// его распад лежит под именем основного состояния на своём
+        /// `l_seqno`. И если тройка «родитель — дочь — канал» есть только на
+        /// уровне изомера, минимум по ней этот уровень и берёт — распад изомера
+        /// садится в ветви основного состояния. `164TM`: на уровне 0 — 164ER
+        /// каналом 15 (β⁺ 39 %), на уровне 1 — 164ER каналом 1 (20 %) и ИТ
+        /// 80 %; по IAEA LiveChart (ENSDF, выборка 24.09.2026) уровень 1 — это
+        /// изомер 5.1 мин с IT 80 % и ε+β⁺ 20 %, а основное состояние — ε+β⁺
+        /// 100 %. Прежнее правило давало 164TM ДВЕ ветви в 164ER, вторую —
+        /// чужую.
+        ///
+        /// Поэтому так: если у родителя есть строка СВОЕГО уровня
+        /// (<c>nuclides.l_seqno</c>) в ЭТУ ЖЕ дочь — берутся только строки
+        /// своего уровня; строки иных уровней в ту же дочь — распад другого
+        /// состояния той же пары. Замер по `nucdb` 24.09.2026: таких троек 8
+        /// (`131CE`, `164TM`, `166LU`, `174LU`, `184RE`, `202PB`, `90TC`,
+        /// `93MO`), и у ВСЕХ восьми LiveChart подтверждает, что строка — изомера
+        /// (у `90TC` ветвь в 90MO шла дважды по 100 %).
+        ///
+        /// ⛔ (`S191`, П158 24.09.2026) СТРОКИ ИНЫХ УРОВНЕЙ В ДРУГУЮ ДОЧЬ СУДИТ
+        /// `l_decays`. Одной `decay_chain` их не различить: из 28 таких троек у
+        /// родителей со своими строками часть — распад основного состояния,
+        /// записанный не на тот уровень (`184AU` α 0.016 % на уровне 3, `191PB`
+        /// ε 100 % на уровне 2), часть — изомера (`150EU` β⁻ 89 %, `176LU` ε
+        /// 0.095 %). Судья — `l_decays` (моды распада по строкам `nuclides`, с
+        /// их `l_seqno`): у СВОЕГО уровня родителя там стоят ВСЕ его моды.
+        /// Строка иного уровня в дочь, в которую свой уровень по `l_decays` не
+        /// распадается вовсе, — распад другого состояния, и в ветви родителя
+        /// она не идёт. Замер 24.09.2026: таких строк 14 (`148HO`, `150EU`,
+        /// `171AU`, `176LU`, `185PT`, `199BI`, `201BI`, `242AM`, `258MD` ×2,
+        /// `53CO`, `93RU`, `94AG` ×2), и у ВСЕХ четырнадцати IAEA LiveChart
+        /// (ENSDF, выборка 24.09.2026) отдаёт эту моду изомеру, а не основному
+        /// состоянию.
+        ///
+        /// (Остаток `S191`, решение Amber 24.09.2026 вопросником, дословно:
+        /// «Доли из l_decays кодом (Рекомендую)».) Судья снимает такую строку и
+        /// у родителя БЕЗ своих рёбер (`157LU` → 157YB, `95PD` → 94RU, `185TL` →
+        /// 181AU: под именем основного в `decay_chain` лежит только набор
+        /// изомера), а ветви такому родителю достраивает
+        /// <see cref="ChainTable"/> по `l_decays`. Долю строки иного уровня в
+        /// дочь, известную своему уровню, тоже берёт <see cref="ChainTable"/>.
+        ///
+        /// Судья молчит — строка остаётся, как была: у своего уровня в
+        /// `l_decays` нет ни одной моды (14 троек) или родителя нет в
+        /// `nuclides` (6) — судить нечем. Судья сравнивает ДОЧЬ, а не код
+        /// канала: у `94AG` ε в 94PD записан кодом 7 здесь и 1 там.
+        /// Петли `daughter = nucid` судья не трогает.
+        ///
+        /// Третий член `coalesce` — для строк, которые <see cref="ChainTable"/>
+        /// достроил из `l_decays`: в `decay_chain` их тройки нет, и они идут
+        /// своим уровнем. У строк самой `decay_chain` второй член есть всегда
+        /// (тройка — это сама строка), так что до третьего дело не доходит.
         /// </summary>
         public const string ChainLevelClause =
-            " and l_seqno = (select min(l_seqno) from decay_chain x"
-            + "               where x.nucid = d.nucid"
-            + "                 and x.daughter_nucid = d.daughter_nucid"
-            + "                 and x.dec_type = d.dec_type)";
+            " and l_seqno = coalesce("
+            + "   (select w.l_seqno from nuclides w where w.nucid = d.nucid"
+            + "     and exists (select 1 from decay_chain z where z.nucid = d.nucid"
+            + "                 and z.daughter_nucid = d.daughter_nucid and z.l_seqno = w.l_seqno)),"
+            + "   (select min(l_seqno) from decay_chain x"
+            + "     where x.nucid = d.nucid"
+            + "       and x.daughter_nucid = d.daughter_nucid"
+            + "       and x.dec_type = d.dec_type),"
+            + "   (select w.l_seqno from nuclides w where w.nucid = d.nucid and w.l_seqno = d.l_seqno))"
+            + " and not (d.daughter_nucid <> d.nucid"
+            + "   and not exists (select 1 from nuclides w where w.nucid = d.nucid and w.l_seqno = d.l_seqno)"
+            + "   and exists (select 1 from nuclides w, l_decays j where w.nucid = d.nucid"
+            + "               and j.nucid = d.nucid and j.l_seqno = w.l_seqno)"
+            + "   and not exists (select 1 from nuclides w, l_decays j where w.nucid = d.nucid"
+            + "               and j.nucid = d.nucid and j.l_seqno = w.l_seqno"
+            + "               and j.daughter_nucid = d.daughter_nucid))";
+
+        /// <summary>
+        /// Источник строк ряда вместо голой `decay_chain` (остаток `S191`, П158
+        /// 24.09.2026; решение Amber вопросником, дословно: «Доли из l_decays
+        /// кодом (Рекомендую)»). Ставится в `from` запроса ряда —
+        /// <c>"from" + ChainTable + " d"</c> — вместе с
+        /// <see cref="ChainLevelClause"/> и <see cref="ChainPercColumn"/>;
+        /// столбцы — те же, что у `decay_chain`.
+        ///
+        /// Судья — `l_decays` своего уровня родителя (`nuclides.l_seqno`), и
+        /// только его ЧИСЛО больше нуля (`perc_num`; «?» и «0» у поставки значат
+        /// «доля неизвестна», а не «распада нет» — `183TL` ε в 183HG записан
+        /// нулём при ε+β⁺ основного ~100 %):
+        ///
+        ///   * строка `decay_chain` ИНОГО уровня в дочь, которую свой уровень
+        ///     знает с числом, получает долю основного из `l_decays` (той же моды,
+        ///     а нет её — наибольшую в эту дочь): `197BI` α 55 % (изомер) → 10⁻⁴ %,
+        ///     `161RE` α 93 → 1.4, `90RH` εp 9.6 → 0.7, `183PT` ε 96.9 → 100;
+        ///   * родителю, у которого в `decay_chain` нет ни одного ребра своего
+        ///     уровня, недостающие дочери своего уровня достраиваются из
+        ///     `l_decays` (по одной строке на дочь — наибольшей; иначе ε+β⁺ и β⁺
+        ///     в одну дочь сложились бы): `179AU` → 179PT ε 78, `164RE` → 164W
+        ///     ε 42, `171IR` → 171OS ε 85;
+        ///   * (`AMBER108`, П169 28.09.2026) родителю СО своими рёбрами
+        ///     достраивается ветвь `l_decays` своего уровня, которую
+        ///     `decay_chain` держит ПЕТЛЁЙ под дочерью — строкой (дочь, уровень
+        ///     родителя, дочь, та же мода): так записан изомерный переход, и
+        ///     читатели петли отбрасывают. Замер по `nucdb` 28.09.2026: во всей
+        ///     базе такая ветвь одна — `234PAm1` → 234PA IT 0.16 % в ряду U-238
+        ///     (до правки ряд знал только β⁻ 99.84 % в 234U).
+        ///     ⛔ Шире — «любая недостающая дочь `l_decays`» — НЕЛЬЗЯ: это 345
+        ///     строк, и среди них `234TH` → 234PA β⁻ 100 % при ребре
+        ///     `decay_chain` `234TH` → 234PAm1 100 %, то есть ряд U-238 удвоился
+        ///     бы (журнал П169).
+        ///
+        /// ⚠ Достраивается ТОЛЬКО родителю, который в `decay_chain` есть (у него
+        /// там лишь строки иных уровней или петли): родитель, которого
+        /// `decay_chain` не знает вовсе (изомеры под своим `nucid` — `99TCm`,
+        /// `26ALm`, … — 1192 родителя с долями в `l_decays`), идёт как прежде —
+        /// рядов у него не было, и их появление поменяло бы библиотеку разбора
+        /// таких образцов; это отдельный вопрос, а не остаток `S191`.
+        ///
+        /// Строки своего уровня и петли `daughter = nucid` — как записаны.
+        /// Родитель, которого нет в `nuclides` или у своего уровня которого в
+        /// `l_decays` доли нет, — побитово как было. Имён нуклидов здесь нет —
+        /// судит база.
+        /// </summary>
+        public const string ChainTable =
+            " (select c.nucid as nucid, c.l_seqno as l_seqno, c.daughter_nucid as daughter_nucid,"
+            + "         c.dec_type as dec_type,"
+            + "    case when c.daughter_nucid <> c.nucid"
+            + "      and not exists (select 1 from nuclides w where w.nucid = c.nucid and w.l_seqno = c.l_seqno)"
+            + "      and exists (select 1 from nuclides w, l_decays j where w.nucid = c.nucid"
+            + "                  and j.nucid = c.nucid and j.l_seqno = w.l_seqno"
+            + "                  and j.daughter_nucid = c.daughter_nucid and j.perc_num > 0)"
+            + "    then coalesce("
+            + "      (select j.perc_num from nuclides w, l_decays j where w.nucid = c.nucid"
+            + "         and j.nucid = c.nucid and j.l_seqno = w.l_seqno"
+            + "         and j.daughter_nucid = c.daughter_nucid and j.perc_num > 0"
+            + "         and j.dec_type = cast(c.dec_type as integer) limit 1),"
+            + "      (select max(j.perc_num) from nuclides w, l_decays j where w.nucid = c.nucid"
+            + "         and j.nucid = c.nucid and j.l_seqno = w.l_seqno"
+            + "         and j.daughter_nucid = c.daughter_nucid and j.perc_num > 0))"
+            + "    else c.perc end as perc"
+            + "  from decay_chain c"
+            + "  union all"
+            + "  select j.nucid, j.l_seqno, j.daughter_nucid, cast(j.dec_type as text), j.perc_num"
+            + "  from l_decays j, nuclides w"
+            + "  where w.nucid = j.nucid and w.l_seqno = j.l_seqno"
+            + "    and j.daughter_nucid is not null and j.daughter_nucid <> j.nucid and j.perc_num > 0"
+            + "    and not exists (select 1 from l_decays k where k.nucid = j.nucid and k.l_seqno = j.l_seqno"
+            + "                    and k.daughter_nucid = j.daughter_nucid and k.perc_num > 0"
+            + "                    and (k.perc_num > j.perc_num"
+            + "                         or (k.perc_num = j.perc_num and k.dec_type < j.dec_type)))"
+            + "    and exists (select 1 from decay_chain e where e.nucid = j.nucid)"
+            + "    and not exists (select 1 from decay_chain e where e.nucid = j.nucid"
+            + "                    and e.daughter_nucid = j.daughter_nucid)"
+            + "    and (not exists (select 1 from nuclides v, decay_chain e where v.nucid = j.nucid"
+            + "                     and e.nucid = j.nucid and e.l_seqno = v.l_seqno"
+            + "                     and e.daughter_nucid <> e.nucid)"
+            + "         or exists (select 1 from decay_chain p where p.nucid = j.daughter_nucid"
+            + "                    and p.daughter_nucid = p.nucid and p.l_seqno = j.l_seqno"
+            + "                    and cast(p.dec_type as integer) = j.dec_type)))";
+
+        /// <summary>
+        /// (`S190`, П158 24.09.2026) Код канала «β⁺» в `decay_chain.dec_type`
+        /// (подпись в `l_decays.decay_label` — «β+»). ⚠ Тот же код стоит
+        /// ЛИТЕРАЛОМ в тексте <see cref="ChainPercColumn"/> — выражение читает
+        /// питон, а склейку констант он не разбирает; согласие двух мест
+        /// держит `tools/check_parent_rule.py` (раздел 3).
+        /// </summary>
+        public const string BetaPlusChannel = "15";
+
+        /// <summary>
+        /// Столбец выборки вместо голого `perc` для обхода `decay_chain`: ДОЛЯ
+        /// ВЕТВИ, %, — одно правило для всех читателей рядов (`S190`, П158
+        /// 24.09.2026). Ставится в список `select` запроса с
+        /// <see cref="ChainLevelClause"/> (внешняя таблица — алиас `d`, строки
+        /// одного родителя), читается числом (<see cref="TryPercent"/>): у
+        /// расширенной строки это REAL, у прочих — прежний текст `perc`
+        /// побитово.
+        ///
+        /// ⛔ ЧТО ЧИНИТ. `perc` строки канала «β⁺» (<see cref="BetaPlusChannel"/>)
+        /// — доля ПОЗИТРОНОВ, а не ветви ε+β⁺: ENSDF пишет у распада два числа,
+        /// «%EC+%B+» и «%B+», и `decay_chain` местами сохранила только второе
+        /// (`l_decays` держит оба: код 1 «ec β+ 100%» и код 15 «β+ 39%»).
+        /// Читатели рядов брали его долей ветви, и ряд через такого родителя
+        /// терял дочь: `164TM` → 164ER 0.39, `131CE` → 131LA 0.11, `119TE` →
+        /// 119SB 0.0206, `117I` → 117TE 0.77, `143PM` → 143ND 5.7·10⁻⁸ при
+        /// истине 1.0 (ε+β⁺ 100 % по `l_decays` и IAEA LiveChart).
+        ///
+        /// ПРАВИЛО — то же, что у сумматора совпадений с `S189`: ветвь канала
+        /// «β⁺» — всё, что оставляют ей ПРОЧИЕ ветви родителя (петли
+        /// `daughter = nucid` — изомерный переход другого уровня — в «прочие» не
+        /// идут), если это больше записанного; несколько строк канала делят
+        /// остаток пропорционально своим `perc`. Канал, которому остатка не
+        /// хватает (`20MG`: β⁺ 100 и βp 30.3), остаётся как записан — это уже
+        /// не «доля позитронов вместо ветви», а избыток поставки.
+        ///
+        /// Окно `over ()` — строки ОДНОГО родителя, прошедшие `where` запроса,
+        /// поэтому столбец годится только там, где выборка идёт по одному
+        /// `nucid` (`where nucid = $n`), — так устроены все читатели.
+        /// </summary>
+        public const string ChainPercColumn =
+            " case when d.dec_type = '15'"
+            + "   and total(case when d.dec_type = '15' then cast(d.perc as real) end) over () > 0"
+            + "   and total(case when d.dec_type = '15' then cast(d.perc as real) end) over ()"
+            + "     < 100 - total(case when d.dec_type <> '15'"
+            + "                         and upper(d.daughter_nucid) <> upper(d.nucid)"
+            + "                        then cast(d.perc as real) end) over ()"
+            + " then (100 - total(case when d.dec_type <> '15'"
+            + "                         and upper(d.daughter_nucid) <> upper(d.nucid)"
+            + "                        then cast(d.perc as real) end) over ())"
+            + "   * (cast(d.perc as real)"
+            + "      / total(case when d.dec_type = '15' then cast(d.perc as real) end) over ())"
+            + " else d.perc end";
+
+        /// <summary>
+        /// Прочитать значение <see cref="ChainPercColumn"/> (или `perc`): REAL
+        /// у расширенной строки, текст у прочих. Текст — инвариантной
+        /// культурой (правило точки).
+        /// </summary>
+        public static bool TryPercent(object value, out double percent)
+        {
+            percent = 0.0;
+            if (value is double)
+            {
+                percent = (double)value;
+                return true;
+            }
+
+            if (value is long)
+            {
+                percent = (long)value;
+                return true;
+            }
+
+            string text = value as string;
+            return text != null
+                   && double.TryParse(text, System.Globalization.NumberStyles.Float,
+                                      System.Globalization.CultureInfo.InvariantCulture, out percent);
+        }
     }
 }

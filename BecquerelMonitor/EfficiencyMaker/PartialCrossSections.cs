@@ -144,11 +144,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// 26.3), кварц 1 см на 24.5 кэВ −13.9 %.
         ///
         /// ⚠ Пары здесь — ОБЫЧНОЙ интерполяцией канала, без пороговой формы
-        /// (`S121`): пороговая нужна тому, кто РАЗЫГРЫВАЕТ канал, и она у него
-        /// есть (<see cref="GeometryMaterial.LinearPair"/>, `Region.Pair`), а в
-        /// полном ослаблении у порога пары — ничтожная доля суммы; это довод,
-        /// которым закрыта ~~`S124`~~, и в этой части он в силе. Розыгрыш канала
-        /// от рассогласования защищён срезом `pairMu > restMu`.
+        /// (`S121`). Довод ~~`S124`~~ («у порога пары — ничтожная доля суммы»)
+        /// верен у самого порога, но НЕ выше ~1.5 МэВ у тяжёлых Z (`AMBER80`,
+        /// П147: у Pb на 2614.5 кэВ пары — 22.6 % μ, хорда занижает полное на
+        /// 1.15 %). Пороговую форму полного даёт вход с ключом
+        /// (<see cref="MassTotal(MaterialDatabase.Element, int, int, double, double, bool)"/>),
+        /// и зовут его те, кто разыгрывает пары тем же ключом (`Region`
+        /// симулятора); этот вход — ключ ВЫКЛ.
         /// </summary>
         public static double MassTotal(MaterialDatabase.Element element,
                                        int lo, int hi, double energyKev,
@@ -157,6 +159,66 @@ namespace BecquerelMonitor.EfficiencyMaker
             return MassCrossSection(element, lo, hi, energyKev, logEnergyKev,
                                     PhotonProcess.Coherent)
                  + MassTotalWithoutCoherent(element, lo, hi, energyKev, logEnergyKev);
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER80`, П147 24.09.2026, физика 24) То же С КЛЮЧОМ ПОРОГОВОЙ
+        /// ФОРМЫ ПАР — тем же, каким пары РАЗЫГРЫВАЮТСЯ
+        /// (<see cref="EfficiencySimulator.XcomPairThreshold"/>,
+        /// <see cref="GeometryMaterial.LinearPair"/>, `Region.Pair`,
+        /// `CrystalChannels`).
+        ///
+        /// ЧТО БЫЛО НЕ ТАК. Полное брало пары хордой всегда, а розыгрыш при
+        /// ключе ВКЛ — пороговой формой (`S121`): длина свободного пробега
+        /// считалась одним сечением пар, выбор канала — другим, и разность
+        /// молча уходила в «остаток на фото» слоя. Замер П147
+        /// (`PairTotalProbeA80`, `matdb`): при ключе ВКЛ остаток на фото
+        /// против честного фотоэффекта на 2614.5 кэВ — Pb −17.2 %, I −44.0 %,
+        /// Cs −40.4 % (на 3500 — −12.8 / −35.2 / −32.1 %).
+        ///
+        /// ЧТО ДАЁТ ПОРОГОВАЯ ФОРМА В САМОМ ПОЛНОМ (та же проба): против
+        /// поканального сплайна XCOM на 2614.5 кэВ хорда Pb −1.15 %, I −0.90,
+        /// Cs −0.91, Fe −0.58, O −0.22; порог — +0.15 / −0.02 / 0.00 / −0.15 /
+        /// −0.09. Выброс узла Pb 3000 кэВ (соседи 2044 и 4000): хорда −3.05 %,
+        /// порог +0.96 %; I −2.77 → +0.01 %.
+        ///
+        /// ⚠ Ключ ВЫКЛ (умолчание, решение Amber 04.09.2026 по `S125`) — вход
+        /// БЕЗ ключа до бита (проверено по всем элементам, узлам и серединам:
+        /// расходятся 0 точек), поэтому матрицы без ключа не меняются ни на бит.
+        /// </summary>
+        public static double MassTotal(MaterialDatabase.Element element,
+                                       int lo, int hi, double energyKev,
+                                       double logEnergyKev, bool thresholdPair)
+        {
+            if (!thresholdPair)
+            {
+                return MassTotal(element, lo, hi, energyKev, logEnergyKev);
+            }
+
+            return MassCrossSection(element, lo, hi, energyKev, logEnergyKev,
+                                    PhotonProcess.Coherent)
+                 + MassTotalWithoutCoherent(element, lo, hi, energyKev, logEnergyKev, true);
+        }
+
+        /// <summary>
+        /// То же без когерентного канала, с ключом пороговой формы пар
+        /// (`AMBER80`); ключ ВЫКЛ — вход без ключа до бита.
+        /// </summary>
+        public static double MassTotalWithoutCoherent(MaterialDatabase.Element element,
+                                                      int lo, int hi, double energyKev,
+                                                      double logEnergyKev, bool thresholdPair)
+        {
+            if (!thresholdPair)
+            {
+                return MassTotalWithoutCoherent(element, lo, hi, energyKev, logEnergyKev);
+            }
+
+            return MassCrossSection(element, lo, hi, energyKev, logEnergyKev,
+                                    PhotonProcess.Incoherent)
+                 + MassCrossSection(element, lo, hi, energyKev, logEnergyKev,
+                                    PhotonProcess.Photoelectric)
+                 + MassCrossSection(element, lo, hi, energyKev, logEnergyKev,
+                                    PhotonProcess.PairProduction, true);
         }
 
         /// <summary>

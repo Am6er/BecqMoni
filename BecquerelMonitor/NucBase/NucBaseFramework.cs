@@ -901,7 +901,7 @@ namespace BecquerelMonitor.NucBase
                 {
                     string current = queue[i].Key;
                     double share = queue[i].Value;
-                    List<KeyValuePair<string, string>> rows = new List<KeyValuePair<string, string>>();
+                    List<KeyValuePair<string, object>> rows = new List<KeyValuePair<string, object>>();
                     // Строки вычитываются целиком до следующего запроса: обходу
                     // нужен ещё один читатель на том же соединении.
                     // Зажим по уровню — общий, из `DecayParentRule` (`A218`):
@@ -912,22 +912,26 @@ namespace BecquerelMonitor.NucBase
                     // возвращать его надо в само правило, всем сразу.
                     // Имя — параметром: оно приходит из базы и из поля ввода, а
                     // апостроф в нём закрывал литерал и ронял обход (`D45`).
+                    // (`S190`) Доля ветви — столбцом `ChainPercColumn`, а не голым
+                    // `perc`: у канала «β⁺» там доля позитронов. Число читается
+                    // значением (REAL у расширенной строки), а не текстом.
                     SqliteDataReader reader = db.ReadData(
-                        "select daughter_nucid, perc from decay_chain d where nucid = $n" +
+                        "select daughter_nucid," + DecayParentRule.ChainPercColumn
+                        + " from" + DecayParentRule.ChainTable + " d where nucid = $n" +
                         " and perc not null" + DecayParentRule.ChainLevelClause,
                         DataBase.Param("$n", current));
                     while (reader.Read())
                     {
-                        rows.Add(new KeyValuePair<string, string>(reader.GetString(0), reader.GetString(1)));
+                        rows.Add(new KeyValuePair<string, object>(reader.GetString(0), reader.GetValue(1)));
                     }
 
                     reader.Close();
 
-                    foreach (KeyValuePair<string, string> row in rows)
+                    foreach (KeyValuePair<string, object> row in rows)
                     {
                         double percent;
                         if (string.Equals(row.Key, current, StringComparison.OrdinalIgnoreCase)
-                            || !double.TryParse(row.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out percent))
+                            || !DecayParentRule.TryPercent(row.Value, out percent))
                         {
                             continue;
                         }

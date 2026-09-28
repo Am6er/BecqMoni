@@ -208,6 +208,71 @@ def _chain_level_clause(rule_path=None, lib_path=None):
 #: его упоминает, — `$n`, связывать словарём: ``{'n': nucid}``.
 CHAIN_LEVEL_CLAUSE = _chain_level_clause()
 
+
+def _chain_perc_column(rule_path=None):
+    """(`S190`, П158 24.09.2026) Столбец доли ветви `DecayParentRule.ChainPercColumn`.
+
+    `perc` канала «β⁺» (`dec_type` 15) — доля ПОЗИТРОНОВ, а не ветви ε+β⁺; ряд
+    через такого родителя терял дочь (`164TM` → 164ER 0.39 при истине 1.0).
+    Правило одно на проект и живёт в приложении — здесь его текст ЧИТАЕТСЯ, как
+    `CHAIN_LEVEL_CLAUSE`; своей копии нет, иначе питон и C# разойдутся молча.
+    """
+    rule_path = rule_path or os.environ.get('LFL_DECAY_RULE_CS') or _RULE_CS
+    if not os.path.isfile(rule_path):
+        raise RuntimeError('не найден источник правила ветвей: %s (S190).' % rule_path)
+    with io.open(rule_path, encoding='utf-8-sig') as handle:
+        body = re.search(r'const\s+string\s+ChainPercColumn\s*=(.*?);',
+                         handle.read(), re.S)
+    if not body:
+        raise RuntimeError('в %s нет объявления const string ChainPercColumn — '
+                           'правило ветвей читать нечем (S190).' % rule_path)
+    column = _sql_literals(body.group(1), 'ChainPercColumn')
+    for must in ('over ()', 'd.dec_type', 'd.perc', 'else d.perc end'):
+        if must not in column:
+            raise RuntimeError('ChainPercColumn разобран неправдоподобно (нет %r): %r'
+                               % (must, column))
+    for bad in ('?', ':', '@', '$'):
+        if bad in column:
+            raise RuntimeError('в ChainPercColumn появился параметр %r — связать нечем '
+                               '(S190): %r' % (bad, column))
+    return column
+
+
+#: Столбец выборки вместо голого `perc` в обходе `decay_chain` (внешняя таблица —
+#: алиас `d`, строки одного родителя): доля ветви, %.
+CHAIN_PERC_COLUMN = _chain_perc_column()
+
+
+def _chain_table(rule_path=None):
+    """(Остаток `S191`, П158 24.09.2026) Источник строк ряда `DecayParentRule.ChainTable`.
+
+    `decay_chain`, где доля строки иного уровня взята у своего уровня из
+    `l_decays`, плюс ветви из `l_decays` родителю без своих рёбер. Текст —
+    из .cs, как `CHAIN_LEVEL_CLAUSE`; своей копии нет. Ставится в `from`:
+    ``"from" + CHAIN_TABLE + " d"``.
+    """
+    rule_path = rule_path or os.environ.get('LFL_DECAY_RULE_CS') or _RULE_CS
+    if not os.path.isfile(rule_path):
+        raise RuntimeError('не найден источник правила ряда: %s (S191).' % rule_path)
+    with io.open(rule_path, encoding='utf-8-sig') as handle:
+        body = re.search(r'const\s+string\s+ChainTable\s*=(.*?);', handle.read(), re.S)
+    if not body:
+        raise RuntimeError('в %s нет объявления const string ChainTable — '
+                           'источник ряда читать нечем (S191).' % rule_path)
+    table = _sql_literals(body.group(1), 'ChainTable')
+    for must in ('from decay_chain c', 'l_decays', 'union all'):
+        if must not in ' '.join(table.split()):
+            raise RuntimeError('ChainTable разобран неправдоподобно (нет %r): %r' % (must, table))
+    for bad in ('?', ':', '@', '$'):
+        if bad in table:
+            raise RuntimeError('в ChainTable появился параметр %r — связать нечем (S191): %r'
+                               % (bad, table))
+    return table
+
+
+#: Источник строк ряда вместо голой `decay_chain`: ``"from" + CHAIN_TABLE + " d"``.
+CHAIN_TABLE = _chain_table()
+
 _FALLBACK_CACHE = []
 _FALLBACK_SAID = set()
 #: (`T93`) Родители, у которых запасная ветвь СРАБОТАЛА в этом процессе —
@@ -282,11 +347,28 @@ def pretty(nucid):
 
 
 def chain_branches(root, c, min_fraction=1e-6):
-    """{nucid: cumulative branching fraction from root}, ground levels only."""
-    frac = {root: 1.0}
+    """{nucid: cumulative branching fraction from root}, ground levels only.
+
+    ⛔ (П158 24.09.2026, попутно к `S190`) ТОТ ЖЕ СЧЁТ, ЧТО У ПРИЛОЖЕНИЯ —
+    `FsaSampleLibrary.ChainBranches` (`S62`): сначала рёбра обходом в ширину,
+    потом доли РЕЛАКСАЦИЕЙ до неподвижной точки, x = e_root + x·P. Здесь стоял
+    обход, раскрывающий узел один раз — значением, какое у того было в момент
+    раскрытия, — ровно дефект, снятый в приложении по `S62`: у `238U` и `226RA`
+    Pb-210 попадает в очередь раньше Po-214, и его дети 210BI / 210PO выходили
+    3.0·10⁻⁵ вместо 0.998 (линия Po-210 803 кэВ — 3·10⁻⁸ % вместо 1.03·10⁻³ %).
+    Питон с `ChainBranches` приложения расходился у 282 корней из 2535 (у 270 —
+    больше 10⁻⁹ относительно); после правки — у 6, и те в последнем знаке
+    (порядок строк выборки у двух сборок SQLite).
+
+    `min_fraction` отсекает члены с ИТОГОВОЙ долей ниже порога (корень остаётся
+    всегда); пределы — как у приложения: 128 узлов, 256 проходов, сходимость
+    1e-12.
+    """
+    edges = {}
     order = [root]
+    known = {root}
     i = 0
-    while i < len(order):
+    while i < len(order) and len(order) <= 128:
         cur = order[i]
         i += 1
         # l_seqno is the level index of the parent WITHIN its own level scheme;
@@ -296,28 +378,48 @@ def chain_branches(root, c, min_fraction=1e-6):
         # 67% at 5) and must not be followed.
         # ⛔ Само выражение зажима сюда НЕ переписано: оно одно на проект и
         # читается у приложения — `CHAIN_LEVEL_CLAUSE` (`T78`), см. выше.
+        # (`S190`) Доля ветви — столбцом `CHAIN_PERC_COLUMN`, а не голым `perc`.
         rows = c.execute(
-            "select daughter_nucid, perc from decay_chain d "
+            "select daughter_nucid," + CHAIN_PERC_COLUMN + " from" + CHAIN_TABLE + " d "
             "where nucid = $n and perc not null" + CHAIN_LEVEL_CLAUSE,
             {LEVEL_PARAM: cur}).fetchall()
+        step = []
         for daughter, perc in rows:
-            if daughter == cur:
+            if not daughter or daughter == cur:
                 continue                      # 238U l_seqno-119 self loop
             try:
                 p = float(perc)
             except (TypeError, ValueError):
                 continue
-            add = frac[cur] * p / 100.0
-            if add < min_fraction:
+            if not p > 0.0:
                 continue
-            if daughter in frac:
-                frac[daughter] += add
-            else:
-                frac[daughter] = add
+            step.append((daughter, p))
+            if daughter not in known:
+                known.add(daughter)
                 order.append(daughter)
-            if len(order) > 100:
-                return frac
-    return frac
+        edges[cur] = step
+
+    branch = {}
+    for _ in range(256):
+        nxt = {root: 1.0}
+        for parent in order:
+            have = branch.get(parent)
+            if not have or not have > 0.0 or parent not in edges:
+                continue
+            for daughter, p in edges[parent]:
+                nxt[daughter] = nxt.get(daughter, 0.0) + have * p / 100.0
+        drift = 0.0
+        for key, value in nxt.items():
+            gap = abs(value - branch.get(key, 0.0))
+            if gap > drift:
+                drift = gap
+        branch = nxt
+        if drift <= 1.0e-12:
+            break
+    else:
+        sys.stderr.write('  ⚠ ряд %s: доли не сошлись за 256 проходов, остаток %.2e\n'
+                         % (root, drift))
+    return {k: v for k, v in branch.items() if k == root or v >= min_fraction}
 
 
 def half_life_years(nucid, c):

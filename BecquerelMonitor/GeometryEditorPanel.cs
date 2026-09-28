@@ -2427,7 +2427,8 @@ namespace BecquerelMonitor
             {
                 this.sceneLabel.Text = string.Format(CultureInfo.InvariantCulture,
                     Resources.GeometryEditorSceneIso, g.FieldRadius / GeometryModel.MmPerCm,
-                    GeometryScenes.MinFieldRadiusMm(g) / GeometryModel.MmPerCm);
+                    GeometryScenes.MinFieldRadiusMm(g) / GeometryModel.MmPerCm,
+                    GeometryScenes.MaxFieldRadiusMm / GeometryModel.MmPerCm);
                 return;
             }
 

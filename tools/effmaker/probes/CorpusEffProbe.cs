@@ -180,7 +180,7 @@ class CorpusEffProbe
 
         Console.WriteLine("Привязка кривой и матрицы к спектрам понятной части (B1)");
         Console.WriteLine("кривая: {0:F0}-{1:F0} кэВ, {2} историй на узел; розыгрыш точки вылета: {3};"
-                          + " порог шумной кривой (медиана узлов) {4:F0} %",
+                          + " порог шумной кривой (медиана узлов от 40 кэВ, `AMBER128`) {4:F0} %",
                           options.MinEnergyKev, options.MaxEnergyKev, options.Histories,
                           importance.HasValue
                               ? (importance.Value
@@ -279,11 +279,16 @@ class CorpusEffProbe
             // (`E29`, П41) Разброс по узлам — той же меркой, что журнал
             // приложения; шумная кривая в спектры не пишется.
             EfficiencyNodeSpread spread = EfficiencyCalculation.NodeSpread(result.Curve, options.Histories);
-            Console.WriteLine("   разброс  : медиана {0:F2} %, худший узел {1:F2} % на {2:F1} кэВ"
-                              + " (ESS {3:F0} из {4} историй), узлов выше {5:F0} %: {6} из {7}",
+            // (`AMBER128`, П164) медиана и счёт шумных — по рабочему диапазону
+            // (от 40 кэВ), низкая полоса — отдельно; худший узел — по всей кривой.
+            Console.WriteLine("   разброс  : медиана {0:F2} % (узлы от {8:F0} кэВ), худший узел {1:F2} % на {2:F1} кэВ"
+                              + " (ESS {3:F0} из {4} историй), узлов выше {5:F0} %: {6} из {7}; ниже {8:F0} кэВ — медиана {9} (узлов {10})",
                               spread.MedianPercent, spread.WorstPercent, spread.WorstEnergy,
                               spread.WorstEss, options.Histories,
-                              EfficiencyCalculation.NodeSpreadWarnPercent, spread.NoisyNodes, spread.Nodes);
+                              EfficiencyCalculation.NodeSpreadWarnPercent, spread.NoisyNodes, spread.Nodes,
+                              spread.WorkFromKev,
+                              spread.LowNodes > 0 ? spread.LowMedianPercent.ToString("F2", CultureInfo.InvariantCulture) + " %" : "—",
+                              spread.LowNodes);
             if (spread.Noisy)
             {
                 noisyCurves++;

@@ -155,7 +155,11 @@ namespace BecquerelMonitor.Probes
         static readonly Regex CopyZero = new Regex(@"l_seqno\s*=\s*0\b", RegexOptions.IgnoreCase);
         static readonly Regex UseRule = new Regex(@"DecayParentRule\s*\.\s*ChainLevelClause");
         static readonly Regex Declare = new Regex(@"const\s+string\s+ChainLevelClause\s*=");
-        static readonly Regex FromChain = new Regex(@"from\s+decay_chain", RegexOptions.IgnoreCase);
+        // (Остаток `S191`, П158 24.09.2026) Читатель ряда берёт строки из
+        // `DecayParentRule.ChainTable`, а не из голой `decay_chain`, — такой
+        // запрос тоже запрос к ряду с правилом.
+        static readonly Regex FromChain = new Regex(
+            @"from\s+decay_chain|DecayParentRule\s*\.\s*ChainTable", RegexOptions.IgnoreCase);
 
         static void Scan(string repo)
         {
@@ -283,6 +287,18 @@ namespace BecquerelMonitor.Probes
         // Раздел 2: контракт
         // ====================================================================
 
+        /// <summary>Текст правила по имени поля — отражением; нет поля — запасное.</summary>
+        static string RuleText(string name, string fallback)
+        {
+            FieldInfo field = typeof(DecayParentRule).GetField(name, BindingFlags.Public | BindingFlags.Static);
+            if (field == null || field.FieldType != typeof(string))
+            {
+                return fallback;
+            }
+
+            return (string)(field.IsLiteral ? field.GetRawConstantValue() : field.GetValue(null));
+        }
+
         static string LiveClause()
         {
             FieldInfo field = typeof(DecayParentRule).GetField(
@@ -341,7 +357,12 @@ namespace BecquerelMonitor.Probes
             var found = new List<Row>();
             using (SqliteCommand command = cn.CreateCommand())
             {
-                command.CommandText = "select daughter_nucid, perc from decay_chain d where nucid = $n"
+                // (`S190`, остаток `S191`) Строки и доли — теми же текстами, что у
+                // приложения (`ChainTable`, `ChainPercColumn`), отражением: иначе
+                // раздел 4 сверял бы эмуляцию по сырой `decay_chain` с сумматором,
+                // который читает ряд уже по правилу. В сборке без них — сырьё.
+                command.CommandText = "select daughter_nucid, " + RuleText("ChainPercColumn", "perc")
+                                      + " from" + RuleText("ChainTable", " decay_chain") + " d where nucid = $n"
                                       + (percNotNull ? " and perc not null" : "") + clause;
                 command.Parameters.AddWithValue("$n", nucid);
                 using (SqliteDataReader reader = command.ExecuteReader())
