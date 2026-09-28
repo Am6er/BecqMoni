@@ -91,6 +91,8 @@
 #include "G4EmStandardPhysics_option4.hh"
 #include "G4DecayPhysics.hh"
 #include "G4RadioactiveDecayPhysics.hh"
+#include "G4EmParameters.hh"
+#include <atomic>
 #include "G4NistManager.hh"
 #include "G4Box.hh"
 #include "G4Tubs.hh"
@@ -193,6 +195,20 @@ namespace
     // статистики обязан менять зерно (Co-60 off 15.09.2026: два прогона по
     // 40 млн дали 3561 = 3561 отсчёт в окне 2505.7).
     long gSeed = 0;
+
+    // (П178, `S197`) Рычаги когерентного рассеяния. `nogp` — общий гамма-процесс
+    // option4 (`G4GammaGeneralProcess`, «Use general process 1») разобран на
+    // отдельные phot/compt/conv/Rayl; физика та же, это КОНТРОЛЬ разборки.
+    // `norayl` — то же плюс процесс `Rayl` у гаммы выключен
+    // (`/process/inactivate Rayl gamma`; внутри общего процесса он не
+    // адресуем, поэтому разборка обязательна). Зеркало нашего `--coh=0`.
+    // Читатель — счётчик шагов, закончившихся процессом `Rayl` (`RAYLSTEPS`
+    // после счёта): при `norayl` он обязан быть 0, при `nogp` — нет. Под
+    // общим процессом шаг зовётся по нему, и счётчик там не читается.
+    // Оба ВЫКЛ по умолчанию — без ключей поведение прежнее до бита.
+    bool gNoGeneralProcess = false;
+    bool gNoRayleigh = false;
+    std::atomic<long> gRaylSteps(0);
 
     // ---- Рычаги, которыми АРБИТР ПОВТОРЯЕТ НАШИ ПРИБЛИЖЕНИЯ переноса
     // электрона (П55 `A72` 14.09.2026, в дерево — П92 `M12` 17.09.2026). Все
@@ -1544,6 +1560,15 @@ public:
 
     void UserSteppingAction(const G4Step* step) override
     {
+        if (gNoGeneralProcess)
+        {
+            const G4VProcess* defined = step->GetPostStepPoint()->GetProcessDefinedStep();
+            if (defined != nullptr && defined->GetProcessName() == "Rayl")
+            {
+                gRaylSteps.fetch_add(1, std::memory_order_relaxed);
+            }
+        }
+
         bool preInCrystal = step->GetPreStepPoint()->GetTouchableHandle()->GetVolume()
                 ->GetLogicalVolume() == Detector::fCrystal;
         if (preInCrystal)
@@ -1714,6 +1739,7 @@ int main(int argc, char** argv)
                            || std::strcmp(argv[base], "killretsame") == 0 || std::strcmp(argv[base], "killretother") == 0
                            || std::strcmp(argv[base], "killescbrem") == 0 || std::strcmp(argv[base], "killescdelta") == 0
                            || std::strcmp(argv[base], "killoutbrem") == 0
+                           || std::strcmp(argv[base], "nogp") == 0 || std::strcmp(argv[base], "norayl") == 0
                            || (std::strcmp(argv[base], "emitpair") == 0 && argc > base + 1)
                            || (std::strcmp(argv[base], "seed") == 0 && argc > base + 1)
                            || (std::strcmp(argv[base], "ionhist") == 0 && argc > base + 2)))
@@ -1723,6 +1749,8 @@ int main(int argc, char** argv)
             gVacuumWorld = true;
         }
         else if (std::strcmp(argv[base], "escpop") == 0) { gEscPop = true; }
+        else if (std::strcmp(argv[base], "nogp") == 0) { gNoGeneralProcess = true; }
+        else if (std::strcmp(argv[base], "norayl") == 0) { gNoGeneralProcess = gNoRayleigh = true; }
         else if (std::strcmp(argv[base], "killescown") == 0) { gEscPop = gKillEscOwn = true; }
         else if (std::strcmp(argv[base], "killesccarry") == 0) { gEscPop = gKillEscCarry = true; }
         else if (std::strcmp(argv[base], "killret") == 0) { gEscPop = gKillRet = true; }
@@ -1819,7 +1847,7 @@ int main(int argc, char** argv)
 
     if (argc < base + 3)
     {
-        std::fprintf(stderr, "g4cf [vacuum] [corr] [seed <N>] [ionhist <bin_keV> <Emax_keV>] [iontag] [killesc] [killcarry] [fullcarry] [scene <file>] mono <E_keV> <N>"
+        std::fprintf(stderr, "g4cf [vacuum] [corr] [nogp] [norayl] [seed <N>] [ionhist <bin_keV> <Emax_keV>] [iontag] [killesc] [killcarry] [fullcarry] [scene <file>] mono <E_keV> <N>"
                              " | ion <Z> <A> <N> <windows...> | hist <E_keV> <N> <bin_keV>\n"
                              "  vacuum: empty world instead of air. MANDATORY for bare-crystal"
                              " checks (T133): air gives 8.232e-4 vs 5.794e-4 in 55...59 keV.\n"
@@ -1914,8 +1942,23 @@ int main(int argc, char** argv)
         G4NuclearLevelData::GetInstance()->GetParameters()->SetCorrelatedGamma(true);
     }
 
+    // (П178) Разборка общего гамма-процесса — ДО построения физики.
+    if (gNoGeneralProcess)
+    {
+        G4EmParameters::Instance()->SetGeneralProcessActive(false);
+    }
+
     auto ui = G4UImanager::GetUIpointer();
     ui->ApplyCommand("/run/initialize");
+    if (gNoRayleigh)
+    {
+        // Команда рассылается рабочим потокам; доехала ли — видно по RAYLSTEPS.
+        ui->ApplyCommand("/process/inactivate Rayl gamma");
+    }
+
+    std::printf("SETUP nogp=%d norayl=%d generalProcess=%d\n", gNoGeneralProcess ? 1 : 0, gNoRayleigh ? 1 : 0,
+                G4EmParameters::Instance()->GeneralProcessActive() ? 1 : 0);
+    std::fflush(stdout);
     // Читатель флага: значение берётся ОБРАТНО из параметров, а не из ключа —
     // если Set… не доехал (заперт, перезаписан умолчанием), здесь будет 0.
     {
@@ -1984,6 +2027,11 @@ int main(int argc, char** argv)
 
     std::snprintf(buffer, sizeof buffer, "/run/beamOn %ld", decays);
     ui->ApplyCommand(buffer);
+    if (gNoGeneralProcess)
+    {
+        std::printf("RAYLSTEPS %ld\n", gRaylSteps.load());
+        std::fflush(stdout);
+    }
 
     delete runManager;
     return 0;
