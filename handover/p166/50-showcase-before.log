@@ -1,0 +1,24 @@
+каталог проб: D:\BqMoni_Claude\p166\wt\tools\effmaker\probes\build_p166_before (заверен 2026-09-28 15:17:49 из D:\BqMoni_Claude\p166\wt\BecquerelMonitor\bin\Debug_P166_before)
+⚠ --skip-freshness: свежесть каталога проб НЕ судилась — числа этого прогона в эталон не годятся
+рабочий каталог: D:\BqMoni_Claude\p166\wt\tools\fsa_showcase\wd (скопировано 479, снято 0; приборов 3, матриц 4)
+прогон FsaStackShot (5 спектров, 9 пар):
+  ASN16_Cs137_house / infer_eq: 4.9 с
+  ASN16_Cs137_house / infer_eq_peak: 3.9 с
+  ASN16_Cs137_house / infer_eq_compton: 4.0 с
+  AS80_Th232_disk / infer_eq: 8.1 с
+  ASN16_Radon_filter2 / chain_eq: 9.3 с
+  ASN16_Radon_filter2 / chain_noeq: 10.3 с
+  G1S24_Rn222Coal_eq01 / sample_eq: 4.6 с
+  G1S24_Rn222Coal_eq01 / sample_noeq: 4.2 с
+  ASN16_Cs137_10cm / sample_nomatrix: 2.4 с
+  ✅ ASN16_Cs137_house / infer_eq: совпало с эталоном (2026-09-24 20:12)
+  ✅ ASN16_Cs137_house / infer_eq_peak: совпало с эталоном (2026-09-24 20:12)
+  ✅ ASN16_Cs137_house / infer_eq_compton: совпало с эталоном (2026-09-24 20:12)
+  ✅ AS80_Th232_disk / infer_eq: совпало с эталоном (2026-09-24 20:12)
+  ✅ ASN16_Radon_filter2 / chain_eq: совпало с эталоном (2026-09-24 20:12)
+  ✅ ASN16_Radon_filter2 / chain_noeq: совпало с эталоном (2026-09-24 20:12)
+  ✅ G1S24_Rn222Coal_eq01 / sample_eq: совпало с эталоном (2026-09-24 20:12)
+  ✅ G1S24_Rn222Coal_eq01 / sample_noeq: совпало с эталоном (2026-09-24 20:12)
+  ✅ ASN16_Cs137_10cm / sample_nomatrix: совпало с эталоном (2026-09-24 20:12)
+
+ВИТРИНА СОШЛАСЬ С ЭТАЛОНОМ: 9 пар, 53 с.

@@ -47,6 +47,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
+        /// (`AMBER119`, П168 28.09.2026) Корень ОБЪЯВЛЕН человеком — меткой ряда
+        /// набора (`NuclideDefinition.Chain`), манифестом или ключом: тогда доли
+        /// членов несут множитель переходного равновесия (`AMBER55`), потому что
+        /// «корень» здесь — отделённый источник, распадающийся со своим периодом.
+        /// <c>false</c> — корень ВЫВЕДЕН разбором из подписи без ряда (линия
+        /// Pb-214 без «(Ra-226)»): это лишь верхний видимый член, кто его питает —
+        /// неизвестно, и в пробе из природы он запитан долгоживущим предком, так
+        /// что множитель — единица (вековое равновесие). Асимптота незапитанного
+        /// корня (Bi-214 ×3.68 от Pb-214) давала строке Pb-214 −73 %, Bi-214
+        /// +10 % на `G1S24_Ra226_Petri`.
+        /// </summary>
+        public bool Transient = true;
+
+        /// <summary>
         /// Метки рядов, которые понимает <see cref="FromLabel"/>, — словарь
         /// колонки `chains` корпусного `manifest.csv` и ключей `--chain=` проб.
         /// Для сообщения об отказе, чтобы человек видел, из чего выбирать.
@@ -1133,6 +1147,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // как и прежде: множитель не меньше единицы и в состав никого не
             // добавляет и не выбрасывает.
             Dictionary<string, double> factors = EquilibriumFactors(chain.Root, report);
+            // (`AMBER119`) У выведенного корня множителя нет — см.
+            // <see cref="FsaSampleChain.Transient"/>; каким он был бы, говорится.
+            var secular = new List<string>();
             var cut = new List<string>();
             var transient = new List<string>();
             foreach (KeyValuePair<string, double> member in members)
@@ -1166,6 +1183,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     factor = 1.0;
                 }
 
+                if (!chain.Transient)
+                {
+                    if (factor - 1.0 >= TransientNoteFloor)
+                    {
+                        secular.Add(member.Key + " ×" + factor.ToString("F4", CultureInfo.InvariantCulture));
+                    }
+
+                    factor = 1.0;
+                }
+
                 if (factor - 1.0 >= TransientNoteFloor)
                 {
                     transient.Add(member.Key + " ×" + factor.ToString("F4", CultureInfo.InvariantCulture));
@@ -1188,6 +1215,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 transient.Sort(StringComparer.OrdinalIgnoreCase);
                 report.Notes.Add("ряд от " + chain.Root + ": переходное равновесие λ_д/(λ_д − λ_к) — "
                                  + string.Join(", ", transient) + " (AMBER55)");
+            }
+
+            if (secular.Count > 0)
+            {
+                secular.Sort(StringComparer.OrdinalIgnoreCase);
+                report.Notes.Add("ряд от " + chain.Root + ": корень выведен разбором, не объявлен — равновесие вековое,"
+                                 + " асимптота незапитанного корня не применена (" + string.Join(", ", secular)
+                                 + "; AMBER119)");
             }
         }
 
@@ -1427,6 +1462,440 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             double seconds;
             return TryHalfLifeSeconds(nucid, out seconds) && seconds > 0.0;
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER118`, П168 28.09.2026) Природные спутники состава
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Период, начиная с которого нуклид считается первичным (природным
+        /// корнем ряда): 10⁸ лет. U-238, U-235, Th-232, K-40 — выше; U-234 и
+        /// Th-230 (у них в `nuclides.abundance` тоже стоят числа) — ниже: они не
+        /// корни, а члены ряда U-238, и отношения «природного состава» к ним нет.
+        /// </summary>
+        const double PrimordialSeconds = 1.0e8 * 365.25 * 86400.0;
+
+        /// <summary>Во сколько раз строка должна быть завышена спутником, чтобы о ней сказать.</summary>
+        public const double InterferenceWarnFactor = 1.05;
+
+        /// <summary>Сколько шагов вверх по `decay_chain` ищется первичный предок.</summary>
+        const int MaxAncestorDepth = 24;
+
+        /// <summary>
+        /// (`AMBER118`; решение Amber 28.09.2026, дословно: «Строка AMBER:
+        /// предупреждение об интерференции 186 кэВ») ЛИНИИ СОСТАВА, КОТОРЫЕ ДЕЛИТ
+        /// ПРИРОДНЫЙ СПУТНИК, ОТСУТСТВУЮЩИЙ В СОСТАВЕ.
+        ///
+        /// В природном уране U-235 (0.72 % атомов, активность 0.046 от U-238)
+        /// даёт 185.7 кэВ с выходом 57 % — то есть 2.63 фотона на 100 распадов
+        /// U-238, а Ra-226 на 186.2 кэВ — 3.64. Прибор их не разделяет, и строка
+        /// Ra-226, держащаяся на 186 кэВ (связка ряда выключена, или путь по
+        /// подписям), завышена ×1.72; при связке колонку держат Pb/Bi-214, и
+        /// множитель мал. Решение ~~`S110`~~ «ничего автоматически не
+        /// докладывать» в силе: спутник в состав НЕ добавляется — о нём говорится.
+        ///
+        /// ⛔ ИМЁН ЗДЕСЬ НЕТ. Пара находится по базе: у компонента ищется
+        /// первичный предок того же ряда (период ≥ 10⁸ лет, есть природная
+        /// распространённость, компонент — член его подряда, `T259`), у предка —
+        /// другие первичные изотопы ТОГО ЖЕ элемента, не входящие в его ряд и
+        /// отсутствующие в составе; отношение активностей — из распространённостей
+        /// и периодов (`nuclides.abundance`, `half_life_sec`). Линии ряда спутника
+        /// с этим отношением ложатся на линии компонента, если стоят не дальше
+        /// ПШПВ; множитель = (своё + спутник) / своё по линиям компонента в
+        /// полосе, взвешенным эффективностью. Сказать — если он не меньше
+        /// <see cref="InterferenceWarnFactor"/>.
+        /// </summary>
+        /// <param name="library">Библиотека, ушедшая в фит.</param>
+        /// <param name="detected">Имена компонентов, вошедших в состав (строки отчёта).</param>
+        /// <param name="fwhmKev">ПШПВ на энергии, кэВ; null или не число — окно 0.</param>
+        /// <param name="efficiency">Эффективность на энергии; null — единица.</param>
+        public static List<FsaLineInterference> NaturalCompanionInterference(
+            IList<FsaComponent> library, ICollection<string> detected,
+            Func<double, double> fwhmKev, Func<double, double> efficiency,
+            double loKev, double hiKev)
+        {
+            var found = new List<FsaLineInterference>();
+            if (library == null || library.Count == 0)
+            {
+                return found;
+            }
+
+            try
+            {
+                var present = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (FsaComponent component in library)
+                {
+                    foreach (FsaLine line in component.Lines)
+                    {
+                        string nucid = NucidOf(line.Nuclide ?? string.Empty);
+                        if (nucid.Length > 0)
+                        {
+                            present.Add(nucid);
+                        }
+                    }
+                }
+
+                var report = new Report();
+                foreach (FsaComponent component in library)
+                {
+                    if ((component.Kind != FsaComponentKind.Single && component.Kind != FsaComponentKind.Chain)
+                        || component.Lines.Count == 0
+                        || (detected != null && !detected.Contains(component.Name)))
+                    {
+                        continue;
+                    }
+
+                    string unit = NucidOf(component.Name);
+                    if (unit.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    foreach (Primordial ancestor in PrimordialAncestors(unit, report))
+                    {
+                        double toUnit = 1.0;
+                        if (!string.Equals(ancestor.Nucid, unit, StringComparison.OrdinalIgnoreCase))
+                        {
+                            double branch;
+                            if (!ChainBranches(ancestor.Nucid, report).TryGetValue(unit, out branch)
+                                || !(branch > 0.0))
+                            {
+                                continue;
+                            }
+
+                            toUnit = branch;
+                        }
+
+                        HashSet<string> ancestorChain = EquilibriumMembers(ancestor.Nucid, report);
+                        foreach (Primordial companion in PrimordialIsotopes(ancestor.Z))
+                        {
+                            if (string.Equals(companion.Nucid, ancestor.Nucid, StringComparison.OrdinalIgnoreCase)
+                                || ancestorChain.Contains(companion.Nucid)
+                                || present.Contains(companion.Nucid))
+                            {
+                                continue;
+                            }
+
+                            double ratio = (companion.Abundance / companion.Seconds)
+                                           / (ancestor.Abundance / ancestor.Seconds);
+                            FsaLineInterference hit = Interfere(component, companion, ratio / toUnit,
+                                                                fwhmKev, efficiency, loKev, hiKev, report);
+                            if (hit != null)
+                            {
+                                hit.Reference = PrettyName(ancestor.Nucid);
+                                hit.ActivityRatio = ratio;
+                                found.Add(hit);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Отказ базы — предупреждений нет; разбор от них не зависит.
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// (`AMBER118`) Один компонент против ряда одного спутника; null — помехи нет.
+        ///
+        /// Строку держит её ГЛАВНАЯ группа линий — линии компонента, стоящие
+        /// ближе ПШПВ, сложены (прибор их не разделяет), и главная — с наибольшим
+        /// «выход × эффективность». Множитель судится по ней одной: свободная
+        /// строка Ra-226 держится на 186 кэВ, а слабый рентген Rn рядом с
+        /// обильным рентгеном ряда U-235 (Ra-223, Th-227: 80–100 кэВ) строку не
+        /// двигает — суммой по всем линиям он давал ×3.96 вместо ×1.72. В колонке
+        /// ряда главная группа — Pb/Bi-214, и 186 кэВ о ней не говорит.
+        /// </summary>
+        static FsaLineInterference Interfere(FsaComponent component, Primordial companion, double perUnit,
+                                             Func<double, double> fwhmKev, Func<double, double> efficiency,
+                                             double loKev, double hiKev, Report report)
+        {
+            // Группы: {энергия сильнейшей, её вес, Σ своё, Σ чужое}; линия — {энергия, номер группы}.
+            var ownLines = new List<double[]>();
+            foreach (FsaLine line in component.Lines)
+            {
+                if (line.Energy < loKev || line.Energy > hiKev)
+                {
+                    continue;
+                }
+
+                double weight = line.Intensity * Eff(efficiency, line.Energy);
+                if (weight > 0.0)
+                {
+                    ownLines.Add(new[] { line.Energy, weight });
+                }
+            }
+
+            if (ownLines.Count == 0 || fwhmKev == null)
+            {
+                return null;
+            }
+
+            ownLines.Sort((a, b) => a[0].CompareTo(b[0]));
+            var groups = new List<double[]>();
+            var groupOf = new int[ownLines.Count];
+            double anchor = double.NaN;
+            for (int i = 0; i < ownLines.Count; i++)
+            {
+                double[] line = ownLines[i];
+                double width = fwhmKev(line[0]);
+                if (groups.Count == 0 || !(line[0] - anchor <= width))
+                {
+                    groups.Add(new[] { line[0], line[1], 0.0, 0.0 });
+                    anchor = line[0];
+                }
+
+                double[] group = groups[groups.Count - 1];
+                group[2] += line[1];
+                if (line[1] > group[1])
+                {
+                    group[0] = line[0];
+                    group[1] = line[1];
+                }
+
+                groupOf[i] = groups.Count - 1;
+            }
+
+            // Ряд спутника — его подряд равновесия (`T259`) с долями ветвления.
+            Dictionary<string, double> branches = ChainBranches(companion.Nucid, report);
+            // ⚠ Копия: множество подряда кэшировано и общее для всех читателей.
+            var members = new HashSet<string>(EquilibriumMembers(companion.Nucid, report),
+                                              StringComparer.OrdinalIgnoreCase);
+            members.Add(companion.Nucid);
+            foreach (string member in members)
+            {
+                double branch;
+                if (!branches.TryGetValue(member, out branch))
+                {
+                    branch = string.Equals(member, companion.Nucid, StringComparison.OrdinalIgnoreCase) ? 1.0 : 0.0;
+                }
+
+                if (!(branch > 0.0))
+                {
+                    continue;
+                }
+
+                foreach (double[] line in DecayLines(member, report))
+                {
+                    if (line[0] < loKev || line[0] > hiKev)
+                    {
+                        continue;
+                    }
+
+                    double window = fwhmKev(line[0]);
+                    if (!(window > 0.0))
+                    {
+                        continue;
+                    }
+
+                    // Ложится на группу ближайшей линии компонента в пределах ПШПВ.
+                    int target = -1;
+                    double best = double.MaxValue;
+                    for (int i = 0; i < ownLines.Count; i++)
+                    {
+                        double away = Math.Abs(ownLines[i][0] - line[0]);
+                        if (away <= window && away < best)
+                        {
+                            best = away;
+                            target = groupOf[i];
+                        }
+                    }
+
+                    double weight = line[1] * branch * perUnit * Eff(efficiency, line[0]);
+                    if (target >= 0 && weight > 0.0)
+                    {
+                        groups[target][3] += weight;
+                    }
+                }
+            }
+
+            double[] main = groups[0];
+            foreach (double[] group in groups)
+            {
+                if (group[2] > main[2])
+                {
+                    main = group;
+                }
+            }
+
+            double factor = (main[2] + main[3]) / main[2];
+            if (!(factor >= InterferenceWarnFactor))
+            {
+                return null;
+            }
+
+            return new FsaLineInterference
+            {
+                LineKev = main[0],
+                Component = component.Name,
+                Companion = PrettyName(companion.Nucid),
+                Factor = factor
+            };
+        }
+
+        static double Eff(Func<double, double> efficiency, double energy)
+        {
+            if (efficiency == null)
+            {
+                return 1.0;
+            }
+
+            double value = efficiency(energy);
+            return value > 0.0 && !double.IsNaN(value) && !double.IsInfinity(value) ? value : 0.0;
+        }
+
+        /// <summary>(`AMBER118`) Первичный нуклид: nucid, Z, распространённость %, период, с.</summary>
+        sealed class Primordial
+        {
+            public string Nucid;
+            public int Z;
+            public double Abundance;
+            public double Seconds;
+        }
+
+        /// <summary>
+        /// (`AMBER118`) Первичные предки нуклида — вверх по `decay_chain`, у
+        /// которых сам нуклид — член подряда равновесия (или он сам первичен).
+        /// От каждого элемента берётся предок с НАИБОЛЬШЕЙ распространённостью
+        /// (U-238, а не U-234 — тот и не первичен).
+        /// </summary>
+        static List<Primordial> PrimordialAncestors(string nucid, Report report)
+        {
+            lock (Gate)
+            {
+                List<Primordial> cached;
+                if (AncestorCache.TryGetValue(nucid, out cached))
+                {
+                    return cached;
+                }
+            }
+
+            var byZ = new Dictionary<int, Primordial>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { nucid };
+            var level = new List<string> { nucid };
+            using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
+            using (SqliteCommand parents = connection.CreateCommand())
+            {
+                parents.CommandText = "select distinct nucid from decay_chain d where daughter_nucid = $n"
+                                      + " and nucid <> daughter_nucid" + DecayParentRule.ChainLevelClause;
+                parents.Parameters.AddWithValue("$n", nucid);
+                for (int depth = 0; depth <= MaxAncestorDepth && level.Count > 0; depth++)
+                {
+                    var next = new List<string>();
+                    foreach (string current in level)
+                    {
+                        Primordial self = PrimordialOf(connection, current);
+                        if (self != null
+                            && (string.Equals(current, nucid, StringComparison.OrdinalIgnoreCase)
+                                || EquilibriumMembers(current, report).Contains(nucid)))
+                        {
+                            Primordial had;
+                            if (!byZ.TryGetValue(self.Z, out had) || self.Abundance > had.Abundance)
+                            {
+                                byZ[self.Z] = self;
+                            }
+                        }
+
+                        parents.Parameters["$n"].Value = current;
+                        using (SqliteDataReader reader = parents.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                string parent = reader.IsDBNull(0) ? null : reader.GetString(0);
+                                if (!string.IsNullOrEmpty(parent) && seen.Add(parent))
+                                {
+                                    next.Add(parent);
+                                }
+                            }
+                        }
+                    }
+
+                    level = next.Count <= MaxAncestorNodes ? next : next.GetRange(0, MaxAncestorNodes);
+                }
+            }
+
+            var result = new List<Primordial>(byZ.Values);
+            lock (Gate)
+            {
+                AncestorCache[nucid] = result;
+            }
+
+            return result;
+        }
+
+        /// <summary>(`AMBER118`) Потолок ширины слоя обхода вверх: искусственные родители (Pu, Cm, …) ветвятся.</summary>
+        const int MaxAncestorNodes = 200;
+
+        /// <summary>(`AMBER118`) {нуклид → первичные предки}.</summary>
+        static readonly Dictionary<string, List<Primordial>> AncestorCache =
+            new Dictionary<string, List<Primordial>>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>(`AMBER118`) Первичные изотопы элемента.</summary>
+        static List<Primordial> PrimordialIsotopes(int z)
+        {
+            var list = new List<Primordial>();
+            using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
+            using (SqliteCommand command = connection.CreateCommand())
+            {
+                command.CommandText = "select distinct nucid from nuclides where z = $z"
+                                      + " and abundance is not null and abundance <> ''";
+                command.Parameters.AddWithValue("$z", z);
+                var names = new List<string>();
+                using (SqliteDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        if (!reader.IsDBNull(0))
+                        {
+                            names.Add(reader.GetString(0));
+                        }
+                    }
+                }
+
+                foreach (string name in names)
+                {
+                    Primordial item = PrimordialOf(connection, name);
+                    if (item != null)
+                    {
+                        list.Add(item);
+                    }
+                }
+            }
+
+            return list;
+        }
+
+        /// <summary>(`AMBER118`) Нуклид первичен — период ≥ 10⁸ лет и распространённость > 0; иначе null.</summary>
+        static Primordial PrimordialOf(SqliteConnection connection, string nucid)
+        {
+            using (SqliteCommand command = connection.CreateCommand())
+            {
+                command.CommandText = "select z, abundance, half_life_sec from nuclides where nucid = $n"
+                                      + " and half_life_sec is not null order by l_seqno limit 1";
+                command.Parameters.AddWithValue("$n", nucid);
+                using (SqliteDataReader reader = command.ExecuteReader())
+                {
+                    double abundance, seconds;
+                    if (!reader.Read() || reader.IsDBNull(0)
+                        || !TryNumber(reader, 1, out abundance) || !(abundance > 0.0)
+                        || !TryNumber(reader, 2, out seconds) || !(seconds >= PrimordialSeconds))
+                    {
+                        return null;
+                    }
+
+                    return new Primordial
+                    {
+                        Nucid = nucid,
+                        Z = Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture),
+                        Abundance = abundance,
+                        Seconds = seconds
+                    };
+                }
+            }
         }
 
         /// <summary>
@@ -2111,7 +2580,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // энергиями вместо одной усреднённой. Правило и его измерение —
             // `KSeriesRule` (`T50`); прежнее «разложение, если оно есть»
             // занижало Kβ у 350 наборов.
-            lines.AddRange(KSeriesRule.Beta(kBetaSplit, kBetaTotal, kBetaSplitSeries.Count));
+            // (`AMBER120`) Строки группы K-M — на центре тяжести группы, а не на
+            // середине текстового диапазона: см. <see cref="KSeriesRule.BetaAtGroupEnergy"/>.
+            lines.AddRange(KSeriesRule.BetaAtGroupEnergy(kBetaSplit, kBetaTotal, kBetaSplitSeries.Count, kAlpha));
 
             // L-серия: та же развилка, но по ТРЁМ спискам (`AMBER68`) — линии
             // подоболочек, итоги подоболочек, сводная. Подробных строк в базе

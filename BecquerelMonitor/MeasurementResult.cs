@@ -129,5 +129,21 @@
         bool isValid = true;
 
         string statusText;
+
+        /// <summary>
+        /// (`AMBER133`, П167) Множитель каскадного суммирования, вошедший в
+        /// беккерели этой строки (`BecquerelCoefficient.SummingForZone`);
+        /// единица — поправки нет. Для счёта и имп/с всегда единица.
+        /// </summary>
+        public double SummingFactor { get; set; } = 1.0;
+
+        /// <summary>
+        /// (`AMBER133`) Короткая приписка к имени зоны: «Σ×1.068» или «без
+        /// поправки на Σ»; null — приписывать нечего.
+        /// </summary>
+        public string SummingNote { get; set; }
+
+        /// <summary>(`AMBER133`) Полная фраза — подсказка клетки имени.</summary>
+        public string SummingProblem { get; set; }
     }
 }

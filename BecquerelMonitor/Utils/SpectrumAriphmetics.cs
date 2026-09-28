@@ -345,6 +345,156 @@ namespace BecquerelMonitor.Utils
             return this.MainSpectrum;
         }
 
+        /// <summary>
+        /// ⛔ (`AMBER109`, П167 28.09.2026) ФОН В ЧУЖОЙ КАЛИБРОВКЕ — В ШКАЛУ
+        /// СПЕКТРА РАСКЛАДКОЙ ПО ПЕРЕКРЫТИЮ ЭНЕРГИЙ, А НЕ БЛИЖАЙШИМ КАНАЛОМ.
+        /// Отсчёт — не плотность: канал фона шириной h_фон кэВ, взятый целиком в
+        /// канал спектра шириной h_спектр, переносит отсчёты с множителем
+        /// h_спектр/h_фон = 1, а надо — ровно этим множителем. Прежде так
+        /// делали все три пути (`Substract`, фон зоны ROI
+        /// `MeasurementResultManager.CalculateROI`, вид `EnergySpectrumView`),
+        /// и на паре корпуса `RC103_Th232WT20` (спектр poly2, фон poly4) фон
+        /// в окне уезжал на −22…+7 % (проба `RoiBackgroundRebinProbeP167`).
+        /// Разбор FSA (`FsaAnalyzer.Rebin`, ~~`S45`~~) и сложение спектров
+        /// (<see cref="CombineWith"/>) раскладывали верно — этот метод берёт то
+        /// же правило: границы каналов обеих шкал — посередине между
+        /// ЦЕНТРАМИ (`ChannelToEnergy(i)` — центр канала), крайние —
+        /// продолжением крайнего шага; внутри канала источника отсчёты
+        /// равномерны по энергии. Интеграл на перекрытии шкал сохраняется;
+        /// при равных шкалах перекладка — тождество до 1e-11 отсчёта, но
+        /// вызывающие при равных калибровках её не зовут вовсе (ветка
+        /// совпадающих шкал побитово прежняя).
+        /// </summary>
+        public static double[] RebinByEnergy(int[] source, EnergyCalibration from, EnergyCalibration to, int channels)
+        {
+            double[] result = new double[Math.Max(channels, 0)];
+            if (source == null || from == null || to == null || channels < 2 || source.Length < 2)
+            {
+                return result;
+            }
+
+            double[] sourceEdges = EdgesFromCentres(from, source.Length);
+            double[] edges = EdgesFromCentres(to, channels);
+            bool ascending = edges[channels] > edges[0];
+            int start = 0;
+            for (int j = 0; j < source.Length; j++)
+            {
+                int value = source[j];
+                if (value == 0)
+                {
+                    continue;
+                }
+
+                double lo = Math.Min(sourceEdges[j], sourceEdges[j + 1]);
+                double hi = Math.Max(sourceEdges[j], sourceEdges[j + 1]);
+                double width = hi - lo;
+                if (!(width > 0.0))
+                {
+                    continue;
+                }
+
+                if (!ascending)
+                {
+                    start = 0;
+                }
+
+                bool touched = false;
+                for (int i = start; i < channels; i++)
+                {
+                    double a = Math.Min(edges[i], edges[i + 1]);
+                    double b = Math.Max(edges[i], edges[i + 1]);
+                    if (ascending && a >= hi)
+                    {
+                        break;
+                    }
+
+                    double overlap = Math.Min(hi, b) - Math.Max(lo, a);
+                    if (overlap > 0.0)
+                    {
+                        result[i] += value * overlap / width;
+                        if (!touched && ascending)
+                        {
+                            start = i;
+                            touched = true;
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        static double[] EdgesFromCentres(EnergyCalibration calibration, int channels)
+        {
+            double[] centres = new double[channels];
+            for (int i = 0; i < channels; i++)
+            {
+                centres[i] = calibration.ChannelToEnergy(i);
+            }
+
+            double[] edges = new double[channels + 1];
+            for (int i = 1; i < channels; i++)
+            {
+                edges[i] = 0.5 * (centres[i - 1] + centres[i]);
+            }
+
+            edges[0] = centres[0] - 0.5 * (centres[1] - centres[0]);
+            edges[channels] = centres[channels - 1] + 0.5 * (centres[channels - 1] - centres[channels - 2]);
+            return edges;
+        }
+
+        /// <summary>
+        /// (`AMBER109`) Фон, каким его видит вид спектра: при калибровке, РАВНОЙ
+        /// калибровке спектра, и том же числе каналов — ТОТ ЖЕ объект (побитово
+        /// прежнее поведение); иначе копия, переложенная в шкалу спектра
+        /// (<see cref="RebinByEnergy"/>), с копией калибровки спектра. Целые
+        /// отсчёты копии — с накопленным округлением: сумма любого окна
+        /// отличается от точной раскладки меньше чем на отсчёт, интеграл
+        /// сохранён. Времена фона — прежние. Вид (`PrepareViewData`) держит
+        /// эту копию, и все его пути — панель выделения, отсчёт фона под
+        /// курсором, отрисовка столбиками и линией в режимах каналов и
+        /// энергии, подгонка вертикали — идут веткой совпадающих шкал.
+        /// </summary>
+        public static EnergySpectrum BackgroundInScaleOf(EnergySpectrum background, EnergySpectrum spectrum)
+        {
+            if (background == null || spectrum == null || background.Spectrum == null
+                || background.EnergyCalibration == null || spectrum.EnergyCalibration == null)
+            {
+                return background;
+            }
+
+            if (background.NumberOfChannels == spectrum.NumberOfChannels
+                && spectrum.EnergyCalibration.Equals(background.EnergyCalibration))
+            {
+                return background;
+            }
+
+            int channels = spectrum.NumberOfChannels;
+            double[] rebinned = RebinByEnergy(background.Spectrum, background.EnergyCalibration, spectrum.EnergyCalibration, channels);
+            int[] counts = new int[channels];
+            double cumulative = 0.0;
+            long previous = 0;
+            long total = 0;
+            for (int i = 0; i < channels; i++)
+            {
+                cumulative += rebinned[i];
+                long rounded = (long)Math.Round(cumulative);
+                int value = (int)(rounded - previous);
+                counts[i] = value;
+                total += value;
+                previous = rounded;
+            }
+
+            EnergySpectrum result = background.Clone();
+            result.NumberOfChannels = channels;
+            result.Spectrum = counts;
+            result.DrawingSpectrum = new double[channels];
+            result.EnergyCalibration = spectrum.EnergyCalibration.Clone();
+            result.TotalPulseCount = total;
+            result.ValidPulseCount = total;
+            return result;
+        }
+
         public EnergySpectrum Substract(EnergySpectrum bgenergySpectrum)
         {
             EnergySpectrum substractedEnergySpectrum = this.EnergySpectrum.Clone();
@@ -381,21 +531,20 @@ namespace BecquerelMonitor.Utils
                 substractedEnergySpectrum.ValidPulseCount = substractedEnergySpectrum.TotalPulseCount;
             } else
             {
+                // (`AMBER109`, П167) Фон в чужой калибровке — раскладкой по
+                // перекрытию энергий (<see cref="RebinByEnergy"/>), а не
+                // ближайшим каналом: тот переносил отсчёты без множителя
+                // h_спектр/h_фон, и вычтенный фон в окне уезжал на −19…+7 %
+                // (`RC103_Th232WT20`). Каналы спектра вне шкалы фона
+                // раскладка оставляет с нулём фона — как прежде, нетронутыми.
+                double[] bgInScale = RebinByEnergy(bgenergySpectrum.Spectrum, bgenergySpectrum.EnergyCalibration,
+                    this.EnergySpectrum.EnergyCalibration, substractedEnergySpectrum.NumberOfChannels);
                 Parallel.For(0, substractedEnergySpectrum.NumberOfChannels, i =>
                 {
-                    double enrg = this.EnergySpectrum.EnergyCalibration.ChannelToEnergy(i);
-                    // Pass the BACKGROUND's channel count to the background calibration:
-                    // the old code passed the foreground's count, which both remapped to
-                    // wrong channels for fg/bg with different binning and permanently
-                    // poisoned the (stateful) bg calibration cache.
-                    int bgchan = Convert.ToInt32(PolynomialEnergyCalibration.ChannelOf(bgenergySpectrum.EnergyCalibration, enrg, bgenergySpectrum.NumberOfChannels));
-                    if (bgchan >= 0 && bgchan < bgenergySpectrum.NumberOfChannels)
+                    substractedEnergySpectrum.Spectrum[i] = Convert.ToInt32(this.EnergySpectrum.Spectrum[i] - norm_coeff * bgInScale[i]);
+                    if (substractedEnergySpectrum.Spectrum[i] < 0)
                     {
-                        substractedEnergySpectrum.Spectrum[i] = Convert.ToInt32(this.EnergySpectrum.Spectrum[i] - norm_coeff * bgenergySpectrum.Spectrum[bgchan]);
-                        if (substractedEnergySpectrum.Spectrum[i] < 0)
-                        {
-                            substractedEnergySpectrum.Spectrum[i] = 0;
-                        }
+                        substractedEnergySpectrum.Spectrum[i] = 0;
                     }
                 });
                 substractedEnergySpectrum.TotalPulseCount = substractedEnergySpectrum.Spectrum.Sum(x => (long)x);

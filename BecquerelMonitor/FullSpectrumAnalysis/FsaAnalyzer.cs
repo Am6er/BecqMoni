@@ -3397,8 +3397,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// K- и L-вылета рентгена кристалла и заноса аннигиляции извне
         /// (каналы <see cref="LosesWithPeak"/>). Доля та же — `L_out` линии
         /// (<c>FsaCascadeSummer.LineNote.Loss</c>), притока нет: сумма
-        /// «вылет + партнёр» ложится не на энергию вылета. Континуум, как и
-        /// прежде, не трогается — он теряет и получает.
+        /// «вылет + партнёр» ложится не на энергию вылета, а выше — её кладёт
+        /// сумм-континуум пар (<see cref="CascadePairContinuum"/>, `AMBER125`).
+        /// ⛔ Прежняя фраза «континуум не трогается — он теряет и получает»
+        /// была неверна (`AMBER124`, П166): с рычагом П166 континуум теряет ту
+        /// же долю, а получает — свёрткой пары.
         ///
         /// Арбитр — Geant4 (журнал
         /// `handover/handover-2026-09-24-p148-pileup-summing.md`): Tl-208 на
@@ -3411,6 +3414,45 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// конструкторе.
         /// </summary>
         public bool CascadeEscapeLoss { get; set; }
+
+        /// <summary>
+        /// (`AMBER124`/`AMBER125`, П166 28.09.2026) СУММ-КОНТИНУУМ И СУММ-ВЫЛЕТЫ
+        /// КАСКАДНЫХ ПАР. Прежняя модель держала одиночный комптон линии с весом
+        /// 1 («континуум теряет и получает, в первом порядке при своём»), а из
+        /// событий, где оба кванта пары оставили что-то в кристалле, ставила
+        /// только «пик + пик». Счёт событий пары: истина
+        /// ε_T(i) + ε_T(j) − ε_T(i)ε_T(j), модель — больше на C_i·C_j (событие
+        /// «оба частично» шло и в комптон i, и в комптон j) и меньше на
+        /// a_i·a_j − ε_p(i)ε_p(j) (события «вылет + партнёр» не было нигде), а
+        /// события «частичное + партнёр» стояли на месте одиночного, а не
+        /// выше. Арбитр Geant4 (контакт G1S, журнал
+        /// `handover/handover-2026-09-28-p166-fsa-pileup-summing.md`): Co-60 —
+        /// континуум 30–1100 кэВ модели +18.2 % к истине, полоса 1400–2450 —
+        /// ноль при 5.3 % всех отсчётов истины; Y-88 — +17.4 %, пика
+        /// SE 1836 + 898 (2223 кэВ) нет. Полная свёртка откликов тех же
+        /// квантов сходится с истиной в 0.1 % (Co-60).
+        ///
+        /// Включённый: ВСЕ каналы одиночной линии теряют (1 − L_out), а пары
+        /// (<c>FsaCascadeSummer.PairContinuum</c>) кладут свёртку R_i ⊗ R_j без
+        /// члена «пик ⊗ пик» (<see cref="AccumulateSumPeaks"/>). Выключенный —
+        /// поведение до П166 (рычаг проб); полярность — у присваивания в
+        /// конструкторе.
+        /// </summary>
+        public bool CascadePairContinuum { get; set; }
+
+        /// <summary>
+        /// (`AMBER134`, П166 28.09.2026) ВЫНОС ИЗ ПИКА ХОДОМ ПО СХЕМЕ ENSDF:
+        /// ядерные партнёры линии сочетаются по путям схемы — питатели уровня
+        /// линии как взаимно исключающие ветви (сумма), переходы одного пути —
+        /// произведением, конверсия перехода в K — исключающим исходом с его
+        /// гаммой (<c>FsaCascadeSummer.WalkSurvive</c>). Прежде — произведение
+        /// по всем партнёрам (`S144`), и у 81 кэВ Ba-133 на контакте вынос был
+        /// занижен: CF 1.567 при Geant4 1.6329 ± 0.0030. Решение Amber
+        /// 28.09.2026 вопросником, дословно: «Да, сумма по ветвям (Рекомендую)».
+        /// Выключенный — поведение до П166 (рычаг проб); полярность — у
+        /// присваивания в конструкторе.
+        /// </summary>
+        public bool CascadeBranchSum { get; set; }
 
         /// <summary>
         /// Идёт ли сумм-КОНТИНУУМ (S19) в подслой отрисовки. В МОДЕЛЬ он идёт
@@ -3607,6 +3649,57 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return spectrum.LiveTime > 0.0 && spectrum.LiveTime < spectrum.MeasurementTime ? 1.0 : 2.0;
+        }
+
+        /// <summary>
+        /// (`AMBER123`, П166 28.09.2026) Ставить ли колонке наложений верхнюю
+        /// границу числа пар (<see cref="PileUpCapFor"/>). Полярность — у
+        /// присваивания в конструкторе; выключенная — поведение до П166.
+        /// </summary>
+        public bool PileUpCapEnabled { get; set; }
+
+        /// <summary>
+        /// (`AMBER123`, П166 28.09.2026) ВЕРХНЯЯ ГРАНИЦА ЧИСЛА ПАР колонки
+        /// наложений в единицах её амплитуды (амплитуда = число пар среди
+        /// <paramref name="counted"/> отсчётов, см. нормировку
+        /// <see cref="BuildPileUpComponent"/>).
+        ///
+        /// Доля импульсов, поймавших пару, — R·τ_p, и τ_p (окно наложения) не
+        /// длиннее мёртвого времени на импульс τ_d: ровно на этой посылке стоит
+        /// множитель убыли <see cref="PileUpLossFor"/> (`AMBER76`, П148). Значит
+        /// пар не больше N·R·τ_d. При живом времени 0 &lt; LT &lt; T мёртвое на
+        /// импульс — (T − LT)/N, скорость — N/LT, и граница N·(T − LT)/LT.
+        /// Живого времени нет — τ_d берётся из прибора (<paramref name="deviceDeadSec"/>,
+        /// <see cref="CoincidenceWindowSec"/>), граница N²·τ_d/T. Нет и его — NaN
+        /// (судить нечем; колонка свободна, как прежде).
+        ///
+        /// Замер ДО (журнал `handover/handover-2026-09-28-p166-fsa-pileup-summing.md`):
+        /// на малой базе с добором четырёх K-40 колонка брала у
+        /// `G1S24_K40_Petri` 0.139 пар/с при 8.5 имп/с — τ по фиту ≈ 1.9 мс
+        /// против мёртвого 44 мкс (×43), у `G1S24_K40_Denta120` ×23: колонка
+        /// подменяла недостающую модель, а убыль вынимала своё из всех
+        /// нуклидов.
+        /// </summary>
+        public static double PileUpCapFor(EnergySpectrum spectrum, double counted, double deviceDeadSec)
+        {
+            if (spectrum == null || !(counted > 0.0))
+            {
+                return double.NaN;
+            }
+
+            double live = spectrum.LiveTime, real = spectrum.MeasurementTime;
+            if (live > 0.0 && live < real)
+            {
+                return counted * (real - live) / live;
+            }
+
+            double time = real > 0.0 ? real : live;
+            if (deviceDeadSec > 0.0 && time > 0.0)
+            {
+                return counted * counted * deviceDeadSec / time;
+            }
+
+            return double.NaN;
         }
 
         /// <summary>
@@ -4457,17 +4550,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (`AMBER99`, П148) Вес линии в канале отклика: пик — с CF
         /// (`peakFactor`, уже решённым вызывающим: единица, если поправки нет),
         /// каналы <see cref="LosesWithPeak"/> — с долей, пережившей вынос,
-        /// прочие — без поправки. Умножение на единицу точное: у линии без
+        /// прочие — без поправки, а при <paramref name="allChannels"/>
+        /// (<see cref="CascadePairContinuum"/>, `AMBER124`) — тоже с ней. Умножение на единицу точное: у линии без
         /// поправки вес побитово прежний.
         /// </summary>
-        static double ChannelWeight(int channel, double weight, double peakFactor, double survive)
+        static double ChannelWeight(int channel, double weight, double peakFactor, double survive,
+                                    bool allChannels)
         {
             if (channel == (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak)
             {
                 return weight * peakFactor;
             }
 
-            return LosesWithPeak(channel) ? weight * survive : weight;
+            // (`AMBER124`, П166) С сумм-континуумом пар теряют ВСЕ каналы: то,
+            // что уносит партнёр, кладёт свёртка пары, и счёт событий сходится.
+            return allChannels || LosesWithPeak(channel) ? weight * survive : weight;
         }
 
         /// <summary>
@@ -4480,7 +4577,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         double[] EscapeSurvivals(FsaCascadeSummer.Correction correction, FsaComponent component)
         {
-            if (!this.CascadeEscapeLoss || correction == null || correction.Notes == null
+            if (!(this.CascadeEscapeLoss || this.CascadePairContinuum) || correction == null || correction.Notes == null
                 || correction.Notes.Count == 0 || component == null || component.Lines == null)
             {
                 return null;
@@ -5045,6 +5142,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // исправление физики (арбитр Geant4 в описании свойства), а не
             // новая настройка; выключенное — плечо до правки.
             this.CascadeEscapeLoss = true;
+            // (`AMBER124`/`AMBER125`, П166) Сумм-континуум и сумм-вылеты пар —
+            // ВКЛ: исправление счёта событий (арбитр Geant4 в описании
+            // свойства); выключенное — плечо до правки.
+            this.CascadePairContinuum = true;
+            // (`AMBER134`, П166) Вынос ходом по схеме — ВКЛ: решение Amber
+            // 28.09.2026 (в описании свойства); выключенное — плечо до правки.
+            this.CascadeBranchSum = true;
             // S27: атомные партнёры каскада включены умолчанием. Окно
             // совпадения ноль — «прибор не назвал»; кто знает мёртвое время,
             // ставит его сам (FsaAnalysisSession берёт у InputDeviceConfig.DeadTime()).
@@ -5113,6 +5217,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`T82`). Выбрано замером `FsaPileUpProbe` (ключ `--anchor=`):
             // см. журнал полосы.
             this.PileUpAnchorShare = 0.9;
+            // (`AMBER123`, П166 28.09.2026) Граница числа пар колонки
+            // наложений R·τ_d — полярность ЗДЕСЬ, у присваивания (`T82`).
+            // Выключенная — поведение до П166 (рычаг проб).
+            this.PileUpCapEnabled = true;
             this.PartialResidualGate = true;
 
             // (`AMBER3`) Потолок значимости у гейта формы — решение Amber
@@ -5283,6 +5391,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.lightMarginBins = 0;
             this.PileUpCurveUsed = null;
             this.PileUpLossUsed = double.NaN;
+            this.PileUpCapHits = 0;
+            this.PileUpCapPairs = double.NaN;
+            this.PileUpUncappedPairs = double.NaN;
             // (`AMBER65`) Колонка наложений — на каждый разбор своя.
             this.pileUpColumn = null;
             // (`S169`) карта нуля — слово разбирается на каждый разбор.
@@ -5330,30 +5441,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // причина — в результат, окну отчёта.
             this.cascadeRefusedFieldMatrix = this.CascadeSumming && this.ResponseMatrix != null
                 && this.ResponseMatrix.Normalization == EfficiencyMaker.ResponseMatrixNormalization.PerUnitFluence;
+            // (П168) Сам суммирователь и его ключи — одним местом,
+            // <see cref="CreateCascadeSummer"/>: тем же зовут зоны ROI (`AMBER133`).
             this.cascade = this.CascadeSumming && !this.cascadeRefusedFieldMatrix
-                ? FsaCascadeSummer.Create(this.ResponseMatrix, this.ScintillatorMaterial,
-                                          this.CoincidenceWindowSec, this.CascadeXrayPartners,
-                                          this.CascadeAnnihilationPartners,
-                                          this.CascadeIsomerPartners,
-                                          this.CascadeDecayTimeProbability)
+                ? this.CreateCascadeSummer()
                 : null;
-            // (`S167`, П18) Фотонная кривая суммы — ДО первого `For`: поправки
-            // кэшируются на экземпляре сумматора. Вещество без таблицы даёт
-            // null, то есть прежний счёт электронной кривой.
-            if (this.cascade != null && this.CascadeSumPhotonLight)
-            {
-                this.cascade.PhotonLightCurve = FsaLightScale.CurveFor(this.ScintillatorMaterial);
-            }
-
-            // (`S166`, П18) совместная эффективность в выносе — тоже до первого `For`
-            if (this.cascade != null)
-            {
-                this.cascade.LossJointFactor = this.CascadeLossJointFactor;
-                // (`N14`, П49) угловая корреляция пар — ключ и таблица сцены,
-                // тоже до первого `For`
-                this.cascade.AngularCorrelations = this.CascadeSumAngular;
-                this.cascade.AngularQk = this.AngularQk;
-            }
 
             this.cascadeApplied = false;
 
@@ -6141,6 +6233,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 this.PileUpLossUsed = pileUp != null ? loss : double.NaN;
                 if (pileUp != null)
                 {
+                    // (`AMBER123`, П166) Граница числа пар — R·τ_d на счёт.
+                    if (this.PileUpCapEnabled)
+                    {
+                        double counted = 0.0;
+                        for (int ch = 0; ch < channels; ch++)
+                        {
+                            if (raw[ch] > 0)
+                            {
+                                counted += raw[ch];
+                            }
+                        }
+
+                        pileUp.AmplitudeCap = PileUpCapFor(spectrum, counted, this.CoincidenceWindowSec);
+                        this.PileUpCapPairs = pileUp.AmplitudeCap;
+                    }
+
                     // Копия делается с `library`, а НЕ с `originalLibrary`: выше
                     // из неё мог уйти образ вылета (S47), и копия исходника
                     // вернула бы его молча.
@@ -7171,6 +7279,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             result.BackgroundUsed = background != null && backgroundScale > 0.0;
             // (`AMBER91`, П148) Множитель фона — дисперсии чистого счёта у доли невязки.
             result.BackgroundScale = result.BackgroundUsed ? backgroundScale : 0.0;
+            // (`AMBER123`, П166) Граница числа пар колонки наложений и то, что
+            // фит давал сверх неё.
+            result.PileUpCapPairs = this.PileUpCapPairs;
+            result.PileUpUncappedPairs = this.PileUpUncappedPairs;
+            // (`AMBER118`, П168) Линии состава, которые делит природный спутник,
+            // отсутствующий в составе (U-235 под 186 кэВ Ra-226): только сказать,
+            // в состав ничего не добавляется (~~`S110`~~).
+            this.FindLineInterferences(result, candidates, calibration, fwhmCalibration, efficiency, chLo, chHi, channels);
             // Пределы считаются по ТОЙ библиотеке, что пошла в фит (S47): образ,
             // снятый гейтом вылета, кандидатом не был, и печатать ему МДА
             // значило бы отвечать «не обнаружен» про то, чего не искали.
@@ -8916,7 +9032,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     for (int c = 0; c < EfficiencyMaker.EfficiencySimulator.ResponseChannelCount; c++)
                     {
                         this.AccumulateLine(matrix, deposit, line.Energy,
-                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive), c);
+                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive, this.CascadePairContinuum && correction != null), c);
                     }
                 }
                 else if (corrected)
@@ -8924,7 +9040,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     for (int c = 0; c < EfficiencyMaker.EfficiencySimulator.ResponseChannelCount; c++)
                     {
                         this.AccumulateLine(matrix, deposit, line.Energy,
-                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive), c);
+                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive, this.CascadePairContinuum && correction != null), c);
                     }
                 }
                 else
@@ -8945,6 +9061,95 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             one.WeightsAreFinal = component.WeightsAreFinal;
             return BuildTemplate(one, calibration, fwhmCalibration, efficiency,
                                  gain, offset, chLo, chHi, channels);
+        }
+
+        /// <summary>
+        /// (П168 28.09.2026, по `AMBER133` П167) СУММИРОВАТЕЛЬ КАСКАДОВ С КЛЮЧАМИ
+        /// ЭТОГО РАЗБОРА — одно место на проект: <see cref="Analyze"/> и зоны ROI
+        /// (<c>BecquerelCoefficient.CreateLikeFsa</c>) берут его отсюда, и новый
+        /// ключ суммирователя, заведённый здесь, доезжает до обоих без второй
+        /// копии блока настроек. Матрица — <see cref="ResponseMatrix"/>, вещество
+        /// — <see cref="ScintillatorMaterial"/>, окно — <see cref="CoincidenceWindowSec"/>
+        /// (всё это ставит вызывающий заранее). Все ключи ставятся ДО первого
+        /// <c>For</c>: поправки кэшируются на экземпляре. null — считать нечем
+        /// (матрицы нет, формат старше 3, нет `nucdb.sqlite`). Отказ матрице сцены
+        /// поля (`AMBER34`) — забота вызывающего: здесь его нет.
+        /// </summary>
+        public FsaCascadeSummer CreateCascadeSummer()
+        {
+            FsaCascadeSummer summer = FsaCascadeSummer.Create(this.ResponseMatrix, this.ScintillatorMaterial,
+                                                              this.CoincidenceWindowSec, this.CascadeXrayPartners,
+                                                              this.CascadeAnnihilationPartners,
+                                                              this.CascadeIsomerPartners,
+                                                              this.CascadeDecayTimeProbability);
+            if (summer == null)
+            {
+                return null;
+            }
+
+            // (`S167`, П18) Фотонная кривая суммы. Вещество без таблицы даёт
+            // null, то есть прежний счёт электронной кривой.
+            if (this.CascadeSumPhotonLight)
+            {
+                summer.PhotonLightCurve = FsaLightScale.CurveFor(this.ScintillatorMaterial);
+            }
+
+            // (`S166`, П18) совместная эффективность в выносе
+            summer.LossJointFactor = this.CascadeLossJointFactor;
+            // (`N14`, П49) угловая корреляция пар — ключ и таблица сцены
+            summer.AngularCorrelations = this.CascadeSumAngular;
+            summer.AngularQk = this.AngularQk;
+            // (`AMBER124`/`AMBER125`, П166) пары сумм-континуума
+            summer.PairContinuumEnabled = this.CascadePairContinuum;
+            // (`AMBER134`, П166) вынос ходом по схеме
+            summer.BranchSum = this.CascadeBranchSum;
+            return summer;
+        }
+
+        /// <summary>
+        /// (`AMBER118`, П168 28.09.2026) Помехи природных спутников линиям
+        /// состава — в <see cref="FsaResult.LineInterferences"/>. Правило — у
+        /// <see cref="FsaSampleLibrary.NaturalCompanionInterference"/>; здесь только
+        /// ПШПВ и эффективность прибора и то, что вошло в состав.
+        /// </summary>
+        void FindLineInterferences(FsaResult result, List<FsaComponent> library, EnergyCalibration calibration,
+                                   FwhmCalibration fwhmCalibration, FsaEfficiency efficiency, int chLo, int chHi,
+                                   int channels)
+        {
+            if (result == null || library == null || calibration == null || fwhmCalibration == null)
+            {
+                return;
+            }
+
+            var detected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (FsaComponentResult component in result.Components)
+            {
+                if (component.CountRate > 0.0)
+                {
+                    detected.Add(component.Name);
+                }
+            }
+
+            Func<double, double> fwhmKev = energy =>
+            {
+                // ⚠ С числом каналов: без него обратная калибровка ищет канал
+                // до 10000 и у полинома за шкалой возвращает край (замер П168 на
+                // `G1S24_Ra226_Petri`: канал 10000 на любой энергии, окно 6.7 МэВ).
+                double channel = calibration.EnergyToChannel(energy, channels);
+                double width = fwhmCalibration.ChannelToFwhm(channel);
+                if (!(width > 0.0))
+                {
+                    return 0.0;
+                }
+
+                return Math.Abs(calibration.ChannelToEnergy(channel + 0.5 * width)
+                                - calibration.ChannelToEnergy(channel - 0.5 * width));
+            };
+            Func<double, double> eff = efficiency != null ? (Func<double, double>)efficiency.Eval : null;
+            double lo = calibration.ChannelToEnergy(chLo);
+            double hi = calibration.ChannelToEnergy(chHi);
+            result.LineInterferences.AddRange(FsaSampleLibrary.NaturalCompanionInterference(
+                library, detected, fwhmKev, eff, Math.Min(lo, hi), Math.Max(lo, hi)));
         }
 
         FsaResult BuildResult(FitResult fit, EnergySpectrum spectrum, FwhmCalibration fwhmCalibration,
@@ -11213,6 +11418,93 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return ndf > 1.0 ? ndf : 1.0;
         }
 
+        /// <summary>
+        /// (`AMBER123`, П166 28.09.2026) ВЕРХНЯЯ ГРАНИЦА АМПЛИТУДЫ
+        /// (<see cref="FsaComponent.AmplitudeCap"/>). Колонка, чья амплитуда по
+        /// NNLS вышла выше границы, закрепляется НА границе, а остальные
+        /// решаются заново с её вкладом, вынесенным в правую часть
+        /// (c′ = c − G·x_k): это точный минимум той же целевой функции на
+        /// грани x_k = граница, потому что при закреплённой колонке задача по
+        /// прочим снова NNLS. Колонка остаётся в активном множестве — её σ и z
+        /// считаются как прежде и решают её судьбу при отсеве по значимости.
+        /// Колонки без границы (все, кроме наложений) — побитово прежнее
+        /// решение: метод возвращает тот же массив.
+        /// </summary>
+        double[] ApplyAmplitudeCaps(List<FitColumn> columns, double[,] gram, double[] c, int m,
+                                    double[] x, ref bool[] active)
+        {
+            int capped = -1;
+            double cap = double.NaN;
+            for (int k = 0; k < m; k++)
+            {
+                FsaComponent component = columns[k].Component;
+                if (component == null || double.IsNaN(component.AmplitudeCap))
+                {
+                    continue;
+                }
+
+                if (x[k] > component.AmplitudeCap)
+                {
+                    capped = k;
+                    cap = Math.Max(0.0, component.AmplitudeCap);
+                    if (x[k] > this.PileUpUncappedPairs || double.IsNaN(this.PileUpUncappedPairs))
+                    {
+                        this.PileUpUncappedPairs = x[k];
+                    }
+
+                    break;
+                }
+            }
+
+            if (capped < 0)
+            {
+                return x;
+            }
+
+            this.PileUpCapHits++;
+            double[,] reduced = (double[,])gram.Clone();
+            double[] rhs = new double[m];
+            for (int a = 0; a < m; a++)
+            {
+                rhs[a] = c[a] - gram[a, capped] * cap;
+            }
+
+            for (int a = 0; a < m; a++)
+            {
+                reduced[a, capped] = 0.0;
+                reduced[capped, a] = 0.0;
+            }
+
+            reduced[capped, capped] = 1.0;
+            rhs[capped] = 0.0;
+            bool[] reducedActive;
+            double[] solved = NnlsSolve(reduced, rhs, m, out reducedActive);
+            solved[capped] = cap;
+            reducedActive[capped] = cap > 0.0;
+            active = reducedActive;
+            return solved;
+        }
+
+        /// <summary>
+        /// (`AMBER123`) Сколько раз за разбор граница амплитуды наложений
+        /// срабатывала (сетка дрейфа и перефиты — каждый раз); ноль — колонка
+        /// укладывалась в R·τ_d. Сбрасывается в начале <see cref="Analyze"/>.
+        /// </summary>
+        public int PileUpCapHits { get; private set; }
+
+        /// <summary>
+        /// (`AMBER123`) Граница числа пар колонки наложений на этом разборе,
+        /// N·(T − LT)/LT (или N²·τ/T по мёртвому времени прибора); NaN —
+        /// границы нет (живого времени и мёртвого прибора нет).
+        /// </summary>
+        public double PileUpCapPairs { get; private set; }
+
+        /// <summary>
+        /// (`AMBER123`) Наибольшая амплитуда колонки наложений, которую NNLS
+        /// давал ДО закрепления на границе; NaN — граница не срабатывала.
+        /// </summary>
+        public double PileUpUncappedPairs { get; private set; }
+
         FitResult FitOnce(List<FsaComponent> library, List<double[]> fixedColumns,
                           EnergyCalibration calibration, FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
                           double gain, double offset, int chLo, int chHi, int channels,
@@ -11405,6 +11697,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             bool[] active;
             double[] x = NnlsSolve(gram, c, m, out active);
+            x = this.ApplyAmplitudeCaps(columns, gram, c, m, x, ref active);
 
             double[] model = new double[channels];
             for (int k = 0; k < m; k++)
@@ -12505,7 +12798,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     for (int c = 0; c < channelCount; c++)
                     {
                         this.AccumulateLine(matrix, channels[c], line.Energy,
-                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive), c);
+                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive, this.CascadePairContinuum && correction != null), c);
                     }
                 }
                 else if (corrected)
@@ -12513,7 +12806,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     for (int c = 0; c < channelCount; c++)
                     {
                         this.AccumulateLine(matrix, deposit, line.Energy,
-                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive), c);
+                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive, this.CascadePairContinuum && correction != null), c);
                     }
                 }
                 else
@@ -12623,6 +12916,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // (`AMBER124`/`AMBER125`, П166) Свёртка пары доходит до E_i + E_j.
+            if (correction.PairContinua != null)
+            {
+                foreach (FsaCascadeSummer.PairContinuum pair in correction.PairContinua)
+                {
+                    double edge = pair.FirstKev + pair.SecondKev;
+                    if (edge > top)
+                    {
+                        top = edge;
+                    }
+                }
+            }
+
             return top;
         }
 
@@ -12703,8 +13009,145 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // (`AMBER124`/`AMBER125`, П166) Свёртка пары без «пик ⊗ пик».
+            if (withContinuum && correction.PairContinua != null && correction.PairContinua.Count > 0)
+            {
+                any |= this.AccumulatePairContinua(deposit, channels, correction.PairContinua);
+            }
+
             return any;
         }
+
+        /// <summary>
+        /// (`AMBER124`/`AMBER125`, П166 28.09.2026) СВЁРТКА КАСКАДНОЙ ПАРЫ БЕЗ
+        /// ЧЛЕНА «ПИК ⊗ ПИК». Для пары (i, j) с совместной долей J (на распад):
+        ///
+        ///   * «пик i + непик j» — отклик j во всех каналах, кроме пика, сдвинутый
+        ///     на E_i, с весом J·ε_p(i) (сюда же сумм-вылеты «пик + SE/DE/K» —
+        ///     `AMBER125`); «непик i + пик j» — симметрично;
+        ///   * «непик i ⊗ непик j» — непиковая часть отклика i (строка матрицы,
+        ///     все каналы, кроме пика) нарезается на <see cref="PairSliceCount"/>
+        ///     ломтей равной ширины по энергии, и каждый ломоть с его долей
+        ///     сдвигает непиковый отклик j на свой центр тяжести. Свёртка двух
+        ///     непрерывных распределений гладкая, и ошибка ломтя — сдвиг внутри
+        ///     его ширины, размытый вторым распределением.
+        ///
+        /// Куда кладётся: во ВСЕ каналы, кроме пикового, — в канал отклика
+        /// того кванта, чей отклик сдвигается (событие пика не даёт, пиковый
+        /// канал держит только полное поглощение). Половина «пик ⊗ пик» —
+        /// сумм-пик или влёт в CF линии, здесь её нет.
+        /// </summary>
+        bool AccumulatePairContinua(double[] deposit, double[][] channels,
+                                    List<FsaCascadeSummer.PairContinuum> pairs)
+        {
+            EfficiencyMaker.ResponseMatrix matrix = this.ResponseMatrix;
+            if (matrix == null || this.cascade == null)
+            {
+                return false;
+            }
+
+            int peakChannel = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
+            int channelCount = EfficiencyMaker.EfficiencySimulator.ResponseChannelCount;
+            double bin = matrix.BinKev;
+            if (!(bin > 0.0))
+            {
+                return false;
+            }
+
+            bool any = false;
+            foreach (FsaCascadeSummer.PairContinuum pair in pairs)
+            {
+                double joint = pair.Joint;
+                if (!(joint > 0.0))
+                {
+                    continue;
+                }
+
+                double first = pair.FirstKev, second = pair.SecondKev;
+                double peakFirst = this.cascade.PeakEfficiency(first);
+                double peakSecond = this.cascade.PeakEfficiency(second);
+
+                // «пик i + непик j» и «непик i + пик j».
+                for (int c = 0; c < channelCount; c++)
+                {
+                    if (c == peakChannel)
+                    {
+                        continue;
+                    }
+
+                    double[] target = channels != null ? channels[c] : deposit;
+                    if (peakFirst > 0.0)
+                    {
+                        this.AccumulateSumContinuum(matrix, target, second, joint * peakFirst, c, first);
+                    }
+
+                    if (peakSecond > 0.0)
+                    {
+                        this.AccumulateSumContinuum(matrix, target, first, joint * peakSecond, c, second);
+                    }
+                }
+
+                // «непик i ⊗ непик j»: непиковая строка i — ломтями.
+                int length = EfficiencyMaker.ResponseMatrix.ImageBins(first, bin) + 1;
+                double[] rest = new double[length];
+                for (int c = 0; c < channelCount; c++)
+                {
+                    if (c != peakChannel && (this.MatrixChannelMask & (1 << c)) != 0)
+                    {
+                        matrix.AccumulateChannel(rest, first, 1.0, c);
+                    }
+                }
+
+                double sliceKev = first / PairSliceCount;
+                for (int s = 0; s < PairSliceCount; s++)
+                {
+                    int bLo = s == 0 ? 0 : (int)Math.Floor(s * sliceKev / bin + 0.5);
+                    int bHi = s == PairSliceCount - 1
+                        ? length - 1
+                        : (int)Math.Floor((s + 1) * sliceKev / bin + 0.5) - 1;
+                    bLo = Math.Max(0, bLo);
+                    bHi = Math.Min(length - 1, bHi);
+                    double mass = 0.0, moment = 0.0;
+                    for (int b = bLo; b <= bHi; b++)
+                    {
+                        if (rest[b] > 0.0)
+                        {
+                            mass += rest[b];
+                            moment += rest[b] * b * bin;
+                        }
+                    }
+
+                    if (!(mass > 0.0))
+                    {
+                        continue;
+                    }
+
+                    double centre = moment / mass;
+                    for (int c = 0; c < channelCount; c++)
+                    {
+                        if (c == peakChannel)
+                        {
+                            continue;
+                        }
+
+                        this.AccumulateSumContinuum(matrix, channels != null ? channels[c] : deposit,
+                                                    second, joint * mass, c, centre);
+                    }
+                }
+
+                any = true;
+            }
+
+            return any;
+        }
+
+        /// <summary>
+        /// (`AMBER124`) Ломтей непиковой части отклика первого кванта в свёртке
+        /// «непик ⊗ непик» (<see cref="AccumulatePairContinua"/>). Ширина ломтя —
+        /// E_i/48: у 2614 кэВ это 54 кэВ, у 583 — 12, при ширине результата в
+        /// сотни кэВ.
+        /// </summary>
+        const int PairSliceCount = 48;
 
         /// <summary>
         /// Образ из ОДНИХ сумм-пиков компонента — для отрисовки подслоем.

@@ -208,6 +208,44 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public string Nuclide { get; private set; }
         }
 
+        /// <summary>
+        /// (`AMBER124`/`AMBER125`, П166 28.09.2026) ПАРА КАСКАДА ДЛЯ СУММ-КОНТИНУУМА
+        /// И СУММ-ВЫЛЕТОВ: оба кванта пары оставили в кристалле хоть что-нибудь,
+        /// и хотя бы один — не целиком. Полная свёртка откликов пары
+        /// R_i ⊗ R_j без члена «пик ⊗ пик» (он — сумм-пик, <see cref="SumPeak"/>,
+        /// или влёт в CF линии): «пик i + непик j», «непик i + пик j» (сюда же —
+        /// «пик + вылет»: 2614 + SE 583 и т. п., `AMBER125`) и «непик ⊗ непик»
+        /// (`AMBER124`). Кладёт <c>FsaAnalyzer.AccumulateSumPeaks</c>; одиночные
+        /// отклики линий при этом теряют ту же долю (1 − L_out) во ВСЕХ каналах,
+        /// и счёт событий сходится: истина ε_T(i) + ε_T(j) − ε_T(i)·ε_T(j).
+        /// </summary>
+        public sealed class PairContinuum
+        {
+            public PairContinuum(double firstKev, double secondKev, double joint, string nuclide)
+            {
+                this.FirstKev = firstKev;
+                this.SecondKev = secondKev;
+                this.Joint = joint;
+                this.Nuclide = nuclide ?? "";
+            }
+
+            /// <summary>Первая линия пары (носитель в поставке), кэВ.</summary>
+            public double FirstKev { get; private set; }
+
+            /// <summary>Вторая линия пары (партнёр), кэВ.</summary>
+            public double SecondKev { get; private set; }
+
+            /// <summary>
+            /// Совместная доля пары на распад родителя компонента — та же, что
+            /// в площади сумм-пика (выход, условная, угловой множитель, выживание
+            /// третьего S_ij), БЕЗ эффективностей и без κ пиков: эффективности
+            /// придут из строк матрицы.
+            /// </summary>
+            public double Joint { get; private set; }
+
+            public string Nuclide { get; private set; }
+        }
+
         /// <summary>Поправки одного компонента: множители линий и его сумм-пики.</summary>
         public sealed class Correction
         {
@@ -246,6 +284,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// у него нет «высоты», по которой отбирать.
             /// </summary>
             public List<SumContinuum> SumContinua { get; set; }
+
+            /// <summary>
+            /// (`AMBER124`/`AMBER125`, П166) Пары для сумм-континуума и
+            /// сумм-вылетов (<see cref="PairContinuum"/>): ВСЕ пары нуклида выше
+            /// порога по ε_T, включая те, чей сумм-пик влит в CF линии, срезан
+            /// или ниже порога площади пика, — континуум от этого не зависит.
+            /// </summary>
+            public List<PairContinuum> PairContinua { get; set; }
 
             /// <summary>
             /// Разбор поправки по линиям: отчёт (<see cref="FsaCascadeSummer.Describe"/>)
@@ -885,6 +931,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool LossJointFactor { get; set; }
 
         /// <summary>
+        /// (`AMBER134`, П166 28.09.2026) Вынос из пика ХОДОМ ПО СХЕМЕ ENSDF
+        /// ветви (<see cref="CascadeAtomicData.Branch.Walk"/>) вместо
+        /// произведения по ядерным партнёрам. Ставит анализатор
+        /// (<c>FsaAnalyzer.CascadeBranchSum</c>) до первого <see cref="For"/>;
+        /// выключенный — поведение до П166. Разбор и замер — у <see cref="WalkSurvive"/>.
+        /// </summary>
+        public bool BranchSum { get; set; }
+
+        /// <summary>(`AMBER134`) Линий, чей вынос посчитан ходом по схеме (за процесс, для проб).</summary>
+        public static int BranchWalks;
+
+        /// <summary>
+        /// (`AMBER134`) Линий, у которых схема ENSDF не знала заметного партнёра
+        /// и вынос посчитан прежним произведением (за процесс, для проб).
+        /// </summary>
+        public static int BranchWalkFallbacks;
+
+        /// <summary>
+        /// (`AMBER134`) Порог «заметного» ядерного партнёра для хода по схеме:
+        /// P(партнёр | линия)·ε_T. Партнёр ниже него, которого схема не знает,
+        /// меняет вынос меньше чем на 0.1 %, и отказ от хода из-за него не нужен.
+        /// </summary>
+        const double WalkPartnerFloor = 1.0E-3;
+
+        /// <summary>
         /// (`N14`, П49 13.09.2026) УГЛОВАЯ КОРРЕЛЯЦИЯ В ПАРАХ: площадь
         /// сумм-события пары (<see cref="PairBase"/> — то есть сумм-пики, влёт,
         /// тройные суммы и сумм-континуум) домножается на
@@ -1428,6 +1499,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<SumPeak> sumPeaks = new List<SumPeak>();
             List<SumPeak> dropped = new List<SumPeak>();
             List<SumContinuum> continua = new List<SumContinuum>();
+            var pairContinua = new List<PairContinuum>();
             List<LineNote> notes = new List<LineNote>();
             bool any = false;
 
@@ -1494,7 +1566,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 var nuclidePeaks = new List<SumPeak>();
                 var nuclideDropped = new List<SumPeak>();
                 this.CollectSumPeaks(component, nuclide, data, scale, strongest, nuclidePeaks,
-                                     continua, nuclideDropped);
+                                     continua, nuclideDropped, pairContinua);
                 TrimByArea(nuclidePeaks, nuclideDropped);
                 sumPeaks.AddRange(nuclidePeaks);
                 dropped.AddRange(nuclideDropped);
@@ -1508,7 +1580,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 sumPeaks.Sort((a, b) => b.Area.CompareTo(a.Area));
             }
 
-            if (continua.Count > 0)
+            if (continua.Count > 0 || pairContinua.Count > 0)
             {
                 any = true;
             }
@@ -1519,6 +1591,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 SumPeaks = sumPeaks,
                 DroppedSumPeaks = dropped,
                 SumContinua = continua,
+                PairContinua = pairContinua,
                 Notes = notes,
                 Any = any
             };
@@ -1659,7 +1732,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         void CollectSumPeaks(FsaComponent component, string nuclide, NuclideData data,
                              double scale, double strongest, List<SumPeak> sumPeaks,
-                             List<SumContinuum> continua, List<SumPeak> dropped)
+                             List<SumContinuum> continua, List<SumPeak> dropped,
+                             List<PairContinuum> pairContinua)
         {
             if (!(scale > 0.0))
             {
@@ -1705,6 +1779,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // Энергия сумм-пика — ВИДИМАЯ (по свету, S20): именно на это
                 // место шкалы событие ложится, и именно с этим местом надо
                 // сверять окна линий компонента.
+                // (`AMBER124`/`AMBER125`, П166) Пара для сумм-континуума — ДО
+                // всех отсевов сумм-пика: влит ли пик в CF линии, срезан ли,
+                // ниже ли порога площади — на континуум не влияет.
+                this.CollectPairContinuum(nuclide, data, pair, scale, floor, pairContinua);
+
                 double energy = this.ApparentSum(pair[0], pair[1]);
                 if (this.PeakEfficiency(energy) <= 0.0)
                 {
@@ -1741,6 +1820,51 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                        continua);
             }
         }
+
+        /// <summary>
+        /// (`AMBER124`/`AMBER125`, П166 28.09.2026) Пара в сумм-континуум.
+        /// Совместная доля — площадь сумм-события пары (<see cref="PairArea"/>:
+        /// выход, условная, угловой множитель, выживание третьего), делённая на
+        /// то, что в ней от ПИКОВ: ε_p(i)·ε_p(j)·κ_pp. Порог — тот же
+        /// <paramref name="floor"/>, что у сумм-пиков (доля сильнейшей линии), но
+        /// по ПОЛНЫМ эффективностям: континуум несёт J·ε_T(i)·ε_T(j) событий.
+        /// </summary>
+        void CollectPairContinuum(string nuclide, NuclideData data, double[] pair, double scale,
+                                  double floor, List<PairContinuum> pairContinua)
+        {
+            if (pairContinua == null || !this.PairContinuumEnabled)
+            {
+                return;
+            }
+
+            double peakFirst = this.PeakEfficiency(pair[0]);
+            double peakSecond = this.PeakEfficiency(pair[1]);
+            double kappa = this.JointFactor(pair[0], pair[1]);
+            if (!(peakFirst > 0.0) || !(peakSecond > 0.0) || !(kappa > 0.0))
+            {
+                return;
+            }
+
+            double joint = scale * this.PairArea(data, pair) / (peakFirst * peakSecond * kappa);
+            if (!(joint > 0.0))
+            {
+                return;
+            }
+
+            double events = joint * this.TotalEfficiency(pair[0]) * this.TotalEfficiency(pair[1]);
+            if (events > floor)
+            {
+                pairContinua.Add(new PairContinuum(pair[0], pair[1], joint, nuclide));
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER124`/`AMBER125`, П166) Собирать ли пары сумм-континуума
+        /// (<see cref="PairContinuum"/>). Ставит анализатор своим рычагом
+        /// (<c>FsaAnalyzer.CascadePairContinuum</c>) до первого <see cref="For"/>;
+        /// выключенный — поведение до П166.
+        /// </summary>
+        public bool PairContinuumEnabled { get; set; }
 
         /// <summary>
         /// Тройные суммы пары (S19). Множитель выживания `S_ij` вычитает из пары
@@ -2827,6 +2951,62 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double kWeighted = 0.0;                                 // Σ P_i·ε_i' по носителям K-серии
             Dictionary<double, double> linkedGammas = null;        // γ_T источника вакансии → p·ε'
             double survive = 1.0;
+
+            // (`AMBER134`, П166) Ход по схеме ENSDF: ядерные партнёры, чьи
+            // переходы в схеме есть, копят только СВОЮ ε′ (условную вероятность
+            // задеть кристалл); как они сочетаются — решает схема, а не
+            // произведение.
+            CascadeAtomicData.EnsdfWalk walk = null;
+            CascadeAtomicData.EnsdfWalk.Step own = null;
+            Dictionary<CascadeAtomicData.EnsdfWalk.Step, double> walkDetect = null;
+            if (this.BranchSum && identity != null && identity.Branch != null && identity.Gamma != null)
+            {
+                walk = identity.Branch.Walk;
+                own = walk != null ? walk.StepOf(identity.Gamma.EnergyKev) : null;
+                if (own == null)
+                {
+                    walk = null;
+                }
+                else
+                {
+                    walkDetect = new Dictionary<CascadeAtomicData.EnsdfWalk.Step, double>();
+                }
+
+                // ⛔ СХЕМА ОБЯЗАНА ЗНАТЬ ВСЕХ ЗАМЕТНЫХ ПАРТНЁРОВ. Ядерный партнёр
+                // с P·ε_T ≥ WalkPartnerFloor, чьего перехода в наборе нет, значит
+                // дыру в наборе, а не «пути нет»: у `208TL` линия 583.19 кэВ
+                // записана в `ensdf_gammas` энергией 570.0 без конечного уровня,
+                // уровень 3198 теряет главный выход, питание 2614 по балансу
+                // выходит 87 %, и CF(2614) на контакте падал бы 1.464 → 1.314
+                // (арбитр Geant4 на приложении — журнал П166). Тогда вся линия
+                // считается прежним произведением.
+                if (walk != null)
+                {
+                    foreach (KeyValuePair<double, double> partner in partners)
+                    {
+                        if (data.XrayShare != null && data.XrayShare.ContainsKey(partner.Key))
+                        {
+                            continue;
+                        }
+
+                        double had;
+                        if (data.PartnerQuanta != null && data.PartnerQuanta.TryGetValue(partner.Key, out had) && had > 1.0)
+                        {
+                            continue;
+                        }
+
+                        if (partner.Value * this.TotalEfficiency(partner.Key) >= WalkPartnerFloor
+                            && walk.StepOf(partner.Key) == null)
+                        {
+                            walk = null;
+                            own = null;
+                            walkDetect = null;
+                            System.Threading.Interlocked.Increment(ref BranchWalkFallbacks);
+                            break;
+                        }
+                    }
+                }
+            }
             foreach (KeyValuePair<double, double> partner in partners)
             {
                 double efficiency = this.TotalEfficiency(partner.Key);
@@ -2893,6 +3073,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (data.PartnerQuanta.TryGetValue(partner.Key, out had) && had > 0.0)
                     {
                         quanta = had;
+                    }
+                }
+
+                // (`AMBER134`) Ядерный партнёр, чей переход есть в схеме ENSDF
+                // линии, — в ход по схеме; аннигиляция и рентген — как прежде.
+                if (walk != null && quanta <= 1.0
+                    && !(data.XrayShare != null && data.XrayShare.ContainsKey(partner.Key)))
+                {
+                    CascadeAtomicData.EnsdfWalk.Step step = walk.StepOf(partner.Key);
+                    if (step != null && !ReferenceEquals(step, own))
+                    {
+                        walkDetect[step] = Math.Min(1.0, efficiency);
+                        continue;
                     }
                 }
 
@@ -2986,6 +3179,58 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 survive *= p < 1.0 ? 1.0 - p : 0.0;
             }
 
+            // (`AMBER134`, П166) Ход по схеме: ядерные гаммы и конверсия их
+            // переходов в K — по путям; захват — отдельным множителем (он у
+            // вершины пути, P_K по уровням в поставке нет); источники вакансии,
+            // чьих переходов в схеме нет, и их γ_T — прежним правилом.
+            if (walk != null)
+            {
+                double meanK = vacancy > 0.0 ? kWeighted / vacancy : 0.0;
+                var walked = new HashSet<VacancyTerm>();
+                survive *= this.WalkSurvive(walk, own, walkDetect, identity, meanK, walked);
+                System.Threading.Interlocked.Increment(ref BranchWalks);
+                if (vacancy > 0.0 && identity.Capture > 0.0)
+                {
+                    survive *= 1.0 - Math.Min(1.0, identity.Capture * identity.OmegaK * meanK);
+                }
+
+                if (vacancy > 0.0)
+                {
+                    foreach (VacancyTerm term in identity.Terms)
+                    {
+                        if (walked.Contains(term))
+                        {
+                            continue;
+                        }
+
+                        double p = term.Conditional * term.AlphaK * term.Together * identity.OmegaK * meanK;
+                        if (linkedGammas != null)
+                        {
+                            foreach (double gammaKey in new List<double>(linkedGammas.Keys))
+                            {
+                                if (Math.Abs(gammaKey - term.Kev) < SameLineKev)
+                                {
+                                    p += linkedGammas[gammaKey];
+                                    linkedGammas.Remove(gammaKey);
+                                }
+                            }
+                        }
+
+                        survive *= 1.0 - Math.Min(1.0, p);
+                    }
+                }
+
+                if (linkedGammas != null)
+                {
+                    foreach (double p in linkedGammas.Values)
+                    {
+                        survive *= p < 1.0 ? 1.0 - p : 0.0;
+                    }
+                }
+
+                return survive;
+            }
+
             // (`AMBER61`) Множители по источникам K-вакансии: ответы одной
             // вакансии исключающи (сумма долей серии), вакансии разных
             // источников независимы (произведение), γ_T — в множителе своего
@@ -3030,6 +3275,158 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return survive;
+        }
+
+        /// <summary>
+        /// (`AMBER134`, П166 28.09.2026) ВЫЖИВАНИЕ ЛИНИИ ПО СХЕМЕ УРОВНЕЙ: доля
+        /// событий с квантом линии в пике, в которых ни один ядерный партнёр и
+        /// ни один K-рентген от конверсии переходов пути не задел кристалл.
+        ///
+        /// ⛔ ПРОИЗВЕДЕНИЕ ∏(1 − P(m|k)·ε_m) ПО ВСЕМ ПАРТНЁРАМ (`S144`) ВЕРНО
+        /// ТОЛЬКО ДЛЯ ПЕРЕХОДОВ ОДНОГО ПУТИ. Питатели уровня линии —
+        /// ВЗАИМНО ИСКЛЮЧАЮЩИЕ ветви (у 81 кэВ Ba-133: 356, 303, 53 → 303,
+        /// 276 → 79.6), и для них верна сумма 1 − Σ P_i·ε_i, а произведение
+        /// занижает вынос. Довод `S144` «разводить нечем» устарел с `S176`/`S177`:
+        /// схема в коде есть. Точная форма — ход по путям:
+        ///
+        ///   S(k) = S↑(U)·S↓(D),  g_t = 1 − (ε′_t + α_K,t·ω_K·ε̄_K·w_t)/(1 + α_t),
+        ///   S↓(L) = Σ_t b_t·g_t·S↓(L_t),  S↑(L) = [f_L + Σ_t N(L_t)·b_t·g_t·S↑(L_t)]/N(L),
+        ///
+        /// U, D — уровни линии, b_t — доля ухода с уровня, N — населённость,
+        /// f — питание по балансу (<see cref="CascadeAtomicData.EnsdfWalk"/>),
+        /// ε′_t — эффективность партнёра так, как её считает цикл
+        /// (<see cref="SurviveAll"/>: с угловым множителем и κ_pT; нет партнёра —
+        /// ноль: гейт по времени или порог его уже сняли), α_K·w — слагаемое
+        /// разложения вакансии этого перехода (<see cref="VacancyTerm"/>; нет
+        /// слагаемого — K-рентгена нет, как и прежде). γ_T и K(T) — исключающие
+        /// исходы одного перехода (`AMBER61`) — стоят в одном g_t сами собой.
+        ///
+        /// Замер (журнал `handover/handover-2026-09-28-p166-fsa-pileup-summing.md`):
+        /// Ba-133 81 кэВ на контакте G1S — CF 1.567 → см. журнал при
+        /// Geant4 1.6329 ± 0.0030.
+        /// </summary>
+        double WalkSurvive(CascadeAtomicData.EnsdfWalk walk, CascadeAtomicData.EnsdfWalk.Step own,
+                           Dictionary<CascadeAtomicData.EnsdfWalk.Step, double> detect,
+                           LineIdentity identity, double meanK, HashSet<VacancyTerm> walked)
+        {
+            var g = new Dictionary<CascadeAtomicData.EnsdfWalk.Step, double>();
+            foreach (CascadeAtomicData.EnsdfWalk.Step step in walk.Steps)
+            {
+                if (ReferenceEquals(step, own))
+                {
+                    continue;
+                }
+
+                double hit;
+                detect.TryGetValue(step, out hit);
+                double kHit = 0.0;
+                if (identity.Terms != null && meanK > 0.0)
+                {
+                    foreach (VacancyTerm term in identity.Terms)
+                    {
+                        if (Math.Abs(term.Kev - step.EnergyKev) < SameLineKev)
+                        {
+                            kHit = Math.Min(step.Alpha, term.AlphaK) * term.Together * identity.OmegaK * meanK;
+                            walked.Add(term);
+                            break;
+                        }
+                    }
+                }
+
+                g[step] = Math.Max(0.0, 1.0 - (hit + kHit) / (1.0 + step.Alpha));
+            }
+
+            // Вниз от конечного уровня линии.
+            var below = new Dictionary<int, double>();
+            for (int index = walk.Descending.Count - 1; index >= 0; index--)
+            {
+                int level = walk.Descending[index];
+                double away;
+                if (!walk.Out.TryGetValue(level, out away) || !(away > 0.0))
+                {
+                    below[level] = 1.0;
+                    continue;
+                }
+
+                double sum = 0.0;
+                foreach (CascadeAtomicData.EnsdfWalk.Step step in walk.Steps)
+                {
+                    if (step.From != level)
+                    {
+                        continue;
+                    }
+
+                    double next;
+                    if (!below.TryGetValue(step.To, out next))
+                    {
+                        next = 1.0;
+                    }
+
+                    double factor;
+                    if (!g.TryGetValue(step, out factor))
+                    {
+                        factor = 1.0;
+                    }
+
+                    sum += step.Weight / away * factor * next;
+                }
+
+                below[level] = sum;
+            }
+
+            // Сверху к начальному уровню линии.
+            var above = new Dictionary<int, double>();
+            var inflow = new Dictionary<int, double>();
+            var weighted = new Dictionary<int, double>();
+            foreach (int level in walk.Descending)
+            {
+                double population;
+                walk.Population.TryGetValue(level, out population);
+                double came, carried;
+                inflow.TryGetValue(level, out came);
+                weighted.TryGetValue(level, out carried);
+                double feed = Math.Max(0.0, population - came);
+                above[level] = population > 0.0 ? (feed + carried) / population : 1.0;
+                double away;
+                if (!walk.Out.TryGetValue(level, out away) || !(away > 0.0))
+                {
+                    continue;
+                }
+
+                foreach (CascadeAtomicData.EnsdfWalk.Step step in walk.Steps)
+                {
+                    if (step.From != level)
+                    {
+                        continue;
+                    }
+
+                    double factor;
+                    if (!g.TryGetValue(step, out factor))
+                    {
+                        factor = 1.0;
+                    }
+
+                    double flow = population * step.Weight / away;
+                    double had;
+                    inflow.TryGetValue(step.To, out had);
+                    inflow[step.To] = had + flow;
+                    weighted.TryGetValue(step.To, out had);
+                    weighted[step.To] = had + flow * factor * above[level];
+                }
+            }
+
+            double up, down;
+            if (!above.TryGetValue(own.From, out up))
+            {
+                up = 1.0;
+            }
+
+            if (!below.TryGetValue(own.To, out down))
+            {
+                down = 1.0;
+            }
+
+            return up * down;
         }
 
         /// <summary>

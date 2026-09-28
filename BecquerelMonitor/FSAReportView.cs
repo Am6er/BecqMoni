@@ -342,6 +342,23 @@ namespace BecquerelMonitor
         const string KeySupplyShareScaled = "FSAReport_SupplyShareScaled";
         const string KeySupplyShareKept = "FSAReport_SupplyShareKept";
 
+        // (`AMBER123`, `AMBER118`, `AMBER126`; П168 28.09.2026) Колонка наложений
+        // на границе R·τ; помеха природного спутника линии состава; шумовой пол
+        // строки невязки.
+        const string KeyPileUpCapRow = "FSAReport_PileUpCapRow";
+        const string KeyPileUpCapValue = "FSAReport_PileUpCapValue";
+        const string KeyInterferenceRow = "FSAReport_InterferenceRow";
+        const string KeyInterferenceValue = "FSAReport_InterferenceValue";
+        const string KeyResidualNoise = "FSAReport_ResidualNoise";
+        const string KeyResidualNoiseTip = "FSAReport_ResidualNoiseTip";
+
+        /// <summary>
+        /// (`AMBER126`) Ниже этого пол шума невязки в подписи не печатается: в
+        /// формате `F1` он читался бы «0.0 %», а у сильного источника (Cs-137 в
+        /// домике, 250 М отсч.) пол и есть сотые доли процента.
+        /// </summary>
+        const double ResidualNoiseShownFloor = 0.0005;
+
         static readonly ComponentResourceManager OwnResources =
             new ComponentResourceManager(typeof(FSAReportView));
 
@@ -1354,6 +1371,19 @@ namespace BecquerelMonitor
                 residualTips.Add(string.Format(CultureInfo.InvariantCulture, OwnText(KeyResidualFloorTip), kev));
             }
 
+            // (`AMBER126`, П168 28.09.2026) ШУМОВОЙ ПОЛ — рядом с числом, а не
+            // вычетом из него: число — площадь ленты (решение Amber по ~~`S111`~~),
+            // но без пола «не описано 37 %» у модели, описавшей всё (проба в 30σ
+            // над фоном), читалось бы как недоработка модели. Первой пометкой:
+            // она о самом числе, остальные — о показе.
+            if (floorResult != null && floorResult.ResidualSharesDefined
+                && floorResult.ResidualNoiseShare >= ResidualNoiseShownFloor)
+            {
+                string noise = (100.0 * floorResult.ResidualNoiseShare).ToString("F1", CultureInfo.InvariantCulture);
+                residualMarks.Insert(0, string.Format(CultureInfo.InvariantCulture, OwnText(KeyResidualNoise), noise));
+                residualTips.Insert(0, string.Format(CultureInfo.InvariantCulture, OwnText(KeyResidualNoiseTip), noise));
+            }
+
             if (residualMarks.Count > 0)
             {
                 residualCaption += " — " + string.Join(", ", residualMarks.ToArray());
@@ -1569,6 +1599,38 @@ namespace BecquerelMonitor
                 this.AddSupplyRow(made, result.SupplyDiscrepancies);
             }
 
+            // (`AMBER123`, П166 → строка окна П168 28.09.2026) КОЛОНКА НАЛОЖЕНИЙ
+            // ЗАКРЕПЛЕНА НА ГРАНИЦЕ R·τ: фит просил больше пар, чем допускает
+            // мёртвое время, — избыток брал не наложения, а недостающую модель.
+            // Признак был только в результате (`PileUpNotPairs`); происшествие,
+            // поэтому кирпичным и только когда было.
+            if (result.PileUpNotPairs)
+            {
+                made.Add(this.MakeMarkRowText(
+                    string.Format(CultureInfo.InvariantCulture, OwnText(KeyPileUpCapRow),
+                                  result.PileUpUncappedPairs, result.PileUpCapPairs),
+                    OwnText(KeyPileUpCapValue), false, true));
+            }
+
+            // (`AMBER118`, П168; решение Amber 28.09.2026 «Строка AMBER:
+            // предупреждение об интерференции 186 кэВ») ЛИНИЯ СОСТАВА, КОТОРУЮ
+            // ДЕЛИТ ПРИРОДНЫЙ СПУТНИК, ОТСУТСТВУЮЩИЙ В СОСТАВЕ. Имена — данные
+            // результата (подписи нуклидов переводу не подлежат), числа — один
+            // раз и инвариантной культурой (`A242`).
+            if (result.LineInterferences != null)
+            {
+                foreach (FsaLineInterference item in result.LineInterferences)
+                {
+                    made.Add(this.MakeMarkRowText(
+                        string.Format(CultureInfo.InvariantCulture, OwnText(KeyInterferenceRow),
+                                      item.LineKev.ToString("F1", CultureInfo.InvariantCulture),
+                                      item.Companion ?? string.Empty, item.Reference ?? string.Empty,
+                                      item.Component ?? string.Empty,
+                                      item.Factor.ToString("F2", CultureInfo.InvariantCulture)),
+                        OwnText(KeyInterferenceValue), false, true));
+                }
+            }
+
             return made;
         }
 
@@ -1659,7 +1721,16 @@ namespace BecquerelMonitor
         /// </summary>
         Row MakeMarkRow(string captionKey, string value, bool good, bool attention)
         {
-            string caption = OwnText(captionKey);
+            return this.MakeMarkRowText(OwnText(captionKey), value, good, attention);
+        }
+
+        /// <summary>
+        /// То же, что <see cref="MakeMarkRow"/>, но подпись — готовый текст, а не
+        /// ключ: у происшествий с числами (`AMBER123`, `AMBER118`) подпись
+        /// собирается форматом и переносится по ширине колонки целиком.
+        /// </summary>
+        Row MakeMarkRowText(string caption, string value, bool good, bool attention)
+        {
             var name = new Cell(caption);
             var cell = new Cell(value ?? string.Empty);
             name.ForeColor = Color.Black;
