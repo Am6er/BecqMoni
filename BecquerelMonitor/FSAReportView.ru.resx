@@ -331,4 +331,22 @@
   <data name="FSAReport_SupplyShareKept" xml:space="preserve">
     <value>{0} → {1}: доля β⁺ ветви {2} (decay_radiations) против {3} (ENSDF), {4} %; доля ветви упёрлась в perc, доли по уровням оставлены по ENSDF</value>
   </data>
+  <data name="FSAReport_PileUpCapRow" xml:space="preserve">
+    <value>Колонка наложений ограничена R·τ: фит просил {0:F0} пар, мёртвое время допускает {1:F0} — избыток не наложения</value>
+  </data>
+  <data name="FSAReport_PileUpCapValue" xml:space="preserve">
+    <value>ограничена</value>
+  </data>
+  <data name="FSAReport_InterferenceRow" xml:space="preserve">
+    <value>{0} кэВ: вклад {1} не учтён — при природном отношении {1}/{2} строка {3} завышена до ×{4}</value>
+  </data>
+  <data name="FSAReport_InterferenceValue" xml:space="preserve">
+    <value>не учтён</value>
+  </data>
+  <data name="FSAReport_ResidualNoise" xml:space="preserve">
+    <value>шумовой пол {0} %</value>
+  </data>
+  <data name="FSAReport_ResidualNoiseTip" xml:space="preserve">
+    <value>Модель без единой ошибки всё равно даёт около {0} % в каждой половине: это пуассонов шум полосы (ожидаемое положительное отклонение каждого канала от идеальной модели, в сумме, от измеренных отсчётов той же полосы). Невязка около этого пола модель от идеальной не отличает; не описано только то, что сверх него.</value>
+  </data>
 </root>

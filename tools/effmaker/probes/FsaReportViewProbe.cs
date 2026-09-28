@@ -2660,6 +2660,14 @@ namespace FsaReportViewProbe
         static string ResidualCaption(FsaResult result, int clamped)
         {
             var marks = new List<string>();
+            // (`AMBER126`, П168) Шумовой пол — первой пометкой, от 0.05 %
+            // (`FSAReportView.ResidualNoiseShownFloor`), формат `F1`.
+            if (result != null && result.ResidualSharesDefined && result.ResidualNoiseShare >= 0.0005)
+            {
+                marks.Add(string.Format(CultureInfo.InvariantCulture, Own("FSAReport_ResidualNoise"),
+                                        (100.0 * result.ResidualNoiseShare).ToString("F1", CultureInfo.InvariantCulture)));
+            }
+
             if (clamped > 0)
             {
                 marks.Add(string.Format(CultureInfo.InvariantCulture, Own("FSAReport_ResidualClamped"), clamped));

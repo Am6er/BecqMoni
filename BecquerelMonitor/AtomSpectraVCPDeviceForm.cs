@@ -33,16 +33,21 @@ namespace BecquerelMonitor
             TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem, CultureInfo.InvariantCulture));
         }
 
+        // ⛔ `AMBER127` (П170, 28.09.2026): ОТКАЗ КНОПКИ — СЛОВАМИ. Здесь стоял
+        //    пустой `catch`: нет порта, прибор молчит, ответ не того вида — и
+        //    человек видел прежнее «Мёртвое время: 0 мкс» без единого слова, а
+        //    временный порт при броске оставался открытым (cleanUp стоял внутри
+        //    try). Разбор ответа — `AtomSpectraDeviceConfig.DeadTimeFromInfo`, тот
+        //    же, что зовёт контроллер при подключении.
         private void deadTimeBtn_Click(object sender, EventArgs e)
         {
+            string temporaryGuid = null;
+            string comPort = comPortsBox.SelectedItem != null ? comPortsBox.SelectedItem.ToString() : "";
+            string why = null;
             try
             {
-                AtomSpectraVCPIn device = null;
-                string temporaryGuid = null;
-                string comPort = comPortsBox.SelectedItem.ToString();
                 int baudRate = int.Parse(baudratesBox.SelectedItem.ToString(), CultureInfo.InvariantCulture);
-
-                device = AtomSpectraVCPIn.findByPort(comPort);
+                AtomSpectraVCPIn device = AtomSpectraVCPIn.findByPort(comPort);
                 if (device == null)
                 {
                     temporaryGuid = Guid.NewGuid().ToString();
@@ -50,21 +55,29 @@ namespace BecquerelMonitor
                     device.setPort(comPort, baudRate);
                 }
                 device.sendCommand("-inf");
-                string[] output = device.getCommandOutput(2000).Split(' ');
-                int rise = int.Parse(output[3], CultureInfo.InvariantCulture);
-                int fall = int.Parse(output[5], CultureInfo.InvariantCulture);
-                double f = double.Parse(output[9], CultureInfo.InvariantCulture);
-                this.deadTime = ((double)rise + (double)fall + 1.0) / f;
-                this.deadTimeLbl.Text = String.Format(CultureInfo.InvariantCulture, Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
-                SetActiveDeviceConfigDirty();
-                if (temporaryGuid != null)
+                double tau = AtomSpectraDeviceConfig.DeadTimeFromInfo(device.getCommandOutput(2000), out why);
+                if (!double.IsNaN(tau))
                 {
-                    AtomSpectraVCPIn.cleanUp(temporaryGuid);
+                    this.deadTime = tau;
+                    this.deadTimeLbl.Text = String.Format(CultureInfo.InvariantCulture, Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
+                    SetActiveDeviceConfigDirty();
                 }
             }
-            catch
+            catch (Exception ex)
             {
-
+                why = ex.GetType().Name + ": " + ex.Message;
+            }
+            finally
+            {
+                if (temporaryGuid != null)
+                {
+                    try { AtomSpectraVCPIn.cleanUp(temporaryGuid); } catch (Exception) { }
+                }
+            }
+            if (why != null)
+            {
+                MessageBox.Show(String.Format(CultureInfo.InvariantCulture, Resources.ERRReadDataFromPort, comPort) + "\n" + why,
+                                Resources.ErrorString, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

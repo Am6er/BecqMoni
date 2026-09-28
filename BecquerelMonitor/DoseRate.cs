@@ -184,7 +184,46 @@ namespace BecquerelMonitor
                                             100.0 * this.coverage);
             }
 
+            // (`AMBER102`, решение Amber 28.09.2026 «Строка AMBER: приписка на
+            // экране + подсказка «ISO»») Кривая сцены с источником считает поток
+            // как пришедший ОТ ИСТОЧНИКА сцены; фон приходит со всех сторон.
+            if (this.sourceScene)
+            {
+                text += " " + DoseRateCoefficients.Text("DoseRateSourceSceneNote",
+                                                        "(sample geometry; for background — ISO scene)");
+            }
+
             return text;
+        }
+
+        /// <summary>
+        /// (`AMBER102`, П165 28.09.2026) Число посчитано по кривой СЦЕНЫ С
+        /// ИСТОЧНИКОМ (точка, сосуд, маринелли, кювета), а не сцены поля `ISO`.
+        /// Эффективная площадь такой кривой `ε/G` описывает кванты, идущие от
+        /// источника сцены; изотропное поле — фон — кристалл видит всеми
+        /// гранями, и его поток по ней выходит неверным. Замер П165
+        /// (`DoseShieldProbe` §2): Gamma-1S 63×63, точка 5 см против ISO той же
+        /// геометрии — `A_пт/A_iso` 1.10 на 662 кэВ … 2.45 на 20 кэВ, фон двух
+        /// настоящих спектров −10.5 % и −9.5 %; у бруска ASN16 торцом (точка
+        /// 10 см) знак обратный — на 75…250 кэВ поток сбоку завышается ×2.5.
+        /// Решение — не пересчёт, а ПРИПИСКА к строке (и подсказка у строки
+        /// состояния): человек видит, что фон так не меряется.
+        /// </summary>
+        public bool SourceScene
+        {
+            get { return this.sourceScene; }
+            set { this.sourceScene = value; }
+        }
+
+        /// <summary>
+        /// (`AMBER117`, П165) Ослабление нерассеянного потока в самой пробе,
+        /// среднее по дозе диапазонов (<see cref="DoseRateSampleTransmission"/>);
+        /// NaN — не считалось (точка, поле `ISO`, отказ раньше).
+        /// </summary>
+        public double SampleTransmission
+        {
+            get { return this.sampleTransmission; }
+            set { this.sampleTransmission = value; }
         }
 
         /// <summary>Ниже этой доли покрытия показание получает приписку.</summary>
@@ -204,6 +243,10 @@ namespace BecquerelMonitor
         double coverage = -1.0;
 
         bool approximate;
+
+        bool sourceScene;
+
+        double sampleTransmission = double.NaN;
 
         readonly List<DoseRateRange> ranges = new List<DoseRateRange>();
     }
@@ -1253,6 +1296,12 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// (`AMBER117`, П165) Ослабление нерассеянного потока в объёмной пробе
+        /// по энергии; null у точки и у сцены поля — там пробы нет.
+        /// </summary>
+        public DoseRateSampleTransmission Transmission { get; private set; }
+
+        /// <summary>
         /// Собрать вход из кривой. <paramref name="matrix"/> — матрица этой же
         /// кривой или null; матрица чужой геометрии — отказ, а не молчаливый
         /// откат на пиковую: подсунуть чужую матрицу можно только нарочно.
@@ -1376,6 +1425,9 @@ namespace BecquerelMonitor
                 input.MaxKev = input.PeakCurve.MaxKev;
             }
 
+            // (`AMBER117`) Таблица ослабления в пробе — один раз на вход: вход
+            // кэшируется по кривой, а строка состояния пересчитывается часто.
+            input.Transmission = DoseRateSampleTransmission.Of(curve.Geometry, input.MinKev, input.MaxKev);
             return input;
         }
 
@@ -1467,9 +1519,17 @@ namespace BecquerelMonitor
     /// ⚠ ЦЕНА, названная вслух. (1) Ослабление в самой пробе сюда не входит:
     /// N посчитан верно (ε его несёт), а поток в центре от НЕослабляющей
     /// пробы выше настоящего — у объёмной пробы доза ЗАВЫШЕНА на её
-    /// самопоглощение (вода в маринелли на 662 кэВ — десятки процентов, оксид
-    /// лютеция на 200 кэВ — в разы); у полевых сцен («на земле», «в лунке»)
-    /// это уже не проценты, а разы, и там — отказ (`AMBER93`, см. метод). (2) Точка отсчёта — центр кристалла; у
+    /// самопоглощение (замер П165, `DoseShieldProbe` §3, объёмные пробы
+    /// корпуса: нерассеянный поток маринелли на 662 кэВ — 0.85…0.94
+    /// неослабленного, оксид лютеция в сосуде на 60 кэВ — 0.24, в среднем по
+    /// дозе 0.72); у полевых сцен («на земле», «в лунке») это уже не
+    /// проценты, а разы, и там — отказ (`AMBER93`, см. метод). ⛔ (`AMBER117`,
+    /// П165) Отказ стоит и НА САМОЙ ПРОБЕ, не только на ярлыке сцены: тот же
+    /// грунт, собранный сосудом, проходил с G без ослабления (×17 на 662 кэВ).
+    /// Расчёт берёт ослабление нерассеянного потока в пробе
+    /// (<see cref="DoseRateSampleTransmission"/>) и ниже
+    /// <see cref="DoseRateManager.MinSampleTransmission"/> отказывает словами;
+    /// выше порога G прежний, и число не меняется. (2) Точка отсчёта — центр кристалла; у
     /// источника на торце большого кристалла поток по кристаллу меняется в
     /// разы, и «доза в центре» — соглашение. (3) Обвязка и оправа поток не
     /// ослабляют (доли процента у сцинтиллятора). Всё это снимает сцена ПОЛЯ
@@ -1548,42 +1608,8 @@ namespace BecquerelMonitor
                     + " the field) is not in it. Compute the dose with an ISO field scene."));
             }
 
-            // Сантиметры — на той же границе, что у симулятора (`InCentimeters`).
-            GeometryModel g = model.InCentimeters();
-
-            double hc;
-            double ax = 0.0, ay = 0.0;
-            if (g.Shape == CrystalShape.Box)
-            {
-                g.CrystalBoxInScene(out ax, out ay, out hc);
-            }
-            else
-            {
-                hc = g.CrystalHeight;
-            }
-
-            if (!(hc > 0.0))
-            {
-                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
-                    "DoseRateNoCrystal", "Dose rate: the geometry has a crystal of zero depth."));
-            }
-
-            // Торцевые толщины обвязки — с разворотом при боковой постановке,
-            // как в `EfficiencySimulator.Build`. Оправа стоит ЗА кристаллом
-            // (умолчание симулятора) и на расстояния не влияет.
-            double tfr = g.FrontReflectorThickness, tsr = g.SideReflectorThickness;
-            double tfc = g.FrontCladdingThickness, tsc = g.SideCladdingThickness;
-            double tfg = Math.Max(0.0, g.FrontGapThickness);
-            double tsg = Math.Max(0.0, g.SideGapThickness);
-            if (g.Facing == GeometryDetectorFacing.Side)
-            {
-                double t = tfr; tfr = tsr; tsr = t;
-                t = tfc; tfc = tsc; tsc = t;
-                t = tfg; tfg = tsg; tsg = t;
-            }
-
-            double zFace = -(tfr + tfg + tfc);
-            double zc = 0.5 * hc;                     // центр кристалла
+            double zFace, zc;
+            GeometryModel g = Frame(model, out zFace, out zc);
 
             switch (g.SourceType)
             {
@@ -1680,6 +1706,227 @@ namespace BecquerelMonitor
             return Math.PI * halfDiagonalCm * halfDiagonalCm;
         }
 
+        /// <summary>
+        /// Система отсчёта сцены — ТЕМИ ЖЕ правилами, что у симулятора
+        /// (`EfficiencySimulator.Build`): сантиметры (`InCentimeters`), ось к
+        /// детектору, торец корпуса на `z = zFace` (торцевые толщины обвязки,
+        /// с разворотом при боковой постановке; оправа стоит ЗА кристаллом и на
+        /// расстояния не влияет), центр кристалла на `z = zc`. Одна на
+        /// множитель G и на ослабление в пробе (`AMBER117`), чтобы оба считали
+        /// одно тело.
+        /// </summary>
+        static GeometryModel Frame(GeometryModel model, out double zFace, out double zc)
+        {
+            GeometryModel g = model.InCentimeters();
+
+            double hc;
+            double ax = 0.0, ay = 0.0;
+            if (g.Shape == CrystalShape.Box)
+            {
+                g.CrystalBoxInScene(out ax, out ay, out hc);
+            }
+            else
+            {
+                hc = g.CrystalHeight;
+            }
+
+            if (!(hc > 0.0))
+            {
+                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
+                    "DoseRateNoCrystal", "Dose rate: the geometry has a crystal of zero depth."));
+            }
+
+            double tfr = g.FrontReflectorThickness, tsr = g.SideReflectorThickness;
+            double tfc = g.FrontCladdingThickness, tsc = g.SideCladdingThickness;
+            double tfg = Math.Max(0.0, g.FrontGapThickness);
+            double tsg = Math.Max(0.0, g.SideGapThickness);
+            if (g.Facing == GeometryDetectorFacing.Side)
+            {
+                double t = tfr; tfr = tsr; tsr = t;
+                t = tfc; tfc = tsc; tsc = t;
+                t = tfg; tfg = tsg; tsg = t;
+            }
+
+            zFace = -(tfr + tfg + tfc);
+            zc = 0.5 * hc;                     // центр кристалла
+            return g;
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER117`, П165 28.09.2026) Ослабление нерассеянного потока в пробе
+        // ------------------------------------------------------------------
+
+        /// <summary>Шагов по косинусу у тел вращения (сосуд, маринелли).</summary>
+        const int TransmissionPolarSteps = 4000;
+
+        /// <summary>У кюветы — шагов по косинусу и по азимуту в четверти (симметрия).</summary>
+        const int TransmissionBoxPolarSteps = 1000;
+
+        const int TransmissionBoxAzimuthSteps = 24;
+
+        /// <summary>Тело объёмной пробы в системе <see cref="Frame"/> — те же границы, что у G.</summary>
+        sealed class SampleBody
+        {
+            public int Kind;               // 0 — сосуд, 1 — маринелли, 2 — кювета
+            public double Zc;
+            public double R, Z0, Z1;       // внешнее тело: радиус (сосуд/маринелли), слой по z
+            public double Ax, Ay;          // кювета: полуширины
+            public double Rin, Zin;        // маринелли: колодец ρ < Rin при z > Zin — не проба
+        }
+
+        static SampleBody BodyOf(GeometryModel model)
+        {
+            if (model == null
+                || ResponseMatrix.NormalizationOf(model) == ResponseMatrixNormalization.PerUnitFluence
+                || model.SourceType == GeometrySourceType.Point)
+            {
+                return null;
+            }
+
+            double zFace, zc;
+            GeometryModel g = Frame(model, out zFace, out zc);
+            var b = new SampleBody { Zc = zc };
+            switch (g.SourceType)
+            {
+                case GeometrySourceType.Cylinder:
+                    b.Kind = 0;
+                    b.R = Math.Max(0.0, 0.5 * g.BeakerDiameter - g.BeakerSideWallThickness);
+                    b.Z1 = zFace - g.BeakerToDetectorDistance - g.BeakerEndWallThickness;
+                    b.Z0 = b.Z1 - g.SourceHeight;
+                    return b;
+
+                case GeometrySourceType.Marinelli:
+                {
+                    double rh = 0.5 * g.MarinelliHoleDiameter;
+                    double ths = g.MarinelliHoleSideThickness;
+                    double the = g.MarinelliHoleEndWallThickness;
+                    double rOut = Math.Max(0.5 * g.MarinelliBeakerDiameter, rh + ths + 0.1);
+                    double rSrcOut = Math.Max(rh + ths, rOut - g.MarinelliSideThickness);
+                    double hs = g.MarinelliSourceHeight;
+                    double zCeiling = zFace - g.MarinelliToDetectorDistance;
+                    double cap = Math.Max(0.0, hs - g.MarinelliHoleHeight);
+                    b.Kind = 1;
+                    b.R = rSrcOut;
+                    b.Z0 = zCeiling - the - cap;
+                    b.Z1 = b.Z0 + hs;
+                    b.Rin = rh + ths;
+                    b.Zin = zCeiling - the;
+                    return b;
+                }
+
+                case GeometrySourceType.Box:
+                    b.Kind = 2;
+                    b.Ax = Math.Max(0.0, 0.5 * g.BoxSourceX - g.BoxSideWallThickness);
+                    b.Ay = Math.Max(0.0, 0.5 * g.BoxSourceY - g.BoxSideWallThickness);
+                    b.Z1 = zFace - g.BoxToDetectorDistance - g.BoxEndWallThickness;
+                    b.Z0 = b.Z1 - g.BoxSourceHeight;
+                    return b;
+
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>
+        /// Хорды пробы по лучам из центра кристалла, см, на сетке направлений
+        /// равного телесного угла (середины шагов по косинусу, у кюветы — и по
+        /// азимуту в четверти). null — пробы нет (точка, поле). Тогда
+        /// `∫dV e^{−μl}/(4πr²) = (1/4π)∫dΩ (1 − e^{−μL})/μ` — среднее по
+        /// направлениям, l — путь в пробе от точки до центра кристалла: у
+        /// выпуклого тела без колодца и у маринелли (колодец выпуклый и
+        /// содержит центр) луч пересекает пробу одним отрезком.
+        /// </summary>
+        internal static double[] SampleChordsOf(GeometryModel model)
+        {
+            SampleBody b = BodyOf(model);
+            if (b == null)
+            {
+                return null;
+            }
+
+            int nc = b.Kind == 2 ? TransmissionBoxPolarSteps : TransmissionPolarSteps;
+            int nf = b.Kind == 2 ? TransmissionBoxAzimuthSteps : 1;
+            var chords = new double[nc * nf];
+            double dc = 2.0 / nc;
+            for (int i = 0; i < nc; i++)
+            {
+                double c = -1.0 + (i + 0.5) * dc;      // косинус к оси ВНИЗ, к пробе
+                double s = Math.Sqrt(Math.Max(0.0, 1.0 - c * c));
+                for (int j = 0; j < nf; j++)
+                {
+                    double f = (j + 0.5) * 0.5 * Math.PI / nf;
+                    chords[i * nf + j] = Chord(b, c, s * Math.Cos(f), s * Math.Sin(f), s);
+                }
+            }
+
+            return chords;
+        }
+
+        /// <summary>Хорда пробы по лучу `z = Zc − t·c`, `ρ = t·s`.</summary>
+        static double Chord(SampleBody b, double c, double dx, double dy, double s)
+        {
+            double inf = double.PositiveInfinity;
+            double t0, t1;
+            if (c != 0.0)
+            {
+                double ta = (b.Zc - b.Z1) / c, tb = (b.Zc - b.Z0) / c;
+                t0 = Math.Min(ta, tb);
+                t1 = Math.Max(ta, tb);
+            }
+            else
+            {
+                if (b.Zc < b.Z0 || b.Zc > b.Z1) return 0.0;
+                t0 = -inf;
+                t1 = inf;
+            }
+
+            t0 = Math.Max(0.0, t0);
+            if (b.Kind == 2)
+            {
+                double tx = Math.Abs(dx) > 0.0 ? b.Ax / Math.Abs(dx) : inf;
+                double ty = Math.Abs(dy) > 0.0 ? b.Ay / Math.Abs(dy) : inf;
+                t1 = Math.Min(t1, Math.Min(tx, ty));
+            }
+            else
+            {
+                t1 = Math.Min(t1, s > 0.0 ? b.R / s : inf);
+            }
+
+            if (b.Kind == 1)
+            {
+                // Выход из колодца (с его стенкой): бок либо потолок.
+                double side = s > 0.0 ? b.Rin / s : inf;
+                double ceiling = c > 0.0 ? (b.Zc - b.Zin) / c : inf;
+                t0 = Math.Max(t0, Math.Min(side, ceiling));
+            }
+
+            return Math.Max(0.0, t1 - t0);
+        }
+
+        /// <summary>`(1/N)Σ (1 − e^{−μL})/μ` по хордам, см; μ = 0 — средняя хорда.</summary>
+        internal static double FluenceIntegralOf(double[] chords, double mu)
+        {
+            double sum = 0.0;
+            foreach (double length in chords)
+            {
+                if (!(length > 0.0)) continue;
+                double x = mu * length;
+                sum += x > 1e-8 ? (1.0 - Math.Exp(-x)) / mu : length * (1.0 - 0.5 * x);
+            }
+
+            return sum / chords.Length;
+        }
+
+        /// <summary>
+        /// `∫dV e^{−μl}/(4πr²)` по пробе, см (при μ = 0 это G·V); NaN — пробы нет.
+        /// Для пробы и её сверки с независимым счётом (`DoseShieldProbe` §3).
+        /// </summary>
+        public static double SampleFluenceIntegral(GeometryModel model, double muPerCm)
+        {
+            double[] chords = SampleChordsOf(model);
+            return chords == null ? double.NaN : FluenceIntegralOf(chords, muPerCm);
+        }
+
         static double Finish(double volume, double integral, out string note, string what)
         {
             if (!(volume > 0.0))
@@ -1755,6 +2002,94 @@ namespace BecquerelMonitor
             }
 
             integral = sum * dx * dy * dz;
+        }
+    }
+
+    /// <summary>
+    /// (`AMBER117`, П165 28.09.2026) ОСЛАБЛЕНИЕ НЕРАССЕЯННОГО ПОТОКА В САМОЙ
+    /// ПРОБЕ по энергии: `a(E) = ∫dV e^{−μ(E)l}/(4πr²) ÷ ∫dV/(4πr²)`, l — путь
+    /// в пробе от точки до центра кристалла, μ — вещества пробы
+    /// (<see cref="GeometryMaterial.LinearAttenuation"/>).
+    ///
+    /// Зачем. Множитель дозы G (<see cref="DoseRateGeometry.FluencePerPhoton"/>)
+    /// считается БЕЗ ослабления, и у толстой пробы это не проценты: грунт,
+    /// собранный сосудом `Cylinder` (сцена «нет»), проходил с G = 4.6024e-6 —
+    /// ×17 к нерассеянному потоку на 662 кэВ (`a` = 0.058), а отказ полевым
+    /// сценам (`AMBER93`) стоял на ЯРЛЫКЕ сцены. Теперь расчёт судит ту же
+    /// физику по самой пробе (<see cref="DoseRateManager.MinSampleTransmission"/>).
+    ///
+    /// Таблица по ln E на области входа — считается один раз при сборке входа;
+    /// между узлами — линейно по ln E (у K-краёв вещества пробы край
+    /// сглаживается на шаг сетки — для порога отказа это не важно).
+    /// </summary>
+    public sealed class DoseRateSampleTransmission
+    {
+        /// <summary>Узлов таблицы по ln E.</summary>
+        const int Nodes = 192;
+
+        readonly double[] logKev;
+
+        readonly double[] values;
+
+        DoseRateSampleTransmission(double[] logKev, double[] values)
+        {
+            this.logKev = logKev;
+            this.values = values;
+        }
+
+        /// <summary>
+        /// Таблица для кривой с геометрией <paramref name="model"/> на
+        /// [<paramref name="minKev"/>, <paramref name="maxKev"/>]; null — пробы
+        /// нет (точка, сцена поля) либо у неё нет объёма.
+        /// </summary>
+        public static DoseRateSampleTransmission Of(GeometryModel model, double minKev, double maxKev)
+        {
+            double[] chords = DoseRateGeometry.SampleChordsOf(model);
+            if (chords == null)
+            {
+                return null;
+            }
+
+            double free = DoseRateGeometry.FluenceIntegralOf(chords, 0.0);
+            if (!(free > 0.0))
+            {
+                return null;
+            }
+
+            double lo = Math.Log(Math.Max(1.0, Math.Min(minKev, maxKev)));
+            double hi = Math.Log(Math.Max(1.0, Math.Max(minKev, maxKev)));
+            int n = hi > lo ? Nodes : 1;
+            var logKev = new double[n];
+            var values = new double[n];
+            for (int i = 0; i < n; i++)
+            {
+                logKev[i] = n > 1 ? lo + (hi - lo) * i / (n - 1) : lo;
+                double mu = model.Source.LinearAttenuation(Math.Exp(logKev[i]));
+                values[i] = DoseRateGeometry.FluenceIntegralOf(chords, mu) / free;
+            }
+
+            return new DoseRateSampleTransmission(logKev, values);
+        }
+
+        /// <summary>a(E), 0..1; за краями таблицы — крайний узел.</summary>
+        public double At(double energyKev)
+        {
+            int n = this.values.Length;
+            double x = Math.Log(Math.Max(1.0, energyKev));
+            if (n == 1 || x <= this.logKev[0])
+            {
+                return this.values[0];
+            }
+
+            if (x >= this.logKev[n - 1])
+            {
+                return this.values[n - 1];
+            }
+
+            double step = (this.logKev[n - 1] - this.logKev[0]) / (n - 1);
+            int k = Math.Min(n - 2, (int)((x - this.logKev[0]) / step));
+            double t = (x - this.logKev[k]) / (this.logKev[k + 1] - this.logKev[k]);
+            return this.values[k] + t * (this.values[k + 1] - this.values[k]);
         }
     }
 }

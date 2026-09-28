@@ -379,11 +379,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // положены `FsaSampleSpec.OfSpectrum` выше, тем же источником и
             // теми же порогами, что у объявленного состава корпуса.
 
-            var candidates = Candidates(found, spec, report);
+            // (`AMBER119`) Кого из родителей назвал ЧЕЛОВЕК меткой ряда
+            // (`NuclideDefinition.Chain`), а кто выведен из подписи без ряда:
+            // множитель переходного равновесия — только у первых.
+            var declaredRoots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var candidates = Candidates(found, spec, report, declaredRoots);
             var models = new List<Model>();
             foreach (string nucid in candidates)
             {
-                Model model = Build(nucid, spec, resultData, found, report);
+                Model model = Build(nucid, declaredRoots.Contains(nucid), spec, resultData, found, report);
                 if (model != null)
                 {
                     models.Add(model);
@@ -420,10 +424,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // (`FsaChainCut.Only`). При `Criterion` голова решает,
                     // брать ли родителя, а в состав, как и велено, идёт весь
                     // его ряд.
-                    spec.Chains.Add(Restricted(model, cut)
-                                    ? new FsaSampleChain(model.Evidence.Nucid,
-                                                         model.Evidence.Head.ToArray())
-                                    : new FsaSampleChain(model.Evidence.Nucid));
+                    FsaSampleChain chain = Restricted(model, cut)
+                        ? new FsaSampleChain(model.Evidence.Nucid, model.Evidence.Head.ToArray())
+                        : new FsaSampleChain(model.Evidence.Nucid);
+                    chain.Transient = declaredRoots.Contains(model.Evidence.Nucid);
+                    spec.Chains.Add(chain);
                 }
                 else
                 {
@@ -461,7 +466,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// половина линий останется без образа. Пусто — линия сама по себе, и
         /// родителем является её собственный нуклид.
         /// </summary>
-        static List<string> Candidates(List<Peak> peaks, FsaSampleSpec spec, Report report)
+        static List<string> Candidates(List<Peak> peaks, FsaSampleSpec spec, Report report,
+                                       HashSet<string> declaredRoots)
         {
             var order = new List<string>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -492,7 +498,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 string parent = peak.Nuclide.Chain;
-                if (string.IsNullOrEmpty(parent))
+                bool declared = !string.IsNullOrEmpty(parent);
+                if (!declared)
                 {
                     parent = peak.Nuclide.NuclideName;
                 }
@@ -506,6 +513,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     continue;
+                }
+
+                // (`AMBER119`) Родитель по метке ряда объявлен человеком; хоть
+                // одна такая подпись — и корень объявлен.
+                if (declared)
+                {
+                    declaredRoots.Add(nucid);
                 }
 
                 if (seen.Add(nucid))
@@ -830,7 +844,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public Dictionary<string, int> Depths;
         }
 
-        static Model Build(string nucid, FsaSampleSpec spec, ResultData resultData,
+        static Model Build(string nucid, bool declaredRoot, FsaSampleSpec spec, ResultData resultData,
                            List<Peak> peaks, Report report)
         {
             var model = new Model();
@@ -842,8 +856,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // предъявлялся другой.
             var branch = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
             var sample = new FsaSampleLibrary.Report();
-            FsaSampleLibrary.CollectChain(new FsaSampleChain(nucid), spec.MinChainBranch,
-                                          spec.MinIsomerBranch, branch, sample);
+            // (`AMBER119`) Веса критерия — с тем же множителем, что уйдёт в
+            // библиотеку: у выведенного корня — вековое равновесие.
+            FsaSampleLibrary.CollectChain(new FsaSampleChain(nucid) { Transient = declaredRoot },
+                                          spec.MinChainBranch, spec.MinIsomerBranch, branch, sample);
             if (branch.Count == 0)
             {
                 // Нуклида нет в `decay_chain` вовсе (стабильный, или подпись

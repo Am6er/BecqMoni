@@ -932,7 +932,15 @@ namespace BecquerelMonitor
                 //    ⛔ `AMBER87` (П151, 24.09.2026): N42, ЗАПИСАННЫЙ AtomSpectra, —
                 //    центрами, как его `.txt` и родная дверь N42 (решение Amber
                 //    «N42 AtomSpectra без сдвига»); признак — N42.Util.IsWrittenByAtomSpectra.
-                bool fileUsesChannelEdges = IsN42File(filepath) && !N42.Util.IsWrittenByAtomSpectra(filepath);
+                //    ⛔ `AMBER113` (П170, 28.09.2026): CSV, ЗАПИСАННЫЙ САМОЙ SpecUtils (или
+                //    InterSpec, он пишет её же `Measurement::write_csv`), — КРАЯМИ: столбец
+                //    Energy там — `channel_energies()`, нижние края каналов, и чтение его
+                //    центром ставило шкалу на h/2 ниже (RC-103: −1.32 кэВ на 661.66,
+                //    `CalibPeaksProbeP170 --csv`). Признак — её шапка «Energy, Data»
+                //    (`IsSpecUtilsCsv`); свой ECSV («Channel,Energy,Counts», центры) и
+                //    прочие CSV идут как есть (`AMBER86`).
+                bool fileUsesChannelEdges = (IsN42File(filepath) && !N42.Util.IsWrittenByAtomSpectra(filepath))
+                                            || IsSpecUtilsCsv(filepath);
                 Func<double[], double[]> toAppChannels = c =>
                     fileUsesChannelEdges ? N42.Util.EdgePolynomialToChannelCentres(c) : c;
 
@@ -1348,6 +1356,16 @@ namespace BecquerelMonitor
                                 }
 
                                 energySpectrum.EnergyCalibration = calibration.Clone();
+                                // ⛔ `AMBER112` (П170, 28.09.2026): ШКАЛА УЗНАЁТ ЧИСЛО КАНАЛОВ
+                                //    ДОКУМЕНТА. `ChannelToEnergy` зажимает канал по своему
+                                //    `maxChannels` (умолчание 8192), а ставит его `CheckCalibration`,
+                                //    которую эта дверь не звала: у 16384-канального SPE и CSV
+                                //    E(12000) = E(8192) = 1478 кэВ вместо 2171 (`CalibPeaksProbeP170
+                                //    --maxch`), пока кто-нибудь не спросит EnergyToChannel(…, N).
+                                //    Ответ проверки здесь НЕ читается нарочно: дверь говорит о
+                                //    шкале своими счётчиками `A216`, и нового отказа здесь нет.
+                                ((PolynomialEnergyCalibration)energySpectrum.EnergyCalibration)
+                                    .CheckCalibration(channels: energySpectrum.NumberOfChannels);
                                 break;
                             }
                         // LowerChannelEdge
@@ -1455,6 +1473,16 @@ namespace BecquerelMonitor
                                 }
 
                                 energySpectrum.EnergyCalibration = calibration.Clone();
+                                // ⛔ `AMBER112` (П170, 28.09.2026): ШКАЛА УЗНАЁТ ЧИСЛО КАНАЛОВ
+                                //    ДОКУМЕНТА. `ChannelToEnergy` зажимает канал по своему
+                                //    `maxChannels` (умолчание 8192), а ставит его `CheckCalibration`,
+                                //    которую эта дверь не звала: у 16384-канального SPE и CSV
+                                //    E(12000) = E(8192) = 1478 кэВ вместо 2171 (`CalibPeaksProbeP170
+                                //    --maxch`), пока кто-нибудь не спросит EnergyToChannel(…, N).
+                                //    Ответ проверки здесь НЕ читается нарочно: дверь говорит о
+                                //    шкале своими счётчиками `A216`, и нового отказа здесь нет.
+                                ((PolynomialEnergyCalibration)energySpectrum.EnergyCalibration)
+                                    .CheckCalibration(channels: energySpectrum.NumberOfChannels);
                                 break;
                             }
                     }
@@ -1977,6 +2005,39 @@ namespace BecquerelMonitor
         /// SpecUtils нужно знать, чьё соглашение о номере канала у полинома
         /// файла. Не XML, битый XML, DTD, другой корень — «не N42».
         /// </summary>
+        /// <summary>
+        /// ⛔ `AMBER113` (П170, 28.09.2026): CSV записан SpecUtils/InterSpec — первая
+        /// непустая строка ровно «Energy, Data» (так её пишет
+        /// `Measurement::write_csv`, SpecFile_csv.cpp; за ней — «нижний край, отсчёты»).
+        /// Не читается, другая шапка, не CSV — «нет».
+        /// </summary>
+        internal static bool IsSpecUtilsCsv(string filename)
+        {
+            if (!string.Equals(Path.GetExtension(filename), ".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            try
+            {
+                using (StreamReader reader = new StreamReader(filename, Encoding.UTF8, true))
+                {
+                    string line;
+                    for (int i = 0; i < 16 && (line = reader.ReadLine()) != null; i++)
+                    {
+                        if (line.Trim().Length == 0)
+                        {
+                            continue;
+                        }
+                        return string.Equals(line.Trim(), "Energy, Data", StringComparison.Ordinal);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+            return false;
+        }
+
         internal static bool IsN42File(string filename)
         {
             try

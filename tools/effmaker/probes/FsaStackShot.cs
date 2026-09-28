@@ -777,6 +777,31 @@ namespace FsaStackShot
                 analyzer.UntiedTailAsResidual = true;
             }
 
+            // (`AMBER123`/`AMBER124`/`AMBER134`, П166 28.09.2026) Плечи стенда
+            // полосы — переменной окружения `BQ_FSA_LEVERS="Имя=0|1;…"` (булевы
+            // свойства анализатора, отражением): витрина зовёт пробу сторожем, и
+            // ключ командной строки до неё не доедет. Читатель — строка
+            // `FsaTuningReport.Print` («Имя True → False»); незнакомое имя — отказ.
+            string levers = Environment.GetEnvironmentVariable("BQ_FSA_LEVERS");
+            if (!string.IsNullOrEmpty(levers))
+            {
+                foreach (string item in levers.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    string[] kv = item.Split('=');
+                    System.Reflection.PropertyInfo lever = kv.Length == 2
+                        ? typeof(FsaAnalyzer).GetProperty(kv[0].Trim()) : null;
+                    if (lever == null || lever.PropertyType != typeof(bool) || !lever.CanWrite
+                        || (kv[1].Trim() != "0" && kv[1].Trim() != "1"))
+                    {
+                        Console.Error.WriteLine("BQ_FSA_LEVERS: не понято «{0}» (ждали Имя=0|1 булева свойства FsaAnalyzer)", item);
+                        return 2;
+                    }
+
+                    lever.SetValue(analyzer, kv[1].Trim() == "1", null);
+                    Console.WriteLine("SETUP\tBQ_FSA_LEVERS {0} = {1}", lever.Name, kv[1].Trim());
+                }
+            }
+
             FsaTuningReport.Print(analyzer);
             FsaResult result = analyzer.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
                                                 rd.FwhmCalibration,

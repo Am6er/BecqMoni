@@ -43562,6 +43562,15 @@ Turn it on in Windows settings and search again.</value>
   <data name="DoseRateFieldScene" xml:space="preserve">
     <value>Dose rate: the curve belongs to a field scene (on the ground or in a borehole). The dose there needs the fluence at the detector together with the photons scattered in the ground, and the point-source factor gives neither: without attenuation it overstates the unscattered fluence 4 to 20 times, and the scattered part (about half the field) is not in it. Compute the dose with an ISO field scene.</value>
   </data>
+  <data name="DoseRateSourceSceneNote" xml:space="preserve">
+    <value>(sample geometry; for background — ISO scene)</value>
+  </data>
+  <data name="DoseRateSourceSceneHint" xml:space="preserve">
+    <value>The dose rate uses the geometry of the efficiency curve selected on the panel: the photons are taken to come from the source of that scene. A background field comes from all sides, and such a curve misstates it by tens of percent, most at low energies. To measure the background dose, make a curve of the isotropic field scene (ISO) in the geometry editor and select it.</value>
+  </data>
+  <data name="DoseRateThickSample" xml:space="preserve">
+    <value>Dose rate: the sample is too thick for the dose formula — only {0:f2} of the unscattered fluence leaves it towards the crystal (dose-weighted), while the formula assumes all of it does and ignores the photons scattered in the sample; the reading would be overstated by more than 10 %. Compute the dose of a thick layer (soil, a large vessel) with an ISO field scene.</value>
+  </data>
   <data name="DoseRateAreaAboveBound" xml:space="preserve">
     <value>Dose rate: the field-scene curve gives {0} cm² at {1:f1} keV — more than the projected area of the sphere around the detector ({2:f1} cm²).</value>
   </data>
@@ -43672,5 +43681,41 @@ Turn it on in Windows settings and search again.</value>
   </data>
   <data name="NormalizeFieldCurve" xml:space="preserve">
     <value>Normalize by efficiency: the curve “{0}” is a field-scene curve (cm² per unit fluence, values above 1); dividing the integer spectrum by it rounds low channels to zero, so the spectrum is not normalized by it.</value>
+  </data>
+  <data name="SummingPanelApplied" xml:space="preserve">
+    <value>Cascade summing correction ×{0} (line CF {1}, foreign sum peaks in the window {2} %)</value>
+  </data>
+  <data name="SummingPanelNone" xml:space="preserve">
+    <value>No cascade summing correction: {0}</value>
+  </data>
+  <data name="SummingCellApplied" xml:space="preserve">
+    <value>Σ×{0}</value>
+  </data>
+  <data name="SummingCellNone" xml:space="preserve">
+    <value>no Σ correction</value>
+  </data>
+  <data name="SummingWhyNoCurve" xml:space="preserve">
+    <value>no efficiency curve</value>
+  </data>
+  <data name="SummingWhyNoGeometry" xml:space="preserve">
+    <value>the efficiency curve has no geometry</value>
+  </data>
+  <data name="SummingWhyMatrixOff" xml:space="preserve">
+    <value>the response matrix is switched off for the curve</value>
+  </data>
+  <data name="SummingWhyNoMatrix" xml:space="preserve">
+    <value>no response matrix of the scene ({0})</value>
+  </data>
+  <data name="SummingWhyMatrixStale" xml:space="preserve">
+    <value>the response matrix does not match the geometry</value>
+  </data>
+  <data name="SummingWhyFieldScene" xml:space="preserve">
+    <value>field scene: the source position is unknown</value>
+  </data>
+  <data name="SummingWhyOff" xml:space="preserve">
+    <value>cascade summing is switched off in the FSA settings</value>
+  </data>
+  <data name="SummingWhyNoLine" xml:space="preserve">
+    <value>line {0} keV is not found in the cascade tables of “{1}”</value>
   </data>
 </root>

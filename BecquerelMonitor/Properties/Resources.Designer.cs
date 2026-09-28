@@ -6474,5 +6474,77 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string SummingPanelApplied {
+            get {
+                return ResourceManager.GetString("SummingPanelApplied", resourceCulture);
+            }
+        }
+
+        public static string SummingPanelNone {
+            get {
+                return ResourceManager.GetString("SummingPanelNone", resourceCulture);
+            }
+        }
+
+        public static string SummingCellApplied {
+            get {
+                return ResourceManager.GetString("SummingCellApplied", resourceCulture);
+            }
+        }
+
+        public static string SummingCellNone {
+            get {
+                return ResourceManager.GetString("SummingCellNone", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyNoCurve {
+            get {
+                return ResourceManager.GetString("SummingWhyNoCurve", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyNoGeometry {
+            get {
+                return ResourceManager.GetString("SummingWhyNoGeometry", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyMatrixOff {
+            get {
+                return ResourceManager.GetString("SummingWhyMatrixOff", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyNoMatrix {
+            get {
+                return ResourceManager.GetString("SummingWhyNoMatrix", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyMatrixStale {
+            get {
+                return ResourceManager.GetString("SummingWhyMatrixStale", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyFieldScene {
+            get {
+                return ResourceManager.GetString("SummingWhyFieldScene", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyOff {
+            get {
+                return ResourceManager.GetString("SummingWhyOff", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyNoLine {
+            get {
+                return ResourceManager.GetString("SummingWhyNoLine", resourceCulture);
+            }
+        }
+
     }
 }

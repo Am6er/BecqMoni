@@ -1387,6 +1387,30 @@ namespace BecquerelMonitor
         public const double MinOwnEfficiencyFraction = 0.01;
 
         /// <summary>
+        /// ⛔ (`AMBER117`, П165 28.09.2026) Порог ослабления в пробе: ниже него
+        /// — отказ словами. Величина — <see cref="DoseRate.SampleTransmission"/>,
+        /// доля нерассеянного потока от пробы, дошедшая до центра кристалла,
+        /// средняя по дозе диапазонов (<see cref="DoseRateSampleTransmission"/>).
+        ///
+        /// Откуда число. Формула дозы берёт поток БЕЗ ослабления — завышает
+        /// нерассеянный в 1/a раз — и не видит квантов, рассеянных в пробе, —
+        /// занижает поток не больше чем в B раз, где B — фактор накопления
+        /// бесконечной среды. Его мерка — П145 (`DoseFieldProbe`): у грунта с
+        /// K-40 нерассеянная керма — 0.518 полной UNSCEAR, B ≤ 1/0.518 = 1.93.
+        /// Показание не ниже истинного в 1/(a·B) раз; по критерию решения Amber
+        /// 24.09.2026 («не сойдётся в ~10 % — отказ», `AMBER93`) отказ, когда
+        /// завышение ЗАВЕДОМО больше 10 %: a &lt; 0.518/1.1 = 0.471. У квантов
+        /// ниже K-40 и в веществах тяжелее грунта B меньше, и завышение при том
+        /// же a — только больше.
+        ///
+        /// Замер П165 (`DoseShieldProbe` §3): грунт сосудом (Gamma-1S 63×63,
+        /// тело сцены «на земле») a = 0.058 / 0.086 на 662 / 1460.8 кэВ —
+        /// отказ; объёмные пробы корпуса (48, part known) — a от 0.720
+        /// (`RC103_Lu176`, оксид лютеция) до 0.975: все проходят, числа прежние.
+        /// </summary>
+        public const double MinSampleTransmission = 0.518 / 1.1;
+
+        /// <summary>
         /// (`S192`, П157) Ширина полосы плавного пола, в полах: вес диапазона
         /// растёт от 0 на <see cref="MinOwnEfficiencyFraction"/> до 1 на
         /// удвоенном поле. Вдвое — по прежнему описанию порога («сдвиг вдвое»):
@@ -1452,6 +1476,8 @@ namespace BecquerelMonitor
             }
 
             doseRate.Approximate = input.Approximate;
+            // (`AMBER102`) Кривая сцены с источником — приписка «для фона — ISO».
+            doseRate.SourceScene = input.Normalization != ResponseMatrixNormalization.PerUnitFluence;
             EnergySpectrum energySpectrum = resultData == null ? null : resultData.EnergySpectrum;
 
             // ⛔ `C4(в)`. Негодный вход отказывается ВИДИМО. Прежде расчёт на
@@ -1769,6 +1795,39 @@ namespace BecquerelMonitor
                     "DoseRateNotFinite",
                     "Dose rate: the sum over the ranges is not a finite number — the efficiency input is unusable.");
                 return doseRate;
+            }
+
+            // ⛔ (`AMBER117`, П165 28.09.2026) ТОЛСТАЯ ПРОБА — ОТКАЗ ПО ФИЗИКЕ,
+            // А НЕ ПО ЯРЛЫКУ СЦЕНЫ. См. <see cref="MinSampleTransmission"/>.
+            if (input.Transmission != null && rate > 0.0)
+            {
+                double weighted = 0.0;
+                for (int k = 0; k < doseRate.Ranges.Count; k++)
+                {
+                    DoseRateRange r = doseRate.Ranges[k];
+                    if (r.Skipped || !(r.Attributed > 0.0))
+                    {
+                        continue;
+                    }
+
+                    weighted += r.DoseRate * input.Transmission.At(r.RepresentativeKev);
+                }
+
+                double transmission = weighted / rate;
+                doseRate.SampleTransmission = transmission;
+                if (transmission < MinSampleTransmission)
+                {
+                    doseRate.Ranges.Clear();
+                    doseRate.Refusal = string.Format(CultureInfo.InvariantCulture,
+                        DoseRateCoefficients.Text("DoseRateThickSample",
+                            "Dose rate: the sample is too thick for the dose formula — only {0:f2} of the"
+                            + " unscattered fluence leaves it towards the crystal (dose-weighted), while the formula"
+                            + " assumes all of it does and ignores the photons scattered in the sample; the reading"
+                            + " would be overstated by more than 10 %. Compute the dose of a thick layer (soil, a large"
+                            + " vessel) with an ISO field scene."),
+                        transmission);
+                    return doseRate;
+                }
             }
 
             GlobalConfigInfo globalConfig = this.globalConfigManager.GlobalConfig;
