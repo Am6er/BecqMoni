@@ -61,7 +61,9 @@ u"""СТОРОЖ ПРАВИЛА «РОДИТЕЛЬ» (`D48`): копии заж�
   3е. источник `ChainTable` (остаток `S191`, «Доли из l_decays кодом») против
       независимого разбора: у строки иного уровня в дочь, известную своему
       уровню числом, доля — из `l_decays`; родителю без своих рёбер
-      недостающие дочери — из `l_decays`, по одной на дочь; положительный
+      недостающие дочери — из `l_decays`, по одной на дочь; родителю СО
+      своими — только ветвь, которую `decay_chain` держит петлёй под дочерью
+      (`AMBER108`); достроенное ищется по всей выборке; положительный
       контроль — сырая доля с судьёй расходится. 3а заодно требует, чтобы
       читатель ряда брал строки из `ChainTable`, а не из голой `decay_chain`.
 
@@ -549,6 +551,7 @@ def judge_branches(root, nucdb, rule_path, quiet):
         raw_all.setdefault(r[0], []).append(r)
     want_sub = {}                    # (nucid, l_seqno, daughter, dec_type) -> доля
     want_add = {}                    # nucid -> {daughter: доля}
+    with_own_edges = set()           # из want_add — родители со своими рёбрами (AMBER108)
     raw_off = 0
     for n, rs in raw_all.items():
         lv = own.get(n)
@@ -570,9 +573,29 @@ def judge_branches(root, nucdb, rule_path, quiet):
                     raw_off += 1
             except (TypeError, ValueError):
                 raw_off += 1
-        if any(l in lv and dn != n for (_n, l, dn, _dt, _p) in rs):
-            continue
         present = set(r[2] for r in rs)
+        if any(l in lv and dn != n for (_n, l, dn, _dt, _p) in rs):
+            # (`AMBER108`, П169) родителю СО своими рёбрами — только ветвь,
+            # которую decay_chain держит петлёй под дочерью на уровне родителя
+            # той же моды (изомерный переход); по дочери — строка наибольшей
+            # доли (при равенстве — меньший код моды), как в `ChainTable`
+            best = {}
+            for l in lv:
+                for (jdt, jdn, pn) in modes.get((n, l), []):
+                    if not jdn or jdn == n or pn is None or pn <= 0 or jdn in present:
+                        continue
+                    cur = best.get(jdn)
+                    if cur is None or pn > cur[2] or (pn == cur[2] and int(jdt) < int(cur[1])):
+                        best[jdn] = (l, jdt, pn)
+            add = {}
+            for jdn, (l, jdt, pn) in best.items():
+                if any(r[1] == l and r[2] == jdn and str(r[3]) == str(jdt)
+                       for r in raw_all.get(jdn, [])):
+                    add[jdn] = pn
+            if add:
+                want_add[n] = add
+                with_own_edges.add(n)
+            continue
         add = {}
         for (jdt, jdn, pn) in known:
             if jdn != n and jdn not in present:
@@ -605,6 +628,22 @@ def judge_branches(root, nucdb, rule_path, quiet):
     print(u'  3е ChainTable (строки до правила уровня): долей из l_decays %d (сошлось %d), сырая доля с судьёй расходится у %d '
           u'(положительный контроль); достроено ветвей %d у %d родителей (сошлось %d)'
           % (len(want_sub), sub_ok, raw_off, sum(len(v) for v in want_add.values()), len(want_add), add_ok))
+    # (`AMBER108`, П169) достроенное правилом ищется по ВСЕЙ выборке, а не только
+    # у ожидаемых родителей: иначе лишняя строка у родителя, которого разбор не
+    # ждал, проходила молча (так и было до 28.09.2026 — правка правила,
+    # добавившая ветвь, при старом сторожe давала «сошлось»)
+    raw_keys_all = set((r[0], r[1], r[2], r[3]) for rs in raw_all.values() for r in rs)
+    added_parents = set(r[0] for r in nuc.execute(
+        'select nucid, l_seqno, daughter_nucid, dec_type from' + table + ' d')
+        if (r[0], r[1], r[2], r[3]) not in raw_keys_all)
+    unexpected = sorted(added_parents - set(want_add))
+    print(u'  3е родителей, которым правило что-то достроило: %d, из них не ожидал разбор: %d; '
+          u'со своими рёбрами (ветвь петлёй под дочерью, AMBER108): %d %s'
+          % (len(added_parents), len(unexpected), len(with_own_edges),
+             sorted((n, sorted(want_add[n].items())) for n in with_own_edges)))
+    if unexpected:
+        bad.append((u'3е', u'ChainTable достроил строки родителям, которых разбор не ждал: %s'
+                    % unexpected[:10]))
     stray = nuc.execute('select count(*) from' + table + ' d'
                         ' where d.nucid not in (select nucid from decay_chain)').fetchone()[0]
     print(u'  3е строк ChainTable у родителей, которых decay_chain не знает: %d (ждём 0)' % stray)
