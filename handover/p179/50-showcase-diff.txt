@@ -1,0 +1,26 @@
+| спектр | режим | расхождений | напечатано | медиана |Δ| | макс |Δ| | `model`, медиана |Δ| |
+|---|---|---|---|---|---|---|
+| `ASN16_Cs137_house` | `infer_eq` | 116 | 57 | 3.50 % | 308.53 % | 0.52 % |
+| `ASN16_Cs137_house` | `infer_eq_peak` | 106 | 47 | 3.92 % | 60.08 % | 0.52 % |
+| `ASN16_Cs137_house` | `infer_eq_compton` | 107 | 0 | nan % | nan % | nan % |
+| `AS80_Th232_disk` | `infer_eq` | 168 | 60 | 0.66 % | 21.23 % | 0.09 % |
+| `ASN16_Radon_filter2` | `chain_eq` | 138 | 60 | 0.13 % | 1.53 % | 0.04 % |
+| `ASN16_Radon_filter2` | `chain_noeq` | 140 | 31 | 0.05 % | 3.27 % | 0.04 % |
+| `G1S24_Rn222Coal_eq01` | `sample_eq` | 168 | 60 | 7.19 % | 72.43 % | 0.33 % |
+| `G1S24_Rn222Coal_eq01` | `sample_noeq` | 169 | 58 | 0.41 % | 27.23 % | 0.02 % |
+
+всего расхождений: 1112 в 8 парах
+
+крупнейшие по |Δ| (строки с «было» ≥ 1000):
+  ASN16_Cs137_house      infer_eq         0-30 кэВ     Xray-Pb               24067.354 ->      98322.775  +308.53 %
+  ASN16_Cs137_house      infer_eq_peak    0-30 кэВ     continuum_raw         51182.201 ->      20433.640  -60.08 %
+  ASN16_Cs137_house      infer_eq         0-30 кэВ     continuum_raw         51182.201 ->      20433.640  -60.08 %
+  ASN16_Cs137_house      infer_eq_peak    30-100 кэВ   excess_net           640153.348 ->     305344.382  -52.30 %
+  ASN16_Cs137_house      infer_eq_peak    30-100 кэВ   excess_fit           640153.348 ->     305344.382  -52.30 %
+  ASN16_Cs137_house      infer_eq         30-100 кэВ   excess_net           640153.348 ->     305344.382  -52.30 %
+  ASN16_Cs137_house      infer_eq         30-100 кэВ   excess_fit           640153.348 ->     305344.382  -52.30 %
+  ASN16_Cs137_house      infer_eq_peak    0-30 кэВ     excess_net          1891395.343 ->    2663213.674  +40.81 %
+  ASN16_Cs137_house      infer_eq_peak    0-30 кэВ     excess_fit          1891395.343 ->    2663213.674  +40.81 %
+  ASN16_Cs137_house      infer_eq         0-30 кэВ     excess_net          1891395.343 ->    2663213.674  +40.81 %
+  ASN16_Cs137_house      infer_eq         0-30 кэВ     excess_fit          1891395.343 ->    2663213.674  +40.81 %
+  G1S24_Rn222Coal_eq01   sample_eq        30-100 кэВ   excess_net             3241.041 ->       2116.468  -34.70 %

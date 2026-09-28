@@ -1,0 +1,25 @@
+# лестница, понятная часть (плечи сборкой diag с таблицей из файла; итог final = t179 побитово)
+== full_base -> full_t174f
+part=known n=92 changed=88 better=52 worse=36 sumA=473.2434 sumB=470.8585 delta=-2.3849
+== full_t174f -> full_t179
+part=known n=92 changed=33 better=16 worse=17 sumA=470.8585 sumB=470.7950 delta=-0.0635
+== full_base -> full_final
+part=known n=92 changed=88 better=52 worse=36 sumA=473.2434 sumB=470.7950 delta=-2.4484
+== mini_base -> mini_t174f
+part=known n=45 changed=44 better=24 worse=20 sumA=320.0923 sumB=317.9161 delta=-2.1762
+== mini_t174f -> mini_t179
+part=known n=45 changed=18 better=7 worse=11 sumA=317.9161 sumB=317.8696 delta=-0.0465
+== mini_base -> mini_final
+part=known n=45 changed=44 better=24 worse=20 sumA=320.0923 sumB=317.8696 delta=-2.2227
+== full_t179 -> full_final
+part=known n=92 changed=0 better=0 worse=0 sumA=470.7950 sumB=470.7950 delta=+0.0000
+== mini_t179 -> mini_final
+part=known n=45 changed=0 better=0 worse=0 sumA=317.8696 sumB=317.8696 delta=+0.0000
+== непонятная
+part=unknown n=2 changed=0 better=0 worse=0 sumA=51.8930 sumB=51.8930 delta=+0.0000
+part=unknown n=1 changed=0 better=0 worse=0 sumA=20.7529 sumB=20.7529 delta=+0.0000
+== контроль: worktree база против объявленной rev34 (основное дерево tools/pie)
+part=known n=92 changed=0 better=0 worse=0 sumA=473.2434 sumB=473.2434 delta=+0.0000
+part=known n=45 changed=0 better=0 worse=0 sumA=320.0923 sumB=320.0923 delta=+0.0000
+== контроль: diag без переменных = база
+part=known n=45 changed=0 better=0 worse=0 sumA=320.0923 sumB=320.0923 delta=+0.0000
