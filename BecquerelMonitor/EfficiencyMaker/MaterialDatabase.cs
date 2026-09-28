@@ -1347,13 +1347,15 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///   NaI) S держится постоянной. В таблице базы отрезок 0…1 кэВ был
         ///   приближён постоянным l(S(1 кэВ)) — «ESTAR обрезан на 1 кэВ»;
         /// * <paramref name="trackEndKev"/> > 0 — обрыв КОРОТКОГО трека:
-        ///   выход умножается на q(E) = 1/(1 + (E_q/E)²) по НАЧАЛЬНОЙ энергии
-        ///   трека. Кривая Пейна калибрована по электронным данным SLYNCI от
-        ///   единиц кэВ и ниже — экстраполяция, тогда как K-dip-спектроскопия
-        ///   (Khodyuk 2010) меряет ровно изолированный короткий трек
-        ///   (фотоэлектрон E − E_K) и даёт ему МЕНЬШЕ света: провал 114.1 % на
-        ///   34.5 кэВ при тренде ~116.5. E_q — единственный параметр, калибруется
-        ///   по глубине провала (`EfficiencySimulator.LightTrackEndKev`).
+        ///   выход умножается на q(E) = 1/(1 + (E_q/E)^p) по НАЧАЛЬНОЙ энергии
+        ///   трека (<paramref name="trackEndPower"/> = p; до физики 25 p ≡ 2).
+        ///   Кривая Пейна калибрована по электронным данным SLYNCI от единиц кэВ
+        ///   и ниже — экстраполяция, тогда как K-dip-спектроскопия (Khodyuk
+        ///   2010) меряет ровно изолированный короткий трек (фотоэлектрон
+        ///   E − E_K) и даёт ему МЕНЬШЕ света. E_q и p калибруются по ФОРМЕ
+        ///   фотонного провала у K-края иода (`EfficiencySimulator.LightTrackEndKev`,
+        ///   `S198`, П180: рис. 6 Ходюка, −0.89 % к 33.0 кэВ с минимумом на
+        ///   34.5…35.0 кэВ).
         ///   ⚠ Множитель на НАЧАЛЬНУЮ энергию, а не на остаток вдоль трека,
         ///   нарочно: конец длинного трека уже сидит в подгонке Пейна по
         ///   SLYNCI, а вариант «по остатку» (прототип П17) гасил 10…20 кэВ
@@ -1373,12 +1375,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public static LightYieldCurve LightYieldPayne(string material, double etaOverride,
                                                       bool subKevExtension, double trackEndKev,
-                                                      bool computedStopping = false)
+                                                      bool computedStopping = false,
+                                                      double trackEndPower = 2.0)
         {
             string key = material + "|payne|"
                 + etaOverride.ToString("R", CultureInfo.InvariantCulture) + "|"
                 + (subKevExtension ? "1" : "0") + "|"
                 + trackEndKev.ToString("R", CultureInfo.InvariantCulture)
+                + "|p" + trackEndPower.ToString("R", CultureInfo.InvariantCulture)
                 + (computedStopping ? "|ecomp" : "");
             lock (Gate)
             {
@@ -1392,7 +1396,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 try
                 {
                     curve = LoadLightYieldPayne(material, etaOverride, subKevExtension, trackEndKev,
-                                                computedStopping);
+                                                computedStopping, trackEndPower);
                 }
                 catch (FileNotFoundException)
                 {
@@ -1418,7 +1422,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         static LightYieldCurve LoadLightYieldPayne(string material, double etaOverride,
                                                    bool subKevExtension, double trackEndKev,
-                                                   bool computedStopping)
+                                                   bool computedStopping, double trackEndPower)
         {
             string path = DatabasePath();
             if (!File.Exists(path))
@@ -1614,7 +1618,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double y = LogLog(grid, light, e) / e / norm;
                 if (trackEndKev > 0.0)
                 {
-                    y /= 1.0 + (trackEndKev / e) * (trackEndKev / e);
+                    // (`S198`, П180) Показатель обрыва — параметр: при 2 — прежняя
+                    // арифметика побитово (произведение, а не `Math.Pow`).
+                    y /= 1.0 + (trackEndPower == 2.0
+                        ? (trackEndKev / e) * (trackEndKev / e)
+                        : Math.Pow(trackEndKev / e, trackEndPower));
                 }
 
                 outE[i] = e;
@@ -1629,6 +1637,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 + (subKevExtension ? ", ниже 1 кэВ Joy-Luo от 0.01" : "")
                 + (trackEndKev > 0.0
                     ? ", обрыв E_q=" + trackEndKev.ToString("0.###", CultureInfo.InvariantCulture) + " кэВ"
+                      + (trackEndPower != 2.0
+                          ? ", показатель " + trackEndPower.ToString("0.###", CultureInfo.InvariantCulture)
+                          : "")
                     : "");
             return new LightYieldCurve
             {
@@ -2002,6 +2013,233 @@ namespace BecquerelMonitor.EfficiencyMaker
                     return model;
                 }
             }
+        }
+
+        /// <summary>
+        /// ⛔ (`S202`, П180 29.09.2026, физика 25) ТАБЛИЦЫ `matdb`, КОТОРЫЕ
+        /// ЧИТАЕТ ПЕРЕНОС: симулятор, его электронная часть (ESTAR, тормозное
+        /// Зельцера — Бергера), рассеяние (EPDL, комптоновские профили),
+        /// фотоэффект по подоболочкам (EPICS), релаксация (EADL,
+        /// Костер — Крониг), флуоресценция и кривые света. Список — по
+        /// читателям `EfficiencyMaker/*.cs` (`MaterialDatabase`, `ElectronData`,
+        /// `EstarCalculator`, `BremsstrahlungData`, `ScatteringData`); новая
+        /// таблица, которую начнёт читать перенос, обязана встать сюда, иначе
+        /// её правка снова пройдёт мимо клейма (сторож —
+        /// `tools/check_matdb_fingerprint.py`).
+        /// </summary>
+        public static readonly string[] SimulatorTables =
+        {
+            "compton_profile", "compton_profile_momentum", "compton_profile_shell",
+            "coster_kronig", "eadl_auger", "eadl_binding", "eadl_radiative",
+            "epdl_form_factor", "epdl_scattering_function",
+            "epics_photo_fit", "epics_photo_meta", "epics_photo_subshell",
+            "estar_collision_stopping", "estar_element_potential", "estar_radiative_stopping",
+            "estar_shells", "fluorescence_k", "fluorescence_yield",
+            "scint_electron_light_yield", "scint_npsm_params",
+            "seltzer_berger", "seltzer_berger_grid",
+            "star_material_composition", "star_materials",
+            "xcom_cross_sections", "xcom_elements", "xray_fluorescence",
+        };
+
+        static string simulatorFingerprint;
+        static string simulatorFingerprintKey;
+
+        /// <summary>
+        /// ⛔ (`S202`, П180) ОТПЕЧАТОК СОДЕРЖИМОГО таблиц <see cref="SimulatorTables"/>
+        /// — в клеймо матрицы (`ResponseMatrix.ComputeStamp`, `mdb=`) и кривой
+        /// (`EfficiencyCalculation`, `; mdb=`). До физики 25 клеймо видело
+        /// только версию физики, ключи и геометрию: правка справочных данных,
+        /// которые читает перенос (П179: `xray_fluorescence.kb_ev` — тело
+        /// матрицы `G1S_point5` другое на 0.36 % L1 при ТОМ ЖЕ клейме), молча
+        /// оставляла склад «годным».
+        ///
+        /// Отпечаток — по СОДЕРЖИМОМУ, а не по файлу: схема таблицы
+        /// (`sqlite_master.sql`), число строк и мультимножество хешей строк
+        /// (FNV-1a по типизированным значениям: целое и дробное — 8 байт
+        /// побитово, текст и блоб — с длиной, NULL — меткой), всё под SHA-256;
+        /// VACUUM, порядок строк и таблицы, которых перенос не читает,
+        /// отпечаток не меняют. Таблица, которой нет, входит меткой
+        /// отсутствия. Печатаются первые 16 знаков (64 бита).
+        ///
+        /// Считается один раз на процесс и файл (ключ — путь, длина и время
+        /// записи файла): клеймо снимается с UI-потока на каждый тик живого
+        /// набора геометрии, а счёт — порядка секунды; программа прогревает
+        /// его в фоне при старте (<see cref="PrefetchSimulatorDataFingerprint"/>).
+        /// </summary>
+        public static string SimulatorDataFingerprint()
+        {
+            return SimulatorDataFingerprint(DatabasePath());
+        }
+
+        /// <summary>То же для явного файла (сторож и проба положительного контроля).</summary>
+        public static string SimulatorDataFingerprint(string path)
+        {
+            var info = new FileInfo(path);
+            if (!info.Exists)
+            {
+                return "none";
+            }
+
+            string key = info.FullName + "|" + info.Length.ToString(CultureInfo.InvariantCulture)
+                + "|" + info.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture);
+            // Свой замок, а не `Gate`: счёт держит его всё время, и второй
+            // вызывающий (UI-поток при фоновом прогреве) ждёт готового, а не
+            // считает то же самое параллельно.
+            lock (FingerprintGate)
+            {
+                if (key != simulatorFingerprintKey)
+                {
+                    simulatorFingerprint = ComputeSimulatorDataFingerprint(info.FullName);
+                    simulatorFingerprintKey = key;
+                }
+
+                return simulatorFingerprint;
+            }
+        }
+
+        static readonly object FingerprintGate = new object();
+
+        /// <summary>
+        /// (`S202`, П180) Прогреть отпечаток в фоне при старте программы: счёт
+        /// читает ~0.8 млн строк, и первое клеймо иначе ждало бы его на UI-потоке.
+        /// </summary>
+        public static void PrefetchSimulatorDataFingerprint()
+        {
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    SimulatorDataFingerprint();
+                }
+                catch (Exception)
+                {
+                    // Отказ базы назовёт себя сам при первом настоящем чтении.
+                }
+            });
+        }
+
+        static string ComputeSimulatorDataFingerprint(string path)
+        {
+            // Строки хешируются ПОРОЗНЬ (FNV-1a, 64 бита, по типизированным
+            // значениям) и складываются в мультимножество — сумма и XOR по
+            // модулю 2⁶⁴: порядок строк не важен, и сортировка (половина цены
+            // счёта, замер П180) не нужна. Таблица входит в SHA-256 именем,
+            // схемой, числом строк, суммой и XOR.
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+            using (var connection = new SqliteConnection("Data Source=" + path + ";Mode=ReadOnly;"))
+            {
+                connection.Open();
+                var head = new MemoryStream();
+                var writer = new BinaryWriter(head, System.Text.Encoding.UTF8);
+                string[] tables = (string[])SimulatorTables.Clone();
+                Array.Sort(tables, StringComparer.Ordinal);
+                foreach (string table in tables)
+                {
+                    writer.Write("table:" + table);
+                    string schema;
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = "select sql from sqlite_master where type = 'table' and name = $n";
+                        command.Parameters.AddWithValue("$n", table);
+                        schema = command.ExecuteScalar() as string;
+                    }
+
+                    if (schema == null)
+                    {
+                        writer.Write("absent");
+                        continue;
+                    }
+
+                    writer.Write(schema);
+                    long rows = 0;
+                    ulong sum = 0, xor = 0;
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        // Имя — из списка выше, не из ввода: подстановка безопасна.
+                        command.CommandText = "select * from [" + table + "]";
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            int fields = reader.FieldCount;
+                            while (reader.Read())
+                            {
+                                ulong h = 14695981039346656037UL;
+                                for (int c = 0; c < fields; c++)
+                                {
+                                    object v = reader.GetValue(c);
+                                    if (v is long)
+                                    {
+                                        h = FnvMix(h, 1UL);
+                                        h = FnvMix64(h, (ulong)(long)v);
+                                    }
+                                    else if (v is double)
+                                    {
+                                        h = FnvMix(h, 2UL);
+                                        h = FnvMix64(h, (ulong)BitConverter.DoubleToInt64Bits((double)v));
+                                    }
+                                    else if (v is string)
+                                    {
+                                        string text = (string)v;
+                                        h = FnvMix(h, 3UL);
+                                        h = FnvMix64(h, (ulong)text.Length);
+                                        for (int i = 0; i < text.Length; i++)
+                                        {
+                                            h = FnvMix(h, text[i]);
+                                        }
+                                    }
+                                    else if (v is byte[])
+                                    {
+                                        byte[] blob = (byte[])v;
+                                        h = FnvMix(h, 4UL);
+                                        h = FnvMix64(h, (ulong)blob.Length);
+                                        for (int i = 0; i < blob.Length; i++)
+                                        {
+                                            h = FnvMix(h, blob[i]);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        h = FnvMix(h, 0UL);     // NULL
+                                    }
+                                }
+
+                                rows++;
+                                sum += h;
+                                xor ^= h;
+                            }
+                        }
+                    }
+
+                    writer.Write(rows);
+                    writer.Write(sum);
+                    writer.Write(xor);
+                }
+
+                writer.Flush();
+                byte[] hash = sha.ComputeHash(head.ToArray());
+                var hex = new System.Text.StringBuilder(16);
+                for (int i = 0; i < 8; i++)
+                {
+                    hex.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
+                }
+
+                return hex.ToString();
+            }
+        }
+
+        static ulong FnvMix(ulong h, ulong unit)
+        {
+            return (h ^ unit) * 1099511628211UL;
+        }
+
+        static ulong FnvMix64(ulong h, ulong word)
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                h = (h ^ (word & 0xFF)) * 1099511628211UL;
+                word >>= 8;
+            }
+
+            return h;
         }
 
         /// <summary>
