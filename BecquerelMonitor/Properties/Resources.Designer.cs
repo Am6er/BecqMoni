@@ -3763,6 +3763,12 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string EfficiencyMakerNodeSpreadLow {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNodeSpreadLow", resourceCulture);
+            }
+        }
+
         public static string EfficiencyMakerNodeSpreadWarning {
             get {
                 return ResourceManager.GetString("EfficiencyMakerNodeSpreadWarning", resourceCulture);

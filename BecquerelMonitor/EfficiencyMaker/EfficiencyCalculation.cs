@@ -923,9 +923,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             // `E19` — «предупреждать, счёт разрешать»), но кривая названа
             // шумной здесь же, где напечатаны её узлы.
             EfficiencyNodeSpread spread = NodeSpread(result.Curve, simulator.Histories);
+            // (`AMBER128`, П164) медиана и приговор — по рабочему диапазону,
+            // низкая полоса — отдельной строкой.
             log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerNodeSpread,
                               spread.MedianPercent, spread.WorstPercent, spread.WorstEnergy,
-                              spread.WorstEss, simulator.Histories));
+                              spread.WorstEss, simulator.Histories, spread.WorkFromKev, spread.Nodes));
+            if (spread.LowNodes > 0)
+            {
+                log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerNodeSpreadLow,
+                                  spread.WorkFromKev, spread.LowNodes, spread.LowMedianPercent));
+            }
+
             if (spread.Noisy)
             {
                 log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerNodeSpreadWarning,
@@ -1077,6 +1085,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// число узлов выше порога и приговор «шумная» по медиане. Правило
         /// ОДНО — им пользуются и журнал расчёта, и `CorpusEffProbe`: второе
         /// правило для одной величины разъехалось бы молча (`S37`).
+        ///
+        /// ⛔ (`AMBER128`, П164 28.09.2026) Медиана и счёт шумных узлов — по
+        /// РАБОЧЕМУ ДИАПАЗОНУ, узлам от <see cref="EfficiencyCalculationOptions.LowGridTopKev"/> и выше.
+        /// После сгущения сетки ниже 40 кэВ (`AMBER95`) там 41–51 узел из
+        /// 77–87, и медиана всех узлов стала медианой низкой полосы, где узел
+        /// шумит по природе (ε падает на порядки к 5 кэВ): маринелли RC-103
+        /// на 200 000 историй — 3.98 % по всем узлам при 2.2 % на узлах от
+        /// 40 кэВ, `RC103_lu_front` — 5.47 % («шумная», кривая корпуса не
+        /// записана) при ≈ 2.7 %. Низкая полоса печатается отдельно
+        /// (<see cref="EfficiencyNodeSpread.LowMedianPercent"/>); худший узел —
+        /// по всей кривой, как и был. Кривая без узлов от 40 кэВ судится по
+        /// всем своим узлам — иначе судить нечем.
         /// </summary>
         public static EfficiencyNodeSpread NodeSpread(IList<ROIEfficiencyData> curve, int histories)
         {
@@ -1086,7 +1106,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return spread;
             }
 
-            var errors = new List<double>();
+            var work = new List<double>();
+            var low = new List<double>();
+            var all = new List<double>();
             foreach (ROIEfficiencyData point in curve)
             {
                 double e = point.ErrorPercent;
@@ -1095,10 +1117,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                     continue;
                 }
 
-                errors.Add(e);
-                if (e > NodeSpreadWarnPercent)
+                all.Add(e);
+                if (point.Energy >= EfficiencyCalculationOptions.LowGridTopKev)
                 {
-                    spread.NoisyNodes++;
+                    work.Add(e);
+                }
+                else
+                {
+                    low.Add(e);
                 }
 
                 if (e > spread.WorstPercent)
@@ -1108,34 +1134,74 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
-            spread.Nodes = errors.Count;
-            if (errors.Count == 0)
+            if (all.Count == 0)
             {
                 return spread;
             }
 
-            errors.Sort();
-            spread.MedianPercent = errors.Count % 2 == 1
-                ? errors[errors.Count / 2]
-                : 0.5 * (errors[errors.Count / 2 - 1] + errors[errors.Count / 2]);
+            // рабочий диапазон пуст — кривая целиком ниже 40 кэВ: судится вся
+            List<double> judged = work.Count > 0 ? work : all;
+            spread.WorkFromKev = work.Count > 0 ? EfficiencyCalculationOptions.LowGridTopKev : 0.0;
+            spread.Nodes = judged.Count;
+            foreach (double e in judged)
+            {
+                if (e > NodeSpreadWarnPercent)
+                {
+                    spread.NoisyNodes++;
+                }
+            }
+
+            spread.MedianPercent = Median(judged);
+            spread.LowNodes = work.Count > 0 ? low.Count : 0;
+            spread.LowMedianPercent = spread.LowNodes > 0 ? Median(low) : double.NaN;
             double n = Math.Max(1, histories);
             double delta = spread.WorstPercent / 100.0;
             spread.WorstEss = n / (1.0 + n * delta * delta);
             spread.Noisy = spread.MedianPercent > NodeSpreadWarnPercent;
             return spread;
         }
+
+        static double Median(List<double> values)
+        {
+            var sorted = new List<double>(values);
+            sorted.Sort();
+            return sorted.Count % 2 == 1
+                ? sorted[sorted.Count / 2]
+                : 0.5 * (sorted[sorted.Count / 2 - 1] + sorted[sorted.Count / 2]);
+        }
     }
 
     /// <summary>Разброс кривой по узлам — выход <see cref="EfficiencyCalculation.NodeSpread"/>.</summary>
     public sealed class EfficiencyNodeSpread
     {
-        /// <summary>Медиана `ErrorPercent` по узлам, %.</summary>
+        /// <summary>
+        /// Медиана `ErrorPercent` по узлам РАБОЧЕГО ДИАПАЗОНА (от
+        /// <see cref="WorkFromKev"/>), % (`AMBER128`).
+        /// </summary>
         public double MedianPercent;
 
-        /// <summary>Худший узел: его разброс, %, энергия, кэВ, и действующая выборка, историй.</summary>
+        /// <summary>
+        /// Нижняя граница рабочего диапазона, кэВ: <see cref="EfficiencyCalculationOptions.LowGridTopKev"/>;
+        /// ноль — узлов от неё нет, судились все узлы (`AMBER128`).
+        /// </summary>
+        public double WorkFromKev;
+
+        /// <summary>
+        /// Низкая полоса (ниже <see cref="WorkFromKev"/>) — отдельно: медиана, %,
+        /// и число узлов; NaN и ноль, если полосы нет (`AMBER128`).
+        /// </summary>
+        public double LowMedianPercent = double.NaN;
+
+        /// <summary>Узлов в низкой полосе (`AMBER128`).</summary>
+        public int LowNodes;
+
+        /// <summary>Худший узел по ВСЕЙ кривой: его разброс, %, энергия, кэВ, и действующая выборка, историй.</summary>
         public double WorstPercent, WorstEnergy, WorstEss;
 
-        /// <summary>Узлов выше порога <see cref="EfficiencyCalculation.NodeSpreadWarnPercent"/> и всего.</summary>
+        /// <summary>
+        /// Узлов рабочего диапазона выше порога <see cref="EfficiencyCalculation.NodeSpreadWarnPercent"/>
+        /// и всего узлов рабочего диапазона.
+        /// </summary>
         public int NoisyNodes, Nodes;
 
         /// <summary>Кривая шумная: медиана выше порога.</summary>
