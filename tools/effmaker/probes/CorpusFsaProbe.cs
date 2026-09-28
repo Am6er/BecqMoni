@@ -833,6 +833,9 @@ namespace CorpusFsaProbe
     ///                  [--pileup-light=0|1|energy|NaI:Tl|CsI:Tl]   (`S107`, форма наложений по свету)
     ///                  [--sum-light=electron|photon]   (`S167`, П18: кривая света каскадной суммы)
     ///                  [--loss-joint=0|1]   (`S166`, П18: вынос из пика с совместной эффективностью κ)
+    ///                  [--pair-continuum=0|1]   (`AMBER124`/`AMBER125`, П166: сумм-континуум и сумм-вылеты пар)
+    ///                  [--pileup-cap=0|1]   (`AMBER123`, П166: граница числа пар наложений R·τ_d)
+    ///                  [--branch-sum=0|1]   (`AMBER134`, П166: вынос суммой по исключающим ветвям питания)
     ///                  [--crystal-shield=0|1]   (`A30`, П21: заслон сведения рентгена кристалла — как до 12.09.2026)
     ///                  [--anchor-zero=calib|adc|adc-fixed] [--anchor-zero-kev=&lt;кэВ&gt;]   (`S169`, нуль шкалы образа)
     ///                  [--anchor-zero-share=&lt;доля&gt;] [--anchor-zero-max=&lt;кэВ&gt;]   (`S169`, П13, ножи кандидата нуля съёмки)
@@ -1044,6 +1047,29 @@ namespace CorpusFsaProbe
                 // (`S166`, П18 12.09.2026) Вынос из пика с совместной
                 // эффективностью κ(k,j) из таблицы матрицы: `1` — вкл, `0` —
                 // выкл. Читатель — `SETUP` отражением (`CascadeLossJointFactor`).
+                // (`AMBER124`/`AMBER125`, `AMBER123`, `AMBER134`; П166 28.09.2026)
+                // Плечи правок П166: `1` — вкл, `0` — выкл (поведение до П166).
+                // Читатель — `SETUP` отражением (`CascadePairContinuum`,
+                // `PileUpCapEnabled`, `CascadeBranchSum`).
+                if (a.StartsWith("--pair-continuum=", StringComparison.Ordinal)
+                    || a.StartsWith("--pileup-cap=", StringComparison.Ordinal)
+                    || a.StartsWith("--branch-sum=", StringComparison.Ordinal))
+                {
+                    int eq = a.IndexOf('=');
+                    string key = a.Substring(0, eq);
+                    string v = a.Substring(eq + 1);
+                    if (v != "0" && v != "1")
+                    {
+                        Console.Error.WriteLine("{0}= знает 0 и 1; дано: {1}", key, v);
+                        return 2;
+                    }
+
+                    int flag = v == "1" ? 1 : 0;
+                    if (key == "--pair-continuum") o.PairContinuum = flag;
+                    else if (key == "--pileup-cap") o.PileUpCap = flag;
+                    else o.BranchSum = flag;
+                    continue;
+                }
                 if (a.StartsWith("--loss-joint=", StringComparison.Ordinal))
                 {
                     string v = a.Substring(13);
@@ -2400,6 +2426,22 @@ namespace CorpusFsaProbe
             if (o.LossJoint >= 0)
             {
                 analyzer.CascadeLossJointFactor = o.LossJoint == 1;
+            }
+
+            // (`AMBER124`/`AMBER125`, `AMBER123`, `AMBER134`; П166) плечи правок
+            if (o.PairContinuum >= 0)
+            {
+                analyzer.CascadePairContinuum = o.PairContinuum == 1;
+            }
+
+            if (o.PileUpCap >= 0)
+            {
+                analyzer.PileUpCapEnabled = o.PileUpCap == 1;
+            }
+
+            if (o.BranchSum >= 0)
+            {
+                analyzer.CascadeBranchSum = o.BranchSum == 1;
             }
 
             // (`N14`, П49) угловая корреляция в парах; ключ обязан ДОЕХАТЬ до
@@ -5830,6 +5872,9 @@ namespace CorpusFsaProbe
             public string PileUpLight = null;    // (S107) форма наложений по свету: "0" выкл, "1" по веществу, "energy" порча, имя кривой; null — умолчание анализатора
             public string SumLight = null;       // (S167, П18) кривая света каскадной суммы: "electron" | "photon"; null — умолчание анализатора
             public int LossJoint = -1;           // (S166, П18) вынос из пика с κ: 1 вкл, 0 выкл; -1 — умолчание анализатора
+            public int PairContinuum = -1;       // (AMBER124/125, П166) сумм-континуум пар: 1 вкл, 0 выкл; -1 — умолчание анализатора
+            public int PileUpCap = -1;           // (AMBER123, П166) граница пар наложений: 1 вкл, 0 выкл; -1 — умолчание анализатора
+            public int BranchSum = -1;           // (AMBER134, П166) вынос суммой по ветвям: 1 вкл, 0 выкл; -1 — умолчание анализатора
             public int AngCorr = -1;             // (N14, П49) угловая корреляция в парах: 1 вкл, 0 выкл; -1 — умолчание анализатора
             public string Weights = null;        // (A310, П47) веса решателя: "data" | "model"; null — умолчание анализатора
 

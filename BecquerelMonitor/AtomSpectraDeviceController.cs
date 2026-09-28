@@ -64,6 +64,57 @@ namespace BecquerelMonitor
             return "--";
         }
 
+        /// <summary>
+        /// ⛔ `AMBER127` (П170, 28.09.2026): МЁРТВОЕ ВРЕМЯ — ИЗ ПРИБОРА ПРИ
+        /// ПОДКЛЮЧЕНИИ, А НЕ ТОЛЬКО КНОПКОЙ. Умолчание конфигурации — 0, и
+        /// пока человек не нажал «Обновить мёртвое время», живое время
+        /// считалось равным полному (<c>LiveTime.Calculate</c> при τ = 0):
+        /// активности, дозы и скорости занижены на R·τ — у ASN16 с τ = 14 мкс
+        /// при 608 имп/с −0.85 %, при 10 кимп/с −14 % (`CalibPeaksProbeP170
+        /// --dt`). В корпусе у 10 спектров AtomSpectra LT = T.
+        ///
+        /// Ответ `-inf` прибор даёт и во время набора (тем же вызовом берёт
+        /// температуру <see cref="getTemp"/>), поэтому вопрос задаётся сразу
+        /// после принятого старта. Годный ответ ставит τ конфигурации
+        /// документа — её читают живое время (<c>MeasurementController</c>),
+        /// доля мёртвого времени и FSA; живое время пересчитывается целиком от
+        /// начала набора, так что поправка ложится на всё измерение. Отказ
+        /// (нет ответа, ответ не того вида) τ НЕ трогает: остаётся прежнее,
+        /// нажатое кнопкой, и причина уходит в Trace.
+        /// </summary>
+        void RefreshDeadTimeFromDevice(ResultData resultData)
+        {
+            try
+            {
+                AtomSpectraDeviceConfig config = resultData.DeviceConfig.InputDeviceConfig as AtomSpectraDeviceConfig;
+                if (config == null)
+                {
+                    return;
+                }
+                AtomSpectraVCPIn device = AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid);
+                device.sendCommand("-inf");
+                string why;
+                double tau = AtomSpectraDeviceConfig.DeadTimeFromInfo(device.getCommandOutput(2000), out why);
+                if (double.IsNaN(tau))
+                {
+                    System.Diagnostics.Trace.WriteLine("AtomSpectra: dead time not read at connect, kept "
+                        + config.DeadTimeValue.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + " s: " + why);
+                    return;
+                }
+                if (tau != config.DeadTimeValue)
+                {
+                    System.Diagnostics.Trace.WriteLine("AtomSpectra: dead time from device "
+                        + tau.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + " s (was "
+                        + config.DeadTimeValue.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + " s)");
+                    config.DeadTimeValue = tau;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.WriteLine("AtomSpectra: dead time not read at connect: " + ex.Message);
+            }
+        }
+
         public override void ClearMeasurementResult(ResultData resultData)
         {
             if (deviceGuid != null)
@@ -148,7 +199,11 @@ namespace BecquerelMonitor
                     //resultData.StartTime.Add = stopTimestamp;
                 }
                 resultDataStatus.Recording = commands_accepted;
-                if (commands_accepted) return true;
+                if (commands_accepted)
+                {
+                    this.RefreshDeadTimeFromDevice(resultData);
+                    return true;
+                }
             }
             // СТАРТ измерения: порт не ответил, либо конфигурация не та вовсе.
             // Данных ещё нет; без окон — ОТКАЗ, а не `false` (см. разбор у
@@ -235,7 +290,11 @@ namespace BecquerelMonitor
                     //resultData.StartTime.Add = stopTimestamp;
                 }
                 resultDataStatus.Recording = commands_accepted;
-                if (commands_accepted) return true;
+                if (commands_accepted)
+                {
+                    this.RefreshDeadTimeFromDevice(resultData);
+                    return true;
+                }
             }
             // То же, что в `StartMeasurement`: подключение к прибору — это старт.
             if (!AppUi.HasWindows)

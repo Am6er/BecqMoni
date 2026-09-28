@@ -711,12 +711,69 @@ namespace BecquerelMonitor
                 : this.doseRateManager.Calculate(this.activeDocument.ActiveResultData);
             if (doseRate != null)
             {
-                SetStatusTextRight(Resources.DoseRate + " " + doseRate.ToString());
+                // Отказ уже начинается подписью («Dose rate: …» / «Мощность
+                // дозы: …») — второй раз её не ставить: прежде строка читалась
+                // «Dose rate: Dose rate: …» (проверка экраном П165).
+                string text = doseRate.ToString();
+                string label = Resources.DoseRate ?? "";
+                if (string.IsNullOrEmpty(doseRate.Refusal)
+                    || !text.StartsWith(label.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    text = label + " " + text;
+                }
+
+                SetStatusTextRight(text);
             }
             else
             {
                 ClearStatusTextRight();
             }
+
+            // (`AMBER102`, решение Amber 28.09.2026 «Строка AMBER: приписка на
+            // экране + подсказка «ISO»») Подсказка у строки дозы: число по
+            // кривой сцены с источником фон не меряет, для фона — кривая сцены
+            // поля ISO. Метка правого края занята только дозой.
+            // Перенос по словам: строка подсказки иначе тянется во всю ширину
+            // экрана и ложится поверх самой строки состояния (проверка экраном П165).
+            // У отказа подсказка — сам отказ целиком: длинный текст в строке
+            // состояния обрезается слева.
+            this.statusStrip1.ShowItemToolTips = true;
+            this.toolStripStatusLabel3.ToolTipText =
+                doseRate != null && !string.IsNullOrEmpty(doseRate.Refusal)
+                    ? WrapWords(doseRate.Refusal, 80)
+                : doseRate != null && doseRate.SourceScene
+                    ? WrapWords(DoseRateCoefficients.Text("DoseRateSourceSceneHint",
+                        "The dose rate uses the geometry of the efficiency curve selected on the panel: the photons"
+                        + " are taken to come from the source of that scene. A background field comes from all sides,"
+                        + " and such a curve misstates it by tens of percent, most at low energies. To measure the"
+                        + " background dose, make a curve of the isotropic field scene (ISO) in the geometry editor"
+                        + " and select it."), 80)
+                    : "";
+        }
+
+        /// <summary>Перенос текста по словам на строки не длиннее <paramref name="width"/> знаков.</summary>
+        static string WrapWords(string text, int width)
+        {
+            var result = new System.Text.StringBuilder();
+            int line = 0;
+            foreach (string word in text.Split(' '))
+            {
+                if (line > 0 && line + 1 + word.Length > width)
+                {
+                    result.Append(Environment.NewLine);
+                    line = 0;
+                }
+                else if (line > 0)
+                {
+                    result.Append(' ');
+                    line++;
+                }
+
+                result.Append(word);
+                line += word.Length;
+            }
+
+            return result.ToString();
         }
 
         public void ShowCountsRate()

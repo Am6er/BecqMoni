@@ -2317,6 +2317,15 @@ http://xptable.sourceforge.net/</value>
   <data name="DoseRateFieldScene" xml:space="preserve">
     <value>Мощность дозы: кривая посчитана для полевой сцены (на земле или в лунке). Доза там требует потока у детектора вместе с квантами, рассеянными в грунте, а множитель точечного источника не даёт ни того, ни другого: без ослабления он завышает нерассеянный поток в 4–20 раз, а рассеянной части (около половины поля) в нём нет. Считайте дозу сценой поля ISO.</value>
   </data>
+  <data name="DoseRateSourceSceneNote" xml:space="preserve">
+    <value>(по геометрии пробы; для фона — сцена ISO)</value>
+  </data>
+  <data name="DoseRateSourceSceneHint" xml:space="preserve">
+    <value>Мощность дозы считается по геометрии кривой эффективности, выбранной на панели: кванты считаются пришедшими от источника этой сцены. Фон приходит со всех сторон, и такая кривая ошибается в нём на десятки процентов, сильнее всего на низких энергиях. Чтобы мерить дозу фона, заведите в редакторе геометрии кривую сцены изотропного поля (ISO) и выберите её.</value>
+  </data>
+  <data name="DoseRateThickSample" xml:space="preserve">
+    <value>Мощность дозы: проба слишком толстая для формулы дозы — к кристаллу выходит лишь {0:f2} нерассеянного потока (в среднем по дозе), а формула считает, что выходит весь, и не видит квантов, рассеянных в пробе; показание было бы завышено больше чем на 10 %. Дозу толстого слоя (грунт, большой сосуд) считайте сценой поля ISO.</value>
+  </data>
   <data name="DoseRateAreaAboveBound" xml:space="preserve">
     <value>Мощность дозы: кривая сцены поля даёт {0} см² на {1:f1} кэВ — больше площади проекции сферы, описанной вокруг детектора ({2:f1} см²).</value>
   </data>
@@ -2427,5 +2436,41 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="NormalizeFieldCurve" xml:space="preserve">
     <value>Нормировка на эффективность: кривая «{0}» — кривая сцены поля (см² на единичный флюенс, значения больше единицы); деление целочисленного спектра на неё округляет малые каналы в ноль, и спектр по ней не нормируется.</value>
+  </data>
+  <data name="SummingPanelApplied" xml:space="preserve">
+    <value>Поправка на каскадное суммирование ×{0} (CF линии {1}, чужие сумм-пики в окне {2} %)</value>
+  </data>
+  <data name="SummingPanelNone" xml:space="preserve">
+    <value>Без поправки на каскадное суммирование: {0}</value>
+  </data>
+  <data name="SummingCellApplied" xml:space="preserve">
+    <value>Σ×{0}</value>
+  </data>
+  <data name="SummingCellNone" xml:space="preserve">
+    <value>без поправки Σ</value>
+  </data>
+  <data name="SummingWhyNoCurve" xml:space="preserve">
+    <value>нет кривой эффективности</value>
+  </data>
+  <data name="SummingWhyNoGeometry" xml:space="preserve">
+    <value>у кривой эффективности нет геометрии</value>
+  </data>
+  <data name="SummingWhyMatrixOff" xml:space="preserve">
+    <value>матрица отклика у кривой выключена</value>
+  </data>
+  <data name="SummingWhyNoMatrix" xml:space="preserve">
+    <value>нет матрицы отклика сцены ({0})</value>
+  </data>
+  <data name="SummingWhyMatrixStale" xml:space="preserve">
+    <value>матрица отклика не сходится с геометрией</value>
+  </data>
+  <data name="SummingWhyFieldScene" xml:space="preserve">
+    <value>сцена поля: положение источника неизвестно</value>
+  </data>
+  <data name="SummingWhyOff" xml:space="preserve">
+    <value>каскадное суммирование выключено в настройках FSA</value>
+  </data>
+  <data name="SummingWhyNoLine" xml:space="preserve">
+    <value>линия {0} кэВ не найдена в таблицах каскадов «{1}»</value>
   </data>
 </root>

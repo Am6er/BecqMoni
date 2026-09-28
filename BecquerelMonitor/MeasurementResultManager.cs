@@ -67,6 +67,28 @@ namespace BecquerelMonitor
                     double becquerelCoefficient = coefficient.Value;
                     double becquerelCoefficientError = coefficient.Error;
 
+                    // ⛔ (`AMBER133`, П167 28.09.2026) Каскадное суммирование —
+                    // тем же суммирователем, что у FSA, на матрице той же
+                    // кривой, плюс чужие суммы в окне зоны. Только K ПО
+                    // КРИВОЙ и только в беккерелях: ручной K суммирование уже
+                    // несёт, а счёт и имп/с — не активность. Поправки нет —
+                    // множитель 1 и причина в приписке строки.
+                    Utils.BecquerelCoefficient.SummingResult summing = default(Utils.BecquerelCoefficient.SummingResult);
+                    summing.Factor = 1.0;
+                    bool translatesToBq =
+                        resultTranslation == ResultTranslation.Becquerels
+                        || resultTranslation == ResultTranslation.BecquerelsPerKilogram
+                        || resultTranslation == ResultTranslation.BecquerelsPerLiter;
+                    if (translatesToBq && !coefficient.Refused)
+                    {
+                        summing = Utils.BecquerelCoefficient.SummingForZone(roidefinition, coefficient, this.resultData);
+                        if (summing.Applied)
+                        {
+                            becquerelCoefficient *= summing.Factor;
+                            becquerelCoefficientError *= summing.Factor;
+                        }
+                    }
+
                     // Беккерели без K не считаются. Раньше нулевой коэффициент
                     // молча давал 0 Бк — неотличимо от настоящего нуля
                     // активности (TODO G7). Теперь строка получает статус.
@@ -156,7 +178,12 @@ namespace BecquerelMonitor
                             }
                             break;
                     }
-                    MeasurementResult item = new MeasurementResult(roidefinition, resultValue2, resultError2, mda2);
+                    MeasurementResult item = new MeasurementResult(roidefinition, resultValue2, resultError2, mda2)
+                    {
+                        SummingFactor = summing.Applied ? summing.Factor : 1.0,
+                        SummingNote = summing.Note,
+                        SummingProblem = summing.Problem,
+                    };
                     measurementResultCollection.ResultList.Add(item);
                 }
             }
@@ -206,7 +233,13 @@ namespace BecquerelMonitor
                 double num2 = halfLife > 0.0 ? 1.0 / Math.Pow(0.5, num / halfLife) : 1.0;
                 double resultValue2 = resultValue * num2;
                 double resultError2 = resultError * num2;
-                MeasurementResult item = new MeasurementResult(roidefinition, resultValue2, resultError2, measurementResult.MDA);
+                MeasurementResult item = new MeasurementResult(roidefinition, resultValue2, resultError2, measurementResult.MDA)
+                {
+                    // (`AMBER133`) поправка на распад приписку суммирования не теряет
+                    SummingFactor = measurementResult.SummingFactor,
+                    SummingNote = measurementResult.SummingNote,
+                    SummingProblem = measurementResult.SummingProblem,
+                };
                 measurementResultCollection.ResultList.Add(item);
             }
             return measurementResultCollection;
@@ -220,6 +253,7 @@ namespace BecquerelMonitor
             this.roiConfig = resultData.ROIConfig;
             this.energySpectrum = resultData.EnergySpectrum;
             this.backgroundEnergySpectrum = resultData.BackgroundEnergySpectrum;
+            this.bgInSpectrumScale = null;
             if (this.roiConfig == null || this.energySpectrum == null)
             {
                 return null;
@@ -329,14 +363,26 @@ namespace BecquerelMonitor
                             fgRegionCounts += (double)this.energySpectrum.Spectrum[i];
                             if (this.bg)
                             {
-                                int bgChannelIndex = i;
-                                if (!this.energyCalibration.Equals(this.backgroundEnergyCalibration))
+                                // (`AMBER109`, П167) Фон в чужой калибровке —
+                                // раскладкой по перекрытию энергий в шкалу
+                                // спектра (`SpectrumAriphmetics.RebinByEnergy`),
+                                // а не каналом `(int)ChannelOf(E)`: тот брал
+                                // отсчёты канала фона без множителя
+                                // h_спектр/h_фон (и ещё усечением), и фон
+                                // зоны на `RC103_Th232WT20` уезжал на
+                                // −22…+5 %. Равные калибровки — прежняя
+                                // ветка, побитово.
+                                if (this.energyCalibration.Equals(this.backgroundEnergyCalibration))
                                 {
-                                    bgChannelIndex = (int)PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, this.energyCalibration.ChannelToEnergy((double)i), this.backgroundEnergySpectrum.NumberOfChannels);
+                                    if (i < this.backgroundNumberOfChannels)
+                                    {
+                                        bgRegionCounts += (double)this.backgroundEnergySpectrum.Spectrum[i];
+                                    }
                                 }
-                                if (bgChannelIndex >= 0 && bgChannelIndex < this.backgroundNumberOfChannels)
+                                else
                                 {
-                                    bgRegionCounts += (double)this.backgroundEnergySpectrum.Spectrum[bgChannelIndex];
+                                    double[] bgInScale = this.BackgroundInSpectrumScale();
+                                    bgRegionCounts += bgInScale[i];
                                 }
                             }
                         }
@@ -503,6 +549,23 @@ namespace BecquerelMonitor
             }
             return true;
         }
+
+        /// <summary>
+        /// (`AMBER109`) Фон, переложенный в шкалу спектра по перекрытию энергий,
+        /// — один раз на расчёт (<see cref="Calculate"/> сбрасывает): зон
+        /// много, а фон и калибровки на расчёт одни.
+        /// </summary>
+        double[] BackgroundInSpectrumScale()
+        {
+            if (this.bgInSpectrumScale == null)
+            {
+                this.bgInSpectrumScale = Utils.SpectrumAriphmetics.RebinByEnergy(this.backgroundEnergySpectrum.Spectrum,
+                    this.backgroundEnergyCalibration, this.energyCalibration, this.numberOfChannels);
+            }
+            return this.bgInSpectrumScale;
+        }
+
+        double[] bgInSpectrumScale;
 
         // Token: 0x04000306 RID: 774
         ResultData resultData;

@@ -80,6 +80,14 @@ namespace FsaPileUpProbe
     /// не трогать (правило разбора по времени спектра). На сборке без
     /// свойства ключ не действует и проба об этом говорит.
     ///
+    /// (`AMBER123`, П166 28.09.2026) `--cap=off|on|auto` — граница числа пар
+    /// колонки R·τ_d (<c>FsaAnalyzer.PileUpCapEnabled</c>) отражением;
+    /// умолчание `off`: подсадка пробы кладёт f пар при НЕТРОНУТОМ живом
+    /// времени, и при f выше (T − LT)/LT (у «Cs 137 в домике» 0.98 %) такой
+    /// спектр физически невозможен — граница его законно режет. Мерка
+    /// множителя убыли поэтому идёт без границы; `on` — плечо приложения
+    /// (подсадка ниже границы обязана не сдвинуться), `auto` — не трогать.
+    ///
     /// (`AMBER92`, П148) Строка `STACKTOP` — зазор ВЕРХА СТЕКА над моделью:
     /// Σ полосы (Σ слоёв `BuildStackedLayers` − `Model`) к измеренным
     /// отсчётам той же полосы, и «лишнее» ленты, посчитанное от верха стека,
@@ -93,7 +101,7 @@ namespace FsaPileUpProbe
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             FsaTuningReport.Snapshot();
 
-            string spectrumPath = null, setName = null, outPath = null, form = "both", ltMode = "both", loss = "auto";
+            string spectrumPath = null, setName = null, outPath = null, form = "both", ltMode = "both", loss = "auto", cap = "off";
             var fracs = new List<double> { 0.02, 0.05 };
             int seed = 1;
             double huberM = double.NaN, anchorShare = double.NaN;
@@ -102,6 +110,7 @@ namespace FsaPileUpProbe
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
                 else if (a.StartsWith("--lt=", StringComparison.Ordinal)) ltMode = a.Substring(5);
                 else if (a.StartsWith("--loss=", StringComparison.Ordinal)) loss = a.Substring(7);
+                else if (a.StartsWith("--cap=", StringComparison.Ordinal)) cap = a.Substring(6);
                 else if (a.StartsWith("--set=", StringComparison.Ordinal)) setName = a.Substring(6);
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
                 else if (a.StartsWith("--form=", StringComparison.Ordinal)) form = a.Substring(7);
@@ -152,6 +161,16 @@ namespace FsaPileUpProbe
                 }
             }
 
+            if (cap != "off" && cap != "on" && cap != "auto")
+            {
+                Console.Error.WriteLine("--cap= принимает off | on | auto");
+                return 2;
+            }
+
+            // (`AMBER123`) Граница числа пар — отражением: сборка до П166 её не знает.
+            PropertyInfo capProperty = typeof(FsaAnalyzer).GetProperty("PileUpCapEnabled");
+            Console.WriteLine("SETUP\tFsaAnalyzer.PileUpCapEnabled {0}; --cap={1}",
+                              capProperty != null ? "есть" : "НЕТ (сборка до П166: границы нет)", cap);
             PropertyInfo lossProperty = typeof(FsaAnalyzer).GetProperty("PileUpLossMultiplier");
             PropertyInfo lossUsedProperty = typeof(FsaAnalyzer).GetProperty("PileUpLossUsed");
             Console.WriteLine("SETUP\tFsaAnalyzer.PileUpLossMultiplier {0}; --loss={1}; --lt={2}",
@@ -233,6 +252,10 @@ namespace FsaPileUpProbe
 
                 an.PileUp = pileUp;
                 an.PileUpLightForm = lightForm;
+                if (capProperty != null && cap != "auto")
+                {
+                    capProperty.SetValue(an, cap == "on", null);
+                }
                 if (!double.IsNaN(huberM))
                 {
                     an.HuberM = huberM;

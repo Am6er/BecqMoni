@@ -1,0 +1,34 @@
+== before
+  G1S24_K40_Denta120     K-40       share  96.924 z  65.48 rate 1.4334E+002
+  G1S24_K40_Denta120     pile-up    share   3.076 z   3.70 rate 8.0289E-002
+  G1S24_K40_Denta120_2   K-40       share  98.135 z 101.42 rate 2.7152E+002
+  G1S24_K40_Denta120_2   Ann-511    share   1.472 z   3.50 rate 3.5454E-001
+  G1S24_K40_Petri        K-40       share  92.419 z  54.72 rate 7.5328E+001
+  G1S24_K40_Petri        pile-up    share   7.581 z   7.62 rate 1.3941E-001
+  G1S24_K40_Petri_2      K-40       share  99.539 z  40.66 rate 1.4286E+002
+  G1S24_K40_Denta120     chi2ndf 1.1210
+  G1S24_K40_Denta120_2   chi2ndf 1.2212
+  G1S24_K40_Petri        chi2ndf 1.2999
+  G1S24_K40_Petri_2      chi2ndf 1.0508
+== no123
+  G1S24_K40_Denta120     K-40       share  96.924 z  65.48 rate 1.4334E+002
+  G1S24_K40_Denta120     pile-up    share   3.076 z   3.70 rate 8.0289E-002
+  G1S24_K40_Denta120_2   K-40       share  98.135 z 101.42 rate 2.7152E+002
+  G1S24_K40_Denta120_2   Ann-511    share   1.472 z   3.50 rate 3.5454E-001
+  G1S24_K40_Petri        K-40       share  92.419 z  54.72 rate 7.5328E+001
+  G1S24_K40_Petri        pile-up    share   7.581 z   7.62 rate 1.3941E-001
+  G1S24_K40_Petri_2      K-40       share  99.539 z  40.66 rate 1.4286E+002
+  G1S24_K40_Denta120     chi2ndf 1.1210
+  G1S24_K40_Denta120_2   chi2ndf 1.2212
+  G1S24_K40_Petri        chi2ndf 1.2999
+  G1S24_K40_Petri_2      chi2ndf 1.0508
+== after
+  G1S24_K40_Denta120     K-40       share  99.423 z  68.41 rate 1.4098E+002
+  G1S24_K40_Denta120_2   K-40       share  98.135 z 101.42 rate 2.7152E+002
+  G1S24_K40_Denta120_2   Ann-511    share   1.472 z   3.50 rate 3.5454E-001
+  G1S24_K40_Petri        K-40       share  98.838 z  44.83 rate 7.2581E+001
+  G1S24_K40_Petri_2      K-40       share  99.539 z  40.66 rate 1.4286E+002
+  G1S24_K40_Denta120     chi2ndf 1.1301
+  G1S24_K40_Denta120_2   chi2ndf 1.2212
+  G1S24_K40_Petri        chi2ndf 1.3299
+  G1S24_K40_Petri_2      chi2ndf 1.0508

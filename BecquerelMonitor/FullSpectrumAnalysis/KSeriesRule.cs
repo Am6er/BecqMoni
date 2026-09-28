@@ -136,5 +136,156 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             return sum;
         }
+
+        // ------------------------------------------------------------------
+        // (`AMBER120`, П168 28.09.2026) Энергия группы K-M (`KpB1`)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Относительный допуск, в котором строка разложения Kβ считается
+        /// группой K-M (Kβ1 + Kβ3 + Kβ5) своего элемента. Середина диапазона
+        /// отходит от центра тяжести группы на 0.24–0.33 % (Pb 84.986 против
+        /// 84.784, Hf 63.333 против 63.163, Ba 36.482 против 36.36), а группа
+        /// K-N (`KpB2`) лежит выше на 1.1 % (Ge) и больше — её допуск не задевает.
+        /// </summary>
+        const double GroupTolerance = 0.006;
+
+        /// <summary>Допуск узнавания элемента по Kα1, кэВ: поставки сходятся до эВ.</summary>
+        const double AlphaMatchKev = 0.03;
+
+        static readonly object Gate = new object();
+
+        /// <summary>{Z → {Kα1, Kα2, Kβ(K-M) взвешенная}}, кэВ; null — не читалось.</summary>
+        static Dictionary<int, double[]> groups;
+
+        /// <summary>
+        /// То же, что <see cref="Beta"/>, и у строк группы K-M — энергия ЦЕНТРА
+        /// ТЯЖЕСТИ группы, а не середина текстового диапазона.
+        ///
+        /// ⛔ ЗАЧЕМ (`AMBER120`). Строка `KpB1` в `decay_radiations` несёт
+        /// диапазон «62.981 - 63.685» (от Kβ3 до Kβ5), и `energy_num` — его
+        /// СЕРЕДИНА 63.333, тогда как Kβ3 и Kβ1 (почти вся группа) лежат ниже:
+        /// центр тяжести 63.163 (`matdb.fluorescence_k.kb_ev`, xraylib, K-M по
+        /// весам переходов). У Lu-176 середина встала НАД K-краем лютеция
+        /// 63.314, и в пробе из Lu₂O₃ матрица отклика ослабила линию как квант
+        /// над краем: отклик в пике на 63.333 против 63.163 — −39 % на всех трёх
+        /// сценах лютеция (`KbetaEdgeProbeP168`).
+        ///
+        /// Элемент узнаётся по Kα1 ТОГО ЖЕ набора строк (у родителя с двумя
+        /// путями распада — два элемента, и каждый правится своей группой);
+        /// строка берёт центр тяжести, только если лежит от него не дальше
+        /// <see cref="GroupTolerance"/>. Итог `KB` не правится: в нём и K-N, а
+        /// её веса в базе нет — он берётся лишь при неполном разложении.
+        /// Нет таблицы, нет Kα, элемент не узнан — строки как есть.
+        /// Возвращается НОВЫЙ список; входные не меняются.
+        /// </summary>
+        public static List<double[]> BetaAtGroupEnergy(List<double[]> split, List<double[]> total,
+                                                       int splitSeries, List<double[]> alpha)
+        {
+            List<double[]> chosen = Beta(split, total, splitSeries);
+            var result = new List<double[]>();
+            if (chosen == null)
+            {
+                return result;
+            }
+
+            bool fromSplit = !ReferenceEquals(chosen, total) || ReferenceEquals(chosen, split);
+            Dictionary<int, double[]> table = Groups();
+            var elements = new List<double[]>();
+            if (fromSplit && table != null && alpha != null)
+            {
+                foreach (double[] group in table.Values)
+                {
+                    foreach (double[] line in alpha)
+                    {
+                        if (line != null && line.Length > 0
+                            && Math.Abs(line[0] - group[0]) <= AlphaMatchKev)
+                        {
+                            elements.Add(group);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            foreach (double[] line in chosen)
+            {
+                if (line == null || line.Length == 0)
+                {
+                    continue;
+                }
+
+                double[] copy = (double[])line.Clone();
+                foreach (double[] group in elements)
+                {
+                    double kb = group[2];
+                    if (kb > 0.0 && Math.Abs(copy[0] - kb) <= GroupTolerance * kb)
+                    {
+                        copy[0] = kb;
+                        break;
+                    }
+                }
+
+                result.Add(copy);
+            }
+
+            return result;
+        }
+
+        /// <summary>Таблица групп K из `matdb.fluorescence_k`; null — не читается.</summary>
+        static Dictionary<int, double[]> Groups()
+        {
+            lock (Gate)
+            {
+                if (groups != null)
+                {
+                    return groups.Count > 0 ? groups : null;
+                }
+
+                var read = new Dictionary<int, double[]>();
+                try
+                {
+                    string path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "matdb.sqlite");
+                    if (System.IO.File.Exists(path))
+                    {
+                        using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(
+                                   "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+                        {
+                            connection.Open();
+                            using (var command = connection.CreateCommand())
+                            {
+                                command.CommandText = "select z, ka1_ev, ka2_ev, kb_ev from fluorescence_k";
+                                using (var reader = command.ExecuteReader())
+                                {
+                                    while (reader.Read())
+                                    {
+                                        if (reader.IsDBNull(0) || reader.IsDBNull(1) || reader.IsDBNull(3))
+                                        {
+                                            continue;
+                                        }
+
+                                        read[reader.GetInt32(0)] = new[]
+                                        {
+                                            reader.GetDouble(1) / 1000.0,
+                                            reader.IsDBNull(2) ? 0.0 : reader.GetDouble(2) / 1000.0,
+                                            reader.GetDouble(3) / 1000.0
+                                        };
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Таблицы нет или база не читается — строки остаются как
+                    // есть (середина диапазона), как было до `AMBER120`.
+                    read.Clear();
+                }
+
+                groups = read;
+                return read.Count > 0 ? read : null;
+            }
+        }
     }
 }

@@ -5277,4 +5277,22 @@
   <data name="FSAReport_SupplyShareKept" xml:space="preserve">
     <value>{0} → {1}: β⁺ fraction of the branch {2} (decay_radiations) vs {3} (ENSDF), {4} %; the branch share is saturated, level-by-level shares kept from ENSDF</value>
   </data>
+  <data name="FSAReport_PileUpCapRow" xml:space="preserve">
+    <value>Pile-up column capped at R·τ: the fit asked for {0:F0} pairs, the dead time allows {1:F0} — the excess is not pile-up</value>
+  </data>
+  <data name="FSAReport_PileUpCapValue" xml:space="preserve">
+    <value>capped</value>
+  </data>
+  <data name="FSAReport_InterferenceRow" xml:space="preserve">
+    <value>{0} keV: {1} is not in the composition — at the natural {1}/{2} ratio the row {3} is overestimated up to ×{4}</value>
+  </data>
+  <data name="FSAReport_InterferenceValue" xml:space="preserve">
+    <value>not counted</value>
+  </data>
+  <data name="FSAReport_ResidualNoise" xml:space="preserve">
+    <value>noise floor {0} %</value>
+  </data>
+  <data name="FSAReport_ResidualNoiseTip" xml:space="preserve">
+    <value>A model without a single error still shows about {0} % in each half: this is the Poisson noise of the band (the expected positive deviation of every channel from a perfect model, summed, over the measured counts of the same band). A residual near this floor does not tell the model from a perfect one; only what is above it is left undescribed.</value>
+  </data>
 </root>

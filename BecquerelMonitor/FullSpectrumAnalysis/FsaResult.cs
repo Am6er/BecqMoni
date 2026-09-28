@@ -1086,6 +1086,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public const double ResidualDefinedSigmas = 3.0;
 
         /// <summary>
+        /// (`AMBER118`, П168 28.09.2026) Помехи линиям состава от природных
+        /// спутников, которых в составе нет (U-235 при ряде U-238 — 186 кэВ);
+        /// пусто — помех не найдено. Правило и пороги — у
+        /// <see cref="FsaSampleLibrary.NaturalCompanionInterference"/>.
+        /// </summary>
+        public List<FsaLineInterference> LineInterferences { get; private set; } = new List<FsaLineInterference>();
+
+        /// <summary>
         /// (S44) Фон был ПОДАН на разбор, но НЕ ВЗЯТ — с причиной словами
         /// («the background has 1012 channels, the spectrum 1024»). null —
         /// фона не подавали либо он вычтен. Отказ обязан быть назван:
@@ -1101,6 +1109,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// разбора». Числа в ней печатаются инвариантной культурой (`A244`).
         /// </summary>
         public string BackgroundRejected { get; set; }
+
+        /// <summary>
+        /// (`AMBER123`, П166 28.09.2026) Граница числа пар колонки наложений,
+        /// N·R·τ_d (<c>FsaAnalyzer.PileUpCapFor</c>); NaN — колонки нет или
+        /// судить нечем (ни живого времени, ни мёртвого прибора).
+        /// </summary>
+        public double PileUpCapPairs { get; set; } = double.NaN;
+
+        /// <summary>
+        /// (`AMBER123`) Наибольшее число пар, которое фит давал колонке ДО
+        /// закрепления на границе; NaN — граница не срабатывала. Число есть —
+        /// колонка брала НЕ наложения, а недостающую модель (у
+        /// `G1S24_K40_Petri` ×43 к R·τ_d): «не наложения».
+        /// </summary>
+        public double PileUpUncappedPairs { get; set; } = double.NaN;
+
+        /// <summary>(`AMBER123`) Граница наложений срабатывала: колонка брала не пары.</summary>
+        public bool PileUpNotPairs
+        {
+            get { return !double.IsNaN(this.PileUpUncappedPairs); }
+        }
 
         /// <summary>
         /// χ²/ndf того же остатка ПРЕЖНИМИ весами (пуассон плюс шум фона) —
@@ -1851,6 +1880,87 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.ResidualSharesDefined = measuredCounts > ResidualDefinedSigmas * Math.Sqrt(variance);
             this.ResidualMissingShare = this.ResidualSharesDefined ? missingCounts / measuredCounts : double.NaN;
             this.ResidualExcessShare = this.ResidualSharesDefined ? excessCounts / measuredCounts : double.NaN;
+            this.ResidualNoiseShare = this.ResidualSharesDefined
+                ? this.ExpectedNoiseHalf(from, raw.Length) / measuredCounts
+                : double.NaN;
+        }
+
+        /// <summary>
+        /// (`AMBER126`, П168 28.09.2026) ШУМОВОЙ ПОЛ КАЖДОЙ ПОЛОВИНЫ НЕВЯЗКИ:
+        /// сколько «не описано» (и столько же «лишнего») даёт один пуассонов шум
+        /// при модели БЕЗ ЕДИНОЙ ОШИБКИ, долей от измеренных отсчётов той же
+        /// полосы. NaN — доли не определены (<see cref="ResidualSharesDefined"/>)
+        /// или не считались.
+        ///
+        /// ⛔ Число строки невязки — ПЛОЩАДЬ ЛЕНТЫ (решение Amber по ~~`S111`~~),
+        /// и пол из него НЕ вычитается: он печатается РЯДОМ. Без него строка
+        /// читалась «не описано 37 %» у модели, описавшей всё, — на пробе в 30σ
+        /// над фоном; в 3σ — 308 % (игрушка `ResidualFloorProbeP168`, 400 копий,
+        /// журнал П168). Невязка около пола — модель от идеальной не отличима;
+        /// сверх него — то, чего модель не описала.
+        ///
+        /// Ожидание E[max(r, 0)] по каналу — от МОДЕЛИ (среднее, которое дала
+        /// бы идеальная модель), а не от измерения: пустой канал при модели 1.2
+        /// шумит так же, как полный. Без фона — точно по Пуассону,
+        /// e^{−μ}μ^{k+1}/k!, k = ⌊μ⌋ (половина среднего абсолютного отклонения;
+        /// при μ ≈ 1 гаусс σ/√(2π) завышал бы на 8 %, при μ = 0.1 — на 40 %); с
+        /// вычтенным фоном — гаусс с дисперсией μ пробы плюс приведённого фона.
+        /// </summary>
+        public double ResidualNoiseShare { get; set; } = double.NaN;
+
+        /// <summary>(`AMBER126`) Σ по полосе ожидаемой положительной невязки идеальной модели, отсчёты.</summary>
+        double ExpectedNoiseHalf(int from, int rawLength)
+        {
+            double sum = 0.0;
+            double scale = this.BackgroundScale > 0.0 ? this.BackgroundScale : 1.0;
+            for (int i = from; i <= this.LastChannel && i < rawLength; i++)
+            {
+                double model = this.Model != null && i < this.Model.Length ? Math.Max(this.Model[i], 0.0) : 0.0;
+                double background = this.Background != null && i < this.Background.Length
+                    ? Math.Abs(this.Background[i]) : 0.0;
+                if (background > 0.0)
+                {
+                    double varianceNet = model + background + scale * background;
+                    sum += Math.Sqrt(varianceNet) / Math.Sqrt(2.0 * Math.PI);
+                }
+                else
+                {
+                    sum += PoissonHalfDeviation(model);
+                }
+            }
+
+            return sum;
+        }
+
+        /// <summary>(`AMBER126`) E[max(N − μ, 0)] для N ~ Пуассон(μ): e^{−μ}μ^{k+1}/k!, k = ⌊μ⌋.</summary>
+        static double PoissonHalfDeviation(double mean)
+        {
+            if (!(mean > 0.0))
+            {
+                return 0.0;
+            }
+
+            if (mean > 400.0)
+            {
+                return Math.Sqrt(mean) / Math.Sqrt(2.0 * Math.PI);
+            }
+
+            int k = (int)Math.Floor(mean);
+            return Math.Exp((k + 1) * Math.Log(mean) - mean - LogFactorials[k]);
+        }
+
+        /// <summary>(`AMBER126`) ln k! при k = 0…400.</summary>
+        static readonly double[] LogFactorials = BuildLogFactorials(400);
+
+        static double[] BuildLogFactorials(int top)
+        {
+            double[] table = new double[top + 1];
+            for (int j = 2; j <= top; j++)
+            {
+                table[j] = table[j - 1] + Math.Log(j);
+            }
+
+            return table;
         }
 
         public List<FsaStackLayer> BuildStackedLayers(int maxNamedLayers)
@@ -2433,5 +2543,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             return sum;
         }
+    }
+
+    /// <summary>
+    /// (`AMBER118`, П168 28.09.2026; решение Amber 28.09.2026, дословно:
+    /// «Строка AMBER: предупреждение об интерференции 186 кэВ») Линия состава,
+    /// которую при природном составе элемента делит спутник, в составе
+    /// отсутствующий: U-235 185.7 кэВ под Ra-226 186.2 кэВ. Имён здесь нет —
+    /// пара находится по базе (<see cref="FsaSampleLibrary.NaturalCompanionInterference"/>).
+    /// </summary>
+    public sealed class FsaLineInterference
+    {
+        /// <summary>Энергия линии состава, кэВ (сильнейшая в окне).</summary>
+        public double LineKev { get; set; }
+
+        /// <summary>Компонент, чья строка держится на этой линии (имя колонки).</summary>
+        public string Component { get; set; }
+
+        /// <summary>Спутник — корень природного ряда, которого в составе нет («U-235»).</summary>
+        public string Companion { get; set; }
+
+        /// <summary>Предок состава того же элемента, к которому взято природное отношение («U-238»).</summary>
+        public string Reference { get; set; }
+
+        /// <summary>Отношение активностей спутника и предка при природном составе элемента.</summary>
+        public double ActivityRatio { get; set; }
+
+        /// <summary>
+        /// Во сколько раз завышена строка компонента, если вклад спутника в окне
+        /// ±ПШПВ целиком отдан ей: (своё + спутник) / своё по линиям компонента,
+        /// взвешенным эффективностью.
+        /// </summary>
+        public double Factor { get; set; }
     }
 }

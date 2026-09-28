@@ -831,6 +831,21 @@ namespace BecquerelMonitor
                                 {
                                     double bqCoeff = coeff.Value;
                                     double bqCoeffError = coeff.Error;
+                                    // ⛔ (`AMBER133`, П167) Каскадное суммирование — тем же
+                                    // путём, что у зон (`BecquerelCoefficient.Summing`):
+                                    // суммирователь FSA на матрице кривой плюс чужие суммы в
+                                    // окне выделения. Поправки нет — причина строкой панели.
+                                    BecquerelCoefficient.SummingResult summing = BecquerelCoefficient.Summing(
+                                        detectedPeak.Nuclide.Name, detectedPeak.Nuclide.Energy, detectedPeak.Nuclide.Intencity,
+                                        this.energyCalibration.ChannelToEnergy(startChannel - 0.5),
+                                        this.energyCalibration.ChannelToEnergy(endChannel + 0.5),
+                                        this.activeResultData);
+                                    if (summing.Applied)
+                                    {
+                                        bqCoeff *= summing.Factor;
+                                        bqCoeffError *= summing.Factor;
+                                    }
+                                    analytics.ActivitySummingNote = summing.Note != null ? summing.Problem : null;
                                     analytics.Activity = ROIAriphmetics.CalculateActivity(bqCoeff, fgCounts, fgTime, bgCounts, bgTime);
                                     analytics.ActivityError = ROIAriphmetics.CalculateActivityError(bqCoeff, bqCoeffError, fgCounts, fgTime, bgCounts, bgTime, errorLevel);
                                     analytics.ActivityUpperLimit = ROIAriphmetics.CalculateActivityUpperLimit(bqCoeff, bqCoeffError, fgCounts, fgTime, bgCounts, bgTime, limitsConfidenceLevel);
@@ -1804,7 +1819,14 @@ namespace BecquerelMonitor
                 return;
             }
             this.energySpectrum = this.activeResultData.EnergySpectrum;
-            this.backgroundEnergySpectrum = this.activeResultData.BackgroundEnergySpectrum;
+            // ⛔ (`AMBER109`, П167 28.09.2026) Фон в чужой калибровке вид держит
+            // ПЕРЕЛОЖЕННЫМ в шкалу спектра по перекрытию энергий: панель
+            // выделения, фон под курсором, отрисовка и подгонка вертикали брали
+            // канал фона ближайшим, без множителя h_спектр/h_фон, и фон в окне
+            // уезжал на −18…+7 % (`RC103_Th232WT20`). Равные калибровки — тот
+            // же объект документа, побитово прежнее.
+            this.backgroundEnergySpectrum = SpectrumAriphmetics.BackgroundInScaleOf(
+                this.activeResultData.BackgroundEnergySpectrum, this.energySpectrum);
             this.roiConfig = this.activeResultData.ROIConfig;
             if (this.numberOfChannels > 0 && this.numberOfChannels != this.energySpectrum.NumberOfChannels)
             {
@@ -1834,8 +1856,11 @@ namespace BecquerelMonitor
             {
                 if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.EffectiveLiveTime != 0.0)
                 {
+                    // (`AMBER109`) Фон документа, не переложенная копия вида:
+                    // вычитание раскладывает его само, и вычтенный спектр на
+                    // экране — ТОТ ЖЕ, что у поиска пиков и вывоза ECSV.
                     SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
-                    this.substractedEnergySpectrum = sa.Substract(this.backgroundEnergySpectrum);
+                    this.substractedEnergySpectrum = sa.Substract(this.activeResultData.BackgroundEnergySpectrum);
                     sa.Dispose();
                 }
                 else
@@ -4980,6 +5005,10 @@ namespace BecquerelMonitor
                     {
                         infopanel_height += 16; // ПАНЕЛЬ: спор
                     }
+                    if (!string.IsNullOrEmpty(selection.ActivitySummingNote))
+                    {
+                        infopanel_height += 16; // ПАНЕЛЬ: суммирование (`AMBER133`)
+                    }
                 }
 
                 // ⛔ (`AMBER2`) СЛАГАЕМЫХ «отказ» И «отступ» БОЛЬШЕ НЕТ, и это
@@ -5108,6 +5137,16 @@ namespace BecquerelMonitor
                                  Resources.PercentCharacter,
                                  this.Font, Brushes.Black, r2, this.centerFormat);
                     r2.Y += 16;
+
+                    // (`AMBER133`) Суммирование — строкой под подписью: число
+                    // ниже либо поправлено (множитель назван), либо нет, и
+                    // тогда названа причина. Прежде панель молчала, а FSA ту
+                    // же линию поправлял.
+                    if (!string.IsNullOrEmpty(selection.ActivitySummingNote))
+                    {
+                        g.DrawString(selection.ActivitySummingNote, this.Font, Brushes.DarkSlateGray, r2, this.centerFormat);
+                        r2.Y += 16;
+                    }
 
                     if (selection.ActivityRivals > 0)
                     {
@@ -5873,6 +5912,13 @@ namespace BecquerelMonitor
             /// более раз у 71 % таких пиков).
             /// </summary>
             public string ActivityLabel { get; set; }
+
+            /// <summary>
+            /// (`AMBER133`, П167) Что сделано с каскадным суммированием у
+            /// беккерелей выделения: применённый множитель или причина, почему
+            /// его нет; null — у линии нет каскада, говорить не о чем.
+            /// </summary>
+            public string ActivitySummingNote { get; set; }
 
             public double ActivityLineKev { get; set; }
 
