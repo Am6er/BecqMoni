@@ -376,6 +376,7 @@
     <Compile Include="FullSpectrumAnalysis\FsaSampleLibrary.cs" />
     <Compile Include="FullSpectrumAnalysis\DecayParentRule.cs" />
     <Compile Include="FullSpectrumAnalysis\KSeriesRule.cs" />
+    <Compile Include="FullSpectrumAnalysis\AllowedCaptureRatio.cs" />
     <Compile Include="EnergySpectrumView.cs">
       <SubType>UserControl</SubType>
     </Compile>
