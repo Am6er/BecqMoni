@@ -159,4 +159,10 @@
   <data name="comboBox1.Items4" xml:space="preserve">
     <value>Бк/л</value>
   </data>
+  <data name="DCResult_InterferenceCell" xml:space="preserve">
+    <value>{0} не учтён ×{1}</value>
+  </data>
+  <data name="DCResult_InterferenceTip" xml:space="preserve">
+    <value>{0} кэВ: вклад {1} не учтён — при природном отношении {1}/{2} зона {3} завышена до ×{4}</value>
+  </data>
 </root>

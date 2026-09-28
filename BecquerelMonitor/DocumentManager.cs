@@ -2848,7 +2848,9 @@ namespace BecquerelMonitor
             }
             
             bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
-            if (importWithEmtyConfig)
+            // (`S200`, П174) та же беда и то же правило, что у двери «CSV с
+            //   энергиями» ниже: файл длиннее документа терял хвост молча.
+            if (importWithEmtyConfig || this.ResetForChannelMismatch(doc, list.Count))
             {
                 this.ResetSpectrumConfig(doc.ActiveResultData, list.Count);
             }
@@ -3000,7 +3002,9 @@ namespace BecquerelMonitor
 
             bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
 
-            if (importWithEmtyConfig)
+            // ⛔ (`S200`, П174 28.09.2026) ФАЙЛ С ДРУГИМ ЧИСЛОМ КАНАЛОВ — документ
+            //    по числу каналов ФАЙЛА. См. <see cref="ResetForChannelMismatch"/>.
+            if (importWithEmtyConfig || this.ResetForChannelMismatch(doc, listCounts.Count))
             {
                 this.ResetSpectrumConfig(doc.ActiveResultData, listCounts.Count);
             }
@@ -3047,6 +3051,45 @@ namespace BecquerelMonitor
             //   `CheckDocument` строкой выше уже назвал причину себе в
             //   `fwhmRefusals`; здесь она звучит.
             this.ReportMissingFwhmCalibration(doc, fileName);
+        }
+
+        /// <summary>
+        /// ⛔ (`S200`, П174 28.09.2026) ДВЕРИ «CSV» И ФАЙЛ С ДРУГИМ ЧИСЛОМ КАНАЛОВ.
+        /// Обе двери CSV (со счётом и с энергиями) при снятой настройке «Import
+        /// spectrum with empty config» клали строки файла в документ прибора как
+        /// есть: лишние строки ОТБРАСЫВАЛИСЬ МОЛЧА. Замер
+        /// `CsvChannelsProbeP174` на сборке до правки: файл 16384 строк в
+        /// документ 1024 канала — Σ 999417 → 62449 отсчётов (94 % потеряно),
+        /// TotalPulseCount 999417 при ValidPulseCount 62449, ни слова; у двери с
+        /// энергиями шкала при этом подогнана по всем 16384 точкам. Файл короче
+        /// документа (512 строк) давал полдокумента нулей и шкалу, продолженную
+        /// за последнюю точку файла (E(1023) = 5995 кэВ при полиноме 2995).
+        ///
+        /// Правило то же, что у дверей SPE и Atom Spectra: число каналов не
+        /// совпало — настройка спектра сбрасывается ПОД ФАЙЛ
+        /// (<see cref="ResetSpectrumConfig"/>), и об этом говорится тем же
+        /// уведомлением, что у Atom Spectra (<c>ERRImportAtomSpectra</c>),
+        /// нового текста не заводится. Уведомление, а не отказ: ввоз
+        /// продолжается, данные целы. Правило «свой ECSV этой дверью не читать»
+        /// (таблица «Чего делать НЕ надо») не затронуто — сюда приходят только
+        /// файлы, которые дверь уже разобрала.
+        ///
+        /// Пустой файл (строк 0) сбросом не встречается — документ из нуля
+        /// каналов строить нельзя; там всё как прежде.
+        /// </summary>
+        /// <returns>true — число каналов разошлось, настройку надо сбросить.</returns>
+        bool ResetForChannelMismatch(DocEnergySpectrum doc, int fileChannels)
+        {
+            int documentChannels = doc.ActiveResultData.EnergySpectrum.NumberOfChannels;
+            if (fileChannels <= 0 || fileChannels == documentChannels)
+            {
+                return false;
+            }
+
+            AppUi.Report(String.Format(CultureInfo.InvariantCulture, Resources.ERRImportAtomSpectra,
+                                       documentChannels, fileChannels),
+                         Resources.Warning, MessageBoxIcon.Warning);
+            return true;
         }
 
         /// <summary>

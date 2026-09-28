@@ -145,5 +145,13 @@
 
         /// <summary>(`AMBER133`) Полная фраза — подсказка клетки имени.</summary>
         public string SummingProblem { get; set; }
+
+        /// <summary>
+        /// (`S199`, П174) Помеха природного спутника в окне зоны
+        /// (<c>BecquerelCoefficient.InterferenceForZone</c>): линия, спутник,
+        /// предок и во сколько раз завышено число зоны; null — помехи нет.
+        /// Число зоны этим не правится — о помехе говорит таблица зон.
+        /// </summary>
+        public BecquerelMonitor.FullSpectrumAnalysis.FsaLineInterference Interference { get; set; }
     }
 }
