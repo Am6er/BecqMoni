@@ -1,0 +1,18 @@
+Nuclide ; Po-218 
+Element ; Polonium
+Z ; 84
+Daughter(s) ; (B-) ; At-218 ; 0.022 ; (alpha) ; Pb-214 ; 99.978
+Q- ; 260 ; Qalpha ; 6114.68
+Possible parent(s) ; (alpha) ; Rn-222 ; 100
+Half-life (min) ; 3.071 ; 0.022
+Half-life (s) ; 184.3 ; 1.3
+Decay constant (1/s) ; 3.762E-3 ; 0.027E-3
+Specific activity (Bq/g) ; 10.39E18 ; 0.07E18
+Reference ; CEA/LNE-LNHB - 2007
+Emissions (3 lines) sorted by increasing energy
+----------------------------------------------------------------------------------------------------------
+Energy (keV) ; Ener. unc. (keV) ; Intensity (%) ; Int. unc. (%) ; Type ; Origin ; Lvl. start ; Lvl. end
+836 ; 2 ; 0.0011 ; 0.0011 ; g ; Pb-214 ; 1 ; 0
+5181 ; 2 ; 0.0011 ; 0.0011 ; a ; Po-218 ; 0 ; 1
+6002.35 ; 0.09 ; 99.9769 ; 0.0032 ; a ; Po-218 ; 0 ; 0
+==========================================================================================================

@@ -1,0 +1,18 @@
+Nuclide ; Pb-210 
+Element ; Lead
+Z ; 82
+Daughter(s) ; (B-) ; Bi-210 ; 100 ; (alpha) ; Hg-206 ; 0.0000019
+Q- ; 63.5 ; Qalpha ; 3792
+Possible parent(s) ; (B-) ; Tl-210 ; 100 ; (alpha) ; Po-214 ; 100
+Half-life (a) ; 22.23 ; 0.12
+Half-life (s) ; 701.5E6 ; 3.8E6
+Decay constant (1/s) ; 988E-12 ; 5E-12
+Specific activity (Bq/g) ; 2.833E12 ; 0.015E12
+Reference ; CEA/LNE-LNHB - 2007
+Emissions (3 lines) sorted by increasing energy
+----------------------------------------------------------------------------------------------------------
+Energy (keV) ; Ener. unc. (keV) ; Intensity (%) ; Int. unc. (%) ; Type ; Origin ; Lvl. start ; Lvl. end
+12.56455 ;  ; 22.0 ; 0.5 ; XL ; Bi-210 ;  ; 
+46.539 ; 0.001 ; 4.252 ; 0.040 ; g ; Bi-210 ; 1 ; 0
+3720 ; 20 ; 0.0000019 ; 0.0000004 ; a ; Pb-210 ; 0 ; 0
+==========================================================================================================
