@@ -24,7 +24,7 @@ namespace LightScaleProbe
     ///
     ///     lightscaleprobe --geometry=X.in [--energies=10,20,...]
     ///                     [--n=400000] [--bin=1] [--off]
-    ///                     [--kdip=0|1|2|3] [--eta=η] [--eq=кэВ] [--curve=файл]
+    ///                     [--kdip=0|1|2|3] [--eta=η] [--eq=кэВ] [--eqp=p] [--curve=файл]
     ///                     [--ecomp=0|1]
     ///
     /// ⛔ УМОЛЧАНИЕ `--kdip=` — СКЛАДА (`ResponseMatrixOptions.KDipLight`, 1 с
@@ -64,6 +64,7 @@ namespace LightScaleProbe
             bool ecomp = store.ElectronAnyMaterial;     // `F11` (г), П44
             double eta = 0.0;
             double trackEnd = double.NaN;
+            double trackEndPower = double.NaN;      // `S198`, П180: показатель обрыва (--eqp=)
             string curvePath = null;
             var energies = new List<double>
             {
@@ -80,6 +81,7 @@ namespace LightScaleProbe
                 else if (a.StartsWith("--kdip=", StringComparison.Ordinal)) kdip = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--eta=", StringComparison.Ordinal)) eta = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--eq=", StringComparison.Ordinal)) trackEnd = double.Parse(a.Substring(5), CultureInfo.InvariantCulture);
+                else if (a.StartsWith("--eqp=", StringComparison.Ordinal)) trackEndPower = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--curve=", StringComparison.Ordinal)) curvePath = a.Substring(8);
                 else if (a.StartsWith("--ecomp=", StringComparison.Ordinal))
                 {
@@ -124,6 +126,11 @@ namespace LightScaleProbe
                 if (!double.IsNaN(trackEnd))
                 {
                     sim.LightTrackEndKev = trackEnd;
+                }
+
+                if (!double.IsNaN(trackEndPower))
+                {
+                    sim.LightTrackEndPower = trackEndPower;
                 }
             };
             var first = new EfficiencySimulator(geometry.Clone());
