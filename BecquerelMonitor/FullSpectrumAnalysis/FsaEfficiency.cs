@@ -34,19 +34,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         FsaEfficiency(List<Point> points)
         {
-            points.Sort((a, b) => a.Energy.CompareTo(b.Energy));
+            // Равные энергии — в порядке источника: какой из повторов останется,
+            // решает файл, а не неустойчивая сортировка (`AMBER138`).
+            points.Sort((a, b) =>
+            {
+                int byEnergy = a.Energy.CompareTo(b.Energy);
+                return byEnergy != 0 ? byEnergy : a.Index.CompareTo(b.Index);
+            });
             List<double> energies = new List<double>(points.Count);
             List<double> values = new List<double>(points.Count);
             List<double> errors = new List<double>(points.Count);
             foreach (Point point in points)
             {
-                // дубль энергии дал бы нулевой шаг интерполяции и NaN в образе
-                if (energies.Count > 0 && point.Energy <= Math.Exp(energies[energies.Count - 1]))
+                // ⛔ (`AMBER138`, П182 29.09.2026) Повтор узла отбрасывается
+                // сравнением В ТЕХ ЖЕ ЛОГАРИФМАХ, на которые делит
+                // интерполяция, — первый узел остаётся. Прежде исходная
+                // энергия сравнивалась с exp(log(прежней)), а в .NET
+                // Framework exp(log(1000)) = 999.9999999999998: повтор 1000
+                // проходил, шаг интерполяции выходил нулевым, и `TryEval` на
+                // нижнем узле отвечал «есть значение» с NaN (повтор 100 при
+                // этом отбрасывался — exp(log(100)) = 100.00000000000004).
+                // Сравнение логарифмов ловит и соседние числа с плавающей
+                // точкой: различные энергии 1000 и 1000 + ulp дают один
+                // логарифм (проба `AmberFsaProbeP182`).
+                double logEnergy = Math.Log(point.Energy);
+                if (energies.Count > 0 && logEnergy <= energies[energies.Count - 1])
                 {
                     continue;
                 }
 
-                energies.Add(Math.Log(point.Energy));
+                energies.Add(logEnergy);
                 values.Add(Math.Log(Math.Max(point.Efficiency, 1e-12)));
                 errors.Add(point.ErrorPercent);
             }
@@ -58,6 +75,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         struct Point
         {
+            public int Index;
             public double Energy;
             public double Efficiency;
             public double ErrorPercent;
@@ -218,6 +236,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 points.Add(new Point
                 {
+                    Index = points.Count,
                     Energy = point.Energy,
                     Efficiency = point.Efficiency,
                     ErrorPercent = point.ErrorPercent,

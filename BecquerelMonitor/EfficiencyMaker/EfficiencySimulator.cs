@@ -839,15 +839,34 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double LightEtaEh = 0.0;
 
         /// <summary>
-        /// (`F11` (а), П17) E_q обрыва короткого трека, кэВ: множитель
-        /// q(E) = 1/(1 + (E_q/E)²) на выход электрона НАЧАЛЬНОЙ энергии E.
-        /// Действует только при <see cref="LightSubKevCurve"/>. Калибровка —
-        /// по глубине K-провала Ходюка (114.1 % на 34.5 кэВ при тренде ~116.5
-        /// через 20 и 50 кэВ), `LightScaleProbe --kdip=1 --eq=`, журнал
-        /// `handover/handover-2026-09-11-p17-kdip.md`. Умолчание — калиброванное
-        /// значение; ноль — без обрыва (одно продолжение Joy — Luo).
+        /// (`F11` (а), П17; форма — `S198`, П180) E_q обрыва короткого трека,
+        /// кэВ: множитель q(E) = 1/(1 + (E_q/E)^p) на выход электрона
+        /// НАЧАЛЬНОЙ энергии E, p — <see cref="LightTrackEndPower"/>. Действует
+        /// только при <see cref="LightSubKevCurve"/>; ноль — без обрыва (одно
+        /// продолжение Joy — Luo).
+        ///
+        /// ⛔ КАЛИБРОВКА ФИЗИКИ 25 (П180 29.09.2026): E_q = 0.45 кэВ, p = 1.2 —
+        /// по ФОРМЕ фотонного провала NaI:Tl у K-края иода, рис. 6 Khodyuk,
+        /// Rodnyi, Dorenbos, J. Appl. Phys. 107 (2010) 113513 (arXiv:1102.3799),
+        /// шаг 25 эВ, оцифровка `handover/p180/khodyuk_fig6_digitized.txt`:
+        /// к 33.0 кэВ провал −0.89 % с минимумом на 34.5…35.0 кэВ и
+        /// восстановлением к 40 кэВ; модель на 11 точках 33.2…40 кэВ — СКО
+        /// 0.09 %. Прежняя калибровка П17 (E_q 1.0, p 2) брала целью −2.1 %
+        /// «114.1 на 34.5 против тренда 116.5 через 20 и 50 кэВ», то есть
+        /// глубину относительно ТРЕНДА, а не значения под краем, и давала
+        /// провал вдвое глубже рисунка (−1.71 % на 34.0, минимум на 0.8 кэВ
+        /// раньше; СКО 0.48 %). Независимая мерка П17 10/20 кэВ: 0.974 против
+        /// 0.956 у Ходюка (было 0.966). Сетка (E_q, p) — журнал П180.
         /// </summary>
-        public double LightTrackEndKev = 1.0;
+        public double LightTrackEndKev = 0.45;
+
+        /// <summary>
+        /// (`S198`, П180) Показатель p обрыва короткого трека:
+        /// q(E) = 1/(1 + (E_q/E)^p). Калибровка физики 25 — 1.2 (довод и
+        /// источник — у <see cref="LightTrackEndKev"/>); 2 — форма П17.
+        /// Действует только при <see cref="LightSubKevCurve"/>.
+        /// </summary>
+        public double LightTrackEndPower = 1.2;
 
         /// <summary>
         /// ⛔ (`A267`, решение Amber 12.09.2026, дословно: «BinOf — в
@@ -1699,7 +1718,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     ? MaterialDatabase.LightYieldPayne(ScintillatorNameOf(this.electron),
                                                        this.LightEtaEh, this.LightSubKevCurve,
                                                        this.LightSubKevCurve ? this.LightTrackEndKev : 0.0,
-                                                       this.ElectronAnyMaterial)
+                                                       this.ElectronAnyMaterial, this.LightTrackEndPower)
                     : MaterialDatabase.LightYieldOf(ScintillatorNameOf(this.electron)))
                 : null;
             this.bremTable = this.Bremsstrahlung && this.BremFromData && this.electron != null
@@ -6912,8 +6931,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// упоре сверка с Geant4 давала −12…−15 % — многократное рассеяние и
         /// возврат из-за кристалла там не мелочь (tools/tccfcalc2/README.md §8).
         ///
-        /// Когерентное рассеяние считается прозрачным (пролёт без отклонения):
-        /// пробег берётся по ослаблению БЕЗ когерентного, как и в проводке.
+        /// Когерентное рассеяние — поворот без отсчёта, под ключом
+        /// <see cref="RayleighScatter"/>: вне кристалла (как и было) и, с
+        /// П180 (`S203`), в самом кристалле — тем же каналом, что у ветви
+        /// отклика (<see cref="InCrystal"/>); прежде в кристалле оно было
+        /// прозрачным, и обход завышал полную у «чёрного» кристалла.
         /// </summary>
         public double TotalEfficiency(double energyKev, out double relativeError)
         {
@@ -6966,14 +6988,38 @@ namespace BecquerelMonitor.EfficiencyMaker
                     if (here != null && here.IsCrystal)
                     {
                         // Внутри кристалла: любое взаимодействие из каналов —
-                        // отсчёт (когерентное в каналы не входит).
+                        // отсчёт; когерентное — поворот без отсчёта.
+                        //
+                        // ⛔ (`S203`, П180 29.09.2026) Прежде когерентное в
+                        // кристалле здесь было ПРОЗРАЧНЫМ, тогда как ветвь
+                        // отклика (`InCrystal`) его разыгрывает. У «чёрного»
+                        // кристалла (CsI на 32 кэВ, пробег 0.2 мм) квант,
+                        // рассеявшийся когерентно у самой грани, заметно часто
+                        // выходит наружу ни с чем — и второй обход полную
+                        // эффективность ЗАВЫШАЛ против суммы строки отклика
+                        // (маринелли RC-103: П178 0.9849 ± 0.30 % на 32 кэВ).
+                        // Канал — тот же, что в `InCrystal`: сечение кристалла
+                        // с рычагом `CrystalCoherentScale`, угол по форм-фактору.
                         double photo, compton, pair;
                         this.CrystalChannels(e, out photo, out compton, out pair);
                         double mu = photo + compton + pair;
+                        double coherentHere = this.RayleighScatter
+                            ? this.crystal.Coherent(e) * this.CrystalCoherentScale : 0.0;
                         double path = this.CrystalPath(x, y, z, ux, uy, uz);
-                        double free = mu > 0.0 ? -Math.Log(1.0 - this.Uniform()) / mu : double.MaxValue;
+                        double free = mu + coherentHere > 0.0
+                            ? -Math.Log(1.0 - this.Uniform()) / (mu + coherentHere) : double.MaxValue;
                         if (free < path)
                         {
+                            if (coherentHere > 0.0 && this.Uniform() * (mu + coherentHere) >= mu)
+                            {
+                                x += ux * free;
+                                y += uy * free;
+                                z += uz * free;
+                                this.Rotate(ref ux, ref uy, ref uz,
+                                            this.RayleighCosine(this.crystal, e));
+                                continue;
+                            }
+
                             score = weight;
                             break;
                         }

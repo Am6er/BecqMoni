@@ -1,0 +1,21 @@
+arm rev36 start 2026-09-29 23:59:51 store=D:\BqMoni_Claude\p180\wt\tools\CORPUS\corpus\geometries bin=D:\BqMoni_Claude\p180\wt\BecquerelMonitor\bin\Release_p181_rel
+arm rev36 mk_appwd code=0
+arm rev36 check_appwd code=0
+  response: rmx=49
+arm rev36 full code=0 00:01:32 (79 s) out=D:\BqMoni_Claude\p180\wt\tools\pie\out_rev36_full
+arm rev36 mini code=0 00:02:02 (30 s) out=D:\BqMoni_Claude\p180\wt\tools\pie\out_rev36_mini
+arm rev36 score full known code=0
+arm rev36 score mini known code=0
+arm rev36 score full unknown code=0
+arm rev36 score mini unknown code=0
+arm rev36 end 00:02:04
+arm kb start 2026-09-30 00:02:28 store=D:\BqMoni_Claude\p180\wt\tools\CORPUS\corpus\geometries bin=D:\BqMoni_Claude\p180\wt\BecquerelMonitor\bin\Release_p181_rel
+arm kb mini code=0 00:03:03 (34 s) out=D:\BqMoni_Claude\p181\out\mini_kb
+arm kb score mini known code=0
+arm kb score mini unknown code=0
+arm kb end 00:03:04
+dump r35 mk_appwd code=3
+dump r35 full code=2
+dump r36 full code=0
+dump r35 mk_appwd code=0
+dump r35 full code=0

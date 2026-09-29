@@ -1,0 +1,4 @@
+worktree: файлов 560, sources=c5fcbd0caa52a4a30b7ea78dcac2949a2a06662d2d7d91fcb20bcca7d5fa901f; клеймо прогона c5fcbd0caa52a4a30b7ea78dcac2949a2a06662d2d7d91fcb20bcca7d5fa901f; совпало: True
+база слияния cac34379; в наборе менялись в master: ['BecquerelMonitor/BecquerelMonitor.csproj', 'BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs', 'BecquerelMonitor/Properties/AssemblyInfo.cs']; в обеих ветках: ['BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs']
+ожидаемый после слияния: sources=e3100ecda61bf1ec37009a9825375f40691a812c67c9de9fbe1f54b51c8eb977
+из master взяты: ['BecquerelMonitor/BecquerelMonitor.csproj', 'BecquerelMonitor/Properties/AssemblyInfo.cs']
