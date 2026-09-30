@@ -349,14 +349,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
-        /// Энергия одного кванта по равномерному числу. Форма берётся с
-        /// ближайшего снизу узла сетки T (шаг сетки 7 % по энергии, а спектр
-        /// по T меняется гладко); число квантов и излучённая энергия при этом
-        /// интерполируются, потому что от них зависит баланс.
+        /// Энергия одного кванта по равномерному числу — обращением ТОГО ЖЕ
+        /// распределения, чьи число квантов (<see cref="Photons"/>) и энергия
+        /// (<see cref="Radiated"/>) интерполируются между узлами T (см.
+        /// <see cref="SampleFrom"/>, `AMBER139`).
         /// </summary>
         public double SampleKev(double teKev, double u)
         {
-            return this.SampleFrom(this.cumulative, teKev, u);
+            return this.SampleFrom(this.cumulative, this.photons, teKev, u);
         }
 
         /// <summary>
@@ -386,42 +386,102 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// (`M3`, П44) Энергия кванта, рождённого на шаге при энергии
         /// электрона <paramref name="teKev"/>, по равномерному числу — форма
-        /// тонкой мишени с ближайшего снизу узла, как у <see cref="SampleKev"/>.
+        /// тонкой мишени, согласованная с <see cref="StepPhotons"/> и
+        /// <see cref="StepRadiatedPerGram"/> так же, как у <see cref="SampleKev"/>.
         /// </summary>
         public double SampleStepKev(double teKev, double u)
         {
-            return this.SampleFrom(this.thinAbove, teKev, u);
+            return this.SampleFrom(this.thinAbove, this.thinPhotons, teKev, u);
         }
 
-        double SampleFrom(double[][] table, double teKev, double u)
+        /// <summary>
+        /// Обращение распределения энергии кванта при энергии электрона
+        /// <paramref name="teKev"/>.
+        ///
+        /// ⛔ `AMBER139` (П183, 29.09.2026). До правки форма бралась с
+        /// ближайшего СНИЗУ узла T, а число квантов и энергия — интерполяцией
+        /// между узлами: розыгрыш и моменты принадлежали разным
+        /// распределениям. Средняя энергия кванта недобирала до
+        /// Radiated/Photons 0 … 5.4 % (в среднем по T −1.6 % толстая, −1.9 %
+        /// тонкая) и прыгала на каждом узле (+5.4 % на узле 2805 кэВ, CsI) —
+        /// излучённая энергия в счёте была НИЖЕ якоря ESTAR.
+        ///
+        /// Теперь обращается ТА ЖЕ линейная по log T интерполяция, что у
+        /// <see cref="Interpolate"/>: доля квантов выше node[i] при энергии T —
+        /// ((1 − f)·N_lo·C_lo(i) + f·N_hi·C_hi(i)) / N(T), то есть смесь двух
+        /// узловых распределений с весами по ЧИСЛУ квантов, и её
+        /// энергетический момент — интерполированный <see cref="Radiated"/>.
+        /// Одно равномерное число на квант, как было: поток случайных чисел не
+        /// меняется, разыгранная энергия монотонна по u.
+        ///
+        /// Верхний бин [node_lo, node_hi] несёт только кванты верхнего узла и
+        /// лежит частью ВЫШЕ T: он сжимается по log k в [node_lo, T], чтобы
+        /// квант не был энергичнее электрона. Цена — малое рассогласование
+        /// момента в середине интервала (поверка `BremSampleProbeP183`); на
+        /// узлах его нет.
+        /// </summary>
+        double SampleFrom(double[][] table, double[] counts, double teKev, double u)
         {
-            int j = IndexBelow(teKev);
-            double[] cum = table[j];
-            // cum убывает от 1 (на MinKev) до 0 (на node[j]) — ищем, где u
-            int lo = 0, hi = j;
-            if (hi <= lo)
+            double[] g = this.node;
+            int n = g.Length;
+            if (!(teKev > g[0]))
             {
-                return this.node[0];
+                return g[0];
             }
 
-            while (hi - lo > 1)
+            int lo, hi;
+            double f;
+            if (teKev >= g[n - 1])
             {
-                int mid = (lo + hi) / 2;
-                if (cum[mid] >= u)
+                lo = hi = n - 1;
+                f = 0.0;
+            }
+            else
+            {
+                this.Bracket(teKev, out lo, out f);
+                hi = lo + 1;
+            }
+
+            double a = (1.0 - f) * counts[lo], b = hi != lo ? f * counts[hi] : 0.0;
+            double sum = a + b;
+            if (!(sum > 0.0))
+            {
+                return g[0];
+            }
+
+            a /= sum;
+            b /= sum;
+            double[] cl = table[lo], ch = table[hi];
+            // верх носителя: node_hi, если верхний узел в смеси, иначе node_lo
+            int top = b > 0.0 ? hi : lo;
+            if (top <= 0)
+            {
+                return g[0];
+            }
+
+            // C(i) = a·cl[i] + b·ch[i] убывает от 1 (на MinKev) до 0 (на node[top]) — ищем, где u
+            int i0 = 0, i1 = top;
+            while (i1 - i0 > 1)
+            {
+                int mid = (i0 + i1) / 2;
+                if (a * cl[mid] + b * ch[mid] >= u)
                 {
-                    lo = mid;
+                    i0 = mid;
                 }
                 else
                 {
-                    hi = mid;
+                    i1 = mid;
                 }
             }
 
-            double c0 = cum[lo], c1 = cum[hi];
-            double f = c0 > c1 ? (c0 - u) / (c0 - c1) : 0.0;
+            double c0 = a * cl[i0] + b * ch[i0], c1 = a * cl[i1] + b * ch[i1];
+            double t = c0 > c1 ? (c0 - u) / (c0 - c1) : 0.0;
+            t = t < 0.0 ? 0.0 : (t > 1.0 ? 1.0 : t);
             double[] ln = this.logNode;
-            double e0 = ln[lo], e1 = ln[hi];
-            return Math.Exp(e0 + f * (e1 - e0));
+            double e0 = ln[i0];
+            // верхний бин смеси сжат к T: квант не энергичнее электрона
+            double e1 = i1 == hi && hi != lo ? Math.Log(teKev) : ln[i1];
+            return Math.Exp(e0 + t * (e1 - e0));
         }
 
         // ------------------------------------------------------------------
@@ -504,7 +564,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     continue;
                 }
 
-                // интегрируем dN/dk от узла к узлу, трапеция по k
+                // интегрируем dN/dk от узла к узлу, трапеция по k; энергия
+                // бина — по форме розыгрыша (`BinEnergy`, `AMBER139`)
                 double total = 0.0, energy = 0.0;
                 double[] above = new double[Nodes];
                 for (int i = j - 1; i >= 0; i--)
@@ -512,8 +573,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double dk = node[i + 1] - node[i];
                     double d0 = diff[j][i];
                     double d1 = i + 1 < j ? diff[j][i + 1] : 0.0;
-                    total += 0.5 * (d0 + d1) * dk;
-                    energy += 0.5 * (d0 * node[i] + d1 * node[i + 1]) * dk;
+                    double count = 0.5 * (d0 + d1) * dk;
+                    total += count;
+                    energy += BinEnergy(count, node[i], node[i + 1]);
                     above[i] = total;
                 }
 
@@ -717,10 +779,30 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// Энергия квантов одного бина [k0, k1] при числе <paramref name="count"/>
+        /// — по ТОЙ ЖЕ внутрибиновой форме, по которой <see cref="SampleFrom"/>
+        /// разыгрывает квант: равномерно по log k, среднее (k1 − k0)/ln(k1/k0).
+        ///
+        /// ⛔ `AMBER139` (П183): до правки энергия бина бралась трапецией по k
+        /// (0.5·(d0·k0 + d1·k1)·dk), а розыгрыш внутри бина — равномерным по
+        /// log k; средняя разыгранная энергия превышала момент таблицы на
+        /// 0.19 % выше 100 кэВ и до 1.8 % у 6 кэВ (CsI, узловая форма без
+        /// скачков). Теперь энергия бина — момент того, что разыгрывается, и
+        /// подтяжка к ESTAR (<see cref="Build"/>) делает РАЗЫГРАННУЮ энергию
+        /// равной выходу ESTAR (число квантов при этом ниже на ту же долю).
+        /// </summary>
+        static double BinEnergy(double count, double k0, double k1)
+        {
+            double span = Math.Log(k1) - Math.Log(k0);
+            return span > 0.0 ? count * (k1 - k0) / span : count * k0;
+        }
+
+        /// <summary>
         /// (`M3`, П44) Таблицы тонкой мишени: у электрона энергии node[j] на
         /// 1 г/см² пути — квантов выше node[i] и излучённая энергия выше
         /// MinKev. Трапеция по той же логарифмической сетке k, что у толстой
-        /// мишени; нули при k ≥ T.
+        /// мишени; нули при k &gt; T, на самом k = T — сечение кончика
+        /// (χ(κ = 1), П183), энергия бина — <see cref="BinEnergy"/>.
         /// </summary>
         static void BuildThin(List<int> zs, List<double> weights,
                               List<SeltzerBergerData.Element> tables,
@@ -754,9 +836,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     double dk = node[i + 1] - node[i];
                     double d0 = PerGram(zs, weights, tables, node[i], t, beta2);
-                    double d1 = i + 1 < j ? PerGram(zs, weights, tables, node[i + 1], t, beta2) : 0.0;
-                    total += 0.5 * (d0 + d1) * dk;
-                    energy += 0.5 * (d0 * node[i] + d1 * node[i + 1]) * dk;
+                    // Верхний бин кончается на k = T, и сечение там НЕ ноль:
+                    // χ(κ = 1) у Зельцера — Бергера конечна (у ТОЛСТОЙ мишени
+                    // ноль верен — путь интегрирования от k до T пуст). До
+                    // П183 здесь стоял 0.0, и тонкой мишени недоставало
+                    // половины верхнего бина: 0.72 % квантов и 2.6 % энергии
+                    // у узла 97 кэВ, 1.2 % энергии у 638, 0.8 % у 2451 (CsI).
+                    double d1 = PerGram(zs, weights, tables, node[i + 1], t, beta2);
+                    double count = 0.5 * (d0 + d1) * dk;
+                    total += count;
+                    energy += BinEnergy(count, node[i], node[i + 1]);
                     above[i] = total;
                 }
 
@@ -786,21 +875,26 @@ namespace BecquerelMonitor.EfficiencyMaker
             return dt > 0.0 ? (up - down) / dt : 0.0;
         }
 
-        int IndexBelow(double teKev)
+        /// <summary>
+        /// Интервал сетки, в котором лежит T: node[lo] ≤ T &lt; node[lo + 1],
+        /// lo от 0 до n − 2, и доля f ∈ [0, 1) по log T. Только для
+        /// node[0] &lt; T &lt; node[n − 1].
+        ///
+        /// ⛔ `AMBER140` (П183, 29.09.2026). Здесь стоял `IndexBelow`, который
+        /// при T ≤ node[1] возвращал 1 — на первом интервале (node[0], node[1]]
+        /// брались узлы 1 и 2 с отрицательной долей, то есть ЭКСТРАПОЛЯЦИЯ
+        /// вниз: у CsI на 5.1 кэВ Photons −8.9e−6, Radiated −4.6e−5 кэВ,
+        /// StepRadiatedPerGram −0.96 кэВ/(г/см²), Anchor 0.60. В счёте это
+        /// следствий не имело (Пуассон отрицательного среднего — ноль без
+        /// розыгрыша, <see cref="StepPhotons"/> зажимал ноль), но нарушало
+        /// контракт таблицы. Теперь первый интервал — свой, узлы 0 и 1 (оба
+        /// нулевые по числу квантов: отсечка), и величины там ноль.
+        /// </summary>
+        void Bracket(double teKev, out int lo, out double f)
         {
             double[] g = this.node;
-            int n = g.Length;
-            if (teKev <= g[1])
-            {
-                return 1;
-            }
-
-            if (teKev >= g[n - 1])
-            {
-                return n - 1;
-            }
-
-            int lo = 0, hi = n - 1;
+            int hi = g.Length - 1;
+            lo = 0;
             while (hi - lo > 1)
             {
                 int mid = (lo + hi) / 2;
@@ -814,7 +908,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
-            return lo;
+            double[] ln = this.logNode;
+            f = (Math.Log(teKev) - ln[lo]) / (ln[lo + 1] - ln[lo]);
         }
 
         double Interpolate(double[] values, double teKev)
@@ -831,16 +926,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return values[n - 1];
             }
 
-            int lo = IndexBelow(teKev);
-            int hi = Math.Min(n - 1, lo + 1);
-            if (hi == lo)
-            {
-                return values[lo];
-            }
-
-            double[] ln = this.logNode;
-            double f = (Math.Log(teKev) - ln[lo]) / (ln[hi] - ln[lo]);
-            return values[lo] + f * (values[hi] - values[lo]);
+            int lo;
+            double f;
+            this.Bracket(teKev, out lo, out f);
+            return values[lo] + f * (values[lo + 1] - values[lo]);
         }
     }
 }
