@@ -1,0 +1,23 @@
+спектров: main 59, before 59, after 59
+main vs before: отличий chi2ndf 0 []
+known: main 317.8696 before 317.8696 after 317.8665
+unknown: main 20.7529 before 20.7529 after 20.7529
+before vs after: изменилось спектров (кроме времени) 17
+  AS80_Lu176                   part=known   chi2ndf 1.9704 -> 1.9704 | cascade 1 -> 1 | cols model_residual_pct
+  AS80_Th232Medal              part=known   chi2ndf 12.2494 -> 12.2493 | cascade 1 -> 1 | cols chi2ndf,chi2ndf_pois
+  ASN16_Lu176                  part=known   chi2ndf 3.8274 -> 3.8272 | cascade 1 -> 1 | cols chi2ndf,inflate,chi2ndf_pois
+  G1S16_Ba133_P5               part=known   chi2ndf 10.4295 -> 10.4296 | cascade 1 -> 1 | cols chi2ndf,chi2ndf_pois
+  G1S16_Co60_P5                part=known   chi2ndf 9.5962 -> 9.5961 | cascade 1 -> 1 | cols chi2ndf,chi2ndf_pois
+  G1S16_Eu152_P5               part=known   chi2ndf 12.6611 -> 12.6611 | cascade 1 -> 1 | cols chi2ndf_pois
+  G1S16_Na22_P25               part=known   chi2ndf 4.2798 -> 4.2797 | cascade 1 -> 1 | cols chi2ndf
+  G1S16_Na22_P5                part=known   chi2ndf 13.8155 -> 13.8151 | cascade 1 -> 1 | cols chi2ndf,chi2ndf_pois,model_residual_pct
+  G1S24_Ba133_P5               part=known   chi2ndf 17.9221 -> 17.9223 | cascade 1 -> 1 | cols chi2ndf,chi2ndf_pois
+  G1S24_Bi207_P5               part=known   chi2ndf 23.1703 -> 23.1704 | cascade 1 -> 1 | cols chi2ndf,chi2ndf_pois
+  G1S24_Co60_P5                part=known   chi2ndf 10.6935 -> 10.6934 | cascade 1 -> 1 | cols chi2ndf,chi2ndf_pois
+  G1S24_Eu152_P5               part=known   chi2ndf 30.8270 -> 30.8269 | cascade 1 -> 1 | cols chi2ndf,chi2ndf_pois
+  G1S24_Na22_P25               part=known   chi2ndf 6.3934 -> 6.3934 | cascade 1 -> 1 | cols chi2ndf_pois
+  G1S24_Na22_P5                part=known   chi2ndf 34.8849 -> 34.8834 | cascade 1 -> 1 | cols chi2ndf,inflate,chi2ndf_pois,model_residual_pct
+  G1S24_Th228_P5               part=known   chi2ndf 20.1988 -> 20.1986 | cascade 1 -> 1 | cols chi2ndf,chi2ndf_pois
+  G1S24_Y88_P25                part=known   chi2ndf 2.2190 -> 2.2190 | cascade 1 -> 1 | cols chi2ndf_pois
+  G1S24_Y88_P5                 part=known   chi2ndf 7.7356 -> 7.7349 | cascade 1 -> 1 | cols chi2ndf,inflate,chi2ndf_pois
+components.csv: отличается спектров 19

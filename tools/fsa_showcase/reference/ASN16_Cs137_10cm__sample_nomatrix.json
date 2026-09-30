@@ -128,8 +128,8 @@
    3000
   ]
  ],
- "declared": "2026-09-28 23:35",
- "head": "b27896ed",
+ "declared": "2026-09-30 01:35",
+ "head": "d4f2b8a7",
  "head_lines": {
   "chi2": "chi2/ndf 0.547, невязка модели 14.4 %, суммирование нет",
   "composition": "состав объявлен: 137CS; ряды: нет; распад 1, атомных 2, линий 15; полоса сведена ПОЛОМ ПО КРИВОЙ 40.0 кэВ (10.0 % от максимума, Min_Range 5.0), фит на всём спектре (умолчание); аннигиляционный образ НЕ взят: в составе нет линии выше 1022 кэВ",
@@ -146,14 +146,14 @@
   "library_sha": "5ae488901f2defe7",
   "matrices": {},
   "probes": {
-   "app_sha": "cb7ac129d289cd97",
-   "built": "2026-09-28 23:34:45",
+   "app_sha": "24f3b0f0eef001d2",
+   "built": "2026-09-30 01:13:03",
    "dir": "tools/effmaker/probes/build",
    "freshness_checked": true,
-   "shot_sha": "b2ae9c791e6cad4d"
+   "shot_sha": "09c0f03370bc9a30"
   },
   "spectrum": "../CORPUS/corpus/spectra/ASN16_Cs137_10cm.xml",
-  "spectrum_sha": "820ec972c74dda8f"
+  "spectrum_sha": "34456cc9bd3285a8"
  },
  "layers": [
   "tail",
@@ -167,42 +167,42 @@
  "rates": {
   "component": {
    "Backscatter": {
-    "count_rate": 0.10967949923322153,
+    "count_rate": 0.10967949923322304,
     "detected": "1",
     "kind": "Nuisance",
-    "peak_counts": 3773.7427678420236,
-    "share_pct": 19.91428251601946,
-    "z": 13.719401005531303
+    "peak_counts": 3773.7427678420736,
+    "share_pct": 19.91428251601968,
+    "z": 13.71940100553148
    },
    "Cs-137": {
-    "count_rate": 5437.203530141137,
-    "decision_threshold_rate": 49.10182171669738,
+    "count_rate": 5437.203530141131,
+    "decision_threshold_rate": 49.101821716697664,
     "detected": "1",
-    "detection_limit_rate": 100.20687883471817,
+    "detection_limit_rate": 100.20687883471872,
     "kind": "Single",
-    "peak_counts": 9007.091094313102,
-    "share_pct": 80.03977689957817,
-    "z": 77.48737176931658
+    "peak_counts": 9007.091094313093,
+    "share_pct": 80.03977689957794,
+    "z": 77.48737176931648
    }
   },
   "grey": {
    "above_lines": {
-    "peak_counts": 18.705683205306926,
-    "share_pct": 0.04594058440237934
+    "peak_counts": 18.70568320530691,
+    "share_pct": 0.04594058440237933
    },
    "below_floor": {
     "peak_counts": 0.0,
     "share_pct": 0.0
    },
    "residual_excess": {
-    "count_rate": 0.16917243746884386
+    "count_rate": 0.16917243746884336
    },
    "residual_floor": {
     "count_rate": 5.0,
     "peak_counts": 31.0
    },
    "residual_missing": {
-    "count_rate": 0.169978397251974
+    "count_rate": 0.1699783972519745
    },
    "spread_floor": {
     "count_rate": 0.0,
@@ -211,24 +211,24 @@
   },
   "limit": {
    "Cs-137": {
-    "collinearity": 0.1636215517780919,
-    "count_rate": 5437.203530141137,
-    "decision_threshold_rate": 49.10182171669738,
+    "collinearity": 0.16362155177809212,
+    "count_rate": 5437.203530141131,
+    "decision_threshold_rate": 49.101821716697664,
     "degenerate": 0.0,
     "detected": "1",
-    "detection_limit_rate": 100.20687883471817,
+    "detection_limit_rate": 100.20687883471872,
     "kind": "Single",
-    "limit_peak_counts": 165.99939305889356,
+    "limit_peak_counts": 165.99939305889447,
     "total_yield_pct": 93.022854252
    }
   },
   "meta": {
    "cascade_summing": 0.0,
    "chi2ndf": 0.5465642547620467,
-   "chi2ndf_pois": 1.1889276921009246,
+   "chi2ndf_pois": 1.1889276921009249,
    "gain": 1.0,
    "live_time": 3421.0,
-   "model_residual": 0.14365148863948127,
+   "model_residual": 0.1436514886394814,
    "offset_channels": 0.0,
    "response_matrix": 0.0
   }
@@ -313,7 +313,7 @@
    ""
   ]
  ],
- "seconds": 2.2,
+ "seconds": 3.1,
  "spectrum": "../CORPUS/corpus/spectra/ASN16_Cs137_10cm.xml",
  "tolerance": {
   "abs": 1e-06,
