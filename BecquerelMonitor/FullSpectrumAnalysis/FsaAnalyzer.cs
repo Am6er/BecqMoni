@@ -3151,8 +3151,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Ti-44 67.9 стоит на +2.8), у точечных G1S16/G1S24 — кан 0.0…2.1,
         /// как П4 §3 и П12 §3; невзвешенный МНК — −0.8…−1.7 кан у смесей.
         ///
+        /// ⛔ (`S205`, П190 30.09.2026) РЕШАЮЩИЙ КАНДИДАТ У НОЖА ВЕСИТ СВОЙ
+        /// ЗАПАС. Решающий — тот, без которого нуля по съёмке нет (двух не
+        /// остаётся или пропадает плечо). Прежде его ножи были жёсткими, и
+        /// правка ниже шума, перекинувшая долю через порог, перебрасывала весь
+        /// нуль: `AS80_Lu176_v2` на складе физики 25 брал K Hf 55.8 кэВ с долей
+        /// 0.2500 при пороге 0.25 и промахом 0.915 ПШПВ при пределе 1 (центр
+        /// данных — у самого края окна, кан 165.7 при окне 164…216: доля 0.25
+        /// значит, что три четверти окна — чужие образы, и их промах на
+        /// разведке, где образ ещё без сдвига света, тащит центр) — нуль света
+        /// +3.97 кэВ (кан −12.10), χ²/ndf 2.78; на складе физики 26 доля 0.2494
+        /// — нуль прибора, 2.03. Теперь нуль съёмки смешивается с нулём прибора
+        /// с весом, равным наименьшему запасу решающих кандидатов
+        /// (<see cref="ZeroKnifeMargin"/>, полоса <see cref="AnchorZeroBlendBand"/>):
+        /// на самом ноже — нуль прибора, за полосой — нуль съёмки как прежде, до
+        /// бита; между — линейно. Нерешающие кандидаты (плечо держится и без
+        /// них) входят, как и входили: их вход двигает нуль на доли канала
+        /// (выброс по одному в журнале).
+        ///
         /// Ложь — нуля по съёмке нет (кандидатов меньше двух, нет плеча,
-        /// вырожденный МНК): звавший берёт запасной путь — нуль прибора
+        /// вырожденный МНК, решающий кандидат на самом ноже): звавший берёт запасной путь — нуль прибора
         /// <see cref="AnchorZeroKev"/> (нуль света в нулевом канале, П4 §3
         /// на G1S16; П8 на четырёх Am-241 — вылет модели встал на данные);
         /// это и есть единственный честный запас: при одной опоре нуля
@@ -3169,12 +3187,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var xs = new List<double>();
             var ys = new List<double>();
             var ws = new List<double>();
+            // (`S205`, П190) запас каждого взятого кандидата до его ножей и его линия
+            var margins = new List<double>();
+            var lines = new List<double>();
+            Action<string> sink = ZeroTraceSink;
             if (all != null)
             {
                 double lightAdd = this.LightFixedAdd();
                 foreach (AnchorFit f in all)
                 {
                     FsaScaleAnchor a = f.Anchor;
+                    if (sink != null && a != null)
+                    {
+                        sink(string.Format(CultureInfo.InvariantCulture,
+                                           "cand line={0:F3} refusal={1} z={2:F2} share={3:F4} shiftF={4:F3} w={5:G6} X={6:F3} Y={7:F3} lo={8} hi={9}",
+                                           a.LineKev, a.Refusal ?? "", a.Z, a.PeakShare, f.ShiftFwhm, f.Weight,
+                                           f.X, f.Y, a.FirstChannel, a.LastChannel));
+                    }
+
                     if (a == null || a.Refusal == "edge" || a.Refusal == "skip" || a.Refusal == "narrow")
                     {
                         continue;
@@ -3226,6 +3256,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     xs.Add(x);
                     ys.Add(e);
                     ws.Add(f.Weight / (step * step));
+                    margins.Add(this.ZeroKnifeMargin(a.PeakShare, a.Z, f.ShiftFwhm));
+                    lines.Add(a.LineKev);
+                    if (sink != null)
+                    {
+                        sink(string.Format(CultureInfo.InvariantCulture, "  taken x={0:F3} e={1:F3} w={2:G6} margin={3:F4}",
+                                           x, e, f.Weight / (step * step), margins[margins.Count - 1]));
+                    }
                 }
             }
 
@@ -3293,7 +3330,96 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             note = string.Format(CultureInfo.InvariantCulture,
                                  "по съёмке: опор {0} из {1} ({2:F1}…{3:F1} кэВ), нуль света кан {4:F2}",
                                  xs.Count, seen, xMin, xMax, c0);
+
+            // (`S205`, П190) вес нуля съёмки — наименьший запас РЕШАЮЩИХ
+            // кандидатов (без которых плеча нет); надёжный нуль — вес 1, до бита
+            double blend = 1.0;
+            double blendLine = double.NaN;
+            for (int i = 0; i < xs.Count; i++)
+            {
+                if (margins[i] < blend && !ArmHoldsWithout(xs, i))
+                {
+                    blend = margins[i];
+                    blendLine = lines[i];
+                }
+            }
+
+            if (sink != null)
+            {
+                sink(string.Format(CultureInfo.InvariantCulture, "  line g={0:F5} zeroKev={1:F3} e0={2:F3} step0={3:F5} blend={4:F4} blendLine={5:F3}",
+                                   g, zeroKev, e0, e1 - e0, blend, blendLine));
+            }
+
+            if (blend < 1.0)
+            {
+                if (!(blend > 0.0))
+                {
+                    note = string.Format(CultureInfo.InvariantCulture,
+                                         "по прибору: {0}, решающий кандидат {1:F1} кэВ на ноже", below, blendLine);
+                    zeroKev = 0.0;
+                    return false;
+                }
+
+                zeroKev = this.AnchorZeroKev + blend * (zeroKev - this.AnchorZeroKev);
+                note += string.Format(CultureInfo.InvariantCulture,
+                                      ", решающий {0:F1} кэВ у ножа: вес {1:F2}", blendLine, blend);
+            }
+
             return Finite(zeroKev);
+        }
+
+        /// <summary>
+        /// (`S205`, П190) ЗАПАС КАНДИДАТА НУЛЯ ДО ЕГО НОЖЕЙ, 0…1: наименьший из
+        /// трёх линейных подъёмов — доля синего от
+        /// <see cref="AnchorZeroShareThreshold"/> до (1 + b)·порога, z от
+        /// <see cref="AnchorMinZ"/> до (1 + b)·порога, промах от
+        /// <see cref="AnchorMaxShiftFwhm"/> вниз до (1 − b)·предела; b —
+        /// <see cref="AnchorZeroBlendBand"/>. На самом ноже — 0, за полосой — 1;
+        /// полоса нуль — всегда 1 (жёсткие ножи, как до `S205`).
+        /// </summary>
+        double ZeroKnifeMargin(double share, double z, double shiftFwhm)
+        {
+            double b = this.AnchorZeroBlendBand;
+            if (!(b > 0.0))
+            {
+                return 1.0;
+            }
+
+            double t = this.AnchorZeroShareThreshold;
+            double m = Ramp01((share - t) / (b * t));
+            m = Math.Min(m, Ramp01((z - this.AnchorMinZ) / (b * this.AnchorMinZ)));
+            m = Math.Min(m, Ramp01((this.AnchorMaxShiftFwhm - shiftFwhm) / (b * this.AnchorMaxShiftFwhm)));
+            return m;
+        }
+
+        /// <summary>(`S205`) Зажим в [0, 1]; NaN — нуль.</summary>
+        static double Ramp01(double v)
+        {
+            return v > 0.0 ? (v < 1.0 ? v : 1.0) : 0.0;
+        }
+
+        /// <summary>
+        /// (`S205`, П190) Держится ли нуль по съёмке без кандидата
+        /// <paramref name="skip"/>: остаётся не меньше двух, и плечо то же, что
+        /// в <see cref="ZeroFromRun"/> (верхний по свету хотя бы вдвое выше нижнего).
+        /// </summary>
+        static bool ArmHoldsWithout(List<double> xs, int skip)
+        {
+            double lo = double.MaxValue, hi = double.MinValue;
+            int n = 0;
+            for (int i = 0; i < xs.Count; i++)
+            {
+                if (i == skip)
+                {
+                    continue;
+                }
+
+                n++;
+                lo = Math.Min(lo, xs[i]);
+                hi = Math.Max(hi, xs[i]);
+            }
+
+            return n >= 2 && lo > 0.0 && hi - lo >= 0.5 * hi;
         }
 
         /// <summary>
@@ -3814,6 +3940,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// в конструкторе, граница П8 §3 / П12 §3. Рычаг — `--anchor-zero-max=`.
         /// </summary>
         public double AnchorZeroMaxKev { get; set; }
+
+        /// <summary>
+        /// (`S205`, П190) ПОЛОСА ЗАПАСА решающего кандидата нуля съёмки, доля
+        /// порога (<see cref="ZeroKnifeMargin"/>): решающий кандидат с долей,
+        /// z или промахом внутри полосы от своего ножа весит свой запас, и нуль
+        /// смешивается с нулём прибора (<see cref="ZeroFromRun"/>). Нуль —
+        /// жёсткие ножи, как до `S205`. Число стоит в конструкторе; замер
+        /// трёх полос на двух складах (физика 25 и 26) —
+        /// `handover/handover-2026-09-30-p190-s205-light-zero.md`.
+        /// </summary>
+        public double AnchorZeroBlendBand { get; set; }
 
         /// <summary>
         /// Добавлять образы обратного рассеяния, выведенные из найденного
@@ -5634,6 +5771,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // порога опоры (доводы у свойства); свет не выше границы П8 §3
             this.AnchorZeroShareThreshold = 0.25;
             this.AnchorZeroMaxKev = 700.0;
+            // (`S205`, П190) решающий кандидат нуля у ножа весит свой запас
+            this.AnchorZeroBlendBand = 0.4;
             // ⚠ Порог узости ВЫКЛЮЧЕН (ноль) по замеру, а не по вкусу: с
             // порогом в три канала рентгены 22…40 кэВ на 1024-канальных G1S
             // выпадали из опор, и малая база давала Σχ² 398.2 против 349.9 без
@@ -14661,6 +14800,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// тогда решатель ничего не копирует и никого не зовёт.
         /// </summary>
         public static Action<NnlsTrace> NnlsTraceSink { get; set; }
+
+        /// <summary>
+        /// (`S205`, П190) ПРИБОР НУЛЯ СЪЁМКИ — приёмник трассы
+        /// <see cref="ZeroFromRun"/>: каждый кандидат с его ножами (доля, z,
+        /// промах в ПШПВ, окно, центры модели и данных), взятые — со светом,
+        /// энергией, весом и запасом, и итог прямой с весом смешения. Ставится
+        /// безоконной пробой (`ZeroTraceProbeP190`) на время разбора; в
+        /// приложении не задан, и тогда никто не зовётся.
+        /// </summary>
+        public static Action<string> ZeroTraceSink { get; set; }
 
         /// <summary>(`A308`) Трасса одного вызова <see cref="NnlsSolve"/> для <see cref="NnlsTraceSink"/>.</summary>
         public sealed class NnlsTrace
