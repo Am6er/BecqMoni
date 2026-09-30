@@ -186,6 +186,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// ⛔ МОДЕЛЬ РАМПЫ ПОРОГА РЕГИСТРАЦИИ (`S204`, П187 → П189, 30.09.2026).
+    ///
+    /// У G1S рампа триггера (подошва около шестого канала, середина около
+    /// девятого–десятого, уровень с двенадцатого) шире границы правила пола
+    /// <see cref="FsaBand.ThresholdRampMaxKev"/>, и правило `A309` отступает к
+    /// первому каналу: рампа остаётся в фите, данные в ней подавлены, модель —
+    /// нет. NNLS тянул амплитуду вниз под подавленный K-рентген: Cd-109 на G1S
+    /// ×0.44 / 0.45 / 0.21 к паспорту (журнал П187). Решение Amber 30.09.2026
+    /// вопросником — моделировать подъём, а не поднимать пол.
+    /// </summary>
+    public enum FsaRampModel
+    {
+        /// <summary>Как было до `S204`: модель не умножается ни на что.</summary>
+        Off,
+
+        /// <summary>
+        /// Модель ниже верха рампы умножается на S(канал), измеренную по фону
+        /// (<see cref="FsaBand.PairRampProfile"/>); каналы не выбрасываются.
+        /// </summary>
+        Model
+    }
+
+    /// <summary>
     /// Умолчание полосы — ОДНО на весь разбор, и печатается вслух.
     ///
     /// ⛔ Выбор сделан числами, а не вкусом; всё измерено 25.08.2026 по ПОНЯТНОЙ
@@ -501,9 +524,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (G1S16 8.7…9.1, G1S24 9.8…10.2 канала) и ушла на канал вверх
         /// при том же усилении — это рампа триггера, а не физика кристалла.
         /// K-рентген Cd-109 в ней подавлен: разбор/паспорт 0.44 и 0.21 при
-        /// 88 кэВ на паспорте. Граница и правило оставлены как есть до
-        /// решения Amber по `S204` (журнал П187): её расширение ловит и
-        /// RC103/RC101/OBS, а пол на верху рампы режет K-рентген Ba/Ce.
+        /// 88 кэВ на паспорте. Граница и правило ПОЛА оставлены как есть
+        /// (расширение ловит и RC103/RC101/OBS, а пол на верху рампы режет
+        /// K-рентген Ba/Ce) — решение Amber 30.09.2026 по `S204`: рампу шире
+        /// границы разбор МОДЕЛИРУЕТ (<see cref="FsaRampModel"/>,
+        /// <see cref="RampProfileOf"/>, П189), а не режет.
         /// </summary>
         public const double ThresholdRampMaxKev = 5.0;
 
@@ -601,7 +626,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///    <see cref="ThresholdFootFraction"/> уровня; от подошвы до
         ///    кандидата шире <see cref="ThresholdRampMaxKev"/> — не рампа, а
         ///    физика (шумовой горб ASN16, горб RC103; у G1S это рампа триггера
-        ///    шире границы — П187, см. <see cref="ThresholdRampMaxKev"/>):
+        ///    шире границы — П187, см. <see cref="ThresholdRampMaxKev"/>; её
+        ///    моделирует <see cref="RampProfileOf"/>, `S204`):
         ///    порог = <c>c0</c>.
         /// 5. В окне <see cref="ThresholdPersistWindowKev"/> за кандидатом
         ///    уровень падает ниже <see cref="ThresholdPersistFraction"/> от
@@ -618,10 +644,95 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static double AdcThresholdOf(int[] counts, EnergyCalibration calibration, out string how)
         {
+            // (`S204`, П189) Шаги 1–5 — общий обход <see cref="ScanRamp"/>: его
+            // же читает модель рампы (<see cref="RampProfileOf"/>), и второй
+            // копии правила, разошедшейся с первой молча, быть не должно (`S101`).
+            RampScan scan = ScanRamp(counts, calibration);
             how = "нет данных";
-            if (counts == null || calibration == null)
+            if (scan == null)
             {
                 return 0.0;
+            }
+
+            double e0 = scan.E0;
+            if (scan.Candidate < 0)
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "уровень не устоялся в {0:F0} кэВ от {1:F2} кэВ (растущий континуум) — порог по первому каналу",
+                    ThresholdScanKev, e0);
+                return e0;
+            }
+
+            if (scan.WidthKev > ThresholdRampMaxKev)
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "подъём {0:F2}→{1:F2} кэВ (от подошвы к уровню {2:F0}) шире рампы ({3:F0} кэВ) — порог по первому каналу {4:F2}",
+                    scan.FootKev, calibration.ChannelToEnergy(scan.Candidate), scan.Level, ThresholdRampMaxKev, e0);
+                return e0;
+            }
+
+            if (!scan.Persists)
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "подъём от {0:F2} кэВ кончается падением (пик на пороге) — порог по первому каналу",
+                    e0);
+                return e0;
+            }
+
+            if (scan.Candidate == scan.C0)
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "жёсткий рез {0:F2} кэВ (канал {1} уже на уровне {2:F0})", e0, scan.C0, scan.Level);
+                return e0;
+            }
+
+            int tail = (int)Math.Round(ThresholdTailShare * (scan.Candidate - scan.C0));
+            int top = Math.Min(counts.Length - 1, scan.Candidate + tail);
+            double kev = calibration.ChannelToEnergy(top);
+            how = string.Format(CultureInfo.InvariantCulture,
+                "рампа {0:F2}→{1:F2} кэВ (каналы {2}→{3}; подошва {4:F2}, середина в канале {5} при уровне {6:F0}, хвост {7})",
+                e0, kev, scan.C0, top, scan.FootKev, scan.Candidate, scan.Level, tail);
+            return kev;
+        }
+
+        /// <summary>
+        /// Обход правила порога (`A309`, шаги 1–5 описания
+        /// <see cref="AdcThresholdOf"/>) — ЧТО найдено, без решения, чем
+        /// порог взять. Одно место на оба читателя: пол полосы фита и модель
+        /// рампы (`S204`).
+        /// </summary>
+        sealed class RampScan
+        {
+            /// <summary>Первый канал с отсчётами на положительной энергии.</summary>
+            public int C0;
+
+            /// <summary>Его энергия, кэВ.</summary>
+            public double E0;
+
+            /// <summary>Кандидат — середина рампы; −1, если уровень не устоялся.</summary>
+            public int Candidate = -1;
+
+            /// <summary>Уровень — медиана окна за кандидатом.</summary>
+            public double Level;
+
+            /// <summary>Подошва рампы — канал и его энергия, кэВ.</summary>
+            public int Foot;
+
+            public double FootKev;
+
+            /// <summary>Ширина подъёма от подошвы до кандидата, кэВ.</summary>
+            public double WidthKev;
+
+            /// <summary>Уровень за кандидатом держится (шаг 5): не пик на пороге.</summary>
+            public bool Persists = true;
+        }
+
+        /// <summary>Шаги 1–5 правила порога; null — спектра, калибровки или отсчётов нет.</summary>
+        static RampScan ScanRamp(int[] counts, EnergyCalibration calibration)
+        {
+            if (counts == null || calibration == null)
+            {
+                return null;
             }
 
             int c0 = -1;
@@ -642,10 +753,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (c0 < 0)
             {
-                return 0.0;
+                return null;
             }
 
+            RampScan scan = new RampScan { C0 = c0 };
             double e0 = calibration.ChannelToEnergy(c0);
+            scan.E0 = e0;
             double pitch = c0 + 1 < counts.Length
                 ? calibration.ChannelToEnergy(c0 + 1) - e0
                 : 0.0;
@@ -684,27 +797,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (candidate < 0)
             {
-                how = string.Format(CultureInfo.InvariantCulture,
-                    "уровень не устоялся в {0:F0} кэВ от {1:F2} кэВ (растущий континуум) — порог по первому каналу",
-                    ThresholdScanKev, e0);
-                return e0;
+                return scan;
             }
 
+            scan.Candidate = candidate;
+            scan.Level = level;
             int foot = c0;
             while (foot < candidate && counts[foot] < ThresholdFootFraction * level)
             {
                 foot++;
             }
 
-            double footKev = calibration.ChannelToEnergy(foot);
-            double width = calibration.ChannelToEnergy(candidate) - footKev;
-            if (width > ThresholdRampMaxKev)
-            {
-                how = string.Format(CultureInfo.InvariantCulture,
-                    "подъём {0:F2}→{1:F2} кэВ (от подошвы к уровню {2:F0}) шире рампы ({3:F0} кэВ) — порог по первому каналу {4:F2}",
-                    footKev, calibration.ChannelToEnergy(candidate), level, ThresholdRampMaxKev, e0);
-                return e0;
-            }
+            scan.Foot = foot;
+            scan.FootKev = calibration.ChannelToEnergy(foot);
+            scan.WidthKev = calibration.ChannelToEnergy(candidate) - scan.FootKev;
 
             int persistWindow = window;
             if (pitch > 0.0 && !double.IsNaN(pitch) && !double.IsInfinity(pitch))
@@ -720,28 +826,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 least = Math.Min(least, counts[c]);
             }
 
-            if (least < ThresholdPersistFraction * counts[candidate])
-            {
-                how = string.Format(CultureInfo.InvariantCulture,
-                    "подъём от {0:F2} кэВ кончается падением (пик на пороге) — порог по первому каналу",
-                    e0);
-                return e0;
-            }
-
-            if (candidate == c0)
-            {
-                how = string.Format(CultureInfo.InvariantCulture,
-                    "жёсткий рез {0:F2} кэВ (канал {1} уже на уровне {2:F0})", e0, c0, level);
-                return e0;
-            }
-
-            int tail = (int)Math.Round(ThresholdTailShare * (candidate - c0));
-            int top = Math.Min(counts.Length - 1, candidate + tail);
-            double kev = calibration.ChannelToEnergy(top);
-            how = string.Format(CultureInfo.InvariantCulture,
-                "рампа {0:F2}→{1:F2} кэВ (каналы {2}→{3}; подошва {4:F2}, середина в канале {5} при уровне {6:F0}, хвост {7})",
-                e0, kev, c0, top, footKev, candidate, level, tail);
-            return kev;
+            scan.Persists = !(least < ThresholdPersistFraction * counts[candidate]);
+            return scan;
         }
 
         /// <summary>Медиана отсчётов каналов <c>[from, to)</c> — окно уровня правила порога.</summary>
@@ -853,6 +939,372 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// ⛔ ЧТО ПОСТАВЛЯЕТСЯ МОДЕЛЬЮ РАМПЫ ПОРОГА (`S204`, П189) — отдельно от
+        /// того, что стоит СЕЙЧАС, по той же причине, что
+        /// <see cref="ShippedFitFloor"/>.
+        ///
+        /// Поставляется <see cref="FsaRampModel.Model"/> — решение Amber
+        /// 30.09.2026 вопросником, дословно: «Моделировать подъём порога
+        /// (Рекомендую)»: разбор мерит S(канал) по рампе фона правилом `A309` и
+        /// умножает на неё модель ниже верха рампы, каналы не выбрасываются.
+        /// Обратный ключ — <see cref="FsaRampModel.Off"/>: побитово прежний
+        /// разбор. Правило и доводы — у <see cref="RampProfileOf"/> и
+        /// <see cref="PairRampProfile"/>.
+        /// </summary>
+        public const FsaRampModel ShippedRampModel = FsaRampModel.Model;
+
+        /// <summary>
+        /// Моделируется ли рампа порога (`S204`); живёт ОДНОЙ статикой и
+        /// читается В МОМЕНТ ОБРАЩЕНИЯ — вторая копия повторила бы `S101`.
+        /// </summary>
+        public static FsaRampModel DefaultRampModel = ShippedRampModel;
+
+        /// <summary>
+        /// Нижняя граница доли уровня, с которой канал рампы идёт в подгонку
+        /// логистики (<see cref="RampProfileOf"/>). Ниже — единицы отсчётов
+        /// подошвы, у которых логит тонет в шуме; число — строкой ниже.
+        /// </summary>
+        public const double RampPointLowShare = 0.05;
+
+        /// <summary>
+        /// Верхняя граница доли уровня для подгонки логистики: у верха рампы
+        /// логит расходится, и доля, чуть большая единицы от шума уровня,
+        /// перевернула бы знак. Симметрична нижней.
+        /// </summary>
+        public const double RampPointHighShare = 1.0 - RampPointLowShare;
+
+        /// <summary>
+        /// Меньше стольких точек логистика не подгоняется (две точки проводят
+        /// прямую через что угодно, и проверки формы нет): рампа тогда не
+        /// моделируется. У G1S точек пять–семь, у самого короткого фона
+        /// (первый канал уже на середине рампы) — три.
+        /// </summary>
+        public const int RampMinPoints = 3;
+
+        /// <summary>
+        /// ВЕРХ РАМПЫ МОДЕЛИ — доля уровня, выше которой множитель считается
+        /// единицей и модель не трогается. Ступенька модели на верху рампы
+        /// поэтому не больше дополнения этой доли до единицы, а выше верха
+        /// разбор побитово прежний. Число — строкой ниже.
+        /// </summary>
+        public const double RampTopShare = 0.999;
+
+        /// <summary>
+        /// ⛔ ФОРМА РАМПЫ ПОРОГА В КАНАЛАХ, измеренная по спектру (`S204`, П189):
+        /// S(c) = 1 / (1 + exp(−(c − <see cref="Mid"/>) / <see cref="Width"/>))
+        /// для каналов ниже <see cref="Top"/>, единица — выше. Канал — номер
+        /// канала АЦП, а не энергия: рампа — свойство триггера (П187 §3: одна
+        /// середина у всех спектров эпохи прибора, у фонов и у континуума
+        /// МэВ-ных линий на 5 и 25 см), поэтому переносится с фона на пробу по
+        /// НОМЕРУ канала, а не перекладкой по энергии.
+        /// </summary>
+        public sealed class RampProfile
+        {
+            /// <summary>Середина рампы, канал (дробный).</summary>
+            public double Mid;
+
+            /// <summary>Ширина логистики, каналов.</summary>
+            public double Width;
+
+            /// <summary>Первый канал, где множитель уже единица.</summary>
+            public int Top;
+
+            /// <summary>Точек в подгонке и уровень, по которому они взяты.</summary>
+            public int Points;
+
+            public double Level;
+
+            /// <summary>Чей спектр дал рампу: «фон» или «проба».</summary>
+            public string Source;
+
+            double[] values;
+
+            /// <summary>Множитель канала <paramref name="channel"/>.</summary>
+            public double At(int channel)
+            {
+                if (channel >= this.Top)
+                {
+                    return 1.0;
+                }
+
+                return 1.0 / (1.0 + Math.Exp(-(channel - this.Mid) / this.Width));
+            }
+
+            /// <summary>
+            /// Умножить кривую на множитель рампы — на месте, только каналы
+            /// ниже <see cref="Top"/>; выше кривая не трогается ни в одном бите.
+            /// </summary>
+            public void Apply(double[] curve)
+            {
+                if (curve == null)
+                {
+                    return;
+                }
+
+                if (this.values == null)
+                {
+                    this.values = new double[Math.Max(0, this.Top)];
+                    for (int c = 0; c < this.values.Length; c++)
+                    {
+                        this.values[c] = this.At(c);
+                    }
+                }
+
+                int n = Math.Min(curve.Length, this.values.Length);
+                for (int c = 0; c < n; c++)
+                {
+                    curve[c] *= this.values[c];
+                }
+            }
+
+            /// <summary>Словами — для заверения.</summary>
+            public string Describe()
+            {
+                return string.Format(CultureInfo.InvariantCulture,
+                    "по {0}: середина {1:F2} канала, ширина {2:F2} канала, до канала {3} ({4} точек при уровне {5:F0})",
+                    this.Source, this.Mid, this.Width, this.Top, this.Points, this.Level);
+            }
+        }
+
+        /// <summary>
+        /// ⛔ РАМПА ПОРОГА ОДНОГО СПЕКТРА, которую правило `A309` видит, но в пол
+        /// не берёт (`S204`, П189). Возвращает null — рампы для модели нет, и
+        /// разбор побитово прежний.
+        ///
+        /// Правило, шаги поверх обхода <see cref="ScanRamp"/> (шаги 1–5
+        /// описания <see cref="AdcThresholdOf"/>):
+        ///
+        /// 1. Кандидат найден, подъём от подошвы до кандидата ШИРЕ
+        ///    <see cref="ThresholdRampMaxKev"/>, уровень за кандидатом держится
+        ///    (не пик на пороге) и кандидат выше первого канала (не жёсткий
+        ///    рез). То есть ровно тот случай, где правило `A309` отступило к
+        ///    первому каналу из-за ширины: рампу уже границы оно режет полом
+        ///    само, и модель там не нужна — каналов ниже пола в фите нет. Так
+        ///    AS80, AS1Pro, ASN8, ASN16 и HPGe не трогаются вовсе.
+        /// 2. Точки — каналы от первого ненулевого до верха рампы по правилу
+        ///    (кандидат плюс хвост <see cref="ThresholdTailShare"/>), у которых
+        ///    доля уровня правила строго между <see cref="RampPointLowShare"/>
+        ///    и <see cref="RampPointHighShare"/>; уровень — тот же, что у
+        ///    правила (медиана окна за кандидатом). По ним — прямая логита
+        ///    ln(s/(1−s)) против номера канала, веса пуассоновские
+        ///    n·(1−s)² (дисперсия логита при n отсчётах в канале).
+        /// 3. Точек меньше <see cref="RampMinPoints"/>, наклон не
+        ///    положителен или середина вне каналов точек с запасом в канал —
+        ///    рампы нет.
+        /// 4. Верх рампы модели — первый канал, где логистика достигает
+        ///    <see cref="RampTopShare"/>.
+        ///
+        /// ⚠ Уровень правила, а не «уровень выше верха рампы»: замер П189 по
+        /// корпусу — за рампой G1S континуум фона продолжает расти, и
+        /// уточнение уровня по каналам над верхом рампы расходилось (у фона
+        /// «открытый» G1S16 середина 8.86 → 14.9 канала за три прохода), а
+        /// уровень правила давал одну середину у фонов и у континуума Co-60 и
+        /// Na-22 той же эпохи (8.7…8.9 у G1S16, 9.7…10.2 у G1S24;
+        /// журнал `handover/handover-2026-09-30-p189-s204-ramp.md`).
+        /// </summary>
+        public static RampProfile RampProfileOf(int[] counts, EnergyCalibration calibration, out string how)
+        {
+            how = "нет данных";
+            RampScan scan = ScanRamp(counts, calibration);
+            if (scan == null)
+            {
+                return null;
+            }
+
+            if (scan.Candidate < 0)
+            {
+                how = "уровень не устоялся — рампы нет";
+                return null;
+            }
+
+            if (!(scan.WidthKev > ThresholdRampMaxKev))
+            {
+                how = scan.Candidate == scan.C0
+                    ? "жёсткий рез — рампы нет"
+                    : "рампа не шире границы — её режет пол";
+                return null;
+            }
+
+            if (!scan.Persists)
+            {
+                how = "подъём кончается падением (пик на пороге) — рампу не мерить";
+                return null;
+            }
+
+            if (scan.Candidate == scan.C0 || !(scan.Level > 0.0))
+            {
+                how = "жёсткий рез — рампы нет";
+                return null;
+            }
+
+            int tail = (int)Math.Round(ThresholdTailShare * (scan.Candidate - scan.C0));
+            int top = Math.Min(counts.Length - 1, scan.Candidate + tail);
+            double sw = 0.0;
+            double sx = 0.0;
+            double sy = 0.0;
+            int points = 0;
+            int first = int.MaxValue;
+            int last = -1;
+            for (int c = scan.C0; c <= top; c++)
+            {
+                double s = counts[c] / scan.Level;
+                if (!(s > RampPointLowShare && s < RampPointHighShare))
+                {
+                    continue;
+                }
+
+                double w = counts[c] * (1.0 - s) * (1.0 - s);
+                sw += w;
+                sx += w * c;
+                sy += w * Math.Log(s / (1.0 - s));
+                points++;
+                first = Math.Min(first, c);
+                last = Math.Max(last, c);
+            }
+
+            if (points < RampMinPoints || !(sw > 0.0))
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "точек рампы {0} — меньше {1}, логистику не подогнать", points, RampMinPoints);
+                return null;
+            }
+
+            double mx = sx / sw;
+            double my = sy / sw;
+            double sxx = 0.0;
+            double sxy = 0.0;
+            for (int c = scan.C0; c <= top; c++)
+            {
+                double s = counts[c] / scan.Level;
+                if (!(s > RampPointLowShare && s < RampPointHighShare))
+                {
+                    continue;
+                }
+
+                double w = counts[c] * (1.0 - s) * (1.0 - s);
+                sxx += w * (c - mx) * (c - mx);
+                sxy += w * (c - mx) * (Math.Log(s / (1.0 - s)) - my);
+            }
+
+            double slope = sxx > 0.0 ? sxy / sxx : 0.0;
+            if (!(slope > 0.0) || double.IsInfinity(slope))
+            {
+                how = "наклон логита не положителен — рампы нет";
+                return null;
+            }
+
+            double mid = mx - my / slope;
+            double width = 1.0 / slope;
+            if (!(mid >= first - 1.0 && mid <= last + 1.0))
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "середина {0:F2} вне каналов точек {1}…{2} — рампы нет", mid, first, last);
+                return null;
+            }
+
+            int topModel = (int)Math.Ceiling(mid + width * Math.Log(RampTopShare / (1.0 - RampTopShare)));
+            RampProfile profile = new RampProfile
+            {
+                Mid = mid,
+                Width = width,
+                Top = Math.Max(0, Math.Min(counts.Length, topModel)),
+                Points = points,
+                Level = scan.Level
+            };
+            how = "рампа шире границы";
+            return profile;
+        }
+
+        /// <summary>
+        /// ⛔ РАМПА ПОРОГА ДЛЯ РАЗБОРА (`S204`, П189): по ФОНУ, если он подан и
+        /// взят разбором, по пробе — если фона нет (решение Amber 30.09.2026).
+        /// Возвращает null — модель не трогается (и при
+        /// <see cref="FsaRampModel.Off"/>).
+        ///
+        /// Почему фон первым: у пробы в рампе может стоять её собственный пик
+        /// (K-рентген серебра Cd-109 на G1S — ровно на середине рампы), и
+        /// рампу по такой пробе не измерить; фон — континуум без линий у
+        /// порога. Правило пола судит фон в его шкале, модель — в каналах, и
+        /// рампа фона ложится на пробу по номеру канала
+        /// (<see cref="RampProfile"/>).
+        ///
+        /// ⛔ ПРОБА, У КОТОРОЙ ПРАВИЛО `A309` САМО НАШЛО ПОРОГ, не получает
+        /// рампу фона: жёсткий рез или рампа в границе у пробы — её порог
+        /// измерен ею самой, и фон, снятый с другим порогом, к ней не
+        /// прикладывается. Замер П189: `OBS_UGlass` — проба режется жёстко на
+        /// канале 11, а фон `Фон дом.xml` имеет рампу с серединой около
+        /// канала 20; приложи её — модель была бы подавлена там, где данные на
+        /// уровне.
+        /// </summary>
+        public static RampProfile PairRampProfile(int[] sampleCounts, EnergyCalibration sampleCalibration,
+                                                  EnergySpectrum background, bool backgroundInOwnScale,
+                                                  out string how)
+        {
+            how = null;
+            if (DefaultRampModel == FsaRampModel.Off || sampleCounts == null || sampleCalibration == null)
+            {
+                return null;
+            }
+
+            string sampleHow;
+            if (background == null || background.Spectrum == null)
+            {
+                RampProfile own = RampProfileOf(sampleCounts, sampleCalibration, out sampleHow);
+                if (own != null)
+                {
+                    own.Source = "пробе (фона нет)";
+                }
+
+                how = own != null ? own.Describe() : "проба (фона нет): " + sampleHow;
+                return own;
+            }
+
+            EnergyCalibration scale = backgroundInOwnScale && background.EnergyCalibration != null
+                ? background.EnergyCalibration
+                : sampleCalibration;
+            string backgroundHow;
+            RampProfile profile = RampProfileOf(background.Spectrum, scale, out backgroundHow);
+            if (profile == null)
+            {
+                how = "фон: " + backgroundHow;
+                return null;
+            }
+
+            RampScan sampleScan = ScanRamp(sampleCounts, sampleCalibration);
+            if (sampleScan != null && sampleScan.Candidate >= 0 && sampleScan.Persists
+                && !(sampleScan.WidthKev > ThresholdRampMaxKev))
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "фон: рампа с серединой {0:F2} канала, но у пробы порог измерен правилом (канал {1}) — рампа фона не прикладывается",
+                    profile.Mid, sampleScan.Candidate);
+                return null;
+            }
+
+            profile.Source = "фону";
+            how = profile.Describe();
+            return profile;
+        }
+
+        /// <summary>
+        /// Модель рампы словами — хвост заверения. Пусто, когда рампы нет или
+        /// модель выключена: тогда строка заверения обязана быть в точности
+        /// прежней, иначе прогон без рампы не отличить по журналу от прогона
+        /// с правкой.
+        /// </summary>
+        public static string RampNote(RampProfile profile, string how)
+        {
+            if (profile == null)
+            {
+                return "";
+            }
+
+            return string.Format(CultureInfo.InvariantCulture,
+                "; рампа порога — модель × S(канал) {0}{1}",
+                how,
+                DefaultRampModel == ShippedRampModel ? " (умолчание)" : " (НЕ умолчание, A/B)");
         }
 
         /// <summary>
@@ -1440,6 +1892,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// случайного.
         /// </summary>
         public string BandNote { get; private set; }
+
+        /// <summary>
+        /// (`S204`, П189) Рампа порога ПОСЛЕДНЕГО разбора словами — что
+        /// измерено и по чьему спектру, или почему рампы нет. Пусто — модель
+        /// выключена (<see cref="FsaRampModel.Off"/>) или разбора ещё не было.
+        /// Когда рампа есть, та же строка стоит и в <see cref="BandNote"/>.
+        /// </summary>
+        public string ThresholdRampNote { get; private set; }
+
+        /// <summary>
+        /// (`S204`, П189) Рампа порога ПОСЛЕДНЕГО разбора — наружу пробам
+        /// (контроль «рампа восстановлена»). null — рампы нет.
+        /// </summary>
+        public FsaBand.RampProfile ThresholdRamp
+        {
+            get { return this.thresholdRamp; }
+        }
+
+        /// <summary>
+        /// Множитель рампы этого разбора (`S204`): ставится в <c>Analyze</c> до
+        /// первого образа и читается обоими построителями образов и шапками.
+        /// </summary>
+        FsaBand.RampProfile thresholdRamp;
 
         /// <summary>
         /// Считать по всему спектру, не обрезая по MinEnergy/MaxEnergy: от
@@ -5363,6 +5838,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             this.Refusal = FsaRefusal.None;
             this.RefusalNote = null;
+            // (`S204`) рампа — состояние ЭТОГО разбора; отказ до её замера не
+            // должен оставить наружу рампу прошлого спектра
+            this.thresholdRamp = null;
+            this.ThresholdRampNote = null;
 
             if (spectrum == null || spectrum.Spectrum == null || fwhmCalibration == null
                 || spectrum.EnergyCalibration == null || originalLibrary == null || originalLibrary.Count == 0)
@@ -5716,6 +6195,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // два конца, назвавшие разные числа об одном поле, — это `S101`.
             double noteNoCurve = FsaBand.NoCurveFloor(
                 FsaBand.AdcFloorOf(spectrum.Spectrum, calibration));
+
+            // ⛔ (`S204`, П189) РАМПА ПОРОГА — модель × S(канал) ниже верха
+            // рампы, по фону (по пробе, если фона нет). Ставится ЗДЕСЬ, до
+            // первого образа: её читают оба построителя
+            // (`BuildTemplate`, `BroadenResponseDeposit`) и шапки континуума
+            // ниже, и всякий образ этого разбора — в фите, в пределах, в
+            // поверке линий, в слоях — несёт один и тот же множитель. Нет
+            // рампы — null, и ни один образ не меняется ни в одном бите.
+            string rampHow;
+            this.thresholdRamp = FsaBand.PairRampProfile(spectrum.Spectrum, calibration, background,
+                                                         this.RebinBackgroundToSpectrum, out rampHow);
+            this.ThresholdRampNote = rampHow;
             this.BandNote = string.Format(CultureInfo.InvariantCulture,
                 "{0}{1}; фит {2}…{3} ({4:F1}…{5:F1} кэВ)",
                 FsaBand.Describe(this.Band, noteFloor, this.MinEnergy, this.MaxEnergy, noteNoCurve),
@@ -5723,7 +6214,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // числом, каким он резал, и с ОБОИМИ порогами (проба, фон) —
                 // иначе заверение и решение разъедутся молча.
                 FsaBand.FitFloorNote(fitFloorKev, floorSampleHow, floorBackgroundHow, floorApplied),
-                chLo, chHi, calibration.ChannelToEnergy(chLo), calibration.ChannelToEnergy(chHi));
+                chLo, chHi, calibration.ChannelToEnergy(chLo), calibration.ChannelToEnergy(chHi))
+                // (`S204`) рампа порога — только когда она есть: без неё строка прежняя
+                + FsaBand.RampNote(this.thresholdRamp, rampHow);
 
             // (`T240`) Исход отсева — состояние ЭТОГО разбора, и от прошлого
             // ему достаться нечего: анализатор переживает несколько спектров
@@ -5867,6 +6360,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         hats.RemoveRange(0, keepFrom);
                         knots.RemoveRange(0, keepFrom);
+                    }
+                }
+
+                // ⛔ (`S204`, П189) Подложка — ТОЖЕ модель: триггер режет
+                // рассеянное излучение так же, как пики образов, и сплайн,
+                // не помноженный на рампу, был бы обязан нырнуть в ней к нулю
+                // против штрафа на излом. Шапки — неизменная форма «истинного»
+                // континуума, S(канал) — то, что от него регистрирует прибор.
+                if (this.thresholdRamp != null)
+                {
+                    foreach (double[] hat in hats)
+                    {
+                        this.thresholdRamp.Apply(hat);
                     }
                 }
 
@@ -13659,6 +14165,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 any = true;
             }
 
+            // ⛔ (`S204`, П189) РАМПА ПОРОГА — на выходе ОБЩЕГО уширения, одним
+            // множителем на ленту и на все её части: образ фита, отвязанный
+            // хвост, подслой сумм, четыре канала исхода, столбец поверки линии,
+            // синий канал опоры привязки. Тождества «Σ каналов = лента» и
+            // «подслой ≤ лента» переживают множитель, потому что он общий.
+            if (any && this.thresholdRamp != null)
+            {
+                this.thresholdRamp.Apply(template);
+                for (int p = 0; p < partCount; p++)
+                {
+                    this.thresholdRamp.Apply(partTemplates[p]);
+                }
+            }
+
             return any ? template : null;
         }
 
@@ -14004,6 +14524,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 any = true;
+            }
+
+            // (`S204`, П189) рампа порога — тем же множителем, что у матричного
+            // пути (`BroadenResponseDeposit`)
+            if (any && this.thresholdRamp != null)
+            {
+                this.thresholdRamp.Apply(template);
             }
 
             return any ? template : null;

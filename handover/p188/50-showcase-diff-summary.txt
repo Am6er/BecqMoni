@@ -1,0 +1,26 @@
+| спектр | режим | расхождений | напечатано | медиана |Δ| | макс |Δ| | `model`, медиана |Δ| |
+|---|---|---|---|---|---|---|
+| `ASN16_Cs137_house` | `infer_eq` | 110 | 57 | 0.26 % | 3.99 % | 0.03 % |
+| `ASN16_Cs137_house` | `infer_eq_peak` | 100 | 47 | 0.31 % | 3.22 % | 0.03 % |
+| `ASN16_Cs137_house` | `infer_eq_compton` | 101 | 0 | nan % | nan % | nan % |
+| `AS80_Th232_disk` | `infer_eq` | 165 | 60 | 0.11 % | 0.87 % | 0.00 % |
+| `ASN16_Radon_filter2` | `chain_eq` | 139 | 60 | 0.22 % | 1.30 % | 0.01 % |
+| `ASN16_Radon_filter2` | `chain_noeq` | 123 | 30 | 0.00 % | 0.03 % | 0.00 % |
+| `G1S24_Rn222Coal_eq01` | `sample_eq` | 146 | 60 | 0.04 % | 0.14 % | 0.00 % |
+| `G1S24_Rn222Coal_eq01` | `sample_noeq` | 154 | 60 | 0.02 % | 0.14 % | 0.00 % |
+
+всего расхождений: 1038 в 8 парах
+
+крупнейшие по |Δ| (строки с «было» ≥ 1000):
+  ASN16_Cs137_house      infer_eq         0-30 кэВ     Xray-Pb               71248.226 ->      74094.109  +3.99 %
+  ASN16_Cs137_house      infer_eq_peak    0-30 кэВ     continuum_raw         47281.868 ->      45760.453  -3.22 %
+  ASN16_Cs137_house      infer_eq         0-30 кэВ     continuum_raw         47281.868 ->      45760.453  -3.22 %
+  ASN16_Cs137_house      infer_eq         30-100 кэВ   Xray-Pb             2004595.960 ->    2052742.283  +2.40 %
+  ASN16_Cs137_house      infer_eq_peak    30-100 кэВ   missing_net          487557.640 ->     498405.211  +2.22 %
+  ASN16_Cs137_house      infer_eq_peak    30-100 кэВ   missing_fit          487557.640 ->     498405.211  +2.22 %
+  ASN16_Cs137_house      infer_eq         30-100 кэВ   missing_net          487557.640 ->     498405.211  +2.22 %
+  ASN16_Cs137_house      infer_eq         30-100 кэВ   missing_fit          487557.640 ->     498405.211  +2.22 %
+  ASN16_Cs137_house      infer_eq_peak    100-300 кэВ  Xray-Pb                2660.494 ->       2712.035  +1.94 %
+  ASN16_Cs137_house      infer_eq         100-300 кэВ  Xray-Pb                2692.654 ->       2744.812  +1.94 %
+  ASN16_Cs137_house      infer_eq_peak    30-100 кэВ   Xray-Pb             1289905.763 ->    1314609.072  +1.92 %
+  ASN16_Cs137_house      infer_eq_peak    30-100 кэВ   excess_net           302602.786 ->     298137.384  -1.48 %
