@@ -1,0 +1,73 @@
+Restore code=0
+Release app code=0 -> bin\Release_P187_base\
+probes build_all code=0 -> D:\BqMoni_Claude\p187\build_base
+sha256 app=58afcdf58b66b969e9620901b8d1ceea387ffe3cecce5a0fb7dff0c56c6a562c probe=58afcdf58b66b969e9620901b8d1ceea387ffe3cecce5a0fb7dff0c56c6a562c равны=True проб=263
+Release app code=0 -> bin\Release_P187_lev\
+probes build_all code=0 -> D:\BqMoni_Claude\p187\build_lev
+sha256 app=ff3a724a881744e44a250585db0804cec3b127e29addfe714984a04a131b94af probe=ff3a724a881744e44a250585db0804cec3b127e29addfe714984a04a131b94af равны=True проб=263
+Release app code=0 -> bin\Release_P187_lev\
+probes build_all code=0 -> D:\BqMoni_Claude\p187\build_lev
+sha256 app=e7c72903109eeb614cb3fa4161e6493410d6b3493deefa34a138595a51f0b4bf probe=e7c72903109eeb614cb3fa4161e6493410d6b3493deefa34a138595a51f0b4bf равны=True проб=263
+Release app code=0 -> bin\Release_P187_lev\
+probes build_all code=0 -> D:\BqMoni_Claude\p187\build_lev
+sha256 app=5415c650c499d4b113be23ed6c9ccad1c2960f8ea6bf10d4eb6e141e3040d5ce probe=5415c650c499d4b113be23ed6c9ccad1c2960f8ea6bf10d4eb6e141e3040d5ce равны=True проб=263
+Release app code=0 -> bin\Release_P187_fin\
+probes build_all code=4 -> D:\BqMoni_Claude\p187\build_fin
+sha256 app=70077208bc86d7dd1d0d44085616392760a8713e0ae8192743ba53227a402db3 probe=70077208bc86d7dd1d0d44085616392760a8713e0ae8192743ba53227a402db3 равны=True проб=263
+Release app code=0 -> bin\Release_P187_fin\
+probes build_all code=0 -> D:\BqMoni_Claude\p187\build_fin
+sha256 app=add5d4c4984a9ce65805692f1d793595d3fbc07463bed24018d7b83f1411cc3a probe=add5d4c4984a9ce65805692f1d793595d3fbc07463bed24018d7b83f1411cc3a равны=True проб=263
+arm base mk_appwd code=0
+arm base check_appwd code=0
+arm base mini code=0 (27 s) out=D:\BqMoni_Claude\p187\out\base
+arm base score known code=0
+arm base score unknown code=0
+arm lev0 mk_appwd code=0
+arm lev0 check_appwd code=0
+arm lev0 mini code=0 (26 s) out=D:\BqMoni_Claude\p187\out\lev0
+arm lev0 score known code=0
+arm lev0 score unknown code=0
+arm s1 mini code=0 (29 s) out=D:\BqMoni_Claude\p187\out\s1
+arm s1 score known code=0
+arm s1 score unknown code=0
+arm ab1 mini code=0 (27 s) out=D:\BqMoni_Claude\p187\out\ab1
+arm ab1 score known code=0
+arm ab1 score unknown code=0
+arm lev0b mk_appwd code=0
+arm lev0b check_appwd code=0
+arm lev0b mini code=0 (25 s) out=D:\BqMoni_Claude\p187\out\lev0b
+arm lev0b score known code=0
+arm lev0b score unknown code=0
+arm ch1 mini code=0 (26 s) out=D:\BqMoni_Claude\p187\out\ch1
+arm ch1 score known code=0
+arm ch1 score unknown code=0
+arm lev0c mk_appwd code=0
+arm lev0c check_appwd code=0
+arm lev0c mini code=0 (27 s) out=D:\BqMoni_Claude\p187\out\lev0c
+arm lev0c score known code=0
+arm lev0c score unknown code=0
+arm rmp16 mini code=0 (20 s) out=D:\BqMoni_Claude\p187\out\rmp16
+arm rmp16 score known code=0
+arm rmp16 score unknown code=0
+arm ch1b mini code=0 (25 s) out=D:\BqMoni_Claude\p187\out\ch1b
+arm ch1b score known code=0
+arm ch1b score unknown code=0
+arm c mini code=-532462766 (7 s) out=D:\BqMoni_Claude\p187\out\c
+arm c score known code=1
+arm c score unknown code=1
+arm 2 mini code=-532462766 (4 s) out=D:\BqMoni_Claude\p187\out\2
+arm 2 score known code=1
+arm 2 score unknown code=1
+arm ch2 mini code=0 (29 s) out=D:\BqMoni_Claude\p187\out\ch2
+arm ch2 score known code=0
+arm ch2 score unknown code=0
+arm fin mk_appwd code=0
+arm fin check_appwd code=0
+arm fin mini code=0 (25 s) out=D:\BqMoni_Claude\p187\out\fin
+arm fin score known code=0
+arm fin score unknown code=0
+arm fin2 mk_appwd code=0
+arm fin2 check_appwd code=0
+arm fin2 mini code=0 (26 s) out=D:\BqMoni_Claude\p187\out\fin2
+arm fin2 score known code=0
+arm fin2 score unknown code=0
