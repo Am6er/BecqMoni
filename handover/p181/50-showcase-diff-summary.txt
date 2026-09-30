@@ -1,0 +1,26 @@
+| спектр | режим | расхождений | напечатано | медиана |Δ| | макс |Δ| | `model`, медиана |Δ| |
+|---|---|---|---|---|---|---|
+| `ASN16_Cs137_house` | `infer_eq` | 113 | 57 | 0.42 % | 132.59 % | 0.05 % |
+| `ASN16_Cs137_house` | `infer_eq_peak` | 103 | 47 | 0.41 % | 131.39 % | 0.05 % |
+| `ASN16_Cs137_house` | `infer_eq_compton` | 104 | 0 | nan % | nan % | nan % |
+| `AS80_Th232_disk` | `infer_eq` | 169 | 60 | 0.34 % | 38.92 % | 0.11 % |
+| `ASN16_Radon_filter2` | `chain_eq` | 138 | 60 | 0.12 % | 1.05 % | 0.01 % |
+| `ASN16_Radon_filter2` | `chain_noeq` | 129 | 30 | 0.01 % | 0.14 % | 0.00 % |
+| `G1S24_Rn222Coal_eq01` | `sample_eq` | 161 | 60 | 0.24 % | 12.79 % | 0.01 % |
+| `G1S24_Rn222Coal_eq01` | `sample_noeq` | 166 | 60 | 0.08 % | 65.22 % | 0.01 % |
+
+всего расхождений: 1083 в 8 парах
+
+крупнейшие по |Δ| (строки с «было» ≥ 1000):
+  ASN16_Cs137_house      infer_eq_peak    0-30 кэВ     continuum_raw         20433.640 ->      47281.868  +131.39 %
+  ASN16_Cs137_house      infer_eq         0-30 кэВ     continuum_raw         20433.640 ->      47281.868  +131.39 %
+  ASN16_Cs137_house      infer_eq_peak    30-100 кэВ   continuum_raw       1095698.228 ->    1434721.102  +30.94 %
+  ASN16_Cs137_house      infer_eq         30-100 кэВ   continuum_raw       1095698.228 ->    1434721.102  +30.94 %
+  ASN16_Cs137_house      infer_eq         30-100 кэВ   pile-up                1930.998 ->       2516.699  +30.33 %
+  AS80_Th232_disk        infer_eq         30-100 кэВ   Xray-Th               15388.517 ->      20048.450  +30.28 %
+  ASN16_Cs137_house      infer_eq         0-30 кэВ     Xray-Pb               98322.775 ->      71248.226  -27.54 %
+  ASN16_Cs137_house      infer_eq         100-300 кэВ  Xray-Pb                3644.155 ->       2692.654  -26.11 %
+  ASN16_Cs137_house      infer_eq_peak    100-300 кэВ  Xray-Pb                3592.441 ->       2660.494  -25.94 %
+  AS80_Th232_disk        infer_eq         100-300 кэВ  Xray-Th                6250.005 ->       7706.133  +23.30 %
+  AS80_Th232_disk        infer_eq         30-100 кэВ   tail                   8667.663 ->       7659.536  -11.63 %
+  AS80_Th232_disk        infer_eq         30-100 кэВ   missing_net           12937.107 ->      14073.112  +8.78 %

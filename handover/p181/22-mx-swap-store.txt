@@ -1,0 +1,3 @@
+куда: D:\BqMoni_Claude\p180\wt\tools\CORPUS\corpus\geometries\response
+геометрий в index.csv с guid: 49
+подменено матриц: 49

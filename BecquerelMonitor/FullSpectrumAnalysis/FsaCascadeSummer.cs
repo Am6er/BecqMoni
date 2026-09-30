@@ -3587,11 +3587,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Между узлами — логарифмическая интерполяция: сетка узлов
-        /// логарифмическая, и эффективность на ней ложится почти прямой, а
-        /// линейная по энергии заметно врала бы внизу шкалы. За краями
-        /// ЗАЖИМАЕТСЯ: экстраполировать степенным ходом на энергии, где физика
-        /// другая (ниже порога, выше сетки), — верный способ получить ерунду.
+        /// ⛔ (`AMBER136`, П182 29.09.2026) МЕЖДУ УЗЛАМИ — ТЕМ ЖЕ ПРАВИЛОМ, ЧТО
+        /// СМЕШИВАЕТ СТРОКИ САМА МАТРИЦА (<c>ResponseMatrix.Accumulate</c>):
+        /// веса узлов (1 − t) и t, t линейно по энергии, точное попадание в
+        /// узел — строка узла, за краями сетки — крайний узел. Эффективность
+        /// здесь — сумма строки, которую матрица РЕАЛЬНО кладёт в образ на
+        /// этой энергии, и другой быть не может: по ней делится вес сумм-пика
+        /// (<c>FsaAnalyzer.AccumulateSumPeaks</c> кладёт `Area / ε_p` строкой
+        /// матрицы и обязан получить ровно `Area`), по ней же считаются
+        /// выживание линии, площади пар и сумм-континуум — убыль и прибыль
+        /// совпадений, которые обязаны сходиться с тем, что лежит в образе.
+        ///
+        /// До П182 здесь стояла лог-лог интерполяция («сетка логарифмическая,
+        /// эффективность на ней почти прямая»), а матрица смешивала строки
+        /// линейно, и сумм-пик ложился площадью `Area · ε_матрицы / ε_здесь`.
+        /// Замер `AmberFsaProbeP182` по 49 матрицам склада rev35 (середины и
+        /// четверти промежутков): до +6.5 % при 20…40 кэВ, до +29 % при
+        /// 40…100 кэВ (скачок пиковой эффективности у K-края в геометрии),
+        /// 1.4 % при 100…300 кэВ, 0.32 % выше; на искусственной двухузловой
+        /// матрице 100/300 кэВ — +49.9 % на 200 кэВ. Какое правило физически
+        /// точнее между узлами — вопрос МАТРИЦЫ (густоты её сетки), а не
+        /// суммирователя: рисуется и фитуется то, что кладёт она.
         /// </summary>
         double Interpolate(double[] values, double energyKev)
         {
@@ -3601,17 +3617,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return 0.0;
             }
 
-            if (energyKev <= grid[0])
-            {
-                return values[0];
-            }
-
-            int last = grid.Length - 1;
-            if (energyKev >= grid[last])
-            {
-                return values[last];
-            }
-
             int hi = Array.BinarySearch(grid, energyKev);
             if (hi >= 0)
             {
@@ -3619,16 +3624,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             hi = ~hi;
-            int lo = hi - 1;
-            double a = values[lo], b = values[hi];
-            double t = (Math.Log(energyKev) - Math.Log(grid[lo]))
-                       / (Math.Log(grid[hi]) - Math.Log(grid[lo]));
-            if (a > 0.0 && b > 0.0)
+            if (hi <= 0)
             {
-                return Math.Exp(Math.Log(a) + t * (Math.Log(b) - Math.Log(a)));
+                return values[0];
             }
 
-            return a + t * (b - a);
+            if (hi >= grid.Length)
+            {
+                return values[grid.Length - 1];
+            }
+
+            int lo = hi - 1;
+            double span = grid[hi] - grid[lo];
+            double t = span > 0.0 ? (energyKev - grid[lo]) / span : 0.0;
+            return values[lo] * (1.0 - t) + values[hi] * t;
         }
 
         static double Sum(float[] row)
