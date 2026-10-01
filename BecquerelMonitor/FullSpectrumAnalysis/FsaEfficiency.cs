@@ -20,11 +20,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     ///   говорится вслух. По ней считается коэффициент перевода в беккерели:
     ///   там ошибка молча превращается в неверную активность, а «нет значения»
     ///   пользователь увидит и поправит.
-    /// * <see cref="Eval"/> — мягкая, держит края константой. По ней работает
-    ///   полноспектральная декомпозиция: у неё в шаблоне сотни линий по всей
-    ///   шкале, и отказ на краю выбросил бы линию из шаблона целиком — это
-    ///   хуже заниженного веса далёкой линии. Экстраполировать наклоном на
-    ///   краю опаснее и того.
+    /// * <see cref="Eval"/> — мягкая, держит края константой. Читателей у неё
+    ///   в разборе больше НЕТ (`AMBER157`, П195 01.10.2026; решение Amber
+    ///   «Исключать с заверением»): зажим крайней точкой молча уводил
+    ///   активность линии за краем на ε(край)/ε(линии) — у K-40 1461 кэВ при
+    ///   кривой до 1250 кэВ −12.6 % при побитово том же фите, — и «отказ на
+    ///   краю выбросил бы линию» оказался не хуже, а честнее: линия вне кривой
+    ///   из образа исключается, и окно отчёта её называет. Метод оставлен
+    ///   пробам, меряющим сам зажим (`AmberFsaProbeP182`).
     /// </summary>
     public sealed class FsaEfficiency
     {
@@ -143,6 +146,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 curve.HasGeometry = config.HasGeometry;
                 curve.Normalization = normalization;
                 curve.Name = config.Name;
+                // (`AMBER156` (б), П195) вещество кристалла — тем же движением,
+                // что признак геометрии, и по той же причине: кривая — то, что
+                // доезжает до разбора от конфигурации прибора на ВСЕХ путях.
+                curve.CrystalMaterial = config.HasGeometry
+                    ? EfficiencySimulator.ScintillatorNameOf(config.Geometry)
+                    : null;
             }
 
             return curve;
@@ -184,6 +193,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// побитово одинаковым.
         /// </summary>
         public bool HasGeometry { get; private set; }
+
+        /// <summary>
+        /// (`AMBER156` (б), П195 01.10.2026) Вещество кристалла геометрии этой
+        /// кривой (<see cref="EfficiencySimulator.ScintillatorNameOf"/>); null —
+        /// геометрии нет. Нужно ровно одному читателю — световой координате
+        /// разбора БЕЗ матрицы: у матричного разбора вещество кладёт
+        /// <see cref="FsaMatrixBinding.Bind"/>, а без матрицы его не клал никто,
+        /// и таблица света `FsaLightScale` (она по веществу, не по матрице)
+        /// оставалась невостребованной.
+        /// </summary>
+        public string CrystalMaterial { get; private set; }
+
+        /// <summary>
+        /// (`AMBER157`, П195) Энергия внутри таблицы кривой (края включительно) —
+        /// то же условие, что у <see cref="TryEval"/>.
+        /// </summary>
+        public bool Covers(double energy)
+        {
+            if (this.logEnergy.Length < 2 || !(energy > 0.0))
+            {
+                return false;
+            }
+
+            double x = Math.Log(energy);
+            return x >= this.logEnergy[0] && x <= this.logEnergy[this.logEnergy.Length - 1];
+        }
 
         /// <summary>
         /// Точки с неположительной эффективностью отбрасываются: в поставочных
@@ -364,9 +399,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Мягкая выборка для полноспектральной декомпозиции: за краями таблицы
-        /// держится константой. Ноль означает «кривой нет» — вызывающий такую
-        /// линию пропускает.
+        /// Мягкая выборка: за краями таблицы держится константой. Ноль означает
+        /// «кривой нет». ⛔ В разборе не звать (`AMBER157`): за краем значения
+        /// нет, и разбор берёт <see cref="TryEval"/> с исключением линии.
         /// </summary>
         public double Eval(double energy)
         {

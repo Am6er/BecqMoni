@@ -2,6 +2,7 @@ using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 
 namespace BecquerelMonitor.FullSpectrumAnalysis
@@ -286,6 +287,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// <summary>Пиков всего и из них подписанных.</summary>
             public int Peaks, Labelled;
 
+            /// <summary>
+            /// (`AMBER157` (в), П195) Энергии линий кандидатов, не взятых в
+            /// ожидаемое потому, что лежат вне диапазона кривой эффективности
+            /// (прежде брали ε крайней точки). Множество — по всем кандидатам;
+            /// итог — одним замечанием «кривая E1…E2 кэВ, линий вне: N».
+            /// </summary>
+            public readonly SortedSet<double> OutOfCurveLines = new SortedSet<double>();
+
             public override string ToString()
             {
                 var text = new StringBuilder();
@@ -392,6 +401,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     models.Add(model);
                 }
+            }
+
+            // (`AMBER157` (в), П195) сверка кривой с линиями кандидатов — одним
+            // замечанием на вывод, с диапазоном кривой и числом линий вне его
+            if (report.OutOfCurveLines.Count > 0)
+            {
+                FsaEfficiency curve = FsaEfficiency.FromConfig(resultData.Efficiency);
+                report.Notes.Add(string.Format(CultureInfo.InvariantCulture,
+                    "кривая {0}…{1} кэВ, линий вне: {2} ({3}) — в ожидаемое не взяты",
+                    curve != null ? curve.MinEnergy.ToString("0.#", CultureInfo.InvariantCulture) : "?",
+                    curve != null ? curve.MaxEnergy.ToString("0.#", CultureInfo.InvariantCulture) : "?",
+                    report.OutOfCurveLines.Count,
+                    string.Join(", ", report.OutOfCurveLines.Take(8)
+                                          .Select(e => e.ToString("0.#", CultureInfo.InvariantCulture)))
+                    + (report.OutOfCurveLines.Count > 8 ? ", …" : "")));
             }
 
             Score(models, minSnr);
@@ -924,7 +948,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             lines.Sort((a, b) => a.Energy.CompareTo(b.Energy));
-            Collect(model, lines, resultData, peaks);
+            Collect(model, lines, resultData, peaks, report.OutOfCurveLines);
             return model;
         }
 
@@ -946,7 +970,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// это допущение, а не умолчание, и оно названо здесь.
         /// </summary>
         static void Collect(Model model, List<Line> lines, ResultData resultData,
-                            List<Peak> peaks)
+                            List<Peak> peaks, SortedSet<double> outOfCurve)
         {
             FsaEfficiency efficiency = FsaEfficiency.FromConfig(resultData.Efficiency);
             EnergySpectrum spectrum = resultData.EnergySpectrum;
@@ -961,7 +985,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double weight = line.Weight;
                 if (efficiency != null)
                 {
-                    weight *= efficiency.Eval(line.Energy);
+                    // ⛔ (`AMBER157` (в), П195) тем же правилом, что образ
+                    // разбора: вне кривой эффективность неизвестна, и линия в
+                    // ожидаемое не идёт (прежде `Eval` давал ε крайней точки —
+                    // линия за верхом кривой весила больше, чем весит). Энергия
+                    // — в замечание вывода.
+                    double eps, errorPercent;
+                    if (!efficiency.TryEval(line.Energy, out eps, out errorPercent))
+                    {
+                        if (outOfCurve != null && line.Weight > 0.0)
+                        {
+                            outOfCurve.Add(line.Energy);
+                        }
+
+                        continue;
+                    }
+
+                    weight *= eps;
                 }
 
                 if (!(weight > 0.0))

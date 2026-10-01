@@ -1105,5 +1105,121 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return 0.0;
             }
         }
+
+        /// <summary>(П195) Умолчание карточки пробы — вес, кг (`SampleInfoData`).</summary>
+        public const double DefaultCardWeightKg = 1.0;
+
+        /// <summary>(П195) Умолчание карточки пробы — объём, л (`SampleInfoData`).</summary>
+        public const double DefaultCardVolumeL = 1.0;
+
+        /// <summary>
+        /// (`AMBER159`, П195 01.10.2026; решение Amber «Предупреждение с
+        /// величиной») ПЛОТНОСТЬ ПРОБЫ ПРОТИВ ПЛОТНОСТИ СЦЕНЫ. Разбор считает
+        /// активность матрицей (и кривой из геометрии) с плотностью вещества
+        /// источника сцены (<see cref="EfficiencyMaker.GeometryModel.Source"/>),
+        /// а вес и объём пробы человек вписывает в карточку
+        /// (<see cref="SampleInfoData.Weight"/>, кг; <see cref="SampleInfoData.Volume"/>,
+        /// л — единицы хранения, `DCSampleInfoView`), и до 01.10.2026 их никто
+        /// не сверял: проба 1.3 г/см³ в маринелли со сценой 0.66 давала
+        /// активность ниже на 15 % при 60 кэВ и на 7 % при 662 — молча.
+        ///
+        /// Поправка активности НЕ делается (решение Amber: делается только
+        /// сверка); здесь — расхождение и оценка цены. null — сверять нечего:
+        /// нет веса или объёма (нуль — «не вписан»), нет геометрии, у сцены нет
+        /// пробы (точечный источник).
+        ///
+        /// Зовёт окно отчёта при каждом заполнении, а не сеанс при счёте:
+        /// вес и объём в отпечаток разбора не входят (на разложение они не
+        /// влияют), и строка, посчитанная при счёте, осталась бы старой после
+        /// правки карточки.
+        ///
+        /// ⚠ Цена — ОЦЕНКА, названная так и в строке окна: наклон ln ε по
+        /// плотности из прямого счёта П191 на маринелли 1 л
+        /// (`Nano16Pro_Marinelli.in`, ρ 0.66 / 1.3, 3 М историй на узел, шум
+        /// узла 1.3…1.8 %): ε(0.66)/ε(1.3) = 1.177 при 60 кэВ и 1.078 при 662 —
+        /// у другого сосуда и другой высоты пробы наклон другой.
+        /// </summary>
+        public static FsaSampleDensityCheck CheckSampleDensity(SampleInfoData sample,
+                                                               EfficiencyMaker.GeometryModel geometry)
+        {
+            if (sample == null || geometry == null || geometry.Source == null
+                || !geometry.HasSampleVolume
+                || !(sample.Weight > 0.0) || !(sample.Volume > 0.0)
+                || double.IsInfinity(sample.Weight) || double.IsInfinity(sample.Volume)
+                || !(geometry.Source.Density > 0.0))
+            {
+                return null;
+            }
+
+            // ⚠ (П195) 1 кг и 1 л РОВНО — умолчание карточки (`SampleInfoData`:
+            // `weight = 1.0`, `volume = 1.0`), а не вписанные числа: так стоит у
+            // 112 из 131 спектра корпуса и у спектров витрины Amber. Посылка
+            // решения «нуль — не вписан» уже реальности; сверять умолчание значило
+            // бы красить «+52 %» почти каждое измерение в маринелли ОИСН 0.66.
+            // Цена — настоящая проба 1 кг в 1 л не сверяется; выбор — за Amber.
+            if (sample.Weight == DefaultCardWeightKg && sample.Volume == DefaultCardVolumeL)
+            {
+                return null;
+            }
+
+            // кг/л = г/см³
+            double sampleDensity = sample.Weight / sample.Volume;
+            double sceneDensity = geometry.Source.Density;
+            double delta = sampleDensity - sceneDensity;
+            return new FsaSampleDensityCheck
+            {
+                SampleDensity = sampleDensity,
+                SceneDensity = sceneDensity,
+                DeviationPercent = 100.0 * (sampleDensity / sceneDensity - 1.0),
+                Efficiency60Percent = 100.0 * (Math.Exp(-FsaSampleDensityCheck.LogSlope60 * delta) - 1.0),
+                Efficiency662Percent = 100.0 * (Math.Exp(-FsaSampleDensityCheck.LogSlope662 * delta) - 1.0)
+            };
+        }
+    }
+
+    /// <summary>
+    /// (`AMBER159`, П195) Итог сверки плотности пробы с плотностью сцены —
+    /// <see cref="FsaAnalysisSession.CheckSampleDensity"/>; читает окно отчёта.
+    /// </summary>
+    public sealed class FsaSampleDensityCheck
+    {
+        /// <summary>
+        /// Наклон −d ln ε / dρ пика при 60 кэВ, см³/г: ln(0.01705/0.01449)/0.64
+        /// по прямому счёту П191 (маринелли 1 л, ρ 0.66 против 1.3).
+        /// </summary>
+        public const double LogSlope60 = 0.2542;
+
+        /// <summary>То же при 662 кэВ: ln(0.00371/0.00344)/0.64.</summary>
+        public const double LogSlope662 = 0.1181;
+
+        /// <summary>
+        /// Порог предупреждения по |расхождению плотностей|, % — из решения
+        /// Amber 01.10.2026 («при |Z| &gt; 10 % — предупреждение в окне отчёта»).
+        /// </summary>
+        public const double WarningPercent = 10.0;
+
+        /// <summary>Плотность пробы W/V, г/см³.</summary>
+        public double SampleDensity { get; set; }
+
+        /// <summary>Плотность вещества источника сцены, г/см³.</summary>
+        public double SceneDensity { get; set; }
+
+        /// <summary>(ρ пробы / ρ сцены − 1) · 100, %.</summary>
+        public double DeviationPercent { get; set; }
+
+        /// <summary>
+        /// Оценка ε пробы против ε сцены при 60 кэВ, % (знак: минус — у пробы
+        /// эффективность ниже, активность разбора занижена так же).
+        /// </summary>
+        public double Efficiency60Percent { get; set; }
+
+        /// <summary>То же при 662 кэВ, %.</summary>
+        public double Efficiency662Percent { get; set; }
+
+        /// <summary>|расхождение| выше порога — строка окна красная.</summary>
+        public bool Warning
+        {
+            get { return Math.Abs(this.DeviationPercent) > WarningPercent; }
+        }
     }
 }

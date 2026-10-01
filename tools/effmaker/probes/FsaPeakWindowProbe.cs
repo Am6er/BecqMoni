@@ -564,8 +564,9 @@ namespace FsaPeakWindowProbe
                 }
                 else if (efficiency != null && !component.WeightsAreFinal)
                 {
-                    double e = efficiency.Eval(line.Energy);
-                    weight = e > 0.0 ? weight * e : 0.0;
+                    // (`AMBER157`, П195) тем же правилом, что разбор: вне кривой линии нет
+                    double e, err;
+                    weight = efficiency.TryEval(line.Energy, out e, out err) && e > 0.0 ? weight * e : 0.0;
                 }
 
                 counts[i] = weight > 0.0 ? weight : 0.0;

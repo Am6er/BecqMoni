@@ -351,6 +351,63 @@ namespace BecquerelMonitor
         const string KeyInterferenceValue = "FSAReport_InterferenceValue";
         const string KeyResidualNoise = "FSAReport_ResidualNoise";
         const string KeyResidualNoiseTip = "FSAReport_ResidualNoiseTip";
+        // (`AMBER156`, `AMBER157`, `AMBER159`; П195 01.10.2026) Разбор без
+        // матрицы; линии вне кривой эффективности; плотность пробы против сцены.
+        const string KeyNoMatrixWarnRow = "FSAReport_NoMatrixWarnRow";
+        const string KeyNoMatrixWarnValue = "FSAReport_NoMatrixWarnValue";
+        const string KeyCurveOutsideRow = "FSAReport_CurveOutsideRow";
+        const string KeyCurveOutsideValue = "FSAReport_CurveOutsideValue";
+        const string KeyDensityRow = "FSAReport_DensityRow";
+
+        /// <summary>(`AMBER157`) Сколько исключённых линий называется в подписи поимённо.</summary>
+        const int CurveOutsideShown = 6;
+
+        /// <summary>
+        /// (`AMBER157`, П195) Исключённые линии словами: «K-40 1460.8, …» —
+        /// первые <see cref="CurveOutsideShown"/>, остаток числом.
+        /// </summary>
+        static string OutOfCurveList(List<FsaOutOfCurveLine> lines)
+        {
+            var parts = new List<string>();
+            for (int i = 0; i < lines.Count && i < CurveOutsideShown; i++)
+            {
+                parts.Add(FsaSampleLibrary.PrettyName(lines[i].Component ?? string.Empty) + " "
+                          + lines[i].EnergyKev.ToString("0.0", CultureInfo.InvariantCulture));
+            }
+
+            if (lines.Count > CurveOutsideShown)
+            {
+                parts.Add("+" + (lines.Count - CurveOutsideShown).ToString(CultureInfo.InvariantCulture));
+            }
+
+            return string.Join(", ", parts.ToArray());
+        }
+
+        /// <summary>
+        /// (`AMBER159`, П195) Сверка плотности для показанного спектра: карточка
+        /// пробы и геометрия его кривой; null — сверять нечего.
+        /// </summary>
+        public static FsaSampleDensityCheck DensityOf(ResultData data)
+        {
+            return data != null && data.Efficiency != null && data.Efficiency.HasGeometry
+                ? FsaAnalysisSession.CheckSampleDensity(data.SampleInfo, data.Efficiency.Geometry)
+                : null;
+        }
+
+        /// <summary>
+        /// (`AMBER159`, П195) Подпись строки плотности: «плотность пробы X,
+        /// сцены Y, расхождение Z % — ε при 60 кэВ N %, при 662 кэВ M %
+        /// (оценка)». Открыта пробе: приёмка читает ТУ ЖЕ строку, что окно.
+        /// </summary>
+        public static string DensityCaption(FsaSampleDensityCheck density)
+        {
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyDensityRow),
+                                 density.SampleDensity.ToString("0.00", CultureInfo.InvariantCulture),
+                                 density.SceneDensity.ToString("0.00", CultureInfo.InvariantCulture),
+                                 density.DeviationPercent.ToString("+0;-0;0", CultureInfo.InvariantCulture),
+                                 density.Efficiency60Percent.ToString("+0;-0;0", CultureInfo.InvariantCulture),
+                                 density.Efficiency662Percent.ToString("+0;-0;0", CultureInfo.InvariantCulture));
+        }
 
         /// <summary>
         /// (`AMBER126`) Ниже этого пол шума невязки в подписи не печатается: в
@@ -1551,6 +1608,44 @@ namespace BecquerelMonitor
                                       result.CascadeSummingUsed,
                                       result.CascadeSummingRefusedFieldMatrix));
 
+            // (`AMBER156` (в), П195) РАЗБОР БЕЗ МАТРИЦЫ — предупреждение словами
+            // и с величиной, а не одна пометка «не учтено» у суммирования:
+            // старый формат, выключенная галка или несчитанная матрица — обычный
+            // путь человека, и до 01.10.2026 он получал заниженные активности
+            // без единого слова. Стоит ПОСЛЕ трёх строк, печатаемых всегда, —
+            // это происшествие, а не состояние.
+            if (result.EfficiencyUsed && !result.ResponseMatrixUsed)
+            {
+                made.Add(this.MakeMarkRowText(OwnText(KeyNoMatrixWarnRow), OwnText(KeyNoMatrixWarnValue), false, true));
+            }
+
+            // (`AMBER157`, П195; решение Amber 01.10.2026 «Исключать с
+            // заверением») ЛИНИИ ВНЕ КРИВОЙ ИСКЛЮЧЕНЫ — происшествие, только
+            // когда было: диапазон кривой и линии словами в подписи, короткое
+            // слово справа. Числа — один раз и инвариантной культурой (`A242`).
+            if (result.EfficiencyOutOfRangeLines != null && result.EfficiencyOutOfRangeLines.Count > 0)
+            {
+                made.Add(this.MakeMarkRowText(
+                    string.Format(CultureInfo.InvariantCulture, OwnText(KeyCurveOutsideRow),
+                                  result.EfficiencyMinKev.ToString("0.#", CultureInfo.InvariantCulture),
+                                  result.EfficiencyMaxKev.ToString("0.#", CultureInfo.InvariantCulture),
+                                  OutOfCurveList(result.EfficiencyOutOfRangeLines)),
+                    OwnText(KeyCurveOutsideValue), false, true));
+            }
+
+            // (`AMBER159`, П195; решение Amber 01.10.2026 «Предупреждение с
+            // величиной») ПЛОТНОСТЬ ПРОБЫ ПРОТИВ СЦЕНЫ — когда в карточке есть
+            // и вес, и объём, а у сцены есть проба. Сверяется здесь, при каждом
+            // заполнении: вес и объём в отпечаток разбора не входят. Красным —
+            // при |расхождении| выше порога; поправки активности нет.
+            FsaSampleDensityCheck density = DensityOf(this.ActiveResultData);
+            if (density != null)
+            {
+                made.Add(this.MakeMarkRowText(DensityCaption(density),
+                                              density.DeviationPercent.ToString("+0;-0;0", CultureInfo.InvariantCulture) + " %",
+                                              !density.Warning, density.Warning));
+            }
+
             // (`S44`, решение Amber 01.09.2026) ФОН ПОДАН И НЕ ВЗЯТ — причина
             // словами. Стоит первой среди происшествий, как и в хвосте
             // <see cref="FsaPresentationBuilder.QualityText"/>: строка «фон не
@@ -1577,7 +1672,9 @@ namespace BecquerelMonitor
             // в одном из них читалось бы как второе. Число — инвариантной
             // культурой (`A242`); перечень опор — в подсказке строки, потому
             // что в самой строке не поместится: имя, энергия, остаток.
-            if (result.ResponseMatrixUsed)
+            // (`AMBER156` (а), П195) Привязка идёт и без матрицы — по голым
+            // пикам кривой, — и строка печатается при любом разборе с кривой.
+            if (result.ResponseMatrixUsed || result.EfficiencyUsed)
             {
                 this.AddAnchorRow(made, result);
             }

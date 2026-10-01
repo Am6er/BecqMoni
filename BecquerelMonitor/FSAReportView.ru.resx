@@ -349,4 +349,19 @@
   <data name="FSAReport_ResidualNoiseTip" xml:space="preserve">
     <value>Модель без единой ошибки всё равно даёт около {0} % в каждой половине: это пуассонов шум полосы (ожидаемое положительное отклонение каждого канала от идеальной модели, в сумме, от измеренных отсчётов той же полосы). Невязка около этого пола модель от идеальной не отличает; не описано только то, что сверх него.</value>
   </data>
+  <data name="FSAReport_NoMatrixWarnRow" xml:space="preserve">
+    <value>Нет матрицы отклика: каскадное суммирование не учтено — каскадные нуклиды занижены на CF − 1 (корпус: −3…−11 % на 5 см, −4…−7 % в маринелли и Петри); в образах нет комптона и вылетов; шкала привязана по голым пикам. Постройте матрицу из геометрии.</value>
+  </data>
+  <data name="FSAReport_NoMatrixWarnValue" xml:space="preserve">
+    <value>до −11 %</value>
+  </data>
+  <data name="FSAReport_CurveOutsideRow" xml:space="preserve">
+    <value>Кривая эффективности {0}…{1} кэВ — линии вне неё исключены из образов: {2}</value>
+  </data>
+  <data name="FSAReport_CurveOutsideValue" xml:space="preserve">
+    <value>исключены</value>
+  </data>
+  <data name="FSAReport_DensityRow" xml:space="preserve">
+    <value>Плотность пробы {0} г/см³, сцены {1} г/см³, расхождение {2} % — ε при 60 кэВ {3} %, при 662 кэВ {4} % (оценка по маринелли 1 л; активность не поправлена)</value>
+  </data>
 </root>
