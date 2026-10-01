@@ -29,6 +29,11 @@ namespace FsaClosureP191
             new List<KeyValuePair<System.Reflection.PropertyInfo, object>>();
         static readonly List<KeyValuePair<System.Reflection.FieldInfo, object>> fieldSets =
             new List<KeyValuePair<System.Reflection.FieldInfo, object>>();
+        static readonly List<KeyValuePair<System.Reflection.PropertyInfo, object>> copySets =
+            new List<KeyValuePair<System.Reflection.PropertyInfo, object>>();
+        static readonly List<KeyValuePair<System.Reflection.FieldInfo, object>> copyFieldSets =
+            new List<KeyValuePair<System.Reflection.FieldInfo, object>>();
+        static bool runningCopy;
 
         static int Main(string[] args)
         {
@@ -47,6 +52,9 @@ namespace FsaClosureP191
                 if (a.StartsWith("--doff=")) driftOff = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
                 if (a == "--lie") lie = true;
                 if (a.StartsWith("--rebin=")) rebin = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                if (a == "--decimate") decimate = true;
+                if (a.StartsWith("--copy-decimate=")) copyDecimate = int.Parse(a.Substring(16), CultureInfo.InvariantCulture);
+                if (a == "--ramp=off") FsaBand.DefaultRampModel = FsaRampModel.Off;
                 if (a.StartsWith("--band=")) FsaBand.DefaultMode = (FsaBandMode)Enum.Parse(typeof(FsaBandMode), a.Substring(7), true);
                 if (a.StartsWith("--curve-max=")) curveMax = double.Parse(a.Substring(12), CultureInfo.InvariantCulture);
                 if (a == "--fwhm-follow") fwhmFollow = true;
@@ -75,20 +83,22 @@ namespace FsaClosureP191
                     sumWinLo = double.Parse(t[0], CultureInfo.InvariantCulture);
                     sumWinHi = double.Parse(t[1], CultureInfo.InvariantCulture);
                 }
-                else if (a == "--nobg" || a == "--exact" || a == "--notes" || a == "--nomatrix" || a == "--truth-nobg" || a.StartsWith("--dgain=") || a.StartsWith("--doff=") || a == "--lie" || a.StartsWith("--dfrom=") || a == "--fwhm-follow" || a.StartsWith("--fwhm-scale=") || a.StartsWith("--truth-fwhm=") || a.StartsWith("--bgdrift=") || a == "--nnls" || a == "--bgtrace" || a.StartsWith("--floor=") || a.StartsWith("--curve-max=") || a.StartsWith("--rebin=") || a.StartsWith("--band=")) { }
-                else if (a.StartsWith("--set=", StringComparison.Ordinal))
+                else if (a == "--nobg" || a == "--exact" || a == "--notes" || a == "--nomatrix" || a == "--truth-nobg" || a.StartsWith("--dgain=") || a.StartsWith("--doff=") || a == "--lie" || a.StartsWith("--dfrom=") || a == "--fwhm-follow" || a.StartsWith("--fwhm-scale=") || a.StartsWith("--truth-fwhm=") || a.StartsWith("--bgdrift=") || a == "--nnls" || a == "--bgtrace" || a.StartsWith("--floor=") || a.StartsWith("--curve-max=") || a.StartsWith("--rebin=") || a == "--decimate" || a.StartsWith("--copy-decimate=") || a == "--ramp=off" || a.StartsWith("--band=")) { }
+                else if (a.StartsWith("--set=", StringComparison.Ordinal) || a.StartsWith("--copy-set=", StringComparison.Ordinal))
                 {
-                    string kv = a.Substring(6);
+                    // П198 --copy-set=: та же настройка, но ТОЛЬКО разбору копий (истина — умолчаниями)
+                    bool copyOnly = a.StartsWith("--copy-set=", StringComparison.Ordinal);
+                    string kv = a.Substring(copyOnly ? 11 : 6);
                     int eq = kv.IndexOf('=');
                     System.Reflection.PropertyInfo pi = eq > 0 ? typeof(FsaAnalyzer).GetProperty(kv.Substring(0, eq)) : null;
                     System.Reflection.FieldInfo fi = eq > 0 && pi == null ? typeof(FsaAnalyzer).GetField(kv.Substring(0, eq)) : null;
                     if ((pi == null || !pi.CanWrite) && fi == null) { Console.Error.WriteLine("нет свойства анализатора: {0}", kv); return 2; }
                     if (pi != null)
-                        sets.Add(new KeyValuePair<System.Reflection.PropertyInfo, object>(pi,
+                        (copyOnly ? copySets : sets).Add(new KeyValuePair<System.Reflection.PropertyInfo, object>(pi,
                             pi.PropertyType.IsEnum ? Enum.Parse(pi.PropertyType, kv.Substring(eq + 1), true)
                                                    : Convert.ChangeType(kv.Substring(eq + 1), pi.PropertyType, CultureInfo.InvariantCulture)));
                     else
-                        fieldSets.Add(new KeyValuePair<System.Reflection.FieldInfo, object>(fi,
+                        (copyOnly ? copyFieldSets : fieldSets).Add(new KeyValuePair<System.Reflection.FieldInfo, object>(fi,
                             fi.FieldType.IsEnum ? Enum.Parse(fi.FieldType, kv.Substring(eq + 1), true)
                                                 : Convert.ChangeType(kv.Substring(eq + 1), fi.FieldType, CultureInfo.InvariantCulture)));
                 }
@@ -304,7 +314,20 @@ namespace FsaClosureP191
                             var top = Enumerable.Range(0, m).OrderByDescending(k => Math.Abs(t.C[k])).Take(4).Select(k => string.Format(CultureInfo.InvariantCulture, "k{0}:c={1:E2},x={2:E2},{3}{4}", k, t.C[k], t.X[k], t.Active[k] ? "A" : "-", t.Banned[k] ? "B" : ""));
                             Console.WriteLine("      [nnls {0}] m={1} iter={2}/{3} drops={4} active={5} banned={6} x>0={7} tol={8:E2}; крупнейшие |c|: {9}", nnlsCall, m, t.Iterations, t.Budget, t.Drops, nAct, nBan, nPos, t.Tol, string.Join(" ", top));
                         };
-                    FsaResult res = Run(copyData, copy, withBg ? rd.BackgroundEnergySpectrum : null, spec, matrix, material);
+                    EnergySpectrum bgUse = withBg ? rd.BackgroundEnergySpectrum : null;
+                    if (copyDecimate > 1)
+                    {
+                        copy = DecimateSpectrum(copy, copyDecimate, "копия");
+                        copyData.EnergySpectrum = copy;
+                        copy.LiveTime = rd.EnergySpectrum.EffectiveLiveTime * scale;
+                        if (bgUse != null) bgUse = DecimateSpectrum(bgUse, copyDecimate, "фон копии");
+                        var pfc = copyData.FwhmCalibration as PowerFwhmCalibration;
+                        if (pfc == null) throw new InvalidOperationException("--copy-decimate: нужна PowerFwhmCalibration");
+                        copyData.FwhmCalibration = new DecimatedPowerFwhm(pfc, copyDecimate);
+                    }
+                    runningCopy = true;
+                    FsaResult res = Run(copyData, copy, bgUse, spec, matrix, material);
+                    runningCopy = false;
                     FsaAnalyzer.NnlsTraceSink = null;
                     if (res == null) { if (notes) Console.WriteLine("  [копия {0}] отказ {1}", r, lastRefusal); continue; }
                     if (notes && r < 2) PrintNotes("копия " + r, res);
@@ -313,7 +336,7 @@ namespace FsaClosureP191
                         // χ² копии по блокам 100 кэВ: (данные − модель)²/max(модель + фон, 1)
                         EnergyCalibration calB = copy.EnergyCalibration;
                         var blocks = new SortedDictionary<int, double[]>();
-                        for (int i = 0; i < channels; i++)
+                        for (int i = 0; i < copy.NumberOfChannels; i++)
                         {
                             double e = calB.ChannelToEnergy(i);
                             if (i < res.FirstChannel || i > res.LastChannel) continue;
@@ -333,7 +356,7 @@ namespace FsaClosureP191
                         // окно копии: её данные против её модели, тяга канала по σ = sqrt(модель + фон)
                         EnergyCalibration cal = copy.EnergyCalibration;
                         double chiWin = 0.0; int nWin = 0;
-                        for (int i = 0; i < channels; i++)
+                        for (int i = 0; i < copy.NumberOfChannels; i++)
                         {
                             double e = cal.ChannelToEnergy(i);
                             if (e < sumWinLo - 60.0 || e > sumWinHi + 60.0) continue;
@@ -439,6 +462,15 @@ namespace FsaClosureP191
         static double truthFwhm = 1.0;   // множитель к калибровке ПШПВ САМОГО спектра перед разбором истины (развёртка ширины по настоящим данным)
         static double bgDrift = 1.0;
         static int rebin = 1;   // --rebin=k: спектр, фон, калибровки — ×k грубее (инвариантность к дискретизации)
+        // П198 --decimate (вместе с --rebin=k): ТОЧНОЕ укрупнение — канал m = сумма каналов k·m … k·m+k−1 без деления
+        // отсчётов, E'(m) = E(k·m + (k−1)/2), ПШПВ'(m) = ПШПВ(k·m + (k−1)/2)/k. Перекладка RebinByEnergy (центры каналов)
+        // делит крайние старые каналы пополам и добавляет данным дисперсию 1/12 старого канала² — у пика в 1.3 нового
+        // канала это +3 % ширины, то есть сама проверка «×2» была не нейтральна к дискретизации (`AMBER158`, П198).
+        static bool decimate;
+        // П198 --copy-decimate=k: истина — в родных каналах, а КОПИЯ (с фоном и калибровками) укрупняется точно ×k перед
+        // разбором. Так мерится инвариантность самого разбора к числу каналов на модели, которая описывает данные точно
+        // (у настоящего спектра χ²/ndf ≫ 1, и любая перестановка весов двигает амплитуды — это уже не дискретизация).
+        static int copyDecimate = 1;
         static bool nnlsTrace;
         static string floorSpec;         // пол полосы фита: off | adc | threshold | fixed:<кэВ> — статики FsaBand.DefaultFitFloor/DefaultFitFloorKev           // печать трассы решателя NNLS (A308-прибор): вызов, итерации, активные/забаненные колонки, крупнейшие x     // перебинировать ХРАНИМЫЙ ФОН на усиление g перед разбором истины — имитация «фон вычитается в истинной шкале» (AMBER154)
 
@@ -510,6 +542,7 @@ namespace FsaClosureP191
         static void PrintNotes(string who, FsaResult r)
         {
             Console.WriteLine("  [{0}] gain {1:F5} сдвиг {2:F3} кан; chi2ndf {3:F3}; {4}", who, r.Gain, r.OffsetChannels, r.Chi2Ndf, r.AnchorNote ?? "—");
+            Console.WriteLine("  [{0}] множитель ширины {1:F5} по {2} опорам", who, r.WidthScale, r.WidthAnchorsUsed);
             Console.WriteLine("  [{0}] {1}", who, lastBand ?? "—");
             if (r.SuppressedImages != null && r.SuppressedImages.Count > 0)
                 foreach (FsaSuppressedImage si in r.SuppressedImages)
@@ -521,9 +554,9 @@ namespace FsaClosureP191
             {
                 foreach (FsaScaleAnchor a in r.ScaleAnchors)
                 {
-                    Console.WriteLine("  [{0}]   опора {1,-8} {2,8:F2} кэВ  модель {3,8:F3}  данные {4,8:F3}  сдвиг {5,7:F3} кэВ  σ {6,6:F3}  доля {7:F3}  z {8,7:F1}  окно {9}…{10}  {11}",
+                    Console.WriteLine("  [{0}]   опора {1,-8} {2,8:F2} кэВ  модель {3,8:F3}  данные {4,8:F3}  сдвиг {5,7:F3} кэВ  σ {6,6:F3}  доля {7:F3}  z {8,7:F1}  окно {9}…{10}  {11}  ширина данные/образ {12:F4}",
                                       who, a.Component, a.LineKev, a.ModelKev, a.MeasuredKev, a.ShiftKev, a.SigmaKev, a.PeakShare, a.Z,
-                                      a.FirstChannel, a.LastChannel, a.Used ? "ВЗЯТА" : (a.Refusal ?? "—"));
+                                      a.FirstChannel, a.LastChannel, a.Used ? "ВЗЯТА" : (a.Refusal ?? "—"), a.WidthRatio);
                 }
             }
         }
@@ -580,6 +613,11 @@ namespace FsaClosureP191
             // --set/--field — ПОСЛЕ полосы прибора, чтобы MinEnergy/MaxEnergy ключом тоже доезжали
             foreach (var kv in sets) kv.Key.SetValue(analyzer, kv.Value, null);
             foreach (var kv in fieldSets) kv.Key.SetValue(analyzer, kv.Value);
+            if (runningCopy)
+            {
+                foreach (var kv in copySets) kv.Key.SetValue(analyzer, kv.Value, null);
+                foreach (var kv in copyFieldSets) kv.Key.SetValue(analyzer, kv.Value);
+            }
 
             List<FsaComponent> library = FsaSampleLibrary.Build(spec);
             FsaEfficiency eff = FsaEfficiency.FromConfig(rd.Efficiency);
@@ -668,6 +706,7 @@ namespace FsaClosureP191
         // по каналу x = k·x' (c_i → c_i·k^i), ПШПВ в каналах — RescaleCoefficients(k) (a → a·k^(p−1)).
         static void RebinAll(ResultData rd, int k)
         {
+            if (decimate) { DecimateAll(rd, k); return; }
             rd.EnergySpectrum = RebinSpectrum(rd.EnergySpectrum, k, "спектр");
             if (rd.BackgroundEnergySpectrum != null && rd.BackgroundEnergySpectrum.Spectrum != null)
                 rd.BackgroundEnergySpectrum = RebinSpectrum(rd.BackgroundEnergySpectrum, k, "фон");
@@ -680,6 +719,69 @@ namespace FsaClosureP191
             Console.WriteLine("ПШПВ ×{0}: a {1} → {2} (p {3}); FWHM(кан 100 старых = {4} новых) {5:F3} → {6:F3} кан", k,
                               a0.ToString("G6", CultureInfo.InvariantCulture), f.Coefficients[0].ToString("G6", CultureInfo.InvariantCulture),
                               f.Coefficients[1].ToString("G6", CultureInfo.InvariantCulture), 100.0 / k, pf.ChannelToFwhm(100.0), f.ChannelToFwhm(100.0 / k) * k);
+        }
+
+        static void DecimateAll(ResultData rd, int k)
+        {
+            rd.EnergySpectrum = DecimateSpectrum(rd.EnergySpectrum, k, "спектр");
+            if (rd.BackgroundEnergySpectrum != null && rd.BackgroundEnergySpectrum.Spectrum != null)
+                rd.BackgroundEnergySpectrum = DecimateSpectrum(rd.BackgroundEnergySpectrum, k, "фон");
+            var pf = rd.FwhmCalibration as PowerFwhmCalibration;
+            if (pf == null) throw new InvalidOperationException("--rebin: нужна PowerFwhmCalibration");
+            var f = new DecimatedPowerFwhm(pf, k);
+            rd.FwhmCalibration = f;
+            Console.WriteLine("ПШПВ укрупнена точно ×{0}: ПШПВ'(m) = ПШПВ({0}·m + {1})/{0}; кан 50 новых: {2:F4} кан (старых {3:F4})", k,
+                              (0.5 * (k - 1)).ToString("F1", CultureInfo.InvariantCulture), f.ChannelToFwhm(50.0), pf.ChannelToFwhm(50.0 * k + 0.5 * (k - 1)));
+        }
+
+        sealed class DecimatedPowerFwhm : PowerFwhmCalibration
+        {
+            readonly PowerFwhmCalibration inner; readonly int k;
+            public DecimatedPowerFwhm(PowerFwhmCalibration inner, int k)
+            {
+                this.inner = inner; this.k = k;
+                var c = (PowerFwhmCalibration)inner.Clone(); c.RescaleCoefficients(k);
+                this.Coefficients = (double[])c.Coefficients.Clone();
+                this.PeakType = inner.PeakType; this.ExpGaussExpLeftTail = inner.ExpGaussExpLeftTail; this.ExpGaussExpRightTail = inner.ExpGaussExpRightTail;
+                this.VoigtSigma = inner.VoigtSigma; this.VoigtGamma = inner.VoigtGamma;
+            }
+            public override double ChannelToFwhm(double channel) { return this.inner.ChannelToFwhm(this.k * channel + 0.5 * (this.k - 1)) / this.k; }
+            public override FwhmCalibration Clone() { return new DecimatedPowerFwhm(this.inner, this.k); }
+        }
+
+        static EnergySpectrum DecimateSpectrum(EnergySpectrum s, int k, string what)
+        {
+            var cal = s.EnergyCalibration as PolynomialEnergyCalibration;
+            if (cal == null) throw new InvalidOperationException("--decimate: нужна PolynomialEnergyCalibration у " + what);
+            int n = s.NumberOfChannels, m = n / k;
+            // E'(x) = E(k·x + h), h = (k−1)/2: коэффициенты композиции полинома (бином Ньютона) — точно для любого порядка
+            double h = 0.5 * (k - 1);
+            double[] c = cal.Coefficients;
+            double[] d = new double[c.Length];
+            for (int i = 0; i < c.Length; i++)
+            {
+                // c_i·(k·x + h)^i = c_i·Σ_j C(i,j)·k^j·x^j·h^(i−j)
+                for (int j = 0; j <= i; j++)
+                {
+                    double binom = 1.0; for (int t = 0; t < j; t++) binom = binom * (i - t) / (t + 1);
+                    d[j] += c[i] * binom * Math.Pow(k, j) * Math.Pow(h, i - j);
+                }
+            }
+            var target = new PolynomialEnergyCalibration(cal);
+            target.Coefficients = d;
+            target.CheckCalibration(m);
+            int[] counts = new int[m];
+            long tot = 0, sumOld = 0;
+            for (int i = 0; i < m; i++) { int v = 0; for (int t = 0; t < k; t++) v += s.Spectrum[k * i + t]; counts[i] = v; tot += v; }
+            for (int i = 0; i < n; i++) sumOld += s.Spectrum[i];
+            Console.WriteLine("{0} укрупнён точно ×{1}: каналов {2} → {3}, сумма {4} → {5}; E'(0) {6} = E({7}) {8}; E'(10) {9} = E({10}) {11} кэВ", what, k, n, m, sumOld, tot,
+                              target.ChannelToEnergy(0).ToString("F3", CultureInfo.InvariantCulture), h.ToString("F1", CultureInfo.InvariantCulture), cal.ChannelToEnergy(h).ToString("F3", CultureInfo.InvariantCulture),
+                              target.ChannelToEnergy(10).ToString("F3", CultureInfo.InvariantCulture), (10.0 * k + h).ToString("F1", CultureInfo.InvariantCulture), cal.ChannelToEnergy(10.0 * k + h).ToString("F3", CultureInfo.InvariantCulture));
+            return new EnergySpectrum
+            {
+                NumberOfChannels = m, Spectrum = counts, EnergyCalibration = target, TotalPulseCount = tot, ValidPulseCount = tot,
+                MeasurementTime = s.MeasurementTime, LiveTime = s.LiveTime, ChannelPitch = s.ChannelPitch * k
+            };
         }
 
         static EnergySpectrum RebinSpectrum(EnergySpectrum s, int k, string what)
