@@ -38,7 +38,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// осталось запасным правилом там, где схемы нет (<see cref="MergedThird"/>).
     ///
     /// ОТКУДА ЭФФЕКТИВНОСТИ. Из САМОЙ матрицы, а не вторым розыгрышем:
-    /// ε_p(E) — сумма строки канала <see cref="EfficiencySimulator.ResponseChannel.Peak"/>
+    /// ε_p(E) — у матрицы формата 11 пиковая эффективность ПО РАЗРЕШЕНИЮ
+    /// (<see cref="ResponseMatrix.PeakEfficiencyResolution"/>, допуск ПШПВ/2,
+    /// `AMBER145`), у матрицы без блока EPRS — сумма строки канала
+    /// <see cref="EfficiencySimulator.ResponseChannel.Peak"/>
     /// (полное поглощение), ε_T(E) — сумма всей строки узла (вероятность
     /// оставить в кристалле хоть что-нибудь). Обе нормированы на квант,
     /// испущенный источником в 4π, — ровно то, что нужно формулам. Второй
@@ -1172,7 +1175,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] total = new double[nodes];
             for (int i = 0; i < nodes; i++)
             {
-                peak[i] = Sum(peakRows != null && i < peakRows.Length ? peakRows[i] : null);
+                // (`AMBER145`, П199) Пиковая эффективность — ПО РАЗРЕШЕНИЮ (допуск
+                // ПШПВ/2 геометрии, определение кривой; блок EPRS формата 11), а не
+                // Σ канала `Peak` (допуск полубином): истории с недобором 1…7 кэВ
+                // лежат в пике после свёртки, и без них сумм-пики и влёт вплотную
+                // занижены на 4…9 % (`CurveVsMatrixP191`). Матрица без блока
+                // (собрана руками) — прежняя Σ канала `Peak`.
+                double[] resolution = matrix.PeakEfficiencyResolution;
+                peak[i] = resolution != null && resolution.Length == nodes
+                    ? resolution[i]
+                    : Sum(peakRows != null && i < peakRows.Length ? peakRows[i] : null);
                 total[i] = Sum(i < matrix.Rows.Length ? matrix.Rows[i] : null);
             }
 
@@ -3723,7 +3735,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         // Эффективности из матрицы
         // ------------------------------------------------------------------
 
-        /// <summary>Пиковая эффективность: сумма строки канала полного поглощения.</summary>
+        /// <summary>
+        /// Пиковая эффективность: у матрицы формата 11 — по разрешению
+        /// (`ResponseMatrix.PeakEfficiencyResolution`, `AMBER145`), иначе сумма
+        /// строки канала полного поглощения.
+        /// </summary>
         public double PeakEfficiency(double energyKev)
         {
             return this.Interpolate(this.peakAtNode, energyKev);
