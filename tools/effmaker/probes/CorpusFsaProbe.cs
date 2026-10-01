@@ -1335,6 +1335,25 @@ namespace CorpusFsaProbe
                     continue;
                 }
 
+                if (a.StartsWith("--knots-by=", StringComparison.Ordinal))
+                {
+                    // (`S207`, П208) узлы подложки: `scale` — по шкале (умолчание),
+                    // `channel` — прежние, на целых каналах (рычаг A/B)
+                    string v = a.Substring(11);
+                    if (v != "scale" && v != "channel") { throw new ArgumentException("--knots-by=scale|channel"); }
+                    o.KnotsByScale = v == "scale" ? 1 : 0;
+                    continue;
+                }
+
+                if (a.StartsWith("--kernel=", StringComparison.Ordinal))
+                {
+                    // (`S207`, П208) ядро уширения в канале: `mean` — среднее по каналу
+                    // (умолчание), `point` — выборка в центре (прежнее, рычаг A/B)
+                    o.Kernel = (FsaKernelSampling)Enum.Parse(typeof(FsaKernelSampling), a.Substring(9), true);
+                    o.KernelSet = true;
+                    continue;
+                }
+
                 if (a.StartsWith("--knots=", StringComparison.Ordinal))
                 {
                     // `B17`: делитель диапазона, задающий самый редкий шаг узлов
@@ -2273,6 +2292,17 @@ namespace CorpusFsaProbe
             if (o.Knots > 0)
             {
                 analyzer.ContinuumKnotDivisor = o.Knots;
+            }
+
+            // (`S207`, П208) рычаги A/B узлов подложки и ядра уширения
+            if (o.KnotsByScale >= 0)
+            {
+                analyzer.ContinuumKnotsByScale = o.KnotsByScale == 1;
+            }
+
+            if (o.KernelSet)
+            {
+                analyzer.KernelChannelMean = o.Kernel;
             }
 
             // (`S88`) A/B-ручка густоты узлов: сплайн со штатным порогом
@@ -5813,6 +5843,14 @@ namespace CorpusFsaProbe
             /// что рванул у сетки дрейфа: числа совпадали, пока не разошлись.
             /// </summary>
             public int Knots;
+
+            /// <summary>(`S207`, П208) `--knots-by=`: 1 — по шкале, 0 — на целых каналах, −1 — ключ не задан.</summary>
+            public int KnotsByScale = -1;
+
+            /// <summary>(`S207`, П208) `--kernel=`: ядро уширения в канале; <see cref="KernelSet"/> — ключ задан.</summary>
+            public FsaKernelSampling Kernel;
+
+            public bool KernelSet;
 
             /// <summary>Розыгрышей Монте-Карло-поверки пределов S9 (0 — не поверять).</summary>
             public int LimitsMc;

@@ -209,6 +209,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// (`S207`, П208) Как ядро уширения образа берётся в канале —
+    /// <see cref="FsaAnalyzer.KernelChannelMean"/>.
+    /// </summary>
+    public enum FsaKernelSampling
+    {
+        /// <summary>Выборка профиля в центре канала (до `S207`).</summary>
+        Point,
+
+        /// <summary>Среднее профиля по ширине канала.</summary>
+        Mean
+    }
+
+    /// <summary>
     /// Умолчание полосы — ОДНО на весь разбор, и печатается вслух.
     ///
     /// ⛔ Выбор сделан числами, а не вкусом; всё измерено 25.08.2026 по ПОНЯТНОЙ
@@ -1971,6 +1984,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int ContinuumKnotDivisor { get; set; }
 
         /// <summary>
+        /// ⛔ (`S207`, П208) УЗЛЫ СПЛАЙНА ПОДЛОЖКИ — ПО ШКАЛЕ, А НЕ ПО ЦЕЛЫМ
+        /// КАНАЛАМ (`BuildHatBasis`): сетка — в непрерывной канальной координате
+        /// от нижнего края полосы, шаг без отсечения до целого канала, шапка в
+        /// канале — среднее по его ширине. Тогда узлы стоят на тех же энергиях
+        /// при любом числе каналов, и разбор инвариантен к укрупнению: точная
+        /// копия собственной модели, укрупнённая ×2, сходится с моделью. Ложь —
+        /// прежний базис на целых каналах (рычаг A/B). Умолчание стоит в
+        /// конструкторе; числа — журнал
+        /// `handover/handover-2026-10-01-p208-s207-channels.md`.
+        /// </summary>
+        public bool ContinuumKnotsByScale { get; set; }
+
+        /// <summary>
+        /// ⛔ (`S207`, П208) КАК ЯДРО УШИРЕНИЯ БЕРЁТСЯ В КАНАЛЕ (банк ядер образов
+        /// по матрице и голые пики <see cref="BuildTemplate"/>). `Mean` — СРЕДНЕЕ
+        /// профиля по ширине канала: отсчёт канала — интеграл спектра по каналу,
+        /// и сумма двух соседних каналов образа ровно равна каналу вдвое шире —
+        /// образ инвариантен к укрупнению. `Point` — выборка профиля в центре
+        /// канала (до `S207`, рычаг A/B): сумма двух выборок шире одной выборки
+        /// укрупнённого канала на ¼ старого канала² по дисперсии, и при ПШПВ в
+        /// 1…1.5 канала (рентген у 30 кэВ на 512 каналах NaI) копия собственной
+        /// модели, укрупнённая ×2, не сходилась с моделью в 0…100 кэВ.
+        /// ⚠ Среднее по каналу — образ шире выборки на 1/12 кан² по дисперсии;
+        /// поправка «σ² − 1/12» (ширина образа та же, что у выборки) испытана и
+        /// снята: она возвращает ровно поведение выборки (сумма двух каналов
+        /// снова уже), то есть инвариантности не даёт (журнал). Умолчание стоит
+        /// в конструкторе; числа — журнал `handover/handover-2026-10-01-p208-s207-channels.md`.
+        /// </summary>
+        public FsaKernelSampling KernelChannelMean { get; set; }
+
+        /// <summary>
         /// Сколько ПШПВ отмеряет ГУСТОЙ край шага узлов (`S88`). ⛔ ЧИСЛА
         /// УМОЛЧАНИЯ ЗДЕСЬ НЕТ НАРОЧНО (`T82`) — оно стоит У ОБЪЯВЛЕНИЯ ПОЛЯ,
         /// строкой ниже этого описания; при нём посчитана вся история
@@ -2078,7 +2122,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// излом (`S85`). Шаг узлов неравномерен, и вторая производная берётся
         /// по шкале, а не по номеру.
         /// </summary>
-        List<int> continuumKnots;
+        List<double> continuumKnots;
 
         /// <summary>
         /// (`A310`) Слагаемые дисперсии, НЕ зависящие от модели, — для весов по
@@ -7238,6 +7282,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // 27 -> 31 — там образ строится из одних пиков и конкурирует с
             // густым континуумом напрямую. Ключ A/B — `--knots=<делитель>`.
             this.ContinuumKnotDivisor = 128;
+            // S207 (П208): узлы подложки по шкале, шапка — среднее по каналу;
+            // разбор инвариантен к числу каналов. Ключ A/B — `--set=ContinuumKnotsByScale=false`.
+            this.ContinuumKnotsByScale = true;
+            // S207 (П208): ядро уширения — среднее по ширине канала; образ инвариантен
+            // к укрупнению. Ключ A/B — `--set=KernelChannelMean=Point` (выборка в центре).
+            this.KernelChannelMean = FsaKernelSampling.Mean;
             // ⛔ СЕТКА ДРЕЙФА РАСШИРЕНА 24.08.2026 решением Amber (`S93`).
             // Прежняя (±0.8 %, ±3 кэВ, 9×9) была УЗКА для половины корпуса: 46
             // спектров из 81 упирались в край нуля, 17 — в край усиления, 12 —
@@ -8295,14 +8345,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // полосе, — нулевая диагональ Грама, и в счёт узлов штрафа на
                 // излом ей входить нельзя. Шапка, срезанная полом посередине,
                 // остаётся — её верхний склон в полосе есть.
-                List<int> knots;
+                List<double> knots;
                 List<double[]> hats = BuildHatBasis(fwhmCalibration, chLoGrid, chHi, channels,
                                                     this.ContinuumKnotDivisor,
-                                                    this.ContinuumKnotFwhm, out knots);
+                                                    this.ContinuumKnotFwhm, this.ContinuumKnotsByScale,
+                                                    out knots);
                 if (chLo > chLoGrid)
                 {
+                    // (`S207`) шапка целиком ниже пола — её правый узел не выше
+                    // НИЖНЕГО КРАЯ канала `chLo` (узлы по шкале — в непрерывной
+                    // координате; у прежнего базиса — целый канал, как было)
+                    double below = this.ContinuumKnotsByScale ? chLo - 0.5 : chLo;
                     int keepFrom = 0;
-                    while (keepFrom < hats.Count - 1 && knots[keepFrom + 1] <= chLo)
+                    while (keepFrom < hats.Count - 1 && knots[keepFrom + 1] <= below)
                     {
                         keepFrom++;
                     }
@@ -14576,7 +14631,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 scale /= this.continuumColumns;
                 double lambda = this.ContinuumRoughness * scale;
-                List<int> knots = this.continuumKnots;
+                List<double> knots = this.continuumKnots;
                 bool spaced = knots != null && knots.Count == this.continuumColumns;
 
                 // Средний шаг узлов — тем же им и обезразмеривается вторая
@@ -17380,9 +17435,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         ShapeKernelBank Kernels(FwhmCalibration fwhmCalibration)
         {
-            if (this.kernelBank == null || !object.ReferenceEquals(this.kernelBank.Calibration, fwhmCalibration))
+            if (this.kernelBank == null || !object.ReferenceEquals(this.kernelBank.Calibration, fwhmCalibration)
+                || this.kernelBank.Mode != this.KernelChannelMean)
             {
-                this.kernelBank = new ShapeKernelBank(fwhmCalibration);
+                this.kernelBank = new ShapeKernelBank(fwhmCalibration, this.KernelChannelMean);
             }
 
             return this.kernelBank;
@@ -17424,12 +17480,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             static readonly double LogRatio = Math.Log(1.002);
 
             readonly FwhmCalibration calibration;
+            readonly FsaKernelSampling mode;
             readonly Dictionary<long, double[]> values = new Dictionary<long, double[]>();
             readonly Dictionary<int, int> lefts = new Dictionary<int, int>();
 
-            public ShapeKernelBank(FwhmCalibration calibration)
+            public ShapeKernelBank(FwhmCalibration calibration, FsaKernelSampling mode)
             {
                 this.calibration = calibration;
+                this.mode = mode;
+            }
+
+            /// <summary>(`S207`) Как значение ядра берётся в канале — см. <see cref="KernelChannelMean"/>.</summary>
+            public FsaKernelSampling Mode
+            {
+                get { return this.mode; }
             }
 
             public FwhmCalibration Calibration
@@ -17472,7 +17536,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     double area = 0.0;
                     for (int i = 0; i < span; i++)
                     {
-                        double v = PeakShapeModel.RelativeValue(i - leftSpan - shift, fwhm, this.calibration);
+                        double v = ChannelShapeValue(i - leftSpan - shift, fwhm, this.calibration, this.mode);
                         shape[i] = v;
                         area += v;
                     }
@@ -17504,6 +17568,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 int left;
                 return this.lefts.TryGetValue(band, out left) ? left : 0;
             }
+        }
+
+        /// <summary>
+        /// (`S207`, П208) Значение профиля единичной высоты для канала, центр
+        /// которого стоит на <paramref name="offset"/> каналов от центра пика:
+        /// выборка в центре канала или среднее по ширине канала
+        /// (<see cref="KernelChannelMean"/>). Среднее — Симпсоном по восьми
+        /// отрезкам канала (у гауссианы с σ ≥ 0.4 канала ошибка ниже 10⁻⁴ доли).
+        /// </summary>
+        static double ChannelShapeValue(double offset, double fwhm, FwhmCalibration calibration,
+                                        FsaKernelSampling mode)
+        {
+            if (mode == FsaKernelSampling.Point)
+            {
+                return PeakShapeModel.RelativeValue(offset, fwhm, calibration);
+            }
+
+            const int Parts = 8;
+            double h = 1.0 / Parts;
+            double sum = PeakShapeModel.RelativeValue(offset - 0.5, fwhm, calibration)
+                         + PeakShapeModel.RelativeValue(offset + 0.5, fwhm, calibration);
+            for (int s = 1; s < Parts; s++)
+            {
+                sum += (s % 2 == 1 ? 4.0 : 2.0)
+                       * PeakShapeModel.RelativeValue(offset - 0.5 + s * h, fwhm, calibration);
+            }
+
+            return sum * h / 3.0;
         }
 
         /// <summary>
@@ -17645,7 +17737,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double area = 0.0;
                 for (int i = 0; i < span; i++)
                 {
-                    double v = PeakShapeModel.RelativeValue(full0 + i - p, fwhm, fwhmCalibration);
+                    double v = ChannelShapeValue(full0 + i - p, fwhm, fwhmCalibration, this.KernelChannelMean);
                     shape[i] = v;
                     area += v;
                 }
@@ -17708,11 +17800,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// конструктор ставил другую.
         /// </summary>
         static List<double[]> BuildHatBasis(FwhmCalibration fwhmCalibration, int chLo, int chHi,
-                                            int channels, int knotDivisor, double knotFwhm)
+                                            int channels, int knotDivisor, double knotFwhm,
+                                            bool byScale)
         {
-            List<int> unused;
+            List<double> unused;
             return BuildHatBasis(fwhmCalibration, chLo, chHi, channels, knotDivisor, knotFwhm,
-                                 out unused);
+                                 byScale, out unused);
         }
 
         /// <summary>
@@ -17721,10 +17814,143 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// растёт с энергией (`max(k·ПШПВ, minStep)`), и вторая разность по
         /// номеру штрафовала бы низ шкалы, где узлы гуще, — ровно там, где
         /// стоит бугор обратного рассеяния, ради которого штраф и заводится.
+        ///
+        /// ⛔ (`S207`, П208) <paramref name="byScale"/> — узлы В НЕПРЕРЫВНОЙ
+        /// КАНАЛЬНОЙ КООРДИНАТЕ (канал i — отрезок [i − ½, i + ½]): сетка идёт
+        /// от НИЖНЕГО КРАЯ канала <paramref name="chLo"/> до верхнего края
+        /// <paramref name="chHi"/>, шаг `max(K·ПШПВ(x), minStep)` без отсечения
+        /// до целого канала, пол шага — доля ширины полосы по краям каналов, а
+        /// значение шапки в канале — её СРЕДНЕЕ по ширине канала, а не выборка
+        /// в центре. Тогда сетка стоит на тех же энергиях при любом числе
+        /// каналов, и сумма двух соседних каналов шапки — ровно шапка
+        /// укрупнённого канала: базис инвариантен к укрупнению. Прежний базис
+        /// (`byScale` = ложь, рычаг A/B) ставил узлы на целые каналы шагом
+        /// `(int)max(…)` от центра канала `chLo`: на 512 каналах узлы вставали
+        /// на другие энергии, чем на 1024, и кусочно-линейная подложка одного
+        /// числа каналов не воспроизводила подложку другого.
         /// </summary>
         static List<double[]> BuildHatBasis(FwhmCalibration fwhmCalibration, int chLo, int chHi,
                                             int channels, int knotDivisor, double knotFwhm,
-                                            out List<int> knotChannels)
+                                            bool byScale, out List<double> knotChannels)
+        {
+            if (!byScale)
+            {
+                return BuildHatBasisByChannel(fwhmCalibration, chLo, chHi, channels, knotDivisor,
+                                              knotFwhm, out knotChannels);
+            }
+
+            List<double> knots = new List<double>();
+            double x0 = chLo - 0.5, x1 = chHi + 0.5;
+            // Ноль и отрицательное — от невыставленного свойства (структура
+            // собрана не через конструктор); тогда берётся историческое 64.
+            double minStep = (x1 - x0) / (knotDivisor > 0 ? knotDivisor : 64);
+            double k = knotFwhm > 0.0 ? knotFwhm : 4.0;
+            double x = x0;
+            while (x < x1)
+            {
+                knots.Add(x);
+                // ПШПВ — в каналах ЭТОЙ шкалы и В САМОМ УЗЛЕ: точка x одна и та же
+                // энергия при любом числе каналов, а «центр следующего канала»
+                // (x + ½) — нет, и узлы расползались бы с шагом. Пол «ПШПВ ≥ 1
+                // канал» прежнего базиса здесь не нужен: шаг снизу держит
+                // `minStep` (доля полосы), а он от числа каналов не зависит.
+                double fwhm = fwhmCalibration.ChannelToFwhm(x);
+                if (!PositiveFinite(fwhm))
+                {
+                    fwhm = 0.0;
+                }
+                else if (fwhm > x1 - x0)
+                {
+                    fwhm = x1 - x0;
+                }
+
+                x += Math.Max(minStep, k * fwhm);
+            }
+
+            // Узел у самой верхней границы дал бы «шапку-спицу» — почти
+            // коллинеарную колонку; сливается только этот вырожденный случай.
+            // Порог — четверть пола шага: при делителе 128 на 1024 каналах это
+            // те же два канала, что у прежнего базиса, и от числа каналов он не зависит.
+            if (knots.Count > 1 && x1 - knots[knots.Count - 1] < 0.25 * minStep)
+            {
+                knots.RemoveAt(knots.Count - 1);
+            }
+
+            knots.Add(x1);
+
+            List<double[]> hats = new List<double[]>();
+            for (int n = 0; n < knots.Count; n++)
+            {
+                double left = n > 0 ? knots[n - 1] : knots[n];
+                double mid = knots[n];
+                double right = n + 1 < knots.Count ? knots[n + 1] : knots[n];
+                double[] hat = new double[channels];
+                int iLo = Math.Max(0, (int)Math.Floor(left + 0.5));
+                int iHi = Math.Min(channels - 1, (int)Math.Ceiling(right - 0.5));
+                for (int i = iLo; i <= iHi; i++)
+                {
+                    double v = HatMean(i - 0.5, i + 0.5, left, mid, right);
+                    if (v > 0.0)
+                    {
+                        hat[i] = v;
+                    }
+                }
+
+                hats.Add(hat);
+            }
+
+            knotChannels = knots;
+            return hats;
+        }
+
+        /// <summary>
+        /// (`S207`) Среднее шапки по отрезку [a, b] (ширина канала): шапка — 0 в
+        /// <paramref name="left"/>, 1 в <paramref name="mid"/>, 0 в
+        /// <paramref name="right"/>; у крайней шапки (left = mid или mid = right)
+        /// за краем сетки — ноль. Интеграл кусочно-линейной функции — трапециями
+        /// по излому внутри отрезка.
+        /// </summary>
+        static double HatMean(double a, double b, double left, double mid, double right)
+        {
+            double lo = Math.Max(a, left), hi = Math.Min(b, right);
+            if (!(hi > lo) || !(b > a))
+            {
+                return 0.0;
+            }
+
+            double q = mid > lo && mid < hi ? mid : hi;
+            double sum = 0.5 * (q - lo) * (HatAt(lo, left, mid, right) + HatAt(q, left, mid, right));
+            if (q < hi)
+            {
+                sum += 0.5 * (hi - q) * (HatAt(q, left, mid, right) + HatAt(hi, left, mid, right));
+            }
+
+            return sum / (b - a);
+        }
+
+        static double HatAt(double x, double left, double mid, double right)
+        {
+            if (x < left || x > right)
+            {
+                return 0.0;
+            }
+
+            if (x <= mid)
+            {
+                return mid > left ? (x - left) / (mid - left) : 1.0;
+            }
+
+            return right > mid ? (right - x) / (right - mid) : 1.0;
+        }
+
+        /// <summary>
+        /// Прежний базис (до `S207`): узлы на целых каналах от центра канала
+        /// <paramref name="chLo"/>, шаг `(int)max(1, K·ПШПВ, minStep)`, шапка —
+        /// выборка в центре канала. Рычаг A/B <see cref="ContinuumKnotsByScale"/>.
+        /// </summary>
+        static List<double[]> BuildHatBasisByChannel(FwhmCalibration fwhmCalibration, int chLo, int chHi,
+                                                     int channels, int knotDivisor, double knotFwhm,
+                                                     out List<double> knotChannels)
         {
             List<int> knots = new List<int>();
             // Ноль и отрицательное — от невыставленного свойства (структура
@@ -17791,7 +18017,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 hats.Add(hat);
             }
 
-            knotChannels = knots;
+            knotChannels = knots.ConvertAll(v => (double)v);
             return hats;
         }
 

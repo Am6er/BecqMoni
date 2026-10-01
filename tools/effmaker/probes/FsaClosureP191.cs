@@ -53,6 +53,7 @@ namespace FsaClosureP191
                 if (a == "--lie") lie = true;
                 if (a.StartsWith("--rebin=")) rebin = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 if (a == "--decimate") decimate = true;
+                if (a == "--fwhm-binning") fwhmBinning = true;
                 if (a.StartsWith("--copy-decimate=")) copyDecimate = int.Parse(a.Substring(16), CultureInfo.InvariantCulture);
                 if (a == "--ramp=off") FsaBand.DefaultRampModel = FsaRampModel.Off;
                 if (a.StartsWith("--band=")) FsaBand.DefaultMode = (FsaBandMode)Enum.Parse(typeof(FsaBandMode), a.Substring(7), true);
@@ -83,7 +84,7 @@ namespace FsaClosureP191
                     sumWinLo = double.Parse(t[0], CultureInfo.InvariantCulture);
                     sumWinHi = double.Parse(t[1], CultureInfo.InvariantCulture);
                 }
-                else if (a == "--nobg" || a == "--exact" || a == "--notes" || a == "--nomatrix" || a == "--truth-nobg" || a.StartsWith("--dgain=") || a.StartsWith("--doff=") || a == "--lie" || a.StartsWith("--dfrom=") || a == "--fwhm-follow" || a.StartsWith("--fwhm-scale=") || a.StartsWith("--truth-fwhm=") || a.StartsWith("--bgdrift=") || a == "--nnls" || a == "--bgtrace" || a.StartsWith("--floor=") || a.StartsWith("--curve-max=") || a.StartsWith("--rebin=") || a == "--decimate" || a.StartsWith("--copy-decimate=") || a == "--ramp=off" || a.StartsWith("--band=")) { }
+                else if (a == "--nobg" || a == "--exact" || a == "--notes" || a == "--nomatrix" || a == "--truth-nobg" || a.StartsWith("--dgain=") || a.StartsWith("--doff=") || a == "--lie" || a.StartsWith("--dfrom=") || a == "--fwhm-follow" || a.StartsWith("--fwhm-scale=") || a.StartsWith("--truth-fwhm=") || a.StartsWith("--bgdrift=") || a == "--nnls" || a == "--bgtrace" || a.StartsWith("--floor=") || a.StartsWith("--curve-max=") || a.StartsWith("--rebin=") || a == "--decimate" || a == "--fwhm-binning" || a.StartsWith("--copy-decimate=") || a == "--ramp=off" || a.StartsWith("--band=")) { }
                 else if (a.StartsWith("--set=", StringComparison.Ordinal) || a.StartsWith("--copy-set=", StringComparison.Ordinal))
                 {
                     // П198 --copy-set=: та же настройка, но ТОЛЬКО разбору копий (истина — умолчаниями)
@@ -259,9 +260,17 @@ namespace FsaClosureP191
                         foreach (FsaComponentResult c in truthResult.Components) if (c.SumPeakCurve != null && i < c.SumPeakCurve.Length) sp += c.SumPeakCurve[i];
                         double pu = 0.0;
                         foreach (FsaComponentResult c in truthResult.Components) if (c.Name == "pile-up" && c.Curve != null && i < c.Curve.Length) pu = c.Curve[i];
-                        Console.WriteLine("     кан {0,5} {1,8:F1} кэВ  данные {2,7}  фон {3,7:F1}  модель {4,8:F1}  сумм {5,7:F1}  сплайн {6,7:F1}  налож {7,8:F1}", i, e,
+                        // П208: и ленты образов истины (как у копии) — сверка образа укрупнённой копии с истиной
+                        var partsT = new StringBuilder();
+                        foreach (FsaComponentResult c in truthResult.Components)
+                        {
+                            double cv = c.Curve != null && i < c.Curve.Length ? c.Curve[i] : 0.0;
+                            double tv = c.TailCurve != null && i < c.TailCurve.Length ? c.TailCurve[i] : 0.0;
+                            if (Math.Abs(cv) + Math.Abs(tv) > 0.05) partsT.AppendFormat(CultureInfo.InvariantCulture, "  {0} {1:F1}{2}", c.Name, cv, tv != 0.0 ? "+хвост " + tv.ToString("F1", CultureInfo.InvariantCulture) : "");
+                        }
+                        Console.WriteLine("     кан {0,5} {1,8:F1} кэВ  данные {2,7}  фон {3,7:F1}  модель {4,8:F1}  сумм {5,7:F1}  сплайн {6,7:F1}  налож {7,8:F1}{8}", i, e,
                                           rd.EnergySpectrum.Spectrum[i], bg, i < truthResult.Model.Length ? truthResult.Model[i] : 0.0, sp,
-                                          truthResult.Continuum != null && i < truthResult.Continuum.Length ? truthResult.Continuum[i] : 0.0, pu);
+                                          truthResult.Continuum != null && i < truthResult.Continuum.Length ? truthResult.Continuum[i] : 0.0, pu, partsT.ToString());
                     }
                 }
             }
@@ -467,6 +476,9 @@ namespace FsaClosureP191
         // делит крайние старые каналы пополам и добавляет данным дисперсию 1/12 старого канала² — у пика в 1.3 нового
         // канала это +3 % ширины, то есть сама проверка «×2» была не нейтральна к дискретизации (`AMBER158`, П198).
         static bool decimate;
+        // П208 --fwhm-binning: у --decimate / --copy-decimate калибровка ПШПВ укрупнённого спектра — наблюдаемая ширина с ящиком
+        // нового канала (см. DecimatedPowerFwhm), а не прежняя ширина / k (`S207`)
+        static bool fwhmBinning;
         // П198 --copy-decimate=k: истина — в родных каналах, а КОПИЯ (с фоном и калибровками) укрупняется точно ×k перед
         // разбором. Так мерится инвариантность самого разбора к числу каналов на модели, которая описывает данные точно
         // (у настоящего спектра χ²/ndf ≫ 1, и любая перестановка весов двигает амплитуды — это уже не дискретизация).
@@ -745,7 +757,14 @@ namespace FsaClosureP191
                 this.PeakType = inner.PeakType; this.ExpGaussExpLeftTail = inner.ExpGaussExpLeftTail; this.ExpGaussExpRightTail = inner.ExpGaussExpRightTail;
                 this.VoigtSigma = inner.VoigtSigma; this.VoigtGamma = inner.VoigtGamma;
             }
-            public override double ChannelToFwhm(double channel) { return this.inner.ChannelToFwhm(this.k * channel + 0.5 * (this.k - 1)) / this.k; }
+            // П208 --fwhm-binning: калибровка ПШПВ — НАБЛЮДАЕМАЯ ширина (в ней ящик канала 1/12 кан²); у канала вдвое шире ящик
+            // k²/12 старых кан², и наблюдаемая ширина укрупнённого спектра — sqrt(ПШПВ² + 8·ln2·(k² − 1)/12)/k, а не ПШПВ/k
+            public override double ChannelToFwhm(double channel)
+            {
+                double w = this.inner.ChannelToFwhm(this.k * channel + 0.5 * (this.k - 1));
+                if (fwhmBinning) w = Math.Sqrt(w * w + 8.0 * Math.Log(2.0) * (this.k * this.k - 1) / 12.0);
+                return w / this.k;
+            }
             public override FwhmCalibration Clone() { return new DecimatedPowerFwhm(this.inner, this.k); }
         }
 
