@@ -80,6 +80,16 @@ SELF_MODULE = os.path.splitext(os.path.basename(__file__))[0]
 READS = (
     'BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs',
     'BecquerelMonitor/nucdb.sqlite',
+    # (`S209`, П205 01.10.2026) правило K-серии: константы — из исходника
+    # (`chains.KSERIES`), центры тяжести групп K-M — из ОДНОЙ таблицы `matdb`.
+    # Таблица, а не файл: `matdb.sqlite` переписывают счёты физики, и отпечаток
+    # всего файла красил бы клеймо без единого байта разницы в корпусе.
+    'BecquerelMonitor/FullSpectrumAnalysis/KSeriesRule.cs',
+    'BecquerelMonitor/matdb.sqlite#fluorescence_k',
+    # (`S209`) записанные подсказки разрешения групп: стадия 2а их ЧИТАЕТ
+    # (гистерезис) и полная пересборка их же пишет — до клейма, так что правка
+    # файла руками после сборки красит клеймо.
+    'tools/CORPUS/data/res_hint.csv',
 )
 
 _IMPORT = re.compile(
@@ -118,6 +128,33 @@ def generator_files(scripts_dir=None):
     return sorted(files)
 
 
+def table_sha(path, table):
+    u"""(`S209`) sha256 строк ОДНОЙ таблицы sqlite (`select *`, по первому столбцу),
+    чтение `mode=ro`; None, если файла или таблицы нет."""
+    import sqlite3
+    if not os.path.isfile(path) or not re.match(r'^[A-Za-z_]\w*$', table):
+        return None
+    c = sqlite3.connect('file:' + path.replace(os.sep, '/') + '?mode=ro', uri=True)
+    try:
+        rows = c.execute('select * from %s order by 1' % table).fetchall()
+    except sqlite3.Error:
+        return None
+    finally:
+        c.close()
+    h = hashlib.sha256()
+    for row in rows:
+        h.update(repr(tuple(row)).encode('utf-8'))
+        h.update(b'|')
+    return h.hexdigest()
+
+
+def read_sha(rel):
+    u"""Отпечаток элемента набора: файл (`путь`) или таблица (`путь#таблица`)."""
+    path, _, table = rel.partition('#')
+    full = os.path.join(REPO, *path.split('/'))
+    return table_sha(full, table) if table else file_sha(full)
+
+
 def file_sha(path):
     u"""sha256 содержимого с CRLF -> LF; None, если файла нет."""
     if not os.path.isfile(path):
@@ -149,10 +186,10 @@ def _git(*args):
 def tree_record(files=None):
     u"""Набор генератора в РАБОЧЕМ ДЕРЕВЕ: карта путей, отпечаток, HEAD, грязные."""
     files = files or generator_files()
-    shas = dict((f, file_sha(os.path.join(REPO, *f.split('/')))) for f in files)
+    shas = dict((f, read_sha(f)) for f in files)
     head = _git('rev-parse', 'HEAD') or ''
     dirty = []
-    status = _git('status', '--porcelain', '--', *files)
+    status = _git('status', '--porcelain', '--', *sorted(set(f.partition('#')[0] for f in files)))
     if status:
         dirty = sorted(line[3:].strip().replace('\\', '/') for line in status.splitlines() if line.strip())
     return dict(files=shas, fp=fold(shas), head=head, dirty=dirty)
@@ -186,6 +223,7 @@ def missed_commits(since, files):
     u"""Коммиты генератора после `since`, которых в данных нет — по имени и дате."""
     if not since:
         return None
+    files = sorted(set(f.partition('#')[0] for f in files))      # `путь#таблица` -> путь
     out = _git('log', '--format=%h %ad %s', '--date=short', '%s..HEAD' % since, '--', *files)
     if out is None:
         return None
