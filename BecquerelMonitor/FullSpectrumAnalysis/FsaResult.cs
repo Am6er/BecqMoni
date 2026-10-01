@@ -1277,6 +1277,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public string AnchorNote { get; set; }
 
         /// <summary>
+        /// (`AMBER142`, П204) Итоговая шкала привязки прохода, давшего этот
+        /// результат, — тёплый старт следующего прохода разбора
+        /// (<see cref="FsaAnalyzer.AnchorWarmStart"/>). Не для экрана и не в файл.
+        /// </summary>
+        internal FsaAnalyzer.AnchorWarm AnchorWarmOut { get; set; }
+
+        /// <summary>
         /// (`AMBER154`, П194 01.10.2026) Относительное усиление хранимого фона
         /// против пробы, с которым фон вычтен: отсчёт фона, по объявленным
         /// калибровкам стоящий в канале p, вычитался из канала g·p. 1 — фона нет

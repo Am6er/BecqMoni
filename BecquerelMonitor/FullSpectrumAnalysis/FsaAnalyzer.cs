@@ -3086,7 +3086,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         double LightToChannel(EnergyCalibration calibration, double lightKev, int channels)
         {
             double energyKev = this.LightEnergyKev(lightKev);
-            double channel = EnergyToChannelSafe(calibration, energyKev, channels);
+            // (`AMBER142`, П204) обращение калибровки — таблицей разбора, когда
+            // она есть (<see cref="CalibrationInverse"/>); числа краёв — из неё же
+            CalibrationInverse inverse = this.InverseOf(calibration, channels);
+            double channel = inverse != null
+                ? inverse.EnergyToChannel(energyKev)
+                : EnergyToChannelSafe(calibration, energyKev, channels);
             if (channels < 2 || !Finite(energyKev))
             {
                 return channel;
@@ -3094,8 +3099,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             // Верх берётся ПОСЛЕ обращения к калибровке: оно ставит ей число
             // каналов, а `ChannelToEnergy` за ним зажимает номер канала.
-            double topKev = calibration.ChannelToEnergy(channels);
-            double topStep = topKev - calibration.ChannelToEnergy(channels - 1);
+            double topKev = inverse != null ? inverse.EnergyAt(channels) : calibration.ChannelToEnergy(channels);
+            double topStep = topKev - (inverse != null ? inverse.EnergyAt(channels - 1)
+                                                       : calibration.ChannelToEnergy(channels - 1));
             if (energyKev > topKev && Finite(topKev) && PositiveFinite(topStep))
             {
                 return channels + (energyKev - topKev) / topStep;
@@ -3103,8 +3109,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (channel <= 0.0)
             {
-                double zeroKev = calibration.ChannelToEnergy(0);
-                double zeroStep = calibration.ChannelToEnergy(1) - zeroKev;
+                double zeroKev = inverse != null ? inverse.EnergyAt(0) : calibration.ChannelToEnergy(0);
+                double zeroStep = (inverse != null ? inverse.EnergyAt(1) : calibration.ChannelToEnergy(1)) - zeroKev;
                 if (energyKev < Math.Max(zeroKev, 0.0) && Finite(zeroKev) && PositiveFinite(zeroStep))
                 {
                     return (energyKev - zeroKev) / zeroStep;
@@ -3112,6 +3118,252 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return channel;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER142`, П204) ОБРАЩЕНИЕ КАЛИБРОВКИ ТАБЛИЦЕЙ РАЗБОРА. Таблица
+        /// бинов (<see cref="DepositChannels"/>) строится заново при каждом новом
+        /// нуле карты "adc" — на каждом проходе совместного шага привязки и на
+        /// каждом перефите погрешности шкалы, — и у калибровки 3-й и 4-й степени
+        /// каждый её бин обращался поиском корня (`FindRoots`, Брент) с
+        /// промахом мемоизации калибровки по энергии: на малой базе это была
+        /// треть всего времени разбора (16–18 мс на таблицу, П204). Здесь
+        /// энергия E(n) целых каналов берётся один раз на разбор, корень
+        /// ищется в своём интервале Ньютоном до машинной точности; правила
+        /// края — те же, что у <c>PolynomialEnergyCalibration.EnergyToChannel</c>
+        /// (выше E(N) — N, ниже нуля и ниже E(0) — 0). Ответ отличается от
+        /// Брента в пределах его допуска (1e-8 канала). Ложь — рычаг A/B.
+        /// </summary>
+        public bool FastCalibrationInverse { get; set; }
+
+        /// <summary>(`AMBER142`, П204) Таблица обращения текущего разбора; null — нет или не годится.</summary>
+        CalibrationInverse calibrationInverse;
+
+        /// <summary>(`AMBER142`, П204) Калибровка, у которой обращения таблицей нет (не полином 3–4 степени или не монотонна).</summary>
+        EnergyCalibration calibrationInverseRefused;
+        int calibrationInverseRefusedChannels;
+
+        CalibrationInverse InverseOf(EnergyCalibration calibration, int channels)
+        {
+            if (!this.FastCalibrationInverse || calibration == null)
+            {
+                return null;
+            }
+
+            CalibrationInverse inverse = this.calibrationInverse;
+            if (inverse != null && inverse.Matches(calibration, channels))
+            {
+                return inverse;
+            }
+
+            if (object.ReferenceEquals(this.calibrationInverseRefused, calibration)
+                && this.calibrationInverseRefusedChannels == channels)
+            {
+                return null;
+            }
+
+            inverse = CalibrationInverse.TryCreate(calibration, channels);
+            if (inverse == null)
+            {
+                this.calibrationInverseRefused = calibration;
+                this.calibrationInverseRefusedChannels = channels;
+            }
+
+            this.calibrationInverse = inverse;
+            return inverse;
+        }
+
+        /// <summary>
+        /// (`AMBER142`, П204) Обращение полиномиальной калибровки 3-й и 4-й
+        /// степени: энергии целых каналов 0…N той же калибровкой
+        /// (`ChannelToEnergy` с числом каналов N), интервал — двоичным поиском,
+        /// корень — Ньютоном внутри интервала. Годится только для строго
+        /// возрастающей на 0…N калибровки: иначе корней в окне несколько, и
+        /// какой возьмёт Брент, предсказать нельзя (тогда — обычный путь).
+        /// </summary>
+        sealed class CalibrationInverse
+        {
+            readonly EnergyCalibration calibration;
+            readonly double[] coefficients;
+            readonly int order;
+            readonly int channels;
+            readonly double[] energies;
+
+            CalibrationInverse(EnergyCalibration calibration, double[] coefficients, int order, int channels, double[] energies)
+            {
+                this.calibration = calibration;
+                this.coefficients = coefficients;
+                this.order = order;
+                this.channels = channels;
+                this.energies = energies;
+            }
+
+            public static CalibrationInverse TryCreate(EnergyCalibration calibration, int channels)
+            {
+                var polynomial = calibration as PolynomialEnergyCalibration;
+                if (polynomial == null || channels < 2 || polynomial.Coefficients == null)
+                {
+                    return null;
+                }
+
+                int order = polynomial.PolynomialOrder;
+                double[] source = polynomial.Coefficients;
+                if ((order != 3 && order != 4) || source.Length < order + 1)
+                {
+                    return null;
+                }
+
+                double[] energies = new double[channels + 1];
+                try
+                {
+                    // ставит калибровке число каналов — как первое обращение
+                    // обычного пути; `ChannelToEnergy` за ним зажимает канал
+                    polynomial.EnergyToChannel(source[0], maxCh: channels);
+                    for (int n = 0; n <= channels; n++)
+                    {
+                        energies[n] = polynomial.ChannelToEnergy(n);
+                    }
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+
+                for (int n = 0; n <= channels; n++)
+                {
+                    if (!Finite(energies[n]) || (n > 0 && !(energies[n] > energies[n - 1])))
+                    {
+                        return null;
+                    }
+                }
+
+                var copy = (double[])source.Clone();
+                var inverse = new CalibrationInverse(calibration, copy, order, channels, energies);
+                // производная — без нулей внутри интервалов (на краях каналов
+                // уже проверено возрастание; здесь — что Ньютону есть по чему идти)
+                for (int n = 0; n <= channels; n++)
+                {
+                    if (!(inverse.Slope(n) > 0.0))
+                    {
+                        return null;
+                    }
+                }
+
+                return inverse;
+            }
+
+            public bool Matches(EnergyCalibration other, int otherChannels)
+            {
+                if (!object.ReferenceEquals(other, this.calibration) || otherChannels != this.channels)
+                {
+                    return false;
+                }
+
+                var polynomial = (PolynomialEnergyCalibration)other;
+                double[] now = polynomial.Coefficients;
+                if (polynomial.PolynomialOrder != this.order || now == null || now.Length != this.coefficients.Length)
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < now.Length; i++)
+                {
+                    if (now[i] != this.coefficients[i])
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            /// <summary>Энергия целого канала 0…N — то же число, что дала бы калибровка.</summary>
+            public double EnergyAt(int n)
+            {
+                return this.energies[Math.Max(0, Math.Min(this.channels, n))];
+            }
+
+            double Value(double x)
+            {
+                double[] c = this.coefficients;
+                double v = 0.0;
+                for (int i = this.order; i >= 0; i--)
+                {
+                    v = v * x + c[i];
+                }
+
+                return v;
+            }
+
+            double Slope(double x)
+            {
+                double[] c = this.coefficients;
+                double v = 0.0;
+                for (int i = this.order; i >= 1; i--)
+                {
+                    v = v * x + i * c[i];
+                }
+
+                return v;
+            }
+
+            /// <summary>Как <c>PolynomialEnergyCalibration.EnergyToChannel(e, N)</c>, корень — до машинной точности.</summary>
+            public double EnergyToChannel(double energy)
+            {
+                if (Double.IsNaN(energy))
+                {
+                    return Double.NaN;
+                }
+
+                double top = this.energies[this.channels];
+                if (energy > top)
+                {
+                    return this.channels;
+                }
+
+                if (energy < 0.0 || energy < this.coefficients[0])
+                {
+                    return 0.0;
+                }
+
+                // интервал [n, n + 1] с E(n) ≤ e ≤ E(n + 1)
+                int lo = 0, hi = this.channels;
+                while (hi - lo > 1)
+                {
+                    int mid = (lo + hi) >> 1;
+                    if (this.energies[mid] <= energy)
+                    {
+                        lo = mid;
+                    }
+                    else
+                    {
+                        hi = mid;
+                    }
+                }
+
+                double e0 = this.energies[lo], e1 = this.energies[hi];
+                double x = lo + (e1 > e0 ? (energy - e0) / (e1 - e0) : 0.0);
+                for (int iteration = 0; iteration < 20; iteration++)
+                {
+                    double slope = this.Slope(x);
+                    if (!(slope > 0.0))
+                    {
+                        break;
+                    }
+
+                    double step = (this.Value(x) - energy) / slope;
+                    double next = Math.Max(lo, Math.Min(hi, x - step));
+                    if (Math.Abs(next - x) <= 1.0E-13 * Math.Max(1.0, Math.Abs(x)))
+                    {
+                        x = next;
+                        break;
+                    }
+
+                    x = next;
+                }
+
+                return x;
+            }
         }
 
         /// <summary>
@@ -3889,6 +4141,53 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// 4.7 %/кэВ), и допуск проходов (двадцатая канала) там стоил процента.
         /// </summary>
         public double AnchorZeroTolerance { get; set; }
+
+        /// <summary>
+        /// ⛔ (`AMBER142`, П204) ТЁПЛЫЙ СТАРТ ПРИВЯЗКИ В ПОВТОРНОМ ПРОХОДЕ РАЗБОРА.
+        /// <see cref="Analyze"/> разбирает спектр до четырёх раз (`AMBER154`:
+        /// неподвижная точка усиления хранимого фона), и каждый проход прежде
+        /// начинал привязку с сеточной шкалы — та же лестница поправок от сотен
+        /// допусков, что и у первого прохода, хотя фон сдвинулся на доли
+        /// процента (малая база, П204: повторы несли 38 % проходов совместного
+        /// шага). Здесь повторный проход совместного шага (нуль по съёмке,
+        /// карта "adc") берёт стартом итоговую шкалу предыдущего — усиление и
+        /// ноль, нуль света карты, множитель ширины, β света; разведка нуля и
+        /// замороженные кандидаты — как были (отбор от старта не зависит).
+        /// Неподвижная точка и критерий сходимости те же; первый проход не
+        /// меняется. Классический режим (нуль «по прибору», карта calib) —
+        /// холодный, как прежде: там проходов мало, и тёплый старт давал бы
+        /// повтору лишние проходы, то есть другой ответ, а не ускорение.
+        /// Ложь — холодный старт (рычаг A/B).
+        /// </summary>
+        public bool AnchorWarmStart { get; set; }
+
+        /// <summary>
+        /// ⛔ (`AMBER142`, П204) ОСТАНОВ НА ПЛАТО: совместный шаг прекращается, когда
+        /// наибольшая поправка, приведённая к своему допуску, держится
+        /// <see cref="AnchorPlateauPasses"/> проходов подряд выше допуска и в
+        /// пределах множителя <see cref="AnchorPlateauRatio"/> — невязка у
+        /// неподвижной точки дрожит (замер опоры разрывен: целое окно у целой
+        /// вершины), и проходы дальше её не уменьшают. `AS80_Cs137_0cm`: две
+        /// точки на два неизвестных, нуль — по мультиплету Ba K 34 кэВ, поправка
+        /// 19…22 допуска с четвёртого по последний проход во всех трёх проходах разбора.
+        /// На записанных ходах малой базы правило не срабатывает больше нигде.
+        /// Нуль проходов — правило выключено (рычаг A/B).
+        /// </summary>
+        public int AnchorPlateauPasses { get; set; }
+
+        /// <summary>(`AMBER142`, П204) Множитель плато — см. <see cref="AnchorPlateauPasses"/>.</summary>
+        public double AnchorPlateauRatio { get; set; }
+
+        /// <summary>(`AMBER142`, П204) Итоговая шкала прохода привязки — старт следующего прохода разбора.</summary>
+        internal sealed class AnchorWarm
+        {
+            public double Gain, Offset, ZeroKev, Width, Light;
+            public int WidthAnchors;
+            public bool ZeroByRun, AdcOn;
+        }
+
+        /// <summary>(`AMBER142`, П204) Старт этого прохода (null — холодный) и итог этого прохода.</summary>
+        AnchorWarm anchorWarmIn, anchorWarmOut;
 
         /// <summary>
         /// (`AMBER142`, П201) Промах опоры — сдвигом всей нуклидной модели в
@@ -5875,8 +6174,64 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return Finite(a) && a > 0.0 && Finite(dz);
         }
 
+        /// <summary>
+        /// (`AMBER142`, П204) Ставит ширину, её опоры и β света из итога прошлого
+        /// прохода (<paramref name="warm"/>) или возвращает холодные (null):
+        /// ширина 1, β 0. Кэш гистограмм поглощения сбрасывается, если β в
+        /// образах сменился (как в цикле привязки).
+        /// </summary>
+        void ApplyAnchorWarm(AnchorWarm warm)
+        {
+            double light = warm != null ? warm.Light : 0.0;
+            this.widthScale = warm != null ? warm.Width : 1.0;
+            this.widthAnchors = warm != null ? warm.WidthAnchors : 0;
+            if (light != this.driftLight && this.LightInImages)
+            {
+                this.deposits.Clear();
+            }
+
+            this.driftLight = light;
+        }
+
+        /// <summary>
+        /// (`AMBER142`, П204) Наибольшая поправка совместного прохода в долях своего
+        /// допуска (те же допуски, что у сходимости цикла): ноль опор и усиление
+        /// на верхнем канале полосы — двадцатая канала, β света — двадцатая
+        /// канала сдвига, ширина — по сырому замеру опор, нуль света — допуск
+        /// <see cref="AnchorZeroTolerance"/> у нулевого канала. Меньше единицы —
+        /// сошлось по всем.
+        /// </summary>
+        double JointResidual(double a, double b, double beta, double zeroStep, double zeroStep0, int chHi)
+        {
+            double r = Math.Max(Math.Abs(b) / 0.05, Math.Abs(a - 1.0) * Math.Max(1, chHi) / 0.05);
+            r = Math.Max(r, Math.Abs(beta) * this.lightShiftMax / 0.05);
+            if (this.AnchorWidth && this.anchorWidthCount > 0)
+            {
+                r = Math.Max(r, Math.Abs(this.anchorWidthLog) / 0.0005);
+            }
+
+            if (PositiveFinite(zeroStep0))
+            {
+                r = Math.Max(r, Math.Abs(zeroStep) * this.adcScale / zeroStep0 / this.AnchorZeroTolerance);
+            }
+
+            return r;
+        }
+
         /// <summary>(`AMBER142`, П201) Служебная строка погрешности привязки последнего разбора.</summary>
         string scaleSigmaNote;
+
+        /// <summary>
+        /// (`AMBER142`, П204) Цена привязки последнего разбора — для проб и
+        /// замеров скорости: проходов, перефитов, время цикла привязки и
+        /// перефитов σ, ход шагов по проходам. Человеку не показывается.
+        /// </summary>
+        public string ScaleAnchorStats { get; private set; }
+
+        int anchorStatPasses, anchorStatRefits, anchorStatSigmaFits;
+        long anchorStatSigmaTicks;
+        bool anchorStatCapped, anchorStatPlateau;
+        StringBuilder anchorStatTrace = new StringBuilder();
 
         /// <summary>
         /// (`AMBER142`, П201) Погрешность привязки шкалы в значимость колонок
@@ -6078,6 +6433,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 shifted = FitOnce(components, fixedColumns, calibration, fwhmCalibration, efficiency,
                                   (1.0 + da) * gain, (1.0 + da) * offset + db, chLo, chHi, channels,
                                   y, best.Weights, null);
+                this.anchorStatSigmaFits++;
             }
             finally
             {
@@ -6888,8 +7244,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.AnchorMaxShiftFwhm = 1.0;
             this.AnchorPasses = 3;
             this.AnchorZeroRounds = 8;
+            this.FastCalibrationInverse = true;
             this.AnchorZeroOwnsOffset = true;
             this.AnchorZeroTolerance = 0.01;
+            this.AnchorWarmStart = true;
+            this.AnchorPlateauPasses = 4;
+            this.AnchorPlateauRatio = 1.25;
             this.AnchorShiftMeasure = true;
             this.AnchorShiftBirge = true;
             this.AnchorJointShareWeight = 2.0;
@@ -7163,9 +7523,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (нет фона, пиков фона не видно в данных, оптимум у края окна
             // поиска) — первый проход и есть результат, а служебная строка
             // привязки говорит почему.
+            // (`AMBER142`, П204) таблица обращения калибровки — своя на разбор
+            this.calibrationInverse = null;
+            this.calibrationInverseRefused = null;
             this.backgroundGain = 1.0;
+            this.anchorWarmIn = null;
             FsaResult first = this.AnalyzeOnce(spectrum, backgroundSpectrum, fwhmCalibration,
                                                originalLibrary, efficiency);
+            if (first != null)
+            {
+                first.AnchorWarmOut = this.anchorWarmOut;
+            }
             if (first == null || !first.BackgroundUsed || !this.BackgroundFollowsSample
                 || first.Background == null || first.Model == null)
             {
@@ -7231,8 +7599,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 this.backgroundGain = next;
+                // (`AMBER142`, П204) привязка — от итоговой шкалы прохода `current`
+                this.anchorWarmIn = this.AnchorWarmStart ? current.AnchorWarmOut : null;
                 FsaResult moved = this.AnalyzeOnce(spectrum, backgroundSpectrum, fwhmCalibration,
                                                    originalLibrary, efficiency);
+                this.anchorWarmIn = null;
+                if (moved != null)
+                {
+                    moved.AnchorWarmOut = this.anchorWarmOut;
+                }
                 this.backgroundGain = 1.0;
                 if (moved == null || moved.Background == null || moved.Model == null)
                 {
@@ -8429,6 +8804,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.jointScale = false;
             this.jointCovAA = this.jointCovAZ = this.jointCovZZ = 0.0;
             this.scaleSigmaNote = null;
+            this.anchorStatPasses = 0;
+            this.anchorStatRefits = 0;
+            this.anchorStatSigmaFits = 0;
+            this.anchorStatSigmaTicks = 0;
+            this.anchorStatTrace = new StringBuilder();
+            this.anchorStatCapped = false;
+            this.anchorStatPlateau = false;
+            this.anchorWarmOut = null;
+            long anchorTicks0 = System.Diagnostics.Stopwatch.GetTimestamp();
             if (this.AnchorScale)
             {
                 // ⛔ (`AMBER156` (а), П195 01.10.2026) БЕЗ МАТРИЦЫ ПРИВЯЗКА ТОЖЕ
@@ -8461,6 +8845,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // ключа); без матрицы привязка идёт калибровкой файла.
                     // (`AMBER142`, П201) нуль взят по съёмке — его и переснимать
                     bool zeroByRun = false;
+                    // (`AMBER142`, П204) тёплый старт: применён ли
+                    AnchorWarm warm = this.anchorWarmIn;
                     if (this.adcZeroMode == AdcZeroMode.Run && this.ResponseMatrix != null)
                     {
                         double a0, b0, beta0;
@@ -8476,9 +8862,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         zeroByRun = fromRun;
                         this.adcZeroKev = fromRun ? zeroKev : this.AnchorZeroKev;
                         this.adcZeroNote = zeroNote;
+                        // (`AMBER142`, П204) старт — нуль света прошлого прохода
+                        // только у совместного шага: классический режим — холодный, как прежде
+                        bool warmHere = warm != null && warm.AdcOn && warm.ZeroByRun && fromRun
+                                        && this.AnchorZeroRounds > 0;
+                        if (warmHere)
+                        {
+                            this.adcZeroKev = warm.ZeroKev;
+                        }
+
                         this.adcScale = this.AdcScaleOf(originalLibrary, calibration);
+                        if (!(this.adcScale > 0.0) && warmHere)
+                        {
+                            warmHere = false;
+                            this.adcZeroKev = fromRun ? zeroKev : this.AnchorZeroKev;
+                            this.adcScale = this.AdcScaleOf(originalLibrary, calibration);
+                        }
+
                         if (this.adcScale > 0.0)
                         {
+                            double gridGain = bestGain, gridOffset = bestOffset;
+                            if (warmHere)
+                            {
+                                this.ApplyAnchorWarm(warm);
+                                bestGain = warm.Gain;
+                                bestOffset = warm.Offset;
+                            }
+
                             FitResult remapped = FitHuber(library, fixedColumns, calibration, fwhmCalibration,
                                                           efficiency, bestGain, bestOffset, chLo, chHi, channels,
                                                           y, variance, baseWeights, reportWeights, null);
@@ -8488,6 +8898,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             }
                             else
                             {
+                                if (warmHere)
+                                {
+                                    this.ApplyAnchorWarm(null);
+                                    bestGain = gridGain;
+                                    bestOffset = gridOffset;
+                                }
+
                                 // Карта не взялась — назвать и идти калибровкой,
                                 // а не молчать: иначе «adc» в строке при
                                 // калибровочном образе.
@@ -8532,6 +8949,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     double widthPrevLn = 0.0, widthPrevResidual = 0.0;
                     int movedBy = 0;
                     int zeroSteps = 0;
+                    // (`AMBER142`, П204) поправки прохода в долях допуска — для плато
+                    var plateau = new List<double>();
+                    double plateauBestR = double.MaxValue;
+                    int plateauBestPass = -1;
+                    AnchorWarm plateauBest = null;
+                    bool restoreBest = false;
                     string zeroRoundNote = null;
                     for (int pass = 0; pass < passes; pass++)
                     {
@@ -8620,6 +9043,50 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                          && Math.Abs(widthStep) < (zeroRemeasure ? 0.0005 : 0.002)
                                          && (!PositiveFinite(zeroStep0)
                                              || Math.Abs(zeroStep) * this.adcScale / zeroStep0 < this.AnchorZeroTolerance);
+                        this.anchorStatPasses = pass + 1;
+                        this.anchorStatTrace.AppendFormat(CultureInfo.InvariantCulture,
+                            " [{0}: n {1} da·ch {2:F4} b {3:F4} dz·ch {4:F4} dlnw {5:F5}{6}]",
+                            pass, used, (a - 1.0) * Math.Max(1, chHi), b,
+                            PositiveFinite(zeroStep0) ? zeroStep * this.adcScale / zeroStep0 : 0.0,
+                            widthStep, converged ? " ok" : "");
+                        if (!converged && zeroRemeasure && this.AnchorPlateauPasses > 1)
+                        {
+                            // (`AMBER142`, П204) плато — см. <see cref="AnchorPlateauPasses"/>
+                            double pWorst = this.JointResidual(a, b, beta, zeroStep, zeroStep0, chHi);
+                            plateau.Add(pWorst);
+                            if (pWorst < plateauBestR)
+                            {
+                                plateauBestR = pWorst;
+                                plateauBestPass = pass;
+                                plateauBest = new AnchorWarm
+                                {
+                                    Gain = bestGain, Offset = bestOffset, ZeroKev = this.adcZeroKev,
+                                    Width = this.widthScale, WidthAnchors = this.widthAnchors, Light = this.driftLight
+                                };
+                            }
+                            int pk = this.AnchorPlateauPasses;
+                            if (plateau.Count >= pk)
+                            {
+                                double pLo = double.MaxValue, pHi = 0.0;
+                                for (int pq = plateau.Count - pk; pq < plateau.Count; pq++)
+                                {
+                                    pLo = Math.Min(pLo, plateau[pq]);
+                                    pHi = Math.Max(pHi, plateau[pq]);
+                                }
+
+                                if (pLo >= 1.0 && pHi <= this.AnchorPlateauRatio * pLo)
+                                {
+                                    // шкала остаётся на последнем фите: опоры и
+                                    // ковариация шага сняты на нём же в этом проходе
+                                    zeroRoundNote = string.Format(CultureInfo.InvariantCulture,
+                                        "плато: поправка {0:F1}…{1:F1} допуска {2} проходов подряд", pLo, pHi, pk);
+                                    this.anchorStatPlateau = true;
+                                    restoreBest = pWorst > this.AnchorPlateauRatio * plateauBestR;
+                                    break;
+                                }
+                            }
+                        }
+
                         if (converged)
                         {
                             // Опоры есть и шкала уже на месте: она ПРИВЯЗАНА,
@@ -8667,6 +9134,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         FitResult moved = FitHuber(library, fixedColumns, calibration, fwhmCalibration,
                                                    efficiency, gain, offset, chLo, chHi, channels,
                                                    y, variance, baseWeights, reportWeights, null);
+                        this.anchorStatRefits++;
                         if (moved == null || (zeroStep != 0.0 && !moved.FromResponseMatrix))
                         {
                             this.driftLight = lightBefore;
@@ -8706,11 +9174,65 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             {
                                 // ковариация шага — на последней шкале, для σ амплитуд
                                 double aLast, dzLast;
-                                this.JointScaleStep(calibration, bestGain, bestOffset, out aLast, out dzLast);
+                                if (this.JointScaleStep(calibration, bestGain, bestOffset, out aLast, out dzLast)
+                                    && plateauBest != null)
+                                {
+                                    // (`AMBER142`, П204) шкала предела хуже лучшего прохода — возврат
+                                    double last = this.JointResidual(aLast, b, beta, dzLast, zeroStep0, chHi);
+                                    restoreBest = last > this.AnchorPlateauRatio * plateauBestR;
+                                }
                             }
 
                             zeroRoundNote = "проходы кончились";
+                            this.anchorStatCapped = true;
                             break;
+                        }
+                    }
+
+                    if (restoreBest && plateauBest != null && zeroRemeasure)
+                    {
+                        // ⛔ (`AMBER142`, П204) СТОП У ДРОЖИ — ШКАЛА ЛУЧШЕГО ПРОХОДА. У
+                        // плато и в пределе последняя шкала — случайная точка полосы
+                        // дрожи, и бывает в разы дальше лучшей из пройденных
+                        // (`G1S24_Cs137_P25`, тёплый повтор: цикл 2.2 → 8.7 → 3.6 допуска).
+                        // Возврат — тем же движением, что проход: шкала, фит, опоры, шаг
+                        // (ковариация для σ амплитуд — на возвращённой шкале).
+                        double zeroKeep = this.adcZeroKev, scaleKeep = this.adcScale;
+                        var keep = new AnchorWarm
+                        {
+                            Width = this.widthScale, WidthAnchors = this.widthAnchors, Light = this.driftLight
+                        };
+                        this.adcZeroKev = plateauBest.ZeroKev;
+                        this.adcScale = this.AdcScaleOf(originalLibrary, calibration);
+                        this.ApplyAnchorWarm(plateauBest);
+                        FitResult back = this.adcScale > 0.0
+                            ? FitHuber(library, fixedColumns, calibration, fwhmCalibration, efficiency,
+                                       plateauBest.Gain, plateauBest.Offset, chLo, chHi, channels,
+                                       y, variance, baseWeights, reportWeights, null)
+                            : null;
+                        this.anchorStatRefits++;
+                        if (back != null && back.FromResponseMatrix)
+                        {
+                            best = back;
+                            bestGain = plateauBest.Gain;
+                            bestOffset = plateauBest.Offset;
+                            double aBack, bBack, betaBack, aJ, dzJ;
+                            int usedBack;
+                            string noteBack;
+                            this.scaleAnchors = this.CollectScaleAnchors(
+                                best, calibration, fwhmCalibration, bestGain, bestOffset,
+                                chLo, chHi, channels, y, variance, channelsPerKev,
+                                out aBack, out bBack, out betaBack, out usedBack, out noteBack);
+                            this.JointScaleStep(calibration, bestGain, bestOffset, out aJ, out dzJ);
+                            zeroRoundNote = (zeroRoundNote != null ? zeroRoundNote + "; " : "")
+                                + string.Format(CultureInfo.InvariantCulture,
+                                    "возврат к проходу {0} (поправка {1:F1} допуска)", plateauBestPass, plateauBestR);
+                        }
+                        else
+                        {
+                            this.adcZeroKev = zeroKeep;
+                            this.adcScale = scaleKeep;
+                            this.ApplyAnchorWarm(keep);
                         }
                     }
 
@@ -8728,6 +9250,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     this.anchorGainOnly = false;
                     this.scaleAnchorsUsed = movedBy;
+                    if (movedBy > 0)
+                    {
+                        this.anchorWarmOut = new AnchorWarm
+                        {
+                            Gain = bestGain, Offset = bestOffset, ZeroKev = this.adcZeroKev,
+                            Width = this.widthScale, WidthAnchors = this.widthAnchors, Light = this.driftLight,
+                            ZeroByRun = zeroByRun, AdcOn = this.adcScale > 0.0
+                        };
+                    }
+
                     if (movedBy > 0)
                     {
                         this.anchorNote = string.Format(CultureInfo.InvariantCulture,
@@ -8767,6 +9299,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 this.anchorNote = "привязка выключена ключом";
             }
+
+            long anchorTicks = System.Diagnostics.Stopwatch.GetTimestamp() - anchorTicks0;
 
             // (`S169`) карта нуля — в ту же служебную строку при любом исходе
             // привязки, и ТОЛЬКО когда включена: у "calib" строка прежняя до
@@ -9330,13 +9864,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // `best.Z` доезжает до всех строк.
             if (this.AnchorScale && this.AnchorSigmaInAmplitudes && this.scaleAnchorsUsed > 0)
             {
+                long sigmaTicks0 = System.Diagnostics.Stopwatch.GetTimestamp();
                 this.InflateZByScale(best, fixedColumns, calibration, fwhmCalibration, efficiency,
                                      originalLibrary, bestGain, bestOffset, chLo, chHi, channels, y);
+                this.anchorStatSigmaTicks = System.Diagnostics.Stopwatch.GetTimestamp() - sigmaTicks0;
                 if (this.scaleSigmaNote != null)
                 {
                     this.anchorNote = (this.anchorNote ?? "") + "; " + this.scaleSigmaNote;
                 }
             }
+
+            this.ScaleAnchorStats = string.Format(CultureInfo.InvariantCulture,
+                "проходов {0}{1}{7}; перефитов {2}; привязка {3:F0} мс; σ-перефитов {4}, {5:F0} мс; ход:{6}",
+                this.anchorStatPasses, this.anchorStatCapped ? " (предел)" : (this.anchorStatPlateau ? " (плато)" : ""), this.anchorStatRefits,
+                1000.0 * anchorTicks / System.Diagnostics.Stopwatch.Frequency, this.anchorStatSigmaFits,
+                1000.0 * this.anchorStatSigmaTicks / System.Diagnostics.Stopwatch.Frequency,
+                this.anchorStatTrace.ToString(), this.anchorWarmIn != null ? ", тёплый старт" : "");
 
             FsaResult result = BuildResult(best, spectrum, fwhmCalibration, backgroundCurve, snipContinuum,
                                chLo, chHi, channels,
