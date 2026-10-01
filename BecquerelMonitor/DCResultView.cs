@@ -49,7 +49,106 @@ namespace BecquerelMonitor
             this.comboBox1.SelectedIndex = 0;
             this.comboBox2.SelectedIndex = 0;
             this.columnModel1.Columns[1].Renderer = new ResultValueCellRenderer();
+            // (`AMBER148`) Режим поправки этого окна решает и за беккерели панели
+            // выделения — окно числится среди живых, пока не уничтожено.
+            LiveViews.Add(this);
+            this.Disposed += (s, e) => LiveViews.Remove(this);
+            this.DockStateChanged += (s, e) => this.RefreshSelectionPanel();
         }
+
+        /// <summary>(`AMBER148`) Все окна результатов, ещё не уничтоженные.</summary>
+        static readonly System.Collections.Generic.List<DCResultView> LiveViews =
+            new System.Collections.Generic.List<DCResultView>();
+
+        /// <summary>
+        /// (`AMBER148`, П192 01.10.2026) Приводить ли беккерели ПАНЕЛИ ВЫДЕЛЕНИЯ
+        /// к дате отбора: да, когда хоть одно открытое (не скрытое) окно
+        /// результатов стоит в режиме «поправка на полураспад». Панель своего
+        /// переключателя не имеет, а два разных правила для зон и для выделения
+        /// дали бы два разных числа одной линии без объяснения. Окон
+        /// результатов может быть до четырёх; режим «хоть одно» выбран потому,
+        /// что человек, включивший поправку, ждёт её и на панели, а сама панель
+        /// подписью говорит, к какому моменту отнесено её число.
+        /// </summary>
+        public static bool HalfLifeCorrectionShown()
+        {
+            foreach (DCResultView view in LiveViews)
+            {
+                if (!view.IsDisposed && !view.IsHidden && view.DockPanel != null
+                    && view.resultCorrection == ResultCorrection.HalfLifeCorrection)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// (`AMBER148`) Подпись момента у беккерелей панели выделения — строкой
+        /// под подписью линии: «среднее за набор» без поправки, «на дату отбора
+        /// … ×множитель» с ней, «среднее за набор: нет T½», когда поправка
+        /// включена, а периода у линии нет. Строки — этого окна (свой resx).
+        /// </summary>
+        public static string SelectionMomentText(bool corrected, bool hasHalfLife, DateTime sampling, double factor)
+        {
+            if (!corrected)
+            {
+                return OwnText(KeyMomentMean);
+            }
+
+            if (!hasHalfLife)
+            {
+                return OwnText(KeyMomentNoHalfLife);
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyMomentSampling),
+                                 sampling.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+                                 factor.ToString("F3", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>(`AMBER148`) Перерисовать панель выделения открытого документа.</summary>
+        void RefreshSelectionPanel()
+        {
+            DocEnergySpectrum document = this.mainForm != null ? this.mainForm.ActiveDocument : null;
+            if (document != null && document.EnergySpectrumView != null)
+            {
+                document.EnergySpectrumView.RefreshSelectionOverlay();
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER148`) Заголовок столбца значений называет, к какому моменту
+        /// отнесено число: прежде «Result» без поправки молча значил «среднее за
+        /// набор», а с поправкой — «на дату отбора». Полная фраза — подсказкой.
+        /// </summary>
+        void ShowMomentHeader(MeasurementResultCollection resultCollection)
+        {
+            Column column = this.columnModel1.Columns[1];
+            if (this.resultCorrection == ResultCorrection.HalfLifeCorrection)
+            {
+                // Пустая таблица (нет документа или зон) — заголовок тот же, даты нет.
+                string sampling = resultCollection != null && resultCollection.ResultData != null
+                                  && resultCollection.ResultData.SampleInfo != null
+                    ? resultCollection.ResultData.SampleInfo.Time.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)
+                    : "—";
+                column.Text = OwnText(KeyColumnSampling);
+                column.ToolTipText = string.Format(CultureInfo.InvariantCulture, OwnText(KeyColumnSamplingTip), sampling);
+            }
+            else
+            {
+                column.Text = OwnText(KeyColumnMean);
+                column.ToolTipText = OwnText(KeyColumnMeanTip);
+            }
+        }
+
+        const string KeyColumnMean = "DCResult_ColumnMean";
+        const string KeyColumnMeanTip = "DCResult_ColumnMeanTip";
+        const string KeyColumnSampling = "DCResult_ColumnSampling";
+        const string KeyColumnSamplingTip = "DCResult_ColumnSamplingTip";
+        const string KeyMomentMean = "DCResult_MomentMean";
+        const string KeyMomentNoHalfLife = "DCResult_MomentNoHalfLife";
+        const string KeyMomentSampling = "DCResult_MomentSampling";
 
         // Token: 0x06000434 RID: 1076 RVA: 0x00013650 File Offset: 0x00011850
         protected override string GetPersistString()
@@ -84,6 +183,7 @@ namespace BecquerelMonitor
                 this.tableModel1.Rows.Clear();
                 this.table1.EndUpdate();
                 this.previousCollection = null;
+                this.ShowMomentHeader(null);
                 return;
             }
             GlobalConfigInfo globalConfig = this.globalConfigManager.GlobalConfig;
@@ -104,6 +204,7 @@ namespace BecquerelMonitor
             {
                 resultCollection = measurementResultManager.Correct(resultCollection);
             }
+            this.ShowMomentHeader(resultCollection);
             if (errorLevel == 1m)
             {
                 this.columnModel1.Columns[2].Text = Resources.Uncertain + " " + Resources.Sigma;
@@ -358,6 +459,8 @@ namespace BecquerelMonitor
         {
             this.resultCorrection = (ResultCorrection)this.comboBox2.SelectedIndex;
             this.ShowResult(this.previousCollection, false);
+            // (`AMBER148`) режим поправки решает и за беккерели панели выделения
+            this.RefreshSelectionPanel();
         }
 
         // Token: 0x040001A3 RID: 419

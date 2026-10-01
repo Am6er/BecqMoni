@@ -362,6 +362,16 @@ namespace SelectionPanelProbeG10
                     {
                         Console.WriteLine("  строка суммирования: {0}", summingNote);
                     }
+                    // (`AMBER148`, П192) строка момента («среднее за набор» / «на дату
+                    // отбора») стоит под подписью и уходит вместе с ней; у сборки до
+                    // П192 свойства нет — ноль.
+                    PropertyInfo momentProp = an.GetType().GetProperty("ActivityMoment", Any);
+                    string moment = momentProp != null ? (string)momentProp.GetValue(an, null) : null;
+                    int momentRowHonest = string.IsNullOrEmpty(moment) ? 0 : 16; // ПАНЕЛЬ: момент
+                    if (momentRowHonest > 0)
+                    {
+                        Console.WriteLine("  строка момента: {0}", moment);
+                    }
 
                     // ⛔ СПОР РАЗВОДИТСЯ ОТДЕЛЬНО (`A273`, и урок его цел). Он
                     //    снимается ОДИН, при живой подписи, и панель обязана
@@ -403,10 +413,11 @@ namespace SelectionPanelProbeG10
                         Console.WriteLine("  контроль «подпись снята»: панель {0} px против {1} px; изменилось точек в области панели {2}, вне её {3}",
                                           noLabelBox.Height, panelBox.Height, changed, outside);
                         Same("подпись НАРИСОВАНА: точек изменилось > 0", true, changed > 0);
-                        Same("подпись занимает ровно " + (labelRow + rivalRowHonest + summingRowHonest).ToString(CultureInfo.InvariantCulture)
+                        Same("подпись занимает ровно " + (labelRow + rivalRowHonest + summingRowHonest + momentRowHonest).ToString(CultureInfo.InvariantCulture)
                              + " px" + (rivalRowHonest > 0 ? " (16 подписи + 16 строки спора)" : "")
-                             + (summingRowHonest > 0 ? " (+16 строки суммирования)" : ""),
-                             labelRow + rivalRowHonest + summingRowHonest, panelBox.Height - noLabelBox.Height);
+                             + (summingRowHonest > 0 ? " (+16 строки суммирования)" : "")
+                             + (momentRowHonest > 0 ? " (+16 строки момента)" : ""),
+                             labelRow + rivalRowHonest + summingRowHonest + momentRowHonest, panelBox.Height - noLabelBox.Height);
                         Same("снятие подписи вне панели кадр не трогает", 0, outside);
                         noLabel.Save(Path.Combine(shotDir, tag + "-nolabel.png"), ImageFormat.Png);
                     }

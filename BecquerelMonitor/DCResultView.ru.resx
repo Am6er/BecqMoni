@@ -165,4 +165,25 @@
   <data name="DCResult_InterferenceTip" xml:space="preserve">
     <value>{0} кэВ: вклад {1} не учтён — при природном отношении {1}/{2} зона {3} завышена до ×{4}</value>
   </data>
+  <data name="DCResult_ColumnMean" xml:space="preserve">
+    <value>Ср. за набор</value>
+  </data>
+  <data name="DCResult_ColumnMeanTip" xml:space="preserve">
+    <value>Среднее за набор: отсчёты / живое время, к дате отбора не приведено. Привести — режим «Корр. пер. полураспада».</value>
+  </data>
+  <data name="DCResult_ColumnSampling" xml:space="preserve">
+    <value>На дату отбора</value>
+  </data>
+  <data name="DCResult_ColumnSamplingTip" xml:space="preserve">
+    <value>Приведено к дате отбора {0}: среднее за набор × 2^((начало − отбор)/T½) × λT/(1 − e^(−λT)), T — длительность набора; MDA — так же. Зоны без периода полураспада остаются средним за набор.</value>
+  </data>
+  <data name="DCResult_MomentMean" xml:space="preserve">
+    <value>среднее за набор</value>
+  </data>
+  <data name="DCResult_MomentNoHalfLife" xml:space="preserve">
+    <value>среднее за набор: нет T½</value>
+  </data>
+  <data name="DCResult_MomentSampling" xml:space="preserve">
+    <value>на дату отбора {0}, ×{1}</value>
+  </data>
 </root>

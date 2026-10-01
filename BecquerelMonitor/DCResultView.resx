@@ -226,7 +226,7 @@
     <value>Result</value>
   </data>
   <data name="textColumn2.Width" type="System.Int32, mscorlib">
-    <value>80</value>
+    <value>100</value>
   </data>
   <data name="textColumn3.Text" xml:space="preserve">
     <value>Uncertain</value>
@@ -4607,5 +4607,26 @@
   </data>
   <data name="DCResult_InterferenceTip" xml:space="preserve">
     <value>{0} keV: the {1} contribution is not counted — at the natural {1}/{2} ratio the zone {3} is overestimated up to ×{4}</value>
+  </data>
+  <data name="DCResult_ColumnMean" xml:space="preserve">
+    <value>Acq. mean</value>
+  </data>
+  <data name="DCResult_ColumnMeanTip" xml:space="preserve">
+    <value>Mean over the acquisition: counts / live time, not referred to the sampling date. "Half Lifetime Correction" refers it to the sampling date.</value>
+  </data>
+  <data name="DCResult_ColumnSampling" xml:space="preserve">
+    <value>At sampling</value>
+  </data>
+  <data name="DCResult_ColumnSamplingTip" xml:space="preserve">
+    <value>Referred to the sampling date {0}: acquisition mean × 2^((start − sampling)/T½) × λT/(1 − e^(−λT)), T = acquisition span; MDA likewise. ROIs without a half-life stay the acquisition mean.</value>
+  </data>
+  <data name="DCResult_MomentMean" xml:space="preserve">
+    <value>mean over acquisition</value>
+  </data>
+  <data name="DCResult_MomentNoHalfLife" xml:space="preserve">
+    <value>mean over acquisition: no T½</value>
+  </data>
+  <data name="DCResult_MomentSampling" xml:space="preserve">
+    <value>at sampling {0}, ×{1}</value>
   </data>
 </root>

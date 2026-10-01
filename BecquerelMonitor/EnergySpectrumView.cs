@@ -846,7 +846,31 @@ namespace BecquerelMonitor
                                         bqCoeffError *= summing.Factor;
                                     }
                                     analytics.ActivitySummingNote = summing.Note != null ? summing.Problem : null;
-                                    analytics.Activity = ROIAriphmetics.CalculateActivity(bqCoeff, fgCounts, fgTime, bgCounts, bgTime);
+                                    // ⛔ (`AMBER148`, П192 01.10.2026) К КАКОМУ МОМЕНТУ
+                                    //    отнесены беккерели. Счёт за набор даёт СРЕДНЮЮ
+                                    //    активность, и прежде панель печатала её, не
+                                    //    называя момента: у I-131 за сутки набора это −4.2 %
+                                    //    к активности начала, у Pb-214 за час — вдвое. Теперь
+                                    //    режим окна результатов «поправка на полураспад»
+                                    //    (`DCResultView.HalfLifeCorrectionShown`) приводит
+                                    //    число к дате отбора тем же множителем, что у зон
+                                    //    (`MeasurementResultManager.DecayToSamplingFactor`),
+                                    //    а строка под подписью линии называет момент в
+                                    //    обоих случаях. Все беккерели панели линейны по
+                                    //    (K, σK) — множитель входит в K, как у суммирования.
+                                    bool decayCorrected = DCResultView.HalfLifeCorrectionShown();
+                                    double halfLifeYears = detectedPeak.Nuclide.HalfLife;
+                                    double decayFactor = decayCorrected
+                                        ? MeasurementResultManager.DecayToSamplingFactor(halfLifeYears,
+                                              this.activeResultData.SampleInfo.Time,
+                                              this.activeResultData.StartTime, this.activeResultData.EndTime)
+                                        : 1.0;
+                                    bqCoeff *= decayFactor;
+                                    bqCoeffError *= decayFactor;
+                                    analytics.ActivityDecayFactor = decayFactor;
+                                    analytics.ActivityMoment = DCResultView.SelectionMomentText(
+                                        decayCorrected, halfLifeYears > 0.0, this.activeResultData.SampleInfo.Time, decayFactor);
+                                    analytics.Activity =ROIAriphmetics.CalculateActivity(bqCoeff, fgCounts, fgTime, bgCounts, bgTime);
                                     analytics.ActivityError = ROIAriphmetics.CalculateActivityError(bqCoeff, bqCoeffError, fgCounts, fgTime, bgCounts, bgTime, errorLevel);
                                     analytics.ActivityUpperLimit = ROIAriphmetics.CalculateActivityUpperLimit(bqCoeff, bqCoeffError, fgCounts, fgTime, bgCounts, bgTime, limitsConfidenceLevel);
                                     if (this.activeResultData.SampleInfo.Weight > 0)
@@ -5009,6 +5033,10 @@ namespace BecquerelMonitor
                     {
                         infopanel_height += 16; // ПАНЕЛЬ: суммирование (`AMBER133`)
                     }
+                    if (!string.IsNullOrEmpty(selection.ActivityMoment))
+                    {
+                        infopanel_height += 16; // ПАНЕЛЬ: момент (`AMBER148`)
+                    }
                 }
 
                 // ⛔ (`AMBER2`) СЛАГАЕМЫХ «отказ» И «отступ» БОЛЬШЕ НЕТ, и это
@@ -5155,6 +5183,14 @@ namespace BecquerelMonitor
                                                    selection.ActivityRivals,
                                                    selection.ActivityRivalFactor),
                                      this.Font, Brushes.DarkOrange, r2, this.centerFormat);
+                        r2.Y += 16;
+                    }
+
+                    // (`AMBER148`) Момент, к которому отнесены беккерели ниже:
+                    // «среднее за набор» или «на дату отбора … ×множитель».
+                    if (!string.IsNullOrEmpty(selection.ActivityMoment))
+                    {
+                        g.DrawString(selection.ActivityMoment, this.Font, Brushes.DarkSlateGray, r2, this.centerFormat);
                         r2.Y += 16;
                     }
                 }
@@ -5919,6 +5955,19 @@ namespace BecquerelMonitor
             /// его нет; null — у линии нет каскада, говорить не о чем.
             /// </summary>
             public string ActivitySummingNote { get; set; }
+
+            /// <summary>
+            /// (`AMBER148`, П192) К какому моменту отнесены беккерели выделения:
+            /// «среднее за набор» либо «на дату отбора … ×множитель» — строка
+            /// панели под подписью линии. Null — числа нет, говорить не о чем.
+            /// </summary>
+            public string ActivityMoment { get; set; }
+
+            /// <summary>
+            /// (`AMBER148`) Множитель от средней за набор к дате отбора, вошедший
+            /// в беккерели выделения; 1 — без поправки.
+            /// </summary>
+            public double ActivityDecayFactor { get; set; } = 1.0;
 
             public double ActivityLineKev { get; set; }
 
