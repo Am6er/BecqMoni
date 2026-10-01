@@ -1407,6 +1407,72 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public AngularMomentSums LastAngularMoments { get; private set; }
 
+        /// <summary>
+        /// ⚡ (`AMBER145`, П199 01.10.2026) ДОПУСК ПИКА ПО РАЗРЕШЕНИЮ, кэВ — для
+        /// ВТОРОГО счёта пиковой эффективности узла, тем же определением, что у
+        /// кривой эффективности (`EfficiencyCalculation.Run`:
+        /// `PeakHalfWidthKev = geometry.PeakHalfWidthKev(E)` = ПШПВ(E)/2).
+        ///
+        /// Зачем. Строка матрицы считает пик ПОЛУБИНОМ (<see cref="PeakHalfWidthKev"/>
+        /// = 1 кэВ, решение Amber 11.09.2026 «Допуск по БИНУ»), а суммирователь
+        /// каскада берёт пиковую эффективность ЧИСЛОМ — Σ канала `Peak` — и
+        /// перемножает её у пары: истории с недобором 1…7 кэВ (L-вылет, комптон
+        /// вперёд в пробе и обвязке), которые после свёртки разрешением лежат в
+        /// пике, у него выпадали — сумм-пики вплотную занижены на 4…9 %
+        /// (замер П191 `CurveVsMatrixP191`). Строку матрицы правка НЕ ТРОГАЕТ:
+        /// счёт идёт сбоку, теми же историями.
+        ///
+        /// ⛔ СЛУЧАЙНЫХ ЧИСЕЛ НЕ ТЯНЕТ. Отбор — по уже посчитанному заносу
+        /// истории и её бину (<see cref="BinOf"/>), поток ГСЧ и тело матрицы
+        /// побитово прежние. Ноль (умолчание) — не считать вовсе.
+        /// </summary>
+        public double ResolutionPeakHalfWidthKev;
+
+        /// <summary>
+        /// (`AMBER145`) Выход последнего <see cref="Run"/> с гистограммой: доля
+        /// квантов (на квант источника, как строка) с недобором НЕ БОЛЬШЕ
+        /// <see cref="ResolutionPeakHalfWidthKev"/>, которых строка НЕ положила
+        /// в бин пика. Пиковая эффективность по разрешению узла — Σ канала
+        /// `Peak` плюс это число (`ResponseMatrixBuilder`): объединение двух
+        /// непересекающихся множеств — «бин пика» (допуск полубином и округление
+        /// бина) и «прочие бины с недобором в допуске по разрешению» — даёт
+        /// ровно «недобор ≤ ПШПВ/2», определение кривой.
+        ///
+        /// Множество берётся у ТОЙ ветви, что дала бины ниже пика: при
+        /// аналоговом континууме — у его историй (бины ниже пика перезаписаны
+        /// ими), иначе — у взвешенной. Ноль, если допуск по разрешению не задан.
+        /// </summary>
+        public double LastResolutionPeakExtra { get; private set; }
+
+        // (`AMBER145`) Копилки второго счёта пика — взвешенная и аналоговая
+        // ветви порознь; обнуляются в начале `Run`.
+        double resolutionWeighted, resolutionAnalog;
+
+        /// <summary>
+        /// (`AMBER145`) Сложить долю истории во второй счёт пика, если её бин —
+        /// НЕ бин пика, а недобор укладывается в допуск по разрешению. Зовётся
+        /// рядом с <see cref="Deposit"/> полной гистограммы — тем же заносом.
+        /// </summary>
+        void TallyResolutionPeak(int peak, double binKev, double energyKev,
+                                 double deposited, double weight, bool analog)
+        {
+            if (!(this.ResolutionPeakHalfWidthKev > 0.0) || !(deposited > 0.0) || !(weight > 0.0)
+                || energyKev - deposited > this.ResolutionPeakHalfWidthKev + 1e-9
+                || this.BinOf(peak, binKev, energyKev, deposited) == peak)
+            {
+                return;
+            }
+
+            if (analog)
+            {
+                this.resolutionAnalog += weight;
+            }
+            else
+            {
+                this.resolutionWeighted += weight;
+            }
+        }
+
         // (`AMBER46`) Косинус угла вылета ПОСЛЕДНЕЙ истории к оси «точка вылета →
         // центр объемлющей сферы кристалла» и её полный занос (сумма долей,
         // положенных в гистограмму, — то, что до П87 проба собирала тремя бинами).
@@ -4768,6 +4834,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (histogram != null)
             {
                 this.Deposit(histogram, binKev, energyKev, deposited, share);
+                this.TallyResolutionPeak(histogram.Length - 1, binKev, energyKev, deposited, share, false);
                 this.ScoreLight(binKev, energyKev, deposited, share);
                 if (this.channelHistograms != null)
                 {
@@ -8481,6 +8548,10 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             double sum = 0.0, sum2 = 0.0;
             int n = Math.Max(1000, this.Histories);
+            // (`AMBER145`) Второй счёт пика — с нуля на каждый прогон.
+            this.resolutionWeighted = 0.0;
+            this.resolutionAnalog = 0.0;
+            this.LastResolutionPeakExtra = 0.0;
             // (`AMBER46`, П87) Моменты угловой эффективности узла — из ТЕХ ЖЕ
             // историй, что строят его строку: пиковый счёт истории, её полный
             // занос и косинус угла вылета к оси. Случайных чисел не тянет,
@@ -8574,6 +8645,16 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
+
+            // (`AMBER145`) Второй счёт пика — у той ветви, что дала бины ниже
+            // пика: аналоговый континуум их перезаписал, значит и множество
+            // «не бин пика, недобор в допуске по разрешению» — его.
+            if (histogram != null)
+            {
+                bool analogBins = histogram.Length > 1 && this.AnalogContinuum;
+                this.LastResolutionPeakExtra =
+                    (analogBins ? this.resolutionAnalog : this.resolutionWeighted) / n;
+            }
 
             return this.FinishRun(energyKev, histogram, binKev, n, mean);
         }
@@ -8709,12 +8790,34 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public JointSums JointPeakSums(double[] energies, int points, double[] peakHalfWidths)
         {
+            return this.JointPeakSums(energies, points, peakHalfWidths, 1);
+        }
+
+        /// <summary>
+        /// ⚡ (`AMBER147`, П199 01.10.2026) То же с <paramref name="perPoint"/>
+        /// ИСТОРИЯМИ НА ЭНЕРГИЮ В КАЖДОМ НАБОРЕ ТОЧКИ: `a_i` и `b_i` — средние по
+        /// своим `perPoint` историям, наборы по-прежнему независимы, так что
+        /// `E[a_i·b_j | точка] = ε_i(x)·ε_j(x)` и оценка остаётся несмещённой.
+        ///
+        /// Зачем. У малого кристалла (CsI 1 см³) пиковая эффективность точки
+        /// на 1…2 МэВ — доли процента, и при ОДНОЙ истории на энергию
+        /// произведение `a_i·b_j` почти всегда ноль: шум ячейки κ там 20…100 %
+        /// (`KappaScanP191`). Дисперсия среднего по точкам складывается из
+        /// разброса ε_iε_j по объёму (растёт с `perPoint` при той же цене) и
+        /// шума оценки в точке (у редких событий падает как 1/`perPoint`); у
+        /// малых кристаллов второе слагаемое главное, и несколько историй на
+        /// точку при той же цене дают меньший шум. `perPoint = 1` — прежний
+        /// счёт побитово (тот же порядок обращений к ГСЧ).
+        /// </summary>
+        public JointSums JointPeakSums(double[] energies, int points, double[] peakHalfWidths, int perPoint)
+        {
             if (energies == null || energies.Length == 0)
             {
                 return null;
             }
 
             this.EnsureBuilt();
+            int per = Math.Max(1, perPoint);
             int n = Math.Max(1, points);
             int m = energies.Length;
             var sums = new JointSums(m);
@@ -8750,8 +8853,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                         this.PeakHalfWidthKev = peakHalfWidths[e];
                     }
 
-                    a[e] = energies[e] > 0.0 ? this.OneHistory(energies[e], x, y, z, null, 0.0) : 0.0;
-                    a[e] += this.KappaOutsidePeak(energies[e], x, y, z);
+                    if (per == 1)
+                    {
+                        a[e] = energies[e] > 0.0 ? this.OneHistory(energies[e], x, y, z, null, 0.0) : 0.0;
+                        a[e] += this.KappaOutsidePeak(energies[e], x, y, z);
+                    }
+                    else
+                    {
+                        a[e] = this.KappaPointMean(energies[e], x, y, z, per);
+                    }
                 }
 
                 for (int e = 0; e < m; e++)
@@ -8761,14 +8871,43 @@ namespace BecquerelMonitor.EfficiencyMaker
                         this.PeakHalfWidthKev = peakHalfWidths[e];
                     }
 
-                    b[e] = energies[e] > 0.0 ? this.OneHistory(energies[e], x, y, z, null, 0.0) : 0.0;
-                    b[e] += this.KappaOutsidePeak(energies[e], x, y, z);
+                    if (per == 1)
+                    {
+                        b[e] = energies[e] > 0.0 ? this.OneHistory(energies[e], x, y, z, null, 0.0) : 0.0;
+                        b[e] += this.KappaOutsidePeak(energies[e], x, y, z);
+                    }
+                    else
+                    {
+                        b[e] = this.KappaPointMean(energies[e], x, y, z, per);
+                    }
                 }
 
                 sums.Accumulate(a, b, pointWeight);
             }
 
             return sums;
+        }
+
+        /// <summary>
+        /// (`AMBER147`) Средняя пиковая оценка ОДНОЙ энергии из точки по
+        /// <paramref name="per"/> историям — тем же переносом, что одиночная
+        /// (`OneHistory` плюс класс вне конуса).
+        /// </summary>
+        double KappaPointMean(double energyKev, double x, double y, double z, int per)
+        {
+            if (!(energyKev > 0.0))
+            {
+                return 0.0;
+            }
+
+            double s = 0.0;
+            for (int k = 0; k < per; k++)
+            {
+                s += this.OneHistory(energyKev, x, y, z, null, 0.0);
+                s += this.KappaOutsidePeak(energyKev, x, y, z);
+            }
+
+            return s / per;
         }
 
         /// <summary>
@@ -8901,6 +9040,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                         if (histogram != null)
                         {
                             this.Deposit(histogram, binKev, energyKev, energyKev - escaped, share);
+                            this.TallyResolutionPeak(histogram.Length - 1, binKev, energyKev,
+                                                     energyKev - escaped, share, false);
                             this.ScoreLight(binKev, energyKev, energyKev - escaped, share);
                             if (this.channelHistograms != null)
                             {
@@ -9885,6 +10026,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // взвешенная ветвь, так что встречная проверка ветвей (`A58`,
                 // `G4RawProbe`) сравнивает одно определение с одним.
                 int bin = this.BinOf(peak, binKev, energyKev, deposited);
+                // (`AMBER145`) Второй счёт пика: бин не пиковый, недобор в
+                // допуске по разрешению — тем же весом, что ляжет в бин.
+                this.TallyResolutionPeak(peak, binKev, energyKev, deposited, weight, true);
                 if (bin == peak)
                 {
                     this.CountPeakBinDropped++;
