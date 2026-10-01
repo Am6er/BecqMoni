@@ -164,20 +164,46 @@ namespace BecquerelMonitor.EfficiencyMaker
         //     рабочие матрицы Amber — ОДНИМ ночным пересчётом физики 23 (rev33),
         //     ⏸ по слову Amber («Пересчет склада и полный корпус пока стоп.»);
         //     до него разбор печатает «БЕЗ МАТРИЦЫ», форма — «устарела».
-        public const int FormatVersion = 10;
+        // 11 — ПИКОВАЯ ЭФФЕКТИВНОСТЬ ПО РАЗРЕШЕНИЮ И КАЧЕСТВО ТАБЛИЦЫ κ
+        //     (`AMBER145`, `AMBER147`, П199 01.10.2026; решение Amber 01.10.2026
+        //     вопросником по обеим строкам, дословно: «Готовить днём, ночь — по
+        //     команде (Рекомендую)»). Два ОБЯЗАТЕЛЬНЫХ блока сразу за `ANGK`:
+        //     `EPRS` — ε_p узла с допуском ПШПВ/2 геометрии (определение кривой
+        //     эффективности; Σ канала `Peak` плюс истории вне бина пика с
+        //     недобором в допуске, `ResponseMatrixBuilder.FillResolutionPeak`) —
+        //     её берёт суммирователь каскада вместо Σ канала `Peak`, которая
+        //     вплотную к кристаллу занижала сумм-пики на 4…9 %; `JNTQ` — режим
+        //     таблицы κ (точка: κ ≡ 1 без таблицы; сосуд: добор точек до цели
+        //     шума и гладкая подстановка шумных ячеек с зажимом κ ≥ 1), её цель,
+        //     историй на точку и достигнутый шум. Версия ПОДНЯТА, как у `JNTK`
+        //     (7 → 8): обе величины меняют ЧИСЛА разбора, и матрица формата 10
+        //     без них считала бы сумм-пики прежней моделью молча — теперь она
+        //     получает отказ `OldFormat` с номером («посчитана форматом 10»).
+        //     Тело (сетка и строки по каналам) и его отпечаток `BODY` НЕ
+        //     ИЗМЕНИЛИСЬ: второй счёт пика не тянет случайных чисел, и тело
+        //     формата 11 обязано совпасть с телом формата 10 того же рецепта
+        //     (`MatrixDiffProbe`, прежний формат читается для сравнения). Клеймо
+        //     несёт `kjnt=` (режим и цель κ) и `peps=` (определение ε_p). Физика
+        //     НЕ поднята (26): перенос не тронут, и кривые эффективности, в чьём
+        //     клейме стоит `phys=`, остаются годными. Цена: склад (49 сцен),
+        //     витрина и рабочие матрицы Amber — ночным пересчётом по её команде;
+        //     до него разбор печатает «без матрицы — прежний формат».
+        public const int FormatVersion = 11;
 
         /// <summary>
         /// Прежний формат, который <see cref="Load(string, out MatrixRefusal, out int, int)"/>
         /// СОГЛАШАЕТСЯ прочитать ТОЛЬКО по явной просьбе — ради сравнения
-        /// (`MatrixDiffProbe`: матрица формата 9 против её пересчёта форматом 10
-        /// — Σ каналов узла и Q_k обязаны совпасть в шуме, тела по отпечатку
-        /// различны по построению, см. летопись 10). Приложение и все прочие
-        /// читатели зовут `Load` без этого довода и старый файл получают отказом
-        /// `OldFormat`, как и положено. Раскладка формата 9 этому читателю
-        /// известна целиком: тело то же (число каналов — в теле числом), блок
-        /// `ANGK` и хвосты те же; формат 8 (без `ANGK`) больше не читается.
+        /// (`MatrixDiffProbe`: матрица формата 10 против её пересчёта форматом 11
+        /// — тела обязаны совпасть ПОБАЙТНО, см. летопись 11). Приложение и все
+        /// прочие читатели зовут `Load` без этого довода и старый файл получают
+        /// отказом `OldFormat`, как и положено. Раскладка формата 10 этому
+        /// читателю известна целиком: тело, блок `ANGK` и хвосты те же, блоков
+        /// `EPRS`/`JNTQ` нет — такая матрица читается с
+        /// <see cref="PeakEfficiencyResolution"/> = null и режимом κ «прежний»
+        /// (<see cref="ResponseMatrixOptions.JointNoiseTarget"/> = 0). Формат 9
+        /// (шесть каналов) больше не читается.
         /// </summary>
-        public const int PreviousFormatVersion = 9;
+        public const int PreviousFormatVersion = 10;
 
         /// <summary>
         /// Версия ФИЗИКИ. Поднимать при любой правке переноса, меняющей числа:
@@ -838,6 +864,83 @@ namespace BecquerelMonitor.EfficiencyMaker
         public long JointPoints { get; set; }
 
         /// <summary>
+        /// (`AMBER147`, формат 11) Как получена таблица κ: прежним счётом,
+        /// единицей точечной сцены (таблицы нет), добором до цели шума с
+        /// подстановкой шумных ячеек или не считалась вовсе.
+        /// </summary>
+        public JointKappaMode JointMode { get; set; }
+
+        /// <summary>
+        /// (`AMBER147`) Шум замера κ ДО подстановки, % — медиана и максимум по
+        /// ячейкам с обеими энергиями от 100 кэВ (`ResponseMatrixBuilder.JointNoiseMinKev`);
+        /// ячейка без совместных событий — бесконечность. Ноль у точечной сцены.
+        /// </summary>
+        public double JointRawMedianNoise { get; set; }
+
+        /// <summary>(`AMBER147`) См. <see cref="JointRawMedianNoise"/> — максимум.</summary>
+        public double JointRawMaxNoise { get; set; }
+
+        /// <summary>(`AMBER147`) Ячеек в мерке шума (обе энергии от 100 кэВ, верхний треугольник).</summary>
+        public int JointCellsCounted { get; set; }
+
+        /// <summary>(`AMBER147`) Ячеек верхнего треугольника, получивших гладкую подстановку.</summary>
+        public int JointSubstituted { get; set; }
+
+        /// <summary>
+        /// ⚡ (`AMBER145`, формат 11) ПИКОВАЯ ЭФФЕКТИВНОСТЬ УЗЛА ПО РАЗРЕШЕНИЮ —
+        /// доля квантов источника с недобором не больше ПШПВ(E)/2 геометрии,
+        /// определение кривой эффективности (`EfficiencyCalculation.Run`). Σ
+        /// канала `Peak` считает пик полубином (1 кэВ) и ниже её на 2…9 % на
+        /// 32…122 кэВ (замер П191 `CurveVsMatrixP191`). Читатель — суммирователь
+        /// каскада (произведение пиковых эффективностей пары, влёт, Q_k-вес).
+        /// null — матрица прежнего формата или собрана руками.
+        /// </summary>
+        public double[] PeakEfficiencyResolution { get; set; }
+
+        /// <summary>
+        /// (`AMBER145`) Допуск <see cref="PeakEfficiencyResolution"/> взят из
+        /// разрешения геометрии; false — у геометрии разрешения нет, и массив
+        /// равен Σ канала `Peak`.
+        /// </summary>
+        public bool PeakResolutionFromGeometry { get; set; }
+
+        /// <summary>
+        /// (`AMBER145`) <see cref="PeakEfficiencyResolution"/> на энергии — тем
+        /// же правилом между узлами, каким матрица смешивает строки (линейно по
+        /// энергии, за краями — крайний узел; `AMBER136`). NaN, если массива нет.
+        /// </summary>
+        public double ResolutionPeakEfficiency(double energyKev)
+        {
+            double[] values = this.PeakEfficiencyResolution;
+            double[] grid = this.Energies;
+            if (values == null || grid == null || values.Length != grid.Length || grid.Length == 0)
+            {
+                return double.NaN;
+            }
+
+            if (!(energyKev > grid[0]))
+            {
+                return values[0];
+            }
+
+            int last = grid.Length - 1;
+            if (energyKev >= grid[last])
+            {
+                return values[last];
+            }
+
+            int hi = Array.BinarySearch(grid, energyKev);
+            if (hi >= 0)
+            {
+                return values[hi];
+            }
+
+            hi = ~hi;
+            double t = (energyKev - grid[hi - 1]) / (grid[hi] - grid[hi - 1]);
+            return values[hi - 1] + t * (values[hi] - values[hi - 1]);
+        }
+
+        /// <summary>
         /// ⚡ КОЭФФИЦИЕНТЫ ОСЛАБЛЕНИЯ УГЛОВОЙ КОРРЕЛЯЦИИ Q_k(E) СЦЕНЫ (`AMBER46`,
         /// формат 9): по узлам <see cref="Energies"/> — Q₂/Q₄ пика, Q₂ᵀ/Q₄ᵀ
         /// полного заноса, их шум, эффективности узла и число историй, из
@@ -857,7 +960,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// За краями сетки ЗАЖИМАЕТСЯ: экстраполировать κ некуда, а выдумывать
         /// рост поправки там, где её не мерили, — верный способ раздуть сумм-пик.
         ///
-        /// 1.0 у пустой таблицы: это «поправки нет», прежнее поведение.
+        /// 1.0 у пустой таблицы: это «поправки нет», прежнее поведение — и у
+        /// точечной сцены формата 11 (`AMBER147`): таблицы там нет, κ ≡ 1.
+        ///
+        /// ⚡ (`AMBER147`, П199) ВЕСА УГЛОВ — БИЛИНЕЙНЫЕ, ДЕЛЁННЫЕ НА σ²
+        /// (<see cref="JointKappaError"/>, пол <see cref="JointInterpolationNoiseFloor"/>):
+        /// шумный угол не тянет интерполяцию за собой. В узле сетки вес прочих
+        /// углов ноль — значение узла точно, между узлами функция непрерывна.
+        /// Без таблицы шума — прежняя билинейная.
         /// </summary>
         public double JointFactor(double firstKev, double secondKev)
         {
@@ -872,10 +982,46 @@ namespace BecquerelMonitor.EfficiencyMaker
             int lo1, hi1, lo2, hi2;
             double t1 = JointSlot(grid, firstKev, out lo1, out hi1);
             double t2 = JointSlot(grid, secondKev, out lo2, out hi2);
-            double a = table[lo1][lo2] + t2 * (table[lo1][hi2] - table[lo1][lo2]);
-            double b = table[hi1][lo2] + t2 * (table[hi1][hi2] - table[hi1][lo2]);
-            double kappa = a + t1 * (b - a);
+            double[][] noise = this.JointKappaError;
+            double kappa;
+            if (noise != null && noise.Length == grid.Length)
+            {
+                double sw = 0.0, swk = 0.0;
+                AddCorner(table, noise, lo1, lo2, (1.0 - t1) * (1.0 - t2), ref sw, ref swk);
+                AddCorner(table, noise, lo1, hi2, (1.0 - t1) * t2, ref sw, ref swk);
+                AddCorner(table, noise, hi1, lo2, t1 * (1.0 - t2), ref sw, ref swk);
+                AddCorner(table, noise, hi1, hi2, t1 * t2, ref sw, ref swk);
+                kappa = sw > 0.0 ? swk / sw : table[lo1][lo2];
+            }
+            else
+            {
+                double a = table[lo1][lo2] + t2 * (table[lo1][hi2] - table[lo1][lo2]);
+                double b = table[hi1][lo2] + t2 * (table[hi1][hi2] - table[hi1][lo2]);
+                kappa = a + t1 * (b - a);
+            }
+
             return kappa > 0.0 ? kappa : 1.0;
+        }
+
+        /// <summary>
+        /// (`AMBER147`) Пол шума угла в весе интерполяции κ, %: ячейка с шумом
+        /// 0.3 % не должна забирать весь вес у соседки с 3 %, а ячейка без
+        /// записанного шума (0) — получать бесконечный.
+        /// </summary>
+        public const double JointInterpolationNoiseFloor = 1.0;
+
+        static void AddCorner(double[][] table, double[][] noise, int i, int j, double bilinear,
+                              ref double sw, ref double swk)
+        {
+            if (!(bilinear > 0.0))
+            {
+                return;
+            }
+
+            double sigma = Math.Max(JointInterpolationNoiseFloor, noise[i][j]);
+            double w = bilinear / (sigma * sigma);
+            sw += w;
+            swk += w * table[i][j];
         }
 
         /// <summary>Место энергии на сетке κ: соседи и доля между ними по логарифму.</summary>
@@ -1441,7 +1587,39 @@ namespace BecquerelMonitor.EfficiencyMaker
                           .Append(options.JointHistories.ToString(CultureInfo.InvariantCulture))
                           .Append(';');
                     }
+
+                    // ⚡ (`AMBER147`, П199, формат 11) РЕЖИМ И ЦЕЛЬ ТАБЛИЦЫ κ —
+                    // клеймо называет ветку так, как она считалась (`E34`): у
+                    // точечной сцены таблицы нет (`kjnt=point`), у протяжённой —
+                    // цель шума и историй на точку. Пишется ВСЕГДА при цели
+                    // больше нуля: правка меняет таблицу у КАЖДОЙ сцены склада,
+                    // и прежние клейма сходиться не должны. Нулевая цель — прежний
+                    // счёт, строки нет, клеймо прежнее (формат 11 всё равно
+                    // отличает такую матрицу от формата 10).
+                    if (options.JointNoiseTarget > 0.0)
+                    {
+                        if (ResponseMatrixBuilder.IsPointScene(geometry))
+                        {
+                            sb.Append("kjnt=point;");
+                        }
+                        else
+                        {
+                            sb.Append("kjnt=")
+                              .Append(options.JointNoiseTarget.ToString("R", CultureInfo.InvariantCulture))
+                              .Append('x')
+                              .Append(Math.Max(1, options.JointHistoriesPerPoint).ToString(CultureInfo.InvariantCulture))
+                              .Append(';');
+                        }
+                    }
                 }
+
+                // ⚡ (`AMBER145`, П199, формат 11) ОПРЕДЕЛЕНИЕ ПИКОВОЙ
+                // ЭФФЕКТИВНОСТИ, которую матрица отдаёт суммирователю
+                // (`PeakEfficiencyResolution`): `fwhm` — допуск ПШПВ(E)/2
+                // геометрии, как у кривой; `bin` — у геометрии нет разрешения,
+                // и это Σ канала `Peak`. Пишется всегда: блок `EPRS` есть у
+                // каждой матрицы формата 11.
+                sb.Append(geometry.FwhmAt662Percent > 0.0 ? "peps=fwhm;" : "peps=bin;");
 
                 if (options.PositronTransport)
                 {
@@ -2512,6 +2690,33 @@ namespace BecquerelMonitor.EfficiencyMaker
                     writer.Write(qk.Histories != null ? qk.Histories[i] : 0L);
                 }
 
+                // ⛔ БЛОКИ `EPRS` и `JNTQ` (`AMBER145`, `AMBER147`, формат 11) —
+                // ОСНОВНОЙ формат, читаются БЕЗУСЛОВНО (летопись 11). В тело не
+                // входят: отпечаток `BODY` формата 11 равен отпечатку формата 10
+                // того же рецепта.
+                double[] resolutionPeak = this.PeakEfficiencyResolution;
+                int resolutionNodes = resolutionPeak != null && this.Energies != null
+                                      && resolutionPeak.Length == this.Energies.Length
+                    ? resolutionPeak.Length : 0;
+                writer.Write(Encoding.ASCII.GetBytes("EPRS"));
+                writer.Write(resolutionNodes);
+                for (int i = 0; i < resolutionNodes; i++)
+                {
+                    writer.Write(resolutionPeak[i]);
+                }
+
+                writer.Write(this.PeakResolutionFromGeometry);
+
+                ResponseMatrixOptions flags = this.Options ?? new ResponseMatrixOptions();
+                writer.Write(Encoding.ASCII.GetBytes("JNTQ"));
+                writer.Write(flags.JointNoiseTarget);
+                writer.Write(flags.JointHistoriesPerPoint);
+                writer.Write((byte)this.JointMode);
+                writer.Write(this.JointRawMedianNoise);
+                writer.Write(this.JointRawMaxNoise);
+                writer.Write(this.JointCellsCounted);
+                writer.Write(this.JointSubstituted);
+
                 // ⛔ У 799 МАТРИЦ СКЛАДА ЭТОГО ХВОСТА НЕТ, И ДОПИСЫВАТЬ ЕГО НЕ
                 // НАДО — решение Amber 23.08.2026 (`T53`): ждём естественного
                 // обновления. Матрица пересчитывается сама при смене физики или
@@ -2576,7 +2781,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // ключа», и матрицы физики 17 несут их сами. Файл без хвоста
                 // `OPTF` старше 02.09.2026 (физика ≤ 12) и негоден по версии,
                 // так что то, каким умолчанием он читается, ничего не решает.
-                ResponseMatrixOptions flags = this.Options ?? new ResponseMatrixOptions();
+                // `flags` объявлен у блока JNTQ выше (формат 11) — те же настройки.
                 writer.Write(Encoding.ASCII.GetBytes("OPTF"));
                 writer.Write(flags.XcomPairThreshold);
                 writer.Write(flags.PositronTransport);
@@ -3554,6 +3759,66 @@ namespace BecquerelMonitor.EfficiencyMaker
                         }
                     }
 
+                    // ⛔ БЛОКИ `EPRS` и `JNTQ` (`AMBER145`, `AMBER147`, с формата 11):
+                    // основной формат, без них файл обрублен или чужой — отказ
+                    // `Unreadable`. Файл формата 10, допущенный ради сравнения,
+                    // их не несёт: он читается прежним счётом κ (цель 0) и без
+                    // пиковой эффективности по разрешению.
+                    if (format >= 11)
+                    {
+                        if (Encoding.ASCII.GetString(reader.ReadBytes(4)) != "EPRS")
+                        {
+                            throw new InvalidDataException("формат " + format.ToString(CultureInfo.InvariantCulture)
+                                                           + ": за блоком ANGK нет блока EPRS");
+                        }
+
+                        int resolutionNodes = reader.ReadInt32();
+                        if (resolutionNodes != 0 && resolutionNodes != nodes)
+                        {
+                            throw new InvalidDataException("формат " + format.ToString(CultureInfo.InvariantCulture)
+                                                           + ": узлов EPRS " + resolutionNodes.ToString(CultureInfo.InvariantCulture)
+                                                           + " при " + nodes.ToString(CultureInfo.InvariantCulture) + " узлах сетки");
+                        }
+
+                        if (resolutionNodes > 0)
+                        {
+                            double[] resolutionPeak = new double[resolutionNodes];
+                            for (int i = 0; i < resolutionNodes; i++)
+                            {
+                                resolutionPeak[i] = reader.ReadDouble();
+                            }
+
+                            matrix.PeakEfficiencyResolution = resolutionPeak;
+                        }
+
+                        matrix.PeakResolutionFromGeometry = reader.ReadBoolean();
+
+                        if (Encoding.ASCII.GetString(reader.ReadBytes(4)) != "JNTQ")
+                        {
+                            throw new InvalidDataException("формат " + format.ToString(CultureInfo.InvariantCulture)
+                                                           + ": за блоком EPRS нет блока JNTQ");
+                        }
+
+                        double jointTarget = reader.ReadDouble();
+                        int jointPerPoint = reader.ReadInt32();
+                        if (matrix.Options != null)
+                        {
+                            matrix.Options.JointNoiseTarget = jointTarget;
+                            matrix.Options.JointHistoriesPerPoint = jointPerPoint;
+                        }
+
+                        matrix.JointMode = (JointKappaMode)reader.ReadByte();
+                        matrix.JointRawMedianNoise = reader.ReadDouble();
+                        matrix.JointRawMaxNoise = reader.ReadDouble();
+                        matrix.JointCellsCounted = reader.ReadInt32();
+                        matrix.JointSubstituted = reader.ReadInt32();
+                    }
+                    else if (matrix.Options != null)
+                    {
+                        matrix.Options.JointNoiseTarget = 0.0;
+                        matrix.Options.JointHistoriesPerPoint = 1;
+                    }
+
                     // Хвост с достигнутым шумом (`T46`). У файлов, записанных
                     // раньше, его нет — поля остаются нулями и null, ровно тем
                     // значением, которое их описание уже называет «не считалось».
@@ -3665,6 +3930,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                         matrix.BodyFingerprint = null;
                     }
 
+                    if (format < 11)
+                    {
+                        matrix.JointMode = matrix.JointKappa != null ? JointKappaMode.Legacy : JointKappaMode.None;
+                    }
+
                     matrix.RebuildTotals();
                     refusal = MatrixRefusal.None;
                     return matrix;
@@ -3685,6 +3955,21 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// разных беды с четырьмя разными лечениями, и приложение не могло сказать
     /// человеку ни одной из них.
     /// </summary>
+    public enum JointKappaMode : byte
+    {
+        /// <summary>Таблица κ не считалась (выключена или сетка вырождена).</summary>
+        None = 0,
+
+        /// <summary>Прежний счёт (`S112`): фиксированное число точек, таблица как вышла.</summary>
+        Legacy = 1,
+
+        /// <summary>(`AMBER147`) Точечная сцена: κ ≡ 1, таблицы нет.</summary>
+        Point = 2,
+
+        /// <summary>(`AMBER147`) Сосуд: добор точек до цели шума, подстановка шумных ячеек, κ ≥ 1.</summary>
+        Adaptive = 3
+    }
+
     public enum MatrixRefusal
     {
         /// <summary>Прочиталась.</summary>
@@ -4920,6 +5205,39 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// набирает статистику из ОДНОГО и того же розыгрыша точек.
         /// </summary>
         public int JointHistories = 200000;
+
+        /// <summary>
+        /// ⚡ (`AMBER147`, П199 01.10.2026; решение Amber 01.10.2026 вопросником,
+        /// дословно: «Готовить днём, ночь — по команде (Рекомендую)») ЦЕЛЬ ПО
+        /// ШУМУ ТАБЛИЦЫ κ, %. Ноль — прежний счёт (`S112`): <see cref="JointHistories"/>
+        /// точек по одной истории на энергию у ЛЮБОЙ сцены, таблица как есть.
+        ///
+        /// Ненулевая включает три правила разом (`ResponseMatrixBuilder.BuildJoint`):
+        ///
+        ///   1. у ТОЧЕЧНОЙ сцены κ ≡ 1 без розыгрыша — направления двух квантов
+        ///      из одной точки независимы, ⟨ε₁ε₂⟩ = ε₁ε₂ при любой геометрии;
+        ///      розыгрыш давал там шум ±2 % (G1S), ±14 % (ASN16), +9…46 % (RC-103);
+        ///   2. у протяжённой — число точек ОТ ДОСТИГНУТОГО ШУМА: проба
+        ///      <see cref="JointHistories"/> точками, затем добор до цели по
+        ///      медиане шума ячеек с обеими энергиями от 100 кэВ (как останов
+        ///      узла по <see cref="ContinuumErrorTarget"/>), не дальше потолка;
+        ///   3. ячейки с шумом выше цели НЕ ЧИТАЮТСЯ: подставляется гладкая
+        ///      оценка от надёжных соседей (веса 1/σ² и близость по логарифму
+        ///      энергии), и вся таблица зажимается снизу единицей — у сосуда
+        ///      эффективности двух квантов сомонотонны, κ ≥ 1.
+        ///
+        /// Цель — в клейме (`kjnt=`), достигнутый шум — в блоке `JNTQ` файла.
+        /// </summary>
+        public double JointNoiseTarget = 5.0;
+
+        /// <summary>
+        /// (`AMBER147`) Историй на энергию в каждом наборе точки при замере κ
+        /// протяжённой сцены (<see cref="EfficiencySimulator.JointPeakSums(double[], int, double[], int)"/>).
+        /// У малых кристаллов шум ячейки задаёт шум оценки В ТОЧКЕ, а не
+        /// разброс по объёму, и несколько историй на точку при той же цене
+        /// дают меньший шум. Действует только при <see cref="JointNoiseTarget"/> &gt; 0.
+        /// </summary>
+        public int JointHistoriesPerPoint = 4;
 
         /// <summary>
         /// Цель по шуму континуума УЗЛА, % — счёт останавливается, когда она
