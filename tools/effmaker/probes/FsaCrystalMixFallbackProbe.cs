@@ -706,9 +706,10 @@ namespace FsaCrystalMixFallbackProbe
                 // геометрии у неё нет вовсе, а вопрос раздела — библиотека и
                 // гейт рентгена, а не наличие геометрии. Снятие видно в отчёте
                 // настроек строкой `RequireGeometry`, то есть молча не проходит.
-                RequireGeometry = false,
-                ResponseMatrix = matrix
+                RequireGeometry = false
             };
+            // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик); сцена искусственная — без геометрии
+            FsaMatrixBinding.Bind(analyzer, null, matrix);
 
             // (`T243`) ЧЕМ СЧИТАЛИ — ДО СЧЁТА И ВСЛУХ, с пометкой плеча:
             // без неё два отчёта в одном выводе неразличимы.

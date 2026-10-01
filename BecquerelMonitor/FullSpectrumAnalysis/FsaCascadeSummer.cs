@@ -410,6 +410,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// самих, — потому кэш лежит на данных, а не на суммирователе.
             /// </summary>
             public Dictionary<string, ThirdSet> ThirdCache;
+
+            /// <summary>
+            /// (`AMBER144`, П193) Что присоединено от изомеров дочерних
+            /// (<see cref="AttachDaughterIsomers"/>): строка на изомер. Пусто —
+            /// ничего. Лежит в общем кэше, после загрузки не меняется.
+            /// </summary>
+            public List<string> IsomerAttachments;
         }
 
         /// <summary>(`S177`) Переход в схеме уровней: сама схема и пара уровней «откуда → куда».</summary>
@@ -997,8 +1004,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         double AngularFactor(NuclideData data, double[] pair)
         {
-            if (!this.AngularCorrelations || this.AngularQk == null
-                || data.Key == null || data.Key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            // (`AMBER146`, П193) Ключ изомера (`sandia:…`) больше НЕ гасит
+            // корреляцию: коэффициенты ему ищутся по схемам ядер
+            // (<see cref="CoefficientsOf"/>), а не единицей молча.
+            if (!this.AngularCorrelations || this.AngularQk == null || data.Key == null)
             {
                 return 1.0;
             }
@@ -1027,7 +1036,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         double AngularLossFactor(NuclideData data, double lineKev, double partnerKev)
         {
             if (!this.AngularCorrelations || this.AngularQk == null
-                || data == null || data.Key == null || data.Key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+                || data == null || data.Key == null)
             {
                 return 1.0;
             }
@@ -1054,7 +1063,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             AngularCorrelation.Coefficients w;
             if (!this.angular.TryGetValue(cacheKey, out w))
             {
-                w = AngularCorrelation.ForPair(key, lo, hi);
+                // (`AMBER146`, П193) У изомера строк выходов под нашим `nucid`
+                // нет — переходы ищутся по схемам его ядер (<see cref="IsomerNuclei"/>).
+                w = key.StartsWith(IsomerPrefix, StringComparison.Ordinal)
+                    ? AngularCorrelation.ForPairInNuclei(IsomerNuclei(key), lo, hi)
+                    : AngularCorrelation.ForPair(key, lo, hi);
                 this.angular[cacheKey] = w;
             }
 
@@ -3858,11 +3871,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // `fraction` заменяется P(B|A), посчитанной ходом по схеме
             // дочернего ядра. Пары, которым в схеме места не нашлось, остаются
             // с долей поставки — и помечены как списанные из неё.
+            //
+            // (`AMBER144`, П193) Перед этим — пары изомера ДОЧЕРНЕГО ядра,
+            // которые поставка держит под отдельным нуклидом (Bi-207: пара
+            // 1063.66 + 569.70 лежит под `Pb207m`).
+            AttachDaughterIsomers(key, data);
             bool[] fromSupply = RectifyBySchemes(key, data);
 
             // Пара лежит в базе ОДИН раз и направленно; обратная условная
             // считается через отношение выходов: P(A|B) = P(B|A)·I(A)/I(B)
             // (database/scheme.md, §8).
+            //
+            // ⚠ (`AMBER144`, П193 01.10.2026) Выходы здесь — поставки (у
+            // присоединённого изомера дочки — сложенные, `AttachDaughterIsomers`:
+            // у Bi-207 569.70 97.66 % против 97.75 библиотеки, P(1770 | 570) 0.070
+            // вместо прежних 0.43). Пункт строки «выходы обратной условной — из
+            // библиотеки у ВСЕХ нуклидов» померен полосой и НЕ внесён: на малой
+            // базе он двигает ещё 11 спектров понятной части из 45 (ASN16_Lu176
+            // χ²/ndf 3.874 → 3.898, Eu-152/Ba-133/Th-228 +0.001…0.003, сумма
+            // +0.046) без выигрыша — решение за Amber (журнал П193).
             for (int index = 0; index < data.Pairs.Count; index++)
             {
                 double[] pair = data.Pairs[index];
@@ -3907,6 +3934,401 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             return table;
         }
+
+        /// <summary>
+        /// (`AMBER144`, П193) ВЫХОДЫ ЛИНИЙ НУКЛИДА, какими их видит счёт пар
+        /// (% на распад родителя): поставка SandiaDecay плюс присоединённые
+        /// изомеры дочерних (<see cref="AttachDaughterIsomers"/>), ДО дополнения
+        /// атомными партнёрами. Читатель — сторож `CascadeYieldGuardProbe`
+        /// (выход линии против библиотеки). Пусто — нуклид не разбирается.
+        /// Копия: таблица лежит в общем кэше.
+        /// </summary>
+        public static Dictionary<double, double> LineYields(string nuclide)
+        {
+            var table = new Dictionary<double, double>();
+            string key = ParentKey(nuclide);
+            NuclideData data = key != null ? BaseData(key) : null;
+            if (data == null)
+            {
+                return table;
+            }
+
+            foreach (KeyValuePair<double, double> entry in data.Intensity)
+            {
+                table[entry.Key] = entry.Value;
+            }
+
+            return table;
+        }
+
+        /// <summary>
+        /// (`AMBER144`, П193) Что присоединено к нуклиду от изомеров дочерних:
+        /// по строке на изомер — «символ Sandia, доля прохода f, пар». Пусто —
+        /// ничего (у подавляющего большинства нуклидов). Для проб и сторожа.
+        /// </summary>
+        public static List<string> IsomerAttachments(string nuclide)
+        {
+            string key = ParentKey(nuclide);
+            NuclideData data = key != null ? BaseData(key) : null;
+            return data != null && data.IsomerAttachments != null
+                ? new List<string>(data.IsomerAttachments)
+                : new List<string>();
+        }
+
+        /// <summary>
+        /// (`AMBER144`, П193) Ниже этой доли прохода изомер дочки не
+        /// присоединяется: его линий в библиотеке родителя практически нет
+        /// (изомер живёт своей жизнью — отдельный член ряда или не
+        /// населяется), и пары с весом 1e-3 ничего не меняют.
+        /// </summary>
+        const double IsomerPassFloor = 1.0E-3;
+
+        /// <summary>
+        /// (`AMBER144`, П193) Порог доли прохода, меренной РАЗНОСТЬЮ «библиотека −
+        /// поставка родителя» на линии, которая есть у обоих: ниже него разность —
+        /// разнобой двух оценок одной линии, а не проход через изомер.
+        /// </summary>
+        const double IsomerPassDiffFloor = 0.05;
+
+        /// <summary>
+        /// (`AMBER144`, П193) Линия изомера, которой нет у родителя, годится мерой
+        /// прохода при выходе не ниже этого, % на распад изомера.
+        /// </summary>
+        const double IsomerAbsentLineFloor = 1.0;
+
+        /// <summary>
+        /// Ближайший ключ таблицы выходов в допуске <see cref="SchemeMatchKev"/>
+        /// (две оценки одной линии); false — такого нет.
+        /// </summary>
+        static bool NearestKey(Dictionary<double, double> table, double energyKev, out double key)
+        {
+            key = 0.0;
+            double best = SchemeMatchKev;
+            bool ok = false;
+            foreach (double candidate in table.Keys)
+            {
+                double delta = Math.Abs(candidate - energyKev);
+                if (delta < best)
+                {
+                    best = delta;
+                    key = candidate;
+                    ok = true;
+                }
+            }
+
+            return ok;
+        }
+
+        /// <summary>
+        /// (`AMBER144`, П193 01.10.2026) ПРИСОЕДИНИТЬ ПАРЫ ИЗОМЕРА ДОЧЕРНЕГО
+        /// ЯДРА к родителю.
+        ///
+        /// ⛔ ЧТО БЫЛО. Поставка SandiaDecay делит распад на долгоживущем
+        /// уровне дочки: у Bi-207 пара 1063.66 + 569.70 (каскад после изомера
+        /// Pb-207m, 1633.4 кэВ, 0.806 с, P = 0.978) лежит под отдельным
+        /// нуклидом `Pb207m`, у `207BI` — только 1770+570, 1442+898, 1442+570,
+        /// а выход 569.70 — 15.57 % (прямая часть) вместо 97.75 % библиотеки.
+        /// `RectifyBySchemes` переоценивал доли лишь ИМЕЮЩИХСЯ пар: сумм-пика
+        /// 1633 кэВ в модели не было, CF(1063.66) 1.0008 вместо ≈ 1.037, а
+        /// обратная условная P(1770 | 570) шла через 15.57 % — 0.43 вместо
+        /// 0.070 (журнал П191, `AMBER144`).
+        ///
+        /// КАК. Для каждой дочки родителя (`decay_chain`) берутся её изомеры в
+        /// поставке (`isomer` ≥ 1) с парами. Доля прохода f — сколько распадов
+        /// родителя идут через изомер — меряется по библиотеке родителя
+        /// (`decay_radiations`, то же правило уровня): по сильнейшей линии
+        /// изомера, которой у родителя в поставке нет, f = I_библ / I_изомер
+        /// (у Bi-207 1063.66: 74.5/88.8 = 0.839); нет такой — разностью на
+        /// сильнейшей f = (I_библ − I_пост,родитель) / I_изомер с порогом
+        /// <see cref="IsomerPassDiffFloor"/>. Изомер, чьих
+        /// линий в библиотеке родителя нет (f < <see cref="IsomerPassFloor"/>),
+        /// не присоединяется — библиотека его родителю не приписывает, и пары
+        /// без линий были бы выдумкой. Дальше:
+        ///   * выход линии изомера прибавляется к выходу родителя: I += f·I_m
+        ///     (у Bi-207 569.70: 15.57 + 0.839·97.76 = 97.6 против 97.75
+        ///     библиотеки — обратная условная идёт через полный выход);
+        ///   * доля P(B|A) — условная при линии A — у пар родителя с той же
+        ///     опорой A разбавляется весом I_пост(A)/I(A), пара изомера входит
+        ///     с весом f·I_m(A)/I(A): P(B|A) = Σ Iᵢ·Pᵢ(B|A) / Σ Iᵢ по путям,
+        ///     которыми рождается A;
+        ///   * после этого <see cref="RectifyBySchemes"/> переоценивает доли
+        ///     ходом по схеме дочки, как у всех (у 1063.66 конечный уровень
+        ///     569.7 — P(570 | 1064) по схеме с конверсией 570).
+        ///
+        /// Почему ПРИСОЕДИНЕНИЕ, а не перечень пар заново ходом по схеме
+        /// ENSDF (выбор полосы П193). Поставка полна там, где изомера нет
+        /// (`pair_walk.py` П191: 50 ходовых нуклидов, пропусков ноль, кроме
+        /// Bi-207 и Cs-136 — оба изомер дочки), то есть дыра — ровно на стыке,
+        /// и поставка же держит недостающий кусок под изомером. Ход по схеме
+        /// заменил бы перечень у всех нуклидов разом и сдвинул бы корпус там,
+        /// где дефекта нет; присоединение трогает только родителей с изомером
+        /// дочки, чьи линии в библиотеке родителя есть.
+        ///
+        /// ⚠ ПРИБЛИЖЕНИЕ НАЗВАНО: пары ЧЕРЕЗ изомер (квант до него + квант
+        /// после) не строятся — их нет ни под родителем, ни под изомером. Для
+        /// изомеров поставки (периоды от долей секунды: Pb-207m 0.806 с,
+        /// Ba-136m 0.31 с) вероятность пройти окно в микросекунды —
+        /// `PassProbability` ~ окно·ln2/T½ ≈ 1e-6, то есть ноль и есть верный
+        /// ответ. Пары внутри изомера взаимно мгновенны (он их и делит), гейт
+        /// времени им не нужен.
+        /// </summary>
+        static void AttachDaughterIsomers(string key, NuclideData data)
+        {
+            if (data == null || key == null || key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            List<string> daughters = DaughterNames(key);
+            if (daughters.Count == 0)
+            {
+                return;
+            }
+
+            // Изомеры дочек по символу Sandia: линии и пары. Порядок — по
+            // символу, чтобы присоединение не зависело от порядка строк.
+            var lines = new SortedDictionary<string, Dictionary<double, double>>(StringComparer.Ordinal);
+            var pairs = new SortedDictionary<string, List<double[]>>(StringComparer.Ordinal);
+            try
+            {
+                using (SqliteConnection connection = new SqliteConnection(
+                    "Data Source=" + DatabasePath() + ";Mode=ReadOnly;Cache=Shared;"))
+                {
+                    connection.Open();
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        foreach (string daughter in daughters)
+                        {
+                            command.Parameters.Clear();
+                            command.Parameters.AddWithValue("$n", daughter);
+                            command.CommandText =
+                                "select sandia_symbol, energy_kev, coinc_energy_kev, fraction"
+                                + " from v_gamma_coincidence where nucid = $n and isomer > 0";
+                            using (SqliteDataReader reader = command.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    string symbol = reader.IsDBNull(0) ? null : reader.GetString(0);
+                                    if (string.IsNullOrEmpty(symbol))
+                                    {
+                                        continue;
+                                    }
+
+                                    List<double[]> bag;
+                                    if (!pairs.TryGetValue(symbol, out bag))
+                                    {
+                                        pairs[symbol] = bag = new List<double[]>();
+                                    }
+
+                                    bag.Add(new[] { reader.GetDouble(1), reader.GetDouble(2), reader.GetDouble(3) });
+                                }
+                            }
+
+                            command.CommandText =
+                                "select sandia_symbol, energy_kev, intensity_pct"
+                                + " from v_gamma_coincidence_line where nucid = $n and isomer > 0";
+                            using (SqliteDataReader reader = command.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    string symbol = reader.IsDBNull(0) ? null : reader.GetString(0);
+                                    if (string.IsNullOrEmpty(symbol) || !pairs.ContainsKey(symbol))
+                                    {
+                                        continue;
+                                    }
+
+                                    Dictionary<double, double> bag;
+                                    if (!lines.TryGetValue(symbol, out bag))
+                                    {
+                                        lines[symbol] = bag = new Dictionary<double, double>();
+                                    }
+
+                                    bag[reader.GetDouble(1)] = reader.GetDouble(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception error)
+            {
+                // Не прочлось — работаем без присоединения, как до него, но вслух.
+                Failure = key + ": пары изомеров дочки не прочлись: " + error.Message;
+                return;
+            }
+
+            if (pairs.Count == 0)
+            {
+                return;
+            }
+
+            // Библиотека родителя: выходы `decay_radiations` тем же правилом
+            // уровня, что у образов (через `CascadeAtomicData`, один читатель).
+            CascadeAtomicData library = CascadeAtomicData.Nuclear(key);
+            if (library == null || library.Failed || library.GammaIntensity == null)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<string, List<double[]>> group in pairs)
+            {
+                Dictionary<double, double> isomerLines;
+                if (!lines.TryGetValue(group.Key, out isomerLines) || isomerLines.Count == 0)
+                {
+                    continue;
+                }
+
+                // Доля прохода — по сильнейшей линии изомера, которой у родителя
+                // в поставке НЕТ (у Bi-207 это 1063.66: 74.5/88.8 = 0.839), — там
+                // библиотека говорит о проходе прямо. Нет такой — по сильнейшей
+                // вообще, разностью «библиотека − поставка родителя», и тогда с
+                // порогом <see cref="IsomerPassDiffFloor"/>: разность двух оценок
+                // одной линии в доли процента — не проход, а их разнобой (замер
+                // П193 по всей поставке: In-109 → Cd109m2 давал 0.0075, Se-88 →
+                // Br88m 0.006 из 74.2 − 73.5 и т. п.).
+                double strongestKev = 0.0, strongest = 0.0, absentKev = 0.0, absent = 0.0;
+                foreach (KeyValuePair<double, double> line in isomerLines)
+                {
+                    if (line.Value > strongest)
+                    {
+                        strongest = line.Value;
+                        strongestKev = line.Key;
+                    }
+
+                    double ignored;
+                    if (line.Value > absent && !NearestKey(data.Intensity, line.Key, out ignored))
+                    {
+                        absent = line.Value;
+                        absentKev = line.Key;
+                    }
+                }
+
+                bool byAbsent = absent >= IsomerAbsentLineFloor;
+                double referenceKev = byAbsent ? absentKev : strongestKev;
+                double referencePct = byAbsent ? absent : strongest;
+                double libraryPct = 0.0, gap = SchemeMatchKev;
+                bool inLibrary = false;
+                foreach (CascadeAtomicData.GammaLine row in library.GammaIntensity)
+                {
+                    double delta = Math.Abs(row.EnergyKev - referenceKev);
+                    if (delta < gap)
+                    {
+                        gap = delta;
+                        libraryPct = row.IntensityPct;
+                        inLibrary = true;
+                    }
+                }
+
+                if (!inLibrary || !(referencePct > 0.0))
+                {
+                    continue;
+                }
+
+                double ownKey, ownPct = 0.0;
+                if (!byAbsent && NearestKey(data.Intensity, referenceKev, out ownKey))
+                {
+                    ownPct = data.Intensity[ownKey];
+                }
+
+                double pass = (libraryPct - ownPct) / referencePct;
+                if (!(pass >= (byAbsent ? IsomerPassFloor : IsomerPassDiffFloor)))
+                {
+                    continue;
+                }
+
+                if (pass > 1.0)
+                {
+                    pass = 1.0;
+                }
+
+                // Выходы: до и после — для разбавления условных долей.
+                var before = new Dictionary<double, double>(data.Intensity);
+                var keyOf = new Dictionary<double, double>();
+                foreach (KeyValuePair<double, double> line in isomerLines)
+                {
+                    // Ключ — допуском двух оценок (0.6 кэВ), а не линии компонента
+                    // (0.3): у La-131 108.08 против 108.45 у Ba131m — одна линия,
+                    // и с 0.3 она раздваивалась (выход ×2 у сторожа, П193).
+                    double shared;
+                    if (!NearestKey(data.Intensity, line.Key, out shared))
+                    {
+                        shared = line.Key;
+                        data.Intensity[shared] = 0.0;
+                    }
+
+                    keyOf[line.Key] = shared;
+                    data.Intensity[shared] += pass * line.Value;
+                }
+
+                // Пары, уже лежащие у родителя, с опорой, чей выход вырос:
+                // условная доля разбавляется весом прежнего выхода.
+                foreach (double[] pair in data.Pairs)
+                {
+                    double had, now;
+                    if (before.TryGetValue(pair[0], out had) && data.Intensity.TryGetValue(pair[0], out now)
+                        && now > had && now > 0.0)
+                    {
+                        pair[2] *= had / now;
+                    }
+                }
+
+                int added = 0;
+                foreach (double[] pair in group.Value)
+                {
+                    double fromKey, toKey, ownLine;
+                    if (!keyOf.TryGetValue(pair[0], out fromKey) || !keyOf.TryGetValue(pair[1], out toKey)
+                        || !isomerLines.TryGetValue(pair[0], out ownLine))
+                    {
+                        continue;
+                    }
+
+                    double total = data.Intensity[fromKey];
+                    if (!(total > 0.0))
+                    {
+                        continue;
+                    }
+
+                    double share = pair[2] * pass * ownLine / total;
+                    double[] existing = null;
+                    foreach (double[] other in data.Pairs)
+                    {
+                        if (other[0] == fromKey && other[1] == toKey)
+                        {
+                            existing = other;
+                            break;
+                        }
+                    }
+
+                    if (existing != null)
+                    {
+                        existing[2] += share;
+                    }
+                    else
+                    {
+                        data.Pairs.Add(new[] { fromKey, toKey, share });
+                    }
+
+                    added++;
+                }
+
+                if (data.IsomerAttachments == null)
+                {
+                    data.IsomerAttachments = new List<string>();
+                }
+
+                data.IsomerAttachments.Add(string.Format(CultureInfo.InvariantCulture,
+                    "{0}: f = {1:F4} (по {2:F3} кэВ{7}: библиотека {3:F3} %, у родителя {4:F3} %, у изомера {5:F3} %), пар {6}",
+                    group.Key, pass, referenceKev, libraryPct, ownPct, referencePct, added,
+                    byAbsent ? ", у родителя её нет" : ", разностью"));
+                lock (Gate)
+                {
+                    IsomerPairsAttached += added;
+                }
+            }
+        }
+
+        /// <summary>(`AMBER144`) Сколько пар изомеров дочек присоединено за процесс (для проб).</summary>
+        public static int IsomerPairsAttached;
 
         /// <summary>
         /// Допуск сопоставления линии поставки совпадений с переходом схемы,
@@ -4036,15 +4458,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 fromSupply[i] = true;
             }
 
-            if (data.Pairs.Count == 0 || key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            if (data.Pairs.Count == 0)
             {
-                // Изомеру дочерних в `decay_chain` не найти (S27: у него нет
-                // своей строки), доли остаются поставочными.
                 return fromSupply;
             }
 
+            // ⛔ (`AMBER146`, П193 01.10.2026) ИЗОМЕР БОЛЬШЕ НЕ ПРОПУСКАЕТСЯ.
+            // Своей строки в `decay_chain` у него нет (S27), и до этого дня
+            // доли его пар оставались поставочными — с лишним множителем на
+            // каждый пройденный уровень (у Ag-110m 0.957, у 1384.3 → 657.8 —
+            // 0.957², при физических ≈ 1.0; тот же множитель у Eu-152 давал
+            // 2.7 раза, `S176`). Ядра изомера — <see cref="IsomerNuclei"/>:
+            // дочерние основного состояния и само ядро (изомерный переход).
+            List<int[]> nuclei = key.StartsWith(IsomerPrefix, StringComparison.Ordinal)
+                ? IsomerNuclei(key)
+                : Daughters(key);
             var schemes = new List<CascadeAtomicData.LevelScheme>();
-            foreach (int[] daughter in Daughters(key))
+            foreach (int[] daughter in nuclei)
             {
                 CascadeAtomicData.LevelScheme scheme =
                     CascadeAtomicData.LevelScheme.Of(daughter[0], daughter[1]);
@@ -4283,6 +4713,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static List<int[]> Daughters(string nucid)
         {
             var found = new List<int[]>();
+            foreach (string name in DaughterNames(nucid))
+            {
+                int z = CascadeAtomicData.ChargeOf(name);
+                int a = CascadeAtomicData.MassOf(name);
+                if (z > 0 && a > 0)
+                {
+                    found.Add(new[] { z, a });
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// Дочерние родителя ИМЕНАМИ (`nucid`) — тот же запрос, что у
+        /// <see cref="Daughters"/> (вынесен 01.10.2026, П193: присоединению пар
+        /// изомера дочки, `AMBER144`, нужны имена, а не (Z, A)). Петли сняты;
+        /// пусто — родителя в цепочках нет либо база не прочлась.
+        /// </summary>
+        static List<string> DaughterNames(string nucid)
+        {
+            var found = new List<string>();
             try
             {
                 using (SqliteConnection connection = new SqliteConnection(
@@ -4301,17 +4753,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             {
                                 string name = reader.IsDBNull(0) ? null : reader.GetString(0);
                                 if (string.IsNullOrEmpty(name)
-                                    || string.Equals(name, nucid, StringComparison.OrdinalIgnoreCase))
+                                    || string.Equals(name, nucid, StringComparison.OrdinalIgnoreCase)
+                                    || found.Contains(name))
                                 {
                                     continue;
                                 }
 
-                                int z = CascadeAtomicData.ChargeOf(name);
-                                int a = CascadeAtomicData.MassOf(name);
-                                if (z > 0 && a > 0)
-                                {
-                                    found.Add(new[] { z, a });
-                                }
+                                found.Add(name);
                             }
                         }
                     }
@@ -4324,6 +4772,91 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return found;
+        }
+
+        /// <summary>
+        /// (`AMBER146`, П193 01.10.2026) Наш `nucid` ОСНОВНОГО состояния по
+        /// ключу изомера: «sandia:Ag110m» → «110AG». null — ключ не изомера
+        /// или символ не разбирается.
+        /// </summary>
+        static string GroundNucid(string key)
+        {
+            if (key == null || !key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            string symbol = key.Substring(IsomerPrefix.Length);
+            int i = 0;
+            while (i < symbol.Length && char.IsLetter(symbol[i]))
+            {
+                i++;
+            }
+
+            int j = i;
+            while (j < symbol.Length && char.IsDigit(symbol[j]))
+            {
+                j++;
+            }
+
+            if (i == 0 || j == i)
+            {
+                return null;
+            }
+
+            return symbol.Substring(i, j - i) + symbol.Substring(0, i).ToUpperInvariant();
+        }
+
+        /// <summary>
+        /// (`AMBER146`, П193 01.10.2026) ЯДРА, В СХЕМАХ КОТОРЫХ ЛЕЖАТ ГАММЫ
+        /// ИЗОМЕРА, — (Z, A) по порядку: сперва дочерние основного состояния
+        /// по `decay_chain` (у Ag-110m это Cd-110, куда идёт β⁻ 98.7 %), затем
+        /// само ядро изомера — для изомерного перехода (у Ba-137m, Tc-99m гаммы
+        /// в своём ядре). Своей строки в `decay_chain` у изомера нет (S27),
+        /// поэтому ветви берутся у основного состояния: его дочерние совпадают
+        /// с дочерними изомера по (Z, A) для β⁻/ε, а недостающий изомерный
+        /// переход и закрывает собственное ядро. Читатели выбирают схему сами
+        /// — <see cref="RectifyBySchemes"/> по покрытию партнёров, корреляция
+        /// по смежности переходов, — лишнее ядро в списке ничего не решает.
+        /// Пусто — ключ не изомера.
+        /// </summary>
+        static List<int[]> IsomerNuclei(string key)
+        {
+            var found = new List<int[]>();
+            string ground = GroundNucid(key);
+            if (ground == null)
+            {
+                return found;
+            }
+
+            found.AddRange(Daughters(ground));
+            int z = CascadeAtomicData.ChargeOf(ground);
+            int a = CascadeAtomicData.MassOf(ground);
+            if (z > 0 && a > 0)
+            {
+                found.Add(new[] { z, a });
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// (`AMBER146`, П193) Коэффициенты угловой корреляции пары линий
+        /// нуклида ТЕМ ЖЕ путём, каким их берёт счёт (<see cref="CoefficientsOf"/>):
+        /// обычный ключ — <see cref="AngularCorrelation.ForPair"/>, ключ изомера —
+        /// по схемам его ядер. Читатель — пробы (приёмка `AMBER146`).
+        /// </summary>
+        public static AngularCorrelation.Coefficients PairCoefficients(string nuclide, double firstKev, double secondKev)
+        {
+            string key = ParentKey(nuclide) ?? nuclide;
+            if (string.IsNullOrEmpty(key))
+            {
+                return AngularCorrelation.Isotropic;
+            }
+
+            return key.StartsWith(IsomerPrefix, StringComparison.Ordinal)
+                ? AngularCorrelation.ForPairInNuclei(IsomerNuclei(key), firstKev, secondKev)
+                : AngularCorrelation.ForPair(key, firstKev, secondKev);
         }
 
         /// <summary>

@@ -187,7 +187,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Порядки мультиполей из кода Geant4: 1…9 = E0,E1,M1,E2,M2,E3,M3,E4,M4
+        /// Порядки мультиполей из кода Geant4: 1…11 = E0,E1,M1,E2,M2,E3,M3,E4,M4,E5,M5
         /// (`scheme.md` §5г), смесь — 100·Nx+Ny. false — код неизвестен или
         /// это E0 (монополь гамма-квантом не излучается вовсе).
         ///
@@ -245,7 +245,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 case 7: return 3;    // M3
                 case 8: return 4;    // E4
                 case 9: return 4;    // M4
-                default: return 0;   // E0 (кодом 1), E5+ и всё незнакомое
+                // (`AMBER144`, П193 01.10.2026) E5/M5 — второй компонент смеси
+                // у Bi-207 1063.66 (код 910 = M4+E5, δ = 0.02): без них вся
+                // смесь считалась изотропной, и пара 1063.66 + 569.70 (A₂₂
+                // +0.221 по независимому счёту П191) теряла корреляцию.
+                case 10: return 5;   // E5
+                case 11: return 5;   // M5
+                default: return 0;   // E0 (кодом 1), E6+ и всё незнакомое
             }
         }
 
@@ -701,7 +707,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return Isotropic;
             }
 
-            CascadeAtomicData atomic = CascadeAtomicData.Of(nuclideKey);
+            // ⛔ (`AMBER146`, П193 01.10.2026) `Nuclear`, а не `Of`: у нуклида
+            // без K-рентгена и β⁺ (Sc-46, Na-24, Mn-56) `Of` отдаёт null —
+            // «атомным участникам поправлять нечего», — и корреляция ЯДЕРНОГО
+            // каскада выключалась молча (Sc-46 889 + 1120 «изотропно» при том
+            // же каскаде 4⁺(E2)2⁺(E2)0⁺, что у Co-60).
+            CascadeAtomicData atomic = CascadeAtomicData.Nuclear(nuclideKey);
             if (atomic == null || atomic.Branches == null)
             {
                 return Isotropic;
@@ -737,6 +748,71 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return w;
+        }
+
+        /// <summary>
+        /// Допуск сопоставления линии переходу схемы на пути изомера
+        /// (<see cref="ForPairInNuclei"/>), кэВ — тот же, что у
+        /// <c>CascadeAtomicData.MatchKev</c>: линия поставки совпадений и
+        /// переход `g4_gamma` — разные оценки (у Hf-176 306.88 против 306.64).
+        /// </summary>
+        const double SchemeLineKev = 0.6;
+
+        /// <summary>
+        /// (`AMBER146`, П193 01.10.2026) Коэффициенты пары линий по СХЕМАМ
+        /// названных ядер (Z, A) — для родителя-ИЗОМЕРА, у которого строк в
+        /// `decay_radiations` под нашим `nucid` нет и <see cref="ForPair"/>
+        /// взять переходы негде (ключ поставки `sandia:Ag110m`).
+        ///
+        /// Ход: в каждой схеме по порядку переход линии ищется
+        /// <see cref="Scheme.Find"/> (нулевой интенсивности нет, с самого
+        /// нижнего уровня); ответ — первая схема, где оба перехода нашлись и
+        /// образуют каскад (конец одного — начало другого). Смежность — сильный
+        /// отсев: случайное совпадение двух энергий в чужом ядре ещё и
+        /// смежными уровнями практически исключено. Ветви и каналы здесь не
+        /// различаются (их у изомера взять неоткуда) — порядок ядер задаёт
+        /// вызывающий.
+        /// </summary>
+        public static Coefficients ForPairInNuclei(IEnumerable<int[]> nuclei, double firstKev, double secondKev)
+        {
+            if (nuclei == null)
+            {
+                return Isotropic;
+            }
+
+            foreach (int[] nucleus in nuclei)
+            {
+                if (nucleus == null || nucleus.Length < 2)
+                {
+                    continue;
+                }
+
+                Scheme scheme = SchemeOf(nucleus[0], nucleus[1]);
+                if (scheme == null)
+                {
+                    continue;
+                }
+
+                Transition a = scheme.Find(firstKev, SchemeLineKev);
+                Transition b = scheme.Find(secondKev, SchemeLineKev);
+                if (a == null || b == null)
+                {
+                    continue;
+                }
+
+                Coefficients w = scheme.Cascade(a, b);
+                if (w.IsIsotropic)
+                {
+                    w = scheme.Cascade(b, a);
+                }
+
+                if (!w.IsIsotropic)
+                {
+                    return w;
+                }
+            }
+
+            return Isotropic;
         }
 
         /// <summary>

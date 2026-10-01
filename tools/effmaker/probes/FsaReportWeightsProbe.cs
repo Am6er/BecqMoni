@@ -553,12 +553,13 @@ namespace FsaReportWeightsProbe
         static FsaResult Run(ResultData rd, EnergySpectrum spectrum, FsaSampleSpec spec,
                              ResponseMatrix matrix, string material, bool reportByModel, double pool)
         {
+            // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик)
             var analyzer = new FsaAnalyzer
             {
-                ResponseMatrix = matrix,
-                ScintillatorMaterial = material,
                 ReportModelWeights = reportByModel
             };
+            FsaMatrixBinding.Bind(analyzer, rd.Efficiency != null ? rd.Efficiency.Geometry : null, matrix);
+            analyzer.ScintillatorMaterial = material;
             if (!double.IsNaN(huberM))
             {
                 analyzer.HuberM = huberM;

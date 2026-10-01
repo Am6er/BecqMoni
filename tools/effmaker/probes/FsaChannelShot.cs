@@ -253,7 +253,7 @@ namespace FsaChannelShot
 
             string material = EfficiencySimulator.ScintillatorNameOf(
                 rd.Efficiency != null ? rd.Efficiency.Geometry : null);
-            var analyzer = new FsaAnalyzer { ResponseMatrix = matrix, ScintillatorMaterial = material };
+            var analyzer = new FsaAnalyzer { ScintillatorMaterial = material };
             if (rd.DeviceConfig != null && rd.DeviceConfig.InputDeviceConfig != null)
             {
                 double deadTime = rd.DeviceConfig.InputDeviceConfig.DeadTime();
@@ -267,6 +267,9 @@ namespace FsaChannelShot
             }
 
             FsaCalculationOptions.Of(rd).ApplyTo(analyzer);
+            // (`T263`, П193) матрица — ПОСЛЕ фасада настроек, как у приложения (`FsaAnalysisSession`): фасад гасит `BackscatterWithMatrix`, `Bind` ставит его по обстановке
+            FsaMatrixBinding.Bind(analyzer, rd.Efficiency != null ? rd.Efficiency.Geometry : null, matrix);
+            analyzer.ScintillatorMaterial = material;
 
             // (`S13`) ПОРОГ ДОВЕРИЯ КОНТИНУУМУ — ключом, ради A/B. Ниже этого
             // порога континуум образа ОТВЯЗЫВАЕТСЯ в свою свободную колонку,
