@@ -3875,6 +3875,94 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return best;
             }
 
+            /// <summary>
+            /// (П197) Один уровень схемы с выходом нужной энергии: сам уровень,
+            /// ближайший выход (<see cref="NearestExit"/>) и его доля
+            /// <see cref="GammaShareOf"/> — посчитанная той же формулой.
+            /// </summary>
+            public struct NearExit
+            {
+                public int Level;
+                public Exit Exit;
+                public double Share;
+            }
+
+            /// <summary>
+            /// (П197) Все уровни схемы с выходом энергии ≈ E — в ПОРЯДКЕ
+            /// <see cref="Levels"/> (по убыванию номера), и указатель «уровень →
+            /// номер в <see cref="Items"/>».
+            /// </summary>
+            public sealed class NearSet
+            {
+                public NearExit[] Items;
+                public Dictionary<int, int> IndexOf;
+
+                /// <summary>Ближайший выход уровня — то же, что <see cref="NearestExit"/> с допуском набора; null — у уровня его нет.</summary>
+                public Exit At(int level, out double share)
+                {
+                    int index;
+                    if (this.IndexOf.TryGetValue(level, out index))
+                    {
+                        share = this.Items[index].Share;
+                        return this.Items[index].Exit;
+                    }
+
+                    share = 0.0;
+                    return null;
+                }
+            }
+
+            /// <summary>(П197) Кэш <see cref="ExitsNear"/>: допуск → энергия → набор.</summary>
+            readonly Dictionary<double, Dictionary<double, NearSet>> nearCache =
+                new Dictionary<double, Dictionary<double, NearSet>>();
+
+            /// <summary>
+            /// (П197, скорость) <see cref="NearestExit"/> ПО ВСЕМ УРОВНЯМ разом,
+            /// один раз на энергию. Ход по паре (`S177`: <c>SchemeThird</c>,
+            /// <c>AboveConditional</c>, <c>LowerCandidates</c>) звал
+            /// <see cref="NearestExit"/> на каждом уровне схемы для каждой тройки
+            /// «пара × третий × источник вакансии», и при доборе слабых линий это
+            /// съедало до 70 % разбора (профиль П196/П197). Набор держит ровно
+            /// то, что отдал бы цикл по <see cref="Levels"/> с пропуском
+            /// уровней без выхода, в том же порядке и с той же долей, — так что
+            /// суммы по нему побитово те же. Схема неизменяема, кэш под замком.
+            /// </summary>
+            public NearSet ExitsNear(double energyKev, double toleranceKev)
+            {
+                lock (this.nearCache)
+                {
+                    Dictionary<double, NearSet> byEnergy;
+                    if (!this.nearCache.TryGetValue(toleranceKev, out byEnergy))
+                    {
+                        this.nearCache[toleranceKev] = byEnergy = new Dictionary<double, NearSet>();
+                    }
+
+                    NearSet set;
+                    if (byEnergy.TryGetValue(energyKev, out set))
+                    {
+                        return set;
+                    }
+
+                    var items = new List<NearExit>();
+                    var index = new Dictionary<int, int>();
+                    foreach (int level in this.descending)
+                    {
+                        Exit exit = this.NearestExit(level, energyKev, toleranceKev);
+                        if (exit == null)
+                        {
+                            continue;
+                        }
+
+                        index[level] = items.Count;
+                        items.Add(new NearExit { Level = level, Exit = exit, Share = this.GammaShareOf(level, exit) });
+                    }
+
+                    set = new NearSet { Items = items.ToArray(), IndexOf = index };
+                    byEnergy[energyKev] = set;
+                    return set;
+                }
+            }
+
             /// <summary>Выход уровня <paramref name="fromSeq"/> НА уровень <paramref name="toSeq"/>; null — такого перехода с γ в схеме нет. (`S177`)</summary>
             public Exit ExitTo(int fromSeq, int toSeq)
             {

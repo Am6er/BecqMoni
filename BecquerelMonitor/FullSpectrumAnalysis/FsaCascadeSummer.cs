@@ -412,6 +412,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public Dictionary<string, ThirdSet> ThirdCache;
 
             /// <summary>
+            /// (П197, скорость) Кэш <see cref="XrayPairThird"/> по ГАММА-третьим:
+            /// носитель i → третий m → P(γ_m | γ_i ∧ K). Это число от самой
+            /// K-линии пары не зависит (вакансия при i раскладывается по
+            /// источникам одинаково для Kα1, Kα2 и Kβ), а считалось заново на
+            /// каждую из них — ход по источникам × третьим × уровням схемы.
+            /// Лежит на данных по той же причине, что <see cref="ThirdCache"/>.
+            /// </summary>
+            public Dictionary<double, Dictionary<double, double>> XrayGammaThird;
+
+            /// <summary>
             /// (`AMBER144`, П193) Что присоединено от изомеров дочерних
             /// (<see cref="AttachDaughterIsomers"/>): строка на изомер. Пусто —
             /// ничего. Лежит в общем кэше, после загрузки не меняется.
@@ -1217,6 +1227,80 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return plain;
             }
 
+            // (П197, скорость) Обращение кривой — 60 шагов деления пополам, а
+            // `CoincidenceFactor` спрашивает видимую сумму КАЖДОЙ пары нуклида
+            // для КАЖДОЙ его линии (влёт), то есть одни и те же суммы по сотне
+            // раз; на тяжёлом ториевом спектре это пятая часть разбора. Ответ —
+            // чистая функция аргументов и кривой, поэтому запомненный ответ
+            // побитово тот же; кривая сменилась (`PhotonLightCurve`
+            // переназначен) — память сбрасывается.
+            var key = new SumKey(first, second, third);
+            lock (this.apparentCache)
+            {
+                if (!string.Equals(this.apparentCurve, this.PhotonLightCurve, StringComparison.Ordinal))
+                {
+                    this.apparentCache.Clear();
+                    this.apparentCurve = this.PhotonLightCurve;
+                }
+
+                double known;
+                if (this.apparentCache.TryGetValue(key, out known))
+                {
+                    return known;
+                }
+            }
+
+            double value = this.InvertLight(first, second, third, plain);
+            lock (this.apparentCache)
+            {
+                if (string.Equals(this.apparentCurve, this.PhotonLightCurve, StringComparison.Ordinal))
+                {
+                    this.apparentCache[key] = value;
+                }
+            }
+
+            return value;
+        }
+
+        /// <summary>(П197) Ключ памяти <see cref="ApparentSum"/>: три энергии побитово, в порядке аргументов.</summary>
+        struct SumKey : IEquatable<SumKey>
+        {
+            readonly long a, b, c;
+
+            public SumKey(double first, double second, double third)
+            {
+                this.a = BitConverter.DoubleToInt64Bits(first);
+                this.b = BitConverter.DoubleToInt64Bits(second);
+                this.c = BitConverter.DoubleToInt64Bits(third);
+            }
+
+            public bool Equals(SumKey other)
+            {
+                return this.a == other.a && this.b == other.b && this.c == other.c;
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is SumKey && this.Equals((SumKey)obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return (((this.a.GetHashCode() * 397) ^ this.b.GetHashCode()) * 397) ^ this.c.GetHashCode();
+                }
+            }
+        }
+
+        /// <summary>(П197) Память <see cref="ApparentSum"/> и кривая, при которой она набрана.</summary>
+        readonly Dictionary<SumKey, double> apparentCache = new Dictionary<SumKey, double>();
+
+        string apparentCurve;
+
+        /// <summary>Само обращение Λ(E) для <see cref="ApparentSum"/> — счёт до П197 без изменений.</summary>
+        double InvertLight(double first, double second, double third, double plain)
+        {
             double target = Light(first) + Light(second) + (third > 0.0 ? Light(third) : 0.0);
 
             // Обращение Λ(E) деление пополам: кривая монотонна по построению
@@ -1935,6 +2019,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // не мерил. Занижение названное: тройные суммы срезает порог
                 // все до одной (`S113`), их вклад 0.8 % от суммы пары.
                 double area = scale * baseArea * third.Value * peakThird;
+                // (П197, скорость) Видимая сумма тройки — обращение кривой света
+                // в 60 шагов — нужна журналу и тем тройкам, что прошли порог; а
+                // порог срезает почти все (`S113`), и счёт её до порога был
+                // главной ценой троек. Без журнала — только после порога.
+                if (!LogTriples && !(area > floor))
+                {
+                    continue;
+                }
+
                 double energy = this.ApparentSum(pair[0], pair[1], third.Key);
                 if (LogTriples)
                 {
@@ -2287,6 +2380,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             var found = new List<LowerCandidate>();
             total = 0.0;
+            // (П197) Выход уровня по энергии — из готового набора схемы (тот же
+            // ближайший выход и та же доля, что `NearestExit` + `GammaShareOf`).
+            CascadeAtomicData.LevelScheme.NearSet near = scheme.ExitsNear(energyKev, SchemeMatchKev);
             foreach (KeyValuePair<int, double> entry in scheme.Reach(start))
             {
                 if (!(entry.Value > 0.0))
@@ -2294,14 +2390,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                CascadeAtomicData.LevelScheme.Exit exit =
-                    scheme.NearestExit(entry.Key, energyKev, SchemeMatchKev);
+                double share;
+                CascadeAtomicData.LevelScheme.Exit exit = near.At(entry.Key, out share);
                 if (exit == null)
                 {
                     continue;
                 }
 
-                double weight = entry.Value * scheme.GammaShareOf(entry.Key, exit);
+                double weight = entry.Value * share;
                 if (!(weight > 0.0))
                 {
                     continue;
@@ -2386,16 +2482,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             double p = 0.0;
             bool above = false;
-            foreach (int level in scheme.Levels)
+            // (П197) Уровни с выходом этой энергии — готовым набором схемы, в
+            // порядке `Levels`: прежний цикл по всем уровням с `NearestExit` на
+            // каждом давал те же слагаемые в том же порядке.
+            foreach (CascadeAtomicData.LevelScheme.NearExit near
+                     in scheme.ExitsNear(mKev, SchemeMatchKev).Items)
             {
-                CascadeAtomicData.LevelScheme.Exit exit = scheme.NearestExit(level, mKev, SchemeMatchKev);
-                if (exit == null)
-                {
-                    continue;
-                }
-
-                p += Segment(scheme, fu, tu, lower, lowerTotal, level, exit.ToSeq,
-                             scheme.GammaShareOf(level, exit), ref above);
+                p += Segment(scheme, fu, tu, lower, lowerTotal, near.Level, near.Exit.ToSeq,
+                             near.Share, ref above);
             }
 
             if (above)
@@ -2442,15 +2536,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double p = 0.0;
-            foreach (int level in scheme.Levels)
+            foreach (CascadeAtomicData.LevelScheme.NearExit near
+                     in scheme.ExitsNear(mKev, SchemeMatchKev).Items)
             {
-                CascadeAtomicData.LevelScheme.Exit exit = scheme.NearestExit(level, mKev, SchemeMatchKev);
-                if (exit == null || exit.ToSeq < fu)
+                if (near.Exit.ToSeq < fu)
                 {
                     continue;
                 }
 
-                p += scheme.ReachOf(exit.ToSeq, fu) * shareU * im / iu;
+                p += scheme.ReachOf(near.Exit.ToSeq, fu) * shareU * im / iu;
             }
 
             return p;
@@ -2655,6 +2749,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Supply = new HashSet<double>()
             };
             var single = new List<LowerCandidate>();
+            Dictionary<VacancyTerm, double> termKeys = null;
             foreach (double m in ThirdKeys(data, i, x))
             {
                 if ((data.XrayShare != null && data.XrayShare.ContainsKey(m))
@@ -2662,6 +2757,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     set.Partners[m] = MaxOfSides(data, i, x, m, set.Supply);
                     continue;
+                }
+
+                // (П197) Гамма-третий при паре γ_i + K от K-линии не зависит:
+                // всё ниже — носитель, его вакансия и схема. Посчитанный для
+                // одной K-линии ответ отдаётся остальным тем же числом.
+                double known;
+                Dictionary<double, double> perCarrier;
+                lock (data)
+                {
+                    if (data.XrayGammaThird == null)
+                    {
+                        data.XrayGammaThird = new Dictionary<double, Dictionary<double, double>>();
+                    }
+
+                    if (!data.XrayGammaThird.TryGetValue(i, out perCarrier))
+                    {
+                        data.XrayGammaThird[i] = perCarrier = new Dictionary<double, double>();
+                    }
+
+                    if (perCarrier.TryGetValue(m, out known))
+                    {
+                        set.Partners[m] = known;
+                        continue;
+                    }
                 }
 
                 // P(m | i) — из партнёров носителя, иначе по схеме.
@@ -2702,8 +2821,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // из партнёров ключа T.
                         single.Clear();
                         single.Add(new LowerCandidate { FromSeq = fi, ToSeq = ti, Weight = 1.0 });
-                        pMT = SchemeThird(data, scheme, t.FromSeq, t.ToSeq, single, 1.0,
-                                          PairKeyOf(data, term.Kev), m);
+                        // (П197) Ключ пары соседа — поиском по таблице выходов,
+                        // один раз на соседа, а не на каждого третьего.
+                        if (termKeys == null)
+                        {
+                            termKeys = new Dictionary<VacancyTerm, double>();
+                        }
+
+                        double termKey;
+                        if (!termKeys.TryGetValue(term, out termKey))
+                        {
+                            termKeys[term] = termKey = PairKeyOf(data, term.Kev);
+                        }
+
+                        pMT = SchemeThird(data, scheme, t.FromSeq, t.ToSeq, single, 1.0, termKey, m);
                     }
                     else
                     {
@@ -2714,7 +2845,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     acc += u * pMT;
                 }
 
-                set.Partners[m] = acc / total;
+                double value = acc / total;
+                set.Partners[m] = value;
+                lock (data)
+                {
+                    perCarrier[m] = value;
+                }
             }
 
             return set;
