@@ -56,6 +56,7 @@ namespace FsaClosureP191
                 if (a == "--fwhm-binning") fwhmBinning = true;
                 if (a.StartsWith("--copy-decimate=")) copyDecimate = int.Parse(a.Substring(16), CultureInfo.InvariantCulture);
                 if (a == "--ramp=off") FsaBand.DefaultRampModel = FsaRampModel.Off;
+                if (a.StartsWith("--ramp=") && a != "--ramp=off") FsaBand.DefaultRampModel = (FsaRampModel)Enum.Parse(typeof(FsaRampModel), a.Substring(7), true);   // П208: legacy | modelcontinuum (S207)
                 if (a.StartsWith("--band=")) FsaBand.DefaultMode = (FsaBandMode)Enum.Parse(typeof(FsaBandMode), a.Substring(7), true);
                 if (a.StartsWith("--curve-max=")) curveMax = double.Parse(a.Substring(12), CultureInfo.InvariantCulture);
                 if (a == "--fwhm-follow") fwhmFollow = true;
@@ -84,7 +85,7 @@ namespace FsaClosureP191
                     sumWinLo = double.Parse(t[0], CultureInfo.InvariantCulture);
                     sumWinHi = double.Parse(t[1], CultureInfo.InvariantCulture);
                 }
-                else if (a == "--nobg" || a == "--exact" || a == "--notes" || a == "--nomatrix" || a == "--truth-nobg" || a.StartsWith("--dgain=") || a.StartsWith("--doff=") || a == "--lie" || a.StartsWith("--dfrom=") || a == "--fwhm-follow" || a.StartsWith("--fwhm-scale=") || a.StartsWith("--truth-fwhm=") || a.StartsWith("--bgdrift=") || a == "--nnls" || a == "--bgtrace" || a.StartsWith("--floor=") || a.StartsWith("--curve-max=") || a.StartsWith("--rebin=") || a == "--decimate" || a == "--fwhm-binning" || a.StartsWith("--copy-decimate=") || a == "--ramp=off" || a.StartsWith("--band=")) { }
+                else if (a == "--nobg" || a == "--exact" || a == "--notes" || a == "--nomatrix" || a == "--truth-nobg" || a.StartsWith("--dgain=") || a.StartsWith("--doff=") || a == "--lie" || a.StartsWith("--dfrom=") || a == "--fwhm-follow" || a.StartsWith("--fwhm-scale=") || a.StartsWith("--truth-fwhm=") || a.StartsWith("--bgdrift=") || a == "--nnls" || a == "--bgtrace" || a.StartsWith("--floor=") || a.StartsWith("--curve-max=") || a.StartsWith("--rebin=") || a == "--decimate" || a == "--fwhm-binning" || a.StartsWith("--copy-decimate=") || a.StartsWith("--ramp=") || a.StartsWith("--band=")) { }
                 else if (a.StartsWith("--set=", StringComparison.Ordinal) || a.StartsWith("--copy-set=", StringComparison.Ordinal))
                 {
                     // П198 --copy-set=: та же настройка, но ТОЛЬКО разбору копий (истина — умолчаниями)

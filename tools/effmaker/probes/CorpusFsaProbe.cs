@@ -1345,6 +1345,14 @@ namespace CorpusFsaProbe
                     continue;
                 }
 
+                if (a.StartsWith("--ramp=", StringComparison.Ordinal))
+                {
+                    // (`S207`, П208) модель рампы порога: `model` (умолчание), `legacy`
+                    // (прежнее правило: центр канала, три точки), `off`
+                    FsaBand.DefaultRampModel = (FsaRampModel)Enum.Parse(typeof(FsaRampModel), a.Substring(7), true);
+                    continue;
+                }
+
                 if (a.StartsWith("--kernel=", StringComparison.Ordinal))
                 {
                     // (`S207`, П208) ядро уширения в канале: `mean` — среднее по каналу
