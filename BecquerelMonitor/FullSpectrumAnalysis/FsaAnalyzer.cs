@@ -4826,32 +4826,87 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// (П19) Сумм-континуум (S19) с формой положения по свету: отклик
-        /// ТРЕТЬЕГО кванта, приподнятый на видимую сумму пары. Форма "line" —
-        /// множитель третьего на его отклик и сдвиг суммы по её видимой
-        /// энергии; прочие формы — прежний <c>AccumulateShifted</c>, до бита.
+        /// (П19) Как кладётся сумм-континуум (S19) по свету: отклик ТРЕТЬЕГО
+        /// кванта, приподнятый на видимую сумму пары. Форма "line" — множитель
+        /// третьего на его отклик (<see cref="Scale"/>) и сдвиг суммы по её
+        /// видимой энергии (<see cref="ShiftKev"/>); прочие формы — прежний
+        /// <c>AccumulateShifted</c> на сумму пары, до бита.
+        ///
+        /// (`T265`, П203 01.10.2026) Вынесено из прежнего
+        /// <c>AccumulateSumContinuum</c>, который считал оба сдвига по свету
+        /// заново на КАЖДЫЙ канал исхода (шесть раз на одну и ту же пару
+        /// «третий, сумма»), — теперь один раз на пару, тем же кодом и теми же
+        /// операциями, так что числа те же до бита.
         /// </summary>
-        void AccumulateSumContinuum(EfficiencyMaker.ResponseMatrix matrix, double[] target,
-                                    double thirdKev, double weight, int channel, double shiftKev)
+        struct SumShape
+        {
+            /// <summary>true — <c>AccumulateLight</c>, false — <c>AccumulateShifted</c>.</summary>
+            public bool Light;
+
+            /// <summary>Сдвиг, кэВ: видимая сумма пары у формы "line", иначе сама сумма.</summary>
+            public double ShiftKev;
+
+            /// <summary>Множитель третьего по свету у формы "line", иначе не читается.</summary>
+            public double Scale;
+        }
+
+        /// <summary>
+        /// (`T265`) Сдвиг третьего кванта по свету s(E₃), нужный форме "line";
+        /// при прочих формах (и β = 0) — нуль и не читается. Зависит только от
+        /// энергии и состояния привязки, поэтому считается один раз на третий,
+        /// а не на каждый канал.
+        /// </summary>
+        double SumThirdShiftKev(double thirdKev)
+        {
+            return this.lightForm == LightForm.Line && this.driftLight != 0.0 && thirdKev > 0.0
+                ? this.LineLightShiftKev(thirdKev)
+                : 0.0;
+        }
+
+        /// <summary>
+        /// (`T265`) Положение сумм-континуума — то же ветвление, что у прежнего
+        /// <c>AccumulateSumContinuum</c>: <paramref name="thirdShiftKev"/> —
+        /// <see cref="SumThirdShiftKev"/> того же третьего.
+        /// </summary>
+        SumShape SumContinuumShape(double thirdKev, double thirdShiftKev, double shiftKev)
+        {
+            if (this.lightForm == LightForm.Line && this.driftLight != 0.0 && thirdKev > 0.0)
+            {
+                double sum = this.LineLightShiftKev(shiftKev);
+                if (thirdShiftKev != 0.0 || sum != 0.0)
+                {
+                    return new SumShape
+                    {
+                        Light = true,
+                        ShiftKev = shiftKev + sum,
+                        Scale = (thirdKev + thirdShiftKev) / thirdKev
+                    };
+                }
+            }
+
+            return new SumShape { Light = false, ShiftKev = shiftKev, Scale = 1.0 };
+        }
+
+        /// <summary>
+        /// (П19, `T265`) Сумм-континуум в ОДИН канал исхода по готовому
+        /// положению (<see cref="SumContinuumShape"/>); канал, снятый маской
+        /// замера, не трогается.
+        /// </summary>
+        void PlaceSumContinuum(EfficiencyMaker.ResponseMatrix matrix, double[] target,
+                               double thirdKev, double weight, int channel, SumShape shape)
         {
             if (channel >= 0 && (this.MatrixChannelMask & (1 << channel)) == 0)
             {
                 return; // (`AMBER22`, П42) канал снят маской замера
             }
 
-            if (this.lightForm == LightForm.Line && this.driftLight != 0.0 && thirdKev > 0.0)
+            if (shape.Light)
             {
-                double third = this.LineLightShiftKev(thirdKev);
-                double sum = this.LineLightShiftKev(shiftKev);
-                if (third != 0.0 || sum != 0.0)
-                {
-                    matrix.AccumulateLight(target, thirdKev, weight, channel, shiftKev + sum,
-                                           (thirdKev + third) / thirdKev);
-                    return;
-                }
+                matrix.AccumulateLight(target, thirdKev, weight, channel, shape.ShiftKev, shape.Scale);
+                return;
             }
 
-            matrix.AccumulateShifted(target, thirdKev, weight, channel, shiftKev);
+            matrix.AccumulateShifted(target, thirdKev, weight, channel, shape.ShiftKev);
         }
 
         /// <summary>(П19) Слово формы для результата и `runs.csv`.</summary>
@@ -15652,6 +15707,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
+                    // (`T265`) положение по свету — один раз на полосу, не на канал
+                    SumShape shape = this.SumContinuumShape(band.ThirdKev, this.SumThirdShiftKev(band.ThirdKev),
+                                                            band.ShiftKev);
                     for (int c = 0; c < channelCount; c++)
                     {
                         if (c == peakChannel)
@@ -15659,9 +15717,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             continue;
                         }
 
-                        this.AccumulateSumContinuum(this.ResponseMatrix,
-                                                    channels != null ? channels[c] : deposit,
-                                                    band.ThirdKev, band.Weight, c, band.ShiftKev);
+                        this.PlaceSumContinuum(this.ResponseMatrix,
+                                               channels != null ? channels[c] : deposit,
+                                               band.ThirdKev, band.Weight, c, shape);
                     }
 
                     any = true;
@@ -15726,6 +15784,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double peakFirst = this.cascade.PeakEfficiency(first);
                 double peakSecond = this.cascade.PeakEfficiency(second);
 
+                // (`T265`) сдвиги по свету — один раз на пару, а у ломтей ниже
+                // — один раз на ломоть, а не на каждый канал
+                double secondLight = this.SumThirdShiftKev(second);
+                double firstLight = this.SumThirdShiftKev(first);
+                SumShape secondOnFirst = this.SumContinuumShape(second, secondLight, first);
+                SumShape firstOnSecond = this.SumContinuumShape(first, firstLight, second);
+
                 // «пик i + непик j» и «непик i + пик j».
                 for (int c = 0; c < channelCount; c++)
                 {
@@ -15737,12 +15802,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     double[] target = channels != null ? channels[c] : deposit;
                     if (peakFirst > 0.0)
                     {
-                        this.AccumulateSumContinuum(matrix, target, second, joint * peakFirst, c, first);
+                        this.PlaceSumContinuum(matrix, target, second, joint * peakFirst, c, secondOnFirst);
                     }
 
                     if (peakSecond > 0.0)
                     {
-                        this.AccumulateSumContinuum(matrix, target, first, joint * peakSecond, c, second);
+                        this.PlaceSumContinuum(matrix, target, first, joint * peakSecond, c, firstOnSecond);
                     }
                 }
 
@@ -15782,6 +15847,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     double centre = moment / mass;
+                    SumShape secondOnSlice = this.SumContinuumShape(second, secondLight, centre);
                     for (int c = 0; c < channelCount; c++)
                     {
                         if (c == peakChannel)
@@ -15789,8 +15855,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             continue;
                         }
 
-                        this.AccumulateSumContinuum(matrix, channels != null ? channels[c] : deposit,
-                                                    second, joint * mass, c, centre);
+                        this.PlaceSumContinuum(matrix, channels != null ? channels[c] : deposit,
+                                               second, joint * mass, c, secondOnSlice);
                     }
                 }
 
