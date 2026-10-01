@@ -4693,6 +4693,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                if (this.ResponseMatrix == null)
+                {
+                    // (`AMBER156` (а), П195) РЕЖИМ КРИВОЙ: «синий канал» — сам
+                    // образ компонента. Голые пики и есть пик полного
+                    // поглощения (комптона, вылетов, сумм-пиков у них нет), и
+                    // колонка фита — ровно они на текущей шкале.
+                    double[] bare = new double[channels];
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        double v = amplitude * column.Values[i];
+                        bare[i] = v > 0.0 ? v : 0.0;
+                        blue[i] += bare[i];
+                    }
+
+                    owners.Add(new KeyValuePair<FsaComponent, double[]>(column.Component, bare));
+                    ownerAmplitude[column.Component] = amplitude;
+                    continue;
+                }
+
                 double[] sumOnly;
                 double[][] parts;
                 this.BuildLayerParts(column.Component, calibration, fwhmCalibration,
@@ -4822,8 +4841,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    double[] lineBlue = this.BuildLineBlue(owner, j, calibration, fwhmCalibration,
-                                                           gain, offset, chLo, chHi, channels);
+                    double[] lineBlue = this.ResponseMatrix == null
+                        ? this.BuildLineBare(owner, j, calibration, fwhmCalibration,
+                                             gain, offset, chLo, chHi, channels)
+                        : this.BuildLineBlue(owner, j, calibration, fwhmCalibration,
+                                             gain, offset, chLo, chHi, channels);
                     if (lineBlue == null)
                     {
                         continue;
@@ -5269,6 +5291,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Возвращает null без матрицы: у образа из одних пиков синего
         /// канала нет, и опора там не строится.
         /// </summary>
+        /// <summary>
+        /// (`AMBER156` (а), П195) Ядро опоры в РЕЖИМЕ КРИВОЙ — голый пик одной
+        /// линии тем же построителем, что образ (<see cref="BuildTemplate"/>:
+        /// вес по кривой эффективности, место по карте нуля и свету, рампа
+        /// порога). null — линии в образе нет (вне кривой, вне полосы).
+        /// </summary>
+        double[] BuildLineBare(FsaComponent component, int lineIndex,
+                               EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                               double gain, double offset, int chLo, int chHi, int channels)
+        {
+            if (component.WeightsAreFinal)
+            {
+                return null;
+            }
+
+            FsaComponent one = new FsaComponent(component.Name, component.Kind);
+            one.Lines.Add(component.Lines[lineIndex]);
+            return BuildTemplate(one, calibration, fwhmCalibration, this.anchorEfficiency,
+                                 gain, offset, chLo, chHi, channels);
+        }
+
+        /// <summary>
+        /// (`AMBER156`, П195) Кривая эффективности текущего разбора — ядрам опор
+        /// режима кривой (<see cref="BuildLineBare"/>); ставится в начале
+        /// <see cref="Analyze"/>.
+        /// </summary>
+        FsaEfficiency anchorEfficiency;
+
         double[] BuildLineBlue(FsaComponent component, int lineIndex,
                                EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
                                double gain, double offset, int chLo, int chHi, int channels)
@@ -6033,6 +6083,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.kernelBank = null;
             this.deposits.Clear();
             this.peakEfficiencies.Clear();
+            // (`AMBER157`, `AMBER156`, П195) исключённые линии и кривая опор
+            // режима кривой — на каждый разбор свои
+            this.outOfCurve.Clear();
+            this.anchorEfficiency = efficiency;
             this.driftLight = 0.0;
             this.lightShiftChannels = null;
             this.lightShiftMax = 0.0;
@@ -6107,8 +6161,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // разбор; вещество без кривой — таблицы нет, шкала как без ключа.
             if (this.AnchorLightPosition)
             {
+                // (`AMBER156` (б), П195) Вещество без матрицы — у геометрии
+                // кривой (<see cref="FsaEfficiency.CrystalMaterial"/>): таблица
+                // света по веществу, не по матрице, а `ScintillatorMaterial`
+                // кладёт только `FsaMatrixBinding.Bind`. При матрице — как было.
+                string material = this.ScintillatorMaterial
+                                  ?? (this.ResponseMatrix == null && efficiency != null
+                                          ? efficiency.CrystalMaterial
+                                          : null);
                 string curve = string.IsNullOrEmpty(this.AnchorLightCurve)
-                    ? FsaLightScale.CurveFor(this.ScintillatorMaterial)
+                    ? FsaLightScale.CurveFor(material)
                     : this.AnchorLightCurve;
                 if (FsaLightScale.Known(curve))
                 {
@@ -7081,7 +7143,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.anchorNote = null;
             if (this.AnchorScale)
             {
-                if (this.ResponseMatrix == null || !best.FromResponseMatrix)
+                // ⛔ (`AMBER156` (а), П195 01.10.2026) БЕЗ МАТРИЦЫ ПРИВЯЗКА ТОЖЕ
+                // ИДЁТ. Прежде здесь стояло «без матрицы отклика синего канала
+                // нет» — и режим кривой оставался на объявленной шкале: промах
+                // её на канал у рентгена 20…60 кэВ уносил узкий пик в сплайн и
+                // Хубер целиком (Cd-109 на 5 см 0.33 от матричного, Am-241
+                // 0.63; абляция `AnchorScale=false` С матрицей даёт те же
+                // числа — весь провал был в опорах). Синий канал нужен опоре
+                // только как ФОРМА пика полного поглощения, а у голых пиков
+                // кривой форма — сам образ: ветвление в `CollectScaleAnchors`.
+                if (this.ResponseMatrix != null && !best.FromResponseMatrix)
                 {
                     this.anchorNote = "привязки нет: без матрицы отклика синего канала нет";
                 }
@@ -7097,7 +7168,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // доводы у поля `adcScale` (П8: форма (в), 306.4 → 357.4).
                     // Здесь `bestGain`/`bestOffset` — ещё сеточные: цикл
                     // привязки ниже их не трогал.
-                    if (this.adcZeroMode == AdcZeroMode.Run)
+                    // (`AMBER156`, П195) карта нуля «adc» — только при матрице
+                    // (см. «adc-fixed» выше: голые пики без матрицы — как без
+                    // ключа); без матрицы привязка идёт калибровкой файла.
+                    if (this.adcZeroMode == AdcZeroMode.Run && this.ResponseMatrix != null)
                     {
                         double a0, b0, beta0;
                         int used0;
@@ -7254,7 +7328,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // иначе «положение по свету ВКЛ» на CZT/LaBr3 выглядит
                         // как сработавшее.
                         this.anchorNote = (this.anchorNote ?? "")
-                            + "; положение по свету: кривой для «" + (this.ScintillatorMaterial ?? "") + "» нет";
+                            + "; положение по свету: кривой для «"
+                            + (this.ScintillatorMaterial
+                               ?? (this.ResponseMatrix == null && this.anchorEfficiency != null
+                                       ? this.anchorEfficiency.CrystalMaterial
+                                       : null)
+                               ?? "") + "» нет";
                     }
                 }
             }
@@ -9853,6 +9932,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 EfficiencyUsed = efficiency != null,
                 // (`AMBER34`) кривая и матрица сцены поля — признаки окну отчёта
                 EfficiencyPerUnitFluence = efficiency != null && efficiency.IsPerUnitFluence,
+                // (`AMBER157`, П195) диапазон кривой и исключённые за ним линии —
+                // окну отчёта; у матричного образа список пуст по построению
+                EfficiencyMinKev = efficiency != null ? efficiency.MinEnergy : 0.0,
+                EfficiencyMaxKev = efficiency != null ? efficiency.MaxEnergy : 0.0,
+                EfficiencyOutOfRangeLines = this.OutOfCurveLines(),
                 CascadeSummingRefusedFieldMatrix = this.cascadeRefusedFieldMatrix && fit.FromResponseMatrix,
                 ResponseMatrixUsed = fit.FromResponseMatrix,
                 CascadeSummingUsed = this.cascadeApplied,
@@ -10714,8 +10798,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
                 else if (efficiency != null && !component.WeightsAreFinal)
                 {
-                    double e = efficiency.Eval(line.Energy);
-                    weight = e > 0.0 ? weight * e : 0.0;
+                    // (`AMBER157`, П195) тем же правилом, что образ
+                    // (`BuildTemplate`): вне кривой эффективности линии нет.
+                    double e, errorPercent;
+                    weight = efficiency.TryEval(line.Energy, out e, out errorPercent) && e > 0.0
+                        ? weight * e
+                        : 0.0;
                 }
 
                 counts[i] = weight > 0.0 ? weight : 0.0;
@@ -10737,12 +10825,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///
         /// (`AMBER89`, П144) Позиция — линии МАТРИЧНОГО образа, то есть на
         /// E + s(E) после привязки (<see cref="LinePositionKev"/>), как её
-        /// ставит окно у такого образа; без матрицы s = 0 и число прежнее.
+        /// ставит окно у такого образа. (`AMBER156` (б), П195) Без матрицы —
+        /// так же: голые пики режима кривой после привязки тоже стоят на
+        /// E + s(E) (<see cref="BuildTemplate"/>); до привязки s = 0, и число
+        /// прежнее до бита.
         /// </summary>
         public double LinePositionChannel(EnergyCalibration calibration, double energyKev, int channels)
         {
-            return this.LightToChannel(calibration,
-                this.ResponseMatrix != null ? this.LinePositionKev(energyKev) : energyKev, channels);
+            return this.LightToChannel(calibration, this.LinePositionKev(energyKev), channels);
         }
 
         /// <summary>
@@ -13045,8 +13135,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                         if (efficiency != null)
                         {
-                            double e = efficiency.Eval(scattered);
-                            if (!(e > 0.0))
+                            // (`AMBER157`, П195) вне кривой эффективность
+                            // неизвестна — рассеянный квант той энергии в образ
+                            // не идёт (прежде брал ε крайней точки).
+                            double e, errorPercent;
+                            if (!efficiency.TryEval(scattered, out e, out errorPercent) || !(e > 0.0))
                             {
                                 continue;
                             }
@@ -14569,6 +14662,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
+        /// <summary>
+        /// (`AMBER157`, П195) Линии, исключённые из образов этого разбора как
+        /// лежащие вне кривой эффективности; ключ — компонент и энергия.
+        /// Обнуляется в начале каждого <see cref="Analyze"/>, читается в
+        /// <see cref="FsaResult.EfficiencyOutOfRangeLines"/>.
+        /// </summary>
+        readonly Dictionary<string, FsaOutOfCurveLine> outOfCurve =
+            new Dictionary<string, FsaOutOfCurveLine>(StringComparer.Ordinal);
+
+        /// <summary>(`AMBER157`) Исключённые линии — по энергии, затем по имени.</summary>
+        List<FsaOutOfCurveLine> OutOfCurveLines()
+        {
+            var list = new List<FsaOutOfCurveLine>(this.outOfCurve.Values);
+            list.Sort((x, y) =>
+            {
+                int byEnergy = x.EnergyKev.CompareTo(y.EnergyKev);
+                return byEnergy != 0 ? byEnergy : string.CompareOrdinal(x.Component, y.Component);
+            });
+            return list;
+        }
+
+        void NoteOutOfCurve(FsaComponent component, FsaLine line)
+        {
+            string key = (component.Name ?? string.Empty) + "|"
+                         + line.Energy.ToString("R", CultureInfo.InvariantCulture);
+            if (!this.outOfCurve.ContainsKey(key))
+            {
+                this.outOfCurve[key] = new FsaOutOfCurveLine
+                {
+                    Component = component.Name, EnergyKev = line.Energy, Intensity = line.Intensity
+                };
+            }
+        }
+
         // Диспетчеризация «матричный образ или голые пики» живёт в FitOnce:
         // матричный путь отдаёт ДВЕ колонки (образ и подпороговый хвост), и
         // прятать вторую за скалярной сигнатурой значило бы её потерять.
@@ -14583,10 +14710,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // площади удваивал бы счёт профиля на канал.
             double[] shape = null;
             bool any = false;
+            // (`AMBER157`, П195) выход линий полосы — в кривой и вне её
+            double yieldInside = 0.0, yieldOutside = 0.0;
             foreach (FsaLine line in component.Lines)
             {
-                // (`S169`) голый пик — той же картой нуля, что образ по матрице
-                double position = this.LightToChannel(calibration, line.Energy, channels);
+                // (`S169`) голый пик — той же картой нуля, что образ по матрице.
+                // (`AMBER156` (б), П195) Без матрицы пик линии стоит там же,
+                // где у матричного образа, — на E + s(E) по свету кристалла
+                // (<see cref="LinePositionKev"/>; до привязки s = 0, то есть
+                // прежнее E до бита). При матрице сюда приходят только
+                // компоненты с готовыми весами, и их место не тронуто.
+                double position = this.LightToChannel(
+                    calibration,
+                    this.ResponseMatrix == null ? this.LinePositionKev(line.Energy) : line.Energy,
+                    channels);
                 if (!Finite(position))
                 {
                     continue;
@@ -14602,7 +14739,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double weight = line.Intensity / 100.0;
                 if (efficiency != null && !component.WeightsAreFinal)
                 {
-                    double e = efficiency.Eval(line.Energy);
+                    // ⛔ (`AMBER157`, П195; решение Amber 01.10.2026 «Исключать
+                    // с заверением») ЛИНИЯ ВНЕ КРИВОЙ В ОБРАЗ НЕ ВХОДИТ. Прежде
+                    // `Eval` держал край константой: линия выше верха кривой
+                    // получала ε верхней точки, амплитуда NNLS подстраивалась
+                    // под те же данные, и активность уходила на ε(край)/ε(линии)
+                    // при побитово том же фите (K-40 1461 кэВ при кривой до
+                    // 1250 кэВ — −12.6 %). Исключённая линия запоминается —
+                    // окну отчёта: «кривая E1…E2 кэВ, вне: …».
+                    double e, errorPercent;
+                    bool inBand = line.Intensity > 0.0 && p >= chLo && p <= chHi;
+                    if (!efficiency.TryEval(line.Energy, out e, out errorPercent))
+                    {
+                        if (inBand)
+                        {
+                            this.NoteOutOfCurve(component, line);
+                            yieldOutside += line.Intensity;
+                        }
+
+                        continue;
+                    }
+
+                    if (inBand)
+                    {
+                        yieldInside += line.Intensity;
+                    }
+
                     if (e <= 0.0)
                     {
                         continue;
@@ -14663,6 +14825,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 any = true;
+            }
+
+            // ⛔ (`AMBER157`, П195) ОБРАЗ НА СЛЕДОВЫХ ЛИНИЯХ НЕ СТРОИТСЯ. Когда за
+            // кривой остался почти весь выход компонента, его амплитуду держали
+            // бы следовые линии: у K-40 при кривой до 1250 кэВ — аннигиляция
+            // β⁺-ветви (0.001 %), и разбор приписывал K-40 чужую 511 с
+            // активностью ×50 (мерено П195, `FsaInputCheckProbeP195`). Порог —
+            // выход внутри кривой меньше десятой доли исключённого; у Tl-208
+            // при кривой до 2000 кэВ (583 кэВ 85 % против 2614 кэВ 99.8 %) образ
+            // остаётся. Исключённые линии уже названы заверению.
+            if (yieldOutside > 0.0 && yieldInside < 0.1 * yieldOutside)
+            {
+                return null;
             }
 
             // (`S204`, П189) рампа порога — тем же множителем, что у матричного

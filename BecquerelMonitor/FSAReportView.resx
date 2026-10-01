@@ -5295,4 +5295,19 @@
   <data name="FSAReport_ResidualNoiseTip" xml:space="preserve">
     <value>A model without a single error still shows about {0} % in each half: this is the Poisson noise of the band (the expected positive deviation of every channel from a perfect model, summed, over the measured counts of the same band). A residual near this floor does not tell the model from a perfect one; only what is above it is left undescribed.</value>
   </data>
+  <data name="FSAReport_NoMatrixWarnRow" xml:space="preserve">
+    <value>No response matrix: cascade summing is not applied — cascade nuclides read low by CF − 1 (corpus: −3…−11 % at 5 cm, −4…−7 % in Marinelli and Petri); the images carry no Compton continuum and no escape peaks; the scale is anchored on bare peaks. Build the matrix from the geometry.</value>
+  </data>
+  <data name="FSAReport_NoMatrixWarnValue" xml:space="preserve">
+    <value>up to −11 %</value>
+  </data>
+  <data name="FSAReport_CurveOutsideRow" xml:space="preserve">
+    <value>Efficiency curve {0}…{1} keV — lines outside it are excluded from the images: {2}</value>
+  </data>
+  <data name="FSAReport_CurveOutsideValue" xml:space="preserve">
+    <value>excluded</value>
+  </data>
+  <data name="FSAReport_DensityRow" xml:space="preserve">
+    <value>Sample density {0} g/cm³, scene {1} g/cm³, difference {2} % — efficiency at 60 keV {3} %, at 662 keV {4} % (estimate for a 1 L Marinelli; activity not corrected)</value>
+  </data>
 </root>

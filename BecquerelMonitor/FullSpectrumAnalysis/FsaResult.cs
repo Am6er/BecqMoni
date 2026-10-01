@@ -422,6 +422,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// (`AMBER157`, П195) Линия, исключённая из образа режима кривой: её энергия
+    /// вне диапазона кривой эффективности (<see cref="FsaResult.EfficiencyOutOfRangeLines"/>).
+    /// </summary>
+    public sealed class FsaOutOfCurveLine
+    {
+        /// <summary>Компонент, чья это линия (подпись как в составе).</summary>
+        public string Component { get; set; }
+
+        /// <summary>Энергия линии, кэВ.</summary>
+        public double EnergyKev { get; set; }
+
+        /// <summary>Выход линии, %.</summary>
+        public double Intensity { get; set; }
+    }
+
+    /// <summary>
     /// (`AMBER17`) ОПОРА ПРИВЯЗКИ ШКАЛЫ — один пик полного поглощения модели и
     /// то, что о нём измерено. Список у результата
     /// (<see cref="FsaResult.ScaleAnchors"/>) держит ВСЕХ кандидатов, а не
@@ -1271,6 +1287,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// окно отчёта обязано сказать это рядом со строкой кривой.
         /// </summary>
         public bool EfficiencyPerUnitFluence { get; set; }
+
+        /// <summary>
+        /// (`AMBER157`, П195 01.10.2026) Диапазон кривой эффективности этого
+        /// разбора, кэВ — первая и последняя точка таблицы
+        /// (<see cref="FsaEfficiency.MinEnergy"/>, <see cref="FsaEfficiency.MaxEnergy"/>).
+        /// Нули — кривой нет. Окну отчёта: строка «кривая E1…E2 кэВ, вне: …».
+        /// </summary>
+        public double EfficiencyMinKev { get; set; }
+
+        /// <summary>(`AMBER157`) Верх кривой эффективности, кэВ; см. <see cref="EfficiencyMinKev"/>.</summary>
+        public double EfficiencyMaxKev { get; set; }
+
+        /// <summary>
+        /// (`AMBER157`, решение Amber 01.10.2026 «Исключать с заверением»)
+        /// Линии, ИСКЛЮЧЁННЫЕ из образов режима кривой (разбор без матрицы),
+        /// потому что лежат вне диапазона кривой эффективности: эффективность
+        /// там неизвестна, а прежний зажим крайней точкой молча уводил
+        /// активность на ε(край)/ε(линии) при побитово том же фите. Только
+        /// линии, чей пик стоит в полосе фита; по энергии. Пусто — исключать
+        /// было нечего (и всегда пусто у матричного образа: матрица кривую на
+        /// веса линий не читает).
+        /// </summary>
+        public List<FsaOutOfCurveLine> EfficiencyOutOfRangeLines { get; set; } = new List<FsaOutOfCurveLine>();
 
         /// <summary>
         /// (`AMBER34`) Матрица отклика — сцены поля (`NORM` = единичный
