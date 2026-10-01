@@ -6,35 +6,35 @@
  ],
  "bands": {
   "0-30": {
-   "Cs-137": 7699803.052000002,
-   "Xray-Pb": 30449.661,
-   "Xray-Pb-L": 21725.272,
+   "Cs-137": 7699796.4459999995,
+   "Xray-Pb": 30446.579999999994,
+   "Xray-Pb-L": 21725.19099999999,
    "channels": 79,
-   "continuum_raw": 24227.865,
-   "excess_fit": 1705963.3920000002,
-   "excess_net": 1705963.3920000002,
+   "continuum_raw": 24234.739,
+   "excess_fit": 1705911.4179999998,
+   "excess_net": 1705911.4179999998,
    "fit": 18782231.433,
-   "missing_fit": 824893.0380000002,
-   "missing_net": 824893.0380000002,
-   "model": 19663301.787,
+   "missing_fit": 824894.5550000003,
+   "missing_net": 824894.5550000003,
+   "model": 19663248.295999996,
    "net": 18782231.433,
-   "tail": 1241072.7099999995,
+   "tail": 1241067.815,
    "untied_tail": 0.0
   },
   "100-300": {
-   "Cs-137": 58676711.136,
+   "Cs-137": 58676703.09100002,
    "Xray-Pb": 33.13400000000001,
    "Xray-Pb-L": 0.0,
    "channels": 523,
-   "continuum_raw": 7211520.533,
-   "excess_fit": 775812.0339999998,
-   "excess_net": 775812.0339999998,
+   "continuum_raw": 7211471.3999999985,
+   "excess_fit": 775800.853,
+   "excess_net": 775800.853,
    "fit": 73014669.88900007,
-   "missing_fit": 1339638.8469999998,
-   "missing_net": 1339638.8469999998,
-   "model": 72450843.07600002,
+   "missing_fit": 1339645.2729999989,
+   "missing_net": 1339645.2729999989,
+   "model": 72450825.469,
    "net": 73014669.88900007,
-   "tail": 270647.4559999998,
+   "tail": 270647.41599999974,
    "untied_tail": 0.0
   },
   "1500-3000": {
@@ -42,61 +42,61 @@
    "Xray-Pb": 0.0,
    "Xray-Pb-L": 0.0,
    "channels": 3616,
-   "continuum_raw": 2870.1459999999693,
-   "excess_fit": 6549.166000000003,
-   "excess_net": 2052.646999999999,
+   "continuum_raw": 2870.1419999999694,
+   "excess_fit": 6549.168000000002,
+   "excess_net": 2052.648999999999,
    "fit": 1932.5549999999976,
    "missing_fit": 4573.1849999999995,
    "missing_net": 4573.1849999999995,
-   "model": 3908.5360000000087,
+   "model": 3908.5380000000087,
    "net": 6429.073999999985,
    "tail": 0.0,
    "untied_tail": 0.0
   },
   "30-100": {
-   "Cs-137": 21760929.191,
-   "Xray-Pb": 377861.8179999998,
+   "Cs-137": 21760910.200000007,
+   "Xray-Pb": 377841.01500000013,
    "Xray-Pb-L": 0.0,
    "channels": 185,
-   "continuum_raw": 1052576.508,
-   "excess_fit": 752846.0340000002,
-   "excess_net": 752846.0340000002,
+   "continuum_raw": 1052599.3159999999,
+   "excess_fit": 752882.2609999997,
+   "excess_net": 752882.2609999997,
    "fit": 39909232.06500001,
-   "missing_fit": 398556.616,
-   "missing_net": 398556.616,
-   "model": 40263521.482999995,
+   "missing_fit": 398555.22700000013,
+   "missing_net": 398555.22700000013,
+   "model": 40263559.09899999,
    "net": 39909232.06500001,
-   "tail": 12422953.123000003,
+   "tail": 12422908.016000004,
    "untied_tail": 0.0
   },
   "300-700": {
-   "Cs-137": 51388640.92200001,
+   "Cs-137": 51388615.670000084,
    "Xray-Pb": 0.0,
    "Xray-Pb-L": 0.0,
    "channels": 1026,
-   "continuum_raw": 324078.8859999998,
-   "excess_fit": 1683879.898000002,
-   "excess_net": 1683879.898000002,
+   "continuum_raw": 324076.562,
+   "excess_fit": 1683863.889,
+   "excess_net": 1683863.889,
    "fit": 116281193.45199992,
-   "missing_fit": 5870644.516999996,
-   "missing_net": 5870644.516999996,
-   "model": 112094428.83299996,
+   "missing_fit": 5870668.380999998,
+   "missing_net": 5870668.380999998,
+   "model": 112094388.95999995,
    "net": 116281193.45199992,
    "tail": 0.0,
    "untied_tail": 0.0
   },
   "700-1500": {
-   "Cs-137": 524.9139999999995,
+   "Cs-137": 524.9089999999995,
    "Xray-Pb": 0.0,
    "Xray-Pb-L": 0.0,
    "channels": 1984,
-   "continuum_raw": 487988.19499999954,
-   "excess_fit": 46873.58500000003,
-   "excess_net": 45602.57300000001,
+   "continuum_raw": 487988.3259999993,
+   "excess_fit": 46873.84400000003,
+   "excess_net": 45602.83200000001,
    "fit": 1230161.7229999986,
-   "missing_fit": 132827.93099999998,
-   "missing_net": 132827.93099999998,
-   "model": 1144207.3769999994,
+   "missing_fit": 132834.286,
+   "missing_net": 132834.286,
+   "model": 1144201.2809999983,
    "net": 1231432.734999999,
    "tail": 0.0,
    "untied_tail": 0.0
@@ -128,8 +128,8 @@
    3000
   ]
  ],
- "declared": "2026-10-01 19:54",
- "head": "45dccaf5",
+ "declared": "2026-10-01 21:34",
+ "head": "b904a509",
  "head_lines": {
   "chi2": "chi2/ndf 12.135, невязка модели 7.1 %, суммирование да",
   "composition": "состав: выведено из пиков: 3 из 3 подписаны, родителей 2 из 2, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; K-40 100 % (1/1, пиков 1) — доля выше порога; Cs-137 50 % (1/2, пиков 1) — доля выше порога; оборванный ряд: подцепочка разобрана у 0 кандидатов",
@@ -137,7 +137,7 @@
   "matrix_layer": "MATRIX_LAYER\tCompton\tCompton\t3\tCs-137, Xray-Pb, Xray-Pb-L",
   "matrix_layer_combo": "MATRIX_LAYER_COMBO\tenabled\tКомптон (неполное поглощение)\tРисует у каждого компонента только этот канал матрицы отклика; канал комптона несёт и отвязанный хвост компонента ниже порога доверия матрицы. Ничего не пересчитывается, таблица прежняя.",
   "scale": "шкала: усиление 0.993570, сдвиг 0.000 канала",
-  "untied": "отвязанный хвост (S175; layer = в слое и доле своего образа, continuum = в подложке → серый слой, residual = в невязке): Cs-137 13689437.9 (layer), Xray-Pb 245235.4 (layer); всего 13934673.3 отсч."
+  "untied": "отвязанный хвост (S175; layer = в слое и доле своего образа, continuum = в подложке → серый слой, residual = в невязке): Cs-137 13689412.3 (layer), Xray-Pb 245210.9 (layer); всего 13934623.2 отсч."
  },
  "inputs": {
   "devices": {
@@ -153,11 +153,11 @@
    }
   },
   "probes": {
-   "app_sha": "33380dfb296bfe62",
-   "built": "2026-10-01 19:51:37",
+   "app_sha": "1c3570f47d51a7f6",
+   "built": "2026-10-01 21:28:29",
    "dir": "tools/effmaker/probes/build",
    "freshness_checked": true,
-   "shot_sha": "25450a8a1487ae76"
+   "shot_sha": "1e40f4e4e7033129"
   },
   "spectrum": "spectra/ASN16_Cs137_house.xml",
   "spectrum_sha": "2f61ee769c97c345"
@@ -174,46 +174,46 @@
  "rates": {
   "component": {
    "Backscatter": {
-    "count_rate": 2.0403595590935137,
+    "count_rate": 2.0403718256382404,
     "detected": "1",
     "kind": "Nuisance",
-    "peak_counts": 8347847.3430168675,
-    "share_pct": 3.491579349509652,
-    "z": 41.12194737359639
+    "peak_counts": 8347897.428289938,
+    "share_pct": 3.4916014750705386,
+    "z": 41.13055006399759
    },
    "Cs-137": {
-    "count_rate": 6665.0626357807005,
-    "decision_threshold_rate": 0.8117044691718671,
+    "count_rate": 6665.060572224753,
+    "decision_threshold_rate": 0.8117153976614947,
     "detected": "1",
-    "detection_limit_rate": 1.627143753523466,
+    "detection_limit_rate": 1.627165629870107,
     "kind": "Single",
-    "peak_counts": 100094961.173011,
-    "share_pct": 95.00924868473194,
-    "z": 811.5975602769797
+    "peak_counts": 100094927.93892333,
+    "share_pct": 95.00923549545057,
+    "z": 809.815857509167
    },
    "Xray-Pb": {
-    "count_rate": 14.289754871160838,
+    "count_rate": 14.289803285177362,
     "detected": "1",
     "kind": "Nuisance",
-    "peak_counts": 1401570.2548345302,
-    "share_pct": 0.6741094269551371,
-    "z": 27.8398199142056
+    "peak_counts": 1401575.032384309,
+    "share_pct": 0.6741017042431834,
+    "z": 27.84846996128473
    },
    "Xray-Pb-L": {
-    "count_rate": 14666.473559999557,
+    "count_rate": 14666.40767752415,
     "detected": "1",
     "kind": "Nuisance",
-    "peak_counts": 1190649.7471450334,
-    "share_pct": 0.48357328853038145,
-    "z": 44.008676186571584
+    "peak_counts": 1190645.198959796,
+    "share_pct": 0.483571605465293,
+    "z": 44.294868747132696
    },
    "pile-up": {
-    "count_rate": 1.7070568559417925,
+    "count_rate": 1.707059319267692,
     "detected": "1",
     "kind": "Nuisance",
     "peak_counts": 0.0,
-    "share_pct": 0.34148925027287486,
-    "z": 25.772372189887935
+    "share_pct": 0.34148971977041825,
+    "z": 25.768204479045917
    }
   },
   "grey": {
@@ -226,14 +226,14 @@
     "share_pct": 0.0
    },
    "residual_excess": {
-    "count_rate": 0.020013841514079197
+    "count_rate": 0.020013669767716798
    },
    "residual_floor": {
     "count_rate": 5.0,
     "peak_counts": 35.0
    },
    "residual_missing": {
-    "count_rate": 0.03143184729262162
+    "count_rate": 0.031431995298931724
    },
    "spread_floor": {
     "count_rate": 0.0,
@@ -242,56 +242,56 @@
   },
   "limit": {
    "Cs-137": {
-    "collinearity": 0.4454205480890263,
-    "count_rate": 6665.0626357807005,
-    "decision_threshold_rate": 0.8117044691718671,
+    "collinearity": 0.44542076096150673,
+    "count_rate": 6665.060572224753,
+    "decision_threshold_rate": 0.8117153976614947,
     "degenerate": 0.0,
     "detected": "1",
-    "detection_limit_rate": 1.627143753523466,
+    "detection_limit_rate": 1.627165629870107,
     "kind": "Single",
-    "limit_peak_counts": 24436.21309085589,
+    "limit_peak_counts": 24436.541078902093,
     "total_yield_pct": 93.022869
    },
    "K-40": {
-    "collinearity": 0.5697966095655349,
+    "collinearity": 0.5697985386941484,
     "count_rate": 0.0,
-    "decision_threshold_rate": 3.8886600778106657,
+    "decision_threshold_rate": 3.8886716149356406,
     "degenerate": 0.0,
     "detected": "0",
-    "detection_limit_rate": 7.9129720583563525,
+    "detection_limit_rate": 7.912996294310166,
     "kind": "Single",
-    "limit_peak_counts": 2977.395122353443,
+    "limit_peak_counts": 2977.4037626926442,
     "total_yield_pct": 11.341864963234695
    }
   },
   "meta": {
    "cascade_summing": 1.0,
-   "chi2ndf": 12.134916750449204,
-   "chi2ndf_pois": 170.3228463673234,
-   "gain": 0.993570424378136,
+   "chi2ndf": 12.134940457776334,
+   "chi2ndf_pois": 170.32179935790123,
+   "gain": 0.9935702466123502,
    "live_time": 356491.21293,
-   "model_residual": 0.0705813187591945,
+   "model_residual": 0.0705810907835279,
    "offset_channels": 0.0,
    "response_matrix": 1.0
   },
   "tail_in_layer": {
    "Cs-137": {
     "kind": "Single",
-    "peak_counts": 13689437.895761833
+    "peak_counts": 13689412.33714059
    },
    "Xray-Pb": {
     "kind": "Nuisance",
-    "peak_counts": 245235.40019329212
+    "peak_counts": 245210.9126854081
    }
   },
   "untied_tail": {
    "Cs-137": {
     "kind": "layer",
-    "peak_counts": 13689437.895761833
+    "peak_counts": 13689412.33714059
    },
    "Xray-Pb": {
     "kind": "layer",
-    "peak_counts": 245235.40019329212
+    "peak_counts": 245210.9126854081
    }
   }
  },
@@ -419,7 +419,7 @@
    "Пики полного поглощения, по которым привязана шкала (+ опора, - отвергнут): компонент, центр модели кэВ, остаток кэВ, доля пика, причина"
   ]
  ],
- "seconds": 5.7,
+ "seconds": 10.0,
  "spectrum": "spectra/ASN16_Cs137_house.xml",
  "tolerance": {
   "abs": 1e-06,
