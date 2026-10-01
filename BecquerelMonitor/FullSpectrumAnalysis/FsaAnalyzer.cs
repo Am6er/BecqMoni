@@ -2022,6 +2022,58 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         int continuumColumns;
 
         /// <summary>
+        /// (`AMBER141`, П194 01.10.2026) НИЖНИЕ ГРАНИЦЫ ШАПОК КОНТИНУУМА — по
+        /// модулю, по одной на шапку (первые <see cref="continuumColumns"/>
+        /// колонок `fixedColumns`): шапка j решается с ограничением
+        /// `c_j ≥ −continuumFloor[j]`, а не `c_j ≥ 0`. Граница — три σ шума
+        /// данных после вычитания фона под шапкой (<see cref="ContinuumFloorOf"/>): после
+        /// вычитания измеренного фона данные в пустых местах шкалы ЗАКОННО
+        /// колеблются вокруг нуля с его дисперсией, и зажим «подложка ≥ 0» брал
+        /// положительные выбросы и отбрасывал отрицательные — подложка в
+        /// среднем стояла выше нетто-континуума, амплитуды слабых образов на
+        /// ней занижались (`G1S16_Y88_P25` −18.7 % при 1/100 счёта, замкнутая
+        /// проверка `FsaClosureP191`). ⚠ Не «подложка + фон ≥ 0» (граница −B,
+        /// как предлагала строка): такая свобода открывает вырождение
+        /// отрицательной подложки с комптоновским плато образов — замер П194 у
+        /// `ASN16_Radon_filter2`, ряд Th-232 ×3.5. Решатель тот же NNLS: сдвиг переменной
+        /// `c′ = c + L` (правая часть `c + G·L` по ШТРАФОВАННОЙ Грам, то есть и
+        /// штраф на излом считается по истинным коэффициентам), см.
+        /// <c>FitOnce</c>. null — фона нет или ключ
+        /// <see cref="ContinuumBelowBackground"/> снят: решение побитово
+        /// прежнее.
+        /// </summary>
+        double[] continuumFloor;
+
+        /// <summary>
+        /// (`AMBER141`, П194) Разрешить подложке уходить ниже нуля в меру
+        /// вычтенного фона (<see cref="continuumFloor"/>). Без вычтенного фона
+        /// ключ ничего не меняет. Полярность умолчания — у присваивания в
+        /// конструкторе (`T82`); обратное плечо — `--set=ContinuumBelowBackground=false`
+        /// у <c>FsaClosureP191</c>.
+        /// </summary>
+        public bool ContinuumBelowBackground { get; set; }
+
+        /// <summary>
+        /// (`AMBER154`, П194 01.10.2026) Относительное усиление хранимого фона
+        /// против пробы на ЭТОМ проходе разбора: отсчёт фона, по объявленным
+        /// калибровкам стоящий в канале p пробы, кладётся в канал g·p.
+        /// 1 — фон в объявленной шкале (первый проход и всякий разбор, где
+        /// дрейф фона не измерен). Ставит <see cref="Analyze"/>.
+        /// </summary>
+        double backgroundGain = 1.0;
+
+        /// <summary>
+        /// (`AMBER154`, П194) Сводить хранимый фон к ИСТИННОЙ шкале пробы: после
+        /// первого прохода разбора дрейф фона против пробы меряется по пикам
+        /// комнатного фона в данных (<see cref="MeasureBackgroundGain"/>), и
+        /// разбор повторяется с фоном, переложенным на это усиление. Без
+        /// вычтенного фона ключ ничего не меняет. Полярность умолчания — у
+        /// присваивания в конструкторе (`T82`); обратное плечо —
+        /// `--set=BackgroundFollowsSample=false` у <c>FsaClosureP191</c>.
+        /// </summary>
+        public bool BackgroundFollowsSample { get; set; }
+
+        /// <summary>
         /// Каналы узлов континуума последней сборки базиса — для штрафа на
         /// излом (`S85`). Шаг узлов неравномерен, и вторая производная берётся
         /// по шкале, а не по номеру.
@@ -4667,7 +4719,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             for (int k = 0; k < fit.Columns.Count; k++)
             {
                 double amplitude = fit.Amplitude[k];
-                if (amplitude <= 0.0)
+                // (`AMBER141`) шапка подложки бывает ниже нуля (вычтенный фон);
+                // образы NNLS отрицательными не отдаёт — для них `== 0` то же
+                if (amplitude == 0.0)
                 {
                     continue;
                 }
@@ -5648,6 +5702,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // `--weights=data` у `CorpusFsaProbe`; числа A/B — журнал
             // `handover/handover-2026-09-13-p47-a310-model-weights.md`.
             this.ModelWeights = true;
+            // (`AMBER141`, П194 01.10.2026) Подложка ниже нуля в меру
+            // вычтенного фона — ВКЛ. До этого дня шапки решались с `c ≥ 0`, и
+            // копии собственной модели слабой пробы на фоне давали амплитуду
+            // ниже истины (`G1S16_Y88_P25` −18.7 ± 2.8 % при 1/100 счёта);
+            // числа A/B — журнал `handover/handover-2026-10-01-p194-background.md`.
+            this.ContinuumBelowBackground = true;
+            // (`AMBER154`, П194 01.10.2026) Фон сводится к шкале пробы по своим
+            // пикам в её данных — ВКЛ. До этого дня фон вычитался в объявленной
+            // шкале, и при дрейфе 1 % между съёмками K-40 слабой пробы уходил
+            // на +3.4 %; числа A/B — тот же журнал.
+            this.BackgroundFollowsSample = true;
             // (`S180`, П134 22.09.2026) ОТЧЁТНЫЕ веса по МОДЕЛИ (Пирсон) — ВКЛ.
             // До этого дня `Chi2NdfPoisson` и ε считались весами по данным
             // (Нейман, `1/max(N, 1)` плюс шум вычтенного континуума), и ВЕРНАЯ
@@ -6019,6 +6084,149 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// причина при этом названа в <see cref="Refusal"/> (`A312`).
         /// </summary>
         public FsaResult Analyze(
+            EnergySpectrum spectrum,
+            EnergySpectrum backgroundSpectrum,
+            FwhmCalibration fwhmCalibration,
+            List<FsaComponent> originalLibrary,
+            FsaEfficiency efficiency)
+        {
+            // ⛔ (`AMBER154`, П194 01.10.2026) ФОН — В ИСТИННОЙ ШКАЛЕ ПРОБЫ.
+            // Хранимый фон снят СВОЕЙ съёмкой, и прибор между съёмками плывёт
+            // (сезон, прогрев, загрузка): в корпусе относительный дрейф фона
+            // против пробы 0.2…0.6 % у половины спектров с фоном (`bg_peak.py`,
+            // П191). Привязка шкалы двигает только образы, фон вычитался в
+            // ОБЪЯВЛЕННОЙ шкале — пики комнатного фона в данных вычитались мимо
+            // себя, и у слабой пробы K-40 уходил на +3.4 % при дрейфе 1 %.
+            //
+            // Порядок: первый проход — как прежде (фон в объявленной шкале);
+            // по его модели из данных вынимаются образы пробы, остаётся
+            // комнатный фон в ИСТИННОЙ шкале пробы плюс подложка, и по пикам
+            // этого остатка против пиков хранимого фона меряется их
+            // относительное усиление (<see cref="MeasureBackgroundGain"/>).
+            // Мерится не привязка пробы, а РАЗНОСТЬ шкал двух съёмок — ровно та
+            // величина, которой вычитание ошибалось; абсолютное усиление
+            // привязки сюда не входит (в нём и модель света, и растяжение по
+            // опорам, ≈ 1 % у сцинтилляторов и без всякого дрейфа). Измерено —
+            // второй проход с фоном, переложенным на это усиление; не измерено
+            // (нет фона, пиков фона не видно в данных, оптимум у края окна
+            // поиска) — первый проход и есть результат, а служебная строка
+            // привязки говорит почему.
+            this.backgroundGain = 1.0;
+            FsaResult first = this.AnalyzeOnce(spectrum, backgroundSpectrum, fwhmCalibration,
+                                               originalLibrary, efficiency);
+            if (first == null || !first.BackgroundUsed || !this.BackgroundFollowsSample
+                || first.Background == null || first.Model == null)
+            {
+                return first;
+            }
+
+            // Усиление — НЕПОДВИЖНАЯ ТОЧКА: мера на проходе с фоном,
+            // переложенным на g, говорит, сколько ЕЩЁ не хватает. Почему не
+            // одна мера: когда у фона пик на ТОЙ ЖЕ линии, что у пробы (K-40 в
+            // пробе с K-40), образ пробы первого прохода стоит по привязке,
+            // которую сам же несведённый фон и сдвинул, — и остаток в данных
+            // недодаёт сдвига (на `G1S24_K40_Petri_2` при дрейфе 1 % первая
+            // мера 0.58 %). На истинном g смещение привязки исчезает, поэтому
+            // ноль невязки меры и есть ответ: второй проход — по первой мере,
+            // третий — секущей по двум. Больше трёх проходов разбор не делает.
+            FsaResult current = first;
+            double applied = 1.0;
+            double previousApplied = double.NaN;
+            double previousResidual = double.NaN;
+            var notes = new List<string>();
+            for (int pass = 0; pass < 3; pass++)
+            {
+                double measured;
+                // ⚠ Порога значимости у меры НЕТ нарочно — решает χ² ниже.
+                // Порог 2σ (первый вариант) на корпусе резал по живому: у копии
+                // `G1S24_Ra226_Petri` мера −0.245 ± 0.126 % (1.94σ) — фон не
+                // переложен, χ²/ndf копии 0.131 против 0.03; у копии с дрейфом
+                // 1 % вторая мера 0.23 ± 0.12 %, и без неё K-40 +1.3 %.
+                string note = this.MeasureBackgroundGain(spectrum, current, fwhmCalibration, out measured);
+                notes.Add(note);
+
+                if (double.IsNaN(measured))
+                {
+                    // не измерен — остаётся то, что есть: на первом проходе
+                    // фон в объявленной шкале (NaN), дальше — последнее
+                    // приложенное усиление с его мерой
+                    current.BackgroundGain = pass == 0 ? double.NaN : applied;
+                    break;
+                }
+
+                if (measured == 1.0 || pass == 2)
+                {
+                    current.BackgroundGain = applied;
+                    break;
+                }
+
+                double residual = measured - 1.0;
+                double next = applied * measured;
+                if (!double.IsNaN(previousResidual) && residual != previousResidual)
+                {
+                    // секущая по двум проходам: ноль невязки меры
+                    double secant = applied - residual * (applied - previousApplied) / (residual - previousResidual);
+                    double reach = 3.0 * Math.Abs(applied - previousApplied);
+                    next = Math.Max(applied - reach, Math.Min(applied + reach, secant));
+                }
+
+                if (Math.Abs(next - 1.0) > BackgroundGainSpan)
+                {
+                    current.BackgroundGain = applied;
+                    notes.Add(string.Format(CultureInfo.InvariantCulture,
+                        "следующий шаг ушёл бы за ±{0:F1} %", 100.0 * BackgroundGainSpan));
+                    break;
+                }
+
+                this.backgroundGain = next;
+                FsaResult moved = this.AnalyzeOnce(spectrum, backgroundSpectrum, fwhmCalibration,
+                                                   originalLibrary, efficiency);
+                this.backgroundGain = 1.0;
+                if (moved == null || moved.Background == null || moved.Model == null)
+                {
+                    // проход с переложенным фоном отказал там, где прежний
+                    // прошёл, — отдаётся прежний, с причиной; отказ наружу не
+                    // уходит (результат есть)
+                    current.BackgroundGain = pass == 0 ? double.NaN : applied;
+                    notes.Add("разбор с фоном на усилении "
+                        + next.ToString("F5", CultureInfo.InvariantCulture) + " не состоялся (" + this.Refusal + ")");
+                    this.Refusal = FsaRefusal.None;
+                    this.RefusalNote = null;
+                    break;
+                }
+
+                // ⛔ Арбитр — χ² разбора. Фон, сведённый к шкале пробы
+                // верно, вычитает свои пики и только улучшает фит (копия с
+                // дрейфом 1 %: χ²/ndf 0.24 → 0.02); фит хуже — значит, мера
+                // поймала не дрейф, а остатки образов, и остаётся прежний
+                // проход.
+                if (!(moved.Chi2Ndf <= current.Chi2Ndf))
+                {
+                    current.BackgroundGain = applied;
+                    notes.Add(string.Format(CultureInfo.InvariantCulture,
+                        "с фоном на усилении {0:F5} χ²/ndf {1:F4} не лучше {2:F4}",
+                        next, moved.Chi2Ndf, current.Chi2Ndf));
+                    break;
+                }
+
+                previousApplied = applied;
+                previousResidual = residual;
+                applied = next;
+                current = moved;
+            }
+
+            current.AnchorNote = (current.AnchorNote ?? "") + "; фон: " + string.Join("; ", notes)
+                + (applied != 1.0
+                    ? string.Format(CultureInfo.InvariantCulture, " → фон вычтен в шкале пробы, усиление {0:F5}", applied)
+                    : " → фон вычтен в объявленной шкале");
+            return current;
+        }
+
+        /// <summary>
+        /// Один проход разбора при текущем <see cref="backgroundGain"/> —
+        /// тело прежнего <see cref="Analyze"/>.
+        /// </summary>
+        FsaResult AnalyzeOnce(
             EnergySpectrum spectrum,
             EnergySpectrum backgroundSpectrum,
             FwhmCalibration fwhmCalibration,
@@ -6505,13 +6713,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         : own[i];
                 }
 
-                double[] rebinned = this.RebinBackgroundToSpectrum
-                    ? Rebin(own, background.EnergyCalibration, calibration, channels)
+                // ⛔ (`AMBER154`, П194) Перекладка — в ИСТИННУЮ шкалу пробы, если
+                // дрейф фона против неё измерен (`backgroundGain` ≠ 1, второй
+                // проход <see cref="Analyze"/>): отсчёт, по объявленным шкалам
+                // стоящий в канале p, кладётся в канал g·p. При g = 1 — прежняя
+                // перекладка побитово (та же ветка, та же шкала-приёмник).
+                bool moved = this.backgroundGain != 1.0;
+                EnergyCalibration backgroundTarget = moved
+                    ? new StretchedCalibration(calibration, this.backgroundGain)
+                    : calibration;
+                EnergyCalibration backgroundSource = this.RebinBackgroundToSpectrum
+                    ? background.EnergyCalibration
+                    : calibration;
+                double[] rebinned = this.RebinBackgroundToSpectrum || moved
+                    ? Rebin(own, backgroundSource, backgroundTarget, channels)
                     : own;
                 double[] rebinnedPeak = backgroundSnip == null
                     ? rebinned
-                    : (this.RebinBackgroundToSpectrum
-                        ? Rebin(ownPeak, background.EnergyCalibration, calibration, channels)
+                    : (this.RebinBackgroundToSpectrum || moved
+                        ? Rebin(ownPeak, backgroundSource, backgroundTarget, channels)
                         : ownPeak);
                 for (int i = 0; i < channels; i++)
                 {
@@ -6579,10 +6799,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 fixedColumns.AddRange(hats);
                 this.continuumKnots = knots;
+                // (`AMBER141`) граница — только когда фон вычтен: без вычитания
+                // данные неотрицательны, смещения нет, и решение побитово прежнее
+                this.continuumFloor = this.ContinuumBelowBackground && backgroundFull != null
+                    ? ContinuumFloorOf(hats, variance, chLo, chHi)
+                    : null;
             }
             else
             {
                 this.continuumKnots = null;
+                this.continuumFloor = null;
             }
 
             // Шапки идут ПЕРВЫМИ и подряд — на этом держится штраф на излом
@@ -9991,7 +10217,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double amplitude = fit.Amplitude[k];
                 if (column.Component == null)
                 {
-                    if (amplitude <= 0.0)
+                    // (`AMBER141`) шапка подложки бывает ниже нуля — в меру
+                    // вычтенного фона; хвосты образов NNLS отрицательными не
+                    // отдаёт, и для них `== 0` то же, что прежнее `<= 0`
+                    if (amplitude == 0.0)
                     {
                         continue;
                     }
@@ -12475,15 +12704,57 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // ⛔ (`AMBER141`, П194) Шапки континуума — с нижней границей −L_j
+            // (<see cref="continuumFloor"/>), а не нулём. NNLS решает сдвинутую
+            // задачу: `c′ = c + L ≥ 0`, правая часть `c + G·L` по ШТРАФОВАННОЙ
+            // Грам — тогда и штраф на излом считается по истинным
+            // коэффициентам, а минимум тот же. После решения сдвиг снимается;
+            // шапка на границе вне активного множества, как колонка, зажатая
+            // NNLS в ноль. Без границ (фона нет, ключ снят) — прежнее решение
+            // побитово: правая часть та же ссылка.
+            double[] rhs = c;
+            double[] shift = null;
+            if (this.continuumFloor != null && this.continuumFloor.Length == this.continuumColumns
+                && fixedColumns.Count >= this.continuumColumns && this.continuumColumns > 0)
+            {
+                shift = new double[m];
+                for (int j = 0; j < this.continuumColumns; j++)
+                {
+                    shift[fixedFirst + j] = this.continuumFloor[j];
+                }
+
+                rhs = new double[m];
+                for (int a = 0; a < m; a++)
+                {
+                    double s = c[a];
+                    for (int j = 0; j < this.continuumColumns; j++)
+                    {
+                        s += gram[a, fixedFirst + j] * this.continuumFloor[j];
+                    }
+
+                    rhs[a] = s;
+                }
+            }
+
             bool[] active;
-            double[] x = NnlsSolve(gram, c, m, out active);
+            double[] x = NnlsSolve(gram, rhs, m, out active);
             int capped;
-            x = this.ApplyAmplitudeCaps(columns, gram, c, m, x, ref active, out capped);
+            x = this.ApplyAmplitudeCaps(columns, gram, rhs, m, x, ref active, out capped);
+            if (shift != null)
+            {
+                for (int k = 0; k < m; k++)
+                {
+                    x[k] -= shift[k];
+                }
+            }
 
             double[] model = new double[channels];
             for (int k = 0; k < m; k++)
             {
-                if (x[k] <= 0.0)
+                // (`AMBER141`) `== 0`, а не `<= 0`: шапка с нижней границей
+                // ниже нуля — законная часть модели; прочие колонки NNLS
+                // отрицательными не отдаёт, и для них условие то же.
+                if (x[k] == 0.0)
                 {
                     continue;
                 }
@@ -12937,6 +13208,419 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 ? centres[channels - 1] + 0.5 * (centres[channels - 1] - centres[channels - 2])
                 : centres[0] + 0.5;
             return edges;
+        }
+
+        /// <summary>
+        /// (`AMBER154`, П194) Шкала, растянутая по номеру канала: центр канала
+        /// j отвечает энергии канала j/g исходной шкалы. Перекладка
+        /// <see cref="Rebin"/> в неё кладёт отсчёт, стоявший в канале p, в канал
+        /// g·p — ровно дрейф усиления АЦП между двумя съёмками. Только для
+        /// перекладки внутри разбора: не сериализуется и наружу не уходит.
+        /// </summary>
+        sealed class StretchedCalibration : EnergyCalibration
+        {
+            readonly EnergyCalibration inner;
+            readonly double gain;
+
+            public StretchedCalibration(EnergyCalibration inner, double gain)
+            {
+                this.inner = inner;
+                this.gain = gain;
+            }
+
+            public override double ChannelToEnergy(double n)
+            {
+                return this.inner.ChannelToEnergy(n / this.gain);
+            }
+
+            public override double EnergyToChannel(double e, int maxChannels = 10000)
+            {
+                return this.inner.EnergyToChannel(e, maxChannels) * this.gain;
+            }
+
+            public override EnergyCalibration Clone()
+            {
+                return new StretchedCalibration(this.inner, this.gain);
+            }
+
+            public override EnergyCalibration Downgrade(int p)
+            {
+                return this.Clone();
+            }
+
+            public override bool Equals(EnergyCalibration calib)
+            {
+                return ReferenceEquals(this, calib);
+            }
+
+            public override int MaxChannels()
+            {
+                return this.inner.MaxChannels();
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER141`) Во сколько σ шума данных после вычитания фона подложке
+        /// позволено уходить ниже нуля. Три σ: истинный нетто-континуум неотрицателен, и
+        /// граница, лежащая на 3σ ниже нуля, оценку без смещения почти не
+        /// трогает (зажим срабатывает у ~0.1 % несмещённых шапок), а
+        /// вырождения «отрицательная подложка против комптоновского плато
+        /// образа» не открывает. Граница −B (весь фон, как предлагала строка)
+        /// его открывала: у `ASN16_Radon_filter2` ряд Th-232 рос втрое, а
+        /// подложка уходила в минус на весь фон (замер П194).
+        /// </summary>
+        const double ContinuumFloorSigmas = 3.0;
+
+        /// <summary>
+        /// (`AMBER141`, П194) Нижние границы шапок континуума по модулю — в
+        /// меру ШУМА ДАННЫХ после вычитания фона под шапкой: `L_j = κ·σ_j`,
+        /// `σ_j = √(Σ hat_j²·V) / Σ hat_j²` — погрешность коэффициента шапки
+        /// по наименьшим квадратам, V — дисперсия канала, та же, что идёт в
+        /// веса (отсчёт пробы плюс шум вычтенного фона), κ =
+        /// <see cref="ContinuumFloorSigmas"/>. Ниже нуля данные после вычитания
+        /// уходят именно на этот шум, и именно его зажим «≥ 0» и обрезал.
+        /// ⚠ Не шум одного фона: комнатный фон сидит и в отсчёте ПРОБЫ, и его
+        /// пуассоновский шум там — главный, когда фон снят дольше пробы
+        /// (k = T_пробы/T_фона ≪ 1). Граница по одному шуму фона (первый
+        /// вариант П194) у копий `G1S16_Y88_P25` при 1/100 счёта оставляла
+        /// −19.7 % — почти всё смещение. Шапки здесь уже помножены на рампу
+        /// порога (`S204`). Зовётся только при вычтенном фоне.
+        /// </summary>
+        static double[] ContinuumFloorOf(List<double[]> hats, double[] variance, int chLo, int chHi)
+        {
+            if (variance == null || hats == null || hats.Count == 0)
+            {
+                return null;
+            }
+
+            double[] floor = new double[hats.Count];
+            bool any = false;
+            for (int j = 0; j < hats.Count; j++)
+            {
+                double[] hat = hats[j];
+                double num = 0.0;
+                double den = 0.0;
+                for (int i = chLo; i <= chHi && i < hat.Length && i < variance.Length; i++)
+                {
+                    double h2 = hat[i] * hat[i];
+                    num += h2 * variance[i];
+                    den += h2;
+                }
+
+                double value = den > 0.0 && num > 0.0 ? ContinuumFloorSigmas * Math.Sqrt(num) / den : 0.0;
+                floor[j] = value;
+                any |= value > 0.0;
+            }
+
+            return any ? floor : null;
+        }
+
+        /// <summary>
+        /// (`AMBER154`) Предел относительного усиления фона: ±3 % — втрое шире
+        /// наибольшего дрейфа фона против пробы, измеренного в корпусе
+        /// (0.65 % у `G1S24_K40_Petri_2`), и вдвое — дрейфа пробы против
+        /// объявленной шкалы (1.8 %). Оценка за пределом — «не измерен».
+        /// </summary>
+        const double BackgroundGainSpan = 0.03;
+
+        /// <summary>
+        /// (`AMBER154`, П194) ПРИБОР ДРЕЙФА ФОНА — приёмник трассы
+        /// <see cref="MeasureBackgroundGain"/>: каждый шаг уточнения усиления
+        /// (усиление, амплитуда, поправка, значимость). Ставится безоконной
+        /// пробой (`FsaClosureP191 --bgtrace`) на время разбора; в приложении
+        /// не задан, и тогда никто не зовётся.
+        /// </summary>
+        public static Action<string> BackgroundGainTraceSink { get; set; }
+
+        /// <summary>
+        /// (`AMBER154`) Значимость пиков фона в остатке данных, ниже которой
+        /// дрейф фона не меряется: z = a/σ_a амплитуды фона в подгонке.
+        /// Порог низкий нарочно — перекладку всё равно судит χ² разбора; 10
+        /// (первое значение) резал по живому: у G1S16_K40_Mar мера истины
+        /// z 10.0 прошла, а её точной копии z 7.8 — нет, и копия теряла
+        /// перекладку, которую нашла истина.
+        /// </summary>
+        const double BackgroundGainMinZ = 5.0;
+
+        /// <summary>
+        /// (`AMBER154`) Дрейф фона меньше этого фон не перекладывает: сдвиг
+        /// пика на 0.005 % — сотые канала у верха шкалы. Мельче не нужно, а
+        /// крупнее нельзя: 0.02 % (первое значение) оставляло у
+        /// `G1S24_K40_Petri_2` +0.18 % K-40 — у слабой пробы канал сдвига у
+        /// линии стоит 0.75 % амплитуды (П191).
+        /// </summary>
+        const double BackgroundGainDeadband = 0.00005;
+
+
+        /// <summary>
+        /// (`AMBER154`) Сглаживание гауссом перед сравнением: σ ядра в долях
+        /// σ пика (ПШПВ/2.355) канала. Гасит пуассоновский шум хранимого фона
+        /// (иначе он входит в норму и смещает оценку) и размытие перекладки
+        /// при нецелом растяжении (≤ канала), почти не трогая сами пики.
+        /// </summary>
+        const double BackgroundGainSmoothing = 0.5;
+
+        /// <summary>
+        /// (`AMBER154`, П194 01.10.2026) ОТНОСИТЕЛЬНОЕ УСИЛЕНИЕ ХРАНИМОГО ФОНА
+        /// ПРОТИВ ПРОБЫ — по пикам комнатного фона в её данных.
+        ///
+        /// Остаток D = данные − (модель − подложка) первого прохода: образы
+        /// пробы вынуты, остались комнатный фон в ИСТИННОЙ шкале пробы и
+        /// подложка. Хранимый фон B (в шкале пробы по объявленным калибровкам,
+        /// уже приведённый живым временем) растягивается по номеру канала на
+        /// g. Оба сглаживаются гауссом (<see cref="BackgroundGainSmoothing"/>)
+        /// и пропускаются через вторую разность с шагом в ПШПВ канала,
+        /// `f(x)_i = x_i − ½(x_{i−d} + x_{i+d})`: подложка и гладкий континуум
+        /// гаснут, остаются пики. Усиление — наименьшими квадратами по
+        /// Гауссу — Ньютону: `f(D) ≈ a·f(B_g) + c·q`, `q = −p·∂f(B_g)/∂p` —
+        /// производная растянутого фона по усилению (член `−f(B_g)` той же
+        /// производной уходит в a), поправка `g ← g·(1 + c/a)`, до сходимости.
+        /// Вес канала в оценке усиления — сам собой `w·q²`, то есть пики у
+        /// верха шкалы, где растяжение двигает их на каналы; низ шкалы с его
+        /// порогом и рентгеном усиление почти не задаёт. Веса w — от дисперсии
+        /// D (данные плюс шум фона) через тот же фильтр; σ — по обратной
+        /// матрице 2×2, надутой на √(χ²/ndf) этой подгонки.
+        ///
+        /// ⚠ Мерится РАЗНОСТЬ шкал двух съёмок, а не привязка пробы: образы
+        /// пробы уже вынуты по её привязке, и что остаётся у пиков комнатного
+        /// фона — это они сами в шкале пробы. Остатки образов (кривая
+        /// модель, ширина) в D входят и могут тянуть оценку там, где у фона
+        /// пик на той же линии, — на замкнутой проверке видны как смещение
+        /// усиления копии без дрейфа.
+        ///
+        /// Возвращает служебную строку для <see cref="FsaResult.AnchorNote"/>;
+        /// <paramref name="gain"/> — NaN, если дрейф не измерен (пиков фона в
+        /// данных не видно, подгонка не сошлась или ушла за ±
+        /// <see cref="BackgroundGainSpan"/>), 1 — измерен в пределах
+        /// <see cref="BackgroundGainDeadband"/>.
+        /// </summary>
+        string MeasureBackgroundGain(EnergySpectrum spectrum, FsaResult first,
+                                     FwhmCalibration fwhmCalibration, out double gain)
+        {
+            gain = double.NaN;
+            int[] raw = spectrum.Spectrum;
+            double[] model = first.Model;
+            double[] background = first.Background;
+            double[] continuum = first.Continuum;
+            int channels = Math.Min(raw.Length, Math.Min(model.Length, background.Length));
+            int lo = Math.Max(0, first.FirstChannel);
+            int hi = Math.Min(channels - 1, first.LastChannel);
+            if (hi - lo < MinBandChannels)
+            {
+                return "дрейф фона не измерен: полоса узка";
+            }
+
+            double k = first.BackgroundScale > 0.0 ? first.BackgroundScale : 1.0;
+            double[] room = new double[channels];
+            double[] variance = new double[channels];
+            int[] lag = new int[channels];
+            double[] sigmaKernel = new double[channels];
+            for (int i = lo; i <= hi; i++)
+            {
+                double c = continuum != null && i < continuum.Length ? continuum[i] : 0.0;
+                room[i] = raw[i] - (model[i] - c);
+                variance[i] = Math.Max(raw[i], 1.0) + k * Math.Abs(background[i]);
+                double fwhm = fwhmCalibration.ChannelToFwhm(i);
+                if (!(fwhm > 1.0))
+                {
+                    fwhm = 1.0;
+                }
+
+                lag[i] = Math.Max(1, (int)Math.Round(fwhm));
+                sigmaKernel[i] = BackgroundGainSmoothing * fwhm / 2.3548;
+            }
+
+            double[] roomSmooth = SmoothVariable(room, sigmaKernel, lo, hi);
+            double[] backgroundSmooth = SmoothVariable(background, sigmaKernel, lo, hi);
+
+            // фильтр остатка и вес — один раз; каналы, где окно фильтра
+            // вылезает за полосу, в оценку не входят (w = 0)
+            double[] fd = new double[channels];
+            double[] w = new double[channels];
+            for (int i = lo; i <= hi; i++)
+            {
+                int d = lag[i];
+                if (i - d - 1 < lo || i + d + 1 > hi)
+                {
+                    continue;
+                }
+
+                fd[i] = roomSmooth[i] - 0.5 * (roomSmooth[i - d] + roomSmooth[i + d]);
+                w[i] = 1.0 / (variance[i] + 0.25 * (variance[i - d] + variance[i + d]));
+            }
+
+            EnergyCalibration scale = spectrum.EnergyCalibration;
+            double g = 1.0;
+            double a = double.NaN, sigmaA = double.NaN, sigmaG = double.NaN;
+            bool converged = false;
+            Action<string> trace = BackgroundGainTraceSink;
+            double[] fb = new double[channels];
+            double[] q = new double[channels];
+            for (int iteration = 0; iteration < 40; iteration++)
+            {
+                double[] b = g == 1.0
+                    ? backgroundSmooth
+                    : Rebin(backgroundSmooth, scale, new StretchedCalibration(scale, g), channels);
+                for (int i = lo; i <= hi; i++)
+                {
+                    int d = lag[i];
+                    fb[i] = i - d >= lo && i + d <= hi
+                        ? b[i] - 0.5 * (b[i - d] + b[i + d])
+                        : 0.0;
+                }
+
+                double s11 = 0.0, s12 = 0.0, s22 = 0.0, r1 = 0.0, r2 = 0.0, dd = 0.0;
+                int n = 0;
+                for (int i = lo; i <= hi; i++)
+                {
+                    if (w[i] == 0.0)
+                    {
+                        q[i] = 0.0;
+                        continue;
+                    }
+
+                    q[i] = -i * 0.5 * (fb[i + 1] - fb[i - 1]);
+                    s11 += w[i] * fb[i] * fb[i];
+                    s12 += w[i] * fb[i] * q[i];
+                    s22 += w[i] * q[i] * q[i];
+                    r1 += w[i] * fd[i] * fb[i];
+                    r2 += w[i] * fd[i] * q[i];
+                    dd += w[i] * fd[i] * fd[i];
+                    n++;
+                }
+
+                double det = s11 * s22 - s12 * s12;
+                if (!(det > 0.0) || n < 3)
+                {
+                    break;
+                }
+
+                a = (s22 * r1 - s12 * r2) / det;
+                double c = (s11 * r2 - s12 * r1) / det;
+                double chi2 = Math.Max(dd - a * r1 - c * r2, 0.0);
+                double inflate = Math.Max(1.0, chi2 / (n - 2));
+                sigmaA = Math.Sqrt(s22 / det * inflate);
+                double sigmaC = Math.Sqrt(s11 / det * inflate);
+                double step = a > 0.0 ? c / a : 0.0;
+                sigmaG = a > 0.0 ? g * sigmaC / a : double.NaN;
+                if (trace != null)
+                {
+                    trace(string.Format(CultureInfo.InvariantCulture,
+                        "шаг {0}: g {1:F6} a {2:F4} ± {3:F4} поправка {4:+0.000000;-0.000000} σ_g {5:F6} χ²/ndf {6:F2}",
+                        iteration, g, a, sigmaA, step, sigmaG, chi2 / (n - 2)));
+                }
+
+                if (!(a > 0.0))
+                {
+                    break;
+                }
+
+                // ⚠ Шаг недолетает (q — производная сглаженного фона, не данных;
+                // на корпусе отношение соседних шагов ≈ 0.4), поэтому сходимость
+                // линейная и шагов до сорока; шаг — перекладка и проход по
+                // каналам, на фоне разбора даром.
+                // шаг Ньютона ограничен: линейное приближение верно на долях
+                // ПШПВ сдвига, а ПШПВ сцинтиллятора — проценты шкалы
+                if (step > 0.005)
+                {
+                    step = 0.005;
+                }
+                else if (step < -0.005)
+                {
+                    step = -0.005;
+                }
+
+                g *= 1.0 + step;
+                if (Math.Abs(g - 1.0) > BackgroundGainSpan)
+                {
+                    break;
+                }
+
+                if (Math.Abs(step) < 1e-6)
+                {
+                    converged = true;
+                    break;
+                }
+            }
+
+            double z = sigmaA > 0.0 ? a / sigmaA : 0.0;
+            if (!(z >= BackgroundGainMinZ))
+            {
+                return string.Format(CultureInfo.InvariantCulture,
+                    "дрейф фона не измерен: пики фона в данных не видны (z {0:F1} < {1:F0})",
+                    z, BackgroundGainMinZ);
+            }
+
+            if (!converged || Math.Abs(g - 1.0) > BackgroundGainSpan)
+            {
+                return string.Format(CultureInfo.InvariantCulture,
+                    "дрейф фона не измерен: подгонка усиления не сошлась в ±{0:F1} % (g {1:F4}, z {2:F1})",
+                    100.0 * BackgroundGainSpan, g, z);
+            }
+
+            // где сдвиг виднее всего: канал наибольшего вклада в оценку
+            // усиления (w·q²) — сдвиг в каналах и кэВ называется там
+            int peak = lo;
+            double peakWeight = 0.0;
+            for (int i = lo; i <= hi; i++)
+            {
+                double v = w[i] * q[i] * q[i];
+                if (v > peakWeight)
+                {
+                    peakWeight = v;
+                    peak = i;
+                }
+            }
+
+            double shiftChannels = (g - 1.0) * peak;
+            double peakKev = scale.ChannelToEnergy(peak);
+            double shiftKev = scale.ChannelToEnergy(peak + shiftChannels) - peakKev;
+            if (Math.Abs(g - 1.0) < BackgroundGainDeadband)
+            {
+                gain = 1.0;
+                return string.Format(CultureInfo.InvariantCulture,
+                    "дрейф фона против пробы {0:+0.000;-0.000;0.000} % ± {1:F3} (z {2:F1}; у {3:F0} кэВ {4:+0.00;-0.00;0.00} кан.) — меньше {5:F3} %",
+                    100.0 * (g - 1.0), 100.0 * sigmaG, z, peakKev, shiftChannels, 100.0 * BackgroundGainDeadband);
+            }
+
+            gain = g;
+            return string.Format(CultureInfo.InvariantCulture,
+                "дрейф фона против пробы {0:+0.000;-0.000;0.000} % ± {1:F3} (z {2:F1}; у {3:F0} кэВ {4:+0.00;-0.00;0.00} кан., {5:+0.0;-0.0;0.0} кэВ)",
+                100.0 * (g - 1.0), 100.0 * sigmaG, z, peakKev, shiftChannels, shiftKev);
+        }
+
+        /// <summary>
+        /// (`AMBER154`) Сглаживание гауссом переменной ширины: σ канала i —
+        /// <paramref name="sigma"/>[i], ядро до ±3σ, нормировано на свою сумму
+        /// внутри полосы [lo, hi]. Вне полосы — нули.
+        /// </summary>
+        static double[] SmoothVariable(double[] x, double[] sigma, int lo, int hi)
+        {
+            double[] result = new double[x.Length];
+            for (int i = lo; i <= hi; i++)
+            {
+                double s = sigma[i];
+                if (!(s > 0.3))
+                {
+                    result[i] = x[i];
+                    continue;
+                }
+
+                int half = (int)Math.Ceiling(3.0 * s);
+                double sum = 0.0;
+                double norm = 0.0;
+                for (int j = Math.Max(lo, i - half); j <= Math.Min(hi, i + half); j++)
+                {
+                    double t = (j - i) / s;
+                    double v = Math.Exp(-0.5 * t * t);
+                    sum += v * x[j];
+                    norm += v;
+                }
+
+                result[i] = norm > 0.0 ? sum / norm : x[i];
+            }
+
+            return result;
         }
 
         static double[] Rebin(double[] source, EnergyCalibration from, EnergyCalibration to, int channels)
