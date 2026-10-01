@@ -1,4 +1,4 @@
-﻿using BecquerelMonitor;
+﻿﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Collections.Generic;
@@ -141,7 +141,8 @@ using System.Threading;
 // 472.7 мин; П21/П21б перенесла его в `corpus/geometries`). Ключи оставлены
 // как рычаги АБЛЯЦИИ (`--peakb=0`, `--xrkl=0`, `--kdip=0`) — матрица без них
 // честно другая по клейму и в склад не ляжет. `--eta=` умолчанием 0 —
-// табличное η (решение Amber 11.09.2026 «Оставить 0.33»).
+// табличное η (решение Amber 11.09.2026 «Оставить 0.33»; с П200 01.10.2026 табличное —
+// 0.412 у NaI:Tl и 0.398 у CsI:Tl, AMBER152, решение Amber 01.10.2026 «Разрешаю писать агенту»).
 //
 // `--peakb=1` (`AMBER16`, решение Amber 11.09.2026 «Допуск по БИНУ, а не по
 // ПШПВ») — допуск пика равен ПОЛУБИНУ сетки. Старше него только
@@ -397,7 +398,7 @@ class CorpusMatrixProbe
                 options.KDipLight = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--eta=", StringComparison.Ordinal))
                 // ⛔ `F11`, решение Amber 11.09.2026, дословно: «В единый счёт
-                // склада, ключом» — η модели Пейна вместо табличного (0.33 у
+                // склада, ключом» — η модели Пейна вместо табличного (0.412 у
                 // NaI:Tl), перекалиброванное по 1.12 на 10 кэВ (Ходюк—Доренбос
                 // 2012, табл. I). Умолчанием 0 — табличное; входит в клеймо
                 // (`leta=`). Число с точкой.
