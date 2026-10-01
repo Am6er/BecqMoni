@@ -274,7 +274,8 @@ namespace CrystalXrayGateProbe
                 ResponseMatrix matrix = ResponseMatrixStore.Load(config.Guid, out refusal, out fileFormat);
                 if (matrix != null && matrix.IsValidFor(config.Geometry))
                 {
-                    analyzer.ResponseMatrix = matrix;
+                    // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик)
+                    FsaMatrixBinding.Bind(analyzer, config.Geometry, matrix);
                     analyzer.ScintillatorMaterial = crystal;
                 }
             }

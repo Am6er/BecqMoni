@@ -265,7 +265,10 @@ namespace FsaComponentDumpProbe
 
             string material = EfficiencySimulator.ScintillatorNameOf(
                 rd.Efficiency != null ? rd.Efficiency.Geometry : null);
-            var analyzer = new FsaAnalyzer { ResponseMatrix = matrix, ScintillatorMaterial = material };
+            // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик)
+            var analyzer = new FsaAnalyzer();
+            FsaMatrixBinding.Bind(analyzer, rd.Efficiency != null ? rd.Efficiency.Geometry : null, matrix);
+            analyzer.ScintillatorMaterial = material;
             if (rd.DeviceConfig != null && rd.DeviceConfig.InputDeviceConfig != null)
             {
                 double deadTime = rd.DeviceConfig.InputDeviceConfig.DeadTime();

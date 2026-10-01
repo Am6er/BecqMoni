@@ -377,7 +377,8 @@ namespace IsoCurveActivityProbeP79
             analyzer = new FsaAnalyzer();
             if (matrix != null)
             {
-                analyzer.ResponseMatrix = matrix;
+                // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик); сцена синтетическая (`Iso`) — без геометрии
+                FsaMatrixBinding.Bind(analyzer, null, matrix);
             }
 
             // (`T243`) чем считали — до счёта и вслух

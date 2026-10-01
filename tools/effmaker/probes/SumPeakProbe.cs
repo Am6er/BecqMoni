@@ -321,7 +321,8 @@ namespace SumPeakProbe
             foreach (string name in new[] { "матрица без каскада", "+CF", "+сумм-пики (изотропно)", "+угловые корреляции", "+наложения (изотропно)" })
             {
                 FsaAnalyzer an = new FsaAnalyzer();
-                an.ResponseMatrix = matrix;
+                // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик)
+                FsaMatrixBinding.Bind(an, rd.Efficiency.Geometry, matrix);
                 an.ScintillatorMaterial = scintillator;
                 an.AngularQk = qk;
                 an.PileUp = name.StartsWith("+наложения", StringComparison.Ordinal);

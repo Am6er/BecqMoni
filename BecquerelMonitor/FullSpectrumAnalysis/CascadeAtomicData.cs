@@ -1060,7 +1060,83 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
+        /// <summary>
+        /// (`AMBER146`, П193 01.10.2026) Кэш ядерной части нуклидов, которым
+        /// <see cref="Of"/> отдаёт null («рентгена и β⁺ нет»). Отдельный от
+        /// <see cref="Cache"/> нарочно: у <see cref="Of"/> договор прежний.
+        /// </summary>
+        static readonly Dictionary<string, CascadeAtomicData> NuclearCache =
+            new Dictionary<string, CascadeAtomicData>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// (`AMBER146`, П193 01.10.2026) ЯДЕРНАЯ ЧАСТЬ КАСКАДА — ветви,
+        /// строки выходов и сопоставленные им переходы схемы — даже у нуклида,
+        /// у которого атомных участников нет вовсе. null — нуклид не
+        /// разбирается (нет массы в имени).
+        ///
+        /// ⛔ ЗАЧЕМ ОТДЕЛЬНЫЙ ВХОД. <see cref="Of"/> отдаёт null, когда нет ни
+        /// K-рентгена, ни β⁺: «поправлять нечего» — верно для рентгена, ради
+        /// которого класс заводился. Но угловая корреляция каскада
+        /// (<see cref="AngularCorrelation.ForPair"/>) берёт переходы линий из
+        /// того же объекта, и у Sc-46, Na-24, Mn-56 (в `decay_radiations` ни
+        /// одной строки `X` и `B+`) корреляция молча выключалась: Sc-46
+        /// 889 + 1120 (каскад 4⁺(E2)2⁺(E2)0⁺, как у Co-60) — «изотропно»,
+        /// сумм-пик у арбитра Geant4 на 11 % выше модели (журнал П191).
+        ///
+        /// ⚠ Договор <see cref="Of"/> НЕ меняется, и это не осторожность ради
+        /// осторожности: его читают `FsaCascadeSummer.Augment` (не-null = копия
+        /// данных с выходами `decay_radiations` и записки базы),
+        /// `SupplyDiscrepanciesOf` (расхождения в окне отчёта),
+        /// `FsaSampleLibrary.AnnihilationYieldPercent` (выход 511). Не-null там
+        /// сменил бы поведение у нуклидов, где поправлять по-прежнему нечего.
+        /// Здесь: есть у <see cref="Of"/> данные — отдаются они же (тот же
+        /// объект); нет — строится тот же объект без раннего выхода «рентгена
+        /// нет» и кладётся в свой кэш.
+        /// </summary>
+        public static CascadeAtomicData Nuclear(string nucid)
+        {
+            CascadeAtomicData data = Of(nucid);
+            if (data != null || string.IsNullOrEmpty(nucid))
+            {
+                return data;
+            }
+
+            lock (Gate)
+            {
+                if (NuclearCache.TryGetValue(nucid, out data))
+                {
+                    return data;
+                }
+
+                try
+                {
+                    data = Build(nucid, true);
+                }
+                catch (Exception error)
+                {
+                    data = new CascadeAtomicData
+                    {
+                        Failed = true,
+                        Note = "отказ базы: " + error.Message
+                    };
+                }
+
+                NuclearCache[nucid] = data;
+                return data;
+            }
+        }
+
         static CascadeAtomicData Build(string nucid)
+        {
+            return Build(nucid, false);
+        }
+
+        /// <param name="nuclearOnly">
+        /// (`AMBER146`) true — не выходить ранним null, когда атомных участников
+        /// нет: ядерная часть (ветви, переходы, задержки) нужна угловой
+        /// корреляции и без них. false — прежний ход <see cref="Of"/>, побитово.
+        /// </param>
+        static CascadeAtomicData Build(string nucid, bool nuclearOnly)
         {
             var data = new CascadeAtomicData();
             var notes = new StringBuilder();
@@ -1281,7 +1357,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             data.AnnihilationQuanta = 2.0 * betaPlusRaw / 100.0;
             data.GammaIntensity = gammaIntensity;
 
-            if (data.KLines.Count == 0 && !(data.AnnihilationQuanta > 0.0))
+            // (`AMBER146`) «Поправлять нечего» — только для атомной части; ход
+            // ядерной (<see cref="Nuclear"/>) идёт дальше.
+            if (data.KLines.Count == 0 && !(data.AnnihilationQuanta > 0.0) && !nuclearOnly)
             {
                 return null;
             }
@@ -1291,7 +1369,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 notes.Append("дочерний не определён; ");
                 data.Note = notes.ToString();
-                return data.KLines.Count > 0 || data.AnnihilationQuanta > 0.0 ? data : null;
+                return data.KLines.Count > 0 || data.AnnihilationQuanta > 0.0 || nuclearOnly ? data : null;
             }
 
             MaterialDatabase.Fluorescence fluorescence = MaterialDatabase.FluorescenceOf(z);

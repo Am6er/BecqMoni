@@ -183,7 +183,9 @@ public static class AmberFsaProbeP182
     /// <summary>Площадь, которую `AccumulateSumPeaks` кладёт для одного сумм-пика.</summary>
     static double SumPeakArea(ResponseMatrix matrix, FsaCascadeSummer summer, double e, double area)
     {
-        var analyzer = new FsaAnalyzer { ResponseMatrix = matrix };
+        // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик); сцена синтетическая — без геометрии
+        var analyzer = new FsaAnalyzer();
+        FsaMatrixBinding.Bind(analyzer, null, matrix);
         typeof(FsaAnalyzer).GetField("cascade", Any).SetValue(analyzer, summer);
         var correction = new FsaCascadeSummer.Correction
         {

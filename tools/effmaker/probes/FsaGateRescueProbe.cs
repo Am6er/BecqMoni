@@ -229,9 +229,8 @@ namespace FsaGateRescueProbe
                     : ResponseMatrixStore.Load(efficiencyConfig.Guid, out refusal, out fileFormat);
                 if (matrix != null && matrix.IsValidFor(efficiencyConfig.Geometry))
                 {
-                    analyzer.ResponseMatrix = matrix;
-                    analyzer.ScintillatorMaterial =
-                        EfficiencySimulator.ScintillatorNameOf(efficiencyConfig.Geometry);
+                    // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик)
+                    FsaMatrixBinding.Bind(analyzer, efficiencyConfig.Geometry, matrix);
                     Console.WriteLine("  матрица взята: {0}",
                                       matrixFile != null ? matrixFile
                                       : ResponseMatrixStore.PathOf(efficiencyConfig.Guid));
