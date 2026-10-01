@@ -4124,6 +4124,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int AnchorZeroRounds { get; set; }
 
         /// <summary>
+        /// ⛔ (`AMBER142` п. 7, П207) ДОБАВОЧНЫЕ ПРОХОДЫ КЛАССИЧЕСКОГО РЕЖИМА —
+        /// привязки без совместного шага (нуль «по прибору», карта calib, разбор
+        /// без матрицы): сколько проходов ДОБАВЛЯЕТСЯ к <see cref="AnchorPasses"/>.
+        /// Прежних трёх проходов классике не хватало: на малой базе (П204) 24 из
+        /// 38 таких разборов упирались в предел, не сойдясь, — у
+        /// `G1S16_Am241_P25` (одна опора) ширина в пределе ×1.2051, а ещё за три
+        /// прохода ×1.1470, и χ²/ndf, z Am-241 менялись вместе с ней: ответ
+        /// зависел от того, где оборвали лестницу. Останов на плато и возврат к
+        /// лучшему проходу (<see cref="AnchorPlateauPasses"/>) действуют и здесь,
+        /// с допусками классики. Решение Amber 01.10.2026 — у конструктора, где стоит
+        /// умолчание. Нуль — прежние проходы (рычаг A/B).
+        /// </summary>
+        public int AnchorClassicRounds { get; set; }
+
+        /// <summary>
         /// (`AMBER142`, П201) При совместном шаге (<see cref="AnchorZeroRounds"/>)
         /// ноль шкалы держит ТОЛЬКО карта: МНК опор подбирает одно усиление.
         /// Две ручки одного нуля — нуль света по кандидатам и ноль в каналах
@@ -4155,9 +4170,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// замороженные кандидаты — как были (отбор от старта не зависит).
         /// Неподвижная точка и критерий сходимости те же; первый проход не
         /// меняется. Классический режим (нуль «по прибору», карта calib) —
-        /// холодный, как прежде: там проходов мало, и тёплый старт давал бы
-        /// повтору лишние проходы, то есть другой ответ, а не ускорение.
-        /// Ложь — холодный старт (рычаг A/B).
+        /// холодный, как прежде: при прежних трёх проходах тёплый старт давал
+        /// повтору лишние проходы, то есть другой ответ, а не ускорение; при
+        /// трёх плюс <see cref="AnchorClassicRounds"/> (П207) он экономил бы лишь
+        /// пятую часть проходов классики (≈ 2 % времени малой базы), а точка
+        /// остановки в пределах допуска сходимости зависела бы от старта
+        /// (активность до 1.2 %) — не взят. Ложь — холодный старт (рычаг A/B).
         /// </summary>
         public bool AnchorWarmStart { get; set; }
 
@@ -6199,15 +6217,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// на верхнем канале полосы — двадцатая канала, β света — двадцатая
         /// канала сдвига, ширина — по сырому замеру опор, нуль света — допуск
         /// <see cref="AnchorZeroTolerance"/> у нулевого канала. Меньше единицы —
-        /// сошлось по всем.
+        /// сошлось по всем. (`AMBER142` п. 7, П207) <paramref name="widthTolerance"/> —
+        /// допуск ширины своего режима: 0.0005 у совместного шага, 0.002 у классики
+        /// (как в условии сходимости цикла); нуль света у классики не шагает.
         /// </summary>
-        double JointResidual(double a, double b, double beta, double zeroStep, double zeroStep0, int chHi)
+        double JointResidual(double a, double b, double beta, double zeroStep, double zeroStep0, int chHi,
+                             double widthTolerance)
         {
             double r = Math.Max(Math.Abs(b) / 0.05, Math.Abs(a - 1.0) * Math.Max(1, chHi) / 0.05);
             r = Math.Max(r, Math.Abs(beta) * this.lightShiftMax / 0.05);
             if (this.AnchorWidth && this.anchorWidthCount > 0)
             {
-                r = Math.Max(r, Math.Abs(this.anchorWidthLog) / 0.0005);
+                r = Math.Max(r, Math.Abs(this.anchorWidthLog) / widthTolerance);
             }
 
             if (PositiveFinite(zeroStep0))
@@ -6230,7 +6251,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         int anchorStatPasses, anchorStatRefits, anchorStatSigmaFits;
         long anchorStatSigmaTicks;
-        bool anchorStatCapped, anchorStatPlateau;
+        bool anchorStatCapped, anchorStatPlateau, anchorStatClassic, anchorStatRestored, anchorStatWarm;
         StringBuilder anchorStatTrace = new StringBuilder();
 
         /// <summary>
@@ -6683,7 +6704,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] deposit = new double[EfficiencyMaker.ResponseMatrix.ImageBins(line.Energy, bin)
                                           + this.lightMarginBins];
             FsaCascadeSummer.Correction correction =
-                this.cascade != null ? this.cascade.For(component) : null;
+                this.cascade != null ? this.CorrectionOf(component) : null;
             if (correction != null && !correction.Any)
             {
                 correction = null;
@@ -7040,6 +7061,50 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         readonly Dictionary<FsaComponent, Deposit> deposits = new Dictionary<FsaComponent, Deposit>();
 
         /// <summary>
+        /// ⛔ (`T265` вариант А, П207) ОБРАЗЫ И ПОПРАВКИ СУММИРОВАТЕЛЯ — ЧЕРЕЗ ПРОХОДЫ
+        /// ФОНА. <see cref="Analyze"/> разбирает спектр до четырёх раз (`AMBER154`),
+        /// и каждый проход заводил новый суммирователь и новый кэш гистограмм
+        /// <see cref="deposits"/> (по ССЫЛКЕ на компонент, а члены рядов в каждом
+        /// проходе — новые объекты): второй проход строил те же образы при тех же
+        /// β заново (П203: 14 построений за разбор `AS80_Th232Medal`). Здесь
+        /// гистограмма и поправка суммирователя живут весь <see cref="Analyze"/>
+        /// и находятся по СОДЕРЖИМОМУ: ключ — всё, из чего они строятся (имя, вид,
+        /// признаки и линии компонента бит в бит; β и форма света, запас длины,
+        /// маска каналов, ключи суммирования, нож доверия, правило переноса;
+        /// калибровка, ПШПВ и матрица — по ссылке), суммирователь — один на
+        /// разбор, пока не сменились его входы (<see cref="SummerCarryKey"/>).
+        /// Устаревший кэш дал бы молча неверный образ, поэтому приёмка —
+        /// побитовая (малая база ячейка в ячейку и снимок гистограмм
+        /// `DepositCarryP207` с положительным контролем на каждый вход ключа).
+        /// Новый разбор начинает с пустого кэша. Ложь — кэш на один проход, как
+        /// прежде (рычаг A/B).
+        /// </summary>
+        public bool DepositCarry { get; set; }
+
+        /// <summary>(`T265` А, П207) Гистограммы по ключу содержимого и состояния — весь <see cref="Analyze"/>.</summary>
+        readonly Dictionary<string, Deposit> depositCarry = new Dictionary<string, Deposit>(StringComparer.Ordinal);
+
+        /// <summary>(`T265` А, П207) Поправки суммирователя по ключу содержимого компонента — весь <see cref="Analyze"/>.</summary>
+        readonly Dictionary<string, FsaCascadeSummer.Correction> correctionCarry =
+            new Dictionary<string, FsaCascadeSummer.Correction>(StringComparer.Ordinal);
+
+        /// <summary>(`T265` А, П207) Ключ содержимого компонента в этом проходе — по ссылке (мутаций внутри прохода нет, как и у <see cref="deposits"/>).</summary>
+        readonly Dictionary<FsaComponent, string> carryComponentKeys = new Dictionary<FsaComponent, string>();
+
+        /// <summary>(`T265` А, П207) Объекты, входящие в ключ по ссылке (калибровка, ПШПВ, матрица, таблица Q_k): номер — их место здесь.</summary>
+        readonly List<object> carryRefs = new List<object>();
+
+        /// <summary>(`T265` А, П207) Суммирователь разбора и ключ его входов.</summary>
+        FsaCascadeSummer carrySummer;
+        string carrySummerKey;
+
+        /// <summary>(`T265` А, П207) Попаданий и построений гистограмм за последний <see cref="Analyze"/> — для проб.</summary>
+        public int DepositCarryHits { get; private set; }
+
+        /// <summary>(`T265` А, П207) См. <see cref="DepositCarryHits"/>.</summary>
+        public int DepositCarryMisses { get; private set; }
+
+        /// <summary>
         /// (`AMBER62`) Пиковая эффективность отклика по энергии линии — для
         /// мерки пикового окна (<see cref="PeakWindowMinPeakSharePercent"/>).
         /// Величина зависит ТОЛЬКО от матрицы, поэтому живёт один разбор, как и
@@ -7244,6 +7309,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.AnchorMaxShiftFwhm = 1.0;
             this.AnchorPasses = 3;
             this.AnchorZeroRounds = 8;
+            // (`AMBER142` п. 7, П207) решение Amber 01.10.2026 вопросником, дословно:
+            // «Дать старому режиму 3 + 8 проходов (Рекомендую)»
+            this.AnchorClassicRounds = 8;
+            // (`T265` вариант А, П207) решение Amber 01.10.2026 вопросником, дословно:
+            // «А и Б по очереди (Рекомендую)»
+            this.DepositCarry = true;
             this.FastCalibrationInverse = true;
             this.AnchorZeroOwnsOffset = true;
             this.AnchorZeroTolerance = 0.01;
@@ -7528,6 +7599,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.calibrationInverseRefused = null;
             this.backgroundGain = 1.0;
             this.anchorWarmIn = null;
+            // (`T265` А, П207) кэш образов и суммирователь — свои на разбор
+            this.depositCarry.Clear();
+            this.correctionCarry.Clear();
+            this.carryRefs.Clear();
+            this.carrySummer = null;
+            this.carrySummerKey = null;
+            this.DepositCarryHits = 0;
+            this.DepositCarryMisses = 0;
             FsaResult first = this.AnalyzeOnce(spectrum, backgroundSpectrum, fwhmCalibration,
                                                originalLibrary, efficiency);
             if (first != null)
@@ -7784,9 +7863,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 && this.ResponseMatrix.Normalization == EfficiencyMaker.ResponseMatrixNormalization.PerUnitFluence;
             // (П168) Сам суммирователь и его ключи — одним местом,
             // <see cref="CreateCascadeSummer"/>: тем же зовут зоны ROI (`AMBER133`).
-            this.cascade = this.CascadeSumming && !this.cascadeRefusedFieldMatrix
-                ? this.CreateCascadeSummer()
-                : null;
+            // (`T265` А, П207) ключи содержимого — свои на проход: объекты новые
+            this.carryComponentKeys.Clear();
+            if (this.CascadeSumming && !this.cascadeRefusedFieldMatrix)
+            {
+                // (`T265` А, П207) суммирователь — один на весь разбор, пока его
+                // входы те же; сменились — новый, и кэши через проходы сброшены:
+                // поправки и образы с поправками построены прежним
+                string summerKey = this.DepositCarry ? this.SummerCarryKey() : null;
+                if (summerKey != null && this.carrySummer != null && summerKey == this.carrySummerKey)
+                {
+                    this.cascade = this.carrySummer;
+                }
+                else
+                {
+                    this.cascade = this.CreateCascadeSummer();
+                    this.correctionCarry.Clear();
+                    this.depositCarry.Clear();
+                    this.carrySummer = summerKey != null ? this.cascade : null;
+                    this.carrySummerKey = summerKey;
+                }
+            }
+            else
+            {
+                this.cascade = null;
+            }
 
             this.cascadeApplied = false;
 
@@ -8811,6 +8912,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.anchorStatTrace = new StringBuilder();
             this.anchorStatCapped = false;
             this.anchorStatPlateau = false;
+            this.anchorStatClassic = false;
+            this.anchorStatRestored = false;
+            this.anchorStatWarm = false;
             this.anchorWarmOut = null;
             long anchorTicks0 = System.Diagnostics.Stopwatch.GetTimestamp();
             if (this.AnchorScale)
@@ -8895,6 +8999,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             if (remapped != null && remapped.FromResponseMatrix)
                             {
                                 best = remapped;
+                                this.anchorStatWarm = warmHere;
                             }
                             else
                             {
@@ -8942,7 +9047,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                          && this.zeroTakenLines != null && this.zeroTakenMargins != null;
                     this.anchorGainOnly = zeroRemeasure && this.AnchorZeroOwnsOffset;
                     this.jointScale = false;
-                    int passes = Math.Max(1, this.AnchorPasses) + (zeroRemeasure ? this.AnchorZeroRounds : 0);
+                    // (`AMBER142` п. 7, П207) классика — свои добавочные проходы
+                    int extraRounds = zeroRemeasure ? this.AnchorZeroRounds : Math.Max(0, this.AnchorClassicRounds);
+                    int passes = Math.Max(1, this.AnchorPasses) + extraRounds;
+                    // допуск ширины своего режима — тот же, что в условии сходимости ниже
+                    double widthTolerance = zeroRemeasure ? 0.0005 : 0.002;
+                    // плато и возврат к лучшему — там, где проходов добавлено
+                    bool plateauRule = extraRounds > 0 && this.AnchorPlateauPasses > 1;
+                    this.anchorStatClassic = !zeroRemeasure;
                     double zeroStep0 = calibration.ChannelToEnergy(1.0) - calibration.ChannelToEnergy(0.0);
                     // (`AMBER150`) последняя пара «множитель → остаток» для секущей
                     bool widthHavePrev = false;
@@ -9049,10 +9161,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             pass, used, (a - 1.0) * Math.Max(1, chHi), b,
                             PositiveFinite(zeroStep0) ? zeroStep * this.adcScale / zeroStep0 : 0.0,
                             widthStep, converged ? " ok" : "");
-                        if (!converged && zeroRemeasure && this.AnchorPlateauPasses > 1)
+                        if (!converged && plateauRule)
                         {
-                            // (`AMBER142`, П204) плато — см. <see cref="AnchorPlateauPasses"/>
-                            double pWorst = this.JointResidual(a, b, beta, zeroStep, zeroStep0, chHi);
+                            // (`AMBER142`, П204) плато — см. <see cref="AnchorPlateauPasses"/>;
+                            // (п. 7, П207) и у классики, с её допуском ширины
+                            double pWorst = this.JointResidual(a, b, beta, zeroStep, zeroStep0, chHi, widthTolerance);
                             plateau.Add(pWorst);
                             if (pWorst < plateauBestR)
                             {
@@ -9178,9 +9291,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                     && plateauBest != null)
                                 {
                                     // (`AMBER142`, П204) шкала предела хуже лучшего прохода — возврат
-                                    double last = this.JointResidual(aLast, b, beta, dzLast, zeroStep0, chHi);
+                                    double last = this.JointResidual(aLast, b, beta, dzLast, zeroStep0, chHi, widthTolerance);
                                     restoreBest = last > this.AnchorPlateauRatio * plateauBestR;
                                 }
+                            }
+                            else if (plateauRule && plateauBest != null && used > 0)
+                            {
+                                // (`AMBER142` п. 7, П207) классика в пределе: поправка
+                                // последней шкалы — по опорам, только что снятым на ней
+                                double last = this.JointResidual(a, b, beta, 0.0, zeroStep0, chHi, widthTolerance);
+                                restoreBest = last > this.AnchorPlateauRatio * plateauBestR;
                             }
 
                             zeroRoundNote = "проходы кончились";
@@ -9191,6 +9311,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     if (restoreBest && plateauBest != null && zeroRemeasure)
                     {
+                        // (`AMBER142` п. 7, П207) классика — ветка ниже: нуль и карта не трогаются
                         // ⛔ (`AMBER142`, П204) СТОП У ДРОЖИ — ШКАЛА ЛУЧШЕГО ПРОХОДА. У
                         // плато и в пределе последняя шкала — случайная точка полосы
                         // дрожи, и бывает в разы дальше лучшей из пройденных
@@ -9224,6 +9345,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 chLo, chHi, channels, y, variance, channelsPerKev,
                                 out aBack, out bBack, out betaBack, out usedBack, out noteBack);
                             this.JointScaleStep(calibration, bestGain, bestOffset, out aJ, out dzJ);
+                            this.anchorStatRestored = true;
                             zeroRoundNote = (zeroRoundNote != null ? zeroRoundNote + "; " : "")
                                 + string.Format(CultureInfo.InvariantCulture,
                                     "возврат к проходу {0} (поправка {1:F1} допуска)", plateauBestPass, plateauBestR);
@@ -9232,6 +9354,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         {
                             this.adcZeroKev = zeroKeep;
                             this.adcScale = scaleKeep;
+                            this.ApplyAnchorWarm(keep);
+                        }
+                    }
+                    else if (restoreBest && plateauBest != null)
+                    {
+                        // ⛔ (`AMBER142` п. 7, П207) ВОЗВРАТ К ЛУЧШЕМУ ПРОХОДУ — И У КЛАССИКИ:
+                        // тем же движением, что проход (шкала, ширина, β, фит, опоры —
+                        // ковариация опор для σ амплитуд на возвращённой шкале); нуль
+                        // карты и сама карта у классики не шагают и не трогаются.
+                        var keep = new AnchorWarm
+                        {
+                            Width = this.widthScale, WidthAnchors = this.widthAnchors, Light = this.driftLight
+                        };
+                        this.ApplyAnchorWarm(plateauBest);
+                        FitResult back = FitHuber(library, fixedColumns, calibration, fwhmCalibration, efficiency,
+                                                  plateauBest.Gain, plateauBest.Offset, chLo, chHi, channels,
+                                                  y, variance, baseWeights, reportWeights, null);
+                        this.anchorStatRefits++;
+                        if (back != null)
+                        {
+                            best = back;
+                            bestGain = plateauBest.Gain;
+                            bestOffset = plateauBest.Offset;
+                            double aBack, bBack, betaBack;
+                            int usedBack;
+                            string noteBack;
+                            this.scaleAnchors = this.CollectScaleAnchors(
+                                best, calibration, fwhmCalibration, bestGain, bestOffset,
+                                chLo, chHi, channels, y, variance, channelsPerKev,
+                                out aBack, out bBack, out betaBack, out usedBack, out noteBack);
+                            this.anchorStatRestored = true;
+                            zeroRoundNote = (zeroRoundNote != null ? zeroRoundNote + "; " : "")
+                                + string.Format(CultureInfo.InvariantCulture,
+                                    "возврат к проходу {0} (поправка {1:F1} допуска)", plateauBestPass, plateauBestR);
+                        }
+                        else
+                        {
                             this.ApplyAnchorWarm(keep);
                         }
                     }
@@ -9879,7 +10038,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 this.anchorStatPasses, this.anchorStatCapped ? " (предел)" : (this.anchorStatPlateau ? " (плато)" : ""), this.anchorStatRefits,
                 1000.0 * anchorTicks / System.Diagnostics.Stopwatch.Frequency, this.anchorStatSigmaFits,
                 1000.0 * this.anchorStatSigmaTicks / System.Diagnostics.Stopwatch.Frequency,
-                this.anchorStatTrace.ToString(), this.anchorWarmIn != null ? ", тёплый старт" : "");
+                this.anchorStatTrace.ToString(), (this.anchorStatClassic ? ", классика" : "") + (this.anchorStatRestored ? ", возврат" : "") + (this.anchorStatWarm ? ", тёплый старт" : ""));
 
             FsaResult result = BuildResult(best, spectrum, fwhmCalibration, backgroundCurve, snipContinuum,
                                chLo, chHi, channels,
@@ -11759,7 +11918,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double[] deposit = new double[EfficiencyMaker.ResponseMatrix.ImageBins(line.Energy, bin)
                                               + this.lightMarginBins];
                 FsaCascadeSummer.Correction correction =
-                    this.cascade != null ? this.cascade.For(component) : null;
+                    this.cascade != null ? this.CorrectionOf(component) : null;
                 if (correction != null && !correction.Any)
                 {
                     correction = null;
@@ -12772,7 +12931,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             bool byMatrix = this.ResponseMatrix != null && !component.WeightsAreFinal;
             FsaCascadeSummer.Correction correction =
-                byMatrix && this.cascade != null ? this.cascade.For(component) : null;
+                byMatrix && this.cascade != null ? this.CorrectionOf(component) : null;
             if (correction != null && !correction.Any)
             {
                 correction = null;
@@ -12961,7 +13120,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // заведены. Свой отсев у них есть и свой (`SumPeakFloor`,
             // `SumPeakAreaShare`, `MaxSumPeaks`).
             FsaCascadeSummer.Correction correction =
-                this.cascade != null && this.CascadeSumPeaks ? this.cascade.For(component) : null;
+                this.cascade != null && this.CascadeSumPeaks ? this.CorrectionOf(component) : null;
             if (correction != null && correction.SumPeaks != null)
             {
                 foreach (FsaCascadeSummer.SumPeak peak in correction.SumPeaks)
@@ -15908,6 +16067,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return cached;
             }
 
+            // (`T265` А, П207) через проходы — по содержимому и состоянию
+            string carryKey = this.DepositCarry ? this.DepositKey(component, calibration, fwhmCalibration, channels) : null;
+            if (carryKey != null && this.depositCarry.TryGetValue(carryKey, out cached))
+            {
+                this.DepositCarryHits++;
+                this.deposits[component] = cached;
+                if (cached != null && cached.CascadeApplied)
+                {
+                    this.cascadeApplied = true;
+                }
+
+                return cached;
+            }
+
+            if (carryKey != null)
+            {
+                this.DepositCarryMisses++;
+            }
+
             double bin = this.ResponseMatrix.BinKev;
             bool before = this.cascadeApplied;
             this.cascadeApplied = false;
@@ -15936,7 +16114,161 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             this.cascadeApplied = before || this.cascadeApplied;
             this.deposits[component] = deposit;
+            if (carryKey != null)
+            {
+                this.depositCarry[carryKey] = deposit;
+            }
+
             return deposit;
+        }
+
+        /// <summary>
+        /// (`T265` А, П207) Поправка суммирователя компонента: через проходы разбора —
+        /// по ключу содержимого (<see cref="ComponentCarryKey"/>), иначе — как
+        /// прежде, у суммирователя по ссылке. Суммирователь читает у компонента
+        /// только имя и линии (энергия, выход, нуклид); ключ берёт больше — лишнее
+        /// даёт промах, а не чужую поправку.
+        /// </summary>
+        FsaCascadeSummer.Correction CorrectionOf(FsaComponent component)
+        {
+            string key = this.DepositCarry && this.carrySummer != null && ReferenceEquals(this.cascade, this.carrySummer)
+                ? this.ComponentCarryKey(component)
+                : null;
+            if (key == null)
+            {
+                return this.cascade.For(component);
+            }
+
+            FsaCascadeSummer.Correction correction;
+            if (!this.correctionCarry.TryGetValue(key, out correction))
+            {
+                correction = this.cascade.For(component);
+                this.correctionCarry[key] = correction;
+            }
+
+            return correction;
+        }
+
+        /// <summary>
+        /// (`T265` А, П207) Ключ содержимого компонента: всё, что у него есть, кроме
+        /// готового образа (такой компонент через проходы не переносится, null),
+        /// числа — битами. Внутри прохода — по ссылке.
+        /// </summary>
+        string ComponentCarryKey(FsaComponent component)
+        {
+            if (component == null || component.FixedTemplate != null || component.Lines == null)
+            {
+                return null;
+            }
+
+            string key;
+            if (this.carryComponentKeys.TryGetValue(component, out key))
+            {
+                return key;
+            }
+
+            var sb = new StringBuilder(64 + 48 * component.Lines.Count);
+            sb.Append(component.Name).Append('\u0001').Append((int)component.Kind)
+              .Append(component.WeightsAreFinal ? 'F' : 'f').Append(component.Derived ? 'D' : 'd')
+              .Append(component.FromCrystal ? 'C' : 'c').Append(component.CrystalEscape ? 'E' : 'e')
+              .Append('\u0001').Append(component.EscapeParent).Append('\u0001').Append(component.DecayChainRoot)
+              .Append('\u0001').Append(Bits(component.TotalYieldPercent))
+              .Append('\u0001').Append(Bits(component.AmplitudeCap)).Append('\u0001');
+            if (component.Ties != null)
+            {
+                foreach (FsaTie tie in component.Ties)
+                {
+                    sb.Append(tie.Member).Append('\u0004').Append(tie.Partner).Append('\u0004')
+                      .Append(Bits(tie.TotalYieldPercent)).Append('\u0004');
+                }
+            }
+
+            foreach (FsaLine line in component.Lines)
+            {
+                sb.Append('\u0002').Append(line.Nuclide).Append('\u0003').Append(Bits(line.Energy))
+                  .Append('\u0003').Append(Bits(line.Intensity)).Append('\u0003').Append(Bits(line.AnnihilationIntensity));
+            }
+
+            key = sb.ToString();
+            this.carryComponentKeys[component] = key;
+            return key;
+        }
+
+        /// <summary>
+        /// (`T265` А, П207) Ключ гистограммы поглощения: содержимое компонента и
+        /// ВСЁ состояние, которое читает <see cref="BuildResponseDeposit"/> со своими
+        /// вызываемыми (перечень снят обходом их тел): β и форма света, имя
+        /// кривой, её опорная и верхняя энергии, запас длины, маска каналов,
+        /// ключи суммирования, нож доверия, правило переноса матрицы, есть ли
+        /// суммирователь; калибровка, ПШПВ и матрица — по ссылке, число каналов.
+        /// </summary>
+        string DepositKey(FsaComponent component, EnergyCalibration calibration,
+                          FwhmCalibration fwhmCalibration, int channels)
+        {
+            string content = this.ComponentCarryKey(component);
+            if (content == null || this.ResponseMatrix == null)
+            {
+                return null;
+            }
+
+            var sb = new StringBuilder(content.Length + 160);
+            sb.Append(content).Append('\u0005')
+              .Append(Bits(this.driftLight)).Append('|').Append((int)this.lightForm).Append('|')
+              .Append(this.lightCurveName).Append('|').Append(Bits(this.AnchorLightReferenceKev)).Append('|')
+              .Append(Bits(this.AnchorLightMaxKev)).Append('|')
+              .Append(this.lightMarginBins.ToString(CultureInfo.InvariantCulture)).Append('|')
+              .Append(this.MatrixChannelMask.ToString(CultureInfo.InvariantCulture)).Append('|')
+              .Append(this.CascadeSumPeaks ? 'S' : 's').Append(this.CascadePairContinuum ? 'P' : 'p')
+              .Append(this.CascadeEscapeLoss ? 'L' : 'l').Append(this.SumLayerIncludesContinuum ? 'Y' : 'y')
+              .Append(this.ResponseMatrix.TransferByChannel ? 'T' : 't').Append(this.cascade != null ? 'K' : 'k')
+              .Append('|').Append(Bits(this.ResponseContinuumTrustFloorKev)).Append('|')
+              .Append(this.CarryRef(this.ResponseMatrix).ToString(CultureInfo.InvariantCulture)).Append('|')
+              .Append(this.CarryRef(calibration).ToString(CultureInfo.InvariantCulture)).Append('|')
+              .Append(this.CarryRef(fwhmCalibration).ToString(CultureInfo.InvariantCulture)).Append('|')
+              .Append(channels.ToString(CultureInfo.InvariantCulture));
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// (`T265` А, П207) Ключ входов суммирователя — всё, что ставит
+        /// <see cref="CreateCascadeSummer"/>, и матрица по ссылке.
+        /// </summary>
+        string SummerCarryKey()
+        {
+            return string.Join("|",
+                this.CarryRef(this.ResponseMatrix).ToString(CultureInfo.InvariantCulture),
+                this.ScintillatorMaterial ?? "", Bits(this.CoincidenceWindowSec),
+                this.CascadeXrayPartners ? "1" : "0", this.CascadeAnnihilationPartners ? "1" : "0",
+                this.CascadeIsomerPartners ? "1" : "0", this.CascadeDecayTimeProbability ? "1" : "0",
+                this.CascadeSumPhotonLight ? "1" : "0", this.CascadeLossJointFactor ? "1" : "0",
+                this.CascadeSumAngular ? "1" : "0", this.CarryRef(this.AngularQk).ToString(CultureInfo.InvariantCulture),
+                this.CascadePairContinuum ? "1" : "0", this.CascadeBranchSum ? "1" : "0");
+        }
+
+        /// <summary>(`T265` А, П207) Номер объекта в ключе — по ссылке; null — −1.</summary>
+        int CarryRef(object item)
+        {
+            if (item == null)
+            {
+                return -1;
+            }
+
+            for (int i = 0; i < this.carryRefs.Count; i++)
+            {
+                if (ReferenceEquals(this.carryRefs[i], item))
+                {
+                    return i;
+                }
+            }
+
+            this.carryRefs.Add(item);
+            return this.carryRefs.Count - 1;
+        }
+
+        /// <summary>(`T265` А, П207) Число в ключ — его 64 битами.</summary>
+        static string Bits(double value)
+        {
+            return BitConverter.DoubleToInt64Bits(value).ToString("X16", CultureInfo.InvariantCulture);
         }
 
         /// <summary>
@@ -15988,7 +16320,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Каскадные поправки компонента считаются один раз и переживают всю
             // сетку дрейфа: от усиления и нуля шкалы они не зависят.
             FsaCascadeSummer.Correction correction =
-                this.cascade != null ? this.cascade.For(component) : null;
+                this.cascade != null ? this.CorrectionOf(component) : null;
             if (correction != null && !correction.Any)
             {
                 correction = null;
@@ -16435,7 +16767,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
-            FsaCascadeSummer.Correction correction = this.cascade.For(component);
+            FsaCascadeSummer.Correction correction = this.CorrectionOf(component);
             if (correction == null || correction.SumPeaks == null || correction.SumPeaks.Count == 0)
             {
                 return null;
@@ -16509,7 +16841,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             bool wantSum = deposit.SumPart != null && this.cascade != null && this.CascadeSumPeaks;
             if (wantSum)
             {
-                FsaCascadeSummer.Correction correction = this.cascade.For(component);
+                FsaCascadeSummer.Correction correction = this.CorrectionOf(component);
                 wantSum = correction != null && correction.SumPeaks != null
                           && correction.SumPeaks.Count > 0;
             }
