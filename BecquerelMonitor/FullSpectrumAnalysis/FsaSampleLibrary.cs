@@ -2475,6 +2475,49 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         const double ChainConverged = 1.0e-12;
 
+        /// <summary>Строка `type_c` — не L-серия.</summary>
+        public const int LSeriesNone = 0;
+
+        /// <summary>Сводная строка L-серии (`L`): центр тяжести и суммарный выход.</summary>
+        public const int LSeriesLumped = 1;
+
+        /// <summary>Итог подоболочки (`L1`, `L2`, `L3`).</summary>
+        public const int LSeriesShell = 2;
+
+        /// <summary>Линия подоболочечного перехода (`L3M5`, `L2N4`…).</summary>
+        public const int LSeriesDetailed = 3;
+
+        /// <summary>
+        /// (`AMBER68`, `AMBER151`) Вид строки L-серии по СТРУКТУРЕ имени `type_c`:
+        /// одна буква — сводная, буква и цифра — итог подоболочки, длиннее — линия.
+        /// Чем больше число, тем подробнее строка; читатель берёт у родителя самый
+        /// подробный вид, какой есть, и только его — <see cref="DecayLines"/> и
+        /// редактор базы (`NucBaseFramework`) зовут ОДНО это правило. С 01.10.2026
+        /// сводная `L` поставки лежит в базе рядом со своими подлиниями
+        /// (`tools/nucdb/import_l_sublines.py`), и сложить их значило бы удвоить
+        /// L-рентген.
+        /// </summary>
+        public static int LSeriesKind(string series)
+        {
+            series = (series ?? "").Trim();
+            if (series.Length == 0 || series[0] != 'L')
+            {
+                return LSeriesNone;
+            }
+
+            if (series.Length == 1)
+            {
+                return LSeriesLumped;
+            }
+
+            if (series.Length == 2 && series[1] >= '0' && series[1] <= '9')
+            {
+                return LSeriesShell;
+            }
+
+            return LSeriesDetailed;
+        }
+
         /// <summary>
         /// Линии распада нуклида: {энергия, выход % на распад ЭТОГО нуклида}.
         /// Типы `G` и `X`; K-серия по правилу <see cref="KSeriesRule"/> — ОДНО
@@ -2655,20 +2698,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 // откуда пришёл электрон). Порядок предпочтения
                                 // тот же, что был: линии, если они есть, иначе
                                 // итоги подоболочек, иначе сводная.
-                                if (series.Length > 0 && series[0] == 'L')
+                                //
+                                // (`AMBER151`, П202 01.10.2026) Признак вынесен в
+                                // <see cref="LSeriesKind"/>: с этого дня сводную `L`
+                                // поставки рядом с её подлиниями (`import_l_sublines.py`)
+                                // вытесняет и редактор базы, и правило там ДОЛЖНО
+                                // быть тем же самым, а не копией.
+                                switch (LSeriesKind(series))
                                 {
-                                    if (series.Length == 1)
-                                    {
+                                    case LSeriesLumped:
                                         lLumped.Add(line);
-                                    }
-                                    else if (series.Length == 2 && series[1] >= '0' && series[1] <= '9')
-                                    {
+                                        break;
+                                    case LSeriesShell:
                                         lShell.Add(line);
-                                    }
-                                    else
-                                    {
+                                        break;
+                                    case LSeriesDetailed:
                                         lDetailed.Add(line);
-                                    }
+                                        break;
                                 }
                             }
                             else if (KSeriesRule.IsBetaTotal(series))

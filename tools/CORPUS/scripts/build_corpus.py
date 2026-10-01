@@ -64,7 +64,7 @@ import corpus_stamp                                  # noqa: E402
 from corpus_paths import resolve                     # noqa: E402
 from spectrum import Spectrum                        # noqa: E402
 from chains import (chain_lines, CHAINS,             # noqa: E402
-                    LEVEL_CLAUSE, LEVEL_PARAM,
+                    LEVEL_CLAUSE, LEVEL_PARAM, SUPPLY_ONLY,
                     warn_level_fallback as chains_warn_level_fallback)
 import sqlite3                                       # noqa: E402
 
@@ -238,7 +238,7 @@ def nuclide_lines(nucid):
         "select energy_num, intensity_num from decay_radiations "
         "where parent_nucid = $n and type_a = 'G' and energy_num not null "
         "and intensity_num not null and intensity_num > 0.5"
-        + LEVEL_CLAUSE, {LEVEL_PARAM: nucid}).fetchall()
+        + SUPPLY_ONLY + LEVEL_CLAUSE, {LEVEL_PARAM: nucid}).fetchall()
     c.close()
     from chains import pretty
     out = [(float(e), float(i), pretty(nucid)) for e, i in rows]
@@ -307,12 +307,20 @@ def xray_lines(nucid):
     if nucid in _XRAY_CACHE:
         return _XRAY_CACHE[nucid]
     c = sqlite3.connect(chains_db())
+    # (`AMBER151`, П202) Строки L-серии — правилом вытеснения ПРИЛОЖЕНИЯ (подлинии, иначе
+    # итоги подоболочек, иначе сводная): с 01.10.2026 сводная `L` поставки лежит в базе
+    # рядом со своими подлиниями, и без правила рентген образца брал бы обе. Порог выхода
+    # — после вытеснения, на линию. Пока генератор зажат строками поставки
+    # (`chains.SUPPLY_ONLY`, там же довод), подлиний он не видит и правило ничего не меняет;
+    # оно стоит, чтобы снятие зажима не удвоило L-рентген.
     rows = c.execute(
-        "select energy_num, intensity_num from decay_radiations "
+        "select energy_num, intensity_num, type_c from decay_radiations "
         "where parent_nucid = $n and type_a = 'X' and energy_num not null "
-        "and intensity_num not null and intensity_num > 0.5"
-        + LEVEL_CLAUSE, {LEVEL_PARAM: nucid}).fetchall()
+        "and intensity_num not null"
+        + SUPPLY_ONLY + LEVEL_CLAUSE, {LEVEL_PARAM: nucid}).fetchall()
     c.close()
+    from chains import drop_superseded_l
+    rows = [(e, i) for e, i, tc in drop_superseded_l(rows, lambda r: r[2]) if float(i) > 0.5]
     from chains import pretty
     out = [(float(e), float(i), pretty(nucid) + ' X')
            for e, i in rows if float(e) >= 5.0]

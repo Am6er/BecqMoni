@@ -1,23 +1,25 @@
 {
  "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
  "dirty": [
-  "tools/CORPUS/scripts/build_corpus.py"
+  "BecquerelMonitor/nucdb.sqlite",
+  "tools/CORPUS/scripts/build_corpus.py",
+  "tools/CORPUS/scripts/chains.py"
  ],
  "files": {
   "BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs": "3ba79d9dbf4413c98087e307a0170f2ea836bbbcf8500f21c11a8d1eb46b71a4",
-  "BecquerelMonitor/nucdb.sqlite": "85ae61dcd5254afaf40689af9bfed82afcfced6d8ced702129d8ae5bd235734d",
-  "tools/CORPUS/scripts/build_corpus.py": "19cd4f57aac7c96fd8a859bf47c31655af7ecc4b26d48e525ed44fb966fd1343",
+  "BecquerelMonitor/nucdb.sqlite": "34470724e6004ff8d6a78702214b000be52418f175fd5a14566b84b7b9266f42",
+  "tools/CORPUS/scripts/build_corpus.py": "7931063eba8ece301b5f469a1713c3c88bb14b47b21143e78cc536ee1a512f42",
   "tools/CORPUS/scripts/calibrate.py": "5c2548a831d15b9bb0641b356d132c54548808ffd2c8ebb8bb255bfc0d38d0ec",
   "tools/CORPUS/scripts/chain_labels.py": "4e7c43c459c6ca4d8bcfd4a4a70af3a6574546d673b158747e863d39148c2028",
-  "tools/CORPUS/scripts/chains.py": "f88d39d4651f02a111b2954fbd6d8ea354b2164de2fd8d9b3d316f2f4f6d81db",
+  "tools/CORPUS/scripts/chains.py": "e0d340b63a2dcaa0cc208763880e4ee6a8814dc3524e1d8a345c0c981d7f4e75",
   "tools/CORPUS/scripts/corpus_calib.py": "7f95a63386cb7ed5bd2d83afb919d28ff2a5da9691f3d01e1cc1b16b319e4931",
   "tools/CORPUS/scripts/corpus_def.py": "d79793c526557e95f23a8aa1b8a51006fe8424dff82fcad23d4b7332aa6be7e3",
   "tools/CORPUS/scripts/corpus_paths.py": "7eceb4b891288ae5c229b7cc55e4a151c42330183799f4bb2f57de8603b44c2b",
   "tools/CORPUS/scripts/gaussfit.py": "09721c755be20cba3452255246140c54b7fcd5fecb8e19e613eb4986260ff3c7",
   "tools/CORPUS/scripts/spectrum.py": "a525983d3ddc94690c0c9a7508e406b3c2266a73b373b9ddbb7ef492bb5a2c1e"
  },
- "fp": "99dcd31f76b5a47e014362231f589597b41bf58d6ca056def66eb0ac05106c8e",
- "head": "be59ba4e580f6009c9aa88e0ae7441d0a529fbf4",
+ "fp": "e026325e60037e3b02e433a14014684a3c01f1a6ea70fe53bad916ebb5cf85d1",
+ "head": "e212ae90a7913153c230966916ed71a3adebfa1a",
  "reads": [
   "BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs",
   "BecquerelMonitor/nucdb.sqlite"

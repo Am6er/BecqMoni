@@ -42245,6 +42245,12 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="NucBase_KSeriesRedundantSkipped" xml:space="preserve">
     <value>K-beta lines skipped as duplicates: {0}. The total (KB) and its split (KpB1 + KpB2) were both selected; only one of them is imported.</value>
   </data>
+  <data name="NucBase_LSeriesRedundantHint" xml:space="preserve">
+    <value>This L-series row is superseded by more detailed rows of the same decay: the lumped L line (centroid and total yield) or a subshell total (L1, L2, L3) stands next to the individual L lines (L3M5, L2M4, ...), which share the same total. Take one or the other, never both — adding them counts the L X-rays twice (Am-241: 73 % instead of 36.6 %).</value>
+  </data>
+  <data name="NucBase_LSeriesRedundantSkipped" xml:space="preserve">
+    <value>L-series rows skipped as duplicates: {0}. The lumped L line (or a subshell total) and the individual L lines it sums were both selected; only the individual lines are imported.</value>
+  </data>
   <data name="UpdateDeadTime" xml:space="preserve">
     <value>Update Dead Time</value>
   </data>

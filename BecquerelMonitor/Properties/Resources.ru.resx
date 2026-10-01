@@ -896,6 +896,12 @@
   <data name="NucBase_KSeriesRedundantSkipped" xml:space="preserve">
     <value>Пропущено линий Kβ как дубликатов: {0}. Были отмечены и итог (KB), и его разложение (KpB1 + KpB2); ввезено только одно из двух.</value>
   </data>
+  <data name="NucBase_LSeriesRedundantHint" xml:space="preserve">
+    <value>Эта строка L-серии вытеснена более подробными строками того же распада: сводная L (центр тяжести и суммарный выход) или итог подоболочки (L1, L2, L3) стоит рядом с отдельными линиями (L3M5, L2M4…), дающими тот же итог. Брать надо одно или другое, но не оба сразу: сложение считает L-рентген дважды (у Am-241 73 % вместо 36.6 %).</value>
+  </data>
+  <data name="NucBase_LSeriesRedundantSkipped" xml:space="preserve">
+    <value>Пропущено строк L-серии как дубликатов: {0}. Были отмечены и сводная L (или итог подоболочки), и отдельные линии, которые она суммирует; ввезены только отдельные линии.</value>
+  </data>
   <data name="UpdateDeadTime" xml:space="preserve">
     <value>Обновить мёртвое время</value>
   </data>

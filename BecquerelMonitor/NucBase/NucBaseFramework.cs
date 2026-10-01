@@ -417,6 +417,7 @@ namespace BecquerelMonitor.NucBase
             }
 
             MarkRedundantKSeries(decayRads);
+            MarkRedundantLSeries(decayRads);
             return decayRads;
         }
 
@@ -744,6 +745,69 @@ namespace BecquerelMonitor.NucBase
                 List<double[]> chosen = KSeriesRule.Beta(splitPairs, Numbers(total), names.Count);
                 List<DecayRad> loser = ReferenceEquals(chosen, splitPairs) ? total : split;
                 foreach (DecayRad line in loser)
+                {
+                    line.Redundant = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER151`, П202 01.10.2026) ТА ЖЕ ЛОВУШКА У L-СЕРИИ. Сводная строка
+        /// `L` поставки (центр тяжести и суммарный выход) с этого дня лежит в
+        /// базе рядом со своими подлиниями — `L3M5`, `L2M4`, `L1N3`…, посчитанными
+        /// из атомных данных (`tools/nucdb/import_l_sublines.py`); у трёх
+        /// родителей поставки (`225RA`, `225RN`, `229TH`) рядом стоят ещё и итоги
+        /// подоболочек `L1`/`L2`/`L3`. Ввезти сводную вместе с подлиниями —
+        /// удвоить L-рентген (у Am-241 36.6 % превратились бы в 73 %).
+        ///
+        /// Лишней помечается всякая строка L-серии, у родителя которой есть
+        /// строка ПОДРОБНЕЕ: при линиях — итоги и сводная, при итогах — сводная.
+        /// Правило вида — <see cref="FullSpectrumAnalysis.FsaSampleLibrary.LSeriesKind"/>,
+        /// то же, по которому разбор выбирает L-линии образа; двух соглашений о
+        /// L-серии в проекте быть не должно. Набор — родитель и тип распада, как у
+        /// K-серии: подлинии пишутся с каналом своей сводной строки.
+        /// </summary>
+        static void MarkRedundantLSeries(List<DecayRad> lines)
+        {
+            if (lines == null)
+            {
+                return;
+            }
+
+            var richest = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (DecayRad line in lines)
+            {
+                if (line.DecayLine != "X")
+                {
+                    continue;
+                }
+
+                int kind = FullSpectrumAnalysis.FsaSampleLibrary.LSeriesKind(line.XrayType);
+                if (kind == FullSpectrumAnalysis.FsaSampleLibrary.LSeriesNone)
+                {
+                    continue;
+                }
+
+                string key = line.Name + "\u0001" + line.DecayType.ToString(CultureInfo.InvariantCulture);
+                int seen;
+                if (!richest.TryGetValue(key, out seen) || kind > seen)
+                {
+                    richest[key] = kind;
+                }
+            }
+
+            foreach (DecayRad line in lines)
+            {
+                if (line.DecayLine != "X")
+                {
+                    continue;
+                }
+
+                int kind = FullSpectrumAnalysis.FsaSampleLibrary.LSeriesKind(line.XrayType);
+                string key = line.Name + "\u0001" + line.DecayType.ToString(CultureInfo.InvariantCulture);
+                int best;
+                if (kind != FullSpectrumAnalysis.FsaSampleLibrary.LSeriesNone
+                    && richest.TryGetValue(key, out best) && kind < best)
                 {
                     line.Redundant = true;
                 }
