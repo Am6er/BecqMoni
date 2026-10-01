@@ -482,6 +482,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Доля синего канала (полное поглощение) над моделью ЦЕЛИКОМ в окне, 0…1.</summary>
         public double PeakShare { get; set; }
 
+        /// <summary>
+        /// (`AMBER150`, П198) Ширина пика данных против ширины ядра модели в
+        /// окне опоры — отношение вторых моментов, приведённое к ширине
+        /// неусечённого пика (окно режет крылья); NaN — не мерилась. Мерится
+        /// после последнего перефита, то есть это ОСТАТОК: у принятой опоры
+        /// при сошедшейся ширинной опоре он около единицы.
+        /// </summary>
+        public double WidthRatio { get; set; } = double.NaN;
+
         /// <summary>Значимость чистого (без сплайна) счёта окна: Σ/√Σσ².</summary>
         public double Z { get; set; }
 
@@ -1177,6 +1186,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double Gain { get; set; }
 
         public double OffsetChannels { get; set; }
+
+        /// <summary>
+        /// (`AMBER150`, П198) Множитель к калибровке ПШПВ, с которым построены
+        /// образы: ширинная опора — вторые моменты сильных одиночных пиков
+        /// данных против образа в окнах опор шкалы, проходами вместе с
+        /// привязкой. Единица — опор ширины не было или ширинная опора
+        /// выключена (<see cref="FsaAnalyzer.AnchorWidth"/>).
+        /// </summary>
+        public double WidthScale { get; set; } = 1.0;
+
+        /// <summary>(`AMBER150`) Сколько опор задали <see cref="WidthScale"/>; 0 — множитель единица по умолчанию.</summary>
+        public int WidthAnchorsUsed { get; set; }
 
         /// <summary>
         /// (`AMBER17`) Кандидаты в опоры привязки шкалы — ВСЕ, принятые и

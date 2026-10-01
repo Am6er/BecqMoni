@@ -3015,6 +3015,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>(`S169`) Верхняя линия библиотеки, кэВ, по которой взято растяжение; для служебной строки.</summary>
         double adcTopKev;
 
+        /// <summary>
+        /// (`AMBER150`, П198) Множитель к калибровке ПШПВ на этот разбор —
+        /// единица до ширинной опоры; ставится циклом привязки.
+        /// </summary>
+        double widthScale = 1.0;
+
+        /// <summary>(`AMBER150`) Сколько опор задали <see cref="widthScale"/>.</summary>
+        int widthAnchors;
+
+        /// <summary>(`AMBER150`) Логарифм поправки ширины по опорам последнего сбора и их число.</summary>
+        double anchorWidthLog;
+        int anchorWidthCount;
+
+        /// <summary>
+        /// ⛔ (`AMBER150`, П198) ПШПВ ОБРАЗА в канале <paramref name="channel"/> —
+        /// ОДНО место, где калибровка ПШПВ становится шириной образа: матричное
+        /// уширение, голые пики, окна опор и пика. Множитель ширинной опоры —
+        /// только здесь; второй копии быть не должно.
+        /// </summary>
+        double ImageFwhm(FwhmCalibration fwhmCalibration, double channel)
+        {
+            return this.widthScale * fwhmCalibration.ChannelToFwhm(channel);
+        }
+
+        /// <summary>
+        /// (П198, решение Amber 01.10.2026) Доля выхода сильнейшей линии
+        /// образа, начиная с которой его линия может задать верх растяжения
+        /// карты "adc" (<see cref="AdcScaleOf"/>); слабее — не может.
+        /// </summary>
+        public const double AdcTopLineShare = 0.01;
+
         /// <summary>(`S169`) Свет в нулевом канале карты "adc", кэВ — <see cref="AnchorZeroKev"/> на этот разбор.</summary>
         double adcZeroKev;
 
@@ -3096,17 +3127,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// (`S169`) Растяжение карты "adc" по ВЕРХНЕЙ ЛИНИИ БИБЛИОТЕКИ:
-        /// s = (x₁ − E(0))/(x₁ − z₀), x₁ — наибольшая энергия линии среди
-        /// нуклидных образов (без готовых столбцов). Тогда E꜀(x₁) = x₁ —
-        /// верх шкалы стоит там же, где ставит его калибровка, и опоры
-        /// первого прохода находятся; E꜀(z₀) = E(0) — свет z₀ стоит в
-        /// нулевом канале. Какая именно линия взята верхней, на физику не
-        /// влияет: при одной опоре усиление растягивает образ вокруг
-        /// нулевого канала (нуль остаётся на месте), при двух и более с
-        /// плечом ноль подбирается МНК; линия лишь задаёт, насколько модель
-        /// до привязки близка к калибровочной. Нуль — линий нет, растяжение
-        /// не положительно, калибровка нулевому каналу энергии не даёт.
+        /// (`S169`) Растяжение карты "adc" по ВЕРХНЕЙ ЗНАЧИМОЙ ЛИНИИ
+        /// БИБЛИОТЕКИ: s = (x₁ − E(0))/(x₁ − z₀), x₁ — наибольшая энергия
+        /// линии среди нуклидных образов (без готовых столбцов), чей выход не
+        /// меньше <see cref="AdcTopLineShare"/> от сильнейшей линии того же
+        /// образа. Тогда E꜀(x₁) = x₁ — верх шкалы стоит там же, где ставит
+        /// его калибровка, и опоры первого прохода находятся; E꜀(z₀) = E(0) —
+        /// свет z₀ стоит в нулевом канале. Нуль — линий нет, растяжение не
+        /// положительно, калибровка нулевому каналу энергии не даёт.
+        ///
+        /// ⛔ (П198 по находке П196, решение Amber 01.10.2026 «Верхнюю
+        /// значимую ≥ 1 % от сильнейшей») Прежде верхней бралась линия с
+        /// ЛЮБЫМ выходом > 0, а этот комментарий утверждал, что выбор линии
+        /// «на физику не влияет». Замер П196 это опроверг: добор в поставку
+        /// слабой Bi-214 2769.9 кэВ (0.025 %) переставил верх с Tl-208 2614.5
+        /// и увёл шкалу угля с радоном (`G1S24_Rn222Coal_eq01`: усиление
+        /// 0.99909 → 0.99624, ноль 3.35 → 5.17 кэВ, χ²/ndf 1.459 → 1.591) —
+        /// растяжение карты задаёт и начальную точку привязки, и долю шкалы,
+        /// которую потом несут нуль и усиление. Линия ниже 1 % своей
+        /// сильнейшей верх шкалы задавать не должна.
         /// </summary>
         double AdcScaleOf(List<FsaComponent> library, EnergyCalibration calibration)
         {
@@ -3118,9 +3157,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                double strongest = 0.0;
                 foreach (FsaLine line in component.Lines)
                 {
-                    if (line.Energy > topKev && line.Intensity > 0.0)
+                    if (line.Intensity > strongest)
+                    {
+                        strongest = line.Intensity;
+                    }
+                }
+
+                double floor = strongest * AdcTopLineShare;
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (line.Energy > topKev && line.Intensity > 0.0 && line.Intensity >= floor)
                     {
                         topKev = line.Energy;
                     }
@@ -3723,6 +3772,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// модели, третий — проверяет, что сходится.
         /// </summary>
         public int AnchorPasses { get; set; }
+
+        /// <summary>
+        /// ⛔ (`AMBER150`, П198) ШИРИННАЯ ОПОРА: ширина образа — калибровка ПШПВ,
+        /// умноженная на ОДИН множитель, который мерится по тем же опорам, что
+        /// шкала (сильные одиночные пики полного поглощения, ножи доли и z):
+        /// второй момент данных в окне опоры против второго момента ядра
+        /// модели, приведённый к неусечённому пику, среднее по опорам с полом
+        /// погрешности <see cref="AnchorWidthFloor"/>; множитель уточняется на
+        /// каждом проходе привязки вместе с усилением и нулём. Без неё ошибка
+        /// калибровки ПШПВ на ±2/±5 % давала смещение активности до ±0.9/±3 %
+        /// и χ²/ndf ×10…150 при тех же данных. Рычаг A/B: без опоры ширина —
+        /// из калибровки как есть. Множитель — в служебной строке привязки
+        /// («ширина ×k по n опорам») и в <see cref="FsaResult.WidthScale"/>.
+        /// </summary>
+        public bool AnchorWidth { get; set; }
+
+        /// <summary>
+        /// (`AMBER150`) Систематический пол погрешности логарифма ширины одной
+        /// опоры: модель врёт формой (хвосты, подложка, соседи) на доли
+        /// процента ширины, и статистическая σ в сотые доли процента у пика в
+        /// сотни тысяч отсчётов отдала бы множитель одной опоре.
+        /// </summary>
+        public double AnchorWidthFloor { get; set; }
+
+        /// <summary>
+        /// (`AMBER150`) Нож ширинной опоры: опора, по которой ширина образа
+        /// разошлась бы с калибровкой ПШПВ дальше этого множителя (в любую
+        /// сторону), в ширину не идёт — ошибка калибровки такого размера
+        /// неправдоподобна, и в окне, значит, не одиночный пик отклика.
+        /// </summary>
+        public double AnchorWidthMaxRatio { get; set; }
 
         /// <summary>
         /// (`AMBER17`) Пик уже стольких каналов ПШПВ опорой не бывает —
@@ -4815,7 +4895,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double fwhm = fwhmCalibration.ChannelToFwhm(i);
+                double fwhm = this.ImageFwhm(fwhmCalibration, i);
                 if (!(fwhm > 1.0))
                 {
                     continue;
@@ -4879,6 +4959,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double[] core = null;
                 double coreLineKev = double.NaN;
                 double coreLineBlue = 0.0;
+                // (`AMBER150`) вершины линий ядра — чтобы знать, одиночный ли пик
+                var coreLineTops = new List<double>();
                 for (int j = 0; j < owner.Lines.Count; j++)
                 {
                     // (П19) у форм line/peak после привязки пик линии стоит
@@ -4918,6 +5000,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         lineTop = Math.Max(lineTop, v);
                     }
 
+                    coreLineTops.Add(lineTop);
                     if (lineTop > coreLineBlue)
                     {
                         coreLineBlue = lineTop;
@@ -5028,6 +5111,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 : this.LineShiftChannels(calibration, anchor.ModelKev, coreLineKev, centreModel, channels),
                             ShiftFwhm = Math.Abs(centreData - centreModel) / fwhm
                         };
+                        // (`AMBER150`) ширина — только у ОДИНОЧНОГО пика: в ядре
+                        // одна линия, прочие ниже двадцатой её вершины. K-серия
+                        // рентгена — мультиплет, и её второй момент несёт
+                        // расстановку и доли линий серии, а не ширину отклика.
+                        int coreLines = 0;
+                        foreach (double t in coreLineTops)
+                        {
+                            if (t >= 0.05 * coreLineBlue)
+                            {
+                                coreLines++;
+                            }
+                        }
+
+                        if (coreLines == 1)
+                        {
+                            this.MeasureAnchorWidth(fit1, core, fit.Residual, variance, lo, hi,
+                                                    centreModel, centreData, sumCore, sumData, fwhm);
+                        }
                         // (`S169`, П13) кандидат нуля съёмки — КАЖДЫЙ с измеренным
                         // центром, принят он опорой или нет
                         this.zeroCandidates.Add(fit1);
@@ -5186,6 +5287,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             foreach (AnchorFit f in fits)
             {
                 f.Anchor.Used = true;
+            }
+
+            // (`AMBER150`) ширинная опора — по тем же принятым опорам
+            this.anchorWidthLog = 0.0;
+            this.anchorWidthCount = 0;
+            double widthWeight = 0.0, widthSum = 0.0;
+            foreach (AnchorFit f in fits)
+            {
+                if (Finite(f.LnWidth) && f.LnWidthVar > 0.0)
+                {
+                    widthWeight += 1.0 / f.LnWidthVar;
+                    widthSum += f.LnWidth / f.LnWidthVar;
+                    this.anchorWidthCount++;
+                }
+            }
+
+            if (this.anchorWidthCount > 0 && widthWeight > 0.0)
+            {
+                this.anchorWidthLog = widthSum / widthWeight;
             }
 
             used = fits.Count;
@@ -5435,6 +5555,108 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>Пара точек МНК одной опоры (`AMBER17`): модельный и измеренный центры, каналы.</summary>
+        /// <summary>
+        /// (`AMBER150`, П198) Ширина пика данных против ширины ядра модели в окне
+        /// опоры. Измерение — тот же «остаток + ядро», что даёт центр опоры
+        /// (смоделированное прочее вычтено). Отношение вторых моментов в окне
+        /// приводится к неусечённому пику: окно ±<see cref="AnchorWindowFwhm"/>
+        /// ПШПВ режет крылья, и усечённая ширина откликается на истинную
+        /// слабее единицы — множитель отклика считается по гауссу ширины
+        /// образа в том же окне. Неподвижная точка (данные = образ) от этой
+        /// поправки не зависит, она лишь ускоряет схождение проходов.
+        /// </summary>
+        void MeasureAnchorWidth(AnchorFit target, double[] core, double[] residual, double[] variance,
+                                int lo, int hi, double centreModel, double centreData,
+                                double sumCore, double sumData, double fwhm)
+        {
+            target.Anchor.WidthRatio = double.NaN;
+            target.LnWidth = double.NaN;
+            if (!(sumCore > 0.0) || !(sumData > 0.0) || !(fwhm > 0.0) || hi - lo < 2)
+            {
+                return;
+            }
+
+            double varCore = 0.0, varData = 0.0;
+            for (int k = lo; k <= hi; k++)
+            {
+                double dm = k - centreModel;
+                double dd = k - centreData;
+                varCore += core[k] * dm * dm;
+                varData += (residual[k] + core[k]) * dd * dd;
+            }
+
+            varCore /= sumCore;
+            varData /= sumData;
+            if (!(varCore > 0.0) || !(varData > 0.0))
+            {
+                return;
+            }
+
+            double noise = 0.0;
+            for (int k = lo; k <= hi; k++)
+            {
+                double dd = k - centreData;
+                double t = dd * dd - varData;
+                noise += variance[k] * t * t;
+            }
+
+            noise /= sumData * sumData;
+
+            // отклик усечённой ширины на истинную: d ln σ_t / d ln σ у гаусса
+            // ширины образа в окне [lo − ½, hi + ½] вокруг модельного центра
+            double sigma = fwhm / (2.0 * Math.Sqrt(2.0 * Math.Log(2.0)));
+            double left = centreModel - (lo - 0.5), right = (hi + 0.5) - centreModel;
+            double slope = 0.5 * (Math.Log(TruncatedGaussVariance(sigma * 1.01, left, right))
+                                  - Math.Log(TruncatedGaussVariance(sigma / 1.01, left, right))) / (2.0 * Math.Log(1.01));
+            if (!Finite(slope) || slope < 0.3)
+            {
+                slope = 0.3;
+            }
+
+            double lnRatio = 0.5 * Math.Log(varData / varCore);
+            double lnVar = 0.25 * noise / (varData * varData);
+            double floor = this.AnchorWidthFloor > 0.0 ? this.AnchorWidthFloor : 0.0;
+            target.LnWidth = lnRatio / slope;
+            target.LnWidthVar = lnVar / (slope * slope) + floor * floor;
+            target.Anchor.WidthRatio = Math.Exp(target.LnWidth);
+
+            // Нож «не тот пик» для ширины: итог (множитель с этой опорой) дальше
+            // AnchorWidthMaxRatio от калибровки — в окне не одиночный пик
+            // отклика, а что-то ещё (AS80_Th232Medal: ×0.76 по одной опоре).
+            double cap = this.AnchorWidthMaxRatio > 1.0 ? Math.Log(this.AnchorWidthMaxRatio) : double.PositiveInfinity;
+            if (Math.Abs(Math.Log(this.widthScale) + target.LnWidth) > cap)
+            {
+                target.LnWidth = double.NaN;
+            }
+        }
+
+        /// <summary>(`AMBER150`) Дисперсия гаусса σ, усечённого на [−left, right] от центра.</summary>
+        static double TruncatedGaussVariance(double sigma, double left, double right)
+        {
+            double a = -left / sigma, b = right / sigma;
+            double pa = Math.Exp(-0.5 * a * a), pb = Math.Exp(-0.5 * b * b);
+            double z = 0.5 * (Erf(b / Math.Sqrt(2.0)) - Erf(a / Math.Sqrt(2.0))) * Math.Sqrt(2.0 * Math.PI);
+            if (!(z > 0.0))
+            {
+                return sigma * sigma;
+            }
+
+            double m1 = (pa - pb) / z;
+            double m2 = 1.0 + (a * pa - b * pb) / z;
+            double v = sigma * sigma * (m2 - m1 * m1);
+            return v > 0.0 ? v : sigma * sigma;
+        }
+
+        /// <summary>(`AMBER150`) Функция ошибок (Абрамовиц — Стиган 7.1.26, погрешность 1.5e-7).</summary>
+        static double Erf(double x)
+        {
+            double sign = x < 0.0 ? -1.0 : 1.0;
+            x = Math.Abs(x);
+            double t = 1.0 / (1.0 + 0.3275911 * x);
+            double y = 1.0 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.Exp(-x * x);
+            return sign * y;
+        }
+
         sealed class AnchorFit
         {
             public FsaScaleAnchor Anchor;
@@ -5450,6 +5672,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             /// <summary>(`S169`, П13) Промах центра |Y − X| в ПШПВ канала — нож «shift» для кандидата нуля, у которого он мог не считаться (отказ по доле стоит раньше).</summary>
             public double ShiftFwhm;
+
+            /// <summary>(`AMBER150`) Логарифм отношения ширины данных к ширине образа (неусечённого пика); NaN — не мерилась.</summary>
+            public double LnWidth = double.NaN;
+
+            /// <summary>(`AMBER150`) Дисперсия <see cref="LnWidth"/> с полом <see cref="AnchorWidthFloor"/>.</summary>
+            public double LnWidthVar;
         }
 
         /// <summary>
@@ -5846,6 +6074,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.AnchorWindowFwhm = 1.0;
             this.AnchorMaxShiftFwhm = 1.0;
             this.AnchorPasses = 3;
+            this.AnchorWidth = true;
+            this.AnchorWidthFloor = 0.01;
+            this.AnchorWidthMaxRatio = 1.25;
             this.AnchorOffsetMinAnchors = 2;
             // (`F11` (в), `AMBER17`) ПОЛОЖЕНИЕ ПО СВЕТУ ВКЛЮЧЕНО с 12.09.2026 —
             // полярность стоит ЗДЕСЬ, у присваивания (`T82`). Решение Amber
@@ -6316,6 +6547,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.adcScale = 0.0;
             this.adcE0 = 0.0;
             this.adcTopKev = 0.0;
+            this.widthScale = 1.0;
+            this.widthAnchors = 0;
             this.adcZeroKev = this.AnchorZeroKev;
             this.adcZeroNote = null;
             this.zeroCandidates = null;
@@ -7437,6 +7670,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     int passes = Math.Max(1, this.AnchorPasses);
+                    // (`AMBER150`) последняя пара «множитель → остаток» для секущей
+                    bool widthHavePrev = false;
+                    double widthPrevLn = 0.0, widthPrevResidual = 0.0;
                     int movedBy = 0;
                     for (int pass = 0; pass < passes; pass++)
                     {
@@ -7468,9 +7704,44 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                         // Сошлось — дальше не двигаемся: сдвиг меньше двадцатой
                         // канала на всём диапазоне полосы.
+                        // (`AMBER150`) множитель ширины — по тем же опорам; сошёлся,
+                        // когда поправка меньше 0.2 % ширины. Первый шаг — по
+                        // замеру как есть (отклик усечённой ширины приведён по
+                        // гауссу), следующие — секущей по двум последним парам
+                        // «множитель → остаток»: у образа с хвостами и подложкой
+                        // отклик круче гауссова, и шаг по замеру перелетал
+                        // (G1S16_Cs137_P5: 1.0173 при неподвижной точке 1.0112
+                        // за три прохода).
+                        double widthStep = 0.0;
+                        if (this.AnchorWidth && this.anchorWidthCount > 0)
+                        {
+                            double lnNow = Math.Log(this.widthScale);
+                            widthStep = this.anchorWidthLog;
+                            if (widthHavePrev && Math.Abs(lnNow - widthPrevLn) > 1.0E-6
+                                && Math.Abs(widthPrevResidual - this.anchorWidthLog) > 1.0E-6)
+                            {
+                                double secant = this.anchorWidthLog * (lnNow - widthPrevLn)
+                                                / (widthPrevResidual - this.anchorWidthLog);
+                                // секущая берётся, только когда её отклик в пределах
+                                // половины — двух гауссовых: шкала тоже ходит между
+                                // проходами, и у G1S24_Bi207_P5 секущая без этого
+                                // ножа унесла множитель на 1.33 (χ²/ndf 18.7 → 34.0)
+                                double q = secant / this.anchorWidthLog;
+                                if (q >= 0.5 && q <= 2.0)
+                                {
+                                    widthStep = secant;
+                                }
+                            }
+
+                            widthPrevLn = lnNow;
+                            widthPrevResidual = this.anchorWidthLog;
+                            widthHavePrev = true;
+                            widthStep = Math.Max(-0.3, Math.Min(0.3, widthStep));
+                        }
                         bool converged = Math.Abs(b) < 0.05
                                          && Math.Abs(a - 1.0) * Math.Max(1, chHi) < 0.05
-                                         && Math.Abs(beta) * this.lightShiftMax < 0.05;
+                                         && Math.Abs(beta) * this.lightShiftMax < 0.05
+                                         && Math.Abs(widthStep) < 0.002;
                         if (converged)
                         {
                             // Опоры есть и шкала уже на месте: она ПРИВЯЗАНА,
@@ -7485,6 +7756,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
 
                         double lightBefore = this.driftLight;
+                        double widthBefore = this.widthScale;
+                        int widthAnchorsBefore = this.widthAnchors;
+                        if (widthStep != 0.0)
+                        {
+                            this.widthScale *= Math.Exp(widthStep);
+                            this.widthAnchors = this.anchorWidthCount;
+                        }
+
                         this.driftLight = light;
                         // (П19) формы line/peak кладут сдвиг В ОБРАЗЫ: при смене
                         // β кэш гистограмм поглощения обязан быть построен заново.
@@ -7499,6 +7778,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         if (moved == null)
                         {
                             this.driftLight = lightBefore;
+                            this.widthScale = widthBefore;
+                            this.widthAnchors = widthAnchorsBefore;
                             if (light != lightBefore && this.LightInImages)
                             {
                                 this.deposits.Clear();
@@ -7587,6 +7868,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // слов «нуль adc:», по которым читатель пробы считает
                 // включившиеся карты.
                 this.anchorNote = (this.anchorNote ?? "") + "; карта adc не включена: " + this.adcZeroNote;
+            }
+
+            // (`AMBER150`) ширинная опора — последним хвостом служебной строки,
+            // чтобы читатели прежних полей («опор n; усиление …», «нуль adc:»)
+            // её не задевали
+            if (this.AnchorScale && this.AnchorWidth && this.scaleAnchorsUsed > 0)
+            {
+                this.anchorNote += this.widthAnchors > 0
+                    ? string.Format(CultureInfo.InvariantCulture, "; ширина ×{0:F4} по {1} опорам",
+                                    this.widthScale, this.widthAnchors)
+                    : (this.anchorWidthCount > 0
+                        ? "; ширина по калибровке ПШПВ (поправка меньше 0.2 %)"
+                        : "; ширина по калибровке ПШПВ (опор ширины нет)");
             }
 
             // (S78) Всё, что было ПРЕДЪЯВЛЕНО фиту, и с какой значимостью его
@@ -10177,6 +10471,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 ScaleAnchors = this.scaleAnchors ?? new List<FsaScaleAnchor>(),
                 ScaleAnchorsUsed = this.scaleAnchorsUsed,
                 AnchorNote = this.anchorNote,
+                WidthScale = this.widthScale,
+                WidthAnchorsUsed = this.widthAnchors,
                 AnchorOffsetKev = AnchorOffsetKevOf(offset, calibration, chLo, chHi),
                 // (П18) световая координата: кривая и итоговый β (пусто / 0 —
                 // выключена или не дошла до фита)
@@ -11382,7 +11678,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double p = this.DriftPosition(position, gain, offset);
-            double fwhm = fwhmCalibration.ChannelToFwhm(p);
+            double fwhm = this.ImageFwhm(fwhmCalibration, p);
             if (!PositiveFinite(fwhm) || fwhm >= channels)
             {
                 return false;
@@ -14896,7 +15192,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // верхнего канала образа не имеет, но её левый хвост в окно фита
             // попадает, и терять его нельзя.
             int pad = SourcePad(fwhmCalibration, channels);
-            int size = channels + 2 * pad;
+            // ⛔ (`AMBER158`, П198) Источник — не целый канал, а ДОЛЯ КАНАЛА:
+            // ячейка буфера = канал × `SourcePhases` фаз. Прежде центр группы
+            // делился между двумя соседними ЦЕЛЫМИ каналами, и это свёртка с
+            // двухточечным распределением: к σ² ядра прибавлялось f(1−f) кан²,
+            // и у узких в каналах пиков образ был шире калибровки ПШПВ пилой
+            // по дробному положению центра (G1S 1024 кан. 22 кэВ +4…+14 %, на
+            // 512 кан. до +38 %; активность зависела от числа каналов). Теперь
+            // центр делится между двумя соседними ФАЗАМИ (шаг 1/16 кан.), а
+            // ядро фазы посчитано со сдвигом центра на её долю канала: остаток
+            // дисперсии ≤ 1/(4·16²) кан², ширина верна до 0.2 % и на 1.1 кан.
+            int size = (channels + 2 * pad) * SourcePhases;
             double[] source = this.sourceBuffer;
             int[] bands = this.sourceBands;
             if (source == null || source.Length < size)
@@ -14951,7 +15257,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 double p = this.DriftPosition(position, gain, offset);
-                double fwhm = fwhmCalibration.ChannelToFwhm(p);
+                double fwhm = this.ImageFwhm(fwhmCalibration, p);
                 if (!PositiveFinite(fwhm) || fwhm >= channels)
                 {
                     b++;
@@ -15012,10 +15318,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 int band = ShapeKernelBank.Band(fwhm);
-                int channel = (int)Math.Floor(center);
-                double frac = center - channel;
-                Splat(source, bands, pad, channels, channel, area * (1.0 - frac), band, ref srcLo, ref srcHi);
-                Splat(source, bands, pad, channels, channel + 1, area * frac, band, ref srcLo, ref srcHi);
+                // (`AMBER158`) деление между соседними фазами, а не каналами
+                double scaled = center * SourcePhases;
+                int cell = (int)Math.Floor(scaled);
+                double frac = scaled - cell;
+                Splat(source, bands, pad, channels, cell, area * (1.0 - frac), band, ref srcLo, ref srcHi);
+                Splat(source, bands, pad, channels, cell + 1, area * frac, band, ref srcLo, ref srcHi);
                 for (int pt = 0; pt < partCount; pt++)
                 {
                     if (!(partAreas[pt] > 0.0))
@@ -15027,8 +15335,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // своя. Границы источников и номера ядер уже записаны
                     // полной гистограммой: часть их не расширяет, потому что
                     // непустой быть там, где полная пуста, не может.
-                    SplatPart(partSources[pt], pad, channels, channel, partAreas[pt] * (1.0 - frac));
-                    SplatPart(partSources[pt], pad, channels, channel + 1, partAreas[pt] * frac);
+                    SplatPart(partSources[pt], pad, channels, cell, partAreas[pt] * (1.0 - frac));
+                    SplatPart(partSources[pt], pad, channels, cell + 1, partAreas[pt] * frac);
                 }
             }
 
@@ -15051,13 +15359,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     partSources[p][idx] = 0.0;
                 }
 
-                double[] kernel = bank.Get(bands[idx]);
+                int phase = idx % SourcePhases;
+                double[] kernel = bank.Get(bands[idx], phase);
                 if (kernel == null)
                 {
                     continue;
                 }
 
-                int full0 = idx - pad - bank.LeftSpan(bands[idx]);
+                int full0 = idx / SourcePhases - pad - bank.LeftSpan(bands[idx]);
                 int lo = Math.Max(chLo, full0);
                 int hi = Math.Min(chHi, full0 + kernel.Length - 1);
                 if (hi < lo)
@@ -15102,30 +15411,53 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Положить площадь ЧАСТИ в тот же канал источника, что и полная
         /// гистограмма. Ядро и границы там уже записаны — часть их не трогает.
         /// </summary>
-        static void SplatPart(double[] source, int pad, int channels, int channel, double weight)
+        static void SplatPart(double[] source, int pad, int channels, int cell, double weight)
         {
-            if (!(weight > 0.0) || channel < -pad || channel > channels - 1 + pad)
+            int idx = SourceIndex(pad, channels, cell);
+            if (!(weight > 0.0) || idx < 0)
             {
                 return;
             }
 
-            source[channel + pad] += weight;
+            source[idx] += weight;
         }
 
         /// <summary>
-        /// Положить площадь в целый канал источника, запомнив, каким ядром её
+        /// (`AMBER158`, П198) Число фаз источника на канал. 16 — остаток
+        /// дисперсии линейного деления между фазами ≤ 1/1024 кан², то есть
+        /// +0.2 % ширины у пика в 1.1 канала ПШПВ и +0.06 % у пика в 2 канала.
+        /// </summary>
+        const int SourcePhases = 16;
+        /// <summary>
+        /// Ячейка буфера источников для доли канала <paramref name="cell"/>
+        /// (в 1/<see cref="SourcePhases"/> канала) или −1, если она за
+        /// пределами буфера.
+        /// </summary>
+        static int SourceIndex(int pad, int channels, int cell)
+        {
+            int channel = cell >= 0 ? cell / SourcePhases : -((-cell + SourcePhases - 1) / SourcePhases);
+            if (channel < -pad || channel > channels - 1 + pad)
+            {
+                return -1;
+            }
+
+            return (channel + pad) * SourcePhases + (cell - channel * SourcePhases);
+        }
+
+        /// <summary>
+        /// Положить площадь в долю канала источника, запомнив, каким ядром её
         /// потом размазать. Каналы за пределами буфера отбрасываются: их пик
         /// целиком лежит дальше своего носителя от окна фита.
         /// </summary>
-        static void Splat(double[] source, int[] bands, int pad, int channels, int channel, double weight,
+        static void Splat(double[] source, int[] bands, int pad, int channels, int cell, double weight,
                           int band, ref int srcLo, ref int srcHi)
         {
-            if (!(weight > 0.0) || channel < -pad || channel > channels - 1 + pad)
+            int idx = SourceIndex(pad, channels, cell);
+            if (!(weight > 0.0) || idx < 0)
             {
                 return;
             }
 
-            int idx = channel + pad;
             if (source[idx] == 0.0)
             {
                 bands[idx] = band;
@@ -15254,9 +15586,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Банк ядер уширения: профиль единичной площади, посчитанный в ЦЕЛЫХ
         /// смещениях от центра, для лестницы значений ПШПВ с шагом 0.2 %.
         ///
-        /// Ядро зависит только от ПШПВ, поэтому при целом центре одно и то же
-        /// ядро годится в любом канале — а центры целые, потому что источники
-        /// разложены по целым каналам с линейным делением площади. Лестница
+        /// Ядро зависит только от ПШПВ и дробной части центра, поэтому одно и то
+        /// же ядро годится в любом канале — источники разложены по долям канала
+        /// (`SourcePhases` фаз, `AMBER158`) с линейным делением площади между
+        /// соседними фазами, и у каждой фазы своё ядро со сдвинутым центром.
+        /// До П198 фаз не было: деление между целыми каналами уширяло образ на
+        /// f(1−f) кан². Лестница
         /// нужна, чтобы ядро попадало в кэш: без округления ПШПВ у каждой
         /// группы своя и кэш не срабатывает никогда. Шаг 0.2 % — это ошибка
         /// ширины не более 0.1 %, вдесятеро меньше того, что вообще видно в
@@ -15271,7 +15606,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             static readonly double LogRatio = Math.Log(1.002);
 
             readonly FwhmCalibration calibration;
-            readonly Dictionary<int, double[]> values = new Dictionary<int, double[]>();
+            readonly Dictionary<long, double[]> values = new Dictionary<long, double[]>();
             readonly Dictionary<int, int> lefts = new Dictionary<int, int>();
 
             public ShapeKernelBank(FwhmCalibration calibration)
@@ -15290,29 +15625,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return (int)Math.Floor(Math.Log(fwhm) / LogRatio + 0.5);
             }
 
-            /// <summary>Ядро ступени или null, если профиля на ней нет.</summary>
-            public double[] Get(int band)
+            /// <summary>
+            /// Ядро ступени для источника в фазе <paramref name="phase"/>
+            /// (центр на `phase / SourcePhases` канала правее целого, `AMBER158`)
+            /// или null, если профиля на ней нет. Начало ядра у всех фаз ступени
+            /// одно (<see cref="LeftSpan"/>), правый носитель на канал длиннее.
+            /// </summary>
+            public double[] Get(int band, int phase)
             {
                 double[] kernel;
-                if (this.values.TryGetValue(band, out kernel))
+                long key = (long)band * SourcePhases + phase;
+                if (this.values.TryGetValue(key, out kernel))
                 {
                     return kernel;
                 }
 
                 double fwhm = Math.Exp(band * LogRatio);
+                double shift = (double)phase / SourcePhases;
                 double left = PeakShapeModel.GetLeftSupport(this.calibration, fwhm);
                 double right = PeakShapeModel.GetRightSupport(this.calibration, fwhm);
                 int leftSpan = 0;
                 if (PositiveFinite(left) && PositiveFinite(right))
                 {
                     leftSpan = (int)Math.Ceiling(left);
-                    int rightSpan = (int)Math.Ceiling(right);
+                    int rightSpan = (int)Math.Ceiling(right) + 1;
                     int span = leftSpan + rightSpan + 1;
                     double[] shape = new double[span];
                     double area = 0.0;
                     for (int i = 0; i < span; i++)
                     {
-                        double v = PeakShapeModel.RelativeValue(i - leftSpan, fwhm, this.calibration);
+                        double v = PeakShapeModel.RelativeValue(i - leftSpan - shift, fwhm, this.calibration);
                         shape[i] = v;
                         area += v;
                     }
@@ -15333,7 +15675,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     leftSpan = 0;
                 }
 
-                this.values[band] = kernel;
+                this.values[key] = kernel;
                 this.lefts[band] = leftSpan;
                 return kernel;
             }
@@ -15414,7 +15756,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 double p = this.DriftPosition(position, gain, offset);
-                double fwhm = fwhmCalibration.ChannelToFwhm(p);
+                double fwhm = this.ImageFwhm(fwhmCalibration, p);
                 if (!PositiveFinite(fwhm) || fwhm >= channels)
                 {
                     continue;
