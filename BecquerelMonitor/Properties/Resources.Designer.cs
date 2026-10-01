@@ -2393,6 +2393,24 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("NucBase_KSeriesRedundantSkipped", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This L-series row is superseded by more detailed rows of the same decay....
+        /// </summary>
+        public static string NucBase_LSeriesRedundantHint {
+            get {
+                return ResourceManager.GetString("NucBase_LSeriesRedundantHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to L-series rows skipped as duplicates: {0}....
+        /// </summary>
+        public static string NucBase_LSeriesRedundantSkipped {
+            get {
+                return ResourceManager.GetString("NucBase_LSeriesRedundantSkipped", resourceCulture);
+            }
+        }
 
         /// <summary>
         ///   Looks up a localized string similar to Lines found: {0}..

@@ -80,6 +80,7 @@ namespace ChainProbe
                 new KeyValuePair<string, int>("ветвление от корня [база]", CheckBranches()),
                 new KeyValuePair<string, int>("два обхода ряда [база]", CheckTwoWalks()),
                 new KeyValuePair<string, int>("K-серия в редакторе [база]", CheckKSeriesEditor()),
+                new KeyValuePair<string, int>("L-серия в редакторе [база]", CheckLSeriesEditor()),
                 new KeyValuePair<string, int>("поиск по ряду [база]", CheckSearch()),
                 new KeyValuePair<string, int>("форма редактора", CheckForm()),
             };
@@ -437,6 +438,53 @@ namespace ChainProbe
                               markedAt227.Length > 0 ? markedAt227 : "ничего", kept227);
             bad += Same("Th-227: помечено разложение, не итог", "KpB1", markedAt227);
             bad += Near("Th-227: сумма без помеченных", 4.624, kept227);
+            return bad;
+        }
+
+        /// <summary>
+        /// (`AMBER151`, П202 01.10.2026) ТА ЖЕ ЛОВУШКА У L-СЕРИИ. Сводная строка
+        /// `L` поставки лежит в базе рядом со своими подлиниями (`L3M5`, `L2M4`…,
+        /// `tools/nucdb/import_l_sublines.py`); редактор обязан пометить
+        /// сводную, иначе ввоз обеих удваивает L-рентген. Сверка не зависит от
+        /// того, какой базой собран каталог: сумма НЕПОМЕЧЕННЫХ L-строк Am-241
+        /// равна итогу поставки 36.64 % всегда, а помечено ровно столько строк,
+        /// сколько у родителя строк менее подробного вида (на базе без подлиний —
+        /// ноль). Положительный контроль печатается: наивная сумма всех L-строк.
+        /// </summary>
+        static int CheckLSeriesEditor()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== ловушка L-серии в редакторе ===");
+            int bad = 0;
+            BecquerelMonitor.NucBase.NucBaseFramework fw = new BecquerelMonitor.NucBase.NucBaseFramework();
+            List<BecquerelMonitor.NucBase.DecayRad> lines = fw.getDecayRad("241AM");
+            if (lines == null)
+            {
+                Console.WriteLine("  линий Am-241 не пришло — сверять нечем");
+                return 1;
+            }
+
+            double all = 0.0, kept = 0.0;
+            int marked = 0, rows = 0, detailed = 0;
+            foreach (BecquerelMonitor.NucBase.DecayRad line in lines)
+            {
+                int kind = BecquerelMonitor.FullSpectrumAnalysis.FsaSampleLibrary.LSeriesKind(line.XrayType);
+                if (line.DecayLine != "X"
+                    || kind == BecquerelMonitor.FullSpectrumAnalysis.FsaSampleLibrary.LSeriesNone)
+                {
+                    continue;
+                }
+
+                rows++;
+                all += line.Intensity;
+                if (kind == BecquerelMonitor.FullSpectrumAnalysis.FsaSampleLibrary.LSeriesDetailed) detailed++;
+                if (line.Redundant) marked++; else kept += line.Intensity;
+            }
+
+            Console.WriteLine("  Am-241: L-строк {0} (подлиний {1}), наивная сумма {2:F2} %, без помеченных {3:F2} %, помечено {4}",
+                              rows, detailed, all, kept, marked);
+            bad += Near("Am-241: сумма L без помеченных", 36.64, kept);
+            bad += Same("Am-241: помечено (сводная при подлиниях)", detailed > 0 ? rows - detailed : 0, marked);
             return bad;
         }
 

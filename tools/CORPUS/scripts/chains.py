@@ -430,6 +430,46 @@ def half_life_years(nucid, c):
     return float(row[0]) / 31536000.0
 
 
+#: (`AMBER151`, П202 01.10.2026) Генератор корпуса и его оснастка берут ТОЛЬКО строки
+#: ПОСТАВКИ `decay_radiations` (`dr_pk` < 100001): добор слабых гамм (`import_weak_gammas.py`,
+#: 100001…199999) и L-подлинии (`import_l_sublines.py`, от 200001) — библиотека РАЗБОРА, а не
+#: опоры калибровки. Замер П202 (журнал `handover/handover-2026-10-01-p202-l-sublines.md` §4):
+#: с ними пересборка сдвигает модели разрешения 16 групп (ASN3 3.54 → 7.27 %, AS80x80 7.22 →
+#: 8.13 %) и 97 энергокалибровок, часть — в явный брак (`RC103_K40` невязка опор 8.1 → 47.3
+#: кэВ, `G1S24_Zn65_P5` 0.7 → 13.8 кэВ): генератор неустойчив к сдвигу модели группы. С этим
+#: зажимом пересборка даёт корпус ПОБАЙТНО тем же по содержимому. Решение «пускать ли новые
+#: линии в генератор» — за Amber.
+SUPPLY_ONLY = " and dr_pk < 100001"
+
+
+def l_series_kind(tc):
+    u"""Вид строки L-серии по СТРУКТУРЕ имени `type_c` — правило `FsaSampleLibrary.DecayLines`
+    (`AMBER68`): 'L' — сводная, буква и цифра ('L1') — итог подоболочки, длиннее ('L3M5') —
+    линия; не L-серия — None."""
+    tc = (tc or '').strip()
+    if not tc or tc[0] != 'L':
+        return None
+    if len(tc) == 1:
+        return 'lumped'
+    if len(tc) == 2 and tc[1].isdigit():
+        return 'shell'
+    return 'detailed'
+
+
+def drop_superseded_l(rows, tc_of):
+    u"""(`AMBER151`, П202) Из строк ОДНОГО родителя убрать вытесненные строки L-серии.
+
+    С 01.10.2026 сводная строка `L` поставки разложена на подлинии (`L3M5`, `L2M4`…,
+    `tools/nucdb/import_l_sublines.py`), а сама строка оставлена в базе — её вытесняет
+    ЧИТАТЕЛЬ. Порядок тот же, что у приложения: линии, если есть, иначе итоги подоболочек,
+    иначе сводная. Без этого рентген образца складывал бы сводную С её же подлиниями —
+    выход L вдвое. `tc_of(row)` — `type_c` строки.
+    """
+    kinds = set(l_series_kind(tc_of(r)) for r in rows)
+    keep = 'detailed' if 'detailed' in kinds else ('shell' if 'shell' in kinds else 'lumped')
+    return [r for r in rows if l_series_kind(tc_of(r)) in (None, keep)]
+
+
 def chain_lines(root, kinds=('G',), e_min=10.0, e_max=3200.0):
     c = conn()
     frac = chain_branches(root, c)
@@ -447,7 +487,9 @@ def chain_lines(root, kinds=('G',), e_min=10.0, e_max=3200.0):
             "select energy_num, intensity_num, type_a, type_c from decay_radiations "
             "where parent_nucid = $n and type_a in (%s) "
             "and energy_num not null and intensity_num not null" % placeholders
+            + SUPPLY_ONLY
             + LEVEL_CLAUSE, params).fetchall()
+        rows = drop_superseded_l(rows, lambda r: r[3] if r[2] == 'X' else None)
         hl = half_life_years(nucid, c)
         for energy, inum, ta, tc in rows:
             if energy is None or inum is None or inum <= 0:

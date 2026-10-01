@@ -804,7 +804,13 @@ namespace BecquerelMonitor.NucBase
             if (decrad.Redundant)
             {
                 DataGridViewRow added = this.ResultDataGridView.Rows[index];
-                added.Cells[SeriesColumnIdx].ToolTipText = Resources.NucBase_KSeriesRedundantHint;
+                // (`AMBER151`) У L-серии своя подсказка: лишней там стоит сводная
+                // `L` (или итог подоболочки) рядом с подлиниями, а не половина Kβ.
+                added.Cells[SeriesColumnIdx].ToolTipText =
+                    FullSpectrumAnalysis.FsaSampleLibrary.LSeriesKind(decrad.XrayType)
+                        != FullSpectrumAnalysis.FsaSampleLibrary.LSeriesNone
+                    ? Resources.NucBase_LSeriesRedundantHint
+                    : Resources.NucBase_KSeriesRedundantHint;
                 added.DefaultCellStyle.ForeColor = System.Drawing.SystemColors.GrayText;
             }
         }
@@ -983,6 +989,7 @@ namespace BecquerelMonitor.NucBase
                 int updatedCount = 0;
                 int createdCount = 0;
                 int redundantSkipped = 0;
+                int redundantSkippedL = 0;
                 NuclideDefinitionManager defManager = NuclideDefinitionManager.GetInstance();
                 // Ряд у всех ввозимых линий один — тот, по которому шёл поиск.
                 // Пишется НЕЗАВИСИМО от «дописать имя родителя»: та галочка
@@ -1003,6 +1010,14 @@ namespace BecquerelMonitor.NucBase
                         // нельзя — считается и говорится вслух.
                         if (IsRedundantSeries(row) && HasCheckedCounterpart(row))
                         {
+                            // (`AMBER151`) L-серия считается отдельно: у неё своё
+                            // сообщение — лишней там стоит сводная рядом с подлиниями.
+                            if (LKind(row) != FullSpectrumAnalysis.FsaSampleLibrary.LSeriesNone)
+                            {
+                                redundantSkippedL++;
+                                continue;
+                            }
+
                             redundantSkipped++;
                             continue;
                         }
@@ -1071,6 +1086,12 @@ namespace BecquerelMonitor.NucBase
                                 + string.Format(CultureInfo.InvariantCulture, Resources.NucBase_KSeriesRedundantSkipped, redundantSkipped);
                     }
 
+                    if (redundantSkippedL > 0)
+                    {
+                        text += Environment.NewLine + Environment.NewLine
+                                + string.Format(CultureInfo.InvariantCulture, Resources.NucBase_LSeriesRedundantSkipped, redundantSkippedL);
+                    }
+
                     MessageBox.Show(text);
                 }
             }
@@ -1078,6 +1099,21 @@ namespace BecquerelMonitor.NucBase
             {
                 MessageBox.Show(string.Format(Resources.NuclideDefImportError, ex.Message + ex.StackTrace));
             }
+        }
+
+        /// <summary>
+        /// (`AMBER151`) Вид строки L-серии по колонке серии (пометка ∑ снимается):
+        /// правило <see cref="FullSpectrumAnalysis.FsaSampleLibrary.LSeriesKind"/>.
+        /// </summary>
+        static int LKind(DataGridViewRow row)
+        {
+            string series = (row.Cells[SeriesColumnIdx].Value as string) ?? "";
+            if (series.EndsWith(DecayRad.RedundantMark, StringComparison.Ordinal))
+            {
+                series = series.Substring(0, series.Length - DecayRad.RedundantMark.Length);
+            }
+
+            return FullSpectrumAnalysis.FsaSampleLibrary.LSeriesKind(series);
         }
 
         /// <summary>Строка помечена как лишняя при сложении (`D33`).</summary>
@@ -1098,6 +1134,10 @@ namespace BecquerelMonitor.NucBase
             string name = marked.Cells[NameColumnIdx].Value as string;
             string decay = marked.Cells[DecayTypeColumnIdx].Value as string;
             string series = (marked.Cells[SeriesColumnIdx].Value as string) ?? "";
+            // (`AMBER151`) У помеченной строки L-серии противоположная сторона —
+            // любая отмеченная строка того же родителя и типа распада, которая
+            // ПОДРОБНЕЕ её (подлиния при сводной или итоге, итог при сводной).
+            int markedL = LKind(marked);
             bool markedIsTotal = series.StartsWith(FullSpectrumAnalysis.KSeriesRule.BetaTotal,
                                                    StringComparison.Ordinal);
             foreach (DataGridViewRow row in this.ResultDataGridView.Rows)
@@ -1111,6 +1151,16 @@ namespace BecquerelMonitor.NucBase
                 if (!string.Equals(row.Cells[NameColumnIdx].Value as string, name, StringComparison.Ordinal)
                     || !string.Equals(row.Cells[DecayTypeColumnIdx].Value as string, decay, StringComparison.Ordinal))
                 {
+                    continue;
+                }
+
+                if (markedL != FullSpectrumAnalysis.FsaSampleLibrary.LSeriesNone)
+                {
+                    if (LKind(row) > markedL)
+                    {
+                        return true;
+                    }
+
                     continue;
                 }
 
