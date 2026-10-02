@@ -1473,6 +1473,77 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
+        /// <summary>
+        /// ⛔ (`S208`, П216 02.10.2026) ПИК КРИВОЙ — ОКНОМ ПОЛНОЙ СТРОКИ ±ПШПВ/2,
+        /// ТЕМ ЖЕ РАЗБИЕНИЕМ, ЧТО ε_p ПО РАЗРЕШЕНИЮ У МАТРИЦЫ (`AMBER145`, блок
+        /// EPRS; решение Amber 01.10.2026 «Окно полной строки матрицы»).
+        ///
+        /// ЧТО БЫЛО НЕ ТАК. Кривая (<see cref="Efficiency"/>, путь без
+        /// гистограммы) брала пик ВЗВЕШЕННОЙ ветвью с допуском ПШПВ/2: прямой
+        /// квант и ОДНО рассеяние на луче к кристаллу (плюс класс вне конуса).
+        /// Многократное рассеяние в пробе и обвязке, возврат кванта, вылетевшего
+        /// из кристалла (на 35…60 кэВ — K-рентген иода/цезия, отражённый
+        /// отражателем и корпусом), и сквозной пролёт с возвратом из-за
+        /// кристалла взвешенная ветвь не рождает вовсе, а недобор у них на
+        /// 45…60 кэВ — единицы кэВ, то есть ВСЁ в окне ПШПВ/2. Кривая на
+        /// 32…80 кэВ лежала ниже полного аналогового переноса и ε_p матрицы на
+        /// 1.6…3.0 % (П199 `CurveVsMatrixP199`, `PeakResDiagP199`).
+        ///
+        /// КАК ТЕПЕРЬ (при допуске кривой больше тесного):
+        ///
+        ///   * взвешенная ветвь считает пик ТЕСНЫМ допуском
+        ///     <see cref="CurveTightPeakHalfWidthKev"/> (полубин склада, тот же,
+        ///     что у бина пика матрицы) — там ветви согласны (аналог / Σ Peak
+        ///     0.998…1.010, П199 §3);
+        ///   * полосу «недобор больше тесного, но не больше ПШПВ/2» — аналоговая
+        ///     ветвь (<see cref="AnalogTransport"/>, вся физика: очередь квантов,
+        ///     возврат из обвязки, многократное рассеяние) своими n историями,
+        ///     направление В КОНУСЕ взвешенной ветви с весом конуса (тот же
+        ///     розыгрыш, что у <see cref="OneHistory"/>): вне конуса историю
+        ///     считает класс вне конуса (`AMBER79`) с допуском ПШПВ/2, и
+        ///     множества не пересекаются;
+        ///   * класс вне конуса — как был, допуском ПШПВ/2.
+        ///
+        /// Это ровно разбиение ε_p по разрешению склада: «бин пика» взвешенной
+        /// ветвью плюс «прочие бины с недобором ≤ ПШПВ/2» аналоговой.
+        ///
+        /// Рычаг проб: ВЫКЛ — прежняя кривая побитово (положительный контроль).
+        /// Допуск кривой не больше тесного (геометрия без разрешения, HPGe) —
+        /// окна нет, прежний счёт.
+        /// </summary>
+        public bool CurvePeakResolutionWindow = true;
+
+        /// <summary>
+        /// (`S208`) Тесный допуск пика взвешенной ветви кривой при
+        /// <see cref="CurvePeakResolutionWindow"/>, кэВ: полубин склада
+        /// (`ResponseMatrixOptions.BinKev`/2 — допуск бина пика матрицы,
+        /// `PeakToleranceHalfBin`, решение Amber 11.09.2026). Одно место истины —
+        /// умолчание настроек склада, копии числа нет.
+        /// </summary>
+        public double CurveTightPeakHalfWidthKev = 0.5 * new ResponseMatrixOptions().BinKev;
+
+        /// <summary>
+        /// (`S208`) Выход последнего <see cref="Efficiency"/> с окном: доля (на
+        /// квант источника) полосы «тесный допуск &lt; недобор ≤ ПШПВ/2»
+        /// аналоговой ветви в конусе, и её относительная погрешность, %. Ноль —
+        /// окна не было. Для проб: кривая = взвешенная (тесно) + это + вне конуса.
+        /// </summary>
+        public double LastCurveBand { get; private set; }
+
+        /// <summary>(`S208`) Погрешность <see cref="LastCurveBand"/>, % от неё.</summary>
+        public double LastCurveBandErrorPercent { get; private set; }
+
+        /// <summary>
+        /// (`S208`) Диагностика того же аналогового прогона: доля его историй в
+        /// ТЕСНОМ допуске (их пик за взвешенной ветвью и в кривую не идёт).
+        /// Проба сравнивает её со взвешенной оценкой тесного пика — встречная
+        /// проверка ветвей (`A58`) на пути кривой.
+        /// </summary>
+        public double LastCurveAnalogTight { get; private set; }
+
+        /// <summary>(`S208`) Взвешенная оценка тесного пика последнего прогона с окном.</summary>
+        public double LastCurveWeightedTight { get; private set; }
+
         // (`AMBER46`) Косинус угла вылета ПОСЛЕДНЕЙ истории к оси «точка вылета →
         // центр объемлющей сферы кристалла» и её полный занос (сумма долей,
         // положенных в гистограмму, — то, что до П87 проба собирала тремя бинами).
@@ -8557,24 +8628,68 @@ namespace BecquerelMonitor.EfficiencyMaker
             // занос и косинус угла вылета к оси. Случайных чисел не тянет,
             // на `sum`/`sum2`/гистограмму не влияет — тело матрицы побитово прежнее.
             var angular = new AngularMomentSums();
-            this.source.Retune(this, energyKev);
-            for (int i = 0; i < n; i++)
+
+            // ⛔ (`S208`, П216) Окно полной строки у кривой: взвешенная ветвь —
+            // тесным допуском, полоса до ПШПВ/2 — аналоговой ниже. Допуск
+            // меняется только на время взвешенного цикла: `InPeak` случайных
+            // чисел не тянет, поток розыгрышей цикла прежний.
+            double resolutionHalfWidth = this.PeakHalfWidthKev;
+            double tight = this.CurveTightPeakHalfWidthKev;
+            bool window = histogram == null && this.CurvePeakResolutionWindow && this.AnalogContinuum
+                          && tight >= 0.0 && resolutionHalfWidth > tight + 1e-9;
+            this.LastCurveBand = 0.0;
+            this.LastCurveBandErrorPercent = 0.0;
+            this.LastCurveAnalogTight = 0.0;
+            this.LastCurveWeightedTight = 0.0;
+            if (window)
             {
-                double x, y, z;
-                // (`E29`) Точка с весом розыгрыша: единица у всех, кроме
-                // важностного. Вес входит в счёт истории целиком — и в
-                // возвращаемую эффективность, и в сумму квадратов (то есть в
-                // разброс узла), и в гистограмму с каналами и светом.
-                double pointWeight = this.source.NextWeighted(this, out x, out y, out z);
-                double score = this.OneHistory(energyKev, x, y, z, histogram, binKev, pointWeight);
-                sum += score;
-                sum2 += score * score;
-                angular.Add(score, this.historyDeposit, this.lastHistoryCos);
+                this.PeakHalfWidthKev = tight;
+            }
+
+            try
+            {
+                this.source.Retune(this, energyKev);
+                for (int i = 0; i < n; i++)
+                {
+                    double x, y, z;
+                    // (`E29`) Точка с весом розыгрыша: единица у всех, кроме
+                    // важностного. Вес входит в счёт истории целиком — и в
+                    // возвращаемую эффективность, и в сумму квадратов (то есть в
+                    // разброс узла), и в гистограмму с каналами и светом.
+                    double pointWeight = this.source.NextWeighted(this, out x, out y, out z);
+                    double score = this.OneHistory(energyKev, x, y, z, histogram, binKev, pointWeight);
+                    sum += score;
+                    sum2 += score * score;
+                    angular.Add(score, this.historyDeposit, this.lastHistoryCos);
+                }
+            }
+            finally
+            {
+                this.PeakHalfWidthKev = resolutionHalfWidth;
             }
 
             this.LastAngularMoments = angular;
             double mean = sum / n;
             double variance = Math.Max(0.0, sum2 / n - mean * mean);
+
+            // (`S208`) Полоса «тесный допуск < недобор ≤ ПШПВ/2» — аналоговой
+            // ветвью в конусе взвешенной; разброс складывается как у
+            // независимых слагаемых (розыгрыши у ветвей свои).
+            if (window)
+            {
+                this.LastCurveWeightedTight = mean;
+                double band2, analogTight;
+                double band = this.AnalogInConeBandRun(energyKev, n, tight, resolutionHalfWidth,
+                                                       out band2, out analogTight);
+                double bandMean = band / n;
+                double bandVariance = Math.Max(0.0, band2 / n - bandMean * bandMean);
+                this.LastCurveBand = bandMean;
+                this.LastCurveBandErrorPercent = bandMean > 0.0
+                    ? Math.Sqrt(bandVariance / n) / bandMean * 100.0 : 0.0;
+                this.LastCurveAnalogTight = analogTight / n;
+                mean += bandMean;
+                variance += bandVariance;
+            }
 
             // Континуум — аналоговой веткой (физика 6): бины ниже пика
             // перезаписываются до нормировки, оба прогона на одних n.
@@ -8680,6 +8795,82 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (weight > 0.0)
                 {
                     weight2 += weight * weight;
+                }
+            }
+
+            return sum;
+        }
+
+        /// <summary>
+        /// (`S208`, П216) Аналоговый прогон ПОЛОСЫ ОКНА кривой
+        /// (<see cref="CurvePeakResolutionWindow"/>): n историй тем же розыгрышем
+        /// точки, что у взвешенной ветви, направление — В ЕЁ КОНУСЕ с весом
+        /// конуса (точка внутри объемлющей сферы кристалла — полная сфера), как
+        /// в <see cref="OneHistory"/>; дальше полный аналоговый перенос
+        /// (<see cref="AnalogTransport"/>). Возвращает сумму весов историй с
+        /// недобором в (<paramref name="tightKev"/>, <paramref name="halfWidthKev"/>],
+        /// <paramref name="weight2"/> — сумму их квадратов,
+        /// <paramref name="tightSum"/> — сумму весов историй в тесном допуске
+        /// (диагностика, в счёт не идёт).
+        ///
+        /// Конус несмещён: направление вне него — класс вне конуса, его считает
+        /// <see cref="OutsideNextEvent"/> допуском ПШПВ/2 целиком.
+        /// </summary>
+        double AnalogInConeBandRun(double energyKev, int n, double tightKev, double halfWidthKev,
+                                   out double weight2, out double tightSum)
+        {
+            double sum = 0.0;
+            weight2 = 0.0;
+            tightSum = 0.0;
+            this.source.Retune(this, energyKev);
+            for (int i = 0; i < n; i++)
+            {
+                double x, y, z;
+                double weight = this.source.NextWeighted(this, out x, out y, out z);
+                double dz = this.sphereZ - z;
+                double dist = Math.Sqrt(x * x + y * y + dz * dz);
+                double ux, uy, uz;
+                if (dist > this.sphereR)
+                {
+                    double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - this.sphereR * this.sphereR / (dist * dist)));
+                    weight *= 0.5 * (1.0 - cosMax);
+                    this.InCone(-x / dist, -y / dist, dz / dist, cosMax, out ux, out uy, out uz);
+                }
+                else
+                {
+                    this.Isotropic(out ux, out uy, out uz);
+                }
+
+                weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
+                if (!(weight > 0.0))
+                {
+                    continue;
+                }
+
+                double depositedOutside;
+                bool comptonOutside;
+                double deposited = this.AnalogTransport(x, y, z, ux, uy, uz, energyKev,
+                                                        this.PathLimit(x, y, z),
+                                                        out depositedOutside, out comptonOutside);
+                if (!(deposited > 0.0))
+                {
+                    continue;
+                }
+
+                double deficit = energyKev - deposited;
+                if (deficit > halfWidthKev + 1e-9)
+                {
+                    continue;
+                }
+
+                if (deficit > tightKev + 1e-9)
+                {
+                    sum += weight;
+                    weight2 += weight * weight;
+                }
+                else
+                {
+                    tightSum += weight;
                 }
             }
 

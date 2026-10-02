@@ -42947,6 +42947,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyTabCurveVsMatrix" xml:space="preserve">
     <value>Curve is generation {0}, its response matrix is generation {1} — two generations side by side.</value>
   </data>
+  <data name="EfficiencyTabCurveOldPeak" xml:space="preserve">
+    <value>Curve of generation {0} was computed with the previous photopeak definition: its stamp has no "{1}" (peak in the ±FWHM/2 window of the full response) — recompute it.</value>
+  </data>
   <data name="ResponseMatrixUseInFsa" xml:space="preserve">
     <value>Use the matrix in full-spectrum analysis (FSA)</value>
   </data>
