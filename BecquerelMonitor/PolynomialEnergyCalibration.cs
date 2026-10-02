@@ -3,6 +3,7 @@ using MathNet.Numerics;
 using System;
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Threading;
 using System.Xml.Serialization;
 
 namespace BecquerelMonitor
@@ -253,14 +254,16 @@ namespace BecquerelMonitor
             if (enrg > this.maxEnergy && this.maxEnergy != -1) return this.maxChannels;
             if (this.dirty || this.energytochanel == null)
             {
-                this.energytochanel = new ConcurrentDictionary<double, double>();
+                EnergyToChannelMemo fresh = new EnergyToChannelMemo();
+                this.energytochanel = fresh;
                 this.dirty = false;
                 double value = EnrgToChannel(enrg, maxCh: this.maxChannels);
-                this.energytochanel.TryAdd(enrg, value);
+                fresh.Add(enrg, value);
                 return value;
             } else
             {
-                if (this.energytochanel.TryGetValue(enrg, out double value))
+                EnergyToChannelMemo memo = this.energytochanel;
+                if (memo.Map.TryGetValue(enrg, out double value))
                 {
                     return value;
                 } else
@@ -272,13 +275,61 @@ namespace BecquerelMonitor
                     // новый набор энергий - за 40 шагов зума набегало под 50 тыс.
                     // записей, которые больше никогда не понадобятся. Сброс
                     // безопасен: это чистая функция, пересчёт дешёвый.
-                    if (this.energytochanel.Count >= EnergyToChannelCacheLimit)
+                    //
+                    // `T267` (П213, 02.10.2026): потолок сверяется со СЧЁТЧИКОМ
+                    // записей рядом со словарём, а не с `ConcurrentDictionary.Count`:
+                    // тот берёт ВСЕ замки словаря (4 на ядро) на каждом промахе, а в
+                    // разборе FSA почти каждый вызов — промах: 159 из 183 мс выборок
+                    // места, ≈2.5 % разбора `AS80_Th232Medal` (профиль П213 на
+                    // `5b6a209c`). Поведение при переполнении прежнее: на промахе
+                    // при 32768 записях словарь очищается, затем кладётся новая.
+                    if (memo.Count >= EnergyToChannelCacheLimit)
                     {
-                        this.energytochanel.Clear();
+                        memo.Clear();
                     }
-                    this.energytochanel.TryAdd(enrg, value);
+                    memo.Add(enrg, value);
                     return value;
                 }
+            }
+        }
+
+        /// <summary>
+        /// `T267` (П213): словарь мемоизации энергия → канал вместе со счётчиком
+        /// своих записей. Счётчик живёт В ТОМ ЖЕ объекте, что и словарь, — замена
+        /// словаря при смене шкалы (`dirty`) меняет их разом, одной записью
+        /// ссылки, и окна «новый словарь, старый счёт» нет.
+        ///
+        /// Без гонки счёт точный (растёт только на удавшемся <c>TryAdd</c>,
+        /// обнуляется вместе с <c>Clear</c>). Под гонкой — приблизительный: запись
+        /// другого потока между <c>Clear</c> и обнулением счёта может не попасть
+        /// в счёт, и словарь перерастёт потолок на число одновременных потоков;
+        /// значения от этого не меняются — кеш хранит чистую функцию. Сам словарь
+        /// остаётся <c>ConcurrentDictionary</c>: к одной калибровке ходят и
+        /// отрисовка, и <c>Task.Run</c> поиска пиков и FSA.
+        /// </summary>
+        sealed class EnergyToChannelMemo
+        {
+            public readonly ConcurrentDictionary<double, double> Map = new ConcurrentDictionary<double, double>();
+
+            int count;
+
+            public int Count
+            {
+                get { return Volatile.Read(ref this.count); }
+            }
+
+            public void Add(double energy, double channel)
+            {
+                if (this.Map.TryAdd(energy, channel))
+                {
+                    Interlocked.Increment(ref this.count);
+                }
+            }
+
+            public void Clear()
+            {
+                this.Map.Clear();
+                Interlocked.Exchange(ref this.count, 0);
             }
         }
 
@@ -549,6 +600,6 @@ namespace BecquerelMonitor
         int maxChannels = 8192;
         double maxEnergy = -1;
 
-        ConcurrentDictionary<double, double> energytochanel = null;
+        EnergyToChannelMemo energytochanel = null;
     }
 }
