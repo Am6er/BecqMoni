@@ -4400,6 +4400,29 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// ⛔ (`A315`, П221 02.10.2026; решение Amber 02.10.2026 вопросником, дословно:
+        /// «Чинить сейчас (Рекомендую)») КЭШ ЛУЧА НЕ ПЕРЕЖИВАЕТ ИСТОРИЮ. Зовётся в
+        /// начале каждой истории — `OneHistory`, `AnalogHistory`, `OutsideNextEvent`,
+        /// цикл `TotalEfficiency`.
+        ///
+        /// Кэш строился как прозрачный («числа те же до бита»), а на деле разбиение
+        /// луча, оставленное ПРЕДЫДУЩЕЙ историей, отвечало `At` следующей — и у
+        /// точечного источника на грани корпуса (`pdistance = 0`) квант проходил
+        /// слой обвязки, будто его нет: родня `A52`, чья правка закрыла лишь «самое
+        /// начало луча» (`along > 1e-7`). Найдено сверкой с GPU-портом (`AMBER160`):
+        /// одна нить подряд сходилась с CPU побитово, а раскрой — нет; арбитр
+        /// (свежий симулятор на той же истории) совпадал с GPU. Цена на складе,
+        /// `AS80_point0`: ниже 10 кэВ ЛОЖНОЕ «дно» отклика 1e-7…1e-6 при настоящем
+        /// ≤ 1e-11, 13.4 кэВ +68 %, 16.1 кэВ +0.71 %, выше 21 кэВ ≤ 0.01 %; затронуты
+        /// три точечные сцены «на грани». Случайных чисел сброс не тянет — меняется
+        /// только то, какие истории получали чужое разбиение.
+        /// </summary>
+        void ForgetRay()
+        {
+            this.rayValid = false;
+        }
+
+        /// <summary>
         /// Годен ли кэш для этой точки и направления, и на каком она расстоянии
         /// от точки сбора. Направление сравнивается точно (оно передаётся тем же
         /// значением по всему обходу), положение — по отклонению от луча.
@@ -7087,6 +7110,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // (`E29`) Точка с весом розыгрыша: единица у всех, кроме
                 // важностного, — умножение точное.
                 double weight = this.source.NextWeighted(this, out x, out y, out z);
+                this.ForgetRay();      // (`A315`) кэш луча не переживает историю
                 // (`AMBER97`) Предел пути — от точки вылета: подлёт к сцене не в счёт.
                 double limit = this.PathLimit(x, y, z);
                 double dz = this.sphereZ - z;
@@ -9144,6 +9168,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         double OneHistory(double energyKev, double x, double y, double z,
                           double[] histogram, double binKev, double pointWeight)
         {
+            this.ForgetRay();          // (`A315`) кэш луча не переживает историю
             {
                 // Направление разыгрывается не по всей сфере, а в конусе,
                 // накрывающем детектор: иначе на дальней геометрии почти все
@@ -9295,6 +9320,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         double OutsideNextEvent(double energyKev, double x, double y, double z, ref double weight)
         {
+            this.ForgetRay();          // (`A315`) кэш луча не переживает историю
             double limit = this.PathLimit(x, y, z);
             double ux, uy, uz;
             double coneZ, coneR;
@@ -9666,6 +9692,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                              bool outsideOnly, out bool inWeightedCone,
                              out double depositedOutside, out bool comptonOutside)
         {
+            this.ForgetRay();          // (`A315`) кэш луча не переживает историю
             // (`AMBER97`) Предел пути — от точки вылета: подлёт к сцене не в счёт.
             double limit = this.PathLimit(x, y, z);
             double ux, uy, uz;
