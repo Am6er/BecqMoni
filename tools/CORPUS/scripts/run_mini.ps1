@@ -102,7 +102,10 @@ param(
     # ⛔ Третья выборка, требует своего `-Out`; подробности в шапке.
     [string]$List = '',
     [switch]$Force,
-    [switch]$SkipScore
+    [switch]$SkipScore,
+    # (`AMBER153` (б)) плечо «до правила корпуса» — передаётся `run_appwd.ps1`;
+    # каталог с ним базой не объявляется.
+    [switch]$NoCorpusRules
 )
 
 $ErrorActionPreference = 'Stop'
@@ -219,6 +222,7 @@ if ($Bin) { $pass['Bin'] = $Bin }
 if ($ProbeBuild) { $pass['ProbeBuild'] = $ProbeBuild }
 if ($Store) { $pass['Store'] = $Store }
 if ($Force) { $pass['Force'] = $true }
+if ($NoCorpusRules) { $pass['NoCorpusRules'] = $true }
 & (Join-Path $here 'run_appwd.ps1') @pass
 $code = $LASTEXITCODE
 $spent = $sw.Elapsed.TotalSeconds
