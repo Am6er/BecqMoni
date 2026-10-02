@@ -27,7 +27,7 @@ using System.Text;
 /// «было против стало» не больше, чем «зерно против зерна», — правка считает то
 /// же самое. Если заметно больше — не то же.
 ///
-///   matrixdiffprobe --a=было.rmx --b=стало.rmx
+///   matrixdiffprobe --a=было.rmx --b=стало.rmx [--min-sum=1e-6]
 ///
 /// Печатается расхождение в ПРОЦЕНТАХ: пик (последний бин), сумма строки
 /// (эффективность узла) и форма (L1 к сумме) — медиана и худший узел.
@@ -47,15 +47,30 @@ using System.Text;
 /// </summary>
 static class MatrixDiffProbe
 {
+    static double RowSum(float[] row)
+    {
+        double s = 0.0;
+        foreach (float v in row) s += v;
+        return s;
+    }
+
     static int Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
         CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
         string aPath = null, bPath = null;
+        // (`AMBER160`, П221) Порог значимости узла по сумме строки A: узлы с откликом
+        // практически ноль (у G1S24 на 6…7 кэВ — 1e-20: квант не проходит корпус)
+        // пропускаются и пересчитываются отдельно. Относительное расхождение на них —
+        // деление на ноль: CPU против GPU float там давал «2·10¹⁶ %» при разнице 1e-20.
+        // 0 (умолчание) — прежнее поведение.
+        double minSum = 0.0;
         foreach (string s in args)
         {
-            if (s.StartsWith("--a=", StringComparison.Ordinal)) aPath = s.Substring(4);
+            if (s.StartsWith("--min-sum=", StringComparison.Ordinal))
+                minSum = double.Parse(s.Substring(10), CultureInfo.InvariantCulture);
+            else if (s.StartsWith("--a=", StringComparison.Ordinal)) aPath = s.Substring(4);
             else if (s.StartsWith("--b=", StringComparison.Ordinal)) bPath = s.Substring(4);
             else { Console.Error.WriteLine("неизвестный ключ: " + s); return 2; }
         }
@@ -140,7 +155,7 @@ static class MatrixDiffProbe
         // ПРОПУСКАЮТСЯ и ПЕРЕСЧИТЫВАЮТСЯ, а число их печатается: молча
         // выбрасывать часть сетки нельзя, читатель обязан знать, по скольким
         // узлам считалась медиана.
-        int skipped = 0;
+        int skipped = 0, belowMin = 0;
         var live = new List<int>();
         for (int i = 0; i < a.Energies.Length; i++)
         {
@@ -149,6 +164,10 @@ static class MatrixDiffProbe
             if (empty)
             {
                 skipped++;
+            }
+            else if (minSum > 0.0 && RowSum(a.Rows[i]) < minSum)
+            {
+                belowMin++;
             }
             else
             {
@@ -267,6 +286,12 @@ static class MatrixDiffProbe
                               skipped, a.Energies.Length);
         }
 
+        if (minSum > 0.0)
+        {
+            Console.WriteLine("узлов ниже порога значимости (Σ строки A < {0:G3}): {1} — в мерке не участвуют",
+                              minSum, belowMin);
+        }
+
         Console.WriteLine("расхождение по {0} узлам, % (медиана / худший):", n);
         Console.WriteLine("   пик       : {0:F3} / {1:F3}   (узел {2}, {3:F0} кэВ)",
                           Median(peak), peak[wp], live[wp], a.Energies[live[wp]]);
@@ -300,6 +325,19 @@ static class MatrixDiffProbe
         Console.WriteLine("СМЕЩЕНИЕ B относительно A, % (среднее по узлам ± ошибка среднего):");
         Console.WriteLine("   пик       : {0,7:F3} ± {1:F3}{2}", mp, ep, Verdict(mp, ep));
         Console.WriteLine("   сумма     : {0,7:F3} ± {1:F3}{2}", ms, es, Verdict(ms, es));
+
+        // (`AMBER160`, П221) Доля пика ПАРНО: строка «доля пика» выше сравнивает две
+        // МЕДИАНЫ разных выборок, и сдвиг медианы не отличить от шума. Здесь — среднее
+        // по узлам относительной разности долей (B/A − 1) со своей ошибкой.
+        var fracSigned = new double[n];
+        for (int i = 0; i < n; i++)
+        {
+            fracSigned[i] = peakFracA[i] > 0.0 ? 100.0 * (peakFracB[i] / peakFracA[i] - 1.0) : 0.0;
+        }
+
+        double mf, ef;
+        MeanAndError(fracSigned, out mf, out ef);
+        Console.WriteLine("   доля пика : {0,7:F3} ± {1:F3}{2}  (парно, B/A − 1)", mf, ef, Verdict(mf, ef));
         Console.WriteLine();
         Console.WriteLine("⚠ сравнивать ЭТИ числа надо с такими же для двух зёрен одного кода");
 
