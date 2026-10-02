@@ -345,16 +345,8 @@ namespace BecquerelMonitor
             for (int i = 1; i < 999; i++)
             {
                 string text = Resources.NewROIConfigPrefix + "(" + i.ToString(CultureInfo.InvariantCulture) + ").xml";
-                bool flag = false;
-                foreach (ROIConfigData roiconfigData in this.manager.ROIConfigList)
-                {
-                    if (text == roiconfigData.Filename)
-                    {
-                        flag = true;
-                        break;
-                    }
-                }
-                if (!flag)
+                // `T266`: занятым считается и незагрузившийся файл на диске.
+                if (!this.manager.IsFilenameTaken(text))
                 {
                     return text;
                 }

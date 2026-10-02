@@ -111,7 +111,9 @@ namespace BecquerelMonitor
                     {
                         ROIConfigData roiconfigData;
                         loadingPath = path;
-                        using (FileStream fileStream = new FileStream(path, FileMode.Open))
+                        // `T266`: только на чтение и с разделением записи — довод
+                        // в `GlobalConfigManager.LoadConfigFile`.
+                        using (FileStream fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                         {
                             roiconfigData = (ROIConfigData)xmlSerializer.Deserialize(fileStream);
                         }
@@ -175,6 +177,23 @@ namespace BecquerelMonitor
             }
             this.roiConfigList.Sort();
             this.isLoaded = true;
+        }
+
+        /// <summary>
+        /// `T266`: занято ли имя файла — конфигурацией из списка ИЛИ
+        /// незагрузившимся файлом каталога. Довод — у
+        /// <c>DeviceConfigManager.IsFilenameTaken</c>.
+        /// </summary>
+        public bool IsFilenameTaken(string filename)
+        {
+            foreach (ROIConfigData other in this.roiConfigList)
+            {
+                if (string.Equals(other.Filename, filename, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return File.Exists(configROI + filename);
         }
 
         // Token: 0x06001032 RID: 4146 RVA: 0x0005848C File Offset: 0x0005668C
@@ -260,7 +279,8 @@ namespace BecquerelMonitor
             {
                 XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
                 xmlSerializer.UnknownElement += (s, e) => TraceDroppedElement(path, e);
-                using (FileStream fileStream = new FileStream(path, FileMode.Open))
+                // `T266`: только на чтение — довод в `GlobalConfigManager.LoadConfigFile`.
+                using (FileStream fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                 {
                     roiconfigData = (ROIConfigData)xmlSerializer.Deserialize(fileStream);
                 }
@@ -317,6 +337,14 @@ namespace BecquerelMonitor
                         this.RestoreConfig(removed);
                         return false;
                     }
+                }
+                // `T266`: имя занято и незагрузившимся ФАЙЛОМ — как у
+                // `DeviceConfigManager.SaveConfig`.
+                if (!string.Equals(roiConfig.Filename, roiConfig.OriginalFilename, StringComparison.OrdinalIgnoreCase)
+                    && File.Exists(configROI + roiConfig.Filename))
+                {
+                    this.RestoreConfig(removed);
+                    return false;
                 }
                 try
                 {

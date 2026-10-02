@@ -166,6 +166,9 @@
   <data name="ERRDetectedErrorWhileCommunication" xml:space="preserve">
     <value>Обнаружена ошибка в процессе работы с устройством.</value>
   </data>
+  <data name="MSGUnreadableConfigNotOverwritten" xml:space="preserve">
+    <value>Файл есть, но прочитать его не удалось, поэтому программа работает на встроенных умолчаниях и НЕ перезапишет его: изменения этого сеанса в него не сохранятся. Освободите или исправьте файл и перезапустите программу.</value>
+  </data>
   <data name="MSGNewNuclideDefinitionFileCreated" xml:space="preserve">
     <value>Новый файл библиотеки изотопов успешно создан.</value>
   </data>

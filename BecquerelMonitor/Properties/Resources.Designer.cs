@@ -1958,6 +1958,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The file exists but could not be read, so the program works ....
+        /// </summary>
+        public static string MSGUnreadableConfigNotOverwritten {
+            get {
+                return ResourceManager.GetString("MSGUnreadableConfigNotOverwritten", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to No new version available. Current version: {0}.
         /// </summary>
         public static string MSGNoNewVersion {
