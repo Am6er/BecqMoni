@@ -182,3 +182,14 @@
 ## 5. Тексты для реестра
 
 См. отчёт полосы (те же тексты): закрытие пп. (3)/(4) и дописка про (2) и отказ привязки.
+
+## 6. `check_all.py` в worktree
+
+Код 1, отказали 6 из 44 — все шесть среда worktree, не правка:
+`check_corpus_coverage` (нет `scripts\_corpus_raw` — `gaussfit_check.py` падает на
+`os.listdir`), `check_declared_base` (нет `tools\pie\out_rev41_full`), `check_corpus_generator`
+(`SUMMARY.md` «разошлось» при равном числе строк — переводы строк CRLF рабочей копии),
+`check_fsa_report_view`, `check_corpus_scenes`, `check_fsa_showcase` (нет штатного каталога
+проб `tools\effmaker\probes\build`). Те же три сторожа с `--probes=tools/effmaker/probes/build_p224n`:
+`check_fsa_report_view` — код 0 («ВСЕ СОШЛИСЬ», 326 строк ok), `check_corpus_scenes` — код 0
+(49 из 49 сцен), `check_fsa_showcase` — код 0 («ВИТРИНА СОШЛАСЬ», 9 пар). Остальные 38 — код 0.
