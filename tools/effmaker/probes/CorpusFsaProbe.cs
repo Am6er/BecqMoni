@@ -1204,6 +1204,22 @@ namespace CorpusFsaProbe
                     o.AnchorShareNet = v == "1" ? 1 : 0;
                     continue;
                 }
+                // (`AMBER142` (6), П226) пик вылета K-рентгена кристалла в образе под порогом доверия: 1 — окном как у линии, 0 — в отвязанный хвост (прежнее)
+                if (a.StartsWith("--tail-escape=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(14);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--tail-escape=0|1"); }
+                    o.TailEscape = v == "1" ? 1 : 0;
+                    continue;
+                }
+                // (`AMBER142`, П226) ширинная опора: 0 — ширина из калибровки как есть, 1 — по опорам (умолчание)
+                if (a.StartsWith("--anchor-width=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(15);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--anchor-width=0|1"); }
+                    o.AnchorWidthOn = v == "1" ? 1 : 0;
+                    continue;
+                }
                 // (`AMBER142`, П222) ширина без отклика остатка: 1 — заморозить, 0 — шаг по замеру (прежнее)
                 if (a.StartsWith("--anchor-width-freeze=", StringComparison.Ordinal))
                 {
@@ -2523,6 +2539,16 @@ namespace CorpusFsaProbe
             if (o.AnchorWidthFreeze >= 0)
             {
                 analyzer.AnchorWidthFreezeWeak = o.AnchorWidthFreeze == 1;
+            }
+
+            if (o.TailEscape >= 0)
+            {
+                analyzer.TailKeepsCrystalEscape = o.TailEscape == 1;
+            }
+
+            if (o.AnchorWidthOn >= 0)
+            {
+                analyzer.AnchorWidth = o.AnchorWidthOn == 1;
             }
 
             if (o.AnchorZeroStepMax >= 0.0)
@@ -6196,6 +6222,8 @@ namespace CorpusFsaProbe
             public int AnchorCoreOwner = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора
             public int AnchorShareNet = -1;    // (`AMBER142`, П222) −1 — умолчание анализатора
             public int AnchorWidthFreeze = -1; // (`AMBER142`, П222) −1 — умолчание анализатора
+            public int TailEscape = -1;        // (`AMBER142` (6), П226) −1 — умолчание анализатора
+            public int AnchorWidthOn = -1;     // (`AMBER142`, П226) −1 — умолчание анализатора
             public double AnchorZeroStepMax = -1.0; // (`AMBER142`, П222) < 0 — умолчание анализатора
             public int AnchorShiftStart = -1;  // (`AMBER142`, П222) −1 — умолчание анализатора
             public int AdcZeroEdge = -1;   // (`AMBER142` п. 8) −1 — умолчание анализатора
