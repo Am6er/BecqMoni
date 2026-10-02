@@ -243,6 +243,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// (`AMBER142` п. 9, П215) Ноль шкалы у прохода привязки без плеча опор —
+    /// <see cref="FsaAnalyzer.AnchorNoLeverZero"/>.
+    /// </summary>
+    public enum FsaNoLeverZero
+    {
+        /// <summary>Ноль прежних проходов остаётся, усиление — вокруг нулевого канала (до П215).</summary>
+        Inherit,
+
+        /// <summary>Ноль прибора: шкала через нулевой канал, усиление — по опорам относительно него.</summary>
+        Instrument,
+
+        /// <summary>Усиление не трогается, опоры двигают ноль (плечо замера).</summary>
+        Shift
+    }
+
+    /// <summary>
     /// Умолчание полосы — ОДНО на весь разбор, и печатается вслух.
     ///
     /// ⛔ Выбор сделан числами, а не вкусом; всё измерено 25.08.2026 по ПОНЯТНОЙ
@@ -3850,7 +3866,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double e0;
             try
             {
-                e0 = calibration.ChannelToEnergy(0.0);
+                e0 = this.AdcZeroEnergy(calibration);
             }
             catch (Exception)
             {
@@ -3867,6 +3883,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.adcTopKev = topKev;
             double scale = (topKev - e0) / light;
             return PositiveFinite(scale) ? scale : 0.0;
+        }
+
+        /// <summary>
+        /// (`AMBER142` п. 8, П215) Энергия калибровки в точке нуля света карты
+        /// «adc»: центр канала 0, E(0), или его нижний край, E(0) − ½·(E(1) −
+        /// E(0)) (<see cref="AdcZeroAtChannelEdge"/>). Одно место на
+        /// <see cref="AdcScaleOf"/> и <see cref="ZeroFromCandidates"/>: карта и
+        /// нуль по съёмке обязаны мерить нуль от одной точки.
+        /// </summary>
+        double AdcZeroEnergy(EnergyCalibration calibration)
+        {
+            double e0 = calibration.ChannelToEnergy(0.0);
+            if (!this.AdcZeroAtChannelEdge)
+            {
+                return e0;
+            }
+
+            return e0 - 0.5 * (calibration.ChannelToEnergy(1.0) - e0);
         }
 
         /// <summary>
@@ -4137,7 +4171,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // свет, что ложится в нулевой канал, E = E(0). В служебную строку
             // по-прежнему — канал, куда лёг бы нулевой свет (у нулевого канала
             // калибровка почти прямая — шагом нулевого канала).
-            zeroKev = (e0 - c0) / g;
+            // (`AMBER142` п. 8, П215) точка нуля карты — та же, что у AdcScaleOf
+            double eZero = this.AdcZeroAtChannelEdge ? e0 - 0.5 * (e1 - e0) : e0;
+            zeroKev = (eZero - c0) / g;
             {
                 // (`AMBER142`, П201) σ нуля из ковариации прямой (c₀, g) с Бирге
                 double chiLine = 0.0;
@@ -4771,6 +4807,57 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `--curve-light-lever=0` у `CorpusFsaProbe`.
         /// </summary>
         public bool AnchorCurveLightLever { get; set; }
+
+        /// <summary>
+        /// ⛔ (`AMBER142` п. 9, П215 02.10.2026) ЧТО ДЕЛАТЬ С НУЛЁМ ШКАЛЫ, КОГДА
+        /// У ОПОР ПРОХОДА НЕТ ПЛЕЧА (одна опора, пара соседних линий): ноль по
+        /// ним не определён, МНК подбирает одно усиление. Прежде
+        /// (<see cref="FsaNoLeverZero.Inherit"/>) усиление шло вокруг нулевого
+        /// канала, а ноль, поставленный ПРЕЖНИМИ проходами, оставался (p'' =
+        /// a·(g·p + o)): опора, мигающая между проходами, ставила ноль на
+        /// проходе с плечом, и одна оставшаяся опора снять его не могла.
+        /// Измерено на `G1S24_Cd109_P5` без матрицы: на проходах 1, 2, 5 опор
+        /// две (Ag Kα 22.16 и 88.03 кэВ), ноль −2.55, −1.34, −0.17 кан.; на
+        /// проходе 3 Kα выпадает из ядра на ноже (см.
+        /// <see cref="AnchorCoreHalfChannel"/>), плеча нет, свет снят
+        /// (`S210`), а ноль −4.2 кан. остаётся — шкала уходит туда, где пик
+        /// Ag K забирает свободный образ `Xray-NaI` (36 % спектра); итог —
+        /// усиление 1.171, ноль −4.9 кан. (−14.8 кэВ), Cd-109 к матричному
+        /// 1.297. <see cref="FsaNoLeverZero.Instrument"/> — ноль ПРИБОРА: без
+        /// плеча новая шкала проходит через нулевой канал (ноль карты «adc» или
+        /// калибровки файла), усиление — по опорам относительно него; ход
+        /// шкалы не зависит от того, что поставили прежние проходы (там же:
+        /// Cd-109 к матричному 0.903, `Xray-NaI` 3.7 тыс. отсч. вместо 20.4,
+        /// но χ²/ndf 1.340 → 2.507 и цикл проходов с периодом 5 — Kα то в
+        /// ядре, то нет). <see cref="FsaNoLeverZero.Shift"/> — плечо замера:
+        /// без плеча усиление не трогается, опора двигает ноль (там же χ²/ndf
+        /// 6.87 и Cd-109 z 2.3; `AS80_Am241` χ²/ndf 2.34 → 4.23 — отвергнуто).
+        /// Умолчание — в конструкторе; рычаг — `--no-lever-zero=` у
+        /// `CorpusFsaProbe`. При совместном шаге нуля света
+        /// (<see cref="AnchorZeroRounds"/>) ноль держит карта, правило не
+        /// действует.
+        /// </summary>
+        public FsaNoLeverZero AnchorNoLeverZero { get; set; }
+
+        /// <summary>
+        /// (`AMBER142` п. 8, П215 02.10.2026) Нуль света карты «adc»
+        /// (<see cref="AdcScaleOf"/>) — на НИЖНЕМ КРАЮ канала 0 (код АЦП 0 =
+        /// амплитуда 0 — левый край бина): E꜀(z₀) = E(0) − ½·(E(1) − E(0)).
+        /// Ложь — в центре канала 0, E꜀(z₀) = E(0) (соглашение `S169`, по нему
+        /// мерены П4, П8, П13). При укрупнении каналов ×2 центр канала 0
+        /// уезжает на полканала прежнего, край — нет. Умолчание — в
+        /// конструкторе; рычаг — `--adc-zero-edge=` у `CorpusFsaProbe`.
+        /// </summary>
+        public bool AdcZeroAtChannelEdge { get; set; }
+
+        /// <summary>
+        /// (`AMBER142` п. 9, П215 02.10.2026) Линия хозяина входит в ядро
+        /// опоры, когда стоит не дальше ½ ПШПВ + ½ канала от вершины синего (а
+        /// не ½ ПШПВ): вершина — целый канал, настоящая вершина — где-то в его
+        /// пределах. Ложь — прежний предел ½ ПШПВ. Умолчание — в конструкторе;
+        /// рычаг — `--anchor-core-half=` у `CorpusFsaProbe`.
+        /// </summary>
+        public bool AnchorCoreHalfChannel { get; set; }
 
         /// <summary>
         /// (`F11` (в), `AMBER17`; П18 11.09.2026 — умолчание ставит
@@ -5983,6 +6070,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                // ⛔ (`AMBER142` п. 9, П215) ДОПУСК ЯДРА — С ПОЛКАНАЛА НА ВЕРШИНУ:
+                // вершина синего — ЦЕЛЫЙ канал i, настоящая вершина лежит где-то
+                // в [i − ½, i + ½]. Без этого допуска сильная линия хозяина
+                // выпадает из ядра на ноже: `G1S24_Cd109_P5` без матрицы, пик Ag K
+                // на пороге (рампа × мультиплет Kα/Kβ сдвигает вершину на канал
+                // выше Kα) — Kα 22.16 на 0.99 кан. от вершины при пределе 0.95,
+                // ядром становится Kβ 24.93 с долей 0.34, опора отпадает, плечо
+                // пропадает через проход. Рычаг — <see cref="AnchorCoreHalfChannel"/>.
+                double coreReach = 0.5 * fwhm + (this.AnchorCoreHalfChannel ? 0.5 : 0.0);
+
                 // ЯДРО ОКНА — синий канал ТЕХ ЛИНИЙ ХОЗЯИНА, что стоят в
                 // полуширине от вершины: у K-серии это вся серия, у 356 кэВ
                 // Ba-133 — одна линия без соседней 384. Всё остальное в окне
@@ -6010,7 +6107,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    if (Math.Abs(this.DriftPosition(p, gain, offset) - i) > 0.5 * fwhm)
+                    if (Math.Abs(this.DriftPosition(p, gain, offset) - i) > coreReach)
                     {
                         continue;
                     }
@@ -6407,6 +6504,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
                     }
                 }
+                else if (!this.anchorGainOnly && this.AnchorNoLeverZero != FsaNoLeverZero.Inherit)
+                {
+                    // ⛔ (`AMBER142` п. 9, П215) БЕЗ ПЛЕЧА НОЛЬ НЕ ОПРЕДЕЛЁН — он
+                    // не наследуется от прежних проходов (доводы у
+                    // <see cref="AnchorNoLeverZero"/>). Ноль прибора: новая шкала
+                    // p'' = a·(g·p + o) + b проходит через нулевой канал, то есть
+                    // b = −a·o и Y ≈ a·(X − o). Плечо «сдвиг»: a = 1, b — средний промах.
+                    if (this.AnchorNoLeverZero == FsaNoLeverZero.Instrument)
+                    {
+                        double sxx = 0.0, sxy = 0.0;
+                        foreach (AnchorFit f in fits)
+                        {
+                            double xr = f.X - offset;
+                            sxx += f.Weight * xr * xr;
+                            sxy += f.Weight * xr * f.YEff;
+                        }
+
+                        if (sxx > 0.0 && offset != 0.0)
+                        {
+                            a = sxy / sxx;
+                            b = -a * offset;
+                            how = "усиление, ноль прибора";
+                        }
+                    }
+                    else if (sw > 0.0)
+                    {
+                        a = 1.0;
+                        b = (swy - swx) / sw;
+                        how = "сдвиг";
+                    }
+                }
 
                 if (fits.Count <= 2)
                 {
@@ -6460,9 +6588,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     bwxx += q * f.X * f.X;
                 }
 
-                bool withOffset = how != "усиление";
+                bool withOffset = how == "усиление и ноль";
                 this.anchorCovAA = this.anchorCovAB = this.anchorCovBB = 0.0;
-                if (withOffset)
+                if (how == "усиление, ноль прибора")
+                {
+                    // (`AMBER142` п. 9, П215) усиление вокруг нуля прибора, b = −a·o
+                    double hw = 0.0, hq = 0.0;
+                    foreach (AnchorFit f in fits)
+                    {
+                        double xr = f.X - offset;
+                        double q = f.WeightStat > 0.0 ? f.Weight * f.Weight / f.WeightStat : f.Weight;
+                        hw += f.Weight * xr * xr;
+                        hq += q * xr * xr;
+                    }
+
+                    if (hw > 0.0)
+                    {
+                        this.anchorCovAA = hq / (hw * hw);
+                        this.anchorCovAB = -offset * this.anchorCovAA;
+                        this.anchorCovBB = offset * offset * this.anchorCovAA;
+                    }
+                }
+                else if (how == "сдвиг")
+                {
+                    // (`AMBER142` п. 9, П215) плечо замера: только ноль
+                    if (cw > 0.0)
+                    {
+                        this.anchorCovBB = bw / (cw * cw);
+                    }
+                }
+                else if (withOffset)
                 {
                     double det = cw * cwxx - cwx * cwx;
                     if (det > 0.0)
@@ -7842,6 +7997,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.AnchorLightMaxKev = 0.0;
             // (`S210`, П212) без матрицы свет — только при плече опор
             this.AnchorCurveLightLever = true;
+            // (`AMBER142` п. 9, П215) без плеча опор — ноль прежних проходов
+            // (прежний ход; ноль прибора — рычагом, до решения Amber)
+            this.AnchorNoLeverZero = FsaNoLeverZero.Inherit;
+            // (`AMBER142` п. 8, П215) нуль света карты «adc» — в центре канала 0 (`S169`)
+            this.AdcZeroAtChannelEdge = false;
+            // (`AMBER142` п. 9, П215) допуск ядра опоры — ½ ПШПВ (прежний; +½ канала — рычагом)
+            this.AnchorCoreHalfChannel = false;
             // (`S169`, П8/П12/П13 12.09.2026) НУЛЬ ШКАЛЫ ОБРАЗА — ОТ НУЛЯ АЦП,
             // И НУЛЬ ПО СЪЁМКЕ. Решения Amber 12.09.2026, вопросником,
             // дословно: «ВКЛ + полный корпус A/B, переобъявить базу», затем

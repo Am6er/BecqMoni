@@ -1170,6 +1170,32 @@ namespace CorpusFsaProbe
                     o.CurveLightLever = v == "1" ? 1 : 0;
                     continue;
                 }
+                // (`AMBER142` п. 9, П215) ноль шкалы без плеча опор: inherit — прежнее
+                if (a.StartsWith("--no-lever-zero=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(16);
+                    if (v == "inherit") { o.NoLeverZero = 0; }
+                    else if (v == "instrument") { o.NoLeverZero = 1; }
+                    else if (v == "shift") { o.NoLeverZero = 2; }
+                    else { throw new ArgumentException("--no-lever-zero=inherit|instrument|shift"); }
+                    continue;
+                }
+                // (`AMBER142` п. 9, П215) допуск ядра опоры полканала: 1 — да, 0 — ½ ПШПВ (прежнее)
+                if (a.StartsWith("--anchor-core-half=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(19);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--anchor-core-half=0|1"); }
+                    o.AnchorCoreOwner = v == "1" ? 1 : 0;
+                    continue;
+                }
+                // (`AMBER142` п. 8, П215) нуль света карты adc: 1 — на нижнем краю канала 0, 0 — в центре
+                if (a.StartsWith("--adc-zero-edge=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(16);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--adc-zero-edge=0|1"); }
+                    o.AdcZeroEdge = v == "1" ? 1 : 0;
+                    continue;
+                }
                 if (a.StartsWith("--anchor-offset-min=", StringComparison.Ordinal))
                 {
                     o.AnchorOffsetMin = int.Parse(a.Substring(20), CultureInfo.InvariantCulture);
@@ -2423,6 +2449,21 @@ namespace CorpusFsaProbe
             if (o.CurveLightLever >= 0)
             {
                 analyzer.AnchorCurveLightLever = o.CurveLightLever == 1;
+            }
+
+            if (o.NoLeverZero >= 0)
+            {
+                analyzer.AnchorNoLeverZero = (FsaNoLeverZero)o.NoLeverZero;
+            }
+
+            if (o.AnchorCoreOwner >= 0)
+            {
+                analyzer.AnchorCoreHalfChannel = o.AnchorCoreOwner == 1;
+            }
+
+            if (o.AdcZeroEdge >= 0)
+            {
+                analyzer.AdcZeroAtChannelEdge = o.AdcZeroEdge == 1;
             }
 
             if (o.AnchorOffsetMin > 0)
@@ -6067,6 +6108,9 @@ namespace CorpusFsaProbe
             public int AnchorPasses = -1;
             public int AnchorOffsetMin = -1;
             public int CurveLightLever = -1;
+            public int NoLeverZero = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора; 0 inherit, 1 instrument, 2 shift
+            public int AnchorCoreOwner = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора
+            public int AdcZeroEdge = -1;   // (`AMBER142` п. 8) −1 — умолчание анализатора
             public double AnchorZ = -1.0;
             public double AnchorWindow = -1.0;
             public double AnchorFloor = -1.0;
