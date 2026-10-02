@@ -60,6 +60,29 @@ RM_DEV bool M_IsNaN(real a) { return a != a; }
 RM_DEV bool M_IsInfinity(real a) { return isinf(a); }
 RM_DEV bool M_IsFinite(real a) { return isfinite(a); }
 
+// --- допуски обхода сцены ------------------------------------------------------
+// В double — РОВНО константы C# (ступень 1 сверяет историю побитово): подталкивание
+// через границу 1e-7 см (`step + 1e-7`, EfficiencySimulator.cs:4822 и ещё семь мест),
+// порог «позади точки» 1e-7 см (`CollectCrossings` :4495, `At` :4031), «позади начала
+// луча» −1e-9 см и отклонение² 1e-12 см² (`OnCachedRay` :4424).
+//
+// ⛔ Во float те же числа вырождаются (map_geometry.md §5.4): шаг представления float на
+// 10 см ≈ 9.5e-7 см, подталкивание 1e-7 точку НЕ сдвигает, обход крутится на границе или
+// перескакивает тонкий слой (замер П221 02.10.2026: на 6 кэВ у G1S24 истории проходили
+// корпус с τ ≈ 44 вместо > 60). Поэтому во float: подталкивание 2e-5 см (0.2 мкм — больше
+// 20 шагов float на 30 см и физически ничто), пороги — той же шкалы.
+#ifdef RM_REAL_FLOAT
+#define RM_NUDGE ((real)2e-5)
+#define RM_BEHIND ((real)1e-5)
+#define RM_RAY_BACK ((real)1e-5)
+#define RM_ON_RAY2 ((real)1e-9)
+#else
+#define RM_NUDGE ((real)1e-7)
+#define RM_BEHIND ((real)1e-7)
+#define RM_RAY_BACK ((real)1e-9)
+#define RM_ON_RAY2 ((real)1e-12)
+#endif
+
 // Константы Math.PI / Math.E с точностью real.
 #define M_PI_R ((real)3.14159265358979323846)
 #define M_E_R ((real)2.71828182845904523536)

@@ -80,9 +80,9 @@ RM_DEV void Sim::NoteEscape(real x, real y, real z, real ux, real uy, real uz, r
     int k = escapeCount++;
     // ⚠ float: сдвиг за грань на 1e-7 см меньше ULP float уже при |x| ≳ 1 см (ULP(1.0f) =
     // 1.2e-7) — точка остаётся НА грани, и `At` отдаёт её кристаллу (обход войдёт повторно).
-    escX[k] = x + ux * (real)1e-7;
-    escY[k] = y + uy * (real)1e-7;
-    escZ[k] = z + uz * (real)1e-7;
+    escX[k] = x + ux * RM_NUDGE;
+    escY[k] = y + uy * RM_NUDGE;
+    escZ[k] = z + uz * RM_NUDGE;
     escUx[k] = ux;
     escUy[k] = uy;
     escUz[k] = uz;
@@ -512,7 +512,7 @@ RM_DEVF void Sim::PositronStop(real te, real& x, real& y, real& z)
 
     real toEdge = CrystalPath(x, y, z, ux, uy, uz);
     // ⚠ float: отступ 1e-7 см от грани меньше ULP float уже при |x| ≳ 1 см.
-    real move = M_Min(reach, M_Max((real)0.0, toEdge - (real)1e-7));
+    real move = M_Min(reach, M_Max((real)0.0, toEdge - RM_NUDGE));
     x += ux * move;
     y += uy * move;
     z += uz * move;

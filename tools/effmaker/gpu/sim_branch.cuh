@@ -232,7 +232,7 @@ RM_DEVF bool Sim::ToCrystal(real& x, real& y, real& z, real ux, real uy, real uz
 
         // ⚠ float: подталкивание 1e-7 см ниже ULP float уже на ~1 см (map_geometry.md
         // §5.4) — точка может не сдвинуться с границы, и цикл холостит до guard.
-        real advance = step + (real)1e-7;
+        real advance = step + RM_NUDGE;
         x += ux * advance;
         y += uy * advance;
         z += uz * advance;
@@ -401,7 +401,7 @@ RM_DEVF bool Sim::ScatteredContribution(real x, real y, real z, real ux, real uy
         }
 
         // ⚠ float: подталкивание 1e-7 см (map_geometry.md §5.4).
-        real next = step + (real)1e-7;
+        real next = step + RM_NUDGE;
         px += ux * next;
         py += uy * next;
         pz += uz * next;
@@ -437,7 +437,7 @@ RM_DEVF real Sim::KillDepthToExit(real x, real y, real z, real ux, real uy, real
         }
 
         // ⚠ float: подталкивание 1e-7 см (map_geometry.md §5.4).
-        real advance = step + (real)1e-7;
+        real advance = step + RM_NUDGE;
         x += ux * advance;
         y += uy * advance;
         z += uz * advance;
@@ -561,7 +561,7 @@ RM_DEVF real Sim::AnalogTransport(real x, real y, real z, real ux, real uy, real
 
                 // пролетел насквозь без вклада — с дальней грани дальше
                 // ⚠ float: подталкивание 1e-7 см (map_geometry.md §5.4).
-                real through = CrystalPath(x, y, z, ux, uy, uz) + (real)1e-7;
+                real through = CrystalPath(x, y, z, ux, uy, uz) + RM_NUDGE;
                 x += ux * through;
                 y += uy * through;
                 z += uz * through;
@@ -753,7 +753,7 @@ RM_DEVF real Sim::AnalogTransport(real x, real y, real z, real ux, real uy, real
             }
 
             // ⚠ float: подталкивание 1e-7 см (map_geometry.md §5.4).
-            real next = step + (real)1e-7;
+            real next = step + RM_NUDGE;
             x += ux * next;
             y += uy * next;
             z += uz * next;

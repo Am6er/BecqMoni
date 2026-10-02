@@ -379,7 +379,7 @@ __device__ int Sim::At(real x, real y, real z)
     CountAt++;
     real along;
     // ⚠ float: порог 1e-7 см — порядка ULP float на координатах ~1 см.
-    if (OnCachedRay(x, y, z, along) && along > (real)1e-7)
+    if (OnCachedRay(x, y, z, along) && along > RM_BEHIND)
     {
         return raySegBuf[rayCur][SegmentAt(along)];
     }
@@ -435,7 +435,7 @@ __device__ real Sim::StepToBoundary(real x, real y, real z, real ux, real uy, re
     // ⛔ Курсором «только вперёд» нельзя (по одному лучу обход идёт дважды) —
     // поиск двоичный, как в C#.
     // ⚠ float: `along + 1e-7` при along ≳ 1 см во float не сдвигается.
-    int lo = SegmentAt(along + (real)1e-7);
+    int lo = SegmentAt(along + RM_BEHIND);
     return lo < rayCount ? rayCrossBuf[rayCur][lo] - along : CS_DOUBLE_MAX;
 }
 
@@ -691,7 +691,7 @@ __device__ bool Sim::OnCachedRay(real x, real y, real z, real& along)
     real dx = x - rayX, dy = y - rayY, dz = z - rayZ;
     along = dx * rayUx + dy * rayUy + dz * rayUz;
     // ⚠ float: −1e-9 см ниже ULP float при along ~ 0.01 см и больше.
-    if (along < (real)-1e-9)
+    if (along < -RM_RAY_BACK)
     {
         return false;      // назад по лучу обход не ходит
     }
@@ -701,7 +701,7 @@ __device__ bool Sim::OnCachedRay(real x, real y, real z, real& along)
     // ⚠ float: отклонение² < 1e-12 см² (10 нм) — ниже ошибки округления float
     // на координатах ~10 см (ULP ≈ 1e-6 см, квадрат ≈ 1e-12): точка на луче может
     // не признаться лежащей на нём.
-    return ox * ox + oy * oy + oz * oz < (real)1e-12;
+    return ox * ox + oy * oy + oz * oz < RM_ON_RAY2;
 }
 
 // = EfficiencySimulator.cs:4472 CollectCrossings
@@ -724,13 +724,13 @@ __device__ void Sim::CollectCrossings(real x, real y, real z, real ux, real uy, 
         {
             real t0 = spanBuf[2 * p], t1 = spanBuf[2 * p + 1];
             // ⚠ float: «позади точки сбора» по порогу 1e-7 см — порядок ULP float.
-            if (t1 <= (real)1e-7)
+            if (t1 <= RM_BEHIND)
             {
                 continue;                       // отрезок позади точки сбора
             }
 
             // ⚠ float: тот же порог 1e-7 см.
-            if (t0 <= (real)1e-7)
+            if (t0 <= RM_BEHIND)
             {
                 active |= 1ULL << i;            // область накрывает саму точку
             }

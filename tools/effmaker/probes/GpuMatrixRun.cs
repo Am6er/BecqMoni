@@ -77,7 +77,7 @@ sealed class RmGpu
 
     public readonly string Path;
     public readonly int RealBytes;
-    public int Blocks = 46 * 8;      // RTX 3070 Laptop: 40 SM; запас на неравномерность историй
+    public int Blocks = 0;           // 0 — постоянные нити по занятости (api.cu, rm_run)
     public int Threads = 128;
 
     public RmGpu(string path, long stackBytes)
@@ -154,30 +154,68 @@ sealed class RmGpu
 
     public int Slots(int branch) { return this.slots(branch); }
 
-    /// <summary>Настройки и данные симулятора узла — на устройство.</summary>
-    public void Prepare(EfficiencySimulator sim)
+    /// <summary>
+    /// Настройки и данные симулятора узла — на устройство. Настройки — каждый узел (у
+    /// узлов разные допуски пика); данные — только когда `reuse` не задан или
+    /// упаковки ещё нет: сцена у узлов одна, и пересобирать 1.4 МБ отражением на
+    /// каждый из 144 узлов значило бы тратить на упаковку больше, чем на счёт.
+    /// </summary>
+    public void Prepare(EfficiencySimulator sim, bool reuse = false)
     {
+        var watch = Stopwatch.StartNew();
         foreach (KeyValuePair<string, double> kv in GpuPack.Settings(sim))
         {
             this.Ok(this.cfgSet(kv.Key, kv.Value), "rm_cfg_set(" + kv.Key + ")");
         }
 
         this.Ok(this.cfgCommit(), "rm_cfg_commit");
-        byte[] blob = GpuPack.Pack(sim);
-        this.Ok(this.load(blob, blob.Length), "rm_load");
-        this.LastBlobBytes = blob.Length;
+        if (!reuse || this.lastBlob == null)
+        {
+            byte[] blob = GpuPack.Pack(sim);
+            this.Ok(this.load(blob, blob.Length), "rm_load");
+            this.lastBlob = blob;
+            this.LastBlobBytes = blob.Length;
+        }
+        else
+        {
+            GpuReflect.Call(sim, "EnsureBuilt");
+        }
+
+        this.PackSeconds += watch.Elapsed.TotalSeconds;
     }
 
+    /// <summary>
+    /// Сверка ПРИНЯТОГО допущения «данные у узлов сцены одни»: упаковка этого
+    /// симулятора обязана совпасть с загруженной байт в байт. Отказ — исключение.
+    /// </summary>
+    public void AssertSameBlob(EfficiencySimulator sim, string where)
+    {
+        byte[] blob = GpuPack.Pack(sim);
+        bool same = this.lastBlob != null && blob.Length == this.lastBlob.Length;
+        for (int i = 0; same && i < blob.Length; i++) same = blob[i] == this.lastBlob[i];
+        if (!same)
+        {
+            throw new InvalidOperationException("GPU-путь: упаковка узла " + where
+                + " разошлась с упаковкой первого узла сцены — данные зависят от узла, повторное использование неверно");
+        }
+    }
+
+    public void ForgetBlob() { this.lastBlob = null; }
+
+    byte[] lastBlob;
     public int LastBlobBytes;
+    public double PackSeconds, KernelSeconds;
 
     public void Run(int branch, double energyKev, double binKev, int bins, long n, long first, int rngMode,
                     ulong[] states, uint key0, uint key1,
                     double[] hist, double[] hist2, double[] chan, double[] light, double[] scal,
                     GpuHistoryOut[] perHistory)
     {
+        var watch = Stopwatch.StartNew();
         this.Ok(this.run(branch, energyKev, binKev, bins, n, first, rngMode, states, key0, key1,
                          hist, hist2, chan, light, scal, scal.Length, perHistory, this.Blocks, this.Threads),
                 "rm_run(ветвь " + branch + ")");
+        this.KernelSeconds += watch.Elapsed.TotalSeconds;
     }
 }
 
@@ -218,7 +256,7 @@ static class GpuNode
     }
 
     public static double[][] ResponseByChannel(RmGpu gpu, EfficiencySimulator sim, double energyKev, double binKev,
-                                               uint key0, uint key1, out double relativeError)
+                                               uint key0, uint key1, out double relativeError, bool reuseBlob = false)
     {
         if (!(energyKev > 0.0) || !(binKev > 0.0)) throw new ArgumentOutOfRangeException("binKev");
         int bins = EfficiencySimulator.PeakBin(energyKev, binKev) + 1;
@@ -228,7 +266,7 @@ static class GpuNode
         GpuReflect.Set(sim, "channelHistograms", channels);
         try
         {
-            relativeError = Run(gpu, sim, energyKev, histogram, binKev, key0, key1);
+            relativeError = Run(gpu, sim, energyKev, histogram, binKev, key0, key1, reuseBlob);
         }
         finally
         {
@@ -240,9 +278,9 @@ static class GpuNode
 
     /// <summary>Зеркало `EfficiencySimulator.Run` (:8605–8775) при `histogram != null`.</summary>
     static double Run(RmGpu gpu, EfficiencySimulator sim, double energyKev, double[] histogram, double binKev,
-                      uint key0, uint key1)
+                      uint key0, uint key1, bool reuseBlob)
     {
-        gpu.Prepare(sim);                                   // зовёт EnsureBuilt
+        gpu.Prepare(sim, reuseBlob);                        // зовёт EnsureBuilt
         object lightYield = GpuReflect.Field(sim, "lightYield");
         double[] lightSum = lightYield != null ? new double[histogram.Length] : null;
         GpuReflect.Set(sim, "lightSum", lightSum);
@@ -397,6 +435,21 @@ static class GpuBuild
         double[] nodeResolutionExtra = new double[grid.Length];
         int nominal = Math.Max(1, options.Histories);
 
+        // κ пар (`BuildJoint`) от строк узлов не зависит — только от геометрии, настроек и
+        // сетки, а пишет одни поля `Joint*`. Поэтому он идёт на ЦП ОДНОВРЕМЕННО с узлами
+        // на GPU, во временную матрицу; поля переносятся после узлов. Потоков ЦП — на
+        // один меньше обычного: один держит запуски GPU.
+        int threads = options.Threads > 0 ? options.Threads : Math.Max(1, Environment.ProcessorCount - 2);
+        var parallel = new ParallelOptions { MaxDegreeOfParallelism = threads, CancellationToken = CancellationToken.None };
+        var jointMatrix = new ResponseMatrix();
+        var jointWatch = Stopwatch.StartNew();
+        double jointSeconds = 0.0;
+        Task jointTask = Task.Run(() =>
+        {
+            GpuReflect.Call(Builder, "BuildJoint", geometry, options, jointMatrix, grid, parallel);
+            jointSeconds = jointWatch.Elapsed.TotalSeconds;
+        });
+
         for (int slot = 0; slot < grid.Length; slot++)
         {
             int index = grid.Length - 1 - slot;
@@ -409,7 +462,12 @@ static class GpuBuild
             uint key0, key1;
             GpuNode.NodeKey(options, sim, index, out key0, out key1);
             double relativeError;
-            double[][] histograms = GpuNode.ResponseByChannel(gpu, sim, energyKev, options.BinKev, key0, key1, out relativeError);
+            if (slot == 0) gpu.ForgetBlob();
+            double[][] histograms = GpuNode.ResponseByChannel(gpu, sim, energyKev, options.BinKev, key0, key1,
+                                                              out relativeError, true);
+            // Допущение «данные у узлов сцены одни» сверяется на последнем узле (самая
+            // далёкая от первого энергия): разойдись упаковка — отказ, а не тихий счёт.
+            if (slot == grid.Length - 1) gpu.AssertSameBlob(sim, energyKev.ToString("F3", CultureInfo.InvariantCulture) + " кэВ");
             continuumError[index] = sim.LastContinuumRelativeError;
             nodeResolutionExtra[index] = resolutionHalfWidth > 0.0 ? sim.LastResolutionPeakExtra : 0.0;
             nodeAngular[index] = sim.LastAngularMoments;
@@ -424,6 +482,13 @@ static class GpuBuild
         }
 
         LastGpuSeconds = watch.Elapsed.TotalSeconds;
+        if (log != null)
+        {
+            log.WriteLine("   GPU      : из них ядра {0:F1} с, упаковка и настройки {1:F1} с", gpu.KernelSeconds, gpu.PackSeconds);
+        }
+
+        gpu.KernelSeconds = 0.0;
+        gpu.PackSeconds = 0.0;
 
         double worstContinuum = 0.0, sumInverse = 0.0, sumWeight = 0.0;
         foreach (double e in continuumError)
@@ -457,11 +522,26 @@ static class GpuBuild
 
         matrix.RebuildTotals();
         GpuReflect.Call(Builder, "FillResolutionPeak", geometry, matrix, nodeResolutionExtra);
-        var jointWatch = Stopwatch.StartNew();
-        int threads = options.Threads > 0 ? options.Threads : Math.Max(1, Environment.ProcessorCount - 1);
-        var parallel = new ParallelOptions { MaxDegreeOfParallelism = threads, CancellationToken = CancellationToken.None };
-        GpuReflect.Call(Builder, "BuildJoint", geometry, options, matrix, grid, parallel);
-        LastJointSeconds = jointWatch.Elapsed.TotalSeconds;
+        try
+        {
+            jointTask.Wait();
+        }
+        catch (AggregateException e)
+        {
+            throw e.InnerException ?? e;
+        }
+
+        // Все поля `Joint*` временной матрицы — в итоговую (их и только их пишет BuildJoint).
+        foreach (PropertyInfo p in typeof(ResponseMatrix).GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+        {
+            if (p.Name.StartsWith("Joint", StringComparison.Ordinal) && p.CanRead && p.GetSetMethod(true) != null
+                && p.GetIndexParameters().Length == 0)
+            {
+                p.GetSetMethod(true).Invoke(matrix, new[] { p.GetValue(jointMatrix, null) });
+            }
+        }
+
+        LastJointSeconds = jointSeconds;
         watch.Stop();
         matrix.BuildSeconds = watch.Elapsed.TotalSeconds;
         return matrix;

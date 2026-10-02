@@ -286,6 +286,19 @@ RM_API int rm_run(int branch, double energyKev, double binKev, int bins,
             a.perHistory = (HistoryOut*)alloc(sizeof(HistoryOut) * (size_t)n);
         }
 
+        // blocks ≤ 0 — ПОСТОЯННЫЕ нити: ровно столько блоков, сколько их помещается на
+        // все SM разом (занятость по регистрам и стеку ядра). Лишние блоки ждали бы
+        // своей волны, и узел кончался бы хвостом из одной недогруженной волны.
+        if (blocks <= 0)
+        {
+            int perSm = 0, device = 0, sms = 0;
+            Check(cudaGetDevice(&device), "cudaGetDevice");
+            Check(cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount, device), "SM");
+            if (branch == 0) Check(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&perSm, WeightedKernel, threads, 0), "occupancy");
+            else Check(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&perSm, AnalogKernel, threads, 0), "occupancy");
+            blocks = (perSm > 0 ? perSm : 1) * sms * (blocks < 0 ? -blocks : 1);
+        }
+
         if (branch == 0) WeightedKernel<<<blocks, threads>>>(a);
         else AnalogKernel<<<blocks, threads>>>(a);
         Check(cudaGetLastError(), "запуск ядра");
