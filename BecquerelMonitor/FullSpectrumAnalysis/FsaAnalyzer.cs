@@ -8442,6 +8442,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.AnchorSigmaInAmplitudes = true;
             this.AnchorWindowCeil = true;
             this.AnchorWidth = true;
+            this.TailKeepsCrystalEscape = true;
             this.AnchorWidthFloor = 0.01;
             this.AnchorWidthMaxRatio = 1.25;
             this.AnchorOffsetMinAnchors = 2;
@@ -17520,6 +17521,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double ResponseContinuumTrustFloorKev = 100.0;
 
         /// <summary>
+        /// (`AMBER142` (6), П226 02.10.2026) Пик вылета K-рентгена кристалла
+        /// (канал матрицы `EscapeXrayK`, E − E_Kα) остаётся в образе и под
+        /// порогом доверия <see cref="ResponseContinuumTrustFloorKev"/> — окном
+        /// как у линии, а не уходит в отвязанный хвост со свободной амплитудой,
+        /// где он был свободным пиком и забирал счёт у чужой линии той же
+        /// энергии. Довод и замер — у ножа
+        /// <see cref="SplitContinuumBelowTrustFloor(double[], double[], double[][], double, FsaComponent, EnergyCalibration, FwhmCalibration, int)"/>.
+        /// Рычаг A/B: выключен — прежний нож побитово. В UI и конфигурацию не
+        /// выводится: рычаг замера, а не настройка человека.
+        /// </summary>
+        public bool TailKeepsCrystalEscape { get; set; }
+
+        /// <summary>
         /// (`AMBER30`, П70; `S175`) Куда в РЕЗУЛЬТАТЕ идёт отвязанный хвост
         /// матричного образа (колонка `FitColumn.TailOf`): при поднятом ключе —
         /// в <see cref="FsaResult.UntiedTail"/> и мимо верха стека, то есть
@@ -17606,8 +17620,108 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 highs.Add(centre + half);
             }
 
-            double[] tail = null;
             int limit = Math.Min(floorBins, deposit.Length);
+
+            // ⛔ (`AMBER142` (6), П226) ПИК ВЫЛЕТА K-РЕНТГЕНА КРИСТАЛЛА — ТОЖЕ ПИК.
+            // Линией компонента он не числится, и окна у него не было: пик на
+            // E − E_Kα уходил в отвязанный хвост со СВОБОДНОЙ амплитудой, то
+            // есть становился свободным пиком под порогом. У Cd-109 вылет 88 кэВ
+            // встаёт на 59.4 кэВ — ровно на линию Am-241: в составе Am-241 +
+            // Cd-109 (`G1S16_Am241_P25`) хвост Cd-109 при амплитуде в ~2000 раз
+            // больше своего образа забирал 19 % пика 59.5 кэВ (истина замкнутой
+            // проверки Am-241 A 60.4 M против 74.4 M без отвязки), а отсев
+            // Cd-109 по значимости уносил хвост вместе с образом и отдавал счёт
+            // назад — Am-241 +14.1 % при 1/10 счёта, разброс/σ 2.10. Держатся
+            // бины пика канала вылета K-рентгена матрицы (`EscapeXrayK`), который
+            // уже стоит на шкале света тем же <see cref="AccumulateLine"/>. Без
+            // раскладки по каналам вклад пуст и окон нет — прежний нож.
+            if (this.TailKeepsCrystalEscape && this.ResponseMatrix != null && this.ResponseMatrix.HasChannels
+                && limit > 0)
+            {
+                int escapeChannel = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeXrayK;
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (!(line.Energy > 0.0) || !(line.Intensity > 0.0))
+                    {
+                        continue;
+                    }
+
+                    // Приёмник — СВОЕЙ длины на линию, как у образа одной линии
+                    // (`ImageBins` + запас света): в короткий массив `Add` зажал бы
+                    // отклик старшей линии в последний бин, и «пик вылета» встал бы
+                    // там, где кончается приёмник (замер П226: линии Eu-152 1005…1261
+                    // кэВ давали ложный пик на 52…56 кэВ у образа одной линии 121.8).
+                    double[] scratch = new double[EfficiencyMaker.ResponseMatrix.ImageBins(line.Energy, bin)
+                                                  + this.lightMarginBins];
+                    this.AccumulateLine(this.ResponseMatrix, scratch, line.Energy, 1.0, escapeChannel);
+                    // Положение пика — бин-максимум канала, а не центр тяжести:
+                    // у линий выше сотни кэВ в том же канале лежит и комптон с
+                    // ушедшим рентгеном, широкий, и центр тяжести уехал бы в
+                    // середину континуума и держал бы привязанным его, а не пик.
+                    int top = -1;
+                    for (int i = 0; i < scratch.Length; i++)
+                    {
+                        if (scratch[i] > 0.0 && (top < 0 || scratch[i] > scratch[top]))
+                        {
+                            top = i;
+                        }
+                    }
+
+                    if (top < 0 || top >= limit)
+                    {
+                        continue;
+                    }
+
+                    // Пик вылета, чьё уширенное подножие (±2 ПШПВ, как окно линии)
+                    // заходит ниже пола полосы фита по умолчанию
+                    // (<see cref="FsaBand.DefaultFitFloorKev"/>), остаётся в хвосте:
+                    // там рампа порога АЦП, которую матрица знать не может, —
+                    // ради этого хвост и отвязан. Замер П226: вылеты рентгена Sm/Gd
+                    // у Eu-152 (10…22 кэВ), удержанные в образе, уводили Eu-152
+                    // малой базы на −4…−5 % от паспорта и χ²/ndf вверх; с этим
+                    // ножом χ²/ndf Eu-152 −3…−11 %, активность ≤ 1.5 %.
+                    double escapeKev = top * bin;
+                    double reach = 3.0 * bin;
+                    double escapeChannelPos = EnergyToChannelSafe(calibration, escapeKev, channels);
+                    if (Finite(escapeChannelPos))
+                    {
+                        double fwhmChannels = fwhmCalibration.ChannelToFwhm(escapeChannelPos);
+                        if (PositiveFinite(fwhmChannels) && fwhmChannels < channels)
+                        {
+                            double fwhmKev = calibration.ChannelToEnergy(escapeChannelPos + fwhmChannels / 2.0)
+                                             - calibration.ChannelToEnergy(escapeChannelPos - fwhmChannels / 2.0);
+                            if (PositiveFinite(fwhmKev))
+                            {
+                                reach = Math.Max(reach, 2.0 * fwhmKev);
+                            }
+                        }
+                    }
+
+                    if (escapeKev - reach < FsaBand.DefaultFitFloorKev)
+                    {
+                        continue;
+                    }
+
+                    // Держится ТОЛЬКО сам пик вылета — бины канала не слабее
+                    // десятой доли его вершины (Kα и Kβ) и по бину с каждой
+                    // стороны, — а не окно ±2 ПШПВ, как у линии: широкое окно
+                    // держало привязанным и комптон соседних линий (замер П226:
+                    // Eu-152 малой базы −4…−5 % от паспорта при окне ±2 ПШПВ
+                    // вокруг вылетов 121.8 и рентгена Sm). Гистограмма
+                    // поглощения ещё не уширена, пик в ней узкий.
+                    double floorValue = 0.1 * scratch[top];
+                    for (int i = 0; i < Math.Min(scratch.Length, limit + 1); i++)
+                    {
+                        if (scratch[i] >= floorValue && scratch[i] > 0.0)
+                        {
+                            lows.Add((i - 1) * bin);
+                            highs.Add((i + 1) * bin);
+                        }
+                    }
+                }
+            }
+
+            double[] tail = null;
             for (int i = 0; i < limit; i++)
             {
                 if (deposit[i] <= 0.0)
