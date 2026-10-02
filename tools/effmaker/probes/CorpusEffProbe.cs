@@ -458,6 +458,15 @@ class CorpusEffProbe
                 return false;
             }
 
+            // (`S208`, П216) Пик окном полной строки ±ПШПВ/2 — в клейме
+            // `peps=fwhm` у геометрии с разрешением: кривая той же физики 26
+            // без куска посчитана прежним определением пика и пересчитывается.
+            if ((stamp.IndexOf("peps=fwhm", StringComparison.Ordinal) >= 0)
+                != (geometry.FwhmAt662Percent > 0.0))
+            {
+                return false;
+            }
+
             try
             {
                 if (!string.Equals(GeometryWriter.Render(have.Geometry), want, StringComparison.Ordinal))

@@ -1001,8 +1001,19 @@ namespace BecquerelMonitor.EfficiencyMaker
             // таблиц `matdb`, которые читает перенос
             // (`MaterialDatabase.SimulatorDataFingerprint`), тем же именем, что у
             // клейма матрицы; пишется всегда, последним куском.
+            // `; peps=fwhm` (`S208`, П216 02.10.2026) — пик кривой окном полной
+            // строки ±ПШПВ/2 (взвешенная ветвь тесным допуском + аналоговая
+            // полоса, `EfficiencySimulator.CurvePeakResolutionWindow`), тем же
+            // именем и значением, что определение ε_p в клейме матрицы
+            // (`AMBER145`). Пишется ТОЛЬКО у геометрии с разрешением: без него
+            // допуск ноль, окна нет и кривая посимвольно прежняя (`T42`). Без
+            // куска кривая с окном была бы неотличима от прежней при той же
+            // физике 26 — поколение `phys=` у кривой и матрицы общее, и поднять
+            // его значило бы объявить чужим весь склад, чьё содержимое правка не
+            // трогает.
+            bool resolutionWindow = geometry.FwhmAt662Percent > 0.0;
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}{19}{20}{21}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}{19}{20}{21}{22}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
@@ -1030,6 +1041,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 storePhysics.ElectronLayerBremAlongPath ? "; lbrem=1" : "",
                 storePhysics.ElectronLayerBremAngular2BS ? "; lbang=1" : "",
                 storePhysics.XcomPairThreshold ? "; pairth=1" : "",
+                resolutionWindow ? "; peps=fwhm" : "",
                 "; mdb=" + MaterialDatabase.SimulatorDataFingerprint());
             return result;
         }
