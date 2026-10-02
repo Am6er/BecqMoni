@@ -4748,6 +4748,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int AnchorOffsetMinAnchors { get; set; }
 
         /// <summary>
+        /// ⛔ (`S210`, П212 02.10.2026) РЕЖИМ КРИВОЙ (без матрицы отклика):
+        /// световая координата <see cref="AnchorLightPosition"/> действует,
+        /// только когда у опор есть ПЛЕЧО — то же условие, при котором МНК
+        /// вправе подбирать ноль (<see cref="AnchorOffsetMinAnchors"/>, верхняя
+        /// опора вдвое выше нижней). Иначе координата снимается: опоры идут в
+        /// МНК без вычета света, итог β = 0, образы — на табличной энергии.
+        ///
+        /// Почему. s(E) = E·r(E)/r(E₀) − E предполагает шкалу, пропорциональную
+        /// свету. С матрицей это обеспечивает карта нуля «adc» со своим нулём
+        /// света по съёмке; без матрицы карты нет (`AMBER156`, П195), и s(E)
+        /// ложится поверх калибровки ФАЙЛА — а нелинейная калибровка прибора
+        /// свет уже несёт. При плече разлад гасят усиление и ноль на краях
+        /// опор; при одной опоре его гасит одно усиление и разносит по всей
+        /// шкале. Измерено на `RC103_Th232WT20` (CsI:Tl, poly2, без матрицы):
+        /// единственная опора — рентген W 59 кэВ с s = +9 кэВ — дала усиление
+        /// 0.863, 2614 кэВ модели встал на 2194, ряд тория ушёл в образы
+        /// вылета (Th-232 24.9 % против SE-1631 26.7 %, «ПОДАВЛЕН»), хотя пики
+        /// данных стоят по калибровке файла на 59.1 / 238.5 / 584.7 / 908.9 /
+        /// 2616.8 кэВ. С матрицей — не действует (путь побитово прежний).
+        /// Умолчание — в конструкторе; обратное плечо —
+        /// `--curve-light-lever=0` у `CorpusFsaProbe`.
+        /// </summary>
+        public bool AnchorCurveLightLever { get; set; }
+
+        /// <summary>
         /// (`F11` (в), `AMBER17`; П18 11.09.2026 — умолчание ставит
         /// КОНСТРУКТОР, полярность там же (`T82`); решение Amber 11.09.2026
         /// «Перенести в дерево ключом, полный корпус A/B», умолчание — за ней)
@@ -6261,6 +6286,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             while (true)
             {
+                // ⛔ (`S210`, П212) РЕЖИМ КРИВОЙ: СВЕТ — ТОЛЬКО ПРИ ПЛЕЧЕ ОПОР
+                // (доводы у <see cref="AnchorCurveLightLever"/>). Нет плеча —
+                // координата снимается (итог β = 0), опоры без вычета света;
+                // проверяется на каждом круге отсева — плечо уходит с промахом.
+                if (lightOn && this.ResponseMatrix == null && this.AnchorCurveLightLever)
+                {
+                    double lxMin = double.MaxValue, lxMax = double.MinValue;
+                    foreach (AnchorFit f in fits)
+                    {
+                        lxMin = Math.Min(lxMin, f.X);
+                        lxMax = Math.Max(lxMax, f.X);
+                    }
+
+                    bool leverHere = !this.anchorGainOnly
+                                     && fits.Count >= Math.Max(2, this.AnchorOffsetMinAnchors)
+                                     && lxMin > 0.0 && lxMax - lxMin >= 0.5 * lxMax;
+                    betaFixedAdd = leverHere ? this.LightFixedAdd() : (anchorOnly ? 0.0 : -this.driftLight);
+                    foreach (AnchorFit f in fits)
+                    {
+                        f.YEff = f.Y - betaFixedAdd * f.S;
+                    }
+                }
+
                 beta = anchorOnly ? 0.0 : betaFixedAdd;
                 double swxx = 0.0, swxy = 0.0, sw = 0.0, swx = 0.0, swy = 0.0;
                 double xMin = double.MaxValue, xMax = double.MinValue;
@@ -7758,6 +7806,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.AnchorLightForm = "line";
             this.AnchorLightReferenceKev = 661.657;
             this.AnchorLightMaxKev = 0.0;
+            // (`S210`, П212) без матрицы свет — только при плече опор
+            this.AnchorCurveLightLever = true;
             // (`S169`, П8/П12/П13 12.09.2026) НУЛЬ ШКАЛЫ ОБРАЗА — ОТ НУЛЯ АЦП,
             // И НУЛЬ ПО СЪЁМКЕ. Решения Amber 12.09.2026, вопросником,
             // дословно: «ВКЛ + полный корпус A/B, переобъявить базу», затем
