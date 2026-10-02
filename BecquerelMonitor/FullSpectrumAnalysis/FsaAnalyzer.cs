@@ -257,6 +257,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// (`S207`, П225) Как множитель рампы порога ложится на образ внутри канала —
+    /// <see cref="FsaAnalyzer.RampWithinChannel"/>.
+    /// </summary>
+    public enum FsaRampSampling
+    {
+        /// <summary>
+        /// Канал образа × среднее рампы по каналу (до П225): произведение
+        /// средних, ход образа внутри канала не виден.
+        /// </summary>
+        ChannelMean,
+
+        /// <summary>
+        /// Рампа применяется к образу на дробной сетке канала
+        /// (<see cref="FsaBand.RampProfile.SubBins"/> долей) ДО сведения в
+        /// канал: множитель — среднее рампы по каналу с весами самого образа.
+        /// </summary>
+        ImageWeighted
+    }
+
+    /// <summary>
     /// (`AMBER142` п. 9, П215) Ноль шкалы у прохода привязки без плеча опор —
     /// <see cref="FsaAnalyzer.AnchorNoLeverZero"/>.
     /// </summary>
@@ -1166,6 +1186,81 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            /// <summary>
+            /// ⛔ (`S207`, П225) Долей канала в дробной сетке рампы
+            /// (<see cref="FsaRampSampling.ImageWeighted"/>). Отсчёт канала —
+            /// ∫ T(x)·S(x) dx по каналу, а не (∫T)·(∫S): на вдвое более крупном
+            /// канале разница — ½(T₁ − T₂)(S₁ − S₂) двух его половин, и там, где
+            /// у образа в рампе крутая структура (K-рентген у 30…45 кэВ), копия
+            /// модели, укрупнённая ×2, расходилась с моделью ×2 (П217: χ² блока
+            /// 0–100 кэВ 83 против 1 без рампы). На дробной сетке остаток
+            /// ковариации внутри доли ~h²/12 — при K долях в K² раз меньше.
+            /// </summary>
+            public const int SubBins = 16;
+
+            double[] fine;
+
+            /// <summary>
+            /// (`S207`, П225) Множитель рампы на доле канала: элемент
+            /// [c·<see cref="SubBins"/> + j] — среднее логистики по доле j канала
+            /// c (c ниже <see cref="Top"/>). Среднее долей канала — ровно
+            /// <see cref="At"/> того же канала (интеграл аддитивен).
+            /// </summary>
+            double[] Fine()
+            {
+                if (this.fine == null)
+                {
+                    double[] f = new double[Math.Max(0, this.Top) * SubBins];
+                    double h = 1.0 / SubBins;
+                    for (int c = 0; c < this.Top; c++)
+                    {
+                        for (int j = 0; j < SubBins; j++)
+                        {
+                            double x0 = c - 0.5 + j * h;
+                            f[c * SubBins + j] = MeanLogisticOver(x0, x0 + h, this.Mid, this.Width);
+                        }
+                    }
+
+                    this.fine = f;
+                }
+
+                return this.fine;
+            }
+
+            /// <summary>
+            /// (`S207`, П225) Множитель канала <paramref name="channel"/> для
+            /// образа, распределённого внутри канала по весам
+            /// <paramref name="weights"/>[<paramref name="offset"/> … +
+            /// <see cref="SubBins"/> − 1] (значения профиля в центрах долей): Σ wⱼSⱼ / Σ wⱼ.
+            /// Выше <see cref="Top"/> — единица; веса пусты — среднее по каналу
+            /// (<see cref="At"/>).
+            /// </summary>
+            public double Weighted(int channel, double[] weights, int offset)
+            {
+                if (channel >= this.Top || channel < 0)
+                {
+                    return channel >= this.Top ? 1.0 : this.At(channel);
+                }
+
+                double[] f = this.Fine();
+                int k = channel * SubBins;
+                double sw = 0.0, sws = 0.0;
+                for (int j = 0; j < SubBins; j++)
+                {
+                    double w = weights[offset + j];
+                    sw += w;
+                    sws += w * f[k + j];
+                }
+
+                return sw > 0.0 && !double.IsInfinity(sw) ? sws / sw : this.At(channel);
+            }
+
+            /// <summary>(`S207`, П225) Множитель доли <paramref name="sub"/> канала <paramref name="channel"/> (ниже <see cref="Top"/>).</summary>
+            public double FineAt(int channel, int sub)
+            {
+                return this.Fine()[channel * SubBins + sub];
+            }
+
             /// <summary>Словами — для заверения.</summary>
             public string Describe()
             {
@@ -1189,6 +1284,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double v = width * (Softplus((channel + 0.5 - mid) / width) - Softplus((channel - 0.5 - mid) / width));
+            return Math.Max(0.0, Math.Min(1.0, v));
+        }
+
+        /// <summary>
+        /// (`S207`, П225) Среднее логистики по отрезку [x0, x1] канальной
+        /// координаты — то же, что <see cref="MeanLogistic"/>, но для доли канала.
+        /// </summary>
+        static double MeanLogisticOver(double x0, double x1, double mid, double width)
+        {
+            double len = x1 - x0;
+            if (!(len > 0.0))
+            {
+                return 0.0;
+            }
+
+            if (!(width > 0.0))
+            {
+                return x0 >= mid ? 1.0 : x1 <= mid ? 0.0 : (x1 - mid) / len;
+            }
+
+            double v = width * (Softplus((x1 - mid) / width) - Softplus((x0 - mid) / width)) / len;
             return Math.Max(0.0, Math.Min(1.0, v));
         }
 
@@ -2575,6 +2691,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// в конструкторе; числа — журнал `handover/handover-2026-10-01-p208-s207-channels.md`.
         /// </summary>
         public FsaKernelSampling KernelChannelMean { get; set; }
+
+        /// <summary>
+        /// ⛔ (`S207`, П225) КАК РАМПА ПОРОГА ЛОЖИТСЯ НА ОБРАЗ ВНУТРИ КАНАЛА.
+        /// `ImageWeighted` — образ (ядро уширения, голый пик, шапка подложки)
+        /// берётся на дробной сетке канала (<see cref="FsaBand.RampProfile.SubBins"/>
+        /// долей), умножается на рампу доли и лишь потом сводится в канал:
+        /// отсчёт канала — ∫T·S, как его и регистрирует прибор. `ChannelMean` —
+        /// канал образа × среднее рампы по каналу (до П225, рычаг A/B,
+        /// `--set=RampWithinChannel=ChannelMean`): на вдвое более крупных каналах
+        /// произведение средних теряло ½(T₁ − T₂)(S₁ − S₂) половин канала, и там,
+        /// где у образа в рампе крутая структура (K-рентген Ba у Cs-137, Sm у
+        /// Eu-152), копия модели, укрупнённая ×2, не сходилась с моделью ×2.
+        /// Выше верха рампы и без рампы оба режима побитово одинаковы. Умолчание
+        /// стоит в конструкторе; числа — журнал
+        /// `handover/handover-2026-10-02-p225-ramp-grid.md`.
+        /// </summary>
+        public FsaRampSampling RampWithinChannel { get; set; }
+
+        /// <summary>(`S207`, П225) Рампа ложится на дробную сетку канала (см. <see cref="RampWithinChannel"/>).</summary>
+        bool RampOnGrid
+        {
+            get
+            {
+                return this.thresholdRamp != null && this.thresholdRamp.Mean
+                       && this.thresholdRamp.Top > 0
+                       && this.RampWithinChannel == FsaRampSampling.ImageWeighted;
+            }
+        }
 
         /// <summary>
         /// Сколько ПШПВ отмеряет ГУСТОЙ край шага узлов (`S88`). ⛔ ЧИСЛА
@@ -8074,6 +8218,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // S207 (П208): ядро уширения — среднее по ширине канала; образ инвариантен
             // к укрупнению. Ключ A/B — `--set=KernelChannelMean=Point` (выборка в центре).
             this.KernelChannelMean = FsaKernelSampling.Mean;
+            // S207 (П225): рампа порога — на дробной сетке канала, до сведения образа
+            // в канал. Ключ A/B — `--set=RampWithinChannel=ChannelMean`.
+            this.RampWithinChannel = FsaRampSampling.ImageWeighted;
             // ⛔ СЕТКА ДРЕЙФА РАСШИРЕНА 24.08.2026 решением Amber (`S93`).
             // Прежняя (±0.8 %, ±3 кэВ, 9×9) была УЗКА для половины корпуса: 46
             // спектров из 81 упирались в край нуля, 17 — в край усиления, 12 —
@@ -9148,6 +9295,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                     this.ContinuumKnotDivisor,
                                                     this.ContinuumKnotFwhm, this.ContinuumKnotsByScale,
                                                     out knots);
+                // ⛔ (`S204`, П189) Подложка — ТОЖЕ модель: триггер режет
+                // рассеянное излучение так же, как пики образов, и сплайн,
+                // не помноженный на рампу, был бы обязан нырнуть в ней к нулю
+                // против штрафа на излом. Шапки — неизменная форма «истинного»
+                // континуума, S(канал) — то, что от него регистрирует прибор.
+                // (`S207`, П225) Множитель ставится ДО снятия шапок под полом:
+                // на дробной сетке шапке нужны соседние узлы, а снятие шапок
+                // столбцы лишь отбрасывает, значения оставшихся не трогает.
+                if (this.thresholdRamp != null)
+                {
+                    if (this.RampOnGrid && this.ContinuumKnotsByScale)
+                    {
+                        ApplyRampToHatsOnGrid(hats, knots, this.thresholdRamp);
+                    }
+                    else
+                    {
+                        foreach (double[] hat in hats)
+                        {
+                            this.thresholdRamp.Apply(hat);
+                        }
+                    }
+                }
+
                 if (chLo > chLoGrid)
                 {
                     // (`S207`) шапка целиком ниже пола — её правый узел не выше
@@ -9164,19 +9334,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         hats.RemoveRange(0, keepFrom);
                         knots.RemoveRange(0, keepFrom);
-                    }
-                }
-
-                // ⛔ (`S204`, П189) Подложка — ТОЖЕ модель: триггер режет
-                // рассеянное излучение так же, как пики образов, и сплайн,
-                // не помноженный на рампу, был бы обязан нырнуть в ней к нулю
-                // против штрафа на излом. Шапки — неизменная форма «истинного»
-                // континуума, S(канал) — то, что от него регистрирует прибор.
-                if (this.thresholdRamp != null)
-                {
-                    foreach (double[] hat in hats)
-                    {
-                        this.thresholdRamp.Apply(hat);
                     }
                 }
 
@@ -18015,6 +18172,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // компонентами — каждая ячейка гасится сразу после того, как её
             // размазали, иначе следующий компонент унаследовал бы чужой образ.
             bool any = false;
+            // (`S207`, П225) рампа на дробной сетке: каналы ниже верха рампы
+            // получают множитель с весами хода ЭТОГО ядра внутри канала, и
+            // общий множитель после свёртки им уже не нужен
+            bool onGrid = this.RampOnGrid;
+            FsaBand.RampProfile ramp = this.thresholdRamp;
+            int rampTop = onGrid ? ramp.Top : 0;
             for (int idx = srcLo; idx <= srcHi; idx++)
             {
                 double weight = source[idx];
@@ -18045,9 +18208,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                double[] fineKernel = onGrid && lo < rampTop ? bank.GetFine(bands[idx], phase) : null;
                 for (int i = lo; i <= hi; i++)
                 {
                     double k = kernel[i - full0];
+                    if (fineKernel != null && i < rampTop)
+                    {
+                        k *= ramp.Weighted(i, fineKernel, (i - full0) * FsaBand.RampProfile.SubBins);
+                    }
+
                     template[i] += weight * k;
                     for (int p = 0; p < partCount; p++)
                     {
@@ -18066,7 +18235,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // хвост, подслой сумм, четыре канала исхода, столбец поверки линии,
             // синий канал опоры привязки. Тождества «Σ каналов = лента» и
             // «подслой ≤ лента» переживают множитель, потому что он общий.
-            if (any && this.thresholdRamp != null)
+            // (`S207`, П225) на дробной сетке множитель уже внутри свёртки — тоже
+            // общий у ленты и её частей (тот же источник, то же ядро, та же доля)
+            if (any && this.thresholdRamp != null && !onGrid)
             {
                 this.thresholdRamp.Apply(template);
                 for (int p = 0; p < partCount; p++)
@@ -18360,6 +18531,46 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return kernel;
             }
 
+            readonly Dictionary<long, double[]> fineValues = new Dictionary<long, double[]>();
+
+            /// <summary>
+            /// (`S207`, П225) Ядро той же ступени и фазы на ДРОБНОЙ сетке: элемент
+            /// [i·<see cref="FsaBand.RampProfile.SubBins"/> + j] — значение профиля в
+            /// центре доли j канала i ядра (носитель и начало — как у
+            /// <see cref="Get"/>). Это веса хода образа внутри канала для
+            /// <see cref="FsaBand.RampProfile.Weighted"/>; нормировка не нужна.
+            /// </summary>
+            public double[] GetFine(int band, int phase)
+            {
+                double[] fine;
+                long key = (long)band * SourcePhases + phase;
+                if (this.fineValues.TryGetValue(key, out fine))
+                {
+                    return fine;
+                }
+
+                double[] kernel = this.Get(band, phase);
+                if (kernel != null)
+                {
+                    const int K = FsaBand.RampProfile.SubBins;
+                    double fwhm = Math.Exp(band * LogRatio);
+                    double shift = (double)phase / SourcePhases;
+                    int leftSpan = this.LeftSpan(band);
+                    fine = new double[kernel.Length * K];
+                    for (int i = 0; i < kernel.Length; i++)
+                    {
+                        for (int j = 0; j < K; j++)
+                        {
+                            double offset = i - leftSpan - shift - 0.5 + (j + 0.5) / K;
+                            fine[i * K + j] = PeakShapeModel.RelativeValue(offset, fwhm, this.calibration);
+                        }
+                    }
+                }
+
+                this.fineValues[key] = fine;
+                return fine;
+            }
+
             /// <summary>Смещение центра ядра от его начала, в каналах.</summary>
             public int LeftSpan(int band)
             {
@@ -18444,6 +18655,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // площади удваивал бы счёт профиля на канал.
             double[] shape = null;
             bool any = false;
+            // (`S207`, П225) рампа на дробной сетке канала — см. RampWithinChannel
+            bool onGrid = this.RampOnGrid;
+            int rampTop = onGrid ? this.thresholdRamp.Top : 0;
+            const int K = FsaBand.RampProfile.SubBins;
+            double[] fine = onGrid ? new double[K] : null;
             // (`AMBER157`, П195) выход линий полосы — в кривой и вне её
             double yieldInside = 0.0, yieldOutside = 0.0;
             foreach (FsaLine line in component.Lines)
@@ -18555,7 +18771,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double norm = weight / area;
                 for (int i = lo; i <= hi; i++)
                 {
-                    template[i] += norm * shape[i - full0];
+                    double v = shape[i - full0];
+                    if (onGrid && i < rampTop)
+                    {
+                        // (`S207`, П225) ход пика внутри канала — веса рампы доли
+                        for (int j = 0; j < K; j++)
+                        {
+                            fine[j] = PeakShapeModel.RelativeValue(i - p - 0.5 + (j + 0.5) / K, fwhm, fwhmCalibration);
+                        }
+
+                        v *= this.thresholdRamp.Weighted(i, fine, 0);
+                    }
+
+                    template[i] += norm * v;
                 }
 
                 any = true;
@@ -18575,8 +18803,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             // (`S204`, П189) рампа порога — тем же множителем, что у матричного
-            // пути (`BroadenResponseDeposit`)
-            if (any && this.thresholdRamp != null)
+            // пути (`BroadenResponseDeposit`); на дробной сетке — уже в цикле линий
+            if (any && this.thresholdRamp != null && !onGrid)
             {
                 this.thresholdRamp.Apply(template);
             }
@@ -18724,6 +18952,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return sum / (b - a);
+        }
+
+        /// <summary>
+        /// (`S207`, П225) Рампа на шапки подложки по дробной сетке канала: канал
+        /// ниже верха рампы — среднее по долям «среднее шапки по доле × рампа
+        /// доли» (шапка внутри канала линейна или ломается в узле, и среднее по
+        /// доле точное). Шапки и узлы — как их отдал <see cref="BuildHatBasis"/>
+        /// (по шкале), до снятия шапок под полом.
+        /// </summary>
+        static void ApplyRampToHatsOnGrid(List<double[]> hats, List<double> knots, FsaBand.RampProfile ramp)
+        {
+            const int K = FsaBand.RampProfile.SubBins;
+            double h = 1.0 / K;
+            for (int n = 0; n < hats.Count && n < knots.Count; n++)
+            {
+                double left = n > 0 ? knots[n - 1] : knots[n];
+                double mid = knots[n];
+                double right = n + 1 < knots.Count ? knots[n + 1] : knots[n];
+                double[] hat = hats[n];
+                int top = Math.Min(ramp.Top, hat.Length);
+                for (int i = 0; i < top; i++)
+                {
+                    if (!(hat[i] > 0.0))
+                    {
+                        continue;
+                    }
+
+                    double sum = 0.0;
+                    for (int j = 0; j < K; j++)
+                    {
+                        double a = i - 0.5 + j * h;
+                        sum += HatMean(a, a + h, left, mid, right) * ramp.FineAt(i, j);
+                    }
+
+                    hat[i] = sum / K;
+                }
+            }
         }
 
         static double HatAt(double x, double left, double mid, double right)
