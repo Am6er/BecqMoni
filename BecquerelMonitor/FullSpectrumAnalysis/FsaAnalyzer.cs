@@ -209,8 +209,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// подгонка допускает две точки, а обход рампы смотрит канал по его
         /// нижнему краю: на 512 каналах рампа шириной в канал моделируется так
         /// же, как на 1024.
+        /// ⛔ (`S207`, П217) Уровень, от которого берутся доли рампы, — среднее
+        /// отсчётов на канал в окне ЭНЕРГИИ над серединой рампы
+        /// (<see cref="FsaBand.RampLevelFromMidKev"/>,
+        /// <see cref="FsaBand.RampLevelWindowKev"/>), а не медиана окна в
+        /// каналах: на вдвое более крупных каналах прежнее окно (не меньше
+        /// четырёх каналов) было вдвое шире по энергии и на растущем фоне G1S
+        /// давало уровень на 15 % выше.
         /// </summary>
         Model,
+
+        /// <summary>
+        /// (`S207`, П217) Рычаг A/B: как <see cref="Model"/> до П217 — уровень
+        /// медианой окна правила `A309` за кандидатом (не меньше
+        /// <see cref="FsaBand.ThresholdMinWindowChannels"/> каналов).
+        /// </summary>
+        ModelMedian,
 
         /// <summary>
         /// (`S207`, П208) Рычаг A/B: модель как до `S207` — логистика в центре
@@ -1338,6 +1352,47 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            double level = scan.Level;
+            if (DefaultRampModel == FsaRampModel.Model)
+            {
+                // (`S207`, П217) уровень — среднее в окне энергии над серединой
+                // (RampLevelOf), середина и ширина — по долям ЭТОГО уровня; окно
+                // привязано к середине, и обе величины уточняются вместе до
+                // неподвижной точки. Привязка только к середине (не к ширине):
+                // окно, привязанное к ширине, на крупных каналах RC-103 сползало
+                // внутрь рампы вместе с сужающейся логистикой (замер П217)
+                for (int iter = 0; iter < RampLevelIterations; iter++)
+                {
+                    double next = RampLevelOf(counts, calibration, mid);
+                    if (!(next > 0.0) || double.IsInfinity(next))
+                    {
+                        how = string.Format(CultureInfo.InvariantCulture,
+                            "уровень в окне {0:F0}…{1:F0} кэВ над серединой {2:F2} канала не измерить — рампы нет",
+                            RampLevelFromMidKev, RampLevelFromMidKev + RampLevelWindowKev, mid);
+                        return null;
+                    }
+
+                    level = next;
+                    double m = mid, w = width;
+                    RefineMeanRampByShares(counts, scan.C0, top, level, ref m, ref w);
+                    bool settled = Math.Abs(m - mid) < 1e-7 && Math.Abs(w - width) < 1e-7;
+                    mid = m;
+                    width = w;
+                    if (settled)
+                    {
+                        break;
+                    }
+                }
+
+                points = RampPointsOf(counts, scan.C0, top, level, out first, out last);
+                if (points < minPoints)
+                {
+                    how = string.Format(CultureInfo.InvariantCulture,
+                        "точек рампы {0} при уровне окна {1:F0} — меньше {2}, логистику не подогнать", points, level, minPoints);
+                    return null;
+                }
+            }
+
             if (!(mid >= first - 1.0 && mid <= last + 1.0))
             {
                 how = string.Format(CultureInfo.InvariantCulture,
@@ -1365,11 +1420,147 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Width = width,
                 Top = Math.Max(0, Math.Min(counts.Length, topModel)),
                 Points = points,
-                Level = scan.Level,
+                Level = level,
                 Mean = !RampLegacy
             };
             how = "рампа шире границы";
             return profile;
+        }
+
+        /// <summary>
+        /// (`S207`, П217) Окно уровня модели рампы начинается на столько кэВ выше
+        /// середины рампы. Число взято так, чтобы на родной шкале приборов, у
+        /// которых рампа моделируется (G1S16, G1S24, RC-103 — около трёх кэВ на
+        /// канал), окно легло туда же, где лежало прежнее окно правила `A309`
+        /// (четыре канала от канала за кандидатом): там его начало стояло на
+        /// 4.2…5.4 кэВ выше середины — замер П217 по фонам корпуса с рампой
+        /// (журнал `handover/handover-2026-10-02-p217-s207-ramp-level.md`).
+        /// Пять кэВ — это и верх ширины рампы <see cref="ThresholdRampMaxKev"/>:
+        /// середина плюс пять кэВ у рампы триггера — уже уровень.
+        /// </summary>
+        public const double RampLevelFromMidKev = 5.0;
+
+        /// <summary>
+        /// (`S207`, П217) Ширина окна уровня модели рампы, кэВ: четыре канала по
+        /// три кэВ — прежнее окно на родной шкале тех же приборов. В энергии, а
+        /// не в каналах, потому что именно окно в каналах (не меньше
+        /// <see cref="ThresholdMinWindowChannels"/>) на вдвое более крупных каналах
+        /// уезжало вдвое дальше по растущему фону. Отсчётов в окне столько же
+        /// при любом числе каналов, поэтому шум уровня от укрупнения не растёт и
+        /// пол в каналах ему не нужен.
+        /// </summary>
+        public const double RampLevelWindowKev = 12.0;
+
+        /// <summary>(`S207`, П217) Предел проходов «уровень ↔ середина» модели рампы.</summary>
+        const int RampLevelIterations = 50;
+
+        /// <summary>
+        /// (`S207`, П217) Уровень модели рампы — среднее отсчётов на канал в окне
+        /// энергии [E(<paramref name="mid"/>) + <see cref="RampLevelFromMidKev"/>,
+        /// + <see cref="RampLevelWindowKev"/>]. Края окна дробные: накопленные
+        /// отсчёты внутри канала — линейно (отсчёт канала — интеграл по каналу,
+        /// плотность в канале постоянна), так что сумма двух соседних каналов даёт
+        /// ровно то же накопленное на общих краях, и уровень на вдвое более
+        /// крупных каналах вдвое больше. Среднее, а не медиана: медиана дробного
+        /// окна от числа каналов зависит. Возвращает NaN, если окно не
+        /// помещается в спектр или шкала в нём не растёт.
+        /// </summary>
+        static double RampLevelOf(int[] counts, EnergyCalibration calibration, double mid)
+        {
+            double eMid = calibration.ChannelToEnergy(Math.Max(0.0, mid));
+            double xa = ChannelAtEnergy(counts.Length, calibration, eMid + RampLevelFromMidKev);
+            double xb = ChannelAtEnergy(counts.Length, calibration, eMid + RampLevelFromMidKev + RampLevelWindowKev);
+            if (double.IsNaN(xa) || double.IsNaN(xb) || !(xb > xa))
+            {
+                return double.NaN;
+            }
+
+            return (CumulativeCountsAt(counts, xb) - CumulativeCountsAt(counts, xa)) / (xb - xa);
+        }
+
+        /// <summary>
+        /// Дробный канал (центр канала c — координата c) с энергией
+        /// <paramref name="energy"/>: деление пополам по [0, n − ½] — шкала
+        /// монотонна, а <see cref="EnergyCalibration.EnergyToChannel"/> держит
+        /// состояние (кэш, предел каналов) и из обхода не зовётся. NaN — энергия
+        /// вне шкалы.
+        /// </summary>
+        static double ChannelAtEnergy(int n, EnergyCalibration calibration, double energy)
+        {
+            double lo = 0.0, hi = n - 0.5;
+            double elo = calibration.ChannelToEnergy(lo), ehi = calibration.ChannelToEnergy(hi);
+            if (!(energy >= elo && energy <= ehi))
+            {
+                return double.NaN;
+            }
+
+            for (int i = 0; i < 64; i++)
+            {
+                double x = 0.5 * (lo + hi);
+                if (calibration.ChannelToEnergy(x) < energy)
+                {
+                    lo = x;
+                }
+                else
+                {
+                    hi = x;
+                }
+            }
+
+            return 0.5 * (lo + hi);
+        }
+
+        /// <summary>
+        /// Накопленные отсчёты от нижнего края канала 0 (координата −½) до
+        /// дробной координаты <paramref name="x"/>; внутри канала — линейно.
+        /// </summary>
+        static double CumulativeCountsAt(int[] counts, double x)
+        {
+            if (!(x > -0.5))
+            {
+                return 0.0;
+            }
+
+            int c = (int)Math.Floor(x + 0.5);
+            double sum = 0.0;
+            int full = Math.Min(c, counts.Length);
+            for (int i = 0; i < full; i++)
+            {
+                sum += counts[i];
+            }
+
+            if (c < counts.Length)
+            {
+                sum += (x + 0.5 - c) * counts[c];
+            }
+
+            return sum;
+        }
+
+        /// <summary>
+        /// Точки подгонки рампы при уровне <paramref name="level"/> — каналы
+        /// <c>[from, to]</c> с долей строго между <see cref="RampPointLowShare"/> и
+        /// <see cref="RampPointHighShare"/>; первый и последний из них.
+        /// </summary>
+        static int RampPointsOf(int[] counts, int from, int to, double level, out int first, out int last)
+        {
+            int points = 0;
+            first = int.MaxValue;
+            last = -1;
+            for (int c = from; c <= to; c++)
+            {
+                double s = counts[c] / level;
+                if (!(s > RampPointLowShare && s < RampPointHighShare))
+                {
+                    continue;
+                }
+
+                points++;
+                first = Math.Min(first, c);
+                last = Math.Max(last, c);
+            }
+
+            return points;
         }
 
         /// <summary>
