@@ -5641,13 +5641,47 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return; // (`AMBER22`, П42) канал снят маской замера
             }
 
+            // (`T265` Б, П211) перенос строки — по готовым положениям, числа те же до бита
+            EfficiencyMaker.ResponseMatrix.TransferCache transfer = this.SumTransfer(matrix);
             if (shape.Light)
             {
-                matrix.AccumulateLight(target, thirdKev, weight, channel, shape.ShiftKev, shape.Scale);
+                transfer.AccumulateLight(target, thirdKev, weight, channel, shape.ShiftKev, shape.Scale);
                 return;
             }
 
-            matrix.AccumulateShifted(target, thirdKev, weight, channel, shape.ShiftKev);
+            transfer.AccumulateShifted(target, thirdKev, weight, channel, shape.ShiftKev);
+        }
+
+        /// <summary>
+        /// (`T265` вариант Б, П211 02.10.2026) Готовые строки переноса матрицы для
+        /// сумм-континуума каскада: одна и та же строка третьего кванта кладётся
+        /// тысячи раз с другим весом и сдвигом, и её положения после переноса
+        /// считаются один раз (<c>ResponseMatrix.TransferCache</c>). Кэш свой у
+        /// разбора и у матрицы (по ссылке); <see cref="Analyze"/> начинает с пустого.
+        /// </summary>
+        EfficiencyMaker.ResponseMatrix.TransferCache SumTransfer(EfficiencyMaker.ResponseMatrix matrix)
+        {
+            if (this.sumTransfer == null || !this.sumTransfer.Serves(matrix))
+            {
+                this.sumTransfer = new EfficiencyMaker.ResponseMatrix.TransferCache(matrix);
+            }
+
+            return this.sumTransfer;
+        }
+
+        EfficiencyMaker.ResponseMatrix.TransferCache sumTransfer;
+
+        /// <summary>(`T265` Б, П211) Счётчики готовых строк — для проб: попадания, построения, сбросы.</summary>
+        internal string SumTransferStats
+        {
+            get
+            {
+                EfficiencyMaker.ResponseMatrix.TransferCache t = this.sumTransfer;
+                return t == null
+                    ? "нет"
+                    : string.Format(CultureInfo.InvariantCulture, "попаданий {0}, строк {1}, {2:F1} МБ, сбросов {3}",
+                                    t.Hits, t.Misses, t.Bytes / 1048576.0, t.Clears);
+            }
         }
 
         /// <summary>(П19) Слово формы для результата и `runs.csv`.</summary>
@@ -8062,6 +8096,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.carrySummerKey = null;
             this.DepositCarryHits = 0;
             this.DepositCarryMisses = 0;
+            this.sumTransfer = null; // (`T265` Б, П211) готовые строки переноса — свои на разбор
             FsaResult first = this.AnalyzeOnce(spectrum, backgroundSpectrum, fwhmCalibration,
                                                originalLibrary, efficiency);
             if (first != null)
@@ -17153,7 +17188,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     if (c != peakChannel && (this.MatrixChannelMask & (1 << c)) != 0)
                     {
-                        matrix.AccumulateChannel(rest, first, 1.0, c);
+                        this.SumTransfer(matrix).AccumulateChannel(rest, first, 1.0, c);
                     }
                 }
 

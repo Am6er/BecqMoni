@@ -619,6 +619,7 @@ class CorpusMatrixProbe
 
         bool quiet = true;
         int skipped = 0, built = 0;
+        int skippedStamp = 0, skippedDenser = 0;   // (П209/П211) причины пропуска порознь
         var total = Stopwatch.StartNew();
         foreach (string path in files)
         {
@@ -670,6 +671,7 @@ class CorpusMatrixProbe
                     Console.WriteLine("   пропущена: клеймо сошлось, пересчитывать нечего");
                     Console.WriteLine();
                     skipped++;
+                    skippedStamp++;
                     continue;
                 }
 
@@ -695,6 +697,7 @@ class CorpusMatrixProbe
                                       have.Histories, options.Histories);
                     Console.WriteLine();
                     skipped++;
+                    skippedDenser++;
                     continue;
                 }
             }
@@ -929,8 +932,15 @@ class CorpusMatrixProbe
         // Пропущенное называется ЧИСЛОМ, а не молчанием: «посчитано 0 из 45» —
         // это нормальный исход, когда ничего не менялось, и он должен читаться
         // как нормальный, а не как «проба не сработала».
-        Console.WriteLine("матриц: {0} — посчитано {1}, пропущено {2} (клеймо сошлось); всего {3:F1} мин",
-                          files.Count, built, skipped, total.Elapsed.TotalMinutes);
+        //
+        // (П211, находка П209) Причины пропуска — порознь: прежняя строка
+        // писала «(клеймо сошлось)» про ВСЕ пропуски, и матрица, оставленная
+        // потому, что она ГУЩЕ штатной (`T36`), читалась как сошедшаяся по
+        // клейму — то есть посчитанная ровно этой физикой и этими ключами.
+        Console.WriteLine("матриц: {0} — посчитано {1}, пропущено {2}: клеймо сошлось {3}, гуще штатной {4};"
+                          + " всего {5:F1} мин",
+                          files.Count, built, skipped, skippedStamp, skippedDenser,
+                          total.Elapsed.TotalMinutes);
         if (built == 0 && skipped > 0)
         {
             Console.WriteLine("ничего не изменилось — пересчитывать было нечего");
