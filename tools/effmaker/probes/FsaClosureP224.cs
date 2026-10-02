@@ -10,9 +10,12 @@ using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 
-namespace FsaClosureP204
+namespace FsaClosureP224
 {
     /// <summary>
+    /// П224 (02.10.2026): копия `FsaClosureP204` с ключами `--bgoff-copy=o` и `--bggain-copy=g` — хранимый фон, который
+    /// получает РАЗБОР КОПИИ, переложен как сдвинутый прибор (отсчёт из канала p — в g·p + o); данные копии — истина с
+    /// фоном в шкале пробы. Разбор обязан найти сдвиг сам (`AMBER142` п.3, нуль хранимого фона против пробы).
     /// П204 (01.10.2026): копия `FsaClosureP201` с ключом `--stats` — после каждого разбора строка цены
     /// привязки шкалы (`FsaAnalyzer.ScaleAnchorStats`: проходы, перефиты, время) и время разбора (`AMBER142`, ускорение).
     /// П201 (01.10.2026): копия `FsaClosureP191` с ключом `--percopy` — строка на каждую копию
@@ -60,7 +63,6 @@ namespace FsaClosureP204
                 if (a.StartsWith("--dgain=")) driftGain = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 if (a.StartsWith("--doff=")) driftOff = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
                 if (a == "--lie") lie = true;
-                if (a == "--rebin-back") rebinBack = true;
                 if (a.StartsWith("--rebin=")) rebin = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 if (a == "--decimate") decimate = true;
                 if (a.StartsWith("--copy-decimate=")) copyDecimate = int.Parse(a.Substring(16), CultureInfo.InvariantCulture);
@@ -70,6 +72,7 @@ namespace FsaClosureP204
                 if (a == "--fwhm-follow") fwhmFollow = true;
                 if (a.StartsWith("--fwhm-scale=")) fwhmScale = double.Parse(a.Substring(13), CultureInfo.InvariantCulture);
                 if (a.StartsWith("--truth-fwhm=")) truthFwhm = double.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                if (a.StartsWith("--bgoff-copy=")) bgOffCopy = double.Parse(a.Substring(13), CultureInfo.InvariantCulture); if (a.StartsWith("--bggain-copy=")) bgGainCopy = double.Parse(a.Substring(14), CultureInfo.InvariantCulture);
                 if (a.StartsWith("--bgdrift=")) bgDrift = double.Parse(a.Substring(10), CultureInfo.InvariantCulture);
                 if (a == "--nnls") nnlsTrace = true; if (a == "--bgtrace") FsaAnalyzer.BackgroundGainTraceSink = line => Console.WriteLine("      [фон] " + line);
                 if (a.StartsWith("--floor=")) floorSpec = a.Substring(8);
@@ -93,7 +96,7 @@ namespace FsaClosureP204
                     sumWinLo = double.Parse(t[0], CultureInfo.InvariantCulture);
                     sumWinHi = double.Parse(t[1], CultureInfo.InvariantCulture);
                 }
-                else if (a == "--percopy" || a == "--stats" || a == "--nobg" || a == "--exact" || a == "--notes" || a == "--nomatrix" || a == "--truth-nobg" || a.StartsWith("--dgain=") || a.StartsWith("--doff=") || a == "--lie" || a == "--rebin-back" || a.StartsWith("--dfrom=") || a == "--fwhm-follow" || a.StartsWith("--fwhm-scale=") || a.StartsWith("--truth-fwhm=") || a.StartsWith("--bgdrift=") || a == "--nnls" || a == "--bgtrace" || a.StartsWith("--floor=") || a.StartsWith("--curve-max=") || a.StartsWith("--rebin=") || a == "--decimate" || a.StartsWith("--copy-decimate=") || a == "--ramp=off" || a.StartsWith("--band=")) { }
+                else if (a == "--percopy" || a == "--stats" || a == "--nobg" || a == "--exact" || a == "--notes" || a == "--nomatrix" || a == "--truth-nobg" || a.StartsWith("--dgain=") || a.StartsWith("--doff=") || a == "--lie" || a.StartsWith("--dfrom=") || a == "--fwhm-follow" || a.StartsWith("--fwhm-scale=") || a.StartsWith("--truth-fwhm=") || a.StartsWith("--bgdrift=") || a.StartsWith("--bgoff-copy=") || a.StartsWith("--bggain-copy=") || a == "--nnls" || a == "--bgtrace" || a.StartsWith("--floor=") || a.StartsWith("--curve-max=") || a.StartsWith("--rebin=") || a == "--decimate" || a.StartsWith("--copy-decimate=") || a == "--ramp=off" || a.StartsWith("--band=")) { }
                 else if (a.StartsWith("--set=", StringComparison.Ordinal) || a.StartsWith("--copy-set=", StringComparison.Ordinal))
                 {
                     // П198 --copy-set=: та же настройка, но ТОЛЬКО разбору копий (истина — умолчаниями)
@@ -297,9 +300,6 @@ namespace FsaClosureP204
                 {
                     FsaAnalyzer.ZeroTraceSink = notes && r == 0 ? (Action<string>)(line => Console.WriteLine("      [нуль копии] " + line)) : null;
                     double[] truthUsed = lie ? truth : Drift(truth, rd.EnergySpectrum.EnergyCalibration, channels);
-                    // (П222) --rebin-back: дрейф и обратно — копия в объявленной шкале, несущая только сглаживание
-                    // двойной переразбивки (контроль: смещение от шкалы или от переразбивки копии)
-                    if (rebinBack && !lie) truthUsed = DriftBack(truthUsed, rd.EnergySpectrum.EnergyCalibration, channels);
                     EnergySpectrum copy = exact ? ExactCopy(rd.EnergySpectrum, truthUsed, scale) : PoissonCopy(rd.EnergySpectrum, truthUsed, scale, rng);
                     if (lie && (driftGain != 1.0 || driftOff != 0.0)) copy.EnergyCalibration = LieCalibration(rd.EnergySpectrum.EnergyCalibration);
                     ResultData copyData = Rewrap(rd, copy, scale);
@@ -328,6 +328,22 @@ namespace FsaClosureP204
                             Console.WriteLine("      [nnls {0}] m={1} iter={2}/{3} drops={4} active={5} banned={6} x>0={7} tol={8:E2}; крупнейшие |c|: {9}", nnlsCall, m, t.Iterations, t.Budget, t.Drops, nAct, nBan, nPos, t.Tol, string.Join(" ", top));
                         };
                     EnergySpectrum bgUse = withBg ? rd.BackgroundEnergySpectrum : null;
+                    if (bgUse != null && (bgOffCopy != 0.0 || bgGainCopy != 1.0))
+                    {
+                        if (shiftedBg == null)
+                        {
+                            EnergySpectrum b0 = rd.BackgroundEnergySpectrum;
+                            var target = new DriftedCalibration(b0.EnergyCalibration, bgGainCopy, bgOffCopy);
+                            double[] mv = SpectrumAriphmetics.RebinByEnergy(b0.Spectrum, b0.EnergyCalibration, target, b0.NumberOfChannels);
+                            int[] cn = new int[b0.NumberOfChannels]; long tt = 0;
+                            for (int i = 0; i < cn.Length; i++) { cn[i] = (int)Math.Round(mv[i]); tt += cn[i]; }
+                            shiftedBg = (EnergySpectrum)b0.Clone();
+                            shiftedBg.Spectrum = cn; shiftedBg.TotalPulseCount = tt; shiftedBg.ValidPulseCount = tt;
+                            Console.WriteLine("фон КОПИЙ переложен: усиление {0}, сдвиг {1} кан. (сумма {2} против {3})",
+                                bgGainCopy.ToString("F5", CultureInfo.InvariantCulture), bgOffCopy.ToString("F2", CultureInfo.InvariantCulture), tt, b0.TotalPulseCount);
+                        }
+                        bgUse = shiftedBg;
+                    }
                     if (copyDecimate > 1)
                     {
                         copy = DecimateSpectrum(copy, copyDecimate, "копия");
@@ -483,10 +499,12 @@ namespace FsaClosureP204
         static bool tuningPrinted;
         static double curveMax = 0.0;   // --curve-max=E: снять точки кривой эффективности выше E кэВ (зажим Eval за верхом)
         static double driftGain = 1.0, driftOff = 0.0;
-        static bool lie, fwhmFollow, rebinBack;
+        static bool lie, fwhmFollow;
         static double fwhmScale = 1.0;   // калибровка ПШПВ у копии шире (>1) или уже (<1) той, которой построена истина
         static double truthFwhm = 1.0;   // множитель к калибровке ПШПВ САМОГО спектра перед разбором истины (развёртка ширины по настоящим данным)
         static double bgDrift = 1.0;
+        static EnergySpectrum shiftedBg;
+        static double bgOffCopy = 0.0, bgGainCopy = 1.0;
         static int rebin = 1;   // --rebin=k: спектр, фон, калибровки — ×k грубее (инвариантность к дискретизации)
         // П198 --decimate (вместе с --rebin=k): ТОЧНОЕ укрупнение — канал m = сумма каналов k·m … k·m+k−1 без деления
         // отсчётов, E'(m) = E(k·m + (k−1)/2), ПШПВ'(m) = ПШПВ(k·m + (k−1)/2)/k. Перекладка RebinByEnergy (центры каналов)
@@ -549,21 +567,6 @@ namespace FsaClosureP204
             double[] moved = SpectrumAriphmetics.RebinByEnergy(scaled, declared, target, channels);
             for (int i = 0; i < channels; i++) moved[i] = moved[i] / factor + (i < driftFrom ? truth[i] : 0.0);
             return moved;
-        }
-
-        // (П222) Обратная переразбивка: со шкалы сдрейфовавшего прибора — в объявленную.
-        static double[] DriftBack(double[] moved, EnergyCalibration declared, int channels)
-        {
-            if (driftGain == 1.0 && driftOff == 0.0) return moved;
-            var source = new DriftedCalibration(declared, driftGain, driftOff);
-            double peak = 0.0; for (int i = 0; i < channels; i++) peak = Math.Max(peak, moved[i]);
-            double factor = Math.Min(1000.0, Math.Floor((int.MaxValue / 4.0) / Math.Max(peak, 1.0)));
-            if (factor < 1.0) factor = 1.0;
-            int[] scaled = new int[channels];
-            for (int i = 0; i < channels; i++) scaled[i] = (int)Math.Round(moved[i] * factor);
-            double[] back = SpectrumAriphmetics.RebinByEnergy(scaled, source, declared, channels);
-            for (int i = 0; i < channels; i++) back[i] = back[i] / factor;
-            return back;
         }
 
         // Шкала сдрейфовавшего прибора: центр канала j отвечает объявленной энергии канала (j − off)/g.

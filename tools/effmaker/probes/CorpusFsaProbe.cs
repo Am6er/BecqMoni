@@ -1188,6 +1188,44 @@ namespace CorpusFsaProbe
                     o.AnchorCoreOwner = v == "1" ? 1 : 0;
                     continue;
                 }
+                // (`AMBER142` п. 3, П224) нуль хранимого фона против пробы: 1 — мерить с усилением, 0 — одно усиление
+                if (a.StartsWith("--bg-zero=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(10);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--bg-zero=0|1"); }
+                    o.BackgroundZero = v == "1" ? 1 : 0;
+                    continue;
+                }
+                // (`AMBER142`, П222) доля ядра опоры: 1 — без континуума, 0 — ядро / вся модель окна (прежнее)
+                if (a.StartsWith("--anchor-share-net=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(19);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--anchor-share-net=0|1"); }
+                    o.AnchorShareNet = v == "1" ? 1 : 0;
+                    continue;
+                }
+                // (`AMBER142`, П222) ширина без отклика остатка: 1 — заморозить, 0 — шаг по замеру (прежнее)
+                if (a.StartsWith("--anchor-width-freeze=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(22);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--anchor-width-freeze=0|1"); }
+                    o.AnchorWidthFreeze = v == "1" ? 1 : 0;
+                    continue;
+                }
+                // (`AMBER142`, П222) предел шага нуля света за проход, кан.; 0 — без предела (прежнее)
+                if (a.StartsWith("--anchor-zero-step-max=", StringComparison.Ordinal))
+                {
+                    o.AnchorZeroStepMax = double.Parse(a.Substring(23), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                // (`AMBER142`, П222) старт шагов промаха опоры: 1 — от разности центров тяжести, 0 — от нуля (прежнее)
+                if (a.StartsWith("--anchor-shift-start=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(21);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--anchor-shift-start=0|1"); }
+                    o.AnchorShiftStart = v == "1" ? 1 : 0;
+                    continue;
+                }
                 // (`AMBER142` п. 8, П215) нуль света карты adc: 1 — на нижнем краю канала 0, 0 — в центре
                 if (a.StartsWith("--adc-zero-edge=", StringComparison.Ordinal))
                 {
@@ -1382,7 +1420,8 @@ namespace CorpusFsaProbe
                 if (a.StartsWith("--ramp=", StringComparison.Ordinal))
                 {
                     // (`S207`, П208) модель рампы порога: `model` (умолчание), `legacy`
-                    // (прежнее правило: центр канала, три точки), `off`
+                    // (прежнее правило: центр канала, три точки), `modelmedian` (П217: как `model`
+                    // до П217 — уровень медианой окна правила в каналах), `modelcontinuum`, `off`
                     FsaBand.DefaultRampModel = (FsaRampModel)Enum.Parse(typeof(FsaRampModel), a.Substring(7), true);
                     continue;
                 }
@@ -1393,6 +1432,16 @@ namespace CorpusFsaProbe
                     // (умолчание), `point` — выборка в центре (прежнее, рычаг A/B)
                     o.Kernel = (FsaKernelSampling)Enum.Parse(typeof(FsaKernelSampling), a.Substring(9), true);
                     o.KernelSet = true;
+                    continue;
+                }
+
+                if (a.StartsWith("--ramp-grid=", StringComparison.Ordinal))
+                {
+                    // (`S207`, П225) как рампа порога ложится на образ внутри канала:
+                    // `imageweighted` — на дробной сетке канала (умолчание), `channelmean` —
+                    // канал образа × среднее рампы по каналу (прежнее, рычаг A/B)
+                    o.RampGrid = (FsaRampSampling)Enum.Parse(typeof(FsaRampSampling), a.Substring(12), true);
+                    o.RampGridSet = true;
                     continue;
                 }
 
@@ -2385,6 +2434,11 @@ namespace CorpusFsaProbe
                 analyzer.KernelChannelMean = o.Kernel;
             }
 
+            if (o.RampGridSet)
+            {
+                analyzer.RampWithinChannel = o.RampGrid;
+            }
+
             // (`S88`) A/B-ручка густоты узлов: сплайн со штатным порогом
             // 4·ПШПВ волну 50…130 кэВ повторить не может, и надо знать —
             // это потому, что волны там нет, или потому, что её нечем
@@ -2461,9 +2515,34 @@ namespace CorpusFsaProbe
                 analyzer.AnchorCoreHalfChannel = o.AnchorCoreOwner == 1;
             }
 
+            if (o.AnchorShareNet >= 0)
+            {
+                analyzer.AnchorShareWithoutContinuum = o.AnchorShareNet == 1;
+            }
+
+            if (o.AnchorWidthFreeze >= 0)
+            {
+                analyzer.AnchorWidthFreezeWeak = o.AnchorWidthFreeze == 1;
+            }
+
+            if (o.AnchorZeroStepMax >= 0.0)
+            {
+                analyzer.AnchorZeroStepMaxChannels = o.AnchorZeroStepMax;
+            }
+
+            if (o.AnchorShiftStart >= 0)
+            {
+                analyzer.AnchorShiftStartCentroid = o.AnchorShiftStart == 1;
+            }
+
             if (o.AdcZeroEdge >= 0)
             {
                 analyzer.AdcZeroAtChannelEdge = o.AdcZeroEdge == 1;
+            }
+
+            if (o.BackgroundZero >= 0)
+            {
+                analyzer.BackgroundZeroFollowsSample = o.BackgroundZero == 1;
             }
 
             if (o.AnchorOffsetMin > 0)
@@ -6064,6 +6143,11 @@ namespace CorpusFsaProbe
 
             public bool KernelSet;
 
+            /// <summary>(`S207`, П225) `--ramp-grid=`: рампа на образ внутри канала; <see cref="RampGridSet"/> — ключ задан.</summary>
+            public FsaRampSampling RampGrid;
+
+            public bool RampGridSet;
+
             /// <summary>Розыгрышей Монте-Карло-поверки пределов S9 (0 — не поверять).</summary>
             public int LimitsMc;
 
@@ -6110,7 +6194,12 @@ namespace CorpusFsaProbe
             public int CurveLightLever = -1;
             public int NoLeverZero = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора; 0 inherit, 1 instrument, 2 shift
             public int AnchorCoreOwner = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора
+            public int AnchorShareNet = -1;    // (`AMBER142`, П222) −1 — умолчание анализатора
+            public int AnchorWidthFreeze = -1; // (`AMBER142`, П222) −1 — умолчание анализатора
+            public double AnchorZeroStepMax = -1.0; // (`AMBER142`, П222) < 0 — умолчание анализатора
+            public int AnchorShiftStart = -1;  // (`AMBER142`, П222) −1 — умолчание анализатора
             public int AdcZeroEdge = -1;   // (`AMBER142` п. 8) −1 — умолчание анализатора
+            public int BackgroundZero = -1;   // (`AMBER142` п. 3, П224) −1 — умолчание анализатора
             public double AnchorZ = -1.0;
             public double AnchorWindow = -1.0;
             public double AnchorFloor = -1.0;

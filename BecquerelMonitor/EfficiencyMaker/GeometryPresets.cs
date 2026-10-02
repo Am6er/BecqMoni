@@ -86,7 +86,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // (в файле `.in` — `0.35 cm`); наполнитель — воздух, кладёт
                 // `Wrapping`, как всем. Сцен RC101 в корпусе нет (единственный
                 // спектр группы, `RC101_I131`, без постановки).
+                // ⛔ С 02.10.2026 торец — ПЛАСТИК 1.5 мм, зазор 3.5 → 3.0 мм
+                // (`RadiaCodePlasticFront` ниже, П223) — синхронно с «RadiaCode-103».
                 g.FrontGapThickness = 3.5;
+                RadiaCodePlasticFront(g);
                 Fwhm(g, 10.85);                       // корпус, группа RC101
             }));
 
@@ -114,7 +117,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // у корпуса, которого две осевые точки не разводят (в корпусе
                 // с 18.09.2026 та точка стоит сценой `RC103_point50`, `B30`).
                 // «RadiaCode-101» получил те же 3.5 мм 18.09.2026 (выше).
+                // ⛔ С 02.10.2026 торец — ПЛАСТИК 1.5 мм, а зазор 3.5 → 3.0 мм:
+                // глубина кристалла 5.5 мм, которую мерила П73, сохранена
+                // (`RadiaCodePlasticFront` ниже, П223, `AMBER153`).
                 g.FrontGapThickness = 3.5;
+                RadiaCodePlasticFront(g);
                 Fwhm(g, 8.49);                        // корпус, группа RC103
             }));
 
@@ -259,6 +266,47 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.Reflector = Material("Polytetrafluoroethylene");
             g.Cladding = Material("Aluminum");
         }
+
+        /// <summary>
+        /// ⛔ Торец RadiaCode — ПЛАСТИК: полиэтилен 0.94 г/см³, 1.5 мм вместо
+        /// алюминия 1 мм, который кладёт <see cref="Wrapping"/>. ЧИСЛА ПОДОБРАНЫ
+        /// ПО ПАСПОРТУ RC-103 (П219, `AMBER153`), НЕ ЗАМЕР: корпус RadiaCode
+        /// пластиковый, а толщина 1.5 мм выбрана так, что рентген Ba K у Cs-137
+        /// паспортного источника на RC-103 сошёлся с ожиданием (вплотную 1.153 →
+        /// 0.998, 50 мм 1.145 → 1.031; П191: PE 1.5 мм против Al 1 мм — ε пика
+        /// 22 кэВ ×1.83, 31 ×1.22, 88 1.00, 662 0.98). Решение Amber 02.10.2026
+        /// вопросником, дословно: «Оба на пластик 1.5 мм (Рекомендую)» — оба
+        /// шаблона, RC-101 и RC-103, держатся синхронно (`B30`); на самом RC-101
+        /// не мерено ничего, торец перенесён словом Amber, как и зазор.
+        ///
+        /// ⚠ Вещество обкладки в модели ОДНО на торец и бок
+        /// (<see cref="GeometryModel.Cladding"/>): бок тоже становится
+        /// полиэтиленом, его толщина (1 мм) не меняется.
+        ///
+        /// ⚠ Зазор у торца уменьшается на прибавку толщины корпуса (3.5 → 3.0 мм):
+        /// П73 мерила ГЛУБИНУ кристалла под наружной гранью корпуса (отражатель
+        /// 1 + зазор 3.5 + корпус 1 = 5.5 мм сшивали контакт Cs-137 и точку
+        /// 50 мм), а не зазор. Поэтому толщина корпуса и зазор берутся вместе,
+        /// из того, что уже поставлено, — те же числа и тот же порядок, что у
+        /// сцен корпуса RC-103 (`CorpusGeomProbe.Rc103PlasticFront`, П219):
+        /// кривая шаблона с точкой впритык обязана совпасть с кривой сцены
+        /// `RC103_point0` ветки `p219-scenes` (приёмка П223).
+        ///
+        /// До 02.10.2026 оба шаблона несли торец Al 1 мм при зазоре 3.5 мм, и
+        /// кривая из шаблона занижала ε рентгена (22 кэВ ×0.55, 31 кэВ ×0.82
+        /// против пластика) — активность Cd-109 / Am-241 / I-125 по рентгену
+        /// на RC-103 выходила завышенной в 1.2…1.8 раза.
+        /// </summary>
+        static void RadiaCodePlasticFront(GeometryModel g)
+        {
+            double depth = g.FrontCladdingThickness + g.FrontGapThickness;    // 1.0 + 3.5
+            g.Cladding = Material("Polyethylene", RadiaCodeFrontDensity);
+            g.FrontCladdingThickness = RadiaCodeFrontMm;
+            g.FrontGapThickness = depth - RadiaCodeFrontMm;
+        }
+
+        const double RadiaCodeFrontMm = 1.5;
+        const double RadiaCodeFrontDensity = 0.94;
 
         static void Crystal(GeometryModel g, string name)
         {

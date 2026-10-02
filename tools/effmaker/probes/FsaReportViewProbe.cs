@@ -2384,7 +2384,11 @@ namespace FsaReportViewProbe
 
         static bool WaitIdle(FsaAnalysisSession session)
         {
-            for (int i = 0; i < 600; i++)
+            // Предел 120 с (было 30 с): 02.10.2026 разбор AS80_Th232Medal в сборке Debug
+            // на загруженной машине (~70 %, соседний счёт) не укладывался в 30 с, и сторож
+            // check_fsa_report_view краснел без дефекта — П220 и слияние П225 (CPU разбора
+            // 8 с в Release, Debug вдвое медленнее). Зависший сеанс по-прежнему отказ.
+            for (int i = 0; i < 2400; i++)
             {
                 if (!session.IsRunning)
                 {
