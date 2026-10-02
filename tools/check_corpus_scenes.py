@@ -634,7 +634,7 @@ OLD_VESSEL = [
     (b'SM_SourceHeight = 8.6058 cm', b'SM_SourceHeight = 10 cm'),
 ]
 PLANT_SCENE = u'G1S_mar1l_oisn06_057_p16'
-CONTROL_SCENE = u'G1S_point5'
+CONTROL_SCENE = u'G1S_point5_p16'
 MATRIX_VICTIM = u'G1S_point25'
 STRAY_SCENE = u'X_stray'
 

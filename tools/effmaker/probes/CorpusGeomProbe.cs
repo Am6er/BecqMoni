@@ -36,7 +36,7 @@ using System.Threading;
 //   РАССТОЯНИЕ  — точечных сцен: `pdistance` мерится от НАРУЖНОЙ грани корпуса
 //                модели (`EfficiencySimulator`: `zFace = −(отражатель + зазор +
 //                корпус)`, источник в `zFace − PointDistance`; П73 §3). У G1S
-//                (`G1S_point5`/`G1S_point25`) к именному расстоянию ПРИБАВЛЕНО
+//                (точка 5 см и `G1S_point25`) к именному расстоянию ПРИБАВЛЕНО
 //                7 мм (`S170`/`B30`, решение Amber 14.09.2026 «Точечные сцены
 //                G1S +7 мм — в заход rev25 с B30»; П71: обвязка пресета G1S
 //                заимствована от Nano 16 (`E15`), и матрица на 5 см завышена
@@ -44,6 +44,13 @@ using System.Threading;
 //                Co-60; ОДНО Δ = 7 мм закрывает оба расстояния — подпись
 //                расстояния, не кристалла). Это ИЗМЕРЕННАЯ поправка постановки,
 //                а не добыча обвязки; сосудные сцены G1S её не получали.
+//                ⛔ С 02.10.2026 (`AMBER153`, П219) точка 5 см — СВОЯ СЦЕНА НА
+//                ПРИБОР (`G1S_point5_p16` 58.5 мм, `G1S_point5_p24` 59.5 мм), а
+//                цилиндры G1S24 (Дента-120, Петри-60) стоят с ЗАЗОРОМ до торца
+//                `Denta120P24GapMm` / `Petri60P24GapMm` — ПОДОБРАНО ПО ПАСПОРТУ, это
+//                подстройка, не измерение (блок «ПОДСТРОЙКИ СЦЕН ПО ПАСПОРТУ»
+//                ниже). Там же — торец RC-103: полиэтилен 1.5 мм вместо алюминия
+//                1 мм пресета.
 //   ЗАЩИТА     — признак `InShield` (`DS_Shield = YES`, `AMBER12`) у сцен
 //                «в домике» (`ASN16_point0_house`, `ASN16_point10_house`): в
 //                перенос и клеймо матрицы он НЕ входит, его читает разбор
@@ -99,8 +106,9 @@ using System.Threading;
 // отсутствие таблицы сосудов — отказ, а не «построим меньше». Заодно список
 // `Build()` сведён с корпусом: снятая решением Amber геометрия `ASN16_lu_front`
 // (`B19`) из него убрана — иначе полный прогон возвращал её в корпус молча.
-// Приёмка: `--out=<временный каталог>` даёт 49 файлов `.in` и опись `index.csv`
-// (46 до П99 18.09.2026),
+// Приёмка: `--out=<временный каталог>` даёт 50 файлов `.in` и опись `index.csv`
+// (49 до П219 02.10.2026 — точка 5 см G1S разделена на сцену на прибор;
+// 46 до П99 18.09.2026),
 // равные корпусным (`handover/p72-t258-t259/geom_diff.py`, до 14.09.2026 —
 // `handover/f13-t164/geom_check.py`). До 05.09.2026 (`T164`) опись в корпусе была
 // правлена руками — несла BOM и алфавитный порядок, — и сверялась лишь по
@@ -156,6 +164,88 @@ class CorpusGeomProbe
         /// </summary>
         public string PinnedFrom;
     }
+
+    // ----------------------------------------------------------------------
+    // ⛔ ПОДСТРОЙКИ СЦЕН ПО ПАСПОРТУ (`AMBER153`, П219 02.10.2026) — все числа
+    // В ОДНОМ МЕСТЕ. Это ПОДГОНКА ПОД ПАСПОРТ, а не измерение: каждое число
+    // выбрано так, чтобы мерка паспорта (`tools/pie/passport.py`) у нуклидов с
+    // линиями выше 300 кэВ стала ≈ 1.0, по ОДНОМУ параметру на сцену (вид
+    // сцены). Решения Amber 02.10.2026 вопросником, дословно: точка 5 см —
+    // «Своя сцена на прибор (Рекомендую)»; цилиндры G1S24 Дента-120/Петри —
+    // «Нет, подобрать по паспорту» (взвешенных масс и высот нет); торец RC-103 —
+    // «Пластик 1.5 мм, править (Рекомендую)». Числа подбора и плечи «до/после» —
+    // `handover/handover-2026-10-02-p219-amber153-scenes.md`.
+    // ----------------------------------------------------------------------
+
+    /// <summary>Сдвиг точки 5 см у G1S16 сверх 57 мм (50 + 7 `S170`), мм.</summary>
+    const double G1SPoint5P16FitMm = 1.5;
+
+    /// <summary>Сдвиг точки 5 см у G1S24 сверх 57 мм (50 + 7 `S170`), мм.</summary>
+    const double G1SPoint5P24FitMm = 2.5;
+
+    /// <summary>
+    /// Зазор между дном сосуда и торцом детектора у цилиндров G1S24 (поверка
+    /// 2024), мм; у прочих сосудных сцен — ноль («вплотную», как в паспорте).
+    /// Один зазор на ВИД сосуда, а не на сцену: банка одна и та же у восьми
+    /// эталонов разной набивки, и зазор от набивки не зависит (до подбора
+    /// отношение разбор/паспорт Cs-137 в «Денте» — 0.703 при ρ 0.57 и 0.698
+    /// при ρ 1.66, П214).
+    /// </summary>
+    // ⚠ Подобрано 9 мм (Дента-120) и 7.5 мм (Петри-60) — П219, прямой счёт
+    // чувствительности (журнал §1–§2). Числа вступают ВТОРЫМ коммитом полосы,
+    // вместе с пересчётом 15 матриц цилиндров (счёт П219 на CPU снят решением
+    // Amber 02.10.2026 «Убить, пересчитать потом на GPU»); до того здесь ноль,
+    // и сцены стоят «вплотную», как в паспорте.
+    const double Denta120P24GapMm = 0.0;
+    const double Petri60P24GapMm = 0.0;
+
+    static double VesselGapMm(string key)
+    {
+        if (key.EndsWith("_p24", StringComparison.Ordinal))
+        {
+            if (key.StartsWith("G1S_denta120_", StringComparison.Ordinal)) return Denta120P24GapMm;
+            if (key.StartsWith("G1S_petri60_", StringComparison.Ordinal)) return Petri60P24GapMm;
+        }
+
+        return 0.0;
+    }
+
+    /// <summary>
+    /// Торец RC-103 — ПЛАСТИК (полиэтилен 0.94 г/см³) 1.5 мм вместо алюминия
+    /// 1 мм пресета «RadiaCode-103» (решение Amber 02.10.2026 «Пластик 1.5 мм,
+    /// править (Рекомендую)»; корпус RadiaCode пластиковый, П191: PE 1.5 мм
+    /// против Al 1 мм — ε пика 22 кэВ ×1.83, 31 ×1.22, 88 1.00, 662 0.98).
+    ///
+    /// ⚠ Вещество обкладки в модели ОДНО на торец и бок
+    /// (`GeometryModel.Cladding`): бок тоже становится полиэтиленом, его
+    /// толщина (1 мм пресета) не меняется.
+    ///
+    /// ⚠ Зазор у торца уменьшен на прибавку толщины (3.5 → 3.0 мм), чтобы
+    /// ГЛУБИНА КРИСТАЛЛА под наружной гранью корпуса осталась измеренной
+    /// (`E43`/П73: отражатель 1 + зазор 3.5 + корпус 1 = 5.5 мм сшивали контакт
+    /// Cs-137 и точку 50 мм; измерялась глубина, а не зазор). Без этого
+    /// кристалл ушёл бы на 0.5 мм глубже и контакт `RC103_Cs137_0cm` (1.020 к
+    /// паспорту) потерял бы ~10 %.
+    ///
+    /// Пресет приложения «RadiaCode-103» (`GeometryPresets.cs`) здесь НЕ
+    /// правится — это код приложения; сцены корпуса ставят торец поверх него.
+    /// </summary>
+    static void Rc103PlasticFront(GeometryModel g)
+    {
+        GeometryMaterialLibrary.Entry pe = GeometryMaterialLibrary.ByName("Polyethylene");
+        if (pe == null)
+        {
+            throw new InvalidOperationException("в библиотеке веществ нет «Polyethylene» — торец RC-103 не поставить");
+        }
+
+        double depth = g.FrontCladdingThickness + g.FrontGapThickness;   // 1.0 + 3.5 из пресета
+        g.Cladding = GeometryMaterialLibrary.Make(pe, Rc103FrontDensity);
+        g.FrontCladdingThickness = Rc103FrontMm;
+        g.FrontGapThickness = depth - Rc103FrontMm;
+    }
+
+    const double Rc103FrontMm = 1.5;
+    const double Rc103FrontDensity = 0.94;
 
     static int Main(string[] args)
     {
@@ -364,7 +454,7 @@ class CorpusGeomProbe
             else
             {
                 Console.WriteLine("   принято  : ничего — точечный источник, задано только"
-                                  + " расстояние {0:F0} мм", g.PointDistance);
+                                  + " расстояние {0:0.#} мм", g.PointDistance);
             }
 
             if (!dry)
@@ -623,13 +713,18 @@ class CorpusGeomProbe
             string vessel = c[iVessel];
             double volume = Num(c[iVol]), mass = Num(c[iMass]), density = Num(c[iRo]);
             string material = c[iMat];
+            double gap = VesselGapMm(pair.Key);
             Geom g = new Geom
             {
                 Key = pair.Key,
                 Preset = preset,
-                Vessel = string.Format(CultureInfo.InvariantCulture,
-                                       "{0}, набивка {1} {2:0.###} г/см³, вплотную",
-                                       vessel, material, density),
+                Vessel = gap > 0.0
+                    ? string.Format(CultureInfo.InvariantCulture,
+                                    "{0}, набивка {1} {2:0.###} г/см³, зазор {3:0.0} мм до торца (подбор по паспорту, AMBER153)",
+                                    vessel, material, density, gap)
+                    : string.Format(CultureInfo.InvariantCulture,
+                                    "{0}, набивка {1} {2:0.###} г/см³, вплотную",
+                                    vessel, material, density),
                 Spectra = pair.Value.ToArray(),
                 PassportVolumeMl = volume,
                 PassportMassG = mass,
@@ -653,7 +748,13 @@ class CorpusGeomProbe
             {
                 double thick = vessel.Contains("100") ? 27.2 : (vessel.Contains("Петри") ? 10.0 : 33.0);
                 double diameter = 2.0 * Math.Sqrt(vol * 1000.0 / (Math.PI * thick));
-                g.Shape = m => Beaker(m, diameter, vol, 0.0);
+                g.Shape = m => Beaker(m, diameter, vol, gap);
+                if (gap > 0.0)
+                {
+                    g.Assumed += string.Format(CultureInfo.InvariantCulture,
+                        "; ЗАЗОР {0:0.0} мм до торца ПОДОБРАН ПО ПАСПОРТУ (AMBER153, П219) — подстройка, не измерение",
+                        gap);
+                }
             }
 
             list.Add(g);
@@ -808,28 +909,64 @@ class CorpusGeomProbe
         // ней чужое. Это ИЗМЕРЕННАЯ поправка постановки, а не добыча обвязки;
         // число выбрано по паспортам (25 см и G1S16), не подгонкой под сумм-пик.
         // ⚠ Сосудные сцены G1S поправки НЕ получали (число Δ для них не мерено,
-        // П71 §6) — они стоят как были.
+        // П71 §6); у цилиндров G1S24 с 02.10.2026 — свой зазор, подобранный по
+        // паспорту (`AMBER153`, П219, блок подстроек в начале класса).
         const double G1SPointCorrectionMm = 7.0;
 
+        // ⛔ ТОЧКА 5 см — СВОЯ СЦЕНА НА ПРИБОР, расстояние ПОДОБРАНО ПО ПАСПОРТУ
+        // (`AMBER153`, решение Amber 02.10.2026 вопросником, дословно: «Своя
+        // сцена на прибор (Рекомендую)»; полоса П219). ЭТО ПОДСТРОЙКА, А НЕ
+        // ИЗМЕРЕНИЕ: общая сцена `G1S_point5` (57 мм = 50 + 7, `S170`) занижала
+        // активность всех нуклидов на 5 см на 3…6 % (rev41, мерка паспорта
+        // `tools/pie/passport.py`), без хода по энергии — подпись расстояния
+        // (П191: прямой счёт, ε ∝ 1/(d + d₀)²). Один параметр на сцену —
+        // `pdistance`; подобран по нуклидам с линиями выше 300 кэВ (Cs-137,
+        // Mn-54, Zn-65, Co-60, Na-22, Y-88, Bi-207), где рентген и свет не
+        // мешают, так, чтобы их медиана «разбор/паспорт» стала ≈ 1.0; числа
+        // подбора — `handover/handover-2026-10-02-p219-amber153-scenes.md`.
+        // Слагаемое `S170` (+7 мм) сидит внутри подобранного числа. До
+        // 02.10.2026 оба прибора стояли ОДНОЙ сценой `G1S_point5`.
+        const double G1SPoint5P16Mm = 50.0 + G1SPointCorrectionMm + G1SPoint5P16FitMm;
+        const double G1SPoint5P24Mm = 50.0 + G1SPointCorrectionMm + G1SPoint5P24FitMm;
+
+        // Все поверочные точечные съёмки 5 см одного прибора — ОДНА геометрия:
+        // паспорт эталонов (`Паспорт эталонов\АСПЕКТ_ОСГИ_2024.src`) у всех ОСГИ
+        // пишет `Geometry=Точечная`, `Material=not essential`, `Mass,g=0` и
+        // `Thick,mm=0`, то есть вещества и объёма у источника нет вовсе и сцена
+        // от нуклида не зависит. Расстояние стоит в ИМЕНИ файла каждой съёмки
+        // (`…_Точечная-5см_5cm.xml`). До 16.08.2026 в сцену были вписаны два
+        // спектра из двадцати трёх, остальные числились «геометрии нет».
         list.Add(new Geom
         {
-            Key = "G1S_point5",
+            Key = "G1S_point5_p16",
             Preset = G1S,
-            Vessel = "точечный источник, 5 см от торца (+7 мм, S170)",
-            // Все поверочные точечные съёмки 5 см — ОДНА геометрия: паспорт
-            // эталонов (`Паспорт эталонов\АСПЕКТ_ОСГИ_2024.src`) у всех ОСГИ
-            // пишет `Geometry=Точечная`, `Material=not essential`, `Mass,g=0`
-            // и `Thick,mm=0`, то есть вещества и объёма у источника нет вовсе
-            // и сцена от нуклида не зависит. Расстояние стоит в ИМЕНИ файла
-            // каждой съёмки (`…_Точечная-5см_5cm.xml`). До 16.08.2026 сюда
-            // были вписаны два спектра из двадцати трёх, а остальные
-            // двадцать один числились «геометрии нет».
+            Vessel = string.Format(CultureInfo.InvariantCulture,
+                                   "точечный источник, 5 см от торца (сцена {0:0.0} мм — подбор по паспорту, AMBER153)",
+                                   G1SPoint5P16Mm),
             Spectra = new[]
             {
                 "G1S16_Am241_P5", "G1S16_Ba133_P5", "G1S16_Cd109_P5",
                 "G1S16_Ce139_P5", "G1S16_Co57_P5", "G1S16_Co60_P5",
                 "G1S16_Cs137_P5", "G1S16_Eu152_P5", "G1S16_Mn54_P5",
-                "G1S16_Na22_P5", "G1S16_Th228_P5", "G1S16_Y88_P5", "G1S24_Am241_P5",
+                "G1S16_Na22_P5", "G1S16_Th228_P5", "G1S16_Y88_P5"
+            },
+            Shape = g =>
+            {
+                g.SourceType = GeometrySourceType.Point;
+                g.PointDistance = G1SPoint5P16Mm;
+            },
+        });
+
+        list.Add(new Geom
+        {
+            Key = "G1S_point5_p24",
+            Preset = G1S,
+            Vessel = string.Format(CultureInfo.InvariantCulture,
+                                   "точечный источник, 5 см от торца (сцена {0:0.0} мм — подбор по паспорту, AMBER153)",
+                                   G1SPoint5P24Mm),
+            Spectra = new[]
+            {
+                "G1S24_Am241_P5",
                 "G1S24_Ba133_P5", "G1S24_Bi207_P5", "G1S24_Cd109_P5",
                 "G1S24_Co60_P5", "G1S24_Cs137_P5", "G1S24_Eu152_P5",
                 "G1S24_Na22_P5", "G1S24_Th228_P5", "G1S24_Y88_P5", "G1S24_Zn65_P5"
@@ -837,7 +974,7 @@ class CorpusGeomProbe
             Shape = g =>
             {
                 g.SourceType = GeometrySourceType.Point;
-                g.PointDistance = 50.0 + G1SPointCorrectionMm;    // 57 мм (было 50 до 18.09.2026)
+                g.PointDistance = G1SPoint5P24Mm;
             },
         });
 
@@ -907,7 +1044,7 @@ class CorpusGeomProbe
             Preset = RC103,
             Vessel = "точечный источник, вплотную к торцу",
             Spectra = new[] { "RC103_Cs137_0cm" },
-            Shape = g => { g.SourceType = GeometrySourceType.Point; g.PointDistance = 0.0; },
+            Shape = g => { g.SourceType = GeometrySourceType.Point; g.PointDistance = 0.0; Rc103PlasticFront(g); },
         });
 
         // Оксид лютеция, ОДНА банка на двух постановках одного прибора
@@ -995,7 +1132,7 @@ class CorpusGeomProbe
             PassportMassG = 20.0,
             SourceMaterial = "Lutetium oxide",
             Assumed = "",
-            Shape = g => Beaker(g, 40.0, 18.85, 0.0),
+            Shape = g => { Beaker(g, 40.0, 18.85, 0.0); Rc103PlasticFront(g); },
         });
 
         list.Add(new Geom
@@ -1117,7 +1254,7 @@ class CorpusGeomProbe
             Preset = RC103,
             Vessel = "точечный источник, 50 мм от торца корпуса",
             Spectra = new[] { "RC103_Cs137_50mm" },
-            Shape = g => { g.SourceType = GeometrySourceType.Point; g.PointDistance = 50.0; },
+            Shape = g => { g.SourceType = GeometrySourceType.Point; g.PointDistance = 50.0; Rc103PlasticFront(g); },
         });
 
         // Точка в свинцовом домике на ASN16 (`B30`: «Группа ASN16 в корпусе без
