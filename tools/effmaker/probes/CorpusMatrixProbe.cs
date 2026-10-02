@@ -42,6 +42,16 @@ using System.Threading;
 //                     [--lbin=1] [--pkch=1] [--lys=1|2] [--etr=1] [--imp=1]
 //                     [--ecomp=1] [--bpath=0|1|2] [--eltr=1] [--elmix=1] [--lbrem=1] [--lbang=0|1]
 //                     [--xray=0] [--coh=0] [--brem=0] [--bremsb=0]
+//                     [--gpu | --gpu=<dll>] [--gpu-check=N [--gpu-branch=0,1] [--gpu-node=i,j]]
+//
+// ⚡ `--gpu` (`AMBER160`, П221; решения Amber 02.10.2026 «float + статистика
+// (Рекомендую)» и «Только оснастка (Рекомендую)») — УЗЛЫ матрицы на GPU:
+// `tools\effmaker\gpu\bin\rmgpu_f.dll` (float, Philox), κ пар — прежним кодом на ЦП.
+// Только плоский счёт (`--target=0`): останов по шуму GPU-путь не повторяет и
+// отказывает. `--gpu-check=N` — ступень 1 приёмки: на узлах `--gpu-node` (умолчание
+// — четыре по сетке) CPU и GPU (`rmgpu.dll`, double, тот же xorshift64*) гонят одни и
+// те же N историй ветвей `--gpu-branch` и сравниваются поштучно; матрицы не пишутся.
+// Устройство порта — `tools\effmaker\gpu\README.md`, исполнитель — `GpuMatrixRun.cs`.
 //
 // `--lbrem=1` (`M13`, вторая половина, П106 19.09.2026) — ТОРМОЗНОЕ ЭЛЕКТРОНА В
 // СЛОЯХ ОБВЯЗКИ ПО ХОДУ ПЕРЕНОСА (только под `eltr=1`): кванты тонкой мишени
@@ -199,6 +209,22 @@ class CorpusMatrixProbe
             + "прежний считал ЛЮБОЕ неизвестное значение истиной и молчал.");
     }
 
+    /// <summary>
+    /// (`AMBER160`) Путь к сборке GPU в ДЕРЕВЕ: `tools\effmaker\gpu\bin\<имя>` ближайшего
+    /// предка каталога пробы. В каталог проб библиотека не копируется — план каталога
+    /// (`appwd_plan.ps1`) о ней не знает и знать не обязан.
+    /// </summary>
+    static string GpuDefaultPath(string name)
+    {
+        for (DirectoryInfo d = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory); d != null; d = d.Parent)
+        {
+            string p = Path.Combine(d.FullName, "tools", "effmaker", "gpu", "bin", name);
+            if (File.Exists(p)) return p;
+        }
+
+        return Path.Combine("tools", "effmaker", "gpu", "bin", name);
+    }
+
     static int Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
@@ -210,6 +236,14 @@ class CorpusMatrixProbe
         bool force = false;
         var options = new ResponseMatrixOptions();
         bool coneFar = false;                    // `A57`: конус только дальним
+        // ⚡ (`AMBER160`, П221) GPU-путь: путь к `rmgpu*.dll` (null — CPU), ступень 1
+        // приёмки (`--gpu-check=N` историй на узел), её ветви и узлы. Описание — в
+        // шапке `GpuMatrixRun.cs` и `tools/effmaker/gpu/README.md`.
+        string gpuPath = null;
+        int gpuCheck = 0;
+        string gpuBranches = "0,1";
+        string gpuNodes = null;
+        long gpuStack = 65536;
         try
         {
         foreach (string a in args)
@@ -517,6 +551,22 @@ class CorpusMatrixProbe
                 // задания `BqPerfView*`), ключ остаётся дешёвой мерой рядом с ним.
                 // В счёте не применять.
                 EfficiencySimulator.MeasureCollectCost = true;
+            else if (a == "--gpu")
+                // ⚡ (`AMBER160`, решение Amber 02.10.2026 «float + статистика»):
+                // узлы матрицы на GPU, рабочая float-сборка из дерева.
+                gpuPath = GpuDefaultPath("rmgpu_f.dll");
+            else if (a.StartsWith("--gpu=", StringComparison.Ordinal))
+                gpuPath = a.Substring(6);
+            else if (a.StartsWith("--gpu-check=", StringComparison.Ordinal))
+                // Ступень 1 приёмки: N историй на узел, CPU и GPU (double) по
+                // историям; матрицы не считаются и не пишутся.
+                gpuCheck = int.Parse(a.Substring(12), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--gpu-branch=", StringComparison.Ordinal))
+                gpuBranches = a.Substring(13);
+            else if (a.StartsWith("--gpu-node=", StringComparison.Ordinal))
+                gpuNodes = a.Substring(11);
+            else if (a.StartsWith("--gpu-stack=", StringComparison.Ordinal))
+                gpuStack = long.Parse(a.Substring(12), CultureInfo.InvariantCulture);
             else if (a == "--force") force = true;
             // `A60`, АБЛЯЦИЯ: склад без вылета L-рентгена. Входит в
             // клеймо (`nolx=1`), то есть такая матрица честно другая.
@@ -617,6 +667,51 @@ class CorpusMatrixProbe
 
         Console.WriteLine();
 
+        // ⚡ (`AMBER160`, П221) GPU: библиотека грузится ОДИН раз на прогон. Ступень 1
+        // приёмки (`--gpu-check`) матриц не считает и не пишет — только сверяет
+        // истории CPU и GPU на заданных узлах и выходит.
+        RmGpu gpu = null;
+        if (gpuPath != null || gpuCheck > 0)
+        {
+            if (gpuPath == null) gpuPath = GpuDefaultPath("rmgpu.dll");
+            gpu = new RmGpu(gpuPath, gpuStack);
+            Console.WriteLine("GPU: {0} (real = {1} байт)", gpu.Path, gpu.RealBytes);
+            Console.WriteLine();
+        }
+
+        if (gpuCheck > 0)
+        {
+            int bad = 0;
+            foreach (string path in files)
+            {
+                string key = Path.GetFileNameWithoutExtension(path);
+                GeometryModel geometry = GeometryModel.Load(path);
+                if (coneFar)
+                {
+                    options.AnalogConeSampling = new EfficiencySimulator(geometry).SourceOutsideScene();
+                }
+
+                Console.WriteLine("== {0} ==", key);
+                int nodes = options.BuildGrid(geometry).Length;
+                string list = gpuNodes ?? string.Format(CultureInfo.InvariantCulture, "0,{0},{1},{2}",
+                                                        nodes / 3, (2 * nodes) / 3, nodes - 1);
+                foreach (string ns in list.Split(','))
+                {
+                    int index = int.Parse(ns, CultureInfo.InvariantCulture);
+                    foreach (string bs in gpuBranches.Split(','))
+                    {
+                        bad += GpuCheck.Run(gpu, geometry, options, index, gpuCheck,
+                                            int.Parse(bs, CultureInfo.InvariantCulture), Console.Out) > 0 ? 1 : 0;
+                    }
+                }
+
+                Console.WriteLine();
+            }
+
+            Console.WriteLine("сверка: прогонов с развилками {0}", bad);
+            return 0;
+        }
+
         bool quiet = true;
         int skipped = 0, built = 0;
         int skippedStamp = 0, skippedDenser = 0;   // (П209/П211) причины пропуска порознь
@@ -705,9 +800,15 @@ class CorpusMatrixProbe
             ResponseMatrixBuilder.ResetWalkCounters();
             TimeSpan cpuBefore = Process.GetCurrentProcess().TotalProcessorTime;
             var watch = Stopwatch.StartNew();
-            ResponseMatrix matrix = ResponseMatrixBuilder.Build(
-                geometry, options, null, CancellationToken.None);
+            ResponseMatrix matrix = gpu != null
+                ? GpuBuild.Build(gpu, geometry, options, Console.Out)
+                : ResponseMatrixBuilder.Build(geometry, options, null, CancellationToken.None);
             watch.Stop();
+            if (gpu != null)
+            {
+                Console.WriteLine("   GPU      : узлы {0:F1} с, κ пар (ЦП) {1:F1} с",
+                                  GpuBuild.LastGpuSeconds, GpuBuild.LastJointSeconds);
+            }
             double cpuSeconds = (Process.GetCurrentProcess().TotalProcessorTime - cpuBefore)
                                 .TotalSeconds;
 
@@ -754,10 +855,13 @@ class CorpusMatrixProbe
             Console.WriteLine("   счёт     : {0:F1} с ЦП, {1:F2} мкс на историю  <- сравнивать надо ЭТО",
                               cpuSeconds, histories > 0.0 ? 1.0E6 * cpuSeconds / histories : 0.0);
             // (П45, 13.09.2026) Сетка κ пар считается ТЕМИ ЖЕ секундами ЦП, а в
-            // «истории» выше НЕ входит: у полной сцены это 9.6 М против 420 М
-            // (2 %), а у замера двух узлов по 400 k — 92 % времени, и «мкс на
-            // историю» выходило 26 вместо 2.7. Называется числом, чтобы мерящий
-            // видел, чем делили; замер узлов гнать с `--jnodes=0`.
+            // «истории» выше НЕ входит. До П199 это было 9.6 М против 420 М (2 %);
+            // с `AMBER147` на точку идут 4 истории на энергию плюс оценка
+            // следующего события, и замер П221 02.10.2026 (`G1S_denta120_…_p24`,
+            // 300 тыс. историй на узел) дал κ ≈ 560 с ЦП против 711 с всех узлов,
+            // то есть ≈ 7 % при штатных 3 млн. У замера двух узлов по 400 k κ —
+            // 92 % времени, и «мкс на историю» выходило 26 вместо 2.7. Называется
+            // числом, чтобы мерящий видел, чем делили; замер узлов — с `--jnodes=0`.
             if (matrix.JointPoints > 0)
             {
                 // (`AMBER147`, П199) Историй на точку — 2·узлов κ·(историй на энергию).
