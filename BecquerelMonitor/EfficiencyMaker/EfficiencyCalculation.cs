@@ -1001,8 +1001,19 @@ namespace BecquerelMonitor.EfficiencyMaker
             // таблиц `matdb`, которые читает перенос
             // (`MaterialDatabase.SimulatorDataFingerprint`), тем же именем, что у
             // клейма матрицы; пишется всегда, последним куском.
+            // `; peps=fwhm` (`S208`, П216 02.10.2026) — пик кривой окном полной
+            // строки ±ПШПВ/2 (взвешенная ветвь тесным допуском + аналоговая
+            // полоса, `EfficiencySimulator.CurvePeakResolutionWindow`), тем же
+            // именем и значением, что определение ε_p в клейме матрицы
+            // (`AMBER145`). Пишется ТОЛЬКО у геометрии с разрешением: без него
+            // допуск ноль, окна нет и кривая посимвольно прежняя (`T42`). Без
+            // куска кривая с окном была бы неотличима от прежней при той же
+            // физике 26 — поколение `phys=` у кривой и матрицы общее, и поднять
+            // его значило бы объявить чужим весь склад, чьё содержимое правка не
+            // трогает.
+            bool resolutionWindow = PeakWindowExpected(geometry);
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}{19}{20}{21}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}{19}{20}{21}{22}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
@@ -1030,6 +1041,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 storePhysics.ElectronLayerBremAlongPath ? "; lbrem=1" : "",
                 storePhysics.ElectronLayerBremAngular2BS ? "; lbang=1" : "",
                 storePhysics.XcomPairThreshold ? "; pairth=1" : "",
+                resolutionWindow ? "; " + PeakWindowStamp : "",
                 "; mdb=" + MaterialDatabase.SimulatorDataFingerprint());
             return result;
         }
@@ -1082,6 +1094,36 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// шумная КРИВАЯ — та, у которой шумит середина.
         /// </summary>
         public const double NodeSpreadWarnPercent = 5.0;
+
+        /// <summary>
+        /// ⛔ (`S208`, П216 02.10.2026; решение Amber 02.10.2026 вопросником,
+        /// дословно: «Научить вкладку и сторожа peps=fwhm (Рекомендую)») КУСОК
+        /// КЛЕЙМА «пик кривой окном полной строки ±ПШПВ/2»
+        /// (<see cref="EfficiencySimulator.CurvePeakResolutionWindow"/>). Одно
+        /// место истины: его печатает клеймо кривой (<see cref="Run"/>), его ищут
+        /// подпись вкладки «Эффективность» (`DeviceConfigForm.GenerationNotes`),
+        /// гвард пересчёта корпуса (`CorpusEffProbe`) и сторож
+        /// `tools/check_curve_generation.py`.
+        ///
+        /// Зачем отдельный признак, а не поколение. `phys=` кривой — это
+        /// <see cref="ResponseMatrix.PhysicsVersion"/>, общий с матрицей; правка
+        /// пика кривой матрицу не трогает, и поднять номер значило бы объявить
+        /// чужим весь склад. Кривая физики 26 без куска у геометрии с
+        /// разрешением посчитана прежним определением пика — на 32…80 кэВ ниже
+        /// на 1…3 %, выше K-края вещества пробы — в разы.
+        /// </summary>
+        public const string PeakWindowStamp = "peps=fwhm";
+
+        /// <summary>
+        /// (`S208`) Обязана ли кривая этой геометрии нести
+        /// <see cref="PeakWindowStamp"/>: да — у геометрии с разрешением (допуск
+        /// пика ПШПВ/2 больше нуля). Без разрешения допуск ноль, окна нет, и
+        /// кривая посимвольно прежняя.
+        /// </summary>
+        public static bool PeakWindowExpected(GeometryModel geometry)
+        {
+            return geometry != null && geometry.FwhmAt662Percent > 0.0;
+        }
 
         /// <summary>
         /// Разброс кривой по узлам (`E29`, П41): медиана и худший узел по
