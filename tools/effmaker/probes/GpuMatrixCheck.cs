@@ -204,6 +204,39 @@ static class GpuCheck
             rngDiff, scoreDiff, weightDiff, depDiff, lightDiff, cosDiff, binDiff, chanDiff, flagDiff, anyBad,
             100.0 * anyBad / Math.Max(1, histories)));
         foreach (string s in shown) log.WriteLine(s);
+
+        // АРБИТР развилки (`A315`): расходящуюся историю переигрывает СВЕЖИЙ CPU-симулятор
+        // (новый `MakeSimulator`, то же состояние ГСЧ, без предыдущей истории). Совпал
+        // свежий CPU с GPU — значит, CPU-поток получил своё число от состояния, оставленного
+        // прошлой историей, а GPU прав. Только взвешенная ветвь и не больше 12 историй.
+        if (branch == 0)
+        {
+            int replayed = 0;
+            for (int i = 0; i < histories && replayed < 12; i++)
+            {
+                if (cpu[i].RngAfter == gpuOut[i].RngAfter && Same(cpu[i].Score, gpuOut[i].Score)) continue;
+                replayed++;
+                var fresh = (EfficiencySimulator)GpuReflect.Call(builder, "MakeSimulator", geometry, options, index, energyKev);
+                fresh.Histories = histories;
+                fresh.ResolutionPeakHalfWidthKev = sim.ResolutionPeakHalfWidthKev;
+                GpuReflect.Call(fresh, "EnsureBuilt");
+                GpuReflect.Set(fresh, "lightSum", lightYield != null ? new double[bins] : null);
+                var freshChannels = new double[7][];
+                for (int c = 0; c < 7; c++) freshChannels[c] = new double[bins];
+                GpuReflect.Set(fresh, "channelHistograms", freshChannels);
+                object freshSource = GpuReflect.Field(fresh, "source");
+                GpuReflect.Call(freshSource, "Retune", fresh, energyKev);
+                state.Set(fresh, states[i]);
+                object[] fa = { fresh, 0.0, 0.0, 0.0 };
+                double fw = (double)next.Invoke(freshSource, fa);
+                double fs = (double)one.Invoke(fresh, new object[] { energyKev, (double)fa[1], (double)fa[2], (double)fa[3], new double[bins], binKev, fw });
+                log.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "   арбитр #{0}: CPU в потоке {1:R}, CPU свежий {2:R}, GPU {3:R} — {4}",
+                    i, cpu[i].Score, fs, gpuOut[i].Score,
+                    Same(fs, gpuOut[i].Score) ? "свежий CPU = GPU (поток CPU несёт состояние прошлой истории)"
+                    : Same(fs, cpu[i].Score) ? "свежий CPU = CPU в потоке (расходится GPU)" : "все три разные"));
+            }
+        }
         {
             int worst = 0;
             for (int i = 1; i < histories; i++)
