@@ -2529,7 +2529,21 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <see cref="Math.Floor"/> вместо усечения к нулю — сдвиг вниз по
         /// шкале даёт отрицательные положения, и усечение делило бы там вес
         /// неверно. Края зажимает <see cref="Add"/>.
+        ///
+        /// (`T265` Б, П211 02.10.2026) Пол неотрицательного положения — через
+        /// приведение к `int`: `Math.Floor` в .NET Framework не встраивается и
+        /// идёт вызовом в среду (`clr`), а на сумм-континууме каскада это сотни
+        /// тысяч вызовов на построение. Для `0 ≤ x < 2³¹−1` усечение к нулю и
+        /// есть пол, и `(double)(int)x` равно `Math.Floor(x)` до бита
+        /// (единственное отличие — знак нуля у `x = −0.0`: пол `+0`, а не `−0`;
+        /// дробь тогда `−0`, и второй вклад `value·(−0)` не положителен — его
+        /// отбрасывает <see cref="Add"/>, как и `+0`). Отрицательное, NaN и
+        /// большое — прежним `Math.Floor`. Встраивание
+        /// (`AggressiveInlining`, здесь и у <see cref="Add"/>) чисел не меняет:
+        /// x64-JIT считает в SSE2 с округлением каждой операции до double и
+        /// умножение со сложением в одно (FMA) не сливает.
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         static void Put(double[] target, double position, double value)
         {
             if (!(value > 0.0))
@@ -2537,11 +2551,354 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            double floor = Math.Floor(position);
+            double floor = position >= 0.0 && position < 2147483647.0
+                ? (double)(int)position
+                : Math.Floor(position);
             double frac = position - floor;
             int at = (int)floor;
             Add(target, at, value * (1.0 - frac));
             Add(target, at + 1, value * frac);
+        }
+
+        // ------------------------------------------------------------------
+        // (`T265` Б, П211 02.10.2026) Готовая строка переноса
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// ⚡ ГОТОВЫЕ СТРОКИ ПЕРЕНОСА ПО КАНАЛАМ (`T265` вариант Б, П211
+        /// 02.10.2026; решение Amber 01.10.2026 «А и Б по очереди»). Положения
+        /// бинов строки узла после переноса (<see cref="Transfer"/>) зависят
+        /// только от (энергия линии, канал, множитель света) — не от веса и не
+        /// от сдвига <c>shiftBins</c>, который прибавляется последним. А
+        /// сумм-континуум каскада (S19, свёртка пар) зовёт перенос одной и той
+        /// же строки тысячи раз с другим весом и сдвигом: на `AS80_Th232Medal`
+        /// 7865 полос на построение по нескольким сотням энергий третьего,
+        /// каждая — в шесть каналов. Здесь положения считаются ОДИН раз на
+        /// ключ и хранятся вместе с ненулевыми значениями строки, а вызов только
+        /// прибавляет сдвиг, умножает вес и кладёт (<see cref="Put"/>).
+        ///
+        /// ⛔ ЧИСЛА ТЕ ЖЕ ДО БИТА — это и есть условие правки. Те же выражения
+        /// в том же порядке: положение `(b + shift)·k` (пик и каналы вылета),
+        /// `b·k` (тождество и постоянная энергия), `φ(b·шаг)/шаг·k` (комптон),
+        /// затем `+ shiftBins`; вес узла `w·(1 − t)` / `w·t` / `w`, затем
+        /// `·row[b]`; бины — в прежнем порядке, узлы — нижний, потом верхний.
+        /// Нулевые и отрицательные бины выброшены заранее: прежний
+        /// <see cref="Put"/> отбрасывал их сам (`w·row ≤ 0`).
+        ///
+        /// Обслуживается только перенос ПО КАНАЛАМ (<see cref="TransferByChannel"/>,
+        /// конкретный канал ≥ 0); прочее (общий масштаб, весь отклик разом,
+        /// матрица без каналов) отдаётся прежнему пути без изменений.
+        ///
+        /// ⚠ Кэш принадлежит ОДНОМУ владельцу и одной матрице (по ссылке:
+        /// содержимое матрицы после чтения не меняется) и для одновременного
+        /// использования из нескольких потоков не предназначен. Объём ограничен
+        /// (<see cref="MaxBytes"/>): переполнение сбрасывает кэш целиком.
+        /// </summary>
+        public sealed class TransferCache
+        {
+            readonly ResponseMatrix matrix;
+            readonly Dictionary<LineKey, PreparedLine> lines = new Dictionary<LineKey, PreparedLine>();
+
+            public TransferCache(ResponseMatrix matrix)
+            {
+                this.matrix = matrix;
+                this.MaxBytes = 64L << 20;
+            }
+
+            /// <summary>Матрица, которой служит кэш.</summary>
+            public ResponseMatrix Matrix
+            {
+                get { return this.matrix; }
+            }
+
+            /// <summary>Служит ли кэш этой матрице (по ссылке).</summary>
+            public bool Serves(ResponseMatrix other)
+            {
+                return ReferenceEquals(other, this.matrix);
+            }
+
+            /// <summary>Предел объёма готовых строк, байт; переполнение сбрасывает кэш.</summary>
+            public long MaxBytes { get; set; }
+
+            /// <summary>Счётчики для проб: попадания, построения строк, объём, сбросы.</summary>
+            public long Hits { get; private set; }
+
+            public long Misses { get; private set; }
+
+            public long Bytes { get; private set; }
+
+            public int Clears { get; private set; }
+
+            /// <summary>То же, что <see cref="ResponseMatrix.AccumulateChannel"/>.</summary>
+            public void AccumulateChannel(double[] target, double energyKev, double weight, int channel)
+            {
+                this.Accumulate(target, energyKev, weight, channel, 0.0, 1.0);
+            }
+
+            /// <summary>То же, что <see cref="ResponseMatrix.AccumulateShifted"/>.</summary>
+            public void AccumulateShifted(double[] target, double energyKev, double weight, int channel,
+                                          double shiftKev)
+            {
+                this.Accumulate(target, energyKev, weight, channel,
+                                this.matrix.BinKev > 0.0 ? shiftKev / this.matrix.BinKev : 0.0, 1.0);
+            }
+
+            /// <summary>То же, что <see cref="ResponseMatrix.AccumulateLight"/>.</summary>
+            public void AccumulateLight(double[] target, double energyKev, double weight, int channel,
+                                        double shiftKev, double lightScale)
+            {
+                this.Accumulate(target, energyKev, weight, channel,
+                                this.matrix.BinKev > 0.0 ? shiftKev / this.matrix.BinKev : 0.0,
+                                lightScale > 0.0 ? lightScale : 1.0);
+            }
+
+            void Accumulate(double[] target, double energyKev, double weight, int channel,
+                            double shiftBins, double lightScale)
+            {
+                ResponseMatrix m = this.matrix;
+                if (channel < 0 || !m.TransferByChannel || !m.HasChannels || channel >= m.ChannelRows.Length)
+                {
+                    m.Accumulate(target, energyKev, weight, channel, shiftBins, lightScale);
+                    return;
+                }
+
+                // те же отказы, что у прежнего пути (строки и сетка — при подготовке)
+                if (target == null || !(weight > 0.0) || !(energyKev > 0.0))
+                {
+                    return;
+                }
+
+                var key = new LineKey(energyKev, lightScale, channel);
+                PreparedLine line;
+                if (this.lines.TryGetValue(key, out line))
+                {
+                    this.Hits++;
+                }
+                else
+                {
+                    this.Misses++;
+                    line = this.Prepare(energyKev, channel, lightScale);
+                    if (this.Bytes + line.Bytes > this.MaxBytes && this.lines.Count > 0)
+                    {
+                        this.lines.Clear();
+                        this.Bytes = 0;
+                        this.Clears++;
+                    }
+
+                    this.lines[key] = line;
+                    this.Bytes += line.Bytes;
+                }
+
+                foreach (PreparedPart part in line.Parts)
+                {
+                    double partWeight = part.Kind == PartKind.Exact ? weight : weight * part.Factor;
+                    if (!(partWeight > 0.0))
+                    {
+                        continue; // как `!(weight > 0.0)` у Transfer
+                    }
+
+                    double[] positions = part.Positions;
+                    float[] values = part.Values;
+                    for (int k = 0; k < positions.Length; k++)
+                    {
+                        Put(target, positions[k] + shiftBins, partWeight * values[k]);
+                    }
+                }
+            }
+
+            /// <summary>Выбор узлов — как у <see cref="ResponseMatrix.Accumulate(double[], double, double, int, double, double)"/>.</summary>
+            PreparedLine Prepare(double energyKev, int channel, double lightScale)
+            {
+                ResponseMatrix m = this.matrix;
+                var parts = new List<PreparedPart>(2);
+                float[][] rows = m.ChannelRows[channel];
+                double[] grid = m.Energies;
+                if (rows != null && grid != null && grid.Length > 0)
+                {
+                    int hi = Array.BinarySearch(grid, energyKev);
+                    if (hi >= 0)
+                    {
+                        this.AddPart(parts, rows, hi, energyKev, channel, lightScale, PartKind.Exact, 1.0);
+                    }
+                    else
+                    {
+                        hi = ~hi;
+                        if (hi <= 0)
+                        {
+                            this.AddPart(parts, rows, 0, energyKev, channel, lightScale, PartKind.Exact, 1.0);
+                        }
+                        else if (hi >= grid.Length)
+                        {
+                            this.AddPart(parts, rows, grid.Length - 1, energyKev, channel, lightScale,
+                                         PartKind.Exact, 1.0);
+                        }
+                        else
+                        {
+                            int lo = hi - 1;
+                            double span = grid[hi] - grid[lo];
+                            double t = span > 0.0 ? (energyKev - grid[lo]) / span : 0.0;
+                            this.AddPart(parts, rows, lo, energyKev, channel, lightScale, PartKind.Node, 1.0 - t);
+                            this.AddPart(parts, rows, hi, energyKev, channel, lightScale, PartKind.Node, t);
+                        }
+                    }
+                }
+
+                var line = new PreparedLine { Parts = parts.ToArray() };
+                foreach (PreparedPart part in line.Parts)
+                {
+                    line.Bytes += 64 + 12L * part.Positions.Length;
+                }
+
+                line.Bytes += 96;
+                return line;
+            }
+
+            /// <summary>Положения строки ОДНОГО узла — правилами <see cref="Transfer"/>, без <c>shiftBins</c>.</summary>
+            void AddPart(List<PreparedPart> parts, float[][] rows, int node, double lineEnergy, int channel,
+                         double lightScale, PartKind kind, double factor)
+            {
+                ResponseMatrix m = this.matrix;
+                float[] row = rows[node];
+                double nodeEnergy = m.Energies[node];
+                if (row == null || !(nodeEnergy > 0.0) || !(lineEnergy > 0.0) || !(m.BinKev > 0.0))
+                {
+                    return;
+                }
+
+                int count = 0;
+                for (int b = 0; b < row.Length; b++)
+                {
+                    if (row[b] > 0f)
+                    {
+                        count++;
+                    }
+                }
+
+                var positions = new double[count];
+                var values = new float[count];
+                int n = 0;
+                var rule = (EfficiencySimulator.ResponseChannel)channel;
+                if (rule == EfficiencySimulator.ResponseChannel.Peak)
+                {
+                    double shift = lineEnergy / m.BinKev - EfficiencySimulator.PeakBin(nodeEnergy, m.BinKev);
+                    for (int b = 0; b < row.Length; b++)
+                    {
+                        if (row[b] > 0f)
+                        {
+                            positions[n] = (b + shift) * lightScale;
+                            values[n++] = row[b];
+                        }
+                    }
+                }
+                else if (lineEnergy == nodeEnergy || rule == EfficiencySimulator.ResponseChannel.AnnihilationOutside)
+                {
+                    for (int b = 0; b < row.Length; b++)
+                    {
+                        if (row[b] > 0f)
+                        {
+                            positions[n] = b * lightScale;
+                            values[n++] = row[b];
+                        }
+                    }
+                }
+                else if (rule != EfficiencySimulator.ResponseChannel.Compton)
+                {
+                    double shift = (lineEnergy - nodeEnergy) / m.BinKev;
+                    for (int b = 0; b < row.Length; b++)
+                    {
+                        if (row[b] > 0f)
+                        {
+                            positions[n] = (b + shift) * lightScale;
+                            values[n++] = row[b];
+                        }
+                    }
+                }
+                else
+                {
+                    double[] source;
+                    double[] image;
+                    int knots = ComptonKnots(nodeEnergy, lineEnergy, m.BinKev, out source, out image);
+                    int segment = 0;
+                    for (int b = 0; b < row.Length; b++)
+                    {
+                        double value = row[b];
+                        if (!(value > 0.0))
+                        {
+                            continue;
+                        }
+
+                        double x = b * m.BinKev;
+                        while (segment < knots - 2 && x >= source[segment + 1])
+                        {
+                            segment++;
+                        }
+
+                        double slope = (image[segment + 1] - image[segment])
+                                       / (source[segment + 1] - source[segment]);
+                        double mapped = image[segment] + (x - source[segment]) * slope;
+                        positions[n] = mapped / m.BinKev * lightScale;
+                        values[n++] = row[b];
+                    }
+                }
+
+                parts.Add(new PreparedPart { Kind = kind, Factor = factor, Positions = positions, Values = values });
+            }
+
+            enum PartKind : byte
+            {
+                /// <summary>Узел ровно на линии или край сетки — вес как есть.</summary>
+                Exact,
+
+                /// <summary>Один из двух соседних узлов — вес `w·(1 − t)` или `w·t`.</summary>
+                Node
+            }
+
+            sealed class PreparedPart
+            {
+                public PartKind Kind;
+                public double Factor;
+                public double[] Positions;
+                public float[] Values;
+            }
+
+            sealed class PreparedLine
+            {
+                public PreparedPart[] Parts;
+                public long Bytes;
+            }
+
+            struct LineKey : IEquatable<LineKey>
+            {
+                readonly long energy;
+                readonly long scale;
+                readonly int channel;
+
+                public LineKey(double energyKev, double lightScale, int channel)
+                {
+                    this.energy = BitConverter.DoubleToInt64Bits(energyKev);
+                    this.scale = BitConverter.DoubleToInt64Bits(lightScale);
+                    this.channel = channel;
+                }
+
+                public bool Equals(LineKey other)
+                {
+                    return this.energy == other.energy && this.scale == other.scale && this.channel == other.channel;
+                }
+
+                public override bool Equals(object obj)
+                {
+                    return obj is LineKey && this.Equals((LineKey)obj);
+                }
+
+                public override int GetHashCode()
+                {
+                    unchecked
+                    {
+                        long h = this.energy * 31 + this.scale;
+                        return ((int)h ^ (int)(h >> 32)) * 7 + this.channel;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -2594,6 +2951,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>Вклад в бин с зажатием по краям — площадь не теряется.</summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         static void Add(double[] target, int index, double value)
         {
             if (!(value > 0.0) || target.Length == 0)
