@@ -1162,6 +1162,14 @@ namespace CorpusFsaProbe
                     o.AnchorPasses = int.Parse(a.Substring(16), CultureInfo.InvariantCulture);
                     continue;
                 }
+                // (`S210`, П212) без матрицы свет только при плече опор: 1 — умолчание, 0 — прежнее
+                if (a.StartsWith("--curve-light-lever=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(20);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--curve-light-lever=0|1"); }
+                    o.CurveLightLever = v == "1" ? 1 : 0;
+                    continue;
+                }
                 if (a.StartsWith("--anchor-offset-min=", StringComparison.Ordinal))
                 {
                     o.AnchorOffsetMin = int.Parse(a.Substring(20), CultureInfo.InvariantCulture);
@@ -2372,6 +2380,11 @@ namespace CorpusFsaProbe
             if (o.AnchorPasses > 0)
             {
                 analyzer.AnchorPasses = o.AnchorPasses;
+            }
+
+            if (o.CurveLightLever >= 0)
+            {
+                analyzer.AnchorCurveLightLever = o.CurveLightLever == 1;
             }
 
             if (o.AnchorOffsetMin > 0)
@@ -5903,6 +5916,7 @@ namespace CorpusFsaProbe
             public int MatrixTransfer = -1;
             public int AnchorPasses = -1;
             public int AnchorOffsetMin = -1;
+            public int CurveLightLever = -1;
             public double AnchorZ = -1.0;
             public double AnchorWindow = -1.0;
             public double AnchorFloor = -1.0;
