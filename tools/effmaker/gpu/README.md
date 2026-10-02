@@ -115,3 +115,27 @@
   постоянные нити): 17.3 с ядер против 20.3 без потолка, 19.1 при 128, 18.5 при 96; размер
   блока 64…256 на время почти не влияет.
 * `-O3`, `-arch=sm_86` (RTX 3070 Laptop); `/utf-8` — исходники с русскими комментариями.
+
+Той же командой собирается `bin\rm_replay.exe` (`cl`, x64) — нативный повторитель.
+
+## Повторитель и профиль (`AMBER161`, П227)
+
+`BQ_GPU_DUMP=<каталог>` у пробы с `--gpu` пишет `calls.txt` (init, настройки битами
+double, `rm_cfg_commit`, `rm_load blobN.bin`, параметры каждого `rm_run` и ПРИРАЩЕНИЕ его
+сумм — `rm_run` прибавляет к массивам хоста) и упаковки сцены. `rm_replay <dll> <каталог>
+[--only=N] [--repeat=K] [--tol=X]` зовёт ту же DLL тем же порядком без .NET и сверяет суммы
+(код 0 — все в допуске; атомарные сложения в другом порядке дают ~1e-15).
+
+Зачем: проба AnyCPU (заголовок PE32, процесс 64-битный) под Nsight Compute падает
+`0xC000007B` — `ncu` внедряется по заголовку; нативный повторитель профилируется штатно:
+
+```
+ncu --set full -o prof -f bin\rm_replay.exe bin\rmgpu_f.dll <запись> --only=<номер run>
+```
+
+Профиль по строкам — DLL с `-lineinfo` (`RM_EXTRA=-lineinfo`), разбор отчёта питоном
+Nsight (`host\target-windows-x64\python\bin\python.exe`, модуль `extras\python\ncu_report`).
+⚠ Счётчики GPU обычному пользователю Windows закрыты (`ERR_NVGPUCTRPERM`) — доступ всем
+включён Amber 03.10.2026 в NVIDIA Control Panel (Developer → Manage GPU Performance Counters).
+⚠ Nsight Compute 2025.1 из CUDA 12.8 на этой машине падает `0xC0000409` даже на
+`--query-metrics` — работает 2026.3.1 (`winget Nvidia.Nsight.Compute`).

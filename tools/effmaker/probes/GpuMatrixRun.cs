@@ -113,6 +113,20 @@ sealed class RmGpu
 
         this.Ok(this.init(0, stackBytes), "rm_init");
 
+        // (`AMBER161`, П227) Запись вызовов для нативного повторителя `gpu\rm_replay.cpp`:
+        // `BQ_GPU_DUMP=<каталог>` — настройки, упаковка сцены, параметры каждого `rm_run`
+        // и его суммы. Повторитель зовёт ту же DLL без .NET: под ним работает Nsight
+        // Compute (проба AnyCPU с заголовком PE32 под `ncu` падает 0xC000007B), и он же —
+        // быстрый стенд сверки ядра против записанных сумм.
+        string dump = Environment.GetEnvironmentVariable("BQ_GPU_DUMP");
+        if (!string.IsNullOrEmpty(dump))
+        {
+            Directory.CreateDirectory(dump);
+            this.dumpDir = dump;
+            this.dumpLog = new StreamWriter(System.IO.Path.Combine(dump, "calls.txt"), false, new UTF8Encoding(false));
+            this.dumpLog.WriteLine("init " + stackBytes.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
         // Раскрой запуска для замеров: `BQ_GPU_LAUNCH=<блоков>,<нитей>`. `1,1` — одна нить
         // идёт по историям ПОДРЯД, как CPU: так отделяется состояние, переходящее из
         // истории в историю (кэш луча, кэши μ), от развилок на последнем разряде.
@@ -166,15 +180,27 @@ sealed class RmGpu
         foreach (KeyValuePair<string, double> kv in GpuPack.Settings(sim))
         {
             this.Ok(this.cfgSet(kv.Key, kv.Value), "rm_cfg_set(" + kv.Key + ")");
+            if (this.dumpLog != null)
+            {
+                this.dumpLog.WriteLine("cfg " + kv.Key + " " + BitConverter.DoubleToInt64Bits(kv.Value)
+                                       .ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
         }
 
         this.Ok(this.cfgCommit(), "rm_cfg_commit");
+        if (this.dumpLog != null) this.dumpLog.WriteLine("commit");
         if (!reuse || this.lastBlob == null)
         {
             byte[] blob = GpuPack.Pack(sim);
             this.Ok(this.load(blob, blob.Length), "rm_load");
             this.lastBlob = blob;
             this.LastBlobBytes = blob.Length;
+            if (this.dumpLog != null)
+            {
+                string name = "blob" + (this.dumpBlobs++).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin";
+                File.WriteAllBytes(System.IO.Path.Combine(this.dumpDir, name), blob);
+                this.dumpLog.WriteLine("load " + name);
+            }
         }
         else
         {
@@ -211,12 +237,49 @@ sealed class RmGpu
                     double[] hist, double[] hist2, double[] chan, double[] light, double[] scal,
                     GpuHistoryOut[] perHistory)
     {
+        // `rm_run` ПРИБАВЛЯЕТ к массивам хоста; в запись идёт приращение этого вызова.
+        double[] pre = this.dumpLog != null
+            ? new[] { SumOf(hist), SumOf(hist2), SumOf(chan), SumOf(light) } : null;
+        double[] preScal = this.dumpLog != null ? (double[])scal.Clone() : null;
         var watch = Stopwatch.StartNew();
         this.Ok(this.run(branch, energyKev, binKev, bins, n, first, rngMode, states, key0, key1,
                          hist, hist2, chan, light, scal, scal.Length, perHistory, this.Blocks, this.Threads),
                 "rm_run(ветвь " + branch + ")");
         this.KernelSeconds += watch.Elapsed.TotalSeconds;
+        if (this.dumpLog != null && rngMode != 0 && perHistory == null)
+        {
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            // run <ветвь> <E бит> <бин бит> <бинов> <n> <first> <режим> <key0> <key1>
+            //     <длины hist hist2 chan light scal> <секунд ядра>; затем строка сумм.
+            this.dumpLog.WriteLine(string.Join(" ", "run", branch.ToString(ci),
+                BitConverter.DoubleToInt64Bits(energyKev).ToString(ci), BitConverter.DoubleToInt64Bits(binKev).ToString(ci),
+                bins.ToString(ci), n.ToString(ci), first.ToString(ci), rngMode.ToString(ci), key0.ToString(ci), key1.ToString(ci),
+                Len(hist), Len(hist2), Len(chan), Len(light), Len(scal),
+                watch.Elapsed.TotalSeconds.ToString("R", ci)));
+            var d = new List<string>
+            {
+                "sums",
+                (SumOf(hist) - pre[0]).ToString("R", ci), (SumOf(hist2) - pre[1]).ToString("R", ci),
+                (SumOf(chan) - pre[2]).ToString("R", ci), (SumOf(light) - pre[3]).ToString("R", ci)
+            };
+            for (int i = 0; i < scal.Length; i++) d.Add((scal[i] - preScal[i]).ToString("R", ci));
+            this.dumpLog.WriteLine(string.Join(" ", d));
+            this.dumpLog.Flush();
+        }
     }
+
+    static string Len(double[] a) { return a == null ? "-1" : a.Length.ToString(System.Globalization.CultureInfo.InvariantCulture); }
+
+    static double SumOf(double[] a)
+    {
+        double s = 0.0;
+        if (a != null) foreach (double v in a) s += v;
+        return s;
+    }
+
+    string dumpDir;
+    StreamWriter dumpLog;
+    int dumpBlobs;
 }
 
 /// <summary>Слоты накопителей — те же номера, что `tally.cuh`.</summary>
