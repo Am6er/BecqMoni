@@ -1188,6 +1188,34 @@ namespace CorpusFsaProbe
                     o.AnchorCoreOwner = v == "1" ? 1 : 0;
                     continue;
                 }
+                // (`AMBER155` (в), П220) кривизна тракта, 1/МэВ, для всех спектров прогона (плечо)
+                // (`AMBER155` (в), П220) по группам: --adc-curvature-by=G1S16:0.0023,G1S24:0.0026
+                if (a.StartsWith("--adc-curvature-by=", StringComparison.Ordinal))
+                {
+                    o.AdcCurvatureByDet = new Dictionary<string, double>(StringComparer.Ordinal);
+                    foreach (string pair in a.Substring(19).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        int colon = pair.LastIndexOf(':');
+                        if (colon <= 0) { throw new ArgumentException("--adc-curvature-by=группа:κ,…; дано: " + pair); }
+                        o.AdcCurvatureByDet[pair.Substring(0, colon)] =
+                            double.Parse(pair.Substring(colon + 1), NumberStyles.Float, CultureInfo.InvariantCulture);
+                    }
+
+                    continue;
+                }
+                if (a.StartsWith("--adc-curvature=", StringComparison.Ordinal))
+                {
+                    o.AdcCurvature = double.Parse(a.Substring(16), NumberStyles.Float, CultureInfo.InvariantCulture);
+                    continue;
+                }
+                // (`AMBER155`, П220) карта adc: 1 — прямая от нуля АЦП, 0 — форма полинома (П8)
+                if (a.StartsWith("--adc-linear=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(13);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--adc-linear=0|1"); }
+                    o.AdcLinear = v == "1" ? 1 : 0;
+                    continue;
+                }
                 // (`AMBER142` п. 8, П215) нуль света карты adc: 1 — на нижнем краю канала 0, 0 — в центре
                 if (a.StartsWith("--adc-zero-edge=", StringComparison.Ordinal))
                 {
@@ -2466,6 +2494,11 @@ namespace CorpusFsaProbe
                 analyzer.AdcZeroAtChannelEdge = o.AdcZeroEdge == 1;
             }
 
+            if (o.AdcLinear >= 0)
+            {
+                analyzer.AdcLinear = o.AdcLinear == 1;
+            }
+
             if (o.AnchorOffsetMin > 0)
             {
                 analyzer.AnchorOffsetMinAnchors = o.AnchorOffsetMin;
@@ -3297,6 +3330,19 @@ namespace CorpusFsaProbe
                 // (`T65`) Настройки прогона — ОДНИМ местом, тем же, из
                 // которого их берёт на печать шапка.
                 FsaAnalyzer analyzer = NewAnalyzer(o);
+                // (`AMBER155` (в), П220) свойства прибора — тем же местом, что в
+                // приложении; ключ `--adc-curvature=` перекрывает для плеча
+                analyzer.AdoptDevice(rd.DeviceConfig);
+                double curvatureByDet;
+                if (o.AdcCurvatureByDet != null && o.AdcCurvatureByDet.TryGetValue(sample.Det, out curvatureByDet))
+                {
+                    analyzer.AdcTractCurvature = curvatureByDet;
+                }
+                else if (!double.IsNaN(o.AdcCurvature))
+                {
+                    analyzer.AdcTractCurvature = o.AdcCurvature;
+                }
+
                 double gammaMapped;
                 if (o.GammaMap != null && o.GammaMap.TryGetValue(sample.Key, out gammaMapped))
                 {
@@ -6111,6 +6157,9 @@ namespace CorpusFsaProbe
             public int NoLeverZero = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора; 0 inherit, 1 instrument, 2 shift
             public int AnchorCoreOwner = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора
             public int AdcZeroEdge = -1;   // (`AMBER142` п. 8) −1 — умолчание анализатора
+            public int AdcLinear = -1;   // (`AMBER155`, П220) −1 — умолчание анализатора
+            public double AdcCurvature = double.NaN;   // (`AMBER155` (в), П220) NaN — из конфигурации прибора
+            public Dictionary<string, double> AdcCurvatureByDet;   // (`AMBER155` (в), П220) группа → κ, поверх прибора
             public double AnchorZ = -1.0;
             public double AnchorWindow = -1.0;
             public double AnchorFloor = -1.0;

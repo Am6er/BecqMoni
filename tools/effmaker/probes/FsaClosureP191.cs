@@ -609,6 +609,7 @@ namespace FsaClosureP191
             // кристалла, таблица Q_k угловых корреляций и обстановка (домик). Прямое `ResponseMatrix = matrix`
             // (как у FsaReportWeightsProbe) оставляло Q_k = null — корреляции в сумм-пиках молча выключены.
             var analyzer = new FsaAnalyzer();
+            analyzer.AdoptDevice(rd.DeviceConfig);   // (`AMBER155` (в), П220) кривизна тракта прибора
             if (!noMatrix) FsaMatrixBinding.Bind(analyzer, rd.Efficiency != null ? rd.Efficiency.Geometry : null, matrix);
             if (rd.DeviceConfig != null && rd.DeviceConfig.InputDeviceConfig != null)
             {
