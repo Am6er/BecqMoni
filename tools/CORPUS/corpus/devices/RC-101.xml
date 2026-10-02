@@ -18,9 +18,9 @@
   <PolynomialEnergyCalibration>
     <PolynomialOrder>2</PolynomialOrder>
     <Coefficients>
-      <Coefficient>-8.862839946547536</Coefficient>
-      <Coefficient>2.4678700810885092</Coefficient>
-      <Coefficient>0.0005734070753852825</Coefficient>
+      <Coefficient>-8.860002456804452</Coefficient>
+      <Coefficient>2.46707997813228</Coefficient>
+      <Coefficient>0.0005732234957759439</Coefficient>
     </Coefficients>
   </PolynomialEnergyCalibration>
   <StabilizerConfig>

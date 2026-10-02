@@ -470,6 +470,143 @@ def drop_superseded_l(rows, tc_of):
     return [r for r in rows if l_series_kind(tc_of(r)) in (None, keep)]
 
 
+# ---------------------------------------------------------------------------
+# K-серия рентгена: ОДНО правило на проект, и живёт оно НЕ ЗДЕСЬ (`S209`)
+# ---------------------------------------------------------------------------
+# ⛔ `KB` в `decay_radiations` — это ИТОГ по всей Kβ, а рядом лежит её же
+# разложение `KpB1` + `KpB2` (`KSeriesRule.cs`, `D30`, `T50`). До 01.10.2026
+# генератор корпуса брал ВСЕ строки `type_a = 'X'` и складывал Kβ дважды: центр
+# группы K-рентгена, на которую садится опора низа (`B25`), уезжал вверх на
+# 1.7…2.2 % — Ba-133 32.29 кэВ вместо 31.70, Cs-137 33.45 вместо 32.92 (замер
+# П205, `handover/handover-2026-10-01-p205-s209-generator.md`). Приложение
+# (образы FSA и суммирователь совпадений) живёт по правилу `KSeriesRule`:
+#
+#   * разложение берётся, когда оно ПОЛНОЕ (две и более РАЗНЫХ строк `KpB*` либо
+#     одна, совпадающая с `KB` численно), иначе итог `KB`;
+#   * строка группы K-M (`KpB1`) стоит на ЦЕНТРЕ ТЯЖЕСТИ группы
+#     (`matdb.fluorescence_k.kb_ev`), а не на середине текстового диапазона
+#     (`AMBER120`), если лежит от него не дальше `GroupTolerance`; элемент
+#     узнаётся по Kα1 того же набора строк (`AlphaMatchKev`).
+#
+# Числа правила здесь не переписываются, а ЧИТАЮТСЯ из `KSeriesRule.cs` тем же
+# приёмом, что `LEVEL_CLAUSE`: следующая правка приложения доедет сюда сама,
+# а сменённая разметка роняет импорт вслух. Путь — `LFL_KSERIES_RULE_CS`.
+_KSERIES_CS = os.path.join(_SOLUTION, 'BecquerelMonitor', 'FullSpectrumAnalysis',
+                           'KSeriesRule.cs')
+
+
+def _kseries_constants(path=None):
+    u"""Константы `KSeriesRule` из исходника приложения: допуск совпадения
+    разложения с итогом (относительный), допуск группы K-M (относительный) и
+    допуск узнавания элемента по Kα1, кэВ."""
+    path = path or os.environ.get('LFL_KSERIES_RULE_CS') or _KSERIES_CS
+    if not os.path.isfile(path):
+        raise RuntimeError('не найден источник правила K-серии: %s. Правило одно на '
+                           'проект и живёт в KSeriesRule.cs (S209); путь переопределяется '
+                           'переменной LFL_KSERIES_RULE_CS.' % path)
+    with io.open(path, encoding='utf-8-sig') as handle:
+        text = re.sub(r'//[^\n]*', '', handle.read())
+    out = {}
+    for name in ('MatchTolerance', 'GroupTolerance', 'AlphaMatchKev'):
+        m = re.search(r'const\s+double\s+%s\s*=\s*([0-9.]+(?:[Ee][-+]?[0-9]+)?)\s*;' % name, text)
+        if not m:
+            raise RuntimeError('в %s нет const double %s — правило K-серии читать нечем '
+                               '(S209).' % (path, name))
+        out[name] = float(m.group(1))
+    m = re.search(r'BetaTotal\s*=\s*"([^"]+)"', text)
+    if not m or m.group(1) != 'KB':
+        raise RuntimeError('KSeriesRule.BetaTotal в %s не "KB" — правило сменилось, '
+                           'сверить генератор (S209).' % path)
+    if not 0.0 < out['GroupTolerance'] < 0.05 or not 0.0 < out['AlphaMatchKev'] < 1.0:
+        raise RuntimeError('константы KSeriesRule неправдоподобны: %r (S209)' % out)
+    return out
+
+
+#: Константы правила K-серии приложения (`KSeriesRule.cs`).
+KSERIES = _kseries_constants()
+
+#: Таблица групп K: [(Kα1, Kβ K-M центр тяжести), кэВ] из `matdb.fluorescence_k`.
+_KGROUPS = []
+
+
+def matdb_path():
+    u"""`matdb.sqlite` рядом с `nucdb.sqlite` (`LFL_MATDB` переопределяет)."""
+    return os.environ.get('LFL_MATDB') or os.path.join(os.path.dirname(DB), 'matdb.sqlite')
+
+
+def k_groups():
+    u"""Группы K из `matdb.fluorescence_k` (та же таблица, что у `KSeriesRule.Groups`).
+
+    ⚠ Приложение без таблицы оставляет строки как есть; генератор — ОТКАЗЫВАЕТ:
+    корпус, собранный то с центром тяжести, то с серединой диапазона, был бы
+    смесью двух соглашений без следа в клейме.
+    """
+    if not _KGROUPS:
+        path = matdb_path()
+        if not os.path.isfile(path):
+            raise RuntimeError('нет %s — группы K для правила Kβ читать неоткуда (S209)' % path)
+        c = sqlite3.connect('file:' + path.replace('\\', '/') + '?mode=ro', uri=True)
+        try:
+            rows = c.execute('select z, ka1_ev, kb_ev from fluorescence_k '
+                             'where ka1_ev not null and kb_ev not null order by z').fetchall()
+        finally:
+            c.close()
+        if not rows:
+            raise RuntimeError('matdb.fluorescence_k пуста — правило Kβ читать нечем (S209)')
+        _KGROUPS.extend((float(a) / 1000.0, float(b) / 1000.0) for _z, a, b in rows)
+    return _KGROUPS
+
+
+def k_series_rule(rows, tc_of, energy_of, intensity_of, with_energy):
+    u"""(`S209`) Строки ОДНОГО родителя (один набор «родитель + уровень») →
+    те же строки, где Kβ взята ОДИН раз и строка группы K-M — на центре тяжести.
+
+    Порт `KSeriesRule.Beta` и `KSeriesRule.BetaAtGroupEnergy`: не-K строки и Kα
+    проходят как есть; из `KB` и `KpB*` остаётся то, что выбирает правило;
+    у выбранного разложения энергия строки, лежащей у центра тяжести группы K-M
+    своего элемента (элемент — по Kα1 этого же набора), заменяется им.
+    `tc_of(row)` — `type_c` строки или None для не-рентгена; `with_energy(row, e)`
+    — копия строки с новой энергией. Порядок строк сохраняется.
+    """
+    total = [r for r in rows if (tc_of(r) or '').strip() == 'KB']
+    split = [r for r in rows if (tc_of(r) or '').strip().startswith('Kp')]
+    if not total and not split:
+        return list(rows)
+    if not total:
+        chosen = split
+    elif not split:
+        chosen = total
+    elif len(set((tc_of(r) or '').strip() for r in split)) > 1:
+        chosen = split
+    else:
+        s_split = sum(float(intensity_of(r)) for r in split)
+        s_total = sum(float(intensity_of(r)) for r in total)
+        same = abs(s_split - s_total) <= KSERIES['MatchTolerance'] * max(1.0, abs(s_total))
+        chosen = split if same else total
+    drop = set(id(r) for r in (total + split) if all(r is not c for c in chosen))
+    fix = {}
+    if chosen is split:
+        # Kα — как `kAlpha` приложения: строки K-серии, не итог и не разложение Kβ.
+        alphas = [float(energy_of(r)) for r in rows
+                  if (tc_of(r) or '').strip().startswith('K')
+                  and (tc_of(r) or '').strip() != 'KB'
+                  and not (tc_of(r) or '').strip().startswith('Kp')]
+        elements = [kb for ka1, kb in k_groups()
+                    if any(abs(a - ka1) <= KSERIES['AlphaMatchKev'] for a in alphas)]
+        for r in split:
+            e = float(energy_of(r))
+            for kb in elements:
+                if kb > 0.0 and abs(e - kb) <= KSERIES['GroupTolerance'] * kb:
+                    fix[id(r)] = kb
+                    break
+    out = []
+    for r in rows:
+        if id(r) in drop:
+            continue
+        out.append(with_energy(r, fix[id(r)]) if id(r) in fix else r)
+    return out
+
+
 def chain_lines(root, kinds=('G',), e_min=10.0, e_max=3200.0):
     c = conn()
     frac = chain_branches(root, c)
@@ -490,6 +627,10 @@ def chain_lines(root, kinds=('G',), e_min=10.0, e_max=3200.0):
             + SUPPLY_ONLY
             + LEVEL_CLAUSE, params).fetchall()
         rows = drop_superseded_l(rows, lambda r: r[3] if r[2] == 'X' else None)
+        # (`S209`) Kβ один раз, группа K-M на центре тяжести — правило приложения.
+        rows = k_series_rule(rows, lambda r: r[3] if r[2] == 'X' else None,
+                             lambda r: r[0], lambda r: r[1],
+                             lambda r, e: (e,) + tuple(r[1:]))
         hl = half_life_years(nucid, c)
         for energy, inum, ta, tc in rows:
             if energy is None or inum is None or inum <= 0:

@@ -2097,6 +2097,6 @@
         </Spectrum>
       </BackgroundEnergySpectrum>
     <BackgroundSpectrumFile>bg_2025_11_19.xml</BackgroundSpectrumFile>
-      <PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.4772524143371791</Coefficient><Coefficient>0.6389791947142882</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
+      <PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.4777888217081694</Coefficient><Coefficient>0.6388337706007022</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

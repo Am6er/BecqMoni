@@ -319,8 +319,23 @@ def xray_lines(nucid):
         "and intensity_num not null"
         + SUPPLY_ONLY + LEVEL_CLAUSE, {LEVEL_PARAM: nucid}).fetchall()
     c.close()
-    from chains import drop_superseded_l
-    rows = [(e, i) for e, i, tc in drop_superseded_l(rows, lambda r: r[2]) if float(i) > 0.5]
+    from chains import drop_superseded_l, k_series_rule
+    rows = drop_superseded_l(rows, lambda r: r[2])
+    # (`S209`, П205 01.10.2026) Kβ — ОДИН раз, правилом приложения
+    # (`chains.k_series_rule` ← `KSeriesRule.cs`): до этого дня итог `KB` шёл
+    # вместе со своим разложением `KpB1` + `KpB2`, и центр K-опоры низа уезжал
+    # вверх на 1.7…2.2 % (Ba-133 32.29 кэВ вместо 31.70).
+    rows = k_series_rule(rows, lambda r: r[2], lambda r: r[0], lambda r: r[1],
+                         lambda r, e: (e,) + tuple(r[1:]))
+    # Порог выхода 0.5 % — на ЛИНИЮ, кроме K-серии: её линии — одна физическая
+    # структура элемента и в опору идут ГРУППОЙ (довод `LOW_ANCHOR_MIN_PURITY`),
+    # поэтому порог у неё — на сумму K-серии родителя. Иначе слабая часть группы
+    # выпадала бы по-линейно и тянула центр вниз: у Cs-137 `KpB2` 0.27 % —
+    # −0.17 кэВ центра K-опоры (замер П205).
+    k_sum = sum(float(i) for e, i, tc in rows if (tc or '').strip().startswith('K'))
+    rows = [(e, i) for e, i, tc in rows
+            if float(i) > 0.0
+            and (k_sum > 0.5 if (tc or '').strip().startswith('K') else float(i) > 0.5)]
     from chains import pretty
     out = [(float(e), float(i), pretty(nucid) + ' X')
            for e, i in rows if float(e) >= 5.0]
@@ -2065,13 +2080,55 @@ def main():
         legacy_rows.append(e)
     print('девятка: скопировано %d' % len(legacy_rows))
 
-    # --- стадия 1+2 ---
+    # --- стадии 1, 2а, 2б: энергокалибровки (`S209`: одной функцией с пробой) ---
+    state, _ = calibrate_stage1(entries)
+    hints = {}
+    calibrate_stage2(state, stored_hints=load_res_hints(), hints_out=hints)
+    if only is None:
+        # (`S209`) подсказки групп — только полной пересборкой, как клеймо (`T244`)
+        save_res_hints(hints)
+        print(u'подсказки разрешения групп (S209): %s, %d групп' % (RES_HINT_FILE, len(hints)))
+
+    # --- стадия 3: модель разрешения на группу ---
+    # ⛔ РАЗМОРОЖЕНО решением Amber 16.08.2026: «размораживаю, перекалибровывай
+    # если надо». До этого дня у трёх детекторов исходной девятки модель
+    # разрешения НЕ пересчитывалась — она бралась готовой из
+    # `data/calibration.json`, и числа отчёта держались на ней. Довод был такой:
+    # пересчёт по одним лишь новым спектрам даст AS80x80 9.0 % на 662 кэВ против
+    # 7.7 % у девятки, то есть два разных разрешения у одного кристалла внутри
+    # одного корпуса.
+    #
+    # Довод остаётся в силе КАК ПРЕДУПРЕЖДЕНИЕ, а не как запрет: девятка лежит в
+    # корпусе готовыми копиями (`corpus_def.LEGACY`), в `state` её нет, и точки
+    # для модели приходят только от новых спектров группы. Значит смена модели
+    # здесь — не уточнение по большему числу данных, а замена одной оценки на
+    # другую, снятую с других спектров. Разница печатается ниже поимённо, чтобы
+    # её было видно, а не находить потом по съехавшим χ².
+    #
+    # Файл остаётся ЗАПАСНЫМ путём: если точек в корпусе нет вовсе, модель
+    # берётся из него, иначе группа осталась бы без разрешения совсем.
+    return write_stage3(state, legacy_rows, only)
+
+
+def calibrate_stage1(entries, log=print, extractor=None):
+    u"""Стадия 1: извлечь каждый спектр и откалибровать его по СОБСТВЕННОМУ
+    разрешению (`calibrate_one` без подсказки), фон — по своему правилу.
+
+    (`S209`, П205 01.10.2026) Вынесено из `main` без изменения поведения, чтобы
+    проба устойчивости (`stability_probe.py`) гоняла ТОТ ЖЕ код, что пересборка,
+    а не его копию (копия стадий 1–2а уже жила в `ecal_extrapolation.build_state`
+    и меряла бы своё). `extractor` — подмена `extract` (проба читает тот же
+    вход); None — библиотека, как у пересборки.
+
+    -> (state, {}) — второй элемент оставлен для совместимости вызова.
+    """
+    extractor = extractor or extract
     state = {}
     for e in entries:
         try:
-            raw, bg_raw, bg_source, old_guid = extract(e)
+            raw, bg_raw, bg_source, old_guid = extractor(e)
         except Exception as ex:
-            print('%-20s ОШИБКА извлечения: %s' % (e['key'], ex))
+            log('%-20s ОШИБКА извлечения: %s' % (e['key'], ex))
             continue
         sp = Spectrum(raw)
         ecal, acc, r662, mode = calibrate_one(sp, e)
@@ -2097,13 +2154,95 @@ def main():
                 st['bg_accepted'] = bacc
                 st['bg_sp'] = bsp
         state[e['key']] = st
-        print('%-20s %-9s ch=%-6d live=%-9.0f R662=%5.2f%% lines=%2d '
-              'rms=%6.2f кэВ = %5.2f FWHM  %s' % (
-                  e['key'], e['det'], sp.n, sp.live, 100 * r662, len(acc),
-                  calibrate.rms(acc, ecal),
-                  corpus_calib.residual_fwhm(ecal, acc, r662 * np.sqrt(662.0)),
-                  mode))
+        log('%-20s %-9s ch=%-6d live=%-9.0f R662=%5.2f%% lines=%2d '
+            'rms=%6.2f кэВ = %5.2f FWHM  %s' % (
+                e['key'], e['det'], sp.n, sp.live, 100 * r662, len(acc),
+                calibrate.rms(acc, ecal),
+                corpus_calib.residual_fwhm(ecal, acc, r662 * np.sqrt(662.0)),
+                mode))
+    return state, {}
 
+
+#: ⛔ (`S209`, решение Amber 01.10.2026 «Чинить сейчас, до rev39») ГИСТЕРЕЗИС
+#: ПОДСКАЗКИ РАЗРЕШЕНИЯ ГРУППЫ. Подсказка стадии 2а — медиана приведённых ширин
+#: FWHM/√E опор группы, и через неё набор опор каждого спектра зависел от ЧУЖИХ
+#: спектров группы на сотые доли процента: конвейер калибровки — цепь пороговых
+#: решений (целое окно фита, приёмка второго прохода `after <= before`, выбор
+#: степени `choose`, чистота бленда, гейт `B31`), и при подсказке ×(1 ± 0.0005)
+#: набор опор сменился у 21 спектра из 129, шкала уезжала до 166 кэВ
+#: (`ASN16_Lu176_P0` poly1 → stored), у `RC103_K40Village` развёртка шагом
+#: 0.025 % дала семь переключений на ±0.3 % (журнал
+#: `handover/handover-2026-10-01-p205-s209-generator.md`, проба
+#: `stability_probe.py`). Сглаживать каждый порог — не выход, и это ИЗМЕРЕНО:
+#: дробные края окна фита (`gaussfit`) сделали фит непрерывным, сдвинули шкалу у
+#: 119 спектров из 129 и оставили неустойчивыми 37.
+#:
+#: Правило: подсказка группы ЗАПИСАНА (`data/res_hint.csv`, пишет полная
+#: пересборка) — своя у КАЖДОГО прохода 2а (медиана первого прохода стоит на
+#: калибровках стадии 1, второго — на перекалиброванных, и расходятся они до
+#: 7 %: GS4000 1.462 → 1.355), — и держится, пока новая медиана отходит от неё
+#: не дальше
+#: `RES_HINT_HYSTERESIS` (относительно); дальше — берётся новая медиана и
+#: записывается. Сдвиг модели группы на доли процента (добор слабой линии в базу,
+#: новый спектр в группе) набора опор больше не трогает; смена разрешения
+#: кристалла на проценты — трогает, как и должна. Нет файла или группы в нём —
+#: медиана, как до 01.10.2026 (первая пересборка с правилом корпус не меняет).
+RES_HINT_FILE = os.path.join(LAB, 'data', 'res_hint.csv')
+
+#: Полоса гистерезиса подсказки, доля. Две сотых: пересборка тем же генератором
+#: повторяет медиану побитово, правка Kβ сдвинула модели групп на сотые доли
+#: процента (ASN16 — на 0.5 %), сдвиг П202 у RC103 — 0.9 %; всё это держится.
+#: Смена разрешения кристалла на проценты (П202: ASN3 3.54 → 7.27 %) проходит.
+RES_HINT_HYSTERESIS = 0.02
+
+
+def load_res_hints(path=None):
+    u"""(`S209`) Записанные подсказки: {(det, проход): a, кэВ^½}; нет файла — {}."""
+    path = path or RES_HINT_FILE
+    out = {}
+    if not os.path.isfile(path):
+        return out
+    with io.open(path, encoding='utf-8') as fh:
+        for row in csv.DictReader(line for line in fh if not line.startswith('#')):
+            out[(row['det'], int(row['pass']))] = float(row['res_a'])
+    return out
+
+
+def save_res_hints(hints, path=None):
+    u"""(`S209`) Записать подсказки {(det, проход): a} (только полная пересборка)."""
+    path = path or RES_HINT_FILE
+    eol = chr(10)
+    with io.open(path, 'w', encoding='utf-8', newline=eol) as fh:
+        fh.write(u'# S209: подсказка разрешения группы по проходам стадии 2а build_corpus.py '
+                 u'(FWHM = res_a·√E, кэВ); держится в полосе RES_HINT_HYSTERESIS' + eol)
+        fh.write(u'det,pass,res_a' + eol)
+        for det, npass in sorted(hints):
+            fh.write(u'%s,%d,%r' % (det, npass, float(hints[(det, npass)])) + eol)
+
+
+def held_hint(key, median, stored, log=print):
+    u"""(`S209`) Подсказка с гистерезисом: записанная для `key` = (det, проход),
+    если медиана в полосе `RES_HINT_HYSTERESIS`, иначе сама медиана.
+    -> (a, держится ли)."""
+    was = (stored or {}).get(key)
+    if was and abs(median / was - 1.0) <= RES_HINT_HYSTERESIS:
+        return was, True
+    if was:
+        log(u'  S209 %-10s проход %d: подсказка обновлена %.6f -> %.6f (%+.2f %% > ±%.0f %%)'
+            % (key[0], key[1], was, median, 100.0 * (median / was - 1.0), 100.0 * RES_HINT_HYSTERESIS))
+    return median, False
+
+
+def calibrate_stage2(state, log=print, res_scale=1.0, stored_hints=None, hints_out=None):
+    u"""Стадии 2а (второй проход по модели разрешения группы) и 2б (семья).
+
+    (`S209`) Вынесено из `main`. `res_scale` — множитель к медиане разрешения
+    группы: рычаг ПРОБЫ устойчивости; пересборка зовёт с 1.0. `stored_hints` —
+    записанные подсказки (`load_res_hints`), к которым медиана приводится с
+    гистерезисом (`held_hint`); None — без гистерезиса, как до 01.10.2026.
+    `hints_out` — словарь, куда кладутся взятые подсказки {(det, проход): a}.
+    Меняет `state` на месте. -> res_a (подсказки групп последнего прохода).
+    """
     # --- стадия 2а: второй проход с разрешением, взятым из модели группы ---
     # Разрешение принадлежит кристаллу, а не образцу, и модель, построенная по
     # всем спектрам детектора сразу, надёжнее оценки по одному спектру: у
@@ -2112,9 +2251,18 @@ def main():
     for round_no in (1, 2):
         res_a = {}
         for det in sorted({st['det'] for st in state.values()}):
-            pts = resolution_points(state, det)
+            pts = resolution_points(state, det, log=log)
             if len(pts) >= 2:
-                res_a[det] = float(np.median([w / np.sqrt(e) for e, w, _ in pts]))
+                median = float(np.median([w / np.sqrt(e) for e, w, _ in pts])) * res_scale
+                if stored_hints is None:
+                    res_a[det] = median
+                else:
+                    res_a[det], _held = held_hint((det, round_no), median, stored_hints, log)
+                if hints_out is not None:
+                    hints_out[(det, round_no)] = res_a[det]
+                log(u'  S209 проход %d %-10s медиана %.6f, подсказка %.6f%s'
+                    % (round_no, det, median, res_a[det],
+                       u' (записанная держится)' if stored_hints is not None and _held else u''))
         # ⛔ Решение Amber 16.08.2026: «перекалибровка обязательная и по энергии,
         # и по ПШПВ для корпуса» (`S48`). Поэтому здесь СНЯТЫ обе прежние
         # оговорки:
@@ -2181,34 +2329,20 @@ def main():
                 st.update(bg_ecal=becal, bg_accepted=bacc, bg_mode=bmode + '/grp')
 
             moved += 1
-        print('  проход %d: пересчитано по модели группы %d, оставлено прежних %d'
-              % (round_no, moved, len(kept)))
+        log('  проход %d: пересчитано по модели группы %d, оставлено прежних %d'
+            % (round_no, moved, len(kept)))
         for line in kept:
-            print('     прежняя лучше: %s' % line)
+            log('     прежняя лучше: %s' % line)
         if not moved:
             break
 
     # --- стадия 2б: семья на одной поставочной шкале — общий фит (`V27`) ---
-    family_stage(state, res_a)
+    family_stage(state, res_a, log=log)
+    return res_a
 
-    # --- стадия 3: модель разрешения на группу ---
-    # ⛔ РАЗМОРОЖЕНО решением Amber 16.08.2026: «размораживаю, перекалибровывай
-    # если надо». До этого дня у трёх детекторов исходной девятки модель
-    # разрешения НЕ пересчитывалась — она бралась готовой из
-    # `data/calibration.json`, и числа отчёта держались на ней. Довод был такой:
-    # пересчёт по одним лишь новым спектрам даст AS80x80 9.0 % на 662 кэВ против
-    # 7.7 % у девятки, то есть два разных разрешения у одного кристалла внутри
-    # одного корпуса.
-    #
-    # Довод остаётся в силе КАК ПРЕДУПРЕЖДЕНИЕ, а не как запрет: девятка лежит в
-    # корпусе готовыми копиями (`corpus_def.LEGACY`), в `state` её нет, и точки
-    # для модели приходят только от новых спектров группы. Значит смена модели
-    # здесь — не уточнение по большему числу данных, а замена одной оценки на
-    # другую, снятую с других спектров. Разница печатается ниже поимённо, чтобы
-    # её было видно, а не находить потом по съехавшим χ².
-    #
-    # Файл остаётся ЗАПАСНЫМ путём: если точек в корпусе нет вовсе, модель
-    # берётся из него, иначе группа осталась бы без разрешения совсем.
+
+def write_stage3(state, legacy_rows, only):
+    u"""Стадия 3 (модель разрешения группы) и запись корпуса — хвост `main`."""
     frozen = {}
     for row in json.load(open(os.path.join(LAB, 'data', 'calibration.json'),
                               encoding='utf-8')):

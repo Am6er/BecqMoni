@@ -1,4 +1,4 @@
-﻿using BecquerelMonitor;
+﻿﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Collections.Generic;
@@ -141,7 +141,8 @@ using System.Threading;
 // 472.7 мин; П21/П21б перенесла его в `corpus/geometries`). Ключи оставлены
 // как рычаги АБЛЯЦИИ (`--peakb=0`, `--xrkl=0`, `--kdip=0`) — матрица без них
 // честно другая по клейму и в склад не ляжет. `--eta=` умолчанием 0 —
-// табличное η (решение Amber 11.09.2026 «Оставить 0.33»).
+// табличное η (решение Amber 11.09.2026 «Оставить 0.33»; с П200 01.10.2026 табличное —
+// 0.412 у NaI:Tl и 0.398 у CsI:Tl, AMBER152, решение Amber 01.10.2026 «Разрешаю писать агенту»).
 //
 // `--peakb=1` (`AMBER16`, решение Amber 11.09.2026 «Допуск по БИНУ, а не по
 // ПШПВ») — допуск пика равен ПОЛУБИНУ сетки. Старше него только
@@ -255,6 +256,14 @@ class CorpusMatrixProbe
             else if (a.StartsWith("--jn=", StringComparison.Ordinal))
                 // Точек на замер κ (историй вдвое больше на каждый узел сетки).
                 options.JointHistories = int.Parse(a.Substring(5), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--jtarget=", StringComparison.Ordinal))
+                // (`AMBER147`, П199) Цель шума таблицы κ, %; 0 — прежний счёт
+                // (`S112`): фиксированные точки, без единицы у точки и без
+                // подстановки. Плечо «как до П199» тем же двоичным файлом.
+                options.JointNoiseTarget = double.Parse(a.Substring(10), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--jper=", StringComparison.Ordinal))
+                // (`AMBER147`) Историй на энергию в наборе точки κ.
+                options.JointHistoriesPerPoint = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--seed=", StringComparison.Ordinal))
                 // `T43`: независимая выборка тем же кодом. Нужна для приёмки
                 // правок, меняющих ЧИСЛО розыгрышей: сравнивать «было/стало»
@@ -389,7 +398,7 @@ class CorpusMatrixProbe
                 options.KDipLight = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--eta=", StringComparison.Ordinal))
                 // ⛔ `F11`, решение Amber 11.09.2026, дословно: «В единый счёт
-                // склада, ключом» — η модели Пейна вместо табличного (0.33 у
+                // склада, ключом» — η модели Пейна вместо табличного (0.412 у
                 // NaI:Tl), перекалиброванное по 1.12 на 10 кэВ (Ходюк—Доренбос
                 // 2012, табл. I). Умолчанием 0 — табличное; входит в клеймо
                 // (`leta=`). Число с точкой.
@@ -748,10 +757,63 @@ class CorpusMatrixProbe
             // видел, чем делили; замер узлов гнать с `--jnodes=0`.
             if (matrix.JointPoints > 0)
             {
+                // (`AMBER147`, П199) Историй на точку — 2·узлов κ·(историй на энергию).
+                int perPoint = matrix.JointMode == JointKappaMode.Adaptive
+                    ? Math.Max(1, options.JointHistoriesPerPoint) : 1;
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                                  "   сетка κ  : {0:F0} точек по 2 истории — в «мкс на историю» НЕ входят"
+                                  "   сетка κ  : {0:F0} точек по 2×{1} истории на энергию — в «мкс на историю» НЕ входят"
                                   + " (замер узлов — с --jnodes=0)",
-                                  (double)matrix.JointPoints));
+                                  (double)matrix.JointPoints, perPoint));
+            }
+
+            // (`AMBER147`, П199) Режим таблицы κ и её шум ДО подстановки: у
+            // точечной сцены κ ≡ 1 без таблицы, у сосуда — добор до цели и
+            // гладкая подстановка шумных ячеек.
+            if (matrix.JointMode == JointKappaMode.Point)
+            {
+                Console.WriteLine("   κ пар    : точечная сцена — κ ≡ 1, таблицы нет (AMBER147)");
+            }
+            else if (matrix.JointMode == JointKappaMode.Adaptive)
+            {
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                                  "   κ пар    : цель {0:F1} %; шум ячеек ≥ 100 кэВ до подстановки — медиана {1:F2} %, max {2:F1} %;"
+                                  + " подставлено ячеек {3} (из них ≥ 100 кэВ — в мерке {4})",
+                                  options.JointNoiseTarget, matrix.JointRawMedianNoise, matrix.JointRawMaxNoise,
+                                  matrix.JointSubstituted, matrix.JointCellsCounted));
+            }
+
+            // (`AMBER145`, П199) Пиковая эффективность по разрешению против Σ
+            // канала `Peak` — у трёх энергий, чтобы было видно, что блок `EPRS`
+            // доехал до файла и каков его ход.
+            if (matrix.PeakEfficiencyResolution != null)
+            {
+                var sbPeak = new System.Text.StringBuilder();
+                float[][] peakRows = matrix.ChannelRows[(int)EfficiencySimulator.ResponseChannel.Peak];
+                foreach (double probeKev in new[] { 32.0, 60.0, 122.0, 662.0 })
+                {
+                    int node = 0;
+                    for (int i = 1; i < matrix.Energies.Length; i++)
+                    {
+                        if (Math.Abs(matrix.Energies[i] - probeKev) < Math.Abs(matrix.Energies[node] - probeKev))
+                        {
+                            node = i;
+                        }
+                    }
+
+                    double channel = 0.0;
+                    foreach (float v in peakRows[node])
+                    {
+                        channel += v;
+                    }
+
+                    sbPeak.Append(string.Format(CultureInfo.InvariantCulture, "  {0:F1} кэВ {1:F4}",
+                                                matrix.Energies[node],
+                                                channel > 0.0 ? matrix.PeakEfficiencyResolution[node] / channel : 0.0));
+                }
+
+                Console.WriteLine("   ε_p разр.: {0}; ε_p(ПШПВ/2) / Σ канала Peak:{1}",
+                                  matrix.PeakResolutionFromGeometry ? "допуск ПШПВ/2 геометрии" : "у геометрии нет разрешения — Σ канала Peak",
+                                  sbPeak.ToString());
             }
             if (options.ContinuumErrorTarget > 0.0)
             {

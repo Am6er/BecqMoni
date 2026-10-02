@@ -26,7 +26,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>2.0838598746661687</Coefficient><Coefficient>2.369859511879729</Coefficient><Coefficient>0.00039070460752278443</Coefficient></Coefficients>
+            <Coefficient>1.5914895121211792</Coefficient><Coefficient>2.3725692257879576</Coefficient><Coefficient>0.0003911513418982638</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>153053</ValidPulseCount>
         <TotalPulseCount>153053</TotalPulseCount>
@@ -2104,6 +2104,6 @@
         <Format>Base64 encoded binary</Format>
         <Pulses />
       </PulseCollection>
-      <PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>1.092788922166539</Coefficient><Coefficient>0.5228721356501626</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
+      <PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>1.0855447180222453</Coefficient><Coefficient>0.5238329820362293</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

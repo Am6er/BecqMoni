@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-15.545871216260016</Coefficient><Coefficient>2.9529334664252898</Coefficient><Coefficient>6.063682615776565e-05</Coefficient></Coefficients>
+            <Coefficient>-15.54587121626002</Coefficient><Coefficient>2.95293346642529</Coefficient><Coefficient>6.0636826157765666e-05</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>749487</ValidPulseCount>
         <TotalPulseCount>749487</TotalPulseCount>
@@ -1062,7 +1062,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-15.545871216260016</Coefficient><Coefficient>2.9529334664252898</Coefficient><Coefficient>6.063682615776565e-05</Coefficient></Coefficients>
+            <Coefficient>-15.54587121626002</Coefficient><Coefficient>2.95293346642529</Coefficient><Coefficient>6.0636826157765666e-05</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>313777</ValidPulseCount>
         <TotalPulseCount>313777</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>8</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.4083634206075446</Coefficient><Coefficient>0.6508760793876954</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.40622105097101213</Coefficient><Coefficient>0.6520391625517115</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

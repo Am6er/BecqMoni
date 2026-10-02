@@ -247,15 +247,12 @@ AG_K_ROWS = None
 
 def ag_k_line(bc, calibrate, res_fn):
     u"""Куда G1S кладёт K-серию серебра: центроид линий nucdb (`109CD`, тип X)
-    при разрешении прибора — тем же `calibrate.blend`, что и курирование опор."""
-    import sqlite3
-    uri = 'file:' + bc.chains_db().replace('\\', '/') + '?mode=ro'
-    c = sqlite3.connect(uri, uri=True)
-    rows = c.execute("select energy_num, intensity_num from decay_radiations "
-                     "where parent_nucid = '109CD' and type_a = 'X' and energy_num > 15 "
-                     "and energy_num < 30 and intensity_num > 0.5").fetchall()
-    c.close()
-    rows = [(float(e), float(i), 'Ag K') for e, i in rows]
+    при разрешении прибора — тем же `calibrate.blend`, что и курирование опор.
+
+    (`S209`, П205) Линии — `bc.xray_lines` генератора, то есть Kβ ОДИН раз по
+    правилу приложения: прежний свой запрос брал итог `KB` вместе с `KpB1` +
+    `KpB2` и ставил центр серебра выше на 1.3 %."""
+    rows = [(e, i, 'Ag K') for e, i, _ in bc.xray_lines('109CD') if 15.0 < e < 30.0]
     strongest = max(rows, key=lambda r: r[1])[0]
     e_eff, purity = calibrate.blend(strongest, rows, res_fn(strongest))
     return float(e_eff), float(purity), rows
