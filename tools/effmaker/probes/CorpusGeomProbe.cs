@@ -266,6 +266,11 @@ class CorpusGeomProbe
             }
 
             preset.Apply(g);
+            if (spec.Preset == "RadiaCode-103")
+            {
+                Rc103AluminumFrontUntilP219(g);     // П223: до слияния p219-scenes
+            }
+
             g.Name = spec.Key;
             g.Facing = spec.Facing;                 // E21: сторона, обращённая к пробе
             spec.Shape(g);
@@ -408,6 +413,48 @@ class CorpusGeomProbe
 
         Console.WriteLine(ok ? "ВСЕ СОШЛИСЬ" : "ЕСТЬ РАЗОШЕДШИЕСЯ");
         return ok ? 0 : 1;
+    }
+
+    /// <summary>
+    /// ⛔ ВРЕМЕННАЯ ЗАКОЛКА (П223, 02.10.2026): сцены корпуса RC-103 держат
+    /// прежний торец — АЛЮМИНИЙ 1 мм при зазоре 3.5 мм, — хотя шаблон приложения
+    /// «RadiaCode-103» с П223 несёт пластик 1.5 мм при зазоре 3.0 мм
+    /// (`GeometryPresets.RadiaCodePlasticFront`, `AMBER153`, решение Amber
+    /// 02.10.2026 «Оба на пластик 1.5 мм (Рекомендую)»).
+    ///
+    /// Зачем: живые сцены `RC103_point0/50/lu_front.in` и их матрицы в
+    /// `master` посчитаны на алюминий; пластиковые сцены придут веткой
+    /// `p219-scenes` (коммит `e348aadc`, решение Amber «После GPU, оба коммита
+    /// разом»). Без заколки генератор строил бы из нового шаблона пластик, и
+    /// сторож сцен `check_corpus_scenes` (`T261`) краснел бы на трёх сценах до
+    /// прихода ветки — то есть правка ПРИЛОЖЕНИЯ ждала бы счёта корпуса.
+    ///
+    /// Глубина кристалла под наружной гранью сохраняется (корпус + зазор берутся
+    /// из шаблона), поэтому заколка с ветки `p219-scenes` совместима без правки:
+    /// её `Rc103PlasticFront` идёт ПОСЛЕ (в `Shape` сцены), берёт ту же глубину
+    /// 1.0 + 3.5 = 4.5 мм и ставит пластик 1.5 / 3.0 — сцены выходят теми же
+    /// байтами, что в `e348aadc`. Маринелли `RC103_marinelli05_kcl` (зазор
+    /// нулём поверх шаблона) заколкой тоже остаётся алюминиевой — как и на
+    /// ветке `p219-scenes`, где её торец не трогали.
+    ///
+    /// ⚠ После слияния `p219-scenes` заколку можно снять вместе с
+    /// `Rc103PlasticFront` (сцены возьмут торец из шаблона — принцип «ДЕТЕКТОР —
+    /// целиком из GeometryPresets»), НО маринелли RC-103 при этом станет
+    /// пластиковой (торец 1.5 мм, зазор 0) — другое клеймо и новая матрица; без
+    /// решения о маринелли снимать нельзя.
+    /// </summary>
+    static void Rc103AluminumFrontUntilP219(GeometryModel g)
+    {
+        GeometryMaterialLibrary.Entry al = GeometryMaterialLibrary.ByName("Aluminum");
+        if (al == null)
+        {
+            throw new InvalidOperationException("в библиотеке веществ нет «Aluminum» — торец RC-103 не поставить");
+        }
+
+        double depth = g.FrontCladdingThickness + g.FrontGapThickness;   // 1.5 + 3.0 из шаблона
+        g.Cladding = GeometryMaterialLibrary.Make(al, al.Density);
+        g.FrontCladdingThickness = 1.0;
+        g.FrontGapThickness = depth - 1.0;
     }
 
     // ----------------------------------------------------------------------
