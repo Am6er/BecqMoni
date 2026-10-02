@@ -1397,6 +1397,16 @@ namespace CorpusFsaProbe
                     continue;
                 }
 
+                if (a.StartsWith("--ramp-grid=", StringComparison.Ordinal))
+                {
+                    // (`S207`, П225) как рампа порога ложится на образ внутри канала:
+                    // `imageweighted` — на дробной сетке канала (умолчание), `channelmean` —
+                    // канал образа × среднее рампы по каналу (прежнее, рычаг A/B)
+                    o.RampGrid = (FsaRampSampling)Enum.Parse(typeof(FsaRampSampling), a.Substring(12), true);
+                    o.RampGridSet = true;
+                    continue;
+                }
+
                 if (a.StartsWith("--knots=", StringComparison.Ordinal))
                 {
                     // `B17`: делитель диапазона, задающий самый редкий шаг узлов
@@ -2384,6 +2394,11 @@ namespace CorpusFsaProbe
             if (o.KernelSet)
             {
                 analyzer.KernelChannelMean = o.Kernel;
+            }
+
+            if (o.RampGridSet)
+            {
+                analyzer.RampWithinChannel = o.RampGrid;
             }
 
             // (`S88`) A/B-ручка густоты узлов: сплайн со штатным порогом
@@ -6064,6 +6079,11 @@ namespace CorpusFsaProbe
             public FsaKernelSampling Kernel;
 
             public bool KernelSet;
+
+            /// <summary>(`S207`, П225) `--ramp-grid=`: рампа на образ внутри канала; <see cref="RampGridSet"/> — ключ задан.</summary>
+            public FsaRampSampling RampGrid;
+
+            public bool RampGridSet;
 
             /// <summary>Розыгрышей Монте-Карло-поверки пределов S9 (0 — не поверять).</summary>
             public int LimitsMc;

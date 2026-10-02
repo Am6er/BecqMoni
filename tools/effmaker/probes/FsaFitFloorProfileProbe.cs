@@ -57,6 +57,11 @@ namespace FsaFitFloorProfileProbe
     ///      укрупнении ×2 — одна середина, ширина и уровень (в пределах 0.05
     ///      канала и 1 %); прежний уровень медианой окна в каналах
     ///      (`ModelMedian`) этим же сравнением обязан отказать.
+    ///  11. (`S207`, П225) узкий пик в самой рампе: модель ×1, сведённая точно
+    ///      ×2, совпадает с моделью ×2 той же рампы, когда множитель — среднее
+    ///      рампы с весами хода пика внутри канала (дробная сетка,
+    ///      `FsaRampSampling.ImageWeighted`); прежнее произведение средних
+    ///      этим же сравнением обязано отказать.
     ///
     /// Таблица корпуса несёт и рампу модели (чья, середина, ширина, верх) —
     /// артефакт правила `S204`: у каких спектров модель умножается и на что.
@@ -596,6 +601,55 @@ namespace FsaFitFloorProfileProbe
                       Math.Abs(dm[0]) < 0.05 && Math.Abs(dw[0]) < 0.05 && Math.Abs(dl[0]) < 0.01
                       && !(Math.Abs(dm[1]) < 0.05 && Math.Abs(dw[1]) < 0.05 && Math.Abs(dl[1]) < 0.01),
                       "поставка: " + h10[0] + "; ModelMedian: " + h10[1]);
+
+                // 11. (`S207`, П225) рампа на дробной сетке канала: узкий пик
+                // (K-рентген, σ 0.9 канала ×1) в самой рампе. Модель ×1, сведённая
+                // точно ×2 (сумма пар), обязана совпасть с моделью ×2 той же рампы
+                // (середина (m − ½)/2, ширина w/2), когда множитель — среднее рампы
+                // с весами хода пика внутри канала (Weighted); положительный
+                // контроль — прежнее произведение средних (At) этим же сравнением
+                // обязано отказать. Заодно: равные веса дают ровно At.
+                {
+                    const int K = FsaBand.RampProfile.SubBins;
+                    var g1 = new FsaBand.RampProfile { Mid = 9.7, Width = 1.0, Top = 40, Mean = true };
+                    var g2r = new FsaBand.RampProfile { Mid = (9.7 - 0.5) / 2.0, Width = 0.5, Top = 20, Mean = true };
+                    const double pc = 11.3, ps = 0.9;
+                    Func<double, double, double> area = (a, b) =>
+                        0.5 * (Erf((b - pc) / (ps * Math.Sqrt(2.0))) - Erf((a - pc) / (ps * Math.Sqrt(2.0))));
+                    Func<double, double> dens = x => Math.Exp(-0.5 * (x - pc) * (x - pc) / (ps * ps));
+                    double[] w = new double[K];
+                    double[] flat = new double[K];
+                    for (int j = 0; j < K; j++) flat[j] = 1.0;
+                    double[] m1g = new double[40], m1o = new double[40];
+                    double flatDev = 0.0;
+                    for (int c = 0; c < 40; c++)
+                    {
+                        for (int j = 0; j < K; j++) w[j] = dens(c - 0.5 + (j + 0.5) / K);
+                        double t = area(c - 0.5, c + 0.5);
+                        m1g[c] = t * g1.Weighted(c, w, 0);
+                        m1o[c] = t * g1.At(c);
+                        flatDev = Math.Max(flatDev, Math.Abs(g1.Weighted(c, flat, 0) - g1.At(c)));
+                    }
+
+                    double top = 0.0, devG = 0.0, devO = 0.0;
+                    for (int c2 = 0; c2 < 20; c2++)
+                    {
+                        // канал ×2 c2 — отрезок [2c2 − ½, 2c2 + 1½] шкалы ×1
+                        for (int j = 0; j < K; j++) w[j] = dens(2.0 * c2 - 0.5 + 2.0 * (j + 0.5) / K);
+                        double t = area(2.0 * c2 - 0.5, 2.0 * c2 + 1.5);
+                        double g2 = t * g2r.Weighted(c2, w, 0), o2 = t * g2r.At(c2);
+                        double dg = m1g[2 * c2] + m1g[2 * c2 + 1], dO = m1o[2 * c2] + m1o[2 * c2 + 1];
+                        top = Math.Max(top, dg);
+                        devG = Math.Max(devG, Math.Abs(dg - g2));
+                        devO = Math.Max(devO, Math.Abs(dO - o2));
+                    }
+
+                    Check("пик в рампе: модель ×1, сведённая ×2, = модель ×2 на дробной сетке; произведение средних — нет",
+                          flatDev < 1e-12 && devG < 2e-3 * top && devO > 1e-2 * top,
+                          string.Format(CultureInfo.InvariantCulture,
+                              "наибольшее |Δ| к вершине: дробная сетка {0:F5} %, произведение средних {1:F3} %; равные веса − At {2:E1}",
+                              100.0 * devG / top, 100.0 * devO / top, flatDev));
+                }
             }
             finally
             {
