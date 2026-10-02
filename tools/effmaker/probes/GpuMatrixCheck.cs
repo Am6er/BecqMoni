@@ -60,7 +60,10 @@ static class GpuCheck
     public static int Run(RmGpu gpu, GeometryModel geometry, ResponseMatrixOptions options, int index,
                           int histories, int branch, TextWriter log)
     {
-        if (gpu.RealBytes != 8) throw new InvalidOperationException("ступень 1 — только double-сборка rmgpu.dll");
+        // Ступень 1 — double-сборка. Float-сборку пускает только замер выбросов
+        // (`BQ_GPU_CHECK_FLOAT=1`): развилки там везде, ищутся ВЕЛИЧИНЫ (наибольший |возврат|).
+        bool floatProbe = Environment.GetEnvironmentVariable("BQ_GPU_CHECK_FLOAT") == "1";
+        if (gpu.RealBytes != 8 && !floatProbe) throw new InvalidOperationException("ступень 1 — только double-сборка rmgpu.dll");
         Type builder = typeof(ResponseMatrixBuilder);
         double[] grid = options.BuildGrid(geometry);
         double energyKev = grid[index];
@@ -201,6 +204,18 @@ static class GpuCheck
             rngDiff, scoreDiff, weightDiff, depDiff, lightDiff, cosDiff, binDiff, chanDiff, flagDiff, anyBad,
             100.0 * anyBad / Math.Max(1, histories)));
         foreach (string s in shown) log.WriteLine(s);
+        {
+            int worst = 0;
+            for (int i = 1; i < histories; i++)
+            {
+                if (Math.Abs(gpuOut[i].Score) + Math.Abs(gpuOut[i].Light) > Math.Abs(gpuOut[worst].Score) + Math.Abs(gpuOut[worst].Light)) worst = i;
+            }
+
+            log.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "   наибольший выход GPU: #{0} score {1:R} w {2:R} dep {3:R} light {4:R} | CPU score {5:R} light {6:R}",
+                worst, gpuOut[worst].Score, gpuOut[worst].Weight, gpuOut[worst].DepositA, gpuOut[worst].Light,
+                cpu[worst].Score, cpu[worst].Light));
+        }
 
         // Суммы: CPU-гистограмма (взвешенная клала её сама) против GPU.
         if (branch == 0)

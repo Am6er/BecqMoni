@@ -626,7 +626,7 @@ RM_DEVF bool Sim::EscapeOrReturn(real& x, real& y, real& z, real& ux, real& uy, 
 
     // ⚠ float: сдвиг 1e-7 см меньше ulp координаты ≳ 1 см (ulp(4 см) = 4.8e-7) —
     // точка НЕ сдвигается с грани, и `At` может отдать её кристаллу (возврат на месте).
-    real advance = toEdge + (real)1e-7;
+    real advance = toEdge + RM_NUDGE;
     x += ux * advance;
     y += uy * advance;
     z += uz * advance;
@@ -817,7 +817,7 @@ RM_DEVF bool Sim::TransportInLayers(real& x, real& y, real& z, real& ux, real& u
         {
             // Пустота — по прямой до следующей границы, без потерь.
             // ⚠ float: сдвиг 1e-7 см тонет в ulp координаты (см. EscapeOrReturn).
-            real through = toNext + (real)1e-7;
+            real through = toNext + RM_NUDGE;
             x += ux * through;
             y += uy * through;
             z += uz * through;
@@ -896,7 +896,7 @@ RM_DEVF bool Sim::TransportInLayers(real& x, real& y, real& z, real& ux, real& u
                                         toNext * density, bremAnchor, tEntry, D.brems[bremTable], radiated);
             }
 
-            real through = toNext + (real)1e-7;     // ⚠ float: см. выше
+            real through = toNext + RM_NUDGE;     // ⚠ float: см. выше
             x += ux * through;
             y += uy * through;
             z += uz * through;
@@ -952,7 +952,7 @@ RM_DEVF bool Sim::TransportInLayers(real& x, real& y, real& z, real& ux, real& u
                                         toNext * density, bremAnchor, tEntry, D.brems[bremTable], radiated);
             }
 
-            real through = toNext + (real)1e-7;     // ⚠ float: см. выше
+            real through = toNext + RM_NUDGE;     // ⚠ float: см. выше
             x += ux * through;
             y += uy * through;
             z += uz * through;
@@ -1274,7 +1274,7 @@ RM_DEVF bool Sim::ElectronWalkToCrystal(real x, real y, real z, real ux, real uy
             return false;           // пробег кончился в слое
         }
 
-        real advance = step + (real)1e-7;   // ⚠ float: см. EscapeOrReturn
+        real advance = step + RM_NUDGE;   // ⚠ float: см. EscapeOrReturn
         x += ux * advance;
         y += uy * advance;
         z += uz * advance;
