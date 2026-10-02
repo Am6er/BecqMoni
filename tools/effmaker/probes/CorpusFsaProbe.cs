@@ -1188,6 +1188,14 @@ namespace CorpusFsaProbe
                     o.AnchorCoreOwner = v == "1" ? 1 : 0;
                     continue;
                 }
+                // (`AMBER142` п. 3, П224) нуль хранимого фона против пробы: 1 — мерить с усилением, 0 — одно усиление
+                if (a.StartsWith("--bg-zero=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(10);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--bg-zero=0|1"); }
+                    o.BackgroundZero = v == "1" ? 1 : 0;
+                    continue;
+                }
                 // (`AMBER142` п. 8, П215) нуль света карты adc: 1 — на нижнем краю канала 0, 0 — в центре
                 if (a.StartsWith("--adc-zero-edge=", StringComparison.Ordinal))
                 {
@@ -2480,6 +2488,11 @@ namespace CorpusFsaProbe
             if (o.AdcZeroEdge >= 0)
             {
                 analyzer.AdcZeroAtChannelEdge = o.AdcZeroEdge == 1;
+            }
+
+            if (o.BackgroundZero >= 0)
+            {
+                analyzer.BackgroundZeroFollowsSample = o.BackgroundZero == 1;
             }
 
             if (o.AnchorOffsetMin > 0)
@@ -6132,6 +6145,7 @@ namespace CorpusFsaProbe
             public int NoLeverZero = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора; 0 inherit, 1 instrument, 2 shift
             public int AnchorCoreOwner = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора
             public int AdcZeroEdge = -1;   // (`AMBER142` п. 8) −1 — умолчание анализатора
+            public int BackgroundZero = -1;   // (`AMBER142` п. 3, П224) −1 — умолчание анализатора
             public double AnchorZ = -1.0;
             public double AnchorWindow = -1.0;
             public double AnchorFloor = -1.0;
