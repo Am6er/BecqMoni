@@ -1294,6 +1294,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double BackgroundGain { get; set; } = 1.0;
 
         /// <summary>
+        /// (`AMBER142` п.3, П224 02.10.2026) Сдвиг нуля хранимого фона против
+        /// пробы, с которым фон вычтен, в каналах пробы: вместе с
+        /// <see cref="BackgroundGain"/> отсчёт фона из канала p вычитался из
+        /// канала g·p + o. 0 — фона нет, нуль не мерился
+        /// (<see cref="FsaAnalyzer.BackgroundZeroFollowsSample"/> снят) или
+        /// измерен нулевым.
+        /// </summary>
+        public double BackgroundOffset { get; set; }
+
+        /// <summary>
         /// Оптимум дрейфа упёрся в границу сетки — шкале верить нельзя. Это ИЛИ
         /// двух признаков ниже; порознь они появились 13.08.2026, когда
         /// корпусный прогон (S1, S6) показал, что одним словом «дрейф» названы
