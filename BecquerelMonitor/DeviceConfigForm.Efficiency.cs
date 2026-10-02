@@ -415,8 +415,11 @@ namespace BecquerelMonitor
             // ушли бы за нижний край МОЛЧА — панель обрезает детей без
             // исключения и без признака, — и починка `A119` выглядела бы
             // сделанной, оставаясь невидимой.
+            // (`S208`, П216) Четвёртый довод — обязана ли кривая этой геометрии
+            // нести кусок пика окном (`peps=fwhm`): у геометрии с разрешением.
             this.ShowGenerationNotes(GenerationNotes(config.ComputeStamp, matrixPhysics,
-                                                     ResponseMatrix.PhysicsVersion));
+                                                     ResponseMatrix.PhysicsVersion,
+                                                     EfficiencyCalculation.PeakWindowExpected(config.Geometry)));
             this.efficiencySketch.SetModel(config.Geometry);
         }
 
@@ -490,8 +493,11 @@ namespace BecquerelMonitor
         /// <param name="computeStamp">клеймо кривой; пустое — молчим</param>
         /// <param name="matrixPhysics">поколение матрицы склада; 0 — матрицы нет</param>
         /// <param name="buildPhysics">поколение этой сборки</param>
+        /// <param name="peakWindowExpected">(`S208`, П216) обязана ли кривая нести кусок
+        /// пика окном <see cref="EfficiencyCalculation.PeakWindowStamp"/> — у геометрии с
+        /// разрешением (<see cref="EfficiencyCalculation.PeakWindowExpected"/>)</param>
         internal static List<string> GenerationNotes(string computeStamp, int matrixPhysics,
-                                                     int buildPhysics)
+                                                     int buildPhysics, bool peakWindowExpected)
         {
             List<string> notes = new List<string>();
             int curvePhysics = ResponseMatrix.PhysicsFromStamp(computeStamp);
@@ -507,6 +513,23 @@ namespace BecquerelMonitor
                 notes.Add(string.Format(CultureInfo.InvariantCulture,
                                         Resources.EfficiencyTabCurveOldPhysics,
                                         curvePhysics, buildPhysics));
+            }
+            else if (peakWindowExpected
+                     && computeStamp.IndexOf(EfficiencyCalculation.PeakWindowStamp,
+                                             StringComparison.Ordinal) < 0)
+            {
+                // ⛔ (`S208`, П216; решение Amber 02.10.2026 «Научить вкладку и
+                // сторожа peps=fwhm») ПОКОЛЕНИЕ ТО ЖЕ, ОПРЕДЕЛЕНИЕ ПИКА ПРЕЖНЕЕ.
+                // Пик кривой с физики 26 считается окном полной строки ±ПШПВ/2
+                // (кусок клейма `peps=fwhm`), а номер `phys=` у кривой общий с
+                // матрицей и поднят не был — без этой фразы кривая, посчитанная
+                // до правки, выглядела бы нынешней. Только у геометрии с
+                // разрешением: без него окна нет, и кривая прежняя по праву.
+                // При отставшей физике фраза не нужна — «пересчитайте» уже
+                // сказано строкой выше.
+                notes.Add(string.Format(CultureInfo.InvariantCulture,
+                                        Resources.EfficiencyTabCurveOldPeak,
+                                        curvePhysics, EfficiencyCalculation.PeakWindowStamp));
             }
 
             // Сравнение с матрицей — ОТДЕЛЬНОЕ: кривая и матрица бывают обе
