@@ -128,8 +128,8 @@
    3000
   ]
  ],
- "declared": "2026-10-02 21:14",
- "head": "1899c8df",
+ "declared": "2026-10-02 22:47",
+ "head": "670a4b80",
  "head_lines": {
   "chi2": "chi2/ndf 0.612, невязка модели 28.8 %, суммирование нет",
   "composition": "состав объявлен: 137CS; ряды: нет; распад 1, атомных 2, линий 18; полоса сведена ПОЛОМ ПО КРИВОЙ 40.0 кэВ (10.0 % от максимума, Min_Range 5.0), фит на всём спектре (умолчание); аннигиляционный образ НЕ взят: в составе нет линии выше 1022 кэВ",
@@ -146,11 +146,11 @@
   "library_sha": "5ae488901f2defe7",
   "matrices": {},
   "probes": {
-   "app_sha": "643cb2cf30f40b1d",
-   "built": "2026-10-02 21:08:16",
-   "dir": "tools/effmaker/probes/build",
+   "app_sha": "dde56d8999dacd75",
+   "built": "2026-10-02 22:38:40",
+   "dir": "tools/effmaker/probes/build_p226j",
    "freshness_checked": true,
-   "shot_sha": "05e6e44b7fa333cc"
+   "shot_sha": "fd65c3b2df521785"
   },
   "spectrum": "../CORPUS/corpus/spectra/ASN16_Cs137_10cm.xml",
   "spectrum_sha": "e61addc0f358f32d"
@@ -338,7 +338,7 @@
    "Пики полного поглощения, по которым привязана шкала (+ опора, - отвергнут): компонент, центр модели кэВ, остаток кэВ, доля пика, причина"
   ]
  ],
- "seconds": 3.1,
+ "seconds": 2.1,
  "spectrum": "../CORPUS/corpus/spectra/ASN16_Cs137_10cm.xml",
  "tolerance": {
   "abs": 1e-06,
