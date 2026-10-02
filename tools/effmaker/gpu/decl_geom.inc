@@ -44,6 +44,8 @@ bool rayAllocated;                            // = `rayCross != null` C#: был
 int rayCount;
 real rayX, rayY, rayZ, rayUx, rayUy, rayUz;
 bool rayValid;
+// = EfficiencySimulator.ForgetRay (`A315`, П221): кэш луча не переживает историю.
+RM_DEV void ForgetRay() { rayValid = false; }
 real eventT[RM_MAX_EVENTS];
 int eventCode[RM_MAX_EVENTS];
 real spanBuf[4];

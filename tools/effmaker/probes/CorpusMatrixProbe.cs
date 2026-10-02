@@ -698,6 +698,14 @@ class CorpusMatrixProbe
                 foreach (string ns in list.Split(','))
                 {
                     int index = int.Parse(ns, CultureInfo.InvariantCulture);
+                    if (index < 0 || index >= nodes)
+                    {
+                        // У сцен разное число узлов (края K веществ): номер за краем сетки
+                        // этой сцены пропускается вслух, а не роняет прогон.
+                        Console.WriteLine("   узла {0} у сцены нет (узлов {1}) — пропущен", index, nodes);
+                        continue;
+                    }
+
                     foreach (string bs in gpuBranches.Split(','))
                     {
                         bad += GpuCheck.Run(gpu, geometry, options, index, gpuCheck,

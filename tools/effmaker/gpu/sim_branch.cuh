@@ -114,6 +114,7 @@ RM_DEVF void Sim::PushTotalPending(real x, real y, real z, real ux, real uy, rea
 RM_DEVF real Sim::OneHistory(real energyKev, real x, real y, real z,
                              double* histogram, int histogramLength, real binKev, real pointWeight)
 {
+    ForgetRay();          // (`A315`, решение Amber 02.10.2026) кэш луча не переживает историю
     const SceneG& sc = *D.scene;
     {
         real dz = sc.sphereZ - z;
@@ -456,6 +457,7 @@ RM_DEVF real Sim::AnalogHistory(real energyKev, real x, real y, real z, real& we
                                 bool outsideOnly, bool& inWeightedCone,
                                 real& depositedOutside, bool& comptonOutside)
 {
+    ForgetRay();          // (`A315`, решение Amber 02.10.2026) кэш луча не переживает историю
     const SceneG& sc = *D.scene;
     real limit = PathLimit(x, y, z);
     real ux, uy, uz;

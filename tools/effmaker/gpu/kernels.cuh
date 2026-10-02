@@ -114,7 +114,13 @@ RM_DEV void ResetCarried(Sim& s, int mask)
     {
         s.rayCount = 0;
         s.rayValid = false;
+    }
+
+    if (mask & 4)
+    {
         s.raySaveValid = false;
+        s.raySaveCount = 0;
+        s.raySaveDepth = 0;
     }
 }
 
