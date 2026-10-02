@@ -4868,6 +4868,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>(`AMBER142`) Действует ли <see cref="AnchorZeroOwnsOffset"/> на этом разборе.</summary>
         bool anchorGainOnly;
 
+        /// <summary>(`AMBER142`, П222) Идёт цикл привязки классики (нуль прибора, без совместного шага).</summary>
+        bool anchorClassicLoop;
+
         /// <summary>
         /// (`AMBER142`, П201) Ковариация поправки шкалы p'' = a·p' + b по опорам
         /// последнего сбора (a безразмерно, b в каналах): сэндвич по шуму точек
@@ -5052,6 +5055,80 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// рычаг — `--anchor-core-half=` у `CorpusFsaProbe`.
         /// </summary>
         public bool AnchorCoreHalfChannel { get; set; }
+
+        /// <summary>
+        /// (`AMBER142`, П222 02.10.2026) ДОЛЯ ЯДРА ОПОРЫ — БЕЗ КОНТИНУУМА: ядро
+        /// делится на нуклидную модель окна, а не на модель целиком со
+        /// сплайном. Сплайн подогнан по каналам и центра опоры не двигает
+        /// (измерение — остаток + ядро, модель — ядро: подложка стоит по обе
+        /// стороны), а в знаменателе доли он делает отбор зависимым от
+        /// положения модели: при шкале мимо пика сплайн забирает пик себе,
+        /// доля падает, опора отвергается, шкала остаётся мимо. Ложь —
+        /// прежняя доля «ядро / вся модель окна». Только с матрицей отклика: у
+        /// голых пиков кривой нуклидная модель окна — одни пики, доля ядра в ней
+        /// почти всегда единица, и опорой становился любой пик (плечо без
+        /// матрицы малой базы: опор у `AS80_Th232Medal` 2 → 9, Th-232 +30 %,
+        /// `ASN16_Lu176` χ²/ndf +37 %, медиана 3.50 → 3.74). Умолчание — в
+        /// конструкторе; рычаг — `--anchor-share-net=` у `CorpusFsaProbe`.
+        /// </summary>
+        public bool AnchorShareWithoutContinuum { get; set; }
+
+        /// <summary>
+        /// (`AMBER142`, П222 02.10.2026) ШИРИНА, НЕ ОПРЕДЕЛЯЕМАЯ ОПОРАМИ, —
+        /// ЗАМОРАЖИВАЕТСЯ. Секущая по двум проходам меряет отклик остатка ширины
+        /// на шаг множителя (у гаусса он единичный). Отклик слабее половины
+        /// (q > 2) или обратного знака (q &lt; 0) значит, что остаток шагу не
+        /// отвечает: фит уводит крылья образа в соседей и подложку, замер
+        /// «остаток + ядро» сужается вслед за ядром, и множитель ползёт на
+        /// каждом проходе, пока проходы не кончатся (`G1S16_Am241_P25` с составом
+        /// Am-241 + Cd-109: −1 % ширины за проход, ×0.874 к пределу 3 + 8 при
+        /// неподвижной точке нигде; точная копия встаёт в другую точку полосы —
+        /// Am-241 +10 %). Правило срабатывает только у ОДИНОЧНОЙ опоры ширины
+        /// (у нескольких их разброс держит множитель), после двух слабых
+        /// откликов подряд и только в ПРЕДЕЛЕ проходов (сошедшийся разбор оно не
+        /// трогает): множитель возвращается к значению начала привязки, шаг
+        /// ширины снимается до конца, добавляются проходы своего режима (усиление
+        /// сходится на неподвижной ширине), плато считается заново, в поправку
+        /// прохода ширина не входит. Ложь — прежний шаг по замеру. Умолчание — в
+        /// конструкторе; рычаг — `--anchor-width-freeze=` у `CorpusFsaProbe`.
+        /// </summary>
+        public bool AnchorWidthFreezeWeak { get; set; }
+
+        /// <summary>
+        /// (`AMBER142`, П222 02.10.2026) ПРЕДЕЛ ШАГА НУЛЯ СВЕТА за проход
+        /// совместного шага, в каналах у нулевого канала. Кандидаты нуля
+        /// заморожены разведкой, и при шкале, стоящей далеко от данных
+        /// (`G1S24_Ra226_Petri`, точная копия с дрейфом усиления 1.02: старт в
+        /// 2.9 % от данных), их центры сняты мимо — шаг Гаусса — Ньютона по одной
+        /// опоре и таким кандидатам уводил нуль на 12 кан. (+35 кэВ), и проходы
+        /// раскачивались до предела. Шаг дальше предела не делается: проход
+        /// двигает только усиление по МНК опор, нуль — на следующем, когда шкала
+        /// подойдёт. Ноль и меньше — без предела (прежнее). Умолчание — в
+        /// конструкторе; рычаг — `--anchor-zero-step-max=` у `CorpusFsaProbe`.
+        /// </summary>
+        public double AnchorZeroStepMaxChannels { get; set; }
+
+        /// <summary>
+        /// (`AMBER142`, П222 02.10.2026) ШАГИ ГАУССА — НЬЮТОНА ПРОМАХА ОПОРЫ
+        /// (<see cref="AnchorShiftMeasure"/>) НАЧИНАЮТСЯ С РАЗНОСТИ ЦЕНТРОВ
+        /// ТЯЖЕСТИ окна, а не с нуля. Линеаризация по производной модели берёт
+        /// промах до половины ПШПВ; при шкале, стоящей далеко от данных
+        /// (`G1S24_Ra226_Petri`, точная копия с дрейфом усиления 1.02 — старт в
+        /// 2.9 % от данных), шаги от нуля уходили в чужой склон и мерили промах
+        /// не того знака, первая опора уводила усиление прочь, и привязка
+        /// разваливалась. Центр тяжести грубее, но знак и величину дальнего
+        /// промаха даёт верно; дальше шаги уточняют от него, и неподвижная
+        /// точка у близкой шкалы та же (у точной копии оба старта — около нуля).
+        /// Разность центров дальше двух ПШПВ — старт от нуля, как прежде. Действует
+        /// на разведке нуля и в цикле совместного шага (там первая опора на далёкой
+        /// шкале уводит и нуль, а кандидаты нуля разведки замораживаются); в цикле
+        /// классики (нуль прибора, одна-две опоры) — нет: там старт от центра менял
+        /// путь медленно сходящихся проходов — `G1S16_Am241_P25` с
+        /// составом Am-241 + Cd-109, точная копия: Am-241 +2.9 → +12.1 %. Ложь —
+        /// старт от нуля. Умолчание — в конструкторе; рычаг —
+        /// `--anchor-shift-start=` у `CorpusFsaProbe`.
+        /// </summary>
+        public bool AnchorShiftStartCentroid { get; set; }
 
         /// <summary>
         /// (`F11` (в), `AMBER17`; П18 11.09.2026 — умолчание ставит
@@ -6342,12 +6419,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                // (`AMBER142`, П222) доля без континуума — только с матрицей: у голых пиков
+                // кривой нуклидная модель окна — одни пики, доля ядра в ней почти всегда единица
+                bool shareNet = this.AnchorShareWithoutContinuum && this.ResponseMatrix != null;
                 double sumWhole = 0.0, sumCore = 0.0, sumData = 0.0, sumVar = 0.0;
                 double momentCore = 0.0, momentData = 0.0;
                 for (int k = lo; k <= hi; k++)
                 {
                     double d = fit.Residual[k] + core[k];
-                    sumWhole += net[k] + continuum[k];
+                    // (`AMBER142`, П222) доля без континуума — у свойства
+                    sumWhole += shareNet ? net[k] : net[k] + continuum[k];
                     sumCore += core[k];
                     momentCore += core[k] * k;
                     sumData += d;
@@ -6397,7 +6478,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // Шаги повторяются на модели, сдвинутой интерполяцией,
                         // пока шаг не станет меньше сотой канала: один шаг
                         // линеаризации недомеривает промах в половину ПШПВ.
-                        double delta = 0.0, den = 0.0;
+                        // (`AMBER142`, П222) старт шагов — от разности центров тяжести, а не от нуля
+                        // (доводы у <see cref="AnchorShiftStartCentroid"/>)
+                        double delta = this.AnchorShiftStartCentroid && !this.anchorClassicLoop
+                                       && Math.Abs(centreData - centreModel) <= 2.0 * fwhm
+                            ? centreData - centreModel
+                            : 0.0;
+                        double den = 0.0;
                         bool measured = false;
                         int kLo = Math.Max(lo, chLo + 1), kHi = Math.Min(hi, chHi - 1);
                         for (int it = 0; it < 8; it++)
@@ -8140,6 +8227,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // вместе с таблицей развёртки; менять его без новой развёртки нельзя.
             this.AnchorScale = true;
             this.AnchorShareThreshold = 0.5;
+            // (`AMBER142`, П222) доля опоры без континуума (с матрицей), заморозка ширины
+            // без отклика (одиночная опора ширины, предел проходов), старт шагов промаха
+            // от центров тяжести (разведка и совместный шаг); предел шага нуля — рычаг, выкл.
+            // Замеры — журнал `handover-2026-10-02-p222-anchor.md`.
+            this.AnchorShareWithoutContinuum = true;
+            this.AnchorWidthFreezeWeak = true;
+            this.AnchorZeroStepMaxChannels = 0.0;
+            this.AnchorShiftStartCentroid = true;
             this.AnchorMinZ = 5.0;
             this.AnchorWindowFwhm = 1.0;
             this.AnchorMaxShiftFwhm = 1.0;
@@ -9899,6 +9994,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     bool zeroRemeasure = zeroByRun && this.AnchorZeroRounds > 0 && this.adcScale > 0.0
                                          && this.zeroTakenLines != null && this.zeroTakenMargins != null;
                     this.anchorGainOnly = zeroRemeasure && this.AnchorZeroOwnsOffset;
+                    // (`AMBER142`, П222) цикл классики — без старта шагов от центров тяжести
+                    this.anchorClassicLoop = !zeroRemeasure;
                     this.jointScale = false;
                     // (`AMBER142` п. 7, П207) классика — свои добавочные проходы
                     int extraRounds = zeroRemeasure ? this.AnchorZeroRounds : Math.Max(0, this.AnchorClassicRounds);
@@ -9912,8 +10009,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // (`AMBER150`) последняя пара «множитель → остаток» для секущей
                     bool widthHavePrev = false;
                     double widthPrevLn = 0.0, widthPrevResidual = 0.0;
+                    // (`AMBER142`, П222) ширина не определяется опорами — заморожена
+                    // на множителе начала привязки; слабых откликов подряд
+                    bool widthFrozen = false;
+                    int widthWeak = 0;
+                    double widthStart = this.widthScale;
+                    double widthQ = double.NaN;
                     int movedBy = 0;
                     int zeroSteps = 0;
+                    // (`AMBER142`, П222) проходов, где шаг нуля превысил предел
+                    int zeroCappedPasses = 0;
                     // (`AMBER142`, П204) поправки прохода в долях допуска — для плато
                     var plateau = new List<double>();
                     double plateauBestR = double.MaxValue;
@@ -9939,14 +10044,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                         // (`AMBER142`) совместный шаг: усиление и нуль света
                         double zeroStep = 0.0;
+                        bool zeroCapped = false;
                         if (zeroRemeasure)
                         {
                             double aJoint, dzJoint;
                             if (this.JointScaleStep(calibration, bestGain, bestOffset, out aJoint, out dzJoint))
                             {
-                                a = aJoint;
-                                b = 0.0;
-                                zeroStep = dzJoint;
+                                // ⛔ (`AMBER142`, П222) ШАГ НУЛЯ ДАЛЬШЕ ПРЕДЕЛА — ДОВЕРИЯ НЕТ:
+                                // проход делает только усиление по опорам (доводы у
+                                // <see cref="AnchorZeroStepMaxChannels"/>)
+                                zeroCapped = this.AnchorZeroStepMaxChannels > 0.0 && PositiveFinite(zeroStep0)
+                                             && Math.Abs(dzJoint) * this.adcScale / zeroStep0 > this.AnchorZeroStepMaxChannels;
+                                if (!zeroCapped)
+                                {
+                                    a = aJoint;
+                                    b = 0.0;
+                                    zeroStep = dzJoint;
+                                }
+                                else
+                                {
+                                    zeroCappedPasses++;
+                                }
                             }
                         }
 
@@ -9987,22 +10105,48 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 // проходами, и у G1S24_Bi207_P5 секущая без этого
                                 // ножа унесла множитель на 1.33 (χ²/ndf 18.7 → 34.0)
                                 double q = secant / this.anchorWidthLog;
+                                widthQ = q;
                                 if (q >= 0.5 && q <= 2.0)
                                 {
                                     widthStep = secant;
                                 }
+
+                                // ⛔ (`AMBER142`, П222) ОСТАТОК ШИРИНЫ НЕ ОТВЕЧАЕТ НА ШАГ —
+                                // доводы у <see cref="AnchorWidthFreezeWeak"/>
+                                // (у нескольких опор ширины их разброс сам держит множитель; ловушка —
+                                // у одиночной: Mix_Mar, две опоры, 1/1 — заморозка части копий, Eu-152 разброс/σ 0.77 → 3.03)
+                                widthWeak = this.anchorWidthCount == 1 && (q > 2.0 || q < 0.0) ? widthWeak + 1 : 0;
                             }
 
                             widthPrevLn = lnNow;
                             widthPrevResidual = this.anchorWidthLog;
                             widthHavePrev = true;
-                            widthStep = Math.Max(-0.3, Math.Min(0.3, widthStep));
+                            if (!widthFrozen && this.AnchorWidthFreezeWeak && widthWeak >= 2 && pass + 1 == passes)
+                            {
+                                // только в ПРЕДЕЛЕ проходов: сошедшийся разбор правило не трогает
+                                // (без этого условия `G1S24_Am241_P5`, сходящийся за 6 проходов,
+                                // терял ширину ×1.129 → 1: χ²/ndf 2.68 → 3.83). Возврат к множителю
+                                // начала привязки — шагом этого прохода, и добавочные проходы
+                                // своего режима — усилению сойтись на неподвижной ширине.
+                                widthFrozen = true;
+                                widthStep = Math.Log(widthStart / this.widthScale);
+                                passes += Math.Max(1, extraRounds);
+                                // плато и «лучший проход» — заново: прежние шкалы стояли на ползущей ширине
+                                plateau.Clear();
+                                plateauBestR = double.MaxValue;
+                                plateauBestPass = -1;
+                                plateauBest = null;
+                            }
+                            else
+                            {
+                                widthStep = widthFrozen ? 0.0 : Math.Max(-0.3, Math.Min(0.3, widthStep));
+                            }
                         }
                         // (`AMBER142`) при совместном шаге — ещё и нуль света (допуск
                         // `AnchorZeroTolerance` канала у нулевого канала) и ширина
                         // точнее: копия модели обязана встать туда же, где встала
                         // истина, а не в пределах прежнего допуска от неё
-                        bool converged = Math.Abs(b) < 0.05
+                        bool converged = !zeroCapped && Math.Abs(b) < 0.05
                                          && Math.Abs(a - 1.0) * Math.Max(1, chHi) < 0.05
                                          && Math.Abs(beta) * this.lightShiftMax < 0.05
                                          && Math.Abs(widthStep) < (zeroRemeasure ? 0.0005 : 0.002)
@@ -10010,15 +10154,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                              || Math.Abs(zeroStep) * this.adcScale / zeroStep0 < this.AnchorZeroTolerance);
                         this.anchorStatPasses = pass + 1;
                         this.anchorStatTrace.AppendFormat(CultureInfo.InvariantCulture,
-                            " [{0}: n {1} da·ch {2:F4} b {3:F4} dz·ch {4:F4} dlnw {5:F5}{6}]",
+                            " [{0}: n {1} da·ch {2:F4} b {3:F4} dz·ch {4:F4} dlnw {5:F5} q {6:F2}{7}{8}]",
                             pass, used, (a - 1.0) * Math.Max(1, chHi), b,
                             PositiveFinite(zeroStep0) ? zeroStep * this.adcScale / zeroStep0 : 0.0,
-                            widthStep, converged ? " ok" : "");
+                            widthStep, widthQ, (widthFrozen ? " wfrz" : "") + (zeroCapped ? " zcap" : ""), converged ? " ok" : "");
                         if (!converged && plateauRule)
                         {
                             // (`AMBER142`, П204) плато — см. <see cref="AnchorPlateauPasses"/>;
                             // (п. 7, П207) и у классики, с её допуском ширины
-                            double pWorst = this.JointResidual(a, b, beta, zeroStep, zeroStep0, chHi, widthTolerance);
+                            double pWorst = this.JointResidual(a, b, beta, zeroStep, zeroStep0, chHi,
+                                                               widthFrozen ? double.PositiveInfinity : widthTolerance);
                             plateau.Add(pWorst);
                             if (pWorst < plateauBestR)
                             {
@@ -10144,7 +10289,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                     && plateauBest != null)
                                 {
                                     // (`AMBER142`, П204) шкала предела хуже лучшего прохода — возврат
-                                    double last = this.JointResidual(aLast, b, beta, dzLast, zeroStep0, chHi, widthTolerance);
+                                    double last = this.JointResidual(aLast, b, beta, dzLast, zeroStep0, chHi,
+                                                                     widthFrozen ? double.PositiveInfinity : widthTolerance);
                                     restoreBest = last > this.AnchorPlateauRatio * plateauBestR;
                                 }
                             }
@@ -10152,7 +10298,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             {
                                 // (`AMBER142` п. 7, П207) классика в пределе: поправка
                                 // последней шкалы — по опорам, только что снятым на ней
-                                double last = this.JointResidual(a, b, beta, 0.0, zeroStep0, chHi, widthTolerance);
+                                double last = this.JointResidual(a, b, beta, 0.0, zeroStep0, chHi,
+                                                                 widthFrozen ? double.PositiveInfinity : widthTolerance);
                                 restoreBest = last > this.AnchorPlateauRatio * plateauBestR;
                             }
 
@@ -10251,8 +10398,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (zeroRemeasure)
                     {
                         zeroRoundNote = string.Format(CultureInfo.InvariantCulture,
-                            "совместно с усилением: шагов нуля {0}, нуль света {1:F2} кэВ{2}",
-                            zeroSteps, this.adcZeroKev, zeroRoundNote != null ? ", " + zeroRoundNote : "");
+                            "совместно с усилением: шагов нуля {0}, нуль света {1:F2} кэВ{2}{3}",
+                            zeroSteps, this.adcZeroKev,
+                            zeroCappedPasses > 0
+                                ? string.Format(CultureInfo.InvariantCulture, ", шаг нуля за пределом {0:F1} кан. — проходов только усиления {1}",
+                                                this.AnchorZeroStepMaxChannels, zeroCappedPasses)
+                                : "",
+                            zeroRoundNote != null ? ", " + zeroRoundNote : "");
                     }
 
                     if (zeroRoundNote != null)
@@ -10261,6 +10413,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     this.anchorGainOnly = false;
+                    this.anchorClassicLoop = false;
+                    // (`AMBER142`, П222) ход проходов — в трассу нуля (только пробам; в приложении приёмника нет)
+                    ZeroTraceSink?.Invoke("ход привязки:" + this.anchorStatTrace + "; " + (zeroRoundNote ?? ""));
                     this.scaleAnchorsUsed = movedBy;
                     if (movedBy > 0)
                     {
