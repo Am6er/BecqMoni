@@ -25,15 +25,15 @@ DC_DetectorCapBackThickness = 0 cm
 DC_DetectorMountingThickness = 0 cm
 
 // Scintillator detector
-DS_CrystalDiameter = 1.1283792 cm
-DS_CrystalHeight = 1 cm
-DS_CrystalFrontReflectorThickness = 0.1 cm
+DS_CrystalDiameter = 6.3 cm
+DS_CrystalHeight = 6.3 cm
+DS_CrystalFrontReflectorThickness = 0.13 cm
 DS_CrystalSideReflectorThickness = 0.1 cm
-DS_CrystalFrontGapThickness = 0.3 cm
+DS_CrystalFrontGapThickness = 0 cm
 DS_CrystalSideGapThickness = 0 cm
-DS_CrystalFrontCladdingThickness = 0.15 cm
-DS_CrystalSideCladdingThickness = 0.1 cm
-DS_DetectorMountingThickness = 0.1 cm
+DS_CrystalFrontCladdingThickness = 0.18 cm
+DS_CrystalSideCladdingThickness = 0.2 cm
+DS_DetectorMountingThickness = 0.2 cm
 
 
 
@@ -45,7 +45,7 @@ DS_DetectorMountingThickness = 0.1 cm
 SourceType = POINT
 
 //Point source
-pdistance = 5 cm
+pdistance = 5.85 cm
 
 //Cylindrical source
 SC_BeakerToDetectorFrontDistance = 0.5 cm
@@ -149,29 +149,27 @@ M_DC_Vacuum.MatRelWeight[0] = 1
 
 // Crystal
 DS_nCrystalElements = 2
-DS_RoCrystal = 4.51
-DS_ZCrystal[0] = 53
-DS_FractionsCrystal[0] = 0.488451
-DS_ZCrystal[1] = 55
-DS_FractionsCrystal[1] = 0.511549
+DS_RoCrystal = 3.667
+DS_ZCrystal[0] = 11
+DS_FractionsCrystal[0] = 0.153373
+DS_ZCrystal[1] = 53
+DS_FractionsCrystal[1] = 0.846627
 DS_FractionTypeCrystal = MASS
-M_DS_Crystal.MName = Cesium iodide
+M_DS_Crystal.MName = Sodium iodide
 M_DS_Crystal.Nmaterials = 1
-M_DS_Crystal.Name[0] = Cesium iodide                            
+M_DS_Crystal.Name[0] = Sodium iodide                            
 M_DS_Crystal.MatRelWeight[0] = 1
 
 
 // Crystal Cladding 
-DS_nCrystalCladdingElements = 2
-DS_RoCrystalCladding = 0.94
-DS_ZCrystalCladding[0] = 1
-DS_FractionsCrystalCladding[0] = 0.143711
-DS_ZCrystalCladding[1] = 6
-DS_FractionsCrystalCladding[1] = 0.856289
+DS_nCrystalCladdingElements = 1
+DS_RoCrystalCladding = 2.7
+DS_ZCrystalCladding[0] = 13
+DS_FractionsCrystalCladding[0] = 1
 DS_FractionTypeCrystalCladding = MASS
-M_DS_Crystal_Cladding.MName = Polyethylene
+M_DS_Crystal_Cladding.MName = Aluminum
 M_DS_Crystal_Cladding.Nmaterials = 1
-M_DS_Crystal_Cladding.Name[0] = Polyethylene                             
+M_DS_Crystal_Cladding.Name[0] = Aluminum                                 
 M_DS_Crystal_Cladding.MatRelWeight[0] = 1
 
 
@@ -316,12 +314,6 @@ M_SM_EmptySpace.Name[0] = Air, dry
 M_SM_EmptySpace.MatRelWeight[0] = 1
 
 
-// Ќасто€ща€ форма кристалла (наше расширение формата).
-// ƒлинна€ сторона Z вдоль оси детектора, торец X*Y смотрит на источник.
-DS_CrystalBoxX = 1 cm
-DS_CrystalBoxY = 1 cm
-DS_CrystalBoxZ = 1 cm
-
 // –азрешение прибора (наше расширение формата): допуск
 // поправки на однократное рассе€ние, см. GeometryModel.FwhmAt662Percent.
-DS_Fwhm662 = 8.49 %
+DS_Fwhm662 = 6.44 %
