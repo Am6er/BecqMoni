@@ -105,6 +105,56 @@ namespace BecquerelMonitor.Probes
             //    и молчать про него нельзя: числа кривой считались физикой,
             //    которой в этой сборке нет.
             Case("кривая 17, сборка 16", Stamp(17), 17, 16, 1, 17, 16);
+
+            // 9…12. (`S208`, П216; решение Amber 02.10.2026 «Научить вкладку и
+            // сторожа peps=fwhm») Определение пика кривой — кусок клейма
+            // `EfficiencyCalculation.PeakWindowStamp` у геометрии с разрешением.
+            PeakCases();
+        }
+
+        /// <summary>
+        /// (`S208`) Кривая того же поколения, что сборка, но без куска пика окном
+        /// у геометрии с разрешением — посчитана прежним определением пика.
+        /// ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ — случай 9 (старая кривая ОПОЗНАЁТСЯ) и
+        /// случай 10 (новая с куском — молчим): без 10 проба прошла бы на правиле
+        /// «говорить всегда», без 9 — на правиле, не читающем клеймо.
+        /// </summary>
+        static void PeakCases()
+        {
+            string piece = EfficiencyCalculation.PeakWindowStamp;
+            int build = ResponseMatrix.PhysicsVersion;
+            string old = Stamp(build);
+            string fresh = Stamp(build) + "; " + piece;
+
+            List<string> got = Ask(old, build, build, true);
+            Console.WriteLine("  {0,-34} -> сообщений {1}", "9. без куска, с разрешением",
+                              got.Count.ToString(CultureInfo.InvariantCulture));
+            foreach (string line in got)
+            {
+                Console.WriteLine("        {0}", line);
+            }
+
+            Check(got.Count == 1, "9. старая кривая (без «" + piece + "») опознаётся одним сообщением");
+            if (got.Count == 1)
+            {
+                Check(HasNumber(got[0], build) && got[0].IndexOf(piece, StringComparison.Ordinal) >= 0,
+                      "9. сообщение называет поколение и кусок «" + piece + "»");
+            }
+
+            got = Ask(fresh, build, build, true);
+            Console.WriteLine("  {0,-34} -> сообщений {1}", "10. с куском, с разрешением",
+                              got.Count.ToString(CultureInfo.InvariantCulture));
+            Check(got.Count == 0, "10. новая кривая (с «" + piece + "») — молчим");
+
+            got = Ask(old, build, build, false);
+            Console.WriteLine("  {0,-34} -> сообщений {1}", "11. без куска, без разрешения",
+                              got.Count.ToString(CultureInfo.InvariantCulture));
+            Check(got.Count == 0, "11. геометрия без разрешения — окна нет, молчим");
+
+            got = Ask(Stamp(build - 1), build, build, true);
+            Console.WriteLine("  {0,-34} -> сообщений {1}", "12. старая физика, без куска",
+                              got.Count.ToString(CultureInfo.InvariantCulture));
+            Check(got.Count == 2, "12. отставшая физика — «пересчитайте» и про матрицу, про пик не дублируем");
         }
 
         /// <summary>Клеймо кривой того же вида, что печатает `EfficiencyCalculation`.</summary>
@@ -175,7 +225,12 @@ namespace BecquerelMonitor.Probes
 
         static List<string> Ask(string stamp, int matrixPhysics, int buildPhysics)
         {
-            object result = Notes.Invoke(null, new object[] { stamp, matrixPhysics, buildPhysics });
+            return Ask(stamp, matrixPhysics, buildPhysics, false);
+        }
+
+        static List<string> Ask(string stamp, int matrixPhysics, int buildPhysics, bool peakWindowExpected)
+        {
+            object result = Notes.Invoke(null, new object[] { stamp, matrixPhysics, buildPhysics, peakWindowExpected });
             List<string> lines = new List<string>();
             foreach (object item in (IEnumerable)result)
             {

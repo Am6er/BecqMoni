@@ -461,8 +461,8 @@ class CorpusEffProbe
             // (`S208`, П216) Пик окном полной строки ±ПШПВ/2 — в клейме
             // `peps=fwhm` у геометрии с разрешением: кривая той же физики 26
             // без куска посчитана прежним определением пика и пересчитывается.
-            if ((stamp.IndexOf("peps=fwhm", StringComparison.Ordinal) >= 0)
-                != (geometry.FwhmAt662Percent > 0.0))
+            if ((stamp.IndexOf(EfficiencyCalculation.PeakWindowStamp, StringComparison.Ordinal) >= 0)
+                != EfficiencyCalculation.PeakWindowExpected(geometry))
             {
                 return false;
             }

@@ -53,14 +53,25 @@ u"""ПОКОЛЕНИЕ КРИВОЙ ЭФФЕКТИВНОСТИ ПРОТИВ ПО
     к ней ушло бы за нижний край МОЛЧА;
 11. ⛔ высота этой подписи СЧИТАЕТСЯ `TextRenderer.MeasureText` от настоящего
     текста, а не пишется числом: русская пара обеих подписей длиннее английской
-    на треть, и число устарело бы на первом же переводе.
+    на треть, и число устарело бы на первом же переводе;
+12. ⛔ (`S208`, П216 02.10.2026; решение Amber 02.10.2026 вопросником, дословно:
+    «Научить вкладку и сторожа peps=fwhm (Рекомендую)») `GenerationNotes` читает
+    кусок клейма «пик окном ±ПШПВ/2» через `EfficiencyCalculation.PeakWindowStamp`
+    (не литералом) и знает довод `peakWindowExpected`: кривая того же поколения
+    без куска у геометрии с разрешением — прежнее определение пика, «пересчитайте»;
+13. `UpdateEfficiencyView` передаёт ему `EfficiencyCalculation.PeakWindowExpected(`
+    геометрии кривой (иначе довод мёртв, и подпись про пик молчит всегда);
+14. клеймо кривой печатает кусок той же константой, а константа объявлена одним
+    местом в `EfficiencyCalculation` (`public const string PeakWindowStamp`);
+15. подпись `EfficiencyTabCurveOldPeak` — в ОБОИХ resx с `{0}` и `{1}` и в Designer.
 
 ## Что проверяется в СКЛАДЕ (по ключу)
 
     python tools/check_curve_generation.py --store="<каталог с config\\device>"
 
 Читает клейма кривых из `config\\device\\*.xml` и заголовки `.rmx` из
-`config\\device\\response`, сверяет поколения кривой, её матрицы и сборки.
+`config\\device\\response`, сверяет поколения кривой, её матрицы и сборки, а у
+кривой нынешнего поколения с разрешением в геометрии — кусок `peps=fwhm` (`S208`).
 Расхождение — код 1 с поимённым перечнем.
 
 ⚠ Каталог склада НЕ УГАДЫВАЕТСЯ: он у каждого свой и лежит вне дерева. Без
@@ -70,8 +81,8 @@ u"""ПОКОЛЕНИЕ КРИВОЙ ЭФФЕКТИВНОСТИ ПРОТИВ ПО
 
 ## Самопроверка
 
-⛔ Все одиннадцать правил прошли бы и на пустом чтении, поэтому на каждом прогоне
-сторож судит СЕМЬ ПОРЧЕНЫХ КОПИЙ дерева и ДВЕ подложенные сцены склада.
+⛔ Все пятнадцать правил прошли бы и на пустом чтении, поэтому на каждом прогоне
+сторож судит ДЕСЯТЬ ПОРЧЕНЫХ КОПИЙ дерева и ТРИ подложенные сцены склада.
 Каждая обязана быть названа поимённо; не назвал — сторож красный, что бы ни
 показало дерево. Среди подложенных сцен есть СОГЛАСНАЯ (все поколения равны):
 она обязана пройти молча, иначе правило «говорить всегда» тоже сошло бы за
@@ -99,6 +110,9 @@ DESIGNER = os.path.join(APP, 'Properties', 'Resources.Designer.cs')
 PROBE = os.path.join(REPO, 'tools', 'effmaker', 'probes', 'CurveGenerationProbe.cs')
 
 STRINGS = [u'EfficiencyTabCurveOldPhysics', u'EfficiencyTabCurveVsMatrix']
+# (`S208`, П216) Подпись «прежнее определение пика» — своим правилом 15.
+PEAK_STRING = u'EfficiencyTabCurveOldPeak'
+PEAK_PIECE = u'peps=fwhm'
 
 
 def _utf8_console():
@@ -166,7 +180,7 @@ def resx_value(text, name):
 
 
 # ----------------------------------------------------------------------
-# Одиннадцать правил над деревом
+# Пятнадцать правил над деревом
 # ----------------------------------------------------------------------
 
 def judge(sources, loud=True):
@@ -304,6 +318,58 @@ def judge(sources, loud=True):
     else:
         say(u'  11. высота подписи считается по настоящему тексту')
 
+    # --- 12. решение читает кусок пика окном константой (`S208`) ----------
+    if notes is not None:
+        bare = strip_comments(notes)
+        # Ищется именно ПОИСК куска в клейме, а не любое упоминание константы:
+        # подстановка `{1}` в текст подписи тоже её называет (поймано
+        # самопроверкой 02.10.2026, порча (й) осталась неназванной).
+        if not re.search(u'IndexOf\\(\\s*EfficiencyCalculation\\.PeakWindowStamp', bare):
+            found.append(u'12. `GenerationNotes` не ищет кусок пика окном '
+                         u'`EfficiencyCalculation.PeakWindowStamp` — старая кривая того же '
+                         u'поколения выглядит нынешней (S208)')
+        elif u'peakWindowExpected' not in bare:
+            found.append(u'12. `GenerationNotes` не знает довода `peakWindowExpected`')
+        elif (u'"%s"' % PEAK_PIECE) in bare:
+            found.append(u'12. в `GenerationNotes` кусок пика ЛИТЕРАЛОМ — второе место истины')
+        else:
+            say(u'  12. решение опознаёт кривую без куска пика окном (S208)')
+
+    # --- 13. вкладка даёт довод от геометрии кривой ---------------------
+    if view is not None:
+        if u'EfficiencyCalculation.PeakWindowExpected(' not in strip_comments(view):
+            found.append(u'13. `UpdateEfficiencyView` не передаёт '
+                         u'`EfficiencyCalculation.PeakWindowExpected(` — довод мёртв, '
+                         u'подпись про пик молчит всегда')
+        else:
+            say(u'  13. вкладка даёт довод «кривая обязана нести кусок» от геометрии')
+
+    # --- 14. клеймо печатает кусок константой, константа одна ------------
+    declared = re.search(u'public const string PeakWindowStamp\\s*=\\s*"%s"' % re.escape(PEAK_PIECE),
+                         calc)
+    if declared is None:
+        found.append(u'14. нет `public const string PeakWindowStamp = "%s"` в `EfficiencyCalculation`'
+                     % PEAK_PIECE)
+    elif stamp is None or u'PeakWindowStamp' not in stamp:
+        found.append(u'14. клеймо кривой не печатает кусок `PeakWindowStamp`')
+    else:
+        say(u'  14. клеймо кривой печатает кусок пика окном одной константой')
+
+    # --- 15. подпись про пик в обоих resx и в Designer -------------------
+    bad15 = []
+    for tag, text in ((u'английской', sources['resx']), (u'русской', sources['resx_ru'])):
+        value = resx_value(text, PEAK_STRING)
+        if value is None:
+            bad15.append(u'15. `%s` нет в %s поставке ресурсов' % (PEAK_STRING, tag))
+        elif u'{0}' not in value or u'{1}' not in value:
+            bad15.append(u'15. `%s` в %s поставке без двух мест подстановки' % (PEAK_STRING, tag))
+    if u'GetString("%s"' % PEAK_STRING not in sources['designer']:
+        bad15.append(u'15. в `Resources.Designer.cs` нет `%s`' % PEAK_STRING)
+    if bad15:
+        found.extend(bad15)
+    else:
+        say(u'  15. подпись про пик в обоих resx и в Designer')
+
     return found
 
 
@@ -319,12 +385,20 @@ def judge_store(curves, matrices, build_physics):
     поколение). Возвращает список находок.
     """
     found = []
-    for (device, name, guid, curve_phys) in curves:
+    for curve in curves:
+        device, name, guid, curve_phys = curve[:4]
+        # (`S208`) Клеймо и признак «у геометрии есть разрешение» — пятым и
+        # шестым полем; у сцены без них правило пика молчит.
+        stamp = curve[4] if len(curve) > 4 else None
+        has_fwhm = curve[5] if len(curve) > 5 else False
         if curve_phys <= 0:
             continue
         if curve_phys != build_physics:
             found.append(u'кривая «%s» (%s): поколение %d, сборка %d'
                          % (name, device, curve_phys, build_physics))
+        elif has_fwhm and stamp is not None and PEAK_PIECE not in stamp:
+            found.append(u'кривая «%s» (%s): поколение %d без «%s» — прежнее определение пика (S208)'
+                         % (name, device, curve_phys, PEAK_PIECE))
         pair = matrices.get((guid or u'').lower())
         if pair is None:
             continue
@@ -389,10 +463,21 @@ def collect_store(root):
             guid = node.find('Guid')
             title = node.find('Name')
             stamp = node.find('ComputeStamp')
+            stamp_text = (stamp.text or u'') if stamp is not None else u''
+            # (`S208`) Разрешение геометрии кривой — тот же признак, что
+            # `EfficiencyCalculation.PeakWindowExpected` (FwhmAt662Percent > 0).
+            fwhm = 0.0
+            for sub in node.iter():
+                if sub.tag.endswith('FwhmAt662Percent') and sub.text:
+                    try:
+                        fwhm = float(sub.text)
+                    except ValueError:
+                        fwhm = 0.0
+                    break
             curves.append((name,
                            title.text if title is not None else u'',
                            guid.text if guid is not None else u'',
-                           phys_from_stamp(stamp.text if stamp is not None else u'')))
+                           phys_from_stamp(stamp_text), stamp_text, fwhm > 0.0))
     matrices = {}
     resp = os.path.join(devdir, 'response')
     if os.path.isdir(resp):
@@ -433,9 +518,9 @@ def collect():
 
 
 def selfcheck(sources):
-    u"""Семь порченых копий дерева и две подложенные сцены склада."""
+    u"""Десять порченых копий дерева и три подложенные сцены склада."""
     print(u'')
-    print(u'--- САМОПРОВЕРКА: семь порченых копий и две сцены склада ---')
+    print(u'--- САМОПРОВЕРКА: десять порченых копий и три сцены склада ---')
     bad = 0
 
     def spoil(title, key, before, after, rule):
@@ -451,7 +536,7 @@ def selfcheck(sources):
     bad += spoil(u'(а) вызов решения снят', 'tab',
                  u'ShowGenerationNotes(GenerationNotes(', u'ShowGenerationNotes(NoNotes(', u'4.')
     bad += spoil(u'(б) поколение сборки числом', 'tab',
-                 u'ResponseMatrix.PhysicsVersion));', u'16));', u'4.')
+                 u'ResponseMatrix.PhysicsVersion,', u'16,', u'4.')
     bad += spoil(u'(в) склад не спрашивается', 'tab',
                  u'ResponseMatrixStore.PeekVersions(config.Guid',
                  u'NoStore.PeekVersions(config.Guid', u'5.')
@@ -466,6 +551,15 @@ def selfcheck(sources):
     bad += spoil(u'(ё) русской подписи нет', 'resx_ru',
                  u'<data name="EfficiencyTabCurveVsMatrix"',
                  u'<data name="EfficiencyTabCurveVsMatrixXX"', u'7.')
+    # (`S208`, П216) Три порчи правила пика окном.
+    bad += spoil(u'(и) довод пика снят у вкладки', 'tab',
+                 u'EfficiencyCalculation.PeakWindowExpected(config.Geometry)', u'false', u'13.')
+    bad += spoil(u'(й) решение не ищет кусок пика', 'tab',
+                 u'computeStamp.IndexOf(EfficiencyCalculation.PeakWindowStamp,',
+                 u'computeStamp.IndexOf("x",', u'12.')
+    bad += spoil(u'(к) русской подписи про пик нет', 'resx_ru',
+                 u'<data name="EfficiencyTabCurveOldPeak"',
+                 u'<data name="EfficiencyTabCurveOldPeakXX"', u'15.')
 
     # Сцены склада: подложенное расхождение обязано быть названо, а согласная
     # сцена — пройти молча (иначе «говорить всегда» тоже сошло бы за работу).
@@ -478,7 +572,18 @@ def selfcheck(sources):
                               u'; '.join(hits) if hits else u'НЕ НАЗВАНА'))
     bad += 0 if len(hits) == 2 else 1
 
-    ok_curves = [(u'дежурный.xml', u'Цилиндр', u'g-1', 16),
+    # (`S208`) Кривая нынешнего поколения без куска пика у геометрии с
+    # разрешением обязана быть названа; с куском и без разрешения — нет.
+    peak_curves = [(u'дежурный.xml', u'Старая', u'g-4', 16, u'phys=16; hist=200000', True),
+                   (u'дежурный.xml', u'Новая', u'g-5', 16,
+                    u'phys=16; hist=200000; ' + PEAK_PIECE, True),
+                   (u'дежурный.xml', u'LSRM', u'g-6', 16, u'phys=16; hist=200000', False)]
+    hits = judge_store(peak_curves, {}, 16)
+    print(u'  %-38s -> %s' % (u'(л) склад: прежнее определение пика',
+                              u'; '.join(hits) if hits else u'НЕ НАЗВАНА'))
+    bad += 0 if (len(hits) == 1 and u'Старая' in hits[0]) else 1
+
+    ok_curves = [(u'дежурный.xml', u'Цилиндр', u'g-1', 16, u'phys=16; ' + PEAK_PIECE, True),
                  (u'дежурный.xml', u'По измерениям', u'g-3', 0)]
     hits = judge_store(ok_curves, {u'g-1': (8, 16)}, 16)
     print(u'  %-38s -> %s' % (u'(з) склад согласный (контроль)',
