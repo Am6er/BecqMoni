@@ -292,16 +292,8 @@ namespace BecquerelMonitor
             for (int i = 1; i < 999; i++)
             {
                 string text = Resources.NewDeviceConfigPrefix + "(" + i.ToString(CultureInfo.InvariantCulture) + ").xml";
-                bool flag = false;
-                foreach (DeviceConfigInfo deviceConfigInfo in this.manager.DeviceConfigList)
-                {
-                    if (text == deviceConfigInfo.Filename)
-                    {
-                        flag = true;
-                        break;
-                    }
-                }
-                if (!flag)
+                // `T266`: занятым считается и незагрузившийся файл на диске.
+                if (!this.manager.IsFilenameTaken(text))
                 {
                     return text;
                 }

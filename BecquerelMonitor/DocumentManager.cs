@@ -370,7 +370,16 @@ namespace BecquerelMonitor
             Cursor.Current = Cursors.WaitCursor;
             try
             {
-                using (FileStream fileStream = new FileStream(docEnergySpectrum2.Filename, FileMode.Open))
+                // ⛔ `T266`: файл спектра — ТОЛЬКО НА ЧТЕНИЕ. Прежний голый
+                //    `new FileStream(имя, FileMode.Open)` просил ЗАПИСЬ: спектр с
+                //    атрибутом «только чтение» (архив, диск с защитой, папка
+                //    облака) не открывался вовсе, а файл, который держит другая
+                //    программа или второй экземпляр BecqMoni, — тоже. Измерено
+                //    `FileShareProbeP210`: на старой сборке отказ в 5 сценах из
+                //    5, у всех четырёх мест чтения этого файла одинаково.
+                //    Довод про `FileShare.ReadWrite` — в
+                //    `GlobalConfigManager.LoadConfigFile`.
+                using (FileStream fileStream = new FileStream(docEnergySpectrum2.Filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
                     docEnergySpectrum2.ResultDataFile = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
@@ -495,7 +504,8 @@ namespace BecquerelMonitor
             ResultDataFile resultDataFile;
             try
             {
-                using (FileStream fileStream = new FileStream(pathname, FileMode.Open))
+                // `T266`: только на чтение — довод в OpenDocument выше.
+                using (FileStream fileStream = new FileStream(pathname, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
                     resultDataFile = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
@@ -607,7 +617,8 @@ namespace BecquerelMonitor
             try
             {
                 Cursor.Current = Cursors.WaitCursor;
-                using (FileStream fileStream = new FileStream(docEnergySpectrum2.Filename, FileMode.Open))
+                // `T266`: только на чтение — довод в OpenDocument выше.
+                using (FileStream fileStream = new FileStream(docEnergySpectrum2.Filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultData_093b));
                     ResultData value = new ResultData((ResultData_093b)xmlSerializer.Deserialize(fileStream));
@@ -2569,7 +2580,10 @@ namespace BecquerelMonitor
                 ResultDataFile resultDataFile;
                 try
                 {
-                    using (FileStream fileStream = new FileStream(backgroundSpectrumPathname, FileMode.Open))
+                    // `T266`: только на чтение — довод в OpenDocument выше. Фон
+                    // особенно часто открыт в нескольких местах сразу: один файл
+                    // фона у многих спектров и у второго экземпляра программы.
+                    using (FileStream fileStream = new FileStream(backgroundSpectrumPathname, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                     {
                         XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
                         resultDataFile = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
