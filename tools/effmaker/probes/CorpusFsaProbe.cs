@@ -1504,6 +1504,34 @@ namespace CorpusFsaProbe
                 // ⛔ Ставится СТАТИКА, и только она: её читают оба конца —
                 // сам разбор (что режет) и заверение анализатора (что
                 // печатается), — а вторая копия была бы `S101` заново.
+                // ⛔ (`AMBER153` (б), П214 02.10.2026) ПОЛ ПОЛОСЫ ФИТА ПО СПИСКУ
+                // СПЕКТРОВ — правило корпуса, а не настройка разбора. Решение
+                // Amber 01.10.2026 вопросником, дословно: «Правило корпуса:
+                // рентген не в амплитуду (Рекомендую)» — у точечных источников
+                // ЛСРМ рентген ниже ~30 кэВ в амплитуду не идёт (капсула ОСГИ в
+                // сцене не описана, и этот участок данных мерит сцену, а не
+                // разбор). Файл `spectrum,floor_kev[,…]` пишет
+                // `tools/CORPUS/scripts/xray_rule.py`, зовёт `run_appwd.ps1`.
+                //
+                // Спектру из списка на время ЕГО разбора ставится статика
+                // `FsaBand.DefaultFitFloor = Fixed` с его числом и возвращается
+                // после (`RunOneFloored`); прочие спектры считаются как без
+                // ключа — побитово. Ставится статика, а не поле анализатора: её
+                // читают оба конца — разбор и заверение (`S101`).
+                if (a.StartsWith("--fit-floor-by=", StringComparison.Ordinal))
+                {
+                    o.FitFloorBy = a.Substring(15);
+                    string why;
+                    fitFloorBy = ReadFitFloorBy(o.FitFloorBy, out why);
+                    if (fitFloorBy == null)
+                    {
+                        Console.Error.WriteLine("--fit-floor-by=: {0}", why);
+                        Environment.Exit(64);
+                    }
+
+                    continue;
+                }
+
                 if (a.StartsWith("--fit-floor=", StringComparison.Ordinal))
                 {
                     o.FitFloorName = a.Substring(12);
@@ -1866,7 +1894,17 @@ namespace CorpusFsaProbe
                     SuppliedLibraryGuard.SpoilRaiseManager();
                 }
 
-                rows.Add(RunOne(sample, o));
+                rows.Add(RunOneFloored(sample, o));
+            }
+
+            // (`AMBER153` (б)) Правило корпуса — вслух и в итоге: сколько
+            // спектров списка разобрано с полом, сколько в отборе не было.
+            if (fitFloorBy != null)
+            {
+                Console.WriteLine("пол фита ПО СПИСКУ (правило корпуса AMBER153 (б)): в списке {0}, "
+                                  + "применён у {1}, в отборе прогона не было {2}",
+                                  fitFloorBy.Count, fitFloorByApplied,
+                                  fitFloorBy.Count - fitFloorByApplied);
             }
 
             // ⛔ (`AMBER19`) ВТОРАЯ ДВЕРЬ гейта библиотеки — ДО записи результата:
@@ -2587,6 +2625,14 @@ namespace CorpusFsaProbe
                                                           "{0:F2} кэВ числом",
                                                           FsaBand.DefaultFitFloorKev),
                               shippedFloor ? " (поставочный)" : " (НЕ умолчание, A/B)");
+            // (`AMBER153` (б)) Пол ПО СПИСКУ — вслух всегда, «нет» в том числе.
+            Console.WriteLine("пол ПОЛОСЫ ФИТА ПО СПИСКУ: {0}",
+                              fitFloorBy == null
+                                  ? "нет (ключа --fit-floor-by= не было)"
+                                  : string.Format(CultureInfo.InvariantCulture,
+                                                  "{0} спектров из {1} (правило корпуса AMBER153 (б)) —"
+                                                  + " им пол числом из списка, прочим общий",
+                                                  fitFloorBy.Count, Path.GetFullPath(o.FitFloorBy)));
         }
 
         /// <summary>
@@ -2956,6 +3002,110 @@ namespace CorpusFsaProbe
         }
 
         /// <summary>Один спектр: пики, библиотека, матрица, разложение.</summary>
+        /// <summary>(`AMBER153` (б)) Спектр -> пол полосы фита, кэВ; null — ключа нет.</summary>
+        static Dictionary<string, double> fitFloorBy;
+
+        /// <summary>(`AMBER153` (б)) Скольким спектрам пол по списку поставлен.</summary>
+        static int fitFloorByApplied;
+
+        /// <summary>
+        /// (`AMBER153` (б)) Список пола по спектрам: csv с заголовком, столбцы
+        /// `spectrum` и `floor_kev` (прочие — пояснения, не читаются). Число —
+        /// инвариантной культурой. Пустой список, повтор ключа, число не больше
+        /// нуля — отказ словами: список, разобранный наполовину, хуже никакого.
+        /// </summary>
+        static Dictionary<string, double> ReadFitFloorBy(string path, out string why)
+        {
+            why = null;
+            if (!File.Exists(path))
+            {
+                why = "нет файла " + path;
+                return null;
+            }
+
+            string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+            if (lines.Length == 0)
+            {
+                why = "файл пуст: " + path;
+                return null;
+            }
+
+            string[] head = lines[0].TrimStart('\uFEFF').Split(',');
+            int iKey = Array.IndexOf(head, "spectrum");
+            int iKev = Array.IndexOf(head, "floor_kev");
+            if (iKey < 0 || iKev < 0)
+            {
+                why = "в заголовке нет столбцов spectrum и floor_kev: " + lines[0];
+                return null;
+            }
+
+            var map = new Dictionary<string, double>(StringComparer.Ordinal);
+            for (int i = 1; i < lines.Length; i++)
+            {
+                if (lines[i].Trim().Length == 0)
+                {
+                    continue;
+                }
+
+                string[] c = lines[i].Split(',');
+                double kev;
+                if (c.Length <= Math.Max(iKey, iKev)
+                    || !double.TryParse(c[iKev], NumberStyles.Float, CultureInfo.InvariantCulture, out kev)
+                    || !(kev > 0.0))
+                {
+                    why = string.Format(CultureInfo.InvariantCulture, "строка {0} не разобрана: {1}", i + 1, lines[i]);
+                    return null;
+                }
+
+                if (map.ContainsKey(c[iKey]))
+                {
+                    why = "спектр дважды: " + c[iKey];
+                    return null;
+                }
+
+                map[c[iKey]] = kev;
+            }
+
+            if (map.Count == 0)
+            {
+                why = "в списке ни одного спектра: " + path;
+                return null;
+            }
+
+            return map;
+        }
+
+        /// <summary>
+        /// (`AMBER153` (б)) Разбор спектра с полом по списку: статика пола
+        /// ставится на время ЭТОГО спектра и возвращается в `finally` — сосед
+        /// по прогону считается как без ключа.
+        /// </summary>
+        static Row RunOneFloored(Sample sample, Options o)
+        {
+            double kev;
+            if (fitFloorBy == null || !fitFloorBy.TryGetValue(sample.Key, out kev))
+            {
+                return RunOne(sample, o);
+            }
+
+            FsaFitFloor source = FsaBand.DefaultFitFloor;
+            double sourceKev = FsaBand.DefaultFitFloorKev;
+            FsaBand.DefaultFitFloor = FsaFitFloor.Fixed;
+            FsaBand.DefaultFitFloorKev = kev;
+            fitFloorByApplied++;
+            Console.WriteLine("{0,-22} пол фита {1:F1} кэВ по списку (правило корпуса AMBER153 (б))",
+                              sample.Key, kev);
+            try
+            {
+                return RunOne(sample, o);
+            }
+            finally
+            {
+                FsaBand.DefaultFitFloor = source;
+                FsaBand.DefaultFitFloorKev = sourceKev;
+            }
+        }
+
         static Row RunOne(Sample sample, Options o)
         {
             var row = new Row { Key = sample.Key, Det = sample.Det, Part = sample.Part };
@@ -6165,6 +6315,14 @@ namespace CorpusFsaProbe
             /// канала).
             /// </summary>
             public string FitFloorName;
+
+            /// <summary>
+            /// (`AMBER153` (б), П214) Файл ПОЛА ПОЛОСЫ ФИТА ПО СПИСКУ спектров,
+            /// ключ `--fit-floor-by=`; пусто — списка нет, все спектры по
+            /// общему полу. Правило корпуса «рентген точечных ЛСРМ ниже ~30 кэВ
+            /// в амплитуду не идёт».
+            /// </summary>
+            public string FitFloorBy;
 
             /// <summary>(`S101`) Положительный контроль сторожа полосы,
             /// ключ `--band-selftest`; корпус при нём не читается.</summary>
