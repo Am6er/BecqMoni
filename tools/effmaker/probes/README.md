@@ -138,7 +138,14 @@ CS0246, CS0117, CS2001, CS0006, CS2012 на цели «только чтение
 06.09.2026):
 
     & 'tools\effmaker\probes\run_fresh.ps1' -Exe 'tools\effmaker\probes\build_rel\CorpusMatrixProbe.exe' `
-      -Extra '--dir=tools\CORPUS\corpus\geometries','--target=0','--cone=far'
+      -Extra '--dir=tools\CORPUS\corpus\geometries','--target=0'
+
+⚠ **Склад считается БЕЗ `--cone=far`** (единый счёт П51 14.09.2026: `AnalogConeSampling`
+ВЫКЛ; так посчитан и склад rev41). До 02.10.2026 пример выше нёс `--cone=far` — и по
+нему П221 посчитала четыре дальние точечные сцены (`ASN16_point10_house`, `G1S_point25`,
+`G1S_point5`, `RC103_point50`) с конусом: числа те же в пределах шума (конус несмещён), а
+клеймо ДРУГОЕ (`AnalogConeSampling` входит в клеймо), и разбор такую матрицу как матрицу
+склада не примет.
 
 Скрипт берёт готовый сторож `appwd_plan.ps1` (`Test-AppWdBuild`, отпечаток
 набора `T226`), сверяет каталог, из которого запускают, с исходниками дерева и
