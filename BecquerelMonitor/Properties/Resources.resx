@@ -167,6 +167,9 @@
     <value>Error detected while communicating with device.
 </value>
   </data>
+  <data name="MSGUnreadableConfigNotOverwritten" xml:space="preserve">
+    <value>The file exists but could not be read, so the program works on built-in defaults and will NOT overwrite it: changes made in this session will not be saved to it. Free or repair the file and restart the program.</value>
+  </data>
   <data name="MSGNewNuclideDefinitionFileCreated" xml:space="preserve">
     <value>New nuclide definition file has been created.</value>
   </data>

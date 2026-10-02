@@ -206,17 +206,28 @@ namespace BecquerelMonitor
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(NuclideDefinitionFile));
             try
             {
-                using (FileStream fileStream = new FileStream(nuclideDefinitionFilename, FileMode.Open))
+                // `T266`: только на чтение и с разделением записи — довод в
+                // `GlobalConfigManager.LoadConfigFile`. Прежний голый
+                // `FileMode.Open` просил ЗАПИСЬ, и библиотека «только чтение»
+                // или занятая вторым экземпляром не открывалась вовсе.
+                using (FileStream fileStream = new FileStream(nuclideDefinitionFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                 {
                     this.nuclideDefinitionFile = (NuclideDefinitionFile)xmlSerializer.Deserialize(fileStream);
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // `T266`: файл ЕСТЬ, а не прочитан — заготовку из четырёх записей
+                // поверх него не писать (см. SaveDefinitionFile). Файла нет —
+                // первый запуск, заготовку пишет GetInstance.
+                this.loadFailedOverExistingFile =
+                    !(ex is FileNotFoundException || ex is DirectoryNotFoundException)
+                    && File.Exists(nuclideDefinitionFilename);
                 AppUi.Report(Resources.ERRLoadingNuclideDefinitionFile, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 this.nuclideDefinitionFile = null;
                 return false;
             }
+            this.loadFailedOverExistingFile = false;
             this.isLoaded = true;
             FillChainsFromNames(this.nuclideDefinitionFile);
             // ⛔ `S102`: заверение о библиотеке обязано называть ОТКРЫТЫЙ файл.
@@ -267,6 +278,21 @@ namespace BecquerelMonitor
         // Token: 0x06000935 RID: 2357 RVA: 0x0003586C File Offset: 0x00033A6C
         public bool SaveDefinitionFile()
         {
+            // ⛔ `T266`: библиотека, которая ЕСТЬ на диске, но не прочиталась,
+            //    не переписывается тем, что лежит в памяти, — а лежит там
+            //    заготовка из четырёх записей (GetInstance). Прежде запись
+            //    на запуске была закрыта (`File.Exists` в GetInstance), но
+            //    любое сохранение из редактора нуклидов или наборов
+            //    (`NuclideDefinitionForm`, `NuclideSetForm`, `NucBase`) молча
+            //    заменяло библиотеку человека этими четырьмя записями.
+            if (this.loadFailedOverExistingFile)
+            {
+                AppUi.Report(Resources.ERRSavingNuclideDefinitionFile
+                    + "\n" + AppUi.Where(nuclideDefinitionFilename)
+                    + "\n\n" + Resources.MSGUnreadableConfigNotOverwritten,
+                    Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                return false;
+            }
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(NuclideDefinitionFile));
             try
             {
@@ -335,5 +361,12 @@ namespace BecquerelMonitor
 
         // Token: 0x04000515 RID: 1301
         bool isLoaded;
+
+        /// <summary>
+        /// `T266`: последняя попытка чтения отказала, а файл библиотеки на
+        /// диске ЕСТЬ (занят, нет прав, битый XML) — <see cref="SaveDefinitionFile"/>
+        /// его не переписывает. Удачное чтение снимает признак.
+        /// </summary>
+        bool loadFailedOverExistingFile;
     }
 }

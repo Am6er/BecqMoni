@@ -102,13 +102,17 @@ namespace BecquerelMonitor
                     try
                     {
                         DeviceConfigInfo deviceConfigInfo;
-                        using (FileStream fileStream = new FileStream(path, FileMode.Open))
+                        // `T266`: только на чтение и с разделением записи — довод
+                        // в `GlobalConfigManager.LoadConfigFile`. Прежний голый
+                        // `FileMode.Open` просил ЗАПИСЬ: файл «только чтение» или
+                        // занятый вторым экземпляром выпадал из списка приборов.
+                        using (FileStream fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                         {
                             deviceConfigInfo = (DeviceConfigInfo)xmlSerializer2.Deserialize(fileStream);
                         }
                         if (!(deviceConfigInfo.FormatVersion == "120920"))
                         {
-                            using (FileStream fileStream2 = new FileStream(path, FileMode.Open))
+                            using (FileStream fileStream2 = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                             {
                                 DeviceConfigInfo_097b old = (DeviceConfigInfo_097b)xmlSerializer.Deserialize(fileStream2);
                                 deviceConfigInfo = new DeviceConfigInfo(old);
@@ -155,6 +159,25 @@ namespace BecquerelMonitor
             // `S102`: назвать ОТКРЫТЫЙ каталог и то, сколько из него взято.
             AppUi.Note("device configs: " + AppUi.Where(userDirectoryConfigDeviceDir) + ": "
                 + this.deviceConfigList.Count.ToString(CultureInfo.InvariantCulture) + " loaded");
+        }
+
+        /// <summary>
+        /// `T266`: занято ли имя файла для новой конфигурации — конфигурацией из
+        /// списка ИЛИ файлом в каталоге, который в список не попал (не
+        /// прочитался, битый, дубль GUID). Прежде <c>AssignNewFilename</c>
+        /// формы смотрел только список, и новая конфигурация молча затирала
+        /// незагрузившийся файл того же имени.
+        /// </summary>
+        public bool IsFilenameTaken(string filename)
+        {
+            foreach (DeviceConfigInfo other in this.deviceConfigList)
+            {
+                if (string.Equals(other.Filename, filename, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return File.Exists(userDirectoryConfigDevice + filename);
         }
 
         // Token: 0x060005FC RID: 1532 RVA: 0x00025990 File Offset: 0x00023B90
@@ -288,6 +311,15 @@ namespace BecquerelMonitor
                         this.RestoreConfig(removed);
                         return false;
                     }
+                }
+                // `T266`: имя занято и ФАЙЛОМ, которого в списке нет, — тем, что
+                // не загрузился (занят, битый, дубль GUID). Запись по его имени
+                // молча затёрла бы его. Смена одного регистра — тот же файл.
+                if (!string.Equals(devConfig.Filename, devConfig.OriginalFilename, StringComparison.OrdinalIgnoreCase)
+                    && File.Exists(userDirectoryConfigDevice + devConfig.Filename))
+                {
+                    this.RestoreConfig(removed);
+                    return false;
                 }
                 try
                 {
