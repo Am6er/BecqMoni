@@ -549,10 +549,27 @@ RM_DEVF real Sim::AnalogHistory(real energyKev, real x, real y, real z, real& we
                                 bool outsideOnly, bool& inWeightedCone,
                                 real& depositedOutside, bool& comptonOutside)
 {
+    real ux, uy, uz, limit;
+    AnalogFront(x, y, z, weight, inWeightedCone, ux, uy, uz, limit);
+    if (outsideOnly && inWeightedCone)
+    {
+        depositedOutside = (real)0.0;
+        comptonOutside = false;
+        return (real)0.0;
+    }
+
+    return AnalogTransport(x, y, z, ux, uy, uz, energyKev, limit,
+                           depositedOutside, comptonOutside);
+}
+
+// (`AMBER161`, П227) Начало аналоговой истории (AnalogHistory :9669-9715): направление,
+// вес, предел пути, признак конуса взвешенной ветви.
+RM_DEVF void Sim::AnalogFront(real x, real y, real z, real& weight, bool& inWeightedCone,
+                              real& ux, real& uy, real& uz, real& limit)
+{
     ForgetRay();          // (`A315`, решение Amber 02.10.2026) кэш луча не переживает историю
     const SceneG& sc = *D.scene;
-    real limit = PathLimit(x, y, z);
-    real ux, uy, uz;
+    limit = PathLimit(x, y, z);
 
     real coneZ, coneR;
     real coneDist = (real)0.0;
@@ -583,22 +600,31 @@ RM_DEVF real Sim::AnalogHistory(real energyKev, real x, real y, real z, real& we
         real cosToAxis = (ux * (-x) + uy * (-y) + uz * coneDz) / coneR2;
         inWeightedCone = cosToAxis >= cosMaxDet;
     }
-
-    if (outsideOnly && inWeightedCone)
-    {
-        depositedOutside = (real)0.0;
-        comptonOutside = false;
-        return (real)0.0;
-    }
-
-    return AnalogTransport(x, y, z, ux, uy, uz, energyKev, limit,
-                           depositedOutside, comptonOutside);
 }
 
 // = EfficiencySimulator.cs:9741 AnalogTransport
+// (`AMBER161`, П227) = начало (`AnalogWalkBegin`) и шаги (`AnalogStep`) до конца истории.
+// Шаг — одна итерация цикла `for (guard …)` C# или выемка отложенного кванта; ядро с
+// подкачкой (`AnalogKernel`) зовёт шаги по одному и берёт новую историю, как только
+// старая кончилась. Порядок розыгрышей истории — тот же.
 RM_DEVF real Sim::AnalogTransport(real x, real y, real z, real ux, real uy, real uz,
                                   real energyKev, real limit,
                                   real& depositedOutside, bool& comptonOutside)
+{
+    AnalogWalk w;
+    AnalogWalkBegin(x, y, z, ux, uy, uz, energyKev, limit, w);
+    while (!AnalogStep(w))
+    {
+    }
+
+    depositedOutside = w.depositedOutside;
+    comptonOutside = w.comptonOutside;
+    return w.deposited;
+}
+
+// = начало AnalogTransport (EfficiencySimulator.cs:9745-9772).
+RM_DEVF void Sim::AnalogWalkBegin(real x, real y, real z, real ux, real uy, real uz,
+                                  real energyKev, real limit, AnalogWalk& w)
 {
     lossAnnihilation = (real)0.0;
     annihilationEscapes = 0;
@@ -608,107 +634,201 @@ RM_DEVF real Sim::AnalogTransport(real x, real y, real z, real ux, real uy, real
     lightDeposit = (real)0.0;
     // не перенесено: ResetTrace() — трассировка каналов.
 
-    real e = energyKev;
+    w.x = x; w.y = y; w.z = z;
+    w.ux = ux; w.uy = uy; w.uz = uz;
+    w.e = energyKev;
     // ⚠ float: `deposited` — СУММА кусков заноса; во float (E − E′) + E′ ≠ E на ulp(E),
     // правило пика при допуске — InPeak (map_data.md §4 п. 1).
-    real deposited = (real)0.0;
-    depositedOutside = (real)0.0;
+    w.deposited = (real)0.0;
+    w.depositedOutside = (real)0.0;
     fromOutsideAnnihilation = false;
-    real travelled = (real)0.0;
-    comptonOutside = false;
+    w.travelled = (real)0.0;
+    w.comptonOutside = false;
+    w.limit = limit;
+    w.guard = 0;
 
     // Очередь квантов истории (`A52`/`A55`).
     pendCount = 0;
-    while (true)
+}
+
+// Один шаг AnalogTransport. true — история кончилась (очередь пуста).
+// `continue` тела — следующий шаг (guard + 1); `break` тела — выход из цикла шагов
+// (guard = 400), дальше — выемка отложенного кванта, как у C# после цикла `for`.
+RM_DEVF bool Sim::AnalogStep(AnalogWalk& w)
+{
+    real x = w.x, y = w.y, z = w.z;
+    real ux = w.ux, uy = w.uy, uz = w.uz;
+    real e = w.e, deposited = w.deposited, travelled = w.travelled;
+    const real limit = w.limit;
+    real& depositedOutside = w.depositedOutside;
+    bool& comptonOutside = w.comptonOutside;
+    bool finished = false;
+    if (w.guard < 400 && e > (real)1.0)
     {
-        for (int guard = 0; guard < 400 && e > (real)1.0; guard++)
+        bool exitFor = false;
+        do
         {
-            int here = At(x, y, z);
-            if (here >= 0 && D.regions[here].IsCrystal)
-            {
-                escapeCount = 0;
-                escapeLost = 0;
-                escapeCollect = true;
-                real escaped = InCrystal(x, y, z, ux, uy, uz, e, 0);
-                escapeCollect = false;
-                // ⚠ float: порог 1e-9 кэВ ниже ulp(e) — «вклад был» решает точное равенство
-                // escaped == e у пролёта насквозь.
-                if (e - escaped > (real)1e-9)
+                int here = At(x, y, z);
+                if (here >= 0 && D.regions[here].IsCrystal)
                 {
-                    deposited += e - escaped;
-                    if (fromOutsideAnnihilation)
+                    escapeCount = 0;
+                    escapeLost = 0;
+                    escapeCollect = true;
+                    RM_PHASE_BEGIN(2)
+                    real escaped = InCrystal(x, y, z, ux, uy, uz, e, 0);
+                    RM_PHASE_END(2)
+                    escapeCollect = false;
+                    // ⚠ float: порог 1e-9 кэВ ниже ulp(e) — «вклад был» решает точное равенство
+                    // escaped == e у пролёта насквозь.
+                    if (e - escaped > (real)1e-9)
                     {
-                        depositedOutside += e - escaped;
-                    }
-
-                    // Возврат из обвязки (`A55`): вылетевшее — в очередь истории.
-                    for (int k = 0; k < escapeCount; k++)
-                    {
-                        PushPending(escX[k], escY[k], escZ[k],
-                                    escUx[k], escUy[k], escUz[k],
-                                    escE[k]);
-                    }
-
-                    CountEscapeDropped += escapeLost;
-                    break;
-                }
-
-                // пролетел насквозь без вклада — с дальней грани дальше
-                // ⚠ float: подталкивание 1e-7 см (map_geometry.md §5.4).
-                real through = CrystalPath(x, y, z, ux, uy, uz) + RM_NUDGE;
-                x += ux * through;
-                y += uy * through;
-                z += uz * through;
-                travelled += through;
-                continue;
-            }
-
-            real step = StepToBoundary(x, y, z, ux, uy, uz);
-            if (step >= CS_DOUBLE_MAX || PathCut(travelled + step, limit))
-            {
-                break;              // ушёл из сцены
-            }
-
-            real muKill = here < 0 ? (real)0.0 : AnalogMu(here, e);
-            if (muKill > (real)0.0)
-            {
-                real free = -M_Log((real)1.0 - Uniform()) / muKill;
-                if (free < step)
-                {
-                    x += ux * free;
-                    y += uy * free;
-                    z += uz * free;
-                    travelled += free;
-                    real incoherent = RegIncoherent(here, e);
-                    real coherent = C.RayleighScatter ? RegCoherent(here, e) : (real)0.0;
-                    real carried;
-                    real gain;
-                    real channel = Uniform() * muKill;
-                    if (channel < coherent)
-                    {
-                        // Когерентное: только поворот, энергия та же.
-                        Rotate(ux, uy, uz, RayleighCosine(here, e));
-                        continue;
-                    }
-
-                    if (channel >= coherent + incoherent)
-                    {
-                        // Фотопоглощение ИЛИ рождение пары вне кристалла (`F27`, `A52`).
-                        int material = D.regions[here].Material;
-                        real pairMu = RegPair(here, e, C.XcomPairThreshold);
-                        real restMu = muKill - coherent - incoherent;
-                        if (pairMu > restMu)
+                        deposited += e - escaped;
+                        if (fromOutsideAnnihilation)
                         {
-                            pairMu = restMu;    // сумма каналов не больше полного
+                            depositedOutside += e - escaped;
                         }
 
-                        if (pairMu > (real)0.0 && channel >= muKill - pairMu
-                            && e > (real)2.0 * (real)ElectronMassKev)
+                        // Возврат из обвязки (`A55`): вылетевшее — в очередь истории.
+                        for (int k = 0; k < escapeCount; k++)
                         {
+                            PushPending(escX[k], escY[k], escZ[k],
+                                        escUx[k], escUy[k], escUz[k],
+                                        escE[k]);
+                        }
+
+                        CountEscapeDropped += escapeLost;
+                        { exitFor = true; break; }
+                    }
+
+                    // пролетел насквозь без вклада — с дальней грани дальше
+                    // ⚠ float: подталкивание 1e-7 см (map_geometry.md §5.4).
+                    real through = CrystalPath(x, y, z, ux, uy, uz) + RM_NUDGE;
+                    x += ux * through;
+                    y += uy * through;
+                    z += uz * through;
+                    travelled += through;
+                    continue;
+                }
+
+                real step = StepToBoundary(x, y, z, ux, uy, uz);
+                if (step >= CS_DOUBLE_MAX || PathCut(travelled + step, limit))
+                {
+                    { exitFor = true; break; }              // ушёл из сцены
+                }
+
+                real muKill = here < 0 ? (real)0.0 : AnalogMu(here, e);
+                if (muKill > (real)0.0)
+                {
+                    real free = -M_Log((real)1.0 - Uniform()) / muKill;
+                    if (free < step)
+                    {
+                        x += ux * free;
+                        y += uy * free;
+                        z += uz * free;
+                        travelled += free;
+                        real incoherent = RegIncoherent(here, e);
+                        real coherent = C.RayleighScatter ? RegCoherent(here, e) : (real)0.0;
+                        real carried;
+                        real gain;
+                        real channel = Uniform() * muKill;
+                        if (channel < coherent)
+                        {
+                            // Когерентное: только поворот, энергия та же.
+                            Rotate(ux, uy, uz, RayleighCosine(here, e));
+                            continue;
+                        }
+
+                        if (channel >= coherent + incoherent)
+                        {
+                            // Фотопоглощение ИЛИ рождение пары вне кристалла (`F27`, `A52`).
+                            int material = D.regions[here].Material;
+                            real pairMu = RegPair(here, e, C.XcomPairThreshold);
+                            real restMu = muKill - coherent - incoherent;
+                            if (pairMu > restMu)
+                            {
+                                pairMu = restMu;    // сумма каналов не больше полного
+                            }
+
+                            if (pairMu > (real)0.0 && channel >= muKill - pairMu
+                                && e > (real)2.0 * (real)ElectronMassKev)
+                            {
+                                if (C.ElectronLayerTransport)
+                                {
+                                    gain = CarriedElectronDeposit(
+                                        x, y, z, ElectronBirth::Pair, e - (real)2.0 * (real)ElectronMassKev,
+                                        ux, uy, uz, material, pushAnalog);
+                                    deposited += gain;
+                                    if (fromOutsideAnnihilation)
+                                    {
+                                        depositedOutside += gain;
+                                    }
+                                }
+                                else if (ElectronCarryDeposit(x, y, z, ux, uy, uz,
+                                                              e - (real)2.0 * (real)ElectronMassKev
+                                                              - OutsideBremsstrahlung(
+                                                                  x, y, z, e - (real)2.0 * (real)ElectronMassKev,
+                                                                  material, pushAnalog),
+                                                              carried))
+                                {
+                                    deposited += carried;
+                                    if (fromOutsideAnnihilation)
+                                    {
+                                        depositedOutside += carried;
+                                    }
+                                }
+
+                                real ax, ay, az;
+                                Isotropic(ax, ay, az);
+                                // Признак происхождения — ДО PushPending (`AMBER52`).
+                                fromOutsideAnnihilation = true;
+                                PushPending(x, y, z, -ax, -ay, -az, (real)ElectronMassKev);
+
+                                ux = ax;
+                                uy = ay;
+                                uz = az;
+                                e = (real)ElectronMassKev;
+                                continue;
+                            }
+
+                            real xrayOut = C.SampleFluorescenceOutside
+                                ? SampleFluorescence(here, e) : (real)0.0;
+                            if (xrayOut > (real)0.0)
+                            {
+                                real gx = ux, gy = uy, gz = uz;
+                                Isotropic(ux, uy, uz);
+                                if (C.ElectronLayerTransport)
+                                {
+                                    gain = CarriedElectronDeposit(
+                                        x, y, z, ElectronBirth::Photo, e - xrayOut,
+                                        gx, gy, gz, material, pushAnalog);
+                                    deposited += gain;
+                                    if (fromOutsideAnnihilation)
+                                    {
+                                        depositedOutside += gain;
+                                    }
+                                }
+                                else if (ElectronCarryDeposit(x, y, z, ux, uy, uz,
+                                                              e - xrayOut
+                                                              - OutsideBremsstrahlung(
+                                                                  x, y, z, e - xrayOut,
+                                                                  material, pushAnalog),
+                                                              carried))
+                                {
+                                    deposited += carried;
+                                    if (fromOutsideAnnihilation)
+                                    {
+                                        depositedOutside += carried;
+                                    }
+                                }
+
+                                e = xrayOut;
+                                continue;           // квант летит дальше
+                            }
+
                             if (C.ElectronLayerTransport)
                             {
                                 gain = CarriedElectronDeposit(
-                                    x, y, z, ElectronBirth::Pair, e - (real)2.0 * (real)ElectronMassKev,
+                                    x, y, z, ElectronBirth::Photo, e,
                                     ux, uy, uz, material, pushAnalog);
                                 deposited += gain;
                                 if (fromOutsideAnnihilation)
@@ -717,10 +837,8 @@ RM_DEVF real Sim::AnalogTransport(real x, real y, real z, real ux, real uy, real
                                 }
                             }
                             else if (ElectronCarryDeposit(x, y, z, ux, uy, uz,
-                                                          e - (real)2.0 * (real)ElectronMassKev
-                                                          - OutsideBremsstrahlung(
-                                                              x, y, z, e - (real)2.0 * (real)ElectronMassKev,
-                                                              material, pushAnalog),
+                                                          e - OutsideBremsstrahlung(
+                                                              x, y, z, e, material, pushAnalog),
                                                           carried))
                             {
                                 deposited += carried;
@@ -730,69 +848,37 @@ RM_DEVF real Sim::AnalogTransport(real x, real y, real z, real ux, real uy, real
                                 }
                             }
 
-                            real ax, ay, az;
-                            Isotropic(ax, ay, az);
-                            // Признак происхождения — ДО PushPending (`AMBER52`).
-                            fromOutsideAnnihilation = true;
-                            PushPending(x, y, z, -ax, -ay, -az, (real)ElectronMassKev);
-
-                            ux = ax;
-                            uy = ay;
-                            uz = az;
-                            e = (real)ElectronMassKev;
-                            continue;
+                            { exitFor = true; break; }
                         }
 
-                        real xrayOut = C.SampleFluorescenceOutside
-                            ? SampleFluorescence(here, e) : (real)0.0;
-                        if (xrayOut > (real)0.0)
-                        {
-                            real gx = ux, gy = uy, gz = uz;
-                            Isotropic(ux, uy, uz);
-                            if (C.ElectronLayerTransport)
-                            {
-                                gain = CarriedElectronDeposit(
-                                    x, y, z, ElectronBirth::Photo, e - xrayOut,
-                                    gx, gy, gz, material, pushAnalog);
-                                deposited += gain;
-                                if (fromOutsideAnnihilation)
-                                {
-                                    depositedOutside += gain;
-                                }
-                            }
-                            else if (ElectronCarryDeposit(x, y, z, ux, uy, uz,
-                                                          e - xrayOut
-                                                          - OutsideBremsstrahlung(
-                                                              x, y, z, e - xrayOut,
-                                                              material, pushAnalog),
-                                                          carried))
-                            {
-                                deposited += carried;
-                                if (fromOutsideAnnihilation)
-                                {
-                                    depositedOutside += carried;
-                                }
-                            }
-
-                            e = xrayOut;
-                            continue;           // квант летит дальше
-                        }
-
+                        real cos;
+                        real after = ComptonScatter(here, e, cos);
+                        comptonOutside = true;              // замер `S55`
                         if (C.ElectronLayerTransport)
                         {
+                            real ux0 = ux, uy0 = uy, uz0 = uz;
+                            Rotate(ux, uy, uz, cos);
+                            real dx, dy, dz;
+                            ComptonElectronDirection(e, ux0, uy0, uz0, after, ux, uy, uz,
+                                                     dx, dy, dz);
                             gain = CarriedElectronDeposit(
-                                x, y, z, ElectronBirth::Photo, e,
-                                ux, uy, uz, material, pushAnalog);
+                                x, y, z, ElectronBirth::Given, e - after,
+                                dx, dy, dz, D.regions[here].Material, pushAnalog);
                             deposited += gain;
                             if (fromOutsideAnnihilation)
                             {
                                 depositedOutside += gain;
                             }
+
+                            e = after;
+                            continue;
                         }
-                        else if (ElectronCarryDeposit(x, y, z, ux, uy, uz,
-                                                      e - OutsideBremsstrahlung(
-                                                          x, y, z, e, material, pushAnalog),
-                                                      carried))
+
+                        // Занос комптон-электрона — ДО поворота фотона; фотон летит дальше.
+                        if (ElectronCarryDeposit(x, y, z, ux, uy, uz,
+                                                 e - after - OutsideBremsstrahlung(
+                                                     x, y, z, e - after, D.regions[here].Material, pushAnalog),
+                                                 carried))
                         {
                             deposited += carried;
                             if (fromOutsideAnnihilation)
@@ -801,80 +887,49 @@ RM_DEVF real Sim::AnalogTransport(real x, real y, real z, real ux, real uy, real
                             }
                         }
 
-                        break;
-                    }
-
-                    real cos;
-                    real after = ComptonScatter(here, e, cos);
-                    comptonOutside = true;              // замер `S55`
-                    if (C.ElectronLayerTransport)
-                    {
-                        real ux0 = ux, uy0 = uy, uz0 = uz;
-                        Rotate(ux, uy, uz, cos);
-                        real dx, dy, dz;
-                        ComptonElectronDirection(e, ux0, uy0, uz0, after, ux, uy, uz,
-                                                 dx, dy, dz);
-                        gain = CarriedElectronDeposit(
-                            x, y, z, ElectronBirth::Given, e - after,
-                            dx, dy, dz, D.regions[here].Material, pushAnalog);
-                        deposited += gain;
-                        if (fromOutsideAnnihilation)
-                        {
-                            depositedOutside += gain;
-                        }
-
                         e = after;
+                        Rotate(ux, uy, uz, cos);
                         continue;
                     }
-
-                    // Занос комптон-электрона — ДО поворота фотона; фотон летит дальше.
-                    if (ElectronCarryDeposit(x, y, z, ux, uy, uz,
-                                             e - after - OutsideBremsstrahlung(
-                                                 x, y, z, e - after, D.regions[here].Material, pushAnalog),
-                                             carried))
-                    {
-                        deposited += carried;
-                        if (fromOutsideAnnihilation)
-                        {
-                            depositedOutside += carried;
-                        }
-                    }
-
-                    e = after;
-                    Rotate(ux, uy, uz, cos);
-                    continue;
                 }
-            }
 
-            // ⚠ float: подталкивание 1e-7 см (map_geometry.md §5.4).
-            real next = step + RM_NUDGE;
-            x += ux * next;
-            y += uy * next;
-            z += uz * next;
-            travelled += next;
-        }
+                // ⚠ float: подталкивание 1e-7 см (map_geometry.md §5.4).
+                real next = step + RM_NUDGE;
+                x += ux * next;
+                y += uy * next;
+                z += uz * next;
+                travelled += next;
+        } while (false);
 
+        w.guard = exitFor ? 400 : w.guard + 1;
+    }
+    else if (pendCount > 0)
+    {
         // Следующий отложенный квант истории (`A52`/`A55`): свой путь и предел заново,
         // `deposited` истории общий.
-        if (pendCount > 0)
-        {
-            int k = --pendCount;
-            x = pendX[k];
-            y = pendY[k];
-            z = pendZ[k];
-            ux = pendUx[k];
-            uy = pendUy[k];
-            uz = pendUz[k];
-            e = pendE[k];
-            fromOutsideAnnihilation = pendFromOutsideAnnihilation[k];
-            travelled = (real)0.0;
-            continue;
-        }
-
-        break;
+        int k = --pendCount;
+        x = pendX[k];
+        y = pendY[k];
+        z = pendZ[k];
+        ux = pendUx[k];
+        uy = pendUy[k];
+        uz = pendUz[k];
+        e = pendE[k];
+        fromOutsideAnnihilation = pendFromOutsideAnnihilation[k];
+        travelled = (real)0.0;
+        w.guard = 0;
+    }
+    else
+    {
+        finished = true;
     }
 
-    return deposited;
+    w.x = x; w.y = y; w.z = z;
+    w.ux = ux; w.uy = uy; w.uz = uz;
+    w.e = e;
+    w.deposited = deposited;
+    w.travelled = travelled;
+    return finished;
 }
 
 // =====================================================================================
