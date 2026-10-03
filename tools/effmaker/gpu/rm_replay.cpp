@@ -7,6 +7,7 @@
 // заголовком PE32 под `ncu` падает 0xC000007B) и быстрым стендом событийной схемы.
 //
 //   rm_replay <dll> <каталог записи> [--only=<номер run>] [--repeat=<k>] [--tol=<отн.>]
+//             [--launch=<блоков>,<нитей>]   (0 — одна история на нить, как у пробы; <0 — постоянные нити)
 //
 // Код 0 — все суммы сошлись в допуске (по умолчанию 1e-9 отн.: атомарные сложения
 // в другом порядке), 1 — расхождение, 2 — отказ.
@@ -41,13 +42,14 @@ int main(int argc, char** argv)
         return 2;
     }
 
-    int only = -1, repeat = 1;
+    int only = -1, repeat = 1, blocks = 0, threads = 128;
     double tol = 1e-9;
     for (int i = 3; i < argc; i++)
     {
         if (std::strncmp(argv[i], "--only=", 7) == 0) only = std::atoi(argv[i] + 7);
         else if (std::strncmp(argv[i], "--repeat=", 9) == 0) repeat = std::atoi(argv[i] + 9);
         else if (std::strncmp(argv[i], "--tol=", 6) == 0) tol = std::atof(argv[i] + 6);
+        else if (std::strncmp(argv[i], "--launch=", 9) == 0) std::sscanf(argv[i] + 9, "%d,%d", &blocks, &threads);
         else { std::fprintf(stderr, "неизвестный ключ: %s\n", argv[i]); return 2; }
     }
 
@@ -133,7 +135,7 @@ int main(int argc, char** argv)
                 if (!ok(run(branch, Bits(eBits), Bits(bBits), bins, n, first, rngMode, nullptr, key0, key1,
                             lh >= 0 ? hist.data() : nullptr, lh2 >= 0 ? hist2.data() : nullptr,
                             lc >= 0 ? chan.data() : nullptr, ll >= 0 ? light.data() : nullptr,
-                            scal.data(), ls, nullptr, 0, 128), "rm_run")) return 2;
+                            scal.data(), ls, nullptr, blocks, threads), "rm_run")) return 2;
                 double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
                 kernelSeconds += sec;
                 if (k == 0) recordedSeconds += secRec;
