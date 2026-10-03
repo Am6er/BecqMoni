@@ -115,6 +115,7 @@ RM_DEVF real Sim::OneHistory(real energyKev, real x, real y, real z,
                              double* histogram, int histogramLength, real binKev, real pointWeight)
 {
     ForgetRay();          // (`A315`, решение Amber 02.10.2026) кэш луча не переживает историю
+    RM_PHASE_BEGIN(1)
     const SceneG& sc = *D.scene;
     {
         real dz = sc.sphereZ - z;
@@ -140,11 +141,20 @@ RM_DEVF real Sim::OneHistory(real energyKev, real x, real y, real z,
         real px = x, py = y, pz = z, tau;
         real score = (real)0.0;
         bool reached = ToCrystal(px, py, pz, ux, uy, uz, energyKev, tau);
+        RM_PHASE_END(1)
+        // ⛔ (`AMBER161`, П227) ОДИН вызов ScatteredRun на обе ветви. В C# (:9180, :9255) он
+        // стоит дважды — для промаха до кристалла и после переноса попавшего луча, — и на
+        // GPU варп исполнял его ДВАЖДЫ по очереди: сначала нити-промахи (57 % историй), потом
+        // попавшие. Замер частей (RM_PHASES, 657 кэВ): ScatteredRun — 80 % тактов нитей.
+        // Здесь ветви лишь выбирают свой τ, а сам вызов — общий, и варп входит в него
+        // целиком. Порядок розыгрышей ИСТОРИИ прежний (промах: только рассеяние;
+        // попадание: кристалл, затем рассеяние), сложение в `score` — в том же порядке.
+        bool scatter = false;
+        real tauScatter = (real)0.0;
         if (!reached && !C.ScoreEntranceOnly && C.SingleScatter)
         {
-            real tauMiss = KillDepthToExit(x, y, z, ux, uy, uz, energyKev);
-            score += ScatteredRun(histogram, histogramLength, binKev, x, y, z, ux, uy, uz,
-                                  energyKev, tauMiss, weight);
+            scatter = true;
+            tauScatter = KillDepthToExit(x, y, z, ux, uy, uz, energyKev);
         }
 
         if (reached)
@@ -162,7 +172,9 @@ RM_DEVF real Sim::OneHistory(real energyKev, real x, real y, real z,
                 lossXrayL = (real)0.0;
                 lightDeposit = (real)0.0;
                 // не перенесено: ResetTrace() — трассировка каналов.
+                RM_PHASE_BEGIN(2)
                 real escaped = InCrystal(px, py, pz, ux, uy, uz, energyKev, 0);
+                RM_PHASE_END(2)
                 // ⚠ float: `energyKev − escaped` — недобор прямого попадания; правило пика
                 // при допуске — InPeak (map_data.md §4 п. 1).
                 if (InPeak(energyKev, energyKev - escaped))
@@ -192,9 +204,17 @@ RM_DEVF real Sim::OneHistory(real energyKev, real x, real y, real z,
 
             if (!C.ScoreEntranceOnly)
             {
-                score += ScatteredRun(histogram, histogramLength, binKev, x, y, z, ux, uy, uz,
-                                      energyKev, tau, weight);
+                scatter = true;
+                tauScatter = tau;
             }
+        }
+
+        if (scatter)
+        {
+            RM_PHASE_BEGIN(3)
+            score += ScatteredRun(histogram, histogramLength, binKev, x, y, z, ux, uy, uz,
+                                  energyKev, tauScatter, weight);
+            RM_PHASE_END(3)
         }
 
         return score;
