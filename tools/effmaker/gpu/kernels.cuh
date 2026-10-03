@@ -159,8 +159,12 @@ __global__ void WeightedKernel(NodeArgs a)
         SetHistoryRng(s, a, i);
         if (a.resetMask != 0) ResetCarried(s, a.resetMask);
         real x, y, z;
+        RM_PHASE_BEGIN(0)
         real pointWeight = s.SourceNextWeighted(x, y, z);
+        RM_PHASE_END(0)
+        RM_PHASE_BEGIN(5)
         real score = s.OneHistory(a.energyKev, x, y, z, a.hist, a.bins, a.binKev, pointWeight);
+        RM_PHASE_END(5)
         sum += (double)score;
         sum2 += (double)score * (double)score;
         angular.Add((double)score, (double)s.historyDeposit, (double)s.lastHistoryCos);

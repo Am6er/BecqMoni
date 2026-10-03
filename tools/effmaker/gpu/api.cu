@@ -312,6 +312,25 @@ RM_API int rm_run(int branch, double energyKev, double binKev, int bins,
         else AnalogKernel<<<blocks, threads>>>(a);
         Check(cudaGetLastError(), "запуск ядра");
         Check(cudaDeviceSynchronize(), "ядро");
+#ifdef RM_PHASES
+        {
+            // (`AMBER161`) Замер частей истории: печать и обнуление (common.cuh, RM_PHASE_*).
+            unsigned long long cyc[RM_PHASE_N], act[RM_PHASE_N], cnt[RM_PHASE_N], zero[RM_PHASE_N] = {};
+            Check(cudaMemcpyFromSymbol(cyc, rmPhaseCycles, sizeof cyc), "фазы");
+            Check(cudaMemcpyFromSymbol(act, rmPhaseActive, sizeof act), "фазы");
+            Check(cudaMemcpyFromSymbol(cnt, rmPhaseCount, sizeof cnt), "фазы");
+            Check(cudaMemcpyToSymbol(rmPhaseCycles, zero, sizeof zero), "фазы");
+            Check(cudaMemcpyToSymbol(rmPhaseActive, zero, sizeof zero), "фазы");
+            Check(cudaMemcpyToSymbol(rmPhaseCount, zero, sizeof zero), "фазы");
+            std::fprintf(stderr, "PHASES branch %d E %.3f", branch, energyKev);
+            for (int p = 0; p < RM_PHASE_N; p++)
+            {
+                if (cnt[p] == 0) continue;
+                std::fprintf(stderr, " | %d: n %llu cyc %.4g act %.2f", p, cnt[p], (double)cyc[p], (double)act[p] / (double)cnt[p]);
+            }
+            std::fprintf(stderr, "\n");
+        }
+#endif
 
         auto add = [&](double* host, const double* dev, size_t count, const char* what)
         {

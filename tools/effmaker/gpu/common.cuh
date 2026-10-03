@@ -155,6 +155,20 @@ RM_DEV double RngUniform(RngState& g)
     return ((double)(r >> 11) + 0.5) * (1.0 / 9007199254740992.0);
 }
 
+// (`AMBER161`, П227) Замер частей истории — только сборка с `-DRM_PHASES` (README):
+// такты части (clock64 нити) и число активных нитей варпа на входе в неё; печатает rm_run.
+// Атомарные сложения на каждую часть каждой истории сами стоят времени — мерка долей.
+#ifdef RM_PHASES
+#define RM_PHASE_N 8
+__device__ unsigned long long rmPhaseCycles[RM_PHASE_N], rmPhaseActive[RM_PHASE_N], rmPhaseCount[RM_PHASE_N];
+#define RM_PHASE_BEGIN(p) unsigned long long rmT##p = clock64(); \
+    atomicAdd(&rmPhaseActive[p], (unsigned long long)__popc(__activemask())); atomicAdd(&rmPhaseCount[p], 1ull);
+#define RM_PHASE_END(p) atomicAdd(&rmPhaseCycles[p], (unsigned long long)(clock64() - rmT##p));
+#else
+#define RM_PHASE_BEGIN(p)
+#define RM_PHASE_END(p)
+#endif
+
 // (`AMBER161`, П227) Равномерное в (0, 1) ВО FLOAT из ОДНОГО 32-битного слова Philox:
 // w·2⁻³² + 2⁻³³ (низ — 1.2e-10, не ноль). Путь выше тратит два слова и арифметику double,
 // а FP64 на GA104 в 64 раза медленнее FP32: генератор занимал ~16 % выборок профиля.
