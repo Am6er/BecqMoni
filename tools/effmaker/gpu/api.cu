@@ -373,7 +373,26 @@ RM_API int rm_run(int branch, double energyKev, double binKev, int bins,
         const char* stagedEnv = std::getenv("BQ_GPU_STAGED");
         bool staged = branch == 0 && rngMode == 1 && perHistory == nullptr && (a.resetMask & ~24) == 0
                       && !(stagedEnv != nullptr && stagedEnv[0] == '0');
+        // (`AMBER161`) Аналоговая ветвь рабочего счёта — шагами с подкачкой историй и ПАЧКОЙ
+        // входов в кристалл (`AnalogKernelRegen`); по историям точна (double: 288/288 в 1e-12).
+        // Сама подкачка выигрыша не дала (1.04), пачка — да: порог `BQ_GPU_BATCH` (восьмые
+        // доли активных нитей варпа, умолчание 8 — все): k0 (без пачки) 5.50–6.72 с,
+        // k4 4.73–5.95, k8 4.66–5.75. `BQ_GPU_REGEN=0` — прежнее ядро «нить — история»,
+        // `=2` — положительный контроль сверки (чужие потоки).
+        const char* regenEnv = std::getenv("BQ_GPU_REGEN");
+        bool regen = branch == 1 && rngMode == 1 && perHistory == nullptr && a.resetMask == 0
+                     && !(regenEnv != nullptr && regenEnv[0] == '0');
         if (staged) RunWeightedStaged(a, threads);
+        else if (regen)
+        {
+            int perSm = 0, device = 0, sms = 0;
+            Check(cudaGetDevice(&device), "cudaGetDevice");
+            Check(cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount, device), "SM");
+            Check(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&perSm, AnalogKernelRegen, threads, 0), "occupancy");
+            unsigned long long* next = (unsigned long long*)alloc(sizeof(unsigned long long));
+            AnalogKernelRegen<<<(perSm > 0 ? perSm : 1) * sms, threads>>>(a, next, regenEnv != nullptr && regenEnv[0] == '2',
+                                                                        std::getenv("BQ_GPU_BATCH") != nullptr ? std::atoi(std::getenv("BQ_GPU_BATCH")) : 8);
+        }
         else if (branch == 0) WeightedKernel<<<blocks, threads>>>(a);
         else AnalogKernel<<<blocks, threads>>>(a);
         Check(cudaGetLastError(), "запуск ядра");

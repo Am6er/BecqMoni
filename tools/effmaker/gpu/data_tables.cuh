@@ -92,6 +92,9 @@ struct TransitionsG
     int augFrom; int augFromLen;                  // арена I
     int augEjected; int augEjectedLen;            // арена I
     real augSum;
+    // (`AMBER161`, П227) Накопления radCum/augCum не убывают (проверка читателя
+    // упаковки) — выбор перехода двоичным поиском; 0 — линейным проходом, как в C#.
+    int cumMonotone;
 };
 
 // = MaterialDatabase.cs:856 MaterialDatabase.Relaxation
@@ -118,6 +121,7 @@ struct AtomG
     int ffF2; int ffF2Len;                        // F²
     int ffCum; int ffCumLen;                      // ∫F² dt
     int shellCum; int shellCumLen;                // Len 0 = профилей нет (ShellCount = 0)
+    int shellCumMonotone;                         // (`AMBER161`) shellCum не убывает — двоичный поиск
     int shellBindKev; int shellBindKevLen;
     int profCum; int profCumOff; int profCumLen;  // [оболочка][31]
     int momentumGrid; int momentumGridLen;        // = ScatteringData.momentumGrid

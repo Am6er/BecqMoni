@@ -202,6 +202,99 @@ __global__ void WeightedKernel(NodeArgs a)
     AddSlot(q, W_COUNT_ESCAPE_DROPPED, (double)s.CountEscapeDropped);
 }
 
+// Счёт аналоговой истории i (тело цикла AnalogContinuumRun :10197-10283 после AnalogHistory):
+// бин, второй счёт пика, класс вне конуса, гистограммы, свет, канал, выход истории.
+// (`AMBER161`, П227) Общий для ядра «нить — история» и ядра с подкачкой.
+RM_DEV void AnalogTally(Sim& s, const NodeArgs& a, long long i, real deposited, real weight,
+                        real depositedOutside, bool comptonOutside, bool inWeightedCone,
+                        double& outsideWeight, double& outsideWeight2, double& outsideLight,
+                        long long& scored)
+{
+    int peak = a.bins - 1;
+    real energyKev = a.energyKev;
+    real binKev = a.binKev;
+    HistoryOut* h = a.perHistory != nullptr ? a.perHistory + i : nullptr;
+    if (h != nullptr)
+    {
+        h->score = (double)deposited;
+        h->weight = (double)weight;
+        h->depositA = (double)depositedOutside;
+        h->light = (double)s.lightDeposit;
+        h->cosv = 0.0;
+        h->channel = -1;
+        h->bin = -1;
+        h->flags = (inWeightedCone ? 1 : 0) | (comptonOutside ? 2 : 0);
+        h->rngAfter = s.rng.s;
+    }
+
+    if (!(deposited > (real)0.0))
+    {
+        return;
+    }
+
+    // Бин — тем же правилом, что у взвешенной ветви (`AMBER50`).
+    int bin = s.BinOf(peak, binKev, energyKev, deposited);
+    if (h != nullptr)
+    {
+        h->bin = bin;
+    }
+
+    // (`AMBER145`) Второй счёт пика.
+    s.TallyResolutionPeak(peak, binKev, energyKev, deposited, weight, true);
+    if (bin == peak)
+    {
+        s.CountPeakBinDropped++;
+        s.WeightPeakBinDropped += (double)weight;
+        if (comptonOutside)
+        {
+            s.CountPeakBinDroppedScattered++;
+        }
+
+        // (`AMBER66`) Вне конуса взвешенной ветви пик считать некому — своя сумма.
+        if (!inWeightedCone)
+        {
+            s.CountPeakOutOfCone++;
+            // не перенесено: WeightPeakOutOfCone/WeightPeakOutOfCone2 — те же суммы,
+            // что outsideWeight/outsideWeight2 (слоты A_OUTSIDE/A_OUTSIDE2).
+            outsideWeight += (double)weight;
+            outsideWeight2 += (double)weight * (double)weight;
+            outsideLight += (double)(weight * s.lightDeposit);
+        }
+
+        return;               // бин пика — за взвешенной оценкой
+    }
+
+    atomicAdd(a.hist + bin, (double)weight);
+    atomicAdd(a.hist2 + bin, (double)weight * (double)weight);
+    scored++;
+    // не перенесено: CountAnalogScored (= scored, слот A_SCORED).
+    if (a.light != nullptr)
+    {
+        atomicAdd(a.light + bin, (double)(weight * s.lightDeposit));
+    }
+
+    // Канал считается и без накопителя каналов — для выхода истории; ChannelOf
+    // случайных чисел не тянет и состояния не меняет.
+    if (a.chan != nullptr || h != nullptr)
+    {
+        Sim::ResponseChannel channel = s.ChannelOf(energyKev - deposited, deposited, depositedOutside);
+        if (channel == Sim::ResponseChannel::Peak)
+        {
+            channel = Sim::ResponseChannel::Compton;
+        }
+
+        if (a.chan != nullptr)
+        {
+            atomicAdd(a.chan + (long long)(int)channel * a.bins + bin, (double)weight);
+        }
+
+        if (h != nullptr)
+        {
+            h->channel = (int)channel;
+        }
+    }
+}
+
 // = EfficiencySimulator.cs:10181-10283 — тело цикла `AnalogContinuumRun` для истории i.
 // Накопители — ЛОКАЛЬНЫЕ массивы C# этого прогона: `hist` → a.hist, `hist2` → a.hist2,
 // `channels[c]` → a.chan + c·bins (null — каналов нет), `light` → a.light (null — нет);
@@ -236,89 +329,13 @@ __global__ void AnalogKernel(NodeArgs a)
         bool inWeightedCone;
         real depositedOutside;
         bool comptonOutside;
+        RM_PHASE_BEGIN(5)
         real deposited = s.AnalogHistory(energyKev, x, y, z, weight, false,
                                          inWeightedCone, depositedOutside, comptonOutside);
+        RM_PHASE_END(5)
 
-        HistoryOut* h = a.perHistory != nullptr ? a.perHistory + i : nullptr;
-        if (h != nullptr)
-        {
-            h->score = (double)deposited;
-            h->weight = (double)weight;
-            h->depositA = (double)depositedOutside;
-            h->light = (double)s.lightDeposit;
-            h->cosv = 0.0;
-            h->channel = -1;
-            h->bin = -1;
-            h->flags = (inWeightedCone ? 1 : 0) | (comptonOutside ? 2 : 0);
-            h->rngAfter = s.rng.s;
-        }
-
-        if (!(deposited > (real)0.0))
-        {
-            continue;
-        }
-
-        // Бин — тем же правилом, что у взвешенной ветви (`AMBER50`).
-        int bin = s.BinOf(peak, binKev, energyKev, deposited);
-        if (h != nullptr)
-        {
-            h->bin = bin;
-        }
-
-        // (`AMBER145`) Второй счёт пика.
-        s.TallyResolutionPeak(peak, binKev, energyKev, deposited, weight, true);
-        if (bin == peak)
-        {
-            s.CountPeakBinDropped++;
-            s.WeightPeakBinDropped += (double)weight;
-            if (comptonOutside)
-            {
-                s.CountPeakBinDroppedScattered++;
-            }
-
-            // (`AMBER66`) Вне конуса взвешенной ветви пик считать некому — своя сумма.
-            if (!inWeightedCone)
-            {
-                s.CountPeakOutOfCone++;
-                // не перенесено: WeightPeakOutOfCone/WeightPeakOutOfCone2 — те же суммы,
-                // что outsideWeight/outsideWeight2 (слоты A_OUTSIDE/A_OUTSIDE2).
-                outsideWeight += (double)weight;
-                outsideWeight2 += (double)weight * (double)weight;
-                outsideLight += (double)(weight * s.lightDeposit);
-            }
-
-            continue;               // бин пика — за взвешенной оценкой
-        }
-
-        atomicAdd(a.hist + bin, (double)weight);
-        atomicAdd(a.hist2 + bin, (double)weight * (double)weight);
-        scored++;
-        // не перенесено: CountAnalogScored (= scored, слот A_SCORED).
-        if (a.light != nullptr)
-        {
-            atomicAdd(a.light + bin, (double)(weight * s.lightDeposit));
-        }
-
-        // Канал считается и без накопителя каналов — для выхода истории; ChannelOf
-        // случайных чисел не тянет и состояния не меняет.
-        if (a.chan != nullptr || h != nullptr)
-        {
-            Sim::ResponseChannel channel = s.ChannelOf(energyKev - deposited, deposited, depositedOutside);
-            if (channel == Sim::ResponseChannel::Peak)
-            {
-                channel = Sim::ResponseChannel::Compton;
-            }
-
-            if (a.chan != nullptr)
-            {
-                atomicAdd(a.chan + (long long)(int)channel * a.bins + bin, (double)weight);
-            }
-
-            if (h != nullptr)
-            {
-                h->channel = (int)channel;
-            }
-        }
+        AnalogTally(s, a, i, deposited, weight, depositedOutside, comptonOutside, inWeightedCone,
+                    outsideWeight, outsideWeight2, outsideLight, scored);
     }
 
     double* q = a.scal;
@@ -621,4 +638,91 @@ __global__ void WeightedStage5(NodeArgs a, WBuf w, int count)
     WarpAddSlot(q, W_T0, m.T0);   WarpAddSlot(q, W_T2, m.T2);   WarpAddSlot(q, W_T4, m.T4);
     WarpAddSlot(q, W_T00, m.T00); WarpAddSlot(q, W_T22, m.T22); WarpAddSlot(q, W_T44, m.T44);
     WarpAddSlot(q, W_T02, m.T02); WarpAddSlot(q, W_T04, m.T04);
+}
+
+// (`AMBER161`, П227) Аналоговая ветвь С ПОДКАЧКОЙ. Длины аналоговых историй разнятся на
+// порядки (большинство уходит из сцены за шаг, единицы блуждают по пробе и корпусу), и
+// в ядре «нить — история» варп ждал самую длинную: активных нитей 2.2 из 32 (Nsight). Здесь
+// нить делает ОДИН шаг переноса за проход цикла (`AnalogStep`) и, как только её история
+// кончилась, берёт следующую из общего счётчика. Поток розыгрышей истории привязан к её
+// номеру (Philox), поэтому итог по каждой истории тот же, что у ядра «нить — история».
+// Сетка — постоянные нити по занятости (`rm_run`); `next` — счётчик выданных историй.
+__global__ void AnalogKernelRegen(NodeArgs a, unsigned long long* next, int poison, int batch)
+{
+    Sim s;
+    InitThread(s);
+    s.channelHistograms = nullptr;   // ветвь пишет в a.chan сама (локальные `channels` C#)
+    s.channelBins = a.bins;
+    s.lightSum = a.light;
+    s.lightSumLen = a.light != nullptr ? a.bins : 0;
+    s.SourceRetune(a.energyKev);
+
+    double outsideWeight = 0.0, outsideWeight2 = 0.0, outsideLight = 0.0;
+    long long scored = 0;
+    Sim::AnalogWalk w;
+    bool alive = false, inWeightedCone = false;
+    bool known = false, entering = false;
+    real weight = (real)0.0;
+    long long i = 0;
+    while (true)
+    {
+        if (!alive)
+        {
+            i = (long long)atomicAdd(next, 1ull);
+            if (i >= a.n)
+            {
+                break;
+            }
+
+            // poison — положительный контроль сверки: ЧУЖИЕ потоки (номер + n). Обмен
+            // потоками соседей контролем не годится — суммы от перестановки не зависят.
+            SetHistoryRng(s, a, poison ? (i + a.n) : i);
+            real x, y, z, ux, uy, uz, limit;
+            weight = s.SourceNextWeighted(x, y, z);
+            s.AnalogFront(x, y, z, weight, inWeightedCone, ux, uy, uz, limit);
+            s.AnalogWalkBegin(x, y, z, ux, uy, uz, a.energyKev, limit, w);
+            alive = true;
+            known = false;
+        }
+
+        // ПАЧКА ВХОДОВ В КРИСТАЛЛ (`batch`): шаг с `InCrystal` — самая длинная часть
+        // истории, и один вошедший держал весь варп. Нить, чей шаг входит в кристалл,
+        // ждёт, пока таких не наберётся половина варпа; прочие тем временем шагают дальше.
+        // Когда шагать некому (все ждут или кончили), половина набирается сама.
+        if (!known)
+        {
+            entering = s.AnalogStepEntersCrystal(w);
+            known = true;
+        }
+
+        unsigned act = __activemask();
+        unsigned want = __ballot_sync(act, entering);
+        if (batch > 0 && entering && 8 * __popc(want) < batch * __popc(act))
+        {
+            continue;
+        }
+
+        known = false;
+        if (s.AnalogStep(w))
+        {
+            alive = false;
+            AnalogTally(s, a, i, w.deposited, weight, w.depositedOutside, w.comptonOutside,
+                        inWeightedCone, outsideWeight, outsideWeight2, outsideLight, scored);
+        }
+    }
+
+    double* q = a.scal;
+    AddSlot(q, A_OUTSIDE, outsideWeight);
+    AddSlot(q, A_OUTSIDE2, outsideWeight2);
+    AddSlot(q, A_OUTSIDE_LIGHT, outsideLight);
+    AddSlot(q, A_RESOLUTION, s.resolutionAnalog);
+    AddSlot(q, A_SCORED, (double)scored);
+    AddSlot(q, A_COUNT_PEAK_BIN_DROPPED, (double)s.CountPeakBinDropped);
+    AddSlot(q, A_WEIGHT_PEAK_BIN_DROPPED, s.WeightPeakBinDropped);
+    AddSlot(q, A_COUNT_PEAK_BIN_DROPPED_SCATTERED, (double)s.CountPeakBinDroppedScattered);
+    AddSlot(q, A_COUNT_PEAK_OUT_OF_CONE, (double)s.CountPeakOutOfCone);
+    AddSlot(q, A_COUNT_PATH_LIMIT_CUT, (double)s.CountPathLimitCut);
+    AddSlot(q, A_COUNT_CASCADE_OVERFLOW, (double)s.CountCascadeOverflow);
+    AddSlot(q, A_COUNT_ESCAPE_DROPPED, (double)s.CountEscapeDropped);
+    AddSlot(q, A_COUNT_PENDING_DROPPED, (double)s.CountPendingDropped);
 }

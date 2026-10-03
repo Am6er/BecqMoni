@@ -70,6 +70,36 @@ RM_DEV real PairThresholdShape(real energyKev, real thresholdKev)
     return t * t * t;
 }
 
+// (`AMBER161`, П227) Первый i в [0, n) с `pick < base + cum[i]`; n — если такого нет.
+// `monotone` — читатель упаковки проверил, что cum не убывает: тогда предикат монотонен
+// (base + cum[i] во float от cum не убывает), и двоичный поиск даёт ТОТ ЖЕ индекс, что
+// линейный проход C#; иначе — линейный проход. У I/Cs/Pb оже-переходов сотни (у Pb до
+// 1804): линейный проход занимал 17 % инструкций стадии переноса в кристалле.
+RM_DEV int FirstAbove(const real* cum, int n, real base, real pick, bool monotone)
+{
+    if (monotone)
+    {
+        int lo = 0, hi = n;
+        while (lo < hi)
+        {
+            int mid = (lo + hi) >> 1;
+            if (pick < base + cum[mid]) hi = mid; else lo = mid + 1;
+        }
+
+        return lo;
+    }
+
+    for (int i = 0; i < n; i++)
+    {
+        if (pick < base + cum[i])
+        {
+            return i;
+        }
+    }
+
+    return n;
+}
+
 // = MaterialDatabase.cs:2856 MaterialDatabase.Bracket
 RM_DEVF bool Bracket(const real* grid, int n, real x, int& lo, int& hi)
 {
@@ -792,12 +822,10 @@ RM_DEVF int VacancyAfterPhoton(const RelaxationG& r, int shell, real lineKev, re
     // 1804 оже-переходов) соседние накопления различаются меньше ulp float ~6e-8.
     const real* radCum = RR(t->radCum);
     real pick = u * t->radSum;
-    for (int i = 0; i < t->radCumLen; i++)
+    int at = FirstAbove(radCum, t->radCumLen, (real)0.0, pick, t->cumMonotone != 0);
+    if (at < t->radCumLen)
     {
-        if (pick < radCum[i])
-        {
-            return radFrom[i];
-        }
+        return radFrom[at];
     }
 
     return radFrom[t->radFromLen - 1];
@@ -836,15 +864,13 @@ RM_DEVF bool Step(const RelaxationG& r, int shell, real u, bool nonRadiativeOnly
     if (!nonRadiativeOnly && t->radCumLen > 0 && pick < t->radSum)
     {
         const real* radCum = RR(t->radCum);
-        for (int i = 0; i < t->radCumLen; i++)
+        int i = FirstAbove(radCum, t->radCumLen, (real)0.0, pick, t->cumMonotone != 0);
+        if (i < t->radCumLen)
         {
-            if (pick < radCum[i])
-            {
-                radiative = true;
-                kev = RR(t->radKev)[i];
-                from = II(t->radFrom)[i];
-                return true;
-            }
+            radiative = true;
+            kev = RR(t->radKev)[i];
+            from = II(t->radFrom)[i];
+            return true;
         }
     }
 
@@ -855,9 +881,9 @@ RM_DEVF bool Step(const RelaxationG& r, int shell, real u, bool nonRadiativeOnly
 
     const real* augCum = RR(t->augCum);
     real base0 = nonRadiativeOnly ? (real)0.0 : t->radSum;
-    for (int i = 0; i < t->augCumLen; i++)
     {
-        if (pick < base0 + augCum[i])
+        int i = FirstAbove(augCum, t->augCumLen, base0, pick, t->cumMonotone != 0);
+        if (i < t->augCumLen)
         {
             kev = RR(t->augKev)[i];
             from = II(t->augFrom)[i];
@@ -1106,6 +1132,19 @@ RM_DEVF real SampleMomentumTransferSq(const AtomG& a, real u, real tMax)
 RM_DEVF int SelectShell(const AtomG& a, real u)
 {
     const real* c = RR(a.shellCum);
+    if (a.shellCumMonotone)
+    {
+        // (`AMBER161`) Первый i с u ≤ c[i] — двоичным поиском (c не убывает).
+        int lo = 0, hi = a.shellCumLen;
+        while (lo < hi)
+        {
+            int mid = (lo + hi) >> 1;
+            if (u <= c[mid]) hi = mid; else lo = mid + 1;
+        }
+
+        return lo < a.shellCumLen ? lo : a.shellCumLen - 1;
+    }
+
     for (int i = 0; i < a.shellCumLen; i++)
     {
         if (u <= c[i])

@@ -25,6 +25,18 @@ namespace host_tables_detail
         if (n < 0) r.Fail("отрицательное число записей");
         return n;
     }
+
+    // (`AMBER161`, П227) Не убывает ли массив арены R [off, off + len) — разрешение
+    // двоичного поиска по накоплению (тот же индекс, что линейный проход C#).
+    inline bool NonDecreasing(const std::vector<real>& arena, int off, int len)
+    {
+        for (int i = 1; i < len; i++)
+        {
+            if (!(arena[(size_t)(off + i - 1)] <= arena[(size_t)(off + i)])) return false;
+        }
+
+        return true;
+    }
 }
 
 // = GpuPackTables.cs WriteElements ↔ MaterialDatabase.Element
@@ -145,6 +157,8 @@ inline void Read_relax(BlobReader& r)
                 r.Fail("массивы переходов вакансии разной длины");
             }
 
+            t.cumMonotone = host_tables_detail::NonDecreasing(r.h.R, t.radCum, t.radCumLen)
+                            && host_tables_detail::NonDecreasing(r.h.R, t.augCum, t.augCumLen) ? 1 : 0;
             index[(size_t)s] = (int)r.h.transitions.size();
             r.h.transitions.push_back(t);
         }
@@ -172,6 +186,7 @@ inline void Read_atoms(BlobReader& r)
         a.ffF2 = r.Reals(a.ffF2Len);
         a.ffCum = r.Reals(a.ffCumLen);
         a.shellCum = r.Reals(a.shellCumLen);
+        a.shellCumMonotone = host_tables_detail::NonDecreasing(r.h.R, a.shellCum, a.shellCumLen) ? 1 : 0;
         a.shellBindKev = r.Reals(a.shellBindKevLen);
         a.profCum = r.Jagged(a.profCumLen, a.profCumOff);
         a.momentumGrid = r.Reals(a.momentumGridLen);

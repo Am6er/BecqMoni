@@ -127,6 +127,34 @@ RM_DEVF real AnalogTransport(real x, real y, real z, real ux, real uy, real uz,
                              real energyKev, real limit,
                              real& depositedOutside, bool& comptonOutside);
 
+// (`AMBER161`, П227) Состояние AnalogTransport между шагами (локальные C# :9750-9772).
+struct AnalogWalk
+{
+    real x, y, z, ux, uy, uz;
+    real e;
+    real deposited, depositedOutside;
+    real travelled, limit;
+    int guard;               // счётчик цикла `for (guard …)`; 400 — выход из цикла
+    bool comptonOutside;
+};
+RM_DEVF void AnalogFront(real x, real y, real z, real& weight, bool& inWeightedCone,
+                         real& ux, real& uy, real& uz, real& limit);
+RM_DEVF void AnalogWalkBegin(real x, real y, real z, real ux, real uy, real uz,
+                             real energyKev, real limit, AnalogWalk& w);
+RM_DEVF bool AnalogStep(AnalogWalk& w);
+// Войдёт ли следующий шаг в кристалл (`InCrystal`). Розыгрышей и состояния не трогает
+// (`At` растит только счётчик CountAt) — ядро с подкачкой копит такие шаги варпа в пачку.
+RM_DEV bool AnalogStepEntersCrystal(const AnalogWalk& w)
+{
+    if (!(w.guard < 400 && w.e > (real)1.0))
+    {
+        return false;
+    }
+
+    int here = At(w.x, w.y, w.z);
+    return here >= 0 && D.regions[here].IsCrystal;
+}
+
 // --- счёт: бины, каналы, свет ---
 static RM_DEV int PeakBin(real energyKev, real binKev);
 RM_DEV bool InPeak(real energyKev, real deposited);
