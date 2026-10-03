@@ -87,6 +87,29 @@ RM_DEVF void PushTotalPending(real x, real y, real z, real ux, real uy, real uz,
 // --- взвешенная ветвь ---
 RM_DEVF real OneHistory(real energyKev, real x, real y, real z,
                         double* histogram, int histogramLength, real binKev, real pointWeight);
+
+// (`AMBER161`, П227) Части OneHistory для ядер стадий (kernels.cuh): итог начала истории.
+struct WeightedFront
+{
+    real ux, uy, uz;        // направление первичного
+    real weight;            // вес истории (точка × конус × направление)
+    real px, py, pz;        // точка входа в кристалл (если дошёл)
+    real tau;               // оптическая толщина до кристалла
+    real score;             // счёт при ScoreEntranceOnly, иначе ноль
+    real tauScatter;        // τ вынужденного рассеяния
+    bool toCrystal;         // нужен перенос первичного в кристалле
+    bool scatter;           // нужен ScatteredRun
+};
+RM_DEVF void WeightedFrontRun(real energyKev, real x, real y, real z, real pointWeight, WeightedFront& f);
+RM_DEVF real WeightedPrimaryCrystal(double* histogram, int histogramLength, real binKev,
+                                    real energyKev, const WeightedFront& f);
+RM_DEV void ScatteredReset();
+RM_DEVF real ScatteredFinish(double* histogram, int histogramLength, real binKev,
+                             real energyKev, real weight, real sw, real scattered, real sEscaped);
+RM_DEVF bool ScatterToCrystal(real x, real y, real z, real ux, real uy, real uz,
+                              real energyKev, real tauKill, real& weight, real& scatteredEnergy,
+                              real& outX, real& outY, real& outZ,
+                              real& outUx, real& outUy, real& outUz);
 RM_DEVF bool ToCrystal(real& x, real& y, real& z, real ux, real uy, real uz, real energyKev, real& tau);
 RM_DEVF real ScatteredRun(double* histogram, int histogramLength, real binKev,
                           real x, real y, real z, real ux, real uy, real uz,
