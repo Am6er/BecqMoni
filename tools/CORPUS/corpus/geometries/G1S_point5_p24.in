@@ -45,7 +45,7 @@ DS_DetectorMountingThickness = 0.2 cm
 SourceType = POINT
 
 //Point source
-pdistance = 5.7 cm
+pdistance = 5.95 cm
 
 //Cylindrical source
 SC_BeakerToDetectorFrontDistance = 0.5 cm

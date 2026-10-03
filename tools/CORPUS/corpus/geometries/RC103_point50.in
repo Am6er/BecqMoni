@@ -29,9 +29,9 @@ DS_CrystalDiameter = 1.1283792 cm
 DS_CrystalHeight = 1 cm
 DS_CrystalFrontReflectorThickness = 0.1 cm
 DS_CrystalSideReflectorThickness = 0.1 cm
-DS_CrystalFrontGapThickness = 0.35 cm
+DS_CrystalFrontGapThickness = 0.3 cm
 DS_CrystalSideGapThickness = 0 cm
-DS_CrystalFrontCladdingThickness = 0.1 cm
+DS_CrystalFrontCladdingThickness = 0.15 cm
 DS_CrystalSideCladdingThickness = 0.1 cm
 DS_DetectorMountingThickness = 0.1 cm
 
@@ -162,14 +162,16 @@ M_DS_Crystal.MatRelWeight[0] = 1
 
 
 // Crystal Cladding 
-DS_nCrystalCladdingElements = 1
-DS_RoCrystalCladding = 2.7
-DS_ZCrystalCladding[0] = 13
-DS_FractionsCrystalCladding[0] = 1
+DS_nCrystalCladdingElements = 2
+DS_RoCrystalCladding = 0.94
+DS_ZCrystalCladding[0] = 1
+DS_FractionsCrystalCladding[0] = 0.143711
+DS_ZCrystalCladding[1] = 6
+DS_FractionsCrystalCladding[1] = 0.856289
 DS_FractionTypeCrystalCladding = MASS
-M_DS_Crystal_Cladding.MName = Aluminum
+M_DS_Crystal_Cladding.MName = Polyethylene
 M_DS_Crystal_Cladding.Nmaterials = 1
-M_DS_Crystal_Cladding.Name[0] = Aluminum                                 
+M_DS_Crystal_Cladding.Name[0] = Polyethylene                             
 M_DS_Crystal_Cladding.MatRelWeight[0] = 1
 
 
