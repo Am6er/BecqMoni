@@ -44,4 +44,5 @@
     <ExpGaussExpRightTail>1</ExpGaussExpRightTail>
   </PeakDetectionMethodConfig>
   <BackgroundSpectrumPathname />
+  <TractCurvature>0.0026</TractCurvature>
 </DeviceConfigInfo>
