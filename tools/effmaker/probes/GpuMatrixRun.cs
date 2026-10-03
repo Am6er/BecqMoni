@@ -77,7 +77,7 @@ sealed class RmGpu
 
     public readonly string Path;
     public readonly int RealBytes;
-    public int Blocks = 0;           // 0 — постоянные нити по занятости (api.cu, rm_run)
+    public int Blocks = 0;           // 0 — одна история на нить; < 0 — постоянные нити по занятости (api.cu, rm_run)
     public int Threads = 128;
 
     public RmGpu(string path, long stackBytes)

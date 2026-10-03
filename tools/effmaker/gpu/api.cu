@@ -286,10 +286,19 @@ RM_API int rm_run(int branch, double energyKev, double binKev, int bins,
             a.perHistory = (HistoryOut*)alloc(sizeof(HistoryOut) * (size_t)n);
         }
 
-        // blocks ≤ 0 — ПОСТОЯННЫЕ нити: ровно столько блоков, сколько их помещается на
-        // все SM разом (занятость по регистрам и стеку ядра). Лишние блоки ждали бы
-        // своей волны, и узел кончался бы хвостом из одной недогруженной волны.
-        if (blocks <= 0)
+        // blocks == 0 (умолчание) — ОДНА ИСТОРИЯ НА НИТЬ: ceil(n / threads) блоков.
+        // ⛔ (`AMBER161`, П227, 03.10.2026) Постоянные нити, принятые в П221, оказались
+        // МЕДЛЕННЕЕ: нить вела свою долю историй подряд, и варп держал SM, пока не
+        // кончит самая длинная из его нитей; короткие блоки планировщик доливает сам.
+        // Замер (G1S_petri60_oisn16_167_p24, 144 узла × 3 млн, ядра): постоянные нити
+        // 214.1 / 220.5 с, сетка 196.5 / 196.9 с (−10 %); тела матриц побайтно те же.
+        // blocks < 0 — прежние постоянные нити (−k — k волн по занятости), для сверки.
+        if (blocks == 0)
+        {
+            long long need = (n + threads - 1) / threads;
+            blocks = (int)(need < 1 ? 1 : (need > 0x7FFFFFFFLL ? 0x7FFFFFFFLL : need));
+        }
+        else if (blocks < 0)
         {
             int perSm = 0, device = 0, sms = 0;
             Check(cudaGetDevice(&device), "cudaGetDevice");
