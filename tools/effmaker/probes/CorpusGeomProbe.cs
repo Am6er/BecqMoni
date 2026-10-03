@@ -50,11 +50,14 @@ using System.Threading;
 //                расстояния, не кристалла). Это ИЗМЕРЕННАЯ поправка постановки,
 //                а не добыча обвязки; сосудные сцены G1S её не получали.
 //                ⛔ С 02.10.2026 (`AMBER153`, П219) точка 5 см — СВОЯ СЦЕНА НА
-//                ПРИБОР (`G1S_point5_p16` 58.5 мм, `G1S_point5_p24` 59.5 мм), а
-//                цилиндры G1S24 (Дента-120, Петри-60) стоят с ЗАЗОРОМ до торца
-//                `Denta120P24GapMm` / `Petri60P24GapMm` — ПОДОБРАНО ПО ПАСПОРТУ, это
-//                подстройка, не измерение (блок «ПОДСТРОЙКИ СЦЕН ПО ПАСПОРТУ»
-//                ниже).
+//                ПРИБОР; у G1S16 `G1S_point5_p16` 58.5 мм (50 + 7 + 1.5 — подбор
+//                по паспорту П219). ⛔ С 03.10.2026 (П228) ВСЕ сцены G1S24 (ключ
+//                `_p24`: точки 5 и 25 см, цилиндры, маринелли) несут ОДИН параметр
+//                прибора — ГЛУБИНУ КРИСТАЛЛА под торцом `G1S24CrystalDepthMm`
+//                (зазор у торца поверх шаблона); точки G1S24 стоят на именных
+//                50 / 250 мм, `S170` и подстройки П219 у G1S24 сняты. Это
+//                подстройка по паспорту, не измерение (блок «ПОДСТРОЙКИ СЦЕН ПО
+//                ПАСПОРТУ» ниже).
 //   ЗАЩИТА     — признак `InShield` (`DS_Shield = YES`, `AMBER12`) у сцен
 //                «в домике» (`ASN16_point0_house`, `ASN16_point10_house`): в
 //                перенос и клеймо матрицы он НЕ входит, его читает разбор
@@ -185,35 +188,39 @@ class CorpusGeomProbe
     /// <summary>Сдвиг точки 5 см у G1S16 сверх 57 мм (50 + 7 `S170`), мм.</summary>
     const double G1SPoint5P16FitMm = 1.5;
 
-    /// <summary>Сдвиг точки 5 см у G1S24 сверх 57 мм (50 + 7 `S170`), мм.</summary>
-    const double G1SPoint5P24FitMm = 2.5;
-
     /// <summary>
-    /// Зазор между дном сосуда и торцом детектора у цилиндров G1S24 (поверка
-    /// 2024), мм; у прочих сосудных сцен — ноль («вплотную», как в паспорте).
-    /// Один зазор на ВИД сосуда, а не на сцену: банка одна и та же у восьми
-    /// эталонов разной набивки, и зазор от набивки не зависит (до подбора
-    /// отношение разбор/паспорт Cs-137 в «Денте» — 0.703 при ρ 0.57 и 0.698
-    /// при ρ 1.66, П214).
+    /// ⛔ ГЛУБИНА КРИСТАЛЛА G1S24 под наружной гранью торца СВЕРХ обвязки шаблона
+    /// «Gamma-1S UDS-GC 63x63», мм — ОДИН параметр прибора на ВСЕ его сцены
+    /// (ключ `_p24`: точки 5 и 25 см, цилиндры Дента-120 и Петри-60, маринелли,
+    /// маринелли с углём). ⛔ ПОДБОР ПО ПАСПОРТУ, А НЕ ЗАМЕР (`AMBER153`, П228
+    /// 03.10.2026; решения Amber 02.10.2026 вопросником, дословно: «Да, после GPU
+    /// (Рекомендую)» — заменить подстройки G1S24 по сценам одним параметром
+    /// прибора; 03.10.2026 «Да, до склада (Рекомендую)» — сделать до склада).
+    ///
+    /// Заменяет подстройки П219 по сценам (точка 5 см G1S24 59.5 мм = 50 + 7
+    /// `S170` + 2.5; зазор до торца Дента-120 9 мм, Петри-60 7.5 мм) И слагаемое
+    /// `S170` (+7 мм) у точечных сцен G1S24: подбор П219 сложился в одну картину
+    /// «кристалл G1S24 сидит под торцом на ~8…9 мм глубже обвязки, заимствованной
+    /// от Nano 16 (`E15`)», а у маринелли (0.898 против 0.931 у G1S16) и точки
+    /// 25 см (0.964 против 0.995) — та же подпись. Ставится зазором между
+    /// отражателем и корпусом у торца (`FrontGapThickness`, поверх шаблона), то
+    /// есть кристалл уходит глубже под ту же наружную грань: точечный источник
+    /// стоит на именном расстоянии от грани (50 / 250 мм), сосуд — вплотную.
+    /// Подбор — по кривым эффективности сцен (`CorpusEffProbe`, без матриц),
+    /// плечи и числа — `handover/handover-2026-10-03-p228-store43.md`.
+    /// Рычаг подбора — ключ `--g1s24-depth=<мм>` (для замера, не для склада).
     /// </summary>
-    // Подобрано 9 мм (Дента-120) и 7.5 мм (Петри-60) — П219, прямой счёт
-    // чувствительности ε пика к зазору (−3.5 %/мм), цель — среднее разбор/паспорт
-    // Cs-137 и K-40 = 1.0 (журнал §1–§2). ⛔ Числа вошли ВТОРЫМ коммитом полосы и
-    // требуют пересчёта 15 матриц цилиндров (счёт П219 на CPU снят решением Amber
-    // 02.10.2026 «Убить, пересчитать потом на GPU»): без него `.in` и `.rmx`
-    // склада расходятся (журнал §6).
-    const double Denta120P24GapMm = 9.0;
-    const double Petri60P24GapMm = 7.5;
+    const double G1S24CrystalDepthMm = 9.0;
 
-    static double VesselGapMm(string key)
+    /// <summary>Действующая глубина G1S24 этого прогона (умолчание — <see cref="G1S24CrystalDepthMm"/>).</summary>
+    static double g1s24DepthMm = G1S24CrystalDepthMm;
+
+    const string G1SPresetName = "Gamma-1S UDS-GC 63x63";
+
+    /// <summary>Сцена прибора G1S24 (поверка 2024): шаблон G1S и ключ `_p24`.</summary>
+    static bool IsG1S24Scene(Geom spec)
     {
-        if (key.EndsWith("_p24", StringComparison.Ordinal))
-        {
-            if (key.StartsWith("G1S_denta120_", StringComparison.Ordinal)) return Denta120P24GapMm;
-            if (key.StartsWith("G1S_petri60_", StringComparison.Ordinal)) return Petri60P24GapMm;
-        }
-
-        return 0.0;
+        return spec.Preset == G1SPresetName && spec.Key.EndsWith("_p24", StringComparison.Ordinal);
     }
 
     static int Main(string[] args)
@@ -225,6 +232,16 @@ class CorpusGeomProbe
         {
             if (a.StartsWith("--out=", StringComparison.Ordinal)) outDir = a.Substring(6);
             else if (a == "--dry") dry = true;
+            else if (a.StartsWith("--g1s24-depth=", StringComparison.Ordinal))
+            {
+                // (`AMBER153`, П228) рычаг подбора глубины кристалла G1S24, мм
+                g1s24DepthMm = double.Parse(a.Substring(14), NumberStyles.Float, CultureInfo.InvariantCulture);
+                if (!(g1s24DepthMm >= 0.0) || g1s24DepthMm > 50.0)
+                {
+                    Console.Error.WriteLine("--g1s24-depth={0}: глубина вне 0…50 мм", a.Substring(14));
+                    return 2;
+                }
+            }
             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
         }
 
@@ -325,6 +342,11 @@ class CorpusGeomProbe
             }
 
             preset.Apply(g);
+            if (IsG1S24Scene(spec))
+            {
+                // (`AMBER153`, П228) глубина кристалла G1S24 — подбор по паспорту
+                g.FrontGapThickness += g1s24DepthMm;
+            }
 
             g.Name = spec.Key;
             g.Facing = spec.Facing;                 // E21: сторона, обращённая к пробе
@@ -683,18 +705,13 @@ class CorpusGeomProbe
             string vessel = c[iVessel];
             double volume = Num(c[iVol]), mass = Num(c[iMass]), density = Num(c[iRo]);
             string material = c[iMat];
-            double gap = VesselGapMm(pair.Key);
             Geom g = new Geom
             {
                 Key = pair.Key,
                 Preset = preset,
-                Vessel = gap > 0.0
-                    ? string.Format(CultureInfo.InvariantCulture,
-                                    "{0}, набивка {1} {2:0.###} г/см³, зазор {3:0.0} мм до торца (подбор по паспорту, AMBER153)",
-                                    vessel, material, density, gap)
-                    : string.Format(CultureInfo.InvariantCulture,
-                                    "{0}, набивка {1} {2:0.###} г/см³, вплотную",
-                                    vessel, material, density),
+                Vessel = string.Format(CultureInfo.InvariantCulture,
+                                       "{0}, набивка {1} {2:0.###} г/см³, вплотную",
+                                       vessel, material, density),
                 Spectra = pair.Value.ToArray(),
                 PassportVolumeMl = volume,
                 PassportMassG = mass,
@@ -718,13 +735,7 @@ class CorpusGeomProbe
             {
                 double thick = vessel.Contains("100") ? 27.2 : (vessel.Contains("Петри") ? 10.0 : 33.0);
                 double diameter = 2.0 * Math.Sqrt(vol * 1000.0 / (Math.PI * thick));
-                g.Shape = m => Beaker(m, diameter, vol, gap);
-                if (gap > 0.0)
-                {
-                    g.Assumed += string.Format(CultureInfo.InvariantCulture,
-                        "; ЗАЗОР {0:0.0} мм до торца ПОДОБРАН ПО ПАСПОРТУ (AMBER153, П219) — подстройка, не измерение",
-                        gap);
-                }
+                g.Shape = m => Beaker(m, diameter, vol, 0.0);
             }
 
             list.Add(g);
@@ -879,8 +890,10 @@ class CorpusGeomProbe
         // ней чужое. Это ИЗМЕРЕННАЯ поправка постановки, а не добыча обвязки;
         // число выбрано по паспортам (25 см и G1S16), не подгонкой под сумм-пик.
         // ⚠ Сосудные сцены G1S поправки НЕ получали (число Δ для них не мерено,
-        // П71 §6); у цилиндров G1S24 с 02.10.2026 — свой зазор, подобранный по
-        // паспорту (`AMBER153`, П219, блок подстроек в начале класса).
+        // П71 §6). ⛔ С 03.10.2026 (`AMBER153`, П228) поправка — ТОЛЬКО у G1S16:
+        // сцены G1S24 несут глубину кристалла прибора `G1S24CrystalDepthMm`
+        // (блок подстроек в начале класса), и точки G1S24 стоят на именных
+        // расстояниях.
         const double G1SPointCorrectionMm = 7.0;
 
         // ⛔ ТОЧКА 5 см — СВОЯ СЦЕНА НА ПРИБОР, расстояние ПОДОБРАНО ПО ПАСПОРТУ
@@ -894,10 +907,13 @@ class CorpusGeomProbe
         // Mn-54, Zn-65, Co-60, Na-22, Y-88, Bi-207), где рентген и свет не
         // мешают, так, чтобы их медиана «разбор/паспорт» стала ≈ 1.0; числа
         // подбора — `handover/handover-2026-10-02-p219-amber153-scenes.md`.
-        // Слагаемое `S170` (+7 мм) сидит внутри подобранного числа. До
+        // Слагаемое `S170` (+7 мм) сидит внутри подобранного числа (у G1S16). До
         // 02.10.2026 оба прибора стояли ОДНОЙ сценой `G1S_point5`.
         const double G1SPoint5P16Mm = 50.0 + G1SPointCorrectionMm + G1SPoint5P16FitMm;
-        const double G1SPoint5P24Mm = 50.0 + G1SPointCorrectionMm + G1SPoint5P24FitMm;
+        // (`AMBER153`, П228) у G1S24 — именное расстояние: глубину под гранью
+        // несёт параметр прибора <see cref="G1S24CrystalDepthMm"/> (и `S170`, и
+        // подстройку П219 он заменяет)
+        const double G1SPoint5P24Mm = 50.0;
 
         // Все поверочные точечные съёмки 5 см одного прибора — ОДНА геометрия:
         // паспорт эталонов (`Паспорт эталонов\АСПЕКТ_ОСГИ_2024.src`) у всех ОСГИ
@@ -931,9 +947,7 @@ class CorpusGeomProbe
         {
             Key = "G1S_point5_p24",
             Preset = G1S,
-            Vessel = string.Format(CultureInfo.InvariantCulture,
-                                   "точечный источник, 5 см от торца (сцена {0:0.0} мм — подбор по паспорту, AMBER153)",
-                                   G1SPoint5P24Mm),
+            Vessel = "точечный источник, 5 см от торца",
             Spectra = new[]
             {
                 "G1S24_Am241_P5",
@@ -955,18 +969,39 @@ class CorpusGeomProbe
             Vessel = "точечный источник, 25 см от торца (+7 мм, S170)",
             // То же и здесь: расстояние из имени файла (`…_25cm.xml`),
             // вещества у точечного источника нет. Было четыре из пятнадцати.
+            // (`AMBER153`, П228) с 03.10.2026 — только G1S16: спектры G1S24
+            // ушли в `G1S_point25_p24` (глубина кристалла прибора).
             Spectra = new[]
             {
                 "G1S16_Am241_P25", "G1S16_Ba133_P25", "G1S16_Cd109_P25",
                 "G1S16_Ce139_P25", "G1S16_Co60_P25", "G1S16_Cs137_P25",
                 "G1S16_Eu152_P25", "G1S16_Mn54_P25", "G1S16_Na22_P25",
-                "G1S16_Th228_P25", "G1S16_Y88_P25", "G1S24_Cs137_P25",
-                "G1S24_Na22_P25", "G1S24_Th228_P25", "G1S24_Y88_P25"
+                "G1S16_Th228_P25", "G1S16_Y88_P25"
             },
             Shape = g =>
             {
                 g.SourceType = GeometrySourceType.Point;
                 g.PointDistance = 250.0 + G1SPointCorrectionMm;   // 257 мм (было 250 до 18.09.2026)
+            },
+        });
+
+        // (`AMBER153`, П228 03.10.2026) точка 25 см G1S24 — своя сцена: именные
+        // 250 мм от грани, глубину кристалла несёт параметр прибора
+        // <see cref="G1S24CrystalDepthMm"/>. Сцена ДАЛЬНЯЯ — в складе густая
+        // (×2 историй), как `G1S_point25` (`check_corpus_scenes.DENSE_SCENES`).
+        list.Add(new Geom
+        {
+            Key = "G1S_point25_p24",
+            Preset = G1S,
+            Vessel = "точечный источник, 25 см от торца",
+            Spectra = new[]
+            {
+                "G1S24_Cs137_P25", "G1S24_Na22_P25", "G1S24_Th228_P25", "G1S24_Y88_P25"
+            },
+            Shape = g =>
+            {
+                g.SourceType = GeometrySourceType.Point;
+                g.PointDistance = 250.0;
             },
         });
 
@@ -1285,6 +1320,21 @@ class CorpusGeomProbe
                 g.InShield = true;
             },
         });
+
+        // (`AMBER153`, П228) сцены G1S24 называют глубину кристалла в описи
+        foreach (Geom spec in list)
+        {
+            if (IsG1S24Scene(spec))
+            {
+                spec.Vessel += string.Format(CultureInfo.InvariantCulture,
+                    " (кристалл G1S24 на {0:0.0} мм глубже обвязки шаблона — подбор по паспорту, AMBER153)",
+                    g1s24DepthMm);
+                spec.Assumed = (string.IsNullOrEmpty(spec.Assumed) ? "" : spec.Assumed + "; ")
+                    + string.Format(CultureInfo.InvariantCulture,
+                        "ГЛУБИНА КРИСТАЛЛА G1S24 +{0:0.0} мм под торцом ПОДОБРАНА ПО ПАСПОРТУ (AMBER153, П228) — подстройка, не измерение",
+                        g1s24DepthMm);
+            }
+        }
 
         return list;
     }

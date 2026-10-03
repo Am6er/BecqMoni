@@ -29,7 +29,7 @@ DS_CrystalDiameter = 6.3 cm
 DS_CrystalHeight = 6.3 cm
 DS_CrystalFrontReflectorThickness = 0.13 cm
 DS_CrystalSideReflectorThickness = 0.1 cm
-DS_CrystalFrontGapThickness = 0 cm
+DS_CrystalFrontGapThickness = 0.9 cm
 DS_CrystalSideGapThickness = 0 cm
 DS_CrystalFrontCladdingThickness = 0.18 cm
 DS_CrystalSideCladdingThickness = 0.2 cm
@@ -48,7 +48,7 @@ SourceType = CYLINDER
 pdistance = 10 cm
 
 //Cylindrical source
-SC_BeakerToDetectorFrontDistance = 0.75 cm
+SC_BeakerToDetectorFrontDistance = 0 cm
 SC_BeakerDiameter = 8.9403874 cm
 SC_BeakerHeight = 1.1 cm
 SC_BeakerSideWallThickness = 0.1 cm
