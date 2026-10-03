@@ -111,114 +111,144 @@ RM_DEVF void Sim::PushTotalPending(real x, real y, real z, real ux, real uy, rea
 // = EfficiencySimulator.cs:9144 OneHistory (с весом точки; перегрузка :9132 без веса —
 // вес 1.0, на GPU не нужна). `histogram` — накопитель a.hist (null — без гистограммы),
 // `histogramLength` — `histogram.Length`.
+//
+// (`AMBER161`, П227) История разрезана на ЧАСТИ, которые ядра стадий (kernels.cuh,
+// `WeightedStage*`) исполняют по уплотнённым спискам историй: начало (источник, луч до
+// кристалла) → перенос первичного в кристалле → путь рассеянного до кристалла → его
+// перенос в кристалле. Здесь части зовутся подряд — порядок розыгрышей тот же, что был
+// в одном теле.
 RM_DEVF real Sim::OneHistory(real energyKev, real x, real y, real z,
                              double* histogram, int histogramLength, real binKev, real pointWeight)
+{
+    WeightedFront f;
+    WeightedFrontRun(energyKev, x, y, z, pointWeight, f);
+    real score = f.score;
+    if (f.toCrystal)
+    {
+        RM_PHASE_BEGIN(2)
+        score = WeightedPrimaryCrystal(histogram, histogramLength, binKev, energyKev, f);
+        RM_PHASE_END(2)
+    }
+
+    if (f.scatter)
+    {
+        RM_PHASE_BEGIN(3)
+        score += ScatteredRun(histogram, histogramLength, binKev, x, y, z, f.ux, f.uy, f.uz,
+                              energyKev, f.tauScatter, f.weight);
+        RM_PHASE_END(3)
+    }
+
+    return score;
+}
+
+// Начало взвешенной истории (OneHistory :9175-9196): направление в конусе сцены, вес,
+// луч до кристалла, решение о вынужденном рассеянии.
+// ⛔ (`AMBER161`, П227) ОДИН вызов ScatteredRun на обе ветви. В C# (:9180, :9255) он
+// стоит дважды — для промаха до кристалла и после переноса попавшего луча, — и на
+// GPU варп исполнял его ДВАЖДЫ по очереди: сначала нити-промахи (57 % историй), потом
+// попавшие. Замер частей (RM_PHASES, 657 кэВ): ScatteredRun — 80 % тактов нитей.
+// Здесь начало лишь выбирает τ рассеяния, а вызов — общий. Порядок розыгрышей ИСТОРИИ
+// прежний (промах: только рассеяние; попадание: кристалл, затем рассеяние).
+RM_DEVF void Sim::WeightedFrontRun(real energyKev, real x, real y, real z, real pointWeight,
+                                   WeightedFront& f)
 {
     ForgetRay();          // (`A315`, решение Amber 02.10.2026) кэш луча не переживает историю
     RM_PHASE_BEGIN(1)
     const SceneG& sc = *D.scene;
+    real dz = sc.sphereZ - z;
+    real dist = M_Sqrt(x * x + y * y + dz * dz);
+    real weight = pointWeight;
+    real ux, uy, uz;
+    if (dist > sc.sphereR)
     {
-        real dz = sc.sphereZ - z;
-        real dist = M_Sqrt(x * x + y * y + dz * dz);
-        real weight = pointWeight;
-        real ux, uy, uz;
-        if (dist > sc.sphereR)
+        real cosMax = M_Sqrt(M_Max((real)0.0, (real)1.0 - sc.sphereR * sc.sphereR / (dist * dist)));
+        weight *= (real)0.5 * ((real)1.0 - cosMax);
+        InCone(-x / dist, -y / dist, dz / dist, cosMax, ux, uy, uz);
+    }
+    else
+    {
+        Isotropic(ux, uy, uz);
+    }
+
+    weight *= SourceDirectionWeight(x, y, z, ux, uy, uz);
+
+    lastHistoryCos = dist > (real)0.0 ? (ux * (-x) + uy * (-y) + uz * dz) / dist : uz;
+    historyDeposit = (real)0.0;
+
+    real px = x, py = y, pz = z, tau;
+    bool reached = ToCrystal(px, py, pz, ux, uy, uz, energyKev, tau);
+    RM_PHASE_END(1)
+
+    f.ux = ux; f.uy = uy; f.uz = uz;
+    f.weight = weight;
+    f.px = px; f.py = py; f.pz = pz;
+    f.tau = tau;
+    f.score = (real)0.0;
+    f.toCrystal = false;
+    f.scatter = false;
+    f.tauScatter = (real)0.0;
+    if (!reached && !C.ScoreEntranceOnly && C.SingleScatter)
+    {
+        f.scatter = true;
+        f.tauScatter = KillDepthToExit(x, y, z, ux, uy, uz, energyKev);
+    }
+
+    if (reached)
+    {
+        if (C.ScoreEntranceOnly)
         {
-            real cosMax = M_Sqrt(M_Max((real)0.0, (real)1.0 - sc.sphereR * sc.sphereR / (dist * dist)));
-            weight *= (real)0.5 * ((real)1.0 - cosMax);
-            InCone(-x / dist, -y / dist, dz / dist, cosMax, ux, uy, uz);
+            f.score = weight * M_Exp(-tau);
         }
         else
         {
-            Isotropic(ux, uy, uz);
+            f.toCrystal = true;
+            f.scatter = true;
+            f.tauScatter = tau;
         }
-
-        weight *= SourceDirectionWeight(x, y, z, ux, uy, uz);
-
-        lastHistoryCos = dist > (real)0.0 ? (ux * (-x) + uy * (-y) + uz * dz) / dist : uz;
-        historyDeposit = (real)0.0;
-
-        real px = x, py = y, pz = z, tau;
-        real score = (real)0.0;
-        bool reached = ToCrystal(px, py, pz, ux, uy, uz, energyKev, tau);
-        RM_PHASE_END(1)
-        // ⛔ (`AMBER161`, П227) ОДИН вызов ScatteredRun на обе ветви. В C# (:9180, :9255) он
-        // стоит дважды — для промаха до кристалла и после переноса попавшего луча, — и на
-        // GPU варп исполнял его ДВАЖДЫ по очереди: сначала нити-промахи (57 % историй), потом
-        // попавшие. Замер частей (RM_PHASES, 657 кэВ): ScatteredRun — 80 % тактов нитей.
-        // Здесь ветви лишь выбирают свой τ, а сам вызов — общий, и варп входит в него
-        // целиком. Порядок розыгрышей ИСТОРИИ прежний (промах: только рассеяние;
-        // попадание: кристалл, затем рассеяние), сложение в `score` — в том же порядке.
-        bool scatter = false;
-        real tauScatter = (real)0.0;
-        if (!reached && !C.ScoreEntranceOnly && C.SingleScatter)
-        {
-            scatter = true;
-            tauScatter = KillDepthToExit(x, y, z, ux, uy, uz, energyKev);
-        }
-
-        if (reached)
-        {
-            if (C.ScoreEntranceOnly)
-            {
-                score = weight * M_Exp(-tau);
-            }
-            else
-            {
-                lossAnnihilation = (real)0.0;
-                annihilationEscapes = 0;
-                lossXray = (real)0.0;
-                lossXrayK = (real)0.0;
-                lossXrayL = (real)0.0;
-                lightDeposit = (real)0.0;
-                // не перенесено: ResetTrace() — трассировка каналов.
-                RM_PHASE_BEGIN(2)
-                real escaped = InCrystal(px, py, pz, ux, uy, uz, energyKev, 0);
-                RM_PHASE_END(2)
-                // ⚠ float: `energyKev − escaped` — недобор прямого попадания; правило пика
-                // при допуске — InPeak (map_data.md §4 п. 1).
-                if (InPeak(energyKev, energyKev - escaped))
-                {
-                    score = weight * M_Exp(-tau);
-                }
-
-                real share = weight * M_Exp(-tau);
-                if (energyKev - escaped > (real)0.0 && share > (real)0.0)
-                {
-                    historyDeposit += share;
-                }
-
-                if (histogram != nullptr)
-                {
-                    Deposit(histogram, histogramLength, binKev, energyKev, energyKev - escaped, share);
-                    TallyResolutionPeak(histogramLength - 1, binKev, energyKev,
-                                        energyKev - escaped, share, false);
-                    ScoreLight(binKev, energyKev, energyKev - escaped, share);
-                    if (channelHistograms != nullptr)
-                    {
-                        Deposit(channelHistograms + (int)ChannelOf(escaped) * channelBins, channelBins,
-                                binKev, energyKev, energyKev - escaped, share);
-                    }
-                }
-            }
-
-            if (!C.ScoreEntranceOnly)
-            {
-                scatter = true;
-                tauScatter = tau;
-            }
-        }
-
-        if (scatter)
-        {
-            RM_PHASE_BEGIN(3)
-            score += ScatteredRun(histogram, histogramLength, binKev, x, y, z, ux, uy, uz,
-                                  energyKev, tauScatter, weight);
-            RM_PHASE_END(3)
-        }
-
-        return score;
     }
+}
+
+// Перенос первичного кванта, дошедшего до кристалла, и его счёт (OneHistory :9200-9250).
+// Возвращает счёт истории после этой части (вклад пика или ноль).
+RM_DEVF real Sim::WeightedPrimaryCrystal(double* histogram, int histogramLength, real binKev,
+                                         real energyKev, const WeightedFront& f)
+{
+    real score = (real)0.0;
+    lossAnnihilation = (real)0.0;
+    annihilationEscapes = 0;
+    lossXray = (real)0.0;
+    lossXrayK = (real)0.0;
+    lossXrayL = (real)0.0;
+    lightDeposit = (real)0.0;
+    // не перенесено: ResetTrace() — трассировка каналов.
+    real escaped = InCrystal(f.px, f.py, f.pz, f.ux, f.uy, f.uz, energyKev, 0);
+    // ⚠ float: `energyKev − escaped` — недобор прямого попадания; правило пика
+    // при допуске — InPeak (map_data.md §4 п. 1).
+    if (InPeak(energyKev, energyKev - escaped))
+    {
+        score = f.weight * M_Exp(-f.tau);
+    }
+
+    real share = f.weight * M_Exp(-f.tau);
+    if (energyKev - escaped > (real)0.0 && share > (real)0.0)
+    {
+        historyDeposit += share;
+    }
+
+    if (histogram != nullptr)
+    {
+        Deposit(histogram, histogramLength, binKev, energyKev, energyKev - escaped, share);
+        TallyResolutionPeak(histogramLength - 1, binKev, energyKev,
+                            energyKev - escaped, share, false);
+        ScoreLight(binKev, energyKev, energyKev - escaped, share);
+        if (channelHistograms != nullptr)
+        {
+            Deposit(channelHistograms + (int)ChannelOf(escaped) * channelBins, channelBins,
+                    binKev, energyKev, energyKev - escaped, share);
+        }
+    }
+
+    return score;
 }
 
 // = EfficiencySimulator.cs:4792 ToCrystal
@@ -264,9 +294,24 @@ RM_DEVF bool Sim::ToCrystal(real& x, real& y, real& z, real ux, real uy, real uz
 }
 
 // = EfficiencySimulator.cs:4874 ScatteredRun
+// (`AMBER161`) Разрезан на путь рассеянного до кристалла (`ScatterToCrystal`), перенос
+// в кристалле и счёт (`ScatteredFinish`); здесь — подряд, как в C#.
 RM_DEVF real Sim::ScatteredRun(double* histogram, int histogramLength, real binKev,
                                real x, real y, real z, real ux, real uy, real uz,
                                real energyKev, real tauKill, real weight)
+{
+    ScatteredReset();
+    real sw, scattered, sEscaped;
+    if (!ScatteredContribution(x, y, z, ux, uy, uz, energyKev, tauKill, sw, scattered, sEscaped))
+    {
+        return (real)0.0;
+    }
+
+    return ScatteredFinish(histogram, histogramLength, binKev, energyKev, weight, sw, scattered, sEscaped);
+}
+
+// Метки исхода перед переносом рассеянного (ScatteredRun :4878-4884).
+RM_DEV void Sim::ScatteredReset()
 {
     lossAnnihilation = (real)0.0;
     annihilationEscapes = 0;
@@ -275,13 +320,12 @@ RM_DEVF real Sim::ScatteredRun(double* histogram, int histogramLength, real binK
     lossXrayL = (real)0.0;
     lightDeposit = (real)0.0;
     // не перенесено: ResetTrace() — трассировка каналов.
+}
 
-    real sw, scattered, sEscaped;
-    if (!ScatteredContribution(x, y, z, ux, uy, uz, energyKev, tauKill, sw, scattered, sEscaped))
-    {
-        return (real)0.0;
-    }
-
+// Счёт рассеянного после его переноса в кристалле (ScatteredRun :4890-4940).
+RM_DEVF real Sim::ScatteredFinish(double* histogram, int histogramLength, real binKev,
+                                  real energyKev, real weight, real sw, real scattered, real sEscaped)
+{
     // ⚠ float: недобор рассеянной истории — разность двух сумм (map_data.md §4 п. 1).
     real deposited = scattered - sEscaped;
     real share = weight * sw;
@@ -313,13 +357,37 @@ RM_DEVF real Sim::ScatteredRun(double* histogram, int histogramLength, real binK
 }
 
 // = EfficiencySimulator.cs:4951 ScatteredContribution
+// (`AMBER161`) = путь рассеянного до кристалла (`ScatterToCrystal`) + его перенос в
+// кристалле; ядра стадий зовут части раздельно, по уплотнённым спискам.
 RM_DEVF bool Sim::ScatteredContribution(real x, real y, real z, real ux, real uy, real uz,
                                         real energyKev, real tauKill,
                                         real& weight, real& scatteredEnergy, real& escapedEnergy)
 {
+    real px, py, pz, sx, sy, sz;
+    escapedEnergy = (real)0.0;
+    if (!ScatterToCrystal(x, y, z, ux, uy, uz, energyKev, tauKill, weight, scatteredEnergy,
+                          px, py, pz, sx, sy, sz))
+    {
+        return false;
+    }
+
+    RM_PHASE_BEGIN(7)
+    escapedEnergy = InCrystal(px, py, pz, sx, sy, sz, scatteredEnergy, 0);
+    RM_PHASE_END(7)
+    return true;
+}
+
+// Путь вынужденно рассеянного кванта до кристалла (ScatteredContribution :4955-5050):
+// точка рассеяния на первичном луче, канал и угол, луч до кристалла. true — дошёл; тогда
+// (px, py, pz) — точка входа, (sx, sy, sz) — направление, `weight` — вес вклада.
+RM_DEVF bool Sim::ScatterToCrystal(real x, real y, real z, real ux, real uy, real uz,
+                                   real energyKev, real tauKill,
+                                   real& weight, real& scatteredEnergy,
+                                   real& outX, real& outY, real& outZ,
+                                   real& outUx, real& outUy, real& outUz)
+{
     weight = (real)0.0;
     scatteredEnergy = (real)0.0;
-    escapedEnergy = (real)0.0;
     if (!C.SingleScatter || !(tauKill > (real)1e-6))
     {
         return false;
@@ -417,9 +485,8 @@ RM_DEVF bool Sim::ScatteredContribution(real x, real y, real z, real ux, real uy
 
                 weight = interacted * share * M_Exp(-tau2) / survival;
                 scatteredEnergy = scattered;
-                RM_PHASE_BEGIN(7)
-                escapedEnergy = InCrystal(px, py, pz, sx, sy, sz, scattered, 0);
-                RM_PHASE_END(7)
+                outX = px; outY = py; outZ = pz;
+                outUx = sx; outUy = sy; outUz = sz;
                 return true;
             }
 

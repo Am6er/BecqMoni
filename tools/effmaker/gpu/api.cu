@@ -84,6 +84,66 @@ namespace
         lastError = e.what();
         return 1;
     }
+
+    // (`AMBER161`, П227) Буферы взвешенной ветви стадиями (kernels.cuh, `WBuf`): одна
+    // порция историй, память держится между запусками и растёт по нужде.
+    WBuf stageBuf = {};
+    void* stageMem = nullptr;
+    size_t stageBytes = 0;
+
+    WBuf StageBuffers(int cap)
+    {
+        size_t r = sizeof(real), c = (size_t)cap;
+        size_t need = c * (sizeof(unsigned int) + sizeof(int) + 1 + r * (6 + 3 + 9 + 3 + 8) + 3 * sizeof(int))
+                      + 64 * 16 + 3 * sizeof(int);
+        if (stageMem == nullptr || stageBuf.cap < cap)
+        {
+            if (stageMem != nullptr) cudaFree(stageMem);
+            stageMem = nullptr;
+            Check(cudaMalloc(&stageMem, need), "буферы стадий");
+            stageBytes = need;
+            unsigned char* p = (unsigned char*)stageMem;
+            auto take = [&](size_t bytes) { void* q = p; p += (bytes + 63) & ~(size_t)63; return q; };
+            stageBuf.cap = cap;
+            stageBuf.c2 = (unsigned int*)take(c * sizeof(unsigned int));
+            stageBuf.left = (int*)take(c * sizeof(int));
+            stageBuf.rayValid = (unsigned char*)take(c);
+            stageBuf.ray = (real*)take(c * 6 * r);
+            stageBuf.src = (real*)take(c * 3 * r);
+            stageBuf.f = (real*)take(c * 9 * r);
+            stageBuf.score = (real*)take(c * r);
+            stageBuf.hd = (real*)take(c * r);
+            stageBuf.cosv = (real*)take(c * r);
+            stageBuf.sc = (real*)take(c * 8 * r);
+            stageBuf.listP = (int*)take(c * sizeof(int));
+            stageBuf.listS = (int*)take(c * sizeof(int));
+            stageBuf.listC = (int*)take(c * sizeof(int));
+            stageBuf.counts = (int*)take(3 * sizeof(int));
+        }
+
+        return stageBuf;
+    }
+
+    // Взвешенная ветвь стадиями: порции по `cap` историй, стадии 1…5 подряд. Длины
+    // списков стадии читают с устройства сами — хост не ждёт между запусками.
+    void RunWeightedStaged(const NodeArgs& a, int threads)
+    {
+        const int cap = 1 << 20;
+        int portion = (int)(a.n < cap ? a.n : cap);
+        WBuf w = StageBuffers(portion);
+        for (long long base = 0; base < a.n; base += portion)
+        {
+            int count = (int)((a.n - base) < portion ? (a.n - base) : portion);
+            int blocks = (count + threads - 1) / threads;
+            Check(cudaMemsetAsync(w.counts, 0, 3 * sizeof(int)), "списки стадий");
+            WeightedStage1<<<blocks, threads>>>(a, w, base, count);
+            WeightedStage2<<<blocks, threads>>>(a, w, base);
+            WeightedStage3<<<blocks, threads>>>(a, w, base);
+            WeightedStage4<<<blocks, threads>>>(a, w, base);
+            WeightedStage5<<<blocks, threads>>>(a, w, count);
+            Check(cudaGetLastError(), "запуск стадий");
+        }
+    }
 }
 
 RM_API const char* rm_last_error()
@@ -308,7 +368,13 @@ RM_API int rm_run(int branch, double energyKev, double binKev, int bins,
             blocks = (perSm > 0 ? perSm : 1) * sms * (blocks < 0 ? -blocks : 1);
         }
 
-        if (branch == 0) WeightedKernel<<<blocks, threads>>>(a);
+        // (`AMBER161`) Взвешенная ветвь рабочего счёта — стадиями; одно ядро — ступень 1
+        // (xorshift, выход историй), замеры сброса и `BQ_GPU_STAGED=0` (сверка).
+        const char* stagedEnv = std::getenv("BQ_GPU_STAGED");
+        bool staged = branch == 0 && rngMode == 1 && perHistory == nullptr && (a.resetMask & ~24) == 0
+                      && !(stagedEnv != nullptr && stagedEnv[0] == '0');
+        if (staged) RunWeightedStaged(a, threads);
+        else if (branch == 0) WeightedKernel<<<blocks, threads>>>(a);
         else AnalogKernel<<<blocks, threads>>>(a);
         Check(cudaGetLastError(), "запуск ядра");
         Check(cudaDeviceSynchronize(), "ядро");
