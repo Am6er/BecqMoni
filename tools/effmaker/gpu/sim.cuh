@@ -32,6 +32,15 @@ struct Sim
     // бесконечность: верх зажат последним float меньше единицы.
     RM_DEV real Uniform()
     {
+#ifdef RM_REAL_FLOAT
+        // (`AMBER161`) Рабочий режим (Philox) — float из одного слова (`RngUniformF`);
+        // xorshift (сверка с CPU, `BQ_GPU_CHECK_FLOAT`) — прежним путём через double.
+        if (rng.mode != 0)
+        {
+            float f = RngUniformF(rng);
+            return f > 0.99999994f ? 0.99999994f : f;
+        }
+#endif
         double u = RngUniform(rng);
 #ifdef RM_REAL_FLOAT
         if (u > 0.99999994) u = 0.99999994;

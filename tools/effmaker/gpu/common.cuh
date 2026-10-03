@@ -155,6 +155,25 @@ RM_DEV double RngUniform(RngState& g)
     return ((double)(r >> 11) + 0.5) * (1.0 / 9007199254740992.0);
 }
 
+// (`AMBER161`, П227) Равномерное в (0, 1) ВО FLOAT из ОДНОГО 32-битного слова Philox:
+// w·2⁻³² + 2⁻³³ (низ — 1.2e-10, не ноль). Путь выше тратит два слова и арифметику double,
+// а FP64 на GA104 в 64 раза медленнее FP32: генератор занимал ~16 % выборок профиля.
+// Только режим 1; верх (округление к 1.0f) зажимает вызывающий. Поток розыгрышей другой,
+// чем у RngUniform, — сверка с прежним GPU статистикой, не побитовая.
+RM_DEV float RngUniformF(RngState& g)
+{
+    if (g.left < 1)
+    {
+        Philox4x32_10(g.buf, g.c0, g.c1, g.c2, 0u, g.key0, g.key1);
+        g.c2++;
+        g.left = 4;
+    }
+
+    uint32_t w = g.buf[4 - g.left];
+    g.left -= 1;
+    return __uint2float_rn(w) * 2.3283064365386963e-10f + 1.1641532182693481e-10f;
+}
+
 // SplitMix64 — `EfficiencySimulator.MixSeed` (EfficiencySimulator.cs:10562).
 RM_DEV uint64_t MixSeed(uint64_t seed)
 {
