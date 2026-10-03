@@ -407,14 +407,19 @@ RM_DEVF bool Sim::ScatteredContribution(real x, real y, real z, real ux, real uy
                 }
 
                 real tau2;
-                if (!ToCrystal(px, py, pz, sx, sy, sz, scattered, tau2))
+                RM_PHASE_BEGIN(6)
+                bool toCrystal = ToCrystal(px, py, pz, sx, sy, sz, scattered, tau2);
+                RM_PHASE_END(6)
+                if (!toCrystal)
                 {
                     return false;
                 }
 
                 weight = interacted * share * M_Exp(-tau2) / survival;
                 scatteredEnergy = scattered;
+                RM_PHASE_BEGIN(7)
                 escapedEnergy = InCrystal(px, py, pz, sx, sy, sz, scattered, 0);
+                RM_PHASE_END(7)
                 return true;
             }
 
