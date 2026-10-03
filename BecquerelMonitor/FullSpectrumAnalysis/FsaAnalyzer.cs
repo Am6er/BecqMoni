@@ -3771,25 +3771,120 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (recall 100 → 98 %). Нуль АЦП — свойство СЪЁМКИ (порог/смещение
         /// тракта в тот день), не прибора.
         ///
-        /// ⛔ ПОЧЕМУ НЕ ЧИСТАЯ ПРЯМАЯ ОТ НУЛЕВОГО КАНАЛА — измерено полосой П8
-        /// 12.09.2026 на малой базе. Прямая p = g·x через нулевой канал и
-        /// верхнюю опору дала Σχ² понятной части 306.4 → 557.2 (+82 %),
-        /// `G1S24_Th228_P5` 20.3 → 127.5 при опорах 7 → 0. Нуль света по
-        /// принятым опорам плеча `calib` (МНК «канал ↔ свет» по спектрам с
-        /// ≥ 2 опорами, `tools/pie/p8_zero.py`): у спектров с опорами НИЖЕ
-        /// ~700 кэВ (Ba-133, Cd-109, Ce-139, Cs-137 на G1S16 и G1S24) нуль
-        /// стоит на кан −0.06…+0.9 — то есть В НУЛЕВОМ КАНАЛЕ, как и мерила
-        /// П4 §3; у спектров с опорами ВЫШЕ (Co-60, Y-88, Na-22, Th-228 с
-        /// 2614, Eu-152 с 1408) — на кан 6…11, и остатки от прямой через
-        /// нуль и верх растут с энергией до +6 кан на 500…900 кэВ у Th-228.
-        /// Прямая от нуля верна внизу шкалы — там, где живёт вылет, — и
-        /// ложна вверху, где полином калибровки несёт кривизну, которой у
-        /// таблицы света нет (тракт G1S сжимает большие амплитуды либо
-        /// r(E) выше 662 кэВ переоценён — разводить незачем: калибровка
-        /// подогнана по этим же пикам и кривизну ЗНАЕТ). Отсюда форма:
-        /// нуль — от прибора, кривизна — от калибровки.
+        /// ⛔ (`AMBER155`, П218/П220 02.10.2026) КРИВИЗНА — У СВЕТА, А НЕ У
+        /// ТРАКТА: С 02.10.2026 КАРТА — ПРЯМАЯ (<see cref="AdcLinear"/>).
+        /// Прежде здесь стояло (П8 12.09.2026): прямая p = g·x через нулевой
+        /// канал и верхнюю опору дала Σχ² понятной части малой базы 306.4 →
+        /// 557.2 (+82 %), `G1S24_Th228_P5` 20.3 → 127.5 при опорах 7 → 0; нуль
+        /// света у спектров с опорами выше ~700 кэВ уходил на кан 6…11 — и
+        /// вывод «тракт G1S сжимает большие амплитуды либо r(E) выше 662 кэВ
+        /// переоценён — разводить незачем: калибровка кривизну ЗНАЕТ», то есть
+        /// форма «нуль — от прибора, кривизна — от калибровки». П218 РАЗВЁЛ
+        /// эти два объяснения замером, и второе неверно. Свет суммы двух
+        /// полностью поглощённых квантов — L₁ + L₂, и при аффинном тракте
+        /// c = g·L + c₀ нуль тракта c₀ = c₁ + c₂ − c_s БЕЗ всякой модели света:
+        /// у данных Na-22 G1S24 / G1S16 −0.32 / −1.43 кан, Co-60 −1.90 / −2.88
+        /// кан (тракт линеен и чуть РАСТЯГИВАЕТ, ~0.7 % к 2.6 МэВ), у образа с
+        /// картой формы полинома +2.6…+5.7 кан (она сжимает). Значит
+        /// кривизна фотопиков в каналах (2614 от хорды 239–583 −49/−50 кэВ,
+        /// свет −61/−60) — у СВЕТА, и полином файла, подогнанный по
+        /// фотопикам, её уже несёт: карта формы полинома клала её в ТРАКТ, и
+        /// составные события (сумм-пики, пик одиночного вылета, края комптона)
+        /// через сжимающую карту ложились на 14…28 кэВ ниже данных. П8 мерил
+        /// прямую с ПЛОСКОЙ кривой света (прежние ряды r(E) выше 662 кэВ —
+        /// 0.993…0.984): кривизну тогда не нёс никто, отсюда +82 %. Прямая
+        /// включена ТОЛЬКО вместе с крутой кривой света склада и таблицы
+        /// <see cref="FsaLightScale"/> («t7» П200: η 0.412 / S_Trap 7.0 /
+        /// S_Birks 426 у NaI:Tl) — по отдельности её не включать. Числа —
+        /// журналы `handover/handover-2026-10-02-p218-amber155-light-map.md`
+        /// §3–§5 и П220.
         /// </summary>
         double adcScale;
+
+        /// <summary>
+        /// (`AMBER155`, П220) Шаг ПРЯМОЙ карты "adc", кэВ шкалы
+        /// <see cref="LightEnergyKev"/> на канал: прямая через точку нуля
+        /// (<see cref="AdcZeroEnergy"/>, канал <see cref="AdcZeroChannel"/>) и
+        /// канал верхней линии по калибровке файла. Нуль — карта формы
+        /// полинома (<see cref="AdcLinear"/> ложь) или карта не включена.
+        /// Ставится в <see cref="AdcScaleOf"/> и от нуля света не зависит.
+        /// </summary>
+        double adcLinearKev;
+
+        /// <summary>(`AMBER155` (в), П220) q кривизны тракта прямой карты, 1/канал: κ·<see cref="adcLinearKev"/>/1000; нуль — тракт прямой.</summary>
+        double adcTractPerChannel;
+
+        /// <summary>
+        /// ⛔ (`AMBER155` (в), П220 02.10.2026) КРИВИЗНА ТРАКТА ПРИБОРА, 1/МэВ
+        /// шкалы карты: прямая карта кладёт свет в канал
+        /// c = c₀ + v·(1 + κ·L/1000), где v — каналы прямой части от точки нуля,
+        /// L — та же величина в кэВ шкалы карты; канал верхней линии
+        /// держится на месте. κ > 0 — тракт растягивает большие амплитуды,
+        /// κ < 0 — сжимает (насыщение ячеек кремниевого ФЭУ). Нуль — прямая.
+        /// Работает только у прямой карты (<see cref="AdcLinear"/>). Свойство
+        /// ПРИБОРА, а не вещества: у NaI G1S растяжение измерено сумм-пиками
+        /// без всякой модели света (c₁ + c₂ − c_s на двух высотах, П218 §3:
+        /// ε ≈ 7.7·10⁻⁶ / 7.0·10⁻⁶ на канал, то есть κ ≈ +0.0026 / +0.0023
+        /// 1/МэВ); у CsI сумм-пиков в корпусе нет, оценка хордами фотопиков в
+        /// световой шкале — журнал П220. Берётся из конфигурации прибора
+        /// (<c>DeviceConfigInfo.TractCurvature</c>).
+        /// </summary>
+        public double AdcTractCurvature { get; set; }
+
+        /// <summary>
+        /// (`AMBER155` (в), П220) Свойства ПРИБОРА, которые читает разбор, — одним
+        /// местом для приложения и проб: кривизна тракта
+        /// (<see cref="AdcTractCurvature"/>). Прибора нет или поле не число —
+        /// нуль, прямой тракт.
+        /// </summary>
+        public void AdoptDevice(DeviceConfigInfo device)
+        {
+            double k = device != null ? device.TractCurvature : 0.0;
+            this.AdcTractCurvature = Finite(k) ? k : 0.0;
+        }
+
+        /// <summary>(`AMBER155`, П220) Число каналов спектра этого разбора — для канала верхней линии прямой карты.</summary>
+        int adcChannels;
+
+        /// <summary>
+        /// ⛔ (`AMBER155`, П220 02.10.2026) КАРТА "adc" — ПРЯМАЯ ОТ НУЛЯ АЦП:
+        /// свет x идёт в канал c = c₀ + (x − z₀)·(c₁ − c₀)/(x₁ − z₀), где c₀ —
+        /// канал точки нуля (<see cref="AdcZeroChannel"/>), z₀ — нуль света по
+        /// съёмке, x₁ — верхняя значимая линия библиотеки и c₁ — её канал по
+        /// калибровке файла; кривизны полинома калибровки в карте нет.
+        /// Усиление и ноль опор (`AMBER17`) и совместный шаг нуля
+        /// (`AMBER142`) идут поверх неё как прежде, нуль по съёмке мерится
+        /// прямой «канал ↔ свет» (у прямой карты пространство карты — каналы,
+        /// `S193`). Ложь — прежняя форма П8 (прямая в энергии калибровки и
+        /// полином до канала): рычаг обратного плеча. Доводы и числа — у поля
+        /// <see cref="adcScale"/>.
+        /// </summary>
+        public bool AdcLinear { get; set; }
+
+        /// <summary>
+        /// (`AMBER155`, П220) Идёт ли на этом разборе прямая карта: заказана
+        /// (<see cref="AdcLinear"/>), у вещества кристалла есть кривая света
+        /// (<see cref="FsaLightScale"/>) и форма кладёт её сдвиг в образы
+        /// (line/peak). Без кривой света кривизну фотопиков в каналах не несёт
+        /// никто, кроме полинома калибровки, — тогда карта прежней формы (П8).
+        /// </summary>
+        bool AdcLinearActive
+        {
+            get { return this.AdcLinear && this.lightCurveName != null && this.LightInImages; }
+        }
+
+        /// <summary>
+        /// (`AMBER155`, П220) Свет верхней линии, кэВ, — неподвижная точка карты
+        /// (<see cref="AdcScaleOf"/>, совместный шаг нуля): у прямой карты — свет
+        /// ЕЁ ФОТОПИКА по кривой (E₁ + s(E₁)), у прежней формы — сама E₁.
+        /// </summary>
+        double adcTopLight;
+
+        /// <summary>(`AMBER155`, П220) Канал точки нуля карты: −½ (нижний край канала 0, <see cref="AdcZeroAtChannelEdge"/>) или 0 (центр).</summary>
+        double AdcZeroChannel
+        {
+            get { return this.AdcZeroAtChannelEdge ? -0.5 : 0.0; }
+        }
 
         /// <summary>(`S169`) Энергия калибровки в нулевом канале, кэВ — E(0) на этот разбор.</summary>
         double adcE0;
@@ -3868,6 +3963,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         double LightToChannel(EnergyCalibration calibration, double lightKev, int channels)
         {
             double energyKev = this.LightEnergyKev(lightKev);
+            // (`AMBER155`, П220) прямая карта: калибровки файла образ не касается,
+            // прямая продолжается за оба края сама
+            if (this.adcScale > 0.0 && this.adcLinearKev > 0.0)
+            {
+                return this.AdcZeroChannel + this.TractChannel((energyKev - this.adcE0) / this.adcLinearKev);
+            }
+
             // (`AMBER142`, П204) обращение калибровки — таблицей разбора, когда
             // она есть (<see cref="CalibrationInverse"/>); числа краёв — из неё же
             CalibrationInverse inverse = this.InverseOf(calibration, channels);
@@ -4176,6 +4278,63 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// (`AMBER155`, П220) Свет, который действующая карта кладёт в канал
+        /// <paramref name="channel"/> (до дрейфа): у прямой карта обращается
+        /// своей прямой, у формы полинома и без карты — калибровкой и
+        /// <see cref="EnergyToLight"/> (как было).
+        /// </summary>
+        double ChannelToLight(EnergyCalibration calibration, double channel)
+        {
+            if (this.adcScale > 0.0 && this.adcLinearKev > 0.0)
+            {
+                return this.EnergyToLight(this.adcE0 + this.TractInverse(channel - this.AdcZeroChannel) * this.adcLinearKev);
+            }
+
+            return this.EnergyToLight(calibration.ChannelToEnergy(channel));
+        }
+
+        /// <summary>
+        /// (`AMBER155` (в), П220) Кривизна тракта прямой карты: v — каналы от
+        /// точки нуля по прямой части, ответ — каналы с кривизной
+        /// v + q·v², q = κ·шаг/1000 (<see cref="AdcTractCurvature"/>).
+        /// </summary>
+        double TractChannel(double v)
+        {
+            return v + this.adcTractPerChannel * v * v;
+        }
+
+        /// <summary>(`AMBER155` (в), П220) Обращение <see cref="TractChannel"/>; за вершиной параболы — вершина.</summary>
+        double TractInverse(double u)
+        {
+            double q = this.adcTractPerChannel;
+            if (q == 0.0)
+            {
+                return u;
+            }
+
+            double d = 1.0 + 4.0 * q * u;
+            return d > 0.0 ? 2.0 * u / (1.0 + Math.Sqrt(d)) : -0.5 / q;
+        }
+
+        /// <summary>(`AMBER155` (в), П220) dc/dv кривизны тракта в точке v.</summary>
+        double TractSlope(double v)
+        {
+            return 1.0 + 2.0 * this.adcTractPerChannel * v;
+        }
+
+        /// <summary>
+        /// (`AMBER155`, П220) Шаг карты у нулевого канала, кэВ шкалы
+        /// <see cref="LightEnergyKev"/> на канал: у прямой — её шаг, иначе
+        /// E(1) − E(0) калибровки (допуск нуля света в каналах).
+        /// </summary>
+        double AdcZeroStepKev(EnergyCalibration calibration)
+        {
+            return this.adcScale > 0.0 && this.adcLinearKev > 0.0
+                ? this.adcLinearKev
+                : calibration.ChannelToEnergy(1.0) - calibration.ChannelToEnergy(0.0);
+        }
+
+        /// <summary>
         /// (`S169`) Растяжение карты "adc" по ВЕРХНЕЙ ЗНАЧИМОЙ ЛИНИИ
         /// БИБЛИОТЕКИ: s = (x₁ − E(0))/(x₁ − z₀), x₁ — наибольшая энергия
         /// линии среди нуклидных образов (без готовых столбцов), чей выход не
@@ -4240,14 +4399,61 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return 0.0;
             }
 
-            double light = topKev - this.adcZeroKev;
+            // (`AMBER155`, П220) у прямой карты неподвижная точка — СВЕТ фотопика
+            // верхней линии: кривизну фотопиков в каналах несёт кривая света,
+            // и с усилением 1 фотопик верхней линии стоит там, где ставит его
+            // калибровка; у прежней формы — сама энергия линии, как было
+            bool linear = this.AdcLinearActive;
+            double topLight = linear ? topKev + this.CurveShiftKev(topKev) : topKev;
+            double light = topLight - this.adcZeroKev;
             if (!Finite(e0) || !(light > 0.0) || !(topKev - e0 > 0.0))
             {
                 return 0.0;
             }
 
+            // (`AMBER155`, П220) прямая карта: шаг — по точке нуля и каналу
+            // верхней линии калибровкой файла; от нуля света не зависит
+            double linearKev = 0.0;
+            if (linear)
+            {
+                // канал верхней линии — калибровкой файла; за верхом шкалы —
+                // продолжением по ширине верхнего канала, как у прежней карты
+                // (полином за шкалой не экстраполируется)
+                int n = this.adcChannels;
+                double topChannel;
+                try
+                {
+                    double topEdge = n > 1 ? calibration.ChannelToEnergy(n) : double.NaN;
+                    double topStep = n > 1 ? topEdge - calibration.ChannelToEnergy(n - 1) : double.NaN;
+                    topChannel = n > 1 && topKev > topEdge && PositiveFinite(topStep)
+                        ? n + (topKev - topEdge) / topStep
+                        : calibration.EnergyToChannel(topKev, maxChannels: n > 1 ? n : 10000);
+                }
+                catch (Exception)
+                {
+                    return 0.0;
+                }
+
+                // кривизна тракта (<see cref="AdcTractCurvature"/>): канал верхней
+                // линии держится на месте, c₁ − c₀ = v₁·(1 + κ·(E₁ − E(0))/1000)
+                double bend = 1.0 + this.AdcTractCurvature * (topKev - e0) / 1000.0;
+                if (!(bend > 0.0))
+                {
+                    return 0.0;
+                }
+
+                linearKev = (topKev - e0) * bend / (topChannel - this.AdcZeroChannel);
+                if (!PositiveFinite(linearKev))
+                {
+                    return 0.0;
+                }
+            }
+
             this.adcE0 = e0;
             this.adcTopKev = topKev;
+            this.adcLinearKev = linearKev;
+            this.adcTractPerChannel = linear ? this.AdcTractCurvature * linearKev / 1000.0 : 0.0;
+            this.adcTopLight = topLight;
             double scale = (topKev - e0) / light;
             return PositiveFinite(scale) ? scale : 0.0;
         }
@@ -4433,7 +4639,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     try
                     {
                         // (`AMBER142`) свет модельного центра — обращением карты
-                        x = this.EnergyToLight(calibration.ChannelToEnergy(p));
+                        x = this.ChannelToLight(calibration, p);
                     }
                     catch (Exception)
                     {
@@ -4449,12 +4655,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // строит образ карта: центр данных снят с той же сеточной
                     // шкалы, что и модельный (x), и переведён калибровкой; вес
                     // 1/σ² центра — через местную ширину канала в кэВ.
+                    // (`AMBER155`, П220) у прямой карты пространство карты —
+                    // КАНАЛЫ: измерение — сам канал центра данных, вес 1/σ² в
+                    // каналах (шаг канала «в себе» — 1/усиление)
                     double q = (f.Y - offset) / gain;
                     double e, step;
                     try
                     {
-                        e = calibration.ChannelToEnergy(q);
-                        step = (calibration.ChannelToEnergy(q + 0.5) - calibration.ChannelToEnergy(q - 0.5)) / gain;
+                        // (`AMBER155` (в)) у тракта с кривизной — канал прямой части
+                        double v = this.TractInverse(q - this.AdcZeroChannel);
+                        e = this.AdcLinearActive ? this.AdcZeroChannel + v : calibration.ChannelToEnergy(q);
+                        step = this.AdcLinearActive
+                            ? 1.0 / gain / this.TractSlope(v)
+                            : (calibration.ChannelToEnergy(q + 0.5) - calibration.ChannelToEnergy(q - 0.5)) / gain;
                     }
                     catch (Exception)
                     {
@@ -4540,6 +4753,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // калибровка почти прямая — шагом нулевого канала).
             // (`AMBER142` п. 8, П215) точка нуля карты — та же, что у AdcScaleOf
             double eZero = this.AdcZeroAtChannelEdge ? e0 - 0.5 * (e1 - e0) : e0;
+            if (this.AdcLinearActive)
+            {
+                // (`AMBER155`, П220) прямая «канал ↔ свет»: нуль — свет в канале точки нуля
+                e0 = 0.0;
+                e1 = 1.0;
+                eZero = this.AdcZeroChannel;
+            }
+
             zeroKev = (eZero - c0) / g;
             {
                 // (`AMBER142`, П201) σ нуля из ковариации прямой (c₀, g) с Бирге
@@ -7164,7 +7385,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.jointScale = false;
             List<AnchorFit> all = this.zeroCandidates;
             List<double> frozen = this.zeroTakenLines;
-            double x1 = this.adcTopKev, z0 = this.adcZeroKev, s = this.adcScale;
+            // (`AMBER155`, П220) неподвижная точка — свет верхней линии карты
+            double x1 = this.adcTopLight, z0 = this.adcZeroKev, s = this.adcScale;
             if (all == null || frozen == null || !(s > 0.0) || !(x1 - z0 > 0.0) || !(gain > 0.0))
             {
                 return false;
@@ -7233,7 +7455,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double x = this.EnergyToLight(energy);
+                // (`AMBER155`, П220) у прямой карты свет — её обращением, а
+                // канал на кэВ шкалы карты — её постоянный шаг
+                double x = this.ChannelToLight(calibration, p);
+                if (this.adcLinearKev > 0.0)
+                {
+                    step = this.adcLinearKev / this.TractSlope(this.TractInverse(p - this.AdcZeroChannel));
+                }
+
                 double jz = gain * (-s * (x1 - x) / (x1 - z0)) / step;
                 double ja = f.X;
                 double r = f.Y - lightAdd * f.S - f.X;
@@ -8478,6 +8707,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AMBER142` п. 8, П215) нуль света карты «adc» — на нижнем краю канала 0;
             // решение Amber 02.10.2026 вопросником, дословно: «На нижний край (Рекомендую)»
             this.AdcZeroAtChannelEdge = true;
+            // (`AMBER155`, П220) карта «adc» — прямая от нуля АЦП, вместе с крутой кривой
+            // света («t7») склада и таблицы `FsaLightScale`; решение Amber 02.10.2026
+            // вопросником, дословно: «Прямая карта + крутая кривая (Рекомендую)»
+            this.AdcLinear = true;
             // (`AMBER142` п. 9, П215) допуск ядра опоры — ½ ПШПВ (прежний; +½ канала — рычагом)
             this.AnchorCoreHalfChannel = false;
             // (`S169`, П8/П12/П13 12.09.2026) НУЛЬ ШКАЛЫ ОБРАЗА — ОТ НУЛЯ АЦП,
@@ -9060,6 +9293,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.adcScale = 0.0;
             this.adcE0 = 0.0;
             this.adcTopKev = 0.0;
+            // (`AMBER155`, П220) шаг прямой карты и число каналов для канала верхней линии
+            this.adcLinearKev = 0.0;
+            this.adcTractPerChannel = 0.0;
+            this.adcTopLight = 0.0;
+            this.adcChannels = channels;
             this.widthScale = 1.0;
             this.widthAnchors = 0;
             this.adcZeroKev = this.AnchorZeroKev;
@@ -10216,6 +10454,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             out a0, out b0, out beta0, out used0, out note0);
                         double zeroKev;
                         string zeroNote;
+                        // (`AMBER155` (в), П220) шаг и кривизна прямой карты от нуля
+                        // света не зависят — ставятся до нуля по съёмке (он мерится
+                        // в каналах прямой части); карта при этом ещё не включена
+                        this.adcLinearKev = 0.0;
+                        this.adcTractPerChannel = 0.0;
+                        if (this.AdcLinearActive)
+                        {
+                            this.AdcScaleOf(originalLibrary, calibration);
+                        }
+
                         bool fromRun = this.ZeroFromRun(calibration, bestGain, bestOffset, out zeroKev, out zeroNote);
                         zeroByRun = fromRun;
                         this.adcZeroKev = fromRun ? zeroKev : this.AnchorZeroKev;
@@ -10247,6 +10495,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 bestOffset = warm.Offset;
                             }
 
+                            // ⛔ (`AMBER155`, П220) ПРЯМАЯ КАРТА — СРАЗУ СО СВЕТОМ В ОБРАЗАХ
+                            // (β = 1). Прежняя карта несла кривизну полинома калибровки, то
+                            // есть кривизну света фотопиков, и образ без сдвига по свету
+                            // (β = 0 до первой опоры) стоял почти на месте; у прямой карты
+                            // кривизну несёт ТОЛЬКО кривая света, и образ с β = 0 уходил
+                            // на кривизну целиком (`G1S24_Th228_P5`: 239 кэВ на −25 кэВ,
+                            // опоры все отвергнуты, χ²/ndf 22 → 168 — замер П220).
+                            double lightBeforeLinear = this.driftLight;
+                            if (this.adcLinearKev > 0.0 && this.driftLight != 1.0)
+                            {
+                                this.driftLight = 1.0;
+                                this.deposits.Clear();
+                            }
+
                             FitResult remapped = FitHuber(library, fixedColumns, calibration, fwhmCalibration,
                                                           efficiency, bestGain, bestOffset, chLo, chHi, channels,
                                                           y, variance, baseWeights, reportWeights, null);
@@ -10257,6 +10519,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             }
                             else
                             {
+                                if (this.driftLight != lightBeforeLinear)
+                                {
+                                    this.driftLight = lightBeforeLinear;
+                                    this.deposits.Clear();
+                                }
+
                                 if (warmHere)
                                 {
                                     this.ApplyAnchorWarm(null);
@@ -10311,7 +10579,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // плато и возврат к лучшему — там, где проходов добавлено
                     bool plateauRule = extraRounds > 0 && this.AnchorPlateauPasses > 1;
                     this.anchorStatClassic = !zeroRemeasure;
-                    double zeroStep0 = calibration.ChannelToEnergy(1.0) - calibration.ChannelToEnergy(0.0);
+                    // (`AMBER155`, П220) шаг карты у нуля — у прямой её шаг
+                    double zeroStep0 = this.AdcZeroStepKev(calibration);
                     // (`AMBER150`) последняя пара «множитель → остаток» для секущей
                     bool widthHavePrev = false;
                     double widthPrevLn = 0.0, widthPrevResidual = 0.0;
@@ -10786,7 +11055,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 this.anchorNote = (this.anchorNote ?? "") + string.Format(CultureInfo.InvariantCulture,
                     "; нуль adc: кан 0 = {0:F2} кэВ калибровки, свет {1:F2} кэВ{4}, растяжение {2:F5} по {3:F1} кэВ",
                     this.adcE0, this.adcZeroKev, this.adcScale, this.adcTopKev,
-                    this.adcZeroNote != null ? " (" + this.adcZeroNote + ")" : "");
+                    this.adcZeroNote != null ? " (" + this.adcZeroNote + ")" : "")
+                    // (`AMBER155`, П220) прямая карта — её шаг в конец строки
+                    + (this.adcLinearKev > 0.0
+                        ? string.Format(CultureInfo.InvariantCulture, ", прямая {0:F5} кэВ/кан", this.adcLinearKev)
+                          + (this.adcTractPerChannel != 0.0
+                              ? string.Format(CultureInfo.InvariantCulture, ", кривизна тракта {0:F5} 1/МэВ", this.AdcTractCurvature)
+                              : "")
+                        : "");
             }
             else if (this.adcZeroMode == AdcZeroMode.Run && this.adcZeroNote != null)
             {
@@ -13435,7 +13711,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // встал образ; нуль растяжения — карта не включалась.
                 AdcScale = this.adcScale,
                 AdcE0Kev = this.adcE0,
-                AdcZeroKev = this.adcZeroKev
+                AdcZeroKev = this.adcZeroKev,
+                // (`AMBER155`, П220) прямая карта: шаг и канал точки нуля
+                AdcLinearKev = this.adcLinearKev,
+                AdcTractPerChannel = this.adcTractPerChannel,
+                AdcZeroChannel = this.AdcZeroChannel
             };
 
             if (snipContinuum != null)
@@ -19132,7 +19412,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 && object.ReferenceEquals(this.depositChannelsCalibration, calibration)
                 && this.depositChannelsCount == channels
                 && this.depositChannelsAdcScale == this.adcScale
-                && this.depositChannelsAdcZeroKev == this.adcZeroKev)
+                && this.depositChannelsAdcZeroKev == this.adcZeroKev
+                && this.depositChannelsAdcLinearKev == this.adcLinearKev
+                && this.depositChannelsAdcTract == this.adcTractPerChannel)
             {
                 return this.depositChannels;
             }
@@ -19169,6 +19451,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.depositChannelsCount = channels;
             this.depositChannelsAdcScale = this.adcScale;
             this.depositChannelsAdcZeroKev = this.adcZeroKev;
+            this.depositChannelsAdcLinearKev = this.adcLinearKev;
+            this.depositChannelsAdcTract = this.adcTractPerChannel;
             return table;
         }
 
@@ -19193,6 +19477,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         double depositChannelsAdcScale;
         /// <summary>(`S169`, П13) Свет в нулевом канале, с которым построена таблица: нуль съёмки меняет карту и при равном растяжении.</summary>
         double depositChannelsAdcZeroKev;
+        /// <summary>(`AMBER155`, П220) Шаг прямой карты, с которым построена таблица; 0 — форма полинома.</summary>
+        double depositChannelsAdcLinearKev;
+        /// <summary>(`AMBER155` (в), П220) q кривизны тракта, с которым построена таблица.</summary>
+        double depositChannelsAdcTract;
         ShapeKernelBank kernelBank;
 
         /// <summary>
@@ -20279,7 +20567,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// зависимость от геометрии не измерена. Сменится ключ кривой (E_q, η) —
     /// таблицу снять заново той же пробой и ТЕМИ ЖЕ ключами.
     ///
-    /// ⛔ (`AMBER152`/`AMBER155`, П200 01.10.2026) ПЕРЕСНЯТО С НОВОЙ КРИВОЙ ЭЛЕКТРОНОВ: в
+    /// ⛔ (`AMBER155`, П220 02.10.2026) ПЕРЕСНЯТО С КРУТОЙ КРИВОЙ ЭЛЕКТРОНОВ — вместе с прямой
+    /// картой «свет → канал» (<see cref="FsaAnalyzer.AdcLinear"/>); решение Amber 02.10.2026
+    /// вопросником, дословно: «Прямая карта + крутая кривая (Рекомендую)». Умолчания
+    /// `matdb.scint_npsm_params`: NaI:Tl `p220_t7_khodyuk2010_sums` (η 0.412, S_Trap 7.0, S_Birks 426 —
+    /// вариант «t7» П200), CsI:Tl `p220_khodyuk2012_free` (η 0.398, S_Trap 1.0, S_Birks 642). К 662 кэВ:
+    /// NaI 10/20/34.5/50/100 кэВ 1.131/1.172/1.143/1.158/1.107 (Ходюк 2010 20 кэВ 1.172, 34.5 1.141,
+    /// 50 1.158, 100 1.112), выше — 356 1.024, 1000 0.985, 1332 0.976, 2614 0.962; CsI 10/20/34.5/50/100
+    /// 1.127/1.167/1.145/1.155/1.114 (Ходюк 2012 рис. 15: 1.170/1.143/1.152/1.112), 356 1.027, 1000
+    /// 0.984, 1332.5 0.975, 1764.5 0.967, 2614 0.960 (узлы 1764.5 и 2614 у CsI добавлены: за 1332.5
+    /// таблица держала константу, а кривая там падает на 1.5 %). Условие П200 «линейность фотопиков
+    /// выше 300 кэВ» снято замером П218 — мерилось в объявленной шкале, где полином калибровки файла
+    /// кривизну света уже выпрямил; в каналах кривизна фотопиков (2614 от хорды 239–583: −49/−50 кэВ,
+    /// в свете −61/−60) — у света, и «t7» даёт −60.2. Та же проба, геометрии и умолчания склада,
+    /// 1 000 000 историй до 60 кэВ у NaI, 4 000 000 — остальное. Ряды — журнал П220.
+    ///
+    /// Прежнее (`AMBER152`/`AMBER155`, П200 01.10.2026) ПЕРЕСНЯТО С НОВОЙ КРИВОЙ ЭЛЕКТРОНОВ: в
     /// `matdb.scint_npsm_params` умолчания NaI:Tl `p200_fit_khodyuk2010_corpus` (η 0.579,
     /// S_Trap 24.8, S_Birks 130) и CsI:Tl `p200_fit_khodyuk2012` (η 0.542, 23.5, 151) —
     /// подогнаны сквозь перенос физики 26 к фотонной нПР Ходюка (к 662: NaI 2010 — 20 кэВ
@@ -20333,30 +20636,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         static readonly double[][] NaITable =
         {
-            new[] { 10.0, 1.1566 }, new[] { 20.0, 1.2098 }, new[] { 30.0, 1.1837 }, new[] { 31.0, 1.1806 },
-            new[] { 32.0, 1.1774 }, new[] { 33.0, 1.1743 }, new[] { 33.1, 1.1740 }, new[] { 33.2, 1.1716 },
-            new[] { 33.3, 1.1693 }, new[] { 33.4, 1.1676 }, new[] { 33.5, 1.1663 }, new[] { 33.7, 1.1646 },
-            new[] { 34.0, 1.1634 }, new[] { 34.5, 1.1630 }, new[] { 35.0, 1.1635 }, new[] { 35.5, 1.1644 },
-            new[] { 36.0, 1.1657 }, new[] { 36.5, 1.1671 }, new[] { 37.0, 1.1687 }, new[] { 37.5, 1.1703 },
-            new[] { 38.0, 1.1719 }, new[] { 39.0, 1.1749 }, new[] { 40.0, 1.1776 }, new[] { 45.0, 1.1849 },
-            new[] { 50.0, 1.1843 }, new[] { 60.0, 1.1715 }, new[] { 81.0, 1.1366 }, new[] { 100.0, 1.1115 },
-            new[] { 122.0, 1.0910 }, new[] { 200.0, 1.0570 }, new[] { 356.0, 1.0368 }, new[] { 661.657, 1.0212 },
-            new[] { 1000.0, 1.0138 }, new[] { 1173.0, 1.0116 }, new[] { 1332.0, 1.0101 }, new[] { 1408.0, 1.0095 },
-            new[] { 2614.0, 1.0048 },
+            new[] { 10.0, 1.1740 }, new[] { 20.0, 1.2160 }, new[] { 30.0, 1.2027 }, new[] { 31.0, 1.2008 },
+            new[] { 32.0, 1.1989 }, new[] { 33.0, 1.1969 }, new[] { 33.1, 1.1967 }, new[] { 33.2, 1.1924 },
+            new[] { 33.3, 1.1902 }, new[] { 33.4, 1.1887 }, new[] { 33.5, 1.1876 }, new[] { 33.7, 1.1863 },
+            new[] { 34.0, 1.1855 }, new[] { 34.5, 1.1856 }, new[] { 35.0, 1.1862 }, new[] { 35.5, 1.1872 },
+            new[] { 36.0, 1.1883 }, new[] { 36.5, 1.1894 }, new[] { 37.0, 1.1906 }, new[] { 37.5, 1.1917 },
+            new[] { 38.0, 1.1928 }, new[] { 39.0, 1.1949 }, new[] { 40.0, 1.1967 }, new[] { 45.0, 1.2017 },
+            new[] { 50.0, 1.2018 }, new[] { 60.0, 1.1942 }, new[] { 81.0, 1.1695 }, new[] { 100.0, 1.1488 },
+            new[] { 122.0, 1.1296 }, new[] { 200.0, 1.0909 }, new[] { 356.0, 1.0630 }, new[] { 661.657, 1.0377 },
+            new[] { 1000.0, 1.0221 }, new[] { 1173.0, 1.0168 }, new[] { 1332.0, 1.0129 }, new[] { 1408.0, 1.0113 },
+            new[] { 2614.0, 0.9985 },
         };
 
-        // 4 000 000 историй на каждом узле (П200, физика 26 + кривая p200_fit_khodyuk2012, `ASN16_csi_point1.in`)
+        // 4 000 000 историй на каждом узле (П220, физика 26 + кривая p220_khodyuk2012_free, `ASN16_csi_point1.in`; узлы 1764.5 и 2614 добавлены)
         static readonly double[][] CsITable =
         {
-            new[] { 10.0, 1.1377 }, new[] { 20.0, 1.2029 }, new[] { 30.0, 1.1882 }, new[] { 32.0, 1.1835 },
-            new[] { 33.0, 1.1810 }, new[] { 33.1, 1.1808 }, new[] { 33.2, 1.1759 }, new[] { 33.3, 1.1740 },
-            new[] { 33.5, 1.1717 }, new[] { 33.7, 1.1703 }, new[] { 34.0, 1.1693 }, new[] { 34.5, 1.1688 },
-            new[] { 35.0, 1.1687 }, new[] { 35.5, 1.1690 }, new[] { 35.9, 1.1693 }, new[] { 36.1, 1.1686 },
-            new[] { 36.3, 1.1674 }, new[] { 36.6, 1.1666 }, new[] { 37.0, 1.1667 }, new[] { 37.5, 1.1672 },
-            new[] { 38.0, 1.1680 }, new[] { 39.0, 1.1699 }, new[] { 40.0, 1.1722 }, new[] { 50.0, 1.1839 },
-            new[] { 60.0, 1.1769 }, new[] { 81.0, 1.1476 }, new[] { 100.0, 1.1237 }, new[] { 122.0, 1.1027 },
-            new[] { 200.0, 1.0644 }, new[] { 356.0, 1.0390 }, new[] { 661.657, 1.0212 }, new[] { 1000.0, 1.0130 },
-            new[] { 1332.5, 1.0088 },
+            new[] { 10.0, 1.1645 }, new[] { 20.0, 1.2059 }, new[] { 30.0, 1.1973 }, new[] { 32.0, 1.1944 },
+            new[] { 33.0, 1.1928 }, new[] { 33.1, 1.1927 }, new[] { 33.2, 1.1884 }, new[] { 33.3, 1.1867 },
+            new[] { 33.5, 1.1846 }, new[] { 33.7, 1.1837 }, new[] { 34.0, 1.1831 }, new[] { 34.5, 1.1831 },
+            new[] { 35.0, 1.1835 }, new[] { 35.5, 1.1840 }, new[] { 35.9, 1.1845 }, new[] { 36.1, 1.1836 },
+            new[] { 36.3, 1.1825 }, new[] { 36.6, 1.1820 }, new[] { 37.0, 1.1823 }, new[] { 37.5, 1.1829 },
+            new[] { 38.0, 1.1837 }, new[] { 39.0, 1.1854 }, new[] { 40.0, 1.1871 }, new[] { 50.0, 1.1942 },
+            new[] { 60.0, 1.1897 }, new[] { 81.0, 1.1698 }, new[] { 100.0, 1.1517 }, new[] { 122.0, 1.1339 },
+            new[] { 200.0, 1.0947 }, new[] { 356.0, 1.0619 }, new[] { 661.657, 1.0337 }, new[] { 1000.0, 1.0173 },
+            new[] { 1332.5, 1.0076 }, new[] { 1764.5, 1.0000 }, new[] { 2614.0, 0.9926 },
         };
 
         /// <summary>
