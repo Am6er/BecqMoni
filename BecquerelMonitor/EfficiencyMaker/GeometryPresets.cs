@@ -86,10 +86,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // (в файле `.in` — `0.35 cm`); наполнитель — воздух, кладёт
                 // `Wrapping`, как всем. Сцен RC101 в корпусе нет (единственный
                 // спектр группы, `RC101_I131`, без постановки).
-                // ⛔ С 02.10.2026 торец — ПЛАСТИК 1.5 мм, зазор 3.5 → 3.0 мм
-                // (`RadiaCodePlasticFront` ниже, П223) — синхронно с «RadiaCode-103».
+                // ⛔ С 02.10.2026 торец — ПЛАСТИК 1.5 мм (П223), с 05.10.2026
+                // отражатель — КРАСКА TiO2 0.11 мм вместо фторопласта 1 мм
+                // (`AMBER162`, П233), зазор 3.89 мм при той же глубине 5.5 мм
+                // (`RadiaCodeFront` ниже) — синхронно с «RadiaCode-103».
                 g.FrontGapThickness = 3.5;
-                RadiaCodePlasticFront(g);
+                RadiaCodeFront(g);
                 Fwhm(g, 10.85);                       // корпус, группа RC101
             }));
 
@@ -117,11 +119,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // у корпуса, которого две осевые точки не разводят (в корпусе
                 // с 18.09.2026 та точка стоит сценой `RC103_point50`, `B30`).
                 // «RadiaCode-101» получил те же 3.5 мм 18.09.2026 (выше).
-                // ⛔ С 02.10.2026 торец — ПЛАСТИК 1.5 мм, а зазор 3.5 → 3.0 мм:
-                // глубина кристалла 5.5 мм, которую мерила П73, сохранена
-                // (`RadiaCodePlasticFront` ниже, П223, `AMBER153`).
+                // ⛔ С 02.10.2026 торец — ПЛАСТИК 1.5 мм (П223, `AMBER153`), с
+                // 05.10.2026 отражатель — КРАСКА TiO2 0.11 мм вместо фторопласта
+                // 1 мм (`AMBER162`, П233); зазор 3.5 → 3.89 мм: глубина
+                // кристалла 5.5 мм, которую мерила П73, сохранена
+                // (`RadiaCodeFront` ниже).
                 g.FrontGapThickness = 3.5;
-                RadiaCodePlasticFront(g);
+                RadiaCodeFront(g);
                 Fwhm(g, 8.49);                        // корпус, группа RC103
             }));
 
@@ -298,17 +302,50 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// кривая из шаблона занижала ε рентгена (22 кэВ ×0.55, 31 кэВ ×0.82
         /// против пластика) — активность Cd-109 / Am-241 / I-125 по рентгену
         /// на RC-103 выходила завышенной в 1.2…1.8 раза.
+        ///
+        /// ⛔ ОТРАЖАТЕЛЬ — КРАСКА TiO2, НЕ ФТОРОПЛАСТ (`AMBER162`, П233 05.10.2026).
+        /// Постановка Amber 05.10.2026, дословно: «У Rc-103, Rc-101 отражатель
+        /// TiO2, а не PTFE. Это нужно поправить в сценах и в шаблонах прибора в
+        /// приложении.» Её решения вопросником, дословно: толщина — «Подобрать
+        /// толщину по паспорту (Рекомендую)», торец — «Переподобрать вместе с
+        /// TiO2 (Рекомендую)», на вопрос о виде слоя — «Это краска». Поэтому
+        /// вещество — «TiO2 reflective paint», и его состав, плотность 1.18 и
+        /// толщина 0.11 мм (три слоя) ЗАДАНЫ паспортом открытой краски Eljen
+        /// EJ-510 (ссылка — в <see cref="GeometryMaterialLibrary.Seed"/>), а не
+        /// подобраны; на боку — тот же слой. Сплошной TiO2 4.23 той же толщины
+        /// 1 мм отвергнут замером: ε пика 32 кэВ ×0.31, 22 кэВ ×0.03 против
+        /// фторопласта, рентген Ba K Cs-137 вышел бы втрое выше модели.
+        ///
+        /// ПЛАСТИК ТОРЦА — ПОДБОР ПО ПАСПОРТУ, НЕ ЗАМЕР: после смены отражателя
+        /// он переподбирался по рентгену Ba K у `RC103_Cs137_0cm` / `_50mm`
+        /// (кривые шаблона, полиэтилен 0.5…2.5 мм, глубина 5.5 мм): прогноз Ba K
+        /// изм/ожид 1.025…1.012 (вплотную) и 1.07…1.10 (50 мм) — рычага у
+        /// толщины пластика на рентгене нет (±1.3 % на 2 мм, ниже систематики
+        /// мерки), поэтому оставлены прежние 1.5 мм П219. Глубина кристалла
+        /// 5.5 мм (П73) сохранена: зазор = 5.5 − 0.11 − 1.5 = 3.89 мм. Журнал —
+        /// `handover/handover-2026-10-05-p233-rc-tio2.md`.
         /// </summary>
-        static void RadiaCodePlasticFront(GeometryModel g)
+        static void RadiaCodeFront(GeometryModel g)
         {
-            double depth = g.FrontCladdingThickness + g.FrontGapThickness;    // 1.0 + 3.5
+            // Глубина кристалла под наружной гранью корпуса, как её мерила П73:
+            // отражатель + зазор + корпус шаблона = 1.0 + 3.5 + 1.0 = 5.5 мм.
+            double depth = g.FrontReflectorThickness + g.FrontGapThickness + g.FrontCladdingThickness;
+            g.Reflector = Material(RadiaCodePaint);
+            g.FrontReflectorThickness = RadiaCodePaintMm;
+            g.SideReflectorThickness = RadiaCodePaintMm;
             g.Cladding = Material("Polyethylene", RadiaCodeFrontDensity);
             g.FrontCladdingThickness = RadiaCodeFrontMm;
-            g.FrontGapThickness = depth - RadiaCodeFrontMm;
+            // Округление до 1e-6 мм: 5.5 − 0.11 − 1.5 в двоичной
+            // записи даёт 3.8899999999999997, а поле редактора и файл сцены `.in`
+            // несут 3.89 — без него модель шаблона и модель из полей расходились
+            // бы клеймом матрицы на последнем разряде.
+            g.FrontGapThickness = Math.Round(depth - RadiaCodePaintMm - RadiaCodeFrontMm, 6);
         }
 
         const double RadiaCodeFrontMm = 1.5;
         const double RadiaCodeFrontDensity = 0.94;
+        const string RadiaCodePaint = "TiO2 reflective paint";
+        const double RadiaCodePaintMm = 0.11;
 
         static void Crystal(GeometryModel g, string name)
         {

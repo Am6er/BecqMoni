@@ -140,7 +140,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///     (<see cref="MigrateSeedErrata"/>). С этого же поколения формула
         ///     в файле считается набранной при нынешнем разборе (`AMBER104`,
         ///     <see cref="CaseSeedVersion"/>).
-        public const int CurrentSeedVersion = 9;
+        /// 10 (05.10.2026, П233) — ОТРАЖАЮЩАЯ КРАСКА TiO2 (`AMBER162`):
+        ///     «TiO2 reflective paint» по паспорту Eljen EJ-510 — отражатель
+        ///     шаблонов «RadiaCode-101/103». Новое ИМЯ, довозится сведением по
+        ///     именам; переноса не нужно.
+        public const int CurrentSeedVersion = 10;
 
         /// <summary>
         /// (`AMBER107`) Поколение, начиная с которого опечатки таблицы ЛСРМ
