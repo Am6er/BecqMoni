@@ -27,9 +27,9 @@ DC_DetectorMountingThickness = 0 cm
 // Scintillator detector
 DS_CrystalDiameter = 1.1283792 cm
 DS_CrystalHeight = 1 cm
-DS_CrystalFrontReflectorThickness = 0.1 cm
-DS_CrystalSideReflectorThickness = 0.1 cm
-DS_CrystalFrontGapThickness = 0.3 cm
+DS_CrystalFrontReflectorThickness = 0.011 cm
+DS_CrystalSideReflectorThickness = 0.011 cm
+DS_CrystalFrontGapThickness = 0.389 cm
 DS_CrystalSideGapThickness = 0 cm
 DS_CrystalFrontCladdingThickness = 0.15 cm
 DS_CrystalSideCladdingThickness = 0.1 cm
@@ -176,16 +176,20 @@ M_DS_Crystal_Cladding.MatRelWeight[0] = 1
 
 
 // Reflector 
-DS_nCrystalReflectorElements = 2
-DS_RoCrystalReflector = 2.25
-DS_ZCrystalReflector[0] = 6
-DS_FractionsCrystalReflector[0] = 0.240183
-DS_ZCrystalReflector[1] = 9
-DS_FractionsCrystalReflector[1] = 0.759817
+DS_nCrystalReflectorElements = 4
+DS_RoCrystalReflector = 1.18
+DS_ZCrystalReflector[0] = 1
+DS_FractionsCrystalReflector[0] = 0.0289825
+DS_ZCrystalReflector[1] = 6
+DS_FractionsCrystalReflector[1] = 0.171922
+DS_ZCrystalReflector[2] = 8
+DS_FractionsCrystalReflector[2] = 0.388502
+DS_ZCrystalReflector[3] = 22
+DS_FractionsCrystalReflector[3] = 0.410594
 DS_FractionTypeReflector = MASS
-M_DS_Reflector.MName = Polytetrafluoroethylene
+M_DS_Reflector.MName = TiO2 reflective paint
 M_DS_Reflector.Nmaterials = 1
-M_DS_Reflector.Name[0] = Polytetrafluoroethylene                  
+M_DS_Reflector.Name[0] = TiO2 reflective paint                    
 M_DS_Reflector.MatRelWeight[0] = 1
 
 // Gap between reflector and cladding 
