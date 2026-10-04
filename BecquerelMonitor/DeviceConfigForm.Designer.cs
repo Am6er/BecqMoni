@@ -63,6 +63,10 @@ namespace BecquerelMonitor
             this.label24 = new System.Windows.Forms.Label();
             this.crystalMaterialLabel = new System.Windows.Forms.Label();
             this.crystalMaterialCombo = new System.Windows.Forms.ComboBox();
+            this.tractCurvatureLabel = new System.Windows.Forms.Label();
+            this.tractCurvatureTextBox = new BecquerelMonitor.DoubleTextBox();
+            this.tractCurvatureUnitLabel = new System.Windows.Forms.Label();
+            this.hints = new System.Windows.Forms.ToolTip(this.components);
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.tabPage6 = new System.Windows.Forms.TabPage();
             this.tabPage2 = new System.Windows.Forms.TabPage();
@@ -269,6 +273,9 @@ namespace BecquerelMonitor
             this.tabPage1.Controls.Add(this.label4);
             this.tabPage1.Controls.Add(this.crystalMaterialLabel);
             this.tabPage1.Controls.Add(this.crystalMaterialCombo);
+            this.tabPage1.Controls.Add(this.tractCurvatureLabel);
+            this.tabPage1.Controls.Add(this.tractCurvatureTextBox);
+            this.tabPage1.Controls.Add(this.tractCurvatureUnitLabel);
             resources.ApplyResources(this.tabPage1, "tabPage1");
             this.tabPage1.Name = "tabPage1";
             // 
@@ -371,6 +378,30 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.crystalMaterialCombo, "crystalMaterialCombo");
             this.crystalMaterialCombo.Name = "crystalMaterialCombo";
             this.crystalMaterialCombo.SelectedIndexChanged += new System.EventHandler(this.crystalMaterialCombo_SelectedIndexChanged);
+            //
+            // tractCurvatureLabel
+            //
+            resources.ApplyResources(this.tractCurvatureLabel, "tractCurvatureLabel");
+            this.tractCurvatureLabel.Name = "tractCurvatureLabel";
+            this.hints.SetToolTip(this.tractCurvatureLabel, resources.GetString("tractCurvatureLabel.ToolTip"));
+            //
+            // tractCurvatureTextBox
+            //
+            resources.ApplyResources(this.tractCurvatureTextBox, "tractCurvatureTextBox");
+            this.tractCurvatureTextBox.Name = "tractCurvatureTextBox";
+            this.hints.SetToolTip(this.tractCurvatureTextBox, resources.GetString("tractCurvatureTextBox.ToolTip"));
+            this.tractCurvatureTextBox.TextChanged += new System.EventHandler(this.tractCurvatureTextBox_TextChanged);
+            //
+            // tractCurvatureUnitLabel
+            //
+            resources.ApplyResources(this.tractCurvatureUnitLabel, "tractCurvatureUnitLabel");
+            this.tractCurvatureUnitLabel.Name = "tractCurvatureUnitLabel";
+            //
+            // hints
+            //
+            this.hints.AutoPopDelay = 30000;
+            this.hints.InitialDelay = 500;
+            this.hints.ReshowDelay = 100;
             //
             // tabPage3
             // 
@@ -1154,6 +1185,18 @@ namespace BecquerelMonitor
 		System.Windows.Forms.Label crystalMaterialLabel;
 
 		System.Windows.Forms.ComboBox crystalMaterialCombo;
+
+		// КРИВИЗНА ТРАКТА (`AMBER155` (в), решение Amber 02.10.2026 «Да, после
+		// слияния П220 (Рекомендую)»): графа поля DeviceConfigInfo.TractCurvature,
+		// 1/МэВ. Имена осмысленные — по образцу вещества кристалла выше.
+		System.Windows.Forms.Label tractCurvatureLabel;
+
+		BecquerelMonitor.DoubleTextBox tractCurvatureTextBox;
+
+		System.Windows.Forms.Label tractCurvatureUnitLabel;
+
+		// Подсказки графок формы. Своя на форме одна — по образцу ROIConfigForm.
+		System.Windows.Forms.ToolTip hints;
 
 		// Token: 0x04000275 RID: 629
 		System.Windows.Forms.Label label26;

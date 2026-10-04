@@ -43,14 +43,23 @@ u"""Вещество кристалла у прибора: ГЕОМЕТРИЯ П
 9. ⛔ ИМЁН ВЕЩЕСТВ В КОДЕ FSA НЕТ (решение Amber 01.09.2026): ни одно имя из
    засева библиотеки веществ не встречается строковым литералом в файлах
    разбора. Вещество берётся по ссылке, а не по таблице имён;
-10. замер существует: проба `CrystalMaterialProbe.cs` на месте.
+10. замер существует: проба `CrystalMaterialProbe.cs` на месте;
+11. (`AMBER155` (в), П230 04.10.2026) соседняя графа той же вкладки —
+    «Кривизна тракта»: `LoadFormContents` показывает
+    `config.TractCurvature`, запись присваивает `config.TractCurvature` из
+    графы, подпись, единица и подсказка лежат в ОБОИХ `resx`, глубокая копия
+    поле переносит, проба `TractCurvatureFieldProbe.cs` на месте. Правило
+    живёт здесь, потому что это сторож ФОРМЫ прибора: без него графу можно
+    тихо отвязать от поля, и κ, набранная человеком, перестанет доезжать до
+    разбора FSA, а окно будет выглядеть как прежде.
 
 ## Самопроверка
 
-⛔ Все десять проверок прошли бы и на пустом чтении, поэтому на каждом прогоне
-сторож судит ещё и ДВЕ ПОРЧЕНЫЕ КОПИИ: в первой источники в
+⛔ Все проверки прошли бы и на пустом чтении, поэтому на каждом прогоне
+сторож судит ещё и ТРИ ПОРЧЕНЫЕ КОПИИ: в первой источники в
 `CrystalFractionsOf` переставлены (поле спрашивается раньше геометрии), во
-второй поле конфигурации инициализировано не пустой строкой. Обе обязаны быть
+второй поле конфигурации инициализировано не пустой строкой, в третьей запись
+формы больше не присваивает `config.TractCurvature`. Все обязаны быть
 названы поимённо; не назвал — сторож красный, что бы ни показало дерево.
 
 Коды возврата: 0 — сошлось; 1 — не сошлось; 2 — нечего читать.
@@ -71,6 +80,7 @@ INFER = os.path.join(FSA, 'FsaCompositionInference.cs')
 SESSION = os.path.join(FSA, 'FsaAnalysisSession.cs')
 LIBRARY = os.path.join(APP, 'EfficiencyMaker', 'GeometryMaterialLibrary.cs')
 PROBE = os.path.join(REPO, 'tools', 'effmaker', 'probes', 'CrystalMaterialProbe.cs')
+TRACT_PROBE = os.path.join(REPO, 'tools', 'effmaker', 'probes', 'TractCurvatureFieldProbe.cs')
 RESX = os.path.join(APP, 'DeviceConfigForm.resx')
 RESX_RU = os.path.join(APP, 'DeviceConfigForm.ru.resx')
 
@@ -256,6 +266,29 @@ def judge(sources, names, loud=True):
     else:
         say(u'  10. проба CrystalMaterialProbe.cs на месте')
 
+    # --- 11. графа «Кривизна тракта» связана с полем (AMBER155, П230) ----
+    before = len(found)
+    if u'public double TractCurvature' not in info:
+        found.append(u'11. в DeviceConfigInfo нет свойства TractCurvature')
+    if copy is not None and u'tractCurvature = info.tractCurvature' not in copy:
+        found.append(u'11. глубокая копия не переносит tractCurvature')
+    load = body_of(form, u'void LoadFormContents(DeviceConfigInfo config)')
+    if load is None or not re.search(u'this\\.tractCurvatureTextBox\\.Text\\s*=\\s*[^;]*config\\.TractCurvature', load):
+        found.append(u'11. LoadFormContents не показывает config.TractCurvature в графе')
+    save = body_of(form, u'bool SaveFormContents(DeviceConfigInfo config)')
+    if save is None or not re.search(u'config\\.TractCurvature\\s*=\\s*\\w', save):
+        found.append(u'11. SaveFormContents не пишет config.TractCurvature из графы — '
+                     u'набранная κ не доедет до разбора')
+    for key in (u'tractCurvatureLabel.Text', u'tractCurvatureUnitLabel.Text',
+                u'tractCurvatureTextBox.ToolTip', u'tractCurvatureLabel.ToolTip'):
+        for label, text in ((u'resx', sources['resx']), (u'ru.resx', sources['resx_ru'])):
+            if u'name="%s"' % key not in text:
+                found.append(u'11. ключа %s нет в %s' % (key, label))
+    if not sources.get('tract_probe'):
+        found.append(u'11. нет пробы TractCurvatureFieldProbe.cs — графа без замера')
+    if len(found) == before:
+        say(u'  11. графа «Кривизна тракта»: показ, запись, копия, подписи в обоих resx, проба')
+
     return found
 
 
@@ -275,6 +308,7 @@ def collect():
         'resx': read(RESX),
         'resx_ru': read(RESX_RU),
         'probe': os.path.exists(PROBE),
+        'tract_probe': os.path.exists(TRACT_PROBE),
         'fsa': dict((path, read(path)) for path in FSA_FILES if os.path.exists(path)),
     }
     return sources, seed_names(read(LIBRARY))
@@ -283,7 +317,7 @@ def collect():
 def selfcheck(sources, names):
     u"""Две порченые копии; каждая обязана быть названа."""
     print(u'')
-    print(u'--- САМОПРОВЕРКА: две порченые копии ---')
+    print(u'--- САМОПРОВЕРКА: три порченые копии ---')
     bad = 0
 
     # (а) источники переставлены: поле спрашивается раньше геометрии.
@@ -307,6 +341,14 @@ def selfcheck(sources, names):
         u'string crystalMaterialName = "";', u'string crystalMaterialName = "NaI";')
     hits = [x for x in judge(spoiled, names, loud=False) if x.startswith(u'1.')]
     print(u'  (б) умолчание не пусто      -> %s' % (hits[0] if hits else u'НЕ НАЗВАНА'))
+    bad += 0 if hits else 1
+
+    # (в) запись формы отвязана от поля кривизны тракта (AMBER155, П230).
+    spoiled = dict(sources)
+    spoiled['form'] = re.sub(u'config\\.TractCurvature\\s*=\\s*', u'double unused = ', sources['form'])
+    hits = [x for x in judge(spoiled, names, loud=False)
+            if x.startswith(u'11.') and u'SaveFormContents' in x]
+    print(u'  (в) графа κ не пишется      -> %s' % (hits[0] if hits else u'НЕ НАЗВАНА'))
     bad += 0 if hits else 1
 
     return bad
