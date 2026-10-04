@@ -1178,6 +1178,16 @@ namespace CorpusFsaProbe
                     o.CurveLightNonlinear = v == "1" ? 1 : 0;
                     continue;
                 }
+                // (`AMBER155`, П229) свет снят после прохода со светом: inherit — прежнее (до П229)
+                if (a.StartsWith("--curve-light-drop=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(19);
+                    if (v == "inherit") { o.CurveLightDrop = 0; }
+                    else if (v == "restart") { o.CurveLightDrop = 1; }
+                    else if (v == "instrument") { o.CurveLightDrop = 2; }
+                    else { throw new ArgumentException("--curve-light-drop=inherit|restart|instrument"); }
+                    continue;
+                }
                 // (`AMBER142` п. 9, П215) ноль шкалы без плеча опор: inherit — прежнее
                 if (a.StartsWith("--no-lever-zero=", StringComparison.Ordinal))
                 {
@@ -2555,6 +2565,12 @@ namespace CorpusFsaProbe
             if (o.CurveLightLever >= 0)
             {
                 analyzer.AnchorCurveLightLever = o.CurveLightLever == 1;
+            }
+
+            if (o.CurveLightDrop >= 0)
+            {
+                analyzer.AnchorCurveLightDrop = o.CurveLightDrop == 0 ? FsaCurveLightDrop.Inherit
+                    : (o.CurveLightDrop == 1 ? FsaCurveLightDrop.Restart : FsaCurveLightDrop.Instrument);
             }
 
             if (o.CurveLightNonlinear >= 0)
@@ -6277,6 +6293,7 @@ namespace CorpusFsaProbe
             public int AnchorPasses = -1;
             public int AnchorOffsetMin = -1;
             public int CurveLightLever = -1;
+            public int CurveLightDrop = -1;   // (`AMBER155`, П229) −1 — умолчание анализатора; 0 inherit, 1 restart, 2 instrument
             public int CurveLightNonlinear = -1;   // (`AMBER155`, П229) −1 — умолчание анализатора; 0 свет снят, 1 прежнее
             public int NoLeverZero = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора; 0 inherit, 1 instrument, 2 shift
             public int AnchorCoreOwner = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора
