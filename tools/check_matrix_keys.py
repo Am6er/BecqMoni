@@ -603,6 +603,9 @@ SIM_NOT_SETTINGS = set([
     # (`F11` (а), П17) Счётчик несведённого каскада EADL -- читается после
     # прогона, не настройка.
     u'CountCascadeOverflow',
+    # (`A314`, П232 05.10.2026) Вложенные каскады и порча стека внешнего --
+    # читаются `CascadeNestProbe` после прогона, не настройки.
+    u'CountCascadeNested', u'CountCascadeClobbered',
     # (`M3`, П44) Счётчики квантов тормозного кристалла и их энергии --
     # читаются `BremPathProbe` после прогона, не настройки.
     u'CountBremPhotons', u'SumBremKev',

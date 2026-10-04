@@ -1760,6 +1760,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.geometry.Cladding.SortFractions();
                 this.geometry.BeakerWall.SortFractions();
                 this.geometry.Source.SortFractions();
+                // (`A313`, П232) Зазор (`AMBER1`) заведён позже прочих слоёв и
+                // сюда не попал: модель из РЕДАКТОРА берёт вещество зазора из
+                // библиотеки в порядке формулы и считалась другим потоком, чем
+                // она же после сохранения и открытия.
+                if (this.geometry.Gap != null)
+                {
+                    this.geometry.Gap.SortFractions();
+                }
             }
         }
 
@@ -5884,7 +5892,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             int[] stack = this.cascadeStack;
-            int top = 0;
+            // (`A314`) Свой участок стека — выше живых записей внешнего каскада.
+            int bottom = this.cascadeUsed;
+            int top = bottom;
             bool firstNonRadiative = false;
             int seed = shell;
             if (xray > 0.0)
@@ -5921,12 +5931,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                 firstNonRadiative = selfRolled;
             }
 
+            if (this.cascadeDepth > 0)
+            {
+                this.CountCascadeNested++;
+            }
+
+            this.cascadeDepth++;
             stack[top++] = seed;
             double lost = 0.0;
             double blob = 0.0;
             double scored = 0.0;
             bool first = true;
-            while (top > 0)
+            while (top > bottom)
             {
                 int v = stack[--top];
                 bool radiative;
@@ -5951,7 +5967,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     scored += pe;
                     if (pe >= 1.0)
                     {
-                        lost += this.ElectronLoss(x, y, z, pe, depth);
+                        lost += this.CascadeElectronLoss(x, y, z, pe, depth, bottom, top);
                     }
                     else if (pe > 0.0)
                     {
@@ -5976,7 +5992,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 scored += kev;
                 if (kev >= 1.0)
                 {
-                    lost += this.ElectronLoss(x, y, z, kev, depth);
+                    lost += this.CascadeElectronLoss(x, y, z, kev, depth, bottom, top);
                 }
                 else if (kev > 0.0)
                 {
@@ -5993,6 +6009,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 stack[top++] = ejected;
             }
 
+            this.cascadeDepth--;
+
             // Баланс: всё, чего каскад не разложил (или разложил лишнего на
             // доли кэВ из-за разных таблиц), — в сгусток.
             blob += budgetKev - scored;
@@ -6007,6 +6025,41 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return lost;
+        }
+
+        /// <summary>
+        /// (`A314`, П232) Электрон каскада: `ElectronLoss` с поднятым дном
+        /// стека. Живые записи внешнего каскада — `[bottom, top)`; на время
+        /// вызова дно стоит на <paramref name="top"/>, так что вложенный
+        /// каскад пишет выше них, а после вызова дно возвращается. Сверка
+        /// суммы живых записей до и после — сторож <see cref="CountCascadeClobbered"/>.
+        /// </summary>
+        double CascadeElectronLoss(double x, double y, double z, double kev, int depth,
+                                   int bottom, int top)
+        {
+            int[] stack = this.cascadeStack;
+            long sum = CascadeChecksum(stack, bottom, top);
+            int saved = this.cascadeUsed;
+            this.cascadeUsed = top;
+            double lost = this.ElectronLoss(x, y, z, kev, depth);
+            this.cascadeUsed = saved;
+            if (CascadeChecksum(stack, bottom, top) != sum)
+            {
+                this.CountCascadeClobbered++;
+            }
+
+            return lost;
+        }
+
+        static long CascadeChecksum(int[] stack, int from, int to)
+        {
+            long h = 17;
+            for (int i = from; i < to; i++)
+            {
+                h = h * 1000003L + stack[i] + 1;
+            }
+
+            return h;
         }
 
         /// <summary>
@@ -8108,6 +8161,20 @@ namespace BecquerelMonitor.EfficiencyMaker
         // дырок, 128 — с запасом на любой Z.
         readonly int[] cascadeStack = new int[128];
 
+        // ⛔ (`A314`, П232 05.10.2026) ДНО СТЕКА ДЛЯ ВЛОЖЕННОГО КАСКАДА — первая
+        // свободная ячейка `cascadeStack`. Каскад зовёт `ElectronLoss`, тот
+        // рекурсией (тормозное → `InCrystal` → фотопоглощение или комптон)
+        // может войти в `RelaxationElectrons` снова, и вложенный вызов писал
+        // стек С НУЛЯ поверх незавершённого внешнего: вернувшись, внешний
+        // снимал чужие номера подоболочек (иногда другого элемента). Теперь
+        // каждый вызов работает выше живых записей внешнего, а перед своим
+        // `ElectronLoss` поднимает дно до своей вершины. Вне вложения — ноль,
+        // и поток случайных чисел обычных историй не меняется.
+        int cascadeUsed;
+
+        // (`A314`) Глубина вложения каскадов — для счётчика `CountCascadeNested`.
+        int cascadeDepth;
+
         // ⚡ (`A43`, П45) Таблицы разрядки по Z — СВОЯ памятка симулятора.
         // `MaterialDatabase.RelaxationOf` берёт `lock` на общий кэш процесса
         // при КАЖДОМ вызове, а зовётся он на каждое фотопоглощение из трёх
@@ -8146,6 +8213,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// баланс — диагностика, ноль в норме.
         /// </summary>
         public long CountCascadeOverflow;
+
+        /// <summary>
+        /// (`A314`, П232) Сколько раз каскад вошёл ВЛОЖЕННО — из `ElectronLoss`
+        /// незавершённого внешнего каскада. Частота события, не отказ.
+        /// </summary>
+        public long CountCascadeNested;
+
+        /// <summary>
+        /// (`A314`, П232) Сколько раз внешний каскад нашёл свои ещё не снятые
+        /// вакансии ПЕРЕПИСАННЫМИ после вложенного вызова — сторож дефекта,
+        /// ноль в норме (до правки — не ноль).
+        /// </summary>
+        public long CountCascadeClobbered;
 
         // (`AMBER16`) Что именно испустил атом в текущей истории — для
         // трассировки. Ни на один розыгрыш не влияет; пишется всегда, читается
