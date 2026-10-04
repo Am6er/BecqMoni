@@ -446,6 +446,7 @@ namespace BecquerelMonitor
             this.doubleTextBox5.Text = config.DefaultMeasurementTime.ToString(CultureInfo.InvariantCulture);
             this.integerTextBox1.Text = config.NumberOfChannels.ToString(CultureInfo.InvariantCulture);
             this.doubleTextBox6.Text = config.ChannelPitch.ToString(CultureInfo.InvariantCulture);
+            this.tractCurvatureTextBox.Text = TractCurvatureText(config.TractCurvature);
             this.textBox19.Text = config.Note;
             this.deviceFormLoading = true;
             DeviceType type = null;
@@ -740,6 +741,9 @@ namespace BecquerelMonitor
                 int defaultMeasurementTime = UserNumber.ParseInt(this.doubleTextBox5.Text);
                 int numberOfChannels = UserNumber.ParseInt(this.integerTextBox1.Text);
                 double channelPitch = UserNumber.ParseDouble(this.doubleTextBox6.Text);
+                // `AMBER155` (в): кривизна тракта разбирается ТУТ ЖЕ, до первой
+                // записи (`A6`) — нечисло не должно оставить конфигурацию смесью.
+                double tractCurvature = this.TractCurvatureFromForm();
                 if (config.Guid == null || config.Guid == "")
                 {
                     config.Guid = Guid.NewGuid().ToString();
@@ -753,6 +757,7 @@ namespace BecquerelMonitor
                 config.DefaultMeasurementTime = defaultMeasurementTime;
                 config.NumberOfChannels = numberOfChannels;
                 config.ChannelPitch = channelPitch;
+                config.TractCurvature = tractCurvature;
                 config.Note = this.textBox19.Text;
                 // `A276`: вещество кристалла — ссылка на строку библиотеки, и
                 // писать её надо ровно так же, как читаются имя и заметка:
@@ -1007,6 +1012,60 @@ namespace BecquerelMonitor
 
         // Token: 0x0600052C RID: 1324 RVA: 0x00021894 File Offset: 0x0001FA94
         void textBox19_TextChanged(object sender, EventArgs e)
+        {
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        // ------------------------------------------------------------------
+        // КРИВИЗНА ТРАКТА (`AMBER155` (в), П220; графа — решение Amber
+        // 02.10.2026 «Да, после слияния П220 (Рекомендую)», полоса П230).
+        //
+        // Поле `DeviceConfigInfo.TractCurvature` (κ, 1/МэВ, умолчание 0)
+        // читает разбор FSA (`FsaAnalyzer.AdoptDevice`); до П230 задать его
+        // можно было только правкой XML руками.
+        //
+        // Ввод разбирается ТЕМ ЖЕ `UserNumber`, что у соседних графок
+        // (`A244`): сперва инвариант (точка), затем культура системы, без
+        // разделителя разрядов. Отказ ввода словами даёт сам `DoubleTextBox`
+        // (`ERRInputNumber`, как у шага канала), отказ сохранения —
+        // `ERRInvalidInputForm` у вызывающих `SaveFormContents`.
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Число графы для показа: инвариант, без группировки, «R» — круг
+        /// «показ → сохранение» не теряет ни знака (0.0026 остаётся 0.0026).
+        /// </summary>
+        static string TractCurvatureText(double curvature)
+        {
+            double shown = double.IsNaN(curvature) || double.IsInfinity(curvature) ? 0.0 : curvature;
+            return shown.ToString("R", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Кривизна тракта из графы. Пусто — умолчание 0 (прямой тракт), как у
+        /// конфигурации без элемента. ⛔ Нечисло, NaN и бесконечность — ОТКАЗ
+        /// исключением (окна здесь нет: метод зовёт и проба отражением):
+        /// `double.TryParse` берёт «NaN» и «Infinity», а такое κ разбор молча
+        /// сбросил бы в нуль (`AdoptDevice`) — человек думал бы, что задал.
+        /// </summary>
+        double TractCurvatureFromForm()
+        {
+            string text = (this.tractCurvatureTextBox.Text ?? "").Trim();
+            if (text.Length == 0)
+            {
+                return 0.0;
+            }
+
+            double value = UserNumber.ParseDouble(text);
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                throw new FormatException(text + " is not a finite number");
+            }
+
+            return value;
+        }
+
+        void tractCurvatureTextBox_TextChanged(object sender, EventArgs e)
         {
             this.SetActiveDeviceConfigDirty();
         }
