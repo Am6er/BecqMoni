@@ -156,6 +156,7 @@ DENSE_SCENES = {
     u'RC103_point50': 2,
     u'ASN16_point10_house': 2,
     u'G1S_point25': 2,
+    u'G1S_point25_p24': 2,   # (`AMBER153`, П228 03.10.2026) точка 25 см G1S24 — своя сцена
 }
 RE_INFILE = re.compile(r'клеймо в файле\s*:\s*(phys=\S+)')
 RE_BYOWN = re.compile(r'клеймо по НАСТРОЙКАМ ФАЙЛА\s*:\s*(phys=\S+)')
@@ -634,7 +635,7 @@ OLD_VESSEL = [
     (b'SM_SourceHeight = 8.6058 cm', b'SM_SourceHeight = 10 cm'),
 ]
 PLANT_SCENE = u'G1S_mar1l_oisn06_057_p16'
-CONTROL_SCENE = u'G1S_point5'
+CONTROL_SCENE = u'G1S_point5_p16'
 MATRIX_VICTIM = u'G1S_point25'
 STRAY_SCENE = u'X_stray'
 

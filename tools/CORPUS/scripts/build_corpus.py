@@ -1496,9 +1496,20 @@ DEVICE_TEMPLATE = """<?xml version="1.0"?>
     <ExpGaussExpLeftTail>1</ExpGaussExpLeftTail>
     <ExpGaussExpRightTail>1</ExpGaussExpRightTail>
   </PeakDetectionMethodConfig>
-  <BackgroundSpectrumPathname />
+  <BackgroundSpectrumPathname />{tract}
 </DeviceConfigInfo>
 """
+
+#: (`AMBER155` (в), П228 03.10.2026) КРИВИЗНА ТРАКТА ПРИБОРА, 1/МэВ —
+#: `DeviceConfigInfo.TractCurvature`, читает её разбор FSA с прямой картой
+#: (`FsaAnalyzer.AdcTractCurvature`, приём `AdoptDevice`). Решение Amber
+#: 02.10.2026 вопросником, дословно: «В генератор корпуса (Рекомендую)» —
+#: G1S16 0.0023, G1S24 0.0026, прочие 0; κ CsI — «Оставить 0 (Рекомендую)».
+#: Числа — растяжение тракта по сумм-пикам без модели света (c₁ + c₂ − c_s,
+#: журнал П218 §3, П220 §4–§5). Группа без строки — ноль, и элемент в
+#: конфигурацию не пишется вовсе (умолчание класса — тоже ноль): файлы
+#: прочих приборов от этой правки не меняются ни байтом.
+TRACT_CURVATURE = {'G1S16': 0.0023, 'G1S24': 0.0026}
 
 
 def write_devices(state):
@@ -1547,7 +1558,9 @@ def write_devices(state):
             width_fwhm=cfg['Width_Fwhm'], lo=float(cfg['Min_Range']),
             hi=float(cfg['Max_Range']), concat=cfg['Ch_Concat'],
             tolerance=cfg['Tolerance'], max_items=cfg['Max_Items'],
-            fwhm_tol_min=cfg['Min_FWHM_Tol'], fwhm_tol_max=cfg['Max_FWHM_Tol'])
+            fwhm_tol_min=cfg['Min_FWHM_Tol'], fwhm_tol_max=cfg['Max_FWHM_Tol'],
+            tract=('\n  <TractCurvature>%r</TractCurvature>' % float(TRACT_CURVATURE[det])
+                   if TRACT_CURVATURE.get(det) else ''))
         dest = os.path.join(OUT_DEVICES, fname)
         changes = device_changes(dest, text)
         with open(dest, 'w', encoding='utf-8') as fh:

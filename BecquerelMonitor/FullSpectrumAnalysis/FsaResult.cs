@@ -1262,6 +1262,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double AdcZeroKev { get; set; }
 
         /// <summary>
+        /// (`AMBER155`, П220) Шаг ПРЯМОЙ карты «adc», кэВ шкалы карты на канал:
+        /// канал = <see cref="AdcZeroChannel"/> + (E꜀(x) − <see cref="AdcE0Kev"/>)/шаг,
+        /// без калибровки файла. Нуль — карта формы полинома (прежняя, П8) или
+        /// карта не включалась. Читается только вместе с <see cref="AdcScale"/>.
+        /// </summary>
+        public double AdcLinearKev { get; set; }
+
+        /// <summary>(`AMBER155` (в), П220) q кривизны тракта прямой карты, 1/канал: канал = c₀ + v + q·v²; нуль — прямой тракт.</summary>
+        public double AdcTractPerChannel { get; set; }
+
+        /// <summary>(`AMBER155`, П220) Канал точки нуля прямой карты: −½ (нижний край канала 0) или 0.</summary>
+        public double AdcZeroChannel { get; set; }
+
+        /// <summary>
         /// (П19) Форма применения световой координаты этого разбора
         /// («bin» / «line» / «peak» / «anchor» — <c>FsaAnalyzer.AnchorLightForm</c>);
         /// пусто — координата выключена или кривой для вещества нет.

@@ -117,11 +117,31 @@ def compare(node, geom_dir):
     return gname, diffs, None
 
 
+#: Признак ПОРЧЕНОГО имени — знак замены (U+FFFD) или «?», которыми чтение не
+#: своей кодировкой заменяет кириллицу (`A269`).
+_SPOILED = re.compile(u'[�?]')
+
+
 def repair(node, geom_dir):
-    u"""Узел с именами веществ из `.in`. Возвращает `(узел, расхождения, отказ)`."""
+    u"""Узел с именами веществ из `.in`. Возвращает `(узел, расхождения, отказ)`.
+
+    ⛔ (П228 03.10.2026) Чинится ТОЛЬКО ПОРЧЕНОЕ имя (знаки замены, `A269`).
+    Если имя в узле целое, а в `.in` другое — это не порча, а СМЕНА ВЕЩЕСТВА
+    сцены (П228: торец маринелли RC-103 Al → полиэтилен), и узел устарел ЦЕЛИКОМ:
+    плотность и состав в нём прежние. Переименовать его — значит собрать узел,
+    которого не было (имя «Polyethylene» при плотности 2.7 и Z = 13; так и
+    вышло у `RC103_K40` при пересборке П228). Такое расхождение не правится и
+    отдаётся отказом словами — кривую пересчитывает `CorpusEffProbe`; сторож
+    `check_geometry_names.py` (через `compare`) видит его по-прежнему.
+    """
     gname, diffs, refusal = compare(node, geom_dir)
     if refusal is not None or not diffs:
         return node, diffs, refusal
+    stale = [d for d in diffs if not _SPOILED.search(d[1])]
+    if stale:
+        return node, [], (u'вещество сцены %s сменилось (%s) — узел устарел целиком, '
+                          u'пересчитать кривую (CorpusEffProbe); имя не правится'
+                          % (gname, u', '.join(u'%s «%s» → «%s»' % d for d in stale)))
     for tag, have, want in diffs:
         pat = re.compile(r'(<%s><Name>)([^<]*)(</Name>)' % tag)
         node, count = pat.subn(lambda m: m.group(1) + want + m.group(3), node, count=1)
