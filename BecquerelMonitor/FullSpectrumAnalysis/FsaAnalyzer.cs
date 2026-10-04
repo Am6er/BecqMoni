@@ -293,6 +293,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// (`AMBER155`, П229) Что делать со шкалой, когда в режиме кривой свет
+    /// снимается на проходе ПОСЛЕ прохода со светом (у опор пропало плечо,
+    /// <see cref="FsaAnalyzer.AnchorCurveLightLever"/>).
+    /// </summary>
+    public enum FsaCurveLightDrop
+    {
+        /// <summary>Ноль прохода со светом остаётся, усиление — по оставшимся опорам (до П229).</summary>
+        Inherit,
+
+        /// <summary>Шкала, ширина и фит — к началу привязки; привязка заново, свет до её конца снят.</summary>
+        Restart,
+
+        /// <summary>На проходе снятия — ноль прибора (шкала через нулевой канал); свет до конца привязки снят.</summary>
+        Instrument
+    }
+
+    /// <summary>
     /// Умолчание полосы — ОДНО на весь разбор, и печатается вслух.
     ///
     /// ⛔ Выбор сделан числами, а не вкусом; всё измерено 25.08.2026 по ПОНЯТНОЙ
@@ -4890,7 +4907,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         double LightFixedAdd()
         {
-            if (this.lightCurveName == null)
+            if (this.lightCurveName == null || this.curveLightSuspended)
             {
                 return 0.0;
             }
@@ -5428,6 +5445,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `CorpusFsaProbe` (прежний ход).
         /// </summary>
         public bool AnchorCurveLightLinearOnly { get; set; }
+
+        /// <summary>
+        /// ⛔ (`AMBER155`, П229 04.10.2026) РЕЖИМ КРИВОЙ: СВЕТ СНЯТ ПОСЛЕ ПРОХОДА
+        /// СО СВЕТОМ — НОЛЬ ТОГО ПРОХОДА НЕ ОСТАЁТСЯ. Проход со светом (β = 1,
+        /// опоры с плечом) ставит усиление И ноль по Y − S; когда на следующем
+        /// проходе плечо пропадает, <see cref="AnchorCurveLightLever"/> снимает
+        /// свет, а без плеча ноль не подбирается — прежде он наследовался
+        /// (<see cref="FsaCurveLightDrop.Inherit"/>): шкала оставалась на нуле,
+        /// подобранном ПОД свет, которого больше нет, и одно усиление по
+        /// оставшейся опоре разносило разлад по всей шкале. Измерено (П229) на
+        /// `AS80_Th232WT20` со светом поверх калибровки файла
+        /// (`--curve-light-nonlinear=1`): ноль −31.3 кан. прохода 0 остаётся,
+        /// усиление 1.186, ряд тория — в образах вылета. Умолчание — в
+        /// конструкторе (выбрано замером, журнал П229); прежний ход —
+        /// `--curve-light-drop=inherit` у `CorpusFsaProbe`.
+        /// </summary>
+        public FsaCurveLightDrop AnchorCurveLightDrop { get; set; }
 
         /// <summary>
         /// ⛔ (`AMBER142` п. 9, П215 02.10.2026) ЧТО ДЕЛАТЬ С НУЛЁМ ШКАЛЫ, КОГДА
@@ -6597,6 +6631,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         string lightOffByCalibration;
 
         /// <summary>
+        /// (`AMBER155`, П229) Свет снят до конца привязки (<see cref="AnchorCurveLightDrop"/>):
+        /// координата не действует, <see cref="LightFixedAdd"/> — нуль.
+        /// </summary>
+        bool curveLightSuspended;
+
+        /// <summary>(`AMBER155`, П229) Последний сбор опор снял свет, стоявший в образах (плечо пропало).</summary>
+        bool curveLightDropped;
+
+        /// <summary>(`AMBER155`, П229) Что сделано при снятии света — в служебную строку шкалы; null — не снимался.</summary>
+        string curveLightDropNote;
+
+        /// <summary>
         /// (`AMBER155`, П229) Калибровка нелинейна, если по всей шкале каналов
         /// она отходит от хорды между крайними каналами дальше одного канала
         /// (отход в кэВ, делённый на местную цену канала). Отход ближе канала
@@ -7167,8 +7213,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (П19) Координата жива у всех форм (`lightCurveName`); у формы
             // "anchor" модель света не получает никогда, и МНК вычитает его из
             // измерения на КАЖДОМ проходе (β⁺ = 1, наружу β = 0).
-            bool lightOn = this.lightCurveName != null;
+            // (`AMBER155`, П229) свет снят до конца привязки — координаты нет
+            bool lightOn = this.lightCurveName != null && !this.curveLightSuspended;
             bool anchorOnly = this.lightForm == LightForm.Anchor;
+            this.curveLightDropped = false;
+            bool dropInstrument = false;
             double betaFixedAdd = this.LightFixedAdd();
             foreach (AnchorFit f in fits)
             {
@@ -7194,6 +7243,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                      && fits.Count >= Math.Max(2, this.AnchorOffsetMinAnchors)
                                      && lxMin > 0.0 && lxMax - lxMin >= 0.5 * lxMax;
                     betaFixedAdd = leverHere ? this.LightFixedAdd() : (anchorOnly ? 0.0 : -this.driftLight);
+                    // (`AMBER155`, П229) снимается свет, уже стоящий в образах, — ноль прохода
+                    // со светом наследоваться не должен (доводы у <see cref="AnchorCurveLightDrop"/>)
+                    this.curveLightDropped = !leverHere && !anchorOnly && this.driftLight != 0.0;
+                    dropInstrument = this.curveLightDropped && this.AnchorCurveLightDrop == FsaCurveLightDrop.Instrument;
                     foreach (AnchorFit f in fits)
                     {
                         f.YEff = f.Y - betaFixedAdd * f.S;
@@ -7264,14 +7317,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
                     }
                 }
-                else if (!this.anchorGainOnly && this.AnchorNoLeverZero != FsaNoLeverZero.Inherit)
+                else if (!this.anchorGainOnly && (this.AnchorNoLeverZero != FsaNoLeverZero.Inherit || dropInstrument))
                 {
                     // ⛔ (`AMBER142` п. 9, П215) БЕЗ ПЛЕЧА НОЛЬ НЕ ОПРЕДЕЛЁН — он
                     // не наследуется от прежних проходов (доводы у
                     // <see cref="AnchorNoLeverZero"/>). Ноль прибора: новая шкала
                     // p'' = a·(g·p + o) + b проходит через нулевой канал, то есть
                     // b = −a·o и Y ≈ a·(X − o). Плечо «сдвиг»: a = 1, b — средний промах.
-                    if (this.AnchorNoLeverZero == FsaNoLeverZero.Instrument)
+                    if (this.AnchorNoLeverZero == FsaNoLeverZero.Instrument || dropInstrument)
                     {
                         double sxx = 0.0, sxy = 0.0;
                         foreach (AnchorFit f in fits)
@@ -8784,6 +8837,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.AnchorCurveLightLever = true;
             // (`AMBER155`, П229) без матрицы при нелинейной калибровке файла — без света
             this.AnchorCurveLightLinearOnly = true;
+            // (`AMBER155`, П229) снятие света после прохода со светом — привязка заново без света;
+            // решение Amber 04.10.2026 вопросником, дословно: «Чинить сейчас до слияния»
+            this.AnchorCurveLightDrop = FsaCurveLightDrop.Restart;
             // (`AMBER142` п. 9, П215) без плеча опор — ноль прежних проходов
             // (прежний ход; ноль прибора и допуск ядра — рычагами); решение Amber
             // 02.10.2026 вопросником, дословно: «Умолчания оставить, рычаги в коде (Рекомендую)»
@@ -10500,6 +10556,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.anchorStatSigmaFits = 0;
             this.anchorStatSigmaTicks = 0;
             this.anchorStatTrace = new StringBuilder();
+            // (`AMBER155`, П229) снятие света — на каждую привязку своё
+            this.curveLightSuspended = false;
+            this.curveLightDropped = false;
+            this.curveLightDropNote = null;
             this.anchorStatCapped = false;
             this.anchorStatPlateau = false;
             this.anchorStatClassic = false;
@@ -10699,6 +10759,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     AnchorWarm plateauBest = null;
                     bool restoreBest = false;
                     string zeroRoundNote = null;
+                    // (`AMBER155`, П229) состояние начала привязки — для перезапуска без света
+                    FitResult restartBest = best;
+                    double restartGain = bestGain, restartOffset = bestOffset, restartLight = this.driftLight;
+                    double restartWidth = this.widthScale;
+                    int restartWidthAnchors = this.widthAnchors;
+                    int restartPasses = passes;
                     for (int pass = 0; pass < passes; pass++)
                     {
                         double a, b, beta;
@@ -10710,6 +10776,55 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             out a, out b, out beta, out used, out note);
                         this.scaleAnchors = anchors;
                         this.anchorNote = note;
+                        // ⛔ (`AMBER155`, П229) СВЕТ СНЯТ ПОСЛЕ ПРОХОДА СО СВЕТОМ — ноль того
+                        // прохода не остаётся (доводы у <see cref="AnchorCurveLightDrop"/>)
+                        if (this.curveLightDropped && !this.curveLightSuspended
+                            && this.AnchorCurveLightDrop != FsaCurveLightDrop.Inherit)
+                        {
+                            this.curveLightSuspended = true;
+                            if (this.AnchorCurveLightDrop == FsaCurveLightDrop.Restart)
+                            {
+                                // шкала, свет, ширина и фит — к началу привязки; проходы — заново
+                                double lightNow = this.driftLight;
+                                best = restartBest;
+                                bestGain = restartGain;
+                                bestOffset = restartOffset;
+                                this.driftLight = restartLight;
+                                this.widthScale = restartWidth;
+                                this.widthAnchors = restartWidthAnchors;
+                                if (this.driftLight != lightNow && this.LightInImages)
+                                {
+                                    this.deposits.Clear();
+                                }
+
+                                this.curveLightDropNote = string.Format(CultureInfo.InvariantCulture,
+                                    "свет снят на проходе {0}: плечо опор пропало — привязка заново без света от шкалы её начала", pass);
+                                this.anchorStatTrace.Append(" [свет снят: заново]");
+                                widthHavePrev = false;
+                                widthPrevLn = 0.0;
+                                widthPrevResidual = 0.0;
+                                widthFrozen = false;
+                                widthWeak = 0;
+                                widthQ = double.NaN;
+                                movedBy = 0;
+                                zeroSteps = 0;
+                                zeroCappedPasses = 0;
+                                plateau.Clear();
+                                plateauBestR = double.MaxValue;
+                                plateauBestPass = -1;
+                                plateauBest = null;
+                                restoreBest = false;
+                                zeroRoundNote = null;
+                                passes = restartPasses;
+                                pass = -1;
+                                continue;
+                            }
+
+                            // ноль прибора — уже в a, b этого прохода (ветка без плеча в `CollectScaleAnchors`)
+                            this.curveLightDropNote = string.Format(CultureInfo.InvariantCulture,
+                                "свет снят на проходе {0}: плечо опор пропало — ноль прибора, свет до конца привязки снят", pass);
+                        }
+
                         if (used == 0)
                         {
                             break;
@@ -11118,6 +11233,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // (`S169`) карта нуля — в ту же служебную строку, и
                         // ТОЛЬКО когда включилась: у "calib" строка прежняя
                         // до буквы (контроль «ключ ВЫКЛ ничего не двигает»).
+                    }
+
+                    if (this.curveLightDropNote != null)
+                    {
+                        // (`AMBER155`, П229) свет снят по ходу привязки — сказать, что сделано
+                        this.anchorNote = (this.anchorNote ?? "") + "; " + this.curveLightDropNote;
                     }
 
                     if (this.lightOffByCalibration != null)
