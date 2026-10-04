@@ -232,7 +232,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                result.Gain, result.OffsetChannels,
                                                result.AnchorLightCurve, result.AnchorLightBeta,
                                                result.AnchorLightReferenceKev,
-                                               result.AdcScale, result.AdcE0Kev, result.AdcZeroKev);
+                                               result.AdcScale, result.AdcE0Kev, result.AdcZeroKev,
+                                               result.AdcLinearKev, result.AdcZeroChannel, result.AdcTractPerChannel);
                 foreach (LineGroup group in groups)
                 {
                     LineCheck check = Measure(group, data, model, continuum, background,
@@ -383,7 +384,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                      EnergyCalibration calibration, int channels,
                                      double gain, double offset,
                                      string lightCurve, double lightBeta, double lightReferenceKev,
-                                     double adcScale, double adcE0Kev, double adcZeroKev)
+                                     double adcScale, double adcE0Kev, double adcZeroKev,
+                                     double adcLinearKev, double adcZeroChannel, double adcTractPerChannel)
         {
             var raw = new List<LineGroup>();
             foreach (FsaLine line in component.Lines)
@@ -402,7 +404,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double position;
                 try
                 {
-                    position = calibration.EnergyToChannel(lineKev, maxChannels: channels);
+                    // (`AMBER155`, П220) прямая карта — её прямой, без калибровки
+                    double v = (lineKev - adcE0Kev) / adcLinearKev;
+                    position = adcScale > 0.0 && adcLinearKev > 0.0
+                        ? adcZeroChannel + v + adcTractPerChannel * v * v
+                        : calibration.EnergyToChannel(lineKev, maxChannels: channels);
                 }
                 catch (Exception)
                 {

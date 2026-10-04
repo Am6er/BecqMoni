@@ -5,110 +5,110 @@
  ],
  "bands": {
   "0-30": {
-   "Bi-214": 876.595,
-   "Pb-212": 130.527,
-   "Pb-214": 1930.704,
-   "Ra-224": 4.296,
-   "Tl-208": 47.981,
+   "Bi-214": 1201.308,
+   "Pb-212": 154.755,
+   "Pb-214": 1410.958,
+   "Ra-224": 4.989,
+   "Tl-208": 71.139,
    "channels": 10,
-   "continuum_raw": 991.6919999999999,
-   "excess_fit": 63.90200000000007,
-   "excess_net": 60.14000000000007,
-   "fit": 2967.975,
-   "missing_fit": 53.970000000000084,
-   "missing_net": 54.69400000000009,
-   "model": 2977.907,
-   "net": 2972.4610000000002,
-   "tail": 705.2320000000001,
+   "continuum_raw": 907.6129999999999,
+   "excess_fit": 61.292000000000016,
+   "excess_net": 53.835000000000015,
+   "fit": 2845.1589999999997,
+   "missing_fit": 73.51200000000006,
+   "missing_net": 76.01800000000006,
+   "model": 2832.9390000000003,
+   "net": 2855.1220000000003,
+   "tail": 254.435,
    "untied_tail": 0.0
   },
   "100-300": {
-   "Bi-214": 25855.89200000001,
-   "Pb-212": 4411.9659999999985,
-   "Pb-214": 32976.68600000001,
-   "Ra-224": 389.811,
-   "Tl-208": 1323.5559999999994,
+   "Bi-214": 25853.038999999997,
+   "Pb-212": 4498.269,
+   "Pb-214": 33033.59599999999,
+   "Ra-224": 398.12899999999996,
+   "Tl-208": 1765.394,
    "channels": 67,
-   "continuum_raw": 21116.268,
-   "excess_fit": 1276.894,
-   "excess_net": 1276.894,
-   "fit": 65246.45699999999,
-   "missing_fit": 1565.452,
-   "missing_net": 1565.452,
-   "model": 64957.89899999999,
-   "net": 65246.45699999999,
+   "continuum_raw": 21737.847000000005,
+   "excess_fit": 1320.4089999999997,
+   "excess_net": 1320.4089999999997,
+   "fit": 65381.43800000003,
+   "missing_fit": 1153.4159999999995,
+   "missing_net": 1153.4159999999995,
+   "model": 65548.431,
+   "net": 65381.43800000003,
    "tail": 0.0,
    "untied_tail": 0.0
   },
   "1500-3000": {
-   "Bi-214": 5269.610000000007,
+   "Bi-214": 5039.6820000000025,
    "Pb-212": 0.0,
    "Pb-214": 0.0,
    "Ra-224": 0.0,
-   "Tl-208": 903.8439999999999,
+   "Tl-208": 1105.173000000001,
    "channels": 485,
-   "continuum_raw": 899.8100000000009,
-   "excess_fit": 955.724,
-   "excess_net": 856.3819999999997,
-   "fit": 6082.209999999992,
-   "missing_fit": 868.4669999999996,
-   "missing_net": 869.1969999999997,
-   "model": 6169.4670000000015,
-   "net": 6182.281999999993,
+   "continuum_raw": 902.8820000000004,
+   "excess_fit": 962.9330000000001,
+   "excess_net": 855.703,
+   "fit": 6030.797999999997,
+   "missing_fit": 856.8369999999999,
+   "missing_net": 857.1089999999998,
+   "model": 6136.894000000001,
+   "net": 6138.299999999999,
    "tail": 0.0,
    "untied_tail": 0.0
   },
   "30-100": {
-   "Bi-214": 8894.766,
-   "Pb-212": 3869.4019999999996,
-   "Pb-214": 26602.029,
-   "Ra-224": 88.82200000000002,
-   "Tl-208": 516.9080000000001,
+   "Bi-214": 8405.018,
+   "Pb-212": 3912.051000000001,
+   "Pb-214": 26432.094999999998,
+   "Ra-224": 89.21700000000001,
+   "Tl-208": 657.1669999999999,
    "channels": 23,
-   "continuum_raw": 8826.48,
-   "excess_fit": 2027.0640000000003,
-   "excess_net": 2027.0640000000003,
-   "fit": 39618.30400000001,
-   "missing_fit": 1673.4370000000001,
-   "missing_net": 1673.4370000000001,
-   "model": 39971.93099999999,
-   "net": 39618.30400000001,
-   "tail": 0.015,
+   "continuum_raw": 8125.609,
+   "excess_fit": 814.3229999999996,
+   "excess_net": 814.3229999999996,
+   "fit": 39597.91099999999,
+   "missing_fit": 916.6850000000001,
+   "missing_net": 916.6850000000001,
+   "model": 39495.54899999999,
+   "net": 39597.91099999999,
+   "tail": 0.0,
    "untied_tail": 0.0
   },
   "300-700": {
-   "Bi-214": 31588.185999999998,
-   "Pb-212": 94.93399999999997,
-   "Pb-214": 20699.279000000002,
+   "Bi-214": 30914.795000000002,
+   "Pb-212": 101.80200000000002,
+   "Pb-214": 21092.314000000013,
    "Ra-224": 0.0,
-   "Tl-208": 1477.5290000000007,
+   "Tl-208": 1928.8500000000004,
    "channels": 132,
-   "continuum_raw": 6574.0340000000015,
-   "excess_fit": 1573.7879999999989,
-   "excess_net": 1573.7879999999989,
-   "fit": 54134.17700000001,
-   "missing_fit": 1848.030000000001,
-   "missing_net": 1848.030000000001,
-   "model": 53859.935000000005,
-   "net": 54134.17700000001,
+   "continuum_raw": 6061.978999999999,
+   "excess_fit": 1289.4400000000005,
+   "excess_net": 1289.4400000000005,
+   "fit": 54204.122000000025,
+   "missing_fit": 1455.7849999999994,
+   "missing_net": 1455.7849999999994,
+   "model": 54037.77699999998,
+   "net": 54204.122000000025,
    "tail": 0.0,
    "untied_tail": 0.0
   },
   "700-1500": {
-   "Bi-214": 20736.13200000002,
+   "Bi-214": 20510.07400000001,
    "Pb-212": 0.0,
-   "Pb-214": 374.34000000000026,
+   "Pb-214": 375.04799999999994,
    "Ra-224": 0.0,
-   "Tl-208": 580.6570000000002,
+   "Tl-208": 782.7210000000003,
    "channels": 264,
-   "continuum_raw": 4686.401000000001,
-   "excess_fit": 1418.5529999999997,
-   "excess_net": 1418.5529999999997,
-   "fit": 21811.826000000015,
-   "missing_fit": 1539.2519999999993,
-   "missing_net": 1539.2519999999993,
-   "model": 21691.127,
-   "net": 21811.826000000015,
+   "continuum_raw": 4851.014000000015,
+   "excess_fit": 1403.9299999999996,
+   "excess_net": 1403.9299999999996,
+   "fit": 21813.520999999997,
+   "missing_fit": 1549.6080000000004,
+   "missing_net": 1549.6080000000004,
+   "model": 21667.842999999993,
+   "net": 21813.520999999997,
    "tail": 0.0,
    "untied_tail": 0.0
   }
@@ -139,14 +139,14 @@
    3000
   ]
  ],
- "declared": "2026-10-03 00:08",
- "head": "8652e267",
+ "declared": "2026-10-04 21:16",
+ "head": "8c0e5e78",
  "head_lines": {
-  "chi2": "chi2/ndf 1.369, невязка модели 6.3 %, суммирование да",
+  "chi2": "chi2/ndf 1.174, невязка модели 3.8 %, суммирование да",
   "composition": "состав объявлен: ; ряды: Rn-222, Th-228; распад 11, атомных 2, линий 269; полоса сведена ПОЛОМ ПО КРИВОЙ 20.6 кэВ (10.0 % от максимума, Min_Range 30.0), фит на всём спектре (умолчание), из них ниже Min_Range 3; членов ряда ниже порога ветвления 2; ряд от 222RN: вне равновесия с корнем (период длиннее его) — 206HG, 206PB, 206TL, 210BI, 210PB, 210PO; в подряд не взяты (T259); ряд от 222RN: переходное равновесие λ_д/(λ_д − λ_к) — 214BI ×1.0091, 214PB ×1.0055, 214PO ×1.0091 (AMBER55); ряд от 228TH: переходное равновесие λ_д/(λ_д − λ_к) — 208TL ×1.0059, 212BI ×1.0059, 212PB ×1.0059, 212PO ×1.0059, 216PO ×1.0052, 220RN ×1.0052, 224RA ×1.0052 (AMBER55); вылет от линий состава: SE-2615, DE-2615, SE-1764, DE-1764, SE-2204, DE-2204",
   "grey": "серый слой: ниже пола разноса 0.0 отсч. (в приложении пола нет — S175), выше последней линии 0.0 отсч.; всего 0.0 отсч. (0.000 % стека)",
-  "scale": "шкала: усиление 1.008070, сдвиг 0.000 канала",
-  "untied": "отвязанный хвост (S175; layer = в слое и доле своего образа, continuum = в подложке → серый слой, residual = в невязке): Pb-214 707.3 (layer); всего 707.3 отсч."
+  "scale": "шкала: усиление 0.988997, сдвиг 0.000 канала",
+  "untied": "отвязанный хвост (S175; layer = в слое и доле своего образа, continuum = в подложке → серый слой, residual = в невязке): Bi-214 255.8 (layer); всего 255.8 отсч."
  },
  "inputs": {
   "devices": {
@@ -158,18 +158,18 @@
   "matrices": {
    "966a4a49-d62e-0ee4-4a4d-e62692fe159d.rmx": {
     "from": "tools/CORPUS/corpus/geometries/G1S_mar1l_coal_046_p24.rmx",
-    "sha": "b7b63f563943803b"
+    "sha": "9a16a1c52207b3be"
    }
   },
   "probes": {
-   "app_sha": "6f56bff643dc5ea7",
-   "built": "2026-10-02 23:50:02",
-   "dir": "tools/effmaker/probes/build",
+   "app_sha": "233c281de8d96ae6",
+   "built": "2026-10-03 19:23:06",
+   "dir": "tools/effmaker/probes/build_p228",
    "freshness_checked": true,
-   "shot_sha": "f6949d09e4e1e579"
+   "shot_sha": "8aed8cc9ce7caaf0"
   },
   "spectrum": "../CORPUS/corpus/spectra/G1S24_Rn222Coal_Mar_eq01.xml",
-  "spectrum_sha": "02c7add5c415c4ce"
+  "spectrum_sha": "5f4f28f4a436b380"
  },
  "layers": [
   "tail",
@@ -185,60 +185,60 @@
  "rates": {
   "component": {
    "Bi-214": {
-    "count_rate": 62.68709425508918,
+    "count_rate": 68.14086040975701,
     "decay_chain_root": "Rn-222",
-    "decision_threshold_rate": 1.1466918495726144,
+    "decision_threshold_rate": 1.1658299930567044,
     "detected": "1",
-    "detection_limit_rate": 2.3221829492459154,
+    "detection_limit_rate": 2.3586702098851116,
     "kind": "Single",
-    "peak_counts": 49490.70126635029,
-    "share_pct": 49.15447051426229,
-    "z": 49.10626274554301
+    "peak_counts": 48636.785656120686,
+    "share_pct": 48.44747551530387,
+    "z": 52.758268851303605
    },
    "Pb-212": {
-    "count_rate": 6.9915472666441145,
+    "count_rate": 7.862066598080227,
     "decay_chain_root": "Th-228",
-    "decision_threshold_rate": 0.7931157997847494,
+    "decision_threshold_rate": 0.8225877018461009,
     "detected": "1",
-    "detection_limit_rate": 1.5964011417622765,
+    "detection_limit_rate": 1.654730733216839,
     "kind": "Single",
-    "peak_counts": 7198.19039227569,
-    "share_pct": 4.48555117088247,
-    "z": 12.521731874843082
+    "peak_counts": 7303.211049143195,
+    "share_pct": 4.567716876923529,
+    "z": 14.06395638007064
    },
    "Pb-214": {
-    "count_rate": 65.8616657312594,
+    "count_rate": 73.12644540180145,
     "decay_chain_root": "Rn-222",
-    "decision_threshold_rate": 1.1011607682323015,
+    "decision_threshold_rate": 1.123775553496993,
     "detected": "1",
-    "detection_limit_rate": 2.216134201172563,
+    "detection_limit_rate": 2.2604819683762307,
     "kind": "Single",
-    "peak_counts": 68593.81890838871,
-    "share_pct": 43.54615943985697,
-    "z": 50.064141640103564
+    "peak_counts": 69261.06000399645,
+    "share_pct": 43.39785804067994,
+    "z": 57.277726687926375
    },
    "Ra-224": {
-    "count_rate": 6.9915472666441145,
+    "count_rate": 7.862066598080227,
     "decay_chain_root": "Th-228",
-    "decision_threshold_rate": 0.7931157997847494,
+    "decision_threshold_rate": 0.8225877018461009,
     "detected": "1",
-    "detection_limit_rate": 1.5964011417622765,
+    "detection_limit_rate": 1.654730733216839,
     "kind": "Single",
-    "peak_counts": 351.40066479160544,
-    "share_pct": 0.254641660066767,
+    "peak_counts": 356.4784099778904,
+    "share_pct": 0.2594775296270907,
     "tied_to": "Pb-212",
-    "z": 12.521731874843082
+    "z": 14.06395638007064
    },
    "Tl-208": {
-    "count_rate": 4.850854877846811,
+    "count_rate": 7.013726799941548,
     "decay_chain_root": "Th-228",
-    "decision_threshold_rate": 1.5845934754285496,
+    "decision_threshold_rate": 1.5690357071193615,
     "detected": "1",
-    "detection_limit_rate": 3.229239099228012,
+    "detection_limit_rate": 3.19221634718002,
     "kind": "Single",
-    "peak_counts": 2536.538827535357,
-    "share_pct": 2.5591772149314815,
-    "z": 3.918535045252362
+    "peak_counts": 3333.6112239522627,
+    "share_pct": 3.3274720374655686,
+    "z": 5.485193514943239
    }
   },
   "grey": {
@@ -251,14 +251,14 @@
     "share_pct": 0.0
    },
    "residual_excess": {
-    "count_rate": 0.03890800444967274
+    "count_rate": 0.031069473932046798
    },
    "residual_floor": {
     "count_rate": 30.0,
     "peak_counts": 15.0
    },
    "residual_missing": {
-    "count_rate": 0.04026658750765651
+    "count_rate": 0.03187773018099103
    },
    "spread_floor": {
     "count_rate": 0.0,
@@ -267,165 +267,165 @@
   },
   "limit": {
    "Bi-212": {
-    "collinearity": 0.6363531333488095,
+    "collinearity": 0.6271609539246921,
     "count_rate": 0.0,
     "decay_chain_root": "Th-228",
-    "decision_threshold_rate": 8.743641684484,
+    "decision_threshold_rate": 8.719361513117127,
     "degenerate": 0.0,
     "detected": "0",
-    "detection_limit_rate": 17.714065336222134,
+    "detection_limit_rate": 17.642360346663416,
     "kind": "Single",
-    "limit_peak_counts": 1731.9598180623839,
+    "limit_peak_counts": 1555.9681111348584,
     "total_yield_pct": 19.851590747507192,
     "unmeasurable_at": "Pb-212"
    },
    "Bi-214": {
-    "collinearity": 0.7954402415939322,
-    "count_rate": 62.68709425508918,
+    "collinearity": 0.7934170369237756,
+    "count_rate": 68.14086040975701,
     "decay_chain_root": "Rn-222",
-    "decision_threshold_rate": 1.1466918495726144,
+    "decision_threshold_rate": 1.1658299930567044,
     "degenerate": 0.0,
     "detected": "1",
-    "detection_limit_rate": 2.3221829492459154,
+    "detection_limit_rate": 2.3586702098851116,
     "kind": "Single",
-    "limit_peak_counts": 1833.3352980005402,
+    "limit_peak_counts": 1683.5440107714442,
     "total_yield_pct": 132.79853688994086
    },
    "Pb-212": {
-    "collinearity": 0.5731323041305162,
-    "count_rate": 6.9915472666441145,
+    "collinearity": 0.6247031013993786,
+    "count_rate": 7.862066598080227,
     "decay_chain_root": "Th-228",
-    "decision_threshold_rate": 0.7931157997847494,
+    "decision_threshold_rate": 0.8225877018461009,
     "degenerate": 0.0,
     "detected": "1",
-    "detection_limit_rate": 1.5964011417622765,
+    "detection_limit_rate": 1.654730733216839,
     "kind": "Single",
-    "limit_peak_counts": 1734.5891343633903,
+    "limit_peak_counts": 1622.5560795708275,
     "total_yield_pct": 95.67716181926401
    },
    "Pb-214": {
-    "collinearity": 0.7191942294246885,
-    "count_rate": 65.8616657312594,
+    "collinearity": 0.7408925791849095,
+    "count_rate": 73.12644540180145,
     "decay_chain_root": "Rn-222",
-    "decision_threshold_rate": 1.1011607682323015,
+    "decision_threshold_rate": 1.123775553496993,
     "degenerate": 0.0,
     "detected": "1",
-    "detection_limit_rate": 2.216134201172563,
+    "detection_limit_rate": 2.2604819683762307,
     "kind": "Single",
-    "limit_peak_counts": 2308.066557140973,
+    "limit_peak_counts": 2140.9953183065754,
     "total_yield_pct": 98.99292500000001
    },
    "Po-214": {
-    "collinearity": 0.5737586440978364,
+    "collinearity": 0.5719560843403639,
     "count_rate": 0.0,
     "decay_chain_root": "Rn-222",
-    "decision_threshold_rate": 7126.342195374707,
+    "decision_threshold_rate": 7274.375782001455,
     "degenerate": 0.0,
     "detected": "0",
-    "detection_limit_rate": 14429.665182191753,
+    "detection_limit_rate": 14716.106690415141,
     "kind": "Single",
-    "limit_peak_counts": 485.4954432695489,
+    "limit_peak_counts": 447.3216459682325,
     "total_yield_pct": 0.010353,
     "unmeasurable_at": "Pb-214"
    },
    "Po-216": {
-    "collinearity": 0.5974273337133937,
+    "collinearity": 0.5989917182794644,
     "count_rate": 0.0,
     "decay_chain_root": "Th-228",
-    "decision_threshold_rate": 39861.09380525667,
+    "decision_threshold_rate": 40993.31573923549,
     "degenerate": 0.0,
     "detected": "0",
-    "detection_limit_rate": 80716.95759582508,
+    "detection_limit_rate": 82929.62013700294,
     "kind": "Single",
-    "limit_peak_counts": 579.2004713302555,
+    "limit_peak_counts": 533.6836516164285,
     "total_yield_pct": 0.001920532383,
     "unmeasurable_at": "Pb-212"
    },
    "Ra-224": {
-    "collinearity": 0.5731323041305162,
-    "count_rate": 6.9915472666441145,
+    "collinearity": 0.6247031013993786,
+    "count_rate": 7.862066598080227,
     "decay_chain_root": "Th-228",
-    "decision_threshold_rate": 0.7931157997847494,
+    "decision_threshold_rate": 0.8225877018461009,
     "degenerate": 0.0,
     "detected": "1",
-    "detection_limit_rate": 1.5964011417622765,
+    "detection_limit_rate": 1.654730733216839,
     "kind": "Single",
-    "limit_peak_counts": 80.23636183873337,
+    "limit_peak_counts": 75.03014655460005,
     "tied_to": "Pb-212",
     "total_yield_pct": 4.911104075801999
    },
    "Rn-220": {
-    "collinearity": 0.46299365374072865,
+    "collinearity": 0.4624645831439014,
     "count_rate": 0.0,
     "decay_chain_root": "Th-228",
-    "decision_threshold_rate": 444.3958190352119,
+    "decision_threshold_rate": 456.52113387615725,
     "degenerate": 0.0,
     "detected": "0",
-    "detection_limit_rate": 900.4002434486861,
+    "detection_limit_rate": 924.0193961165216,
     "kind": "Single",
-    "limit_peak_counts": 478.96627449141374,
+    "limit_peak_counts": 444.19826659855346,
     "total_yield_pct": 0.114,
     "unmeasurable_at": "Pb-212"
    },
    "Rn-222": {
-    "collinearity": 0.6190681155721849,
+    "collinearity": 0.6092863355215152,
     "count_rate": 0.0,
     "decay_chain_root": "Rn-222",
-    "decision_threshold_rate": 752.1077187497586,
+    "decision_threshold_rate": 765.6000366502564,
     "degenerate": 0.0,
     "detected": "0",
-    "detection_limit_rate": 1523.7748281614201,
+    "detection_limit_rate": 1549.3853362835712,
     "kind": "Single",
-    "limit_peak_counts": 690.2368530270973,
+    "limit_peak_counts": 632.1338161126023,
     "total_yield_pct": 0.078304291,
     "unmeasurable_at": "Pb-214"
    },
    "Th-228": {
-    "collinearity": 0.6255325369823415,
+    "collinearity": 0.6507851249786778,
     "count_rate": 0.0,
     "decay_chain_root": "Th-228",
-    "decision_threshold_rate": 35.463548079778064,
+    "decision_threshold_rate": 35.67601234259256,
     "degenerate": 0.0,
     "detected": "0",
-    "detection_limit_rate": 71.5817828571198,
+    "detection_limit_rate": 71.92324326605839,
     "kind": "Single",
-    "limit_peak_counts": 1534.7458172372133,
+    "limit_peak_counts": 1404.5433588662954,
     "total_yield_pct": 10.106100400000003,
     "unmeasurable_at": "Pb-212"
    },
    "Tl-208": {
-    "collinearity": 0.7055063186665287,
-    "count_rate": 4.850854877846811,
+    "collinearity": 0.6940148792731278,
+    "count_rate": 7.013726799941548,
     "decay_chain_root": "Th-228",
-    "decision_threshold_rate": 1.5845934754285496,
+    "decision_threshold_rate": 1.5690357071193615,
     "degenerate": 0.0,
     "detected": "1",
-    "detection_limit_rate": 3.229239099228012,
+    "detection_limit_rate": 3.19221634718002,
     "kind": "Single",
-    "limit_peak_counts": 1688.58697381254,
+    "limit_peak_counts": 1517.2544565511,
     "total_yield_pct": 240.44343000000003
    }
   },
   "meta": {
    "cascade_summing": 1.0,
-   "chi2ndf": 1.3685962329439463,
-   "chi2ndf_pois": 1.5495672349163367,
-   "gain": 1.0080698218627961,
+   "chi2ndf": 1.1742712590576678,
+   "chi2ndf_pois": 1.2006375009144232,
+   "gain": 0.9889965601505761,
    "live_time": 14400.001,
-   "model_residual": 0.0628836961732236,
+   "model_residual": 0.038070131777703076,
    "offset_channels": 0.0,
    "response_matrix": 1.0
   },
   "tail_in_layer": {
-   "Pb-214": {
+   "Bi-214": {
     "kind": "Single",
-    "peak_counts": 707.2714693483406
+    "peak_counts": 255.7845009504659
    }
   },
   "untied_tail": {
-   "Pb-214": {
+   "Bi-214": {
     "kind": "layer",
-    "peak_counts": 707.2714693483406
+    "peak_counts": 255.7845009504659
    }
   }
  },
@@ -433,35 +433,35 @@
   [
    "Bi-214",
    "Single",
-   "49.154",
+   "48.447",
    "-",
    "-"
   ],
   [
    "Pb-214",
    "Single",
-   "43.546",
+   "43.398",
    "-",
    "-"
   ],
   [
    "Pb-212",
    "Single",
-   "4.486",
+   "4.568",
    "-",
    "-"
   ],
   [
    "Tl-208",
    "Single",
-   "2.559",
+   "3.327",
    "-",
    "-"
   ],
   [
    "Ra-224",
    "Single",
-   "0.255",
+   "0.259",
    "-",
    "Pb-212"
   ]
@@ -469,27 +469,27 @@
  "screen": [
   [
    "Bi-214",
-   "49.15%",
+   "48.45%",
    ""
   ],
   [
    "Pb-214",
-   "43.55%",
+   "43.40%",
    ""
   ],
   [
    "Pb-212",
-   "4.49%",
+   "4.57%",
    ""
   ],
   [
    "Tl-208",
-   "2.56%",
+   "3.33%",
    ""
   ],
   [
    "Ra-224 — по Pb-212",
-   "0.25%",
+   "0.26%",
    ""
   ],
   [
@@ -514,17 +514,17 @@
   ],
   [
    "Th-228",
-   "< 0.809 %",
+   "< 0.74 %",
    ""
   ],
   [
    "Bi-212",
-   "< 0.913 %",
+   "< 0.82 %",
    ""
   ],
   [
    "не определяются (4)",
-   "< 1.18 %",
+   "< 1.08 %",
    "Rn-222, Po-214, Rn-220, Po-216"
   ],
   [
@@ -538,18 +538,18 @@
    ""
   ],
   [
-   "Невязка: + лишнее / − нехватка — шумовой пол 2.7 %, показ подрезан на 94 каналах, от 30 кэВ",
-   "+3.9 / −4.0 %",
+   "Невязка: + лишнее / − нехватка — шумовой пол 2.7 %, показ подрезан на 89 каналах, от 30 кэВ",
+   "+3.1 / −3.2 %",
    "Модель без единой ошибки всё равно даёт около 2.7 % в каждой половине: это пуассонов шум полосы (ожидаемое положительное отклонение каждого канала от идеальной модели, в сумме, от измеренных отсчётов той же полосы). Невязка около этого пола модель от идеальной не отличает; не описано только то, что сверх него."
   ],
   [
    "χ²/ndf, качество подгонки",
-   "1.37",
+   "1.17",
    ""
   ],
   [
    "σ×, во сколько раз раздута погрешность",
-   "1.170",
+   "1.084",
    "Погрешности компонентов домножены на этот множитель, sqrt(χ²/ndf), когда подгонка хуже одной лишь пуассоновской статистики. Порог значимости 3 означает поэтому 3 × этот множитель сырых сигм. 1.000 — раздутия нет."
   ],
   [
@@ -574,7 +574,7 @@
   ],
   [
    "Усиление по опорам, %",
-   "+0.81",
+   "-1.10",
    "Пики полного поглощения, по которым привязана шкала (+ опора, - отвергнут): компонент, центр модели кэВ, остаток кэВ, доля пика, причина"
   ],
   [
@@ -583,7 +583,7 @@
    "Пики полного поглощения, по которым привязана шкала (+ опора, - отвергнут): компонент, центр модели кэВ, остаток кэВ, доля пика, причина"
   ]
  ],
- "seconds": 10.5,
+ "seconds": 9.8,
  "spectrum": "../CORPUS/corpus/spectra/G1S24_Rn222Coal_Mar_eq01.xml",
  "tolerance": {
   "abs": 1e-06,

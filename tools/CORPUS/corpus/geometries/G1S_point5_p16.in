@@ -29,7 +29,7 @@ DS_CrystalDiameter = 6.3 cm
 DS_CrystalHeight = 6.3 cm
 DS_CrystalFrontReflectorThickness = 0.13 cm
 DS_CrystalSideReflectorThickness = 0.1 cm
-DS_CrystalFrontGapThickness = 0.9 cm
+DS_CrystalFrontGapThickness = 0 cm
 DS_CrystalSideGapThickness = 0 cm
 DS_CrystalFrontCladdingThickness = 0.18 cm
 DS_CrystalSideCladdingThickness = 0.2 cm
@@ -42,18 +42,18 @@ DS_DetectorMountingThickness = 0.2 cm
 //---------------------------------
 //Source types: POINT, CYLINDER, MARINELLI, BOX
 
-SourceType = CYLINDER
+SourceType = POINT
 
 //Point source
-pdistance = 10 cm
+pdistance = 5.85 cm
 
 //Cylindrical source
-SC_BeakerToDetectorFrontDistance = 0 cm
-SC_BeakerDiameter = 8.9403874 cm
-SC_BeakerHeight = 1.1 cm
+SC_BeakerToDetectorFrontDistance = 0.5 cm
+SC_BeakerDiameter = 4 cm
+SC_BeakerHeight = 2 cm
 SC_BeakerSideWallThickness = 0.1 cm
 SC_BeakerEndWallThickness = 0.1 cm
-SC_SourceHeight = 1 cm
+SC_SourceHeight = 2 cm
 
 //Marinelli beaker source
 SM_BeakerToDetectorFrontDistance = 0.1 cm
@@ -223,22 +223,20 @@ M_SC_Beaker.MatRelWeight[0] = 1
 
 
 //Source 
-SC_nSourceElements = 5
-SC_RoSource = 0.66666667
-SC_ZSource[0] = 1
-SC_FractionsSource[0] = 0.064
-SC_ZSource[1] = 6
-SC_FractionsSource[1] = 0.612
-SC_ZSource[2] = 7
-SC_FractionsSource[2] = 0.021
-SC_ZSource[3] = 8
-SC_FractionsSource[3] = 0.151
-SC_ZSource[4] = 26
-SC_FractionsSource[4] = 0.151
+SC_nSourceElements = 4
+SC_RoSource = 0.001205
+SC_ZSource[0] = 6
+SC_FractionsSource[0] = 0.000124
+SC_ZSource[1] = 7
+SC_FractionsSource[1] = 0.755268
+SC_ZSource[2] = 8
+SC_FractionsSource[2] = 0.231781
+SC_ZSource[3] = 18
+SC_FractionsSource[3] = 0.012827
 SC_FractionTypeSource = MASS
-M_SC_Source.MName = Œ»—Õ-06
+M_SC_Source.MName = Air, dry
 M_SC_Source.Nmaterials = 1
-M_SC_Source.Name[0] = Œ»—Õ-06                                  
+M_SC_Source.Name[0] = Air, dry                                 
 M_SC_Source.MatRelWeight[0] = 1
 
 
@@ -280,22 +278,20 @@ M_SM_Beaker.MatRelWeight[0] = 1
 
 
 //Source  
-SM_nSourceElements = 5
-SM_RoSource = 0.66666667
-SM_ZSource[0] = 1
-SM_FractionsSource[0] = 0.064
-SM_ZSource[1] = 6
-SM_FractionsSource[1] = 0.612
-SM_ZSource[2] = 7
-SM_FractionsSource[2] = 0.021
-SM_ZSource[3] = 8
-SM_FractionsSource[3] = 0.151
-SM_ZSource[4] = 26
-SM_FractionsSource[4] = 0.151
+SM_nSourceElements = 4
+SM_RoSource = 0.001205
+SM_ZSource[0] = 6
+SM_FractionsSource[0] = 0.000124
+SM_ZSource[1] = 7
+SM_FractionsSource[1] = 0.755268
+SM_ZSource[2] = 8
+SM_FractionsSource[2] = 0.231781
+SM_ZSource[3] = 18
+SM_FractionsSource[3] = 0.012827
 SM_FractionTypeSource = MASS
-M_SM_Source.MName = Œ»—Õ-06
+M_SM_Source.MName = Air, dry
 M_SM_Source.Nmaterials = 1
-M_SM_Source.Name[0] = Œ»—Õ-06                                  
+M_SM_Source.Name[0] = Air, dry                                 
 M_SM_Source.MatRelWeight[0] = 1
 
 
