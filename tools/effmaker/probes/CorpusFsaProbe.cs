@@ -1170,6 +1170,14 @@ namespace CorpusFsaProbe
                     o.CurveLightLever = v == "1" ? 1 : 0;
                     continue;
                 }
+                // (`AMBER155`, П229) без матрицы при нелинейной калибровке файла свет: 0 — снят (умолчание), 1 — прежнее
+                if (a.StartsWith("--curve-light-nonlinear=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(24);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--curve-light-nonlinear=0|1"); }
+                    o.CurveLightNonlinear = v == "1" ? 1 : 0;
+                    continue;
+                }
                 // (`AMBER142` п. 9, П215) ноль шкалы без плеча опор: inherit — прежнее
                 if (a.StartsWith("--no-lever-zero=", StringComparison.Ordinal))
                 {
@@ -2547,6 +2555,11 @@ namespace CorpusFsaProbe
             if (o.CurveLightLever >= 0)
             {
                 analyzer.AnchorCurveLightLever = o.CurveLightLever == 1;
+            }
+
+            if (o.CurveLightNonlinear >= 0)
+            {
+                analyzer.AnchorCurveLightLinearOnly = o.CurveLightNonlinear == 0;
             }
 
             if (o.NoLeverZero >= 0)
@@ -6264,6 +6277,7 @@ namespace CorpusFsaProbe
             public int AnchorPasses = -1;
             public int AnchorOffsetMin = -1;
             public int CurveLightLever = -1;
+            public int CurveLightNonlinear = -1;   // (`AMBER155`, П229) −1 — умолчание анализатора; 0 свет снят, 1 прежнее
             public int NoLeverZero = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора; 0 inherit, 1 instrument, 2 shift
             public int AnchorCoreOwner = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора
             public int AnchorShareNet = -1;    // (`AMBER142`, П222) −1 — умолчание анализатора

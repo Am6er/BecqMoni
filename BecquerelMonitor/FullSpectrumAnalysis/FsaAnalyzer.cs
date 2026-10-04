@@ -5400,6 +5400,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool AnchorCurveLightLever { get; set; }
 
         /// <summary>
+        /// ⛔ (`AMBER155`, П229 04.10.2026) РЕЖИМ КРИВОЙ (без матрицы отклика)
+        /// ПРИ НЕЛИНЕЙНОЙ КАЛИБРОВКЕ ФАЙЛА — ПОЛОЖЕНИЯ ПО СВЕТУ НЕТ ВОВСЕ:
+        /// световая координата <see cref="AnchorLightPosition"/> не ставится,
+        /// образы — на табличной энергии по калибровке файла (β = 0).
+        ///
+        /// Почему. Калибровку файла прибор (или человек) снимает ПО ПИКАМ, и
+        /// нелинейный полином уже несёт кривизну света фотопиков между ними;
+        /// s(E) поверх неё считает ту же кривизну второй раз. С матрицей это
+        /// снимает карта нуля «adc» со своим нулём света; без матрицы карты
+        /// нет (`AMBER156`, П195), и прежде спасало только то, что старая
+        /// таблица света NaI между 59 и 2614 кэВ шла почти по хорде (остаток
+        /// около 3 кэВ на 1000 кэВ). Крутая таблица «t7» (П220) даёт там
+        /// остаток около 16 кэВ — ровно столько, сколько уже несёт кубическая
+        /// калибровка `AS80_Th232WT20` (отход от хорды 60…2600 кэВ — 15.6 кэВ). Измерено
+        /// (П229): опоры прохода 0 — рентген W 59 и 2614 кэВ, свет β = 1,
+        /// середина модели встаёт выше данных на 7…8 кэВ (238 → 248.4 против
+        /// 241.1), фит перестраивается, доля ядра 2614 падает 0.58 → 0.45
+        /// (порог 0.5), плеча нет, `S210` снимает свет, а ноль −31 кан.,
+        /// поставленный проходом со светом, остаётся: усиление 1.186, ряд
+        /// тория — в образы вылета, χ²/ndf 20.28 → 36.32. Без света — две
+        /// опоры, усиление 1.0013, χ²/ndf 20.39. Линейная калибровка кривизны
+        /// света не несёт — у неё координата прежняя (с `S210`). Нелинейность —
+        /// отход калибровки от хорды по всей шкале каналов дальше канала.
+        /// С матрицей не действует (путь побитово прежний). Умолчание — в
+        /// конструкторе; обратное плечо — `--curve-light-nonlinear=1` у
+        /// `CorpusFsaProbe` (прежний ход).
+        /// </summary>
+        public bool AnchorCurveLightLinearOnly { get; set; }
+
+        /// <summary>
         /// ⛔ (`AMBER142` п. 9, П215 02.10.2026) ЧТО ДЕЛАТЬ С НУЛЁМ ШКАЛЫ, КОГДА
         /// У ОПОР ПРОХОДА НЕТ ПЛЕЧА (одна опора, пара соседних линий): ноль по
         /// ним не определён, МНК подбирает одно усиление. Прежде
@@ -6560,6 +6590,58 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// добавка β к уже стоящему <see cref="driftLight"/>, ровно такая,
         /// чтобы итог стал единицей.
         /// </summary>
+        /// <summary>
+        /// (`AMBER155`, П229) Причина, по которой положение по свету снято
+        /// калибровкой файла (<see cref="AnchorCurveLightLinearOnly"/>); null — не снято.
+        /// </summary>
+        string lightOffByCalibration;
+
+        /// <summary>
+        /// (`AMBER155`, П229) Калибровка нелинейна, если по всей шкале каналов
+        /// она отходит от хорды между крайними каналами дальше одного канала
+        /// (отход в кэВ, делённый на местную цену канала). Отход ближе канала
+        /// шкалу не двигает ни в одном пике. Наружу — наибольший отход, кэВ и кан.
+        /// </summary>
+        static bool CalibrationOffChord(EnergyCalibration calibration, int channels,
+                                        out double offKev, out double offChannels)
+        {
+            offKev = 0.0;
+            offChannels = 0.0;
+            if (calibration == null || channels < 8)
+            {
+                return false;
+            }
+
+            int last = channels - 1;
+            double e0 = calibration.ChannelToEnergy(0);
+            double e1 = calibration.ChannelToEnergy(last);
+            if (!Finite(e0) || !Finite(e1) || !(e1 > e0))
+            {
+                return false;
+            }
+
+            const int Steps = 64;
+            for (int k = 1; k < Steps; k++)
+            {
+                double ch = (double)last * k / Steps;
+                double e = calibration.ChannelToEnergy(ch);
+                double perChannel = calibration.ChannelToEnergy(ch + 0.5) - calibration.ChannelToEnergy(ch - 0.5);
+                if (!Finite(e) || !(perChannel > 0.0))
+                {
+                    continue;
+                }
+
+                double off = e - (e0 + (e1 - e0) * ch / last);
+                if (Math.Abs(off) / perChannel > Math.Abs(offChannels))
+                {
+                    offKev = off;
+                    offChannels = off / perChannel;
+                }
+            }
+
+            return Math.Abs(offChannels) > 1.0;
+        }
+
         List<FsaScaleAnchor> CollectScaleAnchors(FitResult fit, EnergyCalibration calibration,
                                                  FwhmCalibration fwhmCalibration,
                                                  double gain, double offset,
@@ -8700,6 +8782,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.AnchorLightMaxKev = 0.0;
             // (`S210`, П212) без матрицы свет — только при плече опор
             this.AnchorCurveLightLever = true;
+            // (`AMBER155`, П229) без матрицы при нелинейной калибровке файла — без света
+            this.AnchorCurveLightLinearOnly = true;
             // (`AMBER142` п. 9, П215) без плеча опор — ноль прежних проходов
             // (прежний ход; ноль прибора и допуск ядра — рычагами); решение Amber
             // 02.10.2026 вопросником, дословно: «Умолчания оставить, рычаги в коде (Рекомендую)»
@@ -9373,7 +9457,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // β = 1: канал i → энергия E → E + s(E) → канал; s(E) из фотонной
             // кривой света вещества кристалла (`FsaLightScale`). Один раз на
             // разбор; вещество без кривой — таблицы нет, шкала как без ключа.
-            if (this.AnchorLightPosition)
+            // ⛔ (`AMBER155`, П229) без матрицы нелинейная калибровка файла уже
+            // несёт свет — координаты нет (доводы у <see cref="AnchorCurveLightLinearOnly"/>)
+            this.lightOffByCalibration = null;
+            if (this.AnchorLightPosition && this.ResponseMatrix == null && this.AnchorCurveLightLinearOnly)
+            {
+                double chordKev, chordChannels;
+                if (CalibrationOffChord(calibration, channels, out chordKev, out chordChannels))
+                {
+                    this.lightOffByCalibration = string.Format(CultureInfo.InvariantCulture,
+                        "положение по свету снято: без матрицы калибровка файла нелинейна (отход от хорды {0:F1} кэВ, {1:F1} кан.) — свет уже в ней",
+                        chordKev, chordChannels);
+                }
+            }
+
+            if (this.AnchorLightPosition && this.lightOffByCalibration == null)
             {
                 // (`AMBER156` (б), П195) Вещество без матрицы — у геометрии
                 // кривой (<see cref="FsaEfficiency.CrystalMaterial"/>): таблица
@@ -11022,7 +11120,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // до буквы (контроль «ключ ВЫКЛ ничего не двигает»).
                     }
 
-                    if (this.AnchorLightPosition && this.lightCurveName == null)
+                    if (this.lightOffByCalibration != null)
+                    {
+                        // (`AMBER155`, П229) свет снят калибровкой файла — сказать, почему
+                        this.anchorNote = (this.anchorNote ?? "") + "; " + this.lightOffByCalibration;
+                    }
+                    else if (this.AnchorLightPosition && this.lightCurveName == null)
                     {
                         // Ключ есть, кривой нет — сказать, а не промолчать:
                         // иначе «положение по свету ВКЛ» на CZT/LaBr3 выглядит
