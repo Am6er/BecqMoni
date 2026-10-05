@@ -53,6 +53,7 @@ RM_DEV void Sim::InitPhoton()
     annihilationEscapes = 0;
     lightDeposit = 0;
     // cascadeStack не обнуляется: C# читает только записанное (`top`).
+    cascadeUsed = 0;    // (`A314`) дно стека; между историями ноль держится сам (вызовы парные)
 
     CountCrystalCompton = 0;
     CountCrystalVacancy = 0;
@@ -664,9 +665,11 @@ RM_DEVF real Sim::VacancyElectronsSplit(real x, real y, real z, real total, int 
 }
 
 // = EfficiencySimulator.cs:5854 RelaxationElectrons
-// ⚠ Стек `cascadeStack` — ОДИН на нить, как в C# один на симулятор (`int[] stack =
-// this.cascadeStack`): вложенный вызов (через `ElectronLoss` → тормозное → `InCrystal` →
-// фотопоглощение) пишет в него с нуля поверх незавершённого внешнего. Перенесено КАК ЕСТЬ.
+// Стек `cascadeStack` — ОДИН на нить, как в C# один на симулятор. (`A314`, П232) Вложенный
+// вызов (через `ElectronLoss` → тормозное → `InCrystal` → фотопоглощение) работает выше
+// живых записей внешнего: дно `cascadeUsed`, перед своим `ElectronLoss` оно поднимается до
+// вершины (= C# `CascadeElectronLoss`; счётчики `CountCascadeNested/Clobbered` не перенесены —
+// диагностика, на розыгрыш не влияют).
 RM_DEVF real Sim::RelaxationElectrons(real x, real y, real z, int relaxIndex,
                                       int shell, real budgetKev, real xray, int kLine, real casc,
                                       bool cascadeRolled, int depth, bool selfRolled)
@@ -678,7 +681,8 @@ RM_DEVF real Sim::RelaxationElectrons(real x, real y, real z, int relaxIndex,
 
     const RelaxationG& relax = D.relax[relaxIndex];
     int* stack = cascadeStack;
-    int top = 0;
+    int bottom = cascadeUsed;   // (`A314`) свой участок — выше живых записей внешнего
+    int top = bottom;
     bool firstNonRadiative = false;
     int seed = shell;
     if (xray > (real)0.0)
@@ -720,7 +724,7 @@ RM_DEVF real Sim::RelaxationElectrons(real x, real y, real z, int relaxIndex,
     real blob = (real)0.0;
     real scored = (real)0.0;
     bool first = true;
-    while (top > 0)
+    while (top > bottom)
     {
         int v = stack[--top];
         bool radiative;
@@ -744,7 +748,10 @@ RM_DEVF real Sim::RelaxationElectrons(real x, real y, real z, int relaxIndex,
             scored += pe;
             if (pe >= (real)1.0)
             {
+                int saved = cascadeUsed;   // (`A314`) = C# CascadeElectronLoss
+                cascadeUsed = top;
                 lost += ElectronLoss(x, y, z, pe, depth);
+                cascadeUsed = saved;
             }
             else if (pe > (real)0.0)
             {
@@ -769,7 +776,10 @@ RM_DEVF real Sim::RelaxationElectrons(real x, real y, real z, int relaxIndex,
         scored += kev;
         if (kev >= (real)1.0)
         {
+            int saved = cascadeUsed;       // (`A314`) = C# CascadeElectronLoss
+            cascadeUsed = top;
             lost += ElectronLoss(x, y, z, kev, depth);
+            cascadeUsed = saved;
         }
         else if (kev > (real)0.0)
         {

@@ -64,10 +64,11 @@ int annihilationEscapes;
 // по историям копит полоса Д в double.
 real lightDeposit;
 
-// Стек вакансий каскада (:8085). ⚠ ОДИН на нить, как в C# один на симулятор: вложенный
+// Стек вакансий каскада (:8085). ОДИН на нить, как в C# один на симулятор; вложенный
 // `RelaxationElectrons` (через тормозное оже-электрона → `InCrystal` → фотопоглощение)
-// пишет в тот же массив с нуля поверх внешнего — перенесено КАК ЕСТЬ, см. отчёт полосы В.
+// работает ВЫШЕ живых записей внешнего — дно `cascadeUsed` (= C# `cascadeUsed`, `A314`, П232).
 int cascadeStack[CascadeStackSize];
+int cascadeUsed;
 
 // --- счётчики-диагностика (EfficiencySimulator.cs:3890-3893, :3932, :8124) ---
 // CountBremPhotons/SumBremKev (:457-458) объявлены в decl_electron.inc (полоса Г),
