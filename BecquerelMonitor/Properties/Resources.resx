@@ -42953,6 +42953,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyTabCurveOldPeak" xml:space="preserve">
     <value>Curve of generation {0} was computed with the previous photopeak definition: its stamp has no "{1}" (peak in the ±FWHM/2 window of the full response) — recompute it.</value>
   </data>
+  <data name="EfficiencyTabCurveOldVessel" xml:space="preserve">
+    <value>The curve was computed with the previous vessel scene: its stamp has no "{0}" (vessel wall over the full vessel height, far end wall of the Marinelli beaker) — recompute it.</value>
+  </data>
   <data name="ResponseMatrixUseInFsa" xml:space="preserve">
     <value>Use the matrix in full-spectrum analysis (FSA)</value>
   </data>
