@@ -28,6 +28,13 @@ namespace MaterialOrderProbe
     /// 3. совпадает ли состав, собранный БИБЛИОТЕКОЙ, с составом того же
     ///    вещества, прочитанным из файла, — то самое расхождение «в редакторе
     ///    одно, после сохранения другое».
+    ///
+    /// (`A313`, П232 05.10.2026) С `--scene=` и `--gap=<вещество библиотеки>`
+    /// зазор сцены заменяется веществом, которое библиотека отдаёт НЕ по
+    /// возрастанию Z (у засевного «Air, dry» порядок уже верный — положительного
+    /// контроля на нём не выйдет), и та же модель считается с зазором в порядке
+    /// формулы и упорядоченным: обязано сойтись побитово. Коды: 0 — чисто,
+    /// 2 — круг через файл разошёлся (`A162`), 3 — разошёлся порядок зазора.
     /// </summary>
     static class Program
     {
@@ -51,6 +58,10 @@ namespace MaterialOrderProbe
             string report = "";
             string scene = "";
             string curves = "";
+            // (`A313`, П232) Вещество ЗАЗОРА из библиотеки — положительный контроль:
+            // зазор сцены заменяется веществом, которое библиотека отдаёт НЕ по
+            // возрастанию Z (у «Air, dry» засева порядок уже 6, 7, 8, 18).
+            string gapName = "";
             foreach (string a in args)
             {
                 if (a.StartsWith("--dirs=", StringComparison.Ordinal))
@@ -74,6 +85,10 @@ namespace MaterialOrderProbe
                 else if (a.StartsWith("--curves=", StringComparison.Ordinal))
                 {
                     curves = a.Substring(9);
+                }
+                else if (a.StartsWith("--gap=", StringComparison.Ordinal))
+                {
+                    gapName = a.Substring(6);
                 }
                 else
                 {
@@ -150,7 +165,7 @@ namespace MaterialOrderProbe
 
                     bool bad = false;
                     foreach (GeometryMaterial m in new GeometryMaterial[]
-                             { g.Crystal, g.Reflector, g.Cladding, g.BeakerWall, g.Source })
+                             { g.Crystal, g.Reflector, g.Gap, g.Cladding, g.BeakerWall, g.Source })
                     {
                         if (m == null)
                         {
@@ -234,9 +249,25 @@ namespace MaterialOrderProbe
                 say("");
                 say("РЕДАКТОР ПРОТИВ ФАЙЛА: " + Path.GetFileName(scene));
                 GeometryModel a = GeometryModel.Load(scene);
+                if (gapName.Length > 0)
+                {
+                    GeometryMaterialLibrary.Entry ge = Find(lib, gapName);
+                    if (ge == null)
+                    {
+                        Console.Error.WriteLine("нет в библиотеке вещества зазора: " + gapName);
+                        return 1;
+                    }
+
+                    a.Gap = GeometryMaterialLibrary.Make(ge, ge.Density);
+                    a.Gap.Name = ge.Name;
+                    say(string.Format(CultureInfo.InvariantCulture,
+                                      "    зазор (торец {0:G6}, бок {1:G6}) заменён веществом «{2}» из библиотеки",
+                                      a.FrontGapThickness, a.SideGapThickness, ge.Name));
+                }
+
                 int replaced = 0;
                 foreach (GeometryMaterial m in new GeometryMaterial[]
-                         { a.Crystal, a.Reflector, a.Cladding, a.BeakerWall, a.Source })
+                         { a.Crystal, a.Reflector, a.Gap, a.Cladding, a.BeakerWall, a.Source })
                 {
                     GeometryMaterialLibrary.Entry e = Find(lib, m.Name);
                     if (e == null)
@@ -262,7 +293,7 @@ namespace MaterialOrderProbe
                 say(string.Format(CultureInfo.InvariantCulture,
                                   "    веществ взято из библиотеки: {0}", replaced));
                 foreach (GeometryMaterial m in new GeometryMaterial[]
-                         { a.Crystal, a.Reflector, a.Cladding, a.BeakerWall, a.Source })
+                         { a.Crystal, a.Reflector, a.Gap, a.Cladding, a.BeakerWall, a.Source })
                 {
                     say(string.Format(CultureInfo.InvariantCulture,
                                       "    {0,-34} [{1}]", m.Name, Order(m.Fractions)));
@@ -312,9 +343,54 @@ namespace MaterialOrderProbe
 
                 say(string.Format(CultureInfo.InvariantCulture,
                                   "    РАСХОЖДЕНИЙ ПО КРИВОЙ: {0} из 6", moved));
-                if (moved > 0)
+                // ⚠ С `--gap` круг через файл — справка, а не приговор: зазор
+                // толщиной в сантиметры из вещества библиотеки (доли в полной
+                // точности) против долей, записанных `G6`, сдвигает кривую на
+                // ~1e-5 % — это формат долей, не порядок. Порядок зазора меряет
+                // проверка ниже, побитово и без файла.
+                if (moved > 0 && gapName.Length == 0)
                 {
                     bad162 = true;
+                }
+
+                // (`A313`, П232) Сам дефект: та же модель в памяти, зазор в
+                // порядке формулы против зазора, упорядоченного заранее. До
+                // правки конструктор симулятора зазор не сортировал, и кривые
+                // расходились на величину шума; после — обязаны совпасть
+                // ПОБИТОВО (источник один, файла нет, округлять нечему).
+                if (gapName.Length > 0)
+                {
+                    GeometryModel c = a.Clone();
+                    c.Gap.SortFractions();
+                    say(string.Format(CultureInfo.InvariantCulture,
+                                      "    ЗАЗОР В ПОРЯДКЕ ФОРМУЛЫ [{0}] ПРОТИВ УПОРЯДОЧЕННОГО [{1}] (A313):",
+                                      Order(a.Gap.Fractions), Order(c.Gap.Fractions)));
+                    var s1 = new EfficiencySimulator(a) { Histories = 60000 };
+                    var s2 = new EfficiencySimulator(c) { Histories = 60000 };
+                    int differ313 = 0;
+                    foreach (double energy in new double[] { 50, 100, 300, 662, 1461, 2614 })
+                    {
+                        double err;
+                        double e1 = s1.Efficiency(energy, out err);
+                        double e2 = s2.Efficiency(energy, out err);
+                        if (e1 != e2)
+                        {
+                            differ313++;
+                        }
+
+                        say(string.Format(CultureInfo.InvariantCulture,
+                                          "    {0,6:F0} кэВ: {1:E10} / {2:E10}  {3}",
+                                          energy, e1, e2,
+                                          e1 == e2 ? "побитово" : string.Format(CultureInfo.InvariantCulture,
+                                              "РАЗОШЛОСЬ ({0:E2} %)", e1 > 0.0 ? Math.Abs(e2 / e1 - 1.0) * 100.0 : 0.0)));
+                    }
+
+                    say(string.Format(CultureInfo.InvariantCulture,
+                                      "    РАСХОЖДЕНИЙ ИЗ-ЗА ПОРЯДКА ЗАЗОРА: {0} из 6", differ313));
+                    if (differ313 > 0)
+                    {
+                        bad313 = true;
+                    }
                 }
             }
 
@@ -341,10 +417,11 @@ namespace MaterialOrderProbe
                 say("кривые: " + curves + " (строк " + curveLines.Count.ToString(CultureInfo.InvariantCulture) + ")");
             }
 
-            return bad162 ? 2 : 0;
+            return bad162 ? 2 : bad313 ? 3 : 0;
         }
 
         static bool bad162;
+        static bool bad313;
         static readonly List<string> curveLines = new List<string>();
 
         static void Report(Action<string> say, string title, List<GeometryMaterialLibrary.Entry> list)
