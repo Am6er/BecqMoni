@@ -305,8 +305,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.BeakerEndWallThickness = 0.0;
             g.SourceHeight = GroundDepthMfp * mfp;
             g.BeakerDiameter = 2.0 * (GroundRadiusMfp * mfp + GroundRadiusPerHeight * height);
-            // Расчёт высоту сосуда не читает (у цилиндра сцену задаёт высота
-            // ПРОБЫ), но поле есть и уезжает в файл `.in`: пусть не врёт.
+            // Высота сосуда = высоте пробы: стенок нет, и сцена счёта с
+            // `AMBER205` (стенка на полную высоту сосуда) строится той же —
+            // побитово прежней, без `bmscene` в клейме. Поле уезжает в `.in`.
             g.BeakerHeight = g.SourceHeight;
             return substituted;
         }
@@ -332,8 +333,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.MarinelliHoleHeight = BoreholeDepthMfp * mfp;
             g.MarinelliSourceHeight = g.MarinelliHoleHeight + BoreholeBottomMfp * mfp;
             g.MarinelliBeakerDiameter = hole + 2.0 * BoreholeSideMfp * mfp;
-            // Как и у цилиндра: расчёт высоту сосуда не читает, но поле уезжает
-            // в файл, и стакан ниже своей пробы выглядел бы ошибкой.
+            // Как и у цилиндра: высота стакана = высоте пробы, стенок и донышка
+            // нет — сцена счёта `AMBER205` та же, побитово; стакан ниже своей
+            // пробы выглядел бы ошибкой.
             g.MarinelliBeakerHeight = g.MarinelliSourceHeight;
 
             // Сосуда нет: лунка — это дырка в грунте, а не стакан.

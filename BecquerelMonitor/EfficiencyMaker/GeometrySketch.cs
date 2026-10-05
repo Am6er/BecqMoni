@@ -707,13 +707,39 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double the = Math.Max(m.MarinelliHoleEndWallThickness, 0.0);
                     double endWall = Math.Max(m.MarinelliEndWallThickness, 0.0);
                     double zSrc0 = zCeiling - the - Math.Max(hs - hh, 0.0);
+                    // (`AMBER205`) Пустая часть стакана — за пробой (см. DrawSource).
+                    double zTopOuter = zSrc0 - endWall - MarinelliFarGap(m);
                     left = -rOut;
                     right = rOut;
-                    top = zSrc0 - endWall;
-                    bottom = Math.Max(zSrc0 - endWall + Math.Max(m.MarinelliBeakerHeight, 0.0), zFace);
+                    top = zTopOuter;
+                    bottom = Math.Max(zTopOuter + Math.Max(m.MarinelliBeakerHeight, 0.0), zFace);
                     return;
                 }
             }
+        }
+
+        /// <summary>
+        /// (`AMBER205`) Пустота стакана маринелли между пробой и дальним
+        /// донышком, мм — тем же правилом, каким строится сцена счёта
+        /// (<see cref="EfficiencySimulator.MarinelliVessel"/>): чертёж обязан
+        /// рисовать то, что считается.
+        /// </summary>
+        static double MarinelliFarGap(GeometryModel m)
+        {
+            double farGap, nearExt, endWall;
+            EfficiencySimulator.MarinelliVessel(m, out farGap, out nearExt, out endWall);
+            return farGap;
+        }
+
+        /// <summary>
+        /// (`AMBER205`) Запас боковой стенки цилиндра над пробой, мм —
+        /// <see cref="EfficiencySimulator.CylinderVessel"/>.
+        /// </summary>
+        static double CylinderHeadspace(GeometryModel m)
+        {
+            double headspace;
+            EfficiencySimulator.CylinderVessel(m, out headspace);
+            return headspace;
         }
 
         void DrawSource(Graphics g, GeometryModel m, double zFace)
@@ -791,11 +817,21 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double hs = Math.Max(m.SourceHeight, 0.0);
                     double zWallTop = zFace - Math.Max(m.BeakerToDetectorDistance, 0.0);
                     double zSrcTop = zWallTop - end;
-                    Fill(g, WallColor, -rOut, zSrcTop - hs, 2.0 * rOut, hs + end);
+                    // (`AMBER205`) Стенка — на полную высоту сосуда, запас над
+                    // пробой пуст (крышки нет) — той же раскладкой, что сцена
+                    // счёта (`EfficiencySimulator.CylinderVessel`).
+                    double headspace = CylinderHeadspace(m);
+                    double zBody = zSrcTop - hs - headspace;
+                    Fill(g, WallColor, -rOut, zBody, 2.0 * rOut, hs + end + headspace);
+                    if (headspace > 0.0)
+                    {
+                        Fill(g, Canvas, -(rOut - wall), zBody, 2.0 * (rOut - wall), headspace);
+                    }
+
                     Fill(g, SampleColor, -(rOut - wall), zSrcTop - hs, 2.0 * (rOut - wall), hs);
                     using (Pen pen = new Pen(Ink, 1.2f))
                     {
-                        Outline(g, pen, -rOut, zSrcTop - hs, 2.0 * rOut, hs + end);
+                        Outline(g, pen, -rOut, zBody, 2.0 * rOut, hs + end + headspace);
                     }
 
                     return;
@@ -825,8 +861,20 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // Высота стакана — ПОЛНАЯ, снаружи: у RadiaCode 0.5 л это
                     // 8.9 при пробе 8.5 и донышке 0.2. Прежде тело рисовалось
                     // на `side` выше самого себя.
-                    Fill(g, WallColor, -rOut, zSrc0 - endWall, 2.0 * rOut, body);
+                    //
+                    // (`AMBER205`) Пустая часть стакана — ЗА пробой, со стороны,
+                    // дальней от детектора (`EfficiencySimulator.MarinelliVessel`,
+                    // ей же строится сцена счёта): верх тела уходит на `farGap`
+                    // дальше донышка-вплотную, и пустота рисуется пустотой.
+                    double farGap = MarinelliFarGap(m);
+                    double zTopOuter = zSrc0 - endWall - farGap;
+                    Fill(g, WallColor, -rOut, zTopOuter, 2.0 * rOut, body);
                     double rSrcOut = Math.Max(rh + ths, rOut - side);
+                    if (farGap > 0.0)
+                    {
+                        Fill(g, Canvas, -rSrcOut, zTopOuter + endWall, 2.0 * rSrcOut, farGap);
+                    }
+
                     Fill(g, SampleColor, -rSrcOut, zSrc0, 2.0 * rSrcOut, hs);
                     // колодец: вырез в пробе, стенка колодца и пустота внутри
                     Fill(g, WallColor, -(rh + ths), zCeiling - the, 2.0 * (rh + ths), the + hh);
@@ -834,7 +882,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                     using (Pen pen = new Pen(Ink, 1.2f))
                     {
-                        Outline(g, pen, -rOut, zSrc0 - endWall, 2.0 * rOut, body);
+                        Outline(g, pen, -rOut, zTopOuter, 2.0 * rOut, body);
                         Outline(g, pen, -rh, zCeiling, 2.0 * rh, hh);
                     }
 
@@ -934,7 +982,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // как размера, есть только пустое поле модели.
                         if (VesselExists(wall, end))
                         {
-                            this.DimV(g, pen, ink, rOut * 0.72, zSrcTop - hs, zWallTop,
+                            // (`AMBER205`) Сосуд — с запасом стенки над пробой.
+                            this.DimV(g, pen, ink, rOut * 0.72, zSrcTop - hs - CylinderHeadspace(m), zWallTop,
                                       Math.Max(m.BeakerHeight, 0.0), "BeakerHeight");
                         }
 
@@ -977,17 +1026,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // обнуляет обе стенки ровно так же, как «на земле», —
                         // и точно так же печатала одно число дважды. Лунка в
                         // грунте стаканом не является, высоты стакана у неё нет.
+                        // (`AMBER205`) Верх корпуса — за пустой частью стакана.
+                        double zTopOuter = zSrc0 - endWall - MarinelliFarGap(m);
                         if (VesselExists(side, endWall))
                         {
-                            this.DimV(g, pen, ink, this.RightOf(rOut, 26), zSrc0 - endWall,
-                                      zSrc0 - endWall + body, body, "MarinelliBeakerHeight");
+                            this.DimV(g, pen, ink, this.RightOf(rOut, 26), zTopOuter,
+                                      zTopOuter + body, body, "MarinelliBeakerHeight");
                         }
                         this.DimH(g, pen, ink, -rOut, -(rOut - side), zSrc0 + hs * 0.28, side,
                                   "MarinelliSideThickness");
                         // Донышко — своя толщина, а не боковая. Раньше здесь
                         // стояло side: поле подсвечивалось, а число показывало
                         // соседний размер.
-                        this.DimV(g, pen, ink, -rOut * 0.72, zSrc0 - endWall, zSrc0, endWall,
+                        this.DimV(g, pen, ink, -rOut * 0.72, zTopOuter, zTopOuter + endWall, endWall,
                                   "MarinelliEndWallThickness");
                         // Стенки колодца разведены по высоте и по стороне: при
                         // общем 0.2 их подписи иначе налезают друг на друга и

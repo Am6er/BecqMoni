@@ -1828,6 +1828,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                 sb.Append("norm=fluence;");
             }
 
+            // ⛔ (`AMBER205`, П235 05.10.2026) ВЕРСИЯ СЦЕНЫ СОСУДА — только там, где
+            // сцена правда стала другой: цилиндр со стенкой выше пробы и маринелли
+            // с дальним донышком или запасом высоты (`EfficiencySimulator.
+            // VesselBeyondSample`). Решение Amber 05.10.2026, вопросником,
+            // дословно: «Только стакан и маринелли (Рекомендую)» — вместо
+            // `PhysicsVersion` +1. Правило `T42` «нет отличия — нет строки»:
+            // клейма точек, ISO, бруска, полевых сцен и сосудов без запаса
+            // остаются побайтно прежними, их матрицы годны.
+            if (EfficiencySimulator.VesselBeyondSample(geometry))
+            {
+                sb.Append("bmscene=1;");
+            }
+
             sb.Append("geom=").Append(GeometryText(geometry));
 
             using (SHA256 sha = SHA256.Create())
