@@ -32,6 +32,22 @@ namespace BecquerelMonitor
                     return;
                 }
 
+                // (`AMBER201`, мелочь 3.8, 05.10.2026) Путь файла из командной строки —
+                // ОТ КАТАЛОГА ЗАПУСКА, и потому полным ДО смены текущего каталога:
+                // «BecquerelMonitor.exe spectrum.xml» из папки со спектром искал файл
+                // в каталоге программы и отвечал «не найден».
+                if (args != null && args.Length == 1 && !string.IsNullOrEmpty(args[0]))
+                {
+                    try
+                    {
+                        args[0] = Path.GetFullPath(args[0]);
+                    }
+                    catch (Exception)
+                    {
+                        // Негодный путь — пусть отказывает открытие, своими словами.
+                    }
+                }
+
                 Environment.CurrentDirectory = Path.GetDirectoryName(exePath);
 
                 // ⛔ `A15`. Журнал заводится ЗДЕСЬ — до главного окна, чтобы

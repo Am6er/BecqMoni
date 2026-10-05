@@ -574,9 +574,24 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return result;
             }
 
+            // (`AMBER185`) Отпечаток геометрии — В НАЧАЛЕ счёта, с той модели,
+            // что считается: кривая несёт его в конфигурацию, и правка
+            // геометрии после счёта видна как расхождение, а не молчит.
+            result.GeometryFingerprint = ResponseMatrix.GeometryFingerprint(geometry);
+
             if (!geometry.IsScintillator)
             {
                 result.Error = Resources.EfficiencyMakerGeometryNotScintillator;
+                return result;
+            }
+
+            // (`AMBER201`, Р4, мелочь 9.2) Боковая постановка у цилиндра —
+            // отказ словами, как обещал `E21`. Прежде `FacingError` не читал
+            // никто, и сцена строилась с переставленной обвязкой молча.
+            string facingError = geometry.FacingError;
+            if (!string.IsNullOrEmpty(facingError))
+            {
+                result.Error = facingError;
                 return result;
             }
 
@@ -585,6 +600,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 result.Error = string.Format(CultureInfo.InvariantCulture,
                                              Resources.EfficiencyMakerGeometryUnknownElement, missingZ);
+                return result;
+            }
+
+            // (`AMBER201`, Р4, подозрение G) ...и у всех слоёв сцены, а не только
+            // у кристалла: элемент вне таблиц выпадал из слоя молча.
+            string unknownElement = geometry.UnknownElementProblem();
+            if (unknownElement != null)
+            {
+                result.Error = unknownElement;
                 return result;
             }
 

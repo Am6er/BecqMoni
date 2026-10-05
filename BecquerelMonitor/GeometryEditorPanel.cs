@@ -1602,7 +1602,7 @@ namespace BecquerelMonitor
         ///
         /// `true` — открывается ЧУЖАЯ геометрия, и её состав обязан пережить
         /// открытие-сохранение дословно. Прежде состав подменялся библиотечным
-        /// всякий раз, когда имя вещества в ней НАХОДИЛОСЬ, и у ввезённых из
+        /// всякий раз, когда имя вещества в ней НАХОДИЛОСЬ, и у импортированных из
         /// ЛСРМ файлов это двигало десять строк долей (`SC_FractionsWall`,
         /// `SC_FractionsSource` и их близнецы в блоке маринелли): файл хранит
         /// 0.04196, библиотека — 0.0419585. Текст `.in` менялся, отпечаток
@@ -1970,7 +1970,25 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // (`AMBER201`, Р4, мелочь 8.9) Нечитаемое поле, которого шаблон НЕ
+            // касается, остаётся тем, что набрано. Прежде `BuildModel` читал его
+            // нулём, загрузка модели писала «0» в поле, и опечатка в расстоянии
+            // до пробы молча становилась нулём при выборе детектора — красная
+            // подсветка снималась вместе с ней.
+            Dictionary<string, string> unread = new Dictionary<string, string>();
+            foreach (FieldMap field in Map)
+            {
+                TextBox box;
+                double ignored;
+                if (this.fields.TryGetValue(field.Key, out box)
+                    && !string.IsNullOrWhiteSpace(box.Text) && !this.TryGet(field.Key, out ignored))
+                {
+                    unread[field.Key] = box.Text;
+                }
+            }
+
             GeometryModel g = this.BuildModel();
+            GeometryModel built = g.Clone();
             if (preset != null)
             {
                 preset.Apply(g);
@@ -1987,6 +2005,33 @@ namespace BecquerelMonitor
             // (E32): без пересчёта в полях остались бы размеры от прежнего
             // прибора — молча, и это худший вид ошибки.
             this.RecomputeScene();
+
+            if (unread.Count > 0)
+            {
+                this.loading = true;
+                try
+                {
+                    foreach (FieldMap field in Map)
+                    {
+                        string text;
+                        TextBox box;
+                        // Шаблон поле тронул — в нём его число, набранное уходит.
+                        if (unread.TryGetValue(field.Key, out text)
+                            && field.Read(built).Equals(field.Read(this.model))
+                            && this.fields.TryGetValue(field.Key, out box))
+                        {
+                            box.Text = text;
+                        }
+                    }
+                }
+                finally
+                {
+                    this.loading = false;
+                }
+
+                this.MarkBadValues();
+                this.RefreshSketch();
+            }
         }
 
         // ------------------------------------------------------------------

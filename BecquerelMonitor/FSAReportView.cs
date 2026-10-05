@@ -538,13 +538,13 @@ namespace BecquerelMonitor
             {
                 if (this.session != null)
                 {
-                    this.session.Completed -= this.SessionCompleted;
+                    this.session.Completed -= this.SessionCompleted; this.session.Started -= this.SessionStarted;
                 }
 
                 this.session = next;
                 if (this.session != null)
                 {
-                    this.session.Completed += this.SessionCompleted;
+                    this.session.Completed += this.SessionCompleted; this.session.Started += this.SessionStarted;
                 }
             }
 
@@ -589,13 +589,13 @@ namespace BecquerelMonitor
             {
                 if (this.session != null)
                 {
-                    this.session.Completed -= this.SessionCompleted;
+                    this.session.Completed -= this.SessionCompleted; this.session.Started -= this.SessionStarted;
                 }
 
                 this.session = probeSession;
                 if (this.session != null)
                 {
-                    this.session.Completed += this.SessionCompleted;
+                    this.session.Completed += this.SessionCompleted; this.session.Started += this.SessionStarted;
                 }
             }
 
@@ -728,6 +728,29 @@ namespace BecquerelMonitor
                 this.Consume();
                 this.RefreshReport();
             }
+        }
+
+        /// <summary>
+        /// (`AMBER201`, мелочь 6.9, 05.10.2026) Пересчёт начался — строка состояния
+        /// переходит в «идёт расчёт». Только строка: таблица до прихода результата
+        /// остаётся прежней (её перечитает <see cref="SessionCompleted"/>), а цвет
+        /// и текст строки и есть то, что говорит человеку «числа ниже — прежние».
+        /// Событие приходит с потока окон, но окно без ручки (пробы) не трогается.
+        /// </summary>
+        void SessionStarted(object sender, EventArgs e)
+        {
+            if (!this.IsHandleCreated || this.IsDisposed)
+            {
+                return;
+            }
+
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke((MethodInvoker)this.RefreshStatusLine);
+                return;
+            }
+
+            this.RefreshStatusLine();
         }
 
         /// <summary>
@@ -1576,12 +1599,26 @@ namespace BecquerelMonitor
                 OwnText(KeyInflationTip)));
 
             bool oldFormat = this.presentation.MatrixOldFormat;
+            // (`AMBER202`) матрица, приехавшая В ФАЙЛЕ СПЕКТРА, называет источник
+            bool matrixFromSpectrum = result.ResponseMatrixUsed && this.session != null
+                                      && this.session.ResponseMatrixFromSpectrum;
             made.Add(this.MakeMarkRow(KeyMatrixRow,
-                                      OwnText(result.ResponseMatrixUsed
-                                                  ? KeyMatrixUsed
-                                                  : oldFormat ? KeyMatrixOldFormat : KeyMatrixNotUsed),
+                                      matrixFromSpectrum
+                                          ? Resources.FSAReportMatrixUsedFromSpectrum
+                                          : OwnText(result.ResponseMatrixUsed
+                                                        ? KeyMatrixUsed
+                                                        : oldFormat ? KeyMatrixOldFormat : KeyMatrixNotUsed),
                                       result.ResponseMatrixUsed,
                                       false));
+            // (`AMBER202`) матрица из файла спектра ОТВЕРГНУТА — причина словами
+            string spectrumMatrixRefusal = this.session != null ? this.session.SpectrumMatrixRefusal : "";
+            if (!result.ResponseMatrixUsed && !string.IsNullOrEmpty(spectrumMatrixRefusal))
+            {
+                made.Add(this.MakeMarkRowText(
+                    string.Format(CultureInfo.InvariantCulture, Resources.FSAReportSpectrumMatrixRefusedRow,
+                                  spectrumMatrixRefusal),
+                    Resources.FSAReportSpectrumMatrixRefusedValue, false, true));
+            }
             // (`AMBER34`, решение Amber 15.09.2026 «Разбор идёт, Бк скрыты с
             // причиной») Кривая СЦЕНЫ ПОЛЯ учтена формой, а беккерели из
             // разбора не выводятся — причина стоит В ТОЙ ЖЕ строке, где
@@ -1646,6 +1683,17 @@ namespace BecquerelMonitor
                                               !density.Warning, density.Warning));
             }
 
+            // (`AMBER185`, решение Amber 05.10.2026 «Отпечаток + предупреждение»)
+            // КРИВАЯ ПОСЧИТАНА ДЛЯ ДРУГОЙ ГЕОМЕТРИИ — отпечаток при кривой не
+            // сходится с геометрией конфигурации спектра. Происшествие, только
+            // когда было; у кривой без отпечатка (до 05.10.2026) — молчим.
+            ResultData shown = this.ActiveResultData;
+            if (shown != null && shown.Efficiency != null && shown.Efficiency.CurveGeometryMismatch)
+            {
+                made.Add(this.MakeMarkRowText(Resources.EfficiencyCurveOtherGeometry,
+                                              Resources.FSAReportCurveOtherGeometryValue, false, true));
+            }
+
             // (`S44`, решение Amber 01.09.2026) ФОН ПОДАН И НЕ ВЗЯТ — причина
             // словами. Стоит первой среди происшествий, как и в хвосте
             // <see cref="FsaPresentationBuilder.QualityText"/>: строка «фон не
@@ -1694,6 +1742,24 @@ namespace BecquerelMonitor
             if (result.SupplyDiscrepancies != null && result.SupplyDiscrepancies.Count > 0)
             {
                 this.AddSupplyRow(made, result.SupplyDiscrepancies);
+            }
+
+            // ⛔ (`AMBER199`, 05.10.2026) БАЗА НЕ ПРОЧИТАНА — происшествие,
+            // только когда было. Разбор при отказе чтения `nucdb`/`schemedb`/
+            // `matdb` идёт без части данных (нуклид без линий, линия без
+            // поправки на совпадения), и до этого дня на экране не было ни
+            // слова. Справа — первая строка отказа (файл, что читалось,
+            // сообщение платформы — переводу не подлежит), в подсказке — все.
+            if (result.DatabaseFailures != null && result.DatabaseFailures.Count > 0)
+            {
+                string first = result.DatabaseFailures[0]
+                               + (result.DatabaseFailures.Count > 1
+                                      ? string.Format(CultureInfo.InvariantCulture, " (+{0})",
+                                                      result.DatabaseFailures.Count - 1)
+                                      : string.Empty);
+                Row failed = this.MakeMarkRowText(Resources.FSAReportDatabaseFailedRow, first, false, true);
+                failed.Cells[2].ToolTipText = string.Join(Environment.NewLine, result.DatabaseFailures.ToArray());
+                made.Add(failed);
             }
 
             // (`AMBER123`, П166 → строка окна П168 28.09.2026) КОЛОНКА НАЛОЖЕНИЙ
@@ -1836,6 +1902,11 @@ namespace BecquerelMonitor
             // Подпись переносится по ширине колонки: усечение многоточием и
             // есть та беда, ради которой заведена `A247`.
             name.WordWrap = true;
+            // (`AMBER201`, мелочь 6.13, 05.10.2026) Значение переносится тоже:
+            // колонка значений 92 px, и длинная причина (отказ базы, строка
+            // предупреждения) резалась многоточием — целиком её было видно только
+            // в подсказке.
+            cell.WordWrap = true;
             name.ToolTipText = caption;
             cell.ToolTipText = cell.Text;
             var row = new Row(new[] { new Cell(string.Empty, (Image)null), name, cell });
@@ -2377,7 +2448,7 @@ namespace BecquerelMonitor
 
                 if (this.session != null)
                 {
-                    this.session.Completed -= this.SessionCompleted;
+                    this.session.Completed -= this.SessionCompleted; this.session.Started -= this.SessionStarted;
                     this.session = null;
                 }
 

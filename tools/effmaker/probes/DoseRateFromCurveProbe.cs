@@ -470,7 +470,7 @@ namespace DoseRateFromCurveProbe
             }
 
             // (C) кривая ЛСРМ: те же точки, без геометрии → отказ с причиной
-            var lsrm = new EfficiencyConfigData("ввоз ЛСРМ (без геометрии)")
+            var lsrm = new EfficiencyConfigData("импорт ЛСРМ (без геометрии)")
             {
                 Origin = EfficiencyOrigin.Lsrm,
                 Curve = curve.Curve.Select(p => p.Clone()).ToList(),

@@ -64,7 +64,10 @@ namespace BecquerelMonitor
             roireferenceData.OperationType = roiprimitiveOperation.Name;
             roireferenceData.Coefficient = coefficient;
             roireferenceData.CoefficientError = coefficientError;
-            roireferenceData.Reference = (reference == null) ? "" : reference;
+            // (`AMBER191`) Зоны-цели нет в списке (удалена) — в выпадающем списке
+            // ничего не выбрано. Прежнее имя сохраняется: стёртая в "" ссылка
+            // прятала, на ЧТО ссылалась зона, а ошибку зоны расчёт покажет сам.
+            roireferenceData.Reference = reference ?? (roireferenceData.Reference ?? "");
             roireferenceData.Note = this.textBox1.Text;
             return true;
         }

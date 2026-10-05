@@ -15,7 +15,7 @@ using System.Xml.Serialization;
 namespace N42RoundTripProbe
 {
     /// <summary>
-    /// ФАЙЛЫ N42 В ДЕРЕВЕ И КРУГ «ВЫВОЗ → ВВОЗ» (`A143`, решение Amber 04.09.2026).
+    /// ФАЙЛЫ N42 В ДЕРЕВЕ И КРУГ «ЭКСПОРТ → ИМПОРТ» (`A143`, решение Amber 04.09.2026).
     ///
     /// ⛔ ЧЕСТНАЯ ОГОВОРКА, КОТОРУЮ НЕЛЬЗЯ ОПУСКАТЬ. Файл, выгруженный НАШИМ
     /// приложением, доказывает круг «мы → мы» и по-прежнему НИЧЕГО не говорит
@@ -28,9 +28,9 @@ namespace N42RoundTripProbe
     ///   --mode=export  — берёт спектры корпуса, выгружает их в N42 ТЕМ ЖЕ
     ///                    путём, каким выгружает приложение (Util.ExportToN42
     ///                    + XmlSerializer с настройками DocumentManager), и
-    ///                    сразу ввозит обратно настоящей дверью
+    ///                    сразу импортирует обратно настоящей дверью
     ///                    DocumentManager.ImportDocumentN42, сверяя числа;
-    ///   --mode=import  — ввозит все *.n42 каталога и печатает СЛЕПОК каждого
+    ///   --mode=import  — импортирует все *.n42 каталога и печатает СЛЕПОК каждого
     ///                    (отсчёты, шкала, времена) — этим слепком два плеча
     ///                    сборок сверяются между собой;
     ///   --mode=cases   — кладёт СОЧИНЁННЫЕ входы разбора калибровки (границы
@@ -62,16 +62,16 @@ namespace N42RoundTripProbe
     ///                    отсчётам); исправная конфигурация — 0/0/0
     ///                    (положительный контроль ложной тревоги).
     ///                    ⛔ ОСТАТОК `A240` (полоса F66, 06.09.2026): к тому же
-    ///                    `CheckDocument` ведут ещё ДВЕ двери ввоза, у которых
+    ///                    `CheckDocument` ведут ещё ДВЕ двери импорта, у которых
     ///                    читателя причины не было, — `ImportDocumentAtomSpectra`
     ///                    и `ImportCsvEnergyToDocument`. Плечо доводит события до
     ///                    ПЯТИ: входы сочиняются пробой (файл Atom Spectra
     ///                    «FORMAT: 3» и CSV «Energy,Count #…» с тем же числом
-    ///                    каналов, что у документа, — иначе ввоз сбрасывает
+    ///                    каналов, что у документа, — иначе импорт сбрасывает
     ///                    настройку спектра и говорит СВОЁ, не относящееся к
-    ///                    кривой, слово) и ввозятся в ОТКРЫТЫЙ документ, как это
-    ///                    делает пункт меню. Ожидание после правки: ввоз Atom
-    ///                    Spectra — 1, ввоз CSV — 1; исправная конфигурация —
+    ///                    кривой, слово) и импортируются в ОТКРЫТЫЙ документ, как это
+    ///                    делает пункт меню. Ожидание после правки: импорт Atom
+    ///                    Spectra — 1, импорт CSV — 1; исправная конфигурация —
     ///                    0/0/0/0/0.
     ///
     /// Проба безоконная (входная сборка не BecquerelMonitor.exe), то есть
@@ -126,7 +126,7 @@ namespace N42RoundTripProbe
             // ⚠ `--dot` повторяет ДОСЛОВНО то, что делает окно приложения:
             //    MainForm.cs:162-164 клонирует текущую культуру и ставит ей
             //    разделителем дробной части ТОЧКУ. Именно в этом состоянии
-            //    живёт вывоз и ввоз N42 у человека за экраном; без окон этой
+            //    живёт экспорт и импорт N42 у человека за экраном; без окон этой
             //    строки нет никто не выполняет. Ключ заведён затем, чтобы
             //    обе половины были измеримы ОТДЕЛЬНО, а не смешаны.
             // T245: НАРОЧНО — подмена разделителя ЗДЕСЬ и есть предмет замера;
@@ -167,7 +167,7 @@ namespace N42RoundTripProbe
         }
 
         // ==================================================================
-        // ВЫВОЗ КОРПУСНЫХ СПЕКТРОВ И КРУГ
+        // ЭКСПОРТ КОРПУСНЫХ СПЕКТРОВ И КРУГ
         // ==================================================================
 
         static int Export()
@@ -196,10 +196,10 @@ namespace N42RoundTripProbe
                 names.Sort(StringComparer.Ordinal);
             }
 
-            Console.WriteLine("=== ВЫВОЗ КОРПУСНЫХ СПЕКТРОВ В N42 ===");
+            Console.WriteLine("=== ЭКСПОРТ КОРПУСНЫХ СПЕКТРОВ В N42 ===");
             Console.WriteLine("  корпус: " + Path.GetFullPath(corpus));
-            Console.WriteLine("  вывоз в: " + Path.GetFullPath(outDir));
-            Console.WriteLine("  спектров под вывоз: " + names.Count);
+            Console.WriteLine("  экспорт в: " + Path.GetFullPath(outDir));
+            Console.WriteLine("  спектров под экспорт: " + names.Count);
             Console.WriteLine("  ImportSpectrumWithEmptyConfig: "
                               + GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig);
             Console.WriteLine();
@@ -296,7 +296,7 @@ namespace N42RoundTripProbe
 
             Console.WriteLine();
             Console.WriteLine("ИТОГ: выгружено " + (rows.Count - 1)
-                              + ", отказов вывоза/ввоза " + bad
+                              + ", отказов экспорта/импорта " + bad
                               + ", ОТСЧЁТЫ разошлись у " + countsBad
                               + ", ВРЕМЕНА разошлись у " + timeBad
                               + " (наибольший остаток " + worstTime.ToString("E3", CultureInfo.InvariantCulture) + " с)"
@@ -334,21 +334,21 @@ namespace N42RoundTripProbe
             EnergySpectrum srcEs = srcRd.EnergySpectrum;
             PolynomialEnergyCalibration srcCal = srcEs.EnergyCalibration as PolynomialEnergyCalibration;
 
-            // ВЫВОЗ ТЕМ ЖЕ ПУТЁМ, ЧТО У ПРИЛОЖЕНИЯ. DocumentManager.ExportDocumentN42
+            // ЭКСПОРТ ТЕМ ЖЕ ПУТЁМ, ЧТО У ПРИЛОЖЕНИЯ. DocumentManager.ExportDocumentN42
             // отличается от этих строк ровно диалогом сохранения файла и
             // обёрткой catch: сам файл строит Util.ExportToN42, а записывает
             // XmlSerializer с настройками xmlSettings (UTF8, Indent).
             string exportSaid = ExportOne(doc, dst);
             if (exportSaid != null)
             {
-                Console.WriteLine("  ⛔ ВЫВОЗ ОТКАЗАЛ: " + exportSaid);
+                Console.WriteLine("  ⛔ ЭКСПОРТ ОТКАЗАЛ: " + exportSaid);
                 return null;
             }
 
             long bytes = new FileInfo(dst).Length;
-            Console.WriteLine("  вывезено: " + Path.GetFileName(dst) + ", " + bytes + " байт");
+            Console.WriteLine("  экспортировано: " + Path.GetFileName(dst) + ", " + bytes + " байт");
 
-            // ВВОЗ ОБРАТНО — настоящей дверью приложения.
+            // ИМПОРТ ОБРАТНО — настоящей дверью приложения.
             DocEnergySpectrum back = new DocEnergySpectrum();
             string said = null;
             try
@@ -361,7 +361,7 @@ namespace N42RoundTripProbe
             }
             if (said != null)
             {
-                Console.WriteLine("  ⛔ ВВОЗ ОТКАЗАЛ: " + said);
+                Console.WriteLine("  ⛔ ИМПОРТ ОТКАЗАЛ: " + said);
                 return null;
             }
 
@@ -421,19 +421,19 @@ namespace N42RoundTripProbe
             bool bgBack = backRd.BackgroundEnergySpectrum != null;
 
             // `A146`: пережило ли круг ВРЕМЯ НАЧАЛА НАБОРА. ⚠ Сравниваются РАЗНЫЕ
-            //   поля нарочно: вывоз берёт ResultData.StartTime, а ввоз кладёт
+            //   поля нарочно: экспорт берёт ResultData.StartTime, а импорт кладёт
             //   прочитанное в SampleInfo.Time — это не описка пробы, а
             //   несимметричность самого разбора, и мерить надо то, что есть.
             // ⚠ `A156` ПОПРАВИЛА ЭТУ МЕРКУ. Прежде здесь стояло только
-            //   SampleInfo.Time — потому что ввоз клал прочитанное ТОЛЬКО туда, а
-            //   вывоз берёт ResultData.StartTime. Мерить надо ТО ПОЛЕ, КОТОРЫМ
-            //   ПОЛЬЗУЕТСЯ ВЫВОЗ, иначе первый круг сходится, а второй теряет дату
+            //   SampleInfo.Time — потому что импорт клал прочитанное ТОЛЬКО туда, а
+            //   экспорт берёт ResultData.StartTime. Мерить надо ТО ПОЛЕ, КОТОРЫМ
+            //   ПОЛЬЗУЕТСЯ ЭКСПОРТ, иначе первый круг сходится, а второй теряет дату
             //   и мерка этого не видит. Печатаются оба поля.
             double startShift = (backRd.StartTime - srcRd.StartTime).TotalSeconds;
             double sampleShift = (backRd.SampleInfo.Time - srcRd.StartTime).TotalSeconds;
             bool startOk = Math.Abs(startShift) < 1.0;
 
-            // `A155`: ЖИВОЕ ВРЕМЯ ФОНА. Прежде вывоз писал в LiveTimeDuration фона
+            // `A155`: ЖИВОЕ ВРЕМЯ ФОНА. Прежде экспорт писал в LiveTimeDuration фона
             //   его же MeasurementTime, то есть живое время фона в файл не уходило
             //   вовсе. Столбец «-» значит «фона нет и мерить нечего».
             double bgLiveSrc = bgSrc ? srcRd.BackgroundEnergySpectrum.LiveTime : 0.0;
@@ -466,7 +466,7 @@ namespace N42RoundTripProbe
                               + (timeOk ? "  ✓"
                                  : ("  ⚠ РАЗОШЛОСЬ на "
                                     + dTime.ToString("E3", CultureInfo.InvariantCulture) + " с")));
-            Console.WriteLine("  спектров в файле после ввоза: " + back.ResultDataFile.ResultDataList.Count
+            Console.WriteLine("  спектров в файле после импорта: " + back.ResultDataFile.ResultDataList.Count
                               + " (у корпусного было " + doc.ResultDataFile.ResultDataList.Count
                               + " + фон " + (bgSrc ? "есть" : "нет") + ")");
             Console.WriteLine("  ФОН: было " + (bgSrc ? "есть" : "нет") + " → стало "
@@ -483,10 +483,10 @@ namespace N42RoundTripProbe
             // ==============================================================
             // ВТОРОЙ ОБОРОТ КРУГА (`A156`)
             //
-            // ⛔ Первый оборот НЕ ЛОВИТ дефекта «вывоз и ввоз работают с разными
-            //    полями»: прочитанное ложится в поле, из которого вывоз не берёт,
-            //    и это видно только тогда, когда ввезённый документ выгружают
-            //    СНОВА. Поэтому оборотов два: вывоз → ввоз → вывоз → ввоз.
+            // ⛔ Первый оборот НЕ ЛОВИТ дефекта «экспорт и импорт работают с разными
+            //    полями»: прочитанное ложится в поле, из которого экспорт не берёт,
+            //    и это видно только тогда, когда импортированный документ выгружают
+            //    СНОВА. Поэтому оборотов два: экспорт → импорт → экспорт → импорт.
             // ==============================================================
             string start2 = "-";
             double start2Shift = 0.0;
@@ -497,7 +497,7 @@ namespace N42RoundTripProbe
                 string said2 = ExportOne(back, dst2);
                 if (said2 != null)
                 {
-                    Console.WriteLine("  ⛔ ВТОРОЙ ВЫВОЗ ОТКАЗАЛ: " + said2);
+                    Console.WriteLine("  ⛔ ВТОРОЙ ЭКСПОРТ ОТКАЗАЛ: " + said2);
                     start2 = "0";
                 }
                 else
@@ -514,7 +514,7 @@ namespace N42RoundTripProbe
                     }
                     if (imported2 != null)
                     {
-                        Console.WriteLine("  ⛔ ВТОРОЙ ВВОЗ ОТКАЗАЛ: " + imported2);
+                        Console.WriteLine("  ⛔ ВТОРОЙ ИМПОРТ ОТКАЗАЛ: " + imported2);
                         start2 = "0";
                     }
                     else
@@ -570,11 +570,11 @@ namespace N42RoundTripProbe
         }
 
         /// <summary>
-        /// Вывоз ОДНОГО документа тем же путём, что у приложения: Util.ExportToN42
+        /// Экспорт ОДНОГО документа тем же путём, что у приложения: Util.ExportToN42
         /// плюс XmlSerializer с настройками DocumentManager. Возвращает null, если
-        /// вывоз удался, иначе — сказанное отказом.
+        /// экспорт удался, иначе — сказанное отказом.
         ///
-        /// ⚠ Метод выделен для ВТОРОГО круга (`A156`): вывоз обязан быть тем же
+        /// ⚠ Метод выделен для ВТОРОГО круга (`A156`): экспорт обязан быть тем же
         /// самым, иначе второй оборот мерил бы другой код и находка не значила бы
         /// ничего.
         /// </summary>
@@ -628,7 +628,7 @@ namespace N42RoundTripProbe
         }
 
         // ==================================================================
-        // ВВОЗ КАТАЛОГА — СЛЕПОК, КОТОРЫМ СВЕРЯЮТСЯ ДВА ПЛЕЧА СБОРОК
+        // ИМПОРТ КАТАЛОГА — СЛЕПОК, КОТОРЫМ СВЕРЯЮТСЯ ДВА ПЛЕЧА СБОРОК
         // ==================================================================
 
         static int Import()
@@ -641,7 +641,7 @@ namespace N42RoundTripProbe
             string[] files = Directory.GetFiles(outDir, "*.n42");
             Array.Sort(files, StringComparer.Ordinal);
 
-            Console.WriteLine("=== ВВОЗ КАТАЛОГА " + Path.GetFullPath(outDir) + " ===");
+            Console.WriteLine("=== ИМПОРТ КАТАЛОГА " + Path.GetFullPath(outDir) + " ===");
             Console.WriteLine("  файлов: " + files.Length);
             Console.WriteLine();
 
@@ -662,7 +662,7 @@ namespace N42RoundTripProbe
                 //    AppUi.Report без окон пишет в поток ошибок и работу
                 //    продолжает — то есть приложение говорит, а проба этого не
                 //    видела вовсе и печатала «(молча)». Признак без читателя это
-                //    не признак: поток подменяется на время ввоза.
+                //    не признак: поток подменяется на время импорта.
                 TextWriter realErr = Console.Error;
                 StringWriter caught = new StringWriter();
                 Console.SetError(caught);
@@ -689,8 +689,8 @@ namespace N42RoundTripProbe
                 if (said == null)
                 {
                     ok++;
-                    prints.Add(name + " | ВВЕЗЁН | " + Print(doc));
-                    voices.Add(name + " | ВВЕЗЁН | " + (spoken.Length == 0 ? "(молча)" : spoken));
+                    prints.Add(name + " | ИМПОРТИРОВАН | " + Print(doc));
+                    voices.Add(name + " | ИМПОРТИРОВАН | " + (spoken.Length == 0 ? "(молча)" : spoken));
                 }
                 else
                 {
@@ -720,7 +720,7 @@ namespace N42RoundTripProbe
             Console.WriteLine("=== СЛЕПОК (числа; меняется ТОЛЬКО названными правками) ===");
             foreach (string p in prints) Console.WriteLine(p);
             Console.WriteLine();
-            Console.WriteLine("ВВЕЗЕНО: " + ok + "   ОТКАЗАНО: " + failed);
+            Console.WriteLine("ИМПОРТИРОВАНО: " + ok + "   ОТКАЗАНО: " + failed);
             Console.WriteLine();
             Console.WriteLine("=== ГОЛОСА (между плечами МЕНЯЮТСЯ нарочно) ===");
             foreach (string v in voices) Console.WriteLine(v);
@@ -731,7 +731,7 @@ namespace N42RoundTripProbe
         // ⛔ ВТОРАЯ ДВЕРЬ ТОГО ЖЕ ФАЙЛА — `DocumentManager.ImportDocumentSpecUtils`
         //    (`A175`).
         //
-        //    Один и тот же .n42 приложение умеет ввозить ДВУМЯ путями: своим
+        //    Один и тот же .n42 приложение умеет импортировать ДВУМЯ путями: своим
         //    разбором (пункт меню «Import N42») и через SpecUtils (пункт
         //    «Import spectrum file»). У них РАЗНЫЕ соглашения о калибровочных
         //    измерениях, и до 05.09.2026 проба мерила только первый — то есть
@@ -748,7 +748,7 @@ namespace N42RoundTripProbe
             string[] files = Directory.GetFiles(outDir, "*.n42");
             Array.Sort(files, StringComparer.Ordinal);
 
-            Console.WriteLine("=== ВВОЗ ЧЕРЕЗ SpecUtils КАТАЛОГА " + Path.GetFullPath(outDir) + " ===");
+            Console.WriteLine("=== ИМПОРТ ЧЕРЕЗ SpecUtils КАТАЛОГА " + Path.GetFullPath(outDir) + " ===");
             Console.WriteLine("  файлов: " + files.Length);
             Console.WriteLine();
 
@@ -782,8 +782,8 @@ namespace N42RoundTripProbe
                 if (said == null)
                 {
                     ok++;
-                    prints.Add(name + " | ВВЕЗЁН | " + Print(doc));
-                    voices.Add(name + " | ВВЕЗЁН | " + (spoken.Length == 0 ? "(молча)" : spoken));
+                    prints.Add(name + " | ИМПОРТИРОВАН | " + Print(doc));
+                    voices.Add(name + " | ИМПОРТИРОВАН | " + (spoken.Length == 0 ? "(молча)" : spoken));
                 }
                 else
                 {
@@ -805,7 +805,7 @@ namespace N42RoundTripProbe
             Console.WriteLine("=== СЛЕПОК SpecUtils ===");
             foreach (string p in prints) Console.WriteLine(p);
             Console.WriteLine();
-            Console.WriteLine("ВВЕЗЕНО: " + ok + "   ОТКАЗАНО: " + failed);
+            Console.WriteLine("ИМПОРТИРОВАНО: " + ok + "   ОТКАЗАНО: " + failed);
             Console.WriteLine();
             Console.WriteLine("=== ГОЛОСА SpecUtils ===");
             foreach (string v in voices) Console.WriteLine(v);
@@ -817,7 +817,7 @@ namespace N42RoundTripProbe
         //    ОСНАСТКИ (`A212`).
         //
         //    05.09.2026 полоса `C12` получила `NullReferenceException` на всех
-        //    входах ввоза через SpecUtils и списала его на свежий каталог проб
+        //    входах импорта через SpecUtils и списала его на свежий каталог проб
         //    без `config\device`. Каталог был поправлен, замер выброшен — а
         //    положение осталось достижимым и у человека: `LoadAllConfigFiles`
         //    при пустом (но существующем) каталоге отдаёт ПУСТОЙ список молча,
@@ -826,7 +826,7 @@ namespace N42RoundTripProbe
         //
         //    Мерится ЧЕТЫРЬМЯ парами плеч, и полные плечи здесь не украшение:
         //    без них «упало при пустом списке» неотличимо от «проба не умеет
-        //    ввозить вовсе». Второй разрез — КЕМ создан документ: проба до сих
+        //    импортировать вовсе». Второй разрез — КЕМ создан документ: проба до сих
         //    пор строила `new DocEnergySpectrum()` (минуя `CheckDocument`), а
         //    пункт меню зовёт `DocumentManager.CreateDocument()`. Это разные
         //    пути, и приговор у них может разойтись — тогда «у человека упадёт
@@ -916,7 +916,7 @@ namespace N42RoundTripProbe
                 //    поиска пиков; после такой двери кривая есть ВСЕГДА, и
                 //    молчание двери N42 на корпусе — не дефект, а ОТСУТСТВИЕ
                 //    состояния. ⚠ Отсюда следует, что посылка `A234` («дверь
-                //    N42 ввозит 12 из 12 с FwhmCalibration = null») была про
+                //    N42 импортирует 12 из 12 с FwhmCalibration = null») была про
                 //    ЗАГОТОВКУ документа, а не про то, что дверь оставляет
                 //    человеку: замер ДО и ПОСЛЕ разводит эти два числа.
                 //    Разбор 2006 года пишет прочитанное ПРЯМО в
@@ -1053,12 +1053,12 @@ namespace N42RoundTripProbe
         //    ~~`A234`~~/F54), и ровно один на событие.
         //
         //    Три пути к `CheckDocument`, у которых состояние «кривая не
-        //    строится» достижимо без ввоза: `CreateDocument` (пункт «Новый»),
+        //    строится» достижимо без импорта: `CreateDocument` (пункт «Новый»),
         //    `OpenDocument` (сохранённый документ без кривой при той же
         //    конфигурации) и `LoadBackgroundSpectrum` (файл фона). Каждое
         //    событие считается ОТДЕЛЬНО, строками `BecqMoni:` в потоке ошибок
         //    (`AppUi.Report` без окон пишет ровно одну строку на голос).
-        //    Двери ввоза (`ImportDocumentN42`, `ImportDocumentAtomSpectra`)
+        //    Двери импорта (`ImportDocumentN42`, `ImportDocumentAtomSpectra`)
         //    сюда не входят — они меряются `--mode=noconfig`.
         //
         //    Ожидание после правки: создание 1, открытие 1, фон 0; исправная
@@ -1134,16 +1134,16 @@ namespace N42RoundTripProbe
         /// дословно: «СНЯТЬ КРИВУЮ ВМЕСТЕ С ПРИБОРОМ».
         ///
         /// `DocumentManager.ResetSpectrumConfig` — сброс настройки спектра,
-        /// которым двери ввоза встречают файл с ДРУГИМ числом каналов (и любой
-        /// файл при настройке «ввозить с пустой конфигурацией»), — стирал фон,
+        /// которым двери импорта встречают файл с ДРУГИМ числом каналов (и любой
+        /// файл при настройке «импортировать с пустой конфигурацией»), — стирал фон,
         /// ROI и ПРИБОР, но кривую разрешения и настройки поиска пиков оставлял
         /// (замер полосы F66). Теперь снимает и их, а следом звучит УЖЕ ГОТОВЫЙ
         /// голос «кривой нет» (~~`A234`~~, `ReportMissingFwhmCalibration`).
         ///
         /// ⛔ ТРИ ПЛЕЧА, И ТРЕТЬЕ — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ. Без него «кривой
-        /// после ввоза нет» значило бы всего лишь «проба умеет её обнулять»:
+        /// после импорта нет» значило бы всего лишь «проба умеет её обнулять»:
         ///   1. сброс по ЧИСЛУ КАНАЛОВ (файл другой длины, настройка снята);
-        ///   2. сброс по НАСТРОЙКЕ «ввозить с пустой конфигурацией» (длина та
+        ///   2. сброс по НАСТРОЙКЕ «импортировать с пустой конфигурацией» (длина та
         ///      же) — второй путь к тому же сбросу, и он тоже обязан снимать;
         ///   3. СБРОСА НЕТ (длина та же, настройка снята) — ни кривая, ни
         ///      настройки поиска, ни фон, ни ROI, ни прибор не двигаются НИ НА
@@ -1179,7 +1179,7 @@ namespace N42RoundTripProbe
             Console.WriteLine();
             int rc = 0;
             rc |= ResetArm("СБРОС ПО ЧИСЛУ КАНАЛОВ", Path.Combine(dir, "g11_reset.xml"), false, true);
-            rc |= ResetArm("СБРОС ПО НАСТРОЙКЕ «ввозить с пустой конфигурацией»", Path.Combine(dir, "f71_emptycfg.xml"), true, true);
+            rc |= ResetArm("СБРОС ПО НАСТРОЙКЕ «импортировать с пустой конфигурацией»", Path.Combine(dir, "f71_emptycfg.xml"), true, true);
             rc |= ResetArm("СБРОСА НЕТ — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ", Path.Combine(dir, "f71_noreset.xml"), false, false);
             return rc;
         }
@@ -1277,9 +1277,9 @@ namespace N42RoundTripProbe
 
         /// <summary>
         /// Одно плечо сброса. <paramref name="emptyConfig"/> — настройка
-        /// «ввозить с пустой конфигурацией» на время плеча;
+        /// «импортировать с пустой конфигурацией» на время плеча;
         /// <paramref name="expectReset"/> — обязан ли сброс сработать.
-        /// Файл ввоза сочиняется той же длины, что у документа, когда сброса
+        /// Файл импорта сочиняется той же длины, что у документа, когда сброса
         /// быть не должно, и вчетверо короче — когда должен.
         /// </summary>
         static int ResetArm(string state, string path, bool emptyConfig, bool expectReset)
@@ -1341,7 +1341,7 @@ namespace N42RoundTripProbe
             }
             catch (Exception ex)
             {
-                trouble = "ввоз оборвался: " + ex.Message;
+                trouble = "импорт оборвался: " + ex.Message;
             }
             finally
             {
@@ -1353,7 +1353,7 @@ namespace N42RoundTripProbe
             ResultData after = doc.ActiveResultData;
             List<string> now = Inventory(after);
 
-            Console.WriteLine("  настройка «ввозить с пустой конфигурацией»: " + (emptyConfig ? "ВКЛ" : "выкл")
+            Console.WriteLine("  настройка «импортировать с пустой конфигурацией»: " + (emptyConfig ? "ВКЛ" : "выкл")
                               + ";  каналов у документа " + chBefore.ToString(CultureInfo.InvariantCulture)
                               + ", в файле " + chFile.ToString(CultureInfo.InvariantCulture)
                               + (chFile == chBefore ? " (то же)" : " (другое)"));
@@ -1384,7 +1384,7 @@ namespace N42RoundTripProbe
             //   Решение Amber 06.09.2026, вопросником, дословно: «Снять пики и
             //   точки калибровки». Ссылку на прибор, кривую эффективности и
             //   примету детектора — ОСТАВИТЬ как есть; цена второго варианта
-            //   названа Amber и отвергнута («вернуть прибор после ввоза будет
+            //   названа Amber и отвергнута («вернуть прибор после импорта будет
             //   нечем, ссылка — единственный его след в файле»).
             //   ⛔ Второй ряд — не украшение отчёта, а КОНТРОЛЬ НА ГРАНИЦЫ
             //   решения: без него «снято» не отличается от «снесено лишнее».
@@ -1453,7 +1453,7 @@ namespace N42RoundTripProbe
                 if (curveGone) fail.Add("кривая снята, хотя сброса быть не должно");
                 if (wiped != 0) fail.Add("опись сдвинулась в " + wiped + " полях, хотя сброса быть не должно");
                 if (curveVoices != 0) fail.Add("голосов «кривой нет» " + curveVoices + ", ожидалось 0");
-                // Ввоз без сброса не трогает и пиков с точками — по каждому
+                // Импорт без сброса не трогает и пиков с точками — по каждому
                 //   полю отдельно, а не одним счётом сдвинутых полей.
                 if (Cnt(after.DetectedPeaks) != seedDet || Cnt(after.CalibrationPeaks) != seedCal
                         || Cnt(after.CalibrationPoints) != seedPt)
@@ -1498,7 +1498,7 @@ namespace N42RoundTripProbe
         /// молча — та самая немота, ради которой заведён ~~`A234`~~. По строке в
         /// каждую дверь; здесь они меряются.
         ///
-        /// Сброс здесь вызывается НАСТРОЙКОЙ «ввозить с пустой конфигурацией»,
+        /// Сброс здесь вызывается НАСТРОЙКОЙ «импортировать с пустой конфигурацией»,
         /// а не числом каналов: у обеих дверей длина файла берётся из него
         /// самого, и держать её равной документу проще, чем подгонять.
         /// Положительный контроль у каждой двери свой — то же плечо с настройкой
@@ -1567,7 +1567,7 @@ namespace N42RoundTripProbe
             }
             catch (Exception ex)
             {
-                trouble = "ввоз оборвался: " + ex.Message;
+                trouble = "импорт оборвался: " + ex.Message;
             }
             finally
             {
@@ -1665,7 +1665,7 @@ namespace N42RoundTripProbe
         /// многочлена `Math.Min(4, numpoints - 1)`. На пяти точках это
         /// ЧЕТВЁРТЫЙ порядок, и подгонка через СТРОГО ПРЯМЫЕ точки
         /// выходит немонотонной от шума в старших коэффициентах — измерено:
-        /// ввоз обрывался отказом «функция калибровки должна монотонно
+        /// импорт обрывался отказом «функция калибровки должна монотонно
         /// возрастать», к кривой разрешения отношения не имеющим. Две точки
         /// дают первый порядок, а прямая монотонна по построению.
         /// </summary>
@@ -1737,7 +1737,7 @@ namespace N42RoundTripProbe
         /// <summary>
         /// Одно плечо: создать документ (CreateDocument), записать (SaveDocument),
         /// закрыть, открыть (OpenDocument), подгрузить его же как фон
-        /// (LoadBackgroundSpectrum), ввезти в него файл Atom Spectra
+        /// (LoadBackgroundSpectrum), импортировать в него файл Atom Spectra
         /// (ImportDocumentAtomSpectra) и CSV с энергиями
         /// (ImportCsvEnergyToDocument). Пять чисел голосов — пять событий. Код
         /// возврата 1, если хоть одно число разошлось с ожиданием.
@@ -1787,7 +1787,7 @@ namespace N42RoundTripProbe
                 sBg = rd.BackgroundEnergySpectrum == null ? "фон НЕ загружен" : "фон загружен";
 
                 // ⛔ `A240`, остаток (полоса F66): ещё две двери к тому же
-                //    `CheckDocument`. Ввоз идёт В ОТКРЫТЫЙ ДОКУМЕНТ — так это и
+                //    `CheckDocument`. Импорт идёт В ОТКРЫТЫЙ ДОКУМЕНТ — так это и
                 //    делает пункт меню, и состояние кривой у него уже своё.
                 //
                 //    ⚠ Сброс настройки спектра НАРОЧНО не задевается: у обеих
@@ -1803,7 +1803,7 @@ namespace N42RoundTripProbe
                 {
                     int channels = rd.EnergySpectrum.NumberOfChannels;
 
-                    // 5. Ввоз Atom Spectra — ImportDocumentAtomSpectra -> CheckDocument.
+                    // 5. Импорт Atom Spectra — ImportDocumentAtomSpectra -> CheckDocument.
                     string atomPath = Path.Combine(Path.GetDirectoryName(path),
                                                    Path.GetFileNameWithoutExtension(path) + "_ats.txt");
                     WriteAtomSpectra(atomPath, channels);
@@ -1814,7 +1814,7 @@ namespace N42RoundTripProbe
                     sAtom = CurveState(doc2.ActiveResultData) + ", отсчётов "
                             + doc2.ActiveResultData.EnergySpectrum.TotalPulseCount.ToString(CultureInfo.InvariantCulture);
 
-                    // 6. Ввоз CSV с энергиями — ImportCsvEnergyToDocument -> CheckDocument.
+                    // 6. Импорт CSV с энергиями — ImportCsvEnergyToDocument -> CheckDocument.
                     string csvPath = Path.Combine(Path.GetDirectoryName(path),
                                                   Path.GetFileNameWithoutExtension(path) + "_energy.csv");
                     WriteCsvEnergy(csvPath, channels);
@@ -1843,8 +1843,8 @@ namespace N42RoundTripProbe
             Console.WriteLine("  создание:     голосов " + vCreate + ", " + sCreate);
             Console.WriteLine("  открытие:     голосов " + vOpen + ", " + sOpen);
             Console.WriteLine("  фон:          голосов " + vBg + ", " + sBg);
-            Console.WriteLine("  ввоз ats:     голосов " + vAtom + ", " + sAtom);
-            Console.WriteLine("  ввоз csv:     голосов " + vCsv + ", " + sCsv);
+            Console.WriteLine("  импорт ats:     голосов " + vAtom + ", " + sAtom);
+            Console.WriteLine("  импорт csv:     голосов " + vCsv + ", " + sCsv);
             if (trouble != null) Console.WriteLine("  ОТКАЗ: " + trouble);
             if (voices.Count > 0)
             {
@@ -1855,7 +1855,7 @@ namespace N42RoundTripProbe
                       && vAtom == expectAtom && vCsv == expectCsv;
             string total = head + " -> создание " + vCreate + " (ожидалось " + expectCreate + "), открытие "
                            + vOpen + " (ожидалось " + expectOpen + "), фон " + vBg + " (ожидалось " + expectBg + ")"
-                           + ", ввоз ats " + vAtom + " (ожидалось " + expectAtom + "), ввоз csv "
+                           + ", импорт ats " + vAtom + " (ожидалось " + expectAtom + "), импорт csv "
                            + vCsv + " (ожидалось " + expectCsv + ")"
                            + (ok ? " — СОШЛОСЬ" : " — НЕ СОШЛОСЬ") + (trouble == null ? "" : "; " + trouble);
             Console.WriteLine("  ИТОГ: " + total);
@@ -1953,7 +1953,7 @@ namespace N42RoundTripProbe
         /// <summary>
         /// Одно плечо: документ приложения (CreateDocument), названная дверь,
         /// после двери — чьи настройки у КАЖДОГО спектра списка.
-        /// Код возврата 1, если хоть у одного ввезённого спектра настройки
+        /// Код возврата 1, если хоть у одного импортированного спектра настройки
         /// поиска пиков — встроенные умолчания, а не документа; это и есть
         /// приговор `A239`, и после правки он обязан стать 0.
         /// </summary>
@@ -2022,7 +2022,7 @@ namespace N42RoundTripProbe
                 ok++;
 
                 StringBuilder sb = new StringBuilder();
-                sb.Append("  ").Append(name).Append(" | ВВЕЗЁН | до: прибор «")
+                sb.Append("  ").Append(name).Append(" | ИМПОРТИРОВАН | до: прибор «")
                   .Append(devBefore == null ? "null" : devBefore.Name).Append("», настройки ")
                   .Append(Cfg3(cfgBefore)).Append(", кривая ").Append(curveBefore);
                 for (int i = 0; i < doc.ResultDataFile.ResultDataList.Count; i++)
@@ -2057,7 +2057,7 @@ namespace N42RoundTripProbe
                 Console.WriteLine(sb.ToString());
             }
 
-            string total = head + " -> ВВЕЗЕНО " + ok + " / ОТКАЗ " + failed + " (из " + files.Length + ")"
+            string total = head + " -> ИМПОРТИРОВАНО " + ok + " / ОТКАЗ " + failed + " (из " + files.Length + ")"
                            + "; спектров " + spectra
                            + ": прибор документа " + devSame + " / свежий " + devFresh
                            + "; ROI документа " + roiSame + " / null " + roiNull + " / свежий " + roiFresh
@@ -2078,13 +2078,13 @@ namespace N42RoundTripProbe
         static readonly List<string> armTotals = new List<string>();
 
         /// <summary>
-        /// Одно плечо: каждый файл каталога ввозится названной дверью в
+        /// Одно плечо: каждый файл каталога импортируется названной дверью в
         /// документ, созданный названным способом. Печатается приговор, а у
         /// отказа — ПЕРВЫЙ кадр следа внутри приложения: строка `A212` называет
         /// место падения по чтению исходника, и подтвердить его обязан след, а
         /// не чтение.
         ///
-        /// ⛔ ДВА ЗАМЕРА КРИВОЙ, ДО И ПОСЛЕ ВВОЗА (`A234`, 05.09.2026). Прежде
+        /// ⛔ ДВА ЗАМЕРА КРИВОЙ, ДО И ПОСЛЕ ИМПОРТА (`A234`, 05.09.2026). Прежде
         ///    мерилось только состояние ДО, и число «без ПШПВ у документа: 12»
         ///    говорило про заготовку, а не про то, что дверь оставила человеку.
         ///    Разница между этими двумя числами и есть предмет `A234`: у двери
@@ -2170,7 +2170,7 @@ namespace N42RoundTripProbe
 
                 // Состояние ПОСЛЕ двери — то самое, что достаётся человеку.
                 // Считается по ВСЕМУ списку спектров документа, а не по одному
-                // активному: ввоз SpecUtils кладёт в документ до шестнадцати.
+                // активному: импорт SpecUtils кладёт в документ до шестнадцати.
                 if (doc != null && doc.ResultDataFile != null && doc.ResultDataFile.ResultDataList != null)
                 {
                     int had = 0, gone = 0;
@@ -2195,7 +2195,7 @@ namespace N42RoundTripProbe
                     }
                 }
 
-                // ⛔ «НЕ УПАЛО» — ЕЩЁ НЕ «ВВЕЗЛО». Сторож null мог бы увести ввоз
+                // ⛔ «НЕ УПАЛО» — ЕЩЁ НЕ «ИМПОРТИРОВАЛО». Сторож null мог бы увести импорт
                 //    мимо спектров и молча отдать пустой документ, и по одному
                 //    приговору это неотличимо от удачи. Поэтому в строке стоит
                 //    СЛЕПОК: числа плеча со сломанным умолчанием обязаны совпасть
@@ -2203,7 +2203,7 @@ namespace N42RoundTripProbe
                 if (said == null)
                 {
                     ok++;
-                    Console.WriteLine("  " + name + " | ВВЕЗЁН | до: " + fwhm
+                    Console.WriteLine("  " + name + " | ИМПОРТИРОВАН | до: " + fwhm
                                       + " | после: " + fwhmAfter + " | " + Print(doc));
                 }
                 else
@@ -2221,7 +2221,7 @@ namespace N42RoundTripProbe
                 if (kinds.Length > 0) kinds.Append("; ");
                 kinds.Append(kv.Value).Append("× ").Append(kv.Key);
             }
-            string total = head + " -> ВВЕЗЕНО " + ok + " / ОТКАЗ " + failed
+            string total = head + " -> ИМПОРТИРОВАНО " + ok + " / ОТКАЗ " + failed
                            + " (из " + files.Length + ")"
                            + ", без ПШПВ ДО: " + nullFwhm
                            + ", без ПШПВ ПОСЛЕ: " + nullAfter
@@ -2367,17 +2367,17 @@ namespace N42RoundTripProbe
                           : (Math.Abs((DateTime.Now - rd.SampleInfo.Time).TotalMinutes) < 1.0
                              ? "ПОТЕРЯНО (сейчас)"
                              : rd.SampleInfo.Time.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)))
-                      // `A156`: ВТОРОЕ ПОЛЕ ВРЕМЕНИ, И ИМЕННО ИМ ПОЛЬЗУЕТСЯ ВЫВОЗ.
+                      // `A156`: ВТОРОЕ ПОЛЕ ВРЕМЕНИ, И ИМЕННО ИМ ПОЛЬЗУЕТСЯ ЭКСПОРТ.
                       //   Прежде слепок его не печатал вовсе, и «дата доехала»
-                      //   мерилось по полю, которое вывоз не читает: круг сходился
+                      //   мерилось по полю, которое экспорт не читает: круг сходился
                       //   на первом обороте и терял дату на втором.
                       .Append(", StartTime ").Append(
                           Math.Abs((DateTime.Now - rd.StartTime).TotalMinutes) < 1.0
                           ? "ПОТЕРЯНО (сейчас)"
                           : rd.StartTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture))
-                      // `A177`: ТРЕТЬЕ ПОЛЕ ВРЕМЕНИ. Соседние ввозы (GBS,
+                      // `A177`: ТРЕТЬЕ ПОЛЕ ВРЕМЕНИ. Соседние импорты (GBS,
                       //   SpecUtils) ставят EndTime = StartTime + время набора,
-                      //   а ввоз N42 не ставил его ВООБЩЕ — оставалось
+                      //   а импорт N42 не ставил его ВООБЩЕ — оставалось
                       //   умолчание ResultData, то есть «сейчас». Печатается не
                       //   сама дата, а СОШЛОСЬ ЛИ оно с началом плюс полное
                       //   время: иначе два плеча различались бы по построению.
@@ -2488,7 +2488,7 @@ namespace N42RoundTripProbe
             // `A152`: вход, у которого каналов БОЛЬШЕ, чем у документа (8192 у
             // пустого DocEnergySpectrum). Прежде число каналов ФАЙЛА в спектр не
             // записывалось вовсе, и цикл разбора выходил за конец массива
-            // документа — ввоз падал IndexOutOfRangeException. ⚠ Это ЕДИНСТВЕННЫЙ
+            // документа — импорт падал IndexOutOfRangeException. ⚠ Это ЕДИНСТВЕННЫЙ
             // вход полосы, у которого приговор меняется нарочно, и он сочинённый:
             // настоящих файлов RadiologicalInstrumentData в дереве нет.
             Write(Path.Combine(outDir, "case9_rad_over.n42"), Rad(9000));
@@ -2509,7 +2509,7 @@ namespace N42RoundTripProbe
                   Multi("case11", Meas("M1", "Foreground", "2026-09-05T12:00:00Z", Counts(0))
                                 + Meas("M2", "IntrinsicActivity", "2026-09-05T13:00:00Z", Counts(1))));
 
-            // Крайний случай: в файле НЕТ ни одного ввозимого измерения.
+            // Крайний случай: в файле НЕТ ни одного импортируемого измерения.
             Write(Path.Combine(outDir, "case12_calibonly.n42"),
                   Multi("case12", Meas("M1", "Calibration", "2026-09-05T12:00:00Z", Counts(0))));
 
@@ -2565,11 +2565,11 @@ namespace N42RoundTripProbe
 
             // ⚠ ТОТ ЖЕ ФАЙЛ С НЕЧИТАЕМОЙ ДАТОЙ. Здесь `A157` НЕ РАБОТАЕТ и
             //    работать не может: этот разбор зовёт XmlConvert.ToDateTime без
-            //    всякой обёртки, и негодная запись роняет ввоз ЦЕЛИКОМ — тогда как
-            //    разбор 2012 года в том же файле ввозит и говорит вслух. Вход
+            //    всякой обёртки, и негодная запись роняет импорт ЦЕЛИКОМ — тогда как
+            //    разбор 2012 года в том же файле импортирует и говорит вслух. Вход
             //    заведён затем, чтобы это расхождение соглашений было ИЗМЕРЕНО, а
             //    не осталось замечанием: приговор ОТКАЗ обязан быть ОДИНАКОВ на
-            //    обоих плечах — строки на изменение списка ввозимого здесь нет.
+            //    обоих плечах — строки на изменение списка импортируемого здесь нет.
             Write(Path.Combine(outDir, "case19_2006_baddate.n42"), N42_2006("04/05/44 10:07:57 ص", 64));
 
             // ⚠ ВХОД, У КОТОРОГО КАНАЛОВ БОЛЬШЕ, ЧЕМ У ДОКУМЕНТА, — тот же вид,

@@ -238,20 +238,20 @@ namespace RawCarryProbe
                 else if (scene0 != scene1) sceneUlp++;
 
                 Console.WriteLine("{0,-44} {1,-8} отпечаток {2}  строк разошлось {3,-4} {4}",
-                                  name, isImported ? "ВВЕЗЁН" : "свой",
+                                  name, isImported ? "ИМПОРТИРОВАН" : "свой",
                                   stamp0 == stamp1 ? "ТОТ ЖЕ " : "СДВИНУТ",
                                   drift.Count, Groups(drift));
             }
 
-            Console.WriteLine("--- итог {0}/{1}: файлов {2} (ввезённых {3}); текст разошёлся у {4}; "
-                              + "отпечаток сдвинут у {5} (из них ввезённых {6}); "
+            Console.WriteLine("--- итог {0}/{1}: файлов {2} (импортированных {3}); текст разошёлся у {4}; "
+                              + "отпечаток сдвинут у {5} (из них импортированных {6}); "
                               + "сцен сдвинуто {7}, из них последним битом {8}",
                               what, Path.GetFileName(dir.TrimEnd('\\')), files.Length, imported,
                               textMoved, stampMoved, importedMoved, sceneMoved + sceneUlp, sceneUlp);
             Report(textMoved == 0, "⛔ {0}: текст .in ТОТ ЖЕ у всех {1} файлов (разошёлся у {2})",
                    what, files.Length, textMoved);
             Report(stampMoved == 0, "⛔ {0}: ОТПЕЧАТОК тот же у всех {1} файлов (сдвинут у {2}, "
-                   + "ввезённых среди них {3})", what, files.Length, stampMoved, importedMoved);
+                   + "импортированных среди них {3})", what, files.Length, stampMoved, importedMoved);
             Report(sceneMoved == 0, "{0}: сцена та же у всех, кроме последнего бита "
                    + "(сдвинулось по-настоящему {1}, последним битом {2})",
                    what, sceneMoved, sceneUlp);
@@ -364,7 +364,7 @@ namespace RawCarryProbe
             // Отпечаток файла НА ДИСКЕ — чтобы в конце показать, что порча была
             // подставлена в копиях, а исходник вернулся побайтно.
             string fileSha0 = ShaOfFile(path);
-            Report(Imported(g), "файл ввезённый: в разборе есть непустой DC_CrystalDiameter ({0})",
+            Report(Imported(g), "файл импортированный: в разборе есть непустой DC_CrystalDiameter ({0})",
                    Value(g, "DC_CrystalDiameter"));
 
             // (1) Один ключ коаксиала убран РУКАМИ. Приёмка обязана его назвать.
@@ -619,7 +619,7 @@ namespace RawCarryProbe
             return g.Raw.TryGetValue(key, out v) ? v.Trim() : "(нет)";
         }
 
-        /// <summary>Ввезённый из ЛСРМ: у него непустой блок коаксиала.</summary>
+        /// <summary>Импортированный из ЛСРМ: у него непустой блок коаксиала.</summary>
         static bool Imported(GeometryModel g)
         {
             string raw;

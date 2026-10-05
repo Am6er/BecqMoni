@@ -613,11 +613,38 @@ namespace BecquerelMonitor.EfficiencyMaker
                     return "";
                 }
 
-                return this.Shape == CrystalShape.Box
-                    ? ""
-                    : "Боковая постановка пробы задана только для кристалла-бруска:"
-                      + " у цилиндра она не осесимметрична и сценой не выражается.";
+                if (this.Shape == CrystalShape.Box)
+                {
+                    return "";
+                }
+
+                // (`AMBER201`, Р4, мелочь 9.2) Строкой ресурсов, а не русским
+                // литералом: свойство теперь читают — журнал, вкладка
+                // эффективности, отказ счёта кривой и матрицы.
+                string text = Properties.Resources.ResourceManager.GetString(
+                    "GeometryFacingSideNeedsBox", Properties.Resources.Culture);
+                return string.IsNullOrEmpty(text)
+                    ? "The sample at the side of the detector is defined for a box crystal only:"
+                      + " for a cylinder it is not axially symmetric and the scene cannot express it."
+                    : text;
             }
+        }
+
+        /// <summary>
+        /// (`AMBER201`, Р4, мелочь G.5) Есть ли у модели размеры кристалла-
+        /// сцинтиллятора его формы — то, без чего геометрия не геометрия.
+        /// Читатель `.in` на чужом тексте не падает (любой файл даёт модель с
+        /// нулевым кристаллом), поэтому «прочиталось» само по себе ничего не
+        /// значит; признак тот же, что у импорта кривой ЛСРМ
+        /// (<c>DeviceConfigForm.ReadLsrmGeometry</c>). Метод, а не свойство: в
+        /// XML модели он не попадает и попасть не должен.
+        /// </summary>
+        public bool HasScintillatorCrystal()
+        {
+            bool crystal = this.Shape == CrystalShape.Box
+                ? this.CrystalBoxX > 0.0 && this.CrystalBoxY > 0.0 && this.CrystalBoxZ > 0.0
+                : this.CrystalDiameter > 0.0 && this.CrystalHeight > 0.0;
+            return crystal && (this.Raw.Count > 0 || this.IsScintillator);
         }
 
         /// <summary>
@@ -1029,7 +1056,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// его веществ) и «пустое место» сосуда с маринелли. Нет разбора —
         /// пишутся нули и умолчания, то есть одна и та же геометрия даёт ДВА
         /// разных текста `.in`, а с ним и два разных `ResponseMatrix.ComputeStamp`.
-        /// Измерено на складе: у 17 ввезённых из ЛСРМ файлов из 66 копия
+        /// Измерено на складе: у 17 импортированных из ЛСРМ файлов из 66 копия
         /// сдвигала отпечаток на 26 строк, ничего в геометрии не изменив, —
         /// матрица объявлялась устаревшей, человек получал часы пересчёта.
         /// У 44 корпусных геометрий, написанных нашим же писателем, разница
@@ -1052,7 +1079,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Свои словарь и список, а не общие с исходником: копия для того и
             // делается, чтобы две геометрии не правились за одну.
             copy.Raw = new Dictionary<string, string>(this.Raw, StringComparer.OrdinalIgnoreCase);
-            copy.Warnings = new List<string>(this.Warnings);
+            // (`AMBER200`) Копируются только предупреждения РАЗБОРА файла:
+            // предупреждения слоёв не хранятся вовсе, а считаются по самой
+            // модели при каждом чтении <see cref="Warnings"/> — у копии с
+            // исправленным веществом старое предупреждение не переживёт правку.
+            copy.ParseWarnings = new List<string>(this.ParseWarnings);
             return copy;
         }
 
@@ -1143,7 +1174,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// нулями и умолчаниями, а та же геометрия прямо из файла — настоящими
         /// числами. Два текста `.in` — два `ResponseMatrix.ComputeStamp`, и
         /// посчитанная матрица объявлялась устаревшей после перезапуска
-        /// приложения. Измерено: 17 ввезённых из ЛСРМ файлов склада из 66;
+        /// приложения. Измерено: 17 импортированных из ЛСРМ файлов склада из 66;
         /// у 44 корпусных разницы нет, там чужие блоки и так пусты.
         ///
         /// Цена — размер конфигурации, и она урезана: в XML едет НЕ весь
@@ -1502,11 +1533,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Ключ типа долей у отражателя называется DS_FractionTypeReflector,
             // без Crystal, — в отличие от остальных. Так в формате.
             g.Crystal = Material(kv, "DS_", "Crystal", "M_DS_Crystal.MName",
-                                 "DS_FractionTypeCrystal", g.Warnings);
+                                 "DS_FractionTypeCrystal", g.ParseWarnings);
             g.Reflector = Material(kv, "DS_", "CrystalReflector", "M_DS_Reflector.MName",
-                                   "DS_FractionTypeReflector", g.Warnings);
+                                   "DS_FractionTypeReflector", g.ParseWarnings);
             g.Cladding = Material(kv, "DS_", "CrystalCladding", "M_DS_Crystal_Cladding.MName",
-                                  "DS_FractionTypeCrystalCladding", g.Warnings);
+                                  "DS_FractionTypeCrystalCladding", g.ParseWarnings);
             // (`AMBER1`) Вещество зазора. У файла БЕЗ этих ключей — а таковы
             // все файлы до 08.09.2026 и все чужие — разбор даёт пустое
             // вещество; толщина зазора у них тоже ноль, слоя нет вовсе.
@@ -1531,28 +1562,69 @@ namespace BecquerelMonitor.EfficiencyMaker
             // (`AS80_*`, `RC103_*`) воздух записан в файле явно и читается из
             // файла. Измерено пробой `GapDefaultProbe` на 61 файле `.in`.
             g.Gap = Material(kv, "DS_", "CrystalGap", "M_DS_Gap.MName",
-                             "DS_FractionTypeGap", g.Warnings);
+                             "DS_FractionTypeGap", g.ParseWarnings);
             g.ApplyGapDefault();
 
             string prefix = g.SourceType == GeometrySourceType.Marinelli ? "SM_" : "SC_";
             g.BeakerWall = Material(kv, prefix, "Wall", "M_" + prefix + "Beaker.MName",
-                                    prefix + "FractionTypeWall", g.Warnings);
+                                    prefix + "FractionTypeWall", g.ParseWarnings);
             g.Source = Material(kv, prefix, "Source", "M_" + prefix + "Source.MName",
-                                prefix + "FractionTypeSource", g.Warnings);
-            g.CheckLayers();
+                                prefix + "FractionTypeSource", g.ParseWarnings);
+            // (`AMBER200`) Проверка слоёв здесь больше НЕ зовётся: она входит в
+            // <see cref="Warnings"/> при каждом чтении, у геометрии из файла,
+            // из редактора и из конфигурации одинаково.
             return g;
         }
 
         /// <summary>
-        /// Что в разобранном файле выглядит подозрительно. Пусто, если всё ясно.
-        ///
-        /// Заводится не «на всякий случай»: у обеих проверок ниже есть читатель
-        /// — расчёт печатает это в журнал прогона, а конструктор кривой в свой.
+        /// Что в разобранном файле `.in` выглядит подозрительно (неизвестное
+        /// вещество, чужой тип долей). Пусто, если всё ясно или геометрия не из
+        /// файла.
         ///
         /// Не хранится: это итог РАЗБОРА файла, а не свойство геометрии.
         /// </summary>
         [XmlIgnore]
-        public List<string> Warnings = new List<string>();
+        public List<string> ParseWarnings = new List<string>();
+
+        /// <summary>
+        /// Всё, о чём надо сказать перед счётом и при показе: предупреждения
+        /// разбора файла (<see cref="ParseWarnings"/>) и проверка слоёв
+        /// (<see cref="CheckLayers"/>), посчитанная ЗАНОВО по модели как она
+        /// есть сейчас. Каждое чтение — новый список.
+        ///
+        /// ⛔ (`AMBER200`, 05.10.2026) Прежде это было ПОЛЕ, а проверка слоёв
+        /// звалась один раз — внутри чтения `.in`. У геометрии из редактора и из
+        /// конфигурации прибора (поле `[XmlIgnore]`, после перезапуска пустое)
+        /// слой с толщиной без вещества уходил в счёт молчаливым вакуумом
+        /// (<c>EfficiencySimulator.OrVacuum</c>), а копия (<see cref="Clone"/>)
+        /// переносила старое предупреждение и после того, как вещество
+        /// исправили.
+        ///
+        /// У обеих половин есть читатель: расчёт печатает это в журнал прогона,
+        /// конструктор кривой — в свой, вкладка эффективности формы прибора —
+        /// под чертежом.
+        /// </summary>
+        [XmlIgnore]
+        public List<string> Warnings
+        {
+            get
+            {
+                List<string> all = new List<string>(this.ParseWarnings);
+                all.AddRange(this.CheckLayers());
+                // (`AMBER201`, Р4, мелочь 9.2) Боковая постановка у ЦИЛИНДРА.
+                // `FacingError` прежде не читал никто (E21 обещал отказ словами),
+                // и цилиндр с `DS_Facing = SIDE` из `.in` или правленого XML
+                // считался с переставленной обвязкой молча. Теперь — строкой
+                // здесь (журнал, вкладка), а счёт кривой и матрицы отказывает.
+                string facing = this.FacingError;
+                if (!string.IsNullOrEmpty(facing))
+                {
+                    all.Add(facing);
+                }
+
+                return all;
+            }
+        }
 
         /// <summary>
         /// Слой с толщиной, но без вещества. Разбирать это молча нельзя: области
@@ -1560,19 +1632,69 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// исчезает, а ЗАМЕЩАЕТСЯ слоем снаружи — забыл плотность отражателя, и
         /// на его месте оказался алюминий корпуса, который тяжелее. Расчёт при
         /// этом доводится до конца и выдаёт правдоподобную, но чужую кривую.
+        ///
+        /// (`AMBER200`) Открыта и ничего не хранит: каждый вызов — проверка
+        /// модели как она есть сейчас.
         /// </summary>
-        void CheckLayers()
+        public List<string> CheckLayers()
         {
+            List<string> warnings = new List<string>();
             Action<double, GeometryMaterial, string> check = (thickness, material, caption) =>
             {
                 if (thickness > 0.0 && (material == null || !(material.Density > 0.0)
                                         || material.Fractions.Count == 0))
                 {
-                    this.Warnings.Add(string.Format(CultureInfo.InvariantCulture,
+                    warnings.Add(string.Format(CultureInfo.InvariantCulture,
                         Properties.Resources.GeometryWarningNoMaterial, caption, thickness));
                 }
             };
 
+            this.VisitLayers(check);
+            return warnings;
+        }
+
+        /// <summary>
+        /// (`AMBER201`, Р4, подозрение G) Элемент вещества СЛОЯ СЦЕНЫ, которого
+        /// нет в таблицах ослабления; null — все известны. Прежде так
+        /// проверялся только кристалл (`EfficiencyCalculation.Run`), а в
+        /// матрице — ничто: элемент вне таблиц в отражателе, корпусе, стенке
+        /// или пробе выпадал из слоя молча (замер 05.10.2026: отражатель
+        /// с Z = 150 — матрица построена без единого слова). Слои — те же, что
+        /// у <see cref="CheckLayers"/>: с толщиной, то есть те, что сцена
+        /// строит.
+        /// </summary>
+        public string UnknownElementProblem()
+        {
+            string problem = null;
+            Action<double, GeometryMaterial, string> check = (thickness, material, caption) =>
+            {
+                int z;
+                if (problem == null && thickness > 0.0 && material != null && !material.IsKnown(out z))
+                {
+                    string text = Properties.Resources.ResourceManager.GetString(
+                        "GeometryUnknownElementInLayer", Properties.Resources.Culture);
+                    if (string.IsNullOrEmpty(text))
+                    {
+                        text = "The material of \"{0}\" contains the element Z = {1}, which is absent from the"
+                               + " attenuation tables: the layer would be counted without it.";
+                    }
+
+                    problem = string.Format(CultureInfo.InvariantCulture, text, caption, z);
+                }
+            };
+
+            double crystal = this.Shape == CrystalShape.Box
+                ? Math.Min(this.CrystalBoxX, Math.Min(this.CrystalBoxY, this.CrystalBoxZ))
+                : Math.Min(this.CrystalDiameter, this.CrystalHeight);
+            check(crystal, this.Crystal, Properties.Resources.GeometryEditorCrystalMaterial);
+            this.VisitLayers(check);
+            return problem;
+        }
+
+        /// <summary>Слои обвязки и пробы с их толщиной — одним списком для
+        /// <see cref="CheckLayers"/> и <see cref="UnknownElementProblem"/>.</summary>
+        void VisitLayers(Action<double, GeometryMaterial, string> check)
+        {
             check(Math.Max(this.FrontReflectorThickness, this.SideReflectorThickness),
                   this.Reflector, Properties.Resources.GeometryEditorReflectorMaterial);
             check(Math.Max(this.FrontGapThickness, this.SideGapThickness),
@@ -1629,9 +1751,27 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return 0.0;
             }
 
-            Match m = Regex.Match(v, @"^\s*(-?[0-9.]+(?:[eE][-+]?[0-9]+)?)");
+            return LeadingNumber(v);
+        }
+
+        /// <summary>
+        /// Число в начале значения `.in`: «5.03 cm» -> 5.03.
+        ///
+        /// (`AMBER201`, Р4, мелочь 9.3) Запятая как разделитель дробной части
+        /// принимается наравне с точкой: «5,03 cm» прежде читалось как 5 —
+        /// разбор брал `[0-9.]+` и обрывался на запятой, молча. Файл ЛСРМ,
+        /// сохранённый на машине с русской культурой, такие числа и несёт; в
+        /// дереве их нет (244 файла `.in`, 0 с запятой — замер 05.10.2026),
+        /// поэтому клеймо ни одной матрицы правкой не задето. Разделителей
+        /// разрядов у `.in` нет, поэтому одиночная запятая между цифрами
+        /// однозначна. Зовёт и писатель (<c>GeometryWriter.Carried</c>) — одно
+        /// правило на чтение и перенос.
+        /// </summary>
+        internal static double LeadingNumber(string v)
+        {
+            Match m = Regex.Match(v ?? "", @"^\s*(-?(?:[0-9]+(?:[.,][0-9]*)?|[.,][0-9]+)(?:[eE][-+]?[0-9]+)?)");
             double value;
-            return m.Success && double.TryParse(m.Groups[1].Value, NumberStyles.Float,
+            return m.Success && double.TryParse(m.Groups[1].Value.Replace(',', '.'), NumberStyles.Float,
                                                 CultureInfo.InvariantCulture, out value)
                 ? value : 0.0;
         }

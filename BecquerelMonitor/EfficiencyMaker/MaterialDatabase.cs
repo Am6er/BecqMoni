@@ -1292,7 +1292,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             List<double> energies = new List<double>();
             List<double> yields = new List<double>();
             using (SqliteConnection connection = new SqliteConnection(
-                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+                MaterialDatabase.ReadOnlyConnection(path, true)))
             {
                 connection.Open();
                 using (SqliteCommand command = connection.CreateCommand())
@@ -1456,7 +1456,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             List<double> estarKev = new List<double>();
             List<double> estarCm = new List<double>();
             using (SqliteConnection connection = new SqliteConnection(
-                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+                MaterialDatabase.ReadOnlyConnection(path, true)))
             {
                 connection.Open();
                 using (SqliteCommand command = connection.CreateCommand())
@@ -1730,7 +1730,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             var rad = new Dictionary<int, List<double[]>>();
             var aug = new Dictionary<int, List<double[]>>();
             using (SqliteConnection connection = new SqliteConnection(
-                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+                MaterialDatabase.ReadOnlyConnection(path, true)))
             {
                 connection.Open();
                 using (SqliteCommand command = connection.CreateCommand())
@@ -1881,7 +1881,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             using (SqliteConnection connection = new SqliteConnection(
-                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+                MaterialDatabase.ReadOnlyConnection(path, true)))
             {
                 connection.Open();
                 using (SqliteCommand command = connection.CreateCommand())
@@ -1908,7 +1908,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     command.CommandText =
                         "select kind, shell_seq, edge_ev, a1_b, a2_b, a3_b, a4_b, a5_b, a6_b" +
                         " from epics_photo_fit where z=" + z.ToString(CultureInfo.InvariantCulture) +
-                        " and shell_seq in (0, " + (shells - 1) + ")";
+                        " and shell_seq in (0, " + (shells - 1).ToString(CultureInfo.InvariantCulture) + ")";
                     using (SqliteDataReader reader = command.ExecuteReader())
                     {
                         while (reader.Read())
@@ -2126,7 +2126,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // счёта, замер П180) не нужна. Таблица входит в SHA-256 именем,
             // схемой, числом строк, суммой и XOR.
             using (var sha = System.Security.Cryptography.SHA256.Create())
-            using (var connection = new SqliteConnection("Data Source=" + path + ";Mode=ReadOnly;"))
+            using (var connection = new SqliteConnection(MaterialDatabase.ReadOnlyConnection(path, false)))
             {
                 connection.Open();
                 var head = new MemoryStream();
@@ -2259,6 +2259,30 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// (`AMBER201`, Р4, мелочь G.6) Строка подключения «только чтение» —
+        /// построителем, а не склейкой. Прежде путь вклеивался как есть:
+        /// `"Data Source=" + path + ";Mode=ReadOnly;…"`, и каталог программы с
+        /// `;` в имени разрезал строку — разбор брал хвост пути за ключ и
+        /// отказывал, перенос и матрица не открывали базу вовсе. Построитель
+        /// берёт такое значение в кавычки. Зовут все читатели `matdb.sqlite`
+        /// ядра переноса.
+        /// </summary>
+        internal static string ReadOnlyConnection(string path, bool sharedCache)
+        {
+            SqliteConnectionStringBuilder builder = new SqliteConnectionStringBuilder
+            {
+                DataSource = path,
+                Mode = SqliteOpenMode.ReadOnly,
+            };
+            if (sharedCache)
+            {
+                builder.Cache = SqliteCacheMode.Shared;
+            }
+
+            return builder.ToString();
+        }
+
+        /// <summary>
         /// ⛔ ОТКАЗ БАЗЫ ВЕЩЕСТВ НАЗЫВАЕТ СЕБЯ САМ (`A89`).
         ///
         /// Прежде файл назывался ТОЛЬКО в ветке «файла нет»
@@ -2362,7 +2386,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Dictionary<int, Fluorescence> fluo = new Dictionary<int, Fluorescence>();
 
                 using (SqliteConnection connection = new SqliteConnection(
-                    "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+                    MaterialDatabase.ReadOnlyConnection(path, true)))
                 {
                     connection.Open();
                     using (SqliteCommand command = connection.CreateCommand())
@@ -2504,7 +2528,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         {
                             command.CommandText =
                                 "select z, binding_ev from eadl_binding where shell_id = "
-                                + lShells[li];
+                                + lShells[li].ToString(CultureInfo.InvariantCulture);
                             using (SqliteDataReader reader = command.ExecuteReader())
                             {
                                 while (reader.Read())
@@ -2529,7 +2553,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                             command.CommandText =
                                 "select z, energy_ev, probability from eadl_radiative" +
-                                " where vacancy_shell = " + lShells[li] +
+                                " where vacancy_shell = " + lShells[li].ToString(CultureInfo.InvariantCulture) +
                                 " order by z, energy_ev";
                             Dictionary<int, List<double[]>> lLines = new Dictionary<int, List<double[]>>();
                             using (SqliteDataReader reader = command.ExecuteReader())

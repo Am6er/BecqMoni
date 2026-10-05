@@ -432,7 +432,11 @@ namespace BecquerelMonitor
                     }
                     break;
                 case 1:
-                    if (result.ResultValue >= result.MDA)
+                    // ⛔ (`AMBER192`, решение Amber 05.10.2026 «Нет MDA → «не
+                    //    обнаружена»») MDA не определён (−1 у зоны без простой
+                    //    разности с фоном, 0 без времени) — зона НЕ обнаружена.
+                    //    Прежде «≥ −1» было истинно всегда.
+                    if (result.MDA > 0.0 && result.ResultValue >= result.MDA)
                     {
                         result2 = true;
                     }

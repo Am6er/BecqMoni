@@ -50,7 +50,7 @@ namespace FwhmViewReachProbeO13
     ///                  единственное состояние, где `EnsureFwhmCalibration`
     ///                  бессилен, а значит единственное, где голые места
     ///                  вообще могут ожить.
-    ///   ВВОЗ-N42     — настоящий ввоз корпусного `.n42` (`--n42=`): дверь
+    ///   ИМПОРТ-N42     — настоящий импорт корпусного `.n42` (`--n42=`): дверь
     ///                  оставляет кривую пустой (`A234`), и надо ИЗМЕРИТЬ,
     ///                  переживает ли эта пустота обновление вида.
     ///
@@ -125,13 +125,30 @@ namespace FwhmViewReachProbeO13
             s.PrintState();
 
             // --- строка 310: RemovePeakButton_Click снимает точку -------------
+            // ⛔ С 05.10.2026 (`AMBER201`, мелочь 4.10) «Удалить» БЕЗ выделенной
+            //    строки не снимает ничего — прежде снималась первая опора молча.
+            //    Поэтому дверь дёргается дважды: без выделения (обязано остаться
+            //    столько же) и с выделенной ВТОРОЙ строкой (обязана уйти именно она).
             int before = s.Peaks.Count;
             Outcome o = s.Invoke("RemovePeakButton_Click", new object[] { null, EventArgs.Empty });
             int after = s.Peaks == null ? -1 : s.Peaks.Count;
-            Door("310  RemovePeakButton_Click", o,
+            Door("310  RemovePeakButton_Click (без выделения)", o,
                  "точек было " + before + ", стало " + after);
-            Control("строка 310 ИСПОЛНИЛАСЬ (точка снята)", after == before - 1,
-                    "точек " + before + " -> " + after);
+            Control("без выделения НИЧЕГО не снято (4.10)", o.Ok && after == before,
+                    "точек " + before + " -> " + after + " | " + o.Text);
+
+            s.Update();
+            before = s.Peaks.Count;
+            int victim = before > 1 ? s.Peaks[1].Channel : -1;
+            s.Model.Selections.SelectCell(1, 0);
+            o = s.Invoke("RemovePeakButton_Click", new object[] { null, EventArgs.Empty });
+            after = s.Peaks == null ? -1 : s.Peaks.Count;
+            bool victimGone = s.Peaks != null && !s.Peaks.Any(p => p.Channel == victim);
+            Door("310  RemovePeakButton_Click (выделена строка 2)", o,
+                 "точек было " + before + ", стало " + after + ", канал " + victim + " снят: " + victimGone);
+            Control("строка 310 ИСПОЛНИЛАСЬ (снята ВЫДЕЛЕННАЯ точка)",
+                    after == before - 1 && victimGone,
+                    "точек " + before + " -> " + after + ", канал " + victim + " снят: " + victimGone);
 
             // --- строки 396/413: EnergySpectrumView_PeakPickuped --------------
             s.Update();
@@ -256,11 +273,11 @@ namespace FwhmViewReachProbeO13
         }
 
         // ==================================================================
-        // ЗАМЕР. Сцена «ВВОЗ-N42» — переживает ли пустота обновление вида.
+        // ЗАМЕР. Сцена «ИМПОРТ-N42» — переживает ли пустота обновление вида.
         // ==================================================================
         static void SceneN42()
         {
-            Console.WriteLine("=== СЦЕНА «ВВОЗ-N42» — ПОСЫЛКА СТРОКИ `A236` ===");
+            Console.WriteLine("=== СЦЕНА «ИМПОРТ-N42» — ПОСЫЛКА СТРОКИ `A236` ===");
             if (n42Dir == null)
             {
                 Console.WriteLine("  пропущена: не задан --n42=<каталог>");
@@ -272,11 +289,11 @@ namespace FwhmViewReachProbeO13
             Console.WriteLine("  каталог: " + Path.GetFullPath(n42Dir) + ", файлов " + files.Length);
             Console.WriteLine();
 
-            // ⛔ ПЛЕЧО ОБЯЗАНО БЫТЬ ПУСТЫМ. Прежняя редакция ввозила поверх ЖИВОЙ
+            // ⛔ ПЛЕЧО ОБЯЗАНО БЫТЬ ПУСТЫМ. Прежняя редакция импортировала поверх ЖИВОЙ
             //    кривой (`live: true`) и печатала «кривая есть» у 12 из 12 — а это
             //    лишь «дверь не стирает существующую», про пустую не говорит ничего.
             //    Дверь `ImportDocumentN42` кривую разрешения не трогает (`A234`),
-            //    поэтому мерить надо ровно там, где до ввоза её НЕ БЫЛО.
+            //    поэтому мерить надо ровно там, где до импорта её НЕ БЫЛО.
             int nullAtImport = 0, nullAfterUpdate = 0, ok = 0;
             foreach (string f in files)
             {
@@ -288,7 +305,7 @@ namespace FwhmViewReachProbeO13
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("  " + Path.GetFileName(f) + ": ввоз ОТКАЗАЛ — " + Where(ex));
+                    Console.WriteLine("  " + Path.GetFileName(f) + ": импорт ОТКАЗАЛ — " + Where(ex));
                     continue;
                 }
                 ok++;
@@ -298,12 +315,12 @@ namespace FwhmViewReachProbeO13
                 bool nullAfter = s.Doc.ActiveResultData.FwhmCalibration == null;
                 if (nullAfter) nullAfterUpdate++;
                 Console.WriteLine("  " + Path.GetFileName(f).PadRight(28)
-                                  + " кривая после ВВОЗА: " + (nullNow ? "ПУСТА" : "есть")
+                                  + " кривая после ИМПОРТА: " + (nullNow ? "ПУСТА" : "есть")
                                   + " | после ОБНОВЛЕНИЯ ВИДА: " + (nullAfter ? "ПУСТА" : "есть")
                                   + " | строк в таблице: " + s.Rows);
             }
             Console.WriteLine();
-            Console.WriteLine("  ввезено " + ok + ", пустых после ввоза " + nullAtImport
+            Console.WriteLine("  импортировано " + ok + ", пустых после импорта " + nullAtImport
                               + ", пустых ПОСЛЕ ОБНОВЛЕНИЯ ВИДА " + nullAfterUpdate);
             Console.WriteLine();
         }

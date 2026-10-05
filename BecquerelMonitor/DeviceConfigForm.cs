@@ -65,9 +65,19 @@ namespace BecquerelMonitor
             {
                 this.comboBox1.Items.Add(item2);
             }
+            // (`AMBER201`, Р4) Ширины колонок — из общей конфигурации, а там
+            // массив бывает КОРОЧЕ числа колонок или вовсе пустым (файл прежней
+            // версии, правленый руками): прежде `[i]` бросал из конструктора, и
+            // форма прибора не открывалась. Недостающая колонка остаётся с
+            // шириной из дизайнера.
             int[] deviceConfigListColumnSizes = this.globalConfigManager.GlobalConfig.DeviceConfigListColumnSizes;
             for (int i = 0; i < this.columnModel1.Columns.Count; i++)
             {
+                if (deviceConfigListColumnSizes == null || i >= deviceConfigListColumnSizes.Length)
+                {
+                    break;
+                }
+
                 this.columnModel1.Columns[i].Width = ((deviceConfigListColumnSizes[i] > 32) ? deviceConfigListColumnSizes[i] : 32);
             }
             this.groupBox2.Top = 24;
@@ -91,7 +101,7 @@ namespace BecquerelMonitor
         // Token: 0x06000515 RID: 1301 RVA: 0x00020684 File Offset: 0x0001E884
         void DeviceConfigForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (!this.ConfirmSaveDeviceConfig())
+            if (!this.ConfirmSaveDeviceConfig(true))
             {
                 // Actually cancel the close. A bare return let the form close anyway
                 // while skipping the cleanup below (the 50 ms AudioInputDeviceForm timer
@@ -100,6 +110,10 @@ namespace BecquerelMonitor
                 e.Cancel = true;
                 return;
             }
+            // `AMBER186`: вопрос о сохранении пройден — ничьих временных матриц
+            // больше нет; оставшиеся (кривая заведена и удалена до записи)
+            // снимаются, на склад они не попадут.
+            EfficiencyMaker.ResponseMatrixStore.DiscardAllPending();
             if (this.inputDeviceForm != null)
             {
                 this.inputDeviceForm.FormClosing();
@@ -118,28 +132,346 @@ namespace BecquerelMonitor
         // Token: 0x06000516 RID: 1302 RVA: 0x00020748 File Offset: 0x0001E948
         public void ListupConfigFiles()
         {
-            this.table1.SuspendLayout();
-            this.tableModel1.Rows.Clear();
-            this.tableModel1.Selections.Clear();
-            foreach (DeviceConfigInfo deviceConfigInfo in this.manager.DeviceConfigList)
+            this.ListupConfigFiles(false);
+        }
+
+        /// <summary>
+        /// Перестроить список конфигураций.
+        ///
+        /// ⛔ (`AMBER184`, 05.10.2026; решение Amber вопросником, дословно: «Не
+        /// закрывать (Рекомендую)») <paramref name="keepActive"/> = true — после
+        /// своего «Сохранить» и ответа на вопрос о сохранении: клон, который
+        /// правит форма, только что записан (или только что снят с менеджера) и
+        /// совпадает с записью менеджера, поэтому строка активной конфигурации
+        /// несёт ТОТ ЖЕ объект, а не свежий клон. Прежде клон подменялся всегда,
+        /// и привязанные к прежнему клону конструкторы кривой (с их счётом)
+        /// закрывались вместе с точками многоточечной калибровки.
+        ///
+        /// false — активный объект мог разойтись с менеджером (сохранение мимо
+        /// формы — панель калибровки, `UpdateModifiedConfigFile`) или ещё не клон
+        /// вовсе (новая и копия — объект менеджера): строка получает свежий клон,
+        /// а конструкторы прежнего клона закрываются, как и прежде, — их
+        /// «Сохранить» писало бы в объект, до которого больше никому нет дела.
+        /// </summary>
+        void ListupConfigFiles(bool keepActive)
+        {
+            // (`AMBER184`) Повторный вход — из вопроса о сохранении, поднятого
+            // событием выбора посреди перестройки: вложенная перестройка
+            // добавляла свои строки, а внешняя затем ещё раз все — дубли.
+            if (this.listRebuilding)
             {
-                DeviceConfigInfo deviceConfigInfo2 = deviceConfigInfo.Clone();
-                Row row = new Row();
-                row.Cells.Add(new Cell(deviceConfigInfo2.Name));
-                row.Cells.Add(new Cell(deviceConfigInfo2.LastUpdated.ToShortDateString() + " " + deviceConfigInfo2.LastUpdated.ToLongTimeString()));
-                row.Tag = deviceConfigInfo2;
-                this.tableModel1.Rows.Add(row);
-                if (this.activeDeviceConfig != null && this.activeDeviceConfig.Guid == deviceConfigInfo2.Guid)
+                return;
+            }
+            this.listRebuilding = true;
+            try
+            {
+                this.table1.SuspendLayout();
+                this.tableModel1.Rows.Clear();
+                this.tableModel1.Selections.Clear();
+                foreach (DeviceConfigInfo deviceConfigInfo in this.manager.DeviceConfigList)
                 {
-                    this.activeDeviceConfig = deviceConfigInfo2;
-                    this.tableModel1.Selections.AddCell(row.Index, 0);
+                    DeviceConfigInfo deviceConfigInfo2 = deviceConfigInfo.Clone();
+                    bool isActive = this.activeDeviceConfig != null && this.activeDeviceConfig.Guid == deviceConfigInfo2.Guid;
+                    // Запись менеджера не менялась с тех пор, как снят клон
+                    // (сохранение мимо формы ставит LastUpdated), — подменять
+                    // клон незачем и при keepActive = false. Объект самого
+                    // менеджера (новая, копия) форма не правит никогда.
+                    // (`AMBER184`, остаток) Держится только СВОЙ клон формы
+                    // (<see cref="activeBaselineOwner"/>): объект, пришедший
+                    // снаружи (`MainForm.ShowDeviceConfigForm` даёт копию из
+                    // спектра), правиться формой не должен — прежде при равном
+                    // LastUpdated он оставался активным, и правки формы шли в
+                    // копию открытого спектра.
+                    bool keep = isActive
+                        && object.ReferenceEquals(this.activeDeviceConfig, this.activeBaselineOwner)
+                        && !object.ReferenceEquals(deviceConfigInfo, this.activeDeviceConfig)
+                        && (keepActive || deviceConfigInfo.LastUpdated == this.activeDeviceConfig.LastUpdated);
+                    if (keep)
+                    {
+                        deviceConfigInfo2 = this.activeDeviceConfig;
+                    }
+                    Row row = new Row();
+                    row.Cells.Add(new Cell(deviceConfigInfo2.Name));
+                    row.Cells.Add(new Cell(deviceConfigInfo2.LastUpdated.ToShortDateString() + " " + deviceConfigInfo2.LastUpdated.ToLongTimeString()));
+                    row.Tag = deviceConfigInfo2;
+                    this.tableModel1.Rows.Add(row);
+                    if (isActive)
+                    {
+                        List<string> restored = null;
+                        if (!object.ReferenceEquals(this.activeDeviceConfig, deviceConfigInfo2))
+                        {
+                            // Клон подменяется: точки многоточечной калибровки
+                            // уходят, как было до `AMBER184` на этом пути.
+                            // (`AMBER184`, остаток) Конструкторы кривой ТОЙ ЖЕ
+                            // конфигурации перепривязываются к новому клону, а
+                            // не закрываются; чужой (новая, копия) — закрываются.
+                            this.calibrationPoints.Clear();
+                            this.AdoptClone(deviceConfigInfo2, deviceConfigInfo);
+                            restored = this.RebindEfficiencyMakers(deviceConfigInfo2);
+                        }
+                        this.activeDeviceConfig = deviceConfigInfo2;
+                        if (restored != null && restored.Count > 0)
+                        {
+                            this.SetActiveDeviceConfigDirty();
+                        }
+                        this.tableModel1.Selections.AddCell(row.Index, 0);
+                    }
+                    if (this.table1.SortingColumn != -1)
+                    {
+                        this.table1.Sort();
+                    }
                 }
-                if (this.table1.SortingColumn != -1)
+                this.table1.ResumeLayout();
+            }
+            finally
+            {
+                this.listRebuilding = false;
+            }
+        }
+
+        // (`AMBER184`) Идёт перестройка списка (ListupConfigFiles): выбор в
+        // таблице меняется сам, а не человеком.
+        bool listRebuilding;
+
+        /// <summary>
+        /// (`AMBER184`, остаток) Исходный снимок записи менеджера для клона
+        /// <see cref="activeBaselineOwner"/> — какой она была, когда клон снят
+        /// или последний раз сведён с ней (своё «Сохранить», ответ «Нет»). По нему
+        /// <see cref="AdoptOutsideChanges"/> отличает поле, которое правила форма,
+        /// от поля, которое переписали мимо неё.
+        /// </summary>
+        DeviceConfigInfo activeBaseline;
+
+        /// <summary>
+        /// (`AMBER184`) Клон, снятый САМОЙ формой, к которому относится
+        /// <see cref="activeBaseline"/>. Объект, пришедший снаружи, своим не
+        /// считается.
+        /// </summary>
+        DeviceConfigInfo activeBaselineOwner;
+
+        /// <summary>
+        /// (`AMBER184`) Сделать клон своим и запомнить запись менеджера, с
+        /// которой он снят (или сведён), исходным снимком.
+        /// </summary>
+        void AdoptClone(DeviceConfigInfo clone, DeviceConfigInfo record)
+        {
+            this.activeBaselineOwner = clone;
+            this.activeBaseline = record == null ? null : record.Clone();
+        }
+
+        /// <summary>Запись менеджера той же конфигурации, что клон; null — нет.</summary>
+        DeviceConfigInfo ManagerRecordOf(DeviceConfigInfo config)
+        {
+            DeviceConfigInfo record;
+            if (config == null || string.IsNullOrEmpty(config.Guid)
+                || !this.manager.DeviceConfigMap.TryGetValue(config.Guid, out record))
+            {
+                return null;
+            }
+
+            return record;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER184`, остаток (2), 05.10.2026) ПОЛЯ, КОТОРЫЕ ПИШУТ МИМО ФОРМЫ,
+        /// ФОРМА НЕ ЗАТИРАЕТ. Пока форма открыта, запись менеджера меняют:
+        ///
+        ///   * семь флажков разбора окна отчёта FSA
+        ///     (<c>FSAReportView.SaveOptionsToDevice</c>, тихая запись);
+        ///   * калибровка энергии и ПШПВ из панелей калибровки («Сохранить в
+        ///     прибор»).
+        ///
+        /// Своё «Сохранить» (и «Да» вопроса) писало клон формы целиком поверх —
+        /// снятый флажок FSA возвращался молча (экраном 05.10.2026), калибровка
+        /// из панели откатывалась к той, что была при открытии формы.
+        ///
+        /// Теперь — слияние трёх: клон F (что пишет форма), исходный снимок B
+        /// (<see cref="activeBaseline"/>), запись менеджера M. Поле, в котором
+        /// F совпадает с B (форма его не правила), а M от B отличается (его
+        /// переписали мимо формы), берётся из M. Поле, которое правила сама форма
+        /// (многоточечная калибровка, коэффициенты руками, форма пика), остаётся
+        /// её — это правка человека в этом окне. Калибровка энергии сравнивается
+        /// с допуском: поля формы печатают коэффициенты строкой, и обратный
+        /// разбор не обязан вернуть последний бит.
+        /// </summary>
+        /// <returns>true — что-то взято из записи менеджера (поля формы стоит перечитать).</returns>
+        bool AdoptOutsideChanges(DeviceConfigInfo clone)
+        {
+            DeviceConfigInfo baseline = this.activeBaseline;
+            if (clone == null || baseline == null || !object.ReferenceEquals(clone, this.activeBaselineOwner))
+            {
+                return false;
+            }
+
+            DeviceConfigInfo record = this.ManagerRecordOf(clone);
+            if (record == null || object.ReferenceEquals(record, clone))
+            {
+                return false;
+            }
+
+            return AdoptOutsideChanges(clone, baseline, record);
+        }
+
+        /// <summary>
+        /// Слияние трёх (см. перегрузку без снимка) — статическое и без окна,
+        /// чтобы его мерила проба.
+        /// </summary>
+        internal static bool AdoptOutsideChanges(DeviceConfigInfo clone, DeviceConfigInfo baseline,
+                                                 DeviceConfigInfo record)
+        {
+            bool adopted = false;
+            FWHMPeakDetectionMethodConfig f = clone.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            FWHMPeakDetectionMethodConfig b = baseline.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            FWHMPeakDetectionMethodConfig m = record.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            if (f != null && b != null && m != null)
+            {
+                bool v;
+                v = Pick(f.DbLookupsForFsa, b.DbLookupsForFsa, m.DbLookupsForFsa, ref adopted); f.DbLookupsForFsa = v;
+                v = Pick(f.ChainEquilibrium, b.ChainEquilibrium, m.ChainEquilibrium, ref adopted); f.ChainEquilibrium = v;
+                v = Pick(f.AtomicXrayForFsa, b.AtomicXrayForFsa, m.AtomicXrayForFsa, ref adopted); f.AtomicXrayForFsa = v;
+                v = Pick(f.CascadeSummingForFsa, b.CascadeSummingForFsa, m.CascadeSummingForFsa, ref adopted); f.CascadeSummingForFsa = v;
+                v = Pick(f.BackscatterForFsa, b.BackscatterForFsa, m.BackscatterForFsa, ref adopted); f.BackscatterForFsa = v;
+                v = Pick(f.EscapeAndAnnihilationForFsa, b.EscapeAndAnnihilationForFsa, m.EscapeAndAnnihilationForFsa, ref adopted); f.EscapeAndAnnihilationForFsa = v;
+                v = Pick(f.PileUpForFsa, b.PileUpForFsa, m.PileUpForFsa, ref adopted); f.PileUpForFsa = v;
+
+                // Кривая ПШПВ (панель калибровки ПШПВ). Форма правит у неё
+                // только форму пика — она и переносится на взятую кривую.
+                if (SameFwhmCurve(f.FwhmCalibration, b.FwhmCalibration)
+                    && !SameFwhmCurve(m.FwhmCalibration, b.FwhmCalibration)
+                    && m.FwhmCalibration != null)
                 {
-                    this.table1.Sort();
+                    FwhmCalibration shape = f.FwhmCalibration;
+                    FwhmCalibration taken = m.FwhmCalibration.Clone();
+                    if (shape != null)
+                    {
+                        taken.PeakType = shape.PeakType;
+                        taken.ExpGaussExpLeftTail = shape.ExpGaussExpLeftTail;
+                        taken.ExpGaussExpRightTail = shape.ExpGaussExpRightTail;
+                        taken.VoigtSigma = shape.VoigtSigma;
+                        taken.VoigtGamma = shape.VoigtGamma;
+                    }
+                    f.FwhmCalibration = taken;
+                    adopted = true;
                 }
             }
-            this.table1.ResumeLayout();
+
+            // Калибровка энергии (панель калибровки энергии) — вместе с копией
+            // калибровки прибора RadiaCode / Obsidian, которую пишет та же кнопка.
+            if (SameEnergyCalibration(clone.EnergyCalibration, baseline.EnergyCalibration)
+                && !SameEnergyCalibration(record.EnergyCalibration, baseline.EnergyCalibration)
+                && record.EnergyCalibration != null)
+            {
+                clone.EnergyCalibration = record.EnergyCalibration.Clone();
+                if (clone.InputDeviceConfig is RadiaCodeDeviceConfig rcClone
+                    && record.InputDeviceConfig is RadiaCodeDeviceConfig rcRecord)
+                {
+                    rcClone.RC_EnergyCalibration = rcRecord.RC_EnergyCalibration == null
+                        ? null
+                        : (PolynomialEnergyCalibration)rcRecord.RC_EnergyCalibration.Clone();
+                }
+                else if (clone.InputDeviceConfig is ObsidianDeviceConfig obsClone
+                         && record.InputDeviceConfig is ObsidianDeviceConfig obsRecord)
+                {
+                    obsClone.OBS_EnergyCalibration = obsRecord.OBS_EnergyCalibration == null
+                        ? null
+                        : (PolynomialEnergyCalibration)obsRecord.OBS_EnergyCalibration.Clone();
+                }
+                adopted = true;
+            }
+
+            return adopted;
+        }
+
+        static bool Pick(bool form, bool baseline, bool record, ref bool adopted)
+        {
+            if (form == baseline && record != baseline)
+            {
+                adopted = true;
+                return record;
+            }
+
+            return form;
+        }
+
+        /// <summary>
+        /// Одна ли калибровка энергии: тип, порядок и коэффициенты с допуском
+        /// 1e-9 относительно (поля формы — строки, `A6`/`A242`). Не
+        /// полиномиальную сравнивать не берёмся — считаем разной только саму с
+        /// собой по ссылке, то есть не сливаем.
+        /// </summary>
+        internal static bool SameEnergyCalibration(EnergyCalibration a, EnergyCalibration b)
+        {
+            if (object.ReferenceEquals(a, b))
+            {
+                return true;
+            }
+
+            PolynomialEnergyCalibration pa = a as PolynomialEnergyCalibration;
+            PolynomialEnergyCalibration pb = b as PolynomialEnergyCalibration;
+            if (pa == null || pb == null)
+            {
+                return false;
+            }
+
+            if (pa.PolynomialOrder != pb.PolynomialOrder)
+            {
+                return false;
+            }
+
+            double[] ca = pa.Coefficients;
+            double[] cb = pb.Coefficients;
+            if (ca == null || cb == null)
+            {
+                return ca == cb;
+            }
+
+            int n = Math.Min(Math.Min(ca.Length, cb.Length), pa.PolynomialOrder + 1);
+            for (int i = 0; i < n; i++)
+            {
+                double scale = Math.Max(Math.Abs(ca[i]), Math.Abs(cb[i]));
+                if (Math.Abs(ca[i] - cb[i]) > 1e-9 * scale)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>Одна ли кривая ПШПВ: тип и коэффициенты точно (форма их не правит).</summary>
+        internal static bool SameFwhmCurve(FwhmCalibration a, FwhmCalibration b)
+        {
+            if (object.ReferenceEquals(a, b))
+            {
+                return true;
+            }
+
+            if (a == null || b == null || a.GetType() != b.GetType())
+            {
+                return false;
+            }
+
+            double[] ca = a.Coefficients;
+            double[] cb = b.Coefficients;
+            if (ca == null || cb == null)
+            {
+                return ca == cb;
+            }
+
+            if (ca.Length != cb.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < ca.Length; i++)
+            {
+                if (!ca[i].Equals(cb[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         // Token: 0x06000517 RID: 1303 RVA: 0x00020894 File Offset: 0x0001EA94
@@ -157,6 +489,24 @@ namespace BecquerelMonitor
         // Token: 0x06000518 RID: 1304 RVA: 0x00020954 File Offset: 0x0001EB54
         public void UpdateModifiedConfigFile()
         {
+            // ⛔ (`AMBER184`, остаток (2)) Зовут после записи в менеджер МИМО
+            // формы (панели калибровки энергии и ПШПВ). Прежде перестройка списка
+            // поднимала посреди себя вопрос «сохранить?» у «грязной» формы, и «Да»
+            // писало клон формы поверх только что сохранённой калибровки.
+            // Теперь «грязная» форма держит свой клон и свои правки, вопроса нет;
+            // запись мимо формы и правки формы сходятся при её сохранении
+            // (<see cref="AdoptOutsideChanges"/>). «Чистая» — берёт свежий клон
+            // (конструкторы кривой перепривязываются) и перечитывает поля.
+            // ⚠ Список при этом НЕ перестраивается: перестройка выбирает строку
+            // заново, а обработчик выбора перечитывает поля формы из клона —
+            // правки, ещё не положенные в клон (они живут в полях до
+            // «Сохранить»), пропадали молча (замер экраном 05.10.2026: «Notes»).
+            if (this.activeDeviceConfig != null && this.activeDeviceConfig.Dirty
+                && object.ReferenceEquals(this.activeDeviceConfig, this.activeBaselineOwner))
+            {
+                this.UpdateConfigFilesList();
+                return;
+            }
             this.ListupConfigFiles();
             if (this.activeDeviceConfig != null)
             {
@@ -167,7 +517,9 @@ namespace BecquerelMonitor
         // Token: 0x06000519 RID: 1305 RVA: 0x00020974 File Offset: 0x0001EB74
         void button3_Click(object sender, EventArgs e)
         {
-            if (!this.ConfirmSaveDeviceConfig())
+            // (`AMBER184`) Переход на новую конфигурацию — конструкторы кривой
+            // прежней уходят, как при смене строки списка.
+            if (!this.ConfirmSaveDeviceConfig(true))
             {
                 return;
             }
@@ -187,7 +539,9 @@ namespace BecquerelMonitor
         // Token: 0x0600051A RID: 1306 RVA: 0x000209D8 File Offset: 0x0001EBD8
         void button12_Click(object sender, EventArgs e)
         {
-            if (!this.ConfirmSaveDeviceConfig())
+            // (`AMBER184`) Переход на новую конфигурацию — конструкторы кривой
+            // прежней уходят, как при смене строки списка.
+            if (!this.ConfirmSaveDeviceConfig(true))
             {
                 return;
             }
@@ -266,13 +620,26 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.ERRInvalidInputForm);
                 return;
             }
+            // `AMBER186`: кривые конфигурации на диске — снимок ДО записи.
+            List<string> efficiencyBefore = this.SavedEfficiencyGuids(this.activeDeviceConfig);
+            // `AMBER184` (2): записанное мимо формы (флажки FSA, калибровки
+            // панелей) не затирается — поля, которые форма не правила, берутся
+            // из записи менеджера.
+            // Поля формы перечитываются из клона перестройкой списка ниже
+            // (обработчик выбора), то есть взятое покажется.
+            this.AdoptOutsideChanges(this.activeDeviceConfig);
             if (!this.manager.SaveConfig(this.activeDeviceConfig))
             {
                 MessageBox.Show(Resources.ERRDuplicateConfigName);
                 return;
             }
+            // `AMBER186`: записано — временные матрицы окна матрицы на склад,
+            // матрицы удалённых кривых со склада.
+            this.CommitResponseMatrices(this.activeDeviceConfig, efficiencyBefore);
+            this.AdoptClone(this.activeDeviceConfig, this.ManagerRecordOf(this.activeDeviceConfig));
             this.ResetActiveDeviceConfigDirty();
-            this.ListupConfigFiles();
+            // `AMBER184`: свой клон остаётся активным — конструкторы кривой живут.
+            this.ListupConfigFiles(true);
         }
 
         // Token: 0x0600051D RID: 1309 RVA: 0x00020B2C File Offset: 0x0001ED2C
@@ -304,7 +671,7 @@ namespace BecquerelMonitor
         // Token: 0x0600051F RID: 1311 RVA: 0x00020C20 File Offset: 0x0001EE20
         void button5_Click(object sender, EventArgs e)
         {
-            if (!this.ConfirmSaveDeviceConfig())
+            if (!this.ConfirmSaveDeviceConfig(true))
             {
                 return;
             }
@@ -560,37 +927,37 @@ namespace BecquerelMonitor
             this.numericUpDown4.Minimum = 1;
             this.numericUpDown4.Maximum = 10000;
             this.numericUpDown4.Increment = 1;
-            this.numericUpDown4.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_SNR;
+            this.numericUpDown4.Value = ClampNumericValue(this.numericUpDown4, FWHMPeakDetectionMethodConfig.Min_SNR);
 
             this.numericUpDown3.Minimum = 1;
             this.numericUpDown3.Maximum = 1000;
             this.numericUpDown3.Increment = 1;
-            this.numericUpDown3.Value = FWHMPeakDetectionMethodConfig.Max_Items;
+            this.numericUpDown3.Value = ClampNumericValue(this.numericUpDown3, (decimal)FWHMPeakDetectionMethodConfig.Max_Items);
 
             this.numericUpDown6.Minimum = 0;
             this.numericUpDown6.Maximum = 100;
             this.numericUpDown6.Increment = 1;
-            this.numericUpDown6.Value = (decimal)FWHMPeakDetectionMethodConfig.Tolerance;
+            this.numericUpDown6.Value = ClampNumericValue(this.numericUpDown6, FWHMPeakDetectionMethodConfig.Tolerance);
 
             this.numericUpDown12.Minimum = 1;
             this.numericUpDown12.Maximum = 10000;
             this.numericUpDown12.Increment = 1;
-            this.numericUpDown12.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_Range;
+            this.numericUpDown12.Value = ClampNumericValue(this.numericUpDown12, FWHMPeakDetectionMethodConfig.Min_Range);
 
             this.numericUpDown13.Minimum = 1;
             this.numericUpDown13.Maximum = 10000;
             this.numericUpDown13.Increment = 1;
-            this.numericUpDown13.Value = (decimal)FWHMPeakDetectionMethodConfig.Max_Range;
+            this.numericUpDown13.Value = ClampNumericValue(this.numericUpDown13, FWHMPeakDetectionMethodConfig.Max_Range);
 
             this.numericUpDown14.Minimum = 1;
             this.numericUpDown14.Maximum = 99;
             this.numericUpDown14.Increment = 1;
-            this.numericUpDown14.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_FWHM_Tol;
+            this.numericUpDown14.Value = ClampNumericValue(this.numericUpDown14, FWHMPeakDetectionMethodConfig.Min_FWHM_Tol);
 
             this.numericUpDown15.Minimum = 101;
             this.numericUpDown15.Maximum = 199;
             this.numericUpDown15.Increment = 1;
-            this.numericUpDown15.Value = (decimal)FWHMPeakDetectionMethodConfig.Max_FWHM_Tol;
+            this.numericUpDown15.Value = ClampNumericValue(this.numericUpDown15, FWHMPeakDetectionMethodConfig.Max_FWHM_Tol);
 
             this.numericUpDown16.Minimum = 256;
             this.numericUpDown16.Maximum = config.NumberOfChannels;
@@ -626,12 +993,12 @@ namespace BecquerelMonitor
         {
             this.contentsLoading = true;
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
-            this.numericUpDown14.Value = FWHMPeakDetectionMethodConfig.Min_FWHM_Tol;
-            this.numericUpDown15.Value = FWHMPeakDetectionMethodConfig.Max_FWHM_Tol;
-            this.numericUpDown16.Value = FWHMPeakDetectionMethodConfig.Ch_Concat;
+            this.numericUpDown14.Value = ClampNumericValue(this.numericUpDown14, FWHMPeakDetectionMethodConfig.Min_FWHM_Tol);
+            this.numericUpDown15.Value = ClampNumericValue(this.numericUpDown15, FWHMPeakDetectionMethodConfig.Max_FWHM_Tol);
+            this.numericUpDown16.Value = ClampNumericValue(this.numericUpDown16, (decimal)FWHMPeakDetectionMethodConfig.Ch_Concat);
             this.numericUpDownWidenFactor.Value = ClampNumericValue(this.numericUpDownWidenFactor, (decimal)FWHMPeakDetectionMethodConfig.PeakWidthWidenFactor);
             this.centroidComCheckBox.Checked = FWHMPeakDetectionMethodConfig.UseCenterOfMassCentroid;
-            this.numericUpDown12.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_Range;
+            this.numericUpDown12.Value = ClampNumericValue(this.numericUpDown12, FWHMPeakDetectionMethodConfig.Min_Range);
             LoadPeakShapeControls(FWHMPeakDetectionMethodConfig.FwhmCalibration);
             this.contentsLoading = false;
         }
@@ -639,6 +1006,30 @@ namespace BecquerelMonitor
         static decimal ClampNumericValue(NumericUpDown numericUpDown, decimal value)
         {
             return Math.Min(numericUpDown.Maximum, Math.Max(numericUpDown.Minimum, value));
+        }
+
+        /// <summary>
+        /// (`AMBER201`, Р4, 05.10.2026) То же для числа из файла конфигурации.
+        /// Прежде значения поиска пиков ложились в <c>NumericUpDown.Value</c>
+        /// как есть, и правленый руками файл (Min_SNR 0 при пределе 1,
+        /// Tolerance 150 при 100) бросал <c>ArgumentOutOfRangeException</c> из
+        /// <see cref="LoadFormContents"/> — форма прибора не открывалась на этой
+        /// конфигурации вовсе. Зажим идёт В DOUBLE, до приведения: <c>(decimal)</c>
+        /// от NaN или от числа за 7.9e28 бросает сам. NaN — нижний предел.
+        /// </summary>
+        static decimal ClampNumericValue(NumericUpDown numericUpDown, double value)
+        {
+            if (double.IsNaN(value) || value <= (double)numericUpDown.Minimum)
+            {
+                return numericUpDown.Minimum;
+            }
+
+            if (value >= (double)numericUpDown.Maximum)
+            {
+                return numericUpDown.Maximum;
+            }
+
+            return Math.Min(numericUpDown.Maximum, Math.Max(numericUpDown.Minimum, (decimal)value));
         }
 
         private static decimal ClampPeakShapeParameter(double value)
@@ -887,19 +1278,65 @@ namespace BecquerelMonitor
                 deviceConfigInfo = (DeviceConfigInfo)this.table1.SelectedItems[0].Tag;
                 row = this.table1.SelectedItems[0];
             }
-            if (deviceConfigInfo != this.activeDeviceConfig)
+            // ⛔ (`AMBER184`, 05.10.2026; решение Amber: «Не закрывать
+            // (Рекомендую)») Переход — только выбор ДРУГОЙ конфигурации (по
+            // Guid). Прежде сравнивались объекты, и перестройка списка после
+            // своего «Сохранить» (Selections.Clear даёт пустой выбор, строка
+            // получает новый клон) считалась переходом: конструктор кривой со
+            // счётом закрывался, точки многоточечной калибровки стирались.
+            bool switching = deviceConfigInfo != null
+                && (this.activeDeviceConfig == null || deviceConfigInfo.Guid != this.activeDeviceConfig.Guid);
+            if (switching)
             {
                 this.calibrationPoints.Clear();
                 // Конструкторы кривой привязаны к прежнему клону конфигурации:
                 // вместе с ним они и уходят, иначе их «Сохранить» писало бы в
-                // объект, который больше ниоткуда не достижим.
+                // объект, который больше ниоткуда не достижим. Закрываются ДО
+                // вопроса о сохранении: закрытие помечает конфигурацию
+                // изменённой, и сохранённую в конструкторе кривую можно
+                // записать ответом «Да».
                 this.CloseEfficiencyMakers();
             }
-            if (!this.ConfirmSaveDeviceConfig())
+            // (`AMBER184`, остаток (2)) Посреди перестройки списка выбор
+            // меняется сам — вопроса о сохранении здесь не задаём: его «Да» из
+            // `UpdateModifiedConfigFile` писало клон формы поверх калибровки,
+            // только что сохранённой панелью. Перестройка перехода не делает
+            // (выбирается та же конфигурация), её вызывающие спрашивают сами.
+            if (!this.listRebuilding && !this.ConfirmSaveDeviceConfig())
             {
-                this.ListupConfigFiles();
+                this.ListupConfigFiles(true);
                 this.reenter = false;
                 return;
+            }
+            if (deviceConfigInfo != null && row != null && row.TableModel != this.tableModel1)
+            {
+                // (`AMBER184`) Вопрос о сохранении перестроил список: прежняя
+                // строка из таблицы снята, её Index не указывает никуда. Цель —
+                // строка той же конфигурации в текущей таблице.
+                foreach (Row current in this.tableModel1.Rows)
+                {
+                    DeviceConfigInfo currentInfo = current.Tag as DeviceConfigInfo;
+                    if (currentInfo != null && currentInfo.Guid == deviceConfigInfo.Guid)
+                    {
+                        row = current;
+                        deviceConfigInfo = currentInfo;
+                        break;
+                    }
+                }
+            }
+            if (deviceConfigInfo != null && switching)
+            {
+                // (`AMBER184`, остаток (2)) Клон строки снят при перестройке
+                // списка и мог устареть (флажки FSA пишутся в менеджер тихо, без
+                // перестройки). Делаемая активной конфигурация получает свежий
+                // клон и исходный снимок того же мгновения.
+                DeviceConfigInfo record = this.ManagerRecordOf(deviceConfigInfo);
+                if (record != null && !object.ReferenceEquals(record, deviceConfigInfo))
+                {
+                    deviceConfigInfo = record.Clone();
+                    row.Tag = deviceConfigInfo;
+                }
+                this.AdoptClone(deviceConfigInfo, record);
             }
             if (deviceConfigInfo != null)
             {
@@ -950,6 +1387,15 @@ namespace BecquerelMonitor
         /// </summary>
         bool ConfirmSaveDeviceConfig()
         {
+            return this.ConfirmSaveDeviceConfig(false);
+        }
+
+        /// <param name="leaving">(`AMBER184`) Форма уходит с этой конфигурации —
+        /// закрывается или переходит на новую/копию: конструкторы кривой уходят
+        /// вместе с конфигурацией (как при смене строки списка), перепривязывать
+        /// их незачем.</param>
+        bool ConfirmSaveDeviceConfig(bool leaving)
+        {
             if (this.activeDeviceConfig != null && this.activeDeviceConfig.Dirty)
             {
                 DialogResult dialogResult = MessageBox.Show(Resources.MSGConfirmSaveConfig, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
@@ -966,21 +1412,92 @@ namespace BecquerelMonitor
                         MessageBox.Show(Resources.ERRInvalidInputForm);
                         return false;
                     }
+                    // `AMBER186`: снимок кривых на диске ДО записи — см. `button6_Click`.
+                    List<string> efficiencyBefore = this.SavedEfficiencyGuids(this.activeDeviceConfig);
+                    // `AMBER184` (2): записанное мимо формы не затирается — см. `button6_Click`.
+                    this.AdoptOutsideChanges(this.activeDeviceConfig);
                     if (!this.manager.SaveConfig(this.activeDeviceConfig))
                     {
                         MessageBox.Show(Resources.ERRDuplicateConfigName);
                         return false;
                     }
+                    this.CommitResponseMatrices(this.activeDeviceConfig, efficiencyBefore);
+                    this.AdoptClone(this.activeDeviceConfig, this.ManagerRecordOf(this.activeDeviceConfig));
                 }
                 else
                 {
-                    // Правки отвергнуты, клон заменяется свежим — открытые на
-                    // прежнем клоне конструкторы кривой закрываются вместе с ним.
-                    this.CloseEfficiencyMakers();
-                    this.activeDeviceConfig = this.manager.DeviceConfigMap[this.activeDeviceConfig.Guid].Clone();
+                    DeviceConfigInfo rejected = this.activeDeviceConfig;
+                    DeviceConfigInfo record = this.ManagerRecordOf(rejected);
+                    List<string> restored = new List<string>();
+                    if (record == null)
+                    {
+                        // (`AMBER201`, Р4) Возвращаться НЕКУДА: у отвергнутого
+                        // объекта нет записи в менеджере. Так бывает с объектом,
+                        // пришедшим снаружи, — `MainForm.ShowDeviceConfigForm`
+                        // отдаёт форме конфигурацию из спектра, а спектр бывает
+                        // снят чужим прибором, которого в списке нет. Прежде
+                        // `DeviceConfigMap[…]` бросал `KeyNotFoundException`
+                        // из ответа «Нет». Правки отвергнуты — форма гаснет, как
+                        // после удаления конфигурации; конструкторы кривой уходят
+                        // вместе с объектом.
+                        this.CloseEfficiencyMakers();
+                        EfficiencyMaker.ResponseMatrixStore.DiscardPending(EfficiencyGuids(rejected));
+                        this.ResetActiveDeviceConfigDirty();
+                        this.activeDeviceConfig = null;
+                        this.DisableForm();
+                        this.ListupConfigFiles();
+                        return true;
+                    }
+                    if (leaving)
+                    {
+                        // Форма уходит с конфигурации — конструкторы вместе с ней.
+                        this.CloseEfficiencyMakers();
+                        this.activeDeviceConfig = record.Clone();
+                        this.AdoptClone(this.activeDeviceConfig, record);
+                    }
+                    else
+                    {
+                        // ⛔ (`AMBER184`, остаток (1), 05.10.2026; решение Amber
+                        // вопросником, дословно: «Не закрывать (Рекомендую)»)
+                        // Правки отвергнуты, клон заменяется свежим — открытые
+                        // на прежнем клоне конструкторы кривой ПЕРЕПРИВЯЗЫВАЮТСЯ
+                        // к той же кривой нового клона. Прежде они закрывались:
+                        // после «New...» (метит конфигурацию изменённой ДО
+                        // открытия конструктора) ответ «Нет» на смене вкладки
+                        // уносил геометрию, посчитанную кривую и идущий счёт.
+                        // Кривой в сохранённой конфигурации нет — окно с
+                        // несохранённой работой спрашивает, вернуть ли её.
+                        // Новый клон делается активным ДО перепривязки: окно,
+                        // которое закроется, не должно пометить изменённым его.
+                        this.activeDeviceConfig = record.Clone();
+                        this.AdoptClone(this.activeDeviceConfig, record);
+                        restored = this.RebindEfficiencyMakers(this.activeDeviceConfig);
+                    }
+                    // `AMBER186`: правки отвергнуты — временные матрицы окна
+                    // матрицы снимаются, склад остаётся прежним вместе с геометрией.
+                    // (`AMBER184`) Кроме возвращённых в конфигурацию кривых: их
+                    // матрица ждёт сохранения вместе с ними.
+                    List<string> discard = new List<string>();
+                    foreach (string guid in EfficiencyGuids(rejected))
+                    {
+                        if (!restored.Contains(guid))
+                        {
+                            discard.Add(guid);
+                        }
+                    }
+                    EfficiencyMaker.ResponseMatrixStore.DiscardPending(discard);
+                    this.ResetActiveDeviceConfigDirty();
+                    if (restored.Count > 0)
+                    {
+                        this.SetActiveDeviceConfigDirty();
+                    }
+                    this.ListupConfigFiles(true);
+                    return true;
                 }
                 this.ResetActiveDeviceConfigDirty();
-                this.ListupConfigFiles();
+                // `AMBER184`: активный клон — записанный или только что снятый
+                // с менеджера — остаётся в строке тем же объектом.
+                this.ListupConfigFiles(true);
             }
             return true;
         }
@@ -1216,41 +1733,28 @@ namespace BecquerelMonitor
             {
                 double result = fromStringtoDouble(t.Text);
 
+                // ⛔ `AMBER188(д)` (полоса fixcal, 05.10.2026): та же новая шкала,
+                // что у панели калибровки энергии, — ОБЩИЙ помощник
+                // `PolynomialEnergyCalibration.WithCoefficient` (решение Amber
+                // 05.10.2026 «Подъём до введённой»: ввод x³/x⁴ у шкалы низшей
+                // степени поднимает степень до введённой, ноль в старшем
+                // понижает до старшего ненулевого). Помощник строит НОВЫЙ
+                // объект, живая шкала конфигурации до присваивания не меняется,
+                // и отказ (поле краснеет) ничего в ней не оставляет. Прежде
+                // ввод x⁴ у линейной шкалы падал `IndexOutOfRange`, «0.0» степень
+                // не понижало (сравнивался текст «0»), а правка коэффициента
+                // писалась прямо в живой объект. Годность шкалы форма судит, как
+                // и прежде, при сохранении (`ConfirmSaveDeviceConfig`, менеджер).
+                PolynomialEnergyCalibration newPe = PolynomialEnergyCalibration.WithCoefficient(pe, order, result);
+
                 // Nothing changes, leave
-                if ((result == 0 && order > pe.PolynomialOrder) ||
-                    (pe.PolynomialOrder == order && pe.Coefficients[order] == result))
+                if (newPe.Equals(pe))
                 {
                     t.ForeColor = Color.Black;
                     return;
                 }
 
-                if (pe.Coefficients.Length <= order)
-                {
-                    PolynomialEnergyCalibration newPe = (PolynomialEnergyCalibration)pe.Clone();
-                    newPe.PolynomialOrder = order;
-                    double[] coeff = new double[pe.Coefficients.Length + 1];
-                    Array.Copy(pe.Coefficients, coeff, pe.Coefficients.Length);
-                    newPe.Coefficients = coeff;
-                    newPe.Coefficients[order] = result;
-                    this.activeDeviceConfig.EnergyCalibration = (PolynomialEnergyCalibration)newPe;
-                } else if (t.Text == "0" && order == pe.Coefficients.Length - 1)
-                {
-                    if (pe.PolynomialOrder > 1)
-                    {
-                        PolynomialEnergyCalibration newPe = (PolynomialEnergyCalibration)pe.Clone().Downgrade(order - 1);
-                        this.activeDeviceConfig.EnergyCalibration = (PolynomialEnergyCalibration)newPe;
-                    }
-                    else
-                    {
-                        throw new Exception();
-                    }
-                } else
-                {
-                    if (pe.Coefficients[order] == result) return;
-                    pe.Coefficients[order] = result;
-                    pe.InvalidateCache();
-                    this.activeDeviceConfig.EnergyCalibration = (PolynomialEnergyCalibration)pe;
-                }
+                this.activeDeviceConfig.EnergyCalibration = newPe;
                 t.ForeColor = Color.Black;
                 this.SetActiveDeviceConfigDirty();
             }
@@ -1581,6 +2085,18 @@ namespace BecquerelMonitor
             // Capture UI state on the UI thread: DoWork used to read this.button6.Enabled
             // from the worker thread (illegal cross-thread control access).
             bool configNotSaved = this.button6.Enabled;
+            // (`AMBER201`, Р4) Конфигурация — тоже снимком на UI-потоке. Прежде
+            // фоновый поток читал `this.activeDeviceConfig` по ходу выгрузки
+            // (тип, калибровку, Guid, порт), а человек тем временем мог перейти
+            // на другую строку списка: часть команд `-cal` уходила бы с
+            // коэффициентами одной конфигурации в порт другой. Нет активной —
+            // нечего и выгружать (прежде — NRE в фоновом потоке).
+            DeviceConfigInfo uploadConfig = this.activeDeviceConfig;
+            if (uploadConfig == null)
+            {
+                this.button14.Enabled = true;
+                return;
+            }
 
             BackgroundWorker worker = new BackgroundWorker();
             worker.WorkerReportsProgress = true;
@@ -1589,7 +2105,7 @@ namespace BecquerelMonitor
                 BackgroundWorker b = o as BackgroundWorker;
 
 
-                if (this.activeDeviceConfig.DeviceType == "AtomSpectraVCP")
+                if (uploadConfig.DeviceType == "AtomSpectraVCP")
                 {
                     if (configNotSaved)
                     {
@@ -1600,7 +2116,7 @@ namespace BecquerelMonitor
                     {
                         Cursor.Current = Cursors.WaitCursor;
                         b.ReportProgress(0);
-                        PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
+                        PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)uploadConfig.EnergyCalibration;
                         List<string> result_list = new List<string>();
                         for (int i = 0; i < polynomialEnergyCalibration.Coefficients.Length; i++)
                         {
@@ -1638,8 +2154,8 @@ namespace BecquerelMonitor
 
                         bool commands_accepted = true;
                         System.Diagnostics.Trace.WriteLine("commands_accepted = " + commands_accepted);
-                        AtomSpectraDeviceConfig deviceconfig = (AtomSpectraDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
-                        string guid = this.activeDeviceConfig.Guid;
+                        AtomSpectraDeviceConfig deviceconfig = (AtomSpectraDeviceConfig)uploadConfig.InputDeviceConfig;
+                        string guid = uploadConfig.Guid;
                         AtomSpectraVCPIn device = AtomSpectraVCPIn.tryGetInstance(guid);
                         bool createdInstance = device == null;
                         if (createdInstance)
@@ -1693,7 +2209,7 @@ namespace BecquerelMonitor
                     {
                         ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + ex.Message);
                     }
-                } else if (this.activeDeviceConfig.DeviceType == "RadiaCode")
+                } else if (uploadConfig.DeviceType == "RadiaCode")
                 {
                     if (configNotSaved)
                     {
@@ -1704,7 +2220,7 @@ namespace BecquerelMonitor
                     {
                         Cursor.Current = Cursors.WaitCursor;
                         b.ReportProgress(0);
-                        RadiaCodeDeviceConfig rc_config = (RadiaCodeDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
+                        RadiaCodeDeviceConfig rc_config = (RadiaCodeDeviceConfig)uploadConfig.InputDeviceConfig;
                         PolynomialEnergyCalibration polynomialEnergyCalibration = rc_config.RC_EnergyCalibration;
                         if (polynomialEnergyCalibration == null)
                         {
@@ -1720,7 +2236,7 @@ namespace BecquerelMonitor
                         {
                             foreach (RadiaCodeIn instance in instances)
                             {
-                                if (instance.GUID == this.activeDeviceConfig.Guid)
+                                if (instance.GUID == uploadConfig.Guid)
                                 {
                                     device = instance;
                                     runexist = true;
@@ -1730,7 +2246,7 @@ namespace BecquerelMonitor
                         }
                         if (!runexist)
                         {
-                            device = new RadiaCodeIn(this.activeDeviceConfig.Guid);
+                            device = new RadiaCodeIn(uploadConfig.Guid);
                             device.setDeviceSerial(rc_config.DeviceSerial, rc_config.AddressBLE);
                         }
                         try
@@ -1789,7 +2305,7 @@ namespace BecquerelMonitor
                         ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + ex.Message);
                     }
                 }
-                else if (this.activeDeviceConfig.DeviceType == "Obsidian")
+                else if (uploadConfig.DeviceType == "Obsidian")
                 {
                     if (configNotSaved)
                     {
@@ -1800,7 +2316,7 @@ namespace BecquerelMonitor
                     {
                         Cursor.Current = Cursors.WaitCursor;
                         b.ReportProgress(0);
-                        ObsidianDeviceConfig obs_config = (ObsidianDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
+                        ObsidianDeviceConfig obs_config = (ObsidianDeviceConfig)uploadConfig.InputDeviceConfig;
                         PolynomialEnergyCalibration polynomialEnergyCalibration = obs_config.OBS_EnergyCalibration;
                         if (polynomialEnergyCalibration == null)
                         {
@@ -2001,9 +2517,13 @@ namespace BecquerelMonitor
             }
             else
             {
-                num = 0;
+                // `AMBER176` попутно (полоса fixcal, 05.10.2026): без выделения
+                // удалять НЕЧЕГО. Прежде здесь стоял 0, а проверка ниже была
+                // `num < 0 && num >= Count` (не выполнялась никогда), и
+                // «Удалить» без выделения молча удаляло первую точку.
+                num = -1;
             }
-            if (num < 0 && num >= this.calibrationPoints.Count)
+            if (num < 0 || num >= this.calibrationPoints.Count)
             {
                 return;
             }
@@ -2086,7 +2606,10 @@ namespace BecquerelMonitor
                 energyCalibration.Coefficients[i] = 0.0;
             }
             double[] matrix;
-            List<CalibrationPoint> points = this.calibrationPoints;
+            // ⛔ `AMBER176` (полоса fixcal, 05.10.2026): синтетическая (0, 0)
+            // калибровки по одной точке — в ЛОКАЛЬНУЮ копию. Прежде она
+            // добавлялась в сам список точек формы и оставалась в нём.
+            List<CalibrationPoint> points = new List<CalibrationPoint>(this.calibrationPoints);
             if (points.Count == 1)
             {
                 CalibrationPoint zero = new CalibrationPoint(0, 0, 0);
@@ -2114,7 +2637,7 @@ namespace BecquerelMonitor
                 //    сохранении (`DeviceConfigManager.cs:237`).
                 int usedOrder;
                 matrix = Utils.CalibrationSolver.SolveGuarded(
-                    points, this.calibrationPoints.Count >= 5 ? 4 : points.Count - 1,
+                    points, points.Count >= 5 ? 4 : points.Count - 1,
                     deviceChannels, false, out usedOrder);
                 if (matrix == null) throw new Exception("Error");
             }
@@ -2184,6 +2707,15 @@ namespace BecquerelMonitor
                 AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
                 return;
             }
+            // ⛔ `AMBER176` (полоса fixcal, 05.10.2026): подогнанная шкала уходит
+            // В КОНФИГУРАЦИЮ, а не только в поля. Прежде её несли одни поля, а
+            // `SaveFormContents` переносит из полей коэффициенты лишь до степени
+            // СТАРОЙ шкалы (поля меняют модель только на `KeyDown`/`Leave`):
+            // новая конфигурация (степень 1), три точки, «Калибровать»,
+            // «Сохранить» — на диск c0, c1 от подгонки второй степени без c2.
+            // `energyCalibration` — свой объект этого обработчика, ни с кем не
+            // делится.
+            this.activeDeviceConfig.EnergyCalibration = energyCalibration;
             if (activeDeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig && energyCalibration.PolynomialOrder >= 2)
             {
                 matrix = Utils.CalibrationSolver.Solve(points, 2);
@@ -2572,7 +3104,7 @@ namespace BecquerelMonitor
         //
         // ⛔ Вкладки `Dose Rate` (`tabPage7`) В ФОРМЕ БОЛЬШЕ НЕТ. 10.09.2026 с
         // неё сняты ручная таблица точек, эталонный спектр с объявленной дозой,
-        // кнопка оценки и ввоз ЛСРМ (уехал на вкладку Efficiency —
+        // кнопка оценки и импорт ЛСРМ (уехал на вкладку Efficiency —
         // `ImportLsrmEfficiency` в `DeviceConfigForm.Efficiency.cs`); остался
         // один список `comboDoseRateEfficiency`, и 11.09.2026 по снимку с ним
         // Amber сказала дословно: «Привязаться к текущей выбранной
@@ -2586,7 +3118,7 @@ namespace BecquerelMonitor
         // Мощность дозы считается от кривой, выбранной на панели, —
         // `DoseRateManager.Calculate(ResultData)`.
 
-        // ⛔ `AMBER13`, решение Amber 10.09.2026 «Чистить сразу»: ввоз
+        // ⛔ `AMBER13`, решение Amber 10.09.2026 «Чистить сразу»: импорт
         // эталонного спектра (`buttonLoadDoseRateSpectrum_Click`) снят вместе
         // с самим эталоном — он был входом расчёта точек, а не параметром
         // прибора, и в конфигурации не хранился.
@@ -2781,9 +3313,9 @@ namespace BecquerelMonitor
         // контролами:
         //
         //  * `buttonLoadEff_Click` — решение «Снять и завести ввоз на
-        //    Efficiency»: ввоз экспорта ЛСРМ переехал на вкладку Efficiency
+        //    Efficiency»: импорт экспорта ЛСРМ переехал на вкладку Efficiency
         //    (`ImportLsrmEfficiency` в `DeviceConfigForm.Efficiency.cs`), где
-        //    ввезённая кривая СОХРАНЯЕТСЯ в конфигурации прибора. Здесь она
+        //    импортированная кривая СОХРАНЯЕТСЯ в конфигурации прибора. Здесь она
         //    жила в поле формы и пропадала с закрытием окна;
         //  * `buttonEstimateDRConf_Click` и `CalculateDoseRateConfig` — оценка
         //    точек по эталону, решение «Чистить сразу»;
@@ -2793,7 +3325,7 @@ namespace BecquerelMonitor
         // ⛔ 12.09.2026 (`AMBER18`): генератор точек `DoseRateEstimator.Estimate`
         // снят вместе с самими точками — расчёт идёт от кривой панели одним
         // проходом в `DoseRateManager`. `ReadLsrmEfficiencyExport` ниже
-        // остаётся: её зовёт ввоз на вкладке Efficiency.
+        // остаётся: её зовёт импорт на вкладке Efficiency.
 
         private void peakTypecomboBox_SelectedIndexChanged(object sender, EventArgs e)
         {

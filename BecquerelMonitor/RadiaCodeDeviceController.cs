@@ -14,6 +14,14 @@ namespace BecquerelMonitor
         private ResultData resultData;
         private string status = "Unknown";
         private RadiaCodeIn subscribedInstance;
+        // ⛔ `AMBER164`, 05.10.2026. Набор запущен ЭТИМ контроллером и не
+        // остановлен — ни человеком (StopMeasurement), ни прибором (статус
+        // Faulted/Stopped/Disconnected). Только поток окон. Контроллер остаётся
+        // подписан на экземпляр и после Stop, и без этого признака статус
+        // «Recording», пришедший ПОСЛЕ остановки (событие, отправленное до
+        // Stop и доехавшее через `Post` позже, или прибор, который поток чтения
+        // сам вернул в опрос), включал документу `Recording = true` без Start.
+        private bool measuring = false;
 
         public RadiaCodeDeviceController()
         {
@@ -29,6 +37,16 @@ namespace BecquerelMonitor
             }
 
             if (!string.Equals(resultData.DeviceConfig.Guid, e.Guid, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            // ⛔ `AMBER164` (б). Остановленному набору новый адрес не нужен:
+            //    следующий Start сам возьмёт его из `DeviceConfigMap`
+            //    (`StartMeasurement`). А `setDeviceSerial` поднимает в экземпляре
+            //    `device_serial_changed`, и поток чтения переводил ОСТАНОВЛЕННЫЙ
+            //    прибор в `Starting` — сохранение настройки прибора запускало набор.
+            if (!measuring)
             {
                 return;
             }
@@ -103,6 +121,7 @@ namespace BecquerelMonitor
                 }
 
                 SubscribeToInstance(instance);
+                measuring = true;
                 currentResultDataStatus.Recording = true;
                 if (new_document_created)
                 {
@@ -133,11 +152,16 @@ namespace BecquerelMonitor
                 switch (status)
                 {
                     case "Recording":
-                        resultData.ResultDataStatus.Recording = true;
+                        // `AMBER164`: только набору, который идёт (разбор у `measuring`).
+                        if (measuring)
+                        {
+                            resultData.ResultDataStatus.Recording = true;
+                        }
                         break;
                     case "Faulted":
                     case "Stopped":
                     case "Disconnected":
+                        measuring = false;
                         // Hard stop on device-side termination. If a measurement was actually
                         // running (e.g. Troubleshoot stole the BLE link and disposed the recording
                         // instance -> Recording -> Stopped), drive the full stop pipeline so the
@@ -231,6 +255,7 @@ namespace BecquerelMonitor
         public override void StopMeasurement(ResultData resultData)
         {
             ResultDataStatus currentResultDataStatus = resultData.ResultDataStatus;
+            measuring = false;
             if (deviceGuid != null)
             {
                 RadiaCodeIn.getInstance(deviceGuid).sendCommand("Stop");

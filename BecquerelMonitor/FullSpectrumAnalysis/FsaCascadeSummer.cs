@@ -1201,6 +1201,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // нельзя: без кривой суммы поедут на единицы кэВ, а
                     // выглядеть это будет как «модель промахнулась».
                     Failure = "кривая света для «" + scintillator + "»: " + ex.Message;
+                    FsaDatabaseFailures.Note("matdb.sqlite", scintillator, ex);
                 }
             }
 
@@ -3875,8 +3876,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return data;
                 }
 
+                // ⛔ (`AMBER199`, 05.10.2026) Отказ — `null` из `Load` или отказ
+                // вложенного читателя (схемы, изомеры дочки) — В КЭШ НЕ
+                // КЛАДЁТСЯ: прежде занятая в миг первого разбора база оставляла
+                // нуклид без поправки на совпадения до перезапуска программы.
+                int failuresBefore = FsaDatabaseFailures.ThreadCount;
                 data = Load(key);
-                Cache[key] = data;
+                if (data != null && FsaDatabaseFailures.ThreadCount == failuresBefore)
+                {
+                    Cache[key] = data;
+                }
+
                 return data;
             }
         }
@@ -3959,8 +3969,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             try
             {
+                // (`AMBER201`) Строка подключения — построителем, не склейкой (здесь
+                // и в двух читателях ниже): `;` в имени каталога программы разрезал
+                // строку, и база не открывалась.
                 using (SqliteConnection connection = new SqliteConnection(
-                    "Data Source=" + DatabasePath() + ";Mode=ReadOnly;Cache=Shared;"))
+                    EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(DatabasePath(), true)))
                 {
                     connection.Open();
                     using (SqliteCommand command = connection.CreateCommand())
@@ -4009,6 +4022,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // «поправка ничего не сделала» и «поправка не смогла» с виду
                 // одно и то же, и без записанной причины разница теряется.
                 Failure = key + ": " + error.Message;
+                FsaDatabaseFailures.Note("nucdb.sqlite", key, error);
                 return null;
             }
 
@@ -4244,7 +4258,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             try
             {
                 using (SqliteConnection connection = new SqliteConnection(
-                    "Data Source=" + DatabasePath() + ";Mode=ReadOnly;Cache=Shared;"))
+                    EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(DatabasePath(), true)))
                 {
                     connection.Open();
                     using (SqliteCommand command = connection.CreateCommand())
@@ -4306,6 +4320,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 // Не прочлось — работаем без присоединения, как до него, но вслух.
                 Failure = key + ": пары изомеров дочки не прочлись: " + error.Message;
+                FsaDatabaseFailures.Note("nucdb.sqlite", key, error);
                 return;
             }
 
@@ -4890,7 +4905,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             try
             {
                 using (SqliteConnection connection = new SqliteConnection(
-                    "Data Source=" + DatabasePath() + ";Mode=ReadOnly;Cache=Shared;"))
+                    EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(DatabasePath(), true)))
                 {
                     connection.Open();
                     using (SqliteCommand command = connection.CreateCommand())
@@ -4917,10 +4932,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception error)
             {
                 // Без цепочки схемы не найти: доли остаются поставочными, и
                 // это видно по нулевому SchemePairs у нуклида с парами.
+                // (`AMBER199`) отказ назван — и данные нуклида не кэшируются
+                FsaDatabaseFailures.Note("nucdb.sqlite", nucid, error);
             }
 
             return found;
@@ -6409,10 +6426,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             lock (Gate)
             {
+                // (`AMBER199`) Запоминается только «файл есть»: файл, которого
+                // не было в миг первого разбора (синхронизация, замена), не
+                // должен выключать суммирование до перезапуска программы.
                 if (!databaseChecked)
                 {
                     databasePresent = File.Exists(DatabasePath());
-                    databaseChecked = true;
+                    databaseChecked = databasePresent;
                 }
 
                 return databasePresent;

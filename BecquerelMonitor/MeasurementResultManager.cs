@@ -257,7 +257,7 @@ namespace BecquerelMonitor
 
         /// <summary>
         /// (`AMBER148`) Дней в году периода полураспада. ⚠ 365, а не 365.2422,
-        /// и это не небрежность: годы в поле <c>HalfLife</c> пишет ввоз из базы
+        /// и это не небрежность: годы в поле <c>HalfLife</c> пишет импорт из базы
         /// нуклидов (<c>NucBase.HalfLifeYearsFromCell</c>: секунды / 31536000,
         /// то есть год = 365 сут), и период «8.0252 d» лежит в конфиге как
         /// 8.0252/365. Делить интервал на 365.2422 значило бы сдвинуть показатель
@@ -377,11 +377,13 @@ namespace BecquerelMonitor
                             resultValue = roidefinitionData2.ResultCount;
                             resultError = roidefinitionData2.ResultError;
                         }
-                        else if (!this.CalculateROI(roidefinitionData2, out resultValue, out resultError, 0))
+                        else if (!this.CalculateROIWithReason(roidefinitionData2, out resultValue, out resultError))
                         {
                             resultList.Add(new MeasurementResult(roidefinitionData2, 0.0, 0.0)
                             {
-                                IsValid = false
+                                IsValid = false,
+                                // (`AMBER191`, `AMBER192`) причина словами, а не общее «Ошибка»
+                                StatusText = this.roiFailure,
                             });
                             continue;
                         }
@@ -394,6 +396,19 @@ namespace BecquerelMonitor
             }
             return measurementResultCollection;
         }
+
+        /// <summary>
+        /// (`AMBER191`, `AMBER192`) Счёт зоны с причиной отказа: при <c>false</c>
+        /// в <see cref="roiFailure"/> — слова для таблицы (или null — общее «Ошибка»).
+        /// </summary>
+        bool CalculateROIWithReason(ROIDefinitionData roi, out double count, out double error)
+        {
+            this.roiFailure = null;
+            return this.CalculateROI(roi, out count, out error, 0);
+        }
+
+        /// <summary>Причина последнего отказа <see cref="CalculateROI"/>; null — без слов.</summary>
+        string roiFailure;
 
         // Token: 0x060005C7 RID: 1479 RVA: 0x00024B38 File Offset: 0x00022D38
         bool CalculateROI(ROIDefinitionData roi, out double count, out double error, int recurse)
@@ -464,7 +479,12 @@ namespace BecquerelMonitor
                     if (this.bg && bgTime != 0.0)
                     {
                         double bgCps = bgRegionCounts / bgTime;
-                        num6 = bgCps * (1.0 / fgTime + 1.0 / bgTime);
+                        // (`AMBER192`, попутно) В зону идёт k·net, и дисперсия
+                        // масштабированного счёта — k²·σ²: коэффициент примитива
+                        // в квадрате, как у ветвей Ковелла и ссылки ниже. Прежде
+                        // его не было вовсе — МДА зоны с k ≠ 1 не масштабировался.
+                        double k2 = roiprimitiveData.Coefficient * roiprimitiveData.Coefficient;
+                        num6 = k2 * bgCps * (1.0 / fgTime + 1.0 / bgTime);
                         hasBg = true;
                     }
                     if (this.bg && this.backgroundCountingTime != 0.0)
@@ -524,12 +544,33 @@ namespace BecquerelMonitor
                             num23 += (double)this.energySpectrum.Spectrum[l];
                         }
                     }
-                    double num24 = (double)(lowerLimitChannelIndex + upperLimitChannelIndex) / 2.0;
-                    double num25 = (double)(num17 + num18) / 2.0;
-                    double num26 = (double)(num19 + num20) / 2.0;
-                    double num27 = (double)(num18 - num17 + 1);
-                    double num28 = (double)(num20 - num19 + 1);
-                    double num29 = (double)(upperLimitChannelIndex - lowerLimitChannelIndex + 1);
+                    // ⛔ (`AMBER192`) Ширина и центр каждого окна — по каналам
+                    //    ВНУТРИ спектра, ровно тем, что вошли в суммы выше.
+                    //    Прежде ширина считалась по номерам каналов до зажима:
+                    //    окно у края спектра (`ChannelOf` зажимает к N) несло в
+                    //    ширине каналы, которых нет в сумме, и ровный спектр
+                    //    100 отсч./канал у верхнего края давал net = +442.9
+                    //    вместо 0. Окно уже канала (ширина 0) делило на ноль —
+                    //    net = NaN при IsValid = true; теперь это отказ зоны
+                    //    словами.
+                    int lastChannel = this.numberOfChannels - 1;
+                    int peakLo = Math.Max(lowerLimitChannelIndex, 0);
+                    int peakHi = Math.Min(upperLimitChannelIndex, lastChannel);
+                    int leftLo = Math.Max(num17, 0);
+                    int leftHi = Math.Min(num18, lastChannel);
+                    int rightLo = Math.Max(num19, 0);
+                    int rightHi = Math.Min(num20, lastChannel);
+                    double num27 = (double)(leftHi - leftLo + 1);
+                    double num28 = (double)(rightHi - rightLo + 1);
+                    double num29 = (double)(peakHi - peakLo + 1);
+                    if (!(num27 >= 1.0) || !(num28 >= 1.0) || !(num29 >= 1.0))
+                    {
+                        this.roiFailure = Properties.Resources.ROICovellWindowNarrow;
+                        return false;
+                    }
+                    double num24 = (double)(peakLo + peakHi) / 2.0;
+                    double num25 = (double)(leftLo + leftHi) / 2.0;
+                    double num26 = (double)(rightLo + rightHi) / 2.0;
                     double num30;
                     double num31;
                     if (num26 != num25)
@@ -555,10 +596,12 @@ namespace BecquerelMonitor
                 else if (roiprimitiveData is ROIReferenceData)
                 {
                     ROIReferenceData roireferenceData = (ROIReferenceData)roiprimitiveData;
+                    bool referenceFound = false;
                     foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
                     {
                         if (roidefinitionData.Name == roireferenceData.Reference)
                         {
+                            referenceFound = true;
                             if (roidefinitionData.IsValidResult)
                             {
                                 netCounts = roidefinitionData.ResultCount;
@@ -571,6 +614,16 @@ namespace BecquerelMonitor
                             }
                             break;
                         }
+                    }
+                    // ⛔ (`AMBER191`) Зоны-цели нет (переименована в обход окна,
+                    //    удалена, ссылка не выбрана) — ОШИБКА ЗОНЫ, а не ноль.
+                    //    Прежде netCounts оставался 0, строка была валидна, и
+                    //    вычитаемое молча пропадало: счёт и Бк зоны завышены.
+                    if (!referenceFound)
+                    {
+                        this.roiFailure = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            Properties.Resources.ROIReferenceMissing, roireferenceData.Reference ?? "");
+                        return false;
                     }
                     double coeff = Math.Abs(roiprimitiveData.Coefficient);
                     // Same dimensional fix as in the Covell branch above.

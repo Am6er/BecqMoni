@@ -5,7 +5,7 @@
  ],
  "files": {
   "BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs": "3ba79d9dbf4413c98087e307a0170f2ea836bbbcf8500f21c11a8d1eb46b71a4",
-  "BecquerelMonitor/FullSpectrumAnalysis/KSeriesRule.cs": "037b40a4649c5bafcc5184513e6e82d302c92f85d3a11003c12ad73c82f6549f",
+  "BecquerelMonitor/FullSpectrumAnalysis/KSeriesRule.cs": "f47f043d81524be6c2df9ef9a622a8a8b1c4a9a84585f04e8b76b34c77fe6eda",
   "BecquerelMonitor/matdb.sqlite#fluorescence_k": "4777fa3109ac5ad523ee3abb123261723bb5767d45fed8b6f524bda1a4169cbd",
   "BecquerelMonitor/nucdb.sqlite": "34470724e6004ff8d6a78702214b000be52418f175fd5a14566b84b7b9266f42",
   "tools/CORPUS/data/res_hint.csv": "58bbd3b28bc32d3c8e174ec18a3662b12086b7bd945eacba2c9952fb3d38b3f4",
@@ -19,7 +19,7 @@
   "tools/CORPUS/scripts/gaussfit.py": "09721c755be20cba3452255246140c54b7fcd5fecb8e19e613eb4986260ff3c7",
   "tools/CORPUS/scripts/spectrum.py": "a525983d3ddc94690c0c9a7508e406b3c2266a73b373b9ddbb7ef492bb5a2c1e"
  },
- "fp": "f5a9115e244c5b72021b5655046ed1b46515a59012342e3ca13d088a2ca21934",
+ "fp": "805bb71aab6a2848db5e9cc42aa65302b7dd0362ae81d8ba3b6252a4ae63fc36",
  "head": "aefe94018c61e278e5c6171e2e0f4ff65233eadc",
  "reads": [
   "BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs",
@@ -27,6 +27,10 @@
   "BecquerelMonitor/FullSpectrumAnalysis/KSeriesRule.cs",
   "BecquerelMonitor/matdb.sqlite#fluorescence_k",
   "tools/CORPUS/data/res_hint.csv"
+ ],
+ "restamp": [
+  "05.10.2026 AMBER199 (полоса fixkser): BecquerelMonitor/FullSpectrumAnalysis/KSeriesRule.cs 037b40a4649c -> 9a974dbc5f4e без пересборки корпуса — правка KSeriesRule.Groups() (отказ чтения matdb не кэшируется), константы, которые читает chains.KSERIES, те же; правило chains.k_series_rule по всем 1777 родителям nucdb с K-рентгеном даёт побитово тот же выход (sha256 627a9e63…) с исходником HEAD f4abe6c8 и дерева; решение Amber 05.10.2026 «Править и переклеймить (Рекомендую)»",
+  "05.10.2026 AMBER201 (полоса fixconn): BecquerelMonitor/FullSpectrumAnalysis/KSeriesRule.cs 9a974dbc5f4e -> f47f043d8152 без пересборки корпуса — строка подключения matdb в KSeriesRule.Groups() построителем MaterialDatabase.ReadOnlyConnection вместо склейки пути; константы, которые читает chains.KSERIES, те же; правило chains.k_series_rule по всем 1777 родителям nucdb с K-рентгеном даёт побитово тот же выход (sha256 627a9e63…) с исходником до правки и дерева (контроль GroupTolerance 0.0001 — 3912824b…)"
  ],
  "root": "build_corpus"
 }

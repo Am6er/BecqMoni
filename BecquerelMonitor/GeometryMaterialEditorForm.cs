@@ -51,6 +51,15 @@ namespace BecquerelMonitor
         bool loading;
 
         /// <summary>
+        /// (`AMBER187`) Веса составляющих КАК НАБРАНЫ — для отказа словами:
+        /// неразобранный вес лежит в веществе NaN, а назвать надо «abc».
+        /// Относятся к <see cref="typedWeightsFor"/> и только к нему.
+        /// </summary>
+        readonly List<string> typedWeights = new List<string>();
+
+        GeometryMaterialLibrary.Entry typedWeightsFor;
+
+        /// <summary>
         /// Вид, на котором список открылся. Пришедший из строки редактора
         /// геометрии: человек нажал «…» у пробы — значит, ему нужны пробы, а не
         /// все сорок веществ разом.
@@ -288,7 +297,7 @@ namespace BecquerelMonitor
                 Text = Resources.GeometryMaterialsByMixture,
             };
 
-            // Третий способ — доли, ввезённые таблицей ЛСРМ. Выбрать его руками
+            // Третий способ — доли, импортированные таблицей ЛСРМ. Выбрать его руками
             // нельзя (доли с клавиатуры не вписывают), но ПОКАЗАТЬ обязательно:
             // иначе человек правил бы формулу у вещества, состав которого от
             // формулы не зависит, и не понимал бы, почему ничего не меняется.
@@ -605,20 +614,41 @@ namespace BecquerelMonitor
                 ? (GeometryMaterialLibrary.MaterialKind)this.kindCombo.SelectedIndex
                 : entry.Kind;
 
+            // (`AMBER201`, Р4, мелочь 8.6) Вид сменили при фильтре по прежнему
+            // виду — фильтр идёт за веществом. Прежде вещество выпадало из
+            // списка, выбор прыгал на первое оставшееся, и следующая буква,
+            // набранная в поле имени, правила уже ЧУЖОЕ вещество.
+            if (relist && this.filterCombo.SelectedIndex > 0
+                && (int)entry.Kind != this.filterCombo.SelectedIndex - 1)
+            {
+                this.loading = true;
+                try
+                {
+                    this.filterCombo.SelectedIndex = 1 + (int)entry.Kind;
+                }
+                finally
+                {
+                    this.loading = false;
+                }
+            }
+
+            // (`AMBER187`) Плотность — тем же разбором, что поля редактора
+            // геометрии: точка, культура, запятая. Прежде «1,06» читалась
+            // инвариантом как НОЛЬ, и отказ «плотность должна быть больше нуля»
+            // не называл причину. Неразобранное — NaN, а не ноль: отказ ниже
+            // (<see cref="Problem"/>) тогда называет набранный текст.
             double density;
-            entry.Density = double.TryParse(this.densityBox.Text.Trim(), NumberStyles.Float,
-                                            CultureInfo.InvariantCulture, out density)
-                ? density : 0.0;
+            entry.Density = TryReadNumber(this.densityBox.Text, out density) ? density : double.NaN;
 
             // Доли из таблицы правке не подлежат — правится всё остальное (имя,
             // вид, плотность). А уход с таблицы на формулу или смесь есть ОТКАЗ
-            // от ввезённых долей, и он обязан быть ВИДЕН: состав внизу
+            // от импортированных долей, и он обязан быть ВИДЕН: состав внизу
             // пересчитается сразу.
             if (this.tableRadio.Checked)
             {
                 if (relist)
                 {
-                    this.RefreshList(entry);
+                    this.RelistKeepingTyped(entry);
                     return;
                 }
 
@@ -632,6 +662,8 @@ namespace BecquerelMonitor
             {
                 entry.Formula = "";
                 entry.Components.Clear();
+                this.typedWeights.Clear();
+                this.typedWeightsFor = entry;
                 foreach (DataGridViewRow row in this.componentsGrid.Rows)
                 {
                     if (row.IsNewRow)
@@ -639,18 +671,28 @@ namespace BecquerelMonitor
                         continue;
                     }
 
+                    // (`AMBER187`) Строка смеси НЕ выбрасывается молча. Прежде
+                    // вес с запятой («0,5») не разбирался инвариантом, и
+                    // составляющая пропадала из состава без единого слова — смесь
+                    // считалась без неё. Теперь пустая строка (ни вещества, ни
+                    // веса) пропускается, а начатая идёт в состав как есть:
+                    // неразобранный вес — NaN, строка без вещества — пустым
+                    // именем, и отказ называет её (<see cref="Problem"/>), а
+                    // клетка краснеет (<see cref="MarkBadInputs"/>).
                     string name = row.Cells[0].Value as string;
-                    double weight;
-                    if (!string.IsNullOrEmpty(name)
-                        && double.TryParse(Convert.ToString(row.Cells[1].Value, CultureInfo.InvariantCulture),
-                                           NumberStyles.Float, CultureInfo.InvariantCulture, out weight))
+                    string text = Convert.ToString(row.Cells[1].Value, CultureInfo.InvariantCulture) ?? "";
+                    if (string.IsNullOrEmpty(name) && string.IsNullOrWhiteSpace(text))
                     {
-                        entry.Components.Add(new GeometryMaterialComponent
-                        {
-                            Material = name,
-                            Weight = weight,
-                        });
+                        continue;
                     }
+
+                    double weight;
+                    entry.Components.Add(new GeometryMaterialComponent
+                    {
+                        Material = name ?? "",
+                        Weight = TryReadNumber(text, out weight) ? weight : double.NaN,
+                    });
+                    this.typedWeights.Add(text.Trim());
                 }
             }
             else
@@ -661,11 +703,54 @@ namespace BecquerelMonitor
 
             if (relist)
             {
-                this.RefreshList(entry);
+                this.RelistKeepingTyped(entry);
                 return;
             }
 
             this.ShowComposition();
+        }
+
+        /// <summary>
+        /// (`AMBER201`, Р4, мелочь 8.5) Перебрать список, НЕ трогая набираемого.
+        /// В вещество имя и сокращение кладутся обрезанными (<c>Trim</c>), а
+        /// перебор списка перечитывает поля из вещества: пробел в конце имени
+        /// стирался в момент набора, и каретка уходила в начало поля — имя из
+        /// двух слов («Sodium iodide») набрать было нельзя. Поле, чей текст
+        /// после обрезки совпадает с веществом, возвращается к набранному, с
+        /// кареткой на прежнем месте.
+        /// </summary>
+        void RelistKeepingTyped(GeometryMaterialLibrary.Entry entry)
+        {
+            string typedName = this.nameBox.Text, typedAbbr = this.abbrBox.Text;
+            int caretName = this.nameBox.SelectionStart, caretAbbr = this.abbrBox.SelectionStart;
+            this.RefreshList(entry);
+            if (!object.ReferenceEquals(this.Selected(), entry))
+            {
+                return;
+            }
+
+            this.loading = true;
+            try
+            {
+                KeepTyped(this.nameBox, typedName, caretName, entry.Name);
+                KeepTyped(this.abbrBox, typedAbbr, caretAbbr, entry.Abbr);
+            }
+            finally
+            {
+                this.loading = false;
+            }
+        }
+
+        static void KeepTyped(TextBox box, string typed, int caret, string stored)
+        {
+            if (box.Text == typed || !string.Equals(typed.Trim(), stored ?? "", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            box.Text = typed;
+            box.SelectionStart = Math.Min(Math.Max(0, caret), typed.Length);
+            box.SelectionLength = 0;
         }
 
         void SourceKindChanged(object sender, EventArgs e)
@@ -686,12 +771,81 @@ namespace BecquerelMonitor
             {
                 this.compositionLabel.Text = "";
                 this.problemLabel.Text = "";
+                this.MarkBadInputs();
                 return;
             }
 
             GeometryMaterial material = GeometryMaterialLibrary.Make(entry, entry.Density, this.Lookup);
             this.compositionLabel.Text = GeometryMaterialLibrary.Describe(material);
             this.problemLabel.Text = this.Problem(entry) ?? "";
+            this.MarkBadInputs();
+        }
+
+        /// <summary>Цвет поля, значение которого не принято, — как у редактора геометрии.</summary>
+        static readonly Color BadValueColor = Color.FromArgb(0xFF, 0xE0, 0xE0);
+
+        /// <summary>
+        /// (`AMBER187`) Число из поля: точка, потом культура потока
+        /// (<see cref="UserNumber.TryParseDouble"/>), потом запятая как точка —
+        /// как в редакторе геометрии (`GeometryEditorPanel.TryGet`): раскладка
+        /// русская, и на цифровом блоке там запятая. Годность (конечное,
+        /// положительное) здесь НЕ судится — только разбор; судит
+        /// <see cref="GeometryMaterialLibrary.IsUsableAmount"/>.
+        /// </summary>
+        internal static bool TryReadNumber(string text, out double value)
+        {
+            string trimmed = (text ?? "").Trim();
+            if (trimmed.Length == 0)
+            {
+                value = double.NaN;
+                return false;
+            }
+
+            if (UserNumber.TryParseDouble(trimmed, out value)
+                || double.TryParse(trimmed.Replace(',', '.'), NumberStyles.Float,
+                                   CultureInfo.InvariantCulture, out value))
+            {
+                return true;
+            }
+
+            value = double.NaN;
+            return false;
+        }
+
+        static bool IsUsableText(string text)
+        {
+            double value;
+            return TryReadNumber(text, out value) && GeometryMaterialLibrary.IsUsableAmount(value);
+        }
+
+        /// <summary>
+        /// (`AMBER187`) Подсветить поле плотности и клетки смеси, значение
+        /// которых не принято. Причину словами даёт строка проблем; цвет
+        /// показывает, ГДЕ она.
+        /// </summary>
+        void MarkBadInputs()
+        {
+            GeometryMaterialLibrary.Entry entry = this.Selected();
+            bool table = entry != null && entry.ElementFractions.Count > 0;
+            this.densityBox.BackColor = entry != null && !IsUsableText(this.densityBox.Text)
+                ? BadValueColor : SystemColors.Window;
+
+            bool mixture = entry != null && !table && this.mixtureRadio.Checked;
+            foreach (DataGridViewRow row in this.componentsGrid.Rows)
+            {
+                if (row.IsNewRow)
+                {
+                    continue;
+                }
+
+                string name = row.Cells[0].Value as string;
+                string text = Convert.ToString(row.Cells[1].Value, CultureInfo.InvariantCulture) ?? "";
+                bool started = !string.IsNullOrEmpty(name) || !string.IsNullOrWhiteSpace(text);
+                row.Cells[0].Style.BackColor = mixture && started && string.IsNullOrEmpty(name)
+                    ? BadValueColor : Color.Empty;
+                row.Cells[1].Style.BackColor = mixture && started && !IsUsableText(text)
+                    ? BadValueColor : Color.Empty;
+            }
         }
 
         GeometryMaterialLibrary.Entry Lookup(string name)
@@ -732,9 +886,16 @@ namespace BecquerelMonitor
                                      Resources.GeometryMaterialsErrorDuplicate, entry.Name);
             }
 
-            if (!(entry.Density > 0.0))
+            // (`AMBER187`) Отказ НАЗЫВАЕТ набранное: «1,O6», «-1», «Infinity».
+            // У выбранного вещества — текст поля как есть, у прочих (проверка
+            // всех при «Сохранить») — число, оставшееся в веществе.
+            if (!GeometryMaterialLibrary.IsUsableAmount(entry.Density))
             {
-                return Resources.GeometryMaterialsErrorDensity;
+                string typed = ReferenceEquals(entry, this.Selected())
+                    ? this.densityBox.Text.Trim()
+                    : entry.Density.ToString("R", CultureInfo.InvariantCulture);
+                return string.Format(CultureInfo.InvariantCulture,
+                                     Resources.GeometryMaterialsErrorDensity, typed);
             }
 
             if (GeometryMaterialLibrary.HasCycle(entry, this.Lookup))
@@ -746,6 +907,29 @@ namespace BecquerelMonitor
             {
                 foreach (GeometryMaterialComponent component in entry.Components)
                 {
+                    // (`AMBER187`) Начатая строка смеси без вещества и вес, не
+                    // годный как положительное конечное число, — отказ словами,
+                    // а не молчаливый пропуск составляющей.
+                    if (string.IsNullOrEmpty(component.Material))
+                    {
+                        return Resources.GeometryMaterialsErrorComponentNoName;
+                    }
+
+                    if (!GeometryMaterialLibrary.IsUsableAmount(component.Weight))
+                    {
+                        // Набранный текст — у выбранного вещества, чьи строки
+                        // только что сняты с таблицы; у прочих — число веса.
+                        int index = entry.Components.IndexOf(component);
+                        string typed = ReferenceEquals(entry, this.typedWeightsFor)
+                                       && ReferenceEquals(entry, this.Selected())
+                                       && index >= 0 && index < this.typedWeights.Count
+                            ? this.typedWeights[index]
+                            : component.Weight.ToString("R", CultureInfo.InvariantCulture);
+                        return string.Format(CultureInfo.InvariantCulture,
+                                             Resources.GeometryMaterialsErrorWeight,
+                                             component.Material, typed);
+                    }
+
                     if (this.Lookup(component.Material) == null)
                     {
                         return string.Format(CultureInfo.InvariantCulture,

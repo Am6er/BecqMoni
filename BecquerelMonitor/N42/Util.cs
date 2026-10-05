@@ -130,7 +130,7 @@ namespace BecquerelMonitor.N42
                     //    писалось BackgroundEnergySpectrum.MeasurementTime, то есть
                     //    ПОЛНОЕ время фона, а поле LiveTime фона не выгружалось
                     //    ВООБЩЕ. Измерено 05.09.2026 на 11 файлах дерева с фоном: у
-                    //    вывезенного фона «изм» и «живое» после круга равнялись друг
+                    //    экспортированного фона «изм» и «живое» после круга равнялись друг
                     //    другу, потому что в файл уходило одно и то же число.
                     //    ⚠ Это не косметика: живое время стоит в ЗНАМЕНАТЕЛЕ скорости
                     //    счёта фона, и подмена его полным занижает скорость ровно на
@@ -162,9 +162,9 @@ namespace BecquerelMonitor.N42
             //    КРАЯМ КАНАЛОВ, А НЕ ПО ЦЕНТРАМ. Приложение свою шкалу строит
             //    и читает ЦЕНТРАМИ (пары «центроид пика — энергия линии»), а
             //    CoefficientValues файла с этого дня понимается краями на обоих
-            //    ввозах — решение Amber 22.09.2026 «ввоз и вывоз согласованно».
-            //    Перекладка стоит ЗДЕСЬ, в единственном месте вывоза, и тем же
-            //    приёмом, что у ввоза (ChannelCentrePolynomialToEdges — точная
+            //    импортах — решение Amber 22.09.2026 «ввоз и вывоз согласованно».
+            //    Перекладка стоит ЗДЕСЬ, в единственном месте экспорта, и тем же
+            //    приёмом, что у импорта (ChannelCentrePolynomialToEdges — точная
             //    обратная к EdgePolynomialToChannelCentres), иначе круг
             //    «мы → файл → мы» разъехался бы на h/2.
             double[] edgeCoefficients = ChannelCentrePolynomialToEdges(energyCalibration.Coefficients);
@@ -176,7 +176,7 @@ namespace BecquerelMonitor.N42
                 //    семнадцать. Измерено 05.09.2026 на 12 выгруженных файлах:
                 //    коэффициенты расходились у 9 из 12, относительно до
                 //    3.451E-15, а по шкале — до 7.7E-12 кэВ. Величина физически
-                //    ничтожна, но круг «вывоз → ввоз» из-за неё не сходился
+                //    ничтожна, но круг «экспорт → импорт» из-за неё не сходился
                 //    ТОЧНО, и всякая побайтовая приёмка на нём слепла.
                 output.CoefficientValues = output.CoefficientValues
                     + N42Number(edgeCoefficients[i]) + " ";
@@ -197,16 +197,16 @@ namespace BecquerelMonitor.N42
         // ⛔ ФАЙЛ ПИШЕТСЯ ИНВАРИАНТНОЙ КУЛЬТУРОЙ, А НЕ КУЛЬТУРОЙ МАШИНЫ.
         //    В N42 число записано с ТОЧКОЙ по спецификации, а double.ToString()
         //    без культуры печатает разделителем то, что стоит у машины. Измерено
-        //    05.09.2026: под ru-RU вывоз давал
+        //    05.09.2026: под ru-RU экспорт давал
         //    <LiveTimeDuration>PT356491,21293S</LiveTimeDuration>, и такой файл не
         //    читается ни нами, ни кем-либо ещё.
         //
-        // ⛔ ЭТО ХУЖЕ ЧТЕНИЯ (`A142`). Там отказывал ВВОЗ, и человек это видел
+        // ⛔ ЭТО ХУЖЕ ЧТЕНИЯ (`A142`). Там отказывал ИМПОРТ, и человек это видел
         //    сразу; здесь порченый файл молча ложится на диск и обнаруживается у
         //    получателя, когда исходного спектра под рукой уже нет.
         //
         // ⚠ В окнах дефект не проявлялся только потому, что MainForm.cs:162-164
-        //    при запуске глобально ставит разделителем точку: вывоз ФАЙЛА держался
+        //    при запуске глобально ставит разделителем точку: экспорт ФАЙЛА держался
         //    на настройке, сделанной в другом месте и по другому поводу. Всякий
         //    безоконный вызывающий этой подпорки не имеет.
         // ==================================================================
@@ -251,7 +251,7 @@ namespace BecquerelMonitor.N42
         ///    больше писать нечего, и округление до неё даёт остаток 7E-12 с
         ///    вместо 1E-7 с.
         ///
-        /// ⚠ ЧЕСТНО: круг «вывоз → ввоз» сходится ТОЧНО только для значений,
+        /// ⚠ ЧЕСТНО: круг «экспорт → импорт» сходится ТОЧНО только для значений,
         /// уже лежащих на сетке 100 нс. У корпусных времён в XML записаны все
         /// 17 значащих цифр double (55470.709087999996), и такое значение на
         /// сетку не ложится — остаётся 7E-12 с, предел самой сетки. Со ВТОРОГО
@@ -334,10 +334,20 @@ namespace BecquerelMonitor.N42
         /// <c>RoundtripKind</c> взят затем, что ровно им и читает
         /// <c>ParseMeasurementStartDateTime</c> ПЕРВОЙ попыткой: пишущий и
         /// читающий спрашивают об одном одинаково.
+        ///
+        /// ⛔ `AMBER201` Р1 (05.10.2026, решение Amber «Местное этого ПК
+        /// (Рекомендую)»): пишется МЕСТНОЕ мгновение СО СМЕЩЕНИЕМ ПОЯСА
+        /// («2024-01-15T13:00:00+03:00»). Прежде <c>RoundtripKind</c> писал вид
+        /// значения как есть, и время, пришедшее без пояса (импорт SpecUtils,
+        /// GBS), уходило без пояса: чужая программа читала его в СВОЁМ поясе, а
+        /// время из «…Z», потерявшее пояс в SpecUtils, — со сдвигом на пояс
+        /// (−3 ч на этой машине, замер fix201tz). Время без пояса считается
+        /// местным (<see cref="DocumentManager.ToLocalInstant"/>), стена не
+        /// сдвигается.
         /// </summary>
         private static string N42DateTime(DateTime value)
         {
-            return XmlConvert.ToString(value, XmlDateTimeSerializationMode.RoundtripKind);
+            return XmlConvert.ToString(DocumentManager.ToLocalInstant(value), XmlDateTimeSerializationMode.RoundtripKind);
         }
 
         public DocEnergySpectrum ImportFromN42(RadiologicalInstrumentData rad, DocEnergySpectrum doc, string filename)
@@ -351,10 +361,10 @@ namespace BecquerelMonitor.N42
                 throw new InvalidOperationException("Unsupported type of calibration. Expected CalibrationEquation = List.");
             }
 
-            string[] chanEnergy = rad.MeasurementGroup.Measurement.Spectrum.EnergyCalibration.ChannelEnergies.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
+            string[] chanEnergy = rad.MeasurementGroup.Measurement.Spectrum.EnergyCalibration.ChannelEnergies.Split(N42Whitespace.Separators, StringSplitOptions.RemoveEmptyEntries);
             chanEnergy = Array.FindAll(chanEnergy, isNotN42SpectrumValid);
 
-            string[] chanData = rad.MeasurementGroup.Measurement.Spectrum.ChannelData.Data.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
+            string[] chanData = rad.MeasurementGroup.Measurement.Spectrum.ChannelData.Data.Split(N42Whitespace.Separators, StringSplitOptions.RemoveEmptyEntries);
             chanData = Array.FindAll(chanData, isNotN42SpectrumValid);
 
             int NumberOfChanels = rad.MeasurementGroup.Measurement.Spectrum.ChannelData.NumberOfChannels;
@@ -374,10 +384,10 @@ namespace BecquerelMonitor.N42
             //    ⛔ МЕСТО ПРОВЕРКИ — ЧАСТЬ ПОЧИНКИ, А НЕ ВКУС. Ниже идут
             //    energySpectrum.NumberOfChannels = … и Initialize(), то есть
             //    ПЕРЕЗАПИСЬ открытого документа. Пока проверка стояла после них,
-            //    отказавший ввоз оставлял в документе числа отказавшего файла:
+            //    отказавший импорт оставлял в документе числа отказавшего файла:
             //    измерено 05.09.2026 входом case23_rad_declared — «кан 9000,
             //    сумма 253» ПОСЛЕ отказа. Снаружи такой документ неотличим от
-            //    удачного ввоза.
+            //    удачного импорта.
             //
             //    ⚠ НЕДОСТАЧА — ОТКАЗ, ИЗБЫТОК — ГОЛОС; см. следующую проверку.
             if (NumberOfChanels < 0
@@ -410,7 +420,7 @@ namespace BecquerelMonitor.N42
             //    длину в файле НЕТ, и достроить его можно только выдумав. Избыток
             //    — это «прочитано не всё»: спектр на объявленную длину в файле
             //    ЕСТЬ и прочитан целиком, лишним оказывается хвост. Отказ на нём
-            //    закрыл бы файлы, которые сегодня ввозятся, а замера, говорящего,
+            //    закрыл бы файлы, которые сегодня импортируются, а замера, говорящего,
             //    что такие файлы негодны, нет вовсе — настоящих файлов этого
             //    прибора в дереве НЕТ (`T184`). Дверь поэтому та же, что у
             //    `A160`/`A175`/`A207`: голос ОДИН РАЗ НА ФАЙЛ, работа
@@ -438,7 +448,7 @@ namespace BecquerelMonitor.N42
                     + " (атрибут ChannelData/@NumberOfChannels), а записано отсчётов "
                     + chanData.Length.ToString(CultureInfo.InvariantCulture)
                     + " и энергий " + chanEnergy.Length.ToString(CultureInfo.InvariantCulture)
-                    + " — ввезено объявленное число каналов, хвост отброшен; "
+                    + " — импортировано объявленное число каналов, хвост отброшен; "
                     + "в отброшенных каналах " + droppedCounts.ToString(CultureInfo.InvariantCulture)
                     + " отсчётов, и в сумме спектра их нет.",
                     "", MessageBoxIcon.None);
@@ -459,7 +469,7 @@ namespace BecquerelMonitor.N42
             //    time» окна (DCControlPanel.cs:366 — «0.00»), складывалось нулём
             //    при сложении спектров (SpectrumAriphmetics.cs:303) и, что хуже
             //    всего, УХОДИЛО В ФАЙЛ: ExportToN42 пишет
-            //    LiveTimeDuration = N42Duration(LiveTime), то есть ввезённый
+            //    LiveTimeDuration = N42Duration(LiveTime), то есть импортированный
             //    Alpha Hound выгружался обратно с «PT0S». Получатель такого
             //    файла восстановить живое время уже ниоткуда не может.
             //
@@ -505,7 +515,7 @@ namespace BecquerelMonitor.N42
             //    (counts, listCalibration, calibration), проверяются здесь же, и
             //    только пройдя проверку попадают в doc.ActiveResultData.
             //
-            //    ⚠ Что от этого НЕ меняется: ни одно число удачного ввоза.
+            //    ⚠ Что от этого НЕ меняется: ни одно число удачного импорта.
             //    CheckCalibration звалась с energySpectrum.NumberOfChannels,
             //    которому строкой выше присваивался тот же NumberOfChanels, —
             //    значение то же самое, и `A152`/`A172` этим не задеты.
@@ -599,7 +609,7 @@ namespace BecquerelMonitor.N42
             //    чем у документа, ронял разбор IndexOutOfRangeException в цикле
             //    ниже.
             //    ⚠ ChannelPitch НЕ трогается нарочно: строка про него не говорит, а
-            //    у файлов, которые ввозились и раньше, это сдвинуло бы шаг шкалы.
+            //    у файлов, которые импортировались и раньше, это сдвинуло бы шаг шкалы.
             energySpectrum.NumberOfChannels = NumberOfChanels;
             energySpectrum.Initialize();
 
@@ -620,7 +630,7 @@ namespace BecquerelMonitor.N42
             //    ВИДНО. Модель RadiologicalInstrumentData такого элемента не
             //    несёт; до 06.09.2026 сюда молча ложилось «сейчас» — то есть
             //    спектр, набранный два года назад, получал СЕГОДНЯШНЮЮ дату,
-            //    неотличимую от измеренной, и уезжал с ней в отчёт и в вывоз.
+            //    неотличимую от измеренной, и уезжал с ней в отчёт и в экспорт.
             //    Теперь ставится единое значение «время начала неизвестно»
             //    (ResultData.UnknownStartTime), и об этом говорится один раз на
             //    файл — решение Amber 06.09.2026.
@@ -648,7 +658,7 @@ namespace BecquerelMonitor.N42
 
         public int N42_2006_getChannels(N42InstrumentData rad)
         {
-            string[] chanData = rad.Measurement.Spectrum.ChannelData.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
+            string[] chanData = rad.Measurement.Spectrum.ChannelData.Split(N42Whitespace.Separators, StringSplitOptions.RemoveEmptyEntries);
             chanData = Array.FindAll(chanData, isNotN42SpectrumValid);
             return chanData.Length;
         }
@@ -675,7 +685,7 @@ namespace BecquerelMonitor.N42
                 throw new InvalidOperationException("No calibration section found in N42InstrumentData.");
             }
 
-            string[] enCalibrationCoeff = calibration.Equation.Coefficients.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
+            string[] enCalibrationCoeff = calibration.Equation.Coefficients.Split(N42Whitespace.Separators, StringSplitOptions.RemoveEmptyEntries);
             enCalibrationCoeff = Array.FindAll(enCalibrationCoeff, isNotN42SpectrumValid);
 
             // ⛔ ШКАЛА РАЗБИРАЕТСЯ ДО ТОГО, КАК ДОКУМЕНТ ПЕРЕЗАПИСАН (05.09.2026).
@@ -687,7 +697,7 @@ namespace BecquerelMonitor.N42
             //    неё, и отказ оставлял в документе весь спектр отказавшего файла:
             //    измерено 05.09.2026 входом case29_2006_nocoeff — после ОТКАЗА
             //    слепок показывал «кан 64, сумма 253, изм 300, живое 295, шкала
-            //    порядок 1 [0, 1]». Снаружи это неотличимо от удачного ввоза, а
+            //    порядок 1 [0, 1]». Снаружи это неотличимо от удачного импорта, а
             //    шкала при этом y = x, то есть номер канала объявлен энергией.
             //
             //    ⚠ Ни одна из трёх проверок не смотрит на число каналов — им
@@ -745,7 +755,7 @@ namespace BecquerelMonitor.N42
             //    Equation/Coefficients, и пустой отвергнут выше (`A140`).
             coefficients = EdgePolynomialToChannelCentres(coefficients);
 
-            string[] chanData = rad.Measurement.Spectrum.ChannelData.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
+            string[] chanData = rad.Measurement.Spectrum.ChannelData.Split(N42Whitespace.Separators, StringSplitOptions.RemoveEmptyEntries);
             chanData = Array.FindAll(chanData, isNotN42SpectrumValid);
 
             int NumberOfChanels = chanData.Length;
@@ -773,7 +783,7 @@ namespace BecquerelMonitor.N42
             //    собирается и проверяется здесь же, и в документ попадает только
             //    то, что проверку прошло.
             //
-            //    ⚠ Ни одно число удачного ввоза не меняется: CheckCalibration
+            //    ⚠ Ни одно число удачного импорта не меняется: CheckCalibration
             //    звалась с resultData.EnergySpectrum.NumberOfChannels, которому
             //    строкой ниже присваивался тот же NumberOfChanels (`A172`).
             long totalpulsecount = 0;
@@ -819,7 +829,7 @@ namespace BecquerelMonitor.N42
             //    было, и разборов с ТРЕТЬИМ соглашением о числе каналов
             //    оставалось два из трёх.
             //    ⛔ Цена измерена 05.09.2026 двумя видами беды сразу:
-            //    файл на 9000 и на 16384 канала РОНЯЛ ввоз
+            //    файл на 9000 и на 16384 канала РОНЯЛ импорт
             //    IndexOutOfRangeException (цикл ниже пишет по индексу в массив
             //    документа, а у пустого DocEnergySpectrum он на 8192), а файл
             //    на 64 и на 1024 канала не падал вовсе и ложился в документ,
@@ -832,7 +842,7 @@ namespace BecquerelMonitor.N42
             //    судила экстраполяцию, а не то, что прочитано.
             //    ⚠ ChannelPitch не трогается: у разбора 2012 года он ставится
             //    в 1, здесь исторически не ставится вовсе, и менять шаг шкалы
-            //    у файлов, которые ввозились и раньше, эта строка не просит.
+            //    у файлов, которые импортировались и раньше, эта строка не просит.
             energySpectrum.NumberOfChannels = NumberOfChanels;
             energySpectrum.Initialize();
 
@@ -850,22 +860,22 @@ namespace BecquerelMonitor.N42
             energySpectrum.ValidPulseCount = totalpulsecount;
             ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
             // `A156`: время начала кладётся в ОБА поля — то же соглашение, что у
-            //   разбора 2012 года ниже и у соседнего ввоза GBS в DocumentManager.
+            //   разбора 2012 года ниже и у соседнего импорта GBS в DocumentManager.
             //   Прежде здесь заполнялся только SampleInfo.Time, а ResultData.StartTime
-            //   оставался «сейчас» — то есть вывоз этого же документа записал бы в
+            //   оставался «сейчас» — то есть экспорт этого же документа записал бы в
             //   файл текущее время вместо прочитанного.
             //
-            // ⛔ `A171`: ОТКАЗ РАЗБОРА ДАТЫ БОЛЬШЕ НЕ ВАЛИТ ВЕСЬ ВВОЗ. Прежде здесь
+            // ⛔ `A171`: ОТКАЗ РАЗБОРА ДАТЫ БОЛЬШЕ НЕ ВАЛИТ ВЕСЬ ИМПОРТ. Прежде здесь
             //    стоял голый XmlConvert.ToDateTime, и негодная запись времени
             //    уносила файл ЦЕЛИКОМ: измерено 05.09.2026 входом
             //    case19_2006_baddate — ОТКАЗ FormatException, тогда как тот же
-            //    файл в записи 2012 года ввозился и говорил вслух (`A157`). Два
+            //    файл в записи 2012 года импортировался и говорил вслух (`A157`). Два
             //    соглашения об одном положении в одном файле — тот же разряд, что
             //    `A137` и `A141`. Соглашение взято У РАЗБОРА 2012 ГОДА ЦЕЛИКОМ:
             //    та же попытка чтения (ParseMeasurementStartDateTime), тот же
             //    счётчик, тот же ключ ресурса, тот же голос один раз на файл.
             //
-            //    ⚠ Довод «ввозим, сказав вслух, а не отказываем» тот же, что у
+            //    ⚠ Довод «импортируем, сказав вслух, а не отказываем» тот же, что у
             //    `A157`, и здесь он ЕЩЁ прямее: время начала не входит ни в одно
             //    вычисление, а нечитаемую дату несут файлы, которые BecqMoni сам
             //    выгружал до `A146`.
@@ -877,7 +887,7 @@ namespace BecquerelMonitor.N42
             //    они только на записи со смещением вида «+03:00», где Utc приводил
             //    к UTC, а RoundtripKind оставляет местное. Второго соглашения о
             //    чтении даты в одном файле быть не должно, и выбрано то, которым
-            //    читают два других разбора и пишет наш собственный вывоз.
+            //    читают два других разбора и пишет наш собственный экспорт.
             //
             // ⛔ `A207`: НЕИЗВЕСТНОЕ ВРЕМЯ НАЧАЛА — ОДНО ЗНАЧЕНИЕ НА ВСЁ
             //    ПРИЛОЖЕНИЕ, И ОБ ЭТОМ ГОВОРИТСЯ. Здесь стояло «сейчас» и для
@@ -909,8 +919,8 @@ namespace BecquerelMonitor.N42
             resultData.SampleInfo.Time = startTime;
             resultData.StartTime = startTime;
             // ⚠ `A177`: КОНЕЦ НАБОРА — ТО ЖЕ ПРАВИЛО, ЧТО У СОСЕДЕЙ.
-            //    DocumentManager при ввозе GBS и через SpecUtils ставит
-            //    EndTime = StartTime + полное время набора; ввоз N42 не ставил его
+            //    DocumentManager при импорте GBS и через SpecUtils ставит
+            //    EndTime = StartTime + полное время набора; импорт N42 не ставил его
             //    ВООБЩЕ, и поле оставалось умолчанием ResultData, то есть
             //    «сейчас». Берётся полное время (realtime), а не живое: EndTime —
             //    момент по часам, а не сумма зачтённого времени.
@@ -928,7 +938,7 @@ namespace BecquerelMonitor.N42
             // ставится на место.
             resultData.EnergySpectrum.EnergyCalibration = energyCalibration;
 
-            // `A171`: дата не прочитана — спектр ввезён, но с чужим временем.
+            // `A171`: дата не прочитана — спектр импортирован, но с чужим временем.
             //   Голос стоит В КОНЦЕ, как у разбора 2012 года: если файл не
             //   доехал до этой точки, человеку названа та беда, из-за которой
             //   он не доехал, а не эта.
@@ -1008,6 +1018,10 @@ namespace BecquerelMonitor.N42
             //   сказать о нём надо иначе, чем о нечитаемой записи.
             int noStart = 0;
             string badStartSample = null;
+            // `AMBER172`(а): у скольких измерений ссылка на калибровку ведёт в
+            //   никуда (шкала взята по номеру) — говорится один раз на файл.
+            int badCalibrationRef = 0;
+            string badCalibrationRefSample = null;
 
             // ⛔ `A239` (06.09.2026): НАСТРОЙКИ ПРИБОРА — У ДОКУМЕНТА, А НЕ У
             //    ВСТРОЕННЫХ УМОЛЧАНИЙ. Здесь каждый спектр заводился голым
@@ -1035,7 +1049,7 @@ namespace BecquerelMonitor.N42
                 //    NotSpecified, пустое поле, чужое значение), остаётся передним
                 //    спектром — у соседа «Unknown» тоже идёт в передний.
                 //    ⚠ Пропуск — НЕ молчаливый: разбор, отбрасывающий часть файла
-                //    без единого слова, есть отказ без читателя, а список ввозимого
+                //    без единого слова, есть отказ без читателя, а список импортируемого
                 //    здесь меняется НАРОЧНО.
                 if (radMeasurement.MeasurementClassCode == "Calibration"
                     || radMeasurement.MeasurementClassCode == "IntrinsicActivity")
@@ -1056,26 +1070,54 @@ namespace BecquerelMonitor.N42
                         id = "Empty"
                     };
                 }
-                else if (rad.EnergyCalibration.Length <= i)
+                else
                 {
-                    radCalibration = rad.EnergyCalibration[0];
-                } else
-                {
-                    radCalibration = rad.EnergyCalibration[i];
+                    // ⛔ `AMBER172`(а) (05.10.2026): КАЛИБРОВКА — ПО ССЫЛКЕ
+                    //    СПЕКТРА, А НЕ ПО НОМЕРУ ИЗМЕРЕНИЯ. По N42-2012 спектр
+                    //    называет свою шкалу атрибутом energyCalibrationReference
+                    //    (id элемента EnergyCalibration), и число калибровок с
+                    //    числом измерений не связано: файл с двумя шкалами на три
+                    //    измерения, или с калибровочным измерением впереди (оно
+                    //    пропускается `A160`, а номер i — нет), получал ЧУЖУЮ
+                    //    шкалу молча. Свой экспорт пишет ссылку всегда (ExportToN42).
+                    //    Номер измерения (и [0] за краем) остаётся запасным путём —
+                    //    для файлов без ссылки или со ссылкой в никуда; во втором
+                    //    случае об этом говорится один раз на файл.
+                    radCalibration = null;
+                    string calibrationRef = (radMeasurement.Spectrum != null && radMeasurement.Spectrum.Length > 0
+                                             && radMeasurement.Spectrum[0] != null)
+                                            ? radMeasurement.Spectrum[0].energyCalibrationReference
+                                            : null;
+                    if (!string.IsNullOrEmpty(calibrationRef))
+                    {
+                        radCalibration = Array.Find(rad.EnergyCalibration,
+                            c => c != null && string.Equals(c.id, calibrationRef, StringComparison.Ordinal));
+                        if (radCalibration == null)
+                        {
+                            badCalibrationRef++;
+                            if (badCalibrationRefSample == null) badCalibrationRefSample = calibrationRef;
+                        }
+                    }
+                    if (radCalibration == null)
+                    {
+                        radCalibration = rad.EnergyCalibration.Length <= i
+                                         ? rad.EnergyCalibration[0]
+                                         : rad.EnergyCalibration[i];
+                    }
                 }
                 // `A239`: наследник настроек документа, а не голый `new ResultData()`.
                 ResultData resultData = DocumentManager.NewResultDataLike(template);
 
                 // ⛔ `A156`: ВРЕМЯ НАЧАЛА КЛАДЁТСЯ В ТО ЖЕ ПОЛЕ, ИЗ КОТОРОГО ЕГО
-                //    БЕРЁТ ВЫВОЗ. Прежде ввоз клал прочитанное ТОЛЬКО в
+                //    БЕРЁТ ЭКСПОРТ. Прежде импорт клал прочитанное ТОЛЬКО в
                 //    SampleInfo.Time, а ExportToN42 пишет в файл ResultData.StartTime,
-                //    у ввезённого документа так и остававшееся «сейчас»
-                //    (умолчание ResultData.cs). Круг «вывоз → ввоз → вывоз» терял
+                //    у импортированного документа так и остававшееся «сейчас»
+                //    (умолчание ResultData.cs). Круг «экспорт → импорт → экспорт» терял
                 //    дату на ВТОРОМ обороте независимо от того, что починила `A146`.
-                //    Соглашение взято У СОСЕДА ЦЕЛИКОМ: DocumentManager при ввозе
+                //    Соглашение взято У СОСЕДА ЦЕЛИКОМ: DocumentManager при импорте
                 //    формата GBS пишет прочитанное И в SampleInfo.Time, И в
                 //    StartTime одним движением (`info.Time = …; StartTime = info.Time`),
-                //    а ввоз через SpecUtils заполняет StartTime. Здесь заполняются
+                //    а импорт через SpecUtils заполняет StartTime. Здесь заполняются
                 //    оба поля: у них разный смысл (время ПРОБЫ и время НАБОРА), но
                 //    файл N42 несёт одно StartDateTime, и терять его нельзя ни в том,
                 //    ни в другом.
@@ -1083,10 +1125,10 @@ namespace BecquerelMonitor.N42
                 // ⛔ `A157`: ОТКАЗ РАЗБОРА ДАТЫ БОЛЬШЕ НЕ СЪЕДАЕТСЯ. Прежде здесь
                 //    стоял пустой `catch { }`: время начала молча подменялось на
                 //    «сейчас». Измерено 05.09.2026 перекрёстной культурой — файл,
-                //    выгруженный старой сборкой под ar-SA (год по хиджре), ввозился
+                //    выгруженный старой сборкой под ar-SA (год по хиджре), импортировался
                 //    под en-US без единого слова и с чужой датой.
                 //
-                //    ⚠ ВВОЗИМ, СКАЗАВ ВСЛУХ, а не отказываем — и это выбор с ценой,
+                //    ⚠ ИМПОРТИРУЕМ, СКАЗАВ ВСЛУХ, а не отказываем — и это выбор с ценой,
                 //    а не осторожность. Соседние ветви ЭТОГО файла (`A137`, `A141`,
                 //    CheckCalibration) без окон бросают, потому что там негодна
                 //    ЭНЕРГЕТИЧЕСКАЯ ШКАЛА: по ней считают всё, и молчаливый счёт по
@@ -1095,14 +1137,14 @@ namespace BecquerelMonitor.N42
                 //    измерима: нечитаемую дату несут файлы, которые BecqMoni сам
                 //    выгружал ДО `A146` (под ru-RU дата «28.11.2022 10:07:57»
                 //    культурой с порядком месяц-день не читается вовсе), — отказ
-                //    сделал бы собственные старые файлы приложения неввозимыми.
+                //    сделал бы собственные старые файлы приложения неимпортируемыми.
                 //    Дверь та же, что у соседей, — AppUi; второго соглашения не
                 //    заводится, меняется только строгость.
                 //
                 // ⛔ `A207`: ЗАПИСИ ВРЕМЕНИ НЕТ ЛИБО ОНА ПУСТА — ТО ЖЕ САМОЕ
                 //    ПОЛОЖЕНИЕ, И ЗНАЧЕНИЕ У НЕГО ОДНО. Прежде здесь стояло
                 //    «сейчас» и об этом не говорилось ни слова: измерено
-                //    05.09.2026 входом case24_nostart — ВВЕЗЁН, начало «сейчас»,
+                //    05.09.2026 входом case24_nostart — ИМПОРТИРОВАН, начало «сейчас»,
                 //    молчание. Теперь ставится ResultData.UnknownStartTime, а
                 //    голос звучит один раз на файл, ниже по тексту.
                 DateTime startTime = ResultData.UnknownStartTime;
@@ -1260,7 +1302,7 @@ namespace BecquerelMonitor.N42
                     }
                     else
                     {
-                    string[] n42CalibrationCoeff = radCalibration.CoefficientValues.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
+                    string[] n42CalibrationCoeff = radCalibration.CoefficientValues.Split(N42Whitespace.Separators, StringSplitOptions.RemoveEmptyEntries);
                     n42CalibrationCoeff = Array.FindAll(n42CalibrationCoeff, isNotN42SpectrumValid);
                     if (n42CalibrationCoeff.Length == 0)
                     {
@@ -1290,8 +1332,8 @@ namespace BecquerelMonitor.N42
                         //    В N42 число записано с ТОЧКОЙ по спецификации, а
                         //    double.Parse без культуры читает разделителем то, что
                         //    стоит у машины. Измерено 04.09.2026: под ru-RU ни один
-                        //    из 12 выгруженных корпусных файлов не ввозился
-                        //    (FormatException), под en-US ввозились все 12.
+                        //    из 12 выгруженных корпусных файлов не импортировался
+                        //    (FormatException), под en-US импортировались все 12.
                         //    ⚠ В окнах это не проявлялось только потому, что
                         //    MainForm.cs:162-164 глобально ставит разделителем точку
                         //    при запуске: разбор ФАЙЛА держался на настройке,
@@ -1399,10 +1441,10 @@ namespace BecquerelMonitor.N42
                 // ⛔ `A150`: ФОН ВОЗВРАЩАЕТСЯ ФОНОМ, А НЕ ВТОРЫМ ОБЫЧНЫМ СПЕКТРОМ.
                 //
                 //    Признак фона в N42 ЕСТЬ и он законный: MeasurementClassCode
-                //    со значением Background — и наш собственный вывоз его пишет
+                //    со значением Background — и наш собственный экспорт его пишет
                 //    (см. ExportToN42 выше). Прежде разбор это поле не читал вовсе,
                 //    и всякий RadMeasurement становился равноправным спектром
-                //    списка: круг «вывоз → ввоз» превращал «спектр + фон» в «два
+                //    списка: круг «экспорт → импорт» превращал «спектр + фон» в «два
                 //    спектра» у 11 файлов из 12, и человеку об этом не говорилось.
                 //    Поэтому правильная правка здесь — ПЕРЕНОСИТЬ признак, а не
                 //    объявлять его невыразимым: невыразимым он не был.
@@ -1416,7 +1458,7 @@ namespace BecquerelMonitor.N42
                 //    ⚠ Фон, которому не к чему прицепиться (файл начинается с
                 //    Background или у хозяина фон уже есть), кладётся ОБЫЧНЫМ
                 //    спектром — так же, как у соседа. Иначе файл из одних только
-                //    фоновых измерений ввозился бы пустым.
+                //    фоновых измерений импортировался бы пустым.
                 bool isBackground = radMeasurement.MeasurementClassCode == "Background";
                 ResultData host = added > 0 ? doc.ResultDataFile.ResultDataList[added - 1] : null;
                 if (isBackground && host != null && host.BackgroundEnergySpectrum == null)
@@ -1452,7 +1494,7 @@ namespace BecquerelMonitor.N42
             }
             if (badStart > 0)
             {
-                // `A157`: дата не прочитана — спектр ввезён, но с чужим временем.
+                // `A157`: дата не прочитана — спектр импортирован, но с чужим временем.
                 AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRUnreadableStartDateTimeN42,
                                            badStart, badStartSample),
                              "", MessageBoxIcon.None);
@@ -1464,8 +1506,15 @@ namespace BecquerelMonitor.N42
                 AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRMissingStartDateTime, noStart),
                              "", MessageBoxIcon.None);
             }
+            if (badCalibrationRef > 0)
+            {
+                // `AMBER172`(а): ссылка спектра на шкалу не нашла адресата.
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRCalibrationReferenceNotFoundN42,
+                                           badCalibrationRef, badCalibrationRefSample),
+                             "", MessageBoxIcon.None);
+            }
 
-            // ⛔ `A176`: ПУСТОЙ ДОКУМЕНТ НЕ ВЫДАЁТСЯ ЗА ВВЕЗЁННЫЙ СПЕКТР.
+            // ⛔ `A176`: ПУСТОЙ ДОКУМЕНТ НЕ ВЫДАЁТСЯ ЗА ИМПОРТИРОВАННЫЙ СПЕКТР.
             //
             //    Файл из одних калибровочных измерений после `A160` отдавал
             //    документ, в котором НИЧЕГО не прочитано: 8192 канала умолчания,
@@ -1480,18 +1529,18 @@ namespace BecquerelMonitor.N42
             //    кодом возврата, а в окнах называет причину человеку. Свой
             //    AppUi.Report тут был бы ТРЕТЬИМ соглашением об одном положении.
             //
-            //    ⚠ Голос `A160` («Спектров ввезено: 0») звучит ПЕРЕД этим и
+            //    ⚠ Голос `A160` («Спектров импортировано: 0») звучит ПЕРЕД этим и
             //    остаётся: он говорит, ЧТО выброшено, а бросок — что показывать
             //    после этого нечего.
             if (added == 0)
             {
                 throw new Exception(
-                    "в файле N42 не осталось ни одного ввозимого спектра"
+                    "в файле N42 не осталось ни одного импортируемого спектра"
                     + (skippedClasses.Count > 0
                        ? ": все измерения файла имеют класс "
                          + string.Join(", ", skippedClasses.ToArray())
-                         + ", а приложение ввозит только передние и фоновые"
-                       : ": ввозимых измерений в файле нет")
+                         + ", а приложение импортирует только передние и фоновые"
+                       : ": импортируемых измерений в файле нет")
                     + " — документ остался бы пустым, и считать по нему нечего");
             }
 
@@ -1627,13 +1676,13 @@ namespace BecquerelMonitor.N42
         ///
         /// ⛔ ПРИЗНАК — ИМЯ ПРОГРАММЫ, А НЕ ИЗГОТОВИТЕЛЬ. `KB Radar` / `ATOM
         /// Spectra` в <c>RadInstrumentManufacturerName</c>/<c>ModelName</c>
-        /// пишет и САМО ПРИЛОЖЕНИЕ при вывозе (<see cref="ExportToN42"/>), а
+        /// пишет и САМО ПРИЛОЖЕНИЕ при экспорте (<see cref="ExportToN42"/>), а
         /// его файл несёт полином КРАЯМИ (<see cref="ChannelCentrePolynomialToEdges"/>):
         /// судить по изготовителю значило бы развести круг «мы → файл → мы» на
-        /// h/2 (замер П151 на файлах Amber: 26 из 48 — наш вывоз с «KB Radar»).
+        /// h/2 (замер П151 на файлах Amber: 26 из 48 — наш экспорт с «KB Radar»).
         /// Признак — пара <c>RadInstrumentVersion</c> «SoftwareName» =
         /// «AtomSpectra» (так пишут все версии 6.2.2…6.5.0 в файлах Amber; наш
-        /// вывоз пишет «BecqMoni»), и НИКАКОЙ другой программы-создателя:
+        /// экспорт пишет «BecqMoni»), и НИКАКОЙ другой программы-создателя:
         /// файл, пересохранённый InterSpec (<c>RadInstrumentDataCreatorName</c> =
         /// «InterSpec», «Original Software»), несёт полином по соглашению
         /// SpecUtils (край) и остаётся при `AMBER73`.
@@ -1764,7 +1813,7 @@ namespace BecquerelMonitor.N42
         /// полиномом, что свои границы») — одна программа, записавшая один
         /// полином в два элемента, а строит она его ЦЕНТРАМИ (П146, исходники
         /// изготовителя). Такой файл обе двери читают без перекладки
-        /// (<see cref="IsWrittenByAtomSpectra"/>); наш вывоз по-прежнему краями.
+        /// (<see cref="IsWrittenByAtomSpectra"/>); наш экспорт по-прежнему краями.
         /// </summary>
         internal static double[] EdgePolynomialToChannelCentres(double[] edgePolynomial)
         {
@@ -1772,20 +1821,20 @@ namespace BecquerelMonitor.N42
         }
 
         /// <summary>
-        /// `AMBER73` (П138, 22.09.2026): ОБРАТНАЯ ПЕРЕКЛАДКА ДЛЯ ВЫВОЗА —
+        /// `AMBER73` (П138, 22.09.2026): ОБРАТНАЯ ПЕРЕКЛАДКА ДЛЯ ЭКСПОРТА —
         /// полином по ЦЕНТРАМ каналов (соглашение приложения) в полином по
         /// НИЖНИМ КРАЯМ (соглашение файла). Возвращает g(x) = f(x − ½).
         ///
-        /// ⛔ БЕЗ НЕЁ ПРАВКА ВВОЗА БЫЛА БЫ ОДНОСТОРОННЕЙ, А ЭТО ЗАПРЕЩЕНО.
+        /// ⛔ БЕЗ НЕЁ ПРАВКА ИМПОРТА БЫЛА БЫ ОДНОСТОРОННЕЙ, А ЭТО ЗАПРЕЩЕНО.
         /// Решение Amber 22.09.2026 сказано в одну фразу вместе: «ввоз и вывоз
-        /// согласованно». Сдвинуть один ввоз значило бы разорвать круг
+        /// согласованно». Сдвинуть один импорт значило бы разорвать круг
         /// «мы → файл → мы» на h/2: до П138 он сходился ТОЧНО на 136 спектрах
         /// корпуса (`A148`), и всякая побайтовая приёмка держится на нём.
         ///
         /// ⚠ ЧТО ЭТО МЕНЯЕТ ДЛЯ УЖЕ ВЫГРУЖЕННЫХ НАМИ ФАЙЛОВ, И ЭТО НЕ ПОБОЧНО.
         /// Наши прежние выгрузки (12 `.n42` в `tools\CORPUS\n42`, часть спектров
         /// Amber) писаны ЦЕНТРАМИ, а читаться будут краями — то есть их шкала
-        /// уезжает на +h/2. Средство одно: ПЕРЕВЫГРУЗИТЬ их этим же вывозом.
+        /// уезжает на +h/2. Средство одно: ПЕРЕВЫГРУЗИТЬ их этим же экспортом.
         /// Это смена содержимого файла, а не переписывание тем же, поэтому П138
         /// её не делала и доложила числами (журнал полосы).
         ///
@@ -1859,7 +1908,33 @@ namespace BecquerelMonitor.N42
             }
         }
 
+        /// <remarks>
+        /// ⛔ `AMBER175` (05.10.2026): ПРОЧИТАННАЯ, НО НЕПОКАЗУЕМАЯ ДАТА — ОТКАЗ
+        /// ЧТЕНИЯ, А НЕ ЗНАЧЕНИЕ. <c>RoundtripKind</c> законно принимает
+        /// <c>0001-01-01T00:00:00</c>, и такая дата доезжала до вкладки пробы, где
+        /// <c>DateTimePicker</c> бросал <c>ArgumentOutOfRangeException</c> при каждой
+        /// смене спектра. Теперь дата вне пределов окна
+        /// (<see cref="DocumentManager.IsStartTimeDisplayable"/>) бросает здесь, и
+        /// оба читателя ведут её путём нечитаемой (`A157`/`A171`): значение
+        /// <see cref="ResultData.UnknownStartTime"/>, голос один раз на файл с
+        /// самой записью в тексте.
+        /// </remarks>
         private static DateTime ParseMeasurementStartDateTime(string startDateTime)
+        {
+            // ⛔ `AMBER201` Р1 (05.10.2026): мгновение — в местном времени этого
+            //    ПК. «…Z» прежде доезжало до вкладки пробы видом Utc и стеной UTC
+            //    (10:00 вместо местных 13:00), «+03:00» — местным, без пояса —
+            //    Unspecified; теперь все три — Local (без пояса — не сдвигается).
+            DateTime parsed = DocumentManager.ToLocalInstant(ParseMeasurementStartDateTimeRaw(startDateTime));
+            if (!DocumentManager.IsStartTimeDisplayable(parsed))
+            {
+                throw new ArgumentOutOfRangeException(nameof(startDateTime), startDateTime,
+                    "start time outside 1753-01-01 ... 9998-12-31");
+            }
+            return parsed;
+        }
+
+        private static DateTime ParseMeasurementStartDateTimeRaw(string startDateTime)
         {
             try
             {
@@ -1867,13 +1942,25 @@ namespace BecquerelMonitor.N42
             }
             catch (FormatException)
             {
+                // ⛔ `AMBER201` Р1 (05.10.2026): ЗАПАСНОЙ РАЗБОР — ИНВАРИАНТНЫЙ,
+                //    А НЕ КУЛЬТУРОЙ ПОТОКА. Запасные попытки нужны для файлов
+                //    прежнего экспорта BecqMoni (`data.StartTime.ToString()`
+                //    культурой потока — см. N42DateTime): «15.01.2024 13:00:00»
+                //    (ru-RU и все культуры с точками) и «1/15/2024 1:00:00 PM»
+                //    (en-US). Прежде первой стояла культура ПОТОКА — один и тот
+                //    же файл читался по-разному на машинах с разной культурой.
+                //    Точечная запись — всегда день.месяц.год, и она берётся
+                //    ЯВНЫМ форматом раньше общего разбора: инвариант прочёл бы
+                //    «01.02.2024» как 2 января.
                 DateTime parsedDateTime;
-                if (DateTime.TryParse(startDateTime, CultureInfo.CurrentCulture, DateTimeStyles.None, out parsedDateTime))
+                if (DateTime.TryParseExact(startDateTime,
+                        new[] { "d.M.yyyy H:mm:ss", "d.M.yyyy H:mm", "d.M.yyyy" },
+                        CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out parsedDateTime))
                 {
                     return parsedDateTime;
                 }
 
-                if (DateTime.TryParse(startDateTime, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsedDateTime))
+                if (DateTime.TryParse(startDateTime, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out parsedDateTime))
                 {
                     return parsedDateTime;
                 }

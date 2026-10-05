@@ -29,7 +29,7 @@ namespace StartTimeProbeF52
     ///      времени и одно с ним: голос один, счётчик в тексте 2, а дата
     ///      третьего измерения настоящая.
     ///
-    ///   3. ОБЕ ДВЕРИ СТАВЯТ ОДНО ЗНАЧЕНИЕ. Каждый файл ввозится и
+    ///   3. ОБЕ ДВЕРИ СТАВЯТ ОДНО ЗНАЧЕНИЕ. Каждый файл импортируется и
     ///      `DocumentManager.ImportDocumentN42`, и
     ///      `DocumentManager.ImportDocumentSpecUtils`; печатаются фактические
     ///      `StartTime`, `SampleInfo.Time`, `EndTime` С МИЛЛИСЕКУНДАМИ — иначе
@@ -55,7 +55,7 @@ namespace StartTimeProbeF52
     ///
     /// Ключи:
     ///   --mode=cases --out=DIR   положить сочинённые входы;
-    ///   --mode=run   --out=DIR   ввезти все *.n42 каталога ОБЕИМИ дверьми;
+    ///   --mode=run   --out=DIR   импортировать все *.n42 каталога ОБЕИМИ дверьми;
     ///   --culture=en-US          культура прогона (по умолчанию — машинная).
     /// </summary>
     static class Program
@@ -231,7 +231,7 @@ namespace StartTimeProbeF52
         }
 
         // ==================================================================
-        // ВВОЗ ОБЕИМИ ДВЕРЬМИ
+        // ИМПОРТ ОБЕИМИ ДВЕРЬМИ
         // ==================================================================
         sealed class Arm
         {
@@ -250,7 +250,7 @@ namespace StartTimeProbeF52
             string[] files = Directory.GetFiles(outDir, "*.n42");
             Array.Sort(files, StringComparer.Ordinal);
 
-            Console.WriteLine("=== ВВОЗ КАТАЛОГА " + Path.GetFullPath(outDir) + " ===");
+            Console.WriteLine("=== ИМПОРТ КАТАЛОГА " + Path.GetFullPath(outDir) + " ===");
             Console.WriteLine("  файлов: " + files.Length);
             Console.WriteLine();
 
@@ -272,7 +272,7 @@ namespace StartTimeProbeF52
                 string same;
                 if (n42.FirstStart == null || spec.FirstStart == null)
                 {
-                    same = "СВЕРИТЬ НЕЧЕГО (одна из дверей не ввезла)";
+                    same = "СВЕРИТЬ НЕЧЕГО (одна из дверей не импортировала)";
                 }
                 else if (n42.FirstStart == spec.FirstStart)
                 {
@@ -303,7 +303,7 @@ namespace StartTimeProbeF52
         /// ⛔ РОДНОЙ ФОРМАТ ДЕРЕВА (`*.xml`, 129 спектров корпуса) — ТРЕТЬЯ
         /// ДВЕРЬ, И ЕЁ НАДО МЕРИТЬ ОТДЕЛЬНО. Правка тронула поле, которое
         /// приходит в родной документ ИЗ ФАЙЛА, а не подставляется; замер тут
-        /// проверяет, что «ввоз не сломан» — не посылка, а измерение: слепок
+        /// проверяет, что «импорт не сломан» — не посылка, а измерение: слепок
         /// обоих плеч обязан совпасть ПОСИМВОЛЬНО, включая времена, потому что
         /// у корпусных спектров время начала в файле ЕСТЬ.
         /// </summary>
@@ -375,7 +375,7 @@ namespace StartTimeProbeF52
             {
                 if (specUtils) DocumentManager.GetInstance().ImportDocumentSpecUtils(doc, file, 3600);
                 else DocumentManager.GetInstance().ImportDocumentN42(doc, file);
-                a.Verdict = "ВВЕЗЁН";
+                a.Verdict = "ИМПОРТИРОВАН";
             }
             catch (Exception ex)
             {
@@ -438,7 +438,7 @@ namespace StartTimeProbeF52
         }
 
         /// <summary>
-        /// ⛔ ЧИСЛА РАЗОБРАННОГО СПЕКТРА — ЧТОБЫ «ВВОЗ НЕ СЛОМАН» БЫЛО ЗАМЕРОМ,
+        /// ⛔ ЧИСЛА РАЗОБРАННОГО СПЕКТРА — ЧТОБЫ «ИМПОРТ НЕ СЛОМАН» БЫЛО ЗАМЕРОМ,
         /// А НЕ ПОСЫЛКОЙ. Слепок одних времён доказал бы только про времена;
         /// правка, попутно сбившая отсчёты или шкалу, прошла бы незамеченной.
         /// Печатается то же, что печатает слепок `N42RoundTripProbe`: отсчёты,

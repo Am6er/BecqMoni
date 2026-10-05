@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Xml.Serialization;
+using BecquerelMonitor.EfficiencyMaker;
 
 namespace BecquerelMonitor
 {
@@ -129,6 +130,76 @@ namespace BecquerelMonitor
             set
             {
                 this.efficiency = value;
+                this.AttachEmbeddedMatrix();
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER202`, решения Amber 05.10.2026 «Внутри файла спектра
+        /// (Рекомендую)», «Настройка, умолчание ВКЛ (Рекомендую)») МАТРИЦА
+        /// ОТКЛИКА выбранной кривой — необязательным блоком сразу за
+        /// <see cref="Efficiency"/>: файл спектра уходит другому человеку, и
+        /// без матрицы разбор у него шёл «без матрицы», хотя кривая с
+        /// геометрией приезжала.
+        ///
+        /// ЗАПИСЬ — вычисляемая: блок собирает
+        /// <see cref="ResponseMatrixStore.EmbedFor"/> из склада (или
+        /// пересылает приехавший) в момент сериализации. Так блок получают ВСЕ
+        /// пути записи спектра — «Сохранить», автосохранение и три экспорта
+        /// `MainForm` (вычтенный спектр, фон, выбранные спектры), — без правки
+        /// каждого. Выключатель — общая настройка
+        /// <see cref="GlobalConfigInfo.SaveResponseMatrixInSpectrum"/>
+        /// (<see cref="ShouldSerializeEmbeddedResponseMatrix"/>).
+        ///
+        /// ЧТЕНИЕ — блок прикрепляется к кривой файла (позже выбранной — при
+        /// том же Guid; <see cref="EfficiencyConfigData.EmbeddedMatrix"/>, в памяти), и
+        /// дальше его находят читатели склада общим путём
+        /// <see cref="ResponseMatrixStore.Resolve"/>. Порядок элементов в файле
+        /// не важен: прикрепляют оба сеттера.
+        ///
+        /// Почему блок здесь, а не полем <see cref="EfficiencyConfigData"/>:
+        /// запись кривой сериализуется ещё и в конфигурацию прибора, и поле там
+        /// потребовало бы второго выключателя «только в спектре»; у
+        /// <c>ResultData</c> другого места записи, кроме файла спектра, нет.
+        /// </summary>
+        public EmbeddedResponseMatrix EmbeddedResponseMatrix
+        {
+            get
+            {
+                return ResponseMatrixStore.EmbedFor(this.efficiency);
+            }
+            set
+            {
+                this.embeddedResponseMatrixRead = value;
+                this.AttachEmbeddedMatrix(true);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER202`) Писать ли блок матрицы — общая настройка; без неё (или
+        /// при недоступной конфигурации) — умолчание «писать».
+        /// </summary>
+        public bool ShouldSerializeEmbeddedResponseMatrix()
+        {
+            return GlobalConfigInfo.SaveResponseMatrixInSpectrumNow();
+        }
+
+        /// <summary>
+        /// Прикрепить прочитанный блок к кривой. При чтении самого блока
+        /// (<paramref name="fromFile"/>) — к кривой ЭТОГО файла при любом Guid:
+        /// блок с чужим Guid (правленый руками файл) тогда отвергается
+        /// читателем СЛОВАМИ («от другой кривой»), а не молча. Новая кривая,
+        /// выбранная позже на панели, получает блок только при своём Guid —
+        /// иначе отказ «от другой кривой» висел бы на законно другой кривой.
+        /// </summary>
+        void AttachEmbeddedMatrix(bool fromFile = false)
+        {
+            EmbeddedResponseMatrix block = this.embeddedResponseMatrixRead;
+            if (block != null && this.efficiency != null && this.efficiency.EmbeddedMatrix == null
+                && (fromFile
+                    || string.Equals(block.EfficiencyGuid, this.efficiency.Guid, StringComparison.OrdinalIgnoreCase)))
+            {
+                this.efficiency.EmbeddedMatrix = block;
             }
         }
 
@@ -209,7 +280,7 @@ namespace BecquerelMonitor
         /// <summary>
         /// ⛔ ЕДИНСТВЕННОЕ ЗНАЧЕНИЕ «ВРЕМЯ НАЧАЛА НАБОРА НЕИЗВЕСТНО» (`A207`,
         /// решение 06.09.2026). До него соглашений об одном положении было ДВА:
-        /// двери ввоза N42 (<c>N42.Util</c>) подставляли «сейчас», дверь
+        /// двери импорта N42 (<c>N42.Util</c>) подставляли «сейчас», дверь
         /// SpecUtils (<c>DocumentManager.ImportDocumentSpecUtils</c>) —
         /// 1970-01-01 00:00:03.600 (<c>ms = (ms == 0) ? 3600 : ms</c>), и человек
         /// получал РАЗНУЮ дату на одном и том же файле в зависимости от того,
@@ -220,7 +291,7 @@ namespace BecquerelMonitor
         /// вкладку пробы, в отчёт и в выгруженный файл, где выглядит как
         /// измеренное. 1970-01-01 не спутать ни с чем, и человек, увидевший его,
         /// не примет выдумку за данные файла. Голос (`A207` говорит один раз на
-        /// файл) объясняет эту дату при ввозе, но живёт он ровно один показ, а
+        /// файл) объясняет эту дату при импорте, но живёт он ровно один показ, а
         /// дата остаётся в документе навсегда — поэтому узнаваемым обязано быть
         /// САМО значение, а не только сообщение.
         ///
@@ -424,8 +495,8 @@ namespace BecquerelMonitor
         /// 06.09.2026: «Снять кривую вместе с прибором»).
         ///
         /// Ставится <c>DocumentManager.ResetSpectrumConfig</c> — сбросом,
-        /// которым обе двери ввоза встречают файл с другим числом каналов
-        /// (и любой файл при настройке «ввозить с пустой конфигурацией»).
+        /// которым обе двери импорта встречают файл с другим числом каналов
+        /// (и любой файл при настройке «импортировать с пустой конфигурацией»).
         /// Читается <c>DocumentManager.CheckDocument</c>: у помеченного
         /// спектра он кривую НЕ достраивает.
         ///
@@ -439,10 +510,10 @@ namespace BecquerelMonitor
         ///
         /// Снимается, когда прибор у спектра снова появляется
         /// (<c>DocumentManager.PrepareDeviceConfig</c>), и наследуется
-        /// спектрами, которые дверь ввоза заводит по образцу документа
+        /// спектрами, которые дверь импорта заводит по образцу документа
         /// (<c>DocumentManager.NewResultDataLike</c>).
         ///
-        /// В файл не пишется: это состояние ОДНОГО ввоза, а не свойство
+        /// В файл не пишется: это состояние ОДНОГО импорта, а не свойство
         /// спектра. Сохранённый и открытый заново документ получает прибор
         /// по ссылке, и тогда признак взяться неоткуда.
         /// </summary>
@@ -475,7 +546,12 @@ namespace BecquerelMonitor
             this.backgroundSpectrumFile = old.BackgroundSpectrumFile;
             this.backgroundSpectrumPathname = old.BackgroundSpectrumPathname;
             this.energySpectrum = old.EnergySpectrum;
-            this.backgroundEnergySpectrum = old.BackgroundEnergySpectrum;
+            // (`AMBER201`, подозрение полосы 2, 05.10.2026) Старый класс заводил фон
+            // ВСЕГДА (`new EnergySpectrum()`), и файл без фона несёт пустой элемент
+            // (ноль каналов, отсчётов нет). Это «фона нет», а не фон: иначе
+            // CheckDocument, теперь зовущийся и этой дверью, судил бы документ
+            // негодным и предлагал сбросить калибровку.
+            this.backgroundEnergySpectrum = HasCounts(old.BackgroundEnergySpectrum) ? old.BackgroundEnergySpectrum : null;
             this.pulseCollection = old.PulseCollection;
             // 0.93b stored a linear calibration as two scalars. Build a fresh linear
             // calibration instead of writing Coefficients[2] into whatever array the
@@ -500,8 +576,12 @@ namespace BecquerelMonitor
 
         public ResultData(ResultData_097b old)
         {
-            this.sampleInfo = old.SampleInfo;
-            this.deviceConfig = old.DeviceConfig;
+            // (`AMBER201`, мелочь 2.11) Преобразователь заработал (его зовёт
+            // `DocumentManager.TryReadFormat097b`), и пустые части старого файла
+            // больше не роняют его: фона в файле может не быть вовсе, а
+            // карточки пробы, прибора и импульсов — остаться умолчаниями.
+            this.sampleInfo = old.SampleInfo ?? new SampleInfoData();
+            this.deviceConfig = old.DeviceConfig ?? new DeviceConfigInfo();
             this.deviceConfigReference = old.DeviceConfigReference;
             this.roiConfig = old.ROIConfig;
             this.roiConfigReference = old.ROIConfigReference;
@@ -509,9 +589,23 @@ namespace BecquerelMonitor
             this.endTime = old.EndTime;
             this.backgroundSpectrumFile = old.BackgroundSpectrumFile;
             this.backgroundSpectrumPathname = old.BackgroundSpectrumPathname;
-            this.energySpectrum = new EnergySpectrum(old.EnergySpectrum);
-            this.backgroundEnergySpectrum = new EnergySpectrum(old.BackgroundEnergySpectrum);
-            this.pulseCollection = old.PulseCollection;
+            this.energySpectrum = old.EnergySpectrum != null ? new EnergySpectrum(old.EnergySpectrum) : null;
+            // Пустой элемент фона (старый класс заводил его всегда) — «фона нет».
+            this.backgroundEnergySpectrum = old.BackgroundEnergySpectrum != null
+                                            && old.BackgroundEnergySpectrum.Spectrum != null
+                                            && old.BackgroundEnergySpectrum.Spectrum.Length > 0
+                ? new EnergySpectrum(old.BackgroundEnergySpectrum)
+                : null;
+            if (old.PulseCollection != null)
+            {
+                this.pulseCollection = old.PulseCollection;
+            }
+        }
+
+        /// <summary>(`AMBER201`) Спектр старого файла с отсчётами — не пустой элемент.</summary>
+        static bool HasCounts(EnergySpectrum spectrum)
+        {
+            return spectrum != null && spectrum.Spectrum != null && spectrum.Spectrum.Length > 0;
         }
 
         public ResultData Clone()
@@ -549,6 +643,17 @@ namespace BecquerelMonitor
                 DeviceConfigWiped = this.DeviceConfigWiped
             };
 
+            // (`AMBER201`, мелочь 2.16, 05.10.2026) Настройки поиска пиков и разбора
+            // FSA живут в спектре ([XmlIgnore]) — копия получала ВСТРОЕННЫЕ
+            // умолчания вместо настроек оригинала: «Отделить фон» давал второй
+            // спектр документа, который искал пики и раскладывался FSA с чужими
+            // порогами. `Visible` не копируется нарочно: копию (отделённый фон,
+            // вычтенный спектр, фон в файл) показывают как новый спектр.
+            if (this.PeakDetectionMethodConfig != null)
+            {
+                copy.PeakDetectionMethodConfig = this.PeakDetectionMethodConfig.Clone();
+            }
+
             copy.FileEfficiency = object.ReferenceEquals(this.Efficiency, this.FileEfficiency)
                 ? efficiencyCopy
                 : (this.FileEfficiency != null ? this.FileEfficiency.Copy() : null);
@@ -574,6 +679,8 @@ namespace BecquerelMonitor
         EfficiencyConfigData efficiency;
 
         EfficiencyConfigData fileEfficiency;
+
+        EmbeddedResponseMatrix embeddedResponseMatrixRead;
 
         DateTime startTime = DateTime.Now;
 

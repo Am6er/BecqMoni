@@ -332,6 +332,21 @@ namespace BecquerelMonitor
         // Token: 0x06000A4A RID: 2634 RVA: 0x0003CB48 File Offset: 0x0003AD48
         void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // (`AMBER178`) Документы, ответившие «Нет» на вопрос о сохранении
+            // (см. DocEnergySpectrum_FormClosing), потеряли пометку Dirty. Если
+            // закрытие отменено «Отменой» на соседнем документе, пометка
+            // возвращается — иначе документ закрылся бы потом без вопроса.
+            if (e.Cancel)
+            {
+                foreach (DocEnergySpectrum discarded in this.closeDiscardedDocuments)
+                {
+                    if (!discarded.IsDisposed)
+                    {
+                        discarded.Dirty = true;
+                    }
+                }
+            }
+            this.closeDiscardedDocuments.Clear();
             if (!this.initialized || e.Cancel)
             {
                 return;
@@ -488,11 +503,12 @@ namespace BecquerelMonitor
             {
                 return null;
             }
-            if (array.Length != 3)
+            string documentPath = DocumentPathOfPersistString(persistString);
+            if (documentPath == null)
             {
                 return null;
             }
-            DocEnergySpectrum docEnergySpectrum = this.documentManager.OpenDocument(array[1]);
+            DocEnergySpectrum docEnergySpectrum = this.documentManager.OpenDocument(documentPath);
             this.SubscribeDocumentEvent(docEnergySpectrum);
             if (docEnergySpectrum == null)
             {
@@ -500,6 +516,40 @@ namespace BecquerelMonitor
             }
             docEnergySpectrum.DockAreas = DockAreas.Document;
             return docEnergySpectrum;
+        }
+
+        /// <summary>
+        /// (`AMBER201`, подозрение полосы 3, 05.10.2026) Путь документа из строки
+        /// раскладки «тип,путь,заголовок» (`DocEnergySpectrum.GetPersistString`).
+        /// </summary>
+        /// <remarks>
+        /// Строка делилась по каждой запятой и принималась только из трёх частей,
+        /// так что документ, в пути или имени которого есть запятая
+        /// («Cs-137, 5 cm.xml»), при следующем запуске молча не открывался. Формат
+        /// записи не меняется (раскладки на диске у людей уже есть): путь — всё
+        /// между первой запятой и одной из следующих; берётся самая длинная
+        /// существующая на диске часть, без файла — прежнее правило трёх частей.
+        /// </remarks>
+        static string DocumentPathOfPersistString(string persistString)
+        {
+            int first = persistString.IndexOf(',');
+            if (first < 0)
+            {
+                return null;
+            }
+
+            string rest = persistString.Substring(first + 1);
+            for (int cut = rest.LastIndexOf(','); cut >= 0; cut = cut > 0 ? rest.LastIndexOf(',', cut - 1) : -1)
+            {
+                string candidate = rest.Substring(0, cut);
+                if (candidate.Length > 0 && File.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            string[] parts = persistString.Split(',');
+            return parts.Length == 3 ? parts[1] : null;
         }
 
         // Token: 0x06000A4C RID: 2636 RVA: 0x0003CFA4 File Offset: 0x0003B1A4
@@ -523,6 +573,16 @@ namespace BecquerelMonitor
                             continue;
                         }
                         resultData.MeasurementController.OnTimer(sender, e);
+                        // (`AMBER168`, 05.10.2026) «Конец набора» идёт за часами только у
+                        // спектра, который ПИШЕТСЯ. Прежде его писал блок перерисовки ниже —
+                        // АКТИВНОМУ спектру под документным флагом UpdateSpectrum: при наборе A
+                        // и выборе соседнего B затирался B, а после «отделить фон» (флаг
+                        // оставался навсегда) — любой открытый файл. Остановку (уставка)
+                        // OnTimer уже отработал, и EndTime поставил контроллер прибора.
+                        if (resultData.ResultDataStatus.Recording)
+                        {
+                            resultData.EndTime = DateTime.Now;
+                        }
                     }
                 }
                 this.count2000 += 100;
@@ -595,13 +655,18 @@ namespace BecquerelMonitor
                     {
                         SetStatusTextCenter($"Obsidian BLE status: {activeDocument.ActiveResultData.DetectorFeature}{DeviceFailureTail(activeDocument.ActiveResultData)}", false);
                     }
+                    // `AMBER166`: «порт потерян» у AtomSpectra — тем же местом и темпом,
+                    //   что состояние RadiaCode/Obsidian выше.
+                    if (activeDocument != null && activeDocument.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController)
+                    {
+                        this.ShowAtomSpectraPortState(activeDocument.ActiveResultData);
+                    }
                 }
                 this.countChart += 100;
                 if (this.countChart >= this.globalConfigManager.GlobalConfig.ChartViewConfig.ChartRefreshCycle)
                 {
                     if (activeDocument != null && activeDocument.UpdateSpectrum)
                     {
-                        activeDocument.ActiveResultData.EndTime = DateTime.Now;
                         this.RefreshDocumentChart(activeDocument);
                     }
                     this.countChart = 0;
@@ -633,7 +698,10 @@ namespace BecquerelMonitor
                     this.countTemp = 0;
                     foreach (DocEnergySpectrum docEnergySpectrum in documents)
                     {
-                        if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController && docEnergySpectrum.ActiveResultData.ResultDataStatus.Recording)
+                        // `AMBER166`: у потерянного порта температуру не спрашивать —
+                        //   `getTemp` ждал бы ответа 4 с на потоке окна впустую.
+                        if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController && docEnergySpectrum.ActiveResultData.ResultDataStatus.Recording
+                            && AtomSpectraPortLostText(docEnergySpectrum.ActiveResultData).Length == 0)
                         {
                             AtomSpectraDeviceController dc = (AtomSpectraDeviceController)docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController;
                             docEnergySpectrum.ActiveResultData.DetectorFeature = dc.getTemp();
@@ -884,6 +952,12 @@ namespace BecquerelMonitor
             {
                 if (this.activeDocument.ActiveResultData.DeviceConfig.InputDeviceConfig is AtomSpectraDeviceConfig)
                 {
+                    // `AMBER166`: пока порт потерян, надпись о нём не затирается температурой.
+                    if (AtomSpectraPortLostText(this.activeDocument.ActiveResultData).Length > 0)
+                    {
+                        this.ShowAtomSpectraPortState(this.activeDocument.ActiveResultData);
+                        return;
+                    }
                     SetStatusTextCenter(String.Format(Resources.TemperatureStr, this.activeDocument.ActiveResultData.DetectorFeature), true);
                     return;
                 }
@@ -900,6 +974,12 @@ namespace BecquerelMonitor
             }
             if (this.activeDocument != null && this.activeDocument.ActiveResultData.DetectorFeature == null)
             {
+                // `AMBER166`: см. ветвь с температурой выше.
+                if (AtomSpectraPortLostText(this.activeDocument.ActiveResultData).Length > 0)
+                {
+                    this.ShowAtomSpectraPortState(this.activeDocument.ActiveResultData);
+                    return;
+                }
                 if (this.activeDocument.ActiveResultData.DeviceConfig.InputDeviceConfig is AtomSpectraDeviceConfig
                     && (this.activeDocument.UpdateSpectrum || this.activeDocument.UpdateMeasurementResult))
                 {
@@ -1522,7 +1602,13 @@ namespace BecquerelMonitor
             int docCount = this.documentManager.DocumentList.Count;
             for (int i = 1; i <= docCount; i++)
             {
-                this.CloseActiveDocument();
+                // (`AMBER201`, мелочь 2.17, 05.10.2026) «Отмена» на вопросе о
+                // сохранении (или отказ сохранения) прерывает «Закрыть все»:
+                // прежде цикл шёл дальше и закрывал остальные документы.
+                if (!this.CloseActiveDocument())
+                {
+                    break;
+                }
             }
         }
 
@@ -1561,7 +1647,7 @@ namespace BecquerelMonitor
 
         void ConcatSpectrums(DocEnergySpectrum docEnergySpectrum, int newChan)
         {
-            CreateDocument();
+            if (!CreateDocument()) return; // `AMBER201`: документ не создан — не писать в прежний
             if (newChan < docEnergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels)
             {
                 this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.ConcatSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, newChan);
@@ -1587,7 +1673,7 @@ namespace BecquerelMonitor
             this.activeDocument.ActiveResultData.PresetTime = docEnergySpectrum.ActiveResultData.PresetTime;
             this.activeDocument.ActiveResultData.EndTime = docEnergySpectrum.ActiveResultData.EndTime;
             this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection.Clone();
-            this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo;
+            this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo.Clone(); // `AMBER201` 2.14: своя карточка пробы — масса и объём новой правкой не меняют исходный документ
             this.activeDocument.ActiveResultData.StartTime = docEnergySpectrum.ActiveResultData.StartTime;
             // FwhmCalibration can be null (DefaultCalibration may fail) - guard the NRE.
             FwhmCalibration fwhmCalibration = docEnergySpectrum.ActiveResultData.FwhmCalibration != null
@@ -1618,7 +1704,7 @@ namespace BecquerelMonitor
                 return;
             }
 
-            CreateDocument();
+            if (!CreateDocument()) return; // `AMBER201`: документ не создан — не писать в прежний
             this.activeDocument.ActiveResultData.ROIConfigReference = null;
             this.activeDocument.ActiveResultData.ROIConfig = null;
             this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, efficiency);
@@ -1633,7 +1719,7 @@ namespace BecquerelMonitor
             this.activeDocument.ActiveResultData.PresetTime = docEnergySpectrum.ActiveResultData.PresetTime;
             this.activeDocument.ActiveResultData.EndTime = docEnergySpectrum.ActiveResultData.EndTime;
             this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection.Clone();
-            this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo;
+            this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo.Clone(); // `AMBER201` 2.14: своя карточка пробы — масса и объём новой правкой не меняют исходный документ
             this.activeDocument.ActiveResultData.StartTime = docEnergySpectrum.ActiveResultData.StartTime;
 
 
@@ -1642,7 +1728,8 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A75 RID: 2677 RVA: 0x0003E3E8 File Offset: 0x0003C5E8
-        void CloseActiveDocument()
+        /// <returns>false — документа нет или закрытие отменено (`AMBER201`, 2.17).</returns>
+        bool CloseActiveDocument()
         {
             if (this.activeDocument != null)
             {
@@ -1654,8 +1741,10 @@ namespace BecquerelMonitor
                     this.DestroyObsidianThreads(this.activeDocument);
                     this.UnsubscribeDocumentEvent(this.activeDocument);
                     this.documentManager.CloseDocument(this.activeDocument);
+                    return true;
                 }
             }
+            return false;
         }
 
         // Token: 0x06000A76 RID: 2678 RVA: 0x0003E440 File Offset: 0x0003C640
@@ -1683,6 +1772,18 @@ namespace BecquerelMonitor
         // Token: 0x06000A77 RID: 2679 RVA: 0x0003E4DC File Offset: 0x0003C6DC
         bool ConfirmSaveDocument(DocEnergySpectrum doc)
         {
+            bool discarded;
+            return this.ConfirmSaveDocument(doc, out discarded);
+        }
+
+        /// <summary>
+        /// То же, и сверх того — ответил ли человек «Нет» (правки отброшены,
+        /// пометка Dirty снята без сохранения). Нужно закрытию программы
+        /// (`AMBER178`): при отменённом закрытии пометку надо вернуть.
+        /// </summary>
+        bool ConfirmSaveDocument(DocEnergySpectrum doc, out bool discarded)
+        {
+            discarded = false;
             if (doc.Dirty)
             {
                 DialogResult dialogResult = MessageBox.Show(string.Format(BecquerelMonitor.Properties.Resources.MSGFileOverwriteConfirmation, Path.GetFileName(doc.Filename)), BecquerelMonitor.Properties.Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNoCancel, MessageBoxIcon.Exclamation);
@@ -1703,6 +1804,10 @@ namespace BecquerelMonitor
                     {
                         return false;
                     }
+                }
+                else
+                {
+                    discarded = true;
                 }
                 doc.Dirty = false;
             }
@@ -1993,6 +2098,59 @@ namespace BecquerelMonitor
                 return DeviceFailureTail(ObsidianIn.GetFailure(guid));
             }
             return string.Empty;
+        }
+
+        /// <summary>
+        /// ⛔ `AMBER166` (05.10.2026, решение Amber вопросником: «Статус «порт
+        /// потерян» (Рекомендую)»). Надпись «порт потерян» для спектра
+        /// AtomSpectra; пустая строка — порт на месте, экземпляра нет или
+        /// прибор не AtomSpectra. Набор при этом НЕ останавливается: поток
+        /// чтения сам переоткрывает порт, и надпись снимается по его возврату.
+        ///
+        /// ⚠ Спрашивается <c>IsPortLost</c>, а не <c>getInstance</c> — по той
+        /// же причине, что у <see cref="DeviceFailureTail(ResultData)"/>.
+        /// </summary>
+        internal static string AtomSpectraPortLostText(ResultData resultData)
+        {
+            if (resultData == null || resultData.DeviceConfig == null)
+            {
+                return string.Empty;
+            }
+            AtomSpectraDeviceConfig config = resultData.DeviceConfig.InputDeviceConfig as AtomSpectraDeviceConfig;
+            if (config == null || !AtomSpectraVCPIn.IsPortLost(resultData.DeviceConfig.Guid))
+            {
+                return string.Empty;
+            }
+            return string.Format(Resources.ERRAtomSpectraPortLost, config.ComPortName);
+        }
+
+        // `AMBER166`: стоит ли сейчас в середине строки состояния надпись
+        //   «порт потерян» — чтобы снять её ровно один раз, по возврату порта,
+        //   и не трогать середину строки, когда порта никто не терял.
+        bool atomSpectraPortLostShown;
+
+        void ShowAtomSpectraPortState(ResultData resultData)
+        {
+            string lost = AtomSpectraPortLostText(resultData);
+            if (lost.Length > 0)
+            {
+                SetStatusTextCenter(lost, false);
+                this.atomSpectraPortLostShown = true;
+                return;
+            }
+            if (!this.atomSpectraPortLostShown)
+            {
+                return;
+            }
+            this.atomSpectraPortLostShown = false;
+            if (resultData != null && resultData.DetectorFeature != null)
+            {
+                SetStatusTextCenter(String.Format(Resources.TemperatureStr, resultData.DetectorFeature), true);
+            }
+            else
+            {
+                ClearStatusTextCenter(true);
+            }
         }
 
         void UpdatesAToolStripMenuItem_Click(object sender, EventArgs e)
@@ -2305,6 +2463,31 @@ namespace BecquerelMonitor
                 return;
             }
             DocEnergySpectrum docEnergySpectrum = (DocEnergySpectrum)sender;
+            if (e.CloseReason == CloseReason.MdiFormClosing)
+            {
+                // ⛔ (`AMBER178`, 05.10.2026) Закрывается ПРОГРАММА: документы
+                // опрашиваются по одному, и «Отмена» на любом следующем отменяет
+                // закрытие целиком (главное окно получает FormClosing с
+                // Cancel = true). Поэтому здесь — ТОЛЬКО вопрос. Прежде документ
+                // после своего «не Отмена» сразу останавливал набор, рушил потоки
+                // прибора и снимал подписку FormClosing — и при отмене на соседнем
+                // оставался открытым без набора и закрывался потом без вопроса.
+                // Необратимое делает MainForm_FormClosing, когда закрытие уже
+                // состоялось (стоп набора и finishAll потоков всех приборов).
+                bool discarded;
+                if (!this.ConfirmSaveDocument(docEnergySpectrum, out discarded))
+                {
+                    e.Cancel = true;
+                    return;
+                }
+                if (discarded)
+                {
+                    // «Нет» снимает пометку Dirty; при отменённом закрытии её
+                    // вернёт MainForm_FormClosing.
+                    this.closeDiscardedDocuments.Add(docEnergySpectrum);
+                }
+                return;
+            }
             if (!this.ConfirmSaveDocument(docEnergySpectrum))
             {
                 e.Cancel = true;
@@ -2362,7 +2545,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            // Ввоз — общей дверью с пунктом меню (`A5`): считает принятое и
+            // Импорт — общей дверью с пунктом меню (`A5`): считает принятое и
             // отброшенное, говорит о них вслух и не читает с диска то, чему в
             // документ уже не попасть.
             this.ImportSpectraIntoDocument((DocEnergySpectrum)sender, e.Pathnames);
@@ -2406,10 +2589,32 @@ namespace BecquerelMonitor
             {
                 this.toolStripStatusLabel2.Text = Text;
             }
+            this.SetStatusCenterHint(canrefresh);
+        }
+
+        /// <summary>
+        /// (`AMBER201`, мелочь 3.7, 05.10.2026) Значок «🔃» — кнопка: щелчок заново
+        /// читает температуру детектора. Подписи у него не было, и догадаться об
+        /// этом было не из чего. Подсказка — только пока значок стоит.
+        /// </summary>
+        void SetStatusCenterHint(bool canrefresh)
+        {
+            this.statusStrip1.ShowItemToolTips = true;
+            this.toolStripStatusLabel2.ToolTipText = canrefresh ? Resources.TemperatureRefreshHint : "";
         }
 
         private void ToolStripStatusLabel2_Click(object sender, System.EventArgs e)
         {
+            // (`AMBER201`, 3.7) Середина строки состояния растянута на всю ширину
+            // (`Spring`), и щелчок по ней без открытого документа (или у
+            // документа без контроллера набора) ронял программу
+            // NullReferenceException'ом.
+            if (this.activeDocument == null || this.activeDocument.ActiveResultData == null
+                || this.activeDocument.ActiveResultData.MeasurementController == null
+                || this.activeDocument.ActiveResultData.ResultDataStatus == null)
+            {
+                return;
+            }
             if (this.activeDocument.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController
                 && this.activeDocument.ActiveResultData.ResultDataStatus.Recording)
             {
@@ -2438,6 +2643,7 @@ namespace BecquerelMonitor
             {
                 this.toolStripStatusLabel2.Text = "";
             }
+            this.SetStatusCenterHint(canrefresh);
         }
 
         public void ClearStatusTextRight()
@@ -2550,15 +2756,15 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Ввоз спектров в открытый документ — ОДНОЙ дверью для обеих веток:
-        /// пункт меню «Ввезти спектры из файла» (<see cref="LoadSpectrumFromFile"/>)
+        /// Импорт спектров в открытый документ — ОДНОЙ дверью для обеих веток:
+        /// пункт меню «Импортировать спектры из файла» (<see cref="LoadSpectrumFromFile"/>)
         /// и перетаскивание файлов на документ
         /// (<c>DocEnergySpectrum_AddSpectrumToDocument</c>). Строка `A5`.
         ///
         /// ⛔ ЧТО БЫЛО. Предел <c>GlobalConfigInfo.MaximumSpectrumPerFile</c>
         /// (16) — ЗАМЫСЕЛ, и он честно отражён кнопками:
         /// <c>DCSpectrumListView</c> гасит «добавить» и «загрузить», когда
-        /// документ полон. Но обе ветки ввоза резали УЖЕ НАЧАТУЮ работу
+        /// документ полон. Но обе ветки импорта резали УЖЕ НАЧАТУЮ работу
         /// МОЛЧА: выбрал десять файлов, в документ попала часть, ни слова.
         /// Множественный выбор (<c>Multiselect = true</c>) делает это обычным
         /// случаем, а не краем: кнопка активна при пятнадцати спектрах, а
@@ -2825,7 +3031,7 @@ namespace BecquerelMonitor
 
             foreach (string filePath in openFileDialog.FileNames)
             {
-                CreateDocument();
+                if (!CreateDocument()) return; // `AMBER201`: документ не создан — не писать в прежний
                 this.documentManager.ImportDocumentGBS(this.activeDocument, filePath);
                 this.activeDocument.Dirty = true;
                 this.UpdateAllView();
@@ -2851,7 +3057,7 @@ namespace BecquerelMonitor
 
             foreach (string filePath in openFileDialog.FileNames)
             {
-                CreateDocument();
+                if (!CreateDocument()) return; // `AMBER201`: документ не создан — не писать в прежний
                 int presetTime = this.dcControlPanel.PresetTime;
                 this.documentManager.ImportDocumentSpecUtils(this.activeDocument, filePath, presetTime);
                 this.activeDocument.Dirty = true;
@@ -2876,9 +3082,11 @@ namespace BecquerelMonitor
                 return;
             }
 
-            CreateDocument();
+            if (!CreateDocument()) return; // `AMBER201`: документ не создан — не писать в прежний
             int presetTime = this.dcControlPanel.PresetTime;
             this.documentManager.ImportCsvToDocument(this.activeDocument, presetTime, openFileDialog.FileName);
+            // (`AMBER174`, 05.10.2026) как у прочих дверей импорта (GBS, SpecUtils, Atom Spectra, N42).
+            this.activeDocument.Dirty = true;
             this.UpdateAllView();
         }
 
@@ -2894,9 +3102,11 @@ namespace BecquerelMonitor
                 return;
             }
 
-            CreateDocument();
+            if (!CreateDocument()) return; // `AMBER201`: документ не создан — не писать в прежний
             int presetTime = this.dcControlPanel.PresetTime;
             this.documentManager.ImportCsvEnergyToDocument(this.activeDocument, presetTime, openFileDialog.FileName);
+            // (`AMBER174`, 05.10.2026) как у прочих дверей импорта (GBS, SpecUtils, Atom Spectra, N42).
+            this.activeDocument.Dirty = true;
             this.UpdateAllView();
             this.activeDocument.SetDefaultHorizontalScale();
         }
@@ -2922,9 +3132,16 @@ namespace BecquerelMonitor
         void manager_DeviceConfigChanged(object sender, DeviceConfigChangedEventArgs e)
         {
             EasyControlConfig easyControlConfig = this.globalConfigManager.GlobalConfig.EasyControlConfig;
-            if (easyControlConfig.DeviceConfigReference != null)
+            // (`AMBER201`, подозрение полосы 3, 05.10.2026) Прибор «быстрого
+            // управления» мог быть удалён в форме приборов — голый индексатор
+            // бросал KeyNotFoundException на КАЖДОМ следующем сохранении любого
+            // прибора. Не нашёлся — остаётся прежний объект, как до удаления.
+            DeviceConfigInfo easyDevice;
+            if (easyControlConfig.DeviceConfigReference != null
+                && easyControlConfig.DeviceConfigReference.Guid != null
+                && this.deviceConfigManager.DeviceConfigMap.TryGetValue(easyControlConfig.DeviceConfigReference.Guid, out easyDevice))
             {
-                easyControlConfig.DeviceConfig = this.deviceConfigManager.DeviceConfigMap[easyControlConfig.DeviceConfigReference.Guid];
+                easyControlConfig.DeviceConfig = easyDevice;
             }
 
             this.ApplyDeviceConfigToDocuments(e.Guid);
@@ -2993,6 +3210,16 @@ namespace BecquerelMonitor
                 // Пересчёт сразу, а не по таймеру: пользователь только что нажал
                 // «Сохранить» и смотрит на этот спектр.
                 this.UpdateDetectedPeakView();
+
+                // (`AMBER183`, 05.10.2026) Окно отчёта FSA читает свои семь
+                // флажков из копии настроек спектра только при смене документа
+                // или спектра; копия выше заменена приборной, и без перечитывания
+                // окно показывало прежние флажки при спектре, посчитанном уже с
+                // новыми.
+                if (this.dcFsaReportView != null && !this.dcFsaReportView.IsDisposed)
+                {
+                    this.dcFsaReportView.ActiveResultDataChanged();
+                }
             }
         }
 
@@ -3036,7 +3263,14 @@ namespace BecquerelMonitor
             }
         }
 
-        void CreateDocument()
+        /// <returns>
+        /// (`AMBER201`, подозрение полосы 2, 05.10.2026) false — документ НЕ создан
+        /// (человек ответил «Нет» на вопрос о негодной калибровке прибора). Все
+        /// девять вызывающих после этого писали в <c>activeDocument</c>, то есть
+        /// в ПРЕЖНИЙ документ: импорт затирал чужой спектр, а без открытых
+        /// документов падал на null.
+        /// </returns>
+        bool CreateDocument()
         {
             DocEnergySpectrum docEnergySpectrum = this.documentManager.CreateDocument();
             if (docEnergySpectrum != null)
@@ -3046,7 +3280,9 @@ namespace BecquerelMonitor
                 docEnergySpectrum.Show(this.dockPanel1);
                 docEnergySpectrum.SetDefaultHorizontalScale();
                 this.ShowMeasurementResult(true);
+                return true;
             }
+            return false;
         }
 
         void AtomSpectraStripMenuItem_Click(object sender, EventArgs e)
@@ -3064,7 +3300,7 @@ namespace BecquerelMonitor
 
             foreach (string filePath in openFileDialog.FileNames)
             {
-                CreateDocument();
+                if (!CreateDocument()) return; // `AMBER201`: документ не создан — не писать в прежний
                 this.documentManager.ImportDocumentAtomSpectra(this.activeDocument, filePath);
                 this.activeDocument.Dirty = true;
                 this.UpdateAllView();
@@ -3083,7 +3319,7 @@ namespace BecquerelMonitor
                 return;
             }
 
-            CreateDocument();
+            if (!CreateDocument()) return; // `AMBER201`: документ не создан — не писать в прежний
             this.documentManager.ImportDocumentN42(this.activeDocument, openFileDialog.FileName);
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
@@ -3314,11 +3550,21 @@ namespace BecquerelMonitor
                     MessageBox.Show(Resources.ERRChanNumber);
                     return;
                 }
+                // (`AMBER201`, подозрение полосы 2, 05.10.2026) Обрезка до нуля
+                // каналов: энергия ниже E(0) давала канал 0, проверка пропускала
+                // его (сравнивалась только верхняя граница), и создавался документ
+                // со спектром из НУЛЯ каналов. Канал считается тем же вызовом, что
+                // у самой обрезки (`SpectrumAriphmetics.CutoffSpectrumEnergy`).
+                if (!isEnergy && channel < 1)
+                {
+                    MessageBox.Show(Resources.ERRChanNumber);
+                    return;
+                }
                 if (isEnergy)
                 {
                     PolynomialEnergyCalibration calibration = (PolynomialEnergyCalibration)this.activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration;
-                    int chan = (int)calibration.EnergyToChannel(energyVal, maxCh: this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels);
-                    if (chan >= this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
+                    int chan = Convert.ToInt32(PolynomialEnergyCalibration.ChannelOf(calibration, energyVal, this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels));
+                    if (chan < 1 || chan >= this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
                     {
                         MessageBox.Show(Resources.ERRChanNumber);
                         return;
@@ -3330,7 +3576,7 @@ namespace BecquerelMonitor
 
         void Cutoff(DocEnergySpectrum docEnergySpectrum, bool isEnergy, double energyVal = 0.0, int channel = 0)
         {
-            CreateDocument();
+            if (!CreateDocument()) return; // `AMBER201`: документ не создан — не писать в прежний
             this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.Cutoff(docEnergySpectrum.ActiveResultData.EnergySpectrum, isEnergy: isEnergy, energyVal: energyVal, channel: channel);
             this.activeDocument.ActiveResultData.DeviceConfigReference = null;
             this.activeDocument.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
@@ -3348,9 +3594,16 @@ namespace BecquerelMonitor
             this.activeDocument.ActiveResultData.PresetTime = docEnergySpectrum.ActiveResultData.PresetTime;
             this.activeDocument.ActiveResultData.EndTime = docEnergySpectrum.ActiveResultData.EndTime;
             this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection.Clone();
-            this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo;
+            this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo.Clone(); // `AMBER201` 2.14: своя карточка пробы — масса и объём новой правкой не меняют исходный документ
             this.activeDocument.ActiveResultData.StartTime = docEnergySpectrum.ActiveResultData.StartTime;
-            this.activeDocument.ActiveResultData.FwhmCalibration = docEnergySpectrum.ActiveResultData.FwhmCalibration.Clone(); ;
+            // (`AMBER170`, 05.10.2026) Кривой разрешения может не быть — это законное
+            // состояние после ResetSpectrumConfig (импорт CSV/GBS с другим числом каналов).
+            // Без сторожа здесь падал NullReferenceException, а новый документ к этому
+            // мигу уже создан и оставался недостроенным (без Dirty и перерисовки).
+            // Обрезка шкалу каналов не меняет, поэтому кривая копируется как есть.
+            this.activeDocument.ActiveResultData.FwhmCalibration = docEnergySpectrum.ActiveResultData.FwhmCalibration != null
+                ? docEnergySpectrum.ActiveResultData.FwhmCalibration.Clone()
+                : null;
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
             if (this.activeDocument.EnergySpectrumView.HorizontalMagnification == HorizontalMagnification.Fit)
@@ -3893,6 +4146,10 @@ namespace BecquerelMonitor
 
         // Token: 0x040005E3 RID: 1507
         bool mainFormClosing;
+
+        // (`AMBER178`) Документы, ответившие «Нет» при закрытии программы, — до
+        // исхода закрытия (MainForm_FormClosing).
+        readonly List<DocEnergySpectrum> closeDiscardedDocuments = new List<DocEnergySpectrum>();
 
         // Token: 0x040005E4 RID: 1508
         bool initialized;

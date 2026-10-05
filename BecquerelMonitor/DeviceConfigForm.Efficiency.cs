@@ -45,12 +45,12 @@ namespace BecquerelMonitor
         const int EfficiencyGenerationGap = 4;
 
         /// <summary>
-        /// Ввоз текстового экспорта ЛСРМ (`EffCalcMC.txt`).
+        /// Импорт текстового экспорта ЛСРМ (`EffCalcMC.txt`).
         ///
         /// ⛔ `AMBER13`, решение Amber 10.09.2026 «Снять и завести ввоз на
-        /// Efficiency». До того ввоз жил на вкладке `DoseRate` кнопкой
-        /// `buttonLoadEff`, и это была ЕДИНСТВЕННАЯ дверь ввоза ЛСРМ во всём
-        /// приложении — а ввезённая кривая никуда не сохранялась: она лежала в
+        /// Efficiency». До того импорт жил на вкладке `DoseRate` кнопкой
+        /// `buttonLoadEff`, и это была ЕДИНСТВЕННАЯ дверь импорта ЛСРМ во всём
+        /// приложении — а импортированная кривая никуда не сохранялась: она лежала в
         /// поле формы (`doseRateFileCurve`) и пропадала вместе с окном. Здесь
         /// она становится обычной <see cref="EfficiencyConfigData"/> в списке
         /// прибора, то есть переживает закрытие окна, «Сохранить» и снимок в
@@ -88,7 +88,7 @@ namespace BecquerelMonitor
             //
             // ⛔ Высота шапки — ЧИСЛО, и оно устаревает при первой же
             // добавленной строке: панель обрезает детей МОЛЧА, без исключения
-            // и без признака. Третий ряд кнопок (ввоз ЛСРМ, `AMBER13`) прибавил
+            // и без признака. Третий ряд кнопок (импорт ЛСРМ, `AMBER13`) прибавил
             // 32 точки, и высота выросла ровно на них: 166 → 198.
             this.efficiencyHeader = new Panel { Dock = DockStyle.Top, Height = 198 };
             Panel header = this.efficiencyHeader;
@@ -109,7 +109,7 @@ namespace BecquerelMonitor
             this.efficiencyMatrixButton = this.EfficiencyButton(
                 Resources.EfficiencyTabResponseMatrix, Margin + 2 * (ButtonWidth + Gap), y, ButtonWidth);
 
-            // Третий ряд: ввоз экспорта ЛСРМ (`AMBER13`, решение Amber
+            // Третий ряд: импорт экспорта ЛСРМ (`AMBER13`, решение Amber
             // 10.09.2026). Стоит ОТДЕЛЬНО от шести кнопок правки, а не седьмой
             // в их ряду: те шесть работают с ВЫБРАННОЙ кривой, а эта заводит
             // новую и выбора не требует вовсе.
@@ -325,7 +325,11 @@ namespace BecquerelMonitor
                 form.ShowDialog(this);
                 // Выключатель матрицы (W11) пишет в ту же копию конфигурации —
                 // осталось пометить её изменённой, чтобы «Сохранить» ожило.
-                if (form.UseMatrixTouched)
+                // (`AMBER186`) Записанная окном матрица лежит во ВРЕМЕННОМ
+                // файле и уйдёт на склад только сохранением конфигурации —
+                // значит, конфигурация изменена, и вопрос «сохранить?» обязан
+                // прозвучать: «Да» перенесёт матрицу, «Нет» снимет её.
+                if (form.UseMatrixTouched || form.MatrixSavedPending)
                 {
                     this.SetActiveDeviceConfigDirty();
                 }
@@ -337,6 +341,91 @@ namespace BecquerelMonitor
         void responseMatrixForm_MatrixSaved(object sender, EventArgs e)
         {
             this.UpdateEfficiencyView();
+        }
+
+        // ------------------------------------------------------------------
+        // Матрицы отклика при сохранении конфигурации (`AMBER186`)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`AMBER186`) Guid кривых конфигурации в том виде, в каком она лежит
+        /// у менеджера (то есть на диске), — снимок ДО записи: запись подменяет
+        /// запись менеджера клоном, и после неё «какие кривые были» не узнать.
+        /// </summary>
+        List<string> SavedEfficiencyGuids(DeviceConfigInfo config)
+        {
+            List<string> guids = new List<string>();
+            DeviceConfigInfo saved;
+            if (config != null && !string.IsNullOrEmpty(config.Guid)
+                && this.manager.DeviceConfigMap.TryGetValue(config.Guid, out saved)
+                && saved != null && saved.EfficiencyConfigs != null)
+            {
+                foreach (EfficiencyConfigData item in saved.EfficiencyConfigs)
+                {
+                    guids.Add(item.Guid);
+                }
+            }
+
+            return guids;
+        }
+
+        static List<string> EfficiencyGuids(DeviceConfigInfo config)
+        {
+            List<string> guids = new List<string>();
+            if (config != null && config.EfficiencyConfigs != null)
+            {
+                foreach (EfficiencyConfigData item in config.EfficiencyConfigs)
+                {
+                    guids.Add(item.Guid);
+                }
+            }
+
+            return guids;
+        }
+
+        /// <summary>
+        /// (`AMBER186`, решение Amber 05.10.2026 «Временный файл + перенос»)
+        /// Конфигурация ЗАПИСАНА — перенести на склад матрицы, записанные окном
+        /// матрицы во временные файлы, и снять со склада матрицы кривых,
+        /// удалённых из конфигурации (кроме тех, чей Guid остался у другой
+        /// конфигурации прибора — копия конфигурации делит с прежней Guid кривых
+        /// и файл склада). Зовётся только ПОСЛЕ удачной записи.
+        /// </summary>
+        void CommitResponseMatrices(DeviceConfigInfo saved, List<string> guidsBefore)
+        {
+            List<string> now = EfficiencyGuids(saved);
+            List<string> failures = ResponseMatrixStore.CommitPending(now);
+
+            List<string> removed = new List<string>();
+            foreach (string guid in guidsBefore ?? new List<string>())
+            {
+                if (!now.Contains(guid))
+                {
+                    removed.Add(guid);
+                }
+            }
+
+            if (removed.Count > 0)
+            {
+                HashSet<string> referenced = new HashSet<string>(StringComparer.Ordinal);
+                foreach (DeviceConfigInfo other in this.manager.DeviceConfigList)
+                {
+                    foreach (string guid in EfficiencyGuids(other))
+                    {
+                        referenced.Add(guid);
+                    }
+                }
+
+                ResponseMatrixStore.DeleteRemoved(removed, referenced);
+            }
+
+            if (failures.Count > 0)
+            {
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture,
+                                           Resources.ResponseMatrixCommitFailed,
+                                           string.Join(Environment.NewLine, failures.ToArray())),
+                             Resources.ResponseMatrixTitle, MessageBoxIcon.Warning);
+            }
         }
 
         void UpdateEfficiencyView()
@@ -402,7 +491,11 @@ namespace BecquerelMonitor
             // «Матрица отклика» разводит пять отказов), кривая — не говорила.
             int matrixPhysics = 0;
             int matrixFormat;
-            if (!ResponseMatrixStore.PeekVersions(config.Guid, out matrixFormat, out matrixPhysics))
+            // (`AMBER186`) Матрица, ждущая сохранения конфигурации, новее
+            // склада — поколение говорится о ней (подпись `AMBER48` уходит
+            // сразу после записи окном, как и прежде).
+            if (!ResponseMatrixStore.PeekVersions(config.Guid, ResponseMatrixStore.EditingSource(config.Guid),
+                                                  out matrixFormat, out matrixPhysics))
             {
                 matrixPhysics = 0;      // матрицы нет или файл не наш — сравнивать не с чем
             }
@@ -417,10 +510,42 @@ namespace BecquerelMonitor
             // сделанной, оставаясь невидимой.
             // (`S208`, П216) Четвёртый довод — обязана ли кривая этой геометрии
             // нести кусок пика окном (`peps=fwhm`): у геометрии с разрешением.
+            // (`AMBER185`, `AMBER200`) Вторым списком — что сказать о ГЕОМЕТРИИ
+            // кривой (<see cref="GeometryNotes"/>), той же подписью.
             this.ShowGenerationNotes(GenerationNotes(config.ComputeStamp, matrixPhysics,
                                                      ResponseMatrix.PhysicsVersion,
-                                                     EfficiencyCalculation.PeakWindowExpected(config.Geometry)));
+                                                     EfficiencyCalculation.PeakWindowExpected(config.Geometry)),
+                                     GeometryNotes(config));
             this.efficiencySketch.SetModel(config.Geometry);
+        }
+
+        /// <summary>
+        /// Что сказать о ГЕОМЕТРИИ выбранной кривой — той же подписью, что
+        /// поколения (<see cref="ShowGenerationNotes"/>), и тоже без окна:
+        ///
+        ///   * (`AMBER185`, решение Amber 05.10.2026 «Отпечаток + предупреждение»)
+        ///     кривая посчитана для другой геометрии — отпечаток при кривой не
+        ///     сходится с геометрией рядом (<see cref="EfficiencyConfigData.CurveGeometryMismatch"/>);
+        ///   * (`AMBER200`) слой с толщиной без вещества — проверка слоёв
+        ///     модели КАК ОНА ЕСТЬ (<see cref="GeometryModel.Warnings"/>): у
+        ///     геометрии из конфигурации она прежде не звалась вовсе, и слот
+        ///     уходил в счёт пустотой молча.
+        /// </summary>
+        internal static List<string> GeometryNotes(EfficiencyConfigData config)
+        {
+            List<string> notes = new List<string>();
+            if (config == null || !config.HasGeometry)
+            {
+                return notes;
+            }
+
+            if (config.CurveGeometryMismatch)
+            {
+                notes.Add(Resources.EfficiencyCurveOtherGeometry);
+            }
+
+            notes.AddRange(config.Geometry.Warnings);
+            return notes;
         }
 
         /// <summary>
@@ -433,11 +558,22 @@ namespace BecquerelMonitor
         /// текста при настоящей ширине, и вместе с ней растёт шапка вкладки;
         /// чертёж под ней доковый и подвинется сам.
         /// </summary>
-        void ShowGenerationNotes(List<string> notes)
+        void ShowGenerationNotes(List<string> notes, List<string> geometryNotes = null)
         {
-            string text = notes == null || notes.Count == 0
+            List<string> all = new List<string>();
+            if (notes != null)
+            {
+                all.AddRange(notes);
+            }
+
+            if (geometryNotes != null)
+            {
+                all.AddRange(geometryNotes);
+            }
+
+            string text = all.Count == 0
                 ? ""
-                : string.Join(Environment.NewLine, notes.ToArray());
+                : string.Join(Environment.NewLine, all.ToArray());
             Label label = this.efficiencyGenerationLabel;
             label.Text = text;
             int need = GenerationLabelHeight(text, label.Font, label.Width);
@@ -624,10 +760,125 @@ namespace BecquerelMonitor
         {
             foreach (EfficiencyMakerForm maker in this.openEfficiencyMakers.ToArray())
             {
-                maker.Close();
+                // (`AMBER201`) Без вопроса о несохранённом: здесь решение
+                // принято вопросом о сохранении конфигурации прибора.
+                maker.CloseWithoutAsking();
             }
 
             this.openEfficiencyMakers.Clear();
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER184`, 05.10.2026; решение Amber вопросником, дословно: «Не
+        /// закрывать (Рекомендую)») Клон конфигурации заменяется СВЕЖИМ клоном ТОЙ
+        /// ЖЕ конфигурации (ответ «Нет» на вопрос о сохранении, освежение после
+        /// записи мимо формы) — конструкторы кривой не закрываются, а
+        /// перепривязываются к той же кривой в новом клоне
+        /// (<see cref="EfficiencyMakerForm.Rebind"/>): счёт, поля геометрии и
+        /// посчитанная кривая живут.
+        ///
+        ///   * конструктор ДРУГОЙ конфигурации (по Guid прибора) — закрывается,
+        ///     как при смене строки списка;
+        ///   * кривой в новом клоне нет (заведена «New...»/копией/импортом после
+        ///     последнего сохранения и отброшена вместе с прочими правками):
+        ///     терять в окне нечего — оно закрывается молча; есть что — вопрос
+        ///     (<c>EfficiencyMakerKeepUnsavedCurve</c>): «Да» возвращает кривую в
+        ///     новый клон и оставляет окно, «Нет» — отбрасывает и закрывает.
+        /// </summary>
+        /// <returns>Guid кривых, возвращённых в клон (клон после этого изменён,
+        /// временные матрицы этих кривых снимать нельзя).</returns>
+        List<string> RebindEfficiencyMakers(DeviceConfigInfo fresh)
+        {
+            List<string> restored = new List<string>();
+            foreach (EfficiencyMakerForm maker in this.openEfficiencyMakers.ToArray())
+            {
+                if (maker.IsDisposed)
+                {
+                    this.openEfficiencyMakers.Remove(maker);
+                    continue;
+                }
+
+                DeviceConfigInfo device = maker.BoundDevice;
+                EfficiencyConfigData curve = maker.BoundConfig;
+                if (fresh == null || device == null || curve == null || device.Guid != fresh.Guid)
+                {
+                    this.openEfficiencyMakers.Remove(maker);
+                    maker.CloseWithoutAsking();
+                    continue;
+                }
+
+                EfficiencyConfigData target = null;
+                if (fresh.EfficiencyConfigs != null)
+                {
+                    foreach (EfficiencyConfigData item in fresh.EfficiencyConfigs)
+                    {
+                        if (item.Guid == curve.Guid)
+                        {
+                            target = item;
+                            break;
+                        }
+                    }
+                }
+
+                if (target == null)
+                {
+                    bool keep = false;
+                    if (maker.HasUnsavedWork && !restored.Contains(curve.Guid))
+                    {
+                        string text = string.Format(CultureInfo.CurrentCulture,
+                            ResourceText("EfficiencyMakerKeepUnsavedCurve",
+                                "The curve \"{0}\" is not in the saved device configuration: it was added after the last save"
+                                + " and is discarded with the other changes." + Environment.NewLine + Environment.NewLine
+                                + "Its curve designer holds unsaved work (geometry, a computed curve or a running calculation)."
+                                + Environment.NewLine + Environment.NewLine
+                                + "Yes - keep the curve in the configuration (the designer stays open, the configuration stays modified)."
+                                + Environment.NewLine + "No - discard the curve and close the designer."),
+                            curve.Name);
+                        keep = MessageBox.Show(this, text, Resources.ConfirmationDialogTitle,
+                                               MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) == DialogResult.Yes;
+                    }
+                    else if (restored.Contains(curve.Guid))
+                    {
+                        keep = true;    // второй конструктор той же кривой
+                    }
+
+                    if (!keep)
+                    {
+                        this.openEfficiencyMakers.Remove(maker);
+                        maker.CloseWithoutAsking();
+                        continue;
+                    }
+
+                    if (!restored.Contains(curve.Guid))
+                    {
+                        fresh.EfficiencyConfigs.Add(curve);
+                        restored.Add(curve.Guid);
+                    }
+
+                    target = curve;
+                }
+
+                maker.Rebind(fresh, target);
+            }
+
+            return restored;
+        }
+
+        /// <summary>
+        /// Строка общих ресурсов по имени с запасным английским текстом — без
+        /// правки <c>Resources.Designer.cs</c> (`AMBER184`).
+        /// </summary>
+        static string ResourceText(string key, string fallback)
+        {
+            try
+            {
+                string value = Resources.ResourceManager.GetString(key, Resources.Culture);
+                return string.IsNullOrEmpty(value) ? fallback : value;
+            }
+            catch (Exception)
+            {
+                return fallback;
+            }
         }
 
         /// <summary>
@@ -637,6 +888,25 @@ namespace BecquerelMonitor
         /// </summary>
         void OpenEfficiencyMaker(EfficiencyConfigData config)
         {
+            // (`AMBER201`, Р4, подозрение полосы 8) Второй конструктор на ТУ ЖЕ
+            // кривую не заводится — поднимается открытый. Прежде «Изменить»
+            // дважды давало два окна на один объект кривой: «Сохранить» одного
+            // молча затирало сохранённое другим, и какое из двух легло в
+            // конфигурацию, решал порядок нажатий.
+            foreach (EfficiencyMakerForm open in this.openEfficiencyMakers)
+            {
+                if (!open.IsDisposed && object.ReferenceEquals(open.BoundConfig, config))
+                {
+                    if (open.WindowState == FormWindowState.Minimized)
+                    {
+                        open.WindowState = FormWindowState.Normal;
+                    }
+
+                    open.Activate();
+                    return;
+                }
+            }
+
             EfficiencyMakerForm maker = new EfficiencyMakerForm();
             maker.BindTo(this.activeDeviceConfig, config);
 
@@ -647,7 +917,10 @@ namespace BecquerelMonitor
             // эскиз — при том что и кривая, и геометрия уже лежали в
             // конфигурации. Обманывал только вид, и заметить это можно было
             // единственным способом: переключить список туда и обратно.
-            DeviceConfigInfo boundDevice = this.activeDeviceConfig;
+            // (`AMBER184`) Привязка читается у самого окна, а не из захваченной
+            // переменной: ответ «Нет» перепривязывает окно к свежему клону
+            // (<see cref="RebindEfficiencyMakers"/>), и захваченный прежний клон
+            // делал бы такое окно навсегда «чужим».
             maker.FormClosed += delegate
             {
                 if (this.IsDisposed)
@@ -660,12 +933,29 @@ namespace BecquerelMonitor
                 // Клон, к которому был привязан конструктор, уже заменён
                 // (смена строки списка): обновлять вкладку не по чему, а
                 // дирти-флажок относился бы к ЧУЖОЙ конфигурации.
-                if (!object.ReferenceEquals(boundDevice, this.activeDeviceConfig))
+                if (!object.ReferenceEquals(maker.BoundDevice, this.activeDeviceConfig))
                 {
                     return;
                 }
 
-                this.RefreshEfficiencyList(config.Guid);
+                this.RefreshEfficiencyList(maker.BoundConfig == null ? config.Guid : maker.BoundConfig.Guid);
+                this.SetActiveDeviceConfigDirty();
+            };
+
+            // (`AMBER184`) «Сохранить» конструктора меняет клон конфигурации —
+            // клон изменён СРАЗУ, а не с закрытием окна: иначе внешняя запись в
+            // менеджер (панель калибровки) при «чистой» форме заменяла бы клон
+            // свежим, и сохранённая в конструкторе кривая уходила бы с прежним.
+            maker.SavedIntoConfig += delegate
+            {
+                if (this.IsDisposed || !object.ReferenceEquals(maker.BoundDevice, this.activeDeviceConfig))
+                {
+                    return;
+                }
+
+                // Выбор действующей кривой не трогаем — освежаем сводку.
+                EfficiencyConfigData selectedNow = this.SelectedEfficiency();
+                this.RefreshEfficiencyList(selectedNow == null ? null : selectedNow.Guid);
                 this.SetActiveDeviceConfigDirty();
             };
 
@@ -680,13 +970,13 @@ namespace BecquerelMonitor
         /// ⛔ `AMBER13`, решение Amber 10.09.2026: «`buttonLoadEff` /
         /// `labelEffNote` уходят с вкладки `DoseRate`, а ввоз экспорта ЛСРМ
         /// заводится на вкладке Efficiency, и ввезённая кривая наконец
-        /// СОХРАНЯЕТСЯ». Прежний ввоз клал точки в поле формы
+        /// СОХРАНЯЕТСЯ». Прежний импорт клал точки в поле формы
         /// (`doseRateFileCurve`), откуда их нельзя было ни сохранить, ни
         /// посмотреть после закрытия окна.
         ///
         /// ⚠ Метод отделён от кнопки нарочно и окна не поднимает: разбор файла
         /// и попадание кривой в конфигурацию проверяются пробой без диалога.
-        /// Геометрии у ввезённой кривой НЕТ — экспорт ЛСРМ её не несёт, — и
+        /// Геометрии у импортированной кривой НЕТ — экспорт ЛСРМ её не несёт, — и
         /// это законное состояние: <see cref="EfficiencyConfigData"/> без
         /// геометрии пользуется, но не пересчитывается. Кривую С геометрией
         /// заводит <see cref="ImportLsrmEfficiencyWithGeometry"/>; этот вход
@@ -703,21 +993,21 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Ввоз экспорта ЛСРМ ВМЕСТЕ С ГЕОМЕТРИЕЙ — `AMBER18`, решение Amber
+        /// Импорт экспорта ЛСРМ ВМЕСТЕ С ГЕОМЕТРИЕЙ — `AMBER18`, решение Amber
         /// 12.09.2026, вопросником, дословно: «Привязать геометрию при ввозе
         /// ЛСРМ». С 12.09.2026 мощность дозы считается от кривой панели, и у
         /// кривой БЕЗ геометрии дозы нет вовсе («у кривой «X» нет геометрии —
         /// у дозы нет масштаба»): между «квант/с в 4π» и «квант/(см²·с) в
         /// точке» стоит геометрия (`DoseRateGeometry.FluencePerPhoton`).
-        /// Единственный ввоз, дающий кривую без геометрии, — этот; ЛСРМ же
+        /// Единственный импорт, дающий кривую без геометрии, — этот; ЛСРМ же
         /// считает свою кривую из файла `.in` той же геометрии, и файл у
         /// человека есть — его и спрашиваем вторым шагом.
         ///
         /// Правила:
         ///  * <paramref name="geometryPath"/> == null — отказ от `.in` (Cancel):
-        ///    кривая ввозится как раньше, без геометрии, доза откажет словами;
+        ///    кривая импортируется как раньше, без геометрии, доза откажет словами;
         ///  * `.in` негоден (нет файла, не разбирается, нет кристалла, сцена
-        ///    поля) — кривая ВСЁ РАВНО ввозится, без геометрии, а причина
+        ///    поля) — кривая ВСЁ РАВНО импортируется, без геометрии, а причина
         ///    уходит в <paramref name="geometryProblem"/>: точки кривой от
         ///    негодного `.in` не портятся, и терять их ради него незачем;
         ///  * геометрия читается ТЕМ ЖЕ читателем, что конструктор кривой
@@ -732,7 +1022,7 @@ namespace BecquerelMonitor
         ///    геометрия — в <see cref="EfficiencyConfigData.Note"/>.
         /// </summary>
         /// <param name="geometryPath">файл `.in` той же геометрии; null — без геометрии</param>
-        /// <param name="problem">почему кривая НЕ ввезена (null — ввезена)</param>
+        /// <param name="problem">почему кривая НЕ импортирована (null — импортирована)</param>
         /// <param name="geometryProblem">почему геометрия НЕ привязана (null — привязана либо не просили)</param>
         /// <returns>Заведённая конфигурация или null, если экспорт негоден.</returns>
         public static EfficiencyConfigData ImportLsrmEfficiencyWithGeometry(
@@ -771,6 +1061,9 @@ namespace BecquerelMonitor
                 if (geometry != null)
                 {
                     config.Geometry = geometry;
+                    // (`AMBER185`) Кривая ЛСРМ посчитана для этой геометрии —
+                    // её отпечаток и ставится; правка геометрии потом видна.
+                    config.GeometryFingerprint = ResponseMatrix.GeometryFingerprint(config.Geometry);
                     note += string.Format(CultureInfo.InvariantCulture, "; geometry: {0}",
                                           Path.GetFileName(geometryPath));
                     foreach (string warning in geometry.Warnings)
@@ -862,7 +1155,7 @@ namespace BecquerelMonitor
         /// <summary>
         /// Строка из ресурсов САМОЙ ФОРМЫ (пара `DeviceConfigForm.resx` /
         /// `DeviceConfigForm.ru.resx`, как у <c>crystalMaterialNotSet</c>) с
-        /// запасным английским текстом: подписи ввоза нужны этой вкладке и
+        /// запасным английским текстом: подписи импорта нужны этой вкладке и
         /// нигде больше, а общие `Properties/Resources` правят другие полосы.
         /// </summary>
         static string FormText(string key, string fallback)
@@ -897,7 +1190,7 @@ namespace BecquerelMonitor
             }
 
             // Второй шаг (`AMBER18`, 12.09.2026): `.in` той же геометрии.
-            // Cancel — законный ответ: кривая ввозится без геометрии, как
+            // Cancel — законный ответ: кривая импортируется без геометрии, как
             // раньше, и доза по ней откажет словами, пока геометрию не зададут
             // кнопкой «Изменить…».
             string geometryPath = null;
@@ -939,7 +1232,7 @@ namespace BecquerelMonitor
             if (geometryProblem != null)
             {
                 // Кривая уже в конфигурации — сказать надо про геометрию, а не
-                // про ввоз: иначе человек решит, что ввоз не удался, и повторит.
+                // про импорт: иначе человек решит, что импорт не удался, и повторит.
                 MessageBox.Show(this,
                     string.Format(CultureInfo.CurrentCulture,
                         FormText("lsrmGeometryProblem",
@@ -1008,6 +1301,20 @@ namespace BecquerelMonitor
             }
 
             this.activeDeviceConfig.EfficiencyConfigs.Remove(config);
+            // (`AMBER201`, Р4, мелочь 8.10) Конструктор, открытый на удалённой
+            // кривой, закрывается вместе с ней. Прежде он оставался жив, и его
+            // «Сохранить» клало геометрию и кривую в объект, которого в
+            // конфигурации больше нет, — без единого признака; удаление кривой
+            // человек только что подтвердил.
+            foreach (EfficiencyMakerForm maker in this.openEfficiencyMakers.ToArray())
+            {
+                if (object.ReferenceEquals(maker.BoundConfig, config))
+                {
+                    this.openEfficiencyMakers.Remove(maker);
+                    maker.CloseWithoutAsking();
+                }
+            }
+
             if (this.activeDeviceConfig.ActiveEfficiencyGuid == config.Guid)
             {
                 this.activeDeviceConfig.ActiveEfficiencyGuid = null;

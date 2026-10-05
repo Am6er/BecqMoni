@@ -152,7 +152,10 @@ namespace BecquerelMonitor
             // себя (`MatrixRefusal`); форма обязана сказать её словами.
             MatrixRefusal refusal;
             int fileFormat;
-            ResponseMatrix existing = ResponseMatrixStore.Load(this.config.Guid,
+            // (`AMBER186`) Матрица, записанная этим окном и ждущая сохранения
+            // конфигурации прибора, новее склада — показывается она.
+            this.shownSource = ResponseMatrixStore.EditingSource(this.config.Guid);
+            ResponseMatrix existing = ResponseMatrixStore.Load(this.config.Guid, this.shownSource,
                                                               out refusal, out fileFormat);
             if (existing == null)
             {
@@ -218,7 +221,29 @@ namespace BecquerelMonitor
             // расхождение надо НАЗЫВАТЬ, а не прятать: молчащее несогласие
             // ровно того сорта, из-за которого и заведена эта правка.
             this.SetDetails(this.Describe(existing) + this.DescribeRangeMismatch(existing)
-                            + DescribeInheritedHistories(existing, nominalHistories));
+                            + DescribeInheritedHistories(existing, nominalHistories)
+                            + this.DescribePending());
+        }
+
+        /// <summary>
+        /// (`AMBER186`) Откуда показана матрица: со склада или из временного
+        /// файла, ждущего сохранения конфигурации прибора.
+        /// </summary>
+        ResponseMatrixSource shownSource = ResponseMatrixSource.Store;
+
+        /// <summary>
+        /// Матрицу записали во временный файл (`AMBER186`): вкладке прибора —
+        /// пометить конфигурацию изменённой, иначе вопрос «сохранить?» не
+        /// прозвучит, и временный снимется при закрытии формы молча.
+        /// </summary>
+        public bool MatrixSavedPending { get; private set; }
+
+        /// <summary>Строка «ждёт сохранения конфигурации» — только у временной.</summary>
+        string DescribePending()
+        {
+            return this.shownSource == ResponseMatrixSource.Pending
+                ? Environment.NewLine + Resources.ResponseMatrixPendingNote
+                : "";
         }
 
         /// <summary>
@@ -243,7 +268,7 @@ namespace BecquerelMonitor
         void SayRefusal(MatrixRefusal refusal, int fileFormat)
         {
             int headerFormat, headerPhysics;
-            bool header = ResponseMatrix.PeekVersions(ResponseMatrixStore.PathOf(this.config.Guid),
+            bool header = ResponseMatrix.PeekVersions(ResponseMatrixStore.PathOf(this.config.Guid, this.shownSource),
                                                      out headerFormat, out headerPhysics);
             switch (refusal)
             {
@@ -453,7 +478,7 @@ namespace BecquerelMonitor
 
         string Describe(ResponseMatrix matrix)
         {
-            long fileBytes = ResponseMatrixStore.FileSize(this.config.Guid);
+            long fileBytes = ResponseMatrixStore.FileSize(this.config.Guid, this.shownSource);
             return string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixDetails,
                                  this.DescribeNodes(matrix),
                                  matrix.Energies[0],
@@ -605,8 +630,14 @@ namespace BecquerelMonitor
             {
                 this.computed = null;
                 this.progressBar.Value = 0;
+                // (`AMBER201`, Р4, мелочь G.6) Причина — цепочкой вложенных, а
+                // не `ex.Message`. Узлы считаются в `Parallel.ForEach`, и отказ
+                // внутри узла приходит `AggregateException` со своим общим
+                // «Произошла одна или несколько ошибок» — до человека доходила
+                // только эта фраза, а настоящая причина (вещество без таблиц,
+                // негодная сцена) терялась.
                 this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
-                    Resources.ResponseMatrixFailed, ex.Message);
+                    Resources.ResponseMatrixFailed, AppUi.Reason(ex));
             }
             finally
             {
@@ -663,13 +694,23 @@ namespace BecquerelMonitor
 
             try
             {
-                ResponseMatrixStore.Save(this.config.Guid, this.computed);
+                // ⛔ (`AMBER186`, решение Amber 05.10.2026 «Временный файл +
+                // перенос») НЕ НА СКЛАД. Геометрия, для которой матрица
+                // посчитана, живёт в клоне конфигурации прибора; на склад
+                // матрицу переносит сохранение конфигурации, а отказ от него
+                // временный файл снимает. Прежде запись шла прямо на склад, и
+                // ответ «Нет» оставлял прежнюю геометрию при затёртой матрице.
+                ResponseMatrixStore.SavePending(this.config.Guid, this.computed);
+                this.savedComputed = this.computed;
+                this.shownSource = ResponseMatrixSource.Pending;
+                this.MatrixSavedPending = true;
                 this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
-                    Resources.ResponseMatrixSaved, ResponseMatrixStore.PathOf(this.config.Guid));
+                    Resources.ResponseMatrixSaved,
+                    ResponseMatrixStore.PathOf(this.config.Guid, ResponseMatrixSource.Pending));
                 this.saveButton.Enabled = false;
                 // Отпечаток тела появляется при ЗАПИСИ (`A121`) — подробности
                 // после неё обязаны его показать, а не «нет».
-                this.SetDetails(this.Describe(this.computed));
+                this.SetDetails(this.Describe(this.computed) + this.DescribePending());
                 this.OnMatrixSaved();
             }
             catch (Exception ex)
@@ -712,7 +753,33 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // (`AMBER201`, Р4, подозрение полосы 9) Посчитанная и НЕ сохранённая
+            // матрица — вопрос перед закрытием. Прежде окно закрывалось молча, и
+            // часы счёта пропадали одним нажатием «Закрыть» или крестика.
+            // Окно модальное: закрытие кнопкой приходит с `CloseReason.None`.
+            if (this.computed != null && !object.ReferenceEquals(this.computed, this.savedComputed)
+                && (e.CloseReason == CloseReason.UserClosing || e.CloseReason == CloseReason.None)
+                && AppUi.HasWindows)
+            {
+                string text = Resources.ResourceManager.GetString("ResponseMatrixCloseUnsaved", Resources.Culture);
+                if (string.IsNullOrEmpty(text))
+                {
+                    text = "The computed response matrix is not saved." + Environment.NewLine
+                           + Environment.NewLine + "Close the window and discard it?";
+                }
+
+                if (MessageBox.Show(this, text, this.Text, MessageBoxButtons.YesNo,
+                                    MessageBoxIcon.Warning) != DialogResult.Yes)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+            }
+
             base.OnFormClosing(e);
         }
+
+        /// <summary>(`AMBER201`) Посчитанная матрица, уже записанная «Сохранить».</summary>
+        ResponseMatrix savedComputed;
     }
 }

@@ -1278,6 +1278,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             var factors = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            int failuresBefore = FsaDatabaseFailures.ThreadCount;
             try
             {
                 double rootSeconds;
@@ -1436,12 +1437,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 report.Notes.Add("ряд от " + root + ": отказ базы при счёте переходного равновесия — "
                                  + error.Message + "; связка одним ветвлением");
+                FsaDatabaseFailures.Note("nucdb.sqlite", root, error);
                 factors.Clear();
             }
 
-            lock (Gate)
+            // ⛔ (`AMBER199`) Отказ — свой или вложенного читателя — в кэш не
+            // кладётся: следующий разбор спросит базу снова.
+            if (FsaDatabaseFailures.ThreadCount == failuresBefore)
             {
-                FactorCache[root] = factors;
+                lock (Gate)
+                {
+                    FactorCache[root] = factors;
+                }
             }
 
             return factors;
@@ -1565,9 +1572,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception error)
             {
                 // Отказ базы — предупреждений нет; разбор от них не зависит.
+                // (`AMBER199`) Но молча — нельзя: строка окна отчёта.
+                FsaDatabaseFailures.Note("nucdb.sqlite", "companions", error);
             }
 
             return found;
@@ -1772,9 +1781,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 return best;
             }
-            catch (Exception)
+            catch (Exception error)
             {
                 // Отказ базы — предупреждения нет; число зоны от него не зависит.
+                FsaDatabaseFailures.Note("nucdb.sqlite", nucid, error);
                 return null;
             }
         }
@@ -1937,6 +1947,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            int failuresBefore = FsaDatabaseFailures.ThreadCount;
             var byZ = new Dictionary<int, Primordial>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { nucid };
             var level = new List<string> { nucid };
@@ -1982,9 +1993,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             var result = new List<Primordial>(byZ.Values);
-            lock (Gate)
+            // (`AMBER199`) отказ вложенного читателя (подряд равновесия) — не в кэш
+            if (FsaDatabaseFailures.ThreadCount == failuresBefore)
             {
-                AncestorCache[nucid] = result;
+                lock (Gate)
+                {
+                    AncestorCache[nucid] = result;
+                }
             }
 
             return result;
@@ -2112,6 +2127,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             var reachable = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { root };
+            int failuresBefore = FsaDatabaseFailures.ThreadCount;
             try
             {
                 double rootSeconds;
@@ -2193,15 +2209,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             catch (Exception error)
             {
                 report.Notes.Add("ряд от " + root + ": отказ базы при обходе равновесия — " + error.Message);
+                FsaDatabaseFailures.Note("nucdb.sqlite", root, error);
                 foreach (string member in ChainBranches(root, report).Keys)
                 {
                     reachable.Add(member);
                 }
             }
 
-            lock (Gate)
+            // ⛔ (`AMBER199`) отказ — не в кэш: следующий разбор спросит базу снова
+            if (FsaDatabaseFailures.ThreadCount == failuresBefore)
             {
-                EquilibriumCache[root] = reachable;
+                lock (Gate)
+                {
+                    EquilibriumCache[root] = reachable;
+                }
             }
 
             return reachable;
@@ -2238,6 +2259,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             var branch = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            int failuresBefore = FsaDatabaseFailures.ThreadCount;
             try
             {
                 // Шаг 1: РЁБРА. Обход в ширину здесь только открывает узлы, а
@@ -2365,11 +2387,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // Отказ базы не должен ронять разбор — но и молчать нельзя:
                 // «ряд пуст» и «читатель сломан» с виду одно и то же.
                 report.Notes.Add("ряд " + root + ": отказ базы — " + error.Message);
+                FsaDatabaseFailures.Note("nucdb.sqlite", root, error);
             }
 
-            lock (Gate)
+            // ⛔ (`AMBER199`) отказ — не в кэш
+            if (FsaDatabaseFailures.ThreadCount == failuresBefore)
             {
-                ChainCache[root] = branch;
+                lock (Gate)
+                {
+                    ChainCache[root] = branch;
+                }
             }
 
             return branch;
@@ -2402,6 +2429,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             var depth = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            int failuresBefore = FsaDatabaseFailures.ThreadCount;
             try
             {
                 var order = new List<string> { root };
@@ -2449,11 +2477,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             catch (Exception error)
             {
                 report.Notes.Add("ряд " + root + ": отказ базы при обходе глубин — " + error.Message);
+                FsaDatabaseFailures.Note("nucdb.sqlite", root, error);
             }
 
-            lock (Gate)
+            // ⛔ (`AMBER199`) отказ — не в кэш
+            if (FsaDatabaseFailures.ThreadCount == failuresBefore)
             {
-                DepthCache[root] = depth;
+                lock (Gate)
+                {
+                    DepthCache[root] = depth;
+                }
             }
 
             return depth;
@@ -2581,6 +2614,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // и переходов): каждый позитрон аннигилирует, откуда бы ни пришёл.
             double betaPlus = 0.0;
 
+            // (`AMBER199`) счётчик отказов до чтения: отказ этого чтения ИЛИ
+            // вложенного (выход аннигиляции через `CascadeAtomicData`) — не в кэш
+            int failuresBefore = FsaDatabaseFailures.ThreadCount;
             try
             {
                 using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
@@ -2737,6 +2773,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             catch (Exception error)
             {
                 report.Notes.Add("линии " + nucid + ": отказ базы — " + error.Message);
+                FsaDatabaseFailures.Note("nucdb.sqlite", nucid, error);
             }
 
             // (`AMBER54`) Аннигиляционная линия: два кванта 511 кэВ на позитрон.
@@ -2809,9 +2846,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                            : (lShell.Count > 0 ? lShell : lLumped));
 
             lines.Sort((a, b) => a[0].CompareTo(b[0]));
-            lock (Gate)
+            if (FsaDatabaseFailures.ThreadCount == failuresBefore)
             {
-                LineCache[nucid] = lines;
+                lock (Gate)
+                {
+                    LineCache[nucid] = lines;
+                }
             }
 
             return lines;
@@ -4574,10 +4614,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception error)
                 {
                     // Базы нет — разбор остаётся строковым, как до `AMBER78`.
-                    map.Clear();
+                    // ⛔ (`AMBER199`) Но справочник НЕ запоминается: следующий
+                    // вызов спросит базу снова.
+                    FsaDatabaseFailures.Note("nucdb.sqlite", "nuclides", error);
+                    return new Dictionary<string, string>(StringComparer.Ordinal);
                 }
 
                 knownNucids = map;
@@ -4614,8 +4657,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         static SqliteConnection OpenRead(string path)
         {
+            // (`AMBER201`) Строка подключения — построителем, не склейкой:
+            // `;` в имени каталога программы разрезал строку, и база не открывалась.
             SqliteConnection connection = new SqliteConnection(
-                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;");
+                EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(path, true));
             connection.Open();
             return connection;
         }
@@ -4623,6 +4668,98 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static string NuclideDatabasePath()
         {
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
+        }
+    }
+
+    /// <summary>
+    /// ⛔ (`AMBER199`, 05.10.2026) ОТКАЗЫ ЧТЕНИЯ БАЗ ДАННЫХ РАЗБОРА — одним
+    /// местом и с читателем.
+    ///
+    /// Что чинит. Читатели `nucdb`/`schemedb`/`matdb` ядра FSA
+    /// (<see cref="FsaSampleLibrary"/>, <see cref="FsaCascadeSummer"/>,
+    /// <see cref="CascadeAtomicData"/>, <see cref="AngularCorrelation"/>,
+    /// <see cref="KSeriesRule"/>) клали ответ ОТКАЗА в статический кэш как
+    /// обычный ответ: база, занятая в миг первого разбора (внешний редактор,
+    /// синхронизация, антивирус), оставляла нуклид без линий или без поправки
+    /// на совпадения ДО ПЕРЕЗАПУСКА программы. А признаки отказа
+    /// (<c>FsaCascadeSummer.Failure</c>, записки отчёта сборки) вне классов не
+    /// читал никто — на экране ни слова.
+    ///
+    /// Правило теперь двойное:
+    ///   1. отказ НЕ кэшируется: читатель, заметив отказ (свой или вложенного
+    ///      вызова — по счётчику <see cref="ThreadCount"/> до и после), не кладёт
+    ///      ответ в кэш, и следующий разбор пробует базу снова;
+    ///   2. отказ ДОХОДИТ ДО ЧЕЛОВЕКА: <see cref="Note"/> кладёт строку в
+    ///      собиратель потока, который открывает сеанс разбора
+    ///      (<see cref="Begin"/>/<see cref="End"/>), а сеанс отдаёт её в
+    ///      <see cref="FsaResult.DatabaseFailures"/> — окно отчёта печатает
+    ///      строку-происшествие; без результата — приписка к причине отказа.
+    ///
+    /// Собиратель — на ПОТОК: разбор целиком идёт в одной фоновой задаче
+    /// (параллельных циклов в ядре нет), а разборы разных документов идут в
+    /// разных задачах и чужих отказов друг другу не подмешивают. Вне сеанса
+    /// (пробы, корпус) собирателя нет — отказ уходит в журнал трассировки и в
+    /// счётчик <see cref="ProcessCount"/>, кэш не пишется так же.
+    ///
+    /// Текст строки — без переводимых слов: имя файла базы, ключ запроса
+    /// (`nucid`, Z/A) и сообщение платформы. Подпись строки окна переведена в
+    /// обе культуры (`FSAReportDatabaseFailedRow`).
+    /// </summary>
+    public static class FsaDatabaseFailures
+    {
+        [ThreadStatic]
+        static int threadCount;
+
+        [ThreadStatic]
+        static List<string> collected;
+
+        static int processCount;
+
+        /// <summary>Потолок строк одного разбора: дальше — только счёт.</summary>
+        const int MaxCollected = 32;
+
+        /// <summary>Отказов на этом потоке за всё время (счётчик «был ли отказ внутри»).</summary>
+        public static int ThreadCount
+        {
+            get { return threadCount; }
+        }
+
+        /// <summary>Отказов во всём процессе — для проб.</summary>
+        public static int ProcessCount
+        {
+            get { return System.Threading.Volatile.Read(ref processCount); }
+        }
+
+        /// <summary>
+        /// Отказ чтения базы. <paramref name="database"/> — имя файла
+        /// (`nucdb.sqlite`), <paramref name="key"/> — что читалось.
+        /// </summary>
+        public static void Note(string database, string key, Exception error)
+        {
+            threadCount++;
+            System.Threading.Interlocked.Increment(ref processCount);
+            string text = database + " (" + (key ?? string.Empty) + "): "
+                          + (error != null ? error.Message : string.Empty);
+            System.Diagnostics.Trace.WriteLine("FSA: отказ чтения базы — " + text);
+            List<string> sink = collected;
+            if (sink != null && sink.Count < MaxCollected && !sink.Contains(text))
+            {
+                sink.Add(text);
+            }
+        }
+
+        /// <summary>Открыть собиратель этого потока (вложенность не поддерживается: прежний сбрасывается).</summary>
+        public static void Begin()
+        {
+            collected = new List<string>();
+        }
+
+        /// <summary>Закрыть собиратель и забрать собранное; не было отказов — пустой список.</summary>
+        public static List<string> End()
+        {
+            List<string> sink = collected ?? new List<string>();
+            collected = null;
+            return sink;
         }
     }
 }

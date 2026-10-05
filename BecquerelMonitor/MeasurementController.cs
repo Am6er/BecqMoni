@@ -184,6 +184,33 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// ⛔ `AMBER173` (05.10.2026, решение Amber вопросником: «Свой контроллер
+        /// (Рекомендую)»). СВОЙ КОНТРОЛЛЕР КАЖДОМУ СПЕКТРУ.
+        ///
+        /// Контроллер привязан к спектру в конструкторе, а спектры, заведённые
+        /// импортом (SpecUtils со второго, N42-2012 — все) и «отделением фона»,
+        /// получали ЧУЖОЙ — контроллер шаблона. «Пуск» на таком спектре ставил
+        /// набор спектру шаблона (а у N42-2012 — выброшенному шаблону, которого
+        /// в документе уже нет), такт окна выбранный спектр не обслуживал, а
+        /// «Стоп» выходил раньше: у выбранного спектра `Recording` не стоял.
+        ///
+        /// Брат получает от шаблона то, ради чего контроллер наследовался по
+        /// `A239`: документ, подписчиков <see cref="MeasurementTerminated"/> (их
+        /// ставит окно при открытии документа — без копии новый спектр остался бы
+        /// без подписки, «как у прочих») и галку «сохранить по окончании».
+        /// Прибор (<see cref="DeviceController"/>) НЕ наследуется: он заводится
+        /// на «Пуск» самим контроллером, а аренда прибора у каждого своя — два
+        /// спектра одного прибора одновременно не пишутся (`ERRDeviceBusy`).
+        /// </summary>
+        internal MeasurementController CreateSibling(ResultData resultData)
+        {
+            MeasurementController sibling = new MeasurementController(this.document, resultData);
+            sibling.saveOnMeasurementEnd = this.saveOnMeasurementEnd;
+            sibling.MeasurementTerminated = this.MeasurementTerminated;
+            return sibling;
+        }
+
+        /// <summary>
         /// ⛔ ЧТО ЗНАЧИТ «БЕЗ ОКОН» НА ПУТИ ИЗМЕРЕНИЯ (остаток `S100`, 28.08.2026).
         ///
         /// Здесь беды двух разных пород, и одной меркой их мерить нельзя:
@@ -443,8 +470,14 @@ namespace BecquerelMonitor
                     AtomSpectraDeviceConfig devconfig = (AtomSpectraDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
                     if (devconfig.BaudRate == 38400 || devconfig.BaudRate == 115200)
                     {
-                        AtomSpectraVCPIn.getInstance(this.resultData.DeviceConfig.Guid).sendCommand("-sho");
-                        AtomSpectraVCPIn.getInstance(this.resultData.DeviceConfig.Guid).waitForAnswer("-ok collecting", 1000);
+                        // ⛔ `AMBER166` (05.10.2026): запрос `-sho` БЕЗ ожидания на
+                        //    потоке окна. Здесь стояло `sendCommand("-sho")` +
+                        //    `waitForAnswer("-ok collecting", 1000)` — такт окна
+                        //    (100 мс) ждал ответа до секунды, а при выдернутом
+                        //    кабеле — полную секунду на каждом такте. Ответ ловит
+                        //    поток чтения; новый запрос уходит, когда прежний
+                        //    отвечен или истёк его срок — темп опроса прежний.
+                        AtomSpectraVCPIn.getInstance(this.resultData.DeviceConfig.Guid).RequestShow();
                     }
                 }
                 else if (this.resultData.MeasurementController.DeviceController is RadiaCodeDeviceController)

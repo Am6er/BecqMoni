@@ -98,6 +98,25 @@ namespace BecquerelMonitor
             }
         }
 
+        // (`AMBER172(б)`, 05.10.2026) Цвет спектра с номером index — ПО КРУГУ списка:
+        // в файле N42-2012 спектров бывает больше, чем цветов (16), и прямая
+        // индексация `SpectrumColorList[i]` роняла перерисовку
+        // `ArgumentOutOfRangeException`. Метод, а не свойство: в XML не попадает.
+        public Color GetSpectrumColor(int index)
+        {
+            List<SerializableColor> list = this.spectrumColorList;
+            if (list == null || list.Count == 0)
+            {
+                return this.activeSpectrumColor.Color;
+            }
+            int k = index % list.Count;
+            if (k < 0)
+            {
+                k += list.Count;
+            }
+            return list[k].Color;
+        }
+
         // Token: 0x1700040F RID: 1039
         // (get) Token: 0x06000F80 RID: 3968 RVA: 0x00057178 File Offset: 0x00055378
         // (set) Token: 0x06000F81 RID: 3969 RVA: 0x00057180 File Offset: 0x00055380

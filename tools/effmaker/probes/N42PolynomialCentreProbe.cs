@@ -19,7 +19,7 @@ namespace N42PolynomialCentreProbe
     ///
     /// ⛔ ЧТО МЕРИТСЯ:
     ///
-    /// 1. `--twins=<границы>|<полином>`  ДВОЙНЯШКИ. Оба файла ввозятся дверью
+    /// 1. `--twins=<границы>|<полином>`  ДВОЙНЯШКИ. Оба файла импортируются дверью
     ///    N42 и дверью SpecUtils, и сравниваются ШКАЛЫ: наибольшее
     ///    |E_границы(ch) − E_полином(ch)| по каналам и то же на канале 662 кэВ.
     ///    Это и есть мера захода: до правки — h/2, после — ноль.
@@ -28,10 +28,10 @@ namespace N42PolynomialCentreProbe
     ///    «двигается ли шкала» для корпусных `.n42` и для файлов Amber; и отсюда
     ///    же — контроль неизменности: у файла, чья калибровка задана ГРАНИЦАМИ,
     ///    строки обязаны совпасть знак в знак до и после.
-    /// 3. `--roundtrip=<файл>`  КРУГ ПРИЛОЖЕНИЯ: ввоз → `Util.ExportToN42` →
-    ///    ввоз. Шкала обязана вернуться ТОЙ ЖЕ: ввоз и вывоз согласованы, иначе
+    /// 3. `--roundtrip=<файл>`  КРУГ ПРИЛОЖЕНИЯ: импорт → `Util.ExportToN42` →
+    ///    импорт. Шкала обязана вернуться ТОЙ ЖЕ: импорт и экспорт согласованы, иначе
     ///    наши собственные выгрузки уезжают на полканала. Печатается и сам
-    ///    записанный `CoefficientValues` — по нему видно, чем пишет вывоз.
+    ///    записанный `CoefficientValues` — по нему видно, чем пишет экспорт.
     ///
     /// Ожидания: `--expect-twins-kev=<x>` (наибольшее расхождение двойняшек не
     /// больше x), `--expect-roundtrip-kev=<x>`, `--expect-doors-kev=<x>`.
@@ -193,13 +193,13 @@ namespace N42PolynomialCentreProbe
         }
 
         // ==================================================================
-        // 3. КРУГ «ВВОЗ → ВЫВОЗ → ВВОЗ»
+        // 3. КРУГ «ИМПОРТ → ЭКСПОРТ → ИМПОРТ»
         // ==================================================================
 
         static void RoundTrip(string name)
         {
             string f = Path.Combine(dir, name);
-            Console.WriteLine("=== 3. КРУГ ввоз → вывоз → ввоз: " + name + " ===");
+            Console.WriteLine("=== 3. КРУГ импорт → экспорт → импорт: " + name + " ===");
             DocEnergySpectrum doc = new DocEnergySpectrum();
             string err = null;
             TextWriter realErr = Console.Error;
@@ -207,14 +207,14 @@ namespace N42PolynomialCentreProbe
             try { DocumentManager.GetInstance().ImportDocumentN42(doc, f); }
             catch (Exception ex) { err = ex.GetType().Name + ": " + One(ex.Message); }
             finally { Console.SetError(realErr); }
-            if (err != null) { Console.WriteLine("  ввоз отказал: " + err); bad++; Console.WriteLine(); return; }
+            if (err != null) { Console.WriteLine("  импорт отказал: " + err); bad++; Console.WriteLine(); return; }
 
             PolynomialEnergyCalibration before = doc.ActiveResultData.EnergySpectrum.EnergyCalibration as PolynomialEnergyCalibration;
             int channels = doc.ActiveResultData.EnergySpectrum.NumberOfChannels;
             string outFile = Path.Combine(Path.GetTempPath(), "p138-roundtrip-" + Guid.NewGuid().ToString("N") + ".n42");
             try
             {
-                // Вывоз ТЕМ ЖЕ путём, что у приложения (`A156`): Util.ExportToN42
+                // Экспорт ТЕМ ЖЕ путём, что у приложения (`A156`): Util.ExportToN42
                 // плюс XmlSerializer с настройками DocumentManager.
                 BecquerelMonitor.N42.RadInstrumentData radObject = new BecquerelMonitor.N42.Util().ExportToN42(doc);
                 System.Xml.Serialization.XmlSerializer xs =
@@ -229,16 +229,16 @@ namespace N42PolynomialCentreProbe
                     w.Flush();
                 }
                 string written = ExtractFirst(File.ReadAllText(outFile), "CoefficientValues");
-                Console.WriteLine("  ввоз дал     [" + Join(before.Coefficients) + "]");
-                Console.WriteLine("  вывоз записал CoefficientValues = «" + written + "»");
+                Console.WriteLine("  импорт дал     [" + Join(before.Coefficients) + "]");
+                Console.WriteLine("  экспорт записал CoefficientValues = «" + written + "»");
                 DocEnergySpectrum back = new DocEnergySpectrum();
                 Console.SetError(new StringWriter());
                 try { DocumentManager.GetInstance().ImportDocumentN42(back, outFile); }
                 catch (Exception ex) { err = ex.GetType().Name + ": " + One(ex.Message); }
                 finally { Console.SetError(realErr); }
-                if (err != null) { Console.WriteLine("  обратный ввоз отказал: " + err); bad++; return; }
+                if (err != null) { Console.WriteLine("  обратный импорт отказал: " + err); bad++; return; }
                 PolynomialEnergyCalibration after = back.ActiveResultData.EnergySpectrum.EnergyCalibration as PolynomialEnergyCalibration;
-                Console.WriteLine("  обратный ввоз [" + Join(after.Coefficients) + "]");
+                Console.WriteLine("  обратный импорт [" + Join(after.Coefficients) + "]");
                 double max = 0.0;
                 for (int ch = 0; ch < channels; ch++)
                 {
@@ -252,7 +252,7 @@ namespace N42PolynomialCentreProbe
                     bad++;
                 }
             }
-            catch (Exception ex) { Console.WriteLine("  вывоз отказал: " + ex.GetType().Name + ": " + One(ex.Message)); bad++; }
+            catch (Exception ex) { Console.WriteLine("  экспорт отказал: " + ex.GetType().Name + ": " + One(ex.Message)); bad++; }
             finally { try { File.Delete(outFile); } catch { } }
             Console.WriteLine();
         }

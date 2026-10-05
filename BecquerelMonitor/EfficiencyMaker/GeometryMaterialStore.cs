@@ -50,7 +50,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         public GeometryMaterialComponent[] Components;
 
         /// <summary>
-        /// Массовые доли элементов, заданные прямо (ввоз таблицы ЛСРМ). Пусто у
+        /// Массовые доли элементов, заданные прямо (импорт таблицы ЛСРМ). Пусто у
         /// вещества, описанного формулой или смесью.
         /// </summary>
         [XmlArray("Fractions")]
@@ -107,7 +107,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Поколение вшитого списка. Растёт, когда в <c>Seed()</c> добавили
         /// вещество и его надо довезти до тех, у кого файл уже есть.
         /// </summary>
-        /// 2 (16.08.2026) — ввезена таблица веществ ЛСРМ, 268 строк.
+        /// 2 (16.08.2026) — импортирована таблица веществ ЛСРМ, 268 строк.
         /// 3 (16.08.2026) — двуокись тория (ThO2) по указанию Amber: без неё
         ///     состав «Электродов WT-20» нечем записать так, чтобы плотность
         ///     из него считалась (`E26`).
@@ -206,12 +206,32 @@ namespace BecquerelMonitor.EfficiencyMaker
             LoadError = null;
         }
 
+        /// <summary>
+        /// (`AMBER201`, Р4, подозрение полосы 8) Замок ленивой загрузки: список
+        /// не привязан к потоку (библиотеку веществ зовут и окна, и фоновые
+        /// задания), а загрузка заполняет общий <c>removed</c> по ходу — два
+        /// потока разом чистили бы его друг у друга.
+        /// </summary>
+        static readonly object Gate = new object();
+
         static void EnsureLoaded()
         {
             if (entries != null)
             {
                 return;
             }
+
+            lock (Gate)
+            {
+                if (entries == null)
+                {
+                    LoadLocked();
+                }
+            }
+        }
+
+        static void LoadLocked()
+        {
 
             List<GeometryMaterialLibrary.Entry> seed = GeometryMaterialLibrary.Seed();
             removed = new List<string>();
@@ -749,15 +769,20 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Directory.CreateDirectory(dir);
             }
 
+            // (`AMBER201`, Р4, подозрение полосы 8) Через временный файл и замену
+            // (`AtomicFileWriter`), а не `FileMode.Create` поверх файла человека:
+            // отказ посреди записи (сериализатор, диск, обрыв) прежде оставлял
+            // обрубок, и вся библиотека веществ человека при следующем запуске
+            // не читалась. Теперь прежний файл цел, пока новый не дописан.
             XmlSerializer serializer = new XmlSerializer(typeof(GeometryMaterialConfig));
-            using (FileStream stream = new FileStream(path, FileMode.Create, FileAccess.Write))
-            {
-                serializer.Serialize(stream, config);
-            }
+            Utils.AtomicFileWriter.Write(path, stream => serializer.Serialize(stream, config));
 
-            entries = next;
-            removed = gone;
-            LoadError = null;
+            lock (Gate)
+            {
+                entries = next;
+                removed = gone;
+                LoadError = null;
+            }
         }
 
         static GeometryMaterialRecord[] ToRecords(List<GeometryMaterialLibrary.Entry> list)

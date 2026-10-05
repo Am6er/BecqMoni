@@ -502,7 +502,7 @@ namespace BecquerelMonitor.Utils
             // ОТНОШЕНИЕМ ЖИВЫХ времён (`EffectiveLiveTime`: живое, если > 0,
             // иначе полное), как у разбора FSA. Отсюда вычтенный спектр идёт
             // в поиск пиков (`PeakDetector.DetectPeak`, режим «фон вычтен»),
-            // в вывоз CSV с энергиями (`DocumentManager.ExportDocumentToECSV`),
+            // в экспорт CSV с энергиями (`DocumentManager.ExportDocumentToECSV`),
             // в «жёсткое вычитание» (`MainForm`) и на график
             // (`EnergySpectrumView.CalculateDataForSpecificModes`) — все они
             // получают ОДНУ нормировку, и она та же, что у панели выделения
@@ -517,7 +517,13 @@ namespace BecquerelMonitor.Utils
             }
             double norm_coeff = fgTime / bgTime;
             substractedEnergySpectrum.TotalPulseCount = 0;
-            if (this.EnergySpectrum.EnergyCalibration.Equals(bgenergySpectrum.EnergyCalibration))
+            // (`AMBER201`, мелочь 4.8, 05.10.2026) Поканально — только при ОДНОМ
+            // числе каналов: при равных коэффициентах и фоне короче спектра индекс
+            // фона выходил за массив (IndexOutOfRange из Parallel.For). Иначе —
+            // раскладка по энергии ниже, она длину фона учитывает (каналы спектра
+            // за шкалой фона остаются с нулём фона, как и прежде).
+            if (this.EnergySpectrum.EnergyCalibration.Equals(bgenergySpectrum.EnergyCalibration)
+                && bgenergySpectrum.Spectrum.Length >= substractedEnergySpectrum.NumberOfChannels)
             {
                 Parallel.For(0, substractedEnergySpectrum.NumberOfChannels, i =>
                 {
@@ -1751,15 +1757,69 @@ namespace BecquerelMonitor.Utils
             return null;
         }
 
+        /// <summary>
+        /// Шкала энергий под другое число каналов (`AMBER171`, 05.10.2026).
+        /// </summary>
+        /// <remarks>
+        /// Соглашение дерева — «номер канала есть ЦЕНТР канала» (`AMBER73`): старый
+        /// канал n занимает [n − ½, n + ½). <see cref="RebinArray"/> кладёт в новый
+        /// канал j старые [j·m, (j+1)·m) в координате краёв, m = старых/новых, и центр
+        /// нового канала лежит на старом n = m·j + (m − 1)/2. Значит
+        /// E_нов(j) = E_стар(m·j + s), s = (m − 1)/2, и коэффициенты — биномиальная
+        /// подстановка: d_k = m^k · Σ_{i≥k} c_i · C(i, k) · s^(i−k).
+        ///
+        /// ⚠ Прежде было d_k = m^k · c_k, то есть E_нов(j) = E_стар(m·j) — сдвиг
+        /// на (m − 1)/2 старого канала по ВСЕЙ шкале: 8192 → 1024 при 0.37 кэВ/кан
+        /// давало −1.29 кэВ, обратный путь 1024 → 8192 — +0.4375 старого канала.
+        /// Формула одна для обеих сторон (при росте числа каналов m &lt; 1, s &lt; 0).
+        ///
+        /// Степень берётся та, что реально считает <c>ChannelToEnergy</c>: 1–4 по
+        /// <c>PolynomialOrder</c>, выше — Горнер по имеющимся коэффициентам. Хвост
+        /// набора за этой степенью шкалой не читается и переносится как есть.
+        ///
+        /// Коэффициенты кладутся через СЕТТЕР (он гасит кеш «энергия → канал»;
+        /// прежняя запись по индексу его обходила), а предел шкалы <c>maxChannels</c>
+        /// ставится новый: копирующий конструктор уносит старый, и при росте числа
+        /// каналов <c>ChannelToEnergy</c> зажимал всё выше прежнего числа каналов.
+        ///
+        /// ⛔ Приведение к <see cref="PolynomialEnergyCalibration"/> оставлено
+        /// жёстким, как было: <c>NonlinearEnergyCalibration</c> здесь не трогается.
+        /// </remarks>
+        static PolynomialEnergyCalibration RescaleCalibration(EnergySpectrum energySpectrum, int newChan)
+        {
+            PolynomialEnergyCalibration source = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
+            PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration(source);
+            double mul = (double)energySpectrum.NumberOfChannels / (double)newChan;
+            double shift = (mul - 1.0) / 2.0;
+            double[] c = source.Coefficients;
+            double[] d = (double[])c.Clone();
+            int order = source.PolynomialOrder;
+            int top = order > 4 ? Math.Min(order, c.Length - 1) : Math.Min(Math.Max(order, 1), c.Length - 1);
+            for (int k = 0; k <= top; k++)
+            {
+                double sum = 0.0;
+                double binomial = 1.0;   // C(i, k) при i = k
+                double shiftPower = 1.0; // s^(i − k)
+                for (int i = k; i <= top; i++)
+                {
+                    sum += c[i] * binomial * shiftPower;
+                    binomial = binomial * (i + 1) / (i + 1 - k);
+                    shiftPower *= shift;
+                }
+                d[k] = Math.Pow(mul, k) * sum;
+            }
+            calibration.Coefficients = d;
+            // Побочное действие проверки — maxChannels и maxEnergy под новое число
+            // каналов; ответ не нужен (шкала та же, что у источника, только в новых
+            // каналах).
+            calibration.CheckCalibration(newChan);
+            return calibration;
+        }
+
         public static EnergySpectrum ConcatSpectrum(EnergySpectrum energySpectrum, int newChan)
         {
             EnergySpectrum newSpectrum = new EnergySpectrum(energySpectrum.ChannelPitch, newChan);
-            PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration((PolynomialEnergyCalibration)energySpectrum.EnergyCalibration);
-            double mul = (double)energySpectrum.NumberOfChannels / (double)newChan;
-            for (int i = 0; i < calibration.Coefficients.Length; i++)
-            {
-                calibration.Coefficients[i] = Math.Pow(mul, i) * calibration.Coefficients[i];
-            }
+            PolynomialEnergyCalibration calibration = RescaleCalibration(energySpectrum, newChan);
             newSpectrum.EnergyCalibration = calibration;
             newSpectrum.NumberOfChannels = newChan;
             newSpectrum.Spectrum = ConcatArray(energySpectrum.Spectrum, newChan);
@@ -1777,12 +1837,9 @@ namespace BecquerelMonitor.Utils
         public static EnergySpectrum RestoreSpectrum(EnergySpectrum energySpectrum, int newChan)
         {
             EnergySpectrum newSpectrum = new EnergySpectrum(energySpectrum.ChannelPitch, newChan);
-            PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration((PolynomialEnergyCalibration)energySpectrum.EnergyCalibration);
-            double mul = (double)energySpectrum.NumberOfChannels / (double)newChan;
-            for (int i = 0; i < calibration.Coefficients.Length; i++)
-            {
-                calibration.Coefficients[i] = Math.Pow(mul, i) * calibration.Coefficients[i];
-            }
+            // (`AMBER171`) та же подстановка, что у ConcatSpectrum: при росте числа
+            // каналов прежняя формула сдвигала шкалу на (m − 1)/2 < 0 старого канала.
+            PolynomialEnergyCalibration calibration = RescaleCalibration(energySpectrum, newChan);
             newSpectrum.EnergyCalibration = calibration;
             newSpectrum.NumberOfChannels = newChan;
             newSpectrum.Spectrum = RestoreArray(energySpectrum.Spectrum, newChan);
@@ -1981,8 +2038,32 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
+        /// <summary>
+        /// Сумма окна SMA вокруг канала i (делит на ширину вызывающий).
+        ///
+        /// ⛔ (`AMBER201` Р2, решение Amber 05.10.2026 «Округление и SMA, Channel
+        /// целый») ЧЁТНОЕ окно — СИММЕТРИЧНО. Окно из w каналов, начатое с
+        /// i − w/2, при чётном w кончается на i + w/2 − 1: его центр — i − 0.5, и
+        /// сглаженный спектр уезжал на полканала вправо (пик сдвигался на +0.5
+        /// канала при любом чётном w, замер полосы fix201pk). Чётное окно
+        /// бывает и при нечётной настройке: ширина канала
+        /// (<see cref="GetWindowSize"/>) убывает со счётом.
+        ///
+        /// Чётное окно берётся средним ДВУХ окон той же ширины — сдвинутых на
+        /// полканала влево и вправо (центрированное скользящее среднее «2×w»):
+        /// это w + 1 каналов, крайние с весом ½, сумма весов по-прежнему w, то
+        /// есть сила сглаживания та же, а центр — ровно i. Делать окно нечётным
+        /// (w ± 1) значило бы сменить силу сглаживания, заданную человеком.
+        /// Нечётное окно считается прежней петлёй — побитово как раньше.
+        /// </summary>
         private static double GetSMAPointValue<T>(T[] spectrum, int i, int window_size)
         {
+            if (window_size >= 2 && window_size % 2 == 0)
+            {
+                return 0.5 * (GetSMAWindowSum(spectrum, i - window_size / 2, window_size)
+                              + GetSMAWindowSum(spectrum, i - window_size / 2 + 1, window_size));
+            }
+
             double new_count = 0.0;
             for (int j = i - window_size / 2; j < i - window_size / 2 + window_size; j++)
             {
@@ -2001,8 +2082,38 @@ namespace BecquerelMonitor.Utils
             return new_count;
         }
 
+        /// <summary>Сумма w каналов, начиная с <paramref name="first"/>, с прижатием к краям спектра.</summary>
+        private static double GetSMAWindowSum<T>(T[] spectrum, int first, int window_size)
+        {
+            double sum = 0.0;
+            for (int j = first; j < first + window_size; j++)
+            {
+                int ch = j < 0 ? 0 : (j >= spectrum.Length ? spectrum.Length - 1 : j);
+                sum += Convert.ToDouble(spectrum[ch]);
+            }
+
+            return sum;
+        }
+
+        /// <summary>
+        /// Взвешенное (треугольное) среднее вокруг канала i.
+        ///
+        /// ⛔ (`AMBER201` Р2) ЧЁТНОЕ окно — СИММЕТРИЧНО, тем же приёмом, что у
+        /// <see cref="GetSMAPointValue"/>: при чётном w окно [i − w/2,
+        /// i + w/2 − 1] теряло правый крайний канал с весом 1, и центр тяжести
+        /// весов уезжал влево, а сглаженный пик — вправо (+1/3 канала при w = 2,
+        /// +1/4 при w = 4…). Среднее двух окон, сдвинутых на полканала в обе
+        /// стороны, — тот же треугольник на w + 1 каналах с крайними весами ½.
+        /// Нечётное окно — прежней петлёй, побитово.
+        /// </summary>
         private static double GetWMAPointValue<T>(T[] spectrum, int i, int window_size)
         {
+            if (window_size >= 2 && window_size % 2 == 0)
+            {
+                return 0.5 * (GetWMAWindowValue(spectrum, i, i - window_size / 2, window_size)
+                              + GetWMAWindowValue(spectrum, i, i - window_size / 2 + 1, window_size));
+            }
+
             double part = 0.0;
             double total = 0.0;
             for (int j = i - window_size / 2; j < i - window_size / 2 + window_size; j++)
@@ -2022,6 +2133,26 @@ namespace BecquerelMonitor.Utils
             }
             double value = part / total;
             return value;
+        }
+
+        /// <summary>
+        /// Треугольное среднее w каналов, начиная с <paramref name="first"/>, с
+        /// весом канала ch, как у прежней петли: w/2 + 1 − |i − ch| (ch прижат к
+        /// краям спектра).
+        /// </summary>
+        private static double GetWMAWindowValue<T>(T[] spectrum, int i, int first, int window_size)
+        {
+            double part = 0.0;
+            double total = 0.0;
+            for (int j = first; j < first + window_size; j++)
+            {
+                int ch = j < 0 ? 0 : (j >= spectrum.Length ? spectrum.Length - 1 : j);
+                double weight = (double)(window_size / 2 + 1 - Math.Abs(i - ch));
+                part += Convert.ToDouble(spectrum[ch]) * weight;
+                total += weight;
+            }
+
+            return part / total;
         }
 
         private static double GetProgressivePointsNum(int channelIndex, int channelCount, int numberOfDataPoints)

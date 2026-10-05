@@ -27,8 +27,18 @@ namespace BecquerelMonitor
             SampleInfoData sampleInfo = activeResultData.SampleInfo;
             this.textBoxName.Text = sampleInfo.Name;
             this.textBoxLocation.Text = sampleInfo.Location;
-            this.dateTimePickerSampleTime.Value = sampleInfo.Time;
-            this.dateTimePicker2.Value = activeResultData.StartTime;
+            // ⛔ `AMBER175` (05.10.2026): ДАТА ВНЕ ПРЕДЕЛОВ ОКНА НЕ РОНЯЕТ
+            // ВКЛАДКУ. `DateTimePicker.Value` бросает
+            // `ArgumentOutOfRangeException` вне [1753-01-01; 9998-12-31], а
+            // `LoadFormContents` зовут при всякой смене документа и спектра без
+            // `try` — дата 0001-01-01 из файла давала окно «Необработанное
+            // исключение». Двери импорта такую дату теперь не пропускают
+            // (`DocumentManager.IsStartTimeDisplayable`), но документ, сохранённый
+            // до этого, несёт её в своём XML. Здесь — только ПОКАЗ у границы,
+            // настоящее значение остаётся в модели и уходит на диск целым, пока
+            // человек поле не тронул (то же правило, что у массы, `A1`).
+            this.sampleTimeOutOfRange = SetDateSafely(this.dateTimePickerSampleTime, sampleInfo.Time);
+            SetDateSafely(this.dateTimePicker2, activeResultData.StartTime);
             // ⛔ `A1`. НОЛЬ — ЭТО «НЕ УКАЗАНО», А НЕ НЕДОПУСТИМОЕ ЗНАЧЕНИЕ.
             //
             // Прежде здесь стоял минимум 0.001, и присваивание `Value` при
@@ -126,6 +136,27 @@ namespace BecquerelMonitor
             return null;
         }
 
+        /// <summary>
+        /// Дата в поле, не дав ему бросить исключение (`AMBER175`): вне пределов
+        /// <c>DateTimePicker</c> показывается граница, а возвращается ИСХОДНОЕ
+        /// значение (иначе — null) — см. <see cref="SetValueSafely"/>.
+        /// </summary>
+        static DateTime? SetDateSafely(DateTimePicker box, DateTime value)
+        {
+            if (value < DateTimePicker.MinimumDateTime)
+            {
+                box.Value = DateTimePicker.MinimumDateTime;
+                return value;
+            }
+            if (value > DateTimePicker.MaximumDateTime)
+            {
+                box.Value = DateTimePicker.MaximumDateTime;
+                return value;
+            }
+            box.Value = value;
+            return null;
+        }
+
         // Token: 0x06000943 RID: 2371 RVA: 0x000363D8 File Offset: 0x000345D8
         public void SaveFormContents()
         {
@@ -137,7 +168,8 @@ namespace BecquerelMonitor
             ResultData activeResultData = activeDocument.ActiveResultData;
             activeResultData.SampleInfo.Name = this.textBoxName.Text;
             activeResultData.SampleInfo.Location = this.textBoxLocation.Text;
-            activeResultData.SampleInfo.Time = this.dateTimePickerSampleTime.Value;
+            // `AMBER175`: показанная граница — не введённая дата.
+            activeResultData.SampleInfo.Time = this.sampleTimeOutOfRange ?? this.dateTimePickerSampleTime.Value;
             // ⛔ `A1`. Число, не поместившееся в поле, ПОКАЗАНО обрезанным, но
             // записывать обрезок нельзя: человек его не вводил. Пока поле не
             // тронуто, на диск уходит настоящее значение из файла; тронет —
@@ -236,6 +268,8 @@ namespace BecquerelMonitor
             {
                 return;
             }
+            // Человек тронул поле — показанное и есть введённое (`AMBER175`, `A1`).
+            this.sampleTimeOutOfRange = null;
             ResultData activeResultData = activeDocument.ActiveResultData;
             activeResultData.SampleInfo.Time = this.dateTimePickerSampleTime.Value;
 
@@ -270,6 +304,7 @@ namespace BecquerelMonitor
             }
 
             this.UpdateMeasurementResult();
+            this.RefreshFsaDensityRow();
             this.SetActiveDocumentDirty();
         }
 
@@ -300,6 +335,7 @@ namespace BecquerelMonitor
             }
 
             this.UpdateMeasurementResult();
+            this.RefreshFsaDensityRow();
             this.SetActiveDocumentDirty();
         }
 
@@ -324,6 +360,23 @@ namespace BecquerelMonitor
             this.mainForm.ShowMeasurementResult(false);
         }
 
+        /// <summary>
+        /// (`AMBER201`, мелочь 6.8, 05.10.2026; остаток `AMBER159`) Строка «плотность
+        /// пробы против сцены» окна отчёта FSA считается при заполнении окна, а вес
+        /// и объём в отпечаток разбора не входят — правка карточки оставляла на
+        /// экране ПРЕЖНЕЕ расхождение (и прежний цвет), пока окно не перезаполнится
+        /// по другому поводу. Перезаполняется только видимое окно: счёт разбора
+        /// это не запускает, `RefreshReport` лишь перечитывает готовый результат.
+        /// </summary>
+        void RefreshFsaDensityRow()
+        {
+            FSAReportView report = this.mainForm.FsaReportView;
+            if (report != null && !report.IsDisposed && report.Visible)
+            {
+                report.RefreshReport();
+            }
+        }
+
         // Token: 0x0400052A RID: 1322
         GlobalConfigManager globalConfigManager = GlobalConfigManager.GetInstance();
 
@@ -342,5 +395,8 @@ namespace BecquerelMonitor
 
         /// <summary>Настоящий объём из файла — см. <see cref="weightOutOfRange"/>.</summary>
         decimal? volumeOutOfRange;
+
+        /// <summary>Настоящее время пробы из файла вне пределов окна (`AMBER175`) — см. <see cref="weightOutOfRange"/>.</summary>
+        DateTime? sampleTimeOutOfRange;
     }
 }

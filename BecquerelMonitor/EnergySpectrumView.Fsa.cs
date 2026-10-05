@@ -406,6 +406,45 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (`AMBER201` Р3, мелочь 6.6) Кривая измерения, которую кадр FSA
+        /// НАРИСУЕТ вместо активного спектра, — чистый спектр (за вычетом фона,
+        /// отрицательное подрезано, <see cref="FsaResult.NetSpectrum"/>), — или
+        /// null, когда кадр рисует обычный спектр. Условие то же, что у
+        /// <see cref="ShowFsaOverlay"/>: режим FSA, есть результат и в кадре есть
+        /// хоть один слой стопки; без этого автоподгонка снова мерила бы не то,
+        /// что на экране.
+        ///
+        /// Читает её подгонка вертикали (<c>CalculateDrawingDataBoundaries</c>):
+        /// прежде окно ставилось по СЫРОМУ спектру, и при сильном фоне чистый
+        /// спектр и стопка сжимались к низу поля, а при подгонке «мин–макс» низ
+        /// шкалы вставал на минимум сырого — всё чистое ниже него уходило за
+        /// край. Представление строится тем же <see cref="GetFsaPresentation"/>,
+        /// что и кадр, — он его кэширует, второго счёта нет.
+        /// </summary>
+        double[] FsaDrawnMeasurement()
+        {
+            if (!this.IsFsaMode())
+            {
+                return null;
+            }
+
+            FsaResult result = this.FsaSession.Result;
+            if (result == null)
+            {
+                return null;
+            }
+
+            List<FsaStackLayer> layers = this.GetFsaPresentation(result).Layers;
+            if (layers.Count == 0 || this.fsaCumulative == null)
+            {
+                return null;
+            }
+
+            List<FsaStackLayer> stack = this.fsaStack ?? layers;
+            return stack.Count > 0 ? this.fsaNetSpectrum : null;
+        }
+
         bool IsFsaVisible()
         {
             return this.IsFsaMode() && this.FsaSession.Result != null;

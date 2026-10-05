@@ -26,9 +26,9 @@ namespace N42DoorsProbeF54
     /// другая отдаёт файл чужой библиотеке, и совпасть им нечем. Беда не в
     /// том, что приговоры разные, а в том, что человек об этом НЕ УЗНАЁТ:
     /// дверь N42 отказывает СЛОВАМИ, а дверь SpecUtils в том же положении
-    /// ввозит МОЛЧА — и разница видна только тому, кто откроет один файл
+    /// импортирует МОЛЧА — и разница видна только тому, кто откроет один файл
     /// двумя пунктами меню подряд. Поэтому сторож считает файлы, у которых
-    /// приговоры разошлись И ввозящая дверь не сказала НИ СЛОВА, и отказывает
+    /// приговоры разошлись И импортирующая дверь не сказала НИ СЛОВА, и отказывает
     /// кодом возврата, когда таких больше объявленного (`--expect-silent`).
     ///
     /// ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ САМОГО СТОРОЖА. Проверка, у которой
@@ -195,7 +195,7 @@ namespace N42DoorsProbeF54
             //   xs:duration («PT295S»). Поле было объявлено double, и такой
             //   файл ронял разбор ВСЕГО документа ещё в XmlSerializer.
             //   ⛔ Это положительный контроль правки: до неё вход ОБЯЗАН
-            //   отказывать, после — ввозиться с живым временем 295.
+            //   отказывать, после — импортироваться с живым временем 295.
             Write("case30_rad_live_iso.n42", Rad(1024, 1024).Replace(
                       "<LiveTime>295</LiveTime>", "<LiveTime>PT295S</LiveTime>"));
 
@@ -340,7 +340,7 @@ namespace N42DoorsProbeF54
         sealed class Verdict
         {
             public bool Imported;
-            public string Refusal;   // null, если ввезён
+            public string Refusal;   // null, если импортирован
             public string Spoken;    // то, что дверь сказала человеку
             public string Print;     // слепок документа
         }
@@ -367,11 +367,11 @@ namespace N42DoorsProbeF54
                 if (a.Imported) n42Ok++;
                 if (b.Imported) suOk++;
 
-                string va = a.Imported ? "ВВЕЗЁН" : "ОТКАЗ ";
-                string vb = b.Imported ? "ВВЕЗЁН" : "ОТКАЗ ";
+                string va = a.Imported ? "ИМПОРТИРОВАН" : "ОТКАЗ ";
+                string vb = b.Imported ? "ИМПОРТИРОВАН" : "ОТКАЗ ";
                 bool differ = a.Imported != b.Imported;
 
-                // ⛔ «МОЛЧА» — это про ТУ дверь, которая файл ВВЕЗЛА. Дверь,
+                // ⛔ «МОЛЧА» — это про ТУ дверь, которая файл ИМПОРТИРОВАЛА. Дверь,
                 //    отказавшая словами, свою работу сделала; вопрос в том,
                 //    узнал ли человек хоть что-нибудь, открыв файл ДРУГИМ
                 //    пунктом меню.
@@ -380,7 +380,7 @@ namespace N42DoorsProbeF54
                 bool silentDiff = differ && string.IsNullOrEmpty(importerSaid);
 
                 Console.WriteLine("  " + name.PadRight(30) + " | " + va + " | " + vb
-                                  + (differ ? (silentDiff ? "  <== РАЗОШЛИСЬ МОЛЧА" : "  <== разошлись, ввозящая дверь сказала")
+                                  + (differ ? (silentDiff ? "  <== РАЗОШЛИСЬ МОЛЧА" : "  <== разошлись, импортирующая дверь сказала")
                                             : ""));
                 if (differ)
                 {
@@ -391,9 +391,9 @@ namespace N42DoorsProbeF54
 
             Console.WriteLine();
             Console.WriteLine("=== СВОДКА ===");
-            Console.WriteLine("  дверь N42:       ВВЕЗЕНО " + n42Ok.ToString(CultureInfo.InvariantCulture)
+            Console.WriteLine("  дверь N42:       ИМПОРТИРОВАНО " + n42Ok.ToString(CultureInfo.InvariantCulture)
                               + " / ОТКАЗАНО " + (files.Length - n42Ok).ToString(CultureInfo.InvariantCulture));
-            Console.WriteLine("  дверь SpecUtils: ВВЕЗЕНО " + suOk.ToString(CultureInfo.InvariantCulture)
+            Console.WriteLine("  дверь SpecUtils: ИМПОРТИРОВАНО " + suOk.ToString(CultureInfo.InvariantCulture)
                               + " / ОТКАЗАНО " + (files.Length - suOk).ToString(CultureInfo.InvariantCulture));
             Console.WriteLine("  ДВЕРИ РАЗОШЛИСЬ: " + diverged.Count.ToString(CultureInfo.InvariantCulture)
                               + (diverged.Count > 0 ? " — " + string.Join(", ", diverged.ToArray()) : ""));
@@ -415,7 +415,7 @@ namespace N42DoorsProbeF54
                 Console.Error.WriteLine("ОТКАЗ СТОРОЖА: молчаливых расхождений "
                                         + silent.Count.ToString(CultureInfo.InvariantCulture)
                                         + ", объявлено " + expectSilent.ToString(CultureInfo.InvariantCulture)
-                                        + ". Файл, который одна дверь отказывает словами, а другая ввозит "
+                                        + ". Файл, который одна дверь отказывает словами, а другая импортирует "
                                         + "БЕЗ ЕДИНОГО СЛОВА, даёт человеку разный исход по пункту меню.");
                 return 1;
             }
@@ -432,7 +432,7 @@ namespace N42DoorsProbeF54
 
         static void PrintVoice(string f, Verdict v)
         {
-            Console.WriteLine("  " + Path.GetFileName(f) + " | " + (v.Imported ? "ВВЕЗЁН" : "ОТКАЗ")
+            Console.WriteLine("  " + Path.GetFileName(f) + " | " + (v.Imported ? "ИМПОРТИРОВАН" : "ОТКАЗ")
                               + " | " + (v.Imported
                                          ? (string.IsNullOrEmpty(v.Spoken) ? "(молча)" : v.Spoken)
                                          : v.Refusal + (string.IsNullOrEmpty(v.Spoken) ? "" : "   [вслух: " + v.Spoken + "]")));
@@ -452,7 +452,7 @@ namespace N42DoorsProbeF54
         /// <summary>
         /// Один прогон одной двери.
         ///
-        /// ⛔ ПОТОК ОШИБОК ПОДМЕНЯЕТСЯ НА ВРЕМЯ ВВОЗА. `AppUi.Report` без окон
+        /// ⛔ ПОТОК ОШИБОК ПОДМЕНЯЕТСЯ НА ВРЕМЯ ИМПОРТА. `AppUi.Report` без окон
         /// пишет туда и работу ПРОДОЛЖАЕТ — то есть приложение говорит, а
         /// проба, читающая только исключения, видела бы «(молча)». Признак без
         /// читателя не есть признак; приём взят у `N42RoundTripProbe` целиком,

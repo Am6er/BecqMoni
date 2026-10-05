@@ -588,7 +588,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             Atom atom = new Atom { Z = z };
             using (SqliteConnection connection = new SqliteConnection(
-                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+                MaterialDatabase.ReadOnlyConnection(path, true)))
             {
                 connection.Open();
                 LoadMomentumGrid(connection);

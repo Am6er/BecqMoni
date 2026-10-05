@@ -579,7 +579,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             SqliteConnection connection = new SqliteConnection(
-                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;");
+                MaterialDatabase.ReadOnlyConnection(path, true));
             connection.Open();
             return connection;
         }

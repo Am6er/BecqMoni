@@ -487,7 +487,20 @@ namespace BecquerelMonitor.EfficiencyMaker
             // полях маринелли ни на что не влияет и сохранению не мешает.
             foreach (KeyValuePair<string, double> length in Lengths(g))
             {
-                if (length.Value < 0.0)
+                // (`AMBER187`, G.4) Не число и бесконечность — тоже отказ:
+                // разбор поля «NaN» и «Infinity» принимает, а `< 0` их
+                // пропускал, и сцена строилась из NaN молча.
+                if (double.IsNaN(length.Value) || double.IsInfinity(length.Value))
+                {
+                    issues.Add(new Issue
+                    {
+                        Field = length.Key,
+                        Resource = "GeometryEditorErrorNotFiniteLength",
+                        Value = length.Value,
+                        Limit = 0.0,
+                    });
+                }
+                else if (length.Value < 0.0)
                 {
                     issues.Add(new Issue
                     {

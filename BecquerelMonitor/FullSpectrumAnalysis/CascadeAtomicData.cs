@@ -181,8 +181,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         if (!this.walkLoaded)
                         {
+                            // (`AMBER199`) отказ чтения — «не прочитано», а не «набора нет»
+                            int failuresBefore = FsaDatabaseFailures.ThreadCount;
                             this.walk = EnsdfWalk.Load(this.ParentNucid, this.Nucid);
-                            this.walkLoaded = true;
+                            this.walkLoaded = FsaDatabaseFailures.ThreadCount == failuresBefore;
                         }
 
                         return this.walk;
@@ -1039,6 +1041,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return data;
                 }
 
+                int failuresBefore = FsaDatabaseFailures.ThreadCount;
                 try
                 {
                     data = Build(nucid);
@@ -1053,9 +1056,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         Failed = true,
                         Note = "отказ базы: " + error.Message
                     };
+                    FsaDatabaseFailures.Note("nucdb.sqlite", nucid, error);
                 }
 
-                Cache[nucid] = data;
+                // ⛔ (`AMBER199`, 05.10.2026) Отказ — исключение здесь, признак
+                // `Failed` (нет базы схем) или отказ вложенного читателя — В КЭШ
+                // НЕ КЛАДЁТСЯ: следующий разбор спросит базу снова.
+                if (data != null && data.Failed && FsaDatabaseFailures.ThreadCount == failuresBefore)
+                {
+                    FsaDatabaseFailures.Note("schemedb.sqlite", nucid, new IOException(data.Note));
+                }
+
+                if (data == null || (!data.Failed && FsaDatabaseFailures.ThreadCount == failuresBefore))
+                {
+                    Cache[nucid] = data;
+                }
+
                 return data;
             }
         }
@@ -1108,6 +1124,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return data;
                 }
 
+                int failuresBefore = FsaDatabaseFailures.ThreadCount;
                 try
                 {
                     data = Build(nucid, true);
@@ -1119,9 +1136,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         Failed = true,
                         Note = "отказ базы: " + error.Message
                     };
+                    FsaDatabaseFailures.Note("nucdb.sqlite", nucid, error);
                 }
 
-                NuclearCache[nucid] = data;
+                // ⛔ (`AMBER199`) тот же запрет, что у `Of`: отказ — не в кэш
+                if (data != null && data.Failed && FsaDatabaseFailures.ThreadCount == failuresBefore)
+                {
+                    FsaDatabaseFailures.Note("schemedb.sqlite", nucid, new IOException(data.Note));
+                }
+
+                if (data == null || (!data.Failed && FsaDatabaseFailures.ThreadCount == failuresBefore))
+                {
+                    NuclearCache[nucid] = data;
+                }
+
                 return data;
             }
         }
@@ -2968,8 +2996,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         static SqliteConnection OpenRead(string path)
         {
+            // (`AMBER201`) Строка подключения — построителем, не склейкой:
+            // `;` в имени каталога программы разрезал строку, и база не открывалась.
             SqliteConnection connection = new SqliteConnection(
-                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;");
+                MaterialDatabase.ReadOnlyConnection(path, true));
             connection.Open();
             return connection;
         }
@@ -3232,11 +3262,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             }
                         }
                     }
-                    catch (Exception)
+                    catch (Exception error)
                     {
                         // Нет второй копии — нет и зажима; это не отказ разбора.
-                        energies.Clear();
-                        rows.Clear();
+                        // ⛔ (`AMBER199`) Но отказ ЧТЕНИЯ называется и не
+                        // запоминается: зажим вернётся на следующем разборе.
+                        FsaDatabaseFailures.Note("matdb.sqlite", "Z=" + z.ToString(CultureInfo.InvariantCulture), error);
+                        xs = new double[0];
+                        ys = new double[0][];
+                        return false;
                     }
 
                     xs = energies.ToArray();
@@ -3575,8 +3609,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
                     }
                 }
-                catch (SqliteException)
+                catch (SqliteException error)
                 {
+                    // (`AMBER199`) отказ назван; ленивая ветвь (`Walk`) его не запомнит
+                    FsaDatabaseFailures.Note("schemedb.sqlite", parentNucid + "→" + daughterNucid, error);
                     return null;
                 }
 
@@ -3727,8 +3763,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         return scheme;
                     }
 
+                    // ⛔ (`AMBER199`) null — «базы нет» или отказ чтения — не
+                    // кэшируется: следующий разбор спросит базу снова.
                     scheme = Read(z, a);
-                    SchemeCache[key] = scheme;
+                    if (scheme != null)
+                    {
+                        SchemeCache[key] = scheme;
+                    }
+
                     return scheme;
                 }
             }
@@ -3786,10 +3828,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception error)
                 {
                     // Отказ чтения — «схемы нет»: потребитель остаётся при доле
                     // поставки и считает такие пары отдельно.
+                    FsaDatabaseFailures.Note("schemedb.sqlite",
+                        "Z=" + z.ToString(CultureInfo.InvariantCulture) + " A=" + a.ToString(CultureInfo.InvariantCulture), error);
                     return null;
                 }
 

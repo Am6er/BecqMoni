@@ -1815,7 +1815,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (this.regions.Count > 64)
             {
                 throw new InvalidOperationException(
-                    "областей сцены " + this.regions.Count + " — больше 64, "
+                    "областей сцены " + this.regions.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " — больше 64, "
                     + "разбиение луча (T43) столько не держит");
             }
 
@@ -8706,6 +8706,26 @@ namespace BecquerelMonitor.EfficiencyMaker
             return seen[seen.Count / 2];
         }
 
+        /// <summary>
+        /// (`AMBER201`, Р4, мелочь G.6) Опрос отмены изнутри прогона: зовётся раз
+        /// в <see cref="PollCancellationEvery"/> историй основного цикла и цикла
+        /// аналогового континуума и бросает <c>OperationCanceledException</c>,
+        /// если счёт отменён. null — не опрашивать (кривая, пробы). Случайных
+        /// чисел не тянет: при неотменённом счёте поток розыгрышей и все суммы
+        /// побитово прежние.
+        /// </summary>
+        public Action PollCancellation;
+
+        const int PollCancellationEvery = 4096;
+
+        void PollCancel(int history)
+        {
+            if ((history & (PollCancellationEvery - 1)) == 0 && this.PollCancellation != null)
+            {
+                this.PollCancellation();
+            }
+        }
+
         double Run(double energyKev, double[] histogram, double binKev, out double relativeError)
         {
             this.EnsureBuilt();
@@ -8755,6 +8775,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.source.Retune(this, energyKev);
                 for (int i = 0; i < n; i++)
                 {
+                    this.PollCancel(i);
                     double x, y, z;
                     // (`E29`) Точка с весом розыгрыша: единица у всех, кроме
                     // важностного. Вес входит в счёт истории целиком — и в
@@ -10287,6 +10308,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.source.Retune(this, energyKev);
             for (int i = 0; i < n; i++)
             {
+                // (`AMBER201`) Опрос отмены — см. `PollCancellation`.
+                this.PollCancel(i);
                 double x, y, z;
                 // (`E29`) Точка с весом розыгрыша: единица у всех, кроме
                 // важностного. Вес идёт в `hist` и в `hist2` — то есть и в

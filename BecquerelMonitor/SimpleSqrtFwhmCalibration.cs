@@ -69,6 +69,17 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Со сдвигом центра канала (`AMBER171`): x = mul·j + s, F'² = F(x)²/mul² =
+        /// (c0 + c1·s)/mul² + (c1/mul)·j. Точно.
+        /// </summary>
+        public override void RescaleCoefficients(double mul, double shift)
+        {
+            double c0 = coefficients[0], c1 = coefficients[1];
+            coefficients[0] = (c0 + c1 * shift) / (mul * mul);
+            coefficients[1] = c1 / mul;
+        }
+
         public override int MinPeaksRequirement()
         {
             return 2;
@@ -76,7 +87,11 @@ namespace BecquerelMonitor
 
         public override bool PerformCalibration(int maxchannels)
         {
-            if (peaks.Count <= 1) return false;
+            if (peaks.Count <= 1)
+            {
+                LastCheck = FwhmCheckResult.Rejected;
+                return false;
+            }
             coefficients = Utils.CalibrationSolver.Solve(peaks, 1);
             return CheckCalibration(maxchannels);
         }
@@ -91,12 +106,36 @@ namespace BecquerelMonitor
             return (coefficients[0] == 0 && coefficients[1] == 0);
         }
 
+        /// <summary>
+        /// (`AMBER189`, 05.10.2026) Три заслона: коэффициенты — конечные числа (NaN
+        /// сравнением не ловится, см. <c>FwhmCalibration.CoefficientsFinite</c>);
+        /// ширина не убывает; ширина ПОЛОЖИТЕЛЬНА на каналах 0…N−1 (решение Amber
+        /// 05.10.2026 «Отвергать с подсказкой (Рекомендую)»: кривая с нулём внизу
+        /// делает поиск пиков там слепым без слова). У неубывающей кривой минимум —
+        /// на канале 0, поэтому третий заслон — одно сравнение. Проверка — при
+        /// расчёте; сохранённые кривые при открытии файла не проверяются.
+        /// </summary>
         private bool CheckCalibration(int maxchannels)
         {
+            if (!CoefficientsFinite(coefficients, 2))
+            {
+                LastCheck = FwhmCheckResult.NotFinite;
+                return false;
+            }
             for (int i = 1; i < maxchannels; i++)
             {
-                if (ChannelToFwhm(i - 1) > ChannelToFwhm(i)) return false;
+                if (ChannelToFwhm(i - 1) > ChannelToFwhm(i))
+                {
+                    LastCheck = FwhmCheckResult.Rejected;
+                    return false;
+                }
             }
+            if (!(ChannelToFwhm(0) > 0.0))
+            {
+                LastCheck = FwhmCheckResult.NonPositiveWidth;
+                return false;
+            }
+            LastCheck = FwhmCheckResult.Ok;
             return true;
         }
 

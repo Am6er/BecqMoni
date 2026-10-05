@@ -114,9 +114,6 @@ namespace BecquerelMonitor
             }
         }
 
-
-        [XmlIgnore]
-
         // Token: 0x17000205 RID: 517
         // (get) Token: 0x060006BE RID: 1726 RVA: 0x00028304 File Offset: 0x00026504
         // (set) Token: 0x060006BF RID: 1727 RVA: 0x0002830C File Offset: 0x0002650C

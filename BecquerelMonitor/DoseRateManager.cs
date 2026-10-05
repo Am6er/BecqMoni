@@ -269,9 +269,14 @@ namespace BecquerelMonitor
             string note = "";
             if (efficiency.HasGeometry && efficiency.UseResponseMatrix)
             {
+                // (`AMBER202`) общим путём читателей: склад, а нет на нём
+                // годной — матрица, приехавшая в файле спектра
                 MatrixRefusal refusal;
                 int fileFormat;
-                matrix = ResponseMatrixStore.Load(efficiency.Guid, out refusal, out fileFormat);
+                ResponseMatrixSource source;
+                string spectrumRefusal;
+                matrix = ResponseMatrixStore.Resolve(efficiency, out refusal, out fileFormat,
+                                                     out source, out spectrumRefusal);
                 if (matrix == null)
                 {
                     note = refusal == MatrixRefusal.OldFormat
@@ -283,6 +288,11 @@ namespace BecquerelMonitor
                 {
                     note = "matrix stamp does not match the geometry";
                     matrix = null;
+                }
+
+                if (matrix == null && !string.IsNullOrEmpty(spectrumRefusal))
+                {
+                    note += "; spectrum-file matrix: " + spectrumRefusal;
                 }
             }
             else if (!efficiency.HasGeometry)
@@ -327,25 +337,8 @@ namespace BecquerelMonitor
         /// </summary>
         static string MatrixStamp(EfficiencyConfigData efficiency)
         {
-            string file;
-            try
-            {
-                string path = ResponseMatrixStore.PathOf(efficiency.Guid);
-                if (!File.Exists(path))
-                {
-                    file = "-";
-                }
-                else
-                {
-                    FileInfo info = new FileInfo(path);
-                    file = string.Format(CultureInfo.InvariantCulture, "{0}:{1}",
-                                         info.Length, info.LastWriteTimeUtc.Ticks);
-                }
-            }
-            catch (Exception)
-            {
-                file = "?";
-            }
+            // (`AMBER202`) склад и блок из файла спектра — общей отметкой
+            string file = ResponseMatrixStore.SourceStamp(efficiency);
 
             return string.Format(CultureInfo.InvariantCulture, "{0}|{1}|{2}|{3}",
                                  file, efficiency.UseResponseMatrix, efficiency.HasGeometry, efficiency.Guid);

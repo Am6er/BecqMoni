@@ -1845,6 +1845,36 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// (`AMBER185`, 05.10.2026) Отпечаток ОДНОЙ ГЕОМЕТРИИ, без физики и
+        /// параметров счёта: первые 16 знаков SHA-256 того же текста геометрии,
+        /// что входит в клеймо матрицы (<see cref="GeometryText"/>, приведение
+        /// <see cref="StampView"/>), — второго способа «та ли это геометрия»
+        /// не заводится. Пишется в поле кривой
+        /// (<see cref="EfficiencyFitResult.GeometryFingerprint"/> →
+        /// `EfficiencyConfigData.GeometryFingerprint`) при счёте; клеймо и
+        /// формат матрицы он не трогает. Пусто у пустой геометрии.
+        /// </summary>
+        public static string GeometryFingerprint(GeometryModel geometry)
+        {
+            if (geometry == null)
+            {
+                return "";
+            }
+
+            using (SHA256 sha = SHA256.Create())
+            {
+                byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes("geom=" + GeometryText(geometry)));
+                var hex = new StringBuilder(16);
+                for (int i = 0; i < 8; i++)
+                {
+                    hex.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
+                }
+
+                return hex.ToString();
+            }
+        }
+
+        /// <summary>
         /// Текст геометрии для отпечатка. Собирается тем же `GeometryWriter`,
         /// что сохраняет модель на диск, — но в памяти (`Render`), без
         /// временного файла: проверка годности зовётся с UI-потока на каждый
@@ -3437,12 +3467,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                 writer.Write(flags.ElectronLayerBremAngular2BS);
             }
 
+            // (`AMBER201`, Р4, подозрение полосы 9) ЗАМЕНОЙ, а не «удалить, потом
+            // перенести»: между `Delete` и `Move` файла не было вовсе, и отказ
+            // переноса (файл занят читателем) оставлял кривую без матрицы
+            // совсем. `File.Replace` — один каталог, один том: читатель видит
+            // либо прежний файл, либо новый.
             if (File.Exists(path))
             {
-                File.Delete(path);
+                File.Replace(temp, path, null);
             }
-
-            File.Move(temp, path);
+            else
+            {
+                File.Move(temp, path);
+            }
         }
 
         /// <summary>
@@ -3908,7 +3945,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             try
             {
-                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete))
                 using (var reader = new BinaryReader(stream, Encoding.UTF8))
                 {
                     if (Encoding.ASCII.GetString(reader.ReadBytes(4)) != "BQRM")
@@ -3978,12 +4015,44 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Принимается только <see cref="PreviousFormatVersion"/>: раскладка
         /// более старых форматов (8 — без `ANGK`) этому читателю неизвестна.
         /// </summary>
-        public static ResponseMatrix Load(string path, out MatrixRefusal refusal, out int fileFormat,
+        public static ResponseMatrix Load(string fileName, out MatrixRefusal refusal, out int fileFormat,
                                           int legacyFormatForComparison = 0)
+        {
+            return Load(fileName, out refusal, out fileFormat, legacyFormatForComparison, null);
+        }
+
+        /// <summary>
+        /// (`AMBER202`) То же чтение ИЗ ПОТОКА — ради матрицы, приехавшей внутри
+        /// файла спектра (<see cref="EmbeddedResponseMatrix"/>): она
+        /// распаковывается в память и читается ЭТИМ ЖЕ кодом, второго читателя
+        /// формата нет. Поток обязан уметь `Seek` (отпечаток тела `A121`
+        /// перечитывает диапазон) и остаётся открытым.
+        /// </summary>
+        public static ResponseMatrix Load(Stream stream, out MatrixRefusal refusal, out int fileFormat,
+                                          int legacyFormatForComparison = 0)
+        {
+            if (stream == null)
+            {
+                throw new ArgumentNullException("stream");
+            }
+
+            return Load(null, out refusal, out fileFormat, legacyFormatForComparison, stream);
+        }
+
+        /// <summary>
+        /// Тело чтения — ОДНО на файл и на поток (`AMBER202`): <paramref name="source"/>
+        /// null — читается файл <paramref name="path"/>, иначе поток (он
+        /// остаётся открытым). ⚠ Сигнатура «`Load(string path, out MatrixRefusal`»
+        /// — якорь сторожа `tools/check_matrix_keys.py` (правило C ищет чтение
+        /// ключей клейма в теле ЭТОГО метода); обёртки выше нарочно названы
+        /// иначе, чтобы якорь не взял пустую обёртку.
+        /// </summary>
+        static ResponseMatrix Load(string path, out MatrixRefusal refusal, out int fileFormat,
+                                   int legacyFormatForComparison, Stream source)
         {
             refusal = MatrixRefusal.NoFile;
             fileFormat = 0;
-            if (!File.Exists(path))
+            if (source == null && !File.Exists(path))
             {
                 return null;
             }
@@ -3991,9 +4060,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             refusal = MatrixRefusal.Unreadable;
             try
             {
-                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-                using (var reader = new BinaryReader(stream, Encoding.UTF8))
+                using (var file = source == null
+                           ? new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete)
+                           : null)
+                using (var reader = new BinaryReader(source ?? file, Encoding.UTF8, true))
                 {
+                    Stream stream = source ?? file;
                     if (Encoding.ASCII.GetString(reader.ReadBytes(4)) != "BQRM")
                     {
                         refusal = MatrixRefusal.NotOurs;

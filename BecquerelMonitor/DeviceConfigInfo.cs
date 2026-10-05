@@ -548,7 +548,7 @@ namespace BecquerelMonitor
                     //    заново может любой читатель, у которого человек есть, —
                     //    так и устроен `DocumentManager.WhyNoFwhmCalibration`.
                     //    Отсутствие кривой у копии — законное состояние
-                    //    (~~`A212`~~), о нём говорят двери открытия и ввоза
+                    //    (~~`A212`~~), о нём говорят двери открытия и импорта
                     //    (~~`A234`~~) и показывает вкладка ПШПВ
                     //    (`DCFwhmCalibrationView.ApplyFwhmRefusalHint`).
                     fwhmConfig.FwhmCalibration = FwhmCalibration.DefaultCalibration(fwhmConfig, energyCalibration);

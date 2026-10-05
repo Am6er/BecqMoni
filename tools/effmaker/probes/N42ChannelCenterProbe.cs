@@ -12,7 +12,7 @@ using System.Xml.Serialization;
 namespace N42ChannelCenterProbe
 {
     /// <summary>
-    /// `AMBER73` (полоса П137, 22.09.2026) — СОГЛАШЕНИЕ «ИНДЕКС КАНАЛА» НА ВВОЗЕ N42:
+    /// `AMBER73` (полоса П137, 22.09.2026) — СОГЛАШЕНИЕ «ИНДЕКС КАНАЛА» НА ИМПОРТЕ N42:
     /// граница канала или его центр.
     ///
     /// ⛔ ЧТО МЕРИТСЯ, ПЯТЬЮ ЗАМЕРАМИ:
@@ -35,9 +35,9 @@ namespace N42ChannelCenterProbe
     ///    энергии (счёт канала = интеграл гауссианы по [edges[i], edges[i+1]]). Истина
     ///    известна до кэВ, и невязка обязана быть 0, а не h/2. Кладётся дважды — тот же
     ///    спектр границами и полиномом, — чтобы оба положения мерились одной меркой.
-    /// 5. `--roundtrip=<файл>` КРУГ ПРИЛОЖЕНИЯ: ввоз → `Util.ExportToN42` → ввоз.
-    ///    Шкала обязана вернуться той же (`A148`), иначе правка ввоза, не поддержанная
-    ///    вывозом, уводит собственные файлы приложения на полканала.
+    /// 5. `--roundtrip=<файл>` КРУГ ПРИЛОЖЕНИЯ: импорт → `Util.ExportToN42` → импорт.
+    ///    Шкала обязана вернуться той же (`A148`), иначе правка импорта, не поддержанная
+    ///    экспортом, уводит собственные файлы приложения на полканала.
     ///
     /// Общие ключи: `--dir=<каталог>` (основа для имён), `--culture=<имя>`.
     /// Код возврата 1 — если названы ожидания (`--expect-*`) и они не сошлись.
@@ -221,7 +221,7 @@ namespace N42ChannelCenterProbe
             Console.WriteLine("=== 3. ЭНЕРГИЯ ПИКА ПРОТИВ ПАСПОРТНОЙ ЛИНИИ: " + name + " ===");
             int[] spectrum;
             PolynomialEnergyCalibration cal = ImportFull(f, true, out spectrum, out string err);
-            if (cal == null) { Console.WriteLine("  ⛔ ввоз отказал: " + err); bad++; return; }
+            if (cal == null) { Console.WriteLine("  ⛔ импорт отказал: " + err); bad++; return; }
             Console.WriteLine("  каналов " + spectrum.Length + ", шкала порядок " + cal.PolynomialOrder + " [" + Join(cal.Coefficients) + "]");
             Console.WriteLine("  линия, кэВ | канал(дробн.) | E(центроид), кэВ | невязка, кэВ | h, кэВ | невязка/h");
             double sumRatio = 0.0; int nRatio = 0;
@@ -382,18 +382,18 @@ namespace N42ChannelCenterProbe
         }
 
         // ==================================================================
-        // 5. КРУГ ПРИЛОЖЕНИЯ: ВВОЗ → ВЫВОЗ → ВВОЗ
+        // 5. КРУГ ПРИЛОЖЕНИЯ: ИМПОРТ → ЭКСПОРТ → ИМПОРТ
         // ==================================================================
 
         static void RoundTrip(string name)
         {
-            Console.WriteLine("=== 5. КРУГ «ВВОЗ → ВЫВОЗ → ВВОЗ»: " + name + " ===");
+            Console.WriteLine("=== 5. КРУГ «ИМПОРТ → ЭКСПОРТ → ИМПОРТ»: " + name + " ===");
             string f = Path.Combine(dir, name);
             DocEnergySpectrum doc = new DocEnergySpectrum();
             TextWriter realErr = Console.Error;
             Console.SetError(new StringWriter());
             try { DocumentManager.GetInstance().ImportDocumentN42(doc, f); }
-            catch (Exception ex) { Console.SetError(realErr); Console.WriteLine("  ⛔ первый ввоз отказал: " + ex.Message); bad++; return; }
+            catch (Exception ex) { Console.SetError(realErr); Console.WriteLine("  ⛔ первый импорт отказал: " + ex.Message); bad++; return; }
             finally { Console.SetError(realErr); }
             PolynomialEnergyCalibration first = doc.ActiveResultData.EnergySpectrum.EnergyCalibration as PolynomialEnergyCalibration;
             string outPath = Path.Combine(Path.GetTempPath(), "p137_roundtrip.n42");
@@ -405,14 +405,14 @@ namespace N42ChannelCenterProbe
                 XmlWriterSettings st = new XmlWriterSettings { Indent = true, Encoding = new UTF8Encoding(false) };
                 using (XmlWriter w = XmlWriter.Create(outPath, st)) { xs.Serialize(w, rad); w.Flush(); }
             }
-            catch (Exception ex) { Console.WriteLine("  ⛔ вывоз отказал: " + ex.Message); bad++; return; }
+            catch (Exception ex) { Console.WriteLine("  ⛔ экспорт отказал: " + ex.Message); bad++; return; }
             DocEnergySpectrum doc2 = new DocEnergySpectrum();
             Console.SetError(new StringWriter());
             try { DocumentManager.GetInstance().ImportDocumentN42(doc2, outPath); }
-            catch (Exception ex) { Console.SetError(realErr); Console.WriteLine("  ⛔ второй ввоз отказал: " + ex.Message); bad++; return; }
+            catch (Exception ex) { Console.SetError(realErr); Console.WriteLine("  ⛔ второй импорт отказал: " + ex.Message); bad++; return; }
             finally { Console.SetError(realErr); }
             PolynomialEnergyCalibration second = doc2.ActiveResultData.EnergySpectrum.EnergyCalibration as PolynomialEnergyCalibration;
-            Console.WriteLine("  до вывоза:  порядок " + first.PolynomialOrder + " [" + Join(first.Coefficients) + "]");
+            Console.WriteLine("  до экспорта:  порядок " + first.PolynomialOrder + " [" + Join(first.Coefficients) + "]");
             Console.WriteLine("  после круга: порядок " + second.PolynomialOrder + " [" + Join(second.Coefficients) + "]");
             int n = doc.ActiveResultData.EnergySpectrum.NumberOfChannels;
             double max = 0.0;
