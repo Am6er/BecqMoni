@@ -228,6 +228,7 @@
             this.comboBox12 = new System.Windows.Forms.ComboBox();
             this.miscSettingsGroupBox = new System.Windows.Forms.GroupBox();
             this.importSpectrumWithEmptyConfigCheckBox = new System.Windows.Forms.CheckBox();
+            this.saveResponseMatrixInSpectrumCheckBox = new System.Windows.Forms.CheckBox();
             this.progressiveSmoothTooltip = new System.Windows.Forms.ToolTip(this.components);
             this.button3 = new System.Windows.Forms.Button();
             this.tabControl1.SuspendLayout();
@@ -2052,6 +2053,7 @@
             // 
             resources.ApplyResources(this.miscSettingsGroupBox, "miscSettingsGroupBox");
             this.miscSettingsGroupBox.Controls.Add(this.importSpectrumWithEmptyConfigCheckBox);
+            this.miscSettingsGroupBox.Controls.Add(this.saveResponseMatrixInSpectrumCheckBox);
             this.miscSettingsGroupBox.Name = "miscSettingsGroupBox";
             this.miscSettingsGroupBox.TabStop = false;
             this.progressiveSmoothTooltip.SetToolTip(this.miscSettingsGroupBox, resources.GetString("miscSettingsGroupBox.ToolTip"));
@@ -2061,6 +2063,12 @@
             resources.ApplyResources(this.importSpectrumWithEmptyConfigCheckBox, "importSpectrumWithEmptyConfigCheckBox");
             this.importSpectrumWithEmptyConfigCheckBox.Name = "importSpectrumWithEmptyConfigCheckBox";
             this.progressiveSmoothTooltip.SetToolTip(this.importSpectrumWithEmptyConfigCheckBox, resources.GetString("importSpectrumWithEmptyConfigCheckBox.ToolTip"));
+            // 
+            // saveResponseMatrixInSpectrumCheckBox
+            // 
+            resources.ApplyResources(this.saveResponseMatrixInSpectrumCheckBox, "saveResponseMatrixInSpectrumCheckBox");
+            this.saveResponseMatrixInSpectrumCheckBox.Name = "saveResponseMatrixInSpectrumCheckBox";
+            this.progressiveSmoothTooltip.SetToolTip(this.saveResponseMatrixInSpectrumCheckBox, resources.GetString("saveResponseMatrixInSpectrumCheckBox.ToolTip"));
             // 
             // progressiveSmoothTooltip
             // 
@@ -2744,5 +2752,6 @@
         global::System.Windows.Forms.Label confidenceLevelLabel;
         global::System.Windows.Forms.GroupBox miscSettingsGroupBox;
         global::System.Windows.Forms.CheckBox importSpectrumWithEmptyConfigCheckBox;
+        global::System.Windows.Forms.CheckBox saveResponseMatrixInSpectrumCheckBox;
     }
 }

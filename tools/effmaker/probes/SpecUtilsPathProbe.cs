@@ -165,8 +165,8 @@ namespace SpecUtilsPathProbe
             string snapC = ImportSnapshot(cyr, out errC);
             string snapL = ImportSnapshot(lat, out errL);
 
-            Console.WriteLine("  кириллица: " + (snapC != null ? "ВВЕЗЁН, слепок " + Sha(snapC) : "ОТКАЗ — " + errC));
-            Console.WriteLine("  латиница:  " + (snapL != null ? "ВВЕЗЁН, слепок " + Sha(snapL) : "ОТКАЗ — " + errL));
+            Console.WriteLine("  кириллица: " + (snapC != null ? "ИМПОРТИРОВАН, слепок " + Sha(snapC) : "ОТКАЗ — " + errC));
+            Console.WriteLine("  латиница:  " + (snapL != null ? "ИМПОРТИРОВАН, слепок " + Sha(snapL) : "ОТКАЗ — " + errL));
 
             if (expectCyr == "open" && snapC == null)
             {
@@ -212,7 +212,7 @@ namespace SpecUtilsPathProbe
             try { DocumentManager.GetInstance().ImportDocumentN42(doc, path); }
             catch (Exception ex) { err = ex.GetType().Name + ": " + One(ex.Message); }
             finally { Console.SetError(realErr); }
-            Console.WriteLine("  дверь N42: " + (err == null ? "ВВЕЗЁН" : "ОТКАЗ — " + err));
+            Console.WriteLine("  дверь N42: " + (err == null ? "ИМПОРТИРОВАН" : "ОТКАЗ — " + err));
             Console.WriteLine();
         }
 
@@ -236,7 +236,7 @@ namespace SpecUtilsPathProbe
                 string err;
                 string snap = ImportSnapshot(p, out err);
                 Console.WriteLine("  " + (p == lat ? "латиница:  " : "кириллица: ")
-                                  + (snap != null ? "⛔ ВВЕЗЁН — МУСОР ПРИНЯТ" : "отвергнут — " + err));
+                                  + (snap != null ? "⛔ ИМПОРТИРОВАН — МУСОР ПРИНЯТ" : "отвергнут — " + err));
                 if (snap != null) bad++;
                 else if (err == null || err.IndexOf("Unknown file format", StringComparison.Ordinal) < 0)
                 {
@@ -252,7 +252,7 @@ namespace SpecUtilsPathProbe
         // ==================================================================
 
         /// <summary>
-        /// Ввоз через `ImportDocumentSpecUtils` и канонический текст всего, что
+        /// Импорт через `ImportDocumentSpecUtils` и канонический текст всего, что
         /// после него лежит в документе. Сравнивать надо именно ЭТО, а не факт
         /// «открылось»: обход, подсунувший библиотеке другой файл, открылся бы
         /// тоже.

@@ -33,8 +33,21 @@ namespace BecquerelMonitor
             this.table1.SuspendLayout();
             this.tableModel1.Rows.Clear();
             this.tableModel1.Selections.Clear();
-            if (definitionsDirty) this.manager.LoadDefinitionFile(forceReload: true);
+            if (definitionsDirty && this.manager.LoadDefinitionFile(forceReload: true))
+            {
+                // (`AMBER196`) Список перечитан с диска — память снова сходится
+                // с файлом. Прежде признак оставался, и КАЖДОЕ следующее
+                // перестроение списка перечитывало файл заново, подменяя
+                // объекты под уже выбранной строкой.
+                this.definitionsDirty = false;
+            }
             this.manager.NuclideDefinitions.Sort();
+            // ⛔ (`AMBER196`) Активная линия ищется ПО ССЫЛКЕ, а если список
+            // перечитан с диска (объекты новые) — по имени И энергии. Прежде
+            // искали по одному имени: выделялись все линии нуклида, а активной
+            // становилась последняя из них — в полях одна линия, следующая
+            // правка ложилась в другую.
+            NuclideDefinition listedActive = this.FindListed(this.activeNuclide);
             foreach (NuclideDefinition nuclideDefinition in this.manager.NuclideDefinitions)
             {
                 Row row = new Row();
@@ -52,13 +65,44 @@ namespace BecquerelMonitor
                 }
                 row.Tag = nuclideDefinition;
                 this.tableModel1.Rows.Add(row);
-                if (this.activeNuclide != null && nuclideDefinition.Name == this.activeNuclide.Name)
+                if (listedActive != null && ReferenceEquals(nuclideDefinition, listedActive))
                 {
                     this.activeNuclide = nuclideDefinition;
                     this.tableModel1.Selections.AddCell(row.Index, 0);
                 }
             }
             this.table1.ResumeLayout();
+        }
+
+        /// <summary>
+        /// (`AMBER196`) Та же линия в текущем списке менеджера: сама (по
+        /// ссылке), а после перечитывания файла — первая с тем же именем И той
+        /// же энергией. Нет такой — null.
+        /// </summary>
+        NuclideDefinition FindListed(NuclideDefinition nuclide)
+        {
+            if (nuclide == null)
+            {
+                return null;
+            }
+
+            foreach (NuclideDefinition listed in this.manager.NuclideDefinitions)
+            {
+                if (ReferenceEquals(listed, nuclide))
+                {
+                    return listed;
+                }
+            }
+
+            foreach (NuclideDefinition listed in this.manager.NuclideDefinitions)
+            {
+                if (listed.Name == nuclide.Name && listed.Energy == nuclide.Energy)
+                {
+                    return listed;
+                }
+            }
+
+            return null;
         }
 
         // Token: 0x060000C5 RID: 197 RVA: 0x00003F34 File Offset: 0x00002134
@@ -269,17 +313,38 @@ namespace BecquerelMonitor
                 nuclideDefinition = (NuclideDefinition)this.table1.SelectedItems[0].Tag;
                 row = this.table1.SelectedItems[0];
             }
-            if (this.activeNuclide != null && nuclideDefinition?.CompareTo(this.activeNuclide) > 0) // Not same nuclide
+            // ⛔ (`AMBER196`) «Другая строка» — другой ОБЪЕКТ. Прежде стояло
+            // `CompareTo(...) > 0`, а `CompareTo` сравнивает ЭНЕРГИИ (так
+            // сортируется список): уход на строку с меньшей энергией правку
+            // затирал без вопроса. Замысел — не спрашивать на той же строке
+            // (`d20d69fb`), и он сохранён.
+            bool rebuilt = false;
+            if (this.activeNuclide != null && nuclideDefinition != null
+                && !ReferenceEquals(nuclideDefinition, this.activeNuclide))
             {
+                bool wasDirty = this.activeNuclide.Dirty;
                 if (!this.ConfirmSaveNuclide())
                 {
                     this.ListupNuclideDefinitions();
                     this.reenter = false;
                     return;
                 }
+                if (wasDirty)
+                {
+                    // Вопрос перестроил список (при отказе от правок — ещё и
+                    // перечитал файл, объекты новые): выбранную строку надо
+                    // найти в нём заново и выделить её, а не прежнюю.
+                    nuclideDefinition = this.FindListed(nuclideDefinition);
+                    rebuilt = true;
+                }
             }
             if (nuclideDefinition != null)
             {
+                if (rebuilt)
+                {
+                    this.activeNuclide = nuclideDefinition;
+                    this.ListupNuclideDefinitions();
+                }
                 // Выделение НЕ сводится обратно к одной ячейке: раньше здесь
                 // стояли Selections.Clear() + AddCell, и Ctrl/Shift не работали
                 // — таблица сама умеет несколько строк, а форма их гасила.

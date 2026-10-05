@@ -14,12 +14,12 @@ namespace LsrmGeometryImportProbe
     /// <summary>
     /// Приёмка остатка `AMBER18` (полоса П7, 12.09.2026) — решение Amber
     /// 12.09.2026, вопросником, дословно: «Привязать геометрию при ввозе ЛСРМ».
-    /// Ввоз экспорта ЛСРМ на вкладке Efficiency вторым шагом берёт `.in` той
+    /// Импорт экспорта ЛСРМ на вкладке Efficiency вторым шагом берёт `.in` той
     /// же геометрии (`DeviceConfigForm.ImportLsrmEfficiencyWithGeometry`), и
     /// у кривой появляется масштаб для дозы. Окно `BecqMoni` не поднимается:
     /// проба зовёт тот же статический метод, что и кнопка.
     ///
-    ///  §1 ВВОЗ ПАРЫ ЛСРМ (экспорт `RadiaCode - marinelli 0.5.txt` + модель
+    ///  §1 ИМПОРТ ПАРЫ ЛСРМ (экспорт `RadiaCode - marinelli 0.5.txt` + модель
     ///     `RadiaCode_Marinelli0.5.in`; ⛔ `LSRM Geometries/` снят из дерева
     ///     15.09.2026 решением Amber, и без `--lsrm=` пара собирается ИЗ ДЕРЕВА:
     ///     текст экспорта пишется в рабочий каталог пробы из поставочной кривой
@@ -42,7 +42,7 @@ namespace LsrmGeometryImportProbe
     ///     связи «эта кривая считана для этого прибора» нет, число — проверка
     ///     механики, не измерение. (б) СТРОГИЙ КОНТРОЛЬ: точки кривой из узла
     ///     `Efficiency` спектра `AS80_Cs137_0cm` записываются экспортом ЛСРМ и
-    ///     ввозятся с `.in` той же сцены `AS80_point0` — доза «≈» по ввезённой
+    ///     импортируются с `.in` той же сцены `AS80_point0` — доза «≈» по импортированной
     ///     кривой обязана совпасть с дозой «≈» по родной кривой снимка
     ///     (`DoseRateInput.Of(родная, null)`) до 1e-12 относительных: те же
     ///     точки, та же геометрия, тот же путь. Число печатается рядом с
@@ -50,14 +50,14 @@ namespace LsrmGeometryImportProbe
     ///
     ///  §3 ОТКАЗ ОТ `.in` (Cancel → null) — `Geometry == null`, доза — прежний
     ///     отказ словами («геометрии нет»); `.in`, которого нет на диске, —
-    ///     кривая ввезена, геометрии нет, причина названа; `.in` сцены поля
+    ///     кривая импортирована, геометрии нет, причина названа; `.in` сцены поля
     ///     (`DS_Scene = ISO`) — то же: кривая ЛСРМ в долях к сцене на флюенс
     ///     не привязывается.
     ///
     ///  §4 АВТОПОДБОР: одноимённый `.in` рядом с экспортом находится, без
     ///     него — null.
     ///
-    ///  §5 ПОДПИСИ: четыре ключа ввоза в `DeviceConfigForm.resx` / `.ru.resx`
+    ///  §5 ПОДПИСИ: четыре ключа импорта в `DeviceConfigForm.resx` / `.ru.resx`
     ///     читаются по обеим культурам и различаются (сторож `check_resx_designer`
     ///     обращений через `ComponentResourceManager` не видит).
     ///
@@ -69,10 +69,10 @@ namespace LsrmGeometryImportProbe
     /// перевёрнуты: 0 — отказ получен (проба смотрит), 1 — не получен (слепа).
     ///
     ///   badin — вместо `.in` §1 подсунут БИТЫЙ файл (текст экспорта под
-    ///           именем `.in`): ввоз обязан положить кривую БЕЗ геометрии и
+    ///           именем `.in`): импорт обязан положить кривую БЕЗ геометрии и
     ///           НАЗВАТЬ причину; проба обязана это поймать (§1 «геометрия
     ///           есть» падает, сообщение непустое);
-    ///   stamp — ввезённая кривая выдаёт себя за посчитанную из геометрии
+    ///   stamp — импортированная кривая выдаёт себя за посчитанную из геометрии
     ///           (`Origin = Simulation`, клеймо `phys=…`): проба обязана
     ///           отказать на §1.
     ///
@@ -130,7 +130,7 @@ namespace LsrmGeometryImportProbe
 
             string scratch = Path.Combine(Path.GetTempPath(), "lsrmgeomimport-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(scratch);
-            Console.WriteLine("LsrmGeometryImportProbe — `AMBER18`, полоса П7 12.09.2026: геометрия при ввозе ЛСРМ");
+            Console.WriteLine("LsrmGeometryImportProbe — `AMBER18`, полоса П7 12.09.2026: геометрия при импорте ЛСРМ");
             Console.WriteLine("корпус: {0}; ЛСРМ: {1}; порча: {2}", corpusDir,
                               lsrmDir ?? "пара из дерева (каталог снят 15.09.2026)", sabotage ?? "нет");
 
@@ -186,19 +186,19 @@ namespace LsrmGeometryImportProbe
         }
 
         // ==================================================================
-        // §1. Ввоз пары ЛСРМ
+        // §1. Импорт пары ЛСРМ
         // ==================================================================
 
         static EfficiencyConfigData ImportPair(string exportPath, string modelPath, string scratch)
         {
-            Head("§1. ВВОЗ ПАРЫ ЛСРМ: " + Path.GetFileName(exportPath) + " + " + Path.GetFileName(modelPath));
+            Head("§1. ИМПОРТ ПАРЫ ЛСРМ: " + Path.GetFileName(exportPath) + " + " + Path.GetFileName(modelPath));
 
             string geometryPath = modelPath;
             if (sabotage == "badin")
             {
                 // Битый `.in`: текст ЭКСПОРТА под именем геометрии. Читатель
                 // `ключ = значение` на нём не падает — модель выйдет с нулевым
-                // кристаллом, и ловить это обязан ввоз, а не доза.
+                // кристаллом, и ловить это обязан импорт, а не доза.
                 geometryPath = Path.Combine(scratch, "broken.in");
                 File.Copy(exportPath, geometryPath);
                 Console.WriteLine("  ⚠ ПОРЧА: вместо .in подсунут текст экспорта: " + geometryPath);
@@ -210,8 +210,8 @@ namespace LsrmGeometryImportProbe
             EfficiencyConfigData config = DeviceConfigForm.ImportLsrmEfficiencyWithGeometry(
                 device, exportPath, geometryPath, out problem, out geometryProblem);
             Ok(config != null, config != null
-                ? "экспорт ввезён: точек " + config.Curve.Count
-                : "экспорт НЕ ввезён: " + (problem ?? "причина не названа"));
+                ? "экспорт импортирован: точек " + config.Curve.Count
+                : "экспорт НЕ импортирован: " + (problem ?? "причина не названа"));
             if (config == null)
             {
                 throw new InvalidOperationException("без кривой дальше мерить нечего");
@@ -233,7 +233,7 @@ namespace LsrmGeometryImportProbe
             Ok(config.Geometry != null, "Geometry != null" + (geometryProblem != null ? " (причина отказа: " + Short(geometryProblem) + ")" : ""));
             if (sabotage == "badin")
             {
-                Ok(!string.IsNullOrEmpty(geometryProblem), "битый .in: причина НАЗВАНА (ввоз с сообщением)");
+                Ok(!string.IsNullOrEmpty(geometryProblem), "битый .in: причина НАЗВАНА (импорт с сообщением)");
             }
 
             string note = config.Note == null ? "" : config.Note.ToString();
@@ -434,15 +434,15 @@ namespace LsrmGeometryImportProbe
             EfficiencyConfigData imported = DeviceConfigForm.ImportLsrmEfficiencyWithGeometry(
                 device, exportPath, inPath, out problem, out geometryProblem);
             Ok(imported != null && imported.Geometry != null,
-               "ввоз с AS80_point0.in: кривая " + (imported == null ? "НЕ ввезена: " + problem
-                   : "ввезена, геометрия " + (imported.Geometry == null ? "НЕТ: " + geometryProblem : "есть")));
+               "импорт с AS80_point0.in: кривая " + (imported == null ? "НЕ импортирована: " + problem
+                   : "импортирована, геометрия " + (imported.Geometry == null ? "НЕТ: " + geometryProblem : "есть")));
             if (imported == null || imported.Geometry == null)
             {
                 return;
             }
 
             Ok(imported.Curve.Count == native.Curve.Count,
-               "точек ввезено " + imported.Curve.Count + " из " + native.Curve.Count + " (ни одна не отсечена)");
+               "точек импортировано " + imported.Curve.Count + " из " + native.Curve.Count + " (ни одна не отсечена)");
 
             var manager = new DoseRateManager(Config());
             DoseRate reference;
@@ -461,8 +461,8 @@ namespace LsrmGeometryImportProbe
             copy.Efficiency = imported;
             DoseRate dose = manager.Calculate(copy);
             Console.WriteLine("  родная по пиковой:   «" + reference + "»");
-            Console.WriteLine("  ввезённая ЛСРМ + .in: «" + dose + "»");
-            Ok(dose != null && string.IsNullOrEmpty(dose.Refusal), "ввезённая кривая даёт число" + (dose == null ? " (пусто)" : dose.Refusal == "" ? "" : ": «" + Short(dose.Refusal) + "»"));
+            Console.WriteLine("  импортированная ЛСРМ + .in: «" + dose + "»");
+            Ok(dose != null && string.IsNullOrEmpty(dose.Refusal), "импортированная кривая даёт число" + (dose == null ? " (пусто)" : dose.Refusal == "" ? "" : ": «" + Short(dose.Refusal) + "»"));
             if (dose == null || !string.IsNullOrEmpty(dose.Refusal))
             {
                 return;
@@ -471,7 +471,7 @@ namespace LsrmGeometryImportProbe
             Ok(dose.Approximate && reference.Approximate, "оба числа со знаком «≈»");
             double rel = Math.Abs(dose.Rate - reference.Rate) / Math.Max(1e-300, Math.Abs(reference.Rate));
             Ok(rel < 1e-12, string.Format(CultureInfo.InvariantCulture,
-                "≈ {0:f6} (ввезённая) = ≈ {1:f6} (родная) мкЗв/ч, отн. {2:e2} < 1e-12", dose.Rate, reference.Rate, rel));
+                "≈ {0:f6} (импортированная) = ≈ {1:f6} (родная) мкЗв/ч, отн. {2:e2} < 1e-12", dose.Rate, reference.Rate, rel));
             Ok(Math.Abs(dose.Rate - P1Approximate) / P1Approximate < 0.02,
                string.Format(CultureInfo.InvariantCulture, "против журнала П1 ≈ {0:f3}: {1:+0.0;-0.0} %",
                              P1Approximate, 100.0 * (dose.Rate / P1Approximate - 1.0)));
@@ -550,7 +550,7 @@ namespace LsrmGeometryImportProbe
             EfficiencyConfigData config = DeviceConfigForm.ImportLsrmEfficiencyWithGeometry(
                 device, exportPath, null, out problem, out geometryProblem);
             Ok(config != null && config.Geometry == null && geometryProblem == null,
-               "Cancel (.in = null): кривая ввезена, Geometry == null, сообщения о геометрии нет");
+               "Cancel (.in = null): кривая импортирована, Geometry == null, сообщения о геометрии нет");
             Ok(config != null && config.Origin == EfficiencyOrigin.Lsrm, "Cancel: Origin = Lsrm");
             if (config != null && data != null)
             {
@@ -570,7 +570,7 @@ namespace LsrmGeometryImportProbe
             config = DeviceConfigForm.ImportLsrmEfficiencyWithGeometry(
                 device, exportPath, missing, out problem, out geometryProblem);
             Ok(config != null && config.Geometry == null && !string.IsNullOrEmpty(geometryProblem),
-               ".in отсутствует: кривая ввезена без геометрии, причина: «" + Short(geometryProblem) + "»");
+               ".in отсутствует: кривая импортирована без геометрии, причина: «" + Short(geometryProblem) + "»");
 
             // Сцена поля
             string iso = Path.Combine(scratch, "iso.in");
@@ -578,7 +578,7 @@ namespace LsrmGeometryImportProbe
             config = DeviceConfigForm.ImportLsrmEfficiencyWithGeometry(
                 device, exportPath, iso, out problem, out geometryProblem);
             Ok(config != null && config.Geometry == null && !string.IsNullOrEmpty(geometryProblem),
-               ".in сцены поля (ISO): кривая ввезена без геометрии, причина: «" + Short(geometryProblem) + "»");
+               ".in сцены поля (ISO): кривая импортирована без геометрии, причина: «" + Short(geometryProblem) + "»");
 
             // Прямая проверка читателя: битый файл → причина «нет кристалла»
             string broken = Path.Combine(scratch, "garbage.in");
@@ -608,12 +608,12 @@ namespace LsrmGeometryImportProbe
         }
 
         // ==================================================================
-        // §5. Подписи ввоза — в ресурсах САМОЙ ФОРМЫ, обе культуры
+        // §5. Подписи импорта — в ресурсах САМОЙ ФОРМЫ, обе культуры
         // ==================================================================
 
         /// <summary>
         /// Четыре ключа `DeviceConfigForm.resx` / `.ru.resx`, которые читает
-        /// ввоз через `ComponentResourceManager(typeof(DeviceConfigForm))`.
+        /// импорт через `ComponentResourceManager(typeof(DeviceConfigForm))`.
         /// ⚠ Сторож `check_resx_designer.py` разбирает только форму записи
         /// `Resources.ResourceManager.GetString("X")` и этих обращений НЕ
         /// видит: опечатка в ключе отдала бы запасной английский текст молча.
@@ -622,7 +622,7 @@ namespace LsrmGeometryImportProbe
         /// </summary>
         static void FormStrings()
         {
-            Head("§5. ПОДПИСИ ВВОЗА В РЕСУРСАХ ФОРМЫ: обе культуры, ключ в ключ");
+            Head("§5. ПОДПИСИ ИМПОРТА В РЕСУРСАХ ФОРМЫ: обе культуры, ключ в ключ");
             var manager = new System.ComponentModel.ComponentResourceManager(typeof(DeviceConfigForm));
             var en = CultureInfo.GetCultureInfo("en-US");
             var ru = CultureInfo.GetCultureInfo("ru-RU");

@@ -1885,6 +1885,13 @@ namespace BecquerelMonitor
         void toolStripRefreshBgButton_Click(object sender, EventArgs e)
         {
             if (!IsBackgroundExists()) return;
+            // (`AMBER201`, мелочь 2.15, 05.10.2026) Прежний фон запоминается: файл,
+            // отвергнутый ниже, больше не снимает вместе с собой и тот фон, что
+            // уже был в документе (встроенный в файл спектра — второго его
+            // источника нет нигде).
+            EnergySpectrum previousBackground = this.ActiveResultData.BackgroundEnergySpectrum;
+            string previousFile = this.ActiveResultData.BackgroundSpectrumFile;
+            string previousPath = this.ActiveResultData.BackgroundSpectrumPathname;
             if (this.ActiveResultData.BackgroundSpectrumPathname == "")
             {
                 OpenFileDialog openFileDialog = new OpenFileDialog();
@@ -1899,18 +1906,25 @@ namespace BecquerelMonitor
                 this.ActiveResultData.BackgroundSpectrumPathname = openFileDialog.FileName;
             }
             DocumentManager.GetInstance().LoadBackgroundSpectrum(this.ActiveResultData);
+            if (object.ReferenceEquals(this.ActiveResultData.BackgroundEnergySpectrum, previousBackground))
+            {
+                // Файл не загрузился (о причине уже сказал `LoadBackgroundSpectrum`):
+                // документ остаётся с прежним фоном и прежним путём.
+                this.ActiveResultData.BackgroundSpectrumPathname = previousPath;
+                return;
+            }
             if (this.ActiveResultData.BackgroundEnergySpectrum != null && this.ActiveResultData.EnergySpectrum.NumberOfChannels != this.ActiveResultData.BackgroundEnergySpectrum.NumberOfChannels)
             {
                 // УВЕДОМЛЕНИЕ, а не отказ: обработчик щелчка, у него нет
-                // вызывающего, которому вернуть код, — а несовпавший фон тут
-                // же снимается СО СЛЕДОМ в самом документе (путь и имя файла
-                // очищаются, `BackgroundEnergySpectrum` обнуляется), так что
-                // «фона нет» видно и без окна. Бросок отсюда в окнах поднял бы
-                // диалог необработанного исключения — хуже прежнего.
+                // вызывающего, которому вернуть код. (`AMBER201`, 2.15) Несовпавший
+                // файл НЕ принимается, а документ возвращается к ПРЕЖНЕМУ фону —
+                // прежде вместе с отвергнутым файлом снимался и он. Бросок отсюда
+                // в окнах поднял бы диалог необработанного исключения.
                 AppUi.Report(Properties.Resources.ERRIncompatibleChannelParameters, Properties.Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
-                this.ActiveResultData.BackgroundEnergySpectrum = null;
-                this.ActiveResultData.BackgroundSpectrumFile = "";
-                this.ActiveResultData.BackgroundSpectrumPathname = "";
+                this.ActiveResultData.BackgroundEnergySpectrum = previousBackground;
+                this.ActiveResultData.BackgroundSpectrumFile = previousFile;
+                this.ActiveResultData.BackgroundSpectrumPathname = previousPath;
+                return;
             }
             this.Dirty = true;
             this.UpdateEnergySpectrum();
@@ -1931,8 +1945,14 @@ namespace BecquerelMonitor
         void toolStripSplitButton_Click(object sender, EventArgs e)
         {
             DocumentManager.GetInstance().SplitDocEnergySpectrum(this);
+            // (`AMBER168`, 05.10.2026) UpdateSpectrum здесь НЕ ставится: это флаг
+            // «идёт набор», снимают его только «Стоп» и уставка, и после «отделить
+            // фон» он оставался навсегда — таймер окна писал активному спектру
+            // EndTime = «сейчас» и перерисовывал его без конца. Разовую перерисовку
+            // панелей дают разовые флаги ниже.
             this.UpdateMeasurementResult = true;
-            this.UpdateSpectrum = true;
+            this.UpdateDetectedPeaks = true;
+            this.UpdateDoseRate = true;
             this.UpdateSpectrumList = true;
             this.UpdateEnergySpectrum();
         }

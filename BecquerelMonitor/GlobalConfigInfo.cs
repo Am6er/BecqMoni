@@ -1,4 +1,5 @@
-﻿using System.Xml.Serialization;
+﻿using System;
+using System.Xml.Serialization;
 
 namespace BecquerelMonitor
 {
@@ -388,6 +389,41 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (`AMBER202`, решение Amber 05.10.2026 «Настройка, умолчание ВКЛ
+        /// (Рекомендую)») Класть ли матрицу отклика выбранной кривой в файл
+        /// спектра (`ResultData.EmbeddedResponseMatrix`). Файлам конфигурации
+        /// без элемента остаётся умолчание поля — включено.
+        /// </summary>
+        public bool SaveResponseMatrixInSpectrum
+        {
+            get
+            {
+                return this.saveResponseMatrixInSpectrum;
+            }
+            set
+            {
+                this.saveResponseMatrixInSpectrum = value;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER202`) Нынешнее значение настройки для сериализации спектра.
+        /// Недоступная конфигурация (проба, отказ чтения) — умолчание «писать».
+        /// </summary>
+        public static bool SaveResponseMatrixInSpectrumNow()
+        {
+            try
+            {
+                GlobalConfigInfo config = GlobalConfigManager.GetInstance().GlobalConfig;
+                return config == null || config.SaveResponseMatrixInSpectrum;
+            }
+            catch (Exception)
+            {
+                return true;
+            }
+        }
+
         public bool ControlPanelisDateTimeFormat
         {
             get
@@ -457,6 +493,8 @@ namespace BecquerelMonitor
         bool autosavedefaultpolicy = false;
 
         bool importSpectrumWithEmptyConfig = false;
+
+        bool saveResponseMatrixInSpectrum = true;
 
         // Token: 0x040008BD RID: 2237
         ResultTranslation resultTranslation = ResultTranslation.Becquerels;

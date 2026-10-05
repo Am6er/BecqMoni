@@ -13,18 +13,42 @@ namespace BecquerelMonitor.Utils
         public static void Write(string path, Action<Stream> writeAction)
         {
             string tempPath = path + ".tmp";
-            using (FileStream fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            try
             {
-                writeAction(fileStream);
-                fileStream.Flush(true);
+                using (FileStream fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    writeAction(fileStream);
+                    fileStream.Flush(true);
+                }
+                if (File.Exists(path))
+                {
+                    File.Replace(tempPath, path, null);
+                }
+                else
+                {
+                    File.Move(tempPath, path);
+                }
             }
-            if (File.Exists(path))
+            catch
             {
-                File.Replace(tempPath, path, null);
-            }
-            else
-            {
-                File.Move(tempPath, path);
+                // (`AMBER201`, мелочь 2.13, 05.10.2026) Отказ записи — исключение
+                // вызывающему, как и прежде, но недописанный `.tmp` больше не
+                // остаётся рядом с файлом человека (в каталоге конфигурации их
+                // копилось по одному на каждый отказ). Прежний файл цел: замена
+                // идёт только после полной записи.
+                try
+                {
+                    if (File.Exists(tempPath))
+                    {
+                        File.Delete(tempPath);
+                    }
+                }
+                catch (Exception)
+                {
+                    // Снять не вышло (файл держит чужой процесс) — главное здесь
+                    // исходный отказ, он и уходит наверх.
+                }
+                throw;
             }
         }
     }

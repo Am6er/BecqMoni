@@ -5442,6 +5442,9 @@
   <data name="importSpectrumWithEmptyConfigCheckBox.Size" type="System.Drawing.Size, System.Drawing">
     <value>500, 17</value>
   </data>
+  <data name="saveResponseMatrixInSpectrumCheckBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>500, 17</value>
+  </data>
   <data name="colorComboBox30.Location" type="System.Drawing.Point, System.Drawing">
     <value>614, 74</value>
   </data>
@@ -5702,6 +5705,9 @@
   </data>
   <data name="importSpectrumWithEmptyConfigCheckBox.ToolTip" xml:space="preserve">
     <value />
+  </data>
+  <data name="saveResponseMatrixInSpectrumCheckBox.ToolTip" xml:space="preserve">
+    <value>Puts the response matrix of the selected efficiency curve into the saved spectrum file (compressed): whoever receives the file analyses the spectrum with the matrix without computing it again. Off — the file carries the curve and its geometry only.</value>
   </data>
   <data name="&gt;&gt;label61.Parent" xml:space="preserve">
     <value>groupBox4</value>
@@ -7797,6 +7803,9 @@
   <data name="&gt;&gt;importSpectrumWithEmptyConfigCheckBox.Name" xml:space="preserve">
     <value>importSpectrumWithEmptyConfigCheckBox</value>
   </data>
+  <data name="&gt;&gt;saveResponseMatrixInSpectrumCheckBox.Name" xml:space="preserve">
+    <value>saveResponseMatrixInSpectrumCheckBox</value>
+  </data>
   <data name="&gt;&gt;label84.ZOrder" xml:space="preserve">
     <value>3</value>
   </data>
@@ -8502,6 +8511,9 @@
   <data name="importSpectrumWithEmptyConfigCheckBox.Location" type="System.Drawing.Point, System.Drawing">
     <value>21, 18</value>
   </data>
+  <data name="saveResponseMatrixInSpectrumCheckBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>21, 41</value>
+  </data>
   <data name="&gt;&gt;comboBox4.Parent" xml:space="preserve">
     <value>groupBox1</value>
   </data>
@@ -8988,6 +9000,9 @@
   <data name="&gt;&gt;importSpectrumWithEmptyConfigCheckBox.Parent" xml:space="preserve">
     <value>miscSettingsGroupBox</value>
   </data>
+  <data name="&gt;&gt;saveResponseMatrixInSpectrumCheckBox.Parent" xml:space="preserve">
+    <value>miscSettingsGroupBox</value>
+  </data>
   <data name="groupBox4.ToolTip" xml:space="preserve">
     <value />
   </data>
@@ -9317,6 +9332,9 @@
   </data>
   <data name="importSpectrumWithEmptyConfigCheckBox.Text" xml:space="preserve">
     <value>Set empty configuration for imported spectrums</value>
+  </data>
+  <data name="saveResponseMatrixInSpectrumCheckBox.Text" xml:space="preserve">
+    <value>Save response matrix into spectrum file</value>
   </data>
   <data name="&gt;&gt;confidenceLevelcomboBox.ZOrder" xml:space="preserve">
     <value>8</value>
@@ -9879,6 +9897,9 @@
   <data name="&gt;&gt;importSpectrumWithEmptyConfigCheckBox.Type" xml:space="preserve">
     <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="&gt;&gt;saveResponseMatrixInSpectrumCheckBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="&gt;&gt;label64.Parent" xml:space="preserve">
     <value>groupBox4</value>
   </data>
@@ -10290,6 +10311,9 @@
   <data name="&gt;&gt;importSpectrumWithEmptyConfigCheckBox.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
+  <data name="&gt;&gt;saveResponseMatrixInSpectrumCheckBox.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
   <data name="integerTextBox7.Location" type="System.Drawing.Point, System.Drawing">
     <value>291, 31</value>
   </data>
@@ -10517,6 +10541,9 @@
   </data>
   <data name="importSpectrumWithEmptyConfigCheckBox.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
+  </data>
+  <data name="saveResponseMatrixInSpectrumCheckBox.TabIndex" type="System.Int32, mscorlib">
+    <value>1</value>
   </data>
   <data name="&gt;&gt;button2.ZOrder" xml:space="preserve">
     <value>2</value>

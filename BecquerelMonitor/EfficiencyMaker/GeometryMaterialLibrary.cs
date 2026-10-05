@@ -421,7 +421,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                  + "90:0.140610");
 
             // Таблица веществ ЛСРМ (`materials.dat` их же GeometryMaster, 2008;
-            // ввоз 16.08.2026 — `tools/effmaker/import_lsrm_materials.py`).
+            // импорт 16.08.2026 — `tools/effmaker/import_lsrm_materials.py`).
             // Двадцать девять строк выше — НАШИ, выверенные руками, и таблица их
             // не трогает: у двух плотность отличается НАРОЧНО (`SiO2` 1.6 и
             // `CaCO3` 1.5 — насыпные, `M5`, против монолитных 2.32 и 2.8), а
@@ -429,7 +429,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // пропускается по имени — состав и плотность у неё те же, что в
             // строке таблицы (`AMBER53`).
             //
-            // Состав ввезённых задан массовыми долями, а не формулой, и вид у
+            // Состав импортированных задан массовыми долями, а не формулой, и вид у
             // них `Other`: «куда годится» в файле ЛСРМ нет, а разложить 287
             // веществ по пяти видам можно было бы только угадыванием.
             HashSet<string> already = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -714,7 +714,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             double weightSum = 0.0;
             foreach (GeometryMaterialComponent component in entry.Components)
             {
-                weightSum += Math.Max(0.0, component.Weight);
+                weightSum += UsableAmountOrZero(component.Weight);
             }
 
             if (!(weightSum > 0.0))
@@ -729,7 +729,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             string gassy = null;
             foreach (GeometryMaterialComponent component in entry.Components)
             {
-                double weight = Math.Max(0.0, component.Weight) / weightSum;
+                double weight = UsableAmountOrZero(component.Weight) / weightSum;
                 if (weight <= 0.0)
                 {
                     continue;
@@ -897,9 +897,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // Веса относительные — нормируются здесь. «50 и 50» и «1 и 1»
                 // обязаны дать одно и то же.
                 double weights = 0.0;
+                // (`AMBER187`, G.4) Вес годен только конечный и положительный:
+                // «Infinity» прежде проходил `> 0`, сумма весов становилась
+                // бесконечной, и доли выходили NaN (∞/∞) — состав вещества
+                // молча превращался в мусор. Редактор такой вес отвергает
+                // (<see cref="IsUsableAmount"/>), а здесь он просто не участвует.
                 foreach (GeometryMaterialComponent component in entry.Components)
                 {
-                    if (component.Weight > 0.0 && !InChain(chain, component.Material))
+                    if (IsUsableAmount(component.Weight) && !InChain(chain, component.Material))
                     {
                         weights += component.Weight;
                     }
@@ -912,7 +917,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 foreach (GeometryMaterialComponent component in entry.Components)
                 {
-                    if (!(component.Weight > 0.0) || InChain(chain, component.Material))
+                    if (!IsUsableAmount(component.Weight) || InChain(chain, component.Material))
                     {
                         continue;
                     }
@@ -938,6 +943,21 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// (`AMBER187`) Годно ли число как вес составляющей или плотность:
+        /// конечное и строго положительное. NaN не проходит `&gt; 0` сам, а
+        /// бесконечность проходит — её и ловит вторая половина условия.
+        /// </summary>
+        public static bool IsUsableAmount(double value)
+        {
+            return value > 0.0 && !double.IsInfinity(value);
+        }
+
+        static double UsableAmountOrZero(double value)
+        {
+            return IsUsableAmount(value) ? value : 0.0;
         }
 
         static bool InChain(List<string> chain, string name)

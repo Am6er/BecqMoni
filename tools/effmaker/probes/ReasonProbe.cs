@@ -63,7 +63,7 @@ namespace ReasonProbe
     ///
     /// ⛔ СОСЕДНЯЯ ДВЕРЬ ТОЙ ЖЕ ОБЁРТКИ — <c>AppUi.Report</c> (`A174`, 05.09.2026).
     /// Без окон она печатает одну строку в поток ошибок, и при ПУСТОМ
-    /// заголовке (так её зовут все места ввоза N42) строка выходила
+    /// заголовке (так её зовут все места импорта N42) строка выходила
     /// «BecqMoni: : текст». Плечо <c>заголовок</c> перехватывает поток ошибок
     /// и мерит обе стороны: без заголовка — «BecqMoni: текст», с заголовком
     /// — прежняя строка БАЙТ В БАЙТ, «BecqMoni: заголовок: текст».
@@ -785,7 +785,7 @@ namespace ReasonProbe
         static void Reported()
         {
             const string Text = "в файле N42 не прочитано время начала набора";
-            const string Caption = "Ввоз N42";
+            const string Caption = "Импорт N42";
             string nl = Environment.NewLine;
 
             string bare = CaptureError(() => AppUi.Report(Text, "", MessageBoxIcon.None));

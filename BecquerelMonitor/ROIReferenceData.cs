@@ -26,7 +26,9 @@
         // Token: 0x06000EF3 RID: 3827 RVA: 0x00056898 File Offset: 0x00054A98
         public ROIReferenceData(ROIReferenceData prim) : base(prim)
         {
-            this.reference = string.Copy(prim.reference);
+            // (`AMBER191`) У нового нетронутого примитива ссылки ещё нет (null):
+            // string.Copy(null) ронял сохранение набора ArgumentNullException.
+            this.reference = string.Copy(prim.reference ?? "");
         }
 
         // Token: 0x06000EF4 RID: 3828 RVA: 0x000568B4 File Offset: 0x00054AB4
@@ -36,6 +38,6 @@
         }
 
         // Token: 0x0400089E RID: 2206
-        string reference;
+        string reference = "";
     }
 }

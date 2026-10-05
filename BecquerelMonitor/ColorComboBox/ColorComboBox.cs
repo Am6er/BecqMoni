@@ -211,6 +211,30 @@ namespace ColorComboBox
 				}
 			}
 
+			// (`AMBER201`, мелочь 3.6, 05.10.2026) Запущенный таймер окон держит себя
+			// (и через подписку — кнопку, а с ней всю форму) живым и после закрытия
+			// окна: каждое открытие «Настроек» оставляло 37 таймеров, тикающих
+			// раз в 30 мс до конца работы программы, и не отпускало саму форму.
+			// Кнопка снимает его с собой, вместе со всплывающей палитрой.
+			protected override void Dispose(bool disposing)
+			{
+				if (disposing)
+				{
+					this.timer.Stop();
+					this.timer.Tick -= this.OnCheckStatus;
+					this.timer.Dispose();
+					if (this.popupWnd != null && !this.popupWnd.IsDisposed)
+					{
+						this.popupWnd.Dispose();
+					}
+					if (!this.colors.IsDisposed)
+					{
+						this.colors.Dispose();
+					}
+				}
+				base.Dispose(disposing);
+			}
+
 			// Token: 0x04000D8B RID: 3467
 			static ColorDialog colorDialog;
 

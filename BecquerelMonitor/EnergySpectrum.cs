@@ -177,12 +177,13 @@ namespace BecquerelMonitor
         {
             this.numberOfChannels = old.NumberOfChannels;
             this.channelPitch = old.ChannelPitch;
+            // (`AMBER201`, мелочь 2.11, 05.10.2026) Линейная шкала — ДВА коэффициента
+            // при степени 1: `CheckCalibration` отвергает степень 1 с набором из
+            // трёх, и файл 0.97b после преобразования всё равно уходил в вопрос
+            // «сбросить калибровку?» (замер `Fix201Probe`, случай 2.11).
             PolynomialEnergyCalibration polynomialEnergyCalibration = new PolynomialEnergyCalibration();
-            PolynomialEnergyCalibration polynomialEnergyCalibration2 = polynomialEnergyCalibration;
-            double[] array = new double[3];
-            array[0] = old.EnergyOffset;
-            array[1] = old.EnergyCoefficient;
-            polynomialEnergyCalibration2.Coefficients = array;
+            polynomialEnergyCalibration.PolynomialOrder = 1;
+            polynomialEnergyCalibration.Coefficients = new double[] { old.EnergyOffset, old.EnergyCoefficient };
             this.energyCalibration = polynomialEnergyCalibration;
             this.totalPulseCount = old.TotalPulseCount;
             this.validPulseCount = old.ValidPulseCount;

@@ -142,7 +142,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             using (SqliteConnection connection = new SqliteConnection(
-                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+                MaterialDatabase.ReadOnlyConnection(path, true)))
             {
                 connection.Open();
                 LoadGrids(connection);
@@ -161,7 +161,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 using (SqliteCommand command = connection.CreateCommand())
                 {
                     command.CommandText =
-                        "select e_idx, kappa_idx, chi_mb from seltzer_berger where z=" + z;
+                        "select e_idx, kappa_idx, chi_mb from seltzer_berger where z="
+                        + z.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     using (SqliteDataReader reader = command.ExecuteReader())
                     {
                         while (reader.Read())

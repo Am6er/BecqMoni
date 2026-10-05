@@ -624,12 +624,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return 0.0;
             }
 
-            System.Text.RegularExpressions.Match m =
-                System.Text.RegularExpressions.Regex.Match(raw, @"^\s*(-?[0-9.]+(?:[eE][-+]?[0-9]+)?)");
-            double value;
-            return m.Success && double.TryParse(m.Groups[1].Value, NumberStyles.Float,
-                                                CultureInfo.InvariantCulture, out value)
-                ? value : 0.0;
+            // (`AMBER201`, 9.3) Тем же разбором, что чтение `.in`: запятая —
+            // разделитель дробной части наравне с точкой.
+            return GeometryModel.LeadingNumber(raw);
         }
 
         /// <summary>Вещество, которого мы не показываем: как было, иначе умолчание.</summary>
@@ -644,15 +641,41 @@ namespace BecquerelMonitor.EfficiencyMaker
                     {
                         Name = defaultName, Formula = defaultFormula, Density = defaultDensity
                     }, defaultDensity);
+                Material(text, slot, material);
+                return;
             }
 
-            Material(text, slot, material);
+            Material(text, slot, material, CarriedFractionType(model, slot));
+        }
+
+        /// <summary>
+        /// (`AMBER201`, Р4, подозрение полосы 9) Тип долей ПЕРЕНОСИМОГО слота —
+        /// как в исходном файле. Доли такого слота переносятся как записаны
+        /// (<see cref="Read"/> их не пересчитывает), а подпись прежде ставилась
+        /// всегда `MASS`: слот с `ATOM` в исходном файле выходил из круга
+        /// «открыл — сохранил» с атомными долями под подписью массовых. Наш
+        /// счёт этих слотов не читает (германий, «пустое место»), но файл
+        /// пишется и для GMaster. В дереве у всех 244 `.in` переносимые слоты
+        /// `MASS` — текст файла и клеймо матриц правкой не задеты.
+        /// </summary>
+        static string CarriedFractionType(GeometryModel model, Slot slot)
+        {
+            string type;
+            return model.Raw.TryGetValue(slot.FractionTypeKey, out type)
+                   && type.Trim().StartsWith("ATOM", StringComparison.OrdinalIgnoreCase)
+                ? "ATOM"
+                : "MASS";
         }
 
         static void CarrySlot(StringBuilder text, GeometryModel model, Slot slot)
         {
             GeometryMaterial material = Read(model, slot);
-            if (material == null)
+            if (material != null)
+            {
+                Material(text, slot, material, CarriedFractionType(model, slot));
+                return;
+            }
+
             {
                 // Воздух. Состав в файлах LSRM у «пустого места» записан водой
                 // при воздушной плотности; повторять эту странность не будем,
@@ -691,9 +714,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             GeometryMaterial material = new GeometryMaterial();
             string name;
             material.Name = model.Raw.TryGetValue(slot.NamePrefix + ".MName", out name) ? name.Trim() : "";
-            double value;
-            material.Density = double.TryParse(density.Trim(), NumberStyles.Float,
-                                               CultureInfo.InvariantCulture, out value) ? value : 0.0;
+            // (`AMBER201`, 9.3) Тем же разбором числа, что чтение `.in`.
+            material.Density = GeometryModel.LeadingNumber(density);
             for (int i = 0; i < 24; i++)
             {
                 string zKey = slot.ZPart + "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
@@ -705,9 +727,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 int z;
-                double fraction;
+                double fraction = GeometryModel.LeadingNumber(fRaw);
                 if (int.TryParse(zRaw.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out z)
-                    && double.TryParse(fRaw.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out fraction)
                     && z > 0 && fraction > 0.0)
                 {
                     double have;
@@ -720,6 +741,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         static void Material(StringBuilder text, Slot slot, GeometryMaterial material)
+        {
+            Material(text, slot, material, "MASS");
+        }
+
+        static void Material(StringBuilder text, Slot slot, GeometryMaterial material, string fractionType)
         {
             List<int> order = new List<int>(material.Fractions.Keys);
             order.Sort();
@@ -734,7 +760,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                    slot.FractionsPart, i, material.Fractions[order[i]]));
             }
 
-            line(slot.FractionTypeKey + " = MASS");
+            line(slot.FractionTypeKey + " = " + fractionType);
             line(slot.NamePrefix + ".MName = " + material.Name);
             line(slot.NamePrefix + ".Nmaterials = 1");
             // Имя дополнено пробелами до 41 знака — так в файлах LSRM; на разбор

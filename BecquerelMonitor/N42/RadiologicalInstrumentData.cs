@@ -41,7 +41,7 @@ namespace BecquerelMonitor.N42
         //    то есть как xs:duration («PT295S»). Измерено 06.09.2026 входом
         //    case30_rad_live_iso: XmlSerializer бросал
         //    InvalidOperationException «There is an error in XML document
-        //    (10, 20)» ← FormatException, и наружу шло «ввоз N42 оборвался» —
+        //    (10, 20)» ← FormatException, и наружу шло «импорт N42 оборвался» —
         //    ни спектра, ни указания, какое поле виновато.
         //
         //    ⚠ Соседнее поле RealTime уже заведено строкой ровно по этой

@@ -519,6 +519,9 @@ namespace BecquerelMonitor
                 DialogResult dialogResult = MessageBox.Show(string.Format(Resources.MSGDeleteROIDefinition, this.activeROIDefinition.Name), Resources.ConfirmationDialogTitle, MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);
                 if (dialogResult == DialogResult.OK)
                 {
+                    // (`AMBER191`) Ссылки на удалённую зону НЕ снимаются: при
+                    // счёте они дают ошибку ссылающейся зоны — видно человеку.
+                    this.renameFollowers.Clear();
                     this.activeROIConfig.ROIDefinitions.Remove(this.activeROIDefinition);
                     this.ListupROIDefinitions(this.activeROIConfig);
                     this.EnableROIDefinitionForm(false);
@@ -658,10 +661,53 @@ namespace BecquerelMonitor
             this.tableModel2.Selections.Clear();
         }
 
+        /// <summary>
+        /// (`AMBER191`) Ссылочные примитивы набора, которые при счёте найдут
+        /// именно <paramref name="target"/>: имя совпадает, и первая зона
+        /// набора с этим именем — она (счёт берёт первую по порядку). Пустое
+        /// имя не ищется — пустая ссылка ни на что не указывает.
+        /// </summary>
+        internal static System.Collections.Generic.List<ROIReferenceData> FindReferencesTo(ROIConfigData config, ROIDefinitionData target)
+        {
+            System.Collections.Generic.List<ROIReferenceData> found = new System.Collections.Generic.List<ROIReferenceData>();
+            if (config == null || target == null || string.IsNullOrEmpty(target.Name))
+            {
+                return found;
+            }
+
+            ROIDefinitionData resolved = null;
+            foreach (ROIDefinitionData zone in config.ROIDefinitions)
+            {
+                if (zone.Name == target.Name)
+                {
+                    resolved = zone;
+                    break;
+                }
+            }
+            if (resolved != target)
+            {
+                return found;
+            }
+
+            foreach (ROIDefinitionData zone in config.ROIDefinitions)
+            {
+                foreach (ROIPrimitiveData prim in zone.ROIPrimitives)
+                {
+                    ROIReferenceData reference = prim as ROIReferenceData;
+                    if (reference != null && reference.Reference == target.Name)
+                    {
+                        found.Add(reference);
+                    }
+                }
+            }
+            return found;
+        }
+
         // Token: 0x0600090F RID: 2319 RVA: 0x00034A64 File Offset: 0x00032C64
         void LoadROIDefinitionFormContents(ROIDefinitionData roi)
         {
             this.contentsLoading = true;
+            this.renameFollowers = FindReferencesTo(this.activeROIConfig, roi);
             this.textBox1.Text = roi.Name;
             this.checkBox1.Checked = roi.Enabled;
             this.doubleTextBox3.Text = roi.BecquerelCoefficient.ToString(CultureInfo.InvariantCulture);
@@ -1092,7 +1138,9 @@ namespace BecquerelMonitor
             this.contentsLoading = true;
             int row = e.Row;
             Row row2 = this.tableModel1.Rows[row];
-            this.activeROIConfig.ROIDefinitions[row].Enabled = row2.Cells[0].Checked;
+            // AMBER194: зона — из Tag строки, а не по индексу: сортировка по заголовку
+            // переставляет строки таблицы, и индекс строки указывает на чужую зону.
+            ((ROIDefinitionData)row2.Tag).Enabled = row2.Cells[0].Checked;
             if (this.activeROIDefinition == (ROIDefinitionData)row2.Tag)
             {
                 this.checkBox1.Checked = row2.Cells[0].Checked;
@@ -1109,6 +1157,12 @@ namespace BecquerelMonitor
                 return;
             }
             this.activeROIDefinition.Name = this.textBox1.Text;
+            // (`AMBER191`) Ссылки на зону ищутся при счёте по ИМЕНИ —
+            // переименование уносит их с собой, иначе вычитаемое молча пропадало.
+            foreach (ROIReferenceData follower in this.renameFollowers)
+            {
+                follower.Reference = this.textBox1.Text;
+            }
             this.UpdateROIDefinitionList();
             this.SetActiveROIConfigDirty();
         }
@@ -1241,7 +1295,11 @@ namespace BecquerelMonitor
             roidefinitionData.PeakEnergy = nuclideDefinition.Energy;
             roidefinitionData.LowerLimit = Math.Floor(nuclideDefinition.Energy - nuclideDefinition.Energy * num / 2.0);
             roidefinitionData.UpperLimit = Math.Round(nuclideDefinition.Energy + nuclideDefinition.Energy * num / 2.0);
-            roidefinitionData.HalfLife = nuclideDefinition.HalfLife;
+            // ⛔ (`AMBER195`) Период зоны — тот, по которому её поправляют на
+            // распад: у линии ряда — период КОРНЯ (Bi-214 ряда Ra-226 — 1600
+            // лет), а не свой (19.9 мин давали множитель 4.7·10²¹ за сутки).
+            roidefinitionData.HalfLife = NuclideDefinition.DecayHalfLifeYears(
+                nuclideDefinition, NuclideDefinitionManager.GetInstance().NuclideDefinitions);
             roidefinitionData.Intencity = nuclideDefinition.Intencity;
             // K здесь больше не заполняется разово: зона заводится с
             // включённой галочкой «считать по эффективности», и коэффициент
@@ -1279,6 +1337,15 @@ namespace BecquerelMonitor
 
         // Token: 0x04000509 RID: 1289
         ROIDefinitionData activeROIDefinition;
+
+        /// <summary>
+        /// (`AMBER191`) Ссылочные примитивы набора, которые при загрузке зоны в
+        /// редактор указывали на НЕЁ. Переименование переписывает их имя на
+        /// каждом нажатии: список собран заранее, поэтому промежуточное пустое
+        /// имя не захватывает чужие пустые ссылки.
+        /// </summary>
+        System.Collections.Generic.List<ROIReferenceData> renameFollowers =
+            new System.Collections.Generic.List<ROIReferenceData>();
 
         // Token: 0x0400050A RID: 1290
         GlobalConfigManager globalConfigManager = GlobalConfigManager.GetInstance();

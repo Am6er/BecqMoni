@@ -400,7 +400,24 @@ namespace BecquerelMonitor
             ResultData activeResultData = activeDocument.ActiveResultData;
             ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
             double totalSeconds = resultDataStatus.ElapsedTime.TotalSeconds;
-            double progress = totalSeconds / (double)resultDataStatus.PresetTime * 100.0;
+            // AMBER177: предел 0 у пустого спектра давал 0/0 = NaN, и полоса
+            // бросала на каждом обновлении. Предел ≤ 0 означает «уже достигнут»
+            // (набор при нём не стартует и останавливается сразу,
+            // MeasurementController.cs: ElapsedTime >= PresetTime), поэтому
+            // набранный спектр — 100 %, пустой — 0 %, как и прежде при x/0 = +∞.
+            double progress;
+            if (resultDataStatus.PresetTime <= 0)
+            {
+                progress = totalSeconds > 0.0 ? 100.0 : 0.0;
+            }
+            else
+            {
+                progress = totalSeconds / (double)resultDataStatus.PresetTime * 100.0;
+            }
+            if (double.IsNaN(progress) || double.IsInfinity(progress))
+            {
+                progress = 0.0;
+            }
             if (progress < 0.0)
             {
                 progress = 0.0;

@@ -17,7 +17,7 @@ namespace AtomSpectraN42ProbeP151
     /// <summary>
     /// `AMBER87` (полоса П151, 24.09.2026) — N42, ЗАПИСАННЫЙ AtomSpectra, И
     /// ВСЕ ПРОЧИЕ N42: какой признак программы получает файл, какую шкалу
-    /// дают ему две двери ввоза и не дрейфует ли круг «ввоз → вывоз → ввоз».
+    /// дают ему две двери импорта и не дрейфует ли круг «импорт → экспорт → импорт».
     ///
     /// Решение Amber 24.09.2026 вопросником, дословно: «N42 AtomSpectra без
     /// сдвига (Рекомендую)». Признак — <c>Util.IsWrittenByAtomSpectra</c>
@@ -30,10 +30,10 @@ namespace AtomSpectraN42ProbeP151
     ///   обязаны дать одну шкалу: наибольшее по каналам |ΔE| ≤ порога;
     /// `--pair-differ=…` — то же, но обязано быть НЕ МЕНЬШЕ (положительный контроль
     ///   сборки ДО);
-    /// `--check` — у каждого ввезённого файла: двери N42 и SpecUtils — одна шкала
-    ///   (|ΔE| ≤ 1E-3 кэВ, одинарная точность SpecUtils), круг вывоз→ввоз
+    /// `--check` — у каждого импортированного файла: двери N42 и SpecUtils — одна шкала
+    ///   (|ΔE| ≤ 1E-3 кэВ, одинарная точность SpecUtils), круг экспорт→импорт
     ///   (|ΔE| ≤ 1E-9 кэВ);
-    /// `--tmp=&lt;каталог&gt;` — куда класть вывезенные копии (по умолчанию %TEMP%);
+    /// `--tmp=&lt;каталог&gt;` — куда класть экспортированные копии (по умолчанию %TEMP%);
     /// `--dump=&lt;tsv&gt;` — «файл, дверь, признак, каналов, коэффициенты R» для
     ///   побитовой сверки двух сборок.
     /// Код 1 — не сошлось ожидание.
@@ -108,13 +108,13 @@ namespace AtomSpectraN42ProbeP151
                     if (check && e1 == null)
                     {
                         string back = RoundTrip(f, n42, nch);
-                        Console.WriteLine("  круг ввоз→вывоз→ввоз: " + back);
+                        Console.WriteLine("  круг импорт→экспорт→импорт: " + back);
                     }
                 }
             }
             Console.WriteLine();
             Console.WriteLine("ИТОГ: файлов " + files.ToString(CultureInfo.InvariantCulture) + ", признак AtomSpectra у "
-                              + atom.ToString(CultureInfo.InvariantCulture) + ", ввезено дверью N42 " + n42ok.ToString(CultureInfo.InvariantCulture));
+                              + atom.ToString(CultureInfo.InvariantCulture) + ", импортировано дверью N42 " + n42ok.ToString(CultureInfo.InvariantCulture));
 
             foreach (string[] p in pairs) Pair(p[1], p[0] == "same");
 
@@ -208,7 +208,7 @@ namespace AtomSpectraN42ProbeP151
                 bool ok = Math.Abs(d) <= 1e-9;
                 if (!ok) bad++;
                 return "наибольшее |ΔE| " + F(d) + " кэВ (канал " + arg.ToString(CultureInfo.InvariantCulture)
-                       + "), признак вывезенного: " + backSign + " — " + (ok ? "не дрейфует" : "⛔ ДРЕЙФ");
+                       + "), признак экспортированного: " + backSign + " — " + (ok ? "не дрейфует" : "⛔ ДРЕЙФ");
             }
             catch (Exception ex)
             {

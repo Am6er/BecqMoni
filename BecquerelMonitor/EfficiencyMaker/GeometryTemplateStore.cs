@@ -308,12 +308,28 @@ namespace BecquerelMonitor.EfficiencyMaker
             LoadError = null;
         }
 
+        /// <summary>(`AMBER201`) Замок ленивой загрузки — тот же довод, что у
+        /// <see cref="GeometryMaterialStore"/>.</summary>
+        static readonly object Gate = new object();
+
         static void EnsureLoaded()
         {
             if (items != null)
             {
                 return;
             }
+
+            lock (Gate)
+            {
+                if (items == null)
+                {
+                    LoadLocked();
+                }
+            }
+        }
+
+        static void LoadLocked()
+        {
 
             GeometryTemplateConfig config = null;
             try
@@ -539,14 +555,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Directory.CreateDirectory(dir);
             }
 
+            // (`AMBER201`, Р4, подозрение полосы 8) Через временный файл и замену,
+            // а не `FileMode.Create` поверх файла: отказ посреди записи прежде
+            // оставлял обрубок, и все свои шаблоны человека пропадали из списка.
             XmlSerializer serializer = new XmlSerializer(typeof(GeometryTemplateConfig));
-            using (FileStream stream = new FileStream(path, FileMode.Create, FileAccess.Write))
-            {
-                serializer.Serialize(stream, config);
-            }
+            Utils.AtomicFileWriter.Write(path, stream => serializer.Serialize(stream, config));
 
-            items = next;
-            LoadError = null;
+            lock (Gate)
+            {
+                items = next;
+                LoadError = null;
+            }
         }
     }
 }

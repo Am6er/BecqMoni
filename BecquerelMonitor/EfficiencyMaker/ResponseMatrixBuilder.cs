@@ -157,6 +157,23 @@ namespace BecquerelMonitor.EfficiencyMaker
                 throw new ArgumentNullException("geometry");
             }
 
+            // (`AMBER201`, Р4, мелочь 9.2) Боковая постановка у цилиндра —
+            // отказ словами до счёта, а не часы счёта сцены с переставленной
+            // обвязкой (`E21` обещал отказ, `FacingError` прежде не читал никто).
+            string facingError = geometry.FacingError;
+            if (!string.IsNullOrEmpty(facingError))
+            {
+                throw new InvalidOperationException(facingError);
+            }
+
+            // (`AMBER201`, Р4, подозрение G) Элемент вне таблиц ослабления в
+            // любом слое сцены — отказ словами, а не слой без него.
+            string unknownElement = geometry.UnknownElementProblem();
+            if (unknownElement != null)
+            {
+                throw new InvalidOperationException(unknownElement);
+            }
+
             if (options == null)
             {
                 options = new ResponseMatrixOptions();
@@ -350,7 +367,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double resolutionExtra;
                         double[][] histograms = RunNode(geometry, options, grid[index], index,
                                                         histories, out achieved, out angular,
-                                                        out resolutionExtra);
+                                                        out resolutionExtra, cancellation);
                         nodeResolutionExtra[index] = resolutionExtra;
                         nodeSeconds[index] += (double)(Stopwatch.GetTimestamp() - ticks0)
                                               / Stopwatch.Frequency;
@@ -1070,10 +1087,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         static double[][] RunNode(GeometryModel geometry, ResponseMatrixOptions options,
                                   double energyKev, int index, int histories,
                                   out double achieved, out AngularMomentSums angular,
-                                  out double resolutionExtra)
+                                  out double resolutionExtra, CancellationToken cancellation)
         {
             EfficiencySimulator sim = MakeSimulator(geometry, options, index, energyKev);
             sim.Histories = Math.Max(1, histories);
+            // (`AMBER201`, Р4, мелочь G.6) Отмена — и ВНУТРИ узла, а не только
+            // между узлами: начатый узел прежде досчитывался до конца (до
+            // 24 млн историй, минуты на поток). Опрос раз в 4096 историй;
+            // случайных чисел не тянет — тело узла побитово прежнее.
+            if (cancellation.CanBeCanceled)
+            {
+                sim.PollCancellation = cancellation.ThrowIfCancellationRequested;
+            }
+
             // (`AMBER145`) Второй счёт пика — допуском КРИВОЙ (ПШПВ/2 геометрии),
             // если он шире допуска строки; иначе пик по разрешению и есть канал
             // `Peak`. Случайных чисел не тянет — тело узла прежнее побитово.

@@ -50,6 +50,12 @@ namespace BecquerelMonitor
         {
             if (deviceGuid != null)
             {
+                // `AMBER166`: у потерянного порта ответа не будет — не ждать
+                //   его 4 с на потоке окна.
+                if (AtomSpectraVCPIn.IsPortLost(deviceGuid))
+                {
+                    return "--";
+                }
                 try
                 {
                     AtomSpectraVCPIn.getInstance(deviceGuid).sendCommand("-inf");
@@ -136,7 +142,9 @@ namespace BecquerelMonitor
                 this.pulseDetector.Pulses = resultData.PulseCollection;
                 this.pulseDetector.EnergySpectrum = resultData.EnergySpectrum;
                 AtomSpectraDeviceConfig deviceConfig = (AtomSpectraDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
-                DeviceConfigInfo dci = DeviceConfigManager.GetInstance().DeviceConfigMap[resultData.DeviceConfig.Guid];
+                DeviceConfigInfo dci;
+                // (`AMBER201`, подозрение полосы 3) прибор могли удалить в форме приборов — голый индексатор бросал KeyNotFoundException, а сторож ниже ждал null
+                DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(resultData.DeviceConfig.Guid ?? "", out dci);
                 if (dci != null && (dci.InputDeviceConfig is AtomSpectraDeviceConfig))
                 {
                     AtomSpectraDeviceConfig dc = (AtomSpectraDeviceConfig)dci.InputDeviceConfig;
@@ -170,6 +178,9 @@ namespace BecquerelMonitor
 
                 previous_guid = resultData.DeviceConfig.Guid;
                 //AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).PortFailure += AtomSpectraDeviceController_PortFailure;
+                // ⛔ `AMBER166` (05.10.2026, решение Amber «Статус «порт потерян»»): подписка
+                //   остаётся снятой — обрыв порта набор НЕ останавливает; признак
+                //   `AtomSpectraVCPIn.IsPortLost` читает строка состояния окна.
                 bool commands_accepted = true;
                 if (new_document_created)
                 {
@@ -233,7 +244,9 @@ namespace BecquerelMonitor
                 this.pulseDetector.Pulses = resultData.PulseCollection;
                 this.pulseDetector.EnergySpectrum = resultData.EnergySpectrum;
                 AtomSpectraDeviceConfig deviceConfig = (AtomSpectraDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
-                DeviceConfigInfo dci = DeviceConfigManager.GetInstance().DeviceConfigMap[resultData.DeviceConfig.Guid];
+                DeviceConfigInfo dci;
+                // (`AMBER201`, подозрение полосы 3) прибор могли удалить в форме приборов — голый индексатор бросал KeyNotFoundException, а сторож ниже ждал null
+                DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(resultData.DeviceConfig.Guid ?? "", out dci);
                 if (dci != null && (dci.InputDeviceConfig is AtomSpectraDeviceConfig))
                 {
                     AtomSpectraDeviceConfig dc = (AtomSpectraDeviceConfig)dci.InputDeviceConfig;
@@ -267,6 +280,9 @@ namespace BecquerelMonitor
 
                 previous_guid = resultData.DeviceConfig.Guid;
                 //AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).PortFailure += AtomSpectraDeviceController_PortFailure;
+                // ⛔ `AMBER166` (05.10.2026, решение Amber «Статус «порт потерян»»): подписка
+                //   остаётся снятой — обрыв порта набор НЕ останавливает; признак
+                //   `AtomSpectraVCPIn.IsPortLost` читает строка состояния окна.
                 bool commands_accepted = true;
                 AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-sta");
                 // Slow baudrates support

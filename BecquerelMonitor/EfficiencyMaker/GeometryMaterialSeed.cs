@@ -11,7 +11,7 @@ using System.Collections.Generic;
 
 namespace BecquerelMonitor.EfficiencyMaker
 {
-    /// <summary>Вещества конструктора геометрий ЛСРМ (E20, ввоз 16.08.2026).</summary>
+    /// <summary>Вещества конструктора геометрий ЛСРМ (E20, импорт 16.08.2026).</summary>
     public static class GeometryMaterialSeed
     {
         /// <summary>Строка таблицы: имя, формула-подпись, плотность, «Z:доля …».</summary>

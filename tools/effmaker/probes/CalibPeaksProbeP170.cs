@@ -27,7 +27,7 @@ namespace CalibPeaksProbeP170
     ///   на дробных центроидах (без уточнения) — |E_пика − E(центроид)|; затем
     ///   настоящий `DetectPeak` на самом спектре — список пиков «канал, энергия».
     /// `--maxch=&lt;каталог&gt;` — `AMBER112`: сочиняет 16384-канальные SPE и CSV
-    ///   SpecUtils, ввозит дверью SpecUtils и дверью «CSV с энергиями», печатает
+    ///   SpecUtils, импортирует дверью SpecUtils и дверью «CSV с энергиями», печатает
     ///   E(k) у k = 8000, 12000, 16383 против полинома.
     /// `--csv=&lt;xml&gt;,&lt;каталог&gt;` — `AMBER113`: CSV в формате SpecUtils
     ///   `Measurement::write_csv` («Energy, Data», энергия — НИЖНИЙ КРАЙ, float
@@ -317,7 +317,7 @@ namespace CalibPeaksProbeP170
         static void MaxCh(string dir)
         {
             Directory.CreateDirectory(dir);
-            Console.WriteLine("=== AMBER112: спектр 16384 каналов, ChannelToEnergy сразу после ввоза ===");
+            Console.WriteLine("=== AMBER112: спектр 16384 каналов, ChannelToEnergy сразу после импорта ===");
             const int n = 16384;
             double[] c = { -3.0, 0.18, 1.0e-7 };
             Random rnd = new Random(170);

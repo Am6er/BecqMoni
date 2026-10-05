@@ -133,6 +133,51 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// (`AMBER185`, решение Amber 05.10.2026 «Отпечаток + предупреждение»)
+        /// Отпечаток геометрии, ДЛЯ КОТОРОЙ посчитана кривая
+        /// (<see cref="ResponseMatrix.GeometryFingerprint"/>): ставится вместе с
+        /// кривой и только ею. Правка одной геометрии (её сохранение само по
+        /// себе законно) кривую не трогает и отпечаток не двигает — расхождение
+        /// и есть признак «кривая посчитана для другой геометрии»
+        /// (<see cref="CurveGeometryMismatch"/>). Пусто у кривой, посчитанной до
+        /// 05.10.2026, у ручной и у восстановленной по измерениям: о них
+        /// сказать нечего, и предупреждения нет.
+        /// </summary>
+        public string GeometryFingerprint
+        {
+            get { return this.geometryFingerprint; }
+            set { this.geometryFingerprint = value ?? ""; }
+        }
+
+        /// <summary>
+        /// Пустой отпечаток в XML не пишется: конфигурации и спектры без
+        /// кривой из геометрии остаются побайтно прежними (образец `XmlSerializer`
+        /// «ShouldSerialize&lt;имя&gt;»).
+        /// </summary>
+        public bool ShouldSerializeGeometryFingerprint()
+        {
+            return !string.IsNullOrEmpty(this.geometryFingerprint);
+        }
+
+        /// <summary>
+        /// (`AMBER185`) Кривая есть, геометрия есть, отпечаток при кривой
+        /// записан — и не сходится с геометрией, что лежит рядом. Пустой
+        /// отпечаток — «не знаем», и это НЕ расхождение.
+        /// </summary>
+        [XmlIgnore]
+        public bool CurveGeometryMismatch
+        {
+            get
+            {
+                return this.HasCurve && this.HasGeometry
+                       && !string.IsNullOrEmpty(this.geometryFingerprint)
+                       && !string.Equals(this.geometryFingerprint,
+                                         ResponseMatrix.GeometryFingerprint(this.geometry),
+                                         StringComparison.Ordinal);
+            }
+        }
+
+        /// <summary>
         /// Пускать ли матрицу отклика этой кривой в полноспектральный разбор
         /// (W11): раньше годная матрица включалась сама и выключателя не было.
         /// Галка живёт в форме «Матрица отклика» (решение Amber 08.08.2026).
@@ -143,6 +188,22 @@ namespace BecquerelMonitor
         {
             get { return this.useResponseMatrix; }
             set { this.useResponseMatrix = value; }
+        }
+
+        /// <summary>
+        /// (`AMBER202`) Матрица отклика, приехавшая с этой кривой В ФАЙЛЕ
+        /// СПЕКТРА (блок `ResultData.EmbeddedResponseMatrix`). Только в памяти:
+        /// `[XmlIgnore]` нарочно — запись кривой сериализуется и в
+        /// конфигурацию прибора (`config\device\*.xml`), а матрице там не
+        /// место (шапка <see cref="ResponseMatrixSource"/>). Читатели берут её
+        /// через <see cref="ResponseMatrixStore.Resolve"/>, когда на складе нет
+        /// годной.
+        /// </summary>
+        [XmlIgnore]
+        public EmbeddedResponseMatrix EmbeddedMatrix
+        {
+            get { return this.embeddedMatrix; }
+            set { this.embeddedMatrix = value; }
         }
 
         [XmlIgnore]
@@ -179,6 +240,8 @@ namespace BecquerelMonitor
             copy.guid = System.Guid.NewGuid().ToString();
             copy.name = newName;
             copy.lastUpdated = DateTime.Now;
+            // (`AMBER202`) приехавшая матрица — прежнего Guid, новой кривой она не своя
+            copy.embeddedMatrix = null;
             return copy;
         }
 
@@ -197,7 +260,10 @@ namespace BecquerelMonitor
                 origin = this.origin,
                 note = this.note,
                 computeStamp = this.computeStamp,
+                geometryFingerprint = this.geometryFingerprint,
                 useResponseMatrix = this.useResponseMatrix,
+                // (`AMBER202`) блок неизменяем — копии делят его ссылкой
+                embeddedMatrix = this.embeddedMatrix,
                 geometry = this.geometry == null ? null : this.geometry.Clone(),
                 curve = new List<ROIEfficiencyData>(),
             };
@@ -228,7 +294,11 @@ namespace BecquerelMonitor
 
         string computeStamp = "";
 
+        string geometryFingerprint = "";
+
         bool useResponseMatrix = true;
+
+        EmbeddedResponseMatrix embeddedMatrix;
 
         List<ROIEfficiencyData> curve = new List<ROIEfficiencyData>();
 

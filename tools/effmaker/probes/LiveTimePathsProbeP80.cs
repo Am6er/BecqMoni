@@ -34,7 +34,7 @@ namespace LiveTimePathsProbeP80
     ///   3. мощность дозы — `DoseRateManager.Calculate`: Cps диапазона / Counts;
     ///   4. общее вычитание фона — `SpectrumAriphmetics.Substract`: нормировка
     ///      по плоскому каналу; отсюда же берёт вычтенный спектр поиск пиков
-    ///      (`PeakDetector.DetectPeak`, режим «фон вычтен») и вывоз CSV;
+    ///      (`PeakDetector.DetectPeak`, режим «фон вычтен») и экспорт CSV;
     ///   5. разбор FSA — `FsaAnalyzer.Analyze`: `FsaResult.LiveTime` и
     ///      масштаб фона `Background[i]/bg[i]`;
     ///   6. график в имп/с — `EnergySpectrumView.ScaleFsaValue` (масштаб слоёв

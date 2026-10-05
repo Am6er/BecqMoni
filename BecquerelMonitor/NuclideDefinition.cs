@@ -269,6 +269,70 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// ⛔ (`AMBER195`, решение Amber 05.10.2026 вопросником: «Ряд задан →
+        /// период корня») Период, по которому линию ПОПРАВЛЯЮТ НА РАСПАД — к
+        /// дате отбора (зона, панель выделения), в годах поля
+        /// <see cref="HalfLife"/>.
+        ///
+        /// У линии с заполненным рядом (<see cref="Chain"/>) выход дан на
+        /// распад КОРНЯ, и в равновесии она убывает с его периодом: Bi-214 в
+        /// ряду Ra-226 — 1600 лет, а не свои 19.9 мин. Прежде бралось
+        /// собственное <see cref="HalfLife"/> — импорт из NucBase с рядом пишет
+        /// туда период самого излучателя, — и множитель `2^(Δt/T½)` за 2 ч
+        /// между отбором и набором был ×65, за сутки 4.7·10²¹, дальше
+        /// <c>Infinity</c>. Собственный период линии при этом НЕ меняется
+        /// (решение то же): он остаётся периодом излучателя.
+        ///
+        /// Откуда период корня, по порядку: база нуклидов (`nucdb`,
+        /// <see cref="NucBase.NucBaseFramework.HalfLifeYearsOf"/>) — она
+        /// поставляется с приложением и знает всякий корень; затем линия
+        /// САМОГО корня в библиотеке <paramref name="library"/> (если базы нет).
+        /// Не нашёлся корень нигде, ряд не разбирается в нуклид («Cs-137
+        /// (фильтр)»), ряд — сам нуклид линии, ряда нет — собственный период,
+        /// как прежде. Линии без ряда (поставочные Bi-214/Pb-214) — как прежде.
+        /// </summary>
+        public static double DecayHalfLifeYears(NuclideDefinition line, IEnumerable<NuclideDefinition> library)
+        {
+            if (line == null)
+            {
+                return 0.0;
+            }
+
+            string chain = (line.Chain ?? "").Trim();
+            if (chain.Length == 0)
+            {
+                return line.HalfLife;
+            }
+
+            string root = FullSpectrumAnalysis.FsaSampleLibrary.NucidOf(chain);
+            if (root.Length == 0
+                || root == FullSpectrumAnalysis.FsaSampleLibrary.NucidOf(line.NuclideName))
+            {
+                return line.HalfLife;
+            }
+
+            double years = NucBase.NucBaseFramework.HalfLifeYearsOf(root);
+            if (years > 0.0)
+            {
+                return years;
+            }
+
+            if (library != null)
+            {
+                foreach (NuclideDefinition other in library)
+                {
+                    if (other != null && other.HalfLife > 0.0
+                        && FullSpectrumAnalysis.FsaSampleLibrary.NucidOf(other.NuclideName) == root)
+                    {
+                        return other.HalfLife;
+                    }
+                }
+            }
+
+            return line.HalfLife;
+        }
+
+        /// <summary>
         /// Родитель ряда из хвоста подписи: «Bi-214 (Ra-226)» -&gt; «Ra-226».
         /// Запасной источник — им заполняется <see cref="Chain"/> у файлов,
         /// заведённых до появления поля.

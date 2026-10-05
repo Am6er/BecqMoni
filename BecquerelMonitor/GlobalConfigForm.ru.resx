@@ -1323,6 +1323,12 @@
   <data name="importSpectrumWithEmptyConfigCheckBox.ToolTip" xml:space="preserve">
     <value />
   </data>
+  <data name="saveResponseMatrixInSpectrumCheckBox.Text" xml:space="preserve">
+    <value>Сохранять матрицу отклика в файл спектра</value>
+  </data>
+  <data name="saveResponseMatrixInSpectrumCheckBox.ToolTip" xml:space="preserve">
+    <value>Кладёт матрицу отклика выбранной кривой эффективности в сохраняемый файл спектра (сжатой): получатель файла разбирает спектр с матрицей, не считая её заново. Выключено — файл несёт только кривую и её геометрию.</value>
+  </data>
   <data name="miscSettingsGroupBox.Text" xml:space="preserve">
     <value>Прочее</value>
   </data>

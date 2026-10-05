@@ -35,7 +35,7 @@ namespace N42BoundaryProbeG6
     ///   --out=&lt;каталог&gt;        каталог с *.n42 (обязателен)
     ///   --cases                положить входы case34..case37
     ///   --compare=&lt;a,b,…&gt;      имена файлов, у которых обе двери обязаны дать
-    ///                          ОДИН слепок (обе ввозят, коэффициенты побайтно)
+    ///                          ОДИН слепок (обе импортируют, коэффициенты побайтно)
     ///   --expect-refuse=&lt;a,b,…&gt; имена файлов, которые дверь N42 обязана
     ///                          ОТКАЗАТЬ СЛОВАМИ
     ///   --culture=&lt;имя&gt;        культура прогона
@@ -128,7 +128,7 @@ namespace N42BoundaryProbeG6
 
             // Границ ровно N (без верхней границы последнего канала) — годно:
             //   для подгонки верхняя граница не нужна. Обе двери обязаны
-            //   ввезти и дать ту же шкалу, что у case1_boundary.
+            //   импортировать и дать ту же шкалу, что у case1_boundary.
             Write("case37_boundary_n.n42", Boundary(Edges(64)));
         }
 
@@ -244,10 +244,10 @@ namespace N42BoundaryProbeG6
                 Verdict a = RunN42(f);
                 Verdict b = RunSpecUtils(f);
                 Console.WriteLine("  " + name);
-                Console.WriteLine("    дверь N42:       " + (a.Imported ? "ВВЕЗЁН" : "ОТКАЗ " + a.Refusal)
+                Console.WriteLine("    дверь N42:       " + (a.Imported ? "ИМПОРТИРОВАН" : "ОТКАЗ " + a.Refusal)
                                   + (string.IsNullOrEmpty(a.Spoken) ? "" : "   [вслух: " + a.Spoken + "]"));
                 Console.WriteLine("      слепок: " + a.Print);
-                Console.WriteLine("    дверь SpecUtils: " + (b.Imported ? "ВВЕЗЁН" : "ОТКАЗ " + b.Refusal)
+                Console.WriteLine("    дверь SpecUtils: " + (b.Imported ? "ИМПОРТИРОВАН" : "ОТКАЗ " + b.Refusal)
                                   + (string.IsNullOrEmpty(b.Spoken) ? "" : "   [вслух: " + b.Spoken + "]"));
                 Console.WriteLine("      слепок: " + b.Print);
                 if (!a.Imported || !b.Imported)
@@ -285,8 +285,8 @@ namespace N42BoundaryProbeG6
                 Verdict a = RunN42(f);
                 Verdict b = RunSpecUtils(f);
                 bool ok = !a.Imported && !string.IsNullOrEmpty(a.Refusal);
-                Console.WriteLine("  " + name + " | дверь N42: " + (a.Imported ? "ВВЕЗЁН  ⛔ ОЖИДАЛСЯ ОТКАЗ" : "ОТКАЗ")
-                                  + " | дверь SpecUtils: " + (b.Imported ? "ВВЕЗЁН" : "ОТКАЗ")
+                Console.WriteLine("  " + name + " | дверь N42: " + (a.Imported ? "ИМПОРТИРОВАН  ⛔ ОЖИДАЛСЯ ОТКАЗ" : "ОТКАЗ")
+                                  + " | дверь SpecUtils: " + (b.Imported ? "ИМПОРТИРОВАН" : "ОТКАЗ")
                                   + (string.IsNullOrEmpty(b.Spoken) ? (b.Imported ? " (молча)" : "") : " [вслух: " + b.Spoken + "]"));
                 Console.WriteLine("      причина: " + (a.Refusal ?? "(нет)"));
                 Console.WriteLine("      слепок после отказа: " + a.Print);

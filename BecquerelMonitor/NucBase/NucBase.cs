@@ -84,17 +84,11 @@ namespace BecquerelMonitor.NucBase
         private void DoSearch()
         {
             string isotopeTextBox = this.IsotopeTextBox.Text.Trim().Replace("-", "");
-            Match isomerRegex = Regex.Match(isotopeTextBox, @"[m]\d{0,1}$");
-            string isomer = "";
-            string isotope = isotopeTextBox.ToUpper();
-            if (isomerRegex.Index + isomerRegex.Length == isotopeTextBox.Length) 
-            {
-                isomer = isomerRegex.Value;
-                isotope = isotopeTextBox.Substring(0, isomerRegex.Index).ToUpper();
-            }
-            string isotope_number = Regex.Match(isotope, @"\d+").Value;
-            string isotope_name = Regex.Match(isotope, @"[a-zA-Z]+").Value;
-            isotope = isotope_number + isotope_name + isomer;
+            // ⛔ (`AMBER197`) Разбор — в `NucBaseFramework.QueryNucid`. Здесь
+            // стояло выражение «m и цифра в конце — метка изомера», и «241Am»
+            // искался как «241Am» (у Am, Cm, Sm, Pm, Tm, Fm «m» — часть символа):
+            // в базе 0 строк, человек читал «ничего не найдено».
+            string isotope = NucBaseFramework.QueryNucid(isotopeTextBox);
             this.SearchedIsotope = isotope;
             bool incDecayChain = this.IncludeDecayChainCheckBox.Checked;
             // TryParse instead of Convert.ToDouble: non-numeric input used to throw
@@ -250,7 +244,7 @@ namespace BecquerelMonitor.NucBase
             {
                 // Выбран ряд — значит и выходы показываются НА РАСПАД КОРНЯ
                 // ряда, а не на распад своего нуклида: у Tl-208 в ториевом ряду
-                // это 35.85 % вместо 99.75 %. Ровно эти числа и ввозятся, и
+                // это 35.85 % вместо 99.75 %. Ровно эти числа и импортируются, и
                 // ровно их ждёт всё, что стоит на вековом равновесии, —
                 // конструктор кривой и разложение спектра.
                 Dictionary<string, double> branches = fw.GetChainBranches(isotope);
@@ -715,10 +709,10 @@ namespace BecquerelMonitor.NucBase
         /// <summary>
         /// Период полураспада в годах из ячейки таблицы вида «5.75(Y)».
         ///
-        /// Вынесено из обработчика ввоза вместе с <see cref="XrayDefinitionName"/>:
-        /// форму можно собрать и без главного окна, но ввоз кончается модальным
+        /// Вынесено из обработчика импорта вместе с <see cref="XrayDefinitionName"/>:
+        /// форму можно собрать и без главного окна, но импорт кончается модальным
         /// сообщением, и проба на нём повисла бы. У рентгена периода нет вовсе —
-        /// в ячейке ноль, и разбор обязан его пережить, а не уронить весь ввоз.
+        /// в ячейке ноль, и разбор обязан его пережить, а не уронить весь импорт.
         /// </summary>
         public static double HalfLifeYearsFromCell(string cell)
         {
@@ -793,7 +787,7 @@ namespace BecquerelMonitor.NucBase
             string series = decrad.XrayType + (decrad.Redundant ? DecayRad.RedundantMark : "");
             // ⛔ ИНВАРИАНТНАЯ КУЛЬТУРА, И ВТОРАЯ ПОЛОВИНА ЭТОЙ ПРАВКИ —
             // `HalfLifeYearsFromCell` (`A242`). Ячейка пишется ЗДЕСЬ, а
-            // разбирается ТАМ, при ввозе в набор нуклидов, и до 05.09.2026 обе
+            // разбирается ТАМ, при импорте в набор нуклидов, и до 05.09.2026 обе
             // стороны брали культуру потока: печать и разбор врали согласованно
             // и потому были незаметны. Починить одну — значит записать «5.75» и
             // прочитать ноль (`ru-RU`) или 575 (`de-DE`). Обе стороны сведены к
@@ -991,7 +985,7 @@ namespace BecquerelMonitor.NucBase
                 int redundantSkipped = 0;
                 int redundantSkippedL = 0;
                 NuclideDefinitionManager defManager = NuclideDefinitionManager.GetInstance();
-                // Ряд у всех ввозимых линий один — тот, по которому шёл поиск.
+                // Ряд у всех импортируемых линий один — тот, по которому шёл поиск.
                 // Пишется НЕЗАВИСИМО от «дописать имя родителя»: та галочка
                 // решает, как линия подписана на графике, а поле — на чей
                 // распад дан выход. Раньше это было одно и то же, и выключенная
@@ -1049,7 +1043,15 @@ namespace BecquerelMonitor.NucBase
                         // бы, что линию можно ставить на вековое равновесие.
                         string rowChain = fluorescence ? "" : chain;
 
-                        NuclideDefinition existingDef = defManager.NuclideDefinitions.FirstOrDefault(def => def.Energy == energy);
+                        // ⛔ (`AMBER197`) Ключ — НУКЛИД И энергия. Прежде одна
+                        // энергия: линия другого нуклида на той же энергии (у
+                        // двух и более родителей таких 3212 при выходе ≥ 1 %)
+                        // без «перезаписать» молча не заводилась, а с ним
+                        // чужая запись получала новые имя, выход, период и ряд.
+                        string rowIdentity = LineIdentity(name, fluorescence);
+                        NuclideDefinition existingDef = defManager.NuclideDefinitions.FirstOrDefault(
+                            def => def.Energy == energy
+                                   && LineIdentity(def.NuclideName, def.IsElementXray) == rowIdentity);
                         if (existingDef != null && checkBoxOverwriteDef.Checked)
                         {
                             existingDef.Name = formattedName;
@@ -1078,7 +1080,14 @@ namespace BecquerelMonitor.NucBase
 
                 if (updatedCount > 0 || createdCount > 0)
                 {
-                    defManager.SaveDefinitionFile();
+                    // (`AMBER201`, 5.9) Ответ записи читается: при отказе окно
+                    // об ошибке уже показал менеджер, и следом за ним «импорт
+                    // удался» было бы неправдой — линии лишь в памяти.
+                    if (!defManager.SaveDefinitionFile())
+                    {
+                        return;
+                    }
+
                     string text = string.Format(CultureInfo.InvariantCulture, Resources.NuclideDefImportSuccess, createdCount, updatedCount);
                     if (redundantSkipped > 0)
                     {
@@ -1099,6 +1108,24 @@ namespace BecquerelMonitor.NucBase
             {
                 MessageBox.Show(string.Format(Resources.NuclideDefImportError, ex.Message + ex.StackTrace));
             }
+        }
+
+        /// <summary>
+        /// (`AMBER197`) Чья линия: «N:» + <c>nucid</c> нуклида (в любом из трёх
+        /// форматов имени — «214BI», «Bi214», «Bi-214 (Ra-226)» — одно и то же)
+        /// либо «X:» + символ у характеристического рентгена элемента. Ключ
+        /// импорта — эта метка вместе с энергией.
+        /// </summary>
+        public static string LineIdentity(string nuclideName, bool elementXray)
+        {
+            string token = NuclideDefinition.NuclideNameOf(nuclideName ?? "");
+            if (elementXray)
+            {
+                return "X:" + token;
+            }
+
+            string nucid = FullSpectrumAnalysis.FsaSampleLibrary.NucidOf(token);
+            return "N:" + (nucid.Length > 0 ? nucid : token.ToUpperInvariant());
         }
 
         /// <summary>
@@ -1179,7 +1206,11 @@ namespace BecquerelMonitor.NucBase
 
         private string FormatIsotopeName(string nameFromDb)
         {
-            Regex nameFormat = new Regex("^([0-9]+){1}([A-Z]+){1}(m[0-9]+)?$");
+            // (`AMBER197`, попутно) Метка изомера — «m» с номером ИЛИ без:
+            // в базе обе («99TCm» и «234PAm1»). Прежде «m» без цифры не
+            // совпадало, и «99TCm» уходил в набор как есть, мимо выбранного
+            // формата имени.
+            Regex nameFormat = new Regex("^([0-9]+){1}([A-Z]+){1}(m[0-9]*)?$");
             Match match = nameFormat.Match(nameFromDb);
             if (!match.Success)
             {

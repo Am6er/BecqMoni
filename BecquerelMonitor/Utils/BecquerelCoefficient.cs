@@ -645,8 +645,8 @@ namespace BecquerelMonitor.Utils
 
         /// <summary>
         /// ПШПВ в кэВ: калибровка ПШПВ спектра (ширина в каналах × шаг шкалы),
-        /// а без неё — ПШПВ геометрии по √E. Ни того, ни другого — ноль (окно
-        /// судится центром пика).
+        /// а без неё — ПШПВ геометрии законом <see cref="GeometryModel.PeakHalfWidthKev"/>.
+        /// Ни того, ни другого — ноль (окно судится центром пика).
         /// </summary>
         static double FwhmKev(double energyKev, ResultData resultData, GeometryModel geometry)
         {
@@ -672,9 +672,16 @@ namespace BecquerelMonitor.Utils
                 // калибровка ПШПВ негодна — запасной путь ниже
             }
 
+            // (`AMBER201`, Р4, мелочь 9.1) Запасной путь — ТЕМ ЖЕ законом, что
+            // допуск пика кривой: ПШПВ(E) = ПШПВ(662)·(E/662)^p, p =
+            // `GeometryModel.FwhmPowerLaw` (0.6, `AMBER135`). Прежде здесь жила
+            // вторая копия закона с корнем (p = ½), не поднятая вместе с первой:
+            // у спектра без ПШПВ-калибровки окно зоны считало пик на 60 кэВ в
+            // 1.27 раза шире, чем кривая, — и долю линии в зоне, и чужие
+            // суммарные пики в ней. Один закон — одно место (`S37`).
             if (geometry != null && geometry.FwhmAt662Percent > 0.0)
             {
-                return geometry.FwhmAt662Percent / 100.0 * Math.Sqrt(662.0 * energyKev);
+                return 2.0 * geometry.PeakHalfWidthKev(energyKev);
             }
 
             return 0.0;
@@ -836,13 +843,20 @@ namespace BecquerelMonitor.Utils
             geometry = efficiency.Geometry;
             try
             {
+                // (`AMBER202`) общим путём читателей: склад, а нет на нём
+                // годной — матрица, приехавшая в файле спектра
                 MatrixRefusal refusal;
                 int fileFormat;
-                ResponseMatrix matrix = ResponseMatrixStore.Load(efficiency.Guid, out refusal, out fileFormat);
+                ResponseMatrixSource source;
+                string spectrumRefusal;
+                ResponseMatrix matrix = ResponseMatrixStore.Resolve(efficiency, out refusal, out fileFormat,
+                                                                    out source, out spectrumRefusal);
                 if (matrix == null)
                 {
                     why = string.Format(CultureInfo.InvariantCulture, Resources.SummingWhyNoMatrix,
-                                        refusal == MatrixRefusal.OldFormat
+                                        !string.IsNullOrEmpty(spectrumRefusal)
+                                            ? spectrumRefusal
+                                            : refusal == MatrixRefusal.OldFormat
                                             ? string.Format(CultureInfo.InvariantCulture, "format {0} < {1}",
                                                             fileFormat, ResponseMatrix.FormatVersion)
                                             : refusal.ToString());
@@ -927,24 +941,8 @@ namespace BecquerelMonitor.Utils
 
         static string StampOf(EfficiencyConfigData efficiency, FsaCalculationOptions options, double deadTime)
         {
-            string file;
-            try
-            {
-                string path = ResponseMatrixStore.PathOf(efficiency.Guid);
-                if (!File.Exists(path))
-                {
-                    file = "-";
-                }
-                else
-                {
-                    FileInfo info = new FileInfo(path);
-                    file = string.Format(CultureInfo.InvariantCulture, "{0}:{1}", info.Length, info.LastWriteTimeUtc.Ticks);
-                }
-            }
-            catch (Exception)
-            {
-                file = "?";
-            }
+            // (`AMBER202`) склад и блок из файла спектра — общей отметкой
+            string file = ResponseMatrixStore.SourceStamp(efficiency);
 
             return string.Format(CultureInfo.InvariantCulture, "{0}|{1}|{2}|{3:R}|{4}",
                                  file, efficiency.Guid, options.Stamp, deadTime,

@@ -44,6 +44,34 @@ namespace BecquerelMonitor
         private Timer timer;
         private Object Lock = new Object();
 
+        // ⛔ `AMBER166` (05.10.2026, решение Amber вопросником: «Статус «порт
+        //    потерян» (Рекомендую)»). Выдернутый кабель набор НЕ останавливает:
+        //    поток чтения сам переоткрывает порт (`run`, состояние Connecting),
+        //    и после возврата прибора данные идут дальше. Но человек должен
+        //    ВИДЕТЬ, что данных нет: подписка на `PortFailure` снята ещё в
+        //    исходном проекте, а само событие поднимается на любое исключение
+        //    цикла, включая сбой разбора пакета. Поэтому признак отдельный и
+        //    ставится только отказом ВВОДА-ВЫВОДА порта (`IsPortIoFailure`);
+        //    снимается удачным открытием порта. Читатель — строка состояния
+        //    окна (`MainForm`, раз в 200 мс), спрашивающая `IsPortLost(guid)`.
+        private volatile bool portLost;
+
+        // ⛔ `AMBER166`: опрос `-sho` на медленных скоростях (38400/115200)
+        //    без ожидания на потоке окна. Прежде такт окна (100 мс) слал `-sho`
+        //    и ЖДАЛ ответа `-ok collecting` до 1 с — окно почти не отвечало,
+        //    а при выдернутом кабеле ждало полную секунду на КАЖДОМ такте.
+        //    Теперь такт только просит (`RequestShow`): новый `-sho` уходит,
+        //    когда прежний отвечен либо истёк срок ответа (тот же 1 с), так что
+        //    темп опроса прежний. Ответ ловит поток чтения и запоминает время
+        //    последнего ответа (`LastShowAnswer`); строка ответа в очередь
+        //    строк не кладётся — её не съест чужое ожидание (`-inf`, `-sto`).
+        public const string ShowCommand = "-sho";
+        public const string ShowAnswer = "-ok collecting";
+        public const int ShowAnswerTimeoutMs = 1000;
+        private long showSentAtMs;              // 0 — запроса в полёте нет
+        private long lastShowAnswerMs;          // 0 — ответа ещё не было
+        private readonly object showLock = new object();
+
         private static readonly List<AtomSpectraVCPIn> instances = new List<AtomSpectraVCPIn>();
         private static readonly object instancesLock = new object();
 
@@ -123,6 +151,138 @@ namespace BecquerelMonitor
                 }
             }
             return null;
+        }
+
+        /// <summary>
+        /// ⛔ `AMBER166`. Потерян ли порт у ЖИВОГО экземпляра с этим `guid`;
+        /// <c>false</c>, если экземпляра нет.
+        ///
+        /// ⚠ Нарочно НЕ <see cref="getInstance"/>: фабрика создаёт экземпляр и
+        /// поднимает ему поток чтения, а читатель этого метода — таймер окна,
+        /// зовущий его каждые 200 мс (тот же довод, что у
+        /// <c>RadiaCodeIn.GetFailure</c>).
+        /// </summary>
+        public static bool IsPortLost(string guid)
+        {
+            AtomSpectraVCPIn instance = string.IsNullOrEmpty(guid) ? null : tryGetInstance(guid);
+            return instance != null && instance.PortLost;
+        }
+
+        public bool PortLost
+        {
+            get { return this.portLost; }
+        }
+
+        /// <summary>
+        /// ⛔ `AMBER166`. Отказ ВВОДА-ВЫВОДА порта (кабель выдернут, порт
+        /// закрыт, драйвер отказал) — в отличие от сбоя разбора пакета, который
+        /// о порте ничего не говорит. Тип исключения <see cref="SerialPort"/>
+        /// на выдернутом USB-порте — <c>IOException</c>,
+        /// <c>UnauthorizedAccessException</c> или
+        /// <c>InvalidOperationException</c> («порт закрыт»).
+        /// </summary>
+        internal static bool IsPortIoFailure(Exception ex)
+        {
+            return ex is System.IO.IOException
+                || ex is UnauthorizedAccessException
+                || ex is InvalidOperationException
+                || ex is TimeoutException;
+        }
+
+        /// <summary>Отказ цикла чтения: порт уходит на переоткрытие, как и прежде.</summary>
+        internal void OnReadFailure(Exception ex)
+        {
+            if (IsPortIoFailure(ex))
+            {
+                if (!this.portLost)
+                {
+                    Trace.WriteLine("AtomSpectraVCPIn port lost " + this.name + ": " + ex.Message);
+                }
+                this.portLost = true;
+            }
+            else
+            {
+                Trace.WriteLine("AtomSpectraVCPIn read loop failure (not a port loss): " + ex);
+            }
+            lock (this.showLock)
+            {
+                this.showSentAtMs = 0;
+            }
+        }
+
+        /// <summary>Порт открыт заново — надпись «порт потерян» снимается.</summary>
+        internal void OnPortOpened()
+        {
+            if (this.portLost)
+            {
+                Trace.WriteLine("AtomSpectraVCPIn port is back " + this.name);
+            }
+            this.portLost = false;
+        }
+
+        /// <summary>
+        /// ⛔ `AMBER166`. Попросить прибор прислать гистограмму (`-sho`) БЕЗ
+        /// ожидания. Возвращает <c>true</c>, если запрос ушёл; <c>false</c> —
+        /// прежний ещё в полёте (ответа нет и срок не вышел) либо порт потерян.
+        /// </summary>
+        public bool RequestShow()
+        {
+            if (this.portLost)
+            {
+                return false;
+            }
+            long now = timeNowMs();
+            lock (this.showLock)
+            {
+                if (this.showSentAtMs != 0 && now - this.showSentAtMs < ShowAnswerTimeoutMs)
+                {
+                    return false;
+                }
+                this.showSentAtMs = now;
+            }
+            byte[] ascii = Encoding.ASCII.GetBytes(ShowCommand);
+            byte[] array = new byte[ascii.Length + 1];
+            array[0] = 0x03;
+            Array.Copy(ascii, 0, array, 1, ascii.Length);
+            send_packet(array);
+            return true;
+        }
+
+        /// <summary>Время последнего ответа на `-sho`; <c>DateTime.MinValue</c> — не было.</summary>
+        public DateTime LastShowAnswer
+        {
+            get
+            {
+                long ms = Interlocked.Read(ref this.lastShowAnswerMs);
+                return ms == 0 ? DateTime.MinValue : new DateTime(ms * TimeSpan.TicksPerMillisecond);
+            }
+        }
+
+        /// <summary>
+        /// Строка от прибора: ответ на запрос `-sho` поглощается здесь (поток
+        /// чтения), прочие — в очередь строк, как прежде.
+        /// </summary>
+        internal void OnLineReceived(string str)
+        {
+            string line = str;
+            int cr = line.IndexOf('\r');
+            if (cr != -1)
+            {
+                line = line.Substring(0, cr);
+            }
+            if (ShowAnswer.Equals(line))
+            {
+                lock (this.showLock)
+                {
+                    if (this.showSentAtMs != 0)
+                    {
+                        this.showSentAtMs = 0;
+                        Interlocked.Exchange(ref this.lastShowAnswerMs, timeNowMs());
+                        return;
+                    }
+                }
+            }
+            received_lines.Enqueue(str);
         }
 
         public static AtomSpectraVCPIn getInstance(string guid)
@@ -357,6 +517,7 @@ namespace BecquerelMonitor
                             port.BaudRate = this.baudrate;
                             port.Open();
                             state = State.Connected;
+                            this.OnPortOpened();
                         }
                         else
                         {
@@ -475,14 +636,18 @@ namespace BecquerelMonitor
                                 byte[] arr = new byte[packet_length];
                                 packet.CopyTo(0, arr, 0, packet_length);
                                 string str = Encoding.ASCII.GetString(arr, 0, packet_length);
-                                received_lines.Enqueue(str);
                                 Trace.WriteLine("Line received: " + str);
+                                // `AMBER166`: ответ на `-sho` поглощается здесь.
+                                this.OnLineReceived(str);
                             }
                         }
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
                         state = State.Connecting;
+                        // `AMBER166`: признак «порт потерян» для строки состояния;
+                        //   набор не останавливается, порт переоткрывается выше.
+                        this.OnReadFailure(ex);
                         if (PortFailure != null) PortFailure(this, null);
                     }
                 }

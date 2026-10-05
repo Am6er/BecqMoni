@@ -390,7 +390,7 @@ static class CultureProbeO14
             Say("    [положительный контроль] ПРЕЖНИЙ `Convert.ToDouble(«5.75»)` = " + conv
                 + (comma ? "  — на культуре с запятой это отказ или другое число" : ""));
 
-            // ══ ВВОЗ CSV кодом приложения — вторая сторона вывоза CSV.
+            // ══ ИМПОРТ CSV кодом приложения — вторая сторона экспорта CSV.
             A242Csv(name);
 
             // ══ «НЕ СЛОМАНО»: настоящие файлы дерева, ТОЛЬКО ЧТЕНИЕ.
@@ -410,8 +410,8 @@ static class CultureProbeO14
     }
 
     /// <summary>
-    /// Ввоз CSV кодом приложения. Файл пишется С ТОЧКОЙ — ровно так, как его
-    /// теперь пишет `DocumentManager.ExportDocumentToCsv`; вывоз сам вызвать
+    /// Импорт CSV кодом приложения. Файл пишется С ТОЧКОЙ — ровно так, как его
+    /// теперь пишет `DocumentManager.ExportDocumentToCsv`; экспорт сам вызвать
     /// нельзя, он за `SaveFileDialog`, и это названо в отчёте.
     /// </summary>
     static void A242Csv(string culture)
@@ -429,18 +429,18 @@ static class CultureProbeO14
             double t = doc.ActiveResultData.EnergySpectrum.MeasurementTime;
             bool ok = Math.Abs(t - 3600.3) < 1e-9;
             Say(string.Format(CultureInfo.InvariantCulture,
-                "  ВВОЗ CSV  время из шапки «TotalTime=3600.3s» = {0}  {1}",
+                "  ИМПОРТ CSV  время из шапки «TotalTime=3600.3s» = {0}  {1}",
                 t.ToString("R", CultureInfo.InvariantCulture),
                 ok ? "по правилу" : "⛔ ОЖИДАЛОСЬ 3600.3"));
             if (!ok) failures++;
         }
         catch (Exception ex)
         {
-            Say("  ВВОЗ CSV  ⛔ отказ: " + ex.Message);
+            Say("  ИМПОРТ CSV  ⛔ отказ: " + ex.Message);
             failures++;
         }
 
-        // Прежний ввоз звал `double.TryParse(totalTimeStr, out totalTime)` —
+        // Прежний импорт звал `double.TryParse(totalTimeStr, out totalTime)` —
         // без стиля и без культуры, то есть `NumberStyles.Float | AllowThousands`
         // по ТЕКУЩЕЙ культуре. Здесь точка сойдёт за разделитель тысяч, и
         // «3600.3» станет 36003 — в отличие от разбора со `NumberStyles.Float`,

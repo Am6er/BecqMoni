@@ -31,7 +31,7 @@ namespace DecayCorrP192
     ///   * вердикт «≥ MDA» поправкой не меняется;
     ///   * λT → 0: при T = 0 — прежняя форма 1/0.5^{Δt/T½} ПОБИТОВО; при T = 1 с у
     ///     Cs-137 — в пределах 1e-9;
-    ///   * год: период из ввоза базы (`NucBase.HalfLifeYearsFromCell("8.0252(d)")`),
+    ///   * год: период из импорта базы (`NucBase.HalfLifeYearsFromCell("8.0252(d)")`),
     ///     задержка 10 периодов при T = 0 — ровно 2^10 = 1024 (± 1e-9).
     ///
     /// ВЫДЕЛЕНИЕ (с ключом `--spectrum=`) — НАСТОЯЩАЯ панель выделения
@@ -163,7 +163,7 @@ namespace DecayCorrP192
             }
 
             Console.WriteLine();
-            Console.WriteLine("--- год периода: ввоз базы пишет годы по 365 сут ---");
+            Console.WriteLine("--- год периода: импорт базы пишет годы по 365 сут ---");
             {
                 double hy = BecquerelMonitor.NucBase.NucBase.HalfLifeYearsFromCell("8.0252(d)");
                 double delay = 10.0 * 8.0252;

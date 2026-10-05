@@ -11,7 +11,7 @@ using System.Threading;
 namespace ImportEmptyConfigProbeF23
 {
     /// <summary>
-    /// ⛔ ВВОЗ СПЕКТРА, У КОТОРОГО НЕТ МОДЕЛИ РАЗРЕШЕНИЯ (`A212`), — ВСТРЕЧНЫЙ
+    /// ⛔ ИМПОРТ СПЕКТРА, У КОТОРОГО НЕТ МОДЕЛИ РАЗРЕШЕНИЯ (`A212`), — ВСТРЕЧНЫЙ
     ///    ЗАМЕР ПОЛОСЫ F23, 05.09.2026.
     ///
     /// Строка `A212` к приходу этой полосы уже была закрыта полосой О7
@@ -30,10 +30,10 @@ namespace ImportEmptyConfigProbeF23
     ///   какая дверь    — `ImportDocumentSpecUtils` или `ImportDocumentN42`.
     ///
     /// ⛔ ПОЛНЫЕ ПЛЕЧИ — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ, А НЕ УКРАШЕНИЕ. Без них
-    ///    «ввезло 12 из 12 при пустой кривой» неотличимо от «проба ввозит что
+    ///    «импортировало 12 из 12 при пустой кривой» неотличимо от «проба импортирует что
     ///    угодно и ничего не мерит».
     ///
-    /// ⛔ «НЕ УПАЛО» ≠ «ВВЕЗЛО». Сторож `null` мог бы увести ввоз мимо спектров
+    /// ⛔ «НЕ УПАЛО» ≠ «ИМПОРТИРОВАЛО». Сторож `null` мог бы увести импорт мимо спектров
     ///    и молча отдать пустой документ. Поэтому каждая строка плеча несёт
     ///    СЛЕПОК (число спектров, каналы, сумма отсчётов, времена), и слепок
     ///    плеча со сломанным умолчанием сверяется ПОСТРОЧНО со слепком полного
@@ -180,7 +180,7 @@ namespace ImportEmptyConfigProbeF23
             CloneArm();
 
             // ── СВЕРКА СЛЕПКОВ ────────────────────────────────────────────────
-            Console.WriteLine("=== СВЕРКА СЛЕПКОВ: «не упало» обязано значить «ввезло» ===");
+            Console.WriteLine("=== СВЕРКА СЛЕПКОВ: «не упало» обязано значить «импортировало» ===");
             CompareSnaps(broken, full, "УМОЛЧАНИЕ НЕ СТРОИТСЯ · SpecUtils", "СПИСОК ПОЛОН · SpecUtils");
             CompareSnaps(empty, full, "СПИСОК ПУСТ · документ пробы · SpecUtils", "СПИСОК ПОЛОН · SpecUtils");
             CompareSnaps(brokenN42, fullN42, "УМОЛЧАНИЕ НЕ СТРОИТСЯ · N42", "СПИСОК ПОЛОН · N42");
@@ -228,7 +228,7 @@ namespace ImportEmptyConfigProbeF23
         }
 
         /// <summary>
-        /// Одно плечо: каждый файл каталога ввозится названной дверью в документ,
+        /// Одно плечо: каждый файл каталога импортируется названной дверью в документ,
         /// созданный названным способом.
         ///
         /// Печатается: состояние кривой ДО двери, приговор, состояние ПОСЛЕ,
@@ -301,7 +301,7 @@ namespace ImportEmptyConfigProbeF23
                 if (said == null)
                 {
                     ok++;
-                    string row = name + " | ВВЕЗЁН | до: " + before + " | " + print;
+                    string row = name + " | ИМПОРТИРОВАН | до: " + before + " | " + print;
                     Console.WriteLine("  " + row);
                     snap.Lines.Add(row);
                 }
@@ -321,7 +321,7 @@ namespace ImportEmptyConfigProbeF23
                 if (k.Length > 0) k.Append("; ");
                 k.Append(kv.Value).Append("× ").Append(kv.Key);
             }
-            string total = head + " -> ВВЕЗЕНО " + ok + " / ОТКАЗ " + bad + " (из " + files.Length + ")"
+            string total = head + " -> ИМПОРТИРОВАНО " + ok + " / ОТКАЗ " + bad + " (из " + files.Length + ")"
                            + ", ПШПВ null ДО: " + nullBefore + ", спектров без ПШПВ ПОСЛЕ: " + nullAfter
                            + ", дверь сказала слово: " + spoke
                            + (k.Length == 0 ? "" : "   |   " + k);
@@ -341,7 +341,7 @@ namespace ImportEmptyConfigProbeF23
             return snap;
         }
 
-        /// <summary>Слепок документа: числа, по которым видно, что ввоз состоялся.</summary>
+        /// <summary>Слепок документа: числа, по которым видно, что импорт состоялся.</summary>
         static string Print(DocEnergySpectrum doc, out int withoutFwhm)
         {
             withoutFwhm = 0;
@@ -397,7 +397,7 @@ namespace ImportEmptyConfigProbeF23
             if (a.Lines.Count != b.Lines.Count) { diff++; Console.WriteLine("    ⛔ разное число строк"); }
             Console.WriteLine("  «" + nameA + "» против «" + nameB + "»: строк " + n
                               + ", расхождений " + diff
-                              + (diff == 0 ? "  (числа совпали — ввоз настоящий)" : "  ⛔"));
+                              + (diff == 0 ? "  (числа совпали — импорт настоящий)" : "  ⛔"));
             failures += diff;
         }
 

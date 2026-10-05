@@ -58,7 +58,11 @@ namespace BecquerelMonitor.NucBase
                 // умирал кодом −532462766 молча. Причина у такого отказа ровно та
                 // же, что у неоткрывшегося файла, и назвать её надо так же —
                 // вместе с путём.
-                sqlite_conn = new SqliteConnection("Data Source=" + this.dbPath + ";Mode=ReadOnly;Cache=Shared;");
+                // (`AMBER201`) Строка подключения — построителем, не склейкой:
+                // `;` в имени каталога программы разрезал строку, и база не
+                // открывалась. Режим прежний — только чтение, общий кэш.
+                sqlite_conn = new SqliteConnection(
+                    EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(this.dbPath, true));
                 sqlite_conn.Open();
             }
             catch (Exception ex)

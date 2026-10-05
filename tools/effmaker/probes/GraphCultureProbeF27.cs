@@ -474,7 +474,6 @@ static class GraphCultureProbeF27
         P(t, a, "Lc", 2345.75);
         P(t, a, "Lu", 3456.25);
         P(t, a, "Ld", 4567.125);
-        P(t, a, "Lq", 5678.0625);
         P(t, a, "Activity", 12345.75);
         P(t, a, "ActivityError", 1234.25);
         P(t, a, "ActivityUpperLimit", 23456.5);

@@ -103,7 +103,11 @@ namespace BecquerelMonitor
 
         public override bool PerformCalibration(int maxchannels)
         {
-            if (peaks.Count <= 1) return false;
+            if (peaks.Count <= 1)
+            {
+                LastCheck = FwhmCheckResult.Rejected;
+                return false;
+            }
             coefficients = Utils.CalibrationSolver.SolvePower(peaks);
             return CheckCalibration(maxchannels);
         }
@@ -125,12 +129,26 @@ namespace BecquerelMonitor
         /// степенной формы это ровно условие 0 &lt; p &lt; 1, поэтому проверка
         /// здесь по коэффициентам, а не перебором каналов, как у корневых:
         /// перебор дал бы то же самое за тысячи шагов.
+        ///
+        /// ⚠ (`AMBER189` (б), 05.10.2026) Заслон не-чисел — ПЕРВЫМ: при a = +∞
+        /// (две опоры на одном канале — вырожденный решатель) прежние сравнения
+        /// пропускали кривую, ширина выходила бесконечной на всех каналах.
+        /// Ширина ≤ 0 здесь невозможна по построению (a &gt; 0 ⇒ a·ch^p &gt; 0 при
+        /// ch &gt; 0; ноль на канале 0 — свойство формы, см. заглавие класса).
         /// </summary>
         private bool CheckCalibration(int maxchannels)
         {
+            LastCheck = FwhmCheckResult.Rejected;
+            if (!CoefficientsFinite(coefficients, 2))
+            {
+                LastCheck = FwhmCheckResult.NotFinite;
+                return false;
+            }
             if (!(coefficients[0] > 0.0)) return false;
             if (!(coefficients[1] > 0.0) || !(coefficients[1] < 1.0)) return false;
-            return ChannelToFwhm(Math.Max(1, maxchannels - 1)) > 0.0;
+            if (!(ChannelToFwhm(Math.Max(1, maxchannels - 1)) > 0.0)) return false;
+            LastCheck = FwhmCheckResult.Ok;
+            return true;
         }
 
         public override int PeakType { get => this.peak_type; set => this.peak_type = value; }

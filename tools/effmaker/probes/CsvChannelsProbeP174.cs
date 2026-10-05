@@ -12,7 +12,7 @@ namespace CsvChannelsProbeP174
     /// КАНАЛОВ, ЧЕМ У ДОКУМЕНТА. Сочиняет файлы «CSV с энергиями»
     /// (`ImportCsvEnergyToDocument`, шапка «Energy,Count #0d0h10m0s», центры по
     /// полиному) и «CSV со счётом» (`ImportCsvToDocument`, «Channel,Counts
-    /// (TotalTime=600s)») на 16384, 1024 и 512 строк, ввозит каждый в СВЕЖИЙ
+    /// (TotalTime=600s)») на 16384, 1024 и 512 строк, импортирует каждый в СВЕЖИЙ
     /// документ при снятой и поднятой настройке «Import spectrum with empty
     /// config» и печатает: каналов у документа, Σ отсчётов файла и документа,
     /// TotalPulseCount / ValidPulseCount, E(последний канал) против полинома.

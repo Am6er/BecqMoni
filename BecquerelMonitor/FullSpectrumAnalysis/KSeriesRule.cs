@@ -248,8 +248,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     string path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "matdb.sqlite");
                     if (System.IO.File.Exists(path))
                     {
+                        // (`AMBER201`) Строка подключения — построителем, не склейкой:
+                        // `;` в имени каталога программы разрезал строку, и база не открывалась.
                         using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(
-                                   "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+                                   EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(path, true)))
                         {
                             connection.Open();
                             using (var command = connection.CreateCommand())
@@ -276,11 +278,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception error)
                 {
                     // Таблицы нет или база не читается — строки остаются как
                     // есть (середина диапазона), как было до `AMBER120`.
-                    read.Clear();
+                    // ⛔ (`AMBER199`, 05.10.2026) Но отказ ЧТЕНИЯ называется и В
+                    // КЭШ НЕ КЛАДЁТСЯ: следующий разбор спросит базу снова. Счёт
+                    // отказов потока заодно не даёт читателям выше (линии
+                    // распада `FsaSampleLibrary`, атомные данные
+                    // `CascadeAtomicData`) запомнить строки без групп.
+                    FsaDatabaseFailures.Note("matdb.sqlite", "fluorescence_k", error);
+                    return null;
                 }
 
                 groups = read;

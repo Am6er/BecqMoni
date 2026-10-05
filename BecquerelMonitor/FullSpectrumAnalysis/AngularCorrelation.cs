@@ -587,8 +587,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return found;
                 }
 
+                // ⛔ (`AMBER199`, 05.10.2026) Отрицательный ответ кэшируется,
+                // ОТКАЗ ЧТЕНИЯ — нет: занятая база не выключает корреляции до
+                // перезапуска программы.
+                int failuresBefore = FsaDatabaseFailures.ThreadCount;
                 Scheme loaded = Load(z, a);
-                Cache[key] = loaded;
+                if (FsaDatabaseFailures.ThreadCount == failuresBefore)
+                {
+                    Cache[key] = loaded;
+                }
+
                 return loaded;
             }
         }
@@ -612,8 +620,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             Scheme scheme = new Scheme { Z = z, A = a };
             try
             {
+                // (`AMBER201`) Строка подключения — построителем, не склейкой:
+                // `;` в имени каталога программы разрезал строку, и база не открывалась.
                 using (SqliteConnection connection = new SqliteConnection(
-                    "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+                    EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(path, true)))
                 {
                     connection.Open();
                     using (SqliteCommand command = connection.CreateCommand())
@@ -663,9 +673,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
-            catch (SqliteException)
+            catch (SqliteException error)
             {
-                return null;               // таблиц нет — база старее импорта
+                // таблиц нет — база старее импорта; или файл не читается
+                // (`AMBER199`) — назвать и не кэшировать
+                FsaDatabaseFailures.Note("schemedb.sqlite",
+                    "Z=" + z.ToString(CultureInfo.InvariantCulture) + " A=" + a.ToString(CultureInfo.InvariantCulture), error);
+                return null;
             }
 
             return scheme.Transitions.Count > 0 ? scheme : null;

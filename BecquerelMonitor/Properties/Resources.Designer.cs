@@ -1449,6 +1449,15 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ERRUnreadableStartDateTimeN42", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to In {0} measurement(s) of the N42 file the spectrum refers to an energy calibration that is not in the file (first reference: {1}); the calibration was taken by the measurement number instead. Check the energy scale of these spectra..
+        /// </summary>
+        public static string ERRCalibrationReferenceNotFoundN42 {
+            get {
+                return ResourceManager.GetString("ERRCalibrationReferenceNotFoundN42", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to The N42 energy calibration is a polynomial of order {0}, and the application reads polynomials up to order 4..
@@ -1748,15 +1757,6 @@ namespace BecquerelMonitor.Properties {
             get {
                 object obj = ResourceManager.GetObject("log", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Lq counts.
-        /// </summary>
-        public static string Lq_counts {
-            get {
-                return ResourceManager.GetString("Lq_counts", resourceCulture);
             }
         }
         
@@ -2898,6 +2898,15 @@ namespace BecquerelMonitor.Properties {
         public static string TemperatureStr {
             get {
                 return ResourceManager.GetString("TemperatureStr", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Click 🔃 to read the detector temperature again (Atom Spectra, while acquiring).
+        /// </summary>
+        public static string TemperatureRefreshHint {
+            get {
+                return ResourceManager.GetString("TemperatureRefreshHint", resourceCulture);
             }
         }
         
@@ -5561,6 +5570,78 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("GeometryMaterialsErrorDuplicate", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorWeight.
+        /// </summary>
+        public static string GeometryMaterialsErrorWeight {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorWeight", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorComponentNoName.
+        /// </summary>
+        public static string GeometryMaterialsErrorComponentNoName {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorComponentNoName", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryEditorErrorNotFiniteLength.
+        /// </summary>
+        public static string GeometryEditorErrorNotFiniteLength {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorNotFiniteLength", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to EfficiencyCurveOtherGeometry.
+        /// </summary>
+        public static string EfficiencyCurveOtherGeometry {
+            get {
+                return ResourceManager.GetString("EfficiencyCurveOtherGeometry", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to FSAReportCurveOtherGeometryValue.
+        /// </summary>
+        public static string FSAReportCurveOtherGeometryValue {
+            get {
+                return ResourceManager.GetString("FSAReportCurveOtherGeometryValue", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to EfficiencyMakerPreviousCurveKept.
+        /// </summary>
+        public static string EfficiencyMakerPreviousCurveKept {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerPreviousCurveKept", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixPendingNote.
+        /// </summary>
+        public static string ResponseMatrixPendingNote {
+            get {
+                return ResourceManager.GetString("ResponseMatrixPendingNote", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixCommitFailed.
+        /// </summary>
+        public static string ResponseMatrixCommitFailed {
+            get {
+                return ResourceManager.GetString("ResponseMatrixCommitFailed", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to GeometryMaterialsErrorDensity.
@@ -6039,6 +6120,12 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string ERRAtomSpectraPortLost {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraPortLost", resourceCulture);
+            }
+        }
+
         public static string ERRBTUnavailable {
             get {
                 return ResourceManager.GetString("ERRBTUnavailable", resourceCulture);
@@ -6424,11 +6511,29 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to the default cannot be built from the device settings — the straight line through (channel 0, FWHM {0}) and (channel {1}, FWHM {2}) does not grow, while the width must not decrease along the scale..
+        ///   Looks up a localized string similar to the default cannot be built from the device settings — the straight line through (channel 0, FWHM {0}) and (channel {1}, FWHM {2}) does not grow or gives zero width at channel 0, while the width must be positive and must not decrease along the scale..
         /// </summary>
         public static string ERRFwhmDefaultNotMonotonic {
             get {
                 return ResourceManager.GetString("ERRFwhmDefaultNotMonotonic", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The FWHM fit gave no finite curve. Check the calibration points: two points on the same channel with different widths leave the curve undefined..
+        /// </summary>
+        public static string ERRFwhmNotFinite {
+            get {
+                return ResourceManager.GetString("ERRFwhmNotFinite", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The FWHM curve gives zero width on channels 0…{0} (up to {1} keV): no peaks would be searched there. Choose the power-law curve (FWHM = a * ch^p): its width is positive at every channel above zero..
+        /// </summary>
+        public static string ERRFwhmNonPositiveWidth {
+            get {
+                return ResourceManager.GetString("ERRFwhmNonPositiveWidth", resourceCulture);
             }
         }
 
@@ -6516,6 +6621,24 @@ namespace BecquerelMonitor.Properties {
         public static string FSANoLiveTime {
             get {
                 return ResourceManager.GetString("FSANoLiveTime", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Database not read: {0}. The analysis ran without these data and will read the database again at the next recalculation..
+        /// </summary>
+        public static string FSADatabaseFailed {
+            get {
+                return ResourceManager.GetString("FSADatabaseFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Nuclear data databases not read — the analysis ran without part of the data (lines of a nuclide or the coincidence correction); they are read again at the next recalculation.
+        /// </summary>
+        public static string FSAReportDatabaseFailedRow {
+            get {
+                return ResourceManager.GetString("FSAReportDatabaseFailedRow", resourceCulture);
             }
         }
 
@@ -6633,6 +6756,87 @@ namespace BecquerelMonitor.Properties {
         public static string SummingWhyNoLine {
             get {
                 return ResourceManager.GetString("SummingWhyNoLine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No zone “{0}” to refer to.
+        /// </summary>
+        public static string ROIReferenceMissing {
+            get {
+                return ResourceManager.GetString("ROIReferenceMissing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Covell window narrower than a channel.
+        /// </summary>
+        public static string ROICovellWindowNarrow {
+            get {
+                return ResourceManager.GetString("ROICovellWindowNarrow", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to used (from the spectrum file)
+        /// </summary>
+        public static string FSAReportMatrixUsedFromSpectrum {
+            get {
+                return ResourceManager.GetString("FSAReportMatrixUsedFromSpectrum", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The response matrix carried in the spectrum file is rejected: {0}. The analysis runs without it.
+        /// </summary>
+        public static string FSAReportSpectrumMatrixRefusedRow {
+            get {
+                return ResourceManager.GetString("FSAReportSpectrumMatrixRefusedRow", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to rejected
+        /// </summary>
+        public static string FSAReportSpectrumMatrixRefusedValue {
+            get {
+                return ResourceManager.GetString("FSAReportSpectrumMatrixRefusedValue", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to it belongs to another efficiency curve
+        /// </summary>
+        public static string EmbeddedMatrixOtherCurve {
+            get {
+                return ResourceManager.GetString("EmbeddedMatrixOtherCurve", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to the block is damaged (truncated or edited)
+        /// </summary>
+        public static string EmbeddedMatrixDamaged {
+            get {
+                return ResourceManager.GetString("EmbeddedMatrixDamaged", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to matrix file format {0}, the application reads format {1}
+        /// </summary>
+        public static string EmbeddedMatrixOldFormat {
+            get {
+                return ResourceManager.GetString("EmbeddedMatrixOldFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to its stamp does not match the geometry of the curve
+        /// </summary>
+        public static string EmbeddedMatrixStale {
+            get {
+                return ResourceManager.GetString("EmbeddedMatrixStale", resourceCulture);
             }
         }
 

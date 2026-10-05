@@ -527,6 +527,22 @@ namespace BecquerelMonitor.EfficiencyMaker
             double outerHalf = halfWidth + tsr + tsg + tsc;
             double zFace = -(tfr + tfg + tfc);
 
+            // (`AMBER201`, Р4, мелочь G.3) Ключи подсветки едут ВМЕСТЕ с
+            // толщинами, переставленными вызывающим: размер у грани, обращённой
+            // к пробе, при боковой постановке — это поле `Side*`, и подсвечиваться
+            // он обязан по нему. Прежде числа переставлялись, а ключи нет: фокус
+            // в поле «боковой отражатель» подсвечивал торцевой размер с другим
+            // числом — чертёж показывал одно, а редактор правил другое.
+            string kfr = "FrontReflectorThickness", ksr = "SideReflectorThickness";
+            string kfc = "FrontCladdingThickness", ksc = "SideCladdingThickness";
+            string kfg = "FrontGapThickness", ksg = "SideGapThickness";
+            if (m.Facing == GeometryDetectorFacing.Side)
+            {
+                string kt = kfr; kfr = ksr; ksr = kt;
+                kt = kfc; kfc = ksc; ksc = kt;
+                kt = kfg; kfg = ksg; ksg = kt;
+            }
+
             bool box = m.Shape == CrystalShape.Box;
             // Подписи идут за РАЗВОРОТОМ: после боковой постановки высота на
             // чертеже взята уже не из Z, и подпись «CrystalBoxZ» рядом с ней
@@ -548,26 +564,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                           2.0 * halfWidth, widthKey);
                 this.DimV(g, pen, ink, this.RightOf(outerHalf, 26), 0.0, height,
                           height, lengthKey);
-                this.DimV(g, pen, ink, -halfWidth * 0.45, -tfr, 0.0, tfr, "FrontReflectorThickness");
-                this.DimV(g, pen, ink, halfWidth * 0.45, zFace, -(tfr + tfg), tfc,
-                          "FrontCladdingThickness");
-                this.DimH(g, pen, ink, -halfWidth - tsr, -halfWidth, height * 0.35, tsr,
-                          "SideReflectorThickness");
-                this.DimH(g, pen, ink, -outerHalf, -halfWidth - tsr - tsg, height * 0.62, tsc,
-                          "SideCladdingThickness");
+                this.DimV(g, pen, ink, -halfWidth * 0.45, -tfr, 0.0, tfr, kfr);
+                this.DimV(g, pen, ink, halfWidth * 0.45, zFace, -(tfr + tfg), tfc, kfc);
+                this.DimH(g, pen, ink, -halfWidth - tsr, -halfWidth, height * 0.35, tsr, ksr);
+                this.DimH(g, pen, ink, -outerHalf, -halfWidth - tsr - tsg, height * 0.62, tsc, ksc);
 
                 // (`AMBER1`) Размер зазора ставится, ТОЛЬКО когда он есть:
                 // нулевая выноска на чертеже — это шум, а не сведение.
                 if (tfg > 0.0)
                 {
-                    this.DimV(g, pen, ink, -halfWidth * 0.75, -(tfr + tfg), -tfr, tfg,
-                              "FrontGapThickness");
+                    this.DimV(g, pen, ink, -halfWidth * 0.75, -(tfr + tfg), -tfr, tfg, kfg);
                 }
 
                 if (tsg > 0.0)
                 {
                     this.DimH(g, pen, ink, -halfWidth - tsr - tsg, -halfWidth - tsr,
-                              height * 0.48, tsg, "SideGapThickness");
+                              height * 0.48, tsg, ksg);
                 }
                 this.DimV(g, pen, ink, 0.0, height, height + tm, tm, "MountingThickness");
 

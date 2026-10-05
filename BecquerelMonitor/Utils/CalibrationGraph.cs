@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
+using System.Linq;
 using System.Security.Policy;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
@@ -133,14 +134,39 @@ namespace BecquerelMonitor.Utils
         {
             if (this.recalcPoly)
             {
-                double[] matrix;
-                if (this.weights)
+                // (`AMBER201`, мелочь 4.6, 05.10.2026) Подгонка — только когда она
+                // определена: степень от 1 и не выше «точек − 1». Степень 0 (поле
+                // степени панели калибровки начинается с нуля) и степень больше
+                // числа точек валили решатель ПРЯМО В OnPaint — окно графика
+                // падало необработанным исключением. Вне этих пределов, как и при
+                // отказе решателя, кривая не пересчитывается и рисуется как
+                // негодная (цвет «неверной» калибровки).
+                double[] matrix = null;
+                if (this.points != null && this.polyorder >= 1 && this.polyorder <= this.points.Count - 1)
                 {
-                    matrix = Utils.CalibrationSolver.SolveWeighted(points, this.polyorder);
+                    try
+                    {
+                        if (this.weights)
+                        {
+                            matrix = Utils.CalibrationSolver.SolveWeighted(points, this.polyorder);
+                        }
+                        else
+                        {
+                            matrix = Utils.CalibrationSolver.Solve(points, this.polyorder);
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        matrix = null;
+                    }
+                    if (matrix != null && matrix.Any(c => double.IsNaN(c) || double.IsInfinity(c)))
+                    {
+                        matrix = null;
+                    }
                 }
-                else
+                if (matrix == null)
                 {
-                    matrix = Utils.CalibrationSolver.Solve(points, this.polyorder);
+                    this.polycorrect = false;
                 }
                 if (matrix != null)
                 {
@@ -366,7 +392,11 @@ namespace BecquerelMonitor.Utils
 
         private void updateCalibrationPointsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints = this.points;
+            // (`AMBER201`, мелочь 4.9, 05.10.2026) В документ — КОПИЯ рабочего
+            // списка графика. Прежде документ получал сам список `points`, и
+            // каждое следующее перетаскивание точки на графике меняло документ
+            // без «Обновить», а «Reset» возвращал график, но не документ.
+            this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints = ClonePoints(this.points);
             this.originalcalibration = (PolynomialEnergyCalibration)this.calibration.Clone();
             this.originalpoints = ClonePoints(this.points);
         }

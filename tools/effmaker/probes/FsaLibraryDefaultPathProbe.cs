@@ -38,7 +38,7 @@ namespace FsaLibraryDefaultPathProbe
     ///                                [--nucbase=0,1,2]
     ///
     /// (П149, 24.09.2026, `AMBER78`) `--nucbase=` добавляет плечи 4.N — НАБОР,
-    /// КАКИМ ЕГО ВВОЗИТ `NucBase`: линии нуклида из
+    /// КАКИМ ЕГО ИМПОРТИРУЕТ `NucBase`: линии нуклида из
     /// `NucBaseFramework.getDecayRad` (ровно те строки, у которых форма ставит
     /// галочку по умолчанию, — гаммы распада), имена — форматом N формы
     /// (0 «137CS», 1 «Cs137» — умолчание формы, 2 «Cs-137»). Формат повторён
@@ -328,7 +328,7 @@ namespace FsaLibraryDefaultPathProbe
         static readonly Regex NucBaseName = new Regex("^([0-9]+){1}([A-Z]+){1}(m[0-9]+)?$");
 
         /// <summary>
-        /// Набор так, как его ввозит `NucBase` (`buttonImportDef_Click`): строки
+        /// Набор так, как его импортирует `NucBase` (`buttonImportDef_Click`): строки
         /// `getDecayRad` нуклида, у которых форма ставит галочку по умолчанию
         /// (гаммы распада, `DecayLine == "G"`), имя — форматом формы.
         /// </summary>

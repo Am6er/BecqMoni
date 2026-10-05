@@ -500,11 +500,75 @@ namespace BecquerelMonitor
             }
             this.deviceConfigList.Remove(deviceConfigInfo);
             this.deviceConfigMap.Remove(deviceConfigInfo.Guid);
+            DeleteResponseMatricesOf(deviceConfigInfo, devConfig, this.deviceConfigList);
             if (this.DeviceConfigListChanged != null)
             {
                 this.DeviceConfigListChanged(this, new DeviceConfigChangedEventArgs(deviceConfigInfo.Guid));
             }
             return true;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER184`, остаток (3), 05.10.2026; решение Amber вопросником,
+        /// дословно: «Снимать (Рекомендую)») Конфигурация прибора удалена ЦЕЛИКОМ —
+        /// со склада снимаются матрицы отклика её кривых (`.rmx`) и ждущие
+        /// сохранения временные (`.rmx.pending`). Прежде они оставались на диске
+        /// навсегда: снятие было только у кривой, удалённой из живой конфигурации
+        /// (`AMBER186`, <see cref="EfficiencyMaker.ResponseMatrixStore.DeleteRemoved"/>).
+        ///
+        /// Кривые берутся и у записи менеджера (что на диске), и у клона формы
+        /// (заведённые после сохранения — у них бывает только временный файл).
+        /// ⚠ Guid кривой, живой у ДРУГОЙ конфигурации, не трогается: копия
+        /// конфигурации наследует Guid кривых и делит с прежней файл склада.
+        /// Зовётся только после удавшегося удаления файла и уже без удалённой
+        /// записи в <paramref name="remaining"/>.
+        /// </summary>
+        internal static void DeleteResponseMatricesOf(DeviceConfigInfo record, DeviceConfigInfo edited,
+                                                      IEnumerable<DeviceConfigInfo> remaining)
+        {
+            List<string> removed = new List<string>();
+            foreach (DeviceConfigInfo source in new[] { record, edited })
+            {
+                if (source == null || source.EfficiencyConfigs == null)
+                {
+                    continue;
+                }
+
+                foreach (EfficiencyConfigData curve in source.EfficiencyConfigs)
+                {
+                    if (curve != null && !string.IsNullOrEmpty(curve.Guid) && !removed.Contains(curve.Guid))
+                    {
+                        removed.Add(curve.Guid);
+                    }
+                }
+            }
+
+            if (removed.Count == 0)
+            {
+                return;
+            }
+
+            HashSet<string> referenced = new HashSet<string>(StringComparer.Ordinal);
+            if (remaining != null)
+            {
+                foreach (DeviceConfigInfo other in remaining)
+                {
+                    if (other == null || other.EfficiencyConfigs == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (EfficiencyConfigData curve in other.EfficiencyConfigs)
+                    {
+                        if (curve != null && !string.IsNullOrEmpty(curve.Guid))
+                        {
+                            referenced.Add(curve.Guid);
+                        }
+                    }
+                }
+            }
+
+            EfficiencyMaker.ResponseMatrixStore.DeleteRemoved(removed, referenced);
         }
 
         string userDirectory = BecquerelMonitor.Package.GetInstance().UserDirectory;

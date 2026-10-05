@@ -157,6 +157,18 @@ namespace BecquerelMonitor
                 return peaks;
             }
 
+            // (`AMBER201` Р5) Полный спектр для уточнения центра ядром
+            // постоянной ширины — один на все пики (`CreatePeak`).
+            int nRefine = energySpectrum.Spectrum.Length;
+            double[] refineCounts = new double[nRefine];
+            double[] refineEdges = new double[nRefine + 1];
+            for (int j = 0; j < nRefine; j++)
+            {
+                refineCounts[j] = energySpectrum.Spectrum[j];
+                refineEdges[j] = j;
+            }
+            refineEdges[nRefine] = nRefine;
+
             for (int i = 0; i < finder.centroids.Length; i++)
             {
                 // Площадь берётся у того же финдера и по тому же номеру: все
@@ -176,7 +188,10 @@ namespace BecquerelMonitor
                     netCounts,
                     sa,
                     peakConfig,
-                    refineCentroid: true);
+                    refineCentroid: true,
+                    kernel: finder.kernel,
+                    refineCounts: refineCounts,
+                    refineEdges: refineEdges);
                 peak.PeakSearchOrigin = PeakSearchOrigin.FWHMPeakFinder;
                 // ⛔ `Peak.FWHM` — В КАНАЛАХ, а не в кэВ, и это не описка:
                 //    финдер строит рёбра как `bin_edges[i] = i`
@@ -863,9 +878,42 @@ namespace BecquerelMonitor
             double netCounts,
             SpectrumAriphmetics sa,
             FWHMPeakDetectionMethodConfig config,
-            bool refineCentroid)
+            bool refineCentroid,
+            FWHMPeakDetector.PeakFilter kernel = null,
+            double[] refineCounts = null,
+            double[] refineEdges = null)
         {
-            if (refineCentroid && sa != null && config != null)
+            bool refined = false;
+            if (refineCentroid && config != null && config.UseCenterOfMassCentroid &&
+                kernel != null && refineCounts != null && refineEdges != null)
+            {
+                // ⛔ (`AMBER201` Р5, решение Amber 05.10.2026, вопросником,
+                //    дословно: «Чинить сейчас (Рекомендую)») ЦЕНТР — МАКСИМУМ
+                //    ОТКЛИКА ЯДРА ПОСТОЯННОЙ ШИРИНЫ по полному спектру
+                //    (`PeakFilter.try_refine_center`, там же — почему). Бин
+                //    финдера у широкого пика стоит правее истины (ядро своей
+                //    ширины у каждой строки свёртки поднимает правую сторону
+                //    SNR: +0.15/+0.25/+0.55 канала на 2048/4096/8192), а после
+                //    пересыпки он ещё и шириной mul каналов; окно ±(mul + 1)
+                //    ниже видит лишь верхушку пика и этого не исправляло.
+                //    Условие максимума — центр масс с весами ядра
+                //    (3 − z²)·e^(−z²/2) в окне от ПШПВ, поэтому галка «центроида
+                //    по центру масс» значит то же, что и раньше; выключенная —
+                //    прежний argmax ниже, побитово. Не вышло (нет калибровки
+                //    ПШПВ, отклик не положителен, максимум дальше
+                //    mul + ПШПВ/2) — прежний путь.
+                int concatR = Math.Max(1, config.Ch_Concat);
+                int mulR = energySpectrum.Spectrum.Length / concatR;
+                double binWidth = mulR > 1 ? mulR : 1.0;
+                if (kernel.try_refine_center(refineEdges, refineCounts, centroid, binWidth, out double refinedEdge))
+                {
+                    // Координаты рёбер → номер канала: центр канала i — ребро i + 0.5.
+                    centroid = refinedEdge - 0.5;
+                    refined = true;
+                }
+            }
+
+            if (!refined && refineCentroid && sa != null && config != null)
             {
                 int concat = Math.Max(1, config.Ch_Concat);
                 // Keep the window at least [c-2, c+2]: for spectra shorter than Ch_Concat
@@ -873,11 +921,33 @@ namespace BecquerelMonitor
                 // and FindCentroid returned only a BOUNDARY - every peak systematically
                 // shifted by +-1 channel on 256/512/1000-channel spectra.
                 int mul = Math.Max(1, energySpectrum.Spectrum.Length / concat);
+                // ⛔ (`AMBER201` Р2, решение Amber 05.10.2026 «Округление и SMA,
+                //    Channel целый») ОКНО — СИММЕТРИЧНО ВОКРУГ БИНА ФИНДЕРА, без
+                //    округления. Финдер отдаёт ЦЕНТР своего бина в координатах
+                //    РЁБЕР (`FWHMPeakDetector.Spectrum`: ребро канала i — i,
+                //    центр — i + 0.5; после `combine_bins(mul)` бин k покрывает
+                //    каналы [mul·k, mul·k + mul) и его центр — mul·k + mul/2), а
+                //    уточнение считает в номерах каналов, где центр того же бина —
+                //    centroid − 0.5. Здесь стояло `Convert.ToInt32` трёх
+                //    полуцелых чисел — банковское округление к ЧЁТНОМУ: у бина с
+                //    нечётным номером окно [i − 1, i + 3] вместо [i − 2, i + 2],
+                //    у пересыпанных (mul чётный) — на полканала правее центра бина;
+                //    центр масс ядра, обрезанного краем окна, тянулся вправо
+                //    (+0.16 канала в среднем у сцинтиллятора на 1024 каналах,
+                //    +0.37 на 8192, замер полосы fix201pk).
+                //    `MidpointRounding.AwayFromZero` не годится: он сдвигает
+                //    ВСЕ окна на канал вправо, то есть меняет случайную
+                //    несимметрию на систематическую. Окно — каналы, целиком
+                //    лежащие в [центр − (mul + 1), центр + (mul + 1)]: у целого
+                //    центра это прежние ±(mul + 1), у полуцелого — 2(mul + 1)
+                //    каналов поровну с обеих сторон.
+                double binCenter = centroid - 0.5;
+                int half = mul + 1;
                 centroid = sa.FindCentroid(
                     energySpectrum,
-                    Convert.ToInt32(centroid),
-                    Convert.ToInt32(centroid - mul - 1),
-                    Convert.ToInt32(centroid + mul + 1),
+                    (int)Math.Floor(centroid),
+                    (int)Math.Ceiling(binCenter - half),
+                    (int)Math.Floor(binCenter + half),
                     config.UseCenterOfMassCentroid);
             }
 

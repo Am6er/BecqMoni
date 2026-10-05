@@ -82,7 +82,7 @@ namespace BecquerelMonitor
         /// <summary>
         /// Годна ли шкала: степень, длина набора коэффициентов, монотонность и
         /// разумность энергий по всем каналам. Ответ читают ВСЕ 23 места
-        /// дерева, где шкала берётся из файла или из подгонки, — ввоз N42,
+        /// дерева, где шкала берётся из файла или из подгонки, — импорт N42,
         /// открытие документа, сохранение конфигурации прибора, вычитание фона,
         /// стабилизатор пиков, график калибровки.
         ///
@@ -147,9 +147,19 @@ namespace BecquerelMonitor
                 double b = this.Coefficients[1];
                 double a = this.Coefficients[2];
                 double discriminant = Math.Pow(b, 2.0) - 4.0 * a * c;
-                double discriminant2 = Math.Pow(b, 2.0) - 4.0 * a * (c - (double)channels);
 
-                if (discriminant < 0 || discriminant2 < 0)
+                // ⛔ `AMBER190` (полоса fixcal, 05.10.2026): здесь стояло второе
+                // условие `b² − 4a(c − channels) < 0` — «у параболы есть корень при
+                // E = (число каналов) кэВ». Родилось 07.07.2023 (`3e69dfc3`) как
+                // «шкала достаёт до 12 МэВ» (12000.0), 30.07.2023 (`a5b78ebe`)
+                // константа заменена числом КАНАЛОВ — смешение единиц. После зажима
+                // `EnergyToChannel` (энергия выше E(N) → канал N) корень у
+                // E = channels не нужен никому, а отвергало условие годные вогнутые
+                // шкалы: c = 0, b = 0.40, a = −5e-6, N = 8192 (изгиб 10 %,
+                // монотонна) — «Calibration function error», молчаливое понижение
+                // степени в `SolveGuarded`, сброс шкалы при открытии файла.
+                // Монотонность на [0, N] проверяет цикл ниже.
+                if (discriminant < 0)
                 {
                     return false;
                 }
@@ -179,6 +189,71 @@ namespace BecquerelMonitor
                 }
             }
             return true;
+        }
+
+        /// <summary>
+        /// ⛔ `AMBER188(д)` (полоса fixcal, 05.10.2026): ввод ОДНОГО коэффициента
+        /// шкалы в поле — общий помощник панели калибровки энергии
+        /// (<c>DCEnergyCalibrationView.setNewCalibration</c>) и формы прибора
+        /// (<c>DeviceConfigForm.setNewCalibration</c>); обе ведут себя одинаково.
+        ///
+        /// Решение Amber 05.10.2026, вопросником, дословно: «Подъём до введённой
+        /// (Рекомендую)». То есть:
+        /// <list type="bullet">
+        /// <item>ненулевой коэффициент при xᵏ у шкалы степени ниже k поднимает
+        /// степень до k, промежуточные коэффициенты — нули (прежде массив рос на
+        /// одну ступень, и ввод x⁴ у линейной шкалы падал
+        /// <c>IndexOutOfRange</c>);</item>
+        /// <item>ноль (ЧИСЛЕННО, а не текст «0» — «0.0» тоже ноль) в старшем
+        /// коэффициенте понижает степень до СТАРШЕГО НЕНУЛЕВОГО: у
+        /// [c, b, 0, d₃, d₄] ноль в x⁴ даёт степень 3, у [c, b, a, 0, d₄] —
+        /// степень 2.</item>
+        /// </list>
+        ///
+        /// Возвращает НОВЫЙ объект; исходный не трогается — отказ у вызывающего
+        /// не оставляет живую шкалу в промежуточном состоянии. Годность шкалы
+        /// (<see cref="CheckCalibration"/>) помощник НЕ проверяет: панель
+        /// проверяет сразу, форма прибора — при сохранении. Бросает
+        /// <see cref="ArgumentException"/> на степени вне 0…4, на не-числе и на
+        /// шкале, где все коэффициенты при степенях x равны нулю (энергия не
+        /// зависит от канала — такую не примет ни одна проверка).
+        /// </summary>
+        public static PolynomialEnergyCalibration WithCoefficient(PolynomialEnergyCalibration source, int order, double value)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (order < 0 || order > 4)
+            {
+                throw new ArgumentOutOfRangeException(nameof(order), order, "coefficient index must be 0..4");
+            }
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                throw new ArgumentException("coefficient must be a finite number", nameof(value));
+            }
+
+            // Только участвующие коэффициенты исходной шкалы: хвост массива за
+            // её степенью (если он есть) в новую шкалу не переносится.
+            int sourceTop = Math.Min(source.polynomialOrder, source.coefficients.Length - 1);
+            double[] work = new double[Math.Max(sourceTop, order) + 1];
+            Array.Copy(source.coefficients, work, sourceTop + 1);
+            work[order] = value;
+
+            int degree = work.Length - 1;
+            while (degree >= 1 && work[degree] == 0.0)
+            {
+                degree--;
+            }
+            if (degree < 1)
+            {
+                throw new ArgumentException("all channel-dependent coefficients are zero: energy would not depend on the channel", nameof(value));
+            }
+
+            double[] coefficients = new double[degree + 1];
+            Array.Copy(work, coefficients, degree + 1);
+
+            PolynomialEnergyCalibration result = (PolynomialEnergyCalibration)source.Clone();
+            result.PolynomialOrder = degree;
+            result.Coefficients = coefficients;
+            return result;
         }
 
         public override EnergyCalibration Downgrade(int polynomialOrder)
