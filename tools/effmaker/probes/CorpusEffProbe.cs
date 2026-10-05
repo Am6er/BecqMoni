@@ -467,6 +467,15 @@ class CorpusEffProbe
                 return false;
             }
 
+            // (`AMBER205`, П235) Сцена сосуда полной высоты — в клейме
+            // `bmscene=1` там, где сцена другая: кривая прежней сцены стакана
+            // или маринелли с запасом пересчитывается, прочие — нет.
+            if ((stamp.IndexOf(EfficiencyCalculation.VesselStamp, StringComparison.Ordinal) >= 0)
+                != EfficiencyCalculation.VesselStampExpected(geometry))
+            {
+                return false;
+            }
+
             try
             {
                 if (!string.Equals(GeometryWriter.Render(have.Geometry), want, StringComparison.Ordinal))

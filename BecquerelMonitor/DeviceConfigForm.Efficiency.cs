@@ -544,6 +544,23 @@ namespace BecquerelMonitor
                 notes.Add(Resources.EfficiencyCurveOtherGeometry);
             }
 
+            // ⛔ (`AMBER205`, П235 05.10.2026) Сцена сосуда полной высоты. Матрица
+            // такой геометрии пересчитывается сама (её клеймо несёт `bmscene=1`
+            // и перестаёт сходиться), кривая — НЕТ: она лежит числами. Кривая
+            // нынешней физики без куска у сосуда, чья сцена правда изменилась,
+            // посчитана прежней сценой (стенка только на высоту пробы, без
+            // дальнего донышка). Кривая без `phys=` (ручная, по измерениям) —
+            // молчим, как и `GenerationNotes`.
+            string stamp = config.ComputeStamp ?? "";
+            if (ResponseMatrix.PhysicsFromStamp(stamp) > 0
+                && EfficiencyCalculation.VesselStampExpected(config.Geometry)
+                && stamp.IndexOf(EfficiencyCalculation.VesselStamp, StringComparison.Ordinal) < 0)
+            {
+                notes.Add(string.Format(CultureInfo.InvariantCulture,
+                                        Resources.EfficiencyTabCurveOldVessel,
+                                        EfficiencyCalculation.VesselStamp));
+            }
+
             notes.AddRange(config.Geometry.Warnings);
             return notes;
         }
