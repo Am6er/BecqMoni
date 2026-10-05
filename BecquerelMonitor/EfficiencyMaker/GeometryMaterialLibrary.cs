@@ -199,6 +199,20 @@ namespace BecquerelMonitor.EfficiencyMaker
             add("PTFE", "Polytetrafluoroethylene", "C2 F4", 2.25, MaterialKind.Reflector);
             add("MgO", "Magnesium oxide", "Mg1 O1", 3.58, MaterialKind.Reflector);
             add("TiO2", "Titanium dioxide", "Ti1 O2", 4.23, MaterialKind.Reflector);
+
+            // Отражающая КРАСКА на диоксиде титана (пигмент в водорастворимом
+            // связующем) — отражатель RadiaCode-101/103 (`AMBER162`, П233; Amber
+            // 05.10.2026 вопросником, дословно: «Это краска»). Не сплошной TiO2
+            // 4.23 строкой выше: 1 мм монолита гасит Ba K 32 кэВ втрое (×0.31)
+            // и несовместим с рентгеном RC-103. Состав и плотность ЗАДАНЫ
+            // паспортом, а не подобраны: Eljen Technology, EJ-510 «Reflective
+            // paint» (https://eljentechnology.com/products/accessories/ej-510) —
+            // сухой слой 13 мг/см², три слоя 0.11 мм (отсюда 1.18 г/см³), атомов
+            // на см²: Ti 6.71e19, C 1.12e20, H 2.25e20, O 1.90e20 — они и есть
+            // формула (×1e19): по массе Ti 0.411, O 0.389, C 0.172, H 0.029, то
+            // есть TiO2 68.5 %. ⚠ Паспорт открытой краски того же устройства, а
+            // не замер RadiaCode: чем именно окрашен их кристалл, не известно.
+            add("TiO2 paint", "TiO2 reflective paint", "Ti6.71 C11.2 H22.5 O19", 1.18, MaterialKind.Reflector);
             add("Al2O3", "Aluminum oxide", "Al2 O3", 3.97, MaterialKind.Reflector);
 
             // Корпус и оправа
