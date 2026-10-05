@@ -2709,6 +2709,148 @@ namespace BecquerelMonitor.EfficiencyMaker
             return vacuum;
         }
 
+        /// <summary>
+        /// Допуск «сосуд выступает за пробу», в единицах модели — у сцены сантиметры (`AMBER205`). Поля приходят из
+        /// `.in` в сантиметрах и переводятся в мм, и равенство «высота сосуда =
+        /// проба + донышко» выходит с ошибкой последнего знака. Такой выступ —
+        /// не сосуд, а шум перевода: сцена с ним обязана остаться побитово
+        /// прежней, а клеймо — прежним.
+        /// </summary>
+        const double VesselTolerance = 1e-6;
+
+        /// <summary>
+        /// (`AMBER205`) Цилиндр: запас боковой стенки над пробой, в единицах модели — на
+        /// сколько сосуд высотой `BeakerHeight` (снаружи, с донышком со стороны
+        /// детектора: генератор корпуса пишет `SourceHeight + BeakerEndWallThickness`)
+        /// длиннее донышка и пробы. Стенка продолжается на этот запас со стороны,
+        /// дальней от детектора; крышки нет. Ноль — без боковой стенки
+        /// (`BeakerSideWallThickness` = 0, поле `Ground`) или без запаса. Истина —
+        /// сцена отличается от прежней (до `AMBER205` стенка шла только на высоту
+        /// пробы); по ней же клеймо пишет `bmscene=1`.
+        /// </summary>
+        public static bool CylinderVessel(GeometryModel g, out double headspace)
+        {
+            headspace = 0.0;
+            if (g == null)
+            {
+                return false;
+            }
+
+            // Те же размеры, что у ветки сцены (`Build`); стенку нулевой толщины
+            // `Add` не кладёт, запаса у неё нет.
+            double rOut = 0.5 * g.BeakerDiameter;
+            double rIn = Math.Max(0.0, rOut - g.BeakerSideWallThickness);
+            double extra = g.BeakerHeight - g.BeakerEndWallThickness - g.SourceHeight;
+            if (rOut > rIn + Eps && extra > VesselTolerance)
+            {
+                headspace = extra;
+            }
+
+            return headspace > 0.0;
+        }
+
+        /// <summary>
+        /// (`AMBER205`) Маринелли: раскладка стакана полной высоты, в единицах модели.
+        /// <para>Проба стоит, как прежде, от потолка колодца (`zSrc0`). Стакан
+        /// высотой `MarinelliBeakerHeight` (снаружи) отмеряется от плоскости
+        /// устья колодца — дна стакана, которым он стоит над детектором, — к
+        /// дальнему краю, где лежит донышко `MarinelliEndWallThickness`. Пустая
+        /// часть (воздух под крышкой, чертёж ОМАСН, П64 §0.3: «3 мм воздуха под
+        /// крышкой») — между пробой и донышком, со стороны, дальней от
+        /// детектора.</para>
+        /// <para>`farGap` — пустота между пробой и донышком; `nearExt` — на сколько
+        /// наружная стенка идёт дальше ближней грани пробы, к устью колодца;
+        /// `endWall` — толщина донышка (ноль — донышка нет). Если стакан короче,
+        /// чем «донышко + проба до устья», донышко ложится вплотную к пробе, а
+        /// стенка идёт, сколько хватит высоты; у шаблона ЛСРМ RadiaCode 0.5 л
+        /// (8.9 = 0.2 + 8.5 + 0.2) обе ветви дают одно и то же.</para>
+        /// <para>Истина — сцена отличается от прежней (стенка только на высоту
+        /// пробы, донышка нет); по ней же клеймо пишет `bmscene=1`. Лунка
+        /// `Borehole` (стенок нет, высота = проба) — ложь, сцена побитово та же.</para>
+        /// </summary>
+        public static bool MarinelliVessel(GeometryModel g, out double farGap, out double nearExt,
+                                           out double endWall)
+        {
+            farGap = 0.0;
+            nearExt = 0.0;
+            endWall = 0.0;
+            if (g == null)
+            {
+                return false;
+            }
+
+            // Те же размеры, что у ветки сцены (`Build`).
+            double rh = 0.5 * g.MarinelliHoleDiameter;
+            double ths = g.MarinelliHoleSideThickness;
+            double the = g.MarinelliHoleEndWallThickness;
+            double rOut = Math.Max(0.5 * g.MarinelliBeakerDiameter, rh + ths + 0.1);
+            double rSrcOut = Math.Max(rh + ths, rOut - g.MarinelliSideThickness);
+            double hs = g.MarinelliSourceHeight;
+            double hh = g.MarinelliHoleHeight;
+            double cap = Math.Max(0.0, hs - hh);
+
+            // Донышко тоньше `Eps` `Add` не положит — его и нет.
+            double end = g.MarinelliEndWallThickness > Eps ? g.MarinelliEndWallThickness : 0.0;
+            double toOpen = hh + the + cap;             // от дальней грани пробы до устья колодца
+            double body = g.MarinelliBeakerHeight;
+            double far, near;
+            if (body >= end + toOpen)
+            {
+                far = body - end - toOpen;
+                near = toOpen - hs;
+            }
+            else
+            {
+                far = 0.0;
+                near = body - end - hs;
+            }
+
+            bool side = rOut > rSrcOut + Eps;
+            if (!(near > VesselTolerance) || !side)
+            {
+                near = 0.0;
+            }
+
+            if (!(far > VesselTolerance) || (!side && end == 0.0))
+            {
+                far = 0.0;
+            }
+
+            farGap = far;
+            nearExt = near;
+            endWall = end;
+            return end > 0.0 || far > 0.0 || near > 0.0;
+        }
+
+        /// <summary>
+        /// (`AMBER205`) Отличается ли сцена сосуда от прежней (до `AMBER205`):
+        /// истина только у цилиндра и маринелли, где стенка идёт дальше пробы или
+        /// есть дальнее донышко. Клеймо матрицы пишет по ней `bmscene=1` — правило
+        /// «нет отличия — нет строки» (`T42`): клейма точек, ISO, бруска, полевых
+        /// сцен и сосудов без запаса остаются побитово прежними.
+        /// </summary>
+        public static bool VesselBeyondSample(GeometryModel g)
+        {
+            if (g == null || g.Scene == GeometrySceneKind.Iso)
+            {
+                return false;
+            }
+
+            // Решает ТА ЖЕ модель, по которой строится сцена: симулятор берёт
+            // геометрию в сантиметрах (`InCentimeters`, конструктор), клеймо —
+            // в миллиметрах; допуск и `Eps` судят в единицах сцены.
+            double a, b, c;
+            switch (g.SourceType)
+            {
+                case GeometrySourceType.Cylinder:
+                    return CylinderVessel(g.InCentimeters(), out a);
+                case GeometrySourceType.Marinelli:
+                    return MarinelliVessel(g.InCentimeters(), out a, out b, out c);
+                default:
+                    return false;
+            }
+        }
+
         void Build()
         {
             GeometryModel g = this.geometry;
@@ -2920,8 +3062,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double zWallBottom = zWallTop - g.BeakerEndWallThickness;
                     double zSrcTop = zWallBottom;
                     double zSrcBottom = zSrcTop - g.SourceHeight;
+                    // (`AMBER205`) Боковая стенка — на ПОЛНУЮ высоту сосуда
+                    // `BeakerHeight` (снаружи, с донышком к детектору), то есть
+                    // и над пробой, со стороны, дальней от детектора. Крышки у
+                    // цилиндра нет (поля для неё нет). Сосуд без запаса над
+                    // пробой (`headspace` = 0) строится до бита прежним.
+                    double headspace;
+                    CylinderVessel(g, out headspace);
                     this.Add(0.0, rOut, zWallBottom, zWallTop, beakerWall, false);
-                    this.Add(rIn, rOut, zSrcBottom, zSrcTop, beakerWall, false);
+                    this.Add(rIn, rOut, zSrcBottom - headspace, zSrcTop, beakerWall, false);
                     this.Add(0.0, rIn, zSrcBottom, zSrcTop, sample, false);
                     Sampler cylinder = new CylinderSampler(rIn, zSrcBottom, zSrcTop);
                     // (`E29`) Важностный розыгрыш — ключом, поверх прежнего:
@@ -2953,11 +3102,28 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double cap = Math.Max(0.0, hs - hh);        // проба над потолком колодца
                     double zSrc0 = zCeiling - the - cap;
 
+                    // (`AMBER205`) Стакан — на ПОЛНУЮ высоту `MarinelliBeakerHeight`
+                    // с дальним донышком `MarinelliEndWallThickness`: пустая часть
+                    // сосуда (воздух под крышкой) — за пробой, со стороны, дальней
+                    // от детектора; наружная стенка доходит до плоскости устья
+                    // колодца. Раскладка — `MarinelliVessel`; тем же числом её
+                    // рисует чертёж и спрашивает клеймо. Без донышка и без запаса
+                    // (`MarinelliBeakerHeight` = `MarinelliSourceHeight`, лунка
+                    // `Borehole`) — до бита прежняя сцена.
+                    double farGap, nearExt, endWall;
+                    MarinelliVessel(g, out farGap, out nearExt, out endWall);
+                    double zOuter0 = zSrc0 - endWall - farGap;
+                    double zOuter1 = zSrc0 + hs + nearExt;
+
                     this.Add(0.0, rh + ths, zCeiling - the, zCeiling, beakerWall, false);
                     this.Add(rh, rh + ths, zCeiling, zCeiling + hh, beakerWall, false);
-                    this.Add(rSrcOut, rOut, zSrc0, zSrc0 + hs, beakerWall, false);
+                    this.Add(rSrcOut, rOut, zOuter0, zOuter1, beakerWall, false);
                     this.Add(0.0, rh + ths, zSrc0, zCeiling - the, sample, false);
                     this.Add(rh + ths, rSrcOut, zSrc0, zSrc0 + hs, sample, false);
+                    // Дальнее донышко — ПОСЛЕДНЕЙ областью: прежние пять стоят на
+                    // своих местах, и сцена без донышка остаётся побитово той же
+                    // (`Add` нулевой толщины не кладёт).
+                    this.Add(0.0, rSrcOut, zOuter0, zOuter0 + endWall, beakerWall, false);
                     double mrIn = rh + ths, mz0 = zSrc0, mz1 = zSrc0 + hs, mzCap = zCeiling - the;
                     Sampler marinelli = new MarinelliSampler(mrIn, rSrcOut, mz0, mz1, mzCap);
                     // (`E29`) Важностный розыгрыш — ключом, поверх прежнего:

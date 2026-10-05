@@ -1035,9 +1035,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             // физике 26 — поколение `phys=` у кривой и матрицы общее, и поднять
             // его значило бы объявить чужим весь склад, чьё содержимое правка не
             // трогает.
+            // `; bmscene=1` (`AMBER205`, П235 05.10.2026) — сцена сосуда полной
+            // высоты (стенка цилиндра над пробой, стакан маринелли с дальним
+            // донышком), тем же именем и по тому же правилу, что у клейма матрицы
+            // (`EfficiencySimulator.VesselBeyondSample`): только там, где сцена
+            // правда другая, иначе кривая посимвольно прежняя (`T42`).
             bool resolutionWindow = PeakWindowExpected(geometry);
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}{19}{20}{21}{22}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}{19}{20}{21}{22}{23}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
@@ -1066,6 +1071,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 storePhysics.ElectronLayerBremAngular2BS ? "; lbang=1" : "",
                 storePhysics.XcomPairThreshold ? "; pairth=1" : "",
                 resolutionWindow ? "; " + PeakWindowStamp : "",
+                VesselStampExpected(geometry) ? "; " + VesselStamp : "",
                 "; mdb=" + MaterialDatabase.SimulatorDataFingerprint());
             return result;
         }
@@ -1147,6 +1153,23 @@ namespace BecquerelMonitor.EfficiencyMaker
         public static bool PeakWindowExpected(GeometryModel geometry)
         {
             return geometry != null && geometry.FwhmAt662Percent > 0.0;
+        }
+
+        /// <summary>
+        /// (`AMBER205`, П235) Кусок клейма «сцена сосуда полной высоты» — тот же,
+        /// что у клейма матрицы (`ResponseMatrix.ComputeStamp`).
+        /// </summary>
+        public const string VesselStamp = "bmscene=1";
+
+        /// <summary>
+        /// (`AMBER205`) Обязана ли кривая этой геометрии нести
+        /// <see cref="VesselStamp"/>: да — где сцена сосуда отличается от прежней
+        /// (<see cref="EfficiencySimulator.VesselBeyondSample"/>). У прочих кривая
+        /// посимвольно прежняя.
+        /// </summary>
+        public static bool VesselStampExpected(GeometryModel geometry)
+        {
+            return EfficiencySimulator.VesselBeyondSample(geometry);
         }
 
         /// <summary>
