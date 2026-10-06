@@ -863,8 +863,15 @@ rev45 (348.7 → 586.2 — другая метрика, не ухудшение;
 отпечатка с `head=4916c626`, rev45 — в список снятых пунктом 10; шапка `TODO.md`; память
 `corpus-base-current.md` и `MEMORY.md`) — вторым коммитом вместе с этим разделом журнала.
 
+## Коммиты и пуш (07.10.2026, 02:35–02:45)
+
+`4916c626` — работа П236 (181 файл), `c6fd2698` — объявление rev46; оба на `master`, пуш на оба
+удалённых (`origin` GitHub и `amba.cloud`): `e18ce1d7..c6fd2698`. Сторожа перед коммитом: `check_all`
+43 из 43; перед объявлением — `check_declared_base` 4 строки / 0 расхождений, `check_registry` «РЕЕСТР
+ЧИСТ», `check_corpus_readme`, `check_pending_runs` — 0.
+
 ## Снятие полосы
 
-После приёмки: закрыть приложение полосы (pid 22896 на 01:45 07.10.2026 — ТОЛЬКО процесс с путём
+Снято 07.10.2026 02:45: приложение полосы (pid 22896 — ТОЛЬКО процесс с путём
 `D:\BqMoni_Claude\p236\app\BecquerelMonitor.exe`; её собственное приложение не трогать), снять `D:\BqMoni_Claude\p236\app`, `probes`, `probes_corpus`, `corpus_config`, `amber_config`;
-дерево `wt` с незакоммиченным diff — по слову Amber (diff можно снять `git diff`).
+дерево `wt` и ветка `p236-roi-fsa-check` сняты (`git worktree remove --force`, `git branch -D`; diff ушёл коммитом `4916c626`); в главном дереве сняты `tools/effmaker/probes/build_rel_p236` и `tools/CORPUS/scripts/wd_p236`. Остаются на диске: этот журнал, `shots/` (снимки экрана — не в git), `logs/`, выводы проб `probe_*.txt`, `inflate_*.txt`, `drift_*.txt`, `chain_*.txt`, скрипты полосы.
