@@ -179,10 +179,7 @@ namespace BecquerelMonitor
 
             DeviceType.InitializeDeviceTypes();
             ThermometerType.InitializeThermometerTypes();
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             this.globalConfigManager.PrepareConfigFile();
-            this.resultManager = new MeasurementResultManager();
             this.doseRateManager = new DoseRateManager(this.globalConfigManager);
             this.countsRateManager = new CountsRateManager();
             this.InitializeComponent();
@@ -206,9 +203,7 @@ namespace BecquerelMonitor
             this.m_deserializeDockContent = new DeserializeDockContent(this.GetContentFromPersistString);
             this.dcPulseView.MainForm = this;
             this.deviceConfigManager = DeviceConfigManager.GetInstance();
-            this.roiConfigManager = ROIConfigManager.GetInstance();
             this.deviceConfigManager.DeviceConfigListChanged += this.manager_DeviceConfigChanged;
-            this.roiConfigManager.ROIConfigListChanged += this.manager_ROIConfigListChanged;
             if (this.globalConfig != null)
             {
                 base.Width = ((this.globalConfig.MainFormWidth < 640) ? 640 : this.globalConfig.MainFormWidth);
@@ -389,10 +384,6 @@ namespace BecquerelMonitor
             if (this.deviceConfigForm != null && !this.deviceConfigForm.IsDisposed)
             {
                 this.deviceConfigForm.Close();
-            }
-            if (this.roiConfigForm != null && !this.roiConfigForm.IsDisposed)
-            {
-                this.roiConfigForm.Close();
             }
             GlobalConfigInfo globalConfigInfo = this.globalConfigManager.GlobalConfig;
             if (base.WindowState == FormWindowState.Maximized)
@@ -743,18 +734,18 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            ResultData activeResultData = this.activeDocument.ActiveResultData;
-            MeasurementResultCollection resultCollection = this.resultManager.Calculate(activeResultData);
-            activeResultData.MeasurementResultCollection = this.resultManager.Translate(resultCollection, ResultTranslation.BecquerelsPerKilogram);
+            // (`AMBER208`, решения Amber 06–07.10.2026) активность считает разбор FSA
+            // в самом окне результата (свой сеанс на документ); счёт площадей зон
+            // ROI по таймеру снят вместе с формой ROI («Сначала снять ROI…»).
             foreach (DCResultView dcresultView in this.dcResultViewList)
             {
-                // Hidden views (HideOnClose) stay in the list forever; recomputing and
-                // refilling their tables every 500 ms was pure waste.
+                // Hidden views (HideOnClose) stay in the list forever; refilling
+                // their tables every 500 ms was pure waste.
                 if (!dcresultView.Visible)
                 {
                     continue;
                 }
-                dcresultView.ShowResult(resultCollection, refresh);
+                dcresultView.ShowResult(refresh);
             }
         }
 
@@ -1461,39 +1452,6 @@ namespace BecquerelMonitor
             return deviceConfigForm;
         }
 
-        // Token: 0x06000A6F RID: 2671 RVA: 0x0003E0E0 File Offset: 0x0003C2E0
-        void roiDefinitionRToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            this.ShowROIConfigForm(null);
-        }
-
-        // Token: 0x06000A70 RID: 2672 RVA: 0x0003E0EC File Offset: 0x0003C2EC
-        public ROIConfigForm ShowROIConfigForm(ROIConfigData config)
-        {
-            if (this.roiConfigForm == null || this.roiConfigForm.IsDisposed)
-            {
-                this.roiConfigForm = new ROIConfigForm();
-                this.roiConfigForm.StartPosition = FormStartPosition.Manual;
-                this.roiConfigForm.Width = this.globalConfigManager.GlobalConfig.ROIConfigFormWidth;
-                this.roiConfigForm.Height = this.globalConfigManager.GlobalConfig.ROIConfigFormHeight;
-                if (this.roiConfigForm.Width < 640)
-                {
-                    this.roiConfigForm.Width = 640;
-                }
-                if (this.roiConfigForm.Height < 480)
-                {
-                    this.roiConfigForm.Height = 480;
-                }
-                this.roiConfigForm.Left = base.Left + (base.Width - this.roiConfigForm.Width) / 2;
-                this.roiConfigForm.Top = base.Top + (base.Height - this.roiConfigForm.Height) / 2;
-                this.roiConfigForm.Owner = this;
-            }
-            this.roiConfigForm.ActiveROIConfig = config;
-            this.roiConfigForm.Show();
-            this.roiConfigForm.Activate();
-            return this.roiConfigForm;
-        }
-
         // Token: 0x06000A71 RID: 2673 RVA: 0x0003E230 File Offset: 0x0003C430
         void NuclideDefinitionToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -1705,8 +1663,6 @@ namespace BecquerelMonitor
             }
 
             if (!CreateDocument()) return; // `AMBER201`: документ не создан — не писать в прежний
-            this.activeDocument.ActiveResultData.ROIConfigReference = null;
-            this.activeDocument.ActiveResultData.ROIConfig = null;
             this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, efficiency);
             this.activeDocument.ActiveResultData.DeviceConfigReference = null;
             this.activeDocument.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
@@ -2224,7 +2180,6 @@ namespace BecquerelMonitor
             doc.FormClosed += this.DocEnergySpectrum_FormClosed;
             doc.SaveDocument += this.DocEnergySpectrum_SaveDocument;
             doc.CloseDocument += this.DocEnergySpectrum_CloseDocument;
-            doc.CreateNewROI += this.DocEnergySpectrum_CreateNewROI;
             doc.SetLowerThreshold += this.DocEnergySpectrum_SetLowerThreshold;
             doc.SetUpperThreshold += this.DocEnergySpectrum_SetUpperThreshold;
             doc.ShowEnergyCalibrationView += this.DocEnergySpectrum_ShowEnergyCalibrationView;
@@ -2249,7 +2204,6 @@ namespace BecquerelMonitor
             doc.FormClosed -= this.DocEnergySpectrum_FormClosed;
             doc.SaveDocument -= this.DocEnergySpectrum_SaveDocument;
             doc.CloseDocument -= this.DocEnergySpectrum_CloseDocument;
-            doc.CreateNewROI -= this.DocEnergySpectrum_CreateNewROI;
             doc.SetLowerThreshold -= this.DocEnergySpectrum_SetLowerThreshold;
             doc.SetUpperThreshold -= this.DocEnergySpectrum_SetUpperThreshold;
             doc.ShowEnergyCalibrationView -= this.DocEnergySpectrum_ShowEnergyCalibrationView;
@@ -2343,32 +2297,6 @@ namespace BecquerelMonitor
             {
                 ObsidianIn.cleanUp(guid);
             }
-        }
-
-        // Token: 0x06000A84 RID: 2692 RVA: 0x0003EA64 File Offset: 0x0003CC64
-        void DocEnergySpectrum_CreateNewROI(object sender, EventArgs e)
-        {
-            DocEnergySpectrum docEnergySpectrum = (DocEnergySpectrum)sender;
-            ResultData activeResultData = docEnergySpectrum.ActiveResultData;
-            ROIConfigForm roiconfigForm = this.ShowROIConfigForm(activeResultData.ROIConfig);
-            int selectionStart = docEnergySpectrum.EnergySpectrumView.SelectionStart;
-            int selectionEnd = docEnergySpectrum.EnergySpectrumView.SelectionEnd;
-            EnergyCalibration energyCalibration = activeResultData.EnergySpectrum.EnergyCalibration;
-            int num;
-            int num2;
-            if (selectionStart < selectionEnd)
-            {
-                num = selectionStart;
-                num2 = selectionEnd;
-            }
-            else
-            {
-                num = selectionEnd;
-                num2 = selectionStart;
-            }
-            int num3 = (int)Math.Floor(energyCalibration.ChannelToEnergy((double)num));
-            int num4 = (int)Math.Ceiling(energyCalibration.ChannelToEnergy((double)num2));
-            roiconfigForm.CreateNewROIWithRegion(activeResultData.ROIConfig, (double)num3, (double)num4);
         }
 
         // Token: 0x06000A85 RID: 2693 RVA: 0x0003EB08 File Offset: 0x0003CD08
@@ -3131,25 +3059,12 @@ namespace BecquerelMonitor
         // Token: 0x06000A94 RID: 2708 RVA: 0x0003F3CC File Offset: 0x0003D5CC
         void manager_DeviceConfigChanged(object sender, DeviceConfigChangedEventArgs e)
         {
-            EasyControlConfig easyControlConfig = this.globalConfigManager.GlobalConfig.EasyControlConfig;
-            // (`AMBER201`, подозрение полосы 3, 05.10.2026) Прибор «быстрого
-            // управления» мог быть удалён в форме приборов — голый индексатор
-            // бросал KeyNotFoundException на КАЖДОМ следующем сохранении любого
-            // прибора. Не нашёлся — остаётся прежний объект, как до удаления.
-            DeviceConfigInfo easyDevice;
-            if (easyControlConfig.DeviceConfigReference != null
-                && easyControlConfig.DeviceConfigReference.Guid != null
-                && this.deviceConfigManager.DeviceConfigMap.TryGetValue(easyControlConfig.DeviceConfigReference.Guid, out easyDevice))
-            {
-                easyControlConfig.DeviceConfig = easyDevice;
-            }
-
             this.ApplyDeviceConfigToDocuments(e.Guid);
         }
 
         /// <summary>
         /// Сохранение конфигурации прибора — открытым спектрам, которые на ней
-        /// стоят. Так же поступает <see cref="manager_ROIConfigListChanged"/>.
+        /// стоят.
         ///
         /// Открытый спектр держит СВОЮ копию: и объекта конфигурации (сохранение
         /// кладёт в менеджер клон, а документ остаётся при прежнем), и настроек
@@ -3221,33 +3136,6 @@ namespace BecquerelMonitor
                     this.dcFsaReportView.ActiveResultDataChanged();
                 }
             }
-        }
-
-        // Token: 0x06000A95 RID: 2709 RVA: 0x0003F41C File Offset: 0x0003D61C
-        void manager_ROIConfigListChanged(object sender, EventArgs e)
-        {
-            EasyControlConfig easyControlConfig = this.globalConfigManager.GlobalConfig.EasyControlConfig;
-            if (easyControlConfig.ROIConfigReference != null)
-            {
-                easyControlConfig.ROIConfig = this.roiConfigManager.ROIConfigMap[easyControlConfig.ROIConfigReference.Guid];
-            }
-            foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
-            {
-                foreach (ResultData resultData in docEnergySpectrum.ResultDataFile.ResultDataList)
-                {
-                    if (resultData.ROIConfigReference != null)
-                    {
-                        string guid = resultData.ROIConfigReference.Guid;
-                        if (guid != null && this.roiConfigManager.ROIConfigMap.ContainsKey(guid))
-                        {
-                            resultData.ROIConfig = this.roiConfigManager.ROIConfigMap[guid];
-                            resultData.ROIConfigReference = resultData.ROIConfig.CreateReference();
-                        }
-                    }
-                    docEnergySpectrum.UpdateEnergySpectrum();
-                }
-            }
-            this.ShowMeasurementResult(true);
         }
 
         // Token: 0x06000A96 RID: 2710 RVA: 0x0003F560 File Offset: 0x0003D760
@@ -3341,12 +3229,6 @@ namespace BecquerelMonitor
                 this.documentManager.ExportDocumentAtomSpectra(this.activeDocument);
                 this.UpdateAllView();
             }
-        }
-
-        // Token: 0x06000A97 RID: 2711 RVA: 0x0003F5A8 File Offset: 0x0003D7A8
-        void ROIConfigManager_ROIConfigListChanged(object sender, EventArgs e)
-        {
-            this.ShowMeasurementResult(true);
         }
 
         // Token: 0x06000A98 RID: 2712 RVA: 0x0003F5B4 File Offset: 0x0003D7B4
@@ -4073,12 +3955,6 @@ namespace BecquerelMonitor
         // Token: 0x040005CA RID: 1482
         DeviceConfigManager deviceConfigManager;
 
-        // Token: 0x040005CB RID: 1483
-        ROIConfigManager roiConfigManager;
-
-        // Token: 0x040005CC RID: 1484
-        MeasurementResultManager resultManager;
-
         // Token: 0x040005CD RID: 1485
         DoseRateManager doseRateManager;
 
@@ -4089,9 +3965,6 @@ namespace BecquerelMonitor
 
         // Token: 0x040005D0 RID: 1488
         DeviceConfigForm deviceConfigForm;
-
-        // Token: 0x040005D1 RID: 1489
-        ROIConfigForm roiConfigForm;
 
         // Token: 0x040005D2 RID: 1490
         NuclideDefinitionForm nuclideDefinitionForm;

@@ -111,8 +111,6 @@ namespace FsaDeterminismProbeF29
 
             Trace.Listeners.Add(catcher);
 
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
             NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();

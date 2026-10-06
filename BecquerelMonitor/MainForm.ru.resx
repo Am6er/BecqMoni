@@ -156,9 +156,6 @@
   <data name="OpenConfigNToolStripMenuItem.Text" xml:space="preserve">
     <value>Открыть папку конфигурации приложения в Windows Explorer...</value>
   </data>
-  <data name="roiDefinitionRToolStripMenuItem.Text" xml:space="preserve">
-    <value>Редактировать конфи&amp;гурации ROI...</value>
-  </data>
   <data name="toolStripMenuItem7.Text" xml:space="preserve">
     <value>Расположение</value>
   </data>

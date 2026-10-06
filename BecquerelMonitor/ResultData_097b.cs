@@ -86,37 +86,6 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x170001C2 RID: 450
-        // (get) Token: 0x060005D5 RID: 1493 RVA: 0x000254D4 File Offset: 0x000236D4
-        // (set) Token: 0x060005D6 RID: 1494 RVA: 0x000254DC File Offset: 0x000236DC
-        [XmlIgnore]
-        public ROIConfigData ROIConfig
-        {
-            get
-            {
-                return this.roiConfig;
-            }
-            set
-            {
-                this.roiConfig = value;
-            }
-        }
-
-        // Token: 0x170001C3 RID: 451
-        // (get) Token: 0x060005D7 RID: 1495 RVA: 0x000254E8 File Offset: 0x000236E8
-        // (set) Token: 0x060005D8 RID: 1496 RVA: 0x000254F0 File Offset: 0x000236F0
-        public ROIConfigReference ROIConfigReference
-        {
-            get
-            {
-                return this.roiConfigReference;
-            }
-            set
-            {
-                this.roiConfigReference = value;
-            }
-        }
-
         // Token: 0x170001C4 RID: 452
         // (get) Token: 0x060005D9 RID: 1497 RVA: 0x000254FC File Offset: 0x000236FC
         // (set) Token: 0x060005DA RID: 1498 RVA: 0x00025504 File Offset: 0x00023704
@@ -301,12 +270,6 @@ namespace BecquerelMonitor
 
         // Token: 0x04000318 RID: 792
         DeviceConfigReference deviceConfigReference = new DeviceConfigReference();
-
-        // Token: 0x04000319 RID: 793
-        ROIConfigData roiConfig = new ROIConfigData();
-
-        // Token: 0x0400031A RID: 794
-        ROIConfigReference roiConfigReference = new ROIConfigReference();
 
         // Token: 0x0400031B RID: 795
         DateTime startTime = DateTime.Now;

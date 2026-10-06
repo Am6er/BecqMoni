@@ -70,8 +70,6 @@ namespace AtomSpectraN42ProbeP151
                 else if (a.StartsWith("--dump=")) dumpFile = a.Substring(7);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             signMethod = typeof(Util).GetMethod("IsWrittenByAtomSpectra", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
 
             Console.WriteLine("=== СБОРКА ===");

@@ -87,8 +87,6 @@ static class RestCultureProbeF28
 
         // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`),
         //    иначе первый же путь через `DocumentManager` встанет на окне.
-        ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-        ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
         Header();
 

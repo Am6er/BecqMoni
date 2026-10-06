@@ -74,8 +74,6 @@ namespace ModalReachProbeF22
             }
 
             // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`).
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo(cultureName);
             Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(cultureName);

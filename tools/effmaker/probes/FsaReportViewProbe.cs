@@ -143,8 +143,6 @@ namespace FsaReportViewProbe
             }
 
             // ⛔ ОБЕ карты примитивов ROI — ДО ЛЮБОГО менеджера-одиночки (`T60`).
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
             NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
@@ -751,7 +749,7 @@ namespace FsaReportViewProbe
         {
             var result = new FsaResult
             {
-                Chi2Ndf = real.Chi2Ndf,
+                Chi2Ndf = real.Chi2Ndf, Chi2NdfPoisson = real.Chi2NdfPoisson,
                 Model = real.Model,
                 Continuum = real.Continuum,
                 BackgroundUsed = false,
@@ -874,7 +872,8 @@ namespace FsaReportViewProbe
                 Language(lang);
                 FsaResult scene = new FsaResult
                 {
-                    Chi2Ndf = chi2, BackgroundUsed = true, ResponseMatrixUsed = false,
+                    // строка качества печатает χ² по Пуассону (`AMBER209`, решение Amber 06.10.2026 «Заменить на Пуассона»)
+                    Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = false,
                     EfficiencyUsed = false, CascadeSummingUsed = true, GainOnGridEdge = true
                 };
                 FieldInfo f = typeof(FsaResult).GetField("<SuppressorName>k__BackingField",
@@ -988,7 +987,7 @@ namespace FsaReportViewProbe
                 // печатать единицу.
                 var inflated = new FsaResult
                 {
-                    Chi2Ndf = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
+                    Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
                     EfficiencyUsed = true, CascadeSummingUsed = true,
                     SigmaInflation = 8.163
                 };
@@ -1024,7 +1023,7 @@ namespace FsaReportViewProbe
                 // сцена выше даёт зелёным только суммирование.
                 var whole = new FsaResult
                 {
-                    Chi2Ndf = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
+                    Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
                     EfficiencyUsed = true, CascadeSummingUsed = true, GainOnGridEdge = false
                 };
                 var wholeSession = new FsaAnalysisSession();
@@ -1077,7 +1076,7 @@ namespace FsaReportViewProbe
                 // усиления и нуля не мерились бы вовсе.
                 var anchored = new FsaResult
                 {
-                    Chi2Ndf = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
+                    Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
                     EfficiencyUsed = true, CascadeSummingUsed = true,
                     ScaleAnchorsUsed = 2, Gain = 1.0123, AnchorOffsetKev = -0.5
                 };
@@ -2744,6 +2743,7 @@ namespace FsaReportViewProbe
             var scene = new FsaResult
             {
                 Chi2Ndf = 12345.6789,
+                Chi2NdfPoisson = 12345.6789,
                 ResidualExcessShare = 12.345,
                 ResidualMissingShare = 98.7654,
                 BackgroundUsed = true

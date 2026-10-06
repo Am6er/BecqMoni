@@ -175,8 +175,6 @@ namespace CrashLogProbe
             // ⛔ ОБЕ карты примитивов ROI — ДО ЛЮБОГО менеджера-одиночки
             // (`T60`): менеджер на пустых картах падает МОДАЛЬНЫМ окном, а
             // безоконный прогон на нём виснет навсегда.
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             bool child = Array.IndexOf(args, "--crash-thread") >= 0;
             if (child)

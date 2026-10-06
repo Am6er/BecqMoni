@@ -111,8 +111,6 @@ namespace CrystalXrayGateProbe
             }
 
             // ⛔ ОБЕ карты примитивов ROI — ДО ЛЮБОГО менеджера-одиночки (`T60`).
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
             // ⛔ `NuclideDefinitionManager` НЕ поднимается (`AMBER19`, П11): прежний

@@ -981,11 +981,6 @@ namespace BecquerelMonitor
 
             this.textBox17.Text = config.BackgroundSpectrumPathname;
 
-            List<ROIConfigData> rOIConfigDatas = ROIConfigManager.GetInstance().ROIConfigList;
-            if (rOIConfigDatas != null || rOIConfigDatas.Count > 0) 
-            {
-            }
-
             this.contentsLoading = false;
         }
 

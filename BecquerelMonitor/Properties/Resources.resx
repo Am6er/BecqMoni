@@ -139,9 +139,6 @@
   <data name="ERRDuplicateDeviceConfigGUID" xml:space="preserve">
     <value>Duplicate GUID for device configuration "{0}"</value>
   </data>
-  <data name="ROIPrimitiveOperationTypeSubtraction" xml:space="preserve">
-    <value>Subtraction</value>
-  </data>
   <data name="MSGSavingNuclideDefinition" xml:space="preserve">
     <value>Nuclide definition has been modified. Save?</value>
   </data>
@@ -181,9 +178,6 @@
   </data>
   <data name="ERRLoadingNuclideDefinitionFile" xml:space="preserve">
     <value>Failed to load nuclide definition file.</value>
-  </data>
-  <data name="MSGDeleteROIPrimitive" xml:space="preserve">
-    <value>Remove ROI primitive?</value>
   </data>
   <data name="ERRDuplicateConfigName" xml:space="preserve">
     <value>Duplicate or invalid configuration name.</value>
@@ -230,17 +224,11 @@
   <data name="InvalidValueDialogTitle" xml:space="preserve">
     <value>Invalid Input Value</value>
   </data>
-  <data name="ROIPrimitiveOperationTypeAddition" xml:space="preserve">
-    <value>Addition</value>
-  </data>
   <data name="CsvExportDialogTitle" xml:space="preserve">
     <value>Export to CSV File</value>
   </data>
   <data name="ChartHeaderNetCps" xml:space="preserve">
     <value>Net CPS:</value>
-  </data>
-  <data name="ROIPrimitiveTypeROIReference" xml:space="preserve">
-    <value>ROI Reference</value>
   </data>
   <data name="BackgroundSelectionDialogTitle" xml:space="preserve">
     <value>Choose background spectrum file</value>
@@ -8295,14 +8283,6 @@ http://xptable.sourceforge.net/</value>
         zS5RrGaXKFazSxSr2U0oO/0lRkfx4Cr+Fx2hTZdpqDEy+AAAAABJRU5ErkJggg==
 </value>
   </data>
-  <data name="Minus" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-    <value>
-        Qk3WAAAAAAAAAHYAAAAoAAAADAAAAAwAAAABAAQAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAAAAAA/wAA
-        gP8AgAD/AICA/4AAAP+AAID/gIAA/8DAwP+AgID/AAD//wD/AP8A/////wAA//8A/////wD/////////
-        zMz//wAA/8z//8z/AAD8/////88AAPz/////zwAAz//////8AADPzMzMzPwAAM/MzMzM/AAAz//////8
-        AAD8/////88AAPz/////zwAA/8z//8z/AAD//8zM//8AAA==
-</value>
-  </data>
   <data name="ERRSavingDeviceConfigFailed" xml:space="preserve">
     <value>Failed to save device configuration file.</value>
   </data>
@@ -8314,14 +8294,8 @@ It is probably open in another program or write-protected. Nothing on disk has b
     <value>The configuration file "{0}" could not be deleted, so the configuration has not been removed and is still in the list.
 It is probably open in another program or write-protected.</value>
   </data>
-  <data name="ERRLoadingROIConfigFailed" xml:space="preserve">
-    <value>Failed to load ROI configuration file(s).</value>
-  </data>
   <data name="ERRFailureReason" xml:space="preserve">
     <value>Reason: {0}</value>
-  </data>
-  <data name="ROIPrimitiveTypeBGDifference" xml:space="preserve">
-    <value>BG Difference</value>
   </data>
   <data name="ERRCannotConnectDevice" xml:space="preserve">
     <value>Unable to connect device. Check cable connection and power of the device.</value>
@@ -8345,14 +8319,8 @@ It is probably open in another program or write-protected.</value>
   <data name="ThermometerTypeNone" xml:space="preserve">
     <value>None</value>
   </data>
-  <data name="ROIPrimitiveTypeCovellMethod" xml:space="preserve">
-    <value>Covell Method</value>
-  </data>
   <data name="ERRInvalidPresetTime" xml:space="preserve">
     <value>Invalid preset time.</value>
-  </data>
-  <data name="ERRInvalidROIPrimitiveOperation" xml:space="preserve">
-    <value>Invalid ROI primitive operation.</value>
   </data>
   <data name="ErrorString" xml:space="preserve">
     <value>Error</value>
@@ -8378,9 +8346,6 @@ It is probably open in another program or write-protected.</value>
   <data name="CsvImportDialogTitle" xml:space="preserve">
     <value>Import from CSV File</value>
   </data>
-  <data name="NewROIConfigPrefix" xml:space="preserve">
-    <value>New ROI Configuration</value>
-  </data>
   <data name="EnergyCalibration" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         Qk1OAQAAAAAAAHYAAAAoAAAAEgAAABIAAAABAAQAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAAAAAA/wAA
@@ -8391,14 +8356,8 @@ It is probably open in another program or write-protected.</value>
         +ZmZmf///wAAAP///////////wAAAP///////////wAAAA==
 </value>
   </data>
-  <data name="ERRSavingROIConfigFailed" xml:space="preserve">
-    <value>Failed to save ROI configuration file.</value>
-  </data>
   <data name="NewDeviceConfigPrefix" xml:space="preserve">
     <value>New Device Configuration</value>
-  </data>
-  <data name="MSGDeleteROIDefinition" xml:space="preserve">
-    <value>Remove ROI definition "{0}"?</value>
   </data>
   <data name="MSGFileOverwriteConfirmation" xml:space="preserve">
     <value>Spectrum File "{0}" was modified. Save changes?</value>
@@ -8606,9 +8565,6 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="MSGDeviceTypeChanging" xml:space="preserve">
     <value>Changing device type causes initialization of input fields. OK?</value>
   </data>
-  <data name="ERRDuplicateROIConfigGUID" xml:space="preserve">
-    <value>Duplicate GUID for ROI configuration "{0}"</value>
-  </data>
   <data name="MSGClearSpectrum" xml:space="preserve">
     <value>Clear spectrum?</value>
   </data>
@@ -8636,9 +8592,6 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   </data>
   <data name="ERRInvalidInputForm" xml:space="preserve">
     <value>Invalid input form.</value>
-  </data>
-  <data name="ERRInvalidROIPrimitive" xml:space="preserve">
-    <value>Invalid ROI primitive.</value>
   </data>
   <data name="ERRFileOpenFailure" xml:space="preserve">
     <value>File "{0}" couldn't be opened.
@@ -8696,9 +8649,6 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   </data>
   <data name="ERRCannotDeleteSpectrum" xml:space="preserve">
     <value>Can't delete spectrum. at least one spectrum per file is needed.</value>
-  </data>
-  <data name="MSGDeleteROIConfig" xml:space="preserve">
-    <value>Remove ROI configuration "{0}"?</value>
   </data>
   <data name="SpectrumFileFilter" xml:space="preserve">
     <value>Spectrum Files (*.xml)|*.xml|All Files (*.*)|*.*</value>
@@ -8820,14 +8770,6 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
         /////////wAAAA/w/wD/D/DwAAAAAA8A8P8PDwDw/wAAAA8A8P8PDwDw/wAAAADw8P8PAPDwAAAAAADw
         8P8PAPDw/wAAAA/w/wD/D/DwAAAAAP///////////wAAAP///////////wAAAP//8AAAAP///wAAAP//
         /wAAD////wAAAP////AA/////wAAAP////8P/////wAAAA==
-</value>
-  </data>
-  <data name="Plus" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-    <value>
-        Qk3WAAAAAAAAAHYAAAAoAAAADAAAAAwAAAABAAQAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAAAAAA/wAA
-        gP8AgAD/AICA/4AAAP+AAID/gIAA/8DAwP+AgID/AAD//wD/AP8A/////wAA//8A/////wD/////////
-        mZn//wAA/5n//5n/AAD5//mf/58AAPn/+Z//nwAAn//5n//5AACfmZmZmfkAAJ+ZmZmZ+QAAn//5n//5
-        AAD5//mf/58AAPn/+Z//nwAA/5n//5n/AAD//5mZ//8AAA==
 </value>
   </data>
   <data name="ProgressString" xml:space="preserve">
@@ -41871,7 +41813,7 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
     <value>Export N42 file</value>
   </data>
   <data name="MSGN42ExportLosesEfficiency" xml:space="preserve">
-    <value>The N42 format does not carry the efficiency curve. The efficiency curve, the detector geometry and the link to the response matrix are NOT written to the file; spectra with a curve in this document: {0} of {1}. A file re-imported into a NEW document therefore gets no activity of the selection, no activity of the ROIs, no full-spectrum analysis (FSA) and no normalization by efficiency. The spectra themselves, the energy calibration and the measurement times are exported in full.</value>
+    <value>The N42 format does not carry the efficiency curve. The efficiency curve, the detector geometry and the link to the response matrix are NOT written to the file; spectra with a curve in this document: {0} of {1}. A file re-imported into a NEW document therefore gets no activity of the selection, no full-spectrum analysis (FSA) and no normalization by efficiency. The spectra themselves, the energy calibration and the measurement times are exported in full.</value>
   </data>
   <data name="CalibrationFunctionError" xml:space="preserve">
     <value>The calibration function should be monotonically increasing at channel &gt; 0. Re-check Calibration points!</value>
@@ -42220,12 +42162,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="EffCalcMCImportDialogTitle" xml:space="preserve">
     <value>LSRM EffCalcMC.txt -&gt; ROI</value>
-  </data>
-  <data name="ROICreationSucces" xml:space="preserve">
-    <value>ROI efficiency curve imported successfully</value>
-  </data>
-  <data name="ERREmptyROIConfigName" xml:space="preserve">
-    <value>Empty ROI config name</value>
   </data>
   <data name="Activity" xml:space="preserve">
     <value>Activity</value>
@@ -42821,18 +42757,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencySketchIso" xml:space="preserve">
     <value>Isotropic field, sphere radius</value>
   </data>
-  <data name="BqCoeffAuto" xml:space="preserve">
-    <value>Auto from efficiency</value>
-  </data>
-  <data name="BqCoeffNoIntensity" xml:space="preserve">
-    <value>Intensity of the line is not set for this zone, so K cannot be computed from the curve. The stored value is used.</value>
-  </data>
-  <data name="BqCoeffNoEnergy" xml:space="preserve">
-    <value>Peak energy is not set for this zone, so K cannot be computed from the curve. The stored value is used.</value>
-  </data>
-  <data name="BqCoeffNoCurve" xml:space="preserve">
-    <value>No efficiency curve is chosen for this spectrum. The stored value is used.</value>
-  </data>
   <data name="ResultNoCoefficient" xml:space="preserve">
     <value>no K</value>
   </data>
@@ -42841,12 +42765,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="ResultNoVolume" xml:space="preserve">
     <value>no volume</value>
-  </data>
-  <data name="BqCoeffOutOfRange" xml:space="preserve">
-    <value>{0:0.##} keV is outside the curve ({1:0.##} to {2:0.##} keV): the curve is not continued past its ends. The stored value is used.</value>
-  </data>
-  <data name="BqCoeffFromCurve" xml:space="preserve">
-    <value>K = {0:G6} +/- {1:G3} from the curve</value>
   </data>
   <data name="ActivityFromLine" xml:space="preserve">
     <value>from line:</value>
@@ -42877,9 +42795,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="ActivityLcZeroRefused" xml:space="preserve">
     <value>the background is empty in the selection: the detection limit is undefined</value>
-  </data>
-  <data name="BqCoeffTipAuto" xml:space="preserve">
-    <value>K converts the count rate into becquerels: Bq = cps * K. Ticked, it is computed from the efficiency curve chosen for the spectrum and the Intensity of this zone: K = 100 / (efficiency * Intensity). Unticked, the number in the field is used, as before. The stored number stays either way and is used when there is no curve.</value>
   </data>
   <data name="EfficiencySketchCylinder" xml:space="preserve">
     <value>Cylinder</value>
@@ -43710,15 +43625,6 @@ Turn it on in Windows settings and search again.</value>
   <data name="FsaEfficiencyPointAboveUnity" xml:space="preserve">
     <value>point {0} keV: efficiency {1} is above 1 — a fraction per emitted quantum cannot exceed unity</value>
   </data>
-  <data name="BqCoeffCurveRefused" xml:space="preserve">
-    <value>The efficiency curve is refused: {0}. The stored value is used.</value>
-  </data>
-  <data name="BqCoeffFieldCurve" xml:space="preserve">
-    <value>The efficiency curve “{0}” is computed for a field scene: its values are areas in cm² per unit fluence, not fractions per emitted quantum, so K cannot be computed from it. Activity is not shown.</value>
-  </data>
-  <data name="ResultFieldCurve" xml:space="preserve">
-    <value>field curve (cm²), no K</value>
-  </data>
   <data name="ActivityFieldCurveRefused" xml:space="preserve">
     <value>the efficiency curve “{0}” is a field-scene curve (cm² per unit fluence, not fractions per quantum): activity not shown</value>
   </data>
@@ -43808,12 +43714,6 @@ Turn it on in Windows settings and search again.</value>
   </data>
   <data name="SummingWhyNoLine" xml:space="preserve">
     <value>line {0} keV is not found in the cascade tables of “{1}”</value>
-  </data>
-  <data name="ROIReferenceMissing" xml:space="preserve">
-    <value>No zone “{0}” to refer to</value>
-  </data>
-  <data name="ROICovellWindowNarrow" xml:space="preserve">
-    <value>Covell window narrower than a channel</value>
   </data>
   <data name="EfficiencyMakerKeepUnsavedCurve" xml:space="preserve">
     <value>The curve "{0}" is not in the saved device configuration: it was added after the last save and is discarded with the other changes.

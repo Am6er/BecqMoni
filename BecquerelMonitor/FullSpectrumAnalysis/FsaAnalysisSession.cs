@@ -42,6 +42,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// (<see cref="Reset"/>) поднимает поколение, и вернувшийся счёт чужого
     /// поколения тоже молчит.
     /// </summary>
+    /// <summary>
+    /// (`AMBER208` (в), П236 06.10.2026) ПОЧЕМУ РАЗБОР ИДЁТ БЕЗ МАТРИЦЫ ОТКЛИКА —
+    /// решение сеанса, названное словом. До этого дня отчёт писал «не учтена»,
+    /// окно результата — «Бк по кривой», и у KCl в маринелли человек не видел,
+    /// что матрица склада ЕСТЬ, но посчитана по геометрии кривой прибора, а
+    /// разбор идёт по кривой из файла спектра от 14.08.2026 с другой геометрией.
+    /// Лечение у каждой причины своё (посчитать / пересчитать / включить /
+    /// выбрать кривую прибора), поэтому причина — перечислением, а не флагом.
+    /// </summary>
+    public enum FsaMatrixSkip
+    {
+        /// <summary>Матрица применена (или решение ещё не принималось).</summary>
+        None,
+
+        /// <summary>У кривой нет геометрии — матрицы быть не может, говорить не о чем.</summary>
+        NoGeometry,
+
+        /// <summary>Выключена галкой «Матрица отклика» в форме кривой (W11).</summary>
+        SwitchedOff,
+
+        /// <summary>Файла на складе нет — для этой геометрии не считали.</summary>
+        NotComputed,
+
+        /// <summary>Файл прежнего формата — пересчитать (`A50`).</summary>
+        OldFormat,
+
+        /// <summary>Файл не наш или оборван.</summary>
+        Unreadable,
+
+        /// <summary>
+        /// Матрица есть и читается, но её клеймо не сходится с геометрией
+        /// кривой разбора: геометрия или параметры менялись после расчёта,
+        /// либо кривая в файле спектра старше кривой прибора.
+        /// </summary>
+        StaleGeometry
+    }
+
     public sealed class FsaAnalysisSession
     {
         readonly object sync = new object();
@@ -63,6 +100,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         bool matrixOldFormat;
 
         bool matrixFromSpectrum;
+
+        FsaMatrixSkip matrixSkip;
 
         string spectrumMatrixRefusal;
 
@@ -87,6 +126,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (`FsaSessionProbe`); в приложении всегда null и не стоит ничего.
         /// </summary>
         static WaitHandle probeGate = null;
+
+        /// <summary>
+        /// ⚠ ПРОТОТИП ПОЛОСЫ П236 (06.10.2026): крючок проб для развёрток
+        /// внутренних ключей разбора (веса, Хубер, шум) на ТОМ ЖЕ сеансе, что
+        /// у окна. Ставится только пробой (`FsaBqProbe`); в приложении — null.
+        /// </summary>
+        public static Action<FsaAnalyzer> ProbeAnalyzerHook = null;
 
         /// <summary>Готовое разложение или null, пока его нет.</summary>
         public FsaResult Result
@@ -165,6 +211,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     return this.matrixFromSpectrum;
                 }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER208` (в)) Почему разбор идёт без матрицы отклика — для окна
+        /// результата и отчёта; <see cref="FsaMatrixSkip.None"/> — применена.
+        /// </summary>
+        public FsaMatrixSkip ResponseMatrixSkip
+        {
+            get
+            {
+                lock (this.sync)
+                {
+                    return this.matrixSkip;
+                }
+            }
+        }
+
+        /// <summary>(`AMBER208` (в)) Отказ чтения склада — причиной для человека.</summary>
+        static FsaMatrixSkip SkipOf(EfficiencyMaker.MatrixRefusal refusal)
+        {
+            switch (refusal)
+            {
+                case EfficiencyMaker.MatrixRefusal.OldFormat:
+                    return FsaMatrixSkip.OldFormat;
+                case EfficiencyMaker.MatrixRefusal.NotOurs:
+                case EfficiencyMaker.MatrixRefusal.Unreadable:
+                    return FsaMatrixSkip.Unreadable;
+                default:
+                    return FsaMatrixSkip.NotComputed;
             }
         }
 
@@ -562,6 +638,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public ResultData CompositionInput;
             public List<NuclideDefinition> Definitions;
             public List<Peak> Peaks;
+            /// <summary>(П236) Активный сет на момент постановки — источник состава «из сета».</summary>
+            public NuclideSet Set;
             public FsaAnalyzer Analyzer;
             public FsaCalculationOptions Options;
             public Dictionary<int, double> CrystalFractions;
@@ -605,6 +683,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // а перечисление живого списка в фоне ловит «Collection was modified».
             NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
             job.Definitions = new List<NuclideDefinition>(nuclideManager.NuclideDefinitions);
+            job.Set = nuclideManager.ActiveSet;
             job.Peaks = resultData.DetectedPeaks != null
                 ? new List<Peak>(resultData.DetectedPeaks)
                 : new List<Peak>();
@@ -615,6 +694,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // фасадом; `BackscatterWithMatrix` при этом опускается, `EscapeGate`
             // не трогается.
             options.ApplyTo(analyzer);
+
+            Action<FsaAnalyzer> probeHook = ProbeAnalyzerHook;
+            if (probeHook != null)
+            {
+                probeHook(analyzer);
+            }
 
             // (`AMBER155` (в), П220) свойства прибора (кривизна тракта) — тем же
             // местом, что у проб, снимком на UI-потоке
@@ -630,6 +715,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             bool oldFormat = false;
             bool fromSpectrum = false;
             string spectrumRefusal = "";
+            FsaMatrixSkip skip = FsaMatrixSkip.None;
             if (efficiencyConfig != null && efficiencyConfig.HasGeometry
                 && efficiencyConfig.UseResponseMatrix)
             {
@@ -665,6 +751,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // выходит побитово одинаковым.
                     FsaMatrixBinding.Bind(analyzer, efficiencyConfig.Geometry, matrix);
                 }
+                else
+                {
+                    // (`AMBER208` (в)) матрица прочиталась, а клеймо не сошлось —
+                    // «посчитана для другой геометрии»; не прочиталась — отказ
+                    // склада словом (нет файла / прежний формат / не читается)
+                    skip = matrix != null ? FsaMatrixSkip.StaleGeometry : SkipOf(refusal);
+                }
+            }
+            else
+            {
+                skip = efficiencyConfig != null && efficiencyConfig.HasGeometry
+                    ? FsaMatrixSkip.SwitchedOff
+                    : FsaMatrixSkip.NoGeometry;
             }
 
             // Решение о матрице — сразу, как и прежде: о нём спрашивают и до
@@ -674,6 +773,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 this.matrixOldFormat = oldFormat;
                 this.matrixFromSpectrum = fromSpectrum;
                 this.spectrumMatrixRefusal = spectrumRefusal;
+                this.matrixSkip = skip;
             }
 
             analyzer.CoincidenceWindowSec = DeadTimeOf(resultData);
@@ -752,7 +852,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // журнал трассировки: пустой разбор при источнике «Из NucBase»
                 // до 06.09.2026 не называл ни одной причины.
                 string shortfall = null;
-                if (job.Options.DbLookups)
+                List<FsaSampleChain> setChains = null;
+                List<string> setNuclides = null;
+                if (job.Options.FromSet)
+                {
+                    // (П236; решение Amber 06.10.2026 «Из сета нуклидов») Состав —
+                    // родители активного сета, как объявленный состав корпусных
+                    // проб (`--chain=`/`--sample=`): ряд по метке `Chain`, одиночка
+                    // по имени. Пики не читаются: нуклид сета без пика остаётся
+                    // кандидатом и получает предел обнаружения.
+                    FsaMeasurementResult.DeclaredOf(job.Set, job.Definitions, out setChains, out setNuclides);
+                }
+                if (setChains != null && (setChains.Count > 0 || setNuclides.Count > 0))
+                {
+                    FsaSampleSpec spec = FsaSampleSpec.Declared(job.CompositionInput, setChains, setNuclides,
+                                                                job.Options.ChainEquilibrium, job.Options.AtomicXray);
+                    job.Options.ApplyTo(spec);
+                    Trace.WriteLine("FSA composition: nuclide set, chains " + setChains.Count
+                                    + ", nuclides " + setNuclides.Count);
+                    library = FsaSampleLibrary.Build(spec);
+                }
+                else if (job.Options.DbLookups)
                 {
                     FsaCompositionInference.Report inferred;
                     FsaSampleSpec spec = FsaCompositionInference.Infer(job.Peaks, job.CompositionInput, out inferred);

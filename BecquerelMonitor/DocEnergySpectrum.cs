@@ -22,11 +22,6 @@ namespace BecquerelMonitor
         // (remove) Token: 0x060002FD RID: 765 RVA: 0x0000F470 File Offset: 0x0000D670
         public event EventHandler SaveDocument;
 
-        // Token: 0x14000008 RID: 8
-        // (add) Token: 0x060002FE RID: 766 RVA: 0x0000F4AC File Offset: 0x0000D6AC
-        // (remove) Token: 0x060002FF RID: 767 RVA: 0x0000F4E8 File Offset: 0x0000D6E8
-        public event EventHandler CreateNewROI;
-
         // Token: 0x14000009 RID: 9
         // (add) Token: 0x06000300 RID: 768 RVA: 0x0000F524 File Offset: 0x0000D724
         // (remove) Token: 0x06000301 RID: 769 RVA: 0x0000F560 File Offset: 0x0000D760
@@ -543,18 +538,6 @@ namespace BecquerelMonitor
                 resultData.EnergySpectrum = new EnergySpectrum(0.04, 2500);
                 resultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
             }
-            if (this.roiConfigManager.ROIConfigList.Count > 0)
-            {
-                if (resultData.DeviceConfig.EfficencyROIGuid != null &&
-                    this.roiConfigManager.ROIConfigMap.ContainsKey(resultData.DeviceConfig.EfficencyROIGuid))
-                {
-                    resultData.ROIConfig = this.roiConfigManager.ROIConfigMap[resultData.DeviceConfig.EfficencyROIGuid];
-                } else
-                {
-                    resultData.ROIConfig = this.roiConfigManager.ROIConfigList[0];
-                }
-                resultData.ROIConfigReference = resultData.ROIConfig.CreateReference();
-            }
             return resultData;
         }
 
@@ -626,7 +609,6 @@ namespace BecquerelMonitor
         void contextMenuStrip1_Opening(object sender, CancelEventArgs e)
         {
             this.saveSToolStripMenuItem.Enabled = this.Dirty;
-            this.createRoiDefinitionFromSelectionSToolStripMenuItem.Enabled = (this.view.SelectionStart != -1);
             bool enabled = this.view.CursorX != -1 && this.view.CursorChannel > 0 && this.view.CursorChannel < this.ActiveResultData.EnergySpectrum.NumberOfChannels;
             this.setLowerThresholdLToolStripMenuItem.Enabled = enabled;
             this.setUpperThresholdHToolStripMenuItem.Enabled = enabled;
@@ -1859,15 +1841,6 @@ namespace BecquerelMonitor
             this.view.ZoominSelectedRegion();
         }
 
-        // Token: 0x06000368 RID: 872 RVA: 0x00010C4C File Offset: 0x0000EE4C
-        void createRoiDefinitionFromSelectionSToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (this.CreateNewROI != null)
-            {
-                this.CreateNewROI(this, new EventArgs());
-            }
-        }
-
         // Token: 0x06000369 RID: 873 RVA: 0x00010C6C File Offset: 0x0000EE6C
         void setLowerThresholdLToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -2032,9 +2005,6 @@ namespace BecquerelMonitor
 
         // Token: 0x04000149 RID: 329
         DeviceConfigManager deviceConfigManager = DeviceConfigManager.GetInstance();
-
-        // Token: 0x0400014A RID: 330
-        ROIConfigManager roiConfigManager = ROIConfigManager.GetInstance();
 
         // Token: 0x0400014B RID: 331
         ResultDataFile resultDataFile;

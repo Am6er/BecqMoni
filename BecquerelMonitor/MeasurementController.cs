@@ -519,9 +519,6 @@ namespace BecquerelMonitor
         // Token: 0x04000377 RID: 887
         DeviceConfigManager deviceConfigManager = DeviceConfigManager.GetInstance();
 
-        // Token: 0x04000378 RID: 888
-        ROIConfigManager roiConfigManager = ROIConfigManager.GetInstance();
-
         // Token: 0x04000379 RID: 889
         DocumentManager documentManager = DocumentManager.GetInstance();
 

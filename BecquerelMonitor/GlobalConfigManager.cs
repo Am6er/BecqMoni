@@ -114,7 +114,7 @@ namespace BecquerelMonitor
         /// САМОТЁК. Живых окон нет вовсе в двух случаях: запуск ДО того, как
         /// у <c>MainForm</c> создан дескриптор (там и работают менеджеры-
         /// одиночки — <c>GlobalConfigManager</c>, <c>DeviceConfigManager</c>,
-        /// <c>ROIConfigManager</c>, <c>NuclideDefinitionManager</c>), и
+        /// <c>NuclideDefinitionManager</c>), и
         /// завершение, когда окна уже закрыты. Тогда окно поднимается НА
         /// ВЫЗЫВАЮЩЕМ потоке — ровно как было. Это не недоделка: при запуске
         /// вызывающий и есть будущий поток окон, а терять сообщение молча
@@ -342,7 +342,7 @@ namespace BecquerelMonitor
         /// Стоит здесь, а не у каждого потребителя, ровно потому же, почему
         /// здесь стоит сама дверь: сообщений об отказе в дереве много, и второго
         /// соглашения о том, как называется причина, быть не должно. Двух копий
-        /// этого метода — в <c>ROIConfigManager</c> и в
+        /// этого метода — в снятом 07.10.2026 <c>ROIConfigManager</c> и в
         /// <c>NucBase.NucBaseFramework</c> — хватило, чтобы это стало правдой в
         /// один вечер.
         ///
@@ -799,7 +799,6 @@ namespace BecquerelMonitor
         public void PrepareConfigFile()
         {
             DeviceConfigManager.GetInstance();
-            ROIConfigManager.GetInstance();
         }
 
         // Token: 0x06000611 RID: 1553 RVA: 0x000265F4 File Offset: 0x000247F4

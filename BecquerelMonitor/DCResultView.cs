@@ -20,8 +20,14 @@ namespace BecquerelMonitor
             }
             set
             {
+                // (`AMBER208`) окно — только беккерели: «отсчёты» и «имп/с» из прежней
+                // раскладки (`DCResultView,CountsPerSecond, Nothing`) были бы распадами
+                if (value < ResultTranslation.Becquerels)
+                {
+                    value = ResultTranslation.Becquerels;
+                }
                 this.resultTranslation = value;
-                this.comboBox1.SelectedIndex = (int)value;
+                this.comboBox1.SelectedIndex = (int)value - (int)ResultTranslation.Becquerels;
             }
         }
 
@@ -54,6 +60,20 @@ namespace BecquerelMonitor
             LiveViews.Add(this);
             this.Disposed += (s, e) => LiveViews.Remove(this);
             this.DockStateChanged += (s, e) => this.RefreshSelectionPanel();
+            // (`AMBER208`) окно стало видимым (вкладка выбрана, панель открыта) —
+            // перечитать разбор: таймер MainForm обновляет только ВИДИМЫЕ окна и
+            // только при изменении спектра, а скрытой вкладке ничего не приходило,
+            // и после открытия она показывала состояние момента своего создания
+            // («FSA: no spectrum» — документов ещё не было).
+            this.VisibleChanged += (s, e) =>
+            {
+                if (this.Visible && this.mainForm != null && !this.IsDisposed)
+                {
+                    this.previousCollection = null;
+                    this.ShowResult(true);
+                }
+            };
+            this.InitFsa();
         }
 
         /// <summary>(`AMBER148`) Все окна результатов, ещё не уничтоженные.</summary>
@@ -163,20 +183,12 @@ namespace BecquerelMonitor
             });
         }
 
-        // Token: 0x06000435 RID: 1077 RVA: 0x000136C8 File Offset: 0x000118C8
-        void button1_Click(object sender, EventArgs e)
-        {
-            ROIConfigData config = null;
-            if (this.previousCollection != null)
-            {
-                config = this.previousCollection.ROIConfig;
-            }
-            this.mainForm.ShowROIConfigForm(config);
-        }
-
         // Token: 0x06000436 RID: 1078 RVA: 0x00013700 File Offset: 0x00011900
-        public void ShowResult(MeasurementResultCollection resultCollection, bool refresh)
+        public void ShowResult(bool refresh)
         {
+            // (`AMBER208`, решения Amber 06–07.10.2026) строки — из разбора FSA
+            // активного документа; зон ROI у окна больше нет.
+            MeasurementResultCollection resultCollection = this.FsaCollection();
             if (resultCollection == null || resultCollection.ResultList == null)
             {
                 this.table1.BeginUpdate();
@@ -189,7 +201,7 @@ namespace BecquerelMonitor
             GlobalConfigInfo globalConfig = this.globalConfigManager.GlobalConfig;
             decimal errorLevel = globalConfig.MeasurementConfig.ErrorLevel;
             bool showValuesForNDResult = globalConfig.MeasurementConfig.ShowValuesForNDResult;
-            if (this.previousCollection == null || this.previousCollection.ROIConfig.Guid != resultCollection.ROIConfig.Guid)
+            if (this.previousCollection == null || this.previousCollection.SourceKey != resultCollection.SourceKey)
             {
                 refresh = true;
             }
@@ -216,11 +228,6 @@ namespace BecquerelMonitor
             this.table1.BeginUpdate();
             string format = "f2";
             int format_int = 2;
-            if (this.resultTranslation == ResultTranslation.CountsPerSecond)
-            {
-                format = "f5";
-                format_int = 5;
-            }
             if (refresh)
             {
                 this.tableModel1.Rows.Clear();
@@ -267,7 +274,9 @@ namespace BecquerelMonitor
                         // счёта: без причины строка читалась бы как поломка.
                         Cell cell2 = new Cell(string.IsNullOrEmpty(measurementResult.StatusText)
                             ? Resources.ErrorString : measurementResult.StatusText);
-                        cell2.Tag = false;
+                        // строка состояния — текст, а не «не обнаружен»: значок ND
+                        // рисовался бы поверх текста (замечание Amber 06.10.2026)
+                        cell2.Tag = null;
                         row.Cells.Add(cell2);
                         row.Cells.Add(new Cell(""));
                         row.Cells.Add(new Cell(""));
@@ -284,9 +293,7 @@ namespace BecquerelMonitor
                     int index = (int)row2.Tag;
                     if (index >= resultCollection.ResultList.Count) { continue; }
                     MeasurementResult measurementResult2 = resultCollection.ResultList[index];
-                    // (`AMBER133`) приписка суммирования зависит от единиц — обновляется и здесь
                     row2.Cells[0].Text = NameText(measurementResult2);
-                    row2.Cells[0].ToolTipText = NameTip(measurementResult2);
                     if (measurementResult2.IsValid)
                     {
                         bool flag2 = this.CheckDetected(measurementResult2);
@@ -327,7 +334,7 @@ namespace BecquerelMonitor
                     {
                         row2.Cells[1].Text = string.IsNullOrEmpty(measurementResult2.StatusText)
                             ? Resources.ErrorString : measurementResult2.StatusText;
-                        row2.Cells[1].Tag = false;
+                        row2.Cells[1].Tag = null;
                         row2.Cells[1].Data = null;
                         row2.Cells[2].Text = string.Empty;
                         row2.Cells[2].Data = 0.0;
@@ -339,71 +346,15 @@ namespace BecquerelMonitor
             this.table1.EndUpdate();
         }
 
-        /// <summary>
-        /// (`AMBER133`, П167 28.09.2026) Имя зоны с припиской каскадного
-        /// суммирования: «Σ×1.068», когда поправка вошла в беккерели, «без
-        /// поправки на Σ», когда её нет, а у нуклида линия стоит в каскаде.
-        /// Полная фраза — подсказкой клетки. Прежде таблица молчала, а FSA ту
-        /// же линию поправлял — два числа расходились без объяснения.
-        /// </summary>
         static string NameText(MeasurementResult result)
         {
-            string name = result.ROIDefinition.Name;
-            if (!result.IsValid)
-            {
-                return name;
-            }
-
-            if (!string.IsNullOrEmpty(result.SummingNote))
-            {
-                name += "  [" + result.SummingNote + "]";
-            }
-
-            // (`S199`, П174) помеха природного спутника в окне зоны
-            if (result.Interference != null)
-            {
-                name += "  [" + string.Format(CultureInfo.InvariantCulture, OwnText(KeyInterferenceCell),
-                                              result.Interference.Companion ?? string.Empty,
-                                              result.Interference.Factor.ToString("F2", CultureInfo.InvariantCulture))
-                        + "]";
-            }
-
-            return name;
-        }
-
-        /// <summary>
-        /// Подсказка клетки имени: фраза суммирования (`AMBER133`) и фраза
-        /// помехи природного спутника (`S199`), каждая своей строкой.
-        /// </summary>
-        static string NameTip(MeasurementResult result)
-        {
-            string tip = result.SummingProblem;
-            if (result.IsValid && result.Interference != null)
-            {
-                FullSpectrumAnalysis.FsaLineInterference item = result.Interference;
-                string said = string.Format(CultureInfo.InvariantCulture, OwnText(KeyInterferenceTip),
-                                            item.LineKev.ToString("F1", CultureInfo.InvariantCulture),
-                                            item.Companion ?? string.Empty, item.Reference ?? string.Empty,
-                                            item.Component ?? string.Empty,
-                                            item.Factor.ToString("F2", CultureInfo.InvariantCulture));
-                tip = string.IsNullOrEmpty(tip) ? said : tip + Environment.NewLine + said;
-            }
-
-            return tip;
+            return result.Line != null ? result.Line.Name ?? string.Empty : string.Empty;
         }
 
         static Cell NameCell(MeasurementResult result)
         {
-            Cell cell = new Cell(NameText(result));
-            cell.ToolTipText = NameTip(result);
-            return cell;
+            return new Cell(NameText(result));
         }
-
-        /// <summary>(`S199`) Ключ собственного resx: приписка «U-235 ×1.72» к имени зоны.</summary>
-        const string KeyInterferenceCell = "DCResult_InterferenceCell";
-
-        /// <summary>(`S199`) Ключ собственного resx: полная фраза помехи — подсказка клетки.</summary>
-        const string KeyInterferenceTip = "DCResult_InterferenceTip";
 
         /// <summary>
         /// (`S199`) Строки этого окна — из его собственного resx (как у окна
@@ -454,15 +405,16 @@ namespace BecquerelMonitor
         // Token: 0x06000439 RID: 1081 RVA: 0x00013D10 File Offset: 0x00011F10
         void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            this.resultTranslation = (ResultTranslation)this.comboBox1.SelectedIndex;
-            this.ShowResult(this.previousCollection, false);
+            // список единиц начинается с беккерелей (`AMBER208`)
+            this.resultTranslation = (ResultTranslation)(this.comboBox1.SelectedIndex + (int)ResultTranslation.Becquerels);
+            this.ShowResult(false);
         }
 
         // Token: 0x0600043A RID: 1082 RVA: 0x00013D30 File Offset: 0x00011F30
         void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
         {
             this.resultCorrection = (ResultCorrection)this.comboBox2.SelectedIndex;
-            this.ShowResult(this.previousCollection, false);
+            this.ShowResult(false);
             // (`AMBER148`) режим поправки решает и за беккерели панели выделения
             this.RefreshSelectionPanel();
         }
@@ -475,6 +427,221 @@ namespace BecquerelMonitor
 
         // Token: 0x040001A5 RID: 421
         MeasurementResultCollection previousCollection;
+
+        // (`AMBER208`, задача Amber 06.10.2026; решения вопросником: строки — «Из
+        // сета нуклидов», Бк — «Матрица или абсолютная кривая», ряд — «Считать
+        // строку родителя связанным рядом», сеансов — «Два, как сейчас», причина
+        // отсутствия матрицы — только в отчёте: «Убрать причину из окна»).
+        // Источник строк — разбор FSA активного документа, своим сеансом;
+        // заголовок первой колонки — шкала разбора, подсказка — счёт строк; все
+        // тексты — из ресурсов окна (`DCResult_Fsa*`, en + ru). Форма ROI и
+        // счёт зон сняты 07.10.2026 («Сначала снять ROI, потом один коммит»).
+        FullSpectrumAnalysis.FsaAnalysisSession fsaSession;
+        DocEnergySpectrum fsaDocument;
+
+        const string KeyFsaComputing = "DCResult_FsaComputing";
+        const string KeyFsaNoSpectrum = "DCResult_FsaNoSpectrum";
+        const string KeyFsaAbsent = "DCResult_FsaAbsent";
+        const string KeyFsaScaleMatrix = "DCResult_FsaScaleMatrix";
+        const string KeyFsaScaleCurve = "DCResult_FsaScaleCurve";
+        const string KeyFsaHidden = "DCResult_FsaHidden";
+        const string KeyFsaReasonField = "DCResult_FsaReasonField";
+        const string KeyFsaReasonNoCurve = "DCResult_FsaReasonNoCurve";
+        const string KeyFsaReasonCurveUnused = "DCResult_FsaReasonCurveUnused";
+        const string KeyFsaReasonOrigin = "DCResult_FsaReasonOrigin";
+        const string KeyFsaReasonNoResult = "DCResult_FsaReasonNoResult";
+        const string KeyFsaDetails = "DCResult_FsaDetails";
+        const string KeyFsaMdaHeader = "DCResult_FsaMdaHeader";
+        const string KeyFsaMdaTip = "DCResult_FsaMdaTip";
+        const string KeyFsaStale = "DCResult_FsaStale";
+        const string KeyFsaNoSet = "DCResult_FsaNoSet";
+
+        FullSpectrumAnalysis.FsaMeasurementResult.Texts FsaTexts()
+        {
+            return new FullSpectrumAnalysis.FsaMeasurementResult.Texts
+            {
+                Absent = OwnText(KeyFsaAbsent),
+                ScaleMatrix = OwnText(KeyFsaScaleMatrix),
+                ScaleCurve = OwnText(KeyFsaScaleCurve),
+                Hidden = OwnText(KeyFsaHidden),
+                ReasonFieldCurve = OwnText(KeyFsaReasonField),
+                ReasonNoCurve = OwnText(KeyFsaReasonNoCurve),
+                ReasonCurveUnused = OwnText(KeyFsaReasonCurveUnused),
+                ReasonOrigin = OwnText(KeyFsaReasonOrigin),
+                ReasonNoResult = OwnText(KeyFsaReasonNoResult),
+                Details = OwnText(KeyFsaDetails)
+            };
+        }
+
+        void InitFsa()
+        {
+            // шкала разбора живёт в заголовке первой колонки — ей нужно место;
+            // предел — a# ISO 11929 (решение Amber 06.10.2026 «MDA», как у зон:
+            // заголовок «MDA», расшифровка в подсказке), а не MDA Карри по зоне
+            this.columnModel1.Columns[0].Width = Math.Max(this.columnModel1.Columns[0].Width, 170);
+            this.columnModel1.Columns[3].Text = OwnText(KeyFsaMdaHeader);
+            this.columnModel1.Columns[3].ToolTipText = OwnText(KeyFsaMdaTip);
+            // Решение Amber 06.10.2026 вопросником «Подсвечивать образ нуклида в стеке»:
+            // выбор строки подсвечивает образ в стеке FSA тем же механизмом, что у
+            // окна отчёта (`EnergySpectrumView.FsaHighlight`); окон зон у разбора нет.
+            this.table1.SelectionChanged += (s, e) => this.PushFsaHighlight();
+        }
+
+        void PushFsaHighlight()
+        {
+            DocEnergySpectrum document = this.mainForm != null ? this.mainForm.ActiveDocument : null;
+            if (document == null || document.IsDisposed || document.EnergySpectrumView == null)
+            {
+                return;
+            }
+            string layer = null;
+            if (this.previousCollection != null && this.previousCollection.ResultList != null)
+            {
+                int[] indices = this.tableModel1.Selections.SelectedIndicies;
+                if (indices != null && indices.Length > 0 && indices[0] >= 0 && indices[0] < this.tableModel1.Rows.Count
+                    && this.tableModel1.Rows[indices[0]].Tag is int index
+                    && index >= 0 && index < this.previousCollection.ResultList.Count)
+                {
+                    MeasurementResult picked = this.previousCollection.ResultList[index];
+                    if (picked.IsValid && picked.Line != null)
+                    {
+                        layer = picked.Line.Name;
+                    }
+                }
+            }
+            // ⛔ только краска: ни расчёта, ни представления это не меняет (как у отчёта)
+            document.EnergySpectrumView.FsaHighlight = layer;
+        }
+
+        void SetFsaHeader(string text, string tip)
+        {
+            this.columnModel1.Columns[0].Text = text;
+            this.columnModel1.Columns[0].ToolTipText = tip ?? "";
+        }
+
+        MeasurementResultCollection FsaCollection()
+        {
+            DocEnergySpectrum document = this.mainForm != null ? this.mainForm.ActiveDocument : null;
+            ResultData rd = document != null ? document.ActiveResultData : null;
+            // СВОЙ сеанс разбора, а не сеанс документа: окну результата ряд
+            // нужен СВЯЗАННЫМ и состав — ИЗ СЕТА независимо от галочек отчёта
+            // FSA, а общий сеанс с другими настройками двух потребителей
+            // пересчитывался бы попеременно. Сеанс — на документ: смена вкладки
+            // даёт новый сеанс без результата, и строк по чужому спектру нет.
+            if (!ReferenceEquals(this.fsaDocument, document))
+            {
+                if (this.fsaSession != null)
+                {
+                    this.fsaSession.Completed -= this.FsaSessionCompleted;
+                    this.fsaSession.Reset();
+                }
+                // смена сета или пиков обновляет вид документа — тем же событием
+                // живёт окно отчёта FSA; без него строка «выберите сет» висела бы
+                // до следующего обновления спектра
+                if (this.fsaDocument != null)
+                {
+                    this.fsaDocument.ViewRefreshed -= this.FsaDocumentViewRefreshed;
+                }
+                if (document != null)
+                {
+                    document.ViewRefreshed += this.FsaDocumentViewRefreshed;
+                }
+                this.fsaDocument = document;
+                this.fsaSession = document != null ? new FullSpectrumAnalysis.FsaAnalysisSession() : null;
+                if (this.fsaSession != null)
+                {
+                    this.fsaSession.Completed += this.FsaSessionCompleted;
+                }
+            }
+            FullSpectrumAnalysis.FsaAnalysisSession session = this.fsaSession;
+            if (rd == null || session == null || rd.EnergySpectrum == null)
+            {
+                this.SetFsaHeader(OwnText(KeyFsaNoSpectrum), null);
+                return null;
+            }
+            // Решение Amber 06.10.2026 вопросником: при активном сете «All Nuclides» —
+            // отказ «выберите сет»: все определения как состав навязывают кандидатов
+            // (ториевый спектр показал Am-241 1047 Бк), строк без явного сета нет.
+            if (NuclideDefinitionManager.GetInstance().ActiveSet == null)
+            {
+                this.SetFsaHeader(OwnText(KeyFsaNoSet), null);
+                return StatusCollection(rd, OwnText(KeyFsaNoSet));
+            }
+            FullSpectrumAnalysis.FsaCalculationOptions options = FullSpectrumAnalysis.FsaCalculationOptions.Of(rd);
+            options.FromSet = true;          // решение Amber 06.10.2026 «Из сета нуклидов»
+            options.ChainEquilibrium = true; // решение Amber 06.10.2026 «Считать строку родителя связанным рядом»
+            session.EnsureUpToDate(rd, rd.BackgroundEnergySpectrum != null, options);
+            FullSpectrumAnalysis.FsaResult result = session.Result;
+            bool running = session.IsRunning;
+            if (result == null)
+            {
+                this.SetFsaHeader(OwnText(KeyFsaComputing), null);
+                return StatusCollection(rd, OwnText(KeyFsaComputing));
+            }
+            NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
+            FullSpectrumAnalysis.FsaMeasurementResult.Texts texts = this.FsaTexts();
+            FullSpectrumAnalysis.FsaMeasurementResult.Summary summary;
+            MeasurementResultCollection built = FullSpectrumAnalysis.FsaMeasurementResult.Build(
+                rd, result, nuclides.ActiveSet, nuclides.NuclideDefinitions, texts, out summary);
+            // Признак свежести: пока сеанс считает новый спектр, строки — по
+            // прежнему разбору, и заголовок говорит об этом.
+            string head = summary.Describe(texts) + (running ? " " + OwnText(KeyFsaStale) : "");
+            this.SetFsaHeader(head, summary.Details(texts));
+            return built ?? StatusCollection(rd, OwnText(KeyFsaReasonNoResult));
+        }
+
+        static MeasurementResultCollection StatusCollection(ResultData rd, string text)
+        {
+            var line = new MeasurementLine { Name = "FSA" };
+            var collection = new MeasurementResultCollection
+            {
+                ResultData = rd,
+                SourceKey = FullSpectrumAnalysis.FsaMeasurementResult.ConfigGuid + "-status",
+                MeasurementTime = 1.0,
+                LiveTime = 1.0
+            };
+            collection.ResultList.Add(new MeasurementResult(line, 0.0, 0.0) { IsValid = false, StatusText = text });
+            return collection;
+        }
+
+        void FsaDocumentViewRefreshed(object sender, EventArgs e)
+        {
+            if (this.IsDisposed || !this.IsHandleCreated)
+            {
+                return;
+            }
+            this.BeginInvoke((System.Windows.Forms.MethodInvoker)delegate
+            {
+                if (!this.IsDisposed)
+                {
+                    this.previousCollection = null;
+                    this.ShowResult(true);
+                }
+            });
+        }
+
+        void FsaSessionCompleted(object sender, EventArgs e)
+        {
+            if (this.IsDisposed || !this.IsHandleCreated)
+            {
+                return;
+            }
+            try
+            {
+                this.BeginInvoke((System.Windows.Forms.MethodInvoker)delegate
+                {
+                    if (!this.IsDisposed)
+                    {
+                        this.previousCollection = null;
+                        this.ShowResult(true);
+                    }
+                });
+            }
+            catch (InvalidOperationException)
+            {
+                // окно закрылось между проверкой и вызовом — результат никому не нужен
+            }
+        }
 
         // Token: 0x040001A6 RID: 422
         ResultTranslation resultTranslation;

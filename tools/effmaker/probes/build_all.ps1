@@ -59,10 +59,10 @@
 # три базы, `runtimes\`, `ru\`), `<проба>.exe.config` каждой пробе (`T32`),
 # ПОСТАВОЧНЫЙ `config\` (`NuclideDefinition.xml` + `BecquerelMonitor.xml`) и —
 # по ключу плана `-ProbeCatalog` (`T149`, 05.09.2026) — поставочные
-# `config\device\*.xml` и `config\ROI\*.xml`: без первого каталога
-# `DeviceConfigManager` в безоконном прогоне бросает исключение, без второго
-# `ROIConfigManager` грузит ноль конфигураций (измерено на свежем `-Out`:
-# `FsaStampProbe` упала, `RoiLoadProbe`/`RoiSupplyProbe` вернули 2).
+# `config\device\*.xml`: без этого каталога `DeviceConfigManager` в безоконном
+# прогоне бросает исключение (измерено на свежем `-Out`: `FsaStampProbe` упала).
+# Поставочные `config\ROI` сюда больше не кладутся: конфигурации ROI сняты из
+# приложения 07.10.2026 (`AMBER208`).
 # Приборы корпуса и матрицы отклика — оснастка КОРПУСА, сюда не едут; их
 # кладёт `mk_appwd.ps1`. Род файла, которого нет ни в одном из двух списков, —
 # ОТКАЗ, а не «пропустим»: значит план начал класть что-то новое, и здесь об
@@ -181,7 +181,7 @@ try { . $planFile } catch {
 $contract = [ordered]@{
     # `S138`: `Store` — склад матриц ПЛЕЧА; пустой значит штатный склад корпуса.
     # `T149`: `ProbeCatalog` — план для каталога проб: плюс поставочные
-    # `config\device` и `config\ROI`.
+    # `config\device`.
     'Get-AppWdPlan'      = @('Repo', 'Bin', 'Wd', 'ProbeBuild', 'Store', 'ProbeCatalog')
     'New-AppWdPlanOrDie' = @('Repo', 'Bin', 'Wd', 'ProbeBuild', 'Store', 'ProbeCatalog')
     # `T89`: единственный перебор исходников проб — им компилирует этот скрипт,
@@ -326,7 +326,6 @@ function Assert-GuardIsAlive {
         $fWd     = Join-Path $root 'wd'
         foreach ($d in @((Join-Path $fRepo 'BecquerelMonitor\config'),
                          (Join-Path $fRepo 'BecquerelMonitor\config\device'),
-                         (Join-Path $fRepo 'BecquerelMonitor\config\ROI'),
                          (Join-Path $fRepo 'tools\effmaker\probes'),
                          $fBin, (Join-Path $fBin 'runtimes\win-x64\native'), (Join-Path $fBin 'ru'),
                          $fProbes, $fWd)) {
@@ -344,10 +343,9 @@ function Assert-GuardIsAlive {
                     ('<Nuclide/>' * $nucN) + '</NuclideDefinitions></NuclideDefinitionFile>')
         Set-Content -Encoding ascii -LiteralPath (Join-Path $fRepo 'BecquerelMonitor\config\BecquerelMonitor.xml') `
             -Value '<?xml version="1.0"?><GlobalConfigInfo/>'
-        # `T149`: план каталога проб кладёт и поставочные приборы с ROI —
+        # `T149`: план каталога проб кладёт и поставочные приборы —
         # самопроверка гоняет РОВНО тот план, которым этот скрипт обставляет.
         Set-Content -Encoding ascii -LiteralPath (Join-Path $fRepo 'BecquerelMonitor\config\device\podstava.xml') -Value '<DeviceConfigInfo/>'
-        Set-Content -Encoding ascii -LiteralPath (Join-Path $fRepo 'BecquerelMonitor\config\ROI\podstava.xml')    -Value '<ROIConfigData/>'
         # ⚠ `Main` в подставном исходнике — НЕ УКРАШЕНИЕ (`T226`, поймано
         # самопроверкой при заведении): по этому же образцу отделяются ДОВЕСКИ,
         # и файл без `Main` считается довеском, а не пробой. Со строкой
@@ -399,11 +397,10 @@ function Assert-GuardIsAlive {
 
         $p = Get-AppWdPlan -Repo $fRepo -Bin $fBin -Wd $fWd -ProbeBuild $fProbes -ProbeCatalog
         Invoke-AppWdPlan -Plan $p | Out-Null
-        # `T149`: оба поставочных подкаталога обязаны быть В ПЛАНЕ, иначе
-        # каталог проб снова останется без `config\device` и `config\ROI` —
-        # молча, как до 05.09.2026.
+        # `T149`: поставочный подкаталог приборов обязан быть В ПЛАНЕ, иначе
+        # каталог проб снова останется без `config\device` — молча, как до 05.09.2026.
         $why = @($p.Pairs | ForEach-Object { $_.Why })
-        foreach ($need in @('поставочный конфиг\device', 'поставочный конфиг\ROI')) {
+        foreach ($need in @('поставочный конфиг\device')) {
             if ($why -notcontains $need) {
                 $fail = "план с ключом -ProbeCatalog не содержит рода «$need» — каталог проб останется без него (T149)."
             }
@@ -714,16 +711,6 @@ function Assert-GuardIsAlive {
                 $fail = ("на ПОРЧЕНОЙ подставной оснастке сторож промолчал: оснастка {0}, сборка {1}, библиотека {2} — должно быть >=1 у каждой." -f $m1, $m2, $m3) +
                         "`nПодменены: база рядом с пробами, библиотека нуклидов (4 записи), приложение в каталоге проб."
             }
-            # `T149`: подменённая поставочная ROI рядом с пробами — ОТДЕЛЬНАЯ
-            # находка сверх трёх прежних; иначе новый род файлов клался бы,
-            # но не сверялся.
-            if (-not $fail) {
-                Add-Content -LiteralPath (Join-Path $fWd 'config\ROI\podstava.xml') -Value 'porcha'
-                $m4 = @((Test-AppWdPlan -Plan $p).Bad).Count
-                if ($m4 -le $m1) {
-                    $fail = ("подменённая config\ROI\podstava.xml рядом с пробами не прибавила находок: было {0}, стало {1} (T149)." -f $m1, $m4)
-                }
-            }
         }
     } catch {
         $fail = "самопроверка сторожа не собралась: $($_.Exception.Message)"
@@ -1013,12 +1000,11 @@ $minePairs = @($plan.Pairs | Where-Object $whyMine)
 # (без `NuclideDefinition.xml` проба ЗАВОДИТ СЕБЕ библиотеку из четырёх линий,
 # без `BecquerelMonitor.xml` `GlobalConfigManager.LoadConfigFile()` показывает
 # `MessageBox` безусловно, и безоконный прогон виснет насмерть); `поставочный
-# конфиг\device` и `…\ROI` — `T149` (без каталога `config\device`
-# `DeviceConfigManager` без окон бросает исключение, без `config\ROI`
-# `ROIConfigManager` грузит ноль конфигураций).
+# конфиг\device` — `T149` (без каталога `config\device`
+# `DeviceConfigManager` без окон бросает исключение).
 $haveWhy = @($plan.Pairs | ForEach-Object { $_.Why } | Sort-Object -Unique)
 $mustWhy = @('сборка', 'сборка\runtimes', 'сборка\ru', 'exe.config пробы',
-             'поставочный конфиг', 'поставочный конфиг\device', 'поставочный конфиг\ROI', 'проба')
+             'поставочный конфиг', 'поставочный конфиг\device', 'проба')
 $lostWhy = @($mustWhy | Where-Object { $_ -notin $haveWhy })
 if ($lostWhy.Count) {
     Write-Host ""
@@ -1058,7 +1044,7 @@ $strictPlan = New-SubPlan -Base $plan -Pairs (@($minePairs) + @($selfPairs))
 # 27.08.2026: в `probes\build` ПЯТЬ `<guid>_CorpusMatrixProbe.exe` от 09–17.08 — все
 # с атрибутом `Hidden`, обход без `-Force` их не видел и насчитал «три» (`T99`);
 # откуда атрибут, не установлено; в `probes\build_rel` — одиннадцать
-# `config\ROI\*.xml`, `config\layout\*.xml` и `config\device\AtomSpectraVCP.xml`).
+# `config\layout\*.xml` и `config\device\AtomSpectraVCP.xml`; `config\ROI` сняты 07.10.2026).
 # Отказывать на них значит завести сторожа, который отказывает ВСЕГДА.
 # Поэтому они перечисляются поимённо, с ЧУЖИМ же доводом из `Get-AppWdExtra`
 # (второго обхода «что здесь лишнее» не заводим), и добавляются в план сверки

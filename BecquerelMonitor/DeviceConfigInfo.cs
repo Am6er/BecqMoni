@@ -325,18 +325,6 @@ namespace BecquerelMonitor
             }
         }
 
-        public string EfficencyROIGuid
-        {
-            get
-            {
-                return this.efficencyROIGuid;
-            }
-            set
-            {
-                this.efficencyROIGuid = value;
-            }
-        }
-
         /// <summary>
         /// ВЕЩЕСТВО КРИСТАЛЛА — ссылка на вещество библиотеки по его имени
         /// (`A276`, решение Amber 06.09.2026: «поле в конфигурации прибора,
@@ -408,7 +396,7 @@ namespace BecquerelMonitor
         /// сантиметрах — это разные геометрии и разные кривые, а прибор один.
         ///
         /// Раньше кривая лежала секцией в ROI-конфиге, а прибор ссылался на неё
-        /// через <see cref="EfficencyROIGuid"/> — одной штукой на прибор и в
+        /// через <c>EfficencyROIGuid</c> (снято 07.10.2026) — одной штукой на прибор и в
         /// чужой сущности.
         /// </summary>
         public List<EfficiencyConfigData> EfficiencyConfigs
@@ -555,10 +543,6 @@ namespace BecquerelMonitor
                 }
             }
             this.backgroundSpectrumPathname = string.Copy(info.backgroundSpectrumPathname);
-            if (info.efficencyROIGuid != null)
-            {
-                this.efficencyROIGuid = string.Copy(info.efficencyROIGuid);
-            }
             // Копия ГЛУБОКАЯ, как и всё выше. Форма конфигураций правит не
             // объект менеджера, а его копию (ListupConfigFiles кладёт Clone() в
             // строку таблицы), и общий список означал бы, что правка кривой
@@ -705,8 +689,6 @@ namespace BecquerelMonitor
 
         // Token: 0x040007A2 RID: 1954
         string backgroundSpectrumPathname = "";
-
-        string efficencyROIGuid;
 
         List<EfficiencyConfigData> efficiencyConfigs = new List<EfficiencyConfigData>();
 

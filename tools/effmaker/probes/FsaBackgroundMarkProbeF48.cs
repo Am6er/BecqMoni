@@ -67,8 +67,6 @@ static class FsaBackgroundMarkProbeF48
         FsaTuningReport.Snapshot();
 
         // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`).
-        ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-        ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
         Console.WriteLine("сборка приложения: " + typeof(FsaResult).Assembly.Location);
         try

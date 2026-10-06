@@ -83,8 +83,6 @@ namespace BecquerelMonitor
             this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
             this.setLowerThresholdLToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.setUpperThresholdHToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripMenuItem();
-            this.createRoiDefinitionFromSelectionSToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.saveSToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.closeCToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -611,7 +609,6 @@ namespace BecquerelMonitor
             this.showAllChannelsAToolStripMenuItem,
             this.toolStripSeparator2,
             this.toolStripMenuItem2,
-            this.toolStripMenuItem3,
             this.toolStripSeparator1,
             this.saveSToolStripMenuItem,
             this.closeCToolStripMenuItem});
@@ -656,19 +653,6 @@ namespace BecquerelMonitor
             this.setUpperThresholdHToolStripMenuItem.Name = "setUpperThresholdHToolStripMenuItem";
             resources.ApplyResources(this.setUpperThresholdHToolStripMenuItem, "setUpperThresholdHToolStripMenuItem");
             this.setUpperThresholdHToolStripMenuItem.Click += new System.EventHandler(this.setUpperThresholdHToolStripMenuItem_Click);
-            // 
-            // toolStripMenuItem3
-            // 
-            this.toolStripMenuItem3.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.createRoiDefinitionFromSelectionSToolStripMenuItem});
-            this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-            resources.ApplyResources(this.toolStripMenuItem3, "toolStripMenuItem3");
-            // 
-            // createRoiDefinitionFromSelectionSToolStripMenuItem
-            // 
-            this.createRoiDefinitionFromSelectionSToolStripMenuItem.Name = "createRoiDefinitionFromSelectionSToolStripMenuItem";
-            resources.ApplyResources(this.createRoiDefinitionFromSelectionSToolStripMenuItem, "createRoiDefinitionFromSelectionSToolStripMenuItem");
-            this.createRoiDefinitionFromSelectionSToolStripMenuItem.Click += new System.EventHandler(this.createRoiDefinitionFromSelectionSToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
@@ -834,10 +818,8 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem setUpperThresholdHToolStripMenuItem;
 
 		// Token: 0x04000131 RID: 305
-		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem3;
 
 		// Token: 0x04000132 RID: 306
-		global::System.Windows.Forms.ToolStripMenuItem createRoiDefinitionFromSelectionSToolStripMenuItem;
 
 		// Token: 0x04000133 RID: 307
 		global::System.Windows.Forms.ToolStripLabel toolStripLabel2;

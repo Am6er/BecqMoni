@@ -29,8 +29,7 @@ namespace LiveTimePathsProbeP80
     ///   1. панель выделения — `EnergySpectrumView.EnsureSelectionAnalytics`
     ///      (вид без окна, поля отражением, как `BqActivityProbe`): NetCps,
     ///      нормировка фона (AdjBgCounts/BgCounts), активность через K;
-    ///   2. зоны — `MeasurementResultManager.Calculate` + `Translate`:
-    ///      имп/с, Бк, нормировка фона;
+    ///   2. зоны ROI — путь снят 07.10.2026 (`AMBER208`), плечо убрано;
     ///   3. мощность дозы — `DoseRateManager.Calculate`: Cps диапазона / Counts;
     ///   4. общее вычитание фона — `SpectrumAriphmetics.Substract`: нормировка
     ///      по плоскому каналу; отсюда же берёт вычтенный спектр поиск пиков
@@ -100,8 +99,6 @@ namespace LiveTimePathsProbeP80
             // ⛔ Обе карты примитивов ROI и ДО менеджеров (`T60`): у
             // `MeasurementResultManager` операции берутся из карты в
             // инициализаторе поля, а отказ менеджера без окон — исключение.
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             GlobalConfigManager.GetInstance();
 
             Console.WriteLine("=== чем мерено ===");
@@ -166,19 +163,6 @@ namespace LiveTimePathsProbeP80
                 bad++;
             }
 
-            // 2. Зоны.
-            Zone z = sc.Zone();
-            double zoneFgT = z.NetCounts / z.Cps;
-            double zoneRatio = (z.FgRegion - z.NetCounts) / z.BgRegion;
-            Console.WriteLine("2. зона: нетто {0} отсч., {1} имп/с → знаменатель {2} с; нормировка фона {3}; {4} Бк → знаменатель {5} с; МДА {6} отсч.",
-                              R(z.NetCounts), R(z.Cps), R(zoneFgT), R(zoneRatio), R(z.Bq), R(z.NetCounts * z.K / z.Bq), R(z.Mda));
-            Check("зона: знаменатель имп/с", fgExpect, zoneFgT, false);
-            Check("зона: нормировка фона", ratioExpect, zoneRatio, false);
-            Check("зона: знаменатель Бк", fgExpect, z.NetCounts * z.K / z.Bq, false);
-            Console.WriteLine("   коллекция: MeasurementTime = {0} с (подпись), LiveTime = {1} с, CountingTime = {2} с",
-                              R(z.CollectionMeasurementTime), R(z.CollectionLiveTime), R(z.CollectionCountingTime));
-            Check("зона: подпись коллекции — ПОЛНОЕ время", FgFull, z.CollectionMeasurementTime, true);
-            Check("зона: знаменатель коллекции (CountingTime)", fgExpect, z.CollectionCountingTime, exact);
 
             // 3. Доза.
             Dose d = sc.Dose();
@@ -211,12 +195,12 @@ namespace LiveTimePathsProbeP80
             Check("график: знаменатель имп/с", fgExpect, chartT, false);
 
             // Итог сцены: ОДИН знаменатель у всех путей.
-            double[] all = { selFgT, zoneFgT, d.Counts / d.Cps, f.LiveTime, chartT };
+            double[] all = { selFgT, d.Counts / d.Cps, f.LiveTime, chartT };
             double lo = double.MaxValue, hi = double.MinValue;
             foreach (double v in all) { if (v < lo) lo = v; if (v > hi) hi = v; }
-            Console.WriteLine("   → знаменатели путей 1,2,3,5,6: от {0} до {1} с ({2}); нормировки 1,2,4{3}: {4}, {5}, {6}{7}",
+            Console.WriteLine("   → знаменатели путей 1,3,5,6: от {0} до {1} с ({2}); нормировки 1,4{3}: {4}, {5}{6}",
                               R(lo), R(hi), kind, f.BackgroundScale.HasValue ? ",5" : "",
-                              R(selRatio), R(zoneRatio), R(subNorm),
+                              R(selRatio), R(subNorm),
                               f.BackgroundScale.HasValue ? ", " + R(f.BackgroundScale.Value) : "");
         }
 
@@ -429,12 +413,6 @@ namespace LiveTimePathsProbeP80
             public string Label, Refusal;
         }
 
-        sealed class Zone
-        {
-            public double NetCounts, Cps, Bq, Mda, K, FgRegion, BgRegion;
-            public double CollectionMeasurementTime, CollectionLiveTime, CollectionCountingTime;
-        }
-
         sealed class Dose
         {
             public double Rate, Counts, Cps, LowKev, HighKev;
@@ -569,74 +547,6 @@ namespace LiveTimePathsProbeP80
                 BecquerelCoefficient.LineResult k = BecquerelCoefficient.ForLine(PeakKev, LineYield, this.Curve);
                 s.K = k.Ok ? k.Value : double.NaN;
                 return s;
-            }
-
-            /// <summary>2. Зона [622..702] кэВ простой разностью, K запасённый.</summary>
-            public Zone Zone()
-            {
-                BecquerelCoefficient.LineResult k = BecquerelCoefficient.ForLine(PeakKev, LineYield, this.Curve);
-                var prim = new ROISimpleDifferenceData
-                {
-                    LowerLimit = SelLo,
-                    UpperLimit = SelHi,
-                    Coefficient = 1.0,
-                    CoefficientError = 0.0,
-                    OperationType = "Addition",
-                    Operation = ROIPrimitiveOperation.OperationsMap["Addition"],
-                };
-                var zone = new ROIDefinitionData
-                {
-                    Name = "зона 662",
-                    Enabled = true,
-                    PeakEnergy = PeakKev,
-                    LowerLimit = SelLo,
-                    UpperLimit = SelHi,
-                    Intencity = LineYield,
-                    BecquerelCoefficient = k.Value,
-                    BecquerelCoefficientError = k.Error,
-                    AutoBecquerelCoefficient = false,
-                };
-                zone.ROIPrimitives.Add(prim);
-                var roi = new ROIConfigData();
-                roi.ROIDefinitions.Add(zone);
-
-                var rd = new ResultData
-                {
-                    EnergySpectrum = this.Fg,
-                    BackgroundEnergySpectrum = this.Bg,
-                    Efficiency = this.Curve,
-                    ROIConfig = roi,
-                };
-                rd.SampleInfo.Weight = 1.0;
-
-                var manager = new MeasurementResultManager();
-                MeasurementResultCollection counts = manager.Calculate(rd);
-                MeasurementResultCollection cps = manager.Translate(counts, ResultTranslation.CountsPerSecond);
-                MeasurementResultCollection bq = manager.Translate(counts, ResultTranslation.Becquerels);
-                if (!counts.ResultList[0].IsValid || !bq.ResultList[0].IsValid)
-                {
-                    throw new InvalidOperationException("зона не посчитана: " + (bq.ResultList[0].StatusText ?? counts.ResultList[0].StatusText));
-                }
-
-                var z = new Zone
-                {
-                    NetCounts = counts.ResultList[0].ResultValue,
-                    Mda = counts.ResultList[0].MDA,
-                    Cps = cps.ResultList[0].ResultValue,
-                    Bq = bq.ResultList[0].ResultValue,
-                    K = k.Value,
-                    CollectionMeasurementTime = counts.MeasurementTime,
-                };
-                // Коллекция: `LiveTime`/`CountingTime` — новые свойства (`AMBER35`);
-                // на старой сборке их нет — отражением, чтобы проба собиралась и там.
-                z.CollectionLiveTime = Prop(counts, "LiveTime", double.NaN);
-                z.CollectionCountingTime = Prop(counts, "CountingTime", counts.MeasurementTime);
-                for (int i = SelLo; i <= SelHi; i++)
-                {
-                    z.FgRegion += this.Fg.Spectrum[i];
-                    z.BgRegion += this.Bg.Spectrum[i];
-                }
-                return z;
             }
 
             /// <summary>3. Доза по плоской кривой с точечной геометрией, без матрицы.</summary>

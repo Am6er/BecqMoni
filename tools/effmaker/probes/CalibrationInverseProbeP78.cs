@@ -589,8 +589,6 @@ static class CalibrationInverseProbeP78
             Check(checkDoc != null, "§8(2): нет DocumentManager.CheckDocument(ResultDataFile, bool)");
             if (checkDoc != null)
             {
-                ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-                ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
                 DocumentManager dm = DocumentManager.GetInstance();
                 bool ok = (bool)checkDoc.Invoke(dm, new object[] { rdf, false });
                 Console.WriteLine("      CheckDocument(doCorrections:false) = " + ok + " — дверь документа степень 5 ОТКАЗЫВАЕТ");

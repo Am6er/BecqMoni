@@ -296,6 +296,9 @@ namespace BecquerelMonitor
         const string KeyMatrixUsed = "FSAReport_MatrixUsed";
         const string KeyMatrixNotUsed = "FSAReport_MatrixNotUsed";
         const string KeyMatrixOldFormat = "FSAReport_MatrixOldFormat";
+        const string KeyMatrixStale = "FSAReport_MatrixStale";
+        const string KeyMatrixStaleRow = "FSAReport_MatrixStaleRow";
+        const string KeyMatrixStaleValue = "FSAReport_MatrixStaleValue";
         const string KeyEfficiencyRow = "FSAReport_EfficiencyRow";
         const string KeyEfficiencyUsed = "FSAReport_EfficiencyUsed";
         const string KeyEfficiencyNotUsed = "FSAReport_EfficiencyNotUsed";
@@ -1599,6 +1602,11 @@ namespace BecquerelMonitor
                 OwnText(KeyInflationTip)));
 
             bool oldFormat = this.presentation.MatrixOldFormat;
+            // (`AMBER208` (в), П236) матрица склада ЕСТЬ, но посчитана по другой
+            // геометрии, чем кривая разбора (KCl: кривая из файла спектра старше
+            // кривой прибора) — «устарела», а не безликое «не учтена»
+            bool matrixStale = !result.ResponseMatrixUsed && this.session != null
+                               && this.session.ResponseMatrixSkip == FsaMatrixSkip.StaleGeometry;
             // (`AMBER202`) матрица, приехавшая В ФАЙЛЕ СПЕКТРА, называет источник
             bool matrixFromSpectrum = result.ResponseMatrixUsed && this.session != null
                                       && this.session.ResponseMatrixFromSpectrum;
@@ -1607,6 +1615,7 @@ namespace BecquerelMonitor
                                           ? Resources.FSAReportMatrixUsedFromSpectrum
                                           : OwnText(result.ResponseMatrixUsed
                                                         ? KeyMatrixUsed
+                                                        : matrixStale ? KeyMatrixStale
                                                         : oldFormat ? KeyMatrixOldFormat : KeyMatrixNotUsed),
                                       result.ResponseMatrixUsed,
                                       false));
@@ -1618,6 +1627,12 @@ namespace BecquerelMonitor
                     string.Format(CultureInfo.InvariantCulture, Resources.FSAReportSpectrumMatrixRefusedRow,
                                   spectrumMatrixRefusal),
                     Resources.FSAReportSpectrumMatrixRefusedValue, false, true));
+            }
+            // (`AMBER208` (в)) причина словами и лечение: пересчитать матрицу или
+            // выбрать кривую прибора вместо кривой из файла спектра
+            if (matrixStale)
+            {
+                made.Add(this.MakeMarkRowText(OwnText(KeyMatrixStaleRow), OwnText(KeyMatrixStaleValue), false, true));
             }
             // (`AMBER34`, решение Amber 15.09.2026 «Разбор идёт, Бк скрыты с
             // причиной») Кривая СЦЕНЫ ПОЛЯ учтена формой, а беккерели из

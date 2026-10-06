@@ -34,19 +34,6 @@ namespace BecquerelMonitor
             }
         }
 
-        [XmlIgnore]
-        public MeasurementResultCollection MeasurementResultCollection
-        {
-            get
-            {
-                return this.measurementResultCollection;
-            }
-            set
-            {
-                this.measurementResultCollection = value;
-            }
-        }
-
         public SampleInfoData SampleInfo
         {
             get
@@ -81,31 +68,6 @@ namespace BecquerelMonitor
             set
             {
                 this.deviceConfigReference = value;
-            }
-        }
-
-        [XmlIgnore]
-        public ROIConfigData ROIConfig
-        {
-            get
-            {
-                return this.roiConfig;
-            }
-            set
-            {
-                this.roiConfig = value;
-            }
-        }
-
-        public ROIConfigReference ROIConfigReference
-        {
-            get
-            {
-                return this.roiConfigReference;
-            }
-            set
-            {
-                this.roiConfigReference = value;
             }
         }
 
@@ -539,8 +501,6 @@ namespace BecquerelMonitor
             this.sampleInfo = old.SampleInfo;
             this.deviceConfig = old.DeviceConfig;
             this.deviceConfigReference = old.DeviceConfigReference;
-            this.roiConfig = old.ROIConfig;
-            this.roiConfigReference = old.ROIConfigReference;
             this.startTime = old.StartTime;
             this.endTime = old.EndTime;
             this.backgroundSpectrumFile = old.BackgroundSpectrumFile;
@@ -583,8 +543,6 @@ namespace BecquerelMonitor
             this.sampleInfo = old.SampleInfo ?? new SampleInfoData();
             this.deviceConfig = old.DeviceConfig ?? new DeviceConfigInfo();
             this.deviceConfigReference = old.DeviceConfigReference;
-            this.roiConfig = old.ROIConfig;
-            this.roiConfigReference = old.ROIConfigReference;
             this.startTime = old.StartTime;
             this.endTime = old.EndTime;
             this.backgroundSpectrumFile = old.BackgroundSpectrumFile;
@@ -623,8 +581,6 @@ namespace BecquerelMonitor
                 SampleInfo = this.SampleInfo.Clone(),
                 DeviceConfig = this.DeviceConfig,
                 DeviceConfigReference = this.DeviceConfigReference,
-                ROIConfigReference = this.ROIConfigReference,
-                ROIConfig = this.ROIConfig,
                 Efficiency = efficiencyCopy,
                 StartTime = this.StartTime,
                 EndTime = this.EndTime,
@@ -664,17 +620,11 @@ namespace BecquerelMonitor
 
         MeasurementController measurementController;
 
-        MeasurementResultCollection measurementResultCollection;
-
         SampleInfoData sampleInfo = new SampleInfoData();
 
         DeviceConfigInfo deviceConfig = new DeviceConfigInfo();
 
         DeviceConfigReference deviceConfigReference = new DeviceConfigReference();
-
-        ROIConfigData roiConfig = new ROIConfigData();
-
-        ROIConfigReference roiConfigReference = new ROIConfigReference();
 
         EfficiencyConfigData efficiency;
 

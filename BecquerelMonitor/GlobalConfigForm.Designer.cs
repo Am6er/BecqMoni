@@ -131,7 +131,6 @@
             this.colorComboBox4 = new ColorComboBox.ColorComboBox();
             this.colorComboBox5 = new ColorComboBox.ColorComboBox();
             this.colorComboBox6 = new ColorComboBox.ColorComboBox();
-            this.colorComboBox7 = new ColorComboBox.ColorComboBox();
             this.colorComboBox8 = new ColorComboBox.ColorComboBox();
             this.colorComboBox9 = new ColorComboBox.ColorComboBox();
             this.colorComboBox10 = new ColorComboBox.ColorComboBox();
@@ -142,10 +141,7 @@
             this.colorComboBox15 = new ColorComboBox.ColorComboBox();
             this.label9 = new System.Windows.Forms.Label();
             this.label10 = new System.Windows.Forms.Label();
-            this.label11 = new System.Windows.Forms.Label();
-            this.colorComboBox16 = new ColorComboBox.ColorComboBox();
             this.label12 = new System.Windows.Forms.Label();
-            this.label25 = new System.Windows.Forms.Label();
             this.label13 = new System.Windows.Forms.Label();
             this.label14 = new System.Windows.Forms.Label();
             this.label20 = new System.Windows.Forms.Label();
@@ -157,49 +153,6 @@
             this.label89 = new System.Windows.Forms.Label();
             this.colorComboBox37 = new ColorComboBox.ColorComboBox();
             this.button4 = new System.Windows.Forms.Button();
-            this.tabPage4 = new System.Windows.Forms.TabPage();
-            this.groupBox10 = new System.Windows.Forms.GroupBox();
-            this.label83 = new System.Windows.Forms.Label();
-            this.textBox5 = new System.Windows.Forms.TextBox();
-            this.textBox4 = new System.Windows.Forms.TextBox();
-            this.label82 = new System.Windows.Forms.Label();
-            this.textBox3 = new System.Windows.Forms.TextBox();
-            this.label81 = new System.Windows.Forms.Label();
-            this.label66 = new System.Windows.Forms.Label();
-            this.textBox2 = new System.Windows.Forms.TextBox();
-            this.button5 = new System.Windows.Forms.Button();
-            this.integerTextBox13 = new BecquerelMonitor.IntegerTextBox();
-            this.label80 = new System.Windows.Forms.Label();
-            this.integerTextBox12 = new BecquerelMonitor.IntegerTextBox();
-            this.label79 = new System.Windows.Forms.Label();
-            this.integerTextBox11 = new BecquerelMonitor.IntegerTextBox();
-            this.label78 = new System.Windows.Forms.Label();
-            this.comboBox17 = new System.Windows.Forms.ComboBox();
-            this.label77 = new System.Windows.Forms.Label();
-            this.groupBox9 = new System.Windows.Forms.GroupBox();
-            this.integerTextBox7 = new BecquerelMonitor.IntegerTextBox();
-            this.integerTextBox6 = new BecquerelMonitor.IntegerTextBox();
-            this.integerTextBox8 = new BecquerelMonitor.IntegerTextBox();
-            this.integerTextBox9 = new BecquerelMonitor.IntegerTextBox();
-            this.label76 = new System.Windows.Forms.Label();
-            this.integerTextBox10 = new BecquerelMonitor.IntegerTextBox();
-            this.label75 = new System.Windows.Forms.Label();
-            this.label72 = new System.Windows.Forms.Label();
-            this.label74 = new System.Windows.Forms.Label();
-            this.label73 = new System.Windows.Forms.Label();
-            this.groupBox8 = new System.Windows.Forms.GroupBox();
-            this.integerTextBox5 = new BecquerelMonitor.IntegerTextBox();
-            this.integerTextBox4 = new BecquerelMonitor.IntegerTextBox();
-            this.integerTextBox3 = new BecquerelMonitor.IntegerTextBox();
-            this.integerTextBox2 = new BecquerelMonitor.IntegerTextBox();
-            this.label71 = new System.Windows.Forms.Label();
-            this.label70 = new System.Windows.Forms.Label();
-            this.label69 = new System.Windows.Forms.Label();
-            this.label68 = new System.Windows.Forms.Label();
-            this.label67 = new System.Windows.Forms.Label();
-            this.integerTextBox1 = new BecquerelMonitor.IntegerTextBox();
-            this.comboBox16 = new System.Windows.Forms.ComboBox();
-            this.label65 = new System.Windows.Forms.Label();
             this.tabPage5 = new System.Windows.Forms.TabPage();
             this.button7 = new System.Windows.Forms.Button();
             this.button6 = new System.Windows.Forms.Button();
@@ -248,10 +201,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown7)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown6)).BeginInit();
             this.groupBox3.SuspendLayout();
-            this.tabPage4.SuspendLayout();
-            this.groupBox10.SuspendLayout();
-            this.groupBox9.SuspendLayout();
-            this.groupBox8.SuspendLayout();
             this.tabPage5.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.groupBox6.SuspendLayout();
@@ -300,7 +249,6 @@
             resources.ApplyResources(this.tabControl1, "tabControl1");
             this.tabControl1.Controls.Add(this.tabPage1);
             this.tabControl1.Controls.Add(this.tabPage3);
-            this.tabControl1.Controls.Add(this.tabPage4);
             this.tabControl1.Controls.Add(this.tabPage5);
             this.tabControl1.Controls.Add(this.tabPage2);
             this.tabControl1.Name = "tabControl1";
@@ -1205,7 +1153,6 @@
             this.groupBox3.Controls.Add(this.colorComboBox4);
             this.groupBox3.Controls.Add(this.colorComboBox5);
             this.groupBox3.Controls.Add(this.colorComboBox6);
-            this.groupBox3.Controls.Add(this.colorComboBox7);
             this.groupBox3.Controls.Add(this.colorComboBox8);
             this.groupBox3.Controls.Add(this.colorComboBox9);
             this.groupBox3.Controls.Add(this.colorComboBox10);
@@ -1216,10 +1163,7 @@
             this.groupBox3.Controls.Add(this.colorComboBox15);
             this.groupBox3.Controls.Add(this.label9);
             this.groupBox3.Controls.Add(this.label10);
-            this.groupBox3.Controls.Add(this.label11);
-            this.groupBox3.Controls.Add(this.colorComboBox16);
             this.groupBox3.Controls.Add(this.label12);
-            this.groupBox3.Controls.Add(this.label25);
             this.groupBox3.Controls.Add(this.label13);
             this.groupBox3.Controls.Add(this.label14);
             this.groupBox3.Controls.Add(this.label20);
@@ -1314,14 +1258,6 @@
             this.colorComboBox6.SelectedColor = System.Drawing.Color.Black;
             this.progressiveSmoothTooltip.SetToolTip(this.colorComboBox6, resources.GetString("colorComboBox6.ToolTip"));
             // 
-            // colorComboBox7
-            // 
-            resources.ApplyResources(this.colorComboBox7, "colorComboBox7");
-            this.colorComboBox7.Extended = true;
-            this.colorComboBox7.Name = "colorComboBox7";
-            this.colorComboBox7.SelectedColor = System.Drawing.Color.Black;
-            this.progressiveSmoothTooltip.SetToolTip(this.colorComboBox7, resources.GetString("colorComboBox7.ToolTip"));
-            // 
             // colorComboBox8
             // 
             resources.ApplyResources(this.colorComboBox8, "colorComboBox8");
@@ -1398,31 +1334,11 @@
             this.label10.Name = "label10";
             this.progressiveSmoothTooltip.SetToolTip(this.label10, resources.GetString("label10.ToolTip"));
             // 
-            // label11
-            // 
-            resources.ApplyResources(this.label11, "label11");
-            this.label11.Name = "label11";
-            this.progressiveSmoothTooltip.SetToolTip(this.label11, resources.GetString("label11.ToolTip"));
-            // 
-            // colorComboBox16
-            // 
-            resources.ApplyResources(this.colorComboBox16, "colorComboBox16");
-            this.colorComboBox16.Extended = true;
-            this.colorComboBox16.Name = "colorComboBox16";
-            this.colorComboBox16.SelectedColor = System.Drawing.Color.Black;
-            this.progressiveSmoothTooltip.SetToolTip(this.colorComboBox16, resources.GetString("colorComboBox16.ToolTip"));
-            // 
             // label12
             // 
             resources.ApplyResources(this.label12, "label12");
             this.label12.Name = "label12";
             this.progressiveSmoothTooltip.SetToolTip(this.label12, resources.GetString("label12.ToolTip"));
-            // 
-            // label25
-            // 
-            resources.ApplyResources(this.label25, "label25");
-            this.label25.Name = "label25";
-            this.progressiveSmoothTooltip.SetToolTip(this.label25, resources.GetString("label25.ToolTip"));
             // 
             // label13
             // 
@@ -1493,316 +1409,6 @@
             this.progressiveSmoothTooltip.SetToolTip(this.button4, resources.GetString("button4.ToolTip"));
             this.button4.UseVisualStyleBackColor = true;
             this.button4.Click += new System.EventHandler(this.button4_Click);
-            // 
-            // tabPage4
-            // 
-            resources.ApplyResources(this.tabPage4, "tabPage4");
-            this.tabPage4.BackColor = System.Drawing.SystemColors.Control;
-            this.tabPage4.Controls.Add(this.groupBox10);
-            this.tabPage4.Controls.Add(this.integerTextBox13);
-            this.tabPage4.Controls.Add(this.label80);
-            this.tabPage4.Controls.Add(this.integerTextBox12);
-            this.tabPage4.Controls.Add(this.label79);
-            this.tabPage4.Controls.Add(this.integerTextBox11);
-            this.tabPage4.Controls.Add(this.label78);
-            this.tabPage4.Controls.Add(this.comboBox17);
-            this.tabPage4.Controls.Add(this.label77);
-            this.tabPage4.Controls.Add(this.groupBox9);
-            this.tabPage4.Controls.Add(this.groupBox8);
-            this.tabPage4.Controls.Add(this.comboBox16);
-            this.tabPage4.Controls.Add(this.label65);
-            this.tabPage4.Name = "tabPage4";
-            this.progressiveSmoothTooltip.SetToolTip(this.tabPage4, resources.GetString("tabPage4.ToolTip"));
-            // 
-            // groupBox10
-            // 
-            resources.ApplyResources(this.groupBox10, "groupBox10");
-            this.groupBox10.Controls.Add(this.label83);
-            this.groupBox10.Controls.Add(this.textBox5);
-            this.groupBox10.Controls.Add(this.textBox4);
-            this.groupBox10.Controls.Add(this.label82);
-            this.groupBox10.Controls.Add(this.textBox3);
-            this.groupBox10.Controls.Add(this.label81);
-            this.groupBox10.Controls.Add(this.label66);
-            this.groupBox10.Controls.Add(this.textBox2);
-            this.groupBox10.Controls.Add(this.button5);
-            this.groupBox10.Name = "groupBox10";
-            this.groupBox10.TabStop = false;
-            this.progressiveSmoothTooltip.SetToolTip(this.groupBox10, resources.GetString("groupBox10.ToolTip"));
-            // 
-            // label83
-            // 
-            resources.ApplyResources(this.label83, "label83");
-            this.label83.Name = "label83";
-            this.progressiveSmoothTooltip.SetToolTip(this.label83, resources.GetString("label83.ToolTip"));
-            // 
-            // textBox5
-            // 
-            resources.ApplyResources(this.textBox5, "textBox5");
-            this.textBox5.Name = "textBox5";
-            this.progressiveSmoothTooltip.SetToolTip(this.textBox5, resources.GetString("textBox5.ToolTip"));
-            // 
-            // textBox4
-            // 
-            resources.ApplyResources(this.textBox4, "textBox4");
-            this.textBox4.Name = "textBox4";
-            this.progressiveSmoothTooltip.SetToolTip(this.textBox4, resources.GetString("textBox4.ToolTip"));
-            // 
-            // label82
-            // 
-            resources.ApplyResources(this.label82, "label82");
-            this.label82.Name = "label82";
-            this.progressiveSmoothTooltip.SetToolTip(this.label82, resources.GetString("label82.ToolTip"));
-            // 
-            // textBox3
-            // 
-            resources.ApplyResources(this.textBox3, "textBox3");
-            this.textBox3.Name = "textBox3";
-            this.progressiveSmoothTooltip.SetToolTip(this.textBox3, resources.GetString("textBox3.ToolTip"));
-            // 
-            // label81
-            // 
-            resources.ApplyResources(this.label81, "label81");
-            this.label81.Name = "label81";
-            this.progressiveSmoothTooltip.SetToolTip(this.label81, resources.GetString("label81.ToolTip"));
-            // 
-            // label66
-            // 
-            resources.ApplyResources(this.label66, "label66");
-            this.label66.Name = "label66";
-            this.progressiveSmoothTooltip.SetToolTip(this.label66, resources.GetString("label66.ToolTip"));
-            // 
-            // textBox2
-            // 
-            resources.ApplyResources(this.textBox2, "textBox2");
-            this.textBox2.Name = "textBox2";
-            this.progressiveSmoothTooltip.SetToolTip(this.textBox2, resources.GetString("textBox2.ToolTip"));
-            // 
-            // button5
-            // 
-            resources.ApplyResources(this.button5, "button5");
-            this.button5.Name = "button5";
-            this.progressiveSmoothTooltip.SetToolTip(this.button5, resources.GetString("button5.ToolTip"));
-            this.button5.UseVisualStyleBackColor = true;
-            this.button5.Click += new System.EventHandler(this.button5_Click);
-            // 
-            // integerTextBox13
-            // 
-            resources.ApplyResources(this.integerTextBox13, "integerTextBox13");
-            this.integerTextBox13.Name = "integerTextBox13";
-            this.progressiveSmoothTooltip.SetToolTip(this.integerTextBox13, resources.GetString("integerTextBox13.ToolTip"));
-            // 
-            // label80
-            // 
-            resources.ApplyResources(this.label80, "label80");
-            this.label80.Name = "label80";
-            this.progressiveSmoothTooltip.SetToolTip(this.label80, resources.GetString("label80.ToolTip"));
-            // 
-            // integerTextBox12
-            // 
-            resources.ApplyResources(this.integerTextBox12, "integerTextBox12");
-            this.integerTextBox12.Name = "integerTextBox12";
-            this.progressiveSmoothTooltip.SetToolTip(this.integerTextBox12, resources.GetString("integerTextBox12.ToolTip"));
-            // 
-            // label79
-            // 
-            resources.ApplyResources(this.label79, "label79");
-            this.label79.Name = "label79";
-            this.progressiveSmoothTooltip.SetToolTip(this.label79, resources.GetString("label79.ToolTip"));
-            // 
-            // integerTextBox11
-            // 
-            resources.ApplyResources(this.integerTextBox11, "integerTextBox11");
-            this.integerTextBox11.Name = "integerTextBox11";
-            this.progressiveSmoothTooltip.SetToolTip(this.integerTextBox11, resources.GetString("integerTextBox11.ToolTip"));
-            // 
-            // label78
-            // 
-            resources.ApplyResources(this.label78, "label78");
-            this.label78.Name = "label78";
-            this.progressiveSmoothTooltip.SetToolTip(this.label78, resources.GetString("label78.ToolTip"));
-            // 
-            // comboBox17
-            // 
-            resources.ApplyResources(this.comboBox17, "comboBox17");
-            this.comboBox17.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.comboBox17.FormattingEnabled = true;
-            this.comboBox17.Name = "comboBox17";
-            this.progressiveSmoothTooltip.SetToolTip(this.comboBox17, resources.GetString("comboBox17.ToolTip"));
-            // 
-            // label77
-            // 
-            resources.ApplyResources(this.label77, "label77");
-            this.label77.Name = "label77";
-            this.progressiveSmoothTooltip.SetToolTip(this.label77, resources.GetString("label77.ToolTip"));
-            // 
-            // groupBox9
-            // 
-            resources.ApplyResources(this.groupBox9, "groupBox9");
-            this.groupBox9.Controls.Add(this.integerTextBox7);
-            this.groupBox9.Controls.Add(this.integerTextBox6);
-            this.groupBox9.Controls.Add(this.integerTextBox8);
-            this.groupBox9.Controls.Add(this.integerTextBox9);
-            this.groupBox9.Controls.Add(this.label76);
-            this.groupBox9.Controls.Add(this.integerTextBox10);
-            this.groupBox9.Controls.Add(this.label75);
-            this.groupBox9.Controls.Add(this.label72);
-            this.groupBox9.Controls.Add(this.label74);
-            this.groupBox9.Controls.Add(this.label73);
-            this.groupBox9.Name = "groupBox9";
-            this.groupBox9.TabStop = false;
-            this.progressiveSmoothTooltip.SetToolTip(this.groupBox9, resources.GetString("groupBox9.ToolTip"));
-            // 
-            // integerTextBox7
-            // 
-            resources.ApplyResources(this.integerTextBox7, "integerTextBox7");
-            this.integerTextBox7.Name = "integerTextBox7";
-            this.progressiveSmoothTooltip.SetToolTip(this.integerTextBox7, resources.GetString("integerTextBox7.ToolTip"));
-            // 
-            // integerTextBox6
-            // 
-            resources.ApplyResources(this.integerTextBox6, "integerTextBox6");
-            this.integerTextBox6.Name = "integerTextBox6";
-            this.progressiveSmoothTooltip.SetToolTip(this.integerTextBox6, resources.GetString("integerTextBox6.ToolTip"));
-            // 
-            // integerTextBox8
-            // 
-            resources.ApplyResources(this.integerTextBox8, "integerTextBox8");
-            this.integerTextBox8.Name = "integerTextBox8";
-            this.progressiveSmoothTooltip.SetToolTip(this.integerTextBox8, resources.GetString("integerTextBox8.ToolTip"));
-            // 
-            // integerTextBox9
-            // 
-            resources.ApplyResources(this.integerTextBox9, "integerTextBox9");
-            this.integerTextBox9.Name = "integerTextBox9";
-            this.progressiveSmoothTooltip.SetToolTip(this.integerTextBox9, resources.GetString("integerTextBox9.ToolTip"));
-            // 
-            // label76
-            // 
-            resources.ApplyResources(this.label76, "label76");
-            this.label76.Name = "label76";
-            this.progressiveSmoothTooltip.SetToolTip(this.label76, resources.GetString("label76.ToolTip"));
-            // 
-            // integerTextBox10
-            // 
-            resources.ApplyResources(this.integerTextBox10, "integerTextBox10");
-            this.integerTextBox10.Name = "integerTextBox10";
-            this.progressiveSmoothTooltip.SetToolTip(this.integerTextBox10, resources.GetString("integerTextBox10.ToolTip"));
-            // 
-            // label75
-            // 
-            resources.ApplyResources(this.label75, "label75");
-            this.label75.Name = "label75";
-            this.progressiveSmoothTooltip.SetToolTip(this.label75, resources.GetString("label75.ToolTip"));
-            // 
-            // label72
-            // 
-            resources.ApplyResources(this.label72, "label72");
-            this.label72.Name = "label72";
-            this.progressiveSmoothTooltip.SetToolTip(this.label72, resources.GetString("label72.ToolTip"));
-            // 
-            // label74
-            // 
-            resources.ApplyResources(this.label74, "label74");
-            this.label74.Name = "label74";
-            this.progressiveSmoothTooltip.SetToolTip(this.label74, resources.GetString("label74.ToolTip"));
-            // 
-            // label73
-            // 
-            resources.ApplyResources(this.label73, "label73");
-            this.label73.Name = "label73";
-            this.progressiveSmoothTooltip.SetToolTip(this.label73, resources.GetString("label73.ToolTip"));
-            // 
-            // groupBox8
-            // 
-            resources.ApplyResources(this.groupBox8, "groupBox8");
-            this.groupBox8.Controls.Add(this.integerTextBox5);
-            this.groupBox8.Controls.Add(this.integerTextBox4);
-            this.groupBox8.Controls.Add(this.integerTextBox3);
-            this.groupBox8.Controls.Add(this.integerTextBox2);
-            this.groupBox8.Controls.Add(this.label71);
-            this.groupBox8.Controls.Add(this.label70);
-            this.groupBox8.Controls.Add(this.label69);
-            this.groupBox8.Controls.Add(this.label68);
-            this.groupBox8.Controls.Add(this.label67);
-            this.groupBox8.Controls.Add(this.integerTextBox1);
-            this.groupBox8.Name = "groupBox8";
-            this.groupBox8.TabStop = false;
-            this.progressiveSmoothTooltip.SetToolTip(this.groupBox8, resources.GetString("groupBox8.ToolTip"));
-            // 
-            // integerTextBox5
-            // 
-            resources.ApplyResources(this.integerTextBox5, "integerTextBox5");
-            this.integerTextBox5.Name = "integerTextBox5";
-            this.progressiveSmoothTooltip.SetToolTip(this.integerTextBox5, resources.GetString("integerTextBox5.ToolTip"));
-            // 
-            // integerTextBox4
-            // 
-            resources.ApplyResources(this.integerTextBox4, "integerTextBox4");
-            this.integerTextBox4.Name = "integerTextBox4";
-            this.progressiveSmoothTooltip.SetToolTip(this.integerTextBox4, resources.GetString("integerTextBox4.ToolTip"));
-            // 
-            // integerTextBox3
-            // 
-            resources.ApplyResources(this.integerTextBox3, "integerTextBox3");
-            this.integerTextBox3.Name = "integerTextBox3";
-            this.progressiveSmoothTooltip.SetToolTip(this.integerTextBox3, resources.GetString("integerTextBox3.ToolTip"));
-            // 
-            // integerTextBox2
-            // 
-            resources.ApplyResources(this.integerTextBox2, "integerTextBox2");
-            this.integerTextBox2.Name = "integerTextBox2";
-            this.progressiveSmoothTooltip.SetToolTip(this.integerTextBox2, resources.GetString("integerTextBox2.ToolTip"));
-            // 
-            // label71
-            // 
-            resources.ApplyResources(this.label71, "label71");
-            this.label71.Name = "label71";
-            this.progressiveSmoothTooltip.SetToolTip(this.label71, resources.GetString("label71.ToolTip"));
-            // 
-            // label70
-            // 
-            resources.ApplyResources(this.label70, "label70");
-            this.label70.Name = "label70";
-            this.progressiveSmoothTooltip.SetToolTip(this.label70, resources.GetString("label70.ToolTip"));
-            // 
-            // label69
-            // 
-            resources.ApplyResources(this.label69, "label69");
-            this.label69.Name = "label69";
-            this.progressiveSmoothTooltip.SetToolTip(this.label69, resources.GetString("label69.ToolTip"));
-            // 
-            // label68
-            // 
-            resources.ApplyResources(this.label68, "label68");
-            this.label68.Name = "label68";
-            this.progressiveSmoothTooltip.SetToolTip(this.label68, resources.GetString("label68.ToolTip"));
-            // 
-            // label67
-            // 
-            resources.ApplyResources(this.label67, "label67");
-            this.label67.Name = "label67";
-            this.progressiveSmoothTooltip.SetToolTip(this.label67, resources.GetString("label67.ToolTip"));
-            // 
-            // integerTextBox1
-            // 
-            resources.ApplyResources(this.integerTextBox1, "integerTextBox1");
-            this.integerTextBox1.Name = "integerTextBox1";
-            this.progressiveSmoothTooltip.SetToolTip(this.integerTextBox1, resources.GetString("integerTextBox1.ToolTip"));
-            // 
-            // comboBox16
-            // 
-            resources.ApplyResources(this.comboBox16, "comboBox16");
-            this.comboBox16.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.comboBox16.FormattingEnabled = true;
-            this.comboBox16.Name = "comboBox16";
-            this.progressiveSmoothTooltip.SetToolTip(this.comboBox16, resources.GetString("comboBox16.ToolTip"));
-            // 
-            // label65
-            // 
-            resources.ApplyResources(this.label65, "label65");
-            this.label65.Name = "label65";
-            this.progressiveSmoothTooltip.SetToolTip(this.label65, resources.GetString("label65.ToolTip"));
             // 
             // tabPage5
             // 
@@ -2120,14 +1726,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown6)).EndInit();
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
-            this.tabPage4.ResumeLayout(false);
-            this.tabPage4.PerformLayout();
-            this.groupBox10.ResumeLayout(false);
-            this.groupBox10.PerformLayout();
-            this.groupBox9.ResumeLayout(false);
-            this.groupBox9.PerformLayout();
-            this.groupBox8.ResumeLayout(false);
-            this.groupBox8.PerformLayout();
             this.tabPage5.ResumeLayout(false);
             this.tabPage5.PerformLayout();
             this.tabPage2.ResumeLayout(false);
@@ -2234,7 +1832,6 @@
 		global::ColorComboBox.ColorComboBox colorComboBox8;
 
 		// Token: 0x04000613 RID: 1555
-		global::ColorComboBox.ColorComboBox colorComboBox7;
 
 		// Token: 0x04000614 RID: 1556
 		global::ColorComboBox.ColorComboBox colorComboBox6;
@@ -2261,7 +1858,6 @@
 		global::System.Windows.Forms.Label label12;
 
 		// Token: 0x0400061C RID: 1564
-		global::System.Windows.Forms.Label label11;
 
 		// Token: 0x0400061D RID: 1565
 		global::System.Windows.Forms.Label label10;
@@ -2327,10 +1923,8 @@
 		InvariantNumericUpDown numericUpDown1;
 
 		// Token: 0x04000632 RID: 1586
-		global::ColorComboBox.ColorComboBox colorComboBox16;
 
 		// Token: 0x04000633 RID: 1587
-		global::System.Windows.Forms.Label label25;
 
 		// Token: 0x04000634 RID: 1588
 		InvariantNumericUpDown numericUpDown2;
@@ -2592,118 +2186,80 @@
 		global::System.Windows.Forms.CheckBox checkBox2;
 
 		// Token: 0x04000684 RID: 1668
-		global::System.Windows.Forms.TabPage tabPage4;
 
 		// Token: 0x04000685 RID: 1669
-		global::System.Windows.Forms.Button button5;
 
 		// Token: 0x04000686 RID: 1670
-		global::System.Windows.Forms.TextBox textBox2;
 
 		// Token: 0x04000687 RID: 1671
-		global::System.Windows.Forms.Label label66;
 
 		// Token: 0x04000688 RID: 1672
-		global::System.Windows.Forms.ComboBox comboBox16;
 
 		// Token: 0x04000689 RID: 1673
-		global::System.Windows.Forms.Label label65;
 
 		// Token: 0x0400068A RID: 1674
-		global::System.Windows.Forms.GroupBox groupBox9;
 
 		// Token: 0x0400068B RID: 1675
-		global::System.Windows.Forms.Label label76;
 
 		// Token: 0x0400068C RID: 1676
-		global::System.Windows.Forms.GroupBox groupBox8;
 
 		// Token: 0x0400068D RID: 1677
-		global::System.Windows.Forms.Label label71;
 
 		// Token: 0x0400068E RID: 1678
-		global::System.Windows.Forms.Label label70;
 
 		// Token: 0x0400068F RID: 1679
-		global::System.Windows.Forms.Label label69;
 
 		// Token: 0x04000690 RID: 1680
-		global::System.Windows.Forms.Label label68;
 
 		// Token: 0x04000691 RID: 1681
-		global::System.Windows.Forms.Label label67;
 
 		// Token: 0x04000692 RID: 1682
-		global::BecquerelMonitor.IntegerTextBox integerTextBox1;
 
 		// Token: 0x04000693 RID: 1683
-		global::BecquerelMonitor.IntegerTextBox integerTextBox7;
 
 		// Token: 0x04000694 RID: 1684
-		global::BecquerelMonitor.IntegerTextBox integerTextBox6;
 
 		// Token: 0x04000695 RID: 1685
-		global::BecquerelMonitor.IntegerTextBox integerTextBox8;
 
 		// Token: 0x04000696 RID: 1686
-		global::BecquerelMonitor.IntegerTextBox integerTextBox9;
 
 		// Token: 0x04000697 RID: 1687
-		global::BecquerelMonitor.IntegerTextBox integerTextBox10;
 
 		// Token: 0x04000698 RID: 1688
-		global::System.Windows.Forms.Label label75;
 
 		// Token: 0x04000699 RID: 1689
-		global::System.Windows.Forms.Label label72;
 
 		// Token: 0x0400069A RID: 1690
-		global::System.Windows.Forms.Label label74;
 
 		// Token: 0x0400069B RID: 1691
-		global::System.Windows.Forms.Label label73;
 
 		// Token: 0x0400069C RID: 1692
-		global::BecquerelMonitor.IntegerTextBox integerTextBox5;
 
 		// Token: 0x0400069D RID: 1693
-		global::BecquerelMonitor.IntegerTextBox integerTextBox4;
 
 		// Token: 0x0400069E RID: 1694
-		global::BecquerelMonitor.IntegerTextBox integerTextBox3;
 
 		// Token: 0x0400069F RID: 1695
-		global::BecquerelMonitor.IntegerTextBox integerTextBox2;
 
 		// Token: 0x040006A0 RID: 1696
-		global::System.Windows.Forms.ComboBox comboBox17;
 
 		// Token: 0x040006A1 RID: 1697
-		global::System.Windows.Forms.Label label77;
 
 		// Token: 0x040006A2 RID: 1698
-		global::BecquerelMonitor.IntegerTextBox integerTextBox11;
 
 		// Token: 0x040006A3 RID: 1699
-		global::System.Windows.Forms.Label label78;
 
 		// Token: 0x040006A4 RID: 1700
-		global::BecquerelMonitor.IntegerTextBox integerTextBox13;
 
 		// Token: 0x040006A5 RID: 1701
-		global::System.Windows.Forms.Label label80;
 
 		// Token: 0x040006A6 RID: 1702
-		global::BecquerelMonitor.IntegerTextBox integerTextBox12;
 
 		// Token: 0x040006A7 RID: 1703
-		global::System.Windows.Forms.Label label79;
 
 		// Token: 0x040006A8 RID: 1704
-		global::System.Windows.Forms.GroupBox groupBox10;
 
 		// Token: 0x040006A9 RID: 1705
-		global::System.Windows.Forms.Label label83;
 
 		global::System.Windows.Forms.Label label85;
 
@@ -2712,19 +2268,14 @@
 		global::System.Windows.Forms.Label label87;
 
 		// Token: 0x040006AA RID: 1706
-		global::System.Windows.Forms.TextBox textBox5;
 
 		// Token: 0x040006AB RID: 1707
-		global::System.Windows.Forms.TextBox textBox4;
 
 		// Token: 0x040006AC RID: 1708
-		global::System.Windows.Forms.Label label82;
 
 		// Token: 0x040006AD RID: 1709
-		global::System.Windows.Forms.TextBox textBox3;
 
 		// Token: 0x040006AE RID: 1710
-		global::System.Windows.Forms.Label label81;
 
 		// Token: 0x040006AF RID: 1711
 		global::System.Windows.Forms.TabPage tabPage5;

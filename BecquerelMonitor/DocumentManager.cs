@@ -439,7 +439,6 @@ namespace BecquerelMonitor
             docEnergySpectrum2.IsNamed = true;
             this.documentList.Add(docEnergySpectrum2);
             this.PrepareEfficiency(docEnergySpectrum2.ResultDataFile);
-            this.PrepareROIConfig(docEnergySpectrum2.ResultDataFile);
             foreach (ResultData resultData2 in docEnergySpectrum2.ResultDataFile.ResultDataList)
             {
                 ResultDataStatus resultDataStatus = new ResultDataStatus();
@@ -550,7 +549,6 @@ namespace BecquerelMonitor
             }
             Cursor.Current = Cursors.Default;
             this.PrepareEfficiency(resultDataFile);
-            this.PrepareROIConfig(resultDataFile);
             foreach (ResultData resultData2 in resultDataFile.ResultDataList)
             {
                 ResultDataStatus resultDataStatus = new ResultDataStatus();
@@ -710,7 +708,6 @@ namespace BecquerelMonitor
             docEnergySpectrum2.IsNamed = true;
             this.documentList.Add(docEnergySpectrum2);
             this.PrepareEfficiency(docEnergySpectrum2.ResultDataFile);
-            this.PrepareROIConfig(docEnergySpectrum2.ResultDataFile);
             foreach (ResultData resultData in docEnergySpectrum2.ResultDataFile.ResultDataList)
             {
                 ResultDataStatus resultDataStatus = new ResultDataStatus();
@@ -1069,8 +1066,6 @@ namespace BecquerelMonitor
                 : null;
             data.DeviceConfig = template.DeviceConfig;
             data.DeviceConfigReference = template.DeviceConfigReference;
-            data.ROIConfig = template.ROIConfig;
-            data.ROIConfigReference = template.ROIConfigReference;
             if (template.PeakDetectionMethodConfig != null)
             {
                 data.PeakDetectionMethodConfig = template.PeakDetectionMethodConfig.Clone();
@@ -1306,7 +1301,6 @@ namespace BecquerelMonitor
                     if (importWithEmtyConfig)
                     {
                         resultData.DeviceConfig = new DeviceConfigInfo();
-                        resultData.ROIConfig = null;
                     }
                     EnergySpectrum energySpectrum = resultData.EnergySpectrum;
                     bool isBackground = false;
@@ -1329,7 +1323,6 @@ namespace BecquerelMonitor
                                     if (importWithEmtyConfig)
                                     {
                                         resultData.DeviceConfig = new DeviceConfigInfo();
-                                        resultData.ROIConfig = null;
                                     }
                                     resultData.SampleInfo.Name = fileName + "(" + list_count.ToString(CultureInfo.InvariantCulture) + ")";
                                 }
@@ -1359,7 +1352,6 @@ namespace BecquerelMonitor
                                     if (importWithEmtyConfig)
                                     {
                                         resultData.DeviceConfig = new DeviceConfigInfo();
-                                        resultData.ROIConfig = null;
                                     }
                                 }
 
@@ -2932,24 +2924,6 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x06000276 RID: 630 RVA: 0x0000A26C File Offset: 0x0000846C
-        void PrepareROIConfig(ResultDataFile resultDataFile)
-        {
-            ROIConfigManager roiconfigManager = ROIConfigManager.GetInstance();
-            foreach (ResultData resultData in resultDataFile.ResultDataList)
-            {
-                for (int i = 0; i < roiconfigManager.ROIConfigList.Count; i++)
-                {
-                    ROIConfigData roiconfigData = roiconfigManager.ROIConfigList[i];
-                    if (resultData.ROIConfigReference.Guid == roiconfigData.Guid)
-                    {
-                        resultData.ROIConfig = roiconfigData;
-                        break;
-                    }
-                }
-            }
-        }
-
         // Token: 0x06000277 RID: 631 RVA: 0x0000A318 File Offset: 0x00008518
         public void LoadBackgroundSpectrum(ResultData resultData)
         {
@@ -3041,8 +3015,6 @@ namespace BecquerelMonitor
             resultData.MeasurementController = doc.ActiveResultData.MeasurementController != null
                 ? doc.ActiveResultData.MeasurementController.CreateSibling(resultData)
                 : new MeasurementController(doc, resultData);
-            resultData.ROIConfig = doc.ActiveResultData.ROIConfig;
-            resultData.ROIConfigReference = doc.ActiveResultData.ROIConfigReference;
             resultData.ResultDataStatus = doc.ActiveResultData.ResultDataStatus.Clone();
             resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(resultData.EnergySpectrum.MeasurementTime);
             resultData.ResultDataStatus.ElapsedTime = TimeSpan.FromSeconds(resultData.EnergySpectrum.MeasurementTime);
@@ -3571,8 +3543,6 @@ namespace BecquerelMonitor
             data.BackgroundEnergySpectrum = null;
             data.BackgroundSpectrumPathname = null;
             data.BackgroundSpectrumFile = null;
-            data.ROIConfig = null;
-            data.ROIConfigReference = null;
             data.DeviceConfig = new DeviceConfigInfo();
             // `A260`: прибор снят — снимаются и его модель разрешения, и его
             //   настройки поиска пиков. Настройки заводятся свежие, а НЕ null:

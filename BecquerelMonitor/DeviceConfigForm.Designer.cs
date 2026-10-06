@@ -1195,7 +1195,7 @@ namespace BecquerelMonitor
 
 		System.Windows.Forms.Label tractCurvatureUnitLabel;
 
-		// Подсказки графок формы. Своя на форме одна — по образцу ROIConfigForm.
+		// Подсказки графок формы. Своя на форме одна — по образцу снятой формы ROI.
 		System.Windows.Forms.ToolTip hints;
 
 		// Token: 0x04000275 RID: 629

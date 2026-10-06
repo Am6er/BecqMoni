@@ -485,12 +485,6 @@
   <data name="editDeviceConfigurationDToolStripMenuItem.Text" xml:space="preserve">
     <value>Edit &amp;Device Configurations...</value>
   </data>
-  <data name="roiDefinitionRToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>224, 22</value>
-  </data>
-  <data name="roiDefinitionRToolStripMenuItem.Text" xml:space="preserve">
-    <value>Edit &amp;ROI Configurations...</value>
-  </data>
   <data name="NuclideDefinitionToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>224, 22</value>
   </data>
@@ -5352,12 +5346,6 @@
     <value>editDeviceConfigurationDToolStripMenuItem</value>
   </data>
   <data name="&gt;&gt;editDeviceConfigurationDToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;roiDefinitionRToolStripMenuItem.Name" xml:space="preserve">
-    <value>roiDefinitionRToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;roiDefinitionRToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;NuclideDefinitionToolStripMenuItem.Name" xml:space="preserve">

@@ -84,7 +84,6 @@ namespace BecquerelMonitor
             this.jaJPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolsTToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.editDeviceConfigurationDToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.roiDefinitionRToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.NuclideDefinitionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.NuclideSetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.NucDB = new System.Windows.Forms.ToolStripMenuItem();
@@ -557,7 +556,6 @@ namespace BecquerelMonitor
             // 
             this.toolsTToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.editDeviceConfigurationDToolStripMenuItem,
-            this.roiDefinitionRToolStripMenuItem,
             this.NuclideDefinitionToolStripMenuItem,
             this.NuclideSetToolStripMenuItem,
             this.NucDB,
@@ -572,12 +570,6 @@ namespace BecquerelMonitor
             this.editDeviceConfigurationDToolStripMenuItem.Name = "editDeviceConfigurationDToolStripMenuItem";
             resources.ApplyResources(this.editDeviceConfigurationDToolStripMenuItem, "editDeviceConfigurationDToolStripMenuItem");
             this.editDeviceConfigurationDToolStripMenuItem.Click += new System.EventHandler(this.editDeviceConfigurationDToolStripMenuItem_Click);
-            // 
-            // roiDefinitionRToolStripMenuItem
-            // 
-            this.roiDefinitionRToolStripMenuItem.Name = "roiDefinitionRToolStripMenuItem";
-            resources.ApplyResources(this.roiDefinitionRToolStripMenuItem, "roiDefinitionRToolStripMenuItem");
-            this.roiDefinitionRToolStripMenuItem.Click += new System.EventHandler(this.roiDefinitionRToolStripMenuItem_Click);
             // 
             // NuclideDefinitionToolStripMenuItem
             // 
@@ -780,7 +772,6 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem saveDataAsRToolStripMenuItem;
 
 		// Token: 0x0400059A RID: 1434
-		global::System.Windows.Forms.ToolStripMenuItem roiDefinitionRToolStripMenuItem;
 
 		// Token: 0x0400059B RID: 1435
 		global::System.Windows.Forms.ToolStripMenuItem helpHToolStripMenuItem;

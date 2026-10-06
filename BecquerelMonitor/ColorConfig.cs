@@ -177,36 +177,6 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x17000413 RID: 1043
-        // (get) Token: 0x06000F88 RID: 3976 RVA: 0x000571C8 File Offset: 0x000553C8
-        // (set) Token: 0x06000F89 RID: 3977 RVA: 0x000571D0 File Offset: 0x000553D0
-        public SerializableColor ROIBackgroundColor
-        {
-            get
-            {
-                return this.roiBackgroundColor;
-            }
-            set
-            {
-                this.roiBackgroundColor = value;
-            }
-        }
-
-        // Token: 0x17000414 RID: 1044
-        // (get) Token: 0x06000F8A RID: 3978 RVA: 0x000571DC File Offset: 0x000553DC
-        // (set) Token: 0x06000F8B RID: 3979 RVA: 0x000571E4 File Offset: 0x000553E4
-        public SerializableColor ROINetColor
-        {
-            get
-            {
-                return this.roiNetColor;
-            }
-            set
-            {
-                this.roiNetColor = value;
-            }
-        }
-
         // Token: 0x17000415 RID: 1045
         // (get) Token: 0x06000F8C RID: 3980 RVA: 0x000571F0 File Offset: 0x000553F0
         // (set) Token: 0x06000F8D RID: 3981 RVA: 0x000571F8 File Offset: 0x000553F8
@@ -445,12 +415,6 @@ namespace BecquerelMonitor
 
         // Token: 0x040008E4 RID: 2276
         SerializableColor roiBorderColor = Color.LightGreen;
-
-        // Token: 0x040008E5 RID: 2277
-        SerializableColor roiBackgroundColor = Color.FromArgb(236, 255, 236);
-
-        // Token: 0x040008E6 RID: 2278
-        SerializableColor roiNetColor = Color.LightGreen;
 
         // Token: 0x040008E7 RID: 2279
         SerializableColor selectionBorderColor = Color.PaleVioletRed;

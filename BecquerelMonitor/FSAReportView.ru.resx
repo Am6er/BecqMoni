@@ -200,13 +200,13 @@
     <value>Число считано от нижней границы диапазона прибора {0} кэВ и выше — там, где судит фит. Ниже лента на графике рисуется, но в процент не входит.</value>
   </data>
   <data name="FSAReport_Chi2Row" xml:space="preserve">
-    <value>χ²/ndf, качество подгонки</value>
+    <value>χ²/ndf, качество подгонки (по статистике Пуассона)</value>
   </data>
   <data name="FSAReport_InflationRow" xml:space="preserve">
     <value>σ×, во сколько раз раздута погрешность</value>
   </data>
   <data name="FSAReport_InflationTip" xml:space="preserve">
-    <value>Погрешности компонентов домножены на этот множитель, sqrt(χ²/ndf), когда подгонка хуже одной лишь пуассоновской статистики. Порог значимости 3 означает поэтому 3 × этот множитель сырых сигм. 1.000 — раздутия нет.</value>
+    <value>Погрешности компонентов домножены на этот множитель, когда подгонка хуже одной лишь пуассоновской статистики. Это корень из собственного χ²/ndf решателя, посчитанного с его робастными весами (Хубер), поэтому он не равен корню из пуассоновского χ²/ndf строкой выше. Порог значимости 3 означает поэтому 3 × этот множитель сырых сигм. 1.000 — раздутия нет.</value>
   </data>
   <data name="FSAReport_MatrixRow" xml:space="preserve">
     <value>Матрица отклика</value>
@@ -219,6 +219,15 @@
   </data>
   <data name="FSAReport_MatrixOldFormat" xml:space="preserve">
     <value>прежний формат</value>
+  </data>
+  <data name="FSAReport_MatrixStale" xml:space="preserve">
+    <value>устарела</value>
+  </data>
+  <data name="FSAReport_MatrixStaleRow" xml:space="preserve">
+    <value>Матрица отклика этой кривой на складе устарела для геометрии, с которой идёт разбор: геометрия или параметры изменились после расчёта, либо кривая в файле спектра старше кривой прибора. Разбор идёт без неё. Пересчитайте матрицу или выберите кривую прибора вместо кривой из файла спектра.</value>
+  </data>
+  <data name="FSAReport_MatrixStaleValue" xml:space="preserve">
+    <value>устарела</value>
   </data>
   <data name="FSAReport_EfficiencyRow" xml:space="preserve">
     <value>Кривая эффективности</value>

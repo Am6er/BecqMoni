@@ -971,15 +971,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Duplicate GUID for ROI configuration &quot;{0}&quot;.
-        /// </summary>
-        public static string ERRDuplicateROIConfigGUID {
-            get {
-                return ResourceManager.GetString("ERRDuplicateROIConfigGUID", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to This device doesn&apos;t contain calibration coefficients. Write them first..
         /// </summary>
         public static string ERREmptyCoefficients {
@@ -1012,15 +1003,6 @@ namespace BecquerelMonitor.Properties {
         public static string ERREmptyRadiaCodeData {
             get {
                 return ResourceManager.GetString("ERREmptyRadiaCodeData", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Empty ROI config name.
-        /// </summary>
-        public static string ERREmptyROIConfigName {
-            get {
-                return ResourceManager.GetString("ERREmptyROIConfigName", resourceCulture);
             }
         }
         
@@ -1163,24 +1145,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid ROI primitive..
-        /// </summary>
-        public static string ERRInvalidROIPrimitive {
-            get {
-                return ResourceManager.GetString("ERRInvalidROIPrimitive", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Invalid ROI primitive operation..
-        /// </summary>
-        public static string ERRInvalidROIPrimitiveOperation {
-            get {
-                return ResourceManager.GetString("ERRInvalidROIPrimitiveOperation", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Failed to load device configuration file(s)..
         /// </summary>
         public static string ERRLoadingDeviceConfigFailed {
@@ -1213,15 +1177,6 @@ namespace BecquerelMonitor.Properties {
         public static string ERRLoadingNuclideDefinitionFile {
             get {
                 return ResourceManager.GetString("ERRLoadingNuclideDefinitionFile", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Failed to load ROI configuration file(s)..
-        /// </summary>
-        public static string ERRLoadingROIConfigFailed {
-            get {
-                return ResourceManager.GetString("ERRLoadingROIConfigFailed", resourceCulture);
             }
         }
 
@@ -1357,15 +1312,6 @@ namespace BecquerelMonitor.Properties {
         public static string ERRSavingNuclideDefinitionFile {
             get {
                 return ResourceManager.GetString("ERRSavingNuclideDefinitionFile", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Failed to save ROI configuration file..
-        /// </summary>
-        public static string ERRSavingROIConfigFailed {
-            get {
-                return ResourceManager.GetString("ERRSavingROIConfigFailed", resourceCulture);
             }
         }
         
@@ -1797,16 +1743,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        public static System.Drawing.Bitmap Minus {
-            get {
-                object obj = ResourceManager.GetObject("Minus", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Type command and press Enter. Some commands ARE HAZARDOUS!
         ///You must be completely sure, what you are doing..
         /// </summary>
@@ -1873,33 +1809,6 @@ namespace BecquerelMonitor.Properties {
         public static string MSGDeleteNuclideDefinitions {
             get {
                 return ResourceManager.GetString("MSGDeleteNuclideDefinitions", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Remove ROI configuration &quot;{0}&quot;?.
-        /// </summary>
-        public static string MSGDeleteROIConfig {
-            get {
-                return ResourceManager.GetString("MSGDeleteROIConfig", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Remove ROI definition &quot;{0}&quot;?.
-        /// </summary>
-        public static string MSGDeleteROIDefinition {
-            get {
-                return ResourceManager.GetString("MSGDeleteROIDefinition", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Remove ROI primitive?.
-        /// </summary>
-        public static string MSGDeleteROIPrimitive {
-            get {
-                return ResourceManager.GetString("MSGDeleteROIPrimitive", resourceCulture);
             }
         }
         
@@ -2200,15 +2109,6 @@ namespace BecquerelMonitor.Properties {
         public static string NewFilePrefix {
             get {
                 return ResourceManager.GetString("NewFilePrefix", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to New ROI Configuration.
-        /// </summary>
-        public static string NewROIConfigPrefix {
-            get {
-                return ResourceManager.GetString("NewROIConfigPrefix", resourceCulture);
             }
         }
         
@@ -2639,16 +2539,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        public static System.Drawing.Bitmap Plus {
-            get {
-                object obj = ResourceManager.GetObject("Plus", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to ±.
         /// </summary>
         public static string PlusMinus {
@@ -2719,60 +2609,6 @@ namespace BecquerelMonitor.Properties {
         public static string RestartRequiredMessage {
             get {
                 return ResourceManager.GetString("RestartRequiredMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to ROI efficiency curve imported successfully.
-        /// </summary>
-        public static string ROICreationSucces {
-            get {
-                return ResourceManager.GetString("ROICreationSucces", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Addition.
-        /// </summary>
-        public static string ROIPrimitiveOperationTypeAddition {
-            get {
-                return ResourceManager.GetString("ROIPrimitiveOperationTypeAddition", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Subtraction.
-        /// </summary>
-        public static string ROIPrimitiveOperationTypeSubtraction {
-            get {
-                return ResourceManager.GetString("ROIPrimitiveOperationTypeSubtraction", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to BG Difference.
-        /// </summary>
-        public static string ROIPrimitiveTypeBGDifference {
-            get {
-                return ResourceManager.GetString("ROIPrimitiveTypeBGDifference", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Covell Method.
-        /// </summary>
-        public static string ROIPrimitiveTypeCovellMethod {
-            get {
-                return ResourceManager.GetString("ROIPrimitiveTypeCovellMethod", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to ROI Reference.
-        /// </summary>
-        public static string ROIPrimitiveTypeROIReference {
-            get {
-                return ResourceManager.GetString("ROIPrimitiveTypeROIReference", resourceCulture);
             }
         }
         
@@ -4381,30 +4217,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string BqCoeffAuto {
-            get {
-                return ResourceManager.GetString("BqCoeffAuto", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffNoIntensity {
-            get {
-                return ResourceManager.GetString("BqCoeffNoIntensity", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffNoEnergy {
-            get {
-                return ResourceManager.GetString("BqCoeffNoEnergy", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffNoCurve {
-            get {
-                return ResourceManager.GetString("BqCoeffNoCurve", resourceCulture);
-            }
-        }
-
         public static string ResultNoCoefficient {
             get {
                 return ResourceManager.GetString("ResultNoCoefficient", resourceCulture);
@@ -4420,18 +4232,6 @@ namespace BecquerelMonitor.Properties {
         public static string ResultNoVolume {
             get {
                 return ResourceManager.GetString("ResultNoVolume", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffOutOfRange {
-            get {
-                return ResourceManager.GetString("BqCoeffOutOfRange", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffFromCurve {
-            get {
-                return ResourceManager.GetString("BqCoeffFromCurve", resourceCulture);
             }
         }
 
@@ -4492,12 +4292,6 @@ namespace BecquerelMonitor.Properties {
         public static string ActivityLcZeroRefused {
             get {
                 return ResourceManager.GetString("ActivityLcZeroRefused", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffTipAuto {
-            get {
-                return ResourceManager.GetString("BqCoeffTipAuto", resourceCulture);
             }
         }
 
@@ -6558,24 +6352,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string BqCoeffCurveRefused {
-            get {
-                return ResourceManager.GetString("BqCoeffCurveRefused", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffFieldCurve {
-            get {
-                return ResourceManager.GetString("BqCoeffFieldCurve", resourceCulture);
-            }
-        }
-
-        public static string ResultFieldCurve {
-            get {
-                return ResourceManager.GetString("ResultFieldCurve", resourceCulture);
-            }
-        }
-
         public static string ActivityFieldCurveRefused {
             get {
                 return ResourceManager.GetString("ActivityFieldCurveRefused", resourceCulture);
@@ -6762,24 +6538,6 @@ namespace BecquerelMonitor.Properties {
         public static string SummingWhyNoLine {
             get {
                 return ResourceManager.GetString("SummingWhyNoLine", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to No zone “{0}” to refer to.
-        /// </summary>
-        public static string ROIReferenceMissing {
-            get {
-                return ResourceManager.GetString("ROIReferenceMissing", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Covell window narrower than a channel.
-        /// </summary>
-        public static string ROICovellWindowNarrow {
-            get {
-                return ResourceManager.GetString("ROICovellWindowNarrow", resourceCulture);
             }
         }
 
