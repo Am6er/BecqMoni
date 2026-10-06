@@ -353,14 +353,16 @@ namespace SelectionPanelProbeG10
                 {
                     int rivalRowHonest = rivals > 0 ? 16 : 0; // ПАНЕЛЬ: спор
                     int labelRow = 16;                        // ПАНЕЛЬ: подпись
-                    // (`AMBER133`, П167) строка суммирования стоит под подписью и
-                    // уходит вместе с ней; у сборки до П167 свойства нет — ноль.
+                    // (`AMBER207`, 06.10.2026) Строки суммирования (`AMBER133`, П167)
+                    // на панели больше нет — слагаемое снято здесь и в отрисовке.
+                    // ⚠ Сборка П167…AMBER207 её рисовала: на ней мерка не сойдётся.
+                    //    Строка печатается — это контроль: при живой строке панель
+                    //    обязана сойтись БЕЗ слагаемого под неё.
                     PropertyInfo summingProp = an.GetType().GetProperty("ActivitySummingNote", Any);
                     string summingNote = summingProp != null ? (string)summingProp.GetValue(an, null) : null;
-                    int summingRowHonest = string.IsNullOrEmpty(summingNote) ? 0 : 16; // ПАНЕЛЬ: суммирование
-                    if (summingRowHonest > 0)
+                    if (!string.IsNullOrEmpty(summingNote))
                     {
-                        Console.WriteLine("  строка суммирования: {0}", summingNote);
+                        Console.WriteLine("  строка суммирования (на панель не идёт): {0}", summingNote);
                     }
                     // (`AMBER148`, П192) строка момента («среднее за набор» / «на дату
                     // отбора») стоит под подписью и уходит вместе с ней; у сборки до
@@ -413,11 +415,10 @@ namespace SelectionPanelProbeG10
                         Console.WriteLine("  контроль «подпись снята»: панель {0} px против {1} px; изменилось точек в области панели {2}, вне её {3}",
                                           noLabelBox.Height, panelBox.Height, changed, outside);
                         Same("подпись НАРИСОВАНА: точек изменилось > 0", true, changed > 0);
-                        Same("подпись занимает ровно " + (labelRow + rivalRowHonest + summingRowHonest + momentRowHonest).ToString(CultureInfo.InvariantCulture)
+                        Same("подпись занимает ровно " + (labelRow + rivalRowHonest + momentRowHonest).ToString(CultureInfo.InvariantCulture)
                              + " px" + (rivalRowHonest > 0 ? " (16 подписи + 16 строки спора)" : "")
-                             + (summingRowHonest > 0 ? " (+16 строки суммирования)" : "")
                              + (momentRowHonest > 0 ? " (+16 строки момента)" : ""),
-                             labelRow + rivalRowHonest + summingRowHonest + momentRowHonest, panelBox.Height - noLabelBox.Height);
+                             labelRow + rivalRowHonest + momentRowHonest, panelBox.Height - noLabelBox.Height);
                         Same("снятие подписи вне панели кадр не трогает", 0, outside);
                         noLabel.Save(Path.Combine(shotDir, tag + "-nolabel.png"), ImageFormat.Png);
                     }

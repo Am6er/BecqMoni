@@ -5049,10 +5049,8 @@ namespace BecquerelMonitor
                     {
                         infopanel_height += 16; // ПАНЕЛЬ: спор
                     }
-                    if (!string.IsNullOrEmpty(selection.ActivitySummingNote))
-                    {
-                        infopanel_height += 16; // ПАНЕЛЬ: суммирование (`AMBER133`)
-                    }
+                    // (`AMBER207`, решение Amber 06.10.2026) Слагаемого «суммирование»
+                    // больше нет: строка поправки снята с панели, см. отрисовку ниже.
                     if (!string.IsNullOrEmpty(selection.ActivityMoment))
                     {
                         infopanel_height += 16; // ПАНЕЛЬ: момент (`AMBER148`)
@@ -5185,15 +5183,13 @@ namespace BecquerelMonitor
                                  this.Font, Brushes.Black, r2, this.centerFormat);
                     r2.Y += 16;
 
-                    // (`AMBER133`) Суммирование — строкой под подписью: число
-                    // ниже либо поправлено (множитель назван), либо нет, и
-                    // тогда названа причина. Прежде панель молчала, а FSA ту
-                    // же линию поправлял.
-                    if (!string.IsNullOrEmpty(selection.ActivitySummingNote))
-                    {
-                        g.DrawString(selection.ActivitySummingNote, this.Font, Brushes.DarkSlateGray, r2, this.centerFormat);
-                        r2.Y += 16;
-                    }
+                    // (`AMBER207`, решение Amber 06.10.2026 вопросником: «Обе
+                    // строки, поправка в числе остаётся») Строки суммирования
+                    // («Поправка на каскадное суммирование ×…» / «Без поправки…»)
+                    // на панели больше нет: длинная, она не влезала в 16 px,
+                    // переносилась на три строки и налезала на строку момента.
+                    // Поправка (`AMBER133`) по-прежнему входит в K выше, а
+                    // `ActivitySummingNote` считается — его судит `RoiSummingProbeP167`.
 
                     if (selection.ActivityRivals > 0)
                     {
