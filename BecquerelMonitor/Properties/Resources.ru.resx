@@ -139,9 +139,6 @@
   <data name="ERRDuplicateDeviceConfigGUID" xml:space="preserve">
     <value>Одинаковые GUID в разных файлах конфигурации устройств "{0}"</value>
   </data>
-  <data name="ROIPrimitiveOperationTypeSubtraction" xml:space="preserve">
-    <value>Вычитание</value>
-  </data>
   <data name="MSGSavingNuclideDefinition" xml:space="preserve">
     <value>Библиотека изотопов была изменена. Сохранить?</value>
   </data>
@@ -181,9 +178,6 @@
   <data name="ERRLoadingNuclideDefinitionFile" xml:space="preserve">
     <value>Не удалось загрузить библиотеку изотопов.</value>
   </data>
-  <data name="MSGDeleteROIPrimitive" xml:space="preserve">
-    <value>Удалить примитив ROI?</value>
-  </data>
   <data name="ERRDuplicateConfigName" xml:space="preserve">
     <value>Такая конфигурация уже присутствует, выберите другое имя</value>
   </data>
@@ -202,17 +196,11 @@
   <data name="InvalidValueDialogTitle" xml:space="preserve">
     <value>Некорректное введённое значение</value>
   </data>
-  <data name="ROIPrimitiveOperationTypeAddition" xml:space="preserve">
-    <value>Дополнение</value>
-  </data>
   <data name="CsvExportDialogTitle" xml:space="preserve">
     <value>Экспорт в CSV файл</value>
   </data>
   <data name="ChartHeaderNetCps" xml:space="preserve">
     <value>Имп/с над фоном:</value>
-  </data>
-  <data name="ROIPrimitiveTypeROIReference" xml:space="preserve">
-    <value>Ссылка на ROI</value>
   </data>
   <data name="BackgroundSelectionDialogTitle" xml:space="preserve">
     <value>Выберите файл фонового спектра</value>
@@ -301,14 +289,8 @@
     <value>Файл конфигурации «{0}» удалить не удалось, поэтому конфигурация не удалена и осталась в списке.
 Скорее всего он открыт другой программой или защищён от записи.</value>
   </data>
-  <data name="ERRLoadingROIConfigFailed" xml:space="preserve">
-    <value>Не удалось загрузить конфигурационный файл ROI.</value>
-  </data>
   <data name="ERRFailureReason" xml:space="preserve">
     <value>Причина: {0}</value>
-  </data>
-  <data name="ROIPrimitiveTypeBGDifference" xml:space="preserve">
-    <value>Разница с Фоном</value>
   </data>
   <data name="ERRCannotConnectDevice" xml:space="preserve">
     <value>Не удалось подключиться к устройству. Проверьте кабель и питание устройства.</value>
@@ -322,14 +304,8 @@
   <data name="ThermometerTypeNone" xml:space="preserve">
     <value>Нет</value>
   </data>
-  <data name="ROIPrimitiveTypeCovellMethod" xml:space="preserve">
-    <value>Метод Ковела</value>
-  </data>
   <data name="ERRInvalidPresetTime" xml:space="preserve">
     <value>Некорректное предустановленное время.</value>
-  </data>
-  <data name="ERRInvalidROIPrimitiveOperation" xml:space="preserve">
-    <value>Некорректная операция с примитивом ROI.</value>
   </data>
   <data name="ErrorString" xml:space="preserve">
     <value>Ошибка</value>
@@ -355,17 +331,8 @@
   <data name="CsvImportDialogTitle" xml:space="preserve">
     <value>Импорт из CSV файла</value>
   </data>
-  <data name="NewROIConfigPrefix" xml:space="preserve">
-    <value>Новая конфигурация ROI</value>
-  </data>
-  <data name="ERRSavingROIConfigFailed" xml:space="preserve">
-    <value>Не удалось сохранить конфигурационный файл ROI.</value>
-  </data>
   <data name="NewDeviceConfigPrefix" xml:space="preserve">
     <value>Новая конфигурация устройства</value>
-  </data>
-  <data name="MSGDeleteROIDefinition" xml:space="preserve">
-    <value>Удалить ROI "{0}"?</value>
   </data>
   <data name="MSGFileOverwriteConfirmation" xml:space="preserve">
     <value>Файл спектра "{0}" был изменён. Сохранить?</value>
@@ -550,9 +517,6 @@
   <data name="MSGDeviceTypeChanging" xml:space="preserve">
     <value>Изменение типа устройства приведёт к общей реинициализации всех параметров. ГОТОВЫ? :)</value>
   </data>
-  <data name="ERRDuplicateROIConfigGUID" xml:space="preserve">
-    <value>Одинаковые GUID в разных файлах конфигурации ROI "{0}"</value>
-  </data>
   <data name="MSGClearSpectrum" xml:space="preserve">
     <value>Очистить спектр?</value>
   </data>
@@ -564,9 +528,6 @@
   </data>
   <data name="ERRInvalidInputForm" xml:space="preserve">
     <value>Некорректная форма ввода.</value>
-  </data>
-  <data name="ERRInvalidROIPrimitive" xml:space="preserve">
-    <value>Некорретный примитив ROI.</value>
   </data>
   <data name="ERRFileOpenFailure" xml:space="preserve">
     <value>Файл "{0}" не может быть открыт.
@@ -593,9 +554,6 @@
   <data name="ERRCannotDeleteSpectrum" xml:space="preserve">
     <value>Не могу удалить спектр. По крайней мере один спектр нужен в файле.</value>
   </data>
-  <data name="MSGDeleteROIConfig" xml:space="preserve">
-    <value>Удалить конфигурацию ROI "{0}"?</value>
-  </data>
   <data name="SpectrumFileFilter" xml:space="preserve">
     <value>Файлы спектра (*.xml)|*.xml|Все файлы (*.*)|*.*</value>
   </data>
@@ -615,7 +573,7 @@
     <value>Экспорт файла N42</value>
   </data>
   <data name="MSGN42ExportLosesEfficiency" xml:space="preserve">
-    <value>Формат N42 не несёт кривую эффективности. В файл НЕ уйдут кривая эффективности, геометрия детектора и привязка к матрице отклика; спектров с кривой в этом документе: {0} из {1}. Поэтому у файла, импортированного в НОВЫЙ документ, не будет ни активности выделения, ни активности зон, ни полноспектрального разбора (FSA), ни нормировки по эффективности. Сами спектры, энергетическая калибровка и времена набора уходят в файл полностью.</value>
+    <value>Формат N42 не несёт кривую эффективности. В файл НЕ уйдут кривая эффективности, геометрия детектора и привязка к матрице отклика; спектров с кривой в этом документе: {0} из {1}. Поэтому у файла, импортированного в НОВЫЙ документ, не будет ни активности выделения, ни полноспектрального разбора (FSA), ни нормировки по эффективности. Сами спектры, энергетическая калибровка и времена набора уходят в файл полностью.</value>
   </data>
   <data name="CalibrationFunctionError" xml:space="preserve">
     <value>Функция калибровки должна монотонно возрастать при увеличиении канала. Проверьте калибровку!</value>
@@ -877,12 +835,6 @@
   </data>
   <data name="NotDetected" xml:space="preserve">
     <value>Не обнаружено</value>
-  </data>
-  <data name="ROICreationSucces" xml:space="preserve">
-    <value>Кривая эффективности импортирована в ROI успешно</value>
-  </data>
-  <data name="ERREmptyROIConfigName" xml:space="preserve">
-    <value>Пустое имя для конфига ROI</value>
   </data>
   <data name="Activity" xml:space="preserve">
     <value>Активность</value>
@@ -1449,18 +1401,6 @@
   <data name="EfficiencySketchIso" xml:space="preserve">
     <value>Изотропное поле, радиус сферы</value>
   </data>
-  <data name="BqCoeffAuto" xml:space="preserve">
-    <value>Считать по эффективности</value>
-  </data>
-  <data name="BqCoeffNoIntensity" xml:space="preserve">
-    <value>У зоны не задана интенсивность линии — посчитать K по кривой не из чего. Взято сохранённое значение.</value>
-  </data>
-  <data name="BqCoeffNoEnergy" xml:space="preserve">
-    <value>У зоны не задана энергия линии — посчитать K по кривой не из чего. Взято сохранённое значение.</value>
-  </data>
-  <data name="BqCoeffNoCurve" xml:space="preserve">
-    <value>Для спектра не выбрана кривая эффективности. Взято сохранённое значение.</value>
-  </data>
   <data name="ResultNoCoefficient" xml:space="preserve">
     <value>нет K</value>
   </data>
@@ -1469,12 +1409,6 @@
   </data>
   <data name="ResultNoVolume" xml:space="preserve">
     <value>нет объёма</value>
-  </data>
-  <data name="BqCoeffOutOfRange" xml:space="preserve">
-    <value>{0:0.##} кэВ вне кривой ({1:0.##}–{2:0.##} кэВ): за краями кривая не продолжается. Взято сохранённое значение.</value>
-  </data>
-  <data name="BqCoeffFromCurve" xml:space="preserve">
-    <value>K = {0:G6} ± {1:G3} по кривой</value>
   </data>
   <data name="ActivityFromLine" xml:space="preserve">
     <value>по линии:</value>
@@ -1505,9 +1439,6 @@
   </data>
   <data name="ActivityLcZeroRefused" xml:space="preserve">
     <value>фон в выделении пуст: порог обнаружения не определён</value>
-  </data>
-  <data name="BqCoeffTipAuto" xml:space="preserve">
-    <value>K переводит скорость счёта в беккерели: Бк = имп/с · K. С галочкой он считается по кривой эффективности, выбранной для спектра, и интенсивности этой зоны: K = 100 / (эффективность · интенсивность). Без галочки берётся число из поля, как раньше. Сохранённое число остаётся в любом случае и подставляется, когда кривой нет.</value>
   </data>
   <data name="EfficiencySketchCylinder" xml:space="preserve">
     <value>Цилиндр</value>
@@ -2459,15 +2390,6 @@ http://xptable.sourceforge.net/</value>
   <data name="FsaEfficiencyPointAboveUnity" xml:space="preserve">
     <value>точка {0} кэВ: эффективность {1} выше единицы — доля на испущенный квант не может превышать единицу</value>
   </data>
-  <data name="BqCoeffCurveRefused" xml:space="preserve">
-    <value>Кривая эффективности отвергнута: {0}. Взято сохранённое значение.</value>
-  </data>
-  <data name="BqCoeffFieldCurve" xml:space="preserve">
-    <value>Кривая эффективности «{0}» посчитана для сцены поля: её значения — площади в см² на единичный флюенс, а не доли на испущенный квант, и K по ней не считается. Активность не показывается.</value>
-  </data>
-  <data name="ResultFieldCurve" xml:space="preserve">
-    <value>кривая поля (см²), нет K</value>
-  </data>
   <data name="ActivityFieldCurveRefused" xml:space="preserve">
     <value>кривая эффективности «{0}» — кривая сцены поля (см² на единичный флюенс, не доли на квант): активность не показывается</value>
   </data>
@@ -2557,12 +2479,6 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="SummingWhyNoLine" xml:space="preserve">
     <value>линия {0} кэВ не найдена в таблицах каскадов «{1}»</value>
-  </data>
-  <data name="ROIReferenceMissing" xml:space="preserve">
-    <value>Нет зоны «{0}» для ссылки</value>
-  </data>
-  <data name="ROICovellWindowNarrow" xml:space="preserve">
-    <value>Окно Ковелла уже канала</value>
   </data>
   <data name="EfficiencyMakerKeepUnsavedCurve" xml:space="preserve">
     <value>Кривой «{0}» нет в сохранённой конфигурации прибора: она заведена после последнего сохранения и отбрасывается вместе с прочими правками.

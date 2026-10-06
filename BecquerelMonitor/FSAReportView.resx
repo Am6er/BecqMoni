@@ -5146,13 +5146,13 @@
     <value>The number counts channels from the detector's lower range {0} keV upwards, where the fit is judged. Below it the band is still drawn on the chart, but it is not included in the percentage.</value>
   </data>
   <data name="FSAReport_Chi2Row" xml:space="preserve">
-    <value>χ²/ndf, goodness of fit</value>
+    <value>χ²/ndf, goodness of fit (Poisson statistics)</value>
   </data>
   <data name="FSAReport_InflationRow" xml:space="preserve">
     <value>σ×, uncertainty inflation</value>
   </data>
   <data name="FSAReport_InflationTip" xml:space="preserve">
-    <value>Component uncertainties are multiplied by this factor, sqrt(χ²/ndf), whenever the fit is worse than Poisson statistics alone. A significance threshold of 3 therefore means 3 × this factor of raw sigmas. 1.000 means no inflation.</value>
+    <value>Component uncertainties are multiplied by this factor whenever the fit is worse than Poisson statistics alone. It is the square root of the solver's own χ²/ndf, computed with its robust (Huber) weights, so it does not equal the square root of the Poisson χ²/ndf shown above. A significance threshold of 3 therefore means 3 × this factor of raw sigmas. 1.000 means no inflation.</value>
   </data>
   <data name="FSAReport_MatrixRow" xml:space="preserve">
     <value>Response matrix</value>
@@ -5165,6 +5165,15 @@
   </data>
   <data name="FSAReport_MatrixOldFormat" xml:space="preserve">
     <value>old format</value>
+  </data>
+  <data name="FSAReport_MatrixStale" xml:space="preserve">
+    <value>stale</value>
+  </data>
+  <data name="FSAReport_MatrixStaleRow" xml:space="preserve">
+    <value>The stored response matrix of this curve is out of date for the geometry the analysis uses: the geometry or the settings changed after it was computed, or the curve carried in the spectrum file is older than the device's curve. The analysis runs without it. Recompute the matrix, or choose the device's curve instead of the one from the spectrum file.</value>
+  </data>
+  <data name="FSAReport_MatrixStaleValue" xml:space="preserve">
+    <value>stale</value>
   </data>
   <data name="FSAReport_EfficiencyRow" xml:space="preserve">
     <value>Efficiency curve</value>

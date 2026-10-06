@@ -49,6 +49,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public bool DbLookups;
 
+        /// <summary>
+        /// (П236, прототип; решение Amber 06.10.2026 «Из сета нуклидов») Источник
+        /// состава — АКТИВНЫЙ СЕТ НУКЛИДОВ: ряды по меткам <see cref="NuclideDefinition.Chain"/>,
+        /// одиночки по именам, найденные пики не читаются вовсе. Старше обоих
+        /// прочих источников: при <c>true</c> <see cref="DbLookups"/> не смотрят.
+        /// Сет и его состав входят в отпечаток сеанса (<c>FsaAnalysisSession.NuclideSetStamp</c>).
+        /// </summary>
+        public bool FromSet;
+
         /// <summary>Ряд связан равновесием (`S70`). Действует только при <see cref="DbLookups"/>.</summary>
         public bool ChainEquilibrium = true;
 
@@ -165,7 +174,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             get
             {
                 var stamp = new StringBuilder(24);
-                stamp.Append(this.DbLookups ? "db" : "peaks");
+                stamp.Append(this.FromSet ? "set" : (this.DbLookups ? "db" : "peaks"));
                 stamp.Append('|').Append(this.ChainEquilibrium ? "eq" : "free");
                 stamp.Append('|').Append(this.AtomicXray ? "xray" : "-xray");
                 stamp.Append('|').Append(this.CascadeSumming ? "sum" : "-sum");

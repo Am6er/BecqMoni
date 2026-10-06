@@ -63,8 +63,6 @@ namespace N42PolynomialCentreProbe
                 else if (a.StartsWith("--expect-doors-kev=")) expectDoorsKev = double.Parse(a.Substring(19), CultureInfo.InvariantCulture);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             Console.WriteLine("=== СБОРКА ===");
             Console.WriteLine("  " + typeof(DocumentManager).Assembly.Location);

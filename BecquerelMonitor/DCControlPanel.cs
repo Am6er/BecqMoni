@@ -44,9 +44,7 @@ namespace BecquerelMonitor
             this.attachBtn.Text = Resources.Attach_BTN;
             this.attachBtn.Visible = false;
             this.UpdateDeviceConfigList();
-            this.UpdateROIConfigList();
             this.deviceConfigManager.DeviceConfigListChanged += this.manager_DeviceConfigChanged;
-            this.roiConfigManager.ROIConfigListChanged += this.manager_ROIConfigListChanged;
         }
 
         // Token: 0x0600028B RID: 651 RVA: 0x0000B468 File Offset: 0x00009668
@@ -60,18 +58,6 @@ namespace BecquerelMonitor
             this.ShowDocumentStatus();
         }
 
-        // Token: 0x0600028C RID: 652 RVA: 0x0000B498 File Offset: 0x00009698
-        void manager_ROIConfigListChanged(object sender, EventArgs e)
-        {
-            if (this.mainForm.ActiveDocument == null)
-            {
-                return;
-            }
-            this.UpdateROIConfigList();
-            this.ShowDocumentStatus();
-            this.mainForm.ShowMeasurementResult(true);
-        }
-
         // Token: 0x0600028D RID: 653 RVA: 0x0000B4D4 File Offset: 0x000096D4
         void UpdateDeviceConfigList()
         {
@@ -81,18 +67,6 @@ namespace BecquerelMonitor
             {
                 DeviceConfigInfo deviceConfigInfo = this.deviceConfigManager.DeviceConfigList[i];
                 this.devConfigComboBox.Items.Add(deviceConfigInfo.Name);
-            }
-        }
-
-        // Token: 0x0600028E RID: 654 RVA: 0x0000B548 File Offset: 0x00009748
-        public void UpdateROIConfigList()
-        {
-            this.roiConfigComboBox.Items.Clear();
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            for (int i = 0; i < this.roiConfigManager.ROIConfigList.Count; i++)
-            {
-                ROIConfigData roiconfigData = this.roiConfigManager.ROIConfigList[i];
-                this.roiConfigComboBox.Items.Add(roiconfigData.Name);
             }
         }
 
@@ -297,21 +271,6 @@ namespace BecquerelMonitor
             {
                 this.devConfigComboBox.SelectedIndex = -1;
             }
-            flag = false;
-            for (int j = 0; j < this.roiConfigManager.ROIConfigList.Count; j++)
-            {
-                ROIConfigData roiconfigData = this.roiConfigManager.ROIConfigList[j];
-                if (activeResultData.ROIConfig != null && activeResultData.ROIConfig.Guid == roiconfigData.Guid)
-                {
-                    this.roiConfigComboBox.SelectedIndex = j;
-                    flag = true;
-                    break;
-                }
-            }
-            if (!flag)
-            {
-                this.roiConfigComboBox.SelectedIndex = -1;
-            }
             this.UpdateEfficiencyList(activeResultData);
             this.textBox1.Text = Path.GetFileName(activeResultData.BackgroundSpectrumFile);
             this.realTimeLimitTextBox.Text = resultDataStatus.PresetTime.ToString(CultureInfo.InvariantCulture);
@@ -478,31 +437,6 @@ namespace BecquerelMonitor
                     activeResultData.DeviceConfigReference = activeResultData.DeviceConfig.CreateReference();
                     this.ShowDocumentStatus();
                 }
-                this.mainForm.ShowMeasurementResult(true);
-            }
-        }
-
-        // Token: 0x0600029B RID: 667 RVA: 0x0000BCA8 File Offset: 0x00009EA8
-        void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (this.formUpdating)
-            {
-                return;
-            }
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            if (activeDocument == null || this.roiConfigComboBox.SelectedIndex == -1)
-            {
-                return;
-            }
-            ResultData activeResultData = activeDocument.ActiveResultData;
-            ROIConfigData roiconfig = activeResultData.ROIConfig;
-            activeResultData.ROIConfig = this.roiConfigManager.ROIConfigList[this.roiConfigComboBox.SelectedIndex];
-            if (roiconfig == null || roiconfig.Guid != activeResultData.ROIConfig.Guid)
-            {
-                activeDocument.Dirty = true;
-                activeResultData.ROIConfigReference = activeResultData.ROIConfig.CreateReference();
-                this.ShowDocumentStatus();
-                activeDocument.UpdateEnergySpectrum();
                 this.mainForm.ShowMeasurementResult(true);
             }
         }
@@ -792,35 +726,6 @@ namespace BecquerelMonitor
             this.ShowDocumentStatus();
             this.mainForm.ShowMeasurementResult(true);
             activeDocument.UpdateEnergySpectrum();
-        }
-
-        // Token: 0x0600029E RID: 670 RVA: 0x0000BEEC File Offset: 0x0000A0EC
-        void button4_Click(object sender, EventArgs e)
-        {
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            ROIConfigData config = null;
-            if (activeDocument != null)
-            {
-                ResultData activeResultData = activeDocument.ActiveResultData;
-                config = activeResultData.ROIConfig;
-            }
-            this.mainForm.ShowROIConfigForm(config);
-        }
-
-        // Token: 0x0600029F RID: 671 RVA: 0x0000BF2C File Offset: 0x0000A12C
-        void button9_Click(object sender, EventArgs e)
-        {
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            if (activeDocument != null)
-            {
-                ResultData activeResultData = activeDocument.ActiveResultData;
-                activeResultData.ROIConfig = null;
-                activeResultData.ROIConfigReference = null;
-                activeDocument.Dirty = true;
-                this.roiConfigComboBox.SelectedIndex = -1;
-                activeDocument.UpdateEnergySpectrum();
-                this.mainForm.ShowMeasurementResult(true);
-            }
         }
 
         // Token: 0x060002A0 RID: 672 RVA: 0x0000BF8C File Offset: 0x0000A18C
@@ -1130,9 +1035,6 @@ namespace BecquerelMonitor
 
         // Token: 0x040000CE RID: 206
         DeviceConfigManager deviceConfigManager = DeviceConfigManager.GetInstance();
-
-        // Token: 0x040000CF RID: 207
-        ROIConfigManager roiConfigManager = ROIConfigManager.GetInstance();
 
         // Token: 0x040000D0 RID: 208
         DocumentManager documentManager = DocumentManager.GetInstance();

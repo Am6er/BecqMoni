@@ -78,7 +78,7 @@ class CorpusEffProbe
     // Efficiency стоит сразу за этими тремя. Список короткий нарочно — он
     // повторяет ровно ту часть объявления, до которой нам есть дело.
     static readonly string[] Before =
-        { "ROIConfigReference", "DeviceConfigReference", "SampleInfo" };
+        { "DeviceConfigReference", "SampleInfo" };
 
     static int Main(string[] args)
     {

@@ -111,36 +111,6 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x170003E2 RID: 994
-        // (get) Token: 0x06000F23 RID: 3875 RVA: 0x00056C40 File Offset: 0x00054E40
-        // (set) Token: 0x06000F24 RID: 3876 RVA: 0x00056C48 File Offset: 0x00054E48
-        public int ROIConfigFormWidth
-        {
-            get
-            {
-                return this.roiConfigFormWidth;
-            }
-            set
-            {
-                this.roiConfigFormWidth = value;
-            }
-        }
-
-        // Token: 0x170003E3 RID: 995
-        // (get) Token: 0x06000F25 RID: 3877 RVA: 0x00056C54 File Offset: 0x00054E54
-        // (set) Token: 0x06000F26 RID: 3878 RVA: 0x00056C5C File Offset: 0x00054E5C
-        public int ROIConfigFormHeight
-        {
-            get
-            {
-                return this.roiConfigFormHeight;
-            }
-            set
-            {
-                this.roiConfigFormHeight = value;
-            }
-        }
-
         // Token: 0x170003E4 RID: 996
         // (get) Token: 0x06000F27 RID: 3879 RVA: 0x00056C68 File Offset: 0x00054E68
         // (set) Token: 0x06000F28 RID: 3880 RVA: 0x00056C70 File Offset: 0x00054E70
@@ -154,22 +124,6 @@ namespace BecquerelMonitor
             set
             {
                 this.deviceConfigListColumnSizes = value;
-            }
-        }
-
-        // Token: 0x170003E5 RID: 997
-        // (get) Token: 0x06000F29 RID: 3881 RVA: 0x00056C7C File Offset: 0x00054E7C
-        // (set) Token: 0x06000F2A RID: 3882 RVA: 0x00056C84 File Offset: 0x00054E84
-        [XmlArrayItem("ColumnSize")]
-        public int[] ROIConfigListColumnSizes
-        {
-            get
-            {
-                return this.roiConfigListColumnSizes;
-            }
-            set
-            {
-                this.roiConfigListColumnSizes = value;
             }
         }
 
@@ -323,21 +277,6 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x170003F0 RID: 1008
-        // (get) Token: 0x06000F3F RID: 3903 RVA: 0x00056D58 File Offset: 0x00054F58
-        // (set) Token: 0x06000F40 RID: 3904 RVA: 0x00056D60 File Offset: 0x00054F60
-        public EasyControlConfig EasyControlConfig
-        {
-            get
-            {
-                return this.easyControlConfig;
-            }
-            set
-            {
-                this.easyControlConfig = value;
-            }
-        }
-
         // Token: 0x170003F1 RID: 1009
         // (get) Token: 0x06000F41 RID: 3905 RVA: 0x00056D6C File Offset: 0x00054F6C
         // (set) Token: 0x06000F42 RID: 3906 RVA: 0x00056D74 File Offset: 0x00054F74
@@ -457,25 +396,11 @@ namespace BecquerelMonitor
         // Token: 0x040008B5 RID: 2229
         int deviceConfigFormHeight = 655;
 
-        // Token: 0x040008B6 RID: 2230
-        int roiConfigFormWidth = 1080;
-
-        // Token: 0x040008B7 RID: 2231
-        int roiConfigFormHeight = 772;
-
         // Token: 0x040008B8 RID: 2232
         int[] deviceConfigListColumnSizes = new int[]
         {
             240,
             120
-        };
-
-        // Token: 0x040008B9 RID: 2233
-        int[] roiConfigListColumnSizes = new int[]
-        {
-            120,
-            120,
-            40
         };
 
         // Token: 0x040008BA RID: 2234
@@ -516,9 +441,6 @@ namespace BecquerelMonitor
 
         // Token: 0x040008C3 RID: 2243
         MeasurementConfig measurementConfig = new MeasurementConfig();
-
-        // Token: 0x040008C4 RID: 2244
-        EasyControlConfig easyControlConfig = new EasyControlConfig();
 
         // Token: 0x040008C5 RID: 2245
         SoundConfig soundConfig = new SoundConfig();

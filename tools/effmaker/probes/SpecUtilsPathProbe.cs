@@ -75,8 +75,6 @@ namespace SpecUtilsPathProbe
                 else if (a == "--expect-same-snapshot") expectSameSnapshot = true;
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             Console.WriteLine("=== СБОРКА ===");
             Console.WriteLine("  " + typeof(DocumentManager).Assembly.Location);

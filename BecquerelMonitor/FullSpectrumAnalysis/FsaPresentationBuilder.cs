@@ -605,11 +605,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             });
 
             // 7. Строка качества: полный текст пометок, χ²/ndf справа.
+            //
+            // ⛔ (`AMBER209`, решение Amber 06.10.2026 вопросником, дословно:
+            // «Заменить на Пуассона») ЧИСЛО — χ²/ndf ПО СТАТИСТИКЕ ПУАССОНА
+            // (<see cref="FsaResult.Chi2NdfPoisson"/>), а не χ² решателя
+            // (<see cref="FsaResult.Chi2Ndf"/>): у решателя веса Хубера, и
+            // срезанные им каналы в χ² почти не входят — на Lu176 Amber он
+            // показывал 5.41 при 68.3 по Пуассону, на Th232 6.51 при 21.3.
+            // Разлад модели в отчёте не был виден. Пуассоновский χ² — та же
+            // мерка, что у корпуса (`chi2ndf_pois`), сравнимая между ключами
+            // решателя. ⚠ σ-надувка погрешностей (строка ниже) по-прежнему
+            // √(χ² решателя): менять её — менять погрешности и MDA, то есть
+            // A/B корпуса; её подсказка называет источник.
             rows.Add(new FsaReportRow
             {
                 Kind = FsaReportRowKind.Quality,
                 Name = presentation.QualityText,
-                Value = result.Chi2Ndf.ToString("f2", CultureInfo.InvariantCulture)
+                Value = result.Chi2NdfPoisson.ToString("f2", CultureInfo.InvariantCulture)
             });
 
             return rows;

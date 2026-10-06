@@ -22,9 +22,6 @@ namespace BecquerelMonitor
             this.InitializeProgressiveSmoothTooltip();
             this.mainForm = mainForm;
             base.Icon = Resources.becqmoni;
-            this.UpdateDeviceConfigList();
-            this.UpdateROIConfigList();
-            this.tabControl1.TabPages.RemoveAt(2);
         }
 
         void InitializeProgressiveSmoothTooltip()
@@ -71,8 +68,6 @@ namespace BecquerelMonitor
             this.colorComboBox4.SelectedColor = colorConfig.GridColor1.Color;
             this.colorComboBox5.SelectedColor = colorConfig.GridColor2.Color;
             this.colorComboBox6.SelectedColor = colorConfig.ROIBorderColor.Color;
-            this.colorComboBox7.SelectedColor = colorConfig.ROIBackgroundColor.Color;
-            this.colorComboBox16.SelectedColor = colorConfig.ROINetColor.Color;
             this.colorComboBox8.SelectedColor = colorConfig.SelectionBorderColor.Color;
             this.colorComboBox9.SelectedColor = colorConfig.SelectionBackgroundColor.Color;
             this.colorComboBox14.SelectedColor = colorConfig.SelectionNetColor.Color;
@@ -148,54 +143,6 @@ namespace BecquerelMonitor
             // (`AMBER202`) матрица отклика — в файл спектра
             this.saveResponseMatrixInSpectrumCheckBox.Checked = globalConfig.SaveResponseMatrixInSpectrum;
             this.confidenceLevelcomboBox.SelectedIndex = ConfidenceLevel.GetSingleSideLevelIndex(globalConfig.ChartViewConfig.ConfidenceLevel);
-            EasyControlConfig easyControlConfig = globalConfig.EasyControlConfig;
-            bool flag = false;
-            for (int i = 0; i < this.deviceConfigManager.DeviceConfigList.Count; i++)
-            {
-                DeviceConfigInfo deviceConfigInfo = this.deviceConfigManager.DeviceConfigList[i];
-                if (easyControlConfig.DeviceConfig != null && easyControlConfig.DeviceConfig.Guid == deviceConfigInfo.Guid)
-                {
-                    this.comboBox16.SelectedIndex = i;
-                    flag = true;
-                    break;
-                }
-            }
-            if (!flag)
-            {
-                this.comboBox16.SelectedIndex = -1;
-            }
-            flag = false;
-            for (int j = 0; j < this.roiConfigManager.ROIConfigList.Count; j++)
-            {
-                ROIConfigData roiconfigData = this.roiConfigManager.ROIConfigList[j];
-                if (easyControlConfig.ROIConfig != null && easyControlConfig.ROIConfig.Guid == roiconfigData.Guid)
-                {
-                    this.comboBox17.SelectedIndex = j;
-                    flag = true;
-                    break;
-                }
-            }
-            if (!flag)
-            {
-                this.comboBox17.SelectedIndex = -1;
-            }
-            this.textBox2.Text = easyControlConfig.SpectraFolder;
-            this.textBox3.Text = easyControlConfig.EnergyCalibrationFilePrefix;
-            this.textBox4.Text = easyControlConfig.BackgroundFilePrefix;
-            this.textBox5.Text = easyControlConfig.SampleFilePrefix;
-            this.integerTextBox11.Text = easyControlConfig.WarmupTime.ToString(CultureInfo.InvariantCulture);
-            this.integerTextBox12.Text = easyControlConfig.CalibrationTime.ToString(CultureInfo.InvariantCulture);
-            this.integerTextBox13.Text = easyControlConfig.ShutdownTime.ToString(CultureInfo.InvariantCulture);
-            this.integerTextBox1.Text = easyControlConfig.DefaultBGPresetTime.ToString(CultureInfo.InvariantCulture);
-            this.integerTextBox2.Text = easyControlConfig.BGPresetTime1.ToString(CultureInfo.InvariantCulture);
-            this.integerTextBox3.Text = easyControlConfig.BGPresetTime2.ToString(CultureInfo.InvariantCulture);
-            this.integerTextBox4.Text = easyControlConfig.BGPresetTime3.ToString(CultureInfo.InvariantCulture);
-            this.integerTextBox5.Text = easyControlConfig.BGPresetTime4.ToString(CultureInfo.InvariantCulture);
-            this.integerTextBox6.Text = easyControlConfig.DefaultPresetTime.ToString(CultureInfo.InvariantCulture);
-            this.integerTextBox7.Text = easyControlConfig.PresetTime1.ToString(CultureInfo.InvariantCulture);
-            this.integerTextBox8.Text = easyControlConfig.PresetTime2.ToString(CultureInfo.InvariantCulture);
-            this.integerTextBox9.Text = easyControlConfig.PresetTime3.ToString(CultureInfo.InvariantCulture);
-            this.integerTextBox10.Text = easyControlConfig.PresetTime4.ToString(CultureInfo.InvariantCulture);
             this.textBox6.Text = globalConfig.SoundConfig.MeasurementCompletion;
             this.comboBox12.SelectedIndex = (int)globalConfig.MeasurementConfig.VolumeUnit;
             this.comboBox13.SelectedIndex = (int)globalConfig.MeasurementConfig.WeightUnit;
@@ -236,8 +183,6 @@ namespace BecquerelMonitor
             globalConfig.ColorConfig.GridColor1.Color = this.colorComboBox4.SelectedColor;
             globalConfig.ColorConfig.GridColor2.Color = this.colorComboBox5.SelectedColor;
             globalConfig.ColorConfig.ROIBorderColor.Color = this.colorComboBox6.SelectedColor;
-            globalConfig.ColorConfig.ROIBackgroundColor.Color = this.colorComboBox7.SelectedColor;
-            globalConfig.ColorConfig.ROINetColor.Color = this.colorComboBox16.SelectedColor;
             globalConfig.ColorConfig.SelectionBorderColor.Color = this.colorComboBox8.SelectedColor;
             globalConfig.ColorConfig.SelectionBackgroundColor.Color = this.colorComboBox9.SelectedColor;
             globalConfig.ColorConfig.SelectionNetColor.Color = this.colorComboBox14.SelectedColor;
@@ -271,34 +216,6 @@ namespace BecquerelMonitor
             globalConfig.ChartViewConfig.ChartRefreshCycle = (int)this.numericUpDown3.Value;
             globalConfig.ChartViewConfig.MagnificationReference = (MagnificationReference)this.comboBox11.SelectedIndex;
             globalConfig.ChartViewConfig.ConfidenceLevel = ConfidenceLevel.z_score_single_side[this.confidenceLevelcomboBox.SelectedIndex];
-            EasyControlConfig easyControlConfig = globalConfig.EasyControlConfig;
-            if (this.comboBox16.SelectedIndex >= 0)
-            {
-                easyControlConfig.DeviceConfig = this.deviceConfigManager.DeviceConfigList[this.comboBox16.SelectedIndex];
-                easyControlConfig.DeviceConfigReference = easyControlConfig.DeviceConfig.CreateReference();
-            }
-            if (this.comboBox17.SelectedIndex >= 0)
-            {
-                easyControlConfig.ROIConfig = this.roiConfigManager.ROIConfigList[this.comboBox17.SelectedIndex];
-                easyControlConfig.ROIConfigReference = easyControlConfig.ROIConfig.CreateReference();
-            }
-            easyControlConfig.SpectraFolder = this.textBox2.Text;
-            easyControlConfig.EnergyCalibrationFilePrefix = this.textBox3.Text;
-            easyControlConfig.BackgroundFilePrefix = this.textBox4.Text;
-            easyControlConfig.SampleFilePrefix = this.textBox5.Text;
-            easyControlConfig.WarmupTime = this.integerTextBox11.GetValue();
-            easyControlConfig.CalibrationTime = this.integerTextBox12.GetValue();
-            easyControlConfig.ShutdownTime = this.integerTextBox13.GetValue();
-            easyControlConfig.DefaultBGPresetTime = this.integerTextBox1.GetValue();
-            easyControlConfig.BGPresetTime1 = this.integerTextBox2.GetValue();
-            easyControlConfig.BGPresetTime2 = this.integerTextBox3.GetValue();
-            easyControlConfig.BGPresetTime3 = this.integerTextBox4.GetValue();
-            easyControlConfig.BGPresetTime4 = this.integerTextBox5.GetValue();
-            easyControlConfig.DefaultPresetTime = this.integerTextBox6.GetValue();
-            easyControlConfig.PresetTime1 = this.integerTextBox7.GetValue();
-            easyControlConfig.PresetTime2 = this.integerTextBox8.GetValue();
-            easyControlConfig.PresetTime3 = this.integerTextBox9.GetValue();
-            easyControlConfig.PresetTime4 = this.integerTextBox10.GetValue();
             globalConfig.SoundConfig.MeasurementCompletion = this.textBox6.Text;
             globalConfig.MeasurementConfig.VolumeUnit = (VolumeUnit)this.comboBox12.SelectedIndex;
             globalConfig.MeasurementConfig.WeightUnit = (WeightUnit)this.comboBox13.SelectedIndex;
@@ -313,28 +230,6 @@ namespace BecquerelMonitor
             globalConfig.SaveResponseMatrixInSpectrum = this.saveResponseMatrixInSpectrumCheckBox.Checked;
             globalConfig.ChartViewConfig.HorizontalScale = (double)this.numericUpDown14.Value;
 
-        }
-
-        // Token: 0x06000AC7 RID: 2759 RVA: 0x00041060 File Offset: 0x0003F260
-        void UpdateDeviceConfigList()
-        {
-            this.comboBox16.Items.Clear();
-            for (int i = 0; i < this.deviceConfigManager.DeviceConfigList.Count; i++)
-            {
-                DeviceConfigInfo deviceConfigInfo = this.deviceConfigManager.DeviceConfigList[i];
-                this.comboBox16.Items.Add(deviceConfigInfo.Name);
-            }
-        }
-
-        // Token: 0x06000AC8 RID: 2760 RVA: 0x000410C8 File Offset: 0x0003F2C8
-        void UpdateROIConfigList()
-        {
-            this.comboBox17.Items.Clear();
-            for (int i = 0; i < this.roiConfigManager.ROIConfigList.Count; i++)
-            {
-                ROIConfigData roiconfigData = this.roiConfigManager.ROIConfigList[i];
-                this.comboBox17.Items.Add(roiconfigData.Name);
-            }
         }
 
         // Token: 0x06000AC9 RID: 2761 RVA: 0x00041130 File Offset: 0x0003F330
@@ -396,21 +291,6 @@ namespace BecquerelMonitor
             this.Refresh();
         }
 
-        // Token: 0x06000ACD RID: 2765 RVA: 0x000411FC File Offset: 0x0003F3FC
-        void button5_Click(object sender, EventArgs e)
-        {
-            GlobalConfigInfo globalConfig = GlobalConfigManager.GetInstance().GlobalConfig;
-            FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
-            folderBrowserDialog.Description = "Please select a spectrum save folder.";
-            folderBrowserDialog.RootFolder = Environment.SpecialFolder.Desktop;
-            folderBrowserDialog.SelectedPath = globalConfig.EasyControlConfig.SpectraFolder;
-            folderBrowserDialog.ShowNewFolderButton = true;
-            if (folderBrowserDialog.ShowDialog(this) == DialogResult.OK)
-            {
-                this.textBox2.Text = folderBrowserDialog.SelectedPath;
-            }
-        }
-
         // Token: 0x06000ACE RID: 2766 RVA: 0x00041268 File Offset: 0x0003F468
         void button6_Click(object sender, EventArgs e)
         {
@@ -442,10 +322,5 @@ namespace BecquerelMonitor
         // Token: 0x040005F2 RID: 1522
         public MainForm mainForm;
 
-        // Token: 0x040005F3 RID: 1523
-        DeviceConfigManager deviceConfigManager = DeviceConfigManager.GetInstance();
-
-        // Token: 0x040005F4 RID: 1524
-        ROIConfigManager roiConfigManager = ROIConfigManager.GetInstance();
     }
 }

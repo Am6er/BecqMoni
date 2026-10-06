@@ -90,8 +90,6 @@ namespace StartTimeProbeF52
             }
 
             // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`).
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             missingText = Res("ERRMissingStartDateTime");
             unreadableText = Res("ERRUnreadableStartDateTimeN42");

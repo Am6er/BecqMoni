@@ -117,9 +117,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="label67.Text" xml:space="preserve">
-    <value>Default</value>
-  </data>
   <data name="&gt;&gt;label37.Parent" xml:space="preserve">
     <value>groupBox1</value>
   </data>
@@ -128,16 +125,13 @@
     <value>407, 186</value>
   </data>
   <data name="&gt;&gt;colorComboBox12.ZOrder" xml:space="preserve">
-    <value>16</value>
+    <value>15</value>
   </data>
   <data name="comboBox6.Items" xml:space="preserve">
     <value>None</value>
   </data>
   <data name="&gt;&gt;colorComboBox2.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;label82.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="label89.Text" xml:space="preserve">
     <value>Unknown peak</value>
@@ -146,9 +140,6 @@
     <value>75, 25</value>
   </data>
   <assembly alias="mscorlib" name="mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="label74.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="button3.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -4428,9 +4419,6 @@
   <data name="&gt;&gt;label6.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="integerTextBox6.Location" type="System.Drawing.Point, System.Drawing">
-    <value>83, 31</value>
-  </data>
   <data name="&gt;&gt;comboBox5.Type" xml:space="preserve">
     <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -4440,32 +4428,17 @@
   <data name="&gt;&gt;numericUpDown7.Name" xml:space="preserve">
     <value>numericUpDown7</value>
   </data>
-  <data name="label70.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
   <data name="&gt;&gt;label35.Name" xml:space="preserve">
     <value>label35</value>
   </data>
   <data name="&gt;&gt;colorComboBox22.Name" xml:space="preserve">
     <value>colorComboBox22</value>
   </data>
-  <data name="label11.Location" type="System.Drawing.Point, System.Drawing">
-    <value>19, 141</value>
-  </data>
   <data name="&gt;&gt;comboBox6.Type" xml:space="preserve">
     <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="integerTextBox3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>291, 59</value>
-  </data>
-  <data name="&gt;&gt;button5.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
   <data name="colorComboBox36.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="button5.TabIndex" type="System.Int32, mscorlib">
-    <value>4</value>
   </data>
   <data name="button3.TabIndex" type="System.Int32, mscorlib">
     <value>7</value>
@@ -4476,11 +4449,8 @@
   <data name="&gt;&gt;label24.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="integerTextBox4.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
   <data name="&gt;&gt;colorComboBox15.ZOrder" xml:space="preserve">
-    <value>19</value>
+    <value>18</value>
   </data>
   <data name="label84.TabIndex" type="System.Int32, mscorlib">
     <value>18</value>
@@ -4497,35 +4467,17 @@
   <data name="label38.Text" xml:space="preserve">
     <value>Background</value>
   </data>
-  <data name="label79.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="&gt;&gt;tabPage4.Parent" xml:space="preserve">
-    <value>tabControl1</value>
-  </data>
   <data name="&gt;&gt;groupBox4.Name" xml:space="preserve">
     <value>groupBox4</value>
   </data>
   <data name="label19.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="&gt;&gt;label11.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
   <data name="&gt;&gt;label19.Parent" xml:space="preserve">
     <value>groupBox3</value>
   </data>
   <data name="label36.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
-  </data>
-  <data name="&gt;&gt;groupBox10.Name" xml:space="preserve">
-    <value>groupBox10</value>
-  </data>
-  <data name="label76.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="&gt;&gt;label83.Name" xml:space="preserve">
-    <value>label83</value>
   </data>
   <data name="&gt;&gt;checkBox2.ZOrder" xml:space="preserve">
     <value>0</value>
@@ -4539,9 +4491,6 @@
   <data name="label10.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="label68.Text" xml:space="preserve">
-    <value>Selection1</value>
-  </data>
   <data name="&gt;&gt;label20.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -4551,26 +4500,14 @@
   <data name="label1.Location" type="System.Drawing.Point, System.Drawing">
     <value>291, 30</value>
   </data>
-  <data name="&gt;&gt;textBox3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="label77.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
   <data name="label55.Text" xml:space="preserve">
     <value>%</value>
   </data>
   <data name="comboBox15.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="label66.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="label29.Text" xml:space="preserve">
     <value>Spectrum1</value>
-  </data>
-  <data name="&gt;&gt;comboBox16.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="doubleTextBox1.Size" type="System.Drawing.Size, System.Drawing">
     <value>77, 20</value>
@@ -4580,15 +4517,6 @@
   </data>
   <data name="colorComboBox25.Location" type="System.Drawing.Point, System.Drawing">
     <value>407, 106</value>
-  </data>
-  <data name="&gt;&gt;colorComboBox16.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;groupBox8.Name" xml:space="preserve">
-    <value>groupBox8</value>
-  </data>
-  <data name="&gt;&gt;label70.ZOrder" xml:space="preserve">
-    <value>5</value>
   </data>
   <data name="&gt;&gt;checkBox2.Parent" xml:space="preserve">
     <value>groupBox5</value>
@@ -4617,17 +4545,8 @@
   <data name="label39.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
-  <data name="&gt;&gt;integerTextBox9.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="label68.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
   <data name="&gt;&gt;comboBox2.Parent" xml:space="preserve">
     <value>groupBox1</value>
-  </data>
-  <data name="textBox5.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="&gt;&gt;label10.Parent" xml:space="preserve">
     <value>groupBox3</value>
@@ -4647,9 +4566,6 @@
   <data name="&gt;&gt;tabPage5.Parent" xml:space="preserve">
     <value>tabControl1</value>
   </data>
-  <data name="label75.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="label46.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -4665,23 +4581,14 @@
   <data name="label19.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="&gt;&gt;comboBox17.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
   <data name="&gt;&gt;label39.Name" xml:space="preserve">
     <value>label39</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox6.ZOrder" xml:space="preserve">
-    <value>1</value>
   </data>
   <data name="&gt;&gt;comboBox14.Name" xml:space="preserve">
     <value>comboBox14</value>
   </data>
   <data name="&gt;&gt;colorComboBox37.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="label83.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="label32.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -4704,9 +4611,6 @@
   <data name="comboBox6.Size" type="System.Drawing.Size, System.Drawing">
     <value>121, 21</value>
   </data>
-  <data name="label73.Location" type="System.Drawing.Point, System.Drawing">
-    <value>422, 35</value>
-  </data>
   <data name="label57.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
@@ -4719,17 +4623,11 @@
   <data name="&gt;&gt;label12.Parent" xml:space="preserve">
     <value>groupBox3</value>
   </data>
-  <data name="integerTextBox9.Location" type="System.Drawing.Point, System.Drawing">
-    <value>486, 31</value>
-  </data>
   <data name="&gt;&gt;numericUpDown14.Parent" xml:space="preserve">
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;colorComboBox8.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="groupBox8.Text" xml:space="preserve">
-    <value>Background Measurement Time</value>
   </data>
   <data name="label7.Text" xml:space="preserve">
     <value>Active Spectrum (BG)</value>
@@ -4743,14 +4641,8 @@
   <data name="colorComboBox33.Location" type="System.Drawing.Point, System.Drawing">
     <value>614, 158</value>
   </data>
-  <data name="&gt;&gt;label71.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
   <data name="&gt;&gt;colorComboBox33.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="integerTextBox10.Location" type="System.Drawing.Point, System.Drawing">
-    <value>486, 59</value>
   </data>
   <data name="label3.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -4797,14 +4689,8 @@
   <data name="numericUpDown7.Size" type="System.Drawing.Size, System.Drawing">
     <value>49, 20</value>
   </data>
-  <data name="integerTextBox3.TabIndex" type="System.Int32, mscorlib">
-    <value>10</value>
-  </data>
   <data name="label54.Location" type="System.Drawing.Point, System.Drawing">
     <value>19, 159</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox12.ZOrder" xml:space="preserve">
-    <value>3</value>
   </data>
   <data name="&gt;&gt;tabPage2.Type" xml:space="preserve">
     <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -4814,9 +4700,6 @@
   </data>
   <data name="label46.Size" type="System.Drawing.Size, System.Drawing">
     <value>63, 13</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox10.Name" xml:space="preserve">
-    <value>integerTextBox10</value>
   </data>
   <data name="numericUpDown5.Size" type="System.Drawing.Size, System.Drawing">
     <value>73, 20</value>
@@ -4836,9 +4719,6 @@
   <data name="&gt;&gt;label16.Name" xml:space="preserve">
     <value>label16</value>
   </data>
-  <data name="label82.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 89</value>
-  </data>
   <data name="label9.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
@@ -4849,7 +4729,7 @@
     <value>37, 13</value>
   </data>
   <data name="&gt;&gt;label17.ZOrder" xml:space="preserve">
-    <value>33</value>
+    <value>29</value>
   </data>
   <data name="label37.Text" xml:space="preserve">
     <value>Drawing Mode</value>
@@ -4860,9 +4740,6 @@
   <data name="&gt;&gt;label84.Name" xml:space="preserve">
     <value>label84</value>
   </data>
-  <data name="&gt;&gt;integerTextBox6.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
   <data name="&gt;&gt;label24.Name" xml:space="preserve">
     <value>label24</value>
   </data>
@@ -4871,9 +4748,6 @@
   </data>
   <data name="label43.Text" xml:space="preserve">
     <value>Horizontal Scale</value>
-  </data>
-  <data name="label80.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
   </data>
   <data name="&gt;&gt;autoSaveDefaultPolicyCheckBox.ZOrder" xml:space="preserve">
     <value>5</value>
@@ -4887,9 +4761,6 @@
   <data name="label33.Location" type="System.Drawing.Point, System.Drawing">
     <value>337, 136</value>
   </data>
-  <data name="label25.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="colorComboBox20.TabIndex" type="System.Int32, mscorlib">
     <value>49</value>
   </data>
@@ -4898,9 +4769,6 @@
   </data>
   <data name="&gt;&gt;numericUpDown10.Parent" xml:space="preserve">
     <value>groupBox6</value>
-  </data>
-  <data name="groupBox10.Text" xml:space="preserve">
-    <value>Result File Configuration</value>
   </data>
   <data name="label3.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -4916,9 +4784,6 @@
   </data>
   <data name="colorComboBox5.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>
-  </data>
-  <data name="&gt;&gt;colorComboBox7.Parent" xml:space="preserve">
-    <value>groupBox3</value>
   </data>
   <data name="confidenceLevelcomboBox.Items1" xml:space="preserve">
     <value>90%</value>
@@ -4940,9 +4805,6 @@
   </data>
   <data name="&gt;&gt;label57.ZOrder" xml:space="preserve">
     <value>18</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox4.Name" xml:space="preserve">
-    <value>integerTextBox4</value>
   </data>
   <data name="label18.ToolTip" xml:space="preserve">
     <value />
@@ -4974,32 +4836,17 @@
   <data name="confidenceLevelLabel.TabIndex" type="System.Int32, mscorlib">
     <value>20</value>
   </data>
-  <data name="&gt;&gt;textBox3.Name" xml:space="preserve">
-    <value>textBox3</value>
-  </data>
   <data name="&gt;&gt;comboBox11.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
   <data name="&gt;&gt;groupBox5.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
-  <data name="&gt;&gt;textBox5.Parent" xml:space="preserve">
-    <value>groupBox10</value>
-  </data>
   <data name="colorComboBox32.Location" type="System.Drawing.Point, System.Drawing">
     <value>614, 130</value>
   </data>
-  <data name="textBox5.TabIndex" type="System.Int32, mscorlib">
-    <value>9</value>
-  </data>
   <data name="&gt;&gt;groupBox2.Type" xml:space="preserve">
     <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="label83.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox11.Name" xml:space="preserve">
-    <value>integerTextBox11</value>
   </data>
   <data name="label8.Location" type="System.Drawing.Point, System.Drawing">
     <value>19, 28</value>
@@ -5016,14 +4863,8 @@
   <data name="numericUpDown4.Location" type="System.Drawing.Point, System.Drawing">
     <value>125, 100</value>
   </data>
-  <data name="label75.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
   <data name="comboBox14.TabIndex" type="System.Int32, mscorlib">
     <value>29</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox8.Name" xml:space="preserve">
-    <value>integerTextBox8</value>
   </data>
   <data name="progressiveSmoothCheckbox.Size" type="System.Drawing.Size, System.Drawing">
     <value>175, 20</value>
@@ -5048,9 +4889,6 @@
   </data>
   <data name="confidenceLevelcomboBox.Items2" xml:space="preserve">
     <value>95%</value>
-  </data>
-  <data name="label70.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="label55.TabIndex" type="System.Int32, mscorlib">
     <value>78</value>
@@ -5082,18 +4920,6 @@
   <data name="numericUpDown2.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="&gt;&gt;textBox4.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label66.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="label65.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="&gt;&gt;integerTextBox2.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
   <data name="groupBox4.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 8</value>
   </data>
@@ -5112,12 +4938,6 @@
   <data name="&gt;&gt;label7.ZOrder" xml:space="preserve">
     <value>29</value>
   </data>
-  <data name="&gt;&gt;integerTextBox11.Parent" xml:space="preserve">
-    <value>tabPage4</value>
-  </data>
-  <data name="label69.Location" type="System.Drawing.Point, System.Drawing">
-    <value>227, 62</value>
-  </data>
   <data name="&gt;&gt;label3.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -5126,9 +4946,6 @@
   </data>
   <data name="doubleTextBox3.Location" type="System.Drawing.Point, System.Drawing">
     <value>105, 23</value>
-  </data>
-  <data name="label82.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="label16.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -5175,23 +4992,11 @@
   <data name="label55.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="integerTextBox8.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="label73.Text" xml:space="preserve">
-    <value>Selection3</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox7.Parent" xml:space="preserve">
-    <value>groupBox9</value>
-  </data>
   <data name="numericUpDown6.Location" type="System.Drawing.Point, System.Drawing">
     <value>247, 18</value>
   </data>
   <data name="&gt;&gt;doubleTextBox2.Name" xml:space="preserve">
     <value>doubleTextBox2</value>
-  </data>
-  <data name="&gt;&gt;label69.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;colorComboBox25.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
@@ -5199,20 +5004,11 @@
   <data name="&gt;&gt;numericUpDown5.Name" xml:space="preserve">
     <value>numericUpDown5</value>
   </data>
-  <data name="&gt;&gt;label74.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
   <data name="label29.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
   <data name="button2.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
-  </data>
-  <data name="label80.Size" type="System.Drawing.Size, System.Drawing">
-    <value>81, 13</value>
-  </data>
-  <data name="colorComboBox7.Location" type="System.Drawing.Point, System.Drawing">
-    <value>131, 134</value>
   </data>
   <data name="tabPage3.Text" xml:space="preserve">
     <value>Color</value>
@@ -5224,16 +5020,13 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;label20.ZOrder" xml:space="preserve">
-    <value>28</value>
+    <value>24</value>
   </data>
   <data name="label16.Text" xml:space="preserve">
     <value>Gauge</value>
   </data>
   <data name="label92.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox8.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="comboBox10.Size" type="System.Drawing.Size, System.Drawing">
     <value>121, 21</value>
@@ -5251,10 +5044,7 @@
     <value>337, 169</value>
   </data>
   <data name="&gt;&gt;label16.ZOrder" xml:space="preserve">
-    <value>31</value>
-  </data>
-  <data name="&gt;&gt;label74.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>27</value>
   </data>
   <data name="groupBox4.Text" xml:space="preserve">
     <value>Spectrum Colors</value>
@@ -5265,23 +5055,14 @@
   <data name="&gt;&gt;colorComboBox23.ZOrder" xml:space="preserve">
     <value>40</value>
   </data>
-  <data name="integerTextBox6.TabIndex" type="System.Int32, mscorlib">
-    <value>14</value>
-  </data>
   <data name="$this.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="&gt;&gt;integerTextBox12.Name" xml:space="preserve">
-    <value>integerTextBox12</value>
   </data>
   <data name="&gt;&gt;comboBox15.Name" xml:space="preserve">
     <value>comboBox15</value>
   </data>
   <data name="tabPage2.Text" xml:space="preserve">
     <value>System</value>
-  </data>
-  <data name="&gt;&gt;label67.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="doubleTextBox2.Location" type="System.Drawing.Point, System.Drawing">
     <value>105, 77</value>
@@ -5298,15 +5079,6 @@
   <data name="&gt;&gt;colorComboBox31.ZOrder" xml:space="preserve">
     <value>13</value>
   </data>
-  <data name="textBox4.TabIndex" type="System.Int32, mscorlib">
-    <value>8</value>
-  </data>
-  <data name="&gt;&gt;label25.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox4.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
   <data name="comboBox12.Location" type="System.Drawing.Point, System.Drawing">
     <value>109, 54</value>
   </data>
@@ -5318,12 +5090,6 @@
   </data>
   <data name="&gt;&gt;label63.ZOrder" xml:space="preserve">
     <value>11</value>
-  </data>
-  <data name="label82.TabIndex" type="System.Int32, mscorlib">
-    <value>7</value>
-  </data>
-  <data name="label81.Text" xml:space="preserve">
-    <value>Energy Calibration File Prefix</value>
   </data>
   <data name="&gt;&gt;label36.Parent" xml:space="preserve">
     <value>groupBox4</value>
@@ -5367,9 +5133,6 @@
   <data name="label63.Size" type="System.Drawing.Size, System.Drawing">
     <value>64, 13</value>
   </data>
-  <data name="textBox5.Location" type="System.Drawing.Point, System.Drawing">
-    <value>188, 113</value>
-  </data>
   <data name="label33.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
@@ -5400,9 +5163,6 @@
   <data name="label85.Text" xml:space="preserve">
     <value>Mouse cursor peak settings [E-(Pitch + Percent*E); E+(Pitch + Percent*E)]</value>
   </data>
-  <data name="&gt;&gt;label65.ZOrder" xml:space="preserve">
-    <value>12</value>
-  </data>
   <data name="&gt;&gt;colorComboBox9.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
@@ -5418,26 +5178,14 @@
   <data name="label4.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="label76.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox6.Size" type="System.Drawing.Size, System.Drawing">
-    <value>100, 20</value>
-  </data>
   <data name="&gt;&gt;label4.Name" xml:space="preserve">
     <value>label4</value>
-  </data>
-  <data name="groupBox8.TabIndex" type="System.Int32, mscorlib">
-    <value>6</value>
-  </data>
-  <data name="integerTextBox10.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="label2.Location" type="System.Drawing.Point, System.Drawing">
     <value>291, 59</value>
   </data>
   <data name="&gt;&gt;colorComboBox14.ZOrder" xml:space="preserve">
-    <value>18</value>
+    <value>17</value>
   </data>
   <data name="importSpectrumWithEmptyConfigCheckBox.Size" type="System.Drawing.Size, System.Drawing">
     <value>500, 17</value>
@@ -5457,9 +5205,6 @@
   <data name="colorComboBox13.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="label72.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
-  </data>
   <data name="&gt;&gt;label52.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -5472,14 +5217,8 @@
   <data name="label60.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="label78.Text" xml:space="preserve">
-    <value>Warm-up Time</value>
-  </data>
   <data name="label13.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="&gt;&gt;integerTextBox13.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="button7.Text" xml:space="preserve">
     <value>Play</value>
@@ -5506,10 +5245,7 @@
     <value>Result &gt; k Times of Standard Uncertainty</value>
   </data>
   <data name="&gt;&gt;label15.ZOrder" xml:space="preserve">
-    <value>29</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox7.Name" xml:space="preserve">
-    <value>integerTextBox7</value>
+    <value>25</value>
   </data>
   <data name="&gt;&gt;label31.Parent" xml:space="preserve">
     <value>groupBox4</value>
@@ -5529,9 +5265,6 @@
   <data name="label44.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="label11.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
   <data name="&gt;&gt;groupBox3.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
@@ -5549,9 +5282,6 @@
   </data>
   <data name="label84.Location" type="System.Drawing.Point, System.Drawing">
     <value>17, 48</value>
-  </data>
-  <data name="label25.Text" xml:space="preserve">
-    <value>ROI Net Region</value>
   </data>
   <data name="label30.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -5589,9 +5319,6 @@
   <data name="label63.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="&gt;&gt;label73.Name" xml:space="preserve">
-    <value>label73</value>
-  </data>
   <data name="label86.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
@@ -5604,12 +5331,6 @@
   <data name="colorComboBox26.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="label67.TabIndex" type="System.Int32, mscorlib">
-    <value>7</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox10.Parent" xml:space="preserve">
-    <value>groupBox9</value>
-  </data>
   <data name="groupBox3.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
   </data>
@@ -5619,26 +5340,14 @@
   <data name="colorComboBox5.TabIndex" type="System.Int32, mscorlib">
     <value>28</value>
   </data>
-  <data name="label72.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="&gt;&gt;numericUpDown2.ZOrder" xml:space="preserve">
     <value>16</value>
-  </data>
-  <data name="colorComboBox16.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="&gt;&gt;label45.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="groupBox8.Size" type="System.Drawing.Size, System.Drawing">
-    <value>696, 103</value>
-  </data>
   <data name="tabPage3.TabIndex" type="System.Int32, mscorlib">
     <value>2</value>
-  </data>
-  <data name="label70.Location" type="System.Drawing.Point, System.Drawing">
-    <value>422, 35</value>
   </data>
   <data name="colorComboBox32.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>
@@ -5647,10 +5356,7 @@
     <value>True</value>
   </data>
   <data name="&gt;&gt;colorComboBox13.ZOrder" xml:space="preserve">
-    <value>17</value>
-  </data>
-  <data name="&gt;&gt;label68.Name" xml:space="preserve">
-    <value>label68</value>
+    <value>16</value>
   </data>
   <data name="&gt;&gt;comboBox2.ZOrder" xml:space="preserve">
     <value>13</value>
@@ -5679,14 +5385,8 @@
   <data name="&gt;&gt;label58.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="label68.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
-  </data>
   <data name="&gt;&gt;colorComboBox23.Parent" xml:space="preserve">
     <value>groupBox4</value>
-  </data>
-  <data name="label73.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="label84.Size" type="System.Drawing.Size, System.Drawing">
     <value>172, 18</value>
@@ -5700,9 +5400,6 @@
   <data name="checkBox1.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="button5.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
   <data name="importSpectrumWithEmptyConfigCheckBox.ToolTip" xml:space="preserve">
     <value />
   </data>
@@ -5711,9 +5408,6 @@
   </data>
   <data name="&gt;&gt;label61.Parent" xml:space="preserve">
     <value>groupBox4</value>
-  </data>
-  <data name="&gt;&gt;label69.Parent" xml:space="preserve">
-    <value>groupBox8</value>
   </data>
   <data name="&gt;&gt;label87.ZOrder" xml:space="preserve">
     <value>5</value>
@@ -5736,12 +5430,6 @@
   <data name="confidenceLevelcomboBox.Size" type="System.Drawing.Size, System.Drawing">
     <value>50, 21</value>
   </data>
-  <data name="label77.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="label11.Size" type="System.Drawing.Size, System.Drawing">
-    <value>87, 13</value>
-  </data>
   <data name="textBox1.ToolTip" xml:space="preserve">
     <value />
   </data>
@@ -5757,17 +5445,8 @@
   <data name="comboBox11.TabIndex" type="System.Int32, mscorlib">
     <value>22</value>
   </data>
-  <data name="button5.Text" xml:space="preserve">
-    <value>Select...</value>
-  </data>
-  <data name="comboBox16.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="comboBox8.Items" xml:space="preserve">
     <value>Antialiasing</value>
-  </data>
-  <data name="integerTextBox13.Size" type="System.Drawing.Size, System.Drawing">
-    <value>100, 20</value>
   </data>
   <data name="colorComboBox21.Location" type="System.Drawing.Point, System.Drawing">
     <value>407, 130</value>
@@ -5796,22 +5475,13 @@
   <data name="label27.Text" xml:space="preserve">
     <value>Chart Refresh Cycle</value>
   </data>
-  <data name="label80.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="&gt;&gt;label90.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="colorComboBox17.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>
   </data>
-  <data name="&gt;&gt;label67.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
   <data name="label30.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label81.ToolTip" xml:space="preserve">
     <value />
   </data>
   <data name="&gt;&gt;label87.Type" xml:space="preserve">
@@ -5832,12 +5502,6 @@
   <data name="&gt;&gt;tabControl1.Type" xml:space="preserve">
     <value>System.Windows.Forms.TabControl, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;label73.Parent" xml:space="preserve">
-    <value>groupBox9</value>
-  </data>
-  <data name="label67.Size" type="System.Drawing.Size, System.Drawing">
-    <value>41, 13</value>
-  </data>
   <data name="label5.Location" type="System.Drawing.Point, System.Drawing">
     <value>291, 115</value>
   </data>
@@ -5853,17 +5517,11 @@
   <data name="colorComboBox13.Location" type="System.Drawing.Point, System.Drawing">
     <value>407, 247</value>
   </data>
-  <data name="label81.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
   <data name="&gt;&gt;label54.Parent" xml:space="preserve">
     <value>groupBox5</value>
   </data>
   <data name="&gt;&gt;comboBox1.ZOrder" xml:space="preserve">
     <value>14</value>
-  </data>
-  <data name="comboBox16.TabIndex" type="System.Int32, mscorlib">
-    <value>1</value>
   </data>
   <data name="&gt;&gt;button3.Parent" xml:space="preserve">
     <value>$this</value>
@@ -5883,20 +5541,11 @@
   <data name="label39.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="&gt;&gt;label83.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="label74.Location" type="System.Drawing.Point, System.Drawing">
-    <value>227, 62</value>
-  </data>
   <data name="comboBox1.Items1" xml:space="preserve">
     <value>Counts per Second (cps)</value>
   </data>
   <data name="label45.Size" type="System.Drawing.Size, System.Drawing">
     <value>64, 13</value>
-  </data>
-  <data name="textBox3.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="&gt;&gt;label49.Name" xml:space="preserve">
     <value>label49</value>
@@ -5904,14 +5553,11 @@
   <data name="&gt;&gt;colorComboBox34.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
-  <data name="&gt;&gt;comboBox17.Name" xml:space="preserve">
-    <value>comboBox17</value>
-  </data>
   <data name="autoSaveDefaultPolicyCheckBox.ToolTip" xml:space="preserve">
     <value />
   </data>
   <data name="&gt;&gt;label14.ZOrder" xml:space="preserve">
-    <value>27</value>
+    <value>23</value>
   </data>
   <data name="&gt;&gt;colorComboBox28.Parent" xml:space="preserve">
     <value>groupBox4</value>
@@ -5931,9 +5577,6 @@
   <data name="doubleTextBox1.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
     <value>Right</value>
   </data>
-  <data name="label76.Size" type="System.Drawing.Size, System.Drawing">
-    <value>41, 13</value>
-  </data>
   <data name="label30.Text" xml:space="preserve">
     <value>Spectrum2</value>
   </data>
@@ -5952,26 +5595,14 @@
   <data name="label8.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="&gt;&gt;label70.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label25.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
   <data name="&gt;&gt;numericUpDown9.Parent" xml:space="preserve">
     <value>groupBox2</value>
-  </data>
-  <data name="label66.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
   </data>
   <data name="label30.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="label61.Location" type="System.Drawing.Point, System.Drawing">
     <value>544, 136</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox2.Name" xml:space="preserve">
-    <value>integerTextBox2</value>
   </data>
   <data name="tabControl1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Bottom, Left, Right</value>
@@ -5982,9 +5613,6 @@
   <data name="&gt;&gt;label61.ZOrder" xml:space="preserve">
     <value>9</value>
   </data>
-  <data name="label76.TabIndex" type="System.Int32, mscorlib">
-    <value>7</value>
-  </data>
   <data name="colorComboBox10.TabIndex" type="System.Int32, mscorlib">
     <value>33</value>
   </data>
@@ -5994,9 +5622,6 @@
   <data name="groupBox3.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 271</value>
   </data>
-  <data name="label73.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
-  </data>
   <data name="label34.Text" xml:space="preserve">
     <value>Spectrum6</value>
   </data>
@@ -6005,9 +5630,6 @@
   </data>
   <data name="label14.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
-  </data>
-  <data name="colorComboBox16.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
-    <value>2, 2, 2, 2</value>
   </data>
   <data name="label40.Text" xml:space="preserve">
     <value>Peak Flag</value>
@@ -6024,9 +5646,6 @@
   <data name="&gt;&gt;label21.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="label65.Text" xml:space="preserve">
-    <value>Device Config.</value>
-  </data>
   <data name="numericUpDown8.Size" type="System.Drawing.Size, System.Drawing">
     <value>40, 20</value>
   </data>
@@ -6039,9 +5658,6 @@
   <data name="label14.Location" type="System.Drawing.Point, System.Drawing">
     <value>337, 28</value>
   </data>
-  <data name="label75.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
   <data name="label57.Location" type="System.Drawing.Point, System.Drawing">
     <value>544, 52</value>
   </data>
@@ -6049,7 +5665,7 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;colorComboBox9.ZOrder" xml:space="preserve">
-    <value>13</value>
+    <value>12</value>
   </data>
   <data name="&gt;&gt;label34.Parent" xml:space="preserve">
     <value>groupBox4</value>
@@ -6066,29 +5682,14 @@
   <data name="&gt;&gt;label85.Parent" xml:space="preserve">
     <value>groupBox2</value>
   </data>
-  <data name="&gt;&gt;label80.Name" xml:space="preserve">
-    <value>label80</value>
-  </data>
   <data name="label44.Text" xml:space="preserve">
     <value>Magnification Origin</value>
-  </data>
-  <data name="integerTextBox9.Size" type="System.Drawing.Size, System.Drawing">
-    <value>100, 20</value>
   </data>
   <data name="groupBox4.Size" type="System.Drawing.Size, System.Drawing">
     <value>737, 257</value>
   </data>
   <data name="groupBox5.Location" type="System.Drawing.Point, System.Drawing">
     <value>6, 17</value>
-  </data>
-  <data name="integerTextBox4.TabIndex" type="System.Int32, mscorlib">
-    <value>11</value>
-  </data>
-  <data name="integerTextBox8.Location" type="System.Drawing.Point, System.Drawing">
-    <value>291, 59</value>
-  </data>
-  <data name="label77.TabIndex" type="System.Int32, mscorlib">
-    <value>17</value>
   </data>
   <data name="numericUpDown5.ToolTip" xml:space="preserve">
     <value />
@@ -6126,9 +5727,6 @@
   <data name="colorComboBox23.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>2, 2, 2, 2</value>
   </data>
-  <data name="&gt;&gt;integerTextBox11.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
   <data name="comboBox1.TabIndex" type="System.Int32, mscorlib">
     <value>7</value>
   </data>
@@ -6137,9 +5735,6 @@
   </data>
   <data name="&gt;&gt;label86.ZOrder" xml:space="preserve">
     <value>4</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox6.Parent" xml:space="preserve">
-    <value>groupBox9</value>
   </data>
   <data name="label20.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -6153,12 +5748,6 @@
   <data name="colorComboBox8.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="integerTextBox11.Location" type="System.Drawing.Point, System.Drawing">
-    <value>102, 96</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox9.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
   <data name="label42.ToolTip" xml:space="preserve">
     <value />
   </data>
@@ -6168,14 +5757,8 @@
   <data name="doubleTextBox2.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="tabPage4.Location" type="System.Drawing.Point, System.Drawing">
-    <value>4, 22</value>
-  </data>
   <data name="comboBox9.Location" type="System.Drawing.Point, System.Drawing">
     <value>111, 140</value>
-  </data>
-  <data name="comboBox17.TabIndex" type="System.Int32, mscorlib">
-    <value>18</value>
   </data>
   <data name="&gt;&gt;confidenceLevelLabel.Name" xml:space="preserve">
     <value>confidenceLevelLabel</value>
@@ -6201,17 +5784,8 @@
   <data name="label53.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="integerTextBox5.TabIndex" type="System.Int32, mscorlib">
-    <value>14</value>
-  </data>
-  <data name="&gt;&gt;textBox4.Parent" xml:space="preserve">
-    <value>groupBox10</value>
-  </data>
   <data name="label8.Text" xml:space="preserve">
     <value>Background</value>
-  </data>
-  <data name="integerTextBox13.Location" type="System.Drawing.Point, System.Drawing">
-    <value>102, 151</value>
   </data>
   <data name="numericUpDown3.TabIndex" type="System.Int32, mscorlib">
     <value>19</value>
@@ -6236,9 +5810,6 @@
   </data>
   <data name="label23.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="&gt;&gt;comboBox16.Name" xml:space="preserve">
-    <value>comboBox16</value>
   </data>
   <data name="label31.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -6279,9 +5850,6 @@
   <data name="label87.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
-  <data name="&gt;&gt;integerTextBox3.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
   <data name="label16.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -6293,9 +5861,6 @@
   </data>
   <data name="comboBox7.Size" type="System.Drawing.Size, System.Drawing">
     <value>121, 21</value>
-  </data>
-  <data name="label76.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 35</value>
   </data>
   <data name="colorComboBox25.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>2, 2, 2, 2</value>
@@ -6315,9 +5880,6 @@
   <data name="label57.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="label70.Text" xml:space="preserve">
-    <value>Selection3</value>
-  </data>
   <data name="tabPage1.ToolTip" xml:space="preserve">
     <value />
   </data>
@@ -6336,17 +5898,8 @@
   <data name="&gt;&gt;comboBox10.Type" xml:space="preserve">
     <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="integerTextBox10.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
   <data name="&gt;&gt;numericUpDown6.Parent" xml:space="preserve">
     <value>groupBox4</value>
-  </data>
-  <data name="&gt;&gt;label65.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="label72.Text" xml:space="preserve">
-    <value>Selection4</value>
   </data>
   <data name="colorComboBox18.ToolTip" xml:space="preserve">
     <value />
@@ -6369,9 +5922,6 @@
   <data name="&gt;&gt;label85.ZOrder" xml:space="preserve">
     <value>3</value>
   </data>
-  <data name="label79.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="&gt;&gt;groupBox4.Parent" xml:space="preserve">
     <value>tabPage3</value>
   </data>
@@ -6390,9 +5940,6 @@
   <data name="label37.TabIndex" type="System.Int32, mscorlib">
     <value>14</value>
   </data>
-  <data name="label74.Text" xml:space="preserve">
-    <value>Selection2</value>
-  </data>
   <data name="label20.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -6408,9 +5955,6 @@
   <data name="numericUpDown2.TabIndex" type="System.Int32, mscorlib">
     <value>18</value>
   </data>
-  <data name="integerTextBox2.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="colorComboBox23.ToolTip" xml:space="preserve">
     <value />
   </data>
@@ -6419,9 +5963,6 @@
   </data>
   <data name="checkBox2.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="label66.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 35</value>
   </data>
   <data name="comboBox7.Items1" xml:space="preserve">
     <value>Invisible</value>
@@ -6434,9 +5975,6 @@
   </data>
   <data name="comboBox12.Items" xml:space="preserve">
     <value>Liter (l)</value>
-  </data>
-  <data name="&gt;&gt;textBox4.Name" xml:space="preserve">
-    <value>textBox4</value>
   </data>
   <data name="label21.Size" type="System.Drawing.Size, System.Drawing">
     <value>74, 13</value>
@@ -6481,13 +6019,10 @@
     <value>Linear</value>
   </data>
   <data name="&gt;&gt;colorComboBox37.ZOrder" xml:space="preserve">
-    <value>35</value>
+    <value>31</value>
   </data>
   <data name="colorComboBox17.TabIndex" type="System.Int32, mscorlib">
     <value>46</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox1.Name" xml:space="preserve">
-    <value>integerTextBox1</value>
   </data>
   <data name="label39.Text" xml:space="preserve">
     <value>Peak Flag</value>
@@ -6534,20 +6069,11 @@
   <data name="label53.Location" type="System.Drawing.Point, System.Drawing">
     <value>19, 156</value>
   </data>
-  <data name="&gt;&gt;comboBox17.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
   <data name="label23.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="&gt;&gt;button5.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
   <data name="&gt;&gt;colorComboBox26.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="label80.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 154</value>
   </data>
   <data name="label91.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -6560,12 +6086,6 @@
   </data>
   <data name="groupBox3.Text" xml:space="preserve">
     <value>Other Colors</value>
-  </data>
-  <data name="&gt;&gt;label71.Parent" xml:space="preserve">
-    <value>groupBox8</value>
-  </data>
-  <data name="&gt;&gt;label79.Parent" xml:space="preserve">
-    <value>tabPage4</value>
   </data>
   <data name="button3.ToolTip" xml:space="preserve">
     <value />
@@ -6585,9 +6105,6 @@
   <data name="&gt;&gt;label46.ZOrder" xml:space="preserve">
     <value>5</value>
   </data>
-  <data name="&gt;&gt;integerTextBox8.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
   <data name="&gt;&gt;colorComboBox11.Name" xml:space="preserve">
     <value>colorComboBox11</value>
   </data>
@@ -6602,9 +6119,6 @@
   </data>
   <data name="&gt;&gt;colorComboBox22.Parent" xml:space="preserve">
     <value>groupBox4</value>
-  </data>
-  <data name="textBox4.Location" type="System.Drawing.Point, System.Drawing">
-    <value>188, 86</value>
   </data>
   <data name="&gt;&gt;label50.Name" xml:space="preserve">
     <value>label50</value>
@@ -6621,20 +6135,11 @@
   <data name="&gt;&gt;colorComboBox27.Parent" xml:space="preserve">
     <value>groupBox3</value>
   </data>
-  <data name="integerTextBox3.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="&gt;&gt;colorComboBox14.Parent" xml:space="preserve">
     <value>groupBox3</value>
   </data>
   <data name="&gt;&gt;colorComboBox22.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="label69.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="&gt;&gt;label75.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="button2.Text" xml:space="preserve">
     <value>Cancel</value>
@@ -6647,12 +6152,6 @@
   </data>
   <data name="label47.Size" type="System.Drawing.Size, System.Drawing">
     <value>90, 13</value>
-  </data>
-  <data name="&gt;&gt;comboBox16.Parent" xml:space="preserve">
-    <value>tabPage4</value>
-  </data>
-  <data name="colorComboBox7.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="label86.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -6705,14 +6204,8 @@
   <data name="&gt;&gt;label60.Parent" xml:space="preserve">
     <value>groupBox4</value>
   </data>
-  <data name="&gt;&gt;label68.Parent" xml:space="preserve">
-    <value>groupBox8</value>
-  </data>
   <data name="&gt;&gt;label48.ZOrder" xml:space="preserve">
     <value>9</value>
-  </data>
-  <data name="groupBox10.Location" type="System.Drawing.Point, System.Drawing">
-    <value>19, 408</value>
   </data>
   <data name="numericUpDown2.Size" type="System.Drawing.Size, System.Drawing">
     <value>77, 20</value>
@@ -6722,9 +6215,6 @@
   </data>
   <data name="comboBox7.TabIndex" type="System.Int32, mscorlib">
     <value>16</value>
-  </data>
-  <data name="integerTextBox12.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="label56.Text" xml:space="preserve">
     <value>Spectrum9</value>
@@ -6738,14 +6228,8 @@
   <data name="&gt;&gt;label17.Name" xml:space="preserve">
     <value>label17</value>
   </data>
-  <data name="&gt;&gt;textBox4.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
   <data name="label56.Location" type="System.Drawing.Point, System.Drawing">
     <value>544, 24</value>
-  </data>
-  <data name="integerTextBox11.Size" type="System.Drawing.Size, System.Drawing">
-    <value>100, 20</value>
   </data>
   <data name="doubleTextBox3.ToolTip" xml:space="preserve">
     <value />
@@ -6781,7 +6265,7 @@
     <value>3</value>
   </data>
   <data name="&gt;&gt;label19.ZOrder" xml:space="preserve">
-    <value>30</value>
+    <value>26</value>
   </data>
   <data name="comboBox13.Items1" xml:space="preserve">
     <value>Gram (g)</value>
@@ -6795,29 +6279,17 @@
   <data name="comboBox3.Size" type="System.Drawing.Size, System.Drawing">
     <value>121, 21</value>
   </data>
-  <data name="label73.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
   <data name="label87.Location" type="System.Drawing.Point, System.Drawing">
     <value>276, 156</value>
   </data>
   <data name="colorComboBox4.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>2, 2, 2, 2</value>
   </data>
-  <data name="label25.Location" type="System.Drawing.Point, System.Drawing">
-    <value>19, 169</value>
-  </data>
   <data name="colorComboBox2.TabIndex" type="System.Int32, mscorlib">
     <value>15</value>
   </data>
   <data name="confidenceLevelcomboBox.TabIndex" type="System.Int32, mscorlib">
     <value>22</value>
-  </data>
-  <data name="integerTextBox1.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox3.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
   </data>
   <data name="colorComboBox19.ToolTip" xml:space="preserve">
     <value />
@@ -6828,20 +6300,8 @@
   <data name="&gt;&gt;comboBox7.Parent" xml:space="preserve">
     <value>groupBox1</value>
   </data>
-  <data name="label80.TabIndex" type="System.Int32, mscorlib">
-    <value>22</value>
-  </data>
   <data name="&gt;&gt;label45.ZOrder" xml:space="preserve">
     <value>4</value>
-  </data>
-  <data name="label81.Size" type="System.Drawing.Size, System.Drawing">
-    <value>140, 13</value>
-  </data>
-  <data name="integerTextBox4.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label67.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
   </data>
   <data name="miscSettingsGroupBox.TabIndex" type="System.Int32, mscorlib">
     <value>29</value>
@@ -6854,12 +6314,6 @@
   </data>
   <data name="&gt;&gt;label41.Name" xml:space="preserve">
     <value>label41</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox5.Name" xml:space="preserve">
-    <value>integerTextBox5</value>
-  </data>
-  <data name="label71.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="button4.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -6894,12 +6348,6 @@
   <data name="colorComboBox36.Location" type="System.Drawing.Point, System.Drawing">
     <value>153, 111</value>
   </data>
-  <data name="&gt;&gt;integerTextBox4.Parent" xml:space="preserve">
-    <value>groupBox8</value>
-  </data>
-  <data name="&gt;&gt;label79.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
   <data name="label89.TabIndex" type="System.Int32, mscorlib">
     <value>40</value>
   </data>
@@ -6916,19 +6364,10 @@
     <value />
   </data>
   <data name="&gt;&gt;colorComboBox8.ZOrder" xml:space="preserve">
-    <value>12</value>
+    <value>11</value>
   </data>
   <data name="&gt;&gt;groupBox5.Type" xml:space="preserve">
     <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="label79.Text" xml:space="preserve">
-    <value>Calibration Time</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox12.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;textBox3.ZOrder" xml:space="preserve">
-    <value>4</value>
   </data>
   <data name="colorComboBox22.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>
@@ -6939,23 +6378,14 @@
   <data name="&gt;&gt;colorComboBox4.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
-  <data name="label25.Size" type="System.Drawing.Size, System.Drawing">
-    <value>83, 13</value>
-  </data>
   <data name="&gt;&gt;comboBox11.Parent" xml:space="preserve">
     <value>groupBox2</value>
   </data>
   <data name="confidenceLevelLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>164, 13</value>
   </data>
-  <data name="label81.TabIndex" type="System.Int32, mscorlib">
-    <value>5</value>
-  </data>
   <data name="comboBox2.Items2" xml:space="preserve">
     <value>Logarithmic</value>
-  </data>
-  <data name="label71.Location" type="System.Drawing.Point, System.Drawing">
-    <value>422, 62</value>
   </data>
   <data name="&gt;&gt;label49.Parent" xml:space="preserve">
     <value>groupBox5</value>
@@ -6971,9 +6401,6 @@
   </data>
   <data name="&gt;&gt;colorComboBox2.Parent" xml:space="preserve">
     <value>groupBox4</value>
-  </data>
-  <data name="colorComboBox7.Size" type="System.Drawing.Size, System.Drawing">
-    <value>103, 24</value>
   </data>
   <data name="colorComboBox34.TabIndex" type="System.Int32, mscorlib">
     <value>67</value>
@@ -6996,9 +6423,6 @@
   <data name="&gt;&gt;textBox6.Name" xml:space="preserve">
     <value>textBox6</value>
   </data>
-  <data name="groupBox9.TabIndex" type="System.Int32, mscorlib">
-    <value>16</value>
-  </data>
   <data name="&gt;&gt;comboBox15.Parent" xml:space="preserve">
     <value>groupBox4</value>
   </data>
@@ -7017,17 +6441,8 @@
   <data name="label55.Size" type="System.Drawing.Size, System.Drawing">
     <value>15, 13</value>
   </data>
-  <data name="integerTextBox7.Size" type="System.Drawing.Size, System.Drawing">
-    <value>100, 20</value>
-  </data>
-  <data name="colorComboBox7.TabIndex" type="System.Int32, mscorlib">
-    <value>30</value>
-  </data>
   <data name="&gt;&gt;colorComboBox26.Parent" xml:space="preserve">
     <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;colorComboBox7.Type" xml:space="preserve">
-    <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label88.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -7044,12 +6459,6 @@
   <data name="comboBox2.Items1" xml:space="preserve">
     <value>Power</value>
   </data>
-  <data name="label65.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 34</value>
-  </data>
-  <data name="integerTextBox12.Location" type="System.Drawing.Point, System.Drawing">
-    <value>102, 124</value>
-  </data>
   <data name="&gt;&gt;label15.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -7059,14 +6468,8 @@
   <data name="label7.Location" type="System.Drawing.Point, System.Drawing">
     <value>9, 52</value>
   </data>
-  <data name="&gt;&gt;label74.Name" xml:space="preserve">
-    <value>label74</value>
-  </data>
   <data name="numericUpDown1.Size" type="System.Drawing.Size, System.Drawing">
     <value>77, 20</value>
-  </data>
-  <data name="groupBox10.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="colorComboBox31.ToolTip" xml:space="preserve">
     <value />
@@ -7083,35 +6486,20 @@
   <data name="&gt;&gt;checkBox1.Type" xml:space="preserve">
     <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="label65.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="colorComboBox16.Location" type="System.Drawing.Point, System.Drawing">
-    <value>131, 162</value>
-  </data>
   <data name="label90.Text" xml:space="preserve">
     <value>Count limit</value>
   </data>
   <data name="tabControl1.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 4</value>
   </data>
-  <data name="integerTextBox12.Size" type="System.Drawing.Size, System.Drawing">
-    <value>100, 20</value>
-  </data>
   <data name="&gt;&gt;tabPage5.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="&gt;&gt;label11.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>2</value>
   </data>
   <data name="numericUpDown10.Size" type="System.Drawing.Size, System.Drawing">
     <value>40, 20</value>
   </data>
   <data name="comboBox11.Items" xml:space="preserve">
     <value>Left</value>
-  </data>
-  <data name="&gt;&gt;button5.Parent" xml:space="preserve">
-    <value>groupBox10</value>
   </data>
   <data name="&gt;&gt;label38.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -7124,9 +6512,6 @@
   </data>
   <data name="label12.TabIndex" type="System.Int32, mscorlib">
     <value>22</value>
-  </data>
-  <data name="&gt;&gt;label70.Name" xml:space="preserve">
-    <value>label70</value>
   </data>
   <data name="&gt;&gt;label37.ZOrder" xml:space="preserve">
     <value>7</value>
@@ -7150,7 +6535,7 @@
     <value>55, 13</value>
   </data>
   <data name="&gt;&gt;label18.ZOrder" xml:space="preserve">
-    <value>32</value>
+    <value>28</value>
   </data>
   <data name="&gt;&gt;colorComboBox8.Name" xml:space="preserve">
     <value>colorComboBox8</value>
@@ -7170,9 +6555,6 @@
   <data name="label55.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="label66.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
   <data name="label59.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
@@ -7182,20 +6564,11 @@
   <data name="&gt;&gt;colorComboBox6.ZOrder" xml:space="preserve">
     <value>10</value>
   </data>
-  <data name="label72.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
   <data name="comboBox10.Items1" xml:space="preserve">
     <value>Fit</value>
   </data>
-  <data name="label66.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
   <data name="label58.TabIndex" type="System.Int32, mscorlib">
     <value>75</value>
-  </data>
-  <data name="label78.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
   </data>
   <data name="colorComboBox33.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>
@@ -7219,16 +6592,13 @@
     <value>5</value>
   </data>
   <data name="label12.Location" type="System.Drawing.Point, System.Drawing">
-    <value>19, 197</value>
+    <value>19, 140</value>
   </data>
   <data name="&gt;&gt;colorComboBox21.ZOrder" xml:space="preserve">
     <value>43</value>
   </data>
   <data name="confidenceLevelcomboBox.Location" type="System.Drawing.Point, System.Drawing">
     <value>485, 182</value>
-  </data>
-  <data name="&gt;&gt;label77.ZOrder" xml:space="preserve">
-    <value>8</value>
   </data>
   <data name="&gt;&gt;groupBox2.Name" xml:space="preserve">
     <value>groupBox2</value>
@@ -7247,9 +6617,6 @@
   </data>
   <data name="label13.TabIndex" type="System.Int32, mscorlib">
     <value>23</value>
-  </data>
-  <data name="label69.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
   </data>
   <data name="&gt;&gt;label37.Name" xml:space="preserve">
     <value>label37</value>
@@ -7281,12 +6648,6 @@
   <data name="button1.TabIndex" type="System.Int32, mscorlib">
     <value>1</value>
   </data>
-  <data name="&gt;&gt;label65.Name" xml:space="preserve">
-    <value>label65</value>
-  </data>
-  <data name="&gt;&gt;label71.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
   <data name="&gt;&gt;colorComboBox13.Parent" xml:space="preserve">
     <value>groupBox3</value>
   </data>
@@ -7295,15 +6656,6 @@
   </data>
   <data name="label88.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="&gt;&gt;label78.Name" xml:space="preserve">
-    <value>label78</value>
-  </data>
-  <data name="integerTextBox2.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="button5.Size" type="System.Drawing.Size, System.Drawing">
-    <value>75, 25</value>
   </data>
   <data name="label15.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -7341,12 +6693,6 @@
   <data name="&gt;&gt;colorComboBox20.Name" xml:space="preserve">
     <value>colorComboBox20</value>
   </data>
-  <data name="label78.Size" type="System.Drawing.Size, System.Drawing">
-    <value>76, 13</value>
-  </data>
-  <data name="textBox4.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="&gt;&gt;label33.Name" xml:space="preserve">
     <value>label33</value>
   </data>
@@ -7368,9 +6714,6 @@
   <data name="&gt;&gt;label61.Name" xml:space="preserve">
     <value>label61</value>
   </data>
-  <data name="&gt;&gt;integerTextBox9.Name" xml:space="preserve">
-    <value>integerTextBox9</value>
-  </data>
   <data name="label53.Size" type="System.Drawing.Size, System.Drawing">
     <value>0, 13</value>
   </data>
@@ -7385,9 +6728,6 @@
   </data>
   <data name="label21.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox5.ZOrder" xml:space="preserve">
-    <value>0</value>
   </data>
   <data name="&gt;&gt;colorComboBox1.Name" xml:space="preserve">
     <value>colorComboBox1</value>
@@ -7413,14 +6753,8 @@
   <data name="label31.Text" xml:space="preserve">
     <value>Spectrum3</value>
   </data>
-  <data name="&gt;&gt;integerTextBox9.Parent" xml:space="preserve">
-    <value>groupBox9</value>
-  </data>
   <data name="&gt;&gt;autoSaveDefaultPolicyCheckBox.Name" xml:space="preserve">
     <value>autoSaveDefaultPolicyCheckBox</value>
-  </data>
-  <data name="&gt;&gt;label83.Parent" xml:space="preserve">
-    <value>groupBox10</value>
   </data>
   <data name="label64.TabIndex" type="System.Int32, mscorlib">
     <value>80</value>
@@ -7434,23 +6768,11 @@
   <data name="&gt;&gt;colorComboBox36.ZOrder" xml:space="preserve">
     <value>26</value>
   </data>
-  <data name="&gt;&gt;integerTextBox10.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
   <data name="comboBox13.Items" xml:space="preserve">
     <value>Kilogram (kg)</value>
   </data>
-  <data name="&gt;&gt;colorComboBox16.Name" xml:space="preserve">
-    <value>colorComboBox16</value>
-  </data>
   <data name="numericUpDown13.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="label74.TabIndex" type="System.Int32, mscorlib">
-    <value>12</value>
-  </data>
-  <data name="label74.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
   </data>
   <data name="&gt;&gt;colorComboBox19.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
@@ -7458,20 +6780,11 @@
   <data name="&gt;&gt;colorComboBox3.Parent" xml:space="preserve">
     <value>groupBox3</value>
   </data>
-  <data name="&gt;&gt;label68.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
-  <data name="label77.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="&gt;&gt;label1.Parent" xml:space="preserve">
     <value>groupBox1</value>
   </data>
   <data name="comboBox9.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="integerTextBox3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>100, 20</value>
   </data>
   <data name="colorComboBox21.ToolTip" xml:space="preserve">
     <value />
@@ -7482,14 +6795,11 @@
   <data name="label87.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="label82.Text" xml:space="preserve">
-    <value>Background File Prefix</value>
-  </data>
   <data name="groupBox1.ToolTip" xml:space="preserve">
     <value />
   </data>
   <data name="&gt;&gt;label9.ZOrder" xml:space="preserve">
-    <value>20</value>
+    <value>19</value>
   </data>
   <data name="colorComboBox11.Location" type="System.Drawing.Point, System.Drawing">
     <value>407, 50</value>
@@ -7500,17 +6810,8 @@
   <data name="label91.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="label77.Size" type="System.Drawing.Size, System.Drawing">
-    <value>62, 13</value>
-  </data>
-  <data name="textBox2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>292, 20</value>
-  </data>
   <data name="&gt;&gt;comboBox5.Parent" xml:space="preserve">
     <value>groupBox1</value>
-  </data>
-  <data name="&gt;&gt;label78.Parent" xml:space="preserve">
-    <value>tabPage4</value>
   </data>
   <data name="&gt;&gt;label33.Parent" xml:space="preserve">
     <value>groupBox4</value>
@@ -7521,20 +6822,14 @@
   <data name="&gt;&gt;colorComboBox12.Name" xml:space="preserve">
     <value>colorComboBox12</value>
   </data>
-  <data name="&gt;&gt;label69.Name" xml:space="preserve">
-    <value>label69</value>
-  </data>
   <data name="colorComboBox20.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>
   </data>
   <data name="&gt;&gt;colorComboBox10.ZOrder" xml:space="preserve">
-    <value>14</value>
+    <value>13</value>
   </data>
   <data name="&gt;&gt;numericUpDown4.Parent" xml:space="preserve">
     <value>groupBox5</value>
-  </data>
-  <data name="label65.TabIndex" type="System.Int32, mscorlib">
-    <value>0</value>
   </data>
   <data name="label64.Location" type="System.Drawing.Point, System.Drawing">
     <value>10, 80</value>
@@ -7557,14 +6852,8 @@
   <data name="&gt;&gt;label36.ZOrder" xml:space="preserve">
     <value>24</value>
   </data>
-  <data name="label75.TabIndex" type="System.Int32, mscorlib">
-    <value>8</value>
-  </data>
   <data name="&gt;&gt;progressiveSmoothCheckbox.ZOrder" xml:space="preserve">
     <value>11</value>
-  </data>
-  <data name="integerTextBox8.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="&gt;&gt;label43.Parent" xml:space="preserve">
     <value>groupBox1</value>
@@ -7597,13 +6886,10 @@
     <value>6, 13</value>
   </data>
   <data name="&gt;&gt;colorComboBox11.ZOrder" xml:space="preserve">
-    <value>15</value>
+    <value>14</value>
   </data>
   <data name="tabPage5.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="&gt;&gt;button5.Name" xml:space="preserve">
-    <value>button5</value>
   </data>
   <data name="&gt;&gt;label35.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -7630,7 +6916,7 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;label89.ZOrder" xml:space="preserve">
-    <value>34</value>
+    <value>30</value>
   </data>
   <data name="label22.Text" xml:space="preserve">
     <value>Offset</value>
@@ -7638,17 +6924,8 @@
   <data name="label26.Location" type="System.Drawing.Point, System.Drawing">
     <value>12, 59</value>
   </data>
-  <data name="integerTextBox7.TabIndex" type="System.Int32, mscorlib">
-    <value>11</value>
-  </data>
   <data name="label44.Size" type="System.Drawing.Size, System.Drawing">
     <value>100, 13</value>
-  </data>
-  <data name="&gt;&gt;label76.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="groupBox9.Location" type="System.Drawing.Point, System.Drawing">
-    <value>19, 299</value>
   </data>
   <data name="label48.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -7670,9 +6947,6 @@
   </data>
   <data name="&gt;&gt;colorComboBox35.Parent" xml:space="preserve">
     <value>groupBox4</value>
-  </data>
-  <data name="colorComboBox16.TabIndex" type="System.Int32, mscorlib">
-    <value>43</value>
   </data>
   <data name="&gt;&gt;button1.Name" xml:space="preserve">
     <value>button1</value>
@@ -7782,23 +7056,8 @@
   <data name="&gt;&gt;numericUpDown2.Type" xml:space="preserve">
     <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="textBox2.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="&gt;&gt;integerTextBox2.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;textBox2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="groupBox8.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="colorComboBox3.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="&gt;&gt;integerTextBox6.Name" xml:space="preserve">
-    <value>integerTextBox6</value>
   </data>
   <data name="&gt;&gt;importSpectrumWithEmptyConfigCheckBox.Name" xml:space="preserve">
     <value>importSpectrumWithEmptyConfigCheckBox</value>
@@ -7839,11 +7098,8 @@
   <data name="&gt;&gt;numericUpDown8.Name" xml:space="preserve">
     <value>numericUpDown8</value>
   </data>
-  <data name="tabPage4.Text" xml:space="preserve">
-    <value>Easy Control</value>
-  </data>
   <data name="label10.Text" xml:space="preserve">
-    <value>ROI Border</value>
+    <value>Calibration graph halo</value>
   </data>
   <data name="groupBox2.Location" type="System.Drawing.Point, System.Drawing">
     <value>6, 211</value>
@@ -7856,9 +7112,6 @@
   </data>
   <data name="comboBox11.Items2" xml:space="preserve">
     <value>Right</value>
-  </data>
-  <data name="label71.Text" xml:space="preserve">
-    <value>Selection4</value>
   </data>
   <data name="comboBox15.TabIndex" type="System.Int32, mscorlib">
     <value>79</value>
@@ -7874,12 +7127,6 @@
   </data>
   <data name="&gt;&gt;label5.Parent" xml:space="preserve">
     <value>groupBox1</value>
-  </data>
-  <data name="integerTextBox13.TabIndex" type="System.Int32, mscorlib">
-    <value>23</value>
-  </data>
-  <data name="label25.TabIndex" type="System.Int32, mscorlib">
-    <value>42</value>
   </data>
   <data name="&gt;&gt;colorComboBox31.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
@@ -7920,9 +7167,6 @@
   <data name="label7.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="label75.Text" xml:space="preserve">
-    <value>Selection1</value>
-  </data>
   <data name="&gt;&gt;label91.Parent" xml:space="preserve">
     <value>groupBox6</value>
   </data>
@@ -7950,9 +7194,6 @@
   <data name="tabControl1.Size" type="System.Drawing.Size, System.Drawing">
     <value>755, 639</value>
   </data>
-  <data name="integerTextBox5.Location" type="System.Drawing.Point, System.Drawing">
-    <value>486, 59</value>
-  </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
     <value>GlobalConfigForm</value>
   </data>
@@ -7968,23 +7209,11 @@
   <data name="button6.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 25</value>
   </data>
-  <data name="&gt;&gt;label81.Name" xml:space="preserve">
-    <value>label81</value>
-  </data>
   <data name="label41.ToolTip" xml:space="preserve">
     <value />
   </data>
   <data name="label90.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="textBox3.TabIndex" type="System.Int32, mscorlib">
-    <value>6</value>
-  </data>
-  <data name="&gt;&gt;label25.ZOrder" xml:space="preserve">
-    <value>25</value>
-  </data>
-  <data name="label76.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
   </data>
   <data name="label53.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -8002,7 +7231,7 @@
     <value>547, 42</value>
   </data>
   <data name="&gt;&gt;label13.ZOrder" xml:space="preserve">
-    <value>26</value>
+    <value>22</value>
   </data>
   <data name="comboBox15.Location" type="System.Drawing.Point, System.Drawing">
     <value>139, 77</value>
@@ -8019,14 +7248,8 @@
   <data name="colorComboBox24.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>
   </data>
-  <data name="&gt;&gt;textBox5.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
   <data name="confidenceLevelLabel.Text" xml:space="preserve">
     <value>Statistical limits, confidence level:</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox1.ZOrder" xml:space="preserve">
-    <value>9</value>
   </data>
   <data name="&gt;&gt;comboBox13.ZOrder" xml:space="preserve">
     <value>12</value>
@@ -8052,9 +7275,6 @@
   <data name="colorComboBox31.Location" type="System.Drawing.Point, System.Drawing">
     <value>614, 102</value>
   </data>
-  <data name="integerTextBox1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>83, 31</value>
-  </data>
   <data name="&gt;&gt;label51.Parent" xml:space="preserve">
     <value>groupBox4</value>
   </data>
@@ -8067,14 +7287,8 @@
   <data name="&gt;&gt;label88.ZOrder" xml:space="preserve">
     <value>27</value>
   </data>
-  <data name="&gt;&gt;integerTextBox5.Parent" xml:space="preserve">
-    <value>groupBox8</value>
-  </data>
   <data name="label64.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
-  </data>
-  <data name="label70.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
   </data>
   <data name="label6.ToolTip" xml:space="preserve">
     <value />
@@ -8103,9 +7317,6 @@
   <data name="&gt;&gt;label1.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;label77.Parent" xml:space="preserve">
-    <value>tabPage4</value>
-  </data>
   <data name="&gt;&gt;colorComboBox34.Parent" xml:space="preserve">
     <value>groupBox4</value>
   </data>
@@ -8118,14 +7329,8 @@
   <data name="label52.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="tabPage4.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="&gt;&gt;progressiveSmoothTooltip.Name" xml:space="preserve">
     <value>progressiveSmoothTooltip</value>
-  </data>
-  <data name="&gt;&gt;groupBox9.Type" xml:space="preserve">
-    <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;label89.Name" xml:space="preserve">
     <value>label89</value>
@@ -8133,17 +7338,11 @@
   <data name="&gt;&gt;label84.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="integerTextBox4.Location" type="System.Drawing.Point, System.Drawing">
-    <value>486, 31</value>
-  </data>
   <data name="colorComboBox24.ToolTip" xml:space="preserve">
     <value />
   </data>
   <data name="label92.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="&gt;&gt;textBox5.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;label92.Parent" xml:space="preserve">
     <value>groupBox6</value>
@@ -8159,9 +7358,6 @@
   </data>
   <data name="button6.TabIndex" type="System.Int32, mscorlib">
     <value>20</value>
-  </data>
-  <data name="&gt;&gt;label81.Parent" xml:space="preserve">
-    <value>groupBox10</value>
   </data>
   <data name="&gt;&gt;label89.Parent" xml:space="preserve">
     <value>groupBox3</value>
@@ -8208,9 +7404,6 @@
   <data name="colorComboBox32.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>2, 2, 2, 2</value>
   </data>
-  <data name="comboBox16.Size" type="System.Drawing.Size, System.Drawing">
-    <value>292, 21</value>
-  </data>
   <data name="&gt;&gt;colorComboBox5.ZOrder" xml:space="preserve">
     <value>9</value>
   </data>
@@ -8235,14 +7428,8 @@
   <data name="label13.Size" type="System.Drawing.Size, System.Drawing">
     <value>112, 13</value>
   </data>
-  <data name="label67.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
   <data name="&gt;&gt;label34.ZOrder" xml:space="preserve">
     <value>30</value>
-  </data>
-  <data name="label79.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
   </data>
   <data name="label50.Size" type="System.Drawing.Size, System.Drawing">
     <value>14, 13</value>
@@ -8262,20 +7449,11 @@
   <data name="colorComboBox17.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>2, 2, 2, 2</value>
   </data>
-  <data name="integerTextBox9.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="colorComboBox9.Location" type="System.Drawing.Point, System.Drawing">
-    <value>131, 219</value>
+    <value>131, 162</value>
   </data>
   <data name="&gt;&gt;label39.Parent" xml:space="preserve">
     <value>groupBox1</value>
-  </data>
-  <data name="&gt;&gt;label66.Name" xml:space="preserve">
-    <value>label66</value>
-  </data>
-  <data name="integerTextBox4.Size" type="System.Drawing.Size, System.Drawing">
-    <value>100, 20</value>
   </data>
   <data name="&gt;&gt;tabPage2.Parent" xml:space="preserve">
     <value>tabControl1</value>
@@ -8288,12 +7466,6 @@
   </data>
   <data name="label90.TabIndex" type="System.Int32, mscorlib">
     <value>40</value>
-  </data>
-  <data name="integerTextBox13.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label70.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
   </data>
   <data name="&gt;&gt;label14.Name" xml:space="preserve">
     <value>label14</value>
@@ -8312,9 +7484,6 @@
   </data>
   <data name="label62.TabIndex" type="System.Int32, mscorlib">
     <value>71</value>
-  </data>
-  <data name="&gt;&gt;colorComboBox7.ZOrder" xml:space="preserve">
-    <value>11</value>
   </data>
   <data name="label9.TabIndex" type="System.Int32, mscorlib">
     <value>18</value>
@@ -8340,9 +7509,6 @@
   <data name="numericUpDown9.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="label72.TabIndex" type="System.Int32, mscorlib">
-    <value>15</value>
-  </data>
   <data name="label26.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
@@ -8367,17 +7533,11 @@
   <data name="colorComboBox27.Location" type="System.Drawing.Point, System.Drawing">
     <value>407, 162</value>
   </data>
-  <data name="&gt;&gt;integerTextBox3.Parent" xml:space="preserve">
-    <value>groupBox8</value>
-  </data>
   <data name="label58.Text" xml:space="preserve">
     <value>Spectrum16</value>
   </data>
   <data name="colorComboBox19.Location" type="System.Drawing.Point, System.Drawing">
     <value>407, 74</value>
-  </data>
-  <data name="&gt;&gt;groupBox10.Parent" xml:space="preserve">
-    <value>tabPage4</value>
   </data>
   <data name="&gt;&gt;colorComboBox15.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
@@ -8403,17 +7563,8 @@
   <data name="&gt;&gt;label4.ZOrder" xml:space="preserve">
     <value>16</value>
   </data>
-  <data name="integerTextBox2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>291, 31</value>
-  </data>
   <data name="&gt;&gt;label85.Name" xml:space="preserve">
     <value>label85</value>
-  </data>
-  <data name="&gt;&gt;label76.Name" xml:space="preserve">
-    <value>label76</value>
-  </data>
-  <data name="&gt;&gt;label82.Parent" xml:space="preserve">
-    <value>groupBox10</value>
   </data>
   <data name="label52.Size" type="System.Drawing.Size, System.Drawing">
     <value>78, 13</value>
@@ -8433,14 +7584,11 @@
   <data name="&gt;&gt;label55.Name" xml:space="preserve">
     <value>label55</value>
   </data>
-  <data name="&gt;&gt;tabPage4.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
   <data name="label29.ToolTip" xml:space="preserve">
     <value />
   </data>
   <data name="&gt;&gt;label12.ZOrder" xml:space="preserve">
-    <value>24</value>
+    <value>21</value>
   </data>
   <data name="label63.TabIndex" type="System.Int32, mscorlib">
     <value>70</value>
@@ -8454,29 +7602,14 @@
   <data name="&gt;&gt;colorComboBox11.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
-  <data name="integerTextBox5.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="integerTextBox11.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="&gt;&gt;textBox5.Name" xml:space="preserve">
-    <value>textBox5</value>
-  </data>
   <data name="tabControl1.TabIndex" type="System.Int32, mscorlib">
     <value>6</value>
   </data>
   <data name="tabPage5.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 22</value>
   </data>
-  <data name="label74.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="&gt;&gt;label5.Name" xml:space="preserve">
     <value>label5</value>
-  </data>
-  <data name="label73.TabIndex" type="System.Int32, mscorlib">
-    <value>13</value>
   </data>
   <data name="button4.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Bottom, Left</value>
@@ -8517,12 +7650,6 @@
   <data name="&gt;&gt;comboBox4.Parent" xml:space="preserve">
     <value>groupBox1</value>
   </data>
-  <data name="label11.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>100, 20</value>
-  </data>
   <data name="doubleTextBox3.TabIndex" type="System.Int32, mscorlib">
     <value>24</value>
   </data>
@@ -8532,23 +7659,14 @@
   <data name="&gt;&gt;label51.Name" xml:space="preserve">
     <value>label51</value>
   </data>
-  <data name="&gt;&gt;label77.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
   <data name="label85.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="&gt;&gt;tabPage2.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>3</value>
   </data>
   <data name="colorComboBox37.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="groupBox10.Size" type="System.Drawing.Size, System.Drawing">
-    <value>696, 156</value>
-  </data>
-  <data name="&gt;&gt;label75.ZOrder" xml:space="preserve">
-    <value>6</value>
   </data>
   <data name="&gt;&gt;numericUpDown6.Name" xml:space="preserve">
     <value>numericUpDown6</value>
@@ -8571,12 +7689,6 @@
   <data name="&gt;&gt;comboBox10.Name" xml:space="preserve">
     <value>comboBox10</value>
   </data>
-  <data name="&gt;&gt;integerTextBox4.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="textBox4.Size" type="System.Drawing.Size, System.Drawing">
-    <value>170, 20</value>
-  </data>
   <data name="groupBox4.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
   </data>
@@ -8589,9 +7701,6 @@
   <data name="colorComboBox29.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>2, 2, 2, 2</value>
   </data>
-  <data name="&gt;&gt;label79.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
   <data name="&gt;&gt;label42.Parent" xml:space="preserve">
     <value>groupBox3</value>
   </data>
@@ -8600,9 +7709,6 @@
   </data>
   <data name="&gt;&gt;textBox1.Parent" xml:space="preserve">
     <value>groupBox6</value>
-  </data>
-  <data name="&gt;&gt;label73.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="textBox1.TabIndex" type="System.Int32, mscorlib">
     <value>5</value>
@@ -8618,9 +7724,6 @@
   </data>
   <data name="&gt;&gt;label7.Parent" xml:space="preserve">
     <value>groupBox4</value>
-  </data>
-  <data name="integerTextBox12.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
   </data>
   <data name="comboBox15.Size" type="System.Drawing.Size, System.Drawing">
     <value>157, 21</value>
@@ -8661,14 +7764,8 @@
   <data name="comboBox10.Location" type="System.Drawing.Point, System.Drawing">
     <value>391, 140</value>
   </data>
-  <data name="&gt;&gt;comboBox17.Parent" xml:space="preserve">
-    <value>tabPage4</value>
-  </data>
   <data name="label32.TabIndex" type="System.Int32, mscorlib">
     <value>55</value>
-  </data>
-  <data name="label83.TabIndex" type="System.Int32, mscorlib">
-    <value>10</value>
   </data>
   <data name="numericUpDown14.ToolTip" xml:space="preserve">
     <value />
@@ -8679,14 +7776,8 @@
   <data name="&gt;&gt;colorComboBox5.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
-  <data name="label72.Location" type="System.Drawing.Point, System.Drawing">
-    <value>422, 62</value>
-  </data>
   <data name="&gt;&gt;label39.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label11.ZOrder" xml:space="preserve">
-    <value>22</value>
   </data>
   <data name="&gt;&gt;label59.Name" xml:space="preserve">
     <value>label59</value>
@@ -8705,9 +7796,6 @@
   </data>
   <data name="tabPage1.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 22</value>
-  </data>
-  <data name="label77.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 62</value>
   </data>
   <data name="&gt;&gt;groupBox7.ZOrder" xml:space="preserve">
     <value>0</value>
@@ -8736,9 +7824,6 @@
   <data name="colorComboBox8.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>
   </data>
-  <data name="label82.Size" type="System.Drawing.Size, System.Drawing">
-    <value>113, 13</value>
-  </data>
   <data name="&gt;&gt;numericUpDown1.Type" xml:space="preserve">
     <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -8763,9 +7848,6 @@
   <data name="textBox6.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="integerTextBox11.TabIndex" type="System.Int32, mscorlib">
-    <value>16</value>
-  </data>
   <data name="label23.TabIndex" type="System.Int32, mscorlib">
     <value>12</value>
   </data>
@@ -8777,9 +7859,6 @@
   </data>
   <data name="&gt;&gt;groupBox4.Type" xml:space="preserve">
     <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="integerTextBox2.TabIndex" type="System.Int32, mscorlib">
-    <value>9</value>
   </data>
   <data name="numericUpDown4.TabIndex" type="System.Int32, mscorlib">
     <value>20</value>
@@ -8793,23 +7872,11 @@
   <data name="&gt;&gt;colorComboBox27.Name" xml:space="preserve">
     <value>colorComboBox27</value>
   </data>
-  <data name="&gt;&gt;groupBox10.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="integerTextBox11.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
   <data name="&gt;&gt;label42.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="label11.TabIndex" type="System.Int32, mscorlib">
-    <value>21</value>
-  </data>
   <data name="&gt;&gt;colorComboBox34.Name" xml:space="preserve">
     <value>colorComboBox34</value>
-  </data>
-  <data name="label68.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="comboBox4.Items1" xml:space="preserve">
     <value>Auto Fit</value>
@@ -8825,9 +7892,6 @@
   </data>
   <data name="&gt;&gt;label36.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="textBox3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>188, 59</value>
   </data>
   <data name="label24.Text" xml:space="preserve">
     <value>SMA Window Size</value>
@@ -8853,12 +7917,6 @@
   <data name="label26.Size" type="System.Drawing.Size, System.Drawing">
     <value>99, 13</value>
   </data>
-  <data name="label67.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 35</value>
-  </data>
-  <data name="&gt;&gt;groupBox8.Parent" xml:space="preserve">
-    <value>tabPage4</value>
-  </data>
   <data name="&gt;&gt;colorComboBox17.ZOrder" xml:space="preserve">
     <value>35</value>
   </data>
@@ -8871,17 +7929,11 @@
   <data name="&gt;&gt;numericUpDown9.ZOrder" xml:space="preserve">
     <value>7</value>
   </data>
-  <data name="integerTextBox7.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="numericUpDown5.TabIndex" type="System.Int32, mscorlib">
     <value>23</value>
   </data>
   <data name="button4.Location" type="System.Drawing.Point, System.Drawing">
     <value>11, 578</value>
-  </data>
-  <data name="&gt;&gt;label80.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="label32.Location" type="System.Drawing.Point, System.Drawing">
     <value>337, 108</value>
@@ -8895,17 +7947,11 @@
   <data name="colorComboBox13.TabIndex" type="System.Int32, mscorlib">
     <value>36</value>
   </data>
-  <data name="label69.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
   <data name="label61.TabIndex" type="System.Int32, mscorlib">
     <value>72</value>
   </data>
   <data name="&gt;&gt;label32.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;tabPage4.ZOrder" xml:space="preserve">
-    <value>2</value>
   </data>
   <data name="label37.Location" type="System.Drawing.Point, System.Drawing">
     <value>12, 59</value>
@@ -8931,9 +7977,6 @@
   <data name="&gt;&gt;colorComboBox8.Parent" xml:space="preserve">
     <value>groupBox3</value>
   </data>
-  <data name="label82.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
   <data name="label28.ToolTip" xml:space="preserve">
     <value />
   </data>
@@ -8943,23 +7986,8 @@
   <data name="colorComboBox13.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>
   </data>
-  <data name="label77.Text" xml:space="preserve">
-    <value>ROI Config.</value>
-  </data>
-  <data name="&gt;&gt;label65.Parent" xml:space="preserve">
-    <value>tabPage4</value>
-  </data>
-  <data name="&gt;&gt;label83.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="groupBox10.TabIndex" type="System.Int32, mscorlib">
-    <value>24</value>
-  </data>
   <data name="colorComboBox27.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="&gt;&gt;label66.ZOrder" xml:space="preserve">
-    <value>6</value>
   </data>
   <data name="&gt;&gt;groupBox4.ZOrder" xml:space="preserve">
     <value>0</value>
@@ -8982,17 +8010,11 @@
   <data name="&gt;&gt;label92.ZOrder" xml:space="preserve">
     <value>3</value>
   </data>
-  <data name="&gt;&gt;label82.Name" xml:space="preserve">
-    <value>label82</value>
-  </data>
   <data name="&gt;&gt;doubleTextBox2.Parent" xml:space="preserve">
     <value>groupBox7</value>
   </data>
   <data name="&gt;&gt;label30.Name" xml:space="preserve">
     <value>label30</value>
-  </data>
-  <data name="label78.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 100</value>
   </data>
   <data name="textBox1.Location" type="System.Drawing.Point, System.Drawing">
     <value>21, 53</value>
@@ -9009,26 +8031,11 @@
   <data name="colorComboBox17.Location" type="System.Drawing.Point, System.Drawing">
     <value>407, 17</value>
   </data>
-  <data name="label79.Size" type="System.Drawing.Size, System.Drawing">
-    <value>82, 13</value>
-  </data>
   <data name="&gt;&gt;groupBox5.Parent" xml:space="preserve">
     <value>tabPage2</value>
   </data>
-  <data name="&gt;&gt;textBox2.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
   <data name="&gt;&gt;label4.Parent" xml:space="preserve">
     <value>groupBox1</value>
-  </data>
-  <data name="&gt;&gt;label75.Name" xml:space="preserve">
-    <value>label75</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;groupBox9.Name" xml:space="preserve">
-    <value>groupBox9</value>
   </data>
   <data name="&gt;&gt;button3.ZOrder" xml:space="preserve">
     <value>0</value>
@@ -9042,14 +8049,8 @@
   <data name="&gt;&gt;label64.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="label67.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="label89.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
-  </data>
-  <data name="label83.Text" xml:space="preserve">
-    <value>Sample File Prefix</value>
   </data>
   <data name="button1.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -9057,17 +8058,11 @@
   <data name="&gt;&gt;label5.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="integerTextBox7.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
   <data name="label49.ToolTip" xml:space="preserve">
     <value />
   </data>
   <data name="label52.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
-  </data>
-  <data name="button5.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="tabPage5.Text" xml:space="preserve">
     <value>Sound</value>
@@ -9111,12 +8106,6 @@
   <data name="&gt;&gt;label54.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;label71.Name" xml:space="preserve">
-    <value>label71</value>
-  </data>
-  <data name="label68.Location" type="System.Drawing.Point, System.Drawing">
-    <value>227, 35</value>
-  </data>
   <data name="&gt;&gt;label60.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -9130,19 +8119,13 @@
     <value />
   </data>
   <data name="&gt;&gt;label10.ZOrder" xml:space="preserve">
-    <value>21</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox1.Parent" xml:space="preserve">
-    <value>groupBox8</value>
+    <value>20</value>
   </data>
   <data name="&gt;&gt;colorComboBox24.Parent" xml:space="preserve">
     <value>groupBox4</value>
   </data>
   <data name="label12.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="label71.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
   </data>
   <data name="&gt;&gt;label39.ZOrder" xml:space="preserve">
     <value>2</value>
@@ -9159,12 +8142,6 @@
   <data name="autoSaveDefaultPolicyCheckBox.Text" xml:space="preserve">
     <value>Enable AutoSave by default in opened or new spectrums</value>
   </data>
-  <data name="label65.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="comboBox17.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="label8.Size" type="System.Drawing.Size, System.Drawing">
     <value>65, 13</value>
   </data>
@@ -9177,9 +8154,6 @@
   <data name="&gt;&gt;colorComboBox36.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
-  <data name="label78.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
   <data name="label13.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
@@ -9188,9 +8162,6 @@
   </data>
   <data name="&gt;&gt;label4.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label80.Parent" xml:space="preserve">
-    <value>tabPage4</value>
   </data>
   <data name="&gt;&gt;label88.Parent" xml:space="preserve">
     <value>groupBox4</value>
@@ -9201,14 +8172,8 @@
   <data name="label47.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="&gt;&gt;label66.Parent" xml:space="preserve">
-    <value>groupBox10</value>
-  </data>
   <data name="comboBox3.Location" type="System.Drawing.Point, System.Drawing">
     <value>111, 83</value>
-  </data>
-  <data name="label83.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 116</value>
   </data>
   <data name="&gt;&gt;checkBox1.ZOrder" xml:space="preserve">
     <value>0</value>
@@ -9237,9 +8202,6 @@
   <data name="&gt;&gt;colorComboBox32.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
-  <data name="integerTextBox9.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
   <data name="label33.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -9263,9 +8225,6 @@
   </data>
   <data name="label40.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
-  </data>
-  <data name="label66.Text" xml:space="preserve">
-    <value>Spectra Folder</value>
   </data>
   <data name="comboBox1.ToolTip" xml:space="preserve">
     <value />
@@ -9303,9 +8262,6 @@
   <data name="&gt;&gt;colorComboBox32.Parent" xml:space="preserve">
     <value>groupBox4</value>
   </data>
-  <data name="groupBox9.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="&gt;&gt;label33.ZOrder" xml:space="preserve">
     <value>32</value>
   </data>
@@ -9324,9 +8280,6 @@
   <data name="&gt;&gt;label8.Parent" xml:space="preserve">
     <value>groupBox3</value>
   </data>
-  <data name="integerTextBox13.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
   <data name="&gt;&gt;button4.Name" xml:space="preserve">
     <value>button4</value>
   </data>
@@ -9339,20 +8292,11 @@
   <data name="&gt;&gt;confidenceLevelcomboBox.ZOrder" xml:space="preserve">
     <value>8</value>
   </data>
-  <data name="&gt;&gt;label67.Parent" xml:space="preserve">
-    <value>groupBox8</value>
-  </data>
   <data name="&gt;&gt;label29.ZOrder" xml:space="preserve">
     <value>31</value>
   </data>
-  <data name="&gt;&gt;integerTextBox13.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
   <data name="label49.TabIndex" type="System.Int32, mscorlib">
     <value>24</value>
-  </data>
-  <data name="integerTextBox6.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="&gt;&gt;progressiveSmoothCheckbox.Type" xml:space="preserve">
     <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -9368,12 +8312,6 @@
   </data>
   <data name="&gt;&gt;label48.Parent" xml:space="preserve">
     <value>groupBox5</value>
-  </data>
-  <data name="tabPage4.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
-  </data>
-  <data name="button5.Location" type="System.Drawing.Point, System.Drawing">
-    <value>400, 29</value>
   </data>
   <data name="label10.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -9393,23 +8331,11 @@
   <data name="colorComboBox30.TabIndex" type="System.Int32, mscorlib">
     <value>69</value>
   </data>
-  <data name="&gt;&gt;integerTextBox8.Parent" xml:space="preserve">
-    <value>groupBox9</value>
-  </data>
-  <data name="&gt;&gt;label82.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox2.Parent" xml:space="preserve">
-    <value>groupBox8</value>
-  </data>
   <data name="label41.TabIndex" type="System.Int32, mscorlib">
     <value>48</value>
   </data>
   <data name="colorComboBox34.Location" type="System.Drawing.Point, System.Drawing">
     <value>614, 186</value>
-  </data>
-  <data name="label11.Text" xml:space="preserve">
-    <value>ROI Background</value>
   </data>
   <data name="numericUpDown7.TabIndex" type="System.Int32, mscorlib">
     <value>77</value>
@@ -9417,17 +8343,11 @@
   <data name="label6.Text" xml:space="preserve">
     <value>Active Spectrum (Sample)</value>
   </data>
-  <data name="textBox3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>170, 20</value>
-  </data>
   <data name="&gt;&gt;label43.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
   <data name="label49.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
-  </data>
-  <data name="&gt;&gt;label72.Parent" xml:space="preserve">
-    <value>groupBox9</value>
   </data>
   <data name="label62.Location" type="System.Drawing.Point, System.Drawing">
     <value>544, 108</value>
@@ -9477,9 +8397,6 @@
   <data name="label1.Text" xml:space="preserve">
     <value>Vertical Unit</value>
   </data>
-  <data name="colorComboBox7.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
-    <value>2, 2, 2, 2</value>
-  </data>
   <data name="&gt;&gt;button2.Type" xml:space="preserve">
     <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -9519,9 +8436,6 @@
   <data name="label48.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="label79.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 129</value>
-  </data>
   <data name="button2.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 25</value>
   </data>
@@ -9535,7 +8449,7 @@
     <value>89, 24</value>
   </data>
   <data name="colorComboBox8.Location" type="System.Drawing.Point, System.Drawing">
-    <value>131, 191</value>
+    <value>131, 134</value>
   </data>
   <data name="colorComboBox14.TabIndex" type="System.Int32, mscorlib">
     <value>39</value>
@@ -9558,9 +8472,6 @@
   <data name="&gt;&gt;colorComboBox19.ZOrder" xml:space="preserve">
     <value>39</value>
   </data>
-  <data name="groupBox8.Location" type="System.Drawing.Point, System.Drawing">
-    <value>19, 190</value>
-  </data>
   <data name="colorComboBox9.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>
   </data>
@@ -9582,12 +8493,6 @@
   <data name="comboBox8.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="integerTextBox6.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="&gt;&gt;label81.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
   <data name="miscSettingsGroupBox.Size" type="System.Drawing.Size, System.Drawing">
     <value>664, 162</value>
   </data>
@@ -9600,18 +8505,6 @@
   <data name="&gt;&gt;label64.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
-  <data name="integerTextBox10.TabIndex" type="System.Int32, mscorlib">
-    <value>0</value>
-  </data>
-  <data name="&gt;&gt;label81.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="comboBox17.Size" type="System.Drawing.Size, System.Drawing">
-    <value>292, 21</value>
-  </data>
-  <data name="label83.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
   <data name="colorComboBox11.TabIndex" type="System.Int32, mscorlib">
     <value>34</value>
   </data>
@@ -9621,17 +8514,8 @@
   <data name="&gt;&gt;label91.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;label78.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
   <data name="checkBox2.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
-  </data>
-  <data name="&gt;&gt;label74.Parent" xml:space="preserve">
-    <value>groupBox9</value>
-  </data>
-  <data name="&gt;&gt;label76.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="label32.Text" xml:space="preserve">
     <value>Spectrum4</value>
@@ -9639,14 +8523,8 @@
   <data name="&gt;&gt;colorComboBox5.Parent" xml:space="preserve">
     <value>groupBox3</value>
   </data>
-  <data name="&gt;&gt;comboBox16.ZOrder" xml:space="preserve">
-    <value>11</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox3.Name" xml:space="preserve">
-    <value>integerTextBox3</value>
-  </data>
   <data name="label13.Location" type="System.Drawing.Point, System.Drawing">
-    <value>19, 225</value>
+    <value>19, 168</value>
   </data>
   <data name="label45.ToolTip" xml:space="preserve">
     <value />
@@ -9654,17 +8532,8 @@
   <data name="&gt;&gt;groupBox6.Name" xml:space="preserve">
     <value>groupBox6</value>
   </data>
-  <data name="&gt;&gt;groupBox10.Type" xml:space="preserve">
-    <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;groupBox8.Type" xml:space="preserve">
-    <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
   <data name="&gt;&gt;doubleTextBox1.Type" xml:space="preserve">
     <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="label78.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="label9.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -9681,9 +8550,6 @@
   <data name="colorComboBox9.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="&gt;&gt;integerTextBox12.Parent" xml:space="preserve">
-    <value>tabPage4</value>
-  </data>
   <data name="colorComboBox18.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>
   </data>
@@ -9695,9 +8561,6 @@
   </data>
   <data name="label48.Location" type="System.Drawing.Point, System.Drawing">
     <value>19, 129</value>
-  </data>
-  <data name="&gt;&gt;colorComboBox16.Type" xml:space="preserve">
-    <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="tabPage2.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>3, 3, 3, 3</value>
@@ -9753,17 +8616,11 @@
   <data name="&gt;&gt;tabPage3.Type" xml:space="preserve">
     <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="label68.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
   <data name="&gt;&gt;label17.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;colorComboBox12.Type" xml:space="preserve">
     <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;label75.Parent" xml:space="preserve">
-    <value>groupBox9</value>
   </data>
   <data name="button1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Bottom, Right</value>
@@ -9773,12 +8630,6 @@
   </data>
   <data name="label92.TabIndex" type="System.Int32, mscorlib">
     <value>40</value>
-  </data>
-  <data name="label68.TabIndex" type="System.Int32, mscorlib">
-    <value>8</value>
-  </data>
-  <data name="label80.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
   </data>
   <data name="&gt;&gt;groupBox6.ZOrder" xml:space="preserve">
     <value>0</value>
@@ -9798,23 +8649,11 @@
   <data name="groupBox1.Text" xml:space="preserve">
     <value>Default Chart Configuration</value>
   </data>
-  <data name="&gt;&gt;integerTextBox3.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
   <data name="&gt;&gt;numericUpDown13.Type" xml:space="preserve">
     <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="label78.TabIndex" type="System.Int32, mscorlib">
-    <value>19</value>
-  </data>
   <data name="label88.Location" type="System.Drawing.Point, System.Drawing">
     <value>9, 117</value>
-  </data>
-  <data name="&gt;&gt;label79.Name" xml:space="preserve">
-    <value>label79</value>
-  </data>
-  <data name="&gt;&gt;colorComboBox16.ZOrder" xml:space="preserve">
-    <value>23</value>
   </data>
   <data name="label56.TabIndex" type="System.Int32, mscorlib">
     <value>61</value>
@@ -9843,9 +8682,6 @@
   <data name="textBox6.Size" type="System.Drawing.Size, System.Drawing">
     <value>287, 20</value>
   </data>
-  <data name="&gt;&gt;integerTextBox13.Parent" xml:space="preserve">
-    <value>tabPage4</value>
-  </data>
   <data name="&gt;&gt;comboBox15.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
@@ -9855,17 +8691,8 @@
   <data name="tabPage5.Size" type="System.Drawing.Size, System.Drawing">
     <value>747, 613</value>
   </data>
-  <data name="&gt;&gt;label72.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
   <data name="&gt;&gt;colorComboBox3.ZOrder" xml:space="preserve">
     <value>7</value>
-  </data>
-  <data name="label75.Location" type="System.Drawing.Point, System.Drawing">
-    <value>227, 35</value>
-  </data>
-  <data name="label70.TabIndex" type="System.Int32, mscorlib">
-    <value>13</value>
   </data>
   <data name="&gt;&gt;checkBox1.Parent" xml:space="preserve">
     <value>groupBox6</value>
@@ -9891,9 +8718,6 @@
   <data name="label33.Size" type="System.Drawing.Size, System.Drawing">
     <value>58, 13</value>
   </data>
-  <data name="groupBox9.Text" xml:space="preserve">
-    <value>Sample Measurement Time</value>
-  </data>
   <data name="&gt;&gt;importSpectrumWithEmptyConfigCheckBox.Type" xml:space="preserve">
     <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -9905,9 +8729,6 @@
   </data>
   <data name="comboBox9.Items" xml:space="preserve">
     <value>Visible</value>
-  </data>
-  <data name="integerTextBox5.Size" type="System.Drawing.Size, System.Drawing">
-    <value>100, 20</value>
   </data>
   <data name="label59.Text" xml:space="preserve">
     <value>Spectrum15</value>
@@ -9924,9 +8745,6 @@
   <data name="groupBox1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
   </data>
-  <data name="label79.TabIndex" type="System.Int32, mscorlib">
-    <value>21</value>
-  </data>
   <data name="label50.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -9936,17 +8754,11 @@
   <data name="label57.TabIndex" type="System.Int32, mscorlib">
     <value>62</value>
   </data>
-  <data name="label71.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
-  </data>
   <data name="checkBox2.TabIndex" type="System.Int32, mscorlib">
     <value>30</value>
   </data>
   <data name="&gt;&gt;colorComboBox9.Parent" xml:space="preserve">
     <value>groupBox3</value>
-  </data>
-  <data name="label25.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
   </data>
   <data name="label53.ToolTip" xml:space="preserve">
     <value />
@@ -9958,7 +8770,7 @@
     <value>Measurement Configuration</value>
   </data>
   <data name="label19.Location" type="System.Drawing.Point, System.Drawing">
-    <value>19, 254</value>
+    <value>19, 197</value>
   </data>
   <data name="&gt;&gt;label40.Name" xml:space="preserve">
     <value>label40</value>
@@ -9970,19 +8782,13 @@
     <value>96, 13</value>
   </data>
   <data name="colorComboBox14.Location" type="System.Drawing.Point, System.Drawing">
-    <value>131, 247</value>
+    <value>131, 190</value>
   </data>
   <data name="tabPage1.Text" xml:space="preserve">
     <value>Chart</value>
   </data>
-  <data name="label71.TabIndex" type="System.Int32, mscorlib">
-    <value>15</value>
-  </data>
   <data name="label38.Size" type="System.Drawing.Size, System.Drawing">
     <value>65, 13</value>
-  </data>
-  <data name="&gt;&gt;textBox3.Parent" xml:space="preserve">
-    <value>groupBox10</value>
   </data>
   <data name="label85.ToolTip" xml:space="preserve">
     <value />
@@ -9995,9 +8801,6 @@
   </data>
   <data name="label14.Size" type="System.Drawing.Size, System.Drawing">
     <value>26, 13</value>
-  </data>
-  <data name="integerTextBox5.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="numericUpDown13.TabIndex" type="System.Int32, mscorlib">
     <value>12</value>
@@ -10026,9 +8829,6 @@
   <data name="&gt;&gt;label41.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
-  <data name="label11.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
   <data name="label35.Location" type="System.Drawing.Point, System.Drawing">
     <value>337, 193</value>
   </data>
@@ -10044,17 +8844,8 @@
   <data name="label32.Size" type="System.Drawing.Size, System.Drawing">
     <value>58, 13</value>
   </data>
-  <data name="&gt;&gt;textBox2.Parent" xml:space="preserve">
-    <value>groupBox10</value>
-  </data>
-  <data name="&gt;&gt;label76.Parent" xml:space="preserve">
-    <value>groupBox9</value>
-  </data>
   <data name="&gt;&gt;colorComboBox5.Name" xml:space="preserve">
     <value>colorComboBox5</value>
-  </data>
-  <data name="textBox2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>102, 31</value>
   </data>
   <data name="label22.Location" type="System.Drawing.Point, System.Drawing">
     <value>11, 80</value>
@@ -10062,20 +8853,8 @@
   <data name="label45.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
-  <data name="label72.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="integerTextBox8.TabIndex" type="System.Int32, mscorlib">
-    <value>10</value>
-  </data>
-  <data name="&gt;&gt;label72.Name" xml:space="preserve">
-    <value>label72</value>
-  </data>
   <data name="&gt;&gt;numericUpDown7.ZOrder" xml:space="preserve">
     <value>4</value>
-  </data>
-  <data name="&gt;&gt;label68.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="label4.ToolTip" xml:space="preserve">
     <value />
@@ -10085,9 +8864,6 @@
   </data>
   <data name="label27.Location" type="System.Drawing.Point, System.Drawing">
     <value>276, 31</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox5.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;miscSettingsGroupBox.Parent" xml:space="preserve">
     <value>tabPage2</value>
@@ -10107,9 +8883,6 @@
   <data name="label28.TabIndex" type="System.Int32, mscorlib">
     <value>21</value>
   </data>
-  <data name="label25.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
   <data name="comboBox4.ToolTip" xml:space="preserve">
     <value />
   </data>
@@ -10128,14 +8901,8 @@
   <data name="colorComboBox29.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>
   </data>
-  <data name="label76.Text" xml:space="preserve">
-    <value>Default</value>
-  </data>
   <data name="&gt;&gt;label3.Parent" xml:space="preserve">
     <value>groupBox1</value>
-  </data>
-  <data name="&gt;&gt;tabPage4.Name" xml:space="preserve">
-    <value>tabPage4</value>
   </data>
   <data name="&gt;&gt;label17.Parent" xml:space="preserve">
     <value>groupBox3</value>
@@ -10148,9 +8915,6 @@
   </data>
   <data name="label20.TabIndex" type="System.Int32, mscorlib">
     <value>40</value>
-  </data>
-  <data name="integerTextBox10.Size" type="System.Drawing.Size, System.Drawing">
-    <value>100, 20</value>
   </data>
   <data name="numericUpDown7.Location" type="System.Drawing.Point, System.Drawing">
     <value>247, 47</value>
@@ -10176,17 +8940,8 @@
   <data name="&gt;&gt;comboBox9.Type" xml:space="preserve">
     <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="integerTextBox9.TabIndex" type="System.Int32, mscorlib">
-    <value>9</value>
-  </data>
-  <data name="&gt;&gt;label25.Name" xml:space="preserve">
-    <value>label25</value>
-  </data>
   <data name="label19.Size" type="System.Drawing.Size, System.Drawing">
     <value>108, 13</value>
-  </data>
-  <data name="comboBox17.Location" type="System.Drawing.Point, System.Drawing">
-    <value>102, 59</value>
   </data>
   <data name="colorComboBox15.ToolTip" xml:space="preserve">
     <value />
@@ -10197,29 +8952,17 @@
   <data name="button1.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="label80.Text" xml:space="preserve">
-    <value>Shutdown Time</value>
-  </data>
   <data name="colorComboBox2.Location" type="System.Drawing.Point, System.Drawing">
     <value>153, 46</value>
   </data>
   <data name="colorComboBox1.Location" type="System.Drawing.Point, System.Drawing">
     <value>153, 17</value>
   </data>
-  <data name="&gt;&gt;label67.Name" xml:space="preserve">
-    <value>label67</value>
-  </data>
   <data name="&gt;&gt;label62.Name" xml:space="preserve">
     <value>label62</value>
   </data>
   <data name="label29.TabIndex" type="System.Int32, mscorlib">
     <value>44</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox11.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="comboBox16.Location" type="System.Drawing.Point, System.Drawing">
-    <value>102, 30</value>
   </data>
   <data name="&gt;&gt;label6.Parent" xml:space="preserve">
     <value>groupBox4</value>
@@ -10230,14 +8973,8 @@
   <data name="comboBox1.Size" type="System.Drawing.Size, System.Drawing">
     <value>121, 21</value>
   </data>
-  <data name="&gt;&gt;groupBox8.ZOrder" xml:space="preserve">
-    <value>10</value>
-  </data>
   <data name="label39.TabIndex" type="System.Int32, mscorlib">
     <value>19</value>
-  </data>
-  <data name="integerTextBox1.TabIndex" type="System.Int32, mscorlib">
-    <value>0</value>
   </data>
   <data name="label41.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -10293,9 +9030,6 @@
   <data name="&gt;&gt;label63.Name" xml:space="preserve">
     <value>label63</value>
   </data>
-  <data name="label74.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
-  </data>
   <data name="button3.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 25</value>
   </data>
@@ -10314,9 +9048,6 @@
   <data name="&gt;&gt;saveResponseMatrixInSpectrumCheckBox.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
-  <data name="integerTextBox7.Location" type="System.Drawing.Point, System.Drawing">
-    <value>291, 31</value>
-  </data>
   <data name="&gt;&gt;label43.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -10329,14 +9060,8 @@
   <data name="&gt;&gt;comboBox6.ZOrder" xml:space="preserve">
     <value>8</value>
   </data>
-  <data name="label81.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 62</value>
-  </data>
   <data name="groupBox6.Size" type="System.Drawing.Size, System.Drawing">
     <value>664, 200</value>
-  </data>
-  <data name="&gt;&gt;label11.Name" xml:space="preserve">
-    <value>label11</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
     <value>761, 685</value>
@@ -10344,14 +9069,8 @@
   <data name="&gt;&gt;label37.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;label77.Name" xml:space="preserve">
-    <value>label77</value>
-  </data>
   <data name="colorComboBox37.TabIndex" type="System.Int32, mscorlib">
     <value>67</value>
-  </data>
-  <data name="&gt;&gt;label72.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="colorComboBox14.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>2, 2, 2, 2</value>
@@ -10361,9 +9080,6 @@
   </data>
   <data name="&gt;&gt;comboBox13.Name" xml:space="preserve">
     <value>comboBox13</value>
-  </data>
-  <data name="label83.Size" type="System.Drawing.Size, System.Drawing">
-    <value>90, 13</value>
   </data>
   <data name="numericUpDown8.ToolTip" xml:space="preserve">
     <value />
@@ -10377,9 +9093,6 @@
   <data name="colorComboBox11.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>2, 2, 2, 2</value>
   </data>
-  <data name="&gt;&gt;integerTextBox7.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
   <data name="&gt;&gt;button1.Parent" xml:space="preserve">
     <value>$this</value>
   </data>
@@ -10389,14 +9102,8 @@
   <data name="label58.Size" type="System.Drawing.Size, System.Drawing">
     <value>64, 13</value>
   </data>
-  <data name="label82.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
   <data name="colorComboBox14.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="tabPage4.Size" type="System.Drawing.Size, System.Drawing">
-    <value>747, 613</value>
   </data>
   <data name="comboBox5.Items" xml:space="preserve">
     <value>Channel</value>
@@ -10416,17 +9123,11 @@
   <data name="&gt;&gt;colorComboBox31.Name" xml:space="preserve">
     <value>colorComboBox31</value>
   </data>
-  <data name="textBox5.Size" type="System.Drawing.Size, System.Drawing">
-    <value>170, 20</value>
-  </data>
   <data name="&gt;&gt;label33.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="colorComboBox20.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="integerTextBox1.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
   </data>
   <data name="tabPage2.ToolTip" xml:space="preserve">
     <value />
@@ -10436,12 +9137,6 @@
   </data>
   <data name="button3.Location" type="System.Drawing.Point, System.Drawing">
     <value>513, 650</value>
-  </data>
-  <data name="groupBox9.Size" type="System.Drawing.Size, System.Drawing">
-    <value>696, 103</value>
-  </data>
-  <data name="&gt;&gt;textBox2.Name" xml:space="preserve">
-    <value>textBox2</value>
   </data>
   <data name="&gt;&gt;label24.ZOrder" xml:space="preserve">
     <value>19</value>
@@ -10455,17 +9150,11 @@
   <data name="label44.Location" type="System.Drawing.Point, System.Drawing">
     <value>276, 59</value>
   </data>
-  <data name="label75.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
-  </data>
   <data name="&gt;&gt;label29.Name" xml:space="preserve">
     <value>label29</value>
   </data>
   <data name="tabPage1.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>3, 3, 3, 3</value>
-  </data>
-  <data name="&gt;&gt;label70.Parent" xml:space="preserve">
-    <value>groupBox8</value>
   </data>
   <data name="label6.Size" type="System.Drawing.Size, System.Drawing">
     <value>129, 13</value>
@@ -10491,9 +9180,6 @@
   <data name="&gt;&gt;button6.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
-  <data name="&gt;&gt;label69.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
   <data name="button6.ToolTip" xml:space="preserve">
     <value />
   </data>
@@ -10508,9 +9194,6 @@
   </data>
   <data name="&gt;&gt;numericUpDown5.Type" xml:space="preserve">
     <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label73.ZOrder" xml:space="preserve">
-    <value>9</value>
   </data>
   <data name="label7.ToolTip" xml:space="preserve">
     <value />
@@ -10532,9 +9215,6 @@
   </data>
   <data name="groupBox3.ToolTip" xml:space="preserve">
     <value />
-  </data>
-  <data name="label81.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
   </data>
   <data name="&gt;&gt;label9.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -10566,23 +9246,14 @@
   <data name="checkBox2.Location" type="System.Drawing.Point, System.Drawing">
     <value>406, 158</value>
   </data>
-  <data name="integerTextBox2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>100, 20</value>
-  </data>
   <data name="checkBox1.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
-  </data>
-  <data name="label69.TabIndex" type="System.Int32, mscorlib">
-    <value>12</value>
   </data>
   <data name="&gt;&gt;numericUpDown14.ZOrder" xml:space="preserve">
     <value>20</value>
   </data>
   <data name="label36.Size" type="System.Drawing.Size, System.Drawing">
     <value>58, 13</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox13.Name" xml:space="preserve">
-    <value>integerTextBox13</value>
   </data>
   <data name="tabPage2.Size" type="System.Drawing.Size, System.Drawing">
     <value>747, 613</value>
@@ -10592,9 +9263,6 @@
   </data>
   <data name="label57.Size" type="System.Drawing.Size, System.Drawing">
     <value>64, 13</value>
-  </data>
-  <data name="label69.Text" xml:space="preserve">
-    <value>Selection2</value>
   </data>
   <data name="&gt;&gt;label62.Parent" xml:space="preserve">
     <value>groupBox4</value>
@@ -10608,17 +9276,11 @@
   <data name="comboBox6.Items2" xml:space="preserve">
     <value>Weighted Moving Average</value>
   </data>
-  <data name="textBox2.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
-  </data>
   <data name="&gt;&gt;label23.ZOrder" xml:space="preserve">
     <value>9</value>
   </data>
   <data name="button6.Location" type="System.Drawing.Point, System.Drawing">
     <value>466, 42</value>
-  </data>
-  <data name="integerTextBox8.Size" type="System.Drawing.Size, System.Drawing">
-    <value>100, 20</value>
   </data>
   <data name="&gt;&gt;label57.Parent" xml:space="preserve">
     <value>groupBox4</value>
@@ -10629,23 +9291,14 @@
   <data name="&gt;&gt;groupBox1.Parent" xml:space="preserve">
     <value>tabPage1</value>
   </data>
-  <data name="&gt;&gt;groupBox9.Parent" xml:space="preserve">
-    <value>tabPage4</value>
-  </data>
   <data name="&gt;&gt;label91.ZOrder" xml:space="preserve">
     <value>2</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox10.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;colorComboBox9.Name" xml:space="preserve">
     <value>colorComboBox9</value>
   </data>
   <data name="&gt;&gt;label89.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="label69.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="numericUpDown10.TabIndex" type="System.Int32, mscorlib">
     <value>12</value>
@@ -10655,9 +9308,6 @@
   </data>
   <data name="&gt;&gt;button6.Parent" xml:space="preserve">
     <value>tabPage5</value>
-  </data>
-  <data name="colorComboBox16.Size" type="System.Drawing.Size, System.Drawing">
-    <value>103, 24</value>
   </data>
   <data name="&gt;&gt;button7.Name" xml:space="preserve">
     <value>button7</value>
@@ -10682,15 +9332,6 @@
 Window size increases with channel number (from 0 at zero channel to 1.4x at spectrum end)
 Formula: size = middle_size * sqrt(channel_index / (channel_count / 2))</value>
   </data>
-  <data name="label66.Size" type="System.Drawing.Size, System.Drawing">
-    <value>73, 13</value>
-  </data>
-  <data name="label73.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="&gt;&gt;integerTextBox7.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
   <data name="label3.ToolTip" xml:space="preserve">
     <value />
   </data>
@@ -10699,9 +9340,6 @@ Formula: size = middle_size * sqrt(channel_index / (channel_count / 2))</value>
   </data>
   <data name="colorComboBox3.TabIndex" type="System.Int32, mscorlib">
     <value>16</value>
-  </data>
-  <data name="&gt;&gt;groupBox9.ZOrder" xml:space="preserve">
-    <value>9</value>
   </data>
   <data name="&gt;&gt;label8.ZOrder" xml:space="preserve">
     <value>6</value>
@@ -10727,9 +9365,6 @@ Formula: size = middle_size * sqrt(channel_index / (channel_count / 2))</value>
   <data name="&gt;&gt;label51.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;colorComboBox7.Name" xml:space="preserve">
-    <value>colorComboBox7</value>
-  </data>
   <data name="&gt;&gt;button3.Name" xml:space="preserve">
     <value>button3</value>
   </data>
@@ -10738,9 +9373,6 @@ Formula: size = middle_size * sqrt(channel_index / (channel_count / 2))</value>
   </data>
   <data name="label91.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
-  </data>
-  <data name="label65.Size" type="System.Drawing.Size, System.Drawing">
-    <value>77, 13</value>
   </data>
   <data name="&gt;&gt;numericUpDown9.Name" xml:space="preserve">
     <value>numericUpDown9</value>
@@ -10757,20 +9389,11 @@ Formula: size = middle_size * sqrt(channel_index / (channel_count / 2))</value>
   <data name="label3.Location" type="System.Drawing.Point, System.Drawing">
     <value>12, 87</value>
   </data>
-  <data name="&gt;&gt;label78.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
   <data name="&gt;&gt;colorComboBox2.ZOrder" xml:space="preserve">
     <value>25</value>
   </data>
-  <data name="label71.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
   <data name="colorComboBox10.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>
-  </data>
-  <data name="&gt;&gt;label80.ZOrder" xml:space="preserve">
-    <value>2</value>
   </data>
   <data name="label91.TabIndex" type="System.Int32, mscorlib">
     <value>40</value>
@@ -10783,9 +9406,6 @@ Formula: size = middle_size * sqrt(channel_index / (channel_count / 2))</value>
   </data>
   <data name="comboBox3.TabIndex" type="System.Int32, mscorlib">
     <value>9</value>
-  </data>
-  <data name="integerTextBox12.TabIndex" type="System.Int32, mscorlib">
-    <value>20</value>
   </data>
   <data name="&gt;&gt;comboBox9.Parent" xml:space="preserve">
     <value>groupBox1</value>

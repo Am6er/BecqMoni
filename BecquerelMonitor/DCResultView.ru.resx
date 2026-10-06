@@ -123,12 +123,6 @@
   <data name="$this.Text" xml:space="preserve">
     <value>Результат измерений</value>
   </data>
-  <data name="button1.Text" xml:space="preserve">
-    <value>Ред. ROI...</value>
-  </data>
-  <data name="comboBox1.Items" xml:space="preserve">
-    <value>Импульсы</value>
-  </data>
   <data name="comboBox2.Items" xml:space="preserve">
     <value>Нет коррекции</value>
   </data>
@@ -142,28 +136,19 @@
     <value>Неопред.</value>
   </data>
   <data name="textColumn1.Text" xml:space="preserve">
-    <value>ROI</value>
+    <value>Нуклид</value>
   </data>
   <data name="textColumn4.Text" xml:space="preserve">
     <value>МДА</value>
   </data>
-  <data name="comboBox1.Items1" xml:space="preserve">
-    <value>имп/с</value>
-  </data>
-  <data name="comboBox1.Items2" xml:space="preserve">
+  <data name="comboBox1.Items" xml:space="preserve">
     <value>Бк</value>
   </data>
-  <data name="comboBox1.Items3" xml:space="preserve">
+  <data name="comboBox1.Items1" xml:space="preserve">
     <value>Бк/кг</value>
   </data>
-  <data name="comboBox1.Items4" xml:space="preserve">
+  <data name="comboBox1.Items2" xml:space="preserve">
     <value>Бк/л</value>
-  </data>
-  <data name="DCResult_InterferenceCell" xml:space="preserve">
-    <value>{0} не учтён ×{1}</value>
-  </data>
-  <data name="DCResult_InterferenceTip" xml:space="preserve">
-    <value>{0} кэВ: вклад {1} не учтён — при природном отношении {1}/{2} зона {3} завышена до ×{4}</value>
   </data>
   <data name="DCResult_ColumnMean" xml:space="preserve">
     <value>Ср. за набор</value>
@@ -185,5 +170,53 @@
   </data>
   <data name="DCResult_MomentSampling" xml:space="preserve">
     <value>на дату отбора {0}, ×{1}</value>
+  </data>
+  <data name="DCResult_FsaComputing" xml:space="preserve">
+    <value>FSA: идёт расчёт…</value>
+  </data>
+  <data name="DCResult_FsaNoSpectrum" xml:space="preserve">
+    <value>FSA: нет спектра</value>
+  </data>
+  <data name="DCResult_FsaAbsent" xml:space="preserve">
+    <value>в разборе нет</value>
+  </data>
+  <data name="DCResult_FsaScaleMatrix" xml:space="preserve">
+    <value>FSA: Бк по матрице отклика</value>
+  </data>
+  <data name="DCResult_FsaScaleCurve" xml:space="preserve">
+    <value>FSA: Бк по кривой {0}</value>
+  </data>
+  <data name="DCResult_FsaHidden" xml:space="preserve">
+    <value>FSA: Бк скрыты — {0}</value>
+  </data>
+  <data name="DCResult_FsaReasonField" xml:space="preserve">
+    <value>кривая сцены поля (см² на единичный флюенс)</value>
+  </data>
+  <data name="DCResult_FsaReasonNoCurve" xml:space="preserve">
+    <value>кривой эффективности нет</value>
+  </data>
+  <data name="DCResult_FsaReasonCurveUnused" xml:space="preserve">
+    <value>кривая разбором не учтена</value>
+  </data>
+  <data name="DCResult_FsaReasonOrigin" xml:space="preserve">
+    <value>кривая без абсолютного уровня ({0})</value>
+  </data>
+  <data name="DCResult_FsaReasonNoResult" xml:space="preserve">
+    <value>разбора нет</value>
+  </data>
+  <data name="DCResult_FsaDetails" xml:space="preserve">
+    <value>строк {0}, не в разборе {1}, по члену ряда {2}</value>
+  </data>
+  <data name="DCResult_FsaMdaHeader" xml:space="preserve">
+    <value>МДА</value>
+  </data>
+  <data name="DCResult_FsaMdaTip" xml:space="preserve">
+    <value>a# — предел обнаружения разбора (ISO 11929, Xu 2022) с надувкой √(χ²/ndf). Это не MDA Карри по зоне.</value>
+  </data>
+  <data name="DCResult_FsaStale" xml:space="preserve">
+    <value>(пересчёт…)</value>
+  </data>
+  <data name="DCResult_FsaNoSet" xml:space="preserve">
+    <value>FSA: выберите сет нуклидов</value>
   </data>
 </root>

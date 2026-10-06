@@ -97,8 +97,6 @@ namespace N42DoorsProbeF54
             }
 
             // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`).
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             Console.WriteLine("=== СБОРКА ===");
             Console.WriteLine("  " + typeof(DocumentManager).Assembly.Location);

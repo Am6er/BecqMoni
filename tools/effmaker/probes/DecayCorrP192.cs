@@ -70,8 +70,6 @@ namespace DecayCorrP192
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
 
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             Console.WriteLine("приложение: {0}", typeof(MeasurementResultManager).Assembly.Location);
             bool fixedBuild = typeof(MeasurementResultManager).GetMethod("DecayToSamplingFactor") != null;
             Console.WriteLine("сборка: {0}", fixedBuild ? "С ПРАВКОЙ AMBER148 (есть DecayToSamplingFactor)" : "БЕЗ ПРАВКИ (плечо «до» — ждём отклонения)");
@@ -179,15 +177,15 @@ namespace DecayCorrP192
 
         static MeasurementResult Run(double halfLifeYears, DateTime sampling, DateTime start, DateTime end, double value, double mda)
         {
-            var roi = new ROIDefinitionData { HalfLife = halfLifeYears, Enabled = true, Name = "probe" };
+            var line = new MeasurementLine { HalfLifeYears = halfLifeYears, Name = "probe" };
             var rd = new ResultData();
             rd.SampleInfo = new SampleInfoData();
             rd.SampleInfo.Time = sampling;
             rd.StartTime = start;
             rd.EndTime = end;
             rd.EnergySpectrum = new EnergySpectrum();
-            var coll = new MeasurementResultCollection { ResultData = rd, ROIConfig = new ROIConfigData() };
-            coll.ResultList.Add(new MeasurementResult(roi, value, 0.1 * value, mda));
+            var coll = new MeasurementResultCollection { ResultData = rd, SourceKey = "probe" };
+            coll.ResultList.Add(new MeasurementResult(line, value, 0.1 * value, mda));
             return new MeasurementResultManager().Correct(coll).ResultList[0];
         }
 

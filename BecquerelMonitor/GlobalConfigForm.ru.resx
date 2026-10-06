@@ -774,9 +774,6 @@
   <data name="colorComboBox6.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="colorComboBox7.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="colorComboBox8.ToolTip" xml:space="preserve">
     <value />
   </data>
@@ -814,21 +811,9 @@
     <value>72, 13</value>
   </data>
   <data name="label10.Text" xml:space="preserve">
-    <value>Область ROI</value>
+    <value>Ореол графиков калибровки</value>
   </data>
   <data name="label10.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label11.Size" type="System.Drawing.Size, System.Drawing">
-    <value>52, 13</value>
-  </data>
-  <data name="label11.Text" xml:space="preserve">
-    <value>Фон ROI</value>
-  </data>
-  <data name="label11.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="colorComboBox16.ToolTip" xml:space="preserve">
     <value />
   </data>
   <data name="label12.Size" type="System.Drawing.Size, System.Drawing">
@@ -838,15 +823,6 @@
     <value>Граница выбр. обл.</value>
   </data>
   <data name="label12.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label25.Size" type="System.Drawing.Size, System.Drawing">
-    <value>88, 13</value>
-  </data>
-  <data name="label25.Text" xml:space="preserve">
-    <value>Чист. часть ROI</value>
-  </data>
-  <data name="label25.ToolTip" xml:space="preserve">
     <value />
   </data>
   <data name="label13.Size" type="System.Drawing.Size, System.Drawing">
@@ -946,210 +922,6 @@
     <value>Цвет</value>
   </data>
   <data name="tabPage3.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label83.Size" type="System.Drawing.Size, System.Drawing">
-    <value>133, 13</value>
-  </data>
-  <data name="label83.Text" xml:space="preserve">
-    <value>Префикс файла образца</value>
-  </data>
-  <data name="label83.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="textBox5.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="textBox4.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label82.Size" type="System.Drawing.Size, System.Drawing">
-    <value>117, 13</value>
-  </data>
-  <data name="label82.Text" xml:space="preserve">
-    <value>Префикс файла фона</value>
-  </data>
-  <data name="label82.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="textBox3.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label81.Size" type="System.Drawing.Size, System.Drawing">
-    <value>151, 13</value>
-  </data>
-  <data name="label81.Text" xml:space="preserve">
-    <value>Префикс файла калибровки</value>
-  </data>
-  <data name="label81.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label66.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="textBox2.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="button5.Text" xml:space="preserve">
-    <value>Выбор...</value>
-  </data>
-  <data name="button5.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="groupBox10.Text" xml:space="preserve">
-    <value>Конфигурация файла результата</value>
-  </data>
-  <data name="groupBox10.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox13.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label80.Size" type="System.Drawing.Size, System.Drawing">
-    <value>98, 13</value>
-  </data>
-  <data name="label80.Text" xml:space="preserve">
-    <value>Время включения</value>
-  </data>
-  <data name="label80.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox12.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label79.Size" type="System.Drawing.Size, System.Drawing">
-    <value>103, 13</value>
-  </data>
-  <data name="label79.Text" xml:space="preserve">
-    <value>Время калибровки</value>
-  </data>
-  <data name="label79.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox11.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label78.Size" type="System.Drawing.Size, System.Drawing">
-    <value>90, 13</value>
-  </data>
-  <data name="label78.Text" xml:space="preserve">
-    <value>Время прогрева</value>
-  </data>
-  <data name="label78.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="comboBox17.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label77.Size" type="System.Drawing.Size, System.Drawing">
-    <value>70, 13</value>
-  </data>
-  <data name="label77.Text" xml:space="preserve">
-    <value>Конфиг. ROI</value>
-  </data>
-  <data name="label77.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox7.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox6.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox8.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox9.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label76.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
-  </data>
-  <data name="label76.Text" xml:space="preserve">
-    <value>По умолч.</value>
-  </data>
-  <data name="label76.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox10.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label75.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label72.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label74.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label73.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="groupBox9.Text" xml:space="preserve">
-    <value>Время измерения образца</value>
-  </data>
-  <data name="groupBox9.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox5.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox4.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox3.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox2.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label71.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label70.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label69.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label68.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label67.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
-  </data>
-  <data name="label67.Text" xml:space="preserve">
-    <value>По умолч.</value>
-  </data>
-  <data name="label67.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="integerTextBox1.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="groupBox8.Text" xml:space="preserve">
-    <value>Время измерения фона</value>
-  </data>
-  <data name="groupBox8.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="comboBox16.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label65.Size" type="System.Drawing.Size, System.Drawing">
-    <value>76, 13</value>
-  </data>
-  <data name="label65.Text" xml:space="preserve">
-    <value>Конфиг. устр.</value>
-  </data>
-  <data name="label65.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="tabPage4.Text" xml:space="preserve">
-    <value>Упрощ. управление</value>
-  </data>
-  <data name="tabPage4.ToolTip" xml:space="preserve">
     <value />
   </data>
   <data name="button7.Text" xml:space="preserve">
@@ -5684,32 +5456,5 @@
   </data>
   <data name="label63.Text" xml:space="preserve">
     <value>Спектр 11</value>
-  </data>
-  <data name="label66.Text" xml:space="preserve">
-    <value>Папка спектров</value>
-  </data>
-  <data name="label68.Text" xml:space="preserve">
-    <value>Выделение 1</value>
-  </data>
-  <data name="label69.Text" xml:space="preserve">
-    <value>Выделение 2</value>
-  </data>
-  <data name="label70.Text" xml:space="preserve">
-    <value>Выделение 3</value>
-  </data>
-  <data name="label71.Text" xml:space="preserve">
-    <value>Выделение 4</value>
-  </data>
-  <data name="label72.Text" xml:space="preserve">
-    <value>Выделение 4</value>
-  </data>
-  <data name="label73.Text" xml:space="preserve">
-    <value>Выделение 3</value>
-  </data>
-  <data name="label74.Text" xml:space="preserve">
-    <value>Выделение 2</value>
-  </data>
-  <data name="label75.Text" xml:space="preserve">
-    <value>Выделение 1</value>
   </data>
 </root>

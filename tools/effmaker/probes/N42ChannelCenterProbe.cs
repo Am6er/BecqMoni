@@ -83,8 +83,6 @@ namespace N42ChannelCenterProbe
                 Thread.CurrentThread.CurrentCulture = ci;
                 Thread.CurrentThread.CurrentUICulture = ci;
             }
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             Console.WriteLine("=== СБОРКА ===");
             Console.WriteLine("  " + typeof(DocumentManager).Assembly.Location);

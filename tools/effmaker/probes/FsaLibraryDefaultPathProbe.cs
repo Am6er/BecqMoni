@@ -100,8 +100,6 @@ namespace FsaLibraryDefaultPathProbe
                 return 2;
             }
 
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
 

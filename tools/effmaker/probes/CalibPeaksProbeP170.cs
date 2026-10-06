@@ -64,8 +64,6 @@ namespace CalibPeaksProbeP170
                 else if (a.StartsWith("--corpus-lt=")) jobs.Add(new[] { "clt", a.Substring(12) });
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             string exe = typeof(DocumentManager).Assembly.Location;
             Console.WriteLine("=== СБОРКА === " + exe + "  ("
                               + File.GetLastWriteTime(exe).ToString("yyyy-MM-dd HH:mm:ss", Inv) + ")");

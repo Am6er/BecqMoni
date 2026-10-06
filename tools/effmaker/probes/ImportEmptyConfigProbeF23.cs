@@ -79,8 +79,6 @@ namespace ImportEmptyConfigProbeF23
             ModalWatchStart();
 
             // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`).
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             if (n42Dir == null)
             {

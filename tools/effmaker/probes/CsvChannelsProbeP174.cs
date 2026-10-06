@@ -46,8 +46,6 @@ namespace CsvChannelsProbeP174
             }
 
             Directory.CreateDirectory(dir);
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             string exe = typeof(DocumentManager).Assembly.Location;
             Console.WriteLine("=== СБОРКА === " + exe + "  ("
                               + File.GetLastWriteTime(exe).ToString("yyyy-MM-dd HH:mm:ss", Inv) + ")");

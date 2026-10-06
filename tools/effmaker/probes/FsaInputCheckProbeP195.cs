@@ -48,8 +48,6 @@ namespace FsaInputCheckProbeP195
 
             if (path == null || !File.Exists(path)) { Console.Error.WriteLine("нужен --spectrum=<файл.xml>"); return 2; }
 
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
             NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();

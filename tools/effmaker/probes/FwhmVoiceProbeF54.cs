@@ -56,8 +56,6 @@ namespace FwhmVoiceProbeF54
             }
 
             // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`).
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             Console.WriteLine("=== СБОРКА ===");
             Console.WriteLine("  " + typeof(DocumentManager).Assembly.Location);
@@ -97,7 +95,6 @@ namespace FwhmVoiceProbeF54
                     DeviceConfigManager.GetInstance();
                     NuclideDefinitionManager.GetInstance();
                     GlobalConfigManager.GetInstance();
-                    ROIConfigManager.GetInstance();
                 }
                 finally { Console.SetError(warmErr); }
             }

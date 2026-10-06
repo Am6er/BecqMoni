@@ -67,8 +67,6 @@ namespace ImportConventionProbeP146
                 else if (a.StartsWith("--dump=")) dumpFile = a.Substring(7);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             Console.WriteLine("=== СБОРКА ===");
             Console.WriteLine("  " + typeof(DocumentManager).Assembly.Location);

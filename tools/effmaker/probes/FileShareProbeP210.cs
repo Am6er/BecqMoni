@@ -121,8 +121,6 @@ static class FileShareProbeP210
 
         bad += Taken("device", DeviceConfigManager.GetInstance(), Path.Combine(cfg, "device"),
             DeviceConfigManager.GetInstance().DeviceConfigList.Select(c => c.Filename));
-        bad += Taken("roi", ROIConfigManager.GetInstance(), Path.Combine(cfg, "ROI"),
-            ROIConfigManager.GetInstance().ROIConfigList.Select(c => c.Filename));
         Console.WriteLine(bad == 0 ? "ИТОГ: поверх непрочитанного не пишется" : "ИТОГ: ДЕФЕКТ, мест " + bad.ToString(CultureInfo.InvariantCulture));
         return bad == 0 ? 0 : 1;
     }
@@ -210,15 +208,12 @@ static class FileShareProbeP210
         // сцена «держатель на спектре» не должна мерить заодно конфиги.
         GlobalConfigManager.GetInstance();
         DeviceConfigManager.GetInstance();
-        ROIConfigManager.GetInstance();
         NuclideDefinitionManager.GetInstance();
 
         string deviceDir = Path.Combine(cfg, "device");
-        string roiDir = Path.Combine(cfg, "ROI");
         // Сколько читается БЕЗ помех — то и эталон: в каталоге могут быть файлы,
         // которые не берутся по своей причине (дубль GUID), а не из-за доступа.
         int deviceFiles = DeviceConfigManager.GetInstance().DeviceConfigList.Count;
-        int roiFiles = ROIConfigManager.GetInstance().ROIConfigList.Count;
 
         var targets = new List<Target>
         {
@@ -255,24 +250,6 @@ static class FileShareProbeP210
                     });
                     return err ?? (n == deviceFiles ? null
                         : "загружено " + n.ToString(CultureInfo.InvariantCulture) + " из " + deviceFiles.ToString(CultureInfo.InvariantCulture));
-                }
-            },
-            new Target
-            {
-                Name = "roi",
-                Files = () => Directory.GetFiles(roiDir, "*.xml"),
-                Load = () =>
-                {
-                    int n = -1;
-                    string err = Try(() =>
-                    {
-                        ROIConfigManager m = ROIConfigManager.GetInstance();
-                        SetField(m, "isLoaded", false);
-                        m.LoadAllConfigFiles();
-                        n = m.ROIConfigList.Count;
-                    });
-                    return err ?? (n == roiFiles ? null
-                        : "загружено " + n.ToString(CultureInfo.InvariantCulture) + " из " + roiFiles.ToString(CultureInfo.InvariantCulture));
                 }
             },
             new Target

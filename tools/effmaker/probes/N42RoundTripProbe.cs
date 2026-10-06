@@ -139,8 +139,6 @@ namespace N42RoundTripProbe
             }
 
             // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`).
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             Console.WriteLine("=== СБОРКА ===");
             Console.WriteLine("  " + typeof(DocumentManager).Assembly.Location);
@@ -843,15 +841,12 @@ namespace N42RoundTripProbe
             Array.Sort(files, StringComparer.Ordinal);
 
             DeviceConfigManager dcm = DeviceConfigManager.GetInstance();
-            ROIConfigManager rcm = ROIConfigManager.GetInstance();
             List<DeviceConfigInfo> saved = new List<DeviceConfigInfo>(dcm.DeviceConfigList);
 
             Console.WriteLine("=== ПУСТОЙ СПИСОК КОНФИГУРАЦИЙ ПРИБОРОВ, ОБЕ ДВЕРИ (`A212`) ===");
             Console.WriteLine("  каталог: " + Path.GetFullPath(outDir));
             Console.WriteLine("  файлов: " + files.Length);
             Console.WriteLine("  конфигураций приборов загружено: " + saved.Count);
-            Console.WriteLine("  конфигураций ROI загружено: " + rcm.ROIConfigList.Count
-                              + "  (не трогаются: разрез идёт по ОДНОЙ величине)");
             Console.WriteLine();
 
             int rc = 0;
@@ -1230,8 +1225,6 @@ namespace N42RoundTripProbe
                                         + ", допуск " + cfg.Tolerance.ToString("0.###", CultureInfo.InvariantCulture)));
             v.Add("кривая настроек        = " + (cfg == null ? "(настроек нет)" : Curve(cfg.FwhmCalibration)));
             v.Add("кривая разрешения      = " + Curve(rd.FwhmCalibration));
-            v.Add("ROI                    = " + (rd.ROIConfig == null ? "(нет)" : "«" + Nz(rd.ROIConfig.Name) + "»"));
-            v.Add("ссылка на ROI          = " + (rd.ROIConfigReference == null ? "(нет)" : Nz(rd.ROIConfigReference.Guid)));
             v.Add("фон.спектр             = " + (rd.BackgroundEnergySpectrum == null ? "(нет)" : "есть"));
             v.Add("фон.файл               = " + Nz(rd.BackgroundSpectrumFile));
             v.Add("фон.путь               = " + Nz(rd.BackgroundSpectrumPathname));
@@ -1962,7 +1955,7 @@ namespace N42RoundTripProbe
             string head = configState + " | документ приложения | дверь " + door;
             Console.WriteLine("=== " + head + " ===");
             int ok = 0, failed = 0, spectra = 0, cfgDoc = 0, cfgBuiltin = 0, cfgOther = 0,
-                devSame = 0, devFresh = 0, roiSame = 0, roiNull = 0, roiFresh = 0,
+                devSame = 0, devFresh = 0,
                 curveNull = 0, curveDoc = 0, curveBuiltin = 0, curveOther = 0, spoke = 0;
             List<string> voices = new List<string>();
 
@@ -1978,7 +1971,6 @@ namespace N42RoundTripProbe
                 }
                 ResultData before = doc.ActiveResultData;
                 DeviceConfigInfo devBefore = before.DeviceConfig;
-                ROIConfigData roiBefore = before.ROIConfig;
                 FWHMPeakDetectionMethodConfig cfgBefore = before.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
                 string curveBefore = Curve(before.FwhmCalibration);
                 // Кривая, какую построило бы умолчание ПРИБОРА ДОКУМЕНТА, и
@@ -2033,10 +2025,6 @@ namespace N42RoundTripProbe
                     string dev;
                     if (object.ReferenceEquals(rd.DeviceConfig, devBefore)) { dev = "прибор ДОКУМЕНТА"; devSame++; }
                     else { dev = "прибор СВЕЖИЙ «" + (rd.DeviceConfig == null ? "null" : rd.DeviceConfig.Name) + "»"; devFresh++; }
-                    string roi;
-                    if (rd.ROIConfig == null) { roi = "ROI null"; roiNull++; }
-                    else if (object.ReferenceEquals(rd.ROIConfig, roiBefore)) { roi = "ROI документа"; roiSame++; }
-                    else { roi = "ROI СВЕЖИЙ"; roiFresh++; }
                     FWHMPeakDetectionMethodConfig cfg = rd.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
                     string cfgWho;
                     if (SameCfg3(cfg, cfgBefore)) { cfgWho = "ДОКУМЕНТА"; cfgDoc++; }
@@ -2050,7 +2038,6 @@ namespace N42RoundTripProbe
                     else { curveWho = "ЧУЖАЯ"; curveOther++; }
                     sb.Append(" | [").Append(i).Append("] ").Append(dev)
                       .Append(", ссылка ").Append(rd.DeviceConfigReference == null ? "null" : (rd.DeviceConfigReference.Guid ?? "(пусто)"))
-                      .Append(", ").Append(roi)
                       .Append(", настройки ").Append(cfgWho).Append(' ').Append(Cfg3(cfg))
                       .Append(", кривая ").Append(curveWho).Append(' ').Append(curve);
                 }
@@ -2060,7 +2047,6 @@ namespace N42RoundTripProbe
             string total = head + " -> ИМПОРТИРОВАНО " + ok + " / ОТКАЗ " + failed + " (из " + files.Length + ")"
                            + "; спектров " + spectra
                            + ": прибор документа " + devSame + " / свежий " + devFresh
-                           + "; ROI документа " + roiSame + " / null " + roiNull + " / свежий " + roiFresh
                            + "; настройки документа " + cfgDoc + " / ВСТРОЕННЫЕ " + cfgBuiltin + " / чужие " + cfgOther
                            + "; кривая документа " + curveDoc + " / ВСТРОЕННАЯ " + curveBuiltin + " / чужая " + curveOther + " / нет " + curveNull
                            + "; дверь сказала слово: " + spoke;
