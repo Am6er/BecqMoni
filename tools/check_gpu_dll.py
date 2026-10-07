@@ -55,14 +55,19 @@ def _utf8_console():
 
 
 def source_hash(gpu_dir=GPU_DIR):
-    u"""sha256 (16 знаков) исходников ядра — то же правило, что `src_hash.ps1`."""
+    u"""sha256 (16 знаков) исходников ядра — то же правило, что `src_hash.ps1`.
+
+    Байты CR (0x0D) из хеша выброшены нарочно (П245-R, 07.10.2026): свежий checkout при
+    `core.autocrlf=true` даёт CRLF, основное дерево держит LF — один текст давал два отпечатка,
+    и сторож краснел в каждом worktree на той же DLL. Самопроверка это сторожит.
+    """
     names = [n for n in os.listdir(gpu_dir)
              if os.path.isfile(os.path.join(gpu_dir, n)) and os.path.splitext(n)[1].lower() in EXTS]
     names.sort(key=lambda n: n.lower())
     h = hashlib.sha256()
     for n in names:
         with io.open(os.path.join(gpu_dir, n), 'rb') as f:
-            h.update(f.read())
+            h.update(f.read().replace(b'\r', b''))
     return h.hexdigest()[:16], names
 
 
@@ -158,12 +163,17 @@ def selftest():
         for n in names:
             shutil.copy(os.path.join(GPU_DIR, n), os.path.join(tmp, n))
         same, _ = source_hash(tmp)
-        with io.open(os.path.join(tmp, names[0]), 'ab') as f:
+        # CRLF вместо LF — тот же отпечаток (checkout с autocrlf не должен красить сторож).
+        p0 = os.path.join(tmp, names[0])
+        raw = io.open(p0, 'rb').read()
+        io.open(p0, 'wb').write(raw.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))
+        crlf, _ = source_hash(tmp)
+        with io.open(p0, 'ab') as f:
             f.write(b'\n')
         changed, _ = source_hash(tmp)
-        ok = same == src and changed != src
+        ok = same == src and crlf == src and changed != src
         bad += 0 if ok else 1
-        print(u'  %s копия даёт тот же отпечаток, байт сверху — другой' % (u'✓' if ok else u'✗'))
+        print(u'  %s копия даёт тот же отпечаток, CRLF — тот же, байт сверху — другой' % (u'✓' if ok else u'✗'))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print(u'самопроверка: %s' % (u'ПРОЙДЕНА' if bad == 0 else u'ПРОВАЛЕНА (%d)' % bad))
