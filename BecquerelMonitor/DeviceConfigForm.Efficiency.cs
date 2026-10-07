@@ -45,6 +45,28 @@ namespace BecquerelMonitor
         const int EfficiencyGenerationGap = 4;
 
         /// <summary>
+        /// (`AMBER218`, П244 07.10.2026) Guid кривых, у которых СТАРАЯ кривая
+        /// или СТАРАЯ матрица отклика — те, что в списке рисуются с меткой
+        /// «!» на красной подложке (<see cref="DrawStaleMark"/>). Решение Amber
+        /// 07.10.2026 вопросником, дословно: кривая — **«Всё, о чём вкладка
+        /// говорит «пересчитайте»»**, матрица — **«Всё, что окно матрицы зовёт
+        /// «устарела»»**.
+        ///
+        /// Набор считается при ЗАПОЛНЕНИИ списка и после записи матрицы, а не
+        /// при каждой перерисовке: признак матрицы читает её файл со склада
+        /// (<see cref="MatrixStale"/>), и делать это на каждый
+        /// <c>DrawItem</c> значило бы читать склад при каждом движении мыши по
+        /// списку.
+        /// </summary>
+        HashSet<string> efficiencyStaleGuids = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>Текст метки старой кривой или матрицы в списке.</summary>
+        internal const string StaleMarkText = "!";
+
+        /// <summary>Просвет между меткой и именем геометрии, точек.</summary>
+        const int StaleMarkGap = 4;
+
+        /// <summary>
         /// Импорт текстового экспорта ЛСРМ (`EffCalcMC.txt`).
         ///
         /// ⛔ `AMBER13`, решение Amber 10.09.2026 «Снять и завести ввоз на
@@ -142,8 +164,13 @@ namespace BecquerelMonitor
                 Location = new Point(Margin, y),
                 Size = new Size(Width, 21),
                 DropDownStyle = ComboBoxStyle.DropDownList,
+                // (`AMBER218`) Строки рисуются своими руками: перед именем
+                // геометрии со старой кривой или старой матрицей — метка «!»
+                // белым на красном квадрате (<see cref="DrawStaleMark"/>).
+                DrawMode = DrawMode.OwnerDrawFixed,
             };
 
+            this.efficiencyCombo.DrawItem += this.efficiencyCombo_DrawItem;
             this.efficiencyCombo.SelectedIndexChanged += this.efficiencyCombo_SelectedIndexChanged;
             header.Controls.Add(this.efficiencyCombo);
 
@@ -251,6 +278,7 @@ namespace BecquerelMonitor
         /// </summary>
         void LoadEfficiencyTab(DeviceConfigInfo config)
         {
+            this.efficiencyStaleGuids = StaleEfficiencyGuids(config);
             this.efficiencyCombo.Items.Clear();
             this.efficiencyCombo.Items.Add(Resources.EfficiencyTabNone);
             int selected = 0;
@@ -338,6 +366,11 @@ namespace BecquerelMonitor
 
         void responseMatrixForm_MatrixSaved(object sender, EventArgs e)
         {
+            // (`AMBER218`) Записанная матрица могла снять метку «!» со своей
+            // строки (или поставить — если посчитана для другой геометрии):
+            // набор пересчитывается, список перерисовывается.
+            this.efficiencyStaleGuids = StaleEfficiencyGuids(this.activeDeviceConfig);
+            this.efficiencyCombo.Invalidate();
             this.UpdateEfficiencyView();
         }
 
@@ -531,6 +564,25 @@ namespace BecquerelMonitor
         /// </summary>
         internal static List<string> GeometryNotes(EfficiencyConfigData config)
         {
+            List<string> notes = CurveSceneNotes(config);
+            if (config != null && config.HasGeometry)
+            {
+                notes.AddRange(config.Geometry.Warnings);
+            }
+
+            return notes;
+        }
+
+        /// <summary>
+        /// Та часть <see cref="GeometryNotes"/>, которая говорит о КРИВОЙ —
+        /// «посчитана для другой геометрии» и «прежняя сцена сосуда»; без
+        /// предупреждений о слоях самой геометрии. Вынесена отдельно
+        /// (`AMBER218`): по ней же решается метка «!» в списке
+        /// (<see cref="CurveStale"/>), а слой без вещества — беда геометрии,
+        /// а не старость кривой.
+        /// </summary>
+        internal static List<string> CurveSceneNotes(EfficiencyConfigData config)
+        {
             List<string> notes = new List<string>();
             if (config == null || !config.HasGeometry)
             {
@@ -559,8 +611,184 @@ namespace BecquerelMonitor
                                         EfficiencyCalculation.VesselStamp));
             }
 
-            notes.AddRange(config.Geometry.Warnings);
             return notes;
+        }
+
+        // ------------------------------------------------------------------
+        // Метка «!» старой кривой или старой матрицы в списке (AMBER218)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// ⛔ (`AMBER218`, П244 07.10.2026) СТАРАЯ ЛИ КРИВАЯ — РОВНО ТО, О ЧЁМ
+        /// ПОДПИСЬ ПОД СПИСКОМ ГОВОРИТ «ПЕРЕСЧИТАЙТЕ». Решение Amber 07.10.2026
+        /// вопросником, дословно: **«Всё, о чём вкладка говорит «пересчитайте»»**:
+        ///
+        ///   * поколение переноса кривой ниже поколения сборки
+        ///     (<see cref="GenerationNotes"/>, `phys=`);
+        ///   * прежнее определение пика — у геометрии с разрешением нет
+        ///     `peps=fwhm` (там же);
+        ///   * посчитана для другой геометрии — отпечаток при кривой не
+        ///     сходится с геометрией рядом (<see cref="CurveSceneNotes"/>);
+        ///   * прежняя сцена сосуда — нет `bmscene=1` у сосуда, чья сцена
+        ///     изменилась (там же).
+        ///
+        /// Своего правила здесь НЕТ нарочно: метка в списке и подпись под ним
+        /// обязаны говорить одно, и двум копиям правила разойтись нельзя.
+        /// Расхождение поколений кривой и матрицы между собой сюда не входит:
+        /// с матрицей разбирается <see cref="MatrixStale"/>, и у пары «кривая 22,
+        /// матрица 26» метку ставит кривая, у «кривая 26, матрица 22» — матрица.
+        /// Кривая без клейма (ручная, по измерениям) — не старая: сказать о ней
+        /// нечего, как и подписи.
+        /// </summary>
+        internal static bool CurveStale(EfficiencyConfigData config)
+        {
+            if (config == null)
+            {
+                return false;
+            }
+
+            return GenerationNotes(config.ComputeStamp, 0, ResponseMatrix.PhysicsVersion,
+                                   EfficiencyCalculation.PeakWindowExpected(config.Geometry)).Count > 0
+                   || CurveSceneNotes(config).Count > 0;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER218`) СТАРАЯ ЛИ МАТРИЦА — РОВНО ТО, ЧТО ОКНО «Response matrix»
+        /// ЗОВЁТ «УСТАРЕЛА». Решение Amber 07.10.2026 вопросником, дословно:
+        /// **«Всё, что окно матрицы зовёт «устарела»»** — три состояния
+        /// <c>ResponseMatrixForm.LoadExisting</c> / <c>SayRefusal</c>:
+        ///
+        ///   * файл прежнего формата (<see cref="MatrixRefusal.OldFormat"/>);
+        ///   * поколение переноса в клейме не равно поколению сборки
+        ///     (<see cref="ResponseMatrix.PhysicsVersion"/>);
+        ///   * клеймо не сходится с нынешней геометрией и своими же параметрами
+        ///     (<see cref="ResponseMatrix.IsValidFor(GeometryModel)"/>) —
+        ///     геометрию правили после счёта.
+        ///
+        /// НЕ старая: матрицы нет вовсе (её не считали), файл обрублен, файл не
+        /// наш — окно говорит об этом другими словами, и «старой версией» это
+        /// не является. Кривая без геометрии матрицы иметь не может.
+        ///
+        /// Читается ТО ЖЕ место, что показывает окно, — ждущая сохранения
+        /// матрица новее склада (<see cref="ResponseMatrixStore.EditingSource"/>,
+        /// `AMBER186`). Файл читается целиком тем же <see cref="ResponseMatrixStore.Load(string, ResponseMatrixSource, out MatrixRefusal, out int)"/>,
+        /// что и окно: годность по геометрии требует параметров матрицы, а их
+        /// хвосты лежат ЗА телом файла, и заголовком не обойтись.
+        /// </summary>
+        internal static bool MatrixStale(EfficiencyConfigData config)
+        {
+            if (config == null || !config.HasGeometry || string.IsNullOrEmpty(config.Guid))
+            {
+                return false;
+            }
+
+            MatrixRefusal refusal;
+            int fileFormat;
+            ResponseMatrix matrix = ResponseMatrixStore.Load(config.Guid,
+                                                             ResponseMatrixStore.EditingSource(config.Guid),
+                                                             out refusal, out fileFormat);
+            if (matrix == null)
+            {
+                return refusal == MatrixRefusal.OldFormat;
+            }
+
+            return ResponseMatrix.PhysicsFromStamp(matrix.Stamp) != ResponseMatrix.PhysicsVersion
+                   || !matrix.IsValidFor(config.Geometry);
+        }
+
+        /// <summary>
+        /// Ставить ли метку «!» этой кривой в списке: старая кривая ИЛИ старая
+        /// матрица — «не имеет значения, что именно» (постановка Amber
+        /// 07.10.2026).
+        /// </summary>
+        internal static bool EfficiencyStale(EfficiencyConfigData config)
+        {
+            return CurveStale(config) || MatrixStale(config);
+        }
+
+        /// <summary>
+        /// Guid кривых прибора, которым положена метка. Пустая конфигурация —
+        /// пустой набор.
+        /// </summary>
+        internal static HashSet<string> StaleEfficiencyGuids(DeviceConfigInfo config)
+        {
+            HashSet<string> stale = new HashSet<string>(StringComparer.Ordinal);
+            if (config == null || config.EfficiencyConfigs == null)
+            {
+                return stale;
+            }
+
+            foreach (EfficiencyConfigData item in config.EfficiencyConfigs)
+            {
+                if (item != null && !string.IsNullOrEmpty(item.Guid) && EfficiencyStale(item))
+                {
+                    stale.Add(item.Guid);
+                }
+            }
+
+            return stale;
+        }
+
+        /// <summary>
+        /// Нарисовать метку — белый «!» на красном квадрате — у левого края
+        /// <paramref name="bounds"/>, высотой в строку. Возвращает ширину,
+        /// занятую меткой вместе с просветом: с неё начинается имя геометрии.
+        /// Так постановка Amber 07.10.2026, дословно: «белым восклицательным
+        /// знаком в красной квадратной подложке (красный квадрат, а в нём белый
+        /// воскл знак) перед текстом имя геометрии. Формат, например "! Цилиндр"».
+        ///
+        /// Статический и без формы нарочно: проба рисует его в картинку и
+        /// считает красные и белые точки, а не снимает список с экрана.
+        /// </summary>
+        internal static int DrawStaleMark(Graphics graphics, Rectangle bounds, Font font)
+        {
+            int side = Math.Max(4, bounds.Height - 2);
+            Rectangle square = new Rectangle(bounds.X + 1, bounds.Y + (bounds.Height - side) / 2, side, side);
+            using (SolidBrush red = new SolidBrush(Color.Red))
+            {
+                graphics.FillRectangle(red, square);
+            }
+
+            using (Font bold = new Font(font, FontStyle.Bold))
+            {
+                TextRenderer.DrawText(graphics, StaleMarkText, bold, square, Color.White,
+                                      TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter
+                                      | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
+            }
+
+            return 1 + side + StaleMarkGap;
+        }
+
+        /// <summary>
+        /// Строка списка: метка (если кривой положена) и имя. Рисуется и в
+        /// раскрытом списке, и в закрытом поле (<see cref="DrawItemState.ComboBoxEdit"/>)
+        /// — выбранная старая геометрия помечена и со свёрнутым списком.
+        /// </summary>
+        void efficiencyCombo_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            e.DrawBackground();
+            ComboBox combo = (ComboBox)sender;
+            if (e.Index >= 0 && e.Index < combo.Items.Count)
+            {
+                object item = combo.Items[e.Index];
+                EfficiencyConfigData config = item as EfficiencyConfigData;
+                int left = e.Bounds.X;
+                if (config != null && this.efficiencyStaleGuids.Contains(config.Guid ?? ""))
+                {
+                    left += DrawStaleMark(e.Graphics, e.Bounds, e.Font);
+                }
+                else
+                {
+                    left += 1;
+                }
+
+                Rectangle textBounds = new Rectangle(left, e.Bounds.Y, Math.Max(0, e.Bounds.Right - left), e.Bounds.Height);
+                TextRenderer.DrawText(e.Graphics, item == null ? "" : item.ToString(), e.Font, textBounds,
+                                      e.ForeColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter
+                                                   | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
+            }
+
+            e.DrawFocusRectangle();
         }
 
         /// <summary>
@@ -1345,6 +1573,7 @@ namespace BecquerelMonitor
             this.contentsLoading = true;
             try
             {
+                this.efficiencyStaleGuids = StaleEfficiencyGuids(this.activeDeviceConfig);
                 this.efficiencyCombo.Items.Clear();
                 this.efficiencyCombo.Items.Add(Resources.EfficiencyTabNone);
                 int selected = 0;
