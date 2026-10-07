@@ -2,6 +2,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using CheckBoxState = System.Windows.Forms.VisualStyles.CheckBoxState;
 
 namespace BecquerelMonitor
 {
@@ -85,23 +86,27 @@ namespace BecquerelMonitor
             // Amber 07.10.2026). Годность GPU спрашивается при открытии
             // (`RmGpu.Probe`); негодная галка выключена, причина — подсказкой.
             //
-            // ⚠ Галка лежит в ПАНЕЛИ, и подсказка привязана к панели, а не к
-            // галке: выключенный контрол WinForms мыши не получает, и ToolTip
-            // на нём не показывается вовсе — то есть причина, ради которой
+            // ⚠ Негодная галка НЕ выключается (`Enabled`), а рисуется выключенной
+            // (<see cref="GpuCheckBox.Unavailable"/>) и не переключается
+            // (`AutoCheck = false`): выключенный контрол WinForms мыши не
+            // получает, и ToolTip над ним не показывается вовсе — измерено
+            // экраном 07.10.2026: подсказка всплывала только правее галки, над
+            // панелью, а над самой галкой — нет. То есть причина, ради которой
             // подсказка и заведена, не доходила бы до человека ровно тогда,
-            // когда нужна. Панель мышь получает всегда.
+            // когда нужна. Панель держит подсказку ещё и справа от галки.
             this.gpuPanel = new Panel
             {
                 Location = new Point(Pad, y),
                 Size = new Size(FormWidth - 2 * Pad, 22)
             };
-            this.gpuCheck = new CheckBox
+            this.gpuCheck = new GpuCheckBox
             {
                 Text = Resources.ResponseMatrixUseGpu,
                 Location = new Point(0, 0),
                 AutoSize = true,
                 Checked = false,
-                Enabled = false
+                AutoCheck = false,
+                Unavailable = true
             };
             this.gpuCheck.CheckedChanged += this.GpuCheckChanged;
             this.gpuPanel.Controls.Add(this.gpuCheck);
@@ -332,6 +337,47 @@ namespace BecquerelMonitor
         void ParametersChanged(object sender, EventArgs e)
         {
 
+        }
+
+        /// <summary>
+        /// (`AMBER219`) Галка, которая умеет быть «недоступной», оставаясь живой
+        /// для мыши: при <see cref="Unavailable"/> рисуется штатным выключенным
+        /// видом (`CheckBoxRenderer`, серый текст и серый квадрат), а
+        /// переключение снимает вызывающий (`AutoCheck = false`). Настоящее
+        /// `Enabled = false` подсказку убивает (см. раскладку выше).
+        /// </summary>
+        sealed class GpuCheckBox : CheckBox
+        {
+            bool unavailable;
+
+            public bool Unavailable
+            {
+                get { return this.unavailable; }
+                set
+                {
+                    this.unavailable = value;
+                    this.AutoCheck = !value;
+                    this.Invalidate();
+                }
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                if (!this.unavailable || !this.Enabled)
+                {
+                    base.OnPaint(e);
+                    return;
+                }
+
+                CheckBoxState state = this.Checked ? CheckBoxState.CheckedDisabled : CheckBoxState.UncheckedDisabled;
+                CheckBoxRenderer.DrawParentBackground(e.Graphics, this.ClientRectangle, this);
+                Size glyph = CheckBoxRenderer.GetGlyphSize(e.Graphics, state);
+                var glyphAt = new Point(0, Math.Max(0, (this.Height - glyph.Height) / 2));
+                var textAt = new Rectangle(glyph.Width + 3, 0, Math.Max(1, this.Width - glyph.Width - 3), this.Height);
+                CheckBoxRenderer.DrawCheckBox(e.Graphics, glyphAt, textAt, this.Text, this.Font,
+                                              TextFormatFlags.VerticalCenter | TextFormatFlags.Left,
+                                              false, state);
+            }
         }
 
         InvariantNumericUpDown Field(Control parent, string caption, int x, int y,
