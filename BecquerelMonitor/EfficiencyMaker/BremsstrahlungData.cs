@@ -268,22 +268,22 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>Ниже этой энергии кванты не разыгрываются: не выйдут ниоткуда.</summary>
         public double MinKev { get; private set; }
 
-        double[] node;            // сетка, кэВ: и по T, и по k — одна и та же
+        internal double[] node;            // сетка, кэВ: и по T, и по k — одна и та же
         // ⚡ (`A43`, П45) Логарифмы узлов сетки — один раз при сборке таблицы:
         // `Interpolate` и `SampleFrom` брали по два логарифма от узлов на
         // каждый вызов. Числа те же: `Math.Log` от того же узла.
-        double[] logNode;
-        double[][] cumulative;    // [T][k]: доля квантов ВЫШЕ node[k], от 1 до 0
-        double[] photons;         // среднее число квантов выше MinKev
-        double[] radiatedKev;     // средняя энергия этих квантов
-        double[] anchorFactor;    // во сколько раз уровень подтянут к ESTAR
+        internal double[] logNode;
+        internal double[][] cumulative;    // [T][k]: доля квантов ВЫШЕ node[k], от 1 до 0
+        internal double[] photons;         // среднее число квантов выше MinKev
+        internal double[] radiatedKev;     // средняя энергия этих квантов
+        internal double[] anchorFactor;    // во сколько раз уровень подтянут к ESTAR
 
         // (`M3`, П44) ТОНКАЯ МИШЕНЬ — тормозное на ШАГЕ переноса при текущей
         // энергии электрона, без интеграла по пути: [T][k] — квантов ВЫШЕ
         // node[k] на 1 г/см² пути у электрона энергии node[T] (Σ wᵢ N_A/Aᵢ ∫ dσᵢ/dk).
-        double[][] thinAbove;
-        double[] thinPhotons;     // то же выше MinKev — thinAbove[T][0]
-        double[] thinRadiated;    // излучённая энергия на 1 г/см² выше MinKev
+        internal double[][] thinAbove;
+        internal double[] thinPhotons;     // то же выше MinKev — thinAbove[T][0]
+        internal double[] thinRadiated;    // излучённая энергия на 1 г/см² выше MinKev
 
         static readonly object Gate = new object();
         static readonly Dictionary<string, ThickTargetBrem> cache =
