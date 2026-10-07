@@ -33,7 +33,6 @@ namespace BecquerelMonitor
         readonly EfficiencyConfigData config;
 
         Label stateLabel, versionsLabel, progressLabel;
-        CheckBox useMatrixCheck;
         Panel detailsPanel;
         string detailsText = "";
         ProgressBar progressBar;
@@ -69,13 +68,6 @@ namespace BecquerelMonitor
 
 
         /// <summary>
-        /// Трогали ли выключатель матрицы (W11). Форма пишет в ту же копию
-        /// конфигурации, что и вкладка Efficiency, — вкладке остаётся пометить
-        /// конфигурацию изменённой, чтобы «Сохранить» ожило.
-        /// </summary>
-        public bool UseMatrixTouched { get; private set; }
-
-        /// <summary>
         /// Матрица записана в склад (`AMBER48`). Вкладка Efficiency читает
         /// поколение матрицы из ЗАГОЛОВКА ФАЙЛА склада, а не из конфигурации, —
         /// после записи файл сменил поколение, и подпись «two generations side
@@ -91,15 +83,6 @@ namespace BecquerelMonitor
             if (handler != null)
             {
                 handler(this, EventArgs.Empty);
-            }
-        }
-
-        void UseMatrixChanged(object sender, EventArgs e)
-        {
-            if (this.config != null && this.config.UseResponseMatrix != this.useMatrixCheck.Checked)
-            {
-                this.config.UseResponseMatrix = this.useMatrixCheck.Checked;
-                this.UseMatrixTouched = true;
             }
         }
 
@@ -142,8 +125,6 @@ namespace BecquerelMonitor
                 this.ShowVersions(0, 0, false);
                 this.SetDetails("");
                 this.computeButton.Enabled = false;
-                // Без геометрии матрицы не бывает — выключателю нечего включать.
-                this.useMatrixCheck.Enabled = false;
                 return;
             }
 
