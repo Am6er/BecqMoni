@@ -198,3 +198,7 @@ Diff дерева полосы (три файла: `FsaAnalyzer.cs`, `FsaBqProbe
 (три матрицы формата 11: вода и варианты Lu3/Lu7), `variant\` (копии спектра и конфига с вариантами),
 скрипты `rebuild.ps1`, `arms.ps1`, `variants.ps1`, `runs.ps1`, `arms_table.py`, `pois_compare.py`,
 `make_lu_variant.py`, `lane_p237.patch`. Снимков экрана нет.
+
+Коммит **`7ff895dd`** на `master` (пять файлов; `SUMMARY.md` не тронут). Пуша не было — слова о нём не было.
+Полоса снята 04:27: worktree и ветка удалены, `app` / `probes` / `amber_config` сняты; выходы A/B корпуса
+`out_p237*` перенесены в `D:\BqMoni_Claude\p237\out\` (6 каталогов), остаток полосы на диске — 7.1 МБ.
