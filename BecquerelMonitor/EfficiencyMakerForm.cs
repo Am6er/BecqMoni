@@ -913,7 +913,12 @@ namespace BecquerelMonitor
             this.saveButton.Enabled = this.boundConfig != null
                 ? (this.dirty || haveCurve)
                 : haveCurve;
-            this.exportButton.Enabled = haveCurve;
+            // Выгружать есть что и без нового счёта: сохранённая кривая
+            // конфигурации (задача Amber 07.10.2026: «Хочу экспортировать
+            // готовую кривую для анализа. Но без нового расчета кнопка не
+            // активна»).
+            this.exportButton.Enabled = haveCurve
+                || (this.boundConfig != null && this.boundConfig.HasCurve);
         }
 
         /// <summary>
@@ -1144,17 +1149,27 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Выгрузить кривую в CSV. Свежий расчёт этого окна идёт первым — это
+        /// то, что человек только что посчитал и видит сплошной линией; без
+        /// него выгружается сохранённая кривая конфигурации (пунктир графика).
+        /// Какая из двух ушла в файл, говорит строка `source` шапки.
+        /// </summary>
         void exportButton_Click(object sender, EventArgs e)
         {
-            if (this.lastResult == null || !this.lastResult.Ok)
+            bool fresh = this.lastResult != null && this.lastResult.Ok;
+            bool saved = !fresh && this.boundConfig != null && this.boundConfig.HasCurve;
+            if (!fresh && !saved)
             {
                 return;
             }
 
+            List<ROIEfficiencyData> curve = fresh ? this.lastResult.Curve : this.boundConfig.Curve;
+
             using (SaveFileDialog dialog = new SaveFileDialog())
             {
                 dialog.Filter = Resources.EfficiencyMakerCsvFilter;
-                dialog.FileName = "efficiency.csv";
+                dialog.FileName = ExportFileName(this.boundConfig == null ? null : this.boundConfig.Name);
                 if (dialog.ShowDialog(this) != DialogResult.OK)
                 {
                     return;
@@ -1162,7 +1177,8 @@ namespace BecquerelMonitor
 
                 try
                 {
-                    EfficiencyCurveIo.ExportCsv(dialog.FileName, this.lastResult);
+                    // Шапка — после диалога: время `exported` — время записи.
+                    EfficiencyCurveIo.ExportCsv(dialog.FileName, curve, this.ExportHeader(fresh, curve));
                     this.statusLabel.Text = string.Format(CultureInfo.InvariantCulture,
                                                           Resources.EfficiencyMakerSaved, dialog.FileName);
                 }
@@ -1171,6 +1187,77 @@ namespace BecquerelMonitor
                     MessageBox.Show(this, ex.Message, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+        }
+
+        /// <summary>
+        /// Шапка CSV: прибор, конфигурация, какая кривая (свежий расчёт или
+        /// сохранённая), клеймо счёта, даты. Ключи английские, как и столбцы
+        /// таблицы, — это формат файла, а не текст окна; даты и числа —
+        /// инвариантом.
+        /// </summary>
+        List<string> ExportHeader(bool fresh, List<ROIEfficiencyData> curve)
+        {
+            CultureInfo inv = CultureInfo.InvariantCulture;
+            List<string> header = new List<string> { "BecqMoni efficiency curve" };
+            if (this.boundDevice != null)
+            {
+                header.Add("device: " + this.boundDevice.Name);
+            }
+
+            if (this.boundConfig != null)
+            {
+                header.Add("configuration: " + this.boundConfig.Name);
+            }
+
+            if (fresh)
+            {
+                header.Add("source: computed in the curve designer, NOT saved into the configuration");
+                header.Add("origin: " + EfficiencyOrigin.Simulation);
+                header.Add("stamp: " + (this.lastResult.ComputeStamp ?? ""));
+            }
+            else
+            {
+                header.Add("source: saved curve of the configuration");
+                header.Add("origin: " + this.boundConfig.Origin);
+                header.Add("stamp: " + (this.boundConfig.ComputeStamp ?? ""));
+                header.Add("saved: " + this.boundConfig.LastUpdated.ToString("yyyy-MM-dd HH:mm:ss", inv));
+                if (this.boundConfig.CurveGeometryMismatch)
+                {
+                    header.Add("warning: the geometry of the configuration was edited after this curve was computed");
+                }
+            }
+
+            double eMin = double.MaxValue, eMax = double.MinValue;
+            foreach (ROIEfficiencyData point in curve)
+            {
+                eMin = Math.Min(eMin, point.Energy);
+                eMax = Math.Max(eMax, point.Energy);
+            }
+
+            header.Add(curve.Count > 0
+                ? string.Format(inv, "points: {0}, {1:G6}...{2:G6} keV", curve.Count, eMin, eMax)
+                : "points: 0");
+            header.Add("exported: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", inv));
+            header.Add("columns: E_keV = energy, keV; eps = full-energy peak efficiency; err_pct = relative error, %");
+            return header;
+        }
+
+        /// <summary>Имя файла по умолчанию — имя конфигурации без запрещённых знаков.</summary>
+        static string ExportFileName(string configName)
+        {
+            if (string.IsNullOrWhiteSpace(configName))
+            {
+                return "efficiency.csv";
+            }
+
+            char[] bad = System.IO.Path.GetInvalidFileNameChars();
+            System.Text.StringBuilder name = new System.Text.StringBuilder();
+            foreach (char c in configName.Trim())
+            {
+                name.Append(Array.IndexOf(bad, c) >= 0 ? '_' : c);
+            }
+
+            return name + ".csv";
         }
 
         /// <summary>
