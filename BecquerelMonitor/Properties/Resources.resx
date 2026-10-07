@@ -43541,20 +43541,8 @@ Turn it on in Windows settings and search again.</value>
   <data name="DoseRateFieldScene" xml:space="preserve">
     <value>Dose rate: the curve belongs to a field scene (on the ground or in a borehole). The dose there needs the fluence at the detector together with the photons scattered in the ground, and the point-source factor gives neither: without attenuation it overstates the unscattered fluence 4 to 20 times, and the scattered part (about half the field) is not in it. Compute the dose with an ISO field scene.</value>
   </data>
-  <data name="DoseRateSourceSceneNote" xml:space="preserve">
-    <value>(sample geometry; for background — ISO scene)</value>
-  </data>
   <data name="DoseRateSourceSceneHint" xml:space="preserve">
     <value>The dose rate uses the geometry of the efficiency curve selected on the panel: the photons are taken to come from the source of that scene. A background field comes from all sides, and such a curve misstates it by tens of percent, most at low energies. To measure the background dose, make a curve of the isotropic field scene (ISO) in the geometry editor and select it.</value>
-  </data>
-  <data name="DoseRateQuantityLabel" xml:space="preserve">
-    <value>Dose rate H*(10), photons {0}…{1}:</value>
-  </data>
-  <data name="DoseRateKev" xml:space="preserve">
-    <value>{0} keV</value>
-  </data>
-  <data name="DoseRateMev" xml:space="preserve">
-    <value>{0} MeV</value>
   </data>
   <data name="DoseRateScopeHint" xml:space="preserve">
     <value>H*(10) is counted from the photons of the spectrum only: cosmic radiation (about 30 nSv/h at sea level) and other particles are not included. True coincidence summing of cascades is not corrected: close to the detector it raises the reading of Co-60 by up to 0.6 % and of Na-22 by up to 3.2 %.</value>

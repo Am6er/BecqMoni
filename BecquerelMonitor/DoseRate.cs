@@ -175,58 +175,11 @@ namespace BecquerelMonitor
                 text = ApproximateMark + " " + text;
             }
 
-            // Приписка только когда есть о чём: полное покрытие молчит.
-            if (this.coverage >= 0.0 && this.coverage < CoverageNoticeThreshold)
-            {
-                text += " " + string.Format(CultureInfo.InvariantCulture,
-                                            DoseRateCoefficients.Text("DoseRatePartialCoverage",
-                                                                      "(covers {0:f0} % of counts)"),
-                                            100.0 * this.coverage);
-            }
-
-            // (`AMBER102`, решение Amber 28.09.2026 «Строка AMBER: приписка на
-            // экране + подсказка «ISO»») Кривая сцены с источником считает поток
-            // как пришедший ОТ ИСТОЧНИКА сцены; фон приходит со всех сторон.
-            if (this.sourceScene)
-            {
-                text += " " + DoseRateCoefficients.Text("DoseRateSourceSceneNote",
-                                                        "(sample geometry; for background — ISO scene)");
-            }
-
+            // (`AMBER216`, решение Amber 07.10.2026, дословно: «Только значение
+            // мощности дозы с погрешностью, без всяких текстов.») Приписки о
+            // покрытии (`C4(в)`) и о сцене с источником (`AMBER102`) со строки
+            // сняты; оговорки живут в подсказке строки состояния (`MainForm`).
             return text;
-        }
-
-        /// <summary>
-        /// (`AMBER103`, П171; решение Amber 28.09.2026, дословно: «Строка AMBER:
-        /// подпись «фотоны 10 кэВ…3 МэВ, H*(10)»») Подпись строки дозы: величина
-        /// H*(10) и область фотонов, которую покрыл счёт, — «Мощность дозы
-        /// H*(10), фотоны 10 кэВ…3 МэВ:». Числа — края сетки ЭТОГО расчёта
-        /// (первый и последний диапазон): у шкалы и матрицы до 3 МэВ подпись
-        /// читается ровно словами решения, у шкалы короче — своим верхом, и не
-        /// врёт. Космическое излучение и прочие частицы по спектру дозой не
-        /// становятся (мюоны уходят за верх шкалы); у отказа диапазонов нет —
-        /// подпись прежняя, <c>Resources.DoseRate</c>.
-        /// </summary>
-        public string QuantityLabel()
-        {
-            if (!string.IsNullOrEmpty(this.refusal) || this.ranges.Count == 0)
-            {
-                return Resources.DoseRate ?? "";
-            }
-
-            return string.Format(CultureInfo.InvariantCulture,
-                                 DoseRateCoefficients.Text("DoseRateQuantityLabel", "Dose rate H*(10), photons {0}…{1}:"),
-                                 EnergyText(this.ranges[0].LowKev), EnergyText(this.ranges[this.ranges.Count - 1].HighKev));
-        }
-
-        /// <summary>Энергия подписи: ниже 1 МэВ — целые кэВ, выше — МэВ до сотых.</summary>
-        static string EnergyText(double kev)
-        {
-            return kev >= 1000.0
-                ? string.Format(CultureInfo.InvariantCulture, DoseRateCoefficients.Text("DoseRateMev", "{0} MeV"),
-                                (kev / 1000.0).ToString("0.##", CultureInfo.InvariantCulture))
-                : string.Format(CultureInfo.InvariantCulture, DoseRateCoefficients.Text("DoseRateKev", "{0} keV"),
-                                kev.ToString("0", CultureInfo.InvariantCulture));
         }
 
         /// <summary>
@@ -239,8 +192,8 @@ namespace BecquerelMonitor
         /// геометрии — `A_пт/A_iso` 1.10 на 662 кэВ … 2.45 на 20 кэВ, фон двух
         /// настоящих спектров −10.5 % и −9.5 %; у бруска ASN16 торцом (точка
         /// 10 см) знак обратный — на 75…250 кэВ поток сбоку завышается ×2.5.
-        /// Решение — не пересчёт, а ПРИПИСКА к строке (и подсказка у строки
-        /// состояния): человек видит, что фон так не меряется.
+        /// Решение — не пересчёт, а подсказка у строки состояния: человек видит,
+        /// что фон так не меряется (приписка к самой строке снята `AMBER216`).
         /// </summary>
         public bool SourceScene
         {
@@ -258,9 +211,6 @@ namespace BecquerelMonitor
             get { return this.sampleTransmission; }
             set { this.sampleTransmission = value; }
         }
-
-        /// <summary>Ниже этой доли покрытия показание получает приписку.</summary>
-        public const double CoverageNoticeThreshold = 0.95;
 
         /// <summary>Знак «по пиковой с пометкой» (решение (3) `AMBER18`).</summary>
         public const string ApproximateMark = "≈";

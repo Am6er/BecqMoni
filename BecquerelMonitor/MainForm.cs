@@ -774,13 +774,13 @@ namespace BecquerelMonitor
                 // Отказ уже начинается подписью («Dose rate: …» / «Мощность
                 // дозы: …») — второй раз её не ставить: прежде строка читалась
                 // «Dose rate: Dose rate: …» (проверка экраном П165).
-                // (`AMBER103`, решение Amber 28.09.2026 «Строка AMBER: подпись
-                // «фотоны 10 кэВ…3 МэВ, H*(10)»») У числа подпись называет
-                // величину и область фотонов; у отказа — прежняя.
+                // (`AMBER216`, решение Amber 07.10.2026, дословно: «Только
+                // значение мощности дозы с погрешностью, без всяких текстов.»)
+                // Подпись — «Мощность дозы:» и у числа, и у отказа; прежняя
+                // подпись `AMBER103` «H*(10), фотоны 10 кэВ…3 МэВ» снята, та же
+                // оговорка — в подсказке ниже.
                 string text = doseRate.ToString();
-                string label = string.IsNullOrEmpty(doseRate.Refusal)
-                    ? doseRate.QuantityLabel()
-                    : Resources.DoseRate ?? "";
+                string label = Resources.DoseRate ?? "";
                 if (string.IsNullOrEmpty(doseRate.Refusal)
                     || !text.StartsWith(label.Trim(), StringComparison.OrdinalIgnoreCase))
                 {
@@ -816,6 +816,14 @@ namespace BecquerelMonitor
                     + " corrected: close to the detector it raises the reading of Co-60 by up to 0.6 % and of Na-22"
                     + " by up to 3.2 %."), 80)
                 : "";
+            // (`AMBER216`) Неполное покрытие (`C4(в)`) снято со строки — оно здесь.
+            if (scope.Length > 0 && doseRate.Coverage >= 0.0 && doseRate.Coverage < 0.95)
+            {
+                scope = string.Format(CultureInfo.InvariantCulture,
+                            DoseRateCoefficients.Text("DoseRatePartialCoverage", "(covers {0:f0} % of counts)"),
+                            100.0 * doseRate.Coverage)
+                        + Environment.NewLine + scope;
+            }
             this.toolStripStatusLabel3.ToolTipText =
                 doseRate != null && !string.IsNullOrEmpty(doseRate.Refusal)
                     ? WrapWords(doseRate.Refusal, 80)

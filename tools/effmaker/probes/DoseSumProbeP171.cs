@@ -30,8 +30,11 @@ namespace DoseSumProbeP171
     ///      спектр Co-60 и Na-22 из строк матрицы сцены с суммированием и без
     ///      него (события распада независимы, угловая корреляция не учтена),
     ///      показание приложения на обоих — отношение печатается.
-    ///   §4 `AMBER103` — подпись строки дозы называет величину H*(10) и область
-    ///      фотонов (en и ru).
+    ///   §4 `AMBER216` (07.10.2026; прежде здесь мерилась подпись `AMBER103`,
+    ///      снятая решением Amber «Только значение мощности дозы с погрешностью,
+    ///      без всяких текстов.») — строка дозы есть ровно «[≈ ]число ±число
+    ///      (n%) единица» (en и ru), в том числе при неполном покрытии и у
+    ///      сцены с источником, а подписи `QuantityLabel` в сборке больше нет.
     ///
     ///     dosesumprobep171 [--dir=&lt;корпус&gt;] [--quiet]
     /// </summary>
@@ -265,7 +268,7 @@ namespace DoseSumProbeP171
         {
             new Scene { Spectrum = "RC103_Cs137_0cm", Matrix = "RC103_point0", Fwhm662Percent = 8.26 },
             new Scene { Spectrum = "AS80_Cs137_0cm", Matrix = "AS80_point0", Fwhm662Percent = 7.22 },
-            new Scene { Spectrum = "G1S16_Cs137_P5", Matrix = "G1S_point5", Fwhm662Percent = 6.61 },
+            new Scene { Spectrum = "G1S16_Cs137_P5", Matrix = "G1S_point5_p16", Fwhm662Percent = 6.61 },
             new Scene { Spectrum = "ASN16_Cs137_10cm", Matrix = "ASN16_point10_house", Fwhm662Percent = 6.26 },
         };
 
@@ -430,7 +433,7 @@ namespace DoseSumProbeP171
 
         static bool Label103()
         {
-            Head("§4. AMBER103: подпись строки дозы — величина и область фотонов");
+            Head("§4. AMBER216: строка дозы — только значение с погрешностью");
             ResultData data = LoadSpectrum(Path.Combine(corpusDir, "spectra", "RC103_Cs137_0cm.xml"));
             ResponseMatrix matrix = data == null ? null
                 : LoadMatrix(Path.Combine(corpusDir, "geometries", "RC103_point0.rmx"), data.Efficiency.Geometry);
@@ -444,22 +447,31 @@ namespace DoseSumProbeP171
             DoseRate withMatrix = manager.Calculate(data, DoseRateInput.Of(data.Efficiency, matrix));
             DoseRate peak = manager.Calculate(data, DoseRateInput.Of(data.Efficiency, null));
             MethodInfo label = typeof(DoseRate).GetMethod("QuantityLabel", BindingFlags.Public | BindingFlags.Instance);
+            Ok(label == null, "подписи `QuantityLabel` в сборке нет");
+
+            // Положительный контроль приписок: та же доза с неполным покрытием и
+            // признаком сцены с источником — прежняя сборка дописывала к строке
+            // «(covers 50 % of counts)» и «(sample geometry; …)».
+            DoseRate marked = manager.Calculate(data, DoseRateInput.Of(data.Efficiency, matrix));
+            marked.Coverage = 0.5;
+            marked.SourceScene = true;
+
+            var line = new System.Text.RegularExpressions.Regex(
+                @"^(≈ )?[0-9]+\.[0-9]+ ±[0-9]+\.[0-9]+ \([0-9]+\.[0-9]%\) [^\s()]+$");
             CultureInfo keep = BecquerelMonitor.Properties.Resources.Culture;
             try
             {
                 foreach (string culture in new[] { "en", "ru" })
                 {
                     BecquerelMonitor.Properties.Resources.Culture = new CultureInfo(culture);
-                    foreach (DoseRate d in new[] { withMatrix, peak })
+                    foreach (DoseRate d in new[] { withMatrix, peak, marked })
                     {
-                        string text = label == null ? "(подписи нет в сборке)" : (string)label.Invoke(d, null);
-                        string path = d == withMatrix ? "матрица" : "пиковая";
-                        Console.WriteLine("  " + culture + ", " + path + ": «" + text + " " + d + "»");
-                        string lo = d.Ranges.Count > 0 ? Kev(d.Ranges[0].LowKev, culture) : "?";
-                        string hi = d.Ranges.Count > 0 ? Kev(d.Ranges[d.Ranges.Count - 1].HighKev, culture) : "?";
-                        string photons = culture == "ru" ? "фотоны" : "photons";
-                        Ok(text.Contains("H*(10)") && text.Contains(photons + " " + lo + "…" + hi),
-                           culture + ", " + path + ": подпись называет H*(10) и «" + photons + " " + lo + "…" + hi + "»");
+                        string path = d == withMatrix ? "матрица" : d == peak ? "пиковая" : "покрытие 50 %, сцена с источником";
+                        string text = d.ToString();
+                        Console.WriteLine("  " + culture + ", " + path + ": «" + text + "»");
+                        Ok(line.IsMatch(text), culture + ", " + path + ": только значение с погрешностью");
+                        Ok((d == peak) == text.StartsWith(DoseRate.ApproximateMark, StringComparison.Ordinal),
+                           culture + ", " + path + ": знак «≈» ровно у пиковой");
                     }
                 }
             }
@@ -469,13 +481,6 @@ namespace DoseSumProbeP171
             }
 
             return true;
-        }
-
-        static string Kev(double kev, string culture)
-        {
-            return kev >= 1000.0
-                ? (kev / 1000.0).ToString("0.##", CultureInfo.InvariantCulture) + (culture == "ru" ? " МэВ" : " MeV")
-                : kev.ToString("0", CultureInfo.InvariantCulture) + (culture == "ru" ? " кэВ" : " keV");
         }
 
         // ------------------------------------------------------------------
