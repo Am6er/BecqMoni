@@ -374,7 +374,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// Строка измерения по имени нуклида: коэффициент — единица при абсолютной шкале, период
-        /// полураспада — по первому определению библиотеки с этим именем (нет — нуль, без поправки).
+        /// полураспада — по первому определению библиотеки с этим именем, а без него — из базы
+        /// по `nucid` имени (нет и там — нуль, без поправки).
         /// </summary>
         static MeasurementLine Line(string name, bool absolute, IList<NuclideDefinition> definitions)
         {
@@ -391,12 +392,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            double halfLifeYears = def != null ? NuclideDefinition.DecayHalfLifeYears(def, definitions) : 0.0;
+            if (!(halfLifeYears > 0.0))
+            {
+                // (П239, 07.10.2026) имя строки — имя РАЗБОРА («Th-232», «Tl-208»), а библиотека
+                // человека пишет как угодно («Th232», «Tl208 (Th232)»): без этой ветки точное
+                // сравнение не находило определения, и поправка на распад к дате отбора тихо
+                // становилась нулевой. Период — из базы по `nucid`, как у корня ряда в
+                // NuclideDefinition.DecayHalfLifeYears.
+                string nucid = FsaSampleLibrary.NucidOf(name);
+                if (nucid.Length > 0)
+                {
+                    halfLifeYears = NucBase.NucBaseFramework.HalfLifeYearsOf(nucid);
+                }
+            }
+
             return new MeasurementLine
             {
                 Name = name,
                 Coefficient = absolute ? 1.0 : 0.0,
                 CoefficientError = 0.0,
-                HalfLifeYears = def != null ? NuclideDefinition.DecayHalfLifeYears(def, definitions) : 0.0
+                HalfLifeYears = halfLifeYears > 0.0 ? halfLifeYears : 0.0
             };
         }
 

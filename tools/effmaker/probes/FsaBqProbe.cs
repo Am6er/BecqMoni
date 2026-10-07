@@ -330,8 +330,8 @@ namespace BecquerelMonitor.Probes
             MeasurementResultCollection perKg = rd.SampleInfo != null && rd.SampleInfo.Weight > 0.0
                 ? manager.Translate(built, ResultTranslation.BecquerelsPerKilogram) : null;
 
-            Console.WriteLine("  {0,-14} {1,12} {2,12} {3,12} {4,5} | {5,9}",
-                              "изотоп", "FSA Бк", "±σ", "a# Бк", "обн", "FSA/пасп");
+            Console.WriteLine("  {0,-14} {1,12} {2,12} {3,12} {4,5} | {5,9} | {6,12}",
+                              "изотоп", "FSA Бк", "±σ", "a# Бк", "обн", "FSA/пасп", "T½ лет");
             for (int i = 0; i < bq.ResultList.Count; i++)
             {
                 MeasurementResult row = bq.ResultList[i];
@@ -346,7 +346,9 @@ namespace BecquerelMonitor.Probes
                 string fsaS = row.IsValid ? F(row.ResultError) : "";
                 string fsaMda = row.IsValid ? F(row.MDA) : "";
                 string r2 = row.IsValid && hasPass && pass > 0.0 ? (row.ResultValue / pass).ToString("F3", CultureInfo.InvariantCulture) : "";
-                Console.WriteLine("  {0,-14} {1,12} {2,12} {3,12} {4,5} | {5,9}", name, fsaBq, fsaS, fsaMda, detected, r2);
+                // (П239) период строки — им окно приводит активность к дате отбора; нуль — поправки нет
+                Console.WriteLine("  {0,-14} {1,12} {2,12} {3,12} {4,5} | {5,9} | {6,12}", name, fsaBq, fsaS, fsaMda, detected, r2,
+                                  row.Line.HalfLifeYears.ToString("0.####E+0", CultureInfo.InvariantCulture));
                 if (perKg != null && i < perKg.ResultList.Count && perKg.ResultList[i].IsValid)
                 {
                     Console.WriteLine("  {0,-14} {1,12} Бк/кг (вес {2} кг)", "", F(perKg.ResultList[i].ResultValue),
