@@ -155,3 +155,11 @@
 
 Артефакты полосы (не в git): `D:\BqMoni_Claude\p241\logs\` (`amber_base.txt`, `amber_new.txt`,
 `amber_new_t1.txt`, `run_*.log`, `check_all3.log`), профили `prof\*.perfView.xml`.
+
+## Решения Amber после сдачи (07.10.2026, вопросником, дословно)
+
+* слияние в master: **«Слить и проверить»** — слито `00151349`, пробы пересобраны, `check_all` на master;
+* банк ядер на процесс: **«Нет, как сейчас»** — банк живёт один разбор, память освобождается.
+* попутно (обслуга): `tools/CORPUS/corpus/SUMMARY.md` получил в `.gitattributes` `text eol=lf` — свежий
+  worktree при `core.autocrlf=true` выписывал его с CRLF, и `check_corpus_generator` краснел на том же
+  содержимом; контроль — без атрибута выписывается 182 CRLF, с ним 0.
