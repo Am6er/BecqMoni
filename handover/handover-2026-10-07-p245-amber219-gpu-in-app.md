@@ -35,14 +35,88 @@ Amber, консоль со снимком окна «Response matrix», досл
 | где жить `rmgpu_f.dll` для поставки | **«В git, как SpecUtilsNet.dll»** |
 | отражение в C#-части порта | **«Перевести на прямой доступ сейчас»** |
 
+## Ревизия GPU-порта (постановка «просмотри его на качество») — что найдено и что с этим сделано
+
+| находка | что сделано |
+|---|---|
+| C#-часть читает ~160 раз закрытые члены симулятора и таблиц отражением; переименование в приложении — отказ при счёте, не при компиляции | решение Amber «Перевести на прямой доступ сейчас» — полоса П245-R в worktree (см. ниже) |
+| `rm_shutdown` сбрасывал устройство, но НЕ забывал указатель на буферы стадий (`stageMem`): следующий `rm_init` в том же процессе отдал бы ядрам мёртвую память. В пробе за процесс один `init` и ни одного `shutdown` — не проявлялось; приложение считает много раз за жизнь процесса | `api.cu`: `rm_shutdown` обнуляет `stageMem`/`stageBuf`/`cfgSet`; C# `RmGpu : IDisposable` → `rm_shutdown`, форма держит устройство только на время счёта |
+| обе ветви узла — ОДНИМ запуском ядра на все истории (аналоговая `AnalogKernelRegen` — один запуск на 3 млн): Windows снимает ядро дольше 2 с (TDR), верхние узлы на RTX 3070 к порогу подходят, карта слабее теряла бы контекст | `RmGpu.RunChunked`: порции историй, размер — по времени предыдущего запуска (цель 0.4 с, пол 65 536, потолок 4 194 304); Philox считает историю по `first + i`, так что суммы от разбиения не зависят — проверено побайтно (ниже); `BQ_GPU_CHUNK=0` — одним запуском, `=N` — ровно по N |
+| ни хода, ни отмены (`GpuBuild.Build` печатала в `TextWriter` раз в 20 узлов) | перегрузка `Build(gpu, geometry, options, progress, cancellation, log)` — тот же `ResponseMatrixProgress`, что у CPU, узел — единица хода; отмена между порциями и у κ пар на ЦП |
+| отказов словами до счёта (боковая постановка, элемент вне таблиц — `AMBER201`) у GPU-пути не было | те же две проверки, что у `ResponseMatrixBuilder.Build` |
+| паспорта сборки у DLL нет: двоичник, отставший от исходников, считал бы старую физику под нынешним клеймом (та же щель, что `A77`) | `rm_build_info()` — `src=` (sha256 исходников ядра, 16 знаков), `phys=` (`physics.h` = `ResponseMatrix.PhysicsVersion`), `arch`, `real`, `cudart`; сторож `tools/check_gpu_dll.py` в `check_all` |
+| годность устройства проверить было нечем без `rm_init` (контекст, стек) | `rm_probe()` — число устройств, имя, compute capability, версии драйвера и рантайма, без контекста и ядер; `RmGpu.Probe` — лестница причин |
+| `cfg.h` и README ссылались на `gen_cfg.ps1`, которого в дереве не было | `tools/effmaker/gpu/gen_cfg.ps1` написан (69 полей, `-Check` сверяет с нынешним `cfg.h` — сошлось) |
+| адаптивный останов по шуму не перенесён | по решению Amber остаётся плоским, форма при галке ставит цель 0 |
+
+Не трогалось (вне постановки, работает): физика ядра, раскрой запуска, стадии, упаковка.
+
 ## Что сделано
 
-_(заполняется по ходу полосы)_
+* **Переезд в приложение** — `BecquerelMonitor\EfficiencyMaker\GpuPack.cs` (бывш. `GpuMatrix.cs`),
+  `GpuPackScene.cs`, `GpuPackTables.cs`, `GpuMatrixRun.cs`; namespace `BecquerelMonitor.EfficiencyMaker`,
+  типы `public` (пробы `CorpusMatrixProbe`/`GpuMatrixCheck` берут их из exe). В пробах этих файлов
+  больше нет.
+* **`RmGpu`**: `Probe(path)` → `GpuProbe` (годен / код причины `GpuProbeReason`: `NoLibrary`,
+  `LoadFailed`, `OldLibrary`, `PhysicsMismatch`, `NoDevice` (cudaError 100), `DriverTooOld`
+  (cudaError 35), `DeviceTooOld` (< 8.6), `RuntimeError`), `DefaultPath` (рядом с exe), `Dispose`,
+  `RunChunked`, `ChunkHistories`.
+* **`ResponseMatrixForm`**: галка `GpuCheckBox` «Use Nvidia GPU» на месте снятой (П242); при
+  открытии `ProbeGpu()`; негодная галка рисуется выключенной (`CheckBoxRenderer`, состояние
+  `*Disabled`) и не переключается (`AutoCheck = false`), но остаётся живой для мыши — настоящее
+  `Enabled = false` подсказку убивает (измерено экраном: над выключенной галкой ToolTip не
+  всплывал, только правее, над панелью); подсказка — из ресурсов по коду причины, EN/RU
+  (`ResponseMatrixGpu*`, 11 ключей); годной — имя карты, compute capability, версия драйвера и
+  слова о плоском счёте; при галке `ContinuumErrorTarget = 0`; строка хода «GPU: node … of …»;
+  устройство берётся `using` на время счёта.
+* **`GlobalConfigInfo.UseGpuForResponseMatrix`** — умолчание `false`, пишется при переключении
+  (`SaveConfigFile`); сохранённое «вкл» на машине без GPU окно показывает снятым и негодным, не
+  трогая значение.
+* **Натив** (`tools/effmaker/gpu`): `rm_build_info`, `rm_probe`, правка `rm_shutdown`, `physics.h`
+  (`RM_PHYSICS_VERSION 26`), `src_hash.ps1`, `build_gpu.cmd` вшивает отпечаток и копирует
+  float-сборку в `BecquerelMonitor\rmgpu_f.dll` (Content в csproj, ClickOnce несёт как
+  `SpecUtilsNet.dll`); `gen_cfg.ps1`; README — раздел «В приложении» и правка «Сборка».
+* **Сторож `tools/check_gpu_dll.py`** (в `check_all`, `--selftest`): отпечаток DLL = sha256
+  исходников ядра; `phys` DLL = `physics.h` = `ResponseMatrix.PhysicsVersion`; копия в
+  `gpu/bin` байт в байт.
+* **Проба `GpuPackDumpProbe`** (`--out` / `--compare` / `--poison`) — упаковка сцены байт в байт
+  для любой правки упаковщика; базовые упаковки 51 сцены склада, снятые СТАРЫМ (отражённым)
+  кодом, — `D:\BqMoni_Claude\p245\blobs_base`.
+* Два дефекта своей же правки, пойманные проверкой экраном и исправленные тем же вечером:
+  решение «GPU или CPU» снималось с галки ПОСЛЕ `SetBusy` (занятая форма галку выключает →
+  счёт шёл на ЦП плоско, 3 млн на узел; строка хода «Node 29 of 143» без «GPU:» и выдала);
+  подсказка над выключенной галкой не показывалась (→ `GpuCheckBox`).
 
 ## Чем доказано
 
-_(заполняется по ходу полосы)_
+Сборки: Release `bin\Release_p245` (пробы `build_p245`, `build_all.ps1` код 0: 301 проба + 7
+довесков, 340 файлов сверено), портативная `D:\BqMoni_Claude\p245\app` для экрана; натив —
+`build_gpu.cmd` 364 с, `rm_build_info` = `src=841552154209a452;phys=26;arch=sm_86;real=float;cudart=12080;`.
+
+| проверка | число |
+|---|---|
+| `check_gpu_dll.py --selftest` | 6 из 6 (чужой отпечаток, чужая физика, `unknown`, пустой паспорт — отказ; верный — сходится; байт сверху меняет отпечаток); отпечаток PowerShell = Python |
+| упаковка 51 сцены склада, код приложения после переезда против базы старого кода | **ВСЕ СОШЛИСЬ (51 сцен)**; положительный контроль `--poison` — расходятся 51 из 51 |
+| `CorpusMatrixProbe --gpu --target=0 --n=3000000`, 2 сцены, порциями против одним запуском (`BQ_GPU_CHUNK=0`) | тела матриц **ТОЖДЕСТВЕННЫ побайтно** у обеих (`G1S_denta120_oisn06_057_p24`: отпечаток 176722828781221f…; `RC103_point0`: c17ca9a773025afc…); обе — 114 с; G1S узлы 77.9 с + κ пар на ЦП 44.0 с, RC103 узлы 33.8 с |
+| те же матрицы против склада rev46 (`D:\BqMoni_Claude\p235\store`) | тела **ТОЖДЕСТВЕННЫ побайтно**, клейма одинаковые, Q_k побитово |
+| экран, галка годна (RTX 3070 Laptop, cc 8.6, драйвер 13.4) | подсказка: имя карты, compute capability, драйвер, «Flat count …»; умолчание снято; клик → `UseGpuForResponseMatrix=true` в `config\BecquerelMonitor.xml` тут же (21:01:26) |
+| экран, счёт кривой «Точка» (701A, точечный источник 100 мм, 143 узла × 3 млн) | строка хода «GPU: node 52 of 143, 309 keV.», **Done in 0:19** (CPU-матрица Amber той же кривой: took 2203 s); `nvidia-smi` во время счёта: utilization 99–100 %, compute app `BecquerelMonitor.exe`; после сохранения `…\7fbb8fc3-….rmx.pending` 683 272 байта |
+| та GPU-матрица против CPU-матрицы Amber (3 млн, останов 3 %) | клейма одинаковые; смещение пика −0.341 ± 0.498 %, суммы −0.515 ± 0.502 % (ноль в пределах ошибки), доля пика +0.182 ± 0.083 %; форма предупредила «Continuum statistics are thin: 6.5 %» — плоский счёт на дальней точке даёт континуум шумнее, чем CPU с остановом (следствие решения «Плоско, как склад»; лечится полем «Histories per node», на GPU это секунды) |
+| экран, DLL переименована | галка серая, не ставится (клик — `toggle:off`, файл настроек не тронут), подсказка над самой галкой: «Not available: the GPU library rmgpu_f.dll is missing next to the application.» |
+| экран, `CUDA_VISIBLE_DEVICES=-1` (устройств нет) | подсказка: «Not available: no CUDA-capable Nvidia GPU found. An Nvidia GPU and its driver are required; the CUDA toolkit is not.» |
+| `gen_cfg.ps1 -Check` | `cfg.h` сходится с приложением: 69 полей |
+
+Снимки экрана (на диске, не в git): `D:\BqMoni_Claude\p245\shots\01_gpu_checkbox_tooltip.png`,
+`02_gpu_progress.png` (ошибочный счёт на ЦП — улика дефекта), `03_gpu_progress.png`,
+`04_gpu_done_19s.png`, `05_no_dll_tooltip.png`, `06_no_device_tooltip.png`. Журналы проб и
+сверок — `D:\BqMoni_Claude\p245\*.log`.
+
+⚠ Проверка экраном шла на копии конфигурации Amber (`%AppData%\BecqMoni\config` → портативная
+сборка), её каталоги не трогались. Во время проверки её собственный экземпляр приложения
+(PID 30220, `Lu176.xml`, с 17:44) к 20:59 уже не работал — я его не останавливал.
 
 ## Остаток
 
-_(заполняется по ходу полосы)_
+* Полоса П245-R (прямой доступ вместо отражения) — ниже, по приёмке.
+* Карты старее RTX 30xx — галка недоступна с причиной (решение Amber); сборка под них —
+  новой постановкой.

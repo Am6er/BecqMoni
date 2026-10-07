@@ -41,7 +41,7 @@ namespace BecquerelMonitor
 
         // (`AMBER219`) Галка «Use Nvidia GPU», её панель (носитель подсказки) и подсказка.
         Panel gpuPanel;
-        CheckBox gpuCheck;
+        GpuCheckBox gpuCheck;
         ToolTip gpuTip;
 
         /// <summary>Ответ <see cref="RmGpu.Probe"/> при открытии окна; null — не спрашивали.</summary>
@@ -129,7 +129,11 @@ namespace BecquerelMonitor
         /// <summary>Галка GPU стоит и годна — счёт идёт на устройстве.</summary>
         bool UseGpu
         {
-            get { return this.gpuCheck != null && this.gpuCheck.Enabled && this.gpuCheck.Checked; }
+            get
+            {
+                return this.gpuCheck != null && this.gpuCheck.Checked
+                       && this.gpuProbe != null && this.gpuProbe.Available;
+            }
         }
 
         /// <summary>
@@ -191,7 +195,9 @@ namespace BecquerelMonitor
 
             this.gpuTip.SetToolTip(this.gpuPanel, tip);
             this.gpuTip.SetToolTip(this.gpuCheck, tip);
-            this.gpuCheck.Enabled = this.gpuProbe.Available;
+            // Негодная галка остаётся живой для мыши (ради подсказки), но
+            // рисуется выключенной и не переключается — `GpuCheckBox`.
+            this.gpuCheck.Unavailable = !this.gpuProbe.Available;
             if (this.gpuProbe.Available)
             {
                 GlobalConfigManager manager = GlobalConfigManager.GetInstance();
@@ -220,7 +226,7 @@ namespace BecquerelMonitor
         /// </summary>
         void GpuCheckChanged(object sender, EventArgs e)
         {
-            if (!this.gpuCheck.Enabled)
+            if (this.gpuProbe == null || !this.gpuProbe.Available)
             {
                 return;
             }
@@ -691,6 +697,14 @@ namespace BecquerelMonitor
 
             GeometryModel geometry = this.config.Geometry.Clone();
             ResponseMatrixOptions options = this.CurrentOptions();
+            // ⛔ (`AMBER219`) Решение «GPU или CPU» снимается с галки ДО `SetBusy`:
+            // занятая форма галку выключает, а `UseGpu` читает именно `Enabled`
+            // — снятое после, оно всегда говорило бы «CPU». Оплачено 07.10.2026
+            // на первой же проверке экраном: цель останова стояла нулём (её
+            // `CurrentOptions` снял вовремя), а счёт пошёл на ЦП плоско, 3 млн
+            // историй на узел, — ни строка хода, ни загрузка GPU этого не прятали.
+            bool useGpu = this.UseGpu;
+            this.computingOnGpu = useGpu;
             this.cancellation = new CancellationTokenSource();
             this.SetBusy(true);
             this.progressBar.Value = 0;
@@ -704,7 +718,6 @@ namespace BecquerelMonitor
             this.progressBar.Maximum = ProgressScale;
 
             var progress = new Progress<ResponseMatrixProgress>(this.ShowProgress);
-            bool useGpu = this.UseGpu;
             try
             {
                 CancellationToken token = this.cancellation.Token;
@@ -769,6 +782,7 @@ namespace BecquerelMonitor
             }
             finally
             {
+                this.computingOnGpu = false;
                 this.SetBusy(false);
                 if (this.cancellation != null)
                 {
@@ -777,6 +791,9 @@ namespace BecquerelMonitor
                 }
             }
         }
+
+        /// <summary>(`AMBER219`) Идущий счёт — на GPU; снимается с галки до `SetBusy`, читает строка хода.</summary>
+        bool computingOnGpu;
 
         /// <summary>
         /// Делений у полосы хода. Доля идёт по ДОСЧИТАННЫМ УЗЛАМ (`A46`):
@@ -803,7 +820,7 @@ namespace BecquerelMonitor
             // (`AMBER219`) На GPU строка хода называет устройство: человек должен
             // видеть, ЧЕМ считается, — у CPU и GPU одна полоса и одни поля.
             this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
-                this.busy && this.UseGpu ? Resources.ResponseMatrixGpuProgress : Resources.ResponseMatrixProgress,
+                this.computingOnGpu ? Resources.ResponseMatrixGpuProgress : Resources.ResponseMatrixProgress,
                 p.StartedNodes, p.TotalNodes, p.LastEnergyKev);
         }
 
@@ -866,9 +883,10 @@ namespace BecquerelMonitor
             this.binBox.Enabled = !value;
             this.historiesBox.Enabled = !value;
             this.threadsBox.Enabled = !value;
-            // (`AMBER219`) Галка GPU на время счёта тоже замирает — и возвращается
-            // только годной: негодная остаётся выключенной навсегда.
-            this.gpuCheck.Enabled = !value && this.gpuProbe != null && this.gpuProbe.Available;
+            // (`AMBER219`) Галка GPU на время счёта тоже замирает (настоящим
+            // `Enabled`, подсказка на время счёта не нужна); негодная после
+            // счёта снова живая для мыши, но нарисована выключенной.
+            this.gpuCheck.Enabled = !value;
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
