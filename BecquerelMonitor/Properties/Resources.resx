@@ -43742,6 +43742,39 @@ Close it and discard this work?</value>
 
 Close the window and discard it?</value>
   </data>
+  <data name="ResponseMatrixUseGpu" xml:space="preserve">
+    <value>Use Nvidia GPU</value>
+  </data>
+  <data name="ResponseMatrixGpuReady" xml:space="preserve">
+    <value>{0} (compute capability {1}, driver {2}). Flat count: the histories per node from the field, without the 3 % noise stop — the same as the corpus store. Threads are used for the κ table on the CPU.</value>
+  </data>
+  <data name="ResponseMatrixGpuNoLibrary" xml:space="preserve">
+    <value>Not available: the GPU library rmgpu_f.dll is missing next to the application.</value>
+  </data>
+  <data name="ResponseMatrixGpuLoadFailed" xml:space="preserve">
+    <value>Not available: the GPU library rmgpu_f.dll failed to load ({0}).</value>
+  </data>
+  <data name="ResponseMatrixGpuOldLibrary" xml:space="preserve">
+    <value>Not available: the GPU library rmgpu_f.dll is an old build without a build stamp; rebuild it.</value>
+  </data>
+  <data name="ResponseMatrixGpuPhysicsMismatch" xml:space="preserve">
+    <value>Not available: the GPU library was built for transport physics {0}, this build is physics {1}; rebuild the library.</value>
+  </data>
+  <data name="ResponseMatrixGpuNoDevice" xml:space="preserve">
+    <value>Not available: no CUDA-capable Nvidia GPU found. An Nvidia GPU and its driver are required; the CUDA toolkit is not.</value>
+  </data>
+  <data name="ResponseMatrixGpuDriverTooOld" xml:space="preserve">
+    <value>Not available: the Nvidia driver ({0}) is older than the CUDA runtime {1} the library needs; update the driver.</value>
+  </data>
+  <data name="ResponseMatrixGpuDeviceTooOld" xml:space="preserve">
+    <value>Not available: {0} is compute capability {1}; the library needs {2} (RTX 30xx) or newer.</value>
+  </data>
+  <data name="ResponseMatrixGpuRuntimeError" xml:space="preserve">
+    <value>Not available: {0}</value>
+  </data>
+  <data name="ResponseMatrixGpuProgress" xml:space="preserve">
+    <value>GPU: node {0} of {1}, {2:F0} keV.</value>
+  </data>
   <data name="GeometryFacingSideNeedsBox" xml:space="preserve">
     <value>The sample at the side of the detector is defined for a box crystal only: for a cylinder it is not axially symmetric and the scene cannot express it.</value>
   </data>

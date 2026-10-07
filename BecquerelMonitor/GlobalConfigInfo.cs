@@ -393,6 +393,26 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// (`AMBER219`, П245 07.10.2026) Галка «Use Nvidia GPU» окна матрицы отклика —
+        /// одна на приложение, запоминается при каждом переключении. Постановка Amber
+        /// 07.10.2026, дословно: «Значение галки по умолчанию - выключено. Текущая
+        /// настройка запоминается глобально в приложении.» Галка годна только там, где
+        /// <see cref="EfficiencyMaker.RmGpu.Probe"/> нашла устройство; сохранённое «вкл»
+        /// на машине без него окно показывает снятым и недоступным, значение не трогая.
+        /// </summary>
+        public bool UseGpuForResponseMatrix
+        {
+            get
+            {
+                return this.useGpuForResponseMatrix;
+            }
+            set
+            {
+                this.useGpuForResponseMatrix = value;
+            }
+        }
+
+        /// <summary>
         /// (`AMBER202`) Нынешнее значение настройки для сериализации спектра.
         /// Недоступная конфигурация (проба, отказ чтения) — умолчание «писать».
         /// </summary>
@@ -472,6 +492,9 @@ namespace BecquerelMonitor
         bool importSpectrumWithEmptyConfig = false;
 
         bool saveResponseMatrixInSpectrum = true;
+
+        // (`AMBER219`) галка «Use Nvidia GPU» окна матрицы отклика; умолчание ВЫКЛ (Amber 07.10.2026)
+        bool useGpuForResponseMatrix = false;
 
         // Token: 0x040008BD RID: 2237
         ResultTranslation resultTranslation = ResultTranslation.Becquerels;

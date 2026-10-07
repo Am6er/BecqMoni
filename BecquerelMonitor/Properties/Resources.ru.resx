@@ -2507,6 +2507,39 @@ http://xptable.sourceforge.net/</value>
 
 Закрыть окно и отбросить её?</value>
   </data>
+  <data name="ResponseMatrixUseGpu" xml:space="preserve">
+    <value>Считать на GPU Nvidia</value>
+  </data>
+  <data name="ResponseMatrixGpuReady" xml:space="preserve">
+    <value>{0} (вычислительная способность {1}, драйвер {2}). Плоский счёт: историй на узел — из поля, без останова по шуму 3 %, как у склада корпуса. Потоки идут на таблицу κ на процессоре.</value>
+  </data>
+  <data name="ResponseMatrixGpuNoLibrary" xml:space="preserve">
+    <value>Недоступно: рядом с приложением нет библиотеки GPU rmgpu_f.dll.</value>
+  </data>
+  <data name="ResponseMatrixGpuLoadFailed" xml:space="preserve">
+    <value>Недоступно: библиотека GPU rmgpu_f.dll не загрузилась ({0}).</value>
+  </data>
+  <data name="ResponseMatrixGpuOldLibrary" xml:space="preserve">
+    <value>Недоступно: библиотека GPU rmgpu_f.dll — старая сборка без паспорта; пересоберите её.</value>
+  </data>
+  <data name="ResponseMatrixGpuPhysicsMismatch" xml:space="preserve">
+    <value>Недоступно: библиотека GPU собрана для физики переноса {0}, у этой сборки физика {1}; пересоберите библиотеку.</value>
+  </data>
+  <data name="ResponseMatrixGpuNoDevice" xml:space="preserve">
+    <value>Недоступно: видеокарта Nvidia с поддержкой CUDA не найдена. Нужны видеокарта Nvidia и её драйвер; CUDA Toolkit не нужен.</value>
+  </data>
+  <data name="ResponseMatrixGpuDriverTooOld" xml:space="preserve">
+    <value>Недоступно: драйвер Nvidia ({0}) старее рантайма CUDA {1}, который нужен библиотеке; обновите драйвер.</value>
+  </data>
+  <data name="ResponseMatrixGpuDeviceTooOld" xml:space="preserve">
+    <value>Недоступно: {0} — вычислительная способность {1}; библиотеке нужна {2} (RTX 30xx) или новее.</value>
+  </data>
+  <data name="ResponseMatrixGpuRuntimeError" xml:space="preserve">
+    <value>Недоступно: {0}</value>
+  </data>
+  <data name="ResponseMatrixGpuProgress" xml:space="preserve">
+    <value>GPU: узел {0} из {1}, {2:F0} кэВ.</value>
+  </data>
   <data name="GeometryFacingSideNeedsBox" xml:space="preserve">
     <value>Боковая постановка пробы задана только для кристалла-бруска: у цилиндра она не осесимметрична и сценой не выражается.</value>
   </data>

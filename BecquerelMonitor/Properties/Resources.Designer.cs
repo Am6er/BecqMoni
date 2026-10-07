@@ -6598,5 +6598,104 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to Use Nvidia GPU.
+        /// </summary>
+        public static string ResponseMatrixUseGpu {
+            get {
+                return ResourceManager.GetString("ResponseMatrixUseGpu", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuReady.
+        /// </summary>
+        public static string ResponseMatrixGpuReady {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuReady", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuNoLibrary.
+        /// </summary>
+        public static string ResponseMatrixGpuNoLibrary {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuNoLibrary", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuLoadFailed.
+        /// </summary>
+        public static string ResponseMatrixGpuLoadFailed {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuLoadFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuOldLibrary.
+        /// </summary>
+        public static string ResponseMatrixGpuOldLibrary {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuOldLibrary", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuPhysicsMismatch.
+        /// </summary>
+        public static string ResponseMatrixGpuPhysicsMismatch {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuPhysicsMismatch", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuNoDevice.
+        /// </summary>
+        public static string ResponseMatrixGpuNoDevice {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuNoDevice", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuDriverTooOld.
+        /// </summary>
+        public static string ResponseMatrixGpuDriverTooOld {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuDriverTooOld", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuDeviceTooOld.
+        /// </summary>
+        public static string ResponseMatrixGpuDeviceTooOld {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuDeviceTooOld", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuRuntimeError.
+        /// </summary>
+        public static string ResponseMatrixGpuRuntimeError {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuRuntimeError", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuProgress.
+        /// </summary>
+        public static string ResponseMatrixGpuProgress {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuProgress", resourceCulture);
+            }
+        }
+
     }
 }

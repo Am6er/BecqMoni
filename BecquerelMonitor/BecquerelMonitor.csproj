@@ -322,6 +322,10 @@
     </Compile>
     <Compile Include="EfficiencyMaker\ResponseMatrix.cs" />
     <Compile Include="EfficiencyMaker\ResponseMatrixBuilder.cs" />
+    <Compile Include="EfficiencyMaker\GpuPack.cs" />
+    <Compile Include="EfficiencyMaker\GpuPackScene.cs" />
+    <Compile Include="EfficiencyMaker\GpuPackTables.cs" />
+    <Compile Include="EfficiencyMaker\GpuMatrixRun.cs" />
     <Compile Include="EfficiencyMaker\ResponseMatrixStore.cs" />
     <Compile Include="EfficiencyMaker\GeometryModel.cs" />
     <Compile Include="EfficiencyMaker\MaterialDatabase.cs" />
@@ -1138,6 +1142,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="SpecUtilsNet.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="rmgpu_f.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <None Include="Resources\split.bmp" />
