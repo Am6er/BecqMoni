@@ -4526,12 +4526,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string ResponseMatrixUseInFsa {
-            get {
-                return ResourceManager.GetString("ResponseMatrixUseInFsa", resourceCulture);
-            }
-        }
-
         public static string EfficiencyTabSummary {
             get {
                 return ResourceManager.GetString("EfficiencyTabSummary", resourceCulture);

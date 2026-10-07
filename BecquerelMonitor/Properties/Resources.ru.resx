@@ -1515,9 +1515,6 @@
   <data name="EfficiencyTabCurveOldVessel" xml:space="preserve">
     <value>Кривая посчитана прежней сценой сосуда: в её клейме нет «{0}» (стенка сосуда на полную высоту, дальнее донышко стакана Маринелли) — пересчитайте.</value>
   </data>
-  <data name="ResponseMatrixUseInFsa" xml:space="preserve">
-    <value>Использовать матрицу в полноспектральном разборе (FSA)</value>
-  </data>
   <data name="EfficiencyTabRenameTitle" xml:space="preserve">
     <value>Имя конфигурации</value>
   </data>

@@ -323,13 +323,11 @@ namespace BecquerelMonitor
                 // за модальным окном — и ещё раз по закрытию, на любой исход.
                 form.MatrixSaved += this.responseMatrixForm_MatrixSaved;
                 form.ShowDialog(this);
-                // Выключатель матрицы (W11) пишет в ту же копию конфигурации —
-                // осталось пометить её изменённой, чтобы «Сохранить» ожило.
                 // (`AMBER186`) Записанная окном матрица лежит во ВРЕМЕННОМ
                 // файле и уйдёт на склад только сохранением конфигурации —
                 // значит, конфигурация изменена, и вопрос «сохранить?» обязан
                 // прозвучать: «Да» перенесёт матрицу, «Нет» снимет её.
-                if (form.UseMatrixTouched || form.MatrixSavedPending)
+                if (form.MatrixSavedPending)
                 {
                     this.SetActiveDeviceConfigDirty();
                 }
