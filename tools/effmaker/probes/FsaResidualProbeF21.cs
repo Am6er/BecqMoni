@@ -261,16 +261,16 @@ namespace FsaResidualProbeF21
                         || model.Kind == FsaReportRowKind.UndetectedFolded)
                     {
                         dump.Add(string.Format(CultureInfo.InvariantCulture, "{0},{1},{2}",
-                                               model.Kind, Csv(row.Cells[1].Text), Csv(row.Cells[2].Text)));
+                                               model.Kind, Csv(row.Cells[0].Text), Csv(row.Cells[1].Text)));
                     }
                     else if (model.Kind == FsaReportRowKind.Residual && residual == null)
                     {
-                        residual = row.Cells[1].Text + " = " + row.Cells[2].Text;
+                        residual = row.Cells[0].Text + " = " + row.Cells[1].Text;
                     }
                     else if (model.Kind == FsaReportRowKind.Quality && chi2 == null
-                             && !string.IsNullOrEmpty(row.Cells[2].Text))
+                             && !string.IsNullOrEmpty(row.Cells[1].Text))
                     {
-                        chi2 = row.Cells[1].Text + " = " + row.Cells[2].Text;
+                        chi2 = row.Cells[0].Text + " = " + row.Cells[1].Text;
                     }
                 }
 

@@ -183,7 +183,7 @@ namespace FsaInputCheckProbeP195
             {
                 var tag = model.Rows[i].Tag as FsaReportRow;
                 if (tag == null || tag.Kind != FsaReportRowKind.Quality) continue;
-                string name = model.Rows[i].Cells[1].Text, value = model.Rows[i].Cells[2].Text;
+                string name = model.Rows[i].Cells[0].Text, value = model.Rows[i].Cells[1].Text;
                 if (name.Length == 0 && value.Length == 0) continue;
                 bool red = tag.Warning;
                 rows.Add(new[] { name, value, red ? "red" : "" });
