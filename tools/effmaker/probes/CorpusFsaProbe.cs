@@ -819,6 +819,7 @@ namespace CorpusFsaProbe
     ///                  [--infer-head] [--infer-head-only]
     ///                  [--no-atomic] [--no-equilibrium] [--audit] [--lib-dump]
     ///                  [--dump-curves=&lt;каталог&gt;] [--knot-fwhm=&lt;ПШПВ&gt;]
+    ///                  [--dump-bits=&lt;каталог&gt;]  (П241: полный снимок результата, числа битами)
     ///                  [--band-audit=&lt;файл.csv&gt;]
     ///                  [--band=whole|fit|library|curve|share] [--band-floor=&lt;кэВ&gt;]
     ///                  [--floor-frac=&lt;доля&gt;] [--share-thr=&lt;0…1&gt;] [--band-selftest]
@@ -1450,6 +1451,11 @@ namespace CorpusFsaProbe
                 if (a.StartsWith("--dump-curves=", StringComparison.Ordinal))
                 {
                     o.DumpCurves = a.Substring(14);
+                    continue;
+                }
+                if (a.StartsWith("--dump-bits=", StringComparison.Ordinal))
+                {
+                    o.DumpBits = a.Substring(12);
                     continue;
                 }
                 if (a == "--print-settings") { o.PrintSettings = true; continue; }
@@ -3647,6 +3653,15 @@ namespace CorpusFsaProbe
                 if (!string.IsNullOrEmpty(o.DumpCurves))
                 {
                     DumpCurves(o.DumpCurves, row.Key, rd.EnergySpectrum, result);
+                }
+
+                // (`AMBER213`, П241) полный снимок результата — до сводок, которые
+                // результат дополняют
+                if (!string.IsNullOrEmpty(o.DumpBits))
+                {
+                    Directory.CreateDirectory(o.DumpBits);
+                    File.WriteAllText(Path.Combine(o.DumpBits, row.Key + ".dump.txt"),
+                                      FsaResultDump.Of(result), new UTF8Encoding(false));
                 }
 
                 // (`S103`) Чем описана полоса НИЖЕ `Min_Range`: сколько там
@@ -6536,6 +6551,14 @@ namespace CorpusFsaProbe
             /// неё, — и разбирает обе `tools/CORPUS/scripts/wave_shape.py`.
             /// </summary>
             public string DumpCurves;
+
+            /// <summary>
+            /// (`AMBER213`, П241) Каталог ПОЛНЫХ СНИМКОВ результата разбора
+            /// (`FsaResultDump`, `&lt;спектр&gt;.dump.txt`): все поля отражением, числа
+            /// битами. Мерка «побитово то же» двух сборок на корпусе — сравнение
+            /// файлов байт в байт. Пусто — не выгружать; разбор ключ не трогает.
+            /// </summary>
+            public string DumpBits;
 
             /// <summary>
             /// (`S103`) Файл, куда выгрузить ПОВЕРКУ СТОЛБЦОВ ЛИНИЙ ниже
