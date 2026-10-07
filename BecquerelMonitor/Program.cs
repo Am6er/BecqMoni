@@ -66,6 +66,13 @@ namespace BecquerelMonitor
                 // чтобы первое клеймо на UI-потоке не ждало.
                 EfficiencyMaker.MaterialDatabase.PrefetchSimulatorDataFingerprint();
 
+                // (`AMBER212`, П240) Семь расчётных переключателей FSA — одна
+                // настройка приложения, а не умолчание прибора и копия спектра.
+                // Ставится только здесь: пробы и корпус `Main` не проходят и
+                // читают копию спектра, как прежде.
+                FullSpectrumAnalysis.FsaCalculationOptions.ApplicationSource =
+                    () => GlobalConfigManager.GetInstance().GlobalConfig.FsaCalculation.ToOptions();
+
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
                 Application.Run(new MainForm(args));

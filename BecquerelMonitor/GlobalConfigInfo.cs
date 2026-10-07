@@ -325,6 +325,31 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (`AMBER212`, П240 07.10.2026; поставлено Amber консолью, дословно: «Почему не
+        /// сохраняется последнее состояние Radio button "Composition source"?»; решения
+        /// вопросником того же дня, дословно: «Одно на приложение, плюс по умолчанию "From
+        /// Nucbase"», «Все семь одинаково») СЕМЬ РАСЧЁТНЫХ ПЕРЕКЛЮЧАТЕЛЕЙ ОКНА FSA REPORT —
+        /// одна настройка приложения. Прежде (`S70`, `A145`) они жили умолчанием ПРИБОРА и
+        /// копией спектра: у спектра, чей прибор не заведён в конфигурации, выбор сохранить
+        /// было некуда, и он молча возвращался к «From labels». Читает
+        /// <see cref="FullSpectrumAnalysis.FsaCalculationOptions.Of"/> через
+        /// <see cref="FullSpectrumAnalysis.FsaCalculationOptions.ApplicationSource"/>,
+        /// который ставит только <c>Program.Main</c>. Старые файлы без элемента получают
+        /// умолчания (<see cref="FsaCalculationSettings"/>).
+        /// </summary>
+        public FsaCalculationSettings FsaCalculation
+        {
+            get
+            {
+                return this.fsaCalculation;
+            }
+            set
+            {
+                this.fsaCalculation = value ?? new FsaCalculationSettings();
+            }
+        }
+
         public bool AutosaveDefaultPolicy
         {
             get
@@ -441,6 +466,9 @@ namespace BecquerelMonitor
         // (`AMBER211`) секунд; решение Amber 07.10.2026 «Не чаще раза в 30 с»
         int fsaAcquisitionIntervalSeconds = 30;
 
+        // (`AMBER212`) семь расчётных переключателей FSA — одна настройка приложения
+        FsaCalculationSettings fsaCalculation = new FsaCalculationSettings();
+
         bool importSpectrumWithEmptyConfig = false;
 
         bool saveResponseMatrixInSpectrum = true;
@@ -470,5 +498,77 @@ namespace BecquerelMonitor
         SoundConfig soundConfig = new SoundConfig();
 
         bool controlPanelisDateTimeFormat = false;
+    }
+    /// <summary>
+    /// (`AMBER212`) Семь расчётных переключателей окна FSA Report — элемент
+    /// <c>FsaCalculation</c> файла общих настроек. Имена и смысл — те же, что у полей
+    /// <see cref="FWHMPeakDetectionMethodConfig"/> (копия спектра держится в согласии с
+    /// этой настройкой окном отчёта). ⛔ Умолчание источника состава — «From NucBase»
+    /// (решение Amber 07.10.2026), остальные шесть — включены, как у полей прибора.
+    /// </summary>
+    public class FsaCalculationSettings
+    {
+        public bool DbLookupsForFsa { get; set; } = true;
+
+        public bool ChainEquilibrium { get; set; } = true;
+
+        public bool AtomicXrayForFsa { get; set; } = true;
+
+        public bool CascadeSummingForFsa { get; set; } = true;
+
+        public bool BackscatterForFsa { get; set; } = true;
+
+        public bool EscapeAndAnnihilationForFsa { get; set; } = true;
+
+        public bool PileUpForFsa { get; set; } = true;
+
+        /// <summary>Записать семь значений в копию конфигурации спектра.</summary>
+        public void CopyTo(FWHMPeakDetectionMethodConfig config)
+        {
+            if (config == null)
+            {
+                return;
+            }
+
+            config.DbLookupsForFsa = this.DbLookupsForFsa;
+            config.ChainEquilibrium = this.ChainEquilibrium;
+            config.AtomicXrayForFsa = this.AtomicXrayForFsa;
+            config.CascadeSummingForFsa = this.CascadeSummingForFsa;
+            config.BackscatterForFsa = this.BackscatterForFsa;
+            config.EscapeAndAnnihilationForFsa = this.EscapeAndAnnihilationForFsa;
+            config.PileUpForFsa = this.PileUpForFsa;
+        }
+
+        /// <summary>Снять семь значений с копии конфигурации спектра.</summary>
+        public void CopyFrom(FWHMPeakDetectionMethodConfig config)
+        {
+            if (config == null)
+            {
+                return;
+            }
+
+            this.DbLookupsForFsa = config.DbLookupsForFsa;
+            this.ChainEquilibrium = config.ChainEquilibrium;
+            this.AtomicXrayForFsa = config.AtomicXrayForFsa;
+            this.CascadeSummingForFsa = config.CascadeSummingForFsa;
+            this.BackscatterForFsa = config.BackscatterForFsa;
+            this.EscapeAndAnnihilationForFsa = config.EscapeAndAnnihilationForFsa;
+            this.PileUpForFsa = config.PileUpForFsa;
+        }
+
+        /// <summary>Снимок для разбора — те же семь полей, что снимает <see cref="FullSpectrumAnalysis.FsaCalculationOptions.FromConfig"/>.</summary>
+        public FullSpectrumAnalysis.FsaCalculationOptions ToOptions()
+        {
+            return new FullSpectrumAnalysis.FsaCalculationOptions
+            {
+                DbLookups = this.DbLookupsForFsa,
+                ChainEquilibrium = this.ChainEquilibrium,
+                AtomicXray = this.AtomicXrayForFsa,
+                CascadeSumming = this.CascadeSummingForFsa,
+                Backscatter = this.BackscatterForFsa,
+                EscapeAndAnnihilation = this.EscapeAndAnnihilationForFsa,
+                PileUp = this.PileUpForFsa,
+            };
+        }
     }
 }
