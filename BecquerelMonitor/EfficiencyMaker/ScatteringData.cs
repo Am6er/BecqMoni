@@ -48,7 +48,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         public const double FineStructure = 7.2973525693e-3;
 
         /// <summary>Сетка импульсов профилей Комптона, атомные единицы.</summary>
-        static double[] momentumGrid;
+        internal static double[] momentumGrid;
 
         static readonly object Gate = new object();
         static readonly Dictionary<int, Atom> cache = new Dictionary<int, Atom>();
@@ -119,7 +119,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             const int NormNodes = 600;
             const double NormLoKev = 1.0, NormHiKev = 30000.0;
-            double[] cohNormLog, incNormLog;
+            internal double[] cohNormLog, incNormLog;
             readonly object normGate = new object();
 
             /// <summary>
@@ -142,7 +142,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return Lookup(this.incNormLog, energyKev, this.IncoherentNormExact);
             }
 
-            void EnsureNorms()
+            internal void EnsureNorms()
             {
                 if (this.incNormLog != null)
                 {
