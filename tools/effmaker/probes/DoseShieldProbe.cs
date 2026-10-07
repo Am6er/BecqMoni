@@ -304,10 +304,15 @@ namespace DoseShieldProbe
                 Console.WriteLine("    строка точки: «" + dp + "»");
                 Console.WriteLine("    строка ISO:   «" + di + "»");
 
-                // Лечение: у не-ISO кривой к числу приписка, у ISO — нет.
-                string plain = di.ToString();
-                Ok(dp.ToString().Contains("ISO"), which + ": у кривой точки строка несёт приписку об ISO");
-                Ok(!plain.Contains("ISO"), which + ": у кривой ISO приписки нет");
+                // Лечение: у не-ISO кривой — признак сцены с источником, по нему
+                // строка состояния даёт подсказку об ISO; у ISO признака нет.
+                // (`AMBER216`, решение Amber 07.10.2026 «Только значение мощности
+                // дозы с погрешностью, без всяких текстов.») Приписки к самой
+                // строке нет ни у той, ни у другой.
+                Ok(dp.SourceScene, which + ": у кривой точки признак сцены с источником (подсказка об ISO)");
+                Ok(!di.SourceScene, which + ": у кривой ISO признака нет");
+                Ok(!dp.ToString().Contains("ISO") && !di.ToString().Contains("ISO"),
+                   which + ": приписки об ISO в строке нет");
             }
 
             return true;

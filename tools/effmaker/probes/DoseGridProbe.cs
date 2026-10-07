@@ -85,7 +85,7 @@ namespace DoseGridProbe
         static readonly Scene[] Scenes =
         {
             new Scene { Spectrum = "AS80_Cs137_0cm", Matrix = "AS80_point0", Fwhm662Percent = 7.22 },
-            new Scene { Spectrum = "G1S16_Cs137_P5", Matrix = "G1S_point5", Fwhm662Percent = 6.61 },
+            new Scene { Spectrum = "G1S16_Cs137_P5", Matrix = "G1S_point5_p16", Fwhm662Percent = 6.61 },
             new Scene { Spectrum = "RC103_Cs137_0cm", Matrix = "RC103_point0", Fwhm662Percent = 8.26 },
             new Scene { Spectrum = "ASN16_Cs137_10cm", Matrix = "ASN16_point10_house", Fwhm662Percent = 6.26 },
         };

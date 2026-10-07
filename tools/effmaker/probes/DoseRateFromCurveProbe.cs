@@ -358,7 +358,7 @@ namespace DoseRateFromCurveProbe
         {
             Head("§3. ТРИ ПЛЕЧА: кривая с матрицей / без матрицы (≈) / без геометрии (отказ) / без точек (пусто)");
             Scene("AS80_Cs137_0cm", "AS80_point0", "AS80_lu_front");
-            Scene("G1S16_Cs137_P5", "G1S_point5", "G1S_point25");
+            Scene("G1S16_Cs137_P5", "G1S_point5_p16", "G1S_point25");
         }
 
         static void Scene(string spectrumName, string scene, string foreignScene)
