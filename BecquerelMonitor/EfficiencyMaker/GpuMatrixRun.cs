@@ -833,26 +833,58 @@ namespace BecquerelMonitor.EfficiencyMaker
             var jointMatrix = new ResponseMatrix();
             var jointWatch = Stopwatch.StartNew();
             double jointSeconds = 0.0;
-            Task jointTask = Task.Run(() =>
-            {
-                ResponseMatrixBuilder.BuildJoint(geometry, options, jointMatrix, grid, parallel);
-                jointSeconds = jointWatch.Elapsed.TotalSeconds;
-            }, cancellation);
 
-            Action<int, double> report = (settled, energy) =>
+            // (`AMBER220`, П246; решение Amber 07.10.2026, дословно: «Узлы + блоки κ,
+            // план κ — предельный 96») Единица полосы — узел ИЛИ блок κ: узлы на
+            // устройстве и κ на ЦП идут одновременно, и каждый досчитанный блок
+            // двигает полосу так же, как узел. Счётчики узлов и κ — общие для
+            // двух потоков отчёта; знаменатель κ — предел плана, чтобы добор не
+            // пятил полосу (`A46`); последний отчёт ставит κ в предел.
+            int jointUnits = ResponseMatrixBuilder.JointPlannedBlocks(geometry, options, grid.Length);
+            int settledNodes = 0, jointDone = 0, jointNow = jointUnits > 0 ? ResponseMatrixBuilder.JointBlocks : 0;
+            double lastEnergy = grid[grid.Length - 1];
+            Action<bool> publish = (final) =>
             {
                 if (progress == null) return;
+                int settled = Volatile.Read(ref settledNodes);
+                int jd = final ? jointUnits : Math.Min(jointUnits, Volatile.Read(ref jointDone));
                 progress.Report(new ResponseMatrixProgress
                 {
                     Done = settled,
                     Total = grid.Length,
                     DoneHistories = (long)settled * nominal,
                     TotalHistories = (long)grid.Length * nominal,
-                    LastEnergyKev = energy,
+                    LastEnergyKev = Volatile.Read(ref lastEnergy),
                     StartedNodes = Math.Min(grid.Length, settled + 1),
                     SettledNodes = settled,
-                    TotalNodes = grid.Length
+                    TotalNodes = grid.Length,
+                    JointPlanned = jointUnits,
+                    JointPlannedNow = Volatile.Read(ref jointNow),
+                    JointDone = jd
                 });
+            };
+            Action<int, int> jointReport = null;
+            if (progress != null && jointUnits > 0)
+            {
+                jointReport = (d, now) =>
+                {
+                    Volatile.Write(ref jointDone, d);
+                    Volatile.Write(ref jointNow, now);
+                    publish(false);
+                };
+            }
+
+            Task jointTask = Task.Run(() =>
+            {
+                ResponseMatrixBuilder.BuildJoint(geometry, options, jointMatrix, grid, parallel, jointReport);
+                jointSeconds = jointWatch.Elapsed.TotalSeconds;
+            }, cancellation);
+
+            Action<int, double> report = (settled, energy) =>
+            {
+                Volatile.Write(ref settledNodes, settled);
+                Volatile.Write(ref lastEnergy, energy);
+                publish(false);
             };
 
             try
@@ -949,6 +981,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // `OperationCanceledException` κ пар — наружу той же природы, что у узлов.
                 throw e.InnerException ?? e;
             }
+
+            // (`AMBER220`) κ досчитана — полоса на 100 % ровно здесь, когда матрица собрана.
+            publish(true);
 
             // Все поля `Joint*` временной матрицы — в итоговую (их и только их пишет BuildJoint,
             // ResponseMatrixBuilder.cs:575–603), в порядке объявления (ResponseMatrix.cs:850–887).

@@ -2540,6 +2540,9 @@ http://xptable.sourceforge.net/</value>
   <data name="ResponseMatrixGpuProgress" xml:space="preserve">
     <value>GPU: узел {0} из {1}, {2:F0} кэВ.</value>
   </data>
+  <data name="ResponseMatrixJointProgress" xml:space="preserve">
+    <value>Узлы досчитаны; таблица пар (κ) на процессоре: блок {0} из {1}.</value>
+  </data>
   <data name="GeometryFacingSideNeedsBox" xml:space="preserve">
     <value>Боковая постановка пробы задана только для кристалла-бруска: у цилиндра она не осесимметрична и сценой не выражается.</value>
   </data>

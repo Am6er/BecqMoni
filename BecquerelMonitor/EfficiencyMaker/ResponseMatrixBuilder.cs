@@ -72,21 +72,55 @@ namespace BecquerelMonitor.EfficiencyMaker
         public long TotalHistories;
 
         /// <summary>
-        /// Доля сделанного, % — ПО ДОСЧИТАННЫМ УЗЛАМ (`A46`).
+        /// (`AMBER220`, П246 07.10.2026) ТАБЛИЦА κ ПАР — ВТОРАЯ ЧАСТЬ РАБОТЫ.
+        /// Блоков κ досчитано (<see cref="ResponseMatrixBuilder.JointBlocks"/> на
+        /// проход). На CPU-пути κ идёт ПОСЛЕ узлов, на GPU-пути — на ЦП
+        /// одновременно с узлами на устройстве; и там и там матрица не собрана,
+        /// пока κ не досчитана, — значит и полоса не полна.
+        /// </summary>
+        public int JointDone;
+
+        /// <summary>
+        /// Блоков κ в ПРЕДЕЛЬНОМ плане — проба плюс все доборы
+        /// (<see cref="ResponseMatrixBuilder.JointMaxBlocks"/>); 0 — у этой сцены
+        /// κ не считается (точечная: κ ≡ 1). Предел, а не текущий план, нарочно:
+        /// добор добавляет блоки по ходу, и знаменатель, растущий на глазах,
+        /// пятил бы полосу назад (`A46`). Закончили раньше предела — последний
+        /// отчёт ставит <see cref="JointDone"/> = <see cref="JointPlanned"/>.
+        /// </summary>
+        public int JointPlanned;
+
+        /// <summary>Блоков κ в плане НА ЭТОТ МОМЕНТ (проба, затем доборы) — для подписи, не для полосы.</summary>
+        public int JointPlannedNow;
+
+        /// <summary>
+        /// Доля сделанного, % — ПО ДОСЧИТАННЫМ УЗЛАМ (`A46`) И БЛОКАМ κ (`AMBER220`).
         ///
         /// Прежде доля шла по цене узлов в потокосекундах, и полоса пятилась
         /// назад: узел, попросивший второго прохода, добавлял работы, и
         /// знаменатель рос быстрее числителя. Узлов же ровно столько, сколько в
         /// сетке, и досчитанный узел досчитан навсегда — полоса идёт только
-        /// вперёд и заполняется ровно на последнем узле.
+        /// вперёд. Единица полосы — узел или блок κ; 100 % — ровно тогда, когда
+        /// досчитаны и узлы, и κ, то есть когда матрица собрана.
         /// </summary>
         public double Percent
         {
             get
             {
-                return this.TotalNodes > 0
-                    ? 100.0 * this.SettledNodes / this.TotalNodes
+                int units = this.TotalNodes + Math.Max(0, this.JointPlanned);
+                return units > 0
+                    ? 100.0 * (this.SettledNodes + Math.Max(0, this.JointDone)) / units
                     : 0.0;
+            }
+        }
+
+        /// <summary>Узлы досчитаны, а κ ещё нет — полоса стоит на таблице пар.</summary>
+        public bool JointPending
+        {
+            get
+            {
+                return this.TotalNodes > 0 && this.SettledNodes >= this.TotalNodes
+                       && this.JointPlanned > 0 && this.JointDone < this.JointPlanned;
             }
         }
     }
@@ -207,6 +241,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 MaxDegreeOfParallelism = threads,
                 CancellationToken = cancellation
             };
+
+            // (`AMBER220`, П246; решение Amber 07.10.2026, дословно: «Узлы + блоки
+            // κ, план κ — предельный 96») Блоки κ — вторая часть работы, у полосы
+            // хода они в знаменателе с самого начала.
+            int jointUnits = JointPlannedBlocks(geometry, options, grid.Length);
 
             // Поузловые счётчики замера `S55` — заводятся под размер сетки.
             NodeDropped = new long[grid.Length];
@@ -335,7 +374,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     LastEnergyKev = grid[index],
                     StartedNodes = started,
                     SettledNodes = settled,
-                    TotalNodes = grid.Length
+                    TotalNodes = grid.Length,
+                    // (`AMBER220`) κ пар на CPU-пути идёт ПОСЛЕ узлов: её блоки уже
+                    // в знаменателе, чтобы полоса не доходила до 100 % раньше κ.
+                    JointPlanned = jointUnits,
+                    JointPlannedNow = jointUnits > 0 ? JointBlocks : 0
                 });
             };
 
@@ -541,7 +584,34 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             matrix.RebuildTotals();
             FillResolutionPeak(geometry, matrix, nodeResolutionExtra);
-            BuildJoint(geometry, options, matrix, grid, parallel);
+
+            // (`AMBER220`) Ход κ — теми же отчётами: узлы досчитаны все, блоки κ
+            // прибывают; последний отчёт ставит κ в предел плана — матрица собрана.
+            Action<int, int> jointReport = null;
+            if (progress != null && jointUnits > 0)
+            {
+                jointReport = (jointDone, jointNow) => progress.Report(new ResponseMatrixProgress
+                {
+                    Done = Volatile.Read(ref done),
+                    Total = Volatile.Read(ref planned),
+                    DoneHistories = Interlocked.Read(ref doneHistories),
+                    TotalHistories = Interlocked.Read(ref plannedHistories),
+                    LastEnergyKev = grid[0],
+                    StartedNodes = grid.Length,
+                    SettledNodes = grid.Length,
+                    TotalNodes = grid.Length,
+                    JointPlanned = jointUnits,
+                    JointPlannedNow = jointNow,
+                    JointDone = Math.Min(jointDone, jointUnits)
+                });
+            }
+
+            BuildJoint(geometry, options, matrix, grid, parallel, jointReport);
+            if (jointReport != null)
+            {
+                jointReport(jointUnits, jointUnits);
+            }
+
             watch.Stop();
             matrix.BuildSeconds = watch.Elapsed.TotalSeconds;
             return matrix;
@@ -569,6 +639,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         internal static void BuildJoint(GeometryModel geometry, ResponseMatrixOptions options,
                                ResponseMatrix matrix, double[] grid, ParallelOptions parallel)
         {
+            BuildJoint(geometry, options, matrix, grid, parallel, null);
+        }
+
+        /// <summary>(`AMBER220`) То же с отчётом о ходе блоков κ — см. <see cref="MeasureJointTable(GeometryModel, ResponseMatrixOptions, double[], ParallelOptions, Action{int, int})"/>.</summary>
+        internal static void BuildJoint(GeometryModel geometry, ResponseMatrixOptions options,
+                               ResponseMatrix matrix, double[] grid, ParallelOptions parallel,
+                               Action<int, int> jointProgress)
+        {
             int nodes = options.JointNodes;
             if (nodes <= 1 || grid == null || grid.Length < 2)
             {
@@ -585,7 +663,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            JointTable table = MeasureJointTable(geometry, options, grid, parallel);
+            JointTable table = MeasureJointTable(geometry, options, grid, parallel, jointProgress);
             if (table == null)
             {
                 matrix.JointMode = JointKappaMode.None;
@@ -660,10 +738,58 @@ namespace BecquerelMonitor.EfficiencyMaker
         public static JointTable MeasureJointTable(GeometryModel geometry, ResponseMatrixOptions options,
                                                    double[] grid, ParallelOptions parallel)
         {
+            return MeasureJointTable(geometry, options, grid, parallel, null);
+        }
+
+        /// <summary>
+        /// (`AMBER220`) Блоков κ в ПРЕДЕЛЬНОМ плане у этой сцены: проба плюс все
+        /// доборы, либо 0, когда κ не считается (сетка короче двух узлов,
+        /// <see cref="ResponseMatrixOptions.JointNodes"/> ≤ 1, точечная сцена при
+        /// цели по шуму — κ ≡ 1). Те же условия, что у <see cref="BuildJoint"/>.
+        /// </summary>
+        public static int JointPlannedBlocks(GeometryModel geometry, ResponseMatrixOptions options, int gridLength)
+        {
+            if (options == null || options.JointNodes <= 1 || gridLength < 2)
+            {
+                return 0;
+            }
+
+            if (options.JointNoiseTarget > 0.0 && IsPointScene(geometry))
+            {
+                return 0;
+            }
+
+            return JointMaxBlocks;
+        }
+
+        /// <summary>Блоков κ в предельном плане: проба и до <see cref="JointTopUpRounds"/> доборов по <see cref="JointBlocks"/>.</summary>
+        public const int JointMaxBlocks = JointBlocks * (1 + JointTopUpRounds);
+
+        /// <summary>
+        /// (`AMBER220`) Замер таблицы κ с отчётом о ходе: <paramref name="jointProgress"/>
+        /// зовётся после каждого досчитанного блока и при каждом доборе
+        /// (`done`, `plannedNow`) — из потоков замера.
+        /// </summary>
+        public static JointTable MeasureJointTable(GeometryModel geometry, ResponseMatrixOptions options,
+                                                   double[] grid, ParallelOptions parallel,
+                                                   Action<int, int> jointProgress)
+        {
             int nodes = options.JointNodes;
             if (nodes <= 1 || grid == null || grid.Length < 2)
             {
                 return null;
+            }
+
+            int blocksDone = 0, blocksNow = JointBlocks;
+            Action blockDone = null;
+            if (jointProgress != null)
+            {
+                blockDone = () =>
+                {
+                    int d = Interlocked.Increment(ref blocksDone);
+                    jointProgress(d, Volatile.Read(ref blocksNow));
+                };
+                jointProgress(0, blocksNow);
             }
 
             double lo = grid[0], hi = grid[grid.Length - 1];
@@ -690,7 +816,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             int perPoint = adaptive ? Math.Max(1, options.JointHistoriesPerPoint) : 1;
             int points = Math.Max(1000, options.JointHistories);
             JointSums total = RunJointBlocks(geometry, options, grid, energies, halfWidths,
-                                             points, perPoint, 0, parallel);
+                                             points, perPoint, 0, parallel, blockDone);
             double[][] kappa, error;
             JointSums.Resolve(total, out kappa, out error);
             if (kappa == null)
@@ -734,9 +860,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                         break;
                     }
 
+                    if (jointProgress != null)
+                    {
+                        // Добор — ещё `JointBlocks` блоков в плане; подпись видит это сразу.
+                        int now = Interlocked.Add(ref blocksNow, JointBlocks);
+                        jointProgress(Volatile.Read(ref blocksDone), now);
+                    }
+
                     JointSums more = RunJointBlocks(geometry, options, grid, energies, halfWidths,
                                                     (int)Math.Min(int.MaxValue, extra), perPoint,
-                                                    JointBlocks * (round + 1), parallel);
+                                                    JointBlocks * (round + 1), parallel, blockDone);
                     total.Add(more);
                     JointSums.Resolve(total, out kappa, out error);
                     median = MedianNoise(energies, total, error);
@@ -766,7 +899,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         static JointSums RunJointBlocks(GeometryModel geometry, ResponseMatrixOptions options,
                                         double[] grid, double[] energies, double[] halfWidths,
                                         int points, int perPoint, int firstBlock,
-                                        ParallelOptions parallel)
+                                        ParallelOptions parallel, Action blockDone = null)
         {
             int nodes = energies.Length;
             int blocks = Math.Max(1, Math.Min(JointBlocks, points));
@@ -781,6 +914,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                     EfficiencySimulator sim = MakeSimulator(geometry, options,
                                                             grid.Length + firstBlock + block, energies[0]);
                     partials[block] = sim.JointPeakSums(energies, perBlock, halfWidths, perPoint);
+                    // (`AMBER220`) Досчитанный блок — единица хода полосы; зовётся из
+                    // потоков, получатель считает `Interlocked`.
+                    if (blockDone != null)
+                    {
+                        blockDone();
+                    }
                 }
             });
 
@@ -1047,7 +1186,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Блоков замера κ. Постоянное число, а не «по потокам»: от него зависит
         /// разбиение розыгрыша, то есть сами числа.
         /// </summary>
-        const int JointBlocks = 32;
+        public const int JointBlocks = 32;
 
         /// <summary>Минимум историй на пробный проход: по десятку событий шум не измерить.</summary>
         const int MinPilotHistories = 2000;

@@ -817,6 +817,18 @@ namespace BecquerelMonitor
             // число узлов, ВЗЯТЫХ В РАБОТУ, из общего числа узлов сетки: оно
             // постоянно, в отличие от числа прогонов, которое росло по ходу
             // (140 → 155 → 156 → 157 на снимках одного расчёта).
+            // (`AMBER220`) Узлы досчитаны, а таблица κ пар на процессоре ещё нет —
+            // подпись называет её блоки по ТЕКУЩЕМУ плану (проба, затем доборы);
+            // полоса при этом идёт по предельному плану и до 100 % не доходит,
+            // пока матрица не собрана. Снимок Amber 07.10.2026: «GPU: node 144 of
+            // 144» при полной полосе — и ожидание κ, которого не видно.
+            if (p.JointPending)
+            {
+                this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
+                    Resources.ResponseMatrixJointProgress, p.JointDone, p.JointPlannedNow);
+                return;
+            }
+
             // (`AMBER219`) На GPU строка хода называет устройство: человек должен
             // видеть, ЧЕМ считается, — у CPU и GPU одна полоса и одни поля.
             this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
