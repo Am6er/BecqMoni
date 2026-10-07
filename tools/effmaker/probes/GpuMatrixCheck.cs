@@ -22,6 +22,90 @@ using System.Reflection;
 // одного вида) — дефект переноса.
 static class GpuCheck
 {
+    /// <summary>
+    /// Отражение с ОТКАЗОМ на промахе: имя поля разошлось с приложением — исключение с именем.
+    /// Переехал сюда из приложения (`AMBER219`, П245-R, 07.10.2026; решение Amber «Перевести
+    /// на прямой доступ сейчас»): само приложение читает члены симулятора напрямую
+    /// (`internal`), а эта проба живёт вне его сборки и внутренних членов не видит.
+    /// </summary>
+    static class GpuReflect
+    {
+        const BindingFlags All = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+
+        public static object Field(object o, string name)
+        {
+            Type t = o as Type ?? o.GetType();
+            object target = o is Type ? null : o;
+            for (Type k = t; k != null; k = k.BaseType)
+            {
+                FieldInfo f = k.GetField(name, All);
+                if (f != null) return f.GetValue(target);
+                PropertyInfo p = k.GetProperty(name, All);
+                if (p != null && p.GetIndexParameters().Length == 0) return p.GetValue(target, null);
+            }
+
+            throw new MissingFieldException(t.FullName, name);
+        }
+
+        public static T Get<T>(object o, string name) { return (T)Field(o, name); }
+
+        public static double D(object o, string name) { return Convert.ToDouble(Field(o, name)); }
+        public static int I(object o, string name) { return Convert.ToInt32(Field(o, name)); }
+        public static bool B(object o, string name) { return (bool)Field(o, name); }
+
+        public static void Set(object o, string name, object value)
+        {
+            Type t = o as Type ?? o.GetType();
+            object target = o is Type ? null : o;
+            for (Type k = t; k != null; k = k.BaseType)
+            {
+                FieldInfo f = k.GetField(name, All);
+                if (f != null) { f.SetValue(target, value); return; }
+            }
+
+            throw new MissingFieldException(t.FullName, name);
+        }
+
+        /// <summary>Вызов метода по имени; при перегрузках — по числу и типам аргументов.</summary>
+        public static object Call(object o, string name, params object[] args)
+        {
+            Type t = o as Type ?? o.GetType();
+            object target = o is Type ? null : o;
+            foreach (MethodInfo m in t.GetMethods(All))
+            {
+                if (m.Name != name) continue;
+                ParameterInfo[] ps = m.GetParameters();
+                if (ps.Length != args.Length) continue;
+                bool ok = true;
+                for (int i = 0; i < ps.Length && ok; i++)
+                {
+                    Type pt = ps[i].ParameterType.IsByRef ? ps[i].ParameterType.GetElementType() : ps[i].ParameterType;
+                    ok = args[i] == null ? !pt.IsValueType : pt.IsInstanceOfType(args[i]);
+                }
+
+                if (!ok) continue;
+                try
+                {
+                    return m.Invoke(target, args);
+                }
+                catch (TargetInvocationException e)
+                {
+                    throw e.InnerException ?? e;
+                }
+            }
+
+            throw new MissingMethodException(t.FullName, name);
+        }
+
+        /// <summary>Вложенный (в том числе закрытый) тип по имени: `Nested(typeof(EfficiencySimulator), "Region")`.</summary>
+        public static Type Nested(Type outer, string name)
+        {
+            Type t = outer.GetNestedType(name, BindingFlags.Public | BindingFlags.NonPublic);
+            if (t == null) throw new TypeLoadException(outer.FullName + "+" + name);
+            return t;
+        }
+    }
+
     sealed class Acc
     {
         readonly FieldInfo f;

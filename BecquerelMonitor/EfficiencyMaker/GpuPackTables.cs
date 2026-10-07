@@ -10,9 +10,10 @@ namespace BecquerelMonitor.EfficiencyMaker
     // рассеяние на атоме, ESTAR, тормозное, кривая света. Читатель — `tools/effmaker/gpu/
     // host_tables.h`, порядок полей там и здесь ОДИН; после каждой записи — `w.End()`.
     //
-    // ⛔ Приложение не правится (решение Amber «Только оснастка»): закрытые и внутренние
-    // поля берутся отражением (`GpuReflect`), ленивые таблицы вынуждаются вызовом их же
-    // метода ДО чтения — числа те же, что увидел бы счёт CPU.
+    // ⛔ Прямой доступ (`AMBER219`, П245-R; решение Amber 07.10.2026 «Перевести на прямой
+    // доступ сейчас»): закрытые поля и методы классов данных открыты как `internal`, тела
+    // не тронуты; ленивые таблицы вынуждаются вызовом их же метода ДО чтения — числа те
+    // же, что увидел бы счёт CPU.
     //
     // Порядок записей таблицы = индекс на устройстве. Таблицы по Z идут через реестр
     // (`ctx.Reg`, таблицы "elements", "fluor", "photoShell", "relax", "atoms"): если полоса
@@ -145,21 +146,21 @@ namespace BecquerelMonitor.EfficiencyMaker
             w.Tag("photoShell", list.Count);
             foreach (var pair in list)
             {
-                object m = pair.Value;
+                var m = (MaterialDatabase.PhotoShellModel)pair.Value;
                 w.Int(pair.Key);
-                w.Real(GpuReflect.D(m, "kEdgeKev"));
-                w.Real(GpuReflect.D(m, "lowFromKev"));
-                w.Real(GpuReflect.D(m, "highFromKev"));
-                w.Reals(GpuReflect.Get<double[]>(m, "lowK"));
-                w.Reals(GpuReflect.Get<double[]>(m, "lowTotal"));
-                w.Reals(GpuReflect.Get<double[]>(m, "highK"));
-                w.Reals(GpuReflect.Get<double[]>(m, "highTotal"));
-                w.Jagged(GpuReflect.Get<double[][]>(m, "tableE"));
-                w.Jagged(GpuReflect.Get<double[][]>(m, "tableCs"));
+                w.Real(m.kEdgeKev);
+                w.Real(m.lowFromKev);
+                w.Real(m.highFromKev);
+                w.Reals(m.lowK);
+                w.Reals(m.lowTotal);
+                w.Reals(m.highK);
+                w.Reals(m.highTotal);
+                w.Jagged(m.tableE);
+                w.Jagged(m.tableCs);
                 // Логарифмы строит загрузка (`IndexLogs`); null — устройство идёт запасным
                 // путём `InterpTable`, как и CPU. Памятка `lastFracs` не переносится.
-                w.Jagged(GpuReflect.Get<double[][]>(m, "logTableE"));
-                w.Jagged(GpuReflect.Get<double[][]>(m, "logTableCs"));
+                w.Jagged(m.logTableE);
+                w.Jagged(m.logTableCs);
                 w.End();
             }
         }
@@ -173,9 +174,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             w.Tag("relax", list.Count);
             foreach (var pair in list)
             {
-                object r = pair.Value;
-                double[] bindingByShell = GpuReflect.Get<double[]>(r, "bindingByShell");
-                Array transitionsByShell = GpuReflect.Get<Array>(r, "transitionsByShell");
+                var r = (MaterialDatabase.Relaxation)pair.Value;
+                double[] bindingByShell = r.bindingByShell;
+                MaterialDatabase.Relaxation.Transitions[] transitionsByShell = r.transitionsByShell;
                 if (bindingByShell == null || transitionsByShell == null)
                 {
                     // CPU в этом случае идёт запасным путём по словарям — на устройстве его нет
@@ -185,10 +186,10 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 w.Int(pair.Key);
                 w.Reals(bindingByShell);
-                w.Ints(GpuReflect.Get<int[]>(r, "shellsByBinding"));
-                w.Reals(GpuReflect.Get<double[]>(r, "bindingByOrder"));
+                w.Ints(r.shellsByBinding);
+                w.Reals(r.bindingByOrder);
                 w.Int(transitionsByShell.Length);
-                foreach (object t in transitionsByShell)
+                foreach (MaterialDatabase.Relaxation.Transitions t in transitionsByShell)
                 {
                     w.Bool(t != null);
                     if (t == null)
@@ -196,15 +197,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                         continue;
                     }
 
-                    w.Reals(GpuReflect.Get<double[]>(t, "radCum"));
-                    w.Reals(GpuReflect.Get<double[]>(t, "radKev"));
-                    w.Ints(GpuReflect.Get<int[]>(t, "radFrom"));
-                    w.Real(GpuReflect.D(t, "radSum"));
-                    w.Reals(GpuReflect.Get<double[]>(t, "augCum"));
-                    w.Reals(GpuReflect.Get<double[]>(t, "augKev"));
-                    w.Ints(GpuReflect.Get<int[]>(t, "augFrom"));
-                    w.Ints(GpuReflect.Get<int[]>(t, "augEjected"));
-                    w.Real(GpuReflect.D(t, "augSum"));
+                    w.Reals(t.radCum);
+                    w.Reals(t.radKev);
+                    w.Ints(t.radFrom);
+                    w.Real(t.radSum);
+                    w.Reals(t.augCum);
+                    w.Reals(t.augKev);
+                    w.Ints(t.augFrom);
+                    w.Ints(t.augEjected);
+                    w.Real(t.augSum);
                 }
 
                 w.End();
@@ -219,25 +220,25 @@ namespace BecquerelMonitor.EfficiencyMaker
             var list = TablesByZ(ctx, "atoms", z => ScatteringData.Of(z));
             // Сетка импульсов профилей — статическая, одна на процесс; заполнена загрузкой
             // первого атома (`LoadMomentumGrid`), поэтому читается ПОСЛЕ `ScatteringData.Of`.
-            double[] momentumGrid = GpuReflect.Get<double[]>(typeof(ScatteringData), "momentumGrid");
+            double[] momentumGrid = ScatteringData.momentumGrid;
             w.Tag("atoms", list.Count);
             foreach (var pair in list)
             {
                 var a = (ScatteringData.Atom)pair.Value;
                 // Ленивые нормировки — построить ТЕМ ЖЕ кодом до чтения.
-                GpuReflect.Call(a, "EnsureNorms");
+                a.EnsureNorms();
                 w.Int(pair.Key);
-                w.Reals(GpuReflect.Get<double[]>(a, "sfX"));
-                w.Reals(GpuReflect.Get<double[]>(a, "sfV"));
-                w.Reals(GpuReflect.Get<double[]>(a, "ffT"));
-                w.Reals(GpuReflect.Get<double[]>(a, "ffF2"));
-                w.Reals(GpuReflect.Get<double[]>(a, "ffCum"));
-                w.Reals(GpuReflect.Get<double[]>(a, "shellCum"));
-                w.Reals(GpuReflect.Get<double[]>(a, "shellBindKev"));
-                w.Jagged(GpuReflect.Get<double[][]>(a, "profCum"));
+                w.Reals(a.sfX);
+                w.Reals(a.sfV);
+                w.Reals(a.ffT);
+                w.Reals(a.ffF2);
+                w.Reals(a.ffCum);
+                w.Reals(a.shellCum);
+                w.Reals(a.shellBindKev);
+                w.Jagged(a.profCum);
                 w.Reals(momentumGrid);
-                w.Reals(GpuReflect.Get<double[]>(a, "cohNormLog"));
-                w.Reals(GpuReflect.Get<double[]>(a, "incNormLog"));
+                w.Reals(a.cohNormLog);
+                w.Reals(a.incNormLog);
                 w.End();
             }
         }
@@ -253,19 +254,19 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 var m = (ElectronData.Material)o;
                 // Памятка логарифмов — вынудить `LogsNow` (сверяет ссылки, строит при нужде).
-                object logs = GpuReflect.Call(m, "LogsNow");
+                ElectronData.Material.Logs logs = m.LogsNow();
                 w.Reals(m.Energy);
                 w.Reals(m.Range);
                 w.Reals(m.Yield);
-                w.Reals(GpuReflect.Get<double[]>(logs, "Energy"));
-                w.Reals(GpuReflect.Get<double[]>(logs, "Range"));
-                w.Reals(GpuReflect.Get<double[]>(logs, "Yield"));
+                w.Reals(logs.Energy);
+                w.Reals(logs.Range);
+                w.Reals(logs.Yield);
                 w.End();
             }
         }
 
         // ------------------------------------------------------------------
-        // ThickTargetBrem — толстая и тонкая мишень (поля private)
+        // ThickTargetBrem — толстая и тонкая мишень (поля internal)
         // ------------------------------------------------------------------
         static void WriteBrems(GpuPackContext ctx, GpuWriter w)
         {
@@ -275,21 +276,21 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 var b = (ThickTargetBrem)o;
                 w.Real(b.MinKev);
-                w.Reals(GpuReflect.Get<double[]>(b, "node"));
-                w.Reals(GpuReflect.Get<double[]>(b, "logNode"));
-                w.Jagged(GpuReflect.Get<double[][]>(b, "cumulative"));
-                w.Reals(GpuReflect.Get<double[]>(b, "photons"));
-                w.Reals(GpuReflect.Get<double[]>(b, "radiatedKev"));
-                w.Reals(GpuReflect.Get<double[]>(b, "anchorFactor"));
-                w.Jagged(GpuReflect.Get<double[][]>(b, "thinAbove"));
-                w.Reals(GpuReflect.Get<double[]>(b, "thinPhotons"));
-                w.Reals(GpuReflect.Get<double[]>(b, "thinRadiated"));
+                w.Reals(b.node);
+                w.Reals(b.logNode);
+                w.Jagged(b.cumulative);
+                w.Reals(b.photons);
+                w.Reals(b.radiatedKev);
+                w.Reals(b.anchorFactor);
+                w.Jagged(b.thinAbove);
+                w.Reals(b.thinPhotons);
+                w.Reals(b.thinRadiated);
                 w.End();
             }
         }
 
         // ------------------------------------------------------------------
-        // MaterialDatabase.LightYieldCurve — кривая света (поля internal, памятка private)
+        // MaterialDatabase.LightYieldCurve — кривая света (поля и памятка internal)
         // ------------------------------------------------------------------
         static void WriteLightYields(GpuPackContext ctx, GpuWriter w)
         {
@@ -298,11 +299,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             foreach (object o in list)
             {
                 var c = (MaterialDatabase.LightYieldCurve)o;
-                double[] energyKev = GpuReflect.Get<double[]>(c, "energyKev");
+                double[] energyKev = c.energyKev;
                 // Памятка логарифмов узлов — вынудить `LogNodes` от ТОГО ЖЕ массива.
-                double[] logNodes = (double[])GpuReflect.Call(c, "LogNodes", energyKev);
+                double[] logNodes = c.LogNodes(energyKev);
                 w.Reals(energyKev);
-                w.Reals(GpuReflect.Get<double[]>(c, "yieldRel"));
+                w.Reals(c.yieldRel);
                 w.Reals(logNodes);
                 w.End();
             }

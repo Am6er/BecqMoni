@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -392,7 +391,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// Настройки и данные симулятора узла — на устройство. Настройки — каждый узел (у
         /// узлов разные допуски пика); данные — только когда `reuse` не задан или
-        /// упаковки ещё нет: сцена у узлов одна, и пересобирать 1.4 МБ отражением на
+        /// упаковки ещё нет: сцена у узлов одна, и пересобирать 1.4 МБ упаковки на
         /// каждый из 144 узлов значило бы тратить на упаковку больше, чем на счёт.
         /// </summary>
         public void Prepare(EfficiencySimulator sim, bool reuse = false)
@@ -426,7 +425,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
             else
             {
-                GpuReflect.Call(sim, "EnsureBuilt");
+                sim.EnsureBuilt();
             }
 
             this.PackSeconds += watch.Elapsed.TotalSeconds;
@@ -642,14 +641,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             var channels = new double[Channels][];
             for (int c = 0; c < Channels; c++) channels[c] = new double[bins];
             double[] histogram = new double[bins];
-            GpuReflect.Set(sim, "channelHistograms", channels);
+            sim.channelHistograms = channels;
             try
             {
                 relativeError = Run(gpu, sim, energyKev, histogram, binKev, key0, key1, reuseBlob, cancellation);
             }
             finally
             {
-                GpuReflect.Set(sim, "channelHistograms", null);
+                sim.channelHistograms = null;
             }
 
             return channels;
@@ -660,23 +659,23 @@ namespace BecquerelMonitor.EfficiencyMaker
                           uint key0, uint key1, bool reuseBlob, CancellationToken cancellation)
         {
             gpu.Prepare(sim, reuseBlob);                        // зовёт EnsureBuilt
-            object lightYield = GpuReflect.Field(sim, "lightYield");
+            MaterialDatabase.LightYieldCurve lightYield = sim.lightYield;
             double[] lightSum = lightYield != null ? new double[histogram.Length] : null;
-            GpuReflect.Set(sim, "lightSum", lightSum);
-            GpuReflect.Set(sim, "lightBinSplit", 0.0);
+            sim.lightSum = lightSum;
+            sim.lightBinSplit = 0.0;
             sim.CountLightBinSplit = 0;
             sim.WeightLightBinSplit = 0.0;
             if (lightSum != null)
             {
-                SetProperty(sim, "LastPhotonLightScale", 0.0);
-                SetProperty(sim, "LastPhotonLightScaleSplit", 0.0);
+                sim.LastPhotonLightScale = 0.0;
+                sim.LastPhotonLightScaleSplit = 0.0;
             }
 
             int n = Math.Max(1000, sim.Histories);
-            GpuReflect.Set(sim, "resolutionWeighted", 0.0);
-            GpuReflect.Set(sim, "resolutionAnalog", 0.0);
-            SetProperty(sim, "LastResolutionPeakExtra", 0.0);
-            var channels = (double[][])GpuReflect.Field(sim, "channelHistograms");
+            sim.resolutionWeighted = 0.0;
+            sim.resolutionAnalog = 0.0;
+            sim.LastResolutionPeakExtra = 0.0;
+            double[][] channels = sim.channelHistograms;
             int bins = histogram.Length;
 
             // --- цикл 1: взвешенная ветвь -------------------------------------------
@@ -691,14 +690,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             double sum = wScal[GpuSlots.W_SUM], sum2 = wScal[GpuSlots.W_SUM2];
-            GpuReflect.Set(sim, "resolutionWeighted", wScal[GpuSlots.W_RESOLUTION]);
-            GpuReflect.Set(sim, "lightBinSplit", wScal[GpuSlots.W_LIGHT_BIN_SPLIT]);
+            sim.resolutionWeighted = wScal[GpuSlots.W_RESOLUTION];
+            sim.lightBinSplit = wScal[GpuSlots.W_LIGHT_BIN_SPLIT];
             sim.CountLightBinSplit += (long)wScal[GpuSlots.W_COUNT_LIGHT_BIN_SPLIT];
             sim.WeightLightBinSplit += wScal[GpuSlots.W_WEIGHT_LIGHT_BIN_SPLIT];
             sim.CountPathLimitCut += (long)wScal[GpuSlots.W_COUNT_PATH_LIMIT_CUT];
             sim.CountCascadeOverflow += (long)wScal[GpuSlots.W_COUNT_CASCADE_OVERFLOW];
             sim.CountEscapeDropped += (long)wScal[GpuSlots.W_COUNT_ESCAPE_DROPPED];
-            SetProperty(sim, "LastAngularMoments", Angular(n, wScal));
+            sim.LastAngularMoments = Angular(n, wScal);
 
             double mean = sum / n;
             double variance = Math.Max(0.0, sum2 / n - mean * mean);
@@ -725,11 +724,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 sim.CountCascadeOverflow += (long)aScal[GpuSlots.A_COUNT_CASCADE_OVERFLOW];
                 sim.CountEscapeDropped += (long)aScal[GpuSlots.A_COUNT_ESCAPE_DROPPED];
                 sim.CountPendingDropped += (long)aScal[GpuSlots.A_COUNT_PENDING_DROPPED];
-                GpuReflect.Set(sim, "resolutionAnalog", aScal[GpuSlots.A_RESOLUTION]);
+                sim.resolutionAnalog = aScal[GpuSlots.A_RESOLUTION];
 
                 sim.LastContinuumIntegralError = scored > 0 ? 100.0 / Math.Sqrt(scored) : 100.0;
-                sim.LastContinuumRelativeError = (double)GpuReflect.Call(sim, "SmearedContinuumError",
-                                                                          hist, hist2, peak, binKev, energyKev);
+                sim.LastContinuumRelativeError = sim.SmearedContinuumError(hist, hist2, peak, binKev, energyKev);
                 for (int b = 0; b < peak; b++)
                 {
                     histogram[b] = hist[b];
@@ -753,45 +751,33 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             double relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
             bool analogBins = histogram.Length > 1 && sim.AnalogContinuum;
-            double resW = (double)GpuReflect.Field(sim, "resolutionWeighted");
-            double resA = (double)GpuReflect.Field(sim, "resolutionAnalog");
-            SetProperty(sim, "LastResolutionPeakExtra", (analogBins ? resA : resW) / n);
-            GpuReflect.Call(sim, "FinishRun", energyKev, histogram, binKev, n, mean);
+            double resW = sim.resolutionWeighted;
+            double resA = sim.resolutionAnalog;
+            sim.LastResolutionPeakExtra = (analogBins ? resA : resW) / n;
+            sim.FinishRun(energyKev, histogram, binKev, n, mean);
             return relativeError;
         }
 
         static AngularMomentSums Angular(long n, double[] s)
         {
             var a = new AngularMomentSums();
-            SetProperty(a, "N", n);
-            SetProperty(a, "S0", s[GpuSlots.W_S0]); SetProperty(a, "S2", s[GpuSlots.W_S2]); SetProperty(a, "S4", s[GpuSlots.W_S4]);
-            SetProperty(a, "S00", s[GpuSlots.W_S00]); SetProperty(a, "S22", s[GpuSlots.W_S22]); SetProperty(a, "S44", s[GpuSlots.W_S44]);
-            SetProperty(a, "S02", s[GpuSlots.W_S02]); SetProperty(a, "S04", s[GpuSlots.W_S04]);
-            SetProperty(a, "T0", s[GpuSlots.W_T0]); SetProperty(a, "T2", s[GpuSlots.W_T2]); SetProperty(a, "T4", s[GpuSlots.W_T4]);
-            SetProperty(a, "T00", s[GpuSlots.W_T00]); SetProperty(a, "T22", s[GpuSlots.W_T22]); SetProperty(a, "T44", s[GpuSlots.W_T44]);
-            SetProperty(a, "T02", s[GpuSlots.W_T02]); SetProperty(a, "T04", s[GpuSlots.W_T04]);
+            a.N = n;
+            a.S0 = s[GpuSlots.W_S0]; a.S2 = s[GpuSlots.W_S2]; a.S4 = s[GpuSlots.W_S4];
+            a.S00 = s[GpuSlots.W_S00]; a.S22 = s[GpuSlots.W_S22]; a.S44 = s[GpuSlots.W_S44];
+            a.S02 = s[GpuSlots.W_S02]; a.S04 = s[GpuSlots.W_S04];
+            a.T0 = s[GpuSlots.W_T0]; a.T2 = s[GpuSlots.W_T2]; a.T4 = s[GpuSlots.W_T4];
+            a.T00 = s[GpuSlots.W_T00]; a.T22 = s[GpuSlots.W_T22]; a.T44 = s[GpuSlots.W_T44];
+            a.T02 = s[GpuSlots.W_T02]; a.T04 = s[GpuSlots.W_T04];
             return a;
-        }
-
-        /// <summary>Свойство с закрытым сеттером — `{ get; private set; }`.</summary>
-        public static void SetProperty(object o, string name, object value)
-        {
-            PropertyInfo p = o.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (p == null) throw new MissingMemberException(o.GetType().FullName, name);
-            MethodInfo set = p.GetSetMethod(true);
-            if (set == null) throw new MissingMethodException(o.GetType().FullName, "set_" + name);
-            set.Invoke(o, new[] { value });
         }
     }
 
     /// <summary>
     /// Зеркало ПЛОСКОГО пути `ResponseMatrixBuilder.Build` (`--target=0`). Узлы — по одному
-    /// на GPU, сверху вниз по энергии (как CPU); κ пар — закрытый `BuildJoint` приложения на ЦП.
+    /// на GPU, сверху вниз по энергии (как CPU); κ пар — `BuildJoint` приложения (internal) на ЦП.
     /// </summary>
     public static class GpuBuild
     {
-        static readonly Type Builder = typeof(ResponseMatrixBuilder);
-
         public static double LastGpuSeconds, LastJointSeconds;
 
         public static ResponseMatrix Build(RmGpu gpu, GeometryModel geometry, ResponseMatrixOptions options, TextWriter log)
@@ -849,7 +835,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             double jointSeconds = 0.0;
             Task jointTask = Task.Run(() =>
             {
-                GpuReflect.Call(Builder, "BuildJoint", geometry, options, jointMatrix, grid, parallel);
+                ResponseMatrixBuilder.BuildJoint(geometry, options, jointMatrix, grid, parallel);
                 jointSeconds = jointWatch.Elapsed.TotalSeconds;
             }, cancellation);
 
@@ -878,9 +864,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 long t0 = Stopwatch.GetTimestamp();
                 double energyKev = grid[index];
                 report(slot, energyKev);
-                var sim = (EfficiencySimulator)GpuReflect.Call(Builder, "MakeSimulator", geometry, options, index, energyKev);
+                EfficiencySimulator sim = ResponseMatrixBuilder.MakeSimulator(geometry, options, index, energyKev);
                 sim.Histories = Math.Max(1, nominal);
-                double resolutionHalfWidth = (double)GpuReflect.Call(Builder, "ResolutionHalfWidth", options, geometry, energyKev);
+                double resolutionHalfWidth = ResponseMatrixBuilder.ResolutionHalfWidth(options, geometry, energyKev);
                 sim.ResolutionPeakHalfWidthKev = resolutionHalfWidth;
                 uint key0, key1;
                 GpuNode.NodeKey(options, sim, index, out key0, out key1);
@@ -946,14 +932,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 ChannelRows = channelRows,
                 Histories = options.Histories,
                 Options = options.Clone(),
-                Stamp = (string)GpuReflect.Call(typeof(ResponseMatrix), "ComputeStamp", geometry, options),
-                Normalization = (ResponseMatrixNormalization)GpuReflect.Call(typeof(ResponseMatrix), "NormalizationOf", geometry),
+                Stamp = ResponseMatrix.ComputeStamp(geometry, options),
+                Normalization = ResponseMatrix.NormalizationOf(geometry),
                 CreatedUtc = DateTime.UtcNow,
-                AngularQk = (AngularAttenuation)GpuReflect.Call(typeof(AngularAttenuation), "FromMoments", grid, nodeAngular)
+                AngularQk = AngularAttenuation.FromMoments(grid, nodeAngular)
             };
 
             matrix.RebuildTotals();
-            GpuReflect.Call(Builder, "FillResolutionPeak", geometry, matrix, nodeResolutionExtra);
+            ResponseMatrixBuilder.FillResolutionPeak(geometry, matrix, nodeResolutionExtra);
             try
             {
                 jointTask.Wait();
@@ -964,15 +950,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                 throw e.InnerException ?? e;
             }
 
-            // Все поля `Joint*` временной матрицы — в итоговую (их и только их пишет BuildJoint).
-            foreach (PropertyInfo p in typeof(ResponseMatrix).GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
-            {
-                if (p.Name.StartsWith("Joint", StringComparison.Ordinal) && p.CanRead && p.GetSetMethod(true) != null
-                    && p.GetIndexParameters().Length == 0)
-                {
-                    p.GetSetMethod(true).Invoke(matrix, new[] { p.GetValue(jointMatrix, null) });
-                }
-            }
+            // Все поля `Joint*` временной матрицы — в итоговую (их и только их пишет BuildJoint,
+            // ResponseMatrixBuilder.cs:575–603), в порядке объявления (ResponseMatrix.cs:850–887).
+            // ⚠ Список поимённый: новое поле `Joint*`, которое начнёт писать `BuildJoint`, сюда
+            // само не доедет — дописать его здесь в той же правке.
+            matrix.JointEnergies = jointMatrix.JointEnergies;
+            matrix.JointKappa = jointMatrix.JointKappa;
+            matrix.JointKappaError = jointMatrix.JointKappaError;
+            matrix.JointPoints = jointMatrix.JointPoints;
+            matrix.JointMode = jointMatrix.JointMode;
+            matrix.JointRawMedianNoise = jointMatrix.JointRawMedianNoise;
+            matrix.JointRawMaxNoise = jointMatrix.JointRawMaxNoise;
+            matrix.JointCellsCounted = jointMatrix.JointCellsCounted;
+            matrix.JointSubstituted = jointMatrix.JointSubstituted;
 
             LastJointSeconds = jointSeconds;
             watch.Stop();
