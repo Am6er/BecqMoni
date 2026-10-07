@@ -83,6 +83,15 @@ namespace DoseShieldProbe
             new Source { Spectrum = "RC103_Cs137_50mm", Becquerel = 5235.6 },
             new Source { Spectrum = "RC103_Cs137_0cm", Becquerel = 5564.0 },
             new Source { Spectrum = "AS80_Cs137_0cm", Becquerel = 5369.0 },
+            // Источники ЛСРМ на Gamma-1S (`manifest.csv`, колонка why): Cs-137
+            // A = 94200 Бк ±2 % на 01.10.2008 и A = 106000 Бк ±3 % на 19.05.2017,
+            // приведены к StartTime файла (T1/2 = 30.08 г). ⚠ Сцена P5 2016
+            // (58.5 мм) подобрана ПО ПАСПОРТУ (`AMBER153`) — её согласие с ним
+            // по построению.
+            new Source { Spectrum = "G1S16_Cs137_P5", Becquerel = 79023.2 },
+            new Source { Spectrum = "G1S16_Cs137_P25", Becquerel = 79023.3 },
+            new Source { Spectrum = "G1S24_Cs137_P5", Becquerel = 89326.6 },
+            new Source { Spectrum = "G1S24_Cs137_P25", Becquerel = 89321.0 },
         };
 
         static Dictionary<string, string> geometryOf;
