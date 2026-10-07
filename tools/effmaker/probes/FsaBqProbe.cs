@@ -259,6 +259,23 @@ namespace BecquerelMonitor.Probes
             if (PrintHuberCut)
             {
                 HuberCut(LastAnalyzer, rd.EnergySpectrum);
+                // (`AMBER210`) ревизия отбора: серии с избытком, не названные пиком вне состава, и почему
+                Console.WriteLine("  ревизия отбора пиков вне состава: отвергнуто серий {0}",
+                                  result.UncoveredRejections != null ? result.UncoveredRejections.Count : 0);
+                if (result.UncoveredRejections != null)
+                {
+                    foreach (FsaUncoveredRejection j in result.UncoveredRejections)
+                    {
+                        Console.WriteLine("    {0,8} кэВ  ширина {1,5}  избыток {2,5} %  z {3,6}  {4,-12}  ближайшая линия состава {5}  кандидат {6}",
+                                          j.EnergyKev.ToString("F1", CultureInfo.InvariantCulture),
+                                          j.WidthKev.ToString("F1", CultureInfo.InvariantCulture),
+                                          (100.0 * j.ExcessShare).ToString("F1", CultureInfo.InvariantCulture),
+                                          j.Z.ToString("F1", CultureInfo.InvariantCulture),
+                                          j.Reason,
+                                          double.IsNaN(j.NearestCoveredKev) ? "—" : j.NearestCoveredKev.ToString("F1", CultureInfo.InvariantCulture),
+                                          j.NearestCandidate != null ? j.NearestCandidate.Nuclide + " " + j.NearestCandidate.EnergyKev.ToString("F1", CultureInfo.InvariantCulture) : "—");
+                    }
+                }
             }
             // (`AMBER210`, П238) пики в полосе, не покрытые составом, — всегда
             Console.WriteLine("  пиков вне состава: {0}", result.UncoveredPeaks != null ? result.UncoveredPeaks.Count : 0);

@@ -3011,6 +3011,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double UncoveredPeakExcess { get; set; }
 
         /// <summary>
+        /// (`AMBER210`) Доля выхода от сильнейшей линии компонента, с которой линия состава
+        /// ПОКРЫВАЕТ серию избытка (<see cref="FindUncoveredPeaks"/>): слабее — не покрывает.
+        /// Постоянная, не ручка: мерой здесь служит сам состав.
+        /// </summary>
+        public const double UncoveredCoverShare = 0.05;
+
+        /// <summary>
         /// (`AMBER210`) ЛИНИИ БИБЛИОТЕКИ ПРИЛОЖЕНИЯ — имя определения и энергия, все определения,
         /// не только сет (решение Amber 07.10.2026 вопросником, дословно: «Библиотека приложения
         /// целиком»): ими называются непокрытые пики (<see cref="FsaUncoveredPeak.Candidates"/>).
@@ -8725,12 +8732,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.MaxEnergy = 2800.0;
             this.Xi = 0.03;
             this.HuberM = 3.0;
-            // (`AMBER210`) пики вне состава: решение Amber 07.10.2026 «z ≥ 5 и избыток ≥ 10 % модели».
-            // ⚠ ПОКА ВЫКЛЮЧЕНО (порог значимости нуль): первая редакция правил покрытия на корпусе
-            // давала предупреждение на 31 спектре из 92 понятной части при полных сетах и
-            // пропускала 352/609 кэВ Th232 (журнал П238). Включается коммитом доводки — порог
-            // значимости 5 по решению Amber; порог избытка стоит уже сейчас.
-            this.UncoveredPeakZ = 0.0;
+            // (`AMBER210`) пики вне состава: решение Amber 07.10.2026 «z ≥ 5 и избыток ≥ 10 % модели»
+            this.UncoveredPeakZ = 5.0;
             this.UncoveredPeakExcess = 0.10;
             // (`AMBER209`, П236 06.10.2026) Порог Хубера с надувкой √(χ²/ndf) — ВКЛ.
             // Решение Amber 06.10.2026 вопросником, дословно: «Порог с надувкой
@@ -14027,15 +14030,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ожидания сырого отсчёта (модель плюс вычтенное). Серия попадает в список, если ширина —
         /// от половины до трёх ПШПВ (у́же — шум канала, шире — разлад континуума), значимость не
         /// ниже <see cref="UncoveredPeakZ"/>, доля избытка не ниже <see cref="UncoveredPeakExcess"/>
-        /// и она НЕ ПОКРЫТА: в ±ПШПВ/2 от центра нет линии ни одного вошедшего компонента (с его
-        /// производными — рентген, вылет, аннигиляция: все они компоненты с линиями), модельные
-        /// сумм-пики (<see cref="FsaComponentResult.SumPeakCurve"/>) в её каналах не дают четверти
-        /// модели, и в ±1.5 ПШПВ нет парного провала с половиной её избытка — иначе это пик,
+        /// и она НЕ ПОКРЫТА. Покрытие — СИЛЬНЫЕ линии вошедших компонентов: выход не ниже
+        /// <see cref="UncoveredCoverShare"/> от сильнейшей линии своего компонента — слабая линия
+        /// ряда (356.9 и 608.6 кэВ у ториевого ряда, доли процента) избыток в десятки процентов
+        /// объяснить не может, а покрывала им Pb-214 352 и Bi-214 609 на Th232 Amber (третья
+        /// редакция П238); с производными: рентген — компоненты с линиями; вылет аннигиляции E − 511
+        /// и E − 1022 и сама 511 — достраиваются от сильных линий состава, когда они в модели,
+        /// <see cref="EscapeAndAnnihilation"/>. Линия в
+        /// ±ПШПВ/4 от центра покрывает всегда; в ±ПШПВ/2 — покрывает, если нет линии библиотеки
+        /// приложения вне состава ЯВНО ближе (в ±ПШПВ/4) — так бленд 338 Ac-228 / 352 Pb-214 на CsI
+        /// не прячет радиевую линию за ториевой, а разлад формы собственного пика (307 Lu-176 в
+        /// 4 кэВ от центра серии) кандидатом не становится. Серия, где модельные сумм-пики
+        /// (<see cref="FsaComponentResult.SumPeakCurve"/>) дают четверть модели, покрыта тоже.
+        /// Серия БЕЗ кандидата библиотеки с парным провалом (≥ 0.3 её избытка в ±1.5 ПШПВ) — пик,
         /// СДВИНУТЫЙ шкалой (2614 кэВ Th232 на нелинейной шкале: +124 % рядом с −59 %), а не
-        /// непокрытый. Рядом называются линии библиотеки приложения (<see cref="LibraryLines"/>) вне
-        /// состава в том же окне — до трёх, ближайшие, по одной на нуклид. Разбор, амплитуды и
-        /// пределы от этого не зависят — только сказано. Потребители: строки отчёта
-        /// (<c>FSAReportView</c>), `FsaBqProbe`, столбец `uncovered_peaks` у `CorpusFsaProbe`.
+        /// непокрытый; у серии с кандидатом провал соседней перепредсказанной линии состава
+        /// (583 Tl-208 при 609 Bi-214) сдвигом не считается. Приборные образы без линий (обратное
+        /// рассеяние, наложения; подложка сплайна не в счёт — она объяснила бы всё), несущие четверть
+        /// модели серии, покрывают её тоже: их разлад формы — не чужой нуклид. ⛔ ПИК НАЗЫВАЕТСЯ
+        /// ТОЛЬКО С ИМЕНЕМ: в ±ПШПВ/2 от центра обязана стоять линия библиотеки приложения
+        /// (<see cref="LibraryLines"/>) вне состава — предупреждение о «пике вне состава» нужно, чтобы
+        /// нуклид ДОБАВИЛИ В СЕТ, а безымянный избыток (аннигиляция 511 из окружения, суммы γ с
+        /// рентгеном — 307 + 55 у лютеция, уступы комптона) остаётся невязкой ленты; окно именно
+        /// ±ПШПВ/2, потому что у бленда с перепредсказанной соседкой центр избытка уходит от линии
+        /// (609 Bi-214 при 583 Tl-208 — на 9 кэВ). Вторая редакция П238 без правила имени говорила
+        /// на 25 спектрах корпуса из 92 при полных сетах — все приборные структуры. Рядом
+        /// с энергией — до трёх ближайших линий библиотеки в ±ПШПВ/2, по одной на нуклид. Серии,
+        /// прошедшие пороги, но не названные, — в <see cref="FsaResult.UncoveredRejections"/> с
+        /// причиной (ревизия отбора для проб). Разбор, амплитуды и пределы от этого не зависят —
+        /// только сказано. Потребители: строки отчёта (<c>FSAReportView</c>), `FsaBqProbe`, столбец
+        /// `uncovered_peaks` и файл `*_uncovered.csv` у `CorpusFsaProbe` (без библиотеки приложения
+        /// корпус пиков не называет — файл несёт ревизию отбора). Имя библиотеки сверяется с
+        /// составом по нуклиду без скобок («Pb-212 (Th-232)» — это Pb-212, <see cref="NuclideKey"/>).
         /// </summary>
         void FindUncoveredPeaks(FsaResult result, FitResult fit, List<FsaComponent> library,
                                 EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
@@ -14047,6 +14073,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             result.UncoveredPeaks.Clear();
+            result.UncoveredRejections.Clear();
             if (fit == null || fit.Residual == null || fit.Variance == null || fit.Model == null
                 || calibration == null || fwhmCalibration == null
                 || !(this.UncoveredPeakZ > 0.0) || !(this.UncoveredPeakExcess > 0.0))
@@ -14090,7 +14117,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             var coveredKev = new List<double>();
-            var coveredNuclides = new HashSet<string>(detected, StringComparer.OrdinalIgnoreCase);
+            var coveredLines = new List<FsaLine>();
+            var coveredNuclides = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string name in detected)
+            {
+                coveredNuclides.Add(NuclideKey(name));
+            }
+
             if (library != null)
             {
                 foreach (FsaComponent c in library)
@@ -14100,6 +14133,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
+                    double strongest = 0.0;
+                    foreach (FsaLine line in c.Lines)
+                    {
+                        if (line != null && line.Intensity > strongest)
+                        {
+                            strongest = line.Intensity;
+                        }
+                    }
+
                     foreach (FsaLine line in c.Lines)
                     {
                         if (line == null)
@@ -14107,12 +14149,52 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             continue;
                         }
 
-                        coveredKev.Add(line.Energy);
                         if (!string.IsNullOrEmpty(line.Nuclide))
                         {
-                            coveredNuclides.Add(line.Nuclide);
+                            coveredNuclides.Add(NuclideKey(line.Nuclide));
                         }
+
+                        // покрывают только сильные линии; у компонента без выходов — все
+                        if (strongest > 0.0 && line.Intensity < UncoveredCoverShare * strongest)
+                        {
+                            continue;
+                        }
+
+                        coveredKev.Add(line.Energy);
+                        coveredLines.Add(line);
                     }
+                }
+            }
+
+            // Производные структуры линий состава, у которых своих линий в компонентах нет:
+            // пики одиночного и двойного вылета аннигиляции (E − 511, E − 1022) и сама
+            // аннигиляция 511 — когда они в модели. Их разлад — не чужой нуклид (2103 кэВ у
+            // 2614 Th232 на первом прогоне П238).
+            // ⛔ Производные — только от линий не слабее пятой части сильнейшей линии ВСЕГО
+            // состава: двойной вылет 1.5 %-й линии Ac-228 1630.6 кэВ физически ничтожен, а
+            // «покрывал» 608.6 кэВ и прятал Bi-214 609 (четвёртая редакция П238).
+            if (this.EscapeAndAnnihilation && coveredLines.Count > 0)
+            {
+                double strongestOfAll = 0.0;
+                foreach (FsaLine line in coveredLines)
+                {
+                    strongestOfAll = Math.Max(strongestOfAll, line.Intensity);
+                }
+
+                var derived = new List<double>();
+                foreach (FsaLine line in coveredLines)
+                {
+                    if (line.Energy > 1100.0 && line.Intensity >= 0.2 * strongestOfAll)
+                    {
+                        derived.Add(line.Energy - 511.0);
+                        derived.Add(line.Energy - 1022.0);
+                    }
+                }
+
+                if (derived.Count > 0)
+                {
+                    derived.Add(511.0);
+                    coveredKev.AddRange(derived);
                 }
             }
 
@@ -14139,12 +14221,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // Приборные образы (обратное рассеяние, наложения — у них линий нет) по каналам:
+            // сумма кривых компонентов рода Nuisance, кроме подложки сплайна — та объясняет всё.
+            double[] nuisance = null;
+            if (result.Components != null)
+            {
+                foreach (FsaComponentResult c in result.Components)
+                {
+                    if (c == null || c.Kind != FsaComponentKind.Nuisance || c.Curve == null
+                        || string.Equals(c.Name, FsaResult.ContinuumLayerName, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    if (nuisance == null)
+                    {
+                        nuisance = new double[channels];
+                    }
+
+                    for (int i = 0; i < channels && i < c.Curve.Length; i++)
+                    {
+                        nuisance[i] += c.Curve[i];
+                    }
+                }
+            }
+
             List<int[]> plus = ResidualRuns(r, v, lo, hi, +1);
             List<int[]> minus = ResidualRuns(r, v, lo, hi, -1);
             var found = new List<FsaUncoveredPeak>();
             foreach (int[] run in plus)
             {
-                double excess = 0.0, variance = 0.0, expected = 0.0, modelRun = 0.0, moment = 0.0, sums = 0.0;
+                double excess = 0.0, variance = 0.0, expected = 0.0, modelRun = 0.0, moment = 0.0, sums = 0.0, instrument = 0.0;
                 for (int i = run[0]; i <= run[1]; i++)
                 {
                     if (!(v[i] > 0.0))
@@ -14166,6 +14273,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (sumPeaks != null)
                     {
                         sums += Math.Max(sumPeaks[i], 0.0);
+                    }
+
+                    if (nuisance != null)
+                    {
+                        instrument += Math.Max(nuisance[i], 0.0);
                     }
                 }
 
@@ -14194,60 +14306,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                bool covered = false;
-                foreach (double e in coveredKev)
-                {
-                    if (Math.Abs(e - centre) <= 0.5 * fwhm)
-                    {
-                        covered = true;
-                        break;
-                    }
-                }
-
-                if (covered || (sumPeaks != null && modelRun > 0.0 && sums >= 0.25 * modelRun))
-                {
-                    continue;
-                }
-
-                bool shifted = false;
-                foreach (int[] dip in minus)
-                {
-                    double deficit = 0.0, dipMoment = 0.0;
-                    for (int i = dip[0]; i <= dip[1]; i++)
-                    {
-                        double d = Math.Max(-r[i], 0.0);
-                        deficit += d;
-                        dipMoment += d * calibration.ChannelToEnergy(i);
-                    }
-
-                    if (!(deficit >= 0.5 * excess))
-                    {
-                        continue;
-                    }
-
-                    if (Math.Abs(dipMoment / deficit - centre) <= 1.5 * fwhm)
-                    {
-                        shifted = true;
-                        break;
-                    }
-                }
-
-                if (shifted)
-                {
-                    continue;
-                }
-
-                var peak = new FsaUncoveredPeak
-                {
-                    EnergyKev = centre, WidthKev = width, ExcessCounts = excess, ExcessShare = share, Z = z
-                };
+                // Кандидаты библиотеки вне состава в ±ПШПВ/2 — ближайшие.
+                var near = new List<FsaLine>();
                 if (this.LibraryLines != null)
                 {
-                    var near = new List<FsaLine>();
                     foreach (FsaLine line in this.LibraryLines)
                     {
                         if (line != null && !string.IsNullOrEmpty(line.Nuclide)
-                            && !coveredNuclides.Contains(line.Nuclide)
+                            && !coveredNuclides.Contains(NuclideKey(line.Nuclide))
                             && Math.Abs(line.Energy - centre) <= 0.5 * fwhm)
                         {
                             near.Add(line);
@@ -14255,18 +14321,107 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     near.Sort((a, b) => Math.Abs(a.Energy - centre).CompareTo(Math.Abs(b.Energy - centre)));
-                    var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                    foreach (FsaLine line in near)
+                }
+
+                double nearestCandidate = near.Count > 0 ? Math.Abs(near[0].Energy - centre) : double.MaxValue;
+
+                // Покрытие линией состава: в ±ПШПВ/4 — всегда; в ±ПШПВ/2 — если кандидат
+                // библиотеки не стоит ЯВНО ближе (в ±ПШПВ/4). Довод — в описании метода.
+                double nearestCovered = double.MaxValue, nearestCoveredKev = double.NaN;
+                foreach (double e in coveredKev)
+                {
+                    double gap = Math.Abs(e - centre);
+                    if (gap < nearestCovered)
                     {
-                        if (peak.Candidates.Count >= 3)
+                        nearestCovered = gap;
+                        nearestCoveredKev = e;
+                    }
+                }
+
+                FsaUncoveredCandidate nearCandidate = near.Count > 0
+                    ? new FsaUncoveredCandidate { Nuclide = near[0].Nuclide, EnergyKev = near[0].Energy } : null;
+                Action<FsaUncoveredRejectionReason> reject = why => result.UncoveredRejections.Add(new FsaUncoveredRejection
+                {
+                    EnergyKev = centre, WidthKev = width, ExcessShare = share, Z = z, Reason = why,
+                    NearestCoveredKev = nearestCoveredKev, NearestCandidate = nearCandidate
+                });
+
+                bool covered = nearestCovered <= 0.25 * fwhm
+                               || (nearestCovered <= 0.5 * fwhm && !(nearestCandidate <= 0.25 * fwhm));
+                if (covered)
+                {
+                    reject(FsaUncoveredRejectionReason.CoveredLine);
+                    continue;
+                }
+
+                if (sumPeaks != null && modelRun > 0.0 && sums >= 0.25 * modelRun)
+                {
+                    reject(FsaUncoveredRejectionReason.SumPeak);
+                    continue;
+                }
+
+                if (nuisance != null && modelRun > 0.0 && instrument >= 0.25 * modelRun)
+                {
+                    reject(FsaUncoveredRejectionReason.Nuisance);
+                    continue;
+                }
+
+                // Сдвинутый шкалой пик — парный провал рядом; судится только у серии БЕЗ
+                // кандидата библиотеки (довод — в описании метода).
+                if (near.Count == 0)
+                {
+                    bool shifted = false;
+                    foreach (int[] dip in minus)
+                    {
+                        double deficit = 0.0, dipMoment = 0.0;
+                        for (int i = dip[0]; i <= dip[1]; i++)
                         {
-                            break;
+                            double d = Math.Max(-r[i], 0.0);
+                            deficit += d;
+                            dipMoment += d * calibration.ChannelToEnergy(i);
                         }
 
-                        if (named.Add(line.Nuclide))
+                        if (!(deficit >= 0.3 * excess))
                         {
-                            peak.Candidates.Add(new FsaUncoveredCandidate { Nuclide = line.Nuclide, EnergyKev = line.Energy });
+                            continue;
                         }
+
+                        if (Math.Abs(dipMoment / deficit - centre) <= 1.5 * fwhm)
+                        {
+                            shifted = true;
+                            break;
+                        }
+                    }
+
+                    if (shifted)
+                    {
+                        reject(FsaUncoveredRejectionReason.Shifted);
+                        continue;
+                    }
+                }
+
+                // Только с именем: линия библиотеки вне состава в ±ПШПВ/2 (довод — в описании метода).
+                if (!(nearestCandidate <= 0.5 * fwhm))
+                {
+                    reject(FsaUncoveredRejectionReason.NoCandidate);
+                    continue;
+                }
+
+                var peak = new FsaUncoveredPeak
+                {
+                    EnergyKev = centre, WidthKev = width, ExcessCounts = excess, ExcessShare = share, Z = z
+                };
+                var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (FsaLine line in near)
+                {
+                    if (peak.Candidates.Count >= 3)
+                    {
+                        break;
+                    }
+
+                    if (named.Add(line.Nuclide))
+                    {
+                        peak.Candidates.Add(new FsaUncoveredCandidate { Nuclide = line.Nuclide, EnergyKev = line.Energy });
                     }
                 }
 
@@ -14275,6 +14430,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             found.Sort((a, b) => b.Z.CompareTo(a.Z));
             result.UncoveredPeaks.AddRange(found);
+        }
+
+        /// <summary>
+        /// (`AMBER210`) Ключ нуклида в имени: имя до первой скобки, без пробелов по краям —
+        /// «Pb-212 (Th-232)» библиотеки и «Pb-212» состава сходятся. Имён здесь нет — правило формы.
+        /// </summary>
+        static string NuclideKey(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return string.Empty;
+            }
+
+            int bracket = name.IndexOf('(');
+            return (bracket > 0 ? name.Substring(0, bracket) : name).Trim();
         }
 
         /// <summary>

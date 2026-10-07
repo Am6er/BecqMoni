@@ -1133,6 +1133,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public List<FsaUncoveredPeak> UncoveredPeaks { get; private set; } = new List<FsaUncoveredPeak>();
 
         /// <summary>
+        /// (`AMBER210`, П238) РЕВИЗИЯ ОТБОРА — серии, прошедшие пороги значимости, избытка и ширины,
+        /// но НЕ попавшие в <see cref="UncoveredPeaks"/>: чем покрыты (линия состава, сумм-пик,
+        /// парный провал сдвига). Читают пробы (`FsaBqProbe --huber-cut`): без этого списка
+        /// пропуск настоящего чужого пика неотличим от его отсутствия. Окно отчёта не печатает.
+        /// </summary>
+        public List<FsaUncoveredRejection> UncoveredRejections { get; private set; } = new List<FsaUncoveredRejection>();
+
+        /// <summary>
         /// (S44) Фон был ПОДАН на разбор, но НЕ ВЗЯТ — с причиной словами
         /// («the background has 1012 channels, the spectrum 1024»). null —
         /// фона не подавали либо он вычтен. Отказ обязан быть назван:
@@ -2701,6 +2709,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// одной на нуклид; пусто — в библиотеке рядом ничего нет. Имён в коде нет (`FsaAnalyzer.LibraryLines`).
         /// </summary>
         public List<FsaUncoveredCandidate> Candidates { get; private set; } = new List<FsaUncoveredCandidate>();
+    }
+
+    /// <summary>(`AMBER210`) Почему серия с избытком не названа непокрытым пиком.</summary>
+    public enum FsaUncoveredRejectionReason
+    {
+        /// <summary>Линия вошедшего компонента (или производная) в ±ПШПВ/4, либо в ±ПШПВ/2 без кандидата ближе.</summary>
+        CoveredLine,
+        /// <summary>Модельные сумм-пики держат четверть модели серии.</summary>
+        SumPeak,
+        /// <summary>Приборный образ без линий (обратное рассеяние, наложения) держит четверть модели серии.</summary>
+        Nuisance,
+        /// <summary>Парный провал рядом — пик сдвинут шкалой.</summary>
+        Shifted,
+        /// <summary>
+        /// В ±ПШПВ/4 от центра нет линии библиотеки приложения вне состава: безымянный избыток
+        /// (обратное рассеяние, наложения, аннигиляция, суммы с рентгеном, уступ комптона) — не
+        /// пик чужого нуклида, остаётся невязкой ленты.
+        /// </summary>
+        NoCandidate
+    }
+
+    /// <summary>(`AMBER210`) Запись ревизии отбора — см. <see cref="FsaResult.UncoveredRejections"/>.</summary>
+    public sealed class FsaUncoveredRejection
+    {
+        public double EnergyKev { get; set; }
+        public double WidthKev { get; set; }
+        public double ExcessShare { get; set; }
+        public double Z { get; set; }
+        public FsaUncoveredRejectionReason Reason { get; set; }
+        /// <summary>Ближайшая линия состава (с производными), кэВ; NaN — нет.</summary>
+        public double NearestCoveredKev { get; set; } = double.NaN;
+        /// <summary>Ближайший кандидат библиотеки вне состава в ±ПШПВ/2; null — нет.</summary>
+        public FsaUncoveredCandidate NearestCandidate { get; set; }
     }
 
     /// <summary>(`AMBER210`) Линия библиотеки приложения рядом с непокрытым пиком.</summary>
