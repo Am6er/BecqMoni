@@ -43,11 +43,13 @@ namespace BecquerelMonitor.Probes
     ///   --components              печатать все компоненты разбора с долями и скоростями
     ///   --no-matrix               снять матрицу отклика у кривой спектра (путь по кривой)
     ///   --huber-inflate=on|off    надувка порога Хубера на √(χ²/ndf) (AMBER209; умолчание приложения — on)
+    ///   --huber-gamma=G           относительный пол порога Хубера: γ только в ноже (AMBER209, П237; умолчание 0)
+    ///   --huber-cut               печатать срез Хубера: по полосам энергии и сериям подрезанных каналов (П237)
     /// Коды: 0 — посчитано; 2 — ключи/файлы; 3 — разбор не завершился.
     /// </summary>
     static class FsaBqProbe
     {
-        static bool NoPileUp, NoBackscatter, NoXray, NoSumming, NoEscape, PrintComponents, NoMatrix;
+        static bool NoPileUp, NoBackscatter, NoXray, NoSumming, NoEscape, PrintComponents, NoMatrix, PrintHuberCut;
         static int Seed = 20261006;
         static FsaAnalyzer LastAnalyzer;
 
@@ -63,7 +65,7 @@ namespace BecquerelMonitor.Probes
             bool nucbase = false, equilibrium = false, fromSet = false;
             int timeoutS = 120;
             string weights = null, huberInflate = null;
-            double huber = double.NaN, gamma = double.NaN, xi = double.NaN;
+            double huber = double.NaN, gamma = double.NaN, xi = double.NaN, huberGamma = double.NaN;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectra.Add(a.Substring(11));
@@ -85,6 +87,8 @@ namespace BecquerelMonitor.Probes
                 else if (a == "--components") PrintComponents = true;
                 else if (a == "--no-matrix") NoMatrix = true;
                 else if (a.StartsWith("--huber-inflate=", StringComparison.Ordinal)) huberInflate = a.Substring(16);
+                else if (a.StartsWith("--huber-gamma=", StringComparison.Ordinal)) huberGamma = double.Parse(a.Substring(14), CultureInfo.InvariantCulture);
+                else if (a == "--huber-cut") PrintHuberCut = true;
                 else if (a.StartsWith("--thin=", StringComparison.Ordinal))
                 {
                     foreach (string part in a.Substring(7).Split(','))
@@ -129,15 +133,17 @@ namespace BecquerelMonitor.Probes
                     if (weights != null) analyzer.ModelWeights = weights == "model";
                     if (!double.IsNaN(huber)) analyzer.HuberM = huber;
                     if (!double.IsNaN(gamma)) analyzer.NoiseGamma = gamma;
+                    if (!double.IsNaN(huberGamma)) analyzer.HuberGamma = huberGamma;
                     if (!double.IsNaN(xi)) analyzer.Xi = xi;
                 };
             }
-            Console.WriteLine("SETUP\tключи разбора: веса {0}; Хубер {1}; γ {2}; ξ {3}; зерно {4}; надувка порога Хубера {5}",
+            Console.WriteLine("SETUP\tключи разбора: веса {0}; Хубер {1}; γ {2}; ξ {3}; зерно {4}; надувка порога Хубера {5}; пол порога γ {6}",
                               weights ?? "как в приложении",
                               double.IsNaN(huber) ? "как в приложении" : huber.ToString(CultureInfo.InvariantCulture),
                               double.IsNaN(gamma) ? "как в приложении" : gamma.ToString(CultureInfo.InvariantCulture),
                               double.IsNaN(xi) ? "как в приложении" : xi.ToString(CultureInfo.InvariantCulture), Seed,
-                              huberInflate ?? "как в приложении");
+                              huberInflate ?? "как в приложении",
+                              double.IsNaN(huberGamma) ? "как в приложении" : huberGamma.ToString(CultureInfo.InvariantCulture));
 
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
@@ -250,6 +256,10 @@ namespace BecquerelMonitor.Probes
                               result.CharacteristicLimits != null ? result.CharacteristicLimits.Count : 0);
             Console.WriteLine("  надувка порога Хубера последнего прохода: {0}",
                               LastAnalyzer != null ? LastAnalyzer.LastHuberInflation.ToString("F3", CultureInfo.InvariantCulture) : "крючок не ставился");
+            if (PrintHuberCut)
+            {
+                HuberCut(LastAnalyzer, rd.EnergySpectrum);
+            }
             Console.WriteLine("  χ²/ndf Пуассон {0}; σ-надувка {1}; усиление {2}; нуль {3} кан.; опор шкалы {4}; фон {5}{6}; невязка модели {7}",
                               result.Chi2NdfPoisson.ToString("F2", CultureInfo.InvariantCulture),
                               result.SigmaInflation.ToString("F3", CultureInfo.InvariantCulture),
@@ -315,6 +325,106 @@ namespace BecquerelMonitor.Probes
         static string F(double v)
         {
             return double.IsNaN(v) ? "NaN" : v.ToString("0.###", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// (`AMBER209`, П237) Срез Хубера последнего фита по следу анализатора
+        /// (<see cref="FsaAnalyzer.LastFitWeights"/> и соседи): по полосам энергии —
+        /// каналов, подрезанных, снятая доля веса `Σ(w₀−w)/Σw₀`, Σ нормированных
+        /// невязок² всех и подрезанных, средняя знаковая относительная невязка
+        /// `r/μ̂` подрезанных; затем серии подрезанных каналов (разрыв ≤ 2 канала),
+        /// крупнейшие по Σ pull² — энергия, каналов, μ̂ сырого отсчёта, средняя
+        /// `r/μ̂`, наибольший pull, снятая доля веса. Знак `r/μ̂`: плюс — данных
+        /// больше модели.
+        /// </summary>
+        static void HuberCut(FsaAnalyzer a, EnergySpectrum spectrum)
+        {
+            if (a == null || a.LastFitWeights == null || a.LastFitVariance == null || a.LastFitResidual == null)
+            {
+                Console.WriteLine("  срез Хубера: следа фита нет");
+                return;
+            }
+            double[] w = a.LastFitWeights, v = a.LastFitVariance, r = a.LastFitResidual;
+            double[] model = a.LastFitModel, sub = a.LastFitSubtracted;
+            int lo = a.LastFitFirstChannel, hi = a.LastFitLastChannel;
+            EnergyCalibration cal = spectrum.EnergyCalibration;
+            Func<int, double> kev = ch => cal != null ? cal.ChannelToEnergy(ch) : ch;
+            Func<int, double> mu = ch => (model != null ? model[ch] : 0.0) + (sub != null ? sub[ch] : 0.0);
+            Func<int, double> ratio = ch => v[ch] > 0.0 ? Math.Min(1.0, w[ch] * v[ch]) : 1.0;
+            Func<int, double> pull = ch => v[ch] > 0.0 ? r[ch] / Math.Sqrt(v[ch]) : 0.0;
+            const double cutEps = 1e-9;
+
+            double[] edges = { 0, 30, 100, 300, 700, 1500, 3000, double.PositiveInfinity };
+            Console.WriteLine("  срез Хубера по полосам (каналы {0}..{1}):", lo, hi);
+            Console.WriteLine("  {0,-12} {1,6} {2,6} {3,9} {4,10} {5,10} {6,9}", "кэВ", "кан.", "подр.", "вес снят", "Σpull²", "Σpull²подр", "r/μ̂ подр");
+            int totalCut = 0, total = 0;
+            for (int b = 0; b + 1 < edges.Length; b++)
+            {
+                int n = 0, cut = 0;
+                double w0s = 0.0, ws = 0.0, p2 = 0.0, p2c = 0.0, relSum = 0.0, relW = 0.0;
+                for (int ch = lo; ch <= hi; ch++)
+                {
+                    double e = kev(ch);
+                    if (e < edges[b] || e >= edges[b + 1] || !(v[ch] > 0.0)) continue;
+                    n++;
+                    double w0 = 1.0 / v[ch];
+                    w0s += w0; ws += Math.Min(w0, w[ch]);
+                    double p = pull(ch); p2 += p * p;
+                    if (ratio(ch) < 1.0 - cutEps)
+                    {
+                        cut++; p2c += p * p;
+                        double m = mu(ch);
+                        if (m > 0.0) { relSum += r[ch]; relW += m; }
+                    }
+                }
+                total += n; totalCut += cut;
+                if (n == 0) continue;
+                Console.WriteLine("  {0,-12} {1,6} {2,6} {3,8}% {4,10} {5,10} {6,8}%",
+                                  edges[b].ToString("0", CultureInfo.InvariantCulture) + "–" + (double.IsInfinity(edges[b + 1]) ? "∞" : edges[b + 1].ToString("0", CultureInfo.InvariantCulture)),
+                                  n, cut, (100.0 * (w0s - ws) / w0s).ToString("0.0", CultureInfo.InvariantCulture),
+                                  p2.ToString("0", CultureInfo.InvariantCulture), p2c.ToString("0", CultureInfo.InvariantCulture),
+                                  relW > 0.0 ? (100.0 * relSum / relW).ToString("+0.00;-0.00", CultureInfo.InvariantCulture) : "—");
+            }
+            // Доля снятого веса ПО ВСЕЙ полосе не печатается нарочно: Σ1/D держат пустые
+            // каналы (D ≈ 1, в 10⁵ раз тяжелее пиковых), и итог выходил «0.0 %» при
+            // 60–70 % снятого веса в полосах пиков — читать по полосам (замер П237).
+            Console.WriteLine("  всего каналов {0}, подрезано {1} ({2} %)", total, totalCut,
+                              total > 0 ? (100.0 * totalCut / total).ToString("0.0", CultureInfo.InvariantCulture) : "—");
+
+            // Серии подрезанных каналов.
+            var runs = new List<double[]>(); // [chStart, chEnd, Σpull², Σ(r), Σμ̂, maxPull, Σw0, Σw]
+            int start = -1, last = -1;
+            double rp2 = 0.0, rr = 0.0, rm = 0.0, rmax = 0.0, rw0 = 0.0, rw = 0.0;
+            Action flush = () =>
+            {
+                if (start >= 0) runs.Add(new[] { start, last, rp2, rr, rm, rmax, rw0, rw });
+                start = -1; rp2 = rr = rm = rmax = rw0 = rw = 0.0;
+            };
+            for (int ch = lo; ch <= hi; ch++)
+            {
+                if (!(v[ch] > 0.0) || ratio(ch) >= 1.0 - cutEps) continue;
+                if (start >= 0 && ch - last > 3) flush();
+                if (start < 0) start = ch;
+                last = ch;
+                double p = pull(ch);
+                rp2 += p * p; rr += r[ch]; rm += mu(ch);
+                if (Math.Abs(p) > Math.Abs(rmax)) rmax = p;
+                rw0 += 1.0 / v[ch]; rw += Math.Min(1.0 / v[ch], w[ch]);
+            }
+            flush();
+            runs.Sort((x, y) => y[2].CompareTo(x[2]));
+            Console.WriteLine("  серии подрезанных каналов, крупнейшие по Σpull² (всего серий {0}):", runs.Count);
+            Console.WriteLine("  {0,-18} {1,5} {2,12} {3,9} {4,8} {5,9}", "кэВ", "кан.", "Σμ̂ сырого", "r/μ̂", "pull max", "вес снят");
+            foreach (double[] run in runs.Take(14))
+            {
+                Console.WriteLine("  {0,-18} {1,5} {2,12} {3,8}% {4,8} {5,8}%",
+                                  kev((int)run[0]).ToString("0.0", CultureInfo.InvariantCulture) + "–" + kev((int)run[1]).ToString("0.0", CultureInfo.InvariantCulture),
+                                  (int)run[1] - (int)run[0] + 1,
+                                  run[4].ToString("0", CultureInfo.InvariantCulture),
+                                  run[4] > 0.0 ? (100.0 * run[3] / run[4]).ToString("+0.00;-0.00", CultureInfo.InvariantCulture) : "—",
+                                  run[5].ToString("+0.0;-0.0", CultureInfo.InvariantCulture),
+                                  run[6] > 0.0 ? (100.0 * (run[6] - run[7]) / run[6]).ToString("0.0", CultureInfo.InvariantCulture) : "—");
+            }
         }
 
         /// <summary>

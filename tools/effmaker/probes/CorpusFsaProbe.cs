@@ -846,6 +846,7 @@ namespace CorpusFsaProbe
     ///                  [--refit-z-rel=&lt;ДОЛЯ вершины: 0 = чисто абсолютный порог&gt;]
     ///                  [--no-escape-gate]
     ///                  [--partial] [--no-pr-gate] [--gamma=G] [--beta=B] [--gamma-map=<каталог прогона>]
+    ///                  [--huber-gamma=G]   (`AMBER209`, П237: относительный пол порога Хубера — γ только в ноже, не в весах)
     ///                  [--bg-rebin]
     ///                  [--offset-range=&lt;кэВ&gt;] [--offset-steps=N]
     ///                  [--gain-range=&lt;ДОЛЯ: 0.02 = ±2 %&gt;] [--gain-steps=N]
@@ -1886,6 +1887,10 @@ namespace CorpusFsaProbe
                 {
                     o.NoiseGamma = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 }
+                else if (a.StartsWith("--huber-gamma=", StringComparison.Ordinal))
+                {
+                    o.HuberGamma = double.Parse(a.Substring(14), CultureInfo.InvariantCulture);
+                }
                 else if (a.StartsWith("--beta=", StringComparison.Ordinal))
                 {
                     o.NoiseBeta = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
@@ -2479,6 +2484,11 @@ namespace CorpusFsaProbe
             // развести два конца, а именно это и было дефектом.
             analyzer.NoiseGamma = o.NoiseGamma;
             analyzer.NoiseBeta = o.NoiseBeta;
+            if (!double.IsNaN(o.HuberGamma))
+            {
+                // (`AMBER209`, П237) без ключа — умолчание анализатора, как у `HuberM`
+                analyzer.HuberGamma = o.HuberGamma;
+            }
             analyzer.PartialResiduals = o.Partial;
             if (o.Knots > 0)
             {
@@ -6380,6 +6390,8 @@ namespace CorpusFsaProbe
 
             /// <summary>(S43) γ составного шума D = F + γ²F²; 0 — выключено.</summary>
             public double NoiseGamma;
+            /// <summary>(`AMBER209`, П237) `--huber-gamma=`; NaN — ключа не было, умолчание анализатора.</summary>
+            public double HuberGamma = double.NaN;
 
             /// <summary>(S43) β коррелированности вычитаемого фона; 0 — выключено.</summary>
             public double NoiseBeta;
