@@ -99,9 +99,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return options;
         }
 
-        /// <summary>То же — с активной копии конфигурации спектра.</summary>
+        /// <summary>
+        /// (`AMBER212`, П240 07.10.2026; решения Amber, дословно: «Одно на приложение,
+        /// плюс по умолчанию "From Nucbase"», «Все семь одинаково») ИСТОЧНИК НАСТРОЕК
+        /// ПРИЛОЖЕНИЯ. Ставит его ТОЛЬКО <c>Program.Main</c> — общая настройка
+        /// <see cref="GlobalConfigInfo.FsaCalculation"/>, одна на все спектры и приборы.
+        /// Пока он <c>null</c> (пробы, корпус — <c>Program.Main</c> они не проходят),
+        /// <see cref="Of"/> читает копию конфигурации спектра, как прежде, и ни одно
+        /// корпусное число от этой правки не сдвигается.
+        /// </summary>
+        public static System.Func<FsaCalculationOptions> ApplicationSource;
+
+        /// <summary>
+        /// То же — с активной копии конфигурации спектра; в приложении — с общей
+        /// настройки (<see cref="ApplicationSource"/>), спектр тогда не читается.
+        /// </summary>
         public static FsaCalculationOptions Of(ResultData resultData)
         {
+            System.Func<FsaCalculationOptions> application = ApplicationSource;
+            if (application != null)
+            {
+                return application();
+            }
+
             return FromConfig(resultData != null
                               ? resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig
                               : null);

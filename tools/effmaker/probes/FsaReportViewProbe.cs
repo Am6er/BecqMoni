@@ -62,8 +62,9 @@ namespace FsaReportViewProbe
     ///      без матрицы, с матрицей без опор, с двумя опорами).
     ///   7. ГРУППИРОВКА И ФЛАГИ (критерий 7): родители/дочерние не меняют
     ///      отпечаток и не запускают счёт; расчётный флаг — ровно один запуск
-    ///      и одно событие, отпечаток другой, конфигурация спектра и
-    ///      умолчание прибора записаны.
+    ///      и одно событие, отпечаток другой, конфигурация спектра записана,
+    ///      а умолчание прибора НЕ тронуто (`AMBER212`, 07.10.2026: окно
+    ///      отчёта прибор не пишет — в приложении настройка общая).
     ///   8. РОДИТЕЛИ (критерий 8): недоступны без NucBase+равновесия с
     ///      подсказкой; при допустимом режиме сумма родительских лент и долей
     ///      равна сумме дочерних с машинным допуском.
@@ -1537,6 +1538,9 @@ namespace FsaReportViewProbe
                     CheckBox xray = Control<CheckBox>(report, "atomicXrayCheckBox");
                     var cfg = (FWHMPeakDetectionMethodConfig)doc.ActiveResultData.PeakDetectionMethodConfig;
                     bool was = cfg.AtomicXrayForFsa;
+                    DeviceConfigInfo device;
+                    DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(doc.ActiveResultData.DeviceConfigReference.Guid, out device);
+                    bool? deviceWas = device != null ? ((FWHMPeakDetectionMethodConfig)device.PeakDetectionMethodConfig).AtomicXrayForFsa : (bool?)null;
                     xray.Checked = !was;
                     WaitIdle(session);
                     Same("флаг: конфигурация спектра записана", !was, cfg.AtomicXrayForFsa);
@@ -1545,10 +1549,10 @@ namespace FsaReportViewProbe
                     Same("флаг: событие завершения ровно одно", done + 1, completed);
                     Same("флаг: результат посчитан новым отпечатком", session.Stamp,
                          FsaAnalysisSession.BuildStamp(doc.ActiveResultData, doc.ActiveResultData.BackgroundEnergySpectrum != null));
-                    DeviceConfigInfo device;
-                    DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(doc.ActiveResultData.DeviceConfigReference.Guid, out device);
-                    Same("флаг: умолчание прибора записано", !was,
-                         device != null && ((FWHMPeakDetectionMethodConfig)device.PeakDetectionMethodConfig).AtomicXrayForFsa);
+                    // (`AMBER212`) окно отчёта прибор больше не пишет: семь флажков —
+                    // общая настройка приложения, а у проб её нет и пишется копия спектра.
+                    Same("флаг: умолчание прибора НЕ тронуто", deviceWas,
+                         device != null ? ((FWHMPeakDetectionMethodConfig)device.PeakDetectionMethodConfig).AtomicXrayForFsa : (bool?)null);
 
                     // Контроль: тот же флаг обратно — ещё один запуск (счётчик не залип).
                     xray.Checked = was;

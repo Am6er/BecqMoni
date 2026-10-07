@@ -46,11 +46,13 @@ namespace BecquerelMonitor
     /// цепочек» и «Дополнительные компоненты модели»; отрисовочные —
     /// «Отрисовка» внизу. Прежде лента невязки стояла шестой в ряду
     /// пяти расчётных, и различала их одна подсказка при наведении.
-    ///   * расчётные (источник, равновесие, пять компонентов) пишутся в
-    ///     активную копию конфигурации спектра и в умолчание прибора
-    ///     (<see cref="SaveOptionsToDevice"/>), входят в отпечаток сеанса и
-    ///     ведут к ОДНОМУ актуальному пересчёту (критерий 7); соседние
-    ///     открытые документы не переписываются (критерий 11);
+    ///   * расчётные (источник, равновесие, пять компонентов) — с `AMBER212`
+    ///     (07.10.2026) ОДНА настройка приложения
+    ///     (<see cref="GlobalConfigInfo.FsaCalculation"/>, см.
+    ///     <see cref="ApplyCalculationChange"/>), входят в отпечаток сеанса и
+    ///     ведут к ОДНОМУ актуальному пересчёту (критерий 7); прежнее правило
+    ///     «умолчание прибора, соседи не переписываются» (`S70`, критерий 11)
+    ///     снято решением Amber;
     ///   * группировка родители/дочерние — настройка ПРЕДСТАВЛЕНИЯ этого окна
     ///     на время работы приложения: в файл, конфигурацию и отпечаток не
     ///     входит, расчёт не запускает; одно значение на документ
@@ -1033,15 +1035,24 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Расчётный переключатель. Путь ОДИН на все семь — «в копию спектра,
-        /// в умолчание прибора, обесценить кэш, заказать счёт потребителям» —
-        /// написанный семь раз он однажды разошёлся бы.
+        /// Расчётный переключатель. Путь ОДИН на все семь — «записать настройку,
+        /// обесценить кэш, заказать счёт потребителям» — написанный семь раз он
+        /// однажды разошёлся бы.
         ///
-        /// ⛔ Пишется В ДВА МЕСТА (решение Amber 18.08.2026, `S70`). В копию
-        /// СПЕКТРА — иначе нажатие не влияет на то, что человек сейчас видит.
-        /// В умолчание ПРИБОРА и на диск — иначе положение не переживает ни
-        /// следующий спектр, ни перезапуск. Соседние документы при этом не
-        /// трогаются (см. <see cref="SaveOptionsToDevice"/>).
+        /// ⛔ (`AMBER212`, П240 07.10.2026; решения Amber вопросником, дословно:
+        /// «Одно на приложение, плюс по умолчанию "From Nucbase"», «Все семь
+        /// одинаково») В ПРИЛОЖЕНИИ настройка ОДНА — общая
+        /// (<see cref="GlobalConfigInfo.FsaCalculation"/>), и пишется она сразу на
+        /// диск, чтобы пережить перезапуск. Прежняя запись в умолчание прибора
+        /// (`S70`, 18.08.2026) снята этим решением: у спектра, чей прибор не заведён
+        /// в конфигурации, выбор сохранить было некуда, и при следующем открытии он
+        /// молча возвращался к «From labels». Копия спектра держится в согласии с
+        /// общей настройкой — её читают пробы и тот, кто смотрит поле напрямую.
+        /// Соседние документы при этом меняются тоже: отпечаток их разбора
+        /// сменился, и видимый потребитель закажет пересчёт сам.
+        ///
+        /// Без источника приложения (<see cref="FsaCalculationOptions.ApplicationSource"/>
+        /// не поставлен — пробы) пишется только копия спектра, как прежде.
         ///
         /// Поиска пиков переключатели НЕ касаются — ни одного пика от них не
         /// появится и не исчезнет, — поэтому детекция не перезапускается;
@@ -1060,13 +1071,29 @@ namespace BecquerelMonitor
             FWHMPeakDetectionMethodConfig config = rd != null
                 ? rd.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig
                 : null;
-            if (config == null)
+            if (FsaCalculationOptions.ApplicationSource != null)
             {
-                return;
+                // Нажатие ложится поверх ОБЩЕЙ настройки, а не поверх копии
+                // спектра: копия могла отстать (снята с прибора при открытии), и
+                // снять семь значений с неё значило бы вернуть в общую настройку
+                // устаревшие шесть.
+                GlobalConfigManager manager = GlobalConfigManager.GetInstance();
+                FsaCalculationSettings settings = manager.GlobalConfig.FsaCalculation;
+                FWHMPeakDetectionMethodConfig scratch = config ?? new FWHMPeakDetectionMethodConfig();
+                settings.CopyTo(scratch);
+                set(scratch);
+                settings.CopyFrom(scratch);
+                manager.SaveConfigFile();
             }
+            else
+            {
+                if (config == null)
+                {
+                    return;
+                }
 
-            set(config);
-            SaveOptionsToDevice(rd, config);
+                set(config);
+            }
 
             if (this.session != null)
             {
@@ -1085,53 +1112,6 @@ namespace BecquerelMonitor
             }
 
             this.RefreshReport();
-        }
-
-        /// <summary>
-        /// Семь настроек разложения — в умолчание прибора и на диск. Прибор
-        /// берётся из менеджера по Guid: именно ту запись читает
-        /// <see cref="FWHMPeakDetectionMethodConfig.AdoptFrom"/> при открытии
-        /// следующего спектра, и правка её копии никуда бы не дошла.
-        ///
-        /// ⛔ Прибор сохраняется ТИХО
-        /// (<see cref="DeviceConfigManager.SaveConfigQuiet"/>): обычное
-        /// сохранение рассылает событие, а по нему настройки прибора
-        /// переносятся во ВСЕ открытые спектры этого прибора. Решение то же,
-        /// что у прежних двух галок (`S70`): умолчание прибора меняем, уже
-        /// открытые копии соседних документов не трогаем (критерий 11).
-        /// </summary>
-        internal static void SaveOptionsToDevice(ResultData resultData, FWHMPeakDetectionMethodConfig source)
-        {
-            if (resultData == null || source == null
-                || resultData.DeviceConfigReference == null
-                || string.IsNullOrEmpty(resultData.DeviceConfigReference.Guid))
-            {
-                return;
-            }
-
-            DeviceConfigManager manager = DeviceConfigManager.GetInstance();
-            DeviceConfigInfo device;
-            if (!manager.DeviceConfigMap.TryGetValue(resultData.DeviceConfigReference.Guid, out device)
-                || device == null
-                || !(device.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig devicePeak))
-            {
-                return;
-            }
-
-            if (FsaCalculationOptions.FromConfig(devicePeak).Stamp
-                == FsaCalculationOptions.FromConfig(source).Stamp)
-            {
-                return;
-            }
-
-            devicePeak.DbLookupsForFsa = source.DbLookupsForFsa;
-            devicePeak.ChainEquilibrium = source.ChainEquilibrium;
-            devicePeak.AtomicXrayForFsa = source.AtomicXrayForFsa;
-            devicePeak.CascadeSummingForFsa = source.CascadeSummingForFsa;
-            devicePeak.BackscatterForFsa = source.BackscatterForFsa;
-            devicePeak.EscapeAndAnnihilationForFsa = source.EscapeAndAnnihilationForFsa;
-            devicePeak.PileUpForFsa = source.PileUpForFsa;
-            manager.SaveConfigQuiet(device);
         }
 
         // ------------------------------------------------------------------
@@ -2310,6 +2290,25 @@ namespace BecquerelMonitor
             int spare = this.reportTable.ClientSize.Width - SwatchColumnWidth - ValueColumnWidth
                         - SystemInformation.VerticalScrollBarWidth - 4;
             this.componentColumn.Width = Math.Max(80, spare);
+
+            // ⛔ (`AMBER214`, П240 07.10.2026; Amber со снимком, дословно: «Тут
+            // требуется скроллбар. Текст уехал вниз.») Высоты строк с переносом
+            // XPTable узнаёт только при ОТРИСОВКЕ, а нужна ли вертикальная полоса,
+            // решает раньше — в `EndUpdate` и при первой отрисовке — по высотам
+            // строк в одну строку. Длинные строки блока качества (разбор без
+            // матрицы, сумм-пики) переносятся в пять-шесть строк, сумма выходила
+            // больше окна, а полосы не было: низ таблицы уезжал за край. Ширина
+            // колонки к тому же меняется здесь, ПОСЛЕ `EndUpdate`. Поэтому
+            // высоты считаются заново при каждой подгонке ширины и полоса
+            // переоценивается по ним.
+            // ⚠ Только при живой ручке: `CalculateAllRowHeights` зовёт
+            // `CreateGraphics`, а он создал бы ручку окну пробы, у которой её
+            // нет нарочно (`SessionCompleted` судит по `IsHandleCreated`).
+            if (this.reportTable.IsHandleCreated && this.reportTable.TableModel != null)
+            {
+                this.reportTable.CalculateAllRowHeights();
+                this.reportTable.UpdateScrollBars();
+            }
         }
 
         /// <summary>
