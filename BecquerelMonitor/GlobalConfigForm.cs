@@ -136,6 +136,8 @@ namespace BecquerelMonitor
             this.progressiveSmoothCheckbox.Checked = globalConfig.ChartViewConfig.ProgresiveSmooth;
             SetClamped(this.numericUpDown3, globalConfig.ChartViewConfig.ChartRefreshCycle);
             SetClamped(this.numericUpDown10, (int)globalConfig.AutosavePeriod);
+            // (`AMBER211`) пауза счёта FSA при записи спектра, с
+            SetClamped(this.numericUpDown11, globalConfig.FsaAcquisitionIntervalSeconds);
             SetClampedDouble(this.numericUpDown14, globalConfig.ChartViewConfig.HorizontalScale);
             this.comboBox11.SelectedIndex = (int)globalConfig.ChartViewConfig.MagnificationReference;
             this.autoSaveDefaultPolicyCheckBox.Checked = globalConfig.AutosaveDefaultPolicy;
@@ -225,6 +227,7 @@ namespace BecquerelMonitor
             globalConfig.MeasurementConfig.ShowValuesForNDResult = this.checkBox2.Checked;
             globalConfig.DoSaveRawPulseData = this.checkBox1.Checked;
             globalConfig.AutosavePeriod = (int)this.numericUpDown10.Value;
+            globalConfig.FsaAcquisitionIntervalSeconds = (int)this.numericUpDown11.Value;
             globalConfig.AutosaveDefaultPolicy = this.autoSaveDefaultPolicyCheckBox.Checked;
             globalConfig.ImportSpectrumWithEmptyConfig = this.importSpectrumWithEmptyConfigCheckBox.Checked;
             globalConfig.SaveResponseMatrixInSpectrum = this.saveResponseMatrixInSpectrumCheckBox.Checked;

@@ -1098,6 +1098,12 @@
   <data name="saveResponseMatrixInSpectrumCheckBox.Text" xml:space="preserve">
     <value>Сохранять матрицу отклика в файл спектра</value>
   </data>
+  <data name="label93.Text" xml:space="preserve">
+    <value>Полноспектральный разбор при записи спектра: пересчёт не чаще, чем раз в</value>
+  </data>
+  <data name="label94.Text" xml:space="preserve">
+    <value>с</value>
+  </data>
   <data name="saveResponseMatrixInSpectrumCheckBox.ToolTip" xml:space="preserve">
     <value>Кладёт матрицу отклика выбранной кривой эффективности в сохраняемый файл спектра (сжатой): получатель файла разбирает спектр с матрицей, не считая её заново. Выключено — файл несёт только кривую и её геометрию.</value>
   </data>

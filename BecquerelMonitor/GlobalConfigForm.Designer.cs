@@ -163,6 +163,9 @@
             this.label91 = new System.Windows.Forms.Label();
             this.label92 = new System.Windows.Forms.Label();
             this.numericUpDown10 = new InvariantNumericUpDown();
+            this.label93 = new System.Windows.Forms.Label();
+            this.numericUpDown11 = new InvariantNumericUpDown();
+            this.label94 = new System.Windows.Forms.Label();
             this.autoSaveDefaultPolicyCheckBox = new System.Windows.Forms.CheckBox();
             this.groupBox5 = new System.Windows.Forms.GroupBox();
             this.checkBox2 = new System.Windows.Forms.CheckBox();
@@ -205,6 +208,7 @@
             this.tabPage2.SuspendLayout();
             this.groupBox6.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown10)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown11)).BeginInit();
             this.groupBox5.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown5)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown4)).BeginInit();
@@ -1484,6 +1488,27 @@
             this.label92.Name = "label92";
             this.progressiveSmoothTooltip.SetToolTip(this.label92, resources.GetString("label92.ToolTip"));
             // 
+            // label93
+            // 
+            // (`AMBER211`) пауза счёта FSA при записи спектра — подпись, поле, единица
+            resources.ApplyResources(this.label93, "label93");
+            this.label93.Name = "label93";
+            // 
+            // numericUpDown11
+            // 
+            resources.ApplyResources(this.numericUpDown11, "numericUpDown11");
+            this.numericUpDown11.Maximum = new decimal(new int[] {
+            3600,
+            0,
+            0,
+            0});
+            this.numericUpDown11.Name = "numericUpDown11";
+            // 
+            // label94
+            // 
+            resources.ApplyResources(this.label94, "label94");
+            this.label94.Name = "label94";
+            // 
             // numericUpDown10
             // 
             resources.ApplyResources(this.numericUpDown10, "numericUpDown10");
@@ -1660,6 +1685,9 @@
             resources.ApplyResources(this.miscSettingsGroupBox, "miscSettingsGroupBox");
             this.miscSettingsGroupBox.Controls.Add(this.importSpectrumWithEmptyConfigCheckBox);
             this.miscSettingsGroupBox.Controls.Add(this.saveResponseMatrixInSpectrumCheckBox);
+            this.miscSettingsGroupBox.Controls.Add(this.label93);
+            this.miscSettingsGroupBox.Controls.Add(this.numericUpDown11);
+            this.miscSettingsGroupBox.Controls.Add(this.label94);
             this.miscSettingsGroupBox.Name = "miscSettingsGroupBox";
             this.miscSettingsGroupBox.TabStop = false;
             this.progressiveSmoothTooltip.SetToolTip(this.miscSettingsGroupBox, resources.GetString("miscSettingsGroupBox.ToolTip"));
@@ -1732,6 +1760,7 @@
             this.groupBox6.ResumeLayout(false);
             this.groupBox6.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown10)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown11)).EndInit();
             this.groupBox5.ResumeLayout(false);
             this.groupBox5.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown5)).EndInit();
@@ -2065,6 +2094,9 @@
 		InvariantNumericUpDown numericUpDown5;
 
         InvariantNumericUpDown numericUpDown10;
+        System.Windows.Forms.Label label93;
+        InvariantNumericUpDown numericUpDown11;
+        System.Windows.Forms.Label label94;
 
         // Token: 0x04000662 RID: 1634
         global::System.Windows.Forms.ComboBox comboBox13;

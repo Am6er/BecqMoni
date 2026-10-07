@@ -54,9 +54,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public bool MatrixUsed;
             public EfficiencyOrigin Origin;
             public HiddenReason Reason;
+            /// <summary>Строк всего — обнаруженные и «не обнаружен» с пределом.</summary>
             public int Rows;
-            public int Missing;
-            public int ViaMember;
+            /// <summary>(`AMBER211`) Строк «не обнаружен» — кандидаты отчёта с пределом обнаружения.</summary>
+            public int Undetected;
+            /// <summary>(`AMBER211`) Строк связанного ряда — одна амплитуда на весь ряд, строка родителя.</summary>
+            public int Chains;
 
             public string Describe(Texts texts)
             {
@@ -91,14 +94,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public string Details(Texts texts)
             {
                 texts = texts ?? Texts.Russian;
-                return string.Format(CultureInfo.InvariantCulture, texts.Details, this.Rows, this.Missing, this.ViaMember);
+                return string.Format(CultureInfo.InvariantCulture, texts.Details, this.Rows, this.Undetected, this.Chains);
             }
         }
 
         /// <summary>Тексты строк и заголовка — окно берёт их из своих ресурсов, проба — отсюда.</summary>
         public sealed class Texts
         {
-            public string Absent = "в разборе нет";
             public string ScaleMatrix = "FSA: Бк по матрице отклика";
             public string ScaleCurve = "FSA: Бк по кривой {0}";
             public string Hidden = "FSA: Бк скрыты — {0}";
@@ -107,7 +109,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public string ReasonCurveUnused = "кривая разбором не учтена";
             public string ReasonOrigin = "кривая без абсолютного уровня ({0})";
             public string ReasonNoResult = "разбора нет";
-            public string Details = "строк {0}, не в разборе {1}, по члену ряда {2}";
+            public string Details = "строк {0}, не обнаружено {1}, связанных рядов {2}";
 
             public static readonly Texts Russian = new Texts();
         }
@@ -251,8 +253,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
-        /// <summary>Коллекция строк из разбора; <paramref name="summary"/> — шкала и счёт строк.</summary>
-        public static MeasurementResultCollection Build(ResultData rd, FsaResult result, NuclideSet set,
+        /// <summary>
+        /// (`AMBER208` → `AMBER211`, П238 07.10.2026) СТРОКИ ОКНА РЕЗУЛЬТАТА — ПО СПИСКУ ИЗОТОПОВ
+        /// ОТЧЁТА FSA, а не по сету. Ответ Amber 07.10.2026 вопросником, дословно: «…все изотопы,
+        /// которые были обнаружены FSA с настройками, которые сейчас работают в FSA отчёте берутся
+        /// в работу для расчёта активности для окна Measurement Result. Если это изотопы имеющие
+        /// родителя - то измеряется активность родителя. Если это изотопы не имеющие родителя
+        /// (неравновесная история) - то считается активность каждого изотопа в отдельности.
+        /// Другими словами - что мы видим в окне отчёта в списке изотопов - ту активность мы и
+        /// считаем.» Прежние «Из сета нуклидов» и «Считать строку родителя связанным рядом»
+        /// (06.10.2026) этим ответом для окна результата СНЯТЫ: сеанс один с отчётом
+        /// («Окно результата читает сеанс документа»), и равновесие — его галочка.
+        ///
+        /// Правило. Обнаруженные компоненты состава (не приборные образы, амплитуда больше нуля):
+        /// * член СВЯЗАННОГО ряда (<see cref="FsaComponentResult.ChainRoot"/> задан — одна амплитуда
+        ///   на весь ряд) — строка РОДИТЕЛЯ, одна на ряд, скорость и значимость — ряда;
+        /// * свободный нуклид (ряд рассыпан при выключенном равновесии, одиночка, или член,
+        ///   привязанный к партнёру по <see cref="FsaComponentResult.TiedTo"/>) — своя строка,
+        ///   своя скорость; имя — нуклида, как в отчёте.
+        /// Не обнаруженные кандидаты отчёта (<see cref="FsaPresentationBuilder.UndetectedNamed"/>,
+        /// те же, что отчёт печатает «&lt; доля») — строки «не обнаружен» с порогом и пределом
+        /// (ISO 11929, `S9`), одна на имя (у ряда — имя корня). Период полураспада строки — по
+        /// определению библиотеки с тем же именем (поправка на распад к отбору пробы,
+        /// <c>MeasurementResultManager.Correct</c>); нет определения — поправки нет.
+        /// Коэффициент строки — единица при абсолютной шкале (матрица или кривая из геометрии /
+        /// ЛСРМ, <see cref="AbsoluteScale"/>), иначе нуль — беккерели скрыты, причина в
+        /// <see cref="Summary"/>.
+        /// </summary>
+        public static MeasurementResultCollection Build(ResultData rd, FsaResult result,
                                                         IList<NuclideDefinition> definitions, Texts texts,
                                                         out Summary summary)
         {
@@ -263,6 +291,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 summary.Reason = HiddenReason.NoResult;
                 return null;
             }
+
             HiddenReason reason;
             bool absolute = AbsoluteScale(rd, result, out reason);
             summary.Absolute = absolute;
@@ -286,110 +315,90 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 countingTime = 1.0;
             }
 
-            foreach (KeyValuePair<string, NuclideDefinition> parent in ParentsOf(set, definitions))
+            var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // 1. Обнаруженные — в порядке состава; связанный ряд — одной строкой корня.
+            if (result.Components != null)
             {
-                string key = parent.Key;
-                bool viaMember;
-                FsaCharacteristicLimit limit = FindLimit(result, key, out viaMember);
-                FsaComponentResult component = FindComponent(result, key);
-                if (viaMember)
+                foreach (FsaComponentResult component in result.Components)
                 {
-                    summary.ViaMember++;
-                }
-
-                var line = new MeasurementLine
-                {
-                    Name = key,
-                    Coefficient = absolute ? 1.0 : 0.0,
-                    CoefficientError = 0.0,
-                    HalfLifeYears = NuclideDefinition.DecayHalfLifeYears(parent.Value, definitions)
-                };
-                summary.Rows++;
-
-                if (limit == null && component == null)
-                {
-                    summary.Missing++;
-                    collection.ResultList.Add(new MeasurementResult(line, 0.0, 0.0)
+                    if (component == null || component.Kind == FsaComponentKind.Nuisance
+                        || string.IsNullOrEmpty(component.Name) || !(component.CountRate > 0.0))
                     {
-                        IsValid = false,
-                        StatusText = texts.Absent
-                    });
+                        continue;
+                    }
+
+                    bool chain = !string.IsNullOrEmpty(component.ChainRoot);
+                    string name = chain ? component.ChainRoot : component.Name;
+                    if (!named.Add(name))
+                    {
+                        continue;
+                    }
+
+                    double rate = component.CountRate;
+                    double sigma = component.Z > 0.0 ? rate / component.Z : rate;
+                    double mda = component.DetectionLimitRate > 0.0 && !double.IsNaN(component.DetectionLimitRate)
+                        ? component.DetectionLimitRate : 0.0;
+                    collection.ResultList.Add(new MeasurementResult(Line(name, absolute, definitions),
+                                                                    rate * countingTime, sigma * countingTime, mda * countingTime));
+                    summary.Rows++;
+                    if (chain)
+                    {
+                        summary.Chains++;
+                    }
+                }
+            }
+
+            // 2. Не обнаруженные кандидаты отчёта — с порогом и пределом (S9).
+            foreach (FsaCharacteristicLimit limit in FsaPresentationBuilder.UndetectedNamed(result))
+            {
+                if (limit == null || string.IsNullOrEmpty(limit.Name) || !named.Add(limit.Name))
+                {
                     continue;
                 }
 
-                double rate = limit != null ? limit.CountRate : component.CountRate;
-                if (double.IsNaN(rate) || rate < 0.0)
-                {
-                    rate = 0.0;
-                }
-                double sigma;
-                if (component != null && component.Z > 0.0 && rate > 0.0)
-                {
-                    sigma = rate / component.Z;
-                }
-                else if (limit != null && !double.IsNaN(limit.DecisionThresholdRate) && limit.DecisionThresholdRate > 0.0)
-                {
-                    sigma = limit.DecisionThresholdRate / LimitQuantileK;
-                }
-                else
-                {
-                    sigma = rate;
-                }
-                double mda = limit != null && !double.IsNaN(limit.DetectionLimitRate) && limit.DetectionLimitRate > 0.0
-                    ? limit.DetectionLimitRate
-                    : 0.0;
-
-                collection.ResultList.Add(new MeasurementResult(line, rate * countingTime, sigma * countingTime, mda * countingTime));
+                double rate = double.IsNaN(limit.CountRate) || limit.CountRate < 0.0 ? 0.0 : limit.CountRate;
+                double sigma = !double.IsNaN(limit.DecisionThresholdRate) && limit.DecisionThresholdRate > 0.0
+                    ? limit.DecisionThresholdRate / LimitQuantileK
+                    : rate;
+                double mda = !double.IsNaN(limit.DetectionLimitRate) && limit.DetectionLimitRate > 0.0
+                    ? limit.DetectionLimitRate : 0.0;
+                collection.ResultList.Add(new MeasurementResult(Line(limit.Name, absolute, definitions),
+                                                                rate * countingTime, sigma * countingTime, mda * countingTime));
+                summary.Rows++;
+                summary.Undetected++;
             }
+
             return collection;
         }
 
         /// <summary>
-        /// Строка пределов родителя: сперва по имени (корень ряда или одиночка),
-        /// затем — первый свободный член с тем же корнем (равновесие выключено).
+        /// Строка измерения по имени нуклида: коэффициент — единица при абсолютной шкале, период
+        /// полураспада — по первому определению библиотеки с этим именем (нет — нуль, без поправки).
         /// </summary>
-        static FsaCharacteristicLimit FindLimit(FsaResult result, string key, out bool viaMember)
+        static MeasurementLine Line(string name, bool absolute, IList<NuclideDefinition> definitions)
         {
-            viaMember = false;
-            if (result.CharacteristicLimits == null)
+            NuclideDefinition def = null;
+            if (definitions != null)
             {
-                return null;
-            }
-            foreach (FsaCharacteristicLimit limit in result.CharacteristicLimits)
-            {
-                if (limit != null && limit.Kind != FsaComponentKind.Nuisance
-                    && string.Equals(limit.Name, key, StringComparison.OrdinalIgnoreCase))
+                foreach (NuclideDefinition d in definitions)
                 {
-                    return limit;
+                    if (d != null && string.Equals(d.Name, name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        def = d;
+                        break;
+                    }
                 }
             }
-            foreach (FsaCharacteristicLimit limit in result.CharacteristicLimits)
+
+            return new MeasurementLine
             {
-                if (limit != null && limit.Kind != FsaComponentKind.Nuisance
-                    && string.Equals(limit.DecayChainRoot, key, StringComparison.OrdinalIgnoreCase))
-                {
-                    viaMember = true;
-                    return limit;
-                }
-            }
-            return null;
+                Name = name,
+                Coefficient = absolute ? 1.0 : 0.0,
+                CoefficientError = 0.0,
+                HalfLifeYears = def != null ? NuclideDefinition.DecayHalfLifeYears(def, definitions) : 0.0
+            };
         }
 
-        static FsaComponentResult FindComponent(FsaResult result, string key)
-        {
-            if (result.Components == null)
-            {
-                return null;
-            }
-            foreach (FsaComponentResult component in result.Components)
-            {
-                if (component != null && component.Kind != FsaComponentKind.Nuisance
-                    && string.Equals(component.Name, key, StringComparison.OrdinalIgnoreCase))
-                {
-                    return component;
-                }
-            }
-            return null;
-        }
     }
 }

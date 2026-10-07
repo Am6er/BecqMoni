@@ -352,6 +352,10 @@ namespace BecquerelMonitor
         const string KeyPileUpCapValue = "FSAReport_PileUpCapValue";
         const string KeyInterferenceRow = "FSAReport_InterferenceRow";
         const string KeyInterferenceValue = "FSAReport_InterferenceValue";
+        // (`AMBER210`) пик в полосе, не покрытый составом: строка, слово состояния, «рядом ничего»
+        const string KeyUncoveredRow = "FSAReport_UncoveredRow";
+        const string KeyUncoveredValue = "FSAReport_UncoveredValue";
+        const string KeyUncoveredNone = "FSAReport_UncoveredNone";
         const string KeyResidualNoise = "FSAReport_ResidualNoise";
         const string KeyResidualNoiseTip = "FSAReport_ResidualNoiseTip";
         // (`AMBER156`, `AMBER157`, `AMBER159`; П195 01.10.2026) Разбор без
@@ -1806,6 +1810,31 @@ namespace BecquerelMonitor
                                       item.Component ?? string.Empty,
                                       item.Factor.ToString("F2", CultureInfo.InvariantCulture)),
                         OwnText(KeyInterferenceValue), false, true));
+                }
+            }
+
+            // (`AMBER210`, П238; решение Amber 07.10.2026 вопросником, дословно: «Только
+            // отчёт FSA, строка на пик») ПИК В ПОЛОСЕ, НЕ ПОКРЫТЫЙ СОСТАВОМ: энергия,
+            // избыток над моделью в процентах, значимость и линии библиотеки приложения
+            // рядом («Библиотека приложения целиком»). Имена — данные результата,
+            // числа — один раз и инвариантной культурой (`A242`).
+            if (result.UncoveredPeaks != null)
+            {
+                foreach (FsaUncoveredPeak item in result.UncoveredPeaks)
+                {
+                    var names = new List<string>();
+                    foreach (FsaUncoveredCandidate candidate in item.Candidates)
+                    {
+                        names.Add(candidate.Nuclide + " " + candidate.EnergyKev.ToString("F1", CultureInfo.InvariantCulture));
+                    }
+
+                    made.Add(this.MakeMarkRowText(
+                        string.Format(CultureInfo.InvariantCulture, OwnText(KeyUncoveredRow),
+                                      item.EnergyKev.ToString("F1", CultureInfo.InvariantCulture),
+                                      (100.0 * item.ExcessShare).ToString("F0", CultureInfo.InvariantCulture),
+                                      item.Z.ToString("F1", CultureInfo.InvariantCulture),
+                                      names.Count > 0 ? string.Join(", ", names) : OwnText(KeyUncoveredNone)),
+                        OwnText(KeyUncoveredValue), false, true));
                 }
             }
 

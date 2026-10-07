@@ -5298,6 +5298,15 @@
   <data name="FSAReport_InterferenceValue" xml:space="preserve">
     <value>not counted</value>
   </data>
+  <data name="FSAReport_UncoveredRow" xml:space="preserve">
+    <value>{0} keV: peak outside the composition — {1} % above the model, z {2}; library lines nearby: {3}</value>
+  </data>
+  <data name="FSAReport_UncoveredValue" xml:space="preserve">
+    <value>not in set</value>
+  </data>
+  <data name="FSAReport_UncoveredNone" xml:space="preserve">
+    <value>none</value>
+  </data>
   <data name="FSAReport_ResidualNoise" xml:space="preserve">
     <value>noise floor {0} %</value>
   </data>

@@ -177,9 +177,6 @@
   <data name="DCResult_FsaNoSpectrum" xml:space="preserve">
     <value>FSA: нет спектра</value>
   </data>
-  <data name="DCResult_FsaAbsent" xml:space="preserve">
-    <value>в разборе нет</value>
-  </data>
   <data name="DCResult_FsaScaleMatrix" xml:space="preserve">
     <value>FSA: Бк по матрице отклика</value>
   </data>
@@ -205,7 +202,7 @@
     <value>разбора нет</value>
   </data>
   <data name="DCResult_FsaDetails" xml:space="preserve">
-    <value>строк {0}, не в разборе {1}, по члену ряда {2}</value>
+    <value>строк {0}, не обнаружено {1}, связанных рядов {2}</value>
   </data>
   <data name="DCResult_FsaMdaHeader" xml:space="preserve">
     <value>МДА</value>
@@ -215,8 +212,5 @@
   </data>
   <data name="DCResult_FsaStale" xml:space="preserve">
     <value>(пересчёт…)</value>
-  </data>
-  <data name="DCResult_FsaNoSet" xml:space="preserve">
-    <value>FSA: выберите сет нуклидов</value>
   </data>
 </root>

@@ -9048,6 +9048,81 @@
   <data name="&gt;&gt;saveResponseMatrixInSpectrumCheckBox.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
+  <data name="label93.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label93.Location" type="System.Drawing.Point, System.Drawing">
+    <value>21, 72</value>
+  </data>
+  <data name="label93.Size" type="System.Drawing.Size, System.Drawing">
+    <value>420, 13</value>
+  </data>
+  <data name="label93.TabIndex" type="System.Int32, mscorlib">
+    <value>2</value>
+  </data>
+  <data name="label93.Text" xml:space="preserve">
+    <value>Full-spectrum analysis while a spectrum is being recorded: recompute no more often than every</value>
+  </data>
+  <data name="&gt;&gt;label93.Name" xml:space="preserve">
+    <value>label93</value>
+  </data>
+  <data name="&gt;&gt;label93.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label93.Parent" xml:space="preserve">
+    <value>miscSettingsGroupBox</value>
+  </data>
+  <data name="&gt;&gt;label93.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="numericUpDown11.Location" type="System.Drawing.Point, System.Drawing">
+    <value>552, 70</value>
+  </data>
+  <data name="numericUpDown11.Size" type="System.Drawing.Size, System.Drawing">
+    <value>56, 20</value>
+  </data>
+  <data name="numericUpDown11.TabIndex" type="System.Int32, mscorlib">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown11.Name" xml:space="preserve">
+    <value>numericUpDown11</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown11.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown11.Parent" xml:space="preserve">
+    <value>miscSettingsGroupBox</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown11.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="label94.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label94.Location" type="System.Drawing.Point, System.Drawing">
+    <value>614, 72</value>
+  </data>
+  <data name="label94.Size" type="System.Drawing.Size, System.Drawing">
+    <value>12, 13</value>
+  </data>
+  <data name="label94.TabIndex" type="System.Int32, mscorlib">
+    <value>4</value>
+  </data>
+  <data name="label94.Text" xml:space="preserve">
+    <value>s</value>
+  </data>
+  <data name="&gt;&gt;label94.Name" xml:space="preserve">
+    <value>label94</value>
+  </data>
+  <data name="&gt;&gt;label94.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label94.Parent" xml:space="preserve">
+    <value>miscSettingsGroupBox</value>
+  </data>
+  <data name="&gt;&gt;label94.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
   <data name="&gt;&gt;label43.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>

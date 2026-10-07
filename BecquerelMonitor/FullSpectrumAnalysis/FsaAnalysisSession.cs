@@ -134,6 +134,62 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static Action<FsaAnalyzer> ProbeAnalyzerHook = null;
 
+        /// <summary>
+        /// (`AMBER211`, П238 07.10.2026) ЧАСЫ ПАУЗЫ ПРИ ЗАПИСИ — подменяются ТОЛЬКО пробами
+        /// (`FsaThrottleProbeP238`): с поддельными часами проверка паузы детерминирована
+        /// и не зависит от скорости счёта. Приложение часов не трогает.
+        /// </summary>
+        public static Func<DateTime> Clock = () => DateTime.UtcNow;
+
+        /// <summary>
+        /// (`AMBER211`) Переопределение интервала паузы при записи, секунд, — ТОЛЬКО для проб;
+        /// null — интервал берётся из глобальных настроек
+        /// (<see cref="GlobalConfigInfo.FsaAcquisitionIntervalSeconds"/>).
+        /// </summary>
+        public static double? AcquisitionIntervalOverride = null;
+
+        /// <summary>(`AMBER211`) Интервал паузы при записи, секунд: переопределение проб или настройки.</summary>
+        static double AcquisitionIntervalSeconds
+        {
+            get
+            {
+                if (AcquisitionIntervalOverride.HasValue)
+                {
+                    return AcquisitionIntervalOverride.Value;
+                }
+
+                GlobalConfigManager manager = GlobalConfigManager.GetInstance();
+                return manager != null && manager.GlobalConfig != null ? manager.GlobalConfig.FsaAcquisitionIntervalSeconds : 0.0;
+            }
+        }
+
+        /// <summary>(`AMBER211`) Когда начался последний счёт (по <see cref="Clock"/>); под <see cref="sync"/>.</summary>
+        DateTime lastStartUtc = DateTime.MinValue;
+
+        /// <summary>
+        /// (`AMBER210`) Линии библиотеки приложения — имя и энергия каждого определения — для
+        /// <see cref="FsaAnalyzer.LibraryLines"/>. Выход у определения не хранится, поэтому
+        /// интенсивность линии нуль; определение без имени или с неположительной энергией пропускается.
+        /// </summary>
+        static List<FsaLine> LibraryLinesOf(List<NuclideDefinition> definitions)
+        {
+            var lines = new List<FsaLine>();
+            if (definitions == null)
+            {
+                return lines;
+            }
+
+            foreach (NuclideDefinition d in definitions)
+            {
+                if (d != null && !string.IsNullOrEmpty(d.Name) && d.Energy > 0.0)
+                {
+                    lines.Add(new FsaLine(d.Name, d.Energy, 0.0));
+                }
+            }
+
+            return lines;
+        }
+
         /// <summary>Готовое разложение или null, пока его нет.</summary>
         public FsaResult Result
         {
@@ -380,6 +436,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             string currentStamp = BuildStamp(resultData, subtractBackground, options);
+
+            // (`AMBER211`, решение Amber 07.10.2026 вопросником, дословно: «Не чаще раза в
+            // 30 с и только для видимых»; консоль, дословно: «30 секунд - вынеси в
+            // настройки») ПРИ ЗАПИСИ СПЕКТРА новый счёт — не раньше интервала настроек
+            // после начала предыдущего: отпечаток меняется каждый тик набора, и без паузы
+            // разбор шёл бы счёт за счётом, занимая ядро постоянно. «Только для видимых» —
+            // устройством самого заказа: расчёт заказывают лишь видимые потребители (слой
+            // FSA графика, окно отчёта, окно результата), спящим никто не считает. Отказ
+            // здесь спектр не теряет: следующий тик спросит снова, и по истечении
+            // интервала счёт пойдёт. Тот же отпечаток, что считается или уже посчитан,
+            // паузой не задерживается — ниже он и так не даёт нового счёта.
+            if (resultData.ResultDataStatus != null && resultData.ResultDataStatus.Recording)
+            {
+                double interval = AcquisitionIntervalSeconds;
+                if (interval > 0.0)
+                {
+                    lock (this.sync)
+                    {
+                        bool same = currentStamp == this.stamp || (this.running && currentStamp == this.activeStamp);
+                        if (!same && (Clock() - this.lastStartUtc).TotalSeconds < interval)
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
+
             int myGeneration;
             lock (this.sync)
             {
@@ -475,6 +558,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.running = true;
             this.runCount++;
             this.activeStamp = job.Stamp;
+            this.lastStartUtc = Clock();
             this.status = Properties.Resources.FSACalculating;
             Task.Run(() => this.Compute(job));
         }
@@ -694,6 +778,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // фасадом; `BackscatterWithMatrix` при этом опускается, `EscapeGate`
             // не трогается.
             options.ApplyTo(analyzer);
+
+            // (`AMBER210`) линии библиотеки приложения — называть пики вне состава;
+            // имён в коде нет, всё из определений менеджера
+            analyzer.LibraryLines = LibraryLinesOf(job.Definitions);
 
             Action<FsaAnalyzer> probeHook = ProbeAnalyzerHook;
             if (probeHook != null)

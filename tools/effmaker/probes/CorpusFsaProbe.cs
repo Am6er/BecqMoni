@@ -3725,6 +3725,7 @@ namespace CorpusFsaProbe
                 row.GainOnGridEdge = result.GainOnGridEdge;
                 row.OffsetOnGridEdge = result.OffsetOnGridEdge;
                 row.AnchorsUsed = result.ScaleAnchorsUsed;
+                row.UncoveredPeaks = result.UncoveredPeaks != null ? result.UncoveredPeaks.Count : 0;
                 row.AnchorLight = result.AnchorLightCurve ?? "";
                 row.AnchorBeta = result.AnchorLightBeta;
                 row.AnchorForm = result.AnchorLightForm ?? "";
@@ -5640,7 +5641,9 @@ namespace CorpusFsaProbe
                                    // (`F11` (в), П18) положение по свету: кривая и β — В КОНЕЦ
                                    + "anchor_light,anchor_beta,"
                                    // (П19) форма применения световой координаты — В КОНЕЦ
-                                   + "anchor_form");
+                                   + "anchor_form,"
+                                   // (`AMBER210`, П238) пиков в полосе, не покрытых составом — В КОНЕЦ
+                                   + "uncovered_peaks");
                     // ⛔ `share_pct` С 23.08.2026 — ДОЛЯ СЛОЯ (`S76`, решение
                     // Amber): вклад компонента в ПОЛНЫЙ счёт модели с разнесённой
                     // подложкой, ровно та же величина, что печатает легенда на
@@ -5720,7 +5723,8 @@ namespace CorpusFsaProbe
                             Csv(r.AnchorNote),
                             Csv(r.AnchorLight ?? ""),
                             F(r.AnchorBeta, "F4"),
-                            Csv(r.AnchorForm ?? "")));
+                            Csv(r.AnchorForm ?? ""),
+                            r.UncoveredPeaks.ToString(CultureInfo.InvariantCulture)));
 
                         if (r.Result == null)
                         {
@@ -6685,6 +6689,8 @@ namespace CorpusFsaProbe
             /// кандидаты — для развёртки порога доли синего канала.
             /// </summary>
             public int AnchorsUsed;
+            /// <summary>(`AMBER210`) Пиков в полосе, не покрытых составом (<see cref="FsaResult.UncoveredPeaks"/>).</summary>
+            public int UncoveredPeaks;
 
             public double AnchorOffsetKev;
             public string AnchorLight;     // (П18) кривая световой координаты
