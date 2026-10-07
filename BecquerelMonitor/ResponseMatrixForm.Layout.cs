@@ -80,6 +80,34 @@ namespace BecquerelMonitor
             // (W11) здесь больше нет — снята по слову Amber 07.10.2026: «Эту
             // галку убрать. Значение по умолчанию взять - включена.» Годная
             // матрица идёт в разбор всегда (EfficiencyConfigData.UseResponseMatrix).
+            //
+            // (`AMBER219`, П245) На её месте — галка «Use Nvidia GPU» (постановка
+            // Amber 07.10.2026). Годность GPU спрашивается при открытии
+            // (`RmGpu.Probe`); негодная галка выключена, причина — подсказкой.
+            //
+            // ⚠ Галка лежит в ПАНЕЛИ, и подсказка привязана к панели, а не к
+            // галке: выключенный контрол WinForms мыши не получает, и ToolTip
+            // на нём не показывается вовсе — то есть причина, ради которой
+            // подсказка и заведена, не доходила бы до человека ровно тогда,
+            // когда нужна. Панель мышь получает всегда.
+            this.gpuPanel = new Panel
+            {
+                Location = new Point(Pad, y),
+                Size = new Size(FormWidth - 2 * Pad, 22)
+            };
+            this.gpuCheck = new CheckBox
+            {
+                Text = Resources.ResponseMatrixUseGpu,
+                Location = new Point(0, 0),
+                AutoSize = true,
+                Checked = false,
+                Enabled = false
+            };
+            this.gpuCheck.CheckedChanged += this.GpuCheckChanged;
+            this.gpuPanel.Controls.Add(this.gpuCheck);
+            this.Controls.Add(this.gpuPanel);
+            this.gpuTip = new ToolTip { AutoPopDelay = 30000, InitialDelay = 300, ReshowDelay = 100 };
+            y += this.gpuPanel.Height + 6;
 
             // --- параметры -------------------------------------------------
             var box = new GroupBox

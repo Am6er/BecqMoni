@@ -39,6 +39,14 @@ namespace BecquerelMonitor
         Button computeButton, cancelButton, saveButton, closeButton;
         NumericUpDown minEnergyBox, maxEnergyBox, nodesBox, binBox, historiesBox, threadsBox;
 
+        // (`AMBER219`) Галка «Use Nvidia GPU», её панель (носитель подсказки) и подсказка.
+        Panel gpuPanel;
+        CheckBox gpuCheck;
+        ToolTip gpuTip;
+
+        /// <summary>Ответ <see cref="RmGpu.Probe"/> при открытии окна; null — не спрашивали.</summary>
+        GpuProbe gpuProbe;
+
         /// <summary>
         /// С какой ошибки интеграла континуума строки предупреждать, %.
         ///
@@ -91,12 +99,12 @@ namespace BecquerelMonitor
             this.config = config;
             this.BuildLayout();
             this.LoadExisting();
-
+            this.ProbeGpu();
         }
 
         ResponseMatrixOptions CurrentOptions()
         {
-            return new ResponseMatrixOptions
+            var options = new ResponseMatrixOptions
             {
                 MinEnergyKev = (double)this.minEnergyBox.Value,
                 MaxEnergyKev = (double)this.maxEnergyBox.Value,
@@ -105,6 +113,129 @@ namespace BecquerelMonitor
                 Histories = (int)this.historiesBox.Value,
                 Threads = (int)this.threadsBox.Value
             };
+
+            // (`AMBER219`) GPU считает только плоско — решение Amber 07.10.2026,
+            // дословно: «Плоско, как склад». Останов по шуму 3 % в клеймо не
+            // входит (`ComputeStamp`), так что матрица с него и матрица CPU с
+            // остановом — одного клейма, различаются лишь набранной статистикой.
+            if (this.UseGpu)
+            {
+                options.ContinuumErrorTarget = 0.0;
+            }
+
+            return options;
+        }
+
+        /// <summary>Галка GPU стоит и годна — счёт идёт на устройстве.</summary>
+        bool UseGpu
+        {
+            get { return this.gpuCheck != null && this.gpuCheck.Enabled && this.gpuCheck.Checked; }
+        }
+
+        /// <summary>
+        /// (`AMBER219`) Годность GPU при открытии окна: негодная галка снята и
+        /// выключена, причина — подсказкой на её панели; годная получает значение
+        /// из общих настроек (`GlobalConfigInfo.UseGpuForResponseMatrix`, умолчание
+        /// ВЫКЛ) и подсказку с именем карты. Сохранённое «вкл» на машине без GPU
+        /// не трогается: это настройка приложения, а не этой машины.
+        ///
+        /// Подсказка собирается из ключей ресурсов по коду причины
+        /// (<see cref="GpuProbeReason"/>), а не из английского текста пробы:
+        /// текст пробы идёт в журнал, подпись окна обязана быть на языке окна.
+        /// </summary>
+        void ProbeGpu()
+        {
+            this.gpuProbe = RmGpu.Probe(RmGpu.DefaultPath);
+            string tip;
+            if (this.gpuProbe.Available)
+            {
+                tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuReady,
+                                    this.gpuProbe.DeviceName,
+                                    ComputeCapability(this.gpuProbe.ComputeCapability),
+                                    CudaVersion(this.gpuProbe.DriverVersion));
+            }
+            else
+            {
+                switch (this.gpuProbe.ReasonCode)
+                {
+                    case GpuProbeReason.NoLibrary:
+                        tip = Resources.ResponseMatrixGpuNoLibrary;
+                        break;
+                    case GpuProbeReason.LoadFailed:
+                        tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuLoadFailed, this.gpuProbe.Reason);
+                        break;
+                    case GpuProbeReason.OldLibrary:
+                        tip = Resources.ResponseMatrixGpuOldLibrary;
+                        break;
+                    case GpuProbeReason.PhysicsMismatch:
+                        tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuPhysicsMismatch,
+                                            this.gpuProbe.LibraryPhysics, ResponseMatrix.PhysicsVersion);
+                        break;
+                    case GpuProbeReason.NoDevice:
+                        tip = Resources.ResponseMatrixGpuNoDevice;
+                        break;
+                    case GpuProbeReason.DriverTooOld:
+                        tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuDriverTooOld,
+                                            CudaVersion(this.gpuProbe.DriverVersion), CudaVersion(this.gpuProbe.RuntimeVersion));
+                        break;
+                    case GpuProbeReason.DeviceTooOld:
+                        tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuDeviceTooOld,
+                                            this.gpuProbe.DeviceName, ComputeCapability(this.gpuProbe.ComputeCapability),
+                                            ComputeCapability(RmGpu.MinComputeCapability));
+                        break;
+                    default:
+                        tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuRuntimeError, this.gpuProbe.Reason);
+                        break;
+                }
+            }
+
+            this.gpuTip.SetToolTip(this.gpuPanel, tip);
+            this.gpuTip.SetToolTip(this.gpuCheck, tip);
+            this.gpuCheck.Enabled = this.gpuProbe.Available;
+            if (this.gpuProbe.Available)
+            {
+                GlobalConfigManager manager = GlobalConfigManager.GetInstance();
+                this.gpuCheck.Checked = manager != null && manager.GlobalConfig != null
+                                        && manager.GlobalConfig.UseGpuForResponseMatrix;
+            }
+        }
+
+        /// <summary>«8.6» из 86 — как печатает `nvidia-smi`.</summary>
+        static string ComputeCapability(int cc)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0}.{1}", cc / 10, cc % 10);
+        }
+
+        /// <summary>«13.0» из 13000 — версия драйвера/рантайма CUDA числом рантайма.</summary>
+        static string CudaVersion(int v)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0}.{1}", v / 1000, (v % 1000) / 10);
+        }
+
+        /// <summary>
+        /// Переключение галки — сразу в общие настройки и на диск (постановка
+        /// Amber: «запоминается глобально в приложении»). Пока окно только
+        /// раскладывается, галка выключена и сюда не попадает; выключенная
+        /// (негодная) галка значение не пишет.
+        /// </summary>
+        void GpuCheckChanged(object sender, EventArgs e)
+        {
+            if (!this.gpuCheck.Enabled)
+            {
+                return;
+            }
+
+            GlobalConfigManager manager = GlobalConfigManager.GetInstance();
+            if (manager == null || manager.GlobalConfig == null)
+            {
+                return;
+            }
+
+            if (manager.GlobalConfig.UseGpuForResponseMatrix != this.gpuCheck.Checked)
+            {
+                manager.GlobalConfig.UseGpuForResponseMatrix = this.gpuCheck.Checked;
+                manager.SaveConfigFile();
+            }
         }
 
         // ------------------------------------------------------------------
@@ -573,11 +704,27 @@ namespace BecquerelMonitor
             this.progressBar.Maximum = ProgressScale;
 
             var progress = new Progress<ResponseMatrixProgress>(this.ShowProgress);
+            bool useGpu = this.UseGpu;
             try
             {
+                CancellationToken token = this.cancellation.Token;
                 ResponseMatrix matrix = await Task.Run(
-                    () => ResponseMatrixBuilder.Build(geometry, options, progress, this.cancellation.Token),
-                    this.cancellation.Token);
+                    () =>
+                    {
+                        if (!useGpu)
+                        {
+                            return ResponseMatrixBuilder.Build(geometry, options, progress, token);
+                        }
+
+                        // (`AMBER219`) Устройство берётся на время счёта и отдаётся
+                        // в `finally`: контекст CUDA между счётами держать незачем,
+                        // а живым должен быть один `RmGpu` на процесс.
+                        using (var gpu = new RmGpu(RmGpu.DefaultPath, RmGpu.DefaultStackBytes))
+                        {
+                            return GpuBuild.Build(gpu, geometry, options, progress, token, null);
+                        }
+                    },
+                    token);
 
                 this.computed = matrix;
                 this.progressBar.Value = this.progressBar.Maximum;
@@ -653,8 +800,10 @@ namespace BecquerelMonitor
             // число узлов, ВЗЯТЫХ В РАБОТУ, из общего числа узлов сетки: оно
             // постоянно, в отличие от числа прогонов, которое росло по ходу
             // (140 → 155 → 156 → 157 на снимках одного расчёта).
+            // (`AMBER219`) На GPU строка хода называет устройство: человек должен
+            // видеть, ЧЕМ считается, — у CPU и GPU одна полоса и одни поля.
             this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
-                Resources.ResponseMatrixProgress,
+                this.busy && this.UseGpu ? Resources.ResponseMatrixGpuProgress : Resources.ResponseMatrixProgress,
                 p.StartedNodes, p.TotalNodes, p.LastEnergyKev);
         }
 
@@ -717,6 +866,9 @@ namespace BecquerelMonitor
             this.binBox.Enabled = !value;
             this.historiesBox.Enabled = !value;
             this.threadsBox.Enabled = !value;
+            // (`AMBER219`) Галка GPU на время счёта тоже замирает — и возвращается
+            // только годной: негодная остаётся выключенной навсегда.
+            this.gpuCheck.Enabled = !value && this.gpuProbe != null && this.gpuProbe.Available;
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)

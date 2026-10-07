@@ -29,8 +29,18 @@
 #include "host.h"
 #include "host_tables.h"
 #include "host_scene.h"
+#include "physics.h"
 
 #define RM_API extern "C" __declspec(dllexport)
+
+// (`AMBER219`) Отпечаток исходников ядра — ставит `build_gpu.cmd` ключом -DRM_SRC_HASH;
+// сборка мимо скрипта несёт «unknown», и сторож `check_gpu_dll.py` её не примет.
+#ifndef RM_SRC_HASH
+#define RM_SRC_HASH "unknown"
+#endif
+#ifndef RM_ARCH
+#define RM_ARCH "unknown"
+#endif
 
 namespace
 {
@@ -149,6 +159,61 @@ namespace
 RM_API const char* rm_last_error()
 {
     return lastError.c_str();
+}
+
+// (`AMBER219`, П245) Паспорт сборки — строка «ключ=значение;»: отпечаток исходников ядра
+// (`src`, sha256 файлов gpu/ — его сверяет `check_gpu_dll.py`), поколение физики (`phys`,
+// physics.h — его сверяет приложение с `ResponseMatrix.PhysicsVersion`), архитектура
+// (`arch`), тип real и версия рантайма CUDA, с которым слинковано ядро.
+RM_API const char* rm_build_info()
+{
+    static std::string info;
+    if (info.empty())
+    {
+        info = std::string("src=") + RM_SRC_HASH + ";phys=" + std::to_string(RM_PHYSICS_VERSION)
+             + ";arch=" + RM_ARCH + ";real=" + (sizeof(real) == 4 ? "float" : "double")
+             + ";cudart=" + std::to_string(CUDART_VERSION) + ";";
+    }
+
+    return info.c_str();
+}
+
+// (`AMBER219`) Годность устройства БЕЗ контекста: число устройств CUDA, имя и
+// вычислительная способность первого, версии драйвера и рантайма. Возврат — код
+// `cudaError_t` первого отказа (0 — годно; 100 — cudaErrorNoDevice, 35 —
+// cudaErrorInsufficientDriver: драйвер старее рантайма), текст — `rm_last_error`.
+// Ядер не запускает и памяти не трогает: форма приложения зовёт это при каждом открытии.
+RM_API int rm_probe(int* count, int* ccMajor, int* ccMinor, int* driverVersion, int* runtimeVersion,
+                    char* name, int nameLength)
+{
+    if (count) *count = 0;
+    if (ccMajor) *ccMajor = 0;
+    if (ccMinor) *ccMinor = 0;
+    if (driverVersion) *driverVersion = 0;
+    if (runtimeVersion) *runtimeVersion = CUDART_VERSION;
+    if (name && nameLength > 0) name[0] = 0;
+    int driver = 0;
+    cudaError_t e = cudaDriverGetVersion(&driver);
+    if (driverVersion) *driverVersion = driver;
+    if (e != cudaSuccess) { lastError = cudaGetErrorString(e); return (int)e; }
+    int n = 0;
+    e = cudaGetDeviceCount(&n);
+    if (e != cudaSuccess) { lastError = cudaGetErrorString(e); return (int)e; }
+    if (count) *count = n;
+    if (n < 1) { lastError = "no CUDA device"; return (int)cudaErrorNoDevice; }
+    cudaDeviceProp prop;
+    e = cudaGetDeviceProperties(&prop, 0);
+    if (e != cudaSuccess) { lastError = cudaGetErrorString(e); return (int)e; }
+    if (ccMajor) *ccMajor = prop.major;
+    if (ccMinor) *ccMinor = prop.minor;
+    if (name && nameLength > 0)
+    {
+        std::strncpy(name, prop.name, (size_t)nameLength - 1);
+        name[nameLength - 1] = 0;
+    }
+
+    lastError.clear();
+    return 0;
 }
 
 RM_API int rm_init(int device, long long stackBytes)
@@ -452,5 +517,14 @@ RM_API int rm_slots(int branch) { return branch == 0 ? (int)W_SLOTS : (int)A_SLO
 RM_API void rm_shutdown()
 {
     FreeDevice();
+    // (`AMBER219`) Буферы стадий живут в памяти устройства, которую сброс снимает целиком:
+    // забыть указатель обязательно, иначе следующий `rm_init` → `StageBuffers` отдал бы
+    // ядрам мёртвую память. В пробе за процесс один init и ни одного shutdown — там это не
+    // проявлялось; приложение считает много раз за жизнь процесса.
+    stageMem = nullptr;
+    stageBytes = 0;
+    stageBuf = WBuf{};
+    cfgSet.clear();
+    cfgReady = false;
     cudaDeviceReset();
 }
