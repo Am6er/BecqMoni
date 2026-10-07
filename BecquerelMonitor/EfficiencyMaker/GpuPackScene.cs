@@ -7,14 +7,15 @@ namespace BecquerelMonitor.EfficiencyMaker
     // ⚡ GPU-путь матрицы отклика (`AMBER160`, полоса П221, часть Б): разделы упаковки
     // СЦЕНЫ — вещества (с кэшами симулятора по веществу), флуоресценты, рассеиватели,
     // элементы слоёв, области, сцена и источник. Читатель — `tools/effmaker/gpu/host_scene.h`,
-    // структуры — `tools/effmaker/gpu/data_scene.cuh`. Писатель, реестр и отражение —
-    // `GpuMatrix.cs`.
+    // структуры — `tools/effmaker/gpu/data_scene.cuh`. Писатель и реестр — `GpuPack.cs`.
     //
-    // ⛔ Приложение НЕ правится (решение Amber 02.10.2026 «Только оснастка»): закрытые
-    // поля и методы `EfficiencySimulator` читаются и зовутся ОТРАЖЕНИЕМ. Кэши по веществу
-    // (`FluorescersOf`, `ScatterersOf`, `CarryMedium`, `LayerBrem`, `LayerRadiationLength`,
-    // `LayerScatterElements`, `LayerBremZ`) строит ТОТ ЖЕ код симулятора — здесь он только
-    // вынуждается заранее, по каждому веществу сцены, и его ответы переписываются как есть.
+    // ⛔ Прямой доступ (`AMBER219`, П245-R; решение Amber 07.10.2026 «Перевести на прямой
+    // доступ сейчас»): поля, методы и вложенные типы `EfficiencySimulator` (`Region`,
+    // `Fluorescers`, `Scatterers`, `ScatterElement`, источники `*Sampler`) открыты как
+    // `internal`, тела не тронуты. Кэши по веществу (`FluorescersOf`, `ScatterersOf`,
+    // `CarryMedium`, `LayerBrem`, `LayerRadiationLength`, `LayerScatterElements`,
+    // `LayerBremZ`) строит ТОТ ЖЕ код симулятора — здесь он только вынуждается заранее, по
+    // каждому веществу сцены, и его ответы переписываются как есть.
     //
     // Порядок: всё, что попадает в реестр (`ctx.Reg.Add`), регистрируется в `CollectScene`
     // — списки `electronMats`/`brems`/`lightYields` пишет полоса А (`GpuPackTables.cs`)
@@ -26,19 +27,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         const int SourcePoint = 0, SourceCylinder = 1, SourceMarinelli = 2, SourceBox = 3;
 
         /// <summary>Области сцены в порядке поиска (`regionArray`, «первая победившая»).</summary>
-        static object[] SceneRegions(EfficiencySimulator sim)
+        static EfficiencySimulator.Region[] SceneRegions(EfficiencySimulator sim)
         {
-            Array array = GpuReflect.Field(sim, "regionArray") as Array;
+            EfficiencySimulator.Region[] array = sim.regionArray;
             if (array == null)
             {
                 throw new InvalidOperationException(
                     "GPU-упаковка: сцена симулятора не собрана (regionArray = null) — EnsureBuilt не звался");
             }
 
-            var list = new object[array.Length];
+            var list = new EfficiencySimulator.Region[array.Length];
             for (int i = 0; i < list.Length; i++)
             {
-                list[i] = array.GetValue(i);
+                list[i] = array[i];
             }
 
             return list;
@@ -48,24 +49,24 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Вид источника (= RM_SOURCE_*); ISO, важностный и незнакомый — ОТКАЗ: их
         /// розыгрыш на GPU не перенесён, и тихой подмены равномерным быть не должно.
         /// </summary>
-        static int SourceKindOf(object source)
+        static int SourceKindOf(EfficiencySimulator.Sampler source)
         {
             if (source == null)
             {
                 throw new InvalidOperationException("GPU-упаковка: у сцены нет источника (source = null)");
             }
 
-            switch (source.GetType().Name)
+            switch (source)
             {
-                case "PointSampler": return SourcePoint;
-                case "CylinderSampler": return SourceCylinder;
-                case "MarinelliSampler": return SourceMarinelli;
-                case "BoxSampler": return SourceBox;
-                case "ImportanceSampler":
+                case EfficiencySimulator.PointSampler _: return SourcePoint;
+                case EfficiencySimulator.CylinderSampler _: return SourceCylinder;
+                case EfficiencySimulator.MarinelliSampler _: return SourceMarinelli;
+                case EfficiencySimulator.BoxSampler _: return SourceBox;
+                case EfficiencySimulator.ImportanceSampler _:
                     throw new NotSupportedException(
                         "GPU-путь: важностный розыгрыш точки вылета (ImportanceSampler, ключ --imp=1) не перенесён; "
                         + "считать эту сцену на ЦП");
-                case "IsoFieldSampler":
+                case EfficiencySimulator.IsoFieldSampler _:
                     throw new NotSupportedException(
                         "GPU-путь: изотропное поле (IsoFieldSampler, сцена ISO) не перенесено; считать эту сцену на ЦП");
                 default:
@@ -85,18 +86,18 @@ namespace BecquerelMonitor.EfficiencyMaker
             GpuRegistry reg = ctx.Reg;
 
             // Источник — сразу: отказ раньше любой работы.
-            SourceKindOf(GpuReflect.Field(sim, "source"));
+            SourceKindOf(sim.source);
 
-            foreach (object region in SceneRegions(sim))
+            foreach (EfficiencySimulator.Region region in SceneRegions(sim))
             {
-                reg.Add("materials", GpuReflect.Field(region, "Material"));
+                reg.Add("materials", region.Material);
             }
 
             // Объекты сцены, на которые ссылается `SceneG` (EfficiencySimulator.cs:1647-1657, 7683).
-            reg.Add("electronMats", GpuReflect.Field(sim, "electron"));
-            reg.Add("electronMats", GpuReflect.Call(sim, "WaterTable"));
-            reg.Add("brems", GpuReflect.Field(sim, "bremTable"));
-            reg.Add("lightYields", GpuReflect.Field(sim, "lightYield"));
+            reg.Add("electronMats", sim.electron);
+            reg.Add("electronMats", sim.WaterTable());
+            reg.Add("brems", sim.bremTable);
+            reg.Add("lightYields", sim.lightYield);
 
             // Кэши по веществу — вынудить построение тем же кодом симулятора.
             var materials = new List<object>(reg.List("materials"));
@@ -108,18 +109,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                     ctx.Zs.Add(z);
                 }
 
-                reg.Add("fluorescers", GpuReflect.Call(sim, "FluorescersOf", m));
-                reg.Add("scatterers", GpuReflect.Call(sim, "ScatterersOf", m));
-                reg.Add("electronMats", GpuReflect.Call(sim, "CarryMedium", m));
-                reg.Add("brems", GpuReflect.Call(sim, "LayerBrem", m));
-                GpuReflect.Call(sim, "LayerRadiationLength", m);
-                Array elements = (Array)GpuReflect.Call(sim, "LayerScatterElements", m);
+                reg.Add("fluorescers", sim.FluorescersOf(m));
+                reg.Add("scatterers", sim.ScatterersOf(m));
+                reg.Add("electronMats", sim.CarryMedium(m));
+                reg.Add("brems", sim.LayerBrem(m));
+                sim.LayerRadiationLength(m);
+                EfficiencySimulator.ScatterElement[] elements = sim.LayerScatterElements(m);
                 for (int i = 0; i < elements.Length; i++)
                 {
-                    reg.Add("scatterElements", elements.GetValue(i));
+                    reg.Add("scatterElements", elements[i]);
                 }
 
-                GpuReflect.Call(sim, "LayerBremZ", m);
+                sim.LayerBremZ(m);
             }
 
             // Вода — таблица ESTAR пустоты (`WaterTable`, запасная у `CarryMedium`).
@@ -153,16 +154,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                 w.Real(m.Density);
                 w.Ints(zs.ToArray());
                 w.Reals(fractions.ToArray());
-                w.Int(reg.Of("fluorescers", GpuReflect.Call(sim, "FluorescersOf", m)));
-                w.Int(reg.Of("scatterers", GpuReflect.Call(sim, "ScatterersOf", m)));
-                w.Int(reg.Of("electronMats", GpuReflect.Call(sim, "CarryMedium", m)));
-                w.Int(reg.Of("brems", GpuReflect.Call(sim, "LayerBrem", m)));
-                w.Real((double)GpuReflect.Call(sim, "LayerRadiationLength", m));
-                Array elements = (Array)GpuReflect.Call(sim, "LayerScatterElements", m);
-                int start = elements.Length == 0 ? 0 : reg.Of("scatterElements", elements.GetValue(0));
+                w.Int(reg.Of("fluorescers", sim.FluorescersOf(m)));
+                w.Int(reg.Of("scatterers", sim.ScatterersOf(m)));
+                w.Int(reg.Of("electronMats", sim.CarryMedium(m)));
+                w.Int(reg.Of("brems", sim.LayerBrem(m)));
+                w.Real(sim.LayerRadiationLength(m));
+                EfficiencySimulator.ScatterElement[] elements = sim.LayerScatterElements(m);
+                int start = elements.Length == 0 ? 0 : reg.Of("scatterElements", elements[0]);
                 for (int i = 0; i < elements.Length; i++)
                 {
-                    if (reg.Of("scatterElements", elements.GetValue(i)) != start + i)
+                    if (reg.Of("scatterElements", elements[i]) != start + i)
                     {
                         throw new InvalidOperationException(
                             "GPU-упаковка: элементы слоя вещества «" + m.Name + "» легли в реестр не подряд");
@@ -171,31 +172,32 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 w.Int(start);
                 w.Int(elements.Length);
-                w.Real((double)GpuReflect.Call(sim, "LayerBremZ", m));
+                w.Real(sim.LayerBremZ(m));
                 w.End();
             }
 
             // --- fluorescers (FluorescersG) ---
             IList<object> fluorescers = reg.List("fluorescers");
             w.Tag("fluorescers", fluorescers.Count);
-            foreach (object f in fluorescers)
+            foreach (object o in fluorescers)
             {
-                int[] z = GpuReflect.Get<int[]>(f, "Z");
-                double[] fraction = GpuReflect.Get<double[]>(f, "Fraction");
-                Array data = GpuReflect.Get<Array>(f, "Data");
-                Array shells = GpuReflect.Get<Array>(f, "Shells");
+                var f = (EfficiencySimulator.Fluorescers)o;
+                int[] z = f.Z;
+                double[] fraction = f.Fraction;
+                MaterialDatabase.Fluorescence[] data = f.Data;
+                MaterialDatabase.PhotoShellModel[] shells = f.Shells;
                 var hasShell = new bool[z.Length];
                 for (int i = 0; i < z.Length; i++)
                 {
                     // Читатель берёт индексы по Z из таблиц полосы А; убедиться, что объект
                     // симулятора — тот же, что отдаёт поиск по Z.
-                    if (!ReferenceEquals(data.GetValue(i), MaterialDatabase.FluorescenceOf(z[i])))
+                    if (!ReferenceEquals(data[i], MaterialDatabase.FluorescenceOf(z[i])))
                     {
                         throw new InvalidOperationException(
                             "GPU-упаковка: Fluorescers.Data[" + i + "] не совпал с FluorescenceOf(" + z[i] + ")");
                     }
 
-                    object shell = shells.GetValue(i);
+                    object shell = shells[i];
                     hasShell[i] = shell != null;
                     if (shell != null && !ReferenceEquals(shell, MaterialDatabase.PhotoShellOf(z[i])))
                     {
@@ -204,7 +206,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
                 }
 
-                w.Int(reg.Of("materials", GpuReflect.Field(f, "Material")));
+                w.Int(reg.Of("materials", f.Material));
                 w.Ints(z);
                 w.Reals(fraction);
                 w.Bytes(hasShell);
@@ -214,14 +216,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             // --- scatterers (ScatterersG) ---
             IList<object> scatterers = reg.List("scatterers");
             w.Tag("scatterers", scatterers.Count);
-            foreach (object s in scatterers)
+            foreach (object o in scatterers)
             {
-                int[] z = GpuReflect.Get<int[]>(s, "Z");
-                double[] mass = GpuReflect.Get<double[]>(s, "MassFraction");
-                Array atoms = GpuReflect.Get<Array>(s, "Atom");
+                var s = (EfficiencySimulator.Scatterers)o;
+                int[] z = s.Z;
+                double[] mass = s.MassFraction;
+                ScatteringData.Atom[] atoms = s.Atom;
                 for (int i = 0; i < z.Length; i++)
                 {
-                    if (!ReferenceEquals(atoms.GetValue(i), ScatteringData.Of(z[i])))
+                    if (!ReferenceEquals(atoms[i], ScatteringData.Of(z[i])))
                     {
                         throw new InvalidOperationException(
                             "GPU-упаковка: Scatterers.Atom[" + i + "] не совпал с ScatteringData.Of(" + z[i] + ")");
@@ -236,40 +239,41 @@ namespace BecquerelMonitor.EfficiencyMaker
             // --- scatterElements (ScatterElementG) ---
             IList<object> scatterElements = reg.List("scatterElements");
             w.Tag("scatterElements", scatterElements.Count);
-            foreach (object e in scatterElements)
+            foreach (object o in scatterElements)
             {
-                w.Int(GpuReflect.I(e, "Z"));
-                w.Real(GpuReflect.D(e, "AtomsPerCm3"));
-                w.Real(GpuReflect.D(e, "Z13"));
-                w.Real(GpuReflect.D(e, "ZZ1"));
-                w.Bool(GpuReflect.B(e, "Mott"));
+                var e = (EfficiencySimulator.ScatterElement)o;
+                w.Int(e.Z);
+                w.Real(e.AtomsPerCm3);
+                w.Real(e.Z13);
+                w.Real(e.ZZ1);
+                w.Bool(e.Mott);
                 w.End();
             }
 
             // --- regions (RegionG) ---
-            object[] regions = SceneRegions(sim);
-            bool[] regBox = GpuReflect.Get<bool[]>(sim, "regBox");
-            double[] regZMinE = GpuReflect.Get<double[]>(sim, "regZMinE");
-            double[] regZMaxE = GpuReflect.Get<double[]>(sim, "regZMaxE");
-            double[] regROutE = GpuReflect.Get<double[]>(sim, "regROutE");
-            double[] regRInE = GpuReflect.Get<double[]>(sim, "regRInE");
-            double[] regAXE = GpuReflect.Get<double[]>(sim, "regAXE");
-            double[] regAYE = GpuReflect.Get<double[]>(sim, "regAYE");
+            EfficiencySimulator.Region[] regions = SceneRegions(sim);
+            bool[] regBox = sim.regBox;
+            double[] regZMinE = sim.regZMinE;
+            double[] regZMaxE = sim.regZMaxE;
+            double[] regROutE = sim.regROutE;
+            double[] regRInE = sim.regRInE;
+            double[] regAXE = sim.regAXE;
+            double[] regAYE = sim.regAYE;
             w.Tag("regions", regions.Length);
             for (int i = 0; i < regions.Length; i++)
             {
-                object r = regions[i];
-                w.Bool(GpuReflect.B(r, "IsBox"));
-                w.Real(GpuReflect.D(r, "RIn"));
-                w.Real(GpuReflect.D(r, "ROut"));
-                w.Real(GpuReflect.D(r, "AX"));
-                w.Real(GpuReflect.D(r, "AY"));
-                w.Real(GpuReflect.D(r, "ZMin"));
-                w.Real(GpuReflect.D(r, "ZMax"));
-                w.Int(reg.Of("materials", GpuReflect.Field(r, "Material")));
-                w.Bool(GpuReflect.B(r, "IsCrystal"));
-                w.Bool(GpuReflect.B(r, "ThresholdPair"));
-                w.Real(GpuReflect.D(r, "PhotoScale"));
+                EfficiencySimulator.Region r = regions[i];
+                w.Bool(r.IsBox);
+                w.Real(r.RIn);
+                w.Real(r.ROut);
+                w.Real(r.AX);
+                w.Real(r.AY);
+                w.Real(r.ZMin);
+                w.Real(r.ZMax);
+                w.Int(reg.Of("materials", r.Material));
+                w.Bool(r.IsCrystal);
+                w.Bool(r.ThresholdPair);
+                w.Real(r.PhotoScale);
                 w.Bool(regBox[i]);
                 w.Real(regZMinE[i]);
                 w.Real(regZMaxE[i]);
@@ -281,49 +285,53 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             // --- scene (SceneG) ---
-            object crystal = GpuReflect.Field(sim, "crystal");
+            EfficiencySimulator.Region crystal = sim.crystal;
             int crystalIndex = Array.FindIndex(regions, r => ReferenceEquals(r, crystal));
             if (crystalIndex < 0)
             {
                 throw new InvalidOperationException("GPU-упаковка: кристалла нет среди областей сцены");
             }
 
-            var geometry = GpuReflect.Get<GeometryModel>(sim, "geometry");
-            object source = GpuReflect.Field(sim, "source");
+            GeometryModel geometry = sim.geometry;
+            EfficiencySimulator.Sampler source = sim.source;
             int kind = SourceKindOf(source);
+            var point = source as EfficiencySimulator.PointSampler;
+            var cylinder = source as EfficiencySimulator.CylinderSampler;
+            var marinelli = source as EfficiencySimulator.MarinelliSampler;
+            var box = source as EfficiencySimulator.BoxSampler;
 
             w.Tag("scene", 1);
             w.Int(crystalIndex);
             w.Int(reg.Of("materials", geometry.Crystal));
-            w.Real(GpuReflect.D(sim, "sphereZ"));
-            w.Real(GpuReflect.D(sim, "sphereR"));
-            w.Real(GpuReflect.D(sim, "pathSceneZ"));
-            w.Real(GpuReflect.D(sim, "pathSceneR"));
-            w.Real(GpuReflect.D(sim, "sceneRMax"));
-            w.Real(GpuReflect.D(sim, "sceneZMin"));
-            w.Real(GpuReflect.D(sim, "sceneZMax"));
+            w.Real(sim.sphereZ);
+            w.Real(sim.sphereR);
+            w.Real(sim.pathSceneZ);
+            w.Real(sim.pathSceneR);
+            w.Real(sim.sceneRMax);
+            w.Real(sim.sceneZMin);
+            w.Real(sim.sceneZMax);
             w.Int(kind);
             // Поля всех четырёх видов пишутся всегда (нули у чужих) — запись постоянной длины.
-            w.Real(kind == SourcePoint ? GpuReflect.D(source, "z") : 0.0);
-            w.Real(kind == SourceCylinder ? GpuReflect.D(source, "r") : 0.0);
-            w.Real(kind == SourceCylinder ? GpuReflect.D(source, "z0") : 0.0);
-            w.Real(kind == SourceCylinder ? GpuReflect.D(source, "z1") : 0.0);
-            w.Real(kind == SourceMarinelli ? GpuReflect.D(source, "rIn") : 0.0);
-            w.Real(kind == SourceMarinelli ? GpuReflect.D(source, "rOut") : 0.0);
-            w.Real(kind == SourceMarinelli ? GpuReflect.D(source, "z0") : 0.0);
-            w.Real(kind == SourceMarinelli ? GpuReflect.D(source, "z1") : 0.0);
-            w.Real(kind == SourceMarinelli ? GpuReflect.D(source, "zCap") : 0.0);
-            w.Real(kind == SourceMarinelli ? GpuReflect.D(source, "capFraction") : 0.0);
-            w.Real(kind == SourceBox ? GpuReflect.D(source, "ax") : 0.0);
-            w.Real(kind == SourceBox ? GpuReflect.D(source, "ay") : 0.0);
-            w.Real(kind == SourceBox ? GpuReflect.D(source, "z0") : 0.0);
-            w.Real(kind == SourceBox ? GpuReflect.D(source, "z1") : 0.0);
-            w.Int(reg.Of("electronMats", GpuReflect.Field(sim, "electron")));
-            w.Int(reg.Of("brems", GpuReflect.Field(sim, "bremTable")));
-            w.Int(reg.Of("lightYields", GpuReflect.Field(sim, "lightYield")));
-            w.Int(reg.Of("electronMats", GpuReflect.Call(sim, "WaterTable")));
-            w.Bool(GpuReflect.B(sim, "crystalHasPartials"));
-            w.Real((double)GpuReflect.Call(sim, "CrystalRadiationLength"));
+            w.Real(kind == SourcePoint ? point.z : 0.0);
+            w.Real(kind == SourceCylinder ? cylinder.r : 0.0);
+            w.Real(kind == SourceCylinder ? cylinder.z0 : 0.0);
+            w.Real(kind == SourceCylinder ? cylinder.z1 : 0.0);
+            w.Real(kind == SourceMarinelli ? marinelli.rIn : 0.0);
+            w.Real(kind == SourceMarinelli ? marinelli.rOut : 0.0);
+            w.Real(kind == SourceMarinelli ? marinelli.z0 : 0.0);
+            w.Real(kind == SourceMarinelli ? marinelli.z1 : 0.0);
+            w.Real(kind == SourceMarinelli ? marinelli.zCap : 0.0);
+            w.Real(kind == SourceMarinelli ? marinelli.capFraction : 0.0);
+            w.Real(kind == SourceBox ? box.ax : 0.0);
+            w.Real(kind == SourceBox ? box.ay : 0.0);
+            w.Real(kind == SourceBox ? box.z0 : 0.0);
+            w.Real(kind == SourceBox ? box.z1 : 0.0);
+            w.Int(reg.Of("electronMats", sim.electron));
+            w.Int(reg.Of("brems", sim.bremTable));
+            w.Int(reg.Of("lightYields", sim.lightYield));
+            w.Int(reg.Of("electronMats", sim.WaterTable()));
+            w.Bool(sim.crystalHasPartials);
+            w.Real(sim.CrystalRadiationLength());
             w.End();
         }
     }

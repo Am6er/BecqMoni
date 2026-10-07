@@ -1405,7 +1405,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// тело матрицы от них не меняются ни на бит. null — прогона ещё не было.
         /// Выход прогона, не настройка (как <see cref="LastContinuumRelativeError"/>).
         /// </summary>
-        public AngularMomentSums LastAngularMoments { get; private set; }
+        public AngularMomentSums LastAngularMoments { get; internal set; }
 
         /// <summary>
         /// ⚡ (`AMBER145`, П199 01.10.2026) ДОПУСК ПИКА ПО РАЗРЕШЕНИЮ, кэВ — для
@@ -1442,11 +1442,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// аналоговом континууме — у его историй (бины ниже пика перезаписаны
         /// ими), иначе — у взвешенной. Ноль, если допуск по разрешению не задан.
         /// </summary>
-        public double LastResolutionPeakExtra { get; private set; }
+        public double LastResolutionPeakExtra { get; internal set; }
 
         // (`AMBER145`) Копилки второго счёта пика — взвешенная и аналоговая
         // ветви порознь; обнуляются в начале `Run`.
-        double resolutionWeighted, resolutionAnalog;
+        internal double resolutionWeighted, resolutionAnalog;
 
         /// <summary>
         /// (`AMBER145`) Сложить долю истории во второй счёт пика, если её бин —
@@ -1552,32 +1552,32 @@ namespace BecquerelMonitor.EfficiencyMaker
         double lastHistoryCos;
         double historyDeposit;
 
-        readonly GeometryModel geometry;
+        internal readonly GeometryModel geometry;
         readonly List<Region> regions = new List<Region>();
 
         // Та же сцена массивом — для горячих проходов (`T43`), см. EnsureBuilt.
-        Region[] regionArray;
+        internal Region[] regionArray;
 
         // ⚡ ПЛОСКАЯ ГЕОМЕТРИЯ СЦЕНЫ (`A43`). Разбор луча — четверть счёта, и
         // в нём цикл по всем областям. По объектам он ходил бы по восьми
         // ссылкам в куче, читая из каждой по шесть полей; здесь те же числа
         // лежат подряд. Допуск `Eps` вычтен заранее: он не зависит ни от луча,
         // ни от истории, а вычитался на каждый вызов.
-        bool[] regBox;
-        double[] regZMinE, regZMaxE, regROutE, regRInE, regAXE, regAYE;
-        Region crystal;
-        double sphereZ, sphereR;         // объемлющая сфера детектора — для сужения конуса
+        internal bool[] regBox;
+        internal double[] regZMinE, regZMaxE, regROutE, regRInE, regAXE, regAYE;
+        internal Region crystal;
+        internal double sphereZ, sphereR;         // объемлющая сфера детектора — для сужения конуса
 
         // (`AMBER97`) Габаритная сфера ВСЕЙ сцены для предела пути
         // (<see cref="PathLimit"/>); снимается в `EnsureBuilt` после `Build`,
         // ноль — сцена пуста, подлёт не добавляется.
-        double pathSceneZ, pathSceneR;
+        internal double pathSceneZ, pathSceneR;
 
         // Габарит ВСЕЙ сцены — детектор вместе с сосудом и пробой (`A57`).
         // Копится в <see cref="Register"/>; вне его вещества нет вовсе, поэтому
         // конус на эту сферу не отсекает ни одной истории, которая могла бы
         // дать отсчёт.
-        double sceneRMax, sceneZMin = double.MaxValue, sceneZMax = double.MinValue;
+        internal double sceneRMax, sceneZMin = double.MaxValue, sceneZMax = double.MinValue;
 
         /// <summary>
         /// ⛔ (`A57`, решение Amber 02.09.2026) ДАЛЬНЯЯ ли это сцена — то есть
@@ -1641,20 +1641,20 @@ namespace BecquerelMonitor.EfficiencyMaker
             radius = Math.Sqrt(this.sceneRMax * this.sceneRMax + half * half) + 1e-3;
             return true;
         }
-        Sampler source;
+        internal Sampler source;
         ulong state;
-        bool crystalHasPartials;
-        ElectronData.Material electron;
+        internal bool crystalHasPartials;
+        internal ElectronData.Material electron;
 
         /// <summary>Кривая светового выхода кристалла; null — шкала пропорциональна.</summary>
-        MaterialDatabase.LightYieldCurve lightYield;
+        internal MaterialDatabase.LightYieldCurve lightYield;
 
         /// <summary>
         /// Спектр тормозного толстой мишени для вещества кристалла; null —
         /// ключ выключен или сечений для состава нет, тогда работает
         /// приближение Крамерса.
         /// </summary>
-        ThickTargetBrem bremTable;
+        internal ThickTargetBrem bremTable;
 
         /// <summary>Элементы кристалла, у которых есть данные о K-флуоресценции.</summary>
 
@@ -1672,7 +1672,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Кто в веществе способен ответить характеристическим квантом (`F27`).
         /// Строится на вещество один раз и кэшируется — как <see cref="Scatterers"/>.
         /// </summary>
-        sealed class Fluorescers
+        internal sealed class Fluorescers
         {
             public GeometryMaterial Material;
             public int[] Z;
@@ -1694,7 +1694,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             new Dictionary<GeometryMaterial, Scatterers>();
 
         /// <summary>Элементы вещества с их угловыми данными рассеяния.</summary>
-        sealed class Scatterers
+        internal sealed class Scatterers
         {
             public int[] Z;
             public double[] MassFraction;
@@ -1775,7 +1775,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Сцена собирается лениво: настройки (например, где стоит оправа)
         /// выставляются после конструктора, а на них она и опирается.
         /// </summary>
-        void EnsureBuilt()
+        internal void EnsureBuilt()
         {
             if (this.regions.Count > 0)
             {
@@ -1944,7 +1944,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// заметная линия: оксид лютеция под собственными гаммами 88/202/307 кэВ
         /// обязан светить K-рентгеном лютеция 52.97…63.21 кэВ.
         /// </summary>
-        Fluorescers FluorescersOf(GeometryMaterial material)
+        internal Fluorescers FluorescersOf(GeometryMaterial material)
         {
             Fluorescers found;
             if (this.fluorescers.TryGetValue(material, out found))
@@ -2028,7 +2028,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// друг в друга, и поиск идёт по порядку: побеждает первая, в которую
         /// точка попала, поэтому кристалл кладётся раньше своей обвязки.
         /// </summary>
-        sealed class Region
+        internal sealed class Region
         {
             public bool IsBox;
             public double RIn, ROut;      // кольцо
@@ -3153,7 +3153,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         // Розыгрыш точки вылета
         // ------------------------------------------------------------------
 
-        abstract class Sampler
+        internal abstract class Sampler
         {
             public abstract void Next(EfficiencySimulator s, out double x, out double y, out double z);
 
@@ -3241,7 +3241,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// габарита — не поле. Проверяется при сборке сцены (`Build`), отказ
         /// с числами, а не молчаливая подмена.
         /// </summary>
-        sealed class IsoFieldSampler : Sampler
+        internal sealed class IsoFieldSampler : Sampler
         {
             readonly double cz, r;
             readonly bool noCosineWeight;
@@ -3300,9 +3300,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
-        sealed class PointSampler : Sampler
+        internal sealed class PointSampler : Sampler
         {
-            readonly double z;
+            internal readonly double z;
 
             public PointSampler(double z)
             {
@@ -3328,9 +3328,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// просто три независимых равномерных числа, в отличие от цилиндра, где
         /// радиус приходится брать корнем.
         /// </summary>
-        sealed class BoxSampler : Sampler
+        internal sealed class BoxSampler : Sampler
         {
-            readonly double ax, ay, z0, z1;
+            internal readonly double ax, ay, z0, z1;
 
             public BoxSampler(double ax, double ay, double z0, double z1)
             {
@@ -3355,9 +3355,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
-        sealed class CylinderSampler : Sampler
+        internal sealed class CylinderSampler : Sampler
         {
-            readonly double r, z0, z1;
+            internal readonly double r, z0, z1;
 
             public CylinderSampler(double r, double z0, double z1)
             {
@@ -3384,10 +3384,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
-        sealed class MarinelliSampler : Sampler
+        internal sealed class MarinelliSampler : Sampler
         {
-            readonly double rIn, rOut, z0, z1, zCap;
-            readonly double capFraction;
+            internal readonly double rIn, rOut, z0, z1, zCap;
+            internal readonly double capFraction;
 
             public MarinelliSampler(double rIn, double rOut, double z0, double z1, double zCap)
             {
@@ -3472,7 +3472,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// азимут) против трёх у цилиндра; таблица перестраивается на смене
         /// энергии узла (~1e5 экспонент) — пренебрежимо против историй узла.
         /// </summary>
-        sealed class ImportanceSampler : Sampler
+        internal sealed class ImportanceSampler : Sampler
         {
             /// <summary>Ячеек по радиусу и по высоте до вставки границ.</summary>
             const int CellsR = 256, CellsZ = 512;
@@ -6793,7 +6793,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>Угловые данные элементов вещества; строится один раз на вещество.</summary>
-        Scatterers ScatterersOf(GeometryMaterial material)
+        internal Scatterers ScatterersOf(GeometryMaterial material)
         {
             Scatterers found;
             if (this.scatterers.TryGetValue(material, out found))
@@ -7923,7 +7923,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         // прохода электрона по пустой области. Тот же объект, числа те же.
         ElectronData.Material waterTable;
 
-        ElectronData.Material WaterTable()
+        internal ElectronData.Material WaterTable()
         {
             return this.waterTable ?? (this.waterTable = ElectronData.ByName("Water"));
         }
@@ -7931,7 +7931,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         readonly Dictionary<GeometryMaterial, ElectronData.Material> carryCache =
             new Dictionary<GeometryMaterial, ElectronData.Material>();
 
-        ElectronData.Material CarryMedium(GeometryMaterial material)
+        internal ElectronData.Material CarryMedium(GeometryMaterial material)
         {
             ElectronData.Material found;
             if (!this.carryCache.TryGetValue(material, out found))
@@ -7956,7 +7956,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// null — сечений нет. Кэш на экземпляр, таблица — общий кэш по
         /// составу (<see cref="ThickTargetBrem.For"/>).
         /// </summary>
-        ThickTargetBrem LayerBrem(GeometryMaterial material)
+        internal ThickTargetBrem LayerBrem(GeometryMaterial material)
         {
             ThickTargetBrem found;
             if (!this.layerBremCache.TryGetValue(material, out found))
@@ -8271,7 +8271,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         // параметр: раскладка нужна только матрице отклика, а `Run` зовут ещё
         // кривая и сканирование порога, и тащить сквозь них лишний аргумент
         // значило бы менять три подписи ради одного потребителя.
-        double[][] channelHistograms;
+        internal double[][] channelHistograms;
 
         // Метки исхода текущей истории, кэВ. Обнуляются перед каждой.
         double lossAnnihilation;
@@ -8427,13 +8427,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         // Σ(вес·свет) по бинам поглощённой энергии — копится рядом с
         // гистограммой отклика и после прогона даёт средний свет каждого
         // бина для пересчёта в шкалу прибора. null — пересчёт выключен.
-        double[] lightSum;
+        internal double[] lightSum;
 
         // (`A267`) Свет класса, у которого бин веса и бин света РАЗОШЛИСЬ, —
         // ровно та добавка, которой `lightSum[peak]` отличается от суммы по
         // историям, чей вес лежит в бине пика. Копится в `ScoreLight`,
         // обнуляется вместе с `lightSum` в начале прогона.
-        double lightBinSplit;
+        internal double lightBinSplit;
 
         /// <summary>
         /// Средний свет пика полного поглощения на кэВ энергии линии из
@@ -8441,7 +8441,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// непропорциональность модели (1.0 — пропорционально; сверять с
         /// таблицей I Khodyuk 2012). Ноль, если пересчёт не выполнялся.
         /// </summary>
-        public double LastPhotonLightScale { get; private set; }
+        public double LastPhotonLightScale { get; internal set; }
 
         /// <summary>
         /// (`A267`) ТА ЖЕ величина, посчитанная по ЕДИНОМУ правилу бина: из
@@ -8458,7 +8458,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// — это множитель, на который сдвинется ВЕСЬ пересчёт шкалы: индекс
         /// бина в <see cref="RemapLightScale"/> обратно пропорционален якорю.
         /// </summary>
-        public double LastPhotonLightScaleSplit { get; private set; }
+        public double LastPhotonLightScaleSplit { get; internal set; }
 
         /// <summary>Вклад электрона начальной энергии te, осевший в кристалле.</summary>
         void AddLight(double deposited, double te)
@@ -8789,7 +8789,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// равна его содержимому: пуассоновское √n завысило бы шум во столько
         /// раз, во сколько конус его снизил, и выигрыш стал бы невидим.
         /// </summary>
-        double SmearedContinuumError(double[] hist, double[] hist2, int peak, double binKev, double energyKev)
+        internal double SmearedContinuumError(double[] hist, double[] hist2, int peak, double binKev, double energyKev)
         {
             double fwhmKev = 2.0 * this.geometry.PeakHalfWidthKev(energyKev);
             if (!(fwhmKev > 0.0) || !(binKev > 0.0) || peak < 8)
@@ -9549,7 +9549,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>Нормировка гистограммы и свет — общий хвост прогона.</summary>
-        double FinishRun(double energyKev, double[] histogram, double binKev, int n, double mean)
+        internal double FinishRun(double energyKev, double[] histogram, double binKev, int n, double mean)
         {
 
             // Бины копят сумму весов, а величина отклика — среднее по историям,
@@ -11136,29 +11136,29 @@ namespace BecquerelMonitor.EfficiencyMaker
     public sealed class AngularMomentSums
     {
         /// <summary>Историй.</summary>
-        public long N { get; private set; }
+        public long N { get; internal set; }
 
         /// <summary>Σ s, Σ s·P₂, Σ s·P₄ — пик.</summary>
-        public double S0 { get; private set; }
-        public double S2 { get; private set; }
-        public double S4 { get; private set; }
+        public double S0 { get; internal set; }
+        public double S2 { get; internal set; }
+        public double S4 { get; internal set; }
 
         /// <summary>Суммы квадратов и произведений — для шума пиковых Q_k.</summary>
-        public double S00 { get; private set; }
-        public double S22 { get; private set; }
-        public double S44 { get; private set; }
-        public double S02 { get; private set; }
-        public double S04 { get; private set; }
+        public double S00 { get; internal set; }
+        public double S22 { get; internal set; }
+        public double S44 { get; internal set; }
+        public double S02 { get; internal set; }
+        public double S04 { get; internal set; }
 
         /// <summary>То же по ПОЛНОМУ заносу истории.</summary>
-        public double T0 { get; private set; }
-        public double T2 { get; private set; }
-        public double T4 { get; private set; }
-        public double T00 { get; private set; }
-        public double T22 { get; private set; }
-        public double T44 { get; private set; }
-        public double T02 { get; private set; }
-        public double T04 { get; private set; }
+        public double T0 { get; internal set; }
+        public double T2 { get; internal set; }
+        public double T4 { get; internal set; }
+        public double T00 { get; internal set; }
+        public double T22 { get; internal set; }
+        public double T44 { get; internal set; }
+        public double T02 { get; internal set; }
+        public double T04 { get; internal set; }
 
         /// <summary>
         /// Одна история: пиковый счёт `score`, полный занос `total`, косинус

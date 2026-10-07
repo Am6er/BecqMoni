@@ -789,7 +789,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             LogMemo logNodes;
 
-            double[] LogNodes(double[] e)
+            internal double[] LogNodes(double[] e)
             {
                 LogMemo m = this.logNodes;
                 if (m == null || !ReferenceEquals(m.Source, e))

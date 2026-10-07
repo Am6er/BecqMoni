@@ -153,7 +153,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// длинам с массовыми долями. Проверено на CsI (8.39) и NaI (9.49)
         /// против таблицы PDG — сходится в третьем знаке.
         /// </summary>
-        double CrystalRadiationLength()
+        internal double CrystalRadiationLength()
         {
             if (this.crystalRadiationLength > 0.0)
             {
@@ -190,7 +190,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// слое (<see cref="TransportInLayers"/>). Состава нет — единица (шаг
         /// в таком слое всё равно не делается: плотности нет).
         /// </summary>
-        double LayerRadiationLength(GeometryMaterial material)
+        internal double LayerRadiationLength(GeometryMaterial material)
         {
             double x0;
             if (this.layerRadiationCache.TryGetValue(material, out x0))
@@ -271,7 +271,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         const int MottMaxZ = 30;
 
         /// <summary>(`M13`) Элемент вещества слоя для розыгрыша упругих столкновений.</summary>
-        sealed class ScatterElement
+        internal sealed class ScatterElement
         {
             /// <summary>Заряд ядра.</summary>
             public int Z;
@@ -297,7 +297,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         double[] layerHardShare = new double[8];
 
         /// <summary>(`M13`) Элементы вещества слоя с плотностями ядер, кэш на вещество.</summary>
-        ScatterElement[] LayerScatterElements(GeometryMaterial material)
+        internal ScatterElement[] LayerScatterElements(GeometryMaterial material)
         {
             ScatterElement[] found;
             if (this.layerScatterCache.TryGetValue(material, out found))
@@ -715,7 +715,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// неразличимы розыгрышем в 200 тыс.), поэтому одно число на вещество, а
         /// не розыгрыш элемента на каждый квант. Кэш на экземпляр.
         /// </summary>
-        double LayerBremZ(GeometryMaterial material)
+        internal double LayerBremZ(GeometryMaterial material)
         {
             double z;
             if (this.layerBremZCache.TryGetValue(material, out z))

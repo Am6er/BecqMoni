@@ -566,7 +566,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Её края совпадают с краями сетки узлов — за ними
         /// <see cref="ResponseMatrix.JointFactor"/> зажимает, а не продолжает.
         /// </summary>
-        static void BuildJoint(GeometryModel geometry, ResponseMatrixOptions options,
+        internal static void BuildJoint(GeometryModel geometry, ResponseMatrixOptions options,
                                ResponseMatrix matrix, double[] grid, ParallelOptions parallel)
         {
             int nodes = options.JointNodes;
@@ -1001,7 +1001,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// (<see cref="PeakTolerance"/>); иначе ноль (второй счёт не нужен: пик
         /// по разрешению и есть канал `Peak`).
         /// </summary>
-        static double ResolutionHalfWidth(ResponseMatrixOptions options, GeometryModel geometry,
+        internal static double ResolutionHalfWidth(ResponseMatrixOptions options, GeometryModel geometry,
                                           double energyKev)
         {
             double resolution = geometry.PeakHalfWidthKev(energyKev);
@@ -1016,7 +1016,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// у геометрии без разрешения (`FwhmAt662Percent` не задан) — Σ канала
         /// `Peak`, и <see cref="ResponseMatrix.PeakResolutionFromGeometry"/> = false.
         /// </summary>
-        static void FillResolutionPeak(GeometryModel geometry, ResponseMatrix matrix, double[] extra)
+        internal static void FillResolutionPeak(GeometryModel geometry, ResponseMatrix matrix, double[] extra)
         {
             int nodes = matrix.Energies.Length;
             float[][] peakRows = matrix.ChannelRows != null
@@ -1233,7 +1233,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// симулятора по модели, и делить одну модель между потоками — значит
         /// однажды поймать её правку из другого места.
         /// </summary>
-        static EfficiencySimulator MakeSimulator(GeometryModel geometry, ResponseMatrixOptions options,
+        internal static EfficiencySimulator MakeSimulator(GeometryModel geometry, ResponseMatrixOptions options,
                                                  int index, double energyKev)
         {
             var sim = new EfficiencySimulator(geometry.Clone())
