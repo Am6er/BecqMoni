@@ -2970,6 +2970,57 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double LastHuberInflation { get; private set; } = 1.0;
 
         /// <summary>
+        /// (`AMBER209`, П237 07.10.2026) ОТНОСИТЕЛЬНЫЙ ПОЛ ПОРОГА ХУБЕРА — γ ТОЛЬКО
+        /// В НОЖЕ, не в весах. Порог берётся в `σ_thr = √(D + γ²·μ̂²)`: D — та
+        /// дисперсия, от которой взят вес канала, μ̂ — ожидание его СЫРОГО отсчёта
+        /// (модель прохода плюс вычтенное: континуум, фон). Смысл: образ известен
+        /// по форме не лучше γ (статистика матрицы, физика переноса), и невязка
+        /// в γ·μ̂ — не выброс, а предел модели. Без пола порог `m·σ` стоит в
+        /// пуассоновской σ, и один и тот же разлад формы в несколько процентов
+        /// режется на полной статистике сильнее, чем на десятой её части, —
+        /// амплитуда плывёт с набором там, где надувка по медиане
+        /// (<see cref="HuberInflate"/>) её не ловит: разлад в НЕМНОГИХ каналах
+        /// (рентген Hf, сумм-пики Lu-176; журнал П236). С полом доля подрезки
+        /// при больших отсчётах зависит от ОТНОСИТЕЛЬНОЙ невязки канала, а не от
+        /// объёма набора. Отличие от составного шума `S43`
+        /// (<see cref="NoiseGamma"/>): веса решателя, значимости и пределы
+        /// остаются пуассоновскими — меняется только нож; шкала MAD надувки
+        /// берётся той же σ_thr. 0 — выключено (сегодняшний нож). Ручка проб —
+        /// `--huber-gamma=` у `FsaBqProbe`; плечо дрейфа Lu-176, решение — Amber.
+        /// </summary>
+        public double HuberGamma { get; set; }
+
+        /// <summary>
+        /// (`AMBER209`, П237) СЛЕД ПОСЛЕДНЕГО ФИТА — ЧИТАЕТСЯ ТОЛЬКО ПРОБАМИ
+        /// (`FsaBqProbe --huber-cut`), ставится в <c>BuildResult</c>. Веса
+        /// решателя финального хуберовского прохода (<see cref="LastFitWeights"/>),
+        /// дисперсия, от которой они взяты (<see cref="LastFitVariance"/>),
+        /// невязка `y − модель` (<see cref="LastFitResidual"/>), модель в шкале
+        /// `y` (<see cref="LastFitModel"/>) и вычтенное из сырого отсчёта
+        /// (<see cref="LastFitSubtracted"/>; `сырой = y + это`) — по каналам полосы
+        /// фита [<see cref="LastFitFirstChannel"/>, <see cref="LastFitLastChannel"/>].
+        /// `Weights[i]·Variance[i]` ниже единицы — канал подрезан ножом Хубера,
+        /// ровно на эту долю; `|Residual[i]|/√Variance[i]` — его нормированная
+        /// невязка. Без этого не видно, КАКИЕ каналы режутся на полной статистике
+        /// и какие на десятой её части, а дрейф числа с набором (журнал П236)
+        /// иначе не разобрать. Ссылки на массивы фита, копий нет; `null` — разбора
+        /// не было или он отказан.
+        /// </summary>
+        public double[] LastFitWeights { get; private set; }
+        /// <summary>См. <see cref="LastFitWeights"/>.</summary>
+        public double[] LastFitVariance { get; private set; }
+        /// <summary>См. <see cref="LastFitWeights"/>.</summary>
+        public double[] LastFitResidual { get; private set; }
+        /// <summary>См. <see cref="LastFitWeights"/>.</summary>
+        public double[] LastFitModel { get; private set; }
+        /// <summary>См. <see cref="LastFitWeights"/>.</summary>
+        public double[] LastFitSubtracted { get; private set; }
+        /// <summary>См. <see cref="LastFitWeights"/>.</summary>
+        public int LastFitFirstChannel { get; private set; }
+        /// <summary>См. <see cref="LastFitWeights"/>.</summary>
+        public int LastFitLastChannel { get; private set; }
+
+        /// <summary>
         /// (`A310`, полоса П47 13.09.2026) ВЕСА РЕШАТЕЛЯ — ПО МОДЕЛИ (Пирсон), а
         /// не по данным. Без ключа дисперсия канала берётся от ОТСЧЁТА:
         /// `max(N, 1)` плюс шум вычтенного фона, — и это смещает оценку: у
@@ -13928,6 +13979,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // может не быть вовсе, она достраивается выше.
             EnergyCalibration calibration = spectrum.EnergyCalibration;
 
+            // (`AMBER209`, П237) след фита — пробам, довод у <see cref="LastFitWeights"/>
+            this.LastFitWeights = fit.Weights;
+            this.LastFitVariance = fit.Variance;
+            this.LastFitResidual = fit.Residual;
+            this.LastFitModel = fit.Model;
+            this.LastFitSubtracted = this.reportNoise != null ? this.reportNoise.Subtracted : null;
+            this.LastFitFirstChannel = chLo;
+            this.LastFitLastChannel = chHi;
+
             FsaResult result = new FsaResult
             {
                 FirstChannel = chLo,
@@ -15461,6 +15521,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // полосе с ТЕКУЩЕЙ дисперсией (той же, от которой берётся σ
                 // порога) × 1.4826 (MAD нормали); ниже единицы не опускается.
                 // RMS-плечо (√(χ²/ndf)) отвергнуто A/B корпуса — у свойства.
+                // (`AMBER209`, П237) Относительный пол порога — довод у
+                // <see cref="HuberGamma"/>: дисперсия ПОРОГА (не веса) —
+                // `D + γ²·μ̂²`, μ̂ — ожидание сырого отсчёта канала.
+                double gamma2 = this.HuberGamma > 0.0 ? this.HuberGamma * this.HuberGamma : 0.0;
+                double[] subtracted = gamma2 > 0.0 && this.reportNoise != null ? this.reportNoise.Subtracted : null;
+                double[] thresholdScale = scale;
+                if (gamma2 > 0.0 && best.Model != null)
+                {
+                    thresholdScale = (double[])scale.Clone();
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        double mu = best.Model[i] + (subtracted != null ? subtracted[i] : 0.0);
+                        if (mu > 0.0)
+                        {
+                            thresholdScale[i] += gamma2 * mu * mu;
+                        }
+                    }
+                }
+
                 double inflate = 1.0;
                 if (this.HuberM > 0.0 && this.HuberInflate)
                 {
@@ -15472,7 +15551,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         {
                             continue;
                         }
-                        pulls[used++] = Math.Abs(best.Residual[i]) / Math.Sqrt(scale[i]);
+                        pulls[used++] = Math.Abs(best.Residual[i]) / Math.Sqrt(thresholdScale[i]);
                     }
                     if (used > 0)
                     {
@@ -15491,7 +15570,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     double w = 1.0 / scale[i];
                     if (this.HuberM > 0.0 && (anchor == null || !anchor[i]))
                     {
-                        double sigma = Math.Sqrt(scale[i]);
+                        double sigma = Math.Sqrt(thresholdScale[i]);
                         double residual = Math.Abs(best.Residual[i]);
                         double m = this.HuberM * sigma * inflate;
                         if (residual > m)
