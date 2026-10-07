@@ -1187,19 +1187,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return;
                 }
 
-                if (this.values == null)
+                // (`AMBER213`, П241) Таблица множителей публикуется ЗАПОЛНЕННОЙ:
+                // рампу читают параллельные уширения образов, и поток, увидевший
+                // недозаполненную таблицу, умножил бы на нули. Посчитают двое —
+                // значения те же (чистая функция канала).
+                double[] table = System.Threading.Volatile.Read(ref this.values);
+                if (table == null)
                 {
-                    this.values = new double[Math.Max(0, this.Top)];
-                    for (int c = 0; c < this.values.Length; c++)
+                    table = new double[Math.Max(0, this.Top)];
+                    for (int c = 0; c < table.Length; c++)
                     {
-                        this.values[c] = this.At(c);
+                        table[c] = this.At(c);
                     }
+
+                    System.Threading.Volatile.Write(ref this.values, table);
                 }
 
-                int n = Math.Min(curve.Length, this.values.Length);
+                int n = Math.Min(curve.Length, table.Length);
                 for (int c = 0; c < n; c++)
                 {
-                    curve[c] *= this.values[c];
+                    curve[c] *= table[c];
                 }
             }
 
@@ -1225,7 +1232,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// </summary>
             double[] Fine()
             {
-                if (this.fine == null)
+                // (`AMBER213`, П241) публикуется заполненной — см. <see cref="Apply"/>
+                double[] ready = System.Threading.Volatile.Read(ref this.fine);
+                if (ready != null)
+                {
+                    return ready;
+                }
+
                 {
                     double[] f = new double[Math.Max(0, this.Top) * SubBins];
                     double h = 1.0 / SubBins;
@@ -1238,10 +1251,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
                     }
 
-                    this.fine = f;
+                    System.Threading.Volatile.Write(ref this.fine, f);
+                    return f;
                 }
-
-                return this.fine;
             }
 
             /// <summary>
@@ -4169,6 +4181,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         CalibrationInverse InverseOf(EnergyCalibration calibration, int channels)
         {
+            // (`AMBER213`, П241) под замком — см. <see cref="lazyGate"/>
+            lock (this.lazyGate)
+            {
+                return this.InverseOfLocked(calibration, channels);
+            }
+        }
+
+        CalibrationInverse InverseOfLocked(EnergyCalibration calibration, int channels)
+        {
             if (!this.FastCalibrationInverse || calibration == null)
             {
                 return null;
@@ -6835,6 +6856,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] net = new double[channels];
             var owners = new List<KeyValuePair<FsaComponent, double[]>>();
             var ownerAmplitude = new Dictionary<FsaComponent, double>();
+            // (`AMBER213`, П241) При матрице слои хозяев уширяются ПАРАЛЛЕЛЬНО:
+            // подготовка (`PrepareLayerParts` — общее состояние) — подряд в
+            // порядке колонок, уширение — по куску на колонку, затем ниже, в том
+            // же порядке колонок, — прежние действия над готовыми слоями.
+            LayerPlan[] layerPlans = null;
+            double[][] layerSums = null;
+            double[][][] layerParts = null;
+            if (this.ResponseMatrix != null)
+            {
+                layerPlans = new LayerPlan[fit.Columns.Count];
+                for (int k = 0; k < fit.Columns.Count; k++)
+                {
+                    FitColumn column = fit.Columns[k];
+                    if (fit.Amplitude[k] == 0.0 || column.Component == null
+                        || column.Component.WeightsAreFinal || !AnchorEligible(column.Component))
+                    {
+                        continue;
+                    }
+
+                    layerPlans[k] = this.PrepareLayerParts(column.Component, calibration, fwhmCalibration, channels);
+                }
+
+                layerSums = new double[fit.Columns.Count][];
+                layerParts = new double[fit.Columns.Count][][];
+                FsaParallel.For(fit.Columns.Count, k =>
+                {
+                    if (layerPlans[k] != null)
+                    {
+                        this.BroadenLayerParts(layerPlans[k], calibration, fwhmCalibration, gain, offset,
+                                               chLo, chHi, channels, out layerSums[k], out layerParts[k]);
+                    }
+                });
+            }
+
             for (int k = 0; k < fit.Columns.Count; k++)
             {
                 double amplitude = fit.Amplitude[k];
@@ -6885,10 +6940,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double[] sumOnly;
-                double[][] parts;
-                this.BuildLayerParts(column.Component, calibration, fwhmCalibration,
-                                     gain, offset, chLo, chHi, channels, out sumOnly, out parts);
+                double[] sumOnly = layerSums[k];
+                double[][] parts = layerParts[k];
                 if (parts == null || peakChannel >= parts.Length || parts[peakChannel] == null)
                 {
                     continue;
@@ -6927,6 +6980,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double windowFwhm = this.AnchorWindowFwhm > 0.0 ? this.AnchorWindowFwhm : 1.0;
+            // (`AMBER213`, П241) Окна пиков хвоста — одни на компонент и длину
+            // гистограммы, пока идёт цикл вершин: см. <see cref="splitWindows"/>.
+            this.splitWindows = new Dictionary<FsaComponent, Dictionary<int, bool[]>>();
             for (int i = chLo + 1; i < chHi; i++)
             {
                 if (!(blue[i] > 0.0) || blue[i] <= blue[i - 1] || blue[i] < blue[i + 1])
@@ -7299,6 +7355,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     anchors.Add(anchor);
                 }
             }
+
+            this.splitWindows = null;
 
             if (fits.Count == 0)
             {
@@ -9536,9 +9594,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             // Кэши уширения живут ровно один разбор: калибровку могли изменить
             // на месте, и тогда ссылка та же, а числа другие.
+            // (`AMBER213`, П241) Кроме банка ядер: он держит СВОЙ снимок формы
+            // пика и сверяет его с поданной калибровкой ПО ЗНАЧЕНИЮ
+            // (<see cref="ShapeKernelBank.Fits"/>), поэтому правка на месте его
+            // не обманет, а проходы разбора (фон, нуль фона) ядра больше не
+            // пересчитывают — до П241 каждый проход считал все ядра заново.
             this.depositChannels = null;
             this.depositChannelsCalibration = null;
-            this.kernelBank = null;
+            this.splitWindows = null;
             this.deposits.Clear();
             this.peakEfficiencies.Clear();
             // (`AMBER157`, `AMBER156`, П195) исключённые линии и кривая опор
@@ -13078,7 +13141,81 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 var column = new Dictionary<int, double[]>();
                 var norm = new Dictionary<int, double>();
                 var lineColumns = new Dictionary<int, List<double[]>>();
-                foreach (int m in members)
+
+                // (`AMBER213`, П241) Без разбора по линиям (умолчание) образы
+                // членов и их остатки после шапок — ПАРАЛЛЕЛЬНО, каждый в свою
+                // ячейку; гистограммы поглощения (`DepositOf`, общее состояние) —
+                // до того, подряд и в прежнем порядке; словари и заметки о
+                // линиях вне кривой — после, тем же порядком. Подпороговый хвост
+                // образа здесь не нужен (прежде он строился и выбрасывался) и не
+                // строится: уширение побочных следов, кроме кэша ядер, не
+                // оставляет. С разбором по линиям — прежний цикл ниже.
+                if (!byLines)
+                {
+                    int count = members.Count;
+                    Deposit[] deposits = new Deposit[count];
+                    if (this.ResponseMatrix != null)
+                    {
+                        for (int j = 0; j < count; j++)
+                        {
+                            deposits[j] = this.DepositOf(library[members[j]], calibration, fwhmCalibration, channels);
+                        }
+                    }
+
+                    double[][] residuals = new double[count][];
+                    double[] norms = new double[count];
+                    List<FsaLine>[] notes = new List<FsaLine>[count];
+                    double bin = this.ResponseMatrix != null ? this.ResponseMatrix.BinKev : 0.0;
+                    FsaParallel.For(count, j =>
+                    {
+                        double[] phi;
+                        if (this.ResponseMatrix != null)
+                        {
+                            phi = deposits[j] != null
+                                ? this.BroadenResponseDeposit(deposits[j].Values, calibration, fwhmCalibration,
+                                                              bin, 1.0, 0.0, chLo, chHi, channels)
+                                : null;
+                        }
+                        else
+                        {
+                            notes[j] = new List<FsaLine>();
+                            phi = this.BuildTemplate(library[members[j]], calibration, fwhmCalibration, efficiency,
+                                                     1.0, 0.0, chLo, chHi, channels, notes[j]);
+                        }
+
+                        if (phi == null)
+                        {
+                            return;
+                        }
+
+                        double[] r = this.ResidualAfterHats(phi, fixedColumns, hatInverse, weights, chLo, chHi, channels);
+                        double n2 = DotWeighted(r, r, weights, chLo, chHi);
+                        if (n2 > 0.0)
+                        {
+                            residuals[j] = r;
+                            norms[j] = n2;
+                        }
+                    });
+
+                    for (int j = 0; j < count; j++)
+                    {
+                        if (notes[j] != null)
+                        {
+                            foreach (FsaLine line in notes[j])
+                            {
+                                this.NoteOutOfCurve(library[members[j]], line);
+                            }
+                        }
+
+                        if (residuals[j] != null)
+                        {
+                            column[members[j]] = residuals[j];
+                            norm[members[j]] = norms[j];
+                        }
+                    }
+                }
+
+                foreach (int m in byLines ? members : new List<int>())
                 {
                     double[] phi;
                     if (this.ResponseMatrix != null)
@@ -16011,10 +16148,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 passes = 2;
             }
 
+            // (`AMBER213`, П241) Образы — ОДИН раз на все проходы: усиление, нуль,
+            // библиотека и подмножество у проходов общие, меняются только веса,
+            // а от весов образ не зависит. Каждому проходу — свой список и свои
+            // колонки (результат прохода владеет ими, как прежде), массивы
+            // образов общие: после сборки их никто не пишет. Повторная сборка
+            // давала побитово те же массивы и те же побочные следы (кэш
+            // гистограмм поглощения по ссылке, заметки о линиях вне кривой —
+            // повтор идемпотентен), то есть снята без изменения результата.
+            bool fromMatrix;
+            List<FitColumn> built = this.BuildFitColumns(library, fixedColumns, calibration, fwhmCalibration,
+                                                         efficiency, gain, offset, chLo, chHi, channels,
+                                                         subset, out fromMatrix);
             for (int pass = 0; pass < passes; pass++)
             {
-                best = FitOnce(library, fixedColumns, calibration, fwhmCalibration, efficiency,
-                               gain, offset, chLo, chHi, channels, y, weights, subset);
+                List<FitColumn> columns = new List<FitColumn>(built.Count);
+                foreach (FitColumn column in built)
+                {
+                    columns.Add(new FitColumn { Component = column.Component, Values = column.Values, TailOf = column.TailOf });
+                }
+
+                best = this.SolveFitColumns(columns, fromMatrix, fixedColumns.Count, chLo, chHi, channels, y, weights);
                 if (best == null || pass + 1 == passes)
                 {
                     break;
@@ -16615,78 +16769,119 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var A = new double[p, p];
             var M = new double[p, p];
             var N = new double[p, p];
-            var u = new double[p];
-            var s = new double[p];
-            int cells = 0;
-            int current = -1;
-            for (int i = chLo; i <= chHi + 1; i++)
+
+            // (`AMBER213`, П241) Два прохода вместо одного. (1) Подряд, прежними
+            // выражениями и в прежнем порядке каналов, — суммы ячеек `u`, `s`
+            // (векторы по колонкам) и `1/дисперсии` ячеек — в таблицы по ячейкам.
+            // (2) Матрицы A, N, M — ПО СТРОКАМ параллельно (<see cref="FsaParallel"/>):
+            // строка a пишет только A[a,·], N[a,·] и M[a, b≥a]; каждое её слагаемое
+            // — тем же выражением и в той же очерёдности ячеек и каналов, что
+            // прежде (A и N копились по ячейкам, M — по каналам, и эти суммы
+            // друг от друга не зависят). Отказ по длине массивов — до всего:
+            // прежний цикл отказывал на первом таком канале полосы, то есть
+            // всегда, если он в полосе есть.
+            if (chLo <= chHi && (chHi >= report.Length || chHi >= solver.Length || chHi >= cell.Length))
             {
-                int c = -1;
-                if (i <= chHi)
-                {
-                    if (i >= report.Length || i >= solver.Length || i >= cell.Length)
-                    {
-                        return 0.0;
-                    }
+                return 0.0;
+            }
 
-                    c = cell[i];
-                }
-
-                if (c != current)
+            var cellU = new List<double[]>();
+            var cellS = new List<double[]>();
+            var cellInv = new List<double>();
+            {
+                var u = new double[p];
+                var s = new double[p];
+                int current = -1;
+                for (int i = chLo; i <= chHi + 1; i++)
                 {
-                    if (current >= 0 && current < cellVariance.Length && cellVariance[current] > 0.0)
+                    int c = i <= chHi ? cell[i] : -1;
+                    if (c != current)
                     {
-                        double inv = 1.0 / cellVariance[current];
-                        cells++;
-                        for (int a = 0; a < p; a++)
+                        if (current >= 0 && current < cellVariance.Length && cellVariance[current] > 0.0)
                         {
-                            if (u[a] == 0.0 && s[a] == 0.0)
-                            {
-                                continue;
-                            }
-
-                            for (int k = 0; k < p; k++)
-                            {
-                                A[a, k] += inv * u[a] * s[k];
-                                N[a, k] += inv * s[a] * s[k];
-                            }
+                            cellInv.Add(1.0 / cellVariance[current]);
+                            cellU.Add(u);
+                            cellS.Add(s);
+                            u = new double[p];
+                            s = new double[p];
                         }
+                        else
+                        {
+                            Array.Clear(u, 0, p);
+                            Array.Clear(s, 0, p);
+                        }
+
+                        current = c;
                     }
 
-                    current = c;
-                    Array.Clear(u, 0, p);
-                    Array.Clear(s, 0, p);
+                    if (c < 0)
+                    {
+                        continue;
+                    }
+
+                    double v = report[i] > 0.0 ? 1.0 / report[i] : 0.0;
+                    double w = solver[i];
+                    for (int a = 0; a < p; a++)
+                    {
+                        double xa = x[a][i];
+                        if (xa == 0.0)
+                        {
+                            continue;
+                        }
+
+                        u[a] += w * v * xa;
+                        s[a] += xa;
+                    }
+                }
+            }
+
+            int cells = cellInv.Count;
+            FsaParallel.For(p, a =>
+            {
+                for (int q = 0; q < cells; q++)
+                {
+                    double[] u = cellU[q];
+                    double[] s = cellS[q];
+                    if (u[a] == 0.0 && s[a] == 0.0)
+                    {
+                        continue;
+                    }
+
+                    double inv = cellInv[q];
+                    for (int k = 0; k < p; k++)
+                    {
+                        A[a, k] += inv * u[a] * s[k];
+                        N[a, k] += inv * s[a] * s[k];
+                    }
                 }
 
-                if (c < 0)
+                for (int i = chLo; i <= chHi; i++)
                 {
-                    continue;
-                }
+                    if (cell[i] < 0)
+                    {
+                        continue;
+                    }
 
-                double v = report[i] > 0.0 ? 1.0 / report[i] : 0.0;
-                double w = solver[i];
-                double mw = w * w * v;
-                for (int a = 0; a < p; a++)
-                {
                     double xa = x[a][i];
                     if (xa == 0.0)
                     {
                         continue;
                     }
 
-                    u[a] += w * v * xa;
-                    s[a] += xa;
+                    double v = report[i] > 0.0 ? 1.0 / report[i] : 0.0;
+                    double w = solver[i];
+                    double mw = w * w * v;
                     if (mw == 0.0)
                     {
                         continue;
                     }
 
-                    for (int b = a; b < p; b++)
+                    for (int bb = a; bb < p; bb++)
                     {
-                        M[a, b] += mw * xa * x[b][i];
+                        M[a, bb] += mw * xa * x[bb][i];
                     }
                 }
-            }
+            });
 
             for (int a = 0; a < p; a++)
             {
@@ -16935,8 +17130,41 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                           double gain, double offset, int chLo, int chHi, int channels,
                           double[] y, double[] weights, List<FsaComponent> subset)
         {
-            List<FitColumn> columns = new List<FitColumn>();
-            bool fromMatrix = false;
+            bool fromMatrix;
+            List<FitColumn> columns = this.BuildFitColumns(library, fixedColumns, calibration, fwhmCalibration,
+                                                           efficiency, gain, offset, chLo, chHi, channels,
+                                                           subset, out fromMatrix);
+            return this.SolveFitColumns(columns, fromMatrix, fixedColumns.Count, chLo, chHi, channels, y, weights);
+        }
+
+        /// <summary>
+        /// (`AMBER213`, П241) Колонки фита при заданных усилении и нуле — образы
+        /// компонентов в порядке библиотеки, за ними <paramref name="fixedColumns"/>.
+        /// Вынесено из <see cref="FitOnce"/>, чтобы <see cref="FitHuber"/> строил
+        /// образы ОДИН раз на свои проходы: от весов образ не зависит, а до
+        /// П241 он строился заново на каждом из трёх проходов Хубера — две трети
+        /// всей цены образов (замер П241: образы — 56 % времени разбора).
+        /// Порядок колонок и сами массивы — те же, что прежде, побитово.
+        /// </summary>
+        List<FitColumn> BuildFitColumns(List<FsaComponent> library, List<double[]> fixedColumns,
+                                        EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                        FsaEfficiency efficiency, double gain, double offset,
+                                        int chLo, int chHi, int channels, List<FsaComponent> subset,
+                                        out bool fromMatrix)
+        {
+            // (`AMBER213`, П241) Образы компонентов независимы и строятся
+            // ПАРАЛЛЕЛЬНО (<see cref="FsaParallel"/>), каждый в свою ячейку;
+            // колонки собираются ниже в порядке библиотеки, как прежде. Всё, что
+            // трогает общее состояние анализатора, идёт подряд на своём потоке:
+            // гистограммы поглощения (`DepositOf` — кэши по ссылке и через
+            // проходы, счётчики, суммирователь каскадов, чтение баз) — ДО
+            // параллельной части, в прежнем порядке компонентов; заметки о
+            // линиях вне кривой — ПОСЛЕ, тем же порядком. Параллельно идут только
+            // уширение гистограммы (`BroadenResponseDeposit`) и голые пики
+            // (`BuildTemplate`) — чистый счёт, ленивые кэши которого (ядра,
+            // каналы гистограммы, обращение калибровки, множитель рампы)
+            // защищены и хранят чистые функции ключа.
+            List<FsaComponent> chosen = new List<FsaComponent>();
             foreach (FsaComponent component in library)
             {
                 if (subset != null && !subset.Contains(component))
@@ -16944,27 +17172,90 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double[] template;
-                double[] lowTail = null;
+                chosen.Add(component);
+            }
+
+            int count = chosen.Count;
+            // 0 — готовый образ, 1 — по матрице отклика, 2 — голые пики
+            int[] route = new int[count];
+            Deposit[] deposits = new Deposit[count];
+            for (int i = 0; i < count; i++)
+            {
+                FsaComponent component = chosen[i];
                 if (component.FixedTemplate != null)
                 {
-                    // Готовый образ (наложения): ни линий, ни дрейфа.
-                    template = component.FixedTemplate;
+                    route[i] = 0;
                 }
                 else if (this.ResponseMatrix != null && !component.WeightsAreFinal)
                 {
-                    template = this.BuildTemplateFromResponse(component, calibration, fwhmCalibration,
-                                                              gain, offset, chLo, chHi, channels, out lowTail);
+                    route[i] = 1;
+                    deposits[i] = this.DepositOf(component, calibration, fwhmCalibration, channels);
+                }
+                else
+                {
+                    route[i] = 2;
+                }
+            }
+
+            double[][] templates = new double[count][];
+            double[][] tails = new double[count][];
+            List<FsaLine>[] notes = new List<FsaLine>[count];
+            double bin = this.ResponseMatrix != null ? this.ResponseMatrix.BinKev : 0.0;
+            FsaParallel.For(count, i =>
+            {
+                FsaComponent component = chosen[i];
+                if (route[i] == 0)
+                {
+                    // Готовый образ (наложения): ни линий, ни дрейфа.
+                    templates[i] = component.FixedTemplate;
+                }
+                else if (route[i] == 1)
+                {
+                    // Тело прежнего `BuildTemplateFromResponse` после `DepositOf`.
+                    Deposit deposit = deposits[i];
+                    if (deposit != null)
+                    {
+                        double[] template = this.BroadenResponseDeposit(deposit.Values, calibration, fwhmCalibration,
+                                                                        bin, gain, offset, chLo, chHi, channels);
+                        if (template != null && deposit.Tail != null)
+                        {
+                            tails[i] = this.BroadenResponseDeposit(deposit.Tail, calibration, fwhmCalibration,
+                                                                   bin, gain, offset, chLo, chHi, channels);
+                        }
+
+                        templates[i] = template;
+                    }
+                }
+                else
+                {
+                    notes[i] = new List<FsaLine>();
+                    templates[i] = this.BuildTemplate(component, calibration, fwhmCalibration, efficiency,
+                                                      gain, offset, chLo, chHi, channels, notes[i]);
+                }
+            });
+
+            List<FitColumn> columns = new List<FitColumn>();
+            fromMatrix = false;
+            for (int i = 0; i < count; i++)
+            {
+                FsaComponent component = chosen[i];
+                if (notes[i] != null)
+                {
+                    foreach (FsaLine line in notes[i])
+                    {
+                        this.NoteOutOfCurve(component, line);
+                    }
+                }
+
+                double[] template = templates[i];
+                double[] lowTail = tails[i];
+                if (route[i] == 1)
+                {
                     // Пометка «· матрица» ставится по ФАКТУ построенного матрицей
                     // образа, а не по наличию матрицы: библиотека из одних
                     // готовых образов (наложения) и производных компонентов
                     // (обратное рассеяние) матрицу не трогает вовсе.
                     fromMatrix |= template != null;
-                }
-                else
-                {
-                    template = BuildTemplate(component, calibration, fwhmCalibration, efficiency,
-                                             gain, offset, chLo, chHi, channels);
                 }
 
                 if (template != null)
@@ -16989,6 +17280,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 columns.Add(new FitColumn { Component = null, Values = column });
             }
 
+            return columns;
+        }
+
+        /// <summary>
+        /// (`AMBER213`, П241) Решение по готовым колонкам — тело прежнего
+        /// <see cref="FitOnce"/> после сборки образов, без изменений.
+        /// <paramref name="fixedCount"/> — сколько колонок в конце списка
+        /// приписаны из <c>fixedColumns</c>.
+        /// </summary>
+        FitResult SolveFitColumns(List<FitColumn> columns, bool fromMatrix, int fixedCount,
+                                  int chLo, int chHi, int channels, double[] y, double[] weights)
+        {
             int m = columns.Count;
             if (m == 0)
             {
@@ -16998,13 +17301,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Блок `fixedColumns` приписан в конец, и его начало нужно ДВОИМ:
             // штрафу на излом континуума ниже и поверке столбцов `S103` после
             // фита. Считается один раз и уезжает в `FitResult.FixedFirst`.
-            int fixedFirst = m - fixedColumns.Count;
+            int fixedFirst = m - fixedCount;
 
             int n = chHi - chLo + 1;
 
             double[,] gram = new double[m, m];
             double[] c = new double[m];
-            for (int a = 0; a < m; a++)
+            // (`AMBER213`, П241) Строки Грам — параллельно (<see cref="FsaParallel"/>):
+            // строка a пишет только c[a] и ячейки (a, b≥a) / (b≥a, a), каждую
+            // сумму ведёт один поток в прежнем порядке каналов — побитово то же.
+            FsaParallel.For(m, a =>
             {
                 double[] ta = columns[a].Values;
                 double dot = 0.0;
@@ -17026,7 +17332,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     gram[a, b] = value;
                     gram[b, a] = value;
                 }
-            }
+            });
 
             // (`S85`) ШТРАФ НА ИЗЛОМ КОНТИНУУМА — прибавкой к нормальным
             // уравнениям, а не отдельным проходом: минимизируемое становится
@@ -17045,7 +17351,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // копия на каждом узле сетки дрейфа.
             double[,] gramUnpenalized = null;
             if (this.ContinuumRoughness > 0.0 && this.continuumColumns >= 3
-                && fixedColumns.Count > 0)
+                && fixedCount > 0)
             {
                 gramUnpenalized = (double[,])gram.Clone();
                 int first = fixedFirst;
@@ -17131,7 +17437,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] rhs = c;
             double[] shift = null;
             if (this.continuumFloor != null && this.continuumFloor.Length == this.continuumColumns
-                && fixedColumns.Count >= this.continuumColumns && this.continuumColumns > 0)
+                && fixedCount >= this.continuumColumns && this.continuumColumns > 0)
             {
                 shift = new double[m];
                 for (int j = 0; j < this.continuumColumns; j++)
@@ -17609,10 +17915,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double[] centres = new double[channels];
-            for (int i = 0; i < channels; i++)
+            // (`AMBER213`, П241) Центры каналов — кусками параллельно: значение
+            // канала — чистая функция калибровки, своя ячейка у каждого.
+            const int Block = 1024;
+            FsaParallel.For((channels + Block - 1) / Block, block =>
             {
-                centres[i] = calibration.ChannelToEnergy(i);
-            }
+                int end = Math.Min(channels, (block + 1) * Block);
+                for (int i = block * Block; i < end; i++)
+                {
+                    centres[i] = calibration.ChannelToEnergy(i);
+                }
+            });
 
             for (int i = 1; i < channels; i++)
             {
@@ -18758,6 +19071,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
+            // (`AMBER213`, П241) В цикле вершин привязки шкалы окна одного
+            // компонента при одной длине гистограммы — одни и те же (см.
+            // <see cref="splitWindows"/>): берутся готовой маской «бин в окне».
+            Dictionary<int, bool[]> windowsOf = null;
+            bool[] inWindow = null;
+            if (this.splitWindows != null)
+            {
+                if (!this.splitWindows.TryGetValue(component, out windowsOf))
+                {
+                    windowsOf = new Dictionary<int, bool[]>();
+                    this.splitWindows[component] = windowsOf;
+                }
+
+                windowsOf.TryGetValue(Math.Min(floorBins, deposit.Length), out inWindow);
+            }
+
+            if (inWindow != null)
+            {
+                return CutTailByMask(deposit, part, channelParts, inWindow);
+            }
+
             // Окна линий в кэВ: линия чуть выше порога свешивает левое плечо
             // под порог, поэтому окна считаются для всех линий, а не только
             // для лежащих ниже.
@@ -18893,6 +19227,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            if (windowsOf != null)
+            {
+                // (`AMBER213`, П241) маска «бин в окне» — тем же правилом, что ниже
+                inWindow = new bool[limit];
+                for (int i = 0; i < limit; i++)
+                {
+                    double energy = i * bin;
+                    for (int k = 0; k < lows.Count; k++)
+                    {
+                        if (energy >= lows[k] && energy <= highs[k])
+                        {
+                            inWindow[i] = true;
+                            break;
+                        }
+                    }
+                }
+
+                windowsOf[limit] = inWindow;
+                return CutTailByMask(deposit, part, channelParts, inWindow);
+            }
+
             double[] tail = null;
             for (int i = 0; i < limit; i++)
             {
@@ -18915,6 +19270,67 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 if (!inPeakWindow)
+                {
+                    if (tail == null)
+                    {
+                        tail = new double[limit];
+                    }
+
+                    tail[i] = deposit[i];
+                    deposit[i] = 0.0;
+                    if (part != null)
+                    {
+                        part[i] = 0.0;
+                    }
+
+                    if (channelParts != null)
+                    {
+                        for (int c = 0; c < channelParts.Length; c++)
+                        {
+                            double[] row = channelParts[c];
+                            if (row != null && i < row.Length)
+                            {
+                                row[i] = 0.0;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return tail;
+        }
+
+        /// <summary>
+        /// (`AMBER213`, П241) Память окон пиков ножа хвоста на время цикла вершин
+        /// <see cref="CollectScaleAnchors"/>: компонент → длина гистограммы
+        /// (`limit`) → маска «бин в окне». Окна зависят только от линий
+        /// компонента, длины гистограммы и состояния света/матрицы, а оно в цикле
+        /// вершин не меняется; до П241 каждый синий канал линии
+        /// (<see cref="BuildLineBlue"/>) заново считал окна ВСЕХ линий хозяина
+        /// с откликом вылета каждой — квадрат по числу линий (замер П241: на
+        /// Th232 Amber с матрицей это была самая дорогая последовательная часть).
+        /// Вне цикла — null, нож считает окна, как прежде. Сбрасывается и в
+        /// начале каждого прохода разбора.
+        /// </summary>
+        Dictionary<FsaComponent, Dictionary<int, bool[]>> splitWindows;
+
+        /// <summary>
+        /// (`AMBER213`, П241) Хвост ножа по готовой маске — тело прежнего цикла
+        /// `SplitContinuumBelowTrustFloor` после окон, без изменений: бин вне
+        /// окон уходит из гистограммы (и её частей) в хвост.
+        /// </summary>
+        static double[] CutTailByMask(double[] deposit, double[] part, double[][] channelParts, bool[] inWindow)
+        {
+            int limit = inWindow.Length;
+            double[] tail = null;
+            for (int i = 0; i < limit; i++)
+            {
+                if (deposit[i] <= 0.0)
+                {
+                    continue;
+                }
+
+                if (!inWindow[i])
                 {
                     if (tail == null)
                     {
@@ -19784,10 +20200,46 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // разбора, целиком. Она нужна как мерка: по ней берутся группы
             // бинов, порог отсечки и центры тяжести, и только это делает части
             // действительно частями ленты, а не похожими на неё кривыми (S37).
+            LayerPlan plan = this.PrepareLayerParts(component, calibration, fwhmCalibration, channels);
+            if (plan != null)
+            {
+                this.BroadenLayerParts(plan, calibration, fwhmCalibration, gain, offset, chLo, chHi, channels,
+                                       out sumCurve, out channelCurves);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER213`, П241) Что уширять для слоёв компонента: гистограмма
+        /// поглощения и её части. Половина <see cref="BuildLayerParts"/>, трогающая
+        /// общее состояние (`DepositOf`, `CorrectionOf`), — зовётся подряд.
+        /// </summary>
+        sealed class LayerPlan
+        {
+            public Deposit Deposit;
+            public bool WantSum;
+            public int ChannelCount;
+            public double[][] Parts;
+            public double Bin;
+        }
+
+        LayerPlan PrepareLayerParts(FsaComponent component, EnergyCalibration calibration,
+                                    FwhmCalibration fwhmCalibration, int channels)
+        {
+            if (this.ResponseMatrix == null || component == null || component.WeightsAreFinal)
+            {
+                return null;
+            }
+
+            double bin = this.ResponseMatrix.BinKev;
+            if (!(bin > 0.0))
+            {
+                return null;
+            }
+
             Deposit deposit = this.DepositOf(component, calibration, fwhmCalibration, channels);
             if (deposit == null)
             {
-                return;
+                return null;
             }
 
             bool wantSum = deposit.SumPart != null && this.cascade != null && this.CascadeSumPeaks;
@@ -19802,7 +20254,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             int partCount = (wantSum ? 1 : 0) + channelCount;
             if (partCount == 0)
             {
-                return;
+                return null;
             }
 
             double[][] parts = new double[partCount][];
@@ -19817,15 +20269,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 parts[next++] = deposit.Channels[c];
             }
 
+            return new LayerPlan { Deposit = deposit, WantSum = wantSum, ChannelCount = channelCount, Parts = parts, Bin = bin };
+        }
+
+        /// <summary>
+        /// (`AMBER213`, П241) Уширение слоёв по готовому плану — чистый счёт
+        /// (<see cref="BroadenResponseDeposit"/>), годится для параллельных кусков.
+        /// </summary>
+        void BroadenLayerParts(LayerPlan plan, EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                               double gain, double offset, int chLo, int chHi, int channels,
+                               out double[] sumCurve, out double[][] channelCurves)
+        {
+            sumCurve = null;
+            channelCurves = null;
+            Deposit deposit = plan.Deposit;
+            bool wantSum = plan.WantSum;
+            int channelCount = plan.ChannelCount;
             double[][] templates;
-            this.BroadenResponseDeposit(deposit.Values, parts, calibration, fwhmCalibration,
-                                        bin, gain, offset, chLo, chHi, channels, out templates);
+            this.BroadenResponseDeposit(deposit.Values, plan.Parts, calibration, fwhmCalibration,
+                                        plan.Bin, gain, offset, chLo, chHi, channels, out templates);
             if (templates == null)
             {
                 return;
             }
 
-            next = 0;
+            int next = 0;
             if (wantSum)
             {
                 sumCurve = templates[next++];
@@ -19973,13 +20441,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // ядро фазы посчитано со сдвигом центра на её долю канала: остаток
             // дисперсии ≤ 1/(4·16²) кан², ширина верна до 0.2 % и на 1.1 кан.
             int size = (channels + 2 * pad) * SourcePhases;
-            double[] source = this.sourceBuffer;
-            int[] bands = this.sourceBands;
-            if (source == null || source.Length < size)
-            {
-                source = this.sourceBuffer = new double[size];
-                bands = this.sourceBands = new int[size];
-            }
+            // (`AMBER213`, П241) Буфер — СВОЙ у каждого одновременного уширения
+            // (образы строятся параллельно): берётся из запаса анализатора и
+            // возвращается погашенным; при исключении не возвращается вовсе.
+            SourceScratch scratch = this.RentSource(size);
+            double[] source = scratch.Source;
+            int[] bands = scratch.Bands;
 
             // Буферы частей — свои и одноразовые: подслой и каналы строятся
             // один раз на готовый результат, а не на каждом узле сетки дрейфа,
@@ -20188,6 +20655,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            this.ReturnSource(scratch);
             return any ? template : null;
         }
 
@@ -20296,6 +20764,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         double[] DepositChannels(EnergyCalibration calibration, double bin, int count, int channels)
         {
+            // (`AMBER213`, П241) под замком — см. <see cref="lazyGate"/>
+            lock (this.lazyGate)
+            {
+                return this.DepositChannelsLocked(calibration, bin, count, channels);
+            }
+        }
+
+        double[] DepositChannelsLocked(EnergyCalibration calibration, double bin, int count, int channels)
+        {
             // (`S169`) карта нуля — часть ключа кэша: смена наклона "adc" в
             // цикле привязки обязана перестроить таблицу, иначе образ после
             // включения карты остался бы калибровочным молча.
@@ -20350,8 +20827,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         ShapeKernelBank Kernels(FwhmCalibration fwhmCalibration)
         {
-            if (this.kernelBank == null || !object.ReferenceEquals(this.kernelBank.Calibration, fwhmCalibration)
-                || this.kernelBank.Mode != this.KernelChannelMean)
+            // (`AMBER213`, П241) под замком — см. <see cref="lazyGate"/>
+            lock (this.lazyGate)
+            {
+                return this.KernelsLocked(fwhmCalibration);
+            }
+        }
+
+        ShapeKernelBank KernelsLocked(FwhmCalibration fwhmCalibration)
+        {
+            if (this.kernelBank == null || !this.kernelBank.Fits(fwhmCalibration, this.KernelChannelMean))
             {
                 this.kernelBank = new ShapeKernelBank(fwhmCalibration, this.KernelChannelMean);
             }
@@ -20359,8 +20844,53 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return this.kernelBank;
         }
 
-        double[] sourceBuffer;
-        int[] sourceBands;
+        /// <summary>
+        /// (`AMBER213`, П241) Буфер источников уширения: ячейки (доля канала) и
+        /// номера ступеней ядра. Прежде был один на анализатор; теперь — запас
+        /// (<see cref="RentSource"/>), потому что образы строятся параллельно.
+        /// Возвращается погашенным: каждая ячейка гасится при свёртке.
+        /// </summary>
+        sealed class SourceScratch
+        {
+            public double[] Source;
+            public int[] Bands;
+        }
+
+        readonly Stack<SourceScratch> sourcePool = new Stack<SourceScratch>();
+
+        SourceScratch RentSource(int size)
+        {
+            lock (this.sourcePool)
+            {
+                while (this.sourcePool.Count > 0)
+                {
+                    SourceScratch kept = this.sourcePool.Pop();
+                    if (kept.Source.Length >= size)
+                    {
+                        return kept;
+                    }
+                }
+            }
+
+            return new SourceScratch { Source = new double[size], Bands = new int[size] };
+        }
+
+        void ReturnSource(SourceScratch scratch)
+        {
+            lock (this.sourcePool)
+            {
+                this.sourcePool.Push(scratch);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER213`, П241) Замок ленивых кэшей анализатора, которые читает
+        /// параллельная сборка образов: банк ядер (<see cref="Kernels"/>), каналы
+        /// бинов гистограммы (<see cref="DepositChannels"/>), обращение
+        /// калибровки (<see cref="InverseOf"/>). Все три хранят чистые функции
+        /// ключа — кто бы ни посчитал первым, значения те же.
+        /// </summary>
+        readonly object lazyGate = new object();
         double[] depositChannels;
         double depositChannelsBin;
         EnergyCalibration depositChannelsCalibration;
@@ -20400,24 +20930,53 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             readonly FwhmCalibration calibration;
             readonly FsaKernelSampling mode;
-            readonly Dictionary<long, double[]> values = new Dictionary<long, double[]>();
-            readonly Dictionary<int, int> lefts = new Dictionary<int, int>();
+
+            // (`AMBER213`, П241) Банк читают параллельные уширения образов:
+            // словари потокобезопасные, и КАЖДОЕ ядро считается ровно один раз —
+            // ленивой ячейкой на ключ (`ExecutionAndPublication`): поток, которому
+            // ядро нужно, пока его считает другой, ждёт готового, а не считает
+            // то же самое заново (замер П241: без этого пятнадцать потоков
+            // считали одни и те же ядра, и уширение стоило втрое дороже
+            // последовательного). Ядро — чистая функция ступени и фазы: кто бы
+            // ни посчитал его, значения те же.
+            readonly System.Collections.Concurrent.ConcurrentDictionary<long, Lazy<double[]>> values =
+                new System.Collections.Concurrent.ConcurrentDictionary<long, Lazy<double[]>>();
+            readonly System.Collections.Concurrent.ConcurrentDictionary<int, int> lefts =
+                new System.Collections.Concurrent.ConcurrentDictionary<int, int>();
 
             public ShapeKernelBank(FwhmCalibration calibration, FsaKernelSampling mode)
             {
-                this.calibration = calibration;
+                // (`AMBER213`, П241) Свой снимок: ядро читает у калибровки только
+                // форму пика (тип и хвосты/Фойгт, <see cref="PeakShapeModel"/>), и
+                // банк, считающий по своей копии, — чистая функция этих чисел.
+                this.calibration = calibration.Clone();
                 this.mode = mode;
+            }
+
+            /// <summary>
+            /// (`AMBER213`, П241) Годится ли банк для <paramref name="other"/>: та же
+            /// выборка в канале и та же форма пика — тип и четыре числа побитово.
+            /// Коэффициенты ширины ядра не трогают (ширина — номер ступени).
+            /// </summary>
+            public bool Fits(FwhmCalibration other, FsaKernelSampling otherMode)
+            {
+                return other != null && otherMode == this.mode
+                       && other.PeakType == this.calibration.PeakType
+                       && SameBits(other.ExpGaussExpLeftTail, this.calibration.ExpGaussExpLeftTail)
+                       && SameBits(other.ExpGaussExpRightTail, this.calibration.ExpGaussExpRightTail)
+                       && SameBits(other.VoigtSigma, this.calibration.VoigtSigma)
+                       && SameBits(other.VoigtGamma, this.calibration.VoigtGamma);
+            }
+
+            static bool SameBits(double a, double b)
+            {
+                return BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
             }
 
             /// <summary>(`S207`) Как значение ядра берётся в канале — см. <see cref="KernelChannelMean"/>.</summary>
             public FsaKernelSampling Mode
             {
                 get { return this.mode; }
-            }
-
-            public FwhmCalibration Calibration
-            {
-                get { return this.calibration; }
             }
 
             /// <summary>Номер ступени лестницы для заданной ПШПВ.</summary>
@@ -20434,13 +20993,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// </summary>
             public double[] Get(int band, int phase)
             {
-                double[] kernel;
                 long key = (long)band * SourcePhases + phase;
-                if (this.values.TryGetValue(key, out kernel))
+                Lazy<double[]> cell;
+                if (!this.values.TryGetValue(key, out cell))
                 {
-                    return kernel;
+                    cell = this.values.GetOrAdd(key, new Lazy<double[]>(
+                        () => this.Compute(band, phase),
+                        System.Threading.LazyThreadSafetyMode.ExecutionAndPublication));
                 }
 
+                return cell.Value;
+            }
+
+            /// <summary>Ядро ступени и фазы — счёт прежнего <see cref="Get"/> при промахе.</summary>
+            double[] Compute(int band, int phase)
+            {
+                double[] kernel = null;
                 double fwhm = Math.Exp(band * LogRatio);
                 double shift = (double)phase / SourcePhases;
                 double left = PeakShapeModel.GetLeftSupport(this.calibration, fwhm);
@@ -20476,12 +21044,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     leftSpan = 0;
                 }
 
-                this.values[key] = kernel;
+                // ⚠ Начало ядра хранится НА СТУПЕНЬ, а пишется счётом каждой фазы:
+                // при последовательном счёте — последней посчитанной. Значение у
+                // фаз одной ступени одно и то же (`⌈левого носителя⌉`, от фазы не
+                // зависит), кроме ядра null, которого у фазы с ненулевым ядром
+                // соседки той же ступени не бывает: носитель конечен у всех фаз
+                // разом, а площадь у профиля шириной от канала положительна при
+                // любом сдвиге центра внутри канала.
                 this.lefts[band] = leftSpan;
                 return kernel;
             }
 
-            readonly Dictionary<long, double[]> fineValues = new Dictionary<long, double[]>();
+            readonly System.Collections.Concurrent.ConcurrentDictionary<long, Lazy<double[]>> fineValues =
+                new System.Collections.Concurrent.ConcurrentDictionary<long, Lazy<double[]>>();
 
             /// <summary>
             /// (`S207`, П225) Ядро той же ступени и фазы на ДРОБНОЙ сетке: элемент
@@ -20492,13 +21067,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// </summary>
             public double[] GetFine(int band, int phase)
             {
-                double[] fine;
                 long key = (long)band * SourcePhases + phase;
-                if (this.fineValues.TryGetValue(key, out fine))
+                Lazy<double[]> cell;
+                if (!this.fineValues.TryGetValue(key, out cell))
                 {
-                    return fine;
+                    cell = this.fineValues.GetOrAdd(key, new Lazy<double[]>(
+                        () => this.ComputeFine(band, phase),
+                        System.Threading.LazyThreadSafetyMode.ExecutionAndPublication));
                 }
 
+                return cell.Value;
+            }
+
+            /// <summary>Дробная сетка ступени и фазы — счёт прежнего <see cref="GetFine"/> при промахе.</summary>
+            double[] ComputeFine(int band, int phase)
+            {
+                double[] fine = null;
                 double[] kernel = this.Get(band, phase);
                 if (kernel != null)
                 {
@@ -20517,7 +21101,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
-                this.fineValues[key] = fine;
                 return fine;
             }
 
@@ -20598,20 +21181,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                       FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
                                       double gain, double offset, int chLo, int chHi, int channels)
         {
+            return this.BuildTemplate(component, calibration, fwhmCalibration, efficiency,
+                                      gain, offset, chLo, chHi, channels, null);
+        }
+
+        /// <summary>
+        /// (`AMBER213`, П241) То же; <paramref name="deferredNotes"/> не null —
+        /// линии вне кривой не заносятся в заметки анализатора, а копятся в
+        /// список: параллельная сборка образов (<see cref="BuildFitColumns"/>)
+        /// заносит их потом сама, в порядке библиотеки.
+        /// </summary>
+        double[] BuildTemplate(FsaComponent component, EnergyCalibration calibration,
+                                      FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
+                                      double gain, double offset, int chLo, int chHi, int channels,
+                                      List<FsaLine> deferredNotes)
+        {
             double[] template = new double[channels];
-            // Значения профиля считаются один раз на носитель и переиспользуются
-            // между линиями: образ строится заново на каждом узле сетки дрейфа
-            // (9x9 = 81 раз на компонент), и второй проход по носителю ради
-            // площади удваивал бы счёт профиля на канал.
-            double[] shape = null;
             bool any = false;
             // (`S207`, П225) рампа на дробной сетке канала — см. RampWithinChannel
             bool onGrid = this.RampOnGrid;
             int rampTop = onGrid ? this.thresholdRamp.Top : 0;
             const int K = FsaBand.RampProfile.SubBins;
-            double[] fine = onGrid ? new double[K] : null;
             // (`AMBER157`, П195) выход линий полосы — в кривой и вне её
             double yieldInside = 0.0, yieldOutside = 0.0;
+            // (`AMBER213`, П241) Три прохода вместо одного: (1) подряд — место,
+            // ширина, вес и носитель каждой линии, заметки и выходы (общее
+            // состояние); (2) ПАРАЛЛЕЛЬНО — профиль линии на её носителе, его
+            // площадь и множитель рампы, каждой линии в свою ячейку; (3) подряд,
+            // в порядке линий, — `template[i] += norm·v`. Каждое число считается
+            // прежними действиями в прежнем порядке, и порядок сложения линий в
+            // канал тот же — образ побитово прежний. Профиль — 9 значений формы
+            // на канал (Симпсон), и у компонентов на сотни линий (обратное
+            // рассеяние ряда) он стоил больше всего остального разбора.
+            var plans = new List<double[]>();
             foreach (FsaLine line in component.Lines)
             {
                 // (`S169`) голый пик — той же картой нуля, что образ по матрице.
@@ -20653,7 +21255,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         if (inBand)
                         {
-                            this.NoteOutOfCurve(component, line);
+                            if (deferredNotes != null)
+                            {
+                                deferredNotes.Add(line);
+                            }
+                            else
+                            {
+                                this.NoteOutOfCurve(component, line);
+                            }
+
                             yieldOutside += line.Intensity;
                         }
 
@@ -20693,47 +21303,82 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                if (shape == null || shape.Length < span)
-                {
-                    shape = new double[span];
-                }
+                plans.Add(new[] { p, fwhm, weight, full0, full1 });
+            }
 
+            // (2) профили линий — параллельно; ячейка: [0] — norm, далее v по lo…hi
+            FsaKernelSampling sampling = this.KernelChannelMean;
+            FsaBand.RampProfile ramp = this.thresholdRamp;
+            double[][] parts = new double[plans.Count][];
+            int[] partLo = new int[plans.Count];
+            FsaParallel.For(plans.Count, j =>
+            {
+                double[] plan = plans[j];
+                double p = plan[0], fwhm = plan[1], weight = plan[2];
+                int full0 = (int)plan[3], full1 = (int)plan[4];
+                int span = full1 - full0 + 1;
+                // Значения профиля считаются один раз на носитель: второй проход
+                // по носителю ради площади удваивал бы счёт профиля на канал.
+                double[] shape = new double[span];
                 double area = 0.0;
                 for (int i = 0; i < span; i++)
                 {
-                    double v = ChannelShapeValue(full0 + i - p, fwhm, fwhmCalibration, this.KernelChannelMean);
+                    double v = ChannelShapeValue(full0 + i - p, fwhm, fwhmCalibration, sampling);
                     shape[i] = v;
                     area += v;
                 }
 
                 if (!(area > 0.0))
                 {
-                    continue;
+                    return;
                 }
 
                 int lo = Math.Max(chLo, full0);
                 int hi = Math.Min(chHi, full1);
                 if (hi < lo)
                 {
-                    continue;
+                    return;
                 }
 
-                double norm = weight / area;
+                double[] part = new double[hi - lo + 2];
+                part[0] = weight / area;
+                double[] fine = onGrid ? new double[K] : null;
                 for (int i = lo; i <= hi; i++)
                 {
                     double v = shape[i - full0];
                     if (onGrid && i < rampTop)
                     {
                         // (`S207`, П225) ход пика внутри канала — веса рампы доли
-                        for (int j = 0; j < K; j++)
+                        for (int s = 0; s < K; s++)
                         {
-                            fine[j] = PeakShapeModel.RelativeValue(i - p - 0.5 + (j + 0.5) / K, fwhm, fwhmCalibration);
+                            fine[s] = PeakShapeModel.RelativeValue(i - p - 0.5 + (s + 0.5) / K, fwhm, fwhmCalibration);
                         }
 
-                        v *= this.thresholdRamp.Weighted(i, fine, 0);
+                        v *= ramp.Weighted(i, fine, 0);
                     }
 
-                    template[i] += norm * v;
+                    part[i - lo + 1] = v;
+                }
+
+                parts[j] = part;
+                partLo[j] = lo;
+            });
+
+            // (3) сложение — подряд, в порядке линий, прежним выражением
+            for (int j = 0; j < parts.Length; j++)
+            {
+                double[] part = parts[j];
+                if (part == null)
+                {
+                    continue;
+                }
+
+                double norm = part[0];
+                int lo = partLo[j];
+                int hi = lo + part.Length - 2;
+                for (int i = lo; i <= hi; i++)
+                {
+                    template[i] += norm * part[i - lo + 1];
                 }
 
                 any = true;
@@ -21706,6 +22351,116 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             catch (Exception)
             {
                 return 0.0;
+            }
+        }
+    }
+    /// <summary>
+    /// (`AMBER213`, П241) ПАРАЛЛЕЛИЗМ РАЗБОРА — ОДНИМ МЕСТОМ.
+    ///
+    /// Задача Amber 07.10.2026, консоль, дословно: «Почему так долго идёт "FSA
+    /// Analysis"? Проанализируй отладчиком, можно ли его ускорить без потерь
+    /// качества? Например распаралелить.» Решения вопросником того же дня,
+    /// дословно: «Побитово то же» и «Все, кроме одного».
+    ///
+    /// Отсюда два правила, и оба обязательны для каждого места, где этим
+    /// пользуются:
+    ///
+    /// * степень — <see cref="DefaultDegree"/> = число ядер минус одно (не
+    ///   меньше одного): одно ядро остаётся окну и набору спектра;
+    /// * параллельно идут только НЕЗАВИСИМЫЕ куски, каждый из которых пишет СВОЮ
+    ///   ячейку результата (по индексу); собирает их вызывающий в прежнем
+    ///   порядке. Ни одна сумма не делится между потоками — порядок сложения у
+    ///   каждого числа прежний, и результат совпадает с последовательным
+    ///   ПОБИТОВО. Общее изменяемое состояние (кэши анализатора, заметки,
+    ///   счётчики, чтение баз — собиратель отказов <c>FsaDatabaseFailures</c>
+    ///   привязан к потоку) в параллельные куски не попадает: оно остаётся в
+    ///   последовательной части до или после.
+    /// </summary>
+    public static class FsaParallel
+    {
+        /// <summary>«Все, кроме одного» (решение Amber 07.10.2026).</summary>
+        public static readonly int DefaultDegree = Math.Max(1, Environment.ProcessorCount - 1);
+
+        /// <summary>
+        /// Действующая степень. Меняют её только пробы (1 — последовательный
+        /// счёт той же сборкой, замер ускорения и сверка побитовости).
+        /// </summary>
+        public static int Degree = DefaultDegree;
+
+        static System.Threading.Tasks.TaskScheduler scheduler;
+        static int schedulerDegree;
+        static readonly object SchedulerGate = new object();
+
+        /// <summary>
+        /// Планировщик кусков: не больше <c>степень − 1</c> одновременно — ещё
+        /// один поток даёт сам вызывающий (он работает в цикле наравне). Общий
+        /// для ВЛОЖЕННЫХ циклов (образы компонентов → линии образа), поэтому и
+        /// вложенность не поднимает число занятых ядер выше степени.
+        /// </summary>
+        static System.Threading.Tasks.TaskScheduler SchedulerFor(int degree)
+        {
+            lock (SchedulerGate)
+            {
+                if (scheduler == null || schedulerDegree != degree)
+                {
+                    scheduler = new System.Threading.Tasks.ConcurrentExclusiveSchedulerPair(
+                        System.Threading.Tasks.TaskScheduler.Default, Math.Max(1, degree - 1)).ConcurrentScheduler;
+                    schedulerDegree = degree;
+                }
+
+                return scheduler;
+            }
+        }
+
+        /// <summary>
+        /// <paramref name="body"/>(i) для i = 0 … <paramref name="count"/> − 1;
+        /// при степени 1 или одном куске — подряд на вызывающем потоке.
+        /// Исключение — того куска, у которого индекс НАИМЕНЬШИЙ (то же, что
+        /// бросил бы последовательный цикл), с исходным стеком.
+        /// </summary>
+        public static void For(int count, Action<int> body)
+        {
+            int degree = Degree;
+            if (count <= 0)
+            {
+                return;
+            }
+
+            if (degree <= 1 || count == 1)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    body(i);
+                }
+
+                return;
+            }
+
+            Exception[] errors = new Exception[count];
+            System.Threading.Tasks.Parallel.For(
+                0, count,
+                new System.Threading.Tasks.ParallelOptions
+                {
+                    MaxDegreeOfParallelism = degree,
+                    TaskScheduler = SchedulerFor(degree)
+                },
+                i =>
+                {
+                    try
+                    {
+                        body(i);
+                    }
+                    catch (Exception ex)
+                    {
+                        errors[i] = ex;
+                    }
+                });
+            for (int i = 0; i < count; i++)
+            {
+                if (errors[i] != null)
+                {
+                    System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[i]).Throw();
+                }
             }
         }
     }
