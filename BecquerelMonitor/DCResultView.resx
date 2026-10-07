@@ -4596,9 +4596,6 @@
   <data name="DCResult_FsaNoSpectrum" xml:space="preserve">
     <value>FSA: no spectrum</value>
   </data>
-  <data name="DCResult_FsaAbsent" xml:space="preserve">
-    <value>not in decomposition</value>
-  </data>
   <data name="DCResult_FsaScaleMatrix" xml:space="preserve">
     <value>FSA: Bq by response matrix</value>
   </data>
@@ -4624,7 +4621,7 @@
     <value>no decomposition</value>
   </data>
   <data name="DCResult_FsaDetails" xml:space="preserve">
-    <value>rows {0}, not in decomposition {1}, via chain member {2}</value>
+    <value>rows {0}, not detected {1}, tied chains {2}</value>
   </data>
   <data name="DCResult_FsaMdaHeader" xml:space="preserve">
     <value>MDA</value>
@@ -4634,8 +4631,5 @@
   </data>
   <data name="DCResult_FsaStale" xml:space="preserve">
     <value>(recomputing…)</value>
-  </data>
-  <data name="DCResult_FsaNoSet" xml:space="preserve">
-    <value>FSA: select a nuclide set</value>
   </data>
 </root>

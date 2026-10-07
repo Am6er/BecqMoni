@@ -45,6 +45,7 @@ namespace BecquerelMonitor.Probes
     ///   --huber-inflate=on|off    надувка порога Хубера на √(χ²/ndf) (AMBER209; умолчание приложения — on)
     ///   --huber-gamma=G           относительный пол порога Хубера: γ только в ноже (AMBER209, П237; умолчание 0)
     ///   --huber-cut               печатать срез Хубера: по полосам энергии и сериям подрезанных каналов (П237)
+    /// Пики в полосе, не покрытые составом (AMBER210), печатаются всегда — по строке на пик.
     /// Коды: 0 — посчитано; 2 — ключи/файлы; 3 — разбор не завершился.
     /// </summary>
     static class FsaBqProbe
@@ -170,9 +171,8 @@ namespace BecquerelMonitor.Probes
                 }
                 nuclides.ActiveSet = set;
             }
-            Console.WriteLine("SETUP\tсет: {0}; родителей: {1}; матрицы: {2}",
+            Console.WriteLine("SETUP\tсет: {0}; матрицы: {1}",
                               set != null ? set.Name : "(все определения)",
-                              FsaMeasurementResult.ParentsOf(set, nuclides.NuclideDefinitions).Count,
                               BecquerelMonitor.EfficiencyMaker.ResponseMatrixStore.Directory);
 
             int code = 0;
@@ -260,6 +260,23 @@ namespace BecquerelMonitor.Probes
             {
                 HuberCut(LastAnalyzer, rd.EnergySpectrum);
             }
+            // (`AMBER210`, П238) пики в полосе, не покрытые составом, — всегда
+            Console.WriteLine("  пиков вне состава: {0}", result.UncoveredPeaks != null ? result.UncoveredPeaks.Count : 0);
+            if (result.UncoveredPeaks != null)
+            {
+                foreach (FsaUncoveredPeak u in result.UncoveredPeaks)
+                {
+                    var names = new List<string>();
+                    foreach (FsaUncoveredCandidate c in u.Candidates) names.Add(c.Nuclide + " " + c.EnergyKev.ToString("F1", CultureInfo.InvariantCulture));
+                    Console.WriteLine("    {0,8} кэВ  ширина {1,5} кэВ  избыток {2,10} отсч. = {3,5} % ожидания  z {4,6}  библиотека: {5}",
+                                      u.EnergyKev.ToString("F1", CultureInfo.InvariantCulture),
+                                      u.WidthKev.ToString("F1", CultureInfo.InvariantCulture),
+                                      u.ExcessCounts.ToString("F0", CultureInfo.InvariantCulture),
+                                      (100.0 * u.ExcessShare).ToString("F1", CultureInfo.InvariantCulture),
+                                      u.Z.ToString("F1", CultureInfo.InvariantCulture),
+                                      names.Count > 0 ? string.Join(", ", names) : "—");
+                }
+            }
             Console.WriteLine("  χ²/ndf Пуассон {0}; σ-надувка {1}; усиление {2}; нуль {3} кан.; опор шкалы {4}; фон {5}{6}; невязка модели {7}",
                               result.Chi2NdfPoisson.ToString("F2", CultureInfo.InvariantCulture),
                               result.SigmaInflation.ToString("F3", CultureInfo.InvariantCulture),
@@ -284,7 +301,7 @@ namespace BecquerelMonitor.Probes
             }
 
             FsaMeasurementResult.Summary summary;
-            MeasurementResultCollection built = FsaMeasurementResult.Build(rd, result, set, nuclides.NuclideDefinitions,
+            MeasurementResultCollection built = FsaMeasurementResult.Build(rd, result, nuclides.NuclideDefinitions,
                                                                            FsaMeasurementResult.Texts.Russian, out summary);
             Console.WriteLine("  {0}; {1}", summary.Describe(null), summary.Details(null));
             if (built == null)
@@ -297,7 +314,7 @@ namespace BecquerelMonitor.Probes
                 ? manager.Translate(built, ResultTranslation.BecquerelsPerKilogram) : null;
 
             Console.WriteLine("  {0,-14} {1,12} {2,12} {3,12} {4,5} | {5,9}",
-                              "родитель", "FSA Бк", "±σ", "a# Бк", "обн", "FSA/пасп");
+                              "изотоп", "FSA Бк", "±σ", "a# Бк", "обн", "FSA/пасп");
             for (int i = 0; i < bq.ResultList.Count; i++)
             {
                 MeasurementResult row = bq.ResultList[i];

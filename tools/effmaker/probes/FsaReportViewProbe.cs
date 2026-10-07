@@ -213,6 +213,7 @@ namespace FsaReportViewProbe
             RowKindsSection(mainForm, thorium, control);
             StatesSection(mainForm, thorium);
             QualitySection(mainForm, thorium);
+            UncoveredSection(mainForm, thorium);
             GroupingAndFlagsSection(mainForm, thorium);
             ParentsSection(mainForm, thorium, control);
             NeighbourSection(mainForm, thorium, control);
@@ -785,6 +786,82 @@ namespace FsaReportViewProbe
                 DetectionLimitPeakCounts = 100.0, TotalYieldPercent = 0.114
             });
             return result;
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER210`, П238) ПИК ВНЕ СОСТАВА — СТРОКА ОТЧЁТА
+        // ------------------------------------------------------------------
+        /// <summary>
+        /// (`AMBER210`; решение Amber 07.10.2026 вопросником, дословно: «Только отчёт FSA, строка
+        /// на пик») Синтетический результат с непокрытыми пиками даёт в блоке пометок по строке на
+        /// пик: энергия, избыток в процентах, z и линии библиотеки рядом; слово состояния —
+        /// красное «нет в сете». Положительные контроли: тот же результат без пиков строки не даёт
+        /// вовсе; пик без кандидатов пишет «нет»; ключ вместо перевода — отказ.
+        /// </summary>
+        static void UncoveredSection(MainForm mainForm, DocEnergySpectrum doc)
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== пик вне состава (AMBER210): строка отчёта на каждый пик, без пиков — строки нет ===");
+            foreach (string lang in new[] { "ru-RU", "en-US" })
+            {
+                Language(lang);
+                foreach (int peaks in new[] { 0, 1, 2 })
+                {
+                    // Сцена — как у раздела 6 (блок качества на ней строится): без опор
+                    // привязки — у синтетического результата нет их списка, и строки
+                    // опор рассыпали бы блок.
+                    FsaResult scene = new FsaResult
+                    {
+                        Chi2Ndf = 2.5, Chi2NdfPoisson = 2.5, BackgroundUsed = true, ResponseMatrixUsed = false,
+                        EfficiencyUsed = false, CascadeSummingUsed = true
+                    };
+                    if (peaks >= 1)
+                    {
+                        var peak = new FsaUncoveredPeak { EnergyKev = 609.3, WidthKev = 42.0, ExcessCounts = 12345.0, ExcessShare = 0.28, Z = 15.2 };
+                        peak.Candidates.Add(new FsaUncoveredCandidate { Nuclide = "Bi-214", EnergyKev = 609.31 });
+                        scene.UncoveredPeaks.Add(peak);
+                    }
+                    if (peaks >= 2)
+                    {
+                        scene.UncoveredPeaks.Add(new FsaUncoveredPeak { EnergyKev = 351.9, WidthKev = 30.0, ExcessCounts = 5000.0, ExcessShare = 0.18, Z = 9.1 });
+                    }
+                    var session = new FsaAnalysisSession();
+                    Plant(session, scene, "uncovered" + peaks);
+                    using (var report = new FSAReportView(mainForm))
+                    {
+                        // ⛔ НЕ потребитель: потребитель заказал бы у сеанса настоящий счёт
+                        // по спектру документа, и подсаженная сцена сменилась бы живым
+                        // результатом без пиков вне состава (так и было на первом прогоне
+                        // П238: строк 0 вместо 1 и 2). Блок читается с подсаженной сцены,
+                        // как в разделе 6.
+                        report.SetProbeSource(session, doc.ActiveResultData);
+                        var rows = new List<Row>();
+                        foreach (Row row in report.ReportTable.TableModel.Rows)
+                        {
+                            if (row.Cells.Count > 2 && row.Cells[2].Text == Own("FSAReport_UncoveredValue")) rows.Add(row);
+                        }
+                        Same(lang + ": пиков " + peaks + " — строк «" + Own("FSAReport_UncoveredValue") + "»", peaks, rows.Count);
+                        if (rows.Count != peaks)
+                        {
+                            ShowBlock(report, lang);
+                        }
+                        if (peaks >= 1 && rows.Count >= 1)
+                        {
+                            string caption = rows[0].Cells[1].Text;
+                            Same(lang + ": строка первого пика называет энергию, избыток, z и линию библиотеки", true,
+                                 caption.Contains("609.3") && caption.Contains("28") && caption.Contains("15.2") && caption.Contains("Bi-214 609.3"));
+                            Same(lang + ": слово состояния первого пика красное", Paint(BadColor), Paint(rows[0].Cells[2].ForeColor));
+                            Denies(lang + ": контроль — ключ вместо перевода в строке пика", caption.Contains("FSAReport_"));
+                        }
+                        if (peaks >= 2 && rows.Count >= 2)
+                        {
+                            string second = rows[1].Cells[1].Text;
+                            Same(lang + ": пик без кандидатов пишет «" + Own("FSAReport_UncoveredNone") + "»", true,
+                                 second.Contains("351.9") && second.EndsWith(Own("FSAReport_UncoveredNone")));
+                        }
+                    }
+                }
+            }
         }
 
         // ------------------------------------------------------------------

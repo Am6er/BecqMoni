@@ -735,8 +735,9 @@ namespace BecquerelMonitor
                 return;
             }
             // (`AMBER208`, решения Amber 06–07.10.2026) активность считает разбор FSA
-            // в самом окне результата (свой сеанс на документ); счёт площадей зон
-            // ROI по таймеру снят вместе с формой ROI («Сначала снять ROI…»).
+            // в самом окне результата — сеансом документа (`AMBER211`, «Окно
+            // результата читает сеанс документа»); счёт площадей зон ROI по
+            // таймеру снят вместе с формой ROI («Сначала снять ROI…»).
             foreach (DCResultView dcresultView in this.dcResultViewList)
             {
                 // Hidden views (HideOnClose) stay in the list forever; refilling

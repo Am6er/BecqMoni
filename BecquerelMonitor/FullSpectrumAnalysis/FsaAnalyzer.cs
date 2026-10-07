@@ -2991,6 +2991,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double HuberGamma { get; set; }
 
         /// <summary>
+        /// (`AMBER210`, П238 07.10.2026) ПОРОГ ЗНАЧИМОСТИ НЕПОКРЫТОГО ПИКА — `Σr/√ΣD` по каналам
+        /// серии с данными выше модели, с которого серия попадает в
+        /// <see cref="FsaResult.UncoveredPeaks"/> (вместе с порогом избытка
+        /// <see cref="UncoveredPeakExcess"/>; правило целиком — у <see cref="FindUncoveredPeaks"/>).
+        /// Два порога, а не один: на длинном наборе значимость набирают и серии разлада ФОРМЫ
+        /// в единицы процентов (десятки серий на Th232 Amber, журнал П237), и предупреждение о
+        /// них никто бы не читал. Значение — решение Amber 07.10.2026 вопросником (строка
+        /// `AMBER210`); ставит конструктор (`T82`). Нуль или меньше — поиск выключен.
+        /// </summary>
+        public double UncoveredPeakZ { get; set; }
+
+        /// <summary>
+        /// (`AMBER210`) ПОРОГ ИЗБЫТКА НЕПОКРЫТОГО ПИКА — доля `Σ(y − модель)` серии от ожидания
+        /// сырого отсчёта её каналов (модель плюс вычтенное); второй порог к
+        /// <see cref="UncoveredPeakZ"/>. Значение — то же решение Amber 07.10.2026; ставит
+        /// конструктор (`T82`). Нуль или меньше — поиск выключен.
+        /// </summary>
+        public double UncoveredPeakExcess { get; set; }
+
+        /// <summary>
+        /// (`AMBER210`) ЛИНИИ БИБЛИОТЕКИ ПРИЛОЖЕНИЯ — имя определения и энергия, все определения,
+        /// не только сет (решение Amber 07.10.2026 вопросником, дословно: «Библиотека приложения
+        /// целиком»): ими называются непокрытые пики (<see cref="FsaUncoveredPeak.Candidates"/>).
+        /// Ставит сеанс (<c>FsaAnalysisSession</c>) из менеджера определений; выход линии в
+        /// библиотеке не хранится, поэтому <see cref="FsaLine.Intensity"/> здесь нуль и кандидаты
+        /// ранжируются по близости энергии. null — не называть. Имён в коде нет.
+        /// </summary>
+        public List<FsaLine> LibraryLines { get; set; }
+
+        /// <summary>
         /// (`AMBER209`, П237) СЛЕД ПОСЛЕДНЕГО ФИТА — ЧИТАЕТСЯ ТОЛЬКО ПРОБАМИ
         /// (`FsaBqProbe --huber-cut`), ставится в <c>BuildResult</c>. Веса
         /// решателя финального хуберовского прохода (<see cref="LastFitWeights"/>),
@@ -8695,6 +8725,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.MaxEnergy = 2800.0;
             this.Xi = 0.03;
             this.HuberM = 3.0;
+            // (`AMBER210`) пики вне состава: решение Amber 07.10.2026 «z ≥ 5 и избыток ≥ 10 % модели».
+            // ⚠ ПОКА ВЫКЛЮЧЕНО (порог значимости нуль): первая редакция правил покрытия на корпусе
+            // давала предупреждение на 31 спектре из 92 понятной части при полных сетах и
+            // пропускала 352/609 кэВ Th232 (журнал П238). Включается коммитом доводки — порог
+            // значимости 5 по решению Amber; порог избытка стоит уже сейчас.
+            this.UncoveredPeakZ = 0.0;
+            this.UncoveredPeakExcess = 0.10;
             // (`AMBER209`, П236 06.10.2026) Порог Хубера с надувкой √(χ²/ndf) — ВКЛ.
             // Решение Amber 06.10.2026 вопросником, дословно: «Порог с надувкой
             // √(χ²/ndf)». До этого дня порог стоял в σ канала, и активность с
@@ -12104,6 +12141,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // отсутствующий в составе (U-235 под 186 кэВ Ra-226): только сказать,
             // в состав ничего не добавляется (~~`S110`~~).
             this.FindLineInterferences(result, candidates, calibration, fwhmCalibration, efficiency, chLo, chHi, channels);
+            // (`AMBER210`, П238) Пики в полосе, не покрытые составом, — по следу финального
+            // фита; только сказать, в состав ничего не добавляется.
+            this.FindUncoveredPeaks(result, best, candidates, calibration, fwhmCalibration, chLo, chHi, channels);
             // Пределы считаются по ТОЙ библиотеке, что пошла в фит (S47): образ,
             // снятый гейтом вылета, кандидатом не был, и печатать ему МДА
             // значило бы отвечать «не обнаружен» про то, чего не искали.
@@ -13967,6 +14007,312 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double hi = calibration.ChannelToEnergy(chHi);
             result.LineInterferences.AddRange(FsaSampleLibrary.NaturalCompanionInterference(
                 library, detected, fwhmKev, eff, Math.Min(lo, hi), Math.Max(lo, hi)));
+        }
+
+        /// <summary>
+        /// (`AMBER210`, П238 07.10.2026; решения Amber 07.10.2026 вопросником, дословно: «Строку о
+        /// предупреждении разбора», «z ≥ 5 и избыток ≥ 10 % модели», «Только отчёт FSA, строка на
+        /// пик», «Библиотека приложения целиком») ПИКИ В ПОЛОСЕ, НЕ ПОКРЫТЫЕ СОСТАВОМ —
+        /// <see cref="FsaResult.UncoveredPeaks"/>.
+        ///
+        /// Зачем. Ответ по сету тихо бимодален, когда в спектре есть структура, которой в сете
+        /// нет: на Th232 Amber ряд Ra-226 вне сета (352 кэВ +18 %, 609 кэВ +28 % над моделью) нож
+        /// Хубера либо режет (1282 Бк), либо чистый МНК описывает его торием (1093 Бк) — 17 % при
+        /// σ 0.4 %, и окно молчало (журнал П237).
+        ///
+        /// Как. По следу финального фита (невязка `y − модель`, дисперсия, модель) в полосе от пола
+        /// невязки (<see cref="FsaResult.ResidualFloorChannel"/>) собираются СЕРИИ соседних каналов
+        /// с нормированной невязкой не ниже двух (разрыв до двух каналов, <see cref="ResidualRuns"/>);
+        /// у серии — центр по избытку, ширина, избыток `Σr`, его значимость `Σr/√ΣD` и доля от
+        /// ожидания сырого отсчёта (модель плюс вычтенное). Серия попадает в список, если ширина —
+        /// от половины до трёх ПШПВ (у́же — шум канала, шире — разлад континуума), значимость не
+        /// ниже <see cref="UncoveredPeakZ"/>, доля избытка не ниже <see cref="UncoveredPeakExcess"/>
+        /// и она НЕ ПОКРЫТА: в ±ПШПВ/2 от центра нет линии ни одного вошедшего компонента (с его
+        /// производными — рентген, вылет, аннигиляция: все они компоненты с линиями), модельные
+        /// сумм-пики (<see cref="FsaComponentResult.SumPeakCurve"/>) в её каналах не дают четверти
+        /// модели, и в ±1.5 ПШПВ нет парного провала с половиной её избытка — иначе это пик,
+        /// СДВИНУТЫЙ шкалой (2614 кэВ Th232 на нелинейной шкале: +124 % рядом с −59 %), а не
+        /// непокрытый. Рядом называются линии библиотеки приложения (<see cref="LibraryLines"/>) вне
+        /// состава в том же окне — до трёх, ближайшие, по одной на нуклид. Разбор, амплитуды и
+        /// пределы от этого не зависят — только сказано. Потребители: строки отчёта
+        /// (<c>FSAReportView</c>), `FsaBqProbe`, столбец `uncovered_peaks` у `CorpusFsaProbe`.
+        /// </summary>
+        void FindUncoveredPeaks(FsaResult result, FitResult fit, List<FsaComponent> library,
+                                EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                int chLo, int chHi, int channels)
+        {
+            if (result == null)
+            {
+                return;
+            }
+
+            result.UncoveredPeaks.Clear();
+            if (fit == null || fit.Residual == null || fit.Variance == null || fit.Model == null
+                || calibration == null || fwhmCalibration == null
+                || !(this.UncoveredPeakZ > 0.0) || !(this.UncoveredPeakExcess > 0.0))
+            {
+                return;
+            }
+
+            double[] r = fit.Residual, v = fit.Variance, model = fit.Model;
+            double[] subtracted = this.reportNoise != null ? this.reportNoise.Subtracted : null;
+            int lo = Math.Max(chLo, result.ResidualFloorChannel);
+            int hi = Math.Min(chHi, Math.Min(channels, Math.Min(r.Length, Math.Min(v.Length, model.Length))) - 1);
+            if (lo >= hi)
+            {
+                return;
+            }
+
+            Func<double, double> fwhmKev = energy =>
+            {
+                double channel = calibration.EnergyToChannel(energy, channels);
+                double width = fwhmCalibration.ChannelToFwhm(channel);
+                if (!(width > 0.0))
+                {
+                    return 0.0;
+                }
+
+                return Math.Abs(calibration.ChannelToEnergy(channel + 0.5 * width)
+                                - calibration.ChannelToEnergy(channel - 0.5 * width));
+            };
+
+            // Линии вошедших компонентов (и производных) и имена их нуклидов.
+            var detected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (result.Components != null)
+            {
+                foreach (FsaComponentResult c in result.Components)
+                {
+                    if (c != null && c.CountRate > 0.0 && !string.IsNullOrEmpty(c.Name))
+                    {
+                        detected.Add(c.Name);
+                    }
+                }
+            }
+
+            var coveredKev = new List<double>();
+            var coveredNuclides = new HashSet<string>(detected, StringComparer.OrdinalIgnoreCase);
+            if (library != null)
+            {
+                foreach (FsaComponent c in library)
+                {
+                    if (c == null || c.Lines == null || !detected.Contains(c.Name))
+                    {
+                        continue;
+                    }
+
+                    foreach (FsaLine line in c.Lines)
+                    {
+                        if (line == null)
+                        {
+                            continue;
+                        }
+
+                        coveredKev.Add(line.Energy);
+                        if (!string.IsNullOrEmpty(line.Nuclide))
+                        {
+                            coveredNuclides.Add(line.Nuclide);
+                        }
+                    }
+                }
+            }
+
+            // Модельные сумм-пики по каналам — сумма по компонентам.
+            double[] sumPeaks = null;
+            if (result.Components != null)
+            {
+                foreach (FsaComponentResult c in result.Components)
+                {
+                    if (c == null || c.SumPeakCurve == null)
+                    {
+                        continue;
+                    }
+
+                    if (sumPeaks == null)
+                    {
+                        sumPeaks = new double[channels];
+                    }
+
+                    for (int i = 0; i < channels && i < c.SumPeakCurve.Length; i++)
+                    {
+                        sumPeaks[i] += c.SumPeakCurve[i];
+                    }
+                }
+            }
+
+            List<int[]> plus = ResidualRuns(r, v, lo, hi, +1);
+            List<int[]> minus = ResidualRuns(r, v, lo, hi, -1);
+            var found = new List<FsaUncoveredPeak>();
+            foreach (int[] run in plus)
+            {
+                double excess = 0.0, variance = 0.0, expected = 0.0, modelRun = 0.0, moment = 0.0, sums = 0.0;
+                for (int i = run[0]; i <= run[1]; i++)
+                {
+                    if (!(v[i] > 0.0))
+                    {
+                        continue;
+                    }
+
+                    double ri = Math.Max(r[i], 0.0);
+                    excess += ri;
+                    variance += v[i];
+                    moment += ri * calibration.ChannelToEnergy(i);
+                    double mu = model[i] + (subtracted != null && i < subtracted.Length ? subtracted[i] : 0.0);
+                    if (mu > 0.0)
+                    {
+                        expected += mu;
+                    }
+
+                    modelRun += Math.Max(model[i], 0.0);
+                    if (sumPeaks != null)
+                    {
+                        sums += Math.Max(sumPeaks[i], 0.0);
+                    }
+                }
+
+                if (!(excess > 0.0) || !(variance > 0.0) || !(expected > 0.0))
+                {
+                    continue;
+                }
+
+                double z = excess / Math.Sqrt(variance);
+                double share = excess / expected;
+                if (z < this.UncoveredPeakZ || share < this.UncoveredPeakExcess)
+                {
+                    continue;
+                }
+
+                double centre = moment / excess;
+                double fwhm = fwhmKev(centre);
+                if (!(fwhm > 0.0))
+                {
+                    continue;
+                }
+
+                double width = Math.Abs(calibration.ChannelToEnergy(run[1] + 1) - calibration.ChannelToEnergy(run[0]));
+                if (width < 0.5 * fwhm || width > 3.0 * fwhm)
+                {
+                    continue;
+                }
+
+                bool covered = false;
+                foreach (double e in coveredKev)
+                {
+                    if (Math.Abs(e - centre) <= 0.5 * fwhm)
+                    {
+                        covered = true;
+                        break;
+                    }
+                }
+
+                if (covered || (sumPeaks != null && modelRun > 0.0 && sums >= 0.25 * modelRun))
+                {
+                    continue;
+                }
+
+                bool shifted = false;
+                foreach (int[] dip in minus)
+                {
+                    double deficit = 0.0, dipMoment = 0.0;
+                    for (int i = dip[0]; i <= dip[1]; i++)
+                    {
+                        double d = Math.Max(-r[i], 0.0);
+                        deficit += d;
+                        dipMoment += d * calibration.ChannelToEnergy(i);
+                    }
+
+                    if (!(deficit >= 0.5 * excess))
+                    {
+                        continue;
+                    }
+
+                    if (Math.Abs(dipMoment / deficit - centre) <= 1.5 * fwhm)
+                    {
+                        shifted = true;
+                        break;
+                    }
+                }
+
+                if (shifted)
+                {
+                    continue;
+                }
+
+                var peak = new FsaUncoveredPeak
+                {
+                    EnergyKev = centre, WidthKev = width, ExcessCounts = excess, ExcessShare = share, Z = z
+                };
+                if (this.LibraryLines != null)
+                {
+                    var near = new List<FsaLine>();
+                    foreach (FsaLine line in this.LibraryLines)
+                    {
+                        if (line != null && !string.IsNullOrEmpty(line.Nuclide)
+                            && !coveredNuclides.Contains(line.Nuclide)
+                            && Math.Abs(line.Energy - centre) <= 0.5 * fwhm)
+                        {
+                            near.Add(line);
+                        }
+                    }
+
+                    near.Sort((a, b) => Math.Abs(a.Energy - centre).CompareTo(Math.Abs(b.Energy - centre)));
+                    var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (FsaLine line in near)
+                    {
+                        if (peak.Candidates.Count >= 3)
+                        {
+                            break;
+                        }
+
+                        if (named.Add(line.Nuclide))
+                        {
+                            peak.Candidates.Add(new FsaUncoveredCandidate { Nuclide = line.Nuclide, EnergyKev = line.Energy });
+                        }
+                    }
+                }
+
+                found.Add(peak);
+            }
+
+            found.Sort((a, b) => b.Z.CompareTo(a.Z));
+            result.UncoveredPeaks.AddRange(found);
+        }
+
+        /// <summary>
+        /// (`AMBER210`) Серии соседних каналов полосы `[lo, hi]`, где нормированная невязка
+        /// `sign·r/√D` не ниже двух (разрыв до двух каналов не рвёт серию): пары
+        /// [первый канал, последний канал]. Канал без положительной дисперсии серию не продолжает.
+        /// </summary>
+        static List<int[]> ResidualRuns(double[] r, double[] v, int lo, int hi, int sign)
+        {
+            var runs = new List<int[]>();
+            int start = -1, last = -1;
+            for (int i = lo; i <= hi; i++)
+            {
+                if (!(v[i] > 0.0) || sign * r[i] / Math.Sqrt(v[i]) < 2.0)
+                {
+                    continue;
+                }
+
+                if (start >= 0 && i - last > 3)
+                {
+                    runs.Add(new[] { start, last });
+                    start = -1;
+                }
+
+                if (start < 0)
+                {
+                    start = i;
+                }
+
+                last = i;
+            }
+
+            if (start >= 0)
+            {
+                runs.Add(new[] { start, last });
+            }
+
+            return runs;
         }
 
         FsaResult BuildResult(FitResult fit, EnergySpectrum spectrum, FwhmCalibration fwhmCalibration,

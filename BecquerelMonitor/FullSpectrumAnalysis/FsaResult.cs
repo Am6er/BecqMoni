@@ -1119,6 +1119,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public List<FsaLineInterference> LineInterferences { get; private set; } = new List<FsaLineInterference>();
 
         /// <summary>
+        /// (`AMBER210`, П238 07.10.2026) ПИКИ В ПОЛОСЕ, НЕ ПОКРЫТЫЕ СОСТАВОМ: серии каналов с
+        /// данными выше модели шириной порядка ПШПВ, у которых в ±ПШПВ/2 нет линии ни одного
+        /// вошедшего компонента, модельные сумм-пики не держат их каналов, и рядом нет парного
+        /// провала (сдвинутый шкалой пик — не непокрытый). Пусто — не найдено. Правило и пороги —
+        /// у <see cref="FsaAnalyzer.FindUncoveredPeaks"/>; показ — строками отчёта FSA, по строке на
+        /// пик (решение Amber 07.10.2026 вопросником, дословно: «Только отчёт FSA, строка на пик»;
+        /// порог — «z ≥ 5 и избыток ≥ 10 % модели»; имена рядом — «Библиотека приложения целиком»).
+        /// Повод: на Th232 Amber ряд Ra-226 вне сета (352 кэВ +18 %, 609 кэВ +28 % над моделью)
+        /// давал два бассейна ответа — 1282 Бк ножом Хубера и 1093 Бк чистым МНК — при σ 0.4 %,
+        /// и окно об этом молчало (журнал П237).
+        /// </summary>
+        public List<FsaUncoveredPeak> UncoveredPeaks { get; private set; } = new List<FsaUncoveredPeak>();
+
+        /// <summary>
         /// (S44) Фон был ПОДАН на разбор, но НЕ ВЗЯТ — с причиной словами
         /// («the background has 1012 channels, the spectrum 1024»). null —
         /// фона не подавали либо он вычтен. Отказ обязан быть назван:
@@ -2665,6 +2679,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// отсутствующий: U-235 185.7 кэВ под Ra-226 186.2 кэВ. Имён здесь нет —
     /// пара находится по базе (<see cref="FsaSampleLibrary.NaturalCompanionInterference"/>).
     /// </summary>
+    /// <summary>
+    /// (`AMBER210`) Пик в полосе, не покрытый составом — см. <see cref="FsaResult.UncoveredPeaks"/>.
+    /// Числа — в шкале каналов полосы фита: избыток `Σ(y − модель)` по серии, его доля от ожидания
+    /// сырого отсчёта серии (модель плюс вычтенное) и значимость `Σr/√ΣD`.
+    /// </summary>
+    public sealed class FsaUncoveredPeak
+    {
+        /// <summary>Центр серии по избытку, кэВ.</summary>
+        public double EnergyKev { get; set; }
+        /// <summary>Ширина серии, кэВ.</summary>
+        public double WidthKev { get; set; }
+        /// <summary>Избыток данных над моделью в серии, отсчёты.</summary>
+        public double ExcessCounts { get; set; }
+        /// <summary>Избыток относительно ожидания сырого отсчёта серии, доля.</summary>
+        public double ExcessShare { get; set; }
+        /// <summary>Значимость избытка `Σr/√ΣD` по каналам серии.</summary>
+        public double Z { get; set; }
+        /// <summary>
+        /// Линии библиотеки приложения вне состава в ±ПШПВ/2 от центра — до трёх, ближайшие, по
+        /// одной на нуклид; пусто — в библиотеке рядом ничего нет. Имён в коде нет (`FsaAnalyzer.LibraryLines`).
+        /// </summary>
+        public List<FsaUncoveredCandidate> Candidates { get; private set; } = new List<FsaUncoveredCandidate>();
+    }
+
+    /// <summary>(`AMBER210`) Линия библиотеки приложения рядом с непокрытым пиком.</summary>
+    public sealed class FsaUncoveredCandidate
+    {
+        /// <summary>Имя определения библиотеки (подпись нуклида).</summary>
+        public string Nuclide { get; set; }
+        /// <summary>Энергия линии определения, кэВ.</summary>
+        public double EnergyKev { get; set; }
+    }
+
     public sealed class FsaLineInterference
     {
         /// <summary>Энергия линии состава, кэВ (сильнейшая в окне).</summary>

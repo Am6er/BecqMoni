@@ -428,20 +428,23 @@ namespace BecquerelMonitor
         // Token: 0x040001A5 RID: 421
         MeasurementResultCollection previousCollection;
 
-        // (`AMBER208`, задача Amber 06.10.2026; решения вопросником: строки — «Из
-        // сета нуклидов», Бк — «Матрица или абсолютная кривая», ряд — «Считать
-        // строку родителя связанным рядом», сеансов — «Два, как сейчас», причина
-        // отсутствия матрицы — только в отчёте: «Убрать причину из окна»).
-        // Источник строк — разбор FSA активного документа, своим сеансом;
+        // (`AMBER208`, задача Amber 06.10.2026; решения вопросником: Бк — «Матрица или
+        // абсолютная кривая», причина отсутствия матрицы — только в отчёте: «Убрать
+        // причину из окна». Строки ~~«Из сета нуклидов»~~ и ряд ~~«Считать строку
+        // родителя связанным рядом»~~, сеансов ~~«Два, как сейчас»~~ — СНЯТЫ ответом
+        // Amber 07.10.2026 (`AMBER211`): «Окно результата читает сеанс документа»;
+        // «…что мы видим в окне отчёта в списке изотопов - ту активность мы и
+        // считаем» — строки по составу разбора: связанный ряд строкой родителя,
+        // свободные члены порознь, не обнаруженные — с пределом.)
+        // Источник строк — разбор FSA активного документа ЕГО сеансом (тем же,
+        // что у графика и окна отчёта: один расчёт на спектр);
         // заголовок первой колонки — шкала разбора, подсказка — счёт строк; все
         // тексты — из ресурсов окна (`DCResult_Fsa*`, en + ru). Форма ROI и
         // счёт зон сняты 07.10.2026 («Сначала снять ROI, потом один коммит»).
-        FullSpectrumAnalysis.FsaAnalysisSession fsaSession;
         DocEnergySpectrum fsaDocument;
 
         const string KeyFsaComputing = "DCResult_FsaComputing";
         const string KeyFsaNoSpectrum = "DCResult_FsaNoSpectrum";
-        const string KeyFsaAbsent = "DCResult_FsaAbsent";
         const string KeyFsaScaleMatrix = "DCResult_FsaScaleMatrix";
         const string KeyFsaScaleCurve = "DCResult_FsaScaleCurve";
         const string KeyFsaHidden = "DCResult_FsaHidden";
@@ -454,13 +457,11 @@ namespace BecquerelMonitor
         const string KeyFsaMdaHeader = "DCResult_FsaMdaHeader";
         const string KeyFsaMdaTip = "DCResult_FsaMdaTip";
         const string KeyFsaStale = "DCResult_FsaStale";
-        const string KeyFsaNoSet = "DCResult_FsaNoSet";
 
         FullSpectrumAnalysis.FsaMeasurementResult.Texts FsaTexts()
         {
             return new FullSpectrumAnalysis.FsaMeasurementResult.Texts
             {
-                Absent = OwnText(KeyFsaAbsent),
                 ScaleMatrix = OwnText(KeyFsaScaleMatrix),
                 ScaleCurve = OwnText(KeyFsaScaleCurve),
                 Hidden = OwnText(KeyFsaHidden),
@@ -523,53 +524,50 @@ namespace BecquerelMonitor
         {
             DocEnergySpectrum document = this.mainForm != null ? this.mainForm.ActiveDocument : null;
             ResultData rd = document != null ? document.ActiveResultData : null;
-            // СВОЙ сеанс разбора, а не сеанс документа: окну результата ряд
-            // нужен СВЯЗАННЫМ и состав — ИЗ СЕТА независимо от галочек отчёта
-            // FSA, а общий сеанс с другими настройками двух потребителей
-            // пересчитывался бы попеременно. Сеанс — на документ: смена вкладки
-            // даёт новый сеанс без результата, и строк по чужому спектру нет.
+            // (`AMBER211`, решение Amber 07.10.2026 вопросником, дословно: «Окно
+            // результата читает сеанс документа») СЕАНС — ДОКУМЕНТА, тот же, что у
+            // графика и окна отчёта: один расчёт на спектр, и настройки разбора у
+            // всех трёх одни — галочки отчёта FSA (состав «из сета» и равновесие —
+            // их умолчания, `FromSetForFsa` / `ChainEquilibrium`). Прежний СВОЙ сеанс
+            // (П236, «Два, как сейчас») снят: на каждое обновление спектра шло два
+            // расчёта по секундам, а при записи спектра — непрерывно (пауза при
+            // записи — у сеанса, `FsaAnalysisSession.EnsureUpToDate`). Сеанс
+            // документа окно не сбрасывает — он не его.
             if (!ReferenceEquals(this.fsaDocument, document))
             {
-                if (this.fsaSession != null)
-                {
-                    this.fsaSession.Completed -= this.FsaSessionCompleted;
-                    this.fsaSession.Reset();
-                }
                 // смена сета или пиков обновляет вид документа — тем же событием
                 // живёт окно отчёта FSA; без него строка «выберите сет» висела бы
                 // до следующего обновления спектра
                 if (this.fsaDocument != null)
                 {
                     this.fsaDocument.ViewRefreshed -= this.FsaDocumentViewRefreshed;
+                    if (this.fsaDocument.FsaSession != null)
+                    {
+                        this.fsaDocument.FsaSession.Completed -= this.FsaSessionCompleted;
+                    }
                 }
                 if (document != null)
                 {
                     document.ViewRefreshed += this.FsaDocumentViewRefreshed;
+                    if (document.FsaSession != null)
+                    {
+                        document.FsaSession.Completed += this.FsaSessionCompleted;
+                    }
                 }
                 this.fsaDocument = document;
-                this.fsaSession = document != null ? new FullSpectrumAnalysis.FsaAnalysisSession() : null;
-                if (this.fsaSession != null)
-                {
-                    this.fsaSession.Completed += this.FsaSessionCompleted;
-                }
             }
-            FullSpectrumAnalysis.FsaAnalysisSession session = this.fsaSession;
+            FullSpectrumAnalysis.FsaAnalysisSession session = document != null ? document.FsaSession : null;
             if (rd == null || session == null || rd.EnergySpectrum == null)
             {
                 this.SetFsaHeader(OwnText(KeyFsaNoSpectrum), null);
                 return null;
             }
-            // Решение Amber 06.10.2026 вопросником: при активном сете «All Nuclides» —
-            // отказ «выберите сет»: все определения как состав навязывают кандидатов
-            // (ториевый спектр показал Am-241 1047 Бк), строк без явного сета нет.
-            if (NuclideDefinitionManager.GetInstance().ActiveSet == null)
-            {
-                this.SetFsaHeader(OwnText(KeyFsaNoSet), null);
-                return StatusCollection(rd, OwnText(KeyFsaNoSet));
-            }
+            // (`AMBER211`) Отказа «выберите сет» больше нет: строки — по списку изотопов
+            // отчёта, сет окну не нужен (ответ Amber 07.10.2026: «что мы видим в окне
+            // отчёта в списке изотопов - ту активность мы и считаем»).
+            // Те же настройки и тот же отпечаток, что у графика и отчёта, — иначе
+            // три потребителя заказывали бы три разных счёта по очереди.
             FullSpectrumAnalysis.FsaCalculationOptions options = FullSpectrumAnalysis.FsaCalculationOptions.Of(rd);
-            options.FromSet = true;          // решение Amber 06.10.2026 «Из сета нуклидов»
-            options.ChainEquilibrium = true; // решение Amber 06.10.2026 «Считать строку родителя связанным рядом»
             session.EnsureUpToDate(rd, rd.BackgroundEnergySpectrum != null, options);
             FullSpectrumAnalysis.FsaResult result = session.Result;
             bool running = session.IsRunning;
@@ -582,7 +580,7 @@ namespace BecquerelMonitor
             FullSpectrumAnalysis.FsaMeasurementResult.Texts texts = this.FsaTexts();
             FullSpectrumAnalysis.FsaMeasurementResult.Summary summary;
             MeasurementResultCollection built = FullSpectrumAnalysis.FsaMeasurementResult.Build(
-                rd, result, nuclides.ActiveSet, nuclides.NuclideDefinitions, texts, out summary);
+                rd, result, nuclides.NuclideDefinitions, texts, out summary);
             // Признак свежести: пока сеанс считает новый спектр, строки — по
             // прежнему разбору, и заголовок говорит об этом.
             string head = summary.Describe(texts) + (running ? " " + OwnText(KeyFsaStale) : "");
@@ -602,6 +600,24 @@ namespace BecquerelMonitor
             };
             collection.ResultList.Add(new MeasurementResult(line, 0.0, 0.0) { IsValid = false, StatusText = text });
             return collection;
+        }
+
+        /// <summary>
+        /// (`AMBER211`) Окно закрывается — отписаться от сеанса и вида документа;
+        /// сеанс документа не сбрасывать: он живёт у документа.
+        /// </summary>
+        protected override void OnFormClosed(System.Windows.Forms.FormClosedEventArgs e)
+        {
+            if (this.fsaDocument != null)
+            {
+                this.fsaDocument.ViewRefreshed -= this.FsaDocumentViewRefreshed;
+                if (this.fsaDocument.FsaSession != null)
+                {
+                    this.fsaDocument.FsaSession.Completed -= this.FsaSessionCompleted;
+                }
+                this.fsaDocument = null;
+            }
+            base.OnFormClosed(e);
         }
 
         void FsaDocumentViewRefreshed(object sender, EventArgs e)

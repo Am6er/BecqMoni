@@ -304,6 +304,27 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (`AMBER211`, П238 07.10.2026; решения Amber вопросником, дословно: «Не чаще раза
+        /// в 30 с и только для видимых», консоль: «30 секунд - вынеси в настройки») ПАУЗА
+        /// МЕЖДУ СЧЁТАМИ ПОЛНОСПЕКТРАЛЬНОГО РАЗБОРА, ПОКА СПЕКТР ПИШЕТСЯ, секунд: новый счёт
+        /// — не раньше этого срока после начала предыдущего. Нуль — без паузы (счёт за
+        /// счётом, как до П238). Читает <c>FsaAnalysisSession.EnsureUpToDate</c>; поле —
+        /// вкладка «System» общих настроек. Старые файлы настроек без элемента получают
+        /// умолчание поля.
+        /// </summary>
+        public int FsaAcquisitionIntervalSeconds
+        {
+            get
+            {
+                return this.fsaAcquisitionIntervalSeconds;
+            }
+            set
+            {
+                this.fsaAcquisitionIntervalSeconds = value;
+            }
+        }
+
         public bool AutosaveDefaultPolicy
         {
             get
@@ -416,6 +437,9 @@ namespace BecquerelMonitor
         int autosaveperiod = 15;
 
         bool autosavedefaultpolicy = false;
+
+        // (`AMBER211`) секунд; решение Amber 07.10.2026 «Не чаще раза в 30 с»
+        int fsaAcquisitionIntervalSeconds = 30;
 
         bool importSpectrumWithEmptyConfig = false;
 
