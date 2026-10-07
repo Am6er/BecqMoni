@@ -1597,9 +1597,9 @@ namespace FsaStackShot
                     // строки могли бы разойтись с картинкой.
                     foreach (XPTable.Models.Row row in report.ReportTable.TableModel.Rows)
                     {
-                        string name = row.Cells.Count > 1 && row.Cells[1] != null ? row.Cells[1].Text : "";
-                        string value = row.Cells.Count > 2 && row.Cells[2] != null ? row.Cells[2].Text : "";
-                        string hint = row.Cells.Count > 1 && row.Cells[1] != null ? row.Cells[1].ToolTipText : "";
+                        string name = row.Cells.Count > 0 && row.Cells[0] != null ? row.Cells[0].Text : "";
+                        string value = row.Cells.Count > 1 && row.Cells[1] != null ? row.Cells[1].Text : "";
+                        string hint = row.Cells.Count > 0 && row.Cells[0] != null ? row.Cells[0].ToolTipText : "";
                         Console.WriteLine("SCREEN\t{0}\t{1}\t{2}", name ?? "", value ?? "",
                                           string.Equals(hint, name, StringComparison.Ordinal) ? "" : (hint ?? ""));
                     }

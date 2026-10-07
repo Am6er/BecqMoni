@@ -495,12 +495,6 @@
   <data name="reportTable.TabIndex" type="System.Int32, mscorlib">
     <value>4</value>
   </data>
-  <data name="swatchColumn.Text" xml:space="preserve">
-    <value></value>
-  </data>
-  <data name="swatchColumn.Width" type="System.Int32, mscorlib">
-    <value>24</value>
-  </data>
   <data name="componentColumn.Text" xml:space="preserve">
     <value>Component</value>
   </data>
@@ -5096,12 +5090,6 @@
   </data>
   <data name="&gt;&gt;columnModel.Type" xml:space="preserve">
     <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;swatchColumn.Name" xml:space="preserve">
-    <value>swatchColumn</value>
-  </data>
-  <data name="&gt;&gt;swatchColumn.Type" xml:space="preserve">
-    <value>XPTable.Models.ImageColumn, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;componentColumn.Name" xml:space="preserve">
     <value>componentColumn</value>

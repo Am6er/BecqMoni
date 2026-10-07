@@ -43,7 +43,6 @@ namespace BecquerelMonitor
             this.statusLabel = new System.Windows.Forms.Label();
             this.reportTable = new XPTable.Models.Table();
             this.columnModel = new XPTable.Models.ColumnModel();
-            this.swatchColumn = new XPTable.Models.ImageColumn();
             this.componentColumn = new XPTable.Models.TextColumn();
             this.valueColumn = new XPTable.Models.TextColumn();
             this.tableModel = new XPTable.Models.TableModel();
@@ -275,17 +274,8 @@ namespace BecquerelMonitor
             // columnModel
             //
             this.columnModel.Columns.AddRange(new XPTable.Models.Column[] {
-            this.swatchColumn,
             this.componentColumn,
             this.valueColumn});
-            //
-            // swatchColumn
-            //
-            this.swatchColumn.DrawText = false;
-            this.swatchColumn.Editable = false;
-            this.swatchColumn.Resizable = false;
-            this.swatchColumn.Sortable = false;
-            resources.ApplyResources(this.swatchColumn, "swatchColumn");
             //
             // componentColumn
             //
@@ -367,7 +357,6 @@ namespace BecquerelMonitor
         private System.Windows.Forms.Label statusLabel;
         private XPTable.Models.Table reportTable;
         private XPTable.Models.ColumnModel columnModel;
-        private XPTable.Models.ImageColumn swatchColumn;
         private XPTable.Models.TextColumn componentColumn;
         private XPTable.Models.TextColumn valueColumn;
         private XPTable.Models.TableModel tableModel;

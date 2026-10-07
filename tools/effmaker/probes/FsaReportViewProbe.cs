@@ -313,7 +313,7 @@ namespace FsaReportViewProbe
                 report.SetDocument(null);
                 Same("без документа — одна строка", 1, report.ReportTable.TableModel.Rows.Count);
                 Same("и это «спектр не выбран»", BecquerelMonitor.Properties.Resources.FSAReportNoSpectrum,
-                     report.ReportTable.TableModel.Rows[0].Cells[1].Text);
+                     report.ReportTable.TableModel.Rows[0].Cells[0].Text);
                 Same("без документа элементы управления выключены", false,
                      Control<RadioButton>(report, "sourceNucBaseRadio").Enabled
                      || Control<CheckBox>(report, "pileUpCheckBox").Enabled);
@@ -657,11 +657,11 @@ namespace FsaReportViewProbe
                     Same("контроль: строка невязки в таблице малого окна есть", true, residualRow != null);
                     if (residualRow != null)
                     {
-                        string keptCaption = residualRow.Cells[1].Text;
-                        residualRow.Cells[1].Text = ResidualCaption(scene, 1);
+                        string keptCaption = residualRow.Cells[0].Text;
+                        residualRow.Cells[0].Text = ResidualCaption(scene, 1);
                         Denies("контроль: подброшенная пометка подрезки у невязки сцены сверку не проходит",
                                BodyMismatch(report, scene, sceneRaw).Length == 0);
-                        residualRow.Cells[1].Text = keptCaption;
+                        residualRow.Cells[0].Text = keptCaption;
                         Same("после возврата подписи ячейки снова сходятся", string.Empty, BodyMismatch(report, scene, sceneRaw));
                     }
 
@@ -719,14 +719,14 @@ namespace FsaReportViewProbe
                     Same("контроль: строка невязки живого результата в таблице есть", true, liveRow != null);
                     if (liveRow != null && live != null)
                     {
-                        string keptCaption = liveRow.Cells[1].Text;
-                        liveRow.Cells[1].Text = Own("FSAReport_ResidualRow");
+                        string keptCaption = liveRow.Cells[0].Text;
+                        liveRow.Cells[0].Text = Own("FSAReport_ResidualRow");
                         Denies("контроль: голая подпись невязки без пометок при живом результате сверку не проходит",
                                BodyMismatch(report, live, sceneRaw).Length == 0);
-                        liveRow.Cells[1].Text = ResidualCaption(live, live.ClampedChannels(sceneRaw) + 1);
+                        liveRow.Cells[0].Text = ResidualCaption(live, live.ClampedChannels(sceneRaw) + 1);
                         Denies("контроль: пометка с чужим числом подрезанных каналов сверку не проходит",
                                BodyMismatch(report, live, sceneRaw).Length == 0);
-                        liveRow.Cells[1].Text = keptCaption;
+                        liveRow.Cells[0].Text = keptCaption;
                         Same("после возврата подписи ячейки живого результата снова сходятся", string.Empty,
                              BodyMismatch(report, live, sceneRaw));
                     }
@@ -839,7 +839,7 @@ namespace FsaReportViewProbe
                         var rows = new List<Row>();
                         foreach (Row row in report.ReportTable.TableModel.Rows)
                         {
-                            if (row.Cells.Count > 2 && row.Cells[2].Text == Own("FSAReport_UncoveredValue")) rows.Add(row);
+                            if (row.Cells.Count > 1 && row.Cells[1].Text == Own("FSAReport_UncoveredValue")) rows.Add(row);
                         }
                         Same(lang + ": пиков " + peaks + " — строк «" + Own("FSAReport_UncoveredValue") + "»", peaks, rows.Count);
                         if (rows.Count != peaks)
@@ -848,15 +848,15 @@ namespace FsaReportViewProbe
                         }
                         if (peaks >= 1 && rows.Count >= 1)
                         {
-                            string caption = rows[0].Cells[1].Text;
+                            string caption = rows[0].Cells[0].Text;
                             Same(lang + ": строка первого пика называет энергию, избыток, z и линию библиотеки", true,
                                  caption.Contains("609.3") && caption.Contains("28") && caption.Contains("15.2") && caption.Contains("Bi-214 609.3"));
-                            Same(lang + ": слово состояния первого пика красное", Paint(BadColor), Paint(rows[0].Cells[2].ForeColor));
+                            Same(lang + ": слово состояния первого пика красное", Paint(BadColor), Paint(rows[0].Cells[1].ForeColor));
                             Denies(lang + ": контроль — ключ вместо перевода в строке пика", caption.Contains("FSAReport_"));
                         }
                         if (peaks >= 2 && rows.Count >= 2)
                         {
-                            string second = rows[1].Cells[1].Text;
+                            string second = rows[1].Cells[0].Text;
                             Same(lang + ": пик без кандидатов пишет «" + Own("FSAReport_UncoveredNone") + "»", true,
                                  second.Contains("351.9") && second.EndsWith(Own("FSAReport_UncoveredNone")));
                         }
@@ -918,7 +918,7 @@ namespace FsaReportViewProbe
                      BecquerelMonitor.Properties.Resources.FSAStatusError + ": ОШИБКА: причина такая-то",
                      status.Text);
                 Same("ошибка без результата: одна строка", 1, report.ReportTable.TableModel.Rows.Count);
-                Same("и это текст причины", "ОШИБКА: причина такая-то", Text(report, 0, 1));
+                Same("и это текст причины", "ОШИБКА: причина такая-то", Text(report, 0, 0));
                 report.SetDocument(null);
             }
         }
@@ -1014,11 +1014,11 @@ namespace FsaReportViewProbe
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ВТОРОЙ: подменено слово состояния
                     // у пометки — блок остаётся той же длины, а содержимое лжёт.
                     Row markRow = report.ReportTable.TableModel.Rows[Chi2Row(report) + 2];
-                    string was = markRow.Cells[2].Text;
-                    markRow.Cells[2].Text = Own("FSAReport_MatrixUsed");
+                    string was = markRow.Cells[1].Text;
+                    markRow.Cells[1].Text = Own("FSAReport_MatrixUsed");
                     Denies(lang + ": контроль — подменённое слово состояния пометки проверку не проходит",
                            BlockProblems(report, "1234.57", marks).Count == 0);
-                    markRow.Cells[2].Text = was;
+                    markRow.Cells[1].Text = was;
 
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ТРЕТИЙ (`A244`): число с
                     // разделителем разрядов проверку не проходит — иначе она
@@ -1031,11 +1031,11 @@ namespace FsaReportViewProbe
                     // пометки подменён на противоположный — текст тот же,
                     // длина блока та же, лжёт только цвет.
                     Row painted = report.ReportTable.TableModel.Rows[Chi2Row(report) + 2];
-                    Color wasColor = painted.Cells[2].ForeColor;
-                    painted.Cells[2].ForeColor = GoodColor;
+                    Color wasColor = painted.Cells[1].ForeColor;
+                    painted.Cells[1].ForeColor = GoodColor;
                     Denies(lang + ": контроль — красная пометка, перекрашенная в зелёный, проверку не проходит",
                            BlockProblems(report, "1234.57", marks).Count == 0);
-                    painted.Cells[2].ForeColor = wasColor;
+                    painted.Cells[1].ForeColor = wasColor;
 
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ПЯТЫЙ (`A281`): убрана строка
                     // множителя σ×. Сцена собрана с зажатым множителем (1.000),
@@ -1124,11 +1124,11 @@ namespace FsaReportViewProbe
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: зелёная пометка, перекрашенная
                     // в красный, проверку проходить не должна.
                     Row painted = report.ReportTable.TableModel.Rows[Chi2Row(report) + 2];
-                    Color wasColor = painted.Cells[2].ForeColor;
-                    painted.Cells[2].ForeColor = BadColor;
+                    Color wasColor = painted.Cells[1].ForeColor;
+                    painted.Cells[1].ForeColor = BadColor;
                     Denies(lang + ": контроль — зелёная пометка, перекрашенная в красный, проверку не проходит",
                            BlockProblems(report, "1234.57", green).Count == 0);
-                    painted.Cells[2].ForeColor = wasColor;
+                    painted.Cells[1].ForeColor = wasColor;
 
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ (`AMBER17`, П105): строка опор
                     // ПОТЕРЯНА — ровно то, чего ждала проба до 18.09.2026, и
@@ -1182,7 +1182,7 @@ namespace FsaReportViewProbe
                     // Подсказка строки опор — перечень кандидатов: заголовок и
                     // по строке на каждого из трёх, принятых и отвергнутого.
                     Row anchorRow = report.ReportTable.TableModel.Rows[Chi2Row(report) + 2 + 3];
-                    string tip = anchorRow.Cells[1].ToolTipText ?? string.Empty;
+                    string tip = anchorRow.Cells[0].ToolTipText ?? string.Empty;
                     Same(lang + ": подсказка строки опор — заголовок и три кандидата",
                          4, tip.Split('\n').Length);
                     Same(lang + ": в подсказке два принятых (+) и один отвергнутый (-)", true,
@@ -1294,8 +1294,8 @@ namespace FsaReportViewProbe
                 // (`AMBER11`) Цвет значения печатается рядом: блок читается
                 // глазом по цвету, и вывод сторожа обязан говорить то же.
                 Console.WriteLine("  {0}: [{1}] «{2}» | {3} ({4})", lang, i,
-                                  model.Rows[i].Cells[1].Text, model.Rows[i].Cells[2].Text,
-                                  Paint(model.Rows[i].Cells[2].ForeColor));
+                                  model.Rows[i].Cells[0].Text, model.Rows[i].Cells[1].Text,
+                                  Paint(model.Rows[i].Cells[1].ForeColor));
             }
         }
 
@@ -1355,9 +1355,9 @@ namespace FsaReportViewProbe
                 return bad;
             }
 
-            if (model.Rows[rule].Cells[1].Text.Length > 0 || model.Rows[rule].Cells[2].Text.Length > 0)
+            if (model.Rows[rule].Cells[0].Text.Length > 0 || model.Rows[rule].Cells[1].Text.Length > 0)
             {
-                bad.Add("черта не пуста: «" + model.Rows[rule].Cells[1].Text + "»");
+                bad.Add("черта не пуста: «" + model.Rows[rule].Cells[0].Text + "»");
             }
 
             if (rule + 1 >= model.Rows.Count)
@@ -1367,12 +1367,12 @@ namespace FsaReportViewProbe
             }
 
             Row header = model.Rows[rule + 1];
-            if (header.Cells[1].Text != Own("FSAReport_QualityHeader"))
+            if (header.Cells[0].Text != Own("FSAReport_QualityHeader"))
             {
-                bad.Add("заголовок «" + header.Cells[1].Text + "» вместо «" + Own("FSAReport_QualityHeader") + "»");
+                bad.Add("заголовок «" + header.Cells[0].Text + "» вместо «" + Own("FSAReport_QualityHeader") + "»");
             }
 
-            if (header.Cells[1].Font == null || !header.Cells[1].Font.Bold)
+            if (header.Cells[0].Font == null || !header.Cells[0].Font.Bold)
             {
                 bad.Add("заголовок не полужирный");
             }
@@ -1384,9 +1384,9 @@ namespace FsaReportViewProbe
             {
                 bad.Add("под заголовком нет строки невязки");
             }
-            else if (model.Rows[rule + 2].Cells[1].Text != Own("FSAReport_ResidualRow"))
+            else if (model.Rows[rule + 2].Cells[0].Text != Own("FSAReport_ResidualRow"))
             {
-                bad.Add("подпись невязки «" + model.Rows[rule + 2].Cells[1].Text + "»");
+                bad.Add("подпись невязки «" + model.Rows[rule + 2].Cells[0].Text + "»");
             }
 
             int chi = -1;
@@ -1401,14 +1401,14 @@ namespace FsaReportViewProbe
                 return bad;
             }
 
-            if (model.Rows[chi].Cells[1].Text != Own("FSAReport_Chi2Row"))
+            if (model.Rows[chi].Cells[0].Text != Own("FSAReport_Chi2Row"))
             {
-                bad.Add("подпись χ²/ndf «" + model.Rows[chi].Cells[1].Text + "»");
+                bad.Add("подпись χ²/ndf «" + model.Rows[chi].Cells[0].Text + "»");
             }
 
-            if (model.Rows[chi].Cells[2].Text != chi2Value)
+            if (model.Rows[chi].Cells[1].Text != chi2Value)
             {
-                bad.Add("значение χ²/ndf «" + model.Rows[chi].Cells[2].Text + "» вместо «" + chi2Value + "»");
+                bad.Add("значение χ²/ndf «" + model.Rows[chi].Cells[1].Text + "» вместо «" + chi2Value + "»");
             }
 
             // ⛔ (`A281`, решение Amber 10.09.2026 «В блок „Качество разбора“
@@ -1425,20 +1425,20 @@ namespace FsaReportViewProbe
                 return bad;
             }
 
-            if (model.Rows[chi + 1].Cells[1].Text != Own("FSAReport_InflationRow"))
+            if (model.Rows[chi + 1].Cells[0].Text != Own("FSAReport_InflationRow"))
             {
-                bad.Add("подпись σ× «" + model.Rows[chi + 1].Cells[1].Text + "» вместо «"
+                bad.Add("подпись σ× «" + model.Rows[chi + 1].Cells[0].Text + "» вместо «"
                         + Own("FSAReport_InflationRow") + "»");
             }
 
-            if (model.Rows[chi + 1].Cells[2].Text != inflateValue)
+            if (model.Rows[chi + 1].Cells[1].Text != inflateValue)
             {
-                bad.Add("значение σ× «" + model.Rows[chi + 1].Cells[2].Text + "» вместо «"
+                bad.Add("значение σ× «" + model.Rows[chi + 1].Cells[1].Text + "» вместо «"
                         + inflateValue + "»");
             }
 
-            if (string.IsNullOrEmpty(model.Rows[chi + 1].Cells[1].ToolTipText)
-                || model.Rows[chi + 1].Cells[1].ToolTipText == model.Rows[chi + 1].Cells[1].Text)
+            if (string.IsNullOrEmpty(model.Rows[chi + 1].Cells[0].ToolTipText)
+                || model.Rows[chi + 1].Cells[0].ToolTipText == model.Rows[chi + 1].Cells[0].Text)
             {
                 bad.Add("у строки σ× нет своей подсказки");
             }
@@ -1452,9 +1452,9 @@ namespace FsaReportViewProbe
             for (int k = 0; k < marks.Count && chi + 2 + k < model.Rows.Count; k++)
             {
                 Row row = model.Rows[chi + 2 + k];
-                if (row.Cells[1].Text != marks[k][0] || row.Cells[2].Text != marks[k][1])
+                if (row.Cells[0].Text != marks[k][0] || row.Cells[1].Text != marks[k][1])
                 {
-                    bad.Add("пометка " + (k + 1) + " «" + row.Cells[1].Text + " | " + row.Cells[2].Text
+                    bad.Add("пометка " + (k + 1) + " «" + row.Cells[0].Text + " | " + row.Cells[1].Text
                             + "» вместо «" + marks[k][0] + " | " + marks[k][1] + "»");
                 }
 
@@ -1464,25 +1464,25 @@ namespace FsaReportViewProbe
                 if (marks[k].Length > 2)
                 {
                     Color want = marks[k][2] == Good ? GoodColor : marks[k][2] == Plain ? Color.Black : BadColor;
-                    if (row.Cells[2].ForeColor.ToArgb() != want.ToArgb())
+                    if (row.Cells[1].ForeColor.ToArgb() != want.ToArgb())
                     {
-                        bad.Add("цвет пометки " + (k + 1) + " «" + row.Cells[2].Text + "» — "
-                                + Paint(row.Cells[2].ForeColor) + " вместо " + Paint(want));
+                        bad.Add("цвет пометки " + (k + 1) + " «" + row.Cells[1].Text + "» — "
+                                + Paint(row.Cells[1].ForeColor) + " вместо " + Paint(want));
                     }
 
-                    if (row.Cells[1].ForeColor.ToArgb() != Color.Black.ToArgb())
+                    if (row.Cells[0].ForeColor.ToArgb() != Color.Black.ToArgb())
                     {
-                        bad.Add("подпись пометки " + (k + 1) + " окрашена в " + Paint(row.Cells[1].ForeColor)
+                        bad.Add("подпись пометки " + (k + 1) + " окрашена в " + Paint(row.Cells[0].ForeColor)
                                 + ", а должна быть чёрной");
                     }
                 }
 
-                if (Trimmed(row.Cells[1].Text))
+                if (Trimmed(row.Cells[0].Text))
                 {
                     bad.Add("пометка " + (k + 1) + " усечена многоточием");
                 }
 
-                if (!row.Cells[1].WordWrap)
+                if (!row.Cells[0].WordWrap)
                 {
                     bad.Add("пометка " + (k + 1) + " без переноса по словам");
                 }
@@ -1864,8 +1864,8 @@ namespace FsaReportViewProbe
             {
                 var model = row.Tag as FsaReportRow;
                 sb.Append(model != null ? model.Kind.ToString() : "(нет Tag)")
+                  .Append('|').Append(row.Cells.Count > 0 ? row.Cells[0].Text : string.Empty)
                   .Append('|').Append(row.Cells.Count > 1 ? row.Cells[1].Text : string.Empty)
-                  .Append('|').Append(row.Cells.Count > 2 ? row.Cells[2].Text : string.Empty)
                   .Append('\n');
             }
 
@@ -2702,9 +2702,9 @@ namespace FsaReportViewProbe
 
                 have.Add(model.Kind + "|" + (model.Name ?? string.Empty) + "|" + (model.Value ?? string.Empty));
                 string caption = model.Kind == FsaReportRowKind.Residual ? residualCaption : model.Name ?? string.Empty;
-                if (row.Cells[1].Text != caption || row.Cells[2].Text != (model.Value ?? string.Empty))
+                if (row.Cells[0].Text != caption || row.Cells[1].Text != (model.Value ?? string.Empty))
                 {
-                    cells.Add("ячейки «" + row.Cells[1].Text + " | " + row.Cells[2].Text
+                    cells.Add("ячейки «" + row.Cells[0].Text + " | " + row.Cells[1].Text
                               + "» вместо «" + caption + " | " + (model.Value ?? string.Empty) + "»");
                 }
             }
@@ -2790,7 +2790,7 @@ namespace FsaReportViewProbe
                 var model = (FsaReportRow)row.Tag;
                 if (model.Kind == FsaReportRowKind.Quality || model.Kind == FsaReportRowKind.Residual)
                 {
-                    if (row.Cells[2].Text.Length > 0) parts.Add(row.Cells[2].Text);
+                    if (row.Cells[1].Text.Length > 0) parts.Add(row.Cells[1].Text);
                 }
             }
 

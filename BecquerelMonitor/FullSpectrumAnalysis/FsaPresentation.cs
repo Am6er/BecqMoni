@@ -261,14 +261,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Красная строка «без фона» (`S44`).</summary>
         NoBackground,
 
-        /// <summary>Невязка с клетчатым образцом и знаковыми числами (`S111`).</summary>
+        /// <summary>Невязка со знаковыми числами (`S111`); образца нет (`AMBER217`).</summary>
         Residual,
 
         /// <summary>Строка качества: полный текст пометок и χ²/ndf.</summary>
         Quality
     }
 
-    /// <summary>Образец в узкой колонке отчёта.</summary>
+    /// <summary>
+    /// Образец перед подписью строки в колонке «Компонент» (`AMBER217`, решение
+    /// Amber 07.10.2026: «цветовые индикаторы должны остаться … перед текстом
+    /// изотопа как картинку»; клетка невязки снята — «Убрать только его»).
+    /// </summary>
     public enum FsaSwatchKind
     {
         None,
@@ -277,10 +281,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         Solid,
 
         /// <summary>Штрих сумм-пиков в цвете слоя.</summary>
-        SumPeakHatch,
-
-        /// <summary>Клетка невязки (чёрная половина, `A28`).</summary>
-        ResidualCross
+        SumPeakHatch
     }
 
     /// <summary>

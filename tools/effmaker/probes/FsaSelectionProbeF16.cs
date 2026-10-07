@@ -181,16 +181,16 @@ namespace FsaSelectionProbeF16
                         || model.Kind == FsaReportRowKind.UndetectedFolded)
                     {
                         lines.Add(string.Format(CultureInfo.InvariantCulture, "{0},{1},{2}",
-                                                model.Kind, Csv(row.Cells[1].Text), Csv(row.Cells[2].Text)));
+                                                model.Kind, Csv(row.Cells[0].Text), Csv(row.Cells[1].Text)));
                     }
                     else if (model.Kind == FsaReportRowKind.Residual && residual == null)
                     {
-                        residual = row.Cells[2].Text;
+                        residual = row.Cells[1].Text;
                     }
                     else if (model.Kind == FsaReportRowKind.Quality && chi2 == null
-                             && !string.IsNullOrEmpty(row.Cells[2].Text))
+                             && !string.IsNullOrEmpty(row.Cells[1].Text))
                     {
-                        chi2 = row.Cells[2].Text;
+                        chi2 = row.Cells[1].Text;
                     }
                 }
 
@@ -262,7 +262,7 @@ namespace FsaSelectionProbeF16
                     Same("служебная строка блока качества в таблице есть", true, service >= 0);
                     if (service >= 0)
                     {
-                        report.ReportTable.TableModel.Selections.SelectCell(service, 1);
+                        report.ReportTable.TableModel.Selections.SelectCell(service, 0);
                         Application.DoEvents();
                         Same("выбор строки без ленты снимает приглушение", null, Highlight(doc.EnergySpectrumView));
                     }
@@ -557,15 +557,15 @@ namespace FsaSelectionProbeF16
                     Application.DoEvents();
 
                     TableModel model = report.ReportTable.TableModel;
-                    int column = report.ReportTable.ColumnModel.Columns[1].Width;
+                    int column = report.ReportTable.ColumnModel.Columns[0].Width;
                     Console.WriteLine("  {0}: панель {1} px, колонка «Компонент» {2} px, строк {3}",
                                       lang, panel, column, model.Rows.Count);
 
                     int rule = -1, header = -1;
                     for (int i = 0; i < model.Rows.Count; i++)
                     {
-                        if (model.Rows[i].Height <= 4 && model.Rows[i].Cells[1].BackColor.A == 255
-                            && string.IsNullOrEmpty(model.Rows[i].Cells[1].Text))
+                        if (model.Rows[i].Height <= 4 && model.Rows[i].Cells[0].BackColor.A == 255
+                            && string.IsNullOrEmpty(model.Rows[i].Cells[0].Text))
                         {
                             rule = i;
                             if (i + 1 < model.Rows.Count) header = i + 1;
@@ -580,14 +580,14 @@ namespace FsaSelectionProbeF16
                         continue;
                     }
 
-                    string title = model.Rows[header].Cells[1].Text;
+                    string title = model.Rows[header].Cells[0].Text;
                     Console.WriteLine("  {0}: заголовок «{1}», шрифт {2}", lang, title,
-                                      model.Rows[header].Cells[1].Font != null
-                                          ? model.Rows[header].Cells[1].Font.Style.ToString() : "(шрифт формы)");
+                                      model.Rows[header].Cells[0].Font != null
+                                          ? model.Rows[header].Cells[0].Font.Style.ToString() : "(шрифт формы)");
                     Same(lang + ": заголовок непустой", true, !string.IsNullOrEmpty(title));
                     Same(lang + ": заголовок не имя ключа", false, title.StartsWith("FSAReport_", StringComparison.Ordinal));
                     Same(lang + ": заголовок полужирный", true,
-                         model.Rows[header].Cells[1].Font != null && model.Rows[header].Cells[1].Font.Bold);
+                         model.Rows[header].Cells[0].Font != null && model.Rows[header].Cells[0].Font.Bold);
 
                     // Все подписи блока — от черты и до конца таблицы.
                     int wide = 0, keys = 0, trimmed = 0, wrapped = 0;
@@ -597,18 +597,18 @@ namespace FsaSelectionProbeF16
                     {
                         for (int i = rule; i < model.Rows.Count; i++)
                         {
-                            string text = model.Rows[i].Cells[1].Text ?? string.Empty;
+                            string text = model.Rows[i].Cells[0].Text ?? string.Empty;
                             if (text.Length == 0) continue;
                             if (text.StartsWith("FSAReport_", StringComparison.Ordinal)) keys++;
                             if (text.EndsWith("…", StringComparison.Ordinal)) trimmed++;
-                            if (model.Rows[i].Cells[1].WordWrap || i == header) wrapped++;
-                            Font font = model.Rows[i].Cells[1].Font ?? report.Font;
+                            if (model.Rows[i].Cells[0].WordWrap || i == header) wrapped++;
+                            Font font = model.Rows[i].Cells[0].Font ?? report.Font;
                             double w = g.MeasureString(text, font).Width;
                             if (w > widest) { widest = w; widestText = text; }
                             if (w > column) wide++;
                             Console.WriteLine("  {0}: «{1}» = {2} px | {3}", lang, text,
                                               w.ToString("F0", CultureInfo.InvariantCulture),
-                                              model.Rows[i].Cells[2].Text);
+                                              model.Rows[i].Cells[1].Text);
                         }
                     }
 

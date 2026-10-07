@@ -9,7 +9,9 @@ using System.Globalization;
 using System.Threading;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
+using XPTable.Events;
 using XPTable.Models;
+using XPTable.Renderers;
 
 namespace BecquerelMonitor
 {
@@ -21,7 +23,7 @@ namespace BecquerelMonitor
     /// Сверху вниз: четыре группы параметров — источник состава (две
     /// радиокнопки), группировка результата (родители/дочерние), модель
     /// цепочек (равновесие) и пять дополнительных компонентов модели, — и
-    /// XPTable на весь остаток: перечень слоёв с образцом и долей, строки
+    /// XPTable на весь остаток: перечень слоёв с долей, строки
     /// сумм-пиков, необнаруженные кандидаты, «без фона», невязка и строка
     /// качества (семь родов строк <see cref="FsaReportRowKind"/> плюс
     /// строка состояния).
@@ -101,9 +103,6 @@ namespace BecquerelMonitor
         /// </summary>
         SynchronizationContext uiContext;
 
-        /// <summary>Образцы колонки-образца, по одному на (род, цвет).</summary>
-        readonly Dictionary<string, Image> swatches = new Dictionary<string, Image>(StringComparer.Ordinal);
-
         /// <summary>
         /// Пробы: окно никогда не показывается, а потребителем быть обязано —
         /// иначе критерии «окно заказывает расчёт» не измерить без экрана.
@@ -111,8 +110,13 @@ namespace BecquerelMonitor
         /// </summary>
         public bool ProbeConsumer { get; set; }
 
-        /// <summary>Ширина колонки-образца, пикселей.</summary>
-        const int SwatchColumnWidth = 24;
+        /// <summary>Образцы перед подписью строки, по одному на (род, цвет).</summary>
+        readonly Dictionary<string, Image> swatches = new Dictionary<string, Image>(StringComparer.Ordinal);
+
+        /// <summary>Образец перед подписью: ширина, высота и зазор до текста, пикселей.</summary>
+        const int SwatchWidth = 14;
+        const int SwatchHeight = 10;
+        const int SwatchGap = 4;
 
         /// <summary>Ширина колонки значения, пикселей: «+12,3 / −45,6 %» помещается с запасом.</summary>
         const int ValueColumnWidth = 92;
@@ -481,7 +485,7 @@ namespace BecquerelMonitor
             // конструктор форм (правило здоровых видов репозитория).
             this.valueColumn.Alignment = ColumnAlignment.Right;
             this.componentColumn.Alignment = ColumnAlignment.Left;
-            this.swatchColumn.Alignment = ColumnAlignment.Center;
+            this.componentColumn.Renderer = new SwatchTextCellRenderer();
             this.reportTable.HeaderFont = this.Font;
             this.reportTable.NoItemsText = string.Empty;
             this.reportTable.GridLines = GridLines.None;
@@ -1516,7 +1520,7 @@ namespace BecquerelMonitor
         /// <summary>(`A247`) Черта над блоком: строка в три пикселя, залитая целиком.</summary>
         Row MakeRuleRow()
         {
-            var cells = new[] { new Cell(string.Empty, (Image)null), new Cell(string.Empty), new Cell(string.Empty) };
+            var cells = new[] { new Cell(string.Empty), new Cell(string.Empty) };
             foreach (Cell cell in cells)
             {
                 cell.BackColor = QualityRuleColor;
@@ -1536,7 +1540,7 @@ namespace BecquerelMonitor
             name.Font = this.headerFont;
             name.ForeColor = Color.Black;
             name.ToolTipText = text;
-            var row = new Row(new[] { new Cell(string.Empty, (Image)null), name, new Cell(string.Empty) });
+            var row = new Row(new[] { name, new Cell(string.Empty) });
             row.Tag = ServiceRow(text, string.Empty);
             return row;
         }
@@ -1757,7 +1761,7 @@ namespace BecquerelMonitor
                                                       result.DatabaseFailures.Count - 1)
                                       : string.Empty);
                 Row failed = this.MakeMarkRowText(Resources.FSAReportDatabaseFailedRow, first, false, true);
-                failed.Cells[2].ToolTipText = string.Join(Environment.NewLine, result.DatabaseFailures.ToArray());
+                failed.Cells[1].ToolTipText = string.Join(Environment.NewLine, result.DatabaseFailures.ToArray());
                 made.Add(failed);
             }
 
@@ -1933,7 +1937,7 @@ namespace BecquerelMonitor
             cell.WordWrap = true;
             name.ToolTipText = caption;
             cell.ToolTipText = cell.Text;
-            var row = new Row(new[] { new Cell(string.Empty, (Image)null), name, cell });
+            var row = new Row(new[] { name, cell });
             row.Tag = ServiceRow(caption, cell.Text, attention);
             return row;
         }
@@ -2016,7 +2020,7 @@ namespace BecquerelMonitor
             name.WordWrap = true;
             name.ToolTipText = string.IsNullOrEmpty(hint) ? caption : hint;
             cell.ToolTipText = name.ToolTipText;
-            var row = new Row(new[] { new Cell(string.Empty, (Image)null), name, cell });
+            var row = new Row(new[] { name, cell });
             row.Tag = ServiceRow(caption, cell.Text);
             return row;
         }
@@ -2069,7 +2073,7 @@ namespace BecquerelMonitor
                 return false;
             }
 
-            this.tableModel.Selections.SelectCell(index, 1);
+            this.tableModel.Selections.SelectCell(index, 0);
             return true;
         }
 
@@ -2151,7 +2155,7 @@ namespace BecquerelMonitor
                 int index = layerName != null ? this.RowOfLayer(layerName) : -1;
                 if (index >= 0)
                 {
-                    this.tableModel.Selections.SelectCell(index, 1);
+                    this.tableModel.Selections.SelectCell(index, 0);
                     this.selectedLayer = layerName;
                 }
                 else
@@ -2190,8 +2194,15 @@ namespace BecquerelMonitor
                 ? Color.DarkOrange
                 : row.Warning ? Color.Firebrick : row.Muted ? Color.Gray : Color.Black;
 
-            var swatch = new Cell(string.Empty, this.SwatchOf(row));
-            var name = new Cell(caption ?? row.Name ?? string.Empty);
+            // (`AMBER217`) Образец — картинкой ПЕРЕД подписью, в той же ячейке:
+            // отступ слева освобождает ему место, текст и его перенос остаются
+            // штатными (<see cref="SwatchTextCellRenderer"/>).
+            var name = new Cell(caption ?? row.Name ?? string.Empty, this.SwatchOf(row));
+            if (name.Image != null)
+            {
+                name.Padding = new CellPadding(SwatchWidth + SwatchGap, 0, 0, 0);
+            }
+
             var value = new Cell(row.Value ?? string.Empty);
             name.ForeColor = fore;
             value.ForeColor = fore;
@@ -2211,15 +2222,15 @@ namespace BecquerelMonitor
                 name.WordWrap = true;
             }
 
-            var tableRow = new Row(new[] { swatch, name, value });
+            var tableRow = new Row(new[] { name, value });
             tableRow.Tag = row;
             return tableRow;
         }
 
         /// <summary>
         /// Образец строки — тем же правилом, что лента на графике: сплошной
-        /// цвет слоя, штрих сумм-пиков (<see cref="FsaPalette.SumPeakHatchColor"/>)
-        /// или клетка невязки по чёрной половине (`A28`). Пусто — образца нет.
+        /// цвет слоя или штрих сумм-пиков (<see cref="FsaPalette.SumPeakHatchColor"/>).
+        /// Пусто — образца нет (у невязки его нет с `AMBER217`).
         /// </summary>
         Image SwatchOf(FsaReportRow row)
         {
@@ -2235,7 +2246,7 @@ namespace BecquerelMonitor
                 return image;
             }
 
-            var bitmap = new Bitmap(14, 10);
+            var bitmap = new Bitmap(SwatchWidth, SwatchHeight);
             using (Graphics g = Graphics.FromImage(bitmap))
             {
                 g.Clear(Color.White);
@@ -2258,14 +2269,6 @@ namespace BecquerelMonitor
                         }
 
                         break;
-
-                    case FsaSwatchKind.ResidualCross:
-                        using (Brush brush = new HatchBrush(HatchStyle.Cross, row.Color, Color.White))
-                        {
-                            g.FillRectangle(brush, r);
-                        }
-
-                        break;
                 }
 
                 g.DrawRectangle(Pens.DimGray, 0, 0, bitmap.Width - 1, bitmap.Height - 1);
@@ -2275,19 +2278,47 @@ namespace BecquerelMonitor
             return bitmap;
         }
 
+        /// <summary>
+        /// (`AMBER217`) Подпись с образцом перед ней. Отдельной колонки образцов
+        /// больше нет (решение Amber 07.10.2026), а штатный <see cref="ImageCellRenderer"/>
+        /// не переносит текст, без чего блок качества уезжает (`AMBER214`). Поэтому
+        /// текст рисует и меряет обычный <see cref="TextCellRenderer"/> — ячейка с
+        /// образцом несёт отступ слева, — а образец встаёт в этот отступ на уровне
+        /// ПЕРВОЙ строки текста.
+        /// </summary>
+        sealed class SwatchTextCellRenderer : TextCellRenderer
+        {
+            protected override void OnPaint(PaintCellEventArgs e)
+            {
+                base.OnPaint(e);
+                Image image = e.Cell != null ? e.Cell.Image : null;
+                if (image == null)
+                {
+                    return;
+                }
+
+                Rectangle client = this.ClientRectangle;
+                int line = this.Font != null ? this.Font.Height : image.Height;
+                int x = client.X - SwatchGap - image.Width;
+                int y = client.Y + Math.Max(0, (Math.Min(line, client.Height) - image.Height) / 2);
+                e.Graphics.DrawImage(image, x, y, image.Width, image.Height);
+            }
+        }
+
         void ReportTable_Resize(object sender, EventArgs e)
         {
             this.FitColumns();
         }
 
         /// <summary>
-        /// Колонка «Компонент» получает всю ширину, оставшуюся от образца и
-        /// значения: у XPTable нет колонки-заполнителя, а без этого длинный
+        /// Колонка «Компонент» получает всю ширину, оставшуюся от колонки
+        /// значения (`AMBER217`: отдельной колонки образцов нет — образец стоит
+        /// картинкой перед подписью в этой же колонке): у XPTable нет колонки-заполнителя, а без этого длинный
         /// текст обрезался бы по фиксированной ширине.
         /// </summary>
         void FitColumns()
         {
-            int spare = this.reportTable.ClientSize.Width - SwatchColumnWidth - ValueColumnWidth
+            int spare = this.reportTable.ClientSize.Width - ValueColumnWidth
                         - SystemInformation.VerticalScrollBarWidth - 4;
             this.componentColumn.Width = Math.Max(80, spare);
 

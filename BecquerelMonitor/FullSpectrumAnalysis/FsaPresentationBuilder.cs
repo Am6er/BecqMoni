@@ -27,7 +27,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///
         /// Чёрный нарочно: он не встречается в палитре нуклидов
         /// (<see cref="FsaPalette"/>), и лента невязки не может быть принята за
-        /// ещё один компонент состава. Он же стоит образцом в строке отчёта.
+        /// ещё один компонент состава.
         ///
         /// ⛔ Вторая половина — недобор — цвета НЕ ИМЕЕТ здесь: она берёт цвет
         /// линии спектра из настроек человека (см. отрисовку ленты).
@@ -600,7 +600,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     : "—",
                 Hint = residualDefined ? null : Resources.FSAResidualUndefinedHint,
                 Warning = !residualDefined,
-                Swatch = FsaSwatchKind.ResidualCross,
                 Color = ResidualColor
             });
 
