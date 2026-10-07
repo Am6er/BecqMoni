@@ -234,6 +234,9 @@ class CorpusMatrixProbe
         string only = null;
         string dump = null;
         bool force = false;
+        // (`AMBER220`, П246) `--progress` — печать отчётов хода полосы (процент, узлы,
+        // блоки κ) с самопроверкой: процент не убывает, 100 % — только последним.
+        bool showProgress = false;
         var options = new ResponseMatrixOptions();
         bool coneFar = false;                    // `A57`: конус только дальним
         // ⚡ (`AMBER160`, П221) GPU-путь: путь к `rmgpu*.dll` (null — CPU), ступень 1
@@ -568,6 +571,7 @@ class CorpusMatrixProbe
             else if (a.StartsWith("--gpu-stack=", StringComparison.Ordinal))
                 gpuStack = long.Parse(a.Substring(12), CultureInfo.InvariantCulture);
             else if (a == "--force") force = true;
+            else if (a == "--progress") showProgress = true;
             // `A60`, АБЛЯЦИЯ: склад без вылета L-рентгена. Входит в
             // клеймо (`nolx=1`), то есть такая матрица честно другая.
             else if (a == "--no-lxray") options.LXrayEscape = false;
@@ -808,10 +812,14 @@ class CorpusMatrixProbe
             ResponseMatrixBuilder.ResetWalkCounters();
             TimeSpan cpuBefore = Process.GetCurrentProcess().TotalProcessorTime;
             var watch = Stopwatch.StartNew();
+            ProgressSink sink = showProgress ? new ProgressSink(Console.Out) : null;
             ResponseMatrix matrix = gpu != null
-                ? GpuBuild.Build(gpu, geometry, options, Console.Out)
-                : ResponseMatrixBuilder.Build(geometry, options, null, CancellationToken.None);
+                ? (sink != null
+                    ? GpuBuild.Build(gpu, geometry, options, sink, CancellationToken.None, Console.Out)
+                    : GpuBuild.Build(gpu, geometry, options, Console.Out))
+                : ResponseMatrixBuilder.Build(geometry, options, sink, CancellationToken.None);
             watch.Stop();
+            if (sink != null) sink.Summary(Console.Out);
             if (gpu != null)
             {
                 Console.WriteLine("   GPU      : узлы {0:F1} с, κ пар (ЦП) {1:F1} с",
@@ -1081,5 +1089,60 @@ class CorpusMatrixProbe
 
         Console.WriteLine(quiet ? "ВСЕ СОШЛИСЬ" : "ЕСТЬ ШУМНЫЕ");
         return quiet ? 0 : 1;
+    }
+}
+
+/// <summary>
+/// (`AMBER220`, П246) Приёмник отчётов хода для ключа `--progress`: печатает отчёт при
+/// смене целого процента или фазы (узлы / «узлы досчитаны, κ») и ведёт самопроверку —
+/// процент не убывает ни разу, а 100 % появляется ТОЛЬКО последним отчётом (решение Amber
+/// 07.10.2026 «Узлы + блоки κ, план κ — предельный 96»). Зовётся из потоков счёта — замок.
+/// </summary>
+sealed class ProgressSink : IProgress<ResponseMatrixProgress>
+{
+    readonly TextWriter log;
+    readonly object gate = new object();
+    readonly Stopwatch watch = Stopwatch.StartNew();
+    int reports, backwards, fullBeforeLast;
+    double lastPercent = -1.0;
+    bool lastPending;
+    bool seenFull;
+
+    public ProgressSink(TextWriter log) { this.log = log; }
+
+    public void Report(ResponseMatrixProgress p)
+    {
+        lock (this.gate)
+        {
+            this.reports++;
+            double percent = p.Percent;
+            if (percent < this.lastPercent - 1e-9) this.backwards++;
+            // 100 % до этого отчёта уже было — значит, полная полоса стояла, а работа шла.
+            if (this.seenFull) this.fullBeforeLast++;
+            if (percent >= 100.0 - 1e-9) this.seenFull = true;
+            bool phase = p.JointPending != this.lastPending;
+            if (phase || (int)percent != (int)this.lastPercent || this.reports == 1)
+            {
+                this.log.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "   ход {0,7:F1} с: {1,5:F1} % — узлы {2}/{3} (взято {4}), κ блоки {5}/{6} (план сейчас {7}){8}",
+                    this.watch.Elapsed.TotalSeconds, percent, p.SettledNodes, p.TotalNodes, p.StartedNodes,
+                    p.JointDone, p.JointPlanned, p.JointPlannedNow, p.JointPending ? " — ждём κ" : ""));
+            }
+
+            this.lastPercent = percent;
+            this.lastPending = p.JointPending;
+        }
+    }
+
+    public void Summary(TextWriter log)
+    {
+        lock (this.gate)
+        {
+            bool ok = this.backwards == 0 && this.fullBeforeLast == 0 && this.seenFull;
+            log.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "   ход: отчётов {0}, назад {1}, 100 % раньше последнего {2}, последний {3:F1} % — {4}",
+                this.reports, this.backwards, this.fullBeforeLast, this.lastPercent,
+                ok ? "ПОЛОСА ЧЕСТНАЯ" : "⛔ ПОЛОСА ВРЁТ"));
+        }
     }
 }

@@ -6697,5 +6697,14 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixJointProgress.
+        /// </summary>
+        public static string ResponseMatrixJointProgress {
+            get {
+                return ResourceManager.GetString("ResponseMatrixJointProgress", resourceCulture);
+            }
+        }
+
     }
 }

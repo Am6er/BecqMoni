@@ -43775,6 +43775,9 @@ Close the window and discard it?</value>
   <data name="ResponseMatrixGpuProgress" xml:space="preserve">
     <value>GPU: node {0} of {1}, {2:F0} keV.</value>
   </data>
+  <data name="ResponseMatrixJointProgress" xml:space="preserve">
+    <value>Nodes done; pair table (κ) on the CPU: block {0} of {1}.</value>
+  </data>
   <data name="GeometryFacingSideNeedsBox" xml:space="preserve">
     <value>The sample at the side of the detector is defined for a box crystal only: for a cylinder it is not axially symmetric and the scene cannot express it.</value>
   </data>

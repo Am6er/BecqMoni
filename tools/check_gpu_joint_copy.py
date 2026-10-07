@@ -40,14 +40,14 @@ def _utf8_console():
             pass
 
 
-def method_body(text, signature_re):
-    u"""Тело метода от первой `{` после сигнатуры до парной `}`; None — не нашёл."""
-    m = re.search(signature_re, text)
+def method_body(text, signature_re, start=0):
+    u"""Тело метода от первой `{` после сигнатуры до парной `}`; None — не нашёл. Возвращает (тело, конец)."""
+    m = re.compile(signature_re).search(text, start)
     if not m:
-        return None
+        return None, -1
     i = text.find('{', m.end())
     if i < 0:
-        return None
+        return None, -1
     depth = 0
     for j in range(i, len(text)):
         c = text[j]
@@ -56,20 +56,27 @@ def method_body(text, signature_re):
         elif c == '}':
             depth -= 1
             if depth == 0:
-                return text[i:j + 1]
-    return None
+                return text[i:j + 1], j + 1
+    return None, -1
 
 
 def written_by_build_joint(text):
-    body = method_body(text, r'static\s+void\s+BuildJoint\s*\(')
-    if body is None:
-        return None
-    return set(RE_WRITE.findall(body))
+    u"""Поля, которые пишет ЛЮБАЯ перегрузка `BuildJoint` (П246: тонкая перегрузка без отчёта
+    лишь зовёт полную — считать по первой попавшейся было бы слепо)."""
+    found = None
+    pos = 0
+    while True:
+        body, end = method_body(text, r'static\s+void\s+BuildJoint\s*\(', pos)
+        if body is None:
+            break
+        found = (found or set()) | set(RE_WRITE.findall(body))
+        pos = end
+    return found
 
 
 def copied_by_gpu_build(text):
-    body = method_body(text, r'public\s+static\s+ResponseMatrix\s+Build\s*\(\s*RmGpu\s+gpu\s*,\s*GeometryModel\s+geometry\s*,'
-                             r'\s*ResponseMatrixOptions\s+options\s*,\s*IProgress')
+    body, _ = method_body(text, r'public\s+static\s+ResponseMatrix\s+Build\s*\(\s*RmGpu\s+gpu\s*,\s*GeometryModel\s+geometry\s*,'
+                                r'\s*ResponseMatrixOptions\s+options\s*,\s*IProgress')
     if body is None:
         return None, []
     pairs = RE_COPY.findall(body)
