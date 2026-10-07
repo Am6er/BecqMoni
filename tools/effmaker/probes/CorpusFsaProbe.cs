@@ -5604,6 +5604,10 @@ namespace CorpusFsaProbe
                 // (`S174`) Серый слой подложки и полы отображения — по каждому
                 // спектру, СВОЙ файл по тому же доводу, что у хвостов.
                 using (var grey = new StreamWriter(prefix + "_grey.csv", false, new UTF8Encoding(true)))
+                // (`AMBER210`, П238) Пики в полосе, не покрытые составом, — СВОЙ файл, по строке
+                // на пик (энергия, ширина, избыток, доля, z, кандидаты библиотеки через `;`); в
+                // `runs` — только их число (`uncovered_peaks`).
+                using (var uncovered = new StreamWriter(prefix + "_uncovered.csv", false, new UTF8Encoding(true)))
                 {
                     // (`S175`) `placement` — В КОНЕЦ: где хвост лежит
                     // (`layer` — в слое и доле своего образа, умолчание;
@@ -5612,6 +5616,8 @@ namespace CorpusFsaProbe
                     grey.WriteLine("spectrum,det,part,matrix_applied,grey_below_floor,grey_above_lines,grey_pct,"
                                    + "spread_floor_kev,spread_floor_ch,residual_floor_kev,residual_floor_ch,"
                                    + "first_ch,last_ch,stack_total,missing_pct,excess_pct");
+                    // `kind` — peak (назван) | rejected (ревизия отбора), `reason` — у ревизии
+                    uncovered.WriteLine("spectrum,det,part,kind,reason,energy_kev,width_kev,excess_pct,z,nearest_line_kev,candidates");
                     anchors.WriteLine("spectrum,det,part,component,line_kev,model_kev,measured_kev,"
                                       + "shift_kev,sigma_kev,peak_share,z,ch_lo,ch_hi,used,refusal,"
                                       // (П18) сдвиг опоры по свету, кэВ — В КОНЕЦ строки
@@ -5786,6 +5792,35 @@ namespace CorpusFsaProbe
                                     F(100.0 * r.Result.ResidualMissingShare, "F3"),
                                     F(100.0 * r.Result.ResidualExcessShare, "F3"),
                                     tail.Placement.ToString().ToLowerInvariant()));
+                            }
+                        }
+
+                        if (r.Result.UncoveredPeaks != null)
+                        {
+                            foreach (FsaUncoveredPeak u in r.Result.UncoveredPeaks)
+                            {
+                                var names = new List<string>();
+                                foreach (FsaUncoveredCandidate cand in u.Candidates)
+                                {
+                                    names.Add(cand.Nuclide + " " + F(cand.EnergyKev, "F1"));
+                                }
+                                uncovered.WriteLine(string.Join(",",
+                                    Csv(r.Key), Csv(r.Det), Csv(r.Part), "peak", "",
+                                    F(u.EnergyKev, "F1"), F(u.WidthKev, "F1"),
+                                    F(100.0 * u.ExcessShare, "F1"), F(u.Z, "F1"), "",
+                                    Csv(string.Join("; ", names))));
+                            }
+                        }
+                        if (r.Result.UncoveredRejections != null)
+                        {
+                            foreach (FsaUncoveredRejection j in r.Result.UncoveredRejections)
+                            {
+                                uncovered.WriteLine(string.Join(",",
+                                    Csv(r.Key), Csv(r.Det), Csv(r.Part), "rejected", j.Reason.ToString(),
+                                    F(j.EnergyKev, "F1"), F(j.WidthKev, "F1"),
+                                    F(100.0 * j.ExcessShare, "F1"), F(j.Z, "F1"),
+                                    double.IsNaN(j.NearestCoveredKev) ? "" : F(j.NearestCoveredKev, "F1"),
+                                    Csv(j.NearestCandidate != null ? j.NearestCandidate.Nuclide + " " + F(j.NearestCandidate.EnergyKev, "F1") : "")));
                             }
                         }
 
