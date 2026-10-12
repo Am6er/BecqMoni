@@ -364,6 +364,77 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (`AMBER222`) Стопка FSA нарисована В ЭТОМ КАДРЕ: ставит
+        /// <see cref="ShowFsaOverlay"/> перед успешным выходом, снимает начало
+        /// <c>DrawChart</c>. Кадровые массивы (<see cref="fsaCumulative"/> и
+        /// соседи) после этого — ровно то, что на экране.
+        /// </summary>
+        bool fsaFrameDrawn;
+
+        /// <summary>
+        /// (`AMBER222`, задача Amber 12.10.2026) КОНЕЦ ЛИНИИ ПИКА на графике FSA —
+        /// верх того, что нарисовано в экранном столбце <paramref name="x"/>.
+        /// Постановка дословно: «Обрати внимание на вертикальные линии пиков. При
+        /// изменении галочек они недостают до пика или наоборот - углубляются в
+        /// него. Можно ли поправить это, чтобы выглядело эстетично?»; решение
+        /// вопросником того же дня, дословно: «В верх нарисованного (Рекомендую)»:
+        /// <list type="bullet">
+        /// <item>«Spectral data» вкл — линия измерения (<see cref="fsaNetSpectrum"/>), как было;</item>
+        /// <item>выкл — верх стопки (<see cref="fsaCumulative"/>, при слое матрицы — верх
+        /// стопки канала); при «Model residual» вкл — ещё и верх клетки невязки
+        /// (<see cref="DrawFsaResidual"/>: от модели до измерения, обеими знаками), если
+        /// она выше стопки.</item>
+        /// </list>
+        /// Значение берётся с канала, который РИСУЕТСЯ в этом столбце
+        /// (<see cref="ChannelAtPixel"/>), а не с канала пика: при нескольких каналах
+        /// на пиксель они расходятся, и линия не попадала бы в кромку на пиксель-два.
+        /// <c>false</c> — стопки в этом кадре нет (не режим FSA, разбора ещё нет):
+        /// конец считает прежний путь <see cref="PeakTopY"/>.
+        /// </summary>
+        bool TryFsaPeakTopY(int x, out int y)
+        {
+            y = 0;
+            double[][] cumulative = this.fsaCumulative;
+            if (!this.fsaFrameDrawn || cumulative == null || cumulative.Length == 0
+                || this.energySpectrum == null || this.energyCalibration == null)
+            {
+                return false;
+            }
+
+            double[] stackTop = cumulative[cumulative.Length - 1];
+            double[] net = this.fsaNetSpectrum;
+            double[] model = this.fsaModelTop;
+            int channel = this.ChannelAtPixel(this.energySpectrum, this.energyCalibration, x);
+            if (stackTop == null || channel < 0 || channel >= stackTop.Length)
+            {
+                return false;
+            }
+
+            double top;
+            if (this.fsaShowSpectralData)
+            {
+                if (net == null || channel >= net.Length)
+                {
+                    return false;
+                }
+
+                top = net[channel];
+            }
+            else
+            {
+                top = stackTop[channel];
+                if (this.fsaShowResidual && net != null && model != null
+                    && channel < net.Length && channel < model.Length)
+                {
+                    top = Math.Max(top, Math.Max(model[channel], net[channel]));
+                }
+            }
+
+            y = this.GetSpectrumValueY(this.ScaleFsaValue(top));
+            return true;
+        }
+
         /// <summary>Доля непрозрачности приглушённой ленты (у полноцветной — 230).</summary>
         const int MutedBandAlpha = 64;
 
@@ -947,6 +1018,7 @@ namespace BecquerelMonitor
                 g.PixelOffsetMode = savedPixelOffset;
             }
 
+            this.fsaFrameDrawn = true;
             return true;
         }
 
