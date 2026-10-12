@@ -87,6 +87,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Почему принят или отвергнут — человеку и в журнал.</summary>
         public string Why = "";
 
+        /// <summary>
+        /// (`AMBER221`) То же решение, что <see cref="Why"/>, но признаком: строку
+        /// отчёта FSA о нуклиде сета, не вошедшем в состав, окно собирает из своих
+        /// ресурсов на двух языках, а не из русского текста журнала.
+        /// </summary>
+        public FsaParentVerdict Verdict;
+
         public override string ToString()
         {
             var text = new StringBuilder();
@@ -112,6 +119,85 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             return text.ToString();
         }
+    }
+
+    /// <summary>
+    /// (`AMBER221`) Чем кончился разбор кандидата — признаком, парным к
+    /// <see cref="FsaParentEvidence.Why"/>. <see cref="None"/> — кандидата не
+    /// судили (разбор не дошёл до приёма).
+    /// </summary>
+    public enum FsaParentVerdict
+    {
+        None = 0,
+
+        /// <summary>Взят в состав.</summary>
+        Accepted,
+
+        /// <summary>Ни одной линии в рабочем окне (полоса поиска, кривая эффективности).</summary>
+        NoLines,
+
+        /// <summary>Подписанные им пики не подтвердили ни одной его группы линий.</summary>
+        NotConfirmed,
+
+        /// <summary>Доля подтверждённых групп ниже порога.</summary>
+        BelowCoverage,
+
+        /// <summary>Своей структуры не приносит — её объясняет уже принятый.</summary>
+        NotNovel,
+
+        /// <summary>Принят, но входит в ряд принятого старшего и поглощён им.</summary>
+        InChain
+    }
+
+    /// <summary>
+    /// (`AMBER221`, П247 12.10.2026) Чем пик подтверждает группу линий родителя
+    /// (<see cref="FsaCompositionInference.LabelMatch"/>).
+    /// </summary>
+    public enum FsaLabelMatch
+    {
+        /// <summary>Положение пика в ±0.75 ПШПВ от центра группы — до 12.10.2026.</summary>
+        Position = 0,
+
+        /// <summary>
+        /// Линия подписи (энергия определения) против ЛЮБОЙ линии группы. Отвергнуто
+        /// замером П247: у точечных Th-228 корпуса пик Tl-208 860.6 (линия скрыта в
+        /// поставочной библиотеке) подписан слабой линией Ac-228 835 и подтвердил
+        /// группу Ac-228 — подцепочка `A205` сменилась всем рядом.
+        /// </summary>
+        LabelLine = 1,
+
+        /// <summary>
+        /// Умолчание: положение пика — как прежде, ЛИБО линия подписи — если она
+        /// ГЛАВНАЯ линия группы (ближайшая к подписи линия группы — её центр).
+        /// Сдвиг шкалы (K-40 на 1397 вместо 1460.8) судит допуск подписи; подпись
+        /// второстепенной линией группы ничего сверх прежнего не подтверждает.
+        /// </summary>
+        PositionOrMainLine = 2
+    }
+
+    /// <summary>
+    /// (`AMBER221`) Родитель АКТИВНОГО СЕТА, не вошедший в состав разбора, и почему.
+    /// Пусто в <see cref="FsaResult.SetOmissions"/> — все родители сета в составе.
+    /// </summary>
+    public sealed class FsaSetOmission
+    {
+        /// <summary>Подпись родителя: «K-40», «Th-232».</summary>
+        public string Nuclide = "";
+
+        /// <summary>
+        /// Причина. <see cref="FsaParentVerdict.None"/> — ни один пик им не
+        /// подписан, и кандидатом он не становился вовсе.
+        /// </summary>
+        public FsaParentVerdict Reason;
+
+        /// <summary>Подтверждено и ожидалось групп линий (как в разборе кандидата).</summary>
+        public int Matched, Expected;
+
+        /// <summary>Доля, по которой судили (с подцепочкой, если она была).</summary>
+        public double Coverage;
+
+        /// <summary>Порог доли, с которым шёл вывод.</summary>
+        public double Threshold;
     }
 
     /// <summary>
@@ -246,14 +332,57 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Наименьшая полуширина окна соответствия в долях энергии — на случай,
         /// когда калибровки ПШПВ нет или она вырождена.
         ///
-        /// ⛔ Допуск подписи (`Tolerance`) сюда НЕ ГОДИТСЯ, и это выяснилось
-        /// первым же прогоном. Он задан в ПРОЦЕНТАХ энергии и в поставочных
-        /// конфигурациях равен 10…11 — то есть ±260 кэВ на линии 2614. С таким
-        /// окном подтверждалось всё подряд: фантомный Eu-152 набирал в ториевом
-        /// спектре 15 групп из 16. Допуск отвечает за СНОС ШКАЛЫ при подписи, а
-        /// здесь нужна РАЗРЕШИМОСТЬ, и это разные величины.
+        /// ⛔ Допуск подписи (`Tolerance`) окном ПОЛОЖЕНИЯ сюда НЕ ГОДИТСЯ, и это
+        /// выяснилось первым же прогоном. Он задан в ПРОЦЕНТАХ энергии и в
+        /// поставочных конфигурациях равен 10…11 — то есть ±260 кэВ на линии 2614.
+        /// С таким окном подтверждалось всё подряд: фантомный Eu-152 набирал в
+        /// ториевом спектре 15 групп из 16. И снова 12.10.2026 (`AMBER221`, П247):
+        /// окно-допуск вокруг ПОЛОЖЕНИЯ пика дало у двух точечных Th-228 корпуса
+        /// пику ряда подтвердить чужую группу Ac-228 и сняло подцепочку `A205`.
+        /// Допуск судит сдвиг пика от линии ОДИН раз — при подписи; здесь
+        /// засчитывается сама линия подписи, если она главная в группе (<see cref="LabelMatch"/>).
         /// </summary>
         const double MinWindowFraction = 0.005;
+
+        /// <summary>
+        /// (`AMBER221`, решение Amber 12.10.2026 вопросником, дословно: «Ошибку
+        /// следует брать из Tolerance Peak Detection») СДВИГ ПИКА ОТ ЛИНИИ СУДИТ
+        /// ДОПУСК ПОИСКА ПИКОВ — один раз, при подписи. Пик подтверждает группу
+        /// линий родителя положением, как прежде, ЛИБО своей подписью — когда пик
+        /// подписан ГЛАВНОЙ линией группы (её истинная энергия из определения).
+        ///
+        /// ⛔ Прежнее окно (положение пика в ±0.75 ПШПВ от группы) было СТРОЖЕ
+        /// ПОДПИСИ, и в этом весь дефект: подпись ставит пик в пределах допуска и
+        /// 1.5 ПШПВ (<c>PeakDetector.MatchNuclides</c>), а вывод потом не признавал
+        /// подписанный им же пик. Измерено на «Atom Spectra 80x80» 12.10.2026:
+        /// калибровка энергии провисает на −5 % у 1460 кэВ, настоящий K-40 показан
+        /// на 1397.1 и подписан K-40 (допуск 20 %), окно вывода — ±51.7 кэВ, и K-40
+        /// молча выпадал из состава.
+        ///
+        /// ⚠ Две редакции отвергнуты замером на корпусе (П247, 136 спектров, одним
+        /// двоичным файлом; корни состава не сменились ни у одного ни в одной):
+        ///   * окно-допуск вокруг ПОЛОЖЕНИЯ пика — у `G1S16_Th228_P5` и
+        ///     `G1S24_Th228_P25` пик ряда подтвердил ЧУЖУЮ группу Ac-228, доля
+        ///     целого ряда перешла порог, и подцепочка точечного Th-228 (`A205`)
+        ///     сменилась всем рядом;
+        ///   * линия подписи против ЛЮБОЙ линии группы — тот же итог на тех же
+        ///     двух: пик 864.0 (это Tl-208 860.6, а его линия в поставочной
+        ///     библиотеке скрыта) подписан слабой линией Ac-228 835 и подтвердил
+        ///     группу Ac-228 (Ac-228 2/10 → 3/10).
+        /// Подпись ГЛАВНОЙ линией группы такой ошибки не даёт: подпись
+        /// второстепенной ничего сверх прежнего не подтверждает.
+        ///
+        /// Сравниваются две ИСТИННЫЕ энергии, поэтому окно здесь — по разрешению
+        /// (<see cref="Group.Window"/>): оно принимает округление энергии в
+        /// библиотеке приложения («125» у линии Eu-152 121.78).
+        ///
+        /// Ключ — рычаг замера, не настройка (проба <c>FsaInferProbeF51 --match=</c>):
+        /// <see cref="FsaLabelMatch.Position"/> — прежнее правило, положение пика в
+        /// ±0.75 ПШПВ; <see cref="FsaLabelMatch.LabelLine"/> — линия подписи против
+        /// любой линии группы; <see cref="FsaLabelMatch.PositionOrMainLine"/> —
+        /// умолчание, см. у перечисления.
+        /// </summary>
+        public static FsaLabelMatch LabelMatch { get; set; } = FsaLabelMatch.PositionOrMainLine;
 
         /// <summary>
         /// Полуширина окна соответствия в долях ПШПВ.
@@ -839,7 +968,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             public double Energy;
             public double Weight;
+
             public double Window;
+
+            /// <summary>
+            /// (`AMBER221`) Истинные энергии линий группы — с ними сопоставляется
+            /// линия подписи пика (<see cref="LabelMatch"/>).
+            /// </summary>
+            public readonly List<double> Lines = new List<double>();
             public double Snr = double.NaN;
             public bool Expected;
 
@@ -936,6 +1072,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (lines.Count == 0)
             {
                 model.Evidence.Why = "линий в рабочем окне нет";
+                model.Evidence.Verdict = FsaParentVerdict.NoLines;
                 return model;
             }
 
@@ -1015,6 +1152,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // Центр группы держится на сильнейшей линии: она и даёт
                     // наблюдаемый пик, а слабые соседи лишь подмешиваются.
                     current.Weight += weight;
+                    current.Lines.Add(line.Energy);
                     if (weight > currentTop)
                     {
                         currentTop = weight;
@@ -1026,6 +1164,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 current = new Group { Energy = line.Energy, Weight = weight, Owner = line.Member };
+                current.Lines.Add(line.Energy);
                 currentTop = weight;
                 model.Groups.Add(current);
             }
@@ -1062,7 +1201,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 foreach (Peak peak in peaks)
                 {
-                    double away = Math.Abs(peak.Energy - group.Energy);
+                    // (`AMBER221`) сдвиг пика от линии судил допуск при подписи;
+                    // здесь — линия подписи против линий группы
+                    double away = Away(peak, group);
                     if (away > window)
                     {
                         continue;
@@ -1191,6 +1332,44 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return Math.Max(WindowFwhmFraction * resolution, MinWindowFraction * energy);
         }
 
+        /// <summary>
+        /// (`AMBER221`) Отход пика от группы, кэВ, по правилу <see cref="LabelMatch"/>.
+        /// Положение пика — против центра группы, как до 12.10.2026. Линия подписи
+        /// (энергия определения, которым пик подписан) — против линий группы: обе
+        /// истинные, сдвиг шкалы уже судил допуск при подписи. Подпись без энергии —
+        /// только положение.
+        /// </summary>
+        static double Away(Peak peak, Group group)
+        {
+            double position = Math.Abs(peak.Energy - group.Energy);
+            double label = peak.Nuclide != null ? peak.Nuclide.Energy : 0.0;
+            if (LabelMatch == FsaLabelMatch.Position || !(label > 0.0)
+                || double.IsNaN(label) || double.IsInfinity(label))
+            {
+                return position;
+            }
+
+            double nearest = double.PositiveInfinity, nearestLine = double.NaN;
+            foreach (double energy in group.Lines)
+            {
+                double away = Math.Abs(label - energy);
+                if (away < nearest)
+                {
+                    nearest = away;
+                    nearestLine = energy;
+                }
+            }
+
+            if (LabelMatch == FsaLabelMatch.LabelLine)
+            {
+                return nearest;
+            }
+
+            // главная линия группы — её центр (`Collect`: центр держится на
+            // сильнейшей); подпись второстепенной линией в счёт не идёт
+            return nearestLine == group.Energy ? Math.Min(position, nearest) : position;
+        }
+
         /// <summary>ПШПВ в кэВ на этой энергии; ноль — калибровки нет.</summary>
         static double Resolution(double energy, EnergyCalibration energyCalibration,
                                  FwhmCalibration fwhmCalibration, int channels)
@@ -1267,6 +1446,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 FsaParentEvidence evidence = model.Evidence;
                 if (model.Groups.Count == 0)
                 {
+                    // (`AMBER221`) линии были, но ни одна не дошла до группы
+                    // (вне кривой эффективности, нулевой вес)
+                    if (evidence.Why.Length == 0)
+                    {
+                        evidence.Why = "линий в рабочем окне нет";
+                    }
+
+                    evidence.Verdict = FsaParentVerdict.NoLines;
                     continue;
                 }
 
@@ -1282,6 +1469,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if (prices.Count == 0)
                 {
                     evidence.Why = "ни одна линия не подтверждена пиком";
+                    evidence.Verdict = FsaParentVerdict.NotConfirmed;
                     continue;
                 }
 
@@ -1762,16 +1950,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if (Judged(evidence) < coverage)
                 {
                     evidence.Why = "доля ниже порога";
+                    evidence.Verdict = FsaParentVerdict.BelowCoverage;
                     continue;
                 }
 
                 if (novelty && !Novel(model, accepted))
                 {
                     evidence.Why = "своей структуры не приносит";
+                    evidence.Verdict = FsaParentVerdict.NotNovel;
                     continue;
                 }
 
                 evidence.Accepted = true;
+                evidence.Verdict = FsaParentVerdict.Accepted;
                 evidence.Why = !double.IsNaN(evidence.HeadCoverage)
                                && evidence.HeadCoverage > evidence.Coverage
                                && evidence.Coverage < coverage
@@ -1897,10 +2088,155 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         model.Evidence.Accepted = false;
                         model.Evidence.Why = "входит в ряд " + elder.Evidence.Name;
+                        model.Evidence.Verdict = FsaParentVerdict.InChain;
                         break;
                     }
                 }
             }
+        }
+
+        // ------------------------------------------------------------------
+        // AMBER221: родители сета, не вошедшие в состав
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`AMBER221`, решение Amber 12.10.2026 вопросником, дословно: «Чинить
+        /// сейчас») РОДИТЕЛИ АКТИВНОГО СЕТА, НЕ ВОШЕДШИЕ В СОСТАВ РАЗБОРА, — с
+        /// причиной, для строки отчёта FSA.
+        ///
+        /// ⛔ До этого дня такой родитель выпадал МОЛЧА: человек добавлял K-40 в
+        /// сет, видел подпись «K-40» над пиком — и ни компонента, ни слова в
+        /// отчёте. Причина жила только в журнале трассировки (<see cref="Report"/>).
+        ///
+        /// Родитель — метка ряда (<see cref="NuclideDefinition.Chain"/>), а без неё
+        /// сам нуклид: так же их берёт вывод состава (<c>Candidates</c>). Рентген
+        /// элемента родителем не бывает и не перечисляется. Записи, которые поиск
+        /// пиков не читает (скрытые, без энергии), не перечисляются тоже: такой
+        /// член сета пика не подпишет никогда, и строка о нём была бы шумом.
+        ///
+        /// Родитель СЧИТАЕТСЯ ВОШЕДШИМ, если в библиотеке есть его образ — по имени
+        /// колонки, по корню ряда (<see cref="FsaComponent.DecayChainRoot"/>) или
+        /// по линии члена (колонка равновесного ряда несёт линии членов под их
+        /// именами), — либо вывод принял его или поглотил рядом старшего.
+        /// <paramref name="report"/> = null — состав собран по подписям пиков
+        /// (источник «From labels of detected peaks»): там вошедшим считается
+        /// всякий родитель, которым подписан хоть один пик.
+        /// </summary>
+        public static List<FsaSetOmission> SetOmissions(NuclideSet set,
+                                                        IEnumerable<NuclideDefinition> definitions,
+                                                        Report report,
+                                                        IEnumerable<Peak> peaks,
+                                                        IEnumerable<FsaComponent> library)
+        {
+            var result = new List<FsaSetOmission>();
+            if (set == null || definitions == null)
+            {
+                return result;
+            }
+
+            var parents = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (NuclideDefinition definition in definitions)
+            {
+                if (definition == null || definition.Sets == null || !definition.Sets.Contains(set.Id)
+                    || !definition.Visible || definition.Energy == 0.0
+                    || string.IsNullOrEmpty(definition.Name)
+                    || NuclideDefinition.IsElementXrayName(definition.Name))
+                {
+                    continue;
+                }
+
+                string parent = string.IsNullOrEmpty(definition.Chain)
+                    ? definition.NuclideName
+                    : definition.Chain;
+                string nucid = FsaSampleLibrary.NucidOf(parent);
+                if (nucid.Length > 0 && seen.Add(nucid))
+                {
+                    parents.Add(nucid);
+                }
+            }
+
+            var present = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (library != null)
+            {
+                foreach (FsaComponent component in library)
+                {
+                    if (component == null)
+                    {
+                        continue;
+                    }
+
+                    present.Add(component.Name ?? "");
+                    if (!string.IsNullOrEmpty(component.DecayChainRoot))
+                    {
+                        present.Add(component.DecayChainRoot);
+                    }
+
+                    foreach (FsaLine line in component.Lines)
+                    {
+                        if (line != null && !string.IsNullOrEmpty(line.Nuclide))
+                        {
+                            present.Add(line.Nuclide);
+                        }
+                    }
+                }
+            }
+
+            var labelled = new List<Peak>();
+            if (peaks != null)
+            {
+                foreach (Peak peak in peaks)
+                {
+                    if (peak != null)
+                    {
+                        labelled.Add(peak);
+                    }
+                }
+            }
+
+            foreach (string nucid in parents)
+            {
+                string pretty = FsaSampleLibrary.PrettyName(nucid);
+                if (present.Contains(pretty))
+                {
+                    continue;
+                }
+
+                FsaParentEvidence evidence = null;
+                if (report != null)
+                {
+                    foreach (FsaParentEvidence candidate in report.Candidates)
+                    {
+                        if (string.Equals(candidate.Nucid, nucid, StringComparison.OrdinalIgnoreCase))
+                        {
+                            evidence = candidate;
+                            break;
+                        }
+                    }
+
+                    if (evidence != null
+                        && (evidence.Accepted || evidence.Verdict == FsaParentVerdict.InChain))
+                    {
+                        continue;
+                    }
+                }
+                else if (labelled.Exists(peak => Belongs(peak, nucid)))
+                {
+                    continue;
+                }
+
+                result.Add(new FsaSetOmission
+                {
+                    Nuclide = pretty,
+                    Reason = evidence != null ? evidence.Verdict : FsaParentVerdict.None,
+                    Matched = evidence != null ? evidence.Matched : 0,
+                    Expected = evidence != null ? evidence.Expected : 0,
+                    Coverage = evidence != null ? Judged(evidence) : 0.0,
+                    Threshold = report != null ? report.Coverage : 0.0
+                });
+            }
+
+            return result;
         }
     }
 }

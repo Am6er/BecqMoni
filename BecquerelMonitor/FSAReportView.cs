@@ -362,6 +362,14 @@ namespace BecquerelMonitor
         const string KeyUncoveredRow = "FSAReport_UncoveredRow";
         const string KeyUncoveredValue = "FSAReport_UncoveredValue";
         const string KeyUncoveredNone = "FSAReport_UncoveredNone";
+        // (`AMBER221`) родитель сета вне состава: строка, слово состояния, причины
+        const string KeySetOmittedRow = "FSAReport_SetOmittedRow";
+        const string KeySetOmittedValue = "FSAReport_SetOmittedValue";
+        const string KeySetOmittedNoPeak = "FSAReport_SetOmittedNoPeak";
+        const string KeySetOmittedNoLines = "FSAReport_SetOmittedNoLines";
+        const string KeySetOmittedNotConfirmed = "FSAReport_SetOmittedNotConfirmed";
+        const string KeySetOmittedBelowCoverage = "FSAReport_SetOmittedBelowCoverage";
+        const string KeySetOmittedNotNovel = "FSAReport_SetOmittedNotNovel";
         const string KeyResidualNoise = "FSAReport_ResidualNoise";
         const string KeyResidualNoiseTip = "FSAReport_ResidualNoiseTip";
         // (`AMBER156`, `AMBER157`, `AMBER159`; П195 01.10.2026) Разбор без
@@ -1822,7 +1830,48 @@ namespace BecquerelMonitor
                 }
             }
 
+            // (`AMBER221`, решение Amber 12.10.2026 вопросником, дословно: «Чинить
+            // сейчас») РОДИТЕЛЬ АКТИВНОГО СЕТА, НЕ ВОШЕДШИЙ В СОСТАВ, — строкой на
+            // каждого, с причиной. Прежде он выпадал молча: K-40 в сете, подпись
+            // «K-40» над пиком — и ни компонента, ни слова.
+            if (result.SetOmissions != null)
+            {
+                foreach (FsaSetOmission item in result.SetOmissions)
+                {
+                    made.Add(this.MakeMarkRowText(
+                        string.Format(CultureInfo.InvariantCulture, OwnText(KeySetOmittedRow),
+                                      item.Nuclide ?? string.Empty, SetOmissionReason(item)),
+                        OwnText(KeySetOmittedValue), false, true));
+                }
+            }
+
             return made;
+        }
+
+        /// <summary>
+        /// (`AMBER221`) Причина словами окна; числа — один раз и инвариантной
+        /// культурой (`A242`). <see cref="FsaParentVerdict.None"/> — родитель
+        /// кандидатом не был: ни один пик им не подписан.
+        /// </summary>
+        static string SetOmissionReason(FsaSetOmission item)
+        {
+            switch (item.Reason)
+            {
+                case FsaParentVerdict.NoLines:
+                    return OwnText(KeySetOmittedNoLines);
+                case FsaParentVerdict.NotConfirmed:
+                    return OwnText(KeySetOmittedNotConfirmed);
+                case FsaParentVerdict.BelowCoverage:
+                    return string.Format(CultureInfo.InvariantCulture, OwnText(KeySetOmittedBelowCoverage),
+                                         item.Matched.ToString(CultureInfo.InvariantCulture),
+                                         item.Expected.ToString(CultureInfo.InvariantCulture),
+                                         (100.0 * item.Coverage).ToString("F0", CultureInfo.InvariantCulture),
+                                         (100.0 * item.Threshold).ToString("F0", CultureInfo.InvariantCulture));
+                case FsaParentVerdict.NotNovel:
+                    return OwnText(KeySetOmittedNotNovel);
+                default:
+                    return OwnText(KeySetOmittedNoPeak);
+            }
         }
 
         /// <summary>

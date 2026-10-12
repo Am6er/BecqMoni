@@ -942,6 +942,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 string shortfall = null;
                 List<FsaSampleChain> setChains = null;
                 List<string> setNuclides = null;
+                // (`AMBER221`) отчёт вывода — и для строки о родителях сета вне
+                // состава; null — состав не выводился (из сета, по подписям)
+                FsaCompositionInference.Report inferred = null;
+                bool declaredBySet = false;
                 if (job.Options.FromSet)
                 {
                     // (П236; решение Amber 06.10.2026 «Из сета нуклидов») Состав —
@@ -959,10 +963,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Trace.WriteLine("FSA composition: nuclide set, chains " + setChains.Count
                                     + ", nuclides " + setNuclides.Count);
                     library = FsaSampleLibrary.Build(spec);
+                    declaredBySet = true;
                 }
                 else if (job.Options.DbLookups)
                 {
-                    FsaCompositionInference.Report inferred;
                     FsaSampleSpec spec = FsaCompositionInference.Infer(job.Peaks, job.CompositionInput, out inferred);
                     job.Options.ApplyTo(spec);
                     Trace.WriteLine("FSA composition: " + inferred);
@@ -989,6 +993,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // (`S187`) Расхождения поставок у нуклидов состава — здесь,
                         // в фоне: чтение базы не должно идти в окне отчёта.
                         computed.SupplyDiscrepancies = FsaCascadeSummer.SupplyDiscrepanciesOf(computed);
+
+                        // (`AMBER221`) родители сета вне состава — строкой отчёта;
+                        // состав, объявленный сетом, их не теряет по построению
+                        if (!declaredBySet)
+                        {
+                            computed.SetOmissions.AddRange(FsaCompositionInference.SetOmissions(
+                                job.Set, job.Definitions, inferred, job.Peaks, library));
+                        }
                     }
 
                     if (computed == null)
