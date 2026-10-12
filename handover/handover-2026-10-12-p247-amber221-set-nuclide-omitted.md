@@ -129,10 +129,10 @@ Amber с идущим набором и был ею отклонён. Строк
 
 ## Артефакты (на диске, не в git)
 
-`D:\BqMoni_Claude\p247\`: `app\` (сборка полосы с копией конфига Amber), `probes\`,
-`probes_amber\`, `spectra\` (копии «соли» и фона), `sweep\` (три плеча и сравнения),
-`sweep_v1_window\`, `sweep_v2_label\` (отвергнутые редакции), `sweep_amber221.ps1`,
-`compare_sweep.py`, `check_all2.txt`; расчёты калибровки — `bg_k40.py`,
+`D:\BqMoni_Claude\p247\`: `sweep\` (три плеча и сравнения), `sweep_v1_window\`,
+`sweep_v2_label\` (отвергнутые редакции), `sweep_amber221.ps1`, `compare_sweep.py`,
+`check_all*.txt`, журналы сборок. Сборки полосы (`app\` с копией конфига Amber, `probes\`,
+`probes_amber\`) и копии спектров сняты после приёмки. Расчёты калибровки — `bg_k40.py`,
 `bg_k40_channel.py`, `cal_list.py` в scratchpad сессии.
 
 ## Что не сделано и почему
