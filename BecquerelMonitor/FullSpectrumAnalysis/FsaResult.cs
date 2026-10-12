@@ -1141,6 +1141,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public List<FsaUncoveredRejection> UncoveredRejections { get; private set; } = new List<FsaUncoveredRejection>();
 
         /// <summary>
+        /// (`AMBER221`, 12.10.2026) РОДИТЕЛИ АКТИВНОГО СЕТА, НЕ ВОШЕДШИЕ В СОСТАВ, с причиной —
+        /// строкой отчёта FSA на каждого (решение Amber вопросником, дословно: «Чинить сейчас»).
+        /// Пусто — все в составе либо состав объявлен сетом. Заполняет сеанс
+        /// (<see cref="FsaCompositionInference.SetOmissions"/>), а не анализатор: сет и вывод
+        /// состава живут там. Повод: K-40, добавленный в сет, выпадал из состава молча.
+        /// </summary>
+        public List<FsaSetOmission> SetOmissions { get; private set; } = new List<FsaSetOmission>();
+
+        /// <summary>
         /// (S44) Фон был ПОДАН на разбор, но НЕ ВЗЯТ — с причиной словами
         /// («the background has 1012 channels, the spectrum 1024»). null —
         /// фона не подавали либо он вычтен. Отказ обязан быть назван:

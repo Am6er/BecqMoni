@@ -294,6 +294,21 @@ namespace BecquerelMonitor.Probes
                                       names.Count > 0 ? string.Join(", ", names) : "—");
                 }
             }
+            // (`AMBER221`, П247) родители активного сета вне состава — по строке; текст
+            // строки окна отчёта — кодом самого окна (`FSAReportView.SetOmissionReason`,
+            // отражением) на en и ru: окно приложения агенту на экране недоступно
+            Console.WriteLine("  родителей сета вне состава: {0}", result.SetOmissions != null ? result.SetOmissions.Count : 0);
+            if (result.SetOmissions != null)
+            {
+                foreach (FsaSetOmission o in result.SetOmissions)
+                {
+                    Console.WriteLine("    {0}  {1}  {2}/{3}", o.Nuclide, o.Reason, o.Matched, o.Expected);
+                    foreach (string lang in new[] { "en-US", "ru-RU" })
+                    {
+                        Console.WriteLine("      [{0}] {1}", lang, SetOmissionRow(o, lang));
+                    }
+                }
+            }
             Console.WriteLine("  χ²/ndf Пуассон {0}; σ-надувка {1}; усиление {2}; нуль {3} кан.; опор шкалы {4}; фон {5}{6}; невязка модели {7}",
                               result.Chi2NdfPoisson.ToString("F2", CultureInfo.InvariantCulture),
                               result.SigmaInflation.ToString("F3", CultureInfo.InvariantCulture),
@@ -504,6 +519,30 @@ namespace BecquerelMonitor.Probes
             copy.DetectedPeaks = new PeakDetector().DetectPeak(copy, BackgroundMode.Invisible, SmoothingMethod.None,
                                                                nuclides.ActiveSet, nuclides.NuclideDefinitions);
             return copy;
+        }
+
+        /// <summary>
+        /// (`AMBER221`) Строка окна отчёта «есть в сете, нет в составе» — тем же кодом
+        /// окна: формат подписи из ресурса и причина из `SetOmissionReason`.
+        /// </summary>
+        static string SetOmissionRow(FsaSetOmission omission, string culture)
+        {
+            CultureInfo saved = Thread.CurrentThread.CurrentUICulture;
+            try
+            {
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+                const System.Reflection.BindingFlags Private =
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
+                Type view = typeof(FSAReportView);
+                string format = (string)view.GetMethod("OwnText", Private).Invoke(null, new object[] { "FSAReport_SetOmittedRow" });
+                string reason = (string)view.GetMethod("SetOmissionReason", Private).Invoke(null, new object[] { omission });
+                string value = (string)view.GetMethod("OwnText", Private).Invoke(null, new object[] { "FSAReport_SetOmittedValue" });
+                return string.Format(CultureInfo.InvariantCulture, format, omission.Nuclide, reason) + "  |  " + value;
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentUICulture = saved;
+            }
         }
 
         static ResultData Load(string path, NuclideDefinitionManager nuclides)

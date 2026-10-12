@@ -361,6 +361,27 @@
   <data name="FSAReport_UncoveredNone" xml:space="preserve">
     <value>нет</value>
   </data>
+  <data name="FSAReport_SetOmittedRow" xml:space="preserve">
+    <value>{0}: есть в сете, нет в составе — {1}</value>
+  </data>
+  <data name="FSAReport_SetOmittedValue" xml:space="preserve">
+    <value>не разложен</value>
+  </data>
+  <data name="FSAReport_SetOmittedNoPeak" xml:space="preserve">
+    <value>ни один найденный пик им не подписан</value>
+  </data>
+  <data name="FSAReport_SetOmittedNoLines" xml:space="preserve">
+    <value>ни одной его линии в рабочем окне (полоса поиска, кривая эффективности)</value>
+  </data>
+  <data name="FSAReport_SetOmittedNotConfirmed" xml:space="preserve">
+    <value>линий, которыми подписаны его пики, нет среди его линий рабочего окна</value>
+  </data>
+  <data name="FSAReport_SetOmittedBelowCoverage" xml:space="preserve">
+    <value>пиками подтверждено групп линий {0} из {1} ожидаемых ({2} %, порог {3} %)</value>
+  </data>
+  <data name="FSAReport_SetOmittedNotNovel" xml:space="preserve">
+    <value>его подтверждённые линии уже объясняет состав</value>
+  </data>
   <data name="FSAReport_ResidualNoise" xml:space="preserve">
     <value>шумовой пол {0} %</value>
   </data>

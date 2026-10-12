@@ -5295,6 +5295,27 @@
   <data name="FSAReport_UncoveredNone" xml:space="preserve">
     <value>none</value>
   </data>
+  <data name="FSAReport_SetOmittedRow" xml:space="preserve">
+    <value>{0}: in the nuclide set, not in the composition — {1}</value>
+  </data>
+  <data name="FSAReport_SetOmittedValue" xml:space="preserve">
+    <value>not fitted</value>
+  </data>
+  <data name="FSAReport_SetOmittedNoPeak" xml:space="preserve">
+    <value>no detected peak is labelled by it</value>
+  </data>
+  <data name="FSAReport_SetOmittedNoLines" xml:space="preserve">
+    <value>none of its lines is in the working range (search band, efficiency curve)</value>
+  </data>
+  <data name="FSAReport_SetOmittedNotConfirmed" xml:space="preserve">
+    <value>the lines its peaks are labelled with are not among its lines in the working range</value>
+  </data>
+  <data name="FSAReport_SetOmittedBelowCoverage" xml:space="preserve">
+    <value>{0} of {1} expected line groups confirmed by peaks ({2} %, threshold {3} %)</value>
+  </data>
+  <data name="FSAReport_SetOmittedNotNovel" xml:space="preserve">
+    <value>its confirmed lines are already explained by the composition</value>
+  </data>
   <data name="FSAReport_ResidualNoise" xml:space="preserve">
     <value>noise floor {0} %</value>
   </data>
