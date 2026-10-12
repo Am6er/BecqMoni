@@ -2513,6 +2513,9 @@ namespace BecquerelMonitor
             // уже применены свежие scrollX/scrollY, а масштаб и калибровка
             // могли смениться с прошлой отрисовки.
             this.InvalidatePixelChannelMap();
+            // (`AMBER222`) Признак «стопка FSA нарисована» живёт ровно один кадр:
+            // его ставит `ShowFsaOverlay`, читает конец линии пика.
+            this.fsaFrameDrawn = false;
             ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
             int num = this.CalcMaximumXValue() + this.scrollX + this.left;
             this.ShowSelectionPart1(g);
@@ -3164,25 +3167,30 @@ namespace BecquerelMonitor
 
             for (int filled = 0; filled < length; filled++)
             {
-                int pixel = firstPixel + filled;
-                int channel;
-                if (this.horizontalUnit == HorizontalUnit.Energy)
-                {
-                    double offset = (double)(pixel - this.scrollX - this.left) / this.horizontalScale;
-                    channel = NearestChannel(PolynomialEnergyCalibration.ChannelOf(calibration, offset / this.pixelPerEnergy + this.energyViewOffset, spectrum.NumberOfChannels));
-                }
-                else
-                {
-                    channel = NearestChannel((double)(pixel - this.scrollX - this.left) / this.horizontalScale);
-                }
-
-                this.pixelChannelMap[filled] = channel;
+                this.pixelChannelMap[filled] = this.ChannelAtPixel(spectrum, calibration, firstPixel + filled);
             }
 
             this.pixelChannelMapSpectrum = spectrum;
             this.pixelChannelMapFirstPixel = firstPixel;
             this.pixelChannelMapLength = length;
             return this.pixelChannelMap;
+        }
+
+        /// <summary>
+        /// Канал, который рисуется в экранном столбце <paramref name="pixel"/>, —
+        /// единственное правило карты <see cref="EnsurePixelChannelMap"/>. Вынесено
+        /// (`AMBER222`), чтобы конец линии пика в режиме FSA брался с ТОГО ЖЕ
+        /// канала, что и кромка, которой он касается (<see cref="TryFsaPeakTopY"/>).
+        /// </summary>
+        int ChannelAtPixel(EnergySpectrum spectrum, EnergyCalibration calibration, int pixel)
+        {
+            if (this.horizontalUnit == HorizontalUnit.Energy)
+            {
+                double offset = (double)(pixel - this.scrollX - this.left) / this.horizontalScale;
+                return NearestChannel(PolynomialEnergyCalibration.ChannelOf(calibration, offset / this.pixelPerEnergy + this.energyViewOffset, spectrum.NumberOfChannels));
+            }
+
+            return NearestChannel((double)(pixel - this.scrollX - this.left) / this.horizontalScale);
         }
 
         void InvalidatePixelChannelMap()
@@ -4307,13 +4315,24 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Экранный Y вершины пика — той кривой, что нарисована: за вычетом фона
-        /// в режиме разложения (<paramref name="fsaNet"/>) и в режиме вычитания,
-        /// иначе самого спектра. Значение ≤ 0 на нелинейной шкале даёт точку за
+        /// Экранный Y вершины пика — той кривой, что нарисована: при нарисованной
+        /// стопке FSA — верх нарисованного в столбце линии (`AMBER222`,
+        /// <see cref="TryFsaPeakTopY"/>); в режиме разложения без стопки — спектр
+        /// за вычетом фона (<paramref name="fsaNet"/>), в режиме вычитания — он же,
+        /// иначе сам спектр. Значение ≤ 0 на нелинейной шкале даёт точку за
         /// краем поля (<c>height + 100</c>) — как и было у линии пика.
         /// </summary>
         int PeakTopY(Peak peak, EnergySpectrum spectrum, double[] fsaNet)
         {
+            // (`AMBER222`) Стопка FSA нарисована в этом кадре — линия упирается в
+            // верх НАРИСОВАННОГО в своём экранном столбце, а не в измерение,
+            // которого на графике может не быть (галочка «Spectral data» снята).
+            int fsaTopY;
+            if (this.TryFsaPeakTopY(this.PeakX((double)peak.Channel), out fsaTopY))
+            {
+                return fsaTopY;
+            }
+
             int channel2 = peak.Channel;
             double num6 = 0.0;
             if (fsaNet != null && channel2 >= 0 && channel2 < fsaNet.Length)
