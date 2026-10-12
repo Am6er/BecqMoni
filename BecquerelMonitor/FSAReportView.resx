@@ -199,7 +199,7 @@
     <value>6, 3, 6, 4</value>
   </data>
   <data name="displayGroupBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>320, 152</value>
+    <value>320, 172</value>
   </data>
   <data name="displayGroupBox.TabIndex" type="System.Int32, mscorlib">
     <value>3</value>
@@ -217,7 +217,7 @@
     <value>6, 16</value>
   </data>
   <data name="displayFlow.Size" type="System.Drawing.Size, System.Drawing">
-    <value>308, 130</value>
+    <value>308, 150</value>
   </data>
   <data name="displayFlow.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -444,29 +444,44 @@
   <data name="residualBandCheckBox.Text" xml:space="preserve">
     <value>Model residual</value>
   </data>
+  <data name="spectralDataCheckBox.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="spectralDataCheckBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>3, 88</value>
+  </data>
+  <data name="spectralDataCheckBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>89, 17</value>
+  </data>
+  <data name="spectralDataCheckBox.TabIndex" type="System.Int32, mscorlib">
+    <value>4</value>
+  </data>
+  <data name="spectralDataCheckBox.Text" xml:space="preserve">
+    <value>Spectral data</value>
+  </data>
   <data name="matrixLayerLabel.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="matrixLayerLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>3, 88</value>
+    <value>3, 108</value>
   </data>
   <data name="matrixLayerLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>64, 13</value>
   </data>
   <data name="matrixLayerLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>4</value>
+    <value>5</value>
   </data>
   <data name="matrixLayerLabel.Text" xml:space="preserve">
     <value>Matrix layer</value>
   </data>
   <data name="matrixLayerComboBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>3, 104</value>
+    <value>3, 124</value>
   </data>
   <data name="matrixLayerComboBox.Size" type="System.Drawing.Size, System.Drawing">
     <value>240, 21</value>
   </data>
   <data name="matrixLayerComboBox.TabIndex" type="System.Int32, mscorlib">
-    <value>5</value>
+    <value>6</value>
   </data>
   <data name="statusLabel.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
     <value>Top</value>
@@ -5037,6 +5052,18 @@
   <data name="&gt;&gt;residualBandCheckBox.ZOrder" xml:space="preserve">
     <value>3</value>
   </data>
+  <data name="&gt;&gt;spectralDataCheckBox.Name" xml:space="preserve">
+    <value>spectralDataCheckBox</value>
+  </data>
+  <data name="&gt;&gt;spectralDataCheckBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;spectralDataCheckBox.Parent" xml:space="preserve">
+    <value>displayFlow</value>
+  </data>
+  <data name="&gt;&gt;spectralDataCheckBox.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
   <data name="&gt;&gt;matrixLayerLabel.Name" xml:space="preserve">
     <value>matrixLayerLabel</value>
   </data>
@@ -5047,7 +5074,7 @@
     <value>displayFlow</value>
   </data>
   <data name="&gt;&gt;matrixLayerLabel.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>5</value>
   </data>
   <data name="&gt;&gt;matrixLayerComboBox.Name" xml:space="preserve">
     <value>matrixLayerComboBox</value>
@@ -5059,7 +5086,7 @@
     <value>displayFlow</value>
   </data>
   <data name="&gt;&gt;matrixLayerComboBox.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>6</value>
   </data>
   <data name="&gt;&gt;statusLabel.Name" xml:space="preserve">
     <value>statusLabel</value>
@@ -5219,6 +5246,9 @@
   </data>
   <data name="FSAReport_ResidualBandTip" xml:space="preserve">
     <value>Changes only the chart: nothing is recomputed.</value>
+  </data>
+  <data name="FSAReport_SpectralDataTip" xml:space="preserve">
+    <value>Draws the measured spectrum line over the FSA stack. Changes only the chart: nothing is recomputed.</value>
   </data>
   <data name="FSAReport_MatrixLayerAll" xml:space="preserve">
     <value>All</value>

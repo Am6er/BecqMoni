@@ -350,6 +350,45 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (`AMBER222`, П248 12.10.2026) Галка «Spectral data» группы показа окна FSA
+        /// Report — рисовать ли на графике FSA линию измеренного спектра. Постановка
+        /// Amber 12.10.2026, дословно: «Значение по умолчанию - включено. Настройка
+        /// запоминается так же, как и остальные настройки в окне FSA Report.»; решение
+        /// вопросником того же дня, дословно: «На диск: Spectral data + Model residual
+        /// (Рекомендую)». Настройка ПОКАЗА: в отпечаток разбора не входит, пересчёта не
+        /// заказывает. Старым файлам без элемента — умолчание поля, включено.
+        /// </summary>
+        public bool FsaShowSpectralData
+        {
+            get
+            {
+                return this.fsaShowSpectralData;
+            }
+            set
+            {
+                this.fsaShowSpectralData = value;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER222`) Галка «Model residual» (`A248`) — рисовать ли ленту невязки.
+        /// До `AMBER222` жила в окне только до закрытия программы; тем же решением
+        /// Amber пишется на диск рядом с <see cref="FsaShowSpectralData"/>. Умолчание —
+        /// включено, как было.
+        /// </summary>
+        public bool FsaShowResidual
+        {
+            get
+            {
+                return this.fsaShowResidual;
+            }
+            set
+            {
+                this.fsaShowResidual = value;
+            }
+        }
+
         public bool AutosaveDefaultPolicy
         {
             get
@@ -488,6 +527,11 @@ namespace BecquerelMonitor
 
         // (`AMBER212`) семь расчётных переключателей FSA — одна настройка приложения
         FsaCalculationSettings fsaCalculation = new FsaCalculationSettings();
+
+        // (`AMBER222`) две галки показа окна FSA Report; умолчание ВКЛ (Amber 12.10.2026)
+        bool fsaShowSpectralData = true;
+
+        bool fsaShowResidual = true;
 
         bool importSpectrumWithEmptyConfig = false;
 

@@ -38,6 +38,7 @@ namespace BecquerelMonitor
             this.escapeCheckBox = new System.Windows.Forms.CheckBox();
             this.pileUpCheckBox = new System.Windows.Forms.CheckBox();
             this.residualBandCheckBox = new System.Windows.Forms.CheckBox();
+            this.spectralDataCheckBox = new System.Windows.Forms.CheckBox();
             this.matrixLayerLabel = new System.Windows.Forms.Label();
             this.matrixLayerComboBox = new System.Windows.Forms.ComboBox();
             this.statusLabel = new System.Windows.Forms.Label();
@@ -113,6 +114,7 @@ namespace BecquerelMonitor
             this.displayFlow.Controls.Add(this.parentsRadio);
             this.displayFlow.Controls.Add(this.daughtersRadio);
             this.displayFlow.Controls.Add(this.residualBandCheckBox);
+            this.displayFlow.Controls.Add(this.spectralDataCheckBox);
             this.displayFlow.Controls.Add(this.matrixLayerLabel);
             this.displayFlow.Controls.Add(this.matrixLayerComboBox);
             this.displayFlow.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
@@ -239,6 +241,20 @@ namespace BecquerelMonitor
             this.residualBandCheckBox.UseVisualStyleBackColor = true;
             this.residualBandCheckBox.CheckedChanged += new System.EventHandler(this.residualBandCheckBox_CheckedChanged);
             //
+            // spectralDataCheckBox
+            //
+            // (`AMBER222`) «Spectral data» — линия измеренного спектра на графике
+            // FSA; задача Amber 12.10.2026: «Ниже model residual добавить галочку
+            // "Spectral data". Значение по умолчанию - включено.» Переключатель
+            // ОТРИСОВОЧНЫЙ, потому в группе показа.
+            //
+            resources.ApplyResources(this.spectralDataCheckBox, "spectralDataCheckBox");
+            this.spectralDataCheckBox.Checked = true;
+            this.spectralDataCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.spectralDataCheckBox.Name = "spectralDataCheckBox";
+            this.spectralDataCheckBox.UseVisualStyleBackColor = true;
+            this.spectralDataCheckBox.CheckedChanged += new System.EventHandler(this.spectralDataCheckBox_CheckedChanged);
+            //
             // matrixLayerLabel
             //
             // (`AMBER45`) Подпись и комбо «Matrix layer» — описание вида Amber
@@ -352,6 +368,7 @@ namespace BecquerelMonitor
         private System.Windows.Forms.CheckBox escapeCheckBox;
         private System.Windows.Forms.CheckBox pileUpCheckBox;
         private System.Windows.Forms.CheckBox residualBandCheckBox;
+        private System.Windows.Forms.CheckBox spectralDataCheckBox;
         private System.Windows.Forms.Label matrixLayerLabel;
         private System.Windows.Forms.ComboBox matrixLayerComboBox;
         private System.Windows.Forms.Label statusLabel;
