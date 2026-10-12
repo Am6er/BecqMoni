@@ -168,6 +168,29 @@ namespace BecquerelMonitor
         const string KeyResidualBandTip = "FSAReport_ResidualBandTip";
 
         // ------------------------------------------------------------------
+        // (`AMBER222`) ПОКАЗ ДАННЫХ СПЕКТРА — галочка «Spectral data»
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`AMBER222`, задача Amber 12.10.2026) Показывать ли на графике FSA
+        /// линию измеренного спектра (<see cref="EnergySpectrumView.FsaShowSpectralData"/>).
+        /// Настройка ПОКАЗА той же природы, что <see cref="showResidualBand"/>: в
+        /// отпечаток разбора не входит, пересчёта не заказывает, таблицу не
+        /// меняет. Живёт в окне и едет на график показываемого документа.
+        ///
+        /// ⛔ Обе галочки показа ПИШУТСЯ НА ДИСК (решение Amber 12.10.2026
+        /// вопросником, дословно: «На диск: Spectral data + Model residual
+        /// (Рекомендую)») — в общие настройки (<see cref="GlobalConfigInfo.FsaShowSpectralData"/>,
+        /// <see cref="GlobalConfigInfo.FsaShowResidual"/>), как семь расчётных
+        /// (`AMBER212`), и переживают перезапуск. Группировка и слой матрицы —
+        /// по-прежнему только в окне.
+        /// </summary>
+        bool showSpectralData = true;
+
+        /// <summary>Ключ подсказки галочки «Spectral data»: «меняет только показ».</summary>
+        const string KeySpectralDataTip = "FSAReport_SpectralDataTip";
+
+        // ------------------------------------------------------------------
         // (`AMBER45`) СЛОЙ МАТРИЦЫ ОТКЛИКА — комбо «Matrix layer»
         // ------------------------------------------------------------------
 
@@ -524,6 +547,9 @@ namespace BecquerelMonitor
                 this.loading = false;
             }
 
+            // (`AMBER222`) Обе галочки показа — из общих настроек приложения.
+            this.LoadDisplaySettings();
+
             this.SetToolTips();
             this.reportTable.Resize += this.ReportTable_Resize;
             this.reportTable.SelectionChanged += this.ReportTable_SelectionChanged;
@@ -685,6 +711,7 @@ namespace BecquerelMonitor
             // график того документа, который показывается сейчас: иначе
             // снятая лента возвращалась бы при каждой смене спектра.
             this.PushResidualBand();
+            this.PushSpectralData();
 
             // (`AMBER45`) Тот же довод для слоя матрицы: просьба живёт в окне
             // и едет на график показываемого документа.
@@ -908,10 +935,12 @@ namespace BecquerelMonitor
         /// ⛔ Галка ленты невязки идёт ДРУГОЙ дорогой, нежели пять галок
         /// «Дополнительных компонентов модели»: не
         /// <see cref="ApplyCalculationChange"/>, а одна
-        /// перерисовка графика. Никакой записи в конфигурацию, никакого
+        /// перерисовка графика. Никакой записи в конфигурацию СПЕКТРА, никакого
         /// <c>session.Invalidate()</c>, никакого <c>Consume()</c> — иначе снятая
         /// лента стоила бы человеку полного пересчёта разбора и, что хуже,
         /// поменяла бы отпечаток: те же числа считались бы заново.
+        /// (`AMBER222`) Положение галочки пишется в общие настройки приложения
+        /// (<see cref="SaveDisplaySettings"/>) — это не отпечаток разбора.
         /// </summary>
         void residualBandCheckBox_CheckedChanged(object sender, EventArgs e)
         {
@@ -922,6 +951,120 @@ namespace BecquerelMonitor
 
             this.showResidualBand = this.residualBandCheckBox.Checked;
             this.PushResidualBand();
+            this.SaveDisplaySettings();
+        }
+
+        /// <summary>
+        /// (`AMBER222`) Галка «Spectral data» — той же дорогой, что галка ленты
+        /// невязки: перерисовка графика и запись положения в общие настройки,
+        /// без пересчёта и без правки таблицы.
+        /// </summary>
+        void spectralDataCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (this.loading)
+            {
+                return;
+            }
+
+            this.showSpectralData = this.spectralDataCheckBox.Checked;
+            this.PushSpectralData();
+            this.SaveDisplaySettings();
+        }
+
+        /// <summary>Показывать ли на графике FSA линию измеренного спектра (пробы).</summary>
+        public bool ShowSpectralData
+        {
+            get
+            {
+                return this.showSpectralData;
+            }
+
+            set
+            {
+                this.loading = true;
+                try
+                {
+                    this.spectralDataCheckBox.Checked = value;
+                }
+                finally
+                {
+                    this.loading = false;
+                }
+
+                this.showSpectralData = value;
+                this.PushSpectralData();
+            }
+        }
+
+        /// <summary>
+        /// Сказать графику, показывать ли линию спектра. ⛔ Ничего, кроме
+        /// перерисовки, это не меняет — по образцу <see cref="PushResidualBand"/>.
+        /// </summary>
+        void PushSpectralData()
+        {
+            if (this.document != null && !this.document.IsDisposed
+                && this.document.EnergySpectrumView != null)
+            {
+                this.document.EnergySpectrumView.FsaShowSpectralData = this.showSpectralData;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER222`) Обе галочки показа — из общих настроек приложения. Без
+        /// источника приложения (<see cref="FsaCalculationOptions.ApplicationSource"/>
+        /// не поставлен — пробы) общей настройки нет: остаются умолчания окна,
+        /// как у семи расчётных в <see cref="ApplyCalculationChange"/>.
+        /// </summary>
+        void LoadDisplaySettings()
+        {
+            if (FsaCalculationOptions.ApplicationSource == null)
+            {
+                return;
+            }
+
+            GlobalConfigInfo config = GlobalConfigManager.GetInstance().GlobalConfig;
+            if (config == null)
+            {
+                return;
+            }
+
+            this.loading = true;
+            try
+            {
+                this.residualBandCheckBox.Checked = config.FsaShowResidual;
+                this.spectralDataCheckBox.Checked = config.FsaShowSpectralData;
+            }
+            finally
+            {
+                this.loading = false;
+            }
+
+            this.showResidualBand = config.FsaShowResidual;
+            this.showSpectralData = config.FsaShowSpectralData;
+        }
+
+        /// <summary>
+        /// (`AMBER222`) Записать обе галочки показа в общие настройки и сразу на
+        /// диск — тем же путём, что семь расчётных (<see cref="ApplyCalculationChange"/>).
+        /// Без источника приложения (пробы) — ничего: общей настройки у пробы нет.
+        /// </summary>
+        void SaveDisplaySettings()
+        {
+            if (FsaCalculationOptions.ApplicationSource == null)
+            {
+                return;
+            }
+
+            GlobalConfigManager manager = GlobalConfigManager.GetInstance();
+            GlobalConfigInfo config = manager.GlobalConfig;
+            if (config == null)
+            {
+                return;
+            }
+
+            config.FsaShowResidual = this.showResidualBand;
+            config.FsaShowSpectralData = this.showSpectralData;
+            manager.SaveConfigFile();
         }
 
         /// <summary>Показывать ли ленту невязки (пробы).</summary>
@@ -2521,6 +2664,7 @@ namespace BecquerelMonitor
             // признак, а не единственный: с `A265` род переключателя виден
             // и без наведения — по группе, в которой он лежит.
             this.toolTip.SetToolTip(this.residualBandCheckBox, OwnText(KeyResidualBandTip));
+            this.toolTip.SetToolTip(this.spectralDataCheckBox, OwnText(KeySpectralDataTip));
 
             // (`AMBER45`) Комбо слоя матрицы — того же рода «меняет только
             // показ»; при мёртвой матрице подсказку подменяет причиной

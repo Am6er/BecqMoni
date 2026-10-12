@@ -166,6 +166,9 @@
   <data name="residualBandCheckBox.Text" xml:space="preserve">
     <value>Невязка модели</value>
   </data>
+  <data name="spectralDataCheckBox.Text" xml:space="preserve">
+    <value>Данные спектра</value>
+  </data>
   <data name="matrixLayerLabel.Text" xml:space="preserve">
     <value>Слой матрицы</value>
   </data>
@@ -285,6 +288,9 @@
   </data>
   <data name="FSAReport_ResidualBandTip" xml:space="preserve">
     <value>Меняет только график; ничего не пересчитывается.</value>
+  </data>
+  <data name="FSAReport_SpectralDataTip" xml:space="preserve">
+    <value>Рисует линию измеренного спектра поверх стопки FSA. Меняет только график; ничего не пересчитывается.</value>
   </data>
   <data name="FSAReport_MatrixLayerAll" xml:space="preserve">
     <value>Все</value>

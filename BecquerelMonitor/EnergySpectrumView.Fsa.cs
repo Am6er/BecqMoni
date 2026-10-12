@@ -74,6 +74,13 @@ namespace BecquerelMonitor
         /// </summary>
         bool fsaShowResidual = true;
 
+        /// <summary>
+        /// (`AMBER222`) Показывать ли ЛИНИЮ ИЗМЕРЕННОГО СПЕКТРА поверх состава;
+        /// ставит галочка «Spectral data» окна отчёта (<see cref="FSAReportView"/>),
+        /// читает <see cref="ShowFsaOverlay"/>. Умолчание — показывать, как было.
+        /// </summary>
+        bool fsaShowSpectralData = true;
+
         // Всё, что зависит только от разложения, а не от вьюпорта, считается
         // один раз на результат: кумулятивные кривые стека (низ и верх каждой
         // ленты), спектр за вычетом фона и точки прямых подписей. Раньше эти
@@ -312,6 +319,47 @@ namespace BecquerelMonitor
                 }
 
                 this.fsaShowResidual = value;
+                this.Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER222`, задача Amber 12.10.2026) ПОКАЗЫВАТЬ ЛИ ДАННЫЕ СПЕКТРА на
+        /// графике FSA. Постановка дословно: «когда включена, отображать данные по
+        /// спектру (зелёные линии гистограммы на экране EnergySpectrumView. Когда
+        /// выключена - отображать только данные FSA с учётом галочки Model
+        /// Residual.» Ставит галочка «Spectral data» группы показа окна отчёта;
+        /// умолчание — показывать.
+        ///
+        /// Гасится ровно линия измерения (<see cref="fsaNetSpectrum"/>) — то, что
+        /// принадлежит спектру, а не разбору. Стопка состава, белая линия суммы
+        /// модели, метки опор и лента невязки — данные FSA и остаются; лента
+        /// невязки подчиняется только своей галочке (<see cref="FsaShowResidual"/>),
+        /// и её половина «не описано» по-прежнему штрихуется цветом линии
+        /// спектра: она сама — невязка, а не спектр.
+        ///
+        /// ⛔ Правка вида, и только вида, как <see cref="FsaShowResidual"/>: ни
+        /// разбор, ни представление, ни одно число от неё не меняются — одна
+        /// перерисовка. Вне режима <see cref="BackgroundMode.ShowFSA"/> и пока
+        /// результата разбора нет, спектр рисуется обычным путём при любом
+        /// положении признака: там FSA показывать нечего, и график без спектра был
+        /// бы пуст.
+        /// </summary>
+        internal bool FsaShowSpectralData
+        {
+            get
+            {
+                return this.fsaShowSpectralData;
+            }
+
+            set
+            {
+                if (this.fsaShowSpectralData == value)
+                {
+                    return;
+                }
+
+                this.fsaShowSpectralData = value;
                 this.Invalidate();
             }
         }
@@ -874,12 +922,17 @@ namespace BecquerelMonitor
                     this.DrawFsaCurve(g, modelPen, this.fsaCumulative[top]);
                 }
 
-                ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
-                using (Pen spectrumPen = new Pen(colorConfig.ActiveSpectrumColor.Color))
+                // (`AMBER222`) Линия измерения — данные СПЕКТРА, а не разбора:
+                // галочка «Spectral data» снята — линии нет вовсе.
+                if (this.fsaShowSpectralData)
                 {
-                    // (`A26`) Линия измерения не рвётся: где фон перекрыл спектр,
-                    // она идёт по низу поля.
-                    this.DrawFsaCurve(g, spectrumPen, this.fsaNetSpectrum, clampToFloor: true);
+                    ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
+                    using (Pen spectrumPen = new Pen(colorConfig.ActiveSpectrumColor.Color))
+                    {
+                        // (`A26`) Линия измерения не рвётся: где фон перекрыл спектр,
+                        // она идёт по низу поля.
+                        this.DrawFsaCurve(g, spectrumPen, this.fsaNetSpectrum, clampToFloor: true);
+                    }
                 }
 
                 // (`AMBER17`) Опоры привязки шкалы — метками над верхом стека.
