@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Threading;
 using BecquerelMonitor;
 
@@ -11,9 +12,9 @@ namespace AmplitudaSerialTests
         public static int Run(string[] args)
         {
             string port = args.Length > 1 ? args[1] : "COM2";
-            byte address = (byte)(args.Length > 2 ? int.Parse(args[2]) : 0);
-            int seconds = args.Length > 3 ? int.Parse(args[3]) : 60;
-            int pour = args.Length > 4 ? int.Parse(args[4]) : 0;
+            byte address = (byte)(args.Length > 2 ? int.Parse(args[2], CultureInfo.InvariantCulture) : 0);
+            int seconds = args.Length > 3 ? int.Parse(args[3], CultureInfo.InvariantCulture) : 60;
+            int pour = args.Length > 4 ? int.Parse(args[4], CultureInfo.InvariantCulture) : 0;
 
             string error;
             AmplitudaSerialLine line = AmplitudaSerialLine.Acquire(new AmplitudaSerialSettings { PortName = port }, out error);
@@ -35,17 +36,17 @@ namespace AmplitudaSerialTests
                     acq.Compose(spectrum);
                     int max = 0, at = 0;
                     for (int i = 0; i < spectrum.Length; i++) if (spectrum[i] > max) { max = spectrum[i]; at = i; }
-                    Console.WriteLine(string.Format("real {0,7:F1} s  live {1,7:F1} s  counts {2,9}  max {3}@{4}  running {5}",
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "real {0,7:F1} s  live {1,7:F1} s  counts {2,9}  max {3}@{4}  running {5}",
                         acq.RealSeconds, acq.LiveSeconds, acq.TotalCounts, max, at, acq.Running));
                 }
                 if (!stopping && acq.RealSeconds >= seconds) { stopping = true; acq.RequestStop(); }
                 Thread.Sleep(100);
             }
             line.Release();
-            Console.WriteLine("finished: failure = " + acq.Failure + ", real " + acq.RealSeconds.ToString("F1") +
-                " s, live " + acq.LiveSeconds.ToString("F1") + " s, counts " + acq.TotalCounts +
-                ", rate " + (acq.RealSeconds > 0 ? acq.TotalCounts / acq.RealSeconds : 0).ToString("F1") + " cps" +
-                (acq.SuggestedChannels != 0 ? ", suggested channels " + acq.SuggestedChannels : ""));
+            Console.WriteLine("finished: failure = " + acq.Failure + ", real " + acq.RealSeconds.ToString("F1", CultureInfo.InvariantCulture) +
+                " s, live " + acq.LiveSeconds.ToString("F1", CultureInfo.InvariantCulture) + " s, counts " + acq.TotalCounts.ToString(CultureInfo.InvariantCulture) +
+                ", rate " + (acq.RealSeconds > 0 ? acq.TotalCounts / acq.RealSeconds : 0).ToString("F1", CultureInfo.InvariantCulture) + " cps" +
+                (acq.SuggestedChannels != 0 ? ", suggested channels " + acq.SuggestedChannels.ToString(CultureInfo.InvariantCulture) : ""));
             return acq.Failure == AmplitudaSerialFailure.None ? 0 : 1;
         }
     }

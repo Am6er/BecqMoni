@@ -85,6 +85,7 @@ namespace AmplitudaSerialTests
         public int GapViolations;
         public bool OpenFails;
         public bool WriteFails;
+        public bool PortDead;               // DiscardInput also throws: the port is really gone
         public int OpenCount;
         public bool Disposed;
 
@@ -188,6 +189,7 @@ namespace AmplitudaSerialTests
 
         public void DiscardInput()
         {
+            if (PortDead) throw new InvalidOperationException("fake: port is gone");
             lock (sync) { output.Clear(); }
         }
 

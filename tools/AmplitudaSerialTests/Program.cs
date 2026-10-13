@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 using System.Threading;
 
@@ -20,12 +21,12 @@ namespace AmplitudaSerialTests
 
         public static void Eq(long expected, long actual, string what)
         {
-            True(expected == actual, what + " (expected " + expected + ", got " + actual + ")");
+            True(expected == actual, what + " (expected " + expected.ToString(CultureInfo.InvariantCulture) + ", got " + actual.ToString(CultureInfo.InvariantCulture) + ")");
         }
 
         public static void Near(double expected, double actual, double tolerance, string what)
         {
-            True(Math.Abs(expected - actual) <= tolerance, what + " (expected " + expected + " +/- " + tolerance + ", got " + actual + ")");
+            True(Math.Abs(expected - actual) <= tolerance, what + " (expected " + expected.ToString(CultureInfo.InvariantCulture) + " +/- " + tolerance.ToString(CultureInfo.InvariantCulture) + ", got " + actual.ToString(CultureInfo.InvariantCulture) + ")");
         }
 
         // Real-time wait for something another thread does.
@@ -64,7 +65,7 @@ namespace AmplitudaSerialTests
                 }
             }
             Console.WriteLine();
-            Console.WriteLine("passed " + T.Passed + ", failed " + T.Failed);
+            Console.WriteLine("passed " + T.Passed.ToString(CultureInfo.InvariantCulture) + ", failed " + T.Failed.ToString(CultureInfo.InvariantCulture));
             return T.Failed == 0 ? 0 : 1;
         }
 

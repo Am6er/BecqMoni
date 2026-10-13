@@ -7041,16 +7041,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Dead time per pulse, us :.
-        /// </summary>
-        public static string AmplitudaSerialDeadTime {
-            get {
-                return ResourceManager.GetString("AmplitudaSerialDeadTime", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Channels: exactly as many as the block's spectrum has (BDEG-3-2: 1024; always a multiple of 512) - set on the common tab. A block cannot give more channels than it has. Live time comes from the block; the dead time above is used only when BecqMoni recomputes live time by formula..
+        ///   Looks up a localized string similar to Channels: exactly as many as the block's spectrum has (BDEG-3-2: 1024; always a multiple of 512) - set on the common tab. A block cannot give more channels than it has. Live time comes from the block..
         /// </summary>
         public static string AmplitudaSerialHint {
             get {
@@ -7275,15 +7266,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DEAD TIME in these settings is used only when BecqMoni recomputes live time by formula (rebuilding a spectrum, assigning another device). It does not affect a running measurement..
-        /// </summary>
-        public static string AmplitudaSerialInstructionP11 {
-            get {
-                return ResourceManager.GetString("AmplitudaSerialInstructionP11", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to This text can be opened again at any time with the "Instruction" button in the device settings..
         /// </summary>
         public static string AmplitudaSerialInstructionP12 {
@@ -7325,6 +7307,24 @@ namespace BecquerelMonitor.Properties {
         public static string AmplitudaSerialInstructionP13 {
             get {
                 return ResourceManager.GetString("AmplitudaSerialInstructionP13", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The block at address {1} on {0} is already being measured in another document (another device configuration names the same port and address). Stop that measurement first..
+        /// </summary>
+        public static string ERRAmplitudaSerialBlockBusy {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaSerialBlockBusy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The block at address {1} on {0} did not deliver its final reading when the measurement was stopped. The spectrum holds the data up to the last successful poll; what the block counted after it (one polling period, or more if the polls were already failing) is missing..
+        /// </summary>
+        public static string ERRAmplitudaSerialStopIncomplete {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaSerialStopIncomplete", resourceCulture);
             }
         }
     }

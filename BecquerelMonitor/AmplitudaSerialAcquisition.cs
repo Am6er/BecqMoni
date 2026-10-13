@@ -7,7 +7,7 @@ namespace BecquerelMonitor
     {
         None,
         NoAnswer,           // the block did not answer within 20 s of Start
-        ConnectionLost,     // no valid answer for more than 30 s
+        ConnectionLost,     // no valid answer for more than 30 s (5 s, and two failed attempts, while stopping)
         ClearFailed,        // the block does not come back empty after a clear
         StartFailed,        // the block does not start acquiring
         ChannelsExceedBlock,// the configured channel count is longer than the block's own spectrum
@@ -59,6 +59,9 @@ namespace BecquerelMonitor
         // afterwards must fit inside this window, so that it ends as a detected block reset
         // (spectrum protection) rather than being given up on as a lost connection.
         const int CommandAttempts = 3;
+        // Once the user has pressed Stop the UI thread is waiting for us: a dead block (a pulled
+        // cable) must give up in about this long, not after the 30 s of a measurement in progress.
+        const int StopTroubleMs = 5000;
 
         sealed class InboxItem
         {
@@ -79,6 +82,8 @@ namespace BecquerelMonitor
 
         int token;
         bool started;
+        bool stopping;
+        int stopFailures;       // failed exchanges of the stop sequence since the last success
         bool running;
         bool finished;
         bool dirty;
@@ -194,6 +199,7 @@ namespace BecquerelMonitor
                     (item.Kind == AmplitudaSerialRequestKind.Status || item.Kind == AmplitudaSerialRequestKind.Read))
                 {
                     troubleSinceMs = -1;
+                    stopFailures = 0;
                 }
                 item.Handler(item.Reading);
             }
@@ -215,10 +221,11 @@ namespace BecquerelMonitor
                 finished = true;
                 return;
             }
+            stopping = true;
             NewSequence();
-            Halt(0, delegate (AmplitudaSerialReading final)
+            Halt(0, delegate (AmplitudaSerialReading last)
             {
-                AmplitudaSerialVerdict verdict = TakeFinal(final);
+                AmplitudaSerialVerdict verdict = TakeFinal(last);
                 if (verdict == AmplitudaSerialVerdict.BlockReset)
                 {
                     // The block lost its memory sometime during the stop sequence. Unlike a
@@ -243,8 +250,14 @@ namespace BecquerelMonitor
                     segmentActive = false;
                     warnings.Add(AmplitudaSerialWarning.BlockReset);
                 }
+                else if (verdict != AmplitudaSerialVerdict.Ignored)
+                {
+                    // The last segment ends here, not in a pour: fold it so it gets the same
+                    // block-clock correction as every poured segment.
+                    session.Pour();
+                }
                 finished = true;
-            });
+            }, true);
         }
 
         // Clear while measuring: the document starts from zero, the block is restarted.
@@ -289,7 +302,7 @@ namespace BecquerelMonitor
             readOutstanding = false;
         }
 
-        void Send(AmplitudaSerialRequestKind kind, byte command, Action<AmplitudaSerialReading> handler)
+        void Send(AmplitudaSerialRequestKind kind, byte command, Action<AmplitudaSerialReading> handler, bool urgent = false)
         {
             int sentToken = token;
             AmplitudaSerialRequest request = new AmplitudaSerialRequest();
@@ -297,6 +310,7 @@ namespace BecquerelMonitor
             request.Address = address;
             request.Command = command;
             request.Channels = channels;
+            request.Urgent = urgent;
             request.Completed = delegate (AmplitudaSerialReading reading)
             {
                 lock (inboxLock)
@@ -315,7 +329,18 @@ namespace BecquerelMonitor
             {
                 troubleSinceMs = now;
             }
-            if (now - troubleSinceMs <= TroubleMs)
+            if (stopping)
+            {
+                // The window counts from the first failed exchange, like the normal rule, and a
+                // Stop is never given up on before at least two attempts have failed: one noisy
+                // page (three failed tries, ~2 s) must still get its retry.
+                stopFailures++;
+                if (now - troubleSinceMs <= StopTroubleMs || stopFailures < 2)
+                {
+                    return false;
+                }
+            }
+            else if (now - troubleSinceMs <= TroubleMs)
             {
                 return false;
             }
@@ -520,7 +545,8 @@ namespace BecquerelMonitor
         }
 
         // Stop the block and read it while it stands still.
-        void Halt(int attempt, Action<AmplitudaSerialReading> halted)
+        // final = the Stop's own halt: only its read is Urgent (a pour's halt rides with the normal polls).
+        void Halt(int attempt, Action<AmplitudaSerialReading> halted, bool final)
         {
             Send(AmplitudaSerialRequestKind.Control, AmplitudaSerialProtocol.CommandStop, delegate (AmplitudaSerialReading stopped)
             {
@@ -528,7 +554,7 @@ namespace BecquerelMonitor
                 {
                     if (!Troubled())
                     {
-                        Halt(attempt, halted);
+                        Halt(attempt, halted, final);
                     }
                     return;
                 }
@@ -539,13 +565,13 @@ namespace BecquerelMonitor
                     {
                         if (!Troubled())
                         {
-                            Halt(attempt, halted);
+                            Halt(attempt, halted, final);
                         }
                         return;
                     }
                     if (reading.Running && attempt + 1 < CommandAttempts)
                     {
-                        Halt(attempt + 1, halted);
+                        Halt(attempt + 1, halted, final);
                         return;
                     }
                     if (reading.Running)
@@ -554,7 +580,7 @@ namespace BecquerelMonitor
                         warnings.Add(AmplitudaSerialWarning.BlockWontStop);
                     }
                     halted(reading);
-                });
+                }, final);      // the Stop's final reading must not wait behind other documents' polls
             });
         }
 
@@ -627,7 +653,7 @@ namespace BecquerelMonitor
                             liveAtLastGood = session.LiveSeconds;
                             session.Pour();
                             Restart(0);
-                        });
+                        }, false);
                         break;
 
                     case AmplitudaSerialVerdict.BlockReset:

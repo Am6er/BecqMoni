@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Drawing;
+using System.Globalization;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
@@ -77,7 +78,7 @@ namespace BecquerelMonitor
             {
                 secondsLeft = CountdownSeconds;
                 buttonOk.Enabled = false;
-                buttonOk.Text = string.Format(Resources.AmplitudaSerialInstructionOkCountdown, secondsLeft);
+                buttonOk.Text = string.Format(CultureInfo.InvariantCulture, Resources.AmplitudaSerialInstructionOkCountdown, secondsLeft);
                 countdownTimer = new Timer { Interval = 1000 };
                 countdownTimer.Tick += CountdownTimer_Tick;
                 countdownTimer.Start();
@@ -103,7 +104,6 @@ namespace BecquerelMonitor
                 Resources.AmplitudaSerialInstructionP09,
                 Resources.AmplitudaSerialInstructionP10,
                 Resources.AmplitudaSerialInstructionP13,    // number of channels: written later, belongs here
-                Resources.AmplitudaSerialInstructionP11,
                 Resources.AmplitudaSerialInstructionP12
             };
             return string.Join(Environment.NewLine + Environment.NewLine, paragraphs);
@@ -120,7 +120,7 @@ namespace BecquerelMonitor
             }
             else
             {
-                buttonOk.Text = string.Format(Resources.AmplitudaSerialInstructionOkCountdown, secondsLeft);
+                buttonOk.Text = string.Format(CultureInfo.InvariantCulture, Resources.AmplitudaSerialInstructionOkCountdown, secondsLeft);
             }
         }
 

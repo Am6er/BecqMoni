@@ -245,7 +245,57 @@ namespace AmplitudaSerialTests
             line.Release();
             T.True(!failed.Ok && failed.Error != null, "failure reported");
             T.True(ok.Ok, "works again");
+            // A soft line error must not close the port: a block powered from DTR/RTS would lose power.
+            T.Eq(1, fake.OpenCount, "port stayed open after a soft error");
+        }
+
+        public static void TestDeadPortIsReopened()
+        {
+            FakeBlockPort fake = Fake(0);
+            string error;
+            AmplitudaSerialLine line = AmplitudaSerialLine.Acquire(Settings(), out error);
+            fake.WriteFails = true;
+            fake.PortDead = true;
+            AmplitudaSerialReading failed = Run(line, AmplitudaSerialRequestKind.Status, 0, 0);
+            fake.WriteFails = false;
+            fake.PortDead = false;
+            AmplitudaSerialReading ok = Run(line, AmplitudaSerialRequestKind.Status, 0, 0);
+            line.Release();
+            T.True(!failed.Ok && failed.Error != null, "failure reported");
+            T.True(ok.Ok, "works again");
             T.Eq(2, fake.OpenCount, "port reopened");
+        }
+
+        // Finding 2: the final reading of a Stop must not wait behind other documents' polls.
+        public static void TestUrgentReadOvertakesAForeignJob()
+        {
+            FakeBlockPort fake = Fake(0, 1);
+            fake.Blocks[0].Channels[5] = 11;
+            fake.Blocks[1].Channels[5] = 22;
+            fake.Blocks[1].Channels[700] = 33;
+            string error;
+            AmplitudaSerialLine line = AmplitudaSerialLine.Acquire(Settings(), out error);
+            fake.Gate.Reset();                      // the worker parks inside its first exchange
+            AmplitudaSerialReading foreign = null, urgent = null;
+            line.Enqueue(new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Read, Address = 1, Channels = 1024, Completed = r => foreign = r });
+            System.Threading.Thread.Sleep(50);
+            line.Enqueue(new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Read, Address = 0, Channels = 1024, Urgent = true, Completed = r => urgent = r });
+            fake.Gate.Set();
+            T.True(T.Wait(() => foreign != null && urgent != null, 5000), "both completed");
+            line.Release();
+            T.True(urgent != null && urgent.Ok && urgent.Channels[5] == 11, "urgent read data");
+            T.True(foreign != null && foreign.Ok && foreign.Channels[5] == 22 && foreign.Channels[700] == 33,
+                "the parked foreign job kept its data");
+            List<string> wire = new List<string>(fake.WireSnapshot());
+            string text = string.Join(" ", wire);
+            int urgentLast = -1, foreignLast = -1;
+            for (int i = 0; i + 1 < wire.Count; i++)
+            {
+                if (wire[i] == "A00" && wire[i + 1] == "C83") urgentLast = i;
+                if (wire[i] == "A01" && wire[i + 1] == "C83") foreignLast = i;
+            }
+            T.True(urgentLast >= 0 && foreignLast >= 0, "both last pages on the wire: " + text);
+            T.True(urgentLast < foreignLast, "urgent read finished before the foreign job's last page: " + text);
         }
     }
 }

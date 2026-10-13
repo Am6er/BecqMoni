@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -35,6 +36,14 @@ namespace BecquerelMonitor
         static readonly object lastResetLock = new object();
         static readonly Dictionary<string, DateTime> lastReset = new Dictionary<string, DateTime>(StringComparer.Ordinal);
 
+        // Measurement lease per PHYSICAL block (port + address, same key as the settle guard).
+        // MeasurementController leases a device per config GUID, so two configs naming the same
+        // block could otherwise measure it at once - and every start / pour of one would clear
+        // the block under the other. Taken in StartCore, released in ReleaseAll.
+        static readonly object activeBlocksLock = new object();
+        static readonly Dictionary<string, AmplitudaSerialDeviceController> activeBlocks =
+            new Dictionary<string, AmplitudaSerialDeviceController>(StringComparer.Ordinal);
+
         readonly System.Windows.Forms.Timer pumpTimer = new System.Windows.Forms.Timer();
         AmplitudaSerialLine line;
         AmplitudaSerialAcquisition acquisition;
@@ -42,6 +51,7 @@ namespace BecquerelMonitor
         string portName = "";
         int address;
         int channels;
+        string leaseKey;
         bool inTick;
         bool disposed;
 
@@ -53,16 +63,16 @@ namespace BecquerelMonitor
 
         static string SettleKey(string portName, int address)
         {
-            return portName.ToUpperInvariant() + ":" + address;
+            return portName.ToUpperInvariant() + ":" + address.ToString(CultureInfo.InvariantCulture);
         }
 
         public static string DescribeAcquireError(string portName, string error)
         {
             if (error == AmplitudaSerialLine.ErrorSettingsDiffer)
             {
-                return string.Format(Resources.ERRAmplitudaSerialSettingsDiffer, portName);
+                return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialSettingsDiffer, portName);
             }
-            return string.Format(Resources.ERRAmplitudaSerialPort, portName, error);
+            return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialPort, portName, error);
         }
 
         public static string DescribeFailure(AmplitudaSerialFailure failure, string portName, int address,
@@ -71,18 +81,18 @@ namespace BecquerelMonitor
             switch (failure)
             {
                 case AmplitudaSerialFailure.NoAnswer:
-                    return string.Format(Resources.ERRAmplitudaSerialNoAnswer, portName, address);
+                    return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialNoAnswer, portName, address);
                 case AmplitudaSerialFailure.ClearFailed:
-                    return string.Format(Resources.ERRAmplitudaSerialClearFailed, portName, address);
+                    return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialClearFailed, portName, address);
                 case AmplitudaSerialFailure.StartFailed:
-                    return string.Format(Resources.ERRAmplitudaSerialStartFailed, portName, address);
+                    return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialStartFailed, portName, address);
                 case AmplitudaSerialFailure.ChannelsExceedBlock:
-                    return string.Format(Resources.ERRAmplitudaSerialChannelsExceedBlock, portName, address,
+                    return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialChannelsExceedBlock, portName, address,
                         configuredChannels, suggestedChannels);
                 case AmplitudaSerialFailure.BlockReset:
                     return Resources.MSGAmplitudaSerialBlockReset;
                 default:
-                    return string.Format(Resources.ERRAmplitudaSerialLost, portName, address);
+                    return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialLost, portName, address);
             }
         }
 
@@ -113,7 +123,7 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 ReleaseAll();
-                AppUi.Report(string.Format(Resources.ERRAmplitudaSerialError, ex.Message), "", MessageBoxIcon.None);
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialError, ex.Message), "", MessageBoxIcon.None);
                 return false;
             }
         }
@@ -168,7 +178,7 @@ namespace BecquerelMonitor
                     }
                     if (elapsed < config.HvSettleSeconds)
                     {
-                        AppUi.Report(string.Format(Resources.ERRAmplitudaSerialSettling, (int)elapsed, config.HvSettleSeconds,
+                        AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialSettling, (int)elapsed, config.HvSettleSeconds,
                             (int)Math.Ceiling(config.HvSettleSeconds - elapsed)), "", MessageBoxIcon.None);
                         return false;
                     }
@@ -181,15 +191,35 @@ namespace BecquerelMonitor
             if (spectrum.Spectrum == null || spectrum.Spectrum.Length != spectrum.NumberOfChannels ||
                 !AmplitudaSerialProtocol.IsValidChannelCount(spectrum.NumberOfChannels))
             {
-                AppUi.Report(string.Format(Resources.ERRAmplitudaSerialChannels, spectrum.NumberOfChannels), "", MessageBoxIcon.None);
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialChannels, spectrum.NumberOfChannels), "", MessageBoxIcon.None);
                 return false;
             }
 
-            ReleaseAll();
+            ReleaseAll();       // also gives up this controller's own previous lease
+            string key = SettleKey(config.PortName, config.Address);
+            bool busy;
+            lock (activeBlocksLock)
+            {
+                AmplitudaSerialDeviceController holder;
+                busy = activeBlocks.TryGetValue(key, out holder) && holder != this;
+                if (!busy)
+                {
+                    activeBlocks[key] = this;
+                    leaseKey = key;
+                }
+            }
+            if (busy)
+            {
+                // Reported outside the lock: the box is modal and other ticks keep running.
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialBlockBusy,
+                    config.PortName, config.Address), "", MessageBoxIcon.None);
+                return false;
+            }
             string error;
             AmplitudaSerialLine acquired = AmplitudaSerialLine.Acquire(config.ToSettings(), out error);
             if (acquired == null)
             {
+                ReleaseLease();
                 AppUi.Report(DescribeAcquireError(config.PortName, error), "", MessageBoxIcon.None);
                 return false;
             }
@@ -229,9 +259,13 @@ namespace BecquerelMonitor
             // Declared above the try and reported in the finally so that every exit path -
             // the early return on a channel mismatch and the catch alike - still reports what
             // this tick took out of the acquisition (N1). Reporting happens last, after every
-            // state change below: a modal AppUi.Report keeps MainForm's own timer ticking, and a
-            // nested StopMeasurement (e.g. a preset-time stop) must not run while this tick still
-            // intends to touch `acquisition` (I1).
+            // state change below, and AFTER inTick is cleared: a modal AppUi.Report keeps
+            // MainForm's own timers ticking, and with inTick still set every nested tick would
+            // return at once, so Pump() would never run while the box is open - a restart after a
+            // pour or a ceiling (clear -> read -> start) moves only through Pump() and would
+            // stand still until the user closes the box. By then this tick no longer touches
+            // `acquisition`, so nested ticks (which run Pump() and may even run a nested
+            // StopMeasurement, e.g. a preset-time stop) are safe (I1).
             List<AmplitudaSerialWarning> warnings = null;
             try
             {
@@ -243,7 +277,7 @@ namespace BecquerelMonitor
                 warnings = acquisition.TakeWarnings();
                 if (!Publish(false))
                 {
-                    Fail(string.Format(Resources.ERRAmplitudaSerialChannels, resultData.EnergySpectrum.NumberOfChannels));
+                    Fail(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialChannels, resultData.EnergySpectrum.NumberOfChannels));
                     return;
                 }
                 if (acquisition == null)     // a nested Stop ran underneath (defensive)
@@ -257,10 +291,11 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                Fail(string.Format(Resources.ERRAmplitudaSerialError, ex.Message));
+                Fail(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialError, ex.Message));
             }
             finally
             {
+                inTick = false;     // before the modal reports below, see the comment above
                 if (warnings != null)
                 {
                     foreach (AmplitudaSerialWarning warning in warnings)
@@ -268,7 +303,6 @@ namespace BecquerelMonitor
                         AppUi.Report(DescribeWarning(warning), "", MessageBoxIcon.None);
                     }
                 }
-                inTick = false;
             }
         }
 
@@ -374,13 +408,25 @@ namespace BecquerelMonitor
                 // read is status + header + N pages, so the wait has to scale with the channel
                 // count instead of a flat number that silently drops the final reading above a
                 // few thousand channels (I3). The floor keeps the small-block case unchanged.
-                int stopWaitMs = Math.Max(8000, 2000 + AmplitudaSerialProtocol.PageCount(channels) * 1500);
+                // Plus ONE foreign step: only the Stop's own halt read is Urgent (a pour's halt
+                // rides with the normal polls), so a read job of another document on the same
+                // port is parked after its current STEP, never finished first. A step is one
+                // exchange of up to DataAttempts = 3 tries, about 2.2 s for a 1024-byte block at
+                // the default gap, which the 1500 ms per page slack plus the 2000 ms base cover
+                // (1024 channels: ~2.5 s own read + 2.2 s step vs the 8 s floor; 8192 channels:
+                // ~11.6 s own read + 2.2 s step vs the 27.5 s formula). The budget is thus independent of the other
+                // blocks' geometry and of how many share the line (no per-line channel maximum
+                // is needed); Stops are serialised on the UI thread, so one urgent read at a time.
+                int stopWaitMs = Math.Max(8000, 2000 + 1500 * (AmplitudaSerialProtocol.PageCount(channels) + 1));
                 Stopwatch wait = Stopwatch.StartNew();
                 while (!acquisition.Finished && wait.ElapsedMilliseconds < stopWaitMs)
                 {
                     acquisition.Pump();
                     Thread.Sleep(20);
                 }
+                // The final reading was NOT taken if the budget expired (Abort) or the stop
+                // sequence gave up on a silent block (ConnectionLost): tell the user (review I-3).
+                bool incomplete = !acquisition.Finished;
                 if (!acquisition.Finished)
                 {
                     acquisition.Abort();
@@ -400,6 +446,11 @@ namespace BecquerelMonitor
                 if (finishedFailure == AmplitudaSerialFailure.BlockReset)
                 {
                     AppUi.Report(DescribeFailure(finishedFailure, portName, address, channels, 0), "", MessageBoxIcon.None);
+                }
+                else if (incomplete || finishedFailure == AmplitudaSerialFailure.ConnectionLost)
+                {
+                    AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialStopIncomplete,
+                        portName, address), "", MessageBoxIcon.None);
                 }
             }
             catch (Exception)
@@ -436,9 +487,27 @@ namespace BecquerelMonitor
         {
         }
 
+        void ReleaseLease()
+        {
+            if (leaseKey == null)
+            {
+                return;
+            }
+            lock (activeBlocksLock)
+            {
+                AmplitudaSerialDeviceController holder;
+                if (activeBlocks.TryGetValue(leaseKey, out holder) && holder == this)
+                {
+                    activeBlocks.Remove(leaseKey);
+                }
+            }
+            leaseKey = null;
+        }
+
         void ReleaseAll()
         {
             acquisition = null;
+            ReleaseLease();
             if (line != null)
             {
                 line.Release();     // sends a pending stop command before the port closes

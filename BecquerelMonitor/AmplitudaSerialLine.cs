@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 
 namespace BecquerelMonitor
@@ -30,6 +31,8 @@ namespace BecquerelMonitor
         public byte Address;
         public byte Command;            // Control only
         public int Channels;            // Read only
+        // Read only: goes before the other documents' reads on the line (the final reading of a Stop).
+        public bool Urgent;
         // Runs on the LINE thread: it may only hand the result over (a locked queue, a flag).
         // It must never call Acquire / Release or wait for anything.
         public Action<AmplitudaSerialReading> Completed;
@@ -52,7 +55,9 @@ namespace BecquerelMonitor
         const int StatusReads = 4;
         const int RetryPauseMs = 100;
         const int ControlSettleMs = 100;
-        const int JoinTimeoutMs = 5000;
+        // The worker only has to finish the exchange it is in and the pending control commands;
+        // a silent block costs about 0.35 s per status exchange.
+        const int JoinTimeoutMs = 3000;
 
         static readonly object registryLock = new object();
         static readonly Dictionary<string, AmplitudaSerialLine> registry =
@@ -68,6 +73,9 @@ namespace BecquerelMonitor
         readonly object queueLock = new object();
         readonly Queue<AmplitudaSerialRequest> urgent = new Queue<AmplitudaSerialRequest>();
         readonly Queue<AmplitudaSerialRequest> reads = new Queue<AmplitudaSerialRequest>();
+        // Reads marked Urgent (the final reading of a Stop): served before `reads`, and a normal
+        // read job in flight is parked after its current step to let them through.
+        readonly Queue<AmplitudaSerialRequest> urgentReads = new Queue<AmplitudaSerialRequest>();
         int users = 1;                  // guarded by registryLock
         bool closing;                   // guarded by queueLock
         bool portOpen = true;           // worker thread only
@@ -166,6 +174,10 @@ namespace BecquerelMonitor
                 {
                     urgent.Enqueue(request);
                 }
+                else if (request.Kind == AmplitudaSerialRequestKind.Read && request.Urgent)
+                {
+                    urgentReads.Enqueue(request);
+                }
                 else
                 {
                     reads.Enqueue(request);
@@ -179,12 +191,14 @@ namespace BecquerelMonitor
             try
             {
                 ReadJob job = null;
+                ReadJob parked = null;      // a normal job set aside while an urgent read runs
                 for (;;)
                 {
                     AmplitudaSerialRequest request = null;
                     lock (queueLock)
                     {
-                        while (urgent.Count == 0 && job == null && reads.Count == 0 && !closing)
+                        while (urgent.Count == 0 && urgentReads.Count == 0 && job == null && parked == null &&
+                               reads.Count == 0 && !closing)
                         {
                             Monitor.Wait(queueLock);
                         }
@@ -195,6 +209,23 @@ namespace BecquerelMonitor
                         else if (closing)
                         {
                             return;
+                        }
+                        else if (urgentReads.Count > 0 && (job == null || !job.Urgent))
+                        {
+                            // The job in flight (if any) has just finished a step: park it, run the
+                            // urgent one to completion, then resume (a step is one exchange of
+                            // up to DataAttempts tries, ~2.2 s at worst for 1024 bytes, so the
+                            // urgent read waits for at most one such step).
+                            if (job != null)
+                            {
+                                parked = job;
+                            }
+                            job = new ReadJob(urgentReads.Dequeue());
+                        }
+                        else if (job == null && parked != null)
+                        {
+                            job = parked;
+                            parked = null;
                         }
                         else if (job == null)
                         {
@@ -226,7 +257,7 @@ namespace BecquerelMonitor
                 // Every exit path - including a timed-out Join from Release() - must leave the
                 // port shut, or the worker (or a future one) could reopen it after the owner
                 // considers the line released (I2).
-                PortFailed();
+                ClosePort();
             }
         }
 
@@ -260,7 +291,7 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                PortFailed();
+                LineError();
                 reading.Ok = false;
                 reading.Error = ex.Message;
             }
@@ -303,8 +334,29 @@ namespace BecquerelMonitor
             portOpen = true;
         }
 
-        // A hung adapter (write timeout) or a vanished port: close, the next request reopens.
-        void PortFailed()
+        // An exception from Write / Read / DiscardInput. A block may be powered from the DTR/RTS
+        // lines (AmplitudaSerialPort), so closing the port power-cycles EVERY block on the line:
+        // a soft error (a write timeout of a busy adapter) must not do that. Probe the port
+        // first: if it still accepts DiscardInput it is alive - keep it open and only fail the
+        // request (the caller retries). Only a port that fails the probe too is closed, and the
+        // next request reopens it.
+        void LineError()
+        {
+            if (portOpen)
+            {
+                try
+                {
+                    port.DiscardInput();
+                    return;
+                }
+                catch (Exception)
+                {
+                }
+            }
+            ClosePort();
+        }
+
+        void ClosePort()
         {
             portOpen = false;
             try { port.Close(); } catch (Exception) { }
@@ -409,6 +461,11 @@ namespace BecquerelMonitor
             readonly int pages;
             int step;
 
+            public bool Urgent
+            {
+                get { return request.Urgent; }
+            }
+
             public ReadJob(AmplitudaSerialRequest request)
             {
                 this.request = request;
@@ -447,7 +504,7 @@ namespace BecquerelMonitor
                         byte[] data = line.ReadBlock(request.Address, AmplitudaSerialProtocol.PageCommand(page));
                         if (data == null)
                         {
-                            return Finish(line, "page " + page);
+                            return Finish(line, "page " + page.ToString(CultureInfo.InvariantCulture));
                         }
                         AmplitudaSerialProtocol.DecodePage(data, reading.Channels, page);
                         if (page == pages - 1)
@@ -460,7 +517,7 @@ namespace BecquerelMonitor
                 }
                 catch (Exception ex)
                 {
-                    line.PortFailed();
+                    line.LineError();
                     return Finish(line, ex.Message);
                 }
             }
