@@ -70,7 +70,8 @@ namespace AmplitudaSerialTests
             int[] target = new int[1024];
             session.Compose(target);
             T.Eq(70000, target[3], "a channel beyond 16 bits");
-            T.Near(1050.0, session.LiveSeconds, 1e-9, "live across the pour");
+            // 600 + 450 block seconds, plus the clock correction for the one completed (poured) segment.
+            T.Near(1050.0 + AmplitudaSerialSession.SegmentClockCorrectionSeconds, session.LiveSeconds, 1e-9, "live across the pour");
         }
 
         public static void TestBlockResetKeepsTheLastGoodReading()
@@ -138,6 +139,41 @@ namespace AmplitudaSerialTests
             // The session ran 100 s real / 70 s live; the block then counted 7 more live seconds.
             T.Near(1110.0, AmplitudaSerialSession.EstimateReal(1100.0, 770.0, 777.0, 1000.0, 700.0), 1e-6, "scaled by the session ratio");
             T.Near(5.0, AmplitudaSerialSession.EstimateReal(0.0, 0.0, 5.0, 0.0, 0.0), 1e-9, "no history: live = real");
+        }
+
+        // Finding 4: the block's live clock has whole seconds and every pour zeroes it, so a
+        // segment is credited with the expected truncation loss (SegmentClockCorrectionSeconds).
+        public static void TestPourAddsTheClockCorrection()
+        {
+            AmplitudaSerialSession session = new AmplitudaSerialSession(new int[1024], 0.0);
+            session.SetZero(0);
+            session.Apply(Block(3, 100), 600, true);
+            session.Pour();
+            T.Near(600.5, session.LiveSeconds, 1e-9, "600-s segment gets the default correction");
+
+            AmplitudaSerialSession shortOne = new AmplitudaSerialSession(new int[1024], 0.0);
+            shortOne.SetZero(0);
+            shortOne.Apply(Block(3, 100), 0, true);
+            shortOne.Pour();
+            T.Near(0.0, shortOne.LiveSeconds, 1e-9, "a segment shorter than one block second gets nothing");
+        }
+
+        public static void TestPourCorrectionIsOneConstant()
+        {
+            double saved = AmplitudaSerialSession.SegmentClockCorrectionSeconds;
+            try
+            {
+                AmplitudaSerialSession.SegmentClockCorrectionSeconds = 0.0;
+                AmplitudaSerialSession session = new AmplitudaSerialSession(new int[1024], 0.0);
+                session.SetZero(0);
+                session.Apply(Block(3, 100), 600, true);
+                session.Pour();
+                T.Near(600.0, session.LiveSeconds, 1e-9, "no correction when the constant is 0");
+            }
+            finally
+            {
+                AmplitudaSerialSession.SegmentClockCorrectionSeconds = saved;
+            }
         }
     }
 }

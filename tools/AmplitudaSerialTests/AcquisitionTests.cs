@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 using BecquerelMonitor;
 
@@ -121,7 +122,7 @@ namespace AmplitudaSerialTests
             T.True(rig.Until(() => rig.Acq.Finished), "finished");
             rig.Line.Release();
             T.True(rig.Composed()[252] < 9000, "old counts are gone: " + rig.Composed()[252]);
-            T.True(rig.Acq.LiveSeconds < 60, "old time is gone: " + rig.Acq.LiveSeconds);
+            T.True(rig.Acq.LiveSeconds < 60, "old time is gone: " + rig.Acq.LiveSeconds.ToString(CultureInfo.InvariantCulture));
         }
 
         public static void TestPourOverGoesBeyond16Bits()
@@ -158,7 +159,7 @@ namespace AmplitudaSerialTests
             T.True(rig.Acq.BlockResetDetected, "block reset detected");
             T.True(rig.Acq.TotalCounts >= before, "data kept: " + rig.Acq.TotalCounts);
             T.True(rig.Acq.RealSeconds <= realBefore + 3.5,
-                "real time rolled back to the last good reading: " + rig.Acq.RealSeconds);
+                "real time rolled back to the last good reading: " + rig.Acq.RealSeconds.ToString(CultureInfo.InvariantCulture));
             T.True(!rig.Warnings.Contains(AmplitudaSerialWarning.BlockReset), "no warning on the Fail path");
             T.True(!rig.Block.Running, "the block was told to stop");
         }
@@ -255,7 +256,7 @@ namespace AmplitudaSerialTests
             // realBefore and realAtLastGood, and thus the dead stretch this guards against, much
             // larger than the 3.5 s tolerance here.
             T.True(rig.Acq.RealSeconds <= realBefore + 3.5,
-                "real time rolled back to the last good reading: " + rig.Acq.RealSeconds);
+                "real time rolled back to the last good reading: " + rig.Acq.RealSeconds.ToString(CultureInfo.InvariantCulture));
         }
 
         public static void TestCeilingSelfStopIsRecovered()
@@ -289,7 +290,7 @@ namespace AmplitudaSerialTests
             rig.Line.Release();
             T.True(rig.Acq.Failure == AmplitudaSerialFailure.ConnectionLost, "failure: " + rig.Acq.Failure);
             T.True(rig.Acq.TotalCounts >= counts, "data kept");
-            T.True(rig.Acq.RealSeconds <= real + 3.5, "real time rolled back to the last good reading: " + rig.Acq.RealSeconds);
+            T.True(rig.Acq.RealSeconds <= real + 3.5, "real time rolled back to the last good reading: " + rig.Acq.RealSeconds.ToString(CultureInfo.InvariantCulture));
         }
 
         // C1: a control command's "Ok" only means the byte was written, never that the block is
@@ -488,6 +489,56 @@ namespace AmplitudaSerialTests
             T.True(rig.Until(() => rig.Acq.Finished), "finished");
             rig.Line.Release();
             T.Eq(0, rig.Acq.TotalCounts, "nothing taken from an unverified block");
+        }
+
+        // Finding 3: a dead block at Stop must give up in about StopTroubleMs, not the 30 s
+        // of a measurement in progress. Virtual time of the fake port.
+        public static void TestStopOnASilentBlockGivesUpFast()
+        {
+            Rig rig = Make(null, 0, 0);
+            rig.Acq.Start();
+            T.True(rig.Until(() => rig.Acq.RealSeconds >= 8), "ran 8 s");
+            long counts = rig.Acq.TotalCounts;
+            rig.Block.Silent = true;
+            long tStop = rig.Fake.NowMs;
+            rig.Acq.RequestStop();
+            T.True(rig.Until(() => rig.Acq.Finished), "gave up");
+            long spent = rig.Fake.NowMs - tStop;
+            rig.Line.Release();
+            T.True(rig.Acq.Failure == AmplitudaSerialFailure.ConnectionLost, "failure: " + rig.Acq.Failure);
+            T.True(rig.Acq.TotalCounts >= counts && counts > 0, "data kept");
+            T.True(spent <= 9000, "gave up well under TroubleMs (the window starts at the first failed exchange), took " + spent.ToString(CultureInfo.InvariantCulture) + " ms");
+        }
+
+        // Review I-2: a Stop must survive one lost page (a whole retry cycle of one block fails),
+        // the dead-block give-up needs at least two failed halt attempts.
+        public static void TestStopWithOneLostPageStillSucceeds()
+        {
+            Rig rig = Make(null, 0, 0);
+            rig.Acq.Start();
+            T.True(rig.Until(() => rig.Acq.RealSeconds >= 8), "ran 8 s");
+            long before = rig.Acq.TotalCounts;
+            rig.Block.CorruptNext = 3;          // all 3 attempts of one data block fail, then it recovers
+            rig.Acq.RequestStop();
+            T.True(rig.Until(() => rig.Acq.Finished), "finished");
+            rig.Line.Release();
+            T.True(rig.Acq.Failure == AmplitudaSerialFailure.None, "failure: " + rig.Acq.Failure);
+            T.True(rig.Acq.TotalCounts > before, "the final reading was taken: " + rig.Acq.TotalCounts + " vs " + before);
+            T.True(!rig.Block.Running, "block stopped");
+        }
+
+        // Review M-1: the final segment of a Stop gets the clock correction too.
+        public static void TestStopAddsTheClockCorrectionToTheLastSegment()
+        {
+            Rig rig = Make(null, 0, 0);
+            rig.Block.LiveFraction = 1.0;
+            rig.Acq.Start();
+            T.True(rig.Until(() => rig.Acq.RealSeconds >= 20), "ran 20 s (no pour below 32768 counts)");
+            rig.Acq.RequestStop();
+            T.True(rig.Until(() => rig.Acq.Finished), "finished");
+            rig.Line.Release();
+            double blockLive = Math.Floor(rig.Block.LiveMs / 1000.0);
+            T.Near(blockLive + AmplitudaSerialSession.SegmentClockCorrectionSeconds, rig.Acq.LiveSeconds, 0.01, "live = block seconds + correction");
         }
     }
 }

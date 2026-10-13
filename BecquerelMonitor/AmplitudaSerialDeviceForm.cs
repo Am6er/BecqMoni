@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO.Ports;
 using System.Windows.Forms;
 
@@ -64,7 +65,6 @@ namespace BecquerelMonitor
             labelAddress.Text = Resources.AmplitudaSerialAddress;
             labelPoll.Text = Resources.AmplitudaSerialPoll;
             labelGap.Text = Resources.AmplitudaSerialGap;
-            labelDeadTime.Text = Resources.AmplitudaSerialDeadTime;
             labelSettle.Text = Resources.AmplitudaSerialSettle;
             labelHint.Text = Resources.AmplitudaSerialHint;
             buttonTest.Text = Resources.AmplitudaSerialTest;
@@ -136,7 +136,6 @@ namespace BecquerelMonitor
             numericAddress.Value = Clamp(config.Address, numericAddress);
             numericPoll.Value = Clamp(config.PollSeconds, numericPoll);
             numericGap.Value = Clamp(config.GapMilliseconds, numericGap);
-            numericDeadTime.Value = Clamp((decimal)config.DeadTimeMicroseconds, numericDeadTime);
             numericSettle.Value = Clamp(config.HvSettleSeconds, numericSettle);
             labelTestResult.Text = "";
             FillPorts(config.PortName);
@@ -158,7 +157,6 @@ namespace BecquerelMonitor
                 config.Address = (int)numericAddress.Value;
                 config.PollSeconds = (int)numericPoll.Value;
                 config.GapMilliseconds = (int)numericGap.Value;
-                config.DeadTimeMicroseconds = (double)numericDeadTime.Value;
                 config.HvSettleSeconds = (int)numericSettle.Value;
                 config.InstructionShown = instructionShown;
             }
@@ -368,23 +366,23 @@ namespace BecquerelMonitor
                     {
                         if (answer.Value.Ok)
                         {
-                            found.Add(answer.Key.ToString());
+                            found.Add(answer.Key.ToString(CultureInfo.InvariantCulture));
                         }
                     }
                     text = found.Count > 0
-                        ? string.Format(Resources.AmplitudaSerialScanResult, string.Join(", ", found.ToArray()))
+                        ? string.Format(CultureInfo.InvariantCulture, Resources.AmplitudaSerialScanResult, string.Join(", ", found.ToArray()))
                         : Resources.AmplitudaSerialScanNone;
                 }
                 else if (done.Count > 0 && done[0].Value.Ok)
                 {
                     AmplitudaSerialReading reading = done[0].Value;
-                    text = string.Format(Resources.AmplitudaSerialTestResult, testAddress,
+                    text = string.Format(CultureInfo.InvariantCulture, Resources.AmplitudaSerialTestResult, testAddress,
                         reading.Running ? Resources.AmplitudaSerialAcquiring : Resources.AmplitudaSerialStopped,
                         reading.LiveSeconds);
                 }
                 else
                 {
-                    text = string.Format(Resources.AmplitudaSerialTestNoAnswer, testAddress);
+                    text = string.Format(CultureInfo.InvariantCulture, Resources.AmplitudaSerialTestNoAnswer, testAddress);
                 }
                 StopTest();
                 labelTestResult.Text = text;
@@ -392,7 +390,7 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 StopTest();
-                labelTestResult.Text = string.Format(Resources.ERRAmplitudaSerialError, ex.Message);
+                labelTestResult.Text = string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialError, ex.Message);
             }
         }
 

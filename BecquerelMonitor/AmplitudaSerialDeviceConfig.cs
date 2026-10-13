@@ -12,7 +12,6 @@ namespace BecquerelMonitor
         int address = 0;
         int pollSeconds = 3;
         int gapMilliseconds = 20;
-        double deadTimeMicroseconds = 95.0;
         bool instructionShown = false;
         int hvSettleSeconds = 60;
 
@@ -43,14 +42,6 @@ namespace BecquerelMonitor
             set { gapMilliseconds = Math.Max(10, Math.Min(200, value)); }
         }
 
-        // Only for the places where BecqMoni recomputes live time by formula (pulse rebuild,
-        // device re-assignment). During a measurement live time comes from the block.
-        public double DeadTimeMicroseconds
-        {
-            get { return deadTimeMicroseconds; }
-            set { deadTimeMicroseconds = value; }
-        }
-
         // Whether the one-time behaviour instruction has already been shown for this config.
         // Lives here, not in the global settings, so it stays per device configuration.
         public bool InstructionShown
@@ -78,7 +69,6 @@ namespace BecquerelMonitor
             address = instance.address;
             pollSeconds = instance.pollSeconds;
             gapMilliseconds = instance.gapMilliseconds;
-            deadTimeMicroseconds = instance.deadTimeMicroseconds;
             instructionShown = instance.instructionShown;
             hvSettleSeconds = instance.hvSettleSeconds;
         }
@@ -88,9 +78,15 @@ namespace BecquerelMonitor
             return new AmplitudaSerialDeviceConfig(this);
         }
 
+        // 0 = "dead time unknown", the project's convention for serial devices
+        // (SerialInputDeviceConfig.DeadTime). The readers of that zero are prepared for it: the
+        // load counter divides by 1 - tau*n only when tau > 0 (CountsRateManager), and the FSA
+        // cascade summing takes its own default coincidence window at zero
+        // (FsaAnalysisSession.DeadTimeOf). A guessed value would silently widen that window.
+        // This block reports its own live time, so nothing here needs a dead time.
         public override double DeadTime()
         {
-            return deadTimeMicroseconds * 1.0E-06;
+            return 0.0;
         }
 
         public AmplitudaSerialSettings ToSettings()

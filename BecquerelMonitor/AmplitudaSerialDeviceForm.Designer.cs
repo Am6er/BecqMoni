@@ -31,8 +31,6 @@
             this.numericPoll = new InvariantNumericUpDown();
             this.labelGap = new System.Windows.Forms.Label();
             this.numericGap = new InvariantNumericUpDown();
-            this.labelDeadTime = new System.Windows.Forms.Label();
-            this.numericDeadTime = new InvariantNumericUpDown();
             this.labelSettle = new System.Windows.Forms.Label();
             this.numericSettle = new InvariantNumericUpDown();
             this.labelHint = new System.Windows.Forms.Label();
@@ -43,7 +41,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.numericAddress)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericPoll)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericGap)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericDeadTime)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericSettle)).BeginInit();
             this.SuspendLayout();
             //
@@ -134,31 +131,10 @@
             this.numericGap.Value = new decimal(new int[] { 20, 0, 0, 0 });
             this.numericGap.ValueChanged += new System.EventHandler(this.Setting_Changed);
             //
-            // labelDeadTime
-            //
-            this.labelDeadTime.AutoSize = true;
-            this.labelDeadTime.Location = new System.Drawing.Point(17, 199);
-            this.labelDeadTime.Name = "labelDeadTime";
-            this.labelDeadTime.Size = new System.Drawing.Size(130, 13);
-            this.labelDeadTime.TabIndex = 19;
-            this.labelDeadTime.Text = "Dead time per pulse, us :";
-            //
-            // numericDeadTime
-            //
-            this.numericDeadTime.DecimalPlaces = 1;
-            this.numericDeadTime.Increment = new decimal(new int[] { 5, 0, 0, 0 });
-            this.numericDeadTime.Location = new System.Drawing.Point(215, 197);
-            this.numericDeadTime.Maximum = new decimal(new int[] { 1000, 0, 0, 0 });
-            this.numericDeadTime.Name = "numericDeadTime";
-            this.numericDeadTime.Size = new System.Drawing.Size(80, 20);
-            this.numericDeadTime.TabIndex = 20;
-            this.numericDeadTime.Value = new decimal(new int[] { 95, 0, 0, 0 });
-            this.numericDeadTime.ValueChanged += new System.EventHandler(this.Setting_Changed);
-            //
             // labelSettle
             //
             this.labelSettle.AutoSize = true;
-            this.labelSettle.Location = new System.Drawing.Point(17, 229);
+            this.labelSettle.Location = new System.Drawing.Point(17, 199);
             this.labelSettle.Name = "labelSettle";
             this.labelSettle.Size = new System.Drawing.Size(170, 13);
             this.labelSettle.TabIndex = 21;
@@ -166,7 +142,7 @@
             //
             // numericSettle
             //
-            this.numericSettle.Location = new System.Drawing.Point(215, 227);
+            this.numericSettle.Location = new System.Drawing.Point(215, 197);
             this.numericSettle.Maximum = new decimal(new int[] { 600, 0, 0, 0 });
             this.numericSettle.Minimum = new decimal(new int[] { 0, 0, 0, 0 });
             this.numericSettle.Name = "numericSettle";
@@ -177,7 +153,7 @@
             //
             // labelHint
             //
-            this.labelHint.Location = new System.Drawing.Point(17, 261);
+            this.labelHint.Location = new System.Drawing.Point(17, 231);
             this.labelHint.Name = "labelHint";
             this.labelHint.Size = new System.Drawing.Size(438, 58);
             this.labelHint.TabIndex = 23;
@@ -185,7 +161,7 @@
             //
             // buttonTest
             //
-            this.buttonTest.Location = new System.Drawing.Point(17, 327);
+            this.buttonTest.Location = new System.Drawing.Point(17, 297);
             this.buttonTest.Name = "buttonTest";
             this.buttonTest.Size = new System.Drawing.Size(100, 23);
             this.buttonTest.TabIndex = 24;
@@ -195,7 +171,7 @@
             //
             // buttonScan
             //
-            this.buttonScan.Location = new System.Drawing.Point(127, 327);
+            this.buttonScan.Location = new System.Drawing.Point(127, 297);
             this.buttonScan.Name = "buttonScan";
             this.buttonScan.Size = new System.Drawing.Size(100, 23);
             this.buttonScan.TabIndex = 25;
@@ -205,7 +181,7 @@
             //
             // buttonInstruction
             //
-            this.buttonInstruction.Location = new System.Drawing.Point(237, 327);
+            this.buttonInstruction.Location = new System.Drawing.Point(237, 297);
             this.buttonInstruction.Name = "buttonInstruction";
             this.buttonInstruction.Size = new System.Drawing.Size(100, 23);
             this.buttonInstruction.TabIndex = 26;
@@ -215,7 +191,7 @@
             //
             // labelTestResult
             //
-            this.labelTestResult.Location = new System.Drawing.Point(17, 360);
+            this.labelTestResult.Location = new System.Drawing.Point(17, 330);
             this.labelTestResult.Name = "labelTestResult";
             this.labelTestResult.Size = new System.Drawing.Size(438, 60);
             this.labelTestResult.TabIndex = 27;
@@ -231,8 +207,6 @@
             this.Controls.Add(this.labelHint);
             this.Controls.Add(this.numericSettle);
             this.Controls.Add(this.labelSettle);
-            this.Controls.Add(this.numericDeadTime);
-            this.Controls.Add(this.labelDeadTime);
             this.Controls.Add(this.numericGap);
             this.Controls.Add(this.labelGap);
             this.Controls.Add(this.numericPoll);
@@ -246,7 +220,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.numericAddress)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericPoll)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericGap)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericDeadTime)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericSettle)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -263,8 +236,6 @@
         private InvariantNumericUpDown numericPoll;
         private System.Windows.Forms.Label labelGap;
         private InvariantNumericUpDown numericGap;
-        private System.Windows.Forms.Label labelDeadTime;
-        private InvariantNumericUpDown numericDeadTime;
         private System.Windows.Forms.Label labelSettle;
         private InvariantNumericUpDown numericSettle;
         private System.Windows.Forms.Label labelHint;

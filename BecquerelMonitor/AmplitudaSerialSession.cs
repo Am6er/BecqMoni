@@ -19,6 +19,13 @@ namespace BecquerelMonitor
     public sealed class AmplitudaSerialSession
     {
         public int PourChannelThreshold = 32768;
+
+        // The block's live clock counts whole seconds and every pour / restart zeroes it. If the
+        // block truncates, each segment loses on average half a second; this constant, added to
+        // the live time of every segment of at least one block second, compensates the
+        // expectation. Set it to 0.0 if the block turns out to round. The value is to be
+        // confirmed by a hardware run (LiveSmoke); it cannot be settled without the block.
+        public static double SegmentClockCorrectionSeconds = 0.5;
         public int PourSecondsThreshold = 32768;
 
         readonly int[] baseChannels;
@@ -108,7 +115,9 @@ namespace BecquerelMonitor
                     baseChannels[i] += last[i];
                 }
                 baseSum += lastSum;
-                baseLive += lastLive - zeroLive;
+                int segment = lastLive - zeroLive;
+                // A segment shorter than one block second gets no correction (see the constant).
+                baseLive += segment + (segment >= 1 ? SegmentClockCorrectionSeconds : 0.0);
             }
             last = null;
             lastSum = 0;
