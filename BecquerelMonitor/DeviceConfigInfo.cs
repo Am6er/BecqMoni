@@ -223,6 +223,7 @@ namespace BecquerelMonitor
         [XmlElement(typeof(AtomSpectraDeviceConfig))]
         [XmlElement(typeof(RadiaCodeDeviceConfig))]
         [XmlElement(typeof(ObsidianDeviceConfig))]
+        [XmlElement(typeof(AmplitudaUsbDeviceConfig))]
         public InputDeviceConfig InputDeviceConfig
         {
             get
