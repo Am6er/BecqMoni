@@ -43,16 +43,28 @@ namespace BqSummingProbeP256
     ///      паспорту Cs-137 (`AMBER153`) — согласие Cs-137 по построению,
     ///      Ba-133, Co-60 и Eu-152 — проверка формы кривой и суммирования.
     ///
-    ///   BqSummingProbeP256.exe [--corpus=&lt;каталог corpus&gt;]
+    ///   BqSummingProbeP256.exe [--corpus=&lt;каталог corpus&gt;] [--spoil=arbiter]
     ///
     /// Код: 0 — А в допуске, К1 побитово, контроль П сошёлся; 1 — нет; 2 — оснастка.
-    /// Матрицы корпуса кладутся в склад ПРОБЫ (рядом с exe), склад корпуса
-    /// только читается.
+    ///
+    /// (П264, 14.10.2026) Матрицы корпуса идут В ПАМЯТЬ блоком «матрица из файла
+    /// спектра» (`AMBER202`, `AttachMatrix`) — как у `FsaInputCheckProbeP195`; склад
+    /// матриц рядом с exe не пишется вовсе. Прежде проба клала копии в склад каталога
+    /// проб (config/device/response), а сторож `tools/check_bq_summing.py` гоняет её из
+    /// ШТАТНОГО каталога: оставленные там матрицы увидели бы чужие пробы (та, что названа
+    /// выше, сперва спрашивает склад приложения), а снятие их по выходу рвало бы
+    /// одновременный прогон соседа. Числа от смены пути не меняются (сверено побитово).
+    ///
+    /// `--spoil=arbiter` (П264) — положительный контроль для сторожа: арбитр первой
+    /// линии первой сцены умножается на 1.10 В ПАМЯТИ, и судья А обязан отказать
+    /// (код 1, строка `!!`, «ИТОГ: РАЗОШЛОСЬ, отказов 1»). Ничего не пишет; без
+    /// ключа поведение пробы не меняется.
     /// </summary>
     static class Program
     {
         static int bad;
         static int outsideOld;
+        static bool spoilArbiter, spoilDone;
 
         sealed class Scene
         {
@@ -127,6 +139,7 @@ namespace BqSummingProbeP256
             foreach (string a in args)
             {
                 if (a.StartsWith("--corpus=", StringComparison.Ordinal)) corpus = a.Substring(9);
+                else if (a == "--spoil=arbiter") spoilArbiter = true;
                 else { Console.Error.WriteLine("неизвестный ключ: {0}", a); return 2; }
             }
 
@@ -139,7 +152,8 @@ namespace BqSummingProbeP256
 
             GlobalConfigManager.GetInstance();
             Console.WriteLine("сборка приложения: {0}", typeof(BecquerelCoefficient).Assembly.Location);
-            Console.WriteLine("склад матриц пробы: {0}", ResponseMatrixStore.Directory);
+            Console.WriteLine("матрицы: из {0} в память (склад каталога проб не пишется)",
+                Path.Combine(corpus, "geometries", "response"));
             Console.WriteLine("корпус: {0}", corpus);
             Console.WriteLine();
 
@@ -152,9 +166,9 @@ namespace BqSummingProbeP256
                     return 2;
                 }
 
-                if (!EnsureMatrix(corpus, rd.Efficiency.Guid)) return 2;
+                ResponseMatrix matrix = AttachMatrix(corpus, rd.Efficiency);
+                if (matrix == null) return 2;
                 rd.FwhmCalibration = null;   // окно и ПШПВ — по геометрии, как у арбитра
-                ResponseMatrix matrix = ResponseMatrixStore.Load(rd.Efficiency.Guid);
                 Console.WriteLine("=== А. {0} (носитель {1}, кривая {2}; ПШПВ 662: окно {3} %, геометрия {4} %; матрица {5}) ===",
                     scene.Name, scene.Carrier, rd.Efficiency.Name, F(scene.FwhmPercent, 2),
                     F(rd.Efficiency.Geometry.FwhmAt662Percent, 2),
@@ -172,6 +186,14 @@ namespace BqSummingProbeP256
                         BecquerelCoefficient.SummingResult s = BecquerelCoefficient.Summing(nuc, e, y, e - w, e + w, rd);
                         double now = scene.Now[i], old = scene.Old[i];
                         i++;
+                        if (spoilArbiter && !spoilDone)
+                        {
+                            // Подброшенная порча арбитра (положительный контроль сторожа, П264).
+                            now *= 1.10;
+                            spoilDone = true;
+                            Console.WriteLine("  (--spoil=arbiter: арбитр этой линии умножен на 1.10 — судья А обязан отказать)");
+                        }
+
                         double devNow = (s.Factor / now - 1.0) * 100.0;
                         double devOld = (s.Factor / old - 1.0) * 100.0;
                         Console.WriteLine("  {0,-8} {1,8} {2,8} {3,8} {4,8} {5,8} {6,9} {7,9}{8}",
@@ -219,8 +241,8 @@ namespace BqSummingProbeP256
             Console.WriteLine("=== К1: CreateLikeFsa против суммирователя FSA после Analyze (G1S16_Ba133_P5) ===");
             ResultData rd = Load(Path.Combine(corpus, "spectra", "G1S16_Ba133_P5.xml"));
             EfficiencyConfigData eff = rd.Efficiency;
-            EnsureMatrix(corpus, eff.Guid);
-            ResponseMatrix matrix = ResponseMatrixStore.Load(eff.Guid);
+            ResponseMatrix matrix = AttachMatrix(corpus, eff);
+            if (matrix == null) { bad++; return; }
             FsaCalculationOptions options = FsaCalculationOptions.Of(rd);
             double dead = 0.0;
             try { dead = rd.DeviceConfig.InputDeviceConfig.DeadTime(); } catch (Exception) { }
@@ -282,7 +304,7 @@ namespace BqSummingProbeP256
                     continue;
                 }
 
-                EnsureMatrix(corpus, rd.Efficiency.Guid);
+                if (AttachMatrix(corpus, rd.Efficiency) == null) { bad++; continue; }
                 double years = (rd.StartTime - p.Date).TotalDays / 365.2422;
                 double passportNow = p.Becquerel * Math.Pow(0.5, years / p.HalfLifeYears);
                 foreach (double[] line in p.Lines)
@@ -388,16 +410,20 @@ namespace BqSummingProbeP256
             return sum;
         }
 
-        static bool EnsureMatrix(string corpus, string guid)
+        /// <summary>
+        /// Матрица кривой из склада корпуса `geometries/response/&lt;guid&gt;.rmx` — в память
+        /// блоком «матрица из файла спектра» (`AMBER202`): `ResponseMatrixStore.Resolve`,
+        /// которым `Summing` берёт матрицу, найдёт её в кривой, а склад каталога проб не
+        /// трогается. null — оснастка (файла нет, не читается этой сборкой), причина напечатана.
+        /// </summary>
+        static ResponseMatrix AttachMatrix(string corpus, EfficiencyConfigData eff)
         {
-            string dst = ResponseMatrixStore.PathOf(guid);
-            string src = Path.Combine(corpus, "geometries", "response", guid + ".rmx");
-            if (!File.Exists(src)) { Console.WriteLine("ОСНАСТКА: в корпусе нет {0}", src); return false; }
-            if (File.Exists(dst) && new FileInfo(dst).Length == new FileInfo(src).Length) return true;
-            Directory.CreateDirectory(Path.GetDirectoryName(dst));
-            File.Copy(src, dst, true);
-            Console.WriteLine("  (матрица корпуса {0}.rmx положена в склад пробы)", guid);
-            return true;
+            string file = Path.Combine(corpus, "geometries", "response", eff.Guid + ".rmx");
+            if (!File.Exists(file)) { Console.WriteLine("ОСНАСТКА: в корпусе нет {0}", file); return null; }
+            ResponseMatrix matrix = ResponseMatrix.Load(file);
+            if (matrix == null) { Console.WriteLine("ОСНАСТКА: {0} не читается этой сборкой", file); return null; }
+            eff.EmbeddedMatrix = EmbeddedResponseMatrix.FromFile(eff.Guid, file, matrix);
+            return matrix;
         }
 
         static ResultData Load(string path)
