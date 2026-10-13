@@ -4579,7 +4579,7 @@
     <value>At sampling</value>
   </data>
   <data name="DCResult_ColumnSamplingTip" xml:space="preserve">
-    <value>Referred to the sampling date {0}: acquisition mean × 2^((start − sampling)/T½) × λT/(1 − e^(−λT)), T = acquisition span; MDA likewise. ROIs without a half-life stay the acquisition mean.</value>
+    <value>Referred to the sampling date {0}: acquisition mean × 2^((start − sampling)/T½) × λT/(1 − e^(−λT)), T = acquisition span; MDA likewise. Rows without a half-life stay the acquisition mean.</value>
   </data>
   <data name="DCResult_MomentMean" xml:space="preserve">
     <value>mean over acquisition</value>
@@ -4601,6 +4601,18 @@
   </data>
   <data name="DCResult_FsaScaleCurve" xml:space="preserve">
     <value>FSA: Bq by {0} curve</value>
+  </data>
+  <data name="DCResult_FsaOriginSimulation" xml:space="preserve">
+    <value>simulation</value>
+  </data>
+  <data name="DCResult_FsaOriginLsrm" xml:space="preserve">
+    <value>LSRM</value>
+  </data>
+  <data name="DCResult_FsaOriginMeasurement" xml:space="preserve">
+    <value>measurement</value>
+  </data>
+  <data name="DCResult_FsaOriginManual" xml:space="preserve">
+    <value>manual</value>
   </data>
   <data name="DCResult_FsaHidden" xml:space="preserve">
     <value>FSA: Bq hidden — {0}</value>

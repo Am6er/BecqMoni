@@ -853,13 +853,24 @@ namespace BecquerelMonitor
             // кандидат, невязка, качество) не приглушает ничего: поблекший
             // график, на котором не подсвечено НИЧЕГО, врал бы о том, что
             // выбранного на нём нет вовсе.
+            // (П260, находка 9 П254) Слой «выбран» и по имени, и по СВЯЗКЕ РЯДА:
+            // строка связанного ряда окна результата («Th-232», равновесие ВКЛ)
+            // несёт имя корня, а в стеке дочерних ряд разложен на члены со
+            // своими именами и `ChainRoot` = корень — по одному имени горел лишь
+            // слой самого корня (Th232_29.07.2022: 1 слой из 8, 0.11 %), а
+            // 99.89 % ряда гасло. `ChainRoot` стоит только у членов связанного
+            // ряда (у одиночки и свободного члена — null), поэтому выбор
+            // одиночки ряд не зацепит, а член по своему имени горит, как прежде.
+            // ⚠ Имя слоя корня совпадает с именем ряда: строка «Th-232 — ряд»
+            // окна отчёта (слой самого корня) тоже зажигает теперь весь ряд.
             string highlight = this.fsaHighlight;
             bool muting = false;
             if (highlight != null)
             {
                 for (int k = 0; k < stack.Count; k++)
                 {
-                    if (string.Equals(stack[k].Name, highlight, StringComparison.Ordinal))
+                    if (string.Equals(stack[k].Name, highlight, StringComparison.Ordinal)
+                        || string.Equals(stack[k].ChainRoot, highlight, StringComparison.Ordinal))
                     {
                         muting = true;
                         break;
@@ -873,7 +884,9 @@ namespace BecquerelMonitor
                 {
                     double[] lower = k > 0 ? this.fsaCumulative[k - 1] : this.fsaZeroLevel;
                     Color color = this.fsaPresentation.ColorOf(stack[k].Name);
-                    bool muted = muting && !string.Equals(stack[k].Name, highlight, StringComparison.Ordinal);
+                    bool muted = muting
+                        && !string.Equals(stack[k].Name, highlight, StringComparison.Ordinal)
+                        && !string.Equals(stack[k].ChainRoot, highlight, StringComparison.Ordinal);
                     Color painted = muted ? MuteFsaColor(color) : Color.FromArgb(230, color);
                     using (Brush brush = new SolidBrush(painted))
                     {
