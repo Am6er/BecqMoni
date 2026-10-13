@@ -4644,4 +4644,7 @@
   <data name="DCResult_FsaStale" xml:space="preserve">
     <value>(recomputing…)</value>
   </data>
+  <data name="DCResult_FsaError" xml:space="preserve">
+    <value>FSA: error</value>
+  </data>
 </root>

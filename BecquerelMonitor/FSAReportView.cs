@@ -794,11 +794,43 @@ namespace BecquerelMonitor
 
             if (this.InvokeRequired)
             {
-                this.BeginInvoke((MethodInvoker)this.RefreshStatusLine);
+                this.BeginInvoke((MethodInvoker)this.RefreshOnStart);
                 return;
             }
 
+            this.RefreshOnStart();
+        }
+
+        /// <summary>
+        /// ⛔ (П261, 14.10.2026) ПРИЧИНА ПРЕЖНЕГО ОТКАЗА НЕ СТОИТ ПОД «ИДЁТ РАСЧЁТ». Таблица до
+        /// прихода результата остаётся прежней ради ЧИСЕЛ — жёлтая строка говорит «числа ниже —
+        /// прежние». Строка отказа числом не является: под жёлтым «FSA in progress» она читается
+        /// как отказ ИДУЩЕГО счёта, которого нет (П259, находка 6: `FSALibraryEmptied` 20–40 с
+        /// поверх нормального разбора тория). Поэтому без результата таблица перестраивается —
+        /// при идущем счёте <see cref="BuildRows"/> строки причины не даёт (решение Amber
+        /// 07.09.2026 «идёт расчёт» в таблицу не возвращается: признак — строка состояния).
+        /// ⚠ Кроме записи спектра: там пересчёт идёт кругами, и та же причина мигала бы на каждом
+        /// круге — именно от мигания таблицы строку состояния и заводили (то же решение).
+        /// Перестройка — отложенно: пуск счёта приходит и изнутри отрисовки графика.
+        /// </summary>
+        void RefreshOnStart()
+        {
             this.RefreshStatusLine();
+            FsaAnalysisSession current = this.session;
+            ResultData rd = this.ActiveResultData;
+            if (current == null || rd == null || current.Result != null
+                || (rd.ResultDataStatus != null && rd.ResultDataStatus.Recording))
+            {
+                return;
+            }
+
+            this.BeginInvoke((MethodInvoker)delegate
+            {
+                if (!this.IsDisposed && ReferenceEquals(this.session, current) && current.Result == null)
+                {
+                    this.RefreshReport();
+                }
+            });
         }
 
         /// <summary>

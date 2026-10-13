@@ -277,9 +277,15 @@ namespace BecquerelMonitor
                         // строка состояния — текст, а не «не обнаружен»: значок ND
                         // рисовался бы поверх текста (замечание Amber 06.10.2026)
                         cell2.Tag = null;
+                        // (П261) Причина отказа разбора длиннее колонки чисел (около 100
+                        // точек): ячейка занимает все три колонки чисел и переносится по
+                        // ширине, текст — от левого края; целиком — и в подсказке.
+                        // `ColSpan` сам добавляет пустые ячейки под охваченные колонки.
+                        cell2.ToolTipText = cell2.Text;
+                        cell2.ColSpan = 3;
+                        cell2.WordWrap = true;
+                        cell2.CellStyle.Alignment = ColumnAlignment.Left;
                         row.Cells.Add(cell2);
-                        row.Cells.Add(new Cell(""));
-                        row.Cells.Add(new Cell(""));
                     }
                     row.Tag = i;
                     this.tableModel1.Rows.Add(row);
@@ -334,6 +340,7 @@ namespace BecquerelMonitor
                     {
                         row2.Cells[1].Text = string.IsNullOrEmpty(measurementResult2.StatusText)
                             ? Resources.ErrorString : measurementResult2.StatusText;
+                        row2.Cells[1].ToolTipText = row2.Cells[1].Text;
                         row2.Cells[1].Tag = null;
                         row2.Cells[1].Data = null;
                         row2.Cells[2].Text = string.Empty;
@@ -472,6 +479,7 @@ namespace BecquerelMonitor
         const string KeyFsaMdaHeader = "DCResult_FsaMdaHeader";
         const string KeyFsaMdaTip = "DCResult_FsaMdaTip";
         const string KeyFsaStale = "DCResult_FsaStale";
+        const string KeyFsaError = "DCResult_FsaError";
 
         FullSpectrumAnalysis.FsaMeasurementResult.Texts FsaTexts()
         {
@@ -502,6 +510,10 @@ namespace BecquerelMonitor
             this.columnModel1.Columns[0].Width = Math.Max(this.columnModel1.Columns[0].Width, 170);
             this.columnModel1.Columns[3].Text = OwnText(KeyFsaMdaHeader);
             this.columnModel1.Columns[3].ToolTipText = OwnText(KeyFsaMdaTip);
+            // (П261) строка причины отказа переносится по ширине (`ShowResult`): высоту
+            // строки по переносу XPTable считает только под этим ключом; строки чисел
+            // переноса не просят и остаются прежней высоты
+            this.table1.EnableWordWrap = true;
             // Решение Amber 06.10.2026 вопросником «Подсвечивать образ нуклида в стеке»:
             // выбор строки подсвечивает образ в стеке FSA тем же механизмом, что у
             // окна отчёта (`EnergySpectrumView.FsaHighlight`); окон зон у разбора нет.
@@ -616,6 +628,23 @@ namespace BecquerelMonitor
             }
             if (result == null)
             {
+                // ⛔ (П261, 14.10.2026) ОТКАЗ РАЗБОРА — СЛОВАМИ, А НЕ ВЕЧНЫМ «ИДЁТ РАСЧЁТ». Здесь
+                // стояло одно «FSA: computing…» на любой пустой результат, и отказ (нет кривой и
+                // прибора у документа после «Normalize spectrum…», ноль пиков, исключение в
+                // счёте или в подготовке снимка, отказ при смене документа посреди счёта) висел
+                // в окне без конца: сеанс давно молчал, а окно ждало (П259, находка 7; проба
+                // `FsaSessionStatesProbeP261`). Причина — та же строка сеанса, что у отчёта FSA
+                // (его строка состояния «FSA error: …» и строка таблицы): заголовок — «FSA error»,
+                // ячейка — причина, подсказки ячейки и заголовка — она же целиком. «Идёт
+                // расчёт» — только пока сеанс занят (в том числе ждёт конца поиска пиков).
+                string refusal = session.Status;
+                if (!session.IsRunning && !string.IsNullOrEmpty(refusal))
+                {
+                    // свой ключ окна (`DCResult_FsaError`, в лад «FSA: …» прочих заголовков) —
+                    // когда заведён в оба resx; до того — строка состояния отчёта «FSA error»
+                    this.SetFsaHeader(OwnResources.GetString(KeyFsaError) ?? Resources.FSAStatusError, refusal);
+                    return StatusCollection(rd, refusal);
+                }
                 this.SetFsaHeader(OwnText(KeyFsaComputing), null);
                 return StatusCollection(rd, OwnText(KeyFsaComputing));
             }
