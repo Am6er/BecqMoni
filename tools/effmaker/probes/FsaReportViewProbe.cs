@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor;
+using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
 using System.Collections.Generic;
@@ -61,8 +62,9 @@ namespace FsaReportViewProbe
     ///      без матрицы, с матрицей без опор, с двумя опорами).
     ///   7. ГРУППИРОВКА И ФЛАГИ (критерий 7): родители/дочерние не меняют
     ///      отпечаток и не запускают счёт; расчётный флаг — ровно один запуск
-    ///      и одно событие, отпечаток другой, конфигурация спектра и
-    ///      умолчание прибора записаны.
+    ///      и одно событие, отпечаток другой, конфигурация спектра записана,
+    ///      а умолчание прибора НЕ тронуто (`AMBER212`, 07.10.2026: окно
+    ///      отчёта прибор не пишет — в приложении настройка общая).
     ///   8. РОДИТЕЛИ (критерий 8): недоступны без NucBase+равновесия с
     ///      подсказкой; при допустимом режиме сумма родительских лент и долей
     ///      равна сумме дочерних с машинным допуском.
@@ -71,6 +73,22 @@ namespace FsaReportViewProbe
     ///  12. СНИМКИ (критерий 12): `en` и `ru` в `--out`; по модели — ни одна
     ///      подпись не обрезана и не наложена, шрифт формы у всех, заголовок
     ///      таблицы тем же шрифтом.
+    ///  14. ОТКАЗ НАЗЫВАЕТ ПРИЧИНУ (`A312`, П118 21.09.2026): сцена Amber
+    ///      `Am-241` на контроле — состав из NucBase без нуклидов, один образ
+    ///      рентгена кристалла, малая матрица снимает его, библиотека пуста;
+    ///      состояние сеанса и строка таблицы — `FSALibraryEmptied` в `en` и
+    ///      `ru`, не общее `FSANotPossible`. Контроли: без матрицы разбор
+    ///      идёт; причина на анализаторе — `LibraryEmptied` с подробностью;
+    ///      остальные причины (вход, геометрия, каналы, полоса) — каждая
+    ///      своим членом и своими словами.
+    ///  15. СПЕКТР БЕЗ ВРЕМЕНИ — ОТКАЗ С ПРИЧИНОЙ (`AMBER51`, П120 22.09.2026):
+    ///      контроль с обнулёнными `LiveTime` и `MeasurementTime` — анализатор
+    ///      отказывает `NoLiveTime` с подробностью, сеанс документа и строка
+    ///      таблицы несут `FSANoLiveTime` в `en` и `ru` (не общее
+    ///      `FSANotPossible`); до правки знаменатель молча подменялся 1 с.
+    ///      Контроли: тот же спектр с одним лишь полным временем разбирается
+    ///      (живое — ноль, знаменатель — полное, `AMBER35`); с возвращённым
+    ///      временем скорости и доли равны разбору нетронутого клона до бита.
     ///
     /// Состояния таблицы (документ, «Состояния таблицы») — отдельным разделом.
     /// ⛔ У каждого раздела, где это возможно, ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ.
@@ -87,6 +105,12 @@ namespace FsaReportViewProbe
         {
             Console.OutputEncoding = Encoding.UTF8;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
+            // (`T243`) Эталон настроек — ДО разбора ключей: раздел 14 собирает
+            // анализатор руками, и проба обязана сказать, чем он отличается от
+            // поставочного (`check_probe_tuning`); правило живёт довеском
+            // `FsaTuningReport.cs`, здесь только два вызова.
+            FsaTuningReport.Snapshot();
 
             string spectrumPath = null, controlPath = null;
             foreach (string a in args)
@@ -120,8 +144,6 @@ namespace FsaReportViewProbe
             }
 
             // ⛔ ОБЕ карты примитивов ROI — ДО ЛЮБОГО менеджера-одиночки (`T60`).
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
             NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
@@ -192,11 +214,14 @@ namespace FsaReportViewProbe
             RowKindsSection(mainForm, thorium, control);
             StatesSection(mainForm, thorium);
             QualitySection(mainForm, thorium);
+            UncoveredSection(mainForm, thorium);
             GroupingAndFlagsSection(mainForm, thorium);
             ParentsSection(mainForm, thorium, control);
             NeighbourSection(mainForm, thorium, control);
             RepeatabilitySection(mainForm, thorium, control);
             SnapshotSection(mainForm, thorium);
+            RefusalSection(mainForm, controlPath, nuclides);
+            NoLiveTimeSection(mainForm, controlPath, nuclides);
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : "НЕ СОШЛОСЬ: " + bad);
@@ -288,7 +313,7 @@ namespace FsaReportViewProbe
                 report.SetDocument(null);
                 Same("без документа — одна строка", 1, report.ReportTable.TableModel.Rows.Count);
                 Same("и это «спектр не выбран»", BecquerelMonitor.Properties.Resources.FSAReportNoSpectrum,
-                     report.ReportTable.TableModel.Rows[0].Cells[1].Text);
+                     report.ReportTable.TableModel.Rows[0].Cells[0].Text);
                 Same("без документа элементы управления выключены", false,
                      Control<RadioButton>(report, "sourceNucBaseRadio").Enabled
                      || Control<CheckBox>(report, "pileUpCheckBox").Enabled);
@@ -632,11 +657,11 @@ namespace FsaReportViewProbe
                     Same("контроль: строка невязки в таблице малого окна есть", true, residualRow != null);
                     if (residualRow != null)
                     {
-                        string keptCaption = residualRow.Cells[1].Text;
-                        residualRow.Cells[1].Text = ResidualCaption(scene, 1);
+                        string keptCaption = residualRow.Cells[0].Text;
+                        residualRow.Cells[0].Text = ResidualCaption(scene, 1);
                         Denies("контроль: подброшенная пометка подрезки у невязки сцены сверку не проходит",
                                BodyMismatch(report, scene, sceneRaw).Length == 0);
-                        residualRow.Cells[1].Text = keptCaption;
+                        residualRow.Cells[0].Text = keptCaption;
                         Same("после возврата подписи ячейки снова сходятся", string.Empty, BodyMismatch(report, scene, sceneRaw));
                     }
 
@@ -694,14 +719,14 @@ namespace FsaReportViewProbe
                     Same("контроль: строка невязки живого результата в таблице есть", true, liveRow != null);
                     if (liveRow != null && live != null)
                     {
-                        string keptCaption = liveRow.Cells[1].Text;
-                        liveRow.Cells[1].Text = Own("FSAReport_ResidualRow");
+                        string keptCaption = liveRow.Cells[0].Text;
+                        liveRow.Cells[0].Text = Own("FSAReport_ResidualRow");
                         Denies("контроль: голая подпись невязки без пометок при живом результате сверку не проходит",
                                BodyMismatch(report, live, sceneRaw).Length == 0);
-                        liveRow.Cells[1].Text = ResidualCaption(live, live.ClampedChannels(sceneRaw) + 1);
+                        liveRow.Cells[0].Text = ResidualCaption(live, live.ClampedChannels(sceneRaw) + 1);
                         Denies("контроль: пометка с чужим числом подрезанных каналов сверку не проходит",
                                BodyMismatch(report, live, sceneRaw).Length == 0);
-                        liveRow.Cells[1].Text = keptCaption;
+                        liveRow.Cells[0].Text = keptCaption;
                         Same("после возврата подписи ячейки живого результата снова сходятся", string.Empty,
                              BodyMismatch(report, live, sceneRaw));
                     }
@@ -726,7 +751,7 @@ namespace FsaReportViewProbe
         {
             var result = new FsaResult
             {
-                Chi2Ndf = real.Chi2Ndf,
+                Chi2Ndf = real.Chi2Ndf, Chi2NdfPoisson = real.Chi2NdfPoisson,
                 Model = real.Model,
                 Continuum = real.Continuum,
                 BackgroundUsed = false,
@@ -762,6 +787,82 @@ namespace FsaReportViewProbe
                 DetectionLimitPeakCounts = 100.0, TotalYieldPercent = 0.114
             });
             return result;
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER210`, П238) ПИК ВНЕ СОСТАВА — СТРОКА ОТЧЁТА
+        // ------------------------------------------------------------------
+        /// <summary>
+        /// (`AMBER210`; решение Amber 07.10.2026 вопросником, дословно: «Только отчёт FSA, строка
+        /// на пик») Синтетический результат с непокрытыми пиками даёт в блоке пометок по строке на
+        /// пик: энергия, избыток в процентах, z и линии библиотеки рядом; слово состояния —
+        /// красное «нет в сете». Положительные контроли: тот же результат без пиков строки не даёт
+        /// вовсе; пик без кандидатов пишет «нет»; ключ вместо перевода — отказ.
+        /// </summary>
+        static void UncoveredSection(MainForm mainForm, DocEnergySpectrum doc)
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== пик вне состава (AMBER210): строка отчёта на каждый пик, без пиков — строки нет ===");
+            foreach (string lang in new[] { "ru-RU", "en-US" })
+            {
+                Language(lang);
+                foreach (int peaks in new[] { 0, 1, 2 })
+                {
+                    // Сцена — как у раздела 6 (блок качества на ней строится): без опор
+                    // привязки — у синтетического результата нет их списка, и строки
+                    // опор рассыпали бы блок.
+                    FsaResult scene = new FsaResult
+                    {
+                        Chi2Ndf = 2.5, Chi2NdfPoisson = 2.5, BackgroundUsed = true, ResponseMatrixUsed = false,
+                        EfficiencyUsed = false, CascadeSummingUsed = true
+                    };
+                    if (peaks >= 1)
+                    {
+                        var peak = new FsaUncoveredPeak { EnergyKev = 609.3, WidthKev = 42.0, ExcessCounts = 12345.0, ExcessShare = 0.28, Z = 15.2 };
+                        peak.Candidates.Add(new FsaUncoveredCandidate { Nuclide = "Bi-214", EnergyKev = 609.31 });
+                        scene.UncoveredPeaks.Add(peak);
+                    }
+                    if (peaks >= 2)
+                    {
+                        scene.UncoveredPeaks.Add(new FsaUncoveredPeak { EnergyKev = 351.9, WidthKev = 30.0, ExcessCounts = 5000.0, ExcessShare = 0.18, Z = 9.1 });
+                    }
+                    var session = new FsaAnalysisSession();
+                    Plant(session, scene, "uncovered" + peaks);
+                    using (var report = new FSAReportView(mainForm))
+                    {
+                        // ⛔ НЕ потребитель: потребитель заказал бы у сеанса настоящий счёт
+                        // по спектру документа, и подсаженная сцена сменилась бы живым
+                        // результатом без пиков вне состава (так и было на первом прогоне
+                        // П238: строк 0 вместо 1 и 2). Блок читается с подсаженной сцены,
+                        // как в разделе 6.
+                        report.SetProbeSource(session, doc.ActiveResultData);
+                        var rows = new List<Row>();
+                        foreach (Row row in report.ReportTable.TableModel.Rows)
+                        {
+                            if (row.Cells.Count > 1 && row.Cells[1].Text == Own("FSAReport_UncoveredValue")) rows.Add(row);
+                        }
+                        Same(lang + ": пиков " + peaks + " — строк «" + Own("FSAReport_UncoveredValue") + "»", peaks, rows.Count);
+                        if (rows.Count != peaks)
+                        {
+                            ShowBlock(report, lang);
+                        }
+                        if (peaks >= 1 && rows.Count >= 1)
+                        {
+                            string caption = rows[0].Cells[0].Text;
+                            Same(lang + ": строка первого пика называет энергию, избыток, z и линию библиотеки", true,
+                                 caption.Contains("609.3") && caption.Contains("28") && caption.Contains("15.2") && caption.Contains("Bi-214 609.3"));
+                            Same(lang + ": слово состояния первого пика красное", Paint(BadColor), Paint(rows[0].Cells[1].ForeColor));
+                            Denies(lang + ": контроль — ключ вместо перевода в строке пика", caption.Contains("FSAReport_"));
+                        }
+                        if (peaks >= 2 && rows.Count >= 2)
+                        {
+                            string second = rows[1].Cells[0].Text;
+                            Same(lang + ": пик без кандидатов пишет «" + Own("FSAReport_UncoveredNone") + "»", true,
+                                 second.Contains("351.9") && second.EndsWith(Own("FSAReport_UncoveredNone")));
+                        }
+                    }
+                }
+            }
         }
 
         // ------------------------------------------------------------------
@@ -817,7 +918,7 @@ namespace FsaReportViewProbe
                      BecquerelMonitor.Properties.Resources.FSAStatusError + ": ОШИБКА: причина такая-то",
                      status.Text);
                 Same("ошибка без результата: одна строка", 1, report.ReportTable.TableModel.Rows.Count);
-                Same("и это текст причины", "ОШИБКА: причина такая-то", Text(report, 0, 1));
+                Same("и это текст причины", "ОШИБКА: причина такая-то", Text(report, 0, 0));
                 report.SetDocument(null);
             }
         }
@@ -849,7 +950,8 @@ namespace FsaReportViewProbe
                 Language(lang);
                 FsaResult scene = new FsaResult
                 {
-                    Chi2Ndf = chi2, BackgroundUsed = true, ResponseMatrixUsed = false,
+                    // строка качества печатает χ² по Пуассону (`AMBER209`, решение Amber 06.10.2026 «Заменить на Пуассона»)
+                    Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = false,
                     EfficiencyUsed = false, CascadeSummingUsed = true, GainOnGridEdge = true
                 };
                 FieldInfo f = typeof(FsaResult).GetField("<SuppressorName>k__BackingField",
@@ -912,11 +1014,11 @@ namespace FsaReportViewProbe
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ВТОРОЙ: подменено слово состояния
                     // у пометки — блок остаётся той же длины, а содержимое лжёт.
                     Row markRow = report.ReportTable.TableModel.Rows[Chi2Row(report) + 2];
-                    string was = markRow.Cells[2].Text;
-                    markRow.Cells[2].Text = Own("FSAReport_MatrixUsed");
+                    string was = markRow.Cells[1].Text;
+                    markRow.Cells[1].Text = Own("FSAReport_MatrixUsed");
                     Denies(lang + ": контроль — подменённое слово состояния пометки проверку не проходит",
                            BlockProblems(report, "1234.57", marks).Count == 0);
-                    markRow.Cells[2].Text = was;
+                    markRow.Cells[1].Text = was;
 
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ТРЕТИЙ (`A244`): число с
                     // разделителем разрядов проверку не проходит — иначе она
@@ -929,11 +1031,11 @@ namespace FsaReportViewProbe
                     // пометки подменён на противоположный — текст тот же,
                     // длина блока та же, лжёт только цвет.
                     Row painted = report.ReportTable.TableModel.Rows[Chi2Row(report) + 2];
-                    Color wasColor = painted.Cells[2].ForeColor;
-                    painted.Cells[2].ForeColor = GoodColor;
+                    Color wasColor = painted.Cells[1].ForeColor;
+                    painted.Cells[1].ForeColor = GoodColor;
                     Denies(lang + ": контроль — красная пометка, перекрашенная в зелёный, проверку не проходит",
                            BlockProblems(report, "1234.57", marks).Count == 0);
-                    painted.Cells[2].ForeColor = wasColor;
+                    painted.Cells[1].ForeColor = wasColor;
 
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ПЯТЫЙ (`A281`): убрана строка
                     // множителя σ×. Сцена собрана с зажатым множителем (1.000),
@@ -963,7 +1065,7 @@ namespace FsaReportViewProbe
                 // печатать единицу.
                 var inflated = new FsaResult
                 {
-                    Chi2Ndf = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
+                    Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
                     EfficiencyUsed = true, CascadeSummingUsed = true,
                     SigmaInflation = 8.163
                 };
@@ -999,7 +1101,7 @@ namespace FsaReportViewProbe
                 // сцена выше даёт зелёным только суммирование.
                 var whole = new FsaResult
                 {
-                    Chi2Ndf = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
+                    Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
                     EfficiencyUsed = true, CascadeSummingUsed = true, GainOnGridEdge = false
                 };
                 var wholeSession = new FsaAnalysisSession();
@@ -1022,11 +1124,11 @@ namespace FsaReportViewProbe
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: зелёная пометка, перекрашенная
                     // в красный, проверку проходить не должна.
                     Row painted = report.ReportTable.TableModel.Rows[Chi2Row(report) + 2];
-                    Color wasColor = painted.Cells[2].ForeColor;
-                    painted.Cells[2].ForeColor = BadColor;
+                    Color wasColor = painted.Cells[1].ForeColor;
+                    painted.Cells[1].ForeColor = BadColor;
                     Denies(lang + ": контроль — зелёная пометка, перекрашенная в красный, проверку не проходит",
                            BlockProblems(report, "1234.57", green).Count == 0);
-                    painted.Cells[2].ForeColor = wasColor;
+                    painted.Cells[1].ForeColor = wasColor;
 
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ (`AMBER17`, П105): строка опор
                     // ПОТЕРЯНА — ровно то, чего ждала проба до 18.09.2026, и
@@ -1052,7 +1154,7 @@ namespace FsaReportViewProbe
                 // усиления и нуля не мерились бы вовсе.
                 var anchored = new FsaResult
                 {
-                    Chi2Ndf = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
+                    Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
                     EfficiencyUsed = true, CascadeSummingUsed = true,
                     ScaleAnchorsUsed = 2, Gain = 1.0123, AnchorOffsetKev = -0.5
                 };
@@ -1080,7 +1182,7 @@ namespace FsaReportViewProbe
                     // Подсказка строки опор — перечень кандидатов: заголовок и
                     // по строке на каждого из трёх, принятых и отвергнутого.
                     Row anchorRow = report.ReportTable.TableModel.Rows[Chi2Row(report) + 2 + 3];
-                    string tip = anchorRow.Cells[1].ToolTipText ?? string.Empty;
+                    string tip = anchorRow.Cells[0].ToolTipText ?? string.Empty;
                     Same(lang + ": подсказка строки опор — заголовок и три кандидата",
                          4, tip.Split('\n').Length);
                     Same(lang + ": в подсказке два принятых (+) и один отвергнутый (-)", true,
@@ -1192,8 +1294,8 @@ namespace FsaReportViewProbe
                 // (`AMBER11`) Цвет значения печатается рядом: блок читается
                 // глазом по цвету, и вывод сторожа обязан говорить то же.
                 Console.WriteLine("  {0}: [{1}] «{2}» | {3} ({4})", lang, i,
-                                  model.Rows[i].Cells[1].Text, model.Rows[i].Cells[2].Text,
-                                  Paint(model.Rows[i].Cells[2].ForeColor));
+                                  model.Rows[i].Cells[0].Text, model.Rows[i].Cells[1].Text,
+                                  Paint(model.Rows[i].Cells[1].ForeColor));
             }
         }
 
@@ -1253,9 +1355,9 @@ namespace FsaReportViewProbe
                 return bad;
             }
 
-            if (model.Rows[rule].Cells[1].Text.Length > 0 || model.Rows[rule].Cells[2].Text.Length > 0)
+            if (model.Rows[rule].Cells[0].Text.Length > 0 || model.Rows[rule].Cells[1].Text.Length > 0)
             {
-                bad.Add("черта не пуста: «" + model.Rows[rule].Cells[1].Text + "»");
+                bad.Add("черта не пуста: «" + model.Rows[rule].Cells[0].Text + "»");
             }
 
             if (rule + 1 >= model.Rows.Count)
@@ -1265,12 +1367,12 @@ namespace FsaReportViewProbe
             }
 
             Row header = model.Rows[rule + 1];
-            if (header.Cells[1].Text != Own("FSAReport_QualityHeader"))
+            if (header.Cells[0].Text != Own("FSAReport_QualityHeader"))
             {
-                bad.Add("заголовок «" + header.Cells[1].Text + "» вместо «" + Own("FSAReport_QualityHeader") + "»");
+                bad.Add("заголовок «" + header.Cells[0].Text + "» вместо «" + Own("FSAReport_QualityHeader") + "»");
             }
 
-            if (header.Cells[1].Font == null || !header.Cells[1].Font.Bold)
+            if (header.Cells[0].Font == null || !header.Cells[0].Font.Bold)
             {
                 bad.Add("заголовок не полужирный");
             }
@@ -1282,9 +1384,9 @@ namespace FsaReportViewProbe
             {
                 bad.Add("под заголовком нет строки невязки");
             }
-            else if (model.Rows[rule + 2].Cells[1].Text != Own("FSAReport_ResidualRow"))
+            else if (model.Rows[rule + 2].Cells[0].Text != Own("FSAReport_ResidualRow"))
             {
-                bad.Add("подпись невязки «" + model.Rows[rule + 2].Cells[1].Text + "»");
+                bad.Add("подпись невязки «" + model.Rows[rule + 2].Cells[0].Text + "»");
             }
 
             int chi = -1;
@@ -1299,14 +1401,14 @@ namespace FsaReportViewProbe
                 return bad;
             }
 
-            if (model.Rows[chi].Cells[1].Text != Own("FSAReport_Chi2Row"))
+            if (model.Rows[chi].Cells[0].Text != Own("FSAReport_Chi2Row"))
             {
-                bad.Add("подпись χ²/ndf «" + model.Rows[chi].Cells[1].Text + "»");
+                bad.Add("подпись χ²/ndf «" + model.Rows[chi].Cells[0].Text + "»");
             }
 
-            if (model.Rows[chi].Cells[2].Text != chi2Value)
+            if (model.Rows[chi].Cells[1].Text != chi2Value)
             {
-                bad.Add("значение χ²/ndf «" + model.Rows[chi].Cells[2].Text + "» вместо «" + chi2Value + "»");
+                bad.Add("значение χ²/ndf «" + model.Rows[chi].Cells[1].Text + "» вместо «" + chi2Value + "»");
             }
 
             // ⛔ (`A281`, решение Amber 10.09.2026 «В блок „Качество разбора“
@@ -1323,20 +1425,20 @@ namespace FsaReportViewProbe
                 return bad;
             }
 
-            if (model.Rows[chi + 1].Cells[1].Text != Own("FSAReport_InflationRow"))
+            if (model.Rows[chi + 1].Cells[0].Text != Own("FSAReport_InflationRow"))
             {
-                bad.Add("подпись σ× «" + model.Rows[chi + 1].Cells[1].Text + "» вместо «"
+                bad.Add("подпись σ× «" + model.Rows[chi + 1].Cells[0].Text + "» вместо «"
                         + Own("FSAReport_InflationRow") + "»");
             }
 
-            if (model.Rows[chi + 1].Cells[2].Text != inflateValue)
+            if (model.Rows[chi + 1].Cells[1].Text != inflateValue)
             {
-                bad.Add("значение σ× «" + model.Rows[chi + 1].Cells[2].Text + "» вместо «"
+                bad.Add("значение σ× «" + model.Rows[chi + 1].Cells[1].Text + "» вместо «"
                         + inflateValue + "»");
             }
 
-            if (string.IsNullOrEmpty(model.Rows[chi + 1].Cells[1].ToolTipText)
-                || model.Rows[chi + 1].Cells[1].ToolTipText == model.Rows[chi + 1].Cells[1].Text)
+            if (string.IsNullOrEmpty(model.Rows[chi + 1].Cells[0].ToolTipText)
+                || model.Rows[chi + 1].Cells[0].ToolTipText == model.Rows[chi + 1].Cells[0].Text)
             {
                 bad.Add("у строки σ× нет своей подсказки");
             }
@@ -1350,9 +1452,9 @@ namespace FsaReportViewProbe
             for (int k = 0; k < marks.Count && chi + 2 + k < model.Rows.Count; k++)
             {
                 Row row = model.Rows[chi + 2 + k];
-                if (row.Cells[1].Text != marks[k][0] || row.Cells[2].Text != marks[k][1])
+                if (row.Cells[0].Text != marks[k][0] || row.Cells[1].Text != marks[k][1])
                 {
-                    bad.Add("пометка " + (k + 1) + " «" + row.Cells[1].Text + " | " + row.Cells[2].Text
+                    bad.Add("пометка " + (k + 1) + " «" + row.Cells[0].Text + " | " + row.Cells[1].Text
                             + "» вместо «" + marks[k][0] + " | " + marks[k][1] + "»");
                 }
 
@@ -1362,25 +1464,25 @@ namespace FsaReportViewProbe
                 if (marks[k].Length > 2)
                 {
                     Color want = marks[k][2] == Good ? GoodColor : marks[k][2] == Plain ? Color.Black : BadColor;
-                    if (row.Cells[2].ForeColor.ToArgb() != want.ToArgb())
+                    if (row.Cells[1].ForeColor.ToArgb() != want.ToArgb())
                     {
-                        bad.Add("цвет пометки " + (k + 1) + " «" + row.Cells[2].Text + "» — "
-                                + Paint(row.Cells[2].ForeColor) + " вместо " + Paint(want));
+                        bad.Add("цвет пометки " + (k + 1) + " «" + row.Cells[1].Text + "» — "
+                                + Paint(row.Cells[1].ForeColor) + " вместо " + Paint(want));
                     }
 
-                    if (row.Cells[1].ForeColor.ToArgb() != Color.Black.ToArgb())
+                    if (row.Cells[0].ForeColor.ToArgb() != Color.Black.ToArgb())
                     {
-                        bad.Add("подпись пометки " + (k + 1) + " окрашена в " + Paint(row.Cells[1].ForeColor)
+                        bad.Add("подпись пометки " + (k + 1) + " окрашена в " + Paint(row.Cells[0].ForeColor)
                                 + ", а должна быть чёрной");
                     }
                 }
 
-                if (Trimmed(row.Cells[1].Text))
+                if (Trimmed(row.Cells[0].Text))
                 {
                     bad.Add("пометка " + (k + 1) + " усечена многоточием");
                 }
 
-                if (!row.Cells[1].WordWrap)
+                if (!row.Cells[0].WordWrap)
                 {
                     bad.Add("пометка " + (k + 1) + " без переноса по словам");
                 }
@@ -1436,6 +1538,9 @@ namespace FsaReportViewProbe
                     CheckBox xray = Control<CheckBox>(report, "atomicXrayCheckBox");
                     var cfg = (FWHMPeakDetectionMethodConfig)doc.ActiveResultData.PeakDetectionMethodConfig;
                     bool was = cfg.AtomicXrayForFsa;
+                    DeviceConfigInfo device;
+                    DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(doc.ActiveResultData.DeviceConfigReference.Guid, out device);
+                    bool? deviceWas = device != null ? ((FWHMPeakDetectionMethodConfig)device.PeakDetectionMethodConfig).AtomicXrayForFsa : (bool?)null;
                     xray.Checked = !was;
                     WaitIdle(session);
                     Same("флаг: конфигурация спектра записана", !was, cfg.AtomicXrayForFsa);
@@ -1444,10 +1549,10 @@ namespace FsaReportViewProbe
                     Same("флаг: событие завершения ровно одно", done + 1, completed);
                     Same("флаг: результат посчитан новым отпечатком", session.Stamp,
                          FsaAnalysisSession.BuildStamp(doc.ActiveResultData, doc.ActiveResultData.BackgroundEnergySpectrum != null));
-                    DeviceConfigInfo device;
-                    DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(doc.ActiveResultData.DeviceConfigReference.Guid, out device);
-                    Same("флаг: умолчание прибора записано", !was,
-                         device != null && ((FWHMPeakDetectionMethodConfig)device.PeakDetectionMethodConfig).AtomicXrayForFsa);
+                    // (`AMBER212`) окно отчёта прибор больше не пишет: семь флажков —
+                    // общая настройка приложения, а у проб её нет и пишется копия спектра.
+                    Same("флаг: умолчание прибора НЕ тронуто", deviceWas,
+                         device != null ? ((FWHMPeakDetectionMethodConfig)device.PeakDetectionMethodConfig).AtomicXrayForFsa : (bool?)null);
 
                     // Контроль: тот же флаг обратно — ещё один запуск (счётчик не залип).
                     xray.Checked = was;
@@ -1759,8 +1864,8 @@ namespace FsaReportViewProbe
             {
                 var model = row.Tag as FsaReportRow;
                 sb.Append(model != null ? model.Kind.ToString() : "(нет Tag)")
+                  .Append('|').Append(row.Cells.Count > 0 ? row.Cells[0].Text : string.Empty)
                   .Append('|').Append(row.Cells.Count > 1 ? row.Cells[1].Text : string.Empty)
-                  .Append('|').Append(row.Cells.Count > 2 ? row.Cells[2].Text : string.Empty)
                   .Append('\n');
             }
 
@@ -1884,6 +1989,400 @@ namespace FsaReportViewProbe
         // Оснастка
         // ------------------------------------------------------------------
 
+        // ------------------------------------------------------------------
+        // 14. ОТКАЗ РАЗБОРА НАЗЫВАЕТ ПРИЧИНУ (`A312`)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`A312`, П118 21.09.2026) Сцена Amber `Am-241` (калибровка 08.09.2026)
+        /// воспроизводится на контроле: состав из NucBase БЕЗ нуклидов (пики
+        /// сняты), в библиотеке остаётся один образ собственного рентгена
+        /// кристалла, живая матрица отклика снимает его (`AMBER4`) — библиотека
+        /// пуста, `Analyze` отдаёт null. Окно отчёта обязано назвать причину
+        /// словами `FSALibraryEmptied` (en и ru), а не общим `FSANotPossible`,
+        /// каким оно называло её до 21.09.2026.
+        ///
+        /// Матрица — МАЛАЯ, считается здесь же (10 узлов × 4000 историй, как у
+        /// `BoxCylStampProbeF64`; секунды) под СВОИМ guid кривой `a312-probe-…`:
+        /// файл в складе проб живёт только на время раздела и снимается в
+        /// finally; ни один настоящий спектр на такой guid не ссылается, и
+        /// брошенный при падении файл никому не годен. ⚠ Писать матрицу под
+        /// guid КОНТРОЛЯ нельзя: она осталась бы годной ему и молча сменила бы
+        /// разбор всех разделов выше при следующем прогоне.
+        ///
+        /// Положительные контроли: (а) тот же вход БЕЗ матрицы — образ
+        /// рентгена остаётся, разбор идёт; (б) причина на анализаторе —
+        /// `Refusal == LibraryEmptied`, подробность называет снятый рентген
+        /// кристалла, `GeometryRefused` ложен; (в) остальные причины
+        /// различимы — вырожденный вход, гейт геометрии, мало каналов, узкая
+        /// полоса — каждая своим членом; (г) у каждого члена перечисления свои
+        /// слова в обеих культурах, попарно разные, и только неизвестное
+        /// значение падает в `FSANotPossible`.
+        /// </summary>
+        static void RefusalSection(MainForm mainForm, string controlPath, NuclideDefinitionManager nuclides)
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== 14. отказ разбора называет причину (A312): библиотека, опустевшая с матрицей ===");
+            DocEnergySpectrum doc = Open(controlPath, nuclides);
+            if (doc == null)
+            {
+                Same("документ сцены A312 открыт", true, false);
+                return;
+            }
+
+            ResultData rd = doc.ActiveResultData;
+            string guid = "a312-probe-" + Guid.NewGuid().ToString("N");
+            FsaBandMode bandWas = FsaBand.DefaultMode;
+            try
+            {
+                if (rd.Efficiency == null || !rd.Efficiency.HasGeometry || rd.EnergySpectrum == null
+                    || rd.FwhmCalibration == null)
+                {
+                    Same("у контроля есть кривая с геометрией и калибровки (иначе сцену не построить)", true, false);
+                    return;
+                }
+
+                // Состав из NucBase без единого нуклида: пиков нет — вывод
+                // состава пуст, остаются приборные образы. Кривая — под guid
+                // пробы, матрица включена, атомный рентген включён.
+                SetSource(doc, true);
+                var cfg = (FWHMPeakDetectionMethodConfig)rd.PeakDetectionMethodConfig;
+                cfg.AtomicXrayForFsa = true;
+                rd.DetectedPeaks = new List<Peak>();
+                rd.Efficiency.Guid = guid;
+                rd.Efficiency.UseResponseMatrix = true;
+
+                // Библиотека сцены — как её соберёт сеанс: образы есть, и все от кристалла.
+                FsaCompositionInference.Report inferred;
+                FsaSampleSpec spec = FsaCompositionInference.Infer(rd.DetectedPeaks, rd, out inferred);
+                spec.AtomicXray = true;
+                List<FsaComponent> library = FsaSampleLibrary.Build(spec);
+                int fromCrystal = 0;
+                var names = new List<string>();
+                foreach (FsaComponent c in library)
+                {
+                    names.Add(c.Name);
+                    if (c.FromCrystal) fromCrystal++;
+                }
+
+                Console.WriteLine("  состав сцены: " + inferred);
+                Console.WriteLine("  библиотека сцены: " + (names.Count == 0 ? "(пусто)" : string.Join(", ", names)));
+                Same("сцена: библиотека без нуклидов не пуста", true, library.Count > 0);
+                Same("сцена: все образы библиотеки — рентген кристалла", library.Count, fromCrystal);
+
+                // Малая матрица под guid пробы — в склад рядом с пробой, как её ищет сеанс.
+                var options = new ResponseMatrixOptions { NodeCount = 10, Histories = 4000, BinKev = 4.0 };
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                ResponseMatrix matrix = ResponseMatrixBuilder.Build(rd.Efficiency.Geometry, options, null,
+                                                                    CancellationToken.None);
+                ResponseMatrixStore.Save(guid, matrix);
+                Console.WriteLine("  малая матрица: {0} узлов × {1} историй, {2} с, {3}",
+                                  options.NodeCount, options.Histories,
+                                  sw.Elapsed.TotalSeconds.ToString("F1", CultureInfo.InvariantCulture),
+                                  ResponseMatrixStore.PathOf(guid));
+                ResponseMatrix stored = ResponseMatrixStore.Load(guid);
+                Same("матрица прочитана из склада и годна геометрии сцены", true,
+                     stored != null && stored.IsValidFor(rd.Efficiency.Geometry));
+
+                // (б) Причина на анализаторе — тем же входом, что у сеанса.
+                var analyzer = new FsaAnalyzer();
+                FsaMatrixBinding.Bind(analyzer, rd.Efficiency.Geometry, stored);
+                FsaTuningReport.Print(analyzer);
+                FsaResult direct = analyzer.Analyze(rd.EnergySpectrum, null, rd.FwhmCalibration, library,
+                                                    FsaEfficiency.FromConfig(rd.Efficiency));
+                Same("анализатор: с матрицей разбора нет", true, direct == null);
+                Same("анализатор: причина — LibraryEmptied", FsaRefusal.LibraryEmptied, analyzer.Refusal);
+                Same("анализатор: GeometryRefused ложен", false, analyzer.GeometryRefused);
+                Same("анализатор: подробность называет снятый рентген кристалла", true,
+                     analyzer.RefusalNote != null
+                     && analyzer.RefusalNote.Contains("crystal x-ray " + fromCrystal.ToString(CultureInfo.InvariantCulture)));
+                Console.WriteLine("  подробность: " + analyzer.RefusalNote);
+
+                // (а) Контроль: без матрицы тот же вход разбирается.
+                var bare = new FsaAnalyzer();
+                FsaMatrixBinding.Bind(bare, rd.Efficiency.Geometry, null);
+                FsaResult bareResult = bare.Analyze(rd.EnergySpectrum, null, rd.FwhmCalibration, library,
+                                                    FsaEfficiency.FromConfig(rd.Efficiency));
+                Same("контроль: без матрицы разбор идёт", true, bareResult != null);
+                Same("контроль: без матрицы причина — None", FsaRefusal.None, bare.Refusal);
+                Same("контроль: без матрицы подробности нет", null, bare.RefusalNote);
+
+                // Окно отчёта — слова в обеих культурах, через живой сеанс документа.
+                foreach (string lang in new[] { "en-US", "ru-RU" })
+                {
+                    Language(lang);
+                    doc.FsaSession.Reset();
+                    doc.EnergySpectrumView.BackgroundMode = BackgroundMode.ShowFSA;
+                    using (var report = new FSAReportView(mainForm))
+                    {
+                        report.ProbeConsumer = true;
+                        report.SetDocument(doc);
+                        WaitIdle(doc.FsaSession);
+                        report.RefreshReport();
+                        string status = doc.FsaSession.Status;
+                        string expected = BecquerelMonitor.Properties.Resources.FSALibraryEmptied;
+                        Same(lang + ": результата сеанса нет", true, doc.FsaSession.Result == null);
+                        Same(lang + ": состояние сеанса — FSALibraryEmptied", expected, status);
+                        Same(lang + ": состояние — не общее FSANotPossible", false,
+                             string.Equals(status, BecquerelMonitor.Properties.Resources.FSANotPossible, StringComparison.Ordinal));
+                        int statusRows = 0;
+                        string rowText = null;
+                        foreach (Row row in report.ReportTable.TableModel.Rows)
+                        {
+                            var tag = (FsaReportRow)row.Tag;
+                            if (tag.Kind == FsaReportRowKind.Status)
+                            {
+                                statusRows++;
+                                rowText = tag.Name;
+                            }
+                        }
+
+                        Same(lang + ": в таблице одна строка состояния", 1, statusRows);
+                        Same(lang + ": строка таблицы несёт причину", expected, rowText);
+                        Console.WriteLine("  {0}: {1}", lang, status);
+                        report.SetDocument(null);
+                    }
+                }
+
+                Language("en-US");
+
+                // (в) Остальные причины различимы — на анализаторе, без матрицы.
+                var other = new FsaAnalyzer();
+                Same("вход: null-спектр — Input", FsaRefusal.Input,
+                     Refusal(other, other.Analyze(null, null, rd.FwhmCalibration, library, FsaEfficiency.FromConfig(rd.Efficiency))));
+                Same("вход: без калибровки ПШПВ — Input", FsaRefusal.Input,
+                     Refusal(other, other.Analyze(rd.EnergySpectrum, null, null, library, FsaEfficiency.FromConfig(rd.Efficiency))));
+                Same("вход: пустая библиотека на входе — Input", FsaRefusal.Input,
+                     Refusal(other, other.Analyze(rd.EnergySpectrum, null, rd.FwhmCalibration, new List<FsaComponent>(), FsaEfficiency.FromConfig(rd.Efficiency))));
+                other.RequireGeometry = true;
+                Same("геометрия: кривой нет — Geometry (A277)", FsaRefusal.Geometry,
+                     Refusal(other, other.Analyze(rd.EnergySpectrum, null, rd.FwhmCalibration, library, null)));
+                Same("геометрия: GeometryRefused читает тот же признак", true, other.GeometryRefused);
+                EnergySpectrum few = rd.EnergySpectrum.Clone();
+                few.NumberOfChannels = FsaAnalyzer.MinChannels - 1;
+                few.Spectrum = new int[FsaAnalyzer.MinChannels - 1];
+                Same("каналы: меньше MinChannels — FewChannels", FsaRefusal.FewChannels,
+                     Refusal(other, other.Analyze(few, null, rd.FwhmCalibration, library, FsaEfficiency.FromConfig(rd.Efficiency))));
+                Same("каналы: подробность называет число каналов", true,
+                     other.RefusalNote != null && other.RefusalNote.Contains("channels=" + (FsaAnalyzer.MinChannels - 1).ToString(CultureInfo.InvariantCulture)));
+                FsaBand.DefaultMode = FsaBandMode.FitToLibrary;
+                other.MinEnergy = 661.0;
+                other.MaxEnergy = 661.0;
+                Same("полоса: FitToLibrary с пустым диапазоном — NarrowBand", FsaRefusal.NarrowBand,
+                     Refusal(other, other.Analyze(rd.EnergySpectrum, null, rd.FwhmCalibration, library, FsaEfficiency.FromConfig(rd.Efficiency))));
+                Console.WriteLine("  полоса: " + other.RefusalNote);
+                FsaBand.DefaultMode = bandWas;
+
+                // (г) Слова: у каждого члена свои, попарно разные, не FSANotPossible; неизвестное — FSANotPossible.
+                foreach (string lang in new[] { "en-US", "ru-RU" })
+                {
+                    Language(lang);
+                    string generic = BecquerelMonitor.Properties.Resources.FSANotPossible;
+                    var texts = new HashSet<string>(StringComparer.Ordinal);
+                    foreach (FsaRefusal why in Enum.GetValues(typeof(FsaRefusal)))
+                    {
+                        if (why == FsaRefusal.None) continue;
+                        string text = FsaAnalysisSession.RefusalText(why, null);
+                        Same(lang + ": слова у " + why + " есть и не общие", true,
+                             !string.IsNullOrEmpty(text) && !string.Equals(text, generic, StringComparison.Ordinal));
+                        Same(lang + ": слова у " + why + " свои (не повтор другой причины)", true, texts.Add(text));
+                    }
+
+                    Same(lang + ": геометрия с отвергнутой кривой — слова кривой (AMBER34)", true,
+                         FsaAnalysisSession.RefusalText(FsaRefusal.Geometry, "probe").Contains("probe"));
+                    Same(lang + ": неизвестная причина — общее FSANotPossible", generic,
+                         FsaAnalysisSession.RefusalText((FsaRefusal)999, null));
+                }
+
+                Language("en-US");
+            }
+            finally
+            {
+                FsaBand.DefaultMode = bandWas;
+                Language("en-US");
+                ResponseMatrixStore.Delete(guid);
+                Same("уборка: файл малой матрицы снят из склада", false, File.Exists(ResponseMatrixStore.PathOf(guid)));
+                doc.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// 15. (`AMBER51`, П120 22.09.2026) СПЕКТР БЕЗ ВРЕМЕНИ — отказ с
+        /// причиной, а не знаменатель 1 с молча. На копии контрольного спектра
+        /// обнуляются `LiveTime` и `MeasurementTime` (`EffectiveLiveTime` = 0):
+        /// анализатор обязан отказать `NoLiveTime` с подробностью
+        /// `liveTime=0 measurementTime=0`; сеанс документа — печатать
+        /// `FSANoLiveTime` состоянием и строкой таблицы в обеих культурах.
+        /// Положительные контроли: (а) живое время ноль, полное есть —
+        /// разбор идёт (знаменатель — полное, `AMBER35`); (б) времена
+        /// возвращены — скорости счёта и доли компонентов равны разбору
+        /// нетронутого клона до бита; (в) сеанс с возвращённым временем даёт
+        /// результат, а не состояние отказа.
+        /// </summary>
+        static void NoLiveTimeSection(MainForm mainForm, string controlPath, NuclideDefinitionManager nuclides)
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== 15. спектр без времени — отказ с причиной (AMBER51), не знаменатель 1 с ===");
+            DocEnergySpectrum doc = Open(controlPath, nuclides);
+            if (doc == null)
+            {
+                Same("документ контроля открыт", true, false);
+                return;
+            }
+
+            try
+            {
+                ResultData rd = doc.ActiveResultData;
+                if (rd.EnergySpectrum == null || rd.FwhmCalibration == null || rd.Efficiency == null
+                    || !rd.Efficiency.HasGeometry)
+                {
+                    Same("у контроля есть спектр, калибровка ПШПВ и кривая с геометрией", true, false);
+                    return;
+                }
+
+                EnergySpectrum intact = rd.EnergySpectrum.Clone();
+                double liveWas = rd.EnergySpectrum.LiveTime, realWas = rd.EnergySpectrum.MeasurementTime;
+                Console.WriteLine("  контроль: живое {0} с, полное {1} с, EffectiveLiveTime {2} с",
+                                  liveWas.ToString("F3", CultureInfo.InvariantCulture),
+                                  realWas.ToString("F3", CultureInfo.InvariantCulture),
+                                  rd.EnergySpectrum.EffectiveLiveTime.ToString("F3", CultureInfo.InvariantCulture));
+                Same("у контроля есть время (иначе сцену не построить)", true, rd.EnergySpectrum.EffectiveLiveTime > 0.0);
+
+                // Библиотека — как её собирает сеанс по пикам контроля.
+                List<FsaComponent> library = FsaLibrary.BuildFromPeaks(rd.DetectedPeaks, nuclides.NuclideDefinitions);
+                Same("библиотека контроля не пуста", true, library.Count > 0);
+                FsaEfficiency efficiency = FsaEfficiency.FromConfig(rd.Efficiency);
+
+                // Опора: нетронутый клон.
+                var reference = new FsaAnalyzer();
+                FsaResult referenceResult = reference.Analyze(intact, null, rd.FwhmCalibration, library, efficiency);
+                Same("опора: нетронутый клон разбирается", true, referenceResult != null);
+
+                // (1) Без времени — отказ с причиной.
+                EnergySpectrum timeless = intact.Clone();
+                timeless.LiveTime = 0.0;
+                timeless.MeasurementTime = 0.0;
+                Same("без времени: EffectiveLiveTime равен нулю", 0.0, timeless.EffectiveLiveTime);
+                var analyzer = new FsaAnalyzer();
+                FsaResult none = analyzer.Analyze(timeless, null, rd.FwhmCalibration, library, efficiency);
+                Same("без времени: разбора нет", true, none == null);
+                Same("без времени: причина — NoLiveTime", FsaRefusal.NoLiveTime, analyzer.Refusal);
+                Same("без времени: подробность несёт оба времени", "liveTime=0 measurementTime=0", analyzer.RefusalNote);
+                Same("без времени: GeometryRefused ложен", false, analyzer.GeometryRefused);
+
+                // (а) Живое время ноль, полное есть — знаменатель полное, разбор идёт (AMBER35).
+                EnergySpectrum realOnly = intact.Clone();
+                realOnly.LiveTime = 0.0;
+                realOnly.MeasurementTime = realWas > 0.0 ? realWas : 100.0;
+                var onlyReal = new FsaAnalyzer();
+                FsaResult realResult = onlyReal.Analyze(realOnly, null, rd.FwhmCalibration, library, efficiency);
+                Same("контроль (а): только полное время — разбор идёт", true, realResult != null);
+                Same("контроль (а): причина — None", FsaRefusal.None, onlyReal.Refusal);
+                if (realResult != null)
+                {
+                    Same("контроль (а): знаменатель результата — полное время", realOnly.MeasurementTime, realResult.LiveTime);
+                }
+
+                // (б) Времена возвращены — до бита как у нетронутого клона.
+                EnergySpectrum restored = timeless.Clone();
+                restored.LiveTime = liveWas;
+                restored.MeasurementTime = realWas;
+                var again = new FsaAnalyzer();
+                FsaResult restoredResult = again.Analyze(restored, null, rd.FwhmCalibration, library, efficiency);
+                Same("контроль (б): с возвращённым временем разбор идёт", true, restoredResult != null);
+                if (referenceResult != null && restoredResult != null)
+                {
+                    Same("контроль (б): число компонентов равно опоре", referenceResult.Components.Count, restoredResult.Components.Count);
+                    int mismatched = 0;
+                    for (int i = 0; i < referenceResult.Components.Count && i < restoredResult.Components.Count; i++)
+                    {
+                        FsaComponentResult a = referenceResult.Components[i], b = restoredResult.Components[i];
+                        if (!string.Equals(a.Name, b.Name, StringComparison.Ordinal)
+                            || a.CountRate != b.CountRate || a.SharePercent != b.SharePercent)
+                        {
+                            mismatched++;
+                        }
+                    }
+
+                    Same("контроль (б): скорости и доли всех компонентов равны опоре до бита", 0, mismatched);
+                    Same("контроль (б): χ²/ndf равен опоре до бита", referenceResult.Chi2Ndf, restoredResult.Chi2Ndf);
+                    Same("контроль (б): знаменатель результата — живое время спектра", intact.EffectiveLiveTime, restoredResult.LiveTime);
+                }
+
+                // (2) Окно отчёта — слова в обеих культурах через живой сеанс документа.
+                rd.EnergySpectrum.LiveTime = 0.0;
+                rd.EnergySpectrum.MeasurementTime = 0.0;
+                foreach (string lang in new[] { "en-US", "ru-RU" })
+                {
+                    Language(lang);
+                    doc.FsaSession.Reset();
+                    doc.EnergySpectrumView.BackgroundMode = BackgroundMode.ShowFSA;
+                    using (var report = new FSAReportView(mainForm))
+                    {
+                        report.ProbeConsumer = true;
+                        report.SetDocument(doc);
+                        WaitIdle(doc.FsaSession);
+                        report.RefreshReport();
+                        string status = doc.FsaSession.Status;
+                        string expected = BecquerelMonitor.Properties.Resources.FSANoLiveTime;
+                        Same(lang + ": результата сеанса нет", true, doc.FsaSession.Result == null);
+                        Same(lang + ": состояние сеанса — FSANoLiveTime", expected, status);
+                        Same(lang + ": состояние — не общее FSANotPossible", false,
+                             string.Equals(status, BecquerelMonitor.Properties.Resources.FSANotPossible, StringComparison.Ordinal));
+                        int statusRows = 0;
+                        string rowText = null;
+                        foreach (Row row in report.ReportTable.TableModel.Rows)
+                        {
+                            var tag = (FsaReportRow)row.Tag;
+                            if (tag.Kind == FsaReportRowKind.Status)
+                            {
+                                statusRows++;
+                                rowText = tag.Name;
+                            }
+                        }
+
+                        Same(lang + ": в таблице одна строка состояния", 1, statusRows);
+                        Same(lang + ": строка таблицы несёт причину", expected, rowText);
+                        Console.WriteLine("  {0}: {1}", lang, status);
+                        report.SetDocument(null);
+                    }
+                }
+
+                Language("en-US");
+
+                // (в) Времена возвращены документу — сеанс даёт результат, не отказ.
+                rd.EnergySpectrum.LiveTime = liveWas;
+                rd.EnergySpectrum.MeasurementTime = realWas;
+                doc.FsaSession.Reset();
+                using (var report = new FSAReportView(mainForm))
+                {
+                    report.ProbeConsumer = true;
+                    report.SetDocument(doc);
+                    WaitIdle(doc.FsaSession);
+                    Same("контроль (в): сеанс с возвращённым временем дал результат", true, doc.FsaSession.Result != null);
+                    Same("контроль (в): состояние сеанса — не FSANoLiveTime", false,
+                         string.Equals(doc.FsaSession.Status, BecquerelMonitor.Properties.Resources.FSANoLiveTime, StringComparison.Ordinal));
+                    report.SetDocument(null);
+                }
+            }
+            finally
+            {
+                Language("en-US");
+                doc.Dispose();
+            }
+        }
+
+        /// <summary>Причина последнего разбора — при условии, что он действительно отказал.</summary>
+        static FsaRefusal Refusal(FsaAnalyzer analyzer, FsaResult result)
+        {
+            if (result != null)
+            {
+                Console.WriteLine("   (разбор не отказал — причины нет)");
+            }
+
+            return analyzer.Refusal;
+        }
+
         static void SetSource(DocEnergySpectrum doc, bool nucBase)
         {
             var cfg = (FWHMPeakDetectionMethodConfig)doc.ActiveResultData.PeakDetectionMethodConfig;
@@ -1965,7 +2464,11 @@ namespace FsaReportViewProbe
 
         static bool WaitIdle(FsaAnalysisSession session)
         {
-            for (int i = 0; i < 600; i++)
+            // Предел 120 с (было 30 с): 02.10.2026 разбор AS80_Th232Medal в сборке Debug
+            // на загруженной машине (~70 %, соседний счёт) не укладывался в 30 с, и сторож
+            // check_fsa_report_view краснел без дефекта — П220 и слияние П225 (CPU разбора
+            // 8 с в Release, Debug вдвое медленнее). Зависший сеанс по-прежнему отказ.
+            for (int i = 0; i < 2400; i++)
             {
                 if (!session.IsRunning)
                 {
@@ -2199,9 +2702,9 @@ namespace FsaReportViewProbe
 
                 have.Add(model.Kind + "|" + (model.Name ?? string.Empty) + "|" + (model.Value ?? string.Empty));
                 string caption = model.Kind == FsaReportRowKind.Residual ? residualCaption : model.Name ?? string.Empty;
-                if (row.Cells[1].Text != caption || row.Cells[2].Text != (model.Value ?? string.Empty))
+                if (row.Cells[0].Text != caption || row.Cells[1].Text != (model.Value ?? string.Empty))
                 {
-                    cells.Add("ячейки «" + row.Cells[1].Text + " | " + row.Cells[2].Text
+                    cells.Add("ячейки «" + row.Cells[0].Text + " | " + row.Cells[1].Text
                               + "» вместо «" + caption + " | " + (model.Value ?? string.Empty) + "»");
                 }
             }
@@ -2241,6 +2744,14 @@ namespace FsaReportViewProbe
         static string ResidualCaption(FsaResult result, int clamped)
         {
             var marks = new List<string>();
+            // (`AMBER126`, П168) Шумовой пол — первой пометкой, от 0.05 %
+            // (`FSAReportView.ResidualNoiseShownFloor`), формат `F1`.
+            if (result != null && result.ResidualSharesDefined && result.ResidualNoiseShare >= 0.0005)
+            {
+                marks.Add(string.Format(CultureInfo.InvariantCulture, Own("FSAReport_ResidualNoise"),
+                                        (100.0 * result.ResidualNoiseShare).ToString("F1", CultureInfo.InvariantCulture)));
+            }
+
             if (clamped > 0)
             {
                 marks.Add(string.Format(CultureInfo.InvariantCulture, Own("FSAReport_ResidualClamped"), clamped));
@@ -2279,7 +2790,7 @@ namespace FsaReportViewProbe
                 var model = (FsaReportRow)row.Tag;
                 if (model.Kind == FsaReportRowKind.Quality || model.Kind == FsaReportRowKind.Residual)
                 {
-                    if (row.Cells[2].Text.Length > 0) parts.Add(row.Cells[2].Text);
+                    if (row.Cells[1].Text.Length > 0) parts.Add(row.Cells[1].Text);
                 }
             }
 
@@ -2313,6 +2824,7 @@ namespace FsaReportViewProbe
             var scene = new FsaResult
             {
                 Chi2Ndf = 12345.6789,
+                Chi2NdfPoisson = 12345.6789,
                 ResidualExcessShare = 12.345,
                 ResidualMissingShare = 98.7654,
                 BackgroundUsed = true

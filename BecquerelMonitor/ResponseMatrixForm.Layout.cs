@@ -2,6 +2,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using CheckBoxState = System.Windows.Forms.VisualStyles.CheckBoxState;
 
 namespace BecquerelMonitor
 {
@@ -76,21 +77,42 @@ namespace BecquerelMonitor
             this.Controls.Add(this.detailsPanel);
             y += this.detailsPanel.Height + 10;
 
-            // --- выключатель использования (W11) ---------------------------
-            // Раньше годная матрица включалась в разбор сама и выключателя не
-            // было вовсе. Галка пишет в конфигурацию кривой
-            // (EfficiencyConfigData.UseResponseMatrix) и действует на все
-            // спектры с этой кривой; место ей здесь по решению Amber.
-            this.useMatrixCheck = new CheckBox
+            // (П242) Галки «Use the matrix in full-spectrum analysis (FSA)»
+            // (W11) здесь больше нет — снята по слову Amber 07.10.2026: «Эту
+            // галку убрать. Значение по умолчанию взять - включена.» Годная
+            // матрица идёт в разбор всегда (EfficiencyConfigData.UseResponseMatrix).
+            //
+            // (`AMBER219`, П245) На её месте — галка «Use Nvidia GPU» (постановка
+            // Amber 07.10.2026). Годность GPU спрашивается при открытии
+            // (`RmGpu.Probe`); негодная галка выключена, причина — подсказкой.
+            //
+            // ⚠ Негодная галка НЕ выключается (`Enabled`), а рисуется выключенной
+            // (<see cref="GpuCheckBox.Unavailable"/>) и не переключается
+            // (`AutoCheck = false`): выключенный контрол WinForms мыши не
+            // получает, и ToolTip над ним не показывается вовсе — измерено
+            // экраном 07.10.2026: подсказка всплывала только правее галки, над
+            // панелью, а над самой галкой — нет. То есть причина, ради которой
+            // подсказка и заведена, не доходила бы до человека ровно тогда,
+            // когда нужна. Панель держит подсказку ещё и справа от галки.
+            this.gpuPanel = new Panel
             {
-                Text = Resources.ResponseMatrixUseInFsa,
                 Location = new Point(Pad, y),
-                Size = new Size(FormWidth - 2 * Pad, 22),
-                Checked = this.config == null || this.config.UseResponseMatrix,
+                Size = new Size(FormWidth - 2 * Pad, 22)
             };
-            this.useMatrixCheck.CheckedChanged += this.UseMatrixChanged;
-            this.Controls.Add(this.useMatrixCheck);
-            y += this.useMatrixCheck.Height + 6;
+            this.gpuCheck = new GpuCheckBox
+            {
+                Text = Resources.ResponseMatrixUseGpu,
+                Location = new Point(0, 0),
+                AutoSize = true,
+                Checked = false,
+                AutoCheck = false,
+                Unavailable = true
+            };
+            this.gpuCheck.CheckedChanged += this.GpuCheckChanged;
+            this.gpuPanel.Controls.Add(this.gpuCheck);
+            this.Controls.Add(this.gpuPanel);
+            this.gpuTip = new ToolTip { AutoPopDelay = 30000, InitialDelay = 300, ReshowDelay = 100 };
+            y += this.gpuPanel.Height + 6;
 
             // --- параметры -------------------------------------------------
             var box = new GroupBox
@@ -315,6 +337,47 @@ namespace BecquerelMonitor
         void ParametersChanged(object sender, EventArgs e)
         {
 
+        }
+
+        /// <summary>
+        /// (`AMBER219`) Галка, которая умеет быть «недоступной», оставаясь живой
+        /// для мыши: при <see cref="Unavailable"/> рисуется штатным выключенным
+        /// видом (`CheckBoxRenderer`, серый текст и серый квадрат), а
+        /// переключение снимает вызывающий (`AutoCheck = false`). Настоящее
+        /// `Enabled = false` подсказку убивает (см. раскладку выше).
+        /// </summary>
+        sealed class GpuCheckBox : CheckBox
+        {
+            bool unavailable;
+
+            public bool Unavailable
+            {
+                get { return this.unavailable; }
+                set
+                {
+                    this.unavailable = value;
+                    this.AutoCheck = !value;
+                    this.Invalidate();
+                }
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                if (!this.unavailable || !this.Enabled)
+                {
+                    base.OnPaint(e);
+                    return;
+                }
+
+                CheckBoxState state = this.Checked ? CheckBoxState.CheckedDisabled : CheckBoxState.UncheckedDisabled;
+                CheckBoxRenderer.DrawParentBackground(e.Graphics, this.ClientRectangle, this);
+                Size glyph = CheckBoxRenderer.GetGlyphSize(e.Graphics, state);
+                var glyphAt = new Point(0, Math.Max(0, (this.Height - glyph.Height) / 2));
+                var textAt = new Rectangle(glyph.Width + 3, 0, Math.Max(1, this.Width - glyph.Width - 3), this.Height);
+                CheckBoxRenderer.DrawCheckBox(e.Graphics, glyphAt, textAt, this.Text, this.Font,
+                                              TextFormatFlags.VerticalCenter | TextFormatFlags.Left,
+                                              false, state);
+            }
         }
 
         InvariantNumericUpDown Field(Control parent, string caption, int x, int y,

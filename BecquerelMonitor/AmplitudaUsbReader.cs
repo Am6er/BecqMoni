@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -41,6 +42,11 @@ namespace BecquerelMonitor
         const int SilenceTimeoutMs = 3000;      // the device sends ~91 frames per second, always
         const int ReconnectWindowMs = 10000;
         const int ReconnectPollMs = 500;
+
+        // How long a silent device goes without frames before the reader gives up: the read waits
+        // SilenceTimeoutMs before the stream counts as lost, and only then does the reconnect window
+        // start. ERRAmplitudaUsbSilent quotes this number, so the message cannot drift from the code (A316).
+        public const int SilenceGiveUpSeconds = (SilenceTimeoutMs + ReconnectWindowMs) / 1000;
         const int InputBufferCount = 512;       // default HID ring buffer is 32 reports = 0.35 s
         const int JoinTimeoutMs = 2000;
 
@@ -270,7 +276,7 @@ namespace BecquerelMonitor
                 }
                 if (info.Product.Length == 0)
                 {
-                    info.Product = string.Format("USB {0:X4}:{1:X4}", vendorId, productId);
+                    info.Product = string.Format(CultureInfo.InvariantCulture, "USB {0:X4}:{1:X4}", vendorId, productId);
                 }
                 if (info.SerialNumber == null)
                 {
@@ -326,6 +332,9 @@ namespace BecquerelMonitor
             }
         }
 
+        // With an empty serial number ("first found") a unit that refuses to open - held by another
+        // program - does not end the search: the next connected unit is tried (A316). The error of the
+        // last refusal is returned only when no unit opened at all.
         SafeFileHandle Open(out int error)
         {
             error = ErrorDeviceNotFound;
@@ -342,7 +351,7 @@ namespace BecquerelMonitor
                 {
                     error = Marshal.GetLastWin32Error();
                     opened.Dispose();
-                    return null;
+                    continue;
                 }
                 // Best effort: a deeper queue survives a stalled PC, a flush drops frames from before Start.
                 HidNative.HidD_SetNumInputBuffers(opened, InputBufferCount);

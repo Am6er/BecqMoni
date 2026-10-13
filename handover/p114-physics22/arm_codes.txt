@@ -1,0 +1,22 @@
+arm rev32main start 2026-09-21 15:31:20 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries extra=
+arm rev32main mk_appwd code=0
+arm rev32main check_appwd code=0
+  response: rmx=49
+arm rev32main full code=0 15:31:50 (22 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev32_full
+arm rev32main mini code=0 15:31:59 (9 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev32_mini
+arm rev32main score full known code=0
+arm rev32main score mini known code=0
+arm rev32main score full unknown code=0
+arm rev32main score mini unknown code=0
+arm rev32main end 15:32:00
+arm rev32main_2 start 2026-09-21 16:14:32 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries extra=
+arm rev32main_2 mk_appwd code=0
+arm rev32main_2 check_appwd code=0
+  response: rmx=49
+arm rev32main_2 full code=0 16:15:01 (21 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev32_full_2
+arm rev32main_2 mini code=0 16:15:11 (9 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev32_mini_2
+arm rev32main_2 score full known code=0
+arm rev32main_2 score mini known code=0
+arm rev32main_2 score full unknown code=0
+arm rev32main_2 score mini unknown code=0
+arm rev32main_2 end 16:15:11

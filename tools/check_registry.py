@@ -242,15 +242,13 @@ FOREIGN = {"Ttb", "Elib", "ENSDF2", "MDATX3", "FCOMP", "Epdl97", "Glecs",
 #     в корневой до сих пор `K40` без дефиса, в поставочной `K-40`. Выходы
 #     `Tl-208` в поставке приведены к распаду РОДИТЕЛЯ ряда (2614 кэВ: 35.85
 #     против 99.754), то есть числа несопоставимы напрямую.
-#   * ROI/Obsidian Marinelli 0.5.xml — 34 точки кривой против 150.
-#   * ROI/RadiaCode Marinelli 0.5.xml — то же, кривая старой длины.
 #
 # ⛔ Отпечаток — sha256 содержимого с переводами строк, приведёнными к LF
 # (= тому, что лежит в индексе git у этих файлов), а не байтов рабочей копии
 # (П81, 15.09.2026). Рабочая копия после `git checkout master` переписана с
 # CRLF (`core.autocrlf=true`), и отпечатки байтов зависели от того, ЧЕМ и
 # КОГДА дерево выкладывалось: записанные 25.08.2026 три пары были СМЕШАННЫМИ —
-# `NuclideDefinition.xml` от LF, обе ROI от CRLF, — и один и тот же
+# `NuclideDefinition.xml` от LF, обе ROI (сняты 07.10.2026) от CRLF, — и один и тот же
 # неизменённый файл давал «ИЗВЕСТНОЕ РАСХОЖДЕНИЕ ИЗМЕНИЛОСЬ» при пустом
 # `git status`. Пары ROI ниже перезаписаны на LF; пара NuclideDefinition та же.
 CONFIG_COPIES = (u"config", os.path.join(u"BecquerelMonitor", u"config"))
@@ -258,12 +256,6 @@ CONFIG_COPIES_KNOWN = {
     u"NuclideDefinition.xml":
         (u"82cbe1717447cc1a32fab220e2a6c674a6452ebe5f020385f9a2ca720f06f812",
          u"7aaa0b01c9bd4a7621b8ed1f642b7efbe5833a4b8b3a86bd7b3156b714efa380"),
-    u"ROI/Obsidian Marinelli 0.5.xml":
-        (u"f183eeb09292e08a11965c0b387662165d312893644f69ae56cd87f2e4aef9b5",
-         u"9b992698ab11421cab31689ec2c247ea9a5738fd375633feb1564029a77b4781"),
-    u"ROI/RadiaCode Marinelli 0.5.xml":
-        (u"3e3ad482ef234b0941bef309e7507eb45da5bcb6cb55048cd9c9a4b0dbc19f15",
-         u"7fc4eeeed74c3b9f86ee638a4260f9952e1479d05e94dc3a59a40127f26df565"),
 }
 
 OUTSIDE_ON_PURPOSE = {

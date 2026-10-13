@@ -236,7 +236,11 @@ namespace BecquerelMonitor
             ObsidianDeviceConfig obsidianInputDevice = (ObsidianDeviceConfig)inputConfig;
             config = obsidianInputDevice;
             DeviceSerial = obsidianInputDevice.DeviceSerial;
+            // `AMBER165`-родня (05.10.2026, полоса fixdev2): индекс выбранного
+            //   прибора — от ПРОШЛОЙ конфигурации; сбрасывается вместе со
+            //   списком адресов, как в `RadiaCodeDeviceForm.LoadFormContents`.
             addressBLE.Clear();
+            currentBLEindex = -1;
             if (DeviceSerial != null)
             {
                 comboBox1.Items.Clear();
@@ -263,6 +267,17 @@ namespace BecquerelMonitor
                     obsidianInputDevice.DeviceSerial = comboBox1.SelectedItem.ToString();
                     obsidianInputDevice.AddressBLE = addressBLE.ElementAt(currentBLEindex);
                     troubleShootbtn.Enabled = true;
+                }
+                else if (addressBLE.Count == 0
+                         && comboBox1.SelectedItem != null
+                         && obsidianInputDevice.DeviceSerial != null
+                         && comboBox1.SelectedItem.ToString() == obsidianInputDevice.DeviceSerial)
+                {
+                    // (полоса fixdev2, 05.10.2026) Конфигурация с серийником, но без
+                    //   адреса, и в форме выбран её же серийник без нового поиска:
+                    //   менять нечего. Прежде эта ветка падала в «пусто» ниже и
+                    //   ОБНУЛЯЛА серийник, адрес и калибровку прибора при любом
+                    //   сохранении окна настроек.
                 }
                 else
                 {

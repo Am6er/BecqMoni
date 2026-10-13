@@ -1,0 +1,4 @@
+GeometryLimitsProbe: base ВСЕ ПРОВЕРКИ ПРОШЛИ | after ВСЕ ПРОВЕРКИ ПРОШЛИ
+SceneFacingProbe: base СОШЛОСЬ | after СОШЛОСЬ
+IsoFieldProbe: base ВСЕ ПРОВЕРКИ ПРОШЛИ | after ВСЕ ПРОВЕРКИ ПРОШЛИ
+MaterialAirGlassProbe: base ВСЕ СОШЛИСЬ | after ВСЕ СОШЛИСЬ

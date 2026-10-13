@@ -2,6 +2,19 @@
 
 namespace BecquerelMonitor.N42
 {
+    /// <summary>
+    /// (`AMBER201`, подозрение полосы 2, 05.10.2026) Разделители списков чисел N42.
+    /// Списки N42 — <c>xs:list</c>, то есть числа через ЛЮБОЙ пробельный символ:
+    /// пробел, табуляцию, перевод строки, возврат каретки. Прежде все семь мест
+    /// разбора делили только по пробелу (перевод строки заменялся пробелом), и
+    /// файл с табуляцией между отсчётами не импортировался вовсе: «1\t2» шло в
+    /// <c>int.Parse</c> одним словом. Пустые слова снимаются тут же.
+    /// </summary>
+    static class N42Whitespace
+    {
+        public static readonly char[] Separators = { ' ', '\t', '\r', '\n', '\f', '\v' };
+    }
+
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "4.8.3928.0")]
     [System.SerializableAttribute()]
@@ -51,7 +64,7 @@ namespace BecquerelMonitor.N42
 
         public int[] SpectrumToArray()
         {
-            string[] n42SpectrimCounts = this.valueField.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
+            string[] n42SpectrimCounts = this.valueField.Split(N42Whitespace.Separators, StringSplitOptions.RemoveEmptyEntries);
             n42SpectrimCounts = Array.FindAll(n42SpectrimCounts, isNotN42SpectrumValid);
 
             if (this.compressionCodeField == "CountedZeroes")

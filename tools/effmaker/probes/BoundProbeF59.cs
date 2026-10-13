@@ -20,7 +20,7 @@ namespace BoundProbeF59
     /// 1. **`A222`, верхняя граница эффективности.** Что лежит в колонке
     ///    `Efficiency` экспорта ЛСРМ, устанавливается СЛИЧЕНИЕМ с поставочной
     ///    кривой, а не рассуждением; затем считается, сколько точек и в скольких
-    ///    файлах отвергает новая граница — отдельно на ВВОЗЕ (где точку и так
+    ///    файлах отвергает новая граница — отдельно на ИМПОРТЕ (где точку и так
     ///    снимает правило «погрешность выше 100 % не брать») и на СЫРЫХ данных.
     ///    Вторая половина строки — опорная кривая фиттера — мерилась здесь до
     ///    13.09.2026; снята вместе с самим фитом по спектрам (`AMBER25`).
@@ -207,7 +207,7 @@ namespace BoundProbeF59
         }
 
         /// <summary>
-        /// Весь набор экспортов: сколько точек отвергает новая граница на ВВОЗЕ
+        /// Весь набор экспортов: сколько точек отвергает новая граница на ИМПОРТЕ
         /// (после правила «погрешность выше 100 %») и сколько — на СЫРЫХ данных.
         /// Разница между двумя числами и есть ответ «побочно или по существу».
         /// </summary>
@@ -232,7 +232,7 @@ namespace BoundProbeF59
                 rawAbove += above;
                 if (above > 0) rawFilesAbove++;
 
-                // ВВОЗ приложением — тем самым методом, что зовёт кнопка.
+                // ИМПОРТ приложением — тем самым методом, что зовёт кнопка.
                 List<ROIEfficiencyData> imported = Import(f);
                 importedRows += imported.Count;
                 importedAbove += imported.Count(p => p.Efficiency > 1.0);
@@ -246,7 +246,7 @@ namespace BoundProbeF59
                 if (Refuses(asis)) rawFilesRefused++;
 
                 Say(string.Format(CultureInfo.InvariantCulture,
-                    "   {0,-38} сырых {1,3}, ε>1 {2}, ввезено {3,3}, ε>1 после ввоза {4}",
+                    "   {0,-38} сырых {1,3}, ε>1 {2}, импортировано {3,3}, ε>1 после импорта {4}",
                     Path.GetFileName(f), raw.Count, above, imported.Count,
                     imported.Count(p => p.Efficiency > 1.0)));
             }
@@ -254,12 +254,12 @@ namespace BoundProbeF59
             Say(string.Format(CultureInfo.InvariantCulture,
                 "   ИТОГО сырых точек {0}, из них ε>1: {1} в {2} файле(ах)", rawRows, rawAbove, rawFilesAbove));
             Say(string.Format(CultureInfo.InvariantCulture,
-                "   ИТОГО ввезено точек {0}, из них ε>1: {1}", importedRows, importedAbove));
+                "   ИТОГО импортировано точек {0}, из них ε>1: {1}", importedRows, importedAbove));
 
             Ok(rawAbove == 1 && rawFilesAbove == 1,
                "на сырых данных граница отвергает РОВНО одну точку в одном файле из восьми");
             Ok(importedAbove == 0 && importedFilesRefused == 0,
-               "после ввоза граница не отвергает НИ ОДНОЙ точки — здоровые кривые не задеты");
+               "после импорта граница не отвергает НИ ОДНОЙ точки — здоровые кривые не задеты");
             Ok(rawFilesRefused == 1,
                "без правила по погрешности отказывает ровно один экспорт из восьми");
         }
@@ -268,7 +268,7 @@ namespace BoundProbeF59
         /// ⛔ Поставочная кривая — по приказу Amber 05.09.2026 не правится и
         /// дефектом не числится. Здесь она только ЧИТАЕТСЯ: это единственный
         /// путь, по которому невозможная точка попадает в дозиметр СЕГОДНЯ,
-        /// мимо всякого ввоза, — и потому единственный настоящий замер строки.
+        /// мимо всякого импорта, — и потому единственный настоящий замер строки.
         /// </summary>
         static void A222_ShippedCurve()
         {
@@ -504,26 +504,30 @@ namespace BoundProbeF59
             //    (физика 16) и краснела «включённых умолчанием: 5 (ждали 3)» (П54 §6.2).
             //    `--break=defaults` подставляет прежние три — и обязан валить пробу.
             int trues = flags.Count(f => f.Value);
-            int expected = breakage == "defaults" ? 3 : 5;
+            // (П147 24.09.2026, физика 24) + `XcomPairThreshold` ВКЛ (решение Amber 24.09.2026
+            //    «ВКЛ в физике 24 (Рекомендую)»): включённых шесть, выключен один `AnalogConeSampling`.
+            int expected = breakage == "defaults" ? 3 : 6;
             Ok(trues == expected, string.Format(CultureInfo.InvariantCulture,
-                "включённых умолчанием: {0} (ждали {1}) — `LXrayEscape`, `KLCascade`, `PositronTransport`, `PositronOffset`, `RayleighToCrystal`",
+                "включённых умолчанием: {0} (ждали {1}) — `LXrayEscape`, `KLCascade`, `PositronTransport`, `PositronOffset`, `RayleighToCrystal`, `XcomPairThreshold`",
                 trues, expected));
             Ok(options.KLCascade,
                "умолчание `KLCascade` — ВКЛЮЧЕНО; прежний комментарий `Load` говорил «умолчание false»");
-            Ok(!options.XcomPairThreshold && !options.AnalogConeSampling,
-               "`XcomPairThreshold` и `AnalogConeSampling` умолчанием ВЫКЛЮЧЕНЫ (абляции, не физика склада)");
+            Ok(options.XcomPairThreshold && !options.AnalogConeSampling,
+               "`XcomPairThreshold` умолчанием ВКЛ (физика 24), `AnalogConeSampling` ВЫКЛ (абляция, не физика склада)");
 
             // Семь ключей физики 17 (П37/П38: `lbin` `pkch` `lys=2` `etr` `e+tr` `e+off` `rayl2`),
             // два ключа физики 18 (`ecomp=1` `bpath=2`, П50; решение Amber 13.09.2026
             // «ecomp=1 + bpath=2»), ключ физики 19 (`eltr=1`, П97 18.09.2026; решение Amber
             // 17.09.2026 «ВКЛ сейчас, единый счёт ночью»), ключ физики 20 (`elmix=1`, П103
             // 19.09.2026; решение Amber 18.09.2026 по приёмке П100, дословно: «ВКЛ сейчас, единый
-            // счёт ночью») и ключ физики 21 (`lbrem=1`, П107 19.09.2026; решение Amber 19.09.2026
-            // по приёмке П106, дословно: «ВКЛ сейчас, единый счёт ночью») — умолчания КЛАССА, одно
+            // счёт ночью»), ключ физики 21 (`lbrem=1`, П107 19.09.2026; решение Amber 19.09.2026
+            // по приёмке П106, дословно: «ВКЛ сейчас, единый счёт ночью») и ключ физики 22
+            // (`lbang=1`, П114 19–21.09.2026; решение Amber 19.09.2026 по приёмке П111,
+            // дословно: «ВКЛ единым счётом ночью») — умолчания КЛАССА, одно
             // место истины (правило I `check_matrix_keys.py`):
             // путь склада, путь кривой и поля симулятора берут их отсюда.
             Say("");
-            Say("-- A120: умолчания физики 17, 18, 19, 20 и 21 (склад = кривая = симулятор) --");
+            Say("-- A120: умолчания физики 17, 18, 19, 20, 21 и 22 (у физики 23 те же; склад = кривая = симулятор) --");
             Say(string.Format(CultureInfo.InvariantCulture, "   PhysicsVersion       = {0}", ResponseMatrix.PhysicsVersion));
             Say(string.Format(CultureInfo.InvariantCulture, "   LightBinUnified      = {0}", options.LightBinUnified));
             Say(string.Format(CultureInfo.InvariantCulture, "   PeakChannelByTolerance = {0}", options.PeakChannelByTolerance));
@@ -534,8 +538,13 @@ namespace BoundProbeF59
             Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerTransport = {0}", options.ElectronLayerTransport));
             Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerMixedScattering = {0}", options.ElectronLayerMixedScattering));
             Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerBremAlongPath = {0}", options.ElectronLayerBremAlongPath));
-            Ok(ResponseMatrix.PhysicsVersion == 21,
-               string.Format(CultureInfo.InvariantCulture, "версия физики склада — 21 (есть {0})", ResponseMatrix.PhysicsVersion));
+            Say(string.Format(CultureInfo.InvariantCulture, "   ElectronLayerBremAngular2BS = {0}", options.ElectronLayerBremAngular2BS));
+            // (П122 22.09.2026) Физика 23 — три безусловных исправления `AMBER50`/`AMBER52`/`AMBER57`
+            // без ключей: умолчания класса те же, что у физики 22, меняется только номер.
+            // (П147 24.09.2026) Физика 24 — пять безусловных исправлений `AMBER79`/`AMBER80`/
+            // `AMBER83`/`AMBER95`/`AMBER97`, тоже без ключей склада: умолчания те же.
+            Ok(ResponseMatrix.PhysicsVersion == 24,
+               string.Format(CultureInfo.InvariantCulture, "версия физики склада — 24 (есть {0})", ResponseMatrix.PhysicsVersion));
             Ok(options.LightBinUnified && options.PeakChannelByTolerance && options.LYieldSupply == 2
                && options.ElectronTransport && options.PositronTransport && options.PositronOffset && options.RayleighToCrystal,
                "семь ключей физики 17 умолчанием ВКЛ: lbin=1 pkch=1 lys=2 etr=1 e+tr=1 e+off=1 rayl2=1");
@@ -547,6 +556,8 @@ namespace BoundProbeF59
                "ключ физики 20 умолчанием ВКЛ: elmix=1");
             Ok(options.ElectronLayerBremAlongPath,
                "ключ физики 21 умолчанием ВКЛ: lbrem=1");
+            Ok(options.ElectronLayerBremAngular2BS,
+               "ключ физики 22 умолчанием ВКЛ: lbang=1");
         }
 
         /// <summary>
@@ -750,7 +761,7 @@ namespace BoundProbeF59
             return max;
         }
 
-        /// <summary>Ввоз тем же методом, что зовёт кнопка формы.</summary>
+        /// <summary>Импорт тем же методом, что зовёт кнопка формы.</summary>
         static List<ROIEfficiencyData> Import(string path)
         {
             MethodInfo method = typeof(DeviceConfigForm).GetMethod(

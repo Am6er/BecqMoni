@@ -1,551 +1,241 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BecquerelMonitor
 {
-    // Token: 0x02000071 RID: 113
+    /// <summary>
+    /// Перевод строк результата (амплитуда разбора FSA за время счёта) в имп/с,
+    /// Бк, Бк/кг, Бк/л и приведение к дате отбора. (`AMBER208`, 07.10.2026)
+    /// Счёт площадей зон ROI (<c>Calculate</c>/<c>CalculateROI</c>, Ковелл,
+    /// ссылки на зоны, МДА Карри) снят вместе с формой ROI по решению Amber
+    /// «максимально почистить остатки»; строки несёт <see cref="MeasurementLine"/>.
+    /// </summary>
     public class MeasurementResultManager
     {
-        // Token: 0x060005C4 RID: 1476 RVA: 0x000243FC File Offset: 0x000225FC
         public MeasurementResultCollection Translate(MeasurementResultCollection resultCollection, ResultTranslation resultTranslation)
         {
             if (resultCollection == null)
             {
                 return null;
             }
-            MeasurementResultCollection measurementResultCollection = new MeasurementResultCollection();
-            measurementResultCollection.ResultData = resultCollection.ResultData;
-            measurementResultCollection.ROIConfig = resultCollection.ROIConfig;
-            measurementResultCollection.MeasurementTime = resultCollection.MeasurementTime;
-            measurementResultCollection.LiveTime = resultCollection.LiveTime;
-            this.roiConfig = resultCollection.ROIConfig;
-            this.resultData = resultCollection.ResultData;
-            this.energySpectrum = this.resultData.EnergySpectrum;
-            // (`AMBER35`, 15.09.2026) Знаменатель — `CountingTime` коллекции:
-            // живое, если задано, иначе полное. Прежде делили на полное.
-            this.countingTime = resultCollection.CountingTime;
-            if (this.roiConfig == null || this.energySpectrum == null)
+            MeasurementResultCollection output = Shell(resultCollection);
+            ResultData resultData = resultCollection.ResultData;
+            if (resultData == null || resultData.EnergySpectrum == null)
             {
                 return null;
             }
+            // (`AMBER35`, 15.09.2026) Знаменатель — `CountingTime` коллекции:
+            // живое, если задано, иначе полное.
+            double countingTime = resultCollection.CountingTime;
+            bool needsCoefficient =
+                resultTranslation == ResultTranslation.Becquerels
+                || resultTranslation == ResultTranslation.BecquerelsPerKilogram
+                || resultTranslation == ResultTranslation.BecquerelsPerLiter;
             foreach (MeasurementResult measurementResult in resultCollection.ResultList)
             {
-                ROIDefinitionData roidefinition = measurementResult.ROIDefinition;
-                double resultValue = measurementResult.ResultValue;
-                double resultError = measurementResult.ResultError;
-                double mda = measurementResult.MDA;
+                MeasurementLine line = measurementResult.Line;
                 // Невалидный результат обязан остаться невалидным: перевод
                 // единиц создаёт НОВЫЕ объекты, и без переноса флага строка
                 // «Ошибка» превращалась в молчаливый честный ноль.
                 if (!measurementResult.IsValid)
                 {
-                    measurementResultCollection.ResultList.Add(
-                        new MeasurementResult(roidefinition, 0.0, 0.0)
-                        {
-                            IsValid = false,
-                            StatusText = measurementResult.StatusText,
-                        });
+                    output.ResultList.Add(Invalid(line, measurementResult.StatusText));
+                    continue;
+                }
+                if (countingTime == 0.0)
+                {
+                    output.ResultList.Add(new MeasurementResult(line, 0.0, 0.0));
                     continue;
                 }
 
-                if (this.countingTime == 0.0)
+                // K — одна точка: у строки разбора 1 при абсолютной шкале
+                // (амплитуда уже в распадах в секунду) и 0, когда беккерели
+                // скрыты. Беккерели без K не считаются: нулевой коэффициент
+                // молча давал 0 Бк — неотличимо от настоящего нуля (TODO G7).
+                double k = line != null ? line.Coefficient : 0.0;
+                double kError = line != null ? line.CoefficientError : 0.0;
+                string cannot = null;
+                if (needsCoefficient && !(k > 0.0))
                 {
-                    MeasurementResult item = new MeasurementResult(roidefinition, 0.0, 0.0);
-                    measurementResultCollection.ResultList.Add(item);
+                    cannot = Properties.Resources.ResultNoCoefficient;
                 }
-                else
+                else if (resultTranslation == ResultTranslation.BecquerelsPerKilogram
+                         && !(resultData.SampleInfo.Weight > 0.0))
                 {
-                    double resultValue2 = 0.0;
-                    double resultError2 = 0.0;
-                    double mda2 = 0.0;
-                    // Точка счёта K одна, и она здесь. Раньше это было просто
-                    // поле зоны; теперь оно может быть функцией активной кривой
-                    // эффективности, и разводить эту развилку по вызывающим
-                    // значило бы иметь в программе две разные активности.
-                    Utils.BecquerelCoefficient.Result coefficient =
-                        Utils.BecquerelCoefficient.Resolve(roidefinition, this.resultData.Efficiency);
-                    double becquerelCoefficient = coefficient.Value;
-                    double becquerelCoefficientError = coefficient.Error;
-
-                    // Беккерели без K не считаются. Раньше нулевой коэффициент
-                    // молча давал 0 Бк — неотличимо от настоящего нуля
-                    // активности (TODO G7). Теперь строка получает статус.
-                    bool needsCoefficient =
-                        resultTranslation == ResultTranslation.Becquerels
-                        || resultTranslation == ResultTranslation.BecquerelsPerKilogram
-                        || resultTranslation == ResultTranslation.BecquerelsPerLiter;
-                    string cannot = null;
-                    if (needsCoefficient && coefficient.Refused)
-                    {
-                        // (`AMBER34`, решение Amber 15.09.2026) Кривая сцены поля
-                        // (см²): K не получен И не подменён сохранённым числом —
-                        // строка невалидна со СВОЕЙ причиной, не с общим «no K».
-                        // Ручной режим сюда не попадает: `Resolve` кривую там не
-                        // спрашивает.
-                        cannot = coefficient.StatusText ?? Properties.Resources.ResultNoCoefficient;
-                    }
-                    else if (needsCoefficient && !(becquerelCoefficient > 0.0))
-                    {
-                        cannot = Properties.Resources.ResultNoCoefficient;
-                    }
-                    else if (resultTranslation == ResultTranslation.BecquerelsPerKilogram
-                             && !(this.resultData.SampleInfo.Weight > 0.0))
-                    {
-                        cannot = Properties.Resources.ResultNoWeight;
-                    }
-                    else if (resultTranslation == ResultTranslation.BecquerelsPerLiter
-                             && !(this.resultData.SampleInfo.Volume > 0.0))
-                    {
-                        cannot = Properties.Resources.ResultNoVolume;
-                    }
-
-                    if (cannot != null)
-                    {
-                        measurementResultCollection.ResultList.Add(
-                            new MeasurementResult(roidefinition, 0.0, 0.0)
-                            {
-                                IsValid = false,
-                                StatusText = cannot,
-                            });
-                        continue;
-                    }
-                    double resultCps = resultValue / this.countingTime;
-                    double resultErrorCps = Math.Abs(resultError) / this.countingTime;
-                    double resultBq = resultCps * becquerelCoefficient;
-                    double resultBqError = 0.0;
-                    if (resultCps != 0.0 && becquerelCoefficient != 0.0)
-                    {
-                        resultBqError = resultCps * becquerelCoefficient * Math.Sqrt(Math.Pow(resultErrorCps / resultCps, 2.0) + Math.Pow(becquerelCoefficientError / becquerelCoefficient, 2.0));
-                        resultBqError = Math.Abs(resultBqError);
-                    }
-                    double mdaCps = mda / this.countingTime;
-                    double mdaBq = mdaCps * becquerelCoefficient;
-                    switch (resultTranslation)
-                    {
-                        case ResultTranslation.Nothing:
-                            resultValue2 = resultValue;
-                            resultError2 = resultError;
-                            mda2 = mda;
-                            break;
-                        case ResultTranslation.CountsPerSecond:
-                            resultValue2 = resultCps;
-                            resultError2 = resultErrorCps;
-                            mda2 = mdaCps;
-                            break;
-                        case ResultTranslation.Becquerels:
-                            resultValue2 = resultBq;
-                            resultError2 = resultBqError;
-                            mda2 = mdaBq;
-                            break;
-                        case ResultTranslation.BecquerelsPerKilogram:
-                            // Weight defaults to 0 - guard the denominator, otherwise the
-                            // tables (and saved results) get NaN/Infinity every 500 ms.
-                            if (this.resultData.SampleInfo.Weight > 0.0)
-                            {
-                                resultValue2 = resultBq / this.resultData.SampleInfo.Weight;
-                                resultError2 = resultBqError / this.resultData.SampleInfo.Weight;
-                                mda2 = mdaBq / this.resultData.SampleInfo.Weight;
-                            }
-                            break;
-                        case ResultTranslation.BecquerelsPerLiter:
-                            if (this.resultData.SampleInfo.Volume > 0.0)
-                            {
-                                resultValue2 = resultBq / this.resultData.SampleInfo.Volume;
-                                resultError2 = resultBqError / this.resultData.SampleInfo.Volume;
-                                mda2 = mdaBq / this.resultData.SampleInfo.Volume;
-                            }
-                            break;
-                    }
-                    MeasurementResult item = new MeasurementResult(roidefinition, resultValue2, resultError2, mda2);
-                    measurementResultCollection.ResultList.Add(item);
+                    cannot = Properties.Resources.ResultNoWeight;
                 }
+                else if (resultTranslation == ResultTranslation.BecquerelsPerLiter
+                         && !(resultData.SampleInfo.Volume > 0.0))
+                {
+                    cannot = Properties.Resources.ResultNoVolume;
+                }
+                if (cannot != null)
+                {
+                    output.ResultList.Add(Invalid(line, cannot));
+                    continue;
+                }
+
+                double resultValue = measurementResult.ResultValue;
+                double resultError = measurementResult.ResultError;
+                double mda = measurementResult.MDA;
+                double resultCps = resultValue / countingTime;
+                double resultErrorCps = Math.Abs(resultError) / countingTime;
+                double resultBq = resultCps * k;
+                double resultBqError = 0.0;
+                if (resultCps != 0.0 && k != 0.0)
+                {
+                    resultBqError = Math.Abs(resultBq * Math.Sqrt(Math.Pow(resultErrorCps / resultCps, 2.0) + Math.Pow(kError / k, 2.0)));
+                }
+                double mdaCps = mda / countingTime;
+                double mdaBq = mdaCps * k;
+                double value2 = 0.0, error2 = 0.0, mda2 = 0.0;
+                switch (resultTranslation)
+                {
+                    case ResultTranslation.Nothing:
+                        value2 = resultValue; error2 = resultError; mda2 = mda;
+                        break;
+                    case ResultTranslation.CountsPerSecond:
+                        value2 = resultCps; error2 = resultErrorCps; mda2 = mdaCps;
+                        break;
+                    case ResultTranslation.Becquerels:
+                        value2 = resultBq; error2 = resultBqError; mda2 = mdaBq;
+                        break;
+                    case ResultTranslation.BecquerelsPerKilogram:
+                        // вес проверен выше — знаменатель не ноль
+                        value2 = resultBq / resultData.SampleInfo.Weight;
+                        error2 = resultBqError / resultData.SampleInfo.Weight;
+                        mda2 = mdaBq / resultData.SampleInfo.Weight;
+                        break;
+                    case ResultTranslation.BecquerelsPerLiter:
+                        value2 = resultBq / resultData.SampleInfo.Volume;
+                        error2 = resultBqError / resultData.SampleInfo.Volume;
+                        mda2 = mdaBq / resultData.SampleInfo.Volume;
+                        break;
+                }
+                output.ResultList.Add(new MeasurementResult(line, value2, error2, mda2));
             }
-            return measurementResultCollection;
+            return output;
         }
 
-        // Token: 0x060005C5 RID: 1477 RVA: 0x00024700 File Offset: 0x00022900
         public MeasurementResultCollection Correct(MeasurementResultCollection resultCollection)
         {
-            MeasurementResultCollection measurementResultCollection = new MeasurementResultCollection();
-            measurementResultCollection.ResultData = resultCollection.ResultData;
-            measurementResultCollection.ROIConfig = resultCollection.ROIConfig;
-            measurementResultCollection.MeasurementTime = resultCollection.MeasurementTime;
-            measurementResultCollection.LiveTime = resultCollection.LiveTime;
-            this.roiConfig = resultCollection.ROIConfig;
-            this.resultData = resultCollection.ResultData;
-            this.energySpectrum = this.resultData.EnergySpectrum;
-            this.countingTime = resultCollection.CountingTime;
-            if (this.roiConfig == null || this.energySpectrum == null)
+            if (resultCollection == null)
+            {
+                return null;
+            }
+            MeasurementResultCollection output = Shell(resultCollection);
+            ResultData resultData = resultCollection.ResultData;
+            if (resultData == null || resultData.EnergySpectrum == null)
             {
                 return null;
             }
             foreach (MeasurementResult measurementResult in resultCollection.ResultList)
             {
+                MeasurementLine line = measurementResult.Line;
                 // Тот же перенос невалидности, что в Translate: поправка на
                 // распад создаёт новые объекты и теряла флаг.
                 if (!measurementResult.IsValid)
                 {
-                    measurementResultCollection.ResultList.Add(
-                        new MeasurementResult(measurementResult.ROIDefinition, 0.0, 0.0)
-                        {
-                            IsValid = false,
-                            StatusText = measurementResult.StatusText,
-                        });
+                    output.ResultList.Add(Invalid(line, measurementResult.StatusText));
                     continue;
                 }
-
-                ROIDefinitionData roidefinition = measurementResult.ROIDefinition;
-                double resultValue = measurementResult.ResultValue;
-                double resultError = measurementResult.ResultError;
-                double halfLife = roidefinition.HalfLife;
-                DateTime time = this.resultData.SampleInfo.Time;
-                DateTime endTime = this.resultData.EndTime;
-                double num = (endTime - time).TotalDays / 365.0;
-                // Shipped ROI configs contain HalfLife=0 definitions; dividing by them
-                // produced Infinity. Skip the correction when no valid half-life is set.
-                double num2 = halfLife > 0.0 ? 1.0 / Math.Pow(0.5, num / halfLife) : 1.0;
-                double resultValue2 = resultValue * num2;
-                double resultError2 = resultError * num2;
-                MeasurementResult item = new MeasurementResult(roidefinition, resultValue2, resultError2, measurementResult.MDA);
-                measurementResultCollection.ResultList.Add(item);
+                // ⛔ (`AMBER148`, П192 01.10.2026) Множитель — от СРЕДНЕЙ за
+                //    набор к активности на дату отбора (`DecayToSamplingFactor`).
+                //    Прежде стояло 2^((EndTime − SampleInfo.Time)/T½) — от КОНЦА
+                //    набора, и Бк короткоживущих выходили завышены на ≈ λT/2
+                //    (I-131 за сутки +4.4 %, при T = T½ +44 %). MDA умножается тем
+                //    же множителем: порог стоял на дату измерения, значение — на
+                //    дату отбора, и при условии обнаружения «≥ MDA» поправка
+                //    делала необнаруженное обнаруженным. Период ≤ 0 — множитель 1.
+                double factor = DecayToSamplingFactor(line != null ? line.HalfLifeYears : 0.0, resultData.SampleInfo.Time,
+                                                      resultData.StartTime, resultData.EndTime);
+                output.ResultList.Add(new MeasurementResult(line, measurementResult.ResultValue * factor,
+                                                            measurementResult.ResultError * factor,
+                                                            measurementResult.MDA * factor));
             }
-            return measurementResultCollection;
+            return output;
         }
 
-        // Token: 0x060005C6 RID: 1478 RVA: 0x00024878 File Offset: 0x00022A78
-        public MeasurementResultCollection Calculate(ResultData resultData)
+        static MeasurementResultCollection Shell(MeasurementResultCollection source)
         {
-            this.detectionLevel = GlobalConfigManager.GetInstance().GlobalConfig.MeasurementConfig.DetectionLevel;
-            this.resultData = resultData;
-            this.roiConfig = resultData.ROIConfig;
-            this.energySpectrum = resultData.EnergySpectrum;
-            this.backgroundEnergySpectrum = resultData.BackgroundEnergySpectrum;
-            if (this.roiConfig == null || this.energySpectrum == null)
+            return new MeasurementResultCollection
             {
-                return null;
-            }
-            this.bg = false;
-            if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
-            {
-                this.bg = true;
-                this.backgroundNumberOfChannels = this.backgroundEnergySpectrum.NumberOfChannels;
-                this.backgroundEnergyCalibration = this.backgroundEnergySpectrum.EnergyCalibration;
-                // (`AMBER35`, решение Amber 15.09.2026) Оба знаменателя — по
-                // правилу разбора FSA: живое, если задано (> 0), иначе полное
-                // (`EnergySpectrum.EffectiveLiveTime`); фон нормируется
-                // ОТНОШЕНИЕМ ЖИВЫХ. Прежде оба были полным временем, и Бк,
-                // Бк/кг, Бк/л зон занижались на мёртвое время прибора, а фон
-                // при разном мёртвом времени спектра и фона вычитался не в
-                // той доле. Спектр без живого — побитово прежние числа.
-                this.backgroundCountingTime = this.backgroundEnergySpectrum.EffectiveLiveTime;
-            }
-            this.numberOfChannels = this.energySpectrum.NumberOfChannels;
-            this.energyCalibration = this.energySpectrum.EnergyCalibration;
-            this.countingTime = this.energySpectrum.EffectiveLiveTime;
-            MeasurementResultCollection measurementResultCollection = new MeasurementResultCollection();
-            measurementResultCollection.ResultData = resultData;
-            measurementResultCollection.ROIConfig = this.roiConfig;
-            // Подпись — полное время, знаменатель (`CountingTime`) — по живому.
-            measurementResultCollection.MeasurementTime = this.energySpectrum.MeasurementTime;
-            measurementResultCollection.LiveTime = this.energySpectrum.LiveTime;
-            List<MeasurementResult> resultList = measurementResultCollection.ResultList;
-            foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
-            {
-                roidefinitionData.IsValidResult = false;
-            }
-            foreach (ROIDefinitionData roidefinitionData2 in this.roiConfig.ROIDefinitions)
-            {
-                if (roidefinitionData2.Enabled)
-                {
-                    double resultValue = 0.0;
-                    double resultError = 0.0;
-                    if (this.countingTime == 0.0)
-                    {
-                        MeasurementResult item = new MeasurementResult(roidefinitionData2, 0.0, 0.0);
-                        resultList.Add(item);
-                    }
-                    else
-                    {
-                        if (roidefinitionData2.IsValidResult)
-                        {
-                            resultValue = roidefinitionData2.ResultCount;
-                            resultError = roidefinitionData2.ResultError;
-                        }
-                        else if (!this.CalculateROI(roidefinitionData2, out resultValue, out resultError, 0))
-                        {
-                            resultList.Add(new MeasurementResult(roidefinitionData2, 0.0, 0.0)
-                            {
-                                IsValid = false
-                            });
-                            continue;
-                        }
-                        resultList.Add(new MeasurementResult(roidefinitionData2, resultValue, resultError)
-                        {
-                            MDA = roidefinitionData2.MDA
-                        });
-                    }
-                }
-            }
-            return measurementResultCollection;
+                ResultData = source.ResultData,
+                SourceKey = source.SourceKey,
+                MeasurementTime = source.MeasurementTime,
+                LiveTime = source.LiveTime
+            };
         }
 
-        // Token: 0x060005C7 RID: 1479 RVA: 0x00024B38 File Offset: 0x00022D38
-        bool CalculateROI(ROIDefinitionData roi, out double count, out double error, int recurse)
+        static MeasurementResult Invalid(MeasurementLine line, string statusText)
         {
-            count = 0.0;
-            error = 0.0;
-            if (recurse > 10)
+            return new MeasurementResult(line, 0.0, 0.0)
             {
-                return false;
-            }
-            double num = 0.0;
-            double fgTime = this.countingTime;
-            double bgTime = 0.0;
-            if (this.bg)
-            {
-                bgTime = this.backgroundCountingTime;
-            }
-            bool hasBg = false;
-            foreach (ROIPrimitiveData roiprimitiveData in roi.ROIPrimitives)
-            {
-                double netCounts = 0.0;
-                double netCountsSigma = 0.0;
-                double num6 = 0.0;
-                if (roiprimitiveData is ROISimpleDifferenceData)
-                {
-                    ROISimpleDifferenceData roisimpleDifferenceData = (ROISimpleDifferenceData)roiprimitiveData;
-                    double lowerLimit = roisimpleDifferenceData.LowerLimit;
-                    double upperLimit = roisimpleDifferenceData.UpperLimit;
-                    int lowerLimitChannel;
-                    int upperLimitChannel;
-                    lowerLimitChannel = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels));
-                    upperLimitChannel = (int)Math.Floor(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels));
-                    double fgRegionCounts = 0.0;
-                    double bgRegionCounts = 0.0;
-                    for (int i = lowerLimitChannel; i <= upperLimitChannel; i++)
-                    {
-                        if (i >= 0 && i < this.numberOfChannels)
-                        {
-                            fgRegionCounts += (double)this.energySpectrum.Spectrum[i];
-                            if (this.bg)
-                            {
-                                int bgChannelIndex = i;
-                                if (!this.energyCalibration.Equals(this.backgroundEnergyCalibration))
-                                {
-                                    bgChannelIndex = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.energyCalibration.ChannelToEnergy((double)i), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
-                                }
-                                if (bgChannelIndex >= 0 && bgChannelIndex < this.backgroundNumberOfChannels)
-                                {
-                                    bgRegionCounts += (double)this.backgroundEnergySpectrum.Spectrum[bgChannelIndex];
-                                }
-                            }
-                        }
-                    }
-                    double fgSigma = Math.Sqrt(fgRegionCounts);
-                    double bgSigma = Math.Sqrt(bgRegionCounts);
-                    if (this.bg && bgTime != 0.0)
-                    {
-                        double bgCps = bgRegionCounts / bgTime;
-                        num6 = bgCps * (1.0 / fgTime + 1.0 / bgTime);
-                        hasBg = true;
-                    }
-                    if (this.bg && this.backgroundCountingTime != 0.0)
-                    {
-                        double bgNormalizeCoeff = this.countingTime / this.backgroundCountingTime;
-                        bgRegionCounts *= bgNormalizeCoeff;
-                        bgSigma *= bgNormalizeCoeff;
-                    }
-                    netCounts = fgRegionCounts - bgRegionCounts;
-                    netCountsSigma = Math.Sqrt(Math.Pow(fgSigma, 2.0) + Math.Pow(bgSigma, 2.0));
-                }
-                else if (roiprimitiveData is ROICovellMethodData)
-                {
-                    ROICovellMethodData roicovellMethodData = (ROICovellMethodData)roiprimitiveData;
-                    int numberOfSideChannels = roicovellMethodData.NumberOfSideChannels;
-                    netCounts = 0.0;
-                    netCountsSigma = 0.0;
-                    double lowerLimit2 = roicovellMethodData.LowerLimit;
-                    double upperLimit2 = roicovellMethodData.UpperLimit;
-                    int lowerLimitChannelIndex;
-                    int upperLimitChannelIndex;
-                    lowerLimitChannelIndex = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(lowerLimit2, maxChannels: this.energySpectrum.NumberOfChannels));
-                    upperLimitChannelIndex = (int)Math.Floor(this.energyCalibration.EnergyToChannel(upperLimit2, maxChannels: this.energySpectrum.NumberOfChannels));
-                    double leftRegionCenter = roicovellMethodData.LeftRegionCenter;
-                    double rightRegionCenter = roicovellMethodData.RightRegionCenter;
-                    double leftRegionWidth = roicovellMethodData.LeftRegionWidth;
-                    double rightRegionWidth = roicovellMethodData.RightRegionWidth;
-                    int num17;
-                    int num18;
-                    int num19;
-                    int num20;
-                    num17 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(leftRegionCenter - leftRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
-                    num18 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(leftRegionCenter + leftRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
-                    num19 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(rightRegionCenter - rightRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
-                    num20 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(rightRegionCenter + rightRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
-                    double num21 = 0.0;
-                    for (int j = lowerLimitChannelIndex; j <= upperLimitChannelIndex; j++)
-                    {
-                        if (j >= 0 && j < this.numberOfChannels)
-                        {
-                            num21 += (double)this.energySpectrum.Spectrum[j];
-                        }
-                    }
-                    double num22 = 0.0;
-                    for (int k = num17; k <= num18; k++)
-                    {
-                        if (k >= 0 && k < this.numberOfChannels)
-                        {
-                            num22 += (double)this.energySpectrum.Spectrum[k];
-                        }
-                    }
-                    double num23 = 0.0;
-                    for (int l = num19; l <= num20; l++)
-                    {
-                        if (l >= 0 && l < this.numberOfChannels)
-                        {
-                            num23 += (double)this.energySpectrum.Spectrum[l];
-                        }
-                    }
-                    double num24 = (double)(lowerLimitChannelIndex + upperLimitChannelIndex) / 2.0;
-                    double num25 = (double)(num17 + num18) / 2.0;
-                    double num26 = (double)(num19 + num20) / 2.0;
-                    double num27 = (double)(num18 - num17 + 1);
-                    double num28 = (double)(num20 - num19 + 1);
-                    double num29 = (double)(upperLimitChannelIndex - lowerLimitChannelIndex + 1);
-                    double num30;
-                    double num31;
-                    if (num26 != num25)
-                    {
-                        num30 = num29 / num28 * (num24 - num25) / (num26 - num25);
-                        num31 = num29 / num27 * (num26 - num24) / (num26 - num25);
-                    }
-                    else
-                    {
-                        // Degenerate side windows (same centers) - the trapezoid weights
-                        // used to divide by zero here; fall back to an even 50/50 split.
-                        num30 = num29 / num28 * 0.5;
-                        num31 = num29 / num27 * 0.5;
-                    }
-                    netCounts = num21 - num30 * num23 - num31 * num22;
-                    netCountsSigma = Math.Sqrt(num21 + Math.Pow(num31, 2.0) * num22 + Math.Pow(num30, 2.0) * num23);
-                    double num32 = Math.Abs(roiprimitiveData.Coefficient);
-                    // Contribution to the H0 variance in cps^2: (coeff * sigma / t)^2.
-                    // The old expression mixed dimensions (counts/t^2*k + (counts/t^2*k)^2)
-                    // and used the coefficient linearly instead of squared.
-                    num6 = Math.Pow(num32 * netCountsSigma / fgTime, 2.0);
-                }
-                else if (roiprimitiveData is ROIReferenceData)
-                {
-                    ROIReferenceData roireferenceData = (ROIReferenceData)roiprimitiveData;
-                    foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
-                    {
-                        if (roidefinitionData.Name == roireferenceData.Reference)
-                        {
-                            if (roidefinitionData.IsValidResult)
-                            {
-                                netCounts = roidefinitionData.ResultCount;
-                                netCountsSigma = roidefinitionData.ResultError;
-                                break;
-                            }
-                            if (!this.CalculateROI(roidefinitionData, out netCounts, out netCountsSigma, recurse + 1))
-                            {
-                                return false;
-                            }
-                            break;
-                        }
-                    }
-                    double coeff = Math.Abs(roiprimitiveData.Coefficient);
-                    // Same dimensional fix as in the Covell branch above.
-                    num6 = Math.Pow(coeff * netCountsSigma / fgTime, 2.0);
-                }
-                double coefficient = roiprimitiveData.Coefficient;
-                double coefficientError = roiprimitiveData.CoefficientError;
-                double countsToUse = netCounts * coefficient;
-                double countsToUseError = 0.0;
-                if (netCounts != 0.0 && coefficient != 0.0)
-                {
-                    countsToUseError = countsToUse * Math.Sqrt(Math.Pow(netCountsSigma / netCounts, 2.0) + Math.Pow(coefficientError / coefficient, 2.0));
-                }
-                else if (coefficient != 0.0)
-                {
-                    // netCounts == 0 still has a counting uncertainty: report 0 +- sigma,
-                    // not 0 +- 0.
-                    countsToUseError = Math.Abs(coefficient) * netCountsSigma;
-                }
-                if (roiprimitiveData.Operation == this.addOpe)
-                {
-                    count += countsToUse;
-                    error = Math.Sqrt(Math.Pow(error, 2.0) + Math.Pow(countsToUseError, 2.0));
-                }
-                else
-                {
-                    if (roiprimitiveData.Operation != this.subOpe)
-                    {
-                        return false;
-                    }
-                    count -= countsToUse;
-                    error = Math.Sqrt(Math.Pow(error, 2.0) + Math.Pow(countsToUseError, 2.0));
-                }
-                num += num6;
-            }
-            roi.IsValidResult = true;
-            roi.ResultCount = count;
-            roi.ResultError = error;
-            double detectionLevel = (double)this.detectionLevel;
-            roi.MDA = -1.0;
-            if (hasBg)
-            {
-                // Currie form (Ld = k^2/t + 2*k*sigma0), consistent with
-                // ROIAriphmetics.CalculateLd; the old expression solved x = k*sqrt(x/t + S)
-                // and understated the MDA up to ~2x for dominating background.
-                double mdaCps = detectionLevel * detectionLevel / fgTime + 2.0 * detectionLevel * Math.Sqrt(num);
-                roi.MDA = mdaCps * this.countingTime;
-            }
-            return true;
+                IsValid = false,
+                StatusText = statusText
+            };
         }
 
-        // Token: 0x04000306 RID: 774
-        ResultData resultData;
+        /// <summary>
+        /// (`AMBER148`) Дней в году периода полураспада. ⚠ 365, а не 365.2422,
+        /// и это не небрежность: годы в поле <c>HalfLife</c> пишет импорт из базы
+        /// нуклидов (<c>NucBase.HalfLifeYearsFromCell</c>: секунды / 31536000,
+        /// то есть год = 365 сут), и период «8.0252 d» лежит в конфиге как
+        /// 8.0252/365. Делить интервал на 365.2422 значило бы сдвинуть показатель
+        /// на 0.066 % у всех таких нуклидов — через 10 периодов −0.46 %
+        /// (`DecayCorrP192`, плечо «год»).
+        /// </summary>
+        public const double DaysPerHalfLifeYear = 365.0;
 
-        // Token: 0x04000307 RID: 775
-        ROIPrimitiveOperation addOpe = ROIPrimitiveOperation.OperationsMap["Addition"];
+        /// <summary>
+        /// (`AMBER148`, П192 01.10.2026) Множитель, приводящий СРЕДНЮЮ за набор
+        /// активность к активности на дату отбора.
+        ///
+        /// Счёт за набор [t₀, t₀+T] от источника с активностью A(tₛ) даёт среднюю
+        /// A(tₛ)·e^{−λ(t₀−tₛ)}·(1−e^{−λT})/(λT); обратный множитель —
+        /// 2^{(t₀−tₛ)/T½}·λT/(1−e^{−λT}), где t₀ = <paramref name="start"/>,
+        /// T = <paramref name="end"/> − <paramref name="start"/> (полное время:
+        /// распад идёт и в мёртвое время), tₛ = <paramref name="sampling"/>.
+        ///
+        /// При T = 0 (и при T ≤ 0 у испорченного файла) — ровно прежняя форма
+        /// 1/0.5^{Δt/T½}, побитово. Период ≤ 0 — множитель 1.
+        /// </summary>
+        public static double DecayToSamplingFactor(double halfLifeYears, DateTime sampling, DateTime start, DateTime end)
+        {
+            if (!(halfLifeYears > 0.0))
+            {
+                return 1.0;
+            }
 
-        // Token: 0x04000308 RID: 776
-        ROIPrimitiveOperation subOpe = ROIPrimitiveOperation.OperationsMap["Subtraction"];
+            double delayYears = (start - sampling).TotalDays / DaysPerHalfLifeYear;
+            double toStart = 1.0 / Math.Pow(0.5, delayYears / halfLifeYears);
+            double countYears = (end - start).TotalDays / DaysPerHalfLifeYear;
+            if (!(countYears > 0.0))
+            {
+                return toStart;
+            }
 
-        // Token: 0x04000309 RID: 777
-        ROIConfigData roiConfig;
+            return toStart * MeanToStartFactor(Math.Log(2.0) * countYears / halfLifeYears);
+        }
 
-        // Token: 0x0400030A RID: 778
-        EnergySpectrum energySpectrum;
+        /// <summary>
+        /// x/(1−e^{−x}) при x = λT ≥ 0 — от средней за набор к активности в начале
+        /// набора. Малые x — рядом 1 + x/2 + x²/12 (отброшенный член x⁴/720 при
+        /// x &lt; 1e-4 меньше 2e-19): прямая формула теряет там знаки на вычитании.
+        /// </summary>
+        public static double MeanToStartFactor(double x)
+        {
+            if (!(x > 0.0))
+            {
+                return 1.0;
+            }
 
-        // Token: 0x0400030B RID: 779
-        EnergySpectrum backgroundEnergySpectrum;
+            if (x < 1e-4)
+            {
+                return 1.0 + x / 2.0 + x * x / 12.0;
+            }
 
-        // Token: 0x0400030C RID: 780
-        bool bg;
-
-        // Token: 0x0400030D RID: 781
-        int numberOfChannels;
-
-        // Token: 0x0400030E RID: 782
-        int backgroundNumberOfChannels;
-
-        // Token: 0x0400030F RID: 783
-        EnergyCalibration energyCalibration;
-
-        // Token: 0x04000310 RID: 784
-        EnergyCalibration backgroundEnergyCalibration;
-
-        // Token: 0x04000311 RID: 785
-        /// <summary>(`AMBER35`) Знаменатель скорости спектра: живое, если задано, иначе полное.</summary>
-        double countingTime;
-
-        // Token: 0x04000312 RID: 786
-        /// <summary>(`AMBER35`) То же у фона.</summary>
-        double backgroundCountingTime;
-
-        // Token: 0x04000313 RID: 787
-        decimal detectionLevel;
+            return x / (1.0 - Math.Exp(-x));
+        }
     }
 }

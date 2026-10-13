@@ -17,7 +17,8 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// целиком; здесь — только то, у чего есть живой потребитель:
     /// <see cref="LoadResultData(string,int,string)"/> читает оснастка
     /// (`tools/effmaker/MeasuredPoint.cs`, проба `FwhmReaderProbeF62`),
-    /// <see cref="ExportCsv"/> — кнопка «Экспорт CSV» конструктора кривой.
+    /// <see cref="ExportCsv"/> — кнопка «Экспорт CSV» конструктора кривой
+    /// (свежий расчёт или сохранённая кривая конфигурации).
     /// </summary>
     public static class EfficiencyCurveIo
     {
@@ -113,13 +114,28 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Кривая в CSV: `E_keV,eps,err_pct`, по строке на узел. Только сама
         /// кривая: второй таблицы — измеренных линий фита — с 13.09.2026 нет,
         /// у кривой из геометрии их не бывает.
+        ///
+        /// Над таблицей — шапка из строк `# ключ: значение` (решение Amber
+        /// 07.10.2026, вопросником: «+ шапка `#`»): откуда кривая и чем
+        /// посчитана. Читать файл — с `comment='#'`.
         /// </summary>
-        public static void ExportCsv(string path, EfficiencyFitResult result)
+        public static void ExportCsv(string path, IEnumerable<ROIEfficiencyData> curve,
+                                     IEnumerable<string> header)
         {
             using (StreamWriter writer = new StreamWriter(path, false, System.Text.Encoding.UTF8))
             {
+                if (header != null)
+                {
+                    foreach (string line in header)
+                    {
+                        // Перевод строки внутри значения (имя, клеймо) порвал
+                        // бы шапку: хвост лёг бы строкой таблицы.
+                        writer.WriteLine("# " + (line ?? "").Replace("\r", " ").Replace("\n", " "));
+                    }
+                }
+
                 writer.WriteLine("E_keV,eps,err_pct");
-                foreach (ROIEfficiencyData point in result.Curve)
+                foreach (ROIEfficiencyData point in curve)
                 {
                     writer.WriteLine(string.Format(CultureInfo.InvariantCulture,
                         "{0:G8},{1:G8},{2:G6}", point.Energy, point.Efficiency, point.ErrorPercent));

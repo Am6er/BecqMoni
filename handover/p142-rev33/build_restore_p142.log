@@ -1,0 +1,29 @@
+Версия MSBuild 17.14.51+25f168cee для .NET Framework
+Сборка начата 23.09.2026 15:01:22.
+
+Проект "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\BecquerelMonitor.csproj" в узле 1 (целевые объекты Restore).
+_GetAllRestoreProjectPathItems:
+  Определение проектов для восстановления...
+Restore:
+  При проверке цепочки сертификатов X.509 будет использоваться хранилище доверия по умолчанию, выбранное .NET для подписывания кода.
+  При проверке цепочки сертификатов X.509 будет использоваться хранилище доверия по умолчанию, выбранное .NET для установки метки времени.
+  Файл ресурсов не был изменен. Пропуск записи файла ресурсов. Путь: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\obj\project.assets.json
+  Восстановлен C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\BecquerelMonitor.csproj (за 60 мс).
+  
+  Использованные файлы конфигурации NuGet:
+      C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\NuGet.Config
+      C:\Users\moroz\AppData\Roaming\NuGet\NuGet.Config
+      C:\Program Files (x86)\NuGet\Config\Microsoft.VisualStudio.FallbackLocation.config
+      C:\Program Files (x86)\NuGet\Config\Microsoft.VisualStudio.Offline.config
+  
+  Использованные веб-каналы:
+      https://api.nuget.org/v3/index.json
+      C:\Program Files (x86)\Microsoft SDKs\NuGetPackages\
+  Все проекты обновлены для восстановления.
+Сборка проекта "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\BecquerelMonitor.csproj" завершена (целевые объекты Restore).
+
+Сборка успешно завершена.
+    Предупреждений: 0
+    Ошибок: 0
+
+Прошло времени 00:00:00.52

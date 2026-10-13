@@ -24,8 +24,25 @@ namespace BecquerelMonitor
             Graphics graphics = e.Graphics;
             graphics.InterpolationMode = InterpolationMode.High;
             int height = base.Height;
-            graphics.DrawImage(Resources.icon256, new Rectangle(0, 0, height, height));
+            graphics.DrawImage(Icon256, new Rectangle(0, 0, height, height));
             graphics.InterpolationMode = InterpolationMode.Default;
+        }
+
+        // (`AMBER201`, мелочь 6.13, 05.10.2026) `Resources.icon256` при КАЖДОМ
+        // обращении создаёт НОВЫЙ Bitmap (ResourceManager.GetObject), и каждая
+        // перерисовка панели оставляла 256×256 сборщику. Картинка одна на всех.
+        static Bitmap icon256;
+
+        static Bitmap Icon256
+        {
+            get
+            {
+                if (icon256 == null)
+                {
+                    icon256 = Resources.icon256;
+                }
+                return icon256;
+            }
         }
 
         // Token: 0x06000AF0 RID: 2800 RVA: 0x000456A8 File Offset: 0x000438A8

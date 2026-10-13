@@ -139,9 +139,6 @@
   <data name="ERRDuplicateDeviceConfigGUID" xml:space="preserve">
     <value>Одинаковые GUID в разных файлах конфигурации устройств "{0}"</value>
   </data>
-  <data name="ROIPrimitiveOperationTypeSubtraction" xml:space="preserve">
-    <value>Вычитание</value>
-  </data>
   <data name="MSGSavingNuclideDefinition" xml:space="preserve">
     <value>Библиотека изотопов была изменена. Сохранить?</value>
   </data>
@@ -166,6 +163,9 @@
   <data name="ERRDetectedErrorWhileCommunication" xml:space="preserve">
     <value>Обнаружена ошибка в процессе работы с устройством.</value>
   </data>
+  <data name="MSGUnreadableConfigNotOverwritten" xml:space="preserve">
+    <value>Файл есть, но прочитать его не удалось, поэтому программа работает на встроенных умолчаниях и НЕ перезапишет его: изменения этого сеанса в него не сохранятся. Освободите или исправьте файл и перезапустите программу.</value>
+  </data>
   <data name="MSGNewNuclideDefinitionFileCreated" xml:space="preserve">
     <value>Новый файл библиотеки изотопов успешно создан.</value>
   </data>
@@ -177,9 +177,6 @@
   </data>
   <data name="ERRLoadingNuclideDefinitionFile" xml:space="preserve">
     <value>Не удалось загрузить библиотеку изотопов.</value>
-  </data>
-  <data name="MSGDeleteROIPrimitive" xml:space="preserve">
-    <value>Удалить примитив ROI?</value>
   </data>
   <data name="ERRDuplicateConfigName" xml:space="preserve">
     <value>Такая конфигурация уже присутствует, выберите другое имя</value>
@@ -199,17 +196,11 @@
   <data name="InvalidValueDialogTitle" xml:space="preserve">
     <value>Некорректное введённое значение</value>
   </data>
-  <data name="ROIPrimitiveOperationTypeAddition" xml:space="preserve">
-    <value>Дополнение</value>
-  </data>
   <data name="CsvExportDialogTitle" xml:space="preserve">
     <value>Экспорт в CSV файл</value>
   </data>
   <data name="ChartHeaderNetCps" xml:space="preserve">
     <value>Имп/с над фоном:</value>
-  </data>
-  <data name="ROIPrimitiveTypeROIReference" xml:space="preserve">
-    <value>Ссылка на ROI</value>
   </data>
   <data name="BackgroundSelectionDialogTitle" xml:space="preserve">
     <value>Выберите файл фонового спектра</value>
@@ -273,7 +264,7 @@
     <value> (Копия)</value>
   </data>
   <data name="ERRBackgroundLoadFailure" xml:space="preserve">
-    <value>Не удалось загрузить спектр фона "{0}". Сообщение {1).</value>
+    <value>Не удалось загрузить спектр фона "{0}". Сообщение: {1}.</value>
   </data>
   <data name="MessageRemoveDeviceConfig" xml:space="preserve">
     <value>Удалить конфигурацию устройства "{0}"?</value>
@@ -298,14 +289,8 @@
     <value>Файл конфигурации «{0}» удалить не удалось, поэтому конфигурация не удалена и осталась в списке.
 Скорее всего он открыт другой программой или защищён от записи.</value>
   </data>
-  <data name="ERRLoadingROIConfigFailed" xml:space="preserve">
-    <value>Не удалось загрузить конфигурационный файл ROI.</value>
-  </data>
   <data name="ERRFailureReason" xml:space="preserve">
     <value>Причина: {0}</value>
-  </data>
-  <data name="ROIPrimitiveTypeBGDifference" xml:space="preserve">
-    <value>Разница с Фоном</value>
   </data>
   <data name="ERRCannotConnectDevice" xml:space="preserve">
     <value>Не удалось подключиться к устройству. Проверьте кабель и питание устройства.</value>
@@ -319,14 +304,8 @@
   <data name="ThermometerTypeNone" xml:space="preserve">
     <value>Нет</value>
   </data>
-  <data name="ROIPrimitiveTypeCovellMethod" xml:space="preserve">
-    <value>Метод Ковела</value>
-  </data>
   <data name="ERRInvalidPresetTime" xml:space="preserve">
     <value>Некорректное предустановленное время.</value>
-  </data>
-  <data name="ERRInvalidROIPrimitiveOperation" xml:space="preserve">
-    <value>Некорректная операция с примитивом ROI.</value>
   </data>
   <data name="ErrorString" xml:space="preserve">
     <value>Ошибка</value>
@@ -352,17 +331,8 @@
   <data name="CsvImportDialogTitle" xml:space="preserve">
     <value>Импорт из CSV файла</value>
   </data>
-  <data name="NewROIConfigPrefix" xml:space="preserve">
-    <value>Новая конфигурация ROI</value>
-  </data>
-  <data name="ERRSavingROIConfigFailed" xml:space="preserve">
-    <value>Не удалось сохранить конфигурационный файл ROI.</value>
-  </data>
   <data name="NewDeviceConfigPrefix" xml:space="preserve">
     <value>Новая конфигурация устройства</value>
-  </data>
-  <data name="MSGDeleteROIDefinition" xml:space="preserve">
-    <value>Удалить ROI "{0}"?</value>
   </data>
   <data name="MSGFileOverwriteConfirmation" xml:space="preserve">
     <value>Файл спектра "{0}" был изменён. Сохранить?</value>
@@ -494,6 +464,10 @@
   <data name="FSAResidualCountsValue" xml:space="preserve">
     <value>+{0} / −{1} %</value>
   </data>
+  <data name="FSAResidualUndefinedHint" xml:space="preserve">
+    <value>Доля невязки не определена: чистый счёт полосы (проба минус фон) не выше трёх стандартных отклонений — брать долю не от чего. Лента невязки на графике нарисована как обычно.</value>
+    <comment>AMBER91: shown instead of "+0.0 / −0.0 %" when the sample is at background level</comment>
+  </data>
   <data name="FSAPresentNoShare" xml:space="preserve">
     <value>есть</value>
     <comment>S85: backscatter has no reliable share — presence only</comment>
@@ -543,9 +517,6 @@
   <data name="MSGDeviceTypeChanging" xml:space="preserve">
     <value>Изменение типа устройства приведёт к общей реинициализации всех параметров. ГОТОВЫ? :)</value>
   </data>
-  <data name="ERRDuplicateROIConfigGUID" xml:space="preserve">
-    <value>Одинаковые GUID в разных файлах конфигурации ROI "{0}"</value>
-  </data>
   <data name="MSGClearSpectrum" xml:space="preserve">
     <value>Очистить спектр?</value>
   </data>
@@ -557,9 +528,6 @@
   </data>
   <data name="ERRInvalidInputForm" xml:space="preserve">
     <value>Некорректная форма ввода.</value>
-  </data>
-  <data name="ERRInvalidROIPrimitive" xml:space="preserve">
-    <value>Некорретный примитив ROI.</value>
   </data>
   <data name="ERRFileOpenFailure" xml:space="preserve">
     <value>Файл "{0}" не может быть открыт.
@@ -586,9 +554,6 @@
   <data name="ERRCannotDeleteSpectrum" xml:space="preserve">
     <value>Не могу удалить спектр. По крайней мере один спектр нужен в файле.</value>
   </data>
-  <data name="MSGDeleteROIConfig" xml:space="preserve">
-    <value>Удалить конфигурацию ROI "{0}"?</value>
-  </data>
   <data name="SpectrumFileFilter" xml:space="preserve">
     <value>Файлы спектра (*.xml)|*.xml|Все файлы (*.*)|*.*</value>
   </data>
@@ -608,7 +573,7 @@
     <value>Экспорт файла N42</value>
   </data>
   <data name="MSGN42ExportLosesEfficiency" xml:space="preserve">
-    <value>Формат N42 не несёт кривую эффективности. В файл НЕ уйдут кривая эффективности, геометрия детектора и привязка к матрице отклика; спектров с кривой в этом документе: {0} из {1}. Поэтому у файла, ввезённого в НОВЫЙ документ, не будет ни активности выделения, ни активности зон, ни полноспектрального разбора (FSA), ни нормировки по эффективности. Сами спектры, энергетическая калибровка и времена набора уходят в файл полностью.</value>
+    <value>Формат N42 не несёт кривую эффективности. В файл НЕ уйдут кривая эффективности, геометрия детектора и привязка к матрице отклика; спектров с кривой в этом документе: {0} из {1}. Поэтому у файла, импортированного в НОВЫЙ документ, не будет ни активности выделения, ни полноспектрального разбора (FSA), ни нормировки по эффективности. Сами спектры, энергетическая калибровка и времена набора уходят в файл полностью.</value>
   </data>
   <data name="CalibrationFunctionError" xml:space="preserve">
     <value>Функция калибровки должна монотонно возрастать при увеличиении канала. Проверьте калибровку!</value>
@@ -656,13 +621,16 @@
     <value>В файле N42 меньше пяти точек калибровки, полином не подгоняется. Подставлена калибровка по умолчанию y=x: номер канала принят за энергию.</value>
   </data>
   <data name="ERRSkippedMeasurementClassN42" xml:space="preserve">
-    <value>В файле N42 есть измерения класса {0}; они пропущены, потому что приложение ввозит только передние и фоновые спектры. Спектров ввезено: {1}.</value>
+    <value>В файле N42 есть измерения класса {0}; они пропущены, потому что приложение импортирует только передние и фоновые спектры. Спектров импортировано: {1}.</value>
   </data>
   <data name="ERRMissingStartDateTime" xml:space="preserve">
-    <value>В файле нет времени начала набора (таких измерений: {0}); время начала помечено как неизвестное — 1970-01-01, чтобы выдуманную дату не приняли за измеренную. Остальное в спектре ввезено.</value>
+    <value>В файле нет времени начала набора (таких измерений: {0}); время начала помечено как неизвестное — 1970-01-01, чтобы выдуманную дату не приняли за измеренную. Остальное в спектре импортировано.</value>
   </data>
   <data name="ERRUnreadableStartDateTimeN42" xml:space="preserve">
-    <value>В файле N42 не прочитано время начала набора (таких измерений: {0}, первое: {1}); время начала помечено как неизвестное — 1970-01-01. Остальное в спектре ввезено.</value>
+    <value>В файле N42 не прочитано время начала набора (таких измерений: {0}, первое: {1}); время начала помечено как неизвестное — 1970-01-01. Остальное в спектре импортировано.</value>
+  </data>
+  <data name="ERRCalibrationReferenceNotFoundN42" xml:space="preserve">
+    <value>В файле N42 спектр ссылается на энергетическую калибровку, которой в файле нет (таких измерений: {0}, первая ссылка: {1}); калибровка взята по номеру измерения. Проверьте шкалу энергий этих спектров.</value>
   </data>
   <data name="ERRUnsupportedPolynomialOrderN42" xml:space="preserve">
     <value>Энергетическая шкала в файле N42 задана полиномом {0}-го порядка, а приложение читает полиномы не выше четвёртого.</value>
@@ -826,6 +794,9 @@
   <data name="TemperatureStr" xml:space="preserve">
     <value>Температура детектора: {0}°C</value>
   </data>
+  <data name="TemperatureRefreshHint" xml:space="preserve">
+    <value>Щёлкните 🔃, чтобы заново считать температуру детектора (Atom Spectra, во время набора)</value>
+  </data>
   <data name="DeviceTypeObsidian" xml:space="preserve">
     <value>Obsidian</value>
   </data>
@@ -865,12 +836,6 @@
   <data name="NotDetected" xml:space="preserve">
     <value>Не обнаружено</value>
   </data>
-  <data name="ROICreationSucces" xml:space="preserve">
-    <value>Кривая эффективности импортирована в ROI успешно</value>
-  </data>
-  <data name="ERREmptyROIConfigName" xml:space="preserve">
-    <value>Пустое имя для конфига ROI</value>
-  </data>
   <data name="Activity" xml:space="preserve">
     <value>Активность</value>
   </data>
@@ -890,7 +855,13 @@
     <value>Эта строка дублирует соседей по той же Kβ: KB — это итог, а KpB1 + KpB2 — тот же итог, разложенный надвое. Брать надо одно или другое, но не оба сразу: сложение считает Kβ дважды (у Lu-176 40.53 % вместо 33.49 %).</value>
   </data>
   <data name="NucBase_KSeriesRedundantSkipped" xml:space="preserve">
-    <value>Пропущено линий Kβ как дубликатов: {0}. Были отмечены и итог (KB), и его разложение (KpB1 + KpB2); ввезено только одно из двух.</value>
+    <value>Пропущено линий Kβ как дубликатов: {0}. Были отмечены и итог (KB), и его разложение (KpB1 + KpB2); импортировано только одно из двух.</value>
+  </data>
+  <data name="NucBase_LSeriesRedundantHint" xml:space="preserve">
+    <value>Эта строка L-серии вытеснена более подробными строками того же распада: сводная L (центр тяжести и суммарный выход) или итог подоболочки (L1, L2, L3) стоит рядом с отдельными линиями (L3M5, L2M4…), дающими тот же итог. Брать надо одно или другое, но не оба сразу: сложение считает L-рентген дважды (у Am-241 73 % вместо 36.6 %).</value>
+  </data>
+  <data name="NucBase_LSeriesRedundantSkipped" xml:space="preserve">
+    <value>Пропущено строк L-серии как дубликатов: {0}. Были отмечены и сводная L (или итог подоболочки), и отдельные линии, которые она суммирует; импортированы только отдельные линии.</value>
   </data>
   <data name="UpdateDeadTime" xml:space="preserve">
     <value>Обновить мёртвое время</value>
@@ -1101,7 +1072,10 @@
     <value>ВНИМАНИЕ: вещество пробы осталось воздухом («{0}», {1:F6} г/см³) при высоте пробы {2:F1} мм — самопоглощение НЕ учтено, и кривая может расходиться в разы</value>
   </data>
   <data name="EfficiencyMakerNodeSpread" xml:space="preserve">
-    <value>разброс на точку: медиана {0:F2} %, худшая {1:F2} % на {2:F1} кэВ (действующая выборка {3:F0} из {4:F0} историй)</value>
+    <value>разброс на точку в рабочем диапазоне (от {5:F0} кэВ, точек {6}): медиана {0:F2} %; худшая точка всей кривой {1:F2} % на {2:F1} кэВ (действующая выборка {3:F0} из {4:F0} историй)</value>
+  </data>
+  <data name="EfficiencyMakerNodeSpreadLow" xml:space="preserve">
+    <value>ниже {0:F0} кэВ (точек {1}): медиана {2:F2} % — низкая полоса шумит по природе и шумной кривую не делает</value>
   </data>
   <data name="EfficiencyMakerNodeSpreadWarning" xml:space="preserve">
     <value>ВНИМАНИЕ: кривая ШУМНАЯ — типичная точка несёт {0:F1} % разброса при пороге {1:F0} % ({2:F0} историй обещают около процента; точек выше порога {3} из {4}). На большой пробе (прибор на земле, в лунке) истории уходят в дальний грунт, который ничего не даёт; увеличьте число историй на точку или сузьте пробу</value>
@@ -1277,6 +1251,12 @@
   <data name="GeometryEditorErrorDensity" xml:space="preserve">
     <value>Плотность кристалла должна быть больше нуля.</value>
   </data>
+  <data name="GeometryEditorErrorDensityField" xml:space="preserve">
+    <value>«{0}»: плотность {1} г/см³ — плотность должна быть больше нуля.</value>
+  </data>
+  <data name="GeometryEditorErrorMaterialEmpty" xml:space="preserve">
+    <value>«{0}»: у вещества «{1}» нет состава. Откройте библиотеку веществ (…) и исправьте его.</value>
+  </data>
   <data name="GeometryEditorErrorMarinelliHole" xml:space="preserve">
     <value>Диаметр стакана Маринелли должен быть больше диаметра колодца.</value>
   </data>
@@ -1297,6 +1277,9 @@
   </data>
   <data name="GeometryEditorErrorWallEatsSample" xml:space="preserve">
     <value>Стенка съедает весь просвет: {0:F1} мм при пределе {1:F1} мм.</value>
+  </data>
+  <data name="GeometryEditorErrorNegativeLength" xml:space="preserve">
+    <value>«{2}» = {0} мм: расстояние и толщина не бывают отрицательными.</value>
   </data>
   <data name="GeometryEditorErrorSourceSize" xml:space="preserve">
     <value>Размер источника должен быть больше нуля.</value>
@@ -1401,28 +1384,22 @@
     <value>Радиус сферы поля</value>
   </data>
   <data name="GeometryEditorSceneIso" xml:space="preserve">
-    <value>Изотропное поле из 4π: кривая и матрица — эффективная площадь, см² (отклик на единичный флюенс, а не на квант источника). Радиус сферы {0:F0} см; ответ от него не зависит, пока он больше {1:F1} см.</value>
+    <value>Изотропное поле из 4π: кривая и матрица — эффективная площадь, см² (отклик на единичный флюенс, а не на квант источника). Радиус сферы {0:F0} см; ответ от него не зависит, пока он больше {1:F1} см и не больше {2:F0} см.</value>
+  </data>
+  <data name="GeometryEditorSceneIsoHint" xml:space="preserve">
+    <value>Мощность дозы по этой кривой — для пробы в этой геометрии. Для фона (излучение со всех сторон) заведите отдельную кривую со сценой «Изотропное поле (ISO)».</value>
   </data>
   <data name="GeometryEditorErrorFieldRadiusSmall" xml:space="preserve">
     <value>Сфера поля не накрывает детектор: {0:F1} мм при наименьшем {1:F1} мм.</value>
+  </data>
+  <data name="GeometryEditorErrorFieldRadiusLarge" xml:space="preserve">
+    <value>Сфера поля больше проверенного предела: {0:F1} мм при наибольшем {1:F1} мм.</value>
   </data>
   <data name="GeometrySourceIso" xml:space="preserve">
     <value>изотропное поле, сфера радиуса {0:F0} мм</value>
   </data>
   <data name="EfficiencySketchIso" xml:space="preserve">
     <value>Изотропное поле, радиус сферы</value>
-  </data>
-  <data name="BqCoeffAuto" xml:space="preserve">
-    <value>Считать по эффективности</value>
-  </data>
-  <data name="BqCoeffNoIntensity" xml:space="preserve">
-    <value>У зоны не задана интенсивность линии — посчитать K по кривой не из чего. Взято сохранённое значение.</value>
-  </data>
-  <data name="BqCoeffNoEnergy" xml:space="preserve">
-    <value>У зоны не задана энергия линии — посчитать K по кривой не из чего. Взято сохранённое значение.</value>
-  </data>
-  <data name="BqCoeffNoCurve" xml:space="preserve">
-    <value>Для спектра не выбрана кривая эффективности. Взято сохранённое значение.</value>
   </data>
   <data name="ResultNoCoefficient" xml:space="preserve">
     <value>нет K</value>
@@ -1432,12 +1409,6 @@
   </data>
   <data name="ResultNoVolume" xml:space="preserve">
     <value>нет объёма</value>
-  </data>
-  <data name="BqCoeffOutOfRange" xml:space="preserve">
-    <value>{0:0.##} кэВ вне кривой ({1:0.##}–{2:0.##} кэВ): за краями кривая не продолжается. Взято сохранённое значение.</value>
-  </data>
-  <data name="BqCoeffFromCurve" xml:space="preserve">
-    <value>K = {0:G6} ± {1:G3} по кривой</value>
   </data>
   <data name="ActivityFromLine" xml:space="preserve">
     <value>по линии:</value>
@@ -1468,9 +1439,6 @@
   </data>
   <data name="ActivityLcZeroRefused" xml:space="preserve">
     <value>фон в выделении пуст: порог обнаружения не определён</value>
-  </data>
-  <data name="BqCoeffTipAuto" xml:space="preserve">
-    <value>K переводит скорость счёта в беккерели: Бк = имп/с · K. С галочкой он считается по кривой эффективности, выбранной для спектра, и интенсивности этой зоны: K = 100 / (эффективность · интенсивность). Без галочки берётся число из поля, как раньше. Сохранённое число остаётся в любом случае и подставляется, когда кривой нет.</value>
   </data>
   <data name="EfficiencySketchCylinder" xml:space="preserve">
     <value>Цилиндр</value>
@@ -1541,8 +1509,11 @@
   <data name="EfficiencyTabCurveVsMatrix" xml:space="preserve">
     <value>Кривая поколения {0}, а её матрица отклика — поколения {1}: рядом лежат два разных поколения.</value>
   </data>
-  <data name="ResponseMatrixUseInFsa" xml:space="preserve">
-    <value>Использовать матрицу в полноспектральном разборе (FSA)</value>
+  <data name="EfficiencyTabCurveOldPeak" xml:space="preserve">
+    <value>Кривая поколения {0} посчитана прежним определением пика: в её клейме нет «{1}» (пик окном ±ПШПВ/2 полного отклика) — пересчитайте.</value>
+  </data>
+  <data name="EfficiencyTabCurveOldVessel" xml:space="preserve">
+    <value>Кривая посчитана прежней сценой сосуда: в её клейме нет «{0}» (стенка сосуда на полную высоту, дальнее донышко стакана Маринелли) — пересчитайте.</value>
   </data>
   <data name="EfficiencyTabRenameTitle" xml:space="preserve">
     <value>Имя конфигурации</value>
@@ -1617,7 +1588,7 @@
     <value>У конфигурации прибора «{0}» калибровки ПШПВ тоже нет.</value>
   </data>
   <data name="EfficiencyTabImportLsrm" xml:space="preserve">
-    <value>Ввоз ЛСРМ...</value>
+    <value>Импорт ЛСРМ...</value>
   </data>
   <data name="EfficiencyTabImportLsrmTitle" xml:space="preserve">
     <value>ЛСРМ EffCalcMC.txt → кривая эффективности</value>
@@ -1731,7 +1702,7 @@
     <value>Отменено.</value>
   </data>
   <data name="ResponseMatrixSaved" xml:space="preserve">
-    <value>Сохранена: {0}</value>
+    <value>Сохранена; на склад уйдёт при сохранении конфигурации прибора: {0}</value>
   </data>
   <data name="ResponseMatrixFailed" xml:space="preserve">
     <value>Не удалось посчитать матрицу: {0}</value>
@@ -1826,9 +1797,6 @@ http://winmm.codeplex.com/
 используется библиотека XPTable
 http://xptable.sourceforge.net/</value>
   </data>
-  <data name="Lq_counts" xml:space="preserve">
-    <value>Отсчёты Lq</value>
-  </data>
   <data name="Lu_counts" xml:space="preserve">
     <value>Отсчёты Lu:</value>
   </data>
@@ -1911,7 +1879,7 @@ http://xptable.sourceforge.net/</value>
     <value>Формула</value>
   </data>
   <data name="GeometryMaterialsFormulaHint" xml:space="preserve">
-    <value>Символы элементов с числом атомов через пробел: Bi4 Ge3 O12. Массовые доли считаются из атомных масс — руками их не вписывают.</value>
+    <value>Символы элементов с числом атомов: Bi4Ge3O12 или Bi4 Ge3 O12. Массовые доли считаются из атомных масс — руками их не вписывают.</value>
   </data>
   <data name="GeometryMaterialsMixtureHint" xml:space="preserve">
     <value>Вещества библиотеки и их массовые веса. Веса относительные: «1 и 1» означает то же, что «50 и 50».</value>
@@ -1950,10 +1918,44 @@ http://xptable.sourceforge.net/</value>
     <value>Название «{0}» встречается не один раз. Названием вещества опознаются, поэтому они обязаны быть разными.</value>
   </data>
   <data name="GeometryMaterialsErrorDensity" xml:space="preserve">
-    <value>Плотность должна быть больше нуля.</value>
+    <value>Плотность «{0}» не принята: нужно положительное конечное число, г/см³ (дробная часть — точкой или запятой).</value>
+  </data>
+  <data name="GeometryMaterialsErrorWeight" xml:space="preserve">
+    <value>Вес «{0}» в смеси — «{1}»: нужно положительное конечное число (дробная часть — точкой или запятой).</value>
+  </data>
+  <data name="GeometryMaterialsErrorComponentNoName" xml:space="preserve">
+    <value>В строке смеси есть вес, но не выбрано вещество: выберите вещество или удалите строку.</value>
+  </data>
+  <data name="GeometryEditorErrorNotFiniteLength" xml:space="preserve">
+    <value>«{2}» = {0} мм: расстояние и толщина обязаны быть конечным числом.</value>
+  </data>
+  <data name="EfficiencyCurveOtherGeometry" xml:space="preserve">
+    <value>Кривая эффективности посчитана для другой геометрии: геометрию правили после расчёта. Пересчитайте кривую.</value>
+  </data>
+  <data name="FSAReportCurveOtherGeometryValue" xml:space="preserve">
+    <value>другая геометрия</value>
+  </data>
+  <data name="EfficiencyMakerPreviousCurveKept" xml:space="preserve">
+    <value>Прежняя посчитанная кривая сохранена в окне, её по-прежнему можно сохранить.</value>
+  </data>
+  <data name="ResponseMatrixPendingNote" xml:space="preserve">
+    <value>Ещё не на складе: матрица попадёт туда при сохранении конфигурации прибора, ответ «Нет» её снимет.</value>
+  </data>
+  <data name="ResponseMatrixCommitFailed" xml:space="preserve">
+    <value>Конфигурация прибора сохранена, но матрицу отклика не удалось перенести на склад:
+{0}</value>
   </data>
   <data name="GeometryMaterialsErrorFormula" xml:space="preserve">
     <value>Из формулы не вышло ни одного элемента. Ожидаются символы элементов с числом атомов: Cs1 I1.</value>
+  </data>
+  <data name="GeometryMaterialsErrorFormulaPart" xml:space="preserve">
+    <value>Формула не читается с «{0}»: символ элемента — заглавная и строчные буквы, за ним число атомов — H2O, Bi4Ge3O12, Cs1 I1. Скобки не принимаются.</value>
+  </data>
+  <data name="GeometryMaterialsErrorFormulaDot" xml:space="preserve">
+    <value>«{0}» читается двояко: дробное число или гидрат. Гидрат пишите через «*» или «·» — CaSO4*2H2O, дробное число — с пробелом после — Si1.5 O3.</value>
+  </data>
+  <data name="GeometryMaterialsErrorFormulaCase" xml:space="preserve">
+    <value>«{0}» до обновления 24.09.2026 читалась как {1}, теперь — как {2}: регистр в символах элементов теперь значим. Наберите формулу заново.</value>
   </data>
   <data name="GeometryMaterialsErrorEmptyMixture" xml:space="preserve">
     <value>Смесь пуста: нужно хотя бы одно вещество с положительным весом.</value>
@@ -2025,10 +2027,10 @@ http://xptable.sourceforge.net/</value>
     <value>IT</value>
   </data>
   <data name="ImportSpectrumLimitTitle" xml:space="preserve">
-    <value>Ввоз спектров</value>
+    <value>Импорт спектров</value>
   </data>
   <data name="ImportSpectrumLimitReached" xml:space="preserve">
-    <value>Ввезено спектров: {0}.
+    <value>Импортировано спектров: {0}.
 В документе не может быть больше {1} спектров, поэтому остальное не принято. Не поместилось спектров: {2}. Файлов не читалось вовсе: {3}.</value>
   </data>
   <data name="LayoutSaveFailedTitle" xml:space="preserve">
@@ -2164,6 +2166,9 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRDeviceNoData" xml:space="preserve">
     <value>ПРИБОР НЕ ОТДАЁТ ДАННЫЕ: {0}</value>
   </data>
+  <data name="ERRAtomSpectraPortLost" xml:space="preserve">
+    <value>ПОРТ ПОТЕРЯН: {0}. Набор не остановлен, ждём возвращения прибора</value>
+  </data>
   <data name="ERRBTUnavailable" xml:space="preserve">
     <value>Bluetooth выключен или недоступен: {0}</value>
   </data>
@@ -2298,6 +2303,18 @@ http://xptable.sourceforge.net/</value>
   <data name="DoseRateNoSampleVolume" xml:space="preserve">
     <value>Мощность дозы: у пробы в геометрии нет объёма — усреднять плотность потока не по чему.</value>
   </data>
+  <data name="DoseRateFieldScene" xml:space="preserve">
+    <value>Мощность дозы: кривая посчитана для полевой сцены (на земле или в лунке). Доза там требует потока у детектора вместе с квантами, рассеянными в грунте, а множитель точечного источника не даёт ни того, ни другого: без ослабления он завышает нерассеянный поток в 4–20 раз, а рассеянной части (около половины поля) в нём нет. Считайте дозу сценой поля ISO.</value>
+  </data>
+  <data name="DoseRateSourceSceneHint" xml:space="preserve">
+    <value>Мощность дозы считается по геометрии кривой эффективности, выбранной на панели: кванты считаются пришедшими от источника этой сцены. Фон приходит со всех сторон, и такая кривая ошибается в нём на десятки процентов, сильнее всего на низких энергиях. Чтобы мерить дозу фона, заведите в редакторе геометрии кривую сцены изотропного поля (ISO) и выберите её.</value>
+  </data>
+  <data name="DoseRateScopeHint" xml:space="preserve">
+    <value>H*(10) считается только по фотонам спектра: космическое излучение (около 30 нЗв/ч на уровне моря) и прочие частицы в неё не входят. Истинное суммирование каскадов не учтено: вблизи детектора оно завышает показание Co-60 до 0.6 %, Na-22 до 3.2 %.</value>
+  </data>
+  <data name="DoseRateThickSample" xml:space="preserve">
+    <value>Мощность дозы: проба слишком толстая для формулы дозы — к кристаллу выходит лишь {0:f2} нерассеянного потока (в среднем по дозе), а формула считает, что выходит весь, и не видит квантов, рассеянных в пробе; показание было бы завышено больше чем на 10 %. Дозу толстого слоя (грунт, большой сосуд) считайте сценой поля ISO.</value>
+  </data>
   <data name="DoseRateAreaAboveBound" xml:space="preserve">
     <value>Мощность дозы: кривая сцены поля даёт {0} см² на {1:f1} кэВ — больше площади проекции сферы, описанной вокруг детектора ({2:f1} см²).</value>
   </data>
@@ -2341,25 +2358,22 @@ http://xptable.sourceforge.net/</value>
     <value>(покрыто {0:f0} % отсчётов)</value>
   </data>
   <data name="ERRNoFwhmCalibrationImport" xml:space="preserve">
-    <value>{0}: у {1} из {2} ввезённых спектров нет модели разрешения (калибровки ПШПВ). Поиск пиков по ним работать не может. Причина: {3}</value>
+    <value>{0}: у {1} из {2} импортированных спектров нет модели разрешения (калибровки ПШПВ). Поиск пиков по ним работать не может. Причина: {3}</value>
   </data>
   <data name="ERRFwhmDefaultNotMonotonic" xml:space="preserve">
-    <value>умолчание по настройкам прибора не строится — прямая через (канал 0, ПШПВ {0}) и (канал {1}, ПШПВ {2}) не растёт, а ширина вдоль шкалы убывать не может.</value>
+    <value>умолчание по настройкам прибора не строится — прямая через (канал 0, ПШПВ {0}) и (канал {1}, ПШПВ {2}) не растёт или даёт нулевую ширину на канале 0, а ширина обязана быть положительной и вдоль шкалы убывать не может.</value>
+  </data>
+  <data name="ERRFwhmNotFinite" xml:space="preserve">
+    <value>Подгонка ПШПВ не дала конечной кривой. Проверьте опорные точки: две точки на одном канале с разной шириной оставляют кривую неопределённой.</value>
+  </data>
+  <data name="ERRFwhmNonPositiveWidth" xml:space="preserve">
+    <value>Кривая ПШПВ даёт нулевую ширину на каналах 0…{0} (до {1} кэВ): пики там не искались бы. Выберите степенную кривую (FWHM = a * ch^p): её ширина положительна на всех каналах выше нуля.</value>
   </data>
   <data name="ERRFwhmCalibrationUnset" xml:space="preserve">
     <value>у спектра нет калибровки ПШПВ, и никто её ему не построил.</value>
   </data>
   <data name="FsaEfficiencyPointAboveUnity" xml:space="preserve">
     <value>точка {0} кэВ: эффективность {1} выше единицы — доля на испущенный квант не может превышать единицу</value>
-  </data>
-  <data name="BqCoeffCurveRefused" xml:space="preserve">
-    <value>Кривая эффективности отвергнута: {0}. Взято сохранённое значение.</value>
-  </data>
-  <data name="BqCoeffFieldCurve" xml:space="preserve">
-    <value>Кривая эффективности «{0}» посчитана для сцены поля: её значения — площади в см² на единичный флюенс, а не доли на испущенный квант, и K по ней не считается. Активность не показывается.</value>
-  </data>
-  <data name="ResultFieldCurve" xml:space="preserve">
-    <value>кривая поля (см²), нет K</value>
   </data>
   <data name="ActivityFieldCurveRefused" xml:space="preserve">
     <value>кривая эффективности «{0}» — кривая сцены поля (см² на единичный флюенс, не доли на квант): активность не показывается</value>
@@ -2369,6 +2383,33 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="FSACurveRefused" xml:space="preserve">
     <value>Полноспектральный разбор: кривая эффективности отвергнута — {0}</value>
+  </data>
+  <data name="FSALibraryEmptied" xml:space="preserve">
+    <value>Полноспектральное разложение: в составе не осталось ни одной компоненты для фита — при матрице отклика собственный рентген и вылет кристалла несёт матрица; добавьте нуклид в состав</value>
+  </data>
+  <data name="FSABandTooNarrow" xml:space="preserve">
+    <value>Полноспектральное разложение: полоса фита не длиннее {0} каналов — расширьте диапазон энергий поиска пиков или проверьте пол фита и энергетическую калибровку</value>
+  </data>
+  <data name="FSATooFewChannels" xml:space="preserve">
+    <value>Полноспектральному разложению нужно не меньше {0} каналов в спектре</value>
+  </data>
+  <data name="FSANoFit" xml:space="preserve">
+    <value>Полноспектральное разложение: ни один узел сетки дрейфа не дал решения для этого спектра</value>
+  </data>
+  <data name="FSANoCalibration" xml:space="preserve">
+    <value>Полноспектральному разложению нужны энергетическая калибровка и калибровка ПШПВ спектра</value>
+  </data>
+  <data name="FSANoLiveTime" xml:space="preserve">
+    <value>Полноспектральное разложение: у спектра нет времени измерения (живое и полное время — нули) — имп/с не образовать; задайте время измерения спектра</value>
+  </data>
+  <data name="FSADatabaseFailed" xml:space="preserve">
+    <value>Не прочитана база: {0}. Разбор шёл без этих данных и прочитает базу снова при следующем пересчёте.</value>
+  </data>
+  <data name="FSAReportDatabaseFailedRow" xml:space="preserve">
+    <value>Базы ядерных данных не прочитаны — разбор шёл без части данных (линии нуклида или поправка на совпадения); при следующем пересчёте они читаются снова</value>
+  </data>
+  <data name="FSAAnnihilationDegenerate" xml:space="preserve">
+    <value>{0}: аннигиляция — единственное его измеримое излучение: прочие линии в полосе фита дают {1} % на распад при поле {2} %; свободный образ 511 и нуклид — один столбец, свободный образ снят</value>
   </data>
   <data name="FSAReportEfficiencyFieldCurve" xml:space="preserve">
     <value>учтена формой: кривая сцены поля (см² на единичный флюенс); беккерели по ней не выводятся</value>
@@ -2387,6 +2428,126 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="NormalizeFieldCurve" xml:space="preserve">
     <value>Нормировка на эффективность: кривая «{0}» — кривая сцены поля (см² на единичный флюенс, значения больше единицы); деление целочисленного спектра на неё округляет малые каналы в ноль, и спектр по ней не нормируется.</value>
+  </data>
+  <data name="SummingPanelApplied" xml:space="preserve">
+    <value>Поправка на каскадное суммирование ×{0} (CF линии {1}, чужие сумм-пики в окне {2} %)</value>
+  </data>
+  <data name="SummingPanelNone" xml:space="preserve">
+    <value>Без поправки на каскадное суммирование: {0}</value>
+  </data>
+  <data name="SummingCellApplied" xml:space="preserve">
+    <value>Σ×{0}</value>
+  </data>
+  <data name="SummingCellNone" xml:space="preserve">
+    <value>без поправки Σ</value>
+  </data>
+  <data name="SummingWhyNoCurve" xml:space="preserve">
+    <value>нет кривой эффективности</value>
+  </data>
+  <data name="SummingWhyNoGeometry" xml:space="preserve">
+    <value>у кривой эффективности нет геометрии</value>
+  </data>
+  <data name="SummingWhyMatrixOff" xml:space="preserve">
+    <value>матрица отклика у кривой выключена</value>
+  </data>
+  <data name="SummingWhyNoMatrix" xml:space="preserve">
+    <value>нет матрицы отклика сцены ({0})</value>
+  </data>
+  <data name="SummingWhyMatrixStale" xml:space="preserve">
+    <value>матрица отклика не сходится с геометрией</value>
+  </data>
+  <data name="SummingWhyFieldScene" xml:space="preserve">
+    <value>сцена поля: положение источника неизвестно</value>
+  </data>
+  <data name="SummingWhyOff" xml:space="preserve">
+    <value>каскадное суммирование выключено в настройках FSA</value>
+  </data>
+  <data name="SummingWhyNoLine" xml:space="preserve">
+    <value>линия {0} кэВ не найдена в таблицах каскадов «{1}»</value>
+  </data>
+  <data name="EfficiencyMakerKeepUnsavedCurve" xml:space="preserve">
+    <value>Кривой «{0}» нет в сохранённой конфигурации прибора: она заведена после последнего сохранения и отбрасывается вместе с прочими правками.
+
+В её конструкторе есть несохранённая работа (геометрия, посчитанная кривая или идущий счёт).
+
+Да — оставить кривую в конфигурации (конструктор остаётся открытым, конфигурация — изменённой).
+Нет — отбросить кривую и закрыть конструктор.</value>
+  </data>
+  <data name="FSAReportMatrixUsedFromSpectrum" xml:space="preserve">
+    <value>учтена (из файла спектра)</value>
+  </data>
+  <data name="FSAReportSpectrumMatrixRefusedRow" xml:space="preserve">
+    <value>Матрица отклика из файла спектра отвергнута: {0}. Разбор идёт без неё.</value>
+  </data>
+  <data name="FSAReportSpectrumMatrixRefusedValue" xml:space="preserve">
+    <value>отвергнута</value>
+  </data>
+  <data name="EmbeddedMatrixOtherCurve" xml:space="preserve">
+    <value>она от другой кривой эффективности</value>
+  </data>
+  <data name="EmbeddedMatrixDamaged" xml:space="preserve">
+    <value>блок повреждён (обрезан или правлен)</value>
+  </data>
+  <data name="EmbeddedMatrixOldFormat" xml:space="preserve">
+    <value>формат файла матрицы {0}, приложение читает формат {1}</value>
+  </data>
+  <data name="EmbeddedMatrixStale" xml:space="preserve">
+    <value>её клеймо не сходится с геометрией кривой</value>
+  </data>
+  <data name="EfficiencyMakerGeometryNotScintillatorFile" xml:space="preserve">
+    <value>{0}: размеров кристалла-сцинтиллятора нет (DS_CrystalDiameter / DS_CrystalHeight или DS_CrystalBoxX / Y / Z) — это не файл геометрии сцинтиллятора. Ничего не загружено.</value>
+  </data>
+  <data name="EfficiencyMakerCloseUnsaved" xml:space="preserve">
+    <value>В конструкторе кривой есть работа, не положенная в конфигурацию прибора (правка геометрии, посчитанная кривая или идущий счёт).
+
+Закрыть его и отбросить эту работу?</value>
+  </data>
+  <data name="ResponseMatrixCloseUnsaved" xml:space="preserve">
+    <value>Посчитанная матрица отклика не сохранена.
+
+Закрыть окно и отбросить её?</value>
+  </data>
+  <data name="ResponseMatrixUseGpu" xml:space="preserve">
+    <value>Считать на GPU Nvidia</value>
+  </data>
+  <data name="ResponseMatrixGpuReady" xml:space="preserve">
+    <value>{0} (вычислительная способность {1}, драйвер {2}). Плоский счёт: историй на узел — из поля, без останова по шуму 3 %, как у склада корпуса. Потоки идут на таблицу κ на процессоре.</value>
+  </data>
+  <data name="ResponseMatrixGpuNoLibrary" xml:space="preserve">
+    <value>Недоступно: рядом с приложением нет библиотеки GPU rmgpu_f.dll.</value>
+  </data>
+  <data name="ResponseMatrixGpuLoadFailed" xml:space="preserve">
+    <value>Недоступно: библиотека GPU rmgpu_f.dll не загрузилась ({0}).</value>
+  </data>
+  <data name="ResponseMatrixGpuOldLibrary" xml:space="preserve">
+    <value>Недоступно: библиотека GPU rmgpu_f.dll — старая сборка без паспорта; пересоберите её.</value>
+  </data>
+  <data name="ResponseMatrixGpuPhysicsMismatch" xml:space="preserve">
+    <value>Недоступно: библиотека GPU собрана для физики переноса {0}, у этой сборки физика {1}; пересоберите библиотеку.</value>
+  </data>
+  <data name="ResponseMatrixGpuNoDevice" xml:space="preserve">
+    <value>Недоступно: видеокарта Nvidia с поддержкой CUDA не найдена. Нужны видеокарта Nvidia и её драйвер; CUDA Toolkit не нужен.</value>
+  </data>
+  <data name="ResponseMatrixGpuDriverTooOld" xml:space="preserve">
+    <value>Недоступно: драйвер Nvidia ({0}) старее рантайма CUDA {1}, который нужен библиотеке; обновите драйвер.</value>
+  </data>
+  <data name="ResponseMatrixGpuDeviceTooOld" xml:space="preserve">
+    <value>Недоступно: {0} — вычислительная способность {1}; библиотеке нужна {2} (RTX 30xx) или новее.</value>
+  </data>
+  <data name="ResponseMatrixGpuRuntimeError" xml:space="preserve">
+    <value>Недоступно: {0}</value>
+  </data>
+  <data name="ResponseMatrixGpuProgress" xml:space="preserve">
+    <value>GPU: узел {0} из {1}, {2:F0} кэВ.</value>
+  </data>
+  <data name="ResponseMatrixJointProgress" xml:space="preserve">
+    <value>Узлы досчитаны; таблица пар (κ) на процессоре: блок {0} из {1}.</value>
+  </data>
+  <data name="GeometryFacingSideNeedsBox" xml:space="preserve">
+    <value>Боковая постановка пробы задана только для кристалла-бруска: у цилиндра она не осесимметрична и сценой не выражается.</value>
+  </data>
+  <data name="GeometryUnknownElementInLayer" xml:space="preserve">
+    <value>Вещество «{0}» содержит элемент Z = {1}, которого нет в таблицах ослабления: слой считался бы без него.</value>
   </data>
   <data name="DeviceTypeAmplitudaUSB" xml:space="preserve">
     <value>AmplitudaUSB</value>
@@ -2407,7 +2568,7 @@ http://xptable.sourceforge.net/</value>
     <value>Связь с блоком Amplituda USB потеряна (ошибка {0}). Измерение остановлено, набранные данные сохранены. Подключите блок и нажмите «Старт» — набор продолжится.</value>
   </data>
   <data name="ERRAmplitudaUsbSilent" xml:space="preserve">
-    <value>Блок Amplituda USB перестал передавать данные (кадров нет больше 10 с). Измерение остановлено, набранные данные сохранены. Проверьте блок и нажмите «Старт» — набор продолжится.</value>
+    <value>Блок Amplituda USB перестал передавать данные (кадров нет больше {0} с). Измерение остановлено, набранные данные сохранены. Проверьте блок и нажмите «Старт» — набор продолжится.</value>
   </data>
   <data name="MSGAmplitudaUsbFramesLost" xml:space="preserve">
     <value>За это измерение потеряно {0:F1} с потока данных ({1:F1} %). На скорости счёта это не влияет: время считается по реально принятым кадрам.</value>

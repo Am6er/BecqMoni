@@ -87,8 +87,6 @@ namespace FsaTieProbe
         static int Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             FsaTuningReport.Snapshot();
 
             Ties();

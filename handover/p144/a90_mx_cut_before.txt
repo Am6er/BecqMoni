@@ -1,0 +1,24 @@
+BecqMoni: main config: D:\BqMoni_Claude\p144\wt\tools\CORPUS\scripts\wd_p144b\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p144\wt\tools\CORPUS\scripts\wd_p144b\config\device: 24 loaded
+спектр : G1S24_Th228_P5.xml
+прибор : Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2024)
+⚠ ШКАЛА ОБРЕЗАНА по --cut-kev=2000.0: каналов 670, верх E(N) = 2001.31 кэВ
+шкала  : каналов 670, E(N-1) = 1998.31 кэВ, E(N) = 2001.31 кэВ
+SETUP	против поставочного разбора изменено [верх шкалы]: CoincidenceWindowSec 0 → 0.00036281179138322; MinEnergy 40 → 30; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → NaI:Tl
+разбор : chi2/ndf 29.392, состав 7, матрица учтена
+ROW	Th-228	Single	имп/с 8.67029E+004	z 304.14
+ROW	Ra-224	Single	имп/с 8.67029E+004	z 304.14
+ROW	Rn-220	Single	имп/с 8.67029E+004	z 304.14
+ROW	Po-216	Single	имп/с 8.67029E+004	z 304.14
+ROW	Pb-212	Single	имп/с 8.67029E+004	z 304.14
+ROW	Bi-212	Single	имп/с 8.67029E+004	z 304.14
+ROW	Tl-208	Single	имп/с 8.67029E+004	z 304.14
+
+=== ХВОСТ ШКАЛЫ: последние 20 каналов (1941.2…1998.3 кэВ) ===
+данные за вычетом фона : 77490.00
+модель                 : 77538.44
+превышение модели      : 48.44 отсчётов (0.1 %)
+средний z по хвосту    : 0.052 (предел 3.00)
+наибольший z           : 2.252 в канале 665 (1986.3 кэВ)
+NuclideDefinitionManager за прогон: обращений 0
+СОШЛОСЬ: край шкалы чист (средний z 0.05 ≤ 3.00)

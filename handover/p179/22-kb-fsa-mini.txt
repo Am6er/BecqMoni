@@ -1,0 +1,17 @@
+# разбор малой базы оснасткой diag, matdb — КОПИЯ с новым kb_ev (склад матриц тот же); прямой вызов пробы — контроль пути: mini_direct_ctrl = mini_d0
+part=known n=45 changed=0 better=0 worse=0 sumA=320.0923 sumB=320.0923 delta=+0.0000
+part=known n=45 changed=4 better=3 worse=1 sumA=320.0923 sumB=320.0725 delta=-0.0198
+ASN16_Lu176                     3.7426    3.7574  +0.0148   +0.40%
+ASN16_Lu176_P0                  0.3378    0.3372  -0.0006   -0.18%
+ASN16_Cs137                    14.4004   14.3872  -0.0132   -0.09%
+AS80_Th232Medal                12.1459   12.1251  -0.0208   -0.17%
+part=known n=45 changed=4 better=3 worse=1 sumA=317.8696 sumB=317.8205 delta=-0.0491
+ASN16_Lu176                     3.8274    3.8376  +0.0102   +0.27%
+ASN16_Lu176_P0                  0.3374    0.3367  -0.0007   -0.21%
+ASN16_Cs137                    14.7295   14.7132  -0.0163   -0.11%
+AS80_Th232Medal                12.2494   12.2071  -0.0423   -0.35%
+part=unknown n=1 changed=0 better=0 worse=0 sumA=20.7529 sumB=20.7529 delta=+0.0000
+part=unknown n=1 changed=1 better=1 worse=0 sumA=20.7529 sumB=20.7140 delta=-0.0389
+AS80_Th232WT20                 20.7529   20.7140  -0.0389   -0.19%
+part=unknown n=1 changed=1 better=1 worse=0 sumA=20.7529 sumB=20.7140 delta=-0.0389
+AS80_Th232WT20                 20.7529   20.7140  -0.0389   -0.19%

@@ -41,6 +41,31 @@ namespace FsaFitFloorProfileProbe
     ///   4. подъём континуума на десятки кэВ (поглощение окна) — тоже
     ///      первый канал: рампой это не считается.
     ///
+    /// ⛔ (`S204`, П189) И КОНТРОЛИ МОДЕЛИ РАМПЫ
+    /// (<see cref="FsaBand.RampProfileOf"/>, <see cref="FsaBand.PairRampProfile"/>):
+    ///
+    ///   7. логистика в каналах шире границы правила (шкала G1S, около трёх
+    ///      кэВ на канал) — середина и ширина восстанавливаются, множитель
+    ///      выше верха рампы — ровно единица;
+    ///   8. спектры БЕЗ рампы для модели — жёсткий рез, рампа уже границы
+    ///      (её режет пол), пик на пороге, подъём поглощения — рампы НЕТ, и
+    ///      разбор тогда побитово прежний;
+    ///   9. пара: у пробы жёсткий рез ниже рампы фона (`OBS_UGlass`) — рампа
+    ///      фона НЕ прикладывается; у пробы пик на пороге (Cd-109) — рампа
+    ///      берётся по фону; фона нет — по пробе; модель выключена — нет.
+    ///  10. (`S207`, П217) та же рампа на растущем фоне G1S при ×1 и точном
+    ///      укрупнении ×2 — одна середина, ширина и уровень (в пределах 0.05
+    ///      канала и 1 %); прежний уровень медианой окна в каналах
+    ///      (`ModelMedian`) этим же сравнением обязан отказать.
+    ///  11. (`S207`, П225) узкий пик в самой рампе: модель ×1, сведённая точно
+    ///      ×2, совпадает с моделью ×2 той же рампы, когда множитель — среднее
+    ///      рампы с весами хода пика внутри канала (дробная сетка,
+    ///      `FsaRampSampling.ImageWeighted`); прежнее произведение средних
+    ///      этим же сравнением обязано отказать.
+    ///
+    /// Таблица корпуса несёт и рампу модели (чья, середина, ширина, верх) —
+    /// артефакт правила `S204`: у каких спектров модель умножается и на что.
+    ///
     /// Корпус — только чтение.
     /// </summary>
     static class Program
@@ -123,7 +148,9 @@ namespace FsaFitFloorProfileProbe
             }
 
             var rows = new List<string>();
-            rows.Add("spectrum,kind,channels,first_ch,first_keV,thr_ch,thr_keV,how,pair_floor_keV,winner");
+            rows.Add("spectrum,kind,channels,first_ch,first_keV,thr_ch,thr_keV,how,pair_floor_keV,winner,"
+                     + "ramp_source,ramp_mid_ch,ramp_width_ch,ramp_top_ch,ramp_how");
+            int nRampModel = 0;
             int nRamp = 0, nHard = 0, nWide = 0, nPeak = 0, nSampleWins = 0, nBgWins = 0, nTie = 0, nNoBg = 0;
             int nMoot = 0;
             string[] files = Directory.GetFiles(spectra, "*.xml");
@@ -173,11 +200,22 @@ namespace FsaFitFloorProfileProbe
                 else if (sampleThr > bgThr) nSampleWins++;
                 else nBgWins++;
 
+                // (`S204`) рампа модели — той же парой, что зовёт разбор (фон в своей шкале)
+                string rampHow;
+                FsaBand.RampProfile rampModel = FsaBand.PairRampProfile(sample.Spectrum, sample.EnergyCalibration,
+                                                                        background, true, out rampHow);
+                if (rampModel != null)
+                {
+                    nRampModel++;
+                }
+
+                Console.WriteLine("{0,-26} рампа модели: {1}", key, rampModel != null ? rampHow : "нет — " + rampHow);
+
                 Count(sampleHow, ref nRamp, ref nHard, ref nWide, ref nPeak);
-                Report(key, "проба", sample, sampleThr, sampleHow, pair, winner, rows);
+                Report(key, "проба", sample, sampleThr, sampleHow, pair, winner, rows, rampModel, rampHow);
                 if (background != null)
                 {
-                    Report(key, "фон", background, bgThr, backgroundHow, pair, winner, rows);
+                    Report(key, "фон", background, bgThr, backgroundHow, pair, winner, rows, rampModel, rampHow);
                 }
             }
 
@@ -186,6 +224,7 @@ namespace FsaFitFloorProfileProbe
                               + " пол пары задала проба {4}, фон {5}, равны {6}, фона нет {7};"
                               + " пол не применяется (ниже пусто у обоих) у {8}",
                               nRamp, nHard, nWide, nPeak, nSampleWins, nBgWins, nTie, nNoBg, nMoot);
+            Console.WriteLine("рампа модели (`S204`) у {0} из {1} спектров", nRampModel, files.Length);
             if (outCsv != null)
             {
                 File.WriteAllLines(outCsv, rows.ToArray(), new UTF8Encoding(false));
@@ -204,7 +243,8 @@ namespace FsaFitFloorProfileProbe
         }
 
         static void Report(string key, string kind, EnergySpectrum s, double thr, string how,
-                           double pair, string winner, List<string> rows)
+                           double pair, string winner, List<string> rows,
+                           FsaBand.RampProfile ramp, string rampHow)
         {
             double first = FsaBand.AdcFloorOf(s.Spectrum, s.EnergyCalibration);
             int firstCh = -1;
@@ -228,7 +268,12 @@ namespace FsaFitFloorProfileProbe
                 thr.ToString("F3", CultureInfo.InvariantCulture),
                 "\"" + how.Replace("\"", "'") + "\"",
                 pair.ToString("F3", CultureInfo.InvariantCulture),
-                winner
+                winner,
+                ramp != null ? ramp.Source : "",
+                ramp != null ? ramp.Mid.ToString("F3", CultureInfo.InvariantCulture) : "",
+                ramp != null ? ramp.Width.ToString("F3", CultureInfo.InvariantCulture) : "",
+                ramp != null ? ramp.Top.ToString(CultureInfo.InvariantCulture) : "",
+                "\"" + (rampHow ?? "").Replace("\"", "'") + "\""
             }));
         }
 
@@ -365,6 +410,274 @@ namespace FsaFitFloorProfileProbe
             Check("пара: рез фона выше реза пробы → пол по фону",
                   Math.Abs(pair - 44.0) < 0.41 && bHow != null,
                   string.Format(CultureInfo.InvariantCulture, "пол {0:F2} кэВ; проба: {1}; фон: {2}", pair, sHow, bHow));
+
+            RampSelfTest();
+        }
+
+        /// <summary>Шкала G1S: около трёх кэВ на канал, нуль у −12 кэВ.</summary>
+        static EnergyCalibration CoarseScale()
+        {
+            var cal = new PolynomialEnergyCalibration();
+            cal.PolynomialOrder = 1;
+            cal.Coefficients = new double[] { -12.0, 2.85 };
+            return cal;
+        }
+
+        /// <summary>Логистика рампы в каналах на континууме, растущем вниз по шкале (как у фона G1S).</summary>
+        static int[] Logistic(int n, double mid, double width, double level, int firstCh)
+        {
+            int[] a = new int[n];
+            for (int ch = firstCh; ch < n; ch++)
+            {
+                double s = 1.0 / (1.0 + Math.Exp(-(ch - mid) / width));
+                double cont = level * (1.0 + 0.4 * Math.Exp(-(ch - 12.0) / 60.0));
+                a[ch] = (int)Math.Round(cont * s);
+            }
+
+            return a;
+        }
+
+        static EnergySpectrum Spec(int[] counts, EnergyCalibration cal)
+        {
+            var e = new EnergySpectrum();
+            e.Spectrum = counts;
+            e.EnergyCalibration = cal;
+            e.NumberOfChannels = counts.Length;
+            return e;
+        }
+
+        /// <summary>(`S204`, П189) Контроли модели рампы — пункты 7, 8, 9 шапки пробы.</summary>
+        static void RampSelfTest()
+        {
+            EnergyCalibration g = CoarseScale();
+            const int n = 1024;
+            FsaRampModel stock = FsaBand.DefaultRampModel;
+            FsaBand.DefaultRampModel = FsaRampModel.Model;
+            try
+            {
+                // 7. рампа G1S: середина 9.3, ширина 0.95 канала, уровень 5000, первый отсчёт в канале 4
+                int[] wide = Logistic(n, 9.3, 0.95, 5000.0, 4);
+                string how;
+                FsaBand.RampProfile r = FsaBand.RampProfileOf(wide, g, out how);
+                string thrHow;
+                FsaBand.AdcThresholdOf(wide, g, out thrHow);
+                Check("рампа шире границы → логистика восстановлена",
+                      r != null && Math.Abs(r.Mid - 9.3) < 0.25 && Math.Abs(r.Width - 0.95) < 0.2
+                      && r.Top > 14 && r.Top < 20 && r.At(r.Top) == 1.0
+                      && thrHow.Contains("шире рампы"),
+                      r == null ? "рампы нет: " + how
+                                : string.Format(CultureInfo.InvariantCulture,
+                                                "середина {0:F2} (задано 9.30), ширина {1:F2} (0.95), верх {2}, точек {3}; правило пола: {4}",
+                                                r.Mid, r.Width, r.Top, r.Points, thrHow));
+
+                // 7б. множитель: ниже верха — логистика, выше — кривая не тронута ни в одном бите
+                if (r != null)
+                {
+                    double[] curve = new double[n];
+                    for (int i = 0; i < n; i++)
+                    {
+                        curve[i] = 1.0 + 0.001 * i;
+                    }
+
+                    double[] copy = (double[])curve.Clone();
+                    r.Apply(curve);
+                    bool above = true;
+                    for (int i = r.Top; i < n; i++)
+                    {
+                        above &= curve[i].Equals(copy[i]);
+                    }
+
+                    double atMid = curve[9] / copy[9];
+                    Check("множитель: выше верха побитово, ниже — логистика",
+                          above && Math.Abs(atMid - r.At(9)) < 1e-12 && r.At(9) < 0.5 && curve[3] < 0.01 * copy[3],
+                          string.Format(CultureInfo.InvariantCulture, "S(9) {0:F3}, S(3) {1:E2}, верх {2}",
+                                        atMid, curve[3] / copy[3], r.Top));
+                }
+
+                // 8. рампы для модели нет: жёсткий рез, рампа AS80 (её режет пол), пик на пороге, поглощение
+                int[] hard = new int[n];
+                for (int ch = 10; ch < n; ch++)
+                {
+                    hard[ch] = 5000;
+                }
+
+                EnergyCalibration fine = Scale();
+                int[] narrow = new int[2048];
+                for (int ch = 0; ch < narrow.Length; ch++)
+                {
+                    double e = fine.ChannelToEnergy(ch);
+                    narrow[ch] = (int)Math.Round(9000.0 * 0.5 * (1.0 + Erf((e - 12.0) / (1.2 * Math.Sqrt(2.0)))));
+                }
+
+                int[] peak = new int[n];
+                for (int ch = 0; ch < n; ch++)
+                {
+                    double e = g.ChannelToEnergy(ch);
+                    double s = 1.0 / (1.0 + Math.Exp(-(ch - 9.3) / 0.95));
+                    peak[ch] = (int)Math.Round(s * (200.0 + 40000.0 * Math.Exp(-0.5 * Math.Pow((e - 22.0) / 3.8, 2.0))));
+                }
+
+                int[] absorb = new int[n];
+                for (int ch = 0; ch < n; ch++)
+                {
+                    double e = g.ChannelToEnergy(ch);
+                    absorb[ch] = e >= 5.0 ? (int)Math.Round(6000.0 * Math.Exp(-Math.Pow(40.0 / e, 3.0))) : 0;
+                }
+
+                string h1, h2, h3, h4;
+                FsaBand.RampProfile r1 = FsaBand.RampProfileOf(hard, g, out h1);
+                FsaBand.RampProfile r2 = FsaBand.RampProfileOf(narrow, fine, out h2);
+                FsaBand.RampProfile r3 = FsaBand.RampProfileOf(peak, g, out h3);
+                FsaBand.RampProfile r4 = FsaBand.RampProfileOf(absorb, g, out h4);
+                Check("без рампы для модели: жёсткий рез / рампа в границе / пик на пороге / поглощение → нет",
+                      r1 == null && r2 == null && r3 == null && r4 == null,
+                      string.Format(CultureInfo.InvariantCulture, "рез: {0}; AS80: {1}; пик: {2}; поглощение: {3}",
+                                    r1 == null ? h1 : "ЕСТЬ", r2 == null ? h2 : "ЕСТЬ",
+                                    r3 == null ? h3 : "ЕСТЬ", r4 == null ? h4 : "ЕСТЬ"));
+
+                // 9. пары
+                EnergySpectrum bg = Spec(wide, g);
+                int[] hardLow = new int[n];
+                for (int ch = 4; ch < n; ch++)
+                {
+                    hardLow[ch] = 700;   // проба режется жёстко НИЖЕ середины рампы фона
+                }
+
+                string p1, p2, p3, p4;
+                FsaBand.RampProfile q1 = FsaBand.PairRampProfile(hardLow, g, bg, true, out p1);
+                FsaBand.RampProfile q2 = FsaBand.PairRampProfile(peak, g, bg, true, out p2);
+                FsaBand.RampProfile q3 = FsaBand.PairRampProfile(wide, g, null, true, out p3);
+                FsaBand.DefaultRampModel = FsaRampModel.Off;
+                FsaBand.RampProfile q4 = FsaBand.PairRampProfile(peak, g, bg, true, out p4);
+                FsaBand.DefaultRampModel = FsaRampModel.Model;
+                Check("пара: рез пробы ниже рампы фона → нет; пик на пороге → по фону; фона нет → по пробе; выключено → нет",
+                      q1 == null && q2 != null && q2.Source == "фону" && Math.Abs(q2.Mid - 9.3) < 0.25
+                      && q3 != null && q3.Source.StartsWith("пробе", StringComparison.Ordinal) && q4 == null,
+                      string.Format(CultureInfo.InvariantCulture, "рез: {0}; пик: {1}; без фона: {2}; выкл: {3}",
+                                    q1 == null ? p1 : "ЕСТЬ", q2 != null ? p2 : "НЕТ", q3 != null ? p3 : "НЕТ",
+                                    q4 == null ? "нет" : "ЕСТЬ"));
+
+                // 10. (`S207`, П217) инвариантность к числу каналов: та же рампа на
+                // растущем фоне G1S, укрупнённая ×2 точно (сумма пар каналов,
+                // шкала E′(C) = E(2C + ½)), — те же середина, ширина и уровень в
+                // единицах исходной шкалы; положительный контроль — прежний
+                // уровень медианой окна в каналах (ModelMedian) этим же сравнением
+                // обязан отказать
+                double[] dm = new double[2], dw = new double[2], dl = new double[2];
+                string[] h10 = new string[2];
+                FsaRampModel[] arms = { FsaRampModel.Model, FsaRampModel.ModelMedian };
+                for (int arm = 0; arm < 2; arm++)
+                {
+                    FsaBand.DefaultRampModel = arms[arm];
+                    int[] x1 = RisingRamp(n, 9.7, 1.0, 1305.0, 0.04, 5);
+                    int[] x2 = new int[n / 2];
+                    for (int c = 0; c < x2.Length; c++)
+                    {
+                        x2[c] = x1[2 * c] + x1[2 * c + 1];
+                    }
+
+                    var c1 = new PolynomialEnergyCalibration { PolynomialOrder = 1, Coefficients = new double[] { -3.28, 2.74 } };
+                    var c2 = new PolynomialEnergyCalibration { PolynomialOrder = 1, Coefficients = new double[] { -3.28 + 0.5 * 2.74, 2.0 * 2.74 } };
+                    string ha, hb;
+                    FsaBand.RampProfile ra = FsaBand.RampProfileOf(x1, c1, out ha);
+                    FsaBand.RampProfile rb = FsaBand.RampProfileOf(x2, c2, out hb);
+                    if (ra == null || rb == null)
+                    {
+                        dm[arm] = double.NaN;
+                        h10[arm] = "рампы нет: ×1 " + (ra == null ? ha : "есть") + "; ×2 " + (rb == null ? hb : "есть");
+                        continue;
+                    }
+
+                    dm[arm] = 2.0 * rb.Mid + 0.5 - ra.Mid;
+                    dw[arm] = 2.0 * rb.Width - ra.Width;
+                    dl[arm] = rb.Level / (2.0 * ra.Level) - 1.0;
+                    h10[arm] = string.Format(CultureInfo.InvariantCulture,
+                        "×1 середина {0:F3} ширина {1:F3} уровень {2:F0}; ×2 в каналах ×1 {3:F3} / {4:F3} / {5:F0} (Δ {6:+0.000;-0.000} / {7:+0.000;-0.000}, уровень {8:+0.00;-0.00} %)",
+                        ra.Mid, ra.Width, ra.Level, 2.0 * rb.Mid + 0.5, 2.0 * rb.Width, rb.Level / 2.0, dm[arm], dw[arm], 100.0 * dl[arm]);
+                }
+
+                FsaBand.DefaultRampModel = FsaRampModel.Model;
+                Check("×1 и ×2 (точное укрупнение) → одна рампа; прежний уровень медианой — нет",
+                      Math.Abs(dm[0]) < 0.05 && Math.Abs(dw[0]) < 0.05 && Math.Abs(dl[0]) < 0.01
+                      && !(Math.Abs(dm[1]) < 0.05 && Math.Abs(dw[1]) < 0.05 && Math.Abs(dl[1]) < 0.01),
+                      "поставка: " + h10[0] + "; ModelMedian: " + h10[1]);
+
+                // 11. (`S207`, П225) рампа на дробной сетке канала: узкий пик
+                // (K-рентген, σ 0.9 канала ×1) в самой рампе. Модель ×1, сведённая
+                // точно ×2 (сумма пар), обязана совпасть с моделью ×2 той же рампы
+                // (середина (m − ½)/2, ширина w/2), когда множитель — среднее рампы
+                // с весами хода пика внутри канала (Weighted); положительный
+                // контроль — прежнее произведение средних (At) этим же сравнением
+                // обязано отказать. Заодно: равные веса дают ровно At.
+                {
+                    const int K = FsaBand.RampProfile.SubBins;
+                    var g1 = new FsaBand.RampProfile { Mid = 9.7, Width = 1.0, Top = 40, Mean = true };
+                    var g2r = new FsaBand.RampProfile { Mid = (9.7 - 0.5) / 2.0, Width = 0.5, Top = 20, Mean = true };
+                    const double pc = 11.3, ps = 0.9;
+                    Func<double, double, double> area = (a, b) =>
+                        0.5 * (Erf((b - pc) / (ps * Math.Sqrt(2.0))) - Erf((a - pc) / (ps * Math.Sqrt(2.0))));
+                    Func<double, double> dens = x => Math.Exp(-0.5 * (x - pc) * (x - pc) / (ps * ps));
+                    double[] w = new double[K];
+                    double[] flat = new double[K];
+                    for (int j = 0; j < K; j++) flat[j] = 1.0;
+                    double[] m1g = new double[40], m1o = new double[40];
+                    double flatDev = 0.0;
+                    for (int c = 0; c < 40; c++)
+                    {
+                        for (int j = 0; j < K; j++) w[j] = dens(c - 0.5 + (j + 0.5) / K);
+                        double t = area(c - 0.5, c + 0.5);
+                        m1g[c] = t * g1.Weighted(c, w, 0);
+                        m1o[c] = t * g1.At(c);
+                        flatDev = Math.Max(flatDev, Math.Abs(g1.Weighted(c, flat, 0) - g1.At(c)));
+                    }
+
+                    double top = 0.0, devG = 0.0, devO = 0.0;
+                    for (int c2 = 0; c2 < 20; c2++)
+                    {
+                        // канал ×2 c2 — отрезок [2c2 − ½, 2c2 + 1½] шкалы ×1
+                        for (int j = 0; j < K; j++) w[j] = dens(2.0 * c2 - 0.5 + 2.0 * (j + 0.5) / K);
+                        double t = area(2.0 * c2 - 0.5, 2.0 * c2 + 1.5);
+                        double g2 = t * g2r.Weighted(c2, w, 0), o2 = t * g2r.At(c2);
+                        double dg = m1g[2 * c2] + m1g[2 * c2 + 1], dO = m1o[2 * c2] + m1o[2 * c2 + 1];
+                        top = Math.Max(top, dg);
+                        devG = Math.Max(devG, Math.Abs(dg - g2));
+                        devO = Math.Max(devO, Math.Abs(dO - o2));
+                    }
+
+                    Check("пик в рампе: модель ×1, сведённая ×2, = модель ×2 на дробной сетке; произведение средних — нет",
+                          flatDev < 1e-12 && devG < 2e-3 * top && devO > 1e-2 * top,
+                          string.Format(CultureInfo.InvariantCulture,
+                              "наибольшее |Δ| к вершине: дробная сетка {0:F5} %, произведение средних {1:F3} %; равные веса − At {2:E1}",
+                              100.0 * devG / top, 100.0 * devO / top, flatDev));
+                }
+            }
+            finally
+            {
+                FsaBand.DefaultRampModel = stock;
+            }
+        }
+
+        /// <summary>
+        /// (`S207`, П217) Рампа как у фона G1S: среднее логистики по каналу × континуум,
+        /// растущий на <paramref name="slope"/> уровня на канал от канала 12; ниже
+        /// <paramref name="firstCh"/> — пусто.
+        /// </summary>
+        static int[] RisingRamp(int n, double mid, double width, double level, double slope, int firstCh)
+        {
+            int[] a = new int[n];
+            for (int ch = firstCh; ch < n; ch++)
+            {
+                double s = width * (Softplus((ch + 0.5 - mid) / width) - Softplus((ch - 0.5 - mid) / width));
+                double cont = level * Math.Max(0.2, 1.0 + slope * (ch - 12));
+                a[ch] = (int)Math.Round(cont * Math.Max(0.0, Math.Min(1.0, s)));
+            }
+
+            return a;
+        }
+
+        static double Softplus(double x)
+        {
+            return x > 30.0 ? x : x < -30.0 ? Math.Exp(x) : Math.Log(1.0 + Math.Exp(x));
         }
 
         static ResultData Load(string path)

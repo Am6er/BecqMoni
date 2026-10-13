@@ -242,8 +242,12 @@ def check_cs_twin(db):
     u"""`D40`: набор под именем `123CSm2` — побитовая копия строк `123CSm1`."""
     w(u"6. `D40` набор `123CSm2` против строк `%s`", EXPECT_CS_TWIN)
     cols = u"type_a, type_c, energy, energy_num, intensity, intensity_num"
+    # (`AMBER151`, П202 01.10.2026) Только строки ПОСТАВКИ (`dr_pk` < 100001): довод `D40`
+    # — о разметке самой поставки, а добор слабых гамм (100001…199999) и L-подлинии
+    # (от 200001) пишутся по уровню и имени своих строк поставки и число строк меняют
+    # (у `123CSm1`/`123CSm2` L-подлиний по 14, у обоих одинаковые).
     q = (u"select " + cols + u" from decay_radiations"
-         u" where parent_nucid = ? order by " + cols)
+         u" where parent_nucid = ? and dr_pk < 100001 order by " + cols)
     mine = list(db.execute(q, (u"123CSm2",)))
     twin = list(db.execute(q, (EXPECT_CS_TWIN,)))
     w(u"   строк под `123CSm2`: %d; строк под `%s`: %d; ожидалось по %d",

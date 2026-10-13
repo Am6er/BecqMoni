@@ -199,7 +199,7 @@
     <value>6, 3, 6, 4</value>
   </data>
   <data name="displayGroupBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>320, 152</value>
+    <value>320, 172</value>
   </data>
   <data name="displayGroupBox.TabIndex" type="System.Int32, mscorlib">
     <value>3</value>
@@ -217,7 +217,7 @@
     <value>6, 16</value>
   </data>
   <data name="displayFlow.Size" type="System.Drawing.Size, System.Drawing">
-    <value>308, 130</value>
+    <value>308, 150</value>
   </data>
   <data name="displayFlow.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -444,29 +444,44 @@
   <data name="residualBandCheckBox.Text" xml:space="preserve">
     <value>Model residual</value>
   </data>
+  <data name="spectralDataCheckBox.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="spectralDataCheckBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>3, 88</value>
+  </data>
+  <data name="spectralDataCheckBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>89, 17</value>
+  </data>
+  <data name="spectralDataCheckBox.TabIndex" type="System.Int32, mscorlib">
+    <value>4</value>
+  </data>
+  <data name="spectralDataCheckBox.Text" xml:space="preserve">
+    <value>Spectral data</value>
+  </data>
   <data name="matrixLayerLabel.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="matrixLayerLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>3, 88</value>
+    <value>3, 108</value>
   </data>
   <data name="matrixLayerLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>64, 13</value>
   </data>
   <data name="matrixLayerLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>4</value>
+    <value>5</value>
   </data>
   <data name="matrixLayerLabel.Text" xml:space="preserve">
     <value>Matrix layer</value>
   </data>
   <data name="matrixLayerComboBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>3, 104</value>
+    <value>3, 124</value>
   </data>
   <data name="matrixLayerComboBox.Size" type="System.Drawing.Size, System.Drawing">
     <value>240, 21</value>
   </data>
   <data name="matrixLayerComboBox.TabIndex" type="System.Int32, mscorlib">
-    <value>5</value>
+    <value>6</value>
   </data>
   <data name="statusLabel.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
     <value>Top</value>
@@ -494,12 +509,6 @@
   </data>
   <data name="reportTable.TabIndex" type="System.Int32, mscorlib">
     <value>4</value>
-  </data>
-  <data name="swatchColumn.Text" xml:space="preserve">
-    <value></value>
-  </data>
-  <data name="swatchColumn.Width" type="System.Int32, mscorlib">
-    <value>24</value>
   </data>
   <data name="componentColumn.Text" xml:space="preserve">
     <value>Component</value>
@@ -5043,6 +5052,18 @@
   <data name="&gt;&gt;residualBandCheckBox.ZOrder" xml:space="preserve">
     <value>3</value>
   </data>
+  <data name="&gt;&gt;spectralDataCheckBox.Name" xml:space="preserve">
+    <value>spectralDataCheckBox</value>
+  </data>
+  <data name="&gt;&gt;spectralDataCheckBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;spectralDataCheckBox.Parent" xml:space="preserve">
+    <value>displayFlow</value>
+  </data>
+  <data name="&gt;&gt;spectralDataCheckBox.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
   <data name="&gt;&gt;matrixLayerLabel.Name" xml:space="preserve">
     <value>matrixLayerLabel</value>
   </data>
@@ -5053,7 +5074,7 @@
     <value>displayFlow</value>
   </data>
   <data name="&gt;&gt;matrixLayerLabel.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>5</value>
   </data>
   <data name="&gt;&gt;matrixLayerComboBox.Name" xml:space="preserve">
     <value>matrixLayerComboBox</value>
@@ -5065,7 +5086,7 @@
     <value>displayFlow</value>
   </data>
   <data name="&gt;&gt;matrixLayerComboBox.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>6</value>
   </data>
   <data name="&gt;&gt;statusLabel.Name" xml:space="preserve">
     <value>statusLabel</value>
@@ -5096,12 +5117,6 @@
   </data>
   <data name="&gt;&gt;columnModel.Type" xml:space="preserve">
     <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;swatchColumn.Name" xml:space="preserve">
-    <value>swatchColumn</value>
-  </data>
-  <data name="&gt;&gt;swatchColumn.Type" xml:space="preserve">
-    <value>XPTable.Models.ImageColumn, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;componentColumn.Name" xml:space="preserve">
     <value>componentColumn</value>
@@ -5146,13 +5161,13 @@
     <value>The number counts channels from the detector's lower range {0} keV upwards, where the fit is judged. Below it the band is still drawn on the chart, but it is not included in the percentage.</value>
   </data>
   <data name="FSAReport_Chi2Row" xml:space="preserve">
-    <value>χ²/ndf, goodness of fit</value>
+    <value>χ²/ndf, goodness of fit (Poisson statistics)</value>
   </data>
   <data name="FSAReport_InflationRow" xml:space="preserve">
     <value>σ×, uncertainty inflation</value>
   </data>
   <data name="FSAReport_InflationTip" xml:space="preserve">
-    <value>Component uncertainties are multiplied by this factor, sqrt(χ²/ndf), whenever the fit is worse than Poisson statistics alone. A significance threshold of 3 therefore means 3 × this factor of raw sigmas. 1.000 means no inflation.</value>
+    <value>Component uncertainties are multiplied by this factor whenever the fit is worse than Poisson statistics alone. It is the square root of the solver's own χ²/ndf, computed with its robust (Huber) weights, so it does not equal the square root of the Poisson χ²/ndf shown above. A significance threshold of 3 therefore means 3 × this factor of raw sigmas. 1.000 means no inflation.</value>
   </data>
   <data name="FSAReport_MatrixRow" xml:space="preserve">
     <value>Response matrix</value>
@@ -5165,6 +5180,15 @@
   </data>
   <data name="FSAReport_MatrixOldFormat" xml:space="preserve">
     <value>old format</value>
+  </data>
+  <data name="FSAReport_MatrixStale" xml:space="preserve">
+    <value>stale</value>
+  </data>
+  <data name="FSAReport_MatrixStaleRow" xml:space="preserve">
+    <value>The stored response matrix of this curve is out of date for the geometry the analysis uses: the geometry or the settings changed after it was computed, or the curve carried in the spectrum file is older than the device's curve. The analysis runs without it. Recompute the matrix, or choose the device's curve instead of the one from the spectrum file.</value>
+  </data>
+  <data name="FSAReport_MatrixStaleValue" xml:space="preserve">
+    <value>stale</value>
   </data>
   <data name="FSAReport_EfficiencyRow" xml:space="preserve">
     <value>Efficiency curve</value>
@@ -5223,6 +5247,9 @@
   <data name="FSAReport_ResidualBandTip" xml:space="preserve">
     <value>Changes only the chart: nothing is recomputed.</value>
   </data>
+  <data name="FSAReport_SpectralDataTip" xml:space="preserve">
+    <value>Draws the measured spectrum line over the FSA stack. Changes only the chart: nothing is recomputed.</value>
+  </data>
   <data name="FSAReport_MatrixLayerAll" xml:space="preserve">
     <value>All</value>
   </data>
@@ -5245,9 +5272,99 @@
     <value>L X-ray escape</value>
   </data>
   <data name="FSAReport_MatrixLayerTip" xml:space="preserve">
-    <value>Draws only this response-matrix channel of every component; nothing is recomputed, the table is unchanged.</value>
+    <value>Draws only this response-matrix channel of every component; the Compton channel also carries the component's untied tail below the matrix trust floor. Nothing is recomputed, the table is unchanged.</value>
   </data>
   <data name="FSAReport_MatrixLayerNoMatrixTip" xml:space="preserve">
     <value>No response matrix for this spectrum: the model has no channels to show, the whole stack is drawn.</value>
+  </data>
+  <data name="FSAReport_MatrixLayerAnnihilationOutside" xml:space="preserve">
+    <value>Annihilation outside the crystal (511, 1022, their Compton)</value>
+  </data>
+  <data name="FSAReport_SupplyRow" xml:space="preserve">
+    <value>Decay data sources disagree</value>
+  </data>
+  <data name="FSAReport_SupplyTip" xml:space="preserve">
+    <value>Two decay-data supplies disagree for these nuclides, and the analysis had to choose. What was taken:</value>
+  </data>
+  <data name="FSAReport_SupplyBetaPlusMode" xml:space="preserve">
+    <value>{0} → {1}: decay_chain gives {2} % for the β⁺ mode alone, not for the ε+β⁺ branch; the branch is taken as the remainder, {4} %</value>
+  </data>
+  <data name="FSAReport_SupplyOtherMode" xml:space="preserve">
+    <value>{0} → {1}: branch share in decay_chain {2} % is below the positron sum {3} % of decay_radiations; read as the share of the other mode, branch taken as {4} %</value>
+  </data>
+  <data name="FSAReport_SupplyExcess" xml:space="preserve">
+    <value>{0} → {1}: positron sum {3} % of decay_radiations exceeds what the other branches leave ({4} %); supply excess, clamped</value>
+  </data>
+  <data name="FSAReport_SupplyClamped" xml:space="preserve">
+    <value>{0} → {1}: positron sum {3} % of decay_radiations exceeds the branch share {2} %; clamped to it</value>
+  </data>
+  <data name="FSAReport_SupplyShareScaled" xml:space="preserve">
+    <value>{0} → {1}: β⁺ fraction of the branch {2} (decay_radiations) vs {3} (ENSDF), {4} %; level-by-level shares scaled to decay_radiations</value>
+  </data>
+  <data name="FSAReport_SupplyShareKept" xml:space="preserve">
+    <value>{0} → {1}: β⁺ fraction of the branch {2} (decay_radiations) vs {3} (ENSDF), {4} %; the branch share is saturated, level-by-level shares kept from ENSDF</value>
+  </data>
+  <data name="FSAReport_PileUpCapRow" xml:space="preserve">
+    <value>Pile-up column capped at R·τ: the fit asked for {0:F0} pairs, the dead time allows {1:F0} — the excess is not pile-up</value>
+  </data>
+  <data name="FSAReport_PileUpCapValue" xml:space="preserve">
+    <value>capped</value>
+  </data>
+  <data name="FSAReport_InterferenceRow" xml:space="preserve">
+    <value>{0} keV: {1} is not in the composition — at the natural {1}/{2} ratio the row {3} is overestimated up to ×{4}</value>
+  </data>
+  <data name="FSAReport_InterferenceValue" xml:space="preserve">
+    <value>not counted</value>
+  </data>
+  <data name="FSAReport_UncoveredRow" xml:space="preserve">
+    <value>{0} keV: peak outside the composition — {1} % above the model, z {2}; library lines nearby: {3}</value>
+  </data>
+  <data name="FSAReport_UncoveredValue" xml:space="preserve">
+    <value>not in set</value>
+  </data>
+  <data name="FSAReport_UncoveredNone" xml:space="preserve">
+    <value>none</value>
+  </data>
+  <data name="FSAReport_SetOmittedRow" xml:space="preserve">
+    <value>{0}: in the nuclide set, not in the composition — {1}</value>
+  </data>
+  <data name="FSAReport_SetOmittedValue" xml:space="preserve">
+    <value>not fitted</value>
+  </data>
+  <data name="FSAReport_SetOmittedNoPeak" xml:space="preserve">
+    <value>no detected peak is labelled by it</value>
+  </data>
+  <data name="FSAReport_SetOmittedNoLines" xml:space="preserve">
+    <value>none of its lines is in the working range (search band, efficiency curve)</value>
+  </data>
+  <data name="FSAReport_SetOmittedNotConfirmed" xml:space="preserve">
+    <value>the lines its peaks are labelled with are not among its lines in the working range</value>
+  </data>
+  <data name="FSAReport_SetOmittedBelowCoverage" xml:space="preserve">
+    <value>{0} of {1} expected line groups confirmed by peaks ({2} %, threshold {3} %)</value>
+  </data>
+  <data name="FSAReport_SetOmittedNotNovel" xml:space="preserve">
+    <value>its confirmed lines are already explained by the composition</value>
+  </data>
+  <data name="FSAReport_ResidualNoise" xml:space="preserve">
+    <value>noise floor {0} %</value>
+  </data>
+  <data name="FSAReport_ResidualNoiseTip" xml:space="preserve">
+    <value>A model without a single error still shows about {0} % in each half: this is the Poisson noise of the band (the expected positive deviation of every channel from a perfect model, summed, over the measured counts of the same band). A residual near this floor does not tell the model from a perfect one; only what is above it is left undescribed.</value>
+  </data>
+  <data name="FSAReport_NoMatrixWarnRow" xml:space="preserve">
+    <value>No response matrix: cascade summing is not applied — cascade nuclides read low by CF − 1 (corpus: −3…−11 % at 5 cm, −4…−7 % in Marinelli and Petri); the images carry no Compton continuum and no escape peaks; the scale is anchored on bare peaks. Build the matrix from the geometry.</value>
+  </data>
+  <data name="FSAReport_NoMatrixWarnValue" xml:space="preserve">
+    <value>up to −11 %</value>
+  </data>
+  <data name="FSAReport_CurveOutsideRow" xml:space="preserve">
+    <value>Efficiency curve {0}…{1} keV — lines outside it are excluded from the images: {2}</value>
+  </data>
+  <data name="FSAReport_CurveOutsideValue" xml:space="preserve">
+    <value>excluded</value>
+  </data>
+  <data name="FSAReport_DensityRow" xml:space="preserve">
+    <value>Sample density {0} g/cm³, scene {1} g/cm³, difference {2} % — efficiency at 60 keV {3} %, at 662 keV {4} % (estimate for a 1 L Marinelli; activity not corrected)</value>
   </data>
 </root>

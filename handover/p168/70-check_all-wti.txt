@@ -1,0 +1,1880 @@
+читатель сторожей: 42 к вызову (заведомо красных по строкам реестра пропущено 0 — см. --all)
+
+→ зову: python tools/check_registry_refs.py
+    реестры: DONE.md — 1044 строк, TODO.md — 111 строк
+    известных номеров всего: 1153, буквы: ABCDEFMNPRSTVWX
+    обойдено файлов: 2201 (из них журналов-записей 336), строгих ссылок проверено: 12093
+    исключено по правилу: 59 ссылок (A200 ×4, C12 ×4, F0 ×7, F36 ×5, F42, F76, F77, N0 ×8, N42, P0, P1 ×8, P25 ×3, R662 ×3, T0, T1, T39 ×3, T51, T998, T999, T9999, V0, W0, X12)
+      правило «удалена решением Amber; ссылка в журнале историчная»: A200 ×4, T1, T39 ×3, T51
+        A200 — удалена приказом Amber 05.09.2026 вместе с A231–A233, T224 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        T1 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо»: «Удалить задачу T1»)
+        T39 — убрана решением Amber 18.08.2026 (handover/handover-2026-08-18-small-rows.md:18)
+        T51 — убрана решением Amber 18.08.2026 (handover/handover-2026-08-18-small-rows.md:18)
+      правило «приоритет строки P0–P3, а не её номер»: P0, P1 ×8
+      правило «формат числа .NET (номер 0 или буква DEFGNX на строке о печати чисел)»: F0 ×7, N0 ×8, N42, T0, V0, W0, X12
+      правило «имя полосы захода на строке о полосе/журнале/обрыве»: C12 ×4, F36 ×3, F42, F76, F77, P25, R662 ×3
+      правило «цитата положительного контроля (строка сама так себя называет)»: T998, T999, T9999
+      правило «поимённо, NOT_A_REF с причиной»: F36 ×2, P25 ×2
+        F36 — полоса захода 05.09.2026, оборвана (журнал handover-2026-09-05-f37-s132.md), а не строка
+        P25 — 25-й процентиль в записи статистики (handover-2026-09-05-f5-v18-v19.md), а не строка
+    битых строгих ссылок: 0
+✅ tools/check_registry_refs.py: код 0, 1.9 с
+
+→ зову: python tools/check_build_recipe.py
+    обойдено файлов: 4180 (из них журналов-записей 2282, вне git 1)
+    копий рецепта найдено: 84; судимых 66 (с ключом 66, БЕЗ ключа 0)
+    не судим по правилу «журнал — запись» (T219): 18 копий, из них без ключа — историчных 14
+        запись: handover/g2-guard-readers/00-recipe-baseline-tree.txt:7
+        запись: handover/g2-guard-readers/00-recipe-baseline-tree.txt:15
+        запись: handover/g2-guard-readers/05-control-bad-recipe.txt:7
+        запись: handover/g2-guard-readers/05-control-reader-stops.txt:32
+        запись: handover/handover-2026-08-13.md:200
+        запись: handover/handover-2026-08-14.md:256
+        запись: handover/handover-2026-08-15-evening.md:202
+        запись: handover/handover-2026-08-15.md:274
+        запись: handover/handover-2026-08-16-night.md:193
+        запись: handover/handover-2026-08-16.md:132
+        запись: handover/handover-2026-08-17-fluorescence.md:202
+        запись: handover/handover-2026-08-17-matrix-speed.md:447
+        запись: handover/handover-2026-08-17.md:190
+        запись: handover/handover-2026-08-18-cascade-xray.md:228
+    не судим по правилу «вне git — за Amber»: 0 копий, из них без ключа 0
+    копий без ключа среди судимых: 0
+    
+    с ключом (для сверки):
+      handover/2026-09-11-root-scripts/bqp11_arm.ps1:16
+      handover/2026-09-11-root-scripts/bqp12_arm.ps1:11
+      handover/2026-09-11-root-scripts/bqp14_build.ps1:9
+      handover/2026-09-11-root-scripts/bqp9_arm.ps1:10
+      handover/f4-a185/build_f4.ps1:7
+      handover/f49-a190-a228/build_f49.ps1:31
+      handover/p100-m13/build_wt.ps1:15
+      handover/p103-physics20/build_main.ps1:9
+      handover/p103-physics20/build_staple.ps1:8
+      handover/p103-physics20/build_wt.ps1:12
+      handover/p103-physics20/build_wt.ps1:20
+      handover/p103-physics20/build_wt_b31.ps1:12
+      handover/p103-physics20/build_wt_b31.ps1:20
+      handover/p106-m13/build_wt.ps1:15
+      handover/p107-physics21/build_main.ps1:9
+      handover/p107-physics21/build_staple.ps1:8
+      handover/p107-physics21/build_wt.ps1:12
+      handover/p107-physics21/build_wt.ps1:21
+      handover/p111-m13/build_wt.ps1:15
+      handover/p114-physics22/build_main.ps1:9
+      handover/p114-physics22/build_staple.ps1:8
+      handover/p114-physics22/build_wt.ps1:12
+      handover/p114-physics22/build_wt.ps1:21
+      handover/p123-materials/build_wt.ps1:10
+      handover/p142-rev33/build_p142.ps1:11
+      handover/p26-amber22/build_p26.ps1:7
+      handover/p26-amber22/build_wt.ps1:10
+      handover/p26-amber22/build_wt.ps1:19
+      handover/p29-huber/build_wt.ps1:19
+      handover/p31-a308-nnls/build_wt.ps1:20
+      handover/p37-store/build_wt.ps1:11
+      handover/p38-rev21/build_p38.ps1:11
+      handover/p50-physics18/build_wt.ps1:12
+      handover/p51-rev22/build_p51.ps1:10
+      handover/p54-amber25/scripts/build_app.ps1:11
+      handover/p55-a72/build_wt.ps1:9
+      handover/p65-s172/build_a.ps1:5
+      handover/p65-s172/build_b.ps1:5
+      handover/p66-rev23/build_p66.ps1:12
+      handover/p66-rev23/build_p66c.ps1:12
+      handover/p67-amber22/logs/build_wt.ps1:4
+      handover/p69-s174/build_a.ps1:6
+      handover/p69-s174/build_b.ps1:6
+      handover/p69-s174/build_bw.ps1:9
+      handover/p70-amber30/fix/fix_build.ps1:8
+      handover/p70-amber30/main/main_build.ps1:7
+      handover/p70-amber30/main/wt_build.ps1:8
+      handover/p71-s170/wt_build.ps1:8
+      handover/p72-t258-t259/build_p72.ps1:10
+      handover/p73-v10/scripts/build_p73.ps1:8
+      handover/p74-t260/finalize_main.ps1:15
+      handover/p75-s175/main_build.ps1:8
+      handover/p75-s175/wt_build.ps1:8
+      handover/p76-e43/scripts/build_p76.ps1:10
+      handover/p87-amber46/build_wt.ps1:12
+      handover/p87-amber46/build_wt.ps1:20
+      handover/p88-amber22/build_app.ps1:5
+      handover/p92-m12/build_wt.ps1:8
+      handover/p94-amber44/build_wt.ps1:8
+      handover/p96-amber43/build_wt.ps1:15
+      handover/p97-physics19/build_staple.ps1:8
+      handover/p97-physics19/build_wt.ps1:12
+      handover/p97-physics19/build_wt.ps1:20
+      handover/p99-b30/build_staple.ps1:8
+      handover/p99-b30/build_wt.ps1:12
+      handover/p99-b30/build_wt.ps1:20
+✅ tools/check_build_recipe.py: код 0, 2.4 с
+
+→ зову: python tools/check_resx.py
+    
+    русских resx просмотрено: 32, из них с английской парой: 32
+    файлов с расхождением: 0
+    непереведённых осмысленных строк: 0
+      из них ключ есть, а значение пусто: 0
+    ключей, которых нет в английской паре: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx.py: код 0, 0.4 с
+
+→ зову: python tools/check_resx_designer.py
+    
+    обращений с литеральным именем проверено: 880
+      из них через ОДИН шаг (обёртка или член): 63
+    ключей, которых нет в нейтральном resx: 0
+    обращений с вычисляемым именем: 4, из них разобрано одним шагом: 3
+    обращений с вычисляемым именем (проверке недоступны): 1
+          обёртки: DCFwhmCalibrationView.GetResourceText(аргумент 1), DoseRateCoefficients.Text(аргумент 1)
+          члены:   Resource
+    вызовов с именем обёртки, но не её самой (чужой получатель либо другой класс): 10
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx_designer.py: код 0, 3.7 с
+
+→ зову: python tools/check_resx_letters.py
+    
+    английских resx просмотрено: 45, русских: 32
+    генерируемых *.Designer.cs: 46, значений в них: 3833
+    находок: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx_letters.py: код 0, 0.5 с
+
+→ зову: python tools/check_resx_zorder.py
+    пар Foo.Designer.cs / Foo.resx: 43
+    контейнеров проверено: 85, с расхождением: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    ==========================================================================
+    расхождений нет
+✅ tools/check_resx_zorder.py: код 0, 0.3 с
+
+→ зову: python tools/check_headless.py
+    Сторож безоконного пути (S100). Дверь: AppUi.Report — BecquerelMonitor/GlobalConfigManager.cs:37
+      файлов приложения: 503, типов: 744, проб: 246
+      оконных типов по наследованию: 83; засев от проб: 302 типов
+      достижимо БЕЗ окон: 591 типов; барьер (оконные): 24
+      оконных типов, которые пробы СТРОЯТ (`new T(...)`): 37 — их конструкторы ALLOW не обеляет
+      живых MessageBox.Show: 142
+    
+    ПРЕДУПРЕЖДЕНИЕ: ALLOW['ResponseMatrixForm'] протухла: живых MessageBox.Show нет
+    
+    итого: безоконный путь 0, оконные 142, вне разряда 0
+    ЧИСТО: в безоконном пути модальных окон нет.
+✅ tools/check_headless.py: код 0, 5.0 с
+
+→ зову: python tools/check_menu_accelerators.py
+    
+      DCPeakDetectionView              корней 1, узлов 1, пунктов en/ru 2/2, с ускорителем 0/0, столкновений 0/0
+      DocEnergySpectrum                корней 3, узлов 15, пунктов en/ru 54/54, с ускорителем 9/9, столкновений 0/0
+      MainForm                         корней 1, узлов 10, пунктов en/ru 69/69, с ускорителем 41/41, столкновений 0/0; пропущено не-меню: statusStrip1 (StatusStrip)
+          подпись кодом: showLogToolStripMenuItem <- Resources.MenuShowLog (MainForm.cs:1892): en 'Show log' / ru 'Показать журнал'
+      ToolWindow                       корней 1, узлов 1, пунктов en/ru 3/3, с ускорителем 3/3, столкновений 0/0
+      Utils/CalibrationGraph           корней 1, узлов 1, пунктов en/ru 2/2, с ускорителем 0/0, столкновений 0/0
+      Utils/FWHMCalibrationGraph       корней 1, узлов 1, пунктов en/ru 2/2, с ускорителем 0/0, столкновений 0/0
+    ФОРМ судится 6, корней меню 8, узлов 29
+    АНГЛИЙСКИЙ: пунктов 132, с ускорителем 53, столкновений 0
+    РУССКИЙ:    пунктов 132, с ускорителем 53, столкновений 0
+    подписей, заданных кодом: 1
+    пунктов, добавляемых в меню кодом (разбору недоступны): 0
+    СОШЛОСЬ
+✅ tools/check_menu_accelerators.py: код 0, 0.3 с
+
+→ зову: python tools/check_numeric_updown.py
+    самопроверка: подброшенных образцов 5, заведомо чистых 5
+      САМОПРОВЕРКА ПРОШЛА
+    обойдено файлов: 549 (из них с общим полем 12; не судится сам InvariantNumericUpDown.cs — 1)
+    мест мимо общего приёма: 0
+✅ tools/check_numeric_updown.py: код 0, 0.6 с
+
+→ зову: python tools/check_fsa_docs.py
+    FsaAnalyzer.cs: описаний 371, умолчаний 104 (из них конструктор ставит 67)
+    ОПИСАНИЯ СОШЛИСЬ С КОНСТРУКТОРОМ: копий значений в описаниях нет.
+✅ tools/check_fsa_docs.py: код 0, 0.1 с
+
+→ зову: python tools/nucdb/check_ensdf_numbers.py
+      ✓ schemedb.ensdf_datasets           наборов ENSDF                            документ     3484, в базе     3484
+      ✓ schemedb.ensdf_datasets           разных дочерних нуклидов                 документ     1919, в базе     1919
+      ✓ schemedb.ensdf_datasets           наборов с номером уровня родителя        документ      662, в базе      662
+      ✓ schemedb.ensdf_levels             уровней                                  документ    35220, в базе    35220
+      ✓ schemedb.ensdf_gammas             переходов                                документ    79613, в базе    79613
+      ✓ schemedb.ensdf_gammas             гамм с полным коэффициентом конверсии    документ    19954, в базе    19954
+      ✓ schemedb.ensdf_gammas             гамм с мультипольностью                  документ    25906, в базе    25906
+      ✓ schemedb.ensdf_gammas             гамм без конечного уровня                документ     5283, в базе     5283
+      ✓ schemedb.ensdf_feedings           записей питания уровня                   документ    23498, в базе    23498
+      ✓ nucdb.gamma_coincidence        пар совпадений                           документ   128429, в базе   128429
+      ✓ nucdb.gamma_coincidence        пар с долей > 1                          документ     1820, в базе     1820
+      ✓ nucdb.gamma_coincidence        родителей с долей > 1                    документ       99, в базе       99
+      ✓ nucdb.gamma_coincidence_line   линий, участвующих в парах               документ    43231, в базе    43231
+      ✓ nucdb.gamma_coincidence_parent родителей                                документ     1643, в базе     1643
+    ✓ все 14 чисел §7/§8 сходятся с базами
+✅ tools/nucdb/check_ensdf_numbers.py: код 0, 0.2 с
+
+→ зову: python tools/nucdb/check_db_marks.py
+    # Колонки-признаки в базах против правила (`D36`, `D38`)
+    
+    ## Сверка: колонка против механического правила
+       в колонке 81, по правилу 81
+       СОШЛОСЬ до единицы
+    
+    1. `nuclides.half_life_is_limit` (`D36`): по правилу 81, разрешено 81
+    
+    ## Контроль правила: четыре набора `110AG`
+    
+       1103  110AG EC DECAY (24.6 S)      ждём пусто  вышло пусто   СОШЛОСЬ
+       1104  110AG IT DECAY (249.76 D)    ждём 2      вышло 2       СОШЛОСЬ
+       1105  110AG B- DECAY (24.6 S)      ждём пусто  вышло пусто   СОШЛОСЬ
+       1106  110AG B- DECAY (249.76 D)    ждём 2      вышло 2       СОШЛОСЬ
+    
+    ## Сверка: колонка `parent_l_seqno` против правила
+    
+      в колонке непустых 662, по правилу 662
+      СОШЛОСЬ до единицы
+    
+    2. `ensdf_datasets.parent_l_seqno` (`D38`): по правилу 662, разрешено 662
+    
+    ОБЕ КОЛОНКИ СОШЛИСЬ с правилом и с разрешёнными числами (81 и 662).
+✅ tools/nucdb/check_db_marks.py: код 0, 0.3 с
+
+→ зову: python tools/nucdb/check_isomer_levels.py
+    # Изомерная разметка `nucdb`: имя против уровня (`D40`, `D41`, `D47`)
+    база: D:\BqMoni_Claude\p168\wti\BecquerelMonitor\nucdb.sqlite
+    
+    1. `D41` дубли имени в `nuclides`: в базе 1, ожидалось 1
+       ✔ 144TBm: уровни 4/6/7
+    
+    2. `D40` свой уровень отсутствует в `decay_radiations`: в базе 1, ожидалось 1
+       ✔ 123CSm2: в таблице 5, в nuclides 8
+    
+    3. `D40` свой уровень отсутствует в `l_decays`: в базе 2, ожидалось 2
+       ✔ 123CSm2: в таблице 5, в nuclides 8
+       ✔ 179AUm: в таблице 2, в nuclides 7
+    
+    4. `D47` строки более чем на одном уровне в `decay_radiations`: в базе 4, ожидалось 4
+       ✔ 116AGm2: уровни 1/4, свой 4
+       ✔ 118INm2: уровни 1/3, свой 3
+       ✔ 190Wm2: уровни 6/7, свой 7
+       ✔ 70CUm2: уровни 1/3, свой 3
+    
+    5. `D47` строки более чем на одном уровне в `l_decays`: в базе 5, ожидалось 5
+       ✔ 116AGm2: уровни 1/4, свой 4
+       ✔ 118INm2: уровни 1/3, свой 3
+       ✔ 190Wm2: уровни 6/7, свой 7
+       ✔ 198BIm2: уровни 1/3, свой 3
+       ✔ 70CUm2: уровни 1/3, свой 3
+    
+    6. `D40` набор `123CSm2` против строк `123CSm1`
+       строк под `123CSm2`: 9; строк под `123CSm1`: 9; ожидалось по 9
+       ✔ совпали побитово по всем шести колонкам
+    
+    7. запасная ветвь `DecayParentRule.LevelClause`
+       ✔ найдено `coalesce`
+       ✔ найдено `min(y.parent_l_seqno)`
+    
+    8. числа `database/scheme.md` против базы
+       в базе: строк 4429, различных имён 4427
+       ✔ таблица §0: 4429
+       ✔ §2, заголовок таблицы: 4429
+       ✔ §2, различных имён: 4427
+    
+    ИЗОМЕРНАЯ РАЗМЕТКА СОШЛАСЬ: 1 дубль имени, 1 сирота в `decay_radiations`, 2 в `l_decays`, 4 и 5 имён на двух уровнях.
+✅ tools/nucdb/check_isomer_levels.py: код 0, 1.6 с
+
+→ зову: python tools/check_decay_numeric.py
+    самопроверка: 6 плохих поймано, 7 добрых пропущено
+    текстовых колонок `decay_radiations` под арифметикой не найдено
+✅ tools/check_decay_numeric.py: код 0, 1.8 с
+
+→ зову: python tools/check_parent_rule.py
+    === 1. КОПИИ ПРАВИЛА «РОДИТЕЛЬ» В КОДЕ ===
+      разрешён BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs вхождений 4 (ожидалось 4) — само правило — единственный носитель текста (три строки LevelClause, одна ChainLevelClause)
+      разрешён tools/CORPUS/scripts/chains.py                       вхождений 1 (ожидалось 1) — `fallbacks()`: диагностика «кому достался чужой уровень» тем же `exists`, что у правила; текст правила читается из .cs (`_level_clause`)
+      разрешён tools/check_parent_rule.py                           вхождений 0 (ожидалось 0) — этот сторож: образцы в его тексте — не SQL
+      разрешён tools/effmaker/probes/ChainRuleProbeF58.cs           вхождений 1 (ожидалось 1) — мера снятого варианта B (`perc not null` внутри минимума) — плечо «было», копией нарочно, как и RetiredClauseC
+      разрешён tools/effmaker/probes/DecayReadersProbe.cs           вхождений 1 (ожидалось 1) — `Fallbacks()`: та же диагностика в пробе, сверяющей обоих читателей (`S89`)
+      разрешён tools/nucdb/check_isomer_levels.py                   вхождений 1 (ожидалось 1) — сторож ищет текст запасной ветви правила — проверка, что она жива
+      файлов просмотрено: 973; копий вне правила: 0
+    
+    === 2. ТРИ НОСИТЕЛЯ НОМЕРА УРОВНЯ РОДИТЕЛЯ ===
+      2а gamma_coincidence_parent: основных 1225 (l_seqno = 0 у всех: да), изомеров с привязкой 236, расхождений 0
+      2б ensdf_datasets.parent_l_seqno: заполнено 662, расхождений с nuclides/периодом 0
+      2в крест с decay_radiations: имён проверено 1645 (без строк излучений 132), расхождений с LevelClause 0
+    
+    === сводка ===
+      копий правила вне DecayParentRule: 0
+      расхождений между носителями: 0
+    ПРАВИЛО «РОДИТЕЛЬ» ОДНО: копий нет, три носителя согласны с nuclides и LevelClause.
+✅ tools/check_parent_rule.py: код 0, 7.0 с
+
+→ зову: python tools/check_corpus_readme.py
+    === сторож журнала корпуса (T113) ===
+    действующие базы (из таблицы объявления): out_rev33_full, out_rev33_mini
+    R1 «действующая база X» с чужим X: 0
+    R2 раздел на снятой базе без пометки: 0
+    R3 шапка против дерева: 0
+    R4 состав частей против parts.csv: 0
+    СОШЛОСЬ: снятое подаётся снятым, шапка сходится с деревом
+✅ tools/check_corpus_readme.py: код 0, 0.2 с
+
+→ зову: python tools/check_scheme_gaps.py
+    # §9а: строки и владельцы
+    
+    строк в таблицах: 34
+    
+    # Открытые строки, которые не называют задачи
+    
+      нет
+    
+    # Ссылки в пустоту
+    
+      нет
+    
+    # Открытые строки, чья задача уже в DONE.md
+    
+      К глазам: либо дыра закрыта и здесь не отмечена, либо
+      закрыто другое. Прогон этим не валится.
+      B-1   строка 1535  -> N4 (в DONE.md)
+      B-1   строка 1535  -> N9 (в DONE.md)
+      B-2   строка 1536  -> M2 (в DONE.md)
+      C-2   строка 1544  -> N16 (в DONE.md)
+      C-3   строка 1545  -> M5 (в DONE.md)
+      D-4   строка 1557  -> W8 (в DONE.md)
+      D-10  строка 1558  -> W8 (в DONE.md)
+      D-5   строка 1559  -> D9 (в DONE.md)
+      E-1   строка 1569  -> D7 (в DONE.md)
+      E-2   строка 1570  -> N6 (в DONE.md)
+      E-3   строка 1571  -> D10 (в DONE.md)
+      F-2   строка 1582  -> T27 (в DONE.md)
+    
+    §9а СОШЁЛСЯ С РЕЕСТРОМ
+✅ tools/check_scheme_gaps.py: код 0, 0.3 с
+
+→ зову: python tools/check_corpus_library.py
+    ⛔ поставочный NuclideDefinition.xml на корпусе не используется (правило Amber 01.09.2026; гейт AMBER19 12.09.2026)
+      ЧИСТО   tools/effmaker/probes/FsaChannelSplitProbe.cs (проба оснастки: тождества каналов отклика — матрица из склада (`ResponseMatrixStore.Load`))
+      ЧИСТО   tools/effmaker/probes/FsaDoubleCountProbe.cs (проба оснастки: клетки A168 {матрица есть/нет} — матрица из склада по Guid кривой)
+      ЧИСТО   tools/effmaker/probes/ResponseRowDumpProbe.cs (проба оснастки: строки матрицы отклика — из склада; состава у пробы нет вовсе)
+      ЧИСТО   tools/effmaker/probes/FsaChannelShot.cs (проба оснастки: картинки каналов отклика — матрица из склада, без неё каналов нет)
+      ЧИСТО   tools/effmaker/probes/FsaComponentDumpProbe.cs (проба оснастки: ленты компонентов по каналам — матрица из склада)
+      ЧИСТО   tools/effmaker/probes/FsaSumPeakAccountProbe.cs (проба оснастки: сумм-пики строятся только с матрицей — из склада)
+      ЧИСТО   tools/effmaker/probes/FsaCascadeProbe.cs (проба оснастки: три прогона с матрицей из склада; `--rebuild` пишет туда же)
+      ЧИСТО   tools/effmaker/probes/CrystalXrayGateProbe.cs (проба оснастки: раздел 1 — вылет K-рентгена по строкам матрицы из склада)
+      ЧИСТО   tools/effmaker/probes/PeakOriginProbe.cs (проба оснастки: обход всего корпуса: состав каждого спектра из manifest.csv (`P5`, П19))
+      ЧИСТО   BecquerelMonitor/PeakDetector.cs (менеджер только лениво, внутри метода)
+      ЧИСТО   tools/effmaker/probes/CorpusFsaProbe.cs
+      ЧИСТО   tools/CORPUS/scripts/mkconfig.py
+    НАХОДОК: 0
+✅ tools/check_corpus_library.py: код 0, 0.2 с
+
+→ зову: python tools/check_corpus_truth.py
+    ⛔ истина корпуса: corpus_def ↔ manifest.csv, поля chains, nuclides
+    манифест: tools\CORPUS\corpus\manifest.csv (136 строк), corpus_def: 136 записей
+    РАСХОЖДЕНИЙ: 0
+✅ tools/check_corpus_truth.py: код 0, 0.1 с
+
+→ зову: python tools/check_done_headers.py
+    === счёт ===
+    строк таблицы в DONE.md: 1045
+    разобрано (заголовок выделен): 1039
+    заголовков со словами незнания: 18
+    ПРОТИВОРЕЧИЙ (незнание в заголовке + ответ в теле): 0
+    порядок: противоречий не найдено
+✅ tools/check_done_headers.py: код 0, 0.3 с
+
+→ зову: python tools/check_corpus_coverage.py
+    === 1. КОДЫ ВОЗВРАТА МЕРОК ОХВАТА ===
+    → зову: python tools/CORPUS/scripts/gaussfit_check.py --coverage-only
+        Traceback (most recent call last):
+          File "D:\BqMoni_Claude\p168\wti\tools\CORPUS\scripts\gaussfit_check.py", line 715, in <module>
+            sys.exit(main())
+                     ~~~~^^
+          File "D:\BqMoni_Claude\p168\wti\tools\CORPUS\scripts\gaussfit_check.py", line 500, in main
+            stray = sorted(f[:-4] for f in os.listdir(raw_dir)
+                                           ~~~~~~~~~~^^^^^^^^^
+        FileNotFoundError: [WinError 3] Системе не удается найти указанный путь: 'D:\\BqMoni_Claude\\p168\\wti\\tools\\CORPUS\\scripts\\_corpus_raw'
+    ⛔ tools/CORPUS/scripts/gaussfit_check.py: код 1
+    
+      пропущена gate_blind_check.py — долгая (~мин); звать ключом --deep
+      пропущена ecal_accept_check.py — долгая (~мин); звать ключом --deep
+      пропущена ecal_extrapolation.py — долгая (~мин); звать ключом --deep
+    ⚠ коды 4 (`V16`) и 5 (`V17`) у gate_blind_check.py этим сторожем НЕ читаются: их даёт только полный прогон мерки, без --coverage-only.
+    
+    === 2. МЕРКИ НА СЫРЬЕ БЕЗ ОХВАТА ===
+      освобождён build_corpus.py          — не мерка: стадия 1, которая _corpus_raw и СОЗДАЁТ
+      нарушителей: 0
+    
+    === сводка ===
+      ⛔ gaussfit_check.py        код 1
+    ОСТАНОВ: охват корпусных мерок сломан — мерок с ненулевым кодом 1, мерок без охвата 0. Числа таких мерок корпус НЕ описывают.
+⛔ tools/check_corpus_coverage.py: код 1, 0.4 с
+
+→ зову: python tools/check_declared_base.py
+    ОБЪЯВЛЕНИЕ: tools\CORPUS\README.md, раздел «ДЕЙСТВУЮЩАЯ БАЗА»
+    ИЗМЕРЕНИЕ:  tools/pie/score.py по файлам самого каталога
+    строк объявления взято: 4
+    
+    ОТКАЗ СТОРОЖА: полная `out_rev33_full` / понятная: каталог tools\pie\out_rev33_full (назван объявлением) не найден
+⛔ tools/check_declared_base.py: код 2, 0.2 с
+
+→ зову: python tools/check_pending_runs.py
+    сверяю: D:\BqMoni_Claude\p168\wti\TODO.md
+      строк реестра вне раздела: 111; с признаком «ЖДЁТ СЧЁТНОГО ЗАХОДА»: 0
+      строк в разделе «Отложенные прогоны» (файл:454): 0
+      разряды ожидания: пересборка файлов корпуса | пересчёт склада матриц | один прогон FSA на готовых матрицах
+    
+    СХОДИТСЯ: 0 строк ждут счётного захода, все названы в разделе и разряд у каждой один.
+✅ tools/check_pending_runs.py: код 0, 0.2 с
+
+→ зову: python tools/check_probe_tuning.py
+    сторож отчёта о настройках (`T243`): правило живёт ОДНИМ местом — FsaTuningReport.cs; судятся довесок и 39 проб, считающих FSA
+      FsaTuningReport.cs         ЦЕЛ — единственное место, где живёт правило
+      проб, считающих FSA: 39; о настройках молчат 0 — таких нет
+      самопроверка: девять подставленных порч пойманы, целые довесок и проба чисты
+    ОТЧЁТ О НАСТРОЙКАХ ЦЕЛ: правило одно, зовут его все 39 проб, молчащих нет.
+✅ tools/check_probe_tuning.py: код 0, 0.3 с
+
+→ зову: python tools/check_matrix_keys.py
+    сторож состава ключей обоих путей (T242): реестр -- 46 настроек матрицы, 6 кривой, 61 полей симулятора
+      самопроверка: 10 подставленных порч пойманы, целое дерево чисто
+      путь матрицы: 46 настроек, в клейме 41, рычаг пробы у 44, поле формы у 6
+      путь кривой: 6 настроек; симулятору он ставит РОВНО 17 полей (BremAlongPath, ElectronAnyMaterial, ElectronLayerBremAlongPath, ElectronLayerBremAngular2BS, ElectronLayerMixedScattering, ElectronLayerTransport, ElectronTransport, Histories, ImportanceSampling, LYieldSupply, LightCascadeSplit, LightSubKevCurve, PeakHalfWidthKev, PositronOffset, PositronTransport, RayleighToCrystal, Seed), остальное -- умолчания симулятора
+      одно место истины (правило I): 17 полей симулятора берут умолчание склада (LightBinUnified, ImportanceSampling, PeakChannelByTolerance, LYieldSupply, ElectronTransport, PositronTransport, PositronOffset, RayleighToCrystal, LightSubKevCurve <- KDipCurveHalf(KDipLight), LightCascadeSplit <- KDipCascadeHalf(KDipLight), SplitXrayShells, ElectronAnyMaterial, BremAlongPath, ElectronLayerTransport, ElectronLayerMixedScattering, ElectronLayerBremAlongPath, ElectronLayerBremAngular2BS)
+      односторонних ключей: намеренно 61, неприменимо 25, забыто 0
+    СОСТАВ КЛЮЧЕЙ СОШЁЛСЯ: у каждой настройки есть потребитель, всё, что в клейме, лежит в файле, и у каждого одностороннего ключа названа причина.
+✅ tools/check_matrix_keys.py: код 0, 1.5 с
+
+→ зову: python tools/check_geometry_names.py
+    спектров всего 136, из них сверено с .in 92
+    расхождений нет, знаков замены нет
+✅ tools/check_geometry_names.py: код 0, 0.3 с
+
+→ зову: python tools/check_fsa_view_groups.py
+    === переключатели окна отчёта FSA: род против группы (A265) ===
+      поле                     группа             род
+      atomicXrayCheckBox       extrasGroupBox     РАСЧЁТНЫЙ
+      backscatterCheckBox      extrasGroupBox     РАСЧЁТНЫЙ
+      cascadeSummingCheckBox   extrasGroupBox     РАСЧЁТНЫЙ
+      daughtersRadio           displayGroupBox    отрисовочный
+      equilibriumCheckBox      chainGroupBox      РАСЧЁТНЫЙ
+      escapeCheckBox           extrasGroupBox     РАСЧЁТНЫЙ
+      matrixLayerComboBox      displayGroupBox    отрисовочный
+      parentsRadio             displayGroupBox    отрисовочный
+      pileUpCheckBox           extrasGroupBox     РАСЧЁТНЫЙ
+      residualBandCheckBox     displayGroupBox    отрисовочный
+      sourceNucBaseRadio       sourceGroupBox     РАСЧЁТНЫЙ
+      sourcePeaksRadio         sourceGroupBox     РАСЧЁТНЫЙ
+      всего 12: расчётных 8, отрисовочных 4
+    
+    === подписи группы показа ===
+      английская   displayGroupBox.Text: есть
+      русская      displayGroupBox.Text: есть
+    
+    === САМОПРОВЕРКА: порченая копия обязана быть названа ===
+      подставлено: residualBandCheckBox → extrasFlow; названо поимённо, лишнего нет
+      подставлено: matrixLayerComboBox → extrasFlow; названо поимённо, лишнего нет
+      подставлено: обработчик matrixLayerComboBox зовёт ApplyCalculationChange; назван РАСЧЁТНЫМ в группе показа, лишнего нет
+    
+    СОШЛОСЬ: каждый переключатель в группе своего рода
+✅ tools/check_fsa_view_groups.py: код 0, 0.2 с
+
+→ зову: python tools/check_fsa_report_view.py
+        == сторож окна отчёта FSA: FsaReportViewProbe на паре корпуса ==
+          каталог проб : D:\BqMoni_Claude\p168\wti\tools\effmaker\probes\build
+          спектр (ряд) : tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+          контроль     : tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml
+          свежесть: сверено: набор приложения 14090934a8ad (550 файлов); FsaReportViewProbe.cs 62b49b006d98 (6 файлов); sha двух exe (0.8 с)
+          проба: код 0, 47.3 с, строк ok 326, строк ⛔ 0, последняя строка «ВСЕ СОШЛИСЬ»
+        СОШЛОСЬ: окно отчёта FSA — проба прошла (ВСЕ СОШЛИСЬ)
+✅ tools/check_fsa_report_view.py: код 0, 48.2 с
+
+→ зову: python tools/check_selection_panel_height.py
+      самопроверка «слагаемое без клейма»: код 1 
+      самопроверка «слагаемое отрисовки без пары в пробе»: код 1 
+      самопроверка «слагаемое пробы без пары в отрисовке»: код 1 
+      САМОПРОВЕРКА ПРОШЛА: все три порчи названы
+    отрисовка: слагаемых высоты 3, из них с клеймом 3 — подпись, спор, суммирование
+    мерка пробы: клейм 4 — спор, подпись, суммирование, спор
+    СОШЛОСЬ: 3 слагаемых высоты, у каждого клеймо и пара в мерке пробы
+✅ tools/check_selection_panel_height.py: код 0, 0.1 с
+
+→ зову: python tools/check_escape_parents.py
+    === ОТСЕВ РОДИТЕЛЕЙ ОБРАЗОВ ВЫЛЕТА (`A271`) ===
+      запас над порогом пар: 124.0 кэВ
+      все шесть правил сошлись
+    
+    === САМОПРОВЕРКА: две порченые копии обязаны быть названы ===
+      подставлено: запас снят из условия отбора — названо поимённо
+      подставлено: возвращена форма !double.IsNaN(x) && !(…) — названо поимённо
+    
+    СОШЛОСЬ: отсев родителей вылета работает и без вещества кристалла
+✅ tools/check_escape_parents.py: код 0, 0.1 с
+
+→ зову: python tools/check_crystal_material.py
+    === вещество кристалла у прибора: геометрия первична (A276) ===
+      1. свойство CrystalMaterialName объявлено
+      1. умолчание поля — пустая строка (старый конфиг читается)
+      2. глубокая копия переносит поле
+      3. FsaSampleSpec.CrystalMaterialName объявлено
+      4. порядок источников: геометрия -> поле прибора -> элементы
+      5. вывод состава берёт имя у конфигурации прибора (общим входом FsaSampleSpec.OfSpectrum)
+      6. путь по пикам берёт поле только там, где геометрии нет
+      7. форма связана с обоих концов: показ и запись
+      8. подписи поля и пункта «не задано» есть в обоих resx
+      9. имён веществ в коде разбора нет (сверено 36 имён засева)
+      10. проба CrystalMaterialProbe.cs на месте
+    
+    --- САМОПРОВЕРКА: две порченые копии ---
+      (а) источники переставлены  -> 4. ПОРЯДОК ИСТОЧНИКОВ НАРУШЕН: геометрия на 779, поле на 177, элементы на 926 — геометрия обязана быть первой
+      (б) умолчание не пусто      -> 1. поле crystalMaterialName не инициализировано пустой строкой — старая конфигурация без этого элемента получит не «пусто»
+    
+    СОШЛОСЬ: поле прибора читается запасным источником, геометрия первична
+✅ tools/check_crystal_material.py: код 0, 0.1 с
+
+→ зову: python tools/check_refit_z_class.py
+    === ОТСЕВ ПО ЗНАЧИМОСТИ И КЛАСС КОМПОНЕНТА (`A275`) ===
+      кусок приговора отсева: 2188 знаков
+      все шесть правил сошлись
+    
+    === САМОПРОВЕРКА: три порченые копии обязаны быть названы ===
+      подставлено: возврат распространён на мешающие образы — названо поимённо
+      подставлено: условие возврата переписано на общий счётчик — названо поимённо
+      подставлено: снят сброс счётчика возвращённых — названо поимённо
+    
+    СОШЛОСЬ: отсев не может оставить разбор без единого объявленного нуклида
+✅ tools/check_refit_z_class.py: код 0, 0.1 с
+
+→ зову: python tools/check_roi_listup.py
+    # Перестроение списка ROI не правит то, по чему идёт (A296)
+    
+    
+    ФОРМА ПРАВИЛА ЦЕЛА
+    положительный контроль: python tools/check_roi_listup.py --selftest
+✅ tools/check_roi_listup.py: код 0, 0.1 с
+
+→ зову: python tools/nucdb/check_edges.py
+    # Края поглощения: правило старшинства (D18)
+    
+    1. Порог и линии вылета (`xray_fluorescence`) против `xcom_edges`:
+       расходится 0 из 71 — ХОРОШО
+    2. Группа EADL (`eadl_binding` против `compton_profile_shell`):
+       элементов 100, макс 0.0000 %, медиана 0.0000 % — одна поставка
+    3. Группа EPICS/ESTAR (`epics_photo_subshell` против `estar_shells`):
+       элементов 100, макс 0.0040 %, медиана 0.0000 %
+    
+    Остаточное смешение, единственное: `MaterialDatabase` берёт полное
+    сечение из XCOM, а долю K-оболочки — из EPICS (`epics_photo_fit`).
+       элементов 90, макс 0.788 % (143090.0 против 141962.0 эВ), медиана 0.0148 %
+       Максимум приходится на Z = 98…100, которых в наших веществах не
+       бывает; на реальных составах расхождение ≤ 0.28 %.
+    
+    Правило соблюдается: каждая величина берёт край своей поставки.
+✅ tools/nucdb/check_edges.py: код 0, 0.2 с
+
+→ зову: python tools/check_probe_numbers.py
+    сторож печати чисел в оснастке (T245, T247): разделитель — только инвариантом, формат P — не применяется, у каждого числа — поставщик культуры; судятся 248 файлов tools/effmaker
+      законных подмен, помеченных «T245: НАРОЧНО»: 5
+      самопроверка: семь подставленных порч пойманы, целые файлы чисты (в том числе имя «P3» и проба, у которой культура — ПРЕДМЕТ замера)
+    ПЕЧАТЬ ЧИСЕЛ ЦЕЛА: подмен разделителя без метки нет, форматов P нет ни одного, числа печатаются только с поставщиком культуры.
+✅ tools/check_probe_numbers.py: код 0, 0.5 с
+
+→ зову: python tools/check_curve_generation.py
+    === поколение кривой против поколения матрицы и сборки (A119) ===
+      поколение сборки: 23
+      1. клеймо кривой печатается версией сборки
+      2. решение статическое, клеймо разбирается общим приёмом
+      3. литерального номера поколения в решении нет
+      4. вкладка зовёт решение и даёт ему версию сборки
+      5. вкладка спрашивает склад о поколении матрицы
+      6. обёртка склада делегирует общему чтению заголовка
+      7. обе подписи в обоих resx, по два места подстановки
+      8. обе подписи объявлены в Designer
+      9. замер на месте: CurveGenerationProbe.cs
+      10. сообщения идут своей подписью, а не хвостом к сводке
+      11. высота подписи считается по настоящему тексту
+    
+    --- САМОПРОВЕРКА: семь порченых копий и две сцены склада ---
+      (а) вызов решения снят                 -> 4. `UpdateEfficiencyView` не зовёт `GenerationNotes` — вкладка молчит
+      (б) поколение сборки числом            -> 4. `GenerationNotes` зовётся НЕ с `ResponseMatrix.PhysicsVersion`
+      (в) склад не спрашивается              -> 5. `UpdateEfficiencyView` не спрашивает склад (`ResponseMatrixStore.PeekVersions`) — поколение матрицы всегда 0
+      (г) клеймо кривой числом               -> 1. клеймо кривой не берёт `ResponseMatrix.PhysicsVersion` — поколение окаменеет
+      (д) сообщения хвостом к сводке         -> 10. сообщения дописываются в сводку (`parts`) — подпись 466×30 обрежет их МОЛЧА
+      (е) высота подписи числом              -> 11. `GenerationLabelHeight` не меряет текст `TextRenderer.MeasureText` — высота числом устареет на первом же переводе
+      (ё) русской подписи нет                -> 7. `EfficiencyTabCurveVsMatrix` нет в русской поставке ресурсов
+      (ж) склад с расхождением               -> кривая «Цилиндр» (дежурный.xml): поколение 11, сборка 16; кривая «Цилиндр» (дежурный.xml): поколение 11, а её матрица — 16
+      (з) склад согласный (контроль)         -> молчит
+    
+    СОШЛОСЬ: расхождение поколений названо словами и сравнение не обездвижено
+✅ tools/check_curve_generation.py: код 0, 0.2 с
+
+→ зову: python tools/check_dump_readers.py
+    сторож читателей дампа (T254, A284): столбец `net` (показная кривая) рядом с `model` — только у названных по пути; судятся 156 файлов tools/**/*.py, разрешённых 3
+      разрешён: tools/CORPUS/scripts/wave_owner.py (есть) — `S88`: читает дамп через `wave_shape.load` (сам ключей не берёт; назван, потому что назван строкой `T254`)
+      разрешён: tools/CORPUS/scripts/wave_shape.py (есть) — `S88`: волна отношения модель/измерение — мерится ФОРМА, а не χ²; тот же формат без `fit` пишет `FsaStackShot --dump=`
+      разрешён: tools/check_fsa_showcase.py (есть) — `T260`: сторож КАРТИНКИ — сворачивает по полосам энергии ОБЕ кривые порознь: `fit` (число невязки строки отчёта: `missing_fit`/`excess_fit`) и `net` (лента на графике: `missing_net`/`excess_net`); χ² не считает, показную кривую с моделью не смешивает — сравнивает свёртку с эталоном
+      самопроверка: плохой читатель и чужой wave_shape.py пойманы; читатель по `fit`, читатель одного `net` и комментарий чисты
+    ЧИТАТЕЛИ ДАМПА ЧИСТЫ: столбец `net` рядом с `model` берут только разрешённые.
+✅ tools/check_dump_readers.py: код 0, 0.2 с
+
+→ зову: python tools/check_corpus_generator.py
+    корпус: tools\CORPUS\corpus
+    
+    == клеймо генератора корпуса (T244) ==
+      набор генератора в дереве: 11 файлов, отпечаток 449a7d7f6183ff5f
+      клеймо: собрано на HEAD 42291677 (генератор был ГРЯЗНЫМ: tools/CORPUS/scripts/build_corpus.py), отпечаток 449a7d7f6183ff5f
+      СОШЛОСЬ: корпус собран ТЕМ генератором, что лежит в дереве (11 файлов)
+    
+    == сводка корпуса — пересборкой в памяти (T244, доля П6) ==
+      manifest.csv: 136 спектров; пересобрано строк сводки: 136
+      ⛔ summary.csv РАЗОШЛОСЬ: на диске 137 строк, пересборка даёт 137
+         первая разошедшаяся строка 28:
+           на диске:    ✅,,ASN16_Cs137,ASN16,known,137CS,8192,356491.2,250626474,6.26,встроен,gain/xlow/grp,ASN16_point0_house,POINT,"точечный источник, вплотную к 
+           пересборка:  ❗,нет матрицы,ASN16_Cs137,ASN16,known,137CS,8192,356491.2,250626474,6.26,встроен,gain/xlow/grp,ASN16_point0_house,POINT,"точечный источник, 
+      ⛔ SUMMARY.md  РАЗОШЛОСЬ: на диске 184 строк, пересборка даёт 268
+         первая разошедшаяся строка 10:
+           на диске:    ## Состояние: ✅ 123, ❗ 13 из 136
+           пересборка:  ## Состояние: ✅ 39, ❗ 97 из 136
+      Лечится пересборкой сводки: python tools/CORPUS/scripts/corpus_summary.py
+      (сводку читают ЛЮДИ: SUMMARY.md показывал корпус двухдневной давности, П6).
+    
+    ОСТАНОВ: корпус или сводка отстают от своего генератора (см. выше).
+⛔ tools/check_corpus_generator.py: код 1, 1.3 с
+
+→ зову: python tools/check_corpus_scenes.py
+    == сторож сцен генератора (T261): генератор → клеймо → живые .in / .rmx ==
+      каталог проб : D:\BqMoni_Claude\p168\wti\tools\effmaker\probes\build
+      живые сцены  : D:\BqMoni_Claude\p168\wti\tools\CORPUS\corpus\geometries
+      свежесть: сверено: набор приложения 14090934a8ad (550 файлов); CorpusGeomProbe.cs 330de6f15968 (6 файлов); MatrixStampProbe.cs 17b2ace2a8f7 (6 файлов); sha трёх exe (0.8 с)
+      генератор CorpusGeomProbe.exe --out=C:\Users\moroz\AppData\Local\Temp\bq_scenes_qxpvoscp\gen: код 0, 0.5 с; геометрий 49, спектров 92, ВСЕ СОШЛИСЬ; корень корпуса генератора: D:\BqMoni_Claude\p168\wti\tools\CORPUS
+      сцен в корпусе 49, построено генератором 49
+      ✅ опись index.csv: побайтно равна (12732 байт, 93 строк)
+    
+      сцена                          живой .in                генератор                матрица .rmx             приговор
+      AS80_lu_front                  phys=23;a186be451289f92d phys=23;a186be451289f92d нет .rmx                 СОШЛОСЬ
+      AS80_point0                    phys=23;14248db6e3fbdf32 phys=23;14248db6e3fbdf32 нет .rmx                 СОШЛОСЬ
+      AS80_th_disk                   phys=23;224fb7ab2b60c267 phys=23;224fb7ab2b60c267 phys=23;224fb7ab2b60c267 СОШЛОСЬ
+      ASN16_lu_side                  phys=23;7a2c1e28729f06d6 phys=23;7a2c1e28729f06d6 нет .rmx                 СОШЛОСЬ
+      ASN16_point0_house             phys=23;9f7a09c47ab1b7cd phys=23;9f7a09c47ab1b7cd нет .rmx                 СОШЛОСЬ
+      ASN16_point10_house            phys=23;1ddf0868f8ec5101 phys=23;1ddf0868f8ec5101 нет .rmx                 СОШЛОСЬ
+      G1S_denta100_oisn10_100_p16    phys=23;4755d96716b822e1 phys=23;4755d96716b822e1 нет .rmx                 СОШЛОСЬ
+      G1S_denta100_risn379_100_p16   phys=23;c86500702b73daaf phys=23;c86500702b73daaf нет .rmx                 СОШЛОСЬ
+      G1S_denta120_oisn06_057_p24    phys=23;fcca96902d5c7427 phys=23;fcca96902d5c7427 нет .rmx                 СОШЛОСЬ
+      G1S_denta120_oisn06_062_p24    phys=23;89ca37690ae8f2a2 phys=23;89ca37690ae8f2a2 нет .rmx                 СОШЛОСЬ
+      G1S_denta120_oisn06_064_p24    phys=23;5fb5bed34a425ca4 phys=23;5fb5bed34a425ca4 нет .rmx                 СОШЛОСЬ
+      G1S_denta120_oisn06_066_p24    phys=23;bdba9c2a450d298e phys=23;bdba9c2a450d298e нет .rmx                 СОШЛОСЬ
+      G1S_denta120_oisn16_155_p24    phys=23;00e10edd1c1aabf8 phys=23;00e10edd1c1aabf8 нет .rmx                 СОШЛОСЬ
+      G1S_denta120_oisn16_160_p24    phys=23;0a4d76e5ec80ca1f phys=23;0a4d76e5ec80ca1f нет .rmx                 СОШЛОСЬ
+      G1S_denta120_oisn16_166_p24    phys=23;c5943d88e1d314db phys=23;c5943d88e1d314db нет .rmx                 СОШЛОСЬ
+      G1S_denta120_oisn16_167_p24    phys=23;3ede078008c401ff phys=23;3ede078008c401ff нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_coal_046_p24         phys=23;835ac8b5e100f1ae phys=23;835ac8b5e100f1ae phys=23;835ac8b5e100f1ae СОШЛОСЬ
+      G1S_mar1l_oisn06_055_p16       phys=23;fe04199366c65af1 phys=23;fe04199366c65af1 нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn06_057_p16       phys=23;33410348e776d0af phys=23;33410348e776d0af нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn06_057_p24       phys=23;2bd1d4b8de3b1eb0 phys=23;2bd1d4b8de3b1eb0 нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn06_062_p16       phys=23;46090e11dd171ef2 phys=23;46090e11dd171ef2 нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn06_062_p24       phys=23;529e8d161f6b5346 phys=23;529e8d161f6b5346 нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn06_064_p24       phys=23;615f3d9fd7d210de phys=23;615f3d9fd7d210de нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn06_066_p16       phys=23;2a9df6394f6dbda5 phys=23;2a9df6394f6dbda5 нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn06_066_p24       phys=23;0a20b7050d3a7116 phys=23;0a20b7050d3a7116 нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn16_155_p16       phys=23;115732c95cc853f6 phys=23;115732c95cc853f6 нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn16_155_p24       phys=23;bb08cfef3a0315b0 phys=23;bb08cfef3a0315b0 нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn16_160_p16       phys=23;b5cbda909e9ee7eb phys=23;b5cbda909e9ee7eb нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn16_160_p24       phys=23;f564c16010b5a238 phys=23;f564c16010b5a238 нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn16_166_p16       phys=23;6e675f89cfdc86b4 phys=23;6e675f89cfdc86b4 нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn16_166_p24       phys=23;f51fb143cc72caf3 phys=23;f51fb143cc72caf3 нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn16_167_p16       phys=23;8c3d5785bfd476b2 phys=23;8c3d5785bfd476b2 нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_oisn16_167_p24       phys=23;7aa9465a1ead7e39 phys=23;7aa9465a1ead7e39 нет .rmx                 СОШЛОСЬ
+      G1S_mar1l_risn379_100_p16      phys=23;afc323ef2662887d phys=23;afc323ef2662887d нет .rmx                 СОШЛОСЬ
+      G1S_petri60_oisn06_057_p24     phys=23;c2fd2b749766a242 phys=23;c2fd2b749766a242 нет .rmx                 СОШЛОСЬ
+      G1S_petri60_oisn06_062_p24     phys=23;2dfa500fe71a8050 phys=23;2dfa500fe71a8050 нет .rmx                 СОШЛОСЬ
+      G1S_petri60_oisn06_064_p24     phys=23;7929b19f1c2e258a phys=23;7929b19f1c2e258a нет .rmx                 СОШЛОСЬ
+      G1S_petri60_oisn06_067_p24     phys=23;4e9b1b2c9e485fce phys=23;4e9b1b2c9e485fce нет .rmx                 СОШЛОСЬ
+      G1S_petri60_oisn10_100_p16     phys=23;4aedb80a80395ee3 phys=23;4aedb80a80395ee3 нет .rmx                 СОШЛОСЬ
+      G1S_petri60_oisn16_155_p24     phys=23;4a2c93a46aca3c81 phys=23;4a2c93a46aca3c81 нет .rmx                 СОШЛОСЬ
+      G1S_petri60_oisn16_160_p24     phys=23;ec3d1050b9cb3313 phys=23;ec3d1050b9cb3313 нет .rmx                 СОШЛОСЬ
+      G1S_petri60_oisn16_167_p24     phys=23;cfca668f43ee00e1 phys=23;cfca668f43ee00e1 нет .rmx                 СОШЛОСЬ
+      G1S_petri60_risn379_100_p16    phys=23;79966a9c6ca24fd5 phys=23;79966a9c6ca24fd5 нет .rmx                 СОШЛОСЬ
+      G1S_point25                    phys=23;8f78329b66b3228f phys=23;8f78329b66b3228f нет .rmx                 СОШЛОСЬ
+      G1S_point5                     phys=23;1c7b97980a9b6e42 phys=23;1c7b97980a9b6e42 нет .rmx                 СОШЛОСЬ
+      RC103_lu_front                 phys=23;f5baed415d671aaa phys=23;f5baed415d671aaa нет .rmx                 СОШЛОСЬ
+      RC103_marinelli05_kcl          phys=23;f6a67cffcd540d9a phys=23;f6a67cffcd540d9a нет .rmx                 СОШЛОСЬ
+      RC103_point0                   phys=23;e5e95f84145d8eb6 phys=23;e5e95f84145d8eb6 нет .rmx                 СОШЛОСЬ
+      RC103_point50                  phys=23;8b6a56370c666530 phys=23;8b6a56370c666530 нет .rmx                 СОШЛОСЬ
+    
+      сцен 49: сошлось 49, разошлось 0; клейма сняты у 49; матриц на месте 2 из 49, на своей сцене и рецепте 2
+      время 6.6 с: генератор 0.5, клейма 5.3 на 8 потоках (98 запусков), свежесть 0.8
+      ✅ СОШЛОСЬ: генератор воспроизводит корпус с точностью до клейма, опись побайтно, матрицы склада — на своих сценах штатным рецептом
+✅ tools/check_corpus_scenes.py: код 0, 6.8 с
+
+→ зову: python tools/check_no_images.py
+    картинок под handover/, tools/ в индексе git нет
+✅ tools/check_no_images.py: код 0, 0.2 с
+
+→ зову: python tools/check_registry.py
+    # Номера
+    
+    TODO.md  строк 111, столкновений внутри файла: нет
+    DONE.md  строк 1044, столкновений внутри файла: нет
+    переиспользовано между файлами: N12, N13
+      (T25: оставлено сознательно, новых так заводить нельзя —
+       номер берётся максимальным по обоим файлам)
+    следующий свободный номер: A313, AMBER136, B32, C5, D51, E44, F31, M14, N19, P7, R10, S197, T263, V29, W31, X3
+    
+    # Ссылки на файлы, которых нет в дереве
+    
+      TODO.md  AMBER104 строка 227  GeometryMaterials.xml
+      TODO.md  AMBER63 строка 285  config/device/*.xml
+      TODO.md  AMBER73 строка 295  .xml
+      TODO.md  AMBER53 строка 302  config\GeometryMaterials.xml
+      TODO.md  A312  строка 379  Am-241.xml
+      TODO.md  S182  строка 434  runs.csv
+      TODO.md  S184  строка 436  EnergySpectrumView*.cs
+      TODO.md  S196  строка 448  handover/handover-2026-09-24-p161-night-rev34-launch.md
+      DONE.md  E20   строка 113  config\GeometryMaterials.xml, tools/effmaker/probes/MaterialLibraryProbe.cs
+      DONE.md  B15   строка 116  !AS80x80\Lu-176.xml, !AS80x80\Th232(WT-20).xml
+      DONE.md  B9    строка 117  !AS80x80\Lu-176.xml, !ASN16\Lu176.xml
+      DONE.md  S81   строка 127  Th232_29.07.2022.xml
+      DONE.md  S80   строка 128  Th232_29.07.2022.xml
+      DONE.md  S69   строка 129  Th232_29.07.2022.xml, limits.csv
+      DONE.md  S68   строка 130  .ru.resx, Th232_29.07.2022.xml, limits.csv
+      DONE.md  S71   строка 131  Th232_29.07.2022.xml
+      DONE.md  S70   строка 132  .ru.resx, Th232_29.07.2022.xml
+      DONE.md  B12   строка 135  .xml, …_Точечная-5см_5cm.xml
+      DONE.md  B10   строка 138  !AS80x80\Lu-176.xml, !AS80x80\Th232(WT-20).xml
+      DONE.md  S60   строка 144  lines_<режим>.csv
+      DONE.md  S72   строка 146  Th232_29.07.2022.xml
+      DONE.md  S78   строка 147  Th232_29.07.2022.xml, components.csv
+      DONE.md  S79   строка 148  Th232_29.07.2022.xml
+      DONE.md  S85   строка 149  Th232_29.07.2022.xml
+      DONE.md  S61   строка 154  handover/handover-2026-09-12-p9-cleaner-s.md
+      DONE.md  B25   строка 155  handover/handover-2026-09-10-b25-low-anchor.md, handover/handover-2026-09-10-p9-pogreshnosti.md
+      DONE.md  B17   строка 156  handover/handover-2026-09-10-p13-th-steklo.md, handover/handover-2026-09-12-p19-light-line.md, handover/handover-2026-09-12-p4-am241-escape.md
+      DONE.md  B29   строка 157  handover/handover-2026-09-11-p14-anchor-poly.md, handover/handover-2026-09-12-p19-cheap-rows.md, handover/p19-cheap-rows/b29_kedge_shift.py
+      DONE.md  A104  строка 172  handover/handover-2026-09-05-b3-matrix-stores.md, handover/handover-2026-09-06-p15-reproducibility.md
+      DONE.md  AMBER1 строка 181  config/device/*.xml, handover/handover-2026-09-08-amber1-amber2.md
+      DONE.md  AMBER2 строка 182  handover/handover-2026-09-08-amber1-amber2.md, handover/handover-2026-09-10-p1-podpisi.md
+      DONE.md  AMBER3 строка 183  *.sqlite, config\GeometryMaterials.xml, handover/handover-2026-09-10-p13-th-steklo.md, handover/handover-2026-09-10-p5-geity.md
+      DONE.md  AMBER13 строка 185  *.xml, config/device/*.xml, handover/handover-2026-09-10-p19-doserate.md, handover/handover-2026-09-10-p21-doserate-chistka.md, handover/handover-2026-09-12-p6-iso-dose.md, tools/p21_view/DoseRateCleanupP21Probe.cs
+      DONE.md  AMBER14 строка 186  handover/handover-2026-09-10-p19-doserate.md, handover/handover-2026-09-10-p26-zazhim-i-n42.md, tools/p19_view/DoseRateTabP19Probe.cs, tools/p23_view/N42ExportWarningP23Probe.cs
+      DONE.md  AMBER15 строка 187  handover/handover-2026-09-10-p25-priyomka-p22.md, handover/handover-2026-09-12-p3-channel-probes.md
+      DONE.md  AMBER16 строка 188  C:/Users/moroz/bqp9_*.py, handover/handover-2026-09-11-p11-gain-after-anchor.md, handover/handover-2026-09-11-p12-asimov.md, handover/handover-2026-09-11-p8-stretch.md, handover/handover-2026-09-11-review-answer.md, handover/handover-2026-09-12-p20-store-count.md, handover/handover-2026-09-12-p3-channel-probes.md, handover/handover-2026-09-12-p4-am241-escape.md, handover/response-channels-cascade-2026-09-11.md, handover/response-channels-review-answer-2026-09-11.md
+      DONE.md  AMBER17 строка 189  handover/handover-2026-09-11-p11-gain-after-anchor.md, handover/handover-2026-09-11-p13-out-rev16.md, handover/handover-2026-09-11-p14-anchor-poly.md, handover/handover-2026-09-11-p16-light-anchor.md, handover/handover-2026-09-11-p18-light-anchor-full.md, handover/handover-2026-09-11-review-answer.md, handover/handover-2026-09-12-p19-light-line.md, handover/handover-2026-09-12-p4-am241-escape.md
+      DONE.md  AMBER18 строка 190  .ru.resx, BecquerelMonitor/DeviceConfigForm.cs:2534, BecquerelMonitor/DoseRateConfig.cs, BecquerelMonitor/MainForm.cs:685, DosePointsProbeF9.cs, DoseRateCalibrationPoint.cs, DoseRateConfig.cs, config/device/*.xml, handover/handover-2026-09-12-p1-doserate.md, handover/handover-2026-09-12-p6-iso-dose.md, handover/handover-2026-09-12-p7-lsrm-geometry.md, tools/p19_view/DoseRateTabP19Probe.cs, tools/p21_view/DoseRateCleanupP21Probe.cs
+      DONE.md  AMBER20 строка 192  handover/2026-09-12-mix-stack/, handover/handover-2026-09-12-p14-anchor-glyph.md
+      DONE.md  AMBER21 строка 193  handover/handover-2026-09-06-f49-a190-a228.md, labels_*.csv
+      DONE.md  AMBER23 строка 194  BecquerelMonitor/EnergySpectrumView.cs:2596, handover/handover-2026-09-12-p25-amber23-fwhm-overflow.md
+      DONE.md  AMBER24 строка 195  *.xml, .ru.resx, config\GeometryTemplates.xml, handover/handover-2026-09-13-p53-amber24-geometry-templates.md
+      DONE.md  AMBER25 строка 196  .Designer.cs, .resx, .ru.resx, EfficiencyMaker/EfficiencyFitter.cs, EtlCheck.cs, Utils/SpectrumScout.cs, compare_scratch.py, plot_curves.py, run.ps1
+      DONE.md  AMBER26 строка 197  .ru.resx, handover/handover-2026-09-14-p57-amber26-row-height.md
+      DONE.md  AMBER27 строка 198  handover/handover-2026-09-14-p59-amber27-radon.md
+      DONE.md  AMBER28 строка 199  handover/handover-2026-09-14-p61-amber28-readme.md
+      DONE.md  AMBER22 строка 202  Th-232_after.xml
+      DONE.md  AMBER43 строка 212  .csproj
+      DONE.md  AMBER46 строка 216  !AS80x80\Lu-176.xml, Lu-176.xml, Th232(WT-20).xml, ab_*.md, run_out_*.json, tools/fsa_showcase/reference/*.json
+      DONE.md  A10   строка 235  ru.resx
+      DONE.md  A11   строка 236  .ru.resx
+      DONE.md  A12   строка 237  *.ru.resx, PulseView.ru.resx
+      DONE.md  A15   строка 240  *.cs, app-silent-failures.md
+      DONE.md  A23   строка 248  *.ru.resx
+      DONE.md  A35   строка 259  Lu176.xml
+      DONE.md  A39   строка 262  handover/f39-triage-as/rmx-headers-f39.csv
+      DONE.md  A48   строка 268  app-silent-failures.md
+      DONE.md  A50   строка 270  *.xml, .resx, handover/handover-2026-09-02-chain-zeroed.md, handover/handover-2026-09-04-a50-store.md, handover/handover-2026-09-05-f18-p8a.md
+      DONE.md  A75   строка 291  corpus/spectra/<ключ>.xml
+      DONE.md  A77   строка 293  handover/handover-2026-09-06-f70-a77.md
+      DONE.md  A84   строка 300  --map=<ключ,guid>.csv
+      DONE.md  A87   строка 303  handover/handover-2026-09-04-a99-a87.md
+      DONE.md  A88   строка 304  *.resx, .ru.resx
+      DONE.md  A89   строка 305  handover/handover-2026-09-04-a89-a95.md
+      DONE.md  A90   строка 306  handover/handover-2026-09-04-a90-a92.md
+      DONE.md  A91   строка 307  *.Designer.cs, ru.resx
+      DONE.md  A92   строка 308  handover/handover-2026-09-04-a90-a92.md
+      DONE.md  A93   строка 309  handover/handover-2026-09-04-a93-a107.md
+      DONE.md  A94   строка 310  handover/handover-2026-09-04-a94.md
+      DONE.md  A95   строка 311  BecquerelMonitor/FullSpectrumAnalysis/FsaOverlay.cs
+      DONE.md  A98   строка 314  *.cs, .resx, Designer.cs
+      DONE.md  A99   строка 315  *.ru.resx, handover/handover-2026-09-04-a99-a87.md
+      DONE.md  A105  строка 319  handover/handover-2026-09-04-a105.md
+      DONE.md  A107  строка 321  BecquerelMonitor/**/*.resx, handover/handover-2026-09-04-a93-a107.md, ru.resx
+      DONE.md  A112  строка 326  handover/handover-2026-09-04-a93-a107.md
+      DONE.md  A115  строка 329  Designer.cs, handover/handover-2026-09-04-a93-a107.md
+      DONE.md  A118  строка 332  .resx, .ru.resx, Foo.Designer.cs, Foo.cs, Foo.resx
+      DONE.md  A120  строка 333  handover/handover-2026-09-06-f59-effmaker.md
+      DONE.md  A121  строка 334  handover/handover-2026-09-04-a50-store.md, handover/handover-2026-09-05-b3-matrix-stores.md, handover/handover-2026-09-05-b6-matrix-fingerprint.md
+      DONE.md  A122  строка 335  handover/handover-2026-09-04-a50-store.md, handover/handover-2026-09-05-b3-matrix-stores.md
+      DONE.md  A124  строка 337  *.Designer.cs, *.resx, handover/handover-2026-09-04-a126.md
+      DONE.md  A126  строка 339  Designer.cs, ru.resx
+      DONE.md  A129  строка 341  handover/handover-2026-09-04-a129.md
+      DONE.md  A134  строка 346  handover/handover-2026-09-04-a134.md
+      DONE.md  A135  строка 347  handover/handover-2026-09-04-a135.md
+      DONE.md  A136  строка 348  .resx, Designer.cs, Properties/Resources*.resx
+      DONE.md  A139  строка 351  handover/handover-2026-09-04-a139.md
+      DONE.md  A143  строка 355  handover/handover-2026-09-05-n42.md
+      DONE.md  A144  строка 356  handover/handover-2026-09-05-a144-a118.md
+      DONE.md  A145  строка 357  .cs/.Designer.cs/.resx/.ru.resx, .csproj, FsaOverlay.cs, handover/handover-2026-09-05-b15-a145-stage3.md, handover/handover-2026-09-05-b4-a145-stage1.md, handover/handover-2026-09-05-b8-a145-stage2.md
+      DONE.md  A165  строка 377  handover/handover-2026-09-05-b5-a165-aggregate.md
+      DONE.md  A167  строка 379  config/ROI/*.xml, config\ROI\*.xml, handover/handover-2026-09-05-roi.md
+      DONE.md  A168  строка 380  .csproj, handover/handover-2026-09-05-b4-a145-stage1.md
+      DONE.md  A169  строка 381  handover/handover-2026-09-05-b4-a145-stage1.md
+      DONE.md  A170  строка 382  handover/handover-2026-09-05-b4-a145-stage1.md
+      DONE.md  A171  строка 383  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A172  строка 384  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A173  строка 385  *.cs, handover/handover-2026-09-05-b7-small-rows.md
+      DONE.md  A174  строка 386  handover/handover-2026-09-05-b7-small-rows.md
+      DONE.md  A175  строка 387  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A176  строка 388  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A177  строка 389  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A178  строка 390  handover/handover-2026-09-05-b7-small-rows.md
+      DONE.md  A181  строка 393  %AppData%\BecqMoni\config\GeometryMaterials.xml, *.sqlite, handover/handover-2026-09-06-f67-a181.md, handover/handover-2026-09-06-f69-oisn.md
+      DONE.md  A183  строка 395  handover/handover-2026-09-06-f59-effmaker.md
+      DONE.md  A184  строка 396  handover/handover-2026-09-06-f55-strings.md
+      DONE.md  A185  строка 397  handover/handover-2026-09-05-f4-a185.md
+      DONE.md  A186  строка 398  handover/handover-2026-09-05-b6-matrix-fingerprint.md
+      DONE.md  A187  строка 399  .ru.resx, check_resx*.py, handover/handover-2026-09-06-f55-strings.md
+      DONE.md  A188  строка 400  .resx, .ru.resx, Designer.cs, handover/handover-2026-09-05-c3-c4-doserate.md
+      DONE.md  A189  строка 401  check_resx*.py, handover/handover-2026-09-05-b9-activity-refusals.md
+      DONE.md  A190  строка 402  handover/handover-2026-09-06-f49-a190-a228.md
+      DONE.md  A192  строка 404  handover/handover-2026-09-05-b9-activity-refusals.md
+      DONE.md  A196  строка 408  handover/handover-2026-09-05-o1-labels.md
+      DONE.md  A197  строка 409  handover/handover-2026-09-05-o1-labels.md
+      DONE.md  A201  строка 412  .ru.resx, Resources*.resx
+      DONE.md  A202  строка 413  Designer.cs, handover/handover-2026-09-05-o8-doserate-tab.md
+      DONE.md  A203  строка 414  handover/handover-2026-09-05-o3-doserate-lsrm.md
+      DONE.md  A204  строка 415  handover/handover-2026-09-05-b15-a145-stage3.md
+      DONE.md  A206  строка 416  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A207  строка 417  .xml, check_resx*.py, handover/handover-2026-09-05-c4-n42-volna.md, handover/handover-2026-09-06-f52-a207.md
+      DONE.md  A208  строка 418  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A209  строка 419  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A210  строка 420  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A212  строка 422  handover/handover-2026-09-05-f23-a212.md, handover/handover-2026-09-05-o7-import-nre.md
+      DONE.md  A213  строка 423  handover/handover-2026-09-06-f54-doors.md
+      DONE.md  A214  строка 424  handover/handover-2026-09-06-f54-doors.md
+      DONE.md  A216  строка 426  handover/handover-2026-09-06-f54-doors.md
+      DONE.md  A217  строка 427  handover/handover-2026-09-06-f54-doors.md
+      DONE.md  A218  строка 428  handover/handover-2026-09-05-f2-t78-t93.md, handover/handover-2026-09-06-f58-parentrule.md
+      DONE.md  A219  строка 429  handover/handover-2026-09-05-f8-a219.md
+      DONE.md  A220  строка 430  handover/handover-2026-09-05-o9-last-channel.md
+      DONE.md  A221  строка 431  config/device/*.xml
+      DONE.md  A222  строка 432  check_resx*.py, handover/handover-2026-09-06-f59-effmaker.md
+      DONE.md  A227  строка 435  handover/handover-2026-09-05-f24-a227.md
+      DONE.md  A228  строка 436  handover/handover-2026-09-06-f49-a190-a228.md
+      DONE.md  A229  строка 437  *.resx, .ru.resx, handover/handover-2026-09-05-o10-annih-sum-name.md
+      DONE.md  A230  строка 438  handover/handover-2026-09-05-f11-a230.md
+      DONE.md  A236  строка 441  handover/handover-2026-09-05-o13v-fwhmview-reach.md
+      DONE.md  A237  строка 442  add_keys.py, handover/handover-2026-09-05-o11-refusal-words.md
+      DONE.md  A238  строка 443  handover/handover-2026-09-05-o14-culture.md
+      DONE.md  A239  строка 444  handover/handover-2026-09-06-g8-a254-a239.md
+      DONE.md  A240  строка 445  handover/handover-2026-09-06-f54-doors.md, handover/handover-2026-09-06-f62-a240.md
+      DONE.md  A241  строка 446  handover/handover-2026-09-05-o25-modal.md
+      DONE.md  A242  строка 447  count-by-api.tsv, handover/handover-2026-09-05-o17-decimal-dot.md, handover/o17-decimal-dot/count-by-file.tsv, hits-raw.tsv
+      DONE.md  A243  строка 448  handover/handover-2026-09-05-o22-fwhmgraph.md
+      DONE.md  A245  строка 449  handover/f44-headless/near_miss.py, handover/handover-2026-09-05-f25-f22-finish.md, handover/handover-2026-09-05-f44-headless.md
+      DONE.md  A246  строка 450  handover/handover-2026-09-05-f16-a246-a247.md
+      DONE.md  A247  строка 451  .resx, .ru.resx, handover/handover-2026-09-05-f16-a246-a247.md
+      DONE.md  A248  строка 452  .resx, .ru.resx, handover/handover-2026-09-05-f21-a248.md
+      DONE.md  A249  строка 453  .resx, handover/handover-2026-09-05-f26-a249.md
+      DONE.md  A250  строка 454  handover/handover-2026-09-05-f29-a250.md
+      DONE.md  A253  строка 456  handover/handover-2026-09-06-f54-doors.md, handover/handover-2026-09-06-g6-a253.md
+      DONE.md  A254  строка 457  Properties/Resources*.resx, handover/handover-2026-09-06-g6-a253.md, handover/handover-2026-09-06-g8-a254-a239.md
+      DONE.md  A255  строка 458  handover/handover-2026-09-06-g9-a255.md
+      DONE.md  A257  строка 459  handover/handover-2026-09-06-f62-a240.md
+      DONE.md  A258  строка 460  handover/handover-2026-09-06-f63-air.md, handover/handover-2026-09-06-f65-icrp.md
+      DONE.md  A259  строка 461  BecquerelMonitor/Properties/Resources*.resx, handover/handover-2026-09-06-f66-a259.md, handover/handover-2026-09-06-g10-a193-a195.md
+      DONE.md  A260  строка 462  handover/handover-2026-09-06-f66-a259.md, handover/handover-2026-09-06-f71-a260.md, handover/handover-2026-09-06-f74-a260-rest.md
+      DONE.md  A261  строка 463  *.Designer.cs, .resx, BecquerelMonitor/*.cs, handover/handover-2026-09-06-f65-icrp.md, handover/handover-2026-09-06-f68-a261.md
+      DONE.md  A262  строка 464  handover/handover-2026-09-06-f67-a181.md, handover/handover-2026-09-06-f69-oisn.md
+      DONE.md  A40   строка 465  handover/f37-s132/rmx_stamps.py, handover/handover-2026-09-06-p1-e34-store.md
+      DONE.md  A205  строка 468  .resx, handover/handover-2026-09-05-b8-a145-stage2.md, handover/handover-2026-09-06-f51-a205.md
+      DONE.md  A224  строка 469  *.sqlite, handover/handover-2026-09-06-f63-air.md, handover/handover-2026-09-06-f65-icrp.md
+      DONE.md  A244  строка 471  .Designer.cs, .resx, .ru.resx, DC*.cs, FSAReportView*.cs, Properties/Resources*.resx, ROI*.cs, XPTable/*.cs, count-by-file.tsv, handover-2026-09-05-p1-devicein-culture.md, handover/f18-p8a/census_f18.py, handover/f20-f17-accept/watch_run.ps1, handover/f50-final/a244-closing-text.md, handover/handover-2026-09-05-f18-p8a.md, handover/handover-2026-09-05-f20-f17-accept.md, handover/handover-2026-09-05-f27-p4.md, handover/handover-2026-09-05-f34-p8-finish.md, handover/handover-2026-09-05-f35-p9.md, handover/handover-2026-09-05-o17-decimal-dot.md, handover/handover-2026-09-05-p2-xptable-culture.md, handover/handover-2026-09-05-p7-fsa-culture.md, handover/handover-2026-09-06-f47-p8-tail.md, handover/handover-2026-09-06-f50-final.md, handover/o17-decimal-dot/scan_culture.py, scan_culture.py, tools/check_resx*.py
+      DONE.md  A252  строка 472  handover/handover-2026-09-06-f53-a252.md
+      DONE.md  A263  строка 473  handover/f44-headless/HeadlessButton1ProbeF44.cs, handover/handover-2026-09-06-f70-a77.md, handover/handover-2026-09-06-f72-a263.md
+      DONE.md  A264  строка 474  handover/handover-2026-09-06-p10-sumpeak-counts.md
+      DONE.md  A265  строка 475  .resx, handover/handover-2026-09-06-p19-fsa-view-groups.md
+      DONE.md  A268  строка 476  _limits.csv, handover/handover-2026-09-06-p14-corpus-refitz-rel.md, spline_components.csv
+      DONE.md  A269  строка 477  handover/handover-2026-09-06-p13-new-base.md, handover/handover-2026-09-06-p17-efficiency-node-names.md
+      DONE.md  A270  строка 478  handover/handover-2026-09-06-p13-new-base.md, handover/handover-2026-09-06-p18-unknown-recall.md
+      DONE.md  A271  строка 479  handover/handover-2026-09-06-p20-escape-gate.md
+      DONE.md  A272  строка 480  *.cs, *.md, *.ps1, *.py, handover-2026-09-06-p13-new-base.md, handover/handover-2026-09-06-p13-new-base.md, handover/handover-2026-09-06-p21-cleanup.md
+      DONE.md  A273  строка 481  handover/handover-2026-09-06-p22-refusal-height.md
+      DONE.md  A274  строка 482  handover/handover-2026-09-06-p20-escape-gate.md, handover/handover-2026-09-06-p24-recall-three-points.md
+      DONE.md  A275  строка 483  handover/handover-2026-09-07-p26-xray-pb.md
+      DONE.md  A276  строка 484  .resx, BecquerelMonitor/DeviceConfig.cs, config/device/*.xml, handover/handover-2026-09-06-p25-crystal-material.md
+      DONE.md  A278  строка 485  corpus/spectra/*.xml
+      DONE.md  A279  строка 486  handover/handover-2026-09-07-p28-z-threshold.md, handover/handover-2026-09-07-p30-below-detection.md
+      DONE.md  A290  строка 490  handover/review-da8d8519-2026-09-07.md
+      DONE.md  A291  строка 491  handover/full-spectrum-analysis-review-2026-09-07-second-pass.md
+      DONE.md  A292  строка 492  handover/full-spectrum-analysis-review-2026-09-07-second-pass.md
+      DONE.md  A293  строка 493  handover/full-spectrum-analysis-latest-commits-review-2026-09-07.md, handover/handover-2026-09-07-fsa-review-third-pass-fixes.md
+      DONE.md  A294  строка 494  handover/full-spectrum-analysis-latest-commits-review-2026-09-07.md, handover/handover-2026-09-07-fsa-review-third-pass-fixes.md
+      DONE.md  A297  строка 499  handover/full-spectrum-analysis-fourth-pass-review-2026-09-07.md
+      DONE.md  A51   строка 500  handover/handover-2026-09-02-chain-zeroed.md
+      DONE.md  A68   строка 501  handover/handover-2026-09-10-p1-bin-rule.md
+      DONE.md  A119  строка 502  config/device/*.xml, handover/handover-2026-09-04-a50-store.md, handover/handover-2026-09-10-p3-curve-generation.md
+      DONE.md  A277  строка 503  handover/handover-2026-09-10-p5-geity.md
+      DONE.md  A280  строка 504  handover/handover-2026-09-10-p5-geity.md
+      DONE.md  A281  строка 505  *_components.csv, *_runs.csv, .ru.resx, handover/handover-2026-09-07-p31-inflate.md, handover/handover-2026-09-10-p12-hvosty.md, handover/handover-2026-09-10-p17-polosa-fita.md, handover/handover-2026-09-10-p9-pogreshnosti.md
+      DONE.md  A282  строка 506  handover/handover-2026-09-10-p2-chitateli.md
+      DONE.md  A283  строка 507  handover/handover-2026-09-10-p9-pogreshnosti.md
+      DONE.md  A285  строка 508  handover/handover-2026-09-10-p9-pogreshnosti.md
+      DONE.md  A300  строка 509  handover/handover-2026-09-10-p10-ekran.md, handover/handover-2026-09-10-p2-chitateli.md, tools/p10_view/ResidualP10Probe.cs
+      DONE.md  A302  строка 510  *_runs.csv, handover/handover-2026-09-10-p17-polosa-fita.md, handover/handover-2026-09-10-p9-pogreshnosti.md, handover/p17-polosa-fita/band_floor_arms.csv
+      DONE.md  A303  строка 511  handover/handover-2026-09-10-p10-ekran.md, handover/handover-2026-09-10-p14-pokaz.md, tools/p10_view/EditorDriftP10Probe.cs, tools/p14_view/GapCarryP14Probe.cs
+      DONE.md  A304  строка 512  handover/handover-2026-09-10-p11-zapis-bazy.md, handover/handover-2026-09-10-p14-pokaz.md, handover/handover-2026-09-10-p16-odno-imya.md, tools/p14_view/HalfLifeLimitP14Probe.cs, tools/p16_view/SpecActivityLimitP16Probe.cs
+      DONE.md  A305  строка 513  handover/handover-2026-09-10-p25-priyomka-p22.md
+      DONE.md  A30   строка 514  components.csv, handover/handover-2026-09-12-p21-crystal-shield.md
+      DONE.md  A43   строка 517  handover/handover-2026-09-13-p45-a43-speed.md, handover/p45-a43/rmx_bytes.py
+      DONE.md  A64   строка 518  handover/handover-2026-09-10-p1-bin-rule.md, handover/handover-2026-09-12-p32-g4-f16-a64.md
+      DONE.md  A266  строка 519  handover/handover-2026-09-06-p11-relative-refitz.md
+      DONE.md  A267  строка 520  handover/handover-2026-09-10-p1-bin-rule.md, handover/handover-2026-09-12-p20-response-measures.md, handover/handover-2026-09-12-p23-physics17-keys.md
+      DONE.md  A284  строка 521  handover/handover-2026-09-10-p2-chitateli.md
+      DONE.md  A286  строка 522  screen_gain.py, tools/CORPUS/scripts/screen_gain.py
+      DONE.md  A306  строка 523  handover/handover-2026-09-12-p20-response-measures.md, handover/handover-2026-09-12-p23-physics17-keys.md
+      DONE.md  A307  строка 524  handover/handover-2026-09-11-p11-gain-after-anchor.md, handover/handover-2026-09-11-p12-asimov.md, handover/handover-2026-09-11-p15-a307-threshold.md, handover/handover-2026-09-12-p4-am241-escape.md
+      DONE.md  A308  строка 525  Th-232_after.xml, handover/handover-2026-09-12-p31-a308-nnls.md
+      DONE.md  A309  строка 526  handover/handover-2026-09-12-p31-a308-nnls.md
+      DONE.md  A72   строка 528  handover/handover-2026-09-12-p20-response-measures.md, handover/handover-2026-09-12-p27-electron-transport.md
+      DONE.md  F30   строка 562  -transport-a55-a62.md
+      DONE.md  F11   строка 563  -p21-out-rev17.md, handover/handover-2026-09-11-p14-anchor-poly.md, handover/handover-2026-09-11-p16-light-anchor.md, handover/handover-2026-09-11-p18-light-anchor-full.md, handover/handover-2026-09-12-p18-fsa-measures.md, handover/handover-2026-09-12-p19-light-line.md, handover/handover-2026-09-13-p40-sim-defaults-phys16.md
+      DONE.md  S49   строка 568  components.csv
+      DONE.md  S47   строка 569  !AS80x80\Lu-176.xml
+      DONE.md  S46   строка 573  !AS80x80\Lu-176.xml, Lu176.xml
+      DONE.md  S77   строка 582  BecquerelMonitor/FullSpectrumAnalysis/FsaOverlay.cs
+      DONE.md  S32   строка 603  gainscan.py, xray_widths.xml
+      DONE.md  S51   строка 610  runs.csv
+      DONE.md  S67   строка 613  BecquerelMonitor/FullSpectrumAnalysis/FsaOverlay.cs
+      DONE.md  S36   строка 618  out_v5/*_spline_components.csv
+      DONE.md  S102  строка 620  .ps1
+      DONE.md  S9    строка 622  components.csv, limits.csv
+      DONE.md  S98   строка 624  *_runs.csv, runs.csv
+      DONE.md  S99   строка 625  .resx
+      DONE.md  S103  строка 627  runs.csv
+      DONE.md  S104  строка 628  DC*.cs, EnergySpectrumView*.cs, MainForm*.cs, components.csv
+      DONE.md  S110  строка 630  runs.csv
+      DONE.md  S111  строка 631  --dump=curves.csv, BecquerelMonitor/FWHMPeakDetector.cs, runs.csv
+      DONE.md  S101  строка 634  *_runs.csv
+      DONE.md  S64   строка 635  handover/handover-2026-09-05-c1-s134-s64-podpisi.md, handover/handover-2026-09-05-o21-multiname.md, tools/CORPUS/scripts/c1/s64_candidates.py
+      DONE.md  S96   строка 636  bqactivity_c2.csv, handover/handover-2026-09-05-c2-s96-aktivnost.md, s109_c2.csv
+      DONE.md  S19   строка 641  handover/handover-2026-09-05-f19-cleanup.md
+      DONE.md  S30   строка 642  handover/handover-2026-09-05-f19-cleanup.md
+      DONE.md  S44   строка 643  BecquerelMonitor/**/*.cs, check_resx*.py, handover/handover-2026-09-06-f48-s44-nan.md
+      DONE.md  E19   строка 644  !AS80x80\Lu-176.xml, !ASN16\Lu176.xml, handover/handover-2026-09-05-f45-e17-e19.md
+      DONE.md  S52   строка 646  !AS80x80\Lu-176.xml
+      DONE.md  S109  строка 648  tools/pie/out_s109/s109_peaks_m*.csv
+      DONE.md  S114  строка 649  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S115  строка 650  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S116  строка 651  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S117  строка 652  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S118  строка 653  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S119  строка 654  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S120  строка 655  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S121  строка 656  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S122  строка 657  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S123  строка 658  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S129  строка 662  handover/f33-cleanup/eol_bytes.py
+      DONE.md  S132  строка 665  handover/f37-s132/rmx_stamps.py
+      DONE.md  S42   строка 666  BecquerelMonitor/**/*.cs
+      DONE.md  S144  строка 667  handover/full-spectrum-analysis-review-2026-09-07-second-pass.md
+      DONE.md  S145  строка 668  handover/full-spectrum-analysis-review-2026-09-07-second-pass.md
+      DONE.md  S147  строка 669  handover/full-spectrum-analysis-latest-commits-review-2026-09-07.md, handover/handover-2026-09-07-fsa-review-third-pass-fixes.md
+      DONE.md  S148  строка 670  handover/full-spectrum-analysis-latest-commits-review-2026-09-07.md, handover/handover-2026-09-07-fsa-review-third-pass-fixes.md
+      DONE.md  S149  строка 671  handover/full-spectrum-analysis-latest-commits-review-2026-09-07.md, handover/handover-2026-09-07-fsa-review-third-pass-fixes.md
+      DONE.md  S150  строка 672  handover/full-spectrum-analysis-fourth-pass-review-2026-09-07.md
+      DONE.md  S151  строка 673  handover/full-spectrum-analysis-fourth-pass-review-2026-09-07.md
+      DONE.md  S152  строка 674  handover/full-spectrum-analysis-fourth-pass-review-2026-09-07.md
+      DONE.md  S153  строка 675  handover/full-spectrum-analysis-fourth-pass-review-2026-09-07.md
+      DONE.md  S156  строка 677  handover/full-spectrum-analysis-sixth-pass-review-2026-09-07.md
+      DONE.md  S157  строка 678  handover/full-spectrum-analysis-sixth-pass-review-2026-09-07.md
+      DONE.md  S158  строка 679  handover/full-spectrum-analysis-sixth-pass-review-2026-09-07.md
+      DONE.md  S75   строка 686  handover/handover-2026-09-12-p9-cleaner-s.md
+      DONE.md  S55   строка 687  handover/handover-2026-09-12-p9-cleaner-s.md
+      DONE.md  S3    строка 688  FullSpectrumAnalysis/*.cs
+      DONE.md  S112  строка 690  Lu176.xml, handover/handover-2026-09-12-p9-cleaner-s.md
+      DONE.md  S113  строка 691  handover/handover-2026-09-10-s165-s113.md
+      DONE.md  S146  строка 693  handover/handover-2026-09-12-p9-cleaner-s.md
+      DONE.md  S66   строка 695  handover/handover-2026-09-12-p30-cleaner-s.md, handover/handover-2026-09-12-p35-s66-anchor.md
+      DONE.md  S65   строка 696  handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S91   строка 697  handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S43   строка 698  handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S105  строка 699  bandaudit_*.csv, handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S106  строка 700  handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S166  строка 702  handover/handover-2026-09-12-p18-fsa-measures.md
+      DONE.md  S167  строка 703  Lu176.xml, handover/handover-2026-09-12-p18-fsa-measures.md
+      DONE.md  S154  строка 704  handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S126  строка 705  handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S127  строка 706  handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S169  строка 707  handover/handover-2026-09-12-p12-anchor-zero-full.md, handover/handover-2026-09-12-p4-am241-escape.md
+      DONE.md  S171  строка 708  handover/handover-2026-09-14-p60-s171-degenerate.md, handover/handover-2026-09-14-p63-s171-limit.md
+      DONE.md  S172  строка 709  handover/handover-2026-09-14-p65-s172-escape.md
+      DONE.md  S173  строка 710  handover/handover-2026-09-14-p68-s173-untied-tail.md
+      DONE.md  S174  строка 711  handover/handover-2026-09-14-p69-s174-grey-continuum.md
+      DONE.md  P5    строка 725  handover/handover-2026-09-12-p19-cheap-rows.md
+      DONE.md  T33   строка 729  config\device\*.xml
+      DONE.md  T34   строка 730  !ASN16\Lu176.xml
+      DONE.md  B23   строка 738  tools/CORPUS/corpus/spectra/*.xml
+      DONE.md  B8    строка 744  !AS80x80\Lu-176.xml
+      DONE.md  V12   строка 745  handover/handover-2026-09-05-f7-v12-v13.md
+      DONE.md  V13   строка 746  handover/handover-2026-09-05-f7-v12-v13.md
+      DONE.md  V14   строка 747  handover/handover-2026-09-05-c7-proverki-korpusa.md
+      DONE.md  V16   строка 748  handover/handover-2026-09-05-c7-proverki-korpusa.md
+      DONE.md  V17   строка 749  handover/handover-2026-09-05-c7-proverki-korpusa.md
+      DONE.md  V22   строка 751  handover/handover-2026-09-05-c7-proverki-korpusa.md
+      DONE.md  V24   строка 752  handover/handover-2026-09-05-f12-v24-v26-v27.md, handover/handover-2026-09-05-f7-v12-v13.md
+      DONE.md  V26   строка 753  reverse_arm.py
+      DONE.md  V11   строка 758  corpus/devices/*.xml, handover/handover-2026-09-06-p7-resolution-corpus.md
+      DONE.md  V18   строка 760  *.sqlite
+      DONE.md  V15   строка 764  handover/handover-2026-09-12-p19-cheap-rows.md
+      DONE.md  V23   строка 767  handover/handover-2026-09-05-c7-proverki-korpusa.md
+      DONE.md  W21   строка 777  .resx
+      DONE.md  W10   строка 799  BecquerelMonitor/**/*.cs
+      DONE.md  W5    строка 800  runs.csv
+      DONE.md  E6    строка 814  tools/effmaker/probes/PackGeometryProbe.cs
+      DONE.md  E3    строка 825  EfficiencyFitter.cs
+      DONE.md  E31   строка 829  tools/pie/out_v5/*_spline_runs.csv
+      DONE.md  E28   строка 832  handover/handover-2026-09-05-c5-e28-chertyozh-gost.md
+      DONE.md  E34   строка 834  handover/handover-2026-09-06-f76-e34.md, handover/handover-2026-09-06-p1-e34-store.md
+      DONE.md  E17   строка 835  .resx, handover/handover-2026-09-05-f45-e17-e19.md
+      DONE.md  E41   строка 836  handover/handover-2026-09-05-c5-e28-chertyozh-gost.md
+      DONE.md  E35   строка 838  handover/handover-2026-09-10-p18-krivye.md
+      DONE.md  E37   строка 839  handover/f33-cleanup/e37_first_point.py, handover/handover-2026-09-10-p18-krivye.md, tools/check_*.py
+      DONE.md  E39   строка 840  handover/handover-2026-09-05-c5-e28-chertyozh-gost.md, handover/handover-2026-09-10-p1-podpisi.md
+      DONE.md  E40   строка 841  handover/handover-2026-09-05-c5-e28-chertyozh-gost.md, handover/handover-2026-09-10-p1-podpisi.md
+      DONE.md  E42   строка 842  handover/handover-2026-09-10-p1-podpisi.md, handover/handover-2026-09-10-p10-ekran.md, tools/p10_view/SketchP10Probe.cs
+      DONE.md  E7    строка 843  EfficiencyFitter.cs
+      DONE.md  E10   строка 844  handover/handover-2026-09-12-p36-e10-marinelli-selfabs.md
+      DONE.md  E29   строка 845  handover/handover-2026-09-10-p18-krivye.md, handover/handover-2026-09-13-p41-e29-importance.md, handover/handover-2026-09-13-p43-e29-field-auto.md
+      DONE.md  R3    строка 857  gainscan.py, gainscan_stub.py
+      DONE.md  R1    строка 858  BecquerelMonitor/LibraryPeakFitter.cs, LineSetBuilder.cs
+      DONE.md  R2    строка 859  handover/handover-2026-09-05-f33-cleanup.md
+      DONE.md  R4    строка 861  RoiWizard/nuclides.xml
+      DONE.md  C3    строка 868  Designer.cs
+      DONE.md  C2    строка 869  *.resx, BecquerelMonitor/**/*.cs
+      DONE.md  C4    строка 870  config/ROI/*.xml, handover/handover-2026-09-05-c3-c4-doserate.md
+      DONE.md  N15   строка 886  xraydb.sqlite
+      DONE.md  N17   строка 888  xray_widths.xml, xraydb.sqlite
+      DONE.md  N16   строка 891  handover/handover-2026-09-12-p19-cheap-rows.md
+      DONE.md  N18   строка 929  *_components.csv, *_limits.csv, *_runs.csv, runs.csv
+      DONE.md  D35   строка 936  BecquerelMonitor/**/*.cs, handover/handover-2026-09-10-p7-baza-chitatel.md
+      DONE.md  D36   строка 937  handover/handover-2026-09-10-p11-zapis-bazy.md
+      DONE.md  D37   строка 938  handover/handover-2026-09-10-p7-baza-chitatel.md
+      DONE.md  D38   строка 939  handover/handover-2026-09-10-p11-zapis-bazy.md, handover/handover-2026-09-10-p7-baza-chitatel.md
+      DONE.md  D49   строка 942  handover/handover-2026-09-10-p26-zazhim-i-n42.md, sandia.decay.xml
+      DONE.md  D4    строка 943  handover/handover-2026-09-12-p19-cheap-rows.md
+      DONE.md  D7    строка 944  xray_widths.xml
+      DONE.md  D23   строка 945  handover/handover-2026-09-10-p8-osnastka.md, tools/check_%s.py, tools/check_*.py
+      DONE.md  D40   строка 946  .cs, handover/handover-2026-09-11-p5-isomer-levels.md
+      DONE.md  D48   строка 947  handover/handover-2026-09-12-p19-cheap-rows.md
+      DONE.md  D50   строка 948  sandia.decay.xml
+      DONE.md  M9    строка 962  handover/handover-2026-09-12-p23-physics17-keys.md
+      DONE.md  T57   строка 978  *.cs
+      DONE.md  T38   строка 1003 runs.csv
+      DONE.md  T40   строка 1006 .md
+      DONE.md  T45   строка 1013 *.sqlite
+      DONE.md  T41   строка 1015 **/*.cs, BecquerelMonitor/**/*.cs
+      DONE.md  T75   строка 1018 *.sqlite, memory/msbuild-through-powershell-only.md
+      DONE.md  T60   строка 1024 Nano.xml, config\ROI\Nano.xml
+      DONE.md  T65   строка 1025 *_components.csv, *_limits.csv, *_runs.csv
+      DONE.md  T88   строка 1027 .cs, config\ROI\*.xml, config\chuzhoy.xml
+      DONE.md  T72   строка 1033 bin\Debug\config\*.xml
+      DONE.md  T83   строка 1034 .cs
+      DONE.md  T105  строка 1037 *.cs, runs.csv
+      DONE.md  T2    строка 1040 docs/rules.md
+      DONE.md  T62   строка 1041 BecquerelMonitor/EfficiencyMakerForm*.cs, tools/effmaker/probes/PackGeometryProbe.cs
+      DONE.md  T27   строка 1043 xray_widths.xml
+      DONE.md  T43   строка 1045 data.perfView.csv
+      DONE.md  S134  строка 1050 handover/handover-2026-09-05-c1-s134-s64-podpisi.md
+      DONE.md  S137  строка 1052 components.csv
+      DONE.md  S143  строка 1056 corpus-base-out-mini.md, handover/handover-2026-09-05-o9-last-channel.md
+      DONE.md  T5    строка 1057 handover/handover-2026-09-05-f19-cleanup.md
+      DONE.md  T64   строка 1058 handover/handover-2026-09-05-o5-spe-import.md
+      DONE.md  T67   строка 1059 runs.csv
+      DONE.md  T71   строка 1060 handover/handover-2026-09-05-o6-pie-grid.md
+      DONE.md  T78   строка 1062 handover/handover-2026-09-05-f2-t78-t93.md
+      DONE.md  T84   строка 1064 handover/handover-2026-09-05-f3-t84-t91-t68.md
+      DONE.md  T86   строка 1065 handover/handover-2026-09-05-o18-fsa-docs.md
+      DONE.md  T89   строка 1067 .cs, handover/handover-2026-09-05-f1-t149-t89.md, tools\effmaker\*.cs, tools\effmaker\probes\*.cs
+      DONE.md  T91   строка 1068 corpus-base-out-v5.md, handover/handover-2026-09-05-f3-t84-t91-t68.md, memory/corpus-base-out-v5.md
+      DONE.md  T93   строка 1069 handover/handover-2026-09-05-f2-t78-t93.md
+      DONE.md  T95   строка 1071 handover/handover-2026-09-05-c7-proverki-korpusa.md
+      DONE.md  T97   строка 1072 *.ru.resx
+      DONE.md  T119  строка 1078 .ps1, config\GeometryMaterials.xml
+      DONE.md  T128  строка 1081 corpus-base-<база>.md
+      DONE.md  T135  строка 1085 handover/handover-2026-09-06-f64-cheap.md
+      DONE.md  T137  строка 1086 *.py, handover/handover-2026-09-06-g5-cp1251.md, handover/handover-2026-09-06-g7-utf8-three.md, tools/**/*.py, tools/check_*.py
+      DONE.md  T139  строка 1088 .resx, .ru.resx, handover/handover-2026-09-05-b2-resx-and-accelerators.md
+      DONE.md  T143  строка 1089 handover/handover-2026-09-05-b1-probes-toolkit.md
+      DONE.md  T145  строка 1091 *.sqlite
+      DONE.md  T149  строка 1094 config\ROI\*.xml, config\device\*.xml, handover/handover-2026-09-05-f1-t149-t89.md
+      DONE.md  T150  строка 1095 handover/handover-2026-09-05-b1-probes-toolkit.md
+      DONE.md  T155  строка 1098 .ps1, .py, handover-2026-09-05-tooling.md, handover/handover-2026-09-05-b1-probes-toolkit.md
+      DONE.md  T156  строка 1099 .resx, Foo.resx, check_resx*.py, handover/handover-2026-09-05-b2-resx-and-accelerators.md
+      DONE.md  T157  строка 1100 Designer.cs, handover/handover-2026-09-05-c4-n42-volna.md, handover/handover-2026-09-05-n42-third.md, ru.resx
+      DONE.md  T158  строка 1101 *.resx, .resx, .ru.resx, handover/handover-2026-09-05-b15-a145-stage3.md, handover/handover-2026-09-05-b2-resx-and-accelerators.md
+      DONE.md  T161  строка 1102 handover/handover-2026-09-06-f64-cheap.md
+      DONE.md  T163  строка 1104 handover/handover-2026-09-06-f64-cheap.md
+      DONE.md  T164  строка 1105 handover/handover-2026-09-05-f13-t164.md, handover/handover-2026-09-05-f19-cleanup.md
+      DONE.md  T166  строка 1107 .resx
+      DONE.md  T169  строка 1109 handover/handover-2026-09-05-b9-activity-refusals.md
+      DONE.md  T174  строка 1111 config/ROI/*.xml, handover/handover-2026-09-05-o3-doserate-lsrm.md
+      DONE.md  T177  строка 1112 FsaOverlay.cs, handover/handover-2026-09-05-b15-a145-stage3.md, handover/handover-2026-09-05-b8-a145-stage2.md
+      DONE.md  T178  строка 1113 *.cs, FullSpectrumAnalysis\*.cs, handover/handover-2026-09-05-b8-a145-stage2.md, handover/handover-2026-09-06-f64-cheap.md
+      DONE.md  T180  строка 1114 handover/f61-stale/b6-journal-before.md, handover/handover-2026-09-05-b6-matrix-fingerprint.md
+      DONE.md  T182  строка 1116 .cs
+      DONE.md  T187  строка 1117 handover/handover-2026-09-05-c6-osnastka-appwd.md
+      DONE.md  T188  строка 1118 *.md, handover/handover-2026-09-06-f64-cheap.md, tools/**/*.ps1
+      DONE.md  T190  строка 1120 config\ROI\*.xml, config\device\*.xml
+      DONE.md  T194  строка 1124 .cs, handover/handover-2026-09-05-c6-osnastka-appwd.md
+      DONE.md  T200  строка 1127 *.cs, *.py, handover/handover-2026-09-05-o4-recipe-refs.md, tools/**/*.ps1
+      DONE.md  T203  строка 1130 *.resx, <ключ>.xml, Designer.cs, config/ROI/*.xml, handover/*-2026-09-05-*.md
+      DONE.md  T210  строка 1135 handover/handover-2026-09-05-o16-readme-drift.md
+      DONE.md  T218  строка 1140 handover/handover-2026-09-05-o4-recipe-refs.md
+      DONE.md  T219  строка 1141 .cs, .ps1, .py, handover-*.md, handover/f61-stale/handover-ctl-recipe.md, tools/_f61_ctl.ps1
+      DONE.md  T220  строка 1142 .ps1, handover/handover-2026-09-06-g2-guard-readers.md, tools/check_*.py
+      DONE.md  T223  строка 1144 !AS80x80\Lu-176.xml, *.resx, --map=<ключ,guid>.csv, .ru.resx, Designer.cs, Foo.Designer.cs, FsaOverlay.cs, check_resx*.py, config/ROI/*.xml, corpus/spectra/<ключ>.xml, handover/handover-2026-09-06-g3-registry-check2.md
+      DONE.md  T226  строка 1145 .cs, .csproj, handover/handover-2026-09-05-f46-stamp.md
+      DONE.md  T229  строка 1148 *.ru.resx
+      DONE.md  T230  строка 1149 .resx, .ru.resx, handover/handover-2026-09-05-o12-resx-guards.md
+      DONE.md  T232  строка 1151 handover/handover-2026-09-05-o10-runs/o10_check.py
+      DONE.md  T233  строка 1152 .csproj, handover/handover-2026-09-05-f46-stamp.md
+      DONE.md  T234  строка 1153 *.ru.resx, Foo.Designer.cs, handover/handover-2026-09-05-o15-guard-scope.md
+      DONE.md  T235  строка 1154 *.resx, .resx
+      DONE.md  T238  строка 1157 *.Designer.cs, *.resx, add_keys*.py, collect_fallbacks.py, handover/handover-2026-09-05-o23-guard-root.md, handover/handover-2026-09-05-o24-zorder-empty.md, tools/**/*.py
+      DONE.md  S141  строка 1158 handover/handover-2026-09-06-p5-escape.md
+      DONE.md  T243  строка 1160 handover/handover-2026-09-06-p16-probe-tuning.md
+      DONE.md  T246  строка 1161 EtlCheck.cs, handover/handover-2026-09-06-p21-cleanup.md, tools/effmaker/**/*.cs
+      DONE.md  T250  строка 1162 corpus-base-<база>.md, corpus-base-current.md
+      DONE.md  T63   строка 1163 *_spline_components.csv, *_spline_limits.csv, *_spline_runs.csv, config\NuclideDefinition.OLD.xml
+      DONE.md  T76   строка 1164 *.md, handover/handover-2026-09-05-c7-proverki-korpusa.md, handover/handover-2026-09-06-p3-coverage.md
+      DONE.md  T81   строка 1165 *.sqlite, handover/handover-2026-09-05-o4-recipe-refs.md, handover/handover-2026-09-06-p6-registry-sweep.md, run.ps1, tools/effmaker/run.ps1
+      DONE.md  T85   строка 1166 handover/handover-2026-09-06-p3-coverage.md, runs.csv
+      DONE.md  T240  строка 1167 handover/handover-2026-09-06-p9-refitz-stackshot.md
+      DONE.md  T123  строка 1170 handover/handover-2026-09-06-p2-summary.md
+      DONE.md  T125  строка 1171 handover/handover-2026-09-06-p2-summary.md
+      DONE.md  T239  строка 1172 handover/handover-2026-09-06-p4-legacy-truth.md
+      DONE.md  T127  строка 1173 handover/handover-2026-09-06-p6-registry-sweep.md
+      DONE.md  T252  строка 1177 handover/full-spectrum-analysis-review-2026-09-07-second-pass.md
+      DONE.md  T248  строка 1178 handover/handover-2026-09-07-p27-declared-run-dir.md
+      DONE.md  S140  строка 1179 handover/handover-2026-09-12-p9-cleaner-s.md
+      DONE.md  T245  строка 1181 handover/handover-2026-09-06-p16-probe-tuning.md, handover/handover-2026-09-10-p3-pechat-prob.md
+      DONE.md  T247  строка 1182 handover/handover-2026-09-10-p3-pechat-prob.md, handover/handover-2026-09-10-p8-osnastka.md, tools/effmaker/**/*.cs
+      DONE.md  T21   строка 1184 t21_co60_off.json, t21_sc_cyl_off.json, t21_sc_mar_off.json
+      DONE.md  T79   строка 1185 .sqlite, .xml
+      DONE.md  T113  строка 1186 handover-*.md, handover/handover-2026-09-10-p6-dokumentaciya.md, handover/handover-2026-09-10-p6-verdicts.tsv, scratchpad/f10/t113_scan.py
+      DONE.md  T118  строка 1187 handover/handover-2026-09-10-p2-chitateli.md
+      DONE.md  T132  строка 1188 *.Designer.cs, handover/handover-2026-09-11-p4-guard-blind-spots.md
+      DONE.md  T134  строка 1189 handover/handover-2026-09-10-p3-pechat-prob.md
+      DONE.md  T154  строка 1190 handover/handover-2026-09-10-p10-ekran.md
+      DONE.md  T167  строка 1192 handover/handover-2026-09-11-p4-guard-blind-spots.md
+      DONE.md  T172  строка 1193 handover/handover-2026-09-10-p16-odno-imya.md
+      DONE.md  T176  строка 1194 handover/handover-2026-09-05-b8-a145-stage2.md
+      DONE.md  T179  строка 1195 handover/handover-2026-09-10-p3-pechat-prob.md
+      DONE.md  T185  строка 1196 handover/handover-2026-09-10-p6-dokumentaciya.md
+      DONE.md  T255  строка 1197 handover/handover-2026-09-10-p12-hvosty.md, handover/handover-2026-09-10-p3-pechat-prob.md
+      DONE.md  T256  строка 1198 handover/handover-2026-09-10-p5-geity.md, handover/handover-2026-09-10-p8-osnastka.md, runs.csv
+      DONE.md  S135  строка 1199 handover/handover-2026-09-12-p18-fsa-measures.md
+      DONE.md  T244  строка 1200 corpus/devices/*.xml, handover/handover-2026-09-12-p33-t249-t244-stamps.md
+      DONE.md  T249  строка 1201 .csproj, devices/*.xml, handover/handover-2026-09-12-p33-t249-t244-stamps.md
+      DONE.md  T66   строка 1204 handover/handover-2026-09-10-p16-odno-imya.md
+      DONE.md  T68   строка 1205 corpus-run-with-matrix.md, handover/handover-2026-09-05-f3-t84-t91-t68.md, handover/handover-2026-09-13-p39-probe-truth.md, scripts/*.ps1
+      DONE.md  T80   строка 1206 .xml, Ghost.xml, config\NuclideDefinition.OLD.xml, config\device\*.xml, handover/handover-2026-09-12-p28-t-rig.md
+      DONE.md  T115  строка 1207 handover/handover-2026-09-13-p39-probe-truth.md
+      DONE.md  T117  строка 1208 config\*.xml, handover/handover-2026-09-12-p28-t-rig.md
+      DONE.md  T133  строка 1210 handover/handover-2026-09-10-p6-dokumentaciya.md
+      DONE.md  T136  строка 1211 handover/handover-2026-09-12-p28-t-rig.md
+      DONE.md  T175  строка 1219 config\ROI\*.xml, handover/handover-2026-09-05-b15-a145-stage3.md, handover/handover-2026-09-12-p28-t-rig.md
+      DONE.md  T186  строка 1222 handover/handover-2026-09-05-c7-proverki-korpusa.md
+      DONE.md  T199  строка 1225 .cs, handover/f18-p8a/build_f18.ps1, tools/effmaker/**/*.cs
+      DONE.md  T209  строка 1227 *.sqlite
+      DONE.md  T225  строка 1231 handover/handover-2026-09-12-p28-t-rig.md
+      DONE.md  T254  строка 1233 handover/handover-2026-09-10-p2-chitateli.md, handover/handover-2026-09-12-p28-t-rig.md, tools/**/*.py, tools/check_*.py, tools/pie/p28_bad_reader_tmp.py
+      DONE.md  T257  строка 1234 handover/handover-2026-09-12-mix-stack.md, handover/handover-2026-09-13-p48-t257-stackshot.md, handover/p14-anchor-glyph/G1S16_Mix_Mar_wd_without_NuclideDefinition.log
+    
+    # Ссылки на файлы, которых НЕТ В РЕПОЗИТОРИИ (лежат только на диске)
+    
+      нет
+    
+    # Вне репозитория НАРОЧНО
+    
+      .appwd.json          отметка оснастки корпуса, которую пишет сам appwd_plan.ps1 в каждый рабочий каталог tools/CORPUS/scripts/wd_*/ (каталоги в .gitignore); реестр ссылается на неё как на признак, а не на файл проекта (T63, T66, T68, T80, T84)
+      .run.json            клеймо прогона, которое run_appwd.ps1 пишет в каждый каталог прогона tools/pie/out_*/ (каталоги в .gitignore); реестр ссылается на него как на признак (T249)
+      agents.md            личные указания сборки у сопровождающего, в .gitignore (CLAUDE.md, «Build»)
+      claude.md            личные указания агенту, в .gitignore; T2 как раз про то, что правила «для всех» так хранить нельзя
+      effprobe.xml         конфигурация прибора, которую пробы EffMaker кладут в свой рабочий каталог <wd>\config\device\ (tools/effmaker/probes/build_*/, в .gitignore); в реестре стоит шаблоном пути `<wd>\…` (T153)
+      settings.local.json  личный файл настроек агента Amber .claude/settings.local.json, в .gitignore (T218)
+    
+    # Имена из кода, которых нет в дереве
+    
+      нет
+      (проб 4318 уникальных, слов в коде 187518 из 4260 файлов, двоичных пропущено 0, запасным путём подстрокой 0)
+    
+    # Две копии `config/` (T66)
+    
+      config                   25 файлов в git, на диске нет: 0
+      BecquerelMonitor/config  25 файлов в git, на диске нет: 0
+      совпадают побайтно: 22, расходятся: 3, есть только в одной: 0
+    
+      известно (T66): NuclideDefinition.xml
+      известно (T66): ROI/Obsidian Marinelli 0.5.xml
+      известно (T66): ROI/RadiaCode Marinelli 0.5.xml
+    
+    # Действующая база корпуса — объявлена ли в ТРЁХ местах
+    
+      TODO.md                  23.09.2026 (день), вершина в заголовке не названа, базы: мал out_rev33_mini, полн out_rev33_full (строка 119)
+      tools/CORPUS/README.md   23.09.2026 (день), вершина в заголовке не названа, базы: мал out_rev33_mini, полн out_rev33_full (строка 445)
+      вершина по отпечатку «🔏» head не писан (грязный стенд)
+      ⚠ память агента на этой машине не найдена — ТРЕТЬЕ место
+          не проверено, сверь глазами
+    
+    # Форма графы состояния (T100)
+    
+      TODO.md  строк 111, графа слита с задачей: 0, состояния не называют: 0
+      DONE.md  строк 1044, графа слита с задачей: 6, состояния не называют: 0
+    
+      положительный контроль этой проверки: python tools/check_registry.py --selftest
+    # Заголовки DONE.md против их тел (T102)
+    
+      DONE.md  строк 1045, заголовков со словами незнания: 18, противоречий: 0
+      положительный контроль этой проверки: python tools/check_done_headers.py --selftest
+    
+    
+    РЕЕСТР ЧИСТ
+✅ tools/check_registry.py: код 0, 1.6 с
+
+→ зову: python tools/check_fsa_showcase.py
+    каталог проб: D:\BqMoni_Claude\p168\wti\tools\effmaker\probes\build (заверен 2026-09-28 18:54:22 из D:\BqMoni_Claude\p168\wti\BecquerelMonitor\bin\Debug_P168i)
+      ⚠ сверено: набор приложения 14090934a8ad (550 файлов), набор FsaStackShot 754d7f2b4b58 (6 файлов), sha двух exe
+    свежесть каталога проб: сошлась с деревом (T226, 0.7 с)
+    рабочий каталог: D:\BqMoni_Claude\p168\wti\tools\fsa_showcase\wd (скопировано 526, снято 0; приборов 3, матриц 4)
+    прогон FsaStackShot (5 спектров, 9 пар):
+      ASN16_Cs137_house / infer_eq: 2.2 с
+      ASN16_Cs137_house / infer_eq_peak: 1.9 с
+      ASN16_Cs137_house / infer_eq_compton: 1.9 с
+      AS80_Th232_disk / infer_eq: 5.0 с
+      ASN16_Radon_filter2 / chain_eq: 6.6 с
+      ASN16_Radon_filter2 / chain_noeq: 7.1 с
+      G1S24_Rn222Coal_eq01 / sample_eq: 3.8 с
+      G1S24_Rn222Coal_eq01 / sample_noeq: 3.4 с
+      ASN16_Cs137_10cm / sample_nomatrix: 1.1 с
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Cs137_house / infer_eq — 112 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      ASN16_Cs137_house      infer_eq       0-30 кэВ         Backscatter                         1494424.123        1486313.535 -8110.588 (-0.54 %)
+      ASN16_Cs137_house      infer_eq       0-30 кэВ         Cs-137                             17010059.836       17192234.257 182174.421 (+1.07 %)
+      ASN16_Cs137_house      infer_eq       0-30 кэВ         Xray-Pb                                6662.069          23516.568 16854.499 (+252.99 %)
+      ASN16_Cs137_house      infer_eq       0-30 кэВ         Xray-Pb-L                           1216626.705        1210140.898 -6485.807 (-0.53 %)
+      ASN16_Cs137_house      infer_eq       0-30 кэВ         continuum_raw                         46976.162          41833.664 -5142.498 (-10.95 %)
+      ASN16_Cs137_house      infer_eq       0-30 кэВ         excess_fit                          1771193.783        1949719.515 178525.732 (+10.08 %)
+      ASN16_Cs137_house      infer_eq       0-30 кэВ         excess_net                          1771193.783        1949719.515 178525.732 (+10.08 %)
+      ASN16_Cs137_house      infer_eq       0-30 кэВ         missing_fit                          825460.000         819560.876 -5899.124 (-0.71 %)
+      ASN16_Cs137_house      infer_eq       0-30 кэВ         missing_net                          825460.000         819560.876 -5899.124 (-0.71 %)
+      ASN16_Cs137_house      infer_eq       0-30 кэВ         model                              19727842.216       19912267.072 184424.856 (+0.93 %)
+      ASN16_Cs137_house      infer_eq       0-30 кэВ         pile-up                                  69.481             61.803 -7.678 (-11.05 %)
+      ASN16_Cs137_house      infer_eq       0-30 кэВ         tail                                1909503.753        1901207.547 -8296.206 (-0.43 %)
+      ASN16_Cs137_house      infer_eq       30-100 кэВ       Backscatter                          302934.330         284748.752 -18185.578 (-6.00 %)
+      ASN16_Cs137_house      infer_eq       30-100 кэВ       Cs-137                             38181954.721       37961336.094 -220618.627 (-0.58 %)
+      ASN16_Cs137_house      infer_eq       30-100 кэВ       Xray-Pb                             1840620.679        1950206.611 109585.932 (+5.95 %)
+      ASN16_Cs137_house      infer_eq       30-100 кэВ       continuum_raw                       1625157.055        1569826.938 -55330.117 (-3.40 %)
+      ASN16_Cs137_house      infer_eq       30-100 кэВ       excess_fit                           824154.727         671441.031 -152713.696 (-18.53 %)
+      ASN16_Cs137_house      infer_eq       30-100 кэВ       excess_net                           824154.727         671441.031 -152713.696 (-18.53 %)
+      ASN16_Cs137_house      infer_eq       30-100 кэВ       missing_fit                          404464.231         381066.864 -23397.367 (-5.78 %)
+      ASN16_Cs137_house      infer_eq       30-100 кэВ       missing_net                          404464.231         381066.864 -23397.367 (-5.78 %)
+      ASN16_Cs137_house      infer_eq       30-100 кэВ       model                              40328405.167       40199088.838 -129316.329 (-0.32 %)
+      ASN16_Cs137_house      infer_eq       30-100 кэВ       pile-up                                2895.445           2797.394 -98.051 (-3.39 %)
+      ASN16_Cs137_house      infer_eq       30-100 кэВ       tail                               11395823.536       11567838.637 172015.101 (+1.51 %)
+      ASN16_Cs137_house      infer_eq       100-300 кэВ      Backscatter                         6662117.241        6574105.979 -88011.262 (-1.32 %)
+      ASN16_Cs137_house      infer_eq       100-300 кэВ      Cs-137                             65626413.842       65666911.938 40498.096 (+0.06 %)
+      ASN16_Cs137_house      infer_eq       100-300 кэВ      Xray-Pb                                4708.170           4561.086 -147.084 (-3.12 %)
+      ASN16_Cs137_house      infer_eq       100-300 кэВ      continuum_raw                       6686126.556        6730859.933 44733.377 (+0.67 %)
+      ASN16_Cs137_house      infer_eq       100-300 кэВ      excess_fit                           709073.782         696358.258 -12715.524 (-1.79 %)
+      ASN16_Cs137_house      infer_eq       100-300 кэВ      excess_net                           709073.782         696358.258 -12715.524 (-1.79 %)
+      ASN16_Cs137_house      infer_eq       100-300 кэВ      missing_fit                         1415421.932        1450274.390 34852.458 (+2.46 %)
+      ASN16_Cs137_house      infer_eq       100-300 кэВ      missing_net                         1415421.932        1450274.390 34852.458 (+2.46 %)
+      ASN16_Cs137_house      infer_eq       100-300 кэВ      model                              72307890.748       72260322.766 -47567.982 (-0.07 %)
+      ASN16_Cs137_house      infer_eq       100-300 кэВ      pile-up                               14651.495          14743.772 92.277 (+0.63 %)
+      ASN16_Cs137_house      infer_eq       100-300 кэВ      tail                                 220449.826         217752.161 -2697.665 (-1.22 %)
+      ASN16_Cs137_house      infer_eq       300-700 кэВ      Cs-137                            112379206.883      112398529.829 19322.946 (+0.02 %)
+      ASN16_Cs137_house      infer_eq       300-700 кэВ      continuum_raw                        489638.075         496955.159 7317.084 (+1.49 %)
+      ASN16_Cs137_house      infer_eq       300-700 кэВ      excess_fit                          1495810.980        1501926.388 6115.408 (+0.41 %)
+      ASN16_Cs137_house      infer_eq       300-700 кэВ      excess_net                          1495810.980        1501926.388 6115.408 (+0.41 %)
+      ASN16_Cs137_house      infer_eq       300-700 кэВ      missing_fit                         5323081.609        5310052.856 -13028.753 (-0.24 %)
+      ASN16_Cs137_house      infer_eq       300-700 кэВ      missing_net                         5323081.609        5310052.856 -13028.753 (-0.24 %)
+      ASN16_Cs137_house      infer_eq       300-700 кэВ      model                             112454328.027      112473472.188 19144.161 (+0.02 %)
+      ASN16_Cs137_house      infer_eq       300-700 кэВ      pile-up                               75121.163          74942.349 -178.814 (-0.24 %)
+      ASN16_Cs137_house      infer_eq       700-1500 кэВ     Cs-137                               365908.253         372131.134 6222.881 (+1.70 %)
+      ASN16_Cs137_house      infer_eq       700-1500 кэВ     continuum_raw                        491838.101         491902.742 64.641 (+0.01 %)
+      ASN16_Cs137_house      infer_eq       700-1500 кэВ     excess_fit                            48925.481          48753.305 -172.176 (-0.35 %)
+      ASN16_Cs137_house      infer_eq       700-1500 кэВ     excess_net                            47865.686          47693.510 -172.176 (-0.36 %)
+      ASN16_Cs137_house      infer_eq       700-1500 кэВ     missing_fit                          163542.121         157666.221 -5875.900 (-3.59 %)
+      ASN16_Cs137_house      infer_eq       700-1500 кэВ     missing_net                          163542.121         157666.221 -5875.900 (-3.59 %)
+      ASN16_Cs137_house      infer_eq       700-1500 кэВ     model                               1115823.322        1121527.046 5703.724 (+0.51 %)
+      ASN16_Cs137_house      infer_eq       700-1500 кэВ     pile-up                              749915.062         749395.909 -519.153 (-0.07 %)
+      ASN16_Cs137_house      infer_eq       1500-3000 кэВ    continuum_raw                          3797.948           3798.998 1.050 (+0.03 %)
+      ASN16_Cs137_house      infer_eq       1500-3000 кэВ    excess_fit                             7134.492           7134.330 -0.162 (-0.00 %)
+      ASN16_Cs137_house      infer_eq       1500-3000 кэВ    excess_net                             2494.908           2494.746 -0.162 (-0.01 %)
+      ASN16_Cs137_house      infer_eq       1500-3000 кэВ    missing_fit                            4598.508           4598.794 0.286 (+0.01 %)
+      ASN16_Cs137_house      infer_eq       1500-3000 кэВ    missing_net                            4598.508           4598.794 0.286 (+0.01 %)
+      ASN16_Cs137_house      infer_eq       1500-3000 кэВ    model                                  4838.819           4838.371 -0.448 (-0.01 %)
+      ASN16_Cs137_house      infer_eq       1500-3000 кэВ    pile-up                                4838.819           4838.371 -0.448 (-0.01 %)
+      ASN16_Cs137_house      infer_eq       rates component  Backscatter.count_rate                    2.011              1.984 -0.027 (-1.33 %)
+      ASN16_Cs137_house      infer_eq       rates component  Backscatter.peak_counts             8228349.233        8118367.598 -109981.635 (-1.34 %)
+      ASN16_Cs137_house      infer_eq       rates component  Backscatter.share_pct                     3.440              3.393 -0.047 (-1.36 %)
+      … и ещё 52 строк
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Cs137_house / infer_eq_peak — 102 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         Cs-137                              9105392.199        9281427.819 176035.620 (+1.93 %)
+      ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         Xray-Pb                                   0.702              0.719 0.017 (+2.42 %)
+      ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         Xray-Pb-L                           1191439.273        1185116.045 -6323.228 (-0.53 %)
+      ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         continuum_raw                         46976.162          41833.664 -5142.498 (-10.95 %)
+      ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         excess_fit                          1771193.783        1949719.515 178525.732 (+10.08 %)
+      ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         excess_net                          1771193.783        1949719.515 178525.732 (+10.08 %)
+      ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         missing_fit                          825460.000         819560.876 -5899.124 (-0.71 %)
+      ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         missing_net                          825460.000         819560.876 -5899.124 (-0.71 %)
+      ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         model                              19727842.216       19912267.072 184424.856 (+0.93 %)
+      ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         tail                                1909503.753        1901207.547 -8296.206 (-0.43 %)
+      ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       Cs-137                             15686978.971       15497702.711 -189276.260 (-1.21 %)
+      ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       Xray-Pb                             1536547.202        1523817.802 -12729.400 (-0.83 %)
+      ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       continuum_raw                       1625157.055        1569826.938 -55330.117 (-3.40 %)
+      ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       excess_fit                           824154.727         671441.031 -152713.696 (-18.53 %)
+      ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       excess_net                           824154.727         671441.031 -152713.696 (-18.53 %)
+      ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       missing_fit                          404464.231         381066.864 -23397.367 (-5.78 %)
+      ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       missing_net                          404464.231         381066.864 -23397.367 (-5.78 %)
+      ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       model                              40328405.167       40199088.838 -129316.329 (-0.32 %)
+      ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       tail                               11395823.536       11567838.637 172015.101 (+1.51 %)
+      ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      Xray-Pb                                4665.785           4520.318 -145.467 (-3.12 %)
+      ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      continuum_raw                       6686126.556        6730859.933 44733.377 (+0.67 %)
+      ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      excess_fit                           709073.782         696358.258 -12715.524 (-1.79 %)
+      ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      excess_net                           709073.782         696358.258 -12715.524 (-1.79 %)
+      ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      missing_fit                         1415421.932        1450274.390 34852.458 (+2.46 %)
+      ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      missing_net                         1415421.932        1450274.390 34852.458 (+2.46 %)
+      ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      model                              72307890.748       72260322.766 -47567.982 (-0.07 %)
+      ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      tail                                 220449.826         217752.161 -2697.665 (-1.22 %)
+      ASN16_Cs137_house      infer_eq_peak  300-700 кэВ      Cs-137                             60149551.854       60152665.077 3113.223 (+0.01 %)
+      ASN16_Cs137_house      infer_eq_peak  300-700 кэВ      continuum_raw                        489638.075         496955.159 7317.084 (+1.49 %)
+      ASN16_Cs137_house      infer_eq_peak  300-700 кэВ      excess_fit                          1495810.980        1501926.388 6115.408 (+0.41 %)
+      ASN16_Cs137_house      infer_eq_peak  300-700 кэВ      excess_net                          1495810.980        1501926.388 6115.408 (+0.41 %)
+      ASN16_Cs137_house      infer_eq_peak  300-700 кэВ      missing_fit                         5323081.609        5310052.856 -13028.753 (-0.24 %)
+      ASN16_Cs137_house      infer_eq_peak  300-700 кэВ      missing_net                         5323081.609        5310052.856 -13028.753 (-0.24 %)
+      ASN16_Cs137_house      infer_eq_peak  300-700 кэВ      model                             112454328.027      112473472.188 19144.161 (+0.02 %)
+      ASN16_Cs137_house      infer_eq_peak  700-1500 кэВ     Cs-137                               351247.483         357264.249 6016.766 (+1.71 %)
+      ASN16_Cs137_house      infer_eq_peak  700-1500 кэВ     continuum_raw                        491838.101         491902.742 64.641 (+0.01 %)
+      ASN16_Cs137_house      infer_eq_peak  700-1500 кэВ     excess_fit                            48925.481          48753.305 -172.176 (-0.35 %)
+      ASN16_Cs137_house      infer_eq_peak  700-1500 кэВ     excess_net                            47865.686          47693.510 -172.176 (-0.36 %)
+      ASN16_Cs137_house      infer_eq_peak  700-1500 кэВ     missing_fit                          163542.121         157666.221 -5875.900 (-3.59 %)
+      ASN16_Cs137_house      infer_eq_peak  700-1500 кэВ     missing_net                          163542.121         157666.221 -5875.900 (-3.59 %)
+      ASN16_Cs137_house      infer_eq_peak  700-1500 кэВ     model                               1115823.322        1121527.046 5703.724 (+0.51 %)
+      ASN16_Cs137_house      infer_eq_peak  1500-3000 кэВ    continuum_raw                          3797.948           3798.998 1.050 (+0.03 %)
+      ASN16_Cs137_house      infer_eq_peak  1500-3000 кэВ    excess_fit                             7134.492           7134.330 -0.162 (-0.00 %)
+      ASN16_Cs137_house      infer_eq_peak  1500-3000 кэВ    excess_net                             2494.908           2494.746 -0.162 (-0.01 %)
+      ASN16_Cs137_house      infer_eq_peak  1500-3000 кэВ    missing_fit                            4598.508           4598.794 0.286 (+0.01 %)
+      ASN16_Cs137_house      infer_eq_peak  1500-3000 кэВ    missing_net                            4598.508           4598.794 0.286 (+0.01 %)
+      ASN16_Cs137_house      infer_eq_peak  1500-3000 кэВ    model                                  4838.819           4838.371 -0.448 (-0.01 %)
+      ASN16_Cs137_house      infer_eq_peak  rates component  Backscatter.count_rate                    2.011              1.984 -0.027 (-1.33 %)
+      ASN16_Cs137_house      infer_eq_peak  rates component  Backscatter.peak_counts             8228349.233        8118367.598 -109981.635 (-1.34 %)
+      ASN16_Cs137_house      infer_eq_peak  rates component  Backscatter.share_pct                     3.440              3.393 -0.047 (-1.36 %)
+      ASN16_Cs137_house      infer_eq_peak  rates component  Backscatter.z                           109.902            107.319 -2.583 (-2.35 %)
+      ASN16_Cs137_house      infer_eq_peak  rates component  Cs-137.count_rate                      6708.416           6709.408 0.992 (+0.01 %)
+      ASN16_Cs137_house      infer_eq_peak  rates component  Cs-137.decision_threshold_ra              0.723              0.706 -0.017 (-2.36 %)
+      ASN16_Cs137_house      infer_eq_peak  rates component  Cs-137.detection_limit_rate               1.449              1.415 -0.034 (-2.35 %)
+      ASN16_Cs137_house      infer_eq_peak  rates component  Cs-137.peak_counts                100699520.972      100696136.079 -3384.893 (-0.00 %)
+      ASN16_Cs137_house      infer_eq_peak  rates component  Cs-137.share_pct                         94.968             94.967 -0.001 (-0.00 %)
+      ASN16_Cs137_house      infer_eq_peak  rates component  Cs-137.z                               1917.701           1925.480 7.779 (+0.41 %)
+      ASN16_Cs137_house      infer_eq_peak  rates component  Xray-Pb.count_rate                       18.362             18.208 -0.153 (-0.84 %)
+      ASN16_Cs137_house      infer_eq_peak  rates component  Xray-Pb.peak_counts                 1789020.078        1773983.245 -15036.833 (-0.84 %)
+      ASN16_Cs137_house      infer_eq_peak  rates component  Xray-Pb.share_pct                         0.753              0.804 0.051 (+6.81 %)
+      … и ещё 42 строк
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Cs137_house / infer_eq_compton — 103 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         Cs-137                              7820821.773        7830990.652 10168.879 (+0.13 %)
+      ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         Xray-Pb                                6270.738          23145.601 16874.863 (+269.10 %)
+      ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         Xray-Pb-L                             22567.067          22461.614 -105.453 (-0.47 %)
+      ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         continuum_raw                         46976.162          41833.664 -5142.498 (-10.95 %)
+      ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         excess_fit                          1771193.783        1949719.515 178525.732 (+10.08 %)
+      ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         excess_net                          1771193.783        1949719.515 178525.732 (+10.08 %)
+      ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         missing_fit                          825460.000         819560.876 -5899.124 (-0.71 %)
+      ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         missing_net                          825460.000         819560.876 -5899.124 (-0.71 %)
+      ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         model                              19727842.216       19912267.072 184424.856 (+0.93 %)
+      ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         tail                                1909503.753        1901207.547 -8296.206 (-0.43 %)
+      ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       Cs-137                             20883647.824       20905596.374 21948.550 (+0.11 %)
+      ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       Xray-Pb                              255159.240         378269.581 123110.341 (+48.25 %)
+      ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       continuum_raw                       1625157.055        1569826.938 -55330.117 (-3.40 %)
+      ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       excess_fit                           824154.727         671441.031 -152713.696 (-18.53 %)
+      ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       excess_net                           824154.727         671441.031 -152713.696 (-18.53 %)
+      ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       missing_fit                          404464.231         381066.864 -23397.367 (-5.78 %)
+      ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       missing_net                          404464.231         381066.864 -23397.367 (-5.78 %)
+      ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       model                              40328405.167       40199088.838 -129316.329 (-0.32 %)
+      ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       tail                               11395823.536       11567838.637 172015.101 (+1.51 %)
+      ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      Cs-137                             59151316.742       59145407.937 -5908.805 (-0.01 %)
+      ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      Xray-Pb                                  36.228             34.834 -1.394 (-3.85 %)
+      ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      continuum_raw                       6686126.556        6730859.933 44733.377 (+0.67 %)
+      ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      excess_fit                           709073.782         696358.258 -12715.524 (-1.79 %)
+      ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      excess_net                           709073.782         696358.258 -12715.524 (-1.79 %)
+      ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      missing_fit                         1415421.932        1450274.390 34852.458 (+2.46 %)
+      ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      missing_net                         1415421.932        1450274.390 34852.458 (+2.46 %)
+      ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      model                              72307890.748       72260322.766 -47567.982 (-0.07 %)
+      ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      tail                                 220449.826         217752.161 -2697.665 (-1.22 %)
+      ASN16_Cs137_house      infer_eq_compt 300-700 кэВ      Cs-137                             51117902.884       51126621.110 8718.226 (+0.02 %)
+      ASN16_Cs137_house      infer_eq_compt 300-700 кэВ      continuum_raw                        489638.075         496955.159 7317.084 (+1.49 %)
+      ASN16_Cs137_house      infer_eq_compt 300-700 кэВ      excess_fit                          1495810.980        1501926.388 6115.408 (+0.41 %)
+      ASN16_Cs137_house      infer_eq_compt 300-700 кэВ      excess_net                          1495810.980        1501926.388 6115.408 (+0.41 %)
+      ASN16_Cs137_house      infer_eq_compt 300-700 кэВ      missing_fit                         5323081.609        5310052.856 -13028.753 (-0.24 %)
+      ASN16_Cs137_house      infer_eq_compt 300-700 кэВ      missing_net                         5323081.609        5310052.856 -13028.753 (-0.24 %)
+      ASN16_Cs137_house      infer_eq_compt 300-700 кэВ      model                             112454328.027      112473472.188 19144.161 (+0.02 %)
+      ASN16_Cs137_house      infer_eq_compt 700-1500 кэВ     Cs-137                                  488.448            498.531 10.083 (+2.06 %)
+      ASN16_Cs137_house      infer_eq_compt 700-1500 кэВ     continuum_raw                        491838.101         491902.742 64.641 (+0.01 %)
+      ASN16_Cs137_house      infer_eq_compt 700-1500 кэВ     excess_fit                            48925.481          48753.305 -172.176 (-0.35 %)
+      ASN16_Cs137_house      infer_eq_compt 700-1500 кэВ     excess_net                            47865.686          47693.510 -172.176 (-0.36 %)
+      ASN16_Cs137_house      infer_eq_compt 700-1500 кэВ     missing_fit                          163542.121         157666.221 -5875.900 (-3.59 %)
+      ASN16_Cs137_house      infer_eq_compt 700-1500 кэВ     missing_net                          163542.121         157666.221 -5875.900 (-3.59 %)
+      ASN16_Cs137_house      infer_eq_compt 700-1500 кэВ     model                               1115823.322        1121527.046 5703.724 (+0.51 %)
+      ASN16_Cs137_house      infer_eq_compt 1500-3000 кэВ    continuum_raw                          3797.948           3798.998 1.050 (+0.03 %)
+      ASN16_Cs137_house      infer_eq_compt 1500-3000 кэВ    excess_fit                             7134.492           7134.330 -0.162 (-0.00 %)
+      ASN16_Cs137_house      infer_eq_compt 1500-3000 кэВ    excess_net                             2494.908           2494.746 -0.162 (-0.01 %)
+      ASN16_Cs137_house      infer_eq_compt 1500-3000 кэВ    missing_fit                            4598.508           4598.794 0.286 (+0.01 %)
+      ASN16_Cs137_house      infer_eq_compt 1500-3000 кэВ    missing_net                            4598.508           4598.794 0.286 (+0.01 %)
+      ASN16_Cs137_house      infer_eq_compt 1500-3000 кэВ    model                                  4838.819           4838.371 -0.448 (-0.01 %)
+      ASN16_Cs137_house      infer_eq_compt rates component  Backscatter.count_rate                    2.011              1.984 -0.027 (-1.33 %)
+      ASN16_Cs137_house      infer_eq_compt rates component  Backscatter.peak_counts             8228349.233        8118367.598 -109981.635 (-1.34 %)
+      ASN16_Cs137_house      infer_eq_compt rates component  Backscatter.share_pct                     3.440              3.393 -0.047 (-1.36 %)
+      ASN16_Cs137_house      infer_eq_compt rates component  Backscatter.z                           109.902            107.319 -2.583 (-2.35 %)
+      ASN16_Cs137_house      infer_eq_compt rates component  Cs-137.count_rate                      6708.416           6709.408 0.992 (+0.01 %)
+      ASN16_Cs137_house      infer_eq_compt rates component  Cs-137.decision_threshold_ra              0.723              0.706 -0.017 (-2.36 %)
+      ASN16_Cs137_house      infer_eq_compt rates component  Cs-137.detection_limit_rate               1.449              1.415 -0.034 (-2.35 %)
+      ASN16_Cs137_house      infer_eq_compt rates component  Cs-137.peak_counts                100699520.972      100696136.079 -3384.893 (-0.00 %)
+      ASN16_Cs137_house      infer_eq_compt rates component  Cs-137.share_pct                         94.968             94.967 -0.001 (-0.00 %)
+      ASN16_Cs137_house      infer_eq_compt rates component  Cs-137.z                               1917.701           1925.480 7.779 (+0.41 %)
+      ASN16_Cs137_house      infer_eq_compt rates component  Xray-Pb.count_rate                       18.362             18.208 -0.153 (-0.84 %)
+      ASN16_Cs137_house      infer_eq_compt rates component  Xray-Pb.peak_counts                 1789020.078        1773983.245 -15036.833 (-0.84 %)
+      … и ещё 43 строк
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: AS80_Th232_disk / infer_eq — 182 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Ac-228                                 9968.617           9460.506 -508.111 (-5.10 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Bi-212                                 4188.808           3892.348 -296.460 (-7.08 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Pb-212                                 2007.346           2207.843 200.497 (+9.99 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Ra-224                                  148.378            163.680 15.302 (+10.31 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Rn-220                                    4.485              4.955 0.470 (+10.48 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Th-228                                   26.829             29.596 2.767 (+10.31 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Th-232                                    4.417              4.891 0.474 (+10.73 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Tl-208                                 2401.503           2389.218 -12.285 (-0.51 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Xray-Pb                                2162.394           2375.292 212.898 (+9.85 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Xray-Th                                  64.984             81.468 16.484 (+25.37 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Xray-Th-L                               785.490           1123.888 338.398 (+43.08 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         continuum_raw                          4317.075           4691.057 373.982 (+8.66 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         excess_fit                              601.895            579.796 -22.099 (-3.67 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         excess_net                              600.415            578.316 -22.099 (-3.68 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         missing_fit                            3823.813           3831.271 7.458 (+0.20 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         missing_net                            3823.813           3831.271 7.458 (+0.20 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         model                                 21763.372          21733.815 -29.557 (-0.14 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         tail                                   5923.950           6192.213 268.263 (+4.53 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Ac-228                                70432.700          68921.201 -1511.499 (-2.15 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Bi-212                                16307.960          15452.147 -855.813 (-5.25 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Pb-212                                60800.809          60756.652 -44.157 (-0.07 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Ra-224                                 2961.649           3015.846 54.197 (+1.83 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Rn-220                                   36.861             39.002 2.141 (+5.81 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Th-228                                 1580.390           1561.442 -18.948 (-1.20 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Th-232                                  140.206            137.723 -2.483 (-1.77 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Tl-208                                36462.050          34917.646 -1544.404 (-4.24 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Xray-Pb                              159241.620         161320.094 2078.474 (+1.31 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Xray-Th                               13604.395          15412.768 1808.373 (+13.29 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Xray-Th-L                                 0.002              0.003 0.001 (+50.00 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       continuum_raw                         81463.478          86319.575 4856.097 (+5.96 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       excess_fit                            12168.583          12278.765 110.182 (+0.91 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       excess_net                            12168.583          12278.765 110.182 (+0.91 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       missing_fit                           13320.441          13464.698 144.257 (+1.08 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       missing_net                           13320.441          13464.698 144.257 (+1.08 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       model                                361569.553         361535.478 -34.075 (-0.01 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       tail                                   9182.676           9937.372 754.696 (+8.22 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Ac-228                               208143.177         209718.435 1575.258 (+0.76 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Bi-212                                20750.247          21094.624 344.377 (+1.66 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Pb-212                               224003.832         222827.695 -1176.137 (-0.53 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Ra-224                                19999.574          19880.165 -119.409 (-0.60 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Rn-220                                  238.452            246.373 7.921 (+3.32 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Th-228                                 1859.513           1837.204 -22.309 (-1.20 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Th-232                                   55.486             54.445 -1.041 (-1.88 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Tl-208                               132437.103         128841.643 -3595.460 (-2.71 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Xray-Pb                                 178.649            177.317 -1.332 (-0.75 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Xray-Th                                5534.218           6207.414 673.196 (+12.16 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      continuum_raw                        196011.630         216651.778 20640.148 (+10.53 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      excess_fit                            16668.627          16742.966 74.339 (+0.45 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      excess_net                            16668.627          16742.966 74.339 (+0.45 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      missing_fit                           30140.022          32529.147 2389.125 (+7.93 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      missing_net                           30140.022          32529.147 2389.125 (+7.93 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      model                                613203.600         610888.814 -2314.786 (-0.38 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      Ac-228                               177309.106         177676.329 367.223 (+0.21 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      Bi-212                                18601.421          18393.277 -208.144 (-1.12 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      Pb-212                                 5309.779           5309.435 -0.344 (-0.01 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      Rn-220                                  345.028            342.810 -2.218 (-0.64 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      Tl-208                               147038.008         146189.696 -848.312 (-0.58 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      continuum_raw                         70877.621          80109.184 9231.563 (+13.02 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      excess_fit                            13545.290          13567.324 22.034 (+0.16 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      excess_net                            13545.290          13567.324 22.034 (+0.16 %)
+      … и ещё 122 строк
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Radon_filter2 / chain_eq — 145 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Ac-228                                 3976.915           3968.287 -8.628 (-0.22 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Bi-212                                  515.648            516.431 0.783 (+0.15 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Pb-212                                 4736.197           4771.151 34.954 (+0.74 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Ra-224                                  246.586            248.385 1.799 (+0.73 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Rn-220                                    3.055              3.077 0.022 (+0.72 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Th-228                                  108.782            109.580 0.798 (+0.73 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Th-232                                   20.282             20.482 0.200 (+0.99 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Tl-208                                 2114.915           2084.897 -30.018 (-1.42 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         continuum_raw                         11550.653          11554.640 3.987 (+0.03 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         excess_fit                             3528.252           3528.083 -0.169 (-0.00 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         excess_net                             3528.252           3528.083 -0.169 (-0.00 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         missing_fit                            6605.478           6605.388 -0.090 (-0.00 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         missing_net                            6605.478           6605.388 -0.090 (-0.00 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         model                                 11723.122          11723.043 -0.079 (-0.00 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Ac-228                                 9513.237           9508.282 -4.955 (-0.05 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Bi-212                                  912.677            913.632 0.955 (+0.10 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Pb-212                                11031.654          11104.045 72.391 (+0.66 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Ra-224                                  620.324            623.658 3.334 (+0.54 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Rn-220                                    8.063              8.102 0.039 (+0.48 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Th-228                                  260.479            262.277 1.798 (+0.69 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Th-232                                   28.788             29.089 0.301 (+1.05 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Tl-208                                 5247.528           5177.468 -70.060 (-1.34 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       continuum_raw                         25772.851          25766.490 -6.361 (-0.02 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       excess_fit                             5424.195           5422.140 -2.055 (-0.04 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       excess_net                             5384.368           5382.313 -2.055 (-0.04 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       missing_fit                            7175.281           7169.402 -5.879 (-0.08 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       missing_net                            7175.281           7169.402 -5.879 (-0.08 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       model                                 27622.864          27626.688 3.824 (+0.01 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Ac-228                                 2854.353           2851.399 -2.954 (-0.10 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Bi-212                                  252.698            251.402 -1.296 (-0.51 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Pb-212                                 2735.037           2759.327 24.290 (+0.89 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Ra-224                                  240.666            242.458 1.792 (+0.74 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Rn-220                                    2.875              2.880 0.005 (+0.17 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Th-228                                   32.875             33.146 0.271 (+0.82 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Th-232                                    1.528              1.541 0.013 (+0.85 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Tl-208                                 1668.083           1636.320 -31.763 (-1.90 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      continuum_raw                          5581.160           5565.474 -15.686 (-0.28 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      excess_fit                            14779.130          14764.734 -14.396 (-0.10 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      excess_net                             5243.998           5229.602 -14.396 (-0.27 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      missing_fit                            2564.010           2559.232 -4.778 (-0.19 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      missing_net                            2564.010           2559.232 -4.778 (-0.19 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      model                                  7788.147           7778.529 -9.618 (-0.12 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      Ac-228                                  799.232            803.996 4.764 (+0.60 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      Bi-212                                   80.920             80.076 -0.844 (-1.04 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      Pb-212                                   28.890             31.155 2.265 (+7.84 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      Rn-220                                    1.014              1.023 0.009 (+0.89 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      Tl-208                                  601.053            600.089 -0.964 (-0.16 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      continuum_raw                           506.293            498.022 -8.271 (-1.63 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      excess_fit                             4582.047           4586.132 4.085 (+0.09 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      excess_net                              827.235            831.320 4.085 (+0.49 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      missing_fit                            1536.601           1535.443 -1.158 (-0.08 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      missing_net                            1536.601           1535.443 -1.158 (-0.08 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      model                                  1511.132           1516.375 5.243 (+0.35 %)
+      ASN16_Radon_filter2    chain_eq       700-1500 кэВ     Ac-228                                  248.789            259.671 10.882 (+4.37 %)
+      ASN16_Radon_filter2    chain_eq       700-1500 кэВ     Bi-212                                   42.590             43.927 1.337 (+3.14 %)
+      ASN16_Radon_filter2    chain_eq       700-1500 кэВ     Tl-208                                  142.657            146.251 3.594 (+2.52 %)
+      ASN16_Radon_filter2    chain_eq       700-1500 кэВ     continuum_raw                            57.073             56.867 -0.206 (-0.36 %)
+      ASN16_Radon_filter2    chain_eq       700-1500 кэВ     excess_fit                             2876.732           2886.169 9.437 (+0.33 %)
+      ASN16_Radon_filter2    chain_eq       700-1500 кэВ     excess_net                              260.418            269.855 9.437 (+3.62 %)
+      ASN16_Radon_filter2    chain_eq       700-1500 кэВ     missing_fit                            1695.692           1689.288 -6.404 (-0.38 %)
+      … и ещё 85 строк
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Radon_filter2 / chain_noeq — 133 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         Pb-212                                11123.869          11124.087 0.218 (+0.00 %)
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         Ra-224                                  583.366            583.420 0.054 (+0.01 %)
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         continuum_raw                         11512.877          11515.029 2.152 (+0.02 %)
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         excess_fit                             3517.573           3517.860 0.287 (+0.01 %)
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         excess_net                             3517.573           3517.860 0.287 (+0.01 %)
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         missing_fit                            6610.672           6610.707 0.035 (+0.00 %)
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         missing_net                            6610.672           6610.707 0.035 (+0.00 %)
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         model                                 11707.249          11707.501 0.252 (+0.00 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       Pb-212                                26729.563          26728.189 -1.374 (-0.01 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       Ra-224                                 1438.161           1438.337 0.176 (+0.01 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       continuum_raw                         23550.925          23560.776 9.851 (+0.04 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       excess_fit                             4907.130           4901.325 -5.805 (-0.12 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       excess_net                             4867.303           4861.498 -5.805 (-0.12 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       missing_fit                            6113.363           6108.753 -4.610 (-0.08 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       missing_net                            6113.363           6108.753 -4.610 (-0.08 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       model                                 28167.717          28166.522 -1.195 (-0.00 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      Pb-212                                 8189.386           8188.972 -0.414 (-0.01 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      Ra-224                                  724.257            723.406 -0.851 (-0.12 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      continuum_raw                          3955.850           3958.544 2.694 (+0.07 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      excess_fit                            14513.506          14513.086 -0.420 (-0.00 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      excess_net                             4978.374           4977.954 -0.420 (-0.01 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      missing_fit                            1172.904           1173.719 0.815 (+0.07 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      missing_net                            1172.904           1173.719 0.815 (+0.07 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      model                                  8913.629           8912.394 -1.235 (-0.01 %)
+      ASN16_Radon_filter2    chain_noeq     300-700 кэВ      Pb-212                                  406.399            407.950 1.551 (+0.38 %)
+      ASN16_Radon_filter2    chain_noeq     300-700 кэВ      continuum                               586.881            592.469 5.588 (+0.95 %)
+      ASN16_Radon_filter2    chain_noeq     300-700 кэВ      excess_fit                             4212.219           4217.603 5.384 (+0.13 %)
+      ASN16_Radon_filter2    chain_noeq     300-700 кэВ      excess_net                              457.407            462.791 5.384 (+1.18 %)
+      ASN16_Radon_filter2    chain_noeq     300-700 кэВ      missing_fit                            1684.625           1682.870 -1.755 (-0.10 %)
+      ASN16_Radon_filter2    chain_noeq     300-700 кэВ      missing_net                            1684.625           1682.870 -1.755 (-0.10 %)
+      ASN16_Radon_filter2    chain_noeq     300-700 кэВ      model                                   993.280           1000.419 7.139 (+0.72 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Pb-212.count_rate                        15.193             15.179 -0.014 (-0.09 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Pb-212.decision_threshold_ra              0.958              0.958 -0.000567229 (-0.06 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Pb-212.detection_limit_rate               1.928              1.927 -0.001 (-0.06 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Pb-212.peak_counts                     9059.598           9052.918 -6.680 (-0.07 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Pb-212.share_pct                         91.219             91.210 -0.009 (-0.01 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Pb-212.z                                 23.797             23.793 -0.004 (-0.02 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Ra-224.count_rate                        15.193             15.179 -0.014 (-0.09 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Ra-224.decision_threshold_ra              0.958              0.958 -0.000567229 (-0.06 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Ra-224.detection_limit_rate               1.928              1.927 -0.001 (-0.06 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Ra-224.peak_counts                      431.275            430.719 -0.557 (-0.13 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Ra-224.share_pct                          5.392              5.391 -0.002 (-0.03 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Ra-224.z                                 23.797             23.793 -0.004 (-0.02 %)
+      ASN16_Radon_filter2    chain_noeq     rates grey       above_lines.peak_counts                1725.621           1731.208 5.587 (+0.32 %)
+      ASN16_Radon_filter2    chain_noeq     rates grey       above_lines.share_pct                     3.389              3.399 0.011 (+0.31 %)
+      ASN16_Radon_filter2    chain_noeq     rates grey       residual_excess.count_rate                0.888              0.888 -1.12919e-05 (-0.00 %)
+      ASN16_Radon_filter2    chain_noeq     rates grey       residual_missing.count_rate               0.518              0.518 -0.000150524 (-0.03 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Ac-228.collinearity                       0.113              0.110 -0.003 (-2.62 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Ac-228.decision_threshold_ra              1.631              1.623 -0.008 (-0.50 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Ac-228.detection_limit_rate               3.285              3.269 -0.016 (-0.49 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Ac-228.limit_peak_counts               1612.858           1592.289 -20.569 (-1.28 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-212.collinearity                       0.068              0.067 -0.000767238 (-1.13 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-212.decision_threshold_ra              9.555              9.555 0.00048324 (+0.01 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-212.detection_limit_rate              19.478             19.479 0.001 (+0.01 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-212.limit_peak_counts                707.792            704.336 -3.456 (-0.49 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-214.collinearity                       0.328              0.327 -0.001 (-0.36 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-214.decision_threshold_ra              1.548              1.539 -0.009 (-0.59 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-214.detection_limit_rate               3.128              3.110 -0.019 (-0.59 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-214.limit_peak_counts                668.739            671.467 2.728 (+0.41 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Pb-210.collinearity                       0.629              0.629 7.94751e-06 (+0.00 %)
+      … и ещё 73 строк
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: G1S24_Rn222Coal_eq01 / sample_eq — 160 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Bi-212                                   99.287             94.928 -4.359 (-4.39 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Bi-214                                 1192.047           1192.599 0.552 (+0.05 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Pb-212                                  133.869            134.356 0.487 (+0.36 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Pb-214                                 1262.705           1274.588 11.883 (+0.94 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Ra-224                                    7.298              7.326 0.028 (+0.38 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Rn-222                                    0.924              0.935 0.011 (+1.19 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Th-228                                    2.730              2.740 0.010 (+0.37 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Tl-208                                   86.124             84.650 -1.474 (-1.71 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         continuum_raw                          2667.216           2679.667 12.451 (+0.47 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         excess_fit                               49.519             51.427 1.908 (+3.85 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         excess_net                               45.033             46.941 1.908 (+4.24 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         missing_fit                             232.273            227.043 -5.230 (-2.25 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         missing_net                             232.273            227.043 -5.230 (-2.25 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         model                                  2785.221           2792.359 7.138 (+0.26 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         tail                                     12.847             13.236 0.389 (+3.03 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Bi-212                                  397.548            390.581 -6.967 (-1.75 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Bi-214                                 9314.523           9264.308 -50.215 (-0.54 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Pb-212                                 3442.879           3427.309 -15.570 (-0.45 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Pb-214                                23608.522          23689.239 80.717 (+0.34 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Ra-224                                   82.219             82.626 0.407 (+0.50 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Rn-222                                    8.130              8.256 0.126 (+1.55 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Th-228                                  102.259            101.814 -0.445 (-0.44 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Tl-208                                  805.489            777.861 -27.628 (-3.43 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       continuum_raw                         13103.968          13376.111 272.143 (+2.08 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       excess_fit                             2440.222           2449.490 9.268 (+0.38 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       excess_net                             2440.222           2449.490 9.268 (+0.38 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       missing_fit                            4295.658           4324.473 28.815 (+0.67 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       missing_net                            4295.658           4324.473 28.815 (+0.67 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       model                                 37762.868          37743.321 -19.547 (-0.05 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       tail                                      2.190              2.292 0.102 (+4.66 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Bi-212                                  312.415            310.973 -1.442 (-0.46 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Bi-214                                27000.354          26753.615 -246.739 (-0.91 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Pb-212                                 3976.086           3968.233 -7.853 (-0.20 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Pb-214                                31253.936          31589.320 335.384 (+1.07 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Ra-224                                  352.257            351.430 -0.827 (-0.23 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Rn-222                                   23.906             24.263 0.357 (+1.49 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Th-228                                   41.113             40.952 -0.161 (-0.39 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Tl-208                                 2009.192           1940.014 -69.178 (-3.44 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      continuum_raw                         26490.698          27326.639 835.941 (+3.16 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      excess_fit                             1299.497           1317.948 18.451 (+1.42 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      excess_net                             1299.497           1317.948 18.451 (+1.42 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      missing_fit                            1570.441           1579.272 8.831 (+0.56 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      missing_net                            1570.441           1579.272 8.831 (+0.56 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      model                                 64975.513          64985.133 9.620 (+0.01 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      Bi-212                                  288.500            285.246 -3.254 (-1.13 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      Bi-214                                32790.796          32724.149 -66.647 (-0.20 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      Pb-212                                   75.164             81.124 5.960 (+7.93 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      Pb-214                                18503.786          18572.324 68.538 (+0.37 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      Rn-222                                   29.810             29.972 0.162 (+0.54 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      Tl-208                                 2194.856           2184.086 -10.770 (-0.49 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      continuum_raw                         12182.328          12606.826 424.498 (+3.48 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      excess_fit                             1634.750           1624.999 -9.751 (-0.60 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      excess_net                             1634.750           1624.999 -9.751 (-0.60 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      missing_fit                            1878.666           1874.931 -3.735 (-0.20 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      missing_net                            1878.666           1874.931 -3.735 (-0.20 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      model                                 53890.261          53884.245 -6.016 (-0.01 %)
+      G1S24_Rn222Coal_eq01   sample_eq      700-1500 кэВ     Bi-212                                  224.863            224.848 -0.015 (-0.01 %)
+      G1S24_Rn222Coal_eq01   sample_eq      700-1500 кэВ     Bi-214                                20065.828          20108.278 42.450 (+0.21 %)
+      G1S24_Rn222Coal_eq01   sample_eq      700-1500 кэВ     Pb-214                                  330.166            331.760 1.594 (+0.48 %)
+      G1S24_Rn222Coal_eq01   sample_eq      700-1500 кэВ     Tl-208                                  995.873            947.314 -48.559 (-4.88 %)
+      … и ещё 100 строк
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: G1S24_Rn222Coal_eq01 / sample_noeq — 169 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         Bi-214                                 1305.126           1300.176 -4.950 (-0.38 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         Pb-212                                  179.500            181.059 1.559 (+0.87 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         Pb-214                                 1358.803           1363.129 4.326 (+0.32 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         Ra-224                                    9.952             10.043 0.091 (+0.91 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         Tl-208                                   70.713             67.391 -3.322 (-4.70 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         continuum_raw                          2894.737           2892.572 -2.165 (-0.07 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         excess_fit                               94.331             93.328 -1.003 (-1.06 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         excess_net                               89.845             88.842 -1.003 (-1.12 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         missing_fit                             138.212            139.507 1.295 (+0.94 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         missing_net                             138.212            139.507 1.295 (+0.94 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         model                                  2924.094           2921.796 -2.298 (-0.08 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         tail                                      0.000              0.358          0.358
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       Bi-214                                 9910.272           9850.407 -59.865 (-0.60 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       Pb-212                                 4228.536           4252.704 24.168 (+0.57 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       Pb-214                                23347.025          23407.908 60.883 (+0.26 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       Ra-224                                  107.001            108.537 1.536 (+1.44 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       Tl-208                                  612.858            577.562 -35.296 (-5.76 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       continuum_raw                         14166.733          14384.107 217.374 (+1.53 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       excess_fit                             1565.686           1582.066 16.380 (+1.05 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       excess_net                             1565.686           1582.066 16.380 (+1.05 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       missing_fit                            2978.294           3003.254 24.960 (+0.84 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       missing_net                            2978.294           3003.254 24.960 (+0.84 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       model                                 38205.696          38197.116 -8.580 (-0.02 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       tail                                      0.000              0.047          0.047
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      Bi-214                                26936.402          26720.858 -215.544 (-0.80 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      Pb-212                                 4937.793           4982.877 45.084 (+0.91 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      Pb-214                                31348.715          31623.402 274.687 (+0.88 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      Ra-224                                  437.368            441.159 3.791 (+0.87 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      Tl-208                                 1509.181           1419.728 -89.453 (-5.93 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      continuum_raw                         25979.547          26785.307 805.760 (+3.10 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      excess_fit                             1157.960           1172.931 14.971 (+1.29 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      excess_net                             1157.960           1172.931 14.971 (+1.29 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      missing_fit                            1234.943           1231.359 -3.584 (-0.29 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      missing_net                            1234.943           1231.359 -3.584 (-0.29 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      model                                 65169.474          65188.029 18.555 (+0.03 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      Bi-214                                33712.226          33718.896 6.670 (+0.02 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      Pb-212                                   89.026             97.236 8.210 (+9.22 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      Pb-214                                18395.048          18419.208 24.160 (+0.13 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      Tl-208                                 1696.002           1646.196 -49.806 (-2.94 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      continuum_raw                         12819.324          13260.731 441.407 (+3.44 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      excess_fit                             1742.545           1743.642 1.097 (+0.06 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      excess_net                             1742.545           1743.642 1.097 (+0.06 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      missing_fit                            1984.416           1996.282 11.866 (+0.60 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      missing_net                            1984.416           1996.282 11.866 (+0.60 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      model                                 53892.306          53881.537 -10.769 (-0.02 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     Bi-214                                20506.804          20560.686 53.882 (+0.26 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     Pb-214                                  333.619            334.500 0.881 (+0.26 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     Tl-208                                  775.555            718.129 -57.426 (-7.40 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     continuum_raw                          7771.431           7189.851 -581.580 (-7.48 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     excess_fit                             1336.833           1334.795 -2.038 (-0.15 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     excess_net                             1336.833           1334.795 -2.038 (-0.15 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     missing_fit                            1532.673           1533.318 0.645 (+0.04 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     missing_net                            1532.673           1533.318 0.645 (+0.04 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     model                                 21615.986          21613.303 -2.683 (-0.01 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    1500-3000 кэВ    Bi-214                                 5032.454           5068.915 36.461 (+0.72 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    1500-3000 кэВ    Tl-208                                 1102.213           1071.128 -31.085 (-2.82 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    1500-3000 кэВ    continuum_raw                          1764.905           1623.778 -141.127 (-8.00 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    1500-3000 кэВ    excess_fit                              955.995            957.481 1.486 (+0.16 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    1500-3000 кэВ    excess_net                              855.923            857.409 1.486 (+0.17 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    1500-3000 кэВ    missing_fit                             903.533            899.669 -3.864 (-0.43 %)
+      … и ещё 109 строк
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Cs137_10cm / sample_nomatrix — 57 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      ASN16_Cs137_10cm       sample_nomatri 0-30 кэВ         Backscatter                             818.658            816.055 -2.603 (-0.32 %)
+      ASN16_Cs137_10cm       sample_nomatri 0-30 кэВ         Cs-137                                 1229.626           1232.355 2.729 (+0.22 %)
+      ASN16_Cs137_10cm       sample_nomatri 0-30 кэВ         continuum_raw                          1234.680           1235.346 0.666 (+0.05 %)
+      ASN16_Cs137_10cm       sample_nomatri 0-30 кэВ         excess_fit                              304.165            304.124 -0.041 (-0.01 %)
+      ASN16_Cs137_10cm       sample_nomatri 0-30 кэВ         excess_net                              284.811            284.770 -0.041 (-0.01 %)
+      ASN16_Cs137_10cm       sample_nomatri 0-30 кэВ         missing_fit                             470.657            470.497 -0.160 (-0.03 %)
+      ASN16_Cs137_10cm       sample_nomatri 0-30 кэВ         missing_net                             470.657            470.497 -0.160 (-0.03 %)
+      ASN16_Cs137_10cm       sample_nomatri 0-30 кэВ         model                                  2048.289           2048.408 0.119 (+0.01 %)
+      ASN16_Cs137_10cm       sample_nomatri 30-100 кэВ       Backscatter                            1506.533           1498.938 -7.595 (-0.50 %)
+      ASN16_Cs137_10cm       sample_nomatri 30-100 кэВ       Cs-137                                 4065.321           4073.423 8.102 (+0.20 %)
+      ASN16_Cs137_10cm       sample_nomatri 30-100 кэВ       continuum_raw                          3883.973           3889.212 5.239 (+0.13 %)
+      ASN16_Cs137_10cm       sample_nomatri 30-100 кэВ       excess_fit                              774.149            774.776 0.627 (+0.08 %)
+      ASN16_Cs137_10cm       sample_nomatri 30-100 кэВ       excess_net                              754.305            754.932 0.627 (+0.08 %)
+      ASN16_Cs137_10cm       sample_nomatri 30-100 кэВ       missing_fit                             903.632            903.763 0.131 (+0.01 %)
+      ASN16_Cs137_10cm       sample_nomatri 30-100 кэВ       missing_net                             903.632            903.763 0.131 (+0.01 %)
+      ASN16_Cs137_10cm       sample_nomatri 30-100 кэВ       model                                  5571.859           5572.355 0.496 (+0.01 %)
+      ASN16_Cs137_10cm       sample_nomatri 100-300 кэВ      Backscatter                            5828.722           5799.787 -28.935 (-0.50 %)
+      ASN16_Cs137_10cm       sample_nomatri 100-300 кэВ      Cs-137                                12137.642          12165.668 28.026 (+0.23 %)
+      ASN16_Cs137_10cm       sample_nomatri 100-300 кэВ      continuum_raw                         15019.338          15036.931 17.593 (+0.12 %)
+      ASN16_Cs137_10cm       sample_nomatri 100-300 кэВ      excess_fit                             2236.251           2235.546 -0.705 (-0.03 %)
+      ASN16_Cs137_10cm       sample_nomatri 100-300 кэВ      excess_net                             2236.251           2235.546 -0.705 (-0.03 %)
+      ASN16_Cs137_10cm       sample_nomatri 100-300 кэВ      missing_fit                            2344.372           2344.565 0.193 (+0.01 %)
+      ASN16_Cs137_10cm       sample_nomatri 100-300 кэВ      missing_net                            2344.372           2344.565 0.193 (+0.01 %)
+      ASN16_Cs137_10cm       sample_nomatri 100-300 кэВ      model                                 17966.356          17965.458 -0.898 (-0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri 300-700 кэВ      Cs-137                                15014.719          15014.602 -0.117 (-0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri 300-700 кэВ      continuum_raw                          7733.557           7733.504 -0.053 (-0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri 300-700 кэВ      excess_fit                             2205.540           2205.461 -0.079 (-0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri 300-700 кэВ      excess_net                             2083.998           2083.919 -0.079 (-0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri 300-700 кэВ      missing_fit                            1947.940           1947.978 0.038 (+0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri 300-700 кэВ      missing_net                            1947.940           1947.978 0.038 (+0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri 300-700 кэВ      model                                 15014.719          15014.602 -0.117 (-0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri 700-1500 кэВ     continuum_raw                            24.756             24.759 0.003 (+0.01 %)
+      ASN16_Cs137_10cm       sample_nomatri rates component  Backscatter.count_rate                    0.111              0.110 -0.000694086 (-0.63 %)
+      ASN16_Cs137_10cm       sample_nomatri rates component  Backscatter.peak_counts                3802.099           3778.307 -23.792 (-0.63 %)
+      ASN16_Cs137_10cm       sample_nomatri rates component  Backscatter.share_pct                    20.025             19.930 -0.096 (-0.48 %)
+      ASN16_Cs137_10cm       sample_nomatri rates component  Backscatter.z                            13.784             13.724 -0.060 (-0.43 %)
+      ASN16_Cs137_10cm       sample_nomatri rates component  Cs-137.count_rate                      5439.037           5438.987 -0.049 (-0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri rates component  Cs-137.decision_threshold_ra             49.218             49.226 0.009 (+0.02 %)
+      ASN16_Cs137_10cm       sample_nomatri rates component  Cs-137.detection_limit_rate             100.441            100.457 0.016 (+0.02 %)
+      ASN16_Cs137_10cm       sample_nomatri rates component  Cs-137.peak_counts                     9010.128           9010.046 -0.082 (-0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri rates component  Cs-137.share_pct                         79.929             80.025 0.096 (+0.12 %)
+      ASN16_Cs137_10cm       sample_nomatri rates component  Cs-137.z                                 77.428             77.440 0.012 (+0.02 %)
+      ASN16_Cs137_10cm       sample_nomatri rates grey       above_lines.peak_counts                  18.694             18.694 -0.000205714 (-0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri rates grey       residual_excess.count_rate                0.169              0.169 -4.22069e-06 (-0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri rates grey       residual_missing.count_rate               0.170              0.170 5.42062e-06 (+0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri rates limit      Cs-137.collinearity                       0.165              0.165 -7.77637e-05 (-0.05 %)
+      ASN16_Cs137_10cm       sample_nomatri rates limit      Cs-137.count_rate                      5439.037           5438.987 -0.049 (-0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri rates limit      Cs-137.decision_threshold_ra             49.218             49.226 0.009 (+0.02 %)
+      ASN16_Cs137_10cm       sample_nomatri rates limit      Cs-137.detection_limit_rate             100.441            100.457 0.016 (+0.02 %)
+      ASN16_Cs137_10cm       sample_nomatri rates limit      Cs-137.limit_peak_counts                166.388            166.414 0.027 (+0.02 %)
+      ASN16_Cs137_10cm       sample_nomatri rates meta       chi2ndf                                   0.546              0.546 7.61782e-06 (+0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri rates meta       chi2ndf_pois                              1.188              1.188 2.71542e-05 (+0.00 %)
+      ASN16_Cs137_10cm       sample_nomatri rates meta       model_residual                            0.143              0.143 1.08998e-05 (+0.01 %)
+      ASN16_Cs137_10cm       sample_nomatri ROWS             строка 1                     Cs-137 | Single |  Cs-137 | Single |               ≠
+      ASN16_Cs137_10cm       sample_nomatri ROWS             строка 2                     Backscatter | Nuis Backscatter | Nuis              ≠
+      ASN16_Cs137_10cm       sample_nomatri SCREEN           строка 1                     Cs-137 | 79.93% |  Cs-137 | 80.02% |               ≠
+      ASN16_Cs137_10cm       sample_nomatri SCREEN           строка 6                     Невязка: + лишнее  Невязка: + лишнее               ≠
+    
+    ОТКАЗ: картинка FSA на витрине разошлась с эталоном (1163 строк). Это либо дефект отображения,
+           либо правка, которую принимают ПЕРЕОБЪЯВЛЕНИЕМ эталона: tools\fsa_showcase\snapshot.ps1
+           (таблица выше — в отчёт полосы). Снимки: tools\fsa_showcase\wd\out\*.png. 34 с.
+⛔ tools/check_fsa_showcase.py: код 1, 34.5 с
+
+=== сводка ===
+  ✅ tools/check_registry_refs.py — код 0, 1.9 с — ссылки `T<n>` в оснастке, приложении и журналах против TODO.md/DONE.md
+  ✅ tools/check_build_recipe.py — код 0, 2.4 с — копии рецепта MSBuild без /p:GenerateManifests=false
+  ✅ tools/check_resx.py — код 0, 0.4 с — пары Foo.resx / Foo.ru.resx: непереведённое
+  ✅ tools/check_resx_designer.py — код 0, 3.7 с — GetString("X") без X в парном resx
+  ✅ tools/check_resx_letters.py — код 0, 0.5 с — кириллица в английских resx и наоборот; ускоритель в скобках не латиницей (`T132`)
+  ✅ tools/check_resx_zorder.py — код 0, 0.3 с — >>X.Parent / >>X.ZOrder против designer-кода
+  ✅ tools/check_headless.py — код 0, 5.0 с — окна на безоконном пути
+  ✅ tools/check_menu_accelerators.py — код 0, 0.3 с — столкновения ускорителей ВСЕХ меню дерева (`T167`)
+  ✅ tools/check_numeric_updown.py — код 0, 0.6 с — поля со стрелками мимо общего InvariantNumericUpDown; группировка разрядов
+  ✅ tools/check_fsa_docs.py — код 0, 0.1 с — XML-описания настроек разбора против конструктора
+  ✅ tools/nucdb/check_ensdf_numbers.py — код 0, 0.2 с — числа §7/§8 scheme.md против schemedb/nucdb (`W8`, `D10`)
+  ✅ tools/nucdb/check_db_marks.py — код 0, 0.3 с — колонки-признаки в базах против правила (`D36`, `D38`)
+  ✅ tools/nucdb/check_isomer_levels.py — код 0, 1.6 с — изомерная разметка nucdb: имя против уровня (`D40`, `D41`, `D47`)
+  ✅ tools/check_decay_numeric.py — код 0, 1.8 с — текстовые колонки decay_radiations под сравнением/порядком (`D35`)
+  ✅ tools/check_parent_rule.py — код 0, 7.0 с — правило «родитель» одно: копии зажима по уровню в коде; три носителя уровня против nuclides/LevelClause (`D48`)
+  ✅ tools/check_corpus_readme.py — код 0, 0.2 с — журнал корпуса: снятое помечено снятым; шапка и состав частей — против дерева
+  ✅ tools/check_scheme_gaps.py — код 0, 0.3 с — раздел «чего не хватает» scheme.md против реестра
+  ✅ tools/check_corpus_library.py — код 0, 0.2 с — корпус не читает поставочную библиотеку
+  ✅ tools/check_corpus_truth.py — код 0, 0.1 с — поля истины корпуса (chains, nuclides): corpus_def против manifest.csv
+  ✅ tools/check_done_headers.py — код 0, 0.3 с — заголовок строки DONE.md против её тела
+  ⛔ tools/check_corpus_coverage.py — код 1, 0.4 с — охват корпусных мерок: коды возврата и мерки на сырье без Coverage
+  ⛔ tools/check_declared_base.py — код 2, 0.2 с — объявление базы: числа каталога, отпечаток корпуса и сборки, клеймо прогона
+  ✅ tools/check_pending_runs.py — код 0, 0.2 с — признак «ЖДЁТ СЧЁТНОГО ЗАХОДА» против раздела «Отложенные прогоны»
+  ✅ tools/check_probe_tuning.py — код 0, 0.3 с — отчёт проб FSA о настройках: вызов, эталон, снимок полосы, порядок
+  ✅ tools/check_matrix_keys.py — код 0, 1.5 с — состав ключей обоих путей: матрица отклика против расчёта в UI
+  ✅ tools/check_geometry_names.py — код 0, 0.3 с — имена веществ в узле <Efficiency> против corpus/geometries/*.in
+  ✅ tools/check_fsa_view_groups.py — код 0, 0.2 с — переключатели окна отчёта FSA: расчётные и отрисовочные по своим группам
+  ✅ tools/check_fsa_report_view.py — код 0, 48.2 с — окно отчёта FSA: приёмка FsaReportViewProbe на паре корпуса — блок качества, привязка шкалы (AMBER17), состав строк, снимки
+  ✅ tools/check_selection_panel_height.py — код 0, 0.1 с — слагаемые высоты панели выделения: отрисовка против мерки пробы
+  ✅ tools/check_escape_parents.py — код 0, 0.1 с — отсев родителей образов вылета SE/DE не выключается сам при NaN
+  ✅ tools/check_crystal_material.py — код 0, 0.1 с — вещество кристалла у прибора: геометрия первична, поле — запасной источник
+  ✅ tools/check_refit_z_class.py — код 0, 0.1 с — отсев по значимости не оставляет разбор без единого нуклида
+  ✅ tools/check_roi_listup.py — код 0, 0.1 с — перестроение списка ROI не правит то, по чему идёт
+  ✅ tools/nucdb/check_edges.py — код 0, 0.2 с — края поглощения: каждая величина берёт край своей поставки (D18)
+  ✅ tools/check_probe_numbers.py — код 0, 0.5 с — печать чисел в оснастке: подмена разделителя без метки, форматы P, число без поставщика культуры
+  ✅ tools/check_curve_generation.py — код 0, 0.2 с — поколение кривой эффективности против поколения матрицы и сборки
+  ✅ tools/check_dump_readers.py — код 0, 0.2 с — читатели дампа разбора: показная кривая рядом с моделью — только у разрешённых (`T254`)
+  ⛔ tools/check_corpus_generator.py — код 1, 1.3 с — корпус собран нынешним генератором (клеймо T244); сводка — этим корпусом
+  ✅ tools/check_corpus_scenes.py — код 0, 6.8 с — генератор сцен воспроизводит корпус с точностью до клейма; матрицы склада — на своих сценах (`T261`)
+  ✅ tools/check_no_images.py — код 0, 0.2 с — картинок (png/jpg/gif/…) под handover/ и tools/ в индексе git нет — распоряжение Amber 17.09.2026
+  ✅ tools/check_registry.py — код 0, 1.6 с — реестр: номера, ссылки на файлы, имена из кода, копии config/, объявление базы в трёх местах, графа состояния, заголовки DONE.md
+  ⛔ tools/check_fsa_showcase.py — код 1, 34.5 с — витрина FSA: картинка разбора на спектрах Amber против эталона (`T260`)
+ОСТАНОВ: отказали 4 из 42 — tools/check_corpus_coverage.py (код 1), tools/check_declared_base.py (код 2), tools/check_corpus_generator.py (код 1), tools/check_fsa_showcase.py (код 1). Приёмка НЕ пройдена; читать вывод отказавшего выше.

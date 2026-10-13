@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Threading;
 using BecquerelMonitor;
 
@@ -49,8 +50,8 @@ namespace AmplitudaUsbTests
 
                 double wallSeconds = wall.Elapsed.TotalSeconds;
                 double lost = 1.0 - (realMicros / 1e6) / wallSeconds;
-                Console.WriteLine(string.Format("wall {0:F2} s, device {1:F2} s, live {2:F2} s", wallSeconds, realMicros / 1e6, liveMicros / 1e6));
-                Console.WriteLine(string.Format("{0:F1} frames/s, {1:F2} cps, codes {2}..{3}, malformed {4}, lost {5:P2}, stop took {6} ms",
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "wall {0:F2} s, device {1:F2} s, live {2:F2} s", wallSeconds, realMicros / 1e6, liveMicros / 1e6));
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0:F1} frames/s, {1:F2} cps, codes {2}..{3}, malformed {4}, lost {5:P2}, stop took {6} ms",
                     frames / wallSeconds, events / (realMicros / 1e6), events > 0 ? min : 0, max, malformed, lost, stopping.ElapsedMilliseconds));
 
                 // One frame per ~11 ms is the idle rate; under load the device sends frames more often

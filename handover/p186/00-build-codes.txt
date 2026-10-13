@@ -1,0 +1,5 @@
+=== сборка П186 [base] 2026-09-30 03:32:43 head=2ae51bec dirty=0 ===
+Restore code=0
+Release app code=0 -> bin\Release_P186_base\
+probes build_all code=0 -> D:\BqMoni_Claude\p186\build_base
+sha256 app=90aa5f3b2a3cc7d30de3720ff6cf752be4f187de1ec7a85a357146beba8d27c3 probe=90aa5f3b2a3cc7d30de3720ff6cf752be4f187de1ec7a85a357146beba8d27c3 равны=True проб=263

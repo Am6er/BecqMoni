@@ -105,6 +105,9 @@ CHAIN_ROOTS = [("232TH", "Th-232"), ("226RA", "Ra-226"),
 # для подписи есть ОДИН пик.
 UNRESOLVED_KEV = 0.5
 
+# % от сильнейшей гаммы нуклида: порог поставки NuDat, ниже — добор `AMBER151` (`gamma_lines`)
+SIGNATURE_REL = 1.0
+
 # Наборы: постоянные идентификаторы и правило состава. Правило — по МЕТКЕ РЯДА
 # (`Chain`) и по токену нуклида, а не по списку энергий: список энергий
 # разошёлся бы с файлом при первом же доборе линий.
@@ -202,11 +205,21 @@ def main():
         if nucid not in lines_cache:
             # числовые колонки *_num: строковые energy/intensity хранят запись
             # оригинала с неопределённостью (scheme.md, §2)
-            lines_cache[nucid] = db.execute(
+            rows = db.execute(
                 "select energy_num, intensity_num from decay_radiations"
                 " where parent_nucid = ? and type_a = 'G'"
                 " and energy_num is not null and intensity_num is not null",
                 (nucid,)).fetchall()
+            # ⛔ (`AMBER151`, П196 01.10.2026) Подписи и «занятость» — только по
+            # линиям, которые поставка держала и до добора: ≥ SIGNATURE_REL от
+            # сильнейшей гаммы нуклида. После добора слабых гамм из ENSDF у метки
+            # «Am-241 325» в ±4 кэВ нашлась линия 0.0002 %, и запись получала этот
+            # выход, а у «Eu-152 125» ближайшей к метке стала слабая соседка —
+            # 121.78 переставала считаться занятой и доливалась второй скрытой
+            # записью (двойной вес). Добор второго прохода берёт ≥ 1 % НА РАСПАД,
+            # а такая линия всегда ≥ 1 % от сильнейшей, — его фильтр не режет.
+            top = max([i for _, i in rows] or [0.0])
+            lines_cache[nucid] = [(e, i) for e, i in rows if i >= SIGNATURE_REL / 100.0 * top]
         return lines_cache[nucid]
 
     filled, skipped = [], []

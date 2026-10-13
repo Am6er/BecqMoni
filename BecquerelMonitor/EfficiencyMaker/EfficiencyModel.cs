@@ -39,6 +39,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public string ComputeStamp = "";
 
+        /// <summary>
+        /// (`AMBER185`) Отпечаток геометрии, ДЛЯ КОТОРОЙ кривая посчитана
+        /// (<see cref="ResponseMatrix.GeometryFingerprint"/>), снятый в начале
+        /// счёта. Уезжает в конфигурацию вместе с кривой; расхождение с
+        /// геометрией конфигурации — «кривая посчитана для другой геометрии».
+        /// </summary>
+        public string GeometryFingerprint = "";
+
         public string Error;
 
         public bool Ok

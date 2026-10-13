@@ -1,0 +1,441 @@
+BecqMoni: main config: D:\BqMoni_Claude\p188\build_p188_rel\config\BecquerelMonitor.xml
+Привязка кривой и матрицы к спектрам понятной части (B1)
+кривая: 5-3000 кэВ, 400000 историй на узел; розыгрыш точки вылета: автоматика (полевая сцена — важностный, клеймо imp=1; прочие — равномерный); порог шумной кривой (медиана узлов от 40 кэВ, `AMBER128`) 5 %
+
+== G1S_point5 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.30 % (узлы от 40 кэВ), худший узел 50.11 % на 5.9 кэВ (ESS 4 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 0.14 % (узлов 46)
+   guid     : a1438401-8aeb-009d-edc5-210a2a14ecdd
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=5.9-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_point5.rmx -> response\a1438401-8aeb-009d-edc5-210a2a14ecdd.rmx
+   спектр   : G1S16_Am241_P5 (1 записей ResultData)
+   спектр   : G1S16_Ba133_P5 (1 записей ResultData)
+   спектр   : G1S16_Cd109_P5 (1 записей ResultData)
+   спектр   : G1S16_Ce139_P5 (1 записей ResultData)
+   спектр   : G1S16_Co57_P5 (1 записей ResultData)
+   спектр   : G1S16_Co60_P5 (1 записей ResultData)
+   спектр   : G1S16_Cs137_P5 (1 записей ResultData)
+   спектр   : G1S16_Eu152_P5 (1 записей ResultData)
+   спектр   : G1S16_Mn54_P5 (1 записей ResultData)
+   спектр   : G1S16_Na22_P5 (1 записей ResultData)
+   спектр   : G1S16_Th228_P5 (1 записей ResultData)
+   спектр   : G1S16_Y88_P5 (1 записей ResultData)
+   спектр   : G1S24_Am241_P5 (1 записей ResultData)
+   спектр   : G1S24_Ba133_P5 (1 записей ResultData)
+   спектр   : G1S24_Bi207_P5 (1 записей ResultData)
+   спектр   : G1S24_Cd109_P5 (1 записей ResultData)
+   спектр   : G1S24_Co60_P5 (1 записей ResultData)
+   спектр   : G1S24_Cs137_P5 (1 записей ResultData)
+   спектр   : G1S24_Eu152_P5 (1 записей ResultData)
+   спектр   : G1S24_Na22_P5 (1 записей ResultData)
+   спектр   : G1S24_Th228_P5 (1 записей ResultData)
+   спектр   : G1S24_Y88_P5 (1 записей ResultData)
+   спектр   : G1S24_Zn65_P5 (1 записей ResultData)
+
+== G1S_point25 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.31 % (узлы от 40 кэВ), худший узел 41.05 % на 5.9 кэВ (ESS 6 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 0.19 % (узлов 46)
+   guid     : d373d6c3-467d-5a40-0410-ad5e3c60cb70
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=5.9-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_point25.rmx -> response\d373d6c3-467d-5a40-0410-ad5e3c60cb70.rmx
+   спектр   : G1S16_Am241_P25 (1 записей ResultData)
+   спектр   : G1S16_Ba133_P25 (1 записей ResultData)
+   спектр   : G1S16_Cd109_P25 (1 записей ResultData)
+   спектр   : G1S16_Ce139_P25 (1 записей ResultData)
+   спектр   : G1S16_Co60_P25 (1 записей ResultData)
+   спектр   : G1S16_Cs137_P25 (1 записей ResultData)
+   спектр   : G1S16_Eu152_P25 (1 записей ResultData)
+   спектр   : G1S16_Mn54_P25 (1 записей ResultData)
+   спектр   : G1S16_Na22_P25 (1 записей ResultData)
+   спектр   : G1S16_Th228_P25 (1 записей ResultData)
+   спектр   : G1S16_Y88_P25 (1 записей ResultData)
+   спектр   : G1S24_Cs137_P25 (1 записей ResultData)
+   спектр   : G1S24_Na22_P25 (1 записей ResultData)
+   спектр   : G1S24_Th228_P25 (1 записей ResultData)
+   спектр   : G1S24_Y88_P25 (1 записей ResultData)
+
+== AS80_point0 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.56 % (узлы от 40 кэВ), худший узел 44.75 % на 5.5 кэВ (ESS 5 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 9.66 % (узлов 50)
+   guid     : 2992663a-84a9-9264-dfc8-2cf14a25cc21
+   кривая   : 84 точек, клеймо phys=26; hist=400000; grid=5-3000 keV/84 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : AS80_point0.rmx -> response\2992663a-84a9-9264-dfc8-2cf14a25cc21.rmx
+   спектр   : AS80_Cs137_0cm (1 записей ResultData)
+   спектр   : AS80_Am241 (1 записей ResultData)
+
+== RC103_point0 ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.89 % (узлы от 40 кэВ), худший узел 45.90 % на 5.5 кэВ (ESS 5 из 400000 историй), узлов выше 5 %: 6 из 34; ниже 40 кэВ — медиана 0.42 % (узлов 52)
+   guid     : c4123ab9-b4d7-e796-6ffd-0891f4d71111
+   кривая   : 86 точек, клеймо phys=26; hist=400000; grid=5-3000 keV/86 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : RC103_point0.rmx -> response\c4123ab9-b4d7-e796-6ffd-0891f4d71111.rmx
+   спектр   : RC103_Cs137_0cm (1 записей ResultData)
+
+== ASN16_lu_side ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.12 % (узлы от 40 кэВ), худший узел 70.79 % на 7.1 кэВ (ESS 2 из 400000 историй), узлов выше 5 %: 0 из 36; ниже 40 кэВ — медиана 5.11 % (узлов 46)
+   guid     : bbc4db49-18f4-2299-4337-0f2f11b88c88
+   кривая   : 82 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/82 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : ASN16_lu_side.rmx -> response\bbc4db49-18f4-2299-4337-0f2f11b88c88.rmx
+   спектр   : ASN16_Lu176 (1 записей ResultData)
+   спектр   : ASN16_Lu176_P0 (1 записей ResultData)
+
+== AS80_lu_front ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.75 % (узлы от 40 кэВ), худший узел 48.62 % на 10.0 кэВ (ESS 4 из 400000 историй), узлов выше 5 %: 0 из 36; ниже 40 кэВ — медиана 4.00 % (узлов 41)
+   guid     : a7eb945d-9246-91ca-c23b-65a4402448cd
+   кривая   : 77 точек, клеймо phys=26; hist=400000; grid=7.4-3000 keV/77 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : AS80_lu_front.rmx -> response\a7eb945d-9246-91ca-c23b-65a4402448cd.rmx
+   спектр   : AS80_Lu176 (1 записей ResultData)
+   спектр   : AS80_Lu176_v2 (1 записей ResultData)
+
+== RC103_lu_front ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.92 % (узлы от 40 кэВ), худший узел 87.51 % на 5.2 кэВ (ESS 1 из 400000 историй), узлов выше 5 %: 6 из 36; ниже 40 кэВ — медиана 9.65 % (узлов 51)
+   guid     : 552a036a-dfc9-c14c-b505-fbfaadbaf1ae
+   кривая   : 87 точек, клеймо phys=26; hist=400000; grid=5.2-3000 keV/87 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : RC103_lu_front.rmx -> response\552a036a-dfc9-c14c-b505-fbfaadbaf1ae.rmx
+   спектр   : RC103_Lu176 (1 записей ResultData)
+
+== RC103_marinelli05_kcl ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.61 % (узлы от 40 кэВ), худший узел 97.09 % на 5.2 кэВ (ESS 1 из 400000 историй), узлов выше 5 %: 5 из 34; ниже 40 кэВ — медиана 4.39 % (узлов 51)
+   guid     : 0b58cea4-b8af-4297-1e2b-0fdfa6e40c3f
+   кривая   : 85 точек, клеймо phys=26; hist=400000; grid=5.2-3000 keV/85 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : RC103_marinelli05_kcl.rmx -> response\0b58cea4-b8af-4297-1e2b-0fdfa6e40c3f.rmx
+   спектр   : RC103_K40 (1 записей ResultData)
+
+== G1S_denta100_oisn10_100_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.50 % (узлы от 40 кэВ), худший узел 84.25 % на 6.2 кэВ (ESS 1 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 3.24 % (узлов 47)
+   guid     : ed033f43-ad92-39e9-1ab8-185b2ccd84a1
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_denta100_oisn10_100_p16.rmx -> response\ed033f43-ad92-39e9-1ab8-185b2ccd84a1.rmx
+   спектр   : G1S16_Th232_Denta100 (1 записей ResultData)
+
+== G1S_denta100_risn379_100_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.48 % (узлы от 40 кэВ), худший узел 58.22 % на 6.2 кэВ (ESS 3 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.67 % (узлов 45)
+   guid     : 6ed49f5c-2dd6-7721-537c-60c030d94137
+   кривая   : 79 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/79 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_denta100_risn379_100_p16.rmx -> response\6ed49f5c-2dd6-7721-537c-60c030d94137.rmx
+   спектр   : G1S16_Mix_Denta100 (1 записей ResultData)
+
+== G1S_denta120_oisn06_057_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.47 % (узлы от 40 кэВ), худший узел 23.27 % на 6.2 кэВ (ESS 18 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.74 % (узлов 47)
+   guid     : d8f04e41-0488-dc39-8416-d51b803b5e8a
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_denta120_oisn06_057_p24.rmx -> response\d8f04e41-0488-dc39-8416-d51b803b5e8a.rmx
+   спектр   : G1S24_Cs137_Denta120 (1 записей ResultData)
+
+== G1S_denta120_oisn06_062_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.48 % (узлы от 40 кэВ), худший узел 23.56 % на 6.2 кэВ (ESS 18 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.79 % (узлов 47)
+   guid     : 04d28c74-e0d4-9d32-2bc0-cd12c59b998c
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_denta120_oisn06_062_p24.rmx -> response\04d28c74-e0d4-9d32-2bc0-cd12c59b998c.rmx
+   спектр   : G1S24_Ra226_Denta120 (1 записей ResultData)
+
+== G1S_denta120_oisn06_064_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.48 % (узлы от 40 кэВ), худший узел 55.95 % на 11.9 кэВ (ESS 3 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.91 % (узлов 47)
+   guid     : 2fecfdc4-9f49-742f-c154-9617cacf5318
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_denta120_oisn06_064_p24.rmx -> response\2fecfdc4-9f49-742f-c154-9617cacf5318.rmx
+   спектр   : G1S24_Th232_Denta120 (1 записей ResultData)
+
+== G1S_denta120_oisn06_066_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.48 % (узлы от 40 кэВ), худший узел 23.89 % на 6.2 кэВ (ESS 18 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.85 % (узлов 47)
+   guid     : cce59946-11c3-5472-6c3d-302ae9d6f3f1
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_denta120_oisn06_066_p24.rmx -> response\cce59946-11c3-5472-6c3d-302ae9d6f3f1.rmx
+   спектр   : G1S24_K40_Denta120 (1 записей ResultData)
+
+== G1S_denta120_oisn16_155_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.55 % (узлы от 40 кэВ), худший узел 100.00 % на 6.2 кэВ (ESS 1 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 5.51 % (узлов 47)
+   guid     : 6c14ccdc-6ed8-e995-58a6-f2a64fe0bfcd
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_denta120_oisn16_155_p24.rmx -> response\6c14ccdc-6ed8-e995-58a6-f2a64fe0bfcd.rmx
+   спектр   : G1S24_K40_Denta120_2 (1 записей ResultData)
+
+== G1S_denta120_oisn16_160_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.56 % (узлы от 40 кэВ), худший узел 100.00 % на 6.2 кэВ (ESS 1 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 5.56 % (узлов 47)
+   guid     : f587e421-fd8b-2a2e-3c21-1ed10265ac4b
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_denta120_oisn16_160_p24.rmx -> response\f587e421-fd8b-2a2e-3c21-1ed10265ac4b.rmx
+   спектр   : G1S24_Th232_Denta120_2 (1 записей ResultData)
+
+== G1S_denta120_oisn16_166_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.56 % (узлы от 40 кэВ), худший узел 100.00 % на 6.2 кэВ (ESS 1 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 5.74 % (узлов 47)
+   guid     : 9e1c51ab-cf78-66a4-1150-87dc22f327c4
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_denta120_oisn16_166_p24.rmx -> response\9e1c51ab-cf78-66a4-1150-87dc22f327c4.rmx
+   спектр   : G1S24_Cs137_Denta120_2 (1 записей ResultData)
+
+== G1S_denta120_oisn16_167_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.57 % (узлы от 40 кэВ), худший узел 100.00 % на 6.2 кэВ (ESS 1 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 5.77 % (узлов 47)
+   guid     : c2cf3bec-4df6-39dc-8b24-e5977eda81f1
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_denta120_oisn16_167_p24.rmx -> response\c2cf3bec-4df6-39dc-8b24-e5977eda81f1.rmx
+   спектр   : G1S24_Ra226_Denta120_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn06_055_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.38 % (узлы от 40 кэВ), худший узел 86.98 % на 6.2 кэВ (ESS 1 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 0.49 % (узлов 45)
+   guid     : 8b274676-e4b0-184b-fa1c-2c8d3592c725
+   кривая   : 79 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/79 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn06_055_p16.rmx -> response\8b274676-e4b0-184b-fa1c-2c8d3592c725.rmx
+   спектр   : G1S16_Th232_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn06_057_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.38 % (узлы от 40 кэВ), худший узел 87.19 % на 6.2 кэВ (ESS 1 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 0.49 % (узлов 45)
+   guid     : 77ab0974-6f2b-47cb-c1ca-042f7150bbe2
+   кривая   : 79 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/79 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn06_057_p16.rmx -> response\77ab0974-6f2b-47cb-c1ca-042f7150bbe2.rmx
+   спектр   : G1S16_Cs137_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn06_057_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.40 % (узлы от 40 кэВ), худший узел 18.15 % на 7.1 кэВ (ESS 30 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.63 % (узлов 46)
+   guid     : 5a5c317a-0751-ac21-a6e8-185bdd6fc5f2
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn06_057_p24.rmx -> response\5a5c317a-0751-ac21-a6e8-185bdd6fc5f2.rmx
+   спектр   : G1S24_Cs137_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn06_062_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.39 % (узлы от 40 кэВ), худший узел 87.72 % на 6.2 кэВ (ESS 1 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 0.51 % (узлов 45)
+   guid     : 28b990e4-f7dc-3116-e27e-be996cdd1d91
+   кривая   : 79 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/79 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn06_062_p16.rmx -> response\28b990e4-f7dc-3116-e27e-be996cdd1d91.rmx
+   спектр   : G1S16_Ra226_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn06_062_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.39 % (узлы от 40 кэВ), худший узел 19.22 % на 7.1 кэВ (ESS 27 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.69 % (узлов 46)
+   guid     : 68449eb8-40d8-1ccc-d718-bfa9105ee418
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn06_062_p24.rmx -> response\68449eb8-40d8-1ccc-d718-bfa9105ee418.rmx
+   спектр   : G1S24_Ra226_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn06_064_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.39 % (узлы от 40 кэВ), худший узел 19.64 % на 7.1 кэВ (ESS 26 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.72 % (узлов 46)
+   guid     : 34c0ad77-6a01-d6ed-1447-d49b32889411
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn06_064_p24.rmx -> response\34c0ad77-6a01-d6ed-1447-d49b32889411.rmx
+   спектр   : G1S24_Th232_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn06_066_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.39 % (узлы от 40 кэВ), худший узел 100.00 % на 6.2 кэВ (ESS 1 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 0.51 % (узлов 45)
+   guid     : 80fe173b-d74c-4bad-6a94-5213b32f2495
+   кривая   : 79 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/79 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn06_066_p16.rmx -> response\80fe173b-d74c-4bad-6a94-5213b32f2495.rmx
+   спектр   : G1S16_K40_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn06_066_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.39 % (узлы от 40 кэВ), худший узел 20.34 % на 7.1 кэВ (ESS 24 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.84 % (узлов 46)
+   guid     : 59d90fb3-76cc-c566-6db4-f829c99ac6ca
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn06_066_p24.rmx -> response\59d90fb3-76cc-c566-6db4-f829c99ac6ca.rmx
+   спектр   : G1S24_K40_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn16_155_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.45 % (узлы от 40 кэВ), худший узел 58.57 % на 7.1 кэВ (ESS 3 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 4.66 % (узлов 46)
+   guid     : c6e83c91-6a59-95c2-12b5-2b326706f97c
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn16_155_p16.rmx -> response\c6e83c91-6a59-95c2-12b5-2b326706f97c.rmx
+   спектр   : G1S16_K40_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn16_155_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.46 % (узлы от 40 кэВ), худший узел 64.69 % на 7.1 кэВ (ESS 2 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 5.73 % (узлов 46)
+   guid     : 38d9c7f8-f938-50f4-8ef6-b3ff1cf79e03
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn16_155_p24.rmx -> response\38d9c7f8-f938-50f4-8ef6-b3ff1cf79e03.rmx
+   спектр   : G1S24_K40_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn16_160_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.46 % (узлы от 40 кэВ), худший узел 59.32 % на 7.1 кэВ (ESS 3 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 5.76 % (узлов 46)
+   guid     : a43b8253-1140-8904-1140-2410f7114e45
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn16_160_p16.rmx -> response\a43b8253-1140-8904-1140-2410f7114e45.rmx
+   спектр   : G1S16_Th232_Mar_3 (1 записей ResultData)
+
+== G1S_mar1l_oisn16_160_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.46 % (узлы от 40 кэВ), худший узел 65.56 % на 7.1 кэВ (ESS 2 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 5.50 % (узлов 46)
+   guid     : 6fafd956-34af-0bed-9910-3ee13f5424e3
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn16_160_p24.rmx -> response\6fafd956-34af-0bed-9910-3ee13f5424e3.rmx
+   спектр   : G1S24_Th232_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn16_166_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.47 % (узлы от 40 кэВ), худший узел 60.20 % на 7.1 кэВ (ESS 3 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 5.80 % (узлов 46)
+   guid     : 37f93a41-e560-68e3-3900-a08567ebafe4
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn16_166_p16.rmx -> response\37f93a41-e560-68e3-3900-a08567ebafe4.rmx
+   спектр   : G1S16_Cs137_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn16_166_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.46 % (узлы от 40 кэВ), худший узел 66.60 % на 7.1 кэВ (ESS 2 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 5.59 % (узлов 46)
+   guid     : c157b4bb-7884-36c7-7050-77aac7272d8a
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn16_166_p24.rmx -> response\c157b4bb-7884-36c7-7050-77aac7272d8a.rmx
+   спектр   : G1S24_Cs137_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn16_167_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.47 % (узлы от 40 кэВ), худший узел 60.34 % на 7.1 кэВ (ESS 3 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 5.84 % (узлов 46)
+   guid     : 61d23db3-f81e-aecf-fe2b-5b601ed9326e
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn16_167_p16.rmx -> response\61d23db3-f81e-aecf-fe2b-5b601ed9326e.rmx
+   спектр   : G1S16_Ra226_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn16_167_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.47 % (узлы от 40 кэВ), худший узел 66.77 % на 7.1 кэВ (ESS 2 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 5.63 % (узлов 46)
+   guid     : e42f1d2c-7212-6988-b30d-da3995473bfe
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_oisn16_167_p24.rmx -> response\e42f1d2c-7212-6988-b30d-da3995473bfe.rmx
+   спектр   : G1S24_Ra226_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_risn379_100_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.39 % (узлы от 40 кэВ), худший узел 26.45 % на 6.8 кэВ (ESS 14 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.52 % (узлов 44)
+   guid     : 10130f74-47dd-27d9-46b8-fb5c8271f084
+   кривая   : 78 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/78 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_risn379_100_p16.rmx -> response\10130f74-47dd-27d9-46b8-fb5c8271f084.rmx
+   спектр   : G1S16_Mix_Mar (1 записей ResultData)
+
+== G1S_petri60_oisn06_057_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.48 % (узлы от 40 кэВ), худший узел 23.34 % на 6.2 кэВ (ESS 18 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.26 % (узлов 47)
+   guid     : b495efd5-978c-c40b-720d-4a2ca7fa2455
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_petri60_oisn06_057_p24.rmx -> response\b495efd5-978c-c40b-720d-4a2ca7fa2455.rmx
+   спектр   : G1S24_Cs137_Petri (1 записей ResultData)
+
+== G1S_petri60_oisn06_062_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.49 % (узлы от 40 кэВ), худший узел 22.10 % на 8.8 кэВ (ESS 20 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.28 % (узлов 47)
+   guid     : 11d8337f-3f31-3b2c-f625-8f9bec43a3f1
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_petri60_oisn06_062_p24.rmx -> response\11d8337f-3f31-3b2c-f625-8f9bec43a3f1.rmx
+   спектр   : G1S24_Ra226_Petri (1 записей ResultData)
+
+== G1S_petri60_oisn06_064_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.49 % (узлы от 40 кэВ), худший узел 21.81 % на 8.8 кэВ (ESS 21 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.30 % (узлов 47)
+   guid     : 0287f7f6-e492-c3ef-02aa-f922d1e07552
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_petri60_oisn06_064_p24.rmx -> response\0287f7f6-e492-c3ef-02aa-f922d1e07552.rmx
+   спектр   : G1S24_Th232_Petri (1 записей ResultData)
+
+== G1S_petri60_oisn06_067_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.49 % (узлы от 40 кэВ), худший узел 99.97 % на 7.1 кэВ (ESS 1 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.38 % (узлов 47)
+   guid     : ec040922-9d7a-72da-bec5-4d9c6b38f5ec
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_petri60_oisn06_067_p24.rmx -> response\ec040922-9d7a-72da-bec5-4d9c6b38f5ec.rmx
+   спектр   : G1S24_K40_Petri (1 записей ResultData)
+
+== G1S_petri60_oisn10_100_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.48 % (узлы от 40 кэВ), худший узел 73.58 % на 6.2 кэВ (ESS 2 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 3.16 % (узлов 47)
+   guid     : 1eb5247c-3880-474b-295b-f8a61f3187fb
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_petri60_oisn10_100_p16.rmx -> response\1eb5247c-3880-474b-295b-f8a61f3187fb.rmx
+   спектр   : G1S16_Th232_Petri (1 записей ResultData)
+
+== G1S_petri60_oisn16_155_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.51 % (узлы от 40 кэВ), худший узел 43.30 % на 6.2 кэВ (ESS 5 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 3.87 % (узлов 47)
+   guid     : 53bd04df-6e8d-1f9e-83a2-564d7b8b327d
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_petri60_oisn16_155_p24.rmx -> response\53bd04df-6e8d-1f9e-83a2-564d7b8b327d.rmx
+   спектр   : G1S24_K40_Petri_2 (1 записей ResultData)
+
+== G1S_petri60_oisn16_160_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.51 % (узлы от 40 кэВ), худший узел 48.70 % на 6.2 кэВ (ESS 4 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 4.37 % (узлов 47)
+   guid     : 6b61f24c-55c3-f6c0-8603-8ad89cc01ed8
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_petri60_oisn16_160_p24.rmx -> response\6b61f24c-55c3-f6c0-8603-8ad89cc01ed8.rmx
+   спектр   : G1S24_Th232_Petri_2 (1 записей ResultData)
+
+== G1S_petri60_oisn16_167_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.51 % (узлы от 40 кэВ), худший узел 48.78 % на 6.2 кэВ (ESS 4 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 4.38 % (узлов 47)
+   guid     : c33e2b8d-5594-53ab-aa5b-2df4abcd0b56
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_petri60_oisn16_167_p24.rmx -> response\c33e2b8d-5594-53ab-aa5b-2df4abcd0b56.rmx
+   спектр   : G1S24_Cs137_Petri_2 (1 записей ResultData)
+   спектр   : G1S24_Ra226_Petri_2 (1 записей ResultData)
+
+== G1S_petri60_risn379_100_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.49 % (узлы от 40 кэВ), худший узел 52.20 % на 10.0 кэВ (ESS 4 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 1.22 % (узлов 45)
+   guid     : eea37702-b9e7-cc9c-0b7e-c7df2743253f
+   кривая   : 79 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/79 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_petri60_risn379_100_p16.rmx -> response\eea37702-b9e7-cc9c-0b7e-c7df2743253f.rmx
+   спектр   : G1S16_Mix_Petri (1 записей ResultData)
+
+== AS80_th_disk ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.68 % (узлы от 40 кэВ), худший узел 28.26 % на 10.0 кэВ (ESS 13 из 400000 историй), узлов выше 5 %: 0 из 36; ниже 40 кэВ — медиана 2.90 % (узлов 45)
+   guid     : c2b5212c-6b5a-50d8-7870-0b0c3104daa2
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=7.4-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : AS80_th_disk.rmx -> response\c2b5212c-6b5a-50d8-7870-0b0c3104daa2.rmx
+   спектр   : AS80_Th232Medal (1 записей ResultData)
+
+== G1S_mar1l_coal_046_p24 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.38 % (узлы от 40 кэВ), худший узел 47.39 % на 6.2 кэВ (ESS 4 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 0.49 % (узлов 45)
+   guid     : 966a4a49-d62e-0ee4-4a4d-e62692fe159d
+   кривая   : 79 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/79 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : G1S_mar1l_coal_046_p24.rmx -> response\966a4a49-d62e-0ee4-4a4d-e62692fe159d.rmx
+   спектр   : G1S24_Rn222Coal_Mar_20m (1 записей ResultData)
+   спектр   : G1S24_Rn222Coal_Mar_2h (1 записей ResultData)
+   спектр   : G1S24_Rn222Coal_Mar_3h (1 записей ResultData)
+   спектр   : G1S24_Rn222Coal_Mar_eq01 (1 записей ResultData)
+
+== RC103_point50 ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.36 % (узлы от 40 кэВ), худший узел 71.47 % на 5.0 кэВ (ESS 2 из 400000 историй), узлов выше 5 %: 3 из 34; ниже 40 кэВ — медиана 0.36 % (узлов 52)
+   guid     : cac657e6-4b20-90ab-d6ef-febb7307eb06
+   кривая   : 86 точек, клеймо phys=26; hist=400000; grid=5-3000 keV/86 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : RC103_point50.rmx -> response\cac657e6-4b20-90ab-d6ef-febb7307eb06.rmx
+   спектр   : RC103_Cs137_50mm (1 записей ResultData)
+
+== ASN16_point0_house ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.80 % (узлы от 40 кэВ), худший узел 42.14 % на 5.5 кэВ (ESS 6 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 0.62 % (узлов 52)
+   guid     : 38a10446-95c7-4e73-09fa-39a98ff667de
+   кривая   : 86 точек, клеймо phys=26; hist=400000; grid=5-3000 keV/86 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : ASN16_point0_house.rmx -> response\38a10446-95c7-4e73-09fa-39a98ff667de.rmx
+   спектр   : ASN16_Cs137 (1 записей ResultData)
+
+== ASN16_point10_house ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.92 % (узлы от 40 кэВ), худший узел 100.00 % на 5.9 кэВ (ESS 1 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 0.49 % (узлов 48)
+   guid     : f483eddf-da8a-ed6b-6b19-093a23cb827a
+   кривая   : 82 точек, клеймо phys=26; hist=400000; grid=5.9-3000 keV/82 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; mdb=e544a1f45bf7d7fc
+   матрица  : ASN16_point10_house.rmx -> response\f483eddf-da8a-ed6b-6b19-093a23cb827a.rmx
+   спектр   : ASN16_Cs137_10cm (1 записей ResultData)
+
+геометрий в описи: 49 — посчитано 49, пропущено 0 (клеймо и геометрия сошлись); записей проставлено: 92
+ВСЕ СОШЛИСЬ

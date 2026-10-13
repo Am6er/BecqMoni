@@ -91,6 +91,116 @@ namespace BecquerelMonitor.NucBase
             }
         }
 
+        /// <summary>
+        /// ⛔ (`AMBER197`, 05.10.2026) Запрос поиска («241Am», «Am-241», «99mTc»,
+        /// «Tc-99m», «242m1Am», «Am-242m», «152Eu») — в <c>nucid</c> базы
+        /// («241AM», «99TCm», «242AMm1»).
+        ///
+        /// Прежде разбор стоял в <c>NucBase.DoSearch</c> регулярным выражением
+        /// метки изомера «m и цифра в конце», и «m» СИМВОЛА ЭЛЕМЕНТА принималось
+        /// за метку: «241Am» → «241A» + «m» → запрос «241Am», в базе 0 строк
+        /// (у «241AM» их 29) — «ничего не найдено» у Am, Cm, Sm, Pm, Tm, Fm в
+        /// записи «масса впереди». Где кончается символ и начинается метка, по
+        /// буквам не сказать («241Am» — америций, «24Nam» — изомер натрия), и
+        /// угадывать не нужно: разбор общий с библиотекой образов
+        /// (<see cref="FsaSampleLibrary.NucidOf"/>), он сводит имя к «массе +
+        /// буквам в верхнем регистре» и спрашивает справочник <c>nucid</c> базы,
+        /// а метки «m» и «m1» (в базе обе в ходу) подставляет друг за друга.
+        ///
+        /// Сверх того здесь понимается запись «масса, метка, символ» — «99mTc»,
+        /// «242m1Am»: её справочник не знает, и она переписывается в «Tc99m»,
+        /// «Am242m1». Пробуется она ВТОРОЙ: «95mo» — это молибден, а не изомер
+        /// кислорода. Не нашлось ни так, ни так — прежняя строка «масса + буквы
+        /// заглавными» (то, что человек увидит в «ничего не найдено»).
+        /// </summary>
+        public static string QueryNucid(string query)
+        {
+            string text = (query ?? "").Trim().Replace("-", "").Replace(" ", "");
+            if (text.Length == 0)
+            {
+                return "";
+            }
+
+            string nucid = FsaSampleLibrary.NucidOf(text);
+            if (nucid.Length > 0)
+            {
+                return nucid;
+            }
+
+            System.Text.RegularExpressions.Match prefixed = System.Text.RegularExpressions.Regex.Match(
+                text, @"^(?<mass>\d+)(?<state>[mM]\d?)(?<symbol>[A-Za-z]{1,2})$");
+            if (prefixed.Success)
+            {
+                nucid = FsaSampleLibrary.NucidOf(prefixed.Groups["symbol"].Value
+                                                  + prefixed.Groups["mass"].Value
+                                                  + prefixed.Groups["state"].Value.ToLowerInvariant());
+                if (nucid.Length > 0)
+                {
+                    return nucid;
+                }
+            }
+
+            string mass = System.Text.RegularExpressions.Regex.Match(text, @"\d+").Value;
+            string letters = System.Text.RegularExpressions.Regex.Match(text, @"[a-zA-Z]+").Value;
+            return mass + letters.ToUpperInvariant();
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER195`, 05.10.2026) Период полураспада нуклида базы в ГОДАХ
+        /// ПОЛЯ <c>HalfLife</c> — тем же пересчётом, каким его пишет импорт
+        /// линий (<see cref="NucBase.HalfLifeYearsFromCell"/>: год = 365 сут,
+        /// `DaysPerHalfLifeYear`), а не через <c>half_life_sec</c> (там год
+        /// 365.2422 сут — и 1600 лет Ra-226 стали бы 1601.06).
+        ///
+        /// Читатель — период КОРНЯ ряда для поправки на распад
+        /// (<see cref="NuclideDefinition.DecayHalfLifeYears"/>). Стабильный
+        /// («STABLE»), не измеренный, ненайденный нуклид и отказ базы — 0
+        /// («периода нет»). Ответы помнятся (панель выделения спрашивает на
+        /// каждом пересчёте), отказ базы — нет: следующий вызов спросит снова.
+        /// </summary>
+        public static double HalfLifeYearsOf(string nucid)
+        {
+            if (string.IsNullOrEmpty(nucid))
+            {
+                return 0.0;
+            }
+
+            lock (HalfLifeGate)
+            {
+                double cached;
+                if (HalfLifeCache.TryGetValue(nucid, out cached))
+                {
+                    return cached;
+                }
+            }
+
+            NucBaseFramework fw = new NucBaseFramework();
+            Nuclide nuc = fw.getNuclude(nucid);
+            if (nuc == null && fw.LastError != null)
+            {
+                return 0.0;
+            }
+
+            double years = nuc == null
+                ? 0.0
+                : NucBase.HalfLifeYearsFromCell((nuc.HalfLife ?? "") + "(" + (nuc.HalfLifeUOM ?? "") + ")");
+            if (!(years > 0.0) || double.IsInfinity(years))
+            {
+                years = 0.0;
+            }
+
+            lock (HalfLifeGate)
+            {
+                HalfLifeCache[nucid] = years;
+            }
+
+            return years;
+        }
+
+        static readonly object HalfLifeGate = new object();
+
+        static readonly Dictionary<string, double> HalfLifeCache = new Dictionary<string, double>(StringComparer.Ordinal);
+
         public Nuclide getNuclude(string nucname)
         {
             this.LastError = null;
@@ -417,6 +527,7 @@ namespace BecquerelMonitor.NucBase
             }
 
             MarkRedundantKSeries(decayRads);
+            MarkRedundantLSeries(decayRads);
             return decayRads;
         }
 
@@ -678,7 +789,7 @@ namespace BecquerelMonitor.NucBase
         /// Здесь у лишней при сложении половины снимается галочка и в колонке
         /// серии появляется пометка. Прятать строку нельзя: она в базе есть, и
         /// взять именно её человек вправе — но взять ОБЕ он теперь может только
-        /// нарочно, и при ввозе ему об этом скажут.
+        /// нарочно, и при импорте ему об этом скажут.
         ///
         /// Какая половина лишняя, решает <see cref="KSeriesRule"/> — то же
         /// правило, что у разбора и у суммирователя совпадений; трёх
@@ -744,6 +855,69 @@ namespace BecquerelMonitor.NucBase
                 List<double[]> chosen = KSeriesRule.Beta(splitPairs, Numbers(total), names.Count);
                 List<DecayRad> loser = ReferenceEquals(chosen, splitPairs) ? total : split;
                 foreach (DecayRad line in loser)
+                {
+                    line.Redundant = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER151`, П202 01.10.2026) ТА ЖЕ ЛОВУШКА У L-СЕРИИ. Сводная строка
+        /// `L` поставки (центр тяжести и суммарный выход) с этого дня лежит в
+        /// базе рядом со своими подлиниями — `L3M5`, `L2M4`, `L1N3`…, посчитанными
+        /// из атомных данных (`tools/nucdb/import_l_sublines.py`); у трёх
+        /// родителей поставки (`225RA`, `225RN`, `229TH`) рядом стоят ещё и итоги
+        /// подоболочек `L1`/`L2`/`L3`. Импортировать сводную вместе с подлиниями —
+        /// удвоить L-рентген (у Am-241 36.6 % превратились бы в 73 %).
+        ///
+        /// Лишней помечается всякая строка L-серии, у родителя которой есть
+        /// строка ПОДРОБНЕЕ: при линиях — итоги и сводная, при итогах — сводная.
+        /// Правило вида — <see cref="FullSpectrumAnalysis.FsaSampleLibrary.LSeriesKind"/>,
+        /// то же, по которому разбор выбирает L-линии образа; двух соглашений о
+        /// L-серии в проекте быть не должно. Набор — родитель и тип распада, как у
+        /// K-серии: подлинии пишутся с каналом своей сводной строки.
+        /// </summary>
+        static void MarkRedundantLSeries(List<DecayRad> lines)
+        {
+            if (lines == null)
+            {
+                return;
+            }
+
+            var richest = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (DecayRad line in lines)
+            {
+                if (line.DecayLine != "X")
+                {
+                    continue;
+                }
+
+                int kind = FullSpectrumAnalysis.FsaSampleLibrary.LSeriesKind(line.XrayType);
+                if (kind == FullSpectrumAnalysis.FsaSampleLibrary.LSeriesNone)
+                {
+                    continue;
+                }
+
+                string key = line.Name + "\u0001" + line.DecayType.ToString(CultureInfo.InvariantCulture);
+                int seen;
+                if (!richest.TryGetValue(key, out seen) || kind > seen)
+                {
+                    richest[key] = kind;
+                }
+            }
+
+            foreach (DecayRad line in lines)
+            {
+                if (line.DecayLine != "X")
+                {
+                    continue;
+                }
+
+                int kind = FullSpectrumAnalysis.FsaSampleLibrary.LSeriesKind(line.XrayType);
+                string key = line.Name + "\u0001" + line.DecayType.ToString(CultureInfo.InvariantCulture);
+                int best;
+                if (kind != FullSpectrumAnalysis.FsaSampleLibrary.LSeriesNone
+                    && richest.TryGetValue(key, out best) && kind < best)
                 {
                     line.Redundant = true;
                 }
@@ -838,7 +1012,7 @@ namespace BecquerelMonitor.NucBase
                     XrayType = labels[i],
                     // Периода полураспада у элемента нет: светит он не сам, а в
                     // ответ на облучение. Ноль здесь и означает «не применимо» —
-                    // и с ним же уходит в определение при ввозе.
+                    // и с ним же уходит в определение при импорте.
                     HalfLife = 0.0,
                     HalfLifeUnit = "s",
                     DecayTypeText = Resources.NucBase_Fluorescence
@@ -850,7 +1024,7 @@ namespace BecquerelMonitor.NucBase
 
         /// <summary>
         /// Метка строки характеристического рентгена в колонке типа излучения.
-        /// По ней же ввоз узнаёт такую строку: у неё нет ни родителя, ни ряда,
+        /// По ней же импорт узнаёт такую строку: у неё нет ни родителя, ни ряда,
         /// ни периода полураспада.
         /// </summary>
         public const string FluorescenceLine = "XF";
@@ -901,7 +1075,7 @@ namespace BecquerelMonitor.NucBase
                 {
                     string current = queue[i].Key;
                     double share = queue[i].Value;
-                    List<KeyValuePair<string, string>> rows = new List<KeyValuePair<string, string>>();
+                    List<KeyValuePair<string, object>> rows = new List<KeyValuePair<string, object>>();
                     // Строки вычитываются целиком до следующего запроса: обходу
                     // нужен ещё один читатель на том же соединении.
                     // Зажим по уровню — общий, из `DecayParentRule` (`A218`):
@@ -912,22 +1086,26 @@ namespace BecquerelMonitor.NucBase
                     // возвращать его надо в само правило, всем сразу.
                     // Имя — параметром: оно приходит из базы и из поля ввода, а
                     // апостроф в нём закрывал литерал и ронял обход (`D45`).
+                    // (`S190`) Доля ветви — столбцом `ChainPercColumn`, а не голым
+                    // `perc`: у канала «β⁺» там доля позитронов. Число читается
+                    // значением (REAL у расширенной строки), а не текстом.
                     SqliteDataReader reader = db.ReadData(
-                        "select daughter_nucid, perc from decay_chain d where nucid = $n" +
+                        "select daughter_nucid," + DecayParentRule.ChainPercColumn
+                        + " from" + DecayParentRule.ChainTable + " d where nucid = $n" +
                         " and perc not null" + DecayParentRule.ChainLevelClause,
                         DataBase.Param("$n", current));
                     while (reader.Read())
                     {
-                        rows.Add(new KeyValuePair<string, string>(reader.GetString(0), reader.GetString(1)));
+                        rows.Add(new KeyValuePair<string, object>(reader.GetString(0), reader.GetValue(1)));
                     }
 
                     reader.Close();
 
-                    foreach (KeyValuePair<string, string> row in rows)
+                    foreach (KeyValuePair<string, object> row in rows)
                     {
                         double percent;
                         if (string.Equals(row.Key, current, StringComparison.OrdinalIgnoreCase)
-                            || !double.TryParse(row.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out percent))
+                            || !DecayParentRule.TryPercent(row.Value, out percent))
                         {
                             continue;
                         }

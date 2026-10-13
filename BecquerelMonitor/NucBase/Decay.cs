@@ -56,22 +56,25 @@ namespace BecquerelMonitor.NucBase
         {
             get
             {
+                // (`AMBER197`) Коды — расшифровка `database/scheme.md`
+                // («`decay_chain` и `l_decays`»): 1 — «ec β+», 6 — «β- n»,
+                // 10 — «ec p». Прежде 1 и 10 подписывались «IT», 6 — «β-».
                 switch (this.DecayType)
                 {
                     case 0:
                         return Resources.NucBase_Alpha_Label;
                     case 1:
-                        return Resources.NucBase_IT;
+                        return Resources.NucBase_EC + " " + Resources.NucBase_BettaPlus_Label;
                     case 2:
                         return Resources.NucBase_BettaMinus_Label;
                     case 3:
                         return Resources.NucBase_IT;
                     case 6:
-                        return Resources.NucBase_BettaMinus_Label;
+                        return Resources.NucBase_BettaMinus_Label + " n";
                     case 7:
                         return Resources.NucBase_EC;
                     case 10:
-                        return Resources.NucBase_IT;
+                        return Resources.NucBase_EC + " p";
                     default:
                         return this.decay_type.ToString(CultureInfo.InvariantCulture);
                 }

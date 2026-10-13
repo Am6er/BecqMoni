@@ -44,26 +44,42 @@ namespace FsaChannelViewProbe
     ///   (а) «All» = прежняя стопка ТОЧНО: верх каждой ленты равен независимому
     ///      накоплению лент `Curve` слоёв представления (тот же порядок, бит в бит);
     ///   (б) для КАЖДОГО канала: нарисованная лента слоя (разность соседних
-    ///      накоплений) = `ChannelCurves[канал]` этого слоя; в стопке нет ни
+    ///      накоплений) = `ChannelCurves[канал]` этого слоя, а у канала
+    ///      `Compton` — `ChannelCurves[Compton]` + `TailCurve` слоя (П112,
+    ///      19.09.2026, решение Amber «Класть хвост в слой Compton»; сам канал
+    ///      при этом не тронут — кривая стопки другой массив); в стопке нет ни
     ///      одного слоя без каналов; порядок и имена — как у стопки «All» без
     ///      слоёв без каналов; подслой сумм-пиков есть только у канала `Peak`;
-    ///   (в) Σ по каналам верхов стопок = верх «All» − подложка − хвост слоёв с
+    ///   (в) Σ по каналам верхов стопок = верх «All» − подложка слоёв с
     ///      каналами − ленты слоёв без каналов (тождество `S3`/`S175` на
-    ///      уровне картинки); верх полной модели (`fsaModelTop`) при канале
-    ///      равен верху стопки «All» бит в бит — лента невязки не двигается;
+    ///      уровне картинки; хвост слоёв с каналами с П112 лежит в стопке
+    ///      `Compton` и потому не вычитается — вычтенный дважды или не
+    ///      вычтенный вовсе он здесь и ловится); верх полной модели
+    ///      (`fsaModelTop`) при канале равен верху стопки «All» бит в бит —
+    ///      лента невязки не двигается;
     ///   (г) спектр БЕЗ матрицы: просьба о канале не исполняется (кадр собран
     ///      как «All», стопка та же), комбо окна погашено с подсказкой-причиной
     ///      и показывает «All», просьба помнится; с матрицей комбо живо и стоит
     ///      на просимом;
     ///   (д) картинка канала отличается от «All» (число закрашенных пикселей),
-    ///      каналы `Peak` и `Compton` отличаются между собой.
+    ///      каналы `Peak` и `Compton` отличаются между собой;
+    ///   (е) (П112) ЧИСЛОМ, в одном бине: у первого слоя с хвостом берётся бин
+    ///      наибольшего хвоста — он ниже порога доверия матрицы
+    ///      (`FsaAnalyzer.ResponseContinuumTrustFloorKev`) и вне окон линий по
+    ///      построению; печатаются кэВ, канал `Compton`, хвост и нарисованное:
+    ///      в режиме `Compton` нарисованное = канал + хвост, в режиме `Peak` —
+    ///      = канал (хвоста нет), в «All» — = лента слоя; и полоса 60–100 кэВ
+    ///      того же слоя: канал, хвост, нарисованное (то, что видит Amber).
     ///
     /// ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ — ВСЕГДА, без ключа: (1) подмена одного канала
     /// в результате (ChannelCurves[Peak] первого матричного компонента ×1.01
     /// на всей длине) обязана сломать (в) — стопка канала перестаёт сходиться
     /// с лентой; (2) подмена кадра (накопление одного слоя +1 % в стопке
-    /// канала) обязана сломать (б). Не сломала — проба красная, что бы ни
-    /// показал честный прогон.
+    /// канала) обязана сломать (б); (3) (П112) хвост, ПОДСАЖЕННЫЙ В ЧУЖОЙ
+    /// КАНАЛ — накопления стопки `Peak` подняты на хвост слоёв, — обязан
+    /// сломать (б) на `Peak`; (4) (П112) хвост, ВЫНУТЫЙ из стопки `Compton`
+    /// (картинка до П112, провал 60–100 кэВ), обязан сломать (б) на `Compton`.
+    /// Не сломала — проба красная, что бы ни показал честный прогон.
     ///
     /// Снимки стопок (PNG) — только в `--out=` (стенд полосы), в git не идут.
     ///
@@ -122,6 +138,15 @@ namespace FsaChannelViewProbe
             }
 
             Same("All вне номеров каналов", -1, (int)FsaMatrixLayer.All);
+
+            // (П112) Правило «где рисуется хвост» — одно на все режимы: в «All»
+            // (лентой) и в канале Compton, и ни в каком другом. Ожидание здесь
+            // записано перечислением, а не через ту же функцию.
+            Same("хвост рисуется в All", true, FsaMatrixLayers.TailDrawn(FsaMatrixLayer.All));
+            foreach (FsaMatrixLayer layer in FsaMatrixLayers.Channels)
+            {
+                Same("хвост рисуется в " + layer, layer == FsaMatrixLayer.Compton, FsaMatrixLayers.TailDrawn(layer));
+            }
 
             // (`AMBER19`) Пустышка одиночке — ДО первого обращения: код показа
             // (вид, отпечаток сеанса) зовёт менеджер сам.
@@ -228,9 +253,33 @@ namespace FsaChannelViewProbe
                 : "  ⛔ КОНТРОЛЬ 2 ПРОВАЛЕН: подсаженное накопление не замечено ({0} находок)", caught);
             bad = silent + (control2 ? 0 : 1);
 
+            // ⛔ (П112) Положительный контроль 3: хвост в ЧУЖОМ канале → (б) на Peak ломается.
+            Console.WriteLine();
+            Console.WriteLine("=== положительный контроль 3: хвост слоёв подсажен в стопку канала Peak ===");
+            silent = bad;
+            bad = 0;
+            caught = JudgeIdentityB(rd, withMatrix, FsaMatrixLayer.Peak, false, +1);
+            bool control3 = caught > 0;
+            Console.WriteLine(control3
+                ? "  контроль 3 ПОЙМАН: тождество (б) дало {0} находок на хвосте в канале Peak"
+                : "  ⛔ КОНТРОЛЬ 3 ПРОВАЛЕН: хвост в чужом канале не замечен ({0} находок)", caught);
+            bad = silent + (control3 ? 0 : 1);
+
+            // ⛔ (П112) Положительный контроль 4: хвост ВЫНУТ из Compton (картинка до П112) → (б) ломается.
+            Console.WriteLine();
+            Console.WriteLine("=== положительный контроль 4: хвост слоёв вынут из стопки канала Compton (провал до П112) ===");
+            silent = bad;
+            bad = 0;
+            caught = JudgeIdentityB(rd, withMatrix, FsaMatrixLayer.Compton, false, -1);
+            bool control4 = caught > 0;
+            Console.WriteLine(control4
+                ? "  контроль 4 ПОЙМАН: тождество (б) дало {0} находок на стопке Compton без хвоста"
+                : "  ⛔ КОНТРОЛЬ 4 ПРОВАЛЕН: стопка Compton без хвоста не замечена ({0} находок)", caught);
+            bad = silent + (control4 ? 0 : 1);
+
             Console.WriteLine();
             Console.WriteLine(bad == 0
-                ? "ВСЕ СОШЛИСЬ: стопка канала — те же слои тем же порядком, каждая лента = свой канал; «All» = прежняя стопка; без матрицы режим недостижим; оба контроля пойманы"
+                ? "ВСЕ СОШЛИСЬ: стопка канала — те же слои тем же порядком, каждая лента = свой канал (Compton — канал + хвост слоя); «All» = прежняя стопка; без матрицы режим недостижим; четыре контроля пойманы"
                 : string.Format(CultureInfo.InvariantCulture, "НЕ СОШЛОСЬ: {0}", bad));
             return SuppliedLibraryGate(bad == 0 ? 0 : 1);
         }
@@ -511,9 +560,14 @@ namespace FsaChannelViewProbe
                 Console.WriteLine("  закрашено пикселей: {0}", painted[layer]);
             }
 
-            // (в) Σ каналов = All − подложка − хвост (у слоёв с каналами) − ленты слоёв без каналов.
+            // (в) Σ каналов = All − подложка (у слоёв с каналами) − ленты слоёв без каналов;
+            // хвост слоёв с каналами — в стопке Compton (П112).
             Console.WriteLine("--- (в) Σ по каналам верхов стопок против верха «All» ---");
             JudgeC(all, tops, hidden);
+
+            // (е) (П112) Числом в одном бине и в полосе 60–100 кэВ: канал, хвост, нарисованное.
+            Console.WriteLine("--- (е) хвост в канале Compton: бин наибольшего хвоста и полоса 60–100 кэВ ---");
+            JudgeE(rd, all, Build(rd, withMatrix, FsaMatrixLayer.Compton), Build(rd, withMatrix, FsaMatrixLayer.Peak));
 
             // (г) без матрицы.
             Console.WriteLine("--- (г) спектр без матрицы: режим канала недостижим ---");
@@ -554,8 +608,14 @@ namespace FsaChannelViewProbe
                               painted[FsaMatrixLayer.Peak], painted[FsaMatrixLayer.Compton]);
         }
 
-        /// <summary>(б) на одном кадре канала: лента слоя = его канал, слоёв без каналов нет, подслой сумм только у Peak.</summary>
-        static void JudgeB(Frame frame, Frame all, bool spoil)
+        /// <summary>
+        /// (б) на одном кадре канала: лента слоя = его канал (у Compton — канал +
+        /// хвост слоя, П112), слоёв без каналов нет, подслой сумм только у Peak.
+        /// <paramref name="tailSpoil"/> — подсадка хвоста в кадр: +1 — хвост
+        /// слоёв ДОБАВЛЕН в накопления (чужой канал получил хвост), −1 — ВЫНУТ
+        /// (стопка Compton без хвоста, картинка до П112), 0 — без подсадки.
+        /// </summary>
+        static void JudgeB(Frame frame, Frame all, bool spoil, int tailSpoil = 0)
         {
             Same("(б) кадр собран как " + frame.Requested, frame.Requested, frame.Built);
             // Ожидание — из ЭТОГО кадра (его снимок представления: слои — те же
@@ -620,7 +680,48 @@ namespace FsaChannelViewProbe
                 Console.WriteLine("  подсажено: накопление слоя {0} ×1.01 на {1} каналах", frame.Stack[0].Name, touched);
             }
 
+            if (tailSpoil != 0 && frame.Stack.Count > 0)
+            {
+                // (П112) Подсадка хвоста в КАДР: хвост k-го слоя прибавляется (или
+                // вычитается) к накоплениям k-го и всех слоёв выше — ровно так
+                // выглядела бы стопка, где хвост лёг в этот канал (или ушёл из него).
+                double moved = 0.0;
+                int layersWithTail = 0;
+                for (int k = 0; k < frame.Stack.Count; k++)
+                {
+                    double[] tail = frame.Stack[k].TailCurve;
+                    if (tail == null)
+                    {
+                        continue;
+                    }
+
+                    layersWithTail++;
+                    for (int m = k; m < frame.Stack.Count; m++)
+                    {
+                        double[] level = frame.Cumulative[m];
+                        for (int i = 0; i < level.Length && i < tail.Length; i++)
+                        {
+                            level[i] += tailSpoil * tail[i];
+                        }
+                    }
+
+                    moved += Sum(tail);
+                }
+
+                Console.WriteLine("  подсажено: хвост {0} слоёв {1} стопки канала {2}, {3} отсч.",
+                                  layersWithTail, tailSpoil > 0 ? "ДОБАВЛЕН в накопления" : "ВЫНУТ из накоплений",
+                                  frame.Requested, moved.ToString("F1", CultureInfo.InvariantCulture));
+                if (layersWithTail == 0)
+                {
+                    Console.WriteLine("  ⛔ (б) подсаживать нечего: ни у одного слоя стопки нет хвоста — контроль вырожден");
+                    bad++;
+                }
+            }
+
             int channel = (int)frame.Requested;
+            // (П112) Ожидание записано ЗДЕСЬ, перечислением, а не через
+            // `FsaMatrixLayers.CurveOf`: хвост слоя входит в ленту только у Compton.
+            bool tailHere = frame.Requested == FsaMatrixLayer.Compton;
             int worst = 0;
             double worstGap = 0.0;
             string worstName = "";
@@ -630,11 +731,13 @@ namespace FsaChannelViewProbe
                 double[] upper = frame.Cumulative[k];
                 double[][] curves = frame.Stack[k].ChannelCurves;
                 double[] curve = curves != null && channel < curves.Length ? curves[channel] : null;
+                double[] tail = tailHere && curve != null ? frame.Stack[k].TailCurve : null;
                 double scale = Math.Max(1.0, Max(upper));
                 for (int i = 0; i < frame.Channels; i++)
                 {
                     double drawn = upper[i] - lower[i];
-                    double want = curve != null && i < curve.Length ? curve[i] : 0.0;
+                    double want = (curve != null && i < curve.Length ? curve[i] : 0.0)
+                                  + (tail != null && i < tail.Length ? tail[i] : 0.0);
                     double gap = Math.Abs(drawn - want);
                     if (gap > Abs + Rel * scale)
                     {
@@ -647,10 +750,18 @@ namespace FsaChannelViewProbe
                     }
                 }
 
-                // Кривая стопки — та же ссылка, что канал слоя (пустой канал — пустой массив).
-                if (curve != null && !ReferenceEquals(frame.StackCurves[k], curve))
+                // Кривая стопки — та же ссылка, что канал слоя (пустой канал — пустой
+                // массив); у Compton с хвостом — ДРУГОЙ массив (канал слоя не тронут).
+                if (curve != null && tail == null && !ReferenceEquals(frame.StackCurves[k], curve))
                 {
                     Console.WriteLine("  ⛔ (б) слой {0}: кривая стопки — не ChannelCurves[{1}] слоя", frame.Stack[k].Name, channel);
+                    bad++;
+                }
+
+                if (curve != null && tail != null && ReferenceEquals(frame.StackCurves[k], curve))
+                {
+                    Console.WriteLine("  ⛔ (б) слой {0}: кривая стопки Compton — тот же массив, что ChannelCurves[{1}]: хвост либо не добавлен, либо вписан в сам канал",
+                                      frame.Stack[k].Name, channel);
                     bad++;
                 }
 
@@ -664,18 +775,171 @@ namespace FsaChannelViewProbe
 
             if (worst > 0)
             {
-                Console.WriteLine("  ⛔ (б) лента ≠ канал слоя на {0} точках; худшая {1}: |Δ| = {2}",
-                                  worst, worstName, worstGap.ToString("G6", CultureInfo.InvariantCulture));
+                Console.WriteLine("  ⛔ (б) лента ≠ канал слоя{3} на {0} точках; худшая {1}: |Δ| = {2}",
+                                  worst, worstName, worstGap.ToString("G6", CultureInfo.InvariantCulture),
+                                  tailHere ? " + хвост" : "");
                 bad++;
             }
             else
             {
-                Console.WriteLine("  (б) сошлось: {0} слоёв, каждая лента = ChannelCurves[{1}] слоя (rel {2}, abs {3})",
-                                  frame.Stack.Count, channel, Rel, Abs);
+                Console.WriteLine("  (б) сошлось: {0} слоёв, каждая лента = ChannelCurves[{1}] слоя{4} (rel {2}, abs {3})",
+                                  frame.Stack.Count, channel, Rel, Abs, tailHere ? " + TailCurve слоя" : "");
             }
         }
 
-        /// <summary>(в): Σ каналов = All − Σ(подложка + хвост) слоёв с каналами − Σ лент слоёв без каналов.</summary>
+        /// <summary>
+        /// (е) (П112) Хвост в канале Compton ЧИСЛОМ: бин наибольшего хвоста первого
+        /// слоя с хвостом (ниже порога доверия матрицы, вне окон линий — по
+        /// построению хвоста) и полоса 60–100 кэВ того же слоя: канал, хвост,
+        /// нарисованное в Compton (= канал + хвост), в Peak (= канал), в All (= лента).
+        /// </summary>
+        static void JudgeE(ResultData rd, Frame all, Frame compton, Frame peak)
+        {
+            int k = -1;
+            for (int j = 0; j < compton.Stack.Count; j++)
+            {
+                if (compton.Stack[j].TailCurve != null)
+                {
+                    k = j;
+                    break;
+                }
+            }
+
+            if (k < 0)
+            {
+                Console.WriteLine("  ⛔ (е) ни у одного слоя стопки нет хвоста — проверка вырождена на этой сцене (ждали хвост Cs-137 ниже 100 кэВ)");
+                bad++;
+                return;
+            }
+
+            FsaStackLayer layer = compton.Stack[k];
+            double[] tail = layer.TailCurve;
+            int comptonChannel = (int)FsaMatrixLayer.Compton;
+            int peakChannel = (int)FsaMatrixLayer.Peak;
+            double[] channelCompton = layer.ChannelCurves[comptonChannel];
+            double[] channelPeak = peakChannel < layer.ChannelCurves.Length ? layer.ChannelCurves[peakChannel] : null;
+            int bin = 0;
+            for (int i = 1; i < tail.Length; i++)
+            {
+                if (tail[i] > tail[bin])
+                {
+                    bin = i;
+                }
+            }
+
+            EnergyCalibration calibration = rd.EnergySpectrum.EnergyCalibration;
+            double kev = calibration.ChannelToEnergy(bin);
+            double floorKev = new FsaAnalyzer().ResponseContinuumTrustFloorKev;
+            Console.WriteLine("  слой {0}: хвост {1} отсч. всего; бин наибольшего хвоста — канал {2}, {3} кэВ (порог доверия матрицы {4} кэВ)",
+                              layer.Name, Sum(tail).ToString("F1", CultureInfo.InvariantCulture), bin,
+                              kev.ToString("F2", CultureInfo.InvariantCulture),
+                              floorKev.ToString("F1", CultureInfo.InvariantCulture));
+            Same("(е) бин наибольшего хвоста ниже порога доверия матрицы", true, kev < floorKev);
+            Same("(е) хвост в этом бине положителен", true, tail[bin] > 0.0);
+
+            double ch = At(channelCompton, bin);
+            double drawnCompton = compton.Cumulative[k][bin] - (k > 0 ? compton.Cumulative[k - 1][bin] : compton.Zero[bin]);
+            Console.WriteLine("  бин {0}: канал Compton {1}, хвост {2}, нарисовано в Compton {3} (ждали канал + хвост = {4})",
+                              bin, ch.ToString("F3", CultureInfo.InvariantCulture),
+                              tail[bin].ToString("F3", CultureInfo.InvariantCulture),
+                              drawnCompton.ToString("F3", CultureInfo.InvariantCulture),
+                              (ch + tail[bin]).ToString("F3", CultureInfo.InvariantCulture));
+            Close("(е) Compton в бине = канал + хвост", ch + tail[bin], drawnCompton);
+
+            // В Peak хвоста нет: нарисовано = канал Peak того же слоя (тот же индекс k —
+            // стопки Peak и Compton состоят из одних слоёв тем же порядком, это (б)).
+            int kp = IndexOf(peak.Stack, layer.Name);
+            if (kp >= 0)
+            {
+                double drawnPeak = peak.Cumulative[kp][bin] - (kp > 0 ? peak.Cumulative[kp - 1][bin] : peak.Zero[bin]);
+                double chPeak = At(channelPeak, bin);
+                Console.WriteLine("  бин {0}: канал Peak {1}, нарисовано в Peak {2} (ждали канал без хвоста)",
+                                  bin, chPeak.ToString("F3", CultureInfo.InvariantCulture),
+                                  drawnPeak.ToString("F3", CultureInfo.InvariantCulture));
+                Close("(е) Peak в бине = канал, без хвоста", chPeak, drawnPeak);
+            }
+            else
+            {
+                Console.WriteLine("  ⛔ (е) слоя {0} нет в стопке Peak", layer.Name);
+                bad++;
+            }
+
+            // В All — лента слоя, как была (хвост в ней и так лежит, S175).
+            int ka = IndexOf(all.Stack, layer.Name);
+            if (ka >= 0)
+            {
+                double drawnAll = all.Cumulative[ka][bin] - (ka > 0 ? all.Cumulative[ka - 1][bin] : all.Zero[bin]);
+                Console.WriteLine("  бин {0}: лента All {1}, нарисовано в All {2}", bin,
+                                  At(layer.Curve, bin).ToString("F3", CultureInfo.InvariantCulture),
+                                  drawnAll.ToString("F3", CultureInfo.InvariantCulture));
+                Close("(е) All в бине = лента слоя", At(layer.Curve, bin), drawnAll);
+            }
+
+            // Полоса 60–100 кэВ (то место, где Amber видела провал): канал, хвост, нарисованное.
+            double bandChannel = 0.0, bandTail = 0.0, bandDrawn = 0.0, bandAll = 0.0;
+            int bins = 0;
+            for (int i = 0; i < compton.Channels; i++)
+            {
+                double e = calibration.ChannelToEnergy(i);
+                if (e < 60.0 || e >= 100.0)
+                {
+                    continue;
+                }
+
+                bins++;
+                bandChannel += At(channelCompton, i);
+                bandTail += At(tail, i);
+                bandDrawn += compton.Cumulative[k][i] - (k > 0 ? compton.Cumulative[k - 1][i] : compton.Zero[i]);
+                bandAll += At(layer.Curve, i);
+            }
+
+            Console.WriteLine("  полоса 60–100 кэВ ({0} бинов), слой {1}: канал Compton {2}, хвост {3}, нарисовано в Compton {4}, лента All {5}",
+                              bins, layer.Name,
+                              bandChannel.ToString("F1", CultureInfo.InvariantCulture),
+                              bandTail.ToString("F1", CultureInfo.InvariantCulture),
+                              bandDrawn.ToString("F1", CultureInfo.InvariantCulture),
+                              bandAll.ToString("F1", CultureInfo.InvariantCulture));
+            Close("(е) полоса 60–100 кэВ: нарисовано в Compton = канал + хвост", bandChannel + bandTail, bandDrawn);
+            Same("(е) полоса 60–100 кэВ: хвост не пуст", true, bandTail > 0.0);
+        }
+
+        static int IndexOf(List<FsaStackLayer> stack, string name)
+        {
+            for (int j = 0; j < stack.Count; j++)
+            {
+                if (string.Equals(stack[j].Name, name, StringComparison.Ordinal))
+                {
+                    return j;
+                }
+            }
+
+            return -1;
+        }
+
+        static double At(double[] curve, int i)
+        {
+            return curve != null && i < curve.Length ? curve[i] : 0.0;
+        }
+
+        static void Close(string title, double expected, double actual)
+        {
+            double scale = Math.Max(1.0, Math.Max(Math.Abs(expected), Math.Abs(actual)));
+            bool ok = Math.Abs(expected - actual) <= Abs + Rel * scale;
+            Console.WriteLine("  {0} {1}: {2}{3}", ok ? "  " : "⛔", title,
+                              actual.ToString("F3", CultureInfo.InvariantCulture),
+                              ok ? "" : " (ждали " + expected.ToString("F3", CultureInfo.InvariantCulture) + ")");
+            if (!ok)
+            {
+                bad++;
+            }
+        }
+
+        /// <summary>
+        /// (в): Σ каналов = All − Σ подложки слоёв с каналами − Σ лент слоёв без
+        /// каналов. Хвост слоя с каналами (П112) лежит в стопке Compton и потому
+        /// НЕ вычитается — кроме слоя, у которого канала Compton нет (тогда
+        /// хвосту негде лечь, и `CurveOf` его не рисует).
+        /// </summary>
         static void JudgeC(Frame all, List<double[]> tops, List<FsaStackLayer> hidden)
         {
             int channels = all.Channels;
@@ -689,7 +953,8 @@ namespace FsaChannelViewProbe
             }
 
             double[] want = new double[channels];
-            double spreadSum = 0.0, tailSum = 0.0, hiddenSum = 0.0;
+            double spreadSum = 0.0, tailInCompton = 0.0, tailHomeless = 0.0, hiddenSum = 0.0;
+            int comptonChannel = (int)FsaMatrixLayer.Compton;
             for (int i = 0; i < channels; i++)
             {
                 want[i] = all.ModelTop[i];
@@ -719,10 +984,21 @@ namespace FsaChannelViewProbe
 
                 if (layer.TailCurve != null)
                 {
+                    // (П112) Хвост слоя рисуется в стопке Compton — в Σ каналов он
+                    // ВХОДИТ и не вычитается; негде лечь ему только у слоя без
+                    // канала Compton (старая матрица) — тогда вычитается.
+                    bool homeless = comptonChannel >= layer.ChannelCurves.Length || layer.ChannelCurves[comptonChannel] == null;
                     for (int i = 0; i < channels && i < layer.TailCurve.Length; i++)
                     {
-                        want[i] -= layer.TailCurve[i];
-                        tailSum += layer.TailCurve[i];
+                        if (homeless)
+                        {
+                            want[i] -= layer.TailCurve[i];
+                            tailHomeless += layer.TailCurve[i];
+                        }
+                        else
+                        {
+                            tailInCompton += layer.TailCurve[i];
+                        }
                     }
                 }
             }
@@ -745,15 +1021,16 @@ namespace FsaChannelViewProbe
                 }
             }
 
-            Console.WriteLine("  Σ каналов {0}; верх All {1}; подложка слоёв с каналами {2}; хвост {3}; ленты без каналов {4}",
+            Console.WriteLine("  Σ каналов {0}; верх All {1}; подложка слоёв с каналами {2}; хвост в стопке Compton {3} (входит), хвост без канала Compton {4} (вычтен); ленты без каналов {5}",
                               Sum(sum).ToString("F3", CultureInfo.InvariantCulture),
                               Sum(all.ModelTop).ToString("F3", CultureInfo.InvariantCulture),
                               spreadSum.ToString("F3", CultureInfo.InvariantCulture),
-                              tailSum.ToString("F3", CultureInfo.InvariantCulture),
+                              tailInCompton.ToString("F3", CultureInfo.InvariantCulture),
+                              tailHomeless.ToString("F3", CultureInfo.InvariantCulture),
                               hiddenSum.ToString("F3", CultureInfo.InvariantCulture));
             if (worst > 0)
             {
-                Console.WriteLine("  ⛔ (в) Σ каналов ≠ All − подложка − хвост − спрятанное на {0} точках; худшая канал {1}: |Δ| = {2}",
+                Console.WriteLine("  ⛔ (в) Σ каналов ≠ All − подложка − спрятанное (хвост — в Compton) на {0} точках; худшая канал {1}: |Δ| = {2}",
                                   worst, worstAt, worstGap.ToString("G6", CultureInfo.InvariantCulture));
                 bad++;
             }
@@ -788,13 +1065,13 @@ namespace FsaChannelViewProbe
             return bad - before;
         }
 
-        /// <summary>Только тождество (б) на одном канале — для положительного контроля 2.</summary>
-        static int JudgeIdentityB(ResultData rd, FsaResult result, FsaMatrixLayer layer, bool spoil)
+        /// <summary>Только тождество (б) на одном канале — для положительных контролей 2, 3 и 4.</summary>
+        static int JudgeIdentityB(ResultData rd, FsaResult result, FsaMatrixLayer layer, bool spoil, int tailSpoil = 0)
         {
             Frame all = Build(rd, result, FsaMatrixLayer.All);
             Frame frame = Build(rd, result, layer);
             int before = bad;
-            JudgeB(frame, all, spoil);
+            JudgeB(frame, all, spoil, tailSpoil);
             return bad - before;
         }
 

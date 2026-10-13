@@ -235,8 +235,27 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000974 RID: 2420 RVA: 0x0003772C File Offset: 0x0003592C
+        /// <summary>
+        /// ⛔ `AMBER163`, 05.10.2026. «Очистить» во время набора обязано сбросить
+        /// НАЧАЛО ОТСЧЁТА ВРЕМЕНИ, а не только счёт. Прежде метод был пуст:
+        /// <c>DCControlPanel.ClearMeasurementResult</c> обнулял
+        /// <c>TotalTime</c>/<c>ElapsedTime</c>, но следующий же такт
+        /// (<c>MeasurementController.OnTimer</c>) считал время звукового входа
+        /// как <c>DateTime.Now - StartTime + TotalTime</c> — снова от Start.
+        /// Start, 10 мин, Clear, ещё 10 мин, Stop давали отсчёты за 10 мин при
+        /// <c>MeasurementTime</c> 20 мин: cps и Бк занижены вдвое, и число
+        /// уходило в файл. У AtomSpectra, RadiaCode и Obsidian сброс
+        /// <c>StartTime</c> стоял здесь всегда.
+        ///
+        /// ⚠ Только во время набора: остановленный набор время не копит, а
+        /// следующий Start ставит <c>StartTime</c> сам (<see cref="StartMeasurement"/>).
+        /// </summary>
         public override void ClearMeasurementResult(ResultData resultData)
         {
+            if (resultData != null && resultData.ResultDataStatus != null && resultData.ResultDataStatus.Recording)
+            {
+                resultData.StartTime = DateTime.Now;
+            }
         }
 
         // Token: 0x04000543 RID: 1347

@@ -1,0 +1,9 @@
+# П111 (M13): воспроизведение мерки остатка на HEAD 0aab363e (физика 21, lbrem ВКЛ умолчанием), сборка build_p111.
+# def — умолчания; brem0 — --ret-kill=brem (свои вылетевшие в слоях НЕ излучают → счётчик квантов = только занесённые, аналоговая ветка);
+# outbrem0 — --ret-kill=outbrem (занесённые не излучают → счётчик = только свои вылетевшие, обе ветки).
+ours;RC103_point0_p55;2614.511;20000000;def;
+ours;RC103_point0_p55;2614.511;20000000;brem0;--ret-kill=brem
+ours;RC103_point0_p55;2614.511;20000000;outbrem0;--ret-kill=outbrem
+ours;RC103_point0_p55;1460.82;20000000;def;
+ours;RC103_point0_p55;1460.82;20000000;brem0;--ret-kill=brem
+ours;RC103_point0_p55;1460.82;20000000;outbrem0;--ret-kill=outbrem

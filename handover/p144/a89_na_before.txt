@@ -1,0 +1,16 @@
+BecqMoni: main config: D:\BqMoni_Claude\p144\wt\tools\CORPUS\scripts\wd_p144b\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p144\wt\tools\CORPUS\scripts\wd_p144b\config\device: 24 loaded
+спектр : G1S24_Na22_P5.xml
+прибор : Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2024)
+SETUP	против поставочного разбора изменено [окно пика]: CoincidenceWindowSec 0 → 0.00036281179138322; MinEnergy 40 → 30; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → NaI:Tl
+разбор : χ²/ndf 35.902; усиление 0.988589, сдвиг 0.113 кан.; полоса 0…1023; свет NaI:Tl β 1.000 форма line
+
+компонент	E, кэВ	s, кэВ	s/ПШПВ	пик образа	p(E)	p(E+s)	окно	окно на	образ−p(E+s), ПШПВ	окно−пик, ПШПВ	доля пика в окне
+Na-22	511.000	1.27	0.030	180.20	179.77	180.21	150…210	неразличимо	-0.001	0.001	1.0000
+Na-22	1274.537	-5.26	-0.074	435.05	436.81	435.05	387…486	E ⛔	0.000	0.072	1.0000
+ROW	Na-22	пиковых отсчётов 9887755.287
+Ann-511	511.000	1.27	0.030	180.20	179.77	180.21	150…210	неразличимо	0.000	0.000	1.0000
+ROW	Ann-511	пиковых отсчётов 1714240.457
+
+судимых линий 1, окно не на пике 1, неразличимо (|s| < канала) 2
+⛔ AMBER89: окно стоит на E, а пик образа — на E+s, у 1 линий

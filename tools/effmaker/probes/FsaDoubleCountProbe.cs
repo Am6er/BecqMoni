@@ -1771,7 +1771,8 @@ namespace FsaDoubleCountProbe
             var analyzer = new FsaAnalyzer();
             if (matrix != null)
             {
-                analyzer.ResponseMatrix = matrix;
+                // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик)
+                FsaMatrixBinding.Bind(analyzer, rd.Efficiency != null ? rd.Efficiency.Geometry : null, matrix);
                 analyzer.ScintillatorMaterial = material;
             }
 

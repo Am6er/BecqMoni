@@ -1,0 +1,18 @@
+Nuclide ; Na-22 
+Element ; Sodium
+Z ; 11
+Daughter(s) ; (B+, EC) ; Ne-22 ; 100
+Q+ ; 2843.02
+Half-life (a) ; 2.6029 ; 0.0008
+Half-life (s) ; 82.140E6 ; 0.025E6
+Decay constant (1/s) ; 8.4387E-9 ; 0.0026E-9
+Specific activity (Bq/g) ; 230.99E12 ; 0.07E12
+Reference ; CIEMAT - 2009
+Emissions (4 lines) sorted by increasing energy
+----------------------------------------------------------------------------------------------------------
+Energy (keV) ; Ener. unc. (keV) ; Intensity (%) ; Int. unc. (%) ; Type ; Origin ; Lvl. start ; Lvl. end
+0.8486 ;  ; 0.0453 ; 0.0025 ; XKa2 ; Ne-22 ;  ; 
+0.8486 ;  ; 0.090 ; 0.005 ; XKa1 ; Ne-22 ;  ; 
+511 ;  ; 180.7 ; 0.2 ; g511 ; Ne-22 ; -1 ; -1
+1274.537 ; 0.007 ; 99.94 ; 0.13 ; g ; Ne-22 ; 1 ; 0
+==========================================================================================================

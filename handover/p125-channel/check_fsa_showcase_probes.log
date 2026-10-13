@@ -1,0 +1,4 @@
+каталог проб: D:\BqMoni_Claude\p122\wt\tools\effmaker\probes\build_p125 (заверен 2026-09-22 14:04:00 из D:\BqMoni_Claude\p122\wt\BecquerelMonitor\bin\Release_p125)
+  ⚠ сверено: набор приложения 0fd04faf1144 (550 файлов), набор FsaStackShot cd7a6ffe0826 (6 файлов), sha двух exe
+свежесть каталога проб: сошлась с деревом (T226, 0.7 с)
+⛔ СТЕНД: ASN16_Cs137_house: нет матрицы D:\BqMoni_Claude\p122\wt\tools\fsa_showcase\store\ASN16_point_house.rmx — сперва tools\fsa_showcase\rebuild_store.ps1

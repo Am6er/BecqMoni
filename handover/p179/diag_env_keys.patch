@@ -1,0 +1,67 @@
+diff --git a/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs b/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs
+index a48891d8..21b0415e 100644
+--- a/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs
++++ b/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs
+@@ -14562,16 +14562,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             return TableOf(curve) != null;
+         }
+ 
++        static double[][] diagNaI, diagCsI;
++        static bool diagRead;
++
++        static void DiagRead()
++        {
++            if (diagRead) return;
++            diagRead = true;
++            string f = Environment.GetEnvironmentVariable("P179_LIGHT_TABLE");
++            if (string.IsNullOrEmpty(f) || !System.IO.File.Exists(f)) return;
++            var n = new System.Collections.Generic.List<double[]>();
++            var c = new System.Collections.Generic.List<double[]>();
++            foreach (string line in System.IO.File.ReadAllLines(f))
++            {
++                string[] s = line.Split(new[] { ' ', '	' }, StringSplitOptions.RemoveEmptyEntries);
++                if (s.Length < 3 || s[0].StartsWith("#")) continue;
++                double[] pt = { double.Parse(s[1], System.Globalization.CultureInfo.InvariantCulture), double.Parse(s[2], System.Globalization.CultureInfo.InvariantCulture) };
++                if (s[0] == NaI) n.Add(pt); else if (s[0] == CsI) c.Add(pt);
++            }
++            if (n.Count > 0) diagNaI = n.ToArray();
++            if (c.Count > 0) diagCsI = c.ToArray();
++        }
++
+         static double[][] TableOf(string curve)
+         {
++            DiagRead();
+             if (curve == NaI)
+             {
+-                return NaITable;
++                return diagNaI ?? NaITable;
+             }
+ 
+             if (curve == CsI)
+             {
+-                return CsITable;
++                return diagCsI ?? CsITable;
+             }
+ 
+             return null;
+diff --git a/BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs b/BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs
+index a0af6d74..05aa72bc 100644
+--- a/BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs
++++ b/BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs
+@@ -2745,7 +2745,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             // занижало Kβ у 350 наборов.
+             // (`AMBER120`) Строки группы K-M — на центре тяжести группы, а не на
+             // середине текстового диапазона: см. <see cref="KSeriesRule.BetaAtGroupEnergy"/>.
+-            lines.AddRange(KSeriesRule.BetaAtGroupEnergy(kBetaSplit, kBetaTotal, kBetaSplitSeries.Count, kAlpha));
++            {
++                string ds = Environment.GetEnvironmentVariable("P179_KB_SHIFT");
++                double d = string.IsNullOrEmpty(ds) ? 0.0 : double.Parse(ds, System.Globalization.CultureInfo.InvariantCulture);
++                foreach (double[] kb in KSeriesRule.BetaAtGroupEnergy(kBetaSplit, kBetaTotal, kBetaSplitSeries.Count, kAlpha))
++                {
++                    if (d != 0.0) kb[0] += d;
++                    lines.Add(kb);
++                }
++            }
+ 
+             // L-серия: та же развилка, но по ТРЁМ спискам (`AMBER68`) — линии
+             // подоболочек, итоги подоболочек, сводная. Подробных строк в базе

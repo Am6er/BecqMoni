@@ -1,0 +1,6 @@
+BecqMoni: main config: D:\BqMoni_Claude\p147\wt\tools\effmaker\probes\build_s8\config\BecquerelMonitor.xml
+RC103_point0.rmx: ключ в файле ВКЛ; клеймо файла РАВНО клейму умолчаний; клеймо абляции --pairth=0 другое ✅
+BecqMoni: main config: D:\BqMoni_Claude\p147\wt\tools\effmaker\probes\build_s8\config\BecquerelMonitor.xml
+AS80_point0.rmx: ключ в файле ВКЛ; клеймо файла РАВНО клейму умолчаний; клеймо абляции --pairth=0 другое ✅
+BecqMoni: main config: D:\BqMoni_Claude\p147\wt\tools\effmaker\probes\build_s8\config\BecquerelMonitor.xml
+RC103_marinelli05_kcl.rmx: ключ в файле ВКЛ; клеймо файла РАВНО клейму умолчаний; клеймо абляции --pairth=0 другое ✅

@@ -20,11 +20,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     ///   говорится вслух. По ней считается коэффициент перевода в беккерели:
     ///   там ошибка молча превращается в неверную активность, а «нет значения»
     ///   пользователь увидит и поправит.
-    /// * <see cref="Eval"/> — мягкая, держит края константой. По ней работает
-    ///   полноспектральная декомпозиция: у неё в шаблоне сотни линий по всей
-    ///   шкале, и отказ на краю выбросил бы линию из шаблона целиком — это
-    ///   хуже заниженного веса далёкой линии. Экстраполировать наклоном на
-    ///   краю опаснее и того.
+    /// * <see cref="Eval"/> — мягкая, держит края константой. Читателей у неё
+    ///   в разборе больше НЕТ (`AMBER157`, П195 01.10.2026; решение Amber
+    ///   «Исключать с заверением»): зажим крайней точкой молча уводил
+    ///   активность линии за краем на ε(край)/ε(линии) — у K-40 1461 кэВ при
+    ///   кривой до 1250 кэВ −12.6 % при побитово том же фите, — и «отказ на
+    ///   краю выбросил бы линию» оказался не хуже, а честнее: линия вне кривой
+    ///   из образа исключается, и окно отчёта её называет. Метод оставлен
+    ///   пробам, меряющим сам зажим (`AmberFsaProbeP182`).
     /// </summary>
     public sealed class FsaEfficiency
     {
@@ -34,19 +37,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         FsaEfficiency(List<Point> points)
         {
-            points.Sort((a, b) => a.Energy.CompareTo(b.Energy));
+            // Равные энергии — в порядке источника: какой из повторов останется,
+            // решает файл, а не неустойчивая сортировка (`AMBER138`).
+            points.Sort((a, b) =>
+            {
+                int byEnergy = a.Energy.CompareTo(b.Energy);
+                return byEnergy != 0 ? byEnergy : a.Index.CompareTo(b.Index);
+            });
             List<double> energies = new List<double>(points.Count);
             List<double> values = new List<double>(points.Count);
             List<double> errors = new List<double>(points.Count);
             foreach (Point point in points)
             {
-                // дубль энергии дал бы нулевой шаг интерполяции и NaN в образе
-                if (energies.Count > 0 && point.Energy <= Math.Exp(energies[energies.Count - 1]))
+                // ⛔ (`AMBER138`, П182 29.09.2026) Повтор узла отбрасывается
+                // сравнением В ТЕХ ЖЕ ЛОГАРИФМАХ, на которые делит
+                // интерполяция, — первый узел остаётся. Прежде исходная
+                // энергия сравнивалась с exp(log(прежней)), а в .NET
+                // Framework exp(log(1000)) = 999.9999999999998: повтор 1000
+                // проходил, шаг интерполяции выходил нулевым, и `TryEval` на
+                // нижнем узле отвечал «есть значение» с NaN (повтор 100 при
+                // этом отбрасывался — exp(log(100)) = 100.00000000000004).
+                // Сравнение логарифмов ловит и соседние числа с плавающей
+                // точкой: различные энергии 1000 и 1000 + ulp дают один
+                // логарифм (проба `AmberFsaProbeP182`).
+                double logEnergy = Math.Log(point.Energy);
+                if (energies.Count > 0 && logEnergy <= energies[energies.Count - 1])
                 {
                     continue;
                 }
 
-                energies.Add(Math.Log(point.Energy));
+                energies.Add(logEnergy);
                 values.Add(Math.Log(Math.Max(point.Efficiency, 1e-12)));
                 errors.Add(point.ErrorPercent);
             }
@@ -58,6 +78,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         struct Point
         {
+            public int Index;
             public double Energy;
             public double Efficiency;
             public double ErrorPercent;
@@ -125,6 +146,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 curve.HasGeometry = config.HasGeometry;
                 curve.Normalization = normalization;
                 curve.Name = config.Name;
+                // (`AMBER156` (б), П195) вещество кристалла — тем же движением,
+                // что признак геометрии, и по той же причине: кривая — то, что
+                // доезжает до разбора от конфигурации прибора на ВСЕХ путях.
+                curve.CrystalMaterial = config.HasGeometry
+                    ? EfficiencySimulator.ScintillatorNameOf(config.Geometry)
+                    : null;
             }
 
             return curve;
@@ -166,6 +193,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// побитово одинаковым.
         /// </summary>
         public bool HasGeometry { get; private set; }
+
+        /// <summary>
+        /// (`AMBER156` (б), П195 01.10.2026) Вещество кристалла геометрии этой
+        /// кривой (<see cref="EfficiencySimulator.ScintillatorNameOf"/>); null —
+        /// геометрии нет. Нужно ровно одному читателю — световой координате
+        /// разбора БЕЗ матрицы: у матричного разбора вещество кладёт
+        /// <see cref="FsaMatrixBinding.Bind"/>, а без матрицы его не клал никто,
+        /// и таблица света `FsaLightScale` (она по веществу, не по матрице)
+        /// оставалась невостребованной.
+        /// </summary>
+        public string CrystalMaterial { get; private set; }
+
+        /// <summary>
+        /// (`AMBER157`, П195) Энергия внутри таблицы кривой (края включительно) —
+        /// то же условие, что у <see cref="TryEval"/>.
+        /// </summary>
+        public bool Covers(double energy)
+        {
+            if (this.logEnergy.Length < 2 || !(energy > 0.0))
+            {
+                return false;
+            }
+
+            double x = Math.Log(energy);
+            return x >= this.logEnergy[0] && x <= this.logEnergy[this.logEnergy.Length - 1];
+        }
 
         /// <summary>
         /// Точки с неположительной эффективностью отбрасываются: в поставочных
@@ -218,6 +271,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 points.Add(new Point
                 {
+                    Index = points.Count,
                     Energy = point.Energy,
                     Efficiency = point.Efficiency,
                     ErrorPercent = point.ErrorPercent,
@@ -240,8 +294,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// ⛔ ПОЛ ПОЛОСЫ БИБЛИОТЕКИ ПО САМОЙ КРИВОЙ (решение Amber 27.08.2026,
-        /// `S98`): наименьшая ТАБЛИЧНАЯ энергия, где эффективность достигает
-        /// заданной доли от максимума кривой. Ниже неё модель предсказывает
+        /// `S98`): наименьшая энергия, где эффективность достигает заданной
+        /// доли от максимума кривой, — точка ПЕРЕСЕЧЕНИЯ уровня лог-лог
+        /// интерполянтом между узлами (`AMBER95`, П147; до того — табличный
+        /// узел выше пересечения). Ниже неё модель предсказывает
         /// практически нулевой отклик, и линии там дают почти вырожденные
         /// столбцы в NNLS.
         ///
@@ -283,6 +339,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 if (this.logEfficiency[i] >= want)
                 {
+                    // ⛔ (`AMBER95`, П147 24.09.2026) ПЕРЕСЕЧЕНИЕ, а не узел:
+                    // уровень пересекается между узлами i−1 и i, и тем же
+                    // лог-лог интерполянтом, что у `TryEval`, берётся точка
+                    // пересечения. Прежде возвращался узел i — пол вставал на
+                    // целый промежуток выше: у маринелли RC-103 на 20 кэВ при
+                    // пересечении ниже, и на RC-101 срезался L-рентген Np.
+                    if (i > 0 && this.logEfficiency[i] > this.logEfficiency[i - 1])
+                    {
+                        double t = (want - this.logEfficiency[i - 1])
+                                   / (this.logEfficiency[i] - this.logEfficiency[i - 1]);
+                        return Math.Exp(this.logEnergy[i - 1]
+                                        + t * (this.logEnergy[i] - this.logEnergy[i - 1]));
+                    }
+
                     return Math.Exp(this.logEnergy[i]);
                 }
             }
@@ -329,9 +399,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Мягкая выборка для полноспектральной декомпозиции: за краями таблицы
-        /// держится константой. Ноль означает «кривой нет» — вызывающий такую
-        /// линию пропускает.
+        /// Мягкая выборка: за краями таблицы держится константой. Ноль означает
+        /// «кривой нет». ⛔ В разборе не звать (`AMBER157`): за краем значения
+        /// нет, и разбор берёт <see cref="TryEval"/> с исключением линии.
         /// </summary>
         public double Eval(double energy)
         {

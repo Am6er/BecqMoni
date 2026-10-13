@@ -427,7 +427,8 @@ namespace FsaCascadeProbe
                                                library, efficiency);
             double plainMs = clock.Elapsed.TotalMilliseconds;
 
-            analyzer.ResponseMatrix = matrix;
+            // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик)
+            FsaMatrixBinding.Bind(analyzer, rd.Efficiency != null ? rd.Efficiency.Geometry : null, matrix);
             analyzer.ScintillatorMaterial = scintillator;
             // (`N14`, П49) то же плечо — и анализатору, тем же путём, что у
             // приложения; без ключа `angularOn` — его же умолчание (П86)

@@ -576,11 +576,6 @@ namespace FsaSumPeakAccountProbe
                              string scintillator, FsaCalculationOptions options, string title)
         {
             var analyzer = new FsaAnalyzer();
-            if (matrix != null)
-            {
-                analyzer.ResponseMatrix = matrix;
-                analyzer.ScintillatorMaterial = scintillator;
-            }
 
             if (rd.DeviceConfig != null && rd.DeviceConfig.InputDeviceConfig != null)
             {
@@ -595,6 +590,13 @@ namespace FsaSumPeakAccountProbe
             }
 
             options.ApplyTo(analyzer);
+            if (matrix != null)
+            {
+                // (`T263`, П193) матрица — ПОСЛЕ фасада настроек, как у приложения (`FsaAnalysisSession`): фасад гасит `BackscatterWithMatrix`, `Bind` ставит его по обстановке
+                FsaMatrixBinding.Bind(analyzer, rd.Efficiency != null ? rd.Efficiency.Geometry : null, matrix);
+                analyzer.ScintillatorMaterial = scintillator;
+            }
+
             Console.WriteLine();
             Console.WriteLine("### {0}: отпечаток настроек {1}", title, options.Stamp);
 

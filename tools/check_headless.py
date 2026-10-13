@@ -122,7 +122,6 @@ ALLOW = {
     "MainForm": "оболочка приложения; окна — её прямая работа",
     "GlobalConfigForm": "диалог общих настроек",
     "DeviceConfigForm": "диалог настройки прибора",
-    "ROIConfigForm": "диалог ROI-конфигурации",
     "NuclideDefinitionForm": "диалог правки библиотеки нуклидов",
     "NuclideSetForm": "диалог правки нуклидного сета",
     "NucBase": "окно базы нуклидов (`NucBase : Form`)",

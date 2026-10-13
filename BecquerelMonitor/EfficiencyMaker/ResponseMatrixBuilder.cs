@@ -72,21 +72,55 @@ namespace BecquerelMonitor.EfficiencyMaker
         public long TotalHistories;
 
         /// <summary>
-        /// Доля сделанного, % — ПО ДОСЧИТАННЫМ УЗЛАМ (`A46`).
+        /// (`AMBER220`, П246 07.10.2026) ТАБЛИЦА κ ПАР — ВТОРАЯ ЧАСТЬ РАБОТЫ.
+        /// Блоков κ досчитано (<see cref="ResponseMatrixBuilder.JointBlocks"/> на
+        /// проход). На CPU-пути κ идёт ПОСЛЕ узлов, на GPU-пути — на ЦП
+        /// одновременно с узлами на устройстве; и там и там матрица не собрана,
+        /// пока κ не досчитана, — значит и полоса не полна.
+        /// </summary>
+        public int JointDone;
+
+        /// <summary>
+        /// Блоков κ в ПРЕДЕЛЬНОМ плане — проба плюс все доборы
+        /// (<see cref="ResponseMatrixBuilder.JointMaxBlocks"/>); 0 — у этой сцены
+        /// κ не считается (точечная: κ ≡ 1). Предел, а не текущий план, нарочно:
+        /// добор добавляет блоки по ходу, и знаменатель, растущий на глазах,
+        /// пятил бы полосу назад (`A46`). Закончили раньше предела — последний
+        /// отчёт ставит <see cref="JointDone"/> = <see cref="JointPlanned"/>.
+        /// </summary>
+        public int JointPlanned;
+
+        /// <summary>Блоков κ в плане НА ЭТОТ МОМЕНТ (проба, затем доборы) — для подписи, не для полосы.</summary>
+        public int JointPlannedNow;
+
+        /// <summary>
+        /// Доля сделанного, % — ПО ДОСЧИТАННЫМ УЗЛАМ (`A46`) И БЛОКАМ κ (`AMBER220`).
         ///
         /// Прежде доля шла по цене узлов в потокосекундах, и полоса пятилась
         /// назад: узел, попросивший второго прохода, добавлял работы, и
         /// знаменатель рос быстрее числителя. Узлов же ровно столько, сколько в
         /// сетке, и досчитанный узел досчитан навсегда — полоса идёт только
-        /// вперёд и заполняется ровно на последнем узле.
+        /// вперёд. Единица полосы — узел или блок κ; 100 % — ровно тогда, когда
+        /// досчитаны и узлы, и κ, то есть когда матрица собрана.
         /// </summary>
         public double Percent
         {
             get
             {
-                return this.TotalNodes > 0
-                    ? 100.0 * this.SettledNodes / this.TotalNodes
+                int units = this.TotalNodes + Math.Max(0, this.JointPlanned);
+                return units > 0
+                    ? 100.0 * (this.SettledNodes + Math.Max(0, this.JointDone)) / units
                     : 0.0;
+            }
+        }
+
+        /// <summary>Узлы досчитаны, а κ ещё нет — полоса стоит на таблице пар.</summary>
+        public bool JointPending
+        {
+            get
+            {
+                return this.TotalNodes > 0 && this.SettledNodes >= this.TotalNodes
+                       && this.JointPlanned > 0 && this.JointDone < this.JointPlanned;
             }
         }
     }
@@ -157,6 +191,23 @@ namespace BecquerelMonitor.EfficiencyMaker
                 throw new ArgumentNullException("geometry");
             }
 
+            // (`AMBER201`, Р4, мелочь 9.2) Боковая постановка у цилиндра —
+            // отказ словами до счёта, а не часы счёта сцены с переставленной
+            // обвязкой (`E21` обещал отказ, `FacingError` прежде не читал никто).
+            string facingError = geometry.FacingError;
+            if (!string.IsNullOrEmpty(facingError))
+            {
+                throw new InvalidOperationException(facingError);
+            }
+
+            // (`AMBER201`, Р4, подозрение G) Элемент вне таблиц ослабления в
+            // любом слое сцены — отказ словами, а не слой без него.
+            string unknownElement = geometry.UnknownElementProblem();
+            if (unknownElement != null)
+            {
+                throw new InvalidOperationException(unknownElement);
+            }
+
             if (options == null)
             {
                 options = new ResponseMatrixOptions();
@@ -191,6 +242,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 CancellationToken = cancellation
             };
 
+            // (`AMBER220`, П246; решение Amber 07.10.2026, дословно: «Узлы + блоки
+            // κ, план κ — предельный 96») Блоки κ — вторая часть работы, у полосы
+            // хода они в знаменателе с самого начала.
+            int jointUnits = JointPlannedBlocks(geometry, options, grid.Length);
+
             // Поузловые счётчики замера `S55` — заводятся под размер сетки.
             NodeDropped = new long[grid.Length];
             NodeScored = new long[grid.Length];
@@ -206,6 +262,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             // ровно как `store` перекрывает строки. Таблица Q_k собирается из
             // них в конце (`AngularAttenuation.FromMoments`).
             AngularMomentSums[] nodeAngular = new AngularMomentSums[grid.Length];
+
+            // (`AMBER145`, П199) Второй счёт пика узла — допуском по разрешению
+            // (`EfficiencySimulator.LastResolutionPeakExtra`): у узла своя
+            // ячейка, последний проход перекрывает пробный — как `store`.
+            double[] nodeResolutionExtra = new double[grid.Length];
 
             // (`A41`) Цена узла, измеренная на его пробе: потокосекунд на одну
             // историю. По ней и считается остаток — в секундах, а не в историях.
@@ -313,7 +374,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     LastEnergyKev = grid[index],
                     StartedNodes = started,
                     SettledNodes = settled,
-                    TotalNodes = grid.Length
+                    TotalNodes = grid.Length,
+                    // (`AMBER220`) κ пар на CPU-пути идёт ПОСЛЕ узлов: её блоки уже
+                    // в знаменателе, чтобы полоса не доходила до 100 % раньше κ.
+                    JointPlanned = jointUnits,
+                    JointPlannedNow = jointUnits > 0 ? JointBlocks : 0
                 });
             };
 
@@ -342,8 +407,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // называть нельзя, и в раскладке оно так и подписано.
                         long ticks0 = Stopwatch.GetTimestamp();
                         AngularMomentSums angular;
+                        double resolutionExtra;
                         double[][] histograms = RunNode(geometry, options, grid[index], index,
-                                                        histories, out achieved, out angular);
+                                                        histories, out achieved, out angular,
+                                                        out resolutionExtra, cancellation);
+                        nodeResolutionExtra[index] = resolutionExtra;
                         nodeSeconds[index] += (double)(Stopwatch.GetTimestamp() - ticks0)
                                               / Stopwatch.Frequency;
                         continuumError[index] = achieved;
@@ -515,7 +583,35 @@ namespace BecquerelMonitor.EfficiencyMaker
             };
 
             matrix.RebuildTotals();
-            BuildJoint(geometry, options, matrix, grid, parallel);
+            FillResolutionPeak(geometry, matrix, nodeResolutionExtra);
+
+            // (`AMBER220`) Ход κ — теми же отчётами: узлы досчитаны все, блоки κ
+            // прибывают; последний отчёт ставит κ в предел плана — матрица собрана.
+            Action<int, int> jointReport = null;
+            if (progress != null && jointUnits > 0)
+            {
+                jointReport = (jointDone, jointNow) => progress.Report(new ResponseMatrixProgress
+                {
+                    Done = Volatile.Read(ref done),
+                    Total = Volatile.Read(ref planned),
+                    DoneHistories = Interlocked.Read(ref doneHistories),
+                    TotalHistories = Interlocked.Read(ref plannedHistories),
+                    LastEnergyKev = grid[0],
+                    StartedNodes = grid.Length,
+                    SettledNodes = grid.Length,
+                    TotalNodes = grid.Length,
+                    JointPlanned = jointUnits,
+                    JointPlannedNow = jointNow,
+                    JointDone = Math.Min(jointDone, jointUnits)
+                });
+            }
+
+            BuildJoint(geometry, options, matrix, grid, parallel, jointReport);
+            if (jointReport != null)
+            {
+                jointReport(jointUnits, jointUnits);
+            }
+
             watch.Stop();
             matrix.BuildSeconds = watch.Elapsed.TotalSeconds;
             return matrix;
@@ -540,13 +636,160 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Её края совпадают с краями сетки узлов — за ними
         /// <see cref="ResponseMatrix.JointFactor"/> зажимает, а не продолжает.
         /// </summary>
-        static void BuildJoint(GeometryModel geometry, ResponseMatrixOptions options,
+        internal static void BuildJoint(GeometryModel geometry, ResponseMatrixOptions options,
                                ResponseMatrix matrix, double[] grid, ParallelOptions parallel)
+        {
+            BuildJoint(geometry, options, matrix, grid, parallel, null);
+        }
+
+        /// <summary>(`AMBER220`) То же с отчётом о ходе блоков κ — см. <see cref="MeasureJointTable(GeometryModel, ResponseMatrixOptions, double[], ParallelOptions, Action{int, int})"/>.</summary>
+        internal static void BuildJoint(GeometryModel geometry, ResponseMatrixOptions options,
+                               ResponseMatrix matrix, double[] grid, ParallelOptions parallel,
+                               Action<int, int> jointProgress)
         {
             int nodes = options.JointNodes;
             if (nodes <= 1 || grid == null || grid.Length < 2)
             {
+                matrix.JointMode = JointKappaMode.None;
                 return;
+            }
+
+            // ⛔ (`AMBER147`) ТОЧЕЧНАЯ СЦЕНА — κ ≡ 1 БЕЗ РОЗЫГРЫША. Таблицы нет,
+            // и `ResponseMatrix.JointFactor` отдаёт ровно 1.0 у любой пары.
+            if (options.JointNoiseTarget > 0.0 && IsPointScene(geometry))
+            {
+                matrix.JointMode = JointKappaMode.Point;
+                matrix.JointPoints = 0;
+                return;
+            }
+
+            JointTable table = MeasureJointTable(geometry, options, grid, parallel, jointProgress);
+            if (table == null)
+            {
+                matrix.JointMode = JointKappaMode.None;
+                return;
+            }
+
+            matrix.JointEnergies = table.Energies;
+            matrix.JointKappa = table.Kappa;
+            matrix.JointKappaError = table.Error;
+            matrix.JointPoints = table.Points;
+            matrix.JointMode = table.Mode;
+            matrix.JointRawMedianNoise = table.RawMedianNoise;
+            matrix.JointRawMaxNoise = table.RawMaxNoise;
+            matrix.JointCellsCounted = table.CellsCounted;
+            matrix.JointSubstituted = table.Substituted;
+        }
+
+        /// <summary>
+        /// (`AMBER147`) Итог замера таблицы κ — для построителя и для проб,
+        /// которым нужен замер без построения строк.
+        /// </summary>
+        public sealed class JointTable
+        {
+            public double[] Energies;
+            public double[][] Kappa;
+            public double[][] Error;
+            public long Points;
+            public JointKappaMode Mode;
+            public double RawMedianNoise;
+            public double RawMaxNoise;
+            public int CellsCounted;
+            public int Substituted;
+            public int Clamped;
+            public long PilotPoints;
+            public double PilotMedianNoise;
+        }
+
+        /// <summary>
+        /// (`AMBER147`) Точечная ли сцена: источник — точка и сцена не поле
+        /// (у поля ISO кванты летят со всей сферы, это протяжённый источник).
+        /// </summary>
+        public static bool IsPointScene(GeometryModel geometry)
+        {
+            return geometry != null
+                   && geometry.SourceType == GeometrySourceType.Point
+                   && geometry.Scene != GeometrySceneKind.Iso;
+        }
+
+        /// <summary>
+        /// ⚡ ЗАМЕР ТАБЛИЦЫ κ (`S112`; `AMBER147`, П199 01.10.2026).
+        ///
+        /// При <see cref="ResponseMatrixOptions.JointNoiseTarget"/> = 0 —
+        /// прежний счёт побитово: <see cref="ResponseMatrixOptions.JointHistories"/>
+        /// точек по одной истории на энергию, таблица как вышла.
+        ///
+        /// При цели больше нуля:
+        ///
+        ///   1. ПРОБА — <see cref="ResponseMatrixOptions.JointHistories"/> точек по
+        ///      <see cref="ResponseMatrixOptions.JointHistoriesPerPoint"/> историй
+        ///      на энергию;
+        ///   2. ДОБОР до цели по МЕДИАНЕ шума ячеек с обеими энергиями от
+        ///      <see cref="JointNoiseMinKev"/> (накопители складываются, проба не
+        ///      выбрасывается; блоки добора — своими зёрнами после блоков пробы),
+        ///      не больше <see cref="JointMaxPointsFactor"/> проб;
+        ///   3. ячейки с шумом выше цели (и ячейки без единого совместного
+        ///      события) получают ГЛАДКУЮ оценку от надёжных:
+        ///      <see cref="SmoothKappa"/>; затем зажим κ ≥ 1.
+        ///
+        /// ⛔ Блоков постоянное число, зерно блока — от его номера: результат
+        /// не зависит от числа потоков (условие воспроизводимости склада).
+        /// </summary>
+        public static JointTable MeasureJointTable(GeometryModel geometry, ResponseMatrixOptions options,
+                                                   double[] grid, ParallelOptions parallel)
+        {
+            return MeasureJointTable(geometry, options, grid, parallel, null);
+        }
+
+        /// <summary>
+        /// (`AMBER220`) Блоков κ в ПРЕДЕЛЬНОМ плане у этой сцены: проба плюс все
+        /// доборы, либо 0, когда κ не считается (сетка короче двух узлов,
+        /// <see cref="ResponseMatrixOptions.JointNodes"/> ≤ 1, точечная сцена при
+        /// цели по шуму — κ ≡ 1). Те же условия, что у <see cref="BuildJoint"/>.
+        /// </summary>
+        public static int JointPlannedBlocks(GeometryModel geometry, ResponseMatrixOptions options, int gridLength)
+        {
+            if (options == null || options.JointNodes <= 1 || gridLength < 2)
+            {
+                return 0;
+            }
+
+            if (options.JointNoiseTarget > 0.0 && IsPointScene(geometry))
+            {
+                return 0;
+            }
+
+            return JointMaxBlocks;
+        }
+
+        /// <summary>Блоков κ в предельном плане: проба и до <see cref="JointTopUpRounds"/> доборов по <see cref="JointBlocks"/>.</summary>
+        public const int JointMaxBlocks = JointBlocks * (1 + JointTopUpRounds);
+
+        /// <summary>
+        /// (`AMBER220`) Замер таблицы κ с отчётом о ходе: <paramref name="jointProgress"/>
+        /// зовётся после каждого досчитанного блока и при каждом доборе
+        /// (`done`, `plannedNow`) — из потоков замера.
+        /// </summary>
+        public static JointTable MeasureJointTable(GeometryModel geometry, ResponseMatrixOptions options,
+                                                   double[] grid, ParallelOptions parallel,
+                                                   Action<int, int> jointProgress)
+        {
+            int nodes = options.JointNodes;
+            if (nodes <= 1 || grid == null || grid.Length < 2)
+            {
+                return null;
+            }
+
+            int blocksDone = 0, blocksNow = JointBlocks;
+            Action blockDone = null;
+            if (jointProgress != null)
+            {
+                blockDone = () =>
+                {
+                    int d = Interlocked.Increment(ref blocksDone);
+                    jointProgress(d, Volatile.Read(ref blocksNow));
+                };
+                jointProgress(0, blocksNow);
             }
 
             double lo = grid[0], hi = grid[grid.Length - 1];
@@ -569,7 +812,96 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
+            bool adaptive = options.JointNoiseTarget > 0.0;
+            int perPoint = adaptive ? Math.Max(1, options.JointHistoriesPerPoint) : 1;
             int points = Math.Max(1000, options.JointHistories);
+            JointSums total = RunJointBlocks(geometry, options, grid, energies, halfWidths,
+                                             points, perPoint, 0, parallel, blockDone);
+            double[][] kappa, error;
+            JointSums.Resolve(total, out kappa, out error);
+            if (kappa == null)
+            {
+                return null;
+            }
+
+            var table = new JointTable
+            {
+                Energies = energies,
+                Mode = adaptive ? JointKappaMode.Adaptive : JointKappaMode.Legacy,
+                PilotPoints = total.Points
+            };
+
+            if (adaptive)
+            {
+                double median = MedianNoise(energies, total, error);
+                table.PilotMedianNoise = median;
+                double target = options.JointNoiseTarget;
+                long cap = (long)points * JointMaxPointsFactor;
+                // Добор — не больше двух раундов, как у узлов (`MaxNodePasses`):
+                // оценка шума по редким событиям занижена при малой статистике
+                // (замер П199, `RC103_marinelli05_kcl`, 4 истории на точку:
+                // 200 тыс. точек — медиана 11.65 %, 1.25 млн — 6.43 % вместо
+                // ожидаемых по 1/√N 4.7 %), и один раунд недобирает.
+                for (int round = 0; round < JointTopUpRounds && median > target; round++)
+                {
+                    // Шум ячейки — как 1/√(точек): нужное число в лоб, с запасом,
+                    // как у узлов (`NeededHistories`). Бесконечная медиана (больше
+                    // половины ячеек без совместных событий) — сразу потолок.
+                    long want = cap;
+                    if (!double.IsInfinity(median))
+                    {
+                        double ratio = median / target;
+                        want = (long)Math.Ceiling(total.Points * ratio * ratio * HistoriesMargin);
+                    }
+
+                    long extra = Math.Min(cap, want) - total.Points;
+                    if (extra < JointBlocks)
+                    {
+                        break;
+                    }
+
+                    if (jointProgress != null)
+                    {
+                        // Добор — ещё `JointBlocks` блоков в плане; подпись видит это сразу.
+                        int now = Interlocked.Add(ref blocksNow, JointBlocks);
+                        jointProgress(Volatile.Read(ref blocksDone), now);
+                    }
+
+                    JointSums more = RunJointBlocks(geometry, options, grid, energies, halfWidths,
+                                                    (int)Math.Min(int.MaxValue, extra), perPoint,
+                                                    JointBlocks * (round + 1), parallel, blockDone);
+                    total.Add(more);
+                    JointSums.Resolve(total, out kappa, out error);
+                    median = MedianNoise(energies, total, error);
+                }
+            }
+
+            table.Points = total.Points;
+            NoiseSummary(energies, total, error, out table.RawMedianNoise, out table.RawMaxNoise,
+                         out table.CellsCounted);
+            if (adaptive)
+            {
+                SmoothKappa(energies, total, kappa, error, options.JointNoiseTarget,
+                            out table.Substituted, out table.Clamped);
+            }
+
+            table.Kappa = kappa;
+            table.Error = error;
+            return table;
+        }
+
+        /// <summary>
+        /// (`AMBER147`) Блоки замера κ: <see cref="JointBlocks"/> блоков по
+        /// `points / JointBlocks` точек, зерно блока — `grid.Length + firstBlock
+        /// + номер` (κ разыгрывается НЕ теми же точками, что последний узел;
+        /// блоки добора — своими зёрнами после блоков пробы).
+        /// </summary>
+        static JointSums RunJointBlocks(GeometryModel geometry, ResponseMatrixOptions options,
+                                        double[] grid, double[] energies, double[] halfWidths,
+                                        int points, int perPoint, int firstBlock,
+                                        ParallelOptions parallel, Action blockDone = null)
+        {
+            int nodes = energies.Length;
             int blocks = Math.Max(1, Math.Min(JointBlocks, points));
             int perBlock = Math.Max(1, points / blocks);
             var partials = new JointSums[blocks];
@@ -580,8 +912,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // Зерно блока продолжает нумерацию узлов сетки, чтобы κ
                     // разыгрывалась НЕ теми же точками, что последний узел.
                     EfficiencySimulator sim = MakeSimulator(geometry, options,
-                                                            grid.Length + block, energies[0]);
-                    partials[block] = sim.JointPeakSums(energies, perBlock, halfWidths);
+                                                            grid.Length + firstBlock + block, energies[0]);
+                    partials[block] = sim.JointPeakSums(energies, perBlock, halfWidths, perPoint);
+                    // (`AMBER220`) Досчитанный блок — единица хода полосы; зовётся из
+                    // потоков, получатель считает `Interlocked`.
+                    if (blockDone != null)
+                    {
+                        blockDone();
+                    }
                 }
             });
 
@@ -591,24 +929,264 @@ namespace BecquerelMonitor.EfficiencyMaker
                 total.Add(part);
             }
 
-            double[][] kappa, error;
-            JointSums.Resolve(total, out kappa, out error);
-            if (kappa == null)
+            return total;
+        }
+
+        /// <summary>
+        /// (`AMBER147`) Ячейка входит в мерку шума, если обе энергии не ниже
+        /// <see cref="JointNoiseMinKev"/>.
+        /// </summary>
+        static bool Counted(double[] energies, int i, int j)
+        {
+            return energies[i] >= JointNoiseMinKev && energies[j] >= JointNoiseMinKev;
+        }
+
+        /// <summary>
+        /// (`AMBER147`) Шум ячейки, %. Ячейка без совместных событий (`Resolve`
+        /// пишет ей κ = 1 и шум 0) — шум БЕСКОНЕЧЕН, а не ноль: замер её не видел.
+        /// </summary>
+        static double CellNoise(JointSums sums, double[][] error, int i, int j)
+        {
+            int a = Math.Min(i, j), b = Math.Max(i, j);
+            return sums.Joint[a][b] > 0.0 ? error[i][j] : double.PositiveInfinity;
+        }
+
+        static double MedianNoise(double[] energies, JointSums sums, double[][] error)
+        {
+            double median, max;
+            int counted;
+            NoiseSummary(energies, sums, error, out median, out max, out counted);
+            return median;
+        }
+
+        static void NoiseSummary(double[] energies, JointSums sums, double[][] error,
+                                 out double median, out double max, out int counted)
+        {
+            var noise = new List<double>();
+            int n = energies.Length;
+            for (int i = 0; i < n; i++)
             {
+                for (int j = i; j < n; j++)
+                {
+                    if (Counted(energies, i, j))
+                    {
+                        noise.Add(CellNoise(sums, error, i, j));
+                    }
+                }
+            }
+
+            counted = noise.Count;
+            if (noise.Count == 0)
+            {
+                median = 0.0;
+                max = 0.0;
                 return;
             }
 
-            matrix.JointEnergies = energies;
-            matrix.JointKappa = kappa;
-            matrix.JointKappaError = error;
-            matrix.JointPoints = total.Points;
+            noise.Sort();
+            median = noise[noise.Count / 2];
+            max = noise[noise.Count - 1];
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER147`) ШУМНЫЕ ЯЧЕЙКИ НЕ ЧИТАЮТСЯ. Ячейка с шумом выше
+        /// <paramref name="threshold"/> (или без совместных событий) получает
+        /// средневзвешенное надёжных ячеек: вес 1/σ² и гауссова близость по
+        /// логарифму обеих энергий; радиус начинается с шага сетки и растёт в
+        /// полтора раза, пока надёжных в нём не наберётся <see cref="SmoothMinCells"/>.
+        /// Шум подставленной — шум этого среднего. Затем — ЗАЖИМ κ ≥ 1 у всей
+        /// таблицы (у протяжённого источника эффективности двух квантов
+        /// сомонотонны: обе падают с удалением точки от кристалла, и
+        /// ковариация неотрицательна). Надёжных на всю таблицу меньше
+        /// <see cref="SmoothMinCells"/> — подставлять не от чего: шумные ячейки
+        /// получают κ = 1 (поправки нет), об этом говорит `substituted`.
+        /// </summary>
+        static void SmoothKappa(double[] energies, JointSums sums, double[][] kappa, double[][] error,
+                                double threshold, out int substituted, out int clamped)
+        {
+            int n = energies.Length;
+            substituted = 0;
+            clamped = 0;
+            bool[,] good = new bool[n, n];
+            int goodCount = 0;
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    double s = CellNoise(sums, error, i, j);
+                    good[i, j] = s <= threshold && kappa[i][j] > 0.0;
+                    if (good[i, j] && j >= i)
+                    {
+                        goodCount++;
+                    }
+                }
+            }
+
+            double step = Math.Log(energies[1] / energies[0]);
+            double[] logE = new double[n];
+            for (int i = 0; i < n; i++)
+            {
+                logE[i] = Math.Log(energies[i]);
+            }
+
+            double[][] outK = new double[n][];
+            double[][] outE = new double[n][];
+            for (int i = 0; i < n; i++)
+            {
+                outK[i] = (double[])kappa[i].Clone();
+                outE[i] = (double[])error[i].Clone();
+            }
+
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = i; j < n; j++)
+                {
+                    if (good[i, j])
+                    {
+                        continue;
+                    }
+
+                    double value = 1.0, noise = 0.0;
+                    if (goodCount >= SmoothMinCells)
+                    {
+                        for (double h = step; h <= 100.0 * step; h *= 1.5)
+                        {
+                            double sw = 0.0, swk = 0.0, sw2s2 = 0.0;
+                            int cells = 0;
+                            for (int k = 0; k < n; k++)
+                            {
+                                for (int l = 0; l < n; l++)
+                                {
+                                    if (!good[k, l])
+                                    {
+                                        continue;
+                                    }
+
+                                    double d1 = logE[i] - logE[k], d2 = logE[j] - logE[l];
+                                    double d = (d1 * d1 + d2 * d2) / (h * h);
+                                    if (d > 9.0)
+                                    {
+                                        continue;
+                                    }
+
+                                    double sigma = Math.Max(SmoothNoiseFloor, error[k][l]);
+                                    double w = Math.Exp(-0.5 * d) / (sigma * sigma);
+                                    sw += w;
+                                    swk += w * kappa[k][l];
+                                    sw2s2 += w * w * sigma * sigma;
+                                    cells++;
+                                }
+                            }
+
+                            if (cells >= SmoothMinCells && sw > 0.0)
+                            {
+                                value = swk / sw;
+                                noise = Math.Sqrt(sw2s2) / sw;
+                                break;
+                            }
+                        }
+                    }
+
+                    outK[i][j] = value;
+                    outK[j][i] = value;
+                    outE[i][j] = noise;
+                    outE[j][i] = noise;
+                    substituted++;
+                }
+            }
+
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    if (outK[i][j] < 1.0)
+                    {
+                        outK[i][j] = 1.0;
+                        if (j >= i)
+                        {
+                            clamped++;
+                        }
+                    }
+
+                    kappa[i][j] = outK[i][j];
+                    error[i][j] = outE[i][j];
+                }
+            }
+        }
+
+        /// <summary>(`AMBER147`) Нижняя энергия ячеек мерки шума κ, кэВ — граница приёмки строки.</summary>
+        public const double JointNoiseMinKev = 100.0;
+
+        /// <summary>(`AMBER147`) Потолок добора точек κ, в разах от пробы.</summary>
+        public const int JointMaxPointsFactor = 16;
+
+        /// <summary>(`AMBER147`) Раундов добора точек κ сверх пробы.</summary>
+        const int JointTopUpRounds = 2;
+
+        /// <summary>(`AMBER147`) Сколько надёжных ячеек нужно гладкой подстановке.</summary>
+        const int SmoothMinCells = 4;
+
+        /// <summary>
+        /// (`AMBER147`) Пол шума в весе подстановки, %: без него ячейка с шумом
+        /// 0.3 % забирала бы весь вес у соседок с 3 %, и подстановка стала бы
+        /// значением одной ячейки.
+        /// </summary>
+        const double SmoothNoiseFloor = 1.0;
+
+        /// <summary>
+        /// (`AMBER145`, П199 01.10.2026) Допуск второго счёта пика узла, кэВ:
+        /// ПШПВ(E)/2 геометрии — ТО ЖЕ выражение, что у пути кривой
+        /// (`EfficiencyCalculation.Run`), — если он шире допуска строки
+        /// (<see cref="PeakTolerance"/>); иначе ноль (второй счёт не нужен: пик
+        /// по разрешению и есть канал `Peak`).
+        /// </summary>
+        internal static double ResolutionHalfWidth(ResponseMatrixOptions options, GeometryModel geometry,
+                                          double energyKev)
+        {
+            double resolution = geometry.PeakHalfWidthKev(energyKev);
+            return resolution > PeakTolerance(options, geometry, energyKev) ? resolution : 0.0;
+        }
+
+        /// <summary>
+        /// ⚡ (`AMBER145`, П199 01.10.2026) ПИКОВАЯ ЭФФЕКТИВНОСТЬ УЗЛА ПО
+        /// РАЗРЕШЕНИЮ: Σ строки канала `Peak` (то, что прежде брал
+        /// суммирователь каскада) плюс второй счёт узла — истории вне бина пика
+        /// с недобором не больше ПШПВ/2. Определение — кривой эффективности;
+        /// у геометрии без разрешения (`FwhmAt662Percent` не задан) — Σ канала
+        /// `Peak`, и <see cref="ResponseMatrix.PeakResolutionFromGeometry"/> = false.
+        /// </summary>
+        internal static void FillResolutionPeak(GeometryModel geometry, ResponseMatrix matrix, double[] extra)
+        {
+            int nodes = matrix.Energies.Length;
+            float[][] peakRows = matrix.ChannelRows != null
+                                 && matrix.ChannelRows.Length > (int)EfficiencySimulator.ResponseChannel.Peak
+                ? matrix.ChannelRows[(int)EfficiencySimulator.ResponseChannel.Peak]
+                : null;
+            double[] values = new double[nodes];
+            for (int i = 0; i < nodes; i++)
+            {
+                double sum = 0.0;
+                float[] row = peakRows != null && i < peakRows.Length ? peakRows[i] : null;
+                if (row != null)
+                {
+                    foreach (float v in row)
+                    {
+                        sum += v;
+                    }
+                }
+
+                values[i] = sum + (extra != null && i < extra.Length ? extra[i] : 0.0);
+            }
+
+            matrix.PeakEfficiencyResolution = values;
+            matrix.PeakResolutionFromGeometry = geometry.FwhmAt662Percent > 0.0;
         }
 
         /// <summary>
         /// Блоков замера κ. Постоянное число, а не «по потокам»: от него зависит
         /// разбиение розыгрыша, то есть сами числа.
         /// </summary>
-        const int JointBlocks = 32;
+        public const int JointBlocks = 32;
 
         /// <summary>Минимум историй на пробный проход: по десятку событий шум не измерить.</summary>
         const int MinPilotHistories = 2000;
@@ -647,14 +1225,30 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         static double[][] RunNode(GeometryModel geometry, ResponseMatrixOptions options,
                                   double energyKev, int index, int histories,
-                                  out double achieved, out AngularMomentSums angular)
+                                  out double achieved, out AngularMomentSums angular,
+                                  out double resolutionExtra, CancellationToken cancellation)
         {
             EfficiencySimulator sim = MakeSimulator(geometry, options, index, energyKev);
             sim.Histories = Math.Max(1, histories);
+            // (`AMBER201`, Р4, мелочь G.6) Отмена — и ВНУТРИ узла, а не только
+            // между узлами: начатый узел прежде досчитывался до конца (до
+            // 24 млн историй, минуты на поток). Опрос раз в 4096 историй;
+            // случайных чисел не тянет — тело узла побитово прежнее.
+            if (cancellation.CanBeCanceled)
+            {
+                sim.PollCancellation = cancellation.ThrowIfCancellationRequested;
+            }
+
+            // (`AMBER145`) Второй счёт пика — допуском КРИВОЙ (ПШПВ/2 геометрии),
+            // если он шире допуска строки; иначе пик по разрешению и есть канал
+            // `Peak`. Случайных чисел не тянет — тело узла прежнее побитово.
+            double resolutionHalfWidth = ResolutionHalfWidth(options, geometry, energyKev);
+            sim.ResolutionPeakHalfWidthKev = resolutionHalfWidth;
             double relativeError;
             double[][] histograms = sim.ResponseByChannel(energyKev, options.BinKev,
                                                           out relativeError);
             achieved = sim.LastContinuumRelativeError;
+            resolutionExtra = resolutionHalfWidth > 0.0 ? sim.LastResolutionPeakExtra : 0.0;
             // (`AMBER46`) Моменты Q_k узла — из тех же историй взвешенной ветки,
             // что дали строку; отдельного розыгрыша нет.
             angular = sim.LastAngularMoments;
@@ -778,7 +1372,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// симулятора по модели, и делить одну модель между потоками — значит
         /// однажды поймать её правку из другого места.
         /// </summary>
-        static EfficiencySimulator MakeSimulator(GeometryModel geometry, ResponseMatrixOptions options,
+        internal static EfficiencySimulator MakeSimulator(GeometryModel geometry, ResponseMatrixOptions options,
                                                  int index, double energyKev)
         {
             var sim = new EfficiencySimulator(geometry.Clone())
@@ -869,6 +1463,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // по ходу переноса — тем же путём: не доехав до построителя, ключ
                 // мёртв (`S130`), а клеймо `lbrem=1` лгало бы о происхождении.
                 ElectronLayerBremAlongPath = options.ElectronLayerBremAlongPath,
+                // ⛔ (`M13`, П111 19.09.2026) Направление кванта тормозного в слоях
+                // (2BS) — тем же путём: не доехав до построителя, ключ мёртв
+                // (`S130`), а клеймо `lbang=1` лгало бы о происхождении.
+                ElectronLayerBremAngular2BS = options.ElectronLayerBremAngular2BS,
                 // ⛔ (`E34`) ДОПУСК ПИКА. Ноль здесь стоял безусловно, и это
                 // запирало поправку на однократное рассеяние: `InPeak` требует
                 // `E − deposited ≤ допуск`, а у рассеявшегося кванта недобор

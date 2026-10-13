@@ -9,7 +9,9 @@ using System.Globalization;
 using System.Threading;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
+using XPTable.Events;
 using XPTable.Models;
+using XPTable.Renderers;
 
 namespace BecquerelMonitor
 {
@@ -21,7 +23,7 @@ namespace BecquerelMonitor
     /// Сверху вниз: четыре группы параметров — источник состава (две
     /// радиокнопки), группировка результата (родители/дочерние), модель
     /// цепочек (равновесие) и пять дополнительных компонентов модели, — и
-    /// XPTable на весь остаток: перечень слоёв с образцом и долей, строки
+    /// XPTable на весь остаток: перечень слоёв с долей, строки
     /// сумм-пиков, необнаруженные кандидаты, «без фона», невязка и строка
     /// качества (семь родов строк <see cref="FsaReportRowKind"/> плюс
     /// строка состояния).
@@ -46,11 +48,13 @@ namespace BecquerelMonitor
     /// цепочек» и «Дополнительные компоненты модели»; отрисовочные —
     /// «Отрисовка» внизу. Прежде лента невязки стояла шестой в ряду
     /// пяти расчётных, и различала их одна подсказка при наведении.
-    ///   * расчётные (источник, равновесие, пять компонентов) пишутся в
-    ///     активную копию конфигурации спектра и в умолчание прибора
-    ///     (<see cref="SaveOptionsToDevice"/>), входят в отпечаток сеанса и
-    ///     ведут к ОДНОМУ актуальному пересчёту (критерий 7); соседние
-    ///     открытые документы не переписываются (критерий 11);
+    ///   * расчётные (источник, равновесие, пять компонентов) — с `AMBER212`
+    ///     (07.10.2026) ОДНА настройка приложения
+    ///     (<see cref="GlobalConfigInfo.FsaCalculation"/>, см.
+    ///     <see cref="ApplyCalculationChange"/>), входят в отпечаток сеанса и
+    ///     ведут к ОДНОМУ актуальному пересчёту (критерий 7); прежнее правило
+    ///     «умолчание прибора, соседи не переписываются» (`S70`, критерий 11)
+    ///     снято решением Amber;
     ///   * группировка родители/дочерние — настройка ПРЕДСТАВЛЕНИЯ этого окна
     ///     на время работы приложения: в файл, конфигурацию и отпечаток не
     ///     входит, расчёт не запускает; одно значение на документ
@@ -99,9 +103,6 @@ namespace BecquerelMonitor
         /// </summary>
         SynchronizationContext uiContext;
 
-        /// <summary>Образцы колонки-образца, по одному на (род, цвет).</summary>
-        readonly Dictionary<string, Image> swatches = new Dictionary<string, Image>(StringComparer.Ordinal);
-
         /// <summary>
         /// Пробы: окно никогда не показывается, а потребителем быть обязано —
         /// иначе критерии «окно заказывает расчёт» не измерить без экрана.
@@ -109,8 +110,13 @@ namespace BecquerelMonitor
         /// </summary>
         public bool ProbeConsumer { get; set; }
 
-        /// <summary>Ширина колонки-образца, пикселей.</summary>
-        const int SwatchColumnWidth = 24;
+        /// <summary>Образцы перед подписью строки, по одному на (род, цвет).</summary>
+        readonly Dictionary<string, Image> swatches = new Dictionary<string, Image>(StringComparer.Ordinal);
+
+        /// <summary>Образец перед подписью: ширина, высота и зазор до текста, пикселей.</summary>
+        const int SwatchWidth = 14;
+        const int SwatchHeight = 10;
+        const int SwatchGap = 4;
 
         /// <summary>Ширина колонки значения, пикселей: «+12,3 / −45,6 %» помещается с запасом.</summary>
         const int ValueColumnWidth = 92;
@@ -162,6 +168,29 @@ namespace BecquerelMonitor
         const string KeyResidualBandTip = "FSAReport_ResidualBandTip";
 
         // ------------------------------------------------------------------
+        // (`AMBER222`) ПОКАЗ ДАННЫХ СПЕКТРА — галочка «Spectral data»
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`AMBER222`, задача Amber 12.10.2026) Показывать ли на графике FSA
+        /// линию измеренного спектра (<see cref="EnergySpectrumView.FsaShowSpectralData"/>).
+        /// Настройка ПОКАЗА той же природы, что <see cref="showResidualBand"/>: в
+        /// отпечаток разбора не входит, пересчёта не заказывает, таблицу не
+        /// меняет. Живёт в окне и едет на график показываемого документа.
+        ///
+        /// ⛔ Обе галочки показа ПИШУТСЯ НА ДИСК (решение Amber 12.10.2026
+        /// вопросником, дословно: «На диск: Spectral data + Model residual
+        /// (Рекомендую)») — в общие настройки (<see cref="GlobalConfigInfo.FsaShowSpectralData"/>,
+        /// <see cref="GlobalConfigInfo.FsaShowResidual"/>), как семь расчётных
+        /// (`AMBER212`), и переживают перезапуск. Группировка и слой матрицы —
+        /// по-прежнему только в окне.
+        /// </summary>
+        bool showSpectralData = true;
+
+        /// <summary>Ключ подсказки галочки «Spectral data»: «меняет только показ».</summary>
+        const string KeySpectralDataTip = "FSAReport_SpectralDataTip";
+
+        // ------------------------------------------------------------------
         // (`AMBER45`) СЛОЙ МАТРИЦЫ ОТКЛИКА — комбо «Matrix layer»
         // ------------------------------------------------------------------
 
@@ -182,7 +211,9 @@ namespace BecquerelMonitor
         /// заказывает и ТАБЛИЦУ НЕ МЕНЯЕТ (фит не пересчитывается — доли,
         /// невязка и χ²/ndf те же при любом слое). Меняется одна стопка на
         /// графике: у каждого компонента рисуется только выбранный канал
-        /// (<see cref="EnergySpectrumView.FsaMatrixLayer"/>). Живёт в ОКНЕ и
+        /// (<see cref="EnergySpectrumView.FsaMatrixLayer"/>; канал комптона —
+        /// вместе с отвязанным хвостом компонента, П112 19.09.2026, правило —
+        /// <see cref="FsaMatrixLayers.CurveOf"/>). Живёт в ОКНЕ и
         /// переезжает на график того документа, который показывается сейчас.
         /// </summary>
         FsaMatrixLayer requestedMatrixLayer = FsaMatrixLayer.All;
@@ -211,6 +242,7 @@ namespace BecquerelMonitor
                 case FsaMatrixLayer.EscapeXrayK: return "FSAReport_MatrixLayerEscapeXrayK";
                 case FsaMatrixLayer.EscapeAnnihilationDouble: return "FSAReport_MatrixLayerEscapeAnnihilationDouble";
                 case FsaMatrixLayer.EscapeXrayL: return "FSAReport_MatrixLayerEscapeXrayL";
+                case FsaMatrixLayer.AnnihilationOutside: return "FSAReport_MatrixLayerAnnihilationOutside";
                 default: return "FSAReport_MatrixLayerAll";
             }
         }
@@ -293,6 +325,9 @@ namespace BecquerelMonitor
         const string KeyMatrixUsed = "FSAReport_MatrixUsed";
         const string KeyMatrixNotUsed = "FSAReport_MatrixNotUsed";
         const string KeyMatrixOldFormat = "FSAReport_MatrixOldFormat";
+        const string KeyMatrixStale = "FSAReport_MatrixStale";
+        const string KeyMatrixStaleRow = "FSAReport_MatrixStaleRow";
+        const string KeyMatrixStaleValue = "FSAReport_MatrixStaleValue";
         const string KeyEfficiencyRow = "FSAReport_EfficiencyRow";
         const string KeyEfficiencyUsed = "FSAReport_EfficiencyUsed";
         const string KeyEfficiencyNotUsed = "FSAReport_EfficiencyNotUsed";
@@ -327,6 +362,103 @@ namespace BecquerelMonitor
         const string KeyAnchorTipLight = "FSAReport_AnchorTipLight";
         const string KeySuppressedRow = "FSAReport_SuppressedRow";
         const string KeyBackgroundRejectedRow = "FSAReport_BackgroundRejectedRow";
+
+        // (`S187`) Расхождения поставок данных распада: подпись, шапка
+        // подсказки и по строке на вид расхождения.
+        const string KeySupplyRow = "FSAReport_SupplyRow";
+        const string KeySupplyTip = "FSAReport_SupplyTip";
+        const string KeySupplyBetaPlusMode = "FSAReport_SupplyBetaPlusMode";
+        const string KeySupplyOtherMode = "FSAReport_SupplyOtherMode";
+        const string KeySupplyExcess = "FSAReport_SupplyExcess";
+        const string KeySupplyClamped = "FSAReport_SupplyClamped";
+        const string KeySupplyShareScaled = "FSAReport_SupplyShareScaled";
+        const string KeySupplyShareKept = "FSAReport_SupplyShareKept";
+
+        // (`AMBER123`, `AMBER118`, `AMBER126`; П168 28.09.2026) Колонка наложений
+        // на границе R·τ; помеха природного спутника линии состава; шумовой пол
+        // строки невязки.
+        const string KeyPileUpCapRow = "FSAReport_PileUpCapRow";
+        const string KeyPileUpCapValue = "FSAReport_PileUpCapValue";
+        const string KeyInterferenceRow = "FSAReport_InterferenceRow";
+        const string KeyInterferenceValue = "FSAReport_InterferenceValue";
+        // (`AMBER210`) пик в полосе, не покрытый составом: строка, слово состояния, «рядом ничего»
+        const string KeyUncoveredRow = "FSAReport_UncoveredRow";
+        const string KeyUncoveredValue = "FSAReport_UncoveredValue";
+        const string KeyUncoveredNone = "FSAReport_UncoveredNone";
+        // (`AMBER221`) родитель сета вне состава: строка, слово состояния, причины
+        const string KeySetOmittedRow = "FSAReport_SetOmittedRow";
+        const string KeySetOmittedValue = "FSAReport_SetOmittedValue";
+        const string KeySetOmittedNoPeak = "FSAReport_SetOmittedNoPeak";
+        const string KeySetOmittedNoLines = "FSAReport_SetOmittedNoLines";
+        const string KeySetOmittedNotConfirmed = "FSAReport_SetOmittedNotConfirmed";
+        const string KeySetOmittedBelowCoverage = "FSAReport_SetOmittedBelowCoverage";
+        const string KeySetOmittedNotNovel = "FSAReport_SetOmittedNotNovel";
+        const string KeyResidualNoise = "FSAReport_ResidualNoise";
+        const string KeyResidualNoiseTip = "FSAReport_ResidualNoiseTip";
+        // (`AMBER156`, `AMBER157`, `AMBER159`; П195 01.10.2026) Разбор без
+        // матрицы; линии вне кривой эффективности; плотность пробы против сцены.
+        const string KeyNoMatrixWarnRow = "FSAReport_NoMatrixWarnRow";
+        const string KeyNoMatrixWarnValue = "FSAReport_NoMatrixWarnValue";
+        const string KeyCurveOutsideRow = "FSAReport_CurveOutsideRow";
+        const string KeyCurveOutsideValue = "FSAReport_CurveOutsideValue";
+        const string KeyDensityRow = "FSAReport_DensityRow";
+
+        /// <summary>(`AMBER157`) Сколько исключённых линий называется в подписи поимённо.</summary>
+        const int CurveOutsideShown = 6;
+
+        /// <summary>
+        /// (`AMBER157`, П195) Исключённые линии словами: «K-40 1460.8, …» —
+        /// первые <see cref="CurveOutsideShown"/>, остаток числом.
+        /// </summary>
+        static string OutOfCurveList(List<FsaOutOfCurveLine> lines)
+        {
+            var parts = new List<string>();
+            for (int i = 0; i < lines.Count && i < CurveOutsideShown; i++)
+            {
+                parts.Add(FsaSampleLibrary.PrettyName(lines[i].Component ?? string.Empty) + " "
+                          + lines[i].EnergyKev.ToString("0.0", CultureInfo.InvariantCulture));
+            }
+
+            if (lines.Count > CurveOutsideShown)
+            {
+                parts.Add("+" + (lines.Count - CurveOutsideShown).ToString(CultureInfo.InvariantCulture));
+            }
+
+            return string.Join(", ", parts.ToArray());
+        }
+
+        /// <summary>
+        /// (`AMBER159`, П195) Сверка плотности для показанного спектра: карточка
+        /// пробы и геометрия его кривой; null — сверять нечего.
+        /// </summary>
+        public static FsaSampleDensityCheck DensityOf(ResultData data)
+        {
+            return data != null && data.Efficiency != null && data.Efficiency.HasGeometry
+                ? FsaAnalysisSession.CheckSampleDensity(data.SampleInfo, data.Efficiency.Geometry)
+                : null;
+        }
+
+        /// <summary>
+        /// (`AMBER159`, П195) Подпись строки плотности: «плотность пробы X,
+        /// сцены Y, расхождение Z % — ε при 60 кэВ N %, при 662 кэВ M %
+        /// (оценка)». Открыта пробе: приёмка читает ТУ ЖЕ строку, что окно.
+        /// </summary>
+        public static string DensityCaption(FsaSampleDensityCheck density)
+        {
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyDensityRow),
+                                 density.SampleDensity.ToString("0.00", CultureInfo.InvariantCulture),
+                                 density.SceneDensity.ToString("0.00", CultureInfo.InvariantCulture),
+                                 density.DeviationPercent.ToString("+0;-0;0", CultureInfo.InvariantCulture),
+                                 density.Efficiency60Percent.ToString("+0;-0;0", CultureInfo.InvariantCulture),
+                                 density.Efficiency662Percent.ToString("+0;-0;0", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// (`AMBER126`) Ниже этого пол шума невязки в подписи не печатается: в
+        /// формате `F1` он читался бы «0.0 %», а у сильного источника (Cs-137 в
+        /// домике, 250 М отсч.) пол и есть сотые доли процента.
+        /// </summary>
+        const double ResidualNoiseShownFloor = 0.0005;
 
         static readonly ComponentResourceManager OwnResources =
             new ComponentResourceManager(typeof(FSAReportView));
@@ -384,7 +516,7 @@ namespace BecquerelMonitor
             // конструктор форм (правило здоровых видов репозитория).
             this.valueColumn.Alignment = ColumnAlignment.Right;
             this.componentColumn.Alignment = ColumnAlignment.Left;
-            this.swatchColumn.Alignment = ColumnAlignment.Center;
+            this.componentColumn.Renderer = new SwatchTextCellRenderer();
             this.reportTable.HeaderFont = this.Font;
             this.reportTable.NoItemsText = string.Empty;
             this.reportTable.GridLines = GridLines.None;
@@ -395,7 +527,7 @@ namespace BecquerelMonitor
             this.headerFont = new Font(this.Font, FontStyle.Bold);
 
             // (`AMBER45`) Пункты комбо «Matrix layer» — кодом, из собственных
-            // ресурсов окна: «All» первым, за ним шесть каналов по номеру
+            // ресурсов окна: «All» первым, за ним семь каналов по номеру
             // (<see cref="FsaMatrixLayers.Channels"/>). Список каналов один на
             // проект — здесь он только подписывается.
             this.loading = true;
@@ -414,6 +546,9 @@ namespace BecquerelMonitor
             {
                 this.loading = false;
             }
+
+            // (`AMBER222`) Обе галочки показа — из общих настроек приложения.
+            this.LoadDisplaySettings();
 
             this.SetToolTips();
             this.reportTable.Resize += this.ReportTable_Resize;
@@ -450,13 +585,13 @@ namespace BecquerelMonitor
             {
                 if (this.session != null)
                 {
-                    this.session.Completed -= this.SessionCompleted;
+                    this.session.Completed -= this.SessionCompleted; this.session.Started -= this.SessionStarted;
                 }
 
                 this.session = next;
                 if (this.session != null)
                 {
-                    this.session.Completed += this.SessionCompleted;
+                    this.session.Completed += this.SessionCompleted; this.session.Started += this.SessionStarted;
                 }
             }
 
@@ -501,13 +636,13 @@ namespace BecquerelMonitor
             {
                 if (this.session != null)
                 {
-                    this.session.Completed -= this.SessionCompleted;
+                    this.session.Completed -= this.SessionCompleted; this.session.Started -= this.SessionStarted;
                 }
 
                 this.session = probeSession;
                 if (this.session != null)
                 {
-                    this.session.Completed += this.SessionCompleted;
+                    this.session.Completed += this.SessionCompleted; this.session.Started += this.SessionStarted;
                 }
             }
 
@@ -576,6 +711,7 @@ namespace BecquerelMonitor
             // график того документа, который показывается сейчас: иначе
             // снятая лента возвращалась бы при каждой смене спектра.
             this.PushResidualBand();
+            this.PushSpectralData();
 
             // (`AMBER45`) Тот же довод для слоя матрицы: просьба живёт в окне
             // и едет на график показываемого документа.
@@ -640,6 +776,29 @@ namespace BecquerelMonitor
                 this.Consume();
                 this.RefreshReport();
             }
+        }
+
+        /// <summary>
+        /// (`AMBER201`, мелочь 6.9, 05.10.2026) Пересчёт начался — строка состояния
+        /// переходит в «идёт расчёт». Только строка: таблица до прихода результата
+        /// остаётся прежней (её перечитает <see cref="SessionCompleted"/>), а цвет
+        /// и текст строки и есть то, что говорит человеку «числа ниже — прежние».
+        /// Событие приходит с потока окон, но окно без ручки (пробы) не трогается.
+        /// </summary>
+        void SessionStarted(object sender, EventArgs e)
+        {
+            if (!this.IsHandleCreated || this.IsDisposed)
+            {
+                return;
+            }
+
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke((MethodInvoker)this.RefreshStatusLine);
+                return;
+            }
+
+            this.RefreshStatusLine();
         }
 
         /// <summary>
@@ -776,10 +935,12 @@ namespace BecquerelMonitor
         /// ⛔ Галка ленты невязки идёт ДРУГОЙ дорогой, нежели пять галок
         /// «Дополнительных компонентов модели»: не
         /// <see cref="ApplyCalculationChange"/>, а одна
-        /// перерисовка графика. Никакой записи в конфигурацию, никакого
+        /// перерисовка графика. Никакой записи в конфигурацию СПЕКТРА, никакого
         /// <c>session.Invalidate()</c>, никакого <c>Consume()</c> — иначе снятая
         /// лента стоила бы человеку полного пересчёта разбора и, что хуже,
         /// поменяла бы отпечаток: те же числа считались бы заново.
+        /// (`AMBER222`) Положение галочки пишется в общие настройки приложения
+        /// (<see cref="SaveDisplaySettings"/>) — это не отпечаток разбора.
         /// </summary>
         void residualBandCheckBox_CheckedChanged(object sender, EventArgs e)
         {
@@ -790,6 +951,120 @@ namespace BecquerelMonitor
 
             this.showResidualBand = this.residualBandCheckBox.Checked;
             this.PushResidualBand();
+            this.SaveDisplaySettings();
+        }
+
+        /// <summary>
+        /// (`AMBER222`) Галка «Spectral data» — той же дорогой, что галка ленты
+        /// невязки: перерисовка графика и запись положения в общие настройки,
+        /// без пересчёта и без правки таблицы.
+        /// </summary>
+        void spectralDataCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (this.loading)
+            {
+                return;
+            }
+
+            this.showSpectralData = this.spectralDataCheckBox.Checked;
+            this.PushSpectralData();
+            this.SaveDisplaySettings();
+        }
+
+        /// <summary>Показывать ли на графике FSA линию измеренного спектра (пробы).</summary>
+        public bool ShowSpectralData
+        {
+            get
+            {
+                return this.showSpectralData;
+            }
+
+            set
+            {
+                this.loading = true;
+                try
+                {
+                    this.spectralDataCheckBox.Checked = value;
+                }
+                finally
+                {
+                    this.loading = false;
+                }
+
+                this.showSpectralData = value;
+                this.PushSpectralData();
+            }
+        }
+
+        /// <summary>
+        /// Сказать графику, показывать ли линию спектра. ⛔ Ничего, кроме
+        /// перерисовки, это не меняет — по образцу <see cref="PushResidualBand"/>.
+        /// </summary>
+        void PushSpectralData()
+        {
+            if (this.document != null && !this.document.IsDisposed
+                && this.document.EnergySpectrumView != null)
+            {
+                this.document.EnergySpectrumView.FsaShowSpectralData = this.showSpectralData;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER222`) Обе галочки показа — из общих настроек приложения. Без
+        /// источника приложения (<see cref="FsaCalculationOptions.ApplicationSource"/>
+        /// не поставлен — пробы) общей настройки нет: остаются умолчания окна,
+        /// как у семи расчётных в <see cref="ApplyCalculationChange"/>.
+        /// </summary>
+        void LoadDisplaySettings()
+        {
+            if (FsaCalculationOptions.ApplicationSource == null)
+            {
+                return;
+            }
+
+            GlobalConfigInfo config = GlobalConfigManager.GetInstance().GlobalConfig;
+            if (config == null)
+            {
+                return;
+            }
+
+            this.loading = true;
+            try
+            {
+                this.residualBandCheckBox.Checked = config.FsaShowResidual;
+                this.spectralDataCheckBox.Checked = config.FsaShowSpectralData;
+            }
+            finally
+            {
+                this.loading = false;
+            }
+
+            this.showResidualBand = config.FsaShowResidual;
+            this.showSpectralData = config.FsaShowSpectralData;
+        }
+
+        /// <summary>
+        /// (`AMBER222`) Записать обе галочки показа в общие настройки и сразу на
+        /// диск — тем же путём, что семь расчётных (<see cref="ApplyCalculationChange"/>).
+        /// Без источника приложения (пробы) — ничего: общей настройки у пробы нет.
+        /// </summary>
+        void SaveDisplaySettings()
+        {
+            if (FsaCalculationOptions.ApplicationSource == null)
+            {
+                return;
+            }
+
+            GlobalConfigManager manager = GlobalConfigManager.GetInstance();
+            GlobalConfigInfo config = manager.GlobalConfig;
+            if (config == null)
+            {
+                return;
+            }
+
+            config.FsaShowResidual = this.showResidualBand;
+            config.FsaShowSpectralData = this.showSpectralData;
+            manager.SaveConfigFile();
         }
 
         /// <summary>Показывать ли ленту невязки (пробы).</summary>
@@ -915,15 +1190,24 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Расчётный переключатель. Путь ОДИН на все семь — «в копию спектра,
-        /// в умолчание прибора, обесценить кэш, заказать счёт потребителям» —
-        /// написанный семь раз он однажды разошёлся бы.
+        /// Расчётный переключатель. Путь ОДИН на все семь — «записать настройку,
+        /// обесценить кэш, заказать счёт потребителям» — написанный семь раз он
+        /// однажды разошёлся бы.
         ///
-        /// ⛔ Пишется В ДВА МЕСТА (решение Amber 18.08.2026, `S70`). В копию
-        /// СПЕКТРА — иначе нажатие не влияет на то, что человек сейчас видит.
-        /// В умолчание ПРИБОРА и на диск — иначе положение не переживает ни
-        /// следующий спектр, ни перезапуск. Соседние документы при этом не
-        /// трогаются (см. <see cref="SaveOptionsToDevice"/>).
+        /// ⛔ (`AMBER212`, П240 07.10.2026; решения Amber вопросником, дословно:
+        /// «Одно на приложение, плюс по умолчанию "From Nucbase"», «Все семь
+        /// одинаково») В ПРИЛОЖЕНИИ настройка ОДНА — общая
+        /// (<see cref="GlobalConfigInfo.FsaCalculation"/>), и пишется она сразу на
+        /// диск, чтобы пережить перезапуск. Прежняя запись в умолчание прибора
+        /// (`S70`, 18.08.2026) снята этим решением: у спектра, чей прибор не заведён
+        /// в конфигурации, выбор сохранить было некуда, и при следующем открытии он
+        /// молча возвращался к «From labels». Копия спектра держится в согласии с
+        /// общей настройкой — её читают пробы и тот, кто смотрит поле напрямую.
+        /// Соседние документы при этом меняются тоже: отпечаток их разбора
+        /// сменился, и видимый потребитель закажет пересчёт сам.
+        ///
+        /// Без источника приложения (<see cref="FsaCalculationOptions.ApplicationSource"/>
+        /// не поставлен — пробы) пишется только копия спектра, как прежде.
         ///
         /// Поиска пиков переключатели НЕ касаются — ни одного пика от них не
         /// появится и не исчезнет, — поэтому детекция не перезапускается;
@@ -942,13 +1226,29 @@ namespace BecquerelMonitor
             FWHMPeakDetectionMethodConfig config = rd != null
                 ? rd.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig
                 : null;
-            if (config == null)
+            if (FsaCalculationOptions.ApplicationSource != null)
             {
-                return;
+                // Нажатие ложится поверх ОБЩЕЙ настройки, а не поверх копии
+                // спектра: копия могла отстать (снята с прибора при открытии), и
+                // снять семь значений с неё значило бы вернуть в общую настройку
+                // устаревшие шесть.
+                GlobalConfigManager manager = GlobalConfigManager.GetInstance();
+                FsaCalculationSettings settings = manager.GlobalConfig.FsaCalculation;
+                FWHMPeakDetectionMethodConfig scratch = config ?? new FWHMPeakDetectionMethodConfig();
+                settings.CopyTo(scratch);
+                set(scratch);
+                settings.CopyFrom(scratch);
+                manager.SaveConfigFile();
             }
+            else
+            {
+                if (config == null)
+                {
+                    return;
+                }
 
-            set(config);
-            SaveOptionsToDevice(rd, config);
+                set(config);
+            }
 
             if (this.session != null)
             {
@@ -967,53 +1267,6 @@ namespace BecquerelMonitor
             }
 
             this.RefreshReport();
-        }
-
-        /// <summary>
-        /// Семь настроек разложения — в умолчание прибора и на диск. Прибор
-        /// берётся из менеджера по Guid: именно ту запись читает
-        /// <see cref="FWHMPeakDetectionMethodConfig.AdoptFrom"/> при открытии
-        /// следующего спектра, и правка её копии никуда бы не дошла.
-        ///
-        /// ⛔ Прибор сохраняется ТИХО
-        /// (<see cref="DeviceConfigManager.SaveConfigQuiet"/>): обычное
-        /// сохранение рассылает событие, а по нему настройки прибора
-        /// переносятся во ВСЕ открытые спектры этого прибора. Решение то же,
-        /// что у прежних двух галок (`S70`): умолчание прибора меняем, уже
-        /// открытые копии соседних документов не трогаем (критерий 11).
-        /// </summary>
-        internal static void SaveOptionsToDevice(ResultData resultData, FWHMPeakDetectionMethodConfig source)
-        {
-            if (resultData == null || source == null
-                || resultData.DeviceConfigReference == null
-                || string.IsNullOrEmpty(resultData.DeviceConfigReference.Guid))
-            {
-                return;
-            }
-
-            DeviceConfigManager manager = DeviceConfigManager.GetInstance();
-            DeviceConfigInfo device;
-            if (!manager.DeviceConfigMap.TryGetValue(resultData.DeviceConfigReference.Guid, out device)
-                || device == null
-                || !(device.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig devicePeak))
-            {
-                return;
-            }
-
-            if (FsaCalculationOptions.FromConfig(devicePeak).Stamp
-                == FsaCalculationOptions.FromConfig(source).Stamp)
-            {
-                return;
-            }
-
-            devicePeak.DbLookupsForFsa = source.DbLookupsForFsa;
-            devicePeak.ChainEquilibrium = source.ChainEquilibrium;
-            devicePeak.AtomicXrayForFsa = source.AtomicXrayForFsa;
-            devicePeak.CascadeSummingForFsa = source.CascadeSummingForFsa;
-            devicePeak.BackscatterForFsa = source.BackscatterForFsa;
-            devicePeak.EscapeAndAnnihilationForFsa = source.EscapeAndAnnihilationForFsa;
-            devicePeak.PileUpForFsa = source.PileUpForFsa;
-            manager.SaveConfigQuiet(device);
         }
 
         // ------------------------------------------------------------------
@@ -1340,6 +1593,19 @@ namespace BecquerelMonitor
                 residualTips.Add(string.Format(CultureInfo.InvariantCulture, OwnText(KeyResidualFloorTip), kev));
             }
 
+            // (`AMBER126`, П168 28.09.2026) ШУМОВОЙ ПОЛ — рядом с числом, а не
+            // вычетом из него: число — площадь ленты (решение Amber по ~~`S111`~~),
+            // но без пола «не описано 37 %» у модели, описавшей всё (проба в 30σ
+            // над фоном), читалось бы как недоработка модели. Первой пометкой:
+            // она о самом числе, остальные — о показе.
+            if (floorResult != null && floorResult.ResidualSharesDefined
+                && floorResult.ResidualNoiseShare >= ResidualNoiseShownFloor)
+            {
+                string noise = (100.0 * floorResult.ResidualNoiseShare).ToString("F1", CultureInfo.InvariantCulture);
+                residualMarks.Insert(0, string.Format(CultureInfo.InvariantCulture, OwnText(KeyResidualNoise), noise));
+                residualTips.Insert(0, string.Format(CultureInfo.InvariantCulture, OwnText(KeyResidualNoiseTip), noise));
+            }
+
             if (residualMarks.Count > 0)
             {
                 residualCaption += " — " + string.Join(", ", residualMarks.ToArray());
@@ -1405,7 +1671,7 @@ namespace BecquerelMonitor
         /// <summary>(`A247`) Черта над блоком: строка в три пикселя, залитая целиком.</summary>
         Row MakeRuleRow()
         {
-            var cells = new[] { new Cell(string.Empty, (Image)null), new Cell(string.Empty), new Cell(string.Empty) };
+            var cells = new[] { new Cell(string.Empty), new Cell(string.Empty) };
             foreach (Cell cell in cells)
             {
                 cell.BackColor = QualityRuleColor;
@@ -1425,7 +1691,7 @@ namespace BecquerelMonitor
             name.Font = this.headerFont;
             name.ForeColor = Color.Black;
             name.ToolTipText = text;
-            var row = new Row(new[] { new Cell(string.Empty, (Image)null), name, new Cell(string.Empty) });
+            var row = new Row(new[] { name, new Cell(string.Empty) });
             row.Tag = ServiceRow(text, string.Empty);
             return row;
         }
@@ -1475,12 +1741,38 @@ namespace BecquerelMonitor
                 OwnText(KeyInflationTip)));
 
             bool oldFormat = this.presentation.MatrixOldFormat;
+            // (`AMBER208` (в), П236) матрица склада ЕСТЬ, но посчитана по другой
+            // геометрии, чем кривая разбора (KCl: кривая из файла спектра старше
+            // кривой прибора) — «устарела», а не безликое «не учтена»
+            bool matrixStale = !result.ResponseMatrixUsed && this.session != null
+                               && this.session.ResponseMatrixSkip == FsaMatrixSkip.StaleGeometry;
+            // (`AMBER202`) матрица, приехавшая В ФАЙЛЕ СПЕКТРА, называет источник
+            bool matrixFromSpectrum = result.ResponseMatrixUsed && this.session != null
+                                      && this.session.ResponseMatrixFromSpectrum;
             made.Add(this.MakeMarkRow(KeyMatrixRow,
-                                      OwnText(result.ResponseMatrixUsed
-                                                  ? KeyMatrixUsed
-                                                  : oldFormat ? KeyMatrixOldFormat : KeyMatrixNotUsed),
+                                      matrixFromSpectrum
+                                          ? Resources.FSAReportMatrixUsedFromSpectrum
+                                          : OwnText(result.ResponseMatrixUsed
+                                                        ? KeyMatrixUsed
+                                                        : matrixStale ? KeyMatrixStale
+                                                        : oldFormat ? KeyMatrixOldFormat : KeyMatrixNotUsed),
                                       result.ResponseMatrixUsed,
                                       false));
+            // (`AMBER202`) матрица из файла спектра ОТВЕРГНУТА — причина словами
+            string spectrumMatrixRefusal = this.session != null ? this.session.SpectrumMatrixRefusal : "";
+            if (!result.ResponseMatrixUsed && !string.IsNullOrEmpty(spectrumMatrixRefusal))
+            {
+                made.Add(this.MakeMarkRowText(
+                    string.Format(CultureInfo.InvariantCulture, Resources.FSAReportSpectrumMatrixRefusedRow,
+                                  spectrumMatrixRefusal),
+                    Resources.FSAReportSpectrumMatrixRefusedValue, false, true));
+            }
+            // (`AMBER208` (в)) причина словами и лечение: пересчитать матрицу или
+            // выбрать кривую прибора вместо кривой из файла спектра
+            if (matrixStale)
+            {
+                made.Add(this.MakeMarkRowText(OwnText(KeyMatrixStaleRow), OwnText(KeyMatrixStaleValue), false, true));
+            }
             // (`AMBER34`, решение Amber 15.09.2026 «Разбор идёт, Бк скрыты с
             // причиной») Кривая СЦЕНЫ ПОЛЯ учтена формой, а беккерели из
             // разбора не выводятся — причина стоит В ТОЙ ЖЕ строке, где
@@ -1506,6 +1798,55 @@ namespace BecquerelMonitor
                                                             : KeySummingNoMatrix),
                                       result.CascadeSummingUsed,
                                       result.CascadeSummingRefusedFieldMatrix));
+
+            // (`AMBER156` (в), П195) РАЗБОР БЕЗ МАТРИЦЫ — предупреждение словами
+            // и с величиной, а не одна пометка «не учтено» у суммирования:
+            // старый формат, выключенная галка или несчитанная матрица — обычный
+            // путь человека, и до 01.10.2026 он получал заниженные активности
+            // без единого слова. Стоит ПОСЛЕ трёх строк, печатаемых всегда, —
+            // это происшествие, а не состояние.
+            if (result.EfficiencyUsed && !result.ResponseMatrixUsed)
+            {
+                made.Add(this.MakeMarkRowText(OwnText(KeyNoMatrixWarnRow), OwnText(KeyNoMatrixWarnValue), false, true));
+            }
+
+            // (`AMBER157`, П195; решение Amber 01.10.2026 «Исключать с
+            // заверением») ЛИНИИ ВНЕ КРИВОЙ ИСКЛЮЧЕНЫ — происшествие, только
+            // когда было: диапазон кривой и линии словами в подписи, короткое
+            // слово справа. Числа — один раз и инвариантной культурой (`A242`).
+            if (result.EfficiencyOutOfRangeLines != null && result.EfficiencyOutOfRangeLines.Count > 0)
+            {
+                made.Add(this.MakeMarkRowText(
+                    string.Format(CultureInfo.InvariantCulture, OwnText(KeyCurveOutsideRow),
+                                  result.EfficiencyMinKev.ToString("0.#", CultureInfo.InvariantCulture),
+                                  result.EfficiencyMaxKev.ToString("0.#", CultureInfo.InvariantCulture),
+                                  OutOfCurveList(result.EfficiencyOutOfRangeLines)),
+                    OwnText(KeyCurveOutsideValue), false, true));
+            }
+
+            // (`AMBER159`, П195; решение Amber 01.10.2026 «Предупреждение с
+            // величиной») ПЛОТНОСТЬ ПРОБЫ ПРОТИВ СЦЕНЫ — когда в карточке есть
+            // и вес, и объём, а у сцены есть проба. Сверяется здесь, при каждом
+            // заполнении: вес и объём в отпечаток разбора не входят. Красным —
+            // при |расхождении| выше порога; поправки активности нет.
+            FsaSampleDensityCheck density = DensityOf(this.ActiveResultData);
+            if (density != null)
+            {
+                made.Add(this.MakeMarkRowText(DensityCaption(density),
+                                              density.DeviationPercent.ToString("+0;-0;0", CultureInfo.InvariantCulture) + " %",
+                                              !density.Warning, density.Warning));
+            }
+
+            // (`AMBER185`, решение Amber 05.10.2026 «Отпечаток + предупреждение»)
+            // КРИВАЯ ПОСЧИТАНА ДЛЯ ДРУГОЙ ГЕОМЕТРИИ — отпечаток при кривой не
+            // сходится с геометрией конфигурации спектра. Происшествие, только
+            // когда было; у кривой без отпечатка (до 05.10.2026) — молчим.
+            ResultData shown = this.ActiveResultData;
+            if (shown != null && shown.Efficiency != null && shown.Efficiency.CurveGeometryMismatch)
+            {
+                made.Add(this.MakeMarkRowText(Resources.EfficiencyCurveOtherGeometry,
+                                              Resources.FSAReportCurveOtherGeometryValue, false, true));
+            }
 
             // (`S44`, решение Amber 01.09.2026) ФОН ПОДАН И НЕ ВЗЯТ — причина
             // словами. Стоит первой среди происшествий, как и в хвосте
@@ -1533,7 +1874,9 @@ namespace BecquerelMonitor
             // в одном из них читалось бы как второе. Число — инвариантной
             // культурой (`A242`); перечень опор — в подсказке строки, потому
             // что в самой строке не поместится: имя, энергия, остаток.
-            if (result.ResponseMatrixUsed)
+            // (`AMBER156` (а), П195) Привязка идёт и без матрицы — по голым
+            // пикам кривой, — и строка печатается при любом разборе с кривой.
+            if (result.ResponseMatrixUsed || result.EfficiencyUsed)
             {
                 this.AddAnchorRow(made, result);
             }
@@ -1545,7 +1888,198 @@ namespace BecquerelMonitor
                 made.Add(this.MakeMarkRow(KeySuppressedRow, result.SuppressorName ?? string.Empty, false, true));
             }
 
+            // (`S187`, П152 24.09.2026) РАСХОЖДЕНИЯ ПОСТАВОК ДАННЫХ РАСПАДА —
+            // только когда есть о чём сказать (происшествие, а не состояние).
+            // Справа — нуклиды, в подсказке — по строке на расхождение: ЧТО
+            // разбор взял. Прежде эти слова жили только в примечаниях базы и
+            // до человека не доходили.
+            if (result.SupplyDiscrepancies != null && result.SupplyDiscrepancies.Count > 0)
+            {
+                this.AddSupplyRow(made, result.SupplyDiscrepancies);
+            }
+
+            // ⛔ (`AMBER199`, 05.10.2026) БАЗА НЕ ПРОЧИТАНА — происшествие,
+            // только когда было. Разбор при отказе чтения `nucdb`/`schemedb`/
+            // `matdb` идёт без части данных (нуклид без линий, линия без
+            // поправки на совпадения), и до этого дня на экране не было ни
+            // слова. Справа — первая строка отказа (файл, что читалось,
+            // сообщение платформы — переводу не подлежит), в подсказке — все.
+            if (result.DatabaseFailures != null && result.DatabaseFailures.Count > 0)
+            {
+                string first = result.DatabaseFailures[0]
+                               + (result.DatabaseFailures.Count > 1
+                                      ? string.Format(CultureInfo.InvariantCulture, " (+{0})",
+                                                      result.DatabaseFailures.Count - 1)
+                                      : string.Empty);
+                Row failed = this.MakeMarkRowText(Resources.FSAReportDatabaseFailedRow, first, false, true);
+                failed.Cells[1].ToolTipText = string.Join(Environment.NewLine, result.DatabaseFailures.ToArray());
+                made.Add(failed);
+            }
+
+            // (`AMBER123`, П166 → строка окна П168 28.09.2026) КОЛОНКА НАЛОЖЕНИЙ
+            // ЗАКРЕПЛЕНА НА ГРАНИЦЕ R·τ: фит просил больше пар, чем допускает
+            // мёртвое время, — избыток брал не наложения, а недостающую модель.
+            // Признак был только в результате (`PileUpNotPairs`); происшествие,
+            // поэтому кирпичным и только когда было.
+            if (result.PileUpNotPairs)
+            {
+                made.Add(this.MakeMarkRowText(
+                    string.Format(CultureInfo.InvariantCulture, OwnText(KeyPileUpCapRow),
+                                  result.PileUpUncappedPairs, result.PileUpCapPairs),
+                    OwnText(KeyPileUpCapValue), false, true));
+            }
+
+            // (`AMBER118`, П168; решение Amber 28.09.2026 «Строка AMBER:
+            // предупреждение об интерференции 186 кэВ») ЛИНИЯ СОСТАВА, КОТОРУЮ
+            // ДЕЛИТ ПРИРОДНЫЙ СПУТНИК, ОТСУТСТВУЮЩИЙ В СОСТАВЕ. Имена — данные
+            // результата (подписи нуклидов переводу не подлежат), числа — один
+            // раз и инвариантной культурой (`A242`).
+            if (result.LineInterferences != null)
+            {
+                foreach (FsaLineInterference item in result.LineInterferences)
+                {
+                    made.Add(this.MakeMarkRowText(
+                        string.Format(CultureInfo.InvariantCulture, OwnText(KeyInterferenceRow),
+                                      item.LineKev.ToString("F1", CultureInfo.InvariantCulture),
+                                      item.Companion ?? string.Empty, item.Reference ?? string.Empty,
+                                      item.Component ?? string.Empty,
+                                      item.Factor.ToString("F2", CultureInfo.InvariantCulture)),
+                        OwnText(KeyInterferenceValue), false, true));
+                }
+            }
+
+            // (`AMBER210`, П238; решение Amber 07.10.2026 вопросником, дословно: «Только
+            // отчёт FSA, строка на пик») ПИК В ПОЛОСЕ, НЕ ПОКРЫТЫЙ СОСТАВОМ: энергия,
+            // избыток над моделью в процентах, значимость и линии библиотеки приложения
+            // рядом («Библиотека приложения целиком»). Имена — данные результата,
+            // числа — один раз и инвариантной культурой (`A242`).
+            if (result.UncoveredPeaks != null)
+            {
+                foreach (FsaUncoveredPeak item in result.UncoveredPeaks)
+                {
+                    var names = new List<string>();
+                    foreach (FsaUncoveredCandidate candidate in item.Candidates)
+                    {
+                        names.Add(candidate.Nuclide + " " + candidate.EnergyKev.ToString("F1", CultureInfo.InvariantCulture));
+                    }
+
+                    made.Add(this.MakeMarkRowText(
+                        string.Format(CultureInfo.InvariantCulture, OwnText(KeyUncoveredRow),
+                                      item.EnergyKev.ToString("F1", CultureInfo.InvariantCulture),
+                                      (100.0 * item.ExcessShare).ToString("F0", CultureInfo.InvariantCulture),
+                                      item.Z.ToString("F1", CultureInfo.InvariantCulture),
+                                      names.Count > 0 ? string.Join(", ", names) : OwnText(KeyUncoveredNone)),
+                        OwnText(KeyUncoveredValue), false, true));
+                }
+            }
+
+            // (`AMBER221`, решение Amber 12.10.2026 вопросником, дословно: «Чинить
+            // сейчас») РОДИТЕЛЬ АКТИВНОГО СЕТА, НЕ ВОШЕДШИЙ В СОСТАВ, — строкой на
+            // каждого, с причиной. Прежде он выпадал молча: K-40 в сете, подпись
+            // «K-40» над пиком — и ни компонента, ни слова.
+            if (result.SetOmissions != null)
+            {
+                foreach (FsaSetOmission item in result.SetOmissions)
+                {
+                    made.Add(this.MakeMarkRowText(
+                        string.Format(CultureInfo.InvariantCulture, OwnText(KeySetOmittedRow),
+                                      item.Nuclide ?? string.Empty, SetOmissionReason(item)),
+                        OwnText(KeySetOmittedValue), false, true));
+                }
+            }
+
             return made;
+        }
+
+        /// <summary>
+        /// (`AMBER221`) Причина словами окна; числа — один раз и инвариантной
+        /// культурой (`A242`). <see cref="FsaParentVerdict.None"/> — родитель
+        /// кандидатом не был: ни один пик им не подписан.
+        /// </summary>
+        static string SetOmissionReason(FsaSetOmission item)
+        {
+            switch (item.Reason)
+            {
+                case FsaParentVerdict.NoLines:
+                    return OwnText(KeySetOmittedNoLines);
+                case FsaParentVerdict.NotConfirmed:
+                    return OwnText(KeySetOmittedNotConfirmed);
+                case FsaParentVerdict.BelowCoverage:
+                    return string.Format(CultureInfo.InvariantCulture, OwnText(KeySetOmittedBelowCoverage),
+                                         item.Matched.ToString(CultureInfo.InvariantCulture),
+                                         item.Expected.ToString(CultureInfo.InvariantCulture),
+                                         (100.0 * item.Coverage).ToString("F0", CultureInfo.InvariantCulture),
+                                         (100.0 * item.Threshold).ToString("F0", CultureInfo.InvariantCulture));
+                case FsaParentVerdict.NotNovel:
+                    return OwnText(KeySetOmittedNotNovel);
+                default:
+                    return OwnText(KeySetOmittedNoPeak);
+            }
+        }
+
+        /// <summary>
+        /// (`S187`) Строка «поставки данных распада расходятся»: справа —
+        /// родители через запятую (подпись нуклида та же, что в составе), в
+        /// подсказке — по строке на расхождение. Числа — один раз и
+        /// инвариантной культурой (`A242`); цвета нет, как у строк с числом:
+        /// это не суждение о разборе, а сказанное о данных.
+        /// </summary>
+        void AddSupplyRow(List<Row> made, List<CascadeAtomicData.SupplyDiscrepancy> found)
+        {
+            var parents = new List<string>();
+            var tip = new System.Text.StringBuilder(OwnText(KeySupplyTip));
+            foreach (CascadeAtomicData.SupplyDiscrepancy item in found)
+            {
+                if (item == null)
+                {
+                    continue;
+                }
+
+                string parent = FsaSampleLibrary.PrettyName(item.Parent ?? string.Empty);
+                if (!parents.Contains(parent))
+                {
+                    parents.Add(parent);
+                }
+
+                tip.AppendLine();
+                tip.Append(SupplyLine(item, parent));
+            }
+
+            made.Add(this.MakeNumberRow(KeySupplyRow, string.Join(", ", parents.ToArray()), tip.ToString()));
+        }
+
+        /// <summary>(`S187`) Одна строка подсказки: вид расхождения и числа.</summary>
+        static string SupplyLine(CascadeAtomicData.SupplyDiscrepancy item, string parent)
+        {
+            string daughter = FsaSampleLibrary.PrettyName(item.Daughter ?? string.Empty);
+            bool share = item.Kind == CascadeAtomicData.SupplyDiscrepancyKind.BetaPlusShareMismatch;
+            string format = share ? "F5" : "F3";
+            string supply = item.Supply.ToString(format, CultureInfo.InvariantCulture);
+            string other = item.Other.ToString(format, CultureInfo.InvariantCulture);
+            string taken = share
+                ? item.Taken.ToString("+0.00;-0.00", CultureInfo.InvariantCulture)
+                : item.Taken.ToString("F3", CultureInfo.InvariantCulture);
+            string key;
+            switch (item.Kind)
+            {
+                case CascadeAtomicData.SupplyDiscrepancyKind.BetaPlusModeWidened:
+                    key = KeySupplyBetaPlusMode;
+                    break;
+                case CascadeAtomicData.SupplyDiscrepancyKind.OtherModeWidened:
+                    key = KeySupplyOtherMode;
+                    break;
+                case CascadeAtomicData.SupplyDiscrepancyKind.BranchExcess:
+                    key = KeySupplyExcess;
+                    break;
+                case CascadeAtomicData.SupplyDiscrepancyKind.BetaPlusClamped:
+                    key = KeySupplyClamped;
+                    break;
+                default:
+                    key = item.LevelsKept ? KeySupplyShareKept : KeySupplyShareScaled;
+                    break;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(key), parent, daughter, supply, other, taken);
         }
 
         /// <summary>
@@ -1570,7 +2104,16 @@ namespace BecquerelMonitor
         /// </summary>
         Row MakeMarkRow(string captionKey, string value, bool good, bool attention)
         {
-            string caption = OwnText(captionKey);
+            return this.MakeMarkRowText(OwnText(captionKey), value, good, attention);
+        }
+
+        /// <summary>
+        /// То же, что <see cref="MakeMarkRow"/>, но подпись — готовый текст, а не
+        /// ключ: у происшествий с числами (`AMBER123`, `AMBER118`) подпись
+        /// собирается форматом и переносится по ширине колонки целиком.
+        /// </summary>
+        Row MakeMarkRowText(string caption, string value, bool good, bool attention)
+        {
             var name = new Cell(caption);
             var cell = new Cell(value ?? string.Empty);
             name.ForeColor = Color.Black;
@@ -1579,9 +2122,14 @@ namespace BecquerelMonitor
             // Подпись переносится по ширине колонки: усечение многоточием и
             // есть та беда, ради которой заведена `A247`.
             name.WordWrap = true;
+            // (`AMBER201`, мелочь 6.13, 05.10.2026) Значение переносится тоже:
+            // колонка значений 92 px, и длинная причина (отказ базы, строка
+            // предупреждения) резалась многоточием — целиком её было видно только
+            // в подсказке.
+            cell.WordWrap = true;
             name.ToolTipText = caption;
             cell.ToolTipText = cell.Text;
-            var row = new Row(new[] { new Cell(string.Empty, (Image)null), name, cell });
+            var row = new Row(new[] { name, cell });
             row.Tag = ServiceRow(caption, cell.Text, attention);
             return row;
         }
@@ -1664,7 +2212,7 @@ namespace BecquerelMonitor
             name.WordWrap = true;
             name.ToolTipText = string.IsNullOrEmpty(hint) ? caption : hint;
             cell.ToolTipText = name.ToolTipText;
-            var row = new Row(new[] { new Cell(string.Empty, (Image)null), name, cell });
+            var row = new Row(new[] { name, cell });
             row.Tag = ServiceRow(caption, cell.Text);
             return row;
         }
@@ -1717,7 +2265,7 @@ namespace BecquerelMonitor
                 return false;
             }
 
-            this.tableModel.Selections.SelectCell(index, 1);
+            this.tableModel.Selections.SelectCell(index, 0);
             return true;
         }
 
@@ -1799,7 +2347,7 @@ namespace BecquerelMonitor
                 int index = layerName != null ? this.RowOfLayer(layerName) : -1;
                 if (index >= 0)
                 {
-                    this.tableModel.Selections.SelectCell(index, 1);
+                    this.tableModel.Selections.SelectCell(index, 0);
                     this.selectedLayer = layerName;
                 }
                 else
@@ -1838,8 +2386,15 @@ namespace BecquerelMonitor
                 ? Color.DarkOrange
                 : row.Warning ? Color.Firebrick : row.Muted ? Color.Gray : Color.Black;
 
-            var swatch = new Cell(string.Empty, this.SwatchOf(row));
-            var name = new Cell(caption ?? row.Name ?? string.Empty);
+            // (`AMBER217`) Образец — картинкой ПЕРЕД подписью, в той же ячейке:
+            // отступ слева освобождает ему место, текст и его перенос остаются
+            // штатными (<see cref="SwatchTextCellRenderer"/>).
+            var name = new Cell(caption ?? row.Name ?? string.Empty, this.SwatchOf(row));
+            if (name.Image != null)
+            {
+                name.Padding = new CellPadding(SwatchWidth + SwatchGap, 0, 0, 0);
+            }
+
             var value = new Cell(row.Value ?? string.Empty);
             name.ForeColor = fore;
             value.ForeColor = fore;
@@ -1859,15 +2414,15 @@ namespace BecquerelMonitor
                 name.WordWrap = true;
             }
 
-            var tableRow = new Row(new[] { swatch, name, value });
+            var tableRow = new Row(new[] { name, value });
             tableRow.Tag = row;
             return tableRow;
         }
 
         /// <summary>
         /// Образец строки — тем же правилом, что лента на графике: сплошной
-        /// цвет слоя, штрих сумм-пиков (<see cref="FsaPalette.SumPeakHatchColor"/>)
-        /// или клетка невязки по чёрной половине (`A28`). Пусто — образца нет.
+        /// цвет слоя или штрих сумм-пиков (<see cref="FsaPalette.SumPeakHatchColor"/>).
+        /// Пусто — образца нет (у невязки его нет с `AMBER217`).
         /// </summary>
         Image SwatchOf(FsaReportRow row)
         {
@@ -1883,7 +2438,7 @@ namespace BecquerelMonitor
                 return image;
             }
 
-            var bitmap = new Bitmap(14, 10);
+            var bitmap = new Bitmap(SwatchWidth, SwatchHeight);
             using (Graphics g = Graphics.FromImage(bitmap))
             {
                 g.Clear(Color.White);
@@ -1906,14 +2461,6 @@ namespace BecquerelMonitor
                         }
 
                         break;
-
-                    case FsaSwatchKind.ResidualCross:
-                        using (Brush brush = new HatchBrush(HatchStyle.Cross, row.Color, Color.White))
-                        {
-                            g.FillRectangle(brush, r);
-                        }
-
-                        break;
                 }
 
                 g.DrawRectangle(Pens.DimGray, 0, 0, bitmap.Width - 1, bitmap.Height - 1);
@@ -1923,21 +2470,68 @@ namespace BecquerelMonitor
             return bitmap;
         }
 
+        /// <summary>
+        /// (`AMBER217`) Подпись с образцом перед ней. Отдельной колонки образцов
+        /// больше нет (решение Amber 07.10.2026), а штатный <see cref="ImageCellRenderer"/>
+        /// не переносит текст, без чего блок качества уезжает (`AMBER214`). Поэтому
+        /// текст рисует и меряет обычный <see cref="TextCellRenderer"/> — ячейка с
+        /// образцом несёт отступ слева, — а образец встаёт в этот отступ на уровне
+        /// ПЕРВОЙ строки текста.
+        /// </summary>
+        sealed class SwatchTextCellRenderer : TextCellRenderer
+        {
+            protected override void OnPaint(PaintCellEventArgs e)
+            {
+                base.OnPaint(e);
+                Image image = e.Cell != null ? e.Cell.Image : null;
+                if (image == null)
+                {
+                    return;
+                }
+
+                Rectangle client = this.ClientRectangle;
+                int line = this.Font != null ? this.Font.Height : image.Height;
+                int x = client.X - SwatchGap - image.Width;
+                int y = client.Y + Math.Max(0, (Math.Min(line, client.Height) - image.Height) / 2);
+                e.Graphics.DrawImage(image, x, y, image.Width, image.Height);
+            }
+        }
+
         void ReportTable_Resize(object sender, EventArgs e)
         {
             this.FitColumns();
         }
 
         /// <summary>
-        /// Колонка «Компонент» получает всю ширину, оставшуюся от образца и
-        /// значения: у XPTable нет колонки-заполнителя, а без этого длинный
+        /// Колонка «Компонент» получает всю ширину, оставшуюся от колонки
+        /// значения (`AMBER217`: отдельной колонки образцов нет — образец стоит
+        /// картинкой перед подписью в этой же колонке): у XPTable нет колонки-заполнителя, а без этого длинный
         /// текст обрезался бы по фиксированной ширине.
         /// </summary>
         void FitColumns()
         {
-            int spare = this.reportTable.ClientSize.Width - SwatchColumnWidth - ValueColumnWidth
+            int spare = this.reportTable.ClientSize.Width - ValueColumnWidth
                         - SystemInformation.VerticalScrollBarWidth - 4;
             this.componentColumn.Width = Math.Max(80, spare);
+
+            // ⛔ (`AMBER214`, П240 07.10.2026; Amber со снимком, дословно: «Тут
+            // требуется скроллбар. Текст уехал вниз.») Высоты строк с переносом
+            // XPTable узнаёт только при ОТРИСОВКЕ, а нужна ли вертикальная полоса,
+            // решает раньше — в `EndUpdate` и при первой отрисовке — по высотам
+            // строк в одну строку. Длинные строки блока качества (разбор без
+            // матрицы, сумм-пики) переносятся в пять-шесть строк, сумма выходила
+            // больше окна, а полосы не было: низ таблицы уезжал за край. Ширина
+            // колонки к тому же меняется здесь, ПОСЛЕ `EndUpdate`. Поэтому
+            // высоты считаются заново при каждой подгонке ширины и полоса
+            // переоценивается по ним.
+            // ⚠ Только при живой ручке: `CalculateAllRowHeights` зовёт
+            // `CreateGraphics`, а он создал бы ручку окну пробы, у которой её
+            // нет нарочно (`SessionCompleted` судит по `IsHandleCreated`).
+            if (this.reportTable.IsHandleCreated && this.reportTable.TableModel != null)
+            {
+                this.reportTable.CalculateAllRowHeights();
+                this.reportTable.UpdateScrollBars();
+            }
         }
 
         /// <summary>
@@ -2070,6 +2664,7 @@ namespace BecquerelMonitor
             // признак, а не единственный: с `A265` род переключателя виден
             // и без наведения — по группе, в которой он лежит.
             this.toolTip.SetToolTip(this.residualBandCheckBox, OwnText(KeyResidualBandTip));
+            this.toolTip.SetToolTip(this.spectralDataCheckBox, OwnText(KeySpectralDataTip));
 
             // (`AMBER45`) Комбо слоя матрицы — того же рода «меняет только
             // показ»; при мёртвой матрице подсказку подменяет причиной
@@ -2120,7 +2715,7 @@ namespace BecquerelMonitor
 
                 if (this.session != null)
                 {
-                    this.session.Completed -= this.SessionCompleted;
+                    this.session.Completed -= this.SessionCompleted; this.session.Started -= this.SessionStarted;
                     this.session = null;
                 }
 
