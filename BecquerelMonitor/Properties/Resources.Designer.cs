@@ -7354,5 +7354,14 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ResponseMatrixGpuSceneIso", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Every connected Amplituda USB device is already being measured in another document (a device configuration with "(first found)" skips such devices). Connect another device or stop one of those measurements first..
+        /// </summary>
+        public static string ERRAmplitudaUsbAllInUse {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbAllInUse", resourceCulture);
+            }
+        }
     }
 }

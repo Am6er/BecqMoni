@@ -44000,4 +44000,7 @@ Close the window and discard it?</value>
   <data name="ResponseMatrixGpuSceneIso" xml:space="preserve">
     <value>Not available for this geometry: the isotropic field (ISO) scene is not ported to the GPU. The matrix is computed on the CPU.</value>
   </data>
+  <data name="ERRAmplitudaUsbAllInUse" xml:space="preserve">
+    <value>Every connected Amplituda USB device is already being measured in another document (a device configuration with "(first found)" skips such devices). Connect another device or stop one of those measurements first.</value>
+  </data>
 </root>

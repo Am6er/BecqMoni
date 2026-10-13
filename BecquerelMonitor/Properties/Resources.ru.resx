@@ -2765,4 +2765,7 @@ http://xptable.sourceforge.net/</value>
   <data name="ResponseMatrixGpuSceneIso" xml:space="preserve">
     <value>Недоступно для этой геометрии: сцена «изотропное поле» (ISO) на GPU не перенесена. Матрица считается на процессоре.</value>
   </data>
+  <data name="ERRAmplitudaUsbAllInUse" xml:space="preserve">
+    <value>Все подключённые блоки Amplituda USB уже набираются в других документах (конфигурация с «(первый найденный)» такие блоки пропускает). Подключите ещё один блок или сначала остановите один из этих наборов.</value>
+  </data>
 </root>
