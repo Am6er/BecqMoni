@@ -6762,7 +6762,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The Amplituda USB device stopped sending data (no frames for more than 10 s). The measurement has been stopped, the collected data is kept. Check the device and press Start to continue..
+        ///   Looks up a localized string similar to The Amplituda USB device stopped sending data (no frames for more than {0} s). The measurement has been stopped, the collected data is kept. Check the device and press Start to continue..
         /// </summary>
         public static string ERRAmplitudaUsbSilent {
             get {
