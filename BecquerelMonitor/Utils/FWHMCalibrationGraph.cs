@@ -36,6 +36,13 @@ namespace BecquerelMonitor.Utils
         int height;
         int startwidth = 10;
         int startheight = 10;
+
+        /// <summary>
+        /// Ширина прямоугольника подписи оси, точек. Подпись рисуется ВНУТРИ
+        /// поля графика от линии сетки вправо, поэтому запас по ширине ничего не
+        /// заслоняет; узкий же прямоугольник GDI+ рвёт число по символам.
+        /// </summary>
+        const int AxisLabelWidth = 64;
         int maxChannels;
         CalibrationPeak glowPoint;
         int mouseX = 0;
@@ -101,7 +108,9 @@ namespace BecquerelMonitor.Utils
                 int x_low = x_high;
                 int y_low = this.height;
                 g.DrawLine(pen, x_high, y_high, x_low, y_low);
-                Rectangle r = new Rectangle(x_low, y_low - 16, 32, 32);
+                // (П259, 14.10.2026) Ширина под пятизначный канал (16384 канала):
+                // в 32 точки «13650» уже не влезало и рвалось на две строки.
+                Rectangle r = new Rectangle(x_low, y_low - 16, AxisLabelWidth, 32);
                 g.DrawString((i * ch_step).ToString(CultureInfo.InvariantCulture), this.Font, brush, r);
             }
 
@@ -112,7 +121,10 @@ namespace BecquerelMonitor.Utils
                 int x_right = this.width;
                 int y_right = y_left;
                 g.DrawLine(pen, x_left, y_left, x_right, y_right);
-                Rectangle r = new Rectangle(x_left, y_left - 16, 32, 32);
+                // (П259, 14.10.2026) Прямоугольник подписи шире прежних 32 точек:
+                // дробная подпись `AMBER201` («149.03») в 32 точки не влезала и
+                // рвалась на две строки — «149.» над «03» у каждой линии сетки.
+                Rectangle r = new Rectangle(x_left, y_left - 16, AxisLabelWidth, 32);
                 // (`AMBER201`, мелочь 4.11, 05.10.2026) Подпись — значение САМОЙ
                 // линии сетки. Прежде шаг усекался до целого ДО умножения
                 // (`i * (int)fwhm_step`): при ПШПВ до 10 линии на 1.67, 3.33, 5.00…

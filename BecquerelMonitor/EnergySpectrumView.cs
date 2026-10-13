@@ -5084,8 +5084,30 @@ namespace BecquerelMonitor
             this.EnsureViewData();
             this.RefreshViewportData();
             this.RecalcScrollBar();
+            // (П259, 14.10.2026) Режим «Fit» держит спектр во всю ширину и при
+            // смене размера поля — окна, соседней панели дока, разворота. Прежде
+            // масштаб оставался прежним: сузили окно — правая часть спектра
+            // уходила под прокрутку (Th-232 в окне 974 px: видно до 1300 кэВ из
+            // 2800), расширили — справа пустое поле. Подгоняется ТОЛЬКО пока
+            // человек сам не менял масштаб и не прокручивал с последней подгонки:
+            // его увеличение смена размера не трогает.
+            if (this.horizontalMagnification == HorizontalMagnification.Fit
+                && this.horizontalScale == this.lastFitHorizontalScale
+                && this.hScrollBar1.Value == 0)
+            {
+                this.FitHorizontalScale();
+                return;
+            }
             base.Invalidate();
         }
+
+        /// <summary>
+        /// (П259) Масштаб, поставленный последней подгонкой во всю ширину
+        /// (<see cref="FitHorizontalScale"/>, <see cref="SetDefaultHorizontalScale"/>).
+        /// Совпадает с текущим — человек масштаб с тех пор не менял, и смена
+        /// размера поля вправе подогнать его заново. NaN — подгонки не было.
+        /// </summary>
+        double lastFitHorizontalScale = double.NaN;
 
         // Token: 0x060004C5 RID: 1221 RVA: 0x0001BD6C File Offset: 0x00019F6C
         public void RecalcChartParameters()
@@ -5426,6 +5448,9 @@ namespace BecquerelMonitor
             int num = base.Width - this.left - this.vScrollBar1.Width - 4;
             this.horizontalScale = (double)num / (this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) * this.pixelPerEnergy + 20.0);
             if (ActionEvent != null) ActionEvent(this, new EnergySpectrumActionEventArgs(true, (decimal)this.horizontalScale));
+            // ПОСЛЕ уведомления: поле масштаба документа может вернуть число
+            // обратно в `zoom` (см. `DocEnergySpectrum.View_ActionEvent`).
+            this.lastFitHorizontalScale = this.horizontalScale;
             int maximum = this.CalcMaximumXValue() + 5;
             this.hScrollBar1.Maximum = maximum;
             this.hScrollBar1.Value = 0;
@@ -5478,6 +5503,12 @@ namespace BecquerelMonitor
                 this.hScrollBar1.Value = 0;
             }
             if (ActionEvent != null) ActionEvent(this, new EnergySpectrumActionEventArgs(true, (decimal)this.horizontalScale));
+            // (П259) Подгонка во всю ширину запоминается ПОСЛЕ уведомления — см.
+            // `FitHorizontalScale`; масштаб «Equal» подгонкой не считается.
+            this.lastFitHorizontalScale =
+                this.globalConfigManager.GlobalConfig.ChartViewConfig.DefaultHorizontalMagnification == HorizontalMagnification.Equal
+                    ? double.NaN
+                    : this.horizontalScale;
             this.RefreshViewportData();
             base.Invalidate();
         }
