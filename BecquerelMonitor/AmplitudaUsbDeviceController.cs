@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
@@ -47,13 +48,13 @@ namespace BecquerelMonitor
             if (error == AmplitudaUsbReader.ErrorDeviceNotFound)
             {
                 string which = string.IsNullOrEmpty(serialNumber) ? "" : " (s/n " + serialNumber + ")";
-                return string.Format(Resources.ERRAmplitudaUsbNotFound, which);
+                return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbNotFound, which);
             }
             if (AmplitudaUsbReader.IsBusyError(error))
             {
                 return Resources.ERRAmplitudaUsbBusy;
             }
-            return string.Format(Resources.ERRAmplitudaUsbOpenFailed, error);
+            return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbOpenFailed, error);
         }
 
         public static string DescribeRuntimeError(int error)
@@ -62,7 +63,7 @@ namespace BecquerelMonitor
             {
                 return Resources.ERRAmplitudaUsbSilent;
             }
-            return string.Format(Resources.ERRAmplitudaUsbDisconnected, error);
+            return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbDisconnected, error);
         }
 
         public override bool StartMeasurement(ResultData resultData)
@@ -74,7 +75,7 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 ReleaseReader();
-                AppUi.Report(string.Format(Resources.ERRAmplitudaUsbOpenFailed, ex.Message), "", MessageBoxIcon.None);
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbOpenFailed, ex.Message), "", MessageBoxIcon.None);
                 return false;
             }
         }
@@ -111,7 +112,7 @@ namespace BecquerelMonitor
             if (spectrum.Spectrum == null || spectrum.Spectrum.Length != spectrum.NumberOfChannels ||
                 !AmplitudaUsbAccumulator.TryGetShift(spectrum.NumberOfChannels, out shift))
             {
-                AppUi.Report(string.Format(Resources.ERRAmplitudaUsbChannels, spectrum.NumberOfChannels), "", MessageBoxIcon.None);
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbChannels, spectrum.NumberOfChannels), "", MessageBoxIcon.None);
                 return false;
             }
 
@@ -160,7 +161,7 @@ namespace BecquerelMonitor
                 }
                 if (!Drain())
                 {
-                    Fail(string.Format(Resources.ERRAmplitudaUsbChannels, resultData.EnergySpectrum.NumberOfChannels));
+                    Fail(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbChannels, resultData.EnergySpectrum.NumberOfChannels));
                     return;
                 }
                 if (reader.State == AmplitudaUsbReaderState.Failed)
@@ -170,7 +171,7 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                Fail(string.Format(Resources.ERRAmplitudaUsbOpenFailed, ex.Message));
+                Fail(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbOpenFailed, ex.Message));
             }
         }
 
@@ -275,7 +276,7 @@ namespace BecquerelMonitor
             double lost = wall - sessionDeviceMicros / 1.0E+06;
             if (lost / wall > LossWarningFraction)
             {
-                AppUi.Report(string.Format(Resources.MSGAmplitudaUsbFramesLost, lost, 100.0 * lost / wall), "", MessageBoxIcon.None);
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.MSGAmplitudaUsbFramesLost, lost, 100.0 * lost / wall), "", MessageBoxIcon.None);
             }
         }
 

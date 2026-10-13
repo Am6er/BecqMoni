@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -270,7 +271,7 @@ namespace BecquerelMonitor
                 }
                 if (info.Product.Length == 0)
                 {
-                    info.Product = string.Format("USB {0:X4}:{1:X4}", vendorId, productId);
+                    info.Product = string.Format(CultureInfo.InvariantCulture, "USB {0:X4}:{1:X4}", vendorId, productId);
                 }
                 if (info.SerialNumber == null)
                 {

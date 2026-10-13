@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
@@ -97,7 +98,7 @@ namespace BecquerelMonitor
             }
             if (!string.IsNullOrEmpty(selectSerial) && select == 0)
             {
-                comboDevice.Items.Add(new DeviceItem { Serial = selectSerial, Text = string.Format(Resources.AmplitudaUsbNotConnected, selectSerial) });
+                comboDevice.Items.Add(new DeviceItem { Serial = selectSerial, Text = string.Format(CultureInfo.InvariantCulture, Resources.AmplitudaUsbNotConnected, selectSerial) });
                 select = comboDevice.Items.Count - 1;
             }
             comboDevice.SelectedIndex = select;
@@ -222,7 +223,7 @@ namespace BecquerelMonitor
                 TakeTestBatch();
                 double wall = testClock.Elapsed.TotalSeconds;
                 double device = testDeviceMicros / 1.0E+06;
-                string text = string.Format(Resources.AmplitudaUsbTestResult,
+                string text = string.Format(CultureInfo.InvariantCulture, Resources.AmplitudaUsbTestResult,
                     wall > 0 ? testFrames / wall : 0.0,
                     device > 0 ? testEvents / device : 0.0,
                     wall > 0 ? Math.Max(0.0, 100.0 * (1.0 - device / wall)) : 0.0,
@@ -237,7 +238,7 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 StopTest();
-                labelTestResult.Text = string.Format(Resources.ERRAmplitudaUsbOpenFailed, ex.Message);
+                labelTestResult.Text = string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbOpenFailed, ex.Message);
             }
         }
 
