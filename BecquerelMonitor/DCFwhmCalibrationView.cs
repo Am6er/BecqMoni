@@ -57,6 +57,10 @@ namespace BecquerelMonitor
             InitializeComponent();
             channelColumn.Alignment = ColumnAlignment.Right;
             energyColumn.Alignment = ColumnAlignment.Right;
+            // (П259, 14.10.2026) Энергия точки — до тысячных кэВ, как в таблице
+            // линий. Прежний формат «G» печатал полный double: «13.1524957426509»,
+            // «350.546145162568» — пятнадцать знаков, из которых значащих два-три.
+            energyColumn.Format = "0.###";
             fwhmColumn.Alignment = ColumnAlignment.Right;
             executeCalibrationButton.Enabled = false;
             expGaussExpLeftParameterLabelText = peakShapeFirstParameterLabel.Text;

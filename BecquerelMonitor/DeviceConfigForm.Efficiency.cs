@@ -41,6 +41,16 @@ namespace BecquerelMonitor
         /// <summary>Высота шапки БЕЗ подписи о поколениях — от неё считается рост.</summary>
         int efficiencyHeaderBaseHeight;
 
+        /// <summary>
+        /// (П259, 14.10.2026) Высота шапки при сводке в ДВЕ строки — как её
+        /// разложил конструктор вкладки. От неё растёт <see cref="efficiencyHeaderBaseHeight"/>,
+        /// когда сводке нужно больше (<see cref="LayoutEfficiencySummary"/>).
+        /// </summary>
+        int efficiencyHeaderInitialHeight;
+
+        /// <summary>Высота сводки в две строки — меньше она не становится.</summary>
+        const int EfficiencySummaryMinHeight = 30;
+
         /// <summary>Просвет между сводкой и подписью о поколениях.</summary>
         const int EfficiencyGenerationGap = 4;
 
@@ -179,7 +189,7 @@ namespace BecquerelMonitor
             {
                 AutoSize = false,
                 Location = new Point(Margin, y),
-                Size = new Size(Width, 30),
+                Size = new Size(Width, EfficiencySummaryMinHeight),
                 ForeColor = Color.DimGray,
             };
 
@@ -189,7 +199,7 @@ namespace BecquerelMonitor
             // цветом и своей высотой. Заводится пустой и невидимой: у сцены, где
             // кривая, матрица и сборка одного поколения, сказать нечего, и
             // пустая строка не должна отнимать у чертежа ни точки.
-            y += 30 + EfficiencyGenerationGap;
+            y += EfficiencySummaryMinHeight + EfficiencyGenerationGap;
             this.efficiencyGenerationLabel = new Label
             {
                 AutoSize = false,
@@ -201,6 +211,7 @@ namespace BecquerelMonitor
 
             header.Controls.Add(this.efficiencyGenerationLabel);
             this.efficiencyHeaderBaseHeight = header.Height;
+            this.efficiencyHeaderInitialHeight = header.Height;
 
             // Чертёж забирает всё, что осталось под шапкой: высота с окном
             // растёт, ширина нет.
@@ -479,6 +490,7 @@ namespace BecquerelMonitor
             if (config == null)
             {
                 this.efficiencySummaryLabel.Text = has ? "" : Resources.EfficiencyTabEmpty;
+                this.LayoutEfficiencySummary();
                 this.ShowGenerationNotes(null);
                 this.efficiencySketch.SetModel(null);
                 return;
@@ -532,6 +544,7 @@ namespace BecquerelMonitor
             }
 
             this.efficiencySummaryLabel.Text = string.Join("   ", parts.ToArray());
+            this.LayoutEfficiencySummary();
 
             // ⛔ ОТДЕЛЬНОЙ ПОДПИСЬЮ, А НЕ ХВОСТОМ К СВОДКЕ. Сводка живёт в
             // подписи 466×30 с `AutoSize = false`, и в ней уже две строки:
@@ -824,6 +837,39 @@ namespace BecquerelMonitor
             label.Visible = need > 0;
             this.efficiencyHeader.Height = this.efficiencyHeaderBaseHeight
                                            + (need > 0 ? need + EfficiencyGenerationGap : 0);
+        }
+
+        /// <summary>
+        /// (П259, 14.10.2026) ⛔ ВЫСОТА СВОДКИ ТОЖЕ СЧИТАЕТСЯ, А НЕ ПИШЕТСЯ ЧИСЛОМ.
+        /// Сводка жила в 466×30 — две строки, — а клеймо кривой с физики 18 и
+        /// дальше переросло их: у кривой «Маринелли» прибора RadiaScan 701A
+        /// на экране обрывалось на «elmix=1;», и третьей строки
+        /// («lbrem=1; lbang=1; pairth=1; peps=fwhm; bmscene=1; mdb=…») не было
+        /// видно вовсе — ровно тех ключей, отсутствие которых называет подпись
+        /// о поколениях ниже (`peps=fwhm`, `bmscene=1`). Человек, сверяя слова
+        /// подписи с клеймом, не нашёл бы их и при наличии. Теперь сводка
+        /// растёт по тексту (не ниже двух строк), подпись о поколениях и шапка
+        /// сдвигаются вместе с ней; чертёж доковый и подвинется сам.
+        /// </summary>
+        void LayoutEfficiencySummary()
+        {
+            Label summary = this.efficiencySummaryLabel;
+            if (summary == null || this.efficiencyHeader == null)
+            {
+                return;
+            }
+
+            int need = Math.Max(EfficiencySummaryMinHeight,
+                                GenerationLabelHeight(summary.Text, summary.Font, summary.Width));
+            summary.Height = need;
+            if (this.efficiencyGenerationLabel != null)
+            {
+                this.efficiencyGenerationLabel.Top = summary.Bottom + EfficiencyGenerationGap;
+            }
+
+            this.efficiencyHeaderBaseHeight = this.efficiencyHeaderInitialHeight
+                                              + (need - EfficiencySummaryMinHeight);
+            this.efficiencyHeader.Height = this.efficiencyHeaderBaseHeight;
         }
 
         /// <summary>
@@ -1182,7 +1228,15 @@ namespace BecquerelMonitor
                 }
 
                 this.RefreshEfficiencyList(maker.BoundConfig == null ? config.Guid : maker.BoundConfig.Guid);
-                this.SetActiveDeviceConfigDirty();
+                // (П259, 14.10.2026) Флажок изменённости здесь больше НЕ ставится.
+                // С `AMBER184` его ставит «Сохранить» конструктора (`SavedIntoConfig`
+                // ниже) — единственный путь, которым конструктор пишет в клон:
+                // поля геометрии правят СВОЮ копию (`GeometryEditorPanel.SetModel`
+                // клонирует). Прежний безусловный вызов объявлял конфигурацию
+                // изменённой, когда окно открыли и закрыли крестиком, ничего не
+                // сохранив: «Сохранить» прибора загоралось, а закрытие формы
+                // спрашивало «Configuration has been modified. Save?» — замер
+                // экраном 14.10.2026 на «Маринелли» RadiaScan 701A.
             };
 
             // (`AMBER184`) «Сохранить» конструктора меняет клон конфигурации —
