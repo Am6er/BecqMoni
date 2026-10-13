@@ -511,7 +511,16 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("CopyPostfix", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dead time, %. With a device configuration whose dead time is above 0: over the time constant, from the counts rate and that dead time. With dead time 0 (the device reports live time itself, or its dead time is not known): over the whole spectrum, (real time - live time) / real time; 0 if the spectrum has no live time. While such a device is measuring, the value reads high, most in the first minutes: the live time arrives once per poll and refers to the start of the read, while the real time runs on..
+        /// </summary>
+        public static string CountRateDeadTimeHint {
+            get {
+                return ResourceManager.GetString("CountRateDeadTimeHint", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
@@ -1796,7 +1805,16 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("MSGConfirmSaveConfig", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to The dead time correction is not needed with the device configuration &quot;{0}&quot;: its dead time is 0, and recomputing with it would only set the live time equal to the real time, erasing the live time the spectrum has. With dead time 0 the live time comes from the device itself (or the dead time of the device is not known). The live time of the spectrum is left unchanged ({1} s, real time {2} s)..
+        /// </summary>
+        public static string MSGDeadTimeCorrectionNotNeeded {
+            get {
+                return ResourceManager.GetString("MSGDeadTimeCorrectionNotNeeded", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Delete nuclide definition &quot;{0}&quot;?.
         /// </summary>

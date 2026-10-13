@@ -3382,8 +3382,24 @@ namespace BecquerelMonitor
 
             if (deviceConfigInfo == null) return;
 
-            this.activeDocument.ActiveResultData.EnergySpectrum.LiveTime = Utils.LiveTime.Calculate(this.activeDocument.ActiveResultData.EnergySpectrum.MeasurementTime,
-                this.activeDocument.ActiveResultData.EnergySpectrum.TotalPulseCount, deviceConfigInfo.InputDeviceConfig.DeadTime());
+            // ⛔ `A319` (решение Amber 13.10.2026): у конфигурации с мёртвым временем 0
+            // живое время НЕ пересчитывается — пересчёт с нулём приравнял бы его
+            // реальному и стёр бы время, которое прибор намерил сам. Человеку
+            // говорится, что поправка не нужна; решение — в CountsRateManager,
+            // его мерит DeadTimeZeroProbeP250.
+            EnergySpectrum spectrum = this.activeDocument.ActiveResultData.EnergySpectrum;
+            if (!CountsRateManager.ApplyDeadTimeCorrection(spectrum, deviceConfigInfo.InputDeviceConfig))
+            {
+                MessageBox.Show(
+                    string.Format(CultureInfo.InvariantCulture, Resources.MSGDeadTimeCorrectionNotNeeded,
+                        deviceConfigInfo.Name,
+                        spectrum.LiveTime.ToString("f1", CultureInfo.InvariantCulture),
+                        spectrum.MeasurementTime.ToString("f1", CultureInfo.InvariantCulture)),
+                    Resources.NotificationDialogTitle,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
 
             this.activeDocument.Dirty = true;
             this.UpdateAllView();

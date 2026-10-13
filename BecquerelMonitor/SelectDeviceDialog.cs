@@ -14,7 +14,11 @@ namespace BecquerelMonitor
     public partial class SelectDeviceDialog : Form
     {
         MainForm mainForm;
+        // Ответ диалога — ТОЛЬКО выбор кнопкой «Применить». Предвыбор живёт отдельно:
+        // прежде он лежал в том же поле, и закрытие окна крестиком возвращало его
+        // как выбор — меню применяло поправку, которую человек отменил (`A319`).
         string returnGUID = null;
+        string preselectGUID = null;
         DeviceConfigManager deviceConfigManager;
         public SelectDeviceDialog()
         {
@@ -29,16 +33,29 @@ namespace BecquerelMonitor
             this.deviceConfigManager = DeviceConfigManager.GetInstance();
             base.SuspendLayout();
             // if spectrum have live device config, chose it
-            if (this.mainForm.ActiveDocument.ActiveResultData.DeviceConfigReference != null &&
-                this.mainForm.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid != null &&
-                this.deviceConfigManager.DeviceConfigMap.ContainsKey(this.mainForm.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid) &&
-                this.deviceConfigManager.DeviceConfigMap[this.mainForm.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid].InputDeviceConfig.DeadTime() != 0)
-            {
-                this.returnGUID = this.mainForm.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid;
-            }
+            this.preselectGUID = PreselectGuid(this.mainForm.ActiveDocument.ActiveResultData.DeviceConfigReference,
+                                               this.deviceConfigManager.DeviceConfigMap);
 
             FillDeviceConfigs();
             base.ResumeLayout();
+        }
+
+        /// <summary>
+        /// Какую конфигурацию предложить первой: конфигурацию документа, если она
+        /// есть среди конфигураций прибора, иначе null (тогда — первая в списке).
+        ///
+        /// ⛔ `A319` (13.10.2026): прежде конфигурация документа предлагалась только
+        /// при мёртвом времени ≠ 0. Документ прибора с нулём (`AmplitudaSerial`,
+        /// сам мерит живое время) получал первую конфигурацию списка — ЧУЖОГО
+        /// прибора, и «Применить» без раздумий пересчитывало живое время по чужому
+        /// τ. Теперь предлагается своя, а меню при нуле живое время не трогает и
+        /// говорит, что поправка не нужна (<c>CountsRateManager.ApplyDeadTimeCorrection</c>).
+        /// Чужую конфигурацию человек по-прежнему может выбрать сам.
+        /// </summary>
+        public static string PreselectGuid(DeviceConfigReference reference, IDictionary<string, DeviceConfigInfo> deviceConfigMap)
+        {
+            if (reference == null || reference.Guid == null || deviceConfigMap == null) return null;
+            return deviceConfigMap.ContainsKey(reference.Guid) ? reference.Guid : null;
         }
 
         private void FillDeviceConfigs()
@@ -48,7 +65,9 @@ namespace BecquerelMonitor
             for (int i = 0; i < deviceConfigManager.DeviceConfigList.Count; i++)
             {
                 DeviceListcomboBox.Items.Add(deviceConfigManager.DeviceConfigList[i].Name);
-                if (DeviceListcomboBox.SelectedIndex < 0 && this.returnGUID != null && deviceConfigManager.DeviceConfigList[i].Guid == this.returnGUID)
+                // GUID по номеру строки: две конфигурации с одним именем различаются только им.
+                this.listedGuids.Add(deviceConfigManager.DeviceConfigList[i].Guid);
+                if (DeviceListcomboBox.SelectedIndex < 0 && this.preselectGUID != null && deviceConfigManager.DeviceConfigList[i].Guid == this.preselectGUID)
                 {
                     DeviceListcomboBox.SelectedIndex = DeviceListcomboBox.Items.Count - 1;
                 }
@@ -67,22 +86,24 @@ namespace BecquerelMonitor
 
         private void ApplyBtn_Click(object sender, EventArgs e)
         {
-            if (DeviceListcomboBox.Items.Count == 0 || DeviceListcomboBox.SelectedIndex < 0)
+            if (DeviceListcomboBox.Items.Count == 0 || DeviceListcomboBox.SelectedIndex < 0 ||
+                DeviceListcomboBox.SelectedIndex >= this.listedGuids.Count)
             {
+                // Выбора нет — и ответа нет (прежде Close() здесь шёл дальше, к
+                // поиску по SelectedItem, которого нет).
+                this.returnGUID = null;
                 Close();
+                return;
             }
 
-            for (int i = 0; i < deviceConfigManager.DeviceConfigList.Count; i++)
-            {
-                if (deviceConfigManager.DeviceConfigList[i].Name == DeviceListcomboBox.SelectedItem.ToString())
-                {
-                    this.returnGUID = deviceConfigManager.DeviceConfigList[i].Guid;
-                    break;
-                }
-            }
+            // По номеру строки, а не по имени: прежний поиск по имени при двух
+            // конфигурациях с одним именем возвращал первую из них, а не выбранную.
+            this.returnGUID = this.listedGuids[DeviceListcomboBox.SelectedIndex];
 
             Close();
         }
+
+        readonly List<string> listedGuids = new List<string>();
 
         public string SendData()
         {
