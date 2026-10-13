@@ -160,7 +160,7 @@
     <value>На дату отбора</value>
   </data>
   <data name="DCResult_ColumnSamplingTip" xml:space="preserve">
-    <value>Приведено к дате отбора {0}: среднее за набор × 2^((начало − отбор)/T½) × λT/(1 − e^(−λT)), T — длительность набора; MDA — так же. Зоны без периода полураспада остаются средним за набор.</value>
+    <value>Приведено к дате отбора {0}: среднее за набор × 2^((начало − отбор)/T½) × λT/(1 − e^(−λT)), T — длительность набора; MDA — так же. Строки без периода полураспада остаются средним за набор.</value>
   </data>
   <data name="DCResult_MomentMean" xml:space="preserve">
     <value>среднее за набор</value>
@@ -181,7 +181,19 @@
     <value>FSA: Бк по матрице отклика</value>
   </data>
   <data name="DCResult_FsaScaleCurve" xml:space="preserve">
-    <value>FSA: Бк по кривой {0}</value>
+    <value>FSA: Бк по кривой ({0})</value>
+  </data>
+  <data name="DCResult_FsaOriginSimulation" xml:space="preserve">
+    <value>расчёт</value>
+  </data>
+  <data name="DCResult_FsaOriginLsrm" xml:space="preserve">
+    <value>ЛСРМ</value>
+  </data>
+  <data name="DCResult_FsaOriginMeasurement" xml:space="preserve">
+    <value>измерение</value>
+  </data>
+  <data name="DCResult_FsaOriginManual" xml:space="preserve">
+    <value>вручную</value>
   </data>
   <data name="DCResult_FsaHidden" xml:space="preserve">
     <value>FSA: Бк скрыты — {0}</value>
