@@ -297,5 +297,123 @@ namespace AmplitudaSerialTests
             T.True(urgentLast >= 0 && foreignLast >= 0, "both last pages on the wire: " + text);
             T.True(urgentLast < foreignLast, "urgent read finished before the foreign job's last page: " + text);
         }
+
+        // ---- Task 10 A: cancelling a read request ----
+
+        static bool IsDataFrame(string code)
+        {
+            return code == "C81" || code == "C82" || code == "C83";
+        }
+
+        public static void TestCancelledPendingReadNeverReachesTheWire()
+        {
+            FakeBlockPort fake = Fake(0, 1);
+            string error;
+            AmplitudaSerialLine line = AmplitudaSerialLine.Acquire(Settings(), out error);
+            fake.Gate.Reset();                      // the worker parks inside the first read's first Write
+            AmplitudaSerialReading first = null, second = null;
+            line.Enqueue(new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Read, Address = 1, Channels = 1024, Completed = r => first = r });
+            System.Threading.Thread.Sleep(50);
+            AmplitudaSerialRequest pending = new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Read, Address = 0, Channels = 1024, Completed = r => second = r };
+            line.Enqueue(pending);
+            line.Cancel(pending);
+            T.True(second != null && !second.Ok && second.Error == "cancelled", "completed at once as cancelled: " + (second == null ? "null" : second.Error));
+            fake.Gate.Set();
+            T.True(T.Wait(() => first != null, 5000), "the other read completed");
+            line.Release();
+            T.True(first != null && first.Ok, "the other read is unharmed");
+            List<string> wire = new List<string>(fake.WireSnapshot());
+            T.True(!wire.Contains("A00"), "the cancelled read never reached the wire: " + string.Join(" ", wire));
+        }
+
+        public static void TestCancelledUrgentPendingReadNeverReachesTheWire()
+        {
+            FakeBlockPort fake = Fake(0, 1);
+            string error;
+            AmplitudaSerialLine line = AmplitudaSerialLine.Acquire(Settings(), out error);
+            fake.Gate.Reset();
+            AmplitudaSerialReading first = null, second = null;
+            line.Enqueue(new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Read, Address = 1, Channels = 1024, Completed = r => first = r });
+            System.Threading.Thread.Sleep(50);
+            AmplitudaSerialRequest pending = new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Read, Address = 0, Channels = 1024, Urgent = true, Completed = r => second = r };
+            line.Enqueue(pending);
+            line.Cancel(pending);
+            T.True(second != null && !second.Ok && second.Error == "cancelled", "completed at once as cancelled");
+            fake.Gate.Set();
+            T.True(T.Wait(() => first != null, 5000), "the other read completed");
+            line.Release();
+            T.True(!new List<string>(fake.WireSnapshot()).Contains("A00"), "the cancelled urgent read never reached the wire");
+        }
+
+        public static void TestCancelledInFlightReadEndsAtTheStepBoundary()
+        {
+            FakeBlockPort fake = Fake(0);
+            string error;
+            AmplitudaSerialLine line = AmplitudaSerialLine.Acquire(Settings(), out error);
+            fake.Gate.Reset();                      // the worker is inside the status step
+            AmplitudaSerialReading result = null;
+            AmplitudaSerialRequest request = new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Read, Address = 0, Channels = 1024, Completed = r => result = r };
+            line.Enqueue(request);
+            System.Threading.Thread.Sleep(50);
+            line.Cancel(request);
+            T.True(result == null, "an in-flight read is not completed by Cancel itself");
+            fake.Gate.Set();
+            T.True(T.Wait(() => result != null, 5000), "completed");
+            line.Release();
+            T.True(result != null && !result.Ok && result.Error == "cancelled", "cancelled: " + (result == null ? "null" : result.Error));
+            foreach (string code in fake.WireSnapshot())
+            {
+                T.True(!IsDataFrame(code), "no header or page frame after the cancel: " + code);
+            }
+        }
+
+        public static void TestCancellingACompletedRequestIsHarmless()
+        {
+            FakeBlockPort fake = Fake(0);
+            string error;
+            AmplitudaSerialLine line = AmplitudaSerialLine.Acquire(Settings(), out error);
+            int completions = 0;
+            AmplitudaSerialReading result = null;
+            AmplitudaSerialRequest request = new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Read, Address = 0, Channels = 1024, Completed = r => { completions++; result = r; } };
+            line.Enqueue(request);
+            T.True(T.Wait(() => result != null, 5000), "completed");
+            line.Cancel(request);
+            line.Cancel(request);
+            line.Release();
+            T.True(result.Ok, "the finished result stays ok");
+            T.Eq(1, completions, "completed exactly once");
+        }
+
+        // ---- Task 10 B: the stop budget grows with the gap ----
+
+        static AmplitudaSerialLine LineWithGap(int gapMs)
+        {
+            Fake(0);
+            string error;
+            return AmplitudaSerialLine.Acquire(new AmplitudaSerialSettings { PortName = "FAKE" + (++portCounter), GapMs = gapMs }, out error);
+        }
+
+        public static void TestStopBudgetGrowsWithTheGap()
+        {
+            AmplitudaSerialLine line = LineWithGap(20);
+            T.Eq(8000, line.StopBudgetMs(1024), "1024 channels at the default gap");
+            T.Eq(27500, line.StopBudgetMs(8192), "8192 channels at the default gap");
+            line.Release();
+            line = LineWithGap(200);
+            T.Eq(14840, line.StopBudgetMs(1024), "1024 channels at gap 200");
+            line.Release();
+        }
+
+        // ---- Task 10 C: the join covers a step at a large gap ----
+
+        public static void TestJoinCoversAStepAtTheConfiguredGap()
+        {
+            AmplitudaSerialLine line = LineWithGap(20);
+            T.Near(3881, line.JoinMs, 50, "join at gap 20");
+            line.Release();
+            line = LineWithGap(200);
+            T.Near(6761, line.JoinMs, 50, "join at gap 200");
+            line.Release();
+        }
     }
 }
