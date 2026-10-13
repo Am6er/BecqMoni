@@ -75,3 +75,5 @@ handover/**/*.tif
 handover/**/*.tiff
 tools/AmplitudaUsbTests/*.exe
 tools/AmplitudaUsbTests/*.pdb
+tools/AmplitudaSerialTests/*.exe
+tools/AmplitudaSerialTests/*.pdb
