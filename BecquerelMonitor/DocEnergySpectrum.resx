@@ -760,7 +760,7 @@
     <value>203, 22</value>
   </data>
   <data name="closeCToolStripMenuItem.Text" xml:space="preserve">
-    <value>Close(&amp;C)</value>
+    <value>Close (&amp;C)</value>
   </data>
   <data name="contextMenuStrip1.Size" type="System.Drawing.Size, System.Drawing">
     <value>204, 148</value>

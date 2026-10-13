@@ -286,6 +286,6 @@
     <value>Сохранить (&amp;S)</value>
   </data>
   <data name="closeCToolStripMenuItem.Text" xml:space="preserve">
-    <value>Закрыть(&amp;C)</value>
+    <value>Закрыть (&amp;C)</value>
   </data>
 </root>

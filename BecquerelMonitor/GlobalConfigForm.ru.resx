@@ -158,7 +158,7 @@
     <value>91, 13</value>
   </data>
   <data name="label21.Text" xml:space="preserve">
-    <value>1й коэффициент</value>
+    <value>1-й коэфф.</value>
   </data>
   <data name="label21.ToolTip" xml:space="preserve">
     <value />
@@ -179,7 +179,7 @@
     <value />
   </data>
   <data name="groupBox7.Text" xml:space="preserve">
-    <value>Ед.. инкремента калиб. энергии</value>
+    <value>Ед. инкремента калиб. энергии</value>
   </data>
   <data name="groupBox7.ToolTip" xml:space="preserve">
     <value />

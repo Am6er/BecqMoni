@@ -1158,6 +1158,9 @@
     <EmbeddedResource Include="Utils\FWHMCalibrationGraph.resx">
       <DependentUpon>FWHMCalibrationGraph.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Utils\FWHMCalibrationGraph.ru.resx">
+      <DependentUpon>FWHMCalibrationGraph.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="WinMM\Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>

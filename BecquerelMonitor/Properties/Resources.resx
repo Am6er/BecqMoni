@@ -42041,7 +42041,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Busy</value>
   </data>
   <data name="Uncertain" xml:space="preserve">
-    <value>Uncertain</value>
+    <value>Uncertainty</value>
   </data>
   <data name="PlusMinus" xml:space="preserve">
     <value>±</value>
