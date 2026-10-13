@@ -1,0 +1,4 @@
+BecqMoni: main config: D:\BqMoni_Claude\p147\wt\tools\effmaker\probes\build_s8\config\BecquerelMonitor.xml
+RC103_marinelli05_kcl: узлов 84, 20.3 с на часах, штамп phys=24; hist=200000; grid=5.5-3000 keV/84 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1
+G1S_point5: узлов 80, 14.3 с на часах, штамп phys=24; hist=200000; grid=5.9-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1
+AS80_point0: узлов 84, 6.2 с на часах, штамп phys=24; hist=200000; grid=5-3000 keV/84 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1

@@ -230,9 +230,10 @@ namespace FsaMatrixFloorProbe
                 // Гейт геометрии (`A277`) снят: сцена искусственная, геометрии
                 // у неё нет вовсе, а вопрос пробы — нож полосы.
                 RequireGeometry = false,
-                ResponseMatrix = matrix,
                 MatrixFloorCut = cut
             };
+            // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик); сцена искусственная — без геометрии
+            FsaMatrixBinding.Bind(analyzer, null, matrix);
 
             if (report != null)
             {

@@ -1,0 +1,20 @@
+Nuclide ; Cd-109 
+Element ; Cadmium
+Z ; 48
+Daughter(s) ; (EC) ; Ag-109 ; 100
+Q+ ; 215.5
+Half-life (d) ; 461.9 ; 0.4
+Half-life (s) ; 39.908E6 ; 0.035E6
+Decay constant (1/s) ; 17.369E-9 ; 0.015E-9
+Specific activity (Bq/g) ; 95.96E12 ; 0.08E12
+Reference ; LNE-LNHB, PTB - 2014
+Emissions (6 lines) sorted by increasing energy
+----------------------------------------------------------------------------------------------------------
+Energy (keV) ; Ener. unc. (keV) ; Intensity (%) ; Int. unc. (%) ; Type ; Origin ; Lvl. start ; Lvl. end
+3.191 ;  ; 10.37 ; 0.27 ; XL ; Ag-109 ;  ; 
+21.9906 ;  ; 29.21 ; 0.30 ; XKa2 ; Ag-109 ;  ; 
+22.16317 ;  ; 55.1 ; 0.5 ; XKa1 ; Ag-109 ;  ; 
+25.0002 ;  ; 15.25 ; 0.20 ; XK'b1 ; Ag-109 ;  ; 
+25.4843 ;  ; 2.65 ; 0.10 ; XK'b2 ; Ag-109 ;  ; 
+88.0336 ; 0.0010 ; 3.66 ; 0.05 ; g ; Ag-109 ; 1 ; 0
+==========================================================================================================

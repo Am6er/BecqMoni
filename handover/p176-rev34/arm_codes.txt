@@ -1,0 +1,11 @@
+arm rev34 start 2026-09-28 20:47:47 store=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries bin=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p176
+arm rev34 mk_appwd code=0
+arm rev34 check_appwd code=0
+  response: rmx=49
+arm rev34 full code=0 20:49:48 (96 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev34_full
+arm rev34 mini code=0 20:50:26 (38 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev34_mini
+arm rev34 score full known code=0
+arm rev34 score mini known code=0
+arm rev34 score full unknown code=0
+arm rev34 score mini unknown code=0
+arm rev34 end 20:50:29

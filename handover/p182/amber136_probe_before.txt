@@ -1,0 +1,64 @@
+=== AMBER136: искусственная матрица 100/300 кэВ, пики 0.4/0.1, бин 1 кэВ ===
+synthetic E=100 requested=0.04 actual=0.04 rel=0.000000%
+synthetic E=150 requested=0.04 actual=0.05421079675974045 rel=35.526992%
+synthetic E=200 requested=0.04 actual=0.059951157228030343 rel=49.877893%
+synthetic E=250 requested=0.04 actual=0.055613782223235535 rel=39.034456%
+synthetic E=300 requested=0.04 actual=0.04 rel=0.000000%
+matrix 0287f7f6-e492-c3ef-02aa-f922d1e07552.rmx nodes=144 worst peak 9016.510188% total 9016.510188% sumpeak 9016.510188%
+matrix 04d28c74-e0d4-9d32-2bc0-cd12c59b998c.rmx nodes=144 worst peak 8666.455061% total 8666.455061% sumpeak 8666.455061%
+matrix 0b58cea4-b8af-4297-1e2b-0fdfa6e40c3f.rmx nodes=144 worst peak 21166.984672% total 21166.984672% sumpeak 21166.984672%
+matrix 10130f74-47dd-27d9-46b8-fb5c8271f084.rmx nodes=142 worst peak 8925.322710% total 8925.322710% sumpeak 8925.322710%
+matrix 11d8337f-3f31-3b2c-f625-8f9bec43a3f1.rmx nodes=144 worst peak 9018.819430% total 9018.819430% sumpeak 9018.819430%
+matrix 1eb5247c-3880-474b-295b-f8a61f3187fb.rmx nodes=144 worst peak 6966083.125404% total 6966083.125404% sumpeak 6966083.125404%
+matrix 28b990e4-f7dc-3116-e27e-be996cdd1d91.rmx nodes=142 worst peak 13623.088688% total 13623.088688% sumpeak 13623.088688%
+matrix 2992663a-84a9-9264-dfc8-2cf14a25cc21.rmx nodes=142 worst peak 76.060664% total 76.060664% sumpeak 76.060664%
+matrix 2fecfdc4-9f49-742f-c154-9617cacf5318.rmx nodes=144 worst peak 8658.487206% total 8658.487206% sumpeak 8658.487206%
+matrix 34c0ad77-6a01-d6ed-1447-d49b32889411.rmx nodes=144 worst peak 12742.269958% total 12742.269958% sumpeak 12742.269958%
+matrix 37f93a41-e560-68e3-3900-a08567ebafe4.rmx nodes=144 worst peak 12288.580629% total 12288.580629% sumpeak 12288.580629%
+matrix 38a10446-95c7-4e73-09fa-39a98ff667de.rmx nodes=144 worst peak 56.045661% total 56.045661% sumpeak 56.045661%
+matrix 38d9c7f8-f938-50f4-8ef6-b3ff1cf79e03.rmx nodes=144 worst peak 11698.473230% total 11698.473230% sumpeak 11698.473230%
+matrix 53bd04df-6e8d-1f9e-83a2-564d7b8b327d.rmx nodes=144 worst peak 8803.365675% total 8803.365675% sumpeak 8803.365675%
+matrix 552a036a-dfc9-c14c-b505-fbfaadbaf1ae.rmx nodes=146 worst peak 7048.909839% total 7048.909839% sumpeak 7048.909839%
+matrix 59d90fb3-76cc-c566-6db4-f829c99ac6ca.rmx nodes=144 worst peak 12706.215435% total 12706.215435% sumpeak 12706.215435%
+matrix 5a5c317a-0751-ac21-a6e8-185bdd6fc5f2.rmx nodes=144 worst peak 12347.800780% total 12347.800780% sumpeak 12347.800780%
+matrix 61d23db3-f81e-aecf-fe2b-5b601ed9326e.rmx nodes=144 worst peak 12617.837671% total 12617.837671% sumpeak 12617.837671%
+matrix 68449eb8-40d8-1ccc-d718-bfa9105ee418.rmx nodes=144 worst peak 12720.740169% total 12720.740169% sumpeak 12720.740169%
+matrix 6b61f24c-55c3-f6c0-8603-8ad89cc01ed8.rmx nodes=144 worst peak 8864.269437% total 8864.269437% sumpeak 8864.269437%
+matrix 6c14ccdc-6ed8-e995-58a6-f2a64fe0bfcd.rmx nodes=144 worst peak 9328.162430% total 9328.162430% sumpeak 9328.162430%
+matrix 6ed49f5c-2dd6-7721-537c-60c030d94137.rmx nodes=142 worst peak 9117.160343% total 9117.160343% sumpeak 9117.160343%
+matrix 6fafd956-34af-0bed-9910-3ee13f5424e3.rmx nodes=144 worst peak 11952.569262% total 11952.569262% sumpeak 11952.569262%
+matrix 77ab0974-6f2b-47cb-c1ca-042f7150bbe2.rmx nodes=142 worst peak 13548.249683% total 13548.249683% sumpeak 13548.249683%
+matrix 80fe173b-d74c-4bad-6a94-5213b32f2495.rmx nodes=142 worst peak 13652.368952% total 13652.368952% sumpeak 13652.368952%
+matrix 8b274676-e4b0-184b-fa1c-2c8d3592c725.rmx nodes=142 worst peak 13333.246775% total 13333.246775% sumpeak 13333.246775%
+matrix 966a4a49-d62e-0ee4-4a4d-e62692fe159d.rmx nodes=142 worst peak 12721.652561% total 12721.652561% sumpeak 12721.652561%
+matrix 9e1c51ab-cf78-66a4-1150-87dc22f327c4.rmx nodes=144 worst peak 9297.342967% total 9297.342967% sumpeak 9297.342967%
+matrix a1438401-8aeb-009d-edc5-210a2a14ecdd.rmx nodes=142 worst peak 219450.891635% total 219450.891635% sumpeak 219450.891635%
+matrix a43b8253-1140-8904-1140-2410f7114e45.rmx nodes=144 worst peak 12494.510778% total 12494.510778% sumpeak 12494.510778%
+matrix a7eb945d-9246-91ca-c23b-65a4402448cd.rmx nodes=144 worst peak 445093.949393% total 445093.949393% sumpeak 445093.949393%
+matrix b495efd5-978c-c40b-720d-4a2ca7fa2455.rmx nodes=144 worst peak 108703088119.696000% total 108703088119.696000% sumpeak 108703088119.696000%
+matrix bbc4db49-18f4-2299-4337-0f2f11b88c88.rmx nodes=146 worst peak 587913.892620% total 587913.892620% sumpeak 587913.892620%
+matrix c157b4bb-7884-36c7-7050-77aac7272d8a.rmx nodes=144 worst peak 12314.463778% total 12314.463778% sumpeak 12314.463778%
+matrix c2b5212c-6b5a-50d8-7870-0b0c3104daa2.rmx nodes=148 worst peak 138379.091099% total 138379.091099% sumpeak 138379.091099%
+matrix c2cf3bec-4df6-39dc-8b24-e5977eda81f1.rmx nodes=144 worst peak 9307.534754% total 9307.534754% sumpeak 9307.534754%
+matrix c33e2b8d-5594-53ab-aa5b-2df4abcd0b56.rmx nodes=144 worst peak 8918.160241% total 8918.160241% sumpeak 8918.160241%
+matrix c4123ab9-b4d7-e796-6ffd-0891f4d71111.rmx nodes=144 worst peak 36.053706% total 36.053706% sumpeak 36.053706%
+matrix c6e83c91-6a59-95c2-12b5-2b326706f97c.rmx nodes=144 worst peak 12620.432980% total 12620.432980% sumpeak 12620.432980%
+matrix cac657e6-4b20-90ab-d6ef-febb7307eb06.rmx nodes=144 worst peak 861086.710883% total 861086.710883% sumpeak 861086.710883%
+matrix cce59946-11c3-5472-6c3d-302ae9d6f3f1.rmx nodes=144 worst peak 8611.103411% total 8611.103411% sumpeak 8611.103411%
+matrix d373d6c3-467d-5a40-0410-ad5e3c60cb70.rmx nodes=142 worst peak 966393.008337% total 966393.008337% sumpeak 966393.008337%
+matrix d8f04e41-0488-dc39-8416-d51b803b5e8a.rmx nodes=144 worst peak 8640.206263% total 8640.206263% sumpeak 8640.206263%
+matrix e42f1d2c-7212-6988-b30d-da3995473bfe.rmx nodes=144 worst peak 12286.185331% total 12286.185331% sumpeak 12286.185331%
+matrix ec040922-9d7a-72da-bec5-4d9c6b38f5ec.rmx nodes=144 worst peak 12487439189.612800% total 12487439189.612800% sumpeak 12487439189.612800%
+matrix ed033f43-ad92-39e9-1ab8-185b2ccd84a1.rmx nodes=144 worst peak 9063.017410% total 9063.017410% sumpeak 9063.017410%
+matrix eea37702-b9e7-cc9c-0b7e-c7df2743253f.rmx nodes=142 worst peak 1630821.075623% total 1630821.075623% sumpeak 1630821.075623%
+matrix f483eddf-da8a-ed6b-6b19-093a23cb827a.rmx nodes=144 worst peak 970539.185920% total 970539.185920% sumpeak 970539.185920%
+matrix f587e421-fd8b-2a2e-3c21-1ed10265ac4b.rmx nodes=144 worst peak 9344.161103% total 9344.161103% sumpeak 9344.161103%
+STORE matrices=49 points=20979
+STORE worst peak rel = 108703088119.696000% at b495efd5-978c-c40b-720d-4a2ca7fa2455.rmx E=6.5159703011104115
+STORE worst total rel = 108703088119.696000% at b495efd5-978c-c40b-720d-4a2ca7fa2455.rmx E=6.5159703011104115
+STORE worst sum-peak area rel = 108703088119.696000% at b495efd5-978c-c40b-720d-4a2ca7fa2455.rmx E=6.5159703011104115
+BAND E>=0 keV: worst peak 108703088119.696000% total 108703088119.696000% sum-peak area 108703088119.696000% | b495efd5-978c-c40b-720d-4a2ca7fa2455.rmx E=6.5159703011104115 row=1.1314319842359763E-13 summer=1.0408462195197962E-22
+BAND E>=20 keV: worst peak 6.497070% total 3.725098% sum-peak area 6.497070% | c2b5212c-6b5a-50d8-7870-0b0c3104daa2.rmx E=37.440599999999996 row=0.0038270148215815425 summer=0.0035935399992248073
+BAND E>=40 keV: worst peak 29.127395% total 1.586679% sum-peak area 29.127395% | a7eb945d-9246-91ca-c23b-65a4402448cd.rmx E=63.3138 row=0.017002119915559888 summer=0.013166934797277478
+BAND E>=100 keV: worst peak 1.382568% total 0.141412% sum-peak area 1.382568% | c2b5212c-6b5a-50d8-7870-0b0c3104daa2.rmx E=109.6509 row=0.041146675124764442 summer=0.040585552198343242
+BAND E>=300 keV: worst peak 0.320610% total 0.095788% sum-peak area 0.320610% | 552a036a-dfc9-c14c-b505-fbfaadbaf1ae.rmx E=2674.6654740692438 row=8.74672441568691E-05 summer=8.7187711757212512E-05

@@ -1,0 +1,27 @@
+exe: D:\BqMoni_Claude\p122\wt\tools\effmaker\probes\build_p140\BecquerelMonitor.exe
+mtime: 2026-09-23 01:33:18
+sha256: d39357e12a4a0e5daf432c83de05210ac21be8382e83ebd38721ea078aa039d5
+PhysicsVersion = 23
+FormatVersion = 10
+ResponseMatrixOptions.ElectronLayerBremAngular2BS = True
+ResponseMatrixOptions.ElectronLayerBremAlongPath = True
+ResponseMatrixOptions.ElectronLayerMixedScattering = True
+ResponseMatrixOptions.ElectronLayerTransport = True
+ResponseMatrixOptions.ElectronAnyMaterial = True
+ResponseMatrixOptions.BremAlongPath = 2
+ResponseMatrixOptions.ElectronTransport = True
+ResponseMatrixOptions.PositronTransport = True
+ResponseMatrixOptions.PositronOffset = True
+ResponseMatrixOptions.RayleighToCrystal = True
+ResponseMatrixOptions.LightBinUnified = True
+ResponseMatrixOptions.PeakChannelByTolerance = True
+ResponseMatrixOptions.LYieldSupply = 2
+ResponseMatrixOptions.ImportanceSampling = False
+ResponseMatrixOptions.Histories = 3000000
+ResponseMatrixOptions.NodeCount = 140
+ResponseMatrixOptions.MinEnergyKev = 5
+ResponseMatrixOptions.MaxEnergyKev = 3000
+ResponseMatrixOptions.BinKev = 2
+ResponseMatrixOptions.Seed = 0
+ResponseMatrixOptions.JointNodes = 24
+ResponseMatrixOptions.JointHistories = 200000

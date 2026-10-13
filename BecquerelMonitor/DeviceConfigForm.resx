@@ -664,7 +664,7 @@
     <value>NoControl</value>
   </data>
   <data name="label26.Location" type="System.Drawing.Point, System.Drawing">
-    <value>2, 308</value>
+    <value>2, 335</value>
   </data>
   <data name="label26.Size" type="System.Drawing.Size, System.Drawing">
     <value>35, 13</value>
@@ -688,7 +688,7 @@
     <value>9</value>
   </data>
   <data name="textBox19.Location" type="System.Drawing.Point, System.Drawing">
-    <value>110, 304</value>
+    <value>110, 331</value>
   </data>
   <data name="textBox19.Multiline" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -866,6 +866,108 @@
   </data>
   <data name="&gt;&gt;crystalMaterialCombo.ZOrder" xml:space="preserve">
     <value>19</value>
+  </data>
+  <data name="tractCurvatureLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="tractCurvatureLabel.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="tractCurvatureLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>6, 282</value>
+  </data>
+  <data name="tractCurvatureLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>83, 13</value>
+  </data>
+  <data name="tractCurvatureLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>96</value>
+  </data>
+  <data name="tractCurvatureLabel.Text" xml:space="preserve">
+    <value>Tract Curvature</value>
+  </data>
+  <data name="tractCurvatureLabel.ToolTip" xml:space="preserve">
+    <value>Nonlinearity of the detector signal chain (photomultiplier, ADC), κ in 1/MeV:
+channel = c₀ + v·(1 + κ·L/1000), L is the light in keV.
+κ &gt; 0 stretches large amplitudes, κ &lt; 0 compresses them (SiPM cell saturation).
+0 (default) means a linear chain. Leave it at 0 unless κ has been measured for this
+device from sum peaks (e.g. Na-22 1275 + 511, Co-60 1173 + 1332 keV); measured values
+are a few thousandths, e.g. +0.0023…+0.0026 for the NaI detectors of the corpus.
+Read only by the full-spectrum decomposition (Show FSA) with a response matrix.</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureLabel.Name" xml:space="preserve">
+    <value>tractCurvatureLabel</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureLabel.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureLabel.ZOrder" xml:space="preserve">
+    <value>20</value>
+  </data>
+  <data name="tractCurvatureTextBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>110, 278</value>
+  </data>
+  <data name="tractCurvatureTextBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>75, 20</value>
+  </data>
+  <data name="tractCurvatureTextBox.TabIndex" type="System.Int32, mscorlib">
+    <value>97</value>
+  </data>
+  <data name="tractCurvatureTextBox.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="tractCurvatureTextBox.ToolTip" xml:space="preserve">
+    <value>Nonlinearity of the detector signal chain (photomultiplier, ADC), κ in 1/MeV:
+channel = c₀ + v·(1 + κ·L/1000), L is the light in keV.
+κ &gt; 0 stretches large amplitudes, κ &lt; 0 compresses them (SiPM cell saturation).
+0 (default) means a linear chain. Leave it at 0 unless κ has been measured for this
+device from sum peaks (e.g. Na-22 1275 + 511, Co-60 1173 + 1332 keV); measured values
+are a few thousandths, e.g. +0.0023…+0.0026 for the NaI detectors of the corpus.
+Read only by the full-spectrum decomposition (Show FSA) with a response matrix.</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureTextBox.Name" xml:space="preserve">
+    <value>tractCurvatureTextBox</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureTextBox.Type" xml:space="preserve">
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureTextBox.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureTextBox.ZOrder" xml:space="preserve">
+    <value>21</value>
+  </data>
+  <data name="tractCurvatureUnitLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="tractCurvatureUnitLabel.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="tractCurvatureUnitLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>191, 282</value>
+  </data>
+  <data name="tractCurvatureUnitLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>35, 13</value>
+  </data>
+  <data name="tractCurvatureUnitLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>98</value>
+  </data>
+  <data name="tractCurvatureUnitLabel.Text" xml:space="preserve">
+    <value>1/MeV</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureUnitLabel.Name" xml:space="preserve">
+    <value>tractCurvatureUnitLabel</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureUnitLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureUnitLabel.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureUnitLabel.ZOrder" xml:space="preserve">
+    <value>22</value>
   </data>
   <data name="tabPage1.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 22</value>

@@ -102,8 +102,6 @@ static class CultureProbeO14
 
         // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`),
         //    иначе раздел `A242` повиснет на модальном окне в `DocumentManager`.
-        ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-        ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
         Say("== A238: язык строки ресурса вне UI-потока ==");
         Say("");
@@ -390,7 +388,7 @@ static class CultureProbeO14
             Say("    [положительный контроль] ПРЕЖНИЙ `Convert.ToDouble(«5.75»)` = " + conv
                 + (comma ? "  — на культуре с запятой это отказ или другое число" : ""));
 
-            // ══ ВВОЗ CSV кодом приложения — вторая сторона вывоза CSV.
+            // ══ ИМПОРТ CSV кодом приложения — вторая сторона экспорта CSV.
             A242Csv(name);
 
             // ══ «НЕ СЛОМАНО»: настоящие файлы дерева, ТОЛЬКО ЧТЕНИЕ.
@@ -410,8 +408,8 @@ static class CultureProbeO14
     }
 
     /// <summary>
-    /// Ввоз CSV кодом приложения. Файл пишется С ТОЧКОЙ — ровно так, как его
-    /// теперь пишет `DocumentManager.ExportDocumentToCsv`; вывоз сам вызвать
+    /// Импорт CSV кодом приложения. Файл пишется С ТОЧКОЙ — ровно так, как его
+    /// теперь пишет `DocumentManager.ExportDocumentToCsv`; экспорт сам вызвать
     /// нельзя, он за `SaveFileDialog`, и это названо в отчёте.
     /// </summary>
     static void A242Csv(string culture)
@@ -429,18 +427,18 @@ static class CultureProbeO14
             double t = doc.ActiveResultData.EnergySpectrum.MeasurementTime;
             bool ok = Math.Abs(t - 3600.3) < 1e-9;
             Say(string.Format(CultureInfo.InvariantCulture,
-                "  ВВОЗ CSV  время из шапки «TotalTime=3600.3s» = {0}  {1}",
+                "  ИМПОРТ CSV  время из шапки «TotalTime=3600.3s» = {0}  {1}",
                 t.ToString("R", CultureInfo.InvariantCulture),
                 ok ? "по правилу" : "⛔ ОЖИДАЛОСЬ 3600.3"));
             if (!ok) failures++;
         }
         catch (Exception ex)
         {
-            Say("  ВВОЗ CSV  ⛔ отказ: " + ex.Message);
+            Say("  ИМПОРТ CSV  ⛔ отказ: " + ex.Message);
             failures++;
         }
 
-        // Прежний ввоз звал `double.TryParse(totalTimeStr, out totalTime)` —
+        // Прежний импорт звал `double.TryParse(totalTimeStr, out totalTime)` —
         // без стиля и без культуры, то есть `NumberStyles.Float | AllowThousands`
         // по ТЕКУЩЕЙ культуре. Здесь точка сойдёт за разделитель тысяч, и
         // «3600.3» станет 36003 — в отличие от разбора со `NumberStyles.Float`,
@@ -2695,7 +2693,7 @@ static class CultureProbeO14
     {
         Say("");
         Say("══════════════════════════════════════════════════════════════");
-        Say("`A244` П5+П6: ЧИСЛА ПАНЕЛЕЙ DC И ОКНА ЗОН ИНТЕРЕСА");
+        Say("`A244` П5+П6: ЧИСЛА ПАНЕЛЕЙ DC (окно зон ROI снято 07.10.2026)");
         Say("══════════════════════════════════════════════════════════════");
 
         // Соседние разделы отпускают ручки культуры — вернём их в известное
@@ -3008,89 +3006,6 @@ static class CultureProbeO14
         text.Add((string)P5Call(fwhmView, "GetExpGaussExpParametersText", 25, 10));
         text.Add((string)P5Call(fwhmView, "GetVoigtParametersText", 25, 10));
 
-        // ══ П6-1. `ROISimpleDifferenceControl` — четыре числа по кругу. ══
-        string op0 = ROIPrimitiveOperation.Operations[0].Name;
-        ROISimpleDifferenceControl simple = new ROISimpleDifferenceControl();
-        ROISimpleDifferenceData sd = new ROISimpleDifferenceData();
-        sd.OperationType = op0;
-        sd.Coefficient = P5Simple[0];
-        sd.CoefficientError = P5Simple[1];
-        sd.LowerLimit = P5Simple[2];
-        sd.UpperLimit = P5Simple[3];
-        simple.LoadFormContents(sd);
-        foreach (string f in new string[] { "doubleTextBox3", "doubleTextBox4",
-                                            "doubleTextBox1", "doubleTextBox2" })
-        {
-            System.Windows.Forms.Control c = P5Ctl(simple, f);
-            text.Add(c.Text); ins.Add(c.Text); boxes.Add(c);
-        }
-
-        // ══ П6-2. `ROICovellMethodControl` — восемь чисел по кругу. ══
-        ROICovellMethodControl covell = new ROICovellMethodControl();
-        ROICovellMethodData cd = new ROICovellMethodData();
-        cd.OperationType = op0;
-        cd.Coefficient = P5Covell[0];
-        cd.CoefficientError = P5Covell[1];
-        cd.LowerLimit = P5Covell[2];
-        cd.UpperLimit = P5Covell[3];
-        cd.LeftRegionCenter = P5Covell[4];
-        cd.RightRegionCenter = P5Covell[5];
-        cd.LeftRegionWidth = P5Covell[6];
-        cd.RightRegionWidth = P5Covell[7];
-        covell.LoadFormContents(cd);
-        foreach (string f in new string[] { "doubleTextBox3", "doubleTextBox4",
-                                            "doubleTextBox1", "doubleTextBox2",
-                                            "doubleTextBox5", "doubleTextBox6",
-                                            "doubleTextBox7", "doubleTextBox8" })
-        {
-            System.Windows.Forms.Control c = P5Ctl(covell, f);
-            text.Add(c.Text); ins.Add(c.Text); boxes.Add(c);
-        }
-
-        // ══ П6-3. `ROIReferenceControl` — два числа по кругу. ══
-        ROIReferenceControl reference = new ROIReferenceControl();
-        ROIReferenceData rd2 = new ROIReferenceData();
-        rd2.OperationType = op0;
-        rd2.Coefficient = P5Ref[0];
-        rd2.CoefficientError = P5Ref[1];
-        rd2.Reference = "";
-        reference.LoadFormContents(rd2);
-        foreach (string f in new string[] { "doubleTextBox3", "doubleTextBox4" })
-        {
-            System.Windows.Forms.Control c = P5Ctl(reference, f);
-            text.Add(c.Text); ins.Add(c.Text); boxes.Add(c);
-        }
-
-        // ══ П6-4. Окно зон целиком: семь полей зоны по кругу. ══
-        ROIConfigForm roiForm = new ROIConfigForm();
-        ROIDefinitionData roi = new ROIDefinitionData();
-        roi.Name = "P5P6";
-        roi.Enabled = true;
-        roi.AutoBecquerelCoefficient = false;
-        roi.BecquerelCoefficient = P5Roi[0];
-        roi.BecquerelCoefficientError = P5Roi[1];
-        roi.PeakEnergy = P5Roi[2];
-        roi.HalfLife = P5Roi[3];
-        roi.Intencity = P5Roi[4];
-        roi.LowerLimit = P5Roi[5];
-        roi.UpperLimit = P5Roi[6];
-        P5Call(roiForm, "LoadROIDefinitionFormContents", roi);
-        foreach (string f in new string[] { "doubleTextBox3", "doubleTextBox4",
-                                            "doubleTextBox5", "doubleTextBox6",
-                                            "doubleTextBox7", "doubleTextBox1",
-                                            "doubleTextBox2" })
-        {
-            System.Windows.Forms.Control c = P5Ctl(roiForm, f);
-            text.Add(c.Text); ins.Add(c.Text); boxes.Add(c);
-        }
-
-        // ══ П6-5. Строка области — `string.Concat(new object[]{…})`.
-        //          ⚠ Место, которого СКАНЕР НЕ ВИДИТ вовсе: число уходит в
-        //          `object[]`, и `ToString()` без культуры зовёт сама
-        //          склейка. Поймано только глазами, судится только здесь. ══
-        text.Add((string)P5Call(roiForm, "GetPrimitiveRegionString", sd));
-        text.Add((string)P5Call(roiForm, "GetPrimitiveRegionString", cd));
-
         s.Text = text.ToArray();
 
         // ── ПЕРЕКРЁСТНОЕ плечо: в те же поля кладём ЧУЖОЙ текст.
@@ -3119,49 +3034,6 @@ static class CultureProbeO14
         {
             back.Add((double)P5Call(energy, "fromStringtoDouble", P5Ctl(energy, f).Text));
         }
-
-        ROISimpleDifferenceData sdBack = new ROISimpleDifferenceData();
-        sdBack.OperationType = op0;
-        if (!simple.SaveFormContents(sdBack))
-        {
-            throw new InvalidOperationException("`ROISimpleDifferenceControl.SaveFormContents`"
-                + " вернул false: разбор полей отказал");
-        }
-        back.Add(sdBack.Coefficient); back.Add(sdBack.CoefficientError);
-        back.Add(sdBack.LowerLimit); back.Add(sdBack.UpperLimit);
-
-        ROICovellMethodData cdBack = new ROICovellMethodData();
-        cdBack.OperationType = op0;
-        if (!covell.SaveFormContents(cdBack))
-        {
-            throw new InvalidOperationException("`ROICovellMethodControl.SaveFormContents`"
-                + " вернул false: разбор полей отказал");
-        }
-        back.Add(cdBack.Coefficient); back.Add(cdBack.CoefficientError);
-        back.Add(cdBack.LowerLimit); back.Add(cdBack.UpperLimit);
-        back.Add(cdBack.LeftRegionCenter); back.Add(cdBack.RightRegionCenter);
-        back.Add(cdBack.LeftRegionWidth); back.Add(cdBack.RightRegionWidth);
-
-        ROIReferenceData refBack = new ROIReferenceData();
-        refBack.OperationType = op0;
-        if (!reference.SaveFormContents(refBack))
-        {
-            throw new InvalidOperationException("`ROIReferenceControl.SaveFormContents`"
-                + " вернул false: разбор полей отказал");
-        }
-        back.Add(refBack.Coefficient); back.Add(refBack.CoefficientError);
-
-        ROIDefinitionData roiBack = new ROIDefinitionData();
-        roiBack.AutoBecquerelCoefficient = false;
-        object saved = P5Call(roiForm, "SaveROIDefinitionFormContents", roiBack);
-        if (!(bool)saved)
-        {
-            throw new InvalidOperationException("`SaveROIDefinitionFormContents`"
-                + " вернул false: разбор полей зоны отказал");
-        }
-        back.Add(roiBack.BecquerelCoefficient); back.Add(roiBack.BecquerelCoefficientError);
-        back.Add(roiBack.PeakEnergy); back.Add(roiBack.HalfLife); back.Add(roiBack.Intencity);
-        back.Add(roiBack.LowerLimit); back.Add(roiBack.UpperLimit);
 
         s.Back = back.ToArray();
     }

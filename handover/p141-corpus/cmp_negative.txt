@@ -1,0 +1,22 @@
+СВОДКА ПРИЁМКИ П141 — измеренное на `master` против ОБЪЯВЛЕННОГО базой rev32 (21.09.2026, день)
+склад матриц ТОТ ЖЕ (живой, физика 22, формат 9), корпус ТОТ ЖЕ; сменился только РАЗБОР.
+
+база   часть    спектр   Σχ² изм.  Σχ² объяв       Δ % мед.изм  мед.об recall  фант  подв матрица н/п   
+--------------------------------------------------------------------------------------------------------
+full   known      СВОДКИ НЕТ: D:\BqMoni_Claude\p141\art_nonexistent\score_full_known.txt
+full   unknown    СВОДКИ НЕТ: D:\BqMoni_Claude\p141\art_nonexistent\score_full_unknown.txt
+mini   known      СВОДКИ НЕТ: D:\BqMoni_Claude\p141\art_nonexistent\score_mini_known.txt
+mini   unknown    СВОДКИ НЕТ: D:\BqMoni_Claude\p141\art_nonexistent\score_mini_unknown.txt
+
+⛔ НЕСРАВНИМОЕ (сменилась ЛИНЕЙКА, `S180`+`S182`): ε model residual и графа `chi2ndf_pois`
+
+ВЕРДИКТЫ ПО СТРОКАМ:
+   full/known — сводки нет
+   full/unknown — сводки нет
+   mini/known — сводки нет
+   mini/unknown — сводки нет
+
+⛔ Это РЕПЕТИЦИЯ ЦЕНЫ правок разбора, а не переобъявление базы: `out_rev32_*` не тронуты,
+   объявление в трёх местах не менялось, витрина не переобъявлялась. Переобъявлять — только по слову Amber.
+
+⛔ ОТКАЗ СВОДКИ: не найдено сводок score.py — 4 из 4

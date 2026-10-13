@@ -51,6 +51,7 @@ M1..M4.
 альфа-частиц и протонов, 74 вещества).
 
     python import_xcom_star.py <matdb.sqlite> <каталог XCOM> <FCOMP> [каталог ICC]
+    python import_xcom_star.py --kb-only <matdb.sqlite>   (П180: один столбец xray_fluorescence.kb_ev)
 """
 import io
 import os
@@ -343,6 +344,31 @@ def read_star_stopping(data_path, source_path, n_energies, n_materials=74):
     return rows
 
 
+# Ответ атома на дырку в K-оболочке — текст таблицы один на оба режима (полный
+# импорт и `--kb-only`, П180), иначе узкий режим разошёлся бы со схемой полного.
+FLUORESCENCE_DDL = """
+        -- Ответ атома на дырку в K-оболочке. `k_fraction` — доля поглощений,
+        -- пришедшихся на K (из скачка сечения на крае), `omega_k` — вероятность
+        -- ответить квантом, а не оже-электроном. Веса линий нормированы на
+        -- единицу в сумме. Всё, кроме omega_k, посчитано из этой же базы;
+        -- omega_k — аппроксимация, см. build_fluorescence.
+        create table xray_fluorescence (
+            z            integer primary key,
+            k_edge_ev    real not null,
+            jump_ratio   real not null,
+            k_fraction   real not null,
+            omega_k      real not null,
+            ka1_ev       real not null,
+            ka1_weight   real not null,
+            ka2_ev       real not null,
+            ka2_weight   real not null,
+            kb_ev        real not null,
+            kb_weight    real not null,
+            n_nuclides   integer not null
+        );
+"""
+
+
 def build_fluorescence(db):
     """Собрать таблицу K-флуоресценции: чем отвечает атом на дырку в K-оболочке.
 
@@ -390,6 +416,37 @@ def build_fluorescence(db):
             " and energy_num>0 and intensity_num>0"):
         by_parent.setdefault(pid, {})[kind] = (energy, intensity)
 
+    # (`S198`/`AMBER120`, П180 29.09.2026, решение Amber 28.09.2026 вопросником,
+    # дословно: «Перезалить kb_ev и разобрать провал (Рекомендую)») ЭНЕРГИЯ Kβ
+    # — ЦЕНТР ТЯЖЕСТИ групп K-M и K-N, а не строка `KB` ENSDF: у той энергия —
+    # середина текстового диапазона всей Kβ (с K-N), и при весе всей Kβ она
+    # стоит выше K-M на 0.4…1.5 % (Ba 36.827 против 36.356 кэВ K-M; П174).
+    # kb = (w_KM·E_KM + (w_Kβ − w_KM)·E_KN) / w_Kβ: E_KM, w_KM — `fluorescence_k`
+    # (xraydb), w_Kβ — вес Kβ этой таблицы, E_KN — медиана строк `KpB2` ENSDF по
+    # наборам (набор узнаётся по KA1 тем же допуском, что ниже). Элемент без
+    # K-M (`fluorescence_k`) или без K-N (`KpB2`) остаётся на прежнем правиле.
+    kn_sets = {}
+    for seq, pid, dtype, kind, energy in db.execute(
+            "select parent_l_seqno, parent_nucid, dec_type, type_c, energy_num"
+            " from decay_radiations where type_a='X'"
+            " and type_c in ('KA1','KpB2') and energy_num>0"):
+        kn_sets.setdefault((seq, pid, dtype), {}).setdefault(kind, []).append(energy)
+    has_fk = db.execute("select count(*) from sqlite_master"
+                        " where type='table' and name='fluorescence_k'").fetchone()[0] > 0
+    k_m = {}
+    if has_fk:
+        for z, ka1_ev, kb_ev, kb_weight in db.execute(
+                "select z, ka1_ev, kb_ev, kb_weight from fluorescence_k"):
+            k_m[z] = (ka1_ev / 1000.0, kb_ev / 1000.0, kb_weight)
+    k_n = {}
+    for lines in kn_sets.values():
+        if "KA1" not in lines or "KpB2" not in lines:
+            continue
+        for z, (ka1_kev, _, _) in k_m.items():
+            if any(abs(a - ka1_kev) <= 0.03 for a in lines["KA1"]):
+                k_n.setdefault(z, []).extend(lines["KpB2"])
+                break
+
     samples = {}
     for lines in by_parent.values():
         if not set(["KA1", "KA2", "KB"]).issubset(lines):
@@ -431,6 +488,7 @@ def build_fluorescence(db):
 
     rows = []
     borrowed = []
+    centroid = []
     for z in sorted(edges):
         shells = edges[z]
         if "K" not in shells or "L2" not in shells or "L3" not in shells:
@@ -460,7 +518,13 @@ def build_fluorescence(db):
         # процента. Прежний запасной вариант K − L2 давал РОВНО энергию Kα2
         # (~10 % ошибки положения линии) и включался молча — лучше выбросить
         # элемент вслух, чем тихо соврать.
-        if kb_kev:
+        if z in k_m and z in k_n:
+            # центр тяжести K-M и K-N (П180, см. выше)
+            e_km, w_km = k_m[z][1], k_m[z][2]
+            e_kn = median(k_n[z])
+            kb = (w_km * e_km + (wb - w_km) * e_kn) / wb * 1000.0
+            centroid.append(z)
+        elif kb_kev:
             kb = kb_kev * 1000.0
         else:
             m_shell = next((shells[s] for s in ("M3", "M2", "M1") if s in shells), None)
@@ -474,7 +538,41 @@ def build_fluorescence(db):
 
     db.executemany("insert into xray_fluorescence"
                    " values (?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+    print("Флуоресценция: Kβ центром тяжести K-M/K-N у %d элементов из %d"
+          % (len(centroid), len(rows)))
     return len(rows), borrowed
+
+
+def kb_only(db_path):
+    """(П180) Переписать в готовой базе ТОЛЬКО столбец `xray_fluorescence.kb_ev`.
+
+    Полный импорт требует поставок NIST (MDATX3, FCOMP) и перестраивает таблицу
+    целиком, а в живой базе `omega_k` после него переписан `import_geant4.py`
+    (G4AtomicTransitionManager) — полная перестройка молча вернула бы
+    аппроксимацию Бамбынека. Поэтому таблица строится `build_fluorescence` во
+    ВРЕМЕННУЮ копию (из уже лежащих в базе `xcom_edges`, `xcom_cross_sections`,
+    `fluorescence_k` и `decay_radiations` соседнего `nucdb.sqlite`), и из неё
+    переносится одна энергия Kβ; прочие столбцы и таблицы не трогаются. Базу
+    пишет только Amber либо полоса по её слову — со снимком файла до записи
+    (`database-writes-through-amber`).
+    """
+    db = pieces.open_with(db_path, ["nucdb.sqlite"])
+    # build_fluorescence пишет в `xray_fluorescence` без схемы, а SQLite ищет
+    # такое имя сперва во временной схеме: временная копия заслоняет основную.
+    db.executescript(FLUORESCENCE_DDL.replace("create table xray_fluorescence",
+                                              "create temp table xray_fluorescence"))
+    n_fluo, borrowed = build_fluorescence(db)
+    changed = db.execute(
+        "select count(*) from main.xray_fluorescence m join temp.xray_fluorescence t on t.z = m.z"
+        " where t.kb_ev <> m.kb_ev").fetchone()[0]
+    db.execute(
+        "update main.xray_fluorescence set kb_ev ="
+        " (select t.kb_ev from temp.xray_fluorescence t where t.z = main.xray_fluorescence.z)"
+        " where z in (select z from temp.xray_fluorescence)")
+    db.commit()
+    db.close()
+    print("xray_fluorescence.kb_ev: переписано у %d элементов из %d (прочие столбцы не тронуты)"
+          % (changed, n_fluo))
 
 
 def read_icc(directory):
@@ -527,6 +625,9 @@ def read_icc(directory):
 
 
 def main():
+    if len(sys.argv) == 3 and sys.argv[1] == "--kb-only":
+        kb_only(sys.argv[2])
+        return
     db_path, xcom_dir, fcomp_path = sys.argv[1], sys.argv[2], sys.argv[3]
     icc_dir = sys.argv[4] if len(sys.argv) > 4 else None
 
@@ -632,26 +733,7 @@ def main():
         drop table if exists icc_coefficients;
         drop table if exists star_stopping_powers;
         drop table if exists xray_fluorescence;
-
-        -- Ответ атома на дырку в K-оболочке. `k_fraction` — доля поглощений,
-        -- пришедшихся на K (из скачка сечения на крае), `omega_k` — вероятность
-        -- ответить квантом, а не оже-электроном. Веса линий нормированы на
-        -- единицу в сумме. Всё, кроме omega_k, посчитано из этой же базы;
-        -- omega_k — аппроксимация, см. build_fluorescence.
-        create table xray_fluorescence (
-            z            integer primary key,
-            k_edge_ev    real not null,
-            jump_ratio   real not null,
-            k_fraction   real not null,
-            omega_k      real not null,
-            ka1_ev       real not null,
-            ka1_weight   real not null,
-            ka2_ev       real not null,
-            ka2_weight   real not null,
-            kb_ev        real not null,
-            kb_weight    real not null,
-            n_nuclides   integer not null
-        );
+""" + FLUORESCENCE_DDL + """
 
         -- Тормозная способность, пробег CSDA и коэффициент извилистости для
         -- тяжёлых заряженных частиц: 'alpha' — из ASTAR (122 энергии),

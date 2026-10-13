@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.16)
+project(g4brem CXX)
+find_package(Geant4 REQUIRED)
+include(${Geant4_USE_FILE})
+add_executable(g4brem g4brem.cc)
+target_link_libraries(g4brem ${Geant4_LIBRARIES})

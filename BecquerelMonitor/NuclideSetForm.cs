@@ -185,7 +185,7 @@ namespace BecquerelMonitor
         /// Цвет хранится у НУКЛИДА (<see cref="NuclideDefinition.NuclideColor"/>),
         /// а не у набора: им же красятся пики и вертикальные линии интенсивностей,
         /// и второго источника цвета заводить не за чем. Набор здесь — способ
-        /// выбрать, кого красить, разом: ввозимые из NucBase определения все
+        /// выбрать, кого красить, разом: импортируемые из NucBase определения все
         /// получают зелёный, и в зелёной заливке спектра их линии не видно.
         /// </summary>
         void buttonAssignColor_Click(object sender, EventArgs e)
@@ -303,7 +303,14 @@ namespace BecquerelMonitor
 
         private void buttonSave_Click(object sender, EventArgs e)
         {
-            this.nuclideManager.SaveDefinitionFile();
+            // (`AMBER201`, мелочь 5.9, остаток `A9`, 05.10.2026) Ответ записи
+            // читается: при отказе окно об ошибке показал менеджер, а пометка
+            // «есть несохранённое» и кнопка остаются — прежде они гасли, и при
+            // закрытии о правках наборов больше не спрашивали.
+            if (!this.nuclideManager.SaveDefinitionFile())
+            {
+                return;
+            }
             this.dirty = false;
             this.buttonSave.Enabled = false;
         }
@@ -356,9 +363,13 @@ namespace BecquerelMonitor
             if (this.dirty)
             {
                 DialogResult dialogResult = MessageBox.Show(Resources.MSGSavingNuclideSet, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
-                if (dialogResult == DialogResult.Yes)
+                if (dialogResult == DialogResult.Yes && !this.nuclideManager.SaveDefinitionFile())
                 {
-                    this.nuclideManager.SaveDefinitionFile();
+                    // (`AMBER201`, 5.9) Запись не удалась — окно остаётся открытым
+                    // с правками, как у редактора нуклидов (`NuclideDefinitionForm`):
+                    // закрыться значило бы потерять их молча.
+                    e.Cancel = true;
+                    return;
                 }
             }
 

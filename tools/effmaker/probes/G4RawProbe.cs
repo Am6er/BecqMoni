@@ -24,9 +24,21 @@ namespace G4RawProbe
     ///                [--out=raw.csv] [--scene=scene.txt]
     ///                [--bands=1-12,13-25,55-59] [--peakw] [--lys=0|1|2]
     ///                [--etr=0|1] [--etr-step=0.1] [--kdip=0|1|2|3]
-    ///                [--positron=0|1] [--posoffset=0|1] [--rayl2[=0|1]]
+    ///                [--positron=0|1] [--posoffset=0|1] [--rayl2[=0|1]] [--coh=0|1] [--cohx=1.0] [--photox=1.0]
     ///                [--ecomp=0|1] [--bpath=0|1|2] [--detour=0.7] [--eltr=0|1]
-    ///                [--elmix=0|1] [--lbrem=0|1] [--ret-kill=own,carry,brem,ret,same,other,outbrem]
+    ///                [--elmix=0|1] [--lbrem=0|1] [--lbang=0|1] [--ret-kill=own,carry,brem,ret,same,other,outbrem]
+    ///
+    /// `--coh=0` (`S197`, П178 28.09.2026) — РЫЧАГ ЗАМЕРА: когерентного
+    /// (рэлеевского) рассеяния нет НИГДЕ — ни в аналоговых ветвях и кристалле
+    /// (`RayleighScatter = false`), ни во взвешенной проводке к кристаллу
+    /// (`RayleighToCrystal = false`, `CoherentPassesThrough = true`: канал
+    /// вычтен из ослабления). Зеркало `g4cf norayl` (процесс `Rayl` снят у
+    /// арбитра). Умолчание `--coh=1` не трогает ни одного поля; вместе с
+    /// `--rayl2=1` — отказ. Склад и клеймо ключа не знают: это только проба.
+    /// `--cohx=<f>` (`S197`, П178) — множитель сечения когерентного В КРИСТАЛЛЕ
+    /// (`CrystalCoherentScale`): подставить в CsI сечение арбитра.
+    /// `--photox=<f>` (`S197`, П178) — множитель фотоэффекта во всех областях,
+    /// кроме кристалла (`OutsidePhotoScale`): подставить фит фотоэффекта арбитра.
     ///
     /// `--lbrem=1` (`M13`, вторая половина, П106 19.09.2026): ключ
     /// `ElectronLayerBremAlongPath` — тормозное электрона в слоях обвязки ПО ХОДУ
@@ -38,6 +50,12 @@ namespace G4RawProbe
     /// (`killescown killcarry`, `killoutbrem`, def) по полосам 0–50/0–100 кэВ и
     /// четвертям; 1461/662/59.5 и диск AS80 не хуже П103. Печатает счётчик
     /// квантов тормозного по ходу в слоях.
+    ///
+    /// `--lbang=1` (`M13`, остаток «0.73», П111 19.09.2026): ключ
+    /// `ElectronLayerBremAngular2BS` — направление кванта тормозного в слоях по
+    /// 2BS Коха—Моца (как `G4Generator2BS` у арбитра) вместо Цая. Умолчание —
+    /// склада (ВКЛ с физики 22, П114 19–21.09.2026; `--lbang=0` — плечо
+    /// «как физика 21»).
     ///
     /// `--ret-kill=` (`M13`, П106 19.09.2026) — РЫЧАГИ ЗАМЕРА состава «возврата»
     /// электрона по населениям, зеркала рычагов арбитра `g4cf` (список через
@@ -177,6 +195,11 @@ namespace G4RawProbe
             // Когерентное своим каналом во взвешенной ветви (`N13`) — рычаг `A58`;
             // умолчание — склада (ВКЛ с 13.09.2026, физика 17).
             bool rayl2 = store.RayleighToCrystal;
+            bool rayl2Given = false;
+            // `S197` (П178): рычаг «когерентного нет нигде» (--coh=0).
+            bool coh = true;
+            double cohx = 1.0;
+            double photox = 1.0;
             // Пара: раздельный перенос позитрона и смещение вершины (`S126`);
             // умолчание — склада (обе половины ВКЛ с 13.09.2026).
             bool positron = store.PositronTransport, posoffset = store.PositronOffset;
@@ -195,6 +218,7 @@ namespace G4RawProbe
             bool eltr = store.ElectronLayerTransport;   // `AMBER44`/`M12`, П94 — умолчание склада (ВКЛ с физики 19, П97)
             bool elmix = store.ElectronLayerMixedScattering;   // `M13`, П100 — умолчание склада (ВКЛ с физики 20, П103)
             bool lbrem = store.ElectronLayerBremAlongPath;     // `M13`, П106 — умолчание склада (ВКЛ с физики 21, П107)
+            bool lbang = store.ElectronLayerBremAngular2BS;    // `M13`, П111 — умолчание склада (ВКЛ с физики 22, П114; 2BS вместо Цая в слоях)
             // `M13`, П106: рычаги замера состава возврата (--ret-kill=), все ВЫКЛ.
             bool retOwn = true, retCarry = true, retBrem = true, retOutBrem = true;
             int retKill = 0;
@@ -216,8 +240,31 @@ namespace G4RawProbe
                 // определений.
                 if (a == "--peakw") { peakw = true; continue; }
                 if (a == "--cone") { cone = true; continue; }
-                if (a == "--rayl2") { rayl2 = true; continue; }
-                if (a.StartsWith("--rayl2=", StringComparison.Ordinal)) { rayl2 = Flag01(a, 8); continue; }
+                if (a == "--rayl2") { rayl2 = true; rayl2Given = true; continue; }
+                if (a.StartsWith("--rayl2=", StringComparison.Ordinal)) { rayl2 = Flag01(a, 8); rayl2Given = true; continue; }
+                if (a.StartsWith("--coh=", StringComparison.Ordinal)) { coh = Flag01(a, 6); continue; }
+                if (a.StartsWith("--photox=", StringComparison.Ordinal))
+                {
+                    photox = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
+                    if (!(photox >= 0.0))
+                    {
+                        Console.Error.WriteLine("--photox= принимает число >= 0: " + a);
+                        return 2;
+                    }
+
+                    continue;
+                }
+                if (a.StartsWith("--cohx=", StringComparison.Ordinal))
+                {
+                    cohx = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+                    if (!(cohx >= 0.0))
+                    {
+                        Console.Error.WriteLine("--cohx= принимает число >= 0: " + a);
+                        return 2;
+                    }
+
+                    continue;
+                }
                 // `S126` (П37): обе половины пары — умолчание склада, ключи для абляции.
                 if (a.StartsWith("--positron=", StringComparison.Ordinal)) { positron = Flag01(a, 11); continue; }
                 if (a.StartsWith("--posoffset=", StringComparison.Ordinal)) { posoffset = Flag01(a, 12); continue; }
@@ -320,6 +367,12 @@ namespace G4RawProbe
                     lbrem = Flag01(a, 8);
                     continue;
                 }
+                // `M13` (П111): направление кванта тормозного в слоях — 2BS Коха—Моца (как option4) вместо Цая.
+                if (a.StartsWith("--lbang=", StringComparison.Ordinal))
+                {
+                    lbang = Flag01(a, 8);
+                    continue;
+                }
                 // `M13` (П106): рычаги замера состава возврата — список через запятую.
                 // ⛔ Незнакомое слово — ОТКАЗ: молча пропущенный рычаг — это плечо
                 // «умолчание против умолчания», которое выглядит как «эффекта нет».
@@ -406,6 +459,17 @@ namespace G4RawProbe
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
 
+            if (!coh)
+            {
+                if (rayl2Given && rayl2)
+                {
+                    Console.Error.WriteLine("--coh=0 и --rayl2=1 противоречат друг другу: когерентного нет нигде, значит и во взвешенной ветви");
+                    return 2;
+                }
+
+                rayl2 = false;
+            }
+
             GeometryModel geometry = null;
             if (geometryPath != null)
             {
@@ -457,6 +521,7 @@ namespace G4RawProbe
             simulator.ElectronLayerTransport = eltr;    // `AMBER44`/`M12`, П94
             simulator.ElectronLayerMixedScattering = elmix;   // `M13`, П100
             simulator.ElectronLayerBremAlongPath = lbrem;     // `M13`, П106
+            simulator.ElectronLayerBremAngular2BS = lbang;    // `M13`, П111
             simulator.LayerReturnOwn = retOwn;                // `M13`, П106 — рычаги замера
             simulator.LayerReturnCarried = retCarry;
             simulator.LayerExitBremsstrahlung = retBrem;
@@ -467,6 +532,15 @@ namespace G4RawProbe
             if (etrStep > 0.0) { simulator.ElectronStepFraction = etrStep; }
             simulator.AnalogConeSampling = cone;
             simulator.RayleighToCrystal = rayl2;
+            if (!coh)
+            {
+                // `S197` (П178): когерентного нет ни в одной ветви.
+                simulator.RayleighScatter = false;
+                simulator.CoherentPassesThrough = true;
+            }
+
+            simulator.CrystalCoherentScale = cohx;      // `S197`, П178
+            simulator.OutsidePhotoScale = photox;       // `S197`, П178
             simulator.PositronTransport = positron;     // `S126`, П37
             simulator.PositronOffset = posoffset;
             simulator.XrayEscape = xray;
@@ -502,6 +576,18 @@ namespace G4RawProbe
             Console.WriteLine("когерентное в проводке своим каналом (`S127`, --rayl2=): {0}{1}",
                               rayl2 ? "ВКЛ" : "выкл",
                               rayl2 == store.RayleighToCrystal ? " (умолчание склада)" : " (ключом)");
+            // Читатель рычага — поля симулятора, а не сам ключ (`S197`, П178).
+            Console.WriteLine("когерентное (`S197`, --coh=): {0} (аналоговые ветви и кристалл {1}, взвешенная проводка {2}, ослабление взвешенной {3})",
+                              coh ? "есть (умолчание)" : "НЕТ НИГДЕ (ключом)",
+                              simulator.RayleighScatter ? "разыгрывают" : "не знают",
+                              simulator.RayleighToCrystal ? "разыгрывает" : "не разыгрывает",
+                              simulator.CoherentPassesThrough && !simulator.RayleighToCrystal ? "без когерентного" : "с когерентным");
+            Console.WriteLine("множитель когерентного в кристалле (`S197`, --cohx=): {0}{1}",
+                              simulator.CrystalCoherentScale.ToString("0.#####", CultureInfo.InvariantCulture),
+                              simulator.CrystalCoherentScale == 1.0 ? " (умолчание)" : " (ключом)");
+            Console.WriteLine("множитель фотоэффекта вне кристалла (`S197`, --photox=): {0}{1}",
+                              simulator.OutsidePhotoScale.ToString("0.#####", CultureInfo.InvariantCulture),
+                              simulator.OutsidePhotoScale == 1.0 ? " (умолчание)" : " (ключом)");
             Console.WriteLine("пара (`S126`, --positron= / --posoffset=): перенос позитрона {0}, смещение вершины {1}{2}",
                               positron ? "ВКЛ" : "выкл", posoffset ? "ВКЛ" : "выкл",
                               positron == store.PositronTransport && posoffset == store.PositronOffset
@@ -534,6 +620,9 @@ namespace G4RawProbe
                               lbrem ? (eltr ? "ВКЛ (тонкая мишень вещества слоя на шагах, по электрону; толстых мишеней рождения/выхода нет)" : "ВКЛ, но без переноса в слоях (--eltr=0) бездействует")
                                     : "выкл (толстая мишень в точке рождения / выхода, изотропно)",
                               lbrem == store.ElectronLayerBremAlongPath ? " (умолчание склада)" : " (ключом)");
+            Console.WriteLine("направление кванта тормозного в слоях обвязки (`M13` П111, --lbang=): {0}{1}",
+                              lbang ? "2BS Коха—Моца (как G4Generator2BS у арбитра option4)" : "модифицированный Цай (как bpath=2 в кристалле)",
+                              lbang == store.ElectronLayerBremAngular2BS ? " (умолчание склада)" : " (ключом)");
             Console.WriteLine("рычаги замера состава возврата (`M13` П106, --ret-kill=): {0}",
                               retKillArg == null ? "нет (умолчание: возврат как есть)"
                               : retKillArg + " — свой возврат " + (retOwn ? "есть" : "СПИСАН на грани")

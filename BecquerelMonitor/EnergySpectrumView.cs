@@ -687,7 +687,9 @@ namespace BecquerelMonitor
                 if (analytics.FwhmResult != null)
                 {
                     this.selectionFWHM = analytics.FwhmResult.Resolution;
-                    this.selectionFullWidth = (int)(analytics.FwhmResult.RightChannel - analytics.FwhmResult.LeftChannel);
+                    // (`AMBER181`, 05.10.2026) Ширина — ДРОБНАЯ: прежнее `(int)` усекало её до
+                    // целого канала (пик 6.7 канала уходил опорой в кривую ПШПВ как 6, −10 %).
+                    this.selectionFullWidth = analytics.FwhmResult.RightChannel - analytics.FwhmResult.LeftChannel;
                     this.selectionFWHMinkev = analytics.FwhmResult.ResolutionInkeV;
 
                     // Центроид отображаемого пика: по умолчанию (флаг выключен) —
@@ -763,7 +765,7 @@ namespace BecquerelMonitor
                     int bgChannel = i;
                     if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                     {
-                        bgChannel = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)i), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                        bgChannel = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, this.baseEnergyCalibration.ChannelToEnergy((double)i), this.backgroundEnergySpectrum.NumberOfChannels));
                     }
                     if (bgChannel >= 0 && bgChannel < this.backgroundNumberOfChannels)
                     {
@@ -784,7 +786,13 @@ namespace BecquerelMonitor
                 {
                     continuum = Math.Max(adjBgCountsInChannel, continuum);
                 }
-                if (fgCountsInChannel > continuum)
+                // (`AMBER201`, мелочь 6.12, 05.10.2026) Сравнивается то же, что
+                // суммируется. Прежде условие брало СЫРОЙ спектр, а слагаемое —
+                // вычтенный: в режиме вычитания фона сырой почти всюду выше
+                // подложки, и в «Peak counts» шли отрицательные каналы, которые
+                // обычный режим отбрасывает. Без вычитания `peakSpectrum` и есть
+                // сырой спектр — там числа побитово прежние.
+                if (peakSpectrum[i] > continuum)
                 {
                     peakCounts += peakSpectrum[i] - continuum;
                 }
@@ -815,7 +823,6 @@ namespace BecquerelMonitor
                         analytics.Lc = ROIAriphmetics.CalculateLc(bgCounts, bgTime, fgTime, limitsConfidenceLevel);
                         analytics.Lu = ROIAriphmetics.CalculateLu(fgCounts, fgTime, bgCounts, bgTime, limitsConfidenceLevel);
                         analytics.Ld = ROIAriphmetics.CalculateLd(bgCounts, bgTime, fgTime, limitsConfidenceLevel);
-                        analytics.Lq = ROIAriphmetics.CalculateLqCounts(bgCounts, bgTime, fgTime, limitsConfidenceLevel);
 
                         Peak detectedPeak = this.FindActivityPeak(analytics);
                         if (detectedPeak != null)
@@ -831,7 +838,48 @@ namespace BecquerelMonitor
                                 {
                                     double bqCoeff = coeff.Value;
                                     double bqCoeffError = coeff.Error;
-                                    analytics.Activity = ROIAriphmetics.CalculateActivity(bqCoeff, fgCounts, fgTime, bgCounts, bgTime);
+                                    // ⛔ (`AMBER133`, П167) Каскадное суммирование — тем же
+                                    // путём, что у зон (`BecquerelCoefficient.Summing`):
+                                    // суммирователь FSA на матрице кривой плюс чужие суммы в
+                                    // окне выделения. Поправки нет — причина строкой панели.
+                                    BecquerelCoefficient.SummingResult summing = BecquerelCoefficient.Summing(
+                                        detectedPeak.Nuclide.Name, detectedPeak.Nuclide.Energy, detectedPeak.Nuclide.Intencity,
+                                        this.energyCalibration.ChannelToEnergy(startChannel - 0.5),
+                                        this.energyCalibration.ChannelToEnergy(endChannel + 0.5),
+                                        this.activeResultData);
+                                    if (summing.Applied)
+                                    {
+                                        bqCoeff *= summing.Factor;
+                                        bqCoeffError *= summing.Factor;
+                                    }
+                                    analytics.ActivitySummingNote = summing.Note != null ? summing.Problem : null;
+                                    // ⛔ (`AMBER148`, П192 01.10.2026) К КАКОМУ МОМЕНТУ
+                                    //    отнесены беккерели. Счёт за набор даёт СРЕДНЮЮ
+                                    //    активность, и прежде панель печатала её, не
+                                    //    называя момента: у I-131 за сутки набора это −4.2 %
+                                    //    к активности начала, у Pb-214 за час — вдвое. Теперь
+                                    //    режим окна результатов «поправка на полураспад»
+                                    //    (`DCResultView.HalfLifeCorrectionShown`) приводит
+                                    //    число к дате отбора тем же множителем, что у зон
+                                    //    (`MeasurementResultManager.DecayToSamplingFactor`),
+                                    //    а строка под подписью линии называет момент в
+                                    //    обоих случаях. Все беккерели панели линейны по
+                                    //    (K, σK) — множитель входит в K, как у суммирования.
+                                    bool decayCorrected = DCResultView.HalfLifeCorrectionShown();
+                                    // (`AMBER195`) У линии ряда — период КОРНЯ, как у зоны.
+                                    double halfLifeYears = NuclideDefinition.DecayHalfLifeYears(
+                                        detectedPeak.Nuclide, this.nuclideManager?.NuclideDefinitions);
+                                    double decayFactor = decayCorrected
+                                        ? MeasurementResultManager.DecayToSamplingFactor(halfLifeYears,
+                                              this.activeResultData.SampleInfo.Time,
+                                              this.activeResultData.StartTime, this.activeResultData.EndTime)
+                                        : 1.0;
+                                    bqCoeff *= decayFactor;
+                                    bqCoeffError *= decayFactor;
+                                    analytics.ActivityDecayFactor = decayFactor;
+                                    analytics.ActivityMoment = DCResultView.SelectionMomentText(
+                                        decayCorrected, halfLifeYears > 0.0, this.activeResultData.SampleInfo.Time, decayFactor);
+                                    analytics.Activity =ROIAriphmetics.CalculateActivity(bqCoeff, fgCounts, fgTime, bgCounts, bgTime);
                                     analytics.ActivityError = ROIAriphmetics.CalculateActivityError(bqCoeff, bqCoeffError, fgCounts, fgTime, bgCounts, bgTime, errorLevel);
                                     analytics.ActivityUpperLimit = ROIAriphmetics.CalculateActivityUpperLimit(bqCoeff, bqCoeffError, fgCounts, fgTime, bgCounts, bgTime, limitsConfidenceLevel);
                                     if (this.activeResultData.SampleInfo.Weight > 0)
@@ -1380,6 +1428,25 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// ⛔ `AMBER88` (П146, 24.09.2026): НОМЕР КАНАЛА — ЕГО ЦЕНТР, И НА ГРАФИКЕ
+        /// ТОЖЕ. Приложение объявило (`AMBER71`/`AMBER73`): энергия канала k —
+        /// `ChannelToEnergy(k)`, канал занимает отрезок k ± ½. График же жил по
+        /// соглашению «край»: точка канала — `ChannelToEnergy(k + 0.5)` (в режиме
+        /// каналов `(k + 0.5) · hs`), карта «пиксель → канал» — отбрасыванием
+        /// дробной части. Линии библиотеки, линейка, пределы ROI и опоры FSA
+        /// стоят ровно в E — и кривая, ленты FSA, флажки пиков и курсор были на
+        /// h/2 правее их (`ChartCentreProbeP146`: при h = 2.5 кэВ — 1.25 кэВ,
+        /// курсор на вершине пика показывал E + h/2). Теперь точка канала — его
+        /// центр, а дробная позиция относится к БЛИЖАЙШЕМУ центру — этим
+        /// методом, одним на весь вид (и соответствие каналов фона каналам
+        /// спектра при разных калибровках — тоже).
+        /// </summary>
+        static int NearestChannel(double channel)
+        {
+            return (int)Math.Floor(channel + 0.5);
+        }
+
         bool TryMapPixelToChannel(int pixelX, EnergySpectrum spectrum, EnergyCalibration calibration, bool isBackground, out int channel)
         {
             channel = 0;
@@ -1391,17 +1458,17 @@ namespace BecquerelMonitor
             if (this.horizontalUnit == HorizontalUnit.Energy)
             {
                 double energy = (double)(pixelX - this.scrollX - this.left) / this.horizontalScale / this.pixelPerEnergy + this.energyViewOffset;
-                channel = (int)calibration.EnergyToChannel(energy, maxChannels: spectrum.NumberOfChannels);
+                channel = NearestChannel(PolynomialEnergyCalibration.ChannelOf(calibration, energy, spectrum.NumberOfChannels));
             }
             else if (isBackground && this.backgroundEnergyCalibration != null && !this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
             {
                 double baseChannel = (double)(pixelX - this.scrollX - this.left) / this.horizontalScale;
                 double energy = this.baseEnergyCalibration.ChannelToEnergy(baseChannel);
-                channel = (int)this.backgroundEnergyCalibration.EnergyToChannel(energy, maxChannels: spectrum.NumberOfChannels);
+                channel = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, energy, spectrum.NumberOfChannels));
             }
             else
             {
-                channel = (int)((double)(pixelX - this.scrollX - this.left) / this.horizontalScale);
+                channel = NearestChannel((double)(pixelX - this.scrollX - this.left) / this.horizontalScale);
             }
 
             if (channel < 0)
@@ -1569,7 +1636,7 @@ namespace BecquerelMonitor
                 RecalcChartParameters();
                 this.dirty = false;
             }
-            return (int)(this.energyCalibration.EnergyToChannel((double)(scrollBarPos) / this.pixelPerEnergy / this.horizontalScale + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels));
+            return (int)(PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, (double)(scrollBarPos) / this.pixelPerEnergy / this.horizontalScale + this.energyViewOffset, this.energySpectrum.NumberOfChannels));
         }
 
         // Token: 0x060004AE RID: 1198 RVA: 0x0001666C File Offset: 0x0001486C
@@ -1785,8 +1852,14 @@ namespace BecquerelMonitor
                 return;
             }
             this.energySpectrum = this.activeResultData.EnergySpectrum;
-            this.backgroundEnergySpectrum = this.activeResultData.BackgroundEnergySpectrum;
-            this.roiConfig = this.activeResultData.ROIConfig;
+            // ⛔ (`AMBER109`, П167 28.09.2026) Фон в чужой калибровке вид держит
+            // ПЕРЕЛОЖЕННЫМ в шкалу спектра по перекрытию энергий: панель
+            // выделения, фон под курсором, отрисовка и подгонка вертикали брали
+            // канал фона ближайшим, без множителя h_спектр/h_фон, и фон в окне
+            // уезжал на −18…+7 % (`RC103_Th232WT20`). Равные калибровки — тот
+            // же объект документа, побитово прежнее.
+            this.backgroundEnergySpectrum = SpectrumAriphmetics.BackgroundInScaleOf(
+                this.activeResultData.BackgroundEnergySpectrum, this.energySpectrum);
             if (this.numberOfChannels > 0 && this.numberOfChannels != this.energySpectrum.NumberOfChannels)
             {
                 this.dirty = true;
@@ -1798,6 +1871,15 @@ namespace BecquerelMonitor
             {
                 this.backgroundNumberOfChannels = this.backgroundEnergySpectrum.NumberOfChannels;
                 this.backgroundEnergyCalibration = this.backgroundEnergySpectrum.EnergyCalibration;
+            }
+            else
+            {
+                // (`AMBER182`, 05.10.2026) Фона не стало — калибровка и число каналов
+                // фона не должны переживать его: отрисовка континуума при оси X в
+                // каналах (`DrawLineChart`, ветка `backgroundEnergyCalibration != null
+                // && isBackground`) разыменовывала null-спектр фона.
+                this.backgroundNumberOfChannels = 0;
+                this.backgroundEnergyCalibration = null;
             }
 
             this.CalculateDataForSpecificModes();
@@ -1815,8 +1897,11 @@ namespace BecquerelMonitor
             {
                 if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.EffectiveLiveTime != 0.0)
                 {
+                    // (`AMBER109`) Фон документа, не переложенная копия вида:
+                    // вычитание раскладывает его само, и вычтенный спектр на
+                    // экране — ТОТ ЖЕ, что у поиска пиков и экспорта ECSV.
                     SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
-                    this.substractedEnergySpectrum = sa.Substract(this.backgroundEnergySpectrum);
+                    this.substractedEnergySpectrum = sa.Substract(this.activeResultData.BackgroundEnergySpectrum);
                     sa.Dispose();
                 }
                 else
@@ -1944,7 +2029,15 @@ namespace BecquerelMonitor
             if (this.fittingMode != VerticalFittingMode.None)
             {
                 this.minChannel = Math.Max((int)CalcChanValue(-this.scrollX) - 5, 0);
-                this.maxChannel = Math.Min((int)(CalcChanValue(-this.scrollX + this.width) - 5), this.numberOfChannels - 1);
+                // (`AMBER201`, мелочь 6.11, 05.10.2026) Правый край окна — по самому
+                // краю поля (+1: цикл ниже исключает `maxChannel`). Прежде здесь
+                // стояло «− 5», и шесть правых видимых каналов в подгонку не
+                // входили: при увеличении пик у правого края уходил за верх поля.
+                // Последний канал спектра цикл по-прежнему не берёт (`k <
+                // maxChannel` при `maxChannel = N − 1`) — в нём у Atom Spectra
+                // копится переполнение АЦП (21 из 136 спектров корпуса: выше всего
+                // спектра), и на полном виде окно от этого не меняется.
+                this.maxChannel = Math.Min((int)CalcChanValue(-this.scrollX + this.width) + 1, this.numberOfChannels - 1);
             }
 
             // compute global min/max over all visible spectra (including background if visible)
@@ -1957,7 +2050,7 @@ namespace BecquerelMonitor
                 {
                     double e = this.energyCalibration.ChannelToEnergy((double)i);
                     int bgChannel;
-                    bgChannel = (int)this.backgroundEnergyCalibration.EnergyToChannel(e, maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                    bgChannel = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, e, this.backgroundEnergySpectrum.NumberOfChannels));
 
                     if (bgChannel < 0 || bgChannel >= this.backgroundEnergySpectrum.NumberOfChannels)
                     {
@@ -2033,6 +2126,15 @@ namespace BecquerelMonitor
             this.minValue = double.PositiveInfinity;
             bool nonZeroSeen = false;
 
+            // (`AMBER201` Р3, мелочь 6.6) В режиме FSA кадр рисует не сырой спектр,
+            // а чистый (за вычетом фона) под стопкой модели — подгонка идёт по
+            // нему; модель добирает `ExtendBoundariesWithFsaModel` ниже. Фон в
+            // этом режиме не рисуется, поэтому и «по фону» здесь мерить нечего.
+            double[] fsaDrawn = this.FsaDrawnMeasurement();
+            double fsaScale = this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0
+                ? 1.0 / this.energySpectrum.EffectiveLiveTime
+                : 1.0;
+
             for (int k = this.minChannel; k < this.maxChannel; k++)
             {
                 double channelValue;
@@ -2040,11 +2142,15 @@ namespace BecquerelMonitor
                 bool useBackground = (this.fittingMode == VerticalFittingMode.BackgroundMinMax || this.energySpectrum.EffectiveLiveTime == 0.0)
                                      && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.EffectiveLiveTime != 0.0;
 
-                if (useBackground)
+                if (fsaDrawn != null)
+                {
+                    channelValue = (k < fsaDrawn.Length ? fsaDrawn[k] : 0.0) * fsaScale;
+                }
+                else if (useBackground)
                 {
                     double e2 = this.energyCalibration.ChannelToEnergy((double)k);
                     int bgChannel;
-                    bgChannel = (int)this.backgroundEnergyCalibration.EnergyToChannel(e2, maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                    bgChannel = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, e2, this.backgroundEnergySpectrum.NumberOfChannels));
 
                     if (bgChannel < 0 || bgChannel >= this.backgroundEnergySpectrum.NumberOfChannels)
                     {
@@ -2407,27 +2513,23 @@ namespace BecquerelMonitor
             // уже применены свежие scrollX/scrollY, а масштаб и калибровка
             // могли смениться с прошлой отрисовки.
             this.InvalidatePixelChannelMap();
+            // (`AMBER222`) Признак «стопка FSA нарисована» живёт ровно один кадр:
+            // его ставит `ShowFsaOverlay`, читает конец линии пика.
+            this.fsaFrameDrawn = false;
             ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
             int num = this.CalcMaximumXValue() + this.scrollX + this.left;
-            this.ShowROIBackground(g);
             this.ShowSelectionPart1(g);
             this.ShowStopwatch(g);
             this.ShowVerticalAxis(g);
             this.ShowHorizontalAxis(g);
             g.SetClip(new Rectangle(this.left + 1, 0, num - this.left, this.height));
             this.ShowStopwatch(g);
-            this.ShowROIBorderLine(g);
             if (EnergySpectrumView.logoImage != null)
             {
                 g.DrawImage(EnergySpectrumView.logoImage, base.Width - EnergySpectrumView.logoImage.Width - 40, 10, EnergySpectrumView.logoImage.Width, EnergySpectrumView.logoImage.Height);
             }
             if (this.activeResultData.Visible)
             {
-                if (this.IsBackgroundVisible())
-                {
-                    this.ShowROINetRegion(g, true);
-                }
-
                 if (this.chartType == ChartType.BarChart)
                 {
                     if (colorConfig.SpectrumDrawingOrder == 0)
@@ -2585,7 +2687,7 @@ namespace BecquerelMonitor
                 ResultData resultData = this.resultDataList[i];
                 if (resultData != this.activeResultData && resultData.Visible)
                 {
-                    using (Pen pen7 = new Pen(colorConfig.SpectrumColorList[i].Color))
+                    using (Pen pen7 = new Pen(colorConfig.GetSpectrumColor(i)))
                     {
                         EnergySpectrum energySpectrum = resultData.EnergySpectrum;
                         this.DrawLineChart(g, pen7, energySpectrum, energySpectrum.EnergyCalibration, false);
@@ -2736,12 +2838,12 @@ namespace BecquerelMonitor
                 }
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
-                    double num7 = this.energyCalibration.ChannelToEnergy((double)i + 0.5);
+                    double num7 = this.energyCalibration.ChannelToEnergy((double)i);
                     num8 = GdiCoordinate((num7 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
-                    num8 = GdiCoordinate(((double)i + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    num8 = GdiCoordinate((double)i * this.horizontalScale) + this.scrollX + this.left;
                 }
                 if (num3 > 0)
                 {
@@ -2752,12 +2854,12 @@ namespace BecquerelMonitor
             }
             if (this.horizontalUnit == HorizontalUnit.Energy)
             {
-                double num9 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.MaxChannel + 0.5);
+                double num9 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.MaxChannel);
                 num8 = GdiCoordinate((num9 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
             }
             else
             {
-                num8 = GdiCoordinate((energyResolutionResult.MaxChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                num8 = GdiCoordinate(energyResolutionResult.MaxChannel * this.horizontalScale) + this.scrollX + this.left;
             }
             double num10 = energyResolutionResult.MaxValue;
             double num11 = energyResolutionResult.MaxBaseValue;
@@ -2824,39 +2926,49 @@ namespace BecquerelMonitor
                 int x2;
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
-                    double num12 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.LeftChannel + 0.5);
-                    double num13 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.RightChannel + 0.5);
+                    double num12 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.LeftChannel);
+                    double num13 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.RightChannel);
                     x = GdiCoordinate((num12 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                     x2 = GdiCoordinate((num13 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
-                    x = GdiCoordinate((energyResolutionResult.LeftChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
-                    x2 = GdiCoordinate((energyResolutionResult.RightChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    x = GdiCoordinate(energyResolutionResult.LeftChannel * this.horizontalScale) + this.scrollX + this.left;
+                    x2 = GdiCoordinate(energyResolutionResult.RightChannel * this.horizontalScale) + this.scrollX + this.left;
                 }
-                double num14 = energyResolutionResult.HalfValue;
+                // (`AMBER181`, 05.10.2026) Полувысота меряется над НАКЛОННОЙ базой
+                // (`EnergyResolutionCalculator`), поэтому и линия полувысоты идёт
+                // ПАРАЛЛЕЛЬНО базе: на краях — база в точке пересечения плюс половина
+                // высоты. При ровной базе оба конца на прежнем уровне `HalfValue`.
+                double baseSlope = (energyResolutionResult.EndChannel != energyResolutionResult.StartChannel)
+                    ? (energyResolutionResult.EndValue - energyResolutionResult.StartValue) / (energyResolutionResult.EndChannel - energyResolutionResult.StartChannel)
+                    : 0.0;
+                double halfLeft = energyResolutionResult.HalfValue + baseSlope * (energyResolutionResult.LeftChannel - energyResolutionResult.MaxChannel);
+                double halfRight = energyResolutionResult.HalfValue + baseSlope * (energyResolutionResult.RightChannel - energyResolutionResult.MaxChannel);
                 if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
                 {
-                    num14 /= this.energySpectrum.EffectiveLiveTime;
+                    halfLeft /= this.energySpectrum.EffectiveLiveTime;
+                    halfRight /= this.energySpectrum.EffectiveLiveTime;
                 }
-                int num5;
-                if (this.verticalScaleType == VerticalScaleType.LinearScale)
+                int HalfLevelY(double num14)
                 {
-                    num5 = this.height - GdiCoordinate((num14 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    if (this.verticalScaleType == VerticalScaleType.LinearScale)
+                    {
+                        return this.height - GdiCoordinate((num14 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    }
+                    else if (num14 > 0.0 && this.verticalScaleType == VerticalScaleType.LogarithmicScale)
+                    {
+                        return this.height - GdiCoordinate((Log10(num14) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    }
+                    else if (num14 > 0.0 && this.verticalScaleType == VerticalScaleType.PowerScale)
+                    {
+                        return this.height - GdiCoordinate((Pow(num14) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    }
+                    return this.height;
                 }
-                else if (num14 > 0.0 && this.verticalScaleType == VerticalScaleType.LogarithmicScale)
-                {
-                    num5 = this.height - GdiCoordinate((Log10(num14) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                }
-                else if (num14 > 0.0 && this.verticalScaleType == VerticalScaleType.PowerScale)
-                {
-                    num5 = this.height - GdiCoordinate((Pow(num14) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                }
-                else
-                {
-                    num5 = this.height;
-                }
-                if (num5 > 0 && num5 < this.height)
+                int num5 = HalfLevelY(halfLeft);
+                int num5r = HalfLevelY(halfRight);
+                if (num5 > 0 && num5 < this.height && num5r > 0 && num5r < this.height)
                 {
                     // История места: было `MessageBox.Show("Found")` в `catch`
                     // на каждый канал каждой отрисовки (`A3`, снято), затем
@@ -2865,7 +2977,7 @@ namespace BecquerelMonitor
                     // этого метода проходит `GdiCoordinate` и в предел GDI+
                     // попадает ПО ПОСТРОЕНИЮ; ловить здесь стало нечего, а
                     // ловля вокруг `DrawLine` и была бы лечением симптома.
-                    g.DrawLine(Pens.Yellow, x, num5, x2, num5);
+                    g.DrawLine(Pens.Yellow, x, num5, x2, num5r);
                 }
             }
         }
@@ -2895,14 +3007,14 @@ namespace BecquerelMonitor
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
                     double num2 = (double)(i - this.scrollX - this.left) / this.horizontalScale;
-                    num3 = (int)calibration.EnergyToChannel(num2 / this.pixelPerEnergy + this.energyViewOffset, maxChannels: spectrum.NumberOfChannels);
+                    num3 = NearestChannel(PolynomialEnergyCalibration.ChannelOf(calibration, num2 / this.pixelPerEnergy + this.energyViewOffset, spectrum.NumberOfChannels));
                 }
                 else
                 {
-                    num3 = (int)((double)(i - this.scrollX - this.left) / this.horizontalScale);
+                    num3 = NearestChannel((double)(i - this.scrollX - this.left) / this.horizontalScale);
                     if (this.backgroundEnergyCalibration != null && isBackground && !this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                     {
-                        num3 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)num3), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                        num3 = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, this.baseEnergyCalibration.ChannelToEnergy((double)num3), this.backgroundEnergySpectrum.NumberOfChannels));
                     }
                 }
 
@@ -3055,25 +3167,30 @@ namespace BecquerelMonitor
 
             for (int filled = 0; filled < length; filled++)
             {
-                int pixel = firstPixel + filled;
-                int channel;
-                if (this.horizontalUnit == HorizontalUnit.Energy)
-                {
-                    double offset = (double)(pixel - this.scrollX - this.left) / this.horizontalScale;
-                    channel = (int)calibration.EnergyToChannel(offset / this.pixelPerEnergy + this.energyViewOffset, maxChannels: spectrum.NumberOfChannels);
-                }
-                else
-                {
-                    channel = (int)((double)(pixel - this.scrollX - this.left) / this.horizontalScale);
-                }
-
-                this.pixelChannelMap[filled] = channel;
+                this.pixelChannelMap[filled] = this.ChannelAtPixel(spectrum, calibration, firstPixel + filled);
             }
 
             this.pixelChannelMapSpectrum = spectrum;
             this.pixelChannelMapFirstPixel = firstPixel;
             this.pixelChannelMapLength = length;
             return this.pixelChannelMap;
+        }
+
+        /// <summary>
+        /// Канал, который рисуется в экранном столбце <paramref name="pixel"/>, —
+        /// единственное правило карты <see cref="EnsurePixelChannelMap"/>. Вынесено
+        /// (`AMBER222`), чтобы конец линии пика в режиме FSA брался с ТОГО ЖЕ
+        /// канала, что и кромка, которой он касается (<see cref="TryFsaPeakTopY"/>).
+        /// </summary>
+        int ChannelAtPixel(EnergySpectrum spectrum, EnergyCalibration calibration, int pixel)
+        {
+            if (this.horizontalUnit == HorizontalUnit.Energy)
+            {
+                double offset = (double)(pixel - this.scrollX - this.left) / this.horizontalScale;
+                return NearestChannel(PolynomialEnergyCalibration.ChannelOf(calibration, offset / this.pixelPerEnergy + this.energyViewOffset, spectrum.NumberOfChannels));
+            }
+
+            return NearestChannel((double)(pixel - this.scrollX - this.left) / this.horizontalScale);
         }
 
         void InvalidatePixelChannelMap()
@@ -3214,17 +3331,17 @@ namespace BecquerelMonitor
                 int num3;
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
-                    double num2 = calibration.ChannelToEnergy((double)i + 0.5);
+                    double num2 = calibration.ChannelToEnergy((double)i);
                     num3 = (int)((num2 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else if (this.backgroundEnergyCalibration != null && isBackground)
                 {
-                    double num4 = this.baseEnergyCalibration.EnergyToChannel(this.backgroundEnergyCalibration.ChannelToEnergy((double)i), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
-                    num3 = (int)((num4 + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    double num4 = PolynomialEnergyCalibration.ChannelOf(this.baseEnergyCalibration, this.backgroundEnergyCalibration.ChannelToEnergy((double)i), this.backgroundEnergySpectrum.NumberOfChannels);
+                    num3 = (int)(num4 * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
-                    num3 = (int)(((double)i + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    num3 = (int)((double)i * this.horizontalScale) + this.scrollX + this.left;
                 }
                 int num5 = GetSpectrumValueY(num);
                 if (num3 > this.left)
@@ -3371,12 +3488,12 @@ namespace BecquerelMonitor
                 int num3;
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
-                    double num2 = calibration.ChannelToEnergy((double)i + 0.5);
+                    double num2 = calibration.ChannelToEnergy((double)i);
                     num3 = (int)((num2 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
-                    num3 = (int)(((double)i + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    num3 = (int)((double)i * this.horizontalScale) + this.scrollX + this.left;
                 }
                 int peak = GetSpectrumValueY(peakv);
                 if (num3 > this.left)
@@ -3421,45 +3538,6 @@ namespace BecquerelMonitor
         // Переиспользуемый буфер точек контура пика: DrawPeakLineChart зовётся
         // на каждый пик каждый кадр, заводить список заново незачем.
         readonly List<Point> peakOutlineBuffer = new List<Point>();
-
-        // Token: 0x060004B9 RID: 1209 RVA: 0x00018F58 File Offset: 0x00017158
-        void ShowROIBackground(Graphics g)
-        {
-            if (this.roiConfig == null)
-            {
-                return;
-            }
-            ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
-            using (Brush brush = new SolidBrush(colorConfig.ROIBackgroundColor.Color))
-            {
-                foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
-                {
-                    if (!roidefinitionData.Enabled)
-                    {
-                        continue;
-                    }
-
-                    double lowerLimit = roidefinitionData.LowerLimit;
-                    double upperLimit = roidefinitionData.UpperLimit;
-                    float leftX;
-                    float rightX;
-
-                    if (this.horizontalUnit == HorizontalUnit.Channel)
-                    {
-                        leftX = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-
-                        rightX = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                    }
-                    else
-                    {
-                        leftX = (float)((lowerLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        rightX = (float)((upperLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                    }
-
-                    g.FillRectangle(brush, leftX, 0f, rightX - leftX, (float)(this.height - 1));
-                }
-            }
-        }
 
         /// <summary>
         /// Вертикальные линии интенсивностей — по ВЫБРАННОМУ НАБОРУ НУКЛИДОВ.
@@ -3551,7 +3629,7 @@ namespace BecquerelMonitor
                 float num;
                 if (this.horizontalUnit == HorizontalUnit.Channel)
                 {
-                    num = (float)(this.energyCalibration.EnergyToChannel(line.Energy, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                    num = (float)(PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, line.Energy, this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                 }
                 else
                 {
@@ -3565,216 +3643,6 @@ namespace BecquerelMonitor
                     using (Pen pen = new Pen(line.NuclideColor.Color, 2))
                     {
                         g.DrawLine(pen, num, (float)((1.0 - intencityscale) * (this.height - 1)), num, (float)(this.height - 1));
-                    }
-                }
-            }
-        }
-
-        // Token: 0x060004BA RID: 1210 RVA: 0x00019164 File Offset: 0x00017364
-        void ShowROIBorderLine(Graphics g)
-        {
-            if (this.roiConfig == null)
-            {
-                return;
-            }
-            ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
-            using (Pen pen = new Pen(colorConfig.ROIBorderColor.Color))
-            {
-                foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
-                {
-                    if (!roidefinitionData.Enabled)
-                    {
-                        continue;
-                    }
-
-                    double lowerLimit = roidefinitionData.LowerLimit;
-                    double upperLimit = roidefinitionData.UpperLimit;
-                    float num;
-                    float num2;
-
-                    if (this.horizontalUnit == HorizontalUnit.Channel)
-                    {
-                        num = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-
-                        num2 = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                    }
-                    else
-                    {
-                        num = (float)((lowerLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        num2 = (float)((upperLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                    }
-
-                    if (num > (float)this.left)
-                    {
-                        g.DrawLine(pen, num, 0f, num, (float)(this.height - 1));
-                    }
-                    if (num2 > (float)this.left)
-                    {
-                        g.DrawLine(pen, num2, 0f, num2, (float)(this.height - 1));
-                    }
-                }
-            }
-        }
-
-        // Token: 0x060004BB RID: 1211 RVA: 0x000193A4 File Offset: 0x000175A4
-        void ShowROINetRegion(Graphics g, bool baseDrawing)
-        {
-            if (this.roiConfig == null)
-            {
-                return;
-            }
-            ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
-            using (Brush brush = new SolidBrush(colorConfig.ROINetColor.Color))
-            {
-                foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
-                {
-                    if (!roidefinitionData.Enabled)
-                    {
-                        continue;
-                    }
-
-                    double lowerLimit = roidefinitionData.LowerLimit;
-                    double upperLimit = roidefinitionData.UpperLimit;
-                    float leftX;
-                    float rightX;
-
-                    if (this.horizontalUnit == HorizontalUnit.Channel)
-                    {
-                        leftX = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-
-                        rightX = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                    }
-                    else
-                    {
-                        leftX = (float)((lowerLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        rightX = (float)((upperLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                    }
-
-                    int startPixel = (int)leftX;
-                    int endPixel = (int)rightX;
-                    startPixel = Math.Max(startPixel, this.VisibleLeftPixel);
-                    endPixel = Math.Min(endPixel, this.VisibleRightPixel);
-                    if (startPixel > endPixel)
-                    {
-                        continue;
-                    }
-
-                    for (int i = startPixel; i <= endPixel; i++)
-                    {
-                        double channelIndex;
-                        if (this.horizontalUnit == HorizontalUnit.Energy)
-                        {
-                            double pixelEnergyPos = (double)(i - this.scrollX - this.left) / this.horizontalScale;
-                            channelIndex = this.energyCalibration.EnergyToChannel(pixelEnergyPos / this.pixelPerEnergy + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels);
-                        }
-                        else
-                        {
-                            channelIndex = (double)((int)((double)(i - this.scrollX - this.left) / this.horizontalScale));
-                        }
-
-                        int ch = (int)channelIndex;
-                        if (ch >= 0 && ch < this.energySpectrum.Spectrum.Length)
-                        {
-                            double fgValue = this.energySpectrum.DrawingSpectrum[ch];
-                            if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
-                            {
-                                fgValue /= this.energySpectrum.EffectiveLiveTime;
-                            }
-
-                            double bgValue = 0.0;
-                            if (!(this.backgroundEnergySpectrum == null || this.backgroundEnergySpectrum.EffectiveLiveTime == 0.0))
-                            {
-                                int bgCh = ch;
-                                if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
-                                {
-                                    bgCh = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(channelIndex), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
-                                }
-                                if (bgCh < 0 || bgCh >= this.backgroundEnergySpectrum.Spectrum.Length)
-                                {
-                                    // skip drawing for this pixel if background mapping is invalid
-                                    continue;
-                                }
-                                if (this.verticalUnit == VerticalUnit.CountsPerSecond)
-                                {
-                                    bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] / this.backgroundEnergySpectrum.EffectiveLiveTime;
-                                }
-                                else
-                                {
-                                    bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] * this.energySpectrum.EffectiveLiveTime / this.backgroundEnergySpectrum.EffectiveLiveTime;
-                                }
-                            }
-
-                            int y1;
-                            int y2;
-                            if (this.verticalScaleType == VerticalScaleType.LinearScale)
-                            {
-                                y1 = this.height - (int)((fgValue - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                                y2 = this.height - (int)((bgValue - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                            }
-                            else if (this.verticalScaleType == VerticalScaleType.PowerScale)
-                            {
-                                if (fgValue <= 0.0)
-                                {
-                                    y1 = this.height;
-                                }
-                                else
-                                {
-                                    y1 = this.height - (int)((Pow(fgValue) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                                }
-                                if (y1 > this.height) y1 = this.height;
-
-                                if (bgValue <= 0.0)
-                                {
-                                    y2 = this.height;
-                                }
-                                else
-                                {
-                                    y2 = this.height - (int)((Pow(bgValue) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                                }
-                                if (y2 > this.height) y2 = this.height;
-                            }
-                            else
-                            {
-                                if (fgValue <= 0.0)
-                                {
-                                    y1 = this.height;
-                                }
-                                else
-                                {
-                                    y1 = this.height - (int)((Log10(fgValue) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                                }
-                                if (y1 > this.height) y1 = this.height;
-
-                                if (bgValue <= 0.0)
-                                {
-                                    y2 = this.height;
-                                }
-                                else
-                                {
-                                    y2 = this.height - (int)((Log10(bgValue) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                                }
-                                if (y2 > this.height) y2 = this.height;
-                            }
-
-                            if (y1 > y2)
-                            {
-                                int tmp = y1;
-                                y1 = y2;
-                                y2 = tmp;
-                            }
-
-                            if (i > this.left)
-                            {
-                                if (this.chartType == ChartType.BarChart)
-                                {
-                                    g.FillRectangle(brush, i, y1, 1, y2 - y1);
-                                }
-                                else
-                                {
-                                    g.FillRectangle(brush, i, y1, 1, y2 - y1 + 1);
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -3805,16 +3673,16 @@ namespace BecquerelMonitor
                 num2++;
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
-                    double num3 = this.energyCalibration.ChannelToEnergy((double)num);
-                    double num4 = this.energyCalibration.ChannelToEnergy((double)num2);
+                    double num3 = this.energyCalibration.ChannelToEnergy((double)num - 0.5);
+                    double num4 = this.energyCalibration.ChannelToEnergy((double)num2 - 0.5);
                     int num5 = (int)((num3 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                     int num6 = (int)((num4 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                     g.FillRectangle(brush, num5, 0, num6 - num5, this.height - 1);
                 }
                 else
                 {
-                    int num7 = (int)((double)num * this.horizontalScale) + this.scrollX + this.left;
-                    int num8 = (int)((double)num2 * this.horizontalScale) + this.scrollX + this.left;
+                    int num7 = (int)(((double)num - 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    int num8 = (int)(((double)num2 - 0.5) * this.horizontalScale) + this.scrollX + this.left;
                     g.FillRectangle(brush, num7, 0, num8 - num7, this.height - 1);
                 }
             }
@@ -3845,15 +3713,15 @@ namespace BecquerelMonitor
             int num6;
             if (this.horizontalUnit == HorizontalUnit.Energy)
             {
-                double num3 = this.energyCalibration.ChannelToEnergy((double)num);
-                double num4 = this.energyCalibration.ChannelToEnergy((double)num2);
+                double num3 = this.energyCalibration.ChannelToEnergy((double)num - 0.5);
+                double num4 = this.energyCalibration.ChannelToEnergy((double)num2 - 0.5);
                 num5 = (int)((num3 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                 num6 = (int)((num4 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
             }
             else
             {
-                num5 = (int)((double)num * this.horizontalScale) + this.scrollX + this.left;
-                num6 = (int)((double)num2 * this.horizontalScale) + this.scrollX + this.left;
+                num5 = (int)(((double)num - 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                num6 = (int)(((double)num2 - 0.5) * this.horizontalScale) + this.scrollX + this.left;
             }
             using (Pen pen = new Pen(colorConfig.SelectionBorderColor.Color))
             {
@@ -3886,14 +3754,14 @@ namespace BecquerelMonitor
                     if (this.horizontalUnit == HorizontalUnit.Energy)
                     {
                         double pixelEnergyPos = (double)(i - this.scrollX - this.left) / this.horizontalScale;
-                        channelIndex = this.energyCalibration.EnergyToChannel(pixelEnergyPos / this.pixelPerEnergy + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels);
+                        channelIndex = PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, pixelEnergyPos / this.pixelPerEnergy + this.energyViewOffset, this.energySpectrum.NumberOfChannels);
                     }
                     else
                     {
-                        channelIndex = (double)((int)((double)(i - this.scrollX - this.left) / this.horizontalScale));
+                        channelIndex = (double)(i - this.scrollX - this.left) / this.horizontalScale;
                     }
 
-                    int ch = (int)channelIndex;
+                    int ch = NearestChannel(channelIndex);
                     if (ch >= 0 && ch < this.energySpectrum.Spectrum.Length)
                     {
                         bool fsaNetHere = fsaNet != null && ch < fsaNet.Length;
@@ -3912,7 +3780,7 @@ namespace BecquerelMonitor
                             int bgCh = ch;
                             if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                             {
-                                bgCh = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(channelIndex), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                                bgCh = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, this.baseEnergyCalibration.ChannelToEnergy(channelIndex), this.backgroundEnergySpectrum.NumberOfChannels));
                             }
                             if (bgCh < 0 || bgCh >= this.backgroundEnergySpectrum.Spectrum.Length)
                             {
@@ -4338,12 +4206,12 @@ namespace BecquerelMonitor
                 int num2;
                 if (this.horizontalUnit == HorizontalUnit.Channel)
                 {
-                    num2 = (int)(((double)channel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    num2 = (int)((double)channel * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
                     double num3 = this.energyCalibration.ChannelToEnergy((double)channel);
-                    num2 = (int)(((num3 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
+                    num2 = (int)((num3 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
                 }
                 if (this.cursorX >= num && this.cursorX < num2)
                 {
@@ -4382,12 +4250,12 @@ namespace BecquerelMonitor
                 int px;
                 if (this.horizontalUnit == HorizontalUnit.Channel)
                 {
-                    px = (int)(((double)channel3 + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    px = (int)((double)channel3 * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
                     double num8 = this.energyCalibration.ChannelToEnergy((double)channel3);
-                    px = (int)(((num8 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
+                    px = (int)((num8 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
                 }
                 this.DrawPeakFlag(g, peak, px, 0, pen2, brush, brush2);
             }
@@ -4440,20 +4308,31 @@ namespace BecquerelMonitor
         {
             if (this.horizontalUnit == HorizontalUnit.Channel)
             {
-                return (int)((channel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                return (int)(channel * this.horizontalScale) + this.scrollX + this.left;
             }
             double energy = this.energyCalibration.ChannelToEnergy(channel);
-            return (int)(((energy - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
+            return (int)((energy - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
         }
 
         /// <summary>
-        /// Экранный Y вершины пика — той кривой, что нарисована: за вычетом фона
-        /// в режиме разложения (<paramref name="fsaNet"/>) и в режиме вычитания,
-        /// иначе самого спектра. Значение ≤ 0 на нелинейной шкале даёт точку за
+        /// Экранный Y вершины пика — той кривой, что нарисована: при нарисованной
+        /// стопке FSA — верх нарисованного в столбце линии (`AMBER222`,
+        /// <see cref="TryFsaPeakTopY"/>); в режиме разложения без стопки — спектр
+        /// за вычетом фона (<paramref name="fsaNet"/>), в режиме вычитания — он же,
+        /// иначе сам спектр. Значение ≤ 0 на нелинейной шкале даёт точку за
         /// краем поля (<c>height + 100</c>) — как и было у линии пика.
         /// </summary>
         int PeakTopY(Peak peak, EnergySpectrum spectrum, double[] fsaNet)
         {
+            // (`AMBER222`) Стопка FSA нарисована в этом кадре — линия упирается в
+            // верх НАРИСОВАННОГО в своём экранном столбце, а не в измерение,
+            // которого на графике может не быть (галочка «Spectral data» снята).
+            int fsaTopY;
+            if (this.TryFsaPeakTopY(this.PeakX((double)peak.Channel), out fsaTopY))
+            {
+                return fsaTopY;
+            }
+
             int channel2 = peak.Channel;
             double num6 = 0.0;
             if (fsaNet != null && channel2 >= 0 && channel2 < fsaNet.Length)
@@ -4642,54 +4521,24 @@ namespace BecquerelMonitor
                 int num;
                 if (this.horizontalUnit == HorizontalUnit.Channel)
                 {
-                    num = (int)(((double)channel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    num = (int)((double)channel * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
                     double num2 = this.energyCalibration.ChannelToEnergy((double)channel);
-                    num = (int)(((num2 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
+                    num = (int)((num2 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
                 }
                 double num3 = spectrum.DrawingSpectrum[channel];
                 if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.EffectiveLiveTime != 0.0)
                 {
                     num3 /= spectrum.EffectiveLiveTime;
                 }
-                int y;
-                if (this.verticalScaleType == VerticalScaleType.LinearScale)
-                {
-                    if (num3 <= 0.0)
-                    {
-                        y = this.height;
-                    }
-                    else
-                    {
-                        y = this.height - (int)((num3 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                    }
-                }
-                else if (this.verticalScaleType == VerticalScaleType.PowerScale)
-                {
-                    double num4 = Pow(num3);
-                    if (num3 <= 0.0)
-                    {
-                        y = this.height + 100;
-                    }
-                    else
-                    {
-                        y = this.height - (int)((num4 - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                    }
-                }
-                else
-                {
-                    double num4 = Log10(num3);
-                    if (num3 <= 0.0)
-                    {
-                        y = this.height + 100;
-                    }
-                    else
-                    {
-                        y = this.height - (int)((num4 - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                    }
-                }
+                // (`AMBER179`, 05.10.2026) Y — общим методом, знающим все три шкалы:
+                // прежняя самодельная ветка логарифма брала totalMinValuePow и
+                // valueRangePow, которые присваиваются только в степенной шкале
+                // (там 0 → деление на 0 → (int) = int.MinValue → OverflowException
+                // в DrawLine каждый кадр).
+                int y = GetSpectrumValueY(num3);
                 if (num > this.left)
                 {
                     g.DrawLine(Pens.Orange, num, 5, num, y);
@@ -4702,13 +4551,13 @@ namespace BecquerelMonitor
                 int num8;
                 if (this.horizontalUnit == HorizontalUnit.Channel)
                 {
-                    num7 = (int)(((double)leftChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
-                    num8 = (int)(((double)rightChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    num7 = (int)((double)leftChannel * this.horizontalScale) + this.scrollX + this.left;
+                    num8 = (int)((double)rightChannel * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
-                    num7 = (int)(((num5 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
-                    num8 = (int)(((num6 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
+                    num7 = (int)((num5 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
+                    num8 = (int)((num6 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
                 }
                 g.FillRectangle(Brushes.Orange, num7, 5, num8 - num7 + 1, 2);
                 g.DrawLine(Pens.Orange, num7, 3, num7, 8);
@@ -4797,12 +4646,12 @@ namespace BecquerelMonitor
                     int num4;
                     if (this.horizontalUnit == HorizontalUnit.Channel)
                     {
-                        num4 = (int)(((double)this.cursorChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                        num4 = (int)((double)this.cursorChannel * this.horizontalScale) + this.scrollX + this.left;
                     }
                     else
                     {
                         double num5 = this.energyCalibration.ChannelToEnergy((double)this.cursorChannel);
-                        num4 = (int)(((num5 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                        num4 = (int)((num5 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                     }
                     g.DrawLine(pen, num4, 0, num4, this.height);
                     this.EnsureCursorNuclidePeak();
@@ -4849,7 +4698,7 @@ namespace BecquerelMonitor
                         }
                         else
                         {
-                            bgChannelIndex = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)this.cursorChannel), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                            bgChannelIndex = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, this.baseEnergyCalibration.ChannelToEnergy((double)this.cursorChannel), this.backgroundEnergySpectrum.NumberOfChannels));
                         }
                         if (bgChannelIndex >= 0 && bgChannelIndex < this.backgroundNumberOfChannels)
                         {
@@ -4892,8 +4741,13 @@ namespace BecquerelMonitor
                 double Lc = selection.Lc;
                 double Lu = selection.Lu;
                 double Ld = selection.Ld;
-                double Lq = selection.Lq;
-                double activity = selection.Activity;
+                // ⚠ ПРОТОТИП П236 (решение Amber 06.10.2026, п. 1: «Это убрать: панель
+                // выделения на графике уже считает Бк без всякой ROI…»): активность с
+                // панели выделения СНЯТА. Ноль здесь гасит и подпись линии, и момент,
+                // и три строки Бк — все они стоят за условием `activity > 0.0`; счёт
+                // (NetCounts, Lc, Ld), ПШПВ и центроид остаются. Вычисление
+                // активности в `SelectionAnalytics` пока живо (его читает проба).
+                double activity = 0.0;
                 double activityError = selection.ActivityError;
                 double activityUpperLimit = selection.ActivityUpperLimit;
                 double activityByMass = selection.ActivityByMass;
@@ -4908,12 +4762,14 @@ namespace BecquerelMonitor
                 {
                     infopanel_height += 46;
                 }
+                // (`AMBER198`) Без строки Lq — на 16 px меньше в обеих ветках;
+                // «≥» — как у отрисовки ниже, где при net = Lc идёт ветка без Lu.
                 if (Lc > 0 && net_counts < Lc) {
-                    infopanel_height += 88;
-                }
-                if (Lc > 0 && net_counts > Lc)
-                {
                     infopanel_height += 72;
+                }
+                if (Lc > 0 && net_counts >= Lc)
+                {
+                    infopanel_height += 56;
                 }
                 if (adj_bg_counts > 0)
                 {
@@ -4960,6 +4816,12 @@ namespace BecquerelMonitor
                     if (selection.ActivityRivals > 0)
                     {
                         infopanel_height += 16; // ПАНЕЛЬ: спор
+                    }
+                    // (`AMBER207`, решение Amber 06.10.2026) Слагаемого «суммирование»
+                    // больше нет: строка поправки снята с панели, см. отрисовку ниже.
+                    if (!string.IsNullOrEmpty(selection.ActivityMoment))
+                    {
+                        infopanel_height += 16; // ПАНЕЛЬ: момент (`AMBER148`)
                     }
                 }
 
@@ -5054,9 +4916,8 @@ namespace BecquerelMonitor
                     g.DrawString(Resources.Ld_counts + " (" + confidencelevel_str + ")", this.Font, Brushes.Black, r2);
                     g.DrawString(Ld.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
-                    g.DrawString(Resources.Lq_counts, this.Font, Brushes.Black, r2);
-                    g.DrawString(Lq.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
-                    r2.Y += 16;
+                    // (`AMBER198`, решение Amber 05.10.2026 «Убрать Lq с панели»)
+                    // Строки «Lq counts» здесь больше нет.
                 }
 
                 // (05.09.2026) Подпись, спор и отказ рисуются и при Lc = 0: без
@@ -5090,6 +4951,14 @@ namespace BecquerelMonitor
                                  this.Font, Brushes.Black, r2, this.centerFormat);
                     r2.Y += 16;
 
+                    // (`AMBER207`, решение Amber 06.10.2026 вопросником: «Обе
+                    // строки, поправка в числе остаётся») Строки суммирования
+                    // («Поправка на каскадное суммирование ×…» / «Без поправки…»)
+                    // на панели больше нет: длинная, она не влезала в 16 px,
+                    // переносилась на три строки и налезала на строку момента.
+                    // Поправка (`AMBER133`) по-прежнему входит в K выше, а
+                    // `ActivitySummingNote` считается — его судит `RoiSummingProbeP167`.
+
                     if (selection.ActivityRivals > 0)
                     {
                         g.DrawString(string.Format(CultureInfo.InvariantCulture,
@@ -5097,6 +4966,14 @@ namespace BecquerelMonitor
                                                    selection.ActivityRivals,
                                                    selection.ActivityRivalFactor),
                                      this.Font, Brushes.DarkOrange, r2, this.centerFormat);
+                        r2.Y += 16;
+                    }
+
+                    // (`AMBER148`) Момент, к которому отнесены беккерели ниже:
+                    // «среднее за набор» или «на дату отбора … ×множитель».
+                    if (!string.IsNullOrEmpty(selection.ActivityMoment))
+                    {
+                        g.DrawString(selection.ActivityMoment, this.Font, Brushes.DarkSlateGray, r2, this.centerFormat);
                         r2.Y += 16;
                     }
                 }
@@ -5165,7 +5042,7 @@ namespace BecquerelMonitor
                     r2.Y += 16;
                     g.DrawString(Resources.ChartHeaderFWHM, this.Font, Brushes.Black, r2);
                     g.DrawString((this.selectionFWHM * 100.0).ToString(floatFormat, CultureInfo.InvariantCulture) + Resources.PercentCharacter +
-                        " (" + (this.selectionFWHMinkev).ToString(floatFormat, CultureInfo.InvariantCulture) + " " + Resources.kev + ", " + this.selectionFullWidth.ToString(intFormat, CultureInfo.InvariantCulture) + " " + Resources.ChartChannelShort + ")",
+                        " (" + (this.selectionFWHMinkev).ToString(floatFormat, CultureInfo.InvariantCulture) + " " + Resources.kev + ", " + this.selectionFullWidth.ToString(floatFormat, CultureInfo.InvariantCulture) + " " + Resources.ChartChannelShort + ")",
                         this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
                     //g.DrawString(Resources._2Sigma, this.Font, Brushes.Black, r2);
@@ -5247,11 +5124,11 @@ namespace BecquerelMonitor
                 {
                     double num2 = (double)(this.cursorX - this.left - this.scrollX) / this.horizontalScale;
                     this.cursorEnergy = num2 / this.pixelPerEnergy + this.energyViewOffset;
-                    this.cursorChannel = (int)this.energyCalibration.EnergyToChannel(this.cursorEnergy, maxChannels: this.energySpectrum.NumberOfChannels);
+                    this.cursorChannel = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.energyCalibration, this.cursorEnergy, this.energySpectrum.NumberOfChannels));
                 }
                 else
                 {
-                    this.cursorChannel = (int)((double)(this.cursorX - this.left - this.scrollX) / this.horizontalScale);
+                    this.cursorChannel = NearestChannel((double)(this.cursorX - this.left - this.scrollX) / this.horizontalScale);
                     this.cursorEnergy = this.energyCalibration.ChannelToEnergy((double)this.CursorChannel);
                 }
 
@@ -5472,9 +5349,12 @@ namespace BecquerelMonitor
                 {
                     try
                     {
-                        Bitmap bitmap = new Bitmap(base.Width - this.vScrollBar1.Width, base.Height - this.hScrollBar1.Height);
-                        base.DrawToBitmap(bitmap, new Rectangle(0, 0, base.Width - this.vScrollBar1.Width, base.Height - this.hScrollBar1.Height));
-                        bitmap.Save(dialog.FileName);
+                        // (`AMBER201`, мелочь 6.13) Кадр освобождается сразу, а не сборщиком.
+                        using (Bitmap bitmap = new Bitmap(base.Width - this.vScrollBar1.Width, base.Height - this.hScrollBar1.Height))
+                        {
+                            base.DrawToBitmap(bitmap, new Rectangle(0, 0, base.Width - this.vScrollBar1.Width, base.Height - this.hScrollBar1.Height));
+                            bitmap.Save(dialog.FileName);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -5632,9 +5512,6 @@ namespace BecquerelMonitor
         EnergySpectrum normByEffEnergySpectrum;
 
 
-        // Token: 0x040001FB RID: 507
-        ROIConfigData roiConfig;
-
         // Token: 0x040001FC RID: 508
         EnergyCalibration energyCalibration;
 
@@ -5710,7 +5587,7 @@ namespace BecquerelMonitor
         // Token: 0x04000211 RID: 529
         double selectionFWHM;
 
-        int selectionFullWidth;
+        double selectionFullWidth;
 
         int selectionCentroidCh;
 
@@ -5788,7 +5665,7 @@ namespace BecquerelMonitor
 
             public double SelectionFWHM { get; set; } = -1.0;
 
-            public int SelectionFullWidth { get; set; }
+            public double SelectionFullWidth { get; set; }
 
             public int SelectionCentroidCh { get; set; }
 
@@ -5819,8 +5696,6 @@ namespace BecquerelMonitor
             public double Lu { get; set; }
 
             public double Ld { get; set; }
-
-            public double Lq { get; set; }
 
             public double Activity { get; set; }
 
@@ -5854,6 +5729,26 @@ namespace BecquerelMonitor
             /// более раз у 71 % таких пиков).
             /// </summary>
             public string ActivityLabel { get; set; }
+
+            /// <summary>
+            /// (`AMBER133`, П167) Что сделано с каскадным суммированием у
+            /// беккерелей выделения: применённый множитель или причина, почему
+            /// его нет; null — у линии нет каскада, говорить не о чем.
+            /// </summary>
+            public string ActivitySummingNote { get; set; }
+
+            /// <summary>
+            /// (`AMBER148`, П192) К какому моменту отнесены беккерели выделения:
+            /// «среднее за набор» либо «на дату отбора … ×множитель» — строка
+            /// панели под подписью линии. Null — числа нет, говорить не о чем.
+            /// </summary>
+            public string ActivityMoment { get; set; }
+
+            /// <summary>
+            /// (`AMBER148`) Множитель от средней за набор к дате отбора, вошедший
+            /// в беккерели выделения; 1 — без поправки.
+            /// </summary>
+            public double ActivityDecayFactor { get; set; } = 1.0;
 
             public double ActivityLineKev { get; set; }
 

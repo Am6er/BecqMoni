@@ -1,0 +1,1 @@
+rebuild_store(2) code=0

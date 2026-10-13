@@ -1,0 +1,45 @@
+build start 2026-09-24 14:44:59 tag=base head=7ff7cf5c
+restore code=0
+app code=0 14:45:04
+probes code=0 14:46:33
+app exe sha256 dec361c1c54edecbc4ee358e62184044042b7f642dc12e9d7a66dbb3c44ef0f3
+probes exe sha256 dec361c1c54edecbc4ee358e62184044042b7f642dc12e9d7a66dbb3c44ef0f3
+build start 2026-09-24 15:02:44 tag=s3 head=7ff7cf5c
+app code=0 15:02:47
+probes code=0 15:04:05
+app exe sha256 60d31ab5e29c0b36dc50fc5700c82b2e874f910f5c230d07f04840103958036b
+probes exe sha256 60d31ab5e29c0b36dc50fc5700c82b2e874f910f5c230d07f04840103958036b
+build start 2026-09-24 15:19:51 tag=s4 head=b64c0726
+app code=1 15:19:54
+build start 2026-09-24 15:20:09 tag=s4 head=b64c0726
+app code=0 15:20:12
+probes code=0 15:21:36
+app exe sha256 f18897bde6148f94d8e0ff7ac47c160c69b11efd3a6d1593a5b194dd6e0525d5
+probes exe sha256 f18897bde6148f94d8e0ff7ac47c160c69b11efd3a6d1593a5b194dd6e0525d5
+build start 2026-09-24 16:00:32 tag=s5 head=b64c0726
+app code=0 16:00:36
+probes code=0 16:02:30
+app exe sha256 49adf60b3af39be6fae7a125c165e622dc28a3e4241197281b06cb499614d93a
+probes exe sha256 49adf60b3af39be6fae7a125c165e622dc28a3e4241197281b06cb499614d93a
+debug start 2026-09-24 16:04:47 head=b64c0726
+debug app code=0
+debug probes code=0
+build start 2026-09-24 16:54:28 tag=s6 head=545a6f87
+restore code=0
+app code=0 16:54:32
+probes code=0 16:56:04
+app exe sha256 81c359c106670be3303425c3d4c8b094c53c80ca4cf6dd339a28706749384111
+probes exe sha256 81c359c106670be3303425c3d4c8b094c53c80ca4cf6dd339a28706749384111
+build start 2026-09-24 17:06:49 tag=s7 head=545a6f87
+app code=0 17:06:53
+probes code=0 17:08:21
+app exe sha256 065efe1d00d48a0feed1ac8bf042f079246f2fc20bbcb91333f6338c7e517805
+probes exe sha256 065efe1d00d48a0feed1ac8bf042f079246f2fc20bbcb91333f6338c7e517805
+build start 2026-09-24 17:11:24 tag=s8 head=545a6f87
+app code=0 17:11:28
+probes code=0 17:12:50
+app exe sha256 0bfb8e2e85afe05007920a7a3e53437bb14d1383ad5c9a9d3b07ea6dd1fffff6
+probes exe sha256 0bfb8e2e85afe05007920a7a3e53437bb14d1383ad5c9a9d3b07ea6dd1fffff6
+debug start 2026-09-24 18:00:48 head=545a6f87
+debug app code=0
+debug probes code=0

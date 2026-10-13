@@ -1,0 +1,576 @@
+читатель сторожей: 42 к вызову (заведомо красных по строкам реестра пропущено 0 — см. --all)
+
+→ зову: python tools/check_registry_refs.py
+✅ tools/check_registry_refs.py: код 0, 4.3 с
+
+→ зову: python tools/check_build_recipe.py
+✅ tools/check_build_recipe.py: код 0, 5.2 с
+
+→ зову: python tools/check_resx.py
+✅ tools/check_resx.py: код 0, 0.3 с
+
+→ зову: python tools/check_resx_designer.py
+✅ tools/check_resx_designer.py: код 0, 3.2 с
+
+→ зову: python tools/check_resx_letters.py
+✅ tools/check_resx_letters.py: код 0, 0.4 с
+
+→ зову: python tools/check_resx_zorder.py
+✅ tools/check_resx_zorder.py: код 0, 0.2 с
+
+→ зову: python tools/check_headless.py
+✅ tools/check_headless.py: код 0, 6.0 с
+
+→ зову: python tools/check_menu_accelerators.py
+✅ tools/check_menu_accelerators.py: код 0, 0.3 с
+
+→ зову: python tools/check_numeric_updown.py
+✅ tools/check_numeric_updown.py: код 0, 0.7 с
+
+→ зову: python tools/check_fsa_docs.py
+✅ tools/check_fsa_docs.py: код 0, 0.1 с
+
+→ зову: python tools/nucdb/check_ensdf_numbers.py
+✅ tools/nucdb/check_ensdf_numbers.py: код 0, 0.1 с
+
+→ зову: python tools/nucdb/check_db_marks.py
+✅ tools/nucdb/check_db_marks.py: код 0, 0.2 с
+
+→ зову: python tools/nucdb/check_isomer_levels.py
+✅ tools/nucdb/check_isomer_levels.py: код 0, 1.6 с
+
+→ зову: python tools/check_decay_numeric.py
+✅ tools/check_decay_numeric.py: код 0, 1.6 с
+
+→ зову: python tools/check_parent_rule.py
+✅ tools/check_parent_rule.py: код 0, 5.9 с
+
+→ зову: python tools/check_corpus_readme.py
+✅ tools/check_corpus_readme.py: код 0, 0.1 с
+
+→ зову: python tools/check_scheme_gaps.py
+✅ tools/check_scheme_gaps.py: код 0, 0.1 с
+
+→ зову: python tools/check_corpus_library.py
+✅ tools/check_corpus_library.py: код 0, 0.1 с
+
+→ зову: python tools/check_corpus_truth.py
+✅ tools/check_corpus_truth.py: код 0, 0.1 с
+
+→ зову: python tools/check_done_headers.py
+✅ tools/check_done_headers.py: код 0, 0.2 с
+
+→ зову: python tools/check_corpus_coverage.py
+    === 1. КОДЫ ВОЗВРАТА МЕРОК ОХВАТА ===
+    → зову: python tools/CORPUS/scripts/gaussfit_check.py --coverage-only
+        Traceback (most recent call last):
+          File "D:\BqMoni_Claude\p166\wt\tools\CORPUS\scripts\gaussfit_check.py", line 715, in <module>
+            sys.exit(main())
+                     ~~~~^^
+          File "D:\BqMoni_Claude\p166\wt\tools\CORPUS\scripts\gaussfit_check.py", line 500, in main
+            stray = sorted(f[:-4] for f in os.listdir(raw_dir)
+                                           ~~~~~~~~~~^^^^^^^^^
+        FileNotFoundError: [WinError 3] Системе не удается найти указанный путь: 'D:\\BqMoni_Claude\\p166\\wt\\tools\\CORPUS\\scripts\\_corpus_raw'
+    ⛔ tools/CORPUS/scripts/gaussfit_check.py: код 1
+    
+      пропущена gate_blind_check.py — долгая (~мин); звать ключом --deep
+      пропущена ecal_accept_check.py — долгая (~мин); звать ключом --deep
+      пропущена ecal_extrapolation.py — долгая (~мин); звать ключом --deep
+    ⚠ коды 4 (`V16`) и 5 (`V17`) у gate_blind_check.py этим сторожем НЕ читаются: их даёт только полный прогон мерки, без --coverage-only.
+    
+    === 2. МЕРКИ НА СЫРЬЕ БЕЗ ОХВАТА ===
+      освобождён build_corpus.py          — не мерка: стадия 1, которая _corpus_raw и СОЗДАЁТ
+      нарушителей: 0
+    
+    === сводка ===
+      ⛔ gaussfit_check.py        код 1
+    ОСТАНОВ: охват корпусных мерок сломан — мерок с ненулевым кодом 1, мерок без охвата 0. Числа таких мерок корпус НЕ описывают.
+⛔ tools/check_corpus_coverage.py: код 1, 0.2 с
+
+→ зову: python tools/check_declared_base.py
+    ОБЪЯВЛЕНИЕ: tools\CORPUS\README.md, раздел «ДЕЙСТВУЮЩАЯ БАЗА»
+    ИЗМЕРЕНИЕ:  tools/pie/score.py по файлам самого каталога
+    строк объявления взято: 4
+    
+    ОТКАЗ СТОРОЖА: полная `out_rev33_full` / понятная: каталог tools\pie\out_rev33_full (назван объявлением) не найден
+⛔ tools/check_declared_base.py: код 2, 0.1 с
+
+→ зову: python tools/check_pending_runs.py
+✅ tools/check_pending_runs.py: код 0, 0.1 с
+
+→ зову: python tools/check_probe_tuning.py
+✅ tools/check_probe_tuning.py: код 0, 0.3 с
+
+→ зову: python tools/check_matrix_keys.py
+✅ tools/check_matrix_keys.py: код 0, 1.3 с
+
+→ зову: python tools/check_geometry_names.py
+✅ tools/check_geometry_names.py: код 0, 0.3 с
+
+→ зову: python tools/check_fsa_view_groups.py
+✅ tools/check_fsa_view_groups.py: код 0, 0.1 с
+
+→ зову: python tools/check_fsa_report_view.py
+✅ tools/check_fsa_report_view.py: код 0, 34.8 с
+
+→ зову: python tools/check_selection_panel_height.py
+✅ tools/check_selection_panel_height.py: код 0, 0.0 с
+
+→ зову: python tools/check_escape_parents.py
+✅ tools/check_escape_parents.py: код 0, 0.0 с
+
+→ зову: python tools/check_crystal_material.py
+✅ tools/check_crystal_material.py: код 0, 0.1 с
+
+→ зову: python tools/check_refit_z_class.py
+✅ tools/check_refit_z_class.py: код 0, 0.1 с
+
+→ зову: python tools/check_roi_listup.py
+✅ tools/check_roi_listup.py: код 0, 0.0 с
+
+→ зову: python tools/nucdb/check_edges.py
+✅ tools/nucdb/check_edges.py: код 0, 0.1 с
+
+→ зову: python tools/check_probe_numbers.py
+✅ tools/check_probe_numbers.py: код 0, 0.4 с
+
+→ зову: python tools/check_curve_generation.py
+✅ tools/check_curve_generation.py: код 0, 0.1 с
+
+→ зову: python tools/check_dump_readers.py
+✅ tools/check_dump_readers.py: код 0, 0.1 с
+
+→ зову: python tools/check_corpus_generator.py
+    корпус: tools\CORPUS\corpus
+    
+    == клеймо генератора корпуса (T244) ==
+      набор генератора в дереве: 11 файлов, отпечаток 449a7d7f6183ff5f
+      клеймо: собрано на HEAD 42291677 (генератор был ГРЯЗНЫМ: tools/CORPUS/scripts/build_corpus.py), отпечаток 449a7d7f6183ff5f
+      СОШЛОСЬ: корпус собран ТЕМ генератором, что лежит в дереве (11 файлов)
+    
+    == сводка корпуса — пересборкой в памяти (T244, доля П6) ==
+      manifest.csv: 136 спектров; пересобрано строк сводки: 136
+      ⛔ summary.csv РАЗОШЛОСЬ: на диске 137 строк, пересборка даёт 137
+         первая разошедшаяся строка 28:
+           на диске:    ✅,,ASN16_Cs137,ASN16,known,137CS,8192,356491.2,250626474,6.26,встроен,gain/xlow/grp,ASN16_point0_house,POINT,"точечный источник, вплотную к 
+           пересборка:  ❗,нет матрицы,ASN16_Cs137,ASN16,known,137CS,8192,356491.2,250626474,6.26,встроен,gain/xlow/grp,ASN16_point0_house,POINT,"точечный источник, 
+      ⛔ SUMMARY.md  РАЗОШЛОСЬ: на диске 184 строк, пересборка даёт 268
+         первая разошедшаяся строка 10:
+           на диске:    ## Состояние: ✅ 123, ❗ 13 из 136
+           пересборка:  ## Состояние: ✅ 39, ❗ 97 из 136
+      Лечится пересборкой сводки: python tools/CORPUS/scripts/corpus_summary.py
+      (сводку читают ЛЮДИ: SUMMARY.md показывал корпус двухдневной давности, П6).
+    
+    ОСТАНОВ: корпус или сводка отстают от своего генератора (см. выше).
+⛔ tools/check_corpus_generator.py: код 1, 0.7 с
+
+→ зову: python tools/check_corpus_scenes.py
+✅ tools/check_corpus_scenes.py: код 0, 6.7 с
+
+→ зову: python tools/check_no_images.py
+✅ tools/check_no_images.py: код 0, 0.1 с
+
+→ зову: python tools/check_registry.py
+✅ tools/check_registry.py: код 0, 1.6 с
+
+→ зову: python tools/check_fsa_showcase.py
+    каталог проб: D:\BqMoni_Claude\p166\wt\tools\effmaker\probes\build (заверен 2026-09-28 17:32:30 из D:\BqMoni_Claude\p166\wt\BecquerelMonitor\bin\Debug_P166)
+      ⚠ сверено: набор приложения 3c0528f4a1c3 (550 файлов), набор FsaStackShot 754d7f2b4b58 (6 файлов), sha двух exe
+    свежесть каталога проб: сошлась с деревом (T226, 0.7 с)
+    рабочий каталог: D:\BqMoni_Claude\p166\wt\tools\fsa_showcase\wd (скопировано 239, снято 0; приборов 3, матриц 4)
+    прогон FsaStackShot (5 спектров, 9 пар):
+      ASN16_Cs137_house / infer_eq: 1.8 с
+      ASN16_Cs137_house / infer_eq_peak: 2.0 с
+      ASN16_Cs137_house / infer_eq_compton: 1.7 с
+      AS80_Th232_disk / infer_eq: 5.2 с
+      ASN16_Radon_filter2 / chain_eq: 6.1 с
+      ASN16_Radon_filter2 / chain_noeq: 5.9 с
+      G1S24_Rn222Coal_eq01 / sample_eq: 3.4 с
+      G1S24_Rn222Coal_eq01 / sample_noeq: 2.8 с
+      ASN16_Cs137_10cm / sample_nomatrix: 1.1 с
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Cs137_house / infer_eq — 2 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      ASN16_Cs137_house      infer_eq       30-100 кэВ       missing_fit                          404464.231         404464.232 0.001 (+0.00 %)
+      ASN16_Cs137_house      infer_eq       30-100 кэВ       missing_net                          404464.231         404464.232 0.001 (+0.00 %)
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Cs137_house / infer_eq_peak — 2 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       missing_fit                          404464.231         404464.232 0.001 (+0.00 %)
+      ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       missing_net                          404464.231         404464.232 0.001 (+0.00 %)
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Cs137_house / infer_eq_compton — 2 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       missing_fit                          404464.231         404464.232 0.001 (+0.00 %)
+      ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       missing_net                          404464.231         404464.232 0.001 (+0.00 %)
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: AS80_Th232_disk / infer_eq — 182 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Ac-228                                 9968.617           9467.325 -501.292 (-5.03 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Bi-212                                 4188.808           3887.450 -301.358 (-7.19 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Pb-212                                 2007.346           2209.949 202.603 (+10.09 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Ra-224                                  148.378            163.819 15.441 (+10.41 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Rn-220                                    4.485              4.963 0.478 (+10.66 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Th-228                                   26.829             29.616 2.787 (+10.39 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Th-232                                    4.417              4.893 0.476 (+10.78 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Tl-208                                 2401.503           2391.248 -10.255 (-0.43 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Xray-Pb                                2162.394           2371.366 208.972 (+9.66 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Xray-Th                                  64.984             80.359 15.375 (+23.66 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         Xray-Th-L                               785.490           1123.164 337.674 (+42.99 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         continuum_raw                          4317.075           4694.761 377.686 (+8.75 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         excess_fit                              601.895            580.769 -21.126 (-3.51 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         excess_net                              600.415            579.289 -21.126 (-3.52 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         missing_fit                            3823.813           3831.772 7.959 (+0.21 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         missing_net                            3823.813           3831.772 7.959 (+0.21 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         model                                 21763.372          21734.287 -29.085 (-0.13 %)
+      AS80_Th232_disk        infer_eq       0-30 кэВ         tail                                   5923.950           6190.871 266.921 (+4.51 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Ac-228                                70432.700          68938.838 -1493.862 (-2.12 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Bi-212                                16307.960          15460.894 -847.066 (-5.19 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Pb-212                                60800.809          60826.068 25.259 (+0.04 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Ra-224                                 2961.649           3016.707 55.058 (+1.86 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Rn-220                                   36.861             39.038 2.177 (+5.91 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Th-228                                 1580.390           1561.718 -18.672 (-1.18 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Th-232                                  140.206            137.711 -2.495 (-1.78 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Tl-208                                36462.050          34943.234 -1518.816 (-4.17 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Xray-Pb                              159241.620         161422.182 2180.562 (+1.37 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Xray-Th                               13604.395          15189.050 1584.655 (+11.65 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       Xray-Th-L                                 0.002              0.003 0.001 (+50.00 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       continuum_raw                         81463.478          86400.835 4937.357 (+6.06 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       excess_fit                            12168.583          12223.987 55.404 (+0.46 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       excess_net                            12168.583          12223.987 55.404 (+0.46 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       missing_fit                           13320.441          13409.058 88.617 (+0.67 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       missing_net                           13320.441          13409.058 88.617 (+0.67 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       model                                361569.553         361536.340 -33.213 (-0.01 %)
+      AS80_Th232_disk        infer_eq       30-100 кэВ       tail                                   9182.676           9927.382 744.706 (+8.11 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Ac-228                               208143.177         209760.864 1617.687 (+0.78 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Bi-212                                20750.247          21096.614 346.367 (+1.67 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Pb-212                               224003.832         222856.058 -1147.774 (-0.51 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Ra-224                                19999.574          19883.547 -116.027 (-0.58 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Rn-220                                  238.452            246.390 7.938 (+3.33 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Th-228                                 1859.513           1837.420 -22.093 (-1.19 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Th-232                                   55.486             54.457 -1.029 (-1.85 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Tl-208                               132437.103         128854.520 -3582.583 (-2.71 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Xray-Pb                                 178.649            177.905 -0.744 (-0.42 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      Xray-Th                                5534.218           6120.549 586.331 (+10.59 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      continuum_raw                        196011.630         216685.790 20674.160 (+10.55 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      excess_fit                            16668.627          16725.567 56.940 (+0.34 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      excess_net                            16668.627          16725.567 56.940 (+0.34 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      missing_fit                           30140.022          32508.753 2368.731 (+7.86 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      missing_net                           30140.022          32508.753 2368.731 (+7.86 %)
+      AS80_Th232_disk        infer_eq       100-300 кэВ      model                                613203.600         610891.809 -2311.791 (-0.38 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      Ac-228                               177309.106         177677.366 368.260 (+0.21 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      Bi-212                                18601.421          18393.031 -208.390 (-1.12 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      Pb-212                                 5309.779           5311.042 1.263 (+0.02 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      Rn-220                                  345.028            342.823 -2.205 (-0.64 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      Tl-208                               147038.008         146189.337 -848.671 (-0.58 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      continuum_raw                         70877.621          80091.708 9214.087 (+13.00 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      excess_fit                            13545.290          13564.997 19.707 (+0.15 %)
+      AS80_Th232_disk        infer_eq       300-700 кэВ      excess_net                            13545.290          13564.997 19.707 (+0.15 %)
+      … и ещё 122 строк
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Radon_filter2 / chain_eq — 144 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Ac-228                                 3976.915           3967.797 -9.118 (-0.23 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Bi-212                                  515.648            516.322 0.674 (+0.13 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Pb-212                                 4736.197           4771.874 35.677 (+0.75 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Ra-224                                  246.586            248.389 1.803 (+0.73 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Rn-220                                    3.055              3.078 0.023 (+0.75 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Th-228                                  108.782            109.579 0.797 (+0.73 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Th-232                                   20.282             20.467 0.185 (+0.91 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         Tl-208                                 2114.915           2084.879 -30.036 (-1.42 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         continuum_raw                         11550.653          11555.658 5.005 (+0.04 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         excess_fit                             3528.252           3528.203 -0.049 (-0.00 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         excess_net                             3528.252           3528.203 -0.049 (-0.00 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         missing_fit                            6605.478           6605.421 -0.057 (-0.00 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         missing_net                            6605.478           6605.421 -0.057 (-0.00 %)
+      ASN16_Radon_filter2    chain_eq       0-30 кэВ         model                                 11723.122          11723.130 0.008 (+0.00 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Ac-228                                 9513.237           9507.245 -5.992 (-0.06 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Bi-212                                  912.677            913.095 0.418 (+0.05 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Pb-212                                11031.654          11104.192 72.538 (+0.66 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Ra-224                                  620.324            623.704 3.380 (+0.54 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Rn-220                                    8.063              8.102 0.039 (+0.48 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Th-228                                  260.479            262.107 1.628 (+0.63 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Th-232                                   28.788             29.031 0.243 (+0.84 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       Tl-208                                 5247.528           5177.985 -69.543 (-1.33 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       continuum_raw                         25772.851          25776.233 3.382 (+0.01 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       excess_fit                             5424.195           5424.431 0.236 (+0.00 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       excess_net                             5384.368           5384.604 0.236 (+0.00 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       missing_fit                            7175.281           7172.786 -2.495 (-0.03 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       missing_net                            7175.281           7172.786 -2.495 (-0.03 %)
+      ASN16_Radon_filter2    chain_eq       30-100 кэВ       model                                 27622.864          27625.595 2.731 (+0.01 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Ac-228                                 2854.353           2852.899 -1.454 (-0.05 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Bi-212                                  252.698            251.661 -1.037 (-0.41 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Pb-212                                 2735.037           2755.069 20.032 (+0.73 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Ra-224                                  240.666            242.106 1.440 (+0.60 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Rn-220                                    2.875              2.883 0.008 (+0.28 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Th-228                                   32.875             33.086 0.211 (+0.64 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Th-232                                    1.528              1.536 0.008 (+0.52 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      Tl-208                                 1668.083           1638.178 -29.905 (-1.79 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      continuum_raw                          5581.160           5576.316 -4.844 (-0.09 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      excess_fit                            14779.130          14765.392 -13.738 (-0.09 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      excess_net                             5243.998           5230.260 -13.738 (-0.26 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      missing_fit                            2564.010           2560.980 -3.030 (-0.12 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      missing_net                            2564.010           2560.980 -3.030 (-0.12 %)
+      ASN16_Radon_filter2    chain_eq       100-300 кэВ      model                                  7788.147           7777.439 -10.708 (-0.14 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      Ac-228                                  799.232            801.920 2.688 (+0.34 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      Bi-212                                   80.920             79.972 -0.948 (-1.17 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      Pb-212                                   28.890             30.977 2.087 (+7.22 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      Rn-220                                    1.014              1.019 0.005 (+0.49 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      Tl-208                                  601.053            599.094 -1.959 (-0.33 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      continuum_raw                           506.293            500.379 -5.914 (-1.17 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      excess_fit                             4582.047           4583.601 1.554 (+0.03 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      excess_net                              827.235            828.789 1.554 (+0.19 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      missing_fit                            1536.601           1536.254 -0.347 (-0.02 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      missing_net                            1536.601           1536.254 -0.347 (-0.02 %)
+      ASN16_Radon_filter2    chain_eq       300-700 кэВ      model                                  1511.132           1513.033 1.901 (+0.13 %)
+      ASN16_Radon_filter2    chain_eq       700-1500 кэВ     Ac-228                                  248.789            258.148 9.359 (+3.76 %)
+      ASN16_Radon_filter2    chain_eq       700-1500 кэВ     Bi-212                                   42.590             43.653 1.063 (+2.50 %)
+      ASN16_Radon_filter2    chain_eq       700-1500 кэВ     Tl-208                                  142.657            145.854 3.197 (+2.24 %)
+      ASN16_Radon_filter2    chain_eq       700-1500 кэВ     continuum_raw                            57.073             56.964 -0.109 (-0.19 %)
+      ASN16_Radon_filter2    chain_eq       700-1500 кэВ     excess_fit                             2876.732           2884.903 8.171 (+0.28 %)
+      ASN16_Radon_filter2    chain_eq       700-1500 кэВ     excess_net                              260.418            268.589 8.171 (+3.14 %)
+      ASN16_Radon_filter2    chain_eq       700-1500 кэВ     missing_fit                            1695.692           1690.089 -5.603 (-0.33 %)
+      … и ещё 84 строк
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Radon_filter2 / chain_noeq — 124 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         Pb-212                                11123.869          11124.189 0.320 (+0.00 %)
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         Ra-224                                  583.366            583.332 -0.034 (-0.01 %)
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         continuum_raw                         11512.877          11515.157 2.280 (+0.02 %)
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         excess_fit                             3517.573           3517.895 0.322 (+0.01 %)
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         excess_net                             3517.573           3517.895 0.322 (+0.01 %)
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         missing_fit                            6610.672           6610.724 0.052 (+0.00 %)
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         missing_net                            6610.672           6610.724 0.052 (+0.00 %)
+      ASN16_Radon_filter2    chain_noeq     0-30 кэВ         model                                 11707.249          11707.519 0.270 (+0.00 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       Pb-212                                26729.563          26729.166 -0.397 (-0.00 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       Ra-224                                 1438.161           1437.685 -0.476 (-0.03 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       continuum_raw                         23550.925          23563.033 12.108 (+0.05 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       excess_fit                             4907.130           4909.645 2.515 (+0.05 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       excess_net                             4867.303           4869.818 2.515 (+0.05 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       missing_fit                            6113.363           6116.747 3.384 (+0.06 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       missing_net                            6113.363           6116.747 3.384 (+0.06 %)
+      ASN16_Radon_filter2    chain_noeq     30-100 кэВ       model                                 28167.717          28166.848 -0.869 (-0.00 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      Pb-212                                 8189.386           8187.231 -2.155 (-0.03 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      Ra-224                                  724.257            723.331 -0.926 (-0.13 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      continuum_raw                          3955.850           3959.184 3.334 (+0.08 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      excess_fit                            14513.506          14512.180 -1.326 (-0.01 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      excess_net                             4978.374           4977.048 -1.326 (-0.03 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      missing_fit                            1172.904           1174.655 1.751 (+0.15 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      missing_net                            1172.904           1174.655 1.751 (+0.15 %)
+      ASN16_Radon_filter2    chain_noeq     100-300 кэВ      model                                  8913.629           8910.552 -3.077 (-0.03 %)
+      ASN16_Radon_filter2    chain_noeq     300-700 кэВ      Pb-212                                  406.399            413.447 7.048 (+1.73 %)
+      ASN16_Radon_filter2    chain_noeq     300-700 кэВ      excess_fit                             4212.219           4217.540 5.321 (+0.13 %)
+      ASN16_Radon_filter2    chain_noeq     300-700 кэВ      excess_net                              457.407            462.728 5.321 (+1.16 %)
+      ASN16_Radon_filter2    chain_noeq     300-700 кэВ      missing_fit                            1684.625           1682.898 -1.727 (-0.10 %)
+      ASN16_Radon_filter2    chain_noeq     300-700 кэВ      missing_net                            1684.625           1682.898 -1.727 (-0.10 %)
+      ASN16_Radon_filter2    chain_noeq     300-700 кэВ      model                                   993.280           1000.328 7.048 (+0.71 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Pb-212.count_rate                        15.193             15.169 -0.024 (-0.16 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Pb-212.decision_threshold_ra              0.958              0.958 -1.27924e-06 (-0.00 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Pb-212.peak_counts                     9059.598           9048.813 -10.784 (-0.12 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Pb-212.share_pct                         91.219             91.222 0.003 (+0.00 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Pb-212.z                                 23.797             23.763 -0.034 (-0.14 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Ra-224.count_rate                        15.193             15.169 -0.024 (-0.16 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Ra-224.decision_threshold_ra              0.958              0.958 -1.27924e-06 (-0.00 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Ra-224.peak_counts                      431.275            430.603 -0.672 (-0.16 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Ra-224.share_pct                          5.392              5.389 -0.003 (-0.06 %)
+      ASN16_Radon_filter2    chain_noeq     rates component  Ra-224.z                                 23.797             23.763 -0.034 (-0.14 %)
+      ASN16_Radon_filter2    chain_noeq     rates grey       above_lines.peak_counts                1725.621           1725.621 3.20814e-06 (+0.00 %)
+      ASN16_Radon_filter2    chain_noeq     rates grey       above_lines.share_pct                     3.389              3.389 -0.000223887 (-0.01 %)
+      ASN16_Radon_filter2    chain_noeq     rates grey       residual_excess.count_rate                0.888              0.888 0.000191084 (+0.02 %)
+      ASN16_Radon_filter2    chain_noeq     rates grey       residual_missing.count_rate               0.518              0.518 9.46303e-05 (+0.02 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Ac-228.collinearity                       0.113              0.110 -0.003 (-2.62 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Ac-228.decision_threshold_ra              1.631              1.623 -0.008 (-0.48 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Ac-228.detection_limit_rate               3.285              3.269 -0.016 (-0.48 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Ac-228.limit_peak_counts               1612.858           1592.458 -20.400 (-1.26 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-212.collinearity                       0.068              0.067 -0.000762561 (-1.12 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-212.decision_threshold_ra              9.555              9.556 0.001 (+0.01 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-212.detection_limit_rate              19.478             19.480 0.003 (+0.01 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-212.limit_peak_counts                707.792            704.384 -3.408 (-0.48 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-214.collinearity                       0.328              0.327 -0.001 (-0.36 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-214.decision_threshold_ra              1.548              1.539 -0.009 (-0.58 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-214.detection_limit_rate               3.128              3.110 -0.018 (-0.59 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Bi-214.limit_peak_counts                668.739            671.506 2.767 (+0.41 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Pb-210.collinearity                       0.629              0.629 9.89754e-06 (+0.00 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Pb-210.decision_threshold_ra             14.519             14.520 0.001 (+0.01 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Pb-210.detection_limit_rate              29.255             29.258 0.003 (+0.01 %)
+      ASN16_Radon_filter2    chain_noeq     rates limit      Pb-210.limit_peak_counts                785.283            785.358 0.075 (+0.01 %)
+      … и ещё 64 строк
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: G1S24_Rn222Coal_eq01 / sample_eq — 157 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Bi-212                                   99.287             95.035 -4.252 (-4.28 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Bi-214                                 1192.047           1192.410 0.363 (+0.03 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Pb-212                                  133.869            134.518 0.649 (+0.48 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Pb-214                                 1262.705           1274.374 11.669 (+0.92 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Ra-224                                    7.298              7.336 0.038 (+0.52 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Rn-222                                    0.924              0.935 0.011 (+1.19 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Th-228                                    2.730              2.744 0.014 (+0.51 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         Tl-208                                   86.124             84.757 -1.367 (-1.59 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         continuum_raw                          2667.216           2679.600 12.384 (+0.46 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         excess_fit                               49.519             51.414 1.895 (+3.83 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         excess_net                               45.033             46.928 1.895 (+4.21 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         missing_fit                             232.273            227.042 -5.231 (-2.25 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         missing_net                             232.273            227.042 -5.231 (-2.25 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         model                                  2785.221           2792.347 7.126 (+0.26 %)
+      G1S24_Rn222Coal_eq01   sample_eq      0-30 кэВ         tail                                     12.847             13.243 0.396 (+3.08 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Bi-212                                  397.548            391.244 -6.304 (-1.59 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Bi-214                                 9314.523           9261.043 -53.480 (-0.57 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Pb-212                                 3442.879           3431.121 -11.758 (-0.34 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Pb-214                                23608.522          23684.466 75.944 (+0.32 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Ra-224                                   82.219             82.675 0.456 (+0.55 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Rn-222                                    8.130              8.252 0.122 (+1.50 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Th-228                                  102.259            101.954 -0.305 (-0.30 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       Tl-208                                  805.489            778.838 -26.651 (-3.31 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       continuum_raw                         13103.968          13373.296 269.328 (+2.06 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       excess_fit                             2440.222           2446.780 6.558 (+0.27 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       excess_net                             2440.222           2446.780 6.558 (+0.27 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       missing_fit                            4295.658           4324.162 28.504 (+0.66 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       missing_net                            4295.658           4324.162 28.504 (+0.66 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       model                                 37762.868          37740.922 -21.946 (-0.06 %)
+      G1S24_Rn222Coal_eq01   sample_eq      30-100 кэВ       tail                                      2.190              2.293 0.103 (+4.70 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Bi-212                                  312.415            311.297 -1.118 (-0.36 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Bi-214                                27000.354          26743.519 -256.835 (-0.95 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Pb-212                                 3976.086           3974.181 -1.905 (-0.05 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Pb-214                                31253.936          31586.485 332.549 (+1.06 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Ra-224                                  352.257            351.936 -0.321 (-0.09 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Rn-222                                   23.906             24.256 0.350 (+1.46 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Th-228                                   41.113             41.001 -0.112 (-0.27 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      Tl-208                                 2009.192           1942.013 -67.179 (-3.34 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      continuum_raw                         26490.698          27309.392 818.694 (+3.09 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      excess_fit                             1299.497           1318.574 19.077 (+1.47 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      excess_net                             1299.497           1318.574 19.077 (+1.47 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      missing_fit                            1570.441           1584.009 13.568 (+0.86 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      missing_net                            1570.441           1584.009 13.568 (+0.86 %)
+      G1S24_Rn222Coal_eq01   sample_eq      100-300 кэВ      model                                 64975.513          64981.022 5.509 (+0.01 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      Bi-212                                  288.500            285.614 -2.886 (-1.00 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      Bi-214                                32790.796          32721.251 -69.545 (-0.21 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      Pb-212                                   75.164             81.242 6.078 (+8.09 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      Pb-214                                18503.786          18572.694 68.908 (+0.37 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      Rn-222                                   29.810             29.972 0.162 (+0.54 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      Tl-208                                 2194.856           2186.941 -7.915 (-0.36 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      continuum_raw                         12182.328          12604.067 421.739 (+3.46 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      excess_fit                             1634.750           1625.325 -9.425 (-0.58 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      excess_net                             1634.750           1625.325 -9.425 (-0.58 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      missing_fit                            1878.666           1874.444 -4.222 (-0.22 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      missing_net                            1878.666           1874.444 -4.222 (-0.22 %)
+      G1S24_Rn222Coal_eq01   sample_eq      300-700 кэВ      model                                 53890.261          53885.058 -5.203 (-0.01 %)
+      G1S24_Rn222Coal_eq01   sample_eq      700-1500 кэВ     Bi-212                                  224.863            225.156 0.293 (+0.13 %)
+      G1S24_Rn222Coal_eq01   sample_eq      700-1500 кэВ     Bi-214                                20065.828          20106.896 41.068 (+0.20 %)
+      G1S24_Rn222Coal_eq01   sample_eq      700-1500 кэВ     Pb-214                                  330.166            331.756 1.590 (+0.48 %)
+      G1S24_Rn222Coal_eq01   sample_eq      700-1500 кэВ     Tl-208                                  995.873            948.468 -47.405 (-4.76 %)
+      … и ещё 97 строк
+    
+    ⛔ КАРТИНКА ИЗМЕНИЛАСЬ: G1S24_Rn222Coal_eq01 / sample_noeq — 170 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-09-24 20:12)
+      спектр                 режим          полоса           компонент                                  было              стало              Δ
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         Bi-214                                 1305.126           1300.054 -5.072 (-0.39 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         Pb-212                                  179.500            181.296 1.796 (+1.00 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         Pb-214                                 1358.803           1363.083 4.280 (+0.31 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         Ra-224                                    9.952             10.056 0.104 (+1.05 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         Tl-208                                   70.713             67.406 -3.307 (-4.68 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         continuum_raw                          2894.737           2892.661 -2.076 (-0.07 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         excess_fit                               94.331             93.370 -0.961 (-1.02 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         excess_net                               89.845             88.884 -0.961 (-1.07 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         missing_fit                             138.212            139.453 1.241 (+0.90 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         missing_net                             138.212            139.453 1.241 (+0.90 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         model                                  2924.094           2921.892 -2.202 (-0.08 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    0-30 кэВ         tail                                      0.000              0.331          0.331
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       Bi-214                                 9910.272           9843.514 -66.758 (-0.67 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       Pb-212                                 4228.536           4257.647 29.111 (+0.69 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       Pb-214                                23347.025          23402.332 55.307 (+0.24 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       Ra-224                                  107.001            108.580 1.579 (+1.48 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       Tl-208                                  612.858            577.427 -35.431 (-5.78 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       continuum_raw                         14166.733          14373.442 206.709 (+1.46 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       excess_fit                             1565.686           1571.737 6.051 (+0.39 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       excess_net                             1565.686           1571.737 6.051 (+0.39 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       missing_fit                            2978.294           3000.545 22.251 (+0.75 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       missing_net                            2978.294           3000.545 22.251 (+0.75 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       model                                 38205.696          38189.496 -16.200 (-0.04 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ       tail                                      0.000              0.044          0.044
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      Bi-214                                26936.402          26710.094 -226.308 (-0.84 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      Pb-212                                 4937.793           4989.433 51.640 (+1.05 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      Pb-214                                31348.715          31619.621 270.906 (+0.86 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      Ra-224                                  437.368            441.747 4.379 (+1.00 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      Tl-208                                 1509.181           1419.617 -89.564 (-5.93 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      continuum_raw                         25979.547          26767.108 787.561 (+3.03 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      excess_fit                             1157.960           1170.728 12.768 (+1.10 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      excess_net                             1157.960           1170.728 12.768 (+1.10 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      missing_fit                            1234.943           1236.669 1.726 (+0.14 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      missing_net                            1234.943           1236.669 1.726 (+0.14 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    100-300 кэВ      model                                 65169.474          65180.516 11.042 (+0.02 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      Bi-214                                33712.226          33718.845 6.619 (+0.02 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      Pb-212                                   89.026             97.353 8.327 (+9.35 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      Pb-214                                18395.048          18419.176 24.128 (+0.13 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      Tl-208                                 1696.002           1646.715 -49.287 (-2.91 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      continuum_raw                         12819.324          13261.444 442.120 (+3.45 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      excess_fit                             1742.545           1744.373 1.828 (+0.10 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      excess_net                             1742.545           1744.373 1.828 (+0.10 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      missing_fit                            1984.416           1996.463 12.047 (+0.61 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      missing_net                            1984.416           1996.463 12.047 (+0.61 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    300-700 кэВ      model                                 53892.306          53882.087 -10.219 (-0.02 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     Bi-214                                20506.804          20560.501 53.697 (+0.26 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     Pb-214                                  333.619            334.511 0.892 (+0.27 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     Tl-208                                  775.555            718.349 -57.206 (-7.38 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     continuum_raw                          7771.431           7190.036 -581.395 (-7.48 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     excess_fit                             1336.833           1334.843 -1.990 (-0.15 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     excess_net                             1336.833           1334.843 -1.990 (-0.15 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     missing_fit                            1532.673           1533.308 0.635 (+0.04 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     missing_net                            1532.673           1533.308 0.635 (+0.04 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    700-1500 кэВ     model                                 21615.986          21613.361 -2.625 (-0.01 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    1500-3000 кэВ    Bi-214                                 5032.454           5068.766 36.312 (+0.72 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    1500-3000 кэВ    Tl-208                                 1102.213           1071.269 -30.944 (-2.81 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    1500-3000 кэВ    continuum_raw                          1764.905           1623.606 -141.299 (-8.01 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    1500-3000 кэВ    excess_fit                              955.995            957.517 1.522 (+0.16 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    1500-3000 кэВ    excess_net                              855.923            857.445 1.522 (+0.18 %)
+      G1S24_Rn222Coal_eq01   sample_noeq    1500-3000 кэВ    missing_fit                             903.533            899.695 -3.838 (-0.42 %)
+      … и ещё 110 строк
+      ✅ ASN16_Cs137_10cm / sample_nomatrix: совпало с эталоном (2026-09-24 20:12)
+    
+    ОТКАЗ: картинка FSA на витрине разошлась с эталоном (783 строк). Это либо дефект отображения,
+           либо правка, которую принимают ПЕРЕОБЪЯВЛЕНИЕМ эталона: tools\fsa_showcase\snapshot.ps1
+           (таблица выше — в отчёт полосы). Снимки: tools\fsa_showcase\wd\out\*.png. 31 с.
+⛔ tools/check_fsa_showcase.py: код 1, 31.3 с
+
+=== сводка ===
+  ✅ tools/check_registry_refs.py — код 0, 4.3 с — ссылки `T<n>` в оснастке, приложении и журналах против TODO.md/DONE.md
+  ✅ tools/check_build_recipe.py — код 0, 5.2 с — копии рецепта MSBuild без /p:GenerateManifests=false
+  ✅ tools/check_resx.py — код 0, 0.3 с — пары Foo.resx / Foo.ru.resx: непереведённое
+  ✅ tools/check_resx_designer.py — код 0, 3.2 с — GetString("X") без X в парном resx
+  ✅ tools/check_resx_letters.py — код 0, 0.4 с — кириллица в английских resx и наоборот; ускоритель в скобках не латиницей (`T132`)
+  ✅ tools/check_resx_zorder.py — код 0, 0.2 с — >>X.Parent / >>X.ZOrder против designer-кода
+  ✅ tools/check_headless.py — код 0, 6.0 с — окна на безоконном пути
+  ✅ tools/check_menu_accelerators.py — код 0, 0.3 с — столкновения ускорителей ВСЕХ меню дерева (`T167`)
+  ✅ tools/check_numeric_updown.py — код 0, 0.7 с — поля со стрелками мимо общего InvariantNumericUpDown; группировка разрядов
+  ✅ tools/check_fsa_docs.py — код 0, 0.1 с — XML-описания настроек разбора против конструктора
+  ✅ tools/nucdb/check_ensdf_numbers.py — код 0, 0.1 с — числа §7/§8 scheme.md против schemedb/nucdb (`W8`, `D10`)
+  ✅ tools/nucdb/check_db_marks.py — код 0, 0.2 с — колонки-признаки в базах против правила (`D36`, `D38`)
+  ✅ tools/nucdb/check_isomer_levels.py — код 0, 1.6 с — изомерная разметка nucdb: имя против уровня (`D40`, `D41`, `D47`)
+  ✅ tools/check_decay_numeric.py — код 0, 1.6 с — текстовые колонки decay_radiations под сравнением/порядком (`D35`)
+  ✅ tools/check_parent_rule.py — код 0, 5.9 с — правило «родитель» одно: копии зажима по уровню в коде; три носителя уровня против nuclides/LevelClause (`D48`)
+  ✅ tools/check_corpus_readme.py — код 0, 0.1 с — журнал корпуса: снятое помечено снятым; шапка и состав частей — против дерева
+  ✅ tools/check_scheme_gaps.py — код 0, 0.1 с — раздел «чего не хватает» scheme.md против реестра
+  ✅ tools/check_corpus_library.py — код 0, 0.1 с — корпус не читает поставочную библиотеку
+  ✅ tools/check_corpus_truth.py — код 0, 0.1 с — поля истины корпуса (chains, nuclides): corpus_def против manifest.csv
+  ✅ tools/check_done_headers.py — код 0, 0.2 с — заголовок строки DONE.md против её тела
+  ⛔ tools/check_corpus_coverage.py — код 1, 0.2 с — охват корпусных мерок: коды возврата и мерки на сырье без Coverage
+  ⛔ tools/check_declared_base.py — код 2, 0.1 с — объявление базы: числа каталога, отпечаток корпуса и сборки, клеймо прогона
+  ✅ tools/check_pending_runs.py — код 0, 0.1 с — признак «ЖДЁТ СЧЁТНОГО ЗАХОДА» против раздела «Отложенные прогоны»
+  ✅ tools/check_probe_tuning.py — код 0, 0.3 с — отчёт проб FSA о настройках: вызов, эталон, снимок полосы, порядок
+  ✅ tools/check_matrix_keys.py — код 0, 1.3 с — состав ключей обоих путей: матрица отклика против расчёта в UI
+  ✅ tools/check_geometry_names.py — код 0, 0.3 с — имена веществ в узле <Efficiency> против corpus/geometries/*.in
+  ✅ tools/check_fsa_view_groups.py — код 0, 0.1 с — переключатели окна отчёта FSA: расчётные и отрисовочные по своим группам
+  ✅ tools/check_fsa_report_view.py — код 0, 34.8 с — окно отчёта FSA: приёмка FsaReportViewProbe на паре корпуса — блок качества, привязка шкалы (AMBER17), состав строк, снимки
+  ✅ tools/check_selection_panel_height.py — код 0, 0.0 с — слагаемые высоты панели выделения: отрисовка против мерки пробы
+  ✅ tools/check_escape_parents.py — код 0, 0.0 с — отсев родителей образов вылета SE/DE не выключается сам при NaN
+  ✅ tools/check_crystal_material.py — код 0, 0.1 с — вещество кристалла у прибора: геометрия первична, поле — запасной источник
+  ✅ tools/check_refit_z_class.py — код 0, 0.1 с — отсев по значимости не оставляет разбор без единого нуклида
+  ✅ tools/check_roi_listup.py — код 0, 0.0 с — перестроение списка ROI не правит то, по чему идёт
+  ✅ tools/nucdb/check_edges.py — код 0, 0.1 с — края поглощения: каждая величина берёт край своей поставки (D18)
+  ✅ tools/check_probe_numbers.py — код 0, 0.4 с — печать чисел в оснастке: подмена разделителя без метки, форматы P, число без поставщика культуры
+  ✅ tools/check_curve_generation.py — код 0, 0.1 с — поколение кривой эффективности против поколения матрицы и сборки
+  ✅ tools/check_dump_readers.py — код 0, 0.1 с — читатели дампа разбора: показная кривая рядом с моделью — только у разрешённых (`T254`)
+  ⛔ tools/check_corpus_generator.py — код 1, 0.7 с — корпус собран нынешним генератором (клеймо T244); сводка — этим корпусом
+  ✅ tools/check_corpus_scenes.py — код 0, 6.7 с — генератор сцен воспроизводит корпус с точностью до клейма; матрицы склада — на своих сценах (`T261`)
+  ✅ tools/check_no_images.py — код 0, 0.1 с — картинок (png/jpg/gif/…) под handover/ и tools/ в индексе git нет — распоряжение Amber 17.09.2026
+  ✅ tools/check_registry.py — код 0, 1.6 с — реестр: номера, ссылки на файлы, имена из кода, копии config/, объявление базы в трёх местах, графа состояния, заголовки DONE.md
+  ⛔ tools/check_fsa_showcase.py — код 1, 31.3 с — витрина FSA: картинка разбора на спектрах Amber против эталона (`T260`)
+ОСТАНОВ: отказали 4 из 42 — tools/check_corpus_coverage.py (код 1), tools/check_declared_base.py (код 2), tools/check_corpus_generator.py (код 1), tools/check_fsa_showcase.py (код 1). Приёмка НЕ пройдена; читать вывод отказавшего выше.

@@ -171,7 +171,7 @@ CorpusFsaProbe.exe --corpus=<нет такого> --print-settings   → код 
 («узлов 1» — поставочные `GainSteps = 1`, `OffsetSteps = 1` конструктора,
 `FsaAnalyzer.cs:1270-1272`; печать та же, что у настоящего прогона.)
 Артефакт: `scratchpad/f10/ctl_t94.txt`. Сборка: `bin\Debug_F10` (`APP EXIT=0`),
-`probesuild_f10` (`PROBES EXIT=0`, 112 проб, `ok CorpusFsaProbe.cs`).
+`probes\build_f10` (`PROBES EXIT=0`, 112 проб, `ok CorpusFsaProbe.cs`).
 
 **Текст закрытия:** «Сделано: ключ `--print-settings` печатает шапку прогона
 (`PrintHead`, тот же код, что у настоящего прогона) и выходит кодом 0 без

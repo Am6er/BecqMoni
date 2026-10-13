@@ -125,7 +125,9 @@ namespace FsaChannelSplitProbe
         static readonly string[] ChannelNames =
         {
             "полное поглощение", "комптон", "вылет аннигиляции одиночный",
-            "вылет K-рентгена", "вылет аннигиляции двойной", "вылет L-рентгена"
+            "вылет K-рентгена", "вылет аннигиляции двойной", "вылет L-рентгена",
+            // (`AMBER52`, П125, формат 10) седьмой — постоянной энергии
+            "аннигиляция вне кристалла"
         };
 
         [STAThread]
@@ -1415,11 +1417,7 @@ namespace FsaChannelSplitProbe
                              string material, bool cascadeSumming, bool cascadeSumPeaks,
                              double floorKev, string title, out FsaAnalyzer analyzer)
         {
-            analyzer = new FsaAnalyzer
-            {
-                ResponseMatrix = matrix,
-                ScintillatorMaterial = material
-            };
+            analyzer = new FsaAnalyzer { ScintillatorMaterial = material };
 
             // ⛔ НАСТРОЙКИ — ТЕ ЖЕ, ЧТО У ПРИЛОЖЕНИЯ, и накладываются ПЕРВЫМИ.
             // Без этого связка равновесия остаётся в состоянии конструктора,
@@ -1430,6 +1428,9 @@ namespace FsaChannelSplitProbe
             // опыта.
             FsaCalculationOptions options = FsaCalculationOptions.Of(rd);
             options.ApplyTo(analyzer);
+            // (`T263`, П193) матрица — ПОСЛЕ фасада настроек, как у приложения (`FsaAnalysisSession`): фасад гасит `BackscatterWithMatrix`, `Bind` ставит его по обстановке
+            FsaMatrixBinding.Bind(analyzer, rd.Efficiency != null ? rd.Efficiency.Geometry : null, matrix);
+            analyzer.ScintillatorMaterial = material;
             analyzer.CascadeSumming = cascadeSumming;
             analyzer.CascadeSumPeaks = cascadeSumPeaks;
 

@@ -42,6 +42,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// (<see cref="Reset"/>) поднимает поколение, и вернувшийся счёт чужого
     /// поколения тоже молчит.
     /// </summary>
+    /// <summary>
+    /// (`AMBER208` (в), П236 06.10.2026) ПОЧЕМУ РАЗБОР ИДЁТ БЕЗ МАТРИЦЫ ОТКЛИКА —
+    /// решение сеанса, названное словом. До этого дня отчёт писал «не учтена»,
+    /// окно результата — «Бк по кривой», и у KCl в маринелли человек не видел,
+    /// что матрица склада ЕСТЬ, но посчитана по геометрии кривой прибора, а
+    /// разбор идёт по кривой из файла спектра от 14.08.2026 с другой геометрией.
+    /// Лечение у каждой причины своё (посчитать / пересчитать / включить /
+    /// выбрать кривую прибора), поэтому причина — перечислением, а не флагом.
+    /// </summary>
+    public enum FsaMatrixSkip
+    {
+        /// <summary>Матрица применена (или решение ещё не принималось).</summary>
+        None,
+
+        /// <summary>У кривой нет геометрии — матрицы быть не может, говорить не о чем.</summary>
+        NoGeometry,
+
+        /// <summary>Выключена галкой «Матрица отклика» в форме кривой (W11).</summary>
+        SwitchedOff,
+
+        /// <summary>Файла на складе нет — для этой геометрии не считали.</summary>
+        NotComputed,
+
+        /// <summary>Файл прежнего формата — пересчитать (`A50`).</summary>
+        OldFormat,
+
+        /// <summary>Файл не наш или оборван.</summary>
+        Unreadable,
+
+        /// <summary>
+        /// Матрица есть и читается, но её клеймо не сходится с геометрией
+        /// кривой разбора: геометрия или параметры менялись после расчёта,
+        /// либо кривая в файле спектра старше кривой прибора.
+        /// </summary>
+        StaleGeometry
+    }
+
     public sealed class FsaAnalysisSession
     {
         readonly object sync = new object();
@@ -61,6 +98,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         // от результата: решение «с матрицей или без» принимается ДО фонового
         // счёта, а сказать о нём надо и тогда, когда счёт ничего не вернул.
         bool matrixOldFormat;
+
+        bool matrixFromSpectrum;
+
+        FsaMatrixSkip matrixSkip;
+
+        string spectrumMatrixRefusal;
 
         // Заготовленное человеку сообщение и ключ уже сказанного. Ключ нужен,
         // потому что снимок берётся при каждом устаревании отпечатка — на
@@ -83,6 +126,69 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (`FsaSessionProbe`); в приложении всегда null и не стоит ничего.
         /// </summary>
         static WaitHandle probeGate = null;
+
+        /// <summary>
+        /// ⚠ ПРОТОТИП ПОЛОСЫ П236 (06.10.2026): крючок проб для развёрток
+        /// внутренних ключей разбора (веса, Хубер, шум) на ТОМ ЖЕ сеансе, что
+        /// у окна. Ставится только пробой (`FsaBqProbe`); в приложении — null.
+        /// </summary>
+        public static Action<FsaAnalyzer> ProbeAnalyzerHook = null;
+
+        /// <summary>
+        /// (`AMBER211`, П238 07.10.2026) ЧАСЫ ПАУЗЫ ПРИ ЗАПИСИ — подменяются ТОЛЬКО пробами
+        /// (`FsaThrottleProbeP238`): с поддельными часами проверка паузы детерминирована
+        /// и не зависит от скорости счёта. Приложение часов не трогает.
+        /// </summary>
+        public static Func<DateTime> Clock = () => DateTime.UtcNow;
+
+        /// <summary>
+        /// (`AMBER211`) Переопределение интервала паузы при записи, секунд, — ТОЛЬКО для проб;
+        /// null — интервал берётся из глобальных настроек
+        /// (<see cref="GlobalConfigInfo.FsaAcquisitionIntervalSeconds"/>).
+        /// </summary>
+        public static double? AcquisitionIntervalOverride = null;
+
+        /// <summary>(`AMBER211`) Интервал паузы при записи, секунд: переопределение проб или настройки.</summary>
+        static double AcquisitionIntervalSeconds
+        {
+            get
+            {
+                if (AcquisitionIntervalOverride.HasValue)
+                {
+                    return AcquisitionIntervalOverride.Value;
+                }
+
+                GlobalConfigManager manager = GlobalConfigManager.GetInstance();
+                return manager != null && manager.GlobalConfig != null ? manager.GlobalConfig.FsaAcquisitionIntervalSeconds : 0.0;
+            }
+        }
+
+        /// <summary>(`AMBER211`) Когда начался последний счёт (по <see cref="Clock"/>); под <see cref="sync"/>.</summary>
+        DateTime lastStartUtc = DateTime.MinValue;
+
+        /// <summary>
+        /// (`AMBER210`) Линии библиотеки приложения — имя и энергия каждого определения — для
+        /// <see cref="FsaAnalyzer.LibraryLines"/>. Выход у определения не хранится, поэтому
+        /// интенсивность линии нуль; определение без имени или с неположительной энергией пропускается.
+        /// </summary>
+        static List<FsaLine> LibraryLinesOf(List<NuclideDefinition> definitions)
+        {
+            var lines = new List<FsaLine>();
+            if (definitions == null)
+            {
+                return lines;
+            }
+
+            foreach (NuclideDefinition d in definitions)
+            {
+                if (d != null && !string.IsNullOrEmpty(d.Name) && d.Energy > 0.0)
+                {
+                    lines.Add(new FsaLine(d.Name, d.Energy, 0.0));
+                }
+            }
+
+            return lines;
+        }
 
         /// <summary>Готовое разложение или null, пока его нет.</summary>
         public FsaResult Result
@@ -150,6 +256,66 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// (`AMBER202`) Матрица разбора взята из ФАЙЛА СПЕКТРА, а не со склада:
+        /// окно отчёта говорит об этом в строке «Матрица отклика».
+        /// </summary>
+        public bool ResponseMatrixFromSpectrum
+        {
+            get
+            {
+                lock (this.sync)
+                {
+                    return this.matrixFromSpectrum;
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER208` (в)) Почему разбор идёт без матрицы отклика — для окна
+        /// результата и отчёта; <see cref="FsaMatrixSkip.None"/> — применена.
+        /// </summary>
+        public FsaMatrixSkip ResponseMatrixSkip
+        {
+            get
+            {
+                lock (this.sync)
+                {
+                    return this.matrixSkip;
+                }
+            }
+        }
+
+        /// <summary>(`AMBER208` (в)) Отказ чтения склада — причиной для человека.</summary>
+        static FsaMatrixSkip SkipOf(EfficiencyMaker.MatrixRefusal refusal)
+        {
+            switch (refusal)
+            {
+                case EfficiencyMaker.MatrixRefusal.OldFormat:
+                    return FsaMatrixSkip.OldFormat;
+                case EfficiencyMaker.MatrixRefusal.NotOurs:
+                case EfficiencyMaker.MatrixRefusal.Unreadable:
+                    return FsaMatrixSkip.Unreadable;
+                default:
+                    return FsaMatrixSkip.NotComputed;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER202`) Почему матрица из файла спектра НЕ взята — словами;
+        /// пусто — её не было или она взята.
+        /// </summary>
+        public string SpectrumMatrixRefusal
+        {
+            get
+            {
+                lock (this.sync)
+                {
+                    return this.spectrumMatrixRefusal ?? "";
+                }
+            }
+        }
+
+        /// <summary>
         /// Забрать заготовленное человеку сообщение об отвергнутой матрице —
         /// ОДИН раз на файл. Пусто, если говорить не о чем или уже сказано.
         ///
@@ -177,6 +343,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// потока; на серию переключений приходит один раз.
         /// </summary>
         public event EventHandler Completed;
+
+        /// <summary>
+        /// (`AMBER201`, мелочь 6.9, 05.10.2026) Пересчёт НАЧАЛСЯ — потребителям пора
+        /// показать «идёт расчёт». Без него окно отчёта узнавало о счёте только по
+        /// <see cref="Completed"/>, и всё время пересчёта строка состояния стояла
+        /// зелёным «готово» над прежними числами. Приходит с потока, позвавшего
+        /// <see cref="EnsureUpToDate(ResultData, bool, FsaCalculationOptions)"/>
+        /// (вид спектра — поток окон), вне замка; на постановку в очередь при
+        /// уже идущем счёте не приходит — «идёт расчёт» уже показано.
+        /// </summary>
+        public event EventHandler Started;
 
         /// <summary>
         /// Забыть результат: он принадлежит прежнему спектру. Поднимает
@@ -259,6 +436,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             string currentStamp = BuildStamp(resultData, subtractBackground, options);
+
+            // (`AMBER211`, решение Amber 07.10.2026 вопросником, дословно: «Не чаще раза в
+            // 30 с и только для видимых»; консоль, дословно: «30 секунд - вынеси в
+            // настройки») ПРИ ЗАПИСИ СПЕКТРА новый счёт — не раньше интервала настроек
+            // после начала предыдущего: отпечаток меняется каждый тик набора, и без паузы
+            // разбор шёл бы счёт за счётом, занимая ядро постоянно. «Только для видимых» —
+            // устройством самого заказа: расчёт заказывают лишь видимые потребители (слой
+            // FSA графика, окно отчёта, окно результата), спящим никто не считает. Отказ
+            // здесь спектр не теряет: следующий тик спросит снова, и по истечении
+            // интервала счёт пойдёт. Тот же отпечаток, что считается или уже посчитан,
+            // паузой не задерживается — ниже он и так не даёт нового счёта.
+            if (resultData.ResultDataStatus != null && resultData.ResultDataStatus.Recording)
+            {
+                double interval = AcquisitionIntervalSeconds;
+                if (interval > 0.0)
+                {
+                    lock (this.sync)
+                    {
+                        bool same = currentStamp == this.stamp || (this.running && currentStamp == this.activeStamp);
+                        if (!same && (Clock() - this.lastStartUtc).TotalSeconds < interval)
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
+
             int myGeneration;
             lock (this.sync)
             {
@@ -319,6 +523,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 this.Start(job);
             }
+
+            EventHandler started = this.Started;
+            if (started != null)
+            {
+                started(this, EventArgs.Empty);
+            }
         }
 
         /// <summary>
@@ -348,6 +558,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.running = true;
             this.runCount++;
             this.activeStamp = job.Stamp;
+            this.lastStartUtc = Clock();
             this.status = Properties.Resources.FSACalculating;
             Task.Run(() => this.Compute(job));
         }
@@ -387,6 +598,61 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                           AppUi.Reason(ex));
             AppUi.Note(text);
             return text;
+        }
+
+        /// <summary>
+        /// (`A312`) СЛОВА ОТКАЗА <see cref="FsaAnalyzer.Analyze"/> — по причине
+        /// <see cref="FsaAnalyzer.Refusal"/>, на языке окна (обе культуры в
+        /// `Resources.resx` / `Resources.ru.resx`).
+        ///
+        /// До 21.09.2026 слова были у ОДНОЙ причины из семи (геометрия,
+        /// `A277`), остальные шесть сливались в `FSANotPossible`, и на спектре
+        /// Amber `Am-241` (состав из NucBase — один образ рентгена кристалла,
+        /// который матрица отклика снимает по `AMBER4`) человек читал
+        /// «разложение невозможно», хотя лечится это одним нуклидом в составе.
+        ///
+        /// ⛔ Имён нуклидов и образов здесь нет и быть не должно: причина
+        /// называет РОД лекарства (состав, полоса, калибровка), а не то, что
+        /// именно снято, — подробность с числами уходит в `Trace`
+        /// (<see cref="FsaAnalyzer.RefusalNote"/>). Числа порогов приходят
+        /// аргументами из констант анализатора, копии в ресурсах нет.
+        ///
+        /// (`AMBER34`) Кривая выбрана и ОТВЕРГНУТА (точка выше единицы у долей):
+        /// гейт геометрии сработал от `efficiency == null`, но чинить надо
+        /// точку, а не геометрию, — называется причина кривой.
+        /// `FSANotPossible` остаётся ТОЛЬКО на причину, которой этот список не
+        /// знает (новый член перечисления без слов), — и это заметно.
+        ///
+        /// Открыт (а не <c>static</c> внутри) ради приёмки: `FsaReportViewProbe`
+        /// (раздел 14) судит, что у КАЖДОГО члена перечисления есть свои слова
+        /// в обеих культурах и ни один не падает в `FSANotPossible`.
+        /// </summary>
+        public static string RefusalText(FsaRefusal refusal, string efficiencyRefusal)
+        {
+            switch (refusal)
+            {
+                case FsaRefusal.Geometry:
+                    return efficiencyRefusal != null
+                        ? string.Format(CultureInfo.InvariantCulture,
+                                        Properties.Resources.FSACurveRefused, efficiencyRefusal)
+                        : Properties.Resources.FSANoGeometry;
+                case FsaRefusal.LibraryEmptied:
+                    return Properties.Resources.FSALibraryEmptied;
+                case FsaRefusal.NarrowBand:
+                    return string.Format(CultureInfo.InvariantCulture,
+                                         Properties.Resources.FSABandTooNarrow, FsaAnalyzer.MinBandChannels);
+                case FsaRefusal.FewChannels:
+                    return string.Format(CultureInfo.InvariantCulture,
+                                         Properties.Resources.FSATooFewChannels, FsaAnalyzer.MinChannels);
+                case FsaRefusal.NoFit:
+                    return Properties.Resources.FSANoFit;
+                case FsaRefusal.Input:
+                    return Properties.Resources.FSANoCalibration;
+                case FsaRefusal.NoLiveTime:
+                    return Properties.Resources.FSANoLiveTime;
+                default:
+                    return Properties.Resources.FSANotPossible;
+            }
         }
 
         /// <summary>
@@ -456,6 +722,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public ResultData CompositionInput;
             public List<NuclideDefinition> Definitions;
             public List<Peak> Peaks;
+            /// <summary>(П236) Активный сет на момент постановки — источник состава «из сета».</summary>
+            public NuclideSet Set;
             public FsaAnalyzer Analyzer;
             public FsaCalculationOptions Options;
             public Dictionary<int, double> CrystalFractions;
@@ -492,12 +760,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Отвергнутая кривая (точка выше единицы у долей) — причина словами.
             job.Efficiency = FsaEfficiency.FromConfig(efficiencyConfig, out job.EfficiencyRefusal);
             job.CompositionInput = CompositionInput(resultData.PeakDetectionMethodConfig,
-                                                    efficiencyConfig, job.Spectrum, job.FwhmCalibration);
+                                                    efficiencyConfig, job.Spectrum, job.FwhmCalibration,
+                                                    resultData.DeviceConfig);
 
             // Снимок списков: их правит UI-поток (конструктор сетов, NucBase),
             // а перечисление живого списка в фоне ловит «Collection was modified».
             NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
             job.Definitions = new List<NuclideDefinition>(nuclideManager.NuclideDefinitions);
+            job.Set = nuclideManager.ActiveSet;
             job.Peaks = resultData.DetectedPeaks != null
                 ? new List<Peak>(resultData.DetectedPeaks)
                 : new List<Peak>();
@@ -509,6 +779,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // не трогается.
             options.ApplyTo(analyzer);
 
+            // (`AMBER210`) линии библиотеки приложения — называть пики вне состава;
+            // имён в коде нет, всё из определений менеджера
+            analyzer.LibraryLines = LibraryLinesOf(job.Definitions);
+
+            Action<FsaAnalyzer> probeHook = ProbeAnalyzerHook;
+            if (probeHook != null)
+            {
+                probeHook(analyzer);
+            }
+
+            // (`AMBER155` (в), П220) свойства прибора (кривизна тракта) — тем же
+            // местом, что у проб, снимком на UI-потоке
+            analyzer.AdoptDevice(resultData.DeviceConfig);
+
             // Матрица отклика берётся у ТОЙ ЖЕ кривой, что и эффективность, и
             // только если её отпечаток сходится с нынешней геометрией. Не
             // сошёлся — работаем без неё, старым путём: посчитать спектр по
@@ -517,6 +801,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // «Матрица отклика»): выключено — считаем без матрицы, файл даже
             // не читаем.
             bool oldFormat = false;
+            bool fromSpectrum = false;
+            string spectrumRefusal = "";
+            FsaMatrixSkip skip = FsaMatrixSkip.None;
             if (efficiencyConfig != null && efficiencyConfig.HasGeometry
                 && efficiencyConfig.UseResponseMatrix)
             {
@@ -526,11 +813,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // легенде обоим доставалась одна пометка «· без матрицы».
                 // Лечится это по-разному (посчитать против пересчитать), и
                 // сказать человеку, что именно с ним случилось, было нечем.
+                //
+                // (`AMBER202`) Матрица — ОБЩИМ путём читателей: склад, а нет на
+                // нём годной — приехавшая в файле спектра (в памяти). Отказ
+                // встроенной называет себя строкой окна отчёта.
                 EfficiencyMaker.MatrixRefusal refusal;
                 int fileFormat;
+                EfficiencyMaker.ResponseMatrixSource source;
                 EfficiencyMaker.ResponseMatrix matrix =
-                    EfficiencyMaker.ResponseMatrixStore.Load(efficiencyConfig.Guid,
-                                                             out refusal, out fileFormat);
+                    EfficiencyMaker.ResponseMatrixStore.Resolve(efficiencyConfig, out refusal, out fileFormat,
+                                                                out source, out spectrumRefusal);
+                fromSpectrum = source == EfficiencyMaker.ResponseMatrixSource.Spectrum;
                 if (refusal == EfficiencyMaker.MatrixRefusal.OldFormat)
                 {
                     oldFormat = true;
@@ -546,6 +839,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // выходит побитово одинаковым.
                     FsaMatrixBinding.Bind(analyzer, efficiencyConfig.Geometry, matrix);
                 }
+                else
+                {
+                    // (`AMBER208` (в)) матрица прочиталась, а клеймо не сошлось —
+                    // «посчитана для другой геометрии»; не прочиталась — отказ
+                    // склада словом (нет файла / прежний формат / не читается)
+                    skip = matrix != null ? FsaMatrixSkip.StaleGeometry : SkipOf(refusal);
+                }
+            }
+            else
+            {
+                skip = efficiencyConfig != null && efficiencyConfig.HasGeometry
+                    ? FsaMatrixSkip.SwitchedOff
+                    : FsaMatrixSkip.NoGeometry;
             }
 
             // Решение о матрице — сразу, как и прежде: о нём спрашивают и до
@@ -553,6 +859,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             lock (this.sync)
             {
                 this.matrixOldFormat = oldFormat;
+                this.matrixFromSpectrum = fromSpectrum;
+                this.spectrumMatrixRefusal = spectrumRefusal;
+                this.matrixSkip = skip;
             }
 
             analyzer.CoincidenceWindowSec = DeadTimeOf(resultData);
@@ -603,6 +912,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             FsaResult computed = null;
             string message = null;
+
+            // ⛔ (`AMBER199`, 05.10.2026) Собиратель отказов чтения баз — на весь
+            // фоновый счёт: сборка библиотеки, разбор, расхождения поставок.
+            // Отказ НЕ кэшируется читателями (следующий пересчёт спросит базу
+            // снова) и доходит до человека: строкой окна отчёта при результате,
+            // припиской к причине — без него.
+            FsaDatabaseFailures.Begin();
+            List<string> databaseFailures;
             try
             {
                 WaitHandle gate = probeGate;
@@ -623,9 +940,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // журнал трассировки: пустой разбор при источнике «Из NucBase»
                 // до 06.09.2026 не называл ни одной причины.
                 string shortfall = null;
-                if (job.Options.DbLookups)
+                List<FsaSampleChain> setChains = null;
+                List<string> setNuclides = null;
+                // (`AMBER221`) отчёт вывода — и для строки о родителях сета вне
+                // состава; null — состав не выводился (из сета, по подписям)
+                FsaCompositionInference.Report inferred = null;
+                bool declaredBySet = false;
+                if (job.Options.FromSet)
                 {
-                    FsaCompositionInference.Report inferred;
+                    // (П236; решение Amber 06.10.2026 «Из сета нуклидов») Состав —
+                    // родители активного сета, как объявленный состав корпусных
+                    // проб (`--chain=`/`--sample=`): ряд по метке `Chain`, одиночка
+                    // по имени. Пики не читаются: нуклид сета без пика остаётся
+                    // кандидатом и получает предел обнаружения.
+                    FsaMeasurementResult.DeclaredOf(job.Set, job.Definitions, out setChains, out setNuclides);
+                }
+                if (setChains != null && (setChains.Count > 0 || setNuclides.Count > 0))
+                {
+                    FsaSampleSpec spec = FsaSampleSpec.Declared(job.CompositionInput, setChains, setNuclides,
+                                                                job.Options.ChainEquilibrium, job.Options.AtomicXray);
+                    job.Options.ApplyTo(spec);
+                    Trace.WriteLine("FSA composition: nuclide set, chains " + setChains.Count
+                                    + ", nuclides " + setNuclides.Count);
+                    library = FsaSampleLibrary.Build(spec);
+                    declaredBySet = true;
+                }
+                else if (job.Options.DbLookups)
+                {
                     FsaSampleSpec spec = FsaCompositionInference.Infer(job.Peaks, job.CompositionInput, out inferred);
                     job.Options.ApplyTo(spec);
                     Trace.WriteLine("FSA composition: " + inferred);
@@ -647,25 +988,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     computed = job.Analyzer.Analyze(job.Spectrum, job.Background, job.FwhmCalibration,
                                                     library, job.Efficiency);
+                    if (computed != null)
+                    {
+                        // (`S187`) Расхождения поставок у нуклидов состава — здесь,
+                        // в фоне: чтение базы не должно идти в окне отчёта.
+                        computed.SupplyDiscrepancies = FsaCascadeSummer.SupplyDiscrepanciesOf(computed);
+
+                        // (`AMBER221`) родители сета вне состава — строкой отчёта;
+                        // состав, объявленный сетом, их не теряет по построению
+                        if (!declaredBySet)
+                        {
+                            computed.SetOmissions.AddRange(FsaCompositionInference.SetOmissions(
+                                job.Set, job.Definitions, inferred, job.Peaks, library));
+                        }
+                    }
+
                     if (computed == null)
                     {
-                        // ⛔ (`A277`) ОТКАЗ ПО ГЕОМЕТРИИ НАЗЫВАЕТ СЕБЯ. Гаснущий
+                        // ⛔ (`A277`, `A312`) ОТКАЗ НАЗЫВАЕТ СЕБЯ. Гаснущий
                         // экран без слов — это ровно «признак без читателя»:
                         // человек видит пустоту и не знает, что лечится она
-                        // одним описанием кристалла в редакторе геометрии.
-                        // Решение о самом отказе принято ОДНИМ местом
-                        // (`FsaAnalyzer.RequireGeometry`), здесь только слова.
-                        //
-                        // (`AMBER34`) Кривая выбрана и ОТВЕРГНУТА (точка выше
-                        // единицы у долей): гейт геометрии сработал от
-                        // `efficiency == null`, но чинить надо точку, а не
-                        // геометрию, — называется причина кривой.
-                        message = job.Analyzer.GeometryRefused
-                            ? (job.EfficiencyRefusal != null
-                                ? string.Format(CultureInfo.InvariantCulture,
-                                                Properties.Resources.FSACurveRefused, job.EfficiencyRefusal)
-                                : Properties.Resources.FSANoGeometry)
-                            : Properties.Resources.FSANotPossible;
+                        // одним описанием кристалла в редакторе геометрии —
+                        // или одним нуклидом в составе. Решение о самом
+                        // отказе принято ОДНИМ местом (`FsaAnalyzer.Refuse`,
+                        // причина — `FsaAnalyzer.Refusal`), здесь только слова.
+                        message = RefusalText(job.Analyzer.Refusal, job.EfficiencyRefusal);
+                        Trace.WriteLine("FSA refused: " + job.Analyzer.Refusal
+                                        + (job.Analyzer.RefusalNote != null ? " — " + job.Analyzer.RefusalNote : ""));
                     }
                 }
             }
@@ -676,8 +1025,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // называется, а не остаётся в журнале трассировки.
                 message = FailureText(ex);
             }
+            finally
+            {
+                databaseFailures = FsaDatabaseFailures.End();
+            }
+
+            if (computed != null)
+            {
+                computed.DatabaseFailures = databaseFailures;
+            }
+            else if (databaseFailures.Count > 0 && message != null)
+            {
+                message += " " + DatabaseFailureText(databaseFailures);
+            }
 
             this.Finish(job, computed, message);
+        }
+
+        /// <summary>
+        /// (`AMBER199`) Слова об отказе чтения баз: подпись (обе культуры) и
+        /// первая строка отказа; остальные — числом. Строки отказа — имя файла,
+        /// ключ и сообщение платформы, переводу не подлежат.
+        /// </summary>
+        public static string DatabaseFailureText(List<string> failures)
+        {
+            if (failures == null || failures.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            string text = string.Format(CultureInfo.InvariantCulture,
+                                        Properties.Resources.FSADatabaseFailed, failures[0]);
+            if (failures.Count > 1)
+            {
+                text += string.Format(CultureInfo.InvariantCulture, " (+{0})", failures.Count - 1);
+            }
+
+            return text;
         }
 
         /// <summary>
@@ -779,19 +1163,44 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// состава из баз. Полный <c>ResultData.Clone</c> здесь избыточен: FSA
         /// не читает импульсы, ROI и метаданные, а три используемых входа уже
         /// сняты до фоновой задачи.
+        ///
+        /// (`AMBER180`, 05.10.2026) Прибор едет сюда тоже — ради ОДНОГО поля,
+        /// вещества кристалла (`FsaSampleSpec.OfSpectrum` → `CrystalMaterialName`,
+        /// второй источник долей по `A276`). До этого дня снимок его не нёс, и
+        /// на пути «из баз» у кривой без геометрии отбор родителей образов
+        /// вылета оставался без долей кристалла, хотя прибор их называл.
+        /// Снимком служит минимальная копия с одним этим полем: прибор правит
+        /// UI-поток, а читается поле уже в фоне.
         /// </summary>
         static ResultData CompositionInput(PeakDetectionMethodConfig peakConfig,
                                            EfficiencyConfigData efficiency,
                                            EnergySpectrum spectrum,
-                                           FwhmCalibration fwhmCalibration)
+                                           FwhmCalibration fwhmCalibration,
+                                           DeviceConfigInfo device)
         {
             return new ResultData
             {
                 PeakDetectionMethodConfig = PeakConfigInput(peakConfig),
                 Efficiency = efficiency,
                 EnergySpectrum = spectrum,
-                FwhmCalibration = fwhmCalibration
+                FwhmCalibration = fwhmCalibration,
+                DeviceConfig = DeviceInput(device)
             };
+        }
+
+        /// <summary>
+        /// (`AMBER180`) Минимальный снимок прибора для вывода состава: только
+        /// вещество кристалла. Полная копия (<c>new DeviceConfigInfo(info)</c>)
+        /// клонирует тракт ввода и калибровки, которые выводу не нужны.
+        /// </summary>
+        static DeviceConfigInfo DeviceInput(DeviceConfigInfo device)
+        {
+            if (device == null || string.IsNullOrEmpty(device.CrystalMaterialName))
+            {
+                return null;
+            }
+
+            return new DeviceConfigInfo { CrystalMaterialName = device.CrystalMaterialName };
         }
 
         /// <summary>
@@ -867,13 +1276,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 "|", spectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture),
                 "|", spectrum.TotalPulseCount.ToString(CultureInfo.InvariantCulture),
                 "|", spectrum.MeasurementTime.ToString("F1", CultureInfo.InvariantCulture),
+                // ⛔ (`AMBER180`, 05.10.2026) ЖИВОЕ ВРЕМЯ — в отпечатке. Разбор
+                // делит на `EffectiveLiveTime` и по `LiveTime` выбирает убыль
+                // наложений (`FsaAnalyzer.PileUpLossFor`, `PileUpCapFor`), а
+                // «Применить поправку на мёртвое время» меняет ТОЛЬКО его: без
+                // этой части отчёт FSA показывал прежние Бк, а панель выделения
+                // и ось имп/с — новые. "R" — поправка бывает меньше десятой
+                // доли секунды, и округление её съело бы.
+                "|", spectrum.LiveTime.ToString("R", CultureInfo.InvariantCulture),
                 "|", subtractBackground ? "bg" : "nobg",
-                "|", background != null
-                         ? background.TotalPulseCount.ToString(CultureInfo.InvariantCulture)
-                         : "-",
+                "|", BackgroundStamp(background),
                 "|", EfficiencyStamp(resultData.Efficiency),
                 "|", MatrixFileStamp(resultData.Efficiency),
                 "|", CalibrationStamp(spectrum, resultData.FwhmCalibration),
+                // (`AMBER180`) Полоса и порог поиска: `Min_Range`/`Max_Range`
+                // уходят в `analyzer.MinEnergy/MaxEnergy` и в спецификацию
+                // состава (`FsaSampleSpec.OfSpectrum`), `Min_SNR` — в порог
+                // ожидаемых линий вывода состава (`FsaCompositionInference.Score`)
+                // прямо, а не только через список пиков.
+                "|", PeakConfigStamp(resultData.PeakDetectionMethodConfig),
+                // (`AMBER180`) Прибор: кривизна тракта (`AdoptDevice`), мёртвое
+                // время — окно совпадения (`CoincidenceWindowSec`) — и вещество
+                // кристалла (запасной источник долей без геометрии, `A276`).
+                "|", DeviceStamp(resultData),
                 // Семь настроек расчёта (`A170`): источник состава (S57),
                 // равновесие (S70) и пять компонентов модели. Каждая меняет
                 // САМУ библиотеку или матрицу задачи, и без неё в отпечатке
@@ -902,13 +1327,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             NuclideDefinitionManager manager = NuclideDefinitionManager.GetInstance();
             NuclideSet active = manager != null ? manager.ActiveSet : null;
+            List<NuclideDefinition> definitions = manager != null ? manager.NuclideDefinitions : null;
             if (active == null)
             {
-                return "all";
+                // (`AMBER180`) и без набора линии образа берутся из определений
+                return "all:" + DefinitionsHash(definitions).ToString(CultureInfo.InvariantCulture);
             }
 
             int members = 0;
-            List<NuclideDefinition> definitions = manager.NuclideDefinitions;
             if (definitions != null)
             {
                 foreach (NuclideDefinition definition in definitions)
@@ -923,7 +1349,101 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             return string.Concat(active.Name, ":",
                                  members.ToString(CultureInfo.InvariantCulture),
-                                 active.HideUnknownPeaks ? ":hide" : "");
+                                 active.HideUnknownPeaks ? ":hide" : "",
+                                 ":", DefinitionsHash(definitions).ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// (`AMBER180`, 05.10.2026) СОДЕРЖАНИЕ ОПРЕДЕЛЕНИЙ НУКЛИДОВ — свёрткой.
+        /// Путь по пикам (<c>FsaLibrary.BuildFromPeaks</c>)
+        /// берёт линии образа из ВСЕХ определений — энергию и выход, — и правка
+        /// выхода линии в редакторе нуклидов отпечатка не меняла: разложение
+        /// со старым выходом держалось на экране. Свёртка — внутри процесса
+        /// (хэши строк в отпечатке живут столько же, сколько он сам).
+        /// </summary>
+        static int DefinitionsHash(List<NuclideDefinition> definitions)
+        {
+            int hash = 17;
+            if (definitions == null)
+            {
+                return hash;
+            }
+
+            unchecked
+            {
+                foreach (NuclideDefinition definition in definitions)
+                {
+                    if (definition == null)
+                    {
+                        hash = hash * 31;
+                        continue;
+                    }
+
+                    hash = hash * 31 + (definition.Name != null ? definition.Name.GetHashCode() : 0);
+                    hash = hash * 31 + definition.Energy.GetHashCode();
+                    hash = hash * 31 + definition.Intencity.GetHashCode();
+                }
+            }
+
+            return hash;
+        }
+
+        /// <summary>
+        /// (`AMBER180`) Фон в отпечатке: его отсчёты, число каналов (не то —
+        /// фон отвергается), живое и полное время (знаменатель нормировки фона,
+        /// `backgroundScale = liveTime / backgroundLive`) и его собственная
+        /// шкала — по ней фон перекладывается в шкалу пробы
+        /// (<c>RebinBackgroundToSpectrum</c>). Прежде здесь было одно число
+        /// отсчётов.
+        /// </summary>
+        static string BackgroundStamp(EnergySpectrum background)
+        {
+            if (background == null)
+            {
+                return "-";
+            }
+
+            return string.Concat(
+                background.TotalPulseCount.ToString(CultureInfo.InvariantCulture),
+                ":", background.NumberOfChannels.ToString(CultureInfo.InvariantCulture),
+                ":", background.LiveTime.ToString("R", CultureInfo.InvariantCulture),
+                ":", background.MeasurementTime.ToString("R", CultureInfo.InvariantCulture),
+                ":", CalibrationStamp(background, null));
+        }
+
+        /// <summary>(`AMBER180`) Полоса и порог поиска пиков — входы разбора и вывода состава.</summary>
+        static string PeakConfigStamp(PeakDetectionMethodConfig config)
+        {
+            FWHMPeakDetectionMethodConfig fwhm = config as FWHMPeakDetectionMethodConfig;
+            if (fwhm == null)
+            {
+                return "-";
+            }
+
+            return string.Concat(
+                fwhm.Min_Range.ToString("R", CultureInfo.InvariantCulture),
+                ":", fwhm.Max_Range.ToString("R", CultureInfo.InvariantCulture),
+                ":", fwhm.Min_SNR.ToString("R", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// (`AMBER180`) Свойства прибора, которые снимок передаёт разбору:
+        /// кривизна тракта, мёртвое время (окно совпадения) и вещество
+        /// кристалла. Мёртвое время берётся тем же <see cref="DeadTimeOf"/>,
+        /// что и снимок, — с его же перехватом заглушки.
+        /// </summary>
+        static string DeviceStamp(ResultData resultData)
+        {
+            DeviceConfigInfo device = resultData.DeviceConfig;
+            if (device == null)
+            {
+                return "-";
+            }
+
+            return string.Concat(
+                device.TractCurvature.ToString("R", CultureInfo.InvariantCulture),
+                ":", DeadTimeOf(resultData).ToString("R", CultureInfo.InvariantCulture),
+                ":", device.CrystalMaterialName ?? string.Empty);
         }
 
         /// <summary>
@@ -948,20 +1468,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return "off";
             }
 
-            try
-            {
-                var file = new System.IO.FileInfo(
-                    EfficiencyMaker.ResponseMatrixStore.PathOf(efficiency.Guid));
-                return file.Exists
-                    ? file.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture)
-                      + ":" + file.Length.ToString(CultureInfo.InvariantCulture)
-                    : "-";
-            }
-            catch (Exception)
-            {
-                // недоступный файл — то же, что отсутствующий: счёт его не прочтёт
-                return "-";
-            }
+            // (`AMBER202`) отметка ОБОИХ источников матрицы — склада и блока из
+            // файла спектра — общим местом читателей
+            return EfficiencyMaker.ResponseMatrixStore.SourceStamp(efficiency);
         }
 
         /// <summary>
@@ -1049,6 +1558,122 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Trace.WriteLine("FSA: мёртвое время недоступно, окно совпадения по умолчанию: " + ex.Message);
                 return 0.0;
             }
+        }
+
+        /// <summary>(П195) Умолчание карточки пробы — вес, кг (`SampleInfoData`).</summary>
+        public const double DefaultCardWeightKg = 1.0;
+
+        /// <summary>(П195) Умолчание карточки пробы — объём, л (`SampleInfoData`).</summary>
+        public const double DefaultCardVolumeL = 1.0;
+
+        /// <summary>
+        /// (`AMBER159`, П195 01.10.2026; решение Amber «Предупреждение с
+        /// величиной») ПЛОТНОСТЬ ПРОБЫ ПРОТИВ ПЛОТНОСТИ СЦЕНЫ. Разбор считает
+        /// активность матрицей (и кривой из геометрии) с плотностью вещества
+        /// источника сцены (<see cref="EfficiencyMaker.GeometryModel.Source"/>),
+        /// а вес и объём пробы человек вписывает в карточку
+        /// (<see cref="SampleInfoData.Weight"/>, кг; <see cref="SampleInfoData.Volume"/>,
+        /// л — единицы хранения, `DCSampleInfoView`), и до 01.10.2026 их никто
+        /// не сверял: проба 1.3 г/см³ в маринелли со сценой 0.66 давала
+        /// активность ниже на 15 % при 60 кэВ и на 7 % при 662 — молча.
+        ///
+        /// Поправка активности НЕ делается (решение Amber: делается только
+        /// сверка); здесь — расхождение и оценка цены. null — сверять нечего:
+        /// нет веса или объёма (нуль — «не вписан»), нет геометрии, у сцены нет
+        /// пробы (точечный источник).
+        ///
+        /// Зовёт окно отчёта при каждом заполнении, а не сеанс при счёте:
+        /// вес и объём в отпечаток разбора не входят (на разложение они не
+        /// влияют), и строка, посчитанная при счёте, осталась бы старой после
+        /// правки карточки.
+        ///
+        /// ⚠ Цена — ОЦЕНКА, названная так и в строке окна: наклон ln ε по
+        /// плотности из прямого счёта П191 на маринелли 1 л
+        /// (`Nano16Pro_Marinelli.in`, ρ 0.66 / 1.3, 3 М историй на узел, шум
+        /// узла 1.3…1.8 %): ε(0.66)/ε(1.3) = 1.177 при 60 кэВ и 1.078 при 662 —
+        /// у другого сосуда и другой высоты пробы наклон другой.
+        /// </summary>
+        public static FsaSampleDensityCheck CheckSampleDensity(SampleInfoData sample,
+                                                               EfficiencyMaker.GeometryModel geometry)
+        {
+            if (sample == null || geometry == null || geometry.Source == null
+                || !geometry.HasSampleVolume
+                || !(sample.Weight > 0.0) || !(sample.Volume > 0.0)
+                || double.IsInfinity(sample.Weight) || double.IsInfinity(sample.Volume)
+                || !(geometry.Source.Density > 0.0))
+            {
+                return null;
+            }
+
+            // ⚠ (П195) 1 кг и 1 л РОВНО — умолчание карточки (`SampleInfoData`:
+            // `weight = 1.0`, `volume = 1.0`), а не вписанные числа: так стоит у
+            // 112 из 131 спектра корпуса и у спектров витрины Amber. Посылка
+            // решения «нуль — не вписан» уже реальности; сверять умолчание значило
+            // бы красить «+52 %» почти каждое измерение в маринелли ОИСН 0.66.
+            // Цена — настоящая проба 1 кг в 1 л не сверяется; выбор — за Amber.
+            if (sample.Weight == DefaultCardWeightKg && sample.Volume == DefaultCardVolumeL)
+            {
+                return null;
+            }
+
+            // кг/л = г/см³
+            double sampleDensity = sample.Weight / sample.Volume;
+            double sceneDensity = geometry.Source.Density;
+            double delta = sampleDensity - sceneDensity;
+            return new FsaSampleDensityCheck
+            {
+                SampleDensity = sampleDensity,
+                SceneDensity = sceneDensity,
+                DeviationPercent = 100.0 * (sampleDensity / sceneDensity - 1.0),
+                Efficiency60Percent = 100.0 * (Math.Exp(-FsaSampleDensityCheck.LogSlope60 * delta) - 1.0),
+                Efficiency662Percent = 100.0 * (Math.Exp(-FsaSampleDensityCheck.LogSlope662 * delta) - 1.0)
+            };
+        }
+    }
+
+    /// <summary>
+    /// (`AMBER159`, П195) Итог сверки плотности пробы с плотностью сцены —
+    /// <see cref="FsaAnalysisSession.CheckSampleDensity"/>; читает окно отчёта.
+    /// </summary>
+    public sealed class FsaSampleDensityCheck
+    {
+        /// <summary>
+        /// Наклон −d ln ε / dρ пика при 60 кэВ, см³/г: ln(0.01705/0.01449)/0.64
+        /// по прямому счёту П191 (маринелли 1 л, ρ 0.66 против 1.3).
+        /// </summary>
+        public const double LogSlope60 = 0.2542;
+
+        /// <summary>То же при 662 кэВ: ln(0.00371/0.00344)/0.64.</summary>
+        public const double LogSlope662 = 0.1181;
+
+        /// <summary>
+        /// Порог предупреждения по |расхождению плотностей|, % — из решения
+        /// Amber 01.10.2026 («при |Z| &gt; 10 % — предупреждение в окне отчёта»).
+        /// </summary>
+        public const double WarningPercent = 10.0;
+
+        /// <summary>Плотность пробы W/V, г/см³.</summary>
+        public double SampleDensity { get; set; }
+
+        /// <summary>Плотность вещества источника сцены, г/см³.</summary>
+        public double SceneDensity { get; set; }
+
+        /// <summary>(ρ пробы / ρ сцены − 1) · 100, %.</summary>
+        public double DeviationPercent { get; set; }
+
+        /// <summary>
+        /// Оценка ε пробы против ε сцены при 60 кэВ, % (знак: минус — у пробы
+        /// эффективность ниже, активность разбора занижена так же).
+        /// </summary>
+        public double Efficiency60Percent { get; set; }
+
+        /// <summary>То же при 662 кэВ, %.</summary>
+        public double Efficiency662Percent { get; set; }
+
+        /// <summary>|расхождение| выше порога — строка окна красная.</summary>
+        public bool Warning
+        {
+            get { return Math.Abs(this.DeviationPercent) > WarningPercent; }
         }
     }
 }

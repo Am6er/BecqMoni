@@ -1,0 +1,6 @@
+start 11:30:08
+eu152 964.1+121.8 patched rc=0 за 0,8 мин: ANGCORR pairs=335682 A22=0.00629 sigma=0.00404 A44=0.32004 sigma=0.00529 E1=964.1 E2=121.8 corr=1
+eu152 964.1+121.8 std rc=0 за 0,8 мин: ANGCORR pairs=335614 A22=0.32611 sigma=0.00400 A44=0.00145 sigma=0.00539 E1=964.1 E2=121.8 corr=1
+eu152 1112.1+121.8 patched rc=0 за 0,8 мин: ANGCORR pairs=311553 A22=-0.29134 sigma=0.00375 A44=-0.08111 sigma=0.00513 E1=1112.1 E2=121.8 corr=1
+cs134 563.2+604.7 patched rc=0 за 0,6 мин: ANGCORR pairs=414713 A22=0.02552 sigma=0.00364 A44=0.32302 sigma=0.00476 E1=563.2 E2=604.7 corr=1
+done 11:33:10

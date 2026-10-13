@@ -14,6 +14,10 @@ namespace BecquerelMonitor
         private ResultData resultData;
         private string status = "Unknown";
         private ObsidianIn subscribedInstance;
+        // ⛔ `AMBER164`, 05.10.2026. Набор запущен ЭТИМ контроллером и не
+        // остановлен ни человеком, ни прибором; только поток окон. Разбор — у
+        // близнеца, `RadiaCodeDeviceController.measuring`.
+        private bool measuring = false;
 
         public ObsidianDeviceController()
         {
@@ -29,6 +33,14 @@ namespace BecquerelMonitor
             }
 
             if (!string.Equals(resultData.DeviceConfig.Guid, e.Guid, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            // ⛔ `AMBER164` (б): остановленному набору адрес не толкать — иначе
+            //    `device_serial_changed` переводил остановленный прибор в
+            //    `Starting`; следующий Start возьмёт адрес сам.
+            if (!measuring)
             {
                 return;
             }
@@ -105,6 +117,7 @@ namespace BecquerelMonitor
                 }
 
                 SubscribeToInstance(instance);
+                measuring = true;
                 currentResultDataStatus.Recording = true;
                 if (new_document_created)
                 {
@@ -135,11 +148,16 @@ namespace BecquerelMonitor
                 switch (currentStatus)
                 {
                     case "Recording":
-                        resultData.ResultDataStatus.Recording = true;
+                        // `AMBER164`: только набору, который идёт.
+                        if (measuring)
+                        {
+                            resultData.ResultDataStatus.Recording = true;
+                        }
                         break;
                     case "Faulted":
                     case "Stopped":
                     case "Disconnected":
+                        measuring = false;
                         // Hard stop on device-side termination. If a measurement was actually
                         // running (e.g. Troubleshoot stole the BLE link and disposed the recording
                         // instance -> Recording -> Stopped), drive the full stop pipeline so the
@@ -235,6 +253,7 @@ namespace BecquerelMonitor
         public override void StopMeasurement(ResultData resultData)
         {
             ResultDataStatus currentResultDataStatus = resultData.ResultDataStatus;
+            measuring = false;
             if (deviceGuid != null)
             {
                 ObsidianIn.getInstance(deviceGuid).sendCommand("Stop");

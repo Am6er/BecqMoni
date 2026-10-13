@@ -971,15 +971,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Duplicate GUID for ROI configuration &quot;{0}&quot;.
-        /// </summary>
-        public static string ERRDuplicateROIConfigGUID {
-            get {
-                return ResourceManager.GetString("ERRDuplicateROIConfigGUID", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to This device doesn&apos;t contain calibration coefficients. Write them first..
         /// </summary>
         public static string ERREmptyCoefficients {
@@ -1012,15 +1003,6 @@ namespace BecquerelMonitor.Properties {
         public static string ERREmptyRadiaCodeData {
             get {
                 return ResourceManager.GetString("ERREmptyRadiaCodeData", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Empty ROI config name.
-        /// </summary>
-        public static string ERREmptyROIConfigName {
-            get {
-                return ResourceManager.GetString("ERREmptyROIConfigName", resourceCulture);
             }
         }
         
@@ -1163,24 +1145,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid ROI primitive..
-        /// </summary>
-        public static string ERRInvalidROIPrimitive {
-            get {
-                return ResourceManager.GetString("ERRInvalidROIPrimitive", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Invalid ROI primitive operation..
-        /// </summary>
-        public static string ERRInvalidROIPrimitiveOperation {
-            get {
-                return ResourceManager.GetString("ERRInvalidROIPrimitiveOperation", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Failed to load device configuration file(s)..
         /// </summary>
         public static string ERRLoadingDeviceConfigFailed {
@@ -1213,15 +1177,6 @@ namespace BecquerelMonitor.Properties {
         public static string ERRLoadingNuclideDefinitionFile {
             get {
                 return ResourceManager.GetString("ERRLoadingNuclideDefinitionFile", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Failed to load ROI configuration file(s)..
-        /// </summary>
-        public static string ERRLoadingROIConfigFailed {
-            get {
-                return ResourceManager.GetString("ERRLoadingROIConfigFailed", resourceCulture);
             }
         }
 
@@ -1361,15 +1316,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Failed to save ROI configuration file..
-        /// </summary>
-        public static string ERRSavingROIConfigFailed {
-            get {
-                return ResourceManager.GetString("ERRSavingROIConfigFailed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Error while check document content: calibration, spectrum, channels.
         /// </summary>
         public static string ERRSpectrumCheck {
@@ -1447,6 +1393,15 @@ namespace BecquerelMonitor.Properties {
         public static string ERRUnreadableStartDateTimeN42 {
             get {
                 return ResourceManager.GetString("ERRUnreadableStartDateTimeN42", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to In {0} measurement(s) of the N42 file the spectrum refers to an energy calibration that is not in the file (first reference: {1}); the calibration was taken by the measurement number instead. Check the energy scale of these spectra..
+        /// </summary>
+        public static string ERRCalibrationReferenceNotFoundN42 {
+            get {
+                return ResourceManager.GetString("ERRCalibrationReferenceNotFoundN42", resourceCulture);
             }
         }
         
@@ -1752,15 +1707,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Lq counts.
-        /// </summary>
-        public static string Lq_counts {
-            get {
-                return ResourceManager.GetString("Lq_counts", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Lu Counts:.
         /// </summary>
         public static string Lu_counts {
@@ -1793,16 +1739,6 @@ namespace BecquerelMonitor.Properties {
         public static string MinPeaksRequirement {
             get {
                 return ResourceManager.GetString("MinPeaksRequirement", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        public static System.Drawing.Bitmap Minus {
-            get {
-                object obj = ResourceManager.GetObject("Minus", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
             }
         }
         
@@ -1877,33 +1813,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Remove ROI configuration &quot;{0}&quot;?.
-        /// </summary>
-        public static string MSGDeleteROIConfig {
-            get {
-                return ResourceManager.GetString("MSGDeleteROIConfig", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Remove ROI definition &quot;{0}&quot;?.
-        /// </summary>
-        public static string MSGDeleteROIDefinition {
-            get {
-                return ResourceManager.GetString("MSGDeleteROIDefinition", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Remove ROI primitive?.
-        /// </summary>
-        public static string MSGDeleteROIPrimitive {
-            get {
-                return ResourceManager.GetString("MSGDeleteROIPrimitive", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Changing device type causes initialization of input fields. OK?.
         /// </summary>
         public static string MSGDeviceTypeChanging {
@@ -1954,6 +1863,15 @@ namespace BecquerelMonitor.Properties {
         public static string MSGNewNuclideDefinitionFileCreated {
             get {
                 return ResourceManager.GetString("MSGNewNuclideDefinitionFileCreated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The file exists but could not be read, so the program works ....
+        /// </summary>
+        public static string MSGUnreadableConfigNotOverwritten {
+            get {
+                return ResourceManager.GetString("MSGUnreadableConfigNotOverwritten", resourceCulture);
             }
         }
         
@@ -2195,15 +2113,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to New ROI Configuration.
-        /// </summary>
-        public static string NewROIConfigPrefix {
-            get {
-                return ResourceManager.GetString("NewROIConfigPrefix", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         public static System.Drawing.Bitmap NOBG {
@@ -2391,6 +2300,24 @@ namespace BecquerelMonitor.Properties {
         public static string NucBase_KSeriesRedundantSkipped {
             get {
                 return ResourceManager.GetString("NucBase_KSeriesRedundantSkipped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This L-series row is superseded by more detailed rows of the same decay....
+        /// </summary>
+        public static string NucBase_LSeriesRedundantHint {
+            get {
+                return ResourceManager.GetString("NucBase_LSeriesRedundantHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to L-series rows skipped as duplicates: {0}....
+        /// </summary>
+        public static string NucBase_LSeriesRedundantSkipped {
+            get {
+                return ResourceManager.GetString("NucBase_LSeriesRedundantSkipped", resourceCulture);
             }
         }
 
@@ -2612,16 +2539,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        public static System.Drawing.Bitmap Plus {
-            get {
-                object obj = ResourceManager.GetObject("Plus", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to ±.
         /// </summary>
         public static string PlusMinus {
@@ -2692,60 +2609,6 @@ namespace BecquerelMonitor.Properties {
         public static string RestartRequiredMessage {
             get {
                 return ResourceManager.GetString("RestartRequiredMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to ROI efficiency curve imported successfully.
-        /// </summary>
-        public static string ROICreationSucces {
-            get {
-                return ResourceManager.GetString("ROICreationSucces", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Addition.
-        /// </summary>
-        public static string ROIPrimitiveOperationTypeAddition {
-            get {
-                return ResourceManager.GetString("ROIPrimitiveOperationTypeAddition", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Subtraction.
-        /// </summary>
-        public static string ROIPrimitiveOperationTypeSubtraction {
-            get {
-                return ResourceManager.GetString("ROIPrimitiveOperationTypeSubtraction", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to BG Difference.
-        /// </summary>
-        public static string ROIPrimitiveTypeBGDifference {
-            get {
-                return ResourceManager.GetString("ROIPrimitiveTypeBGDifference", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Covell Method.
-        /// </summary>
-        public static string ROIPrimitiveTypeCovellMethod {
-            get {
-                return ResourceManager.GetString("ROIPrimitiveTypeCovellMethod", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to ROI Reference.
-        /// </summary>
-        public static string ROIPrimitiveTypeROIReference {
-            get {
-                return ResourceManager.GetString("ROIPrimitiveTypeROIReference", resourceCulture);
             }
         }
         
@@ -2871,6 +2734,15 @@ namespace BecquerelMonitor.Properties {
         public static string TemperatureStr {
             get {
                 return ResourceManager.GetString("TemperatureStr", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Click 🔃 to read the detector temperature again (Atom Spectra, while acquiring).
+        /// </summary>
+        public static string TemperatureRefreshHint {
+            get {
+                return ResourceManager.GetString("TemperatureRefreshHint", resourceCulture);
             }
         }
         
@@ -3252,6 +3124,15 @@ namespace BecquerelMonitor.Properties {
         public static string FSAResidualCountsValue {
             get {
                 return ResourceManager.GetString("FSAResidualCountsValue", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Residual share is undefined: the net counts of the band (sample minus background) are not above three standard deviations, so there is nothing to take a share of. The residual ribbon on the chart is drawn as usual..
+        /// </summary>
+        public static string FSAResidualUndefinedHint {
+            get {
+                return ResourceManager.GetString("FSAResidualUndefinedHint", resourceCulture);
             }
         }
         
@@ -3754,6 +3635,12 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string EfficiencyMakerNodeSpreadLow {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNodeSpreadLow", resourceCulture);
+            }
+        }
+
         public static string EfficiencyMakerNodeSpreadWarning {
             get {
                 return ResourceManager.GetString("EfficiencyMakerNodeSpreadWarning", resourceCulture);
@@ -4100,6 +3987,24 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("GeometryEditorErrorDensity", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to “{0}”: density {1} g/cm³ — a density must be greater than zero..
+        /// </summary>
+        public static string GeometryEditorErrorDensityField {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorDensityField", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to “{0}”: the material “{1}” has no composition. Open the material library (…) and fix it..
+        /// </summary>
+        public static string GeometryEditorErrorMaterialEmpty {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorMaterialEmpty", resourceCulture);
+            }
+        }
 
         public static string GeometryEditorErrorMarinelliHole {
             get {
@@ -4140,6 +4045,15 @@ namespace BecquerelMonitor.Properties {
         public static string GeometryEditorErrorWallEatsSample {
             get {
                 return ResourceManager.GetString("GeometryEditorErrorWallEatsSample", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to “{2}” is {0} mm: a distance or a thickness cannot be negative..
+        /// </summary>
+        public static string GeometryEditorErrorNegativeLength {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorNegativeLength", resourceCulture);
             }
         }
 
@@ -4269,10 +4183,25 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("GeometryEditorSceneIso", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The dose rate from this curve is for a sample in this geometry. For the background (radiation from all sides) set up a separate curve with the scene “Isotropic field (ISO)”..
+        /// </summary>
+        public static string GeometryEditorSceneIsoHint {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneIsoHint", resourceCulture);
+            }
+        }
 
         public static string GeometryEditorErrorFieldRadiusSmall {
             get {
                 return ResourceManager.GetString("GeometryEditorErrorFieldRadiusSmall", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorFieldRadiusLarge {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorFieldRadiusLarge", resourceCulture);
             }
         }
 
@@ -4285,30 +4214,6 @@ namespace BecquerelMonitor.Properties {
         public static string EfficiencySketchIso {
             get {
                 return ResourceManager.GetString("EfficiencySketchIso", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffAuto {
-            get {
-                return ResourceManager.GetString("BqCoeffAuto", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffNoIntensity {
-            get {
-                return ResourceManager.GetString("BqCoeffNoIntensity", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffNoEnergy {
-            get {
-                return ResourceManager.GetString("BqCoeffNoEnergy", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffNoCurve {
-            get {
-                return ResourceManager.GetString("BqCoeffNoCurve", resourceCulture);
             }
         }
 
@@ -4327,18 +4232,6 @@ namespace BecquerelMonitor.Properties {
         public static string ResultNoVolume {
             get {
                 return ResourceManager.GetString("ResultNoVolume", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffOutOfRange {
-            get {
-                return ResourceManager.GetString("BqCoeffOutOfRange", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffFromCurve {
-            get {
-                return ResourceManager.GetString("BqCoeffFromCurve", resourceCulture);
             }
         }
 
@@ -4399,12 +4292,6 @@ namespace BecquerelMonitor.Properties {
         public static string ActivityLcZeroRefused {
             get {
                 return ResourceManager.GetString("ActivityLcZeroRefused", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffTipAuto {
-            get {
-                return ResourceManager.GetString("BqCoeffTipAuto", resourceCulture);
             }
         }
 
@@ -4627,9 +4514,15 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string ResponseMatrixUseInFsa {
+        public static string EfficiencyTabCurveOldPeak {
             get {
-                return ResourceManager.GetString("ResponseMatrixUseInFsa", resourceCulture);
+                return ResourceManager.GetString("EfficiencyTabCurveOldPeak", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabCurveOldVessel {
+            get {
+                return ResourceManager.GetString("EfficiencyTabCurveOldVessel", resourceCulture);
             }
         }
 
@@ -5471,6 +5364,78 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("GeometryMaterialsErrorDuplicate", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorWeight.
+        /// </summary>
+        public static string GeometryMaterialsErrorWeight {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorWeight", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorComponentNoName.
+        /// </summary>
+        public static string GeometryMaterialsErrorComponentNoName {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorComponentNoName", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryEditorErrorNotFiniteLength.
+        /// </summary>
+        public static string GeometryEditorErrorNotFiniteLength {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorNotFiniteLength", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to EfficiencyCurveOtherGeometry.
+        /// </summary>
+        public static string EfficiencyCurveOtherGeometry {
+            get {
+                return ResourceManager.GetString("EfficiencyCurveOtherGeometry", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to FSAReportCurveOtherGeometryValue.
+        /// </summary>
+        public static string FSAReportCurveOtherGeometryValue {
+            get {
+                return ResourceManager.GetString("FSAReportCurveOtherGeometryValue", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to EfficiencyMakerPreviousCurveKept.
+        /// </summary>
+        public static string EfficiencyMakerPreviousCurveKept {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerPreviousCurveKept", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixPendingNote.
+        /// </summary>
+        public static string ResponseMatrixPendingNote {
+            get {
+                return ResourceManager.GetString("ResponseMatrixPendingNote", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixCommitFailed.
+        /// </summary>
+        public static string ResponseMatrixCommitFailed {
+            get {
+                return ResourceManager.GetString("ResponseMatrixCommitFailed", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to GeometryMaterialsErrorDensity.
@@ -5487,6 +5452,33 @@ namespace BecquerelMonitor.Properties {
         public static string GeometryMaterialsErrorFormula {
             get {
                 return ResourceManager.GetString("GeometryMaterialsErrorFormula", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The formula cannot be read at “{0}”: an element symbol is a capital plus lowercase letters, then its atom count — H2O, Bi4Ge3O12, Cs1 I1. Brackets are not accepted..
+        /// </summary>
+        public static string GeometryMaterialsErrorFormulaPart {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorFormulaPart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to “{0}” reads two ways: a fractional count or a hydrate. Write a hydrate with “*” or “·” — CaSO4*2H2O; put a space after a fractional count — Si1.5 O3..
+        /// </summary>
+        public static string GeometryMaterialsErrorFormulaDot {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorFormulaDot", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to “{0}” read as {1} before the 24.09.2026 update and as {2} now: letter case in element symbols now matters. Retype the formula in the case you mean..
+        /// </summary>
+        public static string GeometryMaterialsErrorFormulaCase {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorFormulaCase", resourceCulture);
             }
         }
         
@@ -5922,6 +5914,12 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string ERRAtomSpectraPortLost {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraPortLost", resourceCulture);
+            }
+        }
+
         public static string ERRBTUnavailable {
             get {
                 return ResourceManager.GetString("ERRBTUnavailable", resourceCulture);
@@ -6307,11 +6305,29 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to the default cannot be built from the device settings — the straight line through (channel 0, FWHM {0}) and (channel {1}, FWHM {2}) does not grow, while the width must not decrease along the scale..
+        ///   Looks up a localized string similar to the default cannot be built from the device settings — the straight line through (channel 0, FWHM {0}) and (channel {1}, FWHM {2}) does not grow or gives zero width at channel 0, while the width must be positive and must not decrease along the scale..
         /// </summary>
         public static string ERRFwhmDefaultNotMonotonic {
             get {
                 return ResourceManager.GetString("ERRFwhmDefaultNotMonotonic", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The FWHM fit gave no finite curve. Check the calibration points: two points on the same channel with different widths leave the curve undefined..
+        /// </summary>
+        public static string ERRFwhmNotFinite {
+            get {
+                return ResourceManager.GetString("ERRFwhmNotFinite", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The FWHM curve gives zero width on channels 0…{0} (up to {1} keV): no peaks would be searched there. Choose the power-law curve (FWHM = a * ch^p): its width is positive at every channel above zero..
+        /// </summary>
+        public static string ERRFwhmNonPositiveWidth {
+            get {
+                return ResourceManager.GetString("ERRFwhmNonPositiveWidth", resourceCulture);
             }
         }
 
@@ -6330,24 +6346,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string BqCoeffCurveRefused {
-            get {
-                return ResourceManager.GetString("BqCoeffCurveRefused", resourceCulture);
-            }
-        }
-
-        public static string BqCoeffFieldCurve {
-            get {
-                return ResourceManager.GetString("BqCoeffFieldCurve", resourceCulture);
-            }
-        }
-
-        public static string ResultFieldCurve {
-            get {
-                return ResourceManager.GetString("ResultFieldCurve", resourceCulture);
-            }
-        }
-
         public static string ActivityFieldCurveRefused {
             get {
                 return ResourceManager.GetString("ActivityFieldCurveRefused", resourceCulture);
@@ -6363,6 +6361,69 @@ namespace BecquerelMonitor.Properties {
         public static string FSACurveRefused {
             get {
                 return ResourceManager.GetString("FSACurveRefused", resourceCulture);
+            }
+        }
+
+        public static string FSALibraryEmptied {
+            get {
+                return ResourceManager.GetString("FSALibraryEmptied", resourceCulture);
+            }
+        }
+
+        public static string FSABandTooNarrow {
+            get {
+                return ResourceManager.GetString("FSABandTooNarrow", resourceCulture);
+            }
+        }
+
+        public static string FSATooFewChannels {
+            get {
+                return ResourceManager.GetString("FSATooFewChannels", resourceCulture);
+            }
+        }
+
+        public static string FSANoFit {
+            get {
+                return ResourceManager.GetString("FSANoFit", resourceCulture);
+            }
+        }
+
+        public static string FSANoCalibration {
+            get {
+                return ResourceManager.GetString("FSANoCalibration", resourceCulture);
+            }
+        }
+
+        public static string FSANoLiveTime {
+            get {
+                return ResourceManager.GetString("FSANoLiveTime", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Database not read: {0}. The analysis ran without these data and will read the database again at the next recalculation..
+        /// </summary>
+        public static string FSADatabaseFailed {
+            get {
+                return ResourceManager.GetString("FSADatabaseFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Nuclear data databases not read — the analysis ran without part of the data (lines of a nuclide or the coincidence correction); they are read again at the next recalculation.
+        /// </summary>
+        public static string FSAReportDatabaseFailedRow {
+            get {
+                return ResourceManager.GetString("FSAReportDatabaseFailedRow", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}: annihilation is its only measurable radiation — the other lines in the fit band yield {1} % per decay, below the {2} % floor; the free 511 image and the nuclide are one column, so the free image is dropped.
+        /// </summary>
+        public static string FSAAnnihilationDegenerate {
+            get {
+                return ResourceManager.GetString("FSAAnnihilationDegenerate", resourceCulture);
             }
         }
 
@@ -6399,6 +6460,249 @@ namespace BecquerelMonitor.Properties {
         public static string NormalizeFieldCurve {
             get {
                 return ResourceManager.GetString("NormalizeFieldCurve", resourceCulture);
+            }
+        }
+
+        public static string SummingPanelApplied {
+            get {
+                return ResourceManager.GetString("SummingPanelApplied", resourceCulture);
+            }
+        }
+
+        public static string SummingPanelNone {
+            get {
+                return ResourceManager.GetString("SummingPanelNone", resourceCulture);
+            }
+        }
+
+        public static string SummingCellApplied {
+            get {
+                return ResourceManager.GetString("SummingCellApplied", resourceCulture);
+            }
+        }
+
+        public static string SummingCellNone {
+            get {
+                return ResourceManager.GetString("SummingCellNone", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyNoCurve {
+            get {
+                return ResourceManager.GetString("SummingWhyNoCurve", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyNoGeometry {
+            get {
+                return ResourceManager.GetString("SummingWhyNoGeometry", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyMatrixOff {
+            get {
+                return ResourceManager.GetString("SummingWhyMatrixOff", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyNoMatrix {
+            get {
+                return ResourceManager.GetString("SummingWhyNoMatrix", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyMatrixStale {
+            get {
+                return ResourceManager.GetString("SummingWhyMatrixStale", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyFieldScene {
+            get {
+                return ResourceManager.GetString("SummingWhyFieldScene", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyOff {
+            get {
+                return ResourceManager.GetString("SummingWhyOff", resourceCulture);
+            }
+        }
+
+        public static string SummingWhyNoLine {
+            get {
+                return ResourceManager.GetString("SummingWhyNoLine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to used (from the spectrum file)
+        /// </summary>
+        public static string FSAReportMatrixUsedFromSpectrum {
+            get {
+                return ResourceManager.GetString("FSAReportMatrixUsedFromSpectrum", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The response matrix carried in the spectrum file is rejected: {0}. The analysis runs without it.
+        /// </summary>
+        public static string FSAReportSpectrumMatrixRefusedRow {
+            get {
+                return ResourceManager.GetString("FSAReportSpectrumMatrixRefusedRow", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to rejected
+        /// </summary>
+        public static string FSAReportSpectrumMatrixRefusedValue {
+            get {
+                return ResourceManager.GetString("FSAReportSpectrumMatrixRefusedValue", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to it belongs to another efficiency curve
+        /// </summary>
+        public static string EmbeddedMatrixOtherCurve {
+            get {
+                return ResourceManager.GetString("EmbeddedMatrixOtherCurve", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to the block is damaged (truncated or edited)
+        /// </summary>
+        public static string EmbeddedMatrixDamaged {
+            get {
+                return ResourceManager.GetString("EmbeddedMatrixDamaged", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to matrix file format {0}, the application reads format {1}
+        /// </summary>
+        public static string EmbeddedMatrixOldFormat {
+            get {
+                return ResourceManager.GetString("EmbeddedMatrixOldFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to its stamp does not match the geometry of the curve
+        /// </summary>
+        public static string EmbeddedMatrixStale {
+            get {
+                return ResourceManager.GetString("EmbeddedMatrixStale", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Use Nvidia GPU.
+        /// </summary>
+        public static string ResponseMatrixUseGpu {
+            get {
+                return ResourceManager.GetString("ResponseMatrixUseGpu", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuReady.
+        /// </summary>
+        public static string ResponseMatrixGpuReady {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuReady", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuNoLibrary.
+        /// </summary>
+        public static string ResponseMatrixGpuNoLibrary {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuNoLibrary", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuLoadFailed.
+        /// </summary>
+        public static string ResponseMatrixGpuLoadFailed {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuLoadFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuOldLibrary.
+        /// </summary>
+        public static string ResponseMatrixGpuOldLibrary {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuOldLibrary", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuPhysicsMismatch.
+        /// </summary>
+        public static string ResponseMatrixGpuPhysicsMismatch {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuPhysicsMismatch", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuNoDevice.
+        /// </summary>
+        public static string ResponseMatrixGpuNoDevice {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuNoDevice", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuDriverTooOld.
+        /// </summary>
+        public static string ResponseMatrixGpuDriverTooOld {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuDriverTooOld", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuDeviceTooOld.
+        /// </summary>
+        public static string ResponseMatrixGpuDeviceTooOld {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuDeviceTooOld", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuRuntimeError.
+        /// </summary>
+        public static string ResponseMatrixGpuRuntimeError {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuRuntimeError", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuProgress.
+        /// </summary>
+        public static string ResponseMatrixGpuProgress {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuProgress", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixJointProgress.
+        /// </summary>
+        public static string ResponseMatrixJointProgress {
+            get {
+                return ResourceManager.GetString("ResponseMatrixJointProgress", resourceCulture);
             }
         }
 

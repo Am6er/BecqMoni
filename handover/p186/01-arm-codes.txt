@@ -1,0 +1,28 @@
+arm base start 2026-09-30 03:35:43 bin=D:\BqMoni_Claude\p186\wt\BecquerelMonitor\bin\Release_P186_base list= extra=
+arm base mk_appwd code=0
+arm base check_appwd code=0
+arm base mini code=0 (27 s) out=D:\BqMoni_Claude\p186\out\base
+arm base score known code=0
+arm base score unknown code=0
+arm ff45 start 2026-09-30 03:40:39 bin=D:\BqMoni_Claude\p186\wt\BecquerelMonitor\bin\Release_P186_base list= extra=--fit-floor=45
+arm ff45 mini code=0 (28 s) out=D:\BqMoni_Claude\p186\out\ff45
+arm ff45 score known code=0
+arm ff45 score unknown code=0
+arm lev0 mk_appwd(lever) code=0
+arm lev0 check_appwd(lever) code=0
+arm lev0 probe code=0 lever=0:60:32
+arm lev0 score known code=0
+arm lev0 score unknown code=0
+arm lev15 probe code=0 lever=0.15:60:32
+arm lev15 score known code=0
+arm lev15 score unknown code=0
+arm lev25 probe code=0 lever=0.25:60:32
+arm lev25 score known code=0
+arm lev25 score unknown code=0
+arm lev35 probe code=0 lever=0.35:60:32
+arm lev35 score known code=0
+arm lev35 score unknown code=0
+arm skipx start 2026-09-30 03:49:39 bin=D:\BqMoni_Claude\p186\wt\BecquerelMonitor\bin\Release_P186_base list= extra=--anchor-skip=30.973,32.194,33.442,40.117,22.163
+arm skipx mini code=0 (29 s) out=D:\BqMoni_Claude\p186\out\skipx
+arm skipx score known code=0
+arm skipx score unknown code=0

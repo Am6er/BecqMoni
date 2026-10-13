@@ -1,0 +1,10 @@
+131CE removed [(1, '131LA', '1', '100')] added []
+164TM removed [(1, '164ER', '1', '20')] added []
+166LU removed [(1, '166YB', '7', '58')] added []
+174LU removed [(3, '174YB', '7', '0.62')] added []
+184RE removed [(5, '184W', '7', '25.5')] added []
+202PB removed [(14, '202TL', '1', '9.5')] added []
+90TC removed [(2, '90MO', '1', '100')] added []
+93MO removed [(16, '93NB', '1', '0.12')] added []
+parents changed: 8 of 2535
+parents changed (perc not null): 7

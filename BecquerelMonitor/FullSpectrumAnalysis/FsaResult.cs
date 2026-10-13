@@ -89,6 +89,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <c>TailCurve</c>. Неотрицателен по построению (бины поглощения,
         /// ядро уширения и амплитуда NNLS неотрицательны).
         ///
+        /// ⚠ НА ЭКРАНЕ в режиме одного канала (`AMBER45`) хвост рисуется В
+        /// КАНАЛЕ КОМПТОНА — решение Amber 19.09.2026 (П112), дословно:
+        /// «Класть хвост в слой Compton»: он и есть комптоновское плато образа
+        /// ниже порога, а без него слой Cs-137 в 60–100 кэВ проваливался на две
+        /// декады (вопрос Amber: «Почему комптон на цезии имеет такую просадку
+        /// в районе рентгена свинца?»). Складывается ТОЛЬКО кривая для
+        /// отрисовки (<c>FsaMatrixLayers.CurveOf</c>); каналы и это тождество
+        /// не меняются.
+        ///
         /// У члена связанного ряда (<see cref="ChainRoot"/>) или привязанной
         /// колонки (<see cref="TiedTo"/>) здесь — ДОЛЯ хвоста колонки, разданная
         /// по весу хвостов образов членов в канале (тем же движением, что и
@@ -413,6 +422,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// (`AMBER157`, П195) Линия, исключённая из образа режима кривой: её энергия
+    /// вне диапазона кривой эффективности (<see cref="FsaResult.EfficiencyOutOfRangeLines"/>).
+    /// </summary>
+    public sealed class FsaOutOfCurveLine
+    {
+        /// <summary>Компонент, чья это линия (подпись как в составе).</summary>
+        public string Component { get; set; }
+
+        /// <summary>Энергия линии, кэВ.</summary>
+        public double EnergyKev { get; set; }
+
+        /// <summary>Выход линии, %.</summary>
+        public double Intensity { get; set; }
+    }
+
+    /// <summary>
     /// (`AMBER17`) ОПОРА ПРИВЯЗКИ ШКАЛЫ — один пик полного поглощения модели и
     /// то, что о нём измерено. Список у результата
     /// (<see cref="FsaResult.ScaleAnchors"/>) держит ВСЕХ кандидатов, а не
@@ -456,6 +481,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>Доля синего канала (полное поглощение) над моделью ЦЕЛИКОМ в окне, 0…1.</summary>
         public double PeakShare { get; set; }
+
+        /// <summary>
+        /// (`AMBER150`, П198) Ширина пика данных против ширины ядра модели в
+        /// окне опоры — отношение вторых моментов, приведённое к ширине
+        /// неусечённого пика (окно режет крылья); NaN — не мерилась. Мерится
+        /// после последнего перефита, то есть это ОСТАТОК: у принятой опоры
+        /// при сошедшейся ширинной опоре он около единицы.
+        /// </summary>
+        public double WidthRatio { get; set; } = double.NaN;
 
         /// <summary>Значимость чистого (без сплайна) счёта окна: Σ/√Σσ².</summary>
         public double Z { get; set; }
@@ -555,6 +589,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// читается Σ каналов = <see cref="Curve"/> − <see cref="ContinuumCurve"/>
         /// − <see cref="TailCurve"/>; без этой записи разность была бы, а
         /// назвать её нечем.
+        ///
+        /// В режиме одного канала (`AMBER45`) рисуется вместе с каналом
+        /// комптона (решение Amber 19.09.2026, П112: «Класть хвост в слой
+        /// Compton») — кривой для отрисовки <c>FsaMatrixLayers.CurveOf</c>, а
+        /// не правкой <see cref="ChannelCurves"/>; тождество выше стоит.
         /// </summary>
         public double[] TailCurve { get; set; }
 
@@ -1039,6 +1078,78 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool BackgroundUsed { get; set; }
 
         /// <summary>
+        /// (`AMBER91`, П148 24.09.2026) Множитель, которым вычтенный фон
+        /// (<see cref="Background"/>) переведён на время пробы: живое пробы к
+        /// живому фона. Нужен дисперсии чистого счёта у
+        /// <see cref="ComputeResidualShares"/>: дисперсия приведённого фона —
+        /// множитель на сам фон. Ставит разбор; не задан (ноль) — берётся
+        /// единица, то есть дисперсия фона не занижается.
+        /// </summary>
+        public double BackgroundScale { get; set; }
+
+        /// <summary>
+        /// (`AMBER91`, П148 24.09.2026) Определены ли доли невязки
+        /// (<see cref="ResidualMissingShare"/>, <see cref="ResidualExcessShare"/>).
+        /// Ложно, когда чистый счёт полосы (проба минус фон) не выше
+        /// <see cref="ResidualDefinedSigmas"/> своих стандартных отклонений:
+        /// знаменатель тогда — шум около нуля или отрицателен, и доля от него
+        /// либо не существует, либо прыгает от нуля к тысячам процентов по
+        /// знаку шума. Обе доли в этом случае — не число, строка отчёта
+        /// печатает «—» с подсказкой; лента на графике рисуется как всегда.
+        /// У нового результата — истина (доли — какие положены); ложь ставит
+        /// только <see cref="ComputeResidualShares"/>.
+        /// </summary>
+        public bool ResidualSharesDefined { get; set; }
+
+        /// <summary>
+        /// (`AMBER91`) Порог определённости долей невязки в стандартных
+        /// отклонениях чистого счёта полосы. Три — знаменатель известен лучше
+        /// чем на треть; ниже доля не несёт смысла. Замер игрушки ревизии
+        /// (400 пуассоновских копий пробы без источника при фоне той же длины)
+        /// — журнал `handover/handover-2026-09-24-p148-pileup-summing.md`.
+        /// </summary>
+        public const double ResidualDefinedSigmas = 3.0;
+
+        /// <summary>
+        /// (`AMBER118`, П168 28.09.2026) Помехи линиям состава от природных
+        /// спутников, которых в составе нет (U-235 при ряде U-238 — 186 кэВ);
+        /// пусто — помех не найдено. Правило и пороги — у
+        /// <see cref="FsaSampleLibrary.NaturalCompanionInterference"/>.
+        /// </summary>
+        public List<FsaLineInterference> LineInterferences { get; private set; } = new List<FsaLineInterference>();
+
+        /// <summary>
+        /// (`AMBER210`, П238 07.10.2026) ПИКИ В ПОЛОСЕ, НЕ ПОКРЫТЫЕ СОСТАВОМ: серии каналов с
+        /// данными выше модели шириной порядка ПШПВ, у которых в ±ПШПВ/2 нет линии ни одного
+        /// вошедшего компонента, модельные сумм-пики не держат их каналов, и рядом нет парного
+        /// провала (сдвинутый шкалой пик — не непокрытый). Пусто — не найдено. Правило и пороги —
+        /// у <see cref="FsaAnalyzer.FindUncoveredPeaks"/>; показ — строками отчёта FSA, по строке на
+        /// пик (решение Amber 07.10.2026 вопросником, дословно: «Только отчёт FSA, строка на пик»;
+        /// порог — «z ≥ 5 и избыток ≥ 10 % модели»; имена рядом — «Библиотека приложения целиком»).
+        /// Повод: на Th232 Amber ряд Ra-226 вне сета (352 кэВ +18 %, 609 кэВ +28 % над моделью)
+        /// давал два бассейна ответа — 1282 Бк ножом Хубера и 1093 Бк чистым МНК — при σ 0.4 %,
+        /// и окно об этом молчало (журнал П237).
+        /// </summary>
+        public List<FsaUncoveredPeak> UncoveredPeaks { get; private set; } = new List<FsaUncoveredPeak>();
+
+        /// <summary>
+        /// (`AMBER210`, П238) РЕВИЗИЯ ОТБОРА — серии, прошедшие пороги значимости, избытка и ширины,
+        /// но НЕ попавшие в <see cref="UncoveredPeaks"/>: чем покрыты (линия состава, сумм-пик,
+        /// парный провал сдвига). Читают пробы (`FsaBqProbe --huber-cut`): без этого списка
+        /// пропуск настоящего чужого пика неотличим от его отсутствия. Окно отчёта не печатает.
+        /// </summary>
+        public List<FsaUncoveredRejection> UncoveredRejections { get; private set; } = new List<FsaUncoveredRejection>();
+
+        /// <summary>
+        /// (`AMBER221`, 12.10.2026) РОДИТЕЛИ АКТИВНОГО СЕТА, НЕ ВОШЕДШИЕ В СОСТАВ, с причиной —
+        /// строкой отчёта FSA на каждого (решение Amber вопросником, дословно: «Чинить сейчас»).
+        /// Пусто — все в составе либо состав объявлен сетом. Заполняет сеанс
+        /// (<see cref="FsaCompositionInference.SetOmissions"/>), а не анализатор: сет и вывод
+        /// состава живут там. Повод: K-40, добавленный в сет, выпадал из состава молча.
+        /// </summary>
+        public List<FsaSetOmission> SetOmissions { get; private set; } = new List<FsaSetOmission>();
+
+        /// <summary>
         /// (S44) Фон был ПОДАН на разбор, но НЕ ВЗЯТ — с причиной словами
         /// («the background has 1012 channels, the spectrum 1024»). null —
         /// фона не подавали либо он вычтен. Отказ обязан быть назван:
@@ -1054,6 +1165,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// разбора». Числа в ней печатаются инвариантной культурой (`A244`).
         /// </summary>
         public string BackgroundRejected { get; set; }
+
+        /// <summary>
+        /// (`AMBER123`, П166 28.09.2026) Граница числа пар колонки наложений,
+        /// N·R·τ_d (<c>FsaAnalyzer.PileUpCapFor</c>); NaN — колонки нет или
+        /// судить нечем (ни живого времени, ни мёртвого прибора).
+        /// </summary>
+        public double PileUpCapPairs { get; set; } = double.NaN;
+
+        /// <summary>
+        /// (`AMBER123`) Наибольшее число пар, которое фит давал колонке ДО
+        /// закрепления на границе; NaN — граница не срабатывала. Число есть —
+        /// колонка брала НЕ наложения, а недостающую модель (у
+        /// `G1S24_K40_Petri` ×43 к R·τ_d): «не наложения».
+        /// </summary>
+        public double PileUpUncappedPairs { get; set; } = double.NaN;
+
+        /// <summary>(`AMBER123`) Граница наложений срабатывала: колонка брала не пары.</summary>
+        public bool PileUpNotPairs
+        {
+            get { return !double.IsNaN(this.PileUpUncappedPairs); }
+        }
 
         /// <summary>
         /// χ²/ndf того же остатка ПРЕЖНИМИ весами (пуассон плюс шум фона) —
@@ -1085,6 +1217,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double Gain { get; set; }
 
         public double OffsetChannels { get; set; }
+
+        /// <summary>
+        /// (`AMBER150`, П198) Множитель к калибровке ПШПВ, с которым построены
+        /// образы: ширинная опора — вторые моменты сильных одиночных пиков
+        /// данных против образа в окнах опор шкалы, проходами вместе с
+        /// привязкой. Единица — опор ширины не было или ширинная опора
+        /// выключена (<see cref="FsaAnalyzer.AnchorWidth"/>).
+        /// </summary>
+        public double WidthScale { get; set; } = 1.0;
+
+        /// <summary>(`AMBER150`) Сколько опор задали <see cref="WidthScale"/>; 0 — множитель единица по умолчанию.</summary>
+        public int WidthAnchorsUsed { get; set; }
 
         /// <summary>
         /// (`AMBER17`) Кандидаты в опоры привязки шкалы — ВСЕ, принятые и
@@ -1120,6 +1264,49 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double AnchorLightReferenceKev { get; set; }
 
         /// <summary>
+        /// (`S169`, наружу — `S181`, П136 22.09.2026) РАСТЯЖЕНИЕ КАРТЫ НУЛЯ
+        /// «adc» этого разбора: s из E꜀(x) = <see cref="AdcE0Kev"/> +
+        /// (x − <see cref="AdcZeroKev"/>)·s. Нуль — карта не включалась, и
+        /// свет идёт калибровкой как есть.
+        ///
+        /// ⛔ ЗАЧЕМ НАРУЖУ. Анализатор кладёт КАЖДЫЙ бин образа через эту
+        /// карту (`FsaAnalyzer.LightToChannel`), а сверка линий
+        /// (<see cref="FsaLineAudit"/>) ставила окно прямой калибровкой и
+        /// расходилась с образом на Δ(x) = (s − 1)(x − x₁) — при E(0) = −13 кэВ
+        /// и верхней линии 2614 это −11.8 кэВ на 238 кэВ, больше половины ПШПВ
+        /// NaI. `Gain`/`OffsetChannels` этого не чинят: они найдены МНК опор
+        /// ПОВЕРХ карты. Три поля, а не пересчёт у читателя: двух списков
+        /// карты быть не должно (`AMBER72`).
+        /// </summary>
+        public double AdcScale { get; set; }
+
+        /// <summary>
+        /// (`S181`) Энергия калибровки в НУЛЕВОМ канале, кэВ — E(0) карты
+        /// нуля. Читается только вместе с <see cref="AdcScale"/>.
+        /// </summary>
+        public double AdcE0Kev { get; set; }
+
+        /// <summary>
+        /// (`S181`) Свет z₀, который карта нуля ставит в нулевой канал, кэВ.
+        /// Читается только вместе с <see cref="AdcScale"/>.
+        /// </summary>
+        public double AdcZeroKev { get; set; }
+
+        /// <summary>
+        /// (`AMBER155`, П220) Шаг ПРЯМОЙ карты «adc», кэВ шкалы карты на канал:
+        /// канал = <see cref="AdcZeroChannel"/> + (E꜀(x) − <see cref="AdcE0Kev"/>)/шаг,
+        /// без калибровки файла. Нуль — карта формы полинома (прежняя, П8) или
+        /// карта не включалась. Читается только вместе с <see cref="AdcScale"/>.
+        /// </summary>
+        public double AdcLinearKev { get; set; }
+
+        /// <summary>(`AMBER155` (в), П220) q кривизны тракта прямой карты, 1/канал: канал = c₀ + v + q·v²; нуль — прямой тракт.</summary>
+        public double AdcTractPerChannel { get; set; }
+
+        /// <summary>(`AMBER155`, П220) Канал точки нуля прямой карты: −½ (нижний край канала 0) или 0.</summary>
+        public double AdcZeroChannel { get; set; }
+
+        /// <summary>
         /// (П19) Форма применения световой координаты этого разбора
         /// («bin» / «line» / «peak» / «anchor» — <c>FsaAnalyzer.AnchorLightForm</c>);
         /// пусто — координата выключена или кривой для вещества нет.
@@ -1133,6 +1320,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// экрана: экран собирает подпись из ресурсов по числам выше.
         /// </summary>
         public string AnchorNote { get; set; }
+
+        /// <summary>
+        /// (`AMBER142`, П204) Итоговая шкала привязки прохода, давшего этот
+        /// результат, — тёплый старт следующего прохода разбора
+        /// (<see cref="FsaAnalyzer.AnchorWarmStart"/>). Не для экрана и не в файл.
+        /// </summary>
+        internal FsaAnalyzer.AnchorWarm AnchorWarmOut { get; set; }
+
+        /// <summary>
+        /// (`AMBER154`, П194 01.10.2026) Относительное усиление хранимого фона
+        /// против пробы, с которым фон вычтен: отсчёт фона, по объявленным
+        /// калибровкам стоящий в канале p, вычитался из канала g·p. 1 — фона нет
+        /// либо дрейф измерен нулевым; NaN — фон есть, а дрейф не измерен (пиков
+        /// фона в данных не видно, оптимум у края окна поиска), фон вычтен в
+        /// объявленной шкале. Подробности — в <see cref="AnchorNote"/>.
+        /// </summary>
+        public double BackgroundGain { get; set; } = 1.0;
+
+        /// <summary>
+        /// (`AMBER142` п.3, П224 02.10.2026) Сдвиг нуля хранимого фона против
+        /// пробы, с которым фон вычтен, в каналах пробы: вместе с
+        /// <see cref="BackgroundGain"/> отсчёт фона из канала p вычитался из
+        /// канала g·p + o. 0 — фона нет, нуль не мерился
+        /// (<see cref="FsaAnalyzer.BackgroundZeroFollowsSample"/> снят) или
+        /// измерен нулевым.
+        /// </summary>
+        public double BackgroundOffset { get; set; }
 
         /// <summary>
         /// Оптимум дрейфа упёрся в границу сетки — шкале верить нельзя. Это ИЛИ
@@ -1168,6 +1382,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool EfficiencyPerUnitFluence { get; set; }
 
         /// <summary>
+        /// (`AMBER157`, П195 01.10.2026) Диапазон кривой эффективности этого
+        /// разбора, кэВ — первая и последняя точка таблицы
+        /// (<see cref="FsaEfficiency.MinEnergy"/>, <see cref="FsaEfficiency.MaxEnergy"/>).
+        /// Нули — кривой нет. Окну отчёта: строка «кривая E1…E2 кэВ, вне: …».
+        /// </summary>
+        public double EfficiencyMinKev { get; set; }
+
+        /// <summary>(`AMBER157`) Верх кривой эффективности, кэВ; см. <see cref="EfficiencyMinKev"/>.</summary>
+        public double EfficiencyMaxKev { get; set; }
+
+        /// <summary>
+        /// (`AMBER157`, решение Amber 01.10.2026 «Исключать с заверением»)
+        /// Линии, ИСКЛЮЧЁННЫЕ из образов режима кривой (разбор без матрицы),
+        /// потому что лежат вне диапазона кривой эффективности: эффективность
+        /// там неизвестна, а прежний зажим крайней точкой молча уводил
+        /// активность на ε(край)/ε(линии) при побитово том же фите. Только
+        /// линии, чей пик стоит в полосе фита; по энергии. Пусто — исключать
+        /// было нечего (и всегда пусто у матричного образа: матрица кривую на
+        /// веса линий не читает).
+        /// </summary>
+        public List<FsaOutOfCurveLine> EfficiencyOutOfRangeLines { get; set; } = new List<FsaOutOfCurveLine>();
+
+        /// <summary>
         /// (`AMBER34`) Матрица отклика — сцены поля (`NORM` = единичный
         /// флюенс): её «эффективности» — площади в см², и каскадное
         /// суммирование, перемножающее их как вероятности, НЕ применялось —
@@ -1191,6 +1428,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// «с суммированием» там значило бы, что поправка что-то сделала.
         /// </summary>
         public bool CascadeSummingUsed { get; set; }
+
+        /// <summary>
+        /// (`S187`, П152 24.09.2026) РАСХОЖДЕНИЯ ПОСТАВОК ДАННЫХ РАСПАДА у
+        /// нуклидов состава, которые двигают числа: доля ветви ε+β⁺ из
+        /// `decay_chain.perc` против ΣI(β⁺) `decay_radiations` (`AMBER81`,
+        /// `S189`), доля β⁺ ветви по `decay_radiations` против ENSDF
+        /// (`AMBER100`). Окно отчёта печатает их строкой блока «Качество
+        /// разбора» — прежде слова жили только в примечаниях базы, которые
+        /// читают пробы. Собирает <see cref="FsaCascadeSummer.SupplyDiscrepanciesOf"/>
+        /// в фоне сеанса, после разбора; null — не собирались (пробы, корпус),
+        /// пусто — сказать нечего.
+        /// </summary>
+        public List<CascadeAtomicData.SupplyDiscrepancy> SupplyDiscrepancies { get; set; }
+
+        /// <summary>
+        /// (`AMBER199`, 05.10.2026) ОТКАЗЫ ЧТЕНИЯ БАЗ за этот разбор — по
+        /// строке «файл базы (что читалось): сообщение платформы»
+        /// (<see cref="FsaDatabaseFailures"/>). Окно отчёта печатает их
+        /// строкой-происшествием блока «Качество разбора»: разбор при отказе
+        /// идёт без части данных (нуклид без линий, линия без поправки на
+        /// совпадения), и следующий пересчёт спросит базу снова. Собирает
+        /// сеанс в фоне; null — не собирались (пробы, корпус), пусто — отказов
+        /// не было.
+        /// </summary>
+        public List<string> DatabaseFailures { get; set; }
 
         /// <summary>
         /// (`A169`) РОДИТЕЛЬСКАЯ ГРУППИРОВКА СТРОК ДОПУСТИМА: в составе есть хоть
@@ -1348,6 +1610,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.ChainLimits = new List<FsaChainLimit>();
             this.ScaleAnchors = new List<FsaScaleAnchor>();
             this.UntiedTails = new List<FsaUntiedTail>();
+            // (`AMBER91`) Пока доли не считались, они — те, что в них положены
+            // (так строят результат пробы); ложь ставит только счёт долей.
+            this.ResidualSharesDefined = true;
         }
 
         /// <summary>
@@ -1482,6 +1747,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             leftover = DistributeContinuum(full, channels);
+
+            // (`AMBER92`, П148) Отрицательная часть знакопеременных образов
+            // (убыль наложений) — вычтена из стека, а не выброшена: иначе верх
+            // стека стоит над `Model` на всю убыль, лента невязки рисуется от
+            // одного верха, а число строки считается от другого.
+            TakeDeficitFromStack(full, ordered, leftover, channels);
 
             weight = new double[full.Count];
             for (int k = 0; k < full.Count; k++)
@@ -1717,8 +1988,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public void ComputeResidualShares(int[] raw)
         {
-            double missingCounts = 0.0, excessCounts = 0.0, measuredCounts = 0.0;
+            double missingCounts = 0.0, excessCounts = 0.0, measuredCounts = 0.0, variance = 0.0;
             double[] measured = this.FitSpectrum(raw);
+            double scale = this.BackgroundScale > 0.0 ? this.BackgroundScale : 1.0;
             int from = Math.Max(this.FirstChannel, this.ResidualFloorChannel);
             for (int i = from; i <= this.LastChannel && raw != null && i < raw.Length; i++)
             {
@@ -1726,6 +1998,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double model = this.Model != null && i < this.Model.Length ? this.Model[i] : 0.0;
                 double difference = net - model;
                 measuredCounts += net;
+                // (`AMBER91`) Дисперсия чистого счёта: пуассон пробы плюс
+                // приведённый фон (множитель на сам фон, см. BackgroundScale).
+                variance += Math.Max(raw[i], 0);
+                if (this.Background != null && i < this.Background.Length)
+                {
+                    variance += scale * Math.Abs(this.Background[i]);
+                }
+
                 if (difference > 0.0)
                 {
                     missingCounts += difference;
@@ -1736,8 +2016,95 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            this.ResidualMissingShare = measuredCounts > 0.0 ? missingCounts / measuredCounts : 0.0;
-            this.ResidualExcessShare = measuredCounts > 0.0 ? excessCounts / measuredCounts : 0.0;
+            // ⛔ (`AMBER91`, П148 24.09.2026) Знаменатель около нуля или ниже —
+            // доли НЕТ, а не ноль. Прежде здесь стояло `measured > 0 ? … : 0.0`,
+            // и проба на уровне фона печатала «+0.0 / −0.0 %» («модель
+            // идеальна») при нарисованной ленте: игрушка ревизии — 217 копий
+            // из 400, остальные с медианой 1837 %. Условие `!(x > y)` ловит и NaN.
+            this.ResidualSharesDefined = measuredCounts > ResidualDefinedSigmas * Math.Sqrt(variance);
+            this.ResidualMissingShare = this.ResidualSharesDefined ? missingCounts / measuredCounts : double.NaN;
+            this.ResidualExcessShare = this.ResidualSharesDefined ? excessCounts / measuredCounts : double.NaN;
+            this.ResidualNoiseShare = this.ResidualSharesDefined
+                ? this.ExpectedNoiseHalf(from, raw.Length) / measuredCounts
+                : double.NaN;
+        }
+
+        /// <summary>
+        /// (`AMBER126`, П168 28.09.2026) ШУМОВОЙ ПОЛ КАЖДОЙ ПОЛОВИНЫ НЕВЯЗКИ:
+        /// сколько «не описано» (и столько же «лишнего») даёт один пуассонов шум
+        /// при модели БЕЗ ЕДИНОЙ ОШИБКИ, долей от измеренных отсчётов той же
+        /// полосы. NaN — доли не определены (<see cref="ResidualSharesDefined"/>)
+        /// или не считались.
+        ///
+        /// ⛔ Число строки невязки — ПЛОЩАДЬ ЛЕНТЫ (решение Amber по ~~`S111`~~),
+        /// и пол из него НЕ вычитается: он печатается РЯДОМ. Без него строка
+        /// читалась «не описано 37 %» у модели, описавшей всё, — на пробе в 30σ
+        /// над фоном; в 3σ — 308 % (игрушка `ResidualFloorProbeP168`, 400 копий,
+        /// журнал П168). Невязка около пола — модель от идеальной не отличима;
+        /// сверх него — то, чего модель не описала.
+        ///
+        /// Ожидание E[max(r, 0)] по каналу — от МОДЕЛИ (среднее, которое дала
+        /// бы идеальная модель), а не от измерения: пустой канал при модели 1.2
+        /// шумит так же, как полный. Без фона — точно по Пуассону,
+        /// e^{−μ}μ^{k+1}/k!, k = ⌊μ⌋ (половина среднего абсолютного отклонения;
+        /// при μ ≈ 1 гаусс σ/√(2π) завышал бы на 8 %, при μ = 0.1 — на 40 %); с
+        /// вычтенным фоном — гаусс с дисперсией μ пробы плюс приведённого фона.
+        /// </summary>
+        public double ResidualNoiseShare { get; set; } = double.NaN;
+
+        /// <summary>(`AMBER126`) Σ по полосе ожидаемой положительной невязки идеальной модели, отсчёты.</summary>
+        double ExpectedNoiseHalf(int from, int rawLength)
+        {
+            double sum = 0.0;
+            double scale = this.BackgroundScale > 0.0 ? this.BackgroundScale : 1.0;
+            for (int i = from; i <= this.LastChannel && i < rawLength; i++)
+            {
+                double model = this.Model != null && i < this.Model.Length ? Math.Max(this.Model[i], 0.0) : 0.0;
+                double background = this.Background != null && i < this.Background.Length
+                    ? Math.Abs(this.Background[i]) : 0.0;
+                if (background > 0.0)
+                {
+                    double varianceNet = model + background + scale * background;
+                    sum += Math.Sqrt(varianceNet) / Math.Sqrt(2.0 * Math.PI);
+                }
+                else
+                {
+                    sum += PoissonHalfDeviation(model);
+                }
+            }
+
+            return sum;
+        }
+
+        /// <summary>(`AMBER126`) E[max(N − μ, 0)] для N ~ Пуассон(μ): e^{−μ}μ^{k+1}/k!, k = ⌊μ⌋.</summary>
+        static double PoissonHalfDeviation(double mean)
+        {
+            if (!(mean > 0.0))
+            {
+                return 0.0;
+            }
+
+            if (mean > 400.0)
+            {
+                return Math.Sqrt(mean) / Math.Sqrt(2.0 * Math.PI);
+            }
+
+            int k = (int)Math.Floor(mean);
+            return Math.Exp((k + 1) * Math.Log(mean) - mean - LogFactorials[k]);
+        }
+
+        /// <summary>(`AMBER126`) ln k! при k = 0…400.</summary>
+        static readonly double[] LogFactorials = BuildLogFactorials(400);
+
+        static double[] BuildLogFactorials(int top)
+        {
+            double[] table = new double[top + 1];
+            for (int j = 2; j <= top; j++)
+            {
+                table[j] = table[j - 1] + Math.Log(j);
+            }
+
+            return table;
         }
 
         public List<FsaStackLayer> BuildStackedLayers(int maxNamedLayers)
@@ -2011,9 +2378,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>
         /// Копия кривой без отрицательной части. У ленты стека не бывает
         /// отрицательной высоты, а знакопеременные образы есть: наложения
-        /// ПЕРЕНОСЯТ счёт — снизу убыль, сверху приход. Рисуется приход,
-        /// убыль (доли процента) остаётся в модели, но не в стеке; из-за этого
-        /// верх стека расходится с суммой модели на ту же долю процента.
+        /// ПЕРЕНОСЯТ счёт — снизу убыль, сверху приход. Рисуется приход;
+        /// убыль (`AMBER92`, П148 24.09.2026) вычитается из прочих слоёв того
+        /// же канала — <see cref="TakeDeficitFromStack"/>, — и верх стека
+        /// равен <see cref="Model"/>.
         /// </summary>
         static double[] PositivePart(double[] curve)
         {
@@ -2024,6 +2392,102 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return copy;
+        }
+
+        /// <summary>
+        /// (`AMBER92`, П148 24.09.2026) УБЫЛЬ ЗНАКОПЕРЕМЕННЫХ ОБРАЗОВ — ИЗ СТЕКА.
+        /// Лента слоя не бывает отрицательной (<see cref="PositivePart"/>), и до
+        /// П148 отрицательная часть образа наложений просто выбрасывалась: верх
+        /// стека стоял над <see cref="Model"/> на всю убыль, а число строки
+        /// невязки (<see cref="ComputeResidualShares"/>) считалось от
+        /// `Model` — лента и число смотрели на разные верхи, хотя строка
+        /// обещает «число — площадь нарисованной ленты». Замер «Cs 137 в
+        /// домике» (Rτ 2.4e-3): верх стека выше модели на 0.36 % измеренного
+        /// полосы, «лишнее» ленты 2.28 % против числа 2.13 %.
+        ///
+        /// Физика: убыль наложений — это счёт, который ушёл со своих энергий
+        /// на сумму, и уходит он пропорционально самому спектру в канале (от
+        /// всего, что там лежит: нуклидов, приборных образов, подложки). Потому
+        /// в каждом канале убыль снимается со ВСЕХ неотрицательных слоёв
+        /// (включая неразнесённую подложку <paramref name="leftover"/>) одним
+        /// множителем — пропорционально их высоте. Множитель ложится и на
+        /// раскладку слоя (каналы отклика, подложку слоя, хвост, сумм-пики),
+        /// так что тождества слоя (`S3`, `S175`) сохраняются. После этого
+        /// Σ слоёв = `Model` в каждом канале, где слоёв хватает на убыль.
+        /// </summary>
+        static void TakeDeficitFromStack(List<FsaStackLayer> full, List<FsaComponentResult> ordered,
+                                         double[] leftover, int channels)
+        {
+            double[] deficit = null;
+            foreach (FsaComponentResult component in ordered)
+            {
+                double[] curve = component.Curve;
+                for (int i = 0; curve != null && i < curve.Length && i < channels; i++)
+                {
+                    if (curve[i] < 0.0)
+                    {
+                        if (deficit == null)
+                        {
+                            deficit = new double[channels];
+                        }
+
+                        deficit[i] -= curve[i];
+                    }
+                }
+            }
+
+            if (deficit == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < channels; i++)
+            {
+                if (!(deficit[i] > 0.0))
+                {
+                    continue;
+                }
+
+                double stack = leftover != null && i < leftover.Length ? leftover[i] : 0.0;
+                foreach (FsaStackLayer layer in full)
+                {
+                    stack += i < layer.Curve.Length ? layer.Curve[i] : 0.0;
+                }
+
+                if (!(stack > 0.0))
+                {
+                    continue;
+                }
+
+                double factor = Math.Max(0.0, 1.0 - deficit[i] / stack);
+                if (leftover != null && i < leftover.Length)
+                {
+                    leftover[i] *= factor;
+                }
+
+                foreach (FsaStackLayer layer in full)
+                {
+                    ScaleAt(layer.Curve, i, factor);
+                    ScaleAt(layer.SumPeakCurve, i, factor);
+                    ScaleAt(layer.ContinuumCurve, i, factor);
+                    ScaleAt(layer.TailCurve, i, factor);
+                    if (layer.ChannelCurves != null)
+                    {
+                        foreach (double[] channelCurve in layer.ChannelCurves)
+                        {
+                            ScaleAt(channelCurve, i, factor);
+                        }
+                    }
+                }
+            }
+        }
+
+        static void ScaleAt(double[] curve, int i, double factor)
+        {
+            if (curve != null && i < curve.Length)
+            {
+                curve[i] *= factor;
+            }
         }
 
         /// <summary>
@@ -2223,5 +2687,103 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             return sum;
         }
+    }
+
+    /// <summary>
+    /// (`AMBER118`, П168 28.09.2026; решение Amber 28.09.2026, дословно:
+    /// «Строка AMBER: предупреждение об интерференции 186 кэВ») Линия состава,
+    /// которую при природном составе элемента делит спутник, в составе
+    /// отсутствующий: U-235 185.7 кэВ под Ra-226 186.2 кэВ. Имён здесь нет —
+    /// пара находится по базе (<see cref="FsaSampleLibrary.NaturalCompanionInterference"/>).
+    /// </summary>
+    /// <summary>
+    /// (`AMBER210`) Пик в полосе, не покрытый составом — см. <see cref="FsaResult.UncoveredPeaks"/>.
+    /// Числа — в шкале каналов полосы фита: избыток `Σ(y − модель)` по серии, его доля от ожидания
+    /// сырого отсчёта серии (модель плюс вычтенное) и значимость `Σr/√ΣD`.
+    /// </summary>
+    public sealed class FsaUncoveredPeak
+    {
+        /// <summary>Центр серии по избытку, кэВ.</summary>
+        public double EnergyKev { get; set; }
+        /// <summary>Ширина серии, кэВ.</summary>
+        public double WidthKev { get; set; }
+        /// <summary>Избыток данных над моделью в серии, отсчёты.</summary>
+        public double ExcessCounts { get; set; }
+        /// <summary>Избыток относительно ожидания сырого отсчёта серии, доля.</summary>
+        public double ExcessShare { get; set; }
+        /// <summary>Значимость избытка `Σr/√ΣD` по каналам серии.</summary>
+        public double Z { get; set; }
+        /// <summary>
+        /// Линии библиотеки приложения вне состава в ±ПШПВ/2 от центра — до трёх, ближайшие, по
+        /// одной на нуклид; пусто — в библиотеке рядом ничего нет. Имён в коде нет (`FsaAnalyzer.LibraryLines`).
+        /// </summary>
+        public List<FsaUncoveredCandidate> Candidates { get; private set; } = new List<FsaUncoveredCandidate>();
+    }
+
+    /// <summary>(`AMBER210`) Почему серия с избытком не названа непокрытым пиком.</summary>
+    public enum FsaUncoveredRejectionReason
+    {
+        /// <summary>Линия вошедшего компонента (или производная) в ±ПШПВ/4, либо в ±ПШПВ/2 без кандидата ближе.</summary>
+        CoveredLine,
+        /// <summary>Модельные сумм-пики держат четверть модели серии.</summary>
+        SumPeak,
+        /// <summary>Приборный образ без линий (обратное рассеяние, наложения) держит четверть модели серии.</summary>
+        Nuisance,
+        /// <summary>Парный провал рядом — пик сдвинут шкалой.</summary>
+        Shifted,
+        /// <summary>
+        /// В ±ПШПВ/4 от центра нет линии библиотеки приложения вне состава: безымянный избыток
+        /// (обратное рассеяние, наложения, аннигиляция, суммы с рентгеном, уступ комптона) — не
+        /// пик чужого нуклида, остаётся невязкой ленты.
+        /// </summary>
+        NoCandidate
+    }
+
+    /// <summary>(`AMBER210`) Запись ревизии отбора — см. <see cref="FsaResult.UncoveredRejections"/>.</summary>
+    public sealed class FsaUncoveredRejection
+    {
+        public double EnergyKev { get; set; }
+        public double WidthKev { get; set; }
+        public double ExcessShare { get; set; }
+        public double Z { get; set; }
+        public FsaUncoveredRejectionReason Reason { get; set; }
+        /// <summary>Ближайшая линия состава (с производными), кэВ; NaN — нет.</summary>
+        public double NearestCoveredKev { get; set; } = double.NaN;
+        /// <summary>Ближайший кандидат библиотеки вне состава в ±ПШПВ/2; null — нет.</summary>
+        public FsaUncoveredCandidate NearestCandidate { get; set; }
+    }
+
+    /// <summary>(`AMBER210`) Линия библиотеки приложения рядом с непокрытым пиком.</summary>
+    public sealed class FsaUncoveredCandidate
+    {
+        /// <summary>Имя определения библиотеки (подпись нуклида).</summary>
+        public string Nuclide { get; set; }
+        /// <summary>Энергия линии определения, кэВ.</summary>
+        public double EnergyKev { get; set; }
+    }
+
+    public sealed class FsaLineInterference
+    {
+        /// <summary>Энергия линии состава, кэВ (сильнейшая в окне).</summary>
+        public double LineKev { get; set; }
+
+        /// <summary>Компонент, чья строка держится на этой линии (имя колонки).</summary>
+        public string Component { get; set; }
+
+        /// <summary>Спутник — корень природного ряда, которого в составе нет («U-235»).</summary>
+        public string Companion { get; set; }
+
+        /// <summary>Предок состава того же элемента, к которому взято природное отношение («U-238»).</summary>
+        public string Reference { get; set; }
+
+        /// <summary>Отношение активностей спутника и предка при природном составе элемента.</summary>
+        public double ActivityRatio { get; set; }
+
+        /// <summary>
+        /// Во сколько раз завышена строка компонента, если вклад спутника в окне
+        /// ±ПШПВ целиком отдан ей: (своё + спутник) / своё по линиям компонента,
+        /// взвешенным эффективностью.
+        /// </summary>
+        public double Factor { get; set; }
     }
 }

@@ -50,7 +50,7 @@ namespace FwhmViewReachProbeO13
     ///                  единственное состояние, где `EnsureFwhmCalibration`
     ///                  бессилен, а значит единственное, где голые места
     ///                  вообще могут ожить.
-    ///   ВВОЗ-N42     — настоящий ввоз корпусного `.n42` (`--n42=`): дверь
+    ///   ИМПОРТ-N42     — настоящий импорт корпусного `.n42` (`--n42=`): дверь
     ///                  оставляет кривую пустой (`A234`), и надо ИЗМЕРИТЬ,
     ///                  переживает ли эта пустота обновление вида.
     ///
@@ -78,8 +78,6 @@ namespace FwhmViewReachProbeO13
             }
 
             // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`).
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             string asm = typeof(DocumentManager).Assembly.Location;
             Console.WriteLine("=== СБОРКА ===");
@@ -125,13 +123,30 @@ namespace FwhmViewReachProbeO13
             s.PrintState();
 
             // --- строка 310: RemovePeakButton_Click снимает точку -------------
+            // ⛔ С 05.10.2026 (`AMBER201`, мелочь 4.10) «Удалить» БЕЗ выделенной
+            //    строки не снимает ничего — прежде снималась первая опора молча.
+            //    Поэтому дверь дёргается дважды: без выделения (обязано остаться
+            //    столько же) и с выделенной ВТОРОЙ строкой (обязана уйти именно она).
             int before = s.Peaks.Count;
             Outcome o = s.Invoke("RemovePeakButton_Click", new object[] { null, EventArgs.Empty });
             int after = s.Peaks == null ? -1 : s.Peaks.Count;
-            Door("310  RemovePeakButton_Click", o,
+            Door("310  RemovePeakButton_Click (без выделения)", o,
                  "точек было " + before + ", стало " + after);
-            Control("строка 310 ИСПОЛНИЛАСЬ (точка снята)", after == before - 1,
-                    "точек " + before + " -> " + after);
+            Control("без выделения НИЧЕГО не снято (4.10)", o.Ok && after == before,
+                    "точек " + before + " -> " + after + " | " + o.Text);
+
+            s.Update();
+            before = s.Peaks.Count;
+            int victim = before > 1 ? s.Peaks[1].Channel : -1;
+            s.Model.Selections.SelectCell(1, 0);
+            o = s.Invoke("RemovePeakButton_Click", new object[] { null, EventArgs.Empty });
+            after = s.Peaks == null ? -1 : s.Peaks.Count;
+            bool victimGone = s.Peaks != null && !s.Peaks.Any(p => p.Channel == victim);
+            Door("310  RemovePeakButton_Click (выделена строка 2)", o,
+                 "точек было " + before + ", стало " + after + ", канал " + victim + " снят: " + victimGone);
+            Control("строка 310 ИСПОЛНИЛАСЬ (снята ВЫДЕЛЕННАЯ точка)",
+                    after == before - 1 && victimGone,
+                    "точек " + before + " -> " + after + ", канал " + victim + " снят: " + victimGone);
 
             // --- строки 396/413: EnergySpectrumView_PeakPickuped --------------
             s.Update();
@@ -256,11 +271,11 @@ namespace FwhmViewReachProbeO13
         }
 
         // ==================================================================
-        // ЗАМЕР. Сцена «ВВОЗ-N42» — переживает ли пустота обновление вида.
+        // ЗАМЕР. Сцена «ИМПОРТ-N42» — переживает ли пустота обновление вида.
         // ==================================================================
         static void SceneN42()
         {
-            Console.WriteLine("=== СЦЕНА «ВВОЗ-N42» — ПОСЫЛКА СТРОКИ `A236` ===");
+            Console.WriteLine("=== СЦЕНА «ИМПОРТ-N42» — ПОСЫЛКА СТРОКИ `A236` ===");
             if (n42Dir == null)
             {
                 Console.WriteLine("  пропущена: не задан --n42=<каталог>");
@@ -272,11 +287,11 @@ namespace FwhmViewReachProbeO13
             Console.WriteLine("  каталог: " + Path.GetFullPath(n42Dir) + ", файлов " + files.Length);
             Console.WriteLine();
 
-            // ⛔ ПЛЕЧО ОБЯЗАНО БЫТЬ ПУСТЫМ. Прежняя редакция ввозила поверх ЖИВОЙ
+            // ⛔ ПЛЕЧО ОБЯЗАНО БЫТЬ ПУСТЫМ. Прежняя редакция импортировала поверх ЖИВОЙ
             //    кривой (`live: true`) и печатала «кривая есть» у 12 из 12 — а это
             //    лишь «дверь не стирает существующую», про пустую не говорит ничего.
             //    Дверь `ImportDocumentN42` кривую разрешения не трогает (`A234`),
-            //    поэтому мерить надо ровно там, где до ввоза её НЕ БЫЛО.
+            //    поэтому мерить надо ровно там, где до импорта её НЕ БЫЛО.
             int nullAtImport = 0, nullAfterUpdate = 0, ok = 0;
             foreach (string f in files)
             {
@@ -288,7 +303,7 @@ namespace FwhmViewReachProbeO13
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("  " + Path.GetFileName(f) + ": ввоз ОТКАЗАЛ — " + Where(ex));
+                    Console.WriteLine("  " + Path.GetFileName(f) + ": импорт ОТКАЗАЛ — " + Where(ex));
                     continue;
                 }
                 ok++;
@@ -298,12 +313,12 @@ namespace FwhmViewReachProbeO13
                 bool nullAfter = s.Doc.ActiveResultData.FwhmCalibration == null;
                 if (nullAfter) nullAfterUpdate++;
                 Console.WriteLine("  " + Path.GetFileName(f).PadRight(28)
-                                  + " кривая после ВВОЗА: " + (nullNow ? "ПУСТА" : "есть")
+                                  + " кривая после ИМПОРТА: " + (nullNow ? "ПУСТА" : "есть")
                                   + " | после ОБНОВЛЕНИЯ ВИДА: " + (nullAfter ? "ПУСТА" : "есть")
                                   + " | строк в таблице: " + s.Rows);
             }
             Console.WriteLine();
-            Console.WriteLine("  ввезено " + ok + ", пустых после ввоза " + nullAtImport
+            Console.WriteLine("  импортировано " + ok + ", пустых после импорта " + nullAtImport
                               + ", пустых ПОСЛЕ ОБНОВЛЕНИЯ ВИДА " + nullAfterUpdate);
             Console.WriteLine();
         }
@@ -313,9 +328,14 @@ namespace FwhmViewReachProbeO13
         //
         // ⛔ ЭТО ЗАМЕР ДОСТИЖИМОСТИ, А НЕ ПОЧИНКА. Строка `A243` говорит, что
         // `Init` разыменовывает кривую голым. Разыменований там ДВА РОДА:
-        //   род I  — АРГУМЕНТ `fwhmCalibration.Clone()` (Utils/FWHMCalibrationGraph.cs:56);
+        //   род I  — АРГУМЕНТ `fwhmCalibration.Clone()`
+        //            (IL: `ldarg.1; callvirt FwhmCalibration.Clone`);
         //   род II — цепочка `mainForm.ActiveDocument.ActiveResultData
-        //            .EnergySpectrum.EnergyCalibration.Clone()` (там же, :53).
+        //            .EnergySpectrum.EnergyCalibration.Clone()`
+        //            (IL: `callvirt EnergySpectrum.get_EnergyCalibration;
+        //            callvirt EnergyCalibration.Clone`).
+        // ⛔ S183: номеров строк здесь нет нарочно — мерка на `:56`/`:53`
+        //   протухла от сдвига файла на строку и краснела на любом входе.
         // Зовущий один — `DCFwhmCalibrationView.ViewCalibrationButton_Click`,
         // и над вызовом стоит сторож `A236` (976-984).
         //
@@ -325,8 +345,9 @@ namespace FwhmViewReachProbeO13
         //     `points`, `originalpoints`, `maxChannels`, `maxFWHM`), а не
         //     «объект создался».
         //   ПЛЕЧО 2 — проба ЛОВИТ настоящее падение: `Init` зовётся напрямую
-        //     с `null`, и проба обязана назвать ИМЕННО строку 56. Второе
-        //     падение — рода II, с `EnergyCalibration = null`, строка 53.
+        //     с `null`, и проба обязана назвать ИМЕННО инструкцию рода I
+        //     (`IsRodI`). Второе падение — рода II, с `EnergyCalibration =
+        //     null` (`IsRodII`). Место — по IL тела метода (`SiteOf`).
         // ==================================================================
         static void SceneGraphInitA243()
         {
@@ -347,15 +368,25 @@ namespace FwhmViewReachProbeO13
                     && g.MaxChannels == live.Channels && g.MaxFwhm > 0.0,
                     "следа нет — проба до `Init` НЕ ДОЗВОНИЛАСЬ: " + g.Trace);
 
+            // ⛔ S183: место падения судится по ИНСТРУКЦИИ тела `Init`, а не по
+            //    номеру строки (см. `SiteOf`). Метод берётся по сигнатуре: если
+            //    его переименуют или сменят параметры — отказ, а не молчание.
+            MethodBase init = typeof(FWHMCalibrationGraph).GetMethod("Init",
+                BindingFlags.Public | BindingFlags.Instance, null,
+                new[] { typeof(FwhmCalibration), typeof(int) }, null);
+            if (init == null) { Fail("метода FWHMCalibrationGraph.Init(FwhmCalibration, int) НЕТ в сборке"); return; }
+
             // --- ПЛЕЧО 2а: настоящее падение рода I (аргумент null) ----------
             GraphOutcome n = live.InitRaw(null);
+            IlSite sn = SiteOf(n.O.Ex, init);
             Console.WriteLine();
             Console.WriteLine("  ПЛЕЧО 2а. Init(null, " + live.Channels + ") — род I, аргумент");
             Console.WriteLine("      исход: " + (n.O.Ok ? "БЕЗ ОТКАЗА" : "ОТКАЗ  " + n.O.Text));
-            Control("ПЛЕЧО 2а: проба ЛОВИТ падение и называет строку 56",
-                    !n.O.Ok && n.O.Text.StartsWith("NullReferenceException")
-                    && n.O.Text.Contains("FWHMCalibrationGraph.cs:56"),
-                    "проба СЛЕПА: голое разыменование аргумента не дало названного падения — " + n.O.Text);
+            Console.WriteLine("      место: " + sn.Text);
+            Control("ПЛЕЧО 2а: проба ЛОВИТ падение на `callvirt FwhmCalibration.Clone` над АРГУМЕНТОМ (ldarg.1)",
+                    IsRodI(n.O, sn),
+                    "проба СЛЕПА: голое разыменование аргумента не дало названного падения — "
+                    + n.O.Text + " | " + sn.Text);
 
             // --- ПЛЕЧО 2б: настоящее падение рода II (EnergyCalibration null) -
             Stand noEcal = Stand.Make("o22-graph-noecal", live: true);
@@ -363,13 +394,14 @@ namespace FwhmViewReachProbeO13
             noEcal.Update();
             noEcal.KillEnergyCalibration();
             GraphOutcome e = noEcal.InitRaw(noEcal.Doc.ActiveResultData.FwhmCalibration);
+            IlSite se = SiteOf(e.O.Ex, init);
             Console.WriteLine();
             Console.WriteLine("  ПЛЕЧО 2б. Init(живая кривая) при EnergyCalibration == null — род II");
             Console.WriteLine("      исход: " + (e.O.Ok ? "БЕЗ ОТКАЗА" : "ОТКАЗ  " + e.O.Text));
-            Control("ПЛЕЧО 2б: проба ЛОВИТ падение и называет строку 53",
-                    !e.O.Ok && e.O.Text.StartsWith("NullReferenceException")
-                    && e.O.Text.Contains("FWHMCalibrationGraph.cs:53"),
-                    "род II не дал названного падения — " + e.O.Text);
+            Console.WriteLine("      место: " + se.Text);
+            Control("ПЛЕЧО 2б: проба ЛОВИТ падение на `callvirt EnergyCalibration.Clone` над get_EnergyCalibration",
+                    IsRodII(e.O, se),
+                    "род II не дал названного падения — " + e.O.Text + " | " + se.Text);
 
             // --- ЗАМЕР: доходит ли НАСТОЯЩАЯ дверь до `Init` ------------------
             // Пустая кривая: сторож `A236` (978-984) обязан вернуть управление.
@@ -402,7 +434,7 @@ namespace FwhmViewReachProbeO13
             Console.WriteLine("      сцена «кривая есть, EnergyCalibration == null»");
             Console.WriteLine("      исход: " + (d2.Ok ? "БЕЗ ОТКАЗА" : "ОТКАЗ  " + d2.Text));
             Console.WriteLine("      [ЗАМЕР] род II через настоящую дверь: "
-                              + (!d2.Ok && d2.Text.Contains("FWHMCalibrationGraph.cs:53")
+                              + (IsRodII(d2, SiteOf(d2.Ex, init))
                                  ? "ДОСТИЖИМ" : "не воспроизвёлся"));
             // ⛔ Читатель признака (`A243`): до правки эта сцена давала
             //    `NullReferenceException @ FWHMCalibrationGraph.cs:53`
@@ -414,6 +446,35 @@ namespace FwhmViewReachProbeO13
                     d2.Ok, "дверь всё ещё валит чужой класс: " + d2.Text);
 
             Console.WriteLine();
+        }
+
+        /// <summary>Род I (`A243`): пустой АРГУМЕНТ — `ldarg.1; callvirt FwhmCalibration.Clone`.</summary>
+        static bool IsRodI(Outcome o, IlSite s)
+        {
+            return !o.Ok && Innermost(o.Ex) is NullReferenceException
+                   && s.InMethod && s.OnBoundary && s.Op == "callvirt"
+                   && s.Target == "FwhmCalibration.Clone" && s.Prev == "ldarg.1";
+        }
+
+        /// <summary>Род II (`A243`): пустая энергокалибровка спектра —
+        /// `callvirt EnergySpectrum.get_EnergyCalibration; callvirt EnergyCalibration.Clone`.</summary>
+        static bool IsRodII(Outcome o, IlSite s)
+        {
+            return !o.Ok && Innermost(o.Ex) is NullReferenceException
+                   && s.InMethod && s.OnBoundary && s.Op == "callvirt"
+                   && s.Target == "EnergyCalibration.Clone"
+                   && s.Prev == "callvirt EnergySpectrum.get_EnergyCalibration";
+        }
+
+        static Exception Innermost(Exception ex)
+        {
+            Exception e = ex;
+            while ((e is TargetInvocationException || e is TypeInitializationException)
+                   && e.InnerException != null)
+            {
+                e = e.InnerException;
+            }
+            return e;
         }
 
         sealed class GraphOutcome
@@ -522,7 +583,7 @@ namespace FwhmViewReachProbeO13
                 }
                 catch (Exception ex)
                 {
-                    r.O = new Outcome(false, Where(ex));
+                    r.O = new Outcome(ex);
                 }
                 List<CalibrationPeak> pts = GetField(graph, "points") as List<CalibrationPeak>;
                 List<CalibrationPeak> orig = GetField(graph, "originalpoints") as List<CalibrationPeak>;
@@ -598,7 +659,7 @@ namespace FwhmViewReachProbeO13
                 }
                 catch (Exception ex)
                 {
-                    return new Outcome(false, Where(ex));
+                    return new Outcome(ex);
                 }
             }
 
@@ -640,7 +701,7 @@ namespace FwhmViewReachProbeO13
                 }
                 catch (Exception ex)
                 {
-                    return new Outcome(false, Where(ex));
+                    return new Outcome(ex);
                 }
             }
 
@@ -675,7 +736,9 @@ namespace FwhmViewReachProbeO13
         {
             public readonly bool Ok;
             public readonly string Text;
+            public readonly Exception Ex;   // S183: признак места берётся из исключения, не из текста
             public Outcome(bool ok, string text) { Ok = ok; Text = text; }
+            public Outcome(Exception ex) { Ok = false; Text = Where(ex); Ex = ex; }
         }
 
         static PeakPickupedEventArgs Pick(int channel, double fwhm)
@@ -741,6 +804,165 @@ namespace FwhmViewReachProbeO13
                 }
             }
             return e.GetType().Name + " @ " + place;
+        }
+
+        // ==================================================================
+        // ⛔ S183 (24.09.2026, П154). Место падения — НЕ номер строки.
+        //
+        // Прежде мерка требовала `FWHMCalibrationGraph.cs:56` и `:53`, файл
+        // сдвинулся на строку, и проба две недели краснела ОДИНАКОВО на любом
+        // входе — отказ ни о чём не говорил. Номер строки едет от любой правки
+        // выше по файлу, а судить надо о ВЕЩИ: какое разыменование упало.
+        //
+        // Признак здесь — кадр стека именно ЭТОГО метода (сравнение по
+        // метаданным, не по имени-строке), смещение IL в нём и инструкция
+        // тела метода на этом смещении: опкод, его цель и инструкция перед
+        // ней (кто положил на стек пустой получатель). Строк файла признак
+        // не касается вовсе; номер строки печатается только для глаз.
+        // ==================================================================
+        sealed class IlSite
+        {
+            public bool InMethod;          // кадр метода найден в стеке
+            public int Offset = -1;        // смещение IL из кадра (граница карты)
+            public bool OnBoundary;        // смещение попало на начало инструкции
+            public string Boundary = "";   // инструкция на границе
+            public int At = -1;            // смещение падающей инструкции
+            public string Op = "", Target = "", Prev = "";
+            public string Text { get { return !InMethod ? "кадра метода в стеке НЕТ"
+                : !OnBoundary ? "IL_" + H(Offset) + " НЕ на границе инструкции"
+                : "граница IL_" + H(Offset) + " " + Boundary + " -> падает IL_" + H(At)
+                  + " " + Op + (Target.Length > 0 ? " " + Target : "") + "  <- " + Prev; } }
+            static string H(int v) { return v.ToString("X4", CultureInfo.InvariantCulture); }
+        }
+
+        /// <summary>Опкоды, которые разыменовывают получатель и падают на пустом.</summary>
+        static bool Derefs(string op)
+        {
+            return op == "callvirt" || op == "ldfld" || op == "ldflda" || op == "stfld"
+                   || op == "ldvirtftn" || op == "ldlen" || op.StartsWith("ldelem") || op.StartsWith("stelem")
+                   || op.StartsWith("ldind") || op.StartsWith("stind");
+        }
+
+        sealed class IlInstr
+        {
+            public int Offset; public string Op; public string Target;
+            public override string ToString() { return Op + (Target.Length > 0 ? " " + Target : ""); }
+        }
+
+        static Dictionary<short, System.Reflection.Emit.OpCode> opTable;
+
+        /// <summary>
+        /// Разбор тела метода в список инструкций (опкод и цель вызова или
+        /// поля). Тот же обход, что `N42RoundTripProbe --mode=il`.
+        /// </summary>
+        static List<IlInstr> Decode(MethodBase m)
+        {
+            if (opTable == null)
+            {
+                opTable = new Dictionary<short, System.Reflection.Emit.OpCode>();
+                foreach (FieldInfo f in typeof(System.Reflection.Emit.OpCodes)
+                         .GetFields(BindingFlags.Public | BindingFlags.Static))
+                {
+                    if (f.FieldType != typeof(System.Reflection.Emit.OpCode)) continue;
+                    System.Reflection.Emit.OpCode op = (System.Reflection.Emit.OpCode)f.GetValue(null);
+                    opTable[op.Value] = op;
+                }
+            }
+            byte[] il = m.GetMethodBody().GetILAsByteArray();
+            List<IlInstr> list = new List<IlInstr>();
+            int i = 0;
+            while (i < il.Length)
+            {
+                int start = i;
+                short code = il[i];
+                if (il[i] == 0xFE) { code = (short)(0xFE00 | il[i + 1]); i += 2; } else { i += 1; }
+                System.Reflection.Emit.OpCode op;
+                if (!opTable.TryGetValue(code, out op))
+                    throw new InvalidOperationException("неизвестный опкод на IL_" + start.ToString("X4", CultureInfo.InvariantCulture));
+                string target = "";
+                switch (op.OperandType)
+                {
+                    case System.Reflection.Emit.OperandType.InlineNone: break;
+                    case System.Reflection.Emit.OperandType.ShortInlineBrTarget:
+                    case System.Reflection.Emit.OperandType.ShortInlineI:
+                    case System.Reflection.Emit.OperandType.ShortInlineVar: i += 1; break;
+                    case System.Reflection.Emit.OperandType.InlineVar: i += 2; break;
+                    case System.Reflection.Emit.OperandType.InlineBrTarget:
+                    case System.Reflection.Emit.OperandType.InlineI:
+                    case System.Reflection.Emit.OperandType.ShortInlineR: i += 4; break;
+                    case System.Reflection.Emit.OperandType.InlineI8:
+                    case System.Reflection.Emit.OperandType.InlineR: i += 8; break;
+                    case System.Reflection.Emit.OperandType.InlineSwitch:
+                        { int k = BitConverter.ToInt32(il, i); i += 4 + 4 * k; break; }
+                    case System.Reflection.Emit.OperandType.InlineMethod:
+                    case System.Reflection.Emit.OperandType.InlineField:
+                        {
+                            int tok = BitConverter.ToInt32(il, i); i += 4;
+                            MemberInfo mi = m.Module.ResolveMember(tok);
+                            target = (mi.DeclaringType == null ? "" : mi.DeclaringType.Name + ".") + mi.Name;
+                            break;
+                        }
+                    case System.Reflection.Emit.OperandType.InlineString:
+                    case System.Reflection.Emit.OperandType.InlineType:
+                    case System.Reflection.Emit.OperandType.InlineTok:
+                    case System.Reflection.Emit.OperandType.InlineSig: i += 4; break;
+                    default:
+                        throw new InvalidOperationException("неучтённый вид операнда " + op.OperandType);
+                }
+                list.Add(new IlInstr { Offset = start, Op = op.Name, Target = target });
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// Где ВНУТРИ метода <paramref name="where"/> упало исключение: кадр
+        /// ищется по метаданным метода, смещение IL — из кадра, инструкция —
+        /// из тела метода.
+        /// </summary>
+        static IlSite SiteOf(Exception ex, MethodBase where)
+        {
+            IlSite s = new IlSite();
+            if (ex == null) return s;
+            Exception e = ex;
+            while ((e is TargetInvocationException || e is TypeInitializationException)
+                   && e.InnerException != null)
+            {
+                e = e.InnerException;
+            }
+            StackTrace st = new StackTrace(e, false);
+            for (int i = 0; i < st.FrameCount; i++)
+            {
+                MethodBase fm = st.GetFrame(i).GetMethod();
+                if (fm != null && fm.Module == where.Module && fm.MetadataToken == where.MetadataToken)
+                {
+                    s.InMethod = true;
+                    s.Offset = st.GetFrame(i).GetILOffset();
+                    break;
+                }
+            }
+            if (!s.InMethod) return s;
+            // ⚠ Смещение кадра — НЕ сама падающая инструкция, а ближайшая
+            //   граница карты IL → машинный код не позже места падения
+            //   (измерено П154 24.09.2026 на Debug: род I дал `IL_0032 ldarg.0`
+            //   — начало оператора, род II — `IL_001C` ровно на `callvirt`,
+            //   потому что граница стоит и сразу за предыдущим вызовом). Отсюда
+            //   правило: от границы вперёд до ПЕРВОЙ разыменовывающей
+            //   инструкции — пустой получатель падает только на ней.
+            List<IlInstr> body = Decode(where);
+            int k0 = body.FindIndex(x => x.Offset == s.Offset);
+            if (k0 < 0) return s;
+            s.OnBoundary = true;
+            s.Boundary = body[k0].ToString();
+            for (int k = k0; k < body.Count; k++)
+            {
+                if (!Derefs(body[k].Op)) continue;
+                s.Op = body[k].Op;
+                s.Target = body[k].Target;
+                s.At = body[k].Offset;
+                s.Prev = k > 0 ? body[k - 1].ToString() : "<начало метода>";
+                break;
+            }
+            return s;
         }
 
         static object GetField(object target, string name)

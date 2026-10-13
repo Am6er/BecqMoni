@@ -730,6 +730,51 @@ def check_parts():
     return ok
 
 
+def check_manifest():
+    """`S196`: строки `manifest.csv` — ровно объявленный состав частей.
+
+    `parts.csv` и `corpus_def` пересборка не пишет, `manifest.csv` — пишет, и
+    24.09.2026 (П161) она без рабочих копий девятки выкинула из него 7 строк,
+    а приёмка не сказала об этом ни слова: разделы выше судят `parts.csv` и
+    файлы спектров, а те в git остались прежними. Сверяются число строк и
+    поимённый состав против `parts.csv` и `corpus_def.ALL`.
+    """
+    import csv
+    print('\n== манифест против состава частей (S196) ==')
+    columns = (('manifest', 'manifest.csv', 'key'), ('parts', 'parts.csv', 'spectrum'))
+    keys = {}
+    for name, fname, column in columns:
+        path = os.path.join(LAB, 'corpus', fname)
+        if not os.path.isfile(path):
+            print('  НЕТ %s' % path)
+            print('  РАЗОШЛОСЬ')
+            return False
+        with open(path, encoding='utf-8-sig', newline='') as fh:
+            keys[name] = [r[column] for r in csv.DictReader(fh)]
+    declared = [e['key'] for e in corpus_def.ALL]
+    print('  строк: manifest.csv %d, parts.csv %d, corpus_def %d'
+          % (len(keys['manifest']), len(keys['parts']), len(declared)))
+    bad = []
+    for fname, got in (('manifest.csv', keys['manifest']), ('parts.csv', keys['parts'])):
+        dup = sorted({k for k in got if got.count(k) > 1})
+        if dup:
+            bad.append('%s: строки-двойники %s' % (fname, ', '.join(dup)))
+    man = set(keys['manifest'])
+    for name, ref in (('parts.csv', set(keys['parts'])), ('corpus_def', set(declared))):
+        lost, extra = sorted(ref - man), sorted(man - ref)
+        if lost:
+            bad.append('НЕТ в manifest.csv, а в %s есть: %d — %s'
+                       % (name, len(lost), ', '.join(lost)))
+        if extra:
+            bad.append('ЛИШНИЕ в manifest.csv против %s: %d — %s'
+                       % (name, len(extra), ', '.join(extra)))
+    for line in bad:
+        print('  %s' % line)
+    ok = not bad
+    print('  %s' % ('СОШЛОСЬ' if ok else 'РАЗОШЛОСЬ'))
+    return ok
+
+
 def main():
     only = None
     verbose = '--verbose' in sys.argv
@@ -790,6 +835,9 @@ def main():
     # нарушение целостности: пропавшая строка parts.csv, лишняя строка,
     # отсутствующая геометрия, потерянный узел `<Efficiency>`.
     ok = check_parts()
+    # `S196` — ОТКАЗ: манифест, потерявший строки при пересборке, отдаёт разбору
+    # и `score.py` корпус меньше объявленного, а разделы выше этого не видят.
+    ok &= check_manifest()
     # `S142` — ОТКАЗ: таблица веществ, разошедшаяся с разделом корпуса, отдаёт
     # разбору пустую сцену под видом заполненной, и увидеть это нечем.
     ok &= check_materials()

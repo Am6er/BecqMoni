@@ -1,0 +1,2 @@
+BecqMoni: main config: D:\BqMoni_Claude\p147\wt\tools\effmaker\probes\build_s8\config\BecquerelMonitor.xml
+RC103_point0.rmx: ключ в файле ВЫКЛ; клеймо файла НЕ равно клейму умолчаний; клеймо абляции --pairth=0 другое ⛔

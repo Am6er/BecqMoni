@@ -113,7 +113,11 @@ namespace BecquerelMonitor.Utils
                 int y_right = y_left;
                 g.DrawLine(pen, x_left, y_left, x_right, y_right);
                 Rectangle r = new Rectangle(x_left, y_left - 16, 32, 32);
-                g.DrawString((i * (int)fwhm_step).ToString(CultureInfo.InvariantCulture), this.Font, brush, r);
+                // (`AMBER201`, мелочь 4.11, 05.10.2026) Подпись — значение САМОЙ
+                // линии сетки. Прежде шаг усекался до целого ДО умножения
+                // (`i * (int)fwhm_step`): при ПШПВ до 10 линии на 1.67, 3.33, 5.00…
+                // подписывались «1, 2, 3…», а при шаге меньше единицы — все «0».
+                g.DrawString((i * fwhm_step).ToString("0.##", CultureInfo.InvariantCulture), this.Font, brush, r);
             }
 
             Rectangle rlabel = new Rectangle(this.startwidth, this.startheight, 120, 32);
@@ -385,7 +389,10 @@ namespace BecquerelMonitor.Utils
 
         private void updateCalibrationPointsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks = this.points;
+            // (`AMBER201`, мелочь 4.9) В документ — копия рабочего списка графика
+            // (см. `CalibrationGraph`: иначе правки после «Обновить» шли в документ
+            // мимо «Обновить», и «Reset» их не возвращал).
+            this.mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks = CalibrationPeak.ClonePeaks(this.points);
             this.originalfwhmCalibration = this.fwhmCalibration.Clone();
             this.originalpoints = CalibrationPeak.ClonePeaks(this.points);
             this.result = DialogResult.Yes;

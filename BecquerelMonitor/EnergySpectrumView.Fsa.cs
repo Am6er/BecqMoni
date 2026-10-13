@@ -35,7 +35,9 @@ namespace BecquerelMonitor
     /// слой — только выбранным каналом (<see cref="FsaStackLayer.ChannelCurves"/>),
     /// без частей модели, у которых каналов нет. Либо он, либо прежний
     /// («All»): выбирает комбо «Matrix layer» окна отчёта. Лента невязки и
-    /// метки опор в обоих режимах — от полной модели.
+    /// метки опор в обоих режимах — от полной модели. Канал комптона с
+    /// 19.09.2026 (П112) несёт и отвязанный хвост слоя (решение Amber: «Класть
+    /// хвост в слой Compton») — правило одно, в <see cref="FsaMatrixLayers.CurveOf"/>.
     /// </summary>
     public partial class EnergySpectrumView
     {
@@ -71,6 +73,13 @@ namespace BecquerelMonitor
         /// лента рисовалась всегда, и умолчание обязано это сохранить.
         /// </summary>
         bool fsaShowResidual = true;
+
+        /// <summary>
+        /// (`AMBER222`) Показывать ли ЛИНИЮ ИЗМЕРЕННОГО СПЕКТРА поверх состава;
+        /// ставит галочка «Spectral data» окна отчёта (<see cref="FSAReportView"/>),
+        /// читает <see cref="ShowFsaOverlay"/>. Умолчание — показывать, как было.
+        /// </summary>
+        bool fsaShowSpectralData = true;
 
         // Всё, что зависит только от разложения, а не от вьюпорта, считается
         // один раз на результат: кумулятивные кривые стека (низ и верх каждой
@@ -123,8 +132,10 @@ namespace BecquerelMonitor
         /// Кривая, которой нарисован k-й слой стопки: при «All» — его лента
         /// <see cref="FsaStackLayer.Curve"/>, при канале —
         /// <see cref="FsaStackLayer.ChannelCurves"/>[канал] (пустой канал —
-        /// пустой массив). Держится ради проб (`FsaStackShot --dump=`,
-        /// `FsaChannelViewProbe`): выгружается то, что нарисовано, а не пересказ.
+        /// пустой массив), у канала комптона — канал + отвязанный хвост слоя
+        /// (П112, <see cref="FsaMatrixLayers.CurveOf"/>). Держится ради проб
+        /// (`FsaStackShot --dump=`, `FsaChannelViewProbe`): выгружается то,
+        /// что нарисовано, а не пересказ.
         /// </summary>
         double[][] fsaStackCurves;
 
@@ -312,6 +323,118 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (`AMBER222`, задача Amber 12.10.2026) ПОКАЗЫВАТЬ ЛИ ДАННЫЕ СПЕКТРА на
+        /// графике FSA. Постановка дословно: «когда включена, отображать данные по
+        /// спектру (зелёные линии гистограммы на экране EnergySpectrumView. Когда
+        /// выключена - отображать только данные FSA с учётом галочки Model
+        /// Residual.» Ставит галочка «Spectral data» группы показа окна отчёта;
+        /// умолчание — показывать.
+        ///
+        /// Гасится ровно линия измерения (<see cref="fsaNetSpectrum"/>) — то, что
+        /// принадлежит спектру, а не разбору. Стопка состава, белая линия суммы
+        /// модели, метки опор и лента невязки — данные FSA и остаются; лента
+        /// невязки подчиняется только своей галочке (<see cref="FsaShowResidual"/>),
+        /// и её половина «не описано» по-прежнему штрихуется цветом линии
+        /// спектра: она сама — невязка, а не спектр.
+        ///
+        /// ⛔ Правка вида, и только вида, как <see cref="FsaShowResidual"/>: ни
+        /// разбор, ни представление, ни одно число от неё не меняются — одна
+        /// перерисовка. Вне режима <see cref="BackgroundMode.ShowFSA"/> и пока
+        /// результата разбора нет, спектр рисуется обычным путём при любом
+        /// положении признака: там FSA показывать нечего, и график без спектра был
+        /// бы пуст.
+        /// </summary>
+        internal bool FsaShowSpectralData
+        {
+            get
+            {
+                return this.fsaShowSpectralData;
+            }
+
+            set
+            {
+                if (this.fsaShowSpectralData == value)
+                {
+                    return;
+                }
+
+                this.fsaShowSpectralData = value;
+                this.Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER222`) Стопка FSA нарисована В ЭТОМ КАДРЕ: ставит
+        /// <see cref="ShowFsaOverlay"/> перед успешным выходом, снимает начало
+        /// <c>DrawChart</c>. Кадровые массивы (<see cref="fsaCumulative"/> и
+        /// соседи) после этого — ровно то, что на экране.
+        /// </summary>
+        bool fsaFrameDrawn;
+
+        /// <summary>
+        /// (`AMBER222`, задача Amber 12.10.2026) КОНЕЦ ЛИНИИ ПИКА на графике FSA —
+        /// верх того, что нарисовано в экранном столбце <paramref name="x"/>.
+        /// Постановка дословно: «Обрати внимание на вертикальные линии пиков. При
+        /// изменении галочек они недостают до пика или наоборот - углубляются в
+        /// него. Можно ли поправить это, чтобы выглядело эстетично?»; решение
+        /// вопросником того же дня, дословно: «В верх нарисованного (Рекомендую)»:
+        /// <list type="bullet">
+        /// <item>«Spectral data» вкл — линия измерения (<see cref="fsaNetSpectrum"/>), как было;</item>
+        /// <item>выкл — верх стопки (<see cref="fsaCumulative"/>, при слое матрицы — верх
+        /// стопки канала); при «Model residual» вкл — ещё и верх клетки невязки
+        /// (<see cref="DrawFsaResidual"/>: от модели до измерения, обеими знаками), если
+        /// она выше стопки.</item>
+        /// </list>
+        /// Значение берётся с канала, который РИСУЕТСЯ в этом столбце
+        /// (<see cref="ChannelAtPixel"/>), а не с канала пика: при нескольких каналах
+        /// на пиксель они расходятся, и линия не попадала бы в кромку на пиксель-два.
+        /// <c>false</c> — стопки в этом кадре нет (не режим FSA, разбора ещё нет):
+        /// конец считает прежний путь <see cref="PeakTopY"/>.
+        /// </summary>
+        bool TryFsaPeakTopY(int x, out int y)
+        {
+            y = 0;
+            double[][] cumulative = this.fsaCumulative;
+            if (!this.fsaFrameDrawn || cumulative == null || cumulative.Length == 0
+                || this.energySpectrum == null || this.energyCalibration == null)
+            {
+                return false;
+            }
+
+            double[] stackTop = cumulative[cumulative.Length - 1];
+            double[] net = this.fsaNetSpectrum;
+            double[] model = this.fsaModelTop;
+            int channel = this.ChannelAtPixel(this.energySpectrum, this.energyCalibration, x);
+            if (stackTop == null || channel < 0 || channel >= stackTop.Length)
+            {
+                return false;
+            }
+
+            double top;
+            if (this.fsaShowSpectralData)
+            {
+                if (net == null || channel >= net.Length)
+                {
+                    return false;
+                }
+
+                top = net[channel];
+            }
+            else
+            {
+                top = stackTop[channel];
+                if (this.fsaShowResidual && net != null && model != null
+                    && channel < net.Length && channel < model.Length)
+                {
+                    top = Math.Max(top, Math.Max(model[channel], net[channel]));
+                }
+            }
+
+            y = this.GetSpectrumValueY(this.ScaleFsaValue(top));
+            return true;
+        }
+
         /// <summary>Доля непрозрачности приглушённой ленты (у полноцветной — 230).</summary>
         const int MutedBandAlpha = 64;
 
@@ -400,6 +523,45 @@ namespace BecquerelMonitor
                     maximum = value;
                 }
             }
+        }
+
+        /// <summary>
+        /// (`AMBER201` Р3, мелочь 6.6) Кривая измерения, которую кадр FSA
+        /// НАРИСУЕТ вместо активного спектра, — чистый спектр (за вычетом фона,
+        /// отрицательное подрезано, <see cref="FsaResult.NetSpectrum"/>), — или
+        /// null, когда кадр рисует обычный спектр. Условие то же, что у
+        /// <see cref="ShowFsaOverlay"/>: режим FSA, есть результат и в кадре есть
+        /// хоть один слой стопки; без этого автоподгонка снова мерила бы не то,
+        /// что на экране.
+        ///
+        /// Читает её подгонка вертикали (<c>CalculateDrawingDataBoundaries</c>):
+        /// прежде окно ставилось по СЫРОМУ спектру, и при сильном фоне чистый
+        /// спектр и стопка сжимались к низу поля, а при подгонке «мин–макс» низ
+        /// шкалы вставал на минимум сырого — всё чистое ниже него уходило за
+        /// край. Представление строится тем же <see cref="GetFsaPresentation"/>,
+        /// что и кадр, — он его кэширует, второго счёта нет.
+        /// </summary>
+        double[] FsaDrawnMeasurement()
+        {
+            if (!this.IsFsaMode())
+            {
+                return null;
+            }
+
+            FsaResult result = this.FsaSession.Result;
+            if (result == null)
+            {
+                return null;
+            }
+
+            List<FsaStackLayer> layers = this.GetFsaPresentation(result).Layers;
+            if (layers.Count == 0 || this.fsaCumulative == null)
+            {
+                return null;
+            }
+
+            List<FsaStackLayer> stack = this.fsaStack ?? layers;
+            return stack.Count > 0 ? this.fsaNetSpectrum : null;
         }
 
         bool IsFsaVisible()
@@ -528,10 +690,13 @@ namespace BecquerelMonitor
             // кривой канала (уточнение Amber: «Стопка по компонентам, как
             // сейчас»); фон, сплайн подложки, рассеяние, наложения, серое
             // «прочее» раскладки не имеют и не рисуются, а разнесённая подложка
-            // и хвост слоя в кривую канала не входят по построению («Спрятать
-            // — только канал и спектр»). Без единого слоя с каналами (матрицы
-            // нет) режим недостижим — кадр собирается как «All», и окно отчёта
-            // о том же говорит погашенным комбо.
+            // в кривую канала не входит по построению («Спрятать — только
+            // канал и спектр»). Отвязанный хвост слоя (`S175`) с 19.09.2026
+            // (П112) рисуется в канале комптона — решение Amber «Класть хвост
+            // в слой Compton»; кривую складывает `FsaMatrixLayers.CurveOf`,
+            // здесь правила нет. Без единого слоя с каналами (матрицы нет)
+            // режим недостижим — кадр собирается как «All», и окно отчёта о
+            // том же говорит погашенным комбо.
             FsaMatrixLayer mode = this.fsaMatrixLayer != FsaMatrixLayer.All && FsaMatrixLayers.HasChannels(layers)
                 ? this.fsaMatrixLayer
                 : FsaMatrixLayer.All;
@@ -828,12 +993,17 @@ namespace BecquerelMonitor
                     this.DrawFsaCurve(g, modelPen, this.fsaCumulative[top]);
                 }
 
-                ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
-                using (Pen spectrumPen = new Pen(colorConfig.ActiveSpectrumColor.Color))
+                // (`AMBER222`) Линия измерения — данные СПЕКТРА, а не разбора:
+                // галочка «Spectral data» снята — линии нет вовсе.
+                if (this.fsaShowSpectralData)
                 {
-                    // (`A26`) Линия измерения не рвётся: где фон перекрыл спектр,
-                    // она идёт по низу поля.
-                    this.DrawFsaCurve(g, spectrumPen, this.fsaNetSpectrum, clampToFloor: true);
+                    ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
+                    using (Pen spectrumPen = new Pen(colorConfig.ActiveSpectrumColor.Color))
+                    {
+                        // (`A26`) Линия измерения не рвётся: где фон перекрыл спектр,
+                        // она идёт по низу поля.
+                        this.DrawFsaCurve(g, spectrumPen, this.fsaNetSpectrum, clampToFloor: true);
+                    }
                 }
 
                 // (`AMBER17`) Опоры привязки шкалы — метками над верхом стека.
@@ -848,6 +1018,7 @@ namespace BecquerelMonitor
                 g.PixelOffsetMode = savedPixelOffset;
             }
 
+            this.fsaFrameDrawn = true;
             return true;
         }
 

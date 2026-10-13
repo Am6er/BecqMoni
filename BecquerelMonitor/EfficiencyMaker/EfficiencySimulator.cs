@@ -427,6 +427,20 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool ElectronLayerBremAlongPath = new ResponseMatrixOptions().ElectronLayerBremAlongPath;
 
         /// <summary>
+        /// (`M13`, остаток; П111 19.09.2026) НАПРАВЛЕНИЕ КВАНТА ТОРМОЗНОГО В
+        /// СЛОЯХ ОБВЯЗКИ — 2BS Коха—Моца (как `G4Generator2BS` у арбитра
+        /// option4) вместо модифицированного Цая — ключ сделан ВЫКЛ; ВКЛ
+        /// умолчанием с 19–21.09.2026 — физика 22 (П114, решение Amber «ВКЛ
+        /// единым счётом ночью»). Умолчание ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.ElectronLayerBremAngular2BS"/>,
+        /// правило I). Действует только под <see cref="ElectronLayerBremAlongPath"/>
+        /// в `LayerEmitBremsstrahlung` (<see cref="Brem2BSCosine"/>); в кристалле
+        /// направление (`bpath=2`, Цай) не трогается. Выключенный — прежний ход
+        /// до последнего бита и без единого лишнего случайного числа.
+        /// </summary>
+        public bool ElectronLayerBremAngular2BS = new ResponseMatrixOptions().ElectronLayerBremAngular2BS;
+
+        /// <summary>
         /// (`M13`, П100) Угол отсечки смешанной схемы в слоях, градусы:
         /// столкновения с отклонением больше него — жёсткие, по одному. Режим
         /// ЗАМЕРА, не настройка: двигает `LayerReturnProbe --cutoff=` для
@@ -544,6 +558,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public long CountLayerBremPhotons;
         public double SumLayerBremKev;
+
+        /// <summary>
+        /// (`M13`, П111) Путь электронов в ВЕЩЕСТВЕ слоёв обвязки за все вызовы
+        /// `TransportInLayers`, г/см² (пустота не считается) — читает
+        /// `LayerReturnProbe --brem`: квантов на г/см² пути против опоры Geant4;
+        /// не настройка, на ход переноса и на случайные числа не влияет.
+        /// </summary>
+        public double SumLayerPathG;
 
         /// <summary>
         /// Сколько энергии событие может потерять и всё-таки остаться в пике,
@@ -817,15 +839,34 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double LightEtaEh = 0.0;
 
         /// <summary>
-        /// (`F11` (а), П17) E_q обрыва короткого трека, кэВ: множитель
-        /// q(E) = 1/(1 + (E_q/E)²) на выход электрона НАЧАЛЬНОЙ энергии E.
-        /// Действует только при <see cref="LightSubKevCurve"/>. Калибровка —
-        /// по глубине K-провала Ходюка (114.1 % на 34.5 кэВ при тренде ~116.5
-        /// через 20 и 50 кэВ), `LightScaleProbe --kdip=1 --eq=`, журнал
-        /// `handover/handover-2026-09-11-p17-kdip.md`. Умолчание — калиброванное
-        /// значение; ноль — без обрыва (одно продолжение Joy — Luo).
+        /// (`F11` (а), П17; форма — `S198`, П180) E_q обрыва короткого трека,
+        /// кэВ: множитель q(E) = 1/(1 + (E_q/E)^p) на выход электрона
+        /// НАЧАЛЬНОЙ энергии E, p — <see cref="LightTrackEndPower"/>. Действует
+        /// только при <see cref="LightSubKevCurve"/>; ноль — без обрыва (одно
+        /// продолжение Joy — Luo).
+        ///
+        /// ⛔ КАЛИБРОВКА ФИЗИКИ 25 (П180 29.09.2026): E_q = 0.45 кэВ, p = 1.2 —
+        /// по ФОРМЕ фотонного провала NaI:Tl у K-края иода, рис. 6 Khodyuk,
+        /// Rodnyi, Dorenbos, J. Appl. Phys. 107 (2010) 113513 (arXiv:1102.3799),
+        /// шаг 25 эВ, оцифровка `handover/p180/khodyuk_fig6_digitized.txt`:
+        /// к 33.0 кэВ провал −0.89 % с минимумом на 34.5…35.0 кэВ и
+        /// восстановлением к 40 кэВ; модель на 11 точках 33.2…40 кэВ — СКО
+        /// 0.09 %. Прежняя калибровка П17 (E_q 1.0, p 2) брала целью −2.1 %
+        /// «114.1 на 34.5 против тренда 116.5 через 20 и 50 кэВ», то есть
+        /// глубину относительно ТРЕНДА, а не значения под краем, и давала
+        /// провал вдвое глубже рисунка (−1.71 % на 34.0, минимум на 0.8 кэВ
+        /// раньше; СКО 0.48 %). Независимая мерка П17 10/20 кэВ: 0.974 против
+        /// 0.956 у Ходюка (было 0.966). Сетка (E_q, p) — журнал П180.
         /// </summary>
-        public double LightTrackEndKev = 1.0;
+        public double LightTrackEndKev = 0.45;
+
+        /// <summary>
+        /// (`S198`, П180) Показатель p обрыва короткого трека:
+        /// q(E) = 1/(1 + (E_q/E)^p). Калибровка физики 25 — 1.2 (довод и
+        /// источник — у <see cref="LightTrackEndKev"/>); 2 — форма П17.
+        /// Действует только при <see cref="LightSubKevCurve"/>.
+        /// </summary>
+        public double LightTrackEndPower = 1.2;
 
         /// <summary>
         /// ⛔ (`A267`, решение Amber 12.09.2026, дословно: «BinOf — в
@@ -990,7 +1031,15 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// же переносом, что <see cref="TotalEfficiency"/>, а бин пика остаётся
         /// за взвешенной оценкой — у неё дисперсия пика на порядок лучше.
         /// Классы историй не пересекаются по построению: аналоговый вклад,
-        /// округлившийся в бин пика, отбрасывается.
+        /// попавший в пик, отбрасывается.
+        ///
+        /// ⛔ (`AMBER66`, П132 22.09.2026) ОДНА ОГОВОРКА: отбрасывается он
+        /// только у историй, чьё ПЕРВИЧНОЕ НАПРАВЛЕНИЕ лежало в конусе
+        /// взвешенной ветви (конус на сферу детектора). Направления вне этого
+        /// конуса взвешенная ветвь не рождает вовсе, и пик, набранный таким
+        /// лучом через рассеяние в пробе или обвязке, не считался НИГДЕ.
+        /// Теперь он складывается с взвешенной оценкой — множества «внутри
+        /// конуса» и «вне конуса» не пересекаются и вместе покрывают 4π.
         ///
         /// На кривую эффективности ключ не влияет вовсе: аналоговая ветка
         /// запускается только при счёте гистограммы отклика.
@@ -1052,6 +1101,31 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool RayleighScatter = true;
 
         /// <summary>
+        /// (`S197`, П178 28.09.2026) РЫЧАГ ЗАМЕРА, не физика: множитель
+        /// сечения когерентного рассеяния В КРИСТАЛЛЕ (розыгрыш в
+        /// <c>InCrystal</c>, и в длине свободного пробега, и в выборе канала).
+        /// Нужен, чтобы подставить в кристалл сечение арбитра: под K-краем иода
+        /// (33.17 кэВ) наш XCOM даёт когерентное в CsI ×1.30 от Geant4
+        /// (Livermore/EPICS2014). Умолчание 1.0 — умножение на единицу,
+        /// результат прежний до бита; склад и клеймо поля не знают.
+        /// </summary>
+        public double CrystalCoherentScale = 1.0;
+
+        /// <summary>
+        /// (`S197`, П178 28.09.2026) РЫЧАГ ЗАМЕРА, не физика: множитель
+        /// сечения фотоэффекта во всех областях, КРОМЕ кристалла (проба,
+        /// сосуд, обвязка). Входит в ослабление области (<c>Region.Mu</c>) —
+        /// значит, и в проводку к кристаллу, и в розыгрыш аналоговой ветви
+        /// (поглощение там — остаток за вычетом рассеяний). Нужен, чтобы
+        /// подставить вне кристалла фотоэффект арбитра: у Geant4 он у лёгких
+        /// элементов считается формулой-фитом, на 60 кэВ на 2.2 % ниже
+        /// таблицы (П175). Флуоресценция пробы вакансии по-прежнему берёт
+        /// сечения по элементам без множителя. Умолчание 1.0 — ветка не
+        /// исполняется, результат прежний до бита; склад и клеймо поля не знают.
+        /// </summary>
+        public double OutsidePhotoScale = 1.0;
+
+        /// <summary>
         /// ⛔ (`N13`) Когерентное рассеяние своим разыгранным каналом и во
         /// ВЗВЕШЕННОЙ (пиковой) ветви — той, что ведёт квант к кристаллу по
         /// exp(−τ) и разыгрывает одно рассеяние
@@ -1095,17 +1169,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// по шкале цена меньше, но не исчезает: на 2614 кэВ ядерный канал
         /// Cs между узлами 2.044 и 3.0 МэВ выходит на 6 % больше.
         ///
-        /// Ключ измерительный и УМОЛЧАНИЕМ ВЫКЛЮЧЕН (решение Amber
-        /// 02.09.2026): выключенный, он оставляет прежнюю арифметику до
-        /// последнего бита, поэтому посчитанные матрицы и база корпуса
-        /// остаются годными. Сечение пар входит в кристалле и в ветвление,
-        /// и в длину свободного пробега, так что включённый ключ делает
-        /// матрицы устаревшими — включать после замера A/B.
-        ///
-        /// ⚠ Полное ослабление (<see cref="GeometryModel.Region"/>) берётся
-        /// из СУММЫ каналов таблицы и этой правкой не затронуто (`S124`).
+        /// Ключ был измерительным и умолчанием ВЫКЛЮЧЕННЫМ (решение Amber
+        /// 02.09.2026, подтверждено 04.09.2026 по `S125`). ✅ С физики 24 —
+        /// УМОЛЧАНИЕ ВКЛ (решение Amber 24.09.2026 вопросником, дословно:
+        /// «ВКЛ в физике 24 (Рекомендую)», полоса П147): вместе с `AMBER80`
+        /// пороговая форма пар идёт и в розыгрыш, и в ПОЛНОЕ ослабление
+        /// областей (`Region.ThresholdPair`), и ошибка полного Pb на 2614.5
+        /// кэВ против сплайна XCOM −1.15 % уходит в +0.15 %. Умолчание поля —
+        /// умолчание склада (правило I `check_matrix_keys.py`); `--pairth=0` —
+        /// абляция «как физика 23».
         /// </summary>
-        public bool XcomPairThreshold = false;
+        public bool XcomPairThreshold = new ResponseMatrixOptions().XcomPairThreshold;
 
         /// <summary>
         /// ⛔ (`A57`) Наводить направления АНАЛОГОВОГО континуума конусом на
@@ -1131,6 +1205,71 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// — за Amber, после замера A/B.
         /// </summary>
         public bool AnalogConeSampling = false;
+
+        /// <summary>
+        /// ⛔ (`AMBER79`, П147 24.09.2026, физика 24) Класс «вне конуса» (`AMBER66`)
+        /// — И В КРИВОЙ (<see cref="Efficiency"/>, путь без гистограммы), И В
+        /// СОВМЕСТНОЙ ЭФФЕКТИВНОСТИ КАСКАДА (<see cref="JointPeakSums"/>, κ).
+        ///
+        /// ЧТО БЫЛО НЕ ТАК. П132 добавил историям, чьё первичное направление
+        /// лежит вне конуса взвешенной ветви, их пик — но только в строке
+        /// матрицы (`Run` с гистограммой и <see cref="AnalogContinuum"/>). Кривая
+        /// «из геометрии» идёт через `Run` без гистограммы, κ — через
+        /// `OneHistory` без аналоговой ветви вовсе: обе остались оценкой одной
+        /// взвешенной ветви, и кривая лежала ниже пика матрицы той же сцены
+        /// (замер П132, `RadiaCode_Marinelli0.5`: 0.927 на 32 кэВ) — беккерели по
+        /// кривой (ROI, выделение, доза без матрицы, FSA без матрицы) завышены на
+        /// эту долю; нарушен инвариант `F29` и решение Amber 12.09.2026 «одна
+        /// физика для кривой и матрицы».
+        ///
+        /// Теперь оба пути зовут ту же аналоговую историю
+        /// (<see cref="AnalogHistory"/>) и берут из неё только класс вне конуса
+        /// с пиком в допуске (`InPeak`) — как строка матрицы. Историю в конусе
+        /// аналоговая ветвь не ведёт (её пик за взвешенной).
+        ///
+        /// ⚠ Это РЫЧАГ АБЛЯЦИИ ДЛЯ ПРОБ, работающих с симулятором напрямую
+        /// (положительный контроль: ВЫКЛ — кривая и κ как в физике 23). В клеймо
+        /// не входит, до построителя матриц и до `EfficiencyCalculation` не
+        /// доезжает НАРОЧНО: склад и кривые считаются только умолчанием, а
+        /// поколение различает `PhysicsVersion` 24. Как и у матрицы, класс
+        /// считается только при <see cref="AnalogContinuum"/>.
+        /// </summary>
+        public bool OutOfConePeakEverywhere = true;
+
+        /// <summary>
+        /// ⛔ (`AMBER79`, остаток; П147 24.09.2026, решение Amber 24.09.2026
+        /// вопросником, дословно: «Важностный розыгрыш (Рекомендую)») СВОЙ СЧЁТ
+        /// класса «вне конуса» у кривой и κ — ОЦЕНКА СЛЕДУЮЩЕГО СОБЫТИЯ
+        /// (next-event, «точечный детектор» у Lux &amp; Koblinger, гл. 7):
+        /// первичный квант вне конуса ведётся аналогово, пока у него есть шанс
+        /// на пик (когерентное и комптон с потерей в допуске), и в КАЖДОЙ точке
+        /// рассеяния вне кристалла к счёту добавляется ожидание «следующий
+        /// полёт — прямо в кристалл и полное поглощение»: направление берётся
+        /// равномерно в конусе на объемлющую сферу детектора, вес — плотность
+        /// рассеяния в это направление (форм-фактор F² и функция S(x,Z) тех же
+        /// таблиц, по которым разыгрывает угол аналоговая ветвь, нормированные
+        /// квадратурой по узлам таблиц) на телесный угол конуса, на
+        /// пропускание до кристалла; дальше квант доводится обычным переносом
+        /// (<see cref="AnalogTransport"/>) и проверяется допуск пика. Сам
+        /// первичный квант, дошедший до кристалла, не считается — его вклад и
+        /// есть это ожидание (класс вне конуса в кристалл без рассеяния не
+        /// попадает). Несмещённо: сумма по точкам рассеяния ожиданий «следующий
+        /// полёт в кристалл без столкновения» = вероятность класса.
+        ///
+        /// Зачем. Простой аналоговый счёт (коммит `09bb4c29`) набирал у
+        /// маринелли RC-103 при штатных 200 тыс. историй единицы попаданий на
+        /// узел (вероятность класса ~3e−5 на историю): шум кривой вырос вдвое.
+        ///
+        /// ⚠ Не входят (нарочно, названо): занос в кристалл электронами,
+        /// рождёнными в точках рассеяния вне кристалла до входа кванта, и
+        /// флуоресценция вещества вне кристалла — для кванта, чей занос обязан
+        /// лечь в допуск пика, это доли процента класса.
+        ///
+        /// Рычаг проб (положительный контроль: ВЫКЛ — простой аналоговый класс).
+        /// Путь МАТРИЦЫ не трогает: строки склада побитово те же. В клеймо не
+        /// входит (поколение — `PhysicsVersion` 24).
+        /// </summary>
+        public bool OutOfConeImportance = true;
 
         /// <summary>
         /// ⛔ (`E29`, решение Amber 10.09.2026, вопросником, дословно: «Ключом,
@@ -1266,7 +1405,144 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// тело матрицы от них не меняются ни на бит. null — прогона ещё не было.
         /// Выход прогона, не настройка (как <see cref="LastContinuumRelativeError"/>).
         /// </summary>
-        public AngularMomentSums LastAngularMoments { get; private set; }
+        public AngularMomentSums LastAngularMoments { get; internal set; }
+
+        /// <summary>
+        /// ⚡ (`AMBER145`, П199 01.10.2026) ДОПУСК ПИКА ПО РАЗРЕШЕНИЮ, кэВ — для
+        /// ВТОРОГО счёта пиковой эффективности узла, тем же определением, что у
+        /// кривой эффективности (`EfficiencyCalculation.Run`:
+        /// `PeakHalfWidthKev = geometry.PeakHalfWidthKev(E)` = ПШПВ(E)/2).
+        ///
+        /// Зачем. Строка матрицы считает пик ПОЛУБИНОМ (<see cref="PeakHalfWidthKev"/>
+        /// = 1 кэВ, решение Amber 11.09.2026 «Допуск по БИНУ»), а суммирователь
+        /// каскада берёт пиковую эффективность ЧИСЛОМ — Σ канала `Peak` — и
+        /// перемножает её у пары: истории с недобором 1…7 кэВ (L-вылет, комптон
+        /// вперёд в пробе и обвязке), которые после свёртки разрешением лежат в
+        /// пике, у него выпадали — сумм-пики вплотную занижены на 4…9 %
+        /// (замер П191 `CurveVsMatrixP191`). Строку матрицы правка НЕ ТРОГАЕТ:
+        /// счёт идёт сбоку, теми же историями.
+        ///
+        /// ⛔ СЛУЧАЙНЫХ ЧИСЕЛ НЕ ТЯНЕТ. Отбор — по уже посчитанному заносу
+        /// истории и её бину (<see cref="BinOf"/>), поток ГСЧ и тело матрицы
+        /// побитово прежние. Ноль (умолчание) — не считать вовсе.
+        /// </summary>
+        public double ResolutionPeakHalfWidthKev;
+
+        /// <summary>
+        /// (`AMBER145`) Выход последнего <see cref="Run"/> с гистограммой: доля
+        /// квантов (на квант источника, как строка) с недобором НЕ БОЛЬШЕ
+        /// <see cref="ResolutionPeakHalfWidthKev"/>, которых строка НЕ положила
+        /// в бин пика. Пиковая эффективность по разрешению узла — Σ канала
+        /// `Peak` плюс это число (`ResponseMatrixBuilder`): объединение двух
+        /// непересекающихся множеств — «бин пика» (допуск полубином и округление
+        /// бина) и «прочие бины с недобором в допуске по разрешению» — даёт
+        /// ровно «недобор ≤ ПШПВ/2», определение кривой.
+        ///
+        /// Множество берётся у ТОЙ ветви, что дала бины ниже пика: при
+        /// аналоговом континууме — у его историй (бины ниже пика перезаписаны
+        /// ими), иначе — у взвешенной. Ноль, если допуск по разрешению не задан.
+        /// </summary>
+        public double LastResolutionPeakExtra { get; internal set; }
+
+        // (`AMBER145`) Копилки второго счёта пика — взвешенная и аналоговая
+        // ветви порознь; обнуляются в начале `Run`.
+        internal double resolutionWeighted, resolutionAnalog;
+
+        /// <summary>
+        /// (`AMBER145`) Сложить долю истории во второй счёт пика, если её бин —
+        /// НЕ бин пика, а недобор укладывается в допуск по разрешению. Зовётся
+        /// рядом с <see cref="Deposit"/> полной гистограммы — тем же заносом.
+        /// </summary>
+        void TallyResolutionPeak(int peak, double binKev, double energyKev,
+                                 double deposited, double weight, bool analog)
+        {
+            if (!(this.ResolutionPeakHalfWidthKev > 0.0) || !(deposited > 0.0) || !(weight > 0.0)
+                || energyKev - deposited > this.ResolutionPeakHalfWidthKev + 1e-9
+                || this.BinOf(peak, binKev, energyKev, deposited) == peak)
+            {
+                return;
+            }
+
+            if (analog)
+            {
+                this.resolutionAnalog += weight;
+            }
+            else
+            {
+                this.resolutionWeighted += weight;
+            }
+        }
+
+        /// <summary>
+        /// ⛔ (`S208`, П216 02.10.2026) ПИК КРИВОЙ — ОКНОМ ПОЛНОЙ СТРОКИ ±ПШПВ/2,
+        /// ТЕМ ЖЕ РАЗБИЕНИЕМ, ЧТО ε_p ПО РАЗРЕШЕНИЮ У МАТРИЦЫ (`AMBER145`, блок
+        /// EPRS; решение Amber 01.10.2026 «Окно полной строки матрицы»).
+        ///
+        /// ЧТО БЫЛО НЕ ТАК. Кривая (<see cref="Efficiency"/>, путь без
+        /// гистограммы) брала пик ВЗВЕШЕННОЙ ветвью с допуском ПШПВ/2: прямой
+        /// квант и ОДНО рассеяние на луче к кристаллу (плюс класс вне конуса).
+        /// Многократное рассеяние в пробе и обвязке, возврат кванта, вылетевшего
+        /// из кристалла (на 35…60 кэВ — K-рентген иода/цезия, отражённый
+        /// отражателем и корпусом), и сквозной пролёт с возвратом из-за
+        /// кристалла взвешенная ветвь не рождает вовсе, а недобор у них на
+        /// 45…60 кэВ — единицы кэВ, то есть ВСЁ в окне ПШПВ/2. Кривая на
+        /// 32…80 кэВ лежала ниже полного аналогового переноса и ε_p матрицы на
+        /// 1.6…3.0 % (П199 `CurveVsMatrixP199`, `PeakResDiagP199`).
+        ///
+        /// КАК ТЕПЕРЬ (при допуске кривой больше тесного):
+        ///
+        ///   * взвешенная ветвь считает пик ТЕСНЫМ допуском
+        ///     <see cref="CurveTightPeakHalfWidthKev"/> (полубин склада, тот же,
+        ///     что у бина пика матрицы) — там ветви согласны (аналог / Σ Peak
+        ///     0.998…1.010, П199 §3);
+        ///   * полосу «недобор больше тесного, но не больше ПШПВ/2» — аналоговая
+        ///     ветвь (<see cref="AnalogTransport"/>, вся физика: очередь квантов,
+        ///     возврат из обвязки, многократное рассеяние) своими n историями,
+        ///     направление В КОНУСЕ взвешенной ветви с весом конуса (тот же
+        ///     розыгрыш, что у <see cref="OneHistory"/>): вне конуса историю
+        ///     считает класс вне конуса (`AMBER79`) с допуском ПШПВ/2, и
+        ///     множества не пересекаются;
+        ///   * класс вне конуса — как был, допуском ПШПВ/2.
+        ///
+        /// Это ровно разбиение ε_p по разрешению склада: «бин пика» взвешенной
+        /// ветвью плюс «прочие бины с недобором ≤ ПШПВ/2» аналоговой.
+        ///
+        /// Рычаг проб: ВЫКЛ — прежняя кривая побитово (положительный контроль).
+        /// Допуск кривой не больше тесного (геометрия без разрешения, HPGe) —
+        /// окна нет, прежний счёт.
+        /// </summary>
+        public bool CurvePeakResolutionWindow = true;
+
+        /// <summary>
+        /// (`S208`) Тесный допуск пика взвешенной ветви кривой при
+        /// <see cref="CurvePeakResolutionWindow"/>, кэВ: полубин склада
+        /// (`ResponseMatrixOptions.BinKev`/2 — допуск бина пика матрицы,
+        /// `PeakToleranceHalfBin`, решение Amber 11.09.2026). Одно место истины —
+        /// умолчание настроек склада, копии числа нет.
+        /// </summary>
+        public double CurveTightPeakHalfWidthKev = 0.5 * new ResponseMatrixOptions().BinKev;
+
+        /// <summary>
+        /// (`S208`) Выход последнего <see cref="Efficiency"/> с окном: доля (на
+        /// квант источника) полосы «тесный допуск &lt; недобор ≤ ПШПВ/2»
+        /// аналоговой ветви в конусе, и её относительная погрешность, %. Ноль —
+        /// окна не было. Для проб: кривая = взвешенная (тесно) + это + вне конуса.
+        /// </summary>
+        public double LastCurveBand { get; private set; }
+
+        /// <summary>(`S208`) Погрешность <see cref="LastCurveBand"/>, % от неё.</summary>
+        public double LastCurveBandErrorPercent { get; private set; }
+
+        /// <summary>
+        /// (`S208`) Диагностика того же аналогового прогона: доля его историй в
+        /// ТЕСНОМ допуске (их пик за взвешенной ветвью и в кривую не идёт).
+        /// Проба сравнивает её со взвешенной оценкой тесного пика — встречная
+        /// проверка ветвей (`A58`) на пути кривой.
+        /// </summary>
+        public double LastCurveAnalogTight { get; private set; }
+
+        /// <summary>(`S208`) Взвешенная оценка тесного пика последнего прогона с окном.</summary>
+        public double LastCurveWeightedTight { get; private set; }
 
         // (`AMBER46`) Косинус угла вылета ПОСЛЕДНЕЙ истории к оси «точка вылета →
         // центр объемлющей сферы кристалла» и её полный занос (сумма долей,
@@ -1276,27 +1552,32 @@ namespace BecquerelMonitor.EfficiencyMaker
         double lastHistoryCos;
         double historyDeposit;
 
-        readonly GeometryModel geometry;
+        internal readonly GeometryModel geometry;
         readonly List<Region> regions = new List<Region>();
 
         // Та же сцена массивом — для горячих проходов (`T43`), см. EnsureBuilt.
-        Region[] regionArray;
+        internal Region[] regionArray;
 
         // ⚡ ПЛОСКАЯ ГЕОМЕТРИЯ СЦЕНЫ (`A43`). Разбор луча — четверть счёта, и
         // в нём цикл по всем областям. По объектам он ходил бы по восьми
         // ссылкам в куче, читая из каждой по шесть полей; здесь те же числа
         // лежат подряд. Допуск `Eps` вычтен заранее: он не зависит ни от луча,
         // ни от истории, а вычитался на каждый вызов.
-        bool[] regBox;
-        double[] regZMinE, regZMaxE, regROutE, regRInE, regAXE, regAYE;
-        Region crystal;
-        double sphereZ, sphereR;         // объемлющая сфера детектора — для сужения конуса
+        internal bool[] regBox;
+        internal double[] regZMinE, regZMaxE, regROutE, regRInE, regAXE, regAYE;
+        internal Region crystal;
+        internal double sphereZ, sphereR;         // объемлющая сфера детектора — для сужения конуса
+
+        // (`AMBER97`) Габаритная сфера ВСЕЙ сцены для предела пути
+        // (<see cref="PathLimit"/>); снимается в `EnsureBuilt` после `Build`,
+        // ноль — сцена пуста, подлёт не добавляется.
+        internal double pathSceneZ, pathSceneR;
 
         // Габарит ВСЕЙ сцены — детектор вместе с сосудом и пробой (`A57`).
         // Копится в <see cref="Register"/>; вне его вещества нет вовсе, поэтому
         // конус на эту сферу не отсекает ни одной истории, которая могла бы
         // дать отсчёт.
-        double sceneRMax, sceneZMin = double.MaxValue, sceneZMax = double.MinValue;
+        internal double sceneRMax, sceneZMin = double.MaxValue, sceneZMax = double.MinValue;
 
         /// <summary>
         /// ⛔ (`A57`, решение Amber 02.09.2026) ДАЛЬНЯЯ ли это сцена — то есть
@@ -1360,20 +1641,20 @@ namespace BecquerelMonitor.EfficiencyMaker
             radius = Math.Sqrt(this.sceneRMax * this.sceneRMax + half * half) + 1e-3;
             return true;
         }
-        Sampler source;
+        internal Sampler source;
         ulong state;
-        bool crystalHasPartials;
-        ElectronData.Material electron;
+        internal bool crystalHasPartials;
+        internal ElectronData.Material electron;
 
         /// <summary>Кривая светового выхода кристалла; null — шкала пропорциональна.</summary>
-        MaterialDatabase.LightYieldCurve lightYield;
+        internal MaterialDatabase.LightYieldCurve lightYield;
 
         /// <summary>
         /// Спектр тормозного толстой мишени для вещества кристалла; null —
         /// ключ выключен или сечений для состава нет, тогда работает
         /// приближение Крамерса.
         /// </summary>
-        ThickTargetBrem bremTable;
+        internal ThickTargetBrem bremTable;
 
         /// <summary>Элементы кристалла, у которых есть данные о K-флуоресценции.</summary>
 
@@ -1391,7 +1672,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Кто в веществе способен ответить характеристическим квантом (`F27`).
         /// Строится на вещество один раз и кэшируется — как <see cref="Scatterers"/>.
         /// </summary>
-        sealed class Fluorescers
+        internal sealed class Fluorescers
         {
             public GeometryMaterial Material;
             public int[] Z;
@@ -1413,7 +1694,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             new Dictionary<GeometryMaterial, Scatterers>();
 
         /// <summary>Элементы вещества с их угловыми данными рассеяния.</summary>
-        sealed class Scatterers
+        internal sealed class Scatterers
         {
             public int[] Z;
             public double[] MassFraction;
@@ -1479,6 +1760,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.geometry.Cladding.SortFractions();
                 this.geometry.BeakerWall.SortFractions();
                 this.geometry.Source.SortFractions();
+                // (`A313`, П232) Зазор (`AMBER1`) заведён позже прочих слоёв и
+                // сюда не попал: модель из РЕДАКТОРА берёт вещество зазора из
+                // библиотеки в порядке формулы и считалась другим потоком, чем
+                // она же после сохранения и открытия.
+                if (this.geometry.Gap != null)
+                {
+                    this.geometry.Gap.SortFractions();
+                }
             }
         }
 
@@ -1486,7 +1775,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Сцена собирается лениво: настройки (например, где стоит оправа)
         /// выставляются после конструктора, а на них она и опирается.
         /// </summary>
-        void EnsureBuilt()
+        internal void EnsureBuilt()
         {
             if (this.regions.Count > 0)
             {
@@ -1512,6 +1801,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             this.Build();
+            if (!this.SceneBounds(out this.pathSceneZ, out this.pathSceneR))
+            {
+                this.pathSceneZ = 0.0;
+                this.pathSceneR = 0.0;
+            }
 
             // Разбиение луча держит накрывающие области битовой маской (`T43`),
             // а в ней 64 места. Сцена строится по жёсткой раскладке — шесть
@@ -1521,7 +1815,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (this.regions.Count > 64)
             {
                 throw new InvalidOperationException(
-                    "областей сцены " + this.regions.Count + " — больше 64, "
+                    "областей сцены " + this.regions.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " — больше 64, "
                     + "разбиение луча (T43) столько не держит");
             }
 
@@ -1569,7 +1863,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     ? MaterialDatabase.LightYieldPayne(ScintillatorNameOf(this.electron),
                                                        this.LightEtaEh, this.LightSubKevCurve,
                                                        this.LightSubKevCurve ? this.LightTrackEndKev : 0.0,
-                                                       this.ElectronAnyMaterial)
+                                                       this.ElectronAnyMaterial, this.LightTrackEndPower)
                     : MaterialDatabase.LightYieldOf(ScintillatorNameOf(this.electron)))
                 : null;
             this.bremTable = this.Bremsstrahlung && this.BremFromData && this.electron != null
@@ -1650,7 +1944,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// заметная линия: оксид лютеция под собственными гаммами 88/202/307 кэВ
         /// обязан светить K-рентгеном лютеция 52.97…63.21 кэВ.
         /// </summary>
-        Fluorescers FluorescersOf(GeometryMaterial material)
+        internal Fluorescers FluorescersOf(GeometryMaterial material)
         {
             Fluorescers found;
             if (this.fluorescers.TryGetValue(material, out found))
@@ -1734,7 +2028,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// друг в друга, и поиск идёт по порядку: побеждает первая, в которую
         /// точка попала, поэтому кристалл кладётся раньше своей обвязки.
         /// </summary>
-        sealed class Region
+        internal sealed class Region
         {
             public bool IsBox;
             public double RIn, ROut;      // кольцо
@@ -1742,6 +2036,20 @@ namespace BecquerelMonitor.EfficiencyMaker
             public double ZMin, ZMax;
             public GeometryMaterial Material;
             public bool IsCrystal;
+
+            /// <summary>
+            /// (`AMBER80`, П147) Ключ пороговой формы пар В ПОЛНОМ ослаблении —
+            /// = <see cref="EfficiencySimulator.XcomPairThreshold"/> симулятора,
+            /// ставится при регистрации области. Без него полное брало пары
+            /// хордой, а розыгрыш при ключе ВКЛ — пороговой формой.
+            /// </summary>
+            public bool ThresholdPair;
+
+            /// <summary>
+            /// (`S197`, П178) = <see cref="EfficiencySimulator.OutsidePhotoScale"/>
+            /// для областей вне кристалла, 1 у кристалла; ставится при регистрации.
+            /// </summary>
+            public double PhotoScale = 1.0;
 
             // --- кэш ослабления на ОДНУ энергию (`T43`) ---
             //
@@ -1852,11 +2160,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                     int lo = this.bracketLo[i];
                     if (lo >= 0)
                     {
-                        MaterialDatabase.Element element = this.elements[i];
-                        value = MaterialDatabase.Interpolate(
-                            element.EnergyKev, element.LogEnergyKev,
-                            element.Total, element.LogTotal, lo, this.bracketHi[i],
-                            energyKev, this.logEnergy);
+                        // (`AMBER74`, П132) СУММОЙ КАНАЛОВ, как у кристалла.
+                        value = PartialCrossSections.MassTotal(
+                            this.elements[i], lo, this.bracketHi[i],
+                            energyKev, this.logEnergy, this.ThresholdPair);
                     }
 
                     mass += this.fractions[i] * value;
@@ -1881,13 +2188,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     int lo = this.bracketLo[i];
                     if (lo >= 0)
                     {
-                        MaterialDatabase.Element element = this.elements[i];
-                        int hi = this.bracketHi[i];
-                        value = MaterialDatabase.Interpolate(
-                            element.EnergyKev, element.LogEnergyKev,
-                            element.Total, element.LogTotal, lo, hi, energyKev, this.logEnergy);
-                        value -= PartialCrossSections.MassCrossSection(
-                            element, lo, hi, energyKev, this.logEnergy, PhotonProcess.Coherent);
+                        // (`AMBER74`, П132) СУММОЙ ТРЁХ КАНАЛОВ, а не разностью
+                        // «прямая по сумме минус когерентное».
+                        value = PartialCrossSections.MassTotalWithoutCoherent(
+                            this.elements[i], lo, this.bracketHi[i],
+                            energyKev, this.logEnergy, this.ThresholdPair);
                     }
 
                     mass += this.fractions[i] * Math.Max(0.0, value);
@@ -2022,6 +2327,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                     if (!this.hasNoCoherent)
                     {
                         this.muNoCoherent = this.NoCoherent(energyKev);
+                        if (this.PhotoScale != 1.0)
+                        {
+                            // (`S197`, П178) рычаг замера: фотоэффект ×PhotoScale.
+                            this.muNoCoherent = Math.Max(0.0, this.muNoCoherent
+                                - (1.0 - this.PhotoScale) * this.Channel(energyKev, PhotonProcess.Photoelectric));
+                        }
+
                         this.hasNoCoherent = true;
                     }
 
@@ -2031,6 +2343,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (!this.hasTotal)
                 {
                     this.muTotal = this.Total(energyKev);
+                    if (this.PhotoScale != 1.0)
+                    {
+                        // (`S197`, П178) рычаг замера: фотоэффект ×PhotoScale.
+                        this.muTotal = Math.Max(0.0, this.muTotal
+                            - (1.0 - this.PhotoScale) * this.Channel(energyKev, PhotonProcess.Photoelectric));
+                    }
+
                     this.hasTotal = true;
                 }
 
@@ -2332,6 +2651,11 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         void Register(Region region, bool isCrystal)
         {
+            // ⛔ (`AMBER80`, П147) Полное ослабление области — ТЕМ ЖЕ правилом
+            // пар, каким их разыгрывает `Region.Pair` и `CrystalChannels`:
+            // ключ ВЫКЛ — прежняя хорда до бита.
+            region.ThresholdPair = this.XcomPairThreshold;
+            region.PhotoScale = isCrystal ? 1.0 : this.OutsidePhotoScale;   // `S197`, П178
             this.regions.Add(region);
             if (isCrystal)
             {
@@ -2383,6 +2707,148 @@ namespace BecquerelMonitor.EfficiencyMaker
             GeometryMaterial vacuum = new GeometryMaterial { Name = "vacuum", Density = 1e-10 };
             vacuum.Fractions[1] = 1.0;
             return vacuum;
+        }
+
+        /// <summary>
+        /// Допуск «сосуд выступает за пробу», в единицах модели — у сцены сантиметры (`AMBER205`). Поля приходят из
+        /// `.in` в сантиметрах и переводятся в мм, и равенство «высота сосуда =
+        /// проба + донышко» выходит с ошибкой последнего знака. Такой выступ —
+        /// не сосуд, а шум перевода: сцена с ним обязана остаться побитово
+        /// прежней, а клеймо — прежним.
+        /// </summary>
+        const double VesselTolerance = 1e-6;
+
+        /// <summary>
+        /// (`AMBER205`) Цилиндр: запас боковой стенки над пробой, в единицах модели — на
+        /// сколько сосуд высотой `BeakerHeight` (снаружи, с донышком со стороны
+        /// детектора: генератор корпуса пишет `SourceHeight + BeakerEndWallThickness`)
+        /// длиннее донышка и пробы. Стенка продолжается на этот запас со стороны,
+        /// дальней от детектора; крышки нет. Ноль — без боковой стенки
+        /// (`BeakerSideWallThickness` = 0, поле `Ground`) или без запаса. Истина —
+        /// сцена отличается от прежней (до `AMBER205` стенка шла только на высоту
+        /// пробы); по ней же клеймо пишет `bmscene=1`.
+        /// </summary>
+        public static bool CylinderVessel(GeometryModel g, out double headspace)
+        {
+            headspace = 0.0;
+            if (g == null)
+            {
+                return false;
+            }
+
+            // Те же размеры, что у ветки сцены (`Build`); стенку нулевой толщины
+            // `Add` не кладёт, запаса у неё нет.
+            double rOut = 0.5 * g.BeakerDiameter;
+            double rIn = Math.Max(0.0, rOut - g.BeakerSideWallThickness);
+            double extra = g.BeakerHeight - g.BeakerEndWallThickness - g.SourceHeight;
+            if (rOut > rIn + Eps && extra > VesselTolerance)
+            {
+                headspace = extra;
+            }
+
+            return headspace > 0.0;
+        }
+
+        /// <summary>
+        /// (`AMBER205`) Маринелли: раскладка стакана полной высоты, в единицах модели.
+        /// <para>Проба стоит, как прежде, от потолка колодца (`zSrc0`). Стакан
+        /// высотой `MarinelliBeakerHeight` (снаружи) отмеряется от плоскости
+        /// устья колодца — дна стакана, которым он стоит над детектором, — к
+        /// дальнему краю, где лежит донышко `MarinelliEndWallThickness`. Пустая
+        /// часть (воздух под крышкой, чертёж ОМАСН, П64 §0.3: «3 мм воздуха под
+        /// крышкой») — между пробой и донышком, со стороны, дальней от
+        /// детектора.</para>
+        /// <para>`farGap` — пустота между пробой и донышком; `nearExt` — на сколько
+        /// наружная стенка идёт дальше ближней грани пробы, к устью колодца;
+        /// `endWall` — толщина донышка (ноль — донышка нет). Если стакан короче,
+        /// чем «донышко + проба до устья», донышко ложится вплотную к пробе, а
+        /// стенка идёт, сколько хватит высоты; у шаблона ЛСРМ RadiaCode 0.5 л
+        /// (8.9 = 0.2 + 8.5 + 0.2) обе ветви дают одно и то же.</para>
+        /// <para>Истина — сцена отличается от прежней (стенка только на высоту
+        /// пробы, донышка нет); по ней же клеймо пишет `bmscene=1`. Лунка
+        /// `Borehole` (стенок нет, высота = проба) — ложь, сцена побитово та же.</para>
+        /// </summary>
+        public static bool MarinelliVessel(GeometryModel g, out double farGap, out double nearExt,
+                                           out double endWall)
+        {
+            farGap = 0.0;
+            nearExt = 0.0;
+            endWall = 0.0;
+            if (g == null)
+            {
+                return false;
+            }
+
+            // Те же размеры, что у ветки сцены (`Build`).
+            double rh = 0.5 * g.MarinelliHoleDiameter;
+            double ths = g.MarinelliHoleSideThickness;
+            double the = g.MarinelliHoleEndWallThickness;
+            double rOut = Math.Max(0.5 * g.MarinelliBeakerDiameter, rh + ths + 0.1);
+            double rSrcOut = Math.Max(rh + ths, rOut - g.MarinelliSideThickness);
+            double hs = g.MarinelliSourceHeight;
+            double hh = g.MarinelliHoleHeight;
+            double cap = Math.Max(0.0, hs - hh);
+
+            // Донышко тоньше `Eps` `Add` не положит — его и нет.
+            double end = g.MarinelliEndWallThickness > Eps ? g.MarinelliEndWallThickness : 0.0;
+            double toOpen = hh + the + cap;             // от дальней грани пробы до устья колодца
+            double body = g.MarinelliBeakerHeight;
+            double far, near;
+            if (body >= end + toOpen)
+            {
+                far = body - end - toOpen;
+                near = toOpen - hs;
+            }
+            else
+            {
+                far = 0.0;
+                near = body - end - hs;
+            }
+
+            bool side = rOut > rSrcOut + Eps;
+            if (!(near > VesselTolerance) || !side)
+            {
+                near = 0.0;
+            }
+
+            if (!(far > VesselTolerance) || (!side && end == 0.0))
+            {
+                far = 0.0;
+            }
+
+            farGap = far;
+            nearExt = near;
+            endWall = end;
+            return end > 0.0 || far > 0.0 || near > 0.0;
+        }
+
+        /// <summary>
+        /// (`AMBER205`) Отличается ли сцена сосуда от прежней (до `AMBER205`):
+        /// истина только у цилиндра и маринелли, где стенка идёт дальше пробы или
+        /// есть дальнее донышко. Клеймо матрицы пишет по ней `bmscene=1` — правило
+        /// «нет отличия — нет строки» (`T42`): клейма точек, ISO, бруска, полевых
+        /// сцен и сосудов без запаса остаются побитово прежними.
+        /// </summary>
+        public static bool VesselBeyondSample(GeometryModel g)
+        {
+            if (g == null || g.Scene == GeometrySceneKind.Iso)
+            {
+                return false;
+            }
+
+            // Решает ТА ЖЕ модель, по которой строится сцена: симулятор берёт
+            // геометрию в сантиметрах (`InCentimeters`, конструктор), клеймо —
+            // в миллиметрах; допуск и `Eps` судят в единицах сцены.
+            double a, b, c;
+            switch (g.SourceType)
+            {
+                case GeometrySourceType.Cylinder:
+                    return CylinderVessel(g.InCentimeters(), out a);
+                case GeometrySourceType.Marinelli:
+                    return MarinelliVessel(g.InCentimeters(), out a, out b, out c);
+                default:
+                    return false;
+            }
         }
 
         void Build()
@@ -2540,6 +3006,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                         g.FieldRadius, need));
                 }
 
+                // (`AMBER97`, П147) Сверху — граница проверенного, та же, что
+                // у редактора (`GeometryScenes.MaxFieldRadiusMm`): отказ, а не
+                // тихий ноль, каким большой радиус был до физики 24.
+                double most = GeometryScenes.MaxFieldRadiusMm / GeometryModel.MmPerCm;
+                if (g.FieldRadius > most)
+                {
+                    throw new InvalidOperationException(string.Format(
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        "isotropic field: radius {0:F2} cm is above the checked maximum {1:F2} cm",
+                        g.FieldRadius, most));
+                }
+
                 this.source = new IsoFieldSampler(this.sphereZ, g.FieldRadius, this.IsoFieldNoCosineWeight);
                 return;
             }
@@ -2584,8 +3062,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double zWallBottom = zWallTop - g.BeakerEndWallThickness;
                     double zSrcTop = zWallBottom;
                     double zSrcBottom = zSrcTop - g.SourceHeight;
+                    // (`AMBER205`) Боковая стенка — на ПОЛНУЮ высоту сосуда
+                    // `BeakerHeight` (снаружи, с донышком к детектору), то есть
+                    // и над пробой, со стороны, дальней от детектора. Крышки у
+                    // цилиндра нет (поля для неё нет). Сосуд без запаса над
+                    // пробой (`headspace` = 0) строится до бита прежним.
+                    double headspace;
+                    CylinderVessel(g, out headspace);
                     this.Add(0.0, rOut, zWallBottom, zWallTop, beakerWall, false);
-                    this.Add(rIn, rOut, zSrcBottom, zSrcTop, beakerWall, false);
+                    this.Add(rIn, rOut, zSrcBottom - headspace, zSrcTop, beakerWall, false);
                     this.Add(0.0, rIn, zSrcBottom, zSrcTop, sample, false);
                     Sampler cylinder = new CylinderSampler(rIn, zSrcBottom, zSrcTop);
                     // (`E29`) Важностный розыгрыш — ключом, поверх прежнего:
@@ -2617,11 +3102,28 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double cap = Math.Max(0.0, hs - hh);        // проба над потолком колодца
                     double zSrc0 = zCeiling - the - cap;
 
+                    // (`AMBER205`) Стакан — на ПОЛНУЮ высоту `MarinelliBeakerHeight`
+                    // с дальним донышком `MarinelliEndWallThickness`: пустая часть
+                    // сосуда (воздух под крышкой) — за пробой, со стороны, дальней
+                    // от детектора; наружная стенка доходит до плоскости устья
+                    // колодца. Раскладка — `MarinelliVessel`; тем же числом её
+                    // рисует чертёж и спрашивает клеймо. Без донышка и без запаса
+                    // (`MarinelliBeakerHeight` = `MarinelliSourceHeight`, лунка
+                    // `Borehole`) — до бита прежняя сцена.
+                    double farGap, nearExt, endWall;
+                    MarinelliVessel(g, out farGap, out nearExt, out endWall);
+                    double zOuter0 = zSrc0 - endWall - farGap;
+                    double zOuter1 = zSrc0 + hs + nearExt;
+
                     this.Add(0.0, rh + ths, zCeiling - the, zCeiling, beakerWall, false);
                     this.Add(rh, rh + ths, zCeiling, zCeiling + hh, beakerWall, false);
-                    this.Add(rSrcOut, rOut, zSrc0, zSrc0 + hs, beakerWall, false);
+                    this.Add(rSrcOut, rOut, zOuter0, zOuter1, beakerWall, false);
                     this.Add(0.0, rh + ths, zSrc0, zCeiling - the, sample, false);
                     this.Add(rh + ths, rSrcOut, zSrc0, zSrc0 + hs, sample, false);
+                    // Дальнее донышко — ПОСЛЕДНЕЙ областью: прежние пять стоят на
+                    // своих местах, и сцена без донышка остаётся побитово той же
+                    // (`Add` нулевой толщины не кладёт).
+                    this.Add(0.0, rSrcOut, zOuter0, zOuter0 + endWall, beakerWall, false);
                     double mrIn = rh + ths, mz0 = zSrc0, mz1 = zSrc0 + hs, mzCap = zCeiling - the;
                     Sampler marinelli = new MarinelliSampler(mrIn, rSrcOut, mz0, mz1, mzCap);
                     // (`E29`) Важностный розыгрыш — ключом, поверх прежнего:
@@ -2651,7 +3153,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         // Розыгрыш точки вылета
         // ------------------------------------------------------------------
 
-        abstract class Sampler
+        internal abstract class Sampler
         {
             public abstract void Next(EfficiencySimulator s, out double x, out double y, out double z);
 
@@ -2739,7 +3241,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// габарита — не поле. Проверяется при сборке сцены (`Build`), отказ
         /// с числами, а не молчаливая подмена.
         /// </summary>
-        sealed class IsoFieldSampler : Sampler
+        internal sealed class IsoFieldSampler : Sampler
         {
             readonly double cz, r;
             readonly bool noCosineWeight;
@@ -2798,9 +3300,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
-        sealed class PointSampler : Sampler
+        internal sealed class PointSampler : Sampler
         {
-            readonly double z;
+            internal readonly double z;
 
             public PointSampler(double z)
             {
@@ -2826,9 +3328,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// просто три независимых равномерных числа, в отличие от цилиндра, где
         /// радиус приходится брать корнем.
         /// </summary>
-        sealed class BoxSampler : Sampler
+        internal sealed class BoxSampler : Sampler
         {
-            readonly double ax, ay, z0, z1;
+            internal readonly double ax, ay, z0, z1;
 
             public BoxSampler(double ax, double ay, double z0, double z1)
             {
@@ -2853,9 +3355,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
-        sealed class CylinderSampler : Sampler
+        internal sealed class CylinderSampler : Sampler
         {
-            readonly double r, z0, z1;
+            internal readonly double r, z0, z1;
 
             public CylinderSampler(double r, double z0, double z1)
             {
@@ -2882,10 +3384,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
-        sealed class MarinelliSampler : Sampler
+        internal sealed class MarinelliSampler : Sampler
         {
-            readonly double rIn, rOut, z0, z1, zCap;
-            readonly double capFraction;
+            internal readonly double rIn, rOut, z0, z1, zCap;
+            internal readonly double capFraction;
 
             public MarinelliSampler(double rIn, double rOut, double z0, double z1, double zCap)
             {
@@ -2970,7 +3472,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// азимут) против трёх у цилиндра; таблица перестраивается на смене
         /// энергии узла (~1e5 экспонент) — пренебрежимо против историй узла.
         /// </summary>
-        sealed class ImportanceSampler : Sampler
+        internal sealed class ImportanceSampler : Sampler
         {
             /// <summary>Ячеек по радиусу и по высоте до вставки границ.</summary>
             const int CellsR = 256, CellsZ = 512;
@@ -3422,6 +3924,23 @@ namespace BecquerelMonitor.EfficiencyMaker
         readonly double[] pendE = new double[PendMax];
         int pendCount;
 
+        // (`AMBER52`, П125 22.09.2026) ПРОИСХОЖДЕНИЕ кванта в очереди: рождён ли
+        // он аннигиляцией ВНЕ кристалла (или происходит от такого — рассеянием в
+        // обвязке, вылетом из кристалла `A55`, тормозным его электрона). Едет
+        // с квантом ровно так же, как его координаты и энергия: `PushPending`
+        // кладёт признак ТЕКУЩЕГО кванта, снятие из очереди его восстанавливает.
+        // Читается только каналом <see cref="ResponseChannel.AnnihilationOutside"/>;
+        // на розыгрыш не влияет — ни одного случайного числа.
+        readonly bool[] pendFromOutsideAnnihilation = new bool[PendMax];
+
+        /// <summary>
+        /// (`AMBER52`) Признак кванта, который обход ведёт СЕЙЧАС: рождён
+        /// аннигиляцией вне кристалла (см. <see cref="pendFromOutsideAnnihilation"/>).
+        /// Ставится в точке рождения пары вне кристалла
+        /// (<see cref="AnalogContinuumRun"/>), снимается началом истории.
+        /// </summary>
+        bool fromOutsideAnnihilation;
+
         /// <summary>
         /// Счётчики отброшенного по переполнению очередей (`A55`/`A54`).
         ///
@@ -3453,6 +3972,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.pendUy[k] = uy;
             this.pendUz[k] = uz;
             this.pendE[k] = energyKev;
+            // (`AMBER52`) Квант наследует происхождение того, кого обход ведёт
+            // сейчас: вылет из кристалла и тормозное электрона — потомки своего
+            // кванта; второй аннигиляционный от пары кладётся сюда уже с
+            // поднятым признаком (см. место рождения пары в `AnalogContinuumRun`).
+            this.pendFromOutsideAnnihilation[k] = this.fromOutsideAnnihilation;
         }
 
         // (`N4`, П44) Очередь квантов тормозного обвязки у обхода ПОЛНОЙ
@@ -3490,6 +4014,16 @@ namespace BecquerelMonitor.EfficiencyMaker
         Action<double, double, double, double, double, double, double> pushAnalog;
         Action<double, double, double, double, double, double, double> pushTotal;
 
+        /// <summary>
+        /// Аналоговый обход (<see cref="AnalogContinuumRun"/>): сколько историй
+        /// отдано ПИКУ (не записано в континуум, пик — за взвешенной оценкой,
+        /// а вне её конуса — за <see cref="WeightPeakOutOfCone"/>) и сколько
+        /// зачтено в континуум. ⚠ С физики 23 (`AMBER50`, П122) «пик»
+        /// здесь — по <see cref="BinOf"/>, то есть В ДОПУСКЕ (`InPeak`), а не
+        /// «округлилось в бин пика»: определение то же, что у взвешенной ветви.
+        /// До того округлившаяся в бин пика история вне допуска отбрасывалась
+        /// и терялась целиком.
+        /// </summary>
         public long CountPeakBinDropped, CountAnalogScored;
 
         /// <summary>
@@ -3499,6 +4033,31 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// оценка пика аналоговой ветвью, годная в обоих режимах.
         /// </summary>
         public double WeightPeakBinDropped;
+
+        /// <summary>
+        /// ⛔ (`AMBER66`, П132 22.09.2026) ПОТЕРЯННЫЙ КЛАСС: вес и число тех
+        /// историй бина пика аналоговой ветви, чьё ПЕРВИЧНОЕ направление лежало
+        /// ВНЕ конуса на сферу детектора, — то есть тех, которых взвешенная
+        /// ветвь не рождает вовсе.
+        ///
+        /// Взвешенная ветвь (<see cref="OneHistory"/>) разыгрывает направление в
+        /// конусе на `sphereR` — кристалл с отражателем и оправой, БЕЗ пробы, —
+        /// и луч мимо этого конуса у неё не появляется никогда. Между тем квант,
+        /// ушедший мимо детектора, может рассеяться в пробе или в обвязке
+        /// когерентно (энергия та же) либо комптоном на малый угол (потеря в
+        /// допуске пика) и поглотиться целиком. Ни одна ветвь этот класс не
+        /// считала: аналоговая его РОЖДАЕТ (её конус — на габарит сцены,
+        /// ~~`A57`~~, либо полная сфера), но историю в бине пика отбрасывала
+        /// целиком — «пик за взвешенной оценкой».
+        ///
+        /// Классы не пересекаются: внутри конуса пик считает взвешенная ветвь,
+        /// вне — эта сумма. Поток ГСЧ ни одной из ветвей не тронут: новых
+        /// розыгрышей нет, изменилась только судьба УЖЕ посчитанной истории.
+        /// </summary>
+        public double WeightPeakOutOfCone, WeightPeakOutOfCone2;
+
+        /// <summary>Число историй потерянного класса (`AMBER66`).</summary>
+        public long CountPeakOutOfCone;
 
         /// <summary>Счётчики канала вакансии (`A61`): комптонов в кристалле,
         /// из них с K-вакансией, из них ответивших рентгеном.</summary>
@@ -4015,6 +4574,29 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// ⛔ (`A315`, П221 02.10.2026; решение Amber 02.10.2026 вопросником, дословно:
+        /// «Чинить сейчас (Рекомендую)») КЭШ ЛУЧА НЕ ПЕРЕЖИВАЕТ ИСТОРИЮ. Зовётся в
+        /// начале каждой истории — `OneHistory`, `AnalogHistory`, `OutsideNextEvent`,
+        /// цикл `TotalEfficiency`.
+        ///
+        /// Кэш строился как прозрачный («числа те же до бита»), а на деле разбиение
+        /// луча, оставленное ПРЕДЫДУЩЕЙ историей, отвечало `At` следующей — и у
+        /// точечного источника на грани корпуса (`pdistance = 0`) квант проходил
+        /// слой обвязки, будто его нет: родня `A52`, чья правка закрыла лишь «самое
+        /// начало луча» (`along > 1e-7`). Найдено сверкой с GPU-портом (`AMBER160`):
+        /// одна нить подряд сходилась с CPU побитово, а раскрой — нет; арбитр
+        /// (свежий симулятор на той же истории) совпадал с GPU. Цена на складе,
+        /// `AS80_point0`: ниже 10 кэВ ЛОЖНОЕ «дно» отклика 1e-7…1e-6 при настоящем
+        /// ≤ 1e-11, 13.4 кэВ +68 %, 16.1 кэВ +0.71 %, выше 21 кэВ ≤ 0.01 %; затронуты
+        /// три точечные сцены «на грани». Случайных чисел сброс не тянет — меняется
+        /// только то, какие истории получали чужое разбиение.
+        /// </summary>
+        void ForgetRay()
+        {
+            this.rayValid = false;
+        }
+
+        /// <summary>
         /// Годен ли кэш для этой точки и направления, и на каком она расстоянии
         /// от точки сбора. Направление сравнивается точно (оно передаётся тем же
         /// значением по всему обходу), положение — по отклонению от луча.
@@ -4341,6 +4923,66 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// ⛔ (`AMBER97`, П147 24.09.2026, физика 24) ПРЕДЕЛ ПУТИ ЛУЧА, см, от
+        /// точки <paramref name="x"/>, <paramref name="y"/>, <paramref name="z"/>:
+        /// прежние `40·sphereR + 200` — это запас на путь ВНУТРИ сцены, — плюс
+        /// ПОДЛЁТ точки к габаритной сфере сцены (`SceneBounds`), если точка за
+        /// ней.
+        ///
+        /// ЧТО БЫЛО НЕ ТАК. Предел `40·sphereR + 200` засчитывал и первый шаг от
+        /// источника (или от сферы поля) до сцены: у RC-103 (`sphereR` 1.44 см)
+        /// предел 257.7 см, у AS80 ≈ 522 см, и точка дальше предела или поле
+        /// ISO большего радиуса давали НОЛЬ во всех узлах — человек видел «нет
+        /// кривой» без причины, доза — отказ. Замер П147 (`IsoFieldProbe`,
+        /// `RC103_point0`, 200 тыс. историй, 661.657 кэВ): A_пик на R = 50 /
+        /// 250 / 256 см — 0.0721 / 0.0702 / 0.0704 см², на R = 300 см — 0.0000
+        /// (48.4σ), A_полн — 0.3109 → 0.0000 (99.8σ).
+        ///
+        /// Точка внутри габарита (проба, маринелли, вторичные кванты) получает
+        /// прежний предел до бита; у точки снаружи история, не упиравшаяся в
+        /// прежний предел, не упирается и в новый, — значит сцены, где предел
+        /// не срабатывал (`CountPathLimitCut` = 0), считаются побитово прежними.
+        /// </summary>
+        double PathLimit(double x, double y, double z)
+        {
+            double limit = 40.0 * this.sphereR + 200.0;
+            if (this.pathSceneR > 0.0)
+            {
+                double dz = z - this.pathSceneZ;
+                double d2 = x * x + y * y + dz * dz;
+                if (d2 > this.pathSceneR * this.pathSceneR)
+                {
+                    limit += Math.Sqrt(d2) - this.pathSceneR;
+                }
+            }
+
+            return limit;
+        }
+
+        /// <summary>
+        /// Упёрся ли путь в предел (`AMBER97`): считает срезы в
+        /// <see cref="CountPathLimitCut"/> — луч, оборванный пределом, а не
+        /// ушедший из сцены. Случайных чисел не тянет.
+        /// </summary>
+        bool PathCut(double wouldTravel, double limit)
+        {
+            if (wouldTravel > limit)
+            {
+                this.CountPathLimitCut++;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// (`AMBER97`) Сколько лучей оборвал предел пути (<see cref="PathLimit"/>)
+        /// — луч, у которого впереди ещё была граница сцены. Ноль на сцене —
+        /// предел на ней ни на что не влиял.
+        /// </summary>
+        public long CountPathLimitCut;
+
+        /// <summary>
         /// Ведёт фотон до кристалла, копя оптическую толщину. Возвращает false,
         /// если кристалл не встретился.
         /// </summary>
@@ -4349,7 +4991,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             tau = 0.0;
             double travelled = 0.0;
-            double limit = 40.0 * this.sphereR + 200.0;
+            double limit = this.PathLimit(x, y, z);
             for (int guard = 0; guard < 200; guard++)
             {
                 Region here = this.At(x, y, z);
@@ -4359,7 +5001,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 double step = this.StepToBoundary(x, y, z, ux, uy, uz);
-                if (step >= double.MaxValue || travelled + step > limit)
+                if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
                 {
                     return false;
                 }
@@ -4460,6 +5102,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (histogram != null)
             {
                 this.Deposit(histogram, binKev, energyKev, deposited, share);
+                this.TallyResolutionPeak(histogram.Length - 1, binKev, energyKev, deposited, share, false);
                 this.ScoreLight(binKev, energyKev, deposited, share);
                 if (this.channelHistograms != null)
                 {
@@ -4554,7 +5197,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             double accumulated = 0.0;
             Region here = null;
             double travelled = 0.0;
-            double limit = 40.0 * this.sphereR + 200.0;
+            double limit = this.PathLimit(px, py, pz);
             for (int guard = 0; guard < 200; guard++)
             {
                 here = this.At(px, py, pz);
@@ -4564,7 +5207,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 double step = this.StepToBoundary(px, py, pz, ux, uy, uz);
-                if (step >= double.MaxValue || travelled + step > limit)
+                if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
                 {
                     return false;
                 }
@@ -4650,12 +5293,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             double tau = 0.0;
             double travelled = 0.0;
-            double limit = 40.0 * this.sphereR + 200.0;
+            double limit = this.PathLimit(x, y, z);
             for (int guard = 0; guard < 200; guard++)
             {
                 Region here = this.At(x, y, z);
                 double step = this.StepToBoundary(x, y, z, ux, uy, uz);
-                if (step >= double.MaxValue || travelled + step > limit)
+                if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
                 {
                     return tau;
                 }
@@ -4776,7 +5419,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // Когерентное — отдельным каналом: энергии не оставляет, но
                 // поворачивает квант, а значит меняет и путь до выхода.
                 double coherent = this.RayleighScatter
-                    ? this.crystal.Coherent(e) : 0.0;
+                    ? this.crystal.Coherent(e) * this.CrystalCoherentScale : 0.0;
                 double total = photo + compton + pair + coherent;
                 if (!(total > 0.0))
                 {
@@ -5415,7 +6058,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             int[] stack = this.cascadeStack;
-            int top = 0;
+            // (`A314`) Свой участок стека — выше живых записей внешнего каскада.
+            int bottom = this.cascadeUsed;
+            int top = bottom;
             bool firstNonRadiative = false;
             int seed = shell;
             if (xray > 0.0)
@@ -5452,12 +6097,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                 firstNonRadiative = selfRolled;
             }
 
+            if (this.cascadeDepth > 0)
+            {
+                this.CountCascadeNested++;
+            }
+
+            this.cascadeDepth++;
             stack[top++] = seed;
             double lost = 0.0;
             double blob = 0.0;
             double scored = 0.0;
             bool first = true;
-            while (top > 0)
+            while (top > bottom)
             {
                 int v = stack[--top];
                 bool radiative;
@@ -5482,7 +6133,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     scored += pe;
                     if (pe >= 1.0)
                     {
-                        lost += this.ElectronLoss(x, y, z, pe, depth);
+                        lost += this.CascadeElectronLoss(x, y, z, pe, depth, bottom, top);
                     }
                     else if (pe > 0.0)
                     {
@@ -5507,7 +6158,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 scored += kev;
                 if (kev >= 1.0)
                 {
-                    lost += this.ElectronLoss(x, y, z, kev, depth);
+                    lost += this.CascadeElectronLoss(x, y, z, kev, depth, bottom, top);
                 }
                 else if (kev > 0.0)
                 {
@@ -5524,6 +6175,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 stack[top++] = ejected;
             }
 
+            this.cascadeDepth--;
+
             // Баланс: всё, чего каскад не разложил (или разложил лишнего на
             // доли кэВ из-за разных таблиц), — в сгусток.
             blob += budgetKev - scored;
@@ -5538,6 +6191,41 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return lost;
+        }
+
+        /// <summary>
+        /// (`A314`, П232) Электрон каскада: `ElectronLoss` с поднятым дном
+        /// стека. Живые записи внешнего каскада — `[bottom, top)`; на время
+        /// вызова дно стоит на <paramref name="top"/>, так что вложенный
+        /// каскад пишет выше них, а после вызова дно возвращается. Сверка
+        /// суммы живых записей до и после — сторож <see cref="CountCascadeClobbered"/>.
+        /// </summary>
+        double CascadeElectronLoss(double x, double y, double z, double kev, int depth,
+                                   int bottom, int top)
+        {
+            int[] stack = this.cascadeStack;
+            long sum = CascadeChecksum(stack, bottom, top);
+            int saved = this.cascadeUsed;
+            this.cascadeUsed = top;
+            double lost = this.ElectronLoss(x, y, z, kev, depth);
+            this.cascadeUsed = saved;
+            if (CascadeChecksum(stack, bottom, top) != sum)
+            {
+                this.CountCascadeClobbered++;
+            }
+
+            return lost;
+        }
+
+        static long CascadeChecksum(int[] stack, int from, int to)
+        {
+            long h = 17;
+            for (int i = from; i < to; i++)
+            {
+                h = h * 1000003L + stack[i] + 1;
+            }
+
+            return h;
         }
 
         /// <summary>
@@ -6105,7 +6793,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>Угловые данные элементов вещества; строится один раз на вещество.</summary>
-        Scatterers ScatterersOf(GeometryMaterial material)
+        internal Scatterers ScatterersOf(GeometryMaterial material)
         {
             Scatterers found;
             if (this.scatterers.TryGetValue(material, out found))
@@ -6623,15 +7311,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// упоре сверка с Geant4 давала −12…−15 % — многократное рассеяние и
         /// возврат из-за кристалла там не мелочь (tools/tccfcalc2/README.md §8).
         ///
-        /// Когерентное рассеяние считается прозрачным (пролёт без отклонения):
-        /// пробег берётся по ослаблению БЕЗ когерентного, как и в проводке.
+        /// Когерентное рассеяние — поворот без отсчёта, под ключом
+        /// <see cref="RayleighScatter"/>: вне кристалла (как и было) и, с
+        /// П180 (`S203`), в самом кристалле — тем же каналом, что у ветви
+        /// отклика (<see cref="InCrystal"/>); прежде в кристалле оно было
+        /// прозрачным, и обход завышал полную у «чёрного» кристалла.
         /// </summary>
         public double TotalEfficiency(double energyKev, out double relativeError)
         {
             this.EnsureBuilt();
             double sum = 0.0, sum2 = 0.0;
             int n = Math.Max(1000, this.Histories);
-            double limit = 40.0 * this.sphereR + 200.0;
             this.source.Retune(this, energyKev);
             for (int i = 0; i < n; i++)
             {
@@ -6639,6 +7329,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // (`E29`) Точка с весом розыгрыша: единица у всех, кроме
                 // важностного, — умножение точное.
                 double weight = this.source.NextWeighted(this, out x, out y, out z);
+                this.ForgetRay();      // (`A315`) кэш луча не переживает историю
+                // (`AMBER97`) Предел пути — от точки вылета: подлёт к сцене не в счёт.
+                double limit = this.PathLimit(x, y, z);
                 double dz = this.sphereZ - z;
                 double dist = Math.Sqrt(x * x + y * y + dz * dz);
                 double ux, uy, uz;
@@ -6676,14 +7369,38 @@ namespace BecquerelMonitor.EfficiencyMaker
                     if (here != null && here.IsCrystal)
                     {
                         // Внутри кристалла: любое взаимодействие из каналов —
-                        // отсчёт (когерентное в каналы не входит).
+                        // отсчёт; когерентное — поворот без отсчёта.
+                        //
+                        // ⛔ (`S203`, П180 29.09.2026) Прежде когерентное в
+                        // кристалле здесь было ПРОЗРАЧНЫМ, тогда как ветвь
+                        // отклика (`InCrystal`) его разыгрывает. У «чёрного»
+                        // кристалла (CsI на 32 кэВ, пробег 0.2 мм) квант,
+                        // рассеявшийся когерентно у самой грани, заметно часто
+                        // выходит наружу ни с чем — и второй обход полную
+                        // эффективность ЗАВЫШАЛ против суммы строки отклика
+                        // (маринелли RC-103: П178 0.9849 ± 0.30 % на 32 кэВ).
+                        // Канал — тот же, что в `InCrystal`: сечение кристалла
+                        // с рычагом `CrystalCoherentScale`, угол по форм-фактору.
                         double photo, compton, pair;
                         this.CrystalChannels(e, out photo, out compton, out pair);
                         double mu = photo + compton + pair;
+                        double coherentHere = this.RayleighScatter
+                            ? this.crystal.Coherent(e) * this.CrystalCoherentScale : 0.0;
                         double path = this.CrystalPath(x, y, z, ux, uy, uz);
-                        double free = mu > 0.0 ? -Math.Log(1.0 - this.Uniform()) / mu : double.MaxValue;
+                        double free = mu + coherentHere > 0.0
+                            ? -Math.Log(1.0 - this.Uniform()) / (mu + coherentHere) : double.MaxValue;
                         if (free < path)
                         {
+                            if (coherentHere > 0.0 && this.Uniform() * (mu + coherentHere) >= mu)
+                            {
+                                x += ux * free;
+                                y += uy * free;
+                                z += uz * free;
+                                this.Rotate(ref ux, ref uy, ref uz,
+                                            this.RayleighCosine(this.crystal, e));
+                                continue;
+                            }
+
                             score = weight;
                             break;
                         }
@@ -6697,7 +7414,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
 
                     double step = this.StepToBoundary(x, y, z, ux, uy, uz);
-                    if (step >= double.MaxValue || travelled + step > limit)
+                    if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
                     {
                         break;              // ушёл из сцены
                     }
@@ -7206,7 +7923,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         // прохода электрона по пустой области. Тот же объект, числа те же.
         ElectronData.Material waterTable;
 
-        ElectronData.Material WaterTable()
+        internal ElectronData.Material WaterTable()
         {
             return this.waterTable ?? (this.waterTable = ElectronData.ByName("Water"));
         }
@@ -7214,7 +7931,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         readonly Dictionary<GeometryMaterial, ElectronData.Material> carryCache =
             new Dictionary<GeometryMaterial, ElectronData.Material>();
 
-        ElectronData.Material CarryMedium(GeometryMaterial material)
+        internal ElectronData.Material CarryMedium(GeometryMaterial material)
         {
             ElectronData.Material found;
             if (!this.carryCache.TryGetValue(material, out found))
@@ -7239,7 +7956,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// null — сечений нет. Кэш на экземпляр, таблица — общий кэш по
         /// составу (<see cref="ThickTargetBrem.For"/>).
         /// </summary>
-        ThickTargetBrem LayerBrem(GeometryMaterial material)
+        internal ThickTargetBrem LayerBrem(GeometryMaterial material)
         {
             ThickTargetBrem found;
             if (!this.layerBremCache.TryGetValue(material, out found))
@@ -7424,7 +8141,64 @@ namespace BecquerelMonitor.EfficiencyMaker
             /// L-вылет лежит в <see cref="EscapeXrayK"/> ровно как до правки
             /// — побитово.
             /// </remarks>
-            EscapeXrayL = 5
+            EscapeXrayL = 5,
+
+            /// <summary>
+            /// СОДЕРЖИМОЕ ПОСТОЯННОЙ ЭНЕРГИИ: занос квантов, рождённых
+            /// АННИГИЛЯЦИЕЙ ВНЕ КРИСТАЛЛА (`A52` — пара в пробе, оправе,
+            /// стенке, домике; из кристалла при этом ничего не вылетало).
+            /// Линия 511 (один квант поглощён целиком), 1022 (оба), их
+            /// комптоновские континуумы в кристалле (край 340.7, обратное
+            /// 170.3) и K/L-вылеты от них — всё, чьё положение в строке от
+            /// энергии падающего кванта НЕ зависит; от неё зависит только
+            /// АМПЛИТУДА (выход пар растёт с E).
+            /// </summary>
+            /// <remarks>
+            /// ⛔ Заведён 22.09.2026 (`AMBER52`, П125) по решению Amber,
+            /// дословно: «Свой канал сейчас, на той же ветке (формат 10)».
+            /// Повод — замер П122 (`ComptonMapProbe`, склад `AS80_point0`):
+            /// эта линия лежала в <see cref="Compton"/>, а карта переноса
+            /// канала (`ResponseMatrix.ComptonKnots`) тянула её наклоном
+            /// отрезка `[back, edge]` ≈ `E/E_узла` — посередине между узлами
+            /// сетки (шаг 4.71 %) на ±2.4 %, и в образе K-40 (1460.8) одна
+            /// линия 511 стояла ДВУМЯ (бины 250 и 260 вместо 256). Прибитая
+            /// точка `511 → 511` (П122, формат 9) чинила только линию и только
+            /// от 1.3 МэВ, а 1022 и континуум квантов 511 тянулись дальше;
+            /// свой канал переносится СДВИГОМ НОЛЬ
+            /// (<c>ResponseMatrix.Transfer</c>) — положение как есть,
+            /// амплитуда интерполируется весами соседних узлов.
+            ///
+            /// Метка — ПРОИСХОЖДЕНИЕ кванта, а не статья потери: квант,
+            /// рождённый аннигиляцией вне кристалла, и всё его потомство
+            /// (рассеянный в обвязке, вылетевший из кристалла и вернувшийся
+            /// `A55`, тормозное его электронов) несут признак
+            /// <see cref="fromOutsideAnnihilation"/> через очередь квантов
+            /// истории. История приписывается каналу, когда такой занос —
+            /// БОЛЬШАЯ часть её заноса (правило то же, что у статей потери:
+            /// «побеждает унёсшая больше»; смешанная история «комптон
+            /// первичного + 511 извне» редка, и ошибка переноса меньше у той
+            /// половины, что больше). Аннигиляция ВНУТРИ кристалла сюда не
+            /// идёт: там положение зависит от E (пик, `E − 511`, `E − 1022` —
+            /// каналы <see cref="Peak"/>, <see cref="EscapeAnnihilation"/>,
+            /// <see cref="EscapeAnnihilationDouble"/>).
+            ///
+            /// Номер СЕДЬМОЙ по тому же доводу, что у двух предыдущих:
+            /// номер канала — индекс строки в файле матрицы. Ниже порога пар
+            /// (1022 кэВ) канал ПУСТ у всех узлов (строка нулевой длины,
+            /// четыре байта), их прежние каналы — побитово те же; выше —
+            /// содержимое ВЫНУТО из <see cref="Compton"/>, не добавлено:
+            /// сумма каналов узла прежняя (в пределах округления float32 при
+            /// иной группировке слагаемых).
+            ///
+            /// ⚠ НЕ здесь, а в <see cref="Compton"/> по-прежнему лежит
+            /// K-флуоресценция пробы и обвязки, рождённая вне кристалла
+            /// (Lu K 54–63, W K 58–59, Pb K 75–85 кэВ): её положение от E тоже
+            /// не зависит, но на отрезке `[0, back]` карта двигает её на
+            /// ≈ 0.3 % (замер П122), и решения Amber заводить ей канал нет.
+            /// Тормозное электронов обвязки — не постоянной энергии (спектр
+            /// его масштабируется с энергией электрона, то есть с E).
+            /// </remarks>
+            AnnihilationOutside = 6
         }
 
         /// <summary>
@@ -7434,8 +8208,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// наравне с полным: так номер канала остаётся одним и тем же в файле,
         /// посчитанном с ключом и без него. Ширина файла от ключа не зависит —
         /// зависит только наполнение.
+        ///
+        /// Семь с 22.09.2026 (`AMBER52`, П125, формат матрицы 10): седьмой —
+        /// <see cref="ResponseChannel.AnnihilationOutside"/>.
         /// </summary>
-        public const int ResponseChannelCount = 6;
+        public const int ResponseChannelCount = 7;
 
         /// <summary>
         /// Тот же отклик, разложенный по каналам исхода: `[канал][бин]`. Сумма
@@ -7448,6 +8225,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// статьям расхода, и берётся та, что унесла больше, — история, где
         /// ушли и рентген, и рассеянный квант, принадлежит тому, чей вклад в
         /// недобор больше.
+        ///
+        /// (`AMBER52`, П125) Седьмой канал —
+        /// <see cref="ResponseChannel.AnnihilationOutside"/> — выбирается
+        /// раньше статей расхода и по метке ИНОГО рода: не «что вылетело», а
+        /// «откуда пришёл занос». Признак происхождения ставится в точке
+        /// рождения пары вне кристалла, едет с квантом по очереди истории
+        /// (<see cref="fromOutsideAnnihilation"/>) и суммирует занос таких
+        /// квантов отдельно; канал берёт историю, когда этот занос — большая
+        /// её часть. Наполняется только аналоговой ветвью континуума
+        /// (<see cref="AnalogContinuumRun"/>): пары вне кристалла разыгрывает
+        /// только она; взвешенная ветвь (пик и однократное рассеяние до
+        /// кристалла) их не знает, и при выключенном
+        /// <see cref="AnalogContinuum"/> канал пуст.
         /// </summary>
         public double[][] ResponseByChannel(double energyKev, double binKev, out double relativeError)
         {
@@ -7481,7 +8271,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         // параметр: раскладка нужна только матрице отклика, а `Run` зовут ещё
         // кривая и сканирование порога, и тащить сквозь них лишний аргумент
         // значило бы менять три подписи ради одного потребителя.
-        double[][] channelHistograms;
+        internal double[][] channelHistograms;
 
         // Метки исхода текущей истории, кэВ. Обнуляются перед каждой.
         double lossAnnihilation;
@@ -7537,6 +8327,20 @@ namespace BecquerelMonitor.EfficiencyMaker
         // дырок, 128 — с запасом на любой Z.
         readonly int[] cascadeStack = new int[128];
 
+        // ⛔ (`A314`, П232 05.10.2026) ДНО СТЕКА ДЛЯ ВЛОЖЕННОГО КАСКАДА — первая
+        // свободная ячейка `cascadeStack`. Каскад зовёт `ElectronLoss`, тот
+        // рекурсией (тормозное → `InCrystal` → фотопоглощение или комптон)
+        // может войти в `RelaxationElectrons` снова, и вложенный вызов писал
+        // стек С НУЛЯ поверх незавершённого внешнего: вернувшись, внешний
+        // снимал чужие номера подоболочек (иногда другого элемента). Теперь
+        // каждый вызов работает выше живых записей внешнего, а перед своим
+        // `ElectronLoss` поднимает дно до своей вершины. Вне вложения — ноль,
+        // и поток случайных чисел обычных историй не меняется.
+        int cascadeUsed;
+
+        // (`A314`) Глубина вложения каскадов — для счётчика `CountCascadeNested`.
+        int cascadeDepth;
+
         // ⚡ (`A43`, П45) Таблицы разрядки по Z — СВОЯ памятка симулятора.
         // `MaterialDatabase.RelaxationOf` берёт `lock` на общий кэш процесса
         // при КАЖДОМ вызове, а зовётся он на каждое фотопоглощение из трёх
@@ -7576,6 +8380,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public long CountCascadeOverflow;
 
+        /// <summary>
+        /// (`A314`, П232) Сколько раз каскад вошёл ВЛОЖЕННО — из `ElectronLoss`
+        /// незавершённого внешнего каскада. Частота события, не отказ.
+        /// </summary>
+        public long CountCascadeNested;
+
+        /// <summary>
+        /// (`A314`, П232) Сколько раз внешний каскад нашёл свои ещё не снятые
+        /// вакансии ПЕРЕПИСАННЫМИ после вложенного вызова — сторож дефекта,
+        /// ноль в норме (до правки — не ноль).
+        /// </summary>
+        public long CountCascadeClobbered;
+
         // (`AMBER16`) Что именно испустил атом в текущей истории — для
         // трассировки. Ни на один розыгрыш не влияет; пишется всегда, читается
         // только при включённой <see cref="TraceChannels"/>: ветка «пишем,
@@ -7610,13 +8427,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         // Σ(вес·свет) по бинам поглощённой энергии — копится рядом с
         // гистограммой отклика и после прогона даёт средний свет каждого
         // бина для пересчёта в шкалу прибора. null — пересчёт выключен.
-        double[] lightSum;
+        internal double[] lightSum;
 
         // (`A267`) Свет класса, у которого бин веса и бин света РАЗОШЛИСЬ, —
         // ровно та добавка, которой `lightSum[peak]` отличается от суммы по
         // историям, чей вес лежит в бине пика. Копится в `ScoreLight`,
         // обнуляется вместе с `lightSum` в начале прогона.
-        double lightBinSplit;
+        internal double lightBinSplit;
 
         /// <summary>
         /// Средний свет пика полного поглощения на кэВ энергии линии из
@@ -7624,7 +8441,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// непропорциональность модели (1.0 — пропорционально; сверять с
         /// таблицей I Khodyuk 2012). Ноль, если пересчёт не выполнялся.
         /// </summary>
-        public double LastPhotonLightScale { get; private set; }
+        public double LastPhotonLightScale { get; internal set; }
 
         /// <summary>
         /// (`A267`) ТА ЖЕ величина, посчитанная по ЕДИНОМУ правилу бина: из
@@ -7641,7 +8458,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// — это множитель, на который сдвинется ВЕСЬ пересчёт шкалы: индекс
         /// бина в <see cref="RemapLightScale"/> обратно пропорционален якорю.
         /// </summary>
-        public double LastPhotonLightScaleSplit { get; private set; }
+        public double LastPhotonLightScaleSplit { get; internal set; }
 
         /// <summary>Вклад электрона начальной энергии te, осевший в кристалле.</summary>
         void AddLight(double deposited, double te)
@@ -7685,13 +8502,52 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <see cref="SplitXrayShells"/> (до 12.09.2026 выключен: разведение
         /// двигает содержимое канала № 3, то есть числа всех матриц склада;
         /// с единого счёта П20 — ВКЛ, умолчание поля — умолчание склада с П40).
+        ///
+        /// ⛔ (`AMBER52`, П125 22.09.2026) СЕДЬМОЙ канал —
+        /// <see cref="ResponseChannel.AnnihilationOutside"/> — решается НЕ
+        /// здесь и не по статьям потери, а по ПРОИСХОЖДЕНИЮ заноса
+        /// (<see cref="ChannelOf(double, double, double)"/>): взвешенная ветвь
+        /// пар вне кристалла не знает, и у неё этот канал недостижим — здесь
+        /// прежний выбор до бита.
         /// </summary>
         ResponseChannel ChannelOf(double escaped)
         {
             ResponseChannel channel = this.PickChannel(escaped);
             if (TraceChannels)
             {
-                this.Trace(channel, escaped);
+                this.Trace(channel, escaped, 0.0);
+            }
+
+            return channel;
+        }
+
+        /// <summary>
+        /// (`AMBER52`, П125 22.09.2026) Канал истории АНАЛОГОВОЙ ветви: сперва
+        /// происхождение заноса, потом статьи потери. Занос квантов, рождённых
+        /// аннигиляцией вне кристалла (<paramref name="depositedOutside"/>),
+        /// сравнивается с остальным заносом истории (<paramref name="deposited"/>
+        /// минус он): он БОЛЬШЕ либо равен — канал
+        /// <see cref="ResponseChannel.AnnihilationOutside"/>, иначе — прежний
+        /// выбор <see cref="PickChannel"/> по меткам потери, до бита. Равенство
+        /// отдано новому каналу нарочно: при `deposited == depositedOutside`
+        /// (весь занос — от аннигиляции извне, обычный случай) разность —
+        /// точный ноль, и «больше» одного не хватило бы.
+        ///
+        /// Почему большинство, а не «хоть что-то»: смешанная история (комптон
+        /// первичного в кристалле + вернувшийся 511 извне) лежит на
+        /// `x·E/E_узла + 511`, и ни сдвиг ноль, ни карта комптона не переносят
+        /// её точно; ошибка меньше у правила той половины, что больше (1500 +
+        /// 511 при шаге сетки 4.7 %: карта ошибается на 19 кэВ, сдвиг ноль — на
+        /// 70; 300 + 511: 24 против 14).
+        /// </summary>
+        ResponseChannel ChannelOf(double escaped, double deposited, double depositedOutside)
+        {
+            ResponseChannel channel = depositedOutside > 0.0 && depositedOutside >= deposited - depositedOutside
+                ? ResponseChannel.AnnihilationOutside
+                : this.PickChannel(escaped);
+            if (TraceChannels)
+            {
+                this.Trace(channel, escaped, depositedOutside);
             }
 
             return channel;
@@ -7763,9 +8619,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// (`AMBER16`) Одна строка трассировки: по какой метке история попала
         /// в свой канал и чем эта метка набрана. Зовётся только при включённой
-        /// <see cref="TraceChannels"/>.
+        /// <see cref="TraceChannels"/>. (`AMBER52`) Последнее поле —
+        /// занос квантов аннигиляции извне, кэВ: по нему седьмой канал
+        /// отличается от остальных; у взвешенной ветви всегда 0.
         /// </summary>
-        void Trace(ResponseChannel channel, double escaped)
+        void Trace(ResponseChannel channel, double escaped, double depositedOutside)
         {
             if (TraceChannelOf >= 0 && (int)channel != TraceChannelOf)
             {
@@ -7783,7 +8641,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     System.Globalization.CultureInfo.InvariantCulture,
                     "канал={0} вылетело={1:F4} метка_рентген={2:F4} метка_аннигиляция={3:F4} "
                     + "остаток={4:F4} допуск={5:F4} | Z={6} оболочка={7} рентген={8:F4} "
-                    + "ушло_рентгена={9:F4} | метка_K={10:F4} метка_L={11:F4}",
+                    + "ушло_рентгена={9:F4} | метка_K={10:F4} метка_L={11:F4} | занос_аннигиляции_извне={12:F4}",
                     channel, escaped, this.lossXray, this.lossAnnihilation,
                     escaped - this.lossAnnihilation - this.lossXray, this.PeakHalfWidthKev,
                     this.traceZ, this.traceShell == '\0' ? '—' : this.traceShell,
@@ -7792,7 +8650,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // этой паре канал № 3 отличается от № 5. Печатается всегда,
                     // и при выключенном ключе тоже — тогда видно, СКОЛЬКО в
                     // канале K лежит L-вылета, то есть цена невключённого ключа.
-                    this.lossXrayK, this.lossXrayL));
+                    this.lossXrayK, this.lossXrayL,
+                    // (`AMBER52`) Занос квантов аннигиляции извне — признак
+                    // седьмого канала (`AnnihilationOutside`).
+                    depositedOutside));
             }
         }
 
@@ -7928,7 +8789,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// равна его содержимому: пуассоновское √n завысило бы шум во столько
         /// раз, во сколько конус его снизил, и выигрыш стал бы невидим.
         /// </summary>
-        double SmearedContinuumError(double[] hist, double[] hist2, int peak, double binKev, double energyKev)
+        internal double SmearedContinuumError(double[] hist, double[] hist2, int peak, double binKev, double energyKev)
         {
             double fwhmKev = 2.0 * this.geometry.PeakHalfWidthKev(energyKev);
             if (!(fwhmKev > 0.0) || !(binKev > 0.0) || peak < 8)
@@ -8011,6 +8872,26 @@ namespace BecquerelMonitor.EfficiencyMaker
             return seen[seen.Count / 2];
         }
 
+        /// <summary>
+        /// (`AMBER201`, Р4, мелочь G.6) Опрос отмены изнутри прогона: зовётся раз
+        /// в <see cref="PollCancellationEvery"/> историй основного цикла и цикла
+        /// аналогового континуума и бросает <c>OperationCanceledException</c>,
+        /// если счёт отменён. null — не опрашивать (кривая, пробы). Случайных
+        /// чисел не тянет: при неотменённом счёте поток розыгрышей и все суммы
+        /// побитово прежние.
+        /// </summary>
+        public Action PollCancellation;
+
+        const int PollCancellationEvery = 4096;
+
+        void PollCancel(int history)
+        {
+            if ((history & (PollCancellationEvery - 1)) == 0 && this.PollCancellation != null)
+            {
+                this.PollCancellation();
+            }
+        }
+
         double Run(double energyKev, double[] histogram, double binKev, out double relativeError)
         {
             this.EnsureBuilt();
@@ -8028,39 +8909,294 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             double sum = 0.0, sum2 = 0.0;
             int n = Math.Max(1000, this.Histories);
+            // (`AMBER145`) Второй счёт пика — с нуля на каждый прогон.
+            this.resolutionWeighted = 0.0;
+            this.resolutionAnalog = 0.0;
+            this.LastResolutionPeakExtra = 0.0;
             // (`AMBER46`, П87) Моменты угловой эффективности узла — из ТЕХ ЖЕ
             // историй, что строят его строку: пиковый счёт истории, её полный
             // занос и косинус угла вылета к оси. Случайных чисел не тянет,
             // на `sum`/`sum2`/гистограмму не влияет — тело матрицы побитово прежнее.
             var angular = new AngularMomentSums();
-            this.source.Retune(this, energyKev);
-            for (int i = 0; i < n; i++)
+
+            // ⛔ (`S208`, П216) Окно полной строки у кривой: взвешенная ветвь —
+            // тесным допуском, полоса до ПШПВ/2 — аналоговой ниже. Допуск
+            // меняется только на время взвешенного цикла: `InPeak` случайных
+            // чисел не тянет, поток розыгрышей цикла прежний.
+            double resolutionHalfWidth = this.PeakHalfWidthKev;
+            double tight = this.CurveTightPeakHalfWidthKev;
+            bool window = histogram == null && this.CurvePeakResolutionWindow && this.AnalogContinuum
+                          && tight >= 0.0 && resolutionHalfWidth > tight + 1e-9;
+            this.LastCurveBand = 0.0;
+            this.LastCurveBandErrorPercent = 0.0;
+            this.LastCurveAnalogTight = 0.0;
+            this.LastCurveWeightedTight = 0.0;
+            if (window)
             {
-                double x, y, z;
-                // (`E29`) Точка с весом розыгрыша: единица у всех, кроме
-                // важностного. Вес входит в счёт истории целиком — и в
-                // возвращаемую эффективность, и в сумму квадратов (то есть в
-                // разброс узла), и в гистограмму с каналами и светом.
-                double pointWeight = this.source.NextWeighted(this, out x, out y, out z);
-                double score = this.OneHistory(energyKev, x, y, z, histogram, binKev, pointWeight);
-                sum += score;
-                sum2 += score * score;
-                angular.Add(score, this.historyDeposit, this.lastHistoryCos);
+                this.PeakHalfWidthKev = tight;
+            }
+
+            try
+            {
+                this.source.Retune(this, energyKev);
+                for (int i = 0; i < n; i++)
+                {
+                    this.PollCancel(i);
+                    double x, y, z;
+                    // (`E29`) Точка с весом розыгрыша: единица у всех, кроме
+                    // важностного. Вес входит в счёт истории целиком — и в
+                    // возвращаемую эффективность, и в сумму квадратов (то есть в
+                    // разброс узла), и в гистограмму с каналами и светом.
+                    double pointWeight = this.source.NextWeighted(this, out x, out y, out z);
+                    double score = this.OneHistory(energyKev, x, y, z, histogram, binKev, pointWeight);
+                    sum += score;
+                    sum2 += score * score;
+                    angular.Add(score, this.historyDeposit, this.lastHistoryCos);
+                }
+            }
+            finally
+            {
+                this.PeakHalfWidthKev = resolutionHalfWidth;
             }
 
             this.LastAngularMoments = angular;
             double mean = sum / n;
             double variance = Math.Max(0.0, sum2 / n - mean * mean);
-            relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
+
+            // (`S208`) Полоса «тесный допуск < недобор ≤ ПШПВ/2» — аналоговой
+            // ветвью в конусе взвешенной; разброс складывается как у
+            // независимых слагаемых (розыгрыши у ветвей свои).
+            if (window)
+            {
+                this.LastCurveWeightedTight = mean;
+                double band2, analogTight;
+                double band = this.AnalogInConeBandRun(energyKev, n, tight, resolutionHalfWidth,
+                                                       out band2, out analogTight);
+                double bandMean = band / n;
+                double bandVariance = Math.Max(0.0, band2 / n - bandMean * bandMean);
+                this.LastCurveBand = bandMean;
+                this.LastCurveBandErrorPercent = bandMean > 0.0
+                    ? Math.Sqrt(bandVariance / n) / bandMean * 100.0 : 0.0;
+                this.LastCurveAnalogTight = analogTight / n;
+                mean += bandMean;
+                variance += bandVariance;
+            }
 
             // Континуум — аналоговой веткой (физика 6): бины ниже пика
             // перезаписываются до нормировки, оба прогона на одних n.
             if (histogram != null && histogram.Length > 1 && this.AnalogContinuum)
             {
-                this.AnalogContinuumRun(energyKev, histogram, binKev, n);
+                double outside2, outsideLight;
+                double outside = this.AnalogContinuumRun(energyKev, histogram, binKev, n,
+                                                         out outside2, out outsideLight);
+                // ⛔ (`AMBER66`, П132 22.09.2026) ПОТЕРЯННЫЙ КЛАСС — В ПИК.
+                // Истории, чьё первичное направление лежало вне конуса
+                // взвешенной ветви, она не рождает вовсе, а поглотиться целиком
+                // они могут — рассеявшись в пробе или обвязке когерентно (та же
+                // энергия) либо комптоном на малый угол (потеря в допуске).
+                // Аналоговая ветвь их считает и прежде отбрасывала: класс не
+                // попадал НИКУДА. Теперь он складывается с взвешенной оценкой —
+                // множества не пересекаются (внутри конуса / вне его), и сумма
+                // покрывает все 4π.
+                //
+                // Бин пика ещё НЕ поделён на число историй (делит `FinishRun`),
+                // поэтому сюда кладётся вес, а в среднее — вес, делённый на n.
+                // Разброс складывается как у независимых слагаемых: розыгрыши у
+                // ветвей свои, и ковариации между ними нет.
+                if (outside > 0.0)
+                {
+                    double outMean = outside / n;
+                    histogram[histogram.Length - 1] += outside;
+                    // ⛔ И В КАНАЛ `Peak` ТОЖЕ. Строку матрицы собирает
+                    // `ResponseByChannel` из каналов, а полную гистограмму
+                    // выбрасывает: добавка, положенная только в неё, до склада
+                    // НЕ ДОЕХАЛА БЫ. Канал — `Peak`: история поглотилась
+                    // целиком в пределах допуска, тем же правилом, каким его
+                    // выбирает взвешенная ветвь (`A306`, `E34`).
+                    if (this.channelHistograms != null)
+                    {
+                        double[] peakChannel = this.channelHistograms[(int)ResponseChannel.Peak];
+                        peakChannel[peakChannel.Length - 1] += outside;
+                    }
+
+                    // Свет класса — в тот же бин: якорь световой шкалы есть
+                    // СРЕДНИЙ свет бина пика, и вес без своего света занизил
+                    // бы его (см. `AnalogContinuumRun`).
+                    if (this.lightSum != null)
+                    {
+                        this.lightSum[this.lightSum.Length - 1] += outsideLight;
+                    }
+
+                    mean += outMean;
+                    variance += Math.Max(0.0, outside2 / n - outMean * outMean);
+                }
+            }
+
+            // ⛔ (`AMBER79`, П147) КРИВАЯ — ТОТ ЖЕ КЛАСС ВНЕ КОНУСА, что строка
+            // матрицы выше: своими n аналоговыми историями, та же проводка
+            // (`AnalogHistory`), тот же критерий пика (допуск `InPeak`; у кривой
+            // бинов нет, и «бин пика» матрицы здесь — ровно допуск). Разброс
+            // складывается как у независимых слагаемых — розыгрыши у ветвей
+            // свои.
+            if (histogram == null && this.AnalogContinuum && this.OutOfConePeakEverywhere)
+            {
+                double outside2;
+                double outside = this.AnalogOutsidePeakRun(energyKev, n, out outside2);
+                if (outside > 0.0)
+                {
+                    double outMean = outside / n;
+                    mean += outMean;
+                    variance += Math.Max(0.0, outside2 / n - outMean * outMean);
+                }
+            }
+
+            relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
+
+            // (`AMBER145`) Второй счёт пика — у той ветви, что дала бины ниже
+            // пика: аналоговый континуум их перезаписал, значит и множество
+            // «не бин пика, недобор в допуске по разрешению» — его.
+            if (histogram != null)
+            {
+                bool analogBins = histogram.Length > 1 && this.AnalogContinuum;
+                this.LastResolutionPeakExtra =
+                    (analogBins ? this.resolutionAnalog : this.resolutionWeighted) / n;
             }
 
             return this.FinishRun(energyKev, histogram, binKev, n, mean);
+        }
+
+        /// <summary>
+        /// (`AMBER79`, П147) Аналоговый прогон ТОЛЬКО класса вне конуса
+        /// взвешенной ветви с пиком в допуске — для кривой (путь без
+        /// гистограммы). n историй тем же розыгрышем точки и направления, что у
+        /// <see cref="AnalogContinuumRun"/>; истории в конусе не ведутся.
+        /// Возвращает сумму весов класса, <paramref name="weight2"/> — сумму
+        /// квадратов.
+        /// </summary>
+        double AnalogOutsidePeakRun(double energyKev, int n, out double weight2)
+        {
+            double sum = 0.0;
+            weight2 = 0.0;
+            this.source.Retune(this, energyKev);
+            for (int i = 0; i < n; i++)
+            {
+                double x, y, z;
+                double weight = this.source.NextWeighted(this, out x, out y, out z);
+                sum += this.AnalogOutsidePeak(energyKev, x, y, z, ref weight);
+                if (weight > 0.0)
+                {
+                    weight2 += weight * weight;
+                }
+            }
+
+            return sum;
+        }
+
+        /// <summary>
+        /// (`S208`, П216) Аналоговый прогон ПОЛОСЫ ОКНА кривой
+        /// (<see cref="CurvePeakResolutionWindow"/>): n историй тем же розыгрышем
+        /// точки, что у взвешенной ветви, направление — В ЕЁ КОНУСЕ с весом
+        /// конуса (точка внутри объемлющей сферы кристалла — полная сфера), как
+        /// в <see cref="OneHistory"/>; дальше полный аналоговый перенос
+        /// (<see cref="AnalogTransport"/>). Возвращает сумму весов историй с
+        /// недобором в (<paramref name="tightKev"/>, <paramref name="halfWidthKev"/>],
+        /// <paramref name="weight2"/> — сумму их квадратов,
+        /// <paramref name="tightSum"/> — сумму весов историй в тесном допуске
+        /// (диагностика, в счёт не идёт).
+        ///
+        /// Конус несмещён: направление вне него — класс вне конуса, его считает
+        /// <see cref="OutsideNextEvent"/> допуском ПШПВ/2 целиком.
+        /// </summary>
+        double AnalogInConeBandRun(double energyKev, int n, double tightKev, double halfWidthKev,
+                                   out double weight2, out double tightSum)
+        {
+            double sum = 0.0;
+            weight2 = 0.0;
+            tightSum = 0.0;
+            this.source.Retune(this, energyKev);
+            for (int i = 0; i < n; i++)
+            {
+                double x, y, z;
+                double weight = this.source.NextWeighted(this, out x, out y, out z);
+                double dz = this.sphereZ - z;
+                double dist = Math.Sqrt(x * x + y * y + dz * dz);
+                double ux, uy, uz;
+                if (dist > this.sphereR)
+                {
+                    double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - this.sphereR * this.sphereR / (dist * dist)));
+                    weight *= 0.5 * (1.0 - cosMax);
+                    this.InCone(-x / dist, -y / dist, dz / dist, cosMax, out ux, out uy, out uz);
+                }
+                else
+                {
+                    this.Isotropic(out ux, out uy, out uz);
+                }
+
+                weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
+                if (!(weight > 0.0))
+                {
+                    continue;
+                }
+
+                double depositedOutside;
+                bool comptonOutside;
+                double deposited = this.AnalogTransport(x, y, z, ux, uy, uz, energyKev,
+                                                        this.PathLimit(x, y, z),
+                                                        out depositedOutside, out comptonOutside);
+                if (!(deposited > 0.0))
+                {
+                    continue;
+                }
+
+                double deficit = energyKev - deposited;
+                if (deficit > halfWidthKev + 1e-9)
+                {
+                    continue;
+                }
+
+                if (deficit > tightKev + 1e-9)
+                {
+                    sum += weight;
+                    weight2 += weight * weight;
+                }
+                else
+                {
+                    tightSum += weight;
+                }
+            }
+
+            return sum;
+        }
+
+        /// <summary>
+        /// (`AMBER79`, П147) Одна аналоговая история из точки: её вес, если она
+        /// вне конуса взвешенной ветви и её занос в допуске пика, иначе ноль.
+        /// <paramref name="weight"/> на выходе — тот же вклад (ноль, если
+        /// история не в классе): вызывающему нужен и квадрат.
+        /// </summary>
+        double AnalogOutsidePeak(double energyKev, double x, double y, double z, ref double weight)
+        {
+            if (this.OutOfConeImportance)
+            {
+                return this.OutsideNextEvent(energyKev, x, y, z, ref weight);
+            }
+
+            bool inWeightedCone;
+            double depositedOutside;
+            bool comptonOutside;
+            double deposited = this.AnalogHistory(energyKev, x, y, z, ref weight, true,
+                                                  out inWeightedCone, out depositedOutside,
+                                                  out comptonOutside);
+            if (inWeightedCone || !(deposited > 0.0) || !this.InPeak(energyKev, deposited))
+            {
+                weight = 0.0;
+                return 0.0;
+            }
+
+            this.CountPeakOutOfCone++;
+            this.WeightPeakOutOfCone += weight;
+            this.WeightPeakOutOfCone2 += weight * weight;
+            return weight;
         }
 
         /// <summary>
@@ -8136,12 +9272,34 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public JointSums JointPeakSums(double[] energies, int points, double[] peakHalfWidths)
         {
+            return this.JointPeakSums(energies, points, peakHalfWidths, 1);
+        }
+
+        /// <summary>
+        /// ⚡ (`AMBER147`, П199 01.10.2026) То же с <paramref name="perPoint"/>
+        /// ИСТОРИЯМИ НА ЭНЕРГИЮ В КАЖДОМ НАБОРЕ ТОЧКИ: `a_i` и `b_i` — средние по
+        /// своим `perPoint` историям, наборы по-прежнему независимы, так что
+        /// `E[a_i·b_j | точка] = ε_i(x)·ε_j(x)` и оценка остаётся несмещённой.
+        ///
+        /// Зачем. У малого кристалла (CsI 1 см³) пиковая эффективность точки
+        /// на 1…2 МэВ — доли процента, и при ОДНОЙ истории на энергию
+        /// произведение `a_i·b_j` почти всегда ноль: шум ячейки κ там 20…100 %
+        /// (`KappaScanP191`). Дисперсия среднего по точкам складывается из
+        /// разброса ε_iε_j по объёму (растёт с `perPoint` при той же цене) и
+        /// шума оценки в точке (у редких событий падает как 1/`perPoint`); у
+        /// малых кристаллов второе слагаемое главное, и несколько историй на
+        /// точку при той же цене дают меньший шум. `perPoint = 1` — прежний
+        /// счёт побитово (тот же порядок обращений к ГСЧ).
+        /// </summary>
+        public JointSums JointPeakSums(double[] energies, int points, double[] peakHalfWidths, int perPoint)
+        {
             if (energies == null || energies.Length == 0)
             {
                 return null;
             }
 
             this.EnsureBuilt();
+            int per = Math.Max(1, perPoint);
             int n = Math.Max(1, points);
             int m = energies.Length;
             var sums = new JointSums(m);
@@ -8177,7 +9335,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                         this.PeakHalfWidthKev = peakHalfWidths[e];
                     }
 
-                    a[e] = energies[e] > 0.0 ? this.OneHistory(energies[e], x, y, z, null, 0.0) : 0.0;
+                    if (per == 1)
+                    {
+                        a[e] = energies[e] > 0.0 ? this.OneHistory(energies[e], x, y, z, null, 0.0) : 0.0;
+                        a[e] += this.KappaOutsidePeak(energies[e], x, y, z);
+                    }
+                    else
+                    {
+                        a[e] = this.KappaPointMean(energies[e], x, y, z, per);
+                    }
                 }
 
                 for (int e = 0; e < m; e++)
@@ -8187,13 +9353,62 @@ namespace BecquerelMonitor.EfficiencyMaker
                         this.PeakHalfWidthKev = peakHalfWidths[e];
                     }
 
-                    b[e] = energies[e] > 0.0 ? this.OneHistory(energies[e], x, y, z, null, 0.0) : 0.0;
+                    if (per == 1)
+                    {
+                        b[e] = energies[e] > 0.0 ? this.OneHistory(energies[e], x, y, z, null, 0.0) : 0.0;
+                        b[e] += this.KappaOutsidePeak(energies[e], x, y, z);
+                    }
+                    else
+                    {
+                        b[e] = this.KappaPointMean(energies[e], x, y, z, per);
+                    }
                 }
 
                 sums.Accumulate(a, b, pointWeight);
             }
 
             return sums;
+        }
+
+        /// <summary>
+        /// (`AMBER147`) Средняя пиковая оценка ОДНОЙ энергии из точки по
+        /// <paramref name="per"/> историям — тем же переносом, что одиночная
+        /// (`OneHistory` плюс класс вне конуса).
+        /// </summary>
+        double KappaPointMean(double energyKev, double x, double y, double z, int per)
+        {
+            if (!(energyKev > 0.0))
+            {
+                return 0.0;
+            }
+
+            double s = 0.0;
+            for (int k = 0; k < per; k++)
+            {
+                s += this.OneHistory(energyKev, x, y, z, null, 0.0);
+                s += this.KappaOutsidePeak(energyKev, x, y, z);
+            }
+
+            return s / per;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER79`, П147 24.09.2026, физика 24) Класс вне конуса для κ: та
+        /// же точка распада, СВОЁ аналоговое направление (как у независимого
+        /// кванта), пик в допуске — вес, иначе ноль. Вес точки не входит сюда,
+        /// как и в `OneHistory`: его берёт `JointSums.Accumulate` одним
+        /// множителем. Без <see cref="AnalogContinuum"/> или при выключенном
+        /// рычаге — ноль без единого розыгрыша (поток κ как в физике 23).
+        /// </summary>
+        double KappaOutsidePeak(double energyKev, double x, double y, double z)
+        {
+            if (!(energyKev > 0.0) || !this.AnalogContinuum || !this.OutOfConePeakEverywhere)
+            {
+                return 0.0;
+            }
+
+            double weight = 1.0;
+            return this.AnalogOutsidePeak(energyKev, x, y, z, ref weight);
         }
 
         /// <summary>
@@ -8220,6 +9435,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         double OneHistory(double energyKev, double x, double y, double z,
                           double[] histogram, double binKev, double pointWeight)
         {
+            this.ForgetRay();          // (`A315`) кэш луча не переживает историю
             {
                 // Направление разыгрывается не по всей сфере, а в конусе,
                 // накрывающем детектор: иначе на дальней геометрии почти все
@@ -8307,6 +9523,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                         if (histogram != null)
                         {
                             this.Deposit(histogram, binKev, energyKev, energyKev - escaped, share);
+                            this.TallyResolutionPeak(histogram.Length - 1, binKev, energyKev,
+                                                     energyKev - escaped, share, false);
                             this.ScoreLight(binKev, energyKev, energyKev - escaped, share);
                             if (this.channelHistograms != null)
                             {
@@ -8331,7 +9549,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>Нормировка гистограммы и свет — общий хвост прогона.</summary>
-        double FinishRun(double energyKev, double[] histogram, double binKev, int n, double mean)
+        internal double FinishRun(double energyKev, double[] histogram, double binKev, int n, double mean)
         {
 
             // Бины копят сумму весов, а величина отклика — среднее по историям,
@@ -8361,6 +9579,831 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// (`AMBER79`, П147) Класс вне конуса ОЦЕНКОЙ СЛЕДУЮЩЕГО СОБЫТИЯ (см.
+        /// <see cref="OutOfConeImportance"/>). Направление первичного кванта —
+        /// тем же розыгрышем, что у <see cref="AnalogHistory"/>; в конусе
+        /// взвешенной ветви — ноль. <paramref name="weight"/> на выходе — счёт
+        /// истории (вызывающему нужен его квадрат).
+        /// </summary>
+        double OutsideNextEvent(double energyKev, double x, double y, double z, ref double weight)
+        {
+            this.ForgetRay();          // (`A315`) кэш луча не переживает историю
+            double limit = this.PathLimit(x, y, z);
+            double ux, uy, uz;
+            double coneZ, coneR;
+            double coneDist = 0.0;
+            if ((this.AnalogConeSampling || this.source.PreferCone)
+                && this.SceneBounds(out coneZ, out coneR)
+                && (coneDist = Math.Sqrt(x * x + y * y + (coneZ - z) * (coneZ - z))) > coneR)
+            {
+                double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - coneR * coneR / (coneDist * coneDist)));
+                weight *= 0.5 * (1.0 - cosMax);
+                this.InCone(-x / coneDist, -y / coneDist, (coneZ - z) / coneDist, cosMax,
+                            out ux, out uy, out uz);
+            }
+            else
+            {
+                this.Isotropic(out ux, out uy, out uz);
+            }
+
+            weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
+
+            double dz0 = this.sphereZ - z;
+            double r0 = Math.Sqrt(x * x + y * y + dz0 * dz0);
+            if (!(r0 > this.sphereR))
+            {
+                weight = 0.0;
+                return 0.0;                 // точка в сфере детектора — класса нет
+            }
+
+            double cosDet = Math.Sqrt(Math.Max(0.0, 1.0 - this.sphereR * this.sphereR / (r0 * r0)));
+            if ((ux * (-x) + uy * (-y) + uz * dz0) / r0 >= cosDet)
+            {
+                weight = 0.0;
+                return 0.0;                 // в конусе — за взвешенной ветвью
+            }
+
+            double e = energyKev;
+            double score = 0.0;
+            double travelled = 0.0;
+            for (int guard = 0; guard < 400 && weight > 0.0; guard++)
+            {
+                Region here = this.At(x, y, z);
+                if (here != null && here.IsCrystal)
+                {
+                    break;                  // дошёл сам — его ожидание уже сосчитано
+                }
+
+                double step = this.StepToBoundary(x, y, z, ux, uy, uz);
+                if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
+                {
+                    break;
+                }
+
+                double muKill = here == null ? 0.0 : this.AnalogMu(here, e);
+                if (muKill > 0.0)
+                {
+                    double free = -Math.Log(1.0 - this.Uniform()) / muKill;
+                    if (free < step)
+                    {
+                        x += ux * free;
+                        y += uy * free;
+                        z += uz * free;
+                        travelled += free;
+                        double coherent = this.RayleighScatter ? here.Coherent(e) : 0.0;
+                        double incoherent = here.Incoherent(e);
+                        score += this.NextEventScore(here, x, y, z, ux, uy, uz, e, energyKev, weight,
+                                                     coherent, incoherent, muKill, limit);
+
+                        // Сам квант — аналоговым розыгрышем канала, как в переносе.
+                        double channel = this.Uniform() * muKill;
+                        if (channel < coherent)
+                        {
+                            this.Rotate(ref ux, ref uy, ref uz, this.RayleighCosine(here, e));
+                            continue;
+                        }
+
+                        if (channel >= coherent + incoherent)
+                        {
+                            break;          // фотоэффект или пара — пика не будет
+                        }
+
+                        double cos;
+                        double after = this.ComptonScatter(here, e, out cos);
+                        this.Rotate(ref ux, ref uy, ref uz, cos);
+                        e = after;
+                        if (!this.InPeak(energyKev, e))
+                        {
+                            break;          // потеря больше допуска — пика не будет
+                        }
+
+                        continue;
+                    }
+                }
+
+                double next = step + 1e-7;
+                x += ux * next;
+                y += uy * next;
+                z += uz * next;
+                travelled += next;
+            }
+
+            if (score > 0.0)
+            {
+                this.CountPeakOutOfCone++;
+                this.WeightPeakOutOfCone += score;
+                this.WeightPeakOutOfCone2 += score * score;
+            }
+
+            weight = score;
+            return score;
+        }
+
+        /// <summary>
+        /// (`AMBER79`, П147) Ожидание в точке рассеяния: следующий полёт — в
+        /// кристалл без столкновения, дальше перенос, занос в допуске пика.
+        /// Направление — равномерно в конусе на объемлющую сферу детектора (в
+        /// самой сфере — по всей сфере), канал — когерентное или некогерентное
+        /// в доле их сечений, вес — (μ_ког + μ_неког)/μ · p_Ω(θ) · Ω_конуса ·
+        /// e^−τ, где p_Ω — плотность угла канала на стерадиан.
+        /// </summary>
+        double NextEventScore(Region here, double x, double y, double z, double ux, double uy, double uz,
+                              double e, double energyKev, double weight,
+                              double coherent, double incoherent, double muKill, double limit)
+        {
+            double scatter = coherent + incoherent;
+            if (!(scatter > 0.0) || !(muKill > 0.0))
+            {
+                return 0.0;
+            }
+
+            // Конус — на объемлющую сферу САМОГО КРИСТАЛЛА, а не детектора с
+            // обвязкой: направление мимо неё кристалла без столкновения не
+            // встретит, а узкий конус — меньше разброс веса.
+            double vx, vy, vz, omega;
+            double cz, cr;
+            this.CrystalSphere(out cz, out cr);
+            double dz = cz - z;
+            double dist = Math.Sqrt(x * x + y * y + dz * dz);
+            if (dist > cr)
+            {
+                double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - cr * cr / (dist * dist)));
+                this.InCone(-x / dist, -y / dist, dz / dist, cosMax, out vx, out vy, out vz);
+                omega = 2.0 * Math.PI * (1.0 - cosMax);
+            }
+            else
+            {
+                this.Isotropic(out vx, out vy, out vz);
+                omega = 4.0 * Math.PI;
+            }
+
+            double cos = ux * vx + uy * vy + uz * vz;
+            if (cos > 1.0) cos = 1.0;
+            if (cos < -1.0) cos = -1.0;
+            double density;
+            double eOut;
+            if (this.Uniform() * scatter < coherent)
+            {
+                ScatteringData.Atom atom = this.PickAtom(here.Material, e, PhotonProcess.Coherent, here);
+                density = CoherentCosDensity(atom, e, cos);
+                eOut = e;
+            }
+            else
+            {
+                ScatteringData.Atom atom = null;
+                if (this.BoundCompton || this.DopplerBroadening)
+                {
+                    atom = this.PickAtom(here.Material, e, PhotonProcess.Incoherent, here);
+                }
+
+                density = IncoherentCosDensity(this.BoundCompton ? atom : null, e, cos);
+                double freeKev = e / (1.0 + e / ElectronMassKev * (1.0 - cos));
+                double vacancyKev;
+                eOut = this.DopplerBroadening && atom != null && atom.ShellCount > 0
+                    ? this.DopplerEnergy(atom, e, cos, freeKev, out vacancyKev)
+                    : freeKev;
+            }
+
+            if (!(density > 0.0) || !this.InPeak(energyKev, eOut))
+            {
+                return 0.0;
+            }
+
+            // density — на единицу cos; на стерадиан — / 2π.
+            double w = weight * scatter / muKill * density / (2.0 * Math.PI) * omega;
+            double tau;
+            double px = x, py = y, pz = z;
+            double travelled = 0.0;
+            if (!this.AnalogToCrystal(ref px, ref py, ref pz, vx, vy, vz, eOut, limit, ref travelled, out tau))
+            {
+                return 0.0;
+            }
+
+            w *= Math.Exp(-tau);
+            if (!(w > 0.0))
+            {
+                return 0.0;
+            }
+
+            double depositedOutside;
+            bool comptonOutside;
+            double deposited = this.AnalogTransport(px, py, pz, vx, vy, vz, eOut, limit,
+                                                    out depositedOutside, out comptonOutside);
+            return deposited > 0.0 && this.InPeak(energyKev, deposited) ? w : 0.0;
+        }
+
+        /// <summary>
+        /// (`AMBER79`, П147) Объемлющая сфера кристалла (его области сцены):
+        /// центр на оси и радиус. Нет области кристалла — сфера детектора.
+        /// </summary>
+        void CrystalSphere(out double centerZ, out double radius)
+        {
+            Region c = this.crystal;
+            if (c == null)
+            {
+                centerZ = this.sphereZ;
+                radius = this.sphereR;
+                return;
+            }
+
+            double half = 0.5 * (c.ZMax - c.ZMin);
+            double across = c.IsBox ? Math.Sqrt(c.AX * c.AX + c.AY * c.AY) : c.ROut;
+            centerZ = 0.5 * (c.ZMin + c.ZMax);
+            radius = Math.Sqrt(across * across + half * half) + 1e-4;
+        }
+
+        /// <summary>
+        /// (`AMBER79`, П147) Полёт до входа в кристалл по ослаблению АНАЛОГОВОЙ
+        /// ветви без столкновения: копит оптическую толщину, ставит квант в
+        /// кристалл. false — кристалл не встретился.
+        /// </summary>
+        bool AnalogToCrystal(ref double x, ref double y, ref double z, double ux, double uy, double uz,
+                             double energyKev, double limit, ref double travelled, out double tau)
+        {
+            tau = 0.0;
+            for (int guard = 0; guard < 400; guard++)
+            {
+                Region here = this.At(x, y, z);
+                if (here != null && here.IsCrystal)
+                {
+                    return true;
+                }
+
+                double step = this.StepToBoundary(x, y, z, ux, uy, uz);
+                if (step >= double.MaxValue || travelled + step > limit)
+                {
+                    return false;
+                }
+
+                if (here != null)
+                {
+                    tau += this.AnalogMu(here, energyKev) * step;
+                    if (tau > 60.0)
+                    {
+                        return false;
+                    }
+                }
+
+                double next = step + 1e-7;
+                x += ux * next;
+                y += uy * next;
+                z += uz * next;
+                travelled += next;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// (`AMBER79`, П147) Плотность косинуса угла КОГЕРЕНТНОГО рассеяния на
+        /// атоме — ровно та, по которой разыгрывает <see cref="RayleighCosine"/>:
+        /// F²(t)·(1+cos²)/2 при t = tMax(1 − cos)/2 (t в пределах таблицы),
+        /// нормированная на [−1, 1] точной квадратурой по узлам таблицы F²
+        /// (F² линейна по t на отрезке, множитель — квадратичен: Гаусс по трём
+        /// точкам точен). Без атома — равномерно, как у розыгрыша.
+        /// </summary>
+        static double CoherentCosDensity(ScatteringData.Atom atom, double energyKev, double cos)
+        {
+            double xMax = ScatteringData.InverseCmPerKev * energyKev;
+            double tMax = xMax * xMax;
+            if (atom == null || !(tMax > 0.0))
+            {
+                return 0.5;
+            }
+
+            double norm = atom.CoherentNorm(energyKev);
+            if (!(norm > 0.0))
+            {
+                return 0.0;
+            }
+
+            double t = tMax * 0.5 * (1.0 - cos);
+            if (t > atom.FormFactorTop)
+            {
+                return 0.0;                 // розыгрыш за край таблицы не ходит
+            }
+
+            double f = atom.FormFactor(Math.Sqrt(t));
+            return f * f * 0.5 * (1.0 + cos * cos) / norm;
+        }
+
+        /// <summary>
+        /// (`AMBER79`, П147) Плотность косинуса угла НЕКОГЕРЕНТНОГО рассеяния —
+        /// та, по которой разыгрывает <see cref="ComptonCosine(double, ScatteringData.Atom)"/>:
+        /// Клейн — Нишина, с атомом — ещё и S(x,Z)/Z; нормировка квадратурой
+        /// (<see cref="ScatteringData.Atom.IncoherentNorm"/>, без атома —
+        /// аналитически по формуле Клейна — Нишины).
+        /// </summary>
+        static double IncoherentCosDensity(ScatteringData.Atom atom, double energyKev, double cos)
+        {
+            double a = energyKev / ElectronMassKev;
+            double kn = KleinNishinaCos(a, cos);
+            if (atom == null)
+            {
+                double norm = KleinNishinaIntegral(a);
+                return norm > 0.0 ? kn / norm : 0.0;
+            }
+
+            double k = ScatteringData.InverseCmPerKev * energyKev;
+            double normS = atom.IncoherentNorm(energyKev);
+            if (!(normS > 0.0))
+            {
+                return 0.0;
+            }
+
+            double x = k * Math.Sqrt(Math.Max(0.0, 0.5 * (1.0 - cos)));
+            return kn * atom.ScatteringFunction(x) / atom.Z / normS;
+        }
+
+        /// <summary>dσ_KN/dcos без множителя πr²: r²(r + 1/r − sin²θ), r = 1/(1 + a(1 − cos)).</summary>
+        internal static double KleinNishinaCos(double a, double cos)
+        {
+            double r = 1.0 / (1.0 + a * (1.0 - cos));
+            return r * r * (r + 1.0 / r - (1.0 - cos * cos));
+        }
+
+        /// <summary>∫ KleinNishinaCos по cos на [−1, 1] — аналитически.</summary>
+        internal static double KleinNishinaIntegral(double a)
+        {
+            if (a < 1e-4)
+            {
+                return 8.0 / 3.0 * (1.0 - 2.0 * a);   // томсоновский предел
+            }
+
+            double b = 1.0 + 2.0 * a;
+            double l = Math.Log(b);
+            return 2.0 * ((1.0 + a) / (a * a) * (2.0 * (1.0 + a) / b - l / a) + l / (2.0 * a)
+                          - (1.0 + 3.0 * a) / (b * b));
+        }
+
+        /// <summary>
+        /// ⚡ ОДНА АНАЛОГОВАЯ ИСТОРИЯ ИЗ ЗАДАННОЙ ТОЧКИ (`AMBER79`, П147 24.09.2026).
+        /// Выделено из <see cref="AnalogContinuumRun"/> без единой правки
+        /// арифметики и порядка розыгрышей: направление (конус на габарит сцены
+        /// или полная сфера, вес направления источника), признак «в конусе
+        /// взвешенной ветви», перенос с очередью квантов. Возвращает занос
+        /// истории в кристалл; <paramref name="weight"/> на входе — вес точки,
+        /// на выходе — вес истории.
+        ///
+        /// Зачем выделено. Класс историй вне конуса взвешенной ветви (`AMBER66`)
+        /// нужен не только строке матрицы, но и КРИВОЙ (<see cref="Efficiency"/>)
+        /// и совместной эффективности каскада (<see cref="JointPeakSums"/>):
+        /// у них аналоговой ветви не было вовсе. ⛔ Второй копии переноса не
+        /// заводится (`S37`) — все трое зовут этот метод.
+        ///
+        /// <paramref name="outsideOnly"/> — вести только историю ВНЕ конуса
+        /// взвешенной ветви; историю внутри вернуть нулём сразу после розыгрыша
+        /// направления (её пик считает взвешенная ветвь).
+        /// </summary>
+        double AnalogHistory(double energyKev, double x, double y, double z, ref double weight,
+                             bool outsideOnly, out bool inWeightedCone,
+                             out double depositedOutside, out bool comptonOutside)
+        {
+            this.ForgetRay();          // (`A315`) кэш луча не переживает историю
+            // (`AMBER97`) Предел пути — от точки вылета: подлёт к сцене не в счёт.
+            double limit = this.PathLimit(x, y, z);
+            double ux, uy, uz;
+
+            // Наведение конусом на габарит сцены (`A57`) — сужение ради
+            // дисперсии, не ради скорости: вес возвращает несмещённость.
+            double coneZ, coneR;
+            double coneDist = 0.0;
+            // (`AMBER13` (б)) У поля конус обязателен — см. Sampler.PreferCone.
+            if ((this.AnalogConeSampling || this.source.PreferCone)
+                && this.SceneBounds(out coneZ, out coneR)
+                && (coneDist = Math.Sqrt(x * x + y * y + (coneZ - z) * (coneZ - z))) > coneR)
+            {
+                double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - coneR * coneR / (coneDist * coneDist)));
+                weight *= 0.5 * (1.0 - cosMax);
+                this.InCone(-x / coneDist, -y / coneDist, (coneZ - z) / coneDist, cosMax,
+                            out ux, out uy, out uz);
+            }
+            else
+            {
+                this.Isotropic(out ux, out uy, out uz);
+            }
+
+            // Вес по направлению источника: единица у всех, кроме поля.
+            weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
+
+            // ⛔ (`AMBER66`, П132) ЛЕЖИТ ЛИ ПЕРВИЧНОЕ НАПРАВЛЕНИЕ В КОНУСЕ
+            // ВЗВЕШЕННОЙ ВЕТВИ. Тот же конус, что у `OneHistory`: ось — на
+            // центр объемлющей сферы кристалла, полуугол — по `sphereR`.
+            // Направление ВНЕ него взвешенная ветвь не рождает, и попавшая
+            // в пик история такого луча не считается НИГДЕ, пока её здесь
+            // отбрасывают. Случайных чисел не тянет — это арифметика по уже
+            // разыгранному направлению.
+            inWeightedCone = true;
+            double coneDz = this.sphereZ - z;
+            double coneR2 = Math.Sqrt(x * x + y * y + coneDz * coneDz);
+            if (coneR2 > this.sphereR)
+            {
+                // Точка внутри сферы детектора взвешенной ветвью берётся
+                // полной сферой (`Isotropic`) — там терять нечего.
+                double cosMaxDet = Math.Sqrt(Math.Max(
+                    0.0, 1.0 - this.sphereR * this.sphereR / (coneR2 * coneR2)));
+                double cosToAxis = (ux * (-x) + uy * (-y) + uz * coneDz) / coneR2;
+                inWeightedCone = cosToAxis >= cosMaxDet;
+            }
+
+            // (`AMBER79`, П147) Кривой и κ нужен ТОЛЬКО класс вне конуса:
+            // история внутри него — за взвешенной ветвью, и вести её незачем.
+            // Направление уже разыграно, дальше розыгрышей нет — поток тот же,
+            // что у прогона матрицы, до этой точки.
+            if (outsideOnly && inWeightedCone)
+            {
+                depositedOutside = 0.0;
+                comptonOutside = false;
+                return 0.0;
+            }
+
+            // (`AMBER79`, П147) Перенос — общим методом с оценкой следующего
+            // события (`OutsideNextEvent`): тот же цикл, те же розыгрыши.
+            return this.AnalogTransport(x, y, z, ux, uy, uz, energyKev, limit,
+                                        out depositedOutside, out comptonOutside);
+        }
+
+        /// <summary>
+        /// (`AMBER79`, П147 24.09.2026) ПЕРЕНОС АНАЛОГОВОЙ ИСТОРИИ из заданной
+        /// точки и направления: очередь квантов, кристалл, возврат из обвязки,
+        /// аннигиляция вне кристалла. Выделен из <see cref="AnalogHistory"/>
+        /// без единой правки арифметики и порядка розыгрышей (тела матриц —
+        /// побитово); второй его читатель — оценка следующего события
+        /// (<see cref="OutsideNextEvent"/>), доводящая квант от входа в
+        /// кристалл до конца истории. Возвращает занос в кристалл.
+        /// </summary>
+        double AnalogTransport(double x, double y, double z, double ux, double uy, double uz,
+                               double energyKev, double limit,
+                               out double depositedOutside, out bool comptonOutside)
+        {
+            this.lossAnnihilation = 0.0;
+            this.annihilationEscapes = 0;
+            this.lossXray = 0.0;
+            this.lossXrayK = 0.0;
+            this.lossXrayL = 0.0;
+            this.lightDeposit = 0.0;
+            this.ResetTrace();
+
+            double e = energyKev;
+            double deposited = 0.0;
+            // (`AMBER52`, П125) Часть заноса, принесённая квантами аннигиляции
+            // извне (признак `fromOutsideAnnihilation` у текущего кванта). Каждое
+            // `deposited += …` ниже дублируется в неё ПОД признаком — восемь
+            // мест, все на виду; канал решает `ChannelOf(escaped, deposited,
+            // depositedOutside)`.
+            depositedOutside = 0.0;
+            this.fromOutsideAnnihilation = false;
+            double travelled = 0.0;
+            comptonOutside = false;        // замер `S55`, см. счётчики
+
+            // ⛔ ОЧЕРЕДЬ КВАНТОВ ИСТОРИИ (`A52`, расширена `A55`). Обход
+            // ведёт ОДИН квант, а событий, рождающих второй, два: пара вне
+            // кристалла отдаёт ДВА по 511 кэВ, и кристалл ВЫПУСКАЕТ кванты,
+            // которым обвязка может вернуть дорогу назад. И те, и другие
+            // кладутся сюда и проводятся тем же обходом: заводить второй
+            // проводник нельзя (`S37` — две копии одного счёта однажды
+            // разъедутся молча).
+            this.pendCount = 0;
+            while (true)
+            {
+                for (int guard = 0; guard < 400 && e > 1.0; guard++)
+                {
+                    Region here = this.At(x, y, z);
+                    if (here != null && here.IsCrystal)
+                    {
+                        this.escapeCount = 0;
+                        this.escapeLost = 0;
+                        this.escapeCollect = true;
+                        double escaped = this.InCrystal(x, y, z, ux, uy, uz, e, 0);
+                        this.escapeCollect = false;
+                        if (e - escaped > 1e-9)
+                        {
+                            deposited += e - escaped;
+                            if (this.fromOutsideAnnihilation)
+                            {
+                                depositedOutside += e - escaped;
+                            }
+
+                            // ⛔ ВОЗВРАТ ИЗ ОБВЯЗКИ (`A55`). Вклад засчитан, но
+                            // история на этом НЕ кончается: то, что вылетело,
+                            // идёт дальше тем же обходом — сквозь отражатель и
+                            // корпус, с рассеянием и возможным возвратом в
+                            // кристалл. Прежде здесь стоял голый `break`, и
+                            // вылетевший квант пропадал: полоса между
+                            // комптоновским краем и пиком выходила на 13.7 %
+                            // (662 кэВ) и 17.3 % (1332.5 кэВ) ниже Geant4 — при
+                            // том что на голом кристалле сходилась.
+                            for (int k = 0; k < this.escapeCount; k++)
+                            {
+                                this.PushPending(this.escX[k], this.escY[k], this.escZ[k],
+                                                 this.escUx[k], this.escUy[k], this.escUz[k],
+                                                 this.escE[k]);
+                            }
+
+                            this.CountEscapeDropped += this.escapeLost;
+                            break;
+                        }
+
+                        // пролетел насквозь без вклада — с дальней грани дальше
+                        double through = this.CrystalPath(x, y, z, ux, uy, uz) + 1e-7;
+                        x += ux * through;
+                        y += uy * through;
+                        z += uz * through;
+                        travelled += through;
+                        continue;
+                    }
+
+                    double step = this.StepToBoundary(x, y, z, ux, uy, uz);
+                    if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
+                    {
+                        break;              // ушёл из сцены
+                    }
+
+                    double muKill = here == null ? 0.0 : this.AnalogMu(here, e);
+                    if (muKill > 0.0)
+                    {
+                        double free = -Math.Log(1.0 - this.Uniform()) / muKill;
+                        if (free < step)
+                        {
+                            x += ux * free;
+                            y += uy * free;
+                            z += uz * free;
+                            travelled += free;
+                            double incoherent = here.Incoherent(e);
+                            double coherent = this.RayleighScatter
+                                ? here.Coherent(e) : 0.0;
+                            double carried;
+                            double gain;    // (`AMBER52`) занос одного сайта, для двух сумм
+                            double channel = this.Uniform() * muKill;
+                            if (channel < coherent)
+                            {
+                                // Когерентное: только поворот, энергия та же.
+                                this.Rotate(ref ux, ref uy, ref uz,
+                                            this.RayleighCosine(here, e));
+                                continue;
+                            }
+
+                            if (channel >= coherent + incoherent)
+                            {
+                                // Фотопоглощение ИЛИ рождение пары вне кристалла.
+                                //
+                                // (`F27`) Прежде фотон здесь просто ПОГИБАЛ, и с
+                                // ним пропадал характеристический квант вещества
+                                // — а у тяжёлой пробы это заметная линия: оксид
+                                // лютеция под собственными гаммами 88/202/307
+                                // кэВ обязан светить K-рентгеном лютеция
+                                // 52.97…63.21 кэВ. В кристалле это считалось
+                                // всегда, вне его — нет; измерено 17.08.2026 на
+                                // `ASN16_Lu176`, невязка 274σ и 275σ на 51.1 и
+                                // 60.8 кэВ.
+                                //
+                                // Порядок розыгрышей ТОТ ЖЕ, что в кристалле:
+                                // рентген, направление, потом электрон. Остаток
+                                // энергии уносит электрон, сумма сохраняется.
+                                //
+                                // ⛔ РОЖДЕНИЕ ПАРЫ ВНЕ КРИСТАЛЛА (`A52`,
+                                // 02.09.2026) — верхний срез оставшегося
+                                // сечения. Прежде этот канал числился здесь
+                                // фотопоглощением: квант умирал, а ДВА
+                                // аннигиляционных по 511 кэВ, которые обязаны
+                                // были из обвязки полететь, не рождались вовсе.
+                                //
+                                // Цена измерена сверкой с Geant4 на сцене
+                                // `AS80_point0` при 2614.5 кэВ (мир арбитра —
+                                // пустой, чтобы воздух не мешал): полоса
+                                // 500…522 кэВ у нас была НА 35 % НИЖЕ. На ГОЛОМ
+                                // кристалле в той же сверке расхождение полосы
+                                // 1.3 % — то есть недостача целиком приходилась
+                                // на обвязку, где канала не было.
+                                //
+                                // Отсюда же и свободный образ `Annihilation` в
+                                // полноспектральном разборе: линию, которую
+                                // отклик родить не мог, приходилось закрывать
+                                // подгоняемой амплитудой.
+                                //
+                                // Кванты летят СТРОГО в противоположные стороны
+                                // — тот же довод, что в кристалле: импульс
+                                // покоящейся пары нулевой.
+                                double pairMu = here.Pair(e, this.XcomPairThreshold);
+                                double restMu = muKill - coherent - incoherent;
+                                if (pairMu > restMu)
+                                {
+                                    pairMu = restMu;    // сумма каналов не больше полного
+                                }
+
+                                if (pairMu > 0.0 && channel >= muKill - pairMu
+                                    && e > 2.0 * ElectronMassKev)
+                                {
+                                    // (`N4`, П44) Кинетика пары излучает
+                                    // тормозное вещества слоя — под ключом;
+                                    // без ключа ноль и ни одного розыгрыша.
+                                    // (`AMBER44`/`M12`, П94) Под ключом переноса
+                                    // в слоях — лептон пары по Цаю от кванта,
+                                    // перенос в слое и в кристалле.
+                                    // Занос лептонов пары и их тормозное — от
+                                    // энергии E (`e − 1022`): считаются ДО подъёма
+                                    // признака происхождения, с признаком
+                                    // РОДИТЕЛЯ (`AMBER52`).
+                                    if (this.ElectronLayerTransport)
+                                    {
+                                        gain = this.CarriedElectronDeposit(
+                                            x, y, z, ElectronBirth.Pair, e - 2.0 * ElectronMassKev,
+                                            ux, uy, uz, here.Material, this.pushAnalog);
+                                        deposited += gain;
+                                        if (this.fromOutsideAnnihilation)
+                                        {
+                                            depositedOutside += gain;
+                                        }
+                                    }
+                                    else if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
+                                                                       e - 2.0 * ElectronMassKev
+                                                                       - this.OutsideBremsstrahlung(
+                                                                           x, y, z, e - 2.0 * ElectronMassKev,
+                                                                           here.Material, this.pushAnalog),
+                                                                       out carried))
+                                    {
+                                        deposited += carried;
+                                        if (this.fromOutsideAnnihilation)
+                                        {
+                                            depositedOutside += carried;
+                                        }
+                                    }
+
+                                    double ax, ay, az;
+                                    this.Isotropic(out ax, out ay, out az);
+                                    // ⛔ (`AMBER52`, П125 22.09.2026) ЗДЕСЬ РОЖДАЕТСЯ
+                                    // СОДЕРЖИМОЕ ПОСТОЯННОЙ ЭНЕРГИИ: оба кванта по
+                                    // 511 кэВ и всё их потомство несут признак
+                                    // происхождения, и их занос в кристалл идёт в
+                                    // канал `AnnihilationOutside` (перенос между
+                                    // узлами — сдвигом ноль). Признак поднимается ДО
+                                    // `PushPending`, чтобы второй квант лёг в очередь
+                                    // уже с ним; первый ведётся дальше этим же
+                                    // обходом. Розыгрыш не тронут: флаг и сумма.
+                                    this.fromOutsideAnnihilation = true;
+                                    // Второй квант ждёт своей проводки в общей
+                                    // очереди (`A55` расширила её с одного места
+                                    // до шести — вылеты из кристалла кладутся
+                                    // туда же).
+                                    this.PushPending(x, y, z, -ax, -ay, -az, ElectronMassKev);
+
+                                    ux = ax;
+                                    uy = ay;
+                                    uz = az;
+                                    e = ElectronMassKev;
+                                    continue;
+                                }
+
+                                double xrayOut = this.SampleFluorescenceOutside
+                                    ? this.SampleFluorescence(here, e) : 0.0;
+                                if (xrayOut > 0.0)
+                                {
+                                    // (`AMBER44`/`M12`, П94) Направление КВАНТА —
+                                    // опора фотоэлектрона (Заутер—Гаврила) под
+                                    // ключом; без ключа электрон, как было, идёт
+                                    // по направлению рентгена (розыгрыш ниже).
+                                    double gx = ux, gy = uy, gz = uz;
+                                    this.Isotropic(out ux, out uy, out uz);
+                                    if (this.ElectronLayerTransport)
+                                    {
+                                        gain = this.CarriedElectronDeposit(
+                                            x, y, z, ElectronBirth.Photo, e - xrayOut,
+                                            gx, gy, gz, here.Material, this.pushAnalog);
+                                        deposited += gain;
+                                        if (this.fromOutsideAnnihilation)
+                                        {
+                                            depositedOutside += gain;
+                                        }
+                                    }
+                                    else if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
+                                                                       e - xrayOut
+                                                                       - this.OutsideBremsstrahlung(
+                                                                           x, y, z, e - xrayOut,
+                                                                           here.Material, this.pushAnalog),
+                                                                       out carried))
+                                    {
+                                        deposited += carried;
+                                        if (this.fromOutsideAnnihilation)
+                                        {
+                                            depositedOutside += carried;
+                                        }
+                                    }
+
+                                    e = xrayOut;
+                                    continue;           // квант летит дальше
+                                }
+
+                                if (this.ElectronLayerTransport)
+                                {
+                                    gain = this.CarriedElectronDeposit(
+                                        x, y, z, ElectronBirth.Photo, e,
+                                        ux, uy, uz, here.Material, this.pushAnalog);
+                                    deposited += gain;
+                                    if (this.fromOutsideAnnihilation)
+                                    {
+                                        depositedOutside += gain;
+                                    }
+                                }
+                                else if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
+                                                                   e - this.OutsideBremsstrahlung(
+                                                                       x, y, z, e, here.Material, this.pushAnalog),
+                                                                   out carried))
+                                {
+                                    deposited += carried;
+                                    if (this.fromOutsideAnnihilation)
+                                    {
+                                        depositedOutside += carried;
+                                    }
+                                }
+
+                                break;
+                            }
+
+                            double cos;
+                            double after = this.ComptonScatter(here, e, out cos);
+                            comptonOutside = true;              // замер `S55`
+                            if (this.ElectronLayerTransport)
+                            {
+                                // (`AMBER44`/`M12`, П94) Под ключом: сперва поворот
+                                // кванта, направление комптон-электрона — из
+                                // кинематики (импульс до минус после,
+                                // `ComptonElectronDirection`), как в кристалле;
+                                // тормозное слоя и перенос — внутри.
+                                double ux0 = ux, uy0 = uy, uz0 = uz;
+                                this.Rotate(ref ux, ref uy, ref uz, cos);
+                                double dx, dy, dz;
+                                ComptonElectronDirection(e, ux0, uy0, uz0, after, ux, uy, uz,
+                                                         out dx, out dy, out dz);
+                                gain = this.CarriedElectronDeposit(
+                                    x, y, z, ElectronBirth.Given, e - after,
+                                    dx, dy, dz, here.Material, this.pushAnalog);
+                                deposited += gain;
+                                if (this.fromOutsideAnnihilation)
+                                {
+                                    depositedOutside += gain;
+                                }
+
+                                e = after;
+                                continue;
+                            }
+
+                            // Занос комптон-электрона — ДО поворота фотона (см.
+                            // шапку ElectronReachesCrystal); фотон летит дальше.
+                            // (`N4`, П44) Сперва тормозное электрона в веществе
+                            // слоя (под ключом), занос — с остатком.
+                            if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
+                                                          e - after - this.OutsideBremsstrahlung(
+                                                              x, y, z, e - after, here.Material, this.pushAnalog),
+                                                          out carried))
+                            {
+                                deposited += carried;
+                                if (this.fromOutsideAnnihilation)
+                                {
+                                    depositedOutside += carried;
+                                }
+                            }
+
+                            e = after;
+                            this.Rotate(ref ux, ref uy, ref uz, cos);
+                            continue;
+                        }
+                    }
+
+                    double next = step + 1e-7;
+                    x += ux * next;
+                    y += uy * next;
+                    z += uz * next;
+                    travelled += next;
+                }
+
+                // Следующий отложенный квант истории: аннигиляционный от пары
+                // вне кристалла (`A52`) или вылетевший из кристалла (`A55`).
+                // Обход у него ТОТ ЖЕ; свой путь и своё ограничение считаются
+                // заново, а `deposited` истории общий — это одно событие
+                // прибора.
+                if (this.pendCount > 0)
+                {
+                    int k = --this.pendCount;
+                    x = this.pendX[k];
+                    y = this.pendY[k];
+                    z = this.pendZ[k];
+                    ux = this.pendUx[k];
+                    uy = this.pendUy[k];
+                    uz = this.pendUz[k];
+                    e = this.pendE[k];
+                    // (`AMBER52`) Происхождение кванта — вместе с ним из очереди.
+                    this.fromOutsideAnnihilation = this.pendFromOutsideAnnihilation[k];
+                    travelled = 0.0;
+                    continue;
+                }
+
+                break;
+            }
+
+            return deposited;
+        }
+
+        /// <summary>
         /// Аналоговый прогон континуума (<see cref="AnalogContinuum"/>): свои
         /// n историй полной сферой направлений и настоящими взаимодействиями во
         /// всех областях — как в <see cref="TotalEfficiency"/>, но со счётом
@@ -8373,17 +10416,45 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// розыгрыш пробега — та самая exp(−μ·путь)), и пролетевший квант
         /// продолжает путь с дальней грани — возврат рассеянием из-за кристалла
         /// был заметной частью недобора полос малых сумм. Квант, вылетевший из
-        /// кристалла ПОСЛЕ вклада, дальше не ведётся (повторный залёт после
-        /// вылета не смоделирован — как и во взвешенной ветке); аннигиляционные
-        /// кванты от пар ВНЕ кристалла не разыгрываются (фотон гибнет, занос
-        /// достаётся электронам) — обе оговорки записаны в журнале.
+        /// кристалла ПОСЛЕ вклада, ведётся дальше очередью истории (`A55`, с
+        /// 02.09.2026: возврат из обвязки), и аннигиляционные кванты от пар ВНЕ
+        /// кристалла разыгрываются той же очередью (`A52`); обе прежние
+        /// оговорки («не ведётся», «не разыгрываются») сняты теми правками.
+        ///
+        /// (`AMBER52`, П125) Занос истории ведётся ДВУМЯ суммами: весь
+        /// (`deposited`) и та его часть, что принесли кванты, рождённые
+        /// аннигиляцией вне кристалла (`depositedOutside`, признак
+        /// <see cref="fromOutsideAnnihilation"/> у текущего кванта). Вторая
+        /// решает канал <see cref="ResponseChannel.AnnihilationOutside"/>
+        /// (<see cref="ChannelOf(double, double, double)"/>); на бин, вес,
+        /// свет и розыгрыш не влияет.
         ///
         /// Бины [0, пик) гистограммы, каналов и света перезаписываются суммами
-        /// весов этого прогона; вклад, округлившийся в бин пика, отбрасывается —
-        /// пик остаётся за взвешенной оценкой, и классы не пересекаются.
+        /// весов этого прогона; вклад, попавший в бин пика, отбрасывается — пик
+        /// остаётся за взвешенной оценкой, и классы не пересекаются.
+        ///
+        /// ⛔ (`AMBER66`, П132) КРОМЕ историй, чьё первичное направление лежало
+        /// ВНЕ конуса взвешенной ветви: их она не рождает, и их пик считать
+        /// больше некому. Такие возвращаются вызывающему (значение функции —
+        /// их вес, `outsideWeight2` — сумма квадратов для разброса,
+        /// `outsideLight` — их свет для якоря световой шкалы), и `Run` кладёт
+        /// их в бин пика, в канал <see cref="ResponseChannel.Peak"/> и в
+        /// возвращаемую эффективность.
         /// </summary>
-        void AnalogContinuumRun(double energyKev, double[] histogram, double binKev, int n)
+        double AnalogContinuumRun(double energyKev, double[] histogram, double binKev, int n,
+                                  out double outsideWeight2, out double outsideLight)
         {
+            // (`AMBER66`, П132) Вес, сумма квадратов и СВЕТ потерянного класса
+            // ЭТОГО прогона: поля класса копят через все прогоны экземпляра, а
+            // `Run` нужна добавка одного узла.
+            //
+            // ⛔ Свет обязателен. Якорь световой шкалы (`RemapLightScale`) —
+            // СРЕДНИЙ свет бина пика, `lightSum[peak] / (histogram[peak]·n)`.
+            // Добавить вес в пик и не добавить его свет значило бы занизить
+            // якорь на ту же долю (до 7 % на 32 кэВ) и сдвинуть ВЕСЬ отклик.
+            double outsideWeight = 0.0;
+            outsideWeight2 = 0.0;
+            outsideLight = 0.0;
             int peak = histogram.Length - 1;
             double[] hist = new double[histogram.Length];
             // Сумма квадратов весов — для честной мерки шума при конусе (`A57`).
@@ -8399,346 +10470,53 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             double[] light = this.lightSum != null ? new double[histogram.Length] : null;
-            double limit = 40.0 * this.sphereR + 200.0;
             int scored = 0;
             this.source.Retune(this, energyKev);
             for (int i = 0; i < n; i++)
             {
+                // (`AMBER201`) Опрос отмены — см. `PollCancellation`.
+                this.PollCancel(i);
                 double x, y, z;
                 // (`E29`) Точка с весом розыгрыша: единица у всех, кроме
                 // важностного. Вес идёт в `hist` и в `hist2` — то есть и в
                 // отклик, и в его шум после свёртки (`A39`).
                 double weight = this.source.NextWeighted(this, out x, out y, out z);
-                double ux, uy, uz;
-
-                // Наведение конусом на габарит сцены (`A57`) — сужение ради
-                // дисперсии, не ради скорости: вес возвращает несмещённость.
-                double coneZ, coneR;
-                double coneDist = 0.0;
-                // (`AMBER13` (б)) У поля конус обязателен — см. Sampler.PreferCone.
-                if ((this.AnalogConeSampling || this.source.PreferCone)
-                    && this.SceneBounds(out coneZ, out coneR)
-                    && (coneDist = Math.Sqrt(x * x + y * y + (coneZ - z) * (coneZ - z))) > coneR)
-                {
-                    double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - coneR * coneR / (coneDist * coneDist)));
-                    weight *= 0.5 * (1.0 - cosMax);
-                    this.InCone(-x / coneDist, -y / coneDist, (coneZ - z) / coneDist, cosMax,
-                                out ux, out uy, out uz);
-                }
-                else
-                {
-                    this.Isotropic(out ux, out uy, out uz);
-                }
-
-                // Вес по направлению источника: единица у всех, кроме поля.
-                weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
-
-                this.lossAnnihilation = 0.0;
-                this.annihilationEscapes = 0;
-                this.lossXray = 0.0;
-                this.lossXrayK = 0.0;
-                this.lossXrayL = 0.0;
-                this.lightDeposit = 0.0;
-                this.ResetTrace();
-
-                double e = energyKev;
-                double deposited = 0.0;
-                double travelled = 0.0;
-                bool comptonOutside = false;        // замер `S55`, см. счётчики
-
-                // ⛔ ОЧЕРЕДЬ КВАНТОВ ИСТОРИИ (`A52`, расширена `A55`). Обход
-                // ведёт ОДИН квант, а событий, рождающих второй, два: пара вне
-                // кристалла отдаёт ДВА по 511 кэВ, и кристалл ВЫПУСКАЕТ кванты,
-                // которым обвязка может вернуть дорогу назад. И те, и другие
-                // кладутся сюда и проводятся тем же обходом: заводить второй
-                // проводник нельзя (`S37` — две копии одного счёта однажды
-                // разъедутся молча).
-                this.pendCount = 0;
-                while (true)
-                {
-                    for (int guard = 0; guard < 400 && e > 1.0; guard++)
-                    {
-                        Region here = this.At(x, y, z);
-                        if (here != null && here.IsCrystal)
-                        {
-                            this.escapeCount = 0;
-                            this.escapeLost = 0;
-                            this.escapeCollect = true;
-                            double escaped = this.InCrystal(x, y, z, ux, uy, uz, e, 0);
-                            this.escapeCollect = false;
-                            if (e - escaped > 1e-9)
-                            {
-                                deposited += e - escaped;
-
-                                // ⛔ ВОЗВРАТ ИЗ ОБВЯЗКИ (`A55`). Вклад засчитан, но
-                                // история на этом НЕ кончается: то, что вылетело,
-                                // идёт дальше тем же обходом — сквозь отражатель и
-                                // корпус, с рассеянием и возможным возвратом в
-                                // кристалл. Прежде здесь стоял голый `break`, и
-                                // вылетевший квант пропадал: полоса между
-                                // комптоновским краем и пиком выходила на 13.7 %
-                                // (662 кэВ) и 17.3 % (1332.5 кэВ) ниже Geant4 — при
-                                // том что на голом кристалле сходилась.
-                                for (int k = 0; k < this.escapeCount; k++)
-                                {
-                                    this.PushPending(this.escX[k], this.escY[k], this.escZ[k],
-                                                     this.escUx[k], this.escUy[k], this.escUz[k],
-                                                     this.escE[k]);
-                                }
-
-                                this.CountEscapeDropped += this.escapeLost;
-                                break;
-                            }
-
-                            // пролетел насквозь без вклада — с дальней грани дальше
-                            double through = this.CrystalPath(x, y, z, ux, uy, uz) + 1e-7;
-                            x += ux * through;
-                            y += uy * through;
-                            z += uz * through;
-                            travelled += through;
-                            continue;
-                        }
-
-                        double step = this.StepToBoundary(x, y, z, ux, uy, uz);
-                        if (step >= double.MaxValue || travelled + step > limit)
-                        {
-                            break;              // ушёл из сцены
-                        }
-
-                        double muKill = here == null ? 0.0 : this.AnalogMu(here, e);
-                        if (muKill > 0.0)
-                        {
-                            double free = -Math.Log(1.0 - this.Uniform()) / muKill;
-                            if (free < step)
-                            {
-                                x += ux * free;
-                                y += uy * free;
-                                z += uz * free;
-                                travelled += free;
-                                double incoherent = here.Incoherent(e);
-                                double coherent = this.RayleighScatter
-                                    ? here.Coherent(e) : 0.0;
-                                double carried;
-                                double channel = this.Uniform() * muKill;
-                                if (channel < coherent)
-                                {
-                                    // Когерентное: только поворот, энергия та же.
-                                    this.Rotate(ref ux, ref uy, ref uz,
-                                                this.RayleighCosine(here, e));
-                                    continue;
-                                }
-
-                                if (channel >= coherent + incoherent)
-                                {
-                                    // Фотопоглощение ИЛИ рождение пары вне кристалла.
-                                    //
-                                    // (`F27`) Прежде фотон здесь просто ПОГИБАЛ, и с
-                                    // ним пропадал характеристический квант вещества
-                                    // — а у тяжёлой пробы это заметная линия: оксид
-                                    // лютеция под собственными гаммами 88/202/307
-                                    // кэВ обязан светить K-рентгеном лютеция
-                                    // 52.97…63.21 кэВ. В кристалле это считалось
-                                    // всегда, вне его — нет; измерено 17.08.2026 на
-                                    // `ASN16_Lu176`, невязка 274σ и 275σ на 51.1 и
-                                    // 60.8 кэВ.
-                                    //
-                                    // Порядок розыгрышей ТОТ ЖЕ, что в кристалле:
-                                    // рентген, направление, потом электрон. Остаток
-                                    // энергии уносит электрон, сумма сохраняется.
-                                    //
-                                    // ⛔ РОЖДЕНИЕ ПАРЫ ВНЕ КРИСТАЛЛА (`A52`,
-                                    // 02.09.2026) — верхний срез оставшегося
-                                    // сечения. Прежде этот канал числился здесь
-                                    // фотопоглощением: квант умирал, а ДВА
-                                    // аннигиляционных по 511 кэВ, которые обязаны
-                                    // были из обвязки полететь, не рождались вовсе.
-                                    //
-                                    // Цена измерена сверкой с Geant4 на сцене
-                                    // `AS80_point0` при 2614.5 кэВ (мир арбитра —
-                                    // пустой, чтобы воздух не мешал): полоса
-                                    // 500…522 кэВ у нас была НА 35 % НИЖЕ. На ГОЛОМ
-                                    // кристалле в той же сверке расхождение полосы
-                                    // 1.3 % — то есть недостача целиком приходилась
-                                    // на обвязку, где канала не было.
-                                    //
-                                    // Отсюда же и свободный образ `Annihilation` в
-                                    // полноспектральном разборе: линию, которую
-                                    // отклик родить не мог, приходилось закрывать
-                                    // подгоняемой амплитудой.
-                                    //
-                                    // Кванты летят СТРОГО в противоположные стороны
-                                    // — тот же довод, что в кристалле: импульс
-                                    // покоящейся пары нулевой.
-                                    double pairMu = here.Pair(e, this.XcomPairThreshold);
-                                    double restMu = muKill - coherent - incoherent;
-                                    if (pairMu > restMu)
-                                    {
-                                        pairMu = restMu;    // сумма каналов не больше полного
-                                    }
-
-                                    if (pairMu > 0.0 && channel >= muKill - pairMu
-                                        && e > 2.0 * ElectronMassKev)
-                                    {
-                                        // (`N4`, П44) Кинетика пары излучает
-                                        // тормозное вещества слоя — под ключом;
-                                        // без ключа ноль и ни одного розыгрыша.
-                                        // (`AMBER44`/`M12`, П94) Под ключом переноса
-                                        // в слоях — лептон пары по Цаю от кванта,
-                                        // перенос в слое и в кристалле.
-                                        if (this.ElectronLayerTransport)
-                                        {
-                                            deposited += this.CarriedElectronDeposit(
-                                                x, y, z, ElectronBirth.Pair, e - 2.0 * ElectronMassKev,
-                                                ux, uy, uz, here.Material, this.pushAnalog);
-                                        }
-                                        else if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
-                                                                           e - 2.0 * ElectronMassKev
-                                                                           - this.OutsideBremsstrahlung(
-                                                                               x, y, z, e - 2.0 * ElectronMassKev,
-                                                                               here.Material, this.pushAnalog),
-                                                                           out carried))
-                                        {
-                                            deposited += carried;
-                                        }
-
-                                        double ax, ay, az;
-                                        this.Isotropic(out ax, out ay, out az);
-                                        // Второй квант ждёт своей проводки в общей
-                                        // очереди (`A55` расширила её с одного места
-                                        // до шести — вылеты из кристалла кладутся
-                                        // туда же).
-                                        this.PushPending(x, y, z, -ax, -ay, -az, ElectronMassKev);
-
-                                        ux = ax;
-                                        uy = ay;
-                                        uz = az;
-                                        e = ElectronMassKev;
-                                        continue;
-                                    }
-
-                                    double xrayOut = this.SampleFluorescenceOutside
-                                        ? this.SampleFluorescence(here, e) : 0.0;
-                                    if (xrayOut > 0.0)
-                                    {
-                                        // (`AMBER44`/`M12`, П94) Направление КВАНТА —
-                                        // опора фотоэлектрона (Заутер—Гаврила) под
-                                        // ключом; без ключа электрон, как было, идёт
-                                        // по направлению рентгена (розыгрыш ниже).
-                                        double gx = ux, gy = uy, gz = uz;
-                                        this.Isotropic(out ux, out uy, out uz);
-                                        if (this.ElectronLayerTransport)
-                                        {
-                                            deposited += this.CarriedElectronDeposit(
-                                                x, y, z, ElectronBirth.Photo, e - xrayOut,
-                                                gx, gy, gz, here.Material, this.pushAnalog);
-                                        }
-                                        else if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
-                                                                           e - xrayOut
-                                                                           - this.OutsideBremsstrahlung(
-                                                                               x, y, z, e - xrayOut,
-                                                                               here.Material, this.pushAnalog),
-                                                                           out carried))
-                                        {
-                                            deposited += carried;
-                                        }
-
-                                        e = xrayOut;
-                                        continue;           // квант летит дальше
-                                    }
-
-                                    if (this.ElectronLayerTransport)
-                                    {
-                                        deposited += this.CarriedElectronDeposit(
-                                            x, y, z, ElectronBirth.Photo, e,
-                                            ux, uy, uz, here.Material, this.pushAnalog);
-                                    }
-                                    else if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
-                                                                       e - this.OutsideBremsstrahlung(
-                                                                           x, y, z, e, here.Material, this.pushAnalog),
-                                                                       out carried))
-                                    {
-                                        deposited += carried;
-                                    }
-
-                                    break;
-                                }
-
-                                double cos;
-                                double after = this.ComptonScatter(here, e, out cos);
-                                comptonOutside = true;              // замер `S55`
-                                if (this.ElectronLayerTransport)
-                                {
-                                    // (`AMBER44`/`M12`, П94) Под ключом: сперва поворот
-                                    // кванта, направление комптон-электрона — из
-                                    // кинематики (импульс до минус после,
-                                    // `ComptonElectronDirection`), как в кристалле;
-                                    // тормозное слоя и перенос — внутри.
-                                    double ux0 = ux, uy0 = uy, uz0 = uz;
-                                    this.Rotate(ref ux, ref uy, ref uz, cos);
-                                    double dx, dy, dz;
-                                    ComptonElectronDirection(e, ux0, uy0, uz0, after, ux, uy, uz,
-                                                             out dx, out dy, out dz);
-                                    deposited += this.CarriedElectronDeposit(
-                                        x, y, z, ElectronBirth.Given, e - after,
-                                        dx, dy, dz, here.Material, this.pushAnalog);
-                                    e = after;
-                                    continue;
-                                }
-
-                                // Занос комптон-электрона — ДО поворота фотона (см.
-                                // шапку ElectronReachesCrystal); фотон летит дальше.
-                                // (`N4`, П44) Сперва тормозное электрона в веществе
-                                // слоя (под ключом), занос — с остатком.
-                                if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
-                                                              e - after - this.OutsideBremsstrahlung(
-                                                                  x, y, z, e - after, here.Material, this.pushAnalog),
-                                                              out carried))
-                                {
-                                    deposited += carried;
-                                }
-
-                                e = after;
-                                this.Rotate(ref ux, ref uy, ref uz, cos);
-                                continue;
-                            }
-                        }
-
-                        double next = step + 1e-7;
-                        x += ux * next;
-                        y += uy * next;
-                        z += uz * next;
-                        travelled += next;
-                    }
-
-                    // Следующий отложенный квант истории: аннигиляционный от пары
-                    // вне кристалла (`A52`) или вылетевший из кристалла (`A55`).
-                    // Обход у него ТОТ ЖЕ; свой путь и своё ограничение считаются
-                    // заново, а `deposited` истории общий — это одно событие
-                    // прибора.
-                    if (this.pendCount > 0)
-                    {
-                        int k = --this.pendCount;
-                        x = this.pendX[k];
-                        y = this.pendY[k];
-                        z = this.pendZ[k];
-                        ux = this.pendUx[k];
-                        uy = this.pendUy[k];
-                        uz = this.pendUz[k];
-                        e = this.pendE[k];
-                        travelled = 0.0;
-                        continue;
-                    }
-
-                    break;
-                }
+                // (`AMBER79`, П147) История — общим методом с кривой и κ
+                // (`AnalogHistory`); арифметика и порядок розыгрышей прежние.
+                bool inWeightedCone;
+                double depositedOutside;
+                bool comptonOutside;
+                double deposited = this.AnalogHistory(energyKev, x, y, z, ref weight, false,
+                                                      out inWeightedCone, out depositedOutside,
+                                                      out comptonOutside);
 
                 if (!(deposited > 0.0))
                 {
                     continue;
                 }
 
-                int bin = (int)(deposited / binKev + 0.5);
-                if (bin >= peak)
+                // ⛔ (`AMBER50`, П122 22.09.2026, физика 23) БИН — ТЕМ ЖЕ ПРАВИЛОМ,
+                // ЧТО У ВЗВЕШЕННОЙ ВЕТВИ (`BinOf`), И ОТБРАСЫВАЕТСЯ ТОЛЬКО БИН ПИКА.
+                // До того бин брался голым округлением, и история с `bin >= peak`
+                // отбрасывалась БЕЗ оговорки про допуск: округлившаяся в бин
+                // пика, но недобравшая больше допуска (`E − dep ∈ (допуск,
+                // допуск + δ]`, `δ = E_узла − peak·бин`) не попадала ни в пик
+                // (взвешенная ветвь её пиком не считает), ни в континуум (ниже
+                // `histogram[b] = hist[b]` перезаписывает бин `peak − 1`, куда её
+                // кладёт `BinOf`). Класс непуст ровно на узлах с `δ > 0`, около
+                // половины сетки, и растёт с `δ`: на `AS80_point0` (замер П122,
+                // `PeakBinLossProbe`) бин `peak − 1` шёл «пилой» по узлам —
+                // 1.85e−3 при δ = +0.90 против 3.45e−3 и 4.00e−3 у соседей с
+                // δ = −0.58 и +0.46; на узлах с δ ≤ 0 (661.657, δ = −0.343)
+                // правка не меняет ни бита. Счётчик `CountPeakBinDropped` с этой
+                // правки считает пик ПО ДОПУСКУ — тем же множеством, что и
+                // взвешенная ветвь, так что встречная проверка ветвей (`A58`,
+                // `G4RawProbe`) сравнивает одно определение с одним.
+                int bin = this.BinOf(peak, binKev, energyKev, deposited);
+                // (`AMBER145`) Второй счёт пика: бин не пиковый, недобор в
+                // допуске по разрешению — тем же весом, что ляжет в бин.
+                this.TallyResolutionPeak(peak, binKev, energyKev, deposited, weight, true);
+                if (bin == peak)
                 {
                     this.CountPeakBinDropped++;
                     // Вес, а не штуки: при наведении конусом (`A57`) история
@@ -8749,6 +10527,25 @@ namespace BecquerelMonitor.EfficiencyMaker
                     if (comptonOutside)
                     {
                         this.CountPeakBinDroppedScattered++;
+                    }
+
+                    // ⛔ (`AMBER66`, П132 22.09.2026) ВНЕ КОНУСА ВЗВЕШЕННОЙ
+                    // ВЕТВИ пик считать НЕКОМУ: такого луча она не рождает.
+                    // Копим его отдельной суммой — `Run` добавит её и в бин
+                    // пика, и в возвращаемую эффективность. Внутри конуса всё
+                    // по-прежнему: там пик за взвешенной оценкой, и классы не
+                    // пересекаются. Счётчик `WeightPeakBinDropped` продолжает
+                    // считать ВЕСЬ пик аналоговой ветви — иначе встречная
+                    // проверка ветвей (`A58`, `G4RawProbe`) потеряла бы свой
+                    // знаменатель.
+                    if (!inWeightedCone)
+                    {
+                        this.CountPeakOutOfCone++;
+                        this.WeightPeakOutOfCone += weight;
+                        this.WeightPeakOutOfCone2 += weight * weight;
+                        outsideWeight += weight;
+                        outsideWeight2 += weight * weight;
+                        outsideLight += weight * this.lightDeposit;
                     }
 
                     continue;               // бин пика — за взвешенной оценкой
@@ -8767,7 +10564,11 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (channels != null)
                 {
-                    ResponseChannel channel = this.ChannelOf(energyKev - deposited);
+                    // (`AMBER52`, П125) Сперва происхождение заноса (седьмой
+                    // канал), потом статьи потери — см. `ChannelOf(escaped,
+                    // deposited, depositedOutside)`. Ниже порога пар
+                    // `depositedOutside` — точный ноль, выбор прежний до бита.
+                    ResponseChannel channel = this.ChannelOf(energyKev - deposited, deposited, depositedOutside);
                     if (channel == ResponseChannel.Peak)
                     {
                         channel = ResponseChannel.Compton;
@@ -8802,6 +10603,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
                 }
             }
+
+            return outsideWeight;
         }
 
         /// <summary>
@@ -8865,7 +10668,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// среднему свету каждого бина (<see cref="LightNonproportionality"/>).
         ///
         /// Якорь — пик полного поглощения: его средний свет объявляется
-        /// равным его же бину, как у прибора, откалиброванного по пикам.
+        /// равным ЭНЕРГИИ УЗЛА (до физики 24 — центру его бина, `AMBER83`),
+        /// как у прибора, откалиброванного по пикам; сам бин пика остаётся
+        /// последним.
         /// Остальные бины встают по отношению своего среднего света к якорю,
         /// вес делится между двумя соседними бинами линейно. Каналы отклика
         /// переносятся ТОЙ ЖЕ картой, что и сумма, — их сумма остаётся равной
@@ -8910,14 +10715,37 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.LastPhotonLightScaleSplit =
                 (light[peak] - this.lightBinSplit) / peakWeight / energyKev;
 
-            // Внутренний якорь берётся к ЦЕНТРУ пикового бина, а не к энергии
-            // линии: бин пика обязан остаться последним, а энергия линии не
-            // кратна шагу, и якорь по ней увёл бы половину пика в соседний бин.
-            double anchorPerBin = light[peak] / peakWeight / (peak * binKev);
+            // ⛔ (`AMBER83`, П147 24.09.2026, физика 24) ЯКОРЬ — К ЭНЕРГИИ
+            // УЗЛА, а не к центру пикового бина. Прежде здесь стояло
+            // `light[peak] / peakWeight / (peak·binKev)` с доводом «бин пика
+            // обязан остаться последним»: вся строка, кроме пика, выходила
+            // растянутой множителем `peak·шаг/E = 1 − δ/E` (δ = E − peak·шаг,
+            // до ±1 кэВ при шаге 2). Пока читатель ставил и пик на центр бина,
+            // это сходилось; после `AMBER70` (П135) пик читается на `E`, а
+            // вылеты (сдвиг на `E_линии − E_узла`), край комптона и канал 6
+            // оставались растянутыми — соседние узлы ставили один вылет в
+            // разные места. Замер П147 (`EscapeAnchorProbeA83`, склад rev33):
+            // наклон разности положения вылета соседних узлов по разности
+            // растяжки `−центр·δ/E` — 1.02 (K), 0.96 (SE), 1.14 (DE), 1.40
+            // (511 извне) у `AS80_point0`; 0.98…1.17 у `RC103_point0`,
+            // 0.80…1.27 у `G1S_point5`; худшее раздвоение K-вылета соседних
+            // узлов 2.0…2.7 кэВ.
+            // «Бин пика — последний» держится теперь ЯВНО: бин пика идёт сам в
+            // себя (ниже), остальные — по отношению своего света к свету пика
+            // в шкале энергии узла; попавшие выше последнего бина зажимаются в
+            // него, как и прежде.
+            double anchorPerBin = light[peak] / peakWeight / energyKev;
             int[] lowBin = new int[histogram.Length];
             double[] lowShare = new double[histogram.Length];
             for (int b = 0; b <= peak; b++)
             {
+                if (b == peak)
+                {
+                    lowBin[b] = peak;
+                    lowShare[b] = 1.0;
+                    continue;
+                }
+
                 double w = histogram[b] * n;
                 double index = b;
                 if (w > 0.0 && light[b] > 0.0)
@@ -9308,29 +11136,29 @@ namespace BecquerelMonitor.EfficiencyMaker
     public sealed class AngularMomentSums
     {
         /// <summary>Историй.</summary>
-        public long N { get; private set; }
+        public long N { get; internal set; }
 
         /// <summary>Σ s, Σ s·P₂, Σ s·P₄ — пик.</summary>
-        public double S0 { get; private set; }
-        public double S2 { get; private set; }
-        public double S4 { get; private set; }
+        public double S0 { get; internal set; }
+        public double S2 { get; internal set; }
+        public double S4 { get; internal set; }
 
         /// <summary>Суммы квадратов и произведений — для шума пиковых Q_k.</summary>
-        public double S00 { get; private set; }
-        public double S22 { get; private set; }
-        public double S44 { get; private set; }
-        public double S02 { get; private set; }
-        public double S04 { get; private set; }
+        public double S00 { get; internal set; }
+        public double S22 { get; internal set; }
+        public double S44 { get; internal set; }
+        public double S02 { get; internal set; }
+        public double S04 { get; internal set; }
 
         /// <summary>То же по ПОЛНОМУ заносу истории.</summary>
-        public double T0 { get; private set; }
-        public double T2 { get; private set; }
-        public double T4 { get; private set; }
-        public double T00 { get; private set; }
-        public double T22 { get; private set; }
-        public double T44 { get; private set; }
-        public double T02 { get; private set; }
-        public double T04 { get; private set; }
+        public double T0 { get; internal set; }
+        public double T2 { get; internal set; }
+        public double T4 { get; internal set; }
+        public double T00 { get; internal set; }
+        public double T22 { get; internal set; }
+        public double T44 { get; internal set; }
+        public double T02 { get; internal set; }
+        public double T04 { get; internal set; }
 
         /// <summary>
         /// Одна история: пиковый счёт `score`, полный занос `total`, косинус

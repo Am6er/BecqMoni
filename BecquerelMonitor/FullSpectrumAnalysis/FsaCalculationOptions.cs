@@ -49,6 +49,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public bool DbLookups;
 
+        /// <summary>
+        /// (П236, прототип; решение Amber 06.10.2026 «Из сета нуклидов») Источник
+        /// состава — АКТИВНЫЙ СЕТ НУКЛИДОВ: ряды по меткам <see cref="NuclideDefinition.Chain"/>,
+        /// одиночки по именам, найденные пики не читаются вовсе. Старше обоих
+        /// прочих источников: при <c>true</c> <see cref="DbLookups"/> не смотрят.
+        /// Сет и его состав входят в отпечаток сеанса (<c>FsaAnalysisSession.NuclideSetStamp</c>).
+        /// </summary>
+        public bool FromSet;
+
         /// <summary>Ряд связан равновесием (`S70`). Действует только при <see cref="DbLookups"/>.</summary>
         public bool ChainEquilibrium = true;
 
@@ -90,9 +99,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return options;
         }
 
-        /// <summary>То же — с активной копии конфигурации спектра.</summary>
+        /// <summary>
+        /// (`AMBER212`, П240 07.10.2026; решения Amber, дословно: «Одно на приложение,
+        /// плюс по умолчанию "From Nucbase"», «Все семь одинаково») ИСТОЧНИК НАСТРОЕК
+        /// ПРИЛОЖЕНИЯ. Ставит его ТОЛЬКО <c>Program.Main</c> — общая настройка
+        /// <see cref="GlobalConfigInfo.FsaCalculation"/>, одна на все спектры и приборы.
+        /// Пока он <c>null</c> (пробы, корпус — <c>Program.Main</c> они не проходят),
+        /// <see cref="Of"/> читает копию конфигурации спектра, как прежде, и ни одно
+        /// корпусное число от этой правки не сдвигается.
+        /// </summary>
+        public static System.Func<FsaCalculationOptions> ApplicationSource;
+
+        /// <summary>
+        /// То же — с активной копии конфигурации спектра; в приложении — с общей
+        /// настройки (<see cref="ApplicationSource"/>), спектр тогда не читается.
+        /// </summary>
         public static FsaCalculationOptions Of(ResultData resultData)
         {
+            System.Func<FsaCalculationOptions> application = ApplicationSource;
+            if (application != null)
+            {
+                return application();
+            }
+
             return FromConfig(resultData != null
                               ? resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig
                               : null);
@@ -165,7 +194,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             get
             {
                 var stamp = new StringBuilder(24);
-                stamp.Append(this.DbLookups ? "db" : "peaks");
+                stamp.Append(this.FromSet ? "set" : (this.DbLookups ? "db" : "peaks"));
                 stamp.Append('|').Append(this.ChainEquilibrium ? "eq" : "free");
                 stamp.Append('|').Append(this.AtomicXray ? "xray" : "-xray");
                 stamp.Append('|').Append(this.CascadeSumming ? "sum" : "-sum");

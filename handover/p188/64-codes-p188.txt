@@ -1,0 +1,14 @@
+=== сборка П188 [rel] 2026-09-30 09:44:12 head=fdd104ff dirty=0 ===
+Restore code=0
+Release app code=0 -> bin\Release_p188_rel\
+probes build_all code=0 -> D:\BqMoni_Claude\p188\build_p188_rel
+sha256 app=fe6af18ec2473d662e3555105c2e0e50c417a7ed190f40a81c92388389e97c72 probe=fe6af18ec2473d662e3555105c2e0e50c417a7ed190f40a81c92388389e97c72 равны=True проб=264
+=== сборка П188 [debug] 2026-09-30 09:45:48 head=fdd104ff dirty=0 ===
+Debug app code=0 -> bin\Debug_p188
+probes build_all (штатный каталог) code=0
+sha256 debug app=51f22cb3b25cbc22f02deed817d16f709e034ffef7358c2845641fe071be9144 probe=51f22cb3b25cbc22f02deed817d16f709e034ffef7358c2845641fe071be9144 равны=True проб=264
+=== сборка П188 [r36] 2026-09-30 09:53:29 src=af8db260 (git archive) ===
+Restore code=0
+Release app code=0 -> bin\Release_p188_r36\
+probes build_all code=0 -> D:\BqMoni_Claude\p188\build_p188_r36
+sha256 app=3ee79d2a1ec145317ef811df270853bca1182e481a94a22e64f699dafb392793 probe=3ee79d2a1ec145317ef811df270853bca1182e481a94a22e64f699dafb392793 равны=True проб=263

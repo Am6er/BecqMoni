@@ -76,6 +76,10 @@ param(
     # `S138`: склад матриц плеча; пустой — штатный склад корпуса.
     [string]$Store = '',
     [switch]$Force,
+    # (`AMBER153` (б)) ПЛЕЧО «ДО ПРАВИЛА»: прогон без правила корпуса «рентген
+    # точечных ЛСРМ ниже ~30 кэВ в амплитуду не идёт». Только для замера А/Б —
+    # каталог, снятый с ключом, базой не объявляется.
+    [switch]$NoCorpusRules,
     [Parameter(ValueFromRemainingArguments = $true)][string[]]$Rest
 )
 $ErrorActionPreference = 'Stop'
@@ -180,6 +184,35 @@ if (-not (Test-Path -LiteralPath $probe)) { throw "нет $probe" }
 $stampTool = Join-Path $repo 'tools\check_declared_base.py'
 $stampFile = Join-Path $Out '.run.json'
 if (Test-Path -LiteralPath $stampFile) { Remove-Item -LiteralPath $stampFile -Force }
+
+# ⛔ ПРАВИЛО КОРПУСА (`AMBER153` (б), П214 02.10.2026). Решение Amber 01.10.2026
+#    вопросником, дословно: «Правило корпуса: рентген не в амплитуду
+#    (Рекомендую)» — у точечных источников ЛСРМ рентген ниже ~30 кэВ в амплитуду
+#    не идёт (капсула источника в сцене не описана). Кому и почему —
+#    `xray_rule.py`; список кладётся В КАТАЛОГ ПРОГОНА (свидетель того, чем снят
+#    прогон) и уходит пробе ключом `--fit-floor-by=`, а ключ — в `$Extra`, то есть
+#    в клеймо прогона (`keys=`). Пустой список — отказ (правилу некому —
+#    значит, манифест или база потеряли паспорта/линии), а не молчаливый прогон
+#    без правила.
+if (-not $NoCorpusRules) {
+    if (-not (Test-Path -LiteralPath $Out)) { New-Item -ItemType Directory -Force -Path $Out | Out-Null }
+    $ruleFile = Join-Path $Out 'xray_rule.csv'
+    $env:PYTHONIOENCODING = 'utf-8'
+    & python (Join-Path $PSScriptRoot 'xray_rule.py') "--write=$ruleFile"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "⛔ ПРАВИЛО КОРПУСА НЕ СОБРАНО (xray_rule.py, код $LASTEXITCODE): прогон не запущен" -ForegroundColor Red
+        exit 67
+    }
+    $Extra = @($Extra) + @("--fit-floor-by=$ruleFile")
+} else {
+    Write-Host "⚠ -NoCorpusRules: прогон БЕЗ правила корпуса AMBER153 (б) — плечо А/Б, базой не объявлять" -ForegroundColor Yellow
+}
+
+# (`AMBER153` ➕, П214) СВЕРКА ЛИНИЙ — всегда: `lines_<режим>.csv` (`--audit`) читает
+#    метрика паспорта (`tools/pie/passport.py`, верх шкалы — 2614/239, 1836/898). Разбор
+#    от ключа не меняется ни в одном бите (замер П214: малая база с `--audit` и без —
+#    побитово, 59 спектров, 24 файла; время то же, ~40 с).
+if (-not (@($Extra) -contains '--audit')) { $Extra = @($Extra) + @('--audit') }
 
 $argv = @("--corpus=$Corpus", "--out=$Out") + $Extra
 Write-Host ("запуск: CorpusFsaProbe.exe " + ($argv -join ' '))

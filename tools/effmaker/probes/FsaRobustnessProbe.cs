@@ -168,7 +168,6 @@ namespace FsaRobustnessProbe
 
             FsaAnalyzer analyzer = new FsaAnalyzer
             {
-                ResponseMatrix = matrix,
                 CascadeSumming = false,
                 CascadeSumPeaks = false,
                 Backscatter = false,
@@ -182,6 +181,8 @@ namespace FsaRobustnessProbe
                 // допустимой» краснело на чистом HEAD с 10.09.2026 (найдено П79).
                 RequireGeometry = false
             };
+            // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик); сцена синтетическая — без геометрии
+            FsaMatrixBinding.Bind(analyzer, null, matrix);
             // (`T243`) ЧЕМ СЧИТАЛИ — ДО СЧЁТА И ВСЛУХ. Настройки здесь
             // выставлены НАБОРОМ ПОЛЕЙ (гейты сняты, `RefitZ` и `HuberM`
             // обнулены), и по выводу этого не было видно ни строки.

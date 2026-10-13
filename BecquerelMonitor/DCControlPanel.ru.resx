@@ -147,9 +147,6 @@
   <data name="spectrumSaveBtn.Text" xml:space="preserve">
     <value>Выбр.</value>
   </data>
-  <data name="roiConfigEditBtn.Text" xml:space="preserve">
-    <value>Редак.</value>
-  </data>
   <data name="reloadFromConfigBtn.ToolTip" xml:space="preserve">
     <value>Применить изменения из конфигурации устройства к текущему спектру</value>
   </data>
@@ -165,23 +162,14 @@
   <data name="clearBgBtn.ToolTip" xml:space="preserve">
     <value>Очистить фоновый спектр</value>
   </data>
-  <data name="clearRoiBtn.ToolTip" xml:space="preserve">
-    <value>Очистить конфигурацию ROI</value>
-  </data>
   <data name="saveWhenFinishedCheckBox.Text" xml:space="preserve">
     <value>Автоматическое сохранение в конце изменения</value>
   </data>
   <data name="devConfigComboBox.ToolTip" xml:space="preserve">
     <value>Выбрать конфигурацию устройства</value>
   </data>
-  <data name="roiConfigComboBox.ToolTip" xml:space="preserve">
-    <value>Выбрать конфигурацию ROI</value>
-  </data>
   <data name="realTimeLimitTextBox.ToolTip" xml:space="preserve">
     <value>Лимит измерения спектра</value>
-  </data>
-  <data name="roiConfigLbl.Text" xml:space="preserve">
-    <value>Настр. ROI</value>
   </data>
   <data name="efficiencyLbl.Text" xml:space="preserve">
     <value>Эффективн.</value>

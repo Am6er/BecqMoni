@@ -1,0 +1,7 @@
+lr ptfe20 code=0 N=100000 extra=[] probe=build_p111 15:08:41 dt=15s
+lr al20 code=0 N=100000 extra=[] probe=build_p111 15:08:58 dt=17s
+lr ptfe1 code=0 N=100000 extra=[] probe=build_p111 15:09:41 dt=43s
+lr ptfe03 code=0 N=100000 extra=[] probe=build_p111 15:09:54 dt=13s
+lr al1 code=0 N=100000 extra=[] probe=build_p111 15:10:11 dt=17s
+lr rc103 code=0 N=100000 extra=[] probe=build_p111 15:11:11 dt=60s
+done lr D:\BqMoni_Claude\p111\lr 15:11:11

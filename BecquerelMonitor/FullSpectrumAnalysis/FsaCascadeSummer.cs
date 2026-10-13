@@ -38,18 +38,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// осталось запасным правилом там, где схемы нет (<see cref="MergedThird"/>).
     ///
     /// ОТКУДА ЭФФЕКТИВНОСТИ. Из САМОЙ матрицы, а не вторым розыгрышем:
-    /// ε_p(E) — сумма строки канала <see cref="EfficiencySimulator.ResponseChannel.Peak"/>
+    /// ε_p(E) — у матрицы формата 11 пиковая эффективность ПО РАЗРЕШЕНИЮ
+    /// (<see cref="ResponseMatrix.PeakEfficiencyResolution"/>, допуск ПШПВ/2,
+    /// `AMBER145`), у матрицы без блока EPRS — сумма строки канала
+    /// <see cref="EfficiencySimulator.ResponseChannel.Peak"/>
     /// (полное поглощение), ε_T(E) — сумма всей строки узла (вероятность
     /// оставить в кристалле хоть что-нибудь). Обе нормированы на квант,
     /// испущенный источником в 4π, — ровно то, что нужно формулам. Второй
     /// розыгрыш дал бы те же числа с другим шумом ГСЧ и стоил бы минуты счёта.
     ///
-    /// ЧТО ПОПРАВКА ТРОГАЕТ. Только канал ПИКА. Вынос из пика — чистая потеря,
-    /// а континуум одновременно теряет свои события и получает чужие суммы, и
-    /// в первом порядке остаётся при своём; красить его тем же множителем
-    /// значило бы выдумать потерю, которой нет. Пики вылета (511, K-рентген)
-    /// теряют наравне с пиком, но их поправка здесь НЕ применяется — они малы,
-    /// а разделять правило на три случая ради этого рано.
+    /// ЧТО ПОПРАВКА ТРОГАЕТ. Канал ПИКА — множителем 1/CF (вынос и влёт).
+    /// Каналы ВЫЛЕТА и заноса аннигиляции извне (одиночный и двойной вылет
+    /// аннигиляции, K- и L-вылет рентгена кристалла, `AnnihilationOutside`)
+    /// — множителем 1 − L_out той же линии, без влёта: партнёр уносит
+    /// событие из любого отклика постоянного положения, а сумма на энергию
+    /// вылета не приходит (`AMBER99`, П148 24.09.2026; арбитр Geant4 —
+    /// Tl-208 на контакте, r_вылета/r_пика 0.996 / 0.980 / 1.02 / 1.003 при
+    /// 1.48 у «не теряет»; журнал `handover/handover-2026-09-24-p148-pileup-summing.md`).
+    /// Применяет `FsaAnalyzer` (`EscapeSurvivals`, рычаг `CascadeEscapeLoss`),
+    /// L_out берётся из <see cref="LineNote.Loss"/>. Континуум одновременно
+    /// теряет свои события и получает чужие суммы и в первом порядке
+    /// остаётся при своём; красить его тем же множителем значило бы
+    /// выдумать потерю, которой нет.
     ///
     /// ⛔ ДОЛЯ ПАРЫ — ИЗ СХЕМЫ УРОВНЕЙ, НЕ ИЗ ПОСТАВКИ (`S176`, 17.09.2026).
     /// Таблица SandiaDecay даёт ПЕРЕЧЕНЬ пар γ-γ и выходы линий, а её
@@ -201,6 +211,44 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public string Nuclide { get; private set; }
         }
 
+        /// <summary>
+        /// (`AMBER124`/`AMBER125`, П166 28.09.2026) ПАРА КАСКАДА ДЛЯ СУММ-КОНТИНУУМА
+        /// И СУММ-ВЫЛЕТОВ: оба кванта пары оставили в кристалле хоть что-нибудь,
+        /// и хотя бы один — не целиком. Полная свёртка откликов пары
+        /// R_i ⊗ R_j без члена «пик ⊗ пик» (он — сумм-пик, <see cref="SumPeak"/>,
+        /// или влёт в CF линии): «пик i + непик j», «непик i + пик j» (сюда же —
+        /// «пик + вылет»: 2614 + SE 583 и т. п., `AMBER125`) и «непик ⊗ непик»
+        /// (`AMBER124`). Кладёт <c>FsaAnalyzer.AccumulateSumPeaks</c>; одиночные
+        /// отклики линий при этом теряют ту же долю (1 − L_out) во ВСЕХ каналах,
+        /// и счёт событий сходится: истина ε_T(i) + ε_T(j) − ε_T(i)·ε_T(j).
+        /// </summary>
+        public sealed class PairContinuum
+        {
+            public PairContinuum(double firstKev, double secondKev, double joint, string nuclide)
+            {
+                this.FirstKev = firstKev;
+                this.SecondKev = secondKev;
+                this.Joint = joint;
+                this.Nuclide = nuclide ?? "";
+            }
+
+            /// <summary>Первая линия пары (носитель в поставке), кэВ.</summary>
+            public double FirstKev { get; private set; }
+
+            /// <summary>Вторая линия пары (партнёр), кэВ.</summary>
+            public double SecondKev { get; private set; }
+
+            /// <summary>
+            /// Совместная доля пары на распад родителя компонента — та же, что
+            /// в площади сумм-пика (выход, условная, угловой множитель, выживание
+            /// третьего S_ij), БЕЗ эффективностей и без κ пиков: эффективности
+            /// придут из строк матрицы.
+            /// </summary>
+            public double Joint { get; private set; }
+
+            public string Nuclide { get; private set; }
+        }
+
         /// <summary>Поправки одного компонента: множители линий и его сумм-пики.</summary>
         public sealed class Correction
         {
@@ -241,9 +289,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public List<SumContinuum> SumContinua { get; set; }
 
             /// <summary>
-            /// Разбор поправки по линиям — только для отчёта
-            /// (<see cref="FsaCascadeSummer.Describe"/>). В счёте не участвует:
-            /// счёт идёт по <see cref="LineFactors"/>.
+            /// (`AMBER124`/`AMBER125`, П166) Пары для сумм-континуума и
+            /// сумм-вылетов (<see cref="PairContinuum"/>): ВСЕ пары нуклида выше
+            /// порога по ε_T, включая те, чей сумм-пик влит в CF линии, срезан
+            /// или ниже порога площади пика, — континуум от этого не зависит.
+            /// </summary>
+            public List<PairContinuum> PairContinua { get; set; }
+
+            /// <summary>
+            /// Разбор поправки по линиям: отчёт (<see cref="FsaCascadeSummer.Describe"/>)
+            /// и — с `AMBER99` (П148) — вынос L_out для каналов вылета в
+            /// `FsaAnalyzer.EscapeSurvivals`. Пик считается по <see cref="LineFactors"/>;
+            /// `Loss` здесь — та же L_out, что сидит в CF пика.
             /// </summary>
             public List<LineNote> Notes { get; set; }
 
@@ -356,6 +413,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// самих, — потому кэш лежит на данных, а не на суммирователе.
             /// </summary>
             public Dictionary<string, ThirdSet> ThirdCache;
+
+            /// <summary>
+            /// (П197, скорость) Кэш <see cref="XrayPairThird"/> по ГАММА-третьим:
+            /// носитель i → третий m → P(γ_m | γ_i ∧ K). Это число от самой
+            /// K-линии пары не зависит (вакансия при i раскладывается по
+            /// источникам одинаково для Kα1, Kα2 и Kβ), а считалось заново на
+            /// каждую из них — ход по источникам × третьим × уровням схемы.
+            /// Лежит на данных по той же причине, что <see cref="ThirdCache"/>.
+            /// </summary>
+            public Dictionary<double, Dictionary<double, double>> XrayGammaThird;
+
+            /// <summary>
+            /// (`AMBER144`, П193) Что присоединено от изомеров дочерних
+            /// (<see cref="AttachDaughterIsomers"/>): строка на изомер. Пусто —
+            /// ничего. Лежит в общем кэше, после загрузки не меняется.
+            /// </summary>
+            public List<string> IsomerAttachments;
         }
 
         /// <summary>(`S177`) Переход в схеме уровней: сама схема и пара уровней «откуда → куда».</summary>
@@ -713,6 +787,52 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static string Notes { get; private set; }
 
+        /// <summary>
+        /// (`S187`, П152 24.09.2026) РАСХОЖДЕНИЯ ПОСТАВОК У НУКЛИДОВ СОСТАВА —
+        /// для окна отчёта (<see cref="FsaResult.SupplyDiscrepancies"/>).
+        ///
+        /// ⛔ ЗАЧЕМ. Слова `AMBER81` и `AMBER100` («perc прочитан как доля
+        /// другой моды», «доля β⁺ ветви: decay_radiations против ENSDF, доли
+        /// по уровням приведены») жили в <see cref="Notes"/> — статической
+        /// строке на весь процесс, которую читают только пробы. Человек за
+        /// экраном не видел, что выход линии 511 и совпадения с ней посчитаны
+        /// по долям, которые программа выбрала между двумя поставками.
+        ///
+        /// Нуклиды — строки СОСТАВА результата (то, что человек видит в
+        /// таблице), ключ — тот же, каким их зовёт сумматор (<see cref="Nucid"/>);
+        /// изомеры (ключ Sandia) и неядерные образы атомных данных не имеют и
+        /// пропускаются, как и в <c>Augment</c>. Отказ базы расхождением не
+        /// считается: у него свой признак.
+        /// </summary>
+        public static List<CascadeAtomicData.SupplyDiscrepancy> SupplyDiscrepanciesOf(FsaResult result)
+        {
+            var found = new List<CascadeAtomicData.SupplyDiscrepancy>();
+            if (result == null || result.Components == null)
+            {
+                return found;
+            }
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (FsaComponentResult component in result.Components)
+            {
+                string nucid = component != null ? Nucid(component.Name) : null;
+                if (string.IsNullOrEmpty(nucid) || !seen.Add(nucid))
+                {
+                    continue;
+                }
+
+                CascadeAtomicData atomic = CascadeAtomicData.Of(nucid);
+                if (atomic == null || atomic.Failed || atomic.Discrepancies == null)
+                {
+                    continue;
+                }
+
+                found.AddRange(atomic.Discrepancies);
+            }
+
+            return found;
+        }
+
         static readonly object NoteGate = new object();
 
         static readonly HashSet<string> NotesSaid =
@@ -831,6 +951,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool LossJointFactor { get; set; }
 
         /// <summary>
+        /// (`AMBER134`, П166 28.09.2026) Вынос из пика ХОДОМ ПО СХЕМЕ ENSDF
+        /// ветви (<see cref="CascadeAtomicData.Branch.Walk"/>) вместо
+        /// произведения по ядерным партнёрам. Ставит анализатор
+        /// (<c>FsaAnalyzer.CascadeBranchSum</c>) до первого <see cref="For"/>;
+        /// выключенный — поведение до П166. Разбор и замер — у <see cref="WalkSurvive"/>.
+        /// </summary>
+        public bool BranchSum { get; set; }
+
+        /// <summary>(`AMBER134`) Линий, чей вынос посчитан ходом по схеме (за процесс, для проб).</summary>
+        public static int BranchWalks;
+
+        /// <summary>
+        /// (`AMBER134`) Линий, у которых схема ENSDF не знала заметного партнёра
+        /// и вынос посчитан прежним произведением (за процесс, для проб).
+        /// </summary>
+        public static int BranchWalkFallbacks;
+
+        /// <summary>
+        /// (`AMBER134`) Порог «заметного» ядерного партнёра для хода по схеме:
+        /// P(партнёр | линия)·ε_T. Партнёр ниже него, которого схема не знает,
+        /// меняет вынос меньше чем на 0.1 %, и отказ от хода из-за него не нужен.
+        /// </summary>
+        const double WalkPartnerFloor = 1.0E-3;
+
+        /// <summary>
         /// (`N14`, П49 13.09.2026) УГЛОВАЯ КОРРЕЛЯЦИЯ В ПАРАХ: площадь
         /// сумм-события пары (<see cref="PairBase"/> — то есть сумм-пики, влёт,
         /// тройные суммы и сумм-континуум) домножается на
@@ -872,8 +1017,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         double AngularFactor(NuclideData data, double[] pair)
         {
-            if (!this.AngularCorrelations || this.AngularQk == null
-                || data.Key == null || data.Key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            // (`AMBER146`, П193) Ключ изомера (`sandia:…`) больше НЕ гасит
+            // корреляцию: коэффициенты ему ищутся по схемам ядер
+            // (<see cref="CoefficientsOf"/>), а не единицей молча.
+            if (!this.AngularCorrelations || this.AngularQk == null || data.Key == null)
             {
                 return 1.0;
             }
@@ -902,7 +1049,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         double AngularLossFactor(NuclideData data, double lineKev, double partnerKev)
         {
             if (!this.AngularCorrelations || this.AngularQk == null
-                || data == null || data.Key == null || data.Key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+                || data == null || data.Key == null)
             {
                 return 1.0;
             }
@@ -929,7 +1076,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             AngularCorrelation.Coefficients w;
             if (!this.angular.TryGetValue(cacheKey, out w))
             {
-                w = AngularCorrelation.ForPair(key, lo, hi);
+                // (`AMBER146`, П193) У изомера строк выходов под нашим `nucid`
+                // нет — переходы ищутся по схемам его ядер (<see cref="IsomerNuclei"/>).
+                w = key.StartsWith(IsomerPrefix, StringComparison.Ordinal)
+                    ? AngularCorrelation.ForPairInNuclei(IsomerNuclei(key), lo, hi)
+                    : AngularCorrelation.ForPair(key, lo, hi);
                 this.angular[cacheKey] = w;
             }
 
@@ -1024,7 +1175,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] total = new double[nodes];
             for (int i = 0; i < nodes; i++)
             {
-                peak[i] = Sum(peakRows != null && i < peakRows.Length ? peakRows[i] : null);
+                // (`AMBER145`, П199) Пиковая эффективность — ПО РАЗРЕШЕНИЮ (допуск
+                // ПШПВ/2 геометрии, определение кривой; блок EPRS формата 11), а не
+                // Σ канала `Peak` (допуск полубином): истории с недобором 1…7 кэВ
+                // лежат в пике после свёртки, и без них сумм-пики и влёт вплотную
+                // занижены на 4…9 % (`CurveVsMatrixP191`). Матрица без блока
+                // (собрана руками) — прежняя Σ канала `Peak`.
+                double[] resolution = matrix.PeakEfficiencyResolution;
+                peak[i] = resolution != null && resolution.Length == nodes
+                    ? resolution[i]
+                    : Sum(peakRows != null && i < peakRows.Length ? peakRows[i] : null);
                 total[i] = Sum(i < matrix.Rows.Length ? matrix.Rows[i] : null);
             }
 
@@ -1041,6 +1201,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // нельзя: без кривой суммы поедут на единицы кэВ, а
                     // выглядеть это будет как «модель промахнулась».
                     Failure = "кривая света для «" + scintillator + "»: " + ex.Message;
+                    FsaDatabaseFailures.Note("matdb.sqlite", scintillator, ex);
                 }
             }
 
@@ -1079,6 +1240,80 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return plain;
             }
 
+            // (П197, скорость) Обращение кривой — 60 шагов деления пополам, а
+            // `CoincidenceFactor` спрашивает видимую сумму КАЖДОЙ пары нуклида
+            // для КАЖДОЙ его линии (влёт), то есть одни и те же суммы по сотне
+            // раз; на тяжёлом ториевом спектре это пятая часть разбора. Ответ —
+            // чистая функция аргументов и кривой, поэтому запомненный ответ
+            // побитово тот же; кривая сменилась (`PhotonLightCurve`
+            // переназначен) — память сбрасывается.
+            var key = new SumKey(first, second, third);
+            lock (this.apparentCache)
+            {
+                if (!string.Equals(this.apparentCurve, this.PhotonLightCurve, StringComparison.Ordinal))
+                {
+                    this.apparentCache.Clear();
+                    this.apparentCurve = this.PhotonLightCurve;
+                }
+
+                double known;
+                if (this.apparentCache.TryGetValue(key, out known))
+                {
+                    return known;
+                }
+            }
+
+            double value = this.InvertLight(first, second, third, plain);
+            lock (this.apparentCache)
+            {
+                if (string.Equals(this.apparentCurve, this.PhotonLightCurve, StringComparison.Ordinal))
+                {
+                    this.apparentCache[key] = value;
+                }
+            }
+
+            return value;
+        }
+
+        /// <summary>(П197) Ключ памяти <see cref="ApparentSum"/>: три энергии побитово, в порядке аргументов.</summary>
+        struct SumKey : IEquatable<SumKey>
+        {
+            readonly long a, b, c;
+
+            public SumKey(double first, double second, double third)
+            {
+                this.a = BitConverter.DoubleToInt64Bits(first);
+                this.b = BitConverter.DoubleToInt64Bits(second);
+                this.c = BitConverter.DoubleToInt64Bits(third);
+            }
+
+            public bool Equals(SumKey other)
+            {
+                return this.a == other.a && this.b == other.b && this.c == other.c;
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is SumKey && this.Equals((SumKey)obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return (((this.a.GetHashCode() * 397) ^ this.b.GetHashCode()) * 397) ^ this.c.GetHashCode();
+                }
+            }
+        }
+
+        /// <summary>(П197) Память <see cref="ApparentSum"/> и кривая, при которой она набрана.</summary>
+        readonly Dictionary<SumKey, double> apparentCache = new Dictionary<SumKey, double>();
+
+        string apparentCurve;
+
+        /// <summary>Само обращение Λ(E) для <see cref="ApparentSum"/> — счёт до П197 без изменений.</summary>
+        double InvertLight(double first, double second, double third, double plain)
+        {
             double target = Light(first) + Light(second) + (third > 0.0 ? Light(third) : 0.0);
 
             // Обращение Λ(E) деление пополам: кривая монотонна по построению
@@ -1374,6 +1609,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<SumPeak> sumPeaks = new List<SumPeak>();
             List<SumPeak> dropped = new List<SumPeak>();
             List<SumContinuum> continua = new List<SumContinuum>();
+            var pairContinua = new List<PairContinuum>();
             List<LineNote> notes = new List<LineNote>();
             bool any = false;
 
@@ -1440,7 +1676,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 var nuclidePeaks = new List<SumPeak>();
                 var nuclideDropped = new List<SumPeak>();
                 this.CollectSumPeaks(component, nuclide, data, scale, strongest, nuclidePeaks,
-                                     continua, nuclideDropped);
+                                     continua, nuclideDropped, pairContinua);
                 TrimByArea(nuclidePeaks, nuclideDropped);
                 sumPeaks.AddRange(nuclidePeaks);
                 dropped.AddRange(nuclideDropped);
@@ -1454,7 +1690,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 sumPeaks.Sort((a, b) => b.Area.CompareTo(a.Area));
             }
 
-            if (continua.Count > 0)
+            if (continua.Count > 0 || pairContinua.Count > 0)
             {
                 any = true;
             }
@@ -1465,6 +1701,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 SumPeaks = sumPeaks,
                 DroppedSumPeaks = dropped,
                 SumContinua = continua,
+                PairContinua = pairContinua,
                 Notes = notes,
                 Any = any
             };
@@ -1605,7 +1842,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         void CollectSumPeaks(FsaComponent component, string nuclide, NuclideData data,
                              double scale, double strongest, List<SumPeak> sumPeaks,
-                             List<SumContinuum> continua, List<SumPeak> dropped)
+                             List<SumContinuum> continua, List<SumPeak> dropped,
+                             List<PairContinuum> pairContinua)
         {
             if (!(scale > 0.0))
             {
@@ -1651,6 +1889,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // Энергия сумм-пика — ВИДИМАЯ (по свету, S20): именно на это
                 // место шкалы событие ложится, и именно с этим местом надо
                 // сверять окна линий компонента.
+                // (`AMBER124`/`AMBER125`, П166) Пара для сумм-континуума — ДО
+                // всех отсевов сумм-пика: влит ли пик в CF линии, срезан ли,
+                // ниже ли порога площади — на континуум не влияет.
+                this.CollectPairContinuum(nuclide, data, pair, scale, floor, pairContinua);
+
                 double energy = this.ApparentSum(pair[0], pair[1]);
                 if (this.PeakEfficiency(energy) <= 0.0)
                 {
@@ -1687,6 +1930,51 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                        continua);
             }
         }
+
+        /// <summary>
+        /// (`AMBER124`/`AMBER125`, П166 28.09.2026) Пара в сумм-континуум.
+        /// Совместная доля — площадь сумм-события пары (<see cref="PairArea"/>:
+        /// выход, условная, угловой множитель, выживание третьего), делённая на
+        /// то, что в ней от ПИКОВ: ε_p(i)·ε_p(j)·κ_pp. Порог — тот же
+        /// <paramref name="floor"/>, что у сумм-пиков (доля сильнейшей линии), но
+        /// по ПОЛНЫМ эффективностям: континуум несёт J·ε_T(i)·ε_T(j) событий.
+        /// </summary>
+        void CollectPairContinuum(string nuclide, NuclideData data, double[] pair, double scale,
+                                  double floor, List<PairContinuum> pairContinua)
+        {
+            if (pairContinua == null || !this.PairContinuumEnabled)
+            {
+                return;
+            }
+
+            double peakFirst = this.PeakEfficiency(pair[0]);
+            double peakSecond = this.PeakEfficiency(pair[1]);
+            double kappa = this.JointFactor(pair[0], pair[1]);
+            if (!(peakFirst > 0.0) || !(peakSecond > 0.0) || !(kappa > 0.0))
+            {
+                return;
+            }
+
+            double joint = scale * this.PairArea(data, pair) / (peakFirst * peakSecond * kappa);
+            if (!(joint > 0.0))
+            {
+                return;
+            }
+
+            double events = joint * this.TotalEfficiency(pair[0]) * this.TotalEfficiency(pair[1]);
+            if (events > floor)
+            {
+                pairContinua.Add(new PairContinuum(pair[0], pair[1], joint, nuclide));
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER124`/`AMBER125`, П166) Собирать ли пары сумм-континуума
+        /// (<see cref="PairContinuum"/>). Ставит анализатор своим рычагом
+        /// (<c>FsaAnalyzer.CascadePairContinuum</c>) до первого <see cref="For"/>;
+        /// выключенный — поведение до П166.
+        /// </summary>
+        public bool PairContinuumEnabled { get; set; }
 
         /// <summary>
         /// Тройные суммы пары (S19). Множитель выживания `S_ij` вычитает из пары
@@ -1744,6 +2032,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // не мерил. Занижение названное: тройные суммы срезает порог
                 // все до одной (`S113`), их вклад 0.8 % от суммы пары.
                 double area = scale * baseArea * third.Value * peakThird;
+                // (П197, скорость) Видимая сумма тройки — обращение кривой света
+                // в 60 шагов — нужна журналу и тем тройкам, что прошли порог; а
+                // порог срезает почти все (`S113`), и счёт её до порога был
+                // главной ценой троек. Без журнала — только после порога.
+                if (!LogTriples && !(area > floor))
+                {
+                    continue;
+                }
+
                 double energy = this.ApparentSum(pair[0], pair[1], third.Key);
                 if (LogTriples)
                 {
@@ -2096,6 +2393,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             var found = new List<LowerCandidate>();
             total = 0.0;
+            // (П197) Выход уровня по энергии — из готового набора схемы (тот же
+            // ближайший выход и та же доля, что `NearestExit` + `GammaShareOf`).
+            CascadeAtomicData.LevelScheme.NearSet near = scheme.ExitsNear(energyKev, SchemeMatchKev);
             foreach (KeyValuePair<int, double> entry in scheme.Reach(start))
             {
                 if (!(entry.Value > 0.0))
@@ -2103,14 +2403,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                CascadeAtomicData.LevelScheme.Exit exit =
-                    scheme.NearestExit(entry.Key, energyKev, SchemeMatchKev);
+                double share;
+                CascadeAtomicData.LevelScheme.Exit exit = near.At(entry.Key, out share);
                 if (exit == null)
                 {
                     continue;
                 }
 
-                double weight = entry.Value * scheme.GammaShareOf(entry.Key, exit);
+                double weight = entry.Value * share;
                 if (!(weight > 0.0))
                 {
                     continue;
@@ -2195,16 +2495,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             double p = 0.0;
             bool above = false;
-            foreach (int level in scheme.Levels)
+            // (П197) Уровни с выходом этой энергии — готовым набором схемы, в
+            // порядке `Levels`: прежний цикл по всем уровням с `NearestExit` на
+            // каждом давал те же слагаемые в том же порядке.
+            foreach (CascadeAtomicData.LevelScheme.NearExit near
+                     in scheme.ExitsNear(mKev, SchemeMatchKev).Items)
             {
-                CascadeAtomicData.LevelScheme.Exit exit = scheme.NearestExit(level, mKev, SchemeMatchKev);
-                if (exit == null)
-                {
-                    continue;
-                }
-
-                p += Segment(scheme, fu, tu, lower, lowerTotal, level, exit.ToSeq,
-                             scheme.GammaShareOf(level, exit), ref above);
+                p += Segment(scheme, fu, tu, lower, lowerTotal, near.Level, near.Exit.ToSeq,
+                             near.Share, ref above);
             }
 
             if (above)
@@ -2251,15 +2549,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double p = 0.0;
-            foreach (int level in scheme.Levels)
+            foreach (CascadeAtomicData.LevelScheme.NearExit near
+                     in scheme.ExitsNear(mKev, SchemeMatchKev).Items)
             {
-                CascadeAtomicData.LevelScheme.Exit exit = scheme.NearestExit(level, mKev, SchemeMatchKev);
-                if (exit == null || exit.ToSeq < fu)
+                if (near.Exit.ToSeq < fu)
                 {
                     continue;
                 }
 
-                p += scheme.ReachOf(exit.ToSeq, fu) * shareU * im / iu;
+                p += scheme.ReachOf(near.Exit.ToSeq, fu) * shareU * im / iu;
             }
 
             return p;
@@ -2464,6 +2762,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Supply = new HashSet<double>()
             };
             var single = new List<LowerCandidate>();
+            Dictionary<VacancyTerm, double> termKeys = null;
             foreach (double m in ThirdKeys(data, i, x))
             {
                 if ((data.XrayShare != null && data.XrayShare.ContainsKey(m))
@@ -2471,6 +2770,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     set.Partners[m] = MaxOfSides(data, i, x, m, set.Supply);
                     continue;
+                }
+
+                // (П197) Гамма-третий при паре γ_i + K от K-линии не зависит:
+                // всё ниже — носитель, его вакансия и схема. Посчитанный для
+                // одной K-линии ответ отдаётся остальным тем же числом.
+                double known;
+                Dictionary<double, double> perCarrier;
+                lock (data)
+                {
+                    if (data.XrayGammaThird == null)
+                    {
+                        data.XrayGammaThird = new Dictionary<double, Dictionary<double, double>>();
+                    }
+
+                    if (!data.XrayGammaThird.TryGetValue(i, out perCarrier))
+                    {
+                        data.XrayGammaThird[i] = perCarrier = new Dictionary<double, double>();
+                    }
+
+                    if (perCarrier.TryGetValue(m, out known))
+                    {
+                        set.Partners[m] = known;
+                        continue;
+                    }
                 }
 
                 // P(m | i) — из партнёров носителя, иначе по схеме.
@@ -2511,8 +2834,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // из партнёров ключа T.
                         single.Clear();
                         single.Add(new LowerCandidate { FromSeq = fi, ToSeq = ti, Weight = 1.0 });
-                        pMT = SchemeThird(data, scheme, t.FromSeq, t.ToSeq, single, 1.0,
-                                          PairKeyOf(data, term.Kev), m);
+                        // (П197) Ключ пары соседа — поиском по таблице выходов,
+                        // один раз на соседа, а не на каждого третьего.
+                        if (termKeys == null)
+                        {
+                            termKeys = new Dictionary<VacancyTerm, double>();
+                        }
+
+                        double termKey;
+                        if (!termKeys.TryGetValue(term, out termKey))
+                        {
+                            termKeys[term] = termKey = PairKeyOf(data, term.Kev);
+                        }
+
+                        pMT = SchemeThird(data, scheme, t.FromSeq, t.ToSeq, single, 1.0, termKey, m);
                     }
                     else
                     {
@@ -2523,7 +2858,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     acc += u * pMT;
                 }
 
-                set.Partners[m] = acc / total;
+                double value = acc / total;
+                set.Partners[m] = value;
+                lock (data)
+                {
+                    perCarrier[m] = value;
+                }
             }
 
             return set;
@@ -2634,6 +2974,89 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// (`AMBER59`, П121) ЧИТАТЕЛЬ ДЛЯ ПРОБ: партнёры линии нуклида ПОСЛЕ
+        /// дополнения атомными участниками — строки {E_партнёра, P(партнёр |
+        /// ключ), кратность, ε_T(партнёра)}, а также ключ таблицы выходов, к
+        /// которому сошлась линия, и выход этого ключа, %. Пусто и NaN —
+        /// нуклид не разбирается или линии нет в таблице выходов. Зачем: у
+        /// слитого ключа Kα (Kα1/Kα2 ближе <see cref="SameLineKev"/>) обратная
+        /// условная делится на выход ключа, и без читателя «выход одного Kα2»
+        /// и «выход всей пары» с виду одно и то же — обе дают CF.
+        /// </summary>
+        public List<double[]> PartnerTable(string nuclide, double energyKev,
+                                           out double key, out double intensity)
+        {
+            key = double.NaN;
+            intensity = double.NaN;
+            var rows = new List<double[]>();
+            NuclideData data = this.Data(nuclide);
+            if (data == null)
+            {
+                return rows;
+            }
+
+            double found;
+            if (!Match(data.Intensity, energyKev, out found))
+            {
+                return rows;
+            }
+
+            key = found;
+            intensity = data.Intensity[found];
+            foreach (KeyValuePair<double, double> partner in Partners(data, found))
+            {
+                double quanta = 1.0;
+                double had;
+                if (data.PartnerQuanta != null
+                    && data.PartnerQuanta.TryGetValue(partner.Key, out had) && had > 0.0)
+                {
+                    quanta = had;
+                }
+
+                rows.Add(new[] { partner.Key, partner.Value, quanta, this.TotalEfficiency(partner.Key) });
+            }
+
+            rows.Sort((a, b) => a[0].CompareTo(b[0]));
+            return rows;
+        }
+
+        /// <summary>
+        /// (`AMBER61`, П121) ЧИТАТЕЛЬ ДЛЯ ПРОБ: разложение K-вакансии при линии
+        /// нуклида по ИСТОЧНИКАМ — строки {E_перехода-источника (0 — захват),
+        /// P(вакансия от этого источника | линия)·ω_K}. Сумма строк — то самое
+        /// `V·ω_K`, на которое умножаются доли серии в `Partners`. Зачем: у
+        /// линии с двумя источниками вакансии (захват и конверсия соседа;
+        /// Ba-133 356: 0.74 + 0.47) сумма долей K-серии в партнёрах больше
+        /// единицы, и «исключающие ответы одной вакансии» надо считать по
+        /// каждому источнику отдельно — читателю нужны слагаемые, а не сумма.
+        /// Пусто — нуклид не разбирается, линии нет или личности у неё нет.
+        /// </summary>
+        public List<double[]> VacancyTable(string nuclide, double energyKev)
+        {
+            var rows = new List<double[]>();
+            NuclideData data = this.Data(nuclide);
+            double key;
+            LineIdentity identity;
+            if (data == null || data.Lines == null || !Match(data.Intensity, energyKev, out key)
+                || !data.Lines.TryGetValue(key, out identity))
+            {
+                return rows;
+            }
+
+            if (identity.Capture > 0.0)
+            {
+                rows.Add(new[] { 0.0, identity.Capture * identity.OmegaK });
+            }
+
+            foreach (VacancyTerm term in identity.Terms)
+            {
+                rows.Add(new[] { term.Kev, term.Conditional * term.AlphaK * term.Together * identity.OmegaK });
+            }
+
+            return rows;
+        }
+
+        /// <summary>
         /// Доля событий, в которых НЕ зарегистрирован НИ ОДИН из партнёров:
         /// `∏_j (1 − p_j)`, где `p_j = P(j|k) · ε_T(j)` (`S144`).
         ///
@@ -2650,15 +3073,102 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// МОЛЧА выключалась ровно там, где она сильнейшая. У произведения
         /// такого исхода нет по построению: оно лежит в [0, 1].
         ///
-        /// ⚠ ПРИБЛИЖЕНИЕ НАЗВАНО: партнёры считаются независимыми при данном
-        /// опорном кванте. У ВЗАИМНО ИСКЛЮЧАЮЩИХ ветвей это чуть занижает
-        /// потерю (верна была бы сумма), но разводить их нечем — условные
-        /// вероятности поставки не несут признака ветви. Родня: `S145`.
+        /// ⚠ ПРИБЛИЖЕНИЕ НАЗВАНО: ЯДЕРНЫЕ партнёры считаются независимыми при
+        /// данном опорном кванте. У ВЗАИМНО ИСКЛЮЧАЮЩИХ ветвей это чуть
+        /// занижает потерю (верна была бы сумма), но разводить их нечем —
+        /// условные вероятности поставки не несут признака ветви. Родня: `S145`.
+        ///
+        /// ⛔ K-СЕРИЯ ОПОРНОЙ ЛИНИИ — ИНАЧЕ (`AMBER61`, П121 22.09.2026,
+        /// решение Amber «вариант — ближе к арбитру»). Kα1, Kα2, Kβ — ответы
+        /// ОДНОЙ вакансии, исключающие друг друга, и разводить их ЕСТЬ чем:
+        /// доли серии (`XrayShare`) и разложение вакансии по источникам
+        /// (`LineIdentity`: захват, конверсия соседей — независимые события)
+        /// коду известны. Множитель выживания по K-серии —
+        ///
+        ///     ∏_v (1 − P_v·ε̄_K − [γ_T·ε_T]),   ε̄_K = Σ_i s_i·ε_i,
+        ///
+        /// по источникам вакансии v; у источника «конверсия перехода T» в тот
+        /// же множитель входит и партнёр-гамма γ_T (при конверсии γ_T нет —
+        /// исключающие исходы одного перехода). Прежнее произведение
+        /// `∏_i (1 − s_i·V·ε_i)` занижало потерю на ≈ 0.3·V²·ε̄² — на сцене P5
+        /// 0.04 % CF (не видно), на контактной сцене Ba-133 356 — CF 1.381
+        /// против 1.403 у формулы выше при 1.4158 ± 0.0022 у Geant4 (в системе
+        /// величин самого Geant4: произведение 1.3925, «вся серия одним
+        /// исключающим множеством» 1.4091, эта формула 1.4145 — журнал полосы
+        /// §5.4). Без личности линии (третий квант пары, `angularKev` = 0) —
+        /// прежний счёт побитово.
         /// </summary>
         double SurviveAll(NuclideData data, Dictionary<double, double> partners,
                           HashSet<double> supply, double referenceKev, double angularKev)
         {
+            // (`AMBER61`) Личность опорной линии — по её ключу (в
+            // `CoincidenceFactor` `angularKev` и есть ключ таблицы выходов).
+            LineIdentity identity = null;
+            if (angularKev > 0.0 && data != null && data.Lines != null && data.XrayShare != null)
+            {
+                data.Lines.TryGetValue(angularKev, out identity);
+            }
+
+            double vacancy = identity != null ? VacancyGiven(identity) : 0.0;
+            double kWeighted = 0.0;                                 // Σ P_i·ε_i' по носителям K-серии
+            Dictionary<double, double> linkedGammas = null;        // γ_T источника вакансии → p·ε'
             double survive = 1.0;
+
+            // (`AMBER134`, П166) Ход по схеме ENSDF: ядерные партнёры, чьи
+            // переходы в схеме есть, копят только СВОЮ ε′ (условную вероятность
+            // задеть кристалл); как они сочетаются — решает схема, а не
+            // произведение.
+            CascadeAtomicData.EnsdfWalk walk = null;
+            CascadeAtomicData.EnsdfWalk.Step own = null;
+            Dictionary<CascadeAtomicData.EnsdfWalk.Step, double> walkDetect = null;
+            if (this.BranchSum && identity != null && identity.Branch != null && identity.Gamma != null)
+            {
+                walk = identity.Branch.Walk;
+                own = walk != null ? walk.StepOf(identity.Gamma.EnergyKev) : null;
+                if (own == null)
+                {
+                    walk = null;
+                }
+                else
+                {
+                    walkDetect = new Dictionary<CascadeAtomicData.EnsdfWalk.Step, double>();
+                }
+
+                // ⛔ СХЕМА ОБЯЗАНА ЗНАТЬ ВСЕХ ЗАМЕТНЫХ ПАРТНЁРОВ. Ядерный партнёр
+                // с P·ε_T ≥ WalkPartnerFloor, чьего перехода в наборе нет, значит
+                // дыру в наборе, а не «пути нет»: у `208TL` линия 583.19 кэВ
+                // записана в `ensdf_gammas` энергией 570.0 без конечного уровня,
+                // уровень 3198 теряет главный выход, питание 2614 по балансу
+                // выходит 87 %, и CF(2614) на контакте падал бы 1.464 → 1.314
+                // (арбитр Geant4 на приложении — журнал П166). Тогда вся линия
+                // считается прежним произведением.
+                if (walk != null)
+                {
+                    foreach (KeyValuePair<double, double> partner in partners)
+                    {
+                        if (data.XrayShare != null && data.XrayShare.ContainsKey(partner.Key))
+                        {
+                            continue;
+                        }
+
+                        double had;
+                        if (data.PartnerQuanta != null && data.PartnerQuanta.TryGetValue(partner.Key, out had) && had > 1.0)
+                        {
+                            continue;
+                        }
+
+                        if (partner.Value * this.TotalEfficiency(partner.Key) >= WalkPartnerFloor
+                            && walk.StepOf(partner.Key) == null)
+                        {
+                            walk = null;
+                            own = null;
+                            walkDetect = null;
+                            System.Threading.Interlocked.Increment(ref BranchWalkFallbacks);
+                            break;
+                        }
+                    }
+                }
+            }
             foreach (KeyValuePair<double, double> partner in partners)
             {
                 double efficiency = this.TotalEfficiency(partner.Key);
@@ -2692,13 +3202,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     efficiency = Math.Min(1.0, efficiency * this.JointFactor(referenceKev, partner.Key));
                 }
 
+                // (`AMBER61`) Носитель K-серии опорной линии — в общий счёт по
+                // источникам вакансии ниже, а не множителем здесь. `Partners`
+                // держит s_i·V (доля серии на вакансию при линии, `Augment`),
+                // и Σ P_i·ε_i' / V — средняя по серии ε̄_K; носитель ниже сетки
+                // матрицы в `Partners` не попал и в ε̄ входит нулём — верно:
+                // до кристалла он не доходит.
+                if (identity != null && vacancy > 0.0 && data.XrayShare.ContainsKey(partner.Key)
+                    && !(data.PartnerQuanta != null && data.PartnerQuanta.ContainsKey(partner.Key)))
+                {
+                    kWeighted += partner.Value * efficiency;
+                    continue;
+                }
+
                 // ⛔ КРАТНОСТЬ ПАРТНЁРА (`S147`). У аннигиляции `Partners` несёт
                 // не вероятность, а ОЖИДАЕМОЕ ЧИСЛО квантов (2·доля β⁺). Два
-                // фотона рождаются ВМЕСТЕ, а не независимо, поэтому верная
-                // потеря равна q·(1−(1−ε)ᵐ), где q — доля события, а m — число
-                // квантов в нём. Прежнее `value·ε` при q = 1 и ε = 0.6 давало
-                // 1.2, зажималось в единицу — «пик потерян целиком» вместо
-                // верных 0.84.
+                // фотона рождаются ВМЕСТЕ, а не независимо, поэтому потеря
+                // равна q·P(хоть один задел), где q — доля события, а m —
+                // число квантов в нём; с `S147` (10.09.2026) это было
+                // q·(1−(1−ε)ᵐ) — кванты независимы по направлению, с П121
+                // (`AMBER60`) — q·min(1, m·ε), кванты спина к спине (ниже).
+                // Прежнее `value·ε` при q = 1 и ε = 0.6 давало 1.2, зажималось
+                // в единицу — «пик потерян целиком» вместо верных 0.84 (S147).
+                // ⚠ Сам пример с ε = 0.6 у внешнего источника нефизичен:
+                // выпуклое тело снаружи видно меньше чем в 2π, ε_T(511) ≤ 0.5,
+                // и `min(1, 2ε)` ниже единицы не достигает — зажим там только
+                // страховка от κ_pT > 1.
                 double quanta = 1.0;
                 if (data != null && data.PartnerQuanta != null)
                 {
@@ -2706,6 +3235,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (data.PartnerQuanta.TryGetValue(partner.Key, out had) && had > 0.0)
                     {
                         quanta = had;
+                    }
+                }
+
+                // (`AMBER134`) Ядерный партнёр, чей переход есть в схеме ENSDF
+                // линии, — в ход по схеме; аннигиляция и рентген — как прежде.
+                if (walk != null && quanta <= 1.0
+                    && !(data.XrayShare != null && data.XrayShare.ContainsKey(partner.Key)))
+                {
+                    CascadeAtomicData.EnsdfWalk.Step step = walk.StepOf(partner.Key);
+                    if (step != null && !ReferenceEquals(step, own))
+                    {
+                        walkDetect[step] = Math.Min(1.0, efficiency);
+                        continue;
                     }
                 }
 
@@ -2759,12 +3301,313 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
-                double miss = Math.Pow(1.0 - efficiency, quanta);
+                // ⛔ КВАНТЫ ОДНОЙ АННИГИЛЯЦИИ НЕСОВМЕСТНЫ В ЗАДЕВАНИИ (`AMBER60`,
+                // П121 22.09.2026). Два кванта 511 летят СТРОГО спина к спине,
+                // и у источника ВНЕ выпуклого кристалла (а все сцены
+                // суммирователя — точка, сосуд, маринелли — снаружи: любая точка
+                // маринелли тоже вне тела кристалла) прямая через точку распада
+                // пересекает кристалл одним отрезком — задеть его может ЛИШЬ
+                // ОДИН из двух. Вероятность «хоть один задел» — не
+                // `1 − (1 − ε)²` независимых, а сумма несовместных `2ε` (в
+                // единицу). То же решение Amber 18.08.2026 для пары 511 + 511
+                // (`CascadeAtomicData.AnnihilationQuanta`: «оба кванта попасть
+                // почти не могут вовсе»). Разница — `ε²`, то есть ε/2 от потери:
+                // на `G1S_point5` (ε_T(511) = 0.0335) вынос 1274.5 Na-22
+                // 0.05963 → 0.06065, CF 1.0632 → 1.0644; у контактной сцены
+                // (ε_T ≈ 0.3) — десятки процентов потери. Второй квант,
+                // рассеянный обвязкой в кристалл при первом в нём же, —
+                // поправка второго порядка, её судит арбитр Geant4 (журнал
+                // полосы). Одиночным партнёрам (`quanta` = 1) формула прежняя.
+                double miss = quanta > 1.0
+                    ? Math.Max(0.0, 1.0 - quanta * efficiency)
+                    : 1.0 - efficiency;
                 double p = share * (1.0 - miss);
+
+                // (`AMBER61`) Гамма перехода-источника вакансии (γ_T при
+                // конверсии T) — в множитель своего источника ниже: γ_T и
+                // K(T) — исключающие исходы одного перехода.
+                if (identity != null && vacancy > 0.0 && quanta <= 1.0
+                    && VacancySourceOf(identity, partner.Key) != null)
+                {
+                    if (linkedGammas == null)
+                    {
+                        linkedGammas = new Dictionary<double, double>();
+                    }
+
+                    linkedGammas[partner.Key] = p;
+                    continue;
+                }
+
                 survive *= p < 1.0 ? 1.0 - p : 0.0;
             }
 
+            // (`AMBER134`, П166) Ход по схеме: ядерные гаммы и конверсия их
+            // переходов в K — по путям; захват — отдельным множителем (он у
+            // вершины пути, P_K по уровням в поставке нет); источники вакансии,
+            // чьих переходов в схеме нет, и их γ_T — прежним правилом.
+            if (walk != null)
+            {
+                double meanK = vacancy > 0.0 ? kWeighted / vacancy : 0.0;
+                var walked = new HashSet<VacancyTerm>();
+                survive *= this.WalkSurvive(walk, own, walkDetect, identity, meanK, walked);
+                System.Threading.Interlocked.Increment(ref BranchWalks);
+                if (vacancy > 0.0 && identity.Capture > 0.0)
+                {
+                    survive *= 1.0 - Math.Min(1.0, identity.Capture * identity.OmegaK * meanK);
+                }
+
+                if (vacancy > 0.0)
+                {
+                    foreach (VacancyTerm term in identity.Terms)
+                    {
+                        if (walked.Contains(term))
+                        {
+                            continue;
+                        }
+
+                        double p = term.Conditional * term.AlphaK * term.Together * identity.OmegaK * meanK;
+                        if (linkedGammas != null)
+                        {
+                            foreach (double gammaKey in new List<double>(linkedGammas.Keys))
+                            {
+                                if (Math.Abs(gammaKey - term.Kev) < SameLineKev)
+                                {
+                                    p += linkedGammas[gammaKey];
+                                    linkedGammas.Remove(gammaKey);
+                                }
+                            }
+                        }
+
+                        survive *= 1.0 - Math.Min(1.0, p);
+                    }
+                }
+
+                if (linkedGammas != null)
+                {
+                    foreach (double p in linkedGammas.Values)
+                    {
+                        survive *= p < 1.0 ? 1.0 - p : 0.0;
+                    }
+                }
+
+                return survive;
+            }
+
+            // (`AMBER61`) Множители по источникам K-вакансии: ответы одной
+            // вакансии исключающи (сумма долей серии), вакансии разных
+            // источников независимы (произведение), γ_T — в множителе своего
+            // перехода.
+            if (identity != null && vacancy > 0.0)
+            {
+                double meanEfficiency = kWeighted / vacancy;
+                if (identity.Capture > 0.0)
+                {
+                    double p = Math.Min(1.0, identity.Capture * identity.OmegaK * meanEfficiency);
+                    survive *= 1.0 - p;
+                }
+
+                foreach (VacancyTerm term in identity.Terms)
+                {
+                    double p = term.Conditional * term.AlphaK * term.Together * identity.OmegaK * meanEfficiency;
+                    if (linkedGammas != null)
+                    {
+                        foreach (double gammaKey in new List<double>(linkedGammas.Keys))
+                        {
+                            if (Math.Abs(gammaKey - term.Kev) < SameLineKev)
+                            {
+                                p += linkedGammas[gammaKey];
+                                linkedGammas.Remove(gammaKey);
+                            }
+                        }
+                    }
+
+                    p = Math.Min(1.0, p);
+                    survive *= 1.0 - p;
+                }
+
+                // Гамма, чей источник совпал по энергии с двумя строками
+                // (межканальный дубль): второй экземпляр — прежним множителем.
+                if (linkedGammas != null)
+                {
+                    foreach (double p in linkedGammas.Values)
+                    {
+                        survive *= p < 1.0 ? 1.0 - p : 0.0;
+                    }
+                }
+            }
+
             return survive;
+        }
+
+        /// <summary>
+        /// (`AMBER134`, П166 28.09.2026) ВЫЖИВАНИЕ ЛИНИИ ПО СХЕМЕ УРОВНЕЙ: доля
+        /// событий с квантом линии в пике, в которых ни один ядерный партнёр и
+        /// ни один K-рентген от конверсии переходов пути не задел кристалл.
+        ///
+        /// ⛔ ПРОИЗВЕДЕНИЕ ∏(1 − P(m|k)·ε_m) ПО ВСЕМ ПАРТНЁРАМ (`S144`) ВЕРНО
+        /// ТОЛЬКО ДЛЯ ПЕРЕХОДОВ ОДНОГО ПУТИ. Питатели уровня линии —
+        /// ВЗАИМНО ИСКЛЮЧАЮЩИЕ ветви (у 81 кэВ Ba-133: 356, 303, 53 → 303,
+        /// 276 → 79.6), и для них верна сумма 1 − Σ P_i·ε_i, а произведение
+        /// занижает вынос. Довод `S144` «разводить нечем» устарел с `S176`/`S177`:
+        /// схема в коде есть. Точная форма — ход по путям:
+        ///
+        ///   S(k) = S↑(U)·S↓(D),  g_t = 1 − (ε′_t + α_K,t·ω_K·ε̄_K·w_t)/(1 + α_t),
+        ///   S↓(L) = Σ_t b_t·g_t·S↓(L_t),  S↑(L) = [f_L + Σ_t N(L_t)·b_t·g_t·S↑(L_t)]/N(L),
+        ///
+        /// U, D — уровни линии, b_t — доля ухода с уровня, N — населённость,
+        /// f — питание по балансу (<see cref="CascadeAtomicData.EnsdfWalk"/>),
+        /// ε′_t — эффективность партнёра так, как её считает цикл
+        /// (<see cref="SurviveAll"/>: с угловым множителем и κ_pT; нет партнёра —
+        /// ноль: гейт по времени или порог его уже сняли), α_K·w — слагаемое
+        /// разложения вакансии этого перехода (<see cref="VacancyTerm"/>; нет
+        /// слагаемого — K-рентгена нет, как и прежде). γ_T и K(T) — исключающие
+        /// исходы одного перехода (`AMBER61`) — стоят в одном g_t сами собой.
+        ///
+        /// Замер (журнал `handover/handover-2026-09-28-p166-fsa-pileup-summing.md`):
+        /// Ba-133 81 кэВ на контакте G1S — CF 1.567 → см. журнал при
+        /// Geant4 1.6329 ± 0.0030.
+        /// </summary>
+        double WalkSurvive(CascadeAtomicData.EnsdfWalk walk, CascadeAtomicData.EnsdfWalk.Step own,
+                           Dictionary<CascadeAtomicData.EnsdfWalk.Step, double> detect,
+                           LineIdentity identity, double meanK, HashSet<VacancyTerm> walked)
+        {
+            var g = new Dictionary<CascadeAtomicData.EnsdfWalk.Step, double>();
+            foreach (CascadeAtomicData.EnsdfWalk.Step step in walk.Steps)
+            {
+                if (ReferenceEquals(step, own))
+                {
+                    continue;
+                }
+
+                double hit;
+                detect.TryGetValue(step, out hit);
+                double kHit = 0.0;
+                if (identity.Terms != null && meanK > 0.0)
+                {
+                    foreach (VacancyTerm term in identity.Terms)
+                    {
+                        if (Math.Abs(term.Kev - step.EnergyKev) < SameLineKev)
+                        {
+                            kHit = Math.Min(step.Alpha, term.AlphaK) * term.Together * identity.OmegaK * meanK;
+                            walked.Add(term);
+                            break;
+                        }
+                    }
+                }
+
+                g[step] = Math.Max(0.0, 1.0 - (hit + kHit) / (1.0 + step.Alpha));
+            }
+
+            // Вниз от конечного уровня линии.
+            var below = new Dictionary<int, double>();
+            for (int index = walk.Descending.Count - 1; index >= 0; index--)
+            {
+                int level = walk.Descending[index];
+                double away;
+                if (!walk.Out.TryGetValue(level, out away) || !(away > 0.0))
+                {
+                    below[level] = 1.0;
+                    continue;
+                }
+
+                double sum = 0.0;
+                foreach (CascadeAtomicData.EnsdfWalk.Step step in walk.Steps)
+                {
+                    if (step.From != level)
+                    {
+                        continue;
+                    }
+
+                    double next;
+                    if (!below.TryGetValue(step.To, out next))
+                    {
+                        next = 1.0;
+                    }
+
+                    double factor;
+                    if (!g.TryGetValue(step, out factor))
+                    {
+                        factor = 1.0;
+                    }
+
+                    sum += step.Weight / away * factor * next;
+                }
+
+                below[level] = sum;
+            }
+
+            // Сверху к начальному уровню линии.
+            var above = new Dictionary<int, double>();
+            var inflow = new Dictionary<int, double>();
+            var weighted = new Dictionary<int, double>();
+            foreach (int level in walk.Descending)
+            {
+                double population;
+                walk.Population.TryGetValue(level, out population);
+                double came, carried;
+                inflow.TryGetValue(level, out came);
+                weighted.TryGetValue(level, out carried);
+                double feed = Math.Max(0.0, population - came);
+                above[level] = population > 0.0 ? (feed + carried) / population : 1.0;
+                double away;
+                if (!walk.Out.TryGetValue(level, out away) || !(away > 0.0))
+                {
+                    continue;
+                }
+
+                foreach (CascadeAtomicData.EnsdfWalk.Step step in walk.Steps)
+                {
+                    if (step.From != level)
+                    {
+                        continue;
+                    }
+
+                    double factor;
+                    if (!g.TryGetValue(step, out factor))
+                    {
+                        factor = 1.0;
+                    }
+
+                    double flow = population * step.Weight / away;
+                    double had;
+                    inflow.TryGetValue(step.To, out had);
+                    inflow[step.To] = had + flow;
+                    weighted.TryGetValue(step.To, out had);
+                    weighted[step.To] = had + flow * factor * above[level];
+                }
+            }
+
+            double up, down;
+            if (!above.TryGetValue(own.From, out up))
+            {
+                up = 1.0;
+            }
+
+            if (!below.TryGetValue(own.To, out down))
+            {
+                down = 1.0;
+            }
+
+            return up * down;
+        }
+
+        /// <summary>
+        /// (`AMBER61`) Слагаемое разложения вакансии, чей переход-источник —
+        /// линия с этим ключом (допуск <see cref="SameLineKev"/>: ключ — из
+        /// таблицы выходов, энергия слагаемого — из `decay_radiations`); null —
+        /// линия не источник вакансии при опорной.
+        /// </summary>
+        static VacancyTerm VacancySourceOf(LineIdentity identity, double key)
+        {
+            foreach (VacancyTerm term in identity.Terms)
+            {
+                if (Math.Abs(term.Kev - key) < SameLineKev)
+                {
+                    return term;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -2893,7 +3736,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         // Эффективности из матрицы
         // ------------------------------------------------------------------
 
-        /// <summary>Пиковая эффективность: сумма строки канала полного поглощения.</summary>
+        /// <summary>
+        /// Пиковая эффективность: у матрицы формата 11 — по разрешению
+        /// (`ResponseMatrix.PeakEfficiencyResolution`, `AMBER145`), иначе сумма
+        /// строки канала полного поглощения.
+        /// </summary>
         public double PeakEfficiency(double energyKev)
         {
             return this.Interpolate(this.peakAtNode, energyKev);
@@ -2906,11 +3753,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Между узлами — логарифмическая интерполяция: сетка узлов
-        /// логарифмическая, и эффективность на ней ложится почти прямой, а
-        /// линейная по энергии заметно врала бы внизу шкалы. За краями
-        /// ЗАЖИМАЕТСЯ: экстраполировать степенным ходом на энергии, где физика
-        /// другая (ниже порога, выше сетки), — верный способ получить ерунду.
+        /// ⛔ (`AMBER136`, П182 29.09.2026) МЕЖДУ УЗЛАМИ — ТЕМ ЖЕ ПРАВИЛОМ, ЧТО
+        /// СМЕШИВАЕТ СТРОКИ САМА МАТРИЦА (<c>ResponseMatrix.Accumulate</c>):
+        /// веса узлов (1 − t) и t, t линейно по энергии, точное попадание в
+        /// узел — строка узла, за краями сетки — крайний узел. Эффективность
+        /// здесь — сумма строки, которую матрица РЕАЛЬНО кладёт в образ на
+        /// этой энергии, и другой быть не может: по ней делится вес сумм-пика
+        /// (<c>FsaAnalyzer.AccumulateSumPeaks</c> кладёт `Area / ε_p` строкой
+        /// матрицы и обязан получить ровно `Area`), по ней же считаются
+        /// выживание линии, площади пар и сумм-континуум — убыль и прибыль
+        /// совпадений, которые обязаны сходиться с тем, что лежит в образе.
+        ///
+        /// До П182 здесь стояла лог-лог интерполяция («сетка логарифмическая,
+        /// эффективность на ней почти прямая»), а матрица смешивала строки
+        /// линейно, и сумм-пик ложился площадью `Area · ε_матрицы / ε_здесь`.
+        /// Замер `AmberFsaProbeP182` по 49 матрицам склада rev35 (середины и
+        /// четверти промежутков): до +6.5 % при 20…40 кэВ, до +29 % при
+        /// 40…100 кэВ (скачок пиковой эффективности у K-края в геометрии),
+        /// 1.4 % при 100…300 кэВ, 0.32 % выше; на искусственной двухузловой
+        /// матрице 100/300 кэВ — +49.9 % на 200 кэВ. Какое правило физически
+        /// точнее между узлами — вопрос МАТРИЦЫ (густоты её сетки), а не
+        /// суммирователя: рисуется и фитуется то, что кладёт она.
         /// </summary>
         double Interpolate(double[] values, double energyKev)
         {
@@ -2920,17 +3783,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return 0.0;
             }
 
-            if (energyKev <= grid[0])
-            {
-                return values[0];
-            }
-
-            int last = grid.Length - 1;
-            if (energyKev >= grid[last])
-            {
-                return values[last];
-            }
-
             int hi = Array.BinarySearch(grid, energyKev);
             if (hi >= 0)
             {
@@ -2938,16 +3790,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             hi = ~hi;
-            int lo = hi - 1;
-            double a = values[lo], b = values[hi];
-            double t = (Math.Log(energyKev) - Math.Log(grid[lo]))
-                       / (Math.Log(grid[hi]) - Math.Log(grid[lo]));
-            if (a > 0.0 && b > 0.0)
+            if (hi <= 0)
             {
-                return Math.Exp(Math.Log(a) + t * (Math.Log(b) - Math.Log(a)));
+                return values[0];
             }
 
-            return a + t * (b - a);
+            if (hi >= grid.Length)
+            {
+                return values[grid.Length - 1];
+            }
+
+            int lo = hi - 1;
+            double span = grid[hi] - grid[lo];
+            double t = span > 0.0 ? (energyKev - grid[lo]) / span : 0.0;
+            return values[lo] * (1.0 - t) + values[hi] * t;
         }
 
         static double Sum(float[] row)
@@ -3020,8 +3876,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return data;
                 }
 
+                // ⛔ (`AMBER199`, 05.10.2026) Отказ — `null` из `Load` или отказ
+                // вложенного читателя (схемы, изомеры дочки) — В КЭШ НЕ
+                // КЛАДЁТСЯ: прежде занятая в миг первого разбора база оставляла
+                // нуклид без поправки на совпадения до перезапуска программы.
+                int failuresBefore = FsaDatabaseFailures.ThreadCount;
                 data = Load(key);
-                Cache[key] = data;
+                if (data != null && FsaDatabaseFailures.ThreadCount == failuresBefore)
+                {
+                    Cache[key] = data;
+                }
+
                 return data;
             }
         }
@@ -3064,53 +3929,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static string SandiaSymbol(string name)
         {
-            if (string.IsNullOrEmpty(name))
+            // ⛔ (`AMBER78`, П149 24.09.2026) Имя разбирает ОДНО место на проект —
+            // <see cref="FsaSampleLibrary.NucidOf"/>, во всех написаниях набора
+            // нуклидов («Ba-137m», «Ba137m1», «137BAm1»). Прежде здесь стоял свой
+            // разбор через дефис, и имя из `NucBase` с настройками по умолчанию
+            // («Ba137m1») ключа не получало — поправки на совпадения не было.
+            string nucid = FsaSampleLibrary.NucidOf(name);
+            int mass;
+            string symbol, state;
+            if (nucid.Length == 0
+                || !CascadeAtomicData.SplitNucid(nucid, out mass, out symbol, out state)
+                || state.Length == 0)
             {
+                // Без хвоста это не изомер, и сюда попадать не должно.
                 return null;
             }
 
-            int dash = name.IndexOf('-');
-            if (dash <= 0 || dash + 1 >= name.Length)
-            {
-                return null;
-            }
-
-            string element = name.Substring(0, dash);
-            string tail = name.Substring(dash + 1);
-            foreach (char c in element)
-            {
-                if (!char.IsLetter(c))
-                {
-                    return null;
-                }
-            }
-
-            // Масса, затем хвост изомера: «137m», «154m2». Без хвоста это не
-            // изомер, и сюда попадать не должно.
-            int digits = 0;
-            while (digits < tail.Length && char.IsDigit(tail[digits]))
-            {
-                digits++;
-            }
-
-            if (digits == 0 || digits == tail.Length)
-            {
-                return null;
-            }
-
-            string suffix = tail.Substring(digits);
-            foreach (char c in suffix)
-            {
-                if (!char.IsLetterOrDigit(c))
-                {
-                    return null;
-                }
-            }
-
-            return char.ToUpperInvariant(element[0])
-                   + element.Substring(1).ToLowerInvariant()
-                   + tail.Substring(0, digits)
-                   + suffix.ToLowerInvariant();
+            // Первый изомер у нас бывает и «m», и «m1» (две записи одного
+            // соглашения в базе), а у Sandia он «m»; второй и выше — «m2», «m3»
+            // у обоих.
+            string sandiaState = string.Equals(state, "m1", StringComparison.Ordinal) ? "m" : state;
+            return char.ToUpperInvariant(symbol[0])
+                   + symbol.Substring(1).ToLowerInvariant()
+                   + mass.ToString(CultureInfo.InvariantCulture)
+                   + sandiaState;
         }
 
         static NuclideData Load(string key)
@@ -3127,8 +3969,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             try
             {
+                // (`AMBER201`) Строка подключения — построителем, не склейкой (здесь
+                // и в двух читателях ниже): `;` в имени каталога программы разрезал
+                // строку, и база не открывалась.
                 using (SqliteConnection connection = new SqliteConnection(
-                    "Data Source=" + DatabasePath() + ";Mode=ReadOnly;Cache=Shared;"))
+                    EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(DatabasePath(), true)))
                 {
                     connection.Open();
                     using (SqliteCommand command = connection.CreateCommand())
@@ -3177,6 +4022,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // «поправка ничего не сделала» и «поправка не смогла» с виду
                 // одно и то же, и без записанной причины разница теряется.
                 Failure = key + ": " + error.Message;
+                FsaDatabaseFailures.Note("nucdb.sqlite", key, error);
                 return null;
             }
 
@@ -3191,11 +4037,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // `fraction` заменяется P(B|A), посчитанной ходом по схеме
             // дочернего ядра. Пары, которым в схеме места не нашлось, остаются
             // с долей поставки — и помечены как списанные из неё.
+            //
+            // (`AMBER144`, П193) Перед этим — пары изомера ДОЧЕРНЕГО ядра,
+            // которые поставка держит под отдельным нуклидом (Bi-207: пара
+            // 1063.66 + 569.70 лежит под `Pb207m`).
+            AttachDaughterIsomers(key, data);
             bool[] fromSupply = RectifyBySchemes(key, data);
 
             // Пара лежит в базе ОДИН раз и направленно; обратная условная
             // считается через отношение выходов: P(A|B) = P(B|A)·I(A)/I(B)
             // (database/scheme.md, §8).
+            //
+            // ⚠ (`AMBER144`, П193 01.10.2026) Выходы здесь — поставки (у
+            // присоединённого изомера дочки — сложенные, `AttachDaughterIsomers`:
+            // у Bi-207 569.70 97.66 % против 97.75 библиотеки, P(1770 | 570) 0.070
+            // вместо прежних 0.43). Пункт строки «выходы обратной условной — из
+            // библиотеки у ВСЕХ нуклидов» померен полосой и НЕ внесён: на малой
+            // базе он двигает ещё 11 спектров понятной части из 45 (ASN16_Lu176
+            // χ²/ndf 3.874 → 3.898, Eu-152/Ba-133/Th-228 +0.001…0.003, сумма
+            // +0.046) без выигрыша — решение за Amber (журнал П193).
             for (int index = 0; index < data.Pairs.Count; index++)
             {
                 double[] pair = data.Pairs[index];
@@ -3240,6 +4100,402 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             return table;
         }
+
+        /// <summary>
+        /// (`AMBER144`, П193) ВЫХОДЫ ЛИНИЙ НУКЛИДА, какими их видит счёт пар
+        /// (% на распад родителя): поставка SandiaDecay плюс присоединённые
+        /// изомеры дочерних (<see cref="AttachDaughterIsomers"/>), ДО дополнения
+        /// атомными партнёрами. Читатель — сторож `CascadeYieldGuardProbe`
+        /// (выход линии против библиотеки). Пусто — нуклид не разбирается.
+        /// Копия: таблица лежит в общем кэше.
+        /// </summary>
+        public static Dictionary<double, double> LineYields(string nuclide)
+        {
+            var table = new Dictionary<double, double>();
+            string key = ParentKey(nuclide);
+            NuclideData data = key != null ? BaseData(key) : null;
+            if (data == null)
+            {
+                return table;
+            }
+
+            foreach (KeyValuePair<double, double> entry in data.Intensity)
+            {
+                table[entry.Key] = entry.Value;
+            }
+
+            return table;
+        }
+
+        /// <summary>
+        /// (`AMBER144`, П193) Что присоединено к нуклиду от изомеров дочерних:
+        /// по строке на изомер — «символ Sandia, доля прохода f, пар». Пусто —
+        /// ничего (у подавляющего большинства нуклидов). Для проб и сторожа.
+        /// </summary>
+        public static List<string> IsomerAttachments(string nuclide)
+        {
+            string key = ParentKey(nuclide);
+            NuclideData data = key != null ? BaseData(key) : null;
+            return data != null && data.IsomerAttachments != null
+                ? new List<string>(data.IsomerAttachments)
+                : new List<string>();
+        }
+
+        /// <summary>
+        /// (`AMBER144`, П193) Ниже этой доли прохода изомер дочки не
+        /// присоединяется: его линий в библиотеке родителя практически нет
+        /// (изомер живёт своей жизнью — отдельный член ряда или не
+        /// населяется), и пары с весом 1e-3 ничего не меняют.
+        /// </summary>
+        const double IsomerPassFloor = 1.0E-3;
+
+        /// <summary>
+        /// (`AMBER144`, П193) Порог доли прохода, меренной РАЗНОСТЬЮ «библиотека −
+        /// поставка родителя» на линии, которая есть у обоих: ниже него разность —
+        /// разнобой двух оценок одной линии, а не проход через изомер.
+        /// </summary>
+        const double IsomerPassDiffFloor = 0.05;
+
+        /// <summary>
+        /// (`AMBER144`, П193) Линия изомера, которой нет у родителя, годится мерой
+        /// прохода при выходе не ниже этого, % на распад изомера.
+        /// </summary>
+        const double IsomerAbsentLineFloor = 1.0;
+
+        /// <summary>
+        /// Ближайший ключ таблицы выходов в допуске <see cref="SchemeMatchKev"/>
+        /// (две оценки одной линии); false — такого нет.
+        /// </summary>
+        static bool NearestKey(Dictionary<double, double> table, double energyKev, out double key)
+        {
+            key = 0.0;
+            double best = SchemeMatchKev;
+            bool ok = false;
+            foreach (double candidate in table.Keys)
+            {
+                double delta = Math.Abs(candidate - energyKev);
+                if (delta < best)
+                {
+                    best = delta;
+                    key = candidate;
+                    ok = true;
+                }
+            }
+
+            return ok;
+        }
+
+        /// <summary>
+        /// (`AMBER144`, П193 01.10.2026) ПРИСОЕДИНИТЬ ПАРЫ ИЗОМЕРА ДОЧЕРНЕГО
+        /// ЯДРА к родителю.
+        ///
+        /// ⛔ ЧТО БЫЛО. Поставка SandiaDecay делит распад на долгоживущем
+        /// уровне дочки: у Bi-207 пара 1063.66 + 569.70 (каскад после изомера
+        /// Pb-207m, 1633.4 кэВ, 0.806 с, P = 0.978) лежит под отдельным
+        /// нуклидом `Pb207m`, у `207BI` — только 1770+570, 1442+898, 1442+570,
+        /// а выход 569.70 — 15.57 % (прямая часть) вместо 97.75 % библиотеки.
+        /// `RectifyBySchemes` переоценивал доли лишь ИМЕЮЩИХСЯ пар: сумм-пика
+        /// 1633 кэВ в модели не было, CF(1063.66) 1.0008 вместо ≈ 1.037, а
+        /// обратная условная P(1770 | 570) шла через 15.57 % — 0.43 вместо
+        /// 0.070 (журнал П191, `AMBER144`).
+        ///
+        /// КАК. Для каждой дочки родителя (`decay_chain`) берутся её изомеры в
+        /// поставке (`isomer` ≥ 1) с парами. Доля прохода f — сколько распадов
+        /// родителя идут через изомер — меряется по библиотеке родителя
+        /// (`decay_radiations`, то же правило уровня): по сильнейшей линии
+        /// изомера, которой у родителя в поставке нет, f = I_библ / I_изомер
+        /// (у Bi-207 1063.66: 74.5/88.8 = 0.839); нет такой — разностью на
+        /// сильнейшей f = (I_библ − I_пост,родитель) / I_изомер с порогом
+        /// <see cref="IsomerPassDiffFloor"/>. Изомер, чьих
+        /// линий в библиотеке родителя нет (f < <see cref="IsomerPassFloor"/>),
+        /// не присоединяется — библиотека его родителю не приписывает, и пары
+        /// без линий были бы выдумкой. Дальше:
+        ///   * выход линии изомера прибавляется к выходу родителя: I += f·I_m
+        ///     (у Bi-207 569.70: 15.57 + 0.839·97.76 = 97.6 против 97.75
+        ///     библиотеки — обратная условная идёт через полный выход);
+        ///   * доля P(B|A) — условная при линии A — у пар родителя с той же
+        ///     опорой A разбавляется весом I_пост(A)/I(A), пара изомера входит
+        ///     с весом f·I_m(A)/I(A): P(B|A) = Σ Iᵢ·Pᵢ(B|A) / Σ Iᵢ по путям,
+        ///     которыми рождается A;
+        ///   * после этого <see cref="RectifyBySchemes"/> переоценивает доли
+        ///     ходом по схеме дочки, как у всех (у 1063.66 конечный уровень
+        ///     569.7 — P(570 | 1064) по схеме с конверсией 570).
+        ///
+        /// Почему ПРИСОЕДИНЕНИЕ, а не перечень пар заново ходом по схеме
+        /// ENSDF (выбор полосы П193). Поставка полна там, где изомера нет
+        /// (`pair_walk.py` П191: 50 ходовых нуклидов, пропусков ноль, кроме
+        /// Bi-207 и Cs-136 — оба изомер дочки), то есть дыра — ровно на стыке,
+        /// и поставка же держит недостающий кусок под изомером. Ход по схеме
+        /// заменил бы перечень у всех нуклидов разом и сдвинул бы корпус там,
+        /// где дефекта нет; присоединение трогает только родителей с изомером
+        /// дочки, чьи линии в библиотеке родителя есть.
+        ///
+        /// ⚠ ПРИБЛИЖЕНИЕ НАЗВАНО: пары ЧЕРЕЗ изомер (квант до него + квант
+        /// после) не строятся — их нет ни под родителем, ни под изомером. Для
+        /// изомеров поставки (периоды от долей секунды: Pb-207m 0.806 с,
+        /// Ba-136m 0.31 с) вероятность пройти окно в микросекунды —
+        /// `PassProbability` ~ окно·ln2/T½ ≈ 1e-6, то есть ноль и есть верный
+        /// ответ. Пары внутри изомера взаимно мгновенны (он их и делит), гейт
+        /// времени им не нужен.
+        /// </summary>
+        static void AttachDaughterIsomers(string key, NuclideData data)
+        {
+            if (data == null || key == null || key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            List<string> daughters = DaughterNames(key);
+            if (daughters.Count == 0)
+            {
+                return;
+            }
+
+            // Изомеры дочек по символу Sandia: линии и пары. Порядок — по
+            // символу, чтобы присоединение не зависело от порядка строк.
+            var lines = new SortedDictionary<string, Dictionary<double, double>>(StringComparer.Ordinal);
+            var pairs = new SortedDictionary<string, List<double[]>>(StringComparer.Ordinal);
+            try
+            {
+                using (SqliteConnection connection = new SqliteConnection(
+                    EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(DatabasePath(), true)))
+                {
+                    connection.Open();
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        foreach (string daughter in daughters)
+                        {
+                            command.Parameters.Clear();
+                            command.Parameters.AddWithValue("$n", daughter);
+                            command.CommandText =
+                                "select sandia_symbol, energy_kev, coinc_energy_kev, fraction"
+                                + " from v_gamma_coincidence where nucid = $n and isomer > 0";
+                            using (SqliteDataReader reader = command.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    string symbol = reader.IsDBNull(0) ? null : reader.GetString(0);
+                                    if (string.IsNullOrEmpty(symbol))
+                                    {
+                                        continue;
+                                    }
+
+                                    List<double[]> bag;
+                                    if (!pairs.TryGetValue(symbol, out bag))
+                                    {
+                                        pairs[symbol] = bag = new List<double[]>();
+                                    }
+
+                                    bag.Add(new[] { reader.GetDouble(1), reader.GetDouble(2), reader.GetDouble(3) });
+                                }
+                            }
+
+                            command.CommandText =
+                                "select sandia_symbol, energy_kev, intensity_pct"
+                                + " from v_gamma_coincidence_line where nucid = $n and isomer > 0";
+                            using (SqliteDataReader reader = command.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    string symbol = reader.IsDBNull(0) ? null : reader.GetString(0);
+                                    if (string.IsNullOrEmpty(symbol) || !pairs.ContainsKey(symbol))
+                                    {
+                                        continue;
+                                    }
+
+                                    Dictionary<double, double> bag;
+                                    if (!lines.TryGetValue(symbol, out bag))
+                                    {
+                                        lines[symbol] = bag = new Dictionary<double, double>();
+                                    }
+
+                                    bag[reader.GetDouble(1)] = reader.GetDouble(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception error)
+            {
+                // Не прочлось — работаем без присоединения, как до него, но вслух.
+                Failure = key + ": пары изомеров дочки не прочлись: " + error.Message;
+                FsaDatabaseFailures.Note("nucdb.sqlite", key, error);
+                return;
+            }
+
+            if (pairs.Count == 0)
+            {
+                return;
+            }
+
+            // Библиотека родителя: выходы `decay_radiations` тем же правилом
+            // уровня, что у образов (через `CascadeAtomicData`, один читатель).
+            CascadeAtomicData library = CascadeAtomicData.Nuclear(key);
+            if (library == null || library.Failed || library.GammaIntensity == null)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<string, List<double[]>> group in pairs)
+            {
+                Dictionary<double, double> isomerLines;
+                if (!lines.TryGetValue(group.Key, out isomerLines) || isomerLines.Count == 0)
+                {
+                    continue;
+                }
+
+                // Доля прохода — по сильнейшей линии изомера, которой у родителя
+                // в поставке НЕТ (у Bi-207 это 1063.66: 74.5/88.8 = 0.839), — там
+                // библиотека говорит о проходе прямо. Нет такой — по сильнейшей
+                // вообще, разностью «библиотека − поставка родителя», и тогда с
+                // порогом <see cref="IsomerPassDiffFloor"/>: разность двух оценок
+                // одной линии в доли процента — не проход, а их разнобой (замер
+                // П193 по всей поставке: In-109 → Cd109m2 давал 0.0075, Se-88 →
+                // Br88m 0.006 из 74.2 − 73.5 и т. п.).
+                double strongestKev = 0.0, strongest = 0.0, absentKev = 0.0, absent = 0.0;
+                foreach (KeyValuePair<double, double> line in isomerLines)
+                {
+                    if (line.Value > strongest)
+                    {
+                        strongest = line.Value;
+                        strongestKev = line.Key;
+                    }
+
+                    double ignored;
+                    if (line.Value > absent && !NearestKey(data.Intensity, line.Key, out ignored))
+                    {
+                        absent = line.Value;
+                        absentKev = line.Key;
+                    }
+                }
+
+                bool byAbsent = absent >= IsomerAbsentLineFloor;
+                double referenceKev = byAbsent ? absentKev : strongestKev;
+                double referencePct = byAbsent ? absent : strongest;
+                double libraryPct = 0.0, gap = SchemeMatchKev;
+                bool inLibrary = false;
+                foreach (CascadeAtomicData.GammaLine row in library.GammaIntensity)
+                {
+                    double delta = Math.Abs(row.EnergyKev - referenceKev);
+                    if (delta < gap)
+                    {
+                        gap = delta;
+                        libraryPct = row.IntensityPct;
+                        inLibrary = true;
+                    }
+                }
+
+                if (!inLibrary || !(referencePct > 0.0))
+                {
+                    continue;
+                }
+
+                double ownKey, ownPct = 0.0;
+                if (!byAbsent && NearestKey(data.Intensity, referenceKev, out ownKey))
+                {
+                    ownPct = data.Intensity[ownKey];
+                }
+
+                double pass = (libraryPct - ownPct) / referencePct;
+                if (!(pass >= (byAbsent ? IsomerPassFloor : IsomerPassDiffFloor)))
+                {
+                    continue;
+                }
+
+                if (pass > 1.0)
+                {
+                    pass = 1.0;
+                }
+
+                // Выходы: до и после — для разбавления условных долей.
+                var before = new Dictionary<double, double>(data.Intensity);
+                var keyOf = new Dictionary<double, double>();
+                foreach (KeyValuePair<double, double> line in isomerLines)
+                {
+                    // Ключ — допуском двух оценок (0.6 кэВ), а не линии компонента
+                    // (0.3): у La-131 108.08 против 108.45 у Ba131m — одна линия,
+                    // и с 0.3 она раздваивалась (выход ×2 у сторожа, П193).
+                    double shared;
+                    if (!NearestKey(data.Intensity, line.Key, out shared))
+                    {
+                        shared = line.Key;
+                        data.Intensity[shared] = 0.0;
+                    }
+
+                    keyOf[line.Key] = shared;
+                    data.Intensity[shared] += pass * line.Value;
+                }
+
+                // Пары, уже лежащие у родителя, с опорой, чей выход вырос:
+                // условная доля разбавляется весом прежнего выхода.
+                foreach (double[] pair in data.Pairs)
+                {
+                    double had, now;
+                    if (before.TryGetValue(pair[0], out had) && data.Intensity.TryGetValue(pair[0], out now)
+                        && now > had && now > 0.0)
+                    {
+                        pair[2] *= had / now;
+                    }
+                }
+
+                int added = 0;
+                foreach (double[] pair in group.Value)
+                {
+                    double fromKey, toKey, ownLine;
+                    if (!keyOf.TryGetValue(pair[0], out fromKey) || !keyOf.TryGetValue(pair[1], out toKey)
+                        || !isomerLines.TryGetValue(pair[0], out ownLine))
+                    {
+                        continue;
+                    }
+
+                    double total = data.Intensity[fromKey];
+                    if (!(total > 0.0))
+                    {
+                        continue;
+                    }
+
+                    double share = pair[2] * pass * ownLine / total;
+                    double[] existing = null;
+                    foreach (double[] other in data.Pairs)
+                    {
+                        if (other[0] == fromKey && other[1] == toKey)
+                        {
+                            existing = other;
+                            break;
+                        }
+                    }
+
+                    if (existing != null)
+                    {
+                        existing[2] += share;
+                    }
+                    else
+                    {
+                        data.Pairs.Add(new[] { fromKey, toKey, share });
+                    }
+
+                    added++;
+                }
+
+                if (data.IsomerAttachments == null)
+                {
+                    data.IsomerAttachments = new List<string>();
+                }
+
+                data.IsomerAttachments.Add(string.Format(CultureInfo.InvariantCulture,
+                    "{0}: f = {1:F4} (по {2:F3} кэВ{7}: библиотека {3:F3} %, у родителя {4:F3} %, у изомера {5:F3} %), пар {6}",
+                    group.Key, pass, referenceKev, libraryPct, ownPct, referencePct, added,
+                    byAbsent ? ", у родителя её нет" : ", разностью"));
+                lock (Gate)
+                {
+                    IsomerPairsAttached += added;
+                }
+            }
+        }
+
+        /// <summary>(`AMBER144`) Сколько пар изомеров дочек присоединено за процесс (для проб).</summary>
+        public static int IsomerPairsAttached;
 
         /// <summary>
         /// Допуск сопоставления линии поставки совпадений с переходом схемы,
@@ -3369,15 +4625,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 fromSupply[i] = true;
             }
 
-            if (data.Pairs.Count == 0 || key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            if (data.Pairs.Count == 0)
             {
-                // Изомеру дочерних в `decay_chain` не найти (S27: у него нет
-                // своей строки), доли остаются поставочными.
                 return fromSupply;
             }
 
+            // ⛔ (`AMBER146`, П193 01.10.2026) ИЗОМЕР БОЛЬШЕ НЕ ПРОПУСКАЕТСЯ.
+            // Своей строки в `decay_chain` у него нет (S27), и до этого дня
+            // доли его пар оставались поставочными — с лишним множителем на
+            // каждый пройденный уровень (у Ag-110m 0.957, у 1384.3 → 657.8 —
+            // 0.957², при физических ≈ 1.0; тот же множитель у Eu-152 давал
+            // 2.7 раза, `S176`). Ядра изомера — <see cref="IsomerNuclei"/>:
+            // дочерние основного состояния и само ядро (изомерный переход).
+            List<int[]> nuclei = key.StartsWith(IsomerPrefix, StringComparison.Ordinal)
+                ? IsomerNuclei(key)
+                : Daughters(key);
             var schemes = new List<CascadeAtomicData.LevelScheme>();
-            foreach (int[] daughter in Daughters(key))
+            foreach (int[] daughter in nuclei)
             {
                 CascadeAtomicData.LevelScheme scheme =
                     CascadeAtomicData.LevelScheme.Of(daughter[0], daughter[1]);
@@ -3616,16 +4880,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static List<int[]> Daughters(string nucid)
         {
             var found = new List<int[]>();
+            foreach (string name in DaughterNames(nucid))
+            {
+                int z = CascadeAtomicData.ChargeOf(name);
+                int a = CascadeAtomicData.MassOf(name);
+                if (z > 0 && a > 0)
+                {
+                    found.Add(new[] { z, a });
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// Дочерние родителя ИМЕНАМИ (`nucid`) — тот же запрос, что у
+        /// <see cref="Daughters"/> (вынесен 01.10.2026, П193: присоединению пар
+        /// изомера дочки, `AMBER144`, нужны имена, а не (Z, A)). Петли сняты;
+        /// пусто — родителя в цепочках нет либо база не прочлась.
+        /// </summary>
+        static List<string> DaughterNames(string nucid)
+        {
+            var found = new List<string>();
             try
             {
                 using (SqliteConnection connection = new SqliteConnection(
-                    "Data Source=" + DatabasePath() + ";Mode=ReadOnly;Cache=Shared;"))
+                    EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(DatabasePath(), true)))
                 {
                     connection.Open();
                     using (SqliteCommand command = connection.CreateCommand())
                     {
                         command.CommandText =
-                            "select distinct daughter_nucid from decay_chain d where nucid = $n"
+                            "select distinct daughter_nucid from" + DecayParentRule.ChainTable + " d where nucid = $n"
                             + DecayParentRule.ChainLevelClause;
                         command.Parameters.AddWithValue("$n", nucid);
                         using (SqliteDataReader reader = command.ExecuteReader())
@@ -3634,29 +4920,112 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             {
                                 string name = reader.IsDBNull(0) ? null : reader.GetString(0);
                                 if (string.IsNullOrEmpty(name)
-                                    || string.Equals(name, nucid, StringComparison.OrdinalIgnoreCase))
+                                    || string.Equals(name, nucid, StringComparison.OrdinalIgnoreCase)
+                                    || found.Contains(name))
                                 {
                                     continue;
                                 }
 
-                                int z = CascadeAtomicData.ChargeOf(name);
-                                int a = CascadeAtomicData.MassOf(name);
-                                if (z > 0 && a > 0)
-                                {
-                                    found.Add(new[] { z, a });
-                                }
+                                found.Add(name);
                             }
                         }
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception error)
             {
                 // Без цепочки схемы не найти: доли остаются поставочными, и
                 // это видно по нулевому SchemePairs у нуклида с парами.
+                // (`AMBER199`) отказ назван — и данные нуклида не кэшируются
+                FsaDatabaseFailures.Note("nucdb.sqlite", nucid, error);
             }
 
             return found;
+        }
+
+        /// <summary>
+        /// (`AMBER146`, П193 01.10.2026) Наш `nucid` ОСНОВНОГО состояния по
+        /// ключу изомера: «sandia:Ag110m» → «110AG». null — ключ не изомера
+        /// или символ не разбирается.
+        /// </summary>
+        static string GroundNucid(string key)
+        {
+            if (key == null || !key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            string symbol = key.Substring(IsomerPrefix.Length);
+            int i = 0;
+            while (i < symbol.Length && char.IsLetter(symbol[i]))
+            {
+                i++;
+            }
+
+            int j = i;
+            while (j < symbol.Length && char.IsDigit(symbol[j]))
+            {
+                j++;
+            }
+
+            if (i == 0 || j == i)
+            {
+                return null;
+            }
+
+            return symbol.Substring(i, j - i) + symbol.Substring(0, i).ToUpperInvariant();
+        }
+
+        /// <summary>
+        /// (`AMBER146`, П193 01.10.2026) ЯДРА, В СХЕМАХ КОТОРЫХ ЛЕЖАТ ГАММЫ
+        /// ИЗОМЕРА, — (Z, A) по порядку: сперва дочерние основного состояния
+        /// по `decay_chain` (у Ag-110m это Cd-110, куда идёт β⁻ 98.7 %), затем
+        /// само ядро изомера — для изомерного перехода (у Ba-137m, Tc-99m гаммы
+        /// в своём ядре). Своей строки в `decay_chain` у изомера нет (S27),
+        /// поэтому ветви берутся у основного состояния: его дочерние совпадают
+        /// с дочерними изомера по (Z, A) для β⁻/ε, а недостающий изомерный
+        /// переход и закрывает собственное ядро. Читатели выбирают схему сами
+        /// — <see cref="RectifyBySchemes"/> по покрытию партнёров, корреляция
+        /// по смежности переходов, — лишнее ядро в списке ничего не решает.
+        /// Пусто — ключ не изомера.
+        /// </summary>
+        static List<int[]> IsomerNuclei(string key)
+        {
+            var found = new List<int[]>();
+            string ground = GroundNucid(key);
+            if (ground == null)
+            {
+                return found;
+            }
+
+            found.AddRange(Daughters(ground));
+            int z = CascadeAtomicData.ChargeOf(ground);
+            int a = CascadeAtomicData.MassOf(ground);
+            if (z > 0 && a > 0)
+            {
+                found.Add(new[] { z, a });
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// (`AMBER146`, П193) Коэффициенты угловой корреляции пары линий
+        /// нуклида ТЕМ ЖЕ путём, каким их берёт счёт (<see cref="CoefficientsOf"/>):
+        /// обычный ключ — <see cref="AngularCorrelation.ForPair"/>, ключ изомера —
+        /// по схемам его ядер. Читатель — пробы (приёмка `AMBER146`).
+        /// </summary>
+        public static AngularCorrelation.Coefficients PairCoefficients(string nuclide, double firstKev, double secondKev)
+        {
+            string key = ParentKey(nuclide) ?? nuclide;
+            if (string.IsNullOrEmpty(key))
+            {
+                return AngularCorrelation.Isotropic;
+            }
+
+            return key.StartsWith(IsomerPrefix, StringComparison.Ordinal)
+                ? AngularCorrelation.ForPairInNuclei(IsomerNuclei(key), firstKev, secondKev)
+                : AngularCorrelation.ForPair(key, firstKev, secondKev);
         }
 
         /// <summary>
@@ -3891,6 +5260,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Выходы носителей — в таблицу выходов ДО построения пар: обратная
             // условная считается через них, и на полпути их там быть уже
             // должно.
+            //
+            // ⛔ У ОБЩЕГО КЛЮЧА ВЫХОД — СУММА НОСИТЕЛЕЙ (`AMBER59`, П121
+            // 22.09.2026). `Match` сводит носителей допуском `SameLineKev` =
+            // 0.3 кэВ, а Kα1 и Kα2 при Z ≲ 53 стоят ближе (Te у I-125:
+            // 27.202 и 27.473, разница 0.271; In 22.983/23.173; Sr
+            // 13.336/13.396) — два носителя ложатся под ОДИН ключ. Прежде
+            // второй носитель находил ключ занятым и выход ключа оставался
+            // выходом ПЕРВОГО (у I-125 — 39.4 % одного Kα2 вместо 112.9 %
+            // пары), а обратная условная ниже делит на этот выход:
+            // P(γ | Kα) = P(Kα | γ)·I(γ)/I(ключа) выходила завышенной в
+            // (I_Kα1 + I_Kα2)/I_Kα2 ≈ 2.9 раза — померено на сцене
+            // `G1S_point5`: P(35.49 | 27.2) 0.096751 вместо 0.033803 (столько
+            // же, сколько у ключа Kβ, где сливать нечего). Складывать можно
+            // ТОЛЬКО с ключами, заведёнными здесь же носителями (`carrierKeys`):
+            // ключ ядерной линии или поставки совпадений несёт свой полный
+            // выход, и прибавка к нему удвоила бы площадь пар этой линии —
+            // то же правило, что у `ownKeys` для строк гамма выше (`S161`).
+            var carrierKeys = new HashSet<double>();
             foreach (Carrier carrier in AllCarriers(carriers, carriersOf))
             {
                 // ⛔ У АННИГИЛЯЦИИ КЛЮЧ СВОЙ, И ИСКАТЬ ЕГО СРЕДИ ЯДЕРНЫХ ЛИНИЙ
@@ -3913,10 +5300,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double had;
-                if (!Match(data.Intensity, carrier.EnergyKev, out had))
+                double sharedKey;
+                if (!Match(data.Intensity, carrier.EnergyKev, out sharedKey))
                 {
                     data.Intensity[carrier.EnergyKev] = carrier.IntensityPct;
+                    carrierKeys.Add(carrier.EnergyKev);
+                }
+                else if (carrierKeys.Contains(sharedKey))
+                {
+                    data.Intensity[sharedKey] += carrier.IntensityPct;
                 }
             }
 
@@ -3943,6 +5335,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var order = new List<double[]>();
             // (`S177`) Носители рентгена, чья доля в серии уже записана.
             var seenCarriers = new HashSet<double>();
+            // (`S188`) Обратная условная пары «гамма ↔ 511» по ключу гаммы:
+            // Σ по строкам ключа P(γ | β⁺)·окно (за единицей — поток ENSDF).
+            var annihilationReverse = new Dictionary<double, double>();
             foreach (CascadeAtomicData.GammaLine gamma in atomic.GammaIntensity)
             {
                 double decayEnergy = gamma.EnergyKev;
@@ -4076,6 +5471,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Accumulate(merged, order, pairKey, carrier.EnergyKev, carrierKey,
                                probability, weight);
 
+                    // (`S188`) Обратная сторона той же строки — тем же окном и
+                    // только там, где прямая легла в копилку (вес строки > 0).
+                    if (!carrier.FromVacancy && weight > 0.0)
+                    {
+                        double had;
+                        annihilationReverse.TryGetValue(pairKey, out had);
+                        annihilationReverse[pairKey] = had + atomic.AnnihilationReverseOfLine(gamma) * inWindow;
+                    }
+
                     // (`S147`) У аннигиляции партнёр — ПАРА квантов, и `Partners`
                     // держит их ожидаемое ЧИСЛО. Кратность записывается рядом,
                     // чтобы вероятность объединения считалась по ней, а площадь
@@ -4162,14 +5566,41 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // Атомный партнёр посчитан НАМИ, в поставке такой строки нет (`D49`).
                 Put(data, fromKey, toKey, probability, false);
 
+                // ⛔ (`S188`, П152 24.09.2026) ОБРАТНАЯ У АННИГИЛЯЦИИ — ПО СТРОКАМ.
+                // Правилом ядерных пар P(A|B) = P(B|A)·I(A)/I(B) она собиралась из
+                // ДВУХ поставок: P(511 | γ) — по уровням ENSDF, I(γ) и I(511) — из
+                // `decay_radiations`, и у 13 родителей базы выходила больше единицы
+                // (`44SC` 1.00013, `56CO` 1.0086, `100AG` 1.21), дальше её ловил
+                // зажим ~~`D49`~~. Здесь она — по строке
+                // (<see cref="CascadeAtomicData.AnnihilationReverseOfLine"/>: то же
+                // правило, а где оно за единицей — поток β⁺ через уровень по
+                // ENSDF; почему не «целиком по ENSDF» — там же), по строкам ключа
+                // сложенная, тем же окном, что и прямая. Там, где правило в
+                // единице, число побитово прежнее.
+                //
+                // Рентген (носитель вакансии) идёт прежним правилом: это `S188`
+                // не трогает.
                 // Обратная условная — тем же правилом, что у ядерных пар:
                 // P(A|B) = P(B|A)·I(A)/I(B). Считается ПОСЛЕ слияния, потому
-                // что `I(A)` — уже суммарный выход ключа.
-                double ia, ib;
+                // что `I(A)` — уже суммарный выход ключа. Условие «оба выхода
+                // есть» — общее для обоих путей: где пары прежде не было, её
+                // нет и теперь.
+                double ia, ib, reverse;
                 if (data.Intensity.TryGetValue(fromKey, out ia)
                     && data.Intensity.TryGetValue(toKey, out ib) && ib > 0.0)
                 {
-                    Put(data, toKey, fromKey, probability * ia / ib, false);
+                    if (toKey == AnnihilationKev
+                        && annihilationReverse.TryGetValue(fromKey, out reverse))
+                    {
+                        if (reverse > 0.0)
+                        {
+                            Put(data, toKey, fromKey, reverse, false);
+                        }
+                    }
+                    else
+                    {
+                        Put(data, toKey, fromKey, probability * ia / ib, false);
+                    }
                 }
             }
 
@@ -4961,47 +6392,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Имя нуклида в наш `nucid`: «Pb-214» → «214PB». Изомеры («Ba-137m»)
         /// возвращают null: у совпадений своя нумерация Sandia, искать их надо
         /// по `sandia_symbol`, а не по нашему номеру уровня.
+        ///
+        /// ⛔ (`AMBER78`, П149 24.09.2026) Разбор — общий с библиотекой
+        /// (<see cref="FsaSampleLibrary.NucidOf"/>), во всех написаниях набора
+        /// нуклидов. Прежде здесь понималось одно «Pb-214», и на пути FSA по
+        /// умолчанию имя из `NucBase` с настройками по умолчанию («Na22», «Co60»)
+        /// или из запасного набора («Cs137») ключа совпадений не получало:
+        /// поправка на каскадное суммирование у такого нуклида не считалась
+        /// вовсе, молча (замер `FsaNucidNameProbe`: 0 из 627 ключей у форматов
+        /// 0 и 1 против 627 у «Cs-137»).
         /// </summary>
         public static string Nucid(string name)
         {
-            if (string.IsNullOrEmpty(name))
+            string nucid = FsaSampleLibrary.NucidOf(name);
+            int mass;
+            string symbol, state;
+            if (nucid.Length == 0
+                || !CascadeAtomicData.SplitNucid(nucid, out mass, out symbol, out state)
+                || mass <= 0 || state.Length > 0)
             {
                 return null;
             }
 
-            int dash = name.IndexOf('-');
-            if (dash <= 0 || dash + 1 >= name.Length)
-            {
-                return null;
-            }
-
-            string element = name.Substring(0, dash);
-            string mass = name.Substring(dash + 1);
-            foreach (char c in element)
-            {
-                if (!char.IsLetter(c))
-                {
-                    return null;
-                }
-            }
-
-            foreach (char c in mass)
-            {
-                if (!char.IsDigit(c))
-                {
-                    return null;
-                }
-            }
-
-            int number;
-            if (!int.TryParse(mass, NumberStyles.None, CultureInfo.InvariantCulture, out number)
-                || number <= 0)
-            {
-                return null;
-            }
-
-            return number.ToString(CultureInfo.InvariantCulture)
-                   + element.ToUpperInvariant();
+            return mass.ToString(CultureInfo.InvariantCulture) + symbol;
         }
 
         static string DatabasePath()
@@ -5013,10 +6426,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             lock (Gate)
             {
+                // (`AMBER199`) Запоминается только «файл есть»: файл, которого
+                // не было в миг первого разбора (синхронизация, замена), не
+                // должен выключать суммирование до перезапуска программы.
                 if (!databaseChecked)
                 {
                     databasePresent = File.Exists(DatabasePath());
-                    databaseChecked = true;
+                    databaseChecked = databasePresent;
                 }
 
                 return databasePresent;

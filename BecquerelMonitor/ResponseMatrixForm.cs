@@ -33,12 +33,19 @@ namespace BecquerelMonitor
         readonly EfficiencyConfigData config;
 
         Label stateLabel, versionsLabel, progressLabel;
-        CheckBox useMatrixCheck;
         Panel detailsPanel;
         string detailsText = "";
         ProgressBar progressBar;
         Button computeButton, cancelButton, saveButton, closeButton;
         NumericUpDown minEnergyBox, maxEnergyBox, nodesBox, binBox, historiesBox, threadsBox;
+
+        // (`AMBER219`) Галка «Use Nvidia GPU», её панель (носитель подсказки) и подсказка.
+        Panel gpuPanel;
+        GpuCheckBox gpuCheck;
+        ToolTip gpuTip;
+
+        /// <summary>Ответ <see cref="RmGpu.Probe"/> при открытии окна; null — не спрашивали.</summary>
+        GpuProbe gpuProbe;
 
         /// <summary>
         /// С какой ошибки интеграла континуума строки предупреждать, %.
@@ -69,13 +76,6 @@ namespace BecquerelMonitor
 
 
         /// <summary>
-        /// Трогали ли выключатель матрицы (W11). Форма пишет в ту же копию
-        /// конфигурации, что и вкладка Efficiency, — вкладке остаётся пометить
-        /// конфигурацию изменённой, чтобы «Сохранить» ожило.
-        /// </summary>
-        public bool UseMatrixTouched { get; private set; }
-
-        /// <summary>
         /// Матрица записана в склад (`AMBER48`). Вкладка Efficiency читает
         /// поколение матрицы из ЗАГОЛОВКА ФАЙЛА склада, а не из конфигурации, —
         /// после записи файл сменил поколение, и подпись «two generations side
@@ -94,26 +94,17 @@ namespace BecquerelMonitor
             }
         }
 
-        void UseMatrixChanged(object sender, EventArgs e)
-        {
-            if (this.config != null && this.config.UseResponseMatrix != this.useMatrixCheck.Checked)
-            {
-                this.config.UseResponseMatrix = this.useMatrixCheck.Checked;
-                this.UseMatrixTouched = true;
-            }
-        }
-
         public ResponseMatrixForm(EfficiencyConfigData config)
         {
             this.config = config;
             this.BuildLayout();
             this.LoadExisting();
-
+            this.ProbeGpu();
         }
 
         ResponseMatrixOptions CurrentOptions()
         {
-            return new ResponseMatrixOptions
+            var options = new ResponseMatrixOptions
             {
                 MinEnergyKev = (double)this.minEnergyBox.Value,
                 MaxEnergyKev = (double)this.maxEnergyBox.Value,
@@ -122,6 +113,135 @@ namespace BecquerelMonitor
                 Histories = (int)this.historiesBox.Value,
                 Threads = (int)this.threadsBox.Value
             };
+
+            // (`AMBER219`) GPU считает только плоско — решение Amber 07.10.2026,
+            // дословно: «Плоско, как склад». Останов по шуму 3 % в клеймо не
+            // входит (`ComputeStamp`), так что матрица с него и матрица CPU с
+            // остановом — одного клейма, различаются лишь набранной статистикой.
+            if (this.UseGpu)
+            {
+                options.ContinuumErrorTarget = 0.0;
+            }
+
+            return options;
+        }
+
+        /// <summary>Галка GPU стоит и годна — счёт идёт на устройстве.</summary>
+        bool UseGpu
+        {
+            get
+            {
+                return this.gpuCheck != null && this.gpuCheck.Checked
+                       && this.gpuProbe != null && this.gpuProbe.Available;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER219`) Годность GPU при открытии окна: негодная галка снята и
+        /// выключена, причина — подсказкой на её панели; годная получает значение
+        /// из общих настроек (`GlobalConfigInfo.UseGpuForResponseMatrix`, умолчание
+        /// ВЫКЛ) и подсказку с именем карты. Сохранённое «вкл» на машине без GPU
+        /// не трогается: это настройка приложения, а не этой машины.
+        ///
+        /// Подсказка собирается из ключей ресурсов по коду причины
+        /// (<see cref="GpuProbeReason"/>), а не из английского текста пробы:
+        /// текст пробы идёт в журнал, подпись окна обязана быть на языке окна.
+        /// </summary>
+        void ProbeGpu()
+        {
+            this.gpuProbe = RmGpu.Probe(RmGpu.DefaultPath);
+            string tip;
+            if (this.gpuProbe.Available)
+            {
+                tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuReady,
+                                    this.gpuProbe.DeviceName,
+                                    ComputeCapability(this.gpuProbe.ComputeCapability),
+                                    CudaVersion(this.gpuProbe.DriverVersion));
+            }
+            else
+            {
+                switch (this.gpuProbe.ReasonCode)
+                {
+                    case GpuProbeReason.NoLibrary:
+                        tip = Resources.ResponseMatrixGpuNoLibrary;
+                        break;
+                    case GpuProbeReason.LoadFailed:
+                        tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuLoadFailed, this.gpuProbe.Reason);
+                        break;
+                    case GpuProbeReason.OldLibrary:
+                        tip = Resources.ResponseMatrixGpuOldLibrary;
+                        break;
+                    case GpuProbeReason.PhysicsMismatch:
+                        tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuPhysicsMismatch,
+                                            this.gpuProbe.LibraryPhysics, ResponseMatrix.PhysicsVersion);
+                        break;
+                    case GpuProbeReason.NoDevice:
+                        tip = Resources.ResponseMatrixGpuNoDevice;
+                        break;
+                    case GpuProbeReason.DriverTooOld:
+                        tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuDriverTooOld,
+                                            CudaVersion(this.gpuProbe.DriverVersion), CudaVersion(this.gpuProbe.RuntimeVersion));
+                        break;
+                    case GpuProbeReason.DeviceTooOld:
+                        tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuDeviceTooOld,
+                                            this.gpuProbe.DeviceName, ComputeCapability(this.gpuProbe.ComputeCapability),
+                                            ComputeCapability(RmGpu.MinComputeCapability));
+                        break;
+                    default:
+                        tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuRuntimeError, this.gpuProbe.Reason);
+                        break;
+                }
+            }
+
+            this.gpuTip.SetToolTip(this.gpuPanel, tip);
+            this.gpuTip.SetToolTip(this.gpuCheck, tip);
+            // Негодная галка остаётся живой для мыши (ради подсказки), но
+            // рисуется выключенной и не переключается — `GpuCheckBox`.
+            this.gpuCheck.Unavailable = !this.gpuProbe.Available;
+            if (this.gpuProbe.Available)
+            {
+                GlobalConfigManager manager = GlobalConfigManager.GetInstance();
+                this.gpuCheck.Checked = manager != null && manager.GlobalConfig != null
+                                        && manager.GlobalConfig.UseGpuForResponseMatrix;
+            }
+        }
+
+        /// <summary>«8.6» из 86 — как печатает `nvidia-smi`.</summary>
+        static string ComputeCapability(int cc)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0}.{1}", cc / 10, cc % 10);
+        }
+
+        /// <summary>«13.0» из 13000 — версия драйвера/рантайма CUDA числом рантайма.</summary>
+        static string CudaVersion(int v)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0}.{1}", v / 1000, (v % 1000) / 10);
+        }
+
+        /// <summary>
+        /// Переключение галки — сразу в общие настройки и на диск (постановка
+        /// Amber: «запоминается глобально в приложении»). Пока окно только
+        /// раскладывается, галка выключена и сюда не попадает; выключенная
+        /// (негодная) галка значение не пишет.
+        /// </summary>
+        void GpuCheckChanged(object sender, EventArgs e)
+        {
+            if (this.gpuProbe == null || !this.gpuProbe.Available)
+            {
+                return;
+            }
+
+            GlobalConfigManager manager = GlobalConfigManager.GetInstance();
+            if (manager == null || manager.GlobalConfig == null)
+            {
+                return;
+            }
+
+            if (manager.GlobalConfig.UseGpuForResponseMatrix != this.gpuCheck.Checked)
+            {
+                manager.GlobalConfig.UseGpuForResponseMatrix = this.gpuCheck.Checked;
+                manager.SaveConfigFile();
+            }
         }
 
         // ------------------------------------------------------------------
@@ -142,8 +262,6 @@ namespace BecquerelMonitor
                 this.ShowVersions(0, 0, false);
                 this.SetDetails("");
                 this.computeButton.Enabled = false;
-                // Без геометрии матрицы не бывает — выключателю нечего включать.
-                this.useMatrixCheck.Enabled = false;
                 return;
             }
 
@@ -152,7 +270,10 @@ namespace BecquerelMonitor
             // себя (`MatrixRefusal`); форма обязана сказать её словами.
             MatrixRefusal refusal;
             int fileFormat;
-            ResponseMatrix existing = ResponseMatrixStore.Load(this.config.Guid,
+            // (`AMBER186`) Матрица, записанная этим окном и ждущая сохранения
+            // конфигурации прибора, новее склада — показывается она.
+            this.shownSource = ResponseMatrixStore.EditingSource(this.config.Guid);
+            ResponseMatrix existing = ResponseMatrixStore.Load(this.config.Guid, this.shownSource,
                                                               out refusal, out fileFormat);
             if (existing == null)
             {
@@ -218,7 +339,29 @@ namespace BecquerelMonitor
             // расхождение надо НАЗЫВАТЬ, а не прятать: молчащее несогласие
             // ровно того сорта, из-за которого и заведена эта правка.
             this.SetDetails(this.Describe(existing) + this.DescribeRangeMismatch(existing)
-                            + DescribeInheritedHistories(existing, nominalHistories));
+                            + DescribeInheritedHistories(existing, nominalHistories)
+                            + this.DescribePending());
+        }
+
+        /// <summary>
+        /// (`AMBER186`) Откуда показана матрица: со склада или из временного
+        /// файла, ждущего сохранения конфигурации прибора.
+        /// </summary>
+        ResponseMatrixSource shownSource = ResponseMatrixSource.Store;
+
+        /// <summary>
+        /// Матрицу записали во временный файл (`AMBER186`): вкладке прибора —
+        /// пометить конфигурацию изменённой, иначе вопрос «сохранить?» не
+        /// прозвучит, и временный снимется при закрытии формы молча.
+        /// </summary>
+        public bool MatrixSavedPending { get; private set; }
+
+        /// <summary>Строка «ждёт сохранения конфигурации» — только у временной.</summary>
+        string DescribePending()
+        {
+            return this.shownSource == ResponseMatrixSource.Pending
+                ? Environment.NewLine + Resources.ResponseMatrixPendingNote
+                : "";
         }
 
         /// <summary>
@@ -243,7 +386,7 @@ namespace BecquerelMonitor
         void SayRefusal(MatrixRefusal refusal, int fileFormat)
         {
             int headerFormat, headerPhysics;
-            bool header = ResponseMatrix.PeekVersions(ResponseMatrixStore.PathOf(this.config.Guid),
+            bool header = ResponseMatrix.PeekVersions(ResponseMatrixStore.PathOf(this.config.Guid, this.shownSource),
                                                      out headerFormat, out headerPhysics);
             switch (refusal)
             {
@@ -453,7 +596,7 @@ namespace BecquerelMonitor
 
         string Describe(ResponseMatrix matrix)
         {
-            long fileBytes = ResponseMatrixStore.FileSize(this.config.Guid);
+            long fileBytes = ResponseMatrixStore.FileSize(this.config.Guid, this.shownSource);
             return string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixDetails,
                                  this.DescribeNodes(matrix),
                                  matrix.Energies[0],
@@ -554,6 +697,14 @@ namespace BecquerelMonitor
 
             GeometryModel geometry = this.config.Geometry.Clone();
             ResponseMatrixOptions options = this.CurrentOptions();
+            // ⛔ (`AMBER219`) Решение «GPU или CPU» снимается с галки ДО `SetBusy`:
+            // занятая форма галку выключает, а `UseGpu` читает именно `Enabled`
+            // — снятое после, оно всегда говорило бы «CPU». Оплачено 07.10.2026
+            // на первой же проверке экраном: цель останова стояла нулём (её
+            // `CurrentOptions` снял вовремя), а счёт пошёл на ЦП плоско, 3 млн
+            // историй на узел, — ни строка хода, ни загрузка GPU этого не прятали.
+            bool useGpu = this.UseGpu;
+            this.computingOnGpu = useGpu;
             this.cancellation = new CancellationTokenSource();
             this.SetBusy(true);
             this.progressBar.Value = 0;
@@ -569,9 +720,24 @@ namespace BecquerelMonitor
             var progress = new Progress<ResponseMatrixProgress>(this.ShowProgress);
             try
             {
+                CancellationToken token = this.cancellation.Token;
                 ResponseMatrix matrix = await Task.Run(
-                    () => ResponseMatrixBuilder.Build(geometry, options, progress, this.cancellation.Token),
-                    this.cancellation.Token);
+                    () =>
+                    {
+                        if (!useGpu)
+                        {
+                            return ResponseMatrixBuilder.Build(geometry, options, progress, token);
+                        }
+
+                        // (`AMBER219`) Устройство берётся на время счёта и отдаётся
+                        // в `finally`: контекст CUDA между счётами держать незачем,
+                        // а живым должен быть один `RmGpu` на процесс.
+                        using (var gpu = new RmGpu(RmGpu.DefaultPath, RmGpu.DefaultStackBytes))
+                        {
+                            return GpuBuild.Build(gpu, geometry, options, progress, token, null);
+                        }
+                    },
+                    token);
 
                 this.computed = matrix;
                 this.progressBar.Value = this.progressBar.Maximum;
@@ -605,11 +771,18 @@ namespace BecquerelMonitor
             {
                 this.computed = null;
                 this.progressBar.Value = 0;
+                // (`AMBER201`, Р4, мелочь G.6) Причина — цепочкой вложенных, а
+                // не `ex.Message`. Узлы считаются в `Parallel.ForEach`, и отказ
+                // внутри узла приходит `AggregateException` со своим общим
+                // «Произошла одна или несколько ошибок» — до человека доходила
+                // только эта фраза, а настоящая причина (вещество без таблиц,
+                // негодная сцена) терялась.
                 this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
-                    Resources.ResponseMatrixFailed, ex.Message);
+                    Resources.ResponseMatrixFailed, AppUi.Reason(ex));
             }
             finally
             {
+                this.computingOnGpu = false;
                 this.SetBusy(false);
                 if (this.cancellation != null)
                 {
@@ -618,6 +791,9 @@ namespace BecquerelMonitor
                 }
             }
         }
+
+        /// <summary>(`AMBER219`) Идущий счёт — на GPU; снимается с галки до `SetBusy`, читает строка хода.</summary>
+        bool computingOnGpu;
 
         /// <summary>
         /// Делений у полосы хода. Доля идёт по ДОСЧИТАННЫМ УЗЛАМ (`A46`):
@@ -641,8 +817,22 @@ namespace BecquerelMonitor
             // число узлов, ВЗЯТЫХ В РАБОТУ, из общего числа узлов сетки: оно
             // постоянно, в отличие от числа прогонов, которое росло по ходу
             // (140 → 155 → 156 → 157 на снимках одного расчёта).
+            // (`AMBER220`) Узлы досчитаны, а таблица κ пар на процессоре ещё нет —
+            // подпись называет её блоки по ТЕКУЩЕМУ плану (проба, затем доборы);
+            // полоса при этом идёт по предельному плану и до 100 % не доходит,
+            // пока матрица не собрана. Снимок Amber 07.10.2026: «GPU: node 144 of
+            // 144» при полной полосе — и ожидание κ, которого не видно.
+            if (p.JointPending)
+            {
+                this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
+                    Resources.ResponseMatrixJointProgress, p.JointDone, p.JointPlannedNow);
+                return;
+            }
+
+            // (`AMBER219`) На GPU строка хода называет устройство: человек должен
+            // видеть, ЧЕМ считается, — у CPU и GPU одна полоса и одни поля.
             this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
-                Resources.ResponseMatrixProgress,
+                this.computingOnGpu ? Resources.ResponseMatrixGpuProgress : Resources.ResponseMatrixProgress,
                 p.StartedNodes, p.TotalNodes, p.LastEnergyKev);
         }
 
@@ -663,13 +853,23 @@ namespace BecquerelMonitor
 
             try
             {
-                ResponseMatrixStore.Save(this.config.Guid, this.computed);
+                // ⛔ (`AMBER186`, решение Amber 05.10.2026 «Временный файл +
+                // перенос») НЕ НА СКЛАД. Геометрия, для которой матрица
+                // посчитана, живёт в клоне конфигурации прибора; на склад
+                // матрицу переносит сохранение конфигурации, а отказ от него
+                // временный файл снимает. Прежде запись шла прямо на склад, и
+                // ответ «Нет» оставлял прежнюю геометрию при затёртой матрице.
+                ResponseMatrixStore.SavePending(this.config.Guid, this.computed);
+                this.savedComputed = this.computed;
+                this.shownSource = ResponseMatrixSource.Pending;
+                this.MatrixSavedPending = true;
                 this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
-                    Resources.ResponseMatrixSaved, ResponseMatrixStore.PathOf(this.config.Guid));
+                    Resources.ResponseMatrixSaved,
+                    ResponseMatrixStore.PathOf(this.config.Guid, ResponseMatrixSource.Pending));
                 this.saveButton.Enabled = false;
                 // Отпечаток тела появляется при ЗАПИСИ (`A121`) — подробности
                 // после неё обязаны его показать, а не «нет».
-                this.SetDetails(this.Describe(this.computed));
+                this.SetDetails(this.Describe(this.computed) + this.DescribePending());
                 this.OnMatrixSaved();
             }
             catch (Exception ex)
@@ -695,6 +895,10 @@ namespace BecquerelMonitor
             this.binBox.Enabled = !value;
             this.historiesBox.Enabled = !value;
             this.threadsBox.Enabled = !value;
+            // (`AMBER219`) Галка GPU на время счёта тоже замирает (настоящим
+            // `Enabled`, подсказка на время счёта не нужна); негодная после
+            // счёта снова живая для мыши, но нарисована выключенной.
+            this.gpuCheck.Enabled = !value;
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -712,7 +916,33 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // (`AMBER201`, Р4, подозрение полосы 9) Посчитанная и НЕ сохранённая
+            // матрица — вопрос перед закрытием. Прежде окно закрывалось молча, и
+            // часы счёта пропадали одним нажатием «Закрыть» или крестика.
+            // Окно модальное: закрытие кнопкой приходит с `CloseReason.None`.
+            if (this.computed != null && !object.ReferenceEquals(this.computed, this.savedComputed)
+                && (e.CloseReason == CloseReason.UserClosing || e.CloseReason == CloseReason.None)
+                && AppUi.HasWindows)
+            {
+                string text = Resources.ResourceManager.GetString("ResponseMatrixCloseUnsaved", Resources.Culture);
+                if (string.IsNullOrEmpty(text))
+                {
+                    text = "The computed response matrix is not saved." + Environment.NewLine
+                           + Environment.NewLine + "Close the window and discard it?";
+                }
+
+                if (MessageBox.Show(this, text, this.Text, MessageBoxButtons.YesNo,
+                                    MessageBoxIcon.Warning) != DialogResult.Yes)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+            }
+
             base.OnFormClosing(e);
         }
+
+        /// <summary>(`AMBER201`) Посчитанная матрица, уже записанная «Сохранить».</summary>
+        ResponseMatrix savedComputed;
     }
 }

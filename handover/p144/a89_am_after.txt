@@ -1,0 +1,13 @@
+BecqMoni: main config: D:\BqMoni_Claude\p144\wt\tools\CORPUS\scripts\wd_p144\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p144\wt\tools\CORPUS\scripts\wd_p144\config\device: 24 loaded
+спектр : G1S24_Am241_P5.xml
+прибор : Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2024)
+SETUP	против поставочного разбора изменено [окно пика]: CoincidenceWindowSec 0 → 0.00036281179138322; MinEnergy 40 → 30; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → NaI:Tl
+разбор : χ²/ndf 5.736; усиление 0.898456, сдвиг 0.000 кан.; полоса 0…1023; свет NaI:Tl β 1.000 форма line
+
+компонент	E, кэВ	s, кэВ	s/ПШПВ	пик образа	p(E)	p(E+s)	окно	окно на	образ−p(E+s), ПШПВ	окно−пик, ПШПВ	доля пика в окне
+Am-241	59.541	3.84	0.363	23.80	22.33	23.77	6…31	E+s ✓ (верх. край)	0.008	-0.008	1.0000
+ROW	Am-241	пиковых отсчётов 3175175.217
+
+судимых линий 1, окно не на пике 0, неразличимо (|s| < канала) 0
+СОШЛОСЬ: окно на пике образа у всех судимых линий

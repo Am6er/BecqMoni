@@ -102,13 +102,17 @@ namespace BecquerelMonitor
                     try
                     {
                         DeviceConfigInfo deviceConfigInfo;
-                        using (FileStream fileStream = new FileStream(path, FileMode.Open))
+                        // `T266`: только на чтение и с разделением записи — довод
+                        // в `GlobalConfigManager.LoadConfigFile`. Прежний голый
+                        // `FileMode.Open` просил ЗАПИСЬ: файл «только чтение» или
+                        // занятый вторым экземпляром выпадал из списка приборов.
+                        using (FileStream fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                         {
                             deviceConfigInfo = (DeviceConfigInfo)xmlSerializer2.Deserialize(fileStream);
                         }
                         if (!(deviceConfigInfo.FormatVersion == "120920"))
                         {
-                            using (FileStream fileStream2 = new FileStream(path, FileMode.Open))
+                            using (FileStream fileStream2 = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                             {
                                 DeviceConfigInfo_097b old = (DeviceConfigInfo_097b)xmlSerializer.Deserialize(fileStream2);
                                 deviceConfigInfo = new DeviceConfigInfo(old);
@@ -155,6 +159,25 @@ namespace BecquerelMonitor
             // `S102`: назвать ОТКРЫТЫЙ каталог и то, сколько из него взято.
             AppUi.Note("device configs: " + AppUi.Where(userDirectoryConfigDeviceDir) + ": "
                 + this.deviceConfigList.Count.ToString(CultureInfo.InvariantCulture) + " loaded");
+        }
+
+        /// <summary>
+        /// `T266`: занято ли имя файла для новой конфигурации — конфигурацией из
+        /// списка ИЛИ файлом в каталоге, который в список не попал (не
+        /// прочитался, битый, дубль GUID). Прежде <c>AssignNewFilename</c>
+        /// формы смотрел только список, и новая конфигурация молча затирала
+        /// незагрузившийся файл того же имени.
+        /// </summary>
+        public bool IsFilenameTaken(string filename)
+        {
+            foreach (DeviceConfigInfo other in this.deviceConfigList)
+            {
+                if (string.Equals(other.Filename, filename, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return File.Exists(userDirectoryConfigDevice + filename);
         }
 
         // Token: 0x060005FC RID: 1532 RVA: 0x00025990 File Offset: 0x00023B90
@@ -289,6 +312,15 @@ namespace BecquerelMonitor
                         return false;
                     }
                 }
+                // `T266`: имя занято и ФАЙЛОМ, которого в списке нет, — тем, что
+                // не загрузился (занят, битый, дубль GUID). Запись по его имени
+                // молча затёрла бы его. Смена одного регистра — тот же файл.
+                if (!string.Equals(devConfig.Filename, devConfig.OriginalFilename, StringComparison.OrdinalIgnoreCase)
+                    && File.Exists(userDirectoryConfigDevice + devConfig.Filename))
+                {
+                    this.RestoreConfig(removed);
+                    return false;
+                }
                 try
                 {
                     File.Delete(userDirectoryConfigDevice + devConfig.OriginalFilename);
@@ -368,68 +400,6 @@ namespace BecquerelMonitor
             this.deviceConfigList.Sort();
         }
 
-        /// <summary>
-        /// Записать конфигурацию прибора на диск ТИХО — не перестраивая список и
-        /// НЕ РАССЫЛАЯ <see cref="DeviceConfigListChanged"/> (`S70`).
-        ///
-        /// ⛔ Молчание здесь — суть, а не оптимизация. Обычный
-        /// <see cref="SaveConfig"/> извещает всех, а слушатель
-        /// (<c>MainForm.ApplyDeviceConfigToDocuments</c>) переносит сохранённые
-        /// настройки поиска пиков во ВСЕ открытые спектры этого прибора через
-        /// <see cref="FWHMPeakDetectionMethodConfig.AdoptFrom"/>, оставляя
-        /// спектру только его ПШПВ и кнопку показа. Для галок панели поиска
-        /// пиков это ровно то, чего делать НЕЛЬЗЯ: решение Amber 18.08.2026 —
-        /// «умолчание прибора меняем, а уже сохранённую копию спектра не
-        /// трогаем», и нажатие в одном документе не должно менять разложение в
-        /// соседних.
-        ///
-        /// ⚠ Поверки калибровки здесь тоже нет, и это осознанно: обычный путь
-        /// её делает и при отказе показывает модальное окно, а поднимать окно на
-        /// щелчок по галке нельзя. Приведение <c>EnergyCalibration</c> к
-        /// полиномиальной в том пути к тому же не защищено — на приборе с
-        /// нелинейной калибровкой оно бросило бы прямо из обработчика.
-        ///
-        /// Писать полагается ТУ ЖЕ запись, что лежит в
-        /// <see cref="DeviceConfigMap"/>: у неё имя файла совпадает с исходным,
-        /// а незаписанного переименования не висит.
-        /// </summary>
-        public bool SaveConfigQuiet(DeviceConfigInfo devConfig)
-        {
-            if (devConfig == null || string.IsNullOrEmpty(devConfig.Filename))
-            {
-                return false;
-            }
-
-            // Незаписанное переименование: писать под новым именем — значит
-            // оставить на диске два файла. Такое сохраняет только полный путь.
-            if (!string.IsNullOrEmpty(devConfig.OriginalFilename)
-                && devConfig.OriginalFilename != devConfig.Filename)
-            {
-                return false;
-            }
-
-            devConfig.LastUpdated = DateTime.Now;
-            try
-            {
-                string path = userDirectoryConfigDevice + devConfig.Filename;
-                Utils.AtomicFileWriter.Write(path, fileStream =>
-                {
-                    XmlSerializer xmlSerializer = new XmlSerializer(typeof(DeviceConfigInfo));
-                    xmlSerializer.Serialize(fileStream, devConfig);
-                });
-            }
-            catch (Exception ex)
-            {
-                // Молча — но не бесследно: окно на щелчок по галке не поднимаем,
-                // а отказ обязан быть виден тому, кто разбирается.
-                Trace.WriteLine("device config quiet save failed: " + ex);
-                return false;
-            }
-
-            devConfig.Dirty = false;
-            return true;
-        }
-
         // Token: 0x060005FF RID: 1535 RVA: 0x00025D88 File Offset: 0x00023F88
         /// <summary>
         /// ⛔ `A9`: строка снимается ТОЛЬКО после того, как файл действительно
@@ -468,11 +438,75 @@ namespace BecquerelMonitor
             }
             this.deviceConfigList.Remove(deviceConfigInfo);
             this.deviceConfigMap.Remove(deviceConfigInfo.Guid);
+            DeleteResponseMatricesOf(deviceConfigInfo, devConfig, this.deviceConfigList);
             if (this.DeviceConfigListChanged != null)
             {
                 this.DeviceConfigListChanged(this, new DeviceConfigChangedEventArgs(deviceConfigInfo.Guid));
             }
             return true;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER184`, остаток (3), 05.10.2026; решение Amber вопросником,
+        /// дословно: «Снимать (Рекомендую)») Конфигурация прибора удалена ЦЕЛИКОМ —
+        /// со склада снимаются матрицы отклика её кривых (`.rmx`) и ждущие
+        /// сохранения временные (`.rmx.pending`). Прежде они оставались на диске
+        /// навсегда: снятие было только у кривой, удалённой из живой конфигурации
+        /// (`AMBER186`, <see cref="EfficiencyMaker.ResponseMatrixStore.DeleteRemoved"/>).
+        ///
+        /// Кривые берутся и у записи менеджера (что на диске), и у клона формы
+        /// (заведённые после сохранения — у них бывает только временный файл).
+        /// ⚠ Guid кривой, живой у ДРУГОЙ конфигурации, не трогается: копия
+        /// конфигурации наследует Guid кривых и делит с прежней файл склада.
+        /// Зовётся только после удавшегося удаления файла и уже без удалённой
+        /// записи в <paramref name="remaining"/>.
+        /// </summary>
+        internal static void DeleteResponseMatricesOf(DeviceConfigInfo record, DeviceConfigInfo edited,
+                                                      IEnumerable<DeviceConfigInfo> remaining)
+        {
+            List<string> removed = new List<string>();
+            foreach (DeviceConfigInfo source in new[] { record, edited })
+            {
+                if (source == null || source.EfficiencyConfigs == null)
+                {
+                    continue;
+                }
+
+                foreach (EfficiencyConfigData curve in source.EfficiencyConfigs)
+                {
+                    if (curve != null && !string.IsNullOrEmpty(curve.Guid) && !removed.Contains(curve.Guid))
+                    {
+                        removed.Add(curve.Guid);
+                    }
+                }
+            }
+
+            if (removed.Count == 0)
+            {
+                return;
+            }
+
+            HashSet<string> referenced = new HashSet<string>(StringComparer.Ordinal);
+            if (remaining != null)
+            {
+                foreach (DeviceConfigInfo other in remaining)
+                {
+                    if (other == null || other.EfficiencyConfigs == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (EfficiencyConfigData curve in other.EfficiencyConfigs)
+                    {
+                        if (curve != null && !string.IsNullOrEmpty(curve.Guid))
+                        {
+                            referenced.Add(curve.Guid);
+                        }
+                    }
+                }
+            }
+
+            EfficiencyMaker.ResponseMatrixStore.DeleteRemoved(removed, referenced);
         }
 
         string userDirectory = BecquerelMonitor.Package.GetInstance().UserDirectory;

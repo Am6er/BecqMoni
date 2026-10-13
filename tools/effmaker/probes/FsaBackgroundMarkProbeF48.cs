@@ -67,8 +67,6 @@ static class FsaBackgroundMarkProbeF48
         FsaTuningReport.Snapshot();
 
         // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`).
-        ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-        ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
         Console.WriteLine("сборка приложения: " + typeof(FsaResult).Assembly.Location);
         try
@@ -236,10 +234,10 @@ static class FsaBackgroundMarkProbeF48
             {
                 var tag = model.Rows[i].Tag as FsaReportRow;
                 kinds.Add(tag == null ? "(нет Tag)" : tag.Kind.ToString());
-                if (model.Rows[i].Cells[1].Text == caption)
+                if (model.Rows[i].Cells[0].Text == caption)
                 {
                     found++;
-                    value = model.Rows[i].Cells[2].Text;
+                    value = model.Rows[i].Cells[1].Text;
                     // Род строки — тот же, что у соседних пометок блока
                     // (`A247`): приёмка `FsaReportViewProbe` судит состав по
                     // `Tag.Kind`, и новая строка обязана лечь в тот же ряд.
@@ -325,11 +323,21 @@ static class FsaBackgroundMarkProbeF48
         component.TotalYieldPercent = 85.1;
 
         var analyzer = new FsaAnalyzer();
+        // (07.10.2026) Предмет пробы — строка «фон не взят», а не геометрия:
+        // синтетике кривой не подаётся, и без снятия гейта разбор отказывал
+        // `Geometry` — проба падала на двух проверках цепи, не дойдя до фона.
+        analyzer.RequireGeometry = false;
         FsaTuningReport.Print(analyzer);
         try
         {
-            return analyzer.Analyze(spectrum, background, fwhm,
-                                    new List<FsaComponent> { component }, null);
+            FsaResult result = analyzer.Analyze(spectrum, background, fwhm,
+                                                new List<FsaComponent> { component }, null);
+            if (result == null)
+            {
+                Console.WriteLine("  разбор отказал: {0}", analyzer.Refusal);
+            }
+
+            return result;
         }
         catch (Exception ex)
         {

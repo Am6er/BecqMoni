@@ -1,0 +1,5 @@
+спектр                       часть     χ²/ndf до      после      Δ %  что разошлось; состав (доля %, до → после, > 0.05 п.п.)
+
+unknown: разобранных 1, Σχ²/ndf 20.1344 -> 20.1344 (+0.0000 %)
+сдвинулось 0, побитово 14
+побитово: AS80_Charoite, AS80_K40, AS80_Onyx, AS80_Th232WT20, AS80_Th232_v2, AS80_UGlass, ASN16_Am241, ASN16_BrazilNuts, ASN16_Charoite, ASN16_Charoite_v2, ASN16_Granite, ASN16_Th232, ASN16_Th232_Am241, ASN16_UGlass

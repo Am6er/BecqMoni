@@ -43,7 +43,7 @@ namespace BecquerelMonitor
                 }
                 else
                 {
-                    cell.Data = globalConfig.ColorConfig.SpectrumColorList[i].Color;
+                    cell.Data = globalConfig.ColorConfig.GetSpectrumColor(i);
                 }
 
                 row.Cells.Add(cell);
@@ -100,7 +100,7 @@ namespace BecquerelMonitor
                 }
                 else
                 {
-                    cell.Data = globalConfig.ColorConfig.SpectrumColorList[i].Color;
+                    cell.Data = globalConfig.ColorConfig.GetSpectrumColor(i);
                 }
             }
 

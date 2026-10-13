@@ -1,0 +1,14 @@
+база рядом с пробой: D:\BqMoni_Claude\p180\build_p180_p25b\matdb.sqlite
+отпечаток таблиц переноса (mdb): e544a1f45bf7d7fc  (счёт 13.08 с, повтор из кэша 0.208 мс, совпал True)
+таблиц в отпечатке: 27
+клеймо матрицы G1S_point5.in: phys=25;8bde2e1c097b6a43edbd0c5515d4ce64ff33511f36dcc5878c8d03738e4e5113
+отпечаток D:/BqMoni_Claude/p180/s202/m_orig.sqlite: e544a1f45bf7d7fc
+отпечаток D:/BqMoni_Claude/p180/s202/m_vacuum.sqlite: e544a1f45bf7d7fc
+отпечаток D:/BqMoni_Claude/p180/s202/m_icc.sqlite: e544a1f45bf7d7fc
+отпечаток D:/BqMoni_Claude/p180/s202/m_xcom.sqlite: c4a4e0529a32569a
+отпечаток D:/BqMoni_Claude/p180/s202/m_kb1.sqlite: 049fd6e7be82466f
+отпечаток D:/BqMoni_Claude/p180/db_backup/matdb.before_kb.sqlite: a8c579a5a4c90e0a
+база рядом с пробой: D:\BqMoni_Claude\p180\s202\run_kb1\matdb.sqlite
+отпечаток таблиц переноса (mdb): 049fd6e7be82466f  (счёт 14.02 с, повтор из кэша 0.186 мс, совпал True)
+таблиц в отпечатке: 27
+клеймо матрицы G1S_point5.in: phys=25;212ca5b04f5e59eb1330de42f719b35c240e63ac784353b08b16a063adcee84f

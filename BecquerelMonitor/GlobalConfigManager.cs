@@ -56,7 +56,7 @@ namespace BecquerelMonitor
         ///
         /// ⚠ Заголовок у сообщения бывает ПУСТЫМ, и это не редкость, а
         /// обычай: окно без заголовка — штатный вид <c>MessageBox</c>, и так
-        /// её зовут все места ввоза N42 и большая часть <c>DocumentManager</c>.
+        /// её зовут все места импорта N42 и большая часть <c>DocumentManager</c>.
         /// Без окон пустой заголовок печатался как есть, и строка выходила
         /// «BecqMoni: : текст» (`A174`, 05.09.2026). Разделитель ставится
         /// только за непустым заголовком; строка с заголовком — прежняя,
@@ -114,7 +114,7 @@ namespace BecquerelMonitor
         /// САМОТЁК. Живых окон нет вовсе в двух случаях: запуск ДО того, как
         /// у <c>MainForm</c> создан дескриптор (там и работают менеджеры-
         /// одиночки — <c>GlobalConfigManager</c>, <c>DeviceConfigManager</c>,
-        /// <c>ROIConfigManager</c>, <c>NuclideDefinitionManager</c>), и
+        /// <c>NuclideDefinitionManager</c>), и
         /// завершение, когда окна уже закрыты. Тогда окно поднимается НА
         /// ВЫЗЫВАЮЩЕМ потоке — ровно как было. Это не недоделка: при запуске
         /// вызывающий и есть будущий поток окон, а терять сообщение молча
@@ -342,7 +342,7 @@ namespace BecquerelMonitor
         /// Стоит здесь, а не у каждого потребителя, ровно потому же, почему
         /// здесь стоит сама дверь: сообщений об отказе в дереве много, и второго
         /// соглашения о том, как называется причина, быть не должно. Двух копий
-        /// этого метода — в <c>ROIConfigManager</c> и в
+        /// этого метода — в снятом 07.10.2026 <c>ROIConfigManager</c> и в
         /// <c>NucBase.NucBaseFramework</c> — хватило, чтобы это стало правдой в
         /// один вечер.
         ///
@@ -723,7 +723,22 @@ namespace BecquerelMonitor
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(GlobalConfigInfo));
             try
             {
-                using (FileStream fileStream = new FileStream(becqMoniMainConfig, FileMode.Open))
+                // ⛔ `T266`: ЧТЕНИЕ — ТОЛЬКО НА ЧТЕНИЕ. Прежде здесь стоял голый
+                //    `new FileStream(путь, FileMode.Open)`, а это доступ на
+                //    ЗАПИСЬ (`FileAccess.ReadWrite` по умолчанию) при
+                //    `FileShare.Read`: конфиг с атрибутом «только чтение» не
+                //    открывался вовсе, а любой второй держатель — второй
+                //    экземпляр приложения, синхронизация OneDrive/Яндекс.Диска,
+                //    антивирус, даже простой читатель `File.OpenRead` — давал
+                //    `IOException`. Измерено `FileShareProbeP210` на старой
+                //    сборке: 5 сцен из 5 — отказ; три процесса, читающие конфиг
+                //    10 с подряд, — 13734 отказа на 39219 загрузок.
+                //    `FileShare.ReadWrite` — потому что свои записи приложение
+                //    делает атомарно (`AtomicFileWriter`: временный файл и
+                //    подмена), полузаписанным целевой файл от нас не бывает, а
+                //    чужой полузаписанный XML не разберётся и даст отказ, а не
+                //    тихо другие настройки.
+                using (FileStream fileStream = new FileStream(becqMoniMainConfig, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                 {
                     this.globalConfig = (GlobalConfigInfo)xmlSerializer.Deserialize(fileStream);
                 }
@@ -753,7 +768,24 @@ namespace BecquerelMonitor
                         + "on defaults would be quietly wrong. Run from a directory that has config\\BecquerelMonitor.xml.",
                         ex);
                 }
-                AppUi.Report(Resources.ERRLoadingGlobalConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                // ⛔ `T266`: ФАЙЛ ЕСТЬ, НО НЕ ПРОЧИТАН — НА ВЫХОДЕ ЕГО НЕ ТРОГАТЬ.
+                //    Прежде приложение работало дальше на встроенных умолчаниях и
+                //    при закрытии (`MainForm_FormClosing` → `SaveConfigFile`)
+                //    записывало эти умолчания ПОВЕРХ конфига человека: файл был
+                //    занят на запуске (облако, антивирус, второй экземпляр) — и
+                //    все его настройки пропадали молча. Файла НЕТ вовсе (первый
+                //    запуск) — другое дело: тогда записать умолчания и надо.
+                this.loadFailedOverExistingFile =
+                    !(ex is FileNotFoundException || ex is DirectoryNotFoundException)
+                    && File.Exists(this.becqMoniMainConfig);
+                string text = Resources.ERRLoadingGlobalConfigFailed
+                    + "\n" + AppUi.Where(this.becqMoniMainConfig)
+                    + "\n" + string.Format(Resources.ERRFailureReason, AppUi.Reason(ex));
+                if (this.loadFailedOverExistingFile)
+                {
+                    text += "\n\n" + Resources.MSGUnreadableConfigNotOverwritten;
+                }
+                AppUi.Report(text, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 this.globalConfig = new GlobalConfigInfo();
                 this.globalConfig.ColorConfig.InitializeSpectrumColor();
             }
@@ -767,12 +799,23 @@ namespace BecquerelMonitor
         public void PrepareConfigFile()
         {
             DeviceConfigManager.GetInstance();
-            ROIConfigManager.GetInstance();
         }
 
         // Token: 0x06000611 RID: 1553 RVA: 0x000265F4 File Offset: 0x000247F4
         public void SaveConfigFile()
         {
+            // ⛔ `T266`: конфиг человека, который на запуске НЕ ПРОЧИТАЛСЯ, не
+            //    переписывается встроенными умолчаниями. Окна здесь нет нарочно:
+            //    вызывающие — закрытие программы (довод про окно на выходе —
+            //    `MainForm.SaveLayoutXml`) и с 05.10.2026 «ОК»/«Применить» окна
+            //    «Настройки» (`AMBER201`, 3.5), а сказано об этом уже на запуске,
+            //    в том же сообщении об отказе загрузки.
+            if (this.loadFailedOverExistingFile)
+            {
+                AppUi.Note("main config NOT saved: it exists but could not be read at startup: "
+                    + AppUi.Where(this.becqMoniMainConfig));
+                return;
+            }
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(GlobalConfigInfo));
             try
             {
@@ -806,5 +849,13 @@ namespace BecquerelMonitor
 
         // Token: 0x04000335 RID: 821
         bool isLoaded;
+
+        /// <summary>
+        /// `T266`: файл конфига ЕСТЬ, а прочитать его на запуске не удалось
+        /// (занят, нет прав, битый XML) — приложение живёт на встроенных
+        /// умолчаниях, и <see cref="SaveConfigFile"/> файл НЕ переписывает.
+        /// Файла нет вовсе — ложь: первый запуск умолчания сохранить обязан.
+        /// </summary>
+        bool loadFailedOverExistingFile;
     }
 }

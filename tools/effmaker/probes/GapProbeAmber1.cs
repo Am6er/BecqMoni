@@ -393,7 +393,8 @@ namespace GapProbeAmber1
             Check("торец пережил запись", 21.7, back.FrontGapThickness, 1e-6);
             Check("бок пережил запись", 3.0, back.SideGapThickness, 1e-6);
             Check("наполнитель пережил запись", "Air, dry", back.Gap.Name);
-            Check("состав наполнителя пережил запись", 2, back.Gap.Fractions.Count);
+            // (`AMBER53`, П123 22.09.2026) Воздух засева — четыре элемента NIST (C, N, O, Ar).
+            Check("состав наполнителя пережил запись", 4, back.Gap.Fractions.Count);
 
             // ⛔ Старый файл — тот, в котором ключей зазора нет вовсе. Он обязан
             // читаться нулём, иначе смысл сменили бы ВСЕ прежние геометрии.

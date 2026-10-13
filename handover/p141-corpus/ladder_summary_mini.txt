@@ -1,0 +1,42 @@
+сдвинулось 45: улучшилось 10, ухудшилось 13, |Δ| ≤ 0.15 %: 37, |Δ| ≥ 1 %: 2
+--- лучшие 10:
+G1S16_Y88_P25                1.0761 ->   1.0478  -2.630 %  <число строк 1→2>, <число строк 2→3>, anchor_note, chi2ndf, chi2ndf_pois, collinearity; Y-
+G1S24_Na22_P5               36.3994 ->  35.8494  -1.511 %  <число строк 3→2>, anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity; An
+G1S24_Th228_P5              21.3838 ->  21.2165  -0.782 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S24_Eu152_P5              30.3754 ->  30.2715  -0.342 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S16_Th228_P5               4.4672 ->   4.4584  -0.197 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S16_Eu152_P25              3.4260 ->   3.4236  -0.070 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S16_Eu152_P5              13.6885 ->  13.6856  -0.021 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S16_Th228_P25              1.1808 ->   1.1806  -0.017 %  anchor_note, chi2ndf, chi2ndf_pois, decay_s, decay_s, dt_decay_s
+AS80_Th232Medal             12.7321 ->  12.7309  -0.009 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, decay_s, decay_s
+ASN16_Lu176                  3.6363 ->   3.6360  -0.008 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+--- худшие 10:
+G1S16_Ba133_P5              11.5274 ->  11.5289  +0.013 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+AS80_Lu176                   1.9071 ->   1.9074  +0.016 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S24_Ba133_P5              17.3558 ->  17.3587  +0.017 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S16_Na22_P5               14.0119 ->  14.0161  +0.030 %  anchor_note, ch_hi, ch_lo, chi2ndf, chi2ndf_pois, collinearity; Ann-511 72.71→17.82; Na-22
+G1S16_Na22_P25               4.1818 ->   4.1841  +0.055 %  anchor_note, chi2ndf, chi2ndf_pois, collinearity, component, components; Ann-511 70.17→10.
+G1S16_Cs137_P5               8.1347 ->   8.1401  +0.066 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S24_Cs137_P5              13.7111 ->  13.7287  +0.128 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+G1S24_Th228_P25              4.2079 ->   4.2152  +0.173 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+ASN16_Cs137                 13.4532 ->  13.5059  +0.392 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+G1S24_Na22_P25               6.1750 ->   6.2098  +0.564 %  anchor_note, anchor_offset_kev, ch_hi, ch_lo, chi2ndf, chi2ndf_pois; Ann-511 69.71→9.40; N
+--- RC103, ASN16, AS80 (мелкие кристаллы и диск):
+AS80_Th232Medal             12.7321 ->  12.7309  -0.009 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, decay_s, decay_s
+ASN16_Lu176                  3.6363 ->   3.6360  -0.008 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+AS80_Cs137_0cm               4.0859 ->   4.0859  +0.000 %  chi2ndf_pois, mda_peak_counts, model_residual_pct, peak_counts
+ASN16_Cs137_10cm             0.5365 ->   0.5365  +0.000 %  chi2ndf_pois, mda_peak_counts, model_residual_pct, peak_counts
+ASN16_Lu176_P0               0.4118 ->   0.4118  +0.000 %  chi2ndf_pois, decay_s, decay_s, dt_decay_s, dt_decay_s, gain
+AS80_Lu176                   1.9071 ->   1.9074  +0.016 %  chi2ndf, chi2ndf_pois, collinearity, decay_s, decay_s, dt_decay_s
+ASN16_Cs137                 13.4532 ->  13.5059  +0.392 %  anchor_note, anchor_offset_kev, chi2ndf, chi2ndf_pois, collinearity, decay_s
+--- состав (share_pct > 0.05 п.п.):
+G1S16_Y88_P25              Y-88 100.00→97.02; pile-up 0.00→2.98
+G1S24_Na22_P5              Ann-511 70.98→12.90; Na-22 28.41→87.09; pile-up 0.60→0.00
+G1S16_Y88_P5               Ann-511 1.53→1.27; Y-88 98.47→98.73
+G1S24_Zn65_P5              Ann-511 7.73→1.57; Zn-65 92.06→98.22
+G1S24_Y88_P5               Ann-511 1.21→0.96; Y-88 98.79→99.04
+G1S24_Y88_P25              Ann-511 1.28→1.03; Y-88 98.72→98.97
+G1S16_Na22_P5              Ann-511 72.71→17.82; Na-22 27.28→82.17
+G1S16_Na22_P25             Ann-511 70.17→10.54; Na-22 29.83→89.46
+G1S24_Na22_P25             Ann-511 69.71→9.40; Na-22 30.29→90.60
+спектров со сдвигом состава: 9

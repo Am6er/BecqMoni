@@ -58,7 +58,6 @@ class PeakFinderProbe
         EnergySpectrum es = rd.EnergySpectrum;
         rd.DeviceConfig = device;
         rd.PeakDetectionMethodConfig = config;
-        rd.ROIConfig = null;
 
         Console.WriteLine("устройство   {0}", device.Name);
         Console.WriteLine("спектр       {0} каналов, {1} отсчётов, фон {2}",

@@ -51,6 +51,19 @@ namespace BecquerelMonitor.EfficiencyMaker
             public MaterialKind Kind;
 
             /// <summary>
+            /// (`AMBER104`, П172 28.09.2026) Формула из файла библиотеки
+            /// ПРЕЖНЕГО поколения, которую прежний разбор (до 24.09.2026, без
+            /// учёта регистра) читал иначе, чем нынешний: «CS1 I1» было Cs I, а
+            /// стало C S I. Пока формула та же, состава у вещества НЕТ, а
+            /// причина названа словами (<see cref="LegacyFormulaProblem"/>):
+            /// угадать, что человек имел в виду, нечем, а молча поменять
+            /// вещество — ровно тот дефект. В файл не пишется: ставит его
+            /// только чтение (<c>GeometryMaterialStore</c>), снимает — правка
+            /// формулы.
+            /// </summary>
+            public string LegacyFormula;
+
+            /// <summary>
             /// Смесь: имена веществ этой же библиотеки и их массовые веса. Пуст
             /// у вещества, заданного формулой; непуст — формула не смотрится
             /// вовсе.
@@ -91,6 +104,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     Formula = this.Formula,
                     Density = this.Density,
                     Kind = this.Kind,
+                    LegacyFormula = this.LegacyFormula,
                 };
 
                 foreach (GeometryMaterialComponent component in this.Components)
@@ -185,6 +199,20 @@ namespace BecquerelMonitor.EfficiencyMaker
             add("PTFE", "Polytetrafluoroethylene", "C2 F4", 2.25, MaterialKind.Reflector);
             add("MgO", "Magnesium oxide", "Mg1 O1", 3.58, MaterialKind.Reflector);
             add("TiO2", "Titanium dioxide", "Ti1 O2", 4.23, MaterialKind.Reflector);
+
+            // Отражающая КРАСКА на диоксиде титана (пигмент в водорастворимом
+            // связующем) — отражатель RadiaCode-101/103 (`AMBER162`, П233; Amber
+            // 05.10.2026 вопросником, дословно: «Это краска»). Не сплошной TiO2
+            // 4.23 строкой выше: 1 мм монолита гасит Ba K 32 кэВ втрое (×0.31)
+            // и несовместим с рентгеном RC-103. Состав и плотность ЗАДАНЫ
+            // паспортом, а не подобраны: Eljen Technology, EJ-510 «Reflective
+            // paint» (https://eljentechnology.com/products/accessories/ej-510) —
+            // сухой слой 13 мг/см², три слоя 0.11 мм (отсюда 1.18 г/см³), атомов
+            // на см²: Ti 6.71e19, C 1.12e20, H 2.25e20, O 1.90e20 — они и есть
+            // формула (×1e19): по массе Ti 0.411, O 0.389, C 0.172, H 0.029, то
+            // есть TiO2 68.5 %. ⚠ Паспорт открытой краски того же устройства, а
+            // не замер RadiaCode: чем именно окрашен их кристалл, не известно.
+            add("TiO2 paint", "TiO2 reflective paint", "Ti6.71 C11.2 H22.5 O19", 1.18, MaterialKind.Reflector);
             add("Al2O3", "Aluminum oxide", "Al2 O3", 3.97, MaterialKind.Reflector);
 
             // Корпус и оправа
@@ -198,11 +226,29 @@ namespace BecquerelMonitor.EfficiencyMaker
             add("PE", "Polyethylene", "C2 H4", 0.94, MaterialKind.BeakerWall);
             add("PP", "Polypropylene", "C3 H6", 0.905, MaterialKind.BeakerWall);
             add("PS", "Polystyrene", "C8 H8", 1.06, MaterialKind.BeakerWall);
-            add("SiO2", "Glass", "Si1 O2", 2.32, MaterialKind.BeakerWall);
+
+            // Стекло сосуда — «Glass, plate» NIST (`AMBER53`, П123 22.09.2026):
+            // ρ 2.40, O/Na/Si/Ca, строкой таблицы ЛСРМ ниже. До того здесь
+            // стояло «Glass» = кварц `Si1 O2` 2.32 — это NIST «Silicon dioxide»,
+            // а не стекло: без натрия и кальция стенка 2 мм на 60 кэВ пропускала
+            // 0.890 против 0.871 (+2.2 %), на 30 кэВ +16.6 %; измерено
+            // `MaterialAirGlassProbe`. Имя — родное NIST/ЛСРМ, чтобы файл `.in`
+            // читался их программой; сокращение «Glass» — для списка.
+            list.Add(Nist("Glass", "Glass, plate", "Glass, plate", MaterialKind.BeakerWall));
 
             // Пробы
             add("H2O", "Water, liquid", "H2 O1", 1.0, MaterialKind.Source);
-            add("Air", "Air, dry", "N2 O1", 0.001205, MaterialKind.Source);
+
+            // Воздух — состав NIST «Air, dry (near sea level)» (`AMBER53`): N
+            // 0.7553, O 0.2318, Ar 0.0128, C 0.0001. До того — формула `N2 O1`
+            // (N 0.6365 / O 0.3635, без аргона): μ/ρ на 30 кэВ 0.3325 против
+            // 0.3538 см²/г (−6.0 %), на 60 кэВ −1.3 %; на самом толстом зазоре
+            // поставки 21.7 мм пропускание расходится на 5.6e-5 — невидимо,
+            // но формула была не воздухом. Имя «Air, dry» ОСТАВЛЕНО: оно
+            // зашито умолчанием зазора (<see cref="GeometryModel.DefaultGapMaterialName"/>),
+            // пресетами, 49 сценами корпуса и оснасткой; строка ЛСРМ «Air, dry
+            // (near sea level)» ниже остаётся рядом тем же составом.
+            list.Add(Nist("Air", "Air, dry", "Air, dry (near sea level)", MaterialKind.Source));
             add("SiO2", "Silicon dioxide", "Si1 O2", 1.6, MaterialKind.Source);
             add("CaCO3", "Calcium carbonate", "Ca1 C1 O3", 1.5, MaterialKind.Source);
             add("KCl", "Potassium chloride", "K1 Cl1", 1.0, MaterialKind.Source);
@@ -375,12 +421,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                  + "90:0.140610");
 
             // Таблица веществ ЛСРМ (`materials.dat` их же GeometryMaster, 2008;
-            // ввоз 16.08.2026 — `tools/effmaker/import_lsrm_materials.py`).
+            // импорт 16.08.2026 — `tools/effmaker/import_lsrm_materials.py`).
             // Двадцать девять строк выше — НАШИ, выверенные руками, и таблица их
-            // не трогает: у трёх плотность отличается НАРОЧНО (`SiO2` 1.6 и
-            // `CaCO3` 1.5 — насыпные, `M5`, против монолитных 2.32 и 2.8).
+            // не трогает: у двух плотность отличается НАРОЧНО (`SiO2` 1.6 и
+            // `CaCO3` 1.5 — насыпные, `M5`, против монолитных 2.32 и 2.8), а
+            // «Glass, plate» стоит выше СВОИМ видом (`BeakerWall`) и здесь
+            // пропускается по имени — состав и плотность у неё те же, что в
+            // строке таблицы (`AMBER53`).
             //
-            // Состав ввезённых задан массовыми долями, а не формулой, и вид у
+            // Состав импортированных задан массовыми долями, а не формулой, и вид у
             // них `Other`: «куда годится» в файле ЛСРМ нет, а разложить 287
             // веществ по пяти видам можно было бы только угадыванием.
             HashSet<string> already = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -426,6 +475,74 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// Вещество засева СТРОКОЙ таблицы NIST/ЛСРМ (<see cref="GeometryMaterialSeed.Rows"/>):
+        /// массовые доли и плотность — из строки <paramref name="rowName"/>, имя,
+        /// сокращение и вид — свои (`AMBER53`). Так у «Air, dry» и стекла сосуда
+        /// состав — тот же NIST, что у остальных 268 строк, а не формула,
+        /// набранная рядом от руки: у формулы `N2 O1` не было аргона, а кварц
+        /// стоял стеклом.
+        ///
+        /// Строки нет — отказ, а не пустое вещество: таблица генерируется
+        /// вместе с кодом, и пропавшая строка — дефект сборки, который обязан
+        /// быть виден на первом же обращении к библиотеке, а не молча дать
+        /// воздуху пустой состав.
+        /// </summary>
+        static Entry Nist(string abbr, string name, string rowName, MaterialKind kind)
+        {
+            foreach (string[] row in GeometryMaterialSeed.Rows)
+            {
+                if (!string.Equals(row[0], rowName, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                double density;
+                if (!double.TryParse(row[2], NumberStyles.Float, CultureInfo.InvariantCulture, out density)
+                    || !(density > 0.0))
+                {
+                    break;
+                }
+
+                Entry entry = new Entry
+                {
+                    Abbr = abbr, Name = name, Formula = "", Density = density, Kind = kind,
+                };
+
+                foreach (KeyValuePair<int, double> pair in GeometryMaterialSeed.Fractions(row[3]))
+                {
+                    entry.ElementFractions[pair.Key] = pair.Value;
+                }
+
+                if (entry.ElementFractions.Count > 0)
+                {
+                    return entry;
+                }
+
+                break;
+            }
+
+            throw new InvalidOperationException(
+                "в таблице веществ засева (GeometryMaterialSeed) нет строки «" + rowName + "»");
+        }
+
+        /// <summary>
+        /// Сухой воздух ЗАСЕВА — «Air, dry» составом NIST «Air, dry (near sea
+        /// level)», плотность 0.001205 г/см³. Это умолчание для мест, которые
+        /// НЕ должны зависеть от библиотеки пользователя (её он правит):
+        /// «пустое место» сосуда у писателя `.in` (`GeometryWriter.CarrySlot`),
+        /// а с ним и клеймо матрицы, которое считается с того же текста. Для
+        /// зазора геометрии умолчание другое — <see cref="GeometryModel.DefaultGapMaterial"/>,
+        /// оно нарочно идёт через действующую библиотеку (`AMBER47`).
+        ///
+        /// Базу веществ не трогает: состав задан долями, атомные массы не нужны.
+        /// </summary>
+        public static GeometryMaterial SeedAir()
+        {
+            Entry air = Nist("Air", "Air, dry", "Air, dry (near sea level)", MaterialKind.Source);
+            return Make(air, air.Density, name => null);
         }
 
         /// <summary>Вещества, годные для этого места сцены.</summary>
@@ -597,7 +714,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             double weightSum = 0.0;
             foreach (GeometryMaterialComponent component in entry.Components)
             {
-                weightSum += Math.Max(0.0, component.Weight);
+                weightSum += UsableAmountOrZero(component.Weight);
             }
 
             if (!(weightSum > 0.0))
@@ -612,7 +729,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             string gassy = null;
             foreach (GeometryMaterialComponent component in entry.Components)
             {
-                double weight = Math.Max(0.0, component.Weight) / weightSum;
+                double weight = UsableAmountOrZero(component.Weight) / weightSum;
                 if (weight <= 0.0)
                 {
                     continue;
@@ -738,6 +855,14 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             if (!entry.IsMixture)
             {
+                // (`AMBER104`) Формула, которую обновление 24.09.2026 читает
+                // иначе, чем читал прежний разбор, — отказ, а не выбор за
+                // человека (<see cref="Entry.LegacyFormula"/>).
+                if (IsLegacyFormula(entry))
+                {
+                    return result;
+                }
+
                 Dictionary<int, double> atoms = ParseFormula(entry.Formula);
                 double total = 0.0;
                 foreach (KeyValuePair<int, double> pair in atoms)
@@ -772,9 +897,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // Веса относительные — нормируются здесь. «50 и 50» и «1 и 1»
                 // обязаны дать одно и то же.
                 double weights = 0.0;
+                // (`AMBER187`, G.4) Вес годен только конечный и положительный:
+                // «Infinity» прежде проходил `> 0`, сумма весов становилась
+                // бесконечной, и доли выходили NaN (∞/∞) — состав вещества
+                // молча превращался в мусор. Редактор такой вес отвергает
+                // (<see cref="IsUsableAmount"/>), а здесь он просто не участвует.
                 foreach (GeometryMaterialComponent component in entry.Components)
                 {
-                    if (component.Weight > 0.0 && !InChain(chain, component.Material))
+                    if (IsUsableAmount(component.Weight) && !InChain(chain, component.Material))
                     {
                         weights += component.Weight;
                     }
@@ -787,7 +917,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 foreach (GeometryMaterialComponent component in entry.Components)
                 {
-                    if (!(component.Weight > 0.0) || InChain(chain, component.Material))
+                    if (!IsUsableAmount(component.Weight) || InChain(chain, component.Material))
                     {
                         continue;
                     }
@@ -813,6 +943,21 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// (`AMBER187`) Годно ли число как вес составляющей или плотность:
+        /// конечное и строго положительное. NaN не проходит `&gt; 0` сам, а
+        /// бесконечность проходит — её и ловит вторая половина условия.
+        /// </summary>
+        public static bool IsUsableAmount(double value)
+        {
+            return value > 0.0 && !double.IsInfinity(value);
+        }
+
+        static double UsableAmountOrZero(double value)
+        {
+            return IsUsableAmount(value) ? value : 0.0;
         }
 
         static bool InChain(List<string> chain, string name)
@@ -870,13 +1015,260 @@ namespace BecquerelMonitor.EfficiencyMaker
             return false;
         }
 
-        /// <summary>«Bi4 Ge3 O12» -> {83:4, 32:3, 8:12}.</summary>
+        /// <summary>
+        /// «Bi4 Ge3 O12», «Bi4Ge3O12» -> {83:4, 32:3, 8:12}. Пустой словарь —
+        /// формула не разобрана; словами причину даёт <see cref="FormulaProblem"/>.
+        ///
+        /// ⛔ (`AMBER96`, П150 24.09.2026) Разбор — по правилу химической
+        /// формулы: символ = заглавная + строчные, за ним необязательное число,
+        /// пробелы между частями не нужны; РЕГИСТР ЗНАЧИМ. Прежде часть резалась
+        /// на «всё до первой цифры» и остаток, а неразобранный остаток молча
+        /// становился единицей: «H2O» давал чистый водород (μ воды ×1.58 на
+        /// 60 кэВ), «Bi4Ge3O12» — висмут, а «CO2» без регистра читался кобальтом.
+        /// Любой неразобранный кусок — теперь отказ всей формулы, а не её часть:
+        /// половина состава опаснее пустого. Записи засева и библиотек («Cs1 I1»)
+        /// разбираются побитово как прежде (`GeometryEditorP150Probe`).
+        ///
+        /// ⛔ (`AMBER104`, П172 28.09.2026) ТОЧКА МЕЖДУ ЧАСТЯМИ — ЗНАК АДДУКТА
+        /// (IUPAC Red Book 2005, IR-4.4.3.5, «·»): «C6H12O6.H2O», «NaCl.2H2O»,
+        /// «CaSO4*2H2O», «CaSO4·2H2O» — вторая часть со своим множителем
+        /// впереди. Прежде цифры и точка набирались одним числом, и
+        /// «CaSO4.2H2O» молча давал CaSO5.2H2 (μ ×1.072 на 30 кэВ), «CuSO4.5H2O»
+        /// — ×1.31, «Na2SO4.10H2O» — ×1.37. Точка МЕЖДУ ЦИФРАМИ остаётся
+        /// дробной частью («Cd0.9Zn0.1Te1», «Si1.5 O3»), кроме записи вида
+        /// «O4.2H2O», которая читается двояко — 4.2 атома или гидрат ·2H2O:
+        /// ей отказ словами (<c>GeometryMaterialsErrorFormulaDot</c>) с
+        /// подсказкой, как записать то и другое, а не выбор за человека.
+        /// </summary>
         public static Dictionary<int, double> ParseFormula(string formula)
+        {
+            Dictionary<int, double> atoms;
+            string bad;
+            bool ambiguous;
+            return TryParseFormula(formula, out atoms, out bad, out ambiguous) ? atoms : new Dictionary<int, double>();
+        }
+
+        /// <summary>Что не так с формулой, словами; null — формула годна.</summary>
+        public static string FormulaProblem(string formula)
+        {
+            Dictionary<int, double> atoms;
+            string bad;
+            bool ambiguous;
+            if (!TryParseFormula(formula, out atoms, out bad, out ambiguous))
+            {
+                return string.Format(CultureInfo.InvariantCulture,
+                                     ambiguous ? Resources.GeometryMaterialsErrorFormulaDot
+                                               : Resources.GeometryMaterialsErrorFormulaPart, bad);
+            }
+
+            return atoms.Count > 0 ? null : Resources.GeometryMaterialsErrorFormula;
+        }
+
+        static bool IsDigit(char c)
+        {
+            return c >= '0' && c <= '9';
+        }
+
+        /// <summary>Знак аддукта, не требующий разбора: «*», «·» и его типографские братья.</summary>
+        static bool IsAdductSign(char c)
+        {
+            return c == '*' || c == '·' || c == '•' || c == '∙' || c == '⋅';
+        }
+
+        static bool TryParseFormula(string formula, out Dictionary<int, double> atoms, out string bad,
+                                    out bool ambiguous)
+        {
+            atoms = new Dictionary<int, double>();
+            bad = null;
+            ambiguous = false;
+            if (string.IsNullOrEmpty(formula))
+            {
+                return true;
+            }
+
+            // (`AMBER104`) 1. Части аддукта. Точка режет, если по обе стороны
+            // от неё НЕ цифры; между цифрами — это дробная часть числа, кроме
+            // случая «n.m» + заглавная при n ≥ 1, который читается двояко.
+            List<string> segments = new List<string>();
+            List<char> signs = new List<char>();
+            int start = 0;
+            for (int i = 0; i < formula.Length; i++)
+            {
+                char c = formula[i];
+                bool cut = IsAdductSign(c);
+                if (c == '.')
+                {
+                    bool digitBefore = i > 0 && IsDigit(formula[i - 1]);
+                    bool digitAfter = i + 1 < formula.Length && IsDigit(formula[i + 1]);
+                    if (digitBefore && digitAfter)
+                    {
+                        int run = i;
+                        while (run > 0 && IsDigit(formula[run - 1]))
+                        {
+                            run--;
+                        }
+
+                        int end = i + 1;
+                        while (end < formula.Length && IsDigit(formula[end]))
+                        {
+                            end++;
+                        }
+
+                        bool zero = formula.Substring(run, i - run).TrimStart('0').Length == 0;
+                        bool formulaFollows = end < formula.Length && formula[end] >= 'A' && formula[end] <= 'Z';
+                        if (!zero && formulaFollows)
+                        {
+                            int from = run;
+                            while (from > 0 && char.IsLetter(formula[from - 1]))
+                            {
+                                from--;
+                            }
+
+                            int to = end + 1;
+                            while (to < formula.Length && formula[to] >= 'a' && formula[to] <= 'z')
+                            {
+                                to++;
+                            }
+
+                            bad = formula.Substring(from, to - from);
+                            ambiguous = true;
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        cut = true;
+                    }
+                }
+
+                if (cut)
+                {
+                    segments.Add(formula.Substring(start, i - start));
+                    signs.Add(c);
+                    start = i + 1;
+                }
+            }
+
+            segments.Add(formula.Substring(start));
+
+            // 2. Каждая часть — своя формула; у второй и дальше — множитель впереди.
+            for (int k = 0; k < segments.Count; k++)
+            {
+                string segment = segments[k].Trim(' ', '\t');
+                if (segment.Length == 0)
+                {
+                    // «H2O.», «.H2O», «H2O..H2O» — знак без части рядом.
+                    bad = signs[k > 0 ? k - 1 : 0].ToString();
+                    return false;
+                }
+
+                double multiplier = 1.0;
+                if (k > 0 && IsDigit(segment[0]))
+                {
+                    int j = 0;
+                    while (j < segment.Length && (IsDigit(segment[j]) || segment[j] == '.'))
+                    {
+                        j++;
+                    }
+
+                    string number = segment.Substring(0, j);
+                    segment = segment.Substring(j).TrimStart(' ', '\t');
+                    if (number[number.Length - 1] == '.' || segment.Length == 0
+                        || !double.TryParse(number, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture,
+                                            out multiplier)
+                        || !(multiplier > 0.0))
+                    {
+                        bad = signs[k - 1] + number;
+                        return false;
+                    }
+                }
+
+                Dictionary<int, double> part;
+                if (!TryParseSimple(segment, out part, out bad))
+                {
+                    return false;
+                }
+
+                foreach (KeyValuePair<int, double> pair in part)
+                {
+                    double have;
+                    atoms.TryGetValue(pair.Key, out have);
+                    atoms[pair.Key] = have + multiplier * pair.Value;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>Одна часть формулы, без знаков аддукта (правило `AMBER96`).</summary>
+        static bool TryParseSimple(string formula, out Dictionary<int, double> atoms, out string bad)
+        {
+            atoms = new Dictionary<int, double>();
+            bad = null;
+            foreach (string part in formula.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                int i = 0;
+                while (i < part.Length)
+                {
+                    int start = i;
+                    if (part[i] < 'A' || part[i] > 'Z')
+                    {
+                        bad = part.Substring(start);
+                        return false;
+                    }
+
+                    i++;
+                    while (i < part.Length && part[i] >= 'a' && part[i] <= 'z')
+                    {
+                        i++;
+                    }
+
+                    string symbol = part.Substring(start, i - start);
+                    int digits = i;
+                    while (i < part.Length && (IsDigit(part[i]) || part[i] == '.'))
+                    {
+                        i++;
+                    }
+
+                    // Точка — только МЕЖДУ цифрами: концы числа проверены здесь,
+                    // а точка перед буквой до сюда не доходит — она знак аддукта.
+                    double count = 1.0;
+                    int z = ZOf(symbol);
+                    if (z <= 0 || !string.Equals(SymbolOf(z), symbol, StringComparison.Ordinal)
+                        || (i > digits && (part[digits] == '.' || part[i - 1] == '.'))
+                        || (i > digits && !double.TryParse(part.Substring(digits, i - digits),
+                                                           NumberStyles.AllowDecimalPoint,
+                                                           CultureInfo.InvariantCulture, out count)))
+                    {
+                        bad = part.Substring(start, i - start);
+                        return false;
+                    }
+
+                    if (count > 0.0)
+                    {
+                        double have;
+                        atoms.TryGetValue(z, out have);
+                        atoms[z] = have + count;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// (`AMBER104`) Прежний разбор (до 24.09.2026, П150) — ТОЛЬКО для
+        /// сравнения при чтении старого файла библиотеки: часть — «всё до
+        /// первой цифры» и число, символ без учёта регистра. null — прежний
+        /// разбор эту формулу и сам читал не целиком (кусок терялся молча), и
+        /// тогда верить ему не в чем: «H2O» он читал водородом.
+        /// </summary>
+        static Dictionary<int, double> LegacyParse(string formula)
         {
             Dictionary<int, double> atoms = new Dictionary<int, double>();
             if (string.IsNullOrEmpty(formula))
             {
-                return atoms;
+                return null;
             }
 
             foreach (string part in formula.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries))
@@ -887,17 +1279,20 @@ namespace BecquerelMonitor.EfficiencyMaker
                     split++;
                 }
 
-                string symbol = part.Substring(0, split);
-                double count;
-                if (split >= part.Length
-                    || !double.TryParse(part.Substring(split), NumberStyles.Float,
-                                        CultureInfo.InvariantCulture, out count))
+                double count = 1.0;
+                if (split < part.Length
+                    && !double.TryParse(part.Substring(split), NumberStyles.Float, CultureInfo.InvariantCulture, out count))
                 {
-                    count = 1.0;
+                    return null;
                 }
 
-                int z = ZOf(symbol);
-                if (z > 0 && count > 0.0)
+                int z = ZOf(part.Substring(0, split));
+                if (z <= 0)
+                {
+                    return null;
+                }
+
+                if (count > 0.0)
                 {
                     double have;
                     atoms.TryGetValue(z, out have);
@@ -905,7 +1300,89 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
-            return atoms;
+            return atoms.Count > 0 ? atoms : null;
+        }
+
+        /// <summary>
+        /// (`AMBER104`) Прочёл бы прежний разбор эту формулу ЦЕЛИКОМ и иначе,
+        /// чем нынешний: «CS1 I1» (Cs I → C S I), «NI1», «PB1», «SI1 O2», «CO2»
+        /// (Co2 → C O2). Формулы, которые нынешний разбор отвергает, сюда не
+        /// идут — у них отказ уже есть, свой.
+        /// </summary>
+        public static bool LegacyReadingDiffers(string formula)
+        {
+            Dictionary<int, double> old = LegacyParse(formula);
+            Dictionary<int, double> now;
+            string bad;
+            bool ambiguous;
+            if (old == null || !TryParseFormula(formula, out now, out bad, out ambiguous) || now.Count == 0)
+            {
+                return false;
+            }
+
+            if (old.Count != now.Count)
+            {
+                return true;
+            }
+
+            foreach (KeyValuePair<int, double> pair in old)
+            {
+                double other;
+                if (!now.TryGetValue(pair.Key, out other) || other != pair.Value)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Помечена ли формула записи при чтении старого файла и не правлена ли с тех пор.</summary>
+        static bool IsLegacyFormula(Entry entry)
+        {
+            return entry != null && entry.LegacyFormula != null && entry.ElementFractions.Count == 0
+                && string.Equals(entry.LegacyFormula, entry.Formula ?? "", StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// (`AMBER104`) Словами: формула записи из старого файла читается
+        /// после обновления иначе — оба прочтения названы. null — не помечена.
+        /// </summary>
+        public static string LegacyFormulaProblem(Entry entry)
+        {
+            if (!IsLegacyFormula(entry))
+            {
+                return null;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, Resources.GeometryMaterialsErrorFormulaCase,
+                                 entry.Formula, Reading(LegacyParse(entry.Formula)),
+                                 Reading(ParseFormula(entry.Formula)));
+        }
+
+        /// <summary>
+        /// Атомы строкой «Cs1 I1» — в порядке, в каком разбор их встретил
+        /// (словарь только пополнялся и перечисляется в порядке вставки).
+        /// </summary>
+        static string Reading(Dictionary<int, double> atoms)
+        {
+            if (atoms == null || atoms.Count == 0)
+            {
+                return "—";
+            }
+
+            StringBuilder text = new StringBuilder();
+            foreach (int z in atoms.Keys)
+            {
+                if (text.Length > 0)
+                {
+                    text.Append(' ');
+                }
+
+                text.Append(SymbolOf(z)).Append(atoms[z].ToString("0.###", CultureInfo.InvariantCulture));
+            }
+
+            return text.ToString();
         }
 
         /// <summary>Состав одной строкой для показа рядом с выбором вещества.</summary>

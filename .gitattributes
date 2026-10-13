@@ -1,1 +1,5 @@
 *.resx text eol=crlf
+# (П241/П240, 07.10.2026) сводку корпуса генератор пишет с LF, а check_corpus_generator
+# сверяет её байтами: при core.autocrlf=true свежий worktree выписывал CRLF, и сторож краснел
+# на том же содержимом.
+tools/CORPUS/corpus/SUMMARY.md text eol=lf

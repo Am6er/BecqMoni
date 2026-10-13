@@ -53,37 +53,6 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x17000112 RID: 274
-        // (get) Token: 0x0600024D RID: 589 RVA: 0x00009300 File Offset: 0x00007500
-        // (set) Token: 0x0600024E RID: 590 RVA: 0x00009308 File Offset: 0x00007508
-        [XmlIgnore]
-        public ROIConfigData ROIConfig
-        {
-            get
-            {
-                return this.roiConfig;
-            }
-            set
-            {
-                this.roiConfig = value;
-            }
-        }
-
-        // Token: 0x17000113 RID: 275
-        // (get) Token: 0x0600024F RID: 591 RVA: 0x00009314 File Offset: 0x00007514
-        // (set) Token: 0x06000250 RID: 592 RVA: 0x0000931C File Offset: 0x0000751C
-        public ROIConfigReference ROIConfigReference
-        {
-            get
-            {
-                return this.roiConfigReference;
-            }
-            set
-            {
-                this.roiConfigReference = value;
-            }
-        }
-
         // Token: 0x17000114 RID: 276
         // (get) Token: 0x06000251 RID: 593 RVA: 0x00009328 File Offset: 0x00007528
         // (set) Token: 0x06000252 RID: 594 RVA: 0x00009330 File Offset: 0x00007530
@@ -228,12 +197,6 @@ namespace BecquerelMonitor
 
         // Token: 0x040000AD RID: 173
         DeviceConfigReference deviceConfigReference = new DeviceConfigReference();
-
-        // Token: 0x040000AE RID: 174
-        ROIConfigData roiConfig = new ROIConfigData();
-
-        // Token: 0x040000AF RID: 175
-        ROIConfigReference roiConfigReference = new ROIConfigReference();
 
         // Token: 0x040000B0 RID: 176
         double energyCoefficient = 1.0;

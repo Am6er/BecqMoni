@@ -132,19 +132,53 @@ namespace BecquerelMonitor
 
         public static ObsidianIn getInstance(string guid, bool troubleshoot = false)
         {
+            ObsidianIn dead;
+            ObsidianIn result;
             lock (instancesLock)
             {
-                foreach (ObsidianIn instance in instances)
+                result = takeLiveInstance(guid, out dead);
+                if (result == null)
                 {
-                    if (instance != null && guid.Equals(instance.GUID))
-                    {
-                        return instance;
-                    }
+                    result = new ObsidianIn(guid, troubleshoot);
+                    instances.Add(result);
                 }
-                ObsidianIn newInstance = new ObsidianIn(guid, troubleshoot);
-                instances.Add(newInstance);
-                return newInstance;
             }
+            if (dead != null)
+            {
+                // Только связь, без `Dispose`: разбор — у близнеца, `RadiaCodeIn.getInstance`.
+                dead.DisconnectBLE();
+                Trace.WriteLine("Dead ObsidianIn instance " + guid + " replaced");
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// ⛔ `AMBER164` (в), 05.10.2026. Живой экземпляр с этим `guid` либо
+        /// null; экземпляр с УМЕРШИМ потоком чтения (запуск без BLE-адреса →
+        /// <c>Faulted</c>, «QUIT» разбора) вынимается из реестра и отдаётся в
+        /// <paramref name="dead"/> — прежде следующий Start получал его и висел
+        /// в <c>Starting</c> без данных и без сообщения. Звать под
+        /// <c>instancesLock</c>.
+        /// </summary>
+        private static ObsidianIn takeLiveInstance(string guid, out ObsidianIn dead)
+        {
+            dead = null;
+            for (int i = 0; i < instances.Count; i++)
+            {
+                ObsidianIn instance = instances[i];
+                if (instance == null || !guid.Equals(instance.GUID))
+                {
+                    continue;
+                }
+                if (instance.thread_alive)
+                {
+                    return instance;
+                }
+                instances.RemoveAt(i);
+                dead = instance;
+                return null;
+            }
+            return null;
         }
 
         public static void cleanUp(string guid)
@@ -306,15 +340,51 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Переход по КОМАНДЕ (человек, контроллер, <see cref="Dispose"/>) —
+        /// безусловный.
+        /// </summary>
         private void setStatus(State nextState)
+        {
+            applyStatus(nextState, false);
+        }
+
+        /// <summary>
+        /// ⛔ `AMBER164`, 05.10.2026. Переход, который делает САМ экземпляр —
+        /// поток чтения или событие BLE, — а не команда. Из
+        /// <see cref="State.Stopped"/> он НЕ выводит: остановленный прибор
+        /// возвращается в набор только командой «Start». Разбор — у близнеца,
+        /// <c>RadiaCodeIn.setStatusAuto</c>: Stop во время подключения или паузы
+        /// сброса затирался следующим же переходом потока, опрос доходил до
+        /// «Recording», и контроллер включал документу набор без Start.
+        /// Возвращает false, если переход отвергнут.
+        /// </summary>
+        private bool setStatusAuto(State nextState)
+        {
+            return applyStatus(nextState, true);
+        }
+
+        private bool applyStatus(State nextState, bool keepStopped)
         {
             string nextStatus;
             State prevState;
             lock (stateLock)
             {
                 prevState = state;
-                state = nextState;
-                nextStatus = GetStateString(nextState);
+                if (keepStopped && prevState == State.Stopped)
+                {
+                    nextStatus = null;
+                }
+                else
+                {
+                    state = nextState;
+                    nextStatus = GetStateString(nextState);
+                }
+            }
+            if (nextStatus == null)
+            {
+                sendTroubleShoot($"State: Stopped -> {GetStateString(nextState)} refused: stopped by command, only Start leaves it");
+                return false;
             }
             // Diagnostics only (troubleshoot form): make the state machine's path visible so the
             // disconnect -> connect -> reconnect cycle behind a failed first attempt is readable.
@@ -326,6 +396,7 @@ namespace BecquerelMonitor
             {
                 Status(this, new ObsidianStatusArgs(nextStatus));
             }
+            return true;
         }
 
         public string getStateString()
@@ -651,7 +722,7 @@ namespace BecquerelMonitor
             {
                 Trace.WriteLine("Disconnect device event");
                 sendTroubleShoot("Device connection status changed: dev disconnected");
-                setStatus(State.Reconnecting);
+                setStatusAuto(State.Reconnecting);
             }
             if (connectionStatus == BluetoothConnectionStatus.Disconnected &&
                 currentState != State.Disconnected &&
@@ -659,7 +730,7 @@ namespace BecquerelMonitor
                 currentState != State.Faulted)
             {
                 Trace.WriteLine("Disconnect device event");
-                setStatus(State.Reconnecting);
+                setStatusAuto(State.Reconnecting);
             }
         }
 
@@ -827,7 +898,7 @@ namespace BecquerelMonitor
                 if (device_serial_changed)
                 {
                     device_serial_changed = false;
-                    setStatus(State.Starting);
+                    setStatusAuto(State.Starting);
                 }
 
                 State currentState;
@@ -870,7 +941,7 @@ namespace BecquerelMonitor
                                 sendTroubleShoot(FormattableString.Invariant($"Connect cycle: entryState={GetStateString(currentState)}, attempt={(trshoot ? trshootCount + 1 : 0)}"));
                                 if (currentState != State.Reconnecting)
                                 {
-                                    setStatus(State.Connecting);
+                                    setStatusAuto(State.Connecting);
                                 }
                                 DisconnectBLE();
                                 bool connected = ConnectBLE(addressble);
@@ -880,7 +951,14 @@ namespace BecquerelMonitor
                                     {
                                         trshootCount = 0;
                                     }
-                                    setStatus(State.Connected);
+                                    if (!setStatusAuto(State.Connected))
+                                    {
+                                        // `AMBER164` (а): Stop пришёл, пока шло подключение, и его
+                                        // `DisconnectBLE` отработал ДО того, как связь поднялась.
+                                        // Остановленный прибор связь не держит — снять её здесь.
+                                        DisconnectBLE();
+                                        break;
+                                    }
                                     ResetPacket();
                                     break;
                                 }
@@ -891,14 +969,16 @@ namespace BecquerelMonitor
                                     {
                                         sendTroubleShoot("Error! 3 attempts was made to connect device, no success connection.");
                                         sendTroubleShoot("QUIT");
-                                        setStatus(State.Faulted);
+                                        setStatusAuto(State.Faulted);
                                         Thread.Sleep(500);
                                         thread_alive = false;
                                         break;
                                     }
                                 }
-                                setStatus(State.Reconnecting);
-                                doDiscovery();
+                                if (setStatusAuto(State.Reconnecting))
+                                {
+                                    doDiscovery();
+                                }
                             }
                             else
                             {
@@ -906,7 +986,7 @@ namespace BecquerelMonitor
                                 {
                                     sendTroubleShoot("QUIT");
                                 }
-                                setStatus(State.Faulted);
+                                setStatusAuto(State.Faulted);
                                 Thread.Sleep(500);
                                 thread_alive = false;
                             }
@@ -928,20 +1008,20 @@ namespace BecquerelMonitor
                             }
                             if (!HasActiveConnection())
                             {
-                                setStatus(State.Reconnecting);
+                                setStatusAuto(State.Reconnecting);
                                 break;
                             }
                             ResetPacket();
                             sendTroubleShoot("Send reset spectrum command");
                             WritePacket(OBS_RESET_SPECTRUM);
                             Thread.Sleep(500);
-                            setStatus(State.Connected);
+                            setStatusAuto(State.Connected);
                         }
                         catch (Exception ex)
                         {
                             Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
                             sendTroubleShoot($"Reset command failed: {ex.Message}");
-                            setStatus(State.Reconnecting);
+                            setStatusAuto(State.Reconnecting);
                         }
                         break;
 
@@ -955,7 +1035,7 @@ namespace BecquerelMonitor
                             }
                             if (!HasActiveConnection())
                             {
-                                setStatus(State.Reconnecting);
+                                setStatusAuto(State.Reconnecting);
                                 break;
                             }
                             ResetPacket();
@@ -989,7 +1069,7 @@ namespace BecquerelMonitor
                                         packet.BROKEN = true;
                                         sendTroubleShoot(FormattableString.Invariant($"Spectrum receive timeout. total={packet.Counter}"));
                                     }
-                                    setStatus(State.Reconnecting);
+                                    setStatusAuto(State.Reconnecting);
                                 }
                             }
                             if (!thread_alive)
@@ -1029,7 +1109,7 @@ namespace BecquerelMonitor
                             sendTroubleShoot(FormattableString.Invariant($"Spectrum total counts: {sum}"));
                             if (currentState != State.Recording)
                             {
-                                setStatus(State.Recording);
+                                setStatusAuto(State.Recording);
                             }
                             if (trshoot)
                             {
@@ -1049,7 +1129,7 @@ namespace BecquerelMonitor
                             //    (`MainForm.DeviceFailureTail`); окно поднимать
                             //    здесь нельзя, это путь измерения (`S100`).
                             setFailure(ex.Message);
-                            setStatus(State.Reconnecting);
+                            setStatusAuto(State.Reconnecting);
                         }
                         break;
 
