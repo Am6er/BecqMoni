@@ -356,7 +356,7 @@ namespace AmplitudaSerialTests
             T.True(rig.Until(() => rig.Acq.Finished), "gave up");
             rig.Line.Release();
             T.True(rig.Acq.Failure == AmplitudaSerialFailure.NoAnswer, "failure: " + rig.Acq.Failure);
-            T.True(rig.Fake.NowMs >= 20000, "waited 20 s for a block that is warming up: " + rig.Fake.NowMs);
+            T.True(rig.Fake.NowMs >= 20000, "waited 20 s for a block that is warming up: " + rig.Fake.NowMs.ToString(CultureInfo.InvariantCulture));
         }
 
         public static void TestLateAnswerAtStart()
@@ -510,6 +510,61 @@ namespace AmplitudaSerialTests
             T.True(spent <= 9000, "gave up well under TroubleMs (the window starts at the first failed exchange), took " + spent.ToString(CultureInfo.InvariantCulture) + " ms");
         }
 
+        // Maintainer's re-check of #35 (13.10.2026), finding 1: a Stop whose final reading never
+        // comes keeps counts and live time at the last good poll - real time must stay there too,
+        // not run on to the stop command (that stretch would read as dead time). Before the fix
+        // real time ended at or after realAtStop and the count rate came out low.
+        public static void TestStopWithoutTheFinalReadingRollsRealTimeBack()
+        {
+            Rig rig = Make(null, 0, 0);
+            rig.Acq.Start();
+            T.True(rig.Until(() => rig.Acq.RealSeconds >= 8), "ran 8 s");
+            rig.Block.Silent = true;
+            double realAtStop = rig.Acq.RealSeconds;
+            rig.Acq.RequestStop();
+            T.True(rig.Until(() => rig.Acq.Finished), "gave up");
+            rig.Line.Release();
+            T.True(rig.Acq.Failure == AmplitudaSerialFailure.ConnectionLost, "failure: " + rig.Acq.Failure);
+            T.True(rig.Acq.RealSeconds < realAtStop, "real time rolled back to the last good poll: "
+                + rig.Acq.RealSeconds.ToString(CultureInfo.InvariantCulture) + " vs " + realAtStop.ToString(CultureInfo.InvariantCulture) + " at Stop");
+            T.Near(1000.0, rig.Acq.TotalCounts / rig.Acq.RealSeconds, 60.0, "count rate unbiased by the lost reading");
+            T.True(rig.Acq.LiveSeconds <= rig.Acq.RealSeconds, "live <= real");
+        }
+
+        // The same, for the controller's give-up: Abort after the stop command already went out
+        // (Halt's CommitSegment has run) must not keep the stretch up to that command either.
+        public static void TestAbortAfterTheStopCommandRollsRealTimeBack()
+        {
+            Rig rig = Make(null, 0, 0);
+            rig.Acq.Start();
+            T.True(rig.Until(() => rig.Acq.RealSeconds >= 8), "ran 8 s");
+            rig.Block.Silent = true;
+            int stopsBefore = Count(rig.Fake.WireSnapshot(), "C15");
+            double realAtStop = rig.Acq.RealSeconds;
+            long tStop = rig.Fake.NowMs;
+            rig.Acq.RequestStop();
+            T.True(rig.Until(() => Count(rig.Fake.WireSnapshot(), "C15") > stopsBefore && rig.Fake.NowMs >= tStop + 1000),
+                "the stop command went out and was answered");
+            T.True(!rig.Acq.Finished, "still waiting for the final reading");
+            rig.Acq.Abort();
+            rig.Line.Release();
+            T.True(rig.Acq.Finished, "finished");
+            T.True(rig.Acq.RealSeconds < realAtStop, "real time rolled back to the last good poll: "
+                + rig.Acq.RealSeconds.ToString(CultureInfo.InvariantCulture) + " vs " + realAtStop.ToString(CultureInfo.InvariantCulture) + " at Stop");
+            T.Near(1000.0, rig.Acq.TotalCounts / rig.Acq.RealSeconds, 60.0, "count rate unbiased by the lost reading");
+        }
+
+        // Re-check finding 4: live time is never published above real time. A document whose
+        // stored live time exceeds its real time is the plain case of what the half-second block
+        // clock correction can produce on a short, lightly loaded segment.
+        public static void TestLiveNeverExceedsReal()
+        {
+            Rig rig = Make(null, 100.4, 100.0);
+            T.Near(100.0, rig.Acq.LiveSeconds, 1e-9, "capped at real time");
+            T.Near(100.4, rig.Acq.Session.LiveSeconds, 1e-9, "the session itself keeps its value");
+            rig.Line.Release();
+        }
+
         // Review I-2: a Stop must survive one lost page (a whole retry cycle of one block fails),
         // the dead-block give-up needs at least two failed halt attempts.
         public static void TestStopWithOneLostPageStillSucceeds()
@@ -538,7 +593,11 @@ namespace AmplitudaSerialTests
             T.True(rig.Until(() => rig.Acq.Finished), "finished");
             rig.Line.Release();
             double blockLive = Math.Floor(rig.Block.LiveMs / 1000.0);
-            T.Near(blockLive + AmplitudaSerialSession.SegmentClockCorrectionSeconds, rig.Acq.LiveSeconds, 0.01, "live = block seconds + correction");
+            T.Near(blockLive + AmplitudaSerialSession.SegmentClockCorrectionSeconds, rig.Acq.Session.LiveSeconds, 0.01, "live = block seconds + correction");
+            // With no dead time at all the correction may overshoot the measured real time; the
+            // published value is then capped at it (re-check finding 4).
+            T.Near(Math.Min(blockLive + AmplitudaSerialSession.SegmentClockCorrectionSeconds, rig.Acq.RealSeconds), rig.Acq.LiveSeconds, 0.01, "published live = min(corrected, real)");
+            T.True(rig.Acq.LiveSeconds <= rig.Acq.RealSeconds, "live <= real");
         }
     }
 }

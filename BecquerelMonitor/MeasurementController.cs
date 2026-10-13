@@ -409,9 +409,9 @@ namespace BecquerelMonitor
             if (this.deviceController == null)
             {
                 // Сюда попадает зарегистрированный тип прибора, у которого
-                // `DeviceControllerType` не совпал ни с одним из пяти выше.
+                // `DeviceControllerType` не совпал ни с одним из шести выше.
                 // Сегодня таких в реестре нет — но это и есть та ветка, которая
-                // молча промолчит при добавлении шестого прибора.
+                // молча промолчит при добавлении седьмого прибора.
                 if (!AppUi.HasWindows)
                 {
                     throw new InvalidOperationException(
