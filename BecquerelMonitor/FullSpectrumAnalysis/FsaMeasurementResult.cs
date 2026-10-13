@@ -72,7 +72,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // и причина с лечением); заголовок колонки для этого мал
                     head = this.MatrixUsed
                         ? texts.ScaleMatrix
-                        : string.Format(CultureInfo.InvariantCulture, texts.ScaleCurve, this.Origin);
+                        : string.Format(CultureInfo.InvariantCulture, texts.ScaleCurve, texts.NameOf(this.Origin));
                 }
                 else
                 {
@@ -83,7 +83,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         case HiddenReason.NoCurve: reason = texts.ReasonNoCurve; break;
                         case HiddenReason.CurveUnused: reason = texts.ReasonCurveUnused; break;
                         case HiddenReason.NonAbsoluteOrigin:
-                            reason = string.Format(CultureInfo.InvariantCulture, texts.ReasonOrigin, this.Origin); break;
+                            reason = string.Format(CultureInfo.InvariantCulture, texts.ReasonOrigin, texts.NameOf(this.Origin)); break;
                         default: reason = texts.ReasonNoResult; break;
                     }
                     head = string.Format(CultureInfo.InvariantCulture, texts.Hidden, reason);
@@ -110,6 +110,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public string ReasonOrigin = "кривая без абсолютного уровня ({0})";
             public string ReasonNoResult = "разбора нет";
             public string Details = "строк {0}, не обнаружено {1}, связанных рядов {2}";
+
+            /// <summary>
+            /// (П254) Название происхождения кривой для заголовка и причины — из ресурсов
+            /// окна; null или пустой ответ — имя члена перечисления, как до П254 (тогда в
+            /// русском окне стояло «Бк по кривой Simulation»).
+            /// </summary>
+            public Func<EfficiencyOrigin, string> OriginName;
+
+            public string NameOf(EfficiencyOrigin origin)
+            {
+                string name = this.OriginName != null ? this.OriginName(origin) : null;
+                return string.IsNullOrEmpty(name) ? origin.ToString() : name;
+            }
 
             public static readonly Texts Russian = new Texts();
         }
@@ -335,10 +348,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    double rate = component.CountRate;
+                    // ⛔ (П254, 14.10.2026) Амплитуда колонки — в распадах того, на что даны
+                    // выходы её линий: у члена ряда — на распад КОРНЯ (доля ветвления уже в
+                    // образе, и при выключенном равновесии тоже). Строка ряда — сам корень,
+                    // ей это и нужно. Строка СВОБОДНОГО члена — «активность каждого изотопа
+                    // в отдельности» (Amber 07.10.2026), то есть его собственные распады:
+                    // амплитуда × доля (`FsaAnalysisSession.MemberActivityRatio`). Без неё
+                    // Tl-208 на Th232_29.07.2022 при равновесии ВЫКЛ стоял 648.5 Бк — в
+                    // беккерелях Bi-212, — а своих у него 233.1 (× 0.3594).
+                    double own = chain ? 1.0 : FsaAnalysisSession.MemberActivityRatio(result, component.Name);
+                    double rate = component.CountRate * own;
                     double sigma = component.Z > 0.0 ? rate / component.Z : rate;
-                    double mda = component.DetectionLimitRate > 0.0 && !double.IsNaN(component.DetectionLimitRate)
-                        ? component.DetectionLimitRate : 0.0;
+                    // ⛔ (П254) Предел строки ряда — строки предела САМОЙ колонки ряда (имя
+                    // ряда): у члена её нет (NaN), и прежде строка брала предел первого члена
+                    // состава — верно, только если первым стоял корень со своими линиями в
+                    // полосе. Ряд без линий корня (Ra-228: 13.5/16.2 кэВ) печатал MDA 0.
+                    double limitRate = chain ? ChainLimitRate(result, component) : component.DetectionLimitRate;
+                    double mda = limitRate > 0.0 && !double.IsNaN(limitRate) ? limitRate * own : 0.0;
                     collection.ResultList.Add(new MeasurementResult(Line(name, absolute, definitions),
                                                                     rate * countingTime, sigma * countingTime, mda * countingTime));
                     summary.Rows++;
@@ -357,12 +383,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double rate = double.IsNaN(limit.CountRate) || limit.CountRate < 0.0 ? 0.0 : limit.CountRate;
+                // (П254) у не обнаруженного члена ряда — те же свои распады, что у обнаруженного
+                double own = limit.Kind == FsaComponentKind.Chain ? 1.0 : FsaAnalysisSession.MemberActivityRatio(result, limit.Name);
+                double rate = double.IsNaN(limit.CountRate) || limit.CountRate < 0.0 ? 0.0 : limit.CountRate * own;
                 double sigma = !double.IsNaN(limit.DecisionThresholdRate) && limit.DecisionThresholdRate > 0.0
-                    ? limit.DecisionThresholdRate / LimitQuantileK
+                    ? limit.DecisionThresholdRate * own / LimitQuantileK
                     : rate;
                 double mda = !double.IsNaN(limit.DetectionLimitRate) && limit.DetectionLimitRate > 0.0
-                    ? limit.DetectionLimitRate : 0.0;
+                    ? limit.DetectionLimitRate * own : 0.0;
                 collection.ResultList.Add(new MeasurementResult(Line(limit.Name, absolute, definitions),
                                                                 rate * countingTime, sigma * countingTime, mda * countingTime));
                 summary.Rows++;
@@ -370,6 +398,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return collection;
+        }
+
+        /// <summary>
+        /// (П254) Предел обнаружения строки связанного ряда, имп/с: строка предела колонки ряда
+        /// по имени ряда (<see cref="FsaComponentResult.ChainRoot"/>), а нет её — предел самого
+        /// члена (колонка, которую почленно не разложили, названа именем ряда и так).
+        /// </summary>
+        static double ChainLimitRate(FsaResult result, FsaComponentResult member)
+        {
+            if (result.CharacteristicLimits != null)
+            {
+                foreach (FsaCharacteristicLimit limit in result.CharacteristicLimits)
+                {
+                    if (limit != null && string.Equals(limit.Name, member.ChainRoot, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return limit.DetectionLimitRate;
+                    }
+                }
+            }
+
+            return member.DetectionLimitRate;
         }
 
         /// <summary>

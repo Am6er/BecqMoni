@@ -253,7 +253,7 @@ namespace BecquerelMonitor
                         if (showValuesForNDResult || flag)
                         {
                             row.Cells.Add(cell);
-                            row.Cells.Add(new Cell(Resources.PlusMinus + num.ToString(format, CultureInfo.InvariantCulture) + " (" + epsilon.ToString(format, CultureInfo.InvariantCulture) + Resources.PercentCharacter + ")"));
+                            row.Cells.Add(new Cell(ErrorText(num, epsilon, measurementResult.ResultValue, format)));
                         }
                         else
                         {
@@ -312,7 +312,7 @@ namespace BecquerelMonitor
                         {
                             row2.Cells[1].Text = measurementResult2.ResultValue.ToString(format, CultureInfo.InvariantCulture);
                             row2.Cells[1].Data = Math.Round(measurementResult2.ResultValue, format_int);
-                            row2.Cells[2].Text = Resources.PlusMinus + num2.ToString(format, CultureInfo.InvariantCulture) + " (" + epsilon.ToString(format, CultureInfo.InvariantCulture) + Resources.PercentCharacter + ")";
+                            row2.Cells[2].Text = ErrorText(num2, epsilon, measurementResult2.ResultValue, format);
                         }
                         else
                         {
@@ -344,6 +344,21 @@ namespace BecquerelMonitor
                 }
             }
             this.table1.EndUpdate();
+        }
+
+        /// <summary>
+        /// (П254) «±σ (ε %)»; у нулевого значения — только «±σ»: относительная погрешность нуля
+        /// не определена, а «(0.00%)» рядом с σ не обнаруженного нуклида (порог решения / k,
+        /// ISO 11929) читалось бы как «точно ноль».
+        /// </summary>
+        static string ErrorText(double error, double epsilon, double value, string format)
+        {
+            string text = Resources.PlusMinus + error.ToString(format, CultureInfo.InvariantCulture);
+            if (value != 0.0)
+            {
+                text += " (" + epsilon.ToString(format, CultureInfo.InvariantCulture) + Resources.PercentCharacter + ")";
+            }
+            return text;
         }
 
         static string NameText(MeasurementResult result)
@@ -470,9 +485,14 @@ namespace BecquerelMonitor
                 ReasonCurveUnused = OwnText(KeyFsaReasonCurveUnused),
                 ReasonOrigin = OwnText(KeyFsaReasonOrigin),
                 ReasonNoResult = OwnText(KeyFsaReasonNoResult),
-                Details = OwnText(KeyFsaDetails)
+                Details = OwnText(KeyFsaDetails),
+                // (П254) происхождение кривой словами окна: ключи DCResult_FsaOrigin<член>
+                // (en + ru); нет ключа — имя члена перечисления, как прежде
+                OriginName = origin => OwnResources.GetString(KeyFsaOriginPrefix + origin)
             };
         }
+
+        const string KeyFsaOriginPrefix = "DCResult_FsaOrigin";
 
         void InitFsa()
         {
@@ -516,8 +536,20 @@ namespace BecquerelMonitor
 
         void SetFsaHeader(string text, string tip)
         {
-            this.columnModel1.Columns[0].Text = text;
-            this.columnModel1.Columns[0].ToolTipText = tip ?? "";
+            Column column = this.columnModel1.Columns[0];
+            column.Text = text;
+            column.ToolTipText = tip ?? "";
+            // (П254) Заголовок со шкалой и пометкой свежести («FSA: Bq by response matrix
+            // (recomputing…)», «FSA: Бк по матрице отклика (пересчёт…)») в 170 пикселей не
+            // влезал: XPTable переносил его на вторую строку и срезал обе — снимок
+            // `FsaResultWindowProbeP254 --shots=`. Колонка только РАСТЁТ до текста: ширину,
+            // которую человек выставил руками, она не отнимает.
+            System.Drawing.Font font = this.table1.HeaderFont ?? this.table1.Font;
+            int needed = System.Windows.Forms.TextRenderer.MeasureText(text ?? "", font).Width + 12;
+            if (column.Width < needed)
+            {
+                column.Width = needed;
+            }
         }
 
         MeasurementResultCollection FsaCollection()
@@ -571,6 +603,17 @@ namespace BecquerelMonitor
             session.EnsureUpToDate(rd, rd.BackgroundEnergySpectrum != null, options);
             FullSpectrumAnalysis.FsaResult result = session.Result;
             bool running = session.IsRunning;
+            // ⛔ (П254, 14.10.2026) ПРИЗНАК СВЕЖЕСТИ И ПРИ ПАУЗЕ ЗАПИСИ. Требование `AMBER208` (3):
+            // строки по прежнему разбору обязаны это говорить. Пауза `AMBER211` («Не чаще раза в
+            // 30 с») держит при наборе прежний разбор до интервала БЕЗ счёта — и строки спектра
+            // 30-секундной давности стояли без пометки, как готовые: пометка зажигалась только на
+            // время самого счёта. Отпечаток считается тем же путём, что у сеанса.
+            if (!running && result != null && rd.ResultDataStatus != null && rd.ResultDataStatus.Recording
+                && !string.Equals(session.Stamp, FullSpectrumAnalysis.FsaAnalysisSession.BuildStamp(
+                    rd, rd.BackgroundEnergySpectrum != null, options), StringComparison.Ordinal))
+            {
+                running = true;
+            }
             if (result == null)
             {
                 this.SetFsaHeader(OwnText(KeyFsaComputing), null);
@@ -620,15 +663,34 @@ namespace BecquerelMonitor
             base.OnFormClosed(e);
         }
 
+        /// <summary>
+        /// ⛔ (П254, 14.10.2026) ЗАКАЗЧИК СЧЁТА — ТОЛЬКО ВИДИМОЕ ОКНО (решение Amber 07.10.2026
+        /// вопросником, дословно: «Не чаще раза в 30 с и только для видимых», `AMBER211`).
+        /// Подписка на сеанс и вид документа живёт, пока окно не сменит документ, — и у
+        /// окна, ставшего невыбранной вкладкой, тоже: прежде оно на каждое обновление вида
+        /// (при наборе — каждый такт графика) и на каждый конец счёта звало
+        /// <see cref="ShowResult"/>, а тот — <c>EnsureUpToDate</c>, то есть заказывало
+        /// разбор, которого никто не видит (проба `FsaResultWindowProbeP254`: скрытое окно,
+        /// смена настройки, обновление вида — один запуск счёта). Таймер MainForm скрытые
+        /// окна и так пропускает; ставшее видимым окно перечитывается по <c>VisibleChanged</c>.
+        /// </summary>
+        bool IsFsaConsumer
+        {
+            get
+            {
+                return !this.IsDisposed && this.IsHandleCreated && this.Visible;
+            }
+        }
+
         void FsaDocumentViewRefreshed(object sender, EventArgs e)
         {
-            if (this.IsDisposed || !this.IsHandleCreated)
+            if (!this.IsFsaConsumer)
             {
                 return;
             }
             this.BeginInvoke((System.Windows.Forms.MethodInvoker)delegate
             {
-                if (!this.IsDisposed)
+                if (this.IsFsaConsumer)
                 {
                     this.previousCollection = null;
                     this.ShowResult(true);
@@ -638,6 +700,7 @@ namespace BecquerelMonitor
 
         void FsaSessionCompleted(object sender, EventArgs e)
         {
+            // с фонового потока: Visible здесь не читается, только ручка — решает делегат
             if (this.IsDisposed || !this.IsHandleCreated)
             {
                 return;
@@ -646,7 +709,7 @@ namespace BecquerelMonitor
             {
                 this.BeginInvoke((System.Windows.Forms.MethodInvoker)delegate
                 {
-                    if (!this.IsDisposed)
+                    if (this.IsFsaConsumer)
                     {
                         this.previousCollection = null;
                         this.ShowResult(true);

@@ -81,11 +81,13 @@ namespace BecquerelMonitor
                 double resultCps = resultValue / countingTime;
                 double resultErrorCps = Math.Abs(resultError) / countingTime;
                 double resultBq = resultCps * k;
-                double resultBqError = 0.0;
-                if (resultCps != 0.0 && k != 0.0)
-                {
-                    resultBqError = Math.Abs(resultBq * Math.Sqrt(Math.Pow(resultErrorCps / resultCps, 2.0) + Math.Pow(kError / k, 2.0)));
-                }
+                // ⛔ (П254, 14.10.2026) Погрешность — в АБСОЛЮТНОЙ форме: σ_Бк² = (σ_имп/с·K)² +
+                // (имп/с·σ_K)². Прежде стояла относительная, |Бк|·√((σ/имп/с)² + (σ_K/K)²), под
+                // условием «имп/с ≠ 0», и у строки с нулевым значением — не обнаруженный нуклид
+                // разбора, у которого σ = порог решения / k (ISO 11929) — погрешность молча
+                // становилась нулём: окно печатало «0.00 ±0.00». При ненулевом значении формы
+                // тождественны.
+                double resultBqError = Math.Sqrt(Math.Pow(resultErrorCps * k, 2.0) + Math.Pow(resultCps * kError, 2.0));
                 double mdaCps = mda / countingTime;
                 double mdaBq = mdaCps * k;
                 double value2 = 0.0, error2 = 0.0, mda2 = 0.0;
