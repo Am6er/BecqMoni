@@ -6933,7 +6933,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Amplituda Serial: {0} is already open by another device configuration with a different pause setting. All blocks on one port must use the same pause..
+        ///   Looks up a localized string similar to Amplituda Serial: {0} is already in use by a running measurement with a pause of {1} ms. All blocks on one port must use the same pause: set {1} ms, or stop that measurement first..
         /// </summary>
         public static string ERRAmplitudaSerialSettingsDiffer {
             get {

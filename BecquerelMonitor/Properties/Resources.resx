@@ -43860,7 +43860,7 @@ Close the window and discard it?</value>
     <value>Amplituda Serial: cannot open {0}: {1} The port may be in use by another program (Progress, a terminal), or the USB adapter got another port number.</value>
   </data>
   <data name="ERRAmplitudaSerialSettingsDiffer" xml:space="preserve">
-    <value>Amplituda Serial: {0} is already open by another device configuration with a different pause setting. All blocks on one port must use the same pause.</value>
+    <value>Amplituda Serial: {0} is already in use by a running measurement with a pause of {1} ms. All blocks on one port must use the same pause: set {1} ms, or stop that measurement first.</value>
   </data>
   <data name="ERRAmplitudaSerialNoAnswer" xml:space="preserve">
     <value>The block at address {1} on {0} does not answer. Check its power (it answers a few seconds after power-up), the cable, the address and the common ground between the block's power supply and the PC.</value>

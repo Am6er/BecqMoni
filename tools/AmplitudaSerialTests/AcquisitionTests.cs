@@ -63,15 +63,52 @@ namespace AmplitudaSerialTests
 
         static Rig Make(int[] document, double live, double real, int channels)
         {
+            return Make(document, live, real, channels, 3000, 20);
+        }
+
+        static Rig Make(int[] document, double live, double real, int channels, int pollMs, int gapMs)
+        {
             Rig rig = new Rig();
             rig.Fake = new FakeBlockPort();
+            rig.Fake.GapMs = gapMs;
             rig.Block = new FakeBlock();
             rig.Fake.Blocks[0] = rig.Block;
             AmplitudaSerialLine.PortFactory = settings => rig.Fake;
             string error;
-            rig.Line = AmplitudaSerialLine.Acquire(new AmplitudaSerialSettings { PortName = "ACQ" + (++portCounter) }, out error);
-            rig.Acq = new AmplitudaSerialAcquisition(rig.Line, 0, channels, 3000, document ?? new int[channels], live, real);
+            rig.Line = AmplitudaSerialLine.Acquire(new AmplitudaSerialSettings { PortName = "ACQ" + (++portCounter), GapMs = gapMs }, out error);
+            rig.Acq = new AmplitudaSerialAcquisition(rig.Line, 0, channels, pollMs, document ?? new int[channels], live, real);
             return rig;
+        }
+
+        // Pumps several acquisitions on one line and lets virtual time pass (real-time limit 60 s).
+        static bool Until(FakeBlockPort fake, Func<bool> condition, params AmplitudaSerialAcquisition[] acquisitions)
+        {
+            DateTime limit = DateTime.UtcNow.AddSeconds(60);
+            while (DateTime.UtcNow < limit)
+            {
+                foreach (AmplitudaSerialAcquisition acquisition in acquisitions)
+                {
+                    acquisition.Pump();
+                }
+                if (condition()) return true;
+                fake.Advance(100);
+                Thread.Sleep(1);
+            }
+            return false;
+        }
+
+        // Exchanges "A<address> C<command>" on the wire from position `from` on.
+        static int Exchanges(string[] wire, int from, string address, string command)
+        {
+            int count = 0;
+            for (int i = Math.Max(0, from); i + 1 < wire.Length; i++)
+            {
+                if (wire[i] == address && wire[i + 1] == command)
+                {
+                    count++;
+                }
+            }
+            return count;
         }
 
         public static void TestStartAccumulateStop()
@@ -208,11 +245,19 @@ namespace AmplitudaSerialTests
             int pagesBefore = Count(rig.Fake.WireSnapshot(), "C83");
             rig.Fake.Advance(4000);                                // past the 3 s poll interval
             rig.Acq.Pump();                                        // issues the discovering Read (async)
-            T.True(T.Wait(() => Count(rig.Fake.WireSnapshot(), "C83") > pagesBefore, 5000),
-                "the discovering read reached the wire");
+            // ...up to the checksum request of its last page (P249, 14.10.2026): with the gate shut
+            // between "C83" and that request the read could never complete, and the drain below
+            // would find nothing - a latent flake under load. After it no more writes are needed.
+            T.True(T.Wait(() =>
+            {
+                string[] wire = rig.Fake.WireSnapshot();
+                int last = Array.LastIndexOf(wire, "C83");
+                return Count(wire, "C83") > pagesBefore && last + 2 < wire.Length && wire[last + 2] == "C10";
+            }, 5000), "the discovering read reached the wire");
             rig.Fake.Gate.Reset();                                 // worker is idle: nothing queued but that read's result
-            rig.Acq.Pump();                                        // drains it: PourNeeded -> Halt() enqueues Stop
-            T.True(!rig.Acq.Running, "the pour began");
+            // Drains it: PourNeeded -> Halt() enqueues Stop. Pumped until then, not once: the
+            // checksum byte may still be on its way when the gate shuts (it needs no write).
+            T.True(T.Wait(() => { rig.Acq.Pump(); return !rig.Acq.Running; }, 5000), "the pour began");
             rig.Block.PowerCycle();                                // safe: the worker is parked before its first byte
             rig.Fake.Gate.Set();
 
@@ -598,6 +643,124 @@ namespace AmplitudaSerialTests
             // published value is then capped at it (re-check finding 4).
             T.Near(Math.Min(blockLive + AmplitudaSerialSession.SegmentClockCorrectionSeconds, rig.Acq.RealSeconds), rig.Acq.LiveSeconds, 0.01, "published live = min(corrected, real)");
             T.True(rig.Acq.LiveSeconds <= rig.Acq.RealSeconds, "live <= real");
+        }
+
+        // A318 (2): the Stop budget of the device controller must cover a Stop that is slow only
+        // because the line is: the longest gap the settings allow (200 ms) and another document
+        // on the same port whose read job uses all three tries on every step. Such a job holds
+        // the line for TWO of its steps during our Stop - the one in flight when the stop command
+        // is queued (a command never cuts a step) and the one between that command and our urgent
+        // read (the read is queued only once the UI thread has seen the command complete). Before
+        // the fix the budget was 2000 + 1500 per page, the same at every gap: 8.0 s for 1024
+        // channels against about 14 s spent here, 27.5 s for 8192 against about 34 s - a healthy
+        // Stop was cut off as "incomplete" and its final reading lost.
+        static void StopBehindASlowForeignJob(int channels)
+        {
+            const int gapMs = 200;
+            Rig rig = Make(null, 0, 0, channels, 600000, gapMs);        // no polls of our own
+            rig.Block.Channels = new int[channels];
+            FakeBlock foreign = new FakeBlock();
+            foreign.FlakyTries = 2;
+            rig.Fake.Blocks[1] = foreign;
+            rig.Acq.Start();
+            T.True(rig.Until(() => rig.Acq.Running), "running");
+            rig.Fake.Advance(5000);
+            rig.Fake.ArmHold(1, AmplitudaSerialProtocol.PageCommand(0));
+            rig.Line.Enqueue(new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Read, Address = 1, Channels = 1024 });
+            T.True(rig.Fake.Held.WaitOne(10000), "the other document's read is at its first page");
+            long tStop = rig.Fake.NowMs;
+            rig.Acq.RequestStop();
+            rig.Fake.ReleaseHold();
+            T.True(rig.Until(() => rig.Acq.Finished), "finished");
+            long spent = rig.Fake.NowMs - tStop;
+            rig.Line.Release();
+            int budget = AmplitudaSerialTiming.StopBudgetMs(channels, gapMs);
+            T.True(rig.Acq.Failure == AmplitudaSerialFailure.None, "failure: " + rig.Acq.Failure);
+            T.True(rig.Acq.TotalCounts > 4000, "the final reading was taken: " + rig.Acq.TotalCounts.ToString(CultureInfo.InvariantCulture));
+            T.True(spent <= budget, channels.ToString(CultureInfo.InvariantCulture) + " channels at a " + gapMs.ToString(CultureInfo.InvariantCulture)
+                + " ms gap: the Stop took " + spent.ToString(CultureInfo.InvariantCulture) + " ms of the line, the budget is "
+                + budget.ToString(CultureInfo.InvariantCulture) + " ms");
+        }
+
+        public static void TestStopBudgetCoversASlowLineAt1024Channels()
+        {
+            StopBehindASlowForeignJob(1024);
+        }
+
+        public static void TestStopBudgetCoversASlowLineAt8192Channels()
+        {
+            StopBehindASlowForeignJob(8192);
+        }
+
+        // A318 (5): a given-up acquisition (Abort - the controller's budget ran out, or the
+        // program is closing) takes its own final reading off the line. Left there, the dead
+        // read went on page by page, and being urgent it could not even be parked: the next
+        // document's Stop waited for all of it. Here the dead read is held on the wire at its
+        // header; after Abort not one page of it may follow.
+        public static void TestAbortTakesItsReadOffTheLine()
+        {
+            Rig rig = Make(null, 0, 0, 1024, 600000, 20);
+            FakeBlock other = new FakeBlock();
+            rig.Fake.Blocks[1] = other;
+            AmplitudaSerialAcquisition second = new AmplitudaSerialAcquisition(rig.Line, 1, 1024, 600000, new int[1024], 0, 0);
+            rig.Acq.Start();
+            second.Start();
+            T.True(Until(rig.Fake, () => rig.Acq.Running && second.Running, rig.Acq, second), "both running");
+            rig.Fake.Advance(5000);
+            rig.Fake.ArmHold(0, AmplitudaSerialProtocol.CommandHeader);
+            rig.Acq.RequestStop();
+            T.True(T.Wait(() => { rig.Acq.Pump(); return rig.Fake.Held.WaitOne(0); }, 10000), "the Stop's own read is on the wire");
+            int wireAtAbort = rig.Fake.WireSnapshot().Length;
+            rig.Acq.Abort();
+            second.RequestStop();
+            rig.Fake.ReleaseHold();
+            T.True(Until(rig.Fake, () => second.Finished, second), "the other document's Stop finished");
+            rig.Line.Release();
+            string[] wire = rig.Fake.WireSnapshot();
+            int deadPages = Exchanges(wire, wireAtAbort, "A00", "C82") + Exchanges(wire, wireAtAbort, "A00", "C83");
+            T.Eq(0, deadPages, "pages of the aborted read after Abort");
+            T.True(Exchanges(wire, wireAtAbort, "A00", "C15") >= 1, "the aborted block was still told to stop");
+            T.True(second.Failure == AmplitudaSerialFailure.None && second.TotalCounts > 4000,
+                "the other Stop kept its reading: " + second.Failure + ", " + second.TotalCounts.ToString(CultureInfo.InvariantCulture));
+        }
+
+        // A318, minor: a Stop before the block has ever answered (or before it was verified
+        // empty) has nothing to read - nothing in the block belongs to the document yet. It used
+        // to wait out the stop trouble window (about 7.5 s) and then show "Stop incomplete: the
+        // final reading was not taken", which reads as lost data where there was none.
+        public static void TestStopBeforeTheFirstAnswerEndsAtOnce()
+        {
+            Rig rig = Make(null, 0, 0);
+            rig.Block.Silent = true;
+            rig.Acq.Start();
+            // Not pumped meanwhile: the first status request is on the line, nothing else is sent
+            // (pumping a silent block on virtual time races the 20 s start deadline).
+            T.True(T.Wait(() => Count(rig.Fake.WireSnapshot(), "C13") >= 1, 5000), "the block is asked for its status");
+            int stopsBefore = Count(rig.Fake.WireSnapshot(), "C15");
+            rig.Acq.RequestStop();
+            T.True(rig.Acq.Finished, "finished at once, no final reading to wait for");
+            T.True(rig.Until(() => rig.Acq.Finished), "finished");
+            T.True(T.Wait(() => Count(rig.Fake.WireSnapshot(), "C15") > stopsBefore, 5000), "a stop command still went out");
+            rig.Line.Release();
+            T.True(rig.Acq.Failure == AmplitudaSerialFailure.None, "nothing was lost, so no failure: " + rig.Acq.Failure);
+            T.Eq(0, rig.Acq.TotalCounts, "no counts");
+        }
+
+        // The same once the block has answered but is not verified empty yet: Stop right after
+        // Start must not read the block (its content is not ours) - it ends at once.
+        public static void TestStopBeforeTheBlockIsClearedReadsNothing()
+        {
+            Rig rig = Make(null, 0, 0);
+            rig.Block.Channels[252] = 4000;     // foreign counts that must not leak in
+            rig.Acq.Start();
+            T.True(rig.Until(() => Array.IndexOf(rig.Fake.WireSnapshot(), "C15") >= 0), "the start sequence began");
+            int headersBefore = Count(rig.Fake.WireSnapshot(), "C81");
+            rig.Acq.RequestStop();
+            T.True(rig.Until(() => rig.Acq.Finished), "finished");
+            rig.Line.Release();
+            T.True(rig.Acq.Failure == AmplitudaSerialFailure.None, "failure: " + rig.Acq.Failure);
+            T.Eq(0, rig.Acq.TotalCounts, "nothing taken from an unverified block");
+            T.Eq(headersBefore, Count(rig.Fake.WireSnapshot(), "C81"), "headers read after a Stop before the block was verified empty");
         }
     }
 }
