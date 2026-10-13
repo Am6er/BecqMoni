@@ -210,6 +210,33 @@ namespace AmplitudaSerialTests
             first.Release();
         }
 
+        // Review of 13.10.2026, item 12: the message for a refused Acquire names the pause the
+        // port is really open with (the line of a running measurement - possibly of the SAME
+        // configuration, whose form holds an unsaved pause change), not "another configuration".
+        // Called by reflection so that the runner still builds on the code before the fix.
+        public static void TestOpenPauseIsKnownForTheRefusal()
+        {
+            Fake(0);
+            AmplitudaSerialSettings settings = Settings();
+            settings.GapMs = 50;
+            string error;
+            AmplitudaSerialLine first = AmplitudaSerialLine.Acquire(settings, out error);
+            AmplitudaSerialLine second = AmplitudaSerialLine.Acquire(new AmplitudaSerialSettings { PortName = settings.PortName, GapMs = 20 }, out error);
+            T.True(second == null && error == AmplitudaSerialLine.ErrorSettingsDiffer, "refused: " + error);
+            System.Reflection.MethodInfo openGap = typeof(AmplitudaSerialLine).GetMethod("OpenGapMs");
+            T.True(openGap != null, "the line can tell the pause it is open with");
+            if (openGap != null)
+            {
+                T.Eq(50, (int)openGap.Invoke(null, new object[] { settings.PortName.ToLowerInvariant() }), "pause of the open line");
+                first.Release();
+                T.Eq(0, (int)openGap.Invoke(null, new object[] { settings.PortName }), "no line open after Release");
+            }
+            else
+            {
+                first.Release();
+            }
+        }
+
         public static void TestOpenFailureIsReported()
         {
             FakeBlockPort fake = Fake(0);
@@ -264,6 +291,39 @@ namespace AmplitudaSerialTests
             T.True(!failed.Ok && failed.Error != null, "failure reported");
             T.True(ok.Ok, "works again");
             T.Eq(2, fake.OpenCount, "port reopened");
+        }
+
+        // A318, minor: Release() waits for the exchange in flight and the pending control
+        // commands before it disposes the port. At the longest gap the settings allow (200 ms) a
+        // page step with all three tries takes about 4.4 s on the wire; the old fixed 3 s Join
+        // gave up first, and the stop command queued behind that step never went out - the
+        // block went on counting. The step is held here in REAL time (the wait is a real Join).
+        public static void TestReleaseWaitsForASlowStepAtALongGap()
+        {
+            FakeBlockPort fake = Fake(0);
+            fake.GapMs = 200;
+            fake.Blocks[0].Running = true;
+            AmplitudaSerialSettings settings = Settings();
+            settings.GapMs = 200;
+            string error;
+            AmplitudaSerialLine line = AmplitudaSerialLine.Acquire(settings, out error);
+            fake.ArmHold(0, AmplitudaSerialProtocol.PageCommand(0));
+            line.Enqueue(new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Read, Address = 0, Channels = 1024 });
+            T.True(fake.Held.WaitOne(5000), "a read step is in flight");
+            line.Enqueue(new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Control, Address = 0, Command = AmplitudaSerialProtocol.CommandStop });
+            System.Threading.Thread slowStep = new System.Threading.Thread(delegate ()
+            {
+                System.Threading.Thread.Sleep(4400);
+                fake.ReleaseHold();
+            });
+            slowStep.Start();
+            line.Release();
+            slowStep.Join();
+            List<string> wire = new List<string>(fake.WireSnapshot());
+            int stopAt = wire.IndexOf("C15");
+            T.True(stopAt >= 0 && stopAt < fake.WireCountAtDispose, "the stop command went out before the port was disposed: stop at "
+                + stopAt + ", disposed at " + fake.WireCountAtDispose + ": " + string.Join(" ", wire));
+            T.True(!fake.Blocks[0].Running, "block was stopped");
         }
 
         // Finding 2: the final reading of a Stop must not wait behind other documents' polls.

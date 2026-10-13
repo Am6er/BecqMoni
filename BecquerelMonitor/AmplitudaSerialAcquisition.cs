@@ -69,6 +69,7 @@ namespace BecquerelMonitor
             public AmplitudaSerialRequestKind Kind;
             public Action<AmplitudaSerialReading> Handler;
             public AmplitudaSerialReading Reading;
+            public AmplitudaSerialRequest Request;
         }
 
         readonly AmplitudaSerialLine line;
@@ -79,6 +80,9 @@ namespace BecquerelMonitor
         readonly object inboxLock = new object();
         readonly Queue<InboxItem> inbox = new Queue<InboxItem>();
         readonly List<AmplitudaSerialWarning> warnings = new List<AmplitudaSerialWarning>();
+        // Requests sent and not yet seen back in Pump(); UI thread only. A new sequence takes
+        // them off the line (NewSequence).
+        readonly List<AmplitudaSerialRequest> outstanding = new List<AmplitudaSerialRequest>();
 
         int token;
         bool started;
@@ -179,17 +183,26 @@ namespace BecquerelMonitor
 
         public void Pump()
         {
-            for (;;)
+            // Only what has arrived by now: a result that comes back while this call runs (the
+            // handlers below send the next request at once) waits for the next Pump(). Otherwise
+            // a line that answers faster than the UI thread checks the inbox - the fake block of
+            // the console tests on virtual time, where an exchange costs no real time at all -
+            // keeps one call going round, and the 20 s start deadline ran out inside a single
+            // Pump() (TestLateAnswerAtStart, flaky under load, 14.10.2026). On a real port an
+            // exchange takes tens of milliseconds, so nothing changes there.
+            int arrived;
+            lock (inboxLock)
+            {
+                arrived = inbox.Count;
+            }
+            for (int taken = 0; taken < arrived; taken++)
             {
                 InboxItem item;
                 lock (inboxLock)
                 {
-                    if (inbox.Count == 0)
-                    {
-                        break;
-                    }
                     item = inbox.Dequeue();
                 }
+                outstanding.Remove(item.Request);
                 if (item.Token != token || finished)
                 {
                     continue;
@@ -225,6 +238,24 @@ namespace BecquerelMonitor
             if (!started)
             {
                 finished = true;
+                return;
+            }
+            if (!session.Armed)
+            {
+                // Nothing in the block belongs to the document (A318, re-check of #35 13.10.2026):
+                // the block has not answered yet, or has not been verified empty since Start, a
+                // pour or a clear - whatever was counted before that is already in the base, and
+                // a reading taken now would be ignored anyway (Session.Apply when not armed).
+                // So there is no final reading to wait for: stop the block (best effort, the
+                // command needs no answer) and finish at once. Before, a Stop while waiting for
+                // the first answer read a silent block until the stop trouble window ran out
+                // (about 7.5 s) and ended in ConnectionLost - shown as "Stop incomplete: the final
+                // reading was not taken", where nothing had been taken or lost. Real time needs
+                // no roll-back: with the session disarmed it already stands at the last good
+                // reading (realCommitted == realAtLastGood on every path that disarms it).
+                NewSequence();
+                finished = true;
+                line.Enqueue(new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Control, Address = address, Command = AmplitudaSerialProtocol.CommandStop });
                 return;
             }
             stopping = true;
@@ -285,7 +316,9 @@ namespace BecquerelMonitor
             StopThenRestart(0);
         }
 
-        // Give up now: a best-effort stop command, no waiting, no final reading.
+        // Give up now: a best-effort stop command, no waiting, no final reading. NewSequence also
+        // takes the Stop's own urgent read off the line (A318, finding 5), so the next Stop on
+        // this port does not wait behind a reading nobody will take.
         public void Abort()
         {
             if (finished)
@@ -307,6 +340,16 @@ namespace BecquerelMonitor
             token++;
             running = false;
             readOutstanding = false;
+            // What the previous sequence still has on the line would only be dropped by token
+            // when it comes back - take it off the line instead (A318, finding 5): an aborted
+            // Stop's urgent read, the poll orphaned by a Stop or a clear, a start command not yet
+            // sent. Every caller follows with its own stop or clear (or enqueues a stop directly,
+            // which is never tracked here), so the block is never left without one.
+            foreach (AmplitudaSerialRequest request in outstanding)
+            {
+                line.Cancel(request);
+            }
+            outstanding.Clear();
         }
 
         void Send(AmplitudaSerialRequestKind kind, byte command, Action<AmplitudaSerialReading> handler, bool urgent = false)
@@ -322,9 +365,10 @@ namespace BecquerelMonitor
             {
                 lock (inboxLock)
                 {
-                    inbox.Enqueue(new InboxItem { Token = sentToken, Kind = kind, Handler = handler, Reading = reading });
+                    inbox.Enqueue(new InboxItem { Token = sentToken, Kind = kind, Handler = handler, Reading = reading, Request = request });
                 }
             };
+            outstanding.Add(request);
             line.Enqueue(request);
         }
 
@@ -708,6 +752,108 @@ namespace BecquerelMonitor
                         break;
                 }
             });
+        }
+    }
+
+    // Messages of the AmplitudaSerial devices to the person at the screen: at most ONE box at a
+    // time, and never inside the code that raised the message (A318, maintainer's re-check of
+    // #35 13.10.2026, finding 3).
+    //
+    // Why. The pump timer clears its re-entry flag before it reports, so that Pump() keeps
+    // running while a modal box is open (a restart after a pour moves only through Pump(); with
+    // the flag still set, the measurement stood still until the box was closed). The price was
+    // a box inside a box: a warning that repeats - the block stopping itself every cycle, the
+    // ceiling on an overloaded line - opened a new nested AppUi.Report every 5-8 s, and a night
+    // of it piles hundreds of nested message loops on the UI thread's stack. And the synchronous
+    // Stop showed its "Stop incomplete" box before it returned, so a Stop by preset time saved
+    // the document only once that box was closed.
+    //
+    // So a message is never shown where it arises: Add() queues it and posts ONE show to the UI
+    // message loop; while that box is open, new messages only queue (a text already waiting is
+    // not queued twice) and are shown together, in one box, once it is closed. The pump timer
+    // keeps ticking inside the box's modal loop exactly as before - nothing here waits for the
+    // box. Posting alone would not do: a modal box's own loop dispatches posted messages too, so
+    // a second posted show would still open inside the first; the gate is what prevents that.
+    //
+    // While the application is closing nothing is shown at all (`closing`, the device controller
+    // passes MainForm.ApplicationClosing; review of 13.10.2026, item 4): every message here is for
+    // the person's information only - the measurement has already ended or goes on - and a modal
+    // box in the middle of the close holds it up, and a Windows shutdown with it, until somebody
+    // presses OK; nothing can be done about it at that moment anyway. The same rule as
+    // MainForm.SaveLayoutXml and AmplitudaUsbDeviceController.ReportLoss. It is checked both when
+    // a message arrives and when the box is about to open: a show posted just before the close
+    // began would otherwise still open in its middle.
+    //
+    // No WinForms here, so the console tests drive it with a fake message loop: the device
+    // controller passes the post (MainForm.originalContext) and the show (AppUi.Report). It lives
+    // in this file because the test runner compiles exactly these dependency-free sources.
+    public sealed class AmplitudaSerialNotices
+    {
+        const string Separator = "\r\n\r\n";
+
+        readonly object sync = new object();
+        readonly List<string> pending = new List<string>();
+        readonly Action<Action> post;
+        readonly Action<string> show;
+        readonly Func<bool> closing;
+        bool scheduled;     // a show is posted or on screen: Add() only queues
+
+        public AmplitudaSerialNotices(Action<Action> post, Action<string> show, Func<bool> closing)
+        {
+            this.post = post;
+            this.show = show;
+            this.closing = closing;
+        }
+
+        public void Add(string text)
+        {
+            if (string.IsNullOrEmpty(text) || closing())
+            {
+                return;
+            }
+            bool schedule;
+            lock (sync)
+            {
+                if (!pending.Contains(text))
+                {
+                    pending.Add(text);
+                }
+                schedule = !scheduled;
+                scheduled = true;
+            }
+            if (schedule)
+            {
+                post(ShowPending);
+            }
+        }
+
+        void ShowPending()
+        {
+            for (;;)
+            {
+                string text;
+                lock (sync)
+                {
+                    if (pending.Count == 0)
+                    {
+                        scheduled = false;
+                        return;
+                    }
+                    text = string.Join(Separator, pending);
+                    pending.Clear();
+                }
+                try
+                {
+                    if (!closing())
+                    {
+                        show(text);     // modal: what arrives meanwhile is queued, shown on the next turn
+                    }
+                }
+                catch (Exception)
+                {
+                    // A box that failed must not shut the gate for good: the loop goes on.
+                }
+            }
         }
     }
 }

@@ -19,6 +19,11 @@ namespace AmplitudaSerialTests
         public double Rate = 1000.0;        // counts per second of real time
         public double LiveFraction = 0.7;
         public int HotChannel = 252;
+        // A noisy line to this block: every data block (header or page) arrives damaged on its
+        // first FlakyTries sends in a row and clean on the next one, so each step of a read
+        // job uses that many retries (2 = all three tries of the line, the slowest step there is).
+        public int FlakyTries;
+        int flakyStreak;
         // Real hardware fact (BDEG-3-2, 1024-channel spectrum): page requests beyond the
         // block's own spectrum still answer 1024 bytes with a VALID checksum, but the payload is
         // foreign memory (other internal buffers), not spectrum - nonzero and untouched by clear.
@@ -65,6 +70,26 @@ namespace AmplitudaSerialTests
             flicker = !flicker;
             return (byte)((Running ? 0x01 : 0x00) | (flicker ? 0x08 : 0x00));
         }
+
+        // Whether the data block being sent now arrives damaged (CorruptNext first, then FlakyTries).
+        public bool DamageNextDataBlock()
+        {
+            if (CorruptNext > 0)
+            {
+                CorruptNext--;
+                return true;
+            }
+            if (FlakyTries > 0)
+            {
+                if (flakyStreak < FlakyTries)
+                {
+                    flakyStreak++;
+                    return true;
+                }
+                flakyStreak = 0;
+            }
+            return false;
+        }
     }
 
     // A serial port with blocks behind it. Thread-safe: the line thread talks, the test thread
@@ -89,6 +114,33 @@ namespace AmplitudaSerialTests
         public bool PortDead;               // DiscardInput also throws: the port is really gone
         public int OpenCount;
         public bool Disposed;
+        public int WireCountAtDispose = -1; // how much had reached the wire when the port was disposed
+
+        // Hold: the line thread stops right before it writes one given command byte to one
+        // given address (the first time after ArmHold), sets Held and waits for ReleaseHold.
+        // Unlike Gate it stops at a KNOWN exchange, so a test can act while that exchange is in flight.
+        public readonly ManualResetEvent Held = new ManualResetEvent(false);
+        readonly ManualResetEvent holdGate = new ManualResetEvent(true);
+        bool holdArmed;
+        int holdAddress;
+        byte holdCommand;
+
+        public void ArmHold(int address, byte command)
+        {
+            lock (sync)
+            {
+                holdAddress = address;
+                holdCommand = command;
+                holdArmed = true;
+                Held.Reset();
+                holdGate.Reset();
+            }
+        }
+
+        public void ReleaseHold()
+        {
+            holdGate.Set();
+        }
 
         public void Open()
         {
@@ -102,6 +154,20 @@ namespace AmplitudaSerialTests
 
         public void Write(byte value)
         {
+            bool hold = false;
+            lock (sync)
+            {
+                if (holdArmed && !expectAddress && pendingAddress == holdAddress && value == holdCommand)
+                {
+                    holdArmed = false;
+                    hold = true;
+                }
+            }
+            if (hold)
+            {
+                Held.Set();
+                holdGate.WaitOne();
+            }
             Gate.WaitOne();
             if (WriteFails) throw new TimeoutException("fake: write timeout");
             lock (sync)
@@ -148,7 +214,7 @@ namespace AmplitudaSerialTests
                 data[32] = 0; data[34] = (byte)(seconds >> 8); data[35] = (byte)seconds;
             }
             else if (command >= AmplitudaSerialProtocol.CommandFirstPage &&
-                     command < AmplitudaSerialProtocol.CommandFirstPage + 2)
+                     command < AmplitudaSerialProtocol.CommandFirstPage + block.Channels.Length / 512)
             {
                 int first = (command - AmplitudaSerialProtocol.CommandFirstPage) * 512;
                 for (int i = 0; i < 512; i++)
@@ -158,7 +224,7 @@ namespace AmplitudaSerialTests
                 }
             }
             else if (block.ForeignMemoryBeyondSpectrum &&
-                     command >= AmplitudaSerialProtocol.CommandFirstPage + 2 &&
+                     command >= AmplitudaSerialProtocol.CommandFirstPage + block.Channels.Length / 512 &&
                      command < AmplitudaSerialProtocol.CommandFirstPage + AmplitudaSerialProtocol.MaxPages)
             {
                 // Foreign memory beyond the block's own 1024-channel spectrum: a fixed nonzero
@@ -171,7 +237,7 @@ namespace AmplitudaSerialTests
             }
             else return;
             lastXor = AmplitudaSerialProtocol.Xor(data, data.Length);
-            if (block.CorruptNext > 0) { block.CorruptNext--; data[100] ^= 0x40; }
+            if (block.DamageNextDataBlock()) data[100] ^= 0x40;
             foreach (byte b in data) output.Enqueue(b);
         }
 
@@ -224,6 +290,10 @@ namespace AmplitudaSerialTests
 
         public void Dispose()
         {
+            lock (sync)
+            {
+                if (!Disposed) WireCountAtDispose = Wire.Count;
+            }
             Disposed = true;
         }
     }
