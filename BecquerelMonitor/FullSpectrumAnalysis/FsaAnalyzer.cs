@@ -14227,6 +14227,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return;
             }
 
+            // ⚠ (П255 14.10.2026) СРАВНЕНИЕ ИДЁТ В КЭВ КАЛИБРОВКИ ФАЙЛА — И ТАК И НАДО. Серия
+            // избытка лежит в ДАННЫХ, а калибровка файла и есть отображение «канал данных →
+            // истинная энергия», снятое человеком по его же пикам. Плечо «в каналах модели»
+            // (`DriftPosition(LinePositionChannel(E))`: усиление привязки, карта нуля "adc",
+            // свет кристалла) измерено П255 на 12 разборах спектров Amber и ОТВЕРГНУТО: оно
+            // наследует сбой шкалы модели — у Th232 «по файлу» модель держит 238.6 на 30 каналов
+            // выше данных, у сета без ряда нуль −34 кан., — и давало ложные имена (Lu176:
+            // «Am-241 59.5» у рентгена Hf; 26.5 кэВ — «W x-ray 58.0»). Журнал П255.
             Func<double, double> fwhmKev = energy =>
             {
                 double channel = calibration.EnergyToChannel(energy, channels);
@@ -14241,6 +14249,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             };
 
             // Линии вошедших компонентов (и производных) и имена их нуклидов.
+            // (П255) Колонка ряда, связанного равновесием, отчитывается строками ЧЛЕНОВ
+            // (`SplitChainMembers`: имя — член, `ChainRoot` — колонка), а привязанные члены —
+            // строками с `TiedTo`; компонент библиотеки называется именем колонки. Без этих
+            // имён ряд, у корня которого нет строки (линий корня в полосе нет), не покрывал бы
+            // своими линиями ничего.
             var detected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             if (result.Components != null)
             {
@@ -14249,6 +14262,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (c != null && c.CountRate > 0.0 && !string.IsNullOrEmpty(c.Name))
                     {
                         detected.Add(c.Name);
+                        if (!string.IsNullOrEmpty(c.ChainRoot))
+                        {
+                            detected.Add(c.ChainRoot);
+                        }
+
+                        if (!string.IsNullOrEmpty(c.TiedTo))
+                        {
+                            detected.Add(c.TiedTo);
+                        }
                     }
                 }
             }
