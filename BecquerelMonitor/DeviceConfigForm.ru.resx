@@ -128,7 +128,7 @@
     <value>173, 13</value>
   </data>
   <data name="label5.Text" xml:space="preserve">
-    <value>Список конфигураций устройств</value>
+    <value>Конфигурации</value>
   </data>
   <data name="button3.Text" xml:space="preserve">
     <value>Новый</value>

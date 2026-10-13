@@ -9277,7 +9277,7 @@
     <value>tabPage2</value>
   </data>
   <data name="textBox1.Text" xml:space="preserve">
-    <value>Caution: If this option is enabled, file size of saved spectra will be extremely large. This option is mandatory for manupulating channel parameters after measuring spectrum. (recommended environement: 64bit OS, over 4GB of memory)</value>
+    <value>Caution: If this option is enabled, file size of saved spectra will be extremely large. This option is mandatory for manipulating channel parameters after measuring spectrum. (recommended environment: 64bit OS, over 4GB of memory)</value>
   </data>
   <data name="&gt;&gt;label19.Name" xml:space="preserve">
     <value>label19</value>

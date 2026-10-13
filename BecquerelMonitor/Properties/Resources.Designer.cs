@@ -2774,7 +2774,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Uncertain.
+        ///   Looks up a localized string similar to Uncertainty.
         /// </summary>
         public static string Uncertain {
             get {
