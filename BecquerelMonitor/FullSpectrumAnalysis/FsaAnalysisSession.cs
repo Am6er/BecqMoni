@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -986,10 +987,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
                 else
                 {
+                    // (П254) Доли «свой распад на единицу амплитуды» у членов рядов —
+                    // по библиотеке ДО разбора: анализатор строит из неё свои копии.
+                    Dictionary<string, double> memberRatios = MemberActivityRatiosOf(library, job.Definitions);
                     computed = job.Analyzer.Analyze(job.Spectrum, job.Background, job.FwhmCalibration,
                                                     library, job.Efficiency);
                     if (computed != null)
                     {
+                        RememberMemberActivityRatios(computed, memberRatios);
+
                         // (`S187`) Расхождения поставок у нуклидов состава — здесь,
                         // в фоне: чтение базы не должно идти в окне отчёта.
                         computed.SupplyDiscrepancies = FsaCascadeSummer.SupplyDiscrepanciesOf(computed);
@@ -1040,6 +1046,233 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             this.Finish(job, computed, message);
+        }
+
+        /// <summary>
+        /// ⛔ (П254, 14.10.2026) СВОИХ РАСПАДОВ ЧЛЕНА РЯДА НА ЕДИНИЦУ АМПЛИТУДЫ ЕГО КОЛОНКИ.
+        ///
+        /// Амплитуда разбора — в единицах того, на что даны выходы линий образа. У члена
+        /// ряда они даны на распад КОРНЯ: путь из баз кладёт линию с долей ветвления от
+        /// корня (<c>FsaSampleLibrary.Build</c>: выход × равновесное отношение члена к
+        /// корню — и при выключенном равновесии тоже), путь по подписям берёт выходы
+        /// библиотеки, а импорт с рядом пишет их так же (у Amber «Tl-208 (Th-232)» 2614 —
+        /// 35.85 % на распад Th-232, а не 99.75 % на свой). Строка свободного члена в окне
+        /// результата — это «активность каждого изотопа в отдельности» (решение Amber
+        /// 07.10.2026, `AMBER211`), и без этой доли окно печатало Tl-208 в беккерелях
+        /// Bi-212: на Th232_29.07.2022 при равновесии ВЫКЛ 648.5 Бк против своих 233.1.
+        ///
+        /// Доля = выход линии члена в образе / выход той же линии на его СОБСТВЕННЫЙ распад
+        /// по базе (<see cref="FsaSampleLibrary.DecayLines"/>, совпадение энергии 0.05 кэВ —
+        /// тот же допуск «та же линия», что у сборок), группой равных отношений
+        /// (<see cref="DominantRatio"/>). Считается только у членов
+        /// ряда — у колонки с происхождением в ряду (<see cref="FsaComponent.DecayChainRoot"/>,
+        /// путь из баз) либо у нуклида, чья строка библиотеки несёт ряд другого корня (путь
+        /// по подписям); у одиночного нуклида амплитуда — его собственные распады по
+        /// построению, и выходы библиотеки человека здесь не «поправляются» базой.
+        /// Корень ряда своей доли не получает: она единица. Ключ — нуклид линии
+        /// (<see cref="FsaLine.Nuclide"/>), то есть имя строки результата члена.
+        /// </summary>
+        static Dictionary<string, double> MemberActivityRatiosOf(List<FsaComponent> library,
+                                                                 List<NuclideDefinition> definitions)
+        {
+            var ratios = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            if (library == null)
+            {
+                return ratios;
+            }
+
+            try
+            {
+                var report = new FsaSampleLibrary.Report();
+                foreach (FsaComponent component in library)
+                {
+                    if (component == null || component.Kind == FsaComponentKind.Nuisance || component.Lines.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    var members = new Dictionary<string, List<FsaLine>>(StringComparer.OrdinalIgnoreCase);
+                    foreach (FsaLine line in component.Lines)
+                    {
+                        string member = string.IsNullOrEmpty(line.Nuclide) ? component.Name : line.Nuclide;
+                        List<FsaLine> lines;
+                        if (!members.TryGetValue(member, out lines))
+                        {
+                            lines = new List<FsaLine>();
+                            members[member] = lines;
+                        }
+
+                        lines.Add(line);
+                    }
+
+                    foreach (KeyValuePair<string, List<FsaLine>> member in members)
+                    {
+                        string nucid = FsaSampleLibrary.NucidOf(member.Key);
+                        if (nucid.Length == 0 || ratios.ContainsKey(member.Key)
+                            || !IsChainMember(component, nucid, definitions))
+                        {
+                            continue;
+                        }
+
+                        List<double[]> own = FsaSampleLibrary.DecayLines(nucid, report);
+                        if (own == null || own.Count == 0)
+                        {
+                            continue;
+                        }
+
+                        double ratio = DominantRatio(member.Value, own);
+                        if (ratio > 0.0 && !double.IsInfinity(ratio))
+                        {
+                            ratios[member.Key] = ratio;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Без доли строка члена остаётся в распадах корня — как до П254; молча нельзя.
+                Trace.WriteLine("FSA member activity ratios failed: " + ex);
+            }
+
+            return ratios;
+        }
+
+        /// <summary>
+        /// (П254) Доля по линиям: у каждой линии образа, нашедшей свою на собственный распад
+        /// (0.05 кэВ), — отношение выходов; берётся группа РАВНЫХ отношений (до 10⁻⁶) с
+        /// наибольшим суммарным выходом в образе. Сумма по всем линиям не годится: L-серию
+        /// рентгена сборка образа сводит иначе, чем строки базы лежат подряд (у Tl-208 на
+        /// 12.66 кэВ отношение 1.155 при 0.3594 у остальных 41 линии), и доля съезжала на
+        /// 0.2 %. Путь из баз даёт одну группу (доля ветвления × множитель равновесия), путь
+        /// по подписям — группу выходов, введённых одним правилом; рукописная строка
+        /// библиотеки с иным отношением уходит в свою группу и долю не решает.
+        /// </summary>
+        static double DominantRatio(List<FsaLine> lines, List<double[]> own)
+        {
+            var pairs = new List<KeyValuePair<double, double>>();
+            foreach (FsaLine line in lines)
+            {
+                if (!(line.Intensity > 0.0))
+                {
+                    continue;
+                }
+
+                for (int k = 0; k < own.Count; k++)
+                {
+                    if (Math.Abs(own[k][0] - line.Energy) < 0.05 && own[k][1] > 0.0)
+                    {
+                        pairs.Add(new KeyValuePair<double, double>(line.Intensity / own[k][1], line.Intensity));
+                        break;
+                    }
+                }
+            }
+
+            if (pairs.Count == 0)
+            {
+                return 0.0;
+            }
+
+            pairs.Sort((x, y) => x.Key.CompareTo(y.Key));
+            double bestWeight = -1.0, bestRatio = 0.0;
+            int start = 0;
+            while (start < pairs.Count)
+            {
+                int end = start;
+                double weight = 0.0, weighted = 0.0;
+                while (end < pairs.Count && Math.Abs(pairs[end].Key - pairs[start].Key) <= 1e-6 * pairs[start].Key)
+                {
+                    weight += pairs[end].Value;
+                    weighted += pairs[end].Value * pairs[end].Key;
+                    end++;
+                }
+
+                if (weight > bestWeight)
+                {
+                    bestWeight = weight;
+                    bestRatio = weighted / weight;
+                }
+
+                start = end;
+            }
+
+            return bestRatio;
+        }
+
+        /// <summary>
+        /// (П254) Член ряда, а не корень и не одиночка: у колонки есть происхождение в ряду
+        /// с другим корнем (путь из баз), либо строка библиотеки этого нуклида несёт ряд
+        /// другого корня (путь по подписям, импорт с рядом).
+        /// </summary>
+        static bool IsChainMember(FsaComponent component, string nucid, List<NuclideDefinition> definitions)
+        {
+            string root = FsaSampleLibrary.NucidOf(component.DecayChainRoot ?? "");
+            if (root.Length > 0)
+            {
+                return root != nucid;
+            }
+
+            if (definitions != null)
+            {
+                foreach (NuclideDefinition definition in definitions)
+                {
+                    if (definition == null || FsaSampleLibrary.NucidOf(definition.NuclideName ?? "") != nucid)
+                    {
+                        continue;
+                    }
+
+                    string chain = FsaSampleLibrary.NucidOf((definition.Chain ?? "").Trim());
+                    if (chain.Length > 0 && chain != nucid)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>(П254) Доли членов — при результате, которому они отвечают; живут, пока жив результат.</summary>
+        static readonly ConditionalWeakTable<FsaResult, Dictionary<string, double>> MemberRatios =
+            new ConditionalWeakTable<FsaResult, Dictionary<string, double>>();
+
+        static void RememberMemberActivityRatios(FsaResult result, Dictionary<string, double> ratios)
+        {
+            if (result == null || ratios == null)
+            {
+                return;
+            }
+
+            lock (MemberRatios)
+            {
+                MemberRatios.Remove(result);
+                MemberRatios.Add(result, ratios);
+            }
+        }
+
+        /// <summary>
+        /// (П254) Своих распадов члена ряда <paramref name="member"/> на единицу амплитуды
+        /// колонки в разборе <paramref name="result"/> (см. <see cref="MemberActivityRatiosOf"/>);
+        /// единица — у корня, одиночки, приборного образа и у результата, собранного не
+        /// сеансом (сцены проб).
+        /// </summary>
+        public static double MemberActivityRatio(FsaResult result, string member)
+        {
+            if (result == null || string.IsNullOrEmpty(member))
+            {
+                return 1.0;
+            }
+
+            Dictionary<string, double> ratios;
+            lock (MemberRatios)
+            {
+                if (!MemberRatios.TryGetValue(result, out ratios))
+                {
+                    return 1.0;
+                }
+            }
+
+            double ratio;
+            return ratios.TryGetValue(member, out ratio) && ratio > 0.0 && !double.IsInfinity(ratio) ? ratio : 1.0;
         }
 
         /// <summary>
