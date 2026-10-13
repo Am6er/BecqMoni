@@ -913,6 +913,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // разыгрывалась НЕ теми же точками, что последний узел.
                     EfficiencySimulator sim = MakeSimulator(geometry, options,
                                                             grid.Length + firstBlock + block, energies[0]);
+                    // ⛔ (П253, 14.10.2026) Отмена — и ВНУТРИ блока κ, как у узлов
+                    // (`AMBER201`, `RunNode`). Блок κ на маринелли 1 л — минута счёта на
+                    // поток (замер П246: 14 блоков за 64 с), и `Parallel.ForEach` снимает
+                    // только ещё не начатые: «Отмена» в окне ждала до минуты, а на
+                    // GPU-пути (κ идёт с первой секунды) — почти при любом нажатии.
+                    // Опрос раз в точку, случайных чисел не тянет — таблица побитово прежняя.
+                    if (parallel != null && parallel.CancellationToken.CanBeCanceled)
+                    {
+                        sim.PollCancellation = parallel.CancellationToken.ThrowIfCancellationRequested;
+                    }
+
                     partials[block] = sim.JointPeakSums(energies, perBlock, halfWidths, perPoint);
                     // (`AMBER220`) Досчитанный блок — единица хода полосы; зовётся из
                     // потоков, получатель считает `Interlocked`.

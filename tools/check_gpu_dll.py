@@ -17,7 +17,12 @@ u"""Сторож поставочной GPU-библиотеки `BecquerelMonit
   2. `phys=` в паспорте DLL == `RM_PHYSICS_VERSION` в `physics.h` ==
      `ResponseMatrix.PhysicsVersion` в `BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs`;
   3. копия `tools/effmaker/gpu/bin/rmgpu_f.dll` (если есть — она не в git) байт в байт
-     равна поставочной: скрипт сборки кладёт обе, расхождение — чья-то сборка мимо скрипта.
+     равна поставочной: скрипт сборки кладёт обе, расхождение — чья-то сборка мимо скрипта;
+  4. (П253, 14.10.2026) настройки ядра `cfg.h` == открытые простые поля `EfficiencySimulator`
+     по исходнику (имя и вид) — то, что упаковщик `GpuPack.Settings` шлёт в `rm_cfg_set`.
+     Прежде это сверял только `gen_cfg.ps1 -Check` по собранному exe, и в `check_all` его не
+     было: поле, заведённое в C# мимо `gen_cfg.ps1`, проходило все сторожа, а в приложении
+     счёт на GPU отказывал у человека.
 
 Паспорт читается из самой DLL (`ctypes`): она слинкована со статическим рантаймом CUDA и
 зависит только от KERNEL32, а `rm_build_info` устройства не трогает — сторож идёт и на
@@ -81,6 +86,68 @@ def physics_cs(path=RESPONSE_CS):
     text = io.open(path, encoding='utf-8-sig').read()
     m = re.search(r'public\s+const\s+int\s+PhysicsVersion\s*=\s*(\d+)\s*;', text)
     return int(m.group(1)) if m else None
+
+
+SIM_CS = [os.path.join(REPO, 'BecquerelMonitor', 'EfficiencyMaker', n)
+          for n in ('EfficiencySimulator.cs', 'ElectronTransport.cs')]
+CFG_H = os.path.join(GPU_DIR, 'cfg.h')
+CS_KIND = {u'bool': u'B', u'int': u'I', u'long': u'L', u'double': u'D'}
+CS_PRIMITIVE = (u'bool', u'int', u'long', u'double', u'float', u'uint', u'ulong', u'short', u'ushort',
+                u'byte', u'sbyte', u'char')
+
+
+def sim_fields(texts):
+    u"""Открытые экземплярные поля примитивных типов `EfficiencySimulator` по ИСХОДНИКУ — то же
+    правило, что у упаковщика `GpuPack.Settings` и `gen_cfg.ps1` (отражение по сборке): кроме
+    счётчиков-выходов `Count*`/`Sum*`/`Last*`/`Weight*`. Класс — `partial`, тела берутся из
+    блоков `public sealed partial class EfficiencySimulator` (отступ 4) до их `    }`, поля —
+    строки членов класса (отступ 8). Словарь имя → вид (B/I/L/D; иной примитив — `?`)."""
+    out = {}
+    for text in texts:
+        inside = False
+        for line in text.splitlines():
+            if not inside:
+                if re.match(r'^    public sealed partial class EfficiencySimulator\b', line):
+                    inside = True
+                continue
+            if line.rstrip() == u'    }':
+                inside = False
+                continue
+            m = re.match(r'^        public (?:readonly )?(\w+) (\w+)\s*(?:=[^;]*)?;', line)
+            if not m or m.group(1) not in CS_PRIMITIVE:
+                continue
+            name = m.group(2)
+            if name.startswith((u'Count', u'Sum', u'Last', u'Weight')):
+                continue
+            out[name] = CS_KIND.get(m.group(1), u'?')
+    return out
+
+
+def cfg_fields(text):
+    return dict((n, k) for k, n in re.findall(r'X\(([BILD]), (\w+)\)', text))
+
+
+def cfg_problems(sim, cfg):
+    u"""(П253, 14.10.2026) Четвёртая сверка: настройки ядра (`cfg.h`) == открытые простые поля
+    симулятора. Поле, заведённое в C# без `gen_cfg.ps1`, сторож прежде не видел: исходники ядра
+    не менялись, отпечаток сходился, а в приложении при галке «Use Nvidia GPU» счёт отказывал
+    уже у человека (`rm_cfg_set`: «настройка … GPU-пути не известна»)."""
+    problems = []
+    if not sim:
+        return [u'не найдено ни одного поля EfficiencySimulator — разбор исходника сломан']
+    for n in sorted(set(sim) - set(cfg)):
+        problems.append(u'поле EfficiencySimulator.%s есть в C#, нет в cfg.h — gen_cfg.ps1 и перенос в ядро' % n)
+    for n in sorted(set(cfg) - set(sim)):
+        problems.append(u'поле %s есть в cfg.h, нет в EfficiencySimulator — gen_cfg.ps1' % n)
+    for n in sorted(set(sim) & set(cfg)):
+        if sim[n] != cfg[n]:
+            problems.append(u'поле %s: в C# вид %s, в cfg.h — %s' % (n, sim[n], cfg[n]))
+    return problems
+
+
+def read_sim_and_cfg():
+    texts = [io.open(p, encoding='utf-8-sig').read() for p in SIM_CS if os.path.isfile(p)]
+    return sim_fields(texts), cfg_fields(io.open(CFG_H, encoding='utf-8').read())
 
 
 def build_info(dll_path):
@@ -176,6 +243,25 @@ def selftest():
         print(u'  %s копия даёт тот же отпечаток, CRLF — тот же, байт сверху — другой' % (u'✓' if ok else u'✗'))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+    # (П253) Сверка настроек: дерево сходится; лишнее поле в C#, пропавшее поле и смена вида —
+    # отказ. Порча — на копии текста исходника, а не на дереве.
+    sim, cfg = read_sim_and_cfg()
+    texts = [io.open(p, encoding='utf-8-sig').read() for p in SIM_CS if os.path.isfile(p)]
+    anchor = u'        public bool AnalogContinuum'
+    extra = [t.replace(anchor, u'        public double P253Probe = 0.0;\n' + anchor, 1) for t in texts]
+    gone = [t.replace(anchor, u'        bool AnalogContinuumHidden', 1) for t in texts]
+    kind = [t.replace(anchor, u'        public int AnalogContinuum', 1) for t in texts]
+    cfg_cases = [
+        (sim, 0, u'настройки: дерево (%d полей C#, %d в cfg.h)' % (len(sim), len(cfg))),
+        (sim_fields(extra), 1, u'настройки: новое поле в C# без cfg.h'),
+        (sim_fields(gone), 1, u'настройки: поле cfg.h пропало из C#'),
+        (sim_fields(kind), 1, u'настройки: поле сменило вид'),
+    ]
+    for fields, want, what in cfg_cases:
+        got = 1 if cfg_problems(fields, cfg) else 0
+        ok = got == want
+        bad += 0 if ok else 1
+        print(u'  %s %s → %s' % (u'✓' if ok else u'✗', what, u'отказ' if got else u'сходится'))
     print(u'самопроверка: %s' % (u'ПРОЙДЕНА' if bad == 0 else u'ПРОВАЛЕНА (%d)' % bad))
     return 0 if bad == 0 else 1
 
@@ -207,6 +293,11 @@ def main(argv):
                             % (os.path.relpath(SHIPPED, REPO), os.path.relpath(BUILT, REPO), len(a), len(b)))
         else:
             print(u'копия в gpu/bin — та же, байт в байт')
+    sim, cfg = read_sim_and_cfg()
+    cfgp = cfg_problems(sim, cfg)
+    if not cfgp:
+        print(u'настройки ядра (cfg.h) = открытые простые поля EfficiencySimulator: %d' % len(cfg))
+    problems.extend(cfgp)
     for p in problems:
         print(u'⛔ ' + p)
     print(u'положительный контроль этой проверки: python tools/check_gpu_dll.py --selftest')

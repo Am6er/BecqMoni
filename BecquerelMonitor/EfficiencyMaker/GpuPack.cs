@@ -206,6 +206,37 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// </summary>
     public static partial class GpuPack
     {
+        /// <summary>
+        /// (П253, 14.10.2026) Умеет ли GPU-порт сцену этой геометрии при этих настройках —
+        /// БЕЗ сборки симулятора, по тем же признакам, по которым строится источник
+        /// (`EfficiencySimulator.Build`): изотропное поле (`IsoFieldSampler`) и важностный
+        /// розыгрыш точки вылета цилиндра и маринелли (`ImportanceSampler`) не перенесены,
+        /// и упаковка на них отказывает (<see cref="SourceKindOf"/>). Окно матрицы по этому
+        /// ответу гасит галку «Use Nvidia GPU» с причиной, а не отказывает после нажатия
+        /// «Посчитать»; построитель отказывает ДО начала счёта (κ пар не запускается).
+        /// Null — умеет; иначе причина по-русски, для журнала и отказа построителя.
+        /// </summary>
+        public static string SceneProblem(GeometryModel geometry, ResponseMatrixOptions options)
+        {
+            if (geometry == null)
+            {
+                return null;
+            }
+
+            if (geometry.Scene == GeometrySceneKind.Iso)
+            {
+                return "GPU-путь: изотропное поле (сцена ISO) на GPU не перенесено — считать на ЦП";
+            }
+
+            if (options != null && options.ImportanceSampling
+                && (geometry.SourceType == GeometrySourceType.Cylinder || geometry.SourceType == GeometrySourceType.Marinelli))
+            {
+                return "GPU-путь: важностный розыгрыш точки вылета (ImportanceSampling) на GPU не перенесён — считать на ЦП";
+            }
+
+            return null;
+        }
+
         public static byte[] Pack(EfficiencySimulator sim)
         {
             sim.EnsureBuilt();
