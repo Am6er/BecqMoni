@@ -154,6 +154,14 @@ namespace BecquerelMonitor
                 // Don't silently drop the request ("drop, not queue"): re-run once the
                 // current detection finishes, so e.g. an SNR change made mid-run is not lost.
                 refreshPending = true;
+                // (П261) Пики спектра, вставшего в очередь, ТОЖЕ ищутся: первый проход
+                // разбора без них подождёт (`FsaAnalysisSession.PeakSearchStarted`).
+                ResultData queued = this.mainForm.ActiveDocument != null ? this.mainForm.ActiveDocument.ActiveResultData : null;
+                if (queued != null && !this.queuedSearches.Contains(queued))
+                {
+                    this.queuedSearches.Add(queued);
+                    FullSpectrumAnalysis.FsaAnalysisSession.PeakSearchStarted(queued);
+                }
                 return;
             }
             isProcessing = true;
@@ -172,6 +180,10 @@ namespace BecquerelMonitor
                     return;
                 }
                 activeResultData = activeDocument.ActiveResultData;
+                // ⛔ (П261) Поиск начат — разбор FSA, заказанный по этому спектру до прихода
+                // пиков (окно результата зовут при смене вкладки ДО поиска), не опубликует
+                // отказ пустого состава; конец — в finally, парой.
+                FullSpectrumAnalysis.FsaAnalysisSession.PeakSearchStarted(activeResultData);
                 FWHMPeakDetectionMethodConfig fWHMConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
                 if (activeResultData.FwhmCalibration == null)
                 {
@@ -270,13 +282,30 @@ namespace BecquerelMonitor
             finally
             {
                 isProcessing = false;
+                // (П261) конец поиска этого спектра — парой к началу выше
+                if (activeResultData != null)
+                {
+                    FullSpectrumAnalysis.FsaAnalysisSession.PeakSearchFinished(activeResultData, true);
+                }
                 if (refreshPending)
                 {
                     refreshPending = false;
+                    // Повтор отмечает активный спектр ДО своего первого await, и только потом
+                    // снимаются отметки очереди: спектр, ищущийся повтором, не теряет отметку
+                    // ни на миг; ушедший с экрана снимается без поиска (`false`).
+                    List<ResultData> queued = new List<ResultData>(this.queuedSearches);
+                    this.queuedSearches.Clear();
                     UpdatePeakDetectionResult();
+                    foreach (ResultData spectrum in queued)
+                    {
+                        FullSpectrumAnalysis.FsaAnalysisSession.PeakSearchFinished(spectrum, false);
+                    }
                 }
             }
         }
+
+        /// <summary>(П261) Спектры, чей поиск встал в очередь за идущим (отмечены начатыми).</summary>
+        readonly List<ResultData> queuedSearches = new List<ResultData>();
 
         /// <summary>
         /// Отказ поиска пиков — НА ЭКРАН (`A4`).

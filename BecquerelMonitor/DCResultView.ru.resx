@@ -225,4 +225,7 @@
   <data name="DCResult_FsaStale" xml:space="preserve">
     <value>(пересчёт…)</value>
   </data>
+  <data name="DCResult_FsaError" xml:space="preserve">
+    <value>FSA: ошибка</value>
+  </data>
 </root>
