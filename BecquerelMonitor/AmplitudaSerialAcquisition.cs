@@ -129,7 +129,13 @@ namespace BecquerelMonitor
         // (spectrum protection tripped, on any of the three paths: a plain poll, mid-pour, or at
         // Stop). The device controller reads this once the session ends to arm the settle guard.
         public bool BlockResetDetected { get { return blockResetDetected; } }
-        public double LiveSeconds { get { return session.LiveSeconds; } }
+        // Never above real time (maintainer's re-check of #35, 13.10.2026, finding 4): the block
+        // clock correction adds the EXPECTED half second per segment, and on a short, lightly
+        // loaded segment that can overshoot the real time measured for it. Live > real is not
+        // a state a spectrum may be in - BecqMoni then reads it as "no live time at all" (the FSA
+        // pile-up factor 2.0 instead of 1.0, a negative dead time on screen). The internal
+        // bookkeeping (liveAtLastGood, EstimateReal) keeps the uncapped session value.
+        public double LiveSeconds { get { return Math.Min(session.LiveSeconds, RealSeconds); } }
         public long TotalCounts { get { return session.TotalCounts; } }
 
         public double RealSeconds
@@ -286,7 +292,8 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            CommitSegment(line.NowMs);
+            // No final reading: counts and live time stay at the last good poll, and so must real time.
+            RollBackToLastGood();
             NewSequence();
             finished = true;
             if (started)
@@ -350,16 +357,27 @@ namespace BecquerelMonitor
 
         void Fail(AmplitudaSerialFailure reason)
         {
-            if (segmentActive)
-            {
-                // What came after the last good reading cannot be trusted.
-                realCommitted = realAtLastGood;
-                segmentActive = false;
-            }
+            // What came after the last good reading cannot be trusted.
+            RollBackToLastGood();
             failure = reason;
             NewSequence();
             finished = true;
             line.Enqueue(new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Control, Address = address, Command = AmplitudaSerialProtocol.CommandStop });
+        }
+
+        // The acquisition ends without the reading that would close the running piece (Abort, or
+        // Fail on any path): counts and live time stay at the last good reading, so real time is
+        // set back to it as well - otherwise the stretch from that reading to the end would show
+        // up in the document as dead time (maintainer's re-check of #35, 13.10.2026, finding 1).
+        // This does NOT depend on segmentActive: on a Stop or a pour, Halt's CommitSegment has
+        // already advanced realCommitted up to the stop command before the final read, and it is
+        // exactly that read which went missing. Every place that closes a piece WITH a reading
+        // (a pour's fold, a block that stopped itself, a clear) moves realAtLastGood along with
+        // realCommitted, so on those paths this changes nothing.
+        void RollBackToLastGood()
+        {
+            realCommitted = realAtLastGood;
+            segmentActive = false;
         }
 
         void CommitSegment(long atMs)

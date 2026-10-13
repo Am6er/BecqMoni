@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 using BecquerelMonitor;
 
@@ -110,13 +111,13 @@ namespace AmplitudaSerialTests
                     if (nowMs - lastByteMs < GapMs) GapViolations++;
                     pendingAddress = value;
                     expectAddress = false;
-                    Wire.Add("A" + value.ToString("X2"));
+                    Wire.Add("A" + value.ToString("X2", CultureInfo.InvariantCulture));
                 }
                 else
                 {
                     if (nowMs - lastByteMs < GapMs) GapViolations++;
                     expectAddress = true;
-                    Wire.Add("C" + value.ToString("X2"));
+                    Wire.Add("C" + value.ToString("X2", CultureInfo.InvariantCulture));
                     Execute(pendingAddress, value);
                 }
                 lastByteMs = nowMs;
