@@ -2762,4 +2762,7 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRAmplitudaSerialStopIncomplete" xml:space="preserve">
     <value>Блок (адрес {1}, {0}) не отдал последнее чтение при остановке измерения. В спектре — данные до последнего удачного опроса; того, что блок насчитал после него (один период опроса, а если опросы уже сбоили — больше), не хватает.</value>
   </data>
+  <data name="ResponseMatrixGpuSceneIso" xml:space="preserve">
+    <value>Недоступно для этой геометрии: сцена «изотропное поле» (ISO) на GPU не перенесена. Матрица считается на процессоре.</value>
+  </data>
 </root>

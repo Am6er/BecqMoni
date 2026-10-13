@@ -43997,4 +43997,7 @@ Close the window and discard it?</value>
   <data name="ERRAmplitudaSerialStopIncomplete" xml:space="preserve">
     <value>The block at address {1} on {0} did not deliver its final reading when the measurement was stopped. The spectrum holds the data up to the last successful poll; what the block counted after it (one polling period, or more if the polls were already failing) is missing.</value>
   </data>
+  <data name="ResponseMatrixGpuSceneIso" xml:space="preserve">
+    <value>Not available for this geometry: the isotropic field (ISO) scene is not ported to the GPU. The matrix is computed on the CPU.</value>
+  </data>
 </root>

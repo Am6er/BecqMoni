@@ -7345,5 +7345,14 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ERRAmplitudaSerialStopIncomplete", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Not available for this geometry: the isotropic field (ISO) scene is not ported to the GPU. The matrix is computed on the CPU..
+        /// </summary>
+        public static string ResponseMatrixGpuSceneIso {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuSceneIso", resourceCulture);
+            }
+        }
     }
 }
