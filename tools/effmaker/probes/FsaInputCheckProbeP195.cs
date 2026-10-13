@@ -1,4 +1,5 @@
 using BecquerelMonitor;
+using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
 using System.Collections.Generic;
@@ -27,6 +28,24 @@ namespace FsaInputCheckProbeP195
     ///     матричный разбор того же спектра.
     ///
     ///     FsaInputCheckProbeP195 --spectrum=G1S16_K40_Mar.xml
+    ///                            [--store=tools\CORPUS\corpus\geometries\response]
+    ///
+    /// ⛔ (`T269`, П251 14.10.2026) СЦЕНА (1) ТРЕБУЕТ МАТРИЦЫ. Матрицу разбор
+    /// берёт со склада приложения (`config\device\response\&lt;guid&gt;.rmx` рядом
+    /// с exe), а в каталоге проб её нет: 01.10.2026 проба гонялась в оснастке
+    /// корпуса (`D:\BqMoni_Claude\p195\cl_ui`, склад скопирован), из каталога
+    /// проб — «(1) матричный разбор: ждали True, есть False». Ключ `--store=`
+    /// — каталог склада по guid кривой (корпусный `geometries\response`, вне
+    /// git): матрица кривой спектра оттуда, годная по геометрии, кладётся В
+    /// ПАМЯТЬ блоком «матрица из файла спектра» (`AMBER202`,
+    /// `EfficiencyConfigData.EmbeddedMatrix`) — тем же путём
+    /// `ResponseMatrixStore.Resolve`, каким её
+    /// читает разбор приложения; на диск не пишется ничего. Склад
+    /// приложения, если в нём годная матрица есть, первичен. Годной нет нигде —
+    /// код 2 («мерить нечем»), а не отказ сцены (1): без матрицы сцену (1)
+    /// мерить нечем, и красный приговор лгал бы о приложении.
+    ///
+    /// Сторож: `tools/check_fsa_report_view.py` (с `T269`).
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ», код 0; иначе 1; мерить нечем — 2.
     /// </summary>
@@ -40,11 +59,15 @@ namespace FsaInputCheckProbeP195
             Console.OutputEncoding = Encoding.UTF8;
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             string path = null;
+            string store = null;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) path = a.Substring(11);
+                else if (a.StartsWith("--store=", StringComparison.Ordinal)) store = a.Substring(8);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
+
+            storeDir = store;
 
             if (path == null || !File.Exists(path)) { Console.Error.WriteLine("нужен --spectrum=<файл.xml>"); return 2; }
 
@@ -72,6 +95,14 @@ namespace FsaInputCheckProbeP195
                 Console.Error.WriteLine("МЕРИТЬ НЕЧЕМ: у спектра нет кривой с геометрией");
                 return 2;
             }
+
+            string matrixFrom = AttachMatrix(rd.Efficiency);
+            if (matrixFrom == null)
+            {
+                return 2;
+            }
+
+            Console.WriteLine("матрица кривой {0}: {1}", rd.Efficiency.Guid, matrixFrom);
 
             double scene = rd.Efficiency.Geometry.Source.Density;
             Console.WriteLine("спектр {0}: кривая «{1}», сцена {2}, ρ источника сцены {3} г/см³, пиков {4}",
@@ -216,6 +247,66 @@ namespace FsaInputCheckProbeP195
             bool ok = EqualityComparer<T>.Default.Equals(expected, actual);
             if (!ok) bad++;
             Console.WriteLine("  {0} {1}: ждали {2}, есть {3}", ok ? "OK " : "⛔ ", what, expected, actual);
+        }
+
+        /// <summary>Каталог склада по guid кривой (`--store=`), или null.</summary>
+        static string storeDir;
+
+        /// <summary>
+        /// (`T269`) Дать кривой матрицу: склад приложения, если там годная;
+        /// иначе `&lt;--store&gt;\&lt;guid&gt;.rmx`, годная по геометрии, — в память
+        /// блоком «матрица из файла спектра» (`AMBER202`). Возвращает слова
+        /// источника; null — годной нет, причина напечатана, сцену (1) мерить нечем.
+        /// </summary>
+        static string AttachMatrix(EfficiencyConfigData efficiency)
+        {
+            MatrixRefusal refusal;
+            int format;
+            ResponseMatrixSource source;
+            string spectrumRefusal;
+            ResponseMatrix own = ResponseMatrixStore.Resolve(efficiency, out refusal, out format, out source,
+                                                             out spectrumRefusal);
+            if (own != null && own.IsValidFor(efficiency.Geometry))
+            {
+                return "склад приложения " + ResponseMatrixStore.PathOf(efficiency.Guid) + " (" + source + ")";
+            }
+
+            string why = own == null ? "нет файла " + ResponseMatrixStore.PathOf(efficiency.Guid) + " (" + refusal + ")"
+                                     : "матрица склада приложения негодна для геометрии кривой";
+            if (string.IsNullOrEmpty(storeDir))
+            {
+                Console.Error.WriteLine("МЕРИТЬ НЕЧЕМ: сцене (1) нужна матрица кривой {0}: {1}; дайте --store=<склад по guid> "
+                                        + "(корпусный tools\\CORPUS\\corpus\\geometries\\response)", efficiency.Guid, why);
+                return null;
+            }
+
+            string file = Path.Combine(storeDir, efficiency.Guid + ".rmx");
+            if (!File.Exists(file))
+            {
+                Console.Error.WriteLine("МЕРИТЬ НЕЧЕМ: сцене (1) нужна матрица кривой {0}: {1}; в --store её тоже нет: {2}",
+                                        efficiency.Guid, why, file);
+                return null;
+            }
+
+            ResponseMatrix matrix = ResponseMatrix.Load(file);
+            if (matrix == null || !matrix.IsValidFor(efficiency.Geometry))
+            {
+                Console.Error.WriteLine("МЕРИТЬ НЕЧЕМ: матрица {0} {1}", file,
+                                        matrix == null ? "не читается этой сборкой" : "негодна для геометрии кривой (клеймо)");
+                return null;
+            }
+
+            efficiency.EmbeddedMatrix = EmbeddedResponseMatrix.FromFile(efficiency.Guid, file, matrix);
+            ResponseMatrix carried = ResponseMatrixStore.Resolve(efficiency, out refusal, out format, out source,
+                                                                 out spectrumRefusal);
+            if (carried == null || source != ResponseMatrixSource.Spectrum)
+            {
+                Console.Error.WriteLine("МЕРИТЬ НЕЧЕМ: матрица из --store положена в кривую, но разбор её не берёт ({0}; {1})",
+                                        source, spectrumRefusal);
+                return null;
+            }
+
+            return "--store " + file + " → в память блоком матрицы из файла спектра (AMBER202), клеймо " + matrix.Stamp;
         }
 
         static ResultData Load(string path, NuclideDefinitionManager nuclides)

@@ -52,9 +52,15 @@ namespace FsaResidualProbeF21
     ///      доля названа), A ≡ опорный кадр старой сборки побитово.
     ///   3. ЧИСЛА: строки таблицы отчёта при обеих позициях галочки —
     ///      посимвольно; строка невязки и χ²/ndf на месте при обеих.
-    ///   4. ПОДПИСЬ: галочка шестая в блоке «Дополнительные компоненты модели»,
-    ///      подпись и подсказка не ключи ресурса, помещаются в панель; обе
-    ///      культуры, снимки окна.
+    ///   4. ПОДПИСЬ: галочка в группе «Отрисовка» (`A265`, 06.09.2026), под
+    ///      ней «Spectral data» (`AMBER222`, 12.10.2026), в расчётной группе пять
+    ///      галочек; подпись и подсказка не ключи ресурса, помещаются в панель;
+    ///      обе культуры, снимки окна. (До `T269` 14.10.2026 проба ждала
+    ///      «шестую в блоке „Дополнительные компоненты модели“» — место
+    ///      05.09.2026.)
+    ///
+    /// Сторож: `tools/check_fsa_report_view.py` (с `T269`), спектр
+    /// `AS80_Th232Medal`.
     ///
     /// ⛔ У каждого раздела ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ — вход, на котором проверка
     /// обязана отказать.
@@ -391,8 +397,8 @@ namespace FsaResidualProbeF21
                             // ⚠ Порядок важен: `fsaPresentation` и кадровые
                             // массивы заполняет первый же `ShowFsaOverlay`.
                             SetViewShows(view, true);
-                            using (Bitmap withRes = Replica(view, width, height, ground, true))
-                            using (Bitmap noRes = Replica(view, width, height, ground, false))
+                            using (Bitmap withRes = Replica(view, result, width, height, ground, true))
+                            using (Bitmap noRes = Replica(view, result, width, height, ground, false))
                             {
                                 on.Save(Path.Combine(outDir, Name(dark, "on")), ImageFormat.Png);
                                 off.Save(Path.Combine(outDir, Name(dark, "off")), ImageFormat.Png);
@@ -428,8 +434,10 @@ namespace FsaResidualProbeF21
                                     string reference = Path.Combine(againstDir, Name(dark, "on"));
                                     if (!File.Exists(reference))
                                     {
+                                        // Строкой отказа «  НЕТ », а не голой печатью: её
+                                        // читает сторож (`T269`, `check_fsa_report_view.py`).
                                         Console.WriteLine("  {0}: опорного кадра нет: {1}", theme, reference);
-                                        bad++;
+                                        Same(theme + ": опорный кадр старой сборки есть", true, false);
                                     }
                                     else
                                     {
@@ -458,18 +466,34 @@ namespace FsaResidualProbeF21
         /// Верность самой сборки не предполагается, а МЕРЯЕТСЯ: кадр со
         /// звонком в невязку обязан совпасть с настоящим кадром побитово.
         /// </summary>
-        static Bitmap Replica(EnergySpectrumView view, int width, int height, Color ground, bool withResidual)
+        /// <remarks>
+        /// ⚠ (`T269`, П251 14.10.2026) Сборка повторяет НЫНЕШНИЙ <c>ShowFsaOverlay</c>,
+        /// а не тот, что был 05.09.2026: с тех пор кадр получил стопку режима
+        /// слоя матрицы (`fsaStack`, `AMBER45`), верх ПОЛНОЙ модели для невязки
+        /// и якорей (`fsaModelTop`), линию спектра по своей галке
+        /// (`fsaShowSpectralData`, `AMBER222`) и значки опор шкалы
+        /// (`DrawFsaAnchors`, `AMBER17`). Без них сборка расходилась с кадром на
+        /// 292 / 175 пкс (значки опор `AS80_Th232Medal`) — и вместе с ней падали
+        /// обе приёмки, которые на сборке стоят.
+        /// </remarks>
+        static Bitmap Replica(EnergySpectrumView view, FsaResult result, int width, int height, Color ground,
+                              bool withResidual)
         {
             var image = new Bitmap(width, height);
             object presentation = Field(typeof(EnergySpectrumView), "fsaPresentation").GetValue(view);
-            var layers = (List<FsaStackLayer>)presentation.GetType().GetProperty("Layers").GetValue(presentation, null);
+            var presented = (List<FsaStackLayer>)presentation.GetType().GetProperty("Layers").GetValue(presentation, null);
+            var stack = (List<FsaStackLayer>)Field(typeof(EnergySpectrumView), "fsaStack").GetValue(view);
+            List<FsaStackLayer> layers = stack ?? presented;
             var cumulative = (double[][])Field(typeof(EnergySpectrumView), "fsaCumulative").GetValue(view);
             var sumPeak = (double[][])Field(typeof(EnergySpectrumView), "fsaSumPeakLevel").GetValue(view);
             var zero = (double[])Field(typeof(EnergySpectrumView), "fsaZeroLevel").GetValue(view);
             var net = (double[])Field(typeof(EnergySpectrumView), "fsaNetSpectrum").GetValue(view);
+            var modelTop = (double[])Field(typeof(EnergySpectrumView), "fsaModelTop").GetValue(view);
+            bool spectralData = (bool)Field(typeof(EnergySpectrumView), "fsaShowSpectralData").GetValue(view);
             MethodInfo band = typeof(EnergySpectrumView).GetMethod("DrawFsaBand", Any);
             MethodInfo curve = typeof(EnergySpectrumView).GetMethod("DrawFsaCurve", Any);
             MethodInfo residual = typeof(EnergySpectrumView).GetMethod("DrawFsaResidual", Any);
+            MethodInfo anchors = typeof(EnergySpectrumView).GetMethod("DrawFsaAnchors", Any);
             Color spectrumColor = GlobalConfigManager.GetInstance().GlobalConfig.ColorConfig
                                       .ActiveSpectrumColor.Color;
             double[] top = cumulative[layers.Count - 1];
@@ -512,7 +536,7 @@ namespace FsaResidualProbeF21
 
                 if (withResidual)
                 {
-                    residual.Invoke(view, new object[] { g, top, net, spectrumColor });
+                    residual.Invoke(view, new object[] { g, modelTop, net, spectrumColor });
                 }
 
                 g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -524,10 +548,15 @@ namespace FsaResidualProbeF21
                         curve.Invoke(view, new object[] { g, modelPen, top, false });
                     }
 
-                    using (Pen spectrumPen = new Pen(spectrumColor))
+                    if (spectralData)
                     {
-                        curve.Invoke(view, new object[] { g, spectrumPen, net, true });
+                        using (Pen spectrumPen = new Pen(spectrumColor))
+                        {
+                            curve.Invoke(view, new object[] { g, spectrumPen, net, true });
+                        }
                     }
+
+                    anchors.Invoke(view, new object[] { g, result, modelTop });
                 }
                 finally
                 {
@@ -644,7 +673,7 @@ namespace FsaResidualProbeF21
         static void CaptionSection(ResultData rd, FsaResult result, int panel)
         {
             Console.WriteLine();
-            Console.WriteLine("=== 4. шестая галочка блока: место и подпись, обе культуры (A248) ===");
+            Console.WriteLine("=== 4. галочка в группе «Отрисовка»: место и подпись, обе культуры (A248, A265, AMBER222) ===");
             foreach (string lang in new[] { "en-US", "ru-RU" })
             {
                 Language(lang);
@@ -656,22 +685,42 @@ namespace FsaResidualProbeF21
                     report.SetProbeSource(session, rd);
                     Application.DoEvents();
 
+                    // ⛔ (`T269`, П251 14.10.2026) Место галочки — по решениям Amber,
+                    // а не по 05.09.2026, когда проба писалась: галочка «Невязка
+                    // модели» ОТРИСОВОЧНАЯ и 06.09.2026 вынесена из ряда пяти
+                    // расчётных в свою группу «Отрисовка» / «Display» (`A265`,
+                    // решение Amber «отдельная группа „Отрисовка“ ниже», коммит
+                    // `b435619d`); 12.10.2026 под ней встала «Spectral data»
+                    // (`AMBER222`, Amber дословно: «Ниже model residual добавить
+                    // галочку "Spectral data"»). Проба ждала «шестую в блоке
+                    // „Дополнительные компоненты модели“» и отказывала с 06.09.
+                    // Род переключателей (расчётный / отрисовочный) по ФАКТУ судит
+                    // `check_fsa_view_groups.py`; здесь — место и подпись.
                     var box = (CheckBox)Field(typeof(FSAReportView), "residualBandCheckBox").GetValue(report);
-                    var flow = (Control)Field(typeof(FSAReportView), "extrasFlow").GetValue(report);
-                    var group = (Control)Field(typeof(FSAReportView), "extrasGroupBox").GetValue(report);
+                    var spectral = (CheckBox)Field(typeof(FSAReportView), "spectralDataCheckBox").GetValue(report);
+                    var flow = (Control)Field(typeof(FSAReportView), "displayFlow").GetValue(report);
+                    var group = (Control)Field(typeof(FSAReportView), "displayGroupBox").GetValue(report);
+                    var extras = (Control)Field(typeof(FSAReportView), "extrasFlow").GetValue(report);
 
-                    int boxes = 0;
+                    int boxes = 0, calc = 0;
                     foreach (Control c in flow.Controls)
                     {
                         if (c is CheckBox) boxes++;
                     }
 
-                    Console.WriteLine("  {0}: блок «{1}», галочек {2}, наша {3}-я, подпись «{4}»",
-                                      lang, group.Text, boxes, flow.Controls.IndexOf(box) + 1, box.Text);
+                    foreach (Control c in extras.Controls)
+                    {
+                        if (c is CheckBox) calc++;
+                    }
 
-                    Same(lang + ": галочка лежит в блоке «Дополнительные компоненты модели»", flow, box.Parent);
-                    Same(lang + ": галочек в блоке ровно шесть", 6, boxes);
-                    Same(lang + ": наша — шестая", 5, flow.Controls.IndexOf(box));
+                    Console.WriteLine("  {0}: группа «{1}», галочек {2}, наша {3}-й элемент, за ней «{4}»; подпись «{5}»; в расчётной группе галочек {6}",
+                                      lang, group.Text, boxes, flow.Controls.IndexOf(box) + 1, spectral.Text, box.Text, calc);
+
+                    Same(lang + ": галочка лежит в группе «Отрисовка» (A265)", flow, box.Parent);
+                    Same(lang + ": в расчётной группе её нет", false, extras.Controls.Contains(box));
+                    Same(lang + ": в расчётной группе пять галочек", 5, calc);
+                    Same(lang + ": сразу под ней — «Spectral data» (AMBER222)", flow.Controls.IndexOf(box) + 1,
+                         flow.Controls.IndexOf(spectral));
                     Same(lang + ": по умолчанию стоит (лента показывается)", true, box.Checked);
                     Same(lang + ": подпись непустая", true, !string.IsNullOrEmpty(box.Text));
                     Same(lang + ": подпись не имя контрола", false,
@@ -684,9 +733,9 @@ namespace FsaResidualProbeF21
                          tip.StartsWith("FSAReport_", StringComparison.Ordinal));
 
                     // ⚠ Подпись СОСЕДЕЙ трогать было нечем — сверяем, что они
-                    // на месте и не поехали: блок должен остаться прежним.
+                    // на месте и не поехали: расчётная группа должна остаться прежней.
                     var pileUp = (CheckBox)Field(typeof(FSAReportView), "pileUpCheckBox").GetValue(report);
-                    Same(lang + ": пятая галочка блока прежняя", 4, flow.Controls.IndexOf(pileUp));
+                    Same(lang + ": пятая галочка расчётной группы прежняя", 4, extras.Controls.IndexOf(pileUp));
 
                     using (Graphics g = report.CreateGraphics())
                     {
