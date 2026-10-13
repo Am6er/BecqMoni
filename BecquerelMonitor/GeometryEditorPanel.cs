@@ -254,10 +254,25 @@ namespace BecquerelMonitor
         /// </summary>
         public void SetSceneEnergy(double kev)
         {
+            this.SetSceneEnergy(kev, false);
+        }
+
+        /// <param name="recompute">
+        /// (`AMBER94`) Пересчитать полевую сцену под новый верх — true, когда
+        /// верх сменил ЧЕЛОВЕК. Восстановление полей расчёта при открытии
+        /// конфигурации подаёт false: сохранённые размеры принадлежат человеку.
+        /// </param>
+        public void SetSceneEnergy(double kev, bool recompute)
+        {
             if (kev > 0.0)
             {
+                bool changed = kev != this.sceneEnergyKev;
                 this.sceneEnergyKev = kev;
                 this.UpdateSceneHint("");
+                if (recompute && changed)
+                {
+                    this.RecomputeScene();
+                }
             }
         }
 
@@ -904,6 +919,9 @@ namespace BecquerelMonitor
             this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceIso);
             this.sourceTypeCombo.Width = 260;
             this.sourceTypeCombo.SelectedIndexChanged += this.SourceTypeChanged;
+            // (остаток `AMBER102`) Подсказка ISO — и при наведении на список:
+            // строка под ним у полевых сцен занята своим текстом.
+            new ToolTip().SetToolTip(this.sourceTypeCombo, Resources.GeometryEditorSceneIsoHint);
             page.Controls.Add(typeLabel);
             page.Controls.Add(this.sourceTypeCombo);
 
@@ -1219,6 +1237,8 @@ namespace BecquerelMonitor
                 TextAlign = HorizontalAlignment.Right,
             };
             density.TextChanged += this.ValueChanged;
+            // (`AMBER94`) Плотность пробы — вход полевой сцены (`SceneDetectorFields`).
+            density.Leave += (s, e) => this.FieldLeft(key + ".Density");
             parent.Controls.Add(density);
             group.Add(density);
             this.fields[key + ".Density"] = density;
@@ -1582,7 +1602,7 @@ namespace BecquerelMonitor
         ///
         /// `true` — открывается ЧУЖАЯ геометрия, и её состав обязан пережить
         /// открытие-сохранение дословно. Прежде состав подменялся библиотечным
-        /// всякий раз, когда имя вещества в ней НАХОДИЛОСЬ, и у ввезённых из
+        /// всякий раз, когда имя вещества в ней НАХОДИЛОСЬ, и у импортированных из
         /// ЛСРМ файлов это двигало десять строк долей (`SC_FractionsWall`,
         /// `SC_FractionsSource` и их близнецы в блоке маринелли): файл хранит
         /// 0.04196, библиотека — 0.0419585. Текст `.in` менялся, отпечаток
@@ -1606,6 +1626,25 @@ namespace BecquerelMonitor
                 {
                     index = i;
                     break;
+                }
+            }
+
+            // ⛔ (П223, 02.10.2026) Вещество есть в БИБЛИОТЕКЕ, но другого вида,
+            // чем список этой строки (свой вид + «прочие»), — его строка
+            // ДОБАВЛЯЕТСЯ в список, а не теряется. Иначе «найденное в
+            // библиотеке имя даёт строку списка» (абзац ниже) держалось только
+            // для своего вида: шаблоны «RadiaCode-101/103» с П223 ставят корпусу
+            // полиэтилен, а он в библиотеке — «стенка сосуда», и строка корпуса
+            // стояла ПУСТОЙ при составе «H 0.1437, C 0.8563» рядом (замер
+            // `PresetUiProbeP223`). Состав по-прежнему берётся пришедший
+            // (`keepComposition`), физика от строки не зависит — это то, что
+            // человек видит.
+            if (index < 0 && material != null && !string.IsNullOrEmpty(material.Name))
+            {
+                GeometryMaterialLibrary.Entry known = GeometryMaterialLibrary.ByName(material.Name);
+                if (known != null)
+                {
+                    index = combo.Items.Add(known);
                 }
             }
 
@@ -1746,8 +1785,20 @@ namespace BecquerelMonitor
                 }
             }
 
-            List<GeometryMaterialLibrary.Entry> after = SnapshotMaterials();
+            this.ApplyLibraryEdit(was, before, SnapshotMaterials());
+        }
 
+        /// <summary>
+        /// Библиотеку правили и сохранили: пересобрать списки и довезти
+        /// правленый состав до слотов (<see cref="EditMaterials"/>). Отдельным
+        /// методом — чтобы путь после окна проверялся без окна
+        /// (`GeometryEditorP150Probe`, `AMBER106`).
+        /// </summary>
+        void ApplyLibraryEdit(Dictionary<string, GeometryMaterial> was,
+                              List<GeometryMaterialLibrary.Entry> before,
+                              List<GeometryMaterialLibrary.Entry> after)
+        {
+            bool sourceTouched = false;
             bool wasLoading = this.loading;
             this.loading = true;
             try
@@ -1763,10 +1814,15 @@ namespace BecquerelMonitor
                     // вещество обязано остаться СВОИМ, до последнего знака
                     // записи. Отличается ровно этим и от загрузки, и от
                     // прежнего поведения.
-                    GeometryMaterial material = was[pair.Key];
+                    GeometryMaterial material;
+                    was.TryGetValue(pair.Key, out material);
                     bool touched = material != null
                         && GeometryMaterialLibrary.CompositionChanged(material.Name, before, after);
                     this.SelectMaterial(pair.Key, material, !touched);
+                    if (touched && pair.Key == "Source")
+                    {
+                        sourceTouched = true;
+                    }
                 }
             }
             finally
@@ -1779,6 +1835,18 @@ namespace BecquerelMonitor
             // «Сохранить» обязана ожить: иначе библиотека уже новая, а в
             // конфигурации прибора остался прежний состав.
             this.RefreshSketch();
+
+            // ⛔ (`AMBER106`, П172 28.09.2026) Вещество пробы задаёт свободный
+            // пробег, из которого посчитана полевая сцена (`AMBER94`), — и
+            // правка его СОСТАВА в библиотеке такой же вход, как выбор другого
+            // вещества в списке (`MaterialChanged`). Прежде путь через «…» шёл
+            // под `loading` и сцену не трогал: замер `GeometryEditorP150Probe`
+            // — грунт → свинец, глубина 638.6 мм осталась при 551.1 по формуле
+            // (4.06 λ вместо 3.5). У обычной пробы `RecomputeScene` молчит сам.
+            if (sourceTouched)
+            {
+                this.RecomputeScene();
+            }
         }
 
         /// <summary>
@@ -1820,6 +1888,13 @@ namespace BecquerelMonitor
             this.compositions[key].Text = GeometryMaterialLibrary.Describe(
                 this.MaterialOf(key, this.Get(key + ".Density")));
             this.ReflowAfterComposition(key);
+
+            // (`AMBER94`) Вещество пробы задаёт свободный пробег, из которого
+            // посчитана полевая сцена.
+            if (key == "Source")
+            {
+                this.RecomputeScene();
+            }
         }
 
         void ValueChanged(object sender, EventArgs e)
@@ -1895,7 +1970,25 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // (`AMBER201`, Р4, мелочь 8.9) Нечитаемое поле, которого шаблон НЕ
+            // касается, остаётся тем, что набрано. Прежде `BuildModel` читал его
+            // нулём, загрузка модели писала «0» в поле, и опечатка в расстоянии
+            // до пробы молча становилась нулём при выборе детектора — красная
+            // подсветка снималась вместе с ней.
+            Dictionary<string, string> unread = new Dictionary<string, string>();
+            foreach (FieldMap field in Map)
+            {
+                TextBox box;
+                double ignored;
+                if (this.fields.TryGetValue(field.Key, out box)
+                    && !string.IsNullOrWhiteSpace(box.Text) && !this.TryGet(field.Key, out ignored))
+                {
+                    unread[field.Key] = box.Text;
+                }
+            }
+
             GeometryModel g = this.BuildModel();
+            GeometryModel built = g.Clone();
             if (preset != null)
             {
                 preset.Apply(g);
@@ -1912,6 +2005,33 @@ namespace BecquerelMonitor
             // (E32): без пересчёта в полях остались бы размеры от прежнего
             // прибора — молча, и это худший вид ошибки.
             this.RecomputeScene();
+
+            if (unread.Count > 0)
+            {
+                this.loading = true;
+                try
+                {
+                    foreach (FieldMap field in Map)
+                    {
+                        string text;
+                        TextBox box;
+                        // Шаблон поле тронул — в нём его число, набранное уходит.
+                        if (unread.TryGetValue(field.Key, out text)
+                            && field.Read(built).Equals(field.Read(this.model))
+                            && this.fields.TryGetValue(field.Key, out box))
+                        {
+                            box.Text = text;
+                        }
+                    }
+                }
+                finally
+                {
+                    this.loading = false;
+                }
+
+                this.MarkBadValues();
+                this.RefreshSketch();
+            }
         }
 
         // ------------------------------------------------------------------
@@ -2340,6 +2460,21 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // (остаток `AMBER102`, П172 28.09.2026; решение Amber 28.09.2026
+            // «приписка на экране + подсказка «ISO»») У ПРОБЫ строка говорит,
+            // для чего годится эта кривая: мощность дозы по ней — для пробы в
+            // этой геометрии, а фон (поле со всех сторон) по ней занижен
+            // (A_точки/A_ISO 1.10 на 662 кэВ … 2.6 на 20 кэВ) — для фона нужна
+            // своя кривая со сценой ISO. Та же мысль, что приписка П165 у
+            // строки дозы «(по геометрии пробы; для фона — сцена ISO)», но
+            // здесь — там, где кривую заводят.
+            int kind = this.sourceTypeCombo != null ? this.sourceTypeCombo.SelectedIndex : -1;
+            if (kind >= 0 && kind < SourceKinds.Length && SourceKinds[kind].Value == GeometrySceneKind.None)
+            {
+                this.sceneLabel.Text = Resources.GeometryEditorSceneIsoHint;
+                return;
+            }
+
             if (!this.sceneShown)
             {
                 this.sceneLabel.Text = "";
@@ -2356,7 +2491,8 @@ namespace BecquerelMonitor
             {
                 this.sceneLabel.Text = string.Format(CultureInfo.InvariantCulture,
                     Resources.GeometryEditorSceneIso, g.FieldRadius / GeometryModel.MmPerCm,
-                    GeometryScenes.MinFieldRadiusMm(g) / GeometryModel.MmPerCm);
+                    GeometryScenes.MinFieldRadiusMm(g) / GeometryModel.MmPerCm,
+                    GeometryScenes.MaxFieldRadiusMm / GeometryModel.MmPerCm);
                 return;
             }
 
@@ -2401,6 +2537,10 @@ namespace BecquerelMonitor
             // здесь оставил бы сцену посчитанной по прежнему прибору.
             "FrontGapThickness", "SideGapThickness",
             "FrontCladdingThickness", "SideCladdingThickness",
+            // (`AMBER94`, П150) Плотность пробы — через свободный пробег; её
+            // вещество зовёт пересчёт из `MaterialChanged`, верх энергии — из
+            // `SetSceneEnergy`. Пробег читают и глубина, и радиус сцены.
+            "Source.Density",
         };
 
         /// <summary>
@@ -2420,7 +2560,11 @@ namespace BecquerelMonitor
         /// </summary>
         void RecomputeScene()
         {
-            if (this.loading || this.applyingScene)
+            // (П150) `suppressChanged` — идёт `SetModel`: хвост `LoadFromModel`
+            // зовёт `ShapeChanged` уже со снятым `loading`, и открытая полевая
+            // сцена пересчитывалась, стирая сохранённые размеры (замер
+            // `GeometryEditorP150Probe`: Ø 1234.5 → 3075.3 мм при открытии).
+            if (this.loading || this.applyingScene || this.suppressChanged)
             {
                 return;
             }
@@ -2440,6 +2584,14 @@ namespace BecquerelMonitor
             // Пересчитывать по недочитанным полям нельзя: на месте опечатки
             // стоял бы ноль, и сцена вышла бы нулевого размера молча.
             if (!this.MarkBadValues())
+            {
+                return;
+            }
+
+            // (`AMBER105`) И по плотности ≤ 0 / веществу без состава: модель
+            // подставила бы библиотечную плотность (или пустоту), и сцена
+            // посчиталась бы не по тому, что стоит в полях.
+            if (this.MaterialProblem(null) != null)
             {
                 return;
             }
@@ -2512,6 +2664,17 @@ namespace BecquerelMonitor
         {
             this.RefreshSketch();
             this.ValueChanged(sender, e);
+
+            // (`AMBER64`) СТОРОНА — ТОТ ЖЕ РАЗМЕР ДЕТЕКТОРА, что и форма
+            // кристалла (`ShapeChanged` выше), и меняет его СИЛЬНЕЕ: у бруска,
+            // повёрнутого к пробе боком, к ней обращена боковая обвязка, а на
+            // боках лежит торцевая. У RC-103 (зазор 3.5 мм у торца, 0 с бока)
+            // поперечник 29.698 мм против 19.799, и лунка, посчитанная по
+            // прежней постановке, остаётся в полях правдоподобными числами от
+            // ДРУГОГО прибора. Список `SceneDetectorFields` сюда не достаёт:
+            // он сверяется с именем ТЕКСТОВОГО поля в `FieldLeft`, а сторона
+            // стоит списком (замер П131 22.09.2026, `SceneFacingProbe` §6).
+            this.RecomputeScene();
         }
 
         void SourceTypeChanged(object sender, EventArgs e)
@@ -2530,7 +2693,8 @@ namespace BecquerelMonitor
             // что руками такую сцену не набирают. Не при загрузке модели:
             // сохранённые размеры принадлежат человеку, и пересчитывать их за
             // ним значило бы стирать правку при каждом открытии.
-            if (scene != GeometrySceneKind.None && !this.loading && !this.applyingScene)
+            if (scene != GeometrySceneKind.None && !this.loading && !this.applyingScene
+                && !this.suppressChanged)
             {
                 // Сторож против рекурсии: LoadFromModel в конце сам зовёт этот
                 // обработчик, и без него пересчёт вызывал бы сам себя без конца.
@@ -2746,6 +2910,20 @@ namespace BecquerelMonitor
                         box.BackColor = BadValueColor;
                     }
                 }
+
+                // (`AMBER105`) Плотность ≤ 0 у выбранного вещества — тем же
+                // цветом и тоже без смены возвращаемого: словами её называет
+                // Validate.
+                List<string> badDensities = new List<string>();
+                this.MaterialProblem(badDensities);
+                foreach (string key in badDensities)
+                {
+                    TextBox box;
+                    if (this.fields.TryGetValue(key, out box))
+                    {
+                        box.BackColor = BadValueColor;
+                    }
+                }
             }
 
             return ok;
@@ -2848,6 +3026,14 @@ namespace BecquerelMonitor
                 return Resources.GeometryEditorErrorCrystal;
             }
 
+            // (`AMBER105`) Плотность и состав веществ — по ПОЛЯМ, а не по
+            // модели: модель плотность ≤ 0 уже заменила библиотечной.
+            string materialProblem = this.MaterialProblem(null);
+            if (materialProblem != null)
+            {
+                return materialProblem;
+            }
+
             if (!(g.Crystal.Density > 0.0))
             {
                 return Resources.GeometryEditorErrorDensity;
@@ -2903,8 +3089,81 @@ namespace BecquerelMonitor
             return null;
         }
 
-        /// <summary>Текст несогласованности своей строкой ресурсов (E33).</summary>
-        static string IssueText(GeometryScenes.Issue issue)
+        /// <summary>
+        /// (`AMBER105`, П172 28.09.2026) Что не так с веществами в ПОЛЯХ,
+        /// словами; null — всё годно. <paramref name="badFields"/> (может быть
+        /// null) получает ключи полей плотности, которые надо подсветить.
+        ///
+        /// Прежде плотность ≤ 0 в поле молча заменялась библиотечной
+        /// (<see cref="MaterialOf"/>, <c>GeometryMaterialLibrary.Make</c>): на
+        /// экране «−1.5» или «0», а в расчёте и в записанном `.in` —
+        /// библиотечная, поле не краснело, а проверка плотности кристалла в
+        /// <see cref="Validate"/> смотрела уже подменённую. Теперь — отказ
+        /// словами, как у длины (`AMBER98`). Смотрятся строки, которые ПОКАЗАНЫ
+        /// (у изотропного поля строки пробы нет, у съёмок в поле — стенки) и в
+        /// которых вещество ВЫБРАНО: пустой список — это «вещество не задано»
+        /// (`A303`), и ноль плотности у него не число человека.
+        ///
+        /// Там же (`AMBER104`) — выбранное вещество без состава: формула
+        /// библиотеки, которую обновление 24.09.2026 читает иначе, теряет
+        /// состав с причиной, и посчитать слой молча вакуумом нельзя.
+        /// </summary>
+        string MaterialProblem(List<string> badFields)
+        {
+            string first = null;
+            foreach (string key in new[] { "Crystal", "Reflector", "Gap", "Cladding", "BeakerWall", "Source" })
+            {
+                bool shown;
+                ComboBox combo;
+                if ((this.materialRowShown.TryGetValue(key, out shown) && !shown)
+                    || !this.materials.TryGetValue(key, out combo)
+                    || (combo.SelectedIndex < 0 && !this.foreignMaterials.ContainsKey(key)))
+                {
+                    continue;
+                }
+
+                double density;
+                if (!this.TryGet(key + ".Density", out density))
+                {
+                    // Нечитаемое число — забота MarkBadValues.
+                    continue;
+                }
+
+                List<Control> row;
+                string caption = this.materialRows.TryGetValue(key, out row) && row.Count > 0
+                    ? row[0].Text.TrimEnd(':', ' ') : key;
+                string problem = null;
+                if (!(density > 0.0))
+                {
+                    if (badFields != null)
+                    {
+                        badFields.Add(key + ".Density");
+                    }
+
+                    problem = string.Format(CultureInfo.InvariantCulture, Resources.GeometryEditorErrorDensityField,
+                                            caption, density.ToString("G8", CultureInfo.InvariantCulture));
+                }
+                else
+                {
+                    GeometryMaterial material = this.MaterialOf(key, density);
+                    if (material.Fractions.Count == 0)
+                    {
+                        problem = string.Format(CultureInfo.InvariantCulture, Resources.GeometryEditorErrorMaterialEmpty,
+                                                caption, material.Name);
+                    }
+                }
+
+                if (first == null)
+                {
+                    first = problem;
+                }
+            }
+
+            return first;
+        }
+
+        /// <summary>Текст несогласованности своей строкой ресурсов (E33); {2} — подпись поля (`AMBER98`).</summary>
+        string IssueText(GeometryScenes.Issue issue)
         {
             string format = Resources.ResourceManager.GetString(issue.Resource);
             if (string.IsNullOrEmpty(format))
@@ -2912,7 +3171,10 @@ namespace BecquerelMonitor
                 return issue.Resource;
             }
 
-            return string.Format(CultureInfo.InvariantCulture, format, issue.Value, issue.Limit);
+            RowControls row;
+            string caption = issue.Field != null && this.rows.TryGetValue(issue.Field, out row)
+                ? row.Label.Text : issue.Field;
+            return string.Format(CultureInfo.InvariantCulture, format, issue.Value, issue.Limit, caption);
         }
 
     }

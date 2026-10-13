@@ -275,7 +275,9 @@ namespace FsaPaletteProbe
                                                      library, FsaEfficiency.FromConfig(rd.Efficiency));
                 double withoutMs = sw.Elapsed.TotalMilliseconds;
 
-                analyzer.ResponseMatrix = matrix;
+                // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик);
+                // до П193 вещество кристалла тоже не ставилось — суммы шли по энергии, а не по свету
+                FsaMatrixBinding.Bind(analyzer, rd.Efficiency != null ? rd.Efficiency.Geometry : null, matrix);
                 sw.Restart();
                 FsaResult with = analyzer.Analyze(rd.EnergySpectrum, background, rd.FwhmCalibration,
                                                   library, FsaEfficiency.FromConfig(rd.Efficiency));

@@ -54,8 +54,6 @@ namespace CalibrationDoorsProbe
             Console.OutputEncoding = Encoding.UTF8;
 
             // ⛔ ОБЕ карты примитивов ROI — ДО ЛЮБОГО менеджера-одиночки (`T60`).
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             Rebuild();
             Cutoff();

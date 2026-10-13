@@ -1,0 +1,8 @@
+energy,unc_en,intensity,unc_i,type,shell,p_z,p_n,p_symbol,p_energy_shift,p_energy,unc_pe,jp,half_life,operator_hl,unc_hl,unit_hl,half_life_sec,unc_hls,decay,decay_%,unc_d,q,unc_q,d_z,d_n,d_symbol,ensdf_publication_cut-off,ensdf_authors,Extraction_date
+12.904,,11.137483074964429,0.5069241425257713,X,L,82,132,Pb,,0,,0+,27.06,,7,m,1623.6,4.2,B-,100,,1018,11,83,131,Bi,1-May-2021,Shaofei Zhu and E. A. McCutchan,2026-09-28
+74.815,,5.2212476874370175,0.16991268659939543,X,KA2,82,132,Pb,,0,,0+,27.06,,7,m,1623.6,4.2,B-,100,,1018,11,83,131,Bi,1-May-2021,Shaofei Zhu and E. A. McCutchan,2026-09-28
+77.108,,8.735565814684653,0.28191962795057635,X,KA1,82,132,Pb,,0,,0+,27.06,,7,m,1623.6,4.2,B-,100,,1018,11,83,131,Bi,1-May-2021,Shaofei Zhu and E. A. McCutchan,2026-09-28
+87.388,,2.9922724200567132,0.10612290276360802,X,KpB1,82,132,Pb,,0,,0+,27.06,,7,m,1623.6,4.2,B-,100,,1018,11,83,131,Bi,1-May-2021,Shaofei Zhu and E. A. McCutchan,2026-09-28
+88.458,,3.9079077805940674,0.13778661222356645,X,KB,82,132,Pb,,0,,0+,27.06,,7,m,1623.6,4.2,B-,100,,1018,11,83,131,Bi,1-May-2021,Shaofei Zhu and E. A. McCutchan,2026-09-28
+89.784,,0.9156353605373543,0.03575440655903356,X,KpB2,82,132,Pb,,0,,0+,27.06,,7,m,1623.6,4.2,B-,100,,1018,11,83,131,Bi,1-May-2021,Shaofei Zhu and E. A. McCutchan,2026-09-28
+

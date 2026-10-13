@@ -1,0 +1,8 @@
+=== сборка П181 [rel] 2026-09-29 23:24:53 head=5844c187 dirty=0 ===
+Restore code=0
+Release app code=0 -> bin\Release_p181_rel\
+probes build_all code=0 -> D:\BqMoni_Claude\p181\build_p181_rel
+sha256 app=1c16114930ffc1cf592544e688e759982792d2c253064b6fab630365bfc59197 probe=1c16114930ffc1cf592544e688e759982792d2c253064b6fab630365bfc59197 равны=True проб=262
+curves code=0 мин=31.5
+mx_swap code=0
+showcase rebuild_store code=0 мин=19.3

@@ -1,0 +1,21 @@
+спектр                       часть     χ²/ndf до      после      Δ %  что разошлось; состав (доля %, до → после, > 0.05 п.п.)
+AS1Pro_Ra226                 unknown         nan        nan     +nan  library_note
+AS80_Charoite                unknown         nan        nan     +nan  library_note
+AS80_K40                     unknown         nan        nan     +nan  components, library_note
+AS80_Onyx                    unknown         nan        nan     +nan  library_note
+AS80_Th232WT20               unknown     20.1344    20.1344   +0.000  chi2ndf_pois, mda_peak_counts, model_residual_pct, peak_counts
+ASN16_BrazilNuts             unknown         nan        nan     +nan  library_note
+ASN16_Charoite               unknown         nan        nan     +nan  library_note
+ASN16_Charoite_v2            unknown         nan        nan     +nan  library_note
+ASN3_Tile                    unknown         nan        nan     +nan  library_note
+ASN8_UGlass                  unknown         nan        nan     +nan  library_note
+GS4000_Ra226                 unknown         nan        nan     +nan  library_note
+LaBrBril_Eu152               unknown         nan        nan     +nan  library_note
+LaBrBril_Th228               unknown         nan        nan     +nan  library_note
+RC103_Charoite               unknown         nan        nan     +nan  library_note
+RC103_K40Village             unknown         nan        nan     +nan  components, library_note
+RC103_Th232WT20              unknown     27.9262    27.9262   +0.000  chi2ndf_pois, mda_peak_counts, model_residual_pct, peak_counts
+
+unknown: разобранных 2, Σχ²/ndf 48.0606 -> 48.0606 (+0.0000 %)
+сдвинулось 16, побитово 20
+побитово: AS80_Th232_v2, AS80_UGlass, ASN16_Am241, ASN16_Granite, ASN16_Th232, ASN16_Th232_Am241, ASN16_UGlass, ASN8_Am241, ASN8_Th232_1024, ASN8_Th232_2048, ASN8_Th232_3000, ASN8_Th232_4096, ASN8_Th232_8192, G1S16_Th232_Mar, GS4000_Lu176, GS4000_Th232, GS4000_U, OBS_UGlass, RC101_I131, RC103_Th232Village

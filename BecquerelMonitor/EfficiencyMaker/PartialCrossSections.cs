@@ -119,6 +119,128 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// ⛔ (`AMBER74`, П132 22.09.2026) ПОЛНОЕ ослабление элемента, см2/г,
+        /// СУММОЙ КАНАЛОВ — тем же правилом, каким его считает кристалл.
+        ///
+        /// ЧТО БЫЛО НЕ ТАК. Слои сцены (проба, стенка, отражатель, оправа)
+        /// брали полное ослабление одной лог-лог ПРЯМОЙ по `element.Total` — по
+        /// СУММЕ пяти каналов в узлах. Сумма степенных с разными наклонами
+        /// вогнута в лог-лог, и хорда лежит ВЫШЕ кривой: на участке, где хозяин
+        /// меняется (фотоэффект → комптон), знак ошибки плюс. Кристалл
+        /// тем временем считал по каналам, каждый своей прямой, и одна сцена
+        /// жила по двум правилам.
+        ///
+        /// ЧИСЛО (замер П132 по `matdb`, ВЫБРОС УЗЛА в 10…3000 кэВ, 2081 узел:
+        /// узел убран из сетки и восстановлен по двум соседям, обе схемы видят
+        /// одни и те же узлы): прямая по сумме — медиана 0.604 %, 90-й
+        /// процентиль 4.905 %, максимум 13.6 %; сумма каналов — медиана
+        /// 0.388 %, 90-й 1.169 %, максимум 3.07 %. Среди узлов, где прямая
+        /// ошибается больше 1 % (889 из 2081), знак ПЛЮС у 852, средняя
+        /// |ошибка| 3.616 % против 0.770 % у суммы каналов. В серединах
+        /// интервалов рабочей сетки (против лог-лог сплайна, метода XCOM):
+        /// O 24.5 кэВ +4.10 %, C +4.35 %, I 245 +2.93 %, Cs +2.86 %, Lu +2.06 %,
+        /// Pb +1.61 %, Fe 141 +1.08 %. Через пропускание слоя это вода
+        /// маринелли 0.5 л на 22…26 кэВ −3.9…−8.6 % (линии Cd-109 и Am-241
+        /// 26.3), кварц 1 см на 24.5 кэВ −13.9 %.
+        ///
+        /// ⚠ Пары здесь — ОБЫЧНОЙ интерполяцией канала, без пороговой формы
+        /// (`S121`). Довод ~~`S124`~~ («у порога пары — ничтожная доля суммы»)
+        /// верен у самого порога, но НЕ выше ~1.5 МэВ у тяжёлых Z (`AMBER80`,
+        /// П147: у Pb на 2614.5 кэВ пары — 22.6 % μ, хорда занижает полное на
+        /// 1.15 %). Пороговую форму полного даёт вход с ключом
+        /// (<see cref="MassTotal(MaterialDatabase.Element, int, int, double, double, bool)"/>),
+        /// и зовут его те, кто разыгрывает пары тем же ключом (`Region`
+        /// симулятора); этот вход — ключ ВЫКЛ.
+        /// </summary>
+        public static double MassTotal(MaterialDatabase.Element element,
+                                       int lo, int hi, double energyKev,
+                                       double logEnergyKev)
+        {
+            return MassCrossSection(element, lo, hi, energyKev, logEnergyKev,
+                                    PhotonProcess.Coherent)
+                 + MassTotalWithoutCoherent(element, lo, hi, energyKev, logEnergyKev);
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER80`, П147 24.09.2026, физика 24) То же С КЛЮЧОМ ПОРОГОВОЙ
+        /// ФОРМЫ ПАР — тем же, каким пары РАЗЫГРЫВАЮТСЯ
+        /// (<see cref="EfficiencySimulator.XcomPairThreshold"/>,
+        /// <see cref="GeometryMaterial.LinearPair"/>, `Region.Pair`,
+        /// `CrystalChannels`).
+        ///
+        /// ЧТО БЫЛО НЕ ТАК. Полное брало пары хордой всегда, а розыгрыш при
+        /// ключе ВКЛ — пороговой формой (`S121`): длина свободного пробега
+        /// считалась одним сечением пар, выбор канала — другим, и разность
+        /// молча уходила в «остаток на фото» слоя. Замер П147
+        /// (`PairTotalProbeA80`, `matdb`): при ключе ВКЛ остаток на фото
+        /// против честного фотоэффекта на 2614.5 кэВ — Pb −17.2 %, I −44.0 %,
+        /// Cs −40.4 % (на 3500 — −12.8 / −35.2 / −32.1 %).
+        ///
+        /// ЧТО ДАЁТ ПОРОГОВАЯ ФОРМА В САМОМ ПОЛНОМ (та же проба): против
+        /// поканального сплайна XCOM на 2614.5 кэВ хорда Pb −1.15 %, I −0.90,
+        /// Cs −0.91, Fe −0.58, O −0.22; порог — +0.15 / −0.02 / 0.00 / −0.15 /
+        /// −0.09. Выброс узла Pb 3000 кэВ (соседи 2044 и 4000): хорда −3.05 %,
+        /// порог +0.96 %; I −2.77 → +0.01 %.
+        ///
+        /// ⚠ Ключ ВЫКЛ (умолчание, решение Amber 04.09.2026 по `S125`) — вход
+        /// БЕЗ ключа до бита (проверено по всем элементам, узлам и серединам:
+        /// расходятся 0 точек), поэтому матрицы без ключа не меняются ни на бит.
+        /// </summary>
+        public static double MassTotal(MaterialDatabase.Element element,
+                                       int lo, int hi, double energyKev,
+                                       double logEnergyKev, bool thresholdPair)
+        {
+            if (!thresholdPair)
+            {
+                return MassTotal(element, lo, hi, energyKev, logEnergyKev);
+            }
+
+            return MassCrossSection(element, lo, hi, energyKev, logEnergyKev,
+                                    PhotonProcess.Coherent)
+                 + MassTotalWithoutCoherent(element, lo, hi, energyKev, logEnergyKev, true);
+        }
+
+        /// <summary>
+        /// То же без когерентного канала, с ключом пороговой формы пар
+        /// (`AMBER80`); ключ ВЫКЛ — вход без ключа до бита.
+        /// </summary>
+        public static double MassTotalWithoutCoherent(MaterialDatabase.Element element,
+                                                      int lo, int hi, double energyKev,
+                                                      double logEnergyKev, bool thresholdPair)
+        {
+            if (!thresholdPair)
+            {
+                return MassTotalWithoutCoherent(element, lo, hi, energyKev, logEnergyKev);
+            }
+
+            return MassCrossSection(element, lo, hi, energyKev, logEnergyKev,
+                                    PhotonProcess.Incoherent)
+                 + MassCrossSection(element, lo, hi, energyKev, logEnergyKev,
+                                    PhotonProcess.Photoelectric)
+                 + MassCrossSection(element, lo, hi, energyKev, logEnergyKev,
+                                    PhotonProcess.PairProduction, true);
+        }
+
+        /// <summary>
+        /// То же БЕЗ когерентного канала (`AMBER74`). Прежде это считалось
+        /// вычитанием — «прямая по сумме минус канал когерентного», две разные
+        /// интерполяции в одной разности, и остаток нёс ошибку первой целиком.
+        /// Теперь обе половины по одному правилу, и тождество
+        /// `Total = NoCoherent + Coherent` выполняется по построению.
+        /// </summary>
+        public static double MassTotalWithoutCoherent(MaterialDatabase.Element element,
+                                                      int lo, int hi, double energyKev,
+                                                      double logEnergyKev)
+        {
+            return MassCrossSection(element, lo, hi, energyKev, logEnergyKev,
+                                    PhotonProcess.Incoherent)
+                 + MassCrossSection(element, lo, hi, energyKev, logEnergyKev,
+                                    PhotonProcess.Photoelectric)
+                 + MassCrossSection(element, lo, hi, energyKev, logEnergyKev,
+                                    PhotonProcess.PairProduction);
+        }
+
+        /// <summary>
         /// ⛔ (`S121`) Сечение рождения пар С ПОРОГОВОЙ ИНТЕРПОЛЯЦИЕЙ, раздельно
         /// по ядерному каналу и triplet, — то, чем эту величину подаёт XCOM.
         ///

@@ -102,9 +102,10 @@ class TrustFloorProbe
         {
             var analyzer = new FsaAnalyzer
             {
-                ResponseMatrix = matrix,
                 ResponseContinuumTrustFloorKev = floor,
             };
+            // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик)
+            FsaMatrixBinding.Bind(analyzer, rd.Efficiency != null ? rd.Efficiency.Geometry : null, matrix);
             FsaTuningReport.Print(analyzer, string.Format(CultureInfo.InvariantCulture,
                                                           "порог {0:F0} кэВ", floor));
             FsaResult r = analyzer.Analyze(rd.EnergySpectrum, null, rd.FwhmCalibration,

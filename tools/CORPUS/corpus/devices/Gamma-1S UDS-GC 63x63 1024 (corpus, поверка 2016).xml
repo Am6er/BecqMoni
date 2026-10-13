@@ -18,9 +18,9 @@
   <PolynomialEnergyCalibration>
     <PolynomialOrder>2</PolynomialOrder>
     <Coefficients>
-      <Coefficient>-21.63799315093997</Coefficient>
-      <Coefficient>2.9697352005797244</Coefficient>
-      <Coefficient>7.328406571358275e-05</Coefficient>
+      <Coefficient>-21.937310073994333</Coefficient>
+      <Coefficient>2.9708126875621375</Coefficient>
+      <Coefficient>7.331065482725502e-05</Coefficient>
     </Coefficients>
   </PolynomialEnergyCalibration>
   <StabilizerConfig>
@@ -44,4 +44,5 @@
     <ExpGaussExpRightTail>1</ExpGaussExpRightTail>
   </PeakDetectionMethodConfig>
   <BackgroundSpectrumPathname />
+  <TractCurvature>0.0023</TractCurvature>
 </DeviceConfigInfo>

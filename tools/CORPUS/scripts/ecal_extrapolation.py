@@ -150,12 +150,17 @@ def build_state(entries, two_pass=True, strict=True):
     if not two_pass:
         return state
 
+    # (`S209`, П205) подсказка группы — с тем же гистерезисом, что у конвейера
+    # (`build_corpus.held_hint` против записанных `data/res_hint.csv`): иначе мерка
+    # мерила бы стадию 2а без него, то есть не тот корпус.
+    stored = build_corpus.load_res_hints()
     for _round in (1, 2):
         res_a = {}
         for det in sorted({st['det'] for st in state.values()}):
             pts = build_corpus.resolution_points(state, det)
             if len(pts) >= 2:
-                res_a[det] = float(np.median([w / np.sqrt(e) for e, w, _ in pts]))
+                median = float(np.median([w / np.sqrt(e) for e, w, _ in pts]))
+                res_a[det] = build_corpus.held_hint((det, _round), median, stored)[0]
         moved = 0
         for st in state.values():
             hint = res_a.get(st['det'])

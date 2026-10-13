@@ -104,16 +104,7 @@ namespace BecquerelMonitor.Utils
             return activityError;
         }
 
-        public static double CalculateLqCounts(double bgCounts, double bgTime, double fgTime, double confidence)
-        {
-            double mdaCps = Math.Pow(confidence, 2.0) / (2.0 * fgTime) 
-                + confidence * Math.Sqrt(
-                    Math.Pow(confidence, 2.0) / (4.0 * Math.Pow(fgTime, 2.0)) + (bgCounts / bgTime) * (1 / fgTime + 1 / bgTime)
-                );
-            double mdaCounts = mdaCps * fgTime;
-
-            return mdaCounts;
-        }
-
+        // (`AMBER198`, решение Amber 05.10.2026 «Убрать Lq с панели») Здесь был
+        // CalculateLqCounts — единственным читателем была панель выделения.
     }
 }

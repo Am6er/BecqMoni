@@ -29,7 +29,14 @@ namespace FsaInferProbeF51
     ///
     ///   FsaInferProbeF51 --spectrum=X.xml [--set=Имя] [--efficiency=Имя]
     ///                    [--cut=whole|criterion|only] [--lib-dump]
-    ///                    [--no-novel] [--modal-control]
+    ///                    [--no-novel] [--modal-control] [--match=fwhm|label|main]
+    ///
+    /// `--match=` (`AMBER221`, 12.10.2026) — правило сопоставления пика с группой
+    /// линий (`FsaLabelMatch`): `fwhm` — прежнее, положение пика в ±0.75 ПШПВ;
+    /// `label` — линия подписи против любой линии группы; `main` — умолчание
+    /// приложения: положение ЛИБО линия подписи, если она главная в группе. Строки `OMIT` — родители
+    /// активного сета, не вошедшие в состав, с причиной (то, что окно отчёта
+    /// печатает строкой «есть в сете, нет в составе»).
     ///
     /// `--cut=` заставляет правило обрыва ряда; БЕЗ ключа зовётся ровно та
     /// перегрузка, которой пользуется приложение, — то есть меряется умолчание,
@@ -63,6 +70,7 @@ namespace FsaInferProbeF51
             string cutName = null;
             bool libDump = false, modalControl = false;
             bool novelty = true;
+            string matchName = null;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
@@ -71,6 +79,7 @@ namespace FsaInferProbeF51
                 else if (a.StartsWith("--cut=", StringComparison.Ordinal)) cutName = a.Substring(6);
                 else if (a == "--lib-dump") libDump = true;
                 else if (a == "--no-novel") novelty = false;
+                else if (a.StartsWith("--match=", StringComparison.Ordinal)) matchName = a.Substring(8);
                 else if (a == "--modal-control") modalControl = true;
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
@@ -96,6 +105,17 @@ namespace FsaInferProbeF51
                 ModalWatchStop();
                 return 2;
             }
+
+            if (matchName != null && matchName != "fwhm" && matchName != "label" && matchName != "main")
+            {
+                Console.Error.WriteLine("--match= принимает fwhm|label|main");
+                ModalWatchStop();
+                return 2;
+            }
+
+            FsaCompositionInference.LabelMatch = matchName == "fwhm" ? FsaLabelMatch.Position
+                                               : matchName == "label" ? FsaLabelMatch.LabelLine
+                                               : FsaLabelMatch.PositionOrMainLine;
 
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
@@ -123,6 +143,9 @@ namespace FsaInferProbeF51
                               used != null ? used.Tolerance.ToString("G", CultureInfo.InvariantCulture) : "?",
                               used != null ? used.Min_Range.ToString("G", CultureInfo.InvariantCulture) : "?",
                               used != null ? used.Max_Range.ToString("G", CultureInfo.InvariantCulture) : "?");
+            Console.WriteLine("SETUP\tсопоставление пика с группой: {0}{1}",
+                              FsaCompositionInference.LabelMatch,
+                              matchName == null ? " (умолчание приложения)" : " (--match=" + matchName + ")");
             Console.WriteLine("SETUP\tкривая: {0}",
                               rd.Efficiency != null ? (rd.Efficiency.Name + (rd.Efficiency.HasGeometry ? " (геометрия есть)" : " (геометрии нет)")) : "нет");
 
@@ -214,6 +237,18 @@ namespace FsaInferProbeF51
                     Console.WriteLine("LIB\t{0}\t{1}\t{2}", c.Name, c.Kind,
                                       c.Lines.Count.ToString(CultureInfo.InvariantCulture));
                 }
+            }
+
+            // (`AMBER221`) родители сета вне состава — то, что окно отчёта печатает
+            //    строкой «есть в сете, нет в составе»
+            foreach (FsaSetOmission omission in FsaCompositionInference.SetOmissions(
+                         nuclides.ActiveSet, nuclides.NuclideDefinitions, report, peaks, library))
+            {
+                Console.WriteLine("OMIT\t{0}\t{1}\t{2}/{3}\t{4}",
+                                  omission.Nuclide, omission.Reason,
+                                  omission.Matched.ToString(CultureInfo.InvariantCulture),
+                                  omission.Expected.ToString(CultureInfo.InvariantCulture),
+                                  omission.Coverage.ToString("F2", CultureInfo.InvariantCulture));
             }
 
             // ⛔ ВЕРДИКТ — про то, что увидит человек. Пустая библиотека и есть

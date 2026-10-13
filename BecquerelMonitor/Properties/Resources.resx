@@ -139,9 +139,6 @@
   <data name="ERRDuplicateDeviceConfigGUID" xml:space="preserve">
     <value>Duplicate GUID for device configuration "{0}"</value>
   </data>
-  <data name="ROIPrimitiveOperationTypeSubtraction" xml:space="preserve">
-    <value>Subtraction</value>
-  </data>
   <data name="MSGSavingNuclideDefinition" xml:space="preserve">
     <value>Nuclide definition has been modified. Save?</value>
   </data>
@@ -167,6 +164,9 @@
     <value>Error detected while communicating with device.
 </value>
   </data>
+  <data name="MSGUnreadableConfigNotOverwritten" xml:space="preserve">
+    <value>The file exists but could not be read, so the program works on built-in defaults and will NOT overwrite it: changes made in this session will not be saved to it. Free or repair the file and restart the program.</value>
+  </data>
   <data name="MSGNewNuclideDefinitionFileCreated" xml:space="preserve">
     <value>New nuclide definition file has been created.</value>
   </data>
@@ -178,9 +178,6 @@
   </data>
   <data name="ERRLoadingNuclideDefinitionFile" xml:space="preserve">
     <value>Failed to load nuclide definition file.</value>
-  </data>
-  <data name="MSGDeleteROIPrimitive" xml:space="preserve">
-    <value>Remove ROI primitive?</value>
   </data>
   <data name="ERRDuplicateConfigName" xml:space="preserve">
     <value>Duplicate or invalid configuration name.</value>
@@ -227,17 +224,11 @@
   <data name="InvalidValueDialogTitle" xml:space="preserve">
     <value>Invalid Input Value</value>
   </data>
-  <data name="ROIPrimitiveOperationTypeAddition" xml:space="preserve">
-    <value>Addition</value>
-  </data>
   <data name="CsvExportDialogTitle" xml:space="preserve">
     <value>Export to CSV File</value>
   </data>
   <data name="ChartHeaderNetCps" xml:space="preserve">
     <value>Net CPS:</value>
-  </data>
-  <data name="ROIPrimitiveTypeROIReference" xml:space="preserve">
-    <value>ROI Reference</value>
   </data>
   <data name="BackgroundSelectionDialogTitle" xml:space="preserve">
     <value>Choose background spectrum file</value>
@@ -8292,14 +8283,6 @@ http://xptable.sourceforge.net/</value>
         zS5RrGaXKFazSxSr2U0oO/0lRkfx4Cr+Fx2hTZdpqDEy+AAAAABJRU5ErkJggg==
 </value>
   </data>
-  <data name="Minus" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-    <value>
-        Qk3WAAAAAAAAAHYAAAAoAAAADAAAAAwAAAABAAQAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAAAAAA/wAA
-        gP8AgAD/AICA/4AAAP+AAID/gIAA/8DAwP+AgID/AAD//wD/AP8A/////wAA//8A/////wD/////////
-        zMz//wAA/8z//8z/AAD8/////88AAPz/////zwAAz//////8AADPzMzMzPwAAM/MzMzM/AAAz//////8
-        AAD8/////88AAPz/////zwAA/8z//8z/AAD//8zM//8AAA==
-</value>
-  </data>
   <data name="ERRSavingDeviceConfigFailed" xml:space="preserve">
     <value>Failed to save device configuration file.</value>
   </data>
@@ -8311,14 +8294,8 @@ It is probably open in another program or write-protected. Nothing on disk has b
     <value>The configuration file "{0}" could not be deleted, so the configuration has not been removed and is still in the list.
 It is probably open in another program or write-protected.</value>
   </data>
-  <data name="ERRLoadingROIConfigFailed" xml:space="preserve">
-    <value>Failed to load ROI configuration file(s).</value>
-  </data>
   <data name="ERRFailureReason" xml:space="preserve">
     <value>Reason: {0}</value>
-  </data>
-  <data name="ROIPrimitiveTypeBGDifference" xml:space="preserve">
-    <value>BG Difference</value>
   </data>
   <data name="ERRCannotConnectDevice" xml:space="preserve">
     <value>Unable to connect device. Check cable connection and power of the device.</value>
@@ -8342,14 +8319,8 @@ It is probably open in another program or write-protected.</value>
   <data name="ThermometerTypeNone" xml:space="preserve">
     <value>None</value>
   </data>
-  <data name="ROIPrimitiveTypeCovellMethod" xml:space="preserve">
-    <value>Covell Method</value>
-  </data>
   <data name="ERRInvalidPresetTime" xml:space="preserve">
     <value>Invalid preset time.</value>
-  </data>
-  <data name="ERRInvalidROIPrimitiveOperation" xml:space="preserve">
-    <value>Invalid ROI primitive operation.</value>
   </data>
   <data name="ErrorString" xml:space="preserve">
     <value>Error</value>
@@ -8375,9 +8346,6 @@ It is probably open in another program or write-protected.</value>
   <data name="CsvImportDialogTitle" xml:space="preserve">
     <value>Import from CSV File</value>
   </data>
-  <data name="NewROIConfigPrefix" xml:space="preserve">
-    <value>New ROI Configuration</value>
-  </data>
   <data name="EnergyCalibration" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         Qk1OAQAAAAAAAHYAAAAoAAAAEgAAABIAAAABAAQAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAAAAAA/wAA
@@ -8388,14 +8356,8 @@ It is probably open in another program or write-protected.</value>
         +ZmZmf///wAAAP///////////wAAAP///////////wAAAA==
 </value>
   </data>
-  <data name="ERRSavingROIConfigFailed" xml:space="preserve">
-    <value>Failed to save ROI configuration file.</value>
-  </data>
   <data name="NewDeviceConfigPrefix" xml:space="preserve">
     <value>New Device Configuration</value>
-  </data>
-  <data name="MSGDeleteROIDefinition" xml:space="preserve">
-    <value>Remove ROI definition "{0}"?</value>
   </data>
   <data name="MSGFileOverwriteConfirmation" xml:space="preserve">
     <value>Spectrum File "{0}" was modified. Save changes?</value>
@@ -8540,6 +8502,10 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="FSAResidualCountsValue" xml:space="preserve">
     <value>+{0} / −{1} %</value>
   </data>
+  <data name="FSAResidualUndefinedHint" xml:space="preserve">
+    <value>Residual share is undefined: the net counts of the band (sample minus background) are not above three standard deviations, so there is nothing to take a share of. The residual ribbon on the chart is drawn as usual.</value>
+    <comment>AMBER91: shown instead of "+0.0 / −0.0 %" when the sample is at background level</comment>
+  </data>
   <data name="FSAPresentNoShare" xml:space="preserve">
     <value>present</value>
     <comment>S85: backscatter has no reliable share — presence only</comment>
@@ -8599,9 +8565,6 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="MSGDeviceTypeChanging" xml:space="preserve">
     <value>Changing device type causes initialization of input fields. OK?</value>
   </data>
-  <data name="ERRDuplicateROIConfigGUID" xml:space="preserve">
-    <value>Duplicate GUID for ROI configuration "{0}"</value>
-  </data>
   <data name="MSGClearSpectrum" xml:space="preserve">
     <value>Clear spectrum?</value>
   </data>
@@ -8629,9 +8592,6 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   </data>
   <data name="ERRInvalidInputForm" xml:space="preserve">
     <value>Invalid input form.</value>
-  </data>
-  <data name="ERRInvalidROIPrimitive" xml:space="preserve">
-    <value>Invalid ROI primitive.</value>
   </data>
   <data name="ERRFileOpenFailure" xml:space="preserve">
     <value>File "{0}" couldn't be opened.
@@ -8689,9 +8649,6 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   </data>
   <data name="ERRCannotDeleteSpectrum" xml:space="preserve">
     <value>Can't delete spectrum. at least one spectrum per file is needed.</value>
-  </data>
-  <data name="MSGDeleteROIConfig" xml:space="preserve">
-    <value>Remove ROI configuration "{0}"?</value>
   </data>
   <data name="SpectrumFileFilter" xml:space="preserve">
     <value>Spectrum Files (*.xml)|*.xml|All Files (*.*)|*.*</value>
@@ -8813,14 +8770,6 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
         /////////wAAAA/w/wD/D/DwAAAAAA8A8P8PDwDw/wAAAA8A8P8PDwDw/wAAAADw8P8PAPDwAAAAAADw
         8P8PAPDw/wAAAA/w/wD/D/DwAAAAAP///////////wAAAP///////////wAAAP//8AAAAP///wAAAP//
         /wAAD////wAAAP////AA/////wAAAP////8P/////wAAAA==
-</value>
-  </data>
-  <data name="Plus" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-    <value>
-        Qk3WAAAAAAAAAHYAAAAoAAAADAAAAAwAAAABAAQAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAAAAAA/wAA
-        gP8AgAD/AICA/4AAAP+AAID/gIAA/8DAwP+AgID/AAD//wD/AP8A/////wAA//8A/////wD/////////
-        mZn//wAA/5n//5n/AAD5//mf/58AAPn/+Z//nwAAn//5n//5AACfmZmZmfkAAJ+ZmZmZ+QAAn//5n//5
-        AAD5//mf/58AAPn/+Z//nwAA/5n//5n/AAD//5mZ//8AAA==
 </value>
   </data>
   <data name="ProgressString" xml:space="preserve">
@@ -41864,7 +41813,7 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
     <value>Export N42 file</value>
   </data>
   <data name="MSGN42ExportLosesEfficiency" xml:space="preserve">
-    <value>The N42 format does not carry the efficiency curve. The efficiency curve, the detector geometry and the link to the response matrix are NOT written to the file; spectra with a curve in this document: {0} of {1}. A file re-imported into a NEW document therefore gets no activity of the selection, no activity of the ROIs, no full-spectrum analysis (FSA) and no normalization by efficiency. The spectra themselves, the energy calibration and the measurement times are exported in full.</value>
+    <value>The N42 format does not carry the efficiency curve. The efficiency curve, the detector geometry and the link to the response matrix are NOT written to the file; spectra with a curve in this document: {0} of {1}. A file re-imported into a NEW document therefore gets no activity of the selection, no full-spectrum analysis (FSA) and no normalization by efficiency. The spectra themselves, the energy calibration and the measurement times are exported in full.</value>
   </data>
   <data name="CalibrationFunctionError" xml:space="preserve">
     <value>The calibration function should be monotonically increasing at channel &gt; 0. Re-check Calibration points!</value>
@@ -41919,6 +41868,9 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   </data>
   <data name="ERRUnreadableStartDateTimeN42" xml:space="preserve">
     <value>The start time of the measurement could not be read in {0} measurement(s) of the N42 file (first one: {1}); the start time is set to 1970-01-01 to mark it as unknown. Everything else in the spectrum is imported.</value>
+  </data>
+  <data name="ERRCalibrationReferenceNotFoundN42" xml:space="preserve">
+    <value>In {0} measurement(s) of the N42 file the spectrum refers to an energy calibration that is not in the file (first reference: {1}); the calibration was taken by the measurement number instead. Check the energy scale of these spectra.</value>
   </data>
   <data name="ERRUnsupportedPolynomialOrderN42" xml:space="preserve">
     <value>The N42 energy calibration is a polynomial of order {0}, and the application reads polynomials up to order 4.</value>
@@ -42142,6 +42094,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="TemperatureStr" xml:space="preserve">
     <value>Detector temperature: {0}°C</value>
   </data>
+  <data name="TemperatureRefreshHint" xml:space="preserve">
+    <value>Click 🔃 to read the detector temperature again (Atom Spectra, while acquiring)</value>
+  </data>
   <data name="DeviceTypeRadiaCode" xml:space="preserve">
     <value>RadiaCode</value>
   </data>
@@ -42208,12 +42163,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EffCalcMCImportDialogTitle" xml:space="preserve">
     <value>LSRM EffCalcMC.txt -&gt; ROI</value>
   </data>
-  <data name="ROICreationSucces" xml:space="preserve">
-    <value>ROI efficiency curve imported successfully</value>
-  </data>
-  <data name="ERREmptyROIConfigName" xml:space="preserve">
-    <value>Empty ROI config name</value>
-  </data>
   <data name="Activity" xml:space="preserve">
     <value>Activity</value>
   </data>
@@ -42240,6 +42189,12 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="NucBase_KSeriesRedundantSkipped" xml:space="preserve">
     <value>K-beta lines skipped as duplicates: {0}. The total (KB) and its split (KpB1 + KpB2) were both selected; only one of them is imported.</value>
+  </data>
+  <data name="NucBase_LSeriesRedundantHint" xml:space="preserve">
+    <value>This L-series row is superseded by more detailed rows of the same decay: the lumped L line (centroid and total yield) or a subshell total (L1, L2, L3) stands next to the individual L lines (L3M5, L2M4, ...), which share the same total. Take one or the other, never both — adding them counts the L X-rays twice (Am-241: 73 % instead of 36.6 %).</value>
+  </data>
+  <data name="NucBase_LSeriesRedundantSkipped" xml:space="preserve">
+    <value>L-series rows skipped as duplicates: {0}. The lumped L line (or a subshell total) and the individual L lines it sums were both selected; only the individual lines are imported.</value>
   </data>
   <data name="UpdateDeadTime" xml:space="preserve">
     <value>Update Dead Time</value>
@@ -42342,9 +42297,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="ERRDeviceBusy" xml:space="preserve">
     <value>Device "{0}" is already used by another recording spectrum. Stop that measurement first.</value>
-  </data>
-  <data name="Lq_counts" xml:space="preserve">
-    <value>Lq counts</value>
   </data>
   <data name="EfficiencyMakerMenu" xml:space="preserve">
     <value>Efficiency maker...</value>
@@ -42476,7 +42428,10 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>WARNING: the sample material is still air ("{0}", {1:F6} g/cm3) while the sample is {2:F1} mm high - self-absorption is NOT accounted for, and the curve can be off by a factor</value>
   </data>
   <data name="EfficiencyMakerNodeSpread" xml:space="preserve">
-    <value>spread per point: median {0:F2} %, worst {1:F2} % at {2:F1} keV (effective sample {3:F0} of {4:F0} histories)</value>
+    <value>spread per point over the working range (from {5:F0} keV, {6} points): median {0:F2} %; worst point of the whole curve {1:F2} % at {2:F1} keV (effective sample {3:F0} of {4:F0} histories)</value>
+  </data>
+  <data name="EfficiencyMakerNodeSpreadLow" xml:space="preserve">
+    <value>below {0:F0} keV ({1} points): median {2:F2} % - the low band is noisy by nature and does not decide whether the curve is noisy</value>
   </data>
   <data name="EfficiencyMakerNodeSpreadWarning" xml:space="preserve">
     <value>WARNING: the curve is NOISY - a typical point carries {0:F1} % spread against the {1:F0} % limit ({2:F0} histories promise about a percent; {3} of {4} points are above the limit). On a large sample (detector on the ground, in a borehole) the histories are spent on far soil that contributes nothing; raise the histories per point or narrow the sample</value>
@@ -42652,6 +42607,12 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorErrorDensity" xml:space="preserve">
     <value>Crystal density must be greater than zero.</value>
   </data>
+  <data name="GeometryEditorErrorDensityField" xml:space="preserve">
+    <value>“{0}”: density {1} g/cm³ — a density must be greater than zero.</value>
+  </data>
+  <data name="GeometryEditorErrorMaterialEmpty" xml:space="preserve">
+    <value>“{0}”: the material “{1}” has no composition. Open the material library (…) and fix it.</value>
+  </data>
   <data name="GeometryEditorErrorMarinelliHole" xml:space="preserve">
     <value>The Marinelli beaker diameter must be greater than the hole diameter.</value>
   </data>
@@ -42672,6 +42633,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="GeometryEditorErrorWallEatsSample" xml:space="preserve">
     <value>The wall eats the whole clearance: {0:F1} mm against a limit of {1:F1} mm.</value>
+  </data>
+  <data name="GeometryEditorErrorNegativeLength" xml:space="preserve">
+    <value>“{2}” is {0} mm: a distance or a thickness cannot be negative.</value>
   </data>
   <data name="GeometryEditorErrorSourceSize" xml:space="preserve">
     <value>Source size must be greater than zero.</value>
@@ -42776,28 +42740,22 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Field sphere radius</value>
   </data>
   <data name="GeometryEditorSceneIso" xml:space="preserve">
-    <value>Isotropic field from 4π: the curve and the matrix are the effective area, cm² (response per unit fluence, not per source quantum). Sphere radius {0:F0} cm; the answer does not depend on it as long as it exceeds {1:F1} cm.</value>
+    <value>Isotropic field from 4π: the curve and the matrix are the effective area, cm² (response per unit fluence, not per source quantum). Sphere radius {0:F0} cm; the answer does not depend on it as long as it exceeds {1:F1} cm and does not exceed {2:F0} cm.</value>
+  </data>
+  <data name="GeometryEditorSceneIsoHint" xml:space="preserve">
+    <value>The dose rate from this curve is for a sample in this geometry. For the background (radiation from all sides) set up a separate curve with the scene “Isotropic field (ISO)”.</value>
   </data>
   <data name="GeometryEditorErrorFieldRadiusSmall" xml:space="preserve">
     <value>The field sphere does not enclose the detector: {0:F1} mm against a minimum of {1:F1} mm.</value>
+  </data>
+  <data name="GeometryEditorErrorFieldRadiusLarge" xml:space="preserve">
+    <value>The field sphere is larger than the checked maximum: {0:F1} mm against {1:F1} mm.</value>
   </data>
   <data name="GeometrySourceIso" xml:space="preserve">
     <value>isotropic field, sphere radius {0:F0} mm</value>
   </data>
   <data name="EfficiencySketchIso" xml:space="preserve">
     <value>Isotropic field, sphere radius</value>
-  </data>
-  <data name="BqCoeffAuto" xml:space="preserve">
-    <value>Auto from efficiency</value>
-  </data>
-  <data name="BqCoeffNoIntensity" xml:space="preserve">
-    <value>Intensity of the line is not set for this zone, so K cannot be computed from the curve. The stored value is used.</value>
-  </data>
-  <data name="BqCoeffNoEnergy" xml:space="preserve">
-    <value>Peak energy is not set for this zone, so K cannot be computed from the curve. The stored value is used.</value>
-  </data>
-  <data name="BqCoeffNoCurve" xml:space="preserve">
-    <value>No efficiency curve is chosen for this spectrum. The stored value is used.</value>
   </data>
   <data name="ResultNoCoefficient" xml:space="preserve">
     <value>no K</value>
@@ -42807,12 +42765,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="ResultNoVolume" xml:space="preserve">
     <value>no volume</value>
-  </data>
-  <data name="BqCoeffOutOfRange" xml:space="preserve">
-    <value>{0:0.##} keV is outside the curve ({1:0.##} to {2:0.##} keV): the curve is not continued past its ends. The stored value is used.</value>
-  </data>
-  <data name="BqCoeffFromCurve" xml:space="preserve">
-    <value>K = {0:G6} +/- {1:G3} from the curve</value>
   </data>
   <data name="ActivityFromLine" xml:space="preserve">
     <value>from line:</value>
@@ -42843,9 +42795,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="ActivityLcZeroRefused" xml:space="preserve">
     <value>the background is empty in the selection: the detection limit is undefined</value>
-  </data>
-  <data name="BqCoeffTipAuto" xml:space="preserve">
-    <value>K converts the count rate into becquerels: Bq = cps * K. Ticked, it is computed from the efficiency curve chosen for the spectrum and the Intensity of this zone: K = 100 / (efficiency * Intensity). Unticked, the number in the field is used, as before. The stored number stays either way and is used when there is no curve.</value>
   </data>
   <data name="EfficiencySketchCylinder" xml:space="preserve">
     <value>Cylinder</value>
@@ -42916,8 +42865,11 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyTabCurveVsMatrix" xml:space="preserve">
     <value>Curve is generation {0}, its response matrix is generation {1} — two generations side by side.</value>
   </data>
-  <data name="ResponseMatrixUseInFsa" xml:space="preserve">
-    <value>Use the matrix in full-spectrum analysis (FSA)</value>
+  <data name="EfficiencyTabCurveOldPeak" xml:space="preserve">
+    <value>Curve of generation {0} was computed with the previous photopeak definition: its stamp has no "{1}" (peak in the ±FWHM/2 window of the full response) — recompute it.</value>
+  </data>
+  <data name="EfficiencyTabCurveOldVessel" xml:space="preserve">
+    <value>The curve was computed with the previous vessel scene: its stamp has no "{0}" (vessel wall over the full vessel height, far end wall of the Marinelli beaker) — recompute it.</value>
   </data>
   <data name="EfficiencyTabRenameTitle" xml:space="preserve">
     <value>Configuration name</value>
@@ -43106,7 +43058,7 @@ Computed: {7}, took {8:F0} s</value>
     <value>Cancelled.</value>
   </data>
   <data name="ResponseMatrixSaved" xml:space="preserve">
-    <value>Saved: {0}</value>
+    <value>Saved; it goes into the store when the device configuration is saved: {0}</value>
   </data>
   <data name="ResponseMatrixFailed" xml:space="preserve">
     <value>Could not compute the matrix: {0}</value>
@@ -43186,7 +43138,7 @@ The matrix is stored next to the device configuration, one file per geometry, an
     <value>Formula</value>
   </data>
   <data name="GeometryMaterialsFormulaHint" xml:space="preserve">
-    <value>Element symbols with atom counts, separated by spaces: Bi4 Ge3 O12. Mass fractions are computed from atomic masses — they are never typed in by hand.</value>
+    <value>Element symbols with atom counts: Bi4Ge3O12 or Bi4 Ge3 O12. Mass fractions are computed from atomic masses — they are never typed in by hand.</value>
   </data>
   <data name="GeometryMaterialsMixtureHint" xml:space="preserve">
     <value>Materials of the library and their mass weights. Weights are relative: 1 and 1 mean the same as 50 and 50.</value>
@@ -43225,10 +43177,44 @@ The matrix is stored next to the device configuration, one file per geometry, an
     <value>The name "{0}" is used more than once. Names identify materials, so they must be unique.</value>
   </data>
   <data name="GeometryMaterialsErrorDensity" xml:space="preserve">
-    <value>Density must be greater than zero.</value>
+    <value>Density “{0}” is not accepted: a positive finite number in g/cm³ is needed (decimal point or comma).</value>
+  </data>
+  <data name="GeometryMaterialsErrorWeight" xml:space="preserve">
+    <value>Weight of “{0}” in the mixture is “{1}”: a positive finite number is needed (decimal point or comma).</value>
+  </data>
+  <data name="GeometryMaterialsErrorComponentNoName" xml:space="preserve">
+    <value>A mixture row has a weight but no material: choose the material or delete the row.</value>
+  </data>
+  <data name="GeometryEditorErrorNotFiniteLength" xml:space="preserve">
+    <value>“{2}” is {0} mm: a distance or a thickness must be a finite number.</value>
+  </data>
+  <data name="EfficiencyCurveOtherGeometry" xml:space="preserve">
+    <value>The efficiency curve was computed for a different geometry: the geometry was changed after the calculation. Recalculate the curve.</value>
+  </data>
+  <data name="FSAReportCurveOtherGeometryValue" xml:space="preserve">
+    <value>other geometry</value>
+  </data>
+  <data name="EfficiencyMakerPreviousCurveKept" xml:space="preserve">
+    <value>The previously computed curve is kept and can still be saved.</value>
+  </data>
+  <data name="ResponseMatrixPendingNote" xml:space="preserve">
+    <value>Not yet in the store: the matrix goes there when the device configuration is saved; answering “No” discards it.</value>
+  </data>
+  <data name="ResponseMatrixCommitFailed" xml:space="preserve">
+    <value>The device configuration is saved, but the response matrix could not be moved into the store:
+{0}</value>
   </data>
   <data name="GeometryMaterialsErrorFormula" xml:space="preserve">
     <value>The formula yields no elements. Expected element symbols with atom counts: Cs1 I1.</value>
+  </data>
+  <data name="GeometryMaterialsErrorFormulaPart" xml:space="preserve">
+    <value>The formula cannot be read at “{0}”: an element symbol is a capital plus lowercase letters, then its atom count — H2O, Bi4Ge3O12, Cs1 I1. Brackets are not accepted.</value>
+  </data>
+  <data name="GeometryMaterialsErrorFormulaDot" xml:space="preserve">
+    <value>“{0}” reads two ways: a fractional count or a hydrate. Write a hydrate with “*” or “·” — CaSO4*2H2O; put a space after a fractional count — Si1.5 O3.</value>
+  </data>
+  <data name="GeometryMaterialsErrorFormulaCase" xml:space="preserve">
+    <value>“{0}” read as {1} before the 24.09.2026 update and as {2} now: letter case in element symbols now matters. Retype the formula in the case you mean.</value>
   </data>
   <data name="GeometryMaterialsErrorEmptyMixture" xml:space="preserve">
     <value>The mixture is empty: it needs at least one material with a positive weight.</value>
@@ -43415,6 +43401,9 @@ Turn it on in Windows settings and search again.</value>
   <data name="ERRDeviceNoData" xml:space="preserve">
     <value>NO DATA FROM DEVICE: {0}</value>
   </data>
+  <data name="ERRAtomSpectraPortLost" xml:space="preserve">
+    <value>PORT LOST: {0}. The measurement is not stopped; waiting for the device to come back</value>
+  </data>
   <data name="ERRBTUnavailable" xml:space="preserve">
     <value>Bluetooth is off or unavailable: {0}</value>
   </data>
@@ -43549,6 +43538,18 @@ Turn it on in Windows settings and search again.</value>
   <data name="DoseRateNoSampleVolume" xml:space="preserve">
     <value>Dose rate: the sample in the geometry has no volume — there is nothing to average the fluence over.</value>
   </data>
+  <data name="DoseRateFieldScene" xml:space="preserve">
+    <value>Dose rate: the curve belongs to a field scene (on the ground or in a borehole). The dose there needs the fluence at the detector together with the photons scattered in the ground, and the point-source factor gives neither: without attenuation it overstates the unscattered fluence 4 to 20 times, and the scattered part (about half the field) is not in it. Compute the dose with an ISO field scene.</value>
+  </data>
+  <data name="DoseRateSourceSceneHint" xml:space="preserve">
+    <value>The dose rate uses the geometry of the efficiency curve selected on the panel: the photons are taken to come from the source of that scene. A background field comes from all sides, and such a curve misstates it by tens of percent, most at low energies. To measure the background dose, make a curve of the isotropic field scene (ISO) in the geometry editor and select it.</value>
+  </data>
+  <data name="DoseRateScopeHint" xml:space="preserve">
+    <value>H*(10) is counted from the photons of the spectrum only: cosmic radiation (about 30 nSv/h at sea level) and other particles are not included. True coincidence summing of cascades is not corrected: close to the detector it raises the reading of Co-60 by up to 0.6 % and of Na-22 by up to 3.2 %.</value>
+  </data>
+  <data name="DoseRateThickSample" xml:space="preserve">
+    <value>Dose rate: the sample is too thick for the dose formula — only {0:f2} of the unscattered fluence leaves it towards the crystal (dose-weighted), while the formula assumes all of it does and ignores the photons scattered in the sample; the reading would be overstated by more than 10 %. Compute the dose of a thick layer (soil, a large vessel) with an ISO field scene.</value>
+  </data>
   <data name="DoseRateAreaAboveBound" xml:space="preserve">
     <value>Dose rate: the field-scene curve gives {0} cm² at {1:f1} keV — more than the projected area of the sphere around the detector ({2:f1} cm²).</value>
   </data>
@@ -43595,22 +43596,19 @@ Turn it on in Windows settings and search again.</value>
     <value>{0}: {1} of {2} imported spectra have no resolution model (FWHM calibration). Peak search cannot run on them. Reason: {3}</value>
   </data>
   <data name="ERRFwhmDefaultNotMonotonic" xml:space="preserve">
-    <value>the default cannot be built from the device settings — the straight line through (channel 0, FWHM {0}) and (channel {1}, FWHM {2}) does not grow, while the width must not decrease along the scale.</value>
+    <value>the default cannot be built from the device settings — the straight line through (channel 0, FWHM {0}) and (channel {1}, FWHM {2}) does not grow or gives zero width at channel 0, while the width must be positive and must not decrease along the scale.</value>
+  </data>
+  <data name="ERRFwhmNotFinite" xml:space="preserve">
+    <value>The FWHM fit gave no finite curve. Check the calibration points: two points on the same channel with different widths leave the curve undefined.</value>
+  </data>
+  <data name="ERRFwhmNonPositiveWidth" xml:space="preserve">
+    <value>The FWHM curve gives zero width on channels 0…{0} (up to {1} keV): no peaks would be searched there. Choose the power-law curve (FWHM = a * ch^p): its width is positive at every channel above zero.</value>
   </data>
   <data name="ERRFwhmCalibrationUnset" xml:space="preserve">
     <value>the spectrum carries no FWHM calibration and none was built for it.</value>
   </data>
   <data name="FsaEfficiencyPointAboveUnity" xml:space="preserve">
     <value>point {0} keV: efficiency {1} is above 1 — a fraction per emitted quantum cannot exceed unity</value>
-  </data>
-  <data name="BqCoeffCurveRefused" xml:space="preserve">
-    <value>The efficiency curve is refused: {0}. The stored value is used.</value>
-  </data>
-  <data name="BqCoeffFieldCurve" xml:space="preserve">
-    <value>The efficiency curve “{0}” is computed for a field scene: its values are areas in cm² per unit fluence, not fractions per emitted quantum, so K cannot be computed from it. Activity is not shown.</value>
-  </data>
-  <data name="ResultFieldCurve" xml:space="preserve">
-    <value>field curve (cm²), no K</value>
   </data>
   <data name="ActivityFieldCurveRefused" xml:space="preserve">
     <value>the efficiency curve “{0}” is a field-scene curve (cm² per unit fluence, not fractions per quantum): activity not shown</value>
@@ -43620,6 +43618,33 @@ Turn it on in Windows settings and search again.</value>
   </data>
   <data name="FSACurveRefused" xml:space="preserve">
     <value>Full-spectrum decomposition: the efficiency curve is refused — {0}</value>
+  </data>
+  <data name="FSALibraryEmptied" xml:space="preserve">
+    <value>Full-spectrum decomposition: no component of the composition is left to fit — with a response matrix the crystal's own X-ray and escape images are carried by the matrix; add a nuclide to the composition</value>
+  </data>
+  <data name="FSABandTooNarrow" xml:space="preserve">
+    <value>Full-spectrum decomposition: the fit band is {0} channels or fewer — widen the peak-search energy range or check the fit floor and the energy calibration</value>
+  </data>
+  <data name="FSATooFewChannels" xml:space="preserve">
+    <value>Full-spectrum decomposition needs at least {0} channels in the spectrum</value>
+  </data>
+  <data name="FSANoFit" xml:space="preserve">
+    <value>Full-spectrum decomposition: no fit converged on the drift grid for this spectrum</value>
+  </data>
+  <data name="FSANoCalibration" xml:space="preserve">
+    <value>Full-spectrum decomposition needs an energy calibration and an FWHM calibration of the spectrum</value>
+  </data>
+  <data name="FSANoLiveTime" xml:space="preserve">
+    <value>Full-spectrum decomposition: the spectrum has no measurement time (live time and real time are both zero) — counts per second cannot be formed; set the measurement time of the spectrum</value>
+  </data>
+  <data name="FSADatabaseFailed" xml:space="preserve">
+    <value>Database not read: {0}. The analysis ran without these data and will read the database again at the next recalculation.</value>
+  </data>
+  <data name="FSAReportDatabaseFailedRow" xml:space="preserve">
+    <value>Nuclear data databases not read — the analysis ran without part of the data (lines of a nuclide or the coincidence correction); they are read again at the next recalculation</value>
+  </data>
+  <data name="FSAAnnihilationDegenerate" xml:space="preserve">
+    <value>{0}: annihilation is its only measurable radiation — the other lines in the fit band yield {1} % per decay, below the {2} % floor; the free 511 image and the nuclide are one column, so the free image is dropped</value>
   </data>
   <data name="FSAReportEfficiencyFieldCurve" xml:space="preserve">
     <value>used as a shape: field-scene curve (cm² per unit fluence); becquerels are not derived from it</value>
@@ -43638,6 +43663,126 @@ Turn it on in Windows settings and search again.</value>
   </data>
   <data name="NormalizeFieldCurve" xml:space="preserve">
     <value>Normalize by efficiency: the curve “{0}” is a field-scene curve (cm² per unit fluence, values above 1); dividing the integer spectrum by it rounds low channels to zero, so the spectrum is not normalized by it.</value>
+  </data>
+  <data name="SummingPanelApplied" xml:space="preserve">
+    <value>Cascade summing correction ×{0} (line CF {1}, foreign sum peaks in the window {2} %)</value>
+  </data>
+  <data name="SummingPanelNone" xml:space="preserve">
+    <value>No cascade summing correction: {0}</value>
+  </data>
+  <data name="SummingCellApplied" xml:space="preserve">
+    <value>Σ×{0}</value>
+  </data>
+  <data name="SummingCellNone" xml:space="preserve">
+    <value>no Σ correction</value>
+  </data>
+  <data name="SummingWhyNoCurve" xml:space="preserve">
+    <value>no efficiency curve</value>
+  </data>
+  <data name="SummingWhyNoGeometry" xml:space="preserve">
+    <value>the efficiency curve has no geometry</value>
+  </data>
+  <data name="SummingWhyMatrixOff" xml:space="preserve">
+    <value>the response matrix is switched off for the curve</value>
+  </data>
+  <data name="SummingWhyNoMatrix" xml:space="preserve">
+    <value>no response matrix of the scene ({0})</value>
+  </data>
+  <data name="SummingWhyMatrixStale" xml:space="preserve">
+    <value>the response matrix does not match the geometry</value>
+  </data>
+  <data name="SummingWhyFieldScene" xml:space="preserve">
+    <value>field scene: the source position is unknown</value>
+  </data>
+  <data name="SummingWhyOff" xml:space="preserve">
+    <value>cascade summing is switched off in the FSA settings</value>
+  </data>
+  <data name="SummingWhyNoLine" xml:space="preserve">
+    <value>line {0} keV is not found in the cascade tables of “{1}”</value>
+  </data>
+  <data name="EfficiencyMakerKeepUnsavedCurve" xml:space="preserve">
+    <value>The curve "{0}" is not in the saved device configuration: it was added after the last save and is discarded with the other changes.
+
+Its curve designer holds unsaved work (geometry, a computed curve or a running calculation).
+
+Yes - keep the curve in the configuration (the designer stays open, the configuration stays modified).
+No - discard the curve and close the designer.</value>
+  </data>
+  <data name="FSAReportMatrixUsedFromSpectrum" xml:space="preserve">
+    <value>used (from the spectrum file)</value>
+  </data>
+  <data name="FSAReportSpectrumMatrixRefusedRow" xml:space="preserve">
+    <value>The response matrix carried in the spectrum file is rejected: {0}. The analysis runs without it.</value>
+  </data>
+  <data name="FSAReportSpectrumMatrixRefusedValue" xml:space="preserve">
+    <value>rejected</value>
+  </data>
+  <data name="EmbeddedMatrixOtherCurve" xml:space="preserve">
+    <value>it belongs to another efficiency curve</value>
+  </data>
+  <data name="EmbeddedMatrixDamaged" xml:space="preserve">
+    <value>the block is damaged (truncated or edited)</value>
+  </data>
+  <data name="EmbeddedMatrixOldFormat" xml:space="preserve">
+    <value>matrix file format {0}, the application reads format {1}</value>
+  </data>
+  <data name="EmbeddedMatrixStale" xml:space="preserve">
+    <value>its stamp does not match the geometry of the curve</value>
+  </data>
+  <data name="EfficiencyMakerGeometryNotScintillatorFile" xml:space="preserve">
+    <value>{0}: no scintillator crystal dimensions found (DS_CrystalDiameter / DS_CrystalHeight or DS_CrystalBoxX / Y / Z) - this is not a scintillator geometry file. Nothing was loaded.</value>
+  </data>
+  <data name="EfficiencyMakerCloseUnsaved" xml:space="preserve">
+    <value>The curve designer holds work that is not saved into the device configuration (geometry edits, a computed curve or a running calculation).
+
+Close it and discard this work?</value>
+  </data>
+  <data name="ResponseMatrixCloseUnsaved" xml:space="preserve">
+    <value>The computed response matrix is not saved.
+
+Close the window and discard it?</value>
+  </data>
+  <data name="ResponseMatrixUseGpu" xml:space="preserve">
+    <value>Use Nvidia GPU</value>
+  </data>
+  <data name="ResponseMatrixGpuReady" xml:space="preserve">
+    <value>{0} (compute capability {1}, driver {2}). Flat count: the histories per node from the field, without the 3 % noise stop — the same as the corpus store. Threads are used for the κ table on the CPU.</value>
+  </data>
+  <data name="ResponseMatrixGpuNoLibrary" xml:space="preserve">
+    <value>Not available: the GPU library rmgpu_f.dll is missing next to the application.</value>
+  </data>
+  <data name="ResponseMatrixGpuLoadFailed" xml:space="preserve">
+    <value>Not available: the GPU library rmgpu_f.dll failed to load ({0}).</value>
+  </data>
+  <data name="ResponseMatrixGpuOldLibrary" xml:space="preserve">
+    <value>Not available: the GPU library rmgpu_f.dll is an old build without a build stamp; rebuild it.</value>
+  </data>
+  <data name="ResponseMatrixGpuPhysicsMismatch" xml:space="preserve">
+    <value>Not available: the GPU library was built for transport physics {0}, this build is physics {1}; rebuild the library.</value>
+  </data>
+  <data name="ResponseMatrixGpuNoDevice" xml:space="preserve">
+    <value>Not available: no CUDA-capable Nvidia GPU found. An Nvidia GPU and its driver are required; the CUDA toolkit is not.</value>
+  </data>
+  <data name="ResponseMatrixGpuDriverTooOld" xml:space="preserve">
+    <value>Not available: the Nvidia driver ({0}) is older than the CUDA runtime {1} the library needs; update the driver.</value>
+  </data>
+  <data name="ResponseMatrixGpuDeviceTooOld" xml:space="preserve">
+    <value>Not available: {0} is compute capability {1}; the library needs {2} (RTX 30xx) or newer.</value>
+  </data>
+  <data name="ResponseMatrixGpuRuntimeError" xml:space="preserve">
+    <value>Not available: {0}</value>
+  </data>
+  <data name="ResponseMatrixGpuProgress" xml:space="preserve">
+    <value>GPU: node {0} of {1}, {2:F0} keV.</value>
+  </data>
+  <data name="ResponseMatrixJointProgress" xml:space="preserve">
+    <value>Nodes done; pair table (κ) on the CPU: block {0} of {1}.</value>
+  </data>
+  <data name="GeometryFacingSideNeedsBox" xml:space="preserve">
+    <value>The sample at the side of the detector is defined for a box crystal only: for a cylinder it is not axially symmetric and the scene cannot express it.</value>
+  </data>
+  <data name="GeometryUnknownElementInLayer" xml:space="preserve">
+    <value>The material of "{0}" contains the element Z = {1}, which is absent from the attenuation tables: the layer would be counted without it.</value>
   </data>
   <data name="DeviceTypeAmplitudaUSB" xml:space="preserve">
     <value>AmplitudaUSB</value>

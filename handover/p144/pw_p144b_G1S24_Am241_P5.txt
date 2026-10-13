@@ -1,0 +1,19 @@
+BecqMoni: main config: D:\BqMoni_Claude\p144\wt\tools\CORPUS\scripts\wd_p144b\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p144\wt\tools\CORPUS\scripts\wd_p144b\config\device: 24 loaded
+=== G1S24_Am241_P5.xml ===
+  G1S24_Am241_P5.xml: прибор Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2024)
+  состав: 241AM; распад 1, атомных 2, линий 6; полоса сведена ПОЛОМ ПО КРИВОЙ 20.0 кэВ (1.0 % от максимума, Min_Range 30.0), фит на всём спектре (умолчание), из них ниже Min_Range 3; аннигиляционный образ НЕ взят: в составе нет линии выше 1022 кэВ
+SETUP	против поставочного разбора изменено: AngularQk нет → BecquerelMonitor.EfficiencyMaker.AngularAttenuation; CoincidenceWindowSec 0 → 0.00036281179138322; MinEnergy 40 → 30; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → NaI:Tl
+  χ²/ndf 5.7360; матрица учтена; усиление 0.898456, сдвиг 0.000 канала; полоса 0…1023
+  мерка приложения 1 %, мерка пробы 1 %
+  --- Am-241 (Single), линий 2, ярчайшая 1.5018E-002 пиковых отсч./распад
+  ok   А. мерка пробы сошлась с мерой приложения, наибольшее расхождение 0.0000 %
+  --- Xray-NaI (Nuisance), линий 3, ярчайшая 1.2979E-002 пиковых отсч./распад
+  ok   А. мерка пробы сошлась с мерой приложения, наибольшее расхождение 0.0000 %
+  --- Esc-NaI (Nuisance), линий 1, ярчайшая 1.0656E-003 пиковых отсч./распад
+  ok   А. мерка пробы сошлась с мерой приложения, наибольшее расхождение 0.0000 %
+  ok   Б. Am-241: пиковых отсчётов по маске пробы 3176223.3734, у приложения 3176223.3734
+  LIMIT	Am-241	обнаружен да	предел 7.32252E+001 расп./с	пиковых отсчётов предела 2464.935
+  ROW	Am-241	Single	доля 99.860 %	пиковых отсчётов 3176223.37	z 302.66
+
+ВСЕ СОШЛИСЬ

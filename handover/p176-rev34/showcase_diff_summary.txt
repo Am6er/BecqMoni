@@ -1,0 +1,27 @@
+| спектр | режим | расхождений | напечатано | медиана |Δ| | макс |Δ| | `model`, медиана |Δ| |
+|---|---|---|---|---|---|---|
+| `ASN16_Cs137_house` | `infer_eq` | 117 | 57 | 1.31 % | 23.12 % | 0.21 % |
+| `ASN16_Cs137_house` | `infer_eq_peak` | 107 | 47 | 1.27 % | 23.12 % | 0.21 % |
+| `ASN16_Cs137_house` | `infer_eq_compton` | 108 | 0 | nan % | nan % | nan % |
+| `AS80_Th232_disk` | `infer_eq` | 188 | 56 | 0.54 % | 39.28 % | 0.02 % |
+| `ASN16_Radon_filter2` | `chain_eq` | 139 | 60 | 0.08 % | 1.02 % | 0.01 % |
+| `ASN16_Radon_filter2` | `chain_noeq` | 132 | 30 | 0.01 % | 0.19 % | 0.01 % |
+| `G1S24_Rn222Coal_eq01` | `sample_eq` | 167 | 60 | 5.65 % | 32.31 % | 0.27 % |
+| `G1S24_Rn222Coal_eq01` | `sample_noeq` | 173 | 60 | 2.28 % | 100.00 % | 0.18 % |
+| `ASN16_Cs137_10cm` | `sample_nomatrix` | 73 | 0 | nan % | nan % | nan % |
+
+всего расхождений: 1204 в 9 парах
+
+крупнейшие по |Δ| (строки с «было» ≥ 1000):
+  G1S24_Rn222Coal_eq01   sample_noeq      30-100 кэВ   excess_net             1582.066 ->       2204.246  +39.33 %
+  G1S24_Rn222Coal_eq01   sample_noeq      30-100 кэВ   excess_fit             1582.066 ->       2204.246  +39.33 %
+  AS80_Th232_disk        infer_eq         0-30 кэВ     continuum_raw          4691.057 ->       6425.848  +36.98 %
+  G1S24_Rn222Coal_eq01   sample_eq        30-100 кэВ   excess_net             2449.490 ->       3241.041  +32.31 %
+  G1S24_Rn222Coal_eq01   sample_eq        30-100 кэВ   excess_fit             2449.490 ->       3241.041  +32.31 %
+  ASN16_Cs137_house      infer_eq_peak    30-100 кэВ   missing_net          381066.864 ->     469154.004  +23.12 %
+  ASN16_Cs137_house      infer_eq_peak    30-100 кэВ   missing_fit          381066.864 ->     469154.004  +23.12 %
+  ASN16_Cs137_house      infer_eq         30-100 кэВ   missing_net          381066.864 ->     469154.004  +23.12 %
+  ASN16_Cs137_house      infer_eq         30-100 кэВ   missing_fit          381066.864 ->     469154.004  +23.12 %
+  ASN16_Cs137_house      infer_eq_peak    0-30 кэВ     continuum_raw         41833.664 ->      51182.201  +22.35 %
+  ASN16_Cs137_house      infer_eq         0-30 кэВ     continuum_raw         41833.664 ->      51182.201  +22.35 %
+  ASN16_Cs137_house      infer_eq_peak    100-300 кэВ  excess_net           696358.258 ->     817677.435  +17.42 %

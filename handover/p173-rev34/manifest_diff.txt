@@ -1,0 +1,81 @@
+# П173: manifest.csv — пересборка П161 (rev34/rev34b) -> пересборка П173 (rev34c).
+# Плечо атрибуции: генератор 8bd5e70a с nucdb ДО DDEP (7f910400, sha 238ca47c) = только AMBER108.
+# столбец src: A108 — строка изменилась уже без DDEP; DDEP — только с DDEP.
+HPGE_Uranium               A108  ecal_mode affine/robust/grp->affine/robust; ecal_rms_kev 0.35->0.56; ecal_rms_fwhm 0.207->0.2; fwhm_662_pct 0.2->0.22
+GS4000_Ra226               A108  fwhm_662_pct 6.32->6.39
+GS4000_Th232               A108  fwhm_662_pct 6.32->6.39
+GS4000_U                   A108  ecal_mode affine->affine/grp; ecal_lines 7->4; ecal_rms_kev 4.13->1.58; ecal_rms_fwhm 0.132->0.103; fwhm_662_pct 6.32->6.39
+GS4000_Lu176               A108  fwhm_662_pct 6.32->6.39
+ASN3_Tile                  DDEP  ecal_mode stored/grp->affine; ecal_lines 10->6; ecal_rms_kev 6.08->2.45; ecal_rms_fwhm 0.15->0.084; bg_ecal_mode stored/grp->stored; fwhm_662_pct 4.39->3.54
+ASN8_Th232_8192            A108  ecal_rms_kev 6.05->6.06; fwhm_662_pct 6.65->6.74
+ASN8_UGlass                A108  ecal_rms_kev 9.61->8.12; ecal_rms_fwhm 0.163->0.175; fwhm_662_pct 6.65->6.74
+ASN8_Am241                 A108  fwhm_662_pct 6.65->6.74
+ASN16_Charoite_v2          DDEP  ecal_mode affine/grp->affine/robust/grp; ecal_rms_kev 3.13->6.6; ecal_rms_fwhm 0.077->0.119; fwhm_662_pct 6.26->6.33
+ASN16_Th232_Am241          DDEP  fwhm_662_pct 6.26->6.33
+ASN16_Am241                DDEP  fwhm_662_pct 6.26->6.33
+ASN16_Cs137                DDEP  fwhm_662_pct 6.26->6.33
+ASN16_Cs137_10cm           DDEP  fwhm_662_pct 6.26->6.33
+ASN16_BrazilNuts           DDEP  fwhm_662_pct 6.26->6.33
+RC103_Th232WT20            DDEP  ecal_rms_kev 4.58->1.29; ecal_rms_fwhm 0.089->0.047; fwhm_662_pct 8.26->7.94
+AS80_Onyx                  DDEP  ecal_rms_fwhm 0.092->0.091
+RC103_K40                  DDEP  ecal_mode stored/grp->gain/grp; ecal_rms_kev 22.54->8.12; ecal_rms_fwhm 0.278->0.125; fwhm_662_pct 8.26->7.94
+RC103_Cs137_0cm            DDEP  ecal_rms_kev 0.43->0.42; fwhm_662_pct 8.26->7.94
+RC103_Cs137_50mm           DDEP  fwhm_662_pct 8.26->7.94
+ASN16_Lu176                DDEP  fwhm_662_pct 6.26->6.33
+ASN16_Lu176_P0             DDEP  fwhm_662_pct 6.26->6.33
+RC103_K40Village           DDEP  ecal_mode gain/grp->affine/grp; ecal_rms_kev 5.87->14.5; ecal_rms_fwhm 0.121->0.184; fwhm_662_pct 8.26->7.94
+RC103_Th232Village         DDEP  ecal_mode poly2/grp->affine/grp; ecal_rms_kev 1.66->2.88; ecal_rms_fwhm 0.021->0.063; fwhm_662_pct 8.26->7.94
+RC103_Charoite             DDEP  ecal_mode affine/robust/grp->poly2; ecal_lines 5->4; ecal_rms_kev 11.32->10.86; fwhm_662_pct 8.26->7.94
+RC103_Lu176                DDEP  fwhm_662_pct 8.26->7.94
+G1S16_Mix_Denta100         DDEP  ecal_rms_kev 4.96->4.95
+G1S16_Mix_Mar              DDEP  ecal_rms_kev 4.66->4.65; ecal_rms_fwhm 0.313->0.312
+G1S16_Cs137_Mar_2          DDEP  ecal_rms_kev 4.48->4.47
+G1S16_K40_Mar_2            DDEP  ecal_rms_kev 26.78->26.79; ecal_rms_fwhm 0.223->0.224
+G1S16_Ra226_Mar            DDEP  ecal_mode affine->affine/grp
+G1S16_Mix_Petri            DDEP  ecal_rms_kev 5.82->5.81; ecal_rms_fwhm 0.387->0.386
+G1S16_Co60_P25             DDEP  ecal_rms_kev 6.7->6.71
+G1S16_Eu152_P25            DDEP  ecal_rms_kev 4.96->4.97
+G1S16_Mn54_P5              DDEP  ecal_rms_kev 5.74->5.96; ecal_rms_fwhm 0.097->0.098
+G1S24_Cs137_Denta120       DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Cs137_Denta120_2     DDEP  fwhm_662_pct 7.34->7.33
+G1S24_K40_Denta120         DDEP  fwhm_662_pct 7.34->7.33
+G1S24_K40_Denta120_2       DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Ra226_Denta120       DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Ra226_Denta120_2     DDEP  ecal_rms_kev 4.72->4.73; fwhm_662_pct 7.34->7.33
+G1S24_Th232_Denta120       DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Th232_Denta120_2     DDEP  ecal_rms_kev 8.83->8.82; fwhm_662_pct 7.34->7.33
+G1S24_Cs137_Mar            DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Cs137_Mar_2          DDEP  fwhm_662_pct 7.34->7.33
+G1S24_K40_Mar              DDEP  fwhm_662_pct 7.34->7.33
+G1S24_K40_Mar_2            DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Ra226_Mar            DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Ra226_Mar_2          DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Th232_Mar            DDEP  ecal_rms_kev 5.06->5.01; ecal_rms_fwhm 0.095->0.096; fwhm_662_pct 7.34->7.33
+G1S24_Th232_Mar_2          DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Cs137_Petri          DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Cs137_Petri_2        DDEP  fwhm_662_pct 7.34->7.33
+G1S24_K40_Petri            DDEP  fwhm_662_pct 7.34->7.33
+G1S24_K40_Petri_2          DDEP  ecal_rms_kev 5.4->5.42; fwhm_662_pct 7.34->7.33
+G1S24_Ra226_Petri          DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Ra226_Petri_2        DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Th232_Petri          DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Th232_Petri_2        DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Cs137_P25            DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Na22_P25             DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Th228_P25            DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Y88_P25              DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Am241_P5             DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Ba133_P5             DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Bi207_P5             DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Cd109_P5             DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Co60_P5              DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Cs137_P5             DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Eu152_P5             DDEP  ecal_rms_kev 3.81->3.82; fwhm_662_pct 7.34->7.33
+G1S24_Na22_P5              DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Th228_P5             DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Y88_P5               DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Zn65_P5              DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Rn222Coal_Mar_20m    DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Rn222Coal_Mar_2h     DDEP  ecal_lines 4->5; ecal_rms_kev 1.82->5.27; ecal_rms_fwhm 0.043->0.133; fwhm_662_pct 7.34->7.33
+G1S24_Rn222Coal_Mar_3h     DDEP  fwhm_662_pct 7.34->7.33
+G1S24_Rn222Coal_Mar_eq01   DDEP  fwhm_662_pct 7.34->7.33

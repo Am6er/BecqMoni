@@ -1,0 +1,32 @@
+== art/score_full_base_known.txt
+итого            92       100%          0          0  (+0 комнатных)  часть: known
+                 92  sum chi2/ndf 470.1   медиана 2.45
+                 92  model residual медиана 11.9 %   кварт. 8.0 .. 17.9 %
+== art/score_full_base_unknown.txt
+итого            36         4%          0          0  (+0 комнатных)  часть: unknown
+                  2  sum chi2/ndf 51.7   медиана 25.86
+                  2  model residual медиана 21.1 %   кварт. 21.1 .. 25.6 %
+== art/score_full_fin_known.txt
+итого            92       100%          0          0  (+0 комнатных)  часть: known
+                 92  sum chi2/ndf 435.8   медиана 2.34
+                 92  model residual медиана 9.7 %   кварт. 6.3 .. 17.0 %
+== art/score_full_fin_unknown.txt
+итого            36         4%          0          0  (+0 комнатных)  часть: unknown
+                  2  sum chi2/ndf 46.5   медиана 23.23
+                  2  model residual медиана 14.8 %   кварт. 14.8 .. 21.1 %
+== art/score_mini_base_known.txt
+итого            45       100%          0          0  (+0 комнатных)  часть: known
+                 45  sum chi2/ndf 317.3   медиана 3.61
+                 45  model residual медиана 16.1 %   кварт. 8.7 .. 21.0 %
+== art/score_mini_base_unknown.txt
+итого            14         4%          0          0  (+0 комнатных)  часть: unknown
+                  1  sum chi2/ndf 20.7   медиана 20.71
+                  1  model residual медиана 21.1 %   кварт. 21.1 .. 21.1 %
+== art/score_mini_fin_known.txt
+итого            45       100%          0          0  (+0 комнатных)  часть: known
+                 45  sum chi2/ndf 290.8   медиана 3.09
+                 45  model residual медиана 14.8 %   кварт. 8.1 .. 18.9 %
+== art/score_mini_fin_unknown.txt
+итого            14         4%          0          0  (+0 комнатных)  часть: unknown
+                  1  sum chi2/ndf 20.7   медиана 20.71
+                  1  model residual медиана 21.1 %   кварт. 21.1 .. 21.1 %

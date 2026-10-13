@@ -1,0 +1,1 @@
+внук через Start-Process cmd | pid 17876 (pwsh.exe) | parent 16276 | inJob True | flags 0x0 [] | procs 3 | 16276:cmd 1480:conhost 17876:pwsh

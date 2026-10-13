@@ -184,6 +184,36 @@
   <data name="crystalMaterialNotSet" xml:space="preserve">
     <value>(не задано)</value>
   </data>
+  <data name="tractCurvatureLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>93, 13</value>
+  </data>
+  <data name="tractCurvatureLabel.Text" xml:space="preserve">
+    <value>Кривизна тракта</value>
+  </data>
+  <data name="tractCurvatureLabel.ToolTip" xml:space="preserve">
+    <value>Нелинейность тракта прибора (ФЭУ, АЦП), κ в 1/МэВ:
+канал = c₀ + v·(1 + κ·L/1000), L — свет в кэВ.
+κ &gt; 0 растягивает большие амплитуды, κ &lt; 0 сжимает (насыщение ячеек кремниевого ФЭУ).
+0 (умолчание) — тракт прямой. Не трогать, пока κ этого прибора не измерена
+по сумм-пикам (например, Na-22 1275 + 511, Co-60 1173 + 1332 кэВ); измеренные
+значения — тысячные доли, у NaI-приборов корпуса +0.0023…+0.0026.
+Читает только полноспектральное разложение (Show FSA) с матрицей отклика.</value>
+  </data>
+  <data name="tractCurvatureTextBox.ToolTip" xml:space="preserve">
+    <value>Нелинейность тракта прибора (ФЭУ, АЦП), κ в 1/МэВ:
+канал = c₀ + v·(1 + κ·L/1000), L — свет в кэВ.
+κ &gt; 0 растягивает большие амплитуды, κ &lt; 0 сжимает (насыщение ячеек кремниевого ФЭУ).
+0 (умолчание) — тракт прямой. Не трогать, пока κ этого прибора не измерена
+по сумм-пикам (например, Na-22 1275 + 511, Co-60 1173 + 1332 кэВ); измеренные
+значения — тысячные доли, у NaI-приборов корпуса +0.0023…+0.0026.
+Читает только полноспектральное разложение (Show FSA) с матрицей отклика.</value>
+  </data>
+  <data name="tractCurvatureUnitLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>39, 13</value>
+  </data>
+  <data name="tractCurvatureUnitLabel.Text" xml:space="preserve">
+    <value>1/МэВ</value>
+  </data>
   <data name="label28.Size" type="System.Drawing.Size, System.Drawing">
     <value>28, 13</value>
   </data>
@@ -4721,13 +4751,13 @@
     <value>Центроида по центру масс</value>
   </data>
   <data name="lsrmGeometryDialogTitle" xml:space="preserve">
-    <value>Геометрия кривой ЛСРМ: файл .in, для которого она посчитана (Отмена — ввезти без геометрии)</value>
+    <value>Геометрия кривой ЛСРМ: файл .in, для которого она посчитана (Отмена — импортировать без геометрии)</value>
   </data>
   <data name="lsrmGeometryProblem" xml:space="preserve">
     <value>Геометрию не удалось привязать к кривой «{0}»:
 {1}
 
-Кривая ввезена без геометрии; у мощности дозы нет масштаба, пока геометрия не задана кнопкой «Изменить…».</value>
+Кривая импортирована без геометрии; у мощности дозы нет масштаба, пока геометрия не задана кнопкой «Изменить…».</value>
   </data>
   <data name="lsrmGeometryNoCrystal" xml:space="preserve">
     <value>{0}: не найдены размеры сцинтилляционного кристалла (DS_CrystalDiameter / DS_CrystalHeight или DS_CrystalBoxX / Y / Z) — это не геометрия сцинтиллятора в формате ЛСРМ.</value>

@@ -1,0 +1,36 @@
+[selfcheck] start 2026-09-23 08:30:32 склад=ЖИВОЙ корпусный (умолчание)
+[selfcheck] НЕИЗВЕСТНЫЙ ШАГ
+[selfcheck] end 2026-09-23 08:30:32 rc=2
+[wd] start 2026-09-23 08:31:58 склад=ЖИВОЙ корпусный (умолчание)
+[wd] mk_appwd code=0
+[wd] check_appwd code=0
+[wd] матриц в оснастке: 49 (ждём 49)
+[wd] end 2026-09-23 08:32:12 rc=0
+[mini] start 2026-09-23 08:32:13 склад=ЖИВОЙ корпусный (умолчание)
+[mini] run_mini code=0 (17 с) out=D:\BqMoni_Claude\p141\out_p141_mini
+[mini] score known code=0
+[mini] score unknown code=0
+[mini] end 2026-09-23 08:32:30 rc=0
+[full] start 2026-09-23 08:32:30 склад=ЖИВОЙ корпусный (умолчание)
+[full] run_appwd code=0 (37 с) out=D:\BqMoni_Claude\p141\out_p141_full
+[full] score known code=0
+[full] score unknown code=0
+[full] end 2026-09-23 08:33:08 rc=0
+[cmp] start 2026-09-23 08:33:08 склад=ЖИВОЙ корпусный (умолчание)
+[cmp] cmp_declared code=0
+[cmp] ladder full known code=0
+[cmp] ladder_summary full code=0
+[cmp] ladder full unknown code=0
+[cmp] ladder mini known code=0
+[cmp] ladder_summary mini code=0
+[cmp] ladder mini unknown code=0
+[cmp] end 2026-09-23 08:33:09 rc=0
+[cmp] start 2026-09-23 08:34:37 склад=ЖИВОЙ корпусный (умолчание)
+[cmp] cmp_declared code=0
+[cmp] ladder full known code=0
+[cmp] ladder_summary full code=0
+[cmp] ladder full unknown code=0
+[cmp] ladder mini known code=0
+[cmp] ladder_summary mini code=0
+[cmp] ladder mini unknown code=0
+[cmp] end 2026-09-23 08:34:38 rc=0

@@ -1,0 +1,79 @@
+##### check_fsa_report_view --probes=tools\effmaker\probes\build_p122
+    == сторож окна отчёта FSA: FsaReportViewProbe на паре корпуса ==
+      каталог проб : D:\BqMoni_Claude\p122\wt\tools\effmaker\probes\build_p122
+      спектр (ряд) : tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+      контроль     : tools\CORPUS\corpus\spectra\AS80_Cs137_0cm.xml
+      свежесть: сверено: набор приложения 1ea763c42929 (550 файлов); FsaReportViewProbe.cs b9043de2655f (6 файлов); sha двух exe (2.5 с)
+      проба: код 0, 46.8 с, строк ok 294, строк ⛔ 0, последняя строка «ВСЕ СОШЛИСЬ»
+    СОШЛОСЬ: окно отчёта FSA — проба прошла (ВСЕ СОШЛИСЬ)
+EXIT=0
+##### check_corpus_scenes --probes=tools\effmaker\probes\build_p122
+== сторож сцен генератора (T261): генератор → клеймо → живые .in / .rmx ==
+  каталог проб : D:\BqMoni_Claude\p122\wt\tools\effmaker\probes\build_p122
+  живые сцены  : D:\BqMoni_Claude\p122\wt\tools\CORPUS\corpus\geometries
+  свежесть: сверено: набор приложения 1ea763c42929 (550 файлов); CorpusGeomProbe.cs 330de6f15968 (6 файлов); MatrixStampProbe.cs 17b2ace2a8f7 (6 файлов); sha трёх exe (1.9 с)
+  генератор CorpusGeomProbe.exe --out=C:\Users\moroz\AppData\Local\Temp\bq_scenes_8ijpnrei\gen: код 0, 0.9 с; геометрий 49, спектров 92, ВСЕ СОШЛИСЬ; корень корпуса генератора: D:\BqMoni_Claude\p122\wt\tools\CORPUS
+  сцен в корпусе 49, построено генератором 49
+  ✅ опись index.csv: побайтно равна (12732 байт, 93 строк)
+
+  сцена                          живой .in                генератор                матрица .rmx             приговор
+  AS80_lu_front                  phys=23;27ca4fc2c6e12008 phys=23;27ca4fc2c6e12008 нет .rmx                 СОШЛОСЬ
+  AS80_point0                    phys=23;ba6c11c7e3790ff6 phys=23;ba6c11c7e3790ff6 нет .rmx                 СОШЛОСЬ
+  AS80_th_disk                   phys=23;224fb7ab2b60c267 phys=23;224fb7ab2b60c267 нет .rmx                 СОШЛОСЬ
+  ASN16_lu_side                  phys=23;43d919931482e50c phys=23;43d919931482e50c нет .rmx                 СОШЛОСЬ
+  ASN16_point0_house             phys=23;558a527b231bca07 phys=23;558a527b231bca07 нет .rmx                 СОШЛОСЬ
+  ASN16_point10_house            phys=23;fad28aa12987aeda phys=23;fad28aa12987aeda нет .rmx                 СОШЛОСЬ
+  G1S_denta100_oisn10_100_p16    phys=23;a0a867dab7b64011 phys=23;a0a867dab7b64011 нет .rmx                 СОШЛОСЬ
+  G1S_denta100_risn379_100_p16   phys=23;53cc9befd1637cc5 phys=23;53cc9befd1637cc5 нет .rmx                 СОШЛОСЬ
+  G1S_denta120_oisn06_057_p24    phys=23;cf5b70926867348f phys=23;cf5b70926867348f нет .rmx                 СОШЛОСЬ
+  G1S_denta120_oisn06_062_p24    phys=23;c9608134c698fdce phys=23;c9608134c698fdce нет .rmx                 СОШЛОСЬ
+  G1S_denta120_oisn06_064_p24    phys=23;9d7490a81e77f0cc phys=23;9d7490a81e77f0cc нет .rmx                 СОШЛОСЬ
+  G1S_denta120_oisn06_066_p24    phys=23;75e5dcda9fcabc33 phys=23;75e5dcda9fcabc33 нет .rmx                 СОШЛОСЬ
+  G1S_denta120_oisn16_155_p24    phys=23;0a89d9848e0d53c1 phys=23;0a89d9848e0d53c1 нет .rmx                 СОШЛОСЬ
+  G1S_denta120_oisn16_160_p24    phys=23;b1076f72f0f2073c phys=23;b1076f72f0f2073c нет .rmx                 СОШЛОСЬ
+  G1S_denta120_oisn16_166_p24    phys=23;1874c20b77e9c879 phys=23;1874c20b77e9c879 нет .rmx                 СОШЛОСЬ
+  G1S_denta120_oisn16_167_p24    phys=23;653a7f6ad4d536c5 phys=23;653a7f6ad4d536c5 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_coal_046_p24         phys=23;b4b0575fd7a639b1 phys=23;b4b0575fd7a639b1 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn06_055_p16       phys=23;f4931fa12fc62f38 phys=23;f4931fa12fc62f38 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn06_057_p16       phys=23;e8fdf37c8be85f34 phys=23;e8fdf37c8be85f34 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn06_057_p24       phys=23;b73d20ee89012ee3 phys=23;b73d20ee89012ee3 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn06_062_p16       phys=23;1b37bff98577b02e phys=23;1b37bff98577b02e нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn06_062_p24       phys=23;5ec60b21480b8b7d phys=23;5ec60b21480b8b7d нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn06_064_p24       phys=23;ed7cae12a278c4a9 phys=23;ed7cae12a278c4a9 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn06_066_p16       phys=23;993a7766019cc917 phys=23;993a7766019cc917 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn06_066_p24       phys=23;f0a4b9f71af03947 phys=23;f0a4b9f71af03947 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn16_155_p16       phys=23;75eb5fa635539969 phys=23;75eb5fa635539969 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn16_155_p24       phys=23;11788dd1b4ea24b1 phys=23;11788dd1b4ea24b1 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn16_160_p16       phys=23;e2891f074f9632d3 phys=23;e2891f074f9632d3 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn16_160_p24       phys=23;afc6f8d5ff494340 phys=23;afc6f8d5ff494340 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn16_166_p16       phys=23;a4c016a220df98e8 phys=23;a4c016a220df98e8 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn16_166_p24       phys=23;493287aa38654152 phys=23;493287aa38654152 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn16_167_p16       phys=23;8a686dd6f37a60cd phys=23;8a686dd6f37a60cd нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_oisn16_167_p24       phys=23;9cf8078b9b11b738 phys=23;9cf8078b9b11b738 нет .rmx                 СОШЛОСЬ
+  G1S_mar1l_risn379_100_p16      phys=23;f0feca2d1d14be8b phys=23;f0feca2d1d14be8b нет .rmx                 СОШЛОСЬ
+  G1S_petri60_oisn06_057_p24     phys=23;a2e0de68b442d6e9 phys=23;a2e0de68b442d6e9 нет .rmx                 СОШЛОСЬ
+  G1S_petri60_oisn06_062_p24     phys=23;19251dfd95fe0899 phys=23;19251dfd95fe0899 нет .rmx                 СОШЛОСЬ
+  G1S_petri60_oisn06_064_p24     phys=23;ffa07a38a5f0cc4b phys=23;ffa07a38a5f0cc4b нет .rmx                 СОШЛОСЬ
+  G1S_petri60_oisn06_067_p24     phys=23;c2cdb54815c5d253 phys=23;c2cdb54815c5d253 нет .rmx                 СОШЛОСЬ
+  G1S_petri60_oisn10_100_p16     phys=23;8539fbd3a3f69fdc phys=23;8539fbd3a3f69fdc нет .rmx                 СОШЛОСЬ
+  G1S_petri60_oisn16_155_p24     phys=23;813b0f8e20847194 phys=23;813b0f8e20847194 нет .rmx                 СОШЛОСЬ
+  G1S_petri60_oisn16_160_p24     phys=23;badcef1c68840362 phys=23;badcef1c68840362 нет .rmx                 СОШЛОСЬ
+  G1S_petri60_oisn16_167_p24     phys=23;2de9a865a6daca1a phys=23;2de9a865a6daca1a нет .rmx                 СОШЛОСЬ
+  G1S_petri60_risn379_100_p16    phys=23;745d148b1335e4d6 phys=23;745d148b1335e4d6 нет .rmx                 СОШЛОСЬ
+  G1S_point25                    phys=23;03ccb83c8ce4e12d phys=23;03ccb83c8ce4e12d нет .rmx                 СОШЛОСЬ
+  G1S_point5                     phys=23;59ef564dc050a8d5 phys=23;59ef564dc050a8d5 нет .rmx                 СОШЛОСЬ
+  RC103_lu_front                 phys=23;0fb34fe467dc3779 phys=23;0fb34fe467dc3779 нет .rmx                 СОШЛОСЬ
+  RC103_marinelli05_kcl          phys=23;72550cee58e9a4eb phys=23;72550cee58e9a4eb нет .rmx                 СОШЛОСЬ
+  RC103_point0                   phys=23;9814cf0f33e5db4f phys=23;9814cf0f33e5db4f нет .rmx                 СОШЛОСЬ
+  RC103_point50                  phys=23;7516c0f8f6965925 phys=23;7516c0f8f6965925 нет .rmx                 СОШЛОСЬ
+
+  сцен 49: сошлось 49, разошлось 0; клейма сняты у 49; матриц на месте 0 из 49, на своей сцене и рецепте 0
+  время 20.3 с: генератор 0.9, клейма 17.5 на 8 потоках (98 запусков), свежесть 1.9
+  ✅ СОШЛОСЬ: генератор воспроизводит корпус с точностью до клейма, опись побайтно, матрицы склада — на своих сценах штатным рецептом
+EXIT=0
+##### check_fsa_showcase --probes=tools\effmaker\probes\build_p122
+каталог проб: D:\BqMoni_Claude\p122\wt\tools\effmaker\probes\build_p122 (заверен 2026-09-22 12:00:23 из D:\BqMoni_Claude\p122\wt\BecquerelMonitor\bin\Release_p122)
+  ⚠ сверено: набор приложения 1ea763c42929 (550 файлов), набор FsaStackShot aad0cffb8e64 (6 файлов), sha двух exe
+свежесть каталога проб: сошлась с деревом (T226, 6.1 с)
+⛔ СТЕНД: ASN16_Cs137_house: нет матрицы D:\BqMoni_Claude\p122\wt\tools\fsa_showcase\store\ASN16_point_house.rmx — сперва tools\fsa_showcase\rebuild_store.ps1
+EXIT=2

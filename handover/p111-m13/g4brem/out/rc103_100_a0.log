@@ -1,0 +1,79 @@
+
+**************************************************************
+ Geant4 version Name: geant4-11-04-patch-02 [MT]   (12-June-2026)
+                       Copyright : Geant4 Collaboration
+                      References : NIM A 506 (2003), 250-303
+                                 : IEEE-TNS 53 (2006), 270-278
+                                 : NIM A 835 (2016), 186-225
+                             WWW : http://geant4.org/
+**************************************************************
+
+Accumulable registered as "accumulable_0"
+Accumulable registered as "accumulable_1"
+Accumulable registered as "accumulable_2"
+Accumulable registered as "accumulable_3"
+Accumulable registered as "accumulable_4"
+Accumulable registered as "accumulable_5"
+Accumulable registered as "accumulable_6"
+Accumulable registered as "accumulable_7"
+Accumulable registered as "accumulable_8"
+Accumulable registered as "accumulable_9"
+Accumulable registered as "accumulable_10"
+Accumulable registered as "accumulable_11"
+Accumulable registered as "accumulable_12"
+Accumulable registered as "accumulable_13"
+Accumulable registered as "accumulable_14"
+Accumulable registered as "accumulable_15"
+Accumulable registered as "accumulable_16"
+Accumulable registered as "accumulable_17"
+Accumulable registered as "accumulable_18"
+Accumulable registered as "accumulable_19"
+Accumulable registered as "accumulable_20"
+Accumulable registered as "accumulable_21"
+Accumulable registered as "accumulable_22"
+Accumulable registered as "accumulable_23"
+Accumulable registered as "accumulable_24"
+Accumulable registered as "accumulable_25"
+Accumulable registered as "accumulable_26"
+Accumulable registered as "accumulable_27"
+Accumulable registered as "accumulable_28"
+Accumulable registered as "accumulable_29"
+Accumulable registered as "accumulable_30"
+Accumulable registered as "accumulable_31"
+Accumulable registered as "accumulable_32"
+Accumulable registered as "accumulable_33"
+Accumulable registered as "accumulable_34"
+Accumulable registered as "accumulable_35"
+Accumulable registered as "accumulable_36"
+Accumulable registered as "accumulable_37"
+Accumulable registered as "accumulable_38"
+Accumulable registered as "accumulable_39"
+Accumulable registered as "accumulable_40"
+Accumulable registered as "accumulable_41"
+Accumulable registered as "accumulable_42"
+Accumulable registered as "accumulable_43"
+Accumulable registered as "accumulable_44"
+Accumulable registered as "accumulable_45"
+Accumulable registered as "accumulable_46"
+Accumulable registered as "accumulable_47"
+Accumulable registered as "accumulable_48"
+Accumulable registered as "accumulable_49"
+Accumulable registered as "accumulable_50"
+Accumulable registered as "accumulable_51"
+Accumulable registered as "accumulable_52"
+Accumulable registered as "accumulable_53"
+Accumulable registered as "accumulable_54"
+Accumulable registered as "accumulable_55"
+Accumulable registered as "accumulable_56"
+Accumulable registered as "accumulable_57"
+SETUP material=G4_TEFLON layer2=G4_Al layer2_mm=1.0000 T=100.000 keV N=100000 cut_e=1.00000 mm cut_g=0.00100 mm kmin=5.00 keV slab_mm=1.0000 angle=0.0 seed=20260919 physics=G4EmStandardPhysics_option4
+CUTS (production thresholds per material couple):
+
+========= Table of registered couples ============================
+
+==================================================================
+
+BREM G4_TEFLON+G4_Al T=100.000 N=100000 angle=0.0 slab_mm=1.0000 kmin=5.00 brem_all=0.003320 +-0.000182 brem_prim=0.003320 brem_E=0.0537 brem_E_prim=0.0537 fwd=0.002000 back=0.001320 esc_fwd=0.000290 esc_back=0.001150 esc_E=0.0295 path_prim=0.017375 path_all=0.017376 eta=0.08010
+HIST all 1.320000e-03 1.140000e-03 5.200000e-04 2.600000e-04 6.000000e-05 2.000000e-05 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00
+HIST prim 1.320000e-03 1.140000e-03 5.200000e-04 2.600000e-04 6.000000e-05 2.000000e-05 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00
+HIST esc 3.900000e-04 5.000000e-04 2.700000e-04 2.300000e-04 3.000000e-05 2.000000e-05 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00

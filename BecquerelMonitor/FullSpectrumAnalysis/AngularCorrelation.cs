@@ -142,6 +142,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (l1Prime == l1) mixing1 = 0.0;
             if (l2Prime == l2) mixing2 = 0.0;
 
+            // ⛔ (П121, 22.09.2026, `AMBER58`) δ² ЛОЖИТСЯ НА СТАРШУЮ
+            // МУЛЬТИПОЛЬНОСТЬ, А НЕ НА ВТОРОЙ КОМПОНЕНТ КОДА. δ ENSDF (и
+            // PhotonEvaporation, и `g4_gamma`) — отношение амплитуд
+            // ⟨L+1⟩/⟨L⟩, старшая в числителе, каким бы порядком код ни был
+            // записан: 304 = M1+E2 и 403 = E2+M1 — одна и та же смесь (у 403
+            // ENSDF ставит первой ДОМИНИРУЮЩУЮ, отсюда |δ| > 1). Измерено в
+            // `database/scheme.md` §5г по α_K: со «вторым компонентом» на
+            // коде 403 медиана расхождения 49.65 %, по старшей — 1.99 %;
+            // соседний читатель `CascadeAtomicData.IccGrid.Components` эту
+            // перестановку делает с 25.08.2026, здесь её не было. Цена:
+            // Sm-152 964 (403, δ = −9.3; каскад 2→2→0 с 121.78) считался
+            // почти чистым M1 вместо почти чистого E2 — A₂₂/A₄₄ 0.3241/0.0037
+            // вместо 0.0050/0.3228 (`AngularProbe` раздел 5). При δ = 0 код
+            // смеси означает «доминирующая первой, доля не известна» — первый
+            // компонент остаётся чистым приближением, перестановки нет.
+            // ⚠ Geant4 (`G4GammaTransition::SampleDirection`: `L0 = mp/200;
+            // Lp = (mp%100)/2`, δ² на `Lp`) читает код так же позиционно, и
+            // арбитр П85 на 964+122 нёс ту же ошибку (0.3261 ± 0.0040); мерка
+            // на правленной поставке (403 → 304 при δ ≠ 0) дала 0.0063 ± 0.0040
+            // / 0.3200 ± 0.0053 — разделы 4–5 пробы, журнал полосы.
+            OrderByMixing(ref l1, ref l1Prime, mixing1);
+            OrderByMixing(ref l2, ref l2Prime, mixing2);
+
             // ⛔ (П86, 15.09.2026, `AMBER42`) Знак δ ЗАСЕЛЯЮЩЕГО перехода. В
             // соглашении Кране–Стеффена (δ ENSDF = δ PhotonEvaporation = δ
             // таблицы `g4_gamma`) интерференционный член первого перехода
@@ -164,7 +187,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Порядки мультиполей из кода Geant4: 1…9 = E0,E1,M1,E2,M2,E3,M3,E4,M4
+        /// Порядки мультиполей из кода Geant4: 1…11 = E0,E1,M1,E2,M2,E3,M3,E4,M4,E5,M5
         /// (`scheme.md` §5г), смесь — 100·Nx+Ny. false — код неизвестен или
         /// это E0 (монополь гамма-квантом не излучается вовсе).
         ///
@@ -190,6 +213,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return l > 0 && lPrime > 0;
         }
 
+        /// <summary>
+        /// (`AMBER58`) Порядок пары мультиполей смеси под формулу
+        /// <see cref="Ak"/>: <paramref name="l"/> — та, на которую приходится
+        /// единица, <paramref name="lPrime"/> — та, на которую приходится δ².
+        /// В соглашении Кране–Стеффена δ = ⟨L′⟩/⟨L⟩ с L′ = L + 1, поэтому при
+        /// δ ≠ 0 δ² ложится на СТАРШУЮ мультипольность независимо от порядка
+        /// записи кода; при δ = 0 код «старшая первой» значит «доминирующая
+        /// первой, доля неизвестна», и первая остаётся чистым приближением.
+        /// </summary>
+        static void OrderByMixing(ref int l, ref int lPrime, double mixing)
+        {
+            if (mixing != 0.0 && l > lPrime)
+            {
+                int swap = l;
+                l = lPrime;
+                lPrime = swap;
+            }
+        }
+
         /// <summary>Порядок мультиполя по коду: E1 и M1 → 1, E2 и M2 → 2, …</summary>
         static int OrderOf(int code)
         {
@@ -203,7 +245,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 case 7: return 3;    // M3
                 case 8: return 4;    // E4
                 case 9: return 4;    // M4
-                default: return 0;   // E0 (кодом 1), E5+ и всё незнакомое
+                // (`AMBER144`, П193 01.10.2026) E5/M5 — второй компонент смеси
+                // у Bi-207 1063.66 (код 910 = M4+E5, δ = 0.02): без них вся
+                // смесь считалась изотропной, и пара 1063.66 + 569.70 (A₂₂
+                // +0.221 по независимому счёту П191) теряла корреляцию.
+                case 10: return 5;   // E5
+                case 11: return 5;   // M5
+                default: return 0;   // E0 (кодом 1), E6+ и всё незнакомое
             }
         }
 
@@ -539,8 +587,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return found;
                 }
 
+                // ⛔ (`AMBER199`, 05.10.2026) Отрицательный ответ кэшируется,
+                // ОТКАЗ ЧТЕНИЯ — нет: занятая база не выключает корреляции до
+                // перезапуска программы.
+                int failuresBefore = FsaDatabaseFailures.ThreadCount;
                 Scheme loaded = Load(z, a);
-                Cache[key] = loaded;
+                if (FsaDatabaseFailures.ThreadCount == failuresBefore)
+                {
+                    Cache[key] = loaded;
+                }
+
                 return loaded;
             }
         }
@@ -564,8 +620,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             Scheme scheme = new Scheme { Z = z, A = a };
             try
             {
+                // (`AMBER201`) Строка подключения — построителем, не склейкой:
+                // `;` в имени каталога программы разрезал строку, и база не открывалась.
                 using (SqliteConnection connection = new SqliteConnection(
-                    "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+                    EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(path, true)))
                 {
                     connection.Open();
                     using (SqliteCommand command = connection.CreateCommand())
@@ -615,9 +673,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
-            catch (SqliteException)
+            catch (SqliteException error)
             {
-                return null;               // таблиц нет — база старее импорта
+                // таблиц нет — база старее импорта; или файл не читается
+                // (`AMBER199`) — назвать и не кэшировать
+                FsaDatabaseFailures.Note("schemedb.sqlite",
+                    "Z=" + z.ToString(CultureInfo.InvariantCulture) + " A=" + a.ToString(CultureInfo.InvariantCulture), error);
+                return null;
             }
 
             return scheme.Transitions.Count > 0 ? scheme : null;
@@ -659,7 +721,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return Isotropic;
             }
 
-            CascadeAtomicData atomic = CascadeAtomicData.Of(nuclideKey);
+            // ⛔ (`AMBER146`, П193 01.10.2026) `Nuclear`, а не `Of`: у нуклида
+            // без K-рентгена и β⁺ (Sc-46, Na-24, Mn-56) `Of` отдаёт null —
+            // «атомным участникам поправлять нечего», — и корреляция ЯДЕРНОГО
+            // каскада выключалась молча (Sc-46 889 + 1120 «изотропно» при том
+            // же каскаде 4⁺(E2)2⁺(E2)0⁺, что у Co-60).
+            CascadeAtomicData atomic = CascadeAtomicData.Nuclear(nuclideKey);
             if (atomic == null || atomic.Branches == null)
             {
                 return Isotropic;
@@ -695,6 +762,71 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return w;
+        }
+
+        /// <summary>
+        /// Допуск сопоставления линии переходу схемы на пути изомера
+        /// (<see cref="ForPairInNuclei"/>), кэВ — тот же, что у
+        /// <c>CascadeAtomicData.MatchKev</c>: линия поставки совпадений и
+        /// переход `g4_gamma` — разные оценки (у Hf-176 306.88 против 306.64).
+        /// </summary>
+        const double SchemeLineKev = 0.6;
+
+        /// <summary>
+        /// (`AMBER146`, П193 01.10.2026) Коэффициенты пары линий по СХЕМАМ
+        /// названных ядер (Z, A) — для родителя-ИЗОМЕРА, у которого строк в
+        /// `decay_radiations` под нашим `nucid` нет и <see cref="ForPair"/>
+        /// взять переходы негде (ключ поставки `sandia:Ag110m`).
+        ///
+        /// Ход: в каждой схеме по порядку переход линии ищется
+        /// <see cref="Scheme.Find"/> (нулевой интенсивности нет, с самого
+        /// нижнего уровня); ответ — первая схема, где оба перехода нашлись и
+        /// образуют каскад (конец одного — начало другого). Смежность — сильный
+        /// отсев: случайное совпадение двух энергий в чужом ядре ещё и
+        /// смежными уровнями практически исключено. Ветви и каналы здесь не
+        /// различаются (их у изомера взять неоткуда) — порядок ядер задаёт
+        /// вызывающий.
+        /// </summary>
+        public static Coefficients ForPairInNuclei(IEnumerable<int[]> nuclei, double firstKev, double secondKev)
+        {
+            if (nuclei == null)
+            {
+                return Isotropic;
+            }
+
+            foreach (int[] nucleus in nuclei)
+            {
+                if (nucleus == null || nucleus.Length < 2)
+                {
+                    continue;
+                }
+
+                Scheme scheme = SchemeOf(nucleus[0], nucleus[1]);
+                if (scheme == null)
+                {
+                    continue;
+                }
+
+                Transition a = scheme.Find(firstKev, SchemeLineKev);
+                Transition b = scheme.Find(secondKev, SchemeLineKev);
+                if (a == null || b == null)
+                {
+                    continue;
+                }
+
+                Coefficients w = scheme.Cascade(a, b);
+                if (w.IsIsotropic)
+                {
+                    w = scheme.Cascade(b, a);
+                }
+
+                if (!w.IsIsotropic)
+                {
+                    return w;
+                }
+            }
+
+            return Isotropic;
         }
 
         /// <summary>

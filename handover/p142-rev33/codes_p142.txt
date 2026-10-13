@@ -1,0 +1,8 @@
+=== сборка П142 2026-09-23 15:01:22 ===
+Restore code=0
+Release app code=0 -> bin\Release_p142\
+probes build_all code=0 -> C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p142
+sha256 app  = D88B4C1219F84EFDF782C4ED97674E065E9D9E31B4DCEEA7BC6BBBBEB8D37115
+sha256 probe= D88B4C1219F84EFDF782C4ED97674E065E9D9E31B4DCEEA7BC6BBBBEB8D37115
+sha256 равны: True
+проб .exe в каталоге: 223

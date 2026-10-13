@@ -47,6 +47,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
+        /// (`AMBER119`, П168 28.09.2026) Корень ОБЪЯВЛЕН человеком — меткой ряда
+        /// набора (`NuclideDefinition.Chain`), манифестом или ключом: тогда доли
+        /// членов несут множитель переходного равновесия (`AMBER55`), потому что
+        /// «корень» здесь — отделённый источник, распадающийся со своим периодом.
+        /// <c>false</c> — корень ВЫВЕДЕН разбором из подписи без ряда (линия
+        /// Pb-214 без «(Ra-226)»): это лишь верхний видимый член, кто его питает —
+        /// неизвестно, и в пробе из природы он запитан долгоживущим предком, так
+        /// что множитель — единица (вековое равновесие). Асимптота незапитанного
+        /// корня (Bi-214 ×3.68 от Pb-214) давала строке Pb-214 −73 %, Bi-214
+        /// +10 % на `G1S24_Ra226_Petri`.
+        /// </summary>
+        public bool Transient = true;
+
+        /// <summary>
         /// Метки рядов, которые понимает <see cref="FromLabel"/>, — словарь
         /// колонки `chains` корпусного `manifest.csv` и ключей `--chain=` проб.
         /// Для сообщения об отказе, чтобы человек видел, из чего выбирать.
@@ -778,6 +792,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static readonly Dictionary<string, HashSet<string>> EquilibriumCache =
             new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>(`AMBER55`) {корень → {член → множитель переходного равновесия}}.</summary>
+        static readonly Dictionary<string, Dictionary<string, double>> FactorCache =
+            new Dictionary<string, Dictionary<string, double>>(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>
         /// Библиотека образов по объявленному составу. Никогда не null; пустой
         /// список означает «состав не дал ни одной линии в рабочем диапазоне» —
@@ -971,7 +989,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    AddLine(component, self, line[0], line[1] * member.Value);
+                    // `member.Value` — равновесное отношение активностей члена и
+                    // корня: ветвление × множитель переходного равновесия
+                    // (`AMBER55`, <see cref="CollectChain"/>); у одиночного
+                    // нуклида — единица.
+                    // (`AMBER54`, П127) Третье число строки — аннигиляционная
+                    // часть выхода — едет в линию тем же весом.
+                    AddLine(component, self, line[0], line[1] * member.Value,
+                            line.Length > 2 ? line[2] * member.Value : 0.0);
                 }
             }
 
@@ -1115,7 +1140,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // рядов такого члена нет, и множество равно всему обходу; у «Rn-222»
             // оно обрывается на Pb-210. Что выброшено — в отчёт, не молча.
             HashSet<string> reachable = EquilibriumMembers(chain.Root, report);
+            // (`AMBER55`) Доля члена в образе корня — РАВНОВЕСНОЕ отношение
+            // активностей, а оно есть ветвление × множитель переходного
+            // равновесия по Бейтману, а не одно ветвление; см.
+            // <see cref="EquilibriumFactors"/>. Пороги ниже судят ВЕТВЛЕНИЕ,
+            // как и прежде: множитель не меньше единицы и в состав никого не
+            // добавляет и не выбрасывает.
+            Dictionary<string, double> factors = EquilibriumFactors(chain.Root, report);
+            // (`AMBER119`) У выведенного корня множителя нет — см.
+            // <see cref="FsaSampleChain.Transient"/>; каким он был бы, говорится.
+            var secular = new List<string>();
             var cut = new List<string>();
+            var transient = new List<string>();
             foreach (KeyValuePair<string, double> member in members)
             {
                 if (chain.Only.Count > 0 && !chain.Only.Contains(member.Key))
@@ -1141,7 +1177,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                Remember(branch, owner, member.Key, member.Value, chain.Root);
+                double factor;
+                if (!factors.TryGetValue(member.Key, out factor) || !(factor > 0.0))
+                {
+                    factor = 1.0;
+                }
+
+                if (!chain.Transient)
+                {
+                    if (factor - 1.0 >= TransientNoteFloor)
+                    {
+                        secular.Add(member.Key + " ×" + factor.ToString("F4", CultureInfo.InvariantCulture));
+                    }
+
+                    factor = 1.0;
+                }
+
+                if (factor - 1.0 >= TransientNoteFloor)
+                {
+                    transient.Add(member.Key + " ×" + factor.ToString("F4", CultureInfo.InvariantCulture));
+                }
+
+                Remember(branch, owner, member.Key, member.Value * factor, chain.Root);
             }
 
             if (cut.Count > 0)
@@ -1150,6 +1207,251 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 report.Notes.Add("ряд от " + chain.Root + ": вне равновесия с корнем (период длиннее его) — "
                                  + string.Join(", ", cut) + "; в подряд не взяты (T259)");
             }
+
+            if (transient.Count > 0)
+            {
+                // Не молча: у природных рядов множитель виден только у Pb-210 и
+                // Po-210 радия (1.4 %), у подряда с коротким корнем он в разы.
+                transient.Sort(StringComparer.OrdinalIgnoreCase);
+                report.Notes.Add("ряд от " + chain.Root + ": переходное равновесие λ_д/(λ_д − λ_к) — "
+                                 + string.Join(", ", transient) + " (AMBER55)");
+            }
+
+            if (secular.Count > 0)
+            {
+                secular.Sort(StringComparer.OrdinalIgnoreCase);
+                report.Notes.Add("ряд от " + chain.Root + ": корень выведен разбором, не объявлен — равновесие вековое,"
+                                 + " асимптота незапитанного корня не применена (" + string.Join(", ", secular)
+                                 + "; AMBER119)");
+            }
+        }
+
+        /// <summary>
+        /// Ниже этого множителя минус единица переходное равновесие в отчёт не
+        /// пишется: у Th-232 оно 5·10⁻¹⁰, у U-238 7·10⁻⁵ — шум записи, а не
+        /// сведение для человека. Порог сходимости долей ряда на три порядка
+        /// ниже (<see cref="ChainConverged"/>), и на само число он не влияет.
+        /// </summary>
+        const double TransientNoteFloor = 1.0e-3;
+
+        /// <summary>
+        /// Множитель переходного равновесия каждого члена подряда от корня
+        /// (`AMBER55`, П124 22.09.2026): в равновесии с корнем активность члена
+        /// `k` относится к активности корня как `BR_k · Π λ_j/(λ_j − λ_к)` по
+        /// пути от корня к члену (Бейтман при `t ≫ 1/λ_j`; Gilmore 2008 гл. 1,
+        /// Knoll гл. 1), и множитель — это произведение без ветвления. При
+        /// `λ_j ≫ λ_к` он единица («вековое» равновесие) — этим и жила
+        /// связка до П124; у Ra-226 → Pb-210 (22.2 г против 1600 л) он 1.0141,
+        /// у подряда от Pb-214 (`T259`) для Bi-214 — 3.68, у Th-228 для всех
+        /// членов — 1.005…1.006.
+        ///
+        /// Считается тем же способом, что доли ветвления в
+        /// <see cref="ChainBranches"/> (`S62`): релаксацией до неподвижной
+        /// точки по тем же рёбрам `decay_chain` с тем же зажимом уровня, но
+        /// только по членам, С КОТОРЫМИ РАВНОВЕСИЕ ВОЗМОЖНО
+        /// (<see cref="EquilibriumMembers"/>): x_к = 1, x_k = f_k · Σ_p x_p ·
+        /// BR(p→k), f_k = λ_k/(λ_k − λ_к); рядом та же сумма без f — и
+        /// множитель есть их отношение (у ряда без ветвлений — просто
+        /// произведение f по пути; у ветвящегося — взвешенное ветвлением
+        /// среднее по путям). Член длиннее корня в равновесии не бывает и в
+        /// словарь не входит — его уже отрезал <see cref="EquilibriumMembers"/>;
+        /// стабильный конец не излучает и множителя не получает. Корень без
+        /// периода, отказ базы — пустой словарь: связка идёт одним ветвлением,
+        /// как до П124, и <see cref="EquilibriumMembers"/> об этом уже сказал.
+        ///
+        /// ⚠ Множитель — АСИМПТОТА: он верен для пробы, прожившей много
+        /// периодов дочернего после разделения (природные ряды, старые
+        /// источники). У свежего фильтра с ДПР радона отношения Pb-214/Bi-214
+        /// меняются по часам, и никакая ОДНА связка их не опишет — там
+        /// равновесие выключают (`AMBER29`, П64: без связки отношение
+        /// Bi-214/Pb-214 радоновой части 0.997 ± 0.022 при f_Bi/f_Pb = 1.0036).
+        /// </summary>
+        internal static Dictionary<string, double> EquilibriumFactors(string root, Report report)
+        {
+            lock (Gate)
+            {
+                Dictionary<string, double> cached;
+                if (FactorCache.TryGetValue(root, out cached))
+                {
+                    return cached;
+                }
+            }
+
+            var factors = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            int failuresBefore = FsaDatabaseFailures.ThreadCount;
+            try
+            {
+                double rootSeconds;
+                if (TryHalfLifeSeconds(root, out rootSeconds) && rootSeconds > 0.0)
+                {
+                    double lambdaRoot = Math.Log(2.0) / rootSeconds;
+                    HashSet<string> reachable = EquilibriumMembers(root, report);
+
+                    // Шаг 1: рёбра между членами равновесия и множитель каждого
+                    // члена по его периоду. Тот же запрос и тот же зажим уровня,
+                    // что у `ChainBranches` (`A218`).
+                    var edges = new Dictionary<string, List<KeyValuePair<string, double>>>(
+                        StringComparer.OrdinalIgnoreCase);
+                    var factorOf = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                    var order = new List<string> { root };
+                    var known = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { root };
+                    using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
+                    using (SqliteCommand command = connection.CreateCommand())
+                    using (SqliteCommand life = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from" + DecayParentRule.ChainTable + " d"
+                            + " where nucid = $n and perc not null"
+                            + DecayParentRule.ChainLevelClause;
+                        command.Parameters.AddWithValue("$n", root);
+                        life.CommandText =
+                            "select half_life_sec from nuclides where nucid = $n"
+                            + " and half_life_sec is not null order by l_seqno limit 1";
+                        life.Parameters.AddWithValue("$n", root);
+                        for (int i = 0; i < order.Count && order.Count <= MaxChainNodes; i++)
+                        {
+                            string current = order[i];
+                            command.Parameters["$n"].Value = current;
+                            var step = new List<KeyValuePair<string, double>>();
+                            using (SqliteDataReader reader = command.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    string daughter = reader.IsDBNull(0) ? null : reader.GetString(0);
+                                    double percent;
+                                    if (string.IsNullOrEmpty(daughter)
+                                        || string.Equals(daughter, current, StringComparison.OrdinalIgnoreCase)
+                                        || !reachable.Contains(daughter)
+                                        || !TryNumber(reader, 1, out percent) || !(percent > 0.0))
+                                    {
+                                        continue;
+                                    }
+
+                                    step.Add(new KeyValuePair<string, double>(daughter, percent));
+                                    if (known.Add(daughter))
+                                    {
+                                        order.Add(daughter);
+                                    }
+                                }
+                            }
+
+                            edges[current] = step;
+                        }
+
+                        foreach (string member in order)
+                        {
+                            if (string.Equals(member, root, StringComparison.OrdinalIgnoreCase))
+                            {
+                                factorOf[member] = 1.0;
+                                continue;
+                            }
+
+                            life.Parameters["$n"].Value = member;
+                            double seconds = 0.0;
+                            bool decays;
+                            using (SqliteDataReader reader = life.ExecuteReader())
+                            {
+                                decays = reader.Read() && TryNumber(reader, 0, out seconds);
+                            }
+
+                            // Стабильный конец — множителя нет (и линий нет): в
+                            // `factorOf` не входит, в релаксации идёт с единицей и в
+                            // ответ не попадает. Период не короче корня сюда не
+                            // доходит (`reachable`).
+                            if (decays && seconds > 0.0 && seconds < rootSeconds)
+                            {
+                                double lambda = Math.Log(2.0) / seconds;
+                                factorOf[member] = lambda / (lambda - lambdaRoot);
+                            }
+                        }
+                    }
+
+                    // Шаг 2: релаксация, как у `ChainBranches` — с множителем и
+                    // без; отношение и есть множитель члена.
+                    var with = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                    var without = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                    for (int pass = 0; pass < MaxChainPasses; pass++)
+                    {
+                        var nextWith = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                        var nextWithout = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                        nextWith[root] = 1.0;
+                        nextWithout[root] = 1.0;
+                        foreach (string parent in order)
+                        {
+                            double haveWith, haveWithout;
+                            List<KeyValuePair<string, double>> outgoing;
+                            if (!with.TryGetValue(parent, out haveWith) || !(haveWith > 0.0)
+                                || !without.TryGetValue(parent, out haveWithout)
+                                || !edges.TryGetValue(parent, out outgoing))
+                            {
+                                continue;
+                            }
+
+                            foreach (KeyValuePair<string, double> edge in outgoing)
+                            {
+                                double f;
+                                if (!factorOf.TryGetValue(edge.Key, out f))
+                                {
+                                    f = 1.0;
+                                }
+
+                                double already;
+                                nextWith[edge.Key] = (nextWith.TryGetValue(edge.Key, out already) ? already : 0.0)
+                                                     + haveWith * edge.Value / 100.0 * f;
+                                nextWithout[edge.Key] = (nextWithout.TryGetValue(edge.Key, out already) ? already : 0.0)
+                                                        + haveWithout * edge.Value / 100.0;
+                            }
+                        }
+
+                        double drift = 0.0;
+                        foreach (KeyValuePair<string, double> row in nextWith)
+                        {
+                            double was;
+                            double gap = Math.Abs(row.Value - (with.TryGetValue(row.Key, out was) ? was : 0.0));
+                            if (gap > drift)
+                            {
+                                drift = gap;
+                            }
+                        }
+
+                        with = nextWith;
+                        without = nextWithout;
+                        if (drift <= ChainConverged)
+                        {
+                            break;
+                        }
+                    }
+
+                    foreach (KeyValuePair<string, double> row in with)
+                    {
+                        double plain;
+                        if (factorOf.ContainsKey(row.Key)
+                            && without.TryGetValue(row.Key, out plain) && plain > 0.0)
+                        {
+                            factors[row.Key] = row.Value / plain;
+                        }
+                    }
+                }
+            }
+            catch (Exception error)
+            {
+                report.Notes.Add("ряд от " + root + ": отказ базы при счёте переходного равновесия — "
+                                 + error.Message + "; связка одним ветвлением");
+                FsaDatabaseFailures.Note("nucdb.sqlite", root, error);
+                factors.Clear();
+            }
+
+            // ⛔ (`AMBER199`) Отказ — свой или вложенного читателя — в кэш не
+            // кладётся: следующий разбор спросит базу снова.
+            if (FsaDatabaseFailures.ThreadCount == failuresBefore)
+            {
+                lock (Gate)
+                {
+                    FactorCache[root] = factors;
+                }
+            }
+
+            return factors;
         }
 
         /// <summary>
@@ -1167,6 +1469,611 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             double seconds;
             return TryHalfLifeSeconds(nucid, out seconds) && seconds > 0.0;
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER118`, П168 28.09.2026) Природные спутники состава
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Период, начиная с которого нуклид считается первичным (природным
+        /// корнем ряда): 10⁸ лет. U-238, U-235, Th-232, K-40 — выше; U-234 и
+        /// Th-230 (у них в `nuclides.abundance` тоже стоят числа) — ниже: они не
+        /// корни, а члены ряда U-238, и отношения «природного состава» к ним нет.
+        /// </summary>
+        const double PrimordialSeconds = 1.0e8 * 365.25 * 86400.0;
+
+        /// <summary>Во сколько раз строка должна быть завышена спутником, чтобы о ней сказать.</summary>
+        public const double InterferenceWarnFactor = 1.05;
+
+        /// <summary>Сколько шагов вверх по `decay_chain` ищется первичный предок.</summary>
+        const int MaxAncestorDepth = 24;
+
+        /// <summary>
+        /// (`AMBER118`; решение Amber 28.09.2026, дословно: «Строка AMBER:
+        /// предупреждение об интерференции 186 кэВ») ЛИНИИ СОСТАВА, КОТОРЫЕ ДЕЛИТ
+        /// ПРИРОДНЫЙ СПУТНИК, ОТСУТСТВУЮЩИЙ В СОСТАВЕ.
+        ///
+        /// В природном уране U-235 (0.72 % атомов, активность 0.046 от U-238)
+        /// даёт 185.7 кэВ с выходом 57 % — то есть 2.63 фотона на 100 распадов
+        /// U-238, а Ra-226 на 186.2 кэВ — 3.64. Прибор их не разделяет, и строка
+        /// Ra-226, держащаяся на 186 кэВ (связка ряда выключена, или путь по
+        /// подписям), завышена ×1.72; при связке колонку держат Pb/Bi-214, и
+        /// множитель мал. Решение ~~`S110`~~ «ничего автоматически не
+        /// докладывать» в силе: спутник в состав НЕ добавляется — о нём говорится.
+        ///
+        /// ⛔ ИМЁН ЗДЕСЬ НЕТ. Пара находится по базе: у компонента ищется
+        /// первичный предок того же ряда (период ≥ 10⁸ лет, есть природная
+        /// распространённость, компонент — член его подряда, `T259`), у предка —
+        /// другие первичные изотопы ТОГО ЖЕ элемента, не входящие в его ряд и
+        /// отсутствующие в составе; отношение активностей — из распространённостей
+        /// и периодов (`nuclides.abundance`, `half_life_sec`). Линии ряда спутника
+        /// с этим отношением ложатся на линии компонента, если стоят не дальше
+        /// ПШПВ; множитель = (своё + спутник) / своё по линиям компонента в
+        /// полосе, взвешенным эффективностью. Сказать — если он не меньше
+        /// <see cref="InterferenceWarnFactor"/>.
+        /// </summary>
+        /// <param name="library">Библиотека, ушедшая в фит.</param>
+        /// <param name="detected">Имена компонентов, вошедших в состав (строки отчёта).</param>
+        /// <param name="fwhmKev">ПШПВ на энергии, кэВ; null или не число — окно 0.</param>
+        /// <param name="efficiency">Эффективность на энергии; null — единица.</param>
+        public static List<FsaLineInterference> NaturalCompanionInterference(
+            IList<FsaComponent> library, ICollection<string> detected,
+            Func<double, double> fwhmKev, Func<double, double> efficiency,
+            double loKev, double hiKev)
+        {
+            var found = new List<FsaLineInterference>();
+            if (library == null || library.Count == 0)
+            {
+                return found;
+            }
+
+            try
+            {
+                var present = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (FsaComponent component in library)
+                {
+                    foreach (FsaLine line in component.Lines)
+                    {
+                        string nucid = NucidOf(line.Nuclide ?? string.Empty);
+                        if (nucid.Length > 0)
+                        {
+                            present.Add(nucid);
+                        }
+                    }
+                }
+
+                var report = new Report();
+                foreach (FsaComponent component in library)
+                {
+                    if ((component.Kind != FsaComponentKind.Single && component.Kind != FsaComponentKind.Chain)
+                        || component.Lines.Count == 0
+                        || (detected != null && !detected.Contains(component.Name)))
+                    {
+                        continue;
+                    }
+
+                    string unit = NucidOf(component.Name);
+                    if (unit.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    foreach (Companion companion in CompanionsOf(unit, present, report))
+                    {
+                        FsaLineInterference hit = Interfere(component, companion.Isotope, companion.PerUnit,
+                                                            fwhmKev, efficiency, loKev, hiKev, report);
+                        if (hit != null)
+                        {
+                            hit.Reference = companion.Reference;
+                            hit.ActivityRatio = companion.ActivityRatio;
+                            found.Add(hit);
+                        }
+                    }
+                }
+            }
+            catch (Exception error)
+            {
+                // Отказ базы — предупреждений нет; разбор от них не зависит.
+                // (`AMBER199`) Но молча — нельзя: строка окна отчёта.
+                FsaDatabaseFailures.Note("nucdb.sqlite", "companions", error);
+            }
+
+            return found;
+        }
+
+        /// <summary>(`AMBER118`/`S199`) Природный спутник компонента и его отношение.</summary>
+        sealed class Companion
+        {
+            /// <summary>Сам спутник — первичный изотоп того же элемента, что предок.</summary>
+            public Primordial Isotope;
+
+            /// <summary>Предок компонента, к которому взято природное отношение («U-238»).</summary>
+            public string Reference;
+
+            /// <summary>Отношение активностей спутника и предка при природном составе.</summary>
+            public double ActivityRatio;
+
+            /// <summary>Распадов спутника на один распад компонента (с долей ветвления предка к нему).</summary>
+            public double PerUnit;
+        }
+
+        /// <summary>
+        /// (`AMBER118`; вынесено `S199`, П174 28.09.2026) Природные спутники
+        /// нуклида <paramref name="unit"/> — ОДНО правило на оба пути (строка FSA и
+        /// зона ROI): первичный предок того же ряда (период ≥ 10⁸ лет, есть
+        /// распространённость, <paramref name="unit"/> — член его подряда), у
+        /// предка — первичные изотопы ТОГО ЖЕ элемента вне его ряда и вне
+        /// <paramref name="present"/>; отношение активностей — из
+        /// распространённостей и периодов. Имён в коде нет.
+        /// </summary>
+        static List<Companion> CompanionsOf(string unit, ICollection<string> present, Report report)
+        {
+            var list = new List<Companion>();
+            foreach (Primordial ancestor in PrimordialAncestors(unit, report))
+            {
+                double toUnit = 1.0;
+                if (!string.Equals(ancestor.Nucid, unit, StringComparison.OrdinalIgnoreCase))
+                {
+                    double branch;
+                    if (!ChainBranches(ancestor.Nucid, report).TryGetValue(unit, out branch)
+                        || !(branch > 0.0))
+                    {
+                        continue;
+                    }
+
+                    toUnit = branch;
+                }
+
+                HashSet<string> ancestorChain = EquilibriumMembers(ancestor.Nucid, report);
+                foreach (Primordial companion in PrimordialIsotopes(ancestor.Z))
+                {
+                    if (string.Equals(companion.Nucid, ancestor.Nucid, StringComparison.OrdinalIgnoreCase)
+                        || ancestorChain.Contains(companion.Nucid)
+                        || (present != null && present.Contains(companion.Nucid)))
+                    {
+                        continue;
+                    }
+
+                    double ratio = (companion.Abundance / companion.Seconds)
+                                   / (ancestor.Abundance / ancestor.Seconds);
+                    list.Add(new Companion
+                    {
+                        Isotope = companion,
+                        Reference = PrettyName(ancestor.Nucid),
+                        ActivityRatio = ratio,
+                        PerUnit = ratio / toUnit
+                    });
+                }
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// (`AMBER118`; вынесено `S199`) Линии ряда спутника в полосе: {энергия,
+        /// фотонов на распад КОМПОНЕНТА, %} — выход × доля ветвления в подряде
+        /// спутника × <paramref name="perUnit"/>; эффективности здесь нет.
+        /// </summary>
+        static List<double[]> CompanionLines(Primordial companion, double perUnit, double loKev, double hiKev,
+                                             Report report)
+        {
+            var lines = new List<double[]>();
+
+            // Ряд спутника — его подряд равновесия (`T259`) с долями ветвления.
+            Dictionary<string, double> branches = ChainBranches(companion.Nucid, report);
+            // ⚠ Копия: множество подряда кэшировано и общее для всех читателей.
+            var members = new HashSet<string>(EquilibriumMembers(companion.Nucid, report),
+                                              StringComparer.OrdinalIgnoreCase);
+            members.Add(companion.Nucid);
+            foreach (string member in members)
+            {
+                double branch;
+                if (!branches.TryGetValue(member, out branch))
+                {
+                    branch = string.Equals(member, companion.Nucid, StringComparison.OrdinalIgnoreCase) ? 1.0 : 0.0;
+                }
+
+                if (!(branch > 0.0))
+                {
+                    continue;
+                }
+
+                foreach (double[] line in DecayLines(member, report))
+                {
+                    if (line[0] < loKev || line[0] > hiKev)
+                    {
+                        continue;
+                    }
+
+                    double yield = line[1] * branch * perUnit;
+                    if (yield > 0.0)
+                    {
+                        lines.Add(new[] { line[0], yield });
+                    }
+                }
+            }
+
+            return lines;
+        }
+
+        /// <summary>
+        /// ⛔ (`S199`, П174 28.09.2026; решение Amber 28.09.2026, дословно: «Строка
+        /// AMBER: предупреждение об интерференции 186 кэВ» — на обоих путях)
+        /// ПОМЕХА ПРИРОДНОГО СПУТНИКА У ЗОНЫ ROI. Правило то же, что у строки FSA
+        /// (<see cref="NaturalCompanionInterference"/>: спутник по базе через
+        /// <see cref="CompanionsOf"/>, линии его ряда — <see cref="CompanionLines"/>),
+        /// отличие одно — ОКНО: у FSA окна нет, и строку держит главная группа
+        /// линий ±ПШПВ; зона же собирает в своё окно ВСЁ, что туда легло. Поэтому
+        /// и свои линии нуклида зоны, и линии ряда спутника взвешиваются долей
+        /// пика в окне (<paramref name="windowShare"/>) и эффективностью;
+        /// множитель = (своё + спутник) / своё. Сказать — от
+        /// <see cref="InterferenceWarnFactor"/>.
+        ///
+        /// ⚠ «Спутник объявлен» здесь зону НЕ освобождает, в отличие от FSA: там
+        /// фит делит пик между колонками, а зона U-235 рядом из зоны Ra-226
+        /// ничего не вычитает. Спутник по-прежнему в состав не добавляется
+        /// (~~`S110`~~): о нём говорится.
+        /// </summary>
+        /// <param name="nucid">Нуклид зоны (`nucid` базы).</param>
+        /// <param name="windowShare">Доля пика линии энергии E в окне зоны (0…1).</param>
+        /// <param name="efficiency">Эффективность на энергии; null — единица.</param>
+        /// <returns>Помеха с наибольшим множителем; null — помехи нет или база не читается.</returns>
+        public static FsaLineInterference ZoneCompanionInterference(string nucid, double loKev, double hiKev,
+                                                                    Func<double, double> windowShare,
+                                                                    Func<double, double> efficiency)
+        {
+            if (string.IsNullOrEmpty(nucid) || windowShare == null || !(hiKev > loKev))
+            {
+                return null;
+            }
+
+            try
+            {
+                var report = new Report();
+                double own = 0.0, strongest = 0.0, lineKev = double.NaN;
+                foreach (double[] line in DecayLines(nucid, report))
+                {
+                    double weight = line[1] * Eff(efficiency, line[0]) * Share(windowShare, line[0]);
+                    if (weight > 0.0)
+                    {
+                        own += weight;
+                        if (weight > strongest)
+                        {
+                            strongest = weight;
+                            lineKev = line[0];
+                        }
+                    }
+                }
+
+                if (!(own > 0.0))
+                {
+                    return null;
+                }
+
+                // Линии спутника, лежащие вне окна, в него не попадают и так;
+                // полоса расширена на шесть ширин окна — хвост гаусса широкой зоны.
+                double pad = 3.0 * (hiKev - loKev);
+                FsaLineInterference best = null;
+                foreach (Companion companion in CompanionsOf(nucid, null, report))
+                {
+                    double foreign = 0.0;
+                    foreach (double[] line in CompanionLines(companion.Isotope, companion.PerUnit,
+                                                             loKev - pad, hiKev + pad, report))
+                    {
+                        foreign += line[1] * Eff(efficiency, line[0]) * Share(windowShare, line[0]);
+                    }
+
+                    double factor = (own + foreign) / own;
+                    if (factor >= InterferenceWarnFactor && (best == null || factor > best.Factor))
+                    {
+                        best = new FsaLineInterference
+                        {
+                            LineKev = lineKev,
+                            Component = PrettyName(nucid),
+                            Companion = PrettyName(companion.Isotope.Nucid),
+                            Reference = companion.Reference,
+                            ActivityRatio = companion.ActivityRatio,
+                            Factor = factor
+                        };
+                    }
+                }
+
+                return best;
+            }
+            catch (Exception error)
+            {
+                // Отказ базы — предупреждения нет; число зоны от него не зависит.
+                FsaDatabaseFailures.Note("nucdb.sqlite", nucid, error);
+                return null;
+            }
+        }
+
+        static double Share(Func<double, double> windowShare, double energy)
+        {
+            double value = windowShare(energy);
+            return value > 0.0 && !double.IsNaN(value) && !double.IsInfinity(value) ? Math.Min(value, 1.0) : 0.0;
+        }
+
+        /// <summary>
+        /// (`AMBER118`) Один компонент против ряда одного спутника; null — помехи нет.
+        ///
+        /// Строку держит её ГЛАВНАЯ группа линий — линии компонента, стоящие
+        /// ближе ПШПВ, сложены (прибор их не разделяет), и главная — с наибольшим
+        /// «выход × эффективность». Множитель судится по ней одной: свободная
+        /// строка Ra-226 держится на 186 кэВ, а слабый рентген Rn рядом с
+        /// обильным рентгеном ряда U-235 (Ra-223, Th-227: 80–100 кэВ) строку не
+        /// двигает — суммой по всем линиям он давал ×3.96 вместо ×1.72. В колонке
+        /// ряда главная группа — Pb/Bi-214, и 186 кэВ о ней не говорит.
+        /// </summary>
+        static FsaLineInterference Interfere(FsaComponent component, Primordial companion, double perUnit,
+                                             Func<double, double> fwhmKev, Func<double, double> efficiency,
+                                             double loKev, double hiKev, Report report)
+        {
+            // Группы: {энергия сильнейшей, её вес, Σ своё, Σ чужое}; линия — {энергия, номер группы}.
+            var ownLines = new List<double[]>();
+            foreach (FsaLine line in component.Lines)
+            {
+                if (line.Energy < loKev || line.Energy > hiKev)
+                {
+                    continue;
+                }
+
+                double weight = line.Intensity * Eff(efficiency, line.Energy);
+                if (weight > 0.0)
+                {
+                    ownLines.Add(new[] { line.Energy, weight });
+                }
+            }
+
+            if (ownLines.Count == 0 || fwhmKev == null)
+            {
+                return null;
+            }
+
+            ownLines.Sort((a, b) => a[0].CompareTo(b[0]));
+            var groups = new List<double[]>();
+            var groupOf = new int[ownLines.Count];
+            double anchor = double.NaN;
+            for (int i = 0; i < ownLines.Count; i++)
+            {
+                double[] line = ownLines[i];
+                double width = fwhmKev(line[0]);
+                if (groups.Count == 0 || !(line[0] - anchor <= width))
+                {
+                    groups.Add(new[] { line[0], line[1], 0.0, 0.0 });
+                    anchor = line[0];
+                }
+
+                double[] group = groups[groups.Count - 1];
+                group[2] += line[1];
+                if (line[1] > group[1])
+                {
+                    group[0] = line[0];
+                    group[1] = line[1];
+                }
+
+                groupOf[i] = groups.Count - 1;
+            }
+
+            // Ряд спутника — его подряд равновесия (`T259`) с долями ветвления
+            // (`CompanionLines`, одно место с зоной ROI, `S199`).
+            foreach (double[] line in CompanionLines(companion, perUnit, loKev, hiKev, report))
+            {
+                double window = fwhmKev(line[0]);
+                if (!(window > 0.0))
+                {
+                    continue;
+                }
+
+                // Ложится на группу ближайшей линии компонента в пределах ПШПВ.
+                int target = -1;
+                double best = double.MaxValue;
+                for (int i = 0; i < ownLines.Count; i++)
+                {
+                    double away = Math.Abs(ownLines[i][0] - line[0]);
+                    if (away <= window && away < best)
+                    {
+                        best = away;
+                        target = groupOf[i];
+                    }
+                }
+
+                double weight = line[1] * Eff(efficiency, line[0]);
+                if (target >= 0 && weight > 0.0)
+                {
+                    groups[target][3] += weight;
+                }
+            }
+
+            double[] main = groups[0];
+            foreach (double[] group in groups)
+            {
+                if (group[2] > main[2])
+                {
+                    main = group;
+                }
+            }
+
+            double factor = (main[2] + main[3]) / main[2];
+            if (!(factor >= InterferenceWarnFactor))
+            {
+                return null;
+            }
+
+            return new FsaLineInterference
+            {
+                LineKev = main[0],
+                Component = component.Name,
+                Companion = PrettyName(companion.Nucid),
+                Factor = factor
+            };
+        }
+
+        static double Eff(Func<double, double> efficiency, double energy)
+        {
+            if (efficiency == null)
+            {
+                return 1.0;
+            }
+
+            double value = efficiency(energy);
+            return value > 0.0 && !double.IsNaN(value) && !double.IsInfinity(value) ? value : 0.0;
+        }
+
+        /// <summary>(`AMBER118`) Первичный нуклид: nucid, Z, распространённость %, период, с.</summary>
+        sealed class Primordial
+        {
+            public string Nucid;
+            public int Z;
+            public double Abundance;
+            public double Seconds;
+        }
+
+        /// <summary>
+        /// (`AMBER118`) Первичные предки нуклида — вверх по `decay_chain`, у
+        /// которых сам нуклид — член подряда равновесия (или он сам первичен).
+        /// От каждого элемента берётся предок с НАИБОЛЬШЕЙ распространённостью
+        /// (U-238, а не U-234 — тот и не первичен).
+        /// </summary>
+        static List<Primordial> PrimordialAncestors(string nucid, Report report)
+        {
+            lock (Gate)
+            {
+                List<Primordial> cached;
+                if (AncestorCache.TryGetValue(nucid, out cached))
+                {
+                    return cached;
+                }
+            }
+
+            int failuresBefore = FsaDatabaseFailures.ThreadCount;
+            var byZ = new Dictionary<int, Primordial>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { nucid };
+            var level = new List<string> { nucid };
+            using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
+            using (SqliteCommand parents = connection.CreateCommand())
+            {
+                parents.CommandText = "select distinct nucid from decay_chain d where daughter_nucid = $n"
+                                      + " and nucid <> daughter_nucid" + DecayParentRule.ChainLevelClause;
+                parents.Parameters.AddWithValue("$n", nucid);
+                for (int depth = 0; depth <= MaxAncestorDepth && level.Count > 0; depth++)
+                {
+                    var next = new List<string>();
+                    foreach (string current in level)
+                    {
+                        Primordial self = PrimordialOf(connection, current);
+                        if (self != null
+                            && (string.Equals(current, nucid, StringComparison.OrdinalIgnoreCase)
+                                || EquilibriumMembers(current, report).Contains(nucid)))
+                        {
+                            Primordial had;
+                            if (!byZ.TryGetValue(self.Z, out had) || self.Abundance > had.Abundance)
+                            {
+                                byZ[self.Z] = self;
+                            }
+                        }
+
+                        parents.Parameters["$n"].Value = current;
+                        using (SqliteDataReader reader = parents.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                string parent = reader.IsDBNull(0) ? null : reader.GetString(0);
+                                if (!string.IsNullOrEmpty(parent) && seen.Add(parent))
+                                {
+                                    next.Add(parent);
+                                }
+                            }
+                        }
+                    }
+
+                    level = next.Count <= MaxAncestorNodes ? next : next.GetRange(0, MaxAncestorNodes);
+                }
+            }
+
+            var result = new List<Primordial>(byZ.Values);
+            // (`AMBER199`) отказ вложенного читателя (подряд равновесия) — не в кэш
+            if (FsaDatabaseFailures.ThreadCount == failuresBefore)
+            {
+                lock (Gate)
+                {
+                    AncestorCache[nucid] = result;
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>(`AMBER118`) Потолок ширины слоя обхода вверх: искусственные родители (Pu, Cm, …) ветвятся.</summary>
+        const int MaxAncestorNodes = 200;
+
+        /// <summary>(`AMBER118`) {нуклид → первичные предки}.</summary>
+        static readonly Dictionary<string, List<Primordial>> AncestorCache =
+            new Dictionary<string, List<Primordial>>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>(`AMBER118`) Первичные изотопы элемента.</summary>
+        static List<Primordial> PrimordialIsotopes(int z)
+        {
+            var list = new List<Primordial>();
+            using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
+            using (SqliteCommand command = connection.CreateCommand())
+            {
+                command.CommandText = "select distinct nucid from nuclides where z = $z"
+                                      + " and abundance is not null and abundance <> ''";
+                command.Parameters.AddWithValue("$z", z);
+                var names = new List<string>();
+                using (SqliteDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        if (!reader.IsDBNull(0))
+                        {
+                            names.Add(reader.GetString(0));
+                        }
+                    }
+                }
+
+                foreach (string name in names)
+                {
+                    Primordial item = PrimordialOf(connection, name);
+                    if (item != null)
+                    {
+                        list.Add(item);
+                    }
+                }
+            }
+
+            return list;
+        }
+
+        /// <summary>(`AMBER118`) Нуклид первичен — период ≥ 10⁸ лет и распространённость > 0; иначе null.</summary>
+        static Primordial PrimordialOf(SqliteConnection connection, string nucid)
+        {
+            using (SqliteCommand command = connection.CreateCommand())
+            {
+                command.CommandText = "select z, abundance, half_life_sec from nuclides where nucid = $n"
+                                      + " and half_life_sec is not null order by l_seqno limit 1";
+                command.Parameters.AddWithValue("$n", nucid);
+                using (SqliteDataReader reader = command.ExecuteReader())
+                {
+                    double abundance, seconds;
+                    if (!reader.Read() || reader.IsDBNull(0)
+                        || !TryNumber(reader, 1, out abundance) || !(abundance > 0.0)
+                        || !TryNumber(reader, 2, out seconds) || !(seconds >= PrimordialSeconds))
+                    {
+                        return null;
+                    }
+
+                    return new Primordial
+                    {
+                        Nucid = nucid,
+                        Z = Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture),
+                        Abundance = abundance,
+                        Seconds = seconds
+                    };
+                }
+            }
         }
 
         /// <summary>
@@ -1220,6 +2127,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             var reachable = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { root };
+            int failuresBefore = FsaDatabaseFailures.ThreadCount;
             try
             {
                 double rootSeconds;
@@ -1241,7 +2149,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     using (SqliteCommand life = connection.CreateCommand())
                     {
                         edges.CommandText =
-                            "select daughter_nucid, perc from decay_chain d"
+                            "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from" + DecayParentRule.ChainTable + " d"
                             + " where nucid = $n and perc not null"
                             + DecayParentRule.ChainLevelClause;
                         edges.Parameters.AddWithValue("$n", root);
@@ -1301,15 +2209,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             catch (Exception error)
             {
                 report.Notes.Add("ряд от " + root + ": отказ базы при обходе равновесия — " + error.Message);
+                FsaDatabaseFailures.Note("nucdb.sqlite", root, error);
                 foreach (string member in ChainBranches(root, report).Keys)
                 {
                     reachable.Add(member);
                 }
             }
 
-            lock (Gate)
+            // ⛔ (`AMBER199`) отказ — не в кэш: следующий разбор спросит базу снова
+            if (FsaDatabaseFailures.ThreadCount == failuresBefore)
             {
-                EquilibriumCache[root] = reachable;
+                lock (Gate)
+                {
+                    EquilibriumCache[root] = reachable;
+                }
             }
 
             return reachable;
@@ -1346,6 +2259,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             var branch = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            int failuresBefore = FsaDatabaseFailures.ThreadCount;
             try
             {
                 // Шаг 1: РЁБРА. Обход в ширину здесь только открывает узлы, а
@@ -1361,7 +2275,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // `parent_l_seqno`: второго соглашения о том, что считать
                     // ребром ряда, в проекте быть не должно.
                     command.CommandText =
-                        "select daughter_nucid, perc from decay_chain d"
+                        "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from" + DecayParentRule.ChainTable + " d"
                         + " where nucid = $n and perc not null"
                         + DecayParentRule.ChainLevelClause;
                     command.Parameters.AddWithValue("$n", root);
@@ -1473,11 +2387,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // Отказ базы не должен ронять разбор — но и молчать нельзя:
                 // «ряд пуст» и «читатель сломан» с виду одно и то же.
                 report.Notes.Add("ряд " + root + ": отказ базы — " + error.Message);
+                FsaDatabaseFailures.Note("nucdb.sqlite", root, error);
             }
 
-            lock (Gate)
+            // ⛔ (`AMBER199`) отказ — не в кэш
+            if (FsaDatabaseFailures.ThreadCount == failuresBefore)
             {
-                ChainCache[root] = branch;
+                lock (Gate)
+                {
+                    ChainCache[root] = branch;
+                }
             }
 
             return branch;
@@ -1510,6 +2429,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             var depth = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            int failuresBefore = FsaDatabaseFailures.ThreadCount;
             try
             {
                 var order = new List<string> { root };
@@ -1518,7 +2438,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 using (SqliteCommand command = connection.CreateCommand())
                 {
                     command.CommandText =
-                        "select daughter_nucid, perc from decay_chain d"
+                        "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from" + DecayParentRule.ChainTable + " d"
                         + " where nucid = $n and perc not null"
                         + DecayParentRule.ChainLevelClause;
                     command.Parameters.AddWithValue("$n", root);
@@ -1557,11 +2477,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             catch (Exception error)
             {
                 report.Notes.Add("ряд " + root + ": отказ базы при обходе глубин — " + error.Message);
+                FsaDatabaseFailures.Note("nucdb.sqlite", root, error);
             }
 
-            lock (Gate)
+            // ⛔ (`AMBER199`) отказ — не в кэш
+            if (FsaDatabaseFailures.ThreadCount == failuresBefore)
             {
-                DepthCache[root] = depth;
+                lock (Gate)
+                {
+                    DepthCache[root] = depth;
+                }
             }
 
             return depth;
@@ -1583,6 +2508,49 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         const double ChainConverged = 1.0e-12;
 
+        /// <summary>Строка `type_c` — не L-серия.</summary>
+        public const int LSeriesNone = 0;
+
+        /// <summary>Сводная строка L-серии (`L`): центр тяжести и суммарный выход.</summary>
+        public const int LSeriesLumped = 1;
+
+        /// <summary>Итог подоболочки (`L1`, `L2`, `L3`).</summary>
+        public const int LSeriesShell = 2;
+
+        /// <summary>Линия подоболочечного перехода (`L3M5`, `L2N4`…).</summary>
+        public const int LSeriesDetailed = 3;
+
+        /// <summary>
+        /// (`AMBER68`, `AMBER151`) Вид строки L-серии по СТРУКТУРЕ имени `type_c`:
+        /// одна буква — сводная, буква и цифра — итог подоболочки, длиннее — линия.
+        /// Чем больше число, тем подробнее строка; читатель берёт у родителя самый
+        /// подробный вид, какой есть, и только его — <see cref="DecayLines"/> и
+        /// редактор базы (`NucBaseFramework`) зовут ОДНО это правило. С 01.10.2026
+        /// сводная `L` поставки лежит в базе рядом со своими подлиниями
+        /// (`tools/nucdb/import_l_sublines.py`), и сложить их значило бы удвоить
+        /// L-рентген.
+        /// </summary>
+        public static int LSeriesKind(string series)
+        {
+            series = (series ?? "").Trim();
+            if (series.Length == 0 || series[0] != 'L')
+            {
+                return LSeriesNone;
+            }
+
+            if (series.Length == 1)
+            {
+                return LSeriesLumped;
+            }
+
+            if (series.Length == 2 && series[1] >= '0' && series[1] <= '9')
+            {
+                return LSeriesShell;
+            }
+
+            return LSeriesDetailed;
+        }
+
         /// <summary>
         /// Линии распада нуклида: {энергия, выход % на распад ЭТОГО нуклида}.
         /// Типы `G` и `X`; K-серия по правилу <see cref="KSeriesRule"/> — ОДНО
@@ -1591,6 +2559,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// библиотека и суммирователь совпадений разойдутся в составе пробы
         /// при одинаковых с виду числах, `T50`). L-серия — подробными
         /// строками, если они есть, иначе обобщённой.
+        ///
+        /// ⛔ АННИГИЛЯЦИОННАЯ ЛИНИЯ β⁺-ИЗЛУЧАТЕЛЯ — ЛИНИЯ ЕГО РАСПАДА (`AMBER54`,
+        /// П124 22.09.2026): строки `B+` базы читаются тем же запросом, и на
+        /// <see cref="FsaAnalyzer.AnnihilationKev"/> в образ ложится линия с
+        /// выходом `2·ΣI(β⁺)` — два кванта на позитрон, ровно то число, что
+        /// суммирователь совпадений уже считал партнёром
+        /// (<see cref="CascadeAtomicData.AnnihilationQuanta"/>); второго
+        /// соглашения о нём здесь нет. До П124 запрос брал только `G` и `X`:
+        /// у 22NA сильнейшая линия (179.8 % на распад) в образ не входила и
+        /// уходила свободному `Ann-511`, 18F (одни позитроны) образа не имел
+        /// вовсе — «библиотека опустела». Настоящая гамма той же энергии, если
+        /// она есть у нуклида, СКЛАДЫВАЕТСЯ с аннигиляционной — две линии
+        /// одной энергии, как у `S161`. Имён нуклидов здесь нет: кто β⁺ —
+        /// говорит база. (П127 22.09.2026) Строка аннигиляционной линии несёт
+        /// ТРЕТЬЕ число — аннигиляционную часть выхода — и оно уезжает в
+        /// <see cref="FsaLine.AnnihilationIntensity"/>: гейт `Ann-511`
+        /// анализатора (`AMBER7` → `AMBER54`) различает по нему гамму состава
+        /// у 511 и свою аннигиляцию нуклида.
         /// </summary>
         /// ⚠ Открыт наружу РАДИ ЧИТАТЕЛЯ (`S89`): два места в проекте читают
         /// `decay_radiations` с разными зажимами, и «оба обязаны давать один
@@ -1621,8 +2607,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var kBetaSplitSeries = new HashSet<string>(StringComparer.Ordinal);
             var kBetaTotal = new List<double[]>();
             var lLumped = new List<double[]>();
+            var lShell = new List<double[]>();
             var lDetailed = new List<double[]>();
 
+            // (`AMBER54`) Позитроны на распад, % — сумма ВСЕХ строк `B+` (каналов
+            // и переходов): каждый позитрон аннигилирует, откуда бы ни пришёл.
+            double betaPlus = 0.0;
+
+            // (`AMBER199`) счётчик отказов до чтения: отказ этого чтения ИЛИ
+            // вложенного (выход аннигиляции через `CascadeAtomicData`) — не в кэш
+            int failuresBefore = FsaDatabaseFailures.ThreadCount;
             try
             {
                 using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
@@ -1634,11 +2628,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // (`S89`) Само правило вынесено в `DecayParentRule` — двух
                     // соглашений о том, что такое «родитель», в проекте быть не
                     // должно, ровно как и о K-серии.
+                    // (`AMBER54`) Строки `B+` — тем же запросом: у них
+                    // `energy_num` — средняя энергия позитрона, и она здесь не
+                    // нужна, поэтому зажим «энергия не пуста» к ним не относится.
                     command.CommandText =
                         "select type_a, type_c, energy_num, intensity_num, dec_type"
                         + " from decay_radiations"
-                        + " where parent_nucid = $n and type_a in ('G', 'X')"
-                        + " and energy_num not null and intensity_num > 0"
+                        + " where parent_nucid = $n and type_a in ('G', 'X', 'B+')"
+                        + " and (energy_num not null or type_a = 'B+') and intensity_num > 0"
                         + DecayParentRule.LevelClause;
                     command.Parameters.AddWithValue("$n", nucid);
                     using (SqliteDataReader reader = command.ExecuteReader())
@@ -1649,6 +2646,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             string series = reader.IsDBNull(1) ? "" : reader.GetString(1).Trim();
                             string channel = reader.IsDBNull(4) ? "" : reader.GetString(4).Trim();
                             double energy, intensity;
+                            if (kind == "B+")
+                            {
+                                if (TryNumber(reader, 3, out intensity) && intensity > 0.0)
+                                {
+                                    betaPlus += intensity;
+                                }
+
+                                continue;
+                            }
+
                             if (!TryNumber(reader, 2, out energy) || !TryNumber(reader, 3, out intensity)
                                 || !(energy > 0.0) || !(intensity > 0.0))
                             {
@@ -1706,13 +2713,44 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             }
                             else if (series.Length == 0 || series[0] != 'K')
                             {
-                                if (series.Length == 1 && series[0] == 'L')
+                                // ⛔ (`AMBER68`, П130 22.09.2026) ТРИ ВИДА СТРОК
+                                // L-СЕРИИ, А НЕ ДВА. Рядом в поставке лежат
+                                // сводная `L`, ИТОГИ ПОДОБОЛОЧЕК `L1`/`L2`/`L3`
+                                // и отдельные линии `L1M2`, `L2N4`, `L3O1`… До
+                                // П130 итоги и линии валились в один список
+                                // «подробных» (длина имени > 1) и СКЛАДЫВАЛИСЬ:
+                                // у `229TH` 56.390 + 61.060 = 117.450 % против
+                                // сводной `L` 80.0 %, у `225RA` 22.171 + 23.329
+                                // против 29.107, у `225RN` 19.436 + 19.764
+                                // против 41.200 (замер 22.09.2026 по `nucdb`,
+                                // чтение `ro`; таких родителей в поставке ТРИ).
+                                // Вес L-рентгена в образе выходил завышен в
+                                // полтора раза.
+                                //
+                                // Признак — СТРУКТУРА имени, как у K-серии
+                                // (<see cref="KSeriesRule"/>): одна буква —
+                                // сводная, буква и цифра — итог подоболочки,
+                                // длиннее — линия (за цифрой стоит оболочка,
+                                // откуда пришёл электрон). Порядок предпочтения
+                                // тот же, что был: линии, если они есть, иначе
+                                // итоги подоболочек, иначе сводная.
+                                //
+                                // (`AMBER151`, П202 01.10.2026) Признак вынесен в
+                                // <see cref="LSeriesKind"/>: с этого дня сводную `L`
+                                // поставки рядом с её подлиниями (`import_l_sublines.py`)
+                                // вытесняет и редактор базы, и правило там ДОЛЖНО
+                                // быть тем же самым, а не копией.
+                                switch (LSeriesKind(series))
                                 {
-                                    lLumped.Add(line);
-                                }
-                                else if (series.Length > 1 && series[0] == 'L')
-                                {
-                                    lDetailed.Add(line);
+                                    case LSeriesLumped:
+                                        lLumped.Add(line);
+                                        break;
+                                    case LSeriesShell:
+                                        lShell.Add(line);
+                                        break;
+                                    case LSeriesDetailed:
+                                        lDetailed.Add(line);
+                                        break;
                                 }
                             }
                             else if (KSeriesRule.IsBetaTotal(series))
@@ -1735,6 +2773,48 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             catch (Exception error)
             {
                 report.Notes.Add("линии " + nucid + ": отказ базы — " + error.Message);
+                FsaDatabaseFailures.Note("nucdb.sqlite", nucid, error);
+            }
+
+            // (`AMBER54`) Аннигиляционная линия: два кванта 511 кэВ на позитрон.
+            // Настоящая гамма той же энергии (у 17 родителей поставки есть строка
+            // `G` в 510.5…511.4) СКЛАДЫВАЕТСЯ, а не теряется: `AddLine` ниже по
+            // пути выбросил бы вторую линию той же энергии того же нуклида, и
+            // выход ушёл бы молча — тот же довод, что у `S161`. Допуск слияния —
+            // тот же, что у `AddLine` и `S161` (0.05 кэВ).
+            //
+            // (П127 22.09.2026) Строка аннигиляционной линии — ТРЁХ чисел:
+            // {энергия, выход, аннигиляционная часть выхода}; у гаммы и рентгена
+            // строки по-прежнему из двух. Третье число едет в
+            // <see cref="FsaLine.AnnihilationIntensity"/>: гейт `Ann-511`
+            // анализатора обязан отличать «столкнулся с гаммой состава» от
+            // «это своя аннигиляция нуклида», а по одной энергии слитой линии
+            // этого не видно. Читатели `DecayLines` берут `[0]` и `[1]`, третьего
+            // числа не замечают.
+            //
+            // (`AMBER69`, П130 22.09.2026) Выход берётся ЗАЖАТЫМ, и зажим не
+            // свой, а сумматора совпадений — см. <see cref="AnnihilationYieldPercent"/>.
+            if (betaPlus > 0.0)
+            {
+                double annihilation = AnnihilationYieldPercent(nucid, betaPlus, report);
+                int same = -1;
+                for (int k = 0; k < gamma.Count; k++)
+                {
+                    if (Math.Abs(gamma[k][0] - FsaAnalyzer.AnnihilationKev) < 0.05)
+                    {
+                        same = k;
+                        break;
+                    }
+                }
+
+                if (same >= 0)
+                {
+                    gamma[same] = new[] { gamma[same][0], gamma[same][1] + annihilation, annihilation };
+                }
+                else
+                {
+                    gamma.Add(new[] { FsaAnalyzer.AnnihilationKev, annihilation, annihilation });
+                }
             }
 
             var lines = new List<double[]>();
@@ -1746,20 +2826,132 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // энергиями вместо одной усреднённой. Правило и его измерение —
             // `KSeriesRule` (`T50`); прежнее «разложение, если оно есть»
             // занижало Kβ у 350 наборов.
-            lines.AddRange(KSeriesRule.Beta(kBetaSplit, kBetaTotal, kBetaSplitSeries.Count));
+            // (`AMBER120`) Строки группы K-M — на центре тяжести группы, а не на
+            // середине текстового диапазона: см. <see cref="KSeriesRule.BetaAtGroupEnergy"/>.
+            lines.AddRange(KSeriesRule.BetaAtGroupEnergy(kBetaSplit, kBetaTotal, kBetaSplitSeries.Count, kAlpha));
 
-            // L-серия: та же развилка. Подробных строк в базе всего у трёх
-            // нуклидов (225RA, 225RN, 229TH), и ни один в корпусе не снят, —
-            // но правило дешевле проверки «а вдруг».
-            lines.AddRange(lDetailed.Count > 0 ? lDetailed : lLumped);
+            // L-серия: та же развилка, но по ТРЁМ спискам (`AMBER68`) — линии
+            // подоболочек, итоги подоболочек, сводная. Подробных строк в базе
+            // всего у трёх нуклидов (225RA, 225RN, 229TH), и ни один в корпусе
+            // не снят, — но правило дешевле проверки «а вдруг».
+            //
+            // ⚠ Линии НЕ ПОКРЫВАЮТ сводную целиком, и это измерено: у `229TH`
+            // они дают 61.060 % против сводной `L` 80.0 % (у `225RA` 23.329
+            // против 29.107, у `225RN` 19.764 против 41.200). Сложение итогов
+            // с линиями этого не лечило, а делало вдвое хуже с другой стороны
+            // (117.450 против 80.0). Что из двух представлений полнее —
+            // вопрос ОТДЕЛЬНЫЙ от двойного счёта, и здесь он не решается:
+            // порядок предпочтения оставлен прежним.
+            lines.AddRange(lDetailed.Count > 0 ? lDetailed
+                           : (lShell.Count > 0 ? lShell : lLumped));
 
             lines.Sort((a, b) => a[0].CompareTo(b[0]));
-            lock (Gate)
+            if (FsaDatabaseFailures.ThreadCount == failuresBefore)
             {
-                LineCache[nucid] = lines;
+                lock (Gate)
+                {
+                    LineCache[nucid] = lines;
+                }
             }
 
             return lines;
+        }
+
+        /// <summary>
+        /// (`AMBER69`, П130 22.09.2026) Выход аннигиляционной линии нуклида,
+        /// % на распад: два кванта на позитрон, а ΣI(β⁺) поставки — ЗАЖАТЫЙ
+        /// долей ветви и потолком в 100 % распадов.
+        ///
+        /// ⛔ ЧИСЛО ЗДЕСЬ НЕ СЧИТАЕТСЯ. Оно берётся у сумматора совпадений
+        /// (<see cref="CascadeAtomicData.AnnihilationQuanta"/>, ~~`S153`~~),
+        /// который читает те же строки `B+` тем же запросом с тем же зажимом
+        /// уровня (<see cref="DecayParentRule.LevelClause"/>) и зажимает сумму
+        /// долей ветвей своего канала. Двух редакций одной величины в проекте
+        /// быть не должно — тот же довод, что у `KSeriesRule` про Kβ. До П130
+        /// библиотека клала СЫРОЙ `2·ΣI(β⁺)`, и у 25 родителей поставки они
+        /// расходились: `20NA` 393.694 % в образе против 200 % у партнёра
+        /// совпадения, `128LAm` 450.0 против 200, `81Y` 268.6 против 200
+        /// (замер 22.09.2026 по `nucdb`, чтение `ro`). «Поставка местами даёт
+        /// позитронов больше, чем есть распадов» — довод, по которому зажим и
+        /// заведён. Корпусные β⁺ (`22NA` 179.8, `18F` 193.46, `65ZN` 2.842,
+        /// `88Y` 0.42, `152EU` 0.0512) сырьём равны зажатому — их числа
+        /// правкой не двигаются.
+        ///
+        /// ⚠ Потолок 200 % повторён здесь, и это НЕ третья редакция правила: у
+        /// сумматора есть ранний выход по неопределённому дочернему (`z &lt;= 0`),
+        /// после которого <see cref="CascadeAtomicData.AnnihilationQuanta"/>
+        /// остаётся сырым; на таком нуклиде без потолка вернулось бы ровно то,
+        /// что было до правки. Сказать сумматору нечего вовсе (нуклид не
+        /// разобран, отказ базы) — берётся сырое число с тем же потолком, и
+        /// причина уходит в <see cref="Report.Notes"/>, а не теряется.
+        /// </summary>
+        static double AnnihilationYieldPercent(string nucid, double rawBetaPlusPercent, Report report)
+        {
+            const double Ceiling = 200.0;
+            double raw = 2.0 * rawBetaPlusPercent;
+            CascadeAtomicData atomic = CascadeAtomicData.Of(nucid);
+            double clamped = atomic != null && !atomic.Failed
+                ? 100.0 * atomic.AnnihilationQuanta : 0.0;
+            if (!(clamped > 0.0))
+            {
+                if (report != null)
+                {
+                    report.Notes.Add("аннигиляция " + nucid
+                                     + ": сумматору совпадений сказать нечего, выход только по потолку");
+                }
+
+                return raw > Ceiling ? Ceiling : raw;
+            }
+
+            if (clamped > Ceiling)
+            {
+                clamped = Ceiling;
+            }
+
+            if (report != null && clamped < raw - 1.0E-9 * Math.Max(1.0, raw))
+            {
+                report.Notes.Add(string.Format(CultureInfo.InvariantCulture,
+                    "аннигиляция {0}: 2·ΣI(β⁺) поставки {1:F3} % зажато до {2:F3} %"
+                    + " (доля ветви и 100 % распадов)", nucid, raw, clamped));
+            }
+
+            return clamped;
+        }
+
+        /// <summary>
+        /// (`AMBER63`, П130 22.09.2026) Аннигиляционная линия нуклида ИЗ БАЗЫ:
+        /// {энергия, выход %, аннигиляционная часть выхода %} — ровно та, что
+        /// <see cref="DecayLines"/> кладёт в образ на пути «Из NucBase»; null —
+        /// позитронов у нуклида база не знает.
+        ///
+        /// ⛔ Открыта наружу РАДИ ПУТИ ПО УМОЛЧАНИЮ
+        /// (<see cref="FsaLibrary.BuildFromPeaks"/>): набор нуклидов признака
+        /// «аннигиляционная часть выхода» не несёт и нести не может — в нём у
+        /// линии три числа, имя, энергия и выход, — а гейт свободного образа
+        /// `Ann-511` без этого признака читает линию 511 как ГАММУ СОСТАВА и
+        /// снимает образ. Второй редакции числа здесь нет: оно то же самое и из
+        /// того же места, зажатое <see cref="AnnihilationYieldPercent"/>.
+        ///
+        /// ⚠ Возвращается КОПИЯ: строка кэша линий уходит в образы как есть, и
+        /// читателю, который её поправит, достался бы весь проект.
+        /// </summary>
+        public static double[] AnnihilationLine(string nucid)
+        {
+            if (string.IsNullOrEmpty(nucid))
+            {
+                return null;
+            }
+
+            foreach (double[] line in DecayLines(nucid, new Report()))
+            {
+                if (line != null && line.Length > 2 && line[2] > 0.0
+                    && Math.Abs(line[0] - FsaAnalyzer.AnnihilationKev) < 0.05)
+                {
+                    return new[] { line[0], line[1], line[2] };
+                }
+            }
+
+            return null;
         }
 
         // ------------------------------------------------------------------
@@ -2329,12 +3521,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// </summary>
             public double Attenuation(double kev)
             {
+                // ⛔ (`AMBER80`, П149 24.09.2026) Ослабление элемента — СУММОЙ
+                // КАНАЛОВ (<see cref="PartialCrossSections.MassTotal"/>,
+                // ~~`AMBER74`~~), а не прямой по `Element.Total`: одно правило со
+                // всеми слоями сцены и с матрицей. Прямая по сумме в узлах лежит
+                // выше кривой — на CsI +0.05…+0.17 % у своего Kα и до +1.7 % на
+                // 2614.5 кэВ, — и вес вылета выходил занижен на 0.02…0.25 %
+                // (замер `FsaTotalReadersProbe`). Строка `AMBER74` этот
+                // знаменатель называла, а до него правка не доехала.
                 double mu = 0.0;
+                double logKev = kev > 0.0 ? Math.Log(kev) : double.NaN;
                 for (int k = 0; k < this.Parts.Count; k++)
                 {
                     Part part = this.Parts[k];
-                    mu += part.Fraction * MaterialDatabase.Interpolate(
-                        part.Element.EnergyKev, part.Element.Total, kev);
+                    int lo, hi;
+                    if (!(kev > 0.0) || part.Element.EnergyKev == null
+                        || !MaterialDatabase.Bracket(part.Element.EnergyKev, kev, out lo, out hi))
+                    {
+                        continue;
+                    }
+
+                    mu += part.Fraction * PartialCrossSections.MassTotal(
+                        part.Element, lo, hi, kev, logKev);
                 }
 
                 return mu;
@@ -2607,11 +3815,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Аннигиляционная линия 511 кэВ: рождение пар жёсткими квантами в
-        /// защите и обвязке плюс β⁺-примеси. Нуклиду она не принадлежит, доля
-        /// зависит от домика и геометрии — поэтому свободный мешающий образ.
-        /// Правило то же, что у <see cref="FsaLibrary"/>: без образа NNLS вешает
-        /// 511 на ближайшую линию соседа.
+        /// Аннигиляционная линия 511 кэВ ПРИБОРА: рождение пар жёсткими квантами
+        /// в защите и обвязке. Нуклиду она не принадлежит, доля зависит от
+        /// домика и геометрии — поэтому свободный мешающий образ. Правило то
+        /// же, что у <see cref="FsaLibrary"/>: без образа NNLS вешает 511 на
+        /// ближайшую линию соседа.
+        ///
+        /// ⚠ Аннигиляция β⁺-ИЗЛУЧАТЕЛЯ сюда с П124 (`AMBER54`, 22.09.2026) НЕ
+        /// относится: она — линия распада и лежит в образе самого нуклида
+        /// (<see cref="DecayLines"/>, `2·ΣI(β⁺)`). Здесь прежде стояло «плюс
+        /// β⁺-примеси», и это было ровно тем местом, куда у 22NA уходили 70 %
+        /// модели. Судьбу свободного образа решает гейт анализатора
+        /// (`AMBER7` → `AMBER54`, `FsaAnalyzer.AnnihilationGate`, решение Amber
+        /// 22.09.2026 «Линию оставить + починить гейт Ann-511»): он снимается
+        /// при ГАММЕ состава у 511 (Tl-208 510.77 — один столбец с 511) и при
+        /// β⁺-нуклиде без иных линий, способных его закрепить (F-18); рядом с
+        /// аннигиляционной линией нуклида, у которого есть чем закрепиться
+        /// (Na-22 1274, Zn-65 1115), он ОСТАЁТСЯ и берёт избыток 511 —
+        /// позитроны, аннигилировавшие вне источника, и пары. Решение Amber
+        /// 01.09.2026 о СВОБОДНОМ образе от пар этим не отменено — образ
+        /// строится как прежде.
         /// </summary>
         static void AddAnnihilation(List<FsaComponent> result, Report report)
         {
@@ -3105,7 +4328,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// округлённой энергией, — и в образе она удваивает вес. Порог 0.05 кэВ:
         /// раздельных линий ближе не бывает.
         /// </summary>
-        static void AddLine(FsaComponent component, string nuclide, double energy, double intensity)
+        static void AddLine(FsaComponent component, string nuclide, double energy, double intensity,
+                            double annihilationIntensity = 0.0)
         {
             foreach (FsaLine line in component.Lines)
             {
@@ -3116,7 +4340,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            component.Lines.Add(new FsaLine(nuclide, energy, intensity));
+            component.Lines.Add(new FsaLine(nuclide, energy, intensity, annihilationIntensity));
         }
 
         /// <summary>
@@ -3152,10 +4376,54 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // (`AMBER78`, П149 24.09.2026) Режется только номер ПЕРВОГО изомера:
+            // «m1» и «m» — одно состояние в двух соглашениях базы, и
+            // <see cref="NucidOf"/> сводит «Pa-234m» обратно к «234PAm1». Номер
+            // второго и выше вырезать нельзя: «Rh-100m» из «100RHm2» обратным
+            // разбором попадал бы в ДРУГОЕ состояние («100RHm»), молча.
+            string number = state.Substring(letters.Length);
+            if (letters.Length > 0 && number.Length > 0 && number != "1"
+                && string.Equals(state, letters + number, StringComparison.OrdinalIgnoreCase))
+            {
+                letters += number;
+            }
+
             return char.ToUpperInvariant(symbol[0]) + symbol.Substring(1).ToLowerInvariant()
                    + "-" + mass.ToString(CultureInfo.InvariantCulture) + letters;
         }
-        /// <summary>Обратно: «Cs-137» → «137CS»; пусто — разобрать не вышло.</summary>
+        /// <summary>
+        /// Обратно: имя нуклида → `nucid` базы; пусто — разобрать не вышло.
+        ///
+        /// ⛔ (`AMBER78`, П149 24.09.2026) ВСЕ НАПИСАНИЯ, КОТОРЫЕ ПРОЕКТ ПИШЕТ
+        /// САМ, а не одно «Cs-137». Набор нуклидов, из которого путь FSA по
+        /// умолчанию (<see cref="FsaLibrary.BuildFromPeaks"/>) берёт имена
+        /// компонентов, пишет `NucBase` тремя форматами — «137CS, 234PAm1»,
+        /// «Cs137, Pa234m1» (УМОЛЧАНИЕ формы) и «Cs-137, Pa-234m1», — запасной
+        /// набор приложения пишет «K40», «Cs137», корпусная подпись
+        /// (<see cref="PrettyName"/>) — «Pa-234m» без номера изомера. До П149
+        /// здесь понималось одно написание через дефис, и остальные молча
+        /// давали пусто: у имени «Na22» из `NucBase` с настройками по умолчанию
+        /// линия 511 в образ не добавлялась (`AMBER63` не срабатывал), замер
+        /// `FsaNucidNameProbe` по 708 β⁺-родителям базы — до базы доходили
+        /// 0 / 0 / 570 имён трёх форматов и ни одного из 138 изомеров.
+        ///
+        /// Разбор — две формы: СИМВОЛ-МАССА-МЕТКА («Cs-137», «Cs137»,
+        /// «Pa-234m1») и МАССА-СИМВОЛ-МЕТКА («137CS», «234PAm1», «241Am»).
+        /// Где кончается символ и начинается метка изомера во второй форме,
+        /// по буквам не сказать («241Am» — америций, «38Km» — изомер калия), и
+        /// угадывать это правилом НЕ нужно: в базе нет двух `nucid`, которые
+        /// различались бы только регистром букв (замер 24.09.2026: 4427
+        /// `nuclides.nucid`, совпадений в верхнем регистре ноль), поэтому имя
+        /// сводится к «массе + буквам в верхнем регистре» и ищется в базе.
+        /// Метка «m» без номера и «m1» — один и тот же первый изомер в двух
+        /// соглашениях (в базе 392 `nucid` с «m» и 222 с «m1»; корпусная
+        /// подпись номер режет): не нашлось одно — берётся другое.
+        ///
+        /// Базы нет или нуклида в ней нет — ответ прежний: строка «масса +
+        /// символ заглавными + метка строчными», как её давал разбор через
+        /// дефис («SE-2615» → «2615SE»; такого `nucid` нет, и линий у него нет).
+        /// Имён нуклидов здесь нет — только разбор и справочник базы.
+        /// </summary>
         public static string NucidOf(string name)
         {
             if (string.IsNullOrEmpty(name))
@@ -3163,32 +4431,204 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return "";
             }
 
-            string text = name.Trim();
-            int dash = text.IndexOf('-');
-            if (dash <= 0 || dash + 1 >= text.Length)
+            string mass, letters, state;
+            bool symbolDashMass;
+            if (!SplitName(name.Trim(), out mass, out letters, out state, out symbolDashMass))
             {
                 return "";
             }
 
-            string symbol = text.Substring(0, dash);
-            string mass = text.Substring(dash + 1);
-            string isomer = "";
-            while (mass.Length > 0 && char.IsLetter(mass[mass.Length - 1]))
+            Dictionary<string, string> known = KnownNucids();
+            string key = mass + (letters + state).ToUpperInvariant();
+            string found;
+            if (known.TryGetValue(key, out found))
             {
-                isomer = char.ToLowerInvariant(mass[mass.Length - 1]) + isomer;
-                mass = mass.Substring(0, mass.Length - 1);
+                return found;
             }
 
-            foreach (char c in mass)
+            // Первый изомер в двух соглашениях: «m» и «m1».
+            string upper = state.ToUpperInvariant();
+            if (upper == "M" && known.TryGetValue(key + "1", out found))
             {
-                if (c < '0' || c > '9')
-                {
-                    return "";
-                }
+                return found;
             }
 
-            return mass.Length == 0 ? "" : mass + symbol.ToUpperInvariant() + isomer;
+            if (upper == "M1" && known.TryGetValue(key.Substring(0, key.Length - 1), out found))
+            {
+                return found;
+            }
+
+            // Прежняя строка — только там, где её давал прежний разбор («символ-
+            // масса» через дефис) или где спросить базу нечем. Новые написания
+            // без базы нуклидом не становятся: «Sum 1022» остаётся ничем, а не
+            // выдуманным `nucid` «1022SUM».
+            return symbolDashMass || known.Count == 0
+                ? mass + letters.ToUpperInvariant() + state.ToLowerInvariant()
+                : "";
         }
+
+        /// <summary>
+        /// Разбор имени нуклида на массу, буквы символа и метку состояния
+        /// (`AMBER78`). Форма «символ, масса, метка» однозначна: масса стоит
+        /// между символом и меткой. Форма «масса, буквы» метку от символа не
+        /// отделяет — тогда `letters` несёт всё, `state` пуст, и разводит их
+        /// справочник базы (<see cref="NucidOf"/>). Разделитель между символом
+        /// и массой — дефис, пробел или ничего.
+        /// </summary>
+        static bool SplitName(string text, out string mass, out string letters, out string state,
+                              out bool symbolDashMass)
+        {
+            mass = letters = state = "";
+            symbolDashMass = false;
+            int i = 0;
+            while (i < text.Length && IsLatin(text[i]))
+            {
+                i++;
+            }
+
+            if (i > 0)
+            {
+                // Символ, затем масса, затем метка.
+                letters = text.Substring(0, i);
+                if (i < text.Length && (text[i] == '-' || text[i] == ' '))
+                {
+                    symbolDashMass = text[i] == '-';
+                    i++;
+                }
+
+                int start = i;
+                while (i < text.Length && text[i] >= '0' && text[i] <= '9')
+                {
+                    i++;
+                }
+
+                if (i == start)
+                {
+                    return false;
+                }
+
+                mass = text.Substring(start, i - start);
+                state = text.Substring(i);
+                return IsState(state);
+            }
+
+            // Масса, затем буквы (и, быть может, номер изомера).
+            while (i < text.Length && text[i] >= '0' && text[i] <= '9')
+            {
+                i++;
+            }
+
+            if (i == 0 || i >= text.Length)
+            {
+                return false;
+            }
+
+            mass = text.Substring(0, i);
+            if (text[i] == '-' || text[i] == ' ')
+            {
+                i++;
+            }
+
+            int lettersStart = i;
+            while (i < text.Length && IsLatin(text[i]))
+            {
+                i++;
+            }
+
+            if (i == lettersStart)
+            {
+                return false;
+            }
+
+            letters = text.Substring(lettersStart, i - lettersStart);
+            while (i < text.Length && text[i] >= '0' && text[i] <= '9')
+            {
+                i++;
+            }
+
+            // Номер изомера держится при буквах: «234PAm1» — буквы «PAm», номер «1».
+            letters += text.Substring(lettersStart + letters.Length, i - lettersStart - letters.Length);
+            return i == text.Length;
+        }
+
+        /// <summary>Метка состояния: пусто либо буквы, за которыми цифры («m», «m1», «m2»).</summary>
+        static bool IsState(string state)
+        {
+            int i = 0;
+            while (i < state.Length && IsLatin(state[i]))
+            {
+                i++;
+            }
+
+            if (state.Length > 0 && i == 0)
+            {
+                return false;
+            }
+
+            while (i < state.Length && state[i] >= '0' && state[i] <= '9')
+            {
+                i++;
+            }
+
+            return i == state.Length;
+        }
+
+        static bool IsLatin(char c)
+        {
+            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+        }
+
+        /// <summary>
+        /// Справочник `nucid` базы: ключ — «масса + буквы в верхнем регистре»,
+        /// значение — `nucid` как он записан (`AMBER78`). Читается один раз
+        /// (`nuclides`, только чтение); отказ базы — пустой справочник, и
+        /// <see cref="NucidOf"/> отвечает прежней строкой.
+        /// </summary>
+        static Dictionary<string, string> KnownNucids()
+        {
+            lock (Gate)
+            {
+                if (knownNucids != null)
+                {
+                    return knownNucids;
+                }
+
+                var map = new Dictionary<string, string>(StringComparer.Ordinal);
+                try
+                {
+                    using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = "select nucid from nuclides where nucid is not null";
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                string nucid = reader.GetString(0).Trim();
+                                string upper = nucid.ToUpperInvariant();
+                                if (nucid.Length > 0 && !map.ContainsKey(upper))
+                                {
+                                    map[upper] = nucid;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception error)
+                {
+                    // Базы нет — разбор остаётся строковым, как до `AMBER78`.
+                    // ⛔ (`AMBER199`) Но справочник НЕ запоминается: следующий
+                    // вызов спросит базу снова.
+                    FsaDatabaseFailures.Note("nucdb.sqlite", "nuclides", error);
+                    return new Dictionary<string, string>(StringComparer.Ordinal);
+                }
+
+                knownNucids = map;
+                return map;
+            }
+        }
+
+        static Dictionary<string, string> knownNucids;
 
         static bool TryNumber(SqliteDataReader reader, int column, out double value)
         {
@@ -3217,8 +4657,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         static SqliteConnection OpenRead(string path)
         {
+            // (`AMBER201`) Строка подключения — построителем, не склейкой:
+            // `;` в имени каталога программы разрезал строку, и база не открывалась.
             SqliteConnection connection = new SqliteConnection(
-                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;");
+                EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(path, true));
             connection.Open();
             return connection;
         }
@@ -3226,6 +4668,98 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static string NuclideDatabasePath()
         {
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
+        }
+    }
+
+    /// <summary>
+    /// ⛔ (`AMBER199`, 05.10.2026) ОТКАЗЫ ЧТЕНИЯ БАЗ ДАННЫХ РАЗБОРА — одним
+    /// местом и с читателем.
+    ///
+    /// Что чинит. Читатели `nucdb`/`schemedb`/`matdb` ядра FSA
+    /// (<see cref="FsaSampleLibrary"/>, <see cref="FsaCascadeSummer"/>,
+    /// <see cref="CascadeAtomicData"/>, <see cref="AngularCorrelation"/>,
+    /// <see cref="KSeriesRule"/>) клали ответ ОТКАЗА в статический кэш как
+    /// обычный ответ: база, занятая в миг первого разбора (внешний редактор,
+    /// синхронизация, антивирус), оставляла нуклид без линий или без поправки
+    /// на совпадения ДО ПЕРЕЗАПУСКА программы. А признаки отказа
+    /// (<c>FsaCascadeSummer.Failure</c>, записки отчёта сборки) вне классов не
+    /// читал никто — на экране ни слова.
+    ///
+    /// Правило теперь двойное:
+    ///   1. отказ НЕ кэшируется: читатель, заметив отказ (свой или вложенного
+    ///      вызова — по счётчику <see cref="ThreadCount"/> до и после), не кладёт
+    ///      ответ в кэш, и следующий разбор пробует базу снова;
+    ///   2. отказ ДОХОДИТ ДО ЧЕЛОВЕКА: <see cref="Note"/> кладёт строку в
+    ///      собиратель потока, который открывает сеанс разбора
+    ///      (<see cref="Begin"/>/<see cref="End"/>), а сеанс отдаёт её в
+    ///      <see cref="FsaResult.DatabaseFailures"/> — окно отчёта печатает
+    ///      строку-происшествие; без результата — приписка к причине отказа.
+    ///
+    /// Собиратель — на ПОТОК: разбор целиком идёт в одной фоновой задаче
+    /// (параллельных циклов в ядре нет), а разборы разных документов идут в
+    /// разных задачах и чужих отказов друг другу не подмешивают. Вне сеанса
+    /// (пробы, корпус) собирателя нет — отказ уходит в журнал трассировки и в
+    /// счётчик <see cref="ProcessCount"/>, кэш не пишется так же.
+    ///
+    /// Текст строки — без переводимых слов: имя файла базы, ключ запроса
+    /// (`nucid`, Z/A) и сообщение платформы. Подпись строки окна переведена в
+    /// обе культуры (`FSAReportDatabaseFailedRow`).
+    /// </summary>
+    public static class FsaDatabaseFailures
+    {
+        [ThreadStatic]
+        static int threadCount;
+
+        [ThreadStatic]
+        static List<string> collected;
+
+        static int processCount;
+
+        /// <summary>Потолок строк одного разбора: дальше — только счёт.</summary>
+        const int MaxCollected = 32;
+
+        /// <summary>Отказов на этом потоке за всё время (счётчик «был ли отказ внутри»).</summary>
+        public static int ThreadCount
+        {
+            get { return threadCount; }
+        }
+
+        /// <summary>Отказов во всём процессе — для проб.</summary>
+        public static int ProcessCount
+        {
+            get { return System.Threading.Volatile.Read(ref processCount); }
+        }
+
+        /// <summary>
+        /// Отказ чтения базы. <paramref name="database"/> — имя файла
+        /// (`nucdb.sqlite`), <paramref name="key"/> — что читалось.
+        /// </summary>
+        public static void Note(string database, string key, Exception error)
+        {
+            threadCount++;
+            System.Threading.Interlocked.Increment(ref processCount);
+            string text = database + " (" + (key ?? string.Empty) + "): "
+                          + (error != null ? error.Message : string.Empty);
+            System.Diagnostics.Trace.WriteLine("FSA: отказ чтения базы — " + text);
+            List<string> sink = collected;
+            if (sink != null && sink.Count < MaxCollected && !sink.Contains(text))
+            {
+                sink.Add(text);
+            }
+        }
+
+        /// <summary>Открыть собиратель этого потока (вложенность не поддерживается: прежний сбрасывается).</summary>
+        public static void Begin()
+        {
+            collected = new List<string>();
+        }
+
+        /// <summary>Закрыть собиратель и забрать собранное; не было отказов — пустой список.</summary>
+        public static List<string> End()
+        {
+            List<string> sink = collected ?? new List<string>();
+            collected = null;
+            return sink;
         }
     }
 }

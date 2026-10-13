@@ -186,6 +186,130 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// ⛔ МОДЕЛЬ РАМПЫ ПОРОГА РЕГИСТРАЦИИ (`S204`, П187 → П189, 30.09.2026).
+    ///
+    /// У G1S рампа триггера (подошва около шестого канала, середина около
+    /// девятого–десятого, уровень с двенадцатого) шире границы правила пола
+    /// <see cref="FsaBand.ThresholdRampMaxKev"/>, и правило `A309` отступает к
+    /// первому каналу: рампа остаётся в фите, данные в ней подавлены, модель —
+    /// нет. NNLS тянул амплитуду вниз под подавленный K-рентген: Cd-109 на G1S
+    /// ×0.44 / 0.45 / 0.21 к паспорту (журнал П187). Решение Amber 30.09.2026
+    /// вопросником — моделировать подъём, а не поднимать пол.
+    /// </summary>
+    public enum FsaRampModel
+    {
+        /// <summary>Как было до `S204`: модель не умножается ни на что.</summary>
+        Off,
+
+        /// <summary>
+        /// Модель ниже верха рампы умножается на S(канал), измеренную по фону
+        /// (<see cref="FsaBand.PairRampProfile"/>); каналы не выбрасываются.
+        /// ⛔ (`S207`, П208; решение Amber 02.10.2026 «Среднее по каналу, допуск
+        /// 2 точек (Рекомендую)») S(канал) — СРЕДНЕЕ логистики по ширине канала,
+        /// подгонка допускает две точки, а обход рампы смотрит канал по его
+        /// нижнему краю: на 512 каналах рампа шириной в канал моделируется так
+        /// же, как на 1024.
+        /// ⛔ (`S207`, П217) Уровень, от которого берутся доли рампы, — среднее
+        /// отсчётов на канал в окне ЭНЕРГИИ над серединой рампы
+        /// (<see cref="FsaBand.RampLevelFromMidKev"/>,
+        /// <see cref="FsaBand.RampLevelWindowKev"/>), а не медиана окна в
+        /// каналах: на вдвое более крупных каналах прежнее окно (не меньше
+        /// четырёх каналов) было вдвое шире по энергии и на растущем фоне G1S
+        /// давало уровень на 15 % выше.
+        /// </summary>
+        Model,
+
+        /// <summary>
+        /// (`S207`, П217) Рычаг A/B: как <see cref="Model"/> до П217 — уровень
+        /// медианой окна правила `A309` за кандидатом (не меньше
+        /// <see cref="FsaBand.ThresholdMinWindowChannels"/> каналов).
+        /// </summary>
+        ModelMedian,
+
+        /// <summary>
+        /// (`S207`, П208) Рычаг A/B: модель как до `S207` — логистика в центре
+        /// канала, не меньше трёх точек, обход рампы по центру канала.
+        /// </summary>
+        Legacy,
+
+        /// <summary>
+        /// (`S207`, П208) Рычаг A/B: как <see cref="Model"/>, но середина и ширина —
+        /// подгонкой «линейный континуум × среднее логистики» по каналам до
+        /// <see cref="FsaBand.RampContinuumSpanKev"/> за пределом обхода, а не
+        /// по долям медианы окна уровня. От числа каналов почти не зависит, но
+        /// на растущем фоне G1S16 ставит середину на канал ниже правила
+        /// уровня (Cd-109 −41 % на малой базе; журнал П208) — не поставляется.
+        /// </summary>
+        ModelContinuum
+    }
+
+    /// <summary>
+    /// (`S207`, П208) Как ядро уширения образа берётся в канале —
+    /// <see cref="FsaAnalyzer.KernelChannelMean"/>.
+    /// </summary>
+    public enum FsaKernelSampling
+    {
+        /// <summary>Выборка профиля в центре канала (до `S207`).</summary>
+        Point,
+
+        /// <summary>Среднее профиля по ширине канала.</summary>
+        Mean
+    }
+
+    /// <summary>
+    /// (`S207`, П225) Как множитель рампы порога ложится на образ внутри канала —
+    /// <see cref="FsaAnalyzer.RampWithinChannel"/>.
+    /// </summary>
+    public enum FsaRampSampling
+    {
+        /// <summary>
+        /// Канал образа × среднее рампы по каналу (до П225): произведение
+        /// средних, ход образа внутри канала не виден.
+        /// </summary>
+        ChannelMean,
+
+        /// <summary>
+        /// Рампа применяется к образу на дробной сетке канала
+        /// (<see cref="FsaBand.RampProfile.SubBins"/> долей) ДО сведения в
+        /// канал: множитель — среднее рампы по каналу с весами самого образа.
+        /// </summary>
+        ImageWeighted
+    }
+
+    /// <summary>
+    /// (`AMBER142` п. 9, П215) Ноль шкалы у прохода привязки без плеча опор —
+    /// <see cref="FsaAnalyzer.AnchorNoLeverZero"/>.
+    /// </summary>
+    public enum FsaNoLeverZero
+    {
+        /// <summary>Ноль прежних проходов остаётся, усиление — вокруг нулевого канала (до П215).</summary>
+        Inherit,
+
+        /// <summary>Ноль прибора: шкала через нулевой канал, усиление — по опорам относительно него.</summary>
+        Instrument,
+
+        /// <summary>Усиление не трогается, опоры двигают ноль (плечо замера).</summary>
+        Shift
+    }
+
+    /// <summary>
+    /// (`AMBER155`, П229) Что делать со шкалой, когда в режиме кривой свет
+    /// снимается на проходе ПОСЛЕ прохода со светом (у опор пропало плечо,
+    /// <see cref="FsaAnalyzer.AnchorCurveLightLever"/>).
+    /// </summary>
+    public enum FsaCurveLightDrop
+    {
+        /// <summary>Ноль прохода со светом остаётся, усиление — по оставшимся опорам (до П229).</summary>
+        Inherit,
+
+        /// <summary>Шкала, ширина и фит — к началу привязки; привязка заново, свет до её конца снят.</summary>
+        Restart,
+
+        /// <summary>На проходе снятия — ноль прибора (шкала через нулевой канал); свет до конца привязки снят.</summary>
+        Instrument
+    }
+
+    /// <summary>
     /// Умолчание полосы — ОДНО на весь разбор, и печатается вслух.
     ///
     /// ⛔ Выбор сделан числами, а не вкусом; всё измерено 25.08.2026 по ПОНЯТНОЙ
@@ -282,8 +406,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// СЕЙЧАС, по той же причине, что и <see cref="ShippedMode"/>: без
         /// разделения строка «(умолчание)» врёт на всяком прогоне, где долю
         /// сдвинул ключ.
+        ///
+        /// ⛔ Поднята с прежней доли 1 % — решение Amber 28.09.2026 вопросником, дословно:
+        /// «Пол 10 % + слияние (Рекомендую)» (`AMBER129`, П164/П173). Доля 0.01
+        /// (`S98`, 27.08.2026) подбиралась по РЕДКИМ кривым: при узлах 10 и
+        /// 20 кэВ пол фактически стоял на узле 20. Кривые физики 24 (сетка ниже
+        /// 40 кэВ шагом матрицы, `AMBER95`) разрешили спад 10…20 кэВ, пол по
+        /// доле 1 % ушёл у точечных G1S на 14.6…15.4 кэВ, в библиотеку вошли
+        /// линии 14.6…17.3 кэВ (L-рентген Np, Sr K, L рядов), где модель плоха:
+        /// понятная часть корпуса +1.85 % Σχ² (476.48 → 485.27), Am-241 точечных
+        /// G1S на −9…−11 % от паспорта. Нынешняя доля (пол G1S 18.2…18.5 кэВ)
+        /// возвращает Am-241 к числам физики 23 и снимает с понятной части
+        /// −9.86 Σχ²/ndf (П173, база rev34c: 482.81 → 473.24).
+        /// ⚠ ЦЕНА (замер П173 по кривым корпуса физики 24,
+        /// `handover/handover-2026-09-28-p173-rev34-merge-prep.md`): у точечных
+        /// кривых CsI 1 см³ (RC-103, кристалл RC-101) пол 15.2…15.8 кэВ — Lα Np
+        /// 13.9 кэВ в разбор не входит (Lβ 16.8…17.8 и Lγ 20.8 входят); у
+        /// маринелли и торца RC-103 пол 29…31 кэВ — выше и линии Am-241 26.34 кэВ
+        /// (L-рентген Np там срезан уже при доле 1 %).
         /// </summary>
-        public const double ShippedFloorFraction = 0.01;
+        public const double ShippedFloorFraction = 0.10;
 
         /// <summary>
         /// Доля от максимума кривой, ниже которой линии не впускаются при
@@ -473,6 +615,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// K-рентгена Cd-109 на G1S стоит В этом подъёме с гауссовым нижним
         /// склоном, то есть подавления там нет. Граница стоит между тремя и
         /// десятью с запасом в полтора раза от AS80.
+        ///
+        /// ⚠ П187 30.09.2026 (`S204`): довод «у G1S не рампа, а поглощение, и
+        /// Cd-109 не подавлен» ОПРОВЕРГНУТ замером. Тот же подъём (подошва
+        /// около шестого канала, середина около девятого, уровень с
+        /// двенадцатого) стоит в КОМПТОНОВСКОМ континууме Co-60, Mn-54, Na-22
+        /// на обоих расстояниях и в фонах, а поглощение в корпусе МэВ-ным квантам
+        /// низ отложений не режет; середина одна у всех спектров эпохи
+        /// (G1S16 8.7…9.1, G1S24 9.8…10.2 канала) и ушла на канал вверх
+        /// при том же усилении — это рампа триггера, а не физика кристалла.
+        /// K-рентген Cd-109 в ней подавлен: разбор/паспорт 0.44 и 0.21 при
+        /// 88 кэВ на паспорте. Граница и правило ПОЛА оставлены как есть
+        /// (расширение ловит и RC103/RC101/OBS, а пол на верху рампы режет
+        /// K-рентген Ba/Ce) — решение Amber 30.09.2026 по `S204`: рампу шире
+        /// границы разбор МОДЕЛИРУЕТ (<see cref="FsaRampModel"/>,
+        /// <see cref="RampProfileOf"/>, П189), а не режет.
         /// </summary>
         public const double ThresholdRampMaxKev = 5.0;
 
@@ -569,7 +726,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// 4. Подошва рампы — первый канал с отсчётами не ниже
         ///    <see cref="ThresholdFootFraction"/> уровня; от подошвы до
         ///    кандидата шире <see cref="ThresholdRampMaxKev"/> — не рампа, а
-        ///    физика (поглощение окна у G1S, шумовой горб ASN16, горб RC103):
+        ///    физика (шумовой горб ASN16, горб RC103; у G1S это рампа триггера
+        ///    шире границы — П187, см. <see cref="ThresholdRampMaxKev"/>; её
+        ///    моделирует <see cref="RampProfileOf"/>, `S204`):
         ///    порог = <c>c0</c>.
         /// 5. В окне <see cref="ThresholdPersistWindowKev"/> за кандидатом
         ///    уровень падает ниже <see cref="ThresholdPersistFraction"/> от
@@ -586,10 +745,108 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static double AdcThresholdOf(int[] counts, EnergyCalibration calibration, out string how)
         {
+            // (`S204`, П189) Шаги 1–5 — общий обход <see cref="ScanRamp"/>: его
+            // же читает модель рампы (<see cref="RampProfileOf"/>), и второй
+            // копии правила, разошедшейся с первой молча, быть не должно (`S101`).
+            RampScan scan = ScanRamp(counts, calibration);
             how = "нет данных";
-            if (counts == null || calibration == null)
+            if (scan == null)
             {
                 return 0.0;
+            }
+
+            double e0 = scan.E0;
+            if (scan.Candidate < 0)
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "уровень не устоялся в {0:F0} кэВ от {1:F2} кэВ (растущий континуум) — порог по первому каналу",
+                    ThresholdScanKev, e0);
+                return e0;
+            }
+
+            if (scan.WidthKev > ThresholdRampMaxKev)
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "подъём {0:F2}→{1:F2} кэВ (от подошвы к уровню {2:F0}) шире рампы ({3:F0} кэВ) — порог по первому каналу {4:F2}",
+                    scan.FootKev, calibration.ChannelToEnergy(scan.Candidate), scan.Level, ThresholdRampMaxKev, e0);
+                return e0;
+            }
+
+            if (!scan.Persists)
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "подъём от {0:F2} кэВ кончается падением (пик на пороге) — порог по первому каналу",
+                    e0);
+                return e0;
+            }
+
+            if (scan.Candidate == scan.C0)
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "жёсткий рез {0:F2} кэВ (канал {1} уже на уровне {2:F0})", e0, scan.C0, scan.Level);
+                return e0;
+            }
+
+            int tail = (int)Math.Round(ThresholdTailShare * (scan.Candidate - scan.C0));
+            int top = Math.Min(counts.Length - 1, scan.Candidate + tail);
+            double kev = calibration.ChannelToEnergy(top);
+            how = string.Format(CultureInfo.InvariantCulture,
+                "рампа {0:F2}→{1:F2} кэВ (каналы {2}→{3}; подошва {4:F2}, середина в канале {5} при уровне {6:F0}, хвост {7})",
+                e0, kev, scan.C0, top, scan.FootKev, scan.Candidate, scan.Level, tail);
+            return kev;
+        }
+
+        /// <summary>
+        /// Обход правила порога (`A309`, шаги 1–5 описания
+        /// <see cref="AdcThresholdOf"/>) — ЧТО найдено, без решения, чем
+        /// порог взять. Одно место на оба читателя: пол полосы фита и модель
+        /// рампы (`S204`).
+        /// </summary>
+        sealed class RampScan
+        {
+            /// <summary>Первый канал с отсчётами на положительной энергии.</summary>
+            public int C0;
+
+            /// <summary>Его энергия, кэВ.</summary>
+            public double E0;
+
+            /// <summary>Кандидат — середина рампы; −1, если уровень не устоялся.</summary>
+            public int Candidate = -1;
+
+            /// <summary>Уровень — медиана окна за кандидатом.</summary>
+            public double Level;
+
+            /// <summary>Подошва рампы — канал и его энергия, кэВ.</summary>
+            public int Foot;
+
+            public double FootKev;
+
+            /// <summary>Ширина подъёма от подошвы до кандидата, кэВ.</summary>
+            public double WidthKev;
+
+            /// <summary>Уровень за кандидатом держится (шаг 5): не пик на пороге.</summary>
+            public bool Persists = true;
+        }
+
+        /// <summary>Шаги 1–5 правила порога; null — спектра, калибровки или отсчётов нет.</summary>
+        static RampScan ScanRamp(int[] counts, EnergyCalibration calibration)
+        {
+            return ScanRamp(counts, calibration, false);
+        }
+
+        /// <summary>
+        /// То же; <paramref name="byLowerEdge"/> (`S207`, путь модели рампы) — канал
+        /// идёт в обход, пока его НИЖНИЙ КРАЙ, а не центр, в пределах
+        /// <see cref="ThresholdScanKev"/> от первого канала: на крупных каналах
+        /// центр канала середины рампы выпадал за предел на полканала (G1S ×2:
+        /// фон «уровень не устоялся»). Правило пола (`A309`) обходит по центру,
+        /// как прежде.
+        /// </summary>
+        static RampScan ScanRamp(int[] counts, EnergyCalibration calibration, bool byLowerEdge)
+        {
+            if (counts == null || calibration == null)
+            {
+                return null;
             }
 
             int c0 = -1;
@@ -610,10 +867,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (c0 < 0)
             {
-                return 0.0;
+                return null;
             }
 
+            RampScan scan = new RampScan { C0 = c0 };
             double e0 = calibration.ChannelToEnergy(c0);
+            scan.E0 = e0;
             double pitch = c0 + 1 < counts.Length
                 ? calibration.ChannelToEnergy(c0 + 1) - e0
                 : 0.0;
@@ -629,6 +888,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             for (int c = c0; c < counts.Length; c++)
             {
                 double energy = calibration.ChannelToEnergy(c);
+                if (byLowerEdge && c > c0)
+                {
+                    energy = 0.5 * (energy + calibration.ChannelToEnergy(c - 1));
+                }
+
                 if (energy - e0 > ThresholdScanKev)
                 {
                     break;
@@ -652,27 +916,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (candidate < 0)
             {
-                how = string.Format(CultureInfo.InvariantCulture,
-                    "уровень не устоялся в {0:F0} кэВ от {1:F2} кэВ (растущий континуум) — порог по первому каналу",
-                    ThresholdScanKev, e0);
-                return e0;
+                return scan;
             }
 
+            scan.Candidate = candidate;
+            scan.Level = level;
             int foot = c0;
             while (foot < candidate && counts[foot] < ThresholdFootFraction * level)
             {
                 foot++;
             }
 
-            double footKev = calibration.ChannelToEnergy(foot);
-            double width = calibration.ChannelToEnergy(candidate) - footKev;
-            if (width > ThresholdRampMaxKev)
-            {
-                how = string.Format(CultureInfo.InvariantCulture,
-                    "подъём {0:F2}→{1:F2} кэВ (от подошвы к уровню {2:F0}) шире рампы ({3:F0} кэВ) — порог по первому каналу {4:F2}",
-                    footKev, calibration.ChannelToEnergy(candidate), level, ThresholdRampMaxKev, e0);
-                return e0;
-            }
+            scan.Foot = foot;
+            scan.FootKev = calibration.ChannelToEnergy(foot);
+            scan.WidthKev = calibration.ChannelToEnergy(candidate) - scan.FootKev;
 
             int persistWindow = window;
             if (pitch > 0.0 && !double.IsNaN(pitch) && !double.IsInfinity(pitch))
@@ -688,28 +945,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 least = Math.Min(least, counts[c]);
             }
 
-            if (least < ThresholdPersistFraction * counts[candidate])
-            {
-                how = string.Format(CultureInfo.InvariantCulture,
-                    "подъём от {0:F2} кэВ кончается падением (пик на пороге) — порог по первому каналу",
-                    e0);
-                return e0;
-            }
-
-            if (candidate == c0)
-            {
-                how = string.Format(CultureInfo.InvariantCulture,
-                    "жёсткий рез {0:F2} кэВ (канал {1} уже на уровне {2:F0})", e0, c0, level);
-                return e0;
-            }
-
-            int tail = (int)Math.Round(ThresholdTailShare * (candidate - c0));
-            int top = Math.Min(counts.Length - 1, candidate + tail);
-            double kev = calibration.ChannelToEnergy(top);
-            how = string.Format(CultureInfo.InvariantCulture,
-                "рампа {0:F2}→{1:F2} кэВ (каналы {2}→{3}; подошва {4:F2}, середина в канале {5} при уровне {6:F0}, хвост {7})",
-                e0, kev, c0, top, footKev, candidate, level, tail);
-            return kev;
+            scan.Persists = !(least < ThresholdPersistFraction * counts[candidate]);
+            return scan;
         }
 
         /// <summary>Медиана отсчётов каналов <c>[from, to)</c> — окно уровня правила порога.</summary>
@@ -821,6 +1058,973 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// ⛔ ЧТО ПОСТАВЛЯЕТСЯ МОДЕЛЬЮ РАМПЫ ПОРОГА (`S204`, П189) — отдельно от
+        /// того, что стоит СЕЙЧАС, по той же причине, что
+        /// <see cref="ShippedFitFloor"/>.
+        ///
+        /// Поставляется <see cref="FsaRampModel.Model"/> — решение Amber
+        /// 30.09.2026 вопросником, дословно: «Моделировать подъём порога
+        /// (Рекомендую)»: разбор мерит S(канал) по рампе фона правилом `A309` и
+        /// умножает на неё модель ниже верха рампы, каналы не выбрасываются.
+        /// Обратный ключ — <see cref="FsaRampModel.Off"/>: побитово прежний
+        /// разбор. Правило и доводы — у <see cref="RampProfileOf"/> и
+        /// <see cref="PairRampProfile"/>.
+        /// </summary>
+        public const FsaRampModel ShippedRampModel = FsaRampModel.Model;
+
+        /// <summary>
+        /// Моделируется ли рампа порога (`S204`); живёт ОДНОЙ статикой и
+        /// читается В МОМЕНТ ОБРАЩЕНИЯ — вторая копия повторила бы `S101`.
+        /// </summary>
+        public static FsaRampModel DefaultRampModel = ShippedRampModel;
+
+        /// <summary>
+        /// Нижняя граница доли уровня, с которой канал рампы идёт в подгонку
+        /// логистики (<see cref="RampProfileOf"/>). Ниже — единицы отсчётов
+        /// подошвы, у которых логит тонет в шуме; число — строкой ниже.
+        /// </summary>
+        public const double RampPointLowShare = 0.05;
+
+        /// <summary>
+        /// Верхняя граница доли уровня для подгонки логистики: у верха рампы
+        /// логит расходится, и доля, чуть большая единицы от шума уровня,
+        /// перевернула бы знак. Симметрична нижней.
+        /// </summary>
+        public const double RampPointHighShare = 1.0 - RampPointLowShare;
+
+        /// <summary>
+        /// Меньше стольких точек логистика не подгоняется: рампа тогда не
+        /// моделируется. У G1S точек пять–семь, у самого короткого фона
+        /// (первый канал уже на середине рампы) — три. ⛔ (`S207`, П208; решение
+        /// Amber вопросником, см. <see cref="FsaRampModel.Model"/>) Порог снижен
+        /// на единицу против прежнего правила (<see cref="RampMinPointsLegacy"/>):
+        /// на вдвое более крупных каналах рампа G1S шириной в канал даёт пару
+        /// точек, и без модели разбор зависел от числа каналов (журнал
+        /// `handover/handover-2026-10-01-p208-s207-channels.md`). Пара точек
+        /// проводит логистику через что угодно, поэтому середина обязана лечь
+        /// между ними с запасом в канал (шаг третий <see cref="RampProfileOf"/>),
+        /// как и прежде.
+        /// </summary>
+        public const int RampMinPoints = 2;
+
+        /// <summary>(`S207`) Порог точек прежнего правила (<see cref="FsaRampModel.Legacy"/>).</summary>
+        public const int RampMinPointsLegacy = 3;
+
+        /// <summary>(`S207`) Действует прежнее правило рампы (рычаг A/B).</summary>
+        static bool RampLegacy
+        {
+            get { return DefaultRampModel == FsaRampModel.Legacy; }
+        }
+
+        /// <summary>
+        /// ВЕРХ РАМПЫ МОДЕЛИ — доля уровня, выше которой множитель считается
+        /// единицей и модель не трогается. Ступенька модели на верху рампы
+        /// поэтому не больше дополнения этой доли до единицы, а выше верха
+        /// разбор побитово прежний. Число — строкой ниже.
+        /// </summary>
+        public const double RampTopShare = 0.999;
+
+        /// <summary>
+        /// ⛔ ФОРМА РАМПЫ ПОРОГА В КАНАЛАХ, измеренная по спектру (`S204`, П189):
+        /// S(c) = 1 / (1 + exp(−(c − <see cref="Mid"/>) / <see cref="Width"/>))
+        /// для каналов ниже <see cref="Top"/>, единица — выше. Канал — номер
+        /// канала АЦП, а не энергия: рампа — свойство триггера (П187 §3: одна
+        /// середина у всех спектров эпохи прибора, у фонов и у континуума
+        /// МэВ-ных линий на 5 и 25 см), поэтому переносится с фона на пробу по
+        /// НОМЕРУ канала, а не перекладкой по энергии.
+        /// </summary>
+        public sealed class RampProfile
+        {
+            /// <summary>Середина рампы, канал (дробный).</summary>
+            public double Mid;
+
+            /// <summary>Ширина логистики, каналов.</summary>
+            public double Width;
+
+            /// <summary>Первый канал, где множитель уже единица.</summary>
+            public int Top;
+
+            /// <summary>Точек в подгонке и уровень, по которому они взяты.</summary>
+            public int Points;
+
+            public double Level;
+
+            /// <summary>Чей спектр дал рампу: «фон» или «проба».</summary>
+            public string Source;
+
+            /// <summary>
+            /// (`S207`) Множитель — среднее логистики по ширине канала
+            /// (<see cref="MeanLogistic"/>); ложь — значение в центре (прежнее).
+            /// </summary>
+            public bool Mean;
+
+            double[] values;
+
+            /// <summary>Множитель канала <paramref name="channel"/>.</summary>
+            public double At(int channel)
+            {
+                if (channel >= this.Top)
+                {
+                    return 1.0;
+                }
+
+                return this.Mean
+                    ? MeanLogistic(channel, this.Mid, this.Width)
+                    : 1.0 / (1.0 + Math.Exp(-(channel - this.Mid) / this.Width));
+            }
+
+            /// <summary>
+            /// Умножить кривую на множитель рампы — на месте, только каналы
+            /// ниже <see cref="Top"/>; выше кривая не трогается ни в одном бите.
+            /// </summary>
+            public void Apply(double[] curve)
+            {
+                if (curve == null)
+                {
+                    return;
+                }
+
+                // (`AMBER213`, П241) Таблица множителей публикуется ЗАПОЛНЕННОЙ:
+                // рампу читают параллельные уширения образов, и поток, увидевший
+                // недозаполненную таблицу, умножил бы на нули. Посчитают двое —
+                // значения те же (чистая функция канала).
+                double[] table = System.Threading.Volatile.Read(ref this.values);
+                if (table == null)
+                {
+                    table = new double[Math.Max(0, this.Top)];
+                    for (int c = 0; c < table.Length; c++)
+                    {
+                        table[c] = this.At(c);
+                    }
+
+                    System.Threading.Volatile.Write(ref this.values, table);
+                }
+
+                int n = Math.Min(curve.Length, table.Length);
+                for (int c = 0; c < n; c++)
+                {
+                    curve[c] *= table[c];
+                }
+            }
+
+            /// <summary>
+            /// ⛔ (`S207`, П225) Долей канала в дробной сетке рампы
+            /// (<see cref="FsaRampSampling.ImageWeighted"/>). Отсчёт канала —
+            /// ∫ T(x)·S(x) dx по каналу, а не (∫T)·(∫S): на вдвое более крупном
+            /// канале разница — ½(T₁ − T₂)(S₁ − S₂) двух его половин, и там, где
+            /// у образа в рампе крутая структура (K-рентген у 30…45 кэВ), копия
+            /// модели, укрупнённая ×2, расходилась с моделью ×2 (П217: χ² блока
+            /// 0–100 кэВ 83 против 1 без рампы). На дробной сетке остаток
+            /// ковариации внутри доли ~h²/12 — при K долях в K² раз меньше.
+            /// </summary>
+            public const int SubBins = 16;
+
+            double[] fine;
+
+            /// <summary>
+            /// (`S207`, П225) Множитель рампы на доле канала: элемент
+            /// [c·<see cref="SubBins"/> + j] — среднее логистики по доле j канала
+            /// c (c ниже <see cref="Top"/>). Среднее долей канала — ровно
+            /// <see cref="At"/> того же канала (интеграл аддитивен).
+            /// </summary>
+            double[] Fine()
+            {
+                // (`AMBER213`, П241) публикуется заполненной — см. <see cref="Apply"/>
+                double[] ready = System.Threading.Volatile.Read(ref this.fine);
+                if (ready != null)
+                {
+                    return ready;
+                }
+
+                {
+                    double[] f = new double[Math.Max(0, this.Top) * SubBins];
+                    double h = 1.0 / SubBins;
+                    for (int c = 0; c < this.Top; c++)
+                    {
+                        for (int j = 0; j < SubBins; j++)
+                        {
+                            double x0 = c - 0.5 + j * h;
+                            f[c * SubBins + j] = MeanLogisticOver(x0, x0 + h, this.Mid, this.Width);
+                        }
+                    }
+
+                    System.Threading.Volatile.Write(ref this.fine, f);
+                    return f;
+                }
+            }
+
+            /// <summary>
+            /// (`S207`, П225) Множитель канала <paramref name="channel"/> для
+            /// образа, распределённого внутри канала по весам
+            /// <paramref name="weights"/>[<paramref name="offset"/> … +
+            /// <see cref="SubBins"/> − 1] (значения профиля в центрах долей): Σ wⱼSⱼ / Σ wⱼ.
+            /// Выше <see cref="Top"/> — единица; веса пусты — среднее по каналу
+            /// (<see cref="At"/>).
+            /// </summary>
+            public double Weighted(int channel, double[] weights, int offset)
+            {
+                if (channel >= this.Top || channel < 0)
+                {
+                    return channel >= this.Top ? 1.0 : this.At(channel);
+                }
+
+                double[] f = this.Fine();
+                int k = channel * SubBins;
+                double sw = 0.0, sws = 0.0;
+                for (int j = 0; j < SubBins; j++)
+                {
+                    double w = weights[offset + j];
+                    sw += w;
+                    sws += w * f[k + j];
+                }
+
+                return sw > 0.0 && !double.IsInfinity(sw) ? sws / sw : this.At(channel);
+            }
+
+            /// <summary>(`S207`, П225) Множитель доли <paramref name="sub"/> канала <paramref name="channel"/> (ниже <see cref="Top"/>).</summary>
+            public double FineAt(int channel, int sub)
+            {
+                return this.Fine()[channel * SubBins + sub];
+            }
+
+            /// <summary>Словами — для заверения.</summary>
+            public string Describe()
+            {
+                return string.Format(CultureInfo.InvariantCulture,
+                    "по {0}: середина {1:F2} канала, ширина {2:F2} канала, до канала {3} ({4} точек при уровне {5:F0})",
+                    this.Source, this.Mid, this.Width, this.Top, this.Points, this.Level);
+            }
+        }
+
+        /// <summary>
+        /// (`S207`, П208) Среднее логистики 1/(1 + exp(−(x − m)/w)) по каналу
+        /// [c − ½, c + ½]: w·[ln(1 + e^((c+½−m)/w)) − ln(1 + e^((c−½−m)/w))].
+        /// Отсчёт канала — интеграл по каналу, и сумма двух соседних каналов
+        /// здесь ровно равна каналу вдвое шире с той же рампой в его единицах.
+        /// </summary>
+        static double MeanLogistic(double channel, double mid, double width)
+        {
+            if (!(width > 0.0))
+            {
+                return channel - 0.5 >= mid ? 1.0 : channel + 0.5 <= mid ? 0.0 : channel + 0.5 - mid;
+            }
+
+            double v = width * (Softplus((channel + 0.5 - mid) / width) - Softplus((channel - 0.5 - mid) / width));
+            return Math.Max(0.0, Math.Min(1.0, v));
+        }
+
+        /// <summary>
+        /// (`S207`, П225) Среднее логистики по отрезку [x0, x1] канальной
+        /// координаты — то же, что <see cref="MeanLogistic"/>, но для доли канала.
+        /// </summary>
+        static double MeanLogisticOver(double x0, double x1, double mid, double width)
+        {
+            double len = x1 - x0;
+            if (!(len > 0.0))
+            {
+                return 0.0;
+            }
+
+            if (!(width > 0.0))
+            {
+                return x0 >= mid ? 1.0 : x1 <= mid ? 0.0 : (x1 - mid) / len;
+            }
+
+            double v = width * (Softplus((x1 - mid) / width) - Softplus((x0 - mid) / width)) / len;
+            return Math.Max(0.0, Math.Min(1.0, v));
+        }
+
+        /// <summary>ln(1 + eˣ) без переполнения.</summary>
+        static double Softplus(double x)
+        {
+            return x > 30.0 ? x : x < -30.0 ? Math.Exp(x) : Math.Log(1.0 + Math.Exp(x));
+        }
+
+        /// <summary>logit без бесконечностей (доля зажата в [1e-9, 1 − 1e-9]).</summary>
+        static double Logit(double s)
+        {
+            s = Math.Max(1e-9, Math.Min(1.0 - 1e-9, s));
+            return Math.Log(s / (1.0 - s));
+        }
+
+        /// <summary>
+        /// ⛔ РАМПА ПОРОГА ОДНОГО СПЕКТРА, которую правило `A309` видит, но в пол
+        /// не берёт (`S204`, П189). Возвращает null — рампы для модели нет, и
+        /// разбор побитово прежний.
+        ///
+        /// Правило, шаги поверх обхода <see cref="ScanRamp"/> (шаги 1–5
+        /// описания <see cref="AdcThresholdOf"/>):
+        ///
+        /// 1. Кандидат найден, подъём от подошвы до кандидата ШИРЕ
+        ///    <see cref="ThresholdRampMaxKev"/>, уровень за кандидатом держится
+        ///    (не пик на пороге) и кандидат выше первого канала (не жёсткий
+        ///    рез). То есть ровно тот случай, где правило `A309` отступило к
+        ///    первому каналу из-за ширины: рампу уже границы оно режет полом
+        ///    само, и модель там не нужна — каналов ниже пола в фите нет. Так
+        ///    AS80, AS1Pro, ASN8, ASN16 и HPGe не трогаются вовсе.
+        /// 2. Точки — каналы от первого ненулевого до верха рампы по правилу
+        ///    (кандидат плюс хвост <see cref="ThresholdTailShare"/>), у которых
+        ///    доля уровня правила строго между <see cref="RampPointLowShare"/>
+        ///    и <see cref="RampPointHighShare"/>; уровень — тот же, что у
+        ///    правила (медиана окна за кандидатом). По ним — прямая логита
+        ///    ln(s/(1−s)) против номера канала, веса пуассоновские
+        ///    n·(1−s)² (дисперсия логита при n отсчётах в канале).
+        /// 3. Точек меньше <see cref="RampMinPoints"/>, наклон не
+        ///    положителен или середина вне каналов точек с запасом в канал —
+        ///    рампы нет.
+        /// 4. Верх рампы модели — первый канал, где логистика достигает
+        ///    <see cref="RampTopShare"/>.
+        ///
+        /// ⚠ Уровень правила, а не «уровень выше верха рампы»: замер П189 по
+        /// корпусу — за рампой G1S континуум фона продолжает расти, и
+        /// уточнение уровня по каналам над верхом рампы расходилось (у фона
+        /// «открытый» G1S16 середина 8.86 → 14.9 канала за три прохода), а
+        /// уровень правила давал одну середину у фонов и у континуума Co-60 и
+        /// Na-22 той же эпохи (8.7…8.9 у G1S16, 9.7…10.2 у G1S24;
+        /// журнал `handover/handover-2026-09-30-p189-s204-ramp.md`).
+        /// </summary>
+        public static RampProfile RampProfileOf(int[] counts, EnergyCalibration calibration, out string how)
+        {
+            how = "нет данных";
+            RampScan scan = ScanRamp(counts, calibration, !RampLegacy);
+            if (scan == null)
+            {
+                return null;
+            }
+
+            if (scan.Candidate < 0)
+            {
+                how = "уровень не устоялся — рампы нет";
+                return null;
+            }
+
+            if (!(scan.WidthKev > ThresholdRampMaxKev))
+            {
+                how = scan.Candidate == scan.C0
+                    ? "жёсткий рез — рампы нет"
+                    : "рампа не шире границы — её режет пол";
+                return null;
+            }
+
+            if (!scan.Persists)
+            {
+                how = "подъём кончается падением (пик на пороге) — рампу не мерить";
+                return null;
+            }
+
+            if (scan.Candidate == scan.C0 || !(scan.Level > 0.0))
+            {
+                how = "жёсткий рез — рампы нет";
+                return null;
+            }
+
+            int tail = (int)Math.Round(ThresholdTailShare * (scan.Candidate - scan.C0));
+            int top = Math.Min(counts.Length - 1, scan.Candidate + tail);
+            double sw = 0.0;
+            double sx = 0.0;
+            double sy = 0.0;
+            int points = 0;
+            int first = int.MaxValue;
+            int last = -1;
+            for (int c = scan.C0; c <= top; c++)
+            {
+                double s = counts[c] / scan.Level;
+                if (!(s > RampPointLowShare && s < RampPointHighShare))
+                {
+                    continue;
+                }
+
+                double w = counts[c] * (1.0 - s) * (1.0 - s);
+                sw += w;
+                sx += w * c;
+                sy += w * Math.Log(s / (1.0 - s));
+                points++;
+                first = Math.Min(first, c);
+                last = Math.Max(last, c);
+            }
+
+            int minPoints = RampLegacy ? RampMinPointsLegacy : RampMinPoints;
+            if (points < minPoints || !(sw > 0.0))
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "точек рампы {0} — меньше {1}, логистику не подогнать", points, minPoints);
+                return null;
+            }
+
+            double mx = sx / sw;
+            double my = sy / sw;
+            double sxx = 0.0;
+            double sxy = 0.0;
+            for (int c = scan.C0; c <= top; c++)
+            {
+                double s = counts[c] / scan.Level;
+                if (!(s > RampPointLowShare && s < RampPointHighShare))
+                {
+                    continue;
+                }
+
+                double w = counts[c] * (1.0 - s) * (1.0 - s);
+                sxx += w * (c - mx) * (c - mx);
+                sxy += w * (c - mx) * (Math.Log(s / (1.0 - s)) - my);
+            }
+
+            double slope = sxx > 0.0 ? sxy / sxx : 0.0;
+            if (!(slope > 0.0) || double.IsInfinity(slope))
+            {
+                how = "наклон логита не положителен — рампы нет";
+                return null;
+            }
+
+            double mid = mx - my / slope;
+            double width = 1.0 / slope;
+            if (!RampLegacy)
+            {
+                // (`S207`) прямая логита — только старт: модель — среднее
+                // логистики по каналу, её логит по номеру канала не прямая, и
+                // середина с шириной уточняются по тем же точкам и весам
+                // (RefineMeanRampByShares) или, рычагом ModelContinuum, подгонкой
+                // «континуум × среднее логистики» (RefineMeanRamp)
+                if (DefaultRampModel == FsaRampModel.ModelContinuum)
+                {
+                    RefineMeanRamp(counts, calibration, scan.C0, ref mid, ref width);
+                }
+                else
+                {
+                    RefineMeanRampByShares(counts, scan.C0, top, scan.Level, ref mid, ref width);
+                }
+            }
+
+            double level = scan.Level;
+            if (DefaultRampModel == FsaRampModel.Model)
+            {
+                // (`S207`, П217) уровень — среднее в окне энергии над серединой
+                // (RampLevelOf), середина и ширина — по долям ЭТОГО уровня; окно
+                // привязано к середине, и обе величины уточняются вместе до
+                // неподвижной точки. Привязка только к середине (не к ширине):
+                // окно, привязанное к ширине, на крупных каналах RC-103 сползало
+                // внутрь рампы вместе с сужающейся логистикой (замер П217)
+                for (int iter = 0; iter < RampLevelIterations; iter++)
+                {
+                    double next = RampLevelOf(counts, calibration, mid);
+                    if (!(next > 0.0) || double.IsInfinity(next))
+                    {
+                        how = string.Format(CultureInfo.InvariantCulture,
+                            "уровень в окне {0:F0}…{1:F0} кэВ над серединой {2:F2} канала не измерить — рампы нет",
+                            RampLevelFromMidKev, RampLevelFromMidKev + RampLevelWindowKev, mid);
+                        return null;
+                    }
+
+                    level = next;
+                    double m = mid, w = width;
+                    RefineMeanRampByShares(counts, scan.C0, top, level, ref m, ref w);
+                    bool settled = Math.Abs(m - mid) < 1e-7 && Math.Abs(w - width) < 1e-7;
+                    mid = m;
+                    width = w;
+                    if (settled)
+                    {
+                        break;
+                    }
+                }
+
+                points = RampPointsOf(counts, scan.C0, top, level, out first, out last);
+                if (points < minPoints)
+                {
+                    how = string.Format(CultureInfo.InvariantCulture,
+                        "точек рампы {0} при уровне окна {1:F0} — меньше {2}, логистику не подогнать", points, level, minPoints);
+                    return null;
+                }
+            }
+
+            if (!(mid >= first - 1.0 && mid <= last + 1.0))
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "середина {0:F2} вне каналов точек {1}…{2} — рампы нет", mid, first, last);
+                return null;
+            }
+
+            int topModel;
+            if (RampLegacy)
+            {
+                topModel = (int)Math.Ceiling(mid + width * Math.Log(RampTopShare / (1.0 - RampTopShare)));
+            }
+            else
+            {
+                topModel = Math.Max(0, (int)Math.Floor(mid));
+                while (topModel < counts.Length && MeanLogistic(topModel, mid, width) < RampTopShare)
+                {
+                    topModel++;
+                }
+            }
+
+            RampProfile profile = new RampProfile
+            {
+                Mid = mid,
+                Width = width,
+                Top = Math.Max(0, Math.Min(counts.Length, topModel)),
+                Points = points,
+                Level = level,
+                Mean = !RampLegacy
+            };
+            how = "рампа шире границы";
+            return profile;
+        }
+
+        /// <summary>
+        /// (`S207`, П217) Окно уровня модели рампы начинается на столько кэВ выше
+        /// середины рампы. Число взято так, чтобы на родной шкале приборов, у
+        /// которых рампа моделируется (G1S16, G1S24, RC-103 — около трёх кэВ на
+        /// канал), окно легло туда же, где лежало прежнее окно правила `A309`
+        /// (четыре канала от канала за кандидатом): там его начало стояло на
+        /// 4.2…5.4 кэВ выше середины — замер П217 по фонам корпуса с рампой
+        /// (журнал `handover/handover-2026-10-02-p217-s207-ramp-level.md`).
+        /// Пять кэВ — это и верх ширины рампы <see cref="ThresholdRampMaxKev"/>:
+        /// середина плюс пять кэВ у рампы триггера — уже уровень.
+        /// </summary>
+        public const double RampLevelFromMidKev = 5.0;
+
+        /// <summary>
+        /// (`S207`, П217) Ширина окна уровня модели рампы, кэВ: четыре канала по
+        /// три кэВ — прежнее окно на родной шкале тех же приборов. В энергии, а
+        /// не в каналах, потому что именно окно в каналах (не меньше
+        /// <see cref="ThresholdMinWindowChannels"/>) на вдвое более крупных каналах
+        /// уезжало вдвое дальше по растущему фону. Отсчётов в окне столько же
+        /// при любом числе каналов, поэтому шум уровня от укрупнения не растёт и
+        /// пол в каналах ему не нужен.
+        /// </summary>
+        public const double RampLevelWindowKev = 12.0;
+
+        /// <summary>(`S207`, П217) Предел проходов «уровень ↔ середина» модели рампы.</summary>
+        const int RampLevelIterations = 50;
+
+        /// <summary>
+        /// (`S207`, П217) Уровень модели рампы — среднее отсчётов на канал в окне
+        /// энергии [E(<paramref name="mid"/>) + <see cref="RampLevelFromMidKev"/>,
+        /// + <see cref="RampLevelWindowKev"/>]. Края окна дробные: накопленные
+        /// отсчёты внутри канала — линейно (отсчёт канала — интеграл по каналу,
+        /// плотность в канале постоянна), так что сумма двух соседних каналов даёт
+        /// ровно то же накопленное на общих краях, и уровень на вдвое более
+        /// крупных каналах вдвое больше. Среднее, а не медиана: медиана дробного
+        /// окна от числа каналов зависит. Возвращает NaN, если окно не
+        /// помещается в спектр или шкала в нём не растёт.
+        /// </summary>
+        static double RampLevelOf(int[] counts, EnergyCalibration calibration, double mid)
+        {
+            double eMid = calibration.ChannelToEnergy(Math.Max(0.0, mid));
+            double xa = ChannelAtEnergy(counts.Length, calibration, eMid + RampLevelFromMidKev);
+            double xb = ChannelAtEnergy(counts.Length, calibration, eMid + RampLevelFromMidKev + RampLevelWindowKev);
+            if (double.IsNaN(xa) || double.IsNaN(xb) || !(xb > xa))
+            {
+                return double.NaN;
+            }
+
+            return (CumulativeCountsAt(counts, xb) - CumulativeCountsAt(counts, xa)) / (xb - xa);
+        }
+
+        /// <summary>
+        /// Дробный канал (центр канала c — координата c) с энергией
+        /// <paramref name="energy"/>: деление пополам по [0, n − ½] — шкала
+        /// монотонна, а <see cref="EnergyCalibration.EnergyToChannel"/> держит
+        /// состояние (кэш, предел каналов) и из обхода не зовётся. NaN — энергия
+        /// вне шкалы.
+        /// </summary>
+        static double ChannelAtEnergy(int n, EnergyCalibration calibration, double energy)
+        {
+            double lo = 0.0, hi = n - 0.5;
+            double elo = calibration.ChannelToEnergy(lo), ehi = calibration.ChannelToEnergy(hi);
+            if (!(energy >= elo && energy <= ehi))
+            {
+                return double.NaN;
+            }
+
+            for (int i = 0; i < 64; i++)
+            {
+                double x = 0.5 * (lo + hi);
+                if (calibration.ChannelToEnergy(x) < energy)
+                {
+                    lo = x;
+                }
+                else
+                {
+                    hi = x;
+                }
+            }
+
+            return 0.5 * (lo + hi);
+        }
+
+        /// <summary>
+        /// Накопленные отсчёты от нижнего края канала 0 (координата −½) до
+        /// дробной координаты <paramref name="x"/>; внутри канала — линейно.
+        /// </summary>
+        static double CumulativeCountsAt(int[] counts, double x)
+        {
+            if (!(x > -0.5))
+            {
+                return 0.0;
+            }
+
+            int c = (int)Math.Floor(x + 0.5);
+            double sum = 0.0;
+            int full = Math.Min(c, counts.Length);
+            for (int i = 0; i < full; i++)
+            {
+                sum += counts[i];
+            }
+
+            if (c < counts.Length)
+            {
+                sum += (x + 0.5 - c) * counts[c];
+            }
+
+            return sum;
+        }
+
+        /// <summary>
+        /// Точки подгонки рампы при уровне <paramref name="level"/> — каналы
+        /// <c>[from, to]</c> с долей строго между <see cref="RampPointLowShare"/> и
+        /// <see cref="RampPointHighShare"/>; первый и последний из них.
+        /// </summary>
+        static int RampPointsOf(int[] counts, int from, int to, double level, out int first, out int last)
+        {
+            int points = 0;
+            first = int.MaxValue;
+            last = -1;
+            for (int c = from; c <= to; c++)
+            {
+                double s = counts[c] / level;
+                if (!(s > RampPointLowShare && s < RampPointHighShare))
+                {
+                    continue;
+                }
+
+                points++;
+                first = Math.Min(first, c);
+                last = Math.Max(last, c);
+            }
+
+            return points;
+        }
+
+        /// <summary>
+        /// (`S207`, П208) Середина и ширина рампы по точкам <see cref="RampProfileOf"/>
+        /// (доля уровня строго между <see cref="RampPointLowShare"/> и
+        /// <see cref="RampPointHighShare"/>, веса n·(1 − s)²) для модели «среднее
+        /// логистики по каналу»: МНК в логитах Гауссом — Ньютоном по (m, ln w) от
+        /// старта прямой логита; при паре точек — точное решение. Не сошлось
+        /// или ушло в нечисла — старт остаётся.
+        /// </summary>
+        static void RefineMeanRampByShares(int[] counts, int from, int to, double level, ref double mid, ref double width)
+        {
+            double m = mid, lw = Math.Log(Math.Max(width, 1e-3));
+            for (int iter = 0; iter < 50; iter++)
+            {
+                double a11 = 0.0, a12 = 0.0, a22 = 0.0, b1 = 0.0, b2 = 0.0;
+                double w = Math.Exp(lw);
+                for (int c = from; c <= to; c++)
+                {
+                    double s = counts[c] / level;
+                    if (!(s > RampPointLowShare && s < RampPointHighShare))
+                    {
+                        continue;
+                    }
+
+                    double wt = counts[c] * (1.0 - s) * (1.0 - s);
+                    double f = Logit(MeanLogistic(c, m, w));
+                    double r = Logit(s) - f;
+                    const double h = 1e-5;
+                    double dm = (Logit(MeanLogistic(c, m + h, w)) - f) / h;
+                    double dl = (Logit(MeanLogistic(c, m, Math.Exp(lw + h))) - f) / h;
+                    a11 += wt * dm * dm;
+                    a12 += wt * dm * dl;
+                    a22 += wt * dl * dl;
+                    b1 += wt * dm * r;
+                    b2 += wt * dl * r;
+                }
+
+                double det = a11 * a22 - a12 * a12;
+                if (!(Math.Abs(det) > 1e-300))
+                {
+                    return;
+                }
+
+                double sm = (a22 * b1 - a12 * b2) / det;
+                double sl = (a11 * b2 - a12 * b1) / det;
+                sm = Math.Max(-1.0, Math.Min(1.0, sm));
+                sl = Math.Max(-1.0, Math.Min(1.0, sl));
+                m += sm;
+                lw += sl;
+                if (double.IsNaN(m) || double.IsNaN(lw))
+                {
+                    return;
+                }
+
+                if (Math.Abs(sm) < 1e-9 && Math.Abs(sl) < 1e-9)
+                {
+                    break;
+                }
+            }
+
+            mid = m;
+            width = Math.Exp(Math.Max(lw, Math.Log(1e-3)));
+        }
+
+        /// <summary>
+        /// (`S207`, П208) Сколько кэВ сверх <see cref="ThresholdScanKev"/> от
+        /// первого канала берёт подгонка рампы модели (<see cref="RefineMeanRamp"/>):
+        /// континуум за рампой нужен ей на ширину, где линейная прямая ещё
+        /// держит фон, — тогда уровень берётся подгонкой, а не медианой окна,
+        /// чья ширина задана в каналах. Число — строкой ниже; замер — журнал
+        /// `handover/handover-2026-10-01-p208-s207-channels.md`.
+        /// </summary>
+        public const double RampContinuumSpanKev = 25.0;
+
+        /// <summary>
+        /// (`S207`, П208) Середина и ширина рампы для рычага
+        /// <see cref="FsaRampModel.ModelContinuum"/>: подгонка y(c) ≈ S̄(c; m, w)·(a + b·(c − c₀)) по каналам от
+        /// первого с отсчётами до того, чей нижний край отстоит от него не больше
+        /// чем на <see cref="ThresholdScanKev"/> + <see cref="RampContinuumSpanKev"/>,
+        /// веса пуассоновские по данным. a и b — линейно при каждых (m, w), (m, ln w)
+        /// — Левенбергом — Марквардтом от старта прямой логита. Прежняя середина
+        /// по долям от МЕДИАНЫ окна уровня зависела от числа каналов: окно —
+        /// не меньше <see cref="ThresholdMinWindowChannels"/> каналов, на вдвое
+        /// более крупных каналах оно вдвое шире по энергии и на растущем
+        /// континууме фона G1S давало уровень на 15 % выше (середина 4.88 вместо
+        /// 4.60 канала). Не сошлось или ушло в нечисла — остаётся старт.
+        /// </summary>
+        static void RefineMeanRamp(int[] counts, EnergyCalibration calibration, int c0,
+                                   ref double mid, ref double width)
+        {
+            double e0 = calibration.ChannelToEnergy(c0);
+            int hi = c0;
+            while (hi + 1 < counts.Length
+                   && 0.5 * (calibration.ChannelToEnergy(hi) + calibration.ChannelToEnergy(hi + 1)) - e0
+                      <= ThresholdScanKev + RampContinuumSpanKev)
+            {
+                hi++;
+            }
+
+            int n = hi - c0 + 1;
+            if (n < 5)
+            {
+                return;
+            }
+
+            double[] y = new double[n];
+            double[] wt = new double[n];
+            for (int k = 0; k < n; k++)
+            {
+                y[k] = counts[c0 + k];
+                wt[k] = 1.0 / Math.Max(y[k], 1.0);
+            }
+
+            double m = mid, lw = Math.Log(Math.Max(width, 1e-3));
+            double lambda = 1e-3;
+            double cost = RampCost(y, wt, c0, m, lw, null);
+            if (double.IsNaN(cost))
+            {
+                return;
+            }
+
+            double[] r0 = new double[n], rm = new double[n], rl = new double[n];
+            for (int iter = 0; iter < 100; iter++)
+            {
+                const double h = 1e-6;
+                RampCost(y, wt, c0, m, lw, r0);
+                RampCost(y, wt, c0, m + h, lw, rm);
+                RampCost(y, wt, c0, m, lw + h, rl);
+                double a11 = 0.0, a12 = 0.0, a22 = 0.0, b1 = 0.0, b2 = 0.0;
+                for (int k = 0; k < n; k++)
+                {
+                    double jm = (rm[k] - r0[k]) / h, jl = (rl[k] - r0[k]) / h;
+                    a11 += jm * jm;
+                    a12 += jm * jl;
+                    a22 += jl * jl;
+                    b1 -= jm * r0[k];
+                    b2 -= jl * r0[k];
+                }
+
+                bool improved = false;
+                for (int tries = 0; tries < 20 && !improved; tries++)
+                {
+                    double d11 = a11 * (1.0 + lambda), d22 = a22 * (1.0 + lambda);
+                    double det = d11 * d22 - a12 * a12;
+                    if (!(det > 0.0))
+                    {
+                        lambda *= 10.0;
+                        continue;
+                    }
+
+                    double sm = (d22 * b1 - a12 * b2) / det;
+                    double sl = (d11 * b2 - a12 * b1) / det;
+                    double trial = RampCost(y, wt, c0, m + sm, lw + sl, null);
+                    if (trial < cost)
+                    {
+                        improved = true;
+                        bool done = Math.Abs(sm) < 1e-7 && Math.Abs(sl) < 1e-7;
+                        m += sm;
+                        lw += sl;
+                        cost = trial;
+                        lambda = Math.Max(1e-9, lambda * 0.3);
+                        if (done)
+                        {
+                            iter = 100;
+                        }
+                    }
+                    else
+                    {
+                        lambda *= 10.0;
+                    }
+                }
+
+                if (!improved)
+                {
+                    break;
+                }
+            }
+
+            if (double.IsNaN(m) || double.IsNaN(lw))
+            {
+                return;
+            }
+
+            mid = m;
+            width = Math.Exp(Math.Max(lw, Math.Log(1e-3)));
+        }
+
+        /// <summary>
+        /// (`S207`) Взвешенный χ² подгонки рампы при данных (m, ln w): a и b
+        /// линейным МНК; <paramref name="residuals"/> (если не null) — взвешенные
+        /// невязки каналов.
+        /// </summary>
+        static double RampCost(double[] y, double[] wt, int c0, double m, double lw, double[] residuals)
+        {
+            double w = Math.Exp(lw);
+            int n = y.Length;
+            double s00 = 0.0, s01 = 0.0, s11 = 0.0, t0 = 0.0, t1 = 0.0;
+            for (int k = 0; k < n; k++)
+            {
+                double s = MeanLogistic(c0 + k, m, w);
+                double u0 = s, u1 = s * k;
+                s00 += wt[k] * u0 * u0;
+                s01 += wt[k] * u0 * u1;
+                s11 += wt[k] * u1 * u1;
+                t0 += wt[k] * u0 * y[k];
+                t1 += wt[k] * u1 * y[k];
+            }
+
+            double det = s00 * s11 - s01 * s01;
+            if (!(det > 0.0))
+            {
+                return double.NaN;
+            }
+
+            double a = (s11 * t0 - s01 * t1) / det;
+            double b = (s00 * t1 - s01 * t0) / det;
+            double cost = 0.0;
+            for (int k = 0; k < n; k++)
+            {
+                double r = Math.Sqrt(wt[k]) * (y[k] - MeanLogistic(c0 + k, m, w) * (a + b * k));
+                if (residuals != null)
+                {
+                    residuals[k] = r;
+                }
+
+                cost += r * r;
+            }
+
+            return cost;
+        }
+
+        /// <summary>
+        /// ⛔ РАМПА ПОРОГА ДЛЯ РАЗБОРА (`S204`, П189): по ФОНУ, если он подан и
+        /// взят разбором, по пробе — если фона нет (решение Amber 30.09.2026).
+        /// Возвращает null — модель не трогается (и при
+        /// <see cref="FsaRampModel.Off"/>).
+        ///
+        /// Почему фон первым: у пробы в рампе может стоять её собственный пик
+        /// (K-рентген серебра Cd-109 на G1S — ровно на середине рампы), и
+        /// рампу по такой пробе не измерить; фон — континуум без линий у
+        /// порога. Правило пола судит фон в его шкале, модель — в каналах, и
+        /// рампа фона ложится на пробу по номеру канала
+        /// (<see cref="RampProfile"/>).
+        ///
+        /// ⛔ ПРОБА, У КОТОРОЙ ПРАВИЛО `A309` САМО НАШЛО ПОРОГ, не получает
+        /// рампу фона: жёсткий рез или рампа в границе у пробы — её порог
+        /// измерен ею самой, и фон, снятый с другим порогом, к ней не
+        /// прикладывается. Замер П189: `OBS_UGlass` — проба режется жёстко на
+        /// канале 11, а фон `Фон дом.xml` имеет рампу с серединой около
+        /// канала 20; приложи её — модель была бы подавлена там, где данные на
+        /// уровне.
+        /// </summary>
+        public static RampProfile PairRampProfile(int[] sampleCounts, EnergyCalibration sampleCalibration,
+                                                  EnergySpectrum background, bool backgroundInOwnScale,
+                                                  out string how)
+        {
+            how = null;
+            if (DefaultRampModel == FsaRampModel.Off || sampleCounts == null || sampleCalibration == null)
+            {
+                return null;
+            }
+
+            string sampleHow;
+            if (background == null || background.Spectrum == null)
+            {
+                RampProfile own = RampProfileOf(sampleCounts, sampleCalibration, out sampleHow);
+                if (own != null)
+                {
+                    own.Source = "пробе (фона нет)";
+                }
+
+                how = own != null ? own.Describe() : "проба (фона нет): " + sampleHow;
+                return own;
+            }
+
+            EnergyCalibration scale = backgroundInOwnScale && background.EnergyCalibration != null
+                ? background.EnergyCalibration
+                : sampleCalibration;
+            string backgroundHow;
+            RampProfile profile = RampProfileOf(background.Spectrum, scale, out backgroundHow);
+            if (profile == null)
+            {
+                how = "фон: " + backgroundHow;
+                return null;
+            }
+
+            RampScan sampleScan = ScanRamp(sampleCounts, sampleCalibration);
+            if (sampleScan != null && sampleScan.Candidate >= 0 && sampleScan.Persists
+                && !(sampleScan.WidthKev > ThresholdRampMaxKev))
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "фон: рампа с серединой {0:F2} канала, но у пробы порог измерен правилом (канал {1}) — рампа фона не прикладывается",
+                    profile.Mid, sampleScan.Candidate);
+                return null;
+            }
+
+            profile.Source = "фону";
+            how = profile.Describe();
+            return profile;
+        }
+
+        /// <summary>
+        /// Модель рампы словами — хвост заверения. Пусто, когда рампы нет или
+        /// модель выключена: тогда строка заверения обязана быть в точности
+        /// прежней, иначе прогон без рампы не отличить по журналу от прогона
+        /// с правкой.
+        /// </summary>
+        public static string RampNote(RampProfile profile, string how)
+        {
+            if (profile == null)
+            {
+                return "";
+            }
+
+            return string.Format(CultureInfo.InvariantCulture,
+                "; рампа порога — модель × S(канал) {0}{1}",
+                how,
+                DefaultRampModel == ShippedRampModel ? " (умолчание)" : " (НЕ умолчание, A/B)");
         }
 
         /// <summary>
@@ -1255,6 +2459,80 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// (`A312`) ПОЧЕМУ <see cref="FsaAnalyzer.Analyze"/> ОТДАЛ <c>null</c>.
+    ///
+    /// ⛔ Отказ разбора ОБЯЗАН НАЗЫВАТЬ СЕБЯ — то же правило, которым `A277`
+    /// завела <see cref="FsaAnalyzer.GeometryRefused"/> для гейта геометрии.
+    /// До 21.09.2026 признак был у ОДНОЙ причины из семи, и остальные шесть
+    /// доезжали до окна одним словом «разложение невозможно»: на спектре
+    /// Amber `Am-241` (калибровка 08.09.2026, состав из NucBase — один образ
+    /// рентгена кристалла) матрица отклика сняла единственный образ, библиотека
+    /// опустела, и человек видел отказ, не зная, что лечится он СОСТАВОМ
+    /// (добавить нуклид), а не матрицей и не кривой.
+    ///
+    /// Решение о самом отказе принимается ОДНИМ местом —
+    /// <see cref="FsaAnalyzer.Refuse"/> у каждого <c>return null</c> внутри
+    /// <see cref="FsaAnalyzer.Analyze"/>; слова для человека — у сеанса
+    /// (<c>FsaAnalysisSession</c>, ресурсы `FSA…`), у проб — своя печать.
+    /// Порядок членов — порядок проверок в <c>Analyze</c>.
+    /// </summary>
+    public enum FsaRefusal
+    {
+        /// <summary>Отказа не было (последний разбор дал результат, либо разбора ещё не было).</summary>
+        None,
+
+        /// <summary>
+        /// Вырожденный вход: нет спектра, его отсчётов, энергетической
+        /// калибровки, калибровки ПШПВ или библиотека пуста УЖЕ НА ВХОДЕ.
+        /// Сеанс пустую библиотеку отсекает раньше своим словом
+        /// (`FSANoComponents`), так что для окна это — калибровки.
+        /// </summary>
+        Input,
+
+        /// <summary>Гейт геометрии (`A277`): кривой нет или у неё нет геометрии.</summary>
+        Geometry,
+
+        /// <summary>Каналов у спектра меньше <see cref="FsaAnalyzer.MinChannels"/>.</summary>
+        FewChannels,
+
+        /// <summary>
+        /// Полоса фита после сведения полос и пола уже
+        /// <see cref="FsaAnalyzer.MinBandChannels"/> каналов: диапазон поиска
+        /// пиков, пол по порогу и калибровка сошлись так, что фитовать нечего.
+        /// </summary>
+        NarrowBand,
+
+        /// <summary>
+        /// Библиотека ОПУСТЕЛА ВНУТРИ разбора: все образы сняты гейтами
+        /// матрицы (собственный рентген и K-вылет кристалла — их несёт
+        /// матрица, `AMBER4`/`S172`), ключом SE/DE и 511, либо нож линий ниже
+        /// первого узла матрицы (`A49`) оставил образы без линий. Лечится
+        /// составом — нуклидом, у которого есть линии в полосе, — а не
+        /// матрицей. Что именно снято — <see cref="FsaAnalyzer.RefusalNote"/>.
+        /// </summary>
+        LibraryEmptied,
+
+        /// <summary>
+        /// Ни один узел сетки дрейфа не дал решения, либо итоговый фит не
+        /// сошёлся: у библиотеки и полосы всё было, отказал сам счёт.
+        /// </summary>
+        NoFit,
+
+        /// <summary>
+        /// (`AMBER51`, П120 22.09.2026) У спектра НЕТ ВРЕМЕНИ:
+        /// <see cref="EnergySpectrum.EffectiveLiveTime"/> не больше нуля (ни
+        /// живого, ни полного). Скорости счёта, порогов решения и пределов
+        /// обнаружения у такого спектра не бывает, а фон с настоящим временем
+        /// нечем привести к его шкале. До 22.09.2026 знаменатель здесь молча
+        /// подменялся единицей: «имп/с» и пределы численно равнялись отсчётам,
+        /// поданный фон масштабировался как 1/T_фона — тогда как фон без
+        /// времени тот же разбор отвергал словами (`FSABackgroundNoLiveTime`).
+        /// Лечится временем измерения в файле спектра.
+        /// </summary>
+        NoLiveTime
+    }
+
+    /// <summary>
     /// Полноспектральная декомпозиция (full-spectrum analysis).
     ///
     /// В отличие от поиска пиков вопрос ставится не «есть ли пик на 583 кэВ», а
@@ -1336,6 +2614,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public string BandNote { get; private set; }
 
         /// <summary>
+        /// (`S204`, П189) Рампа порога ПОСЛЕДНЕГО разбора словами — что
+        /// измерено и по чьему спектру, или почему рампы нет. Пусто — модель
+        /// выключена (<see cref="FsaRampModel.Off"/>) или разбора ещё не было.
+        /// Когда рампа есть, та же строка стоит и в <see cref="BandNote"/>.
+        /// </summary>
+        public string ThresholdRampNote { get; private set; }
+
+        /// <summary>
+        /// (`S204`, П189) Рампа порога ПОСЛЕДНЕГО разбора — наружу пробам
+        /// (контроль «рампа восстановлена»). null — рампы нет.
+        /// </summary>
+        public FsaBand.RampProfile ThresholdRamp
+        {
+            get { return this.thresholdRamp; }
+        }
+
+        /// <summary>
+        /// Множитель рампы этого разбора (`S204`): ставится в <c>Analyze</c> до
+        /// первого образа и читается обоими построителями образов и шапками.
+        /// </summary>
+        FsaBand.RampProfile thresholdRamp;
+
+        /// <summary>
         /// Считать по всему спектру, не обрезая по MinEnergy/MaxEnergy: от
         /// первого канала до предпоследнего (последний — канал переполнения).
         /// Разложение должно быть нарисовано на всём спектре: обрыв стека на
@@ -1390,6 +2691,65 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int ContinuumKnotDivisor { get; set; }
 
         /// <summary>
+        /// ⛔ (`S207`, П208) УЗЛЫ СПЛАЙНА ПОДЛОЖКИ — ПО ШКАЛЕ, А НЕ ПО ЦЕЛЫМ
+        /// КАНАЛАМ (`BuildHatBasis`): сетка — в непрерывной канальной координате
+        /// от нижнего края полосы, шаг без отсечения до целого канала, шапка в
+        /// канале — среднее по его ширине. Тогда узлы стоят на тех же энергиях
+        /// при любом числе каналов, и разбор инвариантен к укрупнению: точная
+        /// копия собственной модели, укрупнённая ×2, сходится с моделью. Ложь —
+        /// прежний базис на целых каналах (рычаг A/B). Умолчание стоит в
+        /// конструкторе; числа — журнал
+        /// `handover/handover-2026-10-01-p208-s207-channels.md`.
+        /// </summary>
+        public bool ContinuumKnotsByScale { get; set; }
+
+        /// <summary>
+        /// ⛔ (`S207`, П208) КАК ЯДРО УШИРЕНИЯ БЕРЁТСЯ В КАНАЛЕ (банк ядер образов
+        /// по матрице и голые пики <see cref="BuildTemplate"/>). `Mean` — СРЕДНЕЕ
+        /// профиля по ширине канала: отсчёт канала — интеграл спектра по каналу,
+        /// и сумма двух соседних каналов образа ровно равна каналу вдвое шире —
+        /// образ инвариантен к укрупнению. `Point` — выборка профиля в центре
+        /// канала (до `S207`, рычаг A/B): сумма двух выборок шире одной выборки
+        /// укрупнённого канала на ¼ старого канала² по дисперсии, и при ПШПВ в
+        /// 1…1.5 канала (рентген у 30 кэВ на 512 каналах NaI) копия собственной
+        /// модели, укрупнённая ×2, не сходилась с моделью в 0…100 кэВ.
+        /// ⚠ Среднее по каналу — образ шире выборки на 1/12 кан² по дисперсии;
+        /// поправка «σ² − 1/12» (ширина образа та же, что у выборки) испытана и
+        /// снята: она возвращает ровно поведение выборки (сумма двух каналов
+        /// снова уже), то есть инвариантности не даёт (журнал). Умолчание стоит
+        /// в конструкторе; числа — журнал `handover/handover-2026-10-01-p208-s207-channels.md`.
+        /// </summary>
+        public FsaKernelSampling KernelChannelMean { get; set; }
+
+        /// <summary>
+        /// ⛔ (`S207`, П225) КАК РАМПА ПОРОГА ЛОЖИТСЯ НА ОБРАЗ ВНУТРИ КАНАЛА.
+        /// `ImageWeighted` — образ (ядро уширения, голый пик, шапка подложки)
+        /// берётся на дробной сетке канала (<see cref="FsaBand.RampProfile.SubBins"/>
+        /// долей), умножается на рампу доли и лишь потом сводится в канал:
+        /// отсчёт канала — ∫T·S, как его и регистрирует прибор. `ChannelMean` —
+        /// канал образа × среднее рампы по каналу (до П225, рычаг A/B,
+        /// `--set=RampWithinChannel=ChannelMean`): на вдвое более крупных каналах
+        /// произведение средних теряло ½(T₁ − T₂)(S₁ − S₂) половин канала, и там,
+        /// где у образа в рампе крутая структура (K-рентген Ba у Cs-137, Sm у
+        /// Eu-152), копия модели, укрупнённая ×2, не сходилась с моделью ×2.
+        /// Выше верха рампы и без рампы оба режима побитово одинаковы. Умолчание
+        /// стоит в конструкторе; числа — журнал
+        /// `handover/handover-2026-10-02-p225-ramp-grid.md`.
+        /// </summary>
+        public FsaRampSampling RampWithinChannel { get; set; }
+
+        /// <summary>(`S207`, П225) Рампа ложится на дробную сетку канала (см. <see cref="RampWithinChannel"/>).</summary>
+        bool RampOnGrid
+        {
+            get
+            {
+                return this.thresholdRamp != null && this.thresholdRamp.Mean
+                       && this.thresholdRamp.Top > 0
+                       && this.RampWithinChannel == FsaRampSampling.ImageWeighted;
+            }
+        }
+
+        /// <summary>
         /// Сколько ПШПВ отмеряет ГУСТОЙ край шага узлов (`S88`). ⛔ ЧИСЛА
         /// УМОЛЧАНИЯ ЗДЕСЬ НЕТ НАРОЧНО (`T82`) — оно стоит У ОБЪЯВЛЕНИЯ ПОЛЯ,
         /// строкой ниже этого описания; при нём посчитана вся история
@@ -1441,11 +2801,95 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         int continuumColumns;
 
         /// <summary>
+        /// (`AMBER141`, П194 01.10.2026) НИЖНИЕ ГРАНИЦЫ ШАПОК КОНТИНУУМА — по
+        /// модулю, по одной на шапку (первые <see cref="continuumColumns"/>
+        /// колонок `fixedColumns`): шапка j решается с ограничением
+        /// `c_j ≥ −continuumFloor[j]`, а не `c_j ≥ 0`. Граница — три σ шума
+        /// данных после вычитания фона под шапкой (<see cref="ContinuumFloorOf"/>): после
+        /// вычитания измеренного фона данные в пустых местах шкалы ЗАКОННО
+        /// колеблются вокруг нуля с его дисперсией, и зажим «подложка ≥ 0» брал
+        /// положительные выбросы и отбрасывал отрицательные — подложка в
+        /// среднем стояла выше нетто-континуума, амплитуды слабых образов на
+        /// ней занижались (`G1S16_Y88_P25` −18.7 % при 1/100 счёта, замкнутая
+        /// проверка `FsaClosureP191`). ⚠ Не «подложка + фон ≥ 0» (граница −B,
+        /// как предлагала строка): такая свобода открывает вырождение
+        /// отрицательной подложки с комптоновским плато образов — замер П194 у
+        /// `ASN16_Radon_filter2`, ряд Th-232 ×3.5. Решатель тот же NNLS: сдвиг переменной
+        /// `c′ = c + L` (правая часть `c + G·L` по ШТРАФОВАННОЙ Грам, то есть и
+        /// штраф на излом считается по истинным коэффициентам), см.
+        /// <c>FitOnce</c>. null — фона нет или ключ
+        /// <see cref="ContinuumBelowBackground"/> снят: решение побитово
+        /// прежнее.
+        /// </summary>
+        double[] continuumFloor;
+
+        /// <summary>
+        /// (`AMBER141`, П194) Разрешить подложке уходить ниже нуля в меру
+        /// вычтенного фона (<see cref="continuumFloor"/>). Без вычтенного фона
+        /// ключ ничего не меняет. Полярность умолчания — у присваивания в
+        /// конструкторе (`T82`); обратное плечо — `--set=ContinuumBelowBackground=false`
+        /// у <c>FsaClosureP191</c>.
+        /// </summary>
+        public bool ContinuumBelowBackground { get; set; }
+
+        /// <summary>
+        /// (`AMBER154`, П194 01.10.2026) Относительное усиление хранимого фона
+        /// против пробы на ЭТОМ проходе разбора: отсчёт фона, по объявленным
+        /// калибровкам стоящий в канале p пробы, кладётся в канал g·p.
+        /// 1 — фон в объявленной шкале (первый проход и всякий разбор, где
+        /// дрейф фона не измерен). Ставит <see cref="Analyze"/>.
+        /// </summary>
+        double backgroundGain = 1.0;
+
+        /// <summary>
+        /// (`AMBER142` п.3, П224 02.10.2026) Относительный НУЛЬ хранимого фона
+        /// против пробы на ЭТОМ проходе, в каналах пробы: вместе с
+        /// <see cref="backgroundGain"/> отсчёт фона из канала p кладётся в канал
+        /// g·p + o. 0 — нуль не тронут (первый проход, мера нуля выключена
+        /// <see cref="BackgroundZeroFollowsSample"/> или не измерена). Ставит
+        /// <see cref="Analyze"/>.
+        /// </summary>
+        double backgroundOffset = 0.0;
+
+        /// <summary>
+        /// (`AMBER142` п.3, П224 02.10.2026) Мерить вместе с усилением и НУЛЬ
+        /// хранимого фона против пробы (<see cref="MeasureBackgroundGain"/>,
+        /// третий член подгонки — сдвиг по каналу). Фон снят другим днём, и
+        /// нуль тракта плывёт так же, как усиление; при одном усилении сдвиг
+        /// нуля у низа шкалы, где фон круто растёт, вычитался мимо себя.
+        /// Без вычтенного фона или при снятом <see cref="BackgroundFollowsSample"/>
+        /// ничего не меняет; снятый ключ — мера одного усиления побитово
+        /// прежняя (`--set=BackgroundZeroFollowsSample=false`). Полярность
+        /// умолчания — у присваивания в конструкторе (`T82`).
+        /// </summary>
+        public bool BackgroundZeroFollowsSample { get; set; }
+
+        /// <summary>
+        /// (`AMBER142` п.3, П224) Доля вынутого образа пробы, идущая в
+        /// дисперсию остатка у меры усиления и нуля фона: остаток образа
+        /// (форма, ширина) там, где образ во много раз сильнее фона, весит
+        /// меньше. 0 — веса прежние. Только при
+        /// <see cref="BackgroundZeroFollowsSample"/>.
+        /// </summary>
+        public double BackgroundZeroImageError { get; set; }
+
+        /// <summary>
+        /// (`AMBER154`, П194) Сводить хранимый фон к ИСТИННОЙ шкале пробы: после
+        /// первого прохода разбора дрейф фона против пробы меряется по пикам
+        /// комнатного фона в данных (<see cref="MeasureBackgroundGain"/>), и
+        /// разбор повторяется с фоном, переложенным на это усиление. Без
+        /// вычтенного фона ключ ничего не меняет. Полярность умолчания — у
+        /// присваивания в конструкторе (`T82`); обратное плечо —
+        /// `--set=BackgroundFollowsSample=false` у <c>FsaClosureP191</c>.
+        /// </summary>
+        public bool BackgroundFollowsSample { get; set; }
+
+        /// <summary>
         /// Каналы узлов континуума последней сборки базиса — для штрафа на
         /// излом (`S85`). Шаг узлов неравномерен, и вторая производная берётся
         /// по шкале, а не по номеру.
         /// </summary>
-        List<int> continuumKnots;
+        List<double> continuumKnots;
 
         /// <summary>
         /// (`A310`) Слагаемые дисперсии, НЕ зависящие от модели, — для весов по
@@ -1465,6 +2909,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         NoiseTerms noiseTerms;
 
+        /// <summary>
+        /// (`S180`) Слагаемые ОТЧЁТНОЙ дисперсии этого разбора: `Subtracted` —
+        /// что вычтено из сырого отсчёта (континуум SNIP, фон), `Extra` — всё,
+        /// что в отчётной дисперсии сверх пуассона (шум вычтенного континуума
+        /// ξ·C). Ставится там же, где <see cref="FsaResult.Chi2NdfPoisson"/>
+        /// берёт свои веса, и ДО составного шума `S43` — отчётная метрика его
+        /// не знает.
+        /// </summary>
+        NoiseTerms reportNoise;
+
+        /// <summary>
+        /// (`AMBER65`) Образ наложений этого разбора — по ССЫЛКЕ, а не по имени
+        /// слоя: имени нуклида и слоя в коде разбора быть не должно, а колонку
+        /// ещё и снимает отсев по z, и тогда защита сумм-области от М-оценки
+        /// обязана исчезнуть вместе с ней. Ставится в <c>Analyze</c> вместе с
+        /// самой колонкой, читается только <c>PileUpAnchor</c>.
+        /// </summary>
+        FsaComponent pileUpColumn;
+
+        /// <summary>
+        /// (`AMBER91`, П148) Множитель приведения вычтенного фона ЭТОГО разбора
+        /// (ноль — фона нет) — в результат до счёта долей невязки
+        /// (<c>FsaResult.BackgroundScale</c>). Ставится в <c>Analyze</c> перед
+        /// <c>BuildResult</c>.
+        /// </summary>
+        double resultBackgroundScale;
+
         public double MinEnergy { get; set; }
 
         public double MaxEnergy { get; set; }
@@ -1474,6 +2945,129 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>Порог хуберовского перевзвешивания, в сигмах. 0 — выключено.</summary>
         public double HuberM { get; set; }
+
+        /// <summary>
+        /// (`AMBER209`, П236 06.10.2026) ПОРОГ ХУБЕРА — В σ, НАДУТОЙ НА √(χ²/ndf)
+        /// ПРОХОДА. Без надувки порог `m·σ` стоит в σ канала: σ падает с
+        /// набором, а невязка модели (χ²/ndf 5–7 у длинных наборов CsI на 8192
+        /// каналах) растёт пропорционально отсчётам, и на полной статистике
+        /// обрезаются другие каналы, чем на десятой её части, — амплитуда
+        /// зависит от объёма набора. Измерено П236 прореживанием (`FsaBqProbe
+        /// --thin=`): Th232_29.07.2022 1049 Бк на полной статистике → 1266 при
+        /// 1/10 (+20.7 %), Lu176 647 → 682 (+5.3 %); с `HuberM = 0` — +3.8 % и
+        /// −0.1 %; веса, компоненты модели и зерно прореживания дрейф не трогают.
+        /// С надувкой доля обрезанных каналов перестаёт зависеть от статистики:
+        /// при верной модели χ²/ndf ≈ 1 и порог прежний, при разладе порог растёт
+        /// вместе с невязкой. ⛔ Шкала невязки берётся РОБАСТНО — по медиане
+        /// нормированных невязок текущего прохода (`1.4826·median|r/σ|`, MAD),
+        /// а не по RMS `√(χ²/ndf)`: первое плечо П236 с RMS на корпусе дало
+        /// recall 100 → 97 % (Ti-44 в трёх смесях G1S16 — 30 % → 0) и паспорт
+        /// вне порога 15 → 17 — выбросы, которые Хубер и должен резать
+        /// (неописанные линии смеси), надували порог САМИ СЕБЕ и выходили
+        /// из-под ножа. Медиана их не видит: широкий разлад модели (длинный
+        /// набор, χ²/ndf 5–7 по всей полосе) надувает порог, одиночные выбросы
+        /// — нет. Надувка не ниже единицы. Решение Amber 06.10.2026
+        /// вопросником, дословно: «Порог с надувкой √(χ²/ndf)» — надувка по
+        /// разладу модели; мера разлада выбрана по A/B корпуса (журнал П236).
+        /// Полярность умолчания — в конструкторе (`T82`);
+        /// обратное плечо — `--huber-inflate=off` у `FsaBqProbe`. ⚠ A/B по корпусу и
+        /// переобъявление базы — строка `AMBER209`.
+        /// </summary>
+        public bool HuberInflate { get; set; }
+
+        /// <summary>
+        /// (`AMBER209`) Надувка порога Хубера последнего перевзвешивания
+        /// (<see cref="HuberInflate"/>): 1 — порог не надувался. Читается пробами.
+        /// </summary>
+        public double LastHuberInflation { get; private set; } = 1.0;
+
+        /// <summary>
+        /// (`AMBER209`, П237 07.10.2026) ОТНОСИТЕЛЬНЫЙ ПОЛ ПОРОГА ХУБЕРА — γ ТОЛЬКО
+        /// В НОЖЕ, не в весах. Порог берётся в `σ_thr = √(D + γ²·μ̂²)`: D — та
+        /// дисперсия, от которой взят вес канала, μ̂ — ожидание его СЫРОГО отсчёта
+        /// (модель прохода плюс вычтенное: континуум, фон). Смысл: образ известен
+        /// по форме не лучше γ (статистика матрицы, физика переноса), и невязка
+        /// в γ·μ̂ — не выброс, а предел модели. Без пола порог `m·σ` стоит в
+        /// пуассоновской σ, и один и тот же разлад формы в несколько процентов
+        /// режется на полной статистике сильнее, чем на десятой её части, —
+        /// амплитуда плывёт с набором там, где надувка по медиане
+        /// (<see cref="HuberInflate"/>) её не ловит: разлад в НЕМНОГИХ каналах
+        /// (рентген Hf, сумм-пики Lu-176; журнал П236). С полом доля подрезки
+        /// при больших отсчётах зависит от ОТНОСИТЕЛЬНОЙ невязки канала, а не от
+        /// объёма набора. Отличие от составного шума `S43`
+        /// (<see cref="NoiseGamma"/>): веса решателя, значимости и пределы
+        /// остаются пуассоновскими — меняется только нож; шкала MAD надувки
+        /// берётся той же σ_thr. 0 — выключено (сегодняшний нож). Ручка проб —
+        /// `--huber-gamma=` у `FsaBqProbe`; плечо дрейфа Lu-176, решение — Amber.
+        /// </summary>
+        public double HuberGamma { get; set; }
+
+        /// <summary>
+        /// (`AMBER210`, П238 07.10.2026) ПОРОГ ЗНАЧИМОСТИ НЕПОКРЫТОГО ПИКА — `Σr/√ΣD` по каналам
+        /// серии с данными выше модели, с которого серия попадает в
+        /// <see cref="FsaResult.UncoveredPeaks"/> (вместе с порогом избытка
+        /// <see cref="UncoveredPeakExcess"/>; правило целиком — у <see cref="FindUncoveredPeaks"/>).
+        /// Два порога, а не один: на длинном наборе значимость набирают и серии разлада ФОРМЫ
+        /// в единицы процентов (десятки серий на Th232 Amber, журнал П237), и предупреждение о
+        /// них никто бы не читал. Значение — решение Amber 07.10.2026 вопросником (строка
+        /// `AMBER210`); ставит конструктор (`T82`). Нуль или меньше — поиск выключен.
+        /// </summary>
+        public double UncoveredPeakZ { get; set; }
+
+        /// <summary>
+        /// (`AMBER210`) ПОРОГ ИЗБЫТКА НЕПОКРЫТОГО ПИКА — доля `Σ(y − модель)` серии от ожидания
+        /// сырого отсчёта её каналов (модель плюс вычтенное); второй порог к
+        /// <see cref="UncoveredPeakZ"/>. Значение — то же решение Amber 07.10.2026; ставит
+        /// конструктор (`T82`). Нуль или меньше — поиск выключен.
+        /// </summary>
+        public double UncoveredPeakExcess { get; set; }
+
+        /// <summary>
+        /// (`AMBER210`) Доля выхода от сильнейшей линии компонента, с которой линия состава
+        /// ПОКРЫВАЕТ серию избытка (<see cref="FindUncoveredPeaks"/>): слабее — не покрывает.
+        /// Постоянная, не ручка: мерой здесь служит сам состав.
+        /// </summary>
+        public const double UncoveredCoverShare = 0.05;
+
+        /// <summary>
+        /// (`AMBER210`) ЛИНИИ БИБЛИОТЕКИ ПРИЛОЖЕНИЯ — имя определения и энергия, все определения,
+        /// не только сет (решение Amber 07.10.2026 вопросником, дословно: «Библиотека приложения
+        /// целиком»): ими называются непокрытые пики (<see cref="FsaUncoveredPeak.Candidates"/>).
+        /// Ставит сеанс (<c>FsaAnalysisSession</c>) из менеджера определений; выход линии в
+        /// библиотеке не хранится, поэтому <see cref="FsaLine.Intensity"/> здесь нуль и кандидаты
+        /// ранжируются по близости энергии. null — не называть. Имён в коде нет.
+        /// </summary>
+        public List<FsaLine> LibraryLines { get; set; }
+
+        /// <summary>
+        /// (`AMBER209`, П237) СЛЕД ПОСЛЕДНЕГО ФИТА — ЧИТАЕТСЯ ТОЛЬКО ПРОБАМИ
+        /// (`FsaBqProbe --huber-cut`), ставится в <c>BuildResult</c>. Веса
+        /// решателя финального хуберовского прохода (<see cref="LastFitWeights"/>),
+        /// дисперсия, от которой они взяты (<see cref="LastFitVariance"/>),
+        /// невязка `y − модель` (<see cref="LastFitResidual"/>), модель в шкале
+        /// `y` (<see cref="LastFitModel"/>) и вычтенное из сырого отсчёта
+        /// (<see cref="LastFitSubtracted"/>; `сырой = y + это`) — по каналам полосы
+        /// фита [<see cref="LastFitFirstChannel"/>, <see cref="LastFitLastChannel"/>].
+        /// `Weights[i]·Variance[i]` ниже единицы — канал подрезан ножом Хубера,
+        /// ровно на эту долю; `|Residual[i]|/√Variance[i]` — его нормированная
+        /// невязка. Без этого не видно, КАКИЕ каналы режутся на полной статистике
+        /// и какие на десятой её части, а дрейф числа с набором (журнал П236)
+        /// иначе не разобрать. Ссылки на массивы фита, копий нет; `null` — разбора
+        /// не было или он отказан.
+        /// </summary>
+        public double[] LastFitWeights { get; private set; }
+        /// <summary>См. <see cref="LastFitWeights"/>.</summary>
+        public double[] LastFitVariance { get; private set; }
+        /// <summary>См. <see cref="LastFitWeights"/>.</summary>
+        public double[] LastFitResidual { get; private set; }
+        /// <summary>См. <see cref="LastFitWeights"/>.</summary>
+        public double[] LastFitModel { get; private set; }
+        /// <summary>См. <see cref="LastFitWeights"/>.</summary>
+        public double[] LastFitSubtracted { get; private set; }
+        /// <summary>См. <see cref="LastFitWeights"/>.</summary>
+        public int LastFitFirstChannel { get; private set; }
+        /// <summary>См. <see cref="LastFitWeights"/>.</summary>
+        public int LastFitLastChannel { get; private set; }
 
         /// <summary>
         /// (`A310`, полоса П47 13.09.2026) ВЕСА РЕШАТЕЛЯ — ПО МОДЕЛИ (Пирсон), а
@@ -1511,6 +3105,77 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// читатель — `SETUP` отражением.
         /// </summary>
         public bool ModelWeights { get; set; }
+
+        /// <summary>
+        /// (`S180`) Считать ОТЧЁТНЫЕ <see cref="FsaResult.Chi2NdfPoisson"/> и
+        /// невязку модели ε (<see cref="FsaResult.ModelResidual"/>) весами от
+        /// ОЖИДАНИЯ — `1/(μ̂ + ξ²C²)`, μ̂ = модель прохода в шкале сырых
+        /// отсчётов (Пирсон), — а не от наблюдения `1/(max(N, 1) + ξ²C²)`
+        /// (Нейман).
+        ///
+        /// ⛔ ЗАЧЕМ. Ожидание χ² при ВЕРНОЙ модели равно ndf только для весов
+        /// от ожидания. Неймановский вес `1/y` смещён при малых отсчётах —
+        /// Baker &amp; Cousins, NIM 221 (1984) 437. Счётом по пуассоновскому
+        /// распределению: `E[(y − μ)²/max(y, 1)]` = 1.0769 / 1.4471 / 1.6366 /
+        /// 1.3071 / 1.1191 / 1.0426 при μ = 2 / 3 / 5 / 10 / 20 / 50, тогда как
+        /// `E[(y − μ)²/μ]` = 1.0000 при ЛЮБОМ μ (пол снят `S182`). То есть на бедных
+        /// каналах ВЕРНАЯ модель печаталась как χ²/ndf ≈ 1.3–1.6, а ε —
+        /// фантомной долей до 36 % при 5 отсч./канал; обещание «ε сравнима
+        /// между спектрами» на бедных спектрах не держалось.
+        ///
+        /// ⚠ ЧТО ЭТОТ КЛЮЧ НЕ ТРОГАЕТ. Веса, которыми взвешены ГЕЙТЫ
+        /// (`dWith`/`dWithout` отсева и добора), остаются прежними —
+        /// неймановскими: гейт сравнивает Δχ² ДВУХ моделей, и общая, от модели
+        /// НЕ зависящая мерка для такого сравнения и нужна. Значит приговоры
+        /// разбора ключом не двигаются, двигаются только два напечатанных
+        /// числа. Решатель не задет тем более: у него свои веса
+        /// (<see cref="ModelWeights"/>).
+        ///
+        /// ⚠ Довод «отчётная метрика не должна быть той величиной, которую
+        /// правка весов сама оптимизирует» остаётся в силе и здесь: μ̂ берётся
+        /// БЕЗ составного шума `S43` и без хуберовского смягчения, то есть
+        /// плечи `--weights`, `--noise-gamma` и `--huber` по-прежнему меряются
+        /// меркой, которую они не настраивают.
+        ///
+        /// ⚠ (`S182`, П136) Смена весов — только ПЕРВАЯ половина смещения.
+        /// Второй была ПОЛКА `max(·, 1)` у самой дисперсии: она сажала меру
+        /// вниз и у Пирсона тоже. Снята П136 — довод и числа у
+        /// <c>ReportWeights</c>.
+        ///
+        /// Полярность умолчания стоит В КОНСТРУКТОРЕ (`T82`).
+        /// </summary>
+        public bool ReportModelWeights { get; set; }
+
+        /// <summary>
+        /// (`S182`, П154 24.09.2026) Порог ОБЪЕДИНЕНИЯ каналов в ячейки
+        /// отчётной меры: соседние каналы полосы складываются, пока ожидаемый
+        /// счёт ячейки `Σ(μ̂ + Extra)` не достигнет порога, и
+        /// <see cref="FsaResult.Chi2NdfPoisson"/> и ε
+        /// (<see cref="FsaResult.ModelResidual"/>) считаются по ячейкам:
+        /// член `(Σr)²/Σv`, знаменатель — точный след по ячейкам
+        /// (<c>ReportNdfPooled</c>). Ноль и меньше — ячейка = канал, как до
+        /// этого дня. Работает только при <see cref="ReportModelWeights"/>:
+        /// правило — по ОЖИДАЕМОМУ счёту, при весах по наблюдению его нет.
+        ///
+        /// ⛔ ЗАЧЕМ. Пирсоновский член `(y − μ)²/μ` несмещён при любом μ > 0,
+        /// но при μ ≪ 1 его ожидание несут РЕДКИЕ события: `y = 1` с
+        /// вероятностью μ даёт вклад ≈ 1/μ, а почти всегда `y = 0` даёт μ.
+        /// Разброс члена `2 + 1/μ`. У сцинтиллятора выше линий таких каналов
+        /// большинство (измерено П154 на `G1S24_Cs137_Mar`: 760 из 1024
+        /// каналов полосы с истинным μ < 0.1), и на ОДНОМ спектре с верной
+        /// моделью мера читалась 0.70…0.76 вместо 1.00, изредка взлетая
+        /// (один канал с вкладом 838 поднял среднее 24 розыгрышей до 1.97).
+        /// Пол ~~`max(μ̂, 1)`~~ (снят П136) прятал это иначе — ценой смещения.
+        /// Объединение ячеек до ожидаемого счёта не ниже порога — правило
+        /// применимости χ² Пирсона (Cochran, Biometrics 10 (1954) 417): член ячейки снова
+        /// близок к χ²₁, а отсчёты «пустых» каналов остаются уликой —
+        /// лишняя линия там, где модель ничего не ждёт, по-прежнему видна.
+        ///
+        /// ⚠ Фит ключ не трогает вовсе: ячейки строятся после решения, из
+        /// отчётных весов; активности и χ² решателя от него не зависят.
+        /// Значение порога стоит В КОНСТРУКТОРЕ (`T82`).
+        /// </summary>
+        public double ReportPoolVariance { get; set; }
 
         /// <summary>
         /// (S43) Коэффициент γ составного шума: дисперсия канала берётся
@@ -1950,8 +3615,62 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// что <see cref="Analyze"/> отвечает <c>null</c> ещё на пяти причинах,
         /// и без этого поля человеку и прогону досталось бы одно слово
         /// «разложение не получилось» на шесть разных бед.
+        ///
+        /// (`A312`) С 21.09.2026 — ЧТЕНИЕ <see cref="Refusal"/>, а не своё
+        /// поле: причина у отказа одна, и хранить её дважды — значит однажды
+        /// разойтись. Читатели (сеанс, `CorpusFsaProbe`, `FsaGateRescueProbe`,
+        /// `IsoCurveActivityProbeP79`) видят прежний признак.
         /// </summary>
-        public bool GeometryRefused { get; private set; }
+        public bool GeometryRefused
+        {
+            get { return this.Refusal == FsaRefusal.Geometry; }
+        }
+
+        /// <summary>
+        /// (`A312`) ПРИЧИНА, по которой последний <see cref="Analyze"/> отдал
+        /// <c>null</c>; <see cref="FsaRefusal.None"/> — результат был. Ставится
+        /// ОДНИМ местом (<see cref="Refuse"/>) у каждого отказа внутри
+        /// <see cref="Analyze"/> и сбрасывается на его входе.
+        /// </summary>
+        public FsaRefusal Refusal { get; private set; }
+
+        /// <summary>
+        /// (`A312`) Подробность к <see cref="Refusal"/> для журнала и проб —
+        /// числа того отказа (сколько образов снято каким гейтом, края полосы,
+        /// число каналов); <c>null</c>, когда отказа не было или подробности
+        /// у причины нет. Слова для человека — НЕ отсюда: их даёт сеанс из
+        /// ресурсов, здесь текст служебный, инвариантной культурой.
+        /// </summary>
+        public string RefusalNote { get; private set; }
+
+        /// <summary>
+        /// (`A312`) Наименьшее число каналов спектра, с которым
+        /// <see cref="Analyze"/> берётся за разбор; меньше —
+        /// <see cref="FsaRefusal.FewChannels"/>. Число одно на проверку и на
+        /// слова сеанса — копии в ресурсах нет, туда оно едет аргументом.
+        /// </summary>
+        public const int MinChannels = 32;
+
+        /// <summary>
+        /// (`A312`) Полоса фита (после сведения полос и пола) не длиннее этого
+        /// числа каналов — <see cref="FsaRefusal.NarrowBand"/>. Одно число на
+        /// проверку и на слова сеанса, как <see cref="MinChannels"/>.
+        /// </summary>
+        public const int MinBandChannels = 10;
+
+        /// <summary>
+        /// (`A312`) ЕДИНСТВЕННОЕ место, где <see cref="Analyze"/> отказывает:
+        /// каждое <c>return null</c> там — <c>return this.Refuse(…)</c>.
+        /// Причина и подробность ложатся в <see cref="Refusal"/> /
+        /// <see cref="RefusalNote"/>, читателю отдаётся <c>null</c> — договор
+        /// метода не меняется, меняется лишь то, что об отказе можно спросить.
+        /// </summary>
+        FsaResult Refuse(FsaRefusal why, string note)
+        {
+            this.Refusal = why;
+            this.RefusalNote = note;
+            return null;
+        }
 
         /// <summary>
         /// (`AMBER4`) Снимать свободный образ собственного рентгена кристалла,
@@ -2040,17 +3759,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// (`AMBER7`) Снимать свободный образ `Ann-511`, когда в объявленном
-        /// составе есть СВОЯ линия в том же окне: два столбца на одну линию
-        /// разделить нечем. Довод и замер — у места применения.
+        /// составе есть ГАММА-линия в том же окне (два столбца на одну линию
+        /// разделить нечем) либо β⁺-нуклид, которому нечем закрепиться, кроме
+        /// своей аннигиляции (`AMBER54`, П127: с ним свободный образ — один
+        /// столбец). Аннигиляционную линию нуклида с якорем гейт не трогает.
+        /// Довод и замер — у места применения.
         /// </summary>
         public bool AnnihilationGate { get; set; }
 
         /// <summary>
-        /// (`AMBER7`) Чья линия столкнулась с 511 на последнем
-        /// <see cref="Analyze"/>; null — столкновения не было и правка не
-        /// изменила ни одного бита.
+        /// (`AMBER7`) Почему `Ann-511` снят на последнем <see cref="Analyze"/>:
+        /// «чья линия столкнулась» («Th-232 510.77 кэВ») либо, с П127
+        /// (`AMBER54`), текст ресурса `FSAAnnihilationDegenerate` о нуклиде без
+        /// якоря (см. <see cref="AnnihilationDegenerate"/>); null — гейт не
+        /// снимал и правка не изменила ни одного бита.
         /// </summary>
         public string AnnihilationCollides { get; private set; }
+
+        /// <summary>
+        /// (`AMBER54`, П127 22.09.2026) Имя компонента, ради которого `Ann-511`
+        /// снят по правилу (б) — β⁺-нуклид, у которого в полосе фита нет иных
+        /// линий с выходом не ниже
+        /// <see cref="FsaPresentationBuilder.MinTotalYieldPercent"/>; null —
+        /// снятия по (б) не было (столкновения с гаммой это не касается).
+        /// Для проб: приговор читается без разбора локализованного текста.
+        /// </summary>
+        public string AnnihilationDegenerate { get; private set; }
 
         /// <summary>
         /// (`AMBER17`) Кандидаты в опоры последнего прохода привязки — те же,
@@ -2189,31 +3923,160 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (recall 100 → 98 %). Нуль АЦП — свойство СЪЁМКИ (порог/смещение
         /// тракта в тот день), не прибора.
         ///
-        /// ⛔ ПОЧЕМУ НЕ ЧИСТАЯ ПРЯМАЯ ОТ НУЛЕВОГО КАНАЛА — измерено полосой П8
-        /// 12.09.2026 на малой базе. Прямая p = g·x через нулевой канал и
-        /// верхнюю опору дала Σχ² понятной части 306.4 → 557.2 (+82 %),
-        /// `G1S24_Th228_P5` 20.3 → 127.5 при опорах 7 → 0. Нуль света по
-        /// принятым опорам плеча `calib` (МНК «канал ↔ свет» по спектрам с
-        /// ≥ 2 опорами, `tools/pie/p8_zero.py`): у спектров с опорами НИЖЕ
-        /// ~700 кэВ (Ba-133, Cd-109, Ce-139, Cs-137 на G1S16 и G1S24) нуль
-        /// стоит на кан −0.06…+0.9 — то есть В НУЛЕВОМ КАНАЛЕ, как и мерила
-        /// П4 §3; у спектров с опорами ВЫШЕ (Co-60, Y-88, Na-22, Th-228 с
-        /// 2614, Eu-152 с 1408) — на кан 6…11, и остатки от прямой через
-        /// нуль и верх растут с энергией до +6 кан на 500…900 кэВ у Th-228.
-        /// Прямая от нуля верна внизу шкалы — там, где живёт вылет, — и
-        /// ложна вверху, где полином калибровки несёт кривизну, которой у
-        /// таблицы света нет (тракт G1S сжимает большие амплитуды либо
-        /// r(E) выше 662 кэВ переоценён — разводить незачем: калибровка
-        /// подогнана по этим же пикам и кривизну ЗНАЕТ). Отсюда форма:
-        /// нуль — от прибора, кривизна — от калибровки.
+        /// ⛔ (`AMBER155`, П218/П220 02.10.2026) КРИВИЗНА — У СВЕТА, А НЕ У
+        /// ТРАКТА: С 02.10.2026 КАРТА — ПРЯМАЯ (<see cref="AdcLinear"/>).
+        /// Прежде здесь стояло (П8 12.09.2026): прямая p = g·x через нулевой
+        /// канал и верхнюю опору дала Σχ² понятной части малой базы 306.4 →
+        /// 557.2 (+82 %), `G1S24_Th228_P5` 20.3 → 127.5 при опорах 7 → 0; нуль
+        /// света у спектров с опорами выше ~700 кэВ уходил на кан 6…11 — и
+        /// вывод «тракт G1S сжимает большие амплитуды либо r(E) выше 662 кэВ
+        /// переоценён — разводить незачем: калибровка кривизну ЗНАЕТ», то есть
+        /// форма «нуль — от прибора, кривизна — от калибровки». П218 РАЗВЁЛ
+        /// эти два объяснения замером, и второе неверно. Свет суммы двух
+        /// полностью поглощённых квантов — L₁ + L₂, и при аффинном тракте
+        /// c = g·L + c₀ нуль тракта c₀ = c₁ + c₂ − c_s БЕЗ всякой модели света:
+        /// у данных Na-22 G1S24 / G1S16 −0.32 / −1.43 кан, Co-60 −1.90 / −2.88
+        /// кан (тракт линеен и чуть РАСТЯГИВАЕТ, ~0.7 % к 2.6 МэВ), у образа с
+        /// картой формы полинома +2.6…+5.7 кан (она сжимает). Значит
+        /// кривизна фотопиков в каналах (2614 от хорды 239–583 −49/−50 кэВ,
+        /// свет −61/−60) — у СВЕТА, и полином файла, подогнанный по
+        /// фотопикам, её уже несёт: карта формы полинома клала её в ТРАКТ, и
+        /// составные события (сумм-пики, пик одиночного вылета, края комптона)
+        /// через сжимающую карту ложились на 14…28 кэВ ниже данных. П8 мерил
+        /// прямую с ПЛОСКОЙ кривой света (прежние ряды r(E) выше 662 кэВ —
+        /// 0.993…0.984): кривизну тогда не нёс никто, отсюда +82 %. Прямая
+        /// включена ТОЛЬКО вместе с крутой кривой света склада и таблицы
+        /// <see cref="FsaLightScale"/> («t7» П200: η 0.412 / S_Trap 7.0 /
+        /// S_Birks 426 у NaI:Tl) — по отдельности её не включать. Числа —
+        /// журналы `handover/handover-2026-10-02-p218-amber155-light-map.md`
+        /// §3–§5 и П220.
         /// </summary>
         double adcScale;
+
+        /// <summary>
+        /// (`AMBER155`, П220) Шаг ПРЯМОЙ карты "adc", кэВ шкалы
+        /// <see cref="LightEnergyKev"/> на канал: прямая через точку нуля
+        /// (<see cref="AdcZeroEnergy"/>, канал <see cref="AdcZeroChannel"/>) и
+        /// канал верхней линии по калибровке файла. Нуль — карта формы
+        /// полинома (<see cref="AdcLinear"/> ложь) или карта не включена.
+        /// Ставится в <see cref="AdcScaleOf"/> и от нуля света не зависит.
+        /// </summary>
+        double adcLinearKev;
+
+        /// <summary>(`AMBER155` (в), П220) q кривизны тракта прямой карты, 1/канал: κ·<see cref="adcLinearKev"/>/1000; нуль — тракт прямой.</summary>
+        double adcTractPerChannel;
+
+        /// <summary>
+        /// ⛔ (`AMBER155` (в), П220 02.10.2026) КРИВИЗНА ТРАКТА ПРИБОРА, 1/МэВ
+        /// шкалы карты: прямая карта кладёт свет в канал
+        /// c = c₀ + v·(1 + κ·L/1000), где v — каналы прямой части от точки нуля,
+        /// L — та же величина в кэВ шкалы карты; канал верхней линии
+        /// держится на месте. κ > 0 — тракт растягивает большие амплитуды,
+        /// κ < 0 — сжимает (насыщение ячеек кремниевого ФЭУ). Нуль — прямая.
+        /// Работает только у прямой карты (<see cref="AdcLinear"/>). Свойство
+        /// ПРИБОРА, а не вещества: у NaI G1S растяжение измерено сумм-пиками
+        /// без всякой модели света (c₁ + c₂ − c_s на двух высотах, П218 §3:
+        /// ε ≈ 7.7·10⁻⁶ / 7.0·10⁻⁶ на канал, то есть κ ≈ +0.0026 / +0.0023
+        /// 1/МэВ); у CsI сумм-пиков в корпусе нет, оценка хордами фотопиков в
+        /// световой шкале — журнал П220. Берётся из конфигурации прибора
+        /// (<c>DeviceConfigInfo.TractCurvature</c>).
+        /// </summary>
+        public double AdcTractCurvature { get; set; }
+
+        /// <summary>
+        /// (`AMBER155` (в), П220) Свойства ПРИБОРА, которые читает разбор, — одним
+        /// местом для приложения и проб: кривизна тракта
+        /// (<see cref="AdcTractCurvature"/>). Прибора нет или поле не число —
+        /// нуль, прямой тракт.
+        /// </summary>
+        public void AdoptDevice(DeviceConfigInfo device)
+        {
+            double k = device != null ? device.TractCurvature : 0.0;
+            this.AdcTractCurvature = Finite(k) ? k : 0.0;
+        }
+
+        /// <summary>(`AMBER155`, П220) Число каналов спектра этого разбора — для канала верхней линии прямой карты.</summary>
+        int adcChannels;
+
+        /// <summary>
+        /// ⛔ (`AMBER155`, П220 02.10.2026) КАРТА "adc" — ПРЯМАЯ ОТ НУЛЯ АЦП:
+        /// свет x идёт в канал c = c₀ + (x − z₀)·(c₁ − c₀)/(x₁ − z₀), где c₀ —
+        /// канал точки нуля (<see cref="AdcZeroChannel"/>), z₀ — нуль света по
+        /// съёмке, x₁ — верхняя значимая линия библиотеки и c₁ — её канал по
+        /// калибровке файла; кривизны полинома калибровки в карте нет.
+        /// Усиление и ноль опор (`AMBER17`) и совместный шаг нуля
+        /// (`AMBER142`) идут поверх неё как прежде, нуль по съёмке мерится
+        /// прямой «канал ↔ свет» (у прямой карты пространство карты — каналы,
+        /// `S193`). Ложь — прежняя форма П8 (прямая в энергии калибровки и
+        /// полином до канала): рычаг обратного плеча. Доводы и числа — у поля
+        /// <see cref="adcScale"/>.
+        /// </summary>
+        public bool AdcLinear { get; set; }
+
+        /// <summary>
+        /// (`AMBER155`, П220) Идёт ли на этом разборе прямая карта: заказана
+        /// (<see cref="AdcLinear"/>), у вещества кристалла есть кривая света
+        /// (<see cref="FsaLightScale"/>) и форма кладёт её сдвиг в образы
+        /// (line/peak). Без кривой света кривизну фотопиков в каналах не несёт
+        /// никто, кроме полинома калибровки, — тогда карта прежней формы (П8).
+        /// </summary>
+        bool AdcLinearActive
+        {
+            get { return this.AdcLinear && this.lightCurveName != null && this.LightInImages; }
+        }
+
+        /// <summary>
+        /// (`AMBER155`, П220) Свет верхней линии, кэВ, — неподвижная точка карты
+        /// (<see cref="AdcScaleOf"/>, совместный шаг нуля): у прямой карты — свет
+        /// ЕЁ ФОТОПИКА по кривой (E₁ + s(E₁)), у прежней формы — сама E₁.
+        /// </summary>
+        double adcTopLight;
+
+        /// <summary>(`AMBER155`, П220) Канал точки нуля карты: −½ (нижний край канала 0, <see cref="AdcZeroAtChannelEdge"/>) или 0 (центр).</summary>
+        double AdcZeroChannel
+        {
+            get { return this.AdcZeroAtChannelEdge ? -0.5 : 0.0; }
+        }
 
         /// <summary>(`S169`) Энергия калибровки в нулевом канале, кэВ — E(0) на этот разбор.</summary>
         double adcE0;
 
         /// <summary>(`S169`) Верхняя линия библиотеки, кэВ, по которой взято растяжение; для служебной строки.</summary>
         double adcTopKev;
+
+        /// <summary>
+        /// (`AMBER150`, П198) Множитель к калибровке ПШПВ на этот разбор —
+        /// единица до ширинной опоры; ставится циклом привязки.
+        /// </summary>
+        double widthScale = 1.0;
+
+        /// <summary>(`AMBER150`) Сколько опор задали <see cref="widthScale"/>.</summary>
+        int widthAnchors;
+
+        /// <summary>(`AMBER150`) Логарифм поправки ширины по опорам последнего сбора и их число.</summary>
+        double anchorWidthLog;
+        int anchorWidthCount;
+
+        /// <summary>(`AMBER142`, П201) σ логарифма множителя ширины по опорам последнего сбора (шум опор с полом, без Бирге).</summary>
+        double anchorWidthSigma;
+
+        /// <summary>
+        /// ⛔ (`AMBER150`, П198) ПШПВ ОБРАЗА в канале <paramref name="channel"/> —
+        /// ОДНО место, где калибровка ПШПВ становится шириной образа: матричное
+        /// уширение, голые пики, окна опор и пика. Множитель ширинной опоры —
+        /// только здесь; второй копии быть не должно.
+        /// </summary>
+        double ImageFwhm(FwhmCalibration fwhmCalibration, double channel)
+        {
+            return this.widthScale * fwhmCalibration.ChannelToFwhm(channel);
+        }
+
+        /// <summary>
+        /// (П198, решение Amber 01.10.2026) Доля выхода сильнейшей линии
+        /// образа, начиная с которой его линия может задать верх растяжения
+        /// карты "adc" (<see cref="AdcScaleOf"/>); слабее — не может.
+        /// </summary>
+        public const double AdcTopLineShare = 0.01;
 
         /// <summary>(`S169`) Свет в нулевом канале карты "adc", кэВ — <see cref="AnchorZeroKev"/> на этот разбор.</summary>
         double adcZeroKev;
@@ -2227,31 +4090,431 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (<see cref="adcScale"/>). Расходиться этим местам нельзя: пик,
         /// поставленный одной картой, и ядро опоры, построенное другой, дали
         /// бы промах привязки из ничего.
+        ///
+        /// ⛔ (`AMBER90`, `AMBER85`, П144 24.09.2026) ШКАЛА ПРОДОЛЖАЕТСЯ ЗА ОБА
+        /// КРАЯ, а не зажимается. Калибровка отдаёт `maxChannels` всему, что
+        /// выше E(N) (`PolynomialEnergyCalibration.cs:253`), и канал 0 всему,
+        /// что ниже E(0) или ниже нуля энергии (`:326`), — и позиция, взятая
+        /// отсюда как есть, сажала пик надшкальной линии полупиком на верхний
+        /// край, а свет ниже E(0) — стопкой в нулевой канал. Правка ~~`AMBER72`~~
+        /// продолжила шкалу вверх только в таблице бинов матричного образа
+        /// (<see cref="DepositChannels"/>); голые пики (<see cref="BuildTemplate"/>),
+        /// пиковое окно (<see cref="MarkPeakWindow"/>) и ядро опоры брали
+        /// зажатую позицию. Теперь продолжение живёт ЗДЕСЬ, в одном месте для
+        /// всех четырёх: выше E(N) — линейно по ширине верхнего канала, ниже
+        /// max(E(0), 0) — линейно по ширине нулевого. Что ушло дальше запаса
+        /// буфера, отбросит укладчик (<see cref="Splat"/>), что легло за полосу
+        /// фита — отрежут границы окна и образа.
+        ///
+        /// ⚠ Зажим в самой калибровке НЕ тронут и трогать его нельзя: её зовут
+        /// график, поиск пиков, калибровка, ROI, и «канал за шкалой» им не
+        /// нужен. Низ продолжается ТОЛЬКО там, где калибровка зажала (отдала
+        /// ноль): калибровка, умеющая честно обратить энергию между E(0) и
+        /// нулём, остаётся при своём ответе.
         /// </summary>
         double LightToChannel(EnergyCalibration calibration, double lightKev, int channels)
         {
-            if (this.adcScale > 0.0)
+            double energyKev = this.LightEnergyKev(lightKev);
+            // (`AMBER155`, П220) прямая карта: калибровки файла образ не касается,
+            // прямая продолжается за оба края сама
+            if (this.adcScale > 0.0 && this.adcLinearKev > 0.0)
             {
-                return EnergyToChannelSafe(calibration,
-                                           this.adcE0 + (lightKev - this.adcZeroKev) * this.adcScale,
-                                           channels);
+                return this.AdcZeroChannel + this.TractChannel((energyKev - this.adcE0) / this.adcLinearKev);
             }
 
-            return EnergyToChannelSafe(calibration, lightKev, channels);
+            // (`AMBER142`, П204) обращение калибровки — таблицей разбора, когда
+            // она есть (<see cref="CalibrationInverse"/>); числа краёв — из неё же
+            CalibrationInverse inverse = this.InverseOf(calibration, channels);
+            double channel = inverse != null
+                ? inverse.EnergyToChannel(energyKev)
+                : EnergyToChannelSafe(calibration, energyKev, channels);
+            if (channels < 2 || !Finite(energyKev))
+            {
+                return channel;
+            }
+
+            // Верх берётся ПОСЛЕ обращения к калибровке: оно ставит ей число
+            // каналов, а `ChannelToEnergy` за ним зажимает номер канала.
+            double topKev = inverse != null ? inverse.EnergyAt(channels) : calibration.ChannelToEnergy(channels);
+            double topStep = topKev - (inverse != null ? inverse.EnergyAt(channels - 1)
+                                                       : calibration.ChannelToEnergy(channels - 1));
+            if (energyKev > topKev && Finite(topKev) && PositiveFinite(topStep))
+            {
+                return channels + (energyKev - topKev) / topStep;
+            }
+
+            if (channel <= 0.0)
+            {
+                double zeroKev = inverse != null ? inverse.EnergyAt(0) : calibration.ChannelToEnergy(0);
+                double zeroStep = (inverse != null ? inverse.EnergyAt(1) : calibration.ChannelToEnergy(1)) - zeroKev;
+                if (energyKev < Math.Max(zeroKev, 0.0) && Finite(zeroKev) && PositiveFinite(zeroStep))
+                {
+                    return (energyKev - zeroKev) / zeroStep;
+                }
+            }
+
+            return channel;
         }
 
         /// <summary>
-        /// (`S169`) Растяжение карты "adc" по ВЕРХНЕЙ ЛИНИИ БИБЛИОТЕКИ:
-        /// s = (x₁ − E(0))/(x₁ − z₀), x₁ — наибольшая энергия линии среди
-        /// нуклидных образов (без готовых столбцов). Тогда E꜀(x₁) = x₁ —
-        /// верх шкалы стоит там же, где ставит его калибровка, и опоры
-        /// первого прохода находятся; E꜀(z₀) = E(0) — свет z₀ стоит в
-        /// нулевом канале. Какая именно линия взята верхней, на физику не
-        /// влияет: при одной опоре усиление растягивает образ вокруг
-        /// нулевого канала (нуль остаётся на месте), при двух и более с
-        /// плечом ноль подбирается МНК; линия лишь задаёт, насколько модель
-        /// до привязки близка к калибровочной. Нуль — линий нет, растяжение
-        /// не положительно, калибровка нулевому каналу энергии не даёт.
+        /// ⛔ (`AMBER142`, П204) ОБРАЩЕНИЕ КАЛИБРОВКИ ТАБЛИЦЕЙ РАЗБОРА. Таблица
+        /// бинов (<see cref="DepositChannels"/>) строится заново при каждом новом
+        /// нуле карты "adc" — на каждом проходе совместного шага привязки и на
+        /// каждом перефите погрешности шкалы, — и у калибровки 3-й и 4-й степени
+        /// каждый её бин обращался поиском корня (`FindRoots`, Брент) с
+        /// промахом мемоизации калибровки по энергии: на малой базе это была
+        /// треть всего времени разбора (16–18 мс на таблицу, П204). Здесь
+        /// энергия E(n) целых каналов берётся один раз на разбор, корень
+        /// ищется в своём интервале Ньютоном до машинной точности; правила
+        /// края — те же, что у <c>PolynomialEnergyCalibration.EnergyToChannel</c>
+        /// (выше E(N) — N, ниже нуля и ниже E(0) — 0). Ответ отличается от
+        /// Брента в пределах его допуска (1e-8 канала). Ложь — рычаг A/B.
+        /// </summary>
+        public bool FastCalibrationInverse { get; set; }
+
+        /// <summary>(`AMBER142`, П204) Таблица обращения текущего разбора; null — нет или не годится.</summary>
+        CalibrationInverse calibrationInverse;
+
+        /// <summary>(`AMBER142`, П204) Калибровка, у которой обращения таблицей нет (не полином 3–4 степени или не монотонна).</summary>
+        EnergyCalibration calibrationInverseRefused;
+        int calibrationInverseRefusedChannels;
+
+        CalibrationInverse InverseOf(EnergyCalibration calibration, int channels)
+        {
+            // (`AMBER213`, П241) под замком — см. <see cref="lazyGate"/>
+            lock (this.lazyGate)
+            {
+                return this.InverseOfLocked(calibration, channels);
+            }
+        }
+
+        CalibrationInverse InverseOfLocked(EnergyCalibration calibration, int channels)
+        {
+            if (!this.FastCalibrationInverse || calibration == null)
+            {
+                return null;
+            }
+
+            CalibrationInverse inverse = this.calibrationInverse;
+            if (inverse != null && inverse.Matches(calibration, channels))
+            {
+                return inverse;
+            }
+
+            if (object.ReferenceEquals(this.calibrationInverseRefused, calibration)
+                && this.calibrationInverseRefusedChannels == channels)
+            {
+                return null;
+            }
+
+            inverse = CalibrationInverse.TryCreate(calibration, channels);
+            if (inverse == null)
+            {
+                this.calibrationInverseRefused = calibration;
+                this.calibrationInverseRefusedChannels = channels;
+            }
+
+            this.calibrationInverse = inverse;
+            return inverse;
+        }
+
+        /// <summary>
+        /// (`AMBER142`, П204) Обращение полиномиальной калибровки 3-й и 4-й
+        /// степени: энергии целых каналов 0…N той же калибровкой
+        /// (`ChannelToEnergy` с числом каналов N), интервал — двоичным поиском,
+        /// корень — Ньютоном внутри интервала. Годится только для строго
+        /// возрастающей на 0…N калибровки: иначе корней в окне несколько, и
+        /// какой возьмёт Брент, предсказать нельзя (тогда — обычный путь).
+        /// </summary>
+        sealed class CalibrationInverse
+        {
+            readonly EnergyCalibration calibration;
+            readonly double[] coefficients;
+            readonly int order;
+            readonly int channels;
+            readonly double[] energies;
+
+            CalibrationInverse(EnergyCalibration calibration, double[] coefficients, int order, int channels, double[] energies)
+            {
+                this.calibration = calibration;
+                this.coefficients = coefficients;
+                this.order = order;
+                this.channels = channels;
+                this.energies = energies;
+            }
+
+            public static CalibrationInverse TryCreate(EnergyCalibration calibration, int channels)
+            {
+                var polynomial = calibration as PolynomialEnergyCalibration;
+                if (polynomial == null || channels < 2 || polynomial.Coefficients == null)
+                {
+                    return null;
+                }
+
+                int order = polynomial.PolynomialOrder;
+                double[] source = polynomial.Coefficients;
+                if ((order != 3 && order != 4) || source.Length < order + 1)
+                {
+                    return null;
+                }
+
+                double[] energies = new double[channels + 1];
+                try
+                {
+                    // ставит калибровке число каналов — как первое обращение
+                    // обычного пути; `ChannelToEnergy` за ним зажимает канал
+                    polynomial.EnergyToChannel(source[0], maxCh: channels);
+                    for (int n = 0; n <= channels; n++)
+                    {
+                        energies[n] = polynomial.ChannelToEnergy(n);
+                    }
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+
+                for (int n = 0; n <= channels; n++)
+                {
+                    if (!Finite(energies[n]) || (n > 0 && !(energies[n] > energies[n - 1])))
+                    {
+                        return null;
+                    }
+                }
+
+                var copy = (double[])source.Clone();
+                var inverse = new CalibrationInverse(calibration, copy, order, channels, energies);
+                // производная — без нулей внутри интервалов (на краях каналов
+                // уже проверено возрастание; здесь — что Ньютону есть по чему идти)
+                for (int n = 0; n <= channels; n++)
+                {
+                    if (!(inverse.Slope(n) > 0.0))
+                    {
+                        return null;
+                    }
+                }
+
+                return inverse;
+            }
+
+            public bool Matches(EnergyCalibration other, int otherChannels)
+            {
+                if (!object.ReferenceEquals(other, this.calibration) || otherChannels != this.channels)
+                {
+                    return false;
+                }
+
+                var polynomial = (PolynomialEnergyCalibration)other;
+                double[] now = polynomial.Coefficients;
+                if (polynomial.PolynomialOrder != this.order || now == null || now.Length != this.coefficients.Length)
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < now.Length; i++)
+                {
+                    if (now[i] != this.coefficients[i])
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            /// <summary>Энергия целого канала 0…N — то же число, что дала бы калибровка.</summary>
+            public double EnergyAt(int n)
+            {
+                return this.energies[Math.Max(0, Math.Min(this.channels, n))];
+            }
+
+            double Value(double x)
+            {
+                double[] c = this.coefficients;
+                double v = 0.0;
+                for (int i = this.order; i >= 0; i--)
+                {
+                    v = v * x + c[i];
+                }
+
+                return v;
+            }
+
+            double Slope(double x)
+            {
+                double[] c = this.coefficients;
+                double v = 0.0;
+                for (int i = this.order; i >= 1; i--)
+                {
+                    v = v * x + i * c[i];
+                }
+
+                return v;
+            }
+
+            /// <summary>Как <c>PolynomialEnergyCalibration.EnergyToChannel(e, N)</c>, корень — до машинной точности.</summary>
+            public double EnergyToChannel(double energy)
+            {
+                if (Double.IsNaN(energy))
+                {
+                    return Double.NaN;
+                }
+
+                double top = this.energies[this.channels];
+                if (energy > top)
+                {
+                    return this.channels;
+                }
+
+                if (energy < 0.0 || energy < this.coefficients[0])
+                {
+                    return 0.0;
+                }
+
+                // интервал [n, n + 1] с E(n) ≤ e ≤ E(n + 1)
+                int lo = 0, hi = this.channels;
+                while (hi - lo > 1)
+                {
+                    int mid = (lo + hi) >> 1;
+                    if (this.energies[mid] <= energy)
+                    {
+                        lo = mid;
+                    }
+                    else
+                    {
+                        hi = mid;
+                    }
+                }
+
+                double e0 = this.energies[lo], e1 = this.energies[hi];
+                double x = lo + (e1 > e0 ? (energy - e0) / (e1 - e0) : 0.0);
+                for (int iteration = 0; iteration < 20; iteration++)
+                {
+                    double slope = this.Slope(x);
+                    if (!(slope > 0.0))
+                    {
+                        break;
+                    }
+
+                    double step = (this.Value(x) - energy) / slope;
+                    double next = Math.Max(lo, Math.Min(hi, x - step));
+                    if (Math.Abs(next - x) <= 1.0E-13 * Math.Max(1.0, Math.Abs(x)))
+                    {
+                        x = next;
+                        break;
+                    }
+
+                    x = next;
+                }
+
+                return x;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER72`) Энергия КАЛИБРОВКИ, отвечающая свету x, — ровно то
+        /// число, которое <see cref="LightToChannel"/> отдаёт калибровке.
+        /// Отдельным местом, потому что спрашивает его ещё и таблица бинов
+        /// (<see cref="DepositChannels"/>): ей надо знать, лежит ли свет выше
+        /// верха шкалы, ДО обращения к калибровке — обращение это уже
+        /// зажимает (см. там же). Двух списков карты "adc" быть не должно.
+        /// </summary>
+        double LightEnergyKev(double lightKev)
+        {
+            return this.adcScale > 0.0
+                ? this.adcE0 + (lightKev - this.adcZeroKev) * this.adcScale
+                : lightKev;
+        }
+
+        /// <summary>
+        /// (`AMBER142`, П201) Обращение <see cref="LightEnergyKev"/>: свет,
+        /// который действующая карта кладёт на энергию калибровки
+        /// <paramref name="energyKev"/>. Без карты — тождество.
+        /// </summary>
+        double EnergyToLight(double energyKev)
+        {
+            return this.adcScale > 0.0
+                ? this.adcZeroKev + (energyKev - this.adcE0) / this.adcScale
+                : energyKev;
+        }
+
+        /// <summary>
+        /// (`AMBER155`, П220) Свет, который действующая карта кладёт в канал
+        /// <paramref name="channel"/> (до дрейфа): у прямой карта обращается
+        /// своей прямой, у формы полинома и без карты — калибровкой и
+        /// <see cref="EnergyToLight"/> (как было).
+        /// </summary>
+        double ChannelToLight(EnergyCalibration calibration, double channel)
+        {
+            if (this.adcScale > 0.0 && this.adcLinearKev > 0.0)
+            {
+                return this.EnergyToLight(this.adcE0 + this.TractInverse(channel - this.AdcZeroChannel) * this.adcLinearKev);
+            }
+
+            return this.EnergyToLight(calibration.ChannelToEnergy(channel));
+        }
+
+        /// <summary>
+        /// (`AMBER155` (в), П220) Кривизна тракта прямой карты: v — каналы от
+        /// точки нуля по прямой части, ответ — каналы с кривизной
+        /// v + q·v², q = κ·шаг/1000 (<see cref="AdcTractCurvature"/>).
+        /// </summary>
+        double TractChannel(double v)
+        {
+            return v + this.adcTractPerChannel * v * v;
+        }
+
+        /// <summary>(`AMBER155` (в), П220) Обращение <see cref="TractChannel"/>; за вершиной параболы — вершина.</summary>
+        double TractInverse(double u)
+        {
+            double q = this.adcTractPerChannel;
+            if (q == 0.0)
+            {
+                return u;
+            }
+
+            double d = 1.0 + 4.0 * q * u;
+            return d > 0.0 ? 2.0 * u / (1.0 + Math.Sqrt(d)) : -0.5 / q;
+        }
+
+        /// <summary>(`AMBER155` (в), П220) dc/dv кривизны тракта в точке v.</summary>
+        double TractSlope(double v)
+        {
+            return 1.0 + 2.0 * this.adcTractPerChannel * v;
+        }
+
+        /// <summary>
+        /// (`AMBER155`, П220) Шаг карты у нулевого канала, кэВ шкалы
+        /// <see cref="LightEnergyKev"/> на канал: у прямой — её шаг, иначе
+        /// E(1) − E(0) калибровки (допуск нуля света в каналах).
+        /// </summary>
+        double AdcZeroStepKev(EnergyCalibration calibration)
+        {
+            return this.adcScale > 0.0 && this.adcLinearKev > 0.0
+                ? this.adcLinearKev
+                : calibration.ChannelToEnergy(1.0) - calibration.ChannelToEnergy(0.0);
+        }
+
+        /// <summary>
+        /// (`S169`) Растяжение карты "adc" по ВЕРХНЕЙ ЗНАЧИМОЙ ЛИНИИ
+        /// БИБЛИОТЕКИ: s = (x₁ − E(0))/(x₁ − z₀), x₁ — наибольшая энергия
+        /// линии среди нуклидных образов (без готовых столбцов), чей выход не
+        /// меньше <see cref="AdcTopLineShare"/> от сильнейшей линии того же
+        /// образа. Тогда E꜀(x₁) = x₁ — верх шкалы стоит там же, где ставит
+        /// его калибровка, и опоры первого прохода находятся; E꜀(z₀) = E(0) —
+        /// свет z₀ стоит в нулевом канале. Нуль — линий нет, растяжение не
+        /// положительно, калибровка нулевому каналу энергии не даёт.
+        ///
+        /// ⛔ (П198 по находке П196, решение Amber 01.10.2026 «Верхнюю
+        /// значимую ≥ 1 % от сильнейшей») Прежде верхней бралась линия с
+        /// ЛЮБЫМ выходом > 0, а этот комментарий утверждал, что выбор линии
+        /// «на физику не влияет». Замер П196 это опроверг: добор в поставку
+        /// слабой Bi-214 2769.9 кэВ (0.025 %) переставил верх с Tl-208 2614.5
+        /// и увёл шкалу угля с радоном (`G1S24_Rn222Coal_eq01`: усиление
+        /// 0.99909 → 0.99624, ноль 3.35 → 5.17 кэВ, χ²/ndf 1.459 → 1.591) —
+        /// растяжение карты задаёт и начальную точку привязки, и долю шкалы,
+        /// которую потом несут нуль и усиление. Линия ниже 1 % своей
+        /// сильнейшей верх шкалы задавать не должна.
         /// </summary>
         double AdcScaleOf(List<FsaComponent> library, EnergyCalibration calibration)
         {
@@ -2263,9 +4526,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                double strongest = 0.0;
                 foreach (FsaLine line in component.Lines)
                 {
-                    if (line.Energy > topKev && line.Intensity > 0.0)
+                    if (line.Intensity > strongest)
+                    {
+                        strongest = line.Intensity;
+                    }
+                }
+
+                double floor = strongest * AdcTopLineShare;
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (line.Energy > topKev && line.Intensity > 0.0 && line.Intensity >= floor)
                     {
                         topKev = line.Energy;
                     }
@@ -2280,23 +4553,88 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double e0;
             try
             {
-                e0 = calibration.ChannelToEnergy(0.0);
+                e0 = this.AdcZeroEnergy(calibration);
             }
             catch (Exception)
             {
                 return 0.0;
             }
 
-            double light = topKev - this.adcZeroKev;
+            // (`AMBER155`, П220) у прямой карты неподвижная точка — СВЕТ фотопика
+            // верхней линии: кривизну фотопиков в каналах несёт кривая света,
+            // и с усилением 1 фотопик верхней линии стоит там, где ставит его
+            // калибровка; у прежней формы — сама энергия линии, как было
+            bool linear = this.AdcLinearActive;
+            double topLight = linear ? topKev + this.CurveShiftKev(topKev) : topKev;
+            double light = topLight - this.adcZeroKev;
             if (!Finite(e0) || !(light > 0.0) || !(topKev - e0 > 0.0))
             {
                 return 0.0;
             }
 
+            // (`AMBER155`, П220) прямая карта: шаг — по точке нуля и каналу
+            // верхней линии калибровкой файла; от нуля света не зависит
+            double linearKev = 0.0;
+            if (linear)
+            {
+                // канал верхней линии — калибровкой файла; за верхом шкалы —
+                // продолжением по ширине верхнего канала, как у прежней карты
+                // (полином за шкалой не экстраполируется)
+                int n = this.adcChannels;
+                double topChannel;
+                try
+                {
+                    double topEdge = n > 1 ? calibration.ChannelToEnergy(n) : double.NaN;
+                    double topStep = n > 1 ? topEdge - calibration.ChannelToEnergy(n - 1) : double.NaN;
+                    topChannel = n > 1 && topKev > topEdge && PositiveFinite(topStep)
+                        ? n + (topKev - topEdge) / topStep
+                        : calibration.EnergyToChannel(topKev, maxChannels: n > 1 ? n : 10000);
+                }
+                catch (Exception)
+                {
+                    return 0.0;
+                }
+
+                // кривизна тракта (<see cref="AdcTractCurvature"/>): канал верхней
+                // линии держится на месте, c₁ − c₀ = v₁·(1 + κ·(E₁ − E(0))/1000)
+                double bend = 1.0 + this.AdcTractCurvature * (topKev - e0) / 1000.0;
+                if (!(bend > 0.0))
+                {
+                    return 0.0;
+                }
+
+                linearKev = (topKev - e0) * bend / (topChannel - this.AdcZeroChannel);
+                if (!PositiveFinite(linearKev))
+                {
+                    return 0.0;
+                }
+            }
+
             this.adcE0 = e0;
             this.adcTopKev = topKev;
+            this.adcLinearKev = linearKev;
+            this.adcTractPerChannel = linear ? this.AdcTractCurvature * linearKev / 1000.0 : 0.0;
+            this.adcTopLight = topLight;
             double scale = (topKev - e0) / light;
             return PositiveFinite(scale) ? scale : 0.0;
+        }
+
+        /// <summary>
+        /// (`AMBER142` п. 8, П215) Энергия калибровки в точке нуля света карты
+        /// «adc»: центр канала 0, E(0), или его нижний край, E(0) − ½·(E(1) −
+        /// E(0)) (<see cref="AdcZeroAtChannelEdge"/>). Одно место на
+        /// <see cref="AdcScaleOf"/> и <see cref="ZeroFromCandidates"/>: карта и
+        /// нуль по съёмке обязаны мерить нуль от одной точки.
+        /// </summary>
+        double AdcZeroEnergy(EnergyCalibration calibration)
+        {
+            double e0 = calibration.ChannelToEnergy(0.0);
+            if (!this.AdcZeroAtChannelEdge)
+            {
+                return e0;
+            }
+
+            return e0 - 0.5 * (calibration.ChannelToEnergy(1.0) - e0);
         }
 
         /// <summary>
@@ -2312,15 +4650,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// не нуль. Свет пика x — модельный центр с учтённым светом
         /// (β⁺·S) и снятым дрейфом, калибровкой файла (карта на разведке —
         /// calib, то есть канал ↔ энергия и есть карта); измерение y — центр
-        /// данных, канал. Прямая y = g·x + c₀ с теми же весами 1/σ² центра,
-        /// что у МНК опор (`AMBER17`; пол σ — доля ПШПВ, отчего низкие узкие
-        /// пики весят больше — ровно те, что ближе к нулю); без отсева
+        /// данных, снятый с той же сеточной шкалы и переведённый в ЭНЕРГИЮ
+        /// КАЛИБРОВКИ. Прямая y = g·x + c₀ (кэВ калибровки против кэВ
+        /// света) с теми же весами 1/σ² центра, что у МНК опор (`AMBER17`,
+        /// σ — через местную ширину канала в кэВ; пол σ — доля ПШПВ, отчего
+        /// низкие узкие пики весят больше — ровно те, что ближе к нулю); без отсева
         /// промахов: между 60 и 662 кэВ у смесей G1S16 калибровка сама
         /// несёт ±1.5 кан, и отсев «по одному с худшего» оставил бы две
         /// точки, выбранные шумом. Ноль — при плече опор, как у `AMBER17`
         /// (верхняя хотя бы вдвое выше нижней по свету), иначе ошибка
         /// центра усиливается без границы. Нуль света в нулевом канале
-        /// z₀ = −c₀/g (кэВ) — то, что подставляется в карту.
+        /// z₀ = (E(0) − c₀)/g (кэВ) — тот свет, что прямая кладёт на энергию
+        /// нулевого канала, — и подставляется в карту.
+        ///
+        /// ⛔ (`S193`, П156 24.09.2026) ПРЯМАЯ — В ЭНЕРГИИ КАЛИБРОВКИ, а не в
+        /// каналах: карта ставит свет x в канал EnergyToChannel(E(0) +
+        /// (x − z₀)·s), то есть прямая у неё — в энергии, а до канала свет
+        /// идёт кривизной полинома. Прямая «канал ↔ свет» (так было с П13)
+        /// давала нуль, по которому карта ставит низкий пик НЕ туда, где его
+        /// центр в данных, и нуль не был неподвижной точкой: разбор модели,
+        /// построенной с нулём z₀, находил другой нуль (`G1S24_Cs137_Mar`:
+        /// −1.84 → −3.95 → … кэВ, шаг ≈ −2 кэВ). Цена — пуассоновская копия
+        /// собственной модели не воспроизводилась: поканальный χ²-член в
+        /// пиках 1.22 / 1.68 при μ = 20 / 50 (`FsaReportWeightsProbe --diag`),
+        /// копия без розыгрыша при μ = 500 — 7.61 на канал вместо нуля. В
+        /// энергии карта кладёт кандидатов на их центры (с точностью до
+        /// того, что усиление опор действует в каналах); после правки нуль
+        /// разбора модели −0.41 → −0.46 кэВ, копия при μ = 500 — 0.004 на
+        /// канал. У линейной калибровки при нулевом сдвиге сетки число то
+        /// же, что прежде: прямые в каналах и в энергии там одна прямая.
         ///
         /// Измерено на опорах плеча calib П12 (`handover/p13-zero-per-run/
         /// p13_prestudy.py`): у трёх смесей G1S16 такой нуль ставит образ
@@ -2328,8 +4686,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Ti-44 67.9 стоит на +2.8), у точечных G1S16/G1S24 — кан 0.0…2.1,
         /// как П4 §3 и П12 §3; невзвешенный МНК — −0.8…−1.7 кан у смесей.
         ///
+        /// ⛔ (`S205`, П190 30.09.2026) РЕШАЮЩИЙ КАНДИДАТ У НОЖА ВЕСИТ СВОЙ
+        /// ЗАПАС. Решающий — тот, без которого нуля по съёмке нет (двух не
+        /// остаётся или пропадает плечо). Прежде его ножи были жёсткими, и
+        /// правка ниже шума, перекинувшая долю через порог, перебрасывала весь
+        /// нуль: `AS80_Lu176_v2` на складе физики 25 брал K Hf 55.8 кэВ с долей
+        /// 0.2500 при пороге 0.25 и промахом 0.915 ПШПВ при пределе 1 (центр
+        /// данных — у самого края окна, кан 165.7 при окне 164…216: доля 0.25
+        /// значит, что три четверти окна — чужие образы, и их промах на
+        /// разведке, где образ ещё без сдвига света, тащит центр) — нуль света
+        /// +3.97 кэВ (кан −12.10), χ²/ndf 2.78; на складе физики 26 доля 0.2494
+        /// — нуль прибора, 2.03. Теперь нуль съёмки смешивается с нулём прибора
+        /// с весом, равным наименьшему запасу решающих кандидатов
+        /// (<see cref="ZeroKnifeMargin"/>, полоса <see cref="AnchorZeroBlendBand"/>):
+        /// на самом ноже — нуль прибора, за полосой — нуль съёмки как прежде, до
+        /// бита; между — линейно. Нерешающие кандидаты (плечо держится и без
+        /// них) входят, как и входили: их вход двигает нуль на доли канала
+        /// (выброс по одному в журнале).
+        ///
         /// Ложь — нуля по съёмке нет (кандидатов меньше двух, нет плеча,
-        /// вырожденный МНК): звавший берёт запасной путь — нуль прибора
+        /// вырожденный МНК, решающий кандидат на самом ноже): звавший берёт запасной путь — нуль прибора
         /// <see cref="AnchorZeroKev"/> (нуль света в нулевом канале, П4 §3
         /// на G1S16; П8 на четырёх Am-241 — вылет модели встал на данные);
         /// это и есть единственный честный запас: при одной опоре нуля
@@ -2339,6 +4715,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         bool ZeroFromRun(EnergyCalibration calibration, double gain, double offset,
                          out double zeroKev, out string note)
         {
+            return this.ZeroFromCandidates(calibration, gain, offset, null, out zeroKev, out note);
+        }
+
+        /// <summary>
+        /// (`AMBER142`, П201) Линии кандидатов, взятых в нуль на разведке, и
+        /// вес нуля съёмки там (`S205`): пересъёмка берёт ТОТ ЖЕ набор линий,
+        /// а не заново по ножам, — отбор не зависит от того, где сейчас стоит
+        /// модель. Пусто — разведки не было или нуль «по прибору».
+        /// </summary>
+        List<double> zeroTakenLines;
+        double zeroTakenBlend;
+
+        /// <summary>
+        /// (`AMBER142`, П201) Запас каждой линии <see cref="zeroTakenLines"/> до
+        /// её ножей на разведке (`S205`, <see cref="ZeroKnifeMargin"/>), тем же
+        /// порядком: множитель веса кандидата нуля в совместном шаге — кандидат
+        /// у ножа входит в шкалу плавно, а не скачком.
+        /// </summary>
+        List<double> zeroTakenMargins;
+
+        /// <summary>
+        /// (`AMBER142`, П201) Нуль света по кандидатам ТЕКУЩЕГО прохода —
+        /// общий случай <see cref="ZeroFromRun"/>.
+        /// Свет модельного центра берётся ОБРАЩЕНИЕМ действующей карты
+        /// (<see cref="EnergyToLight"/>): на разведке карты нет, обращение —
+        /// тождество, и число то же до бита; при включённой карте "adc" это
+        /// свет, который карта сейчас ставит в модельный центр.
+        /// <paramref name="frozen"/> — линии разведки (пересъёмка): кандидат
+        /// берётся по линии, без ножей доли, z и промаха, и смешения у ножа
+        /// нет (пересъёмка идёт только у надёжного нуля, вес 1). Так у точной
+        /// копии модели (данные = модель, все промахи нулевые) прямая отдаёт
+        /// ровно действующий нуль, и пересъёмка его не трогает — разбор
+        /// воспроизводит сам себя.
+        /// </summary>
+        bool ZeroFromCandidates(EnergyCalibration calibration, double gain, double offset, List<double> frozen,
+                         out double zeroKev, out string note)
+        {
             zeroKev = 0.0;
             note = null;
             List<AnchorFit> all = this.zeroCandidates;
@@ -2346,18 +4759,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var xs = new List<double>();
             var ys = new List<double>();
             var ws = new List<double>();
+            // (`S205`, П190) запас каждого взятого кандидата до его ножей и его линия
+            var margins = new List<double>();
+            var lines = new List<double>();
+            Action<string> sink = ZeroTraceSink;
             if (all != null)
             {
                 double lightAdd = this.LightFixedAdd();
                 foreach (AnchorFit f in all)
                 {
                     FsaScaleAnchor a = f.Anchor;
+                    if (sink != null && a != null)
+                    {
+                        sink(string.Format(CultureInfo.InvariantCulture,
+                                           "cand line={0:F3} refusal={1} z={2:F2} share={3:F4} shiftF={4:F3} w={5:G6} X={6:F3} Y={7:F3} lo={8} hi={9}",
+                                           a.LineKev, a.Refusal ?? "", a.Z, a.PeakShare, f.ShiftFwhm, f.Weight,
+                                           f.X, f.Y, a.FirstChannel, a.LastChannel));
+                    }
+
                     if (a == null || a.Refusal == "edge" || a.Refusal == "skip" || a.Refusal == "narrow")
                     {
                         continue;
                     }
 
-                    if (!(a.Z >= this.AnchorMinZ) || !(a.PeakShare >= this.AnchorZeroShareThreshold)
+                    if (frozen != null)
+                    {
+                        if (!(f.Weight > 0.0) || !frozen.Exists(t => Math.Abs(t - a.LineKev) < 1.0E-6))
+                        {
+                            continue;
+                        }
+                    }
+                    else if (!(a.Z >= this.AnchorMinZ) || !(a.PeakShare >= this.AnchorZeroShareThreshold)
                         || !(f.ShiftFwhm <= this.AnchorMaxShiftFwhm) || !(f.Weight > 0.0))
                     {
                         continue;
@@ -2367,7 +4799,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     double x;
                     try
                     {
-                        x = calibration.ChannelToEnergy(p);
+                        // (`AMBER142`) свет модельного центра — обращением карты
+                        x = this.ChannelToLight(calibration, p);
                     }
                     catch (Exception)
                     {
@@ -2379,9 +4812,44 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
+                    // (`S193`, П156) Измерение — в ЭНЕРГИИ КАЛИБРОВКИ, как и
+                    // строит образ карта: центр данных снят с той же сеточной
+                    // шкалы, что и модельный (x), и переведён калибровкой; вес
+                    // 1/σ² центра — через местную ширину канала в кэВ.
+                    // (`AMBER155`, П220) у прямой карты пространство карты —
+                    // КАНАЛЫ: измерение — сам канал центра данных, вес 1/σ² в
+                    // каналах (шаг канала «в себе» — 1/усиление)
+                    double q = (f.Y - offset) / gain;
+                    double e, step;
+                    try
+                    {
+                        // (`AMBER155` (в)) у тракта с кривизной — канал прямой части
+                        double v = this.TractInverse(q - this.AdcZeroChannel);
+                        e = this.AdcLinearActive ? this.AdcZeroChannel + v : calibration.ChannelToEnergy(q);
+                        step = this.AdcLinearActive
+                            ? 1.0 / gain / this.TractSlope(v)
+                            : (calibration.ChannelToEnergy(q + 0.5) - calibration.ChannelToEnergy(q - 0.5)) / gain;
+                    }
+                    catch (Exception)
+                    {
+                        continue;
+                    }
+
+                    if (!Finite(e) || !PositiveFinite(step))
+                    {
+                        continue;
+                    }
+
                     xs.Add(x);
-                    ys.Add(f.Y);
-                    ws.Add(f.Weight);
+                    ys.Add(e);
+                    ws.Add(f.Weight / (step * step));
+                    margins.Add(this.ZeroKnifeMargin(a.PeakShare, a.Z, f.ShiftFwhm));
+                    lines.Add(a.LineKev);
+                    if (sink != null)
+                    {
+                        sink(string.Format(CultureInfo.InvariantCulture, "  taken x={0:F3} e={1:F3} w={2:G6} margin={3:F4}",
+                                           x, e, f.Weight / (step * step), margins[margins.Count - 1]));
+                    }
                 }
             }
 
@@ -2423,17 +4891,155 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             double g = (sw * swxy - swx * swy) / det;
             double c0 = (swxx * swy - swx * swxy) / det;
-            if (!PositiveFinite(g) || !Finite(c0))
+            double e0, e1;
+            try
+            {
+                e0 = calibration.ChannelToEnergy(0.0);
+                e1 = calibration.ChannelToEnergy(1.0);
+            }
+            catch (Exception)
+            {
+                e0 = e1 = double.NaN;
+            }
+
+            if (!PositiveFinite(g) || !Finite(c0) || !Finite(e0) || !PositiveFinite(e1 - e0))
             {
                 note = "по прибору: " + below + ", наклон не положителен";
                 return false;
             }
 
-            zeroKev = -c0 / g;
+            // (`S193`) Прямая E = g·x + c₀ в кэВ калибровки; нуль света — тот
+            // свет, что ложится в нулевой канал, E = E(0). В служебную строку
+            // по-прежнему — канал, куда лёг бы нулевой свет (у нулевого канала
+            // калибровка почти прямая — шагом нулевого канала).
+            // (`AMBER142` п. 8, П215) точка нуля карты — та же, что у AdcScaleOf
+            double eZero = this.AdcZeroAtChannelEdge ? e0 - 0.5 * (e1 - e0) : e0;
+            if (this.AdcLinearActive)
+            {
+                // (`AMBER155`, П220) прямая «канал ↔ свет»: нуль — свет в канале точки нуля
+                e0 = 0.0;
+                e1 = 1.0;
+                eZero = this.AdcZeroChannel;
+            }
+
+            zeroKev = (eZero - c0) / g;
+            {
+                // (`AMBER142`, П201) σ нуля из ковариации прямой (c₀, g) с Бирге
+                double chiLine = 0.0;
+                for (int i = 0; i < xs.Count; i++)
+                {
+                    double r = ys[i] - g * xs[i] - c0;
+                    chiLine += ws[i] * r * r;
+                }
+
+                // без Бирге по разбросу кандидатов — разлад модели, а не шум
+                double varC = swxx / det, varG = sw / det, cov = -swx / det;
+                double varZ = (varC + zeroKev * zeroKev * varG + 2.0 * zeroKev * cov) / (g * g);
+                this.zeroSigmaKev = varZ > 0.0 ? Math.Sqrt(varZ) : 0.0;
+            }
+
+            c0 = (c0 - e0) / (e1 - e0);
             note = string.Format(CultureInfo.InvariantCulture,
                                  "по съёмке: опор {0} из {1} ({2:F1}…{3:F1} кэВ), нуль света кан {4:F2}",
                                  xs.Count, seen, xMin, xMax, c0);
+
+            // (`S205`, П190) вес нуля съёмки — наименьший запас РЕШАЮЩИХ
+            // кандидатов (без которых плеча нет); надёжный нуль — вес 1, до бита
+            double blend = 1.0;
+            double blendLine = double.NaN;
+            for (int i = 0; frozen == null && i < xs.Count; i++)
+            {
+                if (margins[i] < blend && !ArmHoldsWithout(xs, i))
+                {
+                    blend = margins[i];
+                    blendLine = lines[i];
+                }
+            }
+
+            if (sink != null)
+            {
+                sink(string.Format(CultureInfo.InvariantCulture, "  line g={0:F5} zeroKev={1:F3} e0={2:F3} step0={3:F5} blend={4:F4} blendLine={5:F3}",
+                                   g, zeroKev, e0, e1 - e0, blend, blendLine));
+            }
+
+            if (blend < 1.0)
+            {
+                if (!(blend > 0.0))
+                {
+                    note = string.Format(CultureInfo.InvariantCulture,
+                                         "по прибору: {0}, решающий кандидат {1:F1} кэВ на ноже", below, blendLine);
+                    zeroKev = 0.0;
+                    return false;
+                }
+
+                zeroKev = this.AnchorZeroKev + blend * (zeroKev - this.AnchorZeroKev);
+                this.zeroSigmaKev *= blend;
+                note += string.Format(CultureInfo.InvariantCulture,
+                                      ", решающий {0:F1} кэВ у ножа: вес {1:F2}", blendLine, blend);
+            }
+
+            if (frozen == null)
+            {
+                this.zeroTakenLines = lines;
+                this.zeroTakenMargins = margins;
+                this.zeroTakenBlend = blend;
+            }
+
             return Finite(zeroKev);
+        }
+
+        /// <summary>
+        /// (`S205`, П190) ЗАПАС КАНДИДАТА НУЛЯ ДО ЕГО НОЖЕЙ, 0…1: наименьший из
+        /// трёх линейных подъёмов — доля синего от
+        /// <see cref="AnchorZeroShareThreshold"/> до (1 + b)·порога, z от
+        /// <see cref="AnchorMinZ"/> до (1 + b)·порога, промах от
+        /// <see cref="AnchorMaxShiftFwhm"/> вниз до (1 − b)·предела; b —
+        /// <see cref="AnchorZeroBlendBand"/>. На самом ноже — 0, за полосой — 1;
+        /// полоса нуль — всегда 1 (жёсткие ножи, как до `S205`).
+        /// </summary>
+        double ZeroKnifeMargin(double share, double z, double shiftFwhm)
+        {
+            double b = this.AnchorZeroBlendBand;
+            if (!(b > 0.0))
+            {
+                return 1.0;
+            }
+
+            double t = this.AnchorZeroShareThreshold;
+            double m = Ramp01((share - t) / (b * t));
+            m = Math.Min(m, Ramp01((z - this.AnchorMinZ) / (b * this.AnchorMinZ)));
+            m = Math.Min(m, Ramp01((this.AnchorMaxShiftFwhm - shiftFwhm) / (b * this.AnchorMaxShiftFwhm)));
+            return m;
+        }
+
+        /// <summary>(`S205`) Зажим в [0, 1]; NaN — нуль.</summary>
+        static double Ramp01(double v)
+        {
+            return v > 0.0 ? (v < 1.0 ? v : 1.0) : 0.0;
+        }
+
+        /// <summary>
+        /// (`S205`, П190) Держится ли нуль по съёмке без кандидата
+        /// <paramref name="skip"/>: остаётся не меньше двух, и плечо то же, что
+        /// в <see cref="ZeroFromRun"/> (верхний по свету хотя бы вдвое выше нижнего).
+        /// </summary>
+        static bool ArmHoldsWithout(List<double> xs, int skip)
+        {
+            double lo = double.MaxValue, hi = double.MinValue;
+            int n = 0;
+            for (int i = 0; i < xs.Count; i++)
+            {
+                if (i == skip)
+                {
+                    continue;
+                }
+
+                n++;
+                lo = Math.Min(lo, xs[i]);
+                hi = Math.Max(hi, xs[i]);
+            }
+
+            return n >= 2 && lo > 0.0 && hi - lo >= 0.5 * hi;
         }
 
         /// <summary>
@@ -2445,7 +5051,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         double LightFixedAdd()
         {
-            if (this.lightCurveName == null)
+            if (this.lightCurveName == null || this.curveLightSuspended)
             {
                 return 0.0;
             }
@@ -2687,6 +5293,219 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int AnchorPasses { get; set; }
 
         /// <summary>
+        /// ⛔ (`AMBER142`, П201) СОВМЕСТНЫЙ ШАГ НУЛЯ СВЕТА И УСИЛЕНИЯ: сколько
+        /// проходов привязки ДОБАВЛЯЕТСЯ к <see cref="AnchorPasses"/>, когда нуль
+        /// карты "adc" взят по съёмке. Нуль разведки мерится один раз на сеточной
+        /// шкале и карте calib, где чужие образы в окне кандидата стоят мимо, и
+        /// разбор точной копии собственной модели находил другой нуль
+        /// (`G1S16_Mix_Mar`: Ti-44 −6.7 % при σ 0.4 %). Теперь на каждом проходе
+        /// нуль света и усиление подбираются одним МНК (<see cref="JointScaleStep"/>)
+        /// по принятым опорам и замороженным на разведке кандидатам нуля, пока
+        /// шаг не станет меньше допуска (<see cref="AnchorZeroTolerance"/>) или не
+        /// кончатся проходы. Нуль — нуль разведки, как прежде (рычаг A/B); нуль
+        /// «по прибору» не переснимается.
+        /// </summary>
+        public int AnchorZeroRounds { get; set; }
+
+        /// <summary>
+        /// ⛔ (`AMBER142` п. 7, П207) ДОБАВОЧНЫЕ ПРОХОДЫ КЛАССИЧЕСКОГО РЕЖИМА —
+        /// привязки без совместного шага (нуль «по прибору», карта calib, разбор
+        /// без матрицы): сколько проходов ДОБАВЛЯЕТСЯ к <see cref="AnchorPasses"/>.
+        /// Прежних трёх проходов классике не хватало: на малой базе (П204) 24 из
+        /// 38 таких разборов упирались в предел, не сойдясь, — у
+        /// `G1S16_Am241_P25` (одна опора) ширина в пределе ×1.2051, а ещё за три
+        /// прохода ×1.1470, и χ²/ndf, z Am-241 менялись вместе с ней: ответ
+        /// зависел от того, где оборвали лестницу. Останов на плато и возврат к
+        /// лучшему проходу (<see cref="AnchorPlateauPasses"/>) действуют и здесь,
+        /// с допусками классики. Решение Amber 01.10.2026 — у конструктора, где стоит
+        /// умолчание. Нуль — прежние проходы (рычаг A/B).
+        /// </summary>
+        public int AnchorClassicRounds { get; set; }
+
+        /// <summary>
+        /// (`AMBER142`, П201) При совместном шаге (<see cref="AnchorZeroRounds"/>)
+        /// ноль шкалы держит ТОЛЬКО карта: МНК опор подбирает одно усиление.
+        /// Две ручки одного нуля — нуль света по кандидатам и ноль в каналах
+        /// по опорам — по разным наборам пиков к одной точке не сходятся:
+        /// пересъёмка тянула нуль, а ноль опор возвращал его обратно
+        /// (`G1S16_Mix_Mar`: нуль света −14 → −8 кэВ за три круга при ноле опор
+        /// +1.8 кан.).
+        /// </summary>
+        public bool AnchorZeroOwnsOffset { get; set; }
+
+        /// <summary>
+        /// (`AMBER142`, П201) Допуск совместного шага по нулю света, каналы у
+        /// нулевого канала: проходы стоп, когда шаг меньше. У слитных образов
+        /// амплитуда чувствительна к нулю на проценты на кэВ (Ti-44 в смеси —
+        /// 4.7 %/кэВ), и допуск проходов (двадцатая канала) там стоил процента.
+        /// </summary>
+        public double AnchorZeroTolerance { get; set; }
+
+        /// <summary>
+        /// ⛔ (`AMBER142`, П204) ТЁПЛЫЙ СТАРТ ПРИВЯЗКИ В ПОВТОРНОМ ПРОХОДЕ РАЗБОРА.
+        /// <see cref="Analyze"/> разбирает спектр до четырёх раз (`AMBER154`:
+        /// неподвижная точка усиления хранимого фона), и каждый проход прежде
+        /// начинал привязку с сеточной шкалы — та же лестница поправок от сотен
+        /// допусков, что и у первого прохода, хотя фон сдвинулся на доли
+        /// процента (малая база, П204: повторы несли 38 % проходов совместного
+        /// шага). Здесь повторный проход совместного шага (нуль по съёмке,
+        /// карта "adc") берёт стартом итоговую шкалу предыдущего — усиление и
+        /// ноль, нуль света карты, множитель ширины, β света; разведка нуля и
+        /// замороженные кандидаты — как были (отбор от старта не зависит).
+        /// Неподвижная точка и критерий сходимости те же; первый проход не
+        /// меняется. Классический режим (нуль «по прибору», карта calib) —
+        /// холодный, как прежде: при прежних трёх проходах тёплый старт давал
+        /// повтору лишние проходы, то есть другой ответ, а не ускорение; при
+        /// трёх плюс <see cref="AnchorClassicRounds"/> (П207) он экономил бы лишь
+        /// пятую часть проходов классики (≈ 2 % времени малой базы), а точка
+        /// остановки в пределах допуска сходимости зависела бы от старта
+        /// (активность до 1.2 %) — не взят. Ложь — холодный старт (рычаг A/B).
+        /// </summary>
+        public bool AnchorWarmStart { get; set; }
+
+        /// <summary>
+        /// ⛔ (`AMBER142`, П204) ОСТАНОВ НА ПЛАТО: совместный шаг прекращается, когда
+        /// наибольшая поправка, приведённая к своему допуску, держится
+        /// <see cref="AnchorPlateauPasses"/> проходов подряд выше допуска и в
+        /// пределах множителя <see cref="AnchorPlateauRatio"/> — невязка у
+        /// неподвижной точки дрожит (замер опоры разрывен: целое окно у целой
+        /// вершины), и проходы дальше её не уменьшают. `AS80_Cs137_0cm`: две
+        /// точки на два неизвестных, нуль — по мультиплету Ba K 34 кэВ, поправка
+        /// 19…22 допуска с четвёртого по последний проход во всех трёх проходах разбора.
+        /// На записанных ходах малой базы правило не срабатывает больше нигде.
+        /// Нуль проходов — правило выключено (рычаг A/B).
+        /// </summary>
+        public int AnchorPlateauPasses { get; set; }
+
+        /// <summary>(`AMBER142`, П204) Множитель плато — см. <see cref="AnchorPlateauPasses"/>.</summary>
+        public double AnchorPlateauRatio { get; set; }
+
+        /// <summary>(`AMBER142`, П204) Итоговая шкала прохода привязки — старт следующего прохода разбора.</summary>
+        internal sealed class AnchorWarm
+        {
+            public double Gain, Offset, ZeroKev, Width, Light;
+            public int WidthAnchors;
+            public bool ZeroByRun, AdcOn;
+        }
+
+        /// <summary>(`AMBER142`, П204) Старт этого прохода (null — холодный) и итог этого прохода.</summary>
+        AnchorWarm anchorWarmIn, anchorWarmOut;
+
+        /// <summary>
+        /// (`AMBER142`, П201) Промах опоры — сдвигом всей нуклидной модели в
+        /// окне (шаг Гаусса — Ньютона по производной модели), а не разностью
+        /// центров тяжести «остаток + ядро» и ядра. Рычаг A/B.
+        /// </summary>
+        public bool AnchorShiftMeasure { get; set; }
+
+        /// <summary>
+        /// (`AMBER142`, П201) σ сдвига опоры растёт на χ²/ndf окна (Бирге), когда
+        /// он больше единицы. Рычаг A/B.
+        /// </summary>
+        public bool AnchorShiftBirge { get; set; }
+
+        /// <summary>
+        /// (`AMBER142`, П201) Степень доли ядра в весе КАНДИДАТА НУЛЯ (не опоры)
+        /// совместного шага: вес × доля^k. Слитный кандидат (Am-241 59.5 кэВ в
+        /// смеси, доля 0.30, половина окна — Ti-44) мерит свой центр вместе с
+        /// чужим образом, амплитуда которого сама зависит от нуля, — и без
+        /// понижения тянул нуль смесей G1S16 на 7…9 кэВ: Am-241 к паспорту
+        /// −21/−22 % у Денты и Петри (с понижением по умолчанию конструктора
+        /// −7/−5 %, без шага −4/−6 %).
+        /// Нуль — без понижения. На неподвижную точку вес не влияет — у точной
+        /// копии модели промахи нулевые при любых весах.
+        /// </summary>
+        public double AnchorJointShareWeight { get; set; }
+
+        /// <summary>
+        /// (`S206`, П201) Полуширина окна опоры — <see cref="AnchorWindowFwhm"/>·ПШПВ,
+        /// округлённая ВВЕРХ (не уже заданной доли ПШПВ); ложь — к ближайшему, как прежде.
+        /// </summary>
+        public bool AnchorWindowCeil { get; set; }
+
+        /// <summary>(`AMBER142`) Действует ли <see cref="AnchorZeroOwnsOffset"/> на этом разборе.</summary>
+        bool anchorGainOnly;
+
+        /// <summary>(`AMBER142`, П222) Идёт цикл привязки классики (нуль прибора, без совместного шага).</summary>
+        bool anchorClassicLoop;
+
+        /// <summary>
+        /// (`AMBER142`, П201) Ковариация поправки шкалы p'' = a·p' + b по опорам
+        /// последнего сбора (a безразмерно, b в каналах): сэндвич по шуму точек
+        /// (<c>AnchorFit.WeightStat</c>), без поправки Бирге на разлад модели.
+        /// </summary>
+        double anchorCovAA, anchorCovAB, anchorCovBB;
+
+        /// <summary>
+        /// (`AMBER142`, П201) Шкала подбиралась совместным шагом нуля света и
+        /// усиления (<see cref="JointScaleStep"/>): тогда погрешность привязки —
+        /// ковариация этого шага (<see cref="jointCovAA"/>…), а не опор и прямой нуля порознь.
+        /// </summary>
+        bool jointScale;
+
+        /// <summary>(`AMBER142`, П201) Ковариация совместного шага: Δa (безразмерно) и Δнуль света (кэВ) — сэндвич по шуму точек, без Бирге.</summary>
+        double jointCovAA, jointCovAZ, jointCovZZ;
+
+        /// <summary>
+        /// (`AMBER142`, П201) σ нуля света карты "adc", кэВ, — из ковариации
+        /// прямой последнего замера нуля (<see cref="ZeroFromCandidates"/>), без
+        /// поправки Бирге; нуль — нуль не по съёмке.
+        /// </summary>
+        double zeroSigmaKev;
+
+        /// <summary>
+        /// (`AMBER142`, П201) Погрешность привязки шкалы переносится в σ
+        /// амплитуд: чувствительность амплитуды к усилению, нулю в каналах и
+        /// нулю света — перефитами со шкалой, сдвинутой на ±σ вдоль главных осей
+        /// ковариации опор и на ±σ нуля, — складывается со статистической в
+        /// квадратуре. Без этого σ знала только счёт при закреплённой шкале, и у
+        /// слитных образов разброс копий был в 2–3 раза шире заявленного. Берётся
+        /// ШУМ привязки (σ центров с полом, без поправки Бирге на разлад модели):
+        /// с Бирге на реальных спектрах σ ряда Th-232 на диске росла впятеро, а
+        /// значимость Bi-212 в угле с радоном падала ниже 4 — разлад модели и так
+        /// несёт раздувание σ фита. Рычаг A/B.
+        /// </summary>
+        public bool AnchorSigmaInAmplitudes { get; set; }
+
+        /// <summary>
+        /// (`AMBER142`, П201) Ковариация совместного шага раздувается по Бирге,
+        /// когда точки (опоры и кандидаты нуля) расходятся с прямой сильнее
+        /// своего шума. Рычаг A/B.
+        /// </summary>
+        public bool AnchorSigmaBirge { get; set; }
+
+        /// <summary>
+        /// ⛔ (`AMBER150`, П198) ШИРИННАЯ ОПОРА: ширина образа — калибровка ПШПВ,
+        /// умноженная на ОДИН множитель, который мерится по тем же опорам, что
+        /// шкала (сильные одиночные пики полного поглощения, ножи доли и z):
+        /// второй момент данных в окне опоры против второго момента ядра
+        /// модели, приведённый к неусечённому пику, среднее по опорам с полом
+        /// погрешности <see cref="AnchorWidthFloor"/>; множитель уточняется на
+        /// каждом проходе привязки вместе с усилением и нулём. Без неё ошибка
+        /// калибровки ПШПВ на ±2/±5 % давала смещение активности до ±0.9/±3 %
+        /// и χ²/ndf ×10…150 при тех же данных. Рычаг A/B: без опоры ширина —
+        /// из калибровки как есть. Множитель — в служебной строке привязки
+        /// («ширина ×k по n опорам») и в <see cref="FsaResult.WidthScale"/>.
+        /// </summary>
+        public bool AnchorWidth { get; set; }
+
+        /// <summary>
+        /// (`AMBER150`) Систематический пол погрешности логарифма ширины одной
+        /// опоры: модель врёт формой (хвосты, подложка, соседи) на доли
+        /// процента ширины, и статистическая σ в сотые доли процента у пика в
+        /// сотни тысяч отсчётов отдала бы множитель одной опоре.
+        /// </summary>
+        public double AnchorWidthFloor { get; set; }
+
+        /// <summary>
+        /// (`AMBER150`) Нож ширинной опоры: опора, по которой ширина образа
+        /// разошлась бы с калибровкой ПШПВ дальше этого множителя (в любую
+        /// сторону), в ширину не идёт — ошибка калибровки такого размера
+        /// неправдоподобна, и в окне, значит, не одиночный пик отклика.
+        /// </summary>
+        public double AnchorWidthMaxRatio { get; set; }
+
+        /// <summary>
         /// (`AMBER17`) Пик уже стольких каналов ПШПВ опорой не бывает —
         /// РЫЧАГ ЗАМЕРА, умолчанием выключен (см. присваивание). Заводился
         /// доводом «окно в пять каналов центра не имеет», и довод не
@@ -2715,6 +5534,206 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// 662. Рычаг замера — `--anchor-offset-min=` у `CorpusFsaProbe`.
         /// </summary>
         public int AnchorOffsetMinAnchors { get; set; }
+
+        /// <summary>
+        /// ⛔ (`S210`, П212 02.10.2026) РЕЖИМ КРИВОЙ (без матрицы отклика):
+        /// световая координата <see cref="AnchorLightPosition"/> действует,
+        /// только когда у опор есть ПЛЕЧО — то же условие, при котором МНК
+        /// вправе подбирать ноль (<see cref="AnchorOffsetMinAnchors"/>, верхняя
+        /// опора вдвое выше нижней). Иначе координата снимается: опоры идут в
+        /// МНК без вычета света, итог β = 0, образы — на табличной энергии.
+        ///
+        /// Почему. s(E) = E·r(E)/r(E₀) − E предполагает шкалу, пропорциональную
+        /// свету. С матрицей это обеспечивает карта нуля «adc» со своим нулём
+        /// света по съёмке; без матрицы карты нет (`AMBER156`, П195), и s(E)
+        /// ложится поверх калибровки ФАЙЛА — а нелинейная калибровка прибора
+        /// свет уже несёт. При плече разлад гасят усиление и ноль на краях
+        /// опор; при одной опоре его гасит одно усиление и разносит по всей
+        /// шкале. Измерено на `RC103_Th232WT20` (CsI:Tl, poly2, без матрицы):
+        /// единственная опора — рентген W 59 кэВ с s = +9 кэВ — дала усиление
+        /// 0.863, 2614 кэВ модели встал на 2194, ряд тория ушёл в образы
+        /// вылета (Th-232 24.9 % против SE-1631 26.7 %, «ПОДАВЛЕН»), хотя пики
+        /// данных стоят по калибровке файла на 59.1 / 238.5 / 584.7 / 908.9 /
+        /// 2616.8 кэВ. С матрицей — не действует (путь побитово прежний).
+        /// Умолчание — в конструкторе; обратное плечо —
+        /// `--curve-light-lever=0` у `CorpusFsaProbe`.
+        /// </summary>
+        public bool AnchorCurveLightLever { get; set; }
+
+        /// <summary>
+        /// ⛔ (`AMBER155`, П229 04.10.2026) РЕЖИМ КРИВОЙ (без матрицы отклика)
+        /// ПРИ НЕЛИНЕЙНОЙ КАЛИБРОВКЕ ФАЙЛА — ПОЛОЖЕНИЯ ПО СВЕТУ НЕТ ВОВСЕ:
+        /// световая координата <see cref="AnchorLightPosition"/> не ставится,
+        /// образы — на табличной энергии по калибровке файла (β = 0).
+        ///
+        /// Почему. Калибровку файла прибор (или человек) снимает ПО ПИКАМ, и
+        /// нелинейный полином уже несёт кривизну света фотопиков между ними;
+        /// s(E) поверх неё считает ту же кривизну второй раз. С матрицей это
+        /// снимает карта нуля «adc» со своим нулём света; без матрицы карты
+        /// нет (`AMBER156`, П195), и прежде спасало только то, что старая
+        /// таблица света NaI между 59 и 2614 кэВ шла почти по хорде (остаток
+        /// около 3 кэВ на 1000 кэВ). Крутая таблица «t7» (П220) даёт там
+        /// остаток около 16 кэВ — ровно столько, сколько уже несёт кубическая
+        /// калибровка `AS80_Th232WT20` (отход от хорды 60…2600 кэВ — 15.6 кэВ). Измерено
+        /// (П229): опоры прохода 0 — рентген W 59 и 2614 кэВ, свет β = 1,
+        /// середина модели встаёт выше данных на 7…8 кэВ (238 → 248.4 против
+        /// 241.1), фит перестраивается, доля ядра 2614 падает 0.58 → 0.45
+        /// (порог 0.5), плеча нет, `S210` снимает свет, а ноль −31 кан.,
+        /// поставленный проходом со светом, остаётся: усиление 1.186, ряд
+        /// тория — в образы вылета, χ²/ndf 20.28 → 36.32. Без света — две
+        /// опоры, усиление 1.0013, χ²/ndf 20.39. Линейная калибровка кривизны
+        /// света не несёт — у неё координата прежняя (с `S210`). Нелинейность —
+        /// отход калибровки от хорды по всей шкале каналов дальше канала.
+        /// С матрицей не действует (путь побитово прежний). Умолчание — в
+        /// конструкторе; обратное плечо — `--curve-light-nonlinear=1` у
+        /// `CorpusFsaProbe` (прежний ход).
+        /// </summary>
+        public bool AnchorCurveLightLinearOnly { get; set; }
+
+        /// <summary>
+        /// ⛔ (`AMBER155`, П229 04.10.2026) РЕЖИМ КРИВОЙ: СВЕТ СНЯТ ПОСЛЕ ПРОХОДА
+        /// СО СВЕТОМ — НОЛЬ ТОГО ПРОХОДА НЕ ОСТАЁТСЯ. Проход со светом (β = 1,
+        /// опоры с плечом) ставит усиление И ноль по Y − S; когда на следующем
+        /// проходе плечо пропадает, <see cref="AnchorCurveLightLever"/> снимает
+        /// свет, а без плеча ноль не подбирается — прежде он наследовался
+        /// (<see cref="FsaCurveLightDrop.Inherit"/>): шкала оставалась на нуле,
+        /// подобранном ПОД свет, которого больше нет, и одно усиление по
+        /// оставшейся опоре разносило разлад по всей шкале. Измерено (П229) на
+        /// `AS80_Th232WT20` со светом поверх калибровки файла
+        /// (`--curve-light-nonlinear=1`): ноль −31.3 кан. прохода 0 остаётся,
+        /// усиление 1.186, ряд тория — в образах вылета. Умолчание — в
+        /// конструкторе (выбрано замером, журнал П229); прежний ход —
+        /// `--curve-light-drop=inherit` у `CorpusFsaProbe`.
+        /// </summary>
+        public FsaCurveLightDrop AnchorCurveLightDrop { get; set; }
+
+        /// <summary>
+        /// ⛔ (`AMBER142` п. 9, П215 02.10.2026) ЧТО ДЕЛАТЬ С НУЛЁМ ШКАЛЫ, КОГДА
+        /// У ОПОР ПРОХОДА НЕТ ПЛЕЧА (одна опора, пара соседних линий): ноль по
+        /// ним не определён, МНК подбирает одно усиление. Прежде
+        /// (<see cref="FsaNoLeverZero.Inherit"/>) усиление шло вокруг нулевого
+        /// канала, а ноль, поставленный ПРЕЖНИМИ проходами, оставался (p'' =
+        /// a·(g·p + o)): опора, мигающая между проходами, ставила ноль на
+        /// проходе с плечом, и одна оставшаяся опора снять его не могла.
+        /// Измерено на `G1S24_Cd109_P5` без матрицы: на проходах 1, 2, 5 опор
+        /// две (Ag Kα 22.16 и 88.03 кэВ), ноль −2.55, −1.34, −0.17 кан.; на
+        /// проходе 3 Kα выпадает из ядра на ноже (см.
+        /// <see cref="AnchorCoreHalfChannel"/>), плеча нет, свет снят
+        /// (`S210`), а ноль −4.2 кан. остаётся — шкала уходит туда, где пик
+        /// Ag K забирает свободный образ `Xray-NaI` (36 % спектра); итог —
+        /// усиление 1.171, ноль −4.9 кан. (−14.8 кэВ), Cd-109 к матричному
+        /// 1.297. <see cref="FsaNoLeverZero.Instrument"/> — ноль ПРИБОРА: без
+        /// плеча новая шкала проходит через нулевой канал (ноль карты «adc» или
+        /// калибровки файла), усиление — по опорам относительно него; ход
+        /// шкалы не зависит от того, что поставили прежние проходы (там же:
+        /// Cd-109 к матричному 0.903, `Xray-NaI` 3.7 тыс. отсч. вместо 20.4,
+        /// но χ²/ndf 1.340 → 2.507 и цикл проходов с периодом 5 — Kα то в
+        /// ядре, то нет). <see cref="FsaNoLeverZero.Shift"/> — плечо замера:
+        /// без плеча усиление не трогается, опора двигает ноль (там же χ²/ndf
+        /// 6.87 и Cd-109 z 2.3; `AS80_Am241` χ²/ndf 2.34 → 4.23 — отвергнуто).
+        /// Умолчание — в конструкторе; рычаг — `--no-lever-zero=` у
+        /// `CorpusFsaProbe`. При совместном шаге нуля света
+        /// (<see cref="AnchorZeroRounds"/>) ноль держит карта, правило не
+        /// действует.
+        /// </summary>
+        public FsaNoLeverZero AnchorNoLeverZero { get; set; }
+
+        /// <summary>
+        /// (`AMBER142` п. 8, П215 02.10.2026) Нуль света карты «adc»
+        /// (<see cref="AdcScaleOf"/>) — на НИЖНЕМ КРАЮ канала 0 (код АЦП 0 =
+        /// амплитуда 0 — левый край бина): E꜀(z₀) = E(0) − ½·(E(1) − E(0)).
+        /// Ложь — в центре канала 0, E꜀(z₀) = E(0) (соглашение `S169`, по нему
+        /// мерены П4, П8, П13). При укрупнении каналов ×2 центр канала 0
+        /// уезжает на полканала прежнего, край — нет (копия ×2 маринелли
+        /// `G1S24_Cs137_Mar_2` при рампе выкл. 0.421 → 0.043). ⛔ Решение Amber
+        /// 02.10.2026 вопросником, дословно: «На нижний край (Рекомендую)».
+        /// Умолчание — в конструкторе; обратное плечо — `--adc-zero-edge=0` у
+        /// `CorpusFsaProbe`.
+        /// </summary>
+        public bool AdcZeroAtChannelEdge { get; set; }
+
+        /// <summary>
+        /// (`AMBER142` п. 9, П215 02.10.2026) Линия хозяина входит в ядро
+        /// опоры, когда стоит не дальше ½ ПШПВ + ½ канала от вершины синего (а
+        /// не ½ ПШПВ): вершина — целый канал, настоящая вершина — где-то в его
+        /// пределах. Ложь — прежний предел ½ ПШПВ. Умолчание — в конструкторе;
+        /// рычаг — `--anchor-core-half=` у `CorpusFsaProbe`.
+        /// </summary>
+        public bool AnchorCoreHalfChannel { get; set; }
+
+        /// <summary>
+        /// (`AMBER142`, П222 02.10.2026) ДОЛЯ ЯДРА ОПОРЫ — БЕЗ КОНТИНУУМА: ядро
+        /// делится на нуклидную модель окна, а не на модель целиком со
+        /// сплайном. Сплайн подогнан по каналам и центра опоры не двигает
+        /// (измерение — остаток + ядро, модель — ядро: подложка стоит по обе
+        /// стороны), а в знаменателе доли он делает отбор зависимым от
+        /// положения модели: при шкале мимо пика сплайн забирает пик себе,
+        /// доля падает, опора отвергается, шкала остаётся мимо. Ложь —
+        /// прежняя доля «ядро / вся модель окна». Только с матрицей отклика: у
+        /// голых пиков кривой нуклидная модель окна — одни пики, доля ядра в ней
+        /// почти всегда единица, и опорой становился любой пик (плечо без
+        /// матрицы малой базы: опор у `AS80_Th232Medal` 2 → 9, Th-232 +30 %,
+        /// `ASN16_Lu176` χ²/ndf +37 %, медиана 3.50 → 3.74). Умолчание — в
+        /// конструкторе; рычаг — `--anchor-share-net=` у `CorpusFsaProbe`.
+        /// </summary>
+        public bool AnchorShareWithoutContinuum { get; set; }
+
+        /// <summary>
+        /// (`AMBER142`, П222 02.10.2026) ШИРИНА, НЕ ОПРЕДЕЛЯЕМАЯ ОПОРАМИ, —
+        /// ЗАМОРАЖИВАЕТСЯ. Секущая по двум проходам меряет отклик остатка ширины
+        /// на шаг множителя (у гаусса он единичный). Отклик слабее половины
+        /// (q > 2) или обратного знака (q &lt; 0) значит, что остаток шагу не
+        /// отвечает: фит уводит крылья образа в соседей и подложку, замер
+        /// «остаток + ядро» сужается вслед за ядром, и множитель ползёт на
+        /// каждом проходе, пока проходы не кончатся (`G1S16_Am241_P25` с составом
+        /// Am-241 + Cd-109: −1 % ширины за проход, ×0.874 к пределу 3 + 8 при
+        /// неподвижной точке нигде; точная копия встаёт в другую точку полосы —
+        /// Am-241 +10 %). Правило срабатывает только у ОДИНОЧНОЙ опоры ширины
+        /// (у нескольких их разброс держит множитель), после двух слабых
+        /// откликов подряд и только в ПРЕДЕЛЕ проходов (сошедшийся разбор оно не
+        /// трогает): множитель возвращается к значению начала привязки, шаг
+        /// ширины снимается до конца, добавляются проходы своего режима (усиление
+        /// сходится на неподвижной ширине), плато считается заново, в поправку
+        /// прохода ширина не входит. Ложь — прежний шаг по замеру. Умолчание — в
+        /// конструкторе; рычаг — `--anchor-width-freeze=` у `CorpusFsaProbe`.
+        /// </summary>
+        public bool AnchorWidthFreezeWeak { get; set; }
+
+        /// <summary>
+        /// (`AMBER142`, П222 02.10.2026) ПРЕДЕЛ ШАГА НУЛЯ СВЕТА за проход
+        /// совместного шага, в каналах у нулевого канала. Кандидаты нуля
+        /// заморожены разведкой, и при шкале, стоящей далеко от данных
+        /// (`G1S24_Ra226_Petri`, точная копия с дрейфом усиления 1.02: старт в
+        /// 2.9 % от данных), их центры сняты мимо — шаг Гаусса — Ньютона по одной
+        /// опоре и таким кандидатам уводил нуль на 12 кан. (+35 кэВ), и проходы
+        /// раскачивались до предела. Шаг дальше предела не делается: проход
+        /// двигает только усиление по МНК опор, нуль — на следующем, когда шкала
+        /// подойдёт. Ноль и меньше — без предела (прежнее). Умолчание — в
+        /// конструкторе; рычаг — `--anchor-zero-step-max=` у `CorpusFsaProbe`.
+        /// </summary>
+        public double AnchorZeroStepMaxChannels { get; set; }
+
+        /// <summary>
+        /// (`AMBER142`, П222 02.10.2026) ШАГИ ГАУССА — НЬЮТОНА ПРОМАХА ОПОРЫ
+        /// (<see cref="AnchorShiftMeasure"/>) НАЧИНАЮТСЯ С РАЗНОСТИ ЦЕНТРОВ
+        /// ТЯЖЕСТИ окна, а не с нуля. Линеаризация по производной модели берёт
+        /// промах до половины ПШПВ; при шкале, стоящей далеко от данных
+        /// (`G1S24_Ra226_Petri`, точная копия с дрейфом усиления 1.02 — старт в
+        /// 2.9 % от данных), шаги от нуля уходили в чужой склон и мерили промах
+        /// не того знака, первая опора уводила усиление прочь, и привязка
+        /// разваливалась. Центр тяжести грубее, но знак и величину дальнего
+        /// промаха даёт верно; дальше шаги уточняют от него, и неподвижная
+        /// точка у близкой шкалы та же (у точной копии оба старта — около нуля).
+        /// Разность центров дальше двух ПШПВ — старт от нуля, как прежде. Действует
+        /// на разведке нуля и в цикле совместного шага (там первая опора на далёкой
+        /// шкале уводит и нуль, а кандидаты нуля разведки замораживаются); в цикле
+        /// классики (нуль прибора, одна-две опоры) — нет: там старт от центра менял
+        /// путь медленно сходящихся проходов — `G1S16_Am241_P25` с
+        /// составом Am-241 + Cd-109, точная копия: Am-241 +2.9 → +12.1 %. Ложь —
+        /// старт от нуля. Умолчание — в конструкторе; рычаг —
+        /// `--anchor-shift-start=` у `CorpusFsaProbe`.
+        /// </summary>
+        public bool AnchorShiftStartCentroid { get; set; }
 
         /// <summary>
         /// (`F11` (в), `AMBER17`; П18 11.09.2026 — умолчание ставит
@@ -2859,7 +5878,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///     канала. Порядок проходов: разбор начинается картой "calib"
         ///     (разведочный проход — сеточный фит и один сбор опор), по
         ///     ЕГО кандидатам <see cref="ZeroFromRun"/> считает нуль света
-        ///     съёмки z₀ = −c₀/g (МНК «канал ↔ свет» по пикам ниже
+        ///     съёмки z₀ (МНК «энергия калибровки ↔ свет», `S193`, по пикам ниже
         ///     <see cref="AnchorZeroMaxKev"/>, доля синего от
         ///     <see cref="AnchorZeroShareThreshold"/>, плечо как у `AMBER17`);
         ///     нет двух таких пиков с плечом — z₀ = <see cref="AnchorZeroKev"/>
@@ -2956,6 +5975,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double AnchorZeroMaxKev { get; set; }
 
         /// <summary>
+        /// (`S205`, П190) ПОЛОСА ЗАПАСА решающего кандидата нуля съёмки, доля
+        /// порога (<see cref="ZeroKnifeMargin"/>): решающий кандидат с долей,
+        /// z или промахом внутри полосы от своего ножа весит свой запас, и нуль
+        /// смешивается с нулём прибора (<see cref="ZeroFromRun"/>). Нуль —
+        /// жёсткие ножи, как до `S205`. Число стоит в конструкторе; замер
+        /// трёх полос на двух складах (физика 25 и 26) —
+        /// `handover/handover-2026-09-30-p190-s205-light-zero.md`.
+        /// </summary>
+        public double AnchorZeroBlendBand { get; set; }
+
+        /// <summary>
         /// Добавлять образы обратного рассеяния, выведенные из найденного
         /// состава. Мерено дважды, и числа принадлежат РАЗНОМУ коду:
         ///
@@ -3035,6 +6065,71 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// проигрыш другой.
         /// </summary>
         public bool CascadeSumPeaks { get; set; }
+
+        /// <summary>
+        /// (`AMBER99`, П148 24.09.2026) ВЫНОС ПАРТНЁРОМ КАСКАДА — И ИЗ ПИКОВ
+        /// ВЫЛЕТА. Партнёр, оставивший в кристалле хоть что-нибудь, уносит
+        /// событие не только из пика полного поглощения, но из ЛЮБОГО отклика
+        /// постоянного положения: одиночного и двойного вылета аннигиляции,
+        /// K- и L-вылета рентгена кристалла и заноса аннигиляции извне
+        /// (каналы <see cref="LosesWithPeak"/>). Доля та же — `L_out` линии
+        /// (<c>FsaCascadeSummer.LineNote.Loss</c>), притока нет: сумма
+        /// «вылет + партнёр» ложится не на энергию вылета, а выше — её кладёт
+        /// сумм-континуум пар (<see cref="CascadePairContinuum"/>, `AMBER125`).
+        /// ⛔ Прежняя фраза «континуум не трогается — он теряет и получает»
+        /// была неверна (`AMBER124`, П166): с рычагом П166 континуум теряет ту
+        /// же долю, а получает — свёрткой пары.
+        ///
+        /// Арбитр — Geant4 (журнал
+        /// `handover/handover-2026-09-24-p148-pileup-summing.md`): Tl-208 на
+        /// контактной сцене, отношение «на распад с каскадом / на квант без
+        /// каскада» у вылетов к тому же отношению у пика 2614.5 —
+        /// одиночный 0.996 ± 0.008, двойной 0.980 ± 0.011, 511 извне
+        /// 1.02 ± 0.04, K-вылет 583 1.003 ± 0.03; «вылет не теряет» дал бы
+        /// 1/(1 − L_out) = 1.48. Выключенный — поведение до П148 (рычаг
+        /// проб, `FsaEscapeLossProbeP148`); полярность — у присваивания в
+        /// конструкторе.
+        /// </summary>
+        public bool CascadeEscapeLoss { get; set; }
+
+        /// <summary>
+        /// (`AMBER124`/`AMBER125`, П166 28.09.2026) СУММ-КОНТИНУУМ И СУММ-ВЫЛЕТЫ
+        /// КАСКАДНЫХ ПАР. Прежняя модель держала одиночный комптон линии с весом
+        /// 1 («континуум теряет и получает, в первом порядке при своём»), а из
+        /// событий, где оба кванта пары оставили что-то в кристалле, ставила
+        /// только «пик + пик». Счёт событий пары: истина
+        /// ε_T(i) + ε_T(j) − ε_T(i)ε_T(j), модель — больше на C_i·C_j (событие
+        /// «оба частично» шло и в комптон i, и в комптон j) и меньше на
+        /// a_i·a_j − ε_p(i)ε_p(j) (события «вылет + партнёр» не было нигде), а
+        /// события «частичное + партнёр» стояли на месте одиночного, а не
+        /// выше. Арбитр Geant4 (контакт G1S, журнал
+        /// `handover/handover-2026-09-28-p166-fsa-pileup-summing.md`): Co-60 —
+        /// континуум 30–1100 кэВ модели +18.2 % к истине, полоса 1400–2450 —
+        /// ноль при 5.3 % всех отсчётов истины; Y-88 — +17.4 %, пика
+        /// SE 1836 + 898 (2223 кэВ) нет. Полная свёртка откликов тех же
+        /// квантов сходится с истиной в 0.1 % (Co-60).
+        ///
+        /// Включённый: ВСЕ каналы одиночной линии теряют (1 − L_out), а пары
+        /// (<c>FsaCascadeSummer.PairContinuum</c>) кладут свёртку R_i ⊗ R_j без
+        /// члена «пик ⊗ пик» (<see cref="AccumulateSumPeaks"/>). Выключенный —
+        /// поведение до П166 (рычаг проб); полярность — у присваивания в
+        /// конструкторе.
+        /// </summary>
+        public bool CascadePairContinuum { get; set; }
+
+        /// <summary>
+        /// (`AMBER134`, П166 28.09.2026) ВЫНОС ИЗ ПИКА ХОДОМ ПО СХЕМЕ ENSDF:
+        /// ядерные партнёры линии сочетаются по путям схемы — питатели уровня
+        /// линии как взаимно исключающие ветви (сумма), переходы одного пути —
+        /// произведением, конверсия перехода в K — исключающим исходом с его
+        /// гаммой (<c>FsaCascadeSummer.WalkSurvive</c>). Прежде — произведение
+        /// по всем партнёрам (`S144`), и у 81 кэВ Ba-133 на контакте вынос был
+        /// занижен: CF 1.567 при Geant4 1.6329 ± 0.0030. Решение Amber
+        /// 28.09.2026 вопросником, дословно: «Да, сумма по ветвям (Рекомендую)».
+        /// Выключенный — поведение до П166 (рычаг проб); полярность — у
+        /// присваивания в конструкторе.
+        /// </summary>
+        public bool CascadeBranchSum { get; set; }
 
         /// <summary>
         /// Идёт ли сумм-КОНТИНУУМ (S19) в подслой отрисовки. В МОДЕЛЬ он идёт
@@ -3140,6 +6235,149 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// после <see cref="Analyze"/>; сбрасывается в его начале.
         /// </summary>
         public string PileUpCurveUsed { get; private set; }
+
+        /// <summary>
+        /// (`AMBER65`, П136 22.09.2026) СУММ-ОБЛАСТЬ КОЛОНКИ НАЛОЖЕНИЙ — ВНЕ
+        /// М-ОЦЕНКИ ХУБЕРА, пока сама колонка стоит в модели.
+        ///
+        /// Хубер (<see cref="HuberM"/>) душит канал, чья невязка больше `m·σ`, —
+        /// защита от того, чего модель НЕ описывает. В сумм-области всё ровно
+        /// наоборот: большая невязка там и есть та структура, ради которой
+        /// колонка заведена, и, задушив её, оценщик отнимает у колонки
+        /// единственную опору амплитуды. Классическое маскирование М-оценки:
+        /// подавляется не выброс, а недооценённая компонента модели (Huber,
+        /// Ann. Math. Statist. 35 (1964) 73, §1 — «observations the model does
+        /// not describe»). Измерено `FsaPileUpProbe` подсадкой пар с известной
+        /// долей f: при f = 5 % колонка брала половину подсадки, смещение
+        /// нуклида −0.76·f; журнал
+        /// `handover/handover-2026-09-22-p136-huber-audit-measures.md`.
+        ///
+        /// Область берётся ИЗ САМОЙ МОДЕЛИ, а не из списка линий: доля прихода
+        /// колонки (`(s⊗s)/N − m·s` — величина знакопеременная) во всём
+        /// содержимом канала. Ни имён нуклидов, ни удвоенных энергий для этого
+        /// не нужно. Порог — доля от МОДЕЛИ канала, а не от наибольшего прихода
+        /// самой колонки: второе защищает и комптоновский континуум нуклида (у
+        /// спектра витрины — от 476 кэВ, четверть каналов полосы), и χ²/ндф
+        /// ЧИСТОГО спектра идёт 12.56 → 23.04 при −0.45 % скорости — защита
+        /// шире доказательства. 0 — вся положительная часть колонки; значение
+        /// больше единицы — защиты нет вовсе (плечо порчи). Подробности — у
+        /// <c>PileUpAnchor</c>.
+        ///
+        /// Защита включается только вместе с активной колонкой: снял её отсев
+        /// по z — и сумм-пик снова ничем не описан, значит Хубер обязан его
+        /// душить, как всякий выброс.
+        /// </summary>
+        public double PileUpAnchorShare { get; set; }
+
+        /// <summary>
+        /// (`AMBER76`, П148 24.09.2026) ПРИНУДИТЕЛЬНЫЙ МНОЖИТЕЛЬ УБЫЛИ колонки
+        /// наложений — рычаг проб: значение внутри отрезка от одной до двух
+        /// масс спектра ставит его, всё прочее (умолчание типа, не число) —
+        /// правило разбора по времени спектра, <see cref="PileUpLossFor"/>.
+        /// Физика и замер — у <see cref="BuildPileUpComponent"/>. В UI не
+        /// выводится.
+        /// </summary>
+        public double PileUpLossMultiplier { get; set; }
+
+        /// <summary>
+        /// (`AMBER76`, П148) Множитель убыли, которым построена колонка
+        /// наложений на ЭТОМ разборе; не число — колонки нет. Читается пробами
+        /// после <see cref="Analyze"/>; сбрасывается в его начале.
+        /// </summary>
+        public double PileUpLossUsed { get; private set; }
+
+        /// <summary>
+        /// (`AMBER76`, П148 24.09.2026) МНОЖИТЕЛЬ УБЫЛИ ПО ТОМУ, ЧЕМ НОРМИРОВАН
+        /// СПЕКТР. Пара наложившихся импульсов приходит одним отсчётом на
+        /// сумму; вопрос — сколько отсчётов она уносит со своих энергий В
+        /// СПЕКТРЕ, ДЕЛЁННОМ НА ЗНАМЕНАТЕЛЬ РАЗБОРА.
+        ///
+        ///   * Живое время задано и короче полного (мёртвое время возмещено):
+        ///     второй импульс пары пришёл в мёртвое время первого — тракт уже
+        ///     занят им, — и без наложения он был бы ПОТЕРЯН так же, а деление
+        ///     на живое время эту потерю уже возместило (Gedcke, ORTEC AN63).
+        ///     Не возмещён только первый импульс, записанный на чужой энергии:
+        ///     убыль ОДНА масса, колонка `(s⊗s)/N − s`.
+        ///   * Живого времени нет или оно равно полному: возмещать нечем, пара
+        ///     уносит ОБА импульса — убыль ДВЕ массы, `(s⊗s)/N − 2s`
+        ///     (Wielopolski &amp; Gardner, NIM 133 (1976) 303).
+        ///
+        /// Замер (журнал `handover/handover-2026-09-24-p148-pileup-summing.md`):
+        /// Монте-Карло цепочки импульсов (пуассоновский поток, окно наложения
+        /// внутри непродлевающегося и продлевающегося мёртвого, живое время по
+        /// часам тракта и по правилу приложения `Utils.LiveTime.Calculate`)
+        /// — нулевое смещение скорости даёт одна масса на живом времени и две
+        /// на полном; подсадка `FsaPileUpProbe --lt=dead` на «Cs 137 в домике»
+        /// до правки давала +f (ровно ошибку ревизии), после — шум.
+        ///
+        /// ⚠ ПОСЫЛКА: живое время возмещает ВСЁ окно наложения, то есть
+        /// мёртвое время на импульс не короче окна. У приборов корпуса это так
+        /// с запасом: `ASN16_Cs137` — мёртвое 14.0 мкс против окна по фиту
+        /// 3.05 мкс; `G1S16_Cs137_P5` 2.69 против 0.30; `G1S24_Cs137_P5` 2.71
+        /// против 0.27. Где окно длиннее мёртвого, верный множитель лежит
+        /// между (Монте-Карло: 2 − мёртвое/окно), и одна масса ошибается не
+        /// больше, чем две ошибались до правки, в другую сторону.
+        /// </summary>
+        public static double PileUpLossFor(EnergySpectrum spectrum)
+        {
+            if (spectrum == null)
+            {
+                return 2.0;
+            }
+
+            return spectrum.LiveTime > 0.0 && spectrum.LiveTime < spectrum.MeasurementTime ? 1.0 : 2.0;
+        }
+
+        /// <summary>
+        /// (`AMBER123`, П166 28.09.2026) Ставить ли колонке наложений верхнюю
+        /// границу числа пар (<see cref="PileUpCapFor"/>). Полярность — у
+        /// присваивания в конструкторе; выключенная — поведение до П166.
+        /// </summary>
+        public bool PileUpCapEnabled { get; set; }
+
+        /// <summary>
+        /// (`AMBER123`, П166 28.09.2026) ВЕРХНЯЯ ГРАНИЦА ЧИСЛА ПАР колонки
+        /// наложений в единицах её амплитуды (амплитуда = число пар среди
+        /// <paramref name="counted"/> отсчётов, см. нормировку
+        /// <see cref="BuildPileUpComponent"/>).
+        ///
+        /// Доля импульсов, поймавших пару, — R·τ_p, и τ_p (окно наложения) не
+        /// длиннее мёртвого времени на импульс τ_d: ровно на этой посылке стоит
+        /// множитель убыли <see cref="PileUpLossFor"/> (`AMBER76`, П148). Значит
+        /// пар не больше N·R·τ_d. При живом времени 0 &lt; LT &lt; T мёртвое на
+        /// импульс — (T − LT)/N, скорость — N/LT, и граница N·(T − LT)/LT.
+        /// Живого времени нет — τ_d берётся из прибора (<paramref name="deviceDeadSec"/>,
+        /// <see cref="CoincidenceWindowSec"/>), граница N²·τ_d/T. Нет и его — NaN
+        /// (судить нечем; колонка свободна, как прежде).
+        ///
+        /// Замер ДО (журнал `handover/handover-2026-09-28-p166-fsa-pileup-summing.md`):
+        /// на малой базе с добором четырёх K-40 колонка брала у
+        /// `G1S24_K40_Petri` 0.139 пар/с при 8.5 имп/с — τ по фиту ≈ 1.9 мс
+        /// против мёртвого 44 мкс (×43), у `G1S24_K40_Denta120` ×23: колонка
+        /// подменяла недостающую модель, а убыль вынимала своё из всех
+        /// нуклидов.
+        /// </summary>
+        public static double PileUpCapFor(EnergySpectrum spectrum, double counted, double deviceDeadSec)
+        {
+            if (spectrum == null || !(counted > 0.0))
+            {
+                return double.NaN;
+            }
+
+            double live = spectrum.LiveTime, real = spectrum.MeasurementTime;
+            if (live > 0.0 && live < real)
+            {
+                return counted * (real - live) / live;
+            }
+
+            double time = real > 0.0 ? real : live;
+            if (deviceDeadSec > 0.0 && time > 0.0)
+            {
+                return counted * counted * deviceDeadSec / time;
+            }
+
+            return double.NaN;
+        }
 
         /// <summary>
         /// Вещество кристалла в именах таблицы кривых света («CsI:Tl», «NaI:Tl»).
@@ -3292,32 +6530,121 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// (П19) Сумм-континуум (S19) с формой положения по свету: отклик
-        /// ТРЕТЬЕГО кванта, приподнятый на видимую сумму пары. Форма "line" —
-        /// множитель третьего на его отклик и сдвиг суммы по её видимой
-        /// энергии; прочие формы — прежний <c>AccumulateShifted</c>, до бита.
+        /// (П19) Как кладётся сумм-континуум (S19) по свету: отклик ТРЕТЬЕГО
+        /// кванта, приподнятый на видимую сумму пары. Форма "line" — множитель
+        /// третьего на его отклик (<see cref="Scale"/>) и сдвиг суммы по её
+        /// видимой энергии (<see cref="ShiftKev"/>); прочие формы — прежний
+        /// <c>AccumulateShifted</c> на сумму пары, до бита.
+        ///
+        /// (`T265`, П203 01.10.2026) Вынесено из прежнего
+        /// <c>AccumulateSumContinuum</c>, который считал оба сдвига по свету
+        /// заново на КАЖДЫЙ канал исхода (шесть раз на одну и ту же пару
+        /// «третий, сумма»), — теперь один раз на пару, тем же кодом и теми же
+        /// операциями, так что числа те же до бита.
         /// </summary>
-        void AccumulateSumContinuum(EfficiencyMaker.ResponseMatrix matrix, double[] target,
-                                    double thirdKev, double weight, int channel, double shiftKev)
+        struct SumShape
+        {
+            /// <summary>true — <c>AccumulateLight</c>, false — <c>AccumulateShifted</c>.</summary>
+            public bool Light;
+
+            /// <summary>Сдвиг, кэВ: видимая сумма пары у формы "line", иначе сама сумма.</summary>
+            public double ShiftKev;
+
+            /// <summary>Множитель третьего по свету у формы "line", иначе не читается.</summary>
+            public double Scale;
+        }
+
+        /// <summary>
+        /// (`T265`) Сдвиг третьего кванта по свету s(E₃), нужный форме "line";
+        /// при прочих формах (и β = 0) — нуль и не читается. Зависит только от
+        /// энергии и состояния привязки, поэтому считается один раз на третий,
+        /// а не на каждый канал.
+        /// </summary>
+        double SumThirdShiftKev(double thirdKev)
+        {
+            return this.lightForm == LightForm.Line && this.driftLight != 0.0 && thirdKev > 0.0
+                ? this.LineLightShiftKev(thirdKev)
+                : 0.0;
+        }
+
+        /// <summary>
+        /// (`T265`) Положение сумм-континуума — то же ветвление, что у прежнего
+        /// <c>AccumulateSumContinuum</c>: <paramref name="thirdShiftKev"/> —
+        /// <see cref="SumThirdShiftKev"/> того же третьего.
+        /// </summary>
+        SumShape SumContinuumShape(double thirdKev, double thirdShiftKev, double shiftKev)
+        {
+            if (this.lightForm == LightForm.Line && this.driftLight != 0.0 && thirdKev > 0.0)
+            {
+                double sum = this.LineLightShiftKev(shiftKev);
+                if (thirdShiftKev != 0.0 || sum != 0.0)
+                {
+                    return new SumShape
+                    {
+                        Light = true,
+                        ShiftKev = shiftKev + sum,
+                        Scale = (thirdKev + thirdShiftKev) / thirdKev
+                    };
+                }
+            }
+
+            return new SumShape { Light = false, ShiftKev = shiftKev, Scale = 1.0 };
+        }
+
+        /// <summary>
+        /// (П19, `T265`) Сумм-континуум в ОДИН канал исхода по готовому
+        /// положению (<see cref="SumContinuumShape"/>); канал, снятый маской
+        /// замера, не трогается.
+        /// </summary>
+        void PlaceSumContinuum(EfficiencyMaker.ResponseMatrix matrix, double[] target,
+                               double thirdKev, double weight, int channel, SumShape shape)
         {
             if (channel >= 0 && (this.MatrixChannelMask & (1 << channel)) == 0)
             {
                 return; // (`AMBER22`, П42) канал снят маской замера
             }
 
-            if (this.lightForm == LightForm.Line && this.driftLight != 0.0 && thirdKev > 0.0)
+            // (`T265` Б, П211) перенос строки — по готовым положениям, числа те же до бита
+            EfficiencyMaker.ResponseMatrix.TransferCache transfer = this.SumTransfer(matrix);
+            if (shape.Light)
             {
-                double third = this.LineLightShiftKev(thirdKev);
-                double sum = this.LineLightShiftKev(shiftKev);
-                if (third != 0.0 || sum != 0.0)
-                {
-                    matrix.AccumulateLight(target, thirdKev, weight, channel, shiftKev + sum,
-                                           (thirdKev + third) / thirdKev);
-                    return;
-                }
+                transfer.AccumulateLight(target, thirdKev, weight, channel, shape.ShiftKev, shape.Scale);
+                return;
             }
 
-            matrix.AccumulateShifted(target, thirdKev, weight, channel, shiftKev);
+            transfer.AccumulateShifted(target, thirdKev, weight, channel, shape.ShiftKev);
+        }
+
+        /// <summary>
+        /// (`T265` вариант Б, П211 02.10.2026) Готовые строки переноса матрицы для
+        /// сумм-континуума каскада: одна и та же строка третьего кванта кладётся
+        /// тысячи раз с другим весом и сдвигом, и её положения после переноса
+        /// считаются один раз (<c>ResponseMatrix.TransferCache</c>). Кэш свой у
+        /// разбора и у матрицы (по ссылке); <see cref="Analyze"/> начинает с пустого.
+        /// </summary>
+        EfficiencyMaker.ResponseMatrix.TransferCache SumTransfer(EfficiencyMaker.ResponseMatrix matrix)
+        {
+            if (this.sumTransfer == null || !this.sumTransfer.Serves(matrix))
+            {
+                this.sumTransfer = new EfficiencyMaker.ResponseMatrix.TransferCache(matrix);
+            }
+
+            return this.sumTransfer;
+        }
+
+        EfficiencyMaker.ResponseMatrix.TransferCache sumTransfer;
+
+        /// <summary>(`T265` Б, П211) Счётчики готовых строк — для проб: попадания, построения, сбросы.</summary>
+        internal string SumTransferStats
+        {
+            get
+            {
+                EfficiencyMaker.ResponseMatrix.TransferCache t = this.sumTransfer;
+                return t == null
+                    ? "нет"
+                    : string.Format(CultureInfo.InvariantCulture, "попаданий {0}, строк {1}, {2:F1} МБ, сбросов {3}",
+                                    t.Hits, t.Misses, t.Bytes / 1048576.0, t.Clears);
+            }
         }
 
         /// <summary>(П19) Слово формы для результата и `runs.csv`.</summary>
@@ -3420,6 +6747,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///      решение Amber «сравнивать с модельным положением». Разность
         ///      центров — промах шкалы в этом месте; ошибка модели в соседней
         ///      линии входит в неё не всей линией, а своей ошибкой.
+        ///      ⛔ (`AMBER142`, П201) При <see cref="AnchorShiftMeasure"/> промах
+        ///      меряется иначе — сдвигом ВСЕЙ нуклидной модели окна (шаги
+        ///      Гаусса — Ньютона), σ — по производной модели с поправкой Бирге
+        ///      на χ² окна; центр тяжести остаётся модельным центром точки.
+        ///      Окно — ±<see cref="AnchorWindowFwhm"/> ПШПВ с округлением вверх
+        ///      (<see cref="AnchorWindowCeil"/>, `S206`).
         ///   4. Доля синего над моделью целиком (со сплайном) — условие «а»;
         ///      значимость чистого счёта — чтобы центр не гулял по шуму; промах
         ///      больше ПШПВ — не тот пик.
@@ -3435,6 +6768,70 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// добавка β к уже стоящему <see cref="driftLight"/>, ровно такая,
         /// чтобы итог стал единицей.
         /// </summary>
+        /// <summary>
+        /// (`AMBER155`, П229) Причина, по которой положение по свету снято
+        /// калибровкой файла (<see cref="AnchorCurveLightLinearOnly"/>); null — не снято.
+        /// </summary>
+        string lightOffByCalibration;
+
+        /// <summary>
+        /// (`AMBER155`, П229) Свет снят до конца привязки (<see cref="AnchorCurveLightDrop"/>):
+        /// координата не действует, <see cref="LightFixedAdd"/> — нуль.
+        /// </summary>
+        bool curveLightSuspended;
+
+        /// <summary>(`AMBER155`, П229) Последний сбор опор снял свет, стоявший в образах (плечо пропало).</summary>
+        bool curveLightDropped;
+
+        /// <summary>(`AMBER155`, П229) Что сделано при снятии света — в служебную строку шкалы; null — не снимался.</summary>
+        string curveLightDropNote;
+
+        /// <summary>
+        /// (`AMBER155`, П229) Калибровка нелинейна, если по всей шкале каналов
+        /// она отходит от хорды между крайними каналами дальше одного канала
+        /// (отход в кэВ, делённый на местную цену канала). Отход ближе канала
+        /// шкалу не двигает ни в одном пике. Наружу — наибольший отход, кэВ и кан.
+        /// </summary>
+        static bool CalibrationOffChord(EnergyCalibration calibration, int channels,
+                                        out double offKev, out double offChannels)
+        {
+            offKev = 0.0;
+            offChannels = 0.0;
+            if (calibration == null || channels < 8)
+            {
+                return false;
+            }
+
+            int last = channels - 1;
+            double e0 = calibration.ChannelToEnergy(0);
+            double e1 = calibration.ChannelToEnergy(last);
+            if (!Finite(e0) || !Finite(e1) || !(e1 > e0))
+            {
+                return false;
+            }
+
+            const int Steps = 64;
+            for (int k = 1; k < Steps; k++)
+            {
+                double ch = (double)last * k / Steps;
+                double e = calibration.ChannelToEnergy(ch);
+                double perChannel = calibration.ChannelToEnergy(ch + 0.5) - calibration.ChannelToEnergy(ch - 0.5);
+                if (!Finite(e) || !(perChannel > 0.0))
+                {
+                    continue;
+                }
+
+                double off = e - (e0 + (e1 - e0) * ch / last);
+                if (Math.Abs(off) / perChannel > Math.Abs(offChannels))
+                {
+                    offKev = off;
+                    offChannels = off / perChannel;
+                }
+            }
+
+            return Math.Abs(offChannels) > 1.0;
+        }
+
         List<FsaScaleAnchor> CollectScaleAnchors(FitResult fit, EnergyCalibration calibration,
                                                  FwhmCalibration fwhmCalibration,
                                                  double gain, double offset,
@@ -3459,10 +6856,46 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] net = new double[channels];
             var owners = new List<KeyValuePair<FsaComponent, double[]>>();
             var ownerAmplitude = new Dictionary<FsaComponent, double>();
+            // (`AMBER213`, П241) При матрице слои хозяев уширяются ПАРАЛЛЕЛЬНО:
+            // подготовка (`PrepareLayerParts` — общее состояние) — подряд в
+            // порядке колонок, уширение — по куску на колонку, затем ниже, в том
+            // же порядке колонок, — прежние действия над готовыми слоями.
+            LayerPlan[] layerPlans = null;
+            double[][] layerSums = null;
+            double[][][] layerParts = null;
+            if (this.ResponseMatrix != null)
+            {
+                layerPlans = new LayerPlan[fit.Columns.Count];
+                for (int k = 0; k < fit.Columns.Count; k++)
+                {
+                    FitColumn column = fit.Columns[k];
+                    if (fit.Amplitude[k] == 0.0 || column.Component == null
+                        || column.Component.WeightsAreFinal || !AnchorEligible(column.Component))
+                    {
+                        continue;
+                    }
+
+                    layerPlans[k] = this.PrepareLayerParts(column.Component, calibration, fwhmCalibration, channels);
+                }
+
+                layerSums = new double[fit.Columns.Count][];
+                layerParts = new double[fit.Columns.Count][][];
+                FsaParallel.For(fit.Columns.Count, k =>
+                {
+                    if (layerPlans[k] != null)
+                    {
+                        this.BroadenLayerParts(layerPlans[k], calibration, fwhmCalibration, gain, offset,
+                                               chLo, chHi, channels, out layerSums[k], out layerParts[k]);
+                    }
+                });
+            }
+
             for (int k = 0; k < fit.Columns.Count; k++)
             {
                 double amplitude = fit.Amplitude[k];
-                if (amplitude <= 0.0)
+                // (`AMBER141`) шапка подложки бывает ниже нуля (вычтенный фон);
+                // образы NNLS отрицательными не отдаёт — для них `== 0` то же
+                if (amplitude == 0.0)
                 {
                     continue;
                 }
@@ -3488,10 +6921,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double[] sumOnly;
-                double[][] parts;
-                this.BuildLayerParts(column.Component, calibration, fwhmCalibration,
-                                     gain, offset, chLo, chHi, channels, out sumOnly, out parts);
+                if (this.ResponseMatrix == null)
+                {
+                    // (`AMBER156` (а), П195) РЕЖИМ КРИВОЙ: «синий канал» — сам
+                    // образ компонента. Голые пики и есть пик полного
+                    // поглощения (комптона, вылетов, сумм-пиков у них нет), и
+                    // колонка фита — ровно они на текущей шкале.
+                    double[] bare = new double[channels];
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        double v = amplitude * column.Values[i];
+                        bare[i] = v > 0.0 ? v : 0.0;
+                        blue[i] += bare[i];
+                    }
+
+                    owners.Add(new KeyValuePair<FsaComponent, double[]>(column.Component, bare));
+                    ownerAmplitude[column.Component] = amplitude;
+                    continue;
+                }
+
+                double[] sumOnly = layerSums[k];
+                double[][] parts = layerParts[k];
                 if (parts == null || peakChannel >= parts.Length || parts[peakChannel] == null)
                 {
                     continue;
@@ -3530,6 +6980,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double windowFwhm = this.AnchorWindowFwhm > 0.0 ? this.AnchorWindowFwhm : 1.0;
+            // (`AMBER213`, П241) Окна пиков хвоста — одни на компонент и длину
+            // гистограммы, пока идёт цикл вершин: см. <see cref="splitWindows"/>.
+            this.splitWindows = new Dictionary<FsaComponent, Dictionary<int, bool[]>>();
             for (int i = chLo + 1; i < chHi; i++)
             {
                 if (!(blue[i] > 0.0) || blue[i] <= blue[i - 1] || blue[i] < blue[i + 1])
@@ -3537,7 +6990,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double fwhm = fwhmCalibration.ChannelToFwhm(i);
+                double fwhm = this.ImageFwhm(fwhmCalibration, i);
                 if (!(fwhm > 1.0))
                 {
                     continue;
@@ -3546,7 +6999,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // Рычаг замера, умолчанием ноль — см. `AnchorMinFwhmChannels`.
                 bool narrow = fwhm < this.AnchorMinFwhmChannels;
 
-                int half = Math.Max(2, (int)Math.Round(windowFwhm * fwhm));
+                // (`S206`, П201) полуширина окна — не уже заданной доли ПШПВ:
+                // округление ВВЕРХ (при ПШПВ 2.4 кан. прежнее round давало ±2
+                // кан., то есть ±0.83 ПШПВ, и сдвинутый пик резался)
+                int half = this.AnchorWindowCeil
+                    ? Math.Max(2, (int)Math.Ceiling(windowFwhm * fwhm - 1.0E-9))
+                    : Math.Max(2, (int)Math.Round(windowFwhm * fwhm));
 
                 // Рябь на склоне соседнего пика максимумом не считается:
                 // вершина обязана быть выше всего в половине окна.
@@ -3587,6 +7045,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                // ⛔ (`AMBER142` п. 9, П215) ДОПУСК ЯДРА — С ПОЛКАНАЛА НА ВЕРШИНУ:
+                // вершина синего — ЦЕЛЫЙ канал i, настоящая вершина лежит где-то
+                // в [i − ½, i + ½]. Без этого допуска сильная линия хозяина
+                // выпадает из ядра на ноже: `G1S24_Cd109_P5` без матрицы, пик Ag K
+                // на пороге (рампа × мультиплет Kα/Kβ сдвигает вершину на канал
+                // выше Kα) — Kα 22.16 на 0.99 кан. от вершины при пределе 0.95,
+                // ядром становится Kβ 24.93 с долей 0.34, опора отпадает, плечо
+                // пропадает через проход. Рычаг — <see cref="AnchorCoreHalfChannel"/>.
+                double coreReach = 0.5 * fwhm + (this.AnchorCoreHalfChannel ? 0.5 : 0.0);
+
                 // ЯДРО ОКНА — синий канал ТЕХ ЛИНИЙ ХОЗЯИНА, что стоят в
                 // полуширине от вершины: у K-серии это вся серия, у 356 кэВ
                 // Ba-133 — одна линия без соседней 384. Всё остальное в окне
@@ -3601,6 +7069,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double[] core = null;
                 double coreLineKev = double.NaN;
                 double coreLineBlue = 0.0;
+                // (`AMBER150`) вершины линий ядра — чтобы знать, одиночный ли пик
+                var coreLineTops = new List<double>();
                 for (int j = 0; j < owner.Lines.Count; j++)
                 {
                     // (П19) у форм line/peak после привязки пик линии стоит
@@ -3612,13 +7082,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    if (Math.Abs(this.DriftPosition(p, gain, offset) - i) > 0.5 * fwhm)
+                    if (Math.Abs(this.DriftPosition(p, gain, offset) - i) > coreReach)
                     {
                         continue;
                     }
 
-                    double[] lineBlue = this.BuildLineBlue(owner, j, calibration, fwhmCalibration,
-                                                           gain, offset, chLo, chHi, channels);
+                    double[] lineBlue = this.ResponseMatrix == null
+                        ? this.BuildLineBare(owner, j, calibration, fwhmCalibration,
+                                             gain, offset, chLo, chHi, channels)
+                        : this.BuildLineBlue(owner, j, calibration, fwhmCalibration,
+                                             gain, offset, chLo, chHi, channels);
                     if (lineBlue == null)
                     {
                         continue;
@@ -3637,6 +7110,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         lineTop = Math.Max(lineTop, v);
                     }
 
+                    coreLineTops.Add(lineTop);
                     if (lineTop > coreLineBlue)
                     {
                         coreLineBlue = lineTop;
@@ -3649,12 +7123,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                // (`AMBER142`, П222) доля без континуума — только с матрицей: у голых пиков
+                // кривой нуклидная модель окна — одни пики, доля ядра в ней почти всегда единица
+                bool shareNet = this.AnchorShareWithoutContinuum && this.ResponseMatrix != null;
                 double sumWhole = 0.0, sumCore = 0.0, sumData = 0.0, sumVar = 0.0;
                 double momentCore = 0.0, momentData = 0.0;
                 for (int k = lo; k <= hi; k++)
                 {
                     double d = fit.Residual[k] + core[k];
-                    sumWhole += net[k] + continuum[k];
+                    // (`AMBER142`, П222) доля без континуума — у свойства
+                    sumWhole += shareNet ? net[k] : net[k] + continuum[k];
                     sumCore += core[k];
                     momentCore += core[k] * k;
                     sumData += d;
@@ -3685,6 +7163,97 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     varCentre /= sumData * sumData;
+                    // (`AMBER142`) σ центра БЕЗ поправки Бирге — для погрешности
+                    // привязки в σ амплитуд: Бирге — довод веса в МНК, а не шум
+                    double varCentreStat = varCentre;
+                    if (this.AnchorShiftMeasure)
+                    {
+                        // ⛔ (`AMBER142`, П201) ПРОМАХ — СДВИГОМ ВСЕЙ НУКЛИДНОЙ
+                        // МОДЕЛИ в окне (шаг Гаусса — Ньютона), а не разностью
+                        // центров тяжести. Центр «остаток + ядро» несёт промах
+                        // ЧУЖИХ образов окна: при доле ядра s он сдвигается вслед
+                        // за моделью с множителем до (1 − s)/s, и у слитных
+                        // образов (Am-241 59.5 рядом с Ti-44 67.9, доля 0.3)
+                        // пересъёмка шкалы шла вразнос. Шкала двигает ВСЕ образы
+                        // сразу — сдвиг всей модели и есть её промах в этом месте;
+                        // у точной копии модели он нулевой тождественно.
+                        // Подложка-сплайн не сдвигается: она подогнана по
+                        // каналам. σ — пуассонова по производной модели.
+                        // Шаги повторяются на модели, сдвинутой интерполяцией,
+                        // пока шаг не станет меньше сотой канала: один шаг
+                        // линеаризации недомеривает промах в половину ПШПВ.
+                        // (`AMBER142`, П222) старт шагов — от разности центров тяжести, а не от нуля
+                        // (доводы у <see cref="AnchorShiftStartCentroid"/>)
+                        double delta = this.AnchorShiftStartCentroid && !this.anchorClassicLoop
+                                       && Math.Abs(centreData - centreModel) <= 2.0 * fwhm
+                            ? centreData - centreModel
+                            : 0.0;
+                        double den = 0.0;
+                        bool measured = false;
+                        int kLo = Math.Max(lo, chLo + 1), kHi = Math.Min(hi, chHi - 1);
+                        for (int it = 0; it < 8; it++)
+                        {
+                            double num = 0.0;
+                            den = 0.0;
+                            for (int k = kLo; k <= kHi; k++)
+                            {
+                                double at = k - delta;
+                                double shifted = InterpolateAt(net, at, chLo, chHi);
+                                double d = 0.5 * (InterpolateAt(net, at + 1.0, chLo, chHi)
+                                                  - InterpolateAt(net, at - 1.0, chLo, chHi));
+                                double w = variance[k] > 0.0 ? 1.0 / variance[k] : 0.0;
+                                double r = fit.Residual[k] + net[k] - shifted;
+                                num += w * r * d;
+                                den += w * d * d;
+                            }
+
+                            if (!(den > 0.0))
+                            {
+                                break;
+                            }
+
+                            double step = -num / den;
+                            delta += step;
+                            measured = true;
+                            if (Math.Abs(delta) > 2.0 * fwhm)
+                            {
+                                break;
+                            }
+
+                            if (Math.Abs(step) < 0.01)
+                            {
+                                break;
+                            }
+                        }
+
+                        // промах дальше двух ПШПВ — отказ «shift» ниже, не центр тяжести
+                        if (measured && den > 0.0)
+                        {
+                            centreData = centreModel + delta;
+                            varCentre = 1.0 / den;
+                            varCentreStat = varCentre;
+                            // Модель в окне врёт формой — σ сдвига растёт на
+                            // χ²/ndf окна на сдвинутой модели (Бирге): слитный
+                            // образ, где модель не сходится с данными, не
+                            // забирает шкалу себе. У точной копии модели χ² окна
+                            // нулевой, а промахи нулевые при любых весах.
+                            double chiWin = 0.0;
+                            int nWin = 0;
+                            for (int k = kLo; k <= kHi; k++)
+                            {
+                                double w = variance[k] > 0.0 ? 1.0 / variance[k] : 0.0;
+                                double r = fit.Residual[k] + net[k] - InterpolateAt(net, k - delta, chLo, chHi);
+                                chiWin += w * r * r;
+                                nWin++;
+                            }
+
+                            double birge = nWin > 1 ? chiWin / (nWin - 1) : 1.0;
+                            if (this.AnchorShiftBirge && birge > 1.0)
+                            {
+                                varCentre *= birge;
+                            }
+                        }
+                    }
 
                     // Систематический пол погрешности центра: модель врёт формой
                     // пика (подложка, форма, дискретизация) на долю ПШПВ, и
@@ -3692,6 +7261,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // отдала бы всю шкалу одному пику. Доля — у свойства.
                     double floor = this.AnchorSigmaFloorFwhm * fwhm;
                     varCentre += floor * floor;
+                    varCentreStat += floor * floor;
                     double sigma = Math.Sqrt(varCentre);
                     anchor.ModelKev = calibration.ChannelToEnergy(centreModel);
                     anchor.MeasuredKev = calibration.ChannelToEnergy(centreData);
@@ -3738,6 +7308,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         var fit1 = new AnchorFit
                         {
                             Anchor = anchor, X = centreModel, Y = centreData, Weight = 1.0 / varCentre,
+                            WeightStat = varCentreStat > 0.0 ? 1.0 / varCentreStat : 1.0 / varCentre,
                             // (П18) световая координата опоры — S на модельном центре;
                             // (П19) у форм line/peak — s(E) линии ядра, в каналах
                             // на модельном центре (до первой опоры образ не сдвинут,
@@ -3747,6 +7318,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 : this.LineShiftChannels(calibration, anchor.ModelKev, coreLineKev, centreModel, channels),
                             ShiftFwhm = Math.Abs(centreData - centreModel) / fwhm
                         };
+                        // (`AMBER150`) ширина — только у ОДИНОЧНОГО пика: в ядре
+                        // одна линия, прочие ниже двадцатой её вершины. K-серия
+                        // рентгена — мультиплет, и её второй момент несёт
+                        // расстановку и доли линий серии, а не ширину отклика.
+                        int coreLines = 0;
+                        foreach (double t in coreLineTops)
+                        {
+                            if (t >= 0.05 * coreLineBlue)
+                            {
+                                coreLines++;
+                            }
+                        }
+
+                        if (coreLines == 1)
+                        {
+                            this.MeasureAnchorWidth(fit1, core, fit.Residual, variance, lo, hi,
+                                                    centreModel, centreData, sumCore, sumData, fwhm);
+                        }
                         // (`S169`, П13) кандидат нуля съёмки — КАЖДЫЙ с измеренным
                         // центром, принят он опорой или нет
                         this.zeroCandidates.Add(fit1);
@@ -3766,6 +7355,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     anchors.Add(anchor);
                 }
             }
+
+            this.splitWindows = null;
 
             if (fits.Count == 0)
             {
@@ -3803,8 +7394,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (П19) Координата жива у всех форм (`lightCurveName`); у формы
             // "anchor" модель света не получает никогда, и МНК вычитает его из
             // измерения на КАЖДОМ проходе (β⁺ = 1, наружу β = 0).
-            bool lightOn = this.lightCurveName != null;
+            // (`AMBER155`, П229) свет снят до конца привязки — координаты нет
+            bool lightOn = this.lightCurveName != null && !this.curveLightSuspended;
             bool anchorOnly = this.lightForm == LightForm.Anchor;
+            this.curveLightDropped = false;
+            bool dropInstrument = false;
             double betaFixedAdd = this.LightFixedAdd();
             foreach (AnchorFit f in fits)
             {
@@ -3813,6 +7407,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             while (true)
             {
+                // ⛔ (`S210`, П212) РЕЖИМ КРИВОЙ: СВЕТ — ТОЛЬКО ПРИ ПЛЕЧЕ ОПОР
+                // (доводы у <see cref="AnchorCurveLightLever"/>). Нет плеча —
+                // координата снимается (итог β = 0), опоры без вычета света;
+                // проверяется на каждом круге отсева — плечо уходит с промахом.
+                if (lightOn && this.ResponseMatrix == null && this.AnchorCurveLightLever)
+                {
+                    double lxMin = double.MaxValue, lxMax = double.MinValue;
+                    foreach (AnchorFit f in fits)
+                    {
+                        lxMin = Math.Min(lxMin, f.X);
+                        lxMax = Math.Max(lxMax, f.X);
+                    }
+
+                    bool leverHere = !this.anchorGainOnly
+                                     && fits.Count >= Math.Max(2, this.AnchorOffsetMinAnchors)
+                                     && lxMin > 0.0 && lxMax - lxMin >= 0.5 * lxMax;
+                    betaFixedAdd = leverHere ? this.LightFixedAdd() : (anchorOnly ? 0.0 : -this.driftLight);
+                    // (`AMBER155`, П229) снимается свет, уже стоящий в образах, — ноль прохода
+                    // со светом наследоваться не должен (доводы у <see cref="AnchorCurveLightDrop"/>)
+                    this.curveLightDropped = !leverHere && !anchorOnly && this.driftLight != 0.0;
+                    dropInstrument = this.curveLightDropped && this.AnchorCurveLightDrop == FsaCurveLightDrop.Instrument;
+                    foreach (AnchorFit f in fits)
+                    {
+                        f.YEff = f.Y - betaFixedAdd * f.S;
+                    }
+                }
+
                 beta = anchorOnly ? 0.0 : betaFixedAdd;
                 double swxx = 0.0, swxy = 0.0, sw = 0.0, swx = 0.0, swy = 0.0;
                 double xMin = double.MaxValue, xMax = double.MinValue;
@@ -3850,7 +7471,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // больше 2ε нуля и 2ε/x усиления — усиление ошибки ограничено.
                 // Пара соседних линий (356 и 384 кэВ) нуля не получает: у неё
                 // плечо 28 кэВ, и шум 0.3 кэВ дал бы 1 % усиления, 6 кэВ на 662.
-                bool lever = fits.Count >= Math.Max(2, this.AnchorOffsetMinAnchors)
+                // (`AMBER142`, П201) нуль шкалы переснимается картой — ноль
+                // опор не подбирается: две ручки одного нуля не сходятся
+                bool lever = !this.anchorGainOnly
+                             && fits.Count >= Math.Max(2, this.AnchorOffsetMinAnchors)
                              && xMin > 0.0 && xMax - xMin >= 0.5 * xMax;
                 if (lever)
                 {
@@ -3872,6 +7496,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             b = b2;
                             how = "усиление и ноль";
                         }
+                    }
+                }
+                else if (!this.anchorGainOnly && (this.AnchorNoLeverZero != FsaNoLeverZero.Inherit || dropInstrument))
+                {
+                    // ⛔ (`AMBER142` п. 9, П215) БЕЗ ПЛЕЧА НОЛЬ НЕ ОПРЕДЕЛЁН — он
+                    // не наследуется от прежних проходов (доводы у
+                    // <see cref="AnchorNoLeverZero"/>). Ноль прибора: новая шкала
+                    // p'' = a·(g·p + o) + b проходит через нулевой канал, то есть
+                    // b = −a·o и Y ≈ a·(X − o). Плечо «сдвиг»: a = 1, b — средний промах.
+                    if (this.AnchorNoLeverZero == FsaNoLeverZero.Instrument || dropInstrument)
+                    {
+                        double sxx = 0.0, sxy = 0.0;
+                        foreach (AnchorFit f in fits)
+                        {
+                            double xr = f.X - offset;
+                            sxx += f.Weight * xr * xr;
+                            sxy += f.Weight * xr * f.YEff;
+                        }
+
+                        if (sxx > 0.0 && offset != 0.0)
+                        {
+                            a = sxy / sxx;
+                            b = -a * offset;
+                            how = "усиление, ноль прибора";
+                        }
+                    }
+                    else if (sw > 0.0)
+                    {
+                        a = 1.0;
+                        b = (swy - swx) / sw;
+                        how = "сдвиг";
                     }
                 }
 
@@ -3907,6 +7562,107 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 f.Anchor.Used = true;
             }
 
+            // (`AMBER142`, П201) ковариация поправки (a, b) последнего МНК — для
+            // погрешности привязки в σ амплитуд; χ²/ndf прямой больше единицы
+            // (опоры не ложатся на прямую) раздувает её по Бирге
+            {
+                // сэндвич A⁻¹·B·A⁻¹: оценщик — с весами МНК (с Бирге окна), шум
+                // точки — 1/WeightStat; Бирге по разбросу опор не берётся —
+                // это разлад модели, а не шум привязки (на реальных спектрах
+                // он раздувал σ ряда Th-232 впятеро при той же копии)
+                double cw = 0.0, cwx = 0.0, cwxx = 0.0, bw = 0.0, bwx = 0.0, bwxx = 0.0;
+                foreach (AnchorFit f in fits)
+                {
+                    double q = f.WeightStat > 0.0 ? f.Weight * f.Weight / f.WeightStat : f.Weight;
+                    cw += f.Weight;
+                    cwx += f.Weight * f.X;
+                    cwxx += f.Weight * f.X * f.X;
+                    bw += q;
+                    bwx += q * f.X;
+                    bwxx += q * f.X * f.X;
+                }
+
+                bool withOffset = how == "усиление и ноль";
+                this.anchorCovAA = this.anchorCovAB = this.anchorCovBB = 0.0;
+                if (how == "усиление, ноль прибора")
+                {
+                    // (`AMBER142` п. 9, П215) усиление вокруг нуля прибора, b = −a·o
+                    double hw = 0.0, hq = 0.0;
+                    foreach (AnchorFit f in fits)
+                    {
+                        double xr = f.X - offset;
+                        double q = f.WeightStat > 0.0 ? f.Weight * f.Weight / f.WeightStat : f.Weight;
+                        hw += f.Weight * xr * xr;
+                        hq += q * xr * xr;
+                    }
+
+                    if (hw > 0.0)
+                    {
+                        this.anchorCovAA = hq / (hw * hw);
+                        this.anchorCovAB = -offset * this.anchorCovAA;
+                        this.anchorCovBB = offset * offset * this.anchorCovAA;
+                    }
+                }
+                else if (how == "сдвиг")
+                {
+                    // (`AMBER142` п. 9, П215) плечо замера: только ноль
+                    if (cw > 0.0)
+                    {
+                        this.anchorCovBB = bw / (cw * cw);
+                    }
+                }
+                else if (withOffset)
+                {
+                    double det = cw * cwxx - cwx * cwx;
+                    if (det > 0.0)
+                    {
+                        // A = [[cwxx, cwx], [cwx, cw]] по (a, b)
+                        double i11 = cw / det, i12 = -cwx / det, i22 = cwxx / det;
+                        this.anchorCovAA = i11 * (bwxx * i11 + bwx * i12) + i12 * (bwx * i11 + bw * i12);
+                        this.anchorCovAB = i11 * (bwxx * i12 + bwx * i22) + i12 * (bwx * i12 + bw * i22);
+                        this.anchorCovBB = i12 * (bwxx * i12 + bwx * i22) + i22 * (bwx * i12 + bw * i22);
+                    }
+                }
+                else if (cwxx > 0.0)
+                {
+                    this.anchorCovAA = bwxx / (cwxx * cwxx);
+                }
+            }
+
+            // (`AMBER150`) ширинная опора — по тем же принятым опорам
+            this.anchorWidthLog = 0.0;
+            this.anchorWidthCount = 0;
+            double widthWeight = 0.0, widthSum = 0.0;
+            foreach (AnchorFit f in fits)
+            {
+                if (Finite(f.LnWidth) && f.LnWidthVar > 0.0)
+                {
+                    widthWeight += 1.0 / f.LnWidthVar;
+                    widthSum += f.LnWidth / f.LnWidthVar;
+                    this.anchorWidthCount++;
+                }
+            }
+
+            this.anchorWidthSigma = 0.0;
+            if (this.anchorWidthCount > 0 && widthWeight > 0.0)
+            {
+                this.anchorWidthLog = widthSum / widthWeight;
+                // (`AMBER142`, П201) σ логарифма множителя ширины — для σ
+                // амплитуд; разброс опор сверх их погрешностей — по Бирге
+                double chiWidth = 0.0;
+                foreach (AnchorFit f in fits)
+                {
+                    if (Finite(f.LnWidth) && f.LnWidthVar > 0.0)
+                    {
+                        double r = f.LnWidth - this.anchorWidthLog;
+                        chiWidth += r * r / f.LnWidthVar;
+                    }
+                }
+
+                // без Бирге по разбросу опор — разлад модели, а не шум
+                this.anchorWidthSigma = Math.Sqrt(1.0 / widthWeight);
+            }
+
             used = fits.Count;
             note = string.Format(CultureInfo.InvariantCulture,
                                  "опор {0} из {1} (промахов {6}), {2}: a {3:F5}, b {4:F3} кан. ({5:F2} кэВ)",
@@ -3919,6 +7675,476 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return anchors;
+        }
+
+        /// <summary>
+        /// (`AMBER142`, П201) СОВМЕСТНЫЙ ШАГ ГАУССА — НЬЮТОНА ПО УСИЛЕНИЮ И НУЛЮ
+        /// СВЕТА карты "adc". Точки — кандидаты последнего сбора
+        /// (<see cref="zeroCandidates"/>), взятые в шаг: принятые опоры и
+        /// кандидаты нуля из замороженного на разведке набора линий
+        /// (<see cref="zeroTakenLines"/>, не край). Невязка точки — измеренный
+        /// центр минус модельный с учтённым светом (как у МНК опор, `Y − β⁺·S − X`);
+        /// производные: по относительному усилению — X (p'' = a·p'), по нулю
+        /// света — как карта двигает модельный центр при сдвиге z₀ с
+        /// пересчётом растяжения (верх шкалы x₁ закреплён):
+        /// ∂E꜀/∂z₀ = −s·(x₁ − x)/(x₁ − z₀), в каналах — через местный шаг
+        /// калибровки и действующее усиление. Взвешенный МНК 2×2 с весами 1/σ²
+        /// центров; ковариация (сэндвич по шуму точек) — в <see cref="jointCovAA"/>….
+        /// Ложь — точек меньше двух или нет плеча (вырожденная система):
+        /// звавший берёт усиление МНК опор, нуль не трогает.
+        /// </summary>
+        bool JointScaleStep(EnergyCalibration calibration, double gain, double offset,
+                            out double a, out double dz)
+        {
+            a = 1.0;
+            dz = 0.0;
+            this.jointScale = false;
+            List<AnchorFit> all = this.zeroCandidates;
+            List<double> frozen = this.zeroTakenLines;
+            // (`AMBER155`, П220) неподвижная точка — свет верхней линии карты
+            double x1 = this.adcTopLight, z0 = this.adcZeroKev, s = this.adcScale;
+            if (all == null || frozen == null || !(s > 0.0) || !(x1 - z0 > 0.0) || !(gain > 0.0))
+            {
+                return false;
+            }
+
+            double lightAdd = this.LightFixedAdd();
+            double s11 = 0.0, s12 = 0.0, s22 = 0.0, t1 = 0.0, t2 = 0.0;
+            // «мясо» сэндвича: веса с запасом в квадрате — дисперсия замера 1/w,
+            // а оценщик берёт его с весом w·запас
+            double b11 = 0.0, b12 = 0.0, b22 = 0.0;
+            var rs = new List<double>();
+            var js = new List<double[]>();
+            var ws = new List<double>();
+            var wTrue = new List<double>();
+            var seen = new List<double>();
+            foreach (AnchorFit f in all)
+            {
+                FsaScaleAnchor anchor = f.Anchor;
+                if (anchor == null || !(f.Weight > 0.0) || anchor.Refusal == "edge" || anchor.Refusal == "skip")
+                {
+                    continue;
+                }
+
+                int frozenAt = frozen.FindIndex(t => Math.Abs(t - anchor.LineKev) < 1.0E-6);
+                if (!anchor.Used && frozenAt < 0)
+                {
+                    continue;
+                }
+
+                // кандидат нуля (не опора) — с весом, умноженным на запас разведки
+                double margin = anchor.Used || this.zeroTakenMargins == null || frozenAt >= this.zeroTakenMargins.Count
+                    ? 1.0
+                    : this.zeroTakenMargins[frozenAt];
+                if (!anchor.Used && this.AnchorJointShareWeight > 0.0)
+                {
+                    // вес кандидата нуля — ещё и доля ядра в степени (`AnchorJointShareWeight`)
+                    margin *= Math.Pow(Math.Max(0.0, Math.Min(1.0, anchor.PeakShare)), this.AnchorJointShareWeight);
+                }
+
+                if (!(margin > 0.0))
+                {
+                    continue;
+                }
+
+                if (seen.Exists(t => Math.Abs(t - anchor.LineKev) < 1.0E-6))
+                {
+                    continue;
+                }
+
+                seen.Add(anchor.LineKev);
+                double model = f.X + lightAdd * f.S;
+                double p = (model - offset) / gain;
+                double energy, step;
+                try
+                {
+                    energy = calibration.ChannelToEnergy(p);
+                    step = calibration.ChannelToEnergy(p + 0.5) - calibration.ChannelToEnergy(p - 0.5);
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+
+                if (!Finite(energy) || !PositiveFinite(step))
+                {
+                    continue;
+                }
+
+                // (`AMBER155`, П220) у прямой карты свет — её обращением, а
+                // канал на кэВ шкалы карты — её постоянный шаг
+                double x = this.ChannelToLight(calibration, p);
+                if (this.adcLinearKev > 0.0)
+                {
+                    step = this.adcLinearKev / this.TractSlope(this.TractInverse(p - this.AdcZeroChannel));
+                }
+
+                double jz = gain * (-s * (x1 - x) / (x1 - z0)) / step;
+                double ja = f.X;
+                double r = f.Y - lightAdd * f.S - f.X;
+                double w = f.Weight * margin;
+                s11 += w * ja * ja;
+                s12 += w * ja * jz;
+                s22 += w * jz * jz;
+                t1 += w * ja * r;
+                t2 += w * jz * r;
+                double wb = f.WeightStat > 0.0 ? w * w / f.WeightStat : w * margin;
+                b11 += wb * ja * ja;
+                b12 += wb * ja * jz;
+                b22 += wb * jz * jz;
+                rs.Add(r);
+                js.Add(new[] { ja, jz });
+                ws.Add(w);
+                wTrue.Add(f.Weight);
+            }
+
+            double det = s11 * s22 - s12 * s12;
+            if (rs.Count < 2 || !(det > 1.0E-9 * s11 * s22))
+            {
+                return false;
+            }
+
+            double da = (s22 * t1 - s12 * t2) / det;
+            double dzz = (s11 * t2 - s12 * t1) / det;
+            double chi = 0.0;
+            for (int i = 0; i < rs.Count; i++)
+            {
+                double r = rs[i] - js[i][0] * da - js[i][1] * dzz;
+                chi += wTrue[i] * r * r;
+            }
+
+            // ковариация оценщика с весами w·запас — сэндвич A⁻¹·B·A⁻¹, шум точки
+            // — 1/WeightStat (без Бирге окна); Бирге по разбросу точек не берётся
+            // (разлад модели, а не шум привязки)
+            double birge = this.AnchorSigmaBirge && rs.Count > 2 ? Math.Max(1.0, chi / (rs.Count - 2)) : 1.0;
+            double i11 = s22 / det, i12 = -s12 / det, i22 = s11 / det;
+            double c11 = i11 * (b11 * i11 + b12 * i12) + i12 * (b12 * i11 + b22 * i12);
+            double c12 = i11 * (b11 * i12 + b12 * i22) + i12 * (b12 * i12 + b22 * i22);
+            double c22 = i12 * (b11 * i12 + b12 * i22) + i22 * (b12 * i12 + b22 * i22);
+            this.jointCovAA = birge * c11;
+            this.jointCovAZ = birge * c12;
+            this.jointCovZZ = birge * c22;
+            this.jointScale = true;
+            a = 1.0 + da;
+            dz = dzz;
+            return Finite(a) && a > 0.0 && Finite(dz);
+        }
+
+        /// <summary>
+        /// (`AMBER142`, П204) Ставит ширину, её опоры и β света из итога прошлого
+        /// прохода (<paramref name="warm"/>) или возвращает холодные (null):
+        /// ширина 1, β 0. Кэш гистограмм поглощения сбрасывается, если β в
+        /// образах сменился (как в цикле привязки).
+        /// </summary>
+        void ApplyAnchorWarm(AnchorWarm warm)
+        {
+            double light = warm != null ? warm.Light : 0.0;
+            this.widthScale = warm != null ? warm.Width : 1.0;
+            this.widthAnchors = warm != null ? warm.WidthAnchors : 0;
+            if (light != this.driftLight && this.LightInImages)
+            {
+                this.deposits.Clear();
+            }
+
+            this.driftLight = light;
+        }
+
+        /// <summary>
+        /// (`AMBER142`, П204) Наибольшая поправка совместного прохода в долях своего
+        /// допуска (те же допуски, что у сходимости цикла): ноль опор и усиление
+        /// на верхнем канале полосы — двадцатая канала, β света — двадцатая
+        /// канала сдвига, ширина — по сырому замеру опор, нуль света — допуск
+        /// <see cref="AnchorZeroTolerance"/> у нулевого канала. Меньше единицы —
+        /// сошлось по всем. (`AMBER142` п. 7, П207) <paramref name="widthTolerance"/> —
+        /// допуск ширины своего режима: 0.0005 у совместного шага, 0.002 у классики
+        /// (как в условии сходимости цикла); нуль света у классики не шагает.
+        /// </summary>
+        double JointResidual(double a, double b, double beta, double zeroStep, double zeroStep0, int chHi,
+                             double widthTolerance)
+        {
+            double r = Math.Max(Math.Abs(b) / 0.05, Math.Abs(a - 1.0) * Math.Max(1, chHi) / 0.05);
+            r = Math.Max(r, Math.Abs(beta) * this.lightShiftMax / 0.05);
+            if (this.AnchorWidth && this.anchorWidthCount > 0)
+            {
+                r = Math.Max(r, Math.Abs(this.anchorWidthLog) / widthTolerance);
+            }
+
+            if (PositiveFinite(zeroStep0))
+            {
+                r = Math.Max(r, Math.Abs(zeroStep) * this.adcScale / zeroStep0 / this.AnchorZeroTolerance);
+            }
+
+            return r;
+        }
+
+        /// <summary>(`AMBER142`, П201) Служебная строка погрешности привязки последнего разбора.</summary>
+        string scaleSigmaNote;
+
+        /// <summary>
+        /// (`AMBER142`, П204) Цена привязки последнего разбора — для проб и
+        /// замеров скорости: проходов, перефитов, время цикла привязки и
+        /// перефитов σ, ход шагов по проходам. Человеку не показывается.
+        /// </summary>
+        public string ScaleAnchorStats { get; private set; }
+
+        int anchorStatPasses, anchorStatRefits, anchorStatSigmaFits;
+        long anchorStatSigmaTicks;
+        bool anchorStatCapped, anchorStatPlateau, anchorStatClassic, anchorStatRestored, anchorStatWarm;
+        StringBuilder anchorStatTrace = new StringBuilder();
+
+        /// <summary>
+        /// (`AMBER142`, П201) Погрешность привязки шкалы в значимость колонок
+        /// <paramref name="best"/>: перефиты (<see cref="FitOnce"/>, веса
+        /// финального хуберовского прохода, тот же состав) со шкалой, сдвинутой
+        /// на ±σ вдоль каждой главной оси ковариации (a, b) опор и на ±σ нуля
+        /// света карты; половина разности амплитуд — вклад направления, вклады
+        /// складываются в квадратуре между собой и со статистической σ (A/z).
+        /// Связь нуля света с усилением не учитывается — направления берутся
+        /// порознь. Четвёртое направление — ±σ логарифма множителя ширины
+        /// (`AMBER150`): его шум у сильных многолинейных образов (Eu-152 в
+        /// смеси) давал разброс копий 1.6 σ при всём прочем учтённом. β света
+        /// закреплён (форма line, β = 1) и погрешности не несёт.
+        /// </summary>
+        void InflateZByScale(FitResult best, List<double[]> fixedColumns, EnergyCalibration calibration,
+                             FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
+                             List<FsaComponent> originalLibrary, double gain, double offset,
+                             int chLo, int chHi, int channels, double[] y)
+        {
+            this.scaleSigmaNote = null;
+            if (best == null || best.Weights == null || best.Columns == null || best.Z == null)
+            {
+                return;
+            }
+
+            var components = new List<FsaComponent>();
+            foreach (FitColumn column in best.Columns)
+            {
+                if (column.Component != null && !components.Contains(column.Component))
+                {
+                    components.Add(column.Component);
+                }
+            }
+
+            if (components.Count == 0)
+            {
+                return;
+            }
+
+            // направления: (Δa, Δb кан., Δнуль света кэВ) — главные оси
+            // ковариации (a, b) опор, длина √λ, и σ нуля света
+            var directions = new List<double[]>();
+            // при совместном шаге вторая ось — нуль света (кэВ), а не ноль в каналах
+            bool joint = this.jointScale;
+            double caa = joint ? this.jointCovAA : this.anchorCovAA;
+            double cab = joint ? this.jointCovAZ : this.anchorCovAB;
+            double cbb = joint ? this.jointCovZZ : this.anchorCovBB;
+            double tr = caa + cbb;
+            double disc = Math.Sqrt(Math.Max(0.0, 0.25 * (caa - cbb) * (caa - cbb) + cab * cab));
+            foreach (double lambda in new[] { 0.5 * tr + disc, 0.5 * tr - disc })
+            {
+                if (!(lambda > 0.0))
+                {
+                    continue;
+                }
+
+                double vx, vy;
+                if (cab != 0.0)
+                {
+                    vx = lambda - cbb;
+                    vy = cab;
+                }
+                else if (Math.Abs(lambda - caa) <= Math.Abs(lambda - cbb))
+                {
+                    vx = 1.0;
+                    vy = 0.0;
+                }
+                else
+                {
+                    vx = 0.0;
+                    vy = 1.0;
+                }
+
+                double norm = Math.Sqrt(vx * vx + vy * vy);
+                if (!(norm > 0.0))
+                {
+                    continue;
+                }
+
+                double sl = Math.Sqrt(lambda) / norm;
+                directions.Add(joint ? new[] { vx * sl, 0.0, vy * sl, 0.0 } : new[] { vx * sl, vy * sl, 0.0, 0.0 });
+            }
+
+            if (!joint && this.zeroSigmaKev > 0.0 && this.adcScale > 0.0)
+            {
+                directions.Add(new[] { 0.0, 0.0, this.zeroSigmaKev, 0.0 });
+            }
+
+            // множитель ширины (`AMBER150`) — четвёртое направление
+            if (this.AnchorWidth && this.anchorWidthCount > 0 && this.anchorWidthSigma > 0.0)
+            {
+                directions.Add(new[] { 0.0, 0.0, 0.0, this.anchorWidthSigma });
+            }
+
+            if (directions.Count == 0)
+            {
+                return;
+            }
+
+            int m = best.Columns.Count;
+            double[] variance = new double[m];
+            int done = 0;
+            foreach (double[] d in directions)
+            {
+                double[] plus = this.AmplitudesAtShiftedScale(best, components, fixedColumns, calibration,
+                                                              fwhmCalibration, efficiency, originalLibrary,
+                                                              gain, offset, chLo, chHi, channels, y, d, 1.0);
+                double[] minus = this.AmplitudesAtShiftedScale(best, components, fixedColumns, calibration,
+                                                               fwhmCalibration, efficiency, originalLibrary,
+                                                               gain, offset, chLo, chHi, channels, y, d, -1.0);
+                if (plus == null || minus == null)
+                {
+                    continue;
+                }
+
+                for (int k = 0; k < m; k++)
+                {
+                    double half = 0.5 * (plus[k] - minus[k]);
+                    if (Finite(half))
+                    {
+                        variance[k] += half * half;
+                    }
+                }
+
+                done++;
+            }
+
+            if (done == 0)
+            {
+                return;
+            }
+
+            double worst = 0.0;
+            string worstName = null;
+            for (int k = 0; k < m; k++)
+            {
+                FsaComponent component = best.Columns[k].Component;
+                double amplitude = best.Amplitude[k];
+                double z = best.Z[k];
+                if (component == null || !(amplitude > 0.0) || !(z > 0.0) || !(variance[k] > 0.0))
+                {
+                    continue;
+                }
+
+                double sigmaStat = amplitude / z;
+                double sigma = Math.Sqrt(sigmaStat * sigmaStat + variance[k]);
+                best.Z[k] = amplitude / sigma;
+                double share = Math.Sqrt(variance[k]) / amplitude;
+                if (component.Kind != FsaComponentKind.Nuisance && share > worst)
+                {
+                    worst = share;
+                    worstName = component.Name;
+                }
+            }
+
+            this.scaleSigmaNote = string.Format(CultureInfo.InvariantCulture,
+                "погрешность шкалы: σ усиления {0:F5}, σ нуля {1:F3} кан., σ нуля света {2:F2} кэВ{5}, σ ширины {6:F2} %; в σ амплитуд — до {3:F2} %{4}",
+                Math.Sqrt(Math.Max(0.0, caa)), joint ? 0.0 : Math.Sqrt(Math.Max(0.0, cbb)),
+                joint ? Math.Sqrt(Math.Max(0.0, cbb)) : this.zeroSigmaKev, 100.0 * worst,
+                worstName != null ? " (" + worstName + ")" : "", joint ? " (совместно)" : "",
+                this.AnchorWidth && this.anchorWidthCount > 0 ? 100.0 * this.anchorWidthSigma : 0.0);
+        }
+
+        /// <summary>
+        /// (`AMBER142`, П201) Амплитуды колонок <paramref name="best"/> на шкале,
+        /// сдвинутой на <paramref name="sign"/>·<paramref name="direction"/> =
+        /// (Δa, Δb кан., Δнуль света кэВ): p'' = (1 + Δa)·p' + Δb поверх
+        /// действующих усиления и ноля, нуль света — в карте "adc" с
+        /// пересчётом растяжения; после перефита карта возвращается. null —
+        /// перефит не удался.
+        /// </summary>
+        double[] AmplitudesAtShiftedScale(FitResult best, List<FsaComponent> components, List<double[]> fixedColumns,
+                                          EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                          FsaEfficiency efficiency, List<FsaComponent> originalLibrary,
+                                          double gain, double offset, int chLo, int chHi, int channels,
+                                          double[] y, double[] direction, double sign)
+        {
+            double da = sign * direction[0], db = sign * direction[1], dz = sign * direction[2];
+            double dw = sign * direction[3];
+            double zeroBefore = this.adcZeroKev, scaleBefore = this.adcScale, widthBefore = this.widthScale;
+            FitResult shifted = null;
+            try
+            {
+                if (dw != 0.0)
+                {
+                    this.widthScale = widthBefore * Math.Exp(dw);
+                }
+
+                if (dz != 0.0)
+                {
+                    this.adcZeroKev = zeroBefore + dz;
+                    this.adcScale = this.AdcScaleOf(originalLibrary, calibration);
+                    if (!(this.adcScale > 0.0))
+                    {
+                        return null;
+                    }
+                }
+
+                shifted = FitOnce(components, fixedColumns, calibration, fwhmCalibration, efficiency,
+                                  (1.0 + da) * gain, (1.0 + da) * offset + db, chLo, chHi, channels,
+                                  y, best.Weights, null);
+                this.anchorStatSigmaFits++;
+            }
+            finally
+            {
+                this.adcZeroKev = zeroBefore;
+                this.adcScale = scaleBefore;
+                this.widthScale = widthBefore;
+            }
+
+            if (shifted == null)
+            {
+                return null;
+            }
+
+            double[] amplitudes = new double[best.Columns.Count];
+            for (int k = 0; k < best.Columns.Count; k++)
+            {
+                FsaComponent component = best.Columns[k].Component;
+                amplitudes[k] = double.NaN;
+                if (component == null)
+                {
+                    continue;
+                }
+
+                for (int j = 0; j < shifted.Columns.Count; j++)
+                {
+                    if (ReferenceEquals(shifted.Columns[j].Component, component))
+                    {
+                        amplitudes[k] = shifted.Amplitude[j];
+                        break;
+                    }
+                }
+            }
+
+            return amplitudes;
+        }
+
+        /// <summary>(`AMBER142`, П201) Линейная интерполяция массива в дробной точке, с зажимом в [lo, hi].</summary>
+        static double InterpolateAt(double[] values, double at, int lo, int hi)
+        {
+            if (!(at > lo))
+            {
+                return values[lo];
+            }
+
+            if (!(at < hi))
+            {
+                return values[hi];
+            }
+
+            int i = (int)Math.Floor(at);
+            double f = at - i;
+            return values[i] + (values[i + 1] - values[i]) * f;
         }
 
         /// <summary>(П16/П18) Линия в списке выброшенных (±0.5 кэВ).</summary>
@@ -3964,6 +8190,98 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// (`AMBER99`, П148) Каналы отклика, которые партнёр каскада выносит
+        /// НАРАВНЕ с пиком полного поглощения: отклики постоянного положения —
+        /// одиночный и двойной вылет аннигиляции, K- и L-вылет рентгена
+        /// кристалла, занос аннигиляции извне. Пик (свой множитель CF) и
+        /// комптоновский канал (теряет и получает) сюда не входят.
+        /// </summary>
+        static bool LosesWithPeak(int channel)
+        {
+            switch ((EfficiencyMaker.EfficiencySimulator.ResponseChannel)channel)
+            {
+                case EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeAnnihilation:
+                case EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeAnnihilationDouble:
+                case EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeXrayK:
+                case EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeXrayL:
+                case EfficiencyMaker.EfficiencySimulator.ResponseChannel.AnnihilationOutside:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER99`, П148) Вес линии в канале отклика: пик — с CF
+        /// (`peakFactor`, уже решённым вызывающим: единица, если поправки нет),
+        /// каналы <see cref="LosesWithPeak"/> — с долей, пережившей вынос,
+        /// прочие — без поправки, а при <paramref name="allChannels"/>
+        /// (<see cref="CascadePairContinuum"/>, `AMBER124`) — тоже с ней. Умножение на единицу точное: у линии без
+        /// поправки вес побитово прежний.
+        /// </summary>
+        static double ChannelWeight(int channel, double weight, double peakFactor, double survive,
+                                    bool allChannels)
+        {
+            if (channel == (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak)
+            {
+                return weight * peakFactor;
+            }
+
+            // (`AMBER124`, П166) С сумм-континуумом пар теряют ВСЕ каналы: то,
+            // что уносит партнёр, кладёт свёртка пары, и счёт событий сходится.
+            return allChannels || LosesWithPeak(channel) ? weight * survive : weight;
+        }
+
+        /// <summary>
+        /// (`AMBER99`, П148) Доля событий линии, ПЕРЕЖИВШАЯ вынос партнёром
+        /// каскада, `1 − L_out`, параллельно `component.Lines`; null — поправки
+        /// нет (суммирования нет, выключено <see cref="CascadeEscapeLoss"/> или
+        /// ни у одной линии выноса нет). `L_out` — та же, что сидит в CF пика
+        /// (<c>FsaCascadeSummer.LineNote.Loss</c>: CF = 1/((1 − L_out) + влёт)),
+        /// берётся по нуклиду и энергии линии; линия без записи — единица.
+        /// </summary>
+        double[] EscapeSurvivals(FsaCascadeSummer.Correction correction, FsaComponent component)
+        {
+            if (!(this.CascadeEscapeLoss || this.CascadePairContinuum) || correction == null || correction.Notes == null
+                || correction.Notes.Count == 0 || component == null || component.Lines == null)
+            {
+                return null;
+            }
+
+            double[] survive = null;
+            for (int i = 0; i < component.Lines.Count; i++)
+            {
+                FsaLine line = component.Lines[i];
+                foreach (FsaCascadeSummer.LineNote note in correction.Notes)
+                {
+                    if (note.EnergyKev != line.Energy
+                        || !string.Equals(note.Nuclide ?? "", line.Nuclide ?? "", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (note.Loss > 0.0)
+                    {
+                        if (survive == null)
+                        {
+                            survive = new double[component.Lines.Count];
+                            for (int k = 0; k < survive.Length; k++)
+                            {
+                                survive[k] = 1.0;
+                            }
+                        }
+
+                        survive[i] = Math.Max(0.0, Math.Min(1.0, 1.0 - note.Loss));
+                    }
+
+                    break;
+                }
+            }
+
+            return survive;
+        }
+
+        /// <summary>
         /// (`AMBER17`) СИНИЙ КАНАЛ ОДНОЙ ЛИНИИ компонента — пик полного
         /// поглощения, построенный тем же путём, что столбец линии
         /// (<see cref="BuildLineColumn"/>): та же матрица, тот же вес, та же
@@ -3972,6 +8290,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Возвращает null без матрицы: у образа из одних пиков синего
         /// канала нет, и опора там не строится.
         /// </summary>
+        /// <summary>
+        /// (`AMBER156` (а), П195) Ядро опоры в РЕЖИМЕ КРИВОЙ — голый пик одной
+        /// линии тем же построителем, что образ (<see cref="BuildTemplate"/>:
+        /// вес по кривой эффективности, место по карте нуля и свету, рампа
+        /// порога). null — линии в образе нет (вне кривой, вне полосы).
+        /// </summary>
+        double[] BuildLineBare(FsaComponent component, int lineIndex,
+                               EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                               double gain, double offset, int chLo, int chHi, int channels)
+        {
+            if (component.WeightsAreFinal)
+            {
+                return null;
+            }
+
+            FsaComponent one = new FsaComponent(component.Name, component.Kind);
+            one.Lines.Add(component.Lines[lineIndex]);
+            return BuildTemplate(one, calibration, fwhmCalibration, this.anchorEfficiency,
+                                 gain, offset, chLo, chHi, channels);
+        }
+
+        /// <summary>
+        /// (`AMBER156`, П195) Кривая эффективности текущего разбора — ядрам опор
+        /// режима кривой (<see cref="BuildLineBare"/>); ставится в начале
+        /// <see cref="Analyze"/>.
+        /// </summary>
+        FsaEfficiency anchorEfficiency;
+
         double[] BuildLineBlue(FsaComponent component, int lineIndex,
                                EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
                                double gain, double offset, int chLo, int chHi, int channels)
@@ -3989,9 +8335,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             FsaLine line = component.Lines[lineIndex];
-            double[] deposit = new double[(int)(line.Energy / bin + 0.5) + 1 + this.lightMarginBins];
+            // (`AMBER70`) длину образа считает сама матрица: `ceil(E/шаг)+1`, а
+            // не `round(E/шаг)+1`. У линии выше центра своего бина верхний сосед
+            // пика в прежнюю длину не влезал, `Add` зажимал его в последний бин,
+            // и дробный сдвиг пика на энергию линии был не виден вовсе.
+            double[] deposit = new double[EfficiencyMaker.ResponseMatrix.ImageBins(line.Energy, bin)
+                                          + this.lightMarginBins];
             FsaCascadeSummer.Correction correction =
-                this.cascade != null ? this.cascade.For(component) : null;
+                this.cascade != null ? this.CorrectionOf(component) : null;
             if (correction != null && !correction.Any)
             {
                 correction = null;
@@ -4029,12 +8380,117 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>Пара точек МНК одной опоры (`AMBER17`): модельный и измеренный центры, каналы.</summary>
+        /// <summary>
+        /// (`AMBER150`, П198) Ширина пика данных против ширины ядра модели в окне
+        /// опоры. Измерение — тот же «остаток + ядро», что даёт центр опоры
+        /// (смоделированное прочее вычтено). Отношение вторых моментов в окне
+        /// приводится к неусечённому пику: окно ±<see cref="AnchorWindowFwhm"/>
+        /// ПШПВ режет крылья, и усечённая ширина откликается на истинную
+        /// слабее единицы — множитель отклика считается по гауссу ширины
+        /// образа в том же окне. Неподвижная точка (данные = образ) от этой
+        /// поправки не зависит, она лишь ускоряет схождение проходов.
+        /// </summary>
+        void MeasureAnchorWidth(AnchorFit target, double[] core, double[] residual, double[] variance,
+                                int lo, int hi, double centreModel, double centreData,
+                                double sumCore, double sumData, double fwhm)
+        {
+            target.Anchor.WidthRatio = double.NaN;
+            target.LnWidth = double.NaN;
+            if (!(sumCore > 0.0) || !(sumData > 0.0) || !(fwhm > 0.0) || hi - lo < 2)
+            {
+                return;
+            }
+
+            double varCore = 0.0, varData = 0.0;
+            for (int k = lo; k <= hi; k++)
+            {
+                double dm = k - centreModel;
+                double dd = k - centreData;
+                varCore += core[k] * dm * dm;
+                varData += (residual[k] + core[k]) * dd * dd;
+            }
+
+            varCore /= sumCore;
+            varData /= sumData;
+            if (!(varCore > 0.0) || !(varData > 0.0))
+            {
+                return;
+            }
+
+            double noise = 0.0;
+            for (int k = lo; k <= hi; k++)
+            {
+                double dd = k - centreData;
+                double t = dd * dd - varData;
+                noise += variance[k] * t * t;
+            }
+
+            noise /= sumData * sumData;
+
+            // отклик усечённой ширины на истинную: d ln σ_t / d ln σ у гаусса
+            // ширины образа в окне [lo − ½, hi + ½] вокруг модельного центра
+            double sigma = fwhm / (2.0 * Math.Sqrt(2.0 * Math.Log(2.0)));
+            double left = centreModel - (lo - 0.5), right = (hi + 0.5) - centreModel;
+            double slope = 0.5 * (Math.Log(TruncatedGaussVariance(sigma * 1.01, left, right))
+                                  - Math.Log(TruncatedGaussVariance(sigma / 1.01, left, right))) / (2.0 * Math.Log(1.01));
+            if (!Finite(slope) || slope < 0.3)
+            {
+                slope = 0.3;
+            }
+
+            double lnRatio = 0.5 * Math.Log(varData / varCore);
+            double lnVar = 0.25 * noise / (varData * varData);
+            double floor = this.AnchorWidthFloor > 0.0 ? this.AnchorWidthFloor : 0.0;
+            target.LnWidth = lnRatio / slope;
+            target.LnWidthVar = lnVar / (slope * slope) + floor * floor;
+            target.Anchor.WidthRatio = Math.Exp(target.LnWidth);
+
+            // Нож «не тот пик» для ширины: итог (множитель с этой опорой) дальше
+            // AnchorWidthMaxRatio от калибровки — в окне не одиночный пик
+            // отклика, а что-то ещё (AS80_Th232Medal: ×0.76 по одной опоре).
+            double cap = this.AnchorWidthMaxRatio > 1.0 ? Math.Log(this.AnchorWidthMaxRatio) : double.PositiveInfinity;
+            if (Math.Abs(Math.Log(this.widthScale) + target.LnWidth) > cap)
+            {
+                target.LnWidth = double.NaN;
+            }
+        }
+
+        /// <summary>(`AMBER150`) Дисперсия гаусса σ, усечённого на [−left, right] от центра.</summary>
+        static double TruncatedGaussVariance(double sigma, double left, double right)
+        {
+            double a = -left / sigma, b = right / sigma;
+            double pa = Math.Exp(-0.5 * a * a), pb = Math.Exp(-0.5 * b * b);
+            double z = 0.5 * (Erf(b / Math.Sqrt(2.0)) - Erf(a / Math.Sqrt(2.0))) * Math.Sqrt(2.0 * Math.PI);
+            if (!(z > 0.0))
+            {
+                return sigma * sigma;
+            }
+
+            double m1 = (pa - pb) / z;
+            double m2 = 1.0 + (a * pa - b * pb) / z;
+            double v = sigma * sigma * (m2 - m1 * m1);
+            return v > 0.0 ? v : sigma * sigma;
+        }
+
+        /// <summary>(`AMBER150`) Функция ошибок (Абрамовиц — Стиган 7.1.26, погрешность 1.5e-7).</summary>
+        static double Erf(double x)
+        {
+            double sign = x < 0.0 ? -1.0 : 1.0;
+            x = Math.Abs(x);
+            double t = 1.0 / (1.0 + 0.3275911 * x);
+            double y = 1.0 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.Exp(-x * x);
+            return sign * y;
+        }
+
         sealed class AnchorFit
         {
             public FsaScaleAnchor Anchor;
             public double X;
             public double Y;
             public double Weight;
+
+            /// <summary>(`AMBER142`, П201) 1/σ² центра без поправки Бирге на χ² окна (шум замера с полом), для σ привязки.</summary>
+            public double WeightStat;
 
             /// <summary>(П18) Световая координата S(X), каналы, при β = 1.</summary>
             public double S;
@@ -4044,6 +8500,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             /// <summary>(`S169`, П13) Промах центра |Y − X| в ПШПВ канала — нож «shift» для кандидата нуля, у которого он мог не считаться (отказ по доле стоит раньше).</summary>
             public double ShiftFwhm;
+
+            /// <summary>(`AMBER150`) Логарифм отношения ширины данных к ширине образа (неусечённого пика); NaN — не мерилась.</summary>
+            public double LnWidth = double.NaN;
+
+            /// <summary>(`AMBER150`) Дисперсия <see cref="LnWidth"/> с полом <see cref="AnchorWidthFloor"/>.</summary>
+            public double LnWidthVar;
         }
 
         /// <summary>
@@ -4237,6 +8699,60 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         readonly Dictionary<FsaComponent, Deposit> deposits = new Dictionary<FsaComponent, Deposit>();
 
         /// <summary>
+        /// ⛔ (`T265` вариант А, П207) ОБРАЗЫ И ПОПРАВКИ СУММИРОВАТЕЛЯ — ЧЕРЕЗ ПРОХОДЫ
+        /// ФОНА. <see cref="Analyze"/> разбирает спектр до четырёх раз (`AMBER154`),
+        /// и каждый проход заводил новый суммирователь и новый кэш гистограмм
+        /// <see cref="deposits"/> (по ССЫЛКЕ на компонент, а члены рядов в каждом
+        /// проходе — новые объекты): второй проход строил те же образы при тех же
+        /// β заново (П203: 14 построений за разбор `AS80_Th232Medal`). Здесь
+        /// гистограмма и поправка суммирователя живут весь <see cref="Analyze"/>
+        /// и находятся по СОДЕРЖИМОМУ: ключ — всё, из чего они строятся (имя, вид,
+        /// признаки и линии компонента бит в бит; β и форма света, запас длины,
+        /// маска каналов, ключи суммирования, нож доверия, правило переноса;
+        /// калибровка, ПШПВ и матрица — по ссылке), суммирователь — один на
+        /// разбор, пока не сменились его входы (<see cref="SummerCarryKey"/>).
+        /// Устаревший кэш дал бы молча неверный образ, поэтому приёмка —
+        /// побитовая (малая база ячейка в ячейку и снимок гистограмм
+        /// `DepositCarryP207` с положительным контролем на каждый вход ключа).
+        /// Новый разбор начинает с пустого кэша. Ложь — кэш на один проход, как
+        /// прежде (рычаг A/B).
+        /// </summary>
+        public bool DepositCarry { get; set; }
+
+        /// <summary>(`T265` А, П207) Гистограммы по ключу содержимого и состояния — весь <see cref="Analyze"/>.</summary>
+        readonly Dictionary<string, Deposit> depositCarry = new Dictionary<string, Deposit>(StringComparer.Ordinal);
+
+        /// <summary>(`T265` А, П207) Поправки суммирователя по ключу содержимого компонента — весь <see cref="Analyze"/>.</summary>
+        readonly Dictionary<string, FsaCascadeSummer.Correction> correctionCarry =
+            new Dictionary<string, FsaCascadeSummer.Correction>(StringComparer.Ordinal);
+
+        /// <summary>(`T265` А, П207) Ключ содержимого компонента в этом проходе — по ссылке (мутаций внутри прохода нет, как и у <see cref="deposits"/>).</summary>
+        readonly Dictionary<FsaComponent, string> carryComponentKeys = new Dictionary<FsaComponent, string>();
+
+        /// <summary>(`T265` А, П207) Объекты, входящие в ключ по ссылке (калибровка, ПШПВ, матрица, таблица Q_k): номер — их место здесь.</summary>
+        readonly List<object> carryRefs = new List<object>();
+
+        /// <summary>(`T265` А, П207) Суммирователь разбора и ключ его входов.</summary>
+        FsaCascadeSummer carrySummer;
+        string carrySummerKey;
+
+        /// <summary>(`T265` А, П207) Попаданий и построений гистограмм за последний <see cref="Analyze"/> — для проб.</summary>
+        public int DepositCarryHits { get; private set; }
+
+        /// <summary>(`T265` А, П207) См. <see cref="DepositCarryHits"/>.</summary>
+        public int DepositCarryMisses { get; private set; }
+
+        /// <summary>
+        /// (`AMBER62`) Пиковая эффективность отклика по энергии линии — для
+        /// мерки пикового окна (<see cref="PeakWindowMinPeakSharePercent"/>).
+        /// Величина зависит ТОЛЬКО от матрицы, поэтому живёт один разбор, как и
+        /// остальные кэши: между вызовами матрицу могли сменить. Положение по
+        /// свету её не трогает — перенос строки площадь сохраняет, а сдвиг
+        /// только переставляет бины.
+        /// </summary>
+        readonly Dictionary<double, double> peakEfficiencies = new Dictionary<double, double>();
+
+        /// <summary>
         /// Гистограмма поглощения компонента и всё, что от неё отрезано:
         /// подпороговый хвост отдельной колонкой и доля сумм для подслоя.
         /// Ножи применены ДО кэширования, поэтому все три части согласованы
@@ -4274,6 +8790,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.MaxEnergy = 2800.0;
             this.Xi = 0.03;
             this.HuberM = 3.0;
+            // (`AMBER210`) пики вне состава: решение Amber 07.10.2026 «z ≥ 5 и избыток ≥ 10 % модели»
+            this.UncoveredPeakZ = 5.0;
+            this.UncoveredPeakExcess = 0.10;
+            // (`AMBER209`, П236 06.10.2026) Порог Хубера с надувкой √(χ²/ndf) — ВКЛ.
+            // Решение Amber 06.10.2026 вопросником, дословно: «Порог с надувкой
+            // √(χ²/ndf)». До этого дня порог стоял в σ канала, и активность с
+            // матрицей зависела от объёма набора (Th-232 +20.7 %, Lu-176 +5.3 %
+            // при 1/10 статистики; довод и числа — у свойства). ⚠ A/B по корпусу и
+            // переобъявление базы ещё не сделаны — строка `AMBER209`.
+            this.HuberInflate = true;
             // (`A310`, П47 13.09.2026) Веса решателя по МОДЕЛИ (Пирсон) — ВКЛ.
             // Решение Amber 13.09.2026, вопросником, дословно: «Веса по модели
             // (Пирсон) + полный корпус, переобъявить базу». Полярность стоит
@@ -4286,6 +8812,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // `--weights=data` у `CorpusFsaProbe`; числа A/B — журнал
             // `handover/handover-2026-09-13-p47-a310-model-weights.md`.
             this.ModelWeights = true;
+            // (`AMBER141`, П194 01.10.2026) Подложка ниже нуля в меру
+            // вычтенного фона — ВКЛ. До этого дня шапки решались с `c ≥ 0`, и
+            // копии собственной модели слабой пробы на фоне давали амплитуду
+            // ниже истины (`G1S16_Y88_P25` −18.7 ± 2.8 % при 1/100 счёта);
+            // числа A/B — журнал `handover/handover-2026-10-01-p194-background.md`.
+            this.ContinuumBelowBackground = true;
+            // (`AMBER154`, П194 01.10.2026) Фон сводится к шкале пробы по своим
+            // пикам в её данных — ВКЛ. До этого дня фон вычитался в объявленной
+            // шкале, и при дрейфе 1 % между съёмками K-40 слабой пробы уходил
+            // на +3.4 %; числа A/B — тот же журнал.
+            this.BackgroundFollowsSample = true;
+            // (`AMBER142` п.3, П224 02.10.2026) Вместе с усилением фона —
+            // и его нуль против пробы: ВКЛ. Числа A/B — журнал
+            // `handover/handover-2026-10-02-p224-bgzero.md`.
+            this.BackgroundZeroFollowsSample = true;
+            this.BackgroundZeroImageError = 0.03;
+            // (`S180`, П134 22.09.2026) ОТЧЁТНЫЕ веса по МОДЕЛИ (Пирсон) — ВКЛ.
+            // До этого дня `Chi2NdfPoisson` и ε считались весами по данным
+            // (Нейман, `1/max(N, 1)` плюс шум вычтенного континуума), и ВЕРНАЯ
+            // модель на бедных каналах печаталась как χ²/ndf 1.3–1.6 (счёт по
+            // пуассону — у описания свойства). Приговоры разбора ключом не
+            // двигаются: гейты остались на прежних весах. Обратное плечо —
+            // `ReportModelWeights = false` (проба `FsaReportWeightsProbe`);
+            // числа A/B — журнал
+            // `handover/handover-2026-09-22-p134-channel-conventions.md`.
+            this.ReportModelWeights = true;
+            // (`S182`, П154 24.09.2026) Ячейки отчётной меры — до ожидаемого
+            // счёта 5 (правило Кокрена для χ² Пирсона, Biometrics 10 (1954)
+            // 417). Порог взят из правила ДО замера, не подобран по пробе.
+            // Обратное плечо — 0 (ячейка = канал; проба
+            // `FsaReportWeightsProbe --pool=0`); числа — журнал
+            // `handover/handover-2026-09-24-p154-service-measures.md`.
+            this.ReportPoolVariance = 5.0;
             this.RefitZ = 3.0;
             // (`A266`, П11/П24 12.09.2026) ДОЛЯ ВЕРШИНЫ В ПОРОГЕ ОТСЕВА — ВКЛ.
             // Решение Amber 12.09.2026, вопросником, дословно: «ВКЛ 0.3 + полный
@@ -4332,6 +8891,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // 27 -> 31 — там образ строится из одних пиков и конкурирует с
             // густым континуумом напрямую. Ключ A/B — `--knots=<делитель>`.
             this.ContinuumKnotDivisor = 128;
+            // S207 (П208): узлы подложки по шкале, шапка — среднее по каналу;
+            // разбор инвариантен к числу каналов. Ключ A/B — `--set=ContinuumKnotsByScale=false`.
+            this.ContinuumKnotsByScale = true;
+            // S207 (П208): ядро уширения — среднее по ширине канала; образ инвариантен
+            // к укрупнению. Ключ A/B — `--set=KernelChannelMean=Point` (выборка в центре).
+            this.KernelChannelMean = FsaKernelSampling.Mean;
+            // S207 (П225): рампа порога — на дробной сетке канала, до сведения образа
+            // в канал. Ключ A/B — `--set=RampWithinChannel=ChannelMean`.
+            this.RampWithinChannel = FsaRampSampling.ImageWeighted;
             // ⛔ СЕТКА ДРЕЙФА РАСШИРЕНА 24.08.2026 решением Amber (`S93`).
             // Прежняя (±0.8 %, ±3 кэВ, 9×9) была УЗКА для половины корпуса: 46
             // спектров из 81 упирались в край нуля, 17 — в край усиления, 12 —
@@ -4398,10 +8966,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // вместе с таблицей развёртки; менять его без новой развёртки нельзя.
             this.AnchorScale = true;
             this.AnchorShareThreshold = 0.5;
+            // (`AMBER142`, П222) доля опоры без континуума (с матрицей), заморозка ширины
+            // без отклика (одиночная опора ширины, предел проходов), старт шагов промаха
+            // от центров тяжести (разведка и совместный шаг); предел шага нуля — рычаг, выкл.
+            // Замеры — журнал `handover-2026-10-02-p222-anchor.md`.
+            this.AnchorShareWithoutContinuum = true;
+            this.AnchorWidthFreezeWeak = true;
+            this.AnchorZeroStepMaxChannels = 0.0;
+            this.AnchorShiftStartCentroid = true;
             this.AnchorMinZ = 5.0;
             this.AnchorWindowFwhm = 1.0;
             this.AnchorMaxShiftFwhm = 1.0;
             this.AnchorPasses = 3;
+            this.AnchorZeroRounds = 8;
+            // (`AMBER142` п. 7, П207) решение Amber 01.10.2026 вопросником, дословно:
+            // «Дать старому режиму 3 + 8 проходов (Рекомендую)»
+            this.AnchorClassicRounds = 8;
+            // (`T265` вариант А, П207) решение Amber 01.10.2026 вопросником, дословно:
+            // «А и Б по очереди (Рекомендую)»
+            this.DepositCarry = true;
+            this.FastCalibrationInverse = true;
+            this.AnchorZeroOwnsOffset = true;
+            this.AnchorZeroTolerance = 0.01;
+            this.AnchorWarmStart = true;
+            this.AnchorPlateauPasses = 4;
+            this.AnchorPlateauRatio = 1.25;
+            this.AnchorShiftMeasure = true;
+            this.AnchorShiftBirge = true;
+            this.AnchorJointShareWeight = 2.0;
+            this.AnchorSigmaInAmplitudes = true;
+            this.AnchorWindowCeil = true;
+            this.AnchorWidth = true;
+            this.TailKeepsCrystalEscape = true;
+            this.AnchorWidthFloor = 0.01;
+            this.AnchorWidthMaxRatio = 1.25;
             this.AnchorOffsetMinAnchors = 2;
             // (`F11` (в), `AMBER17`) ПОЛОЖЕНИЕ ПО СВЕТУ ВКЛЮЧЕНО с 12.09.2026 —
             // полярность стоит ЗДЕСЬ, у присваивания (`T82`). Решение Amber
@@ -4426,6 +9024,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.AnchorLightForm = "line";
             this.AnchorLightReferenceKev = 661.657;
             this.AnchorLightMaxKev = 0.0;
+            // (`S210`, П212) без матрицы свет — только при плече опор
+            this.AnchorCurveLightLever = true;
+            // (`AMBER155`, П229) без матрицы при нелинейной калибровке файла — без света
+            this.AnchorCurveLightLinearOnly = true;
+            // (`AMBER155`, П229) снятие света после прохода со светом — привязка заново без света;
+            // решение Amber 04.10.2026 вопросником, дословно: «Чинить сейчас до слияния»
+            this.AnchorCurveLightDrop = FsaCurveLightDrop.Restart;
+            // (`AMBER142` п. 9, П215) без плеча опор — ноль прежних проходов
+            // (прежний ход; ноль прибора и допуск ядра — рычагами); решение Amber
+            // 02.10.2026 вопросником, дословно: «Умолчания оставить, рычаги в коде (Рекомендую)»
+            this.AnchorNoLeverZero = FsaNoLeverZero.Inherit;
+            // (`AMBER142` п. 8, П215) нуль света карты «adc» — на нижнем краю канала 0;
+            // решение Amber 02.10.2026 вопросником, дословно: «На нижний край (Рекомендую)»
+            this.AdcZeroAtChannelEdge = true;
+            // (`AMBER155`, П220) карта «adc» — прямая от нуля АЦП, вместе с крутой кривой
+            // света («t7») склада и таблицы `FsaLightScale`; решение Amber 02.10.2026
+            // вопросником, дословно: «Прямая карта + крутая кривая (Рекомендую)»
+            this.AdcLinear = true;
+            // (`AMBER142` п. 9, П215) допуск ядра опоры — ½ ПШПВ (прежний; +½ канала — рычагом)
+            this.AnchorCoreHalfChannel = false;
             // (`S169`, П8/П12/П13 12.09.2026) НУЛЬ ШКАЛЫ ОБРАЗА — ОТ НУЛЯ АЦП,
             // И НУЛЬ ПО СЪЁМКЕ. Решения Amber 12.09.2026, вопросником,
             // дословно: «ВКЛ + полный корпус A/B, переобъявить базу», затем
@@ -4442,6 +9060,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // порога опоры (доводы у свойства); свет не выше границы П8 §3
             this.AnchorZeroShareThreshold = 0.25;
             this.AnchorZeroMaxKev = 700.0;
+            // (`S205`, П190) решающий кандидат нуля у ножа весит свой запас
+            this.AnchorZeroBlendBand = 0.4;
             // ⚠ Порог узости ВЫКЛЮЧЕН (ноль) по замеру, а не по вкусу: с
             // порогом в три канала рентгены 22…40 кэВ на 1024-канальных G1S
             // выпадали из опор, и малая база давала Σχ² 398.2 против 349.9 без
@@ -4453,6 +9073,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.Backscatter = true;
             this.CascadeSumming = true;
             this.CascadeSumPeaks = true;
+            // (`AMBER99`, П148) Вынос партнёром и из пиков вылета — ВКЛ: это
+            // исправление физики (арбитр Geant4 в описании свойства), а не
+            // новая настройка; выключенное — плечо до правки.
+            this.CascadeEscapeLoss = true;
+            // (`AMBER124`/`AMBER125`, П166) Сумм-континуум и сумм-вылеты пар —
+            // ВКЛ: исправление счёта событий (арбитр Geant4 в описании
+            // свойства); выключенное — плечо до правки.
+            this.CascadePairContinuum = true;
+            // (`AMBER134`, П166) Вынос ходом по схеме — ВКЛ: решение Amber
+            // 28.09.2026 (в описании свойства); выключенное — плечо до правки.
+            this.CascadeBranchSum = true;
             // S27: атомные партнёры каскада включены умолчанием. Окно
             // совпадения ноль — «прибор не назвал»; кто знает мёртвое время,
             // ставит его сам (FsaAnalysisSession берёт у InputDeviceConfig.DeadTime()).
@@ -4515,6 +9146,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // плечо — `--pileup-light=0` у `CorpusFsaProbe`.
             this.PileUpLightForm = true;
             this.PileUpLightCurve = null;
+            // (`AMBER65`, П136 22.09.2026) Доля модели канала, ниже которой
+            // приход наложений слишком мал, чтобы снимать в этом канале
+            // М-оценку. Полярность и значение стоят ЗДЕСЬ, у присваивания
+            // (`T82`). Выбрано замером `FsaPileUpProbe` (ключ `--anchor=`):
+            // см. журнал полосы.
+            this.PileUpAnchorShare = 0.9;
+            // (`AMBER123`, П166 28.09.2026) Граница числа пар колонки
+            // наложений R·τ_d — полярность ЗДЕСЬ, у присваивания (`T82`).
+            // Выключенная — поведение до П166 (рычаг проб).
+            this.PileUpCapEnabled = true;
             this.PartialResidualGate = true;
 
             // (`AMBER3`) Потолок значимости у гейта формы — решение Amber
@@ -4613,7 +9254,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// Разложить спектр. Возвращает null, если разложение невозможно:
-        /// нет калибровок, вырожденный диапазон или пустая библиотека.
+        /// нет калибровок, вырожденный диапазон или пустая библиотека —
+        /// причина при этом названа в <see cref="Refusal"/> (`A312`).
         /// </summary>
         public FsaResult Analyze(
             EnergySpectrum spectrum,
@@ -4622,12 +9264,298 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<FsaComponent> originalLibrary,
             FsaEfficiency efficiency)
         {
-            this.GeometryRefused = false;
+            // ⛔ (`AMBER154`, П194 01.10.2026) ФОН — В ИСТИННОЙ ШКАЛЕ ПРОБЫ.
+            // Хранимый фон снят СВОЕЙ съёмкой, и прибор между съёмками плывёт
+            // (сезон, прогрев, загрузка): в корпусе относительный дрейф фона
+            // против пробы 0.2…0.6 % у половины спектров с фоном (`bg_peak.py`,
+            // П191). Привязка шкалы двигает только образы, фон вычитался в
+            // ОБЪЯВЛЕННОЙ шкале — пики комнатного фона в данных вычитались мимо
+            // себя, и у слабой пробы K-40 уходил на +3.4 % при дрейфе 1 %.
+            //
+            // Порядок: первый проход — как прежде (фон в объявленной шкале);
+            // по его модели из данных вынимаются образы пробы, остаётся
+            // комнатный фон в ИСТИННОЙ шкале пробы плюс подложка, и по пикам
+            // этого остатка против пиков хранимого фона меряется их
+            // относительное усиление (<see cref="MeasureBackgroundGain"/>).
+            // Мерится не привязка пробы, а РАЗНОСТЬ шкал двух съёмок — ровно та
+            // величина, которой вычитание ошибалось; абсолютное усиление
+            // привязки сюда не входит (в нём и модель света, и растяжение по
+            // опорам, ≈ 1 % у сцинтилляторов и без всякого дрейфа). Измерено —
+            // второй проход с фоном, переложенным на это усиление; не измерено
+            // (нет фона, пиков фона не видно в данных, оптимум у края окна
+            // поиска) — первый проход и есть результат, а служебная строка
+            // привязки говорит почему.
+            // (`AMBER142`, П204) таблица обращения калибровки — своя на разбор
+            this.calibrationInverse = null;
+            this.calibrationInverseRefused = null;
+            this.backgroundGain = 1.0;
+            this.backgroundOffset = 0.0;
+            this.anchorWarmIn = null;
+            // (`T265` А, П207) кэш образов и суммирователь — свои на разбор
+            this.depositCarry.Clear();
+            this.correctionCarry.Clear();
+            this.carryRefs.Clear();
+            this.carrySummer = null;
+            this.carrySummerKey = null;
+            this.DepositCarryHits = 0;
+            this.DepositCarryMisses = 0;
+            this.sumTransfer = null; // (`T265` Б, П211) готовые строки переноса — свои на разбор
+            FsaResult first = this.AnalyzeOnce(spectrum, backgroundSpectrum, fwhmCalibration,
+                                               originalLibrary, efficiency);
+            if (first != null)
+            {
+                first.AnchorWarmOut = this.anchorWarmOut;
+            }
+            if (first == null || !first.BackgroundUsed || !this.BackgroundFollowsSample
+                || first.Background == null || first.Model == null)
+            {
+                return first;
+            }
+
+            // Усиление — НЕПОДВИЖНАЯ ТОЧКА: мера на проходе с фоном,
+            // переложенным на g, говорит, сколько ЕЩЁ не хватает. Почему не
+            // одна мера: когда у фона пик на ТОЙ ЖЕ линии, что у пробы (K-40 в
+            // пробе с K-40), образ пробы первого прохода стоит по привязке,
+            // которую сам же несведённый фон и сдвинул, — и остаток в данных
+            // недодаёт сдвига (на `G1S24_K40_Petri_2` при дрейфе 1 % первая
+            // мера 0.58 %). На истинном g смещение привязки исчезает, поэтому
+            // ноль невязки меры и есть ответ: второй проход — по первой мере,
+            // третий — секущей по двум. Больше трёх проходов разбор не делает.
+            FsaResult current = first;
+            double applied = 1.0;
+            double previousApplied = double.NaN;
+            double previousResidual = double.NaN;
+            var notes = new List<string>();
+            for (int pass = 0; pass < 3; pass++)
+            {
+                double measured;
+                // ⚠ Порога значимости у меры НЕТ нарочно — решает χ² ниже.
+                // Порог 2σ (первый вариант) на корпусе резал по живому: у копии
+                // `G1S24_Ra226_Petri` мера −0.245 ± 0.126 % (1.94σ) — фон не
+                // переложен, χ²/ndf копии 0.131 против 0.03; у копии с дрейфом
+                // 1 % вторая мера 0.23 ± 0.12 %, и без неё K-40 +1.3 %.
+                string note = this.MeasureBackgroundGain(spectrum, current, fwhmCalibration, out measured);
+                notes.Add(note);
+
+                if (double.IsNaN(measured))
+                {
+                    // не измерен — остаётся то, что есть: на первом проходе
+                    // фон в объявленной шкале (NaN), дальше — последнее
+                    // приложенное усиление с его мерой
+                    current.BackgroundGain = pass == 0 ? double.NaN : applied;
+                    break;
+                }
+
+                if (measured == 1.0 || pass == 2)
+                {
+                    current.BackgroundGain = applied;
+                    break;
+                }
+
+                double residual = measured - 1.0;
+                double next = applied * measured;
+                if (!double.IsNaN(previousResidual) && residual != previousResidual)
+                {
+                    // секущая по двум проходам: ноль невязки меры
+                    double secant = applied - residual * (applied - previousApplied) / (residual - previousResidual);
+                    double reach = 3.0 * Math.Abs(applied - previousApplied);
+                    next = Math.Max(applied - reach, Math.Min(applied + reach, secant));
+                }
+
+                if (Math.Abs(next - 1.0) > BackgroundGainSpan)
+                {
+                    current.BackgroundGain = applied;
+                    notes.Add(string.Format(CultureInfo.InvariantCulture,
+                        "следующий шаг ушёл бы за ±{0:F1} %", 100.0 * BackgroundGainSpan));
+                    break;
+                }
+
+                this.backgroundGain = next;
+                // (`AMBER142`, П204) привязка — от итоговой шкалы прохода `current`
+                this.anchorWarmIn = this.AnchorWarmStart ? current.AnchorWarmOut : null;
+                FsaResult moved = this.AnalyzeOnce(spectrum, backgroundSpectrum, fwhmCalibration,
+                                                   originalLibrary, efficiency);
+                this.anchorWarmIn = null;
+                if (moved != null)
+                {
+                    moved.AnchorWarmOut = this.anchorWarmOut;
+                }
+                this.backgroundGain = 1.0;
+                if (moved == null || moved.Background == null || moved.Model == null)
+                {
+                    // проход с переложенным фоном отказал там, где прежний
+                    // прошёл, — отдаётся прежний, с причиной; отказ наружу не
+                    // уходит (результат есть)
+                    current.BackgroundGain = pass == 0 ? double.NaN : applied;
+                    notes.Add("разбор с фоном на усилении "
+                        + next.ToString("F5", CultureInfo.InvariantCulture) + " не состоялся (" + this.Refusal + ")");
+                    this.Refusal = FsaRefusal.None;
+                    this.RefusalNote = null;
+                    break;
+                }
+
+                // ⛔ Арбитр — χ² разбора. Фон, сведённый к шкале пробы
+                // верно, вычитает свои пики и только улучшает фит (копия с
+                // дрейфом 1 %: χ²/ndf 0.24 → 0.02); фит хуже — значит, мера
+                // поймала не дрейф, а остатки образов, и остаётся прежний
+                // проход.
+                if (!(moved.Chi2Ndf <= current.Chi2Ndf))
+                {
+                    current.BackgroundGain = applied;
+                    notes.Add(string.Format(CultureInfo.InvariantCulture,
+                        "с фоном на усилении {0:F5} χ²/ndf {1:F4} не лучше {2:F4}",
+                        next, moved.Chi2Ndf, current.Chi2Ndf));
+                    break;
+                }
+
+                previousApplied = applied;
+                previousResidual = residual;
+                applied = next;
+                current = moved;
+            }
+
+            // ⛔ (`AMBER142` п.3, П224 02.10.2026) НУЛЬ ХРАНИМОГО ФОНА — ступенью
+            // ПОВЕРХ неподвижной точки усиления, а не третьей координатой в ней.
+            // Фон снят другим днём, и нуль тракта плывёт так же, как усиление;
+            // одно усиление сдвиг нуля у низа шкалы не берёт (у 100-го канала
+            // сдвиг на канал — это 1 % усиления), и там, где фон круто растёт,
+            // вычитание шло мимо себя: `RC103_K40` — яма 40…60 кэВ, нетто
+            // −6080 отсч. под сплайном +2000…+3000. Совместная мера (g, o)
+            // внутри прежней петли (первый вариант, замерен) у части малой базы
+            // уходила по долине вырождения «нуль ↔ усиление» в точку, где χ²
+            // разбора хуже, чем у одного усиления (`G1S24_Cs137_P25` +1.1 %),
+            // поэтому: прежняя петля усиления — как была, побитово; затем мера
+            // (g, o) относительно фона её итогового прохода, и проход с
+            // переложенным фоном — только если нуль значим (|o| ≥
+            // <see cref="BackgroundOffsetMinZ"/>·σ_o) и χ² разбора ЛУЧШЕ.
+            // Без ключа <see cref="BackgroundZeroFollowsSample"/> и там, где
+            // нуль не значим, результат прежний побитово.
+            double appliedOffset = 0.0;
+            if (this.BackgroundZeroFollowsSample && !double.IsNaN(current.BackgroundGain))
+            {
+                double offsetSpan = Math.Max(3.0, BackgroundOffsetSpanFraction * spectrum.NumberOfChannels);
+                for (int zeroPass = 0; zeroPass < BackgroundZeroPasses; zeroPass++)
+                {
+                    // два кандидата: совместная мера (g, o) и, если её проход χ²
+                    // не улучшил, — один нуль при прежнем усилении. Долина
+                    // «нуль ↔ усиление» у низа шкалы мелкая, и совместная мера
+                    // встаёт на ней там, куда тянет остаток образов пробы
+                    // (`RC103_K40`: g −0.68 %, o +0.94 кан., χ²/ndf 1.6057 →
+                    // 1.6841), а не там, где лучше разбор
+                    bool improved = false;
+                    for (int candidate = 0; candidate < 2 && !improved; candidate++)
+                    {
+                        bool fixGain = candidate == 1;
+                        double measuredGain, measuredOffset, sigmaOffset;
+                        string zeroNote = this.MeasureBackgroundGainAndZero(spectrum, current, fwhmCalibration, fixGain,
+                                                                            out measuredGain, out measuredOffset, out sigmaOffset);
+                        notes.Add((fixGain ? "нуль при прежнем усилении: " : "нуль: ") + zeroNote);
+                        if (double.IsNaN(measuredGain) || measuredOffset == 0.0)
+                        {
+                            continue;
+                        }
+
+                        if (!(Math.Abs(measuredOffset) >= BackgroundOffsetMinZ * sigmaOffset))
+                        {
+                            notes.Add(string.Format(CultureInfo.InvariantCulture,
+                                "нуль не значим (|{0:F3}| < {1:F0}σ = {2:F3} кан.)",
+                                measuredOffset, BackgroundOffsetMinZ, BackgroundOffsetMinZ * sigmaOffset));
+                            continue;
+                        }
+
+                        // композиция: фон этого прохода уже стоит в g·p + o, мера —
+                        // поверх него: g_m·(g·p + o) + o_m
+                        double nextGain = applied * measuredGain;
+                        double nextOffset = measuredGain * appliedOffset + measuredOffset;
+                        if (Math.Abs(nextGain - 1.0) > BackgroundGainSpan || Math.Abs(nextOffset) > offsetSpan)
+                        {
+                            notes.Add(string.Format(CultureInfo.InvariantCulture,
+                                "шаг нуля ушёл бы за ±{0:F1} % / ±{1:F1} кан.", 100.0 * BackgroundGainSpan, offsetSpan));
+                            continue;
+                        }
+
+                        this.backgroundGain = nextGain;
+                        this.backgroundOffset = nextOffset;
+                        this.anchorWarmIn = this.AnchorWarmStart ? current.AnchorWarmOut : null;
+                        FsaResult shifted = this.AnalyzeOnce(spectrum, backgroundSpectrum, fwhmCalibration,
+                                                             originalLibrary, efficiency);
+                        this.anchorWarmIn = null;
+                        if (shifted != null)
+                        {
+                            shifted.AnchorWarmOut = this.anchorWarmOut;
+                        }
+
+                        this.backgroundGain = 1.0;
+                        this.backgroundOffset = 0.0;
+                        if (shifted == null || shifted.Background == null || shifted.Model == null)
+                        {
+                            notes.Add(string.Format(CultureInfo.InvariantCulture,
+                                "разбор с фоном на усилении {0:F5}, нуле {1:+0.000;-0.000} кан. не состоялся ({2})",
+                                nextGain, nextOffset, this.Refusal));
+                            this.Refusal = FsaRefusal.None;
+                            this.RefusalNote = null;
+                            continue;
+                        }
+
+                        if (!(shifted.Chi2Ndf < current.Chi2Ndf))
+                        {
+                            notes.Add(string.Format(CultureInfo.InvariantCulture,
+                                "с фоном на усилении {0:F5}, нуле {1:+0.000;-0.000} кан. χ²/ndf {2:F4} не лучше {3:F4}",
+                                nextGain, nextOffset, shifted.Chi2Ndf, current.Chi2Ndf));
+                            continue;
+                        }
+
+                        shifted.BackgroundGain = nextGain;
+                        shifted.BackgroundOffset = nextOffset;
+                        applied = nextGain;
+                        appliedOffset = nextOffset;
+                        current = shifted;
+                        improved = true;
+                    }
+
+                    if (!improved)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            current.AnchorNote = (current.AnchorNote ?? "") + "; фон: " + string.Join("; ", notes)
+                + (applied != 1.0 || appliedOffset != 0.0
+                    ? string.Format(CultureInfo.InvariantCulture, " → фон вычтен в шкале пробы, усиление {0:F5}", applied)
+                      + (appliedOffset != 0.0
+                          ? string.Format(CultureInfo.InvariantCulture, ", нуль {0:+0.000;-0.000} кан.", appliedOffset)
+                          : "")
+                    : " → фон вычтен в объявленной шкале");
+            return current;
+        }
+
+        /// <summary>
+        /// Один проход разбора при текущем <see cref="backgroundGain"/> —
+        /// тело прежнего <see cref="Analyze"/>.
+        /// </summary>
+        FsaResult AnalyzeOnce(
+            EnergySpectrum spectrum,
+            EnergySpectrum backgroundSpectrum,
+            FwhmCalibration fwhmCalibration,
+            List<FsaComponent> originalLibrary,
+            FsaEfficiency efficiency)
+        {
+            this.Refusal = FsaRefusal.None;
+            this.RefusalNote = null;
+            // (`S204`) рампа — состояние ЭТОГО разбора; отказ до её замера не
+            // должен оставить наружу рампу прошлого спектра
+            this.thresholdRamp = null;
+            this.ThresholdRampNote = null;
 
             if (spectrum == null || spectrum.Spectrum == null || fwhmCalibration == null
                 || spectrum.EnergyCalibration == null || originalLibrary == null || originalLibrary.Count == 0)
             {
-                return null;
+                return this.Refuse(FsaRefusal.Input, string.Format(CultureInfo.InvariantCulture,
+                    "spectrum={0} counts={1} fwhm={2} energyCalibration={3} library={4}",
+                    spectrum != null, spectrum != null && spectrum.Spectrum != null, fwhmCalibration != null,
+                    spectrum != null && spectrum.EnergyCalibration != null,
+                    originalLibrary == null ? -1 : originalLibrary.Count));
             }
 
             // ⛔ (`A277`) ГЕЙТ ГЕОМЕТРИИ — решение Amber 10.09.2026 «нет
@@ -4653,22 +9581,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // геометрии в отсутствующем объекте не бывает.
             if (this.RequireGeometry && (efficiency == null || !efficiency.HasGeometry))
             {
-                this.GeometryRefused = true;
-                return null;
+                return this.Refuse(FsaRefusal.Geometry,
+                                   efficiency == null ? "efficiency=null" : "efficiency without geometry");
             }
 
             int channels = spectrum.NumberOfChannels;
-            if (channels < 32)
+            if (channels < MinChannels)
             {
-                return null;
+                return this.Refuse(FsaRefusal.FewChannels,
+                                   "channels=" + channels.ToString(CultureInfo.InvariantCulture));
             }
 
             // Кэши уширения живут ровно один разбор: калибровку могли изменить
             // на месте, и тогда ссылка та же, а числа другие.
+            // (`AMBER213`, П241) Кроме банка ядер: он держит СВОЙ снимок формы
+            // пика и сверяет его с поданной калибровкой ПО ЗНАЧЕНИЮ
+            // (<see cref="ShapeKernelBank.Fits"/>), поэтому правка на месте его
+            // не обманет, а проходы разбора (фон, нуль фона) ядра больше не
+            // пересчитывают — до П241 каждый проход считал все ядра заново.
             this.depositChannels = null;
             this.depositChannelsCalibration = null;
-            this.kernelBank = null;
+            this.splitWindows = null;
             this.deposits.Clear();
+            this.peakEfficiencies.Clear();
+            // (`AMBER157`, `AMBER156`, П195) исключённые линии и кривая опор
+            // режима кривой — на каждый разбор свои
+            this.outOfCurve.Clear();
+            this.anchorEfficiency = efficiency;
             this.driftLight = 0.0;
             this.lightShiftChannels = null;
             this.lightShiftMax = 0.0;
@@ -4676,6 +9615,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.lightForm = LightForm.None;
             this.lightMarginBins = 0;
             this.PileUpCurveUsed = null;
+            this.PileUpLossUsed = double.NaN;
+            this.PileUpCapHits = 0;
+            this.PileUpCapPairs = double.NaN;
+            this.PileUpUncappedPairs = double.NaN;
+            // (`AMBER65`) Колонка наложений — на каждый разбор своя.
+            this.pileUpColumn = null;
             // (`S169`) карта нуля — слово разбирается на каждый разбор.
             // "adc-fixed" (форма П8) ставит растяжение ЗДЕСЬ, с нулём прибора;
             // "adc" (П13, нуль по съёмке) — после разведочного прохода
@@ -4684,6 +9629,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.adcScale = 0.0;
             this.adcE0 = 0.0;
             this.adcTopKev = 0.0;
+            // (`AMBER155`, П220) шаг прямой карты и число каналов для канала верхней линии
+            this.adcLinearKev = 0.0;
+            this.adcTractPerChannel = 0.0;
+            this.adcTopLight = 0.0;
+            this.adcChannels = channels;
+            this.widthScale = 1.0;
+            this.widthAnchors = 0;
             this.adcZeroKev = this.AnchorZeroKev;
             this.adcZeroNote = null;
             this.zeroCandidates = null;
@@ -4721,29 +9673,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // причина — в результат, окну отчёта.
             this.cascadeRefusedFieldMatrix = this.CascadeSumming && this.ResponseMatrix != null
                 && this.ResponseMatrix.Normalization == EfficiencyMaker.ResponseMatrixNormalization.PerUnitFluence;
-            this.cascade = this.CascadeSumming && !this.cascadeRefusedFieldMatrix
-                ? FsaCascadeSummer.Create(this.ResponseMatrix, this.ScintillatorMaterial,
-                                          this.CoincidenceWindowSec, this.CascadeXrayPartners,
-                                          this.CascadeAnnihilationPartners,
-                                          this.CascadeIsomerPartners,
-                                          this.CascadeDecayTimeProbability)
-                : null;
-            // (`S167`, П18) Фотонная кривая суммы — ДО первого `For`: поправки
-            // кэшируются на экземпляре сумматора. Вещество без таблицы даёт
-            // null, то есть прежний счёт электронной кривой.
-            if (this.cascade != null && this.CascadeSumPhotonLight)
+            // (П168) Сам суммирователь и его ключи — одним местом,
+            // <see cref="CreateCascadeSummer"/>: тем же зовут зоны ROI (`AMBER133`).
+            // (`T265` А, П207) ключи содержимого — свои на проход: объекты новые
+            this.carryComponentKeys.Clear();
+            if (this.CascadeSumming && !this.cascadeRefusedFieldMatrix)
             {
-                this.cascade.PhotonLightCurve = FsaLightScale.CurveFor(this.ScintillatorMaterial);
+                // (`T265` А, П207) суммирователь — один на весь разбор, пока его
+                // входы те же; сменились — новый, и кэши через проходы сброшены:
+                // поправки и образы с поправками построены прежним
+                string summerKey = this.DepositCarry ? this.SummerCarryKey() : null;
+                if (summerKey != null && this.carrySummer != null && summerKey == this.carrySummerKey)
+                {
+                    this.cascade = this.carrySummer;
+                }
+                else
+                {
+                    this.cascade = this.CreateCascadeSummer();
+                    this.correctionCarry.Clear();
+                    this.depositCarry.Clear();
+                    this.carrySummer = summerKey != null ? this.cascade : null;
+                    this.carrySummerKey = summerKey;
+                }
             }
-
-            // (`S166`, П18) совместная эффективность в выносе — тоже до первого `For`
-            if (this.cascade != null)
+            else
             {
-                this.cascade.LossJointFactor = this.CascadeLossJointFactor;
-                // (`N14`, П49) угловая корреляция пар — ключ и таблица сцены,
-                // тоже до первого `For`
-                this.cascade.AngularCorrelations = this.CascadeSumAngular;
-                this.cascade.AngularQk = this.AngularQk;
+                this.cascade = null;
             }
 
             this.cascadeApplied = false;
@@ -4754,10 +9709,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // β = 1: канал i → энергия E → E + s(E) → канал; s(E) из фотонной
             // кривой света вещества кристалла (`FsaLightScale`). Один раз на
             // разбор; вещество без кривой — таблицы нет, шкала как без ключа.
-            if (this.AnchorLightPosition)
+            // ⛔ (`AMBER155`, П229) без матрицы нелинейная калибровка файла уже
+            // несёт свет — координаты нет (доводы у <see cref="AnchorCurveLightLinearOnly"/>)
+            this.lightOffByCalibration = null;
+            if (this.AnchorLightPosition && this.ResponseMatrix == null && this.AnchorCurveLightLinearOnly)
             {
+                double chordKev, chordChannels;
+                if (CalibrationOffChord(calibration, channels, out chordKev, out chordChannels))
+                {
+                    this.lightOffByCalibration = string.Format(CultureInfo.InvariantCulture,
+                        "положение по свету снято: без матрицы калибровка файла нелинейна (отход от хорды {0:F1} кэВ, {1:F1} кан.) — свет уже в ней",
+                        chordKev, chordChannels);
+                }
+            }
+
+            if (this.AnchorLightPosition && this.lightOffByCalibration == null)
+            {
+                // (`AMBER156` (б), П195) Вещество без матрицы — у геометрии
+                // кривой (<see cref="FsaEfficiency.CrystalMaterial"/>): таблица
+                // света по веществу, не по матрице, а `ScintillatorMaterial`
+                // кладёт только `FsaMatrixBinding.Bind`. При матрице — как было.
+                string material = this.ScintillatorMaterial
+                                  ?? (this.ResponseMatrix == null && efficiency != null
+                                          ? efficiency.CrystalMaterial
+                                          : null);
                 string curve = string.IsNullOrEmpty(this.AnchorLightCurve)
-                    ? FsaLightScale.CurveFor(this.ScintillatorMaterial)
+                    ? FsaLightScale.CurveFor(material)
                     : this.AnchorLightCurve;
                 if (FsaLightScale.Known(curve))
                 {
@@ -4846,10 +9823,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // побитово; теперь на него же переведены выделение, зоны, доза,
             // вычитание фона и график. Своя копия правила здесь снова
             // разошлась бы с ними молча.
+            //
+            // ⛔ (`AMBER51`, П120 22.09.2026) Нет времени — нет разбора. Прежде
+            // здесь стояло `liveTime = 1.0`, и спектр без времени получал
+            // «имп/с», численно равные отсчётам, пределы `a*`/`a#` в отсчётах
+            // и поданный фон, помноженный на `1/T_фона` (часовой фон — на
+            // 1/3600, то есть вычитался почти ноль), — молча. Фон без времени
+            // тот же код отвергает словами (`FSABackgroundNoLiveTime` ниже),
+            // доза — `DoseRateNoTime`; разбор один подменял число. Теперь —
+            // отказ с причиной, как у прочих (`A312`). `!(x > 0)` ловит и NaN.
             double liveTime = spectrum.EffectiveLiveTime;
-            if (liveTime <= 0.0)
+            if (!(liveTime > 0.0))
             {
-                liveTime = 1.0;
+                return this.Refuse(FsaRefusal.NoLiveTime, string.Format(CultureInfo.InvariantCulture,
+                    "liveTime={0} measurementTime={1}", spectrum.LiveTime, spectrum.MeasurementTime));
             }
 
             // Фон, поданный и НЕ ВЗЯТЫЙ, — это отказ, и он обязан быть назван
@@ -4939,9 +9926,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            if (chHi <= chLo + 10)
+            if (chHi <= chLo + MinBandChannels)
             {
-                return null;
+                return this.Refuse(FsaRefusal.NarrowBand, string.Format(CultureInfo.InvariantCulture,
+                    "band {0}..{1} of {2} channels ({3:F1}..{4:F1} keV), floor {5}",
+                    chLo, chHi, channels, calibration.ChannelToEnergy(chLo), calibration.ChannelToEnergy(chHi),
+                    floorApplied ? fitFloorKev.ToString("F1", CultureInfo.InvariantCulture) + " keV" : "off"));
             }
 
             // S98: полоса фита названа вслух и уносится читателю. Печатать её
@@ -4970,6 +9960,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // два конца, назвавшие разные числа об одном поле, — это `S101`.
             double noteNoCurve = FsaBand.NoCurveFloor(
                 FsaBand.AdcFloorOf(spectrum.Spectrum, calibration));
+
+            // ⛔ (`S204`, П189) РАМПА ПОРОГА — модель × S(канал) ниже верха
+            // рампы, по фону (по пробе, если фона нет). Ставится ЗДЕСЬ, до
+            // первого образа: её читают оба построителя
+            // (`BuildTemplate`, `BroadenResponseDeposit`) и шапки континуума
+            // ниже, и всякий образ этого разбора — в фите, в пределах, в
+            // поверке линий, в слоях — несёт один и тот же множитель. Нет
+            // рампы — null, и ни один образ не меняется ни в одном бите.
+            string rampHow;
+            this.thresholdRamp = FsaBand.PairRampProfile(spectrum.Spectrum, calibration, background,
+                                                         this.RebinBackgroundToSpectrum, out rampHow);
+            this.ThresholdRampNote = rampHow;
             this.BandNote = string.Format(CultureInfo.InvariantCulture,
                 "{0}{1}; фит {2}…{3} ({4:F1}…{5:F1} кэВ)",
                 FsaBand.Describe(this.Band, noteFloor, this.MinEnergy, this.MaxEnergy, noteNoCurve),
@@ -4977,7 +9979,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // числом, каким он резал, и с ОБОИМИ порогами (проба, фон) —
                 // иначе заверение и решение разъедутся молча.
                 FsaBand.FitFloorNote(fitFloorKev, floorSampleHow, floorBackgroundHow, floorApplied),
-                chLo, chHi, calibration.ChannelToEnergy(chLo), calibration.ChannelToEnergy(chHi));
+                chLo, chHi, calibration.ChannelToEnergy(chLo), calibration.ChannelToEnergy(chHi))
+                // (`S204`) рампа порога — только когда она есть: без неё строка прежняя
+                + FsaBand.RampNote(this.thresholdRamp, rampHow);
 
             // (`T240`) Исход отсева — состояние ЭТОГО разбора, и от прошлого
             // ему достаться нечего: анализатор переживает несколько спектров
@@ -4995,6 +9999,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.GateNuclidesSpared = 0;
             this.EscapeOrphansDropped = 0;
             this.AnnihilationCollides = null;
+            this.AnnihilationDegenerate = null;
             // (`S171`) гейт привязки — состояние ЭТОГО разбора
             this.ChainTieJudged = 0;
             this.ChainTieTied = 0;
@@ -5064,13 +10069,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         : own[i];
                 }
 
-                double[] rebinned = this.RebinBackgroundToSpectrum
-                    ? Rebin(own, background.EnergyCalibration, calibration, channels)
+                // ⛔ (`AMBER154`, П194) Перекладка — в ИСТИННУЮ шкалу пробы, если
+                // дрейф фона против неё измерен (`backgroundGain` ≠ 1, второй
+                // проход <see cref="Analyze"/>): отсчёт, по объявленным шкалам
+                // стоящий в канале p, кладётся в канал g·p. При g = 1 — прежняя
+                // перекладка побитово (та же ветка, та же шкала-приёмник).
+                // (`AMBER142` п.3, П224) и со сдвигом нуля фона: канал g·p + o
+                bool moved = this.backgroundGain != 1.0 || this.backgroundOffset != 0.0;
+                EnergyCalibration backgroundTarget = moved
+                    ? new StretchedCalibration(calibration, this.backgroundGain, this.backgroundOffset)
+                    : calibration;
+                EnergyCalibration backgroundSource = this.RebinBackgroundToSpectrum
+                    ? background.EnergyCalibration
+                    : calibration;
+                double[] rebinned = this.RebinBackgroundToSpectrum || moved
+                    ? Rebin(own, backgroundSource, backgroundTarget, channels)
                     : own;
                 double[] rebinnedPeak = backgroundSnip == null
                     ? rebinned
-                    : (this.RebinBackgroundToSpectrum
-                        ? Rebin(ownPeak, background.EnergyCalibration, calibration, channels)
+                    : (this.RebinBackgroundToSpectrum || moved
+                        ? Rebin(ownPeak, backgroundSource, backgroundTarget, channels)
                         : ownPeak);
                 for (int i = 0; i < channels; i++)
                 {
@@ -5104,14 +10122,42 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // полосе, — нулевая диагональ Грама, и в счёт узлов штрафа на
                 // излом ей входить нельзя. Шапка, срезанная полом посередине,
                 // остаётся — её верхний склон в полосе есть.
-                List<int> knots;
+                List<double> knots;
                 List<double[]> hats = BuildHatBasis(fwhmCalibration, chLoGrid, chHi, channels,
                                                     this.ContinuumKnotDivisor,
-                                                    this.ContinuumKnotFwhm, out knots);
+                                                    this.ContinuumKnotFwhm, this.ContinuumKnotsByScale,
+                                                    out knots);
+                // ⛔ (`S204`, П189) Подложка — ТОЖЕ модель: триггер режет
+                // рассеянное излучение так же, как пики образов, и сплайн,
+                // не помноженный на рампу, был бы обязан нырнуть в ней к нулю
+                // против штрафа на излом. Шапки — неизменная форма «истинного»
+                // континуума, S(канал) — то, что от него регистрирует прибор.
+                // (`S207`, П225) Множитель ставится ДО снятия шапок под полом:
+                // на дробной сетке шапке нужны соседние узлы, а снятие шапок
+                // столбцы лишь отбрасывает, значения оставшихся не трогает.
+                if (this.thresholdRamp != null)
+                {
+                    if (this.RampOnGrid && this.ContinuumKnotsByScale)
+                    {
+                        ApplyRampToHatsOnGrid(hats, knots, this.thresholdRamp);
+                    }
+                    else
+                    {
+                        foreach (double[] hat in hats)
+                        {
+                            this.thresholdRamp.Apply(hat);
+                        }
+                    }
+                }
+
                 if (chLo > chLoGrid)
                 {
+                    // (`S207`) шапка целиком ниже пола — её правый узел не выше
+                    // НИЖНЕГО КРАЯ канала `chLo` (узлы по шкале — в непрерывной
+                    // координате; у прежнего базиса — целый канал, как было)
+                    double below = this.ContinuumKnotsByScale ? chLo - 0.5 : chLo;
                     int keepFrom = 0;
-                    while (keepFrom < hats.Count - 1 && knots[keepFrom + 1] <= chLo)
+                    while (keepFrom < hats.Count - 1 && knots[keepFrom + 1] <= below)
                     {
                         keepFrom++;
                     }
@@ -5125,10 +10171,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 fixedColumns.AddRange(hats);
                 this.continuumKnots = knots;
+                // (`AMBER141`) граница — только когда фон вычтен: без вычитания
+                // данные неотрицательны, смещения нет, и решение побитово прежнее
+                this.continuumFloor = this.ContinuumBelowBackground && backgroundFull != null
+                    ? ContinuumFloorOf(hats, variance, chLo, chHi)
+                    : null;
             }
             else
             {
                 this.continuumKnots = null;
+                this.continuumFloor = null;
             }
 
             // Шапки идут ПЕРВЫМИ и подряд — на этом держится штраф на излом
@@ -5177,6 +10229,44 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             //
             // ⚠ Где своей линии рядом НЕТ (цезий, лютеций), образ остаётся:
             // там он единственный, кто эти отсчёты выражает.
+            //
+            // ⛔ (`AMBER54`, П127 22.09.2026) СТОЛКНОВЕНИЕ — ТОЛЬКО С ГАММОЙ;
+            // АННИГИЛЯЦИОННАЯ ЛИНИЯ НУКЛИДА ОБРАЗ НЕ СНИМАЕТ. Решение Amber
+            // 22.09.2026, вопросником, дословно: «Линию оставить + починить гейт
+            // Ann-511». С П124 в образе β⁺-излучателя лежит своя линия 511
+            // (`2·ΣI(β⁺)`, <see cref="FsaLine.AnnihilationIntensity"/>), и
+            // прежнее правило «любая линия состава у 511» снимало `Ann-511` у
+            // Na-22, Zn-65 и даже у K-40 (β⁺ 0.001 %). Измерено П124 на четырёх
+            // точечных Na-22 корпуса: 511 в данных на 15–30 % БОЛЬШЕ, чем даёт
+            // образ из точки при верной активности, — позитроны покидают тонкий
+            // источник и аннигилируют у детектора и в обвязке; избытку стало
+            // некуда идти, активность Na-22 +9…+18 % (изм/ожид 1.10/1.11/1.05/1.01
+            // против 1.01/0.95/0.97/0.91 у соседей), χ²/ndf +9…+20 %; на витрине
+            // предел K-40 в `Cs137_house` 0.0012 → 0.00195 %.
+            //
+            // Правило теперь из двух частей, обе — без имён нуклидов:
+            //   (а) ГАММА состава в окне у 511 (гамма-часть линии,
+            //       `Intensity − AnnihilationIntensity`, больше нуля) — прежний
+            //       случай Tl-208 510.77: один столбец, `Ann-511` снимается,
+            //       линия называется (<see cref="AnnihilationCollides"/>).
+            //   (б) β⁺-нуклид, у которого НЕТ других линий, способных его
+            //       закрепить: аннигиляция — единственное его излучение в
+            //       полосе фита (F-18). Свободный `Ann-511` и такой нуклид —
+            //       один и тот же столбец, NNLS делит амплитуду произвольно;
+            //       снимается `Ann-511`, нуклид называется словами
+            //       (<see cref="AnnihilationDegenerate"/>, ресурс
+            //       `FSAAnnihilationDegenerate`).
+            // Мера «есть чем закрепиться» — суммарный выход ПРОЧИХ линий нуклида
+            // в полосе фита (вне окна 511), % на распад, против того же порога
+            // <see cref="FsaPresentationBuilder.MinTotalYieldPercent"/> (1 %,
+            // `S69`, назначен Amber 18.08.2026), которым отчёт судит, «может ли
+            // строка нуклида вообще что-то показать»: второго соглашения о
+            // том, какой выход мал, здесь нет. По базе: F-18 0 % (снимается),
+            // Cu-64 0.47 % (снимается — 1345 кэВ его не держит), Ga-68 3.6 %
+            // (остаётся: 1077 кэВ держит), Na-22 99.9 %, Zn-65 50 %, K-40 10.7 %.
+            // Аннигиляционная линия нуклида с якорем гейт НЕ трогает: активность
+            // держат его линии, а избыток 511 — аннигиляция вне источника и
+            // пары — берёт свободный `Ann-511`, названный честно.
             bool dropAnnihilation = !this.EscapeAndAnnihilation;
             if (!dropAnnihilation && this.AnnihilationGate && fwhmCalibration != null)
             {
@@ -5188,28 +10278,67 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     : 0.0;
                 if (windowKev > 0.0)
                 {
+                    double bandLoKev = calibration.ChannelToEnergy(chLo);
+                    double bandHiKev = calibration.ChannelToEnergy(chHi);
+                    string gammaCollision = null;
+                    string degenerate = null;
+                    double degenerateAnchor = 0.0;
                     foreach (FsaComponent component in library)
                     {
-                        if (component == null || component.Kind == FsaComponentKind.Nuisance)
+                        if (component == null || component.Kind == FsaComponentKind.Nuisance
+                            || component.Lines == null)
                         {
                             continue;
                         }
 
+                        bool ownAnnihilation = false;
+                        double anchorYield = 0.0;
                         foreach (FsaLine line in component.Lines)
                         {
                             if (Math.Abs(line.Energy - AnnihilationKev) <= windowKev)
                             {
-                                dropAnnihilation = true;
-                                this.AnnihilationCollides = component.Name + " "
-                                    + line.Energy.ToString("F2", CultureInfo.InvariantCulture) + " кэВ";
-                                break;
+                                if (line.Intensity - line.AnnihilationIntensity > 0.0)
+                                {
+                                    // (а) гамма состава у 511 — прежний случай
+                                    if (gammaCollision == null)
+                                    {
+                                        gammaCollision = component.Name + " "
+                                            + line.Energy.ToString("F2", CultureInfo.InvariantCulture) + " кэВ";
+                                    }
+                                }
+                                else if (line.AnnihilationIntensity > 0.0)
+                                {
+                                    ownAnnihilation = true;
+                                }
+                            }
+                            else if (line.Energy >= bandLoKev && line.Energy <= bandHiKev)
+                            {
+                                anchorYield += line.Intensity - line.AnnihilationIntensity;
                             }
                         }
 
-                        if (dropAnnihilation)
+                        // (б) своя аннигиляция без якоря
+                        if (ownAnnihilation && degenerate == null
+                            && anchorYield < FsaPresentationBuilder.MinTotalYieldPercent)
                         {
-                            break;
+                            degenerate = component.Name;
+                            degenerateAnchor = anchorYield;
                         }
+                    }
+
+                    if (gammaCollision != null)
+                    {
+                        dropAnnihilation = true;
+                        this.AnnihilationCollides = gammaCollision;
+                    }
+                    else if (degenerate != null)
+                    {
+                        dropAnnihilation = true;
+                        this.AnnihilationDegenerate = degenerate;
+                        this.AnnihilationCollides = string.Format(CultureInfo.InvariantCulture,
+                            Resources.FSAAnnihilationDegenerate, degenerate,
+                            degenerateAnchor.ToString("0.###", CultureInfo.InvariantCulture),
+                            FsaPresentationBuilder.MinTotalYieldPercent.ToString("0.###", CultureInfo.InvariantCulture));
                     }
                 }
             }
@@ -5262,6 +10391,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // собираются из вещества), как у `FromCrystal`.
             bool dropCrystalEscape = this.EscapeGate && this.ResponseMatrix != null;
             this.CrystalEscapeDropped = 0;
+            // (`A312`) Счётчики двух остальных ножей — только для подробности
+            // отказа `LibraryEmptied`: у этих образов своих счётчиков-свойств
+            // нет, а отказ обязан сказать, КТО снял последний образ.
+            int escapeImagesDropped = 0;
+            int annihilationDropped = 0;
             if (dropEscapeImages || dropAnnihilation || dropCrystalXray || dropCrystalEscape)
             {
                 List<FsaComponent> kept = new List<FsaComponent>(library.Count);
@@ -5269,11 +10403,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     if (dropEscapeImages && FsaLibrary.IsEscapeImage(component.Name))
                     {
+                        escapeImagesDropped++;
                         continue;
                     }
 
                     if (dropAnnihilation && FsaResult.IsAnnihilationImage(component.Name))
                     {
+                        annihilationDropped++;
                         continue;
                     }
 
@@ -5379,9 +10515,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // это уже не разбор спектра, а подгонка фона, которую читатель
             // принял бы за FSA. Контракт `Analyze` для пустой библиотеки —
             // отказ (`null`), каким он был бы и на входе.
+            //
+            // (`A312`) Отказ НАЗЫВАЕТ, кто снял образы: до 21.09.2026 он был
+            // неотличим от вырожденного входа, и на спектре Amber `Am-241`
+            // (один образ рентгена кристалла в составе) человек видел
+            // «разложение невозможно» вместо «добавьте нуклид в состав».
             if (library.Count == 0)
             {
-                return null;
+                return this.Refuse(FsaRefusal.LibraryEmptied, string.Format(CultureInfo.InvariantCulture,
+                    "library {0} -> 0: crystal x-ray {1}, crystal escape {2}, SE/DE images {3}, annihilation {4}"
+                    + " (matrix {5}); lines below matrix grid {6}",
+                    originalLibrary.Count, this.CrystalXrayDropped, this.CrystalEscapeDropped,
+                    escapeImagesDropped, annihilationDropped, this.ResponseMatrix != null ? "on" : "off",
+                    this.MatrixFloorDroppedLines));
             }
 
             // ⛔ (`S171`) ГЕЙТ ВЫРОЖДЕННОСТИ ЧЛЕНОВ РЯДА — здесь, на готовой
@@ -5415,14 +10561,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (this.PileUp)
             {
-                FsaComponent pileUp = this.BuildPileUpComponent(raw, calibration, chLo, chHi, channels);
+                // (`AMBER76`, П148) Множитель убыли — по тому, чем нормирован
+                // спектр (<see cref="PileUpLossFor"/>); рычаг проб — снаружи.
+                double loss = this.PileUpLossMultiplier >= 1.0 && this.PileUpLossMultiplier <= 2.0
+                    ? this.PileUpLossMultiplier
+                    : PileUpLossFor(spectrum);
+                FsaComponent pileUp = this.BuildPileUpComponent(raw, calibration, chLo, chHi, channels, loss);
+                this.PileUpLossUsed = pileUp != null ? loss : double.NaN;
                 if (pileUp != null)
                 {
+                    // (`AMBER123`, П166) Граница числа пар — R·τ_d на счёт.
+                    if (this.PileUpCapEnabled)
+                    {
+                        double counted = 0.0;
+                        for (int ch = 0; ch < channels; ch++)
+                        {
+                            if (raw[ch] > 0)
+                            {
+                                counted += raw[ch];
+                            }
+                        }
+
+                        pileUp.AmplitudeCap = PileUpCapFor(spectrum, counted, this.CoincidenceWindowSec);
+                        this.PileUpCapPairs = pileUp.AmplitudeCap;
+                    }
+
                     // Копия делается с `library`, а НЕ с `originalLibrary`: выше
                     // из неё мог уйти образ вылета (S47), и копия исходника
                     // вернула бы его молча.
                     library = new List<FsaComponent>(library);
                     library.Add(pileUp);
+                    this.pileUpColumn = pileUp;
                 }
             }
 
@@ -5436,6 +10605,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 reportWeights[i] = 1.0 / variance[i];
             }
+
+            // (`S180`, П134 22.09.2026) Слагаемые ОТЧЁТНОЙ дисперсии — чтобы
+            // напечатанный χ² можно было пересобрать от ОЖИДАНИЯ, а не от
+            // наблюдения (см. <see cref="ReportModelWeights"/>). Своя копия, а
+            // не <see cref="noiseTerms"/>: та живёт только при весах решателя
+            // по модели и вбирает составной шум `S43`, а отчётная метрика ни
+            // от того, ни от другого зависеть не должна. Снимается ЗДЕСЬ, до
+            // добавки `S43` к `variance`, — ровно тем же составом, каким взяты
+            // `reportWeights`.
+            NoiseTerms reportTerms = new NoiseTerms
+            {
+                Subtracted = new double[channels],
+                Extra = new double[channels]
+            };
+            for (int i = 0; i < channels; i++)
+            {
+                reportTerms.Subtracted[i] = raw[i] - y[i];
+                reportTerms.Extra[i] = variance[i] - Math.Max(raw[i], 1.0);
+            }
+
+            this.reportNoise = reportTerms;
 
             // (S43) Составной шум: D = F + γ²F² + β²B². Меняются только веса
             // РЕШАТЕЛЯ (и пределы S9 — они описывают тот же оценщик);
@@ -5526,14 +10716,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (bestChi2 == Double.MaxValue)
             {
-                return null;
+                return this.Refuse(FsaRefusal.NoFit, "drift grid: no node gave a solution");
             }
 
             FitResult best = FitHuber(library, fixedColumns, calibration, fwhmCalibration, efficiency,
                                       bestGain, bestOffset, chLo, chHi, channels, y, variance, baseWeights, reportWeights, null);
             if (best == null)
             {
-                return null;
+                return this.Refuse(FsaRefusal.NoFit, "final Huber fit did not converge");
             }
 
             // ⛔ (`AMBER17`) ПРИВЯЗКА ШКАЛЫ ПО ПИКАМ ПОЛНОГО ПОГЛОЩЕНИЯ — здесь,
@@ -5549,9 +10739,42 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.scaleAnchors = new List<FsaScaleAnchor>();
             this.scaleAnchorsUsed = 0;
             this.anchorNote = null;
+            this.zeroTakenLines = null;
+            this.zeroTakenMargins = null;
+            this.zeroTakenBlend = 0.0;
+            this.zeroSigmaKev = 0.0;
+            this.anchorCovAA = this.anchorCovAB = this.anchorCovBB = 0.0;
+            this.jointScale = false;
+            this.jointCovAA = this.jointCovAZ = this.jointCovZZ = 0.0;
+            this.scaleSigmaNote = null;
+            this.anchorStatPasses = 0;
+            this.anchorStatRefits = 0;
+            this.anchorStatSigmaFits = 0;
+            this.anchorStatSigmaTicks = 0;
+            this.anchorStatTrace = new StringBuilder();
+            // (`AMBER155`, П229) снятие света — на каждую привязку своё
+            this.curveLightSuspended = false;
+            this.curveLightDropped = false;
+            this.curveLightDropNote = null;
+            this.anchorStatCapped = false;
+            this.anchorStatPlateau = false;
+            this.anchorStatClassic = false;
+            this.anchorStatRestored = false;
+            this.anchorStatWarm = false;
+            this.anchorWarmOut = null;
+            long anchorTicks0 = System.Diagnostics.Stopwatch.GetTimestamp();
             if (this.AnchorScale)
             {
-                if (this.ResponseMatrix == null || !best.FromResponseMatrix)
+                // ⛔ (`AMBER156` (а), П195 01.10.2026) БЕЗ МАТРИЦЫ ПРИВЯЗКА ТОЖЕ
+                // ИДЁТ. Прежде здесь стояло «без матрицы отклика синего канала
+                // нет» — и режим кривой оставался на объявленной шкале: промах
+                // её на канал у рентгена 20…60 кэВ уносил узкий пик в сплайн и
+                // Хубер целиком (Cd-109 на 5 см 0.33 от матричного, Am-241
+                // 0.63; абляция `AnchorScale=false` С матрицей даёт те же
+                // числа — весь провал был в опорах). Синий канал нужен опоре
+                // только как ФОРМА пика полного поглощения, а у голых пиков
+                // кривой форма — сам образ: ветвление в `CollectScaleAnchors`.
+                if (this.ResponseMatrix != null && !best.FromResponseMatrix)
                 {
                     this.anchorNote = "привязки нет: без матрицы отклика синего канала нет";
                 }
@@ -5567,7 +10790,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // доводы у поля `adcScale` (П8: форма (в), 306.4 → 357.4).
                     // Здесь `bestGain`/`bestOffset` — ещё сеточные: цикл
                     // привязки ниже их не трогал.
-                    if (this.adcZeroMode == AdcZeroMode.Run)
+                    // (`AMBER156`, П195) карта нуля «adc» — только при матрице
+                    // (см. «adc-fixed» выше: голые пики без матрицы — как без
+                    // ключа); без матрицы привязка идёт калибровкой файла.
+                    // (`AMBER142`, П201) нуль взят по съёмке — его и переснимать
+                    bool zeroByRun = false;
+                    // (`AMBER142`, П204) тёплый старт: применён ли
+                    AnchorWarm warm = this.anchorWarmIn;
+                    if (this.adcZeroMode == AdcZeroMode.Run && this.ResponseMatrix != null)
                     {
                         double a0, b0, beta0;
                         int used0;
@@ -5578,21 +10808,84 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             out a0, out b0, out beta0, out used0, out note0);
                         double zeroKev;
                         string zeroNote;
+                        // (`AMBER155` (в), П220) шаг и кривизна прямой карты от нуля
+                        // света не зависят — ставятся до нуля по съёмке (он мерится
+                        // в каналах прямой части); карта при этом ещё не включена
+                        this.adcLinearKev = 0.0;
+                        this.adcTractPerChannel = 0.0;
+                        if (this.AdcLinearActive)
+                        {
+                            this.AdcScaleOf(originalLibrary, calibration);
+                        }
+
                         bool fromRun = this.ZeroFromRun(calibration, bestGain, bestOffset, out zeroKev, out zeroNote);
+                        zeroByRun = fromRun;
                         this.adcZeroKev = fromRun ? zeroKev : this.AnchorZeroKev;
                         this.adcZeroNote = zeroNote;
+                        // (`AMBER142`, П204) старт — нуль света прошлого прохода
+                        // только у совместного шага: классический режим — холодный, как прежде
+                        bool warmHere = warm != null && warm.AdcOn && warm.ZeroByRun && fromRun
+                                        && this.AnchorZeroRounds > 0;
+                        if (warmHere)
+                        {
+                            this.adcZeroKev = warm.ZeroKev;
+                        }
+
                         this.adcScale = this.AdcScaleOf(originalLibrary, calibration);
+                        if (!(this.adcScale > 0.0) && warmHere)
+                        {
+                            warmHere = false;
+                            this.adcZeroKev = fromRun ? zeroKev : this.AnchorZeroKev;
+                            this.adcScale = this.AdcScaleOf(originalLibrary, calibration);
+                        }
+
                         if (this.adcScale > 0.0)
                         {
+                            double gridGain = bestGain, gridOffset = bestOffset;
+                            if (warmHere)
+                            {
+                                this.ApplyAnchorWarm(warm);
+                                bestGain = warm.Gain;
+                                bestOffset = warm.Offset;
+                            }
+
+                            // ⛔ (`AMBER155`, П220) ПРЯМАЯ КАРТА — СРАЗУ СО СВЕТОМ В ОБРАЗАХ
+                            // (β = 1). Прежняя карта несла кривизну полинома калибровки, то
+                            // есть кривизну света фотопиков, и образ без сдвига по свету
+                            // (β = 0 до первой опоры) стоял почти на месте; у прямой карты
+                            // кривизну несёт ТОЛЬКО кривая света, и образ с β = 0 уходил
+                            // на кривизну целиком (`G1S24_Th228_P5`: 239 кэВ на −25 кэВ,
+                            // опоры все отвергнуты, χ²/ndf 22 → 168 — замер П220).
+                            double lightBeforeLinear = this.driftLight;
+                            if (this.adcLinearKev > 0.0 && this.driftLight != 1.0)
+                            {
+                                this.driftLight = 1.0;
+                                this.deposits.Clear();
+                            }
+
                             FitResult remapped = FitHuber(library, fixedColumns, calibration, fwhmCalibration,
                                                           efficiency, bestGain, bestOffset, chLo, chHi, channels,
                                                           y, variance, baseWeights, reportWeights, null);
                             if (remapped != null && remapped.FromResponseMatrix)
                             {
                                 best = remapped;
+                                this.anchorStatWarm = warmHere;
                             }
                             else
                             {
+                                if (this.driftLight != lightBeforeLinear)
+                                {
+                                    this.driftLight = lightBeforeLinear;
+                                    this.deposits.Clear();
+                                }
+
+                                if (warmHere)
+                                {
+                                    this.ApplyAnchorWarm(null);
+                                    bestGain = gridGain;
+                                    bestOffset = gridOffset;
+                                }
+
                                 // Карта не взялась — назвать и идти калибровкой,
                                 // а не молчать: иначе «adc» в строке при
                                 // калибровочном образе.
@@ -5606,8 +10899,68 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
                     }
 
-                    int passes = Math.Max(1, this.AnchorPasses);
+                    // ⛔ (`AMBER142`, П201) СОВМЕСТНЫЙ ШАГ НУЛЯ И УСИЛЕНИЯ НА КАЖДОМ
+                    // ПРОХОДЕ. Разведка мерит нуль света один раз, на сеточной
+                    // шкале и карте calib, где чужие образы в окне кандидата стоят
+                    // мимо своих мест, — и замер несёт их промах; разбор точной
+                    // копии собственной модели находил другой нуль (`G1S16_Mix_Mar`:
+                    // −14.06 → −14.82 кэВ), и Ti-44 уходил на −6.7 %. Две ручки
+                    // одного нуля — прямая нуля по кандидатам разведки и ноль опор
+                    // в каналах — по разным наборам пиков к одной точке не сходились.
+                    // Здесь на каждом проходе нуль света карты и усиление
+                    // подбираются ОДНИМ взвешенным МНК (шаг Гаусса — Ньютона) по
+                    // принятым опорам и кандидатам нуля, взятым на разведке (набор
+                    // линий заморожен, `zeroTakenLines`), — у точной копии модели
+                    // промахи нулевые, шаг нулевой, разбор воспроизводит сам себя.
+                    // Кандидат у ножа (`S205`) входит в шаг с весом, умноженным на
+                    // свой запас разведки, — плавно, а не скачком; нуль, смешанный
+                    // с нулём прибора, — лишь старт шага. Прежде (первая редакция
+                    // П201) совместный шаг шёл только у нуля с весом 1, и при
+                    // 1/100 счёта смеси копии переключались между режимами: у
+                    // одних шаг, у других ноль опор в каналах на 3…5 кан. — Ti-44
+                    // 0.45…0.67 от истины. Нуль «по прибору» — без шага, как прежде.
+                    bool zeroRemeasure = zeroByRun && this.AnchorZeroRounds > 0 && this.adcScale > 0.0
+                                         && this.zeroTakenLines != null && this.zeroTakenMargins != null;
+                    this.anchorGainOnly = zeroRemeasure && this.AnchorZeroOwnsOffset;
+                    // (`AMBER142`, П222) цикл классики — без старта шагов от центров тяжести
+                    this.anchorClassicLoop = !zeroRemeasure;
+                    this.jointScale = false;
+                    // (`AMBER142` п. 7, П207) классика — свои добавочные проходы
+                    int extraRounds = zeroRemeasure ? this.AnchorZeroRounds : Math.Max(0, this.AnchorClassicRounds);
+                    int passes = Math.Max(1, this.AnchorPasses) + extraRounds;
+                    // допуск ширины своего режима — тот же, что в условии сходимости ниже
+                    double widthTolerance = zeroRemeasure ? 0.0005 : 0.002;
+                    // плато и возврат к лучшему — там, где проходов добавлено
+                    bool plateauRule = extraRounds > 0 && this.AnchorPlateauPasses > 1;
+                    this.anchorStatClassic = !zeroRemeasure;
+                    // (`AMBER155`, П220) шаг карты у нуля — у прямой её шаг
+                    double zeroStep0 = this.AdcZeroStepKev(calibration);
+                    // (`AMBER150`) последняя пара «множитель → остаток» для секущей
+                    bool widthHavePrev = false;
+                    double widthPrevLn = 0.0, widthPrevResidual = 0.0;
+                    // (`AMBER142`, П222) ширина не определяется опорами — заморожена
+                    // на множителе начала привязки; слабых откликов подряд
+                    bool widthFrozen = false;
+                    int widthWeak = 0;
+                    double widthStart = this.widthScale;
+                    double widthQ = double.NaN;
                     int movedBy = 0;
+                    int zeroSteps = 0;
+                    // (`AMBER142`, П222) проходов, где шаг нуля превысил предел
+                    int zeroCappedPasses = 0;
+                    // (`AMBER142`, П204) поправки прохода в долях допуска — для плато
+                    var plateau = new List<double>();
+                    double plateauBestR = double.MaxValue;
+                    int plateauBestPass = -1;
+                    AnchorWarm plateauBest = null;
+                    bool restoreBest = false;
+                    string zeroRoundNote = null;
+                    // (`AMBER155`, П229) состояние начала привязки — для перезапуска без света
+                    FitResult restartBest = best;
+                    double restartGain = bestGain, restartOffset = bestOffset, restartLight = this.driftLight;
+                    double restartWidth = this.widthScale;
+                    int restartWidthAnchors = this.widthAnchors;
+                    int restartPasses = passes;
                     for (int pass = 0; pass < passes; pass++)
                     {
                         double a, b, beta;
@@ -5619,9 +10972,84 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             out a, out b, out beta, out used, out note);
                         this.scaleAnchors = anchors;
                         this.anchorNote = note;
+                        // ⛔ (`AMBER155`, П229) СВЕТ СНЯТ ПОСЛЕ ПРОХОДА СО СВЕТОМ — ноль того
+                        // прохода не остаётся (доводы у <see cref="AnchorCurveLightDrop"/>)
+                        if (this.curveLightDropped && !this.curveLightSuspended
+                            && this.AnchorCurveLightDrop != FsaCurveLightDrop.Inherit)
+                        {
+                            this.curveLightSuspended = true;
+                            if (this.AnchorCurveLightDrop == FsaCurveLightDrop.Restart)
+                            {
+                                // шкала, свет, ширина и фит — к началу привязки; проходы — заново
+                                double lightNow = this.driftLight;
+                                best = restartBest;
+                                bestGain = restartGain;
+                                bestOffset = restartOffset;
+                                this.driftLight = restartLight;
+                                this.widthScale = restartWidth;
+                                this.widthAnchors = restartWidthAnchors;
+                                if (this.driftLight != lightNow && this.LightInImages)
+                                {
+                                    this.deposits.Clear();
+                                }
+
+                                this.curveLightDropNote = string.Format(CultureInfo.InvariantCulture,
+                                    "свет снят на проходе {0}: плечо опор пропало — привязка заново без света от шкалы её начала", pass);
+                                this.anchorStatTrace.Append(" [свет снят: заново]");
+                                widthHavePrev = false;
+                                widthPrevLn = 0.0;
+                                widthPrevResidual = 0.0;
+                                widthFrozen = false;
+                                widthWeak = 0;
+                                widthQ = double.NaN;
+                                movedBy = 0;
+                                zeroSteps = 0;
+                                zeroCappedPasses = 0;
+                                plateau.Clear();
+                                plateauBestR = double.MaxValue;
+                                plateauBestPass = -1;
+                                plateauBest = null;
+                                restoreBest = false;
+                                zeroRoundNote = null;
+                                passes = restartPasses;
+                                pass = -1;
+                                continue;
+                            }
+
+                            // ноль прибора — уже в a, b этого прохода (ветка без плеча в `CollectScaleAnchors`)
+                            this.curveLightDropNote = string.Format(CultureInfo.InvariantCulture,
+                                "свет снят на проходе {0}: плечо опор пропало — ноль прибора, свет до конца привязки снят", pass);
+                        }
+
                         if (used == 0)
                         {
                             break;
+                        }
+
+                        // (`AMBER142`) совместный шаг: усиление и нуль света
+                        double zeroStep = 0.0;
+                        bool zeroCapped = false;
+                        if (zeroRemeasure)
+                        {
+                            double aJoint, dzJoint;
+                            if (this.JointScaleStep(calibration, bestGain, bestOffset, out aJoint, out dzJoint))
+                            {
+                                // ⛔ (`AMBER142`, П222) ШАГ НУЛЯ ДАЛЬШЕ ПРЕДЕЛА — ДОВЕРИЯ НЕТ:
+                                // проход делает только усиление по опорам (доводы у
+                                // <see cref="AnchorZeroStepMaxChannels"/>)
+                                zeroCapped = this.AnchorZeroStepMaxChannels > 0.0 && PositiveFinite(zeroStep0)
+                                             && Math.Abs(dzJoint) * this.adcScale / zeroStep0 > this.AnchorZeroStepMaxChannels;
+                                if (!zeroCapped)
+                                {
+                                    a = aJoint;
+                                    b = 0.0;
+                                    zeroStep = dzJoint;
+                                }
+                                else
+                                {
+                                    zeroCappedPasses++;
+                                }
+                            }
                         }
 
                         // Новая шкала поверх прежней: p'' = a·(g·p + o) + b.
@@ -5638,9 +11066,122 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                         // Сошлось — дальше не двигаемся: сдвиг меньше двадцатой
                         // канала на всём диапазоне полосы.
-                        bool converged = Math.Abs(b) < 0.05
+                        // (`AMBER150`) множитель ширины — по тем же опорам; сошёлся,
+                        // когда поправка меньше 0.2 % ширины. Первый шаг — по
+                        // замеру как есть (отклик усечённой ширины приведён по
+                        // гауссу), следующие — секущей по двум последним парам
+                        // «множитель → остаток»: у образа с хвостами и подложкой
+                        // отклик круче гауссова, и шаг по замеру перелетал
+                        // (G1S16_Cs137_P5: 1.0173 при неподвижной точке 1.0112
+                        // за три прохода).
+                        double widthStep = 0.0;
+                        if (this.AnchorWidth && this.anchorWidthCount > 0)
+                        {
+                            double lnNow = Math.Log(this.widthScale);
+                            widthStep = this.anchorWidthLog;
+                            if (widthHavePrev && Math.Abs(lnNow - widthPrevLn) > 1.0E-6
+                                && Math.Abs(widthPrevResidual - this.anchorWidthLog) > 1.0E-6)
+                            {
+                                double secant = this.anchorWidthLog * (lnNow - widthPrevLn)
+                                                / (widthPrevResidual - this.anchorWidthLog);
+                                // секущая берётся, только когда её отклик в пределах
+                                // половины — двух гауссовых: шкала тоже ходит между
+                                // проходами, и у G1S24_Bi207_P5 секущая без этого
+                                // ножа унесла множитель на 1.33 (χ²/ndf 18.7 → 34.0)
+                                double q = secant / this.anchorWidthLog;
+                                widthQ = q;
+                                if (q >= 0.5 && q <= 2.0)
+                                {
+                                    widthStep = secant;
+                                }
+
+                                // ⛔ (`AMBER142`, П222) ОСТАТОК ШИРИНЫ НЕ ОТВЕЧАЕТ НА ШАГ —
+                                // доводы у <see cref="AnchorWidthFreezeWeak"/>
+                                // (у нескольких опор ширины их разброс сам держит множитель; ловушка —
+                                // у одиночной: Mix_Mar, две опоры, 1/1 — заморозка части копий, Eu-152 разброс/σ 0.77 → 3.03)
+                                widthWeak = this.anchorWidthCount == 1 && (q > 2.0 || q < 0.0) ? widthWeak + 1 : 0;
+                            }
+
+                            widthPrevLn = lnNow;
+                            widthPrevResidual = this.anchorWidthLog;
+                            widthHavePrev = true;
+                            if (!widthFrozen && this.AnchorWidthFreezeWeak && widthWeak >= 2 && pass + 1 == passes)
+                            {
+                                // только в ПРЕДЕЛЕ проходов: сошедшийся разбор правило не трогает
+                                // (без этого условия `G1S24_Am241_P5`, сходящийся за 6 проходов,
+                                // терял ширину ×1.129 → 1: χ²/ndf 2.68 → 3.83). Возврат к множителю
+                                // начала привязки — шагом этого прохода, и добавочные проходы
+                                // своего режима — усилению сойтись на неподвижной ширине.
+                                widthFrozen = true;
+                                widthStep = Math.Log(widthStart / this.widthScale);
+                                passes += Math.Max(1, extraRounds);
+                                // плато и «лучший проход» — заново: прежние шкалы стояли на ползущей ширине
+                                plateau.Clear();
+                                plateauBestR = double.MaxValue;
+                                plateauBestPass = -1;
+                                plateauBest = null;
+                            }
+                            else
+                            {
+                                widthStep = widthFrozen ? 0.0 : Math.Max(-0.3, Math.Min(0.3, widthStep));
+                            }
+                        }
+                        // (`AMBER142`) при совместном шаге — ещё и нуль света (допуск
+                        // `AnchorZeroTolerance` канала у нулевого канала) и ширина
+                        // точнее: копия модели обязана встать туда же, где встала
+                        // истина, а не в пределах прежнего допуска от неё
+                        bool converged = !zeroCapped && Math.Abs(b) < 0.05
                                          && Math.Abs(a - 1.0) * Math.Max(1, chHi) < 0.05
-                                         && Math.Abs(beta) * this.lightShiftMax < 0.05;
+                                         && Math.Abs(beta) * this.lightShiftMax < 0.05
+                                         && Math.Abs(widthStep) < (zeroRemeasure ? 0.0005 : 0.002)
+                                         && (!PositiveFinite(zeroStep0)
+                                             || Math.Abs(zeroStep) * this.adcScale / zeroStep0 < this.AnchorZeroTolerance);
+                        this.anchorStatPasses = pass + 1;
+                        this.anchorStatTrace.AppendFormat(CultureInfo.InvariantCulture,
+                            " [{0}: n {1} da·ch {2:F4} b {3:F4} dz·ch {4:F4} dlnw {5:F5} q {6:F2}{7}{8}]",
+                            pass, used, (a - 1.0) * Math.Max(1, chHi), b,
+                            PositiveFinite(zeroStep0) ? zeroStep * this.adcScale / zeroStep0 : 0.0,
+                            widthStep, widthQ, (widthFrozen ? " wfrz" : "") + (zeroCapped ? " zcap" : ""), converged ? " ok" : "");
+                        if (!converged && plateauRule)
+                        {
+                            // (`AMBER142`, П204) плато — см. <see cref="AnchorPlateauPasses"/>;
+                            // (п. 7, П207) и у классики, с её допуском ширины
+                            double pWorst = this.JointResidual(a, b, beta, zeroStep, zeroStep0, chHi,
+                                                               widthFrozen ? double.PositiveInfinity : widthTolerance);
+                            plateau.Add(pWorst);
+                            if (pWorst < plateauBestR)
+                            {
+                                plateauBestR = pWorst;
+                                plateauBestPass = pass;
+                                plateauBest = new AnchorWarm
+                                {
+                                    Gain = bestGain, Offset = bestOffset, ZeroKev = this.adcZeroKev,
+                                    Width = this.widthScale, WidthAnchors = this.widthAnchors, Light = this.driftLight
+                                };
+                            }
+                            int pk = this.AnchorPlateauPasses;
+                            if (plateau.Count >= pk)
+                            {
+                                double pLo = double.MaxValue, pHi = 0.0;
+                                for (int pq = plateau.Count - pk; pq < plateau.Count; pq++)
+                                {
+                                    pLo = Math.Min(pLo, plateau[pq]);
+                                    pHi = Math.Max(pHi, plateau[pq]);
+                                }
+
+                                if (pLo >= 1.0 && pHi <= this.AnchorPlateauRatio * pLo)
+                                {
+                                    // шкала остаётся на последнем фите: опоры и
+                                    // ковариация шага сняты на нём же в этом проходе
+                                    zeroRoundNote = string.Format(CultureInfo.InvariantCulture,
+                                        "плато: поправка {0:F1}…{1:F1} допуска {2} проходов подряд", pLo, pHi, pk);
+                                    this.anchorStatPlateau = true;
+                                    restoreBest = pWorst > this.AnchorPlateauRatio * plateauBestR;
+                                    break;
+                                }
+                            }
+                        }
+
                         if (converged)
                         {
                             // Опоры есть и шкала уже на месте: она ПРИВЯЗАНА,
@@ -5655,6 +11196,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
 
                         double lightBefore = this.driftLight;
+                        double widthBefore = this.widthScale;
+                        int widthAnchorsBefore = this.widthAnchors;
+                        double zeroBefore = this.adcZeroKev;
+                        double scaleBefore = this.adcScale;
+                        if (widthStep != 0.0)
+                        {
+                            this.widthScale *= Math.Exp(widthStep);
+                            this.widthAnchors = this.anchorWidthCount;
+                        }
+
+                        if (zeroStep != 0.0)
+                        {
+                            this.adcZeroKev = zeroBefore + zeroStep;
+                            this.adcScale = this.AdcScaleOf(originalLibrary, calibration);
+                            if (!(this.adcScale > 0.0))
+                            {
+                                this.adcZeroKev = zeroBefore;
+                                this.adcScale = scaleBefore;
+                                zeroStep = 0.0;
+                            }
+                        }
+
                         this.driftLight = light;
                         // (П19) формы line/peak кладут сдвиг В ОБРАЗЫ: при смене
                         // β кэш гистограмм поглощения обязан быть построен заново.
@@ -5666,9 +11229,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         FitResult moved = FitHuber(library, fixedColumns, calibration, fwhmCalibration,
                                                    efficiency, gain, offset, chLo, chHi, channels,
                                                    y, variance, baseWeights, reportWeights, null);
-                        if (moved == null)
+                        this.anchorStatRefits++;
+                        if (moved == null || (zeroStep != 0.0 && !moved.FromResponseMatrix))
                         {
                             this.driftLight = lightBefore;
+                            this.widthScale = widthBefore;
+                            this.widthAnchors = widthAnchorsBefore;
+                            this.adcZeroKev = zeroBefore;
+                            this.adcScale = scaleBefore;
                             if (light != lightBefore && this.LightInImages)
                             {
                                 this.deposits.Clear();
@@ -5682,6 +11250,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         bestGain = gain;
                         bestOffset = offset;
                         movedBy = used;
+                        if (zeroStep != 0.0)
+                        {
+                            zeroSteps++;
+                        }
 
                         // Остатки и признаки опор — ПОСЛЕ перефита: человек
                         // должен видеть, на сколько модель промахивается
@@ -5693,11 +11265,152 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 best, calibration, fwhmCalibration, bestGain, bestOffset,
                                 chLo, chHi, channels, y, variance, channelsPerKev,
                                 out a, out b, out beta, out used, out note);
+                            if (zeroRemeasure)
+                            {
+                                // ковариация шага — на последней шкале, для σ амплитуд
+                                double aLast, dzLast;
+                                if (this.JointScaleStep(calibration, bestGain, bestOffset, out aLast, out dzLast)
+                                    && plateauBest != null)
+                                {
+                                    // (`AMBER142`, П204) шкала предела хуже лучшего прохода — возврат
+                                    double last = this.JointResidual(aLast, b, beta, dzLast, zeroStep0, chHi,
+                                                                     widthFrozen ? double.PositiveInfinity : widthTolerance);
+                                    restoreBest = last > this.AnchorPlateauRatio * plateauBestR;
+                                }
+                            }
+                            else if (plateauRule && plateauBest != null && used > 0)
+                            {
+                                // (`AMBER142` п. 7, П207) классика в пределе: поправка
+                                // последней шкалы — по опорам, только что снятым на ней
+                                double last = this.JointResidual(a, b, beta, 0.0, zeroStep0, chHi,
+                                                                 widthFrozen ? double.PositiveInfinity : widthTolerance);
+                                restoreBest = last > this.AnchorPlateauRatio * plateauBestR;
+                            }
+
+                            zeroRoundNote = "проходы кончились";
+                            this.anchorStatCapped = true;
                             break;
                         }
                     }
 
+                    if (restoreBest && plateauBest != null && zeroRemeasure)
+                    {
+                        // (`AMBER142` п. 7, П207) классика — ветка ниже: нуль и карта не трогаются
+                        // ⛔ (`AMBER142`, П204) СТОП У ДРОЖИ — ШКАЛА ЛУЧШЕГО ПРОХОДА. У
+                        // плато и в пределе последняя шкала — случайная точка полосы
+                        // дрожи, и бывает в разы дальше лучшей из пройденных
+                        // (`G1S24_Cs137_P25`, тёплый повтор: цикл 2.2 → 8.7 → 3.6 допуска).
+                        // Возврат — тем же движением, что проход: шкала, фит, опоры, шаг
+                        // (ковариация для σ амплитуд — на возвращённой шкале).
+                        double zeroKeep = this.adcZeroKev, scaleKeep = this.adcScale;
+                        var keep = new AnchorWarm
+                        {
+                            Width = this.widthScale, WidthAnchors = this.widthAnchors, Light = this.driftLight
+                        };
+                        this.adcZeroKev = plateauBest.ZeroKev;
+                        this.adcScale = this.AdcScaleOf(originalLibrary, calibration);
+                        this.ApplyAnchorWarm(plateauBest);
+                        FitResult back = this.adcScale > 0.0
+                            ? FitHuber(library, fixedColumns, calibration, fwhmCalibration, efficiency,
+                                       plateauBest.Gain, plateauBest.Offset, chLo, chHi, channels,
+                                       y, variance, baseWeights, reportWeights, null)
+                            : null;
+                        this.anchorStatRefits++;
+                        if (back != null && back.FromResponseMatrix)
+                        {
+                            best = back;
+                            bestGain = plateauBest.Gain;
+                            bestOffset = plateauBest.Offset;
+                            double aBack, bBack, betaBack, aJ, dzJ;
+                            int usedBack;
+                            string noteBack;
+                            this.scaleAnchors = this.CollectScaleAnchors(
+                                best, calibration, fwhmCalibration, bestGain, bestOffset,
+                                chLo, chHi, channels, y, variance, channelsPerKev,
+                                out aBack, out bBack, out betaBack, out usedBack, out noteBack);
+                            this.JointScaleStep(calibration, bestGain, bestOffset, out aJ, out dzJ);
+                            this.anchorStatRestored = true;
+                            zeroRoundNote = (zeroRoundNote != null ? zeroRoundNote + "; " : "")
+                                + string.Format(CultureInfo.InvariantCulture,
+                                    "возврат к проходу {0} (поправка {1:F1} допуска)", plateauBestPass, plateauBestR);
+                        }
+                        else
+                        {
+                            this.adcZeroKev = zeroKeep;
+                            this.adcScale = scaleKeep;
+                            this.ApplyAnchorWarm(keep);
+                        }
+                    }
+                    else if (restoreBest && plateauBest != null)
+                    {
+                        // ⛔ (`AMBER142` п. 7, П207) ВОЗВРАТ К ЛУЧШЕМУ ПРОХОДУ — И У КЛАССИКИ:
+                        // тем же движением, что проход (шкала, ширина, β, фит, опоры —
+                        // ковариация опор для σ амплитуд на возвращённой шкале); нуль
+                        // карты и сама карта у классики не шагают и не трогаются.
+                        var keep = new AnchorWarm
+                        {
+                            Width = this.widthScale, WidthAnchors = this.widthAnchors, Light = this.driftLight
+                        };
+                        this.ApplyAnchorWarm(plateauBest);
+                        FitResult back = FitHuber(library, fixedColumns, calibration, fwhmCalibration, efficiency,
+                                                  plateauBest.Gain, plateauBest.Offset, chLo, chHi, channels,
+                                                  y, variance, baseWeights, reportWeights, null);
+                        this.anchorStatRefits++;
+                        if (back != null)
+                        {
+                            best = back;
+                            bestGain = plateauBest.Gain;
+                            bestOffset = plateauBest.Offset;
+                            double aBack, bBack, betaBack;
+                            int usedBack;
+                            string noteBack;
+                            this.scaleAnchors = this.CollectScaleAnchors(
+                                best, calibration, fwhmCalibration, bestGain, bestOffset,
+                                chLo, chHi, channels, y, variance, channelsPerKev,
+                                out aBack, out bBack, out betaBack, out usedBack, out noteBack);
+                            this.anchorStatRestored = true;
+                            zeroRoundNote = (zeroRoundNote != null ? zeroRoundNote + "; " : "")
+                                + string.Format(CultureInfo.InvariantCulture,
+                                    "возврат к проходу {0} (поправка {1:F1} допуска)", plateauBestPass, plateauBestR);
+                        }
+                        else
+                        {
+                            this.ApplyAnchorWarm(keep);
+                        }
+                    }
+
+                    if (zeroRemeasure)
+                    {
+                        zeroRoundNote = string.Format(CultureInfo.InvariantCulture,
+                            "совместно с усилением: шагов нуля {0}, нуль света {1:F2} кэВ{2}{3}",
+                            zeroSteps, this.adcZeroKev,
+                            zeroCappedPasses > 0
+                                ? string.Format(CultureInfo.InvariantCulture, ", шаг нуля за пределом {0:F1} кан. — проходов только усиления {1}",
+                                                this.AnchorZeroStepMaxChannels, zeroCappedPasses)
+                                : "",
+                            zeroRoundNote != null ? ", " + zeroRoundNote : "");
+                    }
+
+                    if (zeroRoundNote != null)
+                    {
+                        this.adcZeroNote = (this.adcZeroNote ?? "") + "; " + zeroRoundNote;
+                    }
+
+                    this.anchorGainOnly = false;
+                    this.anchorClassicLoop = false;
+                    // (`AMBER142`, П222) ход проходов — в трассу нуля (только пробам; в приложении приёмника нет)
+                    ZeroTraceSink?.Invoke("ход привязки:" + this.anchorStatTrace + "; " + (zeroRoundNote ?? ""));
                     this.scaleAnchorsUsed = movedBy;
+                    if (movedBy > 0)
+                    {
+                        this.anchorWarmOut = new AnchorWarm
+                        {
+                            Gain = bestGain, Offset = bestOffset, ZeroKev = this.adcZeroKev,
+                            Width = this.widthScale, WidthAnchors = this.widthAnchors, Light = this.driftLight,
+                            ZeroByRun = zeroByRun, AdcOn = this.adcScale > 0.0
+                        };
+                    }
+
                     if (movedBy > 0)
                     {
                         this.anchorNote = string.Format(CultureInfo.InvariantCulture,
@@ -5718,13 +11431,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // до буквы (контроль «ключ ВЫКЛ ничего не двигает»).
                     }
 
-                    if (this.AnchorLightPosition && this.lightCurveName == null)
+                    if (this.curveLightDropNote != null)
+                    {
+                        // (`AMBER155`, П229) свет снят по ходу привязки — сказать, что сделано
+                        this.anchorNote = (this.anchorNote ?? "") + "; " + this.curveLightDropNote;
+                    }
+
+                    if (this.lightOffByCalibration != null)
+                    {
+                        // (`AMBER155`, П229) свет снят калибровкой файла — сказать, почему
+                        this.anchorNote = (this.anchorNote ?? "") + "; " + this.lightOffByCalibration;
+                    }
+                    else if (this.AnchorLightPosition && this.lightCurveName == null)
                     {
                         // Ключ есть, кривой нет — сказать, а не промолчать:
                         // иначе «положение по свету ВКЛ» на CZT/LaBr3 выглядит
                         // как сработавшее.
                         this.anchorNote = (this.anchorNote ?? "")
-                            + "; положение по свету: кривой для «" + (this.ScintillatorMaterial ?? "") + "» нет";
+                            + "; положение по свету: кривой для «"
+                            + (this.ScintillatorMaterial
+                               ?? (this.ResponseMatrix == null && this.anchorEfficiency != null
+                                       ? this.anchorEfficiency.CrystalMaterial
+                                       : null)
+                               ?? "") + "» нет";
                     }
                 }
             }
@@ -5732,6 +11461,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 this.anchorNote = "привязка выключена ключом";
             }
+
+            long anchorTicks = System.Diagnostics.Stopwatch.GetTimestamp() - anchorTicks0;
 
             // (`S169`) карта нуля — в ту же служебную строку при любом исходе
             // привязки, и ТОЛЬКО когда включена: у "calib" строка прежняя до
@@ -5744,7 +11475,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 this.anchorNote = (this.anchorNote ?? "") + string.Format(CultureInfo.InvariantCulture,
                     "; нуль adc: кан 0 = {0:F2} кэВ калибровки, свет {1:F2} кэВ{4}, растяжение {2:F5} по {3:F1} кэВ",
                     this.adcE0, this.adcZeroKev, this.adcScale, this.adcTopKev,
-                    this.adcZeroNote != null ? " (" + this.adcZeroNote + ")" : "");
+                    this.adcZeroNote != null ? " (" + this.adcZeroNote + ")" : "")
+                    // (`AMBER155`, П220) прямая карта — её шаг в конец строки
+                    + (this.adcLinearKev > 0.0
+                        ? string.Format(CultureInfo.InvariantCulture, ", прямая {0:F5} кэВ/кан", this.adcLinearKev)
+                          + (this.adcTractPerChannel != 0.0
+                              ? string.Format(CultureInfo.InvariantCulture, ", кривизна тракта {0:F5} 1/МэВ", this.AdcTractCurvature)
+                              : "")
+                        : "");
             }
             else if (this.adcZeroMode == AdcZeroMode.Run && this.adcZeroNote != null)
             {
@@ -5752,6 +11490,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // слов «нуль adc:», по которым читатель пробы считает
                 // включившиеся карты.
                 this.anchorNote = (this.anchorNote ?? "") + "; карта adc не включена: " + this.adcZeroNote;
+            }
+
+            // (`AMBER150`) ширинная опора — последним хвостом служебной строки,
+            // чтобы читатели прежних полей («опор n; усиление …», «нуль adc:»)
+            // её не задевали
+            if (this.AnchorScale && this.AnchorWidth && this.scaleAnchorsUsed > 0)
+            {
+                this.anchorNote += this.widthAnchors > 0
+                    ? string.Format(CultureInfo.InvariantCulture, "; ширина ×{0:F4} по {1} опорам",
+                                    this.widthScale, this.widthAnchors)
+                    : (this.anchorWidthCount > 0
+                        ? "; ширина по калибровке ПШПВ (поправка меньше 0.2 %)"
+                        : "; ширина по калибровке ПШПВ (опор ширины нет)");
             }
 
             // (S78) Всё, что было ПРЕДЪЯВЛЕНО фиту, и с какой значимостью его
@@ -6173,7 +11924,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     gateJudged++;
 
-                    bool[] zone = this.PeakWindowMask(component, calibration, fwhmCalibration,
+                    bool[] zone = this.PeakWindowMask(component, efficiency, calibration, fwhmCalibration,
                                                       bestGain, bestOffset, chLo, chHi, channels);
                     if (zone == null)
                     {
@@ -6273,6 +12024,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
+
+            // (`AMBER91`, П148) Множитель фона — до `BuildResult`: там считаются
+            // доли невязки, и дисперсии чистого счёта он нужен уже там.
+            this.resultBackgroundScale = background != null && backgroundScale > 0.0 ? backgroundScale : 0.0;
+            // ⛔ (`AMBER142`, П201) ПОГРЕШНОСТЬ ПРИВЯЗКИ — В σ АМПЛИТУД, до
+            // `BuildResult`: значимость члена ряда берётся из колонки, и правка
+            // `best.Z` доезжает до всех строк.
+            if (this.AnchorScale && this.AnchorSigmaInAmplitudes && this.scaleAnchorsUsed > 0)
+            {
+                long sigmaTicks0 = System.Diagnostics.Stopwatch.GetTimestamp();
+                this.InflateZByScale(best, fixedColumns, calibration, fwhmCalibration, efficiency,
+                                     originalLibrary, bestGain, bestOffset, chLo, chHi, channels, y);
+                this.anchorStatSigmaTicks = System.Diagnostics.Stopwatch.GetTimestamp() - sigmaTicks0;
+                if (this.scaleSigmaNote != null)
+                {
+                    this.anchorNote = (this.anchorNote ?? "") + "; " + this.scaleSigmaNote;
+                }
+            }
+
+            this.ScaleAnchorStats = string.Format(CultureInfo.InvariantCulture,
+                "проходов {0}{1}{7}; перефитов {2}; привязка {3:F0} мс; σ-перефитов {4}, {5:F0} мс; ход:{6}",
+                this.anchorStatPasses, this.anchorStatCapped ? " (предел)" : (this.anchorStatPlateau ? " (плато)" : ""), this.anchorStatRefits,
+                1000.0 * anchorTicks / System.Diagnostics.Stopwatch.Frequency, this.anchorStatSigmaFits,
+                1000.0 * this.anchorStatSigmaTicks / System.Diagnostics.Stopwatch.Frequency,
+                this.anchorStatTrace.ToString(), (this.anchorStatClassic ? ", классика" : "") + (this.anchorStatRestored ? ", возврат" : "") + (this.anchorStatWarm ? ", тёплый старт" : ""));
 
             FsaResult result = BuildResult(best, spectrum, fwhmCalibration, backgroundCurve, snipContinuum,
                                chLo, chHi, channels,
@@ -6421,6 +12197,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 (left, right) => string.CompareOrdinal(left.Name, right.Name));
             result.BackgroundRejected = backgroundRejected;
             result.BackgroundUsed = background != null && backgroundScale > 0.0;
+            // (`AMBER91`, П148) Множитель фона — дисперсии чистого счёта у доли невязки.
+            result.BackgroundScale = result.BackgroundUsed ? backgroundScale : 0.0;
+            // (`AMBER123`, П166) Граница числа пар колонки наложений и то, что
+            // фит давал сверх неё.
+            result.PileUpCapPairs = this.PileUpCapPairs;
+            result.PileUpUncappedPairs = this.PileUpUncappedPairs;
+            // (`AMBER118`, П168) Линии состава, которые делит природный спутник,
+            // отсутствующий в составе (U-235 под 186 кэВ Ra-226): только сказать,
+            // в состав ничего не добавляется (~~`S110`~~).
+            this.FindLineInterferences(result, candidates, calibration, fwhmCalibration, efficiency, chLo, chHi, channels);
+            // (`AMBER210`, П238) Пики в полосе, не покрытые составом, — по следу финального
+            // фита; только сказать, в состав ничего не добавляется.
+            this.FindUncoveredPeaks(result, best, candidates, calibration, fwhmCalibration, chLo, chHi, channels);
             // Пределы считаются по ТОЙ библиотеке, что пошла в фит (S47): образ,
             // снятый гейтом вылета, кандидатом не был, и печатать ему МДА
             // значило бы отвечать «не обнаружен» про то, чего не искали.
@@ -6730,7 +12519,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // второе уже поделено на живое время, и делить второй раз
                 // значило бы применить его дважды.
                 limit.DetectionLimitPeakCounts = detection
-                    * this.PeakWindowCounts(component, phi, calibration, fwhmCalibration,
+                    * this.PeakWindowCounts(component, phi, efficiency, calibration, fwhmCalibration,
                                             gain, offset, chLo, chHi, channels);
             }
 
@@ -6784,7 +12573,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         if (image != null)
                         {
                             peakCounts = hostLimit.DetectionLimitRate * liveTime
-                                * this.PeakWindowCounts(part, image, calibration, fwhmCalibration,
+                                * this.PeakWindowCounts(part, image, efficiency, calibration, fwhmCalibration,
                                                         gain, offset, chLo, chHi, channels);
                         }
                     }
@@ -7352,7 +13141,81 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 var column = new Dictionary<int, double[]>();
                 var norm = new Dictionary<int, double>();
                 var lineColumns = new Dictionary<int, List<double[]>>();
-                foreach (int m in members)
+
+                // (`AMBER213`, П241) Без разбора по линиям (умолчание) образы
+                // членов и их остатки после шапок — ПАРАЛЛЕЛЬНО, каждый в свою
+                // ячейку; гистограммы поглощения (`DepositOf`, общее состояние) —
+                // до того, подряд и в прежнем порядке; словари и заметки о
+                // линиях вне кривой — после, тем же порядком. Подпороговый хвост
+                // образа здесь не нужен (прежде он строился и выбрасывался) и не
+                // строится: уширение побочных следов, кроме кэша ядер, не
+                // оставляет. С разбором по линиям — прежний цикл ниже.
+                if (!byLines)
+                {
+                    int count = members.Count;
+                    Deposit[] deposits = new Deposit[count];
+                    if (this.ResponseMatrix != null)
+                    {
+                        for (int j = 0; j < count; j++)
+                        {
+                            deposits[j] = this.DepositOf(library[members[j]], calibration, fwhmCalibration, channels);
+                        }
+                    }
+
+                    double[][] residuals = new double[count][];
+                    double[] norms = new double[count];
+                    List<FsaLine>[] notes = new List<FsaLine>[count];
+                    double bin = this.ResponseMatrix != null ? this.ResponseMatrix.BinKev : 0.0;
+                    FsaParallel.For(count, j =>
+                    {
+                        double[] phi;
+                        if (this.ResponseMatrix != null)
+                        {
+                            phi = deposits[j] != null
+                                ? this.BroadenResponseDeposit(deposits[j].Values, calibration, fwhmCalibration,
+                                                              bin, 1.0, 0.0, chLo, chHi, channels)
+                                : null;
+                        }
+                        else
+                        {
+                            notes[j] = new List<FsaLine>();
+                            phi = this.BuildTemplate(library[members[j]], calibration, fwhmCalibration, efficiency,
+                                                     1.0, 0.0, chLo, chHi, channels, notes[j]);
+                        }
+
+                        if (phi == null)
+                        {
+                            return;
+                        }
+
+                        double[] r = this.ResidualAfterHats(phi, fixedColumns, hatInverse, weights, chLo, chHi, channels);
+                        double n2 = DotWeighted(r, r, weights, chLo, chHi);
+                        if (n2 > 0.0)
+                        {
+                            residuals[j] = r;
+                            norms[j] = n2;
+                        }
+                    });
+
+                    for (int j = 0; j < count; j++)
+                    {
+                        if (notes[j] != null)
+                        {
+                            foreach (FsaLine line in notes[j])
+                            {
+                                this.NoteOutOfCurve(library[members[j]], line);
+                            }
+                        }
+
+                        if (residuals[j] != null)
+                        {
+                            column[members[j]] = residuals[j];
+                            norm[members[j]] = norms[j];
+                        }
+                    }
+                }
+
+                foreach (int m in byLines ? members : new List<int>())
                 {
                     double[] phi;
                     if (this.ResponseMatrix != null)
@@ -8136,9 +13999,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return null;
                 }
 
-                double[] deposit = new double[(int)(line.Energy / bin + 0.5) + 1 + this.lightMarginBins];
+                // (`AMBER70`) длина образа — от матрицы (`ceil(E/шаг)+1`); см.
+                // <see cref="BuildLineBlue"/>. Поверка линии обязана мерить тот
+                // же столбец, что стоит в фите, значит и длину брать ту же.
+                double[] deposit = new double[EfficiencyMaker.ResponseMatrix.ImageBins(line.Energy, bin)
+                                              + this.lightMarginBins];
                 FsaCascadeSummer.Correction correction =
-                    this.cascade != null ? this.cascade.For(component) : null;
+                    this.cascade != null ? this.CorrectionOf(component) : null;
                 if (correction != null && !correction.Any)
                 {
                     correction = null;
@@ -8149,8 +14016,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             && lineIndex < correction.LineFactors.Length
                     ? correction.LineFactors[lineIndex]
                     : 1.0;
-                bool corrected = Math.Abs(cf - 1.0) >= 1.0E-6;
-                int peak = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
+                // (`AMBER99`) Доля, пережившая вынос, — на каналы вылета.
+                double[] survivals = this.EscapeSurvivals(correction, component);
+                double survive = survivals != null ? survivals[lineIndex] : 1.0;
+                bool peakCorrected = Math.Abs(cf - 1.0) >= 1.0E-6;
+                bool corrected = peakCorrected || Math.Abs(survive - 1.0) >= 1.0E-6;
                 if (matrix.HasChannels)
                 {
                     // Тем же путём, что и лента (`S3`): по каналам и суммой их
@@ -8159,7 +14029,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     for (int c = 0; c < EfficiencyMaker.EfficiencySimulator.ResponseChannelCount; c++)
                     {
                         this.AccumulateLine(matrix, deposit, line.Energy,
-                                            c == peak && corrected ? weight * cf : weight, c);
+                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive, this.CascadePairContinuum && correction != null), c);
                     }
                 }
                 else if (corrected)
@@ -8167,7 +14037,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     for (int c = 0; c < EfficiencyMaker.EfficiencySimulator.ResponseChannelCount; c++)
                     {
                         this.AccumulateLine(matrix, deposit, line.Energy,
-                                            c == peak ? weight * cf : weight, c);
+                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive, this.CascadePairContinuum && correction != null), c);
                     }
                 }
                 else
@@ -8190,6 +14060,568 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                  gain, offset, chLo, chHi, channels);
         }
 
+        /// <summary>
+        /// (П168 28.09.2026, по `AMBER133` П167) СУММИРОВАТЕЛЬ КАСКАДОВ С КЛЮЧАМИ
+        /// ЭТОГО РАЗБОРА — одно место на проект: <see cref="Analyze"/> и зоны ROI
+        /// (<c>BecquerelCoefficient.CreateLikeFsa</c>) берут его отсюда, и новый
+        /// ключ суммирователя, заведённый здесь, доезжает до обоих без второй
+        /// копии блока настроек. Матрица — <see cref="ResponseMatrix"/>, вещество
+        /// — <see cref="ScintillatorMaterial"/>, окно — <see cref="CoincidenceWindowSec"/>
+        /// (всё это ставит вызывающий заранее). Все ключи ставятся ДО первого
+        /// <c>For</c>: поправки кэшируются на экземпляре. null — считать нечем
+        /// (матрицы нет, формат старше 3, нет `nucdb.sqlite`). Отказ матрице сцены
+        /// поля (`AMBER34`) — забота вызывающего: здесь его нет.
+        /// </summary>
+        public FsaCascadeSummer CreateCascadeSummer()
+        {
+            FsaCascadeSummer summer = FsaCascadeSummer.Create(this.ResponseMatrix, this.ScintillatorMaterial,
+                                                              this.CoincidenceWindowSec, this.CascadeXrayPartners,
+                                                              this.CascadeAnnihilationPartners,
+                                                              this.CascadeIsomerPartners,
+                                                              this.CascadeDecayTimeProbability);
+            if (summer == null)
+            {
+                return null;
+            }
+
+            // (`S167`, П18) Фотонная кривая суммы. Вещество без таблицы даёт
+            // null, то есть прежний счёт электронной кривой.
+            if (this.CascadeSumPhotonLight)
+            {
+                summer.PhotonLightCurve = FsaLightScale.CurveFor(this.ScintillatorMaterial);
+            }
+
+            // (`S166`, П18) совместная эффективность в выносе
+            summer.LossJointFactor = this.CascadeLossJointFactor;
+            // (`N14`, П49) угловая корреляция пар — ключ и таблица сцены
+            summer.AngularCorrelations = this.CascadeSumAngular;
+            summer.AngularQk = this.AngularQk;
+            // (`AMBER124`/`AMBER125`, П166) пары сумм-континуума
+            summer.PairContinuumEnabled = this.CascadePairContinuum;
+            // (`AMBER134`, П166) вынос ходом по схеме
+            summer.BranchSum = this.CascadeBranchSum;
+            return summer;
+        }
+
+        /// <summary>
+        /// (`AMBER118`, П168 28.09.2026) Помехи природных спутников линиям
+        /// состава — в <see cref="FsaResult.LineInterferences"/>. Правило — у
+        /// <see cref="FsaSampleLibrary.NaturalCompanionInterference"/>; здесь только
+        /// ПШПВ и эффективность прибора и то, что вошло в состав.
+        /// </summary>
+        void FindLineInterferences(FsaResult result, List<FsaComponent> library, EnergyCalibration calibration,
+                                   FwhmCalibration fwhmCalibration, FsaEfficiency efficiency, int chLo, int chHi,
+                                   int channels)
+        {
+            if (result == null || library == null || calibration == null || fwhmCalibration == null)
+            {
+                return;
+            }
+
+            var detected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (FsaComponentResult component in result.Components)
+            {
+                if (component.CountRate > 0.0)
+                {
+                    detected.Add(component.Name);
+                }
+            }
+
+            Func<double, double> fwhmKev = energy =>
+            {
+                // ⚠ С числом каналов: без него обратная калибровка ищет канал
+                // до 10000 и у полинома за шкалой возвращает край (замер П168 на
+                // `G1S24_Ra226_Petri`: канал 10000 на любой энергии, окно 6.7 МэВ).
+                double channel = calibration.EnergyToChannel(energy, channels);
+                double width = fwhmCalibration.ChannelToFwhm(channel);
+                if (!(width > 0.0))
+                {
+                    return 0.0;
+                }
+
+                return Math.Abs(calibration.ChannelToEnergy(channel + 0.5 * width)
+                                - calibration.ChannelToEnergy(channel - 0.5 * width));
+            };
+            Func<double, double> eff = efficiency != null ? (Func<double, double>)efficiency.Eval : null;
+            double lo = calibration.ChannelToEnergy(chLo);
+            double hi = calibration.ChannelToEnergy(chHi);
+            result.LineInterferences.AddRange(FsaSampleLibrary.NaturalCompanionInterference(
+                library, detected, fwhmKev, eff, Math.Min(lo, hi), Math.Max(lo, hi)));
+        }
+
+        /// <summary>
+        /// (`AMBER210`, П238 07.10.2026; решения Amber 07.10.2026 вопросником, дословно: «Строку о
+        /// предупреждении разбора», «z ≥ 5 и избыток ≥ 10 % модели», «Только отчёт FSA, строка на
+        /// пик», «Библиотека приложения целиком») ПИКИ В ПОЛОСЕ, НЕ ПОКРЫТЫЕ СОСТАВОМ —
+        /// <see cref="FsaResult.UncoveredPeaks"/>.
+        ///
+        /// Зачем. Ответ по сету тихо бимодален, когда в спектре есть структура, которой в сете
+        /// нет: на Th232 Amber ряд Ra-226 вне сета (352 кэВ +18 %, 609 кэВ +28 % над моделью) нож
+        /// Хубера либо режет (1282 Бк), либо чистый МНК описывает его торием (1093 Бк) — 17 % при
+        /// σ 0.4 %, и окно молчало (журнал П237).
+        ///
+        /// Как. По следу финального фита (невязка `y − модель`, дисперсия, модель) в полосе от пола
+        /// невязки (<see cref="FsaResult.ResidualFloorChannel"/>) собираются СЕРИИ соседних каналов
+        /// с нормированной невязкой не ниже двух (разрыв до двух каналов, <see cref="ResidualRuns"/>);
+        /// у серии — центр по избытку, ширина, избыток `Σr`, его значимость `Σr/√ΣD` и доля от
+        /// ожидания сырого отсчёта (модель плюс вычтенное). Серия попадает в список, если ширина —
+        /// от половины до трёх ПШПВ (у́же — шум канала, шире — разлад континуума), значимость не
+        /// ниже <see cref="UncoveredPeakZ"/>, доля избытка не ниже <see cref="UncoveredPeakExcess"/>
+        /// и она НЕ ПОКРЫТА. Покрытие — СИЛЬНЫЕ линии вошедших компонентов: выход не ниже
+        /// <see cref="UncoveredCoverShare"/> от сильнейшей линии своего компонента — слабая линия
+        /// ряда (356.9 и 608.6 кэВ у ториевого ряда, доли процента) избыток в десятки процентов
+        /// объяснить не может, а покрывала им Pb-214 352 и Bi-214 609 на Th232 Amber (третья
+        /// редакция П238); с производными: рентген — компоненты с линиями; вылет аннигиляции E − 511
+        /// и E − 1022 и сама 511 — достраиваются от сильных линий состава, когда они в модели,
+        /// <see cref="EscapeAndAnnihilation"/>. Линия в
+        /// ±ПШПВ/4 от центра покрывает всегда; в ±ПШПВ/2 — покрывает, если нет линии библиотеки
+        /// приложения вне состава ЯВНО ближе (в ±ПШПВ/4) — так бленд 338 Ac-228 / 352 Pb-214 на CsI
+        /// не прячет радиевую линию за ториевой, а разлад формы собственного пика (307 Lu-176 в
+        /// 4 кэВ от центра серии) кандидатом не становится. Серия, где модельные сумм-пики
+        /// (<see cref="FsaComponentResult.SumPeakCurve"/>) дают четверть модели, покрыта тоже.
+        /// Серия БЕЗ кандидата библиотеки с парным провалом (≥ 0.3 её избытка в ±1.5 ПШПВ) — пик,
+        /// СДВИНУТЫЙ шкалой (2614 кэВ Th232 на нелинейной шкале: +124 % рядом с −59 %), а не
+        /// непокрытый; у серии с кандидатом провал соседней перепредсказанной линии состава
+        /// (583 Tl-208 при 609 Bi-214) сдвигом не считается. Приборные образы без линий (обратное
+        /// рассеяние, наложения; подложка сплайна не в счёт — она объяснила бы всё), несущие четверть
+        /// модели серии, покрывают её тоже: их разлад формы — не чужой нуклид. ⛔ ПИК НАЗЫВАЕТСЯ
+        /// ТОЛЬКО С ИМЕНЕМ: в ±ПШПВ/2 от центра обязана стоять линия библиотеки приложения
+        /// (<see cref="LibraryLines"/>) вне состава — предупреждение о «пике вне состава» нужно, чтобы
+        /// нуклид ДОБАВИЛИ В СЕТ, а безымянный избыток (аннигиляция 511 из окружения, суммы γ с
+        /// рентгеном — 307 + 55 у лютеция, уступы комптона) остаётся невязкой ленты; окно именно
+        /// ±ПШПВ/2, потому что у бленда с перепредсказанной соседкой центр избытка уходит от линии
+        /// (609 Bi-214 при 583 Tl-208 — на 9 кэВ). Вторая редакция П238 без правила имени говорила
+        /// на 25 спектрах корпуса из 92 при полных сетах — все приборные структуры. Рядом
+        /// с энергией — до трёх ближайших линий библиотеки в ±ПШПВ/2, по одной на нуклид. Серии,
+        /// прошедшие пороги, но не названные, — в <see cref="FsaResult.UncoveredRejections"/> с
+        /// причиной (ревизия отбора для проб). Разбор, амплитуды и пределы от этого не зависят —
+        /// только сказано. Потребители: строки отчёта (<c>FSAReportView</c>), `FsaBqProbe`, столбец
+        /// `uncovered_peaks` и файл `*_uncovered.csv` у `CorpusFsaProbe` (без библиотеки приложения
+        /// корпус пиков не называет — файл несёт ревизию отбора). Имя библиотеки сверяется с
+        /// составом по нуклиду без скобок («Pb-212 (Th-232)» — это Pb-212, <see cref="NuclideKey"/>).
+        /// </summary>
+        void FindUncoveredPeaks(FsaResult result, FitResult fit, List<FsaComponent> library,
+                                EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                int chLo, int chHi, int channels)
+        {
+            if (result == null)
+            {
+                return;
+            }
+
+            result.UncoveredPeaks.Clear();
+            result.UncoveredRejections.Clear();
+            if (fit == null || fit.Residual == null || fit.Variance == null || fit.Model == null
+                || calibration == null || fwhmCalibration == null
+                || !(this.UncoveredPeakZ > 0.0) || !(this.UncoveredPeakExcess > 0.0))
+            {
+                return;
+            }
+
+            double[] r = fit.Residual, v = fit.Variance, model = fit.Model;
+            double[] subtracted = this.reportNoise != null ? this.reportNoise.Subtracted : null;
+            int lo = Math.Max(chLo, result.ResidualFloorChannel);
+            int hi = Math.Min(chHi, Math.Min(channels, Math.Min(r.Length, Math.Min(v.Length, model.Length))) - 1);
+            if (lo >= hi)
+            {
+                return;
+            }
+
+            Func<double, double> fwhmKev = energy =>
+            {
+                double channel = calibration.EnergyToChannel(energy, channels);
+                double width = fwhmCalibration.ChannelToFwhm(channel);
+                if (!(width > 0.0))
+                {
+                    return 0.0;
+                }
+
+                return Math.Abs(calibration.ChannelToEnergy(channel + 0.5 * width)
+                                - calibration.ChannelToEnergy(channel - 0.5 * width));
+            };
+
+            // Линии вошедших компонентов (и производных) и имена их нуклидов.
+            var detected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (result.Components != null)
+            {
+                foreach (FsaComponentResult c in result.Components)
+                {
+                    if (c != null && c.CountRate > 0.0 && !string.IsNullOrEmpty(c.Name))
+                    {
+                        detected.Add(c.Name);
+                    }
+                }
+            }
+
+            var coveredKev = new List<double>();
+            var coveredLines = new List<FsaLine>();
+            var coveredNuclides = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string name in detected)
+            {
+                coveredNuclides.Add(NuclideKey(name));
+            }
+
+            if (library != null)
+            {
+                foreach (FsaComponent c in library)
+                {
+                    if (c == null || c.Lines == null || !detected.Contains(c.Name))
+                    {
+                        continue;
+                    }
+
+                    double strongest = 0.0;
+                    foreach (FsaLine line in c.Lines)
+                    {
+                        if (line != null && line.Intensity > strongest)
+                        {
+                            strongest = line.Intensity;
+                        }
+                    }
+
+                    foreach (FsaLine line in c.Lines)
+                    {
+                        if (line == null)
+                        {
+                            continue;
+                        }
+
+                        if (!string.IsNullOrEmpty(line.Nuclide))
+                        {
+                            coveredNuclides.Add(NuclideKey(line.Nuclide));
+                        }
+
+                        // покрывают только сильные линии; у компонента без выходов — все
+                        if (strongest > 0.0 && line.Intensity < UncoveredCoverShare * strongest)
+                        {
+                            continue;
+                        }
+
+                        coveredKev.Add(line.Energy);
+                        coveredLines.Add(line);
+                    }
+                }
+            }
+
+            // Производные структуры линий состава, у которых своих линий в компонентах нет:
+            // пики одиночного и двойного вылета аннигиляции (E − 511, E − 1022) и сама
+            // аннигиляция 511 — когда они в модели. Их разлад — не чужой нуклид (2103 кэВ у
+            // 2614 Th232 на первом прогоне П238).
+            // ⛔ Производные — только от линий не слабее пятой части сильнейшей линии ВСЕГО
+            // состава: двойной вылет 1.5 %-й линии Ac-228 1630.6 кэВ физически ничтожен, а
+            // «покрывал» 608.6 кэВ и прятал Bi-214 609 (четвёртая редакция П238).
+            if (this.EscapeAndAnnihilation && coveredLines.Count > 0)
+            {
+                double strongestOfAll = 0.0;
+                foreach (FsaLine line in coveredLines)
+                {
+                    strongestOfAll = Math.Max(strongestOfAll, line.Intensity);
+                }
+
+                var derived = new List<double>();
+                foreach (FsaLine line in coveredLines)
+                {
+                    if (line.Energy > 1100.0 && line.Intensity >= 0.2 * strongestOfAll)
+                    {
+                        derived.Add(line.Energy - 511.0);
+                        derived.Add(line.Energy - 1022.0);
+                    }
+                }
+
+                if (derived.Count > 0)
+                {
+                    derived.Add(511.0);
+                    coveredKev.AddRange(derived);
+                }
+            }
+
+            // Модельные сумм-пики по каналам — сумма по компонентам.
+            double[] sumPeaks = null;
+            if (result.Components != null)
+            {
+                foreach (FsaComponentResult c in result.Components)
+                {
+                    if (c == null || c.SumPeakCurve == null)
+                    {
+                        continue;
+                    }
+
+                    if (sumPeaks == null)
+                    {
+                        sumPeaks = new double[channels];
+                    }
+
+                    for (int i = 0; i < channels && i < c.SumPeakCurve.Length; i++)
+                    {
+                        sumPeaks[i] += c.SumPeakCurve[i];
+                    }
+                }
+            }
+
+            // Приборные образы (обратное рассеяние, наложения — у них линий нет) по каналам:
+            // сумма кривых компонентов рода Nuisance, кроме подложки сплайна — та объясняет всё.
+            double[] nuisance = null;
+            if (result.Components != null)
+            {
+                foreach (FsaComponentResult c in result.Components)
+                {
+                    if (c == null || c.Kind != FsaComponentKind.Nuisance || c.Curve == null
+                        || string.Equals(c.Name, FsaResult.ContinuumLayerName, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    if (nuisance == null)
+                    {
+                        nuisance = new double[channels];
+                    }
+
+                    for (int i = 0; i < channels && i < c.Curve.Length; i++)
+                    {
+                        nuisance[i] += c.Curve[i];
+                    }
+                }
+            }
+
+            List<int[]> plus = ResidualRuns(r, v, lo, hi, +1);
+            List<int[]> minus = ResidualRuns(r, v, lo, hi, -1);
+            var found = new List<FsaUncoveredPeak>();
+            foreach (int[] run in plus)
+            {
+                double excess = 0.0, variance = 0.0, expected = 0.0, modelRun = 0.0, moment = 0.0, sums = 0.0, instrument = 0.0;
+                for (int i = run[0]; i <= run[1]; i++)
+                {
+                    if (!(v[i] > 0.0))
+                    {
+                        continue;
+                    }
+
+                    double ri = Math.Max(r[i], 0.0);
+                    excess += ri;
+                    variance += v[i];
+                    moment += ri * calibration.ChannelToEnergy(i);
+                    double mu = model[i] + (subtracted != null && i < subtracted.Length ? subtracted[i] : 0.0);
+                    if (mu > 0.0)
+                    {
+                        expected += mu;
+                    }
+
+                    modelRun += Math.Max(model[i], 0.0);
+                    if (sumPeaks != null)
+                    {
+                        sums += Math.Max(sumPeaks[i], 0.0);
+                    }
+
+                    if (nuisance != null)
+                    {
+                        instrument += Math.Max(nuisance[i], 0.0);
+                    }
+                }
+
+                if (!(excess > 0.0) || !(variance > 0.0) || !(expected > 0.0))
+                {
+                    continue;
+                }
+
+                double z = excess / Math.Sqrt(variance);
+                double share = excess / expected;
+                if (z < this.UncoveredPeakZ || share < this.UncoveredPeakExcess)
+                {
+                    continue;
+                }
+
+                double centre = moment / excess;
+                double fwhm = fwhmKev(centre);
+                if (!(fwhm > 0.0))
+                {
+                    continue;
+                }
+
+                double width = Math.Abs(calibration.ChannelToEnergy(run[1] + 1) - calibration.ChannelToEnergy(run[0]));
+                if (width < 0.5 * fwhm || width > 3.0 * fwhm)
+                {
+                    continue;
+                }
+
+                // Кандидаты библиотеки вне состава в ±ПШПВ/2 — ближайшие.
+                var near = new List<FsaLine>();
+                if (this.LibraryLines != null)
+                {
+                    foreach (FsaLine line in this.LibraryLines)
+                    {
+                        if (line != null && !string.IsNullOrEmpty(line.Nuclide)
+                            && !coveredNuclides.Contains(NuclideKey(line.Nuclide))
+                            && Math.Abs(line.Energy - centre) <= 0.5 * fwhm)
+                        {
+                            near.Add(line);
+                        }
+                    }
+
+                    near.Sort((a, b) => Math.Abs(a.Energy - centre).CompareTo(Math.Abs(b.Energy - centre)));
+                }
+
+                double nearestCandidate = near.Count > 0 ? Math.Abs(near[0].Energy - centre) : double.MaxValue;
+
+                // Покрытие линией состава: в ±ПШПВ/4 — всегда; в ±ПШПВ/2 — если кандидат
+                // библиотеки не стоит ЯВНО ближе (в ±ПШПВ/4). Довод — в описании метода.
+                double nearestCovered = double.MaxValue, nearestCoveredKev = double.NaN;
+                foreach (double e in coveredKev)
+                {
+                    double gap = Math.Abs(e - centre);
+                    if (gap < nearestCovered)
+                    {
+                        nearestCovered = gap;
+                        nearestCoveredKev = e;
+                    }
+                }
+
+                FsaUncoveredCandidate nearCandidate = near.Count > 0
+                    ? new FsaUncoveredCandidate { Nuclide = near[0].Nuclide, EnergyKev = near[0].Energy } : null;
+                Action<FsaUncoveredRejectionReason> reject = why => result.UncoveredRejections.Add(new FsaUncoveredRejection
+                {
+                    EnergyKev = centre, WidthKev = width, ExcessShare = share, Z = z, Reason = why,
+                    NearestCoveredKev = nearestCoveredKev, NearestCandidate = nearCandidate
+                });
+
+                bool covered = nearestCovered <= 0.25 * fwhm
+                               || (nearestCovered <= 0.5 * fwhm && !(nearestCandidate <= 0.25 * fwhm));
+                if (covered)
+                {
+                    reject(FsaUncoveredRejectionReason.CoveredLine);
+                    continue;
+                }
+
+                if (sumPeaks != null && modelRun > 0.0 && sums >= 0.25 * modelRun)
+                {
+                    reject(FsaUncoveredRejectionReason.SumPeak);
+                    continue;
+                }
+
+                if (nuisance != null && modelRun > 0.0 && instrument >= 0.25 * modelRun)
+                {
+                    reject(FsaUncoveredRejectionReason.Nuisance);
+                    continue;
+                }
+
+                // Сдвинутый шкалой пик — парный провал рядом; судится только у серии БЕЗ
+                // кандидата библиотеки (довод — в описании метода).
+                if (near.Count == 0)
+                {
+                    bool shifted = false;
+                    foreach (int[] dip in minus)
+                    {
+                        double deficit = 0.0, dipMoment = 0.0;
+                        for (int i = dip[0]; i <= dip[1]; i++)
+                        {
+                            double d = Math.Max(-r[i], 0.0);
+                            deficit += d;
+                            dipMoment += d * calibration.ChannelToEnergy(i);
+                        }
+
+                        if (!(deficit >= 0.3 * excess))
+                        {
+                            continue;
+                        }
+
+                        if (Math.Abs(dipMoment / deficit - centre) <= 1.5 * fwhm)
+                        {
+                            shifted = true;
+                            break;
+                        }
+                    }
+
+                    if (shifted)
+                    {
+                        reject(FsaUncoveredRejectionReason.Shifted);
+                        continue;
+                    }
+                }
+
+                // Только с именем: линия библиотеки вне состава в ±ПШПВ/2 (довод — в описании метода).
+                if (!(nearestCandidate <= 0.5 * fwhm))
+                {
+                    reject(FsaUncoveredRejectionReason.NoCandidate);
+                    continue;
+                }
+
+                var peak = new FsaUncoveredPeak
+                {
+                    EnergyKev = centre, WidthKev = width, ExcessCounts = excess, ExcessShare = share, Z = z
+                };
+                var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (FsaLine line in near)
+                {
+                    if (peak.Candidates.Count >= 3)
+                    {
+                        break;
+                    }
+
+                    if (named.Add(line.Nuclide))
+                    {
+                        peak.Candidates.Add(new FsaUncoveredCandidate { Nuclide = line.Nuclide, EnergyKev = line.Energy });
+                    }
+                }
+
+                found.Add(peak);
+            }
+
+            found.Sort((a, b) => b.Z.CompareTo(a.Z));
+            result.UncoveredPeaks.AddRange(found);
+        }
+
+        /// <summary>
+        /// (`AMBER210`) Ключ нуклида в имени: имя до первой скобки, без пробелов по краям —
+        /// «Pb-212 (Th-232)» библиотеки и «Pb-212» состава сходятся. Имён здесь нет — правило формы.
+        /// </summary>
+        static string NuclideKey(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return string.Empty;
+            }
+
+            int bracket = name.IndexOf('(');
+            return (bracket > 0 ? name.Substring(0, bracket) : name).Trim();
+        }
+
+        /// <summary>
+        /// (`AMBER210`) Серии соседних каналов полосы `[lo, hi]`, где нормированная невязка
+        /// `sign·r/√D` не ниже двух (разрыв до двух каналов не рвёт серию): пары
+        /// [первый канал, последний канал]. Канал без положительной дисперсии серию не продолжает.
+        /// </summary>
+        static List<int[]> ResidualRuns(double[] r, double[] v, int lo, int hi, int sign)
+        {
+            var runs = new List<int[]>();
+            int start = -1, last = -1;
+            for (int i = lo; i <= hi; i++)
+            {
+                if (!(v[i] > 0.0) || sign * r[i] / Math.Sqrt(v[i]) < 2.0)
+                {
+                    continue;
+                }
+
+                if (start >= 0 && i - last > 3)
+                {
+                    runs.Add(new[] { start, last });
+                    start = -1;
+                }
+
+                if (start < 0)
+                {
+                    start = i;
+                }
+
+                last = i;
+            }
+
+            if (start >= 0)
+            {
+                runs.Add(new[] { start, last });
+            }
+
+            return runs;
+        }
+
         FsaResult BuildResult(FitResult fit, EnergySpectrum spectrum, FwhmCalibration fwhmCalibration,
                               double[] backgroundCurve, int[] snipContinuum,
                               int chLo, int chHi, int channels, double gain, double offset, double liveTime,
@@ -8199,6 +14631,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // спектра, как в Analyze. ПШПВ приходит параметром: у спектра её
             // может не быть вовсе, она достраивается выше.
             EnergyCalibration calibration = spectrum.EnergyCalibration;
+
+            // (`AMBER209`, П237) след фита — пробам, довод у <see cref="LastFitWeights"/>
+            this.LastFitWeights = fit.Weights;
+            this.LastFitVariance = fit.Variance;
+            this.LastFitResidual = fit.Residual;
+            this.LastFitModel = fit.Model;
+            this.LastFitSubtracted = this.reportNoise != null ? this.reportNoise.Subtracted : null;
+            this.LastFitFirstChannel = chLo;
+            this.LastFitLastChannel = chHi;
 
             FsaResult result = new FsaResult
             {
@@ -8214,6 +14655,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 EfficiencyUsed = efficiency != null,
                 // (`AMBER34`) кривая и матрица сцены поля — признаки окну отчёта
                 EfficiencyPerUnitFluence = efficiency != null && efficiency.IsPerUnitFluence,
+                // (`AMBER157`, П195) диапазон кривой и исключённые за ним линии —
+                // окну отчёта; у матричного образа список пуст по построению
+                EfficiencyMinKev = efficiency != null ? efficiency.MinEnergy : 0.0,
+                EfficiencyMaxKev = efficiency != null ? efficiency.MaxEnergy : 0.0,
+                EfficiencyOutOfRangeLines = this.OutOfCurveLines(),
                 CascadeSummingRefusedFieldMatrix = this.cascadeRefusedFieldMatrix && fit.FromResponseMatrix,
                 ResponseMatrixUsed = fit.FromResponseMatrix,
                 CascadeSummingUsed = this.cascadeApplied,
@@ -8228,6 +14674,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 ScaleAnchors = this.scaleAnchors ?? new List<FsaScaleAnchor>(),
                 ScaleAnchorsUsed = this.scaleAnchorsUsed,
                 AnchorNote = this.anchorNote,
+                WidthScale = this.widthScale,
+                WidthAnchorsUsed = this.widthAnchors,
                 AnchorOffsetKev = AnchorOffsetKevOf(offset, calibration, chLo, chHi),
                 // (П18) световая координата: кривая и итоговый β (пусто / 0 —
                 // выключена или не дошла до фита)
@@ -8235,7 +14683,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 AnchorLightBeta = this.driftLight,
                 AnchorLightReferenceKev = this.AnchorLightReferenceKev,
                 // (П19) форма применения — пусто без координаты
-                AnchorLightForm = LightFormName(this.lightForm)
+                AnchorLightForm = LightFormName(this.lightForm),
+                // (`S169`, наружу `S181` П136) КАРТА НУЛЯ «adc» — та самая, какой
+                // положен каждый бин образа (<see cref="LightEnergyKev"/>).
+                // Сверке линий она нужна, чтобы окно встало туда же, куда
+                // встал образ; нуль растяжения — карта не включалась.
+                AdcScale = this.adcScale,
+                AdcE0Kev = this.adcE0,
+                AdcZeroKev = this.adcZeroKev,
+                // (`AMBER155`, П220) прямая карта: шаг и канал точки нуля
+                AdcLinearKev = this.adcLinearKev,
+                AdcTractPerChannel = this.adcTractPerChannel,
+                AdcZeroChannel = this.AdcZeroChannel
             };
 
             if (snipContinuum != null)
@@ -8261,7 +14720,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double amplitude = fit.Amplitude[k];
                 if (column.Component == null)
                 {
-                    if (amplitude <= 0.0)
+                    // (`AMBER141`) шапка подложки бывает ниже нуля — в меру
+                    // вычтенного фона; хвосты образов NNLS отрицательными не
+                    // отдаёт, и для них `== 0` то же, что прежнее `<= 0`
+                    if (amplitude == 0.0)
                     {
                         continue;
                     }
@@ -8377,7 +14839,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Curve = curve,
                     SumPeakCurve = sumOnly,
                     ChannelCurves = channelCurves,
-                    PeakCounts = this.PeakWindowCounts(column.Component, curve, calibration,
+                    PeakCounts = this.PeakWindowCounts(column.Component, curve, efficiency, calibration,
                                                        fwhmCalibration, gain, offset,
                                                        chLo, chHi, channels),
                     CountRate = amplitude / liveTime,
@@ -8464,6 +14926,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // то же число нужно пробам и корпусу. Модель — верх стека, С
             // хвостами образов (`S175`; без них — только по ключу проб,
             // `S173`), полоса — от `Min_Range` (`S174`).
+            result.BackgroundScale = this.resultBackgroundScale;
             result.ComputeResidualShares(spectrum.Spectrum);
 
             // ДОЛЯ — ОДНА МЕРА НА ВЕСЬ ПРОЕКТ, доля СЛОЯ (`S76`, решение Amber
@@ -8878,7 +15341,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Curve = part,
                     SumPeakCurve = sumOnly,
                     ChannelCurves = memberChannels,
-                    PeakCounts = this.PeakWindowCounts(source, part, calibration, fwhmCalibration,
+                    PeakCounts = this.PeakWindowCounts(source, part, efficiency, calibration, fwhmCalibration,
                                                        gain, offset, chLo, chHi, channels),
                     CountRate = amplitude / liveTime,
 
@@ -8949,7 +15412,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// «пиковое окно» по-своему, однажды разойдутся. Перекрытия
         /// складываются один раз — маска по каналам, а не сумма по линиям.
         /// </summary>
-        double PeakWindowCounts(FsaComponent component, double[] curve, EnergyCalibration calibration,
+        double PeakWindowCounts(FsaComponent component, double[] curve, FsaEfficiency efficiency,
+                                EnergyCalibration calibration,
                                 FwhmCalibration fwhmCalibration, double gain, double offset,
                                 int chLo, int chHi, int channels)
         {
@@ -8958,7 +15422,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return 0.0;
             }
 
-            bool[] inWindow = this.PeakWindowMask(component, calibration, fwhmCalibration,
+            bool[] inWindow = this.PeakWindowMask(component, efficiency, calibration, fwhmCalibration,
                                                   gain, offset, chLo, chHi, channels);
             if (inWindow == null)
             {
@@ -8978,14 +15442,200 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Маска пиковых окон компонента (±2 ПШПВ вокруг каждой линии и
-        /// каждого сумм-пика, правило <see cref="PeakWindowCounts"/>).
+        /// ⛔ МЕРКА ПИКОВОГО ОКНА (`AMBER62`, 22.09.2026): наименьшая доля
+        /// ожидаемых ПИКОВЫХ отсчётов образа, при которой линия получает своё
+        /// окно, в процентах от САМОЙ ЯРКОЙ линии того же компонента.
+        ///
+        /// ⛔ Зачем. Прежде окно ±2 ПШПВ открывалось вокруг КАЖДОЙ линии с
+        /// ненулевым выходом, как бы мала она ни была, и в «пиковые отсчёты»
+        /// входил чужой континуум. Мерено П127 22.09.2026 на витринном
+        /// `Cs 137 в домике`: у выведенного K-40 линия 511 (аннигиляция
+        /// следового β⁺, она появилась с ~~`AMBER54`~~) открыла окно на 511, куда
+        /// через матрицу вошёл комптон собственной 1460 — пиковые отсчёты
+        /// предела выросли в полтора с лишним раза, и предел на экране поехал
+        /// вместе с ними, хотя ни одного лишнего отсчёта в спектре не стало.
+        ///
+        /// ⚠ Мерка — по ДОЛЕ ПИКОВЫХ ОТСЧЁТОВ (<see cref="PeakWindowLinePeakCounts"/>),
+        /// а не по голой интенсивности: слабая линия там, где эффективность
+        /// высока, несёт больше отсчётов, чем сильная в хвосте кривой, и
+        /// порог по интенсивности судил бы не о том.
+        ///
+        /// ⚠ Доля берётся от САМОЙ ЯРКОЙ линии компонента, а не от их суммы, и
+        /// это не вкусовщина: у ряда с сотней сопоставимых линий доля каждой в
+        /// сумме меньше порога по построению, и правило «от суммы» оставило бы
+        /// такой ряд БЕЗ ЕДИНОГО окна. От максимума же самая яркая линия
+        /// проходит всегда, а вырождается правило в «окно есть у всех».
+        ///
+        /// Родня, где тот же порог уже назначен: свёртка строки предела по
+        /// суммарному выходу (<see cref="FsaPresentationBuilder.MinTotalYieldPercent"/>,
+        /// решение Amber 18.08.2026), впуск линии в образ вылета
+        /// (<see cref="FsaLibrary.EscapeMinIntensity"/>), отбор линий в
+        /// нуклидный набор. Третьего соглашения о том, какой выход заметен,
+        /// здесь не заводится нарочно.
+        /// </summary>
+        public const double PeakWindowMinPeakSharePercent = 1.0;
+
+        /// <summary>
+        /// Ожидаемые ПИКОВЫЕ отсчёты каждой линии образа при единичной
+        /// амплитуде — та величина, по которой судится пиковое окно
+        /// (<see cref="PeakWindowMinPeakSharePercent"/>). Единица у неё одна на
+        /// оба пути построения образа: отсчёты в пике полного поглощения на
+        /// один распад.
+        ///
+        /// По матрице — выход ПИКОВОГО канала отклика
+        /// (<see cref="EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak"/>),
+        /// умноженный на выход линии и на каскадную поправку этой линии: ровно
+        /// то, что <see cref="BuildResponseDeposit"/> кладёт в пик. По кривой —
+        /// выход на эффективность, как в <see cref="BuildTemplate"/>; у
+        /// компонента с готовыми весами (<see cref="FsaComponent.WeightsAreFinal"/>)
+        /// эффективность не применяется ни там, ни здесь.
+        ///
+        /// Открыт наружу для пробы: мерку, по которой окна раздаются, сторож
+        /// обязан видеть тем же числом, каким её видит разбор.
+        /// </summary>
+        /// <returns>null — компонента нет; иначе массив по числу линий, ноль у
+        /// линии, которой в образе нет вовсе.</returns>
+        public double[] PeakWindowLinePeakCounts(FsaComponent component, FsaEfficiency efficiency)
+        {
+            if (component == null || component.Lines == null)
+            {
+                return null;
+            }
+
+            bool byMatrix = this.ResponseMatrix != null && !component.WeightsAreFinal;
+            FsaCascadeSummer.Correction correction =
+                byMatrix && this.cascade != null ? this.CorrectionOf(component) : null;
+            if (correction != null && !correction.Any)
+            {
+                correction = null;
+            }
+
+            double[] counts = new double[component.Lines.Count];
+            for (int i = 0; i < component.Lines.Count; i++)
+            {
+                FsaLine line = component.Lines[i];
+                if (!(line.Energy > 0.0) || !(line.Intensity > 0.0))
+                {
+                    continue;
+                }
+
+                double weight = line.Intensity / 100.0;
+                if (byMatrix)
+                {
+                    double cf = correction != null && correction.LineFactors != null
+                                && i < correction.LineFactors.Length
+                        ? correction.LineFactors[i]
+                        : 1.0;
+                    weight *= cf * this.MatrixPeakEfficiency(line.Energy);
+                }
+                else if (efficiency != null && !component.WeightsAreFinal)
+                {
+                    // (`AMBER157`, П195) тем же правилом, что образ
+                    // (`BuildTemplate`): вне кривой эффективности линии нет.
+                    double e, errorPercent;
+                    weight = efficiency.TryEval(line.Energy, out e, out errorPercent) && e > 0.0
+                        ? weight * e
+                        : 0.0;
+                }
+
+                counts[i] = weight > 0.0 ? weight : 0.0;
+            }
+
+            return counts;
+        }
+
+        /// <summary>
+        /// (`S169`) Канал линии ПО КАРТЕ НУЛЯ последнего разбора — тем же
+        /// правилом, каким образ ставит свои пики и каким открывается пиковое
+        /// окно (<see cref="MarkPeakWindow"/>). Дрейф сюда НЕ входит: усиление
+        /// и сдвиг читатель берёт из <see cref="FsaResult.Gain"/> и
+        /// <see cref="FsaResult.OffsetChannels"/>.
+        ///
+        /// Открыт наружу для пробы `AMBER62`: своей копии карты нуля у неё нет,
+        /// а построй она положение линии сама — отказывала бы на карте, а не на
+        /// мерке окна, то есть сторожила бы не то.
+        ///
+        /// (`AMBER89`, П144) Позиция — линии МАТРИЧНОГО образа, то есть на
+        /// E + s(E) после привязки (<see cref="LinePositionKev"/>), как её
+        /// ставит окно у такого образа. (`AMBER156` (б), П195) Без матрицы —
+        /// так же: голые пики режима кривой после привязки тоже стоят на
+        /// E + s(E) (<see cref="BuildTemplate"/>); до привязки s = 0, и число
+        /// прежнее до бита.
+        /// </summary>
+        public double LinePositionChannel(EnergyCalibration calibration, double energyKev, int channels)
+        {
+            return this.LightToChannel(calibration, this.LinePositionKev(energyKev), channels);
+        }
+
+        /// <summary>
+        /// Выход ПИКОВОГО канала матрицы на линию энергии
+        /// <paramref name="energyKev"/> — доля квантов, поглощённых целиком.
+        ///
+        /// ⚠ Маска замера каналов (<see cref="MatrixChannelMask"/>) здесь
+        /// НАРОЧНО не спрашивается: она — ключ опыта, снимающий канал у
+        /// ОБРАЗА, а мерка окна говорит о том, где у линии пик, а не сколько
+        /// его нынче нарисовано. Спроси её — и прогон со снятым пиковым
+        /// каналом остался бы без единого пикового окна во всём разборе.
+        /// </summary>
+        double MatrixPeakEfficiency(double energyKev)
+        {
+            EfficiencyMaker.ResponseMatrix matrix = this.ResponseMatrix;
+            if (matrix == null || !(energyKev > 0.0))
+            {
+                return 0.0;
+            }
+
+            double cached;
+            if (this.peakEfficiencies.TryGetValue(energyKev, out cached))
+            {
+                return cached;
+            }
+
+            double bin = matrix.BinKev;
+            double yield = 0.0;
+            if (bin > 0.0)
+            {
+                // Площадь переноса не зависит от длины приёмника: край
+                // ЗАЖИМАЕТСЯ, а не отбрасывается (`Stretch`), — поэтому массив
+                // ровно до энергии линии, и ни бина больше.
+                double[] row = new double[(int)(energyKev / bin + 0.5) + 2];
+                if (matrix.HasChannels)
+                {
+                    matrix.AccumulateChannel(row, energyKev, 1.0,
+                                             (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak);
+                }
+                else
+                {
+                    // ⚠ У матрицы без раскладки по каналам пикового канала нет
+                    // вовсе, и спросить его значит получить ноль у КАЖДОЙ линии
+                    // — то есть маску без единого окна. Такой матрице отвечает
+                    // весь отклик разом: он не «пиковый», но линии ранжирует
+                    // тем же порядком, а мерка относительная.
+                    matrix.Accumulate(row, energyKev, 1.0);
+                }
+
+                for (int b = 0; b < row.Length; b++)
+                {
+                    yield += row[b];
+                }
+            }
+
+            this.peakEfficiencies[energyKev] = yield;
+            return yield;
+        }
+
+        /// <summary>
+        /// Маска пиковых окон компонента (±2 ПШПВ вокруг каждой ЗАМЕТНОЙ линии
+        /// и каждого сумм-пика, правило <see cref="PeakWindowCounts"/>).
         /// null — ни одна линия не легла в окно фита: счёт по такой маске был
         /// бы не «пиковым», а случайным остатком. Одна на два потребителя
         /// (пиковый счёт и парциальные невязки P6) нарочно: два места,
         /// считающие «пиковое окно» по-своему, однажды разойдутся.
+        ///
+        /// (`AMBER62`) Заметность линии — <see cref="PeakWindowMinPeakSharePercent"/>.
         /// </summary>
-        bool[] PeakWindowMask(FsaComponent component, EnergyCalibration calibration,
+        bool[] PeakWindowMask(FsaComponent component, FsaEfficiency efficiency,
+                              EnergyCalibration calibration,
                               FwhmCalibration fwhmCalibration, double gain, double offset,
                               int chLo, int chHi, int channels)
         {
@@ -8997,11 +15647,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             bool[] inWindow = new bool[channels];
             bool any = false;
 
-            foreach (FsaLine line in component.Lines)
+            double[] linePeakCounts = this.PeakWindowLinePeakCounts(component, efficiency);
+            double brightest = 0.0;
+            for (int i = 0; linePeakCounts != null && i < linePeakCounts.Length; i++)
             {
-                if (line.Intensity > 0.0
-                    && MarkPeakWindow(inWindow, line.Energy, calibration, fwhmCalibration,
-                                      gain, offset, chLo, chHi, channels))
+                if (linePeakCounts[i] > brightest)
+                {
+                    brightest = linePeakCounts[i];
+                }
+            }
+
+            double floor = brightest * PeakWindowMinPeakSharePercent / 100.0;
+            // (`AMBER89`) Окно стоит там же, где пик ОБРАЗА: матричный образ
+            // формы света "line"/"peak" кладёт пик на E + s(E), голый пик
+            // (<see cref="BuildTemplate"/>, в том числе у компонента с готовыми
+            // весами) — на E. Правило то же, что у <see cref="PeakWindowLinePeakCounts"/>.
+            bool imageShifted = this.ResponseMatrix != null && !component.WeightsAreFinal;
+            for (int i = 0; i < component.Lines.Count; i++)
+            {
+                FsaLine line = component.Lines[i];
+                double peakCounts = linePeakCounts != null && i < linePeakCounts.Length
+                    ? linePeakCounts[i] : 0.0;
+                if (!(line.Intensity > 0.0) || !(peakCounts > 0.0) || !(peakCounts >= floor))
+                {
+                    continue;
+                }
+
+                if (MarkPeakWindow(inWindow, line.Energy, imageShifted, calibration, fwhmCalibration,
+                                   gain, offset, chLo, chHi, channels))
                 {
                     any = true;
                 }
@@ -9010,13 +15683,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Сумм-пик принадлежит своему нуклиду и стоит там, где линии нет
             // вовсе; без него у плотных каскадов (Lu-176) пиковый счёт терял бы
             // то, что каскадная поправка вынесла из линий.
+            //
+            // ⛔ Мерка `AMBER62` на сумм-пики НЕ распространяется, и это не
+            // недосмотр: его площадь — произведение ДВУХ пиковых эффективностей
+            // (`p_ij·ε_p(i)·ε_p(j)·S_ij`) и потому мала у каждого по
+            // отдельности. Судить её тем же полом, что и одиночную линию,
+            // значило бы отнять у плотного каскада все сумм-окна разом — то
+            // есть вернуть ровно ту потерю, ради которой сумм-пики сюда и
+            // заведены. Свой отсев у них есть и свой (`SumPeakFloor`,
+            // `SumPeakAreaShare`, `MaxSumPeaks`).
             FsaCascadeSummer.Correction correction =
-                this.cascade != null && this.CascadeSumPeaks ? this.cascade.For(component) : null;
+                this.cascade != null && this.CascadeSumPeaks ? this.CorrectionOf(component) : null;
             if (correction != null && correction.SumPeaks != null)
             {
                 foreach (FsaCascadeSummer.SumPeak peak in correction.SumPeaks)
                 {
-                    if (MarkPeakWindow(inWindow, peak.Energy, calibration, fwhmCalibration,
+                    // сумм-пик кладётся матрицей (`AccumulateSumPeaks`) — по свету
+                    if (MarkPeakWindow(inWindow, peak.Energy, imageShifted, calibration, fwhmCalibration,
                                        gain, offset, chLo, chHi, channels))
                     {
                         any = true;
@@ -9110,7 +15793,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     break;
                 }
 
-                bool[] zone = this.PeakWindowMask(column.Component, calibration, fwhmCalibration,
+                bool[] zone = this.PeakWindowMask(column.Component, efficiency, calibration, fwhmCalibration,
                                                   gain, offset, chLo, chHi, channels);
                 if (zone == null)
                 {
@@ -9173,8 +15856,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Пометить в маске каналы окна ±2 ПШПВ вокруг линии с учётом дрейфа
         /// шкалы. Возвращает false, если линия за краем окна фита или ПШПВ там
         /// не определена.
+        ///
+        /// ⛔ (`AMBER89`, П144 24.09.2026) Окно — на ПИКЕ ОБРАЗА, а не на E.
+        /// Матричный образ формы света "line"/"peak" (умолчание с 12.09.2026)
+        /// ставит пик на <see cref="LinePositionKev"/> = E + s(E); окно стояло
+        /// на E и было смещено от пика на −s: мерено `FsaWindowCentreProbe` на
+        /// G1S24 (NaI) — 59.5 кэВ −0.41 ПШПВ, 238.6 −0.12, 1274.5 +0.07,
+        /// 2614.5 +0.16. Тем же местом стоят ядро опоры и нож подпорогового
+        /// хвоста. <paramref name="imageShifted"/> — образ линии матричный
+        /// (у голого пика <see cref="BuildTemplate"/> пик на E, и окно там же).
         /// </summary>
-        bool MarkPeakWindow(bool[] inWindow, double energy, EnergyCalibration calibration,
+        bool MarkPeakWindow(bool[] inWindow, double energy, bool imageShifted, EnergyCalibration calibration,
                             FwhmCalibration fwhmCalibration, double gain, double offset,
                             int chLo, int chHi, int channels)
         {
@@ -9183,15 +15875,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return false;
             }
 
-            // (`S169`) окно — той же картой нуля, что ставит образ
-            double position = this.LightToChannel(calibration, energy, channels);
+            // (`S169`) окно — той же картой нуля, что ставит образ;
+            // (`AMBER89`) и на той же позиции по свету
+            double position = this.LightToChannel(calibration,
+                imageShifted ? this.LinePositionKev(energy) : energy, channels);
             if (!Finite(position))
             {
                 return false;
             }
 
             double p = this.DriftPosition(position, gain, offset);
-            double fwhm = fwhmCalibration.ChannelToFwhm(p);
+            double fwhm = this.ImageFwhm(fwhmCalibration, p);
             if (!PositiveFinite(fwhm) || fwhm >= channels)
             {
                 return false;
@@ -9363,6 +16057,76 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public int FixedFirst;
         }
 
+        /// <summary>
+        /// (`AMBER65`) Сумм-область ЭТОГО фита: каналы, содержимое которых
+        /// модель объясняет ПРЕИМУЩЕСТВЕННО наложениями — приход колонки
+        /// положителен (перевесил убыль `−m·s`) и составляет не меньше
+        /// <see cref="PileUpAnchorShare"/> всей модели канала.
+        ///
+        /// Считается на каждом проходе от самой модели, а не один раз от
+        /// шаблона: шаблон положителен на всём сумм-континууме (у спектра
+        /// витрины — от 476 кэВ, четверть каналов полосы), и защита по нему
+        /// снимает М-оценку там, где содержимое канала на самом деле задаёт
+        /// комптоновский континуум нуклида. Замерено: доля от наибольшего
+        /// прихода шаблона выправляет подсадку, но χ²/ндф ЧИСТОГО спектра
+        /// витрины 12.56 → 23.04, а скорость Cs-137 −0.45 % — защита шире
+        /// доказательства. Доля от модели канала оставляет ровно область выше
+        /// собственной структуры спектра.
+        ///
+        /// null — защищать нечего: колонки в модели нет (её мог снять отсев по
+        /// z), её амплитуда нулевая, доля выведена за единицу (плечо порчи)
+        /// или ни один канал полосы не прошёл.
+        /// </summary>
+        bool[] PileUpAnchor(FitResult fit, int chLo, int chHi, int channels)
+        {
+            if (fit == null || this.pileUpColumn == null || fit.Columns == null
+                || fit.Amplitude == null || fit.Model == null
+                || !(this.PileUpAnchorShare <= 1.0) || this.PileUpAnchorShare < 0.0)
+            {
+                return null;
+            }
+
+            double[] template = null;
+            double amplitude = 0.0;
+            for (int k = 0; k < fit.Columns.Count && k < fit.Amplitude.Length; k++)
+            {
+                if (ReferenceEquals(fit.Columns[k].Component, this.pileUpColumn))
+                {
+                    template = fit.Columns[k].Values;
+                    amplitude = fit.Amplitude[k];
+                    break;
+                }
+            }
+
+            if (template == null || !(amplitude > 0.0))
+            {
+                return null;
+            }
+
+            bool[] mask = new bool[channels];
+            bool any = false;
+            for (int i = chLo; i <= chHi && i < template.Length && i < fit.Model.Length; i++)
+            {
+                double arrival = amplitude * template[i];
+                if (!(arrival > 0.0))
+                {
+                    continue;
+                }
+
+                // Модель ≤ 0 при положительном приходе значит, что канал держит
+                // одна колонка наложений: доля её — единица, и порог пройден
+                // при любом его значении.
+                double model = fit.Model[i];
+                if (!(model > 0.0) || arrival >= this.PileUpAnchorShare * model)
+                {
+                    mask[i] = true;
+                    any = true;
+                }
+            }
+
+            return any ? mask : null;
+        }
+
         FitResult FitHuber(List<FsaComponent> library, List<double[]> fixedColumns,
                            EnergyCalibration calibration, FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
                            double gain, double offset, int chLo, int chHi, int channels,
@@ -9384,10 +16148,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 passes = 2;
             }
 
+            // (`AMBER213`, П241) Образы — ОДИН раз на все проходы: усиление, нуль,
+            // библиотека и подмножество у проходов общие, меняются только веса,
+            // а от весов образ не зависит. Каждому проходу — свой список и свои
+            // колонки (результат прохода владеет ими, как прежде), массивы
+            // образов общие: после сборки их никто не пишет. Повторная сборка
+            // давала побитово те же массивы и те же побочные следы (кэш
+            // гистограмм поглощения по ссылке, заметки о линиях вне кривой —
+            // повтор идемпотентен), то есть снята без изменения результата.
+            bool fromMatrix;
+            List<FitColumn> built = this.BuildFitColumns(library, fixedColumns, calibration, fwhmCalibration,
+                                                         efficiency, gain, offset, chLo, chHi, channels,
+                                                         subset, out fromMatrix);
             for (int pass = 0; pass < passes; pass++)
             {
-                best = FitOnce(library, fixedColumns, calibration, fwhmCalibration, efficiency,
-                               gain, offset, chLo, chHi, channels, y, weights, subset);
+                List<FitColumn> columns = new List<FitColumn>(built.Count);
+                foreach (FitColumn column in built)
+                {
+                    columns.Add(new FitColumn { Component = column.Component, Values = column.Values, TailOf = column.TailOf });
+                }
+
+                best = this.SolveFitColumns(columns, fromMatrix, fixedColumns.Count, chLo, chHi, channels, y, weights);
                 if (best == null || pass + 1 == passes)
                 {
                     break;
@@ -9398,14 +16179,70 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     scale = this.ModelVariance(best, variance, chLo, chHi);
                 }
 
+                // (`AMBER65`, П136) Сумм-область колонки наложений — вне
+                // М-оценки, пока колонка стоит в модели: там большая невязка
+                // не выброс, а та самая структура, которой колонка задана, и
+                // задушить её значит отнять у амплитуды единственную опору.
+                // Довод и замер — у <see cref="PileUpAnchorShare"/>.
+                bool[] anchor = this.PileUpAnchor(best, chLo, chHi, channels);
+
+                // (`AMBER209`, П236) Надувка порога по разладу модели — довод у
+                // <see cref="HuberInflate"/>. Шкала — РОБАСТНАЯ: медиана |r/σ| по
+                // полосе с ТЕКУЩЕЙ дисперсией (той же, от которой берётся σ
+                // порога) × 1.4826 (MAD нормали); ниже единицы не опускается.
+                // RMS-плечо (√(χ²/ndf)) отвергнуто A/B корпуса — у свойства.
+                // (`AMBER209`, П237) Относительный пол порога — довод у
+                // <see cref="HuberGamma"/>: дисперсия ПОРОГА (не веса) —
+                // `D + γ²·μ̂²`, μ̂ — ожидание сырого отсчёта канала.
+                double gamma2 = this.HuberGamma > 0.0 ? this.HuberGamma * this.HuberGamma : 0.0;
+                double[] subtracted = gamma2 > 0.0 && this.reportNoise != null ? this.reportNoise.Subtracted : null;
+                double[] thresholdScale = scale;
+                if (gamma2 > 0.0 && best.Model != null)
+                {
+                    thresholdScale = (double[])scale.Clone();
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        double mu = best.Model[i] + (subtracted != null ? subtracted[i] : 0.0);
+                        if (mu > 0.0)
+                        {
+                            thresholdScale[i] += gamma2 * mu * mu;
+                        }
+                    }
+                }
+
+                double inflate = 1.0;
+                if (this.HuberM > 0.0 && this.HuberInflate)
+                {
+                    double[] pulls = new double[chHi - chLo + 1];
+                    int used = 0;
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        if (!(scale[i] > 0.0))
+                        {
+                            continue;
+                        }
+                        pulls[used++] = Math.Abs(best.Residual[i]) / Math.Sqrt(thresholdScale[i]);
+                    }
+                    if (used > 0)
+                    {
+                        Array.Sort(pulls, 0, used);
+                        double median = used % 2 == 1 ? pulls[used / 2] : 0.5 * (pulls[used / 2 - 1] + pulls[used / 2]);
+                        double mad = 1.4826 * median;
+                        if (mad > 1.0)
+                        {
+                            inflate = mad;
+                        }
+                    }
+                }
+                this.LastHuberInflation = inflate;
                 for (int i = chLo; i <= chHi; i++)
                 {
                     double w = 1.0 / scale[i];
-                    if (this.HuberM > 0.0)
+                    if (this.HuberM > 0.0 && (anchor == null || !anchor[i]))
                     {
-                        double sigma = Math.Sqrt(scale[i]);
+                        double sigma = Math.Sqrt(thresholdScale[i]);
                         double residual = Math.Abs(best.Residual[i]);
-                        double m = this.HuberM * sigma;
+                        double m = this.HuberM * sigma * inflate;
                         if (residual > m)
                         {
                             w *= m / residual;
@@ -9425,12 +16262,67 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // прогоны с разными весами решателя сравнимы между собой.
             if (best != null && reportWeights != null)
             {
+                // ⛔ (`S180`, П134 22.09.2026) ВЕСА ОТЧЁТА — ОТ ОЖИДАНИЯ, А НЕ ОТ
+                // НАБЛЮДЕНИЯ. `1/max(N, 1)` (Нейман) смещает χ² ВВЕРХ при малых
+                // отсчётах даже у ВЕРНОЙ модели: `E[(y − μ)²/max(y, 1)]` = 1.45
+                // при μ = 3 и 1.64 при μ = 5 против 1.000 у Пирсона (Baker &
+                // Cousins, NIM 221 (1984) 437). Здесь дисперсия пересобирается
+                // от модели прохода — `μ̂ + Extra` (пол снят, `S182`), — теми же
+                // слагаемыми, какими взяты `reportWeights`
+                // (<see cref="reportNoise"/>), то есть без составного шума
+                // `S43`. Гейты остаются на `reportWeights`: им нужна мерка,
+                // общая для двух сравниваемых моделей.
+                double[] report = this.ReportWeights(best, reportWeights, chLo, chHi);
                 double chi2Base = 0.0;
                 double dataWeighted = 0.0;
-                for (int i = chLo; i <= chHi; i++)
+
+                // (`S182`, П154 24.09.2026) Ячейки меры — объединённые каналы
+                // (<see cref="ReportPoolVariance"/>): только при весах по
+                // ожиданию, потому что правило объединения — по ожидаемому
+                // счёту. Иначе ячейка — канал, как было.
+                double[] poolVariance = null;
+                int[] pool = this.ReportModelWeights && this.ReportPoolVariance > 0.0
+                             && this.reportNoise != null && best.Model != null
+                    ? PoolReportChannels(report, chLo, chHi, this.ReportPoolVariance, out poolVariance)
+                    : null;
+                if (pool == null)
                 {
-                    chi2Base += best.Residual[i] * best.Residual[i] * reportWeights[i];
-                    dataWeighted += y[i] * y[i] * reportWeights[i];
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        chi2Base += best.Residual[i] * best.Residual[i] * report[i];
+                        dataWeighted += y[i] * y[i] * report[i];
+                    }
+                }
+                else
+                {
+                    // Ячейка — отрезок подряд идущих каналов: член χ² —
+                    // `(Σr)²/Σv`, член знаменателя ε — `Σy²/Σv` (ошибка модели
+                    // канала независима, её дисперсия в ячейке складывается).
+                    // Для ячейки из одного канала оба совпадают с поканальными.
+                    int current = -1;
+                    double sumR = 0.0, sumY2 = 0.0;
+                    for (int i = chLo; i <= chHi + 1; i++)
+                    {
+                        int b = i <= chHi ? pool[i] : -1;
+                        if (b != current)
+                        {
+                            if (current >= 0 && poolVariance[current] > 0.0)
+                            {
+                                chi2Base += sumR * sumR / poolVariance[current];
+                                dataWeighted += sumY2 / poolVariance[current];
+                            }
+
+                            current = b;
+                            sumR = 0.0;
+                            sumY2 = 0.0;
+                        }
+
+                        if (b >= 0)
+                        {
+                            sumR += best.Residual[i];
+                            sumY2 += y[i] * y[i];
+                        }
+                    }
                 }
 
                 // (`A291`) Второй ПОДСЧЁТ здесь был копией формулы и ошибался
@@ -9465,15 +16357,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // совпавших весах формула сводится ровно к `EffectiveNdf`
                 // (`n − 2tr S + tr S²`), а при λ = 0 — к `n − активных`.
                 // Поэтому отдельной ветки `SameWeights` больше нет.
-                double exact = ReportNdf(best, reportWeights, chLo, chHi);
+                double exact = pool == null
+                    ? ReportNdf(best, report, chLo, chHi)
+                    : ReportNdfPooled(best, report, pool, poolVariance, chLo, chHi);
                 if (exact > 0.0)
                 {
                     best.NdfBase = exact;
                 }
 
+                int cells = chHi - chLo + 1;
+                if (pool != null)
+                {
+                    cells = 0;
+                    foreach (double v in poolVariance)
+                    {
+                        if (v > 0.0)
+                        {
+                            cells++;
+                        }
+                    }
+                }
+
                 double ndf = best.NdfBase > 0.0
                     ? best.NdfBase
-                    : Math.Max(1, (chHi - chLo + 1) - ActiveCount(best.Active));
+                    : Math.Max(1, cells - ActiveCount(best.Active));
                 best.Chi2NdfBase = chi2Base / ndf;
 
                 // (S51) НЕВЯЗКА МОДЕЛИ ε — доля формы спектра, которую модель НЕ
@@ -9541,11 +16448,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `n − 2tr S + tr S²` (то же, что <see cref="EffectiveNdf"/>), а при
         /// вдобавок нулевом штрафе — ровно `n − активных`.
         ///
-        /// Возвращает 0, когда считать нечем: нет активного множества, нет
-        /// обратной Грам, либо у какого-то канала полосы отчётный вес не
-        /// положителен (тогда `V₀` в этом канале бесконечна, и ожидание не
-        /// существует). Потребитель в этом случае остаётся на прежней
+        /// Возвращает 0, когда считать нечем: нет активного множества либо нет
+        /// обратной Грам. Потребитель в этом случае остаётся на прежней
         /// договорённости `n − активных` — приближении, но названном.
+        ///
+        /// ⛔ (`S182`) Канал с неположительным ОТЧЁТНЫМ весом счёт не обрывает,
+        /// а ПРОПУСКАЕТСЯ — довод у самого `continue` в теле.
         /// </summary>
         /// <summary>
         /// (`A310`) Дисперсия каналов ОТ МОДЕЛИ прохода: `max(μ̂, 1) + Extra`,
@@ -9570,6 +16478,58 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return v;
+        }
+
+        /// <summary>
+        /// (`S180`) Веса ОТЧЁТНОЙ метрики на этом проходе: при
+        /// <see cref="ReportModelWeights"/> — `1/(μ̂ + Extra)` от модели прохода
+        /// (Пирсон), иначе поданные `1/(max(N, 1) + Extra)` (Нейман). Массив
+        /// НОВЫЙ: поданный живёт у вызывающего, и гейты читают именно его. Вне
+        /// полосы фита веса не читаются вовсе, поэтому заполняется только
+        /// `[chLo, chHi]`, а остальное копируется как есть.
+        ///
+        /// ⛔ (`S182`, П136 22.09.2026) ПОЛА `max(μ̂, 1)` У ОТЧЁТНОЙ ДИСПЕРСИИ
+        /// НЕТ, И ЭТО НЕ НЕДОСМОТР. Пирсоновский член имеет ожидание РОВНО
+        /// единицу при ЛЮБОМ μ > 0: `E[(y − μ)²/μ] = Var(y)/μ = 1` (Baker &amp;
+        /// Cousins, NIM 221 (1984) 437, §2). Пол ломает именно это: канал с
+        /// μ ≪ 1 даёт в χ² не единицу, а μ, тогда как в `ndf`
+        /// (<see cref="ReportNdf"/>) считается целой единицей, — и у
+        /// сцинтиллятора, где выше линий почти пусто, отношение садится
+        /// вдвое-вчетверо. Измерено пуассоновскими копиями ЗАВЕДОМО ВЕРНОЙ
+        /// модели (`FsaReportWeightsProbe`): с полом мера 0.15…0.46 вместо 1.00
+        /// на всей лестнице μ = 0.2…50; журнал
+        /// `handover/handover-2026-09-22-p136-huber-audit-measures.md`.
+        ///
+        /// ⚠ Цена снятия пола — не смещение, а РАЗБРОС: дисперсия члена равна
+        /// `2 + 1/μ`, то есть на бедном канале мера шумит сильнее. Смещения она
+        /// не даёт ни при каком μ, и это ровно то, что от меры «1 = модель
+        /// верна» требуется. Отклонение Пуассона (правдоподобное отношение той
+        /// же работы) единицу даёт лишь асимптотически и внизу шкалы смещено,
+        /// поэтому взят Пирсон.
+        ///
+        /// Канал с неположительной или бесконечной дисперсией (модель, фон и
+        /// добавка разом нули — наблюдение там вырождено) получает НУЛЕВОЙ вес
+        /// и выпадает И из χ², И из `ndf`: <see cref="ReportNdf"/> такие каналы
+        /// не считает. Молча оставить ему пол значило бы вернуть ровно то
+        /// смещение, ради которого пол и снят.
+        /// </summary>
+        double[] ReportWeights(FitResult fit, double[] report, int chLo, int chHi)
+        {
+            NoiseTerms terms = this.reportNoise;
+            if (!this.ReportModelWeights || fit == null || fit.Model == null || terms == null)
+            {
+                return report;
+            }
+
+            double[] w = (double[])report.Clone();
+            for (int i = chLo; i <= chHi; i++)
+            {
+                double mu = fit.Model[i] + terms.Subtracted[i];
+                double variance = mu + terms.Extra[i];
+                w[i] = PositiveFinite(variance) ? 1.0 / variance : 0.0;
+            }
+
+            return w;
         }
 
         static double ReportNdf(FitResult fit, double[] report, int chLo, int chHi)
@@ -9618,9 +16578,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double w0 = report[i];
                 if (!(w0 > 0.0))
                 {
-                    // Канал полосы без отчётного веса: ожидание отчётной суммы
-                    // в нём не определено, и молча подставлять ноль нельзя.
-                    return 0.0;
+                    // ⛔ (`S182`, П136 22.09.2026) Канал без отчётного веса
+                    // ПРОПУСКАЕТСЯ, а не обрывает счёт. Нулевой вес ставит
+                    // `ReportWeights` там, где отчётная дисперсия μ̂ + Extra
+                    // выродилась в ноль: наблюдение в таком канале
+                    // детерминировано, его настоящая дисперсия тоже ноль, и в
+                    // разложении следа он даёт `w₀ = 0`, `V₀ = 0` — то есть
+                    // ровно ноль во все три матрицы и в `n`. Канал выпадает И
+                    // из χ² (там `r²·0`), И из `ndf`: иначе мера получила бы в
+                    // знаменатель степень свободы, которой в числителе нет.
+                    //
+                    // Прежний отказ («ожидание не определено») отправлял
+                    // ЦЕЛЫЙ разбор на приближение `n − активных` из-за ОДНОГО
+                    // вырожденного канала — то есть ради него терялась
+                    // точность у всех остальных.
+                    continue;
                 }
 
                 double w = solver[i];
@@ -9681,6 +16653,271 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double ndf = n - 2.0 * traceH + traceMN;
+            return ndf > 1.0 ? ndf : 1.0;
+        }
+
+        /// <summary>
+        /// (`S182`, П154 24.09.2026) Ячейки ОТЧЁТНОЙ меры: каналы полосы
+        /// подряд, слева направо, собираются в отрезок, пока сумма отчётной
+        /// дисперсии `Σv` (`v = 1/w₀` = μ̂ + Extra, ожидаемый счёт) не
+        /// достигнет <paramref name="threshold"/>; хвост, порога не набравший,
+        /// приклеивается к последней ячейке. Канал с нулевым отчётным весом
+        /// (модель там не положительна) входит в ячейку с `v = 0`: его
+        /// отсчёты — улика против модели, и выбрасывать их нельзя.
+        /// Возвращает номер ячейки канала (−1 вне полосы) и `Σv` ячеек.
+        /// Довод и замер — у <see cref="ReportPoolVariance"/>.
+        /// </summary>
+        static int[] PoolReportChannels(double[] report, int chLo, int chHi, double threshold,
+                                        out double[] cellVariance)
+        {
+            int[] cell = new int[report.Length];
+            for (int i = 0; i < cell.Length; i++)
+            {
+                cell[i] = -1;
+            }
+
+            var sums = new List<double>();
+            int current = 0;
+            double acc = 0.0;
+            bool open = false;
+            for (int i = chLo; i <= chHi && i < report.Length; i++)
+            {
+                double v = report[i] > 0.0 ? 1.0 / report[i] : 0.0;
+                cell[i] = current;
+                acc += v;
+                open = true;
+                if (acc >= threshold)
+                {
+                    sums.Add(acc);
+                    current++;
+                    acc = 0.0;
+                    open = false;
+                }
+            }
+
+            if (open)
+            {
+                if (sums.Count > 0)
+                {
+                    for (int i = chLo; i <= chHi && i < report.Length; i++)
+                    {
+                        if (cell[i] == current)
+                        {
+                            cell[i] = current - 1;
+                        }
+                    }
+
+                    sums[current - 1] += acc;
+                }
+                else
+                {
+                    sums.Add(acc);
+                }
+            }
+
+            cellVariance = sums.ToArray();
+            return cell;
+        }
+
+        /// <summary>
+        /// (`S182`, П154 24.09.2026) Точное ожидание отчётного χ² ОБЪЕДИНЁННЫХ
+        /// ячеек — тот же след, что <see cref="ReportNdf"/>, но с агрегацией
+        /// `P` каналов в ячейки: `tr(PᵀDP(I−H)V(I−H)ᵀ)`, `D = diag(1/Σv)`,
+        /// `V = diag(v)`, `H = X G⁻¹ XᵀW`. Раскладывается снова на `p×p`:
+        ///
+        ///     tr = ячеек − 2·tr(G⁻¹A′) + tr(G⁻¹ M G⁻¹ N′),
+        ///     A′ = Σ_c (1/V_c)·u_c·s_cᵀ,  u_c = Σ_{i∈c} w_i v_i x_i,  s_c = Σ_{i∈c} x_i,
+        ///     M  = Σ_i w_i² v_i x_i x_iᵀ,  N′ = Σ_c (1/V_c)·s_c·s_cᵀ.
+        ///
+        /// Для ячейки из одного канала `A′`, `M`, `N′` совпадают с `A`, `M`,
+        /// `N` поканального следа (`v = 1/w₀`), то есть формула — обобщение,
+        /// а не вторая копия. Ячейка с `Σv = 0` выпадает И из χ², И отсюда.
+        /// </summary>
+        static double ReportNdfPooled(FitResult fit, double[] report, int[] cell, double[] cellVariance,
+                                      int chLo, int chHi)
+        {
+            if (fit == null || report == null || cell == null || cellVariance == null
+                || fit.Columns == null || fit.ActiveIndices == null || fit.ActiveInverse == null
+                || fit.Weights == null)
+            {
+                return 0.0;
+            }
+
+            int p = fit.ActiveIndices.Count;
+            if (p == 0)
+            {
+                return 0.0;
+            }
+
+            double[] solver = fit.Weights;
+            var x = new double[p][];
+            for (int a = 0; a < p; a++)
+            {
+                int index = fit.ActiveIndices[a];
+                if (index < 0 || index >= fit.Columns.Count)
+                {
+                    return 0.0;
+                }
+
+                x[a] = fit.Columns[index].Values;
+                if (x[a] == null)
+                {
+                    return 0.0;
+                }
+            }
+
+            var A = new double[p, p];
+            var M = new double[p, p];
+            var N = new double[p, p];
+
+            // (`AMBER213`, П241) Два прохода вместо одного. (1) Подряд, прежними
+            // выражениями и в прежнем порядке каналов, — суммы ячеек `u`, `s`
+            // (векторы по колонкам) и `1/дисперсии` ячеек — в таблицы по ячейкам.
+            // (2) Матрицы A, N, M — ПО СТРОКАМ параллельно (<see cref="FsaParallel"/>):
+            // строка a пишет только A[a,·], N[a,·] и M[a, b≥a]; каждое её слагаемое
+            // — тем же выражением и в той же очерёдности ячеек и каналов, что
+            // прежде (A и N копились по ячейкам, M — по каналам, и эти суммы
+            // друг от друга не зависят). Отказ по длине массивов — до всего:
+            // прежний цикл отказывал на первом таком канале полосы, то есть
+            // всегда, если он в полосе есть.
+            if (chLo <= chHi && (chHi >= report.Length || chHi >= solver.Length || chHi >= cell.Length))
+            {
+                return 0.0;
+            }
+
+            var cellU = new List<double[]>();
+            var cellS = new List<double[]>();
+            var cellInv = new List<double>();
+            {
+                var u = new double[p];
+                var s = new double[p];
+                int current = -1;
+                for (int i = chLo; i <= chHi + 1; i++)
+                {
+                    int c = i <= chHi ? cell[i] : -1;
+                    if (c != current)
+                    {
+                        if (current >= 0 && current < cellVariance.Length && cellVariance[current] > 0.0)
+                        {
+                            cellInv.Add(1.0 / cellVariance[current]);
+                            cellU.Add(u);
+                            cellS.Add(s);
+                            u = new double[p];
+                            s = new double[p];
+                        }
+                        else
+                        {
+                            Array.Clear(u, 0, p);
+                            Array.Clear(s, 0, p);
+                        }
+
+                        current = c;
+                    }
+
+                    if (c < 0)
+                    {
+                        continue;
+                    }
+
+                    double v = report[i] > 0.0 ? 1.0 / report[i] : 0.0;
+                    double w = solver[i];
+                    for (int a = 0; a < p; a++)
+                    {
+                        double xa = x[a][i];
+                        if (xa == 0.0)
+                        {
+                            continue;
+                        }
+
+                        u[a] += w * v * xa;
+                        s[a] += xa;
+                    }
+                }
+            }
+
+            int cells = cellInv.Count;
+            FsaParallel.For(p, a =>
+            {
+                for (int q = 0; q < cells; q++)
+                {
+                    double[] u = cellU[q];
+                    double[] s = cellS[q];
+                    if (u[a] == 0.0 && s[a] == 0.0)
+                    {
+                        continue;
+                    }
+
+                    double inv = cellInv[q];
+                    for (int k = 0; k < p; k++)
+                    {
+                        A[a, k] += inv * u[a] * s[k];
+                        N[a, k] += inv * s[a] * s[k];
+                    }
+                }
+
+                for (int i = chLo; i <= chHi; i++)
+                {
+                    if (cell[i] < 0)
+                    {
+                        continue;
+                    }
+
+                    double xa = x[a][i];
+                    if (xa == 0.0)
+                    {
+                        continue;
+                    }
+
+                    double v = report[i] > 0.0 ? 1.0 / report[i] : 0.0;
+                    double w = solver[i];
+                    double mw = w * w * v;
+                    if (mw == 0.0)
+                    {
+                        continue;
+                    }
+
+                    for (int bb = a; bb < p; bb++)
+                    {
+                        M[a, bb] += mw * xa * x[bb][i];
+                    }
+                }
+            });
+
+            for (int a = 0; a < p; a++)
+            {
+                for (int b = a + 1; b < p; b++)
+                {
+                    M[b, a] = M[a, b];
+                }
+            }
+
+            double[,] inverse = fit.ActiveInverse;
+            if (inverse.GetLength(0) < p || inverse.GetLength(1) < p || cells == 0)
+            {
+                return 0.0;
+            }
+
+            double traceH = 0.0;
+            for (int a = 0; a < p; a++)
+            {
+                for (int k = 0; k < p; k++)
+                {
+                    traceH += inverse[a, k] * A[k, a];
+                }
+            }
+
+            double[,] left = Multiply(inverse, M, p);    // G⁻¹M
+            double[,] right = Multiply(inverse, N, p);   // G⁻¹N′
+            double traceMN = 0.0;
+            for (int a = 0; a < p; a++)
+            {
+                for (int k = 0; k < p; k++)
+                {
+                    traceMN += left[a, k] * right[k, a];
+                }
+            }
+
+            double ndf = cells - 2.0 * traceH + traceMN;
             return ndf > 1.0 ? ndf : 1.0;
         }
 
@@ -9788,13 +17025,146 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return ndf > 1.0 ? ndf : 1.0;
         }
 
+        /// <summary>
+        /// (`AMBER123`, П166 28.09.2026) ВЕРХНЯЯ ГРАНИЦА АМПЛИТУДЫ
+        /// (<see cref="FsaComponent.AmplitudeCap"/>). Колонка, чья амплитуда по
+        /// NNLS вышла выше границы, закрепляется НА границе, а остальные
+        /// решаются заново с её вкладом, вынесенным в правую часть
+        /// (c′ = c − G·x_k): это точный минимум той же целевой функции на
+        /// грани x_k = граница, потому что при закреплённой колонке задача по
+        /// прочим снова NNLS. Колонки без границы (все, кроме наложений) —
+        /// побитово прежнее решение: метод возвращает тот же массив.
+        ///
+        /// ⛔ (`AMBER137`, П182 29.09.2026) ЗАКРЕПЛЁННАЯ КОЛОНКА — НЕ СВОБОДНЫЙ
+        /// ПАРАМЕТР. Её амплитуда в модели остаётся (граница, не ноль), но из
+        /// активного множества она уходит, как уходит колонка, зажатая NNLS в
+        /// ноль: обратная Грама, σ прочих колонок и число степеней свободы
+        /// считаются по задаче, которую фит на самом деле решил, — с x_k,
+        /// вынесенным в правую часть. До П182 флаг ставился `cap > 0`, и σ
+        /// соседей описывала другую задачу, где граница снята: трёхканальная
+        /// проба `AmberFsaProbeP182` давала σ(сигнала) 9.055 вместо 1 и ndf 1
+        /// вместо 2. Судьбу самой колонки при отсеве по значимости решает её
+        /// z, как и прежде, — σ считает <see cref="FitOnce"/> дополнением Шура
+        /// против нового активного множества, то есть ровно ту величину,
+        /// которую прежде давала обратная Грама с колонкой внутри.
+        /// <paramref name="capped"/> — индекс закреплённой колонки, −1 — ни
+        /// одна граница не сработала.
+        /// </summary>
+        double[] ApplyAmplitudeCaps(List<FitColumn> columns, double[,] gram, double[] c, int m,
+                                    double[] x, ref bool[] active, out int capped)
+        {
+            capped = -1;
+            double cap = double.NaN;
+            for (int k = 0; k < m; k++)
+            {
+                FsaComponent component = columns[k].Component;
+                if (component == null || double.IsNaN(component.AmplitudeCap))
+                {
+                    continue;
+                }
+
+                if (x[k] > component.AmplitudeCap)
+                {
+                    capped = k;
+                    cap = Math.Max(0.0, component.AmplitudeCap);
+                    if (x[k] > this.PileUpUncappedPairs || double.IsNaN(this.PileUpUncappedPairs))
+                    {
+                        this.PileUpUncappedPairs = x[k];
+                    }
+
+                    break;
+                }
+            }
+
+            if (capped < 0)
+            {
+                return x;
+            }
+
+            this.PileUpCapHits++;
+            double[,] reduced = (double[,])gram.Clone();
+            double[] rhs = new double[m];
+            for (int a = 0; a < m; a++)
+            {
+                rhs[a] = c[a] - gram[a, capped] * cap;
+            }
+
+            for (int a = 0; a < m; a++)
+            {
+                reduced[a, capped] = 0.0;
+                reduced[capped, a] = 0.0;
+            }
+
+            reduced[capped, capped] = 1.0;
+            rhs[capped] = 0.0;
+            bool[] reducedActive;
+            double[] solved = NnlsSolve(reduced, rhs, m, out reducedActive);
+            solved[capped] = cap;
+            reducedActive[capped] = false;
+            active = reducedActive;
+            return solved;
+        }
+
+        /// <summary>
+        /// (`AMBER123`) Сколько раз за разбор граница амплитуды наложений
+        /// срабатывала (сетка дрейфа и перефиты — каждый раз); ноль — колонка
+        /// укладывалась в R·τ_d. Сбрасывается в начале <see cref="Analyze"/>.
+        /// </summary>
+        public int PileUpCapHits { get; private set; }
+
+        /// <summary>
+        /// (`AMBER123`) Граница числа пар колонки наложений на этом разборе,
+        /// N·(T − LT)/LT (или N²·τ/T по мёртвому времени прибора); NaN —
+        /// границы нет (живого времени и мёртвого прибора нет).
+        /// </summary>
+        public double PileUpCapPairs { get; private set; }
+
+        /// <summary>
+        /// (`AMBER123`) Наибольшая амплитуда колонки наложений, которую NNLS
+        /// давал ДО закрепления на границе; NaN — граница не срабатывала.
+        /// </summary>
+        public double PileUpUncappedPairs { get; private set; }
+
         FitResult FitOnce(List<FsaComponent> library, List<double[]> fixedColumns,
                           EnergyCalibration calibration, FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
                           double gain, double offset, int chLo, int chHi, int channels,
                           double[] y, double[] weights, List<FsaComponent> subset)
         {
-            List<FitColumn> columns = new List<FitColumn>();
-            bool fromMatrix = false;
+            bool fromMatrix;
+            List<FitColumn> columns = this.BuildFitColumns(library, fixedColumns, calibration, fwhmCalibration,
+                                                           efficiency, gain, offset, chLo, chHi, channels,
+                                                           subset, out fromMatrix);
+            return this.SolveFitColumns(columns, fromMatrix, fixedColumns.Count, chLo, chHi, channels, y, weights);
+        }
+
+        /// <summary>
+        /// (`AMBER213`, П241) Колонки фита при заданных усилении и нуле — образы
+        /// компонентов в порядке библиотеки, за ними <paramref name="fixedColumns"/>.
+        /// Вынесено из <see cref="FitOnce"/>, чтобы <see cref="FitHuber"/> строил
+        /// образы ОДИН раз на свои проходы: от весов образ не зависит, а до
+        /// П241 он строился заново на каждом из трёх проходов Хубера — две трети
+        /// всей цены образов (замер П241: образы — 56 % времени разбора).
+        /// Порядок колонок и сами массивы — те же, что прежде, побитово.
+        /// </summary>
+        List<FitColumn> BuildFitColumns(List<FsaComponent> library, List<double[]> fixedColumns,
+                                        EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                        FsaEfficiency efficiency, double gain, double offset,
+                                        int chLo, int chHi, int channels, List<FsaComponent> subset,
+                                        out bool fromMatrix)
+        {
+            // (`AMBER213`, П241) Образы компонентов независимы и строятся
+            // ПАРАЛЛЕЛЬНО (<see cref="FsaParallel"/>), каждый в свою ячейку;
+            // колонки собираются ниже в порядке библиотеки, как прежде. Всё, что
+            // трогает общее состояние анализатора, идёт подряд на своём потоке:
+            // гистограммы поглощения (`DepositOf` — кэши по ссылке и через
+            // проходы, счётчики, суммирователь каскадов, чтение баз) — ДО
+            // параллельной части, в прежнем порядке компонентов; заметки о
+            // линиях вне кривой — ПОСЛЕ, тем же порядком. Параллельно идут только
+            // уширение гистограммы (`BroadenResponseDeposit`) и голые пики
+            // (`BuildTemplate`) — чистый счёт, ленивые кэши которого (ядра,
+            // каналы гистограммы, обращение калибровки, множитель рампы)
+            // защищены и хранят чистые функции ключа.
+            List<FsaComponent> chosen = new List<FsaComponent>();
             foreach (FsaComponent component in library)
             {
                 if (subset != null && !subset.Contains(component))
@@ -9802,27 +17172,90 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double[] template;
-                double[] lowTail = null;
+                chosen.Add(component);
+            }
+
+            int count = chosen.Count;
+            // 0 — готовый образ, 1 — по матрице отклика, 2 — голые пики
+            int[] route = new int[count];
+            Deposit[] deposits = new Deposit[count];
+            for (int i = 0; i < count; i++)
+            {
+                FsaComponent component = chosen[i];
                 if (component.FixedTemplate != null)
                 {
-                    // Готовый образ (наложения): ни линий, ни дрейфа.
-                    template = component.FixedTemplate;
+                    route[i] = 0;
                 }
                 else if (this.ResponseMatrix != null && !component.WeightsAreFinal)
                 {
-                    template = this.BuildTemplateFromResponse(component, calibration, fwhmCalibration,
-                                                              gain, offset, chLo, chHi, channels, out lowTail);
+                    route[i] = 1;
+                    deposits[i] = this.DepositOf(component, calibration, fwhmCalibration, channels);
+                }
+                else
+                {
+                    route[i] = 2;
+                }
+            }
+
+            double[][] templates = new double[count][];
+            double[][] tails = new double[count][];
+            List<FsaLine>[] notes = new List<FsaLine>[count];
+            double bin = this.ResponseMatrix != null ? this.ResponseMatrix.BinKev : 0.0;
+            FsaParallel.For(count, i =>
+            {
+                FsaComponent component = chosen[i];
+                if (route[i] == 0)
+                {
+                    // Готовый образ (наложения): ни линий, ни дрейфа.
+                    templates[i] = component.FixedTemplate;
+                }
+                else if (route[i] == 1)
+                {
+                    // Тело прежнего `BuildTemplateFromResponse` после `DepositOf`.
+                    Deposit deposit = deposits[i];
+                    if (deposit != null)
+                    {
+                        double[] template = this.BroadenResponseDeposit(deposit.Values, calibration, fwhmCalibration,
+                                                                        bin, gain, offset, chLo, chHi, channels);
+                        if (template != null && deposit.Tail != null)
+                        {
+                            tails[i] = this.BroadenResponseDeposit(deposit.Tail, calibration, fwhmCalibration,
+                                                                   bin, gain, offset, chLo, chHi, channels);
+                        }
+
+                        templates[i] = template;
+                    }
+                }
+                else
+                {
+                    notes[i] = new List<FsaLine>();
+                    templates[i] = this.BuildTemplate(component, calibration, fwhmCalibration, efficiency,
+                                                      gain, offset, chLo, chHi, channels, notes[i]);
+                }
+            });
+
+            List<FitColumn> columns = new List<FitColumn>();
+            fromMatrix = false;
+            for (int i = 0; i < count; i++)
+            {
+                FsaComponent component = chosen[i];
+                if (notes[i] != null)
+                {
+                    foreach (FsaLine line in notes[i])
+                    {
+                        this.NoteOutOfCurve(component, line);
+                    }
+                }
+
+                double[] template = templates[i];
+                double[] lowTail = tails[i];
+                if (route[i] == 1)
+                {
                     // Пометка «· матрица» ставится по ФАКТУ построенного матрицей
                     // образа, а не по наличию матрицы: библиотека из одних
                     // готовых образов (наложения) и производных компонентов
                     // (обратное рассеяние) матрицу не трогает вовсе.
                     fromMatrix |= template != null;
-                }
-                else
-                {
-                    template = BuildTemplate(component, calibration, fwhmCalibration, efficiency,
-                                             gain, offset, chLo, chHi, channels);
                 }
 
                 if (template != null)
@@ -9847,6 +17280,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 columns.Add(new FitColumn { Component = null, Values = column });
             }
 
+            return columns;
+        }
+
+        /// <summary>
+        /// (`AMBER213`, П241) Решение по готовым колонкам — тело прежнего
+        /// <see cref="FitOnce"/> после сборки образов, без изменений.
+        /// <paramref name="fixedCount"/> — сколько колонок в конце списка
+        /// приписаны из <c>fixedColumns</c>.
+        /// </summary>
+        FitResult SolveFitColumns(List<FitColumn> columns, bool fromMatrix, int fixedCount,
+                                  int chLo, int chHi, int channels, double[] y, double[] weights)
+        {
             int m = columns.Count;
             if (m == 0)
             {
@@ -9856,13 +17301,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Блок `fixedColumns` приписан в конец, и его начало нужно ДВОИМ:
             // штрафу на излом континуума ниже и поверке столбцов `S103` после
             // фита. Считается один раз и уезжает в `FitResult.FixedFirst`.
-            int fixedFirst = m - fixedColumns.Count;
+            int fixedFirst = m - fixedCount;
 
             int n = chHi - chLo + 1;
 
             double[,] gram = new double[m, m];
             double[] c = new double[m];
-            for (int a = 0; a < m; a++)
+            // (`AMBER213`, П241) Строки Грам — параллельно (<see cref="FsaParallel"/>):
+            // строка a пишет только c[a] и ячейки (a, b≥a) / (b≥a, a), каждую
+            // сумму ведёт один поток в прежнем порядке каналов — побитово то же.
+            FsaParallel.For(m, a =>
             {
                 double[] ta = columns[a].Values;
                 double dot = 0.0;
@@ -9884,7 +17332,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     gram[a, b] = value;
                     gram[b, a] = value;
                 }
-            }
+            });
 
             // (`S85`) ШТРАФ НА ИЗЛОМ КОНТИНУУМА — прибавкой к нормальным
             // уравнениям, а не отдельным проходом: минимизируемое становится
@@ -9903,7 +17351,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // копия на каждом узле сетки дрейфа.
             double[,] gramUnpenalized = null;
             if (this.ContinuumRoughness > 0.0 && this.continuumColumns >= 3
-                && fixedColumns.Count > 0)
+                && fixedCount > 0)
             {
                 gramUnpenalized = (double[,])gram.Clone();
                 int first = fixedFirst;
@@ -9920,7 +17368,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 scale /= this.continuumColumns;
                 double lambda = this.ContinuumRoughness * scale;
-                List<int> knots = this.continuumKnots;
+                List<double> knots = this.continuumKnots;
                 bool spaced = knots != null && knots.Count == this.continuumColumns;
 
                 // Средний шаг узлов — тем же им и обезразмеривается вторая
@@ -9978,13 +17426,57 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // ⛔ (`AMBER141`, П194) Шапки континуума — с нижней границей −L_j
+            // (<see cref="continuumFloor"/>), а не нулём. NNLS решает сдвинутую
+            // задачу: `c′ = c + L ≥ 0`, правая часть `c + G·L` по ШТРАФОВАННОЙ
+            // Грам — тогда и штраф на излом считается по истинным
+            // коэффициентам, а минимум тот же. После решения сдвиг снимается;
+            // шапка на границе вне активного множества, как колонка, зажатая
+            // NNLS в ноль. Без границ (фона нет, ключ снят) — прежнее решение
+            // побитово: правая часть та же ссылка.
+            double[] rhs = c;
+            double[] shift = null;
+            if (this.continuumFloor != null && this.continuumFloor.Length == this.continuumColumns
+                && fixedCount >= this.continuumColumns && this.continuumColumns > 0)
+            {
+                shift = new double[m];
+                for (int j = 0; j < this.continuumColumns; j++)
+                {
+                    shift[fixedFirst + j] = this.continuumFloor[j];
+                }
+
+                rhs = new double[m];
+                for (int a = 0; a < m; a++)
+                {
+                    double s = c[a];
+                    for (int j = 0; j < this.continuumColumns; j++)
+                    {
+                        s += gram[a, fixedFirst + j] * this.continuumFloor[j];
+                    }
+
+                    rhs[a] = s;
+                }
+            }
+
             bool[] active;
-            double[] x = NnlsSolve(gram, c, m, out active);
+            double[] x = NnlsSolve(gram, rhs, m, out active);
+            int capped;
+            x = this.ApplyAmplitudeCaps(columns, gram, rhs, m, x, ref active, out capped);
+            if (shift != null)
+            {
+                for (int k = 0; k < m; k++)
+                {
+                    x[k] -= shift[k];
+                }
+            }
 
             double[] model = new double[channels];
             for (int k = 0; k < m; k++)
             {
-                if (x[k] <= 0.0)
+                // (`AMBER141`) `== 0`, а не `<= 0`: шапка с нижней границей
+                // ниже нуля — законная часть модели; прочие колонки NNLS
+                // отрицательными не отдаёт, и для них условие то же.
+                if (x[k] == 0.0)
                 {
                     continue;
                 }
@@ -10064,7 +17556,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Отсчёты компонента считаются НЕ здесь: по всему образу они
             // несравнимы между нуклидами (S24в), и единственное место, где они
             // берутся, — PeakWindowCounts на готовом результате.
-            return new FitResult
+            FitResult result = new FitResult
             {
                 Columns = columns,
                 Amplitude = x,
@@ -10085,6 +17577,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 ActiveInverse = activeInverse,
                 FixedFirst = fixedFirst
             };
+
+            // (`AMBER137`, П182) Колонка, закреплённая на границе, вне
+            // активного множества, но её собственная σ — не грубая 1/√g_kk, а
+            // дополнение Шура против свободных колонок (`ColumnSigma`): ровно
+            // то, что прежде давала обратная Грама с колонкой внутри, и ровно
+            // та мера, которой её z решает её судьбу при отсеве. Вырожденная
+            // (Шур ≤ 0, +∞) — остаётся грубая оценка выше.
+            if (capped >= 0 && x[capped] > 0.0)
+            {
+                double own = ColumnSigma(result, capped);
+                if (own > 0.0 && !double.IsInfinity(own) && !double.IsNaN(own))
+                {
+                    sigma[capped] = own;
+                    z[capped] = x[capped] / own;
+                }
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -10146,21 +17656,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// новой физики не нужно, и ширина получается правильной сама:
         /// свёртка двух пиков с ПШПВ w даёт w·√2, как и положено сумме.
         ///
-        /// СОБЫТИЯ ПЕРЕНОСЯТСЯ, А НЕ ДОБАВЛЯЮТСЯ. Наложившаяся пара уходит с
-        /// обеих своих энергий и приходит на сумму, поэтому образ равен
-        /// `(s⊗s)/N − s`: приход автосвёрткой И убыль самим спектром. Колонка
-        /// получается знакопеременной с НУЛЕВЫМ интегралом — как и положено
-        /// переносу. Одна убыль без прихода (или наоборот) — не приближение, а
-        /// другая физика: первая версия считала только приход, и фит,
-        /// получив колонку, которая умеет только добавлять счёт, разъехался —
+        /// СОБЫТИЯ ПЕРЕНОСЯТСЯ, А НЕ ДОБАВЛЯЮТСЯ. Наложившаяся пара приходит
+        /// ОДНИМ отсчётом на сумму, поэтому образ равен `(s⊗s)/N − m·s`:
+        /// приход автосвёрткой и убыль спектром, помноженным на `m` — столько
+        /// импульсов пары теряет спектр, ДЕЛЁННЫЙ НА ЗНАМЕНАТЕЛЬ РАЗБОРА.
+        /// На ПОЛНОМ времени `m = 2`: пара уходит с обеих своих энергий
+        /// (первый порядок по доле пар Rτ: `s' = s·(1 − 2Rτ) + Rτ·(s⊗s)/N`,
+        /// Wielopolski &amp; Gardner, NIM 133 (1976) 303; Knoll, гл. 17), интеграл
+        /// колонки −N. На ЖИВОМ времени `m = 1`: второй импульс пришёл в
+        /// мёртвое время первого, и его потерю уже возместило деление на живое
+        /// время (Gedcke, ORTEC AN63), интеграл ноль. Правило и замер — у
+        /// <see cref="PileUpLossFor"/> (`AMBER76`, П148 24.09.2026).
+        ///
+        /// ⛔ (`AMBER49`, П120 22.09.2026) До того убыль вычиталась ОДИН раз
+        /// на любом спектре; П120 поставила ДВЕ на любом — по подсадке, не
+        /// менявшей живого времени, то есть по той же посылке «спектр на
+        /// полное время» (журнал
+        /// `handover/handover-2026-09-22-p120-fsa-pileup-livetime.md`). ⛔
+        /// (`AMBER76`, П148 24.09.2026) На спектре с живым временем две массы
+        /// завышали активности ВСЕХ нуклидов на долю пар Rτ: подсадка
+        /// `FsaPileUpProbe --lt=dead` («уходит первый импульс, партнёр — из
+        /// мёртвого времени») на «Cs 137 в домике» — смещение Cs-137
+        /// +0.00541 / +0.01084 / +0.02059 при f = 0.005 / 0.01 / 0.02, то есть
+        /// ровно +f; числа после правки — журнал
+        /// `handover/handover-2026-09-24-p148-pileup-summing.md`.
+        /// Одна убыль без прихода (или наоборот) — не приближение, а другая
+        /// физика: первая версия считала только приход, и фит, получив
+        /// колонку, которая умеет только добавлять счёт, разъехался —
         /// χ²/ndf 34.1 → 87.6, а τ вышло 1.37 мкс вместо измеренных 0.37.
         ///
         /// СВОБОДНАЯ АМПЛИТУДА ЗДЕСЬ ПРАВОМЕРНА — в отличие от сумм-пиков
         /// каскада, которым свободная колонка запрещена. Разница в том, чем
         /// задана величина: у каскада геометрией и схемой распада (значит она
         /// ИЗВЕСТНА, и свобода позволила бы подогнать её под континуум), у
-        /// наложений — произведением 2τR, где разрешающее время τ не записано
-        /// нигде. Фит его и находит: амплитуда колонки равна ровно 2τR.
+        /// наложений — долей пар Rτ, где разрешающее время τ не записано
+        /// нигде. Фит его и находит: амплитуда колонки (в единицах полного
+        /// счёта N, см. нормировку ниже) равна доле пар Rτ; доля ЗАТРОНУТЫХ
+        /// импульсов — 2Rτ.
         ///
         /// Считается ОДИН раз на разбор: от сетки дрейфа не зависит.
         ///
@@ -10174,7 +17706,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// форма отличается ТОЛЬКО функцией координаты и делением бина суммы.
         /// </summary>
         FsaComponent BuildPileUpComponent(int[] raw, EnergyCalibration calibration,
-                                          int chLo, int chHi, int channels)
+                                          int chLo, int chHi, int channels, double loss)
         {
             const double BinKev = 4.0;
 
@@ -10281,18 +17813,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            // Убыль: пара ушла с обеих своих энергий. Интеграл колонки после
-            // этого равен нулю — перенос, а не добавка.
+            // Убыль: `loss` масс спектра на пару — две на полном времени (пара
+            // ушла с обеих энергий, интеграл колонки −N), одна на живом (второй
+            // импульс возмещён делением на живое время, интеграл ноль).
+            // ⛔ (`AMBER49` → `AMBER76`) Множитель — по тому, чем нормирован
+            // спектр, а не одно число на всех: см. <see cref="PileUpLossFor"/>.
             //
             // И сразу ДЕЛИМ НА ПОЛНЫЙ СЧЁТ. Без этого колонка идёт в единицах
             // отсчётов (до миллиона на канал), а образы линий — в долях на
             // распад (порядка 1e-3): матрица Грама получает разброс норм в
             // десятки порядков и NNLS разъезжается. Первая версия без деления
             // давала χ²/ndf 34.1 → 87.8 на ровном месте. Цена нормировки —
-            // амплитуда колонки равна теперь 2τR·N, а не 2τR.
+            // амплитуда колонки равна теперь Rτ·N (число пар), а не Rτ.
             for (int k = 0; k < bins; k++)
             {
-                pile[k] = (pile[k] - byEnergy[k]) / total;
+                pile[k] = (pile[k] - loss * byEnergy[k]) / total;
             }
 
             // Обратно на шкалу каналов, с сохранением площади: в канал идёт та
@@ -10380,10 +17915,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double[] centres = new double[channels];
-            for (int i = 0; i < channels; i++)
+            // (`AMBER213`, П241) Центры каналов — кусками параллельно: значение
+            // канала — чистая функция калибровки, своя ячейка у каждого.
+            const int Block = 1024;
+            FsaParallel.For((channels + Block - 1) / Block, block =>
             {
-                centres[i] = calibration.ChannelToEnergy(i);
-            }
+                int end = Math.Min(channels, (block + 1) * Block);
+                for (int i = block * Block; i < end; i++)
+                {
+                    centres[i] = calibration.ChannelToEnergy(i);
+                }
+            });
 
             for (int i = 1; i < channels; i++)
             {
@@ -10395,6 +17937,772 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 ? centres[channels - 1] + 0.5 * (centres[channels - 1] - centres[channels - 2])
                 : centres[0] + 0.5;
             return edges;
+        }
+
+        /// <summary>
+        /// (`AMBER154`, П194) Шкала, растянутая по номеру канала: центр канала
+        /// j отвечает энергии канала j/g исходной шкалы. Перекладка
+        /// <see cref="Rebin"/> в неё кладёт отсчёт, стоявший в канале p, в канал
+        /// g·p — ровно дрейф усиления АЦП между двумя съёмками. Только для
+        /// перекладки внутри разбора: не сериализуется и наружу не уходит.
+        /// </summary>
+        sealed class StretchedCalibration : EnergyCalibration
+        {
+            readonly EnergyCalibration inner;
+            readonly double gain;
+            readonly double offset;
+
+            /// <param name="offset">(`AMBER142` п.3, П224) сдвиг нуля в каналах:
+            /// отсчёт из канала p — в g·p + o; 0 — прежняя формула побитово.</param>
+            public StretchedCalibration(EnergyCalibration inner, double gain, double offset = 0.0)
+            {
+                this.inner = inner;
+                this.gain = gain;
+                this.offset = offset;
+            }
+
+            public override double ChannelToEnergy(double n)
+            {
+                return this.offset == 0.0
+                    ? this.inner.ChannelToEnergy(n / this.gain)
+                    : this.inner.ChannelToEnergy((n - this.offset) / this.gain);
+            }
+
+            public override double EnergyToChannel(double e, int maxChannels = 10000)
+            {
+                return this.inner.EnergyToChannel(e, maxChannels) * this.gain + this.offset;
+            }
+
+            public override EnergyCalibration Clone()
+            {
+                return new StretchedCalibration(this.inner, this.gain, this.offset);
+            }
+
+            public override EnergyCalibration Downgrade(int p)
+            {
+                return this.Clone();
+            }
+
+            public override bool Equals(EnergyCalibration calib)
+            {
+                return ReferenceEquals(this, calib);
+            }
+
+            public override int MaxChannels()
+            {
+                return this.inner.MaxChannels();
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER141`) Во сколько σ шума данных после вычитания фона подложке
+        /// позволено уходить ниже нуля. Три σ: истинный нетто-континуум неотрицателен, и
+        /// граница, лежащая на 3σ ниже нуля, оценку без смещения почти не
+        /// трогает (зажим срабатывает у ~0.1 % несмещённых шапок), а
+        /// вырождения «отрицательная подложка против комптоновского плато
+        /// образа» не открывает. Граница −B (весь фон, как предлагала строка)
+        /// его открывала: у `ASN16_Radon_filter2` ряд Th-232 рос втрое, а
+        /// подложка уходила в минус на весь фон (замер П194).
+        /// </summary>
+        const double ContinuumFloorSigmas = 3.0;
+
+        /// <summary>
+        /// (`AMBER141`, П194) Нижние границы шапок континуума по модулю — в
+        /// меру ШУМА ДАННЫХ после вычитания фона под шапкой: `L_j = κ·σ_j`,
+        /// `σ_j = √(Σ hat_j²·V) / Σ hat_j²` — погрешность коэффициента шапки
+        /// по наименьшим квадратам, V — дисперсия канала, та же, что идёт в
+        /// веса (отсчёт пробы плюс шум вычтенного фона), κ =
+        /// <see cref="ContinuumFloorSigmas"/>. Ниже нуля данные после вычитания
+        /// уходят именно на этот шум, и именно его зажим «≥ 0» и обрезал.
+        /// ⚠ Не шум одного фона: комнатный фон сидит и в отсчёте ПРОБЫ, и его
+        /// пуассоновский шум там — главный, когда фон снят дольше пробы
+        /// (k = T_пробы/T_фона ≪ 1). Граница по одному шуму фона (первый
+        /// вариант П194) у копий `G1S16_Y88_P25` при 1/100 счёта оставляла
+        /// −19.7 % — почти всё смещение. Шапки здесь уже помножены на рампу
+        /// порога (`S204`). Зовётся только при вычтенном фоне.
+        /// </summary>
+        static double[] ContinuumFloorOf(List<double[]> hats, double[] variance, int chLo, int chHi)
+        {
+            if (variance == null || hats == null || hats.Count == 0)
+            {
+                return null;
+            }
+
+            double[] floor = new double[hats.Count];
+            bool any = false;
+            for (int j = 0; j < hats.Count; j++)
+            {
+                double[] hat = hats[j];
+                double num = 0.0;
+                double den = 0.0;
+                for (int i = chLo; i <= chHi && i < hat.Length && i < variance.Length; i++)
+                {
+                    double h2 = hat[i] * hat[i];
+                    num += h2 * variance[i];
+                    den += h2;
+                }
+
+                double value = den > 0.0 && num > 0.0 ? ContinuumFloorSigmas * Math.Sqrt(num) / den : 0.0;
+                floor[j] = value;
+                any |= value > 0.0;
+            }
+
+            return any ? floor : null;
+        }
+
+        /// <summary>
+        /// (`AMBER154`) Предел относительного усиления фона: ±3 % — втрое шире
+        /// наибольшего дрейфа фона против пробы, измеренного в корпусе
+        /// (0.65 % у `G1S24_K40_Petri_2`), и вдвое — дрейфа пробы против
+        /// объявленной шкалы (1.8 %). Оценка за пределом — «не измерен».
+        /// </summary>
+        const double BackgroundGainSpan = 0.03;
+
+        /// <summary>
+        /// (`AMBER154`, П194) ПРИБОР ДРЕЙФА ФОНА — приёмник трассы
+        /// <see cref="MeasureBackgroundGain"/>: каждый шаг уточнения усиления
+        /// (усиление, амплитуда, поправка, значимость). Ставится безоконной
+        /// пробой (`FsaClosureP191 --bgtrace`) на время разбора; в приложении
+        /// не задан, и тогда никто не зовётся.
+        /// </summary>
+        public static Action<string> BackgroundGainTraceSink { get; set; }
+
+        /// <summary>
+        /// (`AMBER154`) Значимость пиков фона в остатке данных, ниже которой
+        /// дрейф фона не меряется: z = a/σ_a амплитуды фона в подгонке.
+        /// Порог низкий нарочно — перекладку всё равно судит χ² разбора; 10
+        /// (первое значение) резал по живому: у G1S16_K40_Mar мера истины
+        /// z 10.0 прошла, а её точной копии z 7.8 — нет, и копия теряла
+        /// перекладку, которую нашла истина.
+        /// </summary>
+        const double BackgroundGainMinZ = 5.0;
+
+        /// <summary>
+        /// (`AMBER154`) Дрейф фона меньше этого фон не перекладывает: сдвиг
+        /// пика на 0.005 % — сотые канала у верха шкалы. Мельче не нужно, а
+        /// крупнее нельзя: 0.02 % (первое значение) оставляло у
+        /// `G1S24_K40_Petri_2` +0.18 % K-40 — у слабой пробы канал сдвига у
+        /// линии стоит 0.75 % амплитуды (П191).
+        /// </summary>
+        const double BackgroundGainDeadband = 0.00005;
+
+
+        /// <summary>
+        /// (`AMBER154`) Сглаживание гауссом перед сравнением: σ ядра в долях
+        /// σ пика (ПШПВ/2.355) канала. Гасит пуассоновский шум хранимого фона
+        /// (иначе он входит в норму и смещает оценку) и размытие перекладки
+        /// при нецелом растяжении (≤ канала), почти не трогая сами пики.
+        /// </summary>
+        const double BackgroundGainSmoothing = 0.5;
+
+        /// <summary>
+        /// (`AMBER154`, П194 01.10.2026) ОТНОСИТЕЛЬНОЕ УСИЛЕНИЕ ХРАНИМОГО ФОНА
+        /// ПРОТИВ ПРОБЫ — по пикам комнатного фона в её данных.
+        ///
+        /// Остаток D = данные − (модель − подложка) первого прохода: образы
+        /// пробы вынуты, остались комнатный фон в ИСТИННОЙ шкале пробы и
+        /// подложка. Хранимый фон B (в шкале пробы по объявленным калибровкам,
+        /// уже приведённый живым временем) растягивается по номеру канала на
+        /// g. Оба сглаживаются гауссом (<see cref="BackgroundGainSmoothing"/>)
+        /// и пропускаются через вторую разность с шагом в ПШПВ канала,
+        /// `f(x)_i = x_i − ½(x_{i−d} + x_{i+d})`: подложка и гладкий континуум
+        /// гаснут, остаются пики. Усиление — наименьшими квадратами по
+        /// Гауссу — Ньютону: `f(D) ≈ a·f(B_g) + c·q`, `q = −p·∂f(B_g)/∂p` —
+        /// производная растянутого фона по усилению (член `−f(B_g)` той же
+        /// производной уходит в a), поправка `g ← g·(1 + c/a)`, до сходимости.
+        /// Вес канала в оценке усиления — сам собой `w·q²`, то есть пики у
+        /// верха шкалы, где растяжение двигает их на каналы; низ шкалы с его
+        /// порогом и рентгеном усиление почти не задаёт. Веса w — от дисперсии
+        /// D (данные плюс шум фона) через тот же фильтр; σ — по обратной
+        /// матрице 2×2, надутой на √(χ²/ndf) этой подгонки.
+        ///
+        /// ⚠ Мерится РАЗНОСТЬ шкал двух съёмок, а не привязка пробы: образы
+        /// пробы уже вынуты по её привязке, и что остаётся у пиков комнатного
+        /// фона — это они сами в шкале пробы. Остатки образов (кривая
+        /// модель, ширина) в D входят и могут тянуть оценку там, где у фона
+        /// пик на той же линии, — на замкнутой проверке видны как смещение
+        /// усиления копии без дрейфа.
+        ///
+        /// Возвращает служебную строку для <see cref="FsaResult.AnchorNote"/>;
+        /// <paramref name="gain"/> — NaN, если дрейф не измерен (пиков фона в
+        /// данных не видно, подгонка не сошлась или ушла за ±
+        /// <see cref="BackgroundGainSpan"/>), 1 — измерен в пределах
+        /// <see cref="BackgroundGainDeadband"/>.
+        /// </summary>
+        string MeasureBackgroundGain(EnergySpectrum spectrum, FsaResult first,
+                                     FwhmCalibration fwhmCalibration, out double gain)
+        {
+            gain = double.NaN;
+            int[] raw = spectrum.Spectrum;
+            double[] model = first.Model;
+            double[] background = first.Background;
+            double[] continuum = first.Continuum;
+            int channels = Math.Min(raw.Length, Math.Min(model.Length, background.Length));
+            int lo = Math.Max(0, first.FirstChannel);
+            int hi = Math.Min(channels - 1, first.LastChannel);
+            if (hi - lo < MinBandChannels)
+            {
+                return "дрейф фона не измерен: полоса узка";
+            }
+
+            double k = first.BackgroundScale > 0.0 ? first.BackgroundScale : 1.0;
+            double[] room = new double[channels];
+            double[] variance = new double[channels];
+            int[] lag = new int[channels];
+            double[] sigmaKernel = new double[channels];
+            for (int i = lo; i <= hi; i++)
+            {
+                double c = continuum != null && i < continuum.Length ? continuum[i] : 0.0;
+                room[i] = raw[i] - (model[i] - c);
+                variance[i] = Math.Max(raw[i], 1.0) + k * Math.Abs(background[i]);
+                double fwhm = fwhmCalibration.ChannelToFwhm(i);
+                if (!(fwhm > 1.0))
+                {
+                    fwhm = 1.0;
+                }
+
+                lag[i] = Math.Max(1, (int)Math.Round(fwhm));
+                sigmaKernel[i] = BackgroundGainSmoothing * fwhm / 2.3548;
+            }
+
+            double[] roomSmooth = SmoothVariable(room, sigmaKernel, lo, hi);
+            double[] backgroundSmooth = SmoothVariable(background, sigmaKernel, lo, hi);
+
+            // фильтр остатка и вес — один раз; каналы, где окно фильтра
+            // вылезает за полосу, в оценку не входят (w = 0)
+            double[] fd = new double[channels];
+            double[] w = new double[channels];
+            for (int i = lo; i <= hi; i++)
+            {
+                int d = lag[i];
+                if (i - d - 1 < lo || i + d + 1 > hi)
+                {
+                    continue;
+                }
+
+                fd[i] = roomSmooth[i] - 0.5 * (roomSmooth[i - d] + roomSmooth[i + d]);
+                w[i] = 1.0 / (variance[i] + 0.25 * (variance[i - d] + variance[i + d]));
+            }
+
+            EnergyCalibration scale = spectrum.EnergyCalibration;
+            double g = 1.0;
+            double a = double.NaN, sigmaA = double.NaN, sigmaG = double.NaN;
+            bool converged = false;
+            Action<string> trace = BackgroundGainTraceSink;
+            double[] fb = new double[channels];
+            double[] q = new double[channels];
+            for (int iteration = 0; iteration < 40; iteration++)
+            {
+                double[] b = g == 1.0
+                    ? backgroundSmooth
+                    : Rebin(backgroundSmooth, scale, new StretchedCalibration(scale, g), channels);
+                for (int i = lo; i <= hi; i++)
+                {
+                    int d = lag[i];
+                    fb[i] = i - d >= lo && i + d <= hi
+                        ? b[i] - 0.5 * (b[i - d] + b[i + d])
+                        : 0.0;
+                }
+
+                double s11 = 0.0, s12 = 0.0, s22 = 0.0, r1 = 0.0, r2 = 0.0, dd = 0.0;
+                int n = 0;
+                for (int i = lo; i <= hi; i++)
+                {
+                    if (w[i] == 0.0)
+                    {
+                        q[i] = 0.0;
+                        continue;
+                    }
+
+                    q[i] = -i * 0.5 * (fb[i + 1] - fb[i - 1]);
+                    s11 += w[i] * fb[i] * fb[i];
+                    s12 += w[i] * fb[i] * q[i];
+                    s22 += w[i] * q[i] * q[i];
+                    r1 += w[i] * fd[i] * fb[i];
+                    r2 += w[i] * fd[i] * q[i];
+                    dd += w[i] * fd[i] * fd[i];
+                    n++;
+                }
+
+                double det = s11 * s22 - s12 * s12;
+                if (!(det > 0.0) || n < 3)
+                {
+                    break;
+                }
+
+                a = (s22 * r1 - s12 * r2) / det;
+                double c = (s11 * r2 - s12 * r1) / det;
+                double chi2 = Math.Max(dd - a * r1 - c * r2, 0.0);
+                double inflate = Math.Max(1.0, chi2 / (n - 2));
+                sigmaA = Math.Sqrt(s22 / det * inflate);
+                double sigmaC = Math.Sqrt(s11 / det * inflate);
+                double step = a > 0.0 ? c / a : 0.0;
+                sigmaG = a > 0.0 ? g * sigmaC / a : double.NaN;
+                if (trace != null)
+                {
+                    trace(string.Format(CultureInfo.InvariantCulture,
+                        "шаг {0}: g {1:F6} a {2:F4} ± {3:F4} поправка {4:+0.000000;-0.000000} σ_g {5:F6} χ²/ndf {6:F2}",
+                        iteration, g, a, sigmaA, step, sigmaG, chi2 / (n - 2)));
+                }
+
+                if (!(a > 0.0))
+                {
+                    break;
+                }
+
+                // ⚠ Шаг недолетает (q — производная сглаженного фона, не данных;
+                // на корпусе отношение соседних шагов ≈ 0.4), поэтому сходимость
+                // линейная и шагов до сорока; шаг — перекладка и проход по
+                // каналам, на фоне разбора даром.
+                // шаг Ньютона ограничен: линейное приближение верно на долях
+                // ПШПВ сдвига, а ПШПВ сцинтиллятора — проценты шкалы
+                if (step > 0.005)
+                {
+                    step = 0.005;
+                }
+                else if (step < -0.005)
+                {
+                    step = -0.005;
+                }
+
+                g *= 1.0 + step;
+                if (Math.Abs(g - 1.0) > BackgroundGainSpan)
+                {
+                    break;
+                }
+
+                if (Math.Abs(step) < 1e-6)
+                {
+                    converged = true;
+                    break;
+                }
+            }
+
+            double z = sigmaA > 0.0 ? a / sigmaA : 0.0;
+            if (!(z >= BackgroundGainMinZ))
+            {
+                return string.Format(CultureInfo.InvariantCulture,
+                    "дрейф фона не измерен: пики фона в данных не видны (z {0:F1} < {1:F0})",
+                    z, BackgroundGainMinZ);
+            }
+
+            if (!converged || Math.Abs(g - 1.0) > BackgroundGainSpan)
+            {
+                return string.Format(CultureInfo.InvariantCulture,
+                    "дрейф фона не измерен: подгонка усиления не сошлась в ±{0:F1} % (g {1:F4}, z {2:F1})",
+                    100.0 * BackgroundGainSpan, g, z);
+            }
+
+            // где сдвиг виднее всего: канал наибольшего вклада в оценку
+            // усиления (w·q²) — сдвиг в каналах и кэВ называется там
+            int peak = lo;
+            double peakWeight = 0.0;
+            for (int i = lo; i <= hi; i++)
+            {
+                double v = w[i] * q[i] * q[i];
+                if (v > peakWeight)
+                {
+                    peakWeight = v;
+                    peak = i;
+                }
+            }
+
+            double shiftChannels = (g - 1.0) * peak;
+            double peakKev = scale.ChannelToEnergy(peak);
+            double shiftKev = scale.ChannelToEnergy(peak + shiftChannels) - peakKev;
+            if (Math.Abs(g - 1.0) < BackgroundGainDeadband)
+            {
+                gain = 1.0;
+                return string.Format(CultureInfo.InvariantCulture,
+                    "дрейф фона против пробы {0:+0.000;-0.000;0.000} % ± {1:F3} (z {2:F1}; у {3:F0} кэВ {4:+0.00;-0.00;0.00} кан.) — меньше {5:F3} %",
+                    100.0 * (g - 1.0), 100.0 * sigmaG, z, peakKev, shiftChannels, 100.0 * BackgroundGainDeadband);
+            }
+
+            gain = g;
+            return string.Format(CultureInfo.InvariantCulture,
+                "дрейф фона против пробы {0:+0.000;-0.000;0.000} % ± {1:F3} (z {2:F1}; у {3:F0} кэВ {4:+0.00;-0.00;0.00} кан., {5:+0.0;-0.0;0.0} кэВ)",
+                100.0 * (g - 1.0), 100.0 * sigmaG, z, peakKev, shiftChannels, shiftKev);
+        }
+
+        /// <summary>
+        /// (`AMBER142` п.3, П224 02.10.2026) Предел сдвига нуля фона против пробы,
+        /// в долях числа каналов: 0.3 % шкалы (3 канала у 1024-канального,
+        /// 49 у 16384), но не меньше трёх каналов. Оценка за пределом — «не
+        /// измерен», как у усиления (<see cref="BackgroundGainSpan"/>).
+        /// </summary>
+        const double BackgroundOffsetSpanFraction = 0.003;
+
+        /// <summary>
+        /// (`AMBER142` п.3, П224) Сдвиг нуля фона меньше этого (в каналах) фон не
+        /// перекладывает — пара с <see cref="BackgroundGainDeadband"/>.
+        /// </summary>
+        const double BackgroundOffsetDeadband = 0.005;
+
+        /// <summary>
+        /// (`AMBER142` п.3, П224) Значимость сдвига нуля фона, ниже которой проход
+        /// с переложенным нулём не делается: |o| ≥ 2σ_o. Нуль и усиление у низа
+        /// шкалы вырождены (долина «нуль ↔ усиление»), и незначимый нуль —
+        /// это положение на дне долины, а не дрейф; на малой базе у
+        /// `AS80_Th232Medal` (σ_o 4.7 кан.) и `G1S16_Ce139_P5` (2.0 кан.)
+        /// мера без порога давала нуль на упоре шага. 3σ (первое значение)
+        /// резал по живому: точная копия `G1S24_Cs137_Petri` с фоном,
+        /// сдвинутым на +1 кан., — мера −0.80 ± 0.39 кан. (2.0σ), фон не
+        /// переложен; `G1S16_K40_Mar` +2 кан. — −1.89 ± 0.67 (2.8σ). Дальше
+        /// судит χ² разбора.
+        /// </summary>
+        const double BackgroundOffsetMinZ = 2.0;
+
+        /// <summary>
+        /// (`AMBER142` п.3, П224) Проходов разбора со сдвигом нуля фона поверх
+        /// неподвижной точки усиления, не больше. Второй — когда первый сдвиг
+        /// сам переложил образы пробы и мера на нём ещё значима.
+        /// </summary>
+        const int BackgroundZeroPasses = 2;
+
+        /// <summary>
+        /// (`AMBER142` п.3, П224 02.10.2026) Мера <see cref="MeasureBackgroundGain"/>
+        /// с третьим членом — НУЛЁМ фона против пробы: `f(D) ≈ a·f(B_{g,o}) +
+        /// c·q + e·r`, `q = −(p − o)·∂f/∂p`, `r = −∂f/∂p` (сдвиг по каналу),
+        /// поправки `g ← g·(1 + c/a)`, `o ← o + e/a`; <paramref name="offset"/> —
+        /// сдвиг нуля в каналах пробы (отсчёт фона из p — в g·p + o),
+        /// <paramref name="sigmaOffset"/> — его σ по обратной матрице 3×3,
+        /// надутой на √(χ²/ndf). Подготовка остатка, фильтр и веса — те же,
+        /// что у меры одного усиления, плюс доля образа пробы в дисперсии
+        /// (<see cref="BackgroundZeroImageError"/>); шаг — с откатом при росте χ².
+        /// Зовётся <see cref="Analyze"/> ПОСЛЕ неподвижной точки усиления.
+        /// <paramref name="fixGain"/> — усиление не трогать (g = 1 относительно
+        /// фона прохода), мерить один нуль: запасной кандидат, когда проход по
+        /// совместной мере χ² разбора не улучшил.
+        /// </summary>
+        string MeasureBackgroundGainAndZero(EnergySpectrum spectrum, FsaResult first,
+                                            FwhmCalibration fwhmCalibration, bool fixGain,
+                                            out double gain, out double offset, out double sigmaOffset)
+        {
+            gain = double.NaN;
+            offset = 0.0;
+            sigmaOffset = double.NaN;
+            int[] raw = spectrum.Spectrum;
+            double[] model = first.Model;
+            double[] background = first.Background;
+            double[] continuum = first.Continuum;
+            int channels = Math.Min(raw.Length, Math.Min(model.Length, background.Length));
+            int lo = Math.Max(0, first.FirstChannel);
+            int hi = Math.Min(channels - 1, first.LastChannel);
+            if (hi - lo < MinBandChannels)
+            {
+                return "дрейф фона не измерен: полоса узка";
+            }
+
+            double k = first.BackgroundScale > 0.0 ? first.BackgroundScale : 1.0;
+            double[] room = new double[channels];
+            double[] variance = new double[channels];
+            int[] lag = new int[channels];
+            double[] sigmaKernel = new double[channels];
+            for (int i = lo; i <= hi; i++)
+            {
+                double c0 = continuum != null && i < continuum.Length ? continuum[i] : 0.0;
+                room[i] = raw[i] - (model[i] - c0);
+                variance[i] = Math.Max(raw[i], 1.0) + k * Math.Abs(background[i]);
+                // ошибка вынутых образов пробы — в дисперсию остатка: там, где
+                // образ во много раз сильнее фона (K-40 пробы с KCl на своём
+                // 1461), остаток — это форма образа, а не пик фона, и усиление
+                // с нулём тянулись бы к ней (`RC103_K40`: мера второго прохода
+                // +2.06 % вместо ≈ 0)
+                double image = Math.Max(model[i] - c0, 0.0) * this.BackgroundZeroImageError;
+                variance[i] += image * image;
+                double fwhm = fwhmCalibration.ChannelToFwhm(i);
+                if (!(fwhm > 1.0))
+                {
+                    fwhm = 1.0;
+                }
+
+                lag[i] = Math.Max(1, (int)Math.Round(fwhm));
+                sigmaKernel[i] = BackgroundGainSmoothing * fwhm / 2.3548;
+            }
+
+            double[] roomSmooth = SmoothVariable(room, sigmaKernel, lo, hi);
+            double[] backgroundSmooth = SmoothVariable(background, sigmaKernel, lo, hi);
+            double[] fd = new double[channels];
+            double[] w = new double[channels];
+            for (int i = lo; i <= hi; i++)
+            {
+                int d = lag[i];
+                if (i - d - 1 < lo || i + d + 1 > hi)
+                {
+                    continue;
+                }
+
+                fd[i] = roomSmooth[i] - 0.5 * (roomSmooth[i - d] + roomSmooth[i + d]);
+                w[i] = 1.0 / (variance[i] + 0.25 * (variance[i - d] + variance[i + d]));
+            }
+
+            EnergyCalibration scale = spectrum.EnergyCalibration;
+            double offsetSpan = Math.Max(3.0, BackgroundOffsetSpanFraction * channels);
+            double g = 1.0, o = 0.0;
+            double a = double.NaN, sigmaA = double.NaN, sigmaG = double.NaN, sigmaO = double.NaN;
+            bool converged = false;
+            Action<string> trace = BackgroundGainTraceSink;
+            double[] fb = new double[channels];
+            double[] q = new double[channels];
+            double[] r = new double[channels];
+            var normal = new double[3, 3];
+            var rhs = new double[3];
+            // шаг с откатом: χ² одного члена a·f(B_{g,o}) в новой точке хуже
+            // лучшего — назад к лучшей точке с половинным шагом (Гаусс —
+            // Ньютон без отката ходил у `RC103_K40` двухтактным циклом
+            // g 0.9957 ↔ 1.0007 и не сходился)
+            double bestChi = double.PositiveInfinity, bestG = 1.0, bestO = 0.0;
+            double lastStep = 0.0, lastShift = 0.0;
+            double[] bestQ = new double[channels];
+            for (int iteration = 0; iteration < 80; iteration++)
+            {
+                double[] b = g == 1.0 && o == 0.0
+                    ? backgroundSmooth
+                    : Rebin(backgroundSmooth, scale, new StretchedCalibration(scale, g, o), channels);
+                for (int i = lo; i <= hi; i++)
+                {
+                    int d = lag[i];
+                    fb[i] = i - d >= lo && i + d <= hi
+                        ? b[i] - 0.5 * (b[i - d] + b[i + d])
+                        : 0.0;
+                }
+
+                Array.Clear(normal, 0, 9);
+                Array.Clear(rhs, 0, 3);
+                double dd = 0.0;
+                int n = 0;
+                for (int i = lo; i <= hi; i++)
+                {
+                    if (w[i] == 0.0)
+                    {
+                        q[i] = 0.0;
+                        r[i] = 0.0;
+                        continue;
+                    }
+
+                    double slope = 0.5 * (fb[i + 1] - fb[i - 1]);
+                    q[i] = -(i - o) * slope;
+                    r[i] = -slope;
+                    double x0 = fb[i], x1 = q[i], x2 = r[i];
+                    normal[0, 0] += w[i] * x0 * x0;
+                    normal[0, 1] += w[i] * x0 * x1;
+                    normal[0, 2] += w[i] * x0 * x2;
+                    normal[1, 1] += w[i] * x1 * x1;
+                    normal[1, 2] += w[i] * x1 * x2;
+                    normal[2, 2] += w[i] * x2 * x2;
+                    rhs[0] += w[i] * fd[i] * x0;
+                    rhs[1] += w[i] * fd[i] * x1;
+                    rhs[2] += w[i] * fd[i] * x2;
+                    dd += w[i] * fd[i] * fd[i];
+                    n++;
+                }
+
+                if (fixGain)
+                {
+                    // усиление держится тем, что дала неподвижная точка: член q
+                    // выключен (строка и столбец — единичные), меряется один нуль
+                    normal[0, 1] = 0.0;
+                    normal[1, 2] = 0.0;
+                    normal[1, 1] = 1.0;
+                    rhs[1] = 0.0;
+                }
+
+                normal[1, 0] = normal[0, 1];
+                normal[2, 0] = normal[0, 2];
+                normal[2, 1] = normal[1, 2];
+                double[,] inverse = Invert3(normal);
+                if (inverse == null || n < 4)
+                {
+                    break;
+                }
+
+                double[] coef = new double[3];
+                for (int u = 0; u < 3; u++)
+                {
+                    coef[u] = inverse[u, 0] * rhs[0] + inverse[u, 1] * rhs[1] + inverse[u, 2] * rhs[2];
+                }
+
+                double chiHere = normal[0, 0] > 0.0 ? dd - rhs[0] * rhs[0] / normal[0, 0] : dd;
+                if (iteration > 0 && chiHere > bestChi)
+                {
+                    if (trace != null)
+                    {
+                        trace(string.Format(CultureInfo.InvariantCulture,
+                            "шаг {0}: g {1:F6} o {2:F4} кан. — χ² {3:F2} хуже {4:F2}, назад с половинным шагом",
+                            iteration, g, o, chiHere, bestChi));
+                    }
+
+                    lastStep *= 0.5;
+                    lastShift *= 0.5;
+                    if (Math.Abs(lastStep) < 1e-6 && Math.Abs(lastShift) < 1e-4)
+                    {
+                        g = bestG;
+                        o = bestO;
+                        Array.Copy(bestQ, q, channels);
+                        converged = true;
+                        break;
+                    }
+
+                    g = bestG * (1.0 + lastStep);
+                    o = bestO + lastShift;
+                    continue;
+                }
+
+                double aHere = coef[0];
+                double chi2 = Math.Max(dd - coef[0] * rhs[0] - coef[1] * rhs[1] - coef[2] * rhs[2], 0.0);
+                double inflate = Math.Max(1.0, chi2 / (n - 3));
+                double sigmaC = Math.Sqrt(Math.Max(inverse[1, 1], 0.0) * inflate);
+                double sigmaE = Math.Sqrt(Math.Max(inverse[2, 2], 0.0) * inflate);
+                double step = aHere > 0.0 ? coef[1] / aHere : 0.0;
+                double shift = aHere > 0.0 ? coef[2] / aHere : 0.0;
+                a = aHere;
+                sigmaA = Math.Sqrt(Math.Max(inverse[0, 0], 0.0) * inflate);
+                sigmaG = fixGain ? 0.0 : (aHere > 0.0 ? g * sigmaC / aHere : double.NaN);
+                sigmaO = aHere > 0.0 ? sigmaE / aHere : double.NaN;
+                bestChi = chiHere;
+                bestG = g;
+                bestO = o;
+                Array.Copy(q, bestQ, channels);
+                if (trace != null)
+                {
+                    trace(string.Format(CultureInfo.InvariantCulture,
+                        "шаг {0}: g {1:F6} o {2:F4} кан. a {3:F4} ± {4:F4} поправки {5:+0.000000;-0.000000} / {6:+0.0000;-0.0000} кан. σ_g {7:F6} σ_o {8:F4} χ²/ndf {9:F2}",
+                        iteration, g, o, a, sigmaA, step, shift, sigmaG, sigmaO, chi2 / (n - 3)));
+                }
+
+                if (!(a > 0.0))
+                {
+                    break;
+                }
+
+                // шаги ограничены, как у меры одного усиления: линейное
+                // приближение верно на долях ПШПВ сдвига
+                step = Math.Max(-0.005, Math.Min(0.005, step));
+                shift = Math.Max(-0.5, Math.Min(0.5, shift));
+                lastStep = step;
+                lastShift = shift;
+                g *= 1.0 + step;
+                o += shift;
+                if (Math.Abs(g - 1.0) > BackgroundGainSpan || Math.Abs(o) > offsetSpan)
+                {
+                    break;
+                }
+
+                if (Math.Abs(step) < 1e-6 && Math.Abs(shift) < 1e-4)
+                {
+                    converged = true;
+                    break;
+                }
+            }
+
+            double z = sigmaA > 0.0 ? a / sigmaA : 0.0;
+            if (!(z >= BackgroundGainMinZ))
+            {
+                return string.Format(CultureInfo.InvariantCulture,
+                    "дрейф фона не измерен: пики фона в данных не видны (z {0:F1} < {1:F0})",
+                    z, BackgroundGainMinZ);
+            }
+
+            if (!converged || Math.Abs(g - 1.0) > BackgroundGainSpan || Math.Abs(o) > offsetSpan)
+            {
+                return string.Format(CultureInfo.InvariantCulture,
+                    "дрейф фона не измерен: подгонка усиления и нуля не сошлась в ±{0:F1} % и ±{1:F1} кан. (g {2:F4}, нуль {3:+0.00;-0.00;0.00} кан., z {4:F1})",
+                    100.0 * BackgroundGainSpan, offsetSpan, g, o, z);
+            }
+
+            int peak = lo;
+            double peakWeight = 0.0;
+            for (int i = lo; i <= hi; i++)
+            {
+                double v = w[i] * q[i] * q[i];
+                if (v > peakWeight)
+                {
+                    peakWeight = v;
+                    peak = i;
+                }
+            }
+
+            double shiftChannels = (g - 1.0) * peak + o;
+            double peakKev = scale.ChannelToEnergy(peak);
+            double shiftKev = scale.ChannelToEnergy(peak + shiftChannels) - peakKev;
+            sigmaOffset = sigmaO;
+            if (Math.Abs(g - 1.0) < BackgroundGainDeadband && Math.Abs(o) < BackgroundOffsetDeadband)
+            {
+                gain = 1.0;
+                offset = 0.0;
+                return string.Format(CultureInfo.InvariantCulture,
+                    "дрейф фона против пробы {0:+0.000;-0.000;0.000} % ± {1:F3}, нуль {2:+0.000;-0.000;0.000} кан. ± {3:F3} (z {4:F1}) — меньше {5:F3} % и {6:F3} кан.",
+                    100.0 * (g - 1.0), 100.0 * sigmaG, o, sigmaO, z, 100.0 * BackgroundGainDeadband, BackgroundOffsetDeadband);
+            }
+
+            gain = g;
+            offset = o;
+            return string.Format(CultureInfo.InvariantCulture,
+                "дрейф фона против пробы {0:+0.000;-0.000;0.000} % ± {1:F3}, нуль {2:+0.000;-0.000;0.000} кан. ± {3:F3} (z {4:F1}; у {5:F0} кэВ {6:+0.00;-0.00;0.00} кан., {7:+0.0;-0.0;0.0} кэВ)",
+                100.0 * (g - 1.0), 100.0 * sigmaG, o, sigmaO, z, peakKev, shiftChannels, shiftKev);
+        }
+
+        /// <summary>
+        /// (`AMBER142` п.3, П224) Обратная симметричной 3×3 по алгебраическим
+        /// дополнениям; null — вырождена (определитель не положителен у
+        /// положительно определённой нормальной матрицы).
+        /// </summary>
+        static double[,] Invert3(double[,] m)
+        {
+            double c00 = m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1];
+            double c01 = m[1, 2] * m[2, 0] - m[1, 0] * m[2, 2];
+            double c02 = m[1, 0] * m[2, 1] - m[1, 1] * m[2, 0];
+            double det = m[0, 0] * c00 + m[0, 1] * c01 + m[0, 2] * c02;
+            if (!(det > 0.0))
+            {
+                return null;
+            }
+
+            var inv = new double[3, 3];
+            inv[0, 0] = c00 / det;
+            inv[0, 1] = (m[0, 2] * m[2, 1] - m[0, 1] * m[2, 2]) / det;
+            inv[0, 2] = (m[0, 1] * m[1, 2] - m[0, 2] * m[1, 1]) / det;
+            inv[1, 0] = c01 / det;
+            inv[1, 1] = (m[0, 0] * m[2, 2] - m[0, 2] * m[2, 0]) / det;
+            inv[1, 2] = (m[0, 2] * m[1, 0] - m[0, 0] * m[1, 2]) / det;
+            inv[2, 0] = c02 / det;
+            inv[2, 1] = (m[0, 1] * m[2, 0] - m[0, 0] * m[2, 1]) / det;
+            inv[2, 2] = (m[0, 0] * m[1, 1] - m[0, 1] * m[1, 0]) / det;
+            return inv;
+        }
+
+        /// <summary>
+        /// (`AMBER154`) Сглаживание гауссом переменной ширины: σ канала i —
+        /// <paramref name="sigma"/>[i], ядро до ±3σ, нормировано на свою сумму
+        /// внутри полосы [lo, hi]. Вне полосы — нули.
+        /// </summary>
+        static double[] SmoothVariable(double[] x, double[] sigma, int lo, int hi)
+        {
+            double[] result = new double[x.Length];
+            for (int i = lo; i <= hi; i++)
+            {
+                double s = sigma[i];
+                if (!(s > 0.3))
+                {
+                    result[i] = x[i];
+                    continue;
+                }
+
+                int half = (int)Math.Ceiling(3.0 * s);
+                double sum = 0.0;
+                double norm = 0.0;
+                for (int j = Math.Max(lo, i - half); j <= Math.Min(hi, i + half); j++)
+                {
+                    double t = (j - i) / s;
+                    double v = Math.Exp(-0.5 * t * t);
+                    sum += v * x[j];
+                    norm += v;
+                }
+
+                result[i] = norm > 0.0 ? sum / norm : x[i];
+            }
+
+            return result;
         }
 
         static double[] Rebin(double[] source, EnergyCalibration from, EnergyCalibration to, int channels)
@@ -10593,8 +18901,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                         if (efficiency != null)
                         {
-                            double e = efficiency.Eval(scattered);
-                            if (!(e > 0.0))
+                            // (`AMBER157`, П195) вне кривой эффективность
+                            // неизвестна — рассеянный квант той энергии в образ
+                            // не идёт (прежде брал ε крайней точки).
+                            double e, errorPercent;
+                            if (!efficiency.TryEval(scattered, out e, out errorPercent) || !(e > 0.0))
                             {
                                 continue;
                             }
@@ -10695,6 +19006,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double ResponseContinuumTrustFloorKev = 100.0;
 
         /// <summary>
+        /// (`AMBER142` (6), П226 02.10.2026) Пик вылета K-рентгена кристалла
+        /// (канал матрицы `EscapeXrayK`, E − E_Kα) остаётся в образе и под
+        /// порогом доверия <see cref="ResponseContinuumTrustFloorKev"/> — окном
+        /// как у линии, а не уходит в отвязанный хвост со свободной амплитудой,
+        /// где он был свободным пиком и забирал счёт у чужой линии той же
+        /// энергии. Довод и замер — у ножа
+        /// <see cref="SplitContinuumBelowTrustFloor(double[], double[], double[][], double, FsaComponent, EnergyCalibration, FwhmCalibration, int)"/>.
+        /// Рычаг A/B: выключен — прежний нож побитово. В UI и конфигурацию не
+        /// выводится: рычаг замера, а не настройка человека.
+        /// </summary>
+        public bool TailKeepsCrystalEscape { get; set; }
+
+        /// <summary>
         /// (`AMBER30`, П70; `S175`) Куда в РЕЗУЛЬТАТЕ идёт отвязанный хвост
         /// матричного образа (колонка `FitColumn.TailOf`): при поднятом ключе —
         /// в <see cref="FsaResult.UntiedTail"/> и мимо верха стека, то есть
@@ -10747,6 +19071,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
+            // (`AMBER213`, П241) В цикле вершин привязки шкалы окна одного
+            // компонента при одной длине гистограммы — одни и те же (см.
+            // <see cref="splitWindows"/>): берутся готовой маской «бин в окне».
+            Dictionary<int, bool[]> windowsOf = null;
+            bool[] inWindow = null;
+            if (this.splitWindows != null)
+            {
+                if (!this.splitWindows.TryGetValue(component, out windowsOf))
+                {
+                    windowsOf = new Dictionary<int, bool[]>();
+                    this.splitWindows[component] = windowsOf;
+                }
+
+                windowsOf.TryGetValue(Math.Min(floorBins, deposit.Length), out inWindow);
+            }
+
+            if (inWindow != null)
+            {
+                return CutTailByMask(deposit, part, channelParts, inWindow);
+            }
+
             // Окна линий в кэВ: линия чуть выше порога свешивает левое плечо
             // под порог, поэтому окна считаются для всех линий, а не только
             // для лежащих ниже.
@@ -10781,8 +19126,129 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 highs.Add(centre + half);
             }
 
-            double[] tail = null;
             int limit = Math.Min(floorBins, deposit.Length);
+
+            // ⛔ (`AMBER142` (6), П226) ПИК ВЫЛЕТА K-РЕНТГЕНА КРИСТАЛЛА — ТОЖЕ ПИК.
+            // Линией компонента он не числится, и окна у него не было: пик на
+            // E − E_Kα уходил в отвязанный хвост со СВОБОДНОЙ амплитудой, то
+            // есть становился свободным пиком под порогом. У Cd-109 вылет 88 кэВ
+            // встаёт на 59.4 кэВ — ровно на линию Am-241: в составе Am-241 +
+            // Cd-109 (`G1S16_Am241_P25`) хвост Cd-109 при амплитуде в ~2000 раз
+            // больше своего образа забирал 19 % пика 59.5 кэВ (истина замкнутой
+            // проверки Am-241 A 60.4 M против 74.4 M без отвязки), а отсев
+            // Cd-109 по значимости уносил хвост вместе с образом и отдавал счёт
+            // назад — Am-241 +14.1 % при 1/10 счёта, разброс/σ 2.10. Держатся
+            // бины пика канала вылета K-рентгена матрицы (`EscapeXrayK`), который
+            // уже стоит на шкале света тем же <see cref="AccumulateLine"/>. Без
+            // раскладки по каналам вклад пуст и окон нет — прежний нож.
+            if (this.TailKeepsCrystalEscape && this.ResponseMatrix != null && this.ResponseMatrix.HasChannels
+                && limit > 0)
+            {
+                int escapeChannel = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.EscapeXrayK;
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (!(line.Energy > 0.0) || !(line.Intensity > 0.0))
+                    {
+                        continue;
+                    }
+
+                    // Приёмник — СВОЕЙ длины на линию, как у образа одной линии
+                    // (`ImageBins` + запас света): в короткий массив `Add` зажал бы
+                    // отклик старшей линии в последний бин, и «пик вылета» встал бы
+                    // там, где кончается приёмник (замер П226: линии Eu-152 1005…1261
+                    // кэВ давали ложный пик на 52…56 кэВ у образа одной линии 121.8).
+                    double[] scratch = new double[EfficiencyMaker.ResponseMatrix.ImageBins(line.Energy, bin)
+                                                  + this.lightMarginBins];
+                    this.AccumulateLine(this.ResponseMatrix, scratch, line.Energy, 1.0, escapeChannel);
+                    // Положение пика — бин-максимум канала, а не центр тяжести:
+                    // у линий выше сотни кэВ в том же канале лежит и комптон с
+                    // ушедшим рентгеном, широкий, и центр тяжести уехал бы в
+                    // середину континуума и держал бы привязанным его, а не пик.
+                    int top = -1;
+                    for (int i = 0; i < scratch.Length; i++)
+                    {
+                        if (scratch[i] > 0.0 && (top < 0 || scratch[i] > scratch[top]))
+                        {
+                            top = i;
+                        }
+                    }
+
+                    if (top < 0 || top >= limit)
+                    {
+                        continue;
+                    }
+
+                    // Пик вылета, чьё уширенное подножие (±2 ПШПВ, как окно линии)
+                    // заходит ниже пола полосы фита по умолчанию
+                    // (<see cref="FsaBand.DefaultFitFloorKev"/>), остаётся в хвосте:
+                    // там рампа порога АЦП, которую матрица знать не может, —
+                    // ради этого хвост и отвязан. Замер П226: вылеты рентгена Sm/Gd
+                    // у Eu-152 (10…22 кэВ), удержанные в образе, уводили Eu-152
+                    // малой базы на −4…−5 % от паспорта и χ²/ndf вверх; с этим
+                    // ножом χ²/ndf Eu-152 −3…−11 %, активность ≤ 1.5 %.
+                    double escapeKev = top * bin;
+                    double reach = 3.0 * bin;
+                    double escapeChannelPos = EnergyToChannelSafe(calibration, escapeKev, channels);
+                    if (Finite(escapeChannelPos))
+                    {
+                        double fwhmChannels = fwhmCalibration.ChannelToFwhm(escapeChannelPos);
+                        if (PositiveFinite(fwhmChannels) && fwhmChannels < channels)
+                        {
+                            double fwhmKev = calibration.ChannelToEnergy(escapeChannelPos + fwhmChannels / 2.0)
+                                             - calibration.ChannelToEnergy(escapeChannelPos - fwhmChannels / 2.0);
+                            if (PositiveFinite(fwhmKev))
+                            {
+                                reach = Math.Max(reach, 2.0 * fwhmKev);
+                            }
+                        }
+                    }
+
+                    if (escapeKev - reach < FsaBand.DefaultFitFloorKev)
+                    {
+                        continue;
+                    }
+
+                    // Держится ТОЛЬКО сам пик вылета — бины канала не слабее
+                    // десятой доли его вершины (Kα и Kβ) и по бину с каждой
+                    // стороны, — а не окно ±2 ПШПВ, как у линии: широкое окно
+                    // держало привязанным и комптон соседних линий (замер П226:
+                    // Eu-152 малой базы −4…−5 % от паспорта при окне ±2 ПШПВ
+                    // вокруг вылетов 121.8 и рентгена Sm). Гистограмма
+                    // поглощения ещё не уширена, пик в ней узкий.
+                    double floorValue = 0.1 * scratch[top];
+                    for (int i = 0; i < Math.Min(scratch.Length, limit + 1); i++)
+                    {
+                        if (scratch[i] >= floorValue && scratch[i] > 0.0)
+                        {
+                            lows.Add((i - 1) * bin);
+                            highs.Add((i + 1) * bin);
+                        }
+                    }
+                }
+            }
+
+            if (windowsOf != null)
+            {
+                // (`AMBER213`, П241) маска «бин в окне» — тем же правилом, что ниже
+                inWindow = new bool[limit];
+                for (int i = 0; i < limit; i++)
+                {
+                    double energy = i * bin;
+                    for (int k = 0; k < lows.Count; k++)
+                    {
+                        if (energy >= lows[k] && energy <= highs[k])
+                        {
+                            inWindow[i] = true;
+                            break;
+                        }
+                    }
+                }
+
+                windowsOf[limit] = inWindow;
+                return CutTailByMask(deposit, part, channelParts, inWindow);
+            }
+
+            double[] tail = null;
             for (int i = 0; i < limit; i++)
             {
                 if (deposit[i] <= 0.0)
@@ -10804,6 +19270,67 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 if (!inPeakWindow)
+                {
+                    if (tail == null)
+                    {
+                        tail = new double[limit];
+                    }
+
+                    tail[i] = deposit[i];
+                    deposit[i] = 0.0;
+                    if (part != null)
+                    {
+                        part[i] = 0.0;
+                    }
+
+                    if (channelParts != null)
+                    {
+                        for (int c = 0; c < channelParts.Length; c++)
+                        {
+                            double[] row = channelParts[c];
+                            if (row != null && i < row.Length)
+                            {
+                                row[i] = 0.0;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return tail;
+        }
+
+        /// <summary>
+        /// (`AMBER213`, П241) Память окон пиков ножа хвоста на время цикла вершин
+        /// <see cref="CollectScaleAnchors"/>: компонент → длина гистограммы
+        /// (`limit`) → маска «бин в окне». Окна зависят только от линий
+        /// компонента, длины гистограммы и состояния света/матрицы, а оно в цикле
+        /// вершин не меняется; до П241 каждый синий канал линии
+        /// (<see cref="BuildLineBlue"/>) заново считал окна ВСЕХ линий хозяина
+        /// с откликом вылета каждой — квадрат по числу линий (замер П241: на
+        /// Th232 Amber с матрицей это была самая дорогая последовательная часть).
+        /// Вне цикла — null, нож считает окна, как прежде. Сбрасывается и в
+        /// начале каждого прохода разбора.
+        /// </summary>
+        Dictionary<FsaComponent, Dictionary<int, bool[]>> splitWindows;
+
+        /// <summary>
+        /// (`AMBER213`, П241) Хвост ножа по готовой маске — тело прежнего цикла
+        /// `SplitContinuumBelowTrustFloor` после окон, без изменений: бин вне
+        /// окон уходит из гистограммы (и её частей) в хвост.
+        /// </summary>
+        static double[] CutTailByMask(double[] deposit, double[] part, double[][] channelParts, bool[] inWindow)
+        {
+            int limit = inWindow.Length;
+            double[] tail = null;
+            for (int i = 0; i < limit; i++)
+            {
+                if (deposit[i] <= 0.0)
+                {
+                    continue;
+                }
+
+                if (!inWindow[i])
                 {
                     if (tail == null)
                     {
@@ -10908,6 +19435,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return cached;
             }
 
+            // (`T265` А, П207) через проходы — по содержимому и состоянию
+            string carryKey = this.DepositCarry ? this.DepositKey(component, calibration, fwhmCalibration, channels) : null;
+            if (carryKey != null && this.depositCarry.TryGetValue(carryKey, out cached))
+            {
+                this.DepositCarryHits++;
+                this.deposits[component] = cached;
+                if (cached != null && cached.CascadeApplied)
+                {
+                    this.cascadeApplied = true;
+                }
+
+                return cached;
+            }
+
+            if (carryKey != null)
+            {
+                this.DepositCarryMisses++;
+            }
+
             double bin = this.ResponseMatrix.BinKev;
             bool before = this.cascadeApplied;
             this.cascadeApplied = false;
@@ -10936,7 +19482,161 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             this.cascadeApplied = before || this.cascadeApplied;
             this.deposits[component] = deposit;
+            if (carryKey != null)
+            {
+                this.depositCarry[carryKey] = deposit;
+            }
+
             return deposit;
+        }
+
+        /// <summary>
+        /// (`T265` А, П207) Поправка суммирователя компонента: через проходы разбора —
+        /// по ключу содержимого (<see cref="ComponentCarryKey"/>), иначе — как
+        /// прежде, у суммирователя по ссылке. Суммирователь читает у компонента
+        /// только имя и линии (энергия, выход, нуклид); ключ берёт больше — лишнее
+        /// даёт промах, а не чужую поправку.
+        /// </summary>
+        FsaCascadeSummer.Correction CorrectionOf(FsaComponent component)
+        {
+            string key = this.DepositCarry && this.carrySummer != null && ReferenceEquals(this.cascade, this.carrySummer)
+                ? this.ComponentCarryKey(component)
+                : null;
+            if (key == null)
+            {
+                return this.cascade.For(component);
+            }
+
+            FsaCascadeSummer.Correction correction;
+            if (!this.correctionCarry.TryGetValue(key, out correction))
+            {
+                correction = this.cascade.For(component);
+                this.correctionCarry[key] = correction;
+            }
+
+            return correction;
+        }
+
+        /// <summary>
+        /// (`T265` А, П207) Ключ содержимого компонента: всё, что у него есть, кроме
+        /// готового образа (такой компонент через проходы не переносится, null),
+        /// числа — битами. Внутри прохода — по ссылке.
+        /// </summary>
+        string ComponentCarryKey(FsaComponent component)
+        {
+            if (component == null || component.FixedTemplate != null || component.Lines == null)
+            {
+                return null;
+            }
+
+            string key;
+            if (this.carryComponentKeys.TryGetValue(component, out key))
+            {
+                return key;
+            }
+
+            var sb = new StringBuilder(64 + 48 * component.Lines.Count);
+            sb.Append(component.Name).Append('\u0001').Append((int)component.Kind)
+              .Append(component.WeightsAreFinal ? 'F' : 'f').Append(component.Derived ? 'D' : 'd')
+              .Append(component.FromCrystal ? 'C' : 'c').Append(component.CrystalEscape ? 'E' : 'e')
+              .Append('\u0001').Append(component.EscapeParent).Append('\u0001').Append(component.DecayChainRoot)
+              .Append('\u0001').Append(Bits(component.TotalYieldPercent))
+              .Append('\u0001').Append(Bits(component.AmplitudeCap)).Append('\u0001');
+            if (component.Ties != null)
+            {
+                foreach (FsaTie tie in component.Ties)
+                {
+                    sb.Append(tie.Member).Append('\u0004').Append(tie.Partner).Append('\u0004')
+                      .Append(Bits(tie.TotalYieldPercent)).Append('\u0004');
+                }
+            }
+
+            foreach (FsaLine line in component.Lines)
+            {
+                sb.Append('\u0002').Append(line.Nuclide).Append('\u0003').Append(Bits(line.Energy))
+                  .Append('\u0003').Append(Bits(line.Intensity)).Append('\u0003').Append(Bits(line.AnnihilationIntensity));
+            }
+
+            key = sb.ToString();
+            this.carryComponentKeys[component] = key;
+            return key;
+        }
+
+        /// <summary>
+        /// (`T265` А, П207) Ключ гистограммы поглощения: содержимое компонента и
+        /// ВСЁ состояние, которое читает <see cref="BuildResponseDeposit"/> со своими
+        /// вызываемыми (перечень снят обходом их тел): β и форма света, имя
+        /// кривой, её опорная и верхняя энергии, запас длины, маска каналов,
+        /// ключи суммирования, нож доверия, правило переноса матрицы, есть ли
+        /// суммирователь; калибровка, ПШПВ и матрица — по ссылке, число каналов.
+        /// </summary>
+        string DepositKey(FsaComponent component, EnergyCalibration calibration,
+                          FwhmCalibration fwhmCalibration, int channels)
+        {
+            string content = this.ComponentCarryKey(component);
+            if (content == null || this.ResponseMatrix == null)
+            {
+                return null;
+            }
+
+            var sb = new StringBuilder(content.Length + 160);
+            sb.Append(content).Append('\u0005')
+              .Append(Bits(this.driftLight)).Append('|').Append((int)this.lightForm).Append('|')
+              .Append(this.lightCurveName).Append('|').Append(Bits(this.AnchorLightReferenceKev)).Append('|')
+              .Append(Bits(this.AnchorLightMaxKev)).Append('|')
+              .Append(this.lightMarginBins.ToString(CultureInfo.InvariantCulture)).Append('|')
+              .Append(this.MatrixChannelMask.ToString(CultureInfo.InvariantCulture)).Append('|')
+              .Append(this.CascadeSumPeaks ? 'S' : 's').Append(this.CascadePairContinuum ? 'P' : 'p')
+              .Append(this.CascadeEscapeLoss ? 'L' : 'l').Append(this.SumLayerIncludesContinuum ? 'Y' : 'y')
+              .Append(this.ResponseMatrix.TransferByChannel ? 'T' : 't').Append(this.cascade != null ? 'K' : 'k')
+              .Append('|').Append(Bits(this.ResponseContinuumTrustFloorKev)).Append('|')
+              .Append(this.CarryRef(this.ResponseMatrix).ToString(CultureInfo.InvariantCulture)).Append('|')
+              .Append(this.CarryRef(calibration).ToString(CultureInfo.InvariantCulture)).Append('|')
+              .Append(this.CarryRef(fwhmCalibration).ToString(CultureInfo.InvariantCulture)).Append('|')
+              .Append(channels.ToString(CultureInfo.InvariantCulture));
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// (`T265` А, П207) Ключ входов суммирователя — всё, что ставит
+        /// <see cref="CreateCascadeSummer"/>, и матрица по ссылке.
+        /// </summary>
+        string SummerCarryKey()
+        {
+            return string.Join("|",
+                this.CarryRef(this.ResponseMatrix).ToString(CultureInfo.InvariantCulture),
+                this.ScintillatorMaterial ?? "", Bits(this.CoincidenceWindowSec),
+                this.CascadeXrayPartners ? "1" : "0", this.CascadeAnnihilationPartners ? "1" : "0",
+                this.CascadeIsomerPartners ? "1" : "0", this.CascadeDecayTimeProbability ? "1" : "0",
+                this.CascadeSumPhotonLight ? "1" : "0", this.CascadeLossJointFactor ? "1" : "0",
+                this.CascadeSumAngular ? "1" : "0", this.CarryRef(this.AngularQk).ToString(CultureInfo.InvariantCulture),
+                this.CascadePairContinuum ? "1" : "0", this.CascadeBranchSum ? "1" : "0");
+        }
+
+        /// <summary>(`T265` А, П207) Номер объекта в ключе — по ссылке; null — −1.</summary>
+        int CarryRef(object item)
+        {
+            if (item == null)
+            {
+                return -1;
+            }
+
+            for (int i = 0; i < this.carryRefs.Count; i++)
+            {
+                if (ReferenceEquals(this.carryRefs[i], item))
+                {
+                    return i;
+                }
+            }
+
+            this.carryRefs.Add(item);
+            return this.carryRefs.Count - 1;
+        }
+
+        /// <summary>(`T265` А, П207) Число в ключ — его 64 битами.</summary>
+        static string Bits(double value)
+        {
+            return BitConverter.DoubleToInt64Bits(value).ToString("X16", CultureInfo.InvariantCulture);
         }
 
         /// <summary>
@@ -10988,7 +19688,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Каскадные поправки компонента считаются один раз и переживают всю
             // сетку дрейфа: от усиления и нуля шкалы они не зависят.
             FsaCascadeSummer.Correction correction =
-                this.cascade != null ? this.cascade.For(component) : null;
+                this.cascade != null ? this.CorrectionOf(component) : null;
             if (correction != null && !correction.Any)
             {
                 correction = null;
@@ -11006,10 +19706,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
-            // (П19) запас под сдвиг пика вверх по свету — нуль без координаты
-            int length = (int)(topEnergy / bin + 0.5) + 1 + this.lightMarginBins;
+            // (П19) запас под сдвиг пика вверх по свету — нуль без координаты;
+            // (`AMBER70`) сама длина образа — от матрицы (`ceil(E/шаг)+1`): без
+            // лишнего бина `Add` зажимал верхнего соседа пика в последний бин, и
+            // у линий выше центра своего бина (половина всех) дробный сдвиг пика
+            // на энергию линии не доезжал до ленты.
+            int length = EfficiencyMaker.ResponseMatrix.ImageBins(topEnergy, bin) + this.lightMarginBins;
             int channelCount = EfficiencyMaker.EfficiencySimulator.ResponseChannelCount;
-            int peak = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
             bool byChannels = matrix.HasChannels;
             double[] deposit = new double[length];
             double[][] channels = null;
@@ -11023,6 +19726,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             bool anyLine = false;
+            // (`AMBER99`) Доли, пережившие вынос партнёром, — по линиям.
+            double[] survivals = this.EscapeSurvivals(correction, component);
             for (int i = 0; i < component.Lines.Count; i++)
             {
                 FsaLine line = component.Lines[i];
@@ -11034,19 +19739,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // Эффективность НЕ применяется: она уже внутри отклика.
                 double weight = line.Intensity / 100.0;
                 double cf = correction != null ? correction.LineFactors[i] : 1.0;
-                bool corrected = Math.Abs(cf - 1.0) >= 1.0E-6;
+                double survive = survivals != null ? survivals[i] : 1.0;
+                bool peakCorrected = Math.Abs(cf - 1.0) >= 1.0E-6;
+                bool corrected = peakCorrected || Math.Abs(survive - 1.0) >= 1.0E-6;
                 if (byChannels)
                 {
-                    // Поправка ложится ТОЛЬКО на канал пика: вынос из пика —
-                    // чистая потеря, а континуум столько же теряет своих
-                    // событий, сколько получает чужих сумм, и в первом порядке
-                    // остаётся при своём. Ради ЭТОГО каналы и разделены: по
-                    // суммарной строке ту же поправку пришлось бы одинаково
-                    // растянуть и на пик, и на весь хвост.
+                    // Поправка на пик — CF (вынос и влёт); на каналы ВЫЛЕТА и
+                    // заноса аннигиляции извне — только вынос (`AMBER99`, П148:
+                    // партнёр уносит событие из любого отклика постоянного
+                    // положения, а сумма на энергию вылета не приходит). Континуум
+                    // столько же теряет своих событий, сколько получает чужих
+                    // сумм, и в первом порядке остаётся при своём. Ради ЭТОГО
+                    // каналы и разделены: по суммарной строке ту же поправку
+                    // пришлось бы одинаково растянуть и на пик, и на весь хвост.
                     for (int c = 0; c < channelCount; c++)
                     {
                         this.AccumulateLine(matrix, channels[c], line.Energy,
-                                            c == peak && corrected ? weight * cf : weight, c);
+                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive, this.CascadePairContinuum && correction != null), c);
                     }
                 }
                 else if (corrected)
@@ -11054,7 +19763,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     for (int c = 0; c < channelCount; c++)
                     {
                         this.AccumulateLine(matrix, deposit, line.Energy,
-                                            c == peak ? weight * cf : weight, c);
+                                            ChannelWeight(c, weight, peakCorrected ? cf : 1.0, survive, this.CascadePairContinuum && correction != null), c);
                     }
                 }
                 else
@@ -11164,6 +19873,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // (`AMBER124`/`AMBER125`, П166) Свёртка пары доходит до E_i + E_j.
+            if (correction.PairContinua != null)
+            {
+                foreach (FsaCascadeSummer.PairContinuum pair in correction.PairContinua)
+                {
+                    double edge = pair.FirstKev + pair.SecondKev;
+                    if (edge > top)
+                    {
+                        top = edge;
+                    }
+                }
+            }
+
             return top;
         }
 
@@ -11228,6 +19950,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
+                    // (`T265`) положение по свету — один раз на полосу, не на канал
+                    SumShape shape = this.SumContinuumShape(band.ThirdKev, this.SumThirdShiftKev(band.ThirdKev),
+                                                            band.ShiftKev);
                     for (int c = 0; c < channelCount; c++)
                     {
                         if (c == peakChannel)
@@ -11235,17 +19960,162 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             continue;
                         }
 
-                        this.AccumulateSumContinuum(this.ResponseMatrix,
-                                                    channels != null ? channels[c] : deposit,
-                                                    band.ThirdKev, band.Weight, c, band.ShiftKev);
+                        this.PlaceSumContinuum(this.ResponseMatrix,
+                                               channels != null ? channels[c] : deposit,
+                                               band.ThirdKev, band.Weight, c, shape);
                     }
 
                     any = true;
                 }
             }
 
+            // (`AMBER124`/`AMBER125`, П166) Свёртка пары без «пик ⊗ пик».
+            if (withContinuum && correction.PairContinua != null && correction.PairContinua.Count > 0)
+            {
+                any |= this.AccumulatePairContinua(deposit, channels, correction.PairContinua);
+            }
+
             return any;
         }
+
+        /// <summary>
+        /// (`AMBER124`/`AMBER125`, П166 28.09.2026) СВЁРТКА КАСКАДНОЙ ПАРЫ БЕЗ
+        /// ЧЛЕНА «ПИК ⊗ ПИК». Для пары (i, j) с совместной долей J (на распад):
+        ///
+        ///   * «пик i + непик j» — отклик j во всех каналах, кроме пика, сдвинутый
+        ///     на E_i, с весом J·ε_p(i) (сюда же сумм-вылеты «пик + SE/DE/K» —
+        ///     `AMBER125`); «непик i + пик j» — симметрично;
+        ///   * «непик i ⊗ непик j» — непиковая часть отклика i (строка матрицы,
+        ///     все каналы, кроме пика) нарезается на <see cref="PairSliceCount"/>
+        ///     ломтей равной ширины по энергии, и каждый ломоть с его долей
+        ///     сдвигает непиковый отклик j на свой центр тяжести. Свёртка двух
+        ///     непрерывных распределений гладкая, и ошибка ломтя — сдвиг внутри
+        ///     его ширины, размытый вторым распределением.
+        ///
+        /// Куда кладётся: во ВСЕ каналы, кроме пикового, — в канал отклика
+        /// того кванта, чей отклик сдвигается (событие пика не даёт, пиковый
+        /// канал держит только полное поглощение). Половина «пик ⊗ пик» —
+        /// сумм-пик или влёт в CF линии, здесь её нет.
+        /// </summary>
+        bool AccumulatePairContinua(double[] deposit, double[][] channels,
+                                    List<FsaCascadeSummer.PairContinuum> pairs)
+        {
+            EfficiencyMaker.ResponseMatrix matrix = this.ResponseMatrix;
+            if (matrix == null || this.cascade == null)
+            {
+                return false;
+            }
+
+            int peakChannel = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
+            int channelCount = EfficiencyMaker.EfficiencySimulator.ResponseChannelCount;
+            double bin = matrix.BinKev;
+            if (!(bin > 0.0))
+            {
+                return false;
+            }
+
+            bool any = false;
+            foreach (FsaCascadeSummer.PairContinuum pair in pairs)
+            {
+                double joint = pair.Joint;
+                if (!(joint > 0.0))
+                {
+                    continue;
+                }
+
+                double first = pair.FirstKev, second = pair.SecondKev;
+                double peakFirst = this.cascade.PeakEfficiency(first);
+                double peakSecond = this.cascade.PeakEfficiency(second);
+
+                // (`T265`) сдвиги по свету — один раз на пару, а у ломтей ниже
+                // — один раз на ломоть, а не на каждый канал
+                double secondLight = this.SumThirdShiftKev(second);
+                double firstLight = this.SumThirdShiftKev(first);
+                SumShape secondOnFirst = this.SumContinuumShape(second, secondLight, first);
+                SumShape firstOnSecond = this.SumContinuumShape(first, firstLight, second);
+
+                // «пик i + непик j» и «непик i + пик j».
+                for (int c = 0; c < channelCount; c++)
+                {
+                    if (c == peakChannel)
+                    {
+                        continue;
+                    }
+
+                    double[] target = channels != null ? channels[c] : deposit;
+                    if (peakFirst > 0.0)
+                    {
+                        this.PlaceSumContinuum(matrix, target, second, joint * peakFirst, c, secondOnFirst);
+                    }
+
+                    if (peakSecond > 0.0)
+                    {
+                        this.PlaceSumContinuum(matrix, target, first, joint * peakSecond, c, firstOnSecond);
+                    }
+                }
+
+                // «непик i ⊗ непик j»: непиковая строка i — ломтями.
+                int length = EfficiencyMaker.ResponseMatrix.ImageBins(first, bin) + 1;
+                double[] rest = new double[length];
+                for (int c = 0; c < channelCount; c++)
+                {
+                    if (c != peakChannel && (this.MatrixChannelMask & (1 << c)) != 0)
+                    {
+                        this.SumTransfer(matrix).AccumulateChannel(rest, first, 1.0, c);
+                    }
+                }
+
+                double sliceKev = first / PairSliceCount;
+                for (int s = 0; s < PairSliceCount; s++)
+                {
+                    int bLo = s == 0 ? 0 : (int)Math.Floor(s * sliceKev / bin + 0.5);
+                    int bHi = s == PairSliceCount - 1
+                        ? length - 1
+                        : (int)Math.Floor((s + 1) * sliceKev / bin + 0.5) - 1;
+                    bLo = Math.Max(0, bLo);
+                    bHi = Math.Min(length - 1, bHi);
+                    double mass = 0.0, moment = 0.0;
+                    for (int b = bLo; b <= bHi; b++)
+                    {
+                        if (rest[b] > 0.0)
+                        {
+                            mass += rest[b];
+                            moment += rest[b] * b * bin;
+                        }
+                    }
+
+                    if (!(mass > 0.0))
+                    {
+                        continue;
+                    }
+
+                    double centre = moment / mass;
+                    SumShape secondOnSlice = this.SumContinuumShape(second, secondLight, centre);
+                    for (int c = 0; c < channelCount; c++)
+                    {
+                        if (c == peakChannel)
+                        {
+                            continue;
+                        }
+
+                        this.PlaceSumContinuum(matrix, channels != null ? channels[c] : deposit,
+                                               second, joint * mass, c, secondOnSlice);
+                    }
+                }
+
+                any = true;
+            }
+
+            return any;
+        }
+
+        /// <summary>
+        /// (`AMBER124`) Ломтей непиковой части отклика первого кванта в свёртке
+        /// «непик ⊗ непик» (<see cref="AccumulatePairContinua"/>). Ширина ломтя —
+        /// E_i/48: у 2614 кэВ это 54 кэВ, у 583 — 12, при ширине результата в
+        /// сотни кэВ.
+        /// </summary>
+        const int PairSliceCount = 48;
 
         /// <summary>
         /// Образ из ОДНИХ сумм-пиков компонента — для отрисовки подслоем.
@@ -11265,7 +20135,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
-            FsaCascadeSummer.Correction correction = this.cascade.For(component);
+            FsaCascadeSummer.Correction correction = this.CorrectionOf(component);
             if (correction == null || correction.SumPeaks == null || correction.SumPeaks.Count == 0)
             {
                 return null;
@@ -11330,16 +20200,52 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // разбора, целиком. Она нужна как мерка: по ней берутся группы
             // бинов, порог отсечки и центры тяжести, и только это делает части
             // действительно частями ленты, а не похожими на неё кривыми (S37).
+            LayerPlan plan = this.PrepareLayerParts(component, calibration, fwhmCalibration, channels);
+            if (plan != null)
+            {
+                this.BroadenLayerParts(plan, calibration, fwhmCalibration, gain, offset, chLo, chHi, channels,
+                                       out sumCurve, out channelCurves);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER213`, П241) Что уширять для слоёв компонента: гистограмма
+        /// поглощения и её части. Половина <see cref="BuildLayerParts"/>, трогающая
+        /// общее состояние (`DepositOf`, `CorrectionOf`), — зовётся подряд.
+        /// </summary>
+        sealed class LayerPlan
+        {
+            public Deposit Deposit;
+            public bool WantSum;
+            public int ChannelCount;
+            public double[][] Parts;
+            public double Bin;
+        }
+
+        LayerPlan PrepareLayerParts(FsaComponent component, EnergyCalibration calibration,
+                                    FwhmCalibration fwhmCalibration, int channels)
+        {
+            if (this.ResponseMatrix == null || component == null || component.WeightsAreFinal)
+            {
+                return null;
+            }
+
+            double bin = this.ResponseMatrix.BinKev;
+            if (!(bin > 0.0))
+            {
+                return null;
+            }
+
             Deposit deposit = this.DepositOf(component, calibration, fwhmCalibration, channels);
             if (deposit == null)
             {
-                return;
+                return null;
             }
 
             bool wantSum = deposit.SumPart != null && this.cascade != null && this.CascadeSumPeaks;
             if (wantSum)
             {
-                FsaCascadeSummer.Correction correction = this.cascade.For(component);
+                FsaCascadeSummer.Correction correction = this.CorrectionOf(component);
                 wantSum = correction != null && correction.SumPeaks != null
                           && correction.SumPeaks.Count > 0;
             }
@@ -11348,7 +20254,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             int partCount = (wantSum ? 1 : 0) + channelCount;
             if (partCount == 0)
             {
-                return;
+                return null;
             }
 
             double[][] parts = new double[partCount][];
@@ -11363,15 +20269,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 parts[next++] = deposit.Channels[c];
             }
 
+            return new LayerPlan { Deposit = deposit, WantSum = wantSum, ChannelCount = channelCount, Parts = parts, Bin = bin };
+        }
+
+        /// <summary>
+        /// (`AMBER213`, П241) Уширение слоёв по готовому плану — чистый счёт
+        /// (<see cref="BroadenResponseDeposit"/>), годится для параллельных кусков.
+        /// </summary>
+        void BroadenLayerParts(LayerPlan plan, EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                               double gain, double offset, int chLo, int chHi, int channels,
+                               out double[] sumCurve, out double[][] channelCurves)
+        {
+            sumCurve = null;
+            channelCurves = null;
+            Deposit deposit = plan.Deposit;
+            bool wantSum = plan.WantSum;
+            int channelCount = plan.ChannelCount;
             double[][] templates;
-            this.BroadenResponseDeposit(deposit.Values, parts, calibration, fwhmCalibration,
-                                        bin, gain, offset, chLo, chHi, channels, out templates);
+            this.BroadenResponseDeposit(deposit.Values, plan.Parts, calibration, fwhmCalibration,
+                                        plan.Bin, gain, offset, chLo, chHi, channels, out templates);
             if (templates == null)
             {
                 return;
             }
 
-            next = 0;
+            int next = 0;
             if (wantSum)
             {
                 sumCurve = templates[next++];
@@ -11508,14 +20430,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // верхнего канала образа не имеет, но её левый хвост в окно фита
             // попадает, и терять его нельзя.
             int pad = SourcePad(fwhmCalibration, channels);
-            int size = channels + 2 * pad;
-            double[] source = this.sourceBuffer;
-            int[] bands = this.sourceBands;
-            if (source == null || source.Length < size)
-            {
-                source = this.sourceBuffer = new double[size];
-                bands = this.sourceBands = new int[size];
-            }
+            // ⛔ (`AMBER158`, П198) Источник — не целый канал, а ДОЛЯ КАНАЛА:
+            // ячейка буфера = канал × `SourcePhases` фаз. Прежде центр группы
+            // делился между двумя соседними ЦЕЛЫМИ каналами, и это свёртка с
+            // двухточечным распределением: к σ² ядра прибавлялось f(1−f) кан²,
+            // и у узких в каналах пиков образ был шире калибровки ПШПВ пилой
+            // по дробному положению центра (G1S 1024 кан. 22 кэВ +4…+14 %, на
+            // 512 кан. до +38 %; активность зависела от числа каналов). Теперь
+            // центр делится между двумя соседними ФАЗАМИ (шаг 1/16 кан.), а
+            // ядро фазы посчитано со сдвигом центра на её долю канала: остаток
+            // дисперсии ≤ 1/(4·16²) кан², ширина верна до 0.2 % и на 1.1 кан.
+            int size = (channels + 2 * pad) * SourcePhases;
+            // (`AMBER213`, П241) Буфер — СВОЙ у каждого одновременного уширения
+            // (образы строятся параллельно): берётся из запаса анализатора и
+            // возвращается погашенным; при исключении не возвращается вовсе.
+            SourceScratch scratch = this.RentSource(size);
+            double[] source = scratch.Source;
+            int[] bands = scratch.Bands;
 
             // Буферы частей — свои и одноразовые: подслой и каналы строятся
             // один раз на готовый результат, а не на каждом узле сетки дрейфа,
@@ -11563,7 +20494,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 double p = this.DriftPosition(position, gain, offset);
-                double fwhm = fwhmCalibration.ChannelToFwhm(p);
+                double fwhm = this.ImageFwhm(fwhmCalibration, p);
                 if (!PositiveFinite(fwhm) || fwhm >= channels)
                 {
                     b++;
@@ -11624,10 +20555,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 int band = ShapeKernelBank.Band(fwhm);
-                int channel = (int)Math.Floor(center);
-                double frac = center - channel;
-                Splat(source, bands, pad, channels, channel, area * (1.0 - frac), band, ref srcLo, ref srcHi);
-                Splat(source, bands, pad, channels, channel + 1, area * frac, band, ref srcLo, ref srcHi);
+                // (`AMBER158`) деление между соседними фазами, а не каналами
+                double scaled = center * SourcePhases;
+                int cell = (int)Math.Floor(scaled);
+                double frac = scaled - cell;
+                Splat(source, bands, pad, channels, cell, area * (1.0 - frac), band, ref srcLo, ref srcHi);
+                Splat(source, bands, pad, channels, cell + 1, area * frac, band, ref srcLo, ref srcHi);
                 for (int pt = 0; pt < partCount; pt++)
                 {
                     if (!(partAreas[pt] > 0.0))
@@ -11639,8 +20572,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // своя. Границы источников и номера ядер уже записаны
                     // полной гистограммой: часть их не расширяет, потому что
                     // непустой быть там, где полная пуста, не может.
-                    SplatPart(partSources[pt], pad, channels, channel, partAreas[pt] * (1.0 - frac));
-                    SplatPart(partSources[pt], pad, channels, channel + 1, partAreas[pt] * frac);
+                    SplatPart(partSources[pt], pad, channels, cell, partAreas[pt] * (1.0 - frac));
+                    SplatPart(partSources[pt], pad, channels, cell + 1, partAreas[pt] * frac);
                 }
             }
 
@@ -11648,6 +20581,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // компонентами — каждая ячейка гасится сразу после того, как её
             // размазали, иначе следующий компонент унаследовал бы чужой образ.
             bool any = false;
+            // (`S207`, П225) рампа на дробной сетке: каналы ниже верха рампы
+            // получают множитель с весами хода ЭТОГО ядра внутри канала, и
+            // общий множитель после свёртки им уже не нужен
+            bool onGrid = this.RampOnGrid;
+            FsaBand.RampProfile ramp = this.thresholdRamp;
+            int rampTop = onGrid ? ramp.Top : 0;
             for (int idx = srcLo; idx <= srcHi; idx++)
             {
                 double weight = source[idx];
@@ -11663,13 +20602,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     partSources[p][idx] = 0.0;
                 }
 
-                double[] kernel = bank.Get(bands[idx]);
+                int phase = idx % SourcePhases;
+                double[] kernel = bank.Get(bands[idx], phase);
                 if (kernel == null)
                 {
                     continue;
                 }
 
-                int full0 = idx - pad - bank.LeftSpan(bands[idx]);
+                int full0 = idx / SourcePhases - pad - bank.LeftSpan(bands[idx]);
                 int lo = Math.Max(chLo, full0);
                 int hi = Math.Min(chHi, full0 + kernel.Length - 1);
                 if (hi < lo)
@@ -11677,9 +20617,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                double[] fineKernel = onGrid && lo < rampTop ? bank.GetFine(bands[idx], phase) : null;
                 for (int i = lo; i <= hi; i++)
                 {
                     double k = kernel[i - full0];
+                    if (fineKernel != null && i < rampTop)
+                    {
+                        k *= ramp.Weighted(i, fineKernel, (i - full0) * FsaBand.RampProfile.SubBins);
+                    }
+
                     template[i] += weight * k;
                     for (int p = 0; p < partCount; p++)
                     {
@@ -11693,6 +20639,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 any = true;
             }
 
+            // ⛔ (`S204`, П189) РАМПА ПОРОГА — на выходе ОБЩЕГО уширения, одним
+            // множителем на ленту и на все её части: образ фита, отвязанный
+            // хвост, подслой сумм, четыре канала исхода, столбец поверки линии,
+            // синий канал опоры привязки. Тождества «Σ каналов = лента» и
+            // «подслой ≤ лента» переживают множитель, потому что он общий.
+            // (`S207`, П225) на дробной сетке множитель уже внутри свёртки — тоже
+            // общий у ленты и её частей (тот же источник, то же ядро, та же доля)
+            if (any && this.thresholdRamp != null && !onGrid)
+            {
+                this.thresholdRamp.Apply(template);
+                for (int p = 0; p < partCount; p++)
+                {
+                    this.thresholdRamp.Apply(partTemplates[p]);
+                }
+            }
+
+            this.ReturnSource(scratch);
             return any ? template : null;
         }
 
@@ -11700,30 +20663,53 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Положить площадь ЧАСТИ в тот же канал источника, что и полная
         /// гистограмма. Ядро и границы там уже записаны — часть их не трогает.
         /// </summary>
-        static void SplatPart(double[] source, int pad, int channels, int channel, double weight)
+        static void SplatPart(double[] source, int pad, int channels, int cell, double weight)
         {
-            if (!(weight > 0.0) || channel < -pad || channel > channels - 1 + pad)
+            int idx = SourceIndex(pad, channels, cell);
+            if (!(weight > 0.0) || idx < 0)
             {
                 return;
             }
 
-            source[channel + pad] += weight;
+            source[idx] += weight;
         }
 
         /// <summary>
-        /// Положить площадь в целый канал источника, запомнив, каким ядром её
+        /// (`AMBER158`, П198) Число фаз источника на канал. 16 — остаток
+        /// дисперсии линейного деления между фазами ≤ 1/1024 кан², то есть
+        /// +0.2 % ширины у пика в 1.1 канала ПШПВ и +0.06 % у пика в 2 канала.
+        /// </summary>
+        const int SourcePhases = 16;
+        /// <summary>
+        /// Ячейка буфера источников для доли канала <paramref name="cell"/>
+        /// (в 1/<see cref="SourcePhases"/> канала) или −1, если она за
+        /// пределами буфера.
+        /// </summary>
+        static int SourceIndex(int pad, int channels, int cell)
+        {
+            int channel = cell >= 0 ? cell / SourcePhases : -((-cell + SourcePhases - 1) / SourcePhases);
+            if (channel < -pad || channel > channels - 1 + pad)
+            {
+                return -1;
+            }
+
+            return (channel + pad) * SourcePhases + (cell - channel * SourcePhases);
+        }
+
+        /// <summary>
+        /// Положить площадь в долю канала источника, запомнив, каким ядром её
         /// потом размазать. Каналы за пределами буфера отбрасываются: их пик
         /// целиком лежит дальше своего носителя от окна фита.
         /// </summary>
-        static void Splat(double[] source, int[] bands, int pad, int channels, int channel, double weight,
+        static void Splat(double[] source, int[] bands, int pad, int channels, int cell, double weight,
                           int band, ref int srcLo, ref int srcHi)
         {
-            if (!(weight > 0.0) || channel < -pad || channel > channels - 1 + pad)
+            int idx = SourceIndex(pad, channels, cell);
+            if (!(weight > 0.0) || idx < 0)
             {
                 return;
             }
 
-            int idx = channel + pad;
             if (source[idx] == 0.0)
             {
                 bands[idx] = band;
@@ -11778,6 +20764,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         double[] DepositChannels(EnergyCalibration calibration, double bin, int count, int channels)
         {
+            // (`AMBER213`, П241) под замком — см. <see cref="lazyGate"/>
+            lock (this.lazyGate)
+            {
+                return this.DepositChannelsLocked(calibration, bin, count, channels);
+            }
+        }
+
+        double[] DepositChannelsLocked(EnergyCalibration calibration, double bin, int count, int channels)
+        {
             // (`S169`) карта нуля — часть ключа кэша: смена наклона "adc" в
             // цикле привязки обязана перестроить таблицу, иначе образ после
             // включения карты остался бы калибровочным молча.
@@ -11786,11 +20781,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 && object.ReferenceEquals(this.depositChannelsCalibration, calibration)
                 && this.depositChannelsCount == channels
                 && this.depositChannelsAdcScale == this.adcScale
-                && this.depositChannelsAdcZeroKev == this.adcZeroKev)
+                && this.depositChannelsAdcZeroKev == this.adcZeroKev
+                && this.depositChannelsAdcLinearKev == this.adcLinearKev
+                && this.depositChannelsAdcTract == this.adcTractPerChannel)
             {
                 return this.depositChannels;
             }
 
+            // ⛔ (`AMBER72`, П134 22.09.2026) СВЕТ ВЫШЕ ВЕРХА ШКАЛЫ ПРОДОЛЖАЕТСЯ
+            // ЗА НЕЁ, А НЕ ЗАЖИМАЕТСЯ В ПОСЛЕДНИЙ КАНАЛ. (`AMBER90`/`AMBER85`,
+            // П144) Продолжение переехало в <see cref="LightToChannel"/> — одно
+            // на таблицу бинов, голые пики, окно и опоры, и вниз тоже: свет
+            // ниже E(0) прежде ложился стопкой в нулевой канал. `EnergyToChannel`
+            // отдаёт `maxChannels` всему, что выше `E(N)`
+            // (`PolynomialEnergyCalibration.cs:253`), а `Splat` канал `N`
+            // принимает — и ВСЯ надшкальная часть отклика (сумм-пик каскада,
+            // наложения) садилась в один канал у края, откуда левая половина
+            // ядра расползалась по последним каналам образа ложным пиком.
+            // Мерено на `G1S24_Th232_Mar` (верх шкалы 3068.4 кэВ, сумм-пик
+            // Tl-208 583 + 2614 = 3198 кэВ).
+            //
+            // ⚠ Отбросить надшкальные бины было бы НЕВЕРНО: у пика за верхом
+            // шкалы левый хвост в окно фита попадает, и запас буфера
+            // (<see cref="SourcePad"/>) заведён ровно для него — см. довод у
+            // вызова этой таблицы. Поэтому позиция продолжается за шкалу
+            // линейно по ширине верхнего канала: пик стоит там, где он есть,
+            // хвост ложится куда следует, а что ушло дальше запаса — отбросит
+            // сам <see cref="Splat"/>.
             double[] table = new double[count];
             for (int b = 0; b < count; b++)
             {
@@ -11803,21 +20820,77 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.depositChannelsCount = channels;
             this.depositChannelsAdcScale = this.adcScale;
             this.depositChannelsAdcZeroKev = this.adcZeroKev;
+            this.depositChannelsAdcLinearKev = this.adcLinearKev;
+            this.depositChannelsAdcTract = this.adcTractPerChannel;
             return table;
         }
 
         ShapeKernelBank Kernels(FwhmCalibration fwhmCalibration)
         {
-            if (this.kernelBank == null || !object.ReferenceEquals(this.kernelBank.Calibration, fwhmCalibration))
+            // (`AMBER213`, П241) под замком — см. <see cref="lazyGate"/>
+            lock (this.lazyGate)
             {
-                this.kernelBank = new ShapeKernelBank(fwhmCalibration);
+                return this.KernelsLocked(fwhmCalibration);
+            }
+        }
+
+        ShapeKernelBank KernelsLocked(FwhmCalibration fwhmCalibration)
+        {
+            if (this.kernelBank == null || !this.kernelBank.Fits(fwhmCalibration, this.KernelChannelMean))
+            {
+                this.kernelBank = new ShapeKernelBank(fwhmCalibration, this.KernelChannelMean);
             }
 
             return this.kernelBank;
         }
 
-        double[] sourceBuffer;
-        int[] sourceBands;
+        /// <summary>
+        /// (`AMBER213`, П241) Буфер источников уширения: ячейки (доля канала) и
+        /// номера ступеней ядра. Прежде был один на анализатор; теперь — запас
+        /// (<see cref="RentSource"/>), потому что образы строятся параллельно.
+        /// Возвращается погашенным: каждая ячейка гасится при свёртке.
+        /// </summary>
+        sealed class SourceScratch
+        {
+            public double[] Source;
+            public int[] Bands;
+        }
+
+        readonly Stack<SourceScratch> sourcePool = new Stack<SourceScratch>();
+
+        SourceScratch RentSource(int size)
+        {
+            lock (this.sourcePool)
+            {
+                while (this.sourcePool.Count > 0)
+                {
+                    SourceScratch kept = this.sourcePool.Pop();
+                    if (kept.Source.Length >= size)
+                    {
+                        return kept;
+                    }
+                }
+            }
+
+            return new SourceScratch { Source = new double[size], Bands = new int[size] };
+        }
+
+        void ReturnSource(SourceScratch scratch)
+        {
+            lock (this.sourcePool)
+            {
+                this.sourcePool.Push(scratch);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER213`, П241) Замок ленивых кэшей анализатора, которые читает
+        /// параллельная сборка образов: банк ядер (<see cref="Kernels"/>), каналы
+        /// бинов гистограммы (<see cref="DepositChannels"/>), обращение
+        /// калибровки (<see cref="InverseOf"/>). Все три хранят чистые функции
+        /// ключа — кто бы ни посчитал первым, значения те же.
+        /// </summary>
+        readonly object lazyGate = new object();
         double[] depositChannels;
         double depositChannelsBin;
         EnergyCalibration depositChannelsCalibration;
@@ -11826,15 +20899,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         double depositChannelsAdcScale;
         /// <summary>(`S169`, П13) Свет в нулевом канале, с которым построена таблица: нуль съёмки меняет карту и при равном растяжении.</summary>
         double depositChannelsAdcZeroKev;
+        /// <summary>(`AMBER155`, П220) Шаг прямой карты, с которым построена таблица; 0 — форма полинома.</summary>
+        double depositChannelsAdcLinearKev;
+        /// <summary>(`AMBER155` (в), П220) q кривизны тракта, с которым построена таблица.</summary>
+        double depositChannelsAdcTract;
         ShapeKernelBank kernelBank;
 
         /// <summary>
         /// Банк ядер уширения: профиль единичной площади, посчитанный в ЦЕЛЫХ
         /// смещениях от центра, для лестницы значений ПШПВ с шагом 0.2 %.
         ///
-        /// Ядро зависит только от ПШПВ, поэтому при целом центре одно и то же
-        /// ядро годится в любом канале — а центры целые, потому что источники
-        /// разложены по целым каналам с линейным делением площади. Лестница
+        /// Ядро зависит только от ПШПВ и дробной части центра, поэтому одно и то
+        /// же ядро годится в любом канале — источники разложены по долям канала
+        /// (`SourcePhases` фаз, `AMBER158`) с линейным делением площади между
+        /// соседними фазами, и у каждой фазы своё ядро со сдвинутым центром.
+        /// До П198 фаз не было: деление между целыми каналами уширяло образ на
+        /// f(1−f) кан². Лестница
         /// нужна, чтобы ядро попадало в кэш: без округления ПШПВ у каждой
         /// группы своя и кэш не срабатывает никогда. Шаг 0.2 % — это ошибка
         /// ширины не более 0.1 %, вдесятеро меньше того, что вообще видно в
@@ -11849,17 +20929,54 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             static readonly double LogRatio = Math.Log(1.002);
 
             readonly FwhmCalibration calibration;
-            readonly Dictionary<int, double[]> values = new Dictionary<int, double[]>();
-            readonly Dictionary<int, int> lefts = new Dictionary<int, int>();
+            readonly FsaKernelSampling mode;
 
-            public ShapeKernelBank(FwhmCalibration calibration)
+            // (`AMBER213`, П241) Банк читают параллельные уширения образов:
+            // словари потокобезопасные, и КАЖДОЕ ядро считается ровно один раз —
+            // ленивой ячейкой на ключ (`ExecutionAndPublication`): поток, которому
+            // ядро нужно, пока его считает другой, ждёт готового, а не считает
+            // то же самое заново (замер П241: без этого пятнадцать потоков
+            // считали одни и те же ядра, и уширение стоило втрое дороже
+            // последовательного). Ядро — чистая функция ступени и фазы: кто бы
+            // ни посчитал его, значения те же.
+            readonly System.Collections.Concurrent.ConcurrentDictionary<long, Lazy<double[]>> values =
+                new System.Collections.Concurrent.ConcurrentDictionary<long, Lazy<double[]>>();
+            readonly System.Collections.Concurrent.ConcurrentDictionary<int, int> lefts =
+                new System.Collections.Concurrent.ConcurrentDictionary<int, int>();
+
+            public ShapeKernelBank(FwhmCalibration calibration, FsaKernelSampling mode)
             {
-                this.calibration = calibration;
+                // (`AMBER213`, П241) Свой снимок: ядро читает у калибровки только
+                // форму пика (тип и хвосты/Фойгт, <see cref="PeakShapeModel"/>), и
+                // банк, считающий по своей копии, — чистая функция этих чисел.
+                this.calibration = calibration.Clone();
+                this.mode = mode;
             }
 
-            public FwhmCalibration Calibration
+            /// <summary>
+            /// (`AMBER213`, П241) Годится ли банк для <paramref name="other"/>: та же
+            /// выборка в канале и та же форма пика — тип и четыре числа побитово.
+            /// Коэффициенты ширины ядра не трогают (ширина — номер ступени).
+            /// </summary>
+            public bool Fits(FwhmCalibration other, FsaKernelSampling otherMode)
             {
-                get { return this.calibration; }
+                return other != null && otherMode == this.mode
+                       && other.PeakType == this.calibration.PeakType
+                       && SameBits(other.ExpGaussExpLeftTail, this.calibration.ExpGaussExpLeftTail)
+                       && SameBits(other.ExpGaussExpRightTail, this.calibration.ExpGaussExpRightTail)
+                       && SameBits(other.VoigtSigma, this.calibration.VoigtSigma)
+                       && SameBits(other.VoigtGamma, this.calibration.VoigtGamma);
+            }
+
+            static bool SameBits(double a, double b)
+            {
+                return BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+            }
+
+            /// <summary>(`S207`) Как значение ядра берётся в канале — см. <see cref="KernelChannelMean"/>.</summary>
+            public FsaKernelSampling Mode
+            {
+                get { return this.mode; }
             }
 
             /// <summary>Номер ступени лестницы для заданной ПШПВ.</summary>
@@ -11868,29 +20985,45 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return (int)Math.Floor(Math.Log(fwhm) / LogRatio + 0.5);
             }
 
-            /// <summary>Ядро ступени или null, если профиля на ней нет.</summary>
-            public double[] Get(int band)
+            /// <summary>
+            /// Ядро ступени для источника в фазе <paramref name="phase"/>
+            /// (центр на `phase / SourcePhases` канала правее целого, `AMBER158`)
+            /// или null, если профиля на ней нет. Начало ядра у всех фаз ступени
+            /// одно (<see cref="LeftSpan"/>), правый носитель на канал длиннее.
+            /// </summary>
+            public double[] Get(int band, int phase)
             {
-                double[] kernel;
-                if (this.values.TryGetValue(band, out kernel))
+                long key = (long)band * SourcePhases + phase;
+                Lazy<double[]> cell;
+                if (!this.values.TryGetValue(key, out cell))
                 {
-                    return kernel;
+                    cell = this.values.GetOrAdd(key, new Lazy<double[]>(
+                        () => this.Compute(band, phase),
+                        System.Threading.LazyThreadSafetyMode.ExecutionAndPublication));
                 }
 
+                return cell.Value;
+            }
+
+            /// <summary>Ядро ступени и фазы — счёт прежнего <see cref="Get"/> при промахе.</summary>
+            double[] Compute(int band, int phase)
+            {
+                double[] kernel = null;
                 double fwhm = Math.Exp(band * LogRatio);
+                double shift = (double)phase / SourcePhases;
                 double left = PeakShapeModel.GetLeftSupport(this.calibration, fwhm);
                 double right = PeakShapeModel.GetRightSupport(this.calibration, fwhm);
                 int leftSpan = 0;
                 if (PositiveFinite(left) && PositiveFinite(right))
                 {
                     leftSpan = (int)Math.Ceiling(left);
-                    int rightSpan = (int)Math.Ceiling(right);
+                    int rightSpan = (int)Math.Ceiling(right) + 1;
                     int span = leftSpan + rightSpan + 1;
                     double[] shape = new double[span];
                     double area = 0.0;
                     for (int i = 0; i < span; i++)
                     {
-                        double v = PeakShapeModel.RelativeValue(i - leftSpan, fwhm, this.calibration);
+                        double v = ChannelShapeValue(i - leftSpan - shift, fwhm, this.calibration, this.mode);
                         shape[i] = v;
                         area += v;
                     }
@@ -11911,9 +21044,64 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     leftSpan = 0;
                 }
 
-                this.values[band] = kernel;
+                // ⚠ Начало ядра хранится НА СТУПЕНЬ, а пишется счётом каждой фазы:
+                // при последовательном счёте — последней посчитанной. Значение у
+                // фаз одной ступени одно и то же (`⌈левого носителя⌉`, от фазы не
+                // зависит), кроме ядра null, которого у фазы с ненулевым ядром
+                // соседки той же ступени не бывает: носитель конечен у всех фаз
+                // разом, а площадь у профиля шириной от канала положительна при
+                // любом сдвиге центра внутри канала.
                 this.lefts[band] = leftSpan;
                 return kernel;
+            }
+
+            readonly System.Collections.Concurrent.ConcurrentDictionary<long, Lazy<double[]>> fineValues =
+                new System.Collections.Concurrent.ConcurrentDictionary<long, Lazy<double[]>>();
+
+            /// <summary>
+            /// (`S207`, П225) Ядро той же ступени и фазы на ДРОБНОЙ сетке: элемент
+            /// [i·<see cref="FsaBand.RampProfile.SubBins"/> + j] — значение профиля в
+            /// центре доли j канала i ядра (носитель и начало — как у
+            /// <see cref="Get"/>). Это веса хода образа внутри канала для
+            /// <see cref="FsaBand.RampProfile.Weighted"/>; нормировка не нужна.
+            /// </summary>
+            public double[] GetFine(int band, int phase)
+            {
+                long key = (long)band * SourcePhases + phase;
+                Lazy<double[]> cell;
+                if (!this.fineValues.TryGetValue(key, out cell))
+                {
+                    cell = this.fineValues.GetOrAdd(key, new Lazy<double[]>(
+                        () => this.ComputeFine(band, phase),
+                        System.Threading.LazyThreadSafetyMode.ExecutionAndPublication));
+                }
+
+                return cell.Value;
+            }
+
+            /// <summary>Дробная сетка ступени и фазы — счёт прежнего <see cref="GetFine"/> при промахе.</summary>
+            double[] ComputeFine(int band, int phase)
+            {
+                double[] fine = null;
+                double[] kernel = this.Get(band, phase);
+                if (kernel != null)
+                {
+                    const int K = FsaBand.RampProfile.SubBins;
+                    double fwhm = Math.Exp(band * LogRatio);
+                    double shift = (double)phase / SourcePhases;
+                    int leftSpan = this.LeftSpan(band);
+                    fine = new double[kernel.Length * K];
+                    for (int i = 0; i < kernel.Length; i++)
+                    {
+                        for (int j = 0; j < K; j++)
+                        {
+                            double offset = i - leftSpan - shift - 0.5 + (j + 0.5) / K;
+                            fine[i * K + j] = PeakShapeModel.RelativeValue(offset, fwhm, this.calibration);
+                        }
+                    }
+                }
+
+                return fine;
             }
 
             /// <summary>Смещение центра ядра от его начала, в каналах.</summary>
@@ -11924,6 +21112,68 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
+        /// <summary>
+        /// (`S207`, П208) Значение профиля единичной высоты для канала, центр
+        /// которого стоит на <paramref name="offset"/> каналов от центра пика:
+        /// выборка в центре канала или среднее по ширине канала
+        /// (<see cref="KernelChannelMean"/>). Среднее — Симпсоном по восьми
+        /// отрезкам канала (у гауссианы с σ ≥ 0.4 канала ошибка ниже 10⁻⁴ доли).
+        /// </summary>
+        static double ChannelShapeValue(double offset, double fwhm, FwhmCalibration calibration,
+                                        FsaKernelSampling mode)
+        {
+            if (mode == FsaKernelSampling.Point)
+            {
+                return PeakShapeModel.RelativeValue(offset, fwhm, calibration);
+            }
+
+            const int Parts = 8;
+            double h = 1.0 / Parts;
+            double sum = PeakShapeModel.RelativeValue(offset - 0.5, fwhm, calibration)
+                         + PeakShapeModel.RelativeValue(offset + 0.5, fwhm, calibration);
+            for (int s = 1; s < Parts; s++)
+            {
+                sum += (s % 2 == 1 ? 4.0 : 2.0)
+                       * PeakShapeModel.RelativeValue(offset - 0.5 + s * h, fwhm, calibration);
+            }
+
+            return sum * h / 3.0;
+        }
+
+        /// <summary>
+        /// (`AMBER157`, П195) Линии, исключённые из образов этого разбора как
+        /// лежащие вне кривой эффективности; ключ — компонент и энергия.
+        /// Обнуляется в начале каждого <see cref="Analyze"/>, читается в
+        /// <see cref="FsaResult.EfficiencyOutOfRangeLines"/>.
+        /// </summary>
+        readonly Dictionary<string, FsaOutOfCurveLine> outOfCurve =
+            new Dictionary<string, FsaOutOfCurveLine>(StringComparer.Ordinal);
+
+        /// <summary>(`AMBER157`) Исключённые линии — по энергии, затем по имени.</summary>
+        List<FsaOutOfCurveLine> OutOfCurveLines()
+        {
+            var list = new List<FsaOutOfCurveLine>(this.outOfCurve.Values);
+            list.Sort((x, y) =>
+            {
+                int byEnergy = x.EnergyKev.CompareTo(y.EnergyKev);
+                return byEnergy != 0 ? byEnergy : string.CompareOrdinal(x.Component, y.Component);
+            });
+            return list;
+        }
+
+        void NoteOutOfCurve(FsaComponent component, FsaLine line)
+        {
+            string key = (component.Name ?? string.Empty) + "|"
+                         + line.Energy.ToString("R", CultureInfo.InvariantCulture);
+            if (!this.outOfCurve.ContainsKey(key))
+            {
+                this.outOfCurve[key] = new FsaOutOfCurveLine
+                {
+                    Component = component.Name, EnergyKev = line.Energy, Intensity = line.Intensity
+                };
+            }
+        }
+
         // Диспетчеризация «матричный образ или голые пики» живёт в FitOnce:
         // матричный путь отдаёт ДВЕ колонки (образ и подпороговый хвост), и
         // прятать вторую за скалярной сигнатурой значило бы её потерять.
@@ -11931,24 +21181,58 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                       FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
                                       double gain, double offset, int chLo, int chHi, int channels)
         {
+            return this.BuildTemplate(component, calibration, fwhmCalibration, efficiency,
+                                      gain, offset, chLo, chHi, channels, null);
+        }
+
+        /// <summary>
+        /// (`AMBER213`, П241) То же; <paramref name="deferredNotes"/> не null —
+        /// линии вне кривой не заносятся в заметки анализатора, а копятся в
+        /// список: параллельная сборка образов (<see cref="BuildFitColumns"/>)
+        /// заносит их потом сама, в порядке библиотеки.
+        /// </summary>
+        double[] BuildTemplate(FsaComponent component, EnergyCalibration calibration,
+                                      FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
+                                      double gain, double offset, int chLo, int chHi, int channels,
+                                      List<FsaLine> deferredNotes)
+        {
             double[] template = new double[channels];
-            // Значения профиля считаются один раз на носитель и переиспользуются
-            // между линиями: образ строится заново на каждом узле сетки дрейфа
-            // (9x9 = 81 раз на компонент), и второй проход по носителю ради
-            // площади удваивал бы счёт профиля на канал.
-            double[] shape = null;
             bool any = false;
+            // (`S207`, П225) рампа на дробной сетке канала — см. RampWithinChannel
+            bool onGrid = this.RampOnGrid;
+            int rampTop = onGrid ? this.thresholdRamp.Top : 0;
+            const int K = FsaBand.RampProfile.SubBins;
+            // (`AMBER157`, П195) выход линий полосы — в кривой и вне её
+            double yieldInside = 0.0, yieldOutside = 0.0;
+            // (`AMBER213`, П241) Три прохода вместо одного: (1) подряд — место,
+            // ширина, вес и носитель каждой линии, заметки и выходы (общее
+            // состояние); (2) ПАРАЛЛЕЛЬНО — профиль линии на её носителе, его
+            // площадь и множитель рампы, каждой линии в свою ячейку; (3) подряд,
+            // в порядке линий, — `template[i] += norm·v`. Каждое число считается
+            // прежними действиями в прежнем порядке, и порядок сложения линий в
+            // канал тот же — образ побитово прежний. Профиль — 9 значений формы
+            // на канал (Симпсон), и у компонентов на сотни линий (обратное
+            // рассеяние ряда) он стоил больше всего остального разбора.
+            var plans = new List<double[]>();
             foreach (FsaLine line in component.Lines)
             {
-                // (`S169`) голый пик — той же картой нуля, что образ по матрице
-                double position = this.LightToChannel(calibration, line.Energy, channels);
+                // (`S169`) голый пик — той же картой нуля, что образ по матрице.
+                // (`AMBER156` (б), П195) Без матрицы пик линии стоит там же,
+                // где у матричного образа, — на E + s(E) по свету кристалла
+                // (<see cref="LinePositionKev"/>; до привязки s = 0, то есть
+                // прежнее E до бита). При матрице сюда приходят только
+                // компоненты с готовыми весами, и их место не тронуто.
+                double position = this.LightToChannel(
+                    calibration,
+                    this.ResponseMatrix == null ? this.LinePositionKev(line.Energy) : line.Energy,
+                    channels);
                 if (!Finite(position))
                 {
                     continue;
                 }
 
                 double p = this.DriftPosition(position, gain, offset);
-                double fwhm = fwhmCalibration.ChannelToFwhm(p);
+                double fwhm = this.ImageFwhm(fwhmCalibration, p);
                 if (!PositiveFinite(fwhm) || fwhm >= channels)
                 {
                     continue;
@@ -11957,7 +21241,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double weight = line.Intensity / 100.0;
                 if (efficiency != null && !component.WeightsAreFinal)
                 {
-                    double e = efficiency.Eval(line.Energy);
+                    // ⛔ (`AMBER157`, П195; решение Amber 01.10.2026 «Исключать
+                    // с заверением») ЛИНИЯ ВНЕ КРИВОЙ В ОБРАЗ НЕ ВХОДИТ. Прежде
+                    // `Eval` держал край константой: линия выше верха кривой
+                    // получала ε верхней точки, амплитуда NNLS подстраивалась
+                    // под те же данные, и активность уходила на ε(край)/ε(линии)
+                    // при побитово том же фите (K-40 1461 кэВ при кривой до
+                    // 1250 кэВ — −12.6 %). Исключённая линия запоминается —
+                    // окну отчёта: «кривая E1…E2 кэВ, вне: …».
+                    double e, errorPercent;
+                    bool inBand = line.Intensity > 0.0 && p >= chLo && p <= chHi;
+                    if (!efficiency.TryEval(line.Energy, out e, out errorPercent))
+                    {
+                        if (inBand)
+                        {
+                            if (deferredNotes != null)
+                            {
+                                deferredNotes.Add(line);
+                            }
+                            else
+                            {
+                                this.NoteOutOfCurve(component, line);
+                            }
+
+                            yieldOutside += line.Intensity;
+                        }
+
+                        continue;
+                    }
+
+                    if (inBand)
+                    {
+                        yieldInside += line.Intensity;
+                    }
+
                     if (e <= 0.0)
                     {
                         continue;
@@ -11986,38 +21303,105 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                if (shape == null || shape.Length < span)
-                {
-                    shape = new double[span];
-                }
+                plans.Add(new[] { p, fwhm, weight, full0, full1 });
+            }
 
+            // (2) профили линий — параллельно; ячейка: [0] — norm, далее v по lo…hi
+            FsaKernelSampling sampling = this.KernelChannelMean;
+            FsaBand.RampProfile ramp = this.thresholdRamp;
+            double[][] parts = new double[plans.Count][];
+            int[] partLo = new int[plans.Count];
+            FsaParallel.For(plans.Count, j =>
+            {
+                double[] plan = plans[j];
+                double p = plan[0], fwhm = plan[1], weight = plan[2];
+                int full0 = (int)plan[3], full1 = (int)plan[4];
+                int span = full1 - full0 + 1;
+                // Значения профиля считаются один раз на носитель: второй проход
+                // по носителю ради площади удваивал бы счёт профиля на канал.
+                double[] shape = new double[span];
                 double area = 0.0;
                 for (int i = 0; i < span; i++)
                 {
-                    double v = PeakShapeModel.RelativeValue(full0 + i - p, fwhm, fwhmCalibration);
+                    double v = ChannelShapeValue(full0 + i - p, fwhm, fwhmCalibration, sampling);
                     shape[i] = v;
                     area += v;
                 }
 
                 if (!(area > 0.0))
                 {
-                    continue;
+                    return;
                 }
 
                 int lo = Math.Max(chLo, full0);
                 int hi = Math.Min(chHi, full1);
                 if (hi < lo)
                 {
+                    return;
+                }
+
+                double[] part = new double[hi - lo + 2];
+                part[0] = weight / area;
+                double[] fine = onGrid ? new double[K] : null;
+                for (int i = lo; i <= hi; i++)
+                {
+                    double v = shape[i - full0];
+                    if (onGrid && i < rampTop)
+                    {
+                        // (`S207`, П225) ход пика внутри канала — веса рампы доли
+                        for (int s = 0; s < K; s++)
+                        {
+                            fine[s] = PeakShapeModel.RelativeValue(i - p - 0.5 + (s + 0.5) / K, fwhm, fwhmCalibration);
+                        }
+
+                        v *= ramp.Weighted(i, fine, 0);
+                    }
+
+                    part[i - lo + 1] = v;
+                }
+
+                parts[j] = part;
+                partLo[j] = lo;
+            });
+
+            // (3) сложение — подряд, в порядке линий, прежним выражением
+            for (int j = 0; j < parts.Length; j++)
+            {
+                double[] part = parts[j];
+                if (part == null)
+                {
                     continue;
                 }
 
-                double norm = weight / area;
+                double norm = part[0];
+                int lo = partLo[j];
+                int hi = lo + part.Length - 2;
                 for (int i = lo; i <= hi; i++)
                 {
-                    template[i] += norm * shape[i - full0];
+                    template[i] += norm * part[i - lo + 1];
                 }
 
                 any = true;
+            }
+
+            // ⛔ (`AMBER157`, П195) ОБРАЗ НА СЛЕДОВЫХ ЛИНИЯХ НЕ СТРОИТСЯ. Когда за
+            // кривой остался почти весь выход компонента, его амплитуду держали
+            // бы следовые линии: у K-40 при кривой до 1250 кэВ — аннигиляция
+            // β⁺-ветви (0.001 %), и разбор приписывал K-40 чужую 511 с
+            // активностью ×50 (мерено П195, `FsaInputCheckProbeP195`). Порог —
+            // выход внутри кривой меньше десятой доли исключённого; у Tl-208
+            // при кривой до 2000 кэВ (583 кэВ 85 % против 2614 кэВ 99.8 %) образ
+            // остаётся. Исключённые линии уже названы заверению.
+            if (yieldOutside > 0.0 && yieldInside < 0.1 * yieldOutside)
+            {
+                return null;
+            }
+
+            // (`S204`, П189) рампа порога — тем же множителем, что у матричного
+            // пути (`BroadenResponseDeposit`); на дробной сетке — уже в цикле линий
+            if (any && this.thresholdRamp != null && !onGrid)
+            {
+                this.thresholdRamp.Apply(template);
             }
 
             return any ? template : null;
@@ -12037,11 +21421,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// конструктор ставил другую.
         /// </summary>
         static List<double[]> BuildHatBasis(FwhmCalibration fwhmCalibration, int chLo, int chHi,
-                                            int channels, int knotDivisor, double knotFwhm)
+                                            int channels, int knotDivisor, double knotFwhm,
+                                            bool byScale)
         {
-            List<int> unused;
+            List<double> unused;
             return BuildHatBasis(fwhmCalibration, chLo, chHi, channels, knotDivisor, knotFwhm,
-                                 out unused);
+                                 byScale, out unused);
         }
 
         /// <summary>
@@ -12050,10 +21435,180 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// растёт с энергией (`max(k·ПШПВ, minStep)`), и вторая разность по
         /// номеру штрафовала бы низ шкалы, где узлы гуще, — ровно там, где
         /// стоит бугор обратного рассеяния, ради которого штраф и заводится.
+        ///
+        /// ⛔ (`S207`, П208) <paramref name="byScale"/> — узлы В НЕПРЕРЫВНОЙ
+        /// КАНАЛЬНОЙ КООРДИНАТЕ (канал i — отрезок [i − ½, i + ½]): сетка идёт
+        /// от НИЖНЕГО КРАЯ канала <paramref name="chLo"/> до верхнего края
+        /// <paramref name="chHi"/>, шаг `max(K·ПШПВ(x), minStep)` без отсечения
+        /// до целого канала, пол шага — доля ширины полосы по краям каналов, а
+        /// значение шапки в канале — её СРЕДНЕЕ по ширине канала, а не выборка
+        /// в центре. Тогда сетка стоит на тех же энергиях при любом числе
+        /// каналов, и сумма двух соседних каналов шапки — ровно шапка
+        /// укрупнённого канала: базис инвариантен к укрупнению. Прежний базис
+        /// (`byScale` = ложь, рычаг A/B) ставил узлы на целые каналы шагом
+        /// `(int)max(…)` от центра канала `chLo`: на 512 каналах узлы вставали
+        /// на другие энергии, чем на 1024, и кусочно-линейная подложка одного
+        /// числа каналов не воспроизводила подложку другого.
         /// </summary>
         static List<double[]> BuildHatBasis(FwhmCalibration fwhmCalibration, int chLo, int chHi,
                                             int channels, int knotDivisor, double knotFwhm,
-                                            out List<int> knotChannels)
+                                            bool byScale, out List<double> knotChannels)
+        {
+            if (!byScale)
+            {
+                return BuildHatBasisByChannel(fwhmCalibration, chLo, chHi, channels, knotDivisor,
+                                              knotFwhm, out knotChannels);
+            }
+
+            List<double> knots = new List<double>();
+            double x0 = chLo - 0.5, x1 = chHi + 0.5;
+            // Ноль и отрицательное — от невыставленного свойства (структура
+            // собрана не через конструктор); тогда берётся историческое 64.
+            double minStep = (x1 - x0) / (knotDivisor > 0 ? knotDivisor : 64);
+            double k = knotFwhm > 0.0 ? knotFwhm : 4.0;
+            double x = x0;
+            while (x < x1)
+            {
+                knots.Add(x);
+                // ПШПВ — в каналах ЭТОЙ шкалы и В САМОМ УЗЛЕ: точка x одна и та же
+                // энергия при любом числе каналов, а «центр следующего канала»
+                // (x + ½) — нет, и узлы расползались бы с шагом. Пол «ПШПВ ≥ 1
+                // канал» прежнего базиса здесь не нужен: шаг снизу держит
+                // `minStep` (доля полосы), а он от числа каналов не зависит.
+                double fwhm = fwhmCalibration.ChannelToFwhm(x);
+                if (!PositiveFinite(fwhm))
+                {
+                    fwhm = 0.0;
+                }
+                else if (fwhm > x1 - x0)
+                {
+                    fwhm = x1 - x0;
+                }
+
+                x += Math.Max(minStep, k * fwhm);
+            }
+
+            // Узел у самой верхней границы дал бы «шапку-спицу» — почти
+            // коллинеарную колонку; сливается только этот вырожденный случай.
+            // Порог — четверть пола шага: при делителе 128 на 1024 каналах это
+            // те же два канала, что у прежнего базиса, и от числа каналов он не зависит.
+            if (knots.Count > 1 && x1 - knots[knots.Count - 1] < 0.25 * minStep)
+            {
+                knots.RemoveAt(knots.Count - 1);
+            }
+
+            knots.Add(x1);
+
+            List<double[]> hats = new List<double[]>();
+            for (int n = 0; n < knots.Count; n++)
+            {
+                double left = n > 0 ? knots[n - 1] : knots[n];
+                double mid = knots[n];
+                double right = n + 1 < knots.Count ? knots[n + 1] : knots[n];
+                double[] hat = new double[channels];
+                int iLo = Math.Max(0, (int)Math.Floor(left + 0.5));
+                int iHi = Math.Min(channels - 1, (int)Math.Ceiling(right - 0.5));
+                for (int i = iLo; i <= iHi; i++)
+                {
+                    double v = HatMean(i - 0.5, i + 0.5, left, mid, right);
+                    if (v > 0.0)
+                    {
+                        hat[i] = v;
+                    }
+                }
+
+                hats.Add(hat);
+            }
+
+            knotChannels = knots;
+            return hats;
+        }
+
+        /// <summary>
+        /// (`S207`) Среднее шапки по отрезку [a, b] (ширина канала): шапка — 0 в
+        /// <paramref name="left"/>, 1 в <paramref name="mid"/>, 0 в
+        /// <paramref name="right"/>; у крайней шапки (left = mid или mid = right)
+        /// за краем сетки — ноль. Интеграл кусочно-линейной функции — трапециями
+        /// по излому внутри отрезка.
+        /// </summary>
+        static double HatMean(double a, double b, double left, double mid, double right)
+        {
+            double lo = Math.Max(a, left), hi = Math.Min(b, right);
+            if (!(hi > lo) || !(b > a))
+            {
+                return 0.0;
+            }
+
+            double q = mid > lo && mid < hi ? mid : hi;
+            double sum = 0.5 * (q - lo) * (HatAt(lo, left, mid, right) + HatAt(q, left, mid, right));
+            if (q < hi)
+            {
+                sum += 0.5 * (hi - q) * (HatAt(q, left, mid, right) + HatAt(hi, left, mid, right));
+            }
+
+            return sum / (b - a);
+        }
+
+        /// <summary>
+        /// (`S207`, П225) Рампа на шапки подложки по дробной сетке канала: канал
+        /// ниже верха рампы — среднее по долям «среднее шапки по доле × рампа
+        /// доли» (шапка внутри канала линейна или ломается в узле, и среднее по
+        /// доле точное). Шапки и узлы — как их отдал <see cref="BuildHatBasis"/>
+        /// (по шкале), до снятия шапок под полом.
+        /// </summary>
+        static void ApplyRampToHatsOnGrid(List<double[]> hats, List<double> knots, FsaBand.RampProfile ramp)
+        {
+            const int K = FsaBand.RampProfile.SubBins;
+            double h = 1.0 / K;
+            for (int n = 0; n < hats.Count && n < knots.Count; n++)
+            {
+                double left = n > 0 ? knots[n - 1] : knots[n];
+                double mid = knots[n];
+                double right = n + 1 < knots.Count ? knots[n + 1] : knots[n];
+                double[] hat = hats[n];
+                int top = Math.Min(ramp.Top, hat.Length);
+                for (int i = 0; i < top; i++)
+                {
+                    if (!(hat[i] > 0.0))
+                    {
+                        continue;
+                    }
+
+                    double sum = 0.0;
+                    for (int j = 0; j < K; j++)
+                    {
+                        double a = i - 0.5 + j * h;
+                        sum += HatMean(a, a + h, left, mid, right) * ramp.FineAt(i, j);
+                    }
+
+                    hat[i] = sum / K;
+                }
+            }
+        }
+
+        static double HatAt(double x, double left, double mid, double right)
+        {
+            if (x < left || x > right)
+            {
+                return 0.0;
+            }
+
+            if (x <= mid)
+            {
+                return mid > left ? (x - left) / (mid - left) : 1.0;
+            }
+
+            return right > mid ? (right - x) / (right - mid) : 1.0;
+        }
+
+        /// <summary>
+        /// Прежний базис (до `S207`): узлы на целых каналах от центра канала
+        /// <paramref name="chLo"/>, шаг `(int)max(1, K·ПШПВ, minStep)`, шапка —
+        /// выборка в центре канала. Рычаг A/B <see cref="ContinuumKnotsByScale"/>.
+        /// </summary>
+        static List<double[]> BuildHatBasisByChannel(FwhmCalibration fwhmCalibration, int chLo, int chHi,
+                                                     int channels, int knotDivisor, double knotFwhm,
+                                                     out List<double> knotChannels)
         {
             List<int> knots = new List<int>();
             // Ноль и отрицательное — от невыставленного свойства (структура
@@ -12120,7 +21675,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 hats.Add(hat);
             }
 
-            knotChannels = knots;
+            knotChannels = knots.ConvertAll(v => (double)v);
             return hats;
         }
 
@@ -12148,6 +21703,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// тогда решатель ничего не копирует и никого не зовёт.
         /// </summary>
         public static Action<NnlsTrace> NnlsTraceSink { get; set; }
+
+        /// <summary>
+        /// (`S205`, П190) ПРИБОР НУЛЯ СЪЁМКИ — приёмник трассы
+        /// <see cref="ZeroFromRun"/>: каждый кандидат с его ножами (доля, z,
+        /// промах в ПШПВ, окно, центры модели и данных), взятые — со светом,
+        /// энергией, весом и запасом, и итог прямой с весом смешения. Ставится
+        /// безоконной пробой (`ZeroTraceProbeP190`) на время разбора; в
+        /// приложении не задан, и тогда никто не зовётся.
+        /// </summary>
+        public static Action<string> ZeroTraceSink { get; set; }
 
         /// <summary>(`A308`) Трасса одного вызова <see cref="NnlsSolve"/> для <see cref="NnlsTraceSink"/>.</summary>
         public sealed class NnlsTrace
@@ -12539,21 +22104,58 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// зависимость от геометрии не измерена. Сменится ключ кривой (E_q, η) —
     /// таблицу снять заново той же пробой и ТЕМИ ЖЕ ключами.
     ///
-    /// Родословная, точка в точку:
-    ///   * "NaI:Tl" — `LightScaleProbe --geometry=G1S_point5.in --n=200000
-    ///     --kdip=1` (E_q 1.0 кэВ, η 0.33 — база), П17 11.09.2026,
-    ///     `handover/p17-kdip/ls_k1_eq1.0.txt`; точки ≥ 1173 кэВ — ряд
-    ///     прежней кривой (П14, `lightscale_g1s_point5.txt`), умноженный на
-    ///     отношение кривых в 1000 кэВ (1.0048/1.0060). Ряд взят ДОСЛОВНО из
-    ///     копии П16/П17 (`handover/p17-kdip/kdip-curve-in-p16-copy.txt`), чтобы
-    ///     дерево воспроизводило плечо `kdip-b1` П17 поспектрово;
-    ///   * "CsI:Tl" — та же проба, `--kdip=1` (E_q 1.0, η 0.375 — база),
-    ///     геометрия ASN16 (брусок 15×18×60 мм, боком) с ТОЧЕЧНЫМ источником
-    ///     в 10 мм (`ASN16_csi_point1.in`, П18): у штатной `ASN16_lu_side` с
-    ///     самопоглощающим Lu₂O₃ пик на 10 кэВ набирает ±15 % (П17,
-    ///     `ls_csi_k1.txt`); 400 000 историй ниже 50 кэВ (±0.35…0.7 %),
-    ///     4 000 000 от 50 кэВ; два провала — у K-края иода (33.17) и цезия
-    ///     (35.98). Файлы — `handover/p18-light-anchor/ls_csi_point1_k1*.txt`.
+    /// ⛔ (`AMBER155`, П220 02.10.2026) ПЕРЕСНЯТО С КРУТОЙ КРИВОЙ ЭЛЕКТРОНОВ — вместе с прямой
+    /// картой «свет → канал» (<see cref="FsaAnalyzer.AdcLinear"/>); решение Amber 02.10.2026
+    /// вопросником, дословно: «Прямая карта + крутая кривая (Рекомендую)». Умолчания
+    /// `matdb.scint_npsm_params`: NaI:Tl `p220_t7_khodyuk2010_sums` (η 0.412, S_Trap 7.0, S_Birks 426 —
+    /// вариант «t7» П200), CsI:Tl `p220_khodyuk2012_free` (η 0.398, S_Trap 1.0, S_Birks 642). К 662 кэВ:
+    /// NaI 10/20/34.5/50/100 кэВ 1.131/1.172/1.143/1.158/1.107 (Ходюк 2010 20 кэВ 1.172, 34.5 1.141,
+    /// 50 1.158, 100 1.112), выше — 356 1.024, 1000 0.985, 1332 0.976, 2614 0.962; CsI 10/20/34.5/50/100
+    /// 1.127/1.167/1.145/1.155/1.114 (Ходюк 2012 рис. 15: 1.170/1.143/1.152/1.112), 356 1.027, 1000
+    /// 0.984, 1332.5 0.975, 1764.5 0.967, 2614 0.960 (узлы 1764.5 и 2614 у CsI добавлены: за 1332.5
+    /// таблица держала константу, а кривая там падает на 1.5 %). Условие П200 «линейность фотопиков
+    /// выше 300 кэВ» снято замером П218 — мерилось в объявленной шкале, где полином калибровки файла
+    /// кривизну света уже выпрямил; в каналах кривизна фотопиков (2614 от хорды 239–583: −49/−50 кэВ,
+    /// в свете −61/−60) — у света, и «t7» даёт −60.2. Та же проба, геометрии и умолчания склада,
+    /// 1 000 000 историй до 60 кэВ у NaI, 4 000 000 — остальное. Ряды — журнал П220.
+    ///
+    /// Прежнее (`AMBER152`/`AMBER155`, П200 01.10.2026) ПЕРЕСНЯТО С НОВОЙ КРИВОЙ ЭЛЕКТРОНОВ: в
+    /// `matdb.scint_npsm_params` умолчания NaI:Tl `p200_fit_khodyuk2010_corpus` (η 0.579,
+    /// S_Trap 24.8, S_Birks 130) и CsI:Tl `p200_fit_khodyuk2012` (η 0.542, 23.5, 151) —
+    /// подогнаны сквозь перенос физики 26 к фотонной нПР Ходюка (к 662: NaI 2010 — 20 кэВ
+    /// 1.185/1.172, 34.5 1.139/1.141, 50 1.160/1.158, 100 1.088/1.112; CsI 2012 — 10…100 кэВ
+    /// в ±1.0 %) ПРИ ЛИНЕЙНОСТИ ФОТОПИКОВ выше 300 кэВ (опоры Th-228 239/583/2614 корпуса:
+    /// кривая, круче этой выше 300 кэВ, уводит пик 2614 образа на 30…60 кэВ — замер П200).
+    /// Прежние ряды (η 0.33/0.375) давали горб в 2.5…3 раза мельче измеренного. Та же проба
+    /// `LightScaleProbe`, те же умолчания склада и геометрии, 1 000 000 историй до 60 кэВ у
+    /// NaI, 4 000 000 — остальное (у NaI от 81 кэВ, у CsI все узлы; точки ≥ 1000 кэВ сняты
+    /// прямо, без прежнего «ряда × отношение»).
+    /// Выписка и подгонка — журнал П200 (`handover/handover-2026-10-01-p200-light-curve.md`).
+    ///
+    /// Прежняя родословная, точка в точку (`S198`, П180 29.09.2026 — переснято
+    /// симулятором ФИЗИКИ 25, ветка `p180-physics25`: форма обрыва короткого
+    /// трека E_q 0.45 кэВ, p 1.2 по рис. 6 Ходюка 2010 вместо E_q 1.0, p 2 —
+    /// провал у K-краёв вдвое мельче: NaI 34.0 кэВ +0.88 %, 35.0 +0.66 %,
+    /// 36.5 +0.32 % к ряду П179, CsI 34.0 +0.63 %, 37.0 +0.47 %; вне 33…40 кэВ
+    /// ряды те же в пределах ±0.1 %, кроме 10 кэВ (+0.9 %). Выписка —
+    /// журнал П180, `handover/p180/40-light-table-p25.txt`. До того — `S201`,
+    /// П179 28.09.2026, физика 24, `master` `b27896ed`; ряды П17/П18 были
+    /// сняты физикой 16/17 и лежали на 20…60 кэВ на 1.5…2.5 % выше):
+    ///   * "NaI:Tl" — `LightScaleProbe --geometry=G1S_point5.in` (умолчания
+    ///     склада: `kdip=1`, `ecomp=1`, E_q 0.45 кэВ, p 1.2, η 0.33), 1 000 000
+    ///     историй до 60 кэВ (±0.06…0.09 %), 4 000 000 от 81 кэВ; точки
+    ///     ≥ 1173 кэВ — ряд прежней кривой (П14), умноженный на отношение
+    ///     кривых в 1000 кэВ (1.0049/1.0048): там шум пробы порядка сигнала;
+    ///   * "CsI:Tl" — та же проба, `ASN16_csi_point1.in` (брусок ASN16 с
+    ///     ТОЧЕЧНЫМ источником в 10 мм, П18; η 0.375), 4 000 000 историй на
+    ///     всех узлах (±0.11…0.13 % до 122 кэВ).
+    ///   ⛔ УЗЛЫ У K-КРАЁВ ГУСТЫЕ: 33.1 — под краем иода 33.17, дальше 33.2,
+    ///   33.3, 33.4/33.5, 33.7, 34.0, 34.5 (у CsI ещё 35.9 под краем цезия
+    ///   35.98 и 36.1, 36.3, 36.6). Прежние узлы 33.0/34.0 интерполировали
+    ///   ПОПЕРЁК края (`S198`, П174): у симулятора за краем не ступень, а
+    ///   спад к минимуму у края + E_q (34.0 кэВ) и подъём после — La Kα
+    ///   33.44 кэВ стояла на 0.4 % выше кривой. Выписки пробы — журнал П179,
+    ///   `handover/p179/10-light-table-shoot.txt`.
     ///
     /// ⚠ Шум таблицы растёт с энергией: δs = E·δr, и ±0.5 % на 1000 кэВ —
     /// это ±5 кэВ сдвига. Выше 662 кэВ кривая — модельный наклон с шумом
@@ -12571,24 +22173,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         static readonly double[][] NaITable =
         {
-            new[] { 10.0, 1.0519 }, new[] { 20.0, 1.1074 }, new[] { 30.0, 1.0891 }, new[] { 32.0, 1.0851 },
-            new[] { 33.0, 1.0829 }, new[] { 34.0, 1.0635 }, new[] { 35.0, 1.0661 }, new[] { 36.0, 1.0703 },
-            new[] { 40.0, 1.0797 }, new[] { 50.0, 1.0804 }, new[] { 60.0, 1.0723 }, new[] { 81.0, 1.0546 },
-            new[] { 100.0, 1.0436 }, new[] { 122.0, 1.0351 }, new[] { 200.0, 1.0215 }, new[] { 356.0, 1.0136 },
-            new[] { 661.657, 1.0076 }, new[] { 1000.0, 1.0048 }, new[] { 1173.0, 1.0039 }, new[] { 1332.0, 1.0032 },
-            new[] { 1408.0, 1.0030 }, new[] { 2614.0, 1.0009 },
+            new[] { 10.0, 1.1740 }, new[] { 20.0, 1.2160 }, new[] { 30.0, 1.2027 }, new[] { 31.0, 1.2008 },
+            new[] { 32.0, 1.1989 }, new[] { 33.0, 1.1969 }, new[] { 33.1, 1.1967 }, new[] { 33.2, 1.1924 },
+            new[] { 33.3, 1.1902 }, new[] { 33.4, 1.1887 }, new[] { 33.5, 1.1876 }, new[] { 33.7, 1.1863 },
+            new[] { 34.0, 1.1855 }, new[] { 34.5, 1.1856 }, new[] { 35.0, 1.1862 }, new[] { 35.5, 1.1872 },
+            new[] { 36.0, 1.1883 }, new[] { 36.5, 1.1894 }, new[] { 37.0, 1.1906 }, new[] { 37.5, 1.1917 },
+            new[] { 38.0, 1.1928 }, new[] { 39.0, 1.1949 }, new[] { 40.0, 1.1967 }, new[] { 45.0, 1.2017 },
+            new[] { 50.0, 1.2018 }, new[] { 60.0, 1.1942 }, new[] { 81.0, 1.1695 }, new[] { 100.0, 1.1488 },
+            new[] { 122.0, 1.1296 }, new[] { 200.0, 1.0909 }, new[] { 356.0, 1.0630 }, new[] { 661.657, 1.0377 },
+            new[] { 1000.0, 1.0221 }, new[] { 1173.0, 1.0168 }, new[] { 1332.0, 1.0129 }, new[] { 1408.0, 1.0113 },
+            new[] { 2614.0, 0.9985 },
         };
 
-        // ниже 50 кэВ — 400 000 историй (`ls_csi_point1_k1.txt`), от 50 —
-        // 4 000 000 (`ls_csi_point1_k1_hi4M.txt`; ±0.12 % до 122 кэВ, ±0.46 % на 1000)
+        // 4 000 000 историй на каждом узле (П220, физика 26 + кривая p220_khodyuk2012_free, `ASN16_csi_point1.in`; узлы 1764.5 и 2614 добавлены)
         static readonly double[][] CsITable =
         {
-            new[] { 10.0, 1.0054 }, new[] { 20.0, 1.0974 }, new[] { 30.0, 1.0903 }, new[] { 32.0, 1.0875 },
-            new[] { 33.0, 1.0857 }, new[] { 34.0, 1.0649 }, new[] { 35.0, 1.0654 }, new[] { 36.0, 1.0686 },
-            new[] { 37.0, 1.0616 }, new[] { 38.0, 1.0647 }, new[] { 40.0, 1.0688 }, new[] { 50.0, 1.0762 },
-            new[] { 60.0, 1.0727 }, new[] { 81.0, 1.0588 }, new[] { 100.0, 1.0478 }, new[] { 122.0, 1.0386 },
-            new[] { 200.0, 1.0227 }, new[] { 356.0, 1.0131 }, new[] { 661.657, 1.0067 }, new[] { 1000.0, 1.0041 },
-            new[] { 1332.5, 1.0029 },
+            new[] { 10.0, 1.1645 }, new[] { 20.0, 1.2059 }, new[] { 30.0, 1.1973 }, new[] { 32.0, 1.1944 },
+            new[] { 33.0, 1.1928 }, new[] { 33.1, 1.1927 }, new[] { 33.2, 1.1884 }, new[] { 33.3, 1.1867 },
+            new[] { 33.5, 1.1846 }, new[] { 33.7, 1.1837 }, new[] { 34.0, 1.1831 }, new[] { 34.5, 1.1831 },
+            new[] { 35.0, 1.1835 }, new[] { 35.5, 1.1840 }, new[] { 35.9, 1.1845 }, new[] { 36.1, 1.1836 },
+            new[] { 36.3, 1.1825 }, new[] { 36.6, 1.1820 }, new[] { 37.0, 1.1823 }, new[] { 37.5, 1.1829 },
+            new[] { 38.0, 1.1837 }, new[] { 39.0, 1.1854 }, new[] { 40.0, 1.1871 }, new[] { 50.0, 1.1942 },
+            new[] { 60.0, 1.1897 }, new[] { 81.0, 1.1698 }, new[] { 100.0, 1.1517 }, new[] { 122.0, 1.1339 },
+            new[] { 200.0, 1.0947 }, new[] { 356.0, 1.0619 }, new[] { 661.657, 1.0337 }, new[] { 1000.0, 1.0173 },
+            new[] { 1332.5, 1.0076 }, new[] { 1764.5, 1.0000 }, new[] { 2614.0, 0.9926 },
         };
 
         /// <summary>
@@ -12743,6 +22351,116 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             catch (Exception)
             {
                 return 0.0;
+            }
+        }
+    }
+    /// <summary>
+    /// (`AMBER213`, П241) ПАРАЛЛЕЛИЗМ РАЗБОРА — ОДНИМ МЕСТОМ.
+    ///
+    /// Задача Amber 07.10.2026, консоль, дословно: «Почему так долго идёт "FSA
+    /// Analysis"? Проанализируй отладчиком, можно ли его ускорить без потерь
+    /// качества? Например распаралелить.» Решения вопросником того же дня,
+    /// дословно: «Побитово то же» и «Все, кроме одного».
+    ///
+    /// Отсюда два правила, и оба обязательны для каждого места, где этим
+    /// пользуются:
+    ///
+    /// * степень — <see cref="DefaultDegree"/> = число ядер минус одно (не
+    ///   меньше одного): одно ядро остаётся окну и набору спектра;
+    /// * параллельно идут только НЕЗАВИСИМЫЕ куски, каждый из которых пишет СВОЮ
+    ///   ячейку результата (по индексу); собирает их вызывающий в прежнем
+    ///   порядке. Ни одна сумма не делится между потоками — порядок сложения у
+    ///   каждого числа прежний, и результат совпадает с последовательным
+    ///   ПОБИТОВО. Общее изменяемое состояние (кэши анализатора, заметки,
+    ///   счётчики, чтение баз — собиратель отказов <c>FsaDatabaseFailures</c>
+    ///   привязан к потоку) в параллельные куски не попадает: оно остаётся в
+    ///   последовательной части до или после.
+    /// </summary>
+    public static class FsaParallel
+    {
+        /// <summary>«Все, кроме одного» (решение Amber 07.10.2026).</summary>
+        public static readonly int DefaultDegree = Math.Max(1, Environment.ProcessorCount - 1);
+
+        /// <summary>
+        /// Действующая степень. Меняют её только пробы (1 — последовательный
+        /// счёт той же сборкой, замер ускорения и сверка побитовости).
+        /// </summary>
+        public static int Degree = DefaultDegree;
+
+        static System.Threading.Tasks.TaskScheduler scheduler;
+        static int schedulerDegree;
+        static readonly object SchedulerGate = new object();
+
+        /// <summary>
+        /// Планировщик кусков: не больше <c>степень − 1</c> одновременно — ещё
+        /// один поток даёт сам вызывающий (он работает в цикле наравне). Общий
+        /// для ВЛОЖЕННЫХ циклов (образы компонентов → линии образа), поэтому и
+        /// вложенность не поднимает число занятых ядер выше степени.
+        /// </summary>
+        static System.Threading.Tasks.TaskScheduler SchedulerFor(int degree)
+        {
+            lock (SchedulerGate)
+            {
+                if (scheduler == null || schedulerDegree != degree)
+                {
+                    scheduler = new System.Threading.Tasks.ConcurrentExclusiveSchedulerPair(
+                        System.Threading.Tasks.TaskScheduler.Default, Math.Max(1, degree - 1)).ConcurrentScheduler;
+                    schedulerDegree = degree;
+                }
+
+                return scheduler;
+            }
+        }
+
+        /// <summary>
+        /// <paramref name="body"/>(i) для i = 0 … <paramref name="count"/> − 1;
+        /// при степени 1 или одном куске — подряд на вызывающем потоке.
+        /// Исключение — того куска, у которого индекс НАИМЕНЬШИЙ (то же, что
+        /// бросил бы последовательный цикл), с исходным стеком.
+        /// </summary>
+        public static void For(int count, Action<int> body)
+        {
+            int degree = Degree;
+            if (count <= 0)
+            {
+                return;
+            }
+
+            if (degree <= 1 || count == 1)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    body(i);
+                }
+
+                return;
+            }
+
+            Exception[] errors = new Exception[count];
+            System.Threading.Tasks.Parallel.For(
+                0, count,
+                new System.Threading.Tasks.ParallelOptions
+                {
+                    MaxDegreeOfParallelism = degree,
+                    TaskScheduler = SchedulerFor(degree)
+                },
+                i =>
+                {
+                    try
+                    {
+                        body(i);
+                    }
+                    catch (Exception ex)
+                    {
+                        errors[i] = ex;
+                    }
+                });
+            for (int i = 0; i < count; i++)
+            {
+                if (errors[i] != null)
+                {
+                    System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[i]).Throw();
+                }
             }
         }
     }

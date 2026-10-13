@@ -29,11 +29,23 @@ namespace BecquerelMonitor
     {
         public static bool TryParseDouble(string text, out double value)
         {
-            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
+            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+                && !double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value))
             {
-                return true;
+                return false;
             }
-            return double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value);
+
+            // (`AMBER201`, подозрение полосы 3, 05.10.2026) Человек вводит ЧИСЛО:
+            // «NaN», «Infinity», «-Infinity» (и «∞» по культуре системы) разбор
+            // принимает как значения, и поле калибровки или порога отдавало их
+            // дальше — в XML уходило «NaN», в счёт — бесконечность. Это отказ,
+            // как у любого нечитаемого текста.
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                value = 0.0;
+                return false;
+            }
+            return true;
         }
 
         public static bool TryParseInt(string text, out int value)

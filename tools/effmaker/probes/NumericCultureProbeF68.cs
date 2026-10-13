@@ -197,7 +197,6 @@ static class NumericCultureProbeF68
         yield return S("DeviceConfigForm", () => new DeviceConfigForm());
         yield return S("EfficiencyMakerForm", () => new EfficiencyMakerForm());
         yield return S("GlobalConfigForm", () => new GlobalConfigForm());
-        yield return S("ROIConfigForm", () => new ROIConfigForm());
         yield return S("ToolStripEnergyCalibrationControl", () => new ToolStripEnergyCalibrationControl());
         yield return S("ToolStripNumericUpdown", () => new ToolStripNumericUpdown());
         yield return S("ResponseMatrixForm", () => new ResponseMatrixForm(new EfficiencyConfigData()));
@@ -230,11 +229,8 @@ static class NumericCultureProbeF68
     {
         DeviceType.InitializeDeviceTypes();
         ThermometerType.InitializeThermometerTypes();
-        ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-        ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
         GlobalConfigManager.GetInstance().PrepareConfigFile();
         DeviceConfigManager.GetInstance();
-        ROIConfigManager.GetInstance();
         NuclideDefinitionManager.GetInstance();
         Say("одиночки заведены: приборы, термометры, ROI, конфигурация, нуклиды");
     }

@@ -3,6 +3,7 @@ using MathNet.Numerics;
 using System;
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Threading;
 using System.Xml.Serialization;
 
 namespace BecquerelMonitor
@@ -81,7 +82,7 @@ namespace BecquerelMonitor
         /// <summary>
         /// Годна ли шкала: степень, длина набора коэффициентов, монотонность и
         /// разумность энергий по всем каналам. Ответ читают ВСЕ 23 места
-        /// дерева, где шкала берётся из файла или из подгонки, — ввоз N42,
+        /// дерева, где шкала берётся из файла или из подгонки, — импорт N42,
         /// открытие документа, сохранение конфигурации прибора, вычитание фона,
         /// стабилизатор пиков, график калибровки.
         ///
@@ -146,9 +147,19 @@ namespace BecquerelMonitor
                 double b = this.Coefficients[1];
                 double a = this.Coefficients[2];
                 double discriminant = Math.Pow(b, 2.0) - 4.0 * a * c;
-                double discriminant2 = Math.Pow(b, 2.0) - 4.0 * a * (c - (double)channels);
 
-                if (discriminant < 0 || discriminant2 < 0)
+                // ⛔ `AMBER190` (полоса fixcal, 05.10.2026): здесь стояло второе
+                // условие `b² − 4a(c − channels) < 0` — «у параболы есть корень при
+                // E = (число каналов) кэВ». Родилось 07.07.2023 (`3e69dfc3`) как
+                // «шкала достаёт до 12 МэВ» (12000.0), 30.07.2023 (`a5b78ebe`)
+                // константа заменена числом КАНАЛОВ — смешение единиц. После зажима
+                // `EnergyToChannel` (энергия выше E(N) → канал N) корень у
+                // E = channels не нужен никому, а отвергало условие годные вогнутые
+                // шкалы: c = 0, b = 0.40, a = −5e-6, N = 8192 (изгиб 10 %,
+                // монотонна) — «Calibration function error», молчаливое понижение
+                // степени в `SolveGuarded`, сброс шкалы при открытии файла.
+                // Монотонность на [0, N] проверяет цикл ниже.
+                if (discriminant < 0)
                 {
                     return false;
                 }
@@ -178,6 +189,71 @@ namespace BecquerelMonitor
                 }
             }
             return true;
+        }
+
+        /// <summary>
+        /// ⛔ `AMBER188(д)` (полоса fixcal, 05.10.2026): ввод ОДНОГО коэффициента
+        /// шкалы в поле — общий помощник панели калибровки энергии
+        /// (<c>DCEnergyCalibrationView.setNewCalibration</c>) и формы прибора
+        /// (<c>DeviceConfigForm.setNewCalibration</c>); обе ведут себя одинаково.
+        ///
+        /// Решение Amber 05.10.2026, вопросником, дословно: «Подъём до введённой
+        /// (Рекомендую)». То есть:
+        /// <list type="bullet">
+        /// <item>ненулевой коэффициент при xᵏ у шкалы степени ниже k поднимает
+        /// степень до k, промежуточные коэффициенты — нули (прежде массив рос на
+        /// одну ступень, и ввод x⁴ у линейной шкалы падал
+        /// <c>IndexOutOfRange</c>);</item>
+        /// <item>ноль (ЧИСЛЕННО, а не текст «0» — «0.0» тоже ноль) в старшем
+        /// коэффициенте понижает степень до СТАРШЕГО НЕНУЛЕВОГО: у
+        /// [c, b, 0, d₃, d₄] ноль в x⁴ даёт степень 3, у [c, b, a, 0, d₄] —
+        /// степень 2.</item>
+        /// </list>
+        ///
+        /// Возвращает НОВЫЙ объект; исходный не трогается — отказ у вызывающего
+        /// не оставляет живую шкалу в промежуточном состоянии. Годность шкалы
+        /// (<see cref="CheckCalibration"/>) помощник НЕ проверяет: панель
+        /// проверяет сразу, форма прибора — при сохранении. Бросает
+        /// <see cref="ArgumentException"/> на степени вне 0…4, на не-числе и на
+        /// шкале, где все коэффициенты при степенях x равны нулю (энергия не
+        /// зависит от канала — такую не примет ни одна проверка).
+        /// </summary>
+        public static PolynomialEnergyCalibration WithCoefficient(PolynomialEnergyCalibration source, int order, double value)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (order < 0 || order > 4)
+            {
+                throw new ArgumentOutOfRangeException(nameof(order), order, "coefficient index must be 0..4");
+            }
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                throw new ArgumentException("coefficient must be a finite number", nameof(value));
+            }
+
+            // Только участвующие коэффициенты исходной шкалы: хвост массива за
+            // её степенью (если он есть) в новую шкалу не переносится.
+            int sourceTop = Math.Min(source.polynomialOrder, source.coefficients.Length - 1);
+            double[] work = new double[Math.Max(sourceTop, order) + 1];
+            Array.Copy(source.coefficients, work, sourceTop + 1);
+            work[order] = value;
+
+            int degree = work.Length - 1;
+            while (degree >= 1 && work[degree] == 0.0)
+            {
+                degree--;
+            }
+            if (degree < 1)
+            {
+                throw new ArgumentException("all channel-dependent coefficients are zero: energy would not depend on the channel", nameof(value));
+            }
+
+            double[] coefficients = new double[degree + 1];
+            Array.Copy(work, coefficients, degree + 1);
+
+            PolynomialEnergyCalibration result = (PolynomialEnergyCalibration)source.Clone();
+            result.PolynomialOrder = degree;
+            result.Coefficients = coefficients;
+            return result;
         }
 
         public override EnergyCalibration Downgrade(int polynomialOrder)
@@ -253,14 +329,16 @@ namespace BecquerelMonitor
             if (enrg > this.maxEnergy && this.maxEnergy != -1) return this.maxChannels;
             if (this.dirty || this.energytochanel == null)
             {
-                this.energytochanel = new ConcurrentDictionary<double, double>();
+                EnergyToChannelMemo fresh = new EnergyToChannelMemo();
+                this.energytochanel = fresh;
                 this.dirty = false;
                 double value = EnrgToChannel(enrg, maxCh: this.maxChannels);
-                this.energytochanel.TryAdd(enrg, value);
+                fresh.Add(enrg, value);
                 return value;
             } else
             {
-                if (this.energytochanel.TryGetValue(enrg, out double value))
+                EnergyToChannelMemo memo = this.energytochanel;
+                if (memo.Map.TryGetValue(enrg, out double value))
                 {
                     return value;
                 } else
@@ -272,13 +350,61 @@ namespace BecquerelMonitor
                     // новый набор энергий - за 40 шагов зума набегало под 50 тыс.
                     // записей, которые больше никогда не понадобятся. Сброс
                     // безопасен: это чистая функция, пересчёт дешёвый.
-                    if (this.energytochanel.Count >= EnergyToChannelCacheLimit)
+                    //
+                    // `T267` (П213, 02.10.2026): потолок сверяется со СЧЁТЧИКОМ
+                    // записей рядом со словарём, а не с `ConcurrentDictionary.Count`:
+                    // тот берёт ВСЕ замки словаря (4 на ядро) на каждом промахе, а в
+                    // разборе FSA почти каждый вызов — промах: 159 из 183 мс выборок
+                    // места, ≈2.5 % разбора `AS80_Th232Medal` (профиль П213 на
+                    // `5b6a209c`). Поведение при переполнении прежнее: на промахе
+                    // при 32768 записях словарь очищается, затем кладётся новая.
+                    if (memo.Count >= EnergyToChannelCacheLimit)
                     {
-                        this.energytochanel.Clear();
+                        memo.Clear();
                     }
-                    this.energytochanel.TryAdd(enrg, value);
+                    memo.Add(enrg, value);
                     return value;
                 }
+            }
+        }
+
+        /// <summary>
+        /// `T267` (П213): словарь мемоизации энергия → канал вместе со счётчиком
+        /// своих записей. Счётчик живёт В ТОМ ЖЕ объекте, что и словарь, — замена
+        /// словаря при смене шкалы (`dirty`) меняет их разом, одной записью
+        /// ссылки, и окна «новый словарь, старый счёт» нет.
+        ///
+        /// Без гонки счёт точный (растёт только на удавшемся <c>TryAdd</c>,
+        /// обнуляется вместе с <c>Clear</c>). Под гонкой — приблизительный: запись
+        /// другого потока между <c>Clear</c> и обнулением счёта может не попасть
+        /// в счёт, и словарь перерастёт потолок на число одновременных потоков;
+        /// значения от этого не меняются — кеш хранит чистую функцию. Сам словарь
+        /// остаётся <c>ConcurrentDictionary</c>: к одной калибровке ходят и
+        /// отрисовка, и <c>Task.Run</c> поиска пиков и FSA.
+        /// </summary>
+        sealed class EnergyToChannelMemo
+        {
+            public readonly ConcurrentDictionary<double, double> Map = new ConcurrentDictionary<double, double>();
+
+            int count;
+
+            public int Count
+            {
+                get { return Volatile.Read(ref this.count); }
+            }
+
+            public void Add(double energy, double channel)
+            {
+                if (this.Map.TryAdd(energy, channel))
+                {
+                    Interlocked.Increment(ref this.count);
+                }
+            }
+
+            public void Clear()
+            {
+                this.Map.Clear();
+                Interlocked.Exchange(ref this.count, 0);
             }
         }
 
@@ -321,9 +447,47 @@ namespace BecquerelMonitor
                 System.Windows.Forms.MessageBoxIcon.Hand);
         }
 
-        double EnrgToChannel(double enrg, int maxCh = 8192)
+        /// <summary>
+        /// ⛔ `S184` (П151, 24.09.2026): ЭНЕРГИЯ → КАНАЛ С ПРОДОЛЖЕНИЕМ ШКАЛЫ
+        /// В [E(0), 0). <see cref="EnergyToChannel"/> отдаёт канал 0 всякой
+        /// энергии ниже нуля, и при E(0) &lt; 0 это зажим ВНУТРИ шкалы: полином
+        /// даёт там каналы 0…k. Замер `EnergyScaleProbeP151`: у 118 из 125
+        /// спектров корпуса с E(0) &lt; 0 круг «канал → энергия → канал» ошибался
+        /// до 46 каналов; на графике в режиме энергии (`G1S16_Mn54_P5`,
+        /// E(0) = −43.9 кэВ) 425 из 440 колонок в [E(0), 0) брали канал 0, и
+        /// 14 каналов не рисовались вовсе.
+        ///
+        /// ⚠ ПОЧЕМУ ОТДЕЛЬНЫМ ВЫЗОВОМ, А НЕ В САМОЙ КАЛИБРОВКЕ. Проба той же
+        /// правкой в <see cref="EnrgToChannel"/> сдвинула разбор FSA: витрина
+        /// разошлась с эталоном на 3 парах из 9 (до −1.33 % у малой компоненты,
+        /// в основном 1E-5) — продолжение FSA (`LightToChannel`, `AMBER85`) идёт
+        /// прямой по ширине нулевого канала, и полином отличается от неё до
+        /// 0.085 канала (`AS80_Onyx`). Разбор FSA держит своё продолжение, а
+        /// вызывающие вне него (график, фон, сложение спектров, ROI) зовут это.
+        ///
+        /// Ниже E(0) и выше верха — как <see cref="EnergyToChannel"/> (канал 0 и
+        /// N: номер канала — индекс массива у вызывающих). Вне [E(0), 0) ответ
+        /// побитово тот же, что у <see cref="EnergyToChannel"/>. Калибровка не
+        /// полиномиальная (<c>NonlinearEnergyCalibration</c>) — её собственный
+        /// ответ как есть.
+        /// </summary>
+        public static double ChannelOf(EnergyCalibration calibration, double energy, int channels)
         {
-            if (enrg < 0 || enrg < this.coefficients[0])
+            double channel = calibration.EnergyToChannel(energy, channels);
+            PolynomialEnergyCalibration polynomial = calibration as PolynomialEnergyCalibration;
+            if (polynomial == null || channel > 0.0 || !(energy < 0.0) || !(energy >= polynomial.coefficients[0]))
+            {
+                return channel;
+            }
+
+            return polynomial.EnrgToChannel(energy, maxCh: channels, clampBelowZero: false);
+        }
+
+        double EnrgToChannel(double enrg, int maxCh = 8192, bool clampBelowZero = true)
+        {
+            // `S184`: `enrg < 0` — зажим ВНУТРИ шкалы при E(0) < 0; снимает его
+            // только <see cref="ChannelOf"/> (разбор FSA держит своё продолжение).
+            if ((clampBelowZero && enrg < 0) || enrg < this.coefficients[0])
             {
                 return 0;
             }
@@ -511,6 +675,6 @@ namespace BecquerelMonitor
         int maxChannels = 8192;
         double maxEnergy = -1;
 
-        ConcurrentDictionary<double, double> energytochanel = null;
+        EnergyToChannelMemo energytochanel = null;
     }
 }

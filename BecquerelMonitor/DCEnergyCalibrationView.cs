@@ -255,7 +255,11 @@ namespace BecquerelMonitor
             PolynomialEnergyCalibration previousObsCalibration =
                 obs_deviceConfig != null ? obs_deviceConfig.OBS_EnergyCalibration : null;
 
-            deviceConfig.EnergyCalibration = this.energyCalibration;
+            // ⛔ `AMBER188(б)` (полоса fixcal, 05.10.2026): КОПИЯ, как в
+            // `UpdateEnergyCalibration`. Прежде прибор, документ и вид держали
+            // ОДИН объект, и дальнейшие правки полей и «Рассчитать» меняли
+            // конфигурацию прибора в памяти без записи и до проверки.
+            deviceConfig.EnergyCalibration = this.energyCalibration.Clone();
             if (rc_deviceConfig != null)
             {
                 if (this.energyCalibration.PolynomialOrder == 2)
@@ -314,7 +318,7 @@ namespace BecquerelMonitor
                                 MessageBoxButtons.OK, MessageBoxIcon.Hand);
                 return;
             }
-            activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration = this.energyCalibration;
+            activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration = this.energyCalibration.Clone();
             this.mainForm.UpdateDeviceConfigForm();
         }
 
@@ -325,78 +329,30 @@ namespace BecquerelMonitor
             {
                 double result = fromStringtoDouble(t.Text);
 
+                // ⛔ `AMBER188(б, д)` (полоса fixcal, 05.10.2026): новая шкала
+                // строится ОБЩИМ помощником в НОВОМ объекте и присваивается
+                // только после проверки. Прежде (б) третья ветка писала
+                // коэффициент в живой объект ДО `CheckCalibration` и при отказе
+                // не откатывала, а (д) ввод x³/x⁴ у шкалы низшей степени падал
+                // `IndexOutOfRange` (массив рос на одну ступень), и «0.0» в
+                // старшем коэффициенте степень не понижало (сравнивался текст
+                // «0»). Правило подъёма/понижения — решение Amber 05.10.2026
+                // («Подъём до введённой»), см. `WithCoefficient`.
+                PolynomialEnergyCalibration newPe = PolynomialEnergyCalibration.WithCoefficient(pe, order, result);
+
                 // Nothing changes, leave
-                if ((result == 0 && order > pe.PolynomialOrder) ||
-                    (pe.PolynomialOrder == order && pe.Coefficients[order] == result))
+                if (newPe.Equals(pe))
                 {
                     t.ForeColor = Color.Black;
                     return;
                 }
-                
-                if (pe.Coefficients.Length <= order)
+
+                if (!newPe.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
                 {
-                    PolynomialEnergyCalibration newPe = (PolynomialEnergyCalibration)pe.Clone();
-                    newPe.PolynomialOrder = order;
-                    double[] coeff = new double[pe.Coefficients.Length + 1];
-                    Array.Copy(pe.Coefficients, coeff, pe.Coefficients.Length);
-                    newPe.Coefficients = coeff;
-                    newPe.Coefficients[order] = result;
-                    if (newPe.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
-                    {
-                        this.energyCalibration = (PolynomialEnergyCalibration)newPe;
-                    }
-                    else
-                    {
-                        throw new Exception();
-                    }
+                    throw new Exception();
                 }
-                else if (t.Text == "0" && order == pe.Coefficients.Length - 1)
-                {
-                    if (pe.PolynomialOrder > 1)
-                    {
-                        int coeff = 0;
-                        if (pe.PolynomialOrder > 2)
-                        {
-                            for (int i = pe.Coefficients.Length - 1; i > 1; i--)
-                            {
-                                if (pe.Coefficients[i] == 0.0 || (i == order)) coeff++;
-                            }
-                        } else
-                        {
-                            coeff = 1;
-                        }
-                            PolynomialEnergyCalibration newPe = (PolynomialEnergyCalibration)pe.Clone().Downgrade(order - coeff);
-                        if (newPe.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
-                        {
-                            this.energyCalibration = (PolynomialEnergyCalibration)newPe;
-                        }
-                        else
-                        {
-                            throw new Exception();
-                        }
-                    }
-                    else
-                    {
-                        throw new Exception();
-                    }
-                }
-                else
-                {
-                    if (pe.Coefficients[order] == result) return;
-                    pe.Coefficients[order] = result;
-                    // Element write bypasses the property setter - drop the stale
-                    // EnergyToChannel cache explicitly.
-                    pe.InvalidateCache();
-                    if (pe.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
-                    {
-                        this.energyCalibration = (PolynomialEnergyCalibration)pe;
-                    }
-                    else
-                    {
-                        throw new Exception();
-                    }
-                }
-                
+                this.energyCalibration = newPe;
+
                 t.ForeColor = Color.Black;
                 this.SyncRcEnergyCalibration();
                 this.UpdateEnergyCalibration();
@@ -636,7 +592,10 @@ namespace BecquerelMonitor
             }
             else
             {
-                selectedItemIndex = 0;
+                // Ревизия 05.10.2026, сводная мелочь 4.10 (полоса fixcal): без
+                // выделения удалять нечего — прежде здесь стоял 0, и «Удалить»
+                // молча удаляло первую точку.
+                selectedItemIndex = -1;
             }
             if (selectedItemIndex < 0 || selectedItemIndex >= this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count)
             {
@@ -693,16 +652,22 @@ namespace BecquerelMonitor
                 if (e.Column == 1)
                 {
                     string text = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Channel = (int)UserNumber.ParseDecimal(text);
-                    if (this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum.Length > this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Channel)
-                    {
-                        this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Count = this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum[this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Channel];
-                    }
-                    else
+                    // ⛔ `AMBER188(в)` (полоса fixcal, 05.10.2026): канал
+                    // разбирается в ЛОКАЛЬНУЮ и пишется в документ только после
+                    // проверки границы. Прежде он писался до проверки и при
+                    // отказе оставался: ячейка показывала прежнее число, а в
+                    // модели стоял введённый 99999. Отрицательный канал
+                    // отвергается тем же отказом (прежде падал на индексе).
+                    int channel = (int)UserNumber.ParseDecimal(text);
+                    int[] spectrum = this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum;
+                    if (channel < 0 || channel >= spectrum.Length)
                     {
                         throw new Exception(Resources.ERRCalibrationChannelExceed);
                     }
-                    
+                    CalibrationPoint point = this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index];
+                    point.Channel = channel;
+                    point.Count = spectrum[channel];
+
                     this.multipointModified = true;
                     this.calibrationDone = false;
                     this.UpdateMultipointButtonState();
@@ -728,6 +693,11 @@ namespace BecquerelMonitor
             {
                 MessageBox.Show(String.Format(Resources.ERRAddCalibrationPoints, ((NumberCellEditor)e.Editor).TextBox.Text, ex.Message), Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 e.Cancel = true;
+                // `AMBER188(в)` (полоса fixcal): модель отказ не тронул, а ячейка
+                // после окна оставалась с отвергнутым числом (замер экраном
+                // 05.10.2026: в ячейке 65535, в модели 229). Таблица
+                // перерисовывается из модели ПОСЛЕ выхода из события правки.
+                this.BeginInvoke(new Action(this.ShowCalibrationPoints));
             }
         }
 
@@ -790,22 +760,26 @@ namespace BecquerelMonitor
         // Token: 0x06000831 RID: 2097 RVA: 0x0002E8C0 File Offset: 0x0002CAC0
         void button7_Click(object sender, EventArgs e)
         {
-            bool zeroPointAdded = false;
-            for (int i = 0; i < this.energyCalibration.Coefficients.Length; i++)
-            {
-                this.energyCalibration.Coefficients[i] = 0.0;
-            }
-            this.energyCalibration.InvalidateCache();
-
+            // ⛔ `AMBER188(а, г, е)` (полоса fixcal, 05.10.2026). Подгонка идёт
+            // в НОВЫЙ объект и присваивается виду только после обеих проверок:
+            //  (а) прежде коэффициенты живой шкалы обнулялись ДО подгонки и при
+            //      отказе не возвращались, поля показывали прежние числа, и
+            //      следующая правка одного поля писала в обнулённый объект («−12.3»
+            //      в смещении → в спектре смещение 0, все энергии +12.3 кэВ молча);
+            //  (г) синтетическая точка (0, 0, 0) калибровки по одной точке
+            //      кладётся в ЛОКАЛЬНУЮ копию списка: прежде она добавлялась в
+            //      документ, и три досрочных выхода её не снимали;
+            //  (е) квадратичная шкала RadiaCode/Obsidian — под `try` и только при
+            //      трёх точках и больше; СКО в строке состояния — по ОСНОВНОЙ
+            //      кривой (прежде `matrix` перезаписывалась квадратичной RC).
             int PolynomOrder = (int)this.numericUpDown6.Value;
             if (PolynomOrder == 0) PolynomOrder += 1;
             double[] matrix;
-            List<CalibrationPoint> points = this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints;
+            List<CalibrationPoint> points = new List<CalibrationPoint>(this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints);
             if (points.Count == 1)
             {
                 CalibrationPoint zero = new CalibrationPoint(0, 0, 0);
                 points.Add(zero);
-                zeroPointAdded = true;
             }
             try
             {
@@ -832,35 +806,48 @@ namespace BecquerelMonitor
                 return;
             }
 
-            this.energyCalibration.Coefficients = new double[matrix.Length];
-            this.energyCalibration.PolynomialOrder = matrix.Length - 1;
-            this.energyCalibration.Coefficients = matrix;
-            this.SyncRcEnergyCalibration();
+            PolynomialEnergyCalibration fitted = (PolynomialEnergyCalibration)this.energyCalibration.Clone();
+            fitted.PolynomialOrder = matrix.Length - 1;
+            fitted.Coefficients = matrix;
 
-            if (!this.energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
+            if (!fitted.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
             {
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
 
+            this.energyCalibration = fitted;
+            this.SyncRcEnergyCalibration();
+
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             DeviceConfigInfo deviceConfig = activeDocument.ActiveResultData.DeviceConfig;
             if (deviceConfig != null && !string.IsNullOrEmpty(deviceConfig.Guid))
             {
-                if ((deviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig || deviceConfig.InputDeviceConfig is ObsidianDeviceConfig) && PolynomOrder >= 2)
+                if ((deviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig || deviceConfig.InputDeviceConfig is ObsidianDeviceConfig)
+                    && PolynomOrder >= 2 && points.Count >= 3)
                 {
-                    if (this.checkBox2.Checked)
+                    double[] rcMatrix = null;
+                    try
                     {
-                        matrix = Utils.CalibrationSolver.SolveWeighted(points, 2);
+                        rcMatrix = this.checkBox2.Checked
+                            ? Utils.CalibrationSolver.SolveWeighted(points, 2)
+                            : Utils.CalibrationSolver.Solve(points, 2);
                     }
-                    else
+                    catch (Exception)
                     {
-                        matrix = Utils.CalibrationSolver.Solve(points, 2);
+                        rcMatrix = null;
                     }
-                    if (matrix == null) throw new Exception("Error");
-                    rc_EnergyCalibration = new PolynomialEnergyCalibration();
-                    rc_EnergyCalibration.Coefficients = matrix;
-                    rc_EnergyCalibration.PolynomialOrder = 2;
+                    // Не вышло — остаётся то, что дал `SyncRcEnergyCalibration`
+                    // (копия основной шкалы степени 2 или ничего): сохранение в
+                    // прибор (`button4_Click`) при степени выше 2 и пустой RC
+                    // квадратичной шкалы прибору не пишет.
+                    if (rcMatrix != null && rcMatrix.Length == 3
+                        && !Array.Exists(rcMatrix, v => double.IsNaN(v) || double.IsInfinity(v)))
+                    {
+                        rc_EnergyCalibration = new PolynomialEnergyCalibration();
+                        rc_EnergyCalibration.Coefficients = rcMatrix;
+                        rc_EnergyCalibration.PolynomialOrder = 2;
+                    }
                 }
             }
 
@@ -883,11 +870,6 @@ namespace BecquerelMonitor
             {
                 this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
             }
-            if (!this.energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
-            {
-                MessageBox.Show(Resources.CalibrationFunctionError);
-                return;
-            }
             double mse = 0.0;
             if (this.checkBox2.Checked)
             {
@@ -897,7 +879,6 @@ namespace BecquerelMonitor
                 mse = Utils.CalibrationSolver.MSE(matrix, points);
             }
             this.mainForm.SetStatusTextLeft(String.Format(CultureInfo.InvariantCulture, "{0} {1}: {2:0.00000}", Resources.MSGCalibrationDone, Resources.MSGMSE, mse));
-            if (zeroPointAdded) points.RemoveAt(1);
             this.multipointModified = false;
             this.calibrationDone = true;
             this.UpdateMultipointButtonState();

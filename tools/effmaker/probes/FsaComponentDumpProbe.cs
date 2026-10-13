@@ -41,15 +41,33 @@ namespace FsaComponentDumpProbe
     /// отказ с подсказкой; в конце печатается счётчик обращений к менеджеру,
     /// не ноль — код 12.
     ///
+    /// (`AMBER85`, П144 24.09.2026) `--band=&lt;режим&gt;` и `--fit-floor=&lt;пол&gt;` —
+    /// полоса и пол фита тем же словарём, что у `CorpusFsaProbe`
+    /// (`FsaBand.TryParse`, `FsaBand.TryParseFitFloor`): `--band=whole
+    /// --fit-floor=off` открывает низ шкалы, куда корпусный пол не пускает.
+    /// `--head=&lt;n&gt;` печатает первые n каналов ленты каждого компонента — дамп
+    /// «бугра» у нулевого канала, который читается без CSV. С `--image` к нему
+    /// добавляются ОБРАЗЫ компонентов до фита (`BuildTemplateFromResponse`
+    /// отражением, на дрейфе результата, полоса — вся шкала): столбец образа и
+    /// отвязанный подпороговый хвост порознь, в долях своего максимума. Лента
+    /// после фита «бугра» может не показать — хвосту фит волен дать ноль, а
+    /// форма образа от этого правильной не станет. `--anchor-zero=calib|adc|adc-fixed`
+    /// — карта нуля шкалы образа (`FsaAnalyzer.AnchorZero`): на "calib" свет
+    /// идёт в канал калибровкой как есть, и свет ниже E(0) виден без карты.
+    ///
     /// Печатает состав библиотеки и состав разбора; пишет `&lt;префикс&gt;.csv`
     /// (канал, энергия, измерение, модель, лента каждого компонента) и
     /// `&lt;префикс&gt;-lines.csv` (компонент, энергия линии, выход).
     /// </summary>
     static class Program
     {
+        // Имена по номерам каналов `ResponseChannel`. До П125 (22.09.2026) имён было
+        // ПЯТЬ при шести каналах — L-вылет (`AMBER16` п. 1) сюда не дописали;
+        // дописаны шестое и седьмое (`ann_out` — аннигиляция вне кристалла,
+        // `AMBER52`, формат 10).
         static readonly string[] ChannelNames =
         {
-            "peak", "compton", "esc_se", "esc_xray", "esc_de"
+            "peak", "compton", "esc_se", "esc_xray", "esc_de", "esc_xray_l", "ann_out"
         };
 
         static int Main(string[] args)
@@ -65,6 +83,9 @@ namespace FsaComponentDumpProbe
             bool matrixAny = false;
             bool noCascade = false;
             string stagesOf = null;
+            int head = 0;
+            bool image = false;
+            string anchorZero = null;
             var apparent = new List<string>();
 
             foreach (string a in args)
@@ -98,6 +119,46 @@ namespace FsaComponentDumpProbe
                 else if (a == "--no-cascade")
                 {
                     noCascade = true;
+                }
+                else if (a.StartsWith("--band=", StringComparison.Ordinal))
+                {
+                    FsaBandMode mode;
+                    if (!FsaBand.TryParse(a.Substring(7), out mode))
+                    {
+                        Console.Error.WriteLine("не разобран --band=: {0}", a.Substring(7));
+                        return 2;
+                    }
+
+                    FsaBand.DefaultMode = mode;
+                }
+                else if (a.StartsWith("--fit-floor=", StringComparison.Ordinal))
+                {
+                    FsaFitFloor floor;
+                    double floorKev;
+                    if (!FsaBand.TryParseFitFloor(a.Substring(12), out floor, out floorKev))
+                    {
+                        Console.Error.WriteLine("не разобран --fit-floor=: {0}", a.Substring(12));
+                        return 2;
+                    }
+
+                    FsaBand.DefaultFitFloor = floor;
+                    FsaBand.DefaultFitFloorKev = floorKev;
+                }
+                else if (a.StartsWith("--anchor-zero=", StringComparison.Ordinal))
+                {
+                    anchorZero = a.Substring(14);
+                }
+                else if (a == "--image")
+                {
+                    image = true;
+                }
+                else if (a.StartsWith("--head=", StringComparison.Ordinal))
+                {
+                    if (!int.TryParse(a.Substring(7), NumberStyles.Integer, CultureInfo.InvariantCulture, out head) || head < 0)
+                    {
+                        Console.Error.WriteLine("не разобран --head=");
+                        return 2;
+                    }
                 }
                 else if (a.StartsWith("--stages=", StringComparison.Ordinal))
                 {
@@ -204,7 +265,10 @@ namespace FsaComponentDumpProbe
 
             string material = EfficiencySimulator.ScintillatorNameOf(
                 rd.Efficiency != null ? rd.Efficiency.Geometry : null);
-            var analyzer = new FsaAnalyzer { ResponseMatrix = matrix, ScintillatorMaterial = material };
+            // (`T263`, П193) матрица — через `FsaMatrixBinding.Bind`, как у приложения: с нею едут Q_k угловых корреляций и обстановка (домик)
+            var analyzer = new FsaAnalyzer();
+            FsaMatrixBinding.Bind(analyzer, rd.Efficiency != null ? rd.Efficiency.Geometry : null, matrix);
+            analyzer.ScintillatorMaterial = material;
             if (rd.DeviceConfig != null && rd.DeviceConfig.InputDeviceConfig != null)
             {
                 double deadTime = rd.DeviceConfig.InputDeviceConfig.DeadTime();
@@ -227,6 +291,11 @@ namespace FsaComponentDumpProbe
                 analyzer.CascadeSumming = false;
                 analyzer.CascadeSumPeaks = false;
                 Console.WriteLine("⚠ КАСКАД ВЫКЛЮЧЕН ЦЕЛИКОМ: CascadeSumming = CascadeSumPeaks = false");
+            }
+
+            if (anchorZero != null)
+            {
+                analyzer.AnchorZero = anchorZero;
             }
 
             FsaTuningReport.Print(analyzer, "состав разбора");
@@ -326,6 +395,70 @@ namespace FsaComponentDumpProbe
                                   F(calibration.ChannelToEnergy(hi), 1),
                                   F(sum, 1),
                                   F(calibration.ChannelToEnergy(top), 1));
+            }
+
+            if (head > 0)
+            {
+                Console.WriteLine();
+                Console.WriteLine("=== ПЕРВЫЕ {0} КАНАЛОВ (полоса фита {1}…{2}) ===", head,
+                                  result.FirstChannel, result.LastChannel);
+                var sbHead = new StringBuilder("канал	E, кэВ	данные	модель");
+                foreach (FsaComponentResult component in result.Components)
+                {
+                    sbHead.Append('	').Append(component.Name);
+                }
+
+                Console.WriteLine(sbHead.ToString());
+                for (int i = 0; i < head && i < channels; i++)
+                {
+                    var sb = new StringBuilder();
+                    sb.Append(i.ToString(CultureInfo.InvariantCulture)).Append('	')
+                      .Append(F(calibration.ChannelToEnergy(i), 2)).Append('	')
+                      .Append(F(measured[i], 1)).Append('	')
+                      .Append(F(result.Model != null && i < result.Model.Length ? result.Model[i] : 0.0, 3));
+                    foreach (FsaComponentResult component in result.Components)
+                    {
+                        double[] curve = component.Curve;
+                        sb.Append('	').Append(F(curve != null && i < curve.Length ? curve[i] : 0.0, 3));
+                    }
+
+                    Console.WriteLine(sb.ToString());
+                }
+            }
+
+            if (image && head > 0)
+            {
+                MethodInfo build = typeof(FsaAnalyzer).GetMethod("BuildTemplateFromResponse",
+                                                                 BindingFlags.Instance | BindingFlags.NonPublic);
+                if (build == null)
+                {
+                    Console.Error.WriteLine("⛔ отражение не нашло BuildTemplateFromResponse — проба устарела");
+                    return 1;
+                }
+
+                Console.WriteLine();
+                Console.WriteLine("=== ОБРАЗЫ ДО ФИТА: первые {0} каналов, доля максимума своего столбца ===", head);
+                Console.WriteLine("  карта нуля: растяжение {0}, E(0) {1} кэВ, свет в канале 0 {2} кэВ; {3}",
+                                  F(result.AdcScale, 5), F(result.AdcE0Kev, 2), F(result.AdcZeroKev, 2), result.AnchorNote);
+                foreach (FsaComponent component in library)
+                {
+                    object[] call = { component, calibration, rd.FwhmCalibration, result.Gain, result.OffsetChannels,
+                                      0, channels - 1, channels, null };
+                    var column = (double[])build.Invoke(analyzer, call);
+                    var tail = (double[])call[8];
+                    Console.WriteLine("  {0}: образ {1}, хвост {2}", component.Name,
+                                      column != null ? "есть" : "нет", tail != null ? "есть" : "нет");
+                    double topColumn = 0.0, topTail = 0.0;
+                    for (int i = 0; column != null && i < column.Length; i++) topColumn = Math.Max(topColumn, column[i]);
+                    for (int i = 0; tail != null && i < tail.Length; i++) topTail = Math.Max(topTail, tail[i]);
+                    for (int i = 0; i < head && i < channels; i++)
+                    {
+                        Console.WriteLine("  IMG	{0}	{1}	{2}	образ {3}	хвост {4}", component.Name,
+                                          i.ToString(CultureInfo.InvariantCulture), F(calibration.ChannelToEnergy(i), 2),
+                                          column != null && topColumn > 0.0 ? (column[i] / topColumn).ToString("E4", CultureInfo.InvariantCulture) : "—",
+                                          tail != null && topTail > 0.0 ? (tail[i] / topTail).ToString("E4", CultureInfo.InvariantCulture) : "—");
+                    }
+                }
             }
 
             if (stagesOf != null)

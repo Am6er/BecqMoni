@@ -27,7 +27,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///
         /// Чёрный нарочно: он не встречается в палитре нуклидов
         /// (<see cref="FsaPalette"/>), и лента невязки не может быть принята за
-        /// ещё один компонент состава. Он же стоит образцом в строке отчёта.
+        /// ещё один компонент состава.
         ///
         /// ⛔ Вторая половина — недобор — цвета НЕ ИМЕЕТ здесь: она берёт цвет
         /// линии спектра из настроек человека (см. отрисовку ленты).
@@ -581,24 +581,46 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // `n` несёт разделитель РАЗРЯДОВ даже на инвариантной культуре
             // (`1234.5` → `1,234.50`), а группировки разрядов нет вовсе. То же
             // у χ²/ndf ниже и у доли слоя в <see cref="ShareText"/>.
+            //
+            // ⛔ (`AMBER91`, П148 24.09.2026) Доли нет — пишется «—» с подсказкой,
+            // а не «+0.0 / −0.0 %»: при чистом счёте полосы на уровне шума
+            // (проба на уровне фона) знаменатель не определён
+            // (<see cref="FsaResult.ResidualSharesDefined"/>), и ноль читался
+            // бы «модель идеальна» при нарисованной ленте.
+            bool residualDefined = result.ResidualSharesDefined;
             rows.Add(new FsaReportRow
             {
                 Kind = FsaReportRowKind.Residual,
                 Name = Resources.FSAModelResidualRow,
-                Value = string.Format(CultureInfo.InvariantCulture,
-                                      Resources.FSAResidualCountsValue,
-                                      (100.0 * result.ResidualExcessShare).ToString("f1", CultureInfo.InvariantCulture),
-                                      (100.0 * result.ResidualMissingShare).ToString("f1", CultureInfo.InvariantCulture)),
-                Swatch = FsaSwatchKind.ResidualCross,
+                Value = residualDefined
+                    ? string.Format(CultureInfo.InvariantCulture,
+                                    Resources.FSAResidualCountsValue,
+                                    (100.0 * result.ResidualExcessShare).ToString("f1", CultureInfo.InvariantCulture),
+                                    (100.0 * result.ResidualMissingShare).ToString("f1", CultureInfo.InvariantCulture))
+                    : "—",
+                Hint = residualDefined ? null : Resources.FSAResidualUndefinedHint,
+                Warning = !residualDefined,
                 Color = ResidualColor
             });
 
             // 7. Строка качества: полный текст пометок, χ²/ndf справа.
+            //
+            // ⛔ (`AMBER209`, решение Amber 06.10.2026 вопросником, дословно:
+            // «Заменить на Пуассона») ЧИСЛО — χ²/ndf ПО СТАТИСТИКЕ ПУАССОНА
+            // (<see cref="FsaResult.Chi2NdfPoisson"/>), а не χ² решателя
+            // (<see cref="FsaResult.Chi2Ndf"/>): у решателя веса Хубера, и
+            // срезанные им каналы в χ² почти не входят — на Lu176 Amber он
+            // показывал 5.41 при 68.3 по Пуассону, на Th232 6.51 при 21.3.
+            // Разлад модели в отчёте не был виден. Пуассоновский χ² — та же
+            // мерка, что у корпуса (`chi2ndf_pois`), сравнимая между ключами
+            // решателя. ⚠ σ-надувка погрешностей (строка ниже) по-прежнему
+            // √(χ² решателя): менять её — менять погрешности и MDA, то есть
+            // A/B корпуса; её подсказка называет источник.
             rows.Add(new FsaReportRow
             {
                 Kind = FsaReportRowKind.Quality,
                 Name = presentation.QualityText,
-                Value = result.Chi2Ndf.ToString("f2", CultureInfo.InvariantCulture)
+                Value = result.Chi2NdfPoisson.ToString("f2", CultureInfo.InvariantCulture)
             });
 
             return rows;

@@ -1,0 +1,12 @@
+=== AMBER138: повтор энергии ===
+exp(log(1000))=999.99999999999977 exp(log(100))=100.00000000000004
+dup1000: accepted=True | TryEval(1000)=True eff=NaN Eval=0.2
+dup100: accepted=False
+dupLow1000+2000: accepted=True | TryEval(1000)=True eff=NaN Eval=0.2 | TryEval(1500)=True eff=0.066666666666666666 Eval=0.066666666666666666
+dupMid: accepted=True | TryEval(1000)=True eff=0.2 Eval=0.2 | TryEval(999.9999999)=True eff=0.20000000001169929 Eval=0.20000000001169929 | TryEval(1000.0000001)=True eff=0.099999999990000019 Eval=0.099999999990000019 | TryEval(1500)=True eff=0.066666666666666666 Eval=0.066666666666666666
+nextafter: log(1000)==log(next)? True
+nextafter1000: accepted=True | TryEval(1000)=True eff=NaN Eval=0.10000000000000002 | TryEval(1000.0000000000001)=True eff=NaN Eval=0.10000000000000002
+good2: accepted=True | TryEval(100)=True eff=0.10000000000000002 Eval=0.10000000000000002 | TryEval(316.22776601683796)=True eff=0.0447213595499958 Eval=0.0447213595499958 | TryEval(1000)=True eff=0.02 Eval=0.02
+dupOrderA: accepted=True | TryEval(100)=True eff=0.2 Eval=0.2 | TryEval(300)=True eff=0.0666666666666667 Eval=0.0666666666666667
+dupOrderB: accepted=True | TryEval(100)=True eff=0.10000000000000002 Eval=0.10000000000000002 | TryEval(300)=True eff=0.046398779259060122 Eval=0.046398779259060122
+CURVES files=99 curves=99 withDuplicates=0 sha256=f85e12b073f7127019a85ebbc81a7e9b0f4a6f2113782fc04fc63c8852947942
