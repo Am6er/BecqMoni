@@ -599,5 +599,97 @@ namespace AmplitudaSerialTests
             T.Near(Math.Min(blockLive + AmplitudaSerialSession.SegmentClockCorrectionSeconds, rig.Acq.RealSeconds), rig.Acq.LiveSeconds, 0.01, "published live = min(corrected, real)");
             T.True(rig.Acq.LiveSeconds <= rig.Acq.RealSeconds, "live <= real");
         }
+
+        // ---- Task 10 A: Stop + Abort leave no dead read on the line ----
+
+        public static void TestAbortedFinalReadLeavesTheLineFreeForTheNextStop()
+        {
+            Rig rig = Make(null, 0, 0);
+            rig.Fake.Blocks[1] = new FakeBlock();
+            rig.Acq.Start();
+            T.True(rig.Until(() => rig.Acq.Running && rig.Acq.RealSeconds >= 4), "running");
+            // The worker stalls on the first Write after the stop command, inside a foreign read,
+            // so the Stop's own urgent read is still queued (not started) when Abort comes.
+            bool stalled = false;
+            rig.Fake.OnWire = code =>
+            {
+                if (code == "C15" && !stalled)
+                {
+                    stalled = true;
+                    rig.Fake.Gate.Reset();
+                }
+            };
+            int wireBefore = rig.Fake.WireSnapshot().Length;
+            AmplitudaSerialReading foreign = null;
+            rig.Acq.RequestStop();
+            rig.Line.Enqueue(new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Read, Address = 1, Channels = 1024, Completed = r => foreign = r });
+            T.True(T.Wait(() => stalled, 5000), "the stop command reached the wire");
+            // The worker completes the stop and parks inside the foreign read; Pump takes the
+            // stop's completion and queues the urgent final read behind the parked step. Wait
+            // for that read to be really queued, so that the Abort below has something to
+            // withdraw (a fixed pause could pass with nothing cancelled at all).
+            T.True(T.Wait(() => { rig.Acq.Pump(); return rig.Line.QueuedReads == 1; }, 5000), "the final read is queued on the line");
+            T.True(!rig.Acq.Finished, "the final read is still outstanding");
+            rig.Acq.Abort();
+            T.Eq(0, rig.Line.QueuedReads, "the Abort withdrew its final read from the line");
+            rig.Fake.Gate.Set();
+            T.True(T.Wait(() => foreign != null, 5000), "the foreign read completed");
+
+            // Second document on the same line, another address: its Stop must not meet a dead read.
+            AmplitudaSerialAcquisition second = new AmplitudaSerialAcquisition(rig.Line, 1, 1024, 3000, new int[1024], 0, 0);
+            second.Start();
+            DateTime limit = DateTime.UtcNow.AddSeconds(60);
+            while (!second.Running && DateTime.UtcNow < limit)
+            {
+                second.Pump();
+                rig.Fake.Advance(100);
+                Thread.Sleep(1);
+            }
+            T.True(second.Running, "second acquisition running");
+            long t0 = rig.Fake.NowMs;
+            second.RequestStop();
+            while (!second.Finished && DateTime.UtcNow < limit)
+            {
+                second.Pump();
+                Thread.Sleep(1);
+            }
+            long took = rig.Fake.NowMs - t0;
+            T.True(second.Finished, "second stop finished");
+            T.True(took <= rig.Line.StopBudgetMs(1024), "second stop within its budget: " + took.ToString(CultureInfo.InvariantCulture));
+            rig.Line.Release();
+
+            string[] wire = rig.Fake.WireSnapshot();
+            int firstStop = Array.IndexOf(wire, "C15", wireBefore);
+            for (int i = firstStop; i + 1 < wire.Length; i++)
+            {
+                if (wire[i] == "A00")
+                {
+                    T.True(wire[i + 1] == "C15", "after the Abort only stop frames go to block 0, got " + wire[i + 1] + " at " + i.ToString(CultureInfo.InvariantCulture));
+                }
+            }
+        }
+
+        // ---- Task 10 E: Stop before the first answer ----
+
+        public static void TestStopBeforeTheFirstAnswerFinishesQuietly()
+        {
+            Rig rig = Make(null, 0, 0);
+            rig.Block.Silent = true;
+            rig.Acq.Start();
+            rig.Until(() => rig.Fake.NowMs >= 2000);
+            T.True(!rig.Acq.Finished, "still waiting for the first answer");
+            rig.Acq.RequestStop();
+            T.True(rig.Acq.Finished, "finished at once");
+            T.True(rig.Acq.Failure == AmplitudaSerialFailure.None, "no failure: " + rig.Acq.Failure);
+            T.True(T.Wait(() => Count(rig.Fake.WireSnapshot(), "C15") >= 1, 5000), "a best-effort stop command went out");
+            rig.Line.Release();
+            string[] wire = rig.Fake.WireSnapshot();
+            T.Eq(1, Count(wire, "C15"), "a single stop frame");
+            T.True(wire.Length >= 2 && wire[wire.Length - 2] == "A00" && wire[wire.Length - 1] == "C15", "the wire ends with the stop frame");
+            T.Eq(0, Count(wire, "C81") + Count(wire, "C82") + Count(wire, "C83"), "no header or page frames ever");
+            rig.Warnings.AddRange(rig.Acq.TakeWarnings());
+            T.Eq(0, rig.Warnings.Count, "no warning");
+            T.Eq(0, rig.Acq.TotalCounts, "document untouched");
+        }
     }
 }

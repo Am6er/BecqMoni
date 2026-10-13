@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace BecquerelMonitor
 {
@@ -88,6 +89,12 @@ namespace BecquerelMonitor
         bool finished;
         bool dirty;
         bool readOutstanding;
+        // The Read request in flight or queued on the line. Set on the UI thread in Send, cleared
+        // by its Completed callback on the line thread, hence the interlocked clear.
+        AmplitudaSerialRequest pendingRead;
+        // A Status or Read reply has ever come back: the block is known to be alive and the
+        // measurement has begun (the same whitelist that resets the trouble clock).
+        bool answered;
         AmplitudaSerialFailure failure = AmplitudaSerialFailure.None;
         int suggestedChannels;
         bool blockResetDetected;
@@ -206,6 +213,7 @@ namespace BecquerelMonitor
                 {
                     troubleSinceMs = -1;
                     stopFailures = 0;
+                    answered = true;
                 }
                 item.Handler(item.Reading);
             }
@@ -225,6 +233,18 @@ namespace BecquerelMonitor
             if (!started)
             {
                 finished = true;
+                return;
+            }
+            if (!answered)
+            {
+                // Started but the block has not answered once (switched on late, or not at all):
+                // no poll has ever happened, there is nothing to read and nothing to lose. Stop like
+                // an Abort, but without a failure - Halt's trouble rule would only end it after
+                // ~7.5 s as ConnectionLost and tell the user the Stop was incomplete.
+                RollBackToLastGood();
+                NewSequence();
+                finished = true;
+                line.Enqueue(new AmplitudaSerialRequest { Kind = AmplitudaSerialRequestKind.Control, Address = address, Command = AmplitudaSerialProtocol.CommandStop });
                 return;
             }
             stopping = true;
@@ -302,11 +322,21 @@ namespace BecquerelMonitor
             }
         }
 
+        // Whatever the old sequence still has queued or in flight on the line is orphaned: a read
+        // is withdrawn so that it neither delays the new sequence's own commands and its urgent
+        // read nor leaves a dead read in front of the next Stop on the same port. Control and
+        // Status requests are never cancelled.
         void NewSequence()
         {
             token++;
             running = false;
             readOutstanding = false;
+            AmplitudaSerialRequest orphan = pendingRead;
+            if (orphan != null)
+            {
+                pendingRead = null;
+                line.Cancel(orphan);
+            }
         }
 
         void Send(AmplitudaSerialRequestKind kind, byte command, Action<AmplitudaSerialReading> handler, bool urgent = false)
@@ -320,11 +350,19 @@ namespace BecquerelMonitor
             request.Urgent = urgent;
             request.Completed = delegate (AmplitudaSerialReading reading)
             {
+                if (kind == AmplitudaSerialRequestKind.Read)
+                {
+                    Interlocked.CompareExchange(ref pendingRead, null, request);
+                }
                 lock (inboxLock)
                 {
                     inbox.Enqueue(new InboxItem { Token = sentToken, Kind = kind, Handler = handler, Reading = reading });
                 }
             };
+            if (kind == AmplitudaSerialRequestKind.Read)
+            {
+                pendingRead = request;
+            }
             line.Enqueue(request);
         }
 

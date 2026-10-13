@@ -33,6 +33,9 @@ namespace BecquerelMonitor
         public int Channels;            // Read only
         // Read only: goes before the other documents' reads on the line (the final reading of a Stop).
         public bool Urgent;
+        // Read only: set by AmplitudaSerialLine.Cancel. A cancelled read that has not started is
+        // dropped from the queue; one in flight ends at its next step boundary, "cancelled".
+        public volatile bool Cancelled;
         // Runs on the LINE thread: it may only hand the result over (a locked queue, a flag).
         // It must never call Acquire / Release or wait for anything.
         public Action<AmplitudaSerialReading> Completed;
@@ -55,9 +58,9 @@ namespace BecquerelMonitor
         const int StatusReads = 4;
         const int RetryPauseMs = 100;
         const int ControlSettleMs = 100;
-        // The worker only has to finish the exchange it is in and the pending control commands;
-        // a silent block costs about 0.35 s per status exchange.
-        const int JoinTimeoutMs = 3000;
+        // The gap the Stop budget constants were tuned for; a larger gap adds to the budget.
+        const int DefaultGapMs = 20;
+        public const string ErrorCancelled = "cancelled";
 
         static readonly object registryLock = new object();
         static readonly Dictionary<string, AmplitudaSerialLine> registry =
@@ -70,6 +73,7 @@ namespace BecquerelMonitor
         readonly AmplitudaSerialSettings settings;
         readonly IAmplitudaSerialPort port;
         readonly Thread worker;
+        readonly int joinMs;
         readonly object queueLock = new object();
         readonly Queue<AmplitudaSerialRequest> urgent = new Queue<AmplitudaSerialRequest>();
         readonly Queue<AmplitudaSerialRequest> reads = new Queue<AmplitudaSerialRequest>();
@@ -85,6 +89,18 @@ namespace BecquerelMonitor
         {
             this.settings = settings;
             this.port = port;
+            // What Release() has to wait out: the worker finishes the step it is in (up to
+            // DataAttempts tries of one 1024-byte block, each paying the gap four times - before
+            // the address and between address and command, for the block and for its checksum
+            // frame - plus the first-byte timeout when the block is silent, and the retry
+            // pauses) and then the pending control commands (a stop and a clear/start, two gaps
+            // and a settle pause each). Too short a join lets port.Dispose() overtake the
+            // deferred stop command and the block keeps counting.
+            int blockMs = 1025 * 11 * 1000 / Math.Max(1, settings.BaudRate);   // block + checksum byte, 8N2
+            int exchangeMs = 4 * settings.GapMs + FirstByteTimeoutMs + blockMs;
+            int stepWorstMs = DataAttempts * exchangeMs + (DataAttempts - 1) * RetryPauseMs;
+            int controlMs = 2 * settings.GapMs + ControlSettleMs;
+            joinMs = Math.Max(3000, stepWorstMs + 2 * controlMs + 500);
             worker = new Thread(Run);
             worker.IsBackground = true;
             worker.Name = "AmplitudaSerial " + settings.PortName;
@@ -149,7 +165,7 @@ namespace BecquerelMonitor
                     Monitor.PulseAll(queueLock);
                 }
                 // Inside the registry lock: a new Acquire of this port must not race the close.
-                worker.Join(JoinTimeoutMs);
+                worker.Join(joinMs);
                 port.Dispose();
             }
         }
@@ -157,6 +173,91 @@ namespace BecquerelMonitor
         public long NowMs
         {
             get { return port.NowMs; }
+        }
+
+        // How long Release() waits for the worker (see the constructor).
+        public int JoinMs
+        {
+            get { return joinMs; }
+        }
+
+        // The time a Stop may wait for its final reading before it is given up (the caller then
+        // Abort()s). The base is tuned for the default gap: 8 s, or 2 s + 1.5 s per page of the
+        // block plus one, whichever is more (1024 channels: 8 s; 8192 channels: 27.5 s). The
+        // gap is configurable up to 200 ms and every exchange pays it at least twice (before the
+        // address byte and between address and command; a data try pays two more for its
+        // checksum frame, which the base's own slack absorbs - measured on a block at gap 200,
+        // 1024 channels: a healthy Stop takes ~5.9 s alone on the line, ~8.2 s with two foreign
+        // steps, against 14.84 s), so the budget grows by 2 * (gap - default) per exchange of
+        // the worst case:
+        //   two foreign steps - the parked job's step before the stop command, and the step the
+        //   line starts between the stop command and the moment the urgent read is enqueued
+        //   from the UI thread, each up to DataAttempts tries;
+        //   our own confirmed status (StatusReads exchanges);
+        //   our own header and pages, each up to DataAttempts tries.
+        // Only the Stop's own read is urgent, so the budget does not depend on how many other
+        // blocks share the line. 1024 channels: 8000 ms at gap 20, 14840 ms at gap 200.
+        public int StopBudgetMs(int channels)
+        {
+            int pages = AmplitudaSerialProtocol.PageCount(channels);
+            int baseMs = Math.Max(8000, 2000 + 1500 * (pages + 1));
+            int exchanges = 2 * DataAttempts + StatusReads + DataAttempts * (1 + pages);
+            int extraMs = 2 * Math.Max(0, settings.GapMs - DefaultGapMs) * exchanges;
+            return baseMs + extraMs;
+        }
+
+        // Reads waiting in the queues (not the one in flight). A test hook.
+        public int QueuedReads
+        {
+            get
+            {
+                lock (queueLock)
+                {
+                    return reads.Count + urgentReads.Count;
+                }
+            }
+        }
+
+        // Withdraws a Read request whose answer nobody wants any more (a new sequence of the
+        // acquisition orphaned it). Still queued: removed and completed at once as cancelled.
+        // Already started: the job ends at its next step boundary, never in the middle of an
+        // exchange. Already finished: nothing happens. Completed runs on the caller's thread.
+        public void Cancel(AmplitudaSerialRequest request)
+        {
+            if (request == null)
+            {
+                return;
+            }
+            request.Cancelled = true;
+            bool removed;
+            lock (queueLock)
+            {
+                removed = RemoveFrom(reads, request) || RemoveFrom(urgentReads, request);
+            }
+            if (removed)
+            {
+                AmplitudaSerialReading reading = new AmplitudaSerialReading();
+                reading.Error = ErrorCancelled;
+                Complete(request, reading);
+            }
+        }
+
+        static bool RemoveFrom(Queue<AmplitudaSerialRequest> queue, AmplitudaSerialRequest request)
+        {
+            if (!queue.Contains(request))
+            {
+                return false;
+            }
+            int count = queue.Count;
+            for (int i = 0; i < count; i++)
+            {
+                AmplitudaSerialRequest item = queue.Dequeue();
+                if (!ReferenceEquals(item, request))
+                {
+                    queue.Enqueue(item);
+                }
+            }
+            return true;
         }
 
         public void Enqueue(AmplitudaSerialRequest request)
@@ -475,6 +576,10 @@ namespace BecquerelMonitor
             // True = the job is finished (either way).
             public bool Step(AmplitudaSerialLine line)
             {
+                if (request.Cancelled)
+                {
+                    return Finish(line, ErrorCancelled);
+                }
                 try
                 {
                     line.EnsureOpen();

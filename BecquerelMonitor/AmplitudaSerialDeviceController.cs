@@ -45,6 +45,23 @@ namespace BecquerelMonitor
             new Dictionary<string, AmplitudaSerialDeviceController>(StringComparer.Ordinal);
 
         readonly System.Windows.Forms.Timer pumpTimer = new System.Windows.Forms.Timer();
+        // Warnings and end-of-session reports: one box at a time, posted to the message queue
+        // (headless: shown at once, AppUi.Report then prints its line). The refusals in
+        // StartCore stay direct AppUi.Report calls: the user just pressed Start and must see
+        // the refusal before anything else happens.
+        readonly AmplitudaSerialReporter reporter = new AmplitudaSerialReporter(
+            text => AppUi.Report(text, "", MessageBoxIcon.None),
+            action =>
+            {
+                if (AppUi.HasWindows && MainForm.originalContext != null)
+                {
+                    MainForm.originalContext.Post(_ => action(), null);
+                }
+                else
+                {
+                    action();
+                }
+            });
         AmplitudaSerialLine line;
         AmplitudaSerialAcquisition acquisition;
         ResultData resultData;
@@ -250,7 +267,7 @@ namespace BecquerelMonitor
 
         void PumpTimer_Tick(object sender, EventArgs e)
         {
-            // AppUi.Report may run a modal loop in which this timer keeps ticking.
+            // Guards against a nested tick (a message loop pumped from inside this one).
             if (inTick || acquisition == null || resultData == null)
             {
                 return;
@@ -259,13 +276,14 @@ namespace BecquerelMonitor
             // Declared above the try and reported in the finally so that every exit path -
             // the early return on a channel mismatch and the catch alike - still reports what
             // this tick took out of the acquisition (N1). Reporting happens last, after every
-            // state change below, and AFTER inTick is cleared: a modal AppUi.Report keeps
-            // MainForm's own timers ticking, and with inTick still set every nested tick would
-            // return at once, so Pump() would never run while the box is open - a restart after a
-            // pour or a ceiling (clear -> read -> start) moves only through Pump() and would
-            // stand still until the user closes the box. By then this tick no longer touches
-            // `acquisition`, so nested ticks (which run Pump() and may even run a nested
-            // StopMeasurement, e.g. a preset-time stop) are safe (I1).
+            // state change below, and AFTER inTick is cleared. The reporter does not run a modal
+            // loop inside the tick: it posts the box to the message queue and shows one at a time
+            // (a warning that repeats every cycle collapses into the box already on screen), so a
+            // restart after a pour or a ceiling (clear -> read -> start) keeps moving through
+            // Pump() while a box is open. Clearing inTick stays correct and needed for the
+            // nested-tick guard: by then this tick no longer touches `acquisition`, so a nested
+            // tick (which runs Pump() and may even run a nested StopMeasurement, e.g. a
+            // preset-time stop) is safe (I1).
             List<AmplitudaSerialWarning> warnings = null;
             try
             {
@@ -295,12 +313,12 @@ namespace BecquerelMonitor
             }
             finally
             {
-                inTick = false;     // before the modal reports below, see the comment above
+                inTick = false;     // before the reports below, see the comment above
                 if (warnings != null)
                 {
                     foreach (AmplitudaSerialWarning warning in warnings)
                     {
-                        AppUi.Report(DescribeWarning(warning), "", MessageBoxIcon.None);
+                        reporter.Report(DescribeWarning(warning));
                     }
                 }
             }
@@ -341,8 +359,8 @@ namespace BecquerelMonitor
             }
             Publish(true);
             // Warnings are taken before ReleaseAll() (acquisition is about to become null) but
-            // reported only after ReleaseAll() and after Recording is cleared, so a modal
-            // AppUi.Report here can never see this session as still in progress (I1).
+            // reported only after ReleaseAll() and after Recording is cleared, so a box shown
+            // meanwhile can never see this session as still in progress (I1).
             List<AmplitudaSerialWarning> warnings = acquisition.TakeWarnings();
             EnergySpectrum spectrum = resultData.EnergySpectrum;
             // MeasurementController.OnTimer no longer ticks for a stopped spectrum: write the final values here.
@@ -364,7 +382,7 @@ namespace BecquerelMonitor
             ReleaseAll();
             foreach (AmplitudaSerialWarning warning in warnings)
             {
-                AppUi.Report(DescribeWarning(warning), "", MessageBoxIcon.None);
+                reporter.Report(DescribeWarning(warning));
             }
         }
 
@@ -388,7 +406,7 @@ namespace BecquerelMonitor
             {
                 failed.MeasurementController.NotifyMeasurementStoppedByDevice();
             }
-            AppUi.Report(message, "", MessageBoxIcon.None);
+            reporter.Report(message);
         }
 
         // Synchronous on purpose: the core may save the document right after StopRecording,
@@ -404,20 +422,11 @@ namespace BecquerelMonitor
                 }
                 pumpTimer.Stop();
                 acquisition.RequestStop();
-                // One 1024-byte exchange (header or a page) costs ~0.7 s at 19200 baud; a Halt
-                // read is status + header + N pages, so the wait has to scale with the channel
-                // count instead of a flat number that silently drops the final reading above a
-                // few thousand channels (I3). The floor keeps the small-block case unchanged.
-                // Plus ONE foreign step: only the Stop's own halt read is Urgent (a pour's halt
-                // rides with the normal polls), so a read job of another document on the same
-                // port is parked after its current STEP, never finished first. A step is one
-                // exchange of up to DataAttempts = 3 tries, about 2.2 s for a 1024-byte block at
-                // the default gap, which the 1500 ms per page slack plus the 2000 ms base cover
-                // (1024 channels: ~2.5 s own read + 2.2 s step vs the 8 s floor; 8192 channels:
-                // ~11.6 s own read + 2.2 s step vs the 27.5 s formula). The budget is thus independent of the other
-                // blocks' geometry and of how many share the line (no per-line channel maximum
-                // is needed); Stops are serialised on the UI thread, so one urgent read at a time.
-                int stopWaitMs = Math.Max(8000, 2000 + 1500 * (AmplitudaSerialProtocol.PageCount(channels) + 1));
+                // The budget lives in the line next to the constants it is derived from; it grows
+                // with the configured gap (every exchange pays the gap, and two foreign steps can
+                // run before our urgent read), so a healthy Stop at a large gap is not mistaken
+                // for a dead block.
+                int stopWaitMs = line.StopBudgetMs(channels);
                 Stopwatch wait = Stopwatch.StartNew();
                 while (!acquisition.Finished && wait.ElapsedMilliseconds < stopWaitMs)
                 {
@@ -445,12 +454,12 @@ namespace BecquerelMonitor
                 FinishSession();
                 if (finishedFailure == AmplitudaSerialFailure.BlockReset)
                 {
-                    AppUi.Report(DescribeFailure(finishedFailure, portName, address, channels, 0), "", MessageBoxIcon.None);
+                    reporter.Report(DescribeFailure(finishedFailure, portName, address, channels, 0));
                 }
                 else if (incomplete || finishedFailure == AmplitudaSerialFailure.ConnectionLost)
                 {
-                    AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialStopIncomplete,
-                        portName, address), "", MessageBoxIcon.None);
+                    reporter.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialStopIncomplete,
+                        portName, address));
                 }
             }
             catch (Exception)
