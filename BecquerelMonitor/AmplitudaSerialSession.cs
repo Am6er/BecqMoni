@@ -20,11 +20,12 @@ namespace BecquerelMonitor
     {
         public int PourChannelThreshold = 32768;
 
-        // The block's live clock counts whole seconds and every pour / restart zeroes it. If the
-        // block truncates, each segment loses on average half a second; this constant, added to
-        // the live time of every segment of at least one block second, compensates the
-        // expectation. Set it to 0.0 if the block turns out to round. The value is to be
-        // confirmed by a hardware run (LiveSmoke); it cannot be settled without the block.
+        // The block's live clock counts whole seconds and every pour / restart zeroes it. The
+        // block truncates (checked on hardware 2026-10-13: the clock starts with the start
+        // command, the header shows floor(live) - the residual against the PC clock never goes
+        // below zero, with rounding it would reach -0.5), so each segment loses on average half
+        // a second; this constant, added to the live time of every segment of at least one block
+        // second, compensates the expectation. Set it to 0.0 for a block that rounds.
         public static double SegmentClockCorrectionSeconds = 0.5;
         public int PourSecondsThreshold = 32768;
 
