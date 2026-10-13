@@ -43803,7 +43803,7 @@ Close the window and discard it?</value>
     <value>Connection to the Amplituda USB device was lost (error {0}). The measurement has been stopped, the collected data is kept. Reconnect the device and press Start to continue.</value>
   </data>
   <data name="ERRAmplitudaUsbSilent" xml:space="preserve">
-    <value>The Amplituda USB device stopped sending data (no frames for more than 10 s). The measurement has been stopped, the collected data is kept. Check the device and press Start to continue.</value>
+    <value>The Amplituda USB device stopped sending data (no frames for more than {0} s). The measurement has been stopped, the collected data is kept. Check the device and press Start to continue.</value>
   </data>
   <data name="MSGAmplitudaUsbFramesLost" xml:space="preserve">
     <value>{0:F1} s of the data stream ({1:F1} %) was lost during this measurement. Count rates are not affected: time is taken from the frames actually received.</value>

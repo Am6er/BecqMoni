@@ -347,6 +347,7 @@ namespace BecquerelMonitor
                 return;
             }
             this.mainFormClosing = true;
+            MainForm.ApplicationClosing = true;
             foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList.ToList())
             {
                 // Stop and shut down controllers of ALL ResultData, not just the active
@@ -4028,6 +4029,17 @@ namespace BecquerelMonitor
 
         // Token: 0x040005E3 RID: 1507
         bool mainFormClosing;
+
+        /// <summary>
+        /// Приложение закрывается: <c>MainForm_FormClosing</c> прошёл отмену и
+        /// останавливает наборы (`A316`). Читают контроллеры приборов, которых
+        /// остановка застаёт в этот миг: сообщение «к сведению» окном здесь не
+        /// поднимается — по тем же доводам, что у <see cref="SaveLayoutXml"/>
+        /// (окно держит закрытие и завершение сеанса Windows, а ответить на него
+        /// нечем). Поле экземпляра <c>mainFormClosing</c> контроллеру не видно,
+        /// поэтому признак ещё и статический.
+        /// </summary>
+        public static bool ApplicationClosing { get; private set; }
 
         // (`AMBER178`) Документы, ответившие «Нет» при закрытии программы, — до
         // исхода закрытия (MainForm_FormClosing).
