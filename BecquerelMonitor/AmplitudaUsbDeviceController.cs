@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
@@ -18,7 +19,9 @@ namespace BecquerelMonitor
     // rates stay unbiased. BecqMoni recomputes live time itself as T - N * DeadTime().
     //
     // No method lets an exception escape: MeasurementController reports any exception from
-    // StartMeasurement as "Bluetooth is not supported".
+    // StartMeasurement as "Bluetooth is not supported". The one exception is a refused Start
+    // WITHOUT windows (S100 remainder, A316): there StartMeasurement throws on purpose - see
+    // RefuseStart.
     public class AmplitudaUsbDeviceController : DeviceController, IDisposable
     {
         const int PollIntervalMs = 250;
@@ -47,22 +50,22 @@ namespace BecquerelMonitor
             if (error == AmplitudaUsbReader.ErrorDeviceNotFound)
             {
                 string which = string.IsNullOrEmpty(serialNumber) ? "" : " (s/n " + serialNumber + ")";
-                return string.Format(Resources.ERRAmplitudaUsbNotFound, which);
+                return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbNotFound, which);
             }
             if (AmplitudaUsbReader.IsBusyError(error))
             {
                 return Resources.ERRAmplitudaUsbBusy;
             }
-            return string.Format(Resources.ERRAmplitudaUsbOpenFailed, error);
+            return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbOpenFailed, error);
         }
 
         public static string DescribeRuntimeError(int error)
         {
             if (error == AmplitudaUsbReader.ErrorSilence)
             {
-                return Resources.ERRAmplitudaUsbSilent;
+                return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbSilent, AmplitudaUsbReader.SilenceGiveUpSeconds);
             }
-            return string.Format(Resources.ERRAmplitudaUsbDisconnected, error);
+            return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbDisconnected, error);
         }
 
         public override bool StartMeasurement(ResultData resultData)
@@ -74,9 +77,30 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 ReleaseReader();
-                AppUi.Report(string.Format(Resources.ERRAmplitudaUsbOpenFailed, ex.Message), "", MessageBoxIcon.None);
+                if (!AppUi.HasWindows)
+                {
+                    // RefuseStart's own throw, or any other failure: either way the measurement did
+                    // not start, and MeasurementController.StartRecording passes it on.
+                    throw;
+                }
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbOpenFailed, ex.Message), "", MessageBoxIcon.None);
                 return false;
             }
+        }
+
+        // A refused Start. With windows: the message, as before. Without windows: a throw (S100
+        // remainder, A316; see MeasurementController.StartRecording) - false has no reader there,
+        // and a headless run would go on to present an empty spectrum as a measurement.
+        static bool RefuseStart(string message)
+        {
+            if (!AppUi.HasWindows)
+            {
+                throw new InvalidOperationException(
+                    "BecqMoni: the Amplituda USB measurement cannot start: " + message
+                    + " A headless run must not continue: the spectrum would stay empty.");
+            }
+            AppUi.Report(message, "", MessageBoxIcon.None);
+            return false;
         }
 
         bool StartCore(ResultData resultData)
@@ -96,8 +120,7 @@ namespace BecquerelMonitor
             }
             if (config == null)
             {
-                AppUi.Report(Resources.ERRInvalidDeviceType, "", MessageBoxIcon.None);
-                return false;
+                return RefuseStart(Resources.ERRInvalidDeviceType);
             }
 
             // Dead time from the DOCUMENT's copy: MeasurementController.OnTimer computes live time from
@@ -111,8 +134,7 @@ namespace BecquerelMonitor
             if (spectrum.Spectrum == null || spectrum.Spectrum.Length != spectrum.NumberOfChannels ||
                 !AmplitudaUsbAccumulator.TryGetShift(spectrum.NumberOfChannels, out shift))
             {
-                AppUi.Report(string.Format(Resources.ERRAmplitudaUsbChannels, spectrum.NumberOfChannels), "", MessageBoxIcon.None);
-                return false;
+                return RefuseStart(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbChannels, spectrum.NumberOfChannels));
             }
 
             ReleaseReader();
@@ -122,8 +144,7 @@ namespace BecquerelMonitor
             if (!newReader.Start(out error))
             {
                 newReader.Dispose();
-                AppUi.Report(DescribeOpenError(error, config.SerialNumber), "", MessageBoxIcon.None);
-                return false;
+                return RefuseStart(DescribeOpenError(error, config.SerialNumber));
             }
 
             this.reader = newReader;
@@ -160,7 +181,7 @@ namespace BecquerelMonitor
                 }
                 if (!Drain())
                 {
-                    Fail(string.Format(Resources.ERRAmplitudaUsbChannels, resultData.EnergySpectrum.NumberOfChannels));
+                    Fail(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbChannels, resultData.EnergySpectrum.NumberOfChannels));
                     return;
                 }
                 if (reader.State == AmplitudaUsbReaderState.Failed)
@@ -170,7 +191,7 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                Fail(string.Format(Resources.ERRAmplitudaUsbOpenFailed, ex.Message));
+                Fail(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbOpenFailed, ex.Message));
             }
         }
 
@@ -265,8 +286,16 @@ namespace BecquerelMonitor
             }
         }
 
+        // The loss note is for a person who pressed Stop. It is NOT raised while the application is
+        // closing (A316): a modal window there would hold up the close - and a Windows shutdown -
+        // until OK, and nothing can be done about it at that moment; the counts themselves are not
+        // biased by lost frames (see the time base above). MainForm.SaveLayoutXml keeps the same rule.
         void ReportLoss()
         {
+            if (MainForm.ApplicationClosing)
+            {
+                return;
+            }
             double wall = sessionClock.Elapsed.TotalSeconds;
             if (wall < LossWarningMinSeconds)
             {
@@ -275,7 +304,7 @@ namespace BecquerelMonitor
             double lost = wall - sessionDeviceMicros / 1.0E+06;
             if (lost / wall > LossWarningFraction)
             {
-                AppUi.Report(string.Format(Resources.MSGAmplitudaUsbFramesLost, lost, 100.0 * lost / wall), "", MessageBoxIcon.None);
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.MSGAmplitudaUsbFramesLost, lost, 100.0 * lost / wall), "", MessageBoxIcon.None);
             }
         }
 

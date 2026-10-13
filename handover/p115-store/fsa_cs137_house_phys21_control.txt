@@ -1,0 +1,10 @@
+BecqMoni: main config: D:\BqMoni_Claude\p115\wd_p21\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p115\wd_p21\config\device: 9 loaded
+BecqMoni: nuclide library: D:\BqMoni_Claude\p115\wd_p21\config\NuclideDefinition.xml: 33 entries
+SETUP	прибор: 1.Atom Spectra Nano 16 Pro RadiaScan 701A
+SETUP	SNR=10	допуск=11	диапазон=5…2800 кэВ	мёртвое=0 с
+SETUP	найдено пиков: 14
+состав: выведено из пиков: 8 из 14 подписаны, родителей 3 из 4, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; K-40 100 % (1/1, пиков 1) — доля выше порога; Cs-137 50 % (1/2, пиков 1) — доля выше порога; Ra-226 20 % (2/10, пиков 3), подцепочка 40 % (2/5, обрыв сверху 214PB, снизу —) — доля выше порога У ПОДЦЕПОЧКИ (ряд оборван); Th-232 10 % (2/21, пиков 2) — доля ниже порога; оборванный ряд: подцепочка разобрана у 1 кандидатов
+ОТПЕЧАТОК НЕ СОШЁЛСЯ:
+  у матрицы : phys=21;e81d249fd0c43761e84841cf1b72e94c4ead4ae142835c064962796c4aefe10c
+  у геометрии спектра: phys=22;e246a40e1a76fe4cb48f4296a86147082f39c517389e5172825734230e0002be

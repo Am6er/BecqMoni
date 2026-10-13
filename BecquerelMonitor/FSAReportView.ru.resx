@@ -166,6 +166,9 @@
   <data name="residualBandCheckBox.Text" xml:space="preserve">
     <value>Невязка модели</value>
   </data>
+  <data name="spectralDataCheckBox.Text" xml:space="preserve">
+    <value>Данные спектра</value>
+  </data>
   <data name="matrixLayerLabel.Text" xml:space="preserve">
     <value>Слой матрицы</value>
   </data>
@@ -200,13 +203,13 @@
     <value>Число считано от нижней границы диапазона прибора {0} кэВ и выше — там, где судит фит. Ниже лента на графике рисуется, но в процент не входит.</value>
   </data>
   <data name="FSAReport_Chi2Row" xml:space="preserve">
-    <value>χ²/ndf, качество подгонки</value>
+    <value>χ²/ndf, качество подгонки (по статистике Пуассона)</value>
   </data>
   <data name="FSAReport_InflationRow" xml:space="preserve">
     <value>σ×, во сколько раз раздута погрешность</value>
   </data>
   <data name="FSAReport_InflationTip" xml:space="preserve">
-    <value>Погрешности компонентов домножены на этот множитель, sqrt(χ²/ndf), когда подгонка хуже одной лишь пуассоновской статистики. Порог значимости 3 означает поэтому 3 × этот множитель сырых сигм. 1.000 — раздутия нет.</value>
+    <value>Погрешности компонентов домножены на этот множитель, когда подгонка хуже одной лишь пуассоновской статистики. Это корень из собственного χ²/ndf решателя, посчитанного с его робастными весами (Хубер), поэтому он не равен корню из пуассоновского χ²/ndf строкой выше. Порог значимости 3 означает поэтому 3 × этот множитель сырых сигм. 1.000 — раздутия нет.</value>
   </data>
   <data name="FSAReport_MatrixRow" xml:space="preserve">
     <value>Матрица отклика</value>
@@ -219,6 +222,15 @@
   </data>
   <data name="FSAReport_MatrixOldFormat" xml:space="preserve">
     <value>прежний формат</value>
+  </data>
+  <data name="FSAReport_MatrixStale" xml:space="preserve">
+    <value>устарела</value>
+  </data>
+  <data name="FSAReport_MatrixStaleRow" xml:space="preserve">
+    <value>Матрица отклика этой кривой на складе устарела для геометрии, с которой идёт разбор: геометрия или параметры изменились после расчёта, либо кривая в файле спектра старше кривой прибора. Разбор идёт без неё. Пересчитайте матрицу или выберите кривую прибора вместо кривой из файла спектра.</value>
+  </data>
+  <data name="FSAReport_MatrixStaleValue" xml:space="preserve">
+    <value>устарела</value>
   </data>
   <data name="FSAReport_EfficiencyRow" xml:space="preserve">
     <value>Кривая эффективности</value>
@@ -277,6 +289,9 @@
   <data name="FSAReport_ResidualBandTip" xml:space="preserve">
     <value>Меняет только график; ничего не пересчитывается.</value>
   </data>
+  <data name="FSAReport_SpectralDataTip" xml:space="preserve">
+    <value>Рисует линию измеренного спектра поверх стопки FSA. Меняет только график; ничего не пересчитывается.</value>
+  </data>
   <data name="FSAReport_MatrixLayerAll" xml:space="preserve">
     <value>Все</value>
   </data>
@@ -299,9 +314,99 @@
     <value>Вылет L-рентгена кристалла</value>
   </data>
   <data name="FSAReport_MatrixLayerTip" xml:space="preserve">
-    <value>Рисует у каждого компонента только этот канал матрицы отклика; ничего не пересчитывается, таблица прежняя.</value>
+    <value>Рисует у каждого компонента только этот канал матрицы отклика; канал комптона несёт и отвязанный хвост компонента ниже порога доверия матрицы. Ничего не пересчитывается, таблица прежняя.</value>
   </data>
   <data name="FSAReport_MatrixLayerNoMatrixTip" xml:space="preserve">
     <value>У спектра нет матрицы отклика: каналов у модели нет, рисуется вся стопка.</value>
+  </data>
+  <data name="FSAReport_MatrixLayerAnnihilationOutside" xml:space="preserve">
+    <value>Аннигиляция вне кристалла (511, 1022, их комптон)</value>
+  </data>
+  <data name="FSAReport_SupplyRow" xml:space="preserve">
+    <value>Поставки данных распада расходятся</value>
+  </data>
+  <data name="FSAReport_SupplyTip" xml:space="preserve">
+    <value>У этих нуклидов две поставки данных распада расходятся, и разбору пришлось выбрать. Что взято:</value>
+  </data>
+  <data name="FSAReport_SupplyBetaPlusMode" xml:space="preserve">
+    <value>{0} → {1}: в decay_chain {2} % — доля одних позитронов, а не ветви ε+β⁺; ветвь взята остатком, {4} %</value>
+  </data>
+  <data name="FSAReport_SupplyOtherMode" xml:space="preserve">
+    <value>{0} → {1}: доля ветви в decay_chain {2} % меньше суммы позитронов {3} % в decay_radiations; прочитана как доля другой моды, ветвь взята суммой {4} %</value>
+  </data>
+  <data name="FSAReport_SupplyExcess" xml:space="preserve">
+    <value>{0} → {1}: сумма позитронов {3} % в decay_radiations больше, чем оставляют прочие ветви ({4} %); избыток поставки, зажато</value>
+  </data>
+  <data name="FSAReport_SupplyClamped" xml:space="preserve">
+    <value>{0} → {1}: сумма позитронов {3} % в decay_radiations больше доли ветви {2} %; зажато ею</value>
+  </data>
+  <data name="FSAReport_SupplyShareScaled" xml:space="preserve">
+    <value>{0} → {1}: доля β⁺ ветви {2} (decay_radiations) против {3} (ENSDF), {4} %; доли по уровням приведены к decay_radiations</value>
+  </data>
+  <data name="FSAReport_SupplyShareKept" xml:space="preserve">
+    <value>{0} → {1}: доля β⁺ ветви {2} (decay_radiations) против {3} (ENSDF), {4} %; доля ветви упёрлась в perc, доли по уровням оставлены по ENSDF</value>
+  </data>
+  <data name="FSAReport_PileUpCapRow" xml:space="preserve">
+    <value>Колонка наложений ограничена R·τ: фит просил {0:F0} пар, мёртвое время допускает {1:F0} — избыток не наложения</value>
+  </data>
+  <data name="FSAReport_PileUpCapValue" xml:space="preserve">
+    <value>ограничена</value>
+  </data>
+  <data name="FSAReport_InterferenceRow" xml:space="preserve">
+    <value>{0} кэВ: вклад {1} не учтён — при природном отношении {1}/{2} строка {3} завышена до ×{4}</value>
+  </data>
+  <data name="FSAReport_InterferenceValue" xml:space="preserve">
+    <value>не учтён</value>
+  </data>
+  <data name="FSAReport_UncoveredRow" xml:space="preserve">
+    <value>{0} кэВ: пик вне состава — на {1} % выше модели, z {2}; линии библиотеки рядом: {3}</value>
+  </data>
+  <data name="FSAReport_UncoveredValue" xml:space="preserve">
+    <value>нет в сете</value>
+  </data>
+  <data name="FSAReport_UncoveredNone" xml:space="preserve">
+    <value>нет</value>
+  </data>
+  <data name="FSAReport_SetOmittedRow" xml:space="preserve">
+    <value>{0}: есть в сете, нет в составе — {1}</value>
+  </data>
+  <data name="FSAReport_SetOmittedValue" xml:space="preserve">
+    <value>не разложен</value>
+  </data>
+  <data name="FSAReport_SetOmittedNoPeak" xml:space="preserve">
+    <value>ни один найденный пик им не подписан</value>
+  </data>
+  <data name="FSAReport_SetOmittedNoLines" xml:space="preserve">
+    <value>ни одной его линии в рабочем окне (полоса поиска, кривая эффективности)</value>
+  </data>
+  <data name="FSAReport_SetOmittedNotConfirmed" xml:space="preserve">
+    <value>линий, которыми подписаны его пики, нет среди его линий рабочего окна</value>
+  </data>
+  <data name="FSAReport_SetOmittedBelowCoverage" xml:space="preserve">
+    <value>пиками подтверждено групп линий {0} из {1} ожидаемых ({2} %, порог {3} %)</value>
+  </data>
+  <data name="FSAReport_SetOmittedNotNovel" xml:space="preserve">
+    <value>его подтверждённые линии уже объясняет состав</value>
+  </data>
+  <data name="FSAReport_ResidualNoise" xml:space="preserve">
+    <value>шумовой пол {0} %</value>
+  </data>
+  <data name="FSAReport_ResidualNoiseTip" xml:space="preserve">
+    <value>Модель без единой ошибки всё равно даёт около {0} % в каждой половине: это пуассонов шум полосы (ожидаемое положительное отклонение каждого канала от идеальной модели, в сумме, от измеренных отсчётов той же полосы). Невязка около этого пола модель от идеальной не отличает; не описано только то, что сверх него.</value>
+  </data>
+  <data name="FSAReport_NoMatrixWarnRow" xml:space="preserve">
+    <value>Нет матрицы отклика: каскадное суммирование не учтено — каскадные нуклиды занижены на CF − 1 (корпус: −3…−11 % на 5 см, −4…−7 % в маринелли и Петри); в образах нет комптона и вылетов; шкала привязана по голым пикам. Постройте матрицу из геометрии.</value>
+  </data>
+  <data name="FSAReport_NoMatrixWarnValue" xml:space="preserve">
+    <value>до −11 %</value>
+  </data>
+  <data name="FSAReport_CurveOutsideRow" xml:space="preserve">
+    <value>Кривая эффективности {0}…{1} кэВ — линии вне неё исключены из образов: {2}</value>
+  </data>
+  <data name="FSAReport_CurveOutsideValue" xml:space="preserve">
+    <value>исключены</value>
+  </data>
+  <data name="FSAReport_DensityRow" xml:space="preserve">
+    <value>Плотность пробы {0} г/см³, сцены {1} г/см³, расхождение {2} % — ε при 60 кэВ {3} %, при 662 кэВ {4} % (оценка по маринелли 1 л; активность не поправлена)</value>
   </data>
 </root>

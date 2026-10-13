@@ -15,7 +15,7 @@ namespace BecquerelMonitor
     ///
     /// Кривая берётся из геометрии прибора и пробы монте-карловским переносом
     /// (<see cref="EfficiencyCalculation"/>): геометрия правится в редакторе на
-    /// первой вкладке (или ввозится из файла LSRM `.in`), расчёт запускается со
+    /// первой вкладке (или импортируется из файла LSRM `.in`), расчёт запускается со
     /// второй, результат ложится на график и сохраняется в привязанную
     /// конфигурацию эффективности прибора. Уровень кривой АБСОЛЮТНЫЙ — он
     /// следует из геометрии, а не подгоняется.
@@ -124,6 +124,9 @@ namespace BecquerelMonitor
         // ------------------------------------------------------------------
 
         GroupBox calcOptionsGroup;
+
+        /// <summary>Идёт `ApplyCalcOptions` — верх подаётся редактору без пересчёта сцены (`AMBER94`).</summary>
+        bool restoringCalcOptions;
 
         InvariantNumericUpDown calcMinEnergyBox, calcMaxEnergyBox, calcPointsBox,
                       calcHistoriesBox, calcThreadsBox;
@@ -271,7 +274,7 @@ namespace BecquerelMonitor
             // Сначала отдать верх редактору геометрии (E27), и только потом
             // разводить границы: у разведения есть ранний выход, и за ним
             // подача осталась бы несделанной.
-            this.geometryPanel.SetSceneEnergy((double)this.calcMaxEnergyBox.Value);
+            this.geometryPanel.SetSceneEnergy((double)this.calcMaxEnergyBox.Value, !this.restoringCalcOptions);
 
             if (this.calcMaxEnergyBox.Value > this.calcMinEnergyBox.Value)
             {
@@ -293,6 +296,34 @@ namespace BecquerelMonitor
         static void SetClamped(InvariantNumericUpDown box, decimal value)
         {
             box.Value = Math.Min(box.Maximum, Math.Max(box.Minimum, value));
+        }
+
+        /// <summary>
+        /// (`AMBER201`, Р4, подозрение полосы 8) То же для числа из клейма или
+        /// кривой: зажим В DOUBLE, до приведения. <c>(decimal)</c> от числа за
+        /// 7.9e28 или от бесконечности бросает <c>OverflowException</c> сам, и
+        /// прежде такая точка кривой (импортированной, правленой руками) роняла
+        /// открытие конструктора из <see cref="BindTo"/>. NaN — поле не трогается.
+        /// </summary>
+        static void SetClamped(InvariantNumericUpDown box, double value)
+        {
+            if (double.IsNaN(value))
+            {
+                return;
+            }
+
+            if (value <= (double)box.Minimum)
+            {
+                box.Value = box.Minimum;
+            }
+            else if (value >= (double)box.Maximum)
+            {
+                box.Value = box.Maximum;
+            }
+            else
+            {
+                SetClamped(box, (decimal)value);
+            }
         }
 
         /// <summary>
@@ -330,17 +361,18 @@ namespace BecquerelMonitor
             if (TryParseComputeStamp(config.ComputeStamp, out lo, out hi,
                                      out histories, out nodes, out logGrid))
             {
-                SetClamped(this.calcMinEnergyBox, (decimal)lo);
-                SetClamped(this.calcMaxEnergyBox, (decimal)hi);
+                SetClamped(this.calcMinEnergyBox, lo);
+                SetClamped(this.calcMaxEnergyBox, hi);
                 if (histories > 0.0)
                 {
-                    SetClamped(this.calcHistoriesBox, (decimal)histories);
+                    SetClamped(this.calcHistoriesBox, histories);
                 }
 
                 this.calcGridBox.SelectedIndex = logGrid ? 1 : 0;
                 if (logGrid && nodes > 0.0)
                 {
-                    SetClamped(this.calcPointsBox, (decimal)nodes);
+                    SetClamped(this.calcPointsBox,
+                               (double)this.OrderedNodes(lo, hi, (int)Math.Min(nodes, 100000.0)));
                 }
 
                 return string.Format(CultureInfo.InvariantCulture,
@@ -352,10 +384,54 @@ namespace BecquerelMonitor
                 return "";
             }
 
-            SetClamped(this.calcMinEnergyBox, (decimal)lo);
-            SetClamped(this.calcMaxEnergyBox, (decimal)hi);
+            SetClamped(this.calcMinEnergyBox, lo);
+            SetClamped(this.calcMaxEnergyBox, hi);
             return string.Format(CultureInfo.InvariantCulture,
                                  Resources.EfficiencyMakerRangeFromCurve, lo, hi);
+        }
+
+        /// <summary>
+        /// (`AMBER201`, Р4, мелочь 8.7) Сколько узлов было ЗАКАЗАНО, если
+        /// посчитано <paramref name="computed"/>. Клеймо кривой пишет
+        /// `grid=…/N log` числом ПОСЧИТАННЫХ узлов (длиной кривой), а сетка
+        /// добавляет к заказанным свои: сгущение ниже 40 кэВ (`AMBER95`) и узлы
+        /// у K-краёв веществ геометрии (E24). Прежде N ложилось в поле «Точек»
+        /// как есть, и каждое «открыть — посчитать — сохранить» растило сетку на
+        /// эти добавки. Здесь берётся наибольшее заказанное n ≤ N, при котором
+        /// та же сетка на той же геометрии даёт не больше N узлов, — то есть
+        /// прежний заказ, если сетка с тех пор не менялась. Клеймо и сама кривая
+        /// не трогаются.
+        /// </summary>
+        int OrderedNodes(double lo, double hi, int computed)
+        {
+            if (computed <= 2)
+            {
+                return computed;
+            }
+
+            try
+            {
+                for (int n = computed; n >= 2; n--)
+                {
+                    EfficiencyCalculationOptions probe = new EfficiencyCalculationOptions
+                    {
+                        MinEnergyKev = lo,
+                        MaxEnergyKev = hi,
+                        GridMode = EfficiencyGridMode.Logarithmic,
+                        NodeCount = n,
+                    };
+                    if (probe.BuildGrid(this.geometry, null).Length <= computed)
+                    {
+                        return n;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Сетку не построить (геометрия негодна) — прежнее поведение.
+            }
+
+            return computed;
         }
 
         /// <summary>
@@ -474,6 +550,26 @@ namespace BecquerelMonitor
                 try
                 {
                     GeometryModel model = GeometryModel.Load(dialog.FileName);
+                    // (`AMBER201`, Р4, мелочь G.5) Чужой файл — отказ, а не
+                    // заготовка из нулей. Читатель `.in` — разбор «ключ =
+                    // значение» и на любом тексте не падает: прежде картинка,
+                    // CSV или `.in` коаксиального германия (`DC_*`) въезжали в
+                    // поля кристаллом нулевых размеров, и журнал говорил
+                    // «геометрия загружена». Признак тот же, что у импорта кривой
+                    // ЛСРМ (`DeviceConfigForm.ReadLsrmGeometry`): ни одного ключа
+                    // или нет размеров сцинтиллятора.
+                    if (!model.HasScintillatorCrystal())
+                    {
+                        MessageBox.Show(this,
+                            string.Format(CultureInfo.InvariantCulture,
+                                ResourceText("EfficiencyMakerGeometryNotScintillatorFile",
+                                    "{0}: no scintillator crystal dimensions found (DS_CrystalDiameter / DS_CrystalHeight"
+                                    + " or DS_CrystalBoxX / Y / Z) - this is not a scintillator geometry file. Nothing was loaded."),
+                                dialog.FileName),
+                            this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
                     this.geometryPanel.SetModel(model);
                     this.geometry = model;
                     this.calculateButton.Enabled = true;
@@ -524,7 +620,7 @@ namespace BecquerelMonitor
             }
 
             // Геометрии может не быть — так открывается и новая конфигурация, и
-            // старая кривая, у которой геометрии нет (ввезена или восстановлена
+            // старая кривая, у которой геометрии нет (импортирована или восстановлена
             // по измерениям до 13.09.2026). Тогда в поля заезжает
             // ЗАГОТОВКА (SetModel(null) — сцинтиллятор в типичной обвязке), и
             // считать разрешено сразу: расчёт всё равно берёт геометрию из полей,
@@ -548,14 +644,103 @@ namespace BecquerelMonitor
             // заводским. И ВСЛУХ: молча подменённый диапазон неотличим от
             // выбранного человеком, а именно на этом и попались — кривую
             // строили от 20 кэВ, при следующем открытии предлагалось 40.
-            string restored = this.ApplyCalcOptions(config);
+            // (`AMBER94`) Восстановление верха — не правка человека: открытая
+            // полевая сцена под него НЕ пересчитывается.
+            string restored;
+            this.restoringCalcOptions = true;
+            try
+            {
+                restored = this.ApplyCalcOptions(config);
+            }
+            finally
+            {
+                this.restoringCalcOptions = false;
+            }
+
             if (!string.IsNullOrEmpty(restored))
             {
                 AppendLog(restored);
             }
             this.dirty = false;
+            this.savedIntoBound = false;
             this.UpdateTitle();
             this.UpdateSaveState();
+        }
+
+        /// <summary>
+        /// (`AMBER184`) Что-нибудь из этого окна уже легло в привязанную
+        /// конфигурацию («Сохранить» конструктора) — с последней привязки.
+        /// Нужно перепривязке: если прежний клон конфигурации отброшен ответом
+        /// «Нет», сохранённое туда пропало вместе с ним, и окно снова держит
+        /// несохранённое.
+        /// </summary>
+        bool savedIntoBound;
+
+        /// <summary>
+        /// (`AMBER184`) Конструктор положил кривую или геометрию в привязанную
+        /// конфигурацию: форма прибора помечает свой клон изменённым СРАЗУ, а
+        /// не только при закрытии окна.
+        /// </summary>
+        public event EventHandler SavedIntoConfig;
+
+        /// <summary>Конфигурация прибора, к которой привязано окно.</summary>
+        public DeviceConfigInfo BoundDevice
+        {
+            get { return this.boundDevice; }
+        }
+
+        /// <summary>Кривая, к которой привязано окно.</summary>
+        public EfficiencyConfigData BoundConfig
+        {
+            get { return this.boundConfig; }
+        }
+
+        /// <summary>
+        /// (`AMBER184`) Есть ли в окне то, что пропадёт с ним: правка, не
+        /// положенная в конфигурацию, посчитанная кривая, идущий счёт или
+        /// сохранённое в клон, который сейчас отбрасывается.
+        /// </summary>
+        public bool HasUnsavedWork
+        {
+            get
+            {
+                return this.dirty || this.savedIntoBound || Busy()
+                       || (this.lastResult != null && this.lastResult.Ok);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER184`, 05.10.2026; решение Amber вопросником, дословно: «Не
+        /// закрывать (Рекомендую)») Перепривязать окно к СВЕЖЕМУ клону той же
+        /// конфигурации прибора — ответ «Нет» на вопрос о сохранении отбрасывает
+        /// клон, к которому окно было привязано. Прежде окно в этом случае
+        /// закрывалось, и счёт, несохранённая геометрия и кривая пропадали.
+        ///
+        /// Поля геометрии, посчитанная кривая, журнал и идущий счёт остаются
+        /// как есть — это работа человека, а не содержимое конфигурации. Меняются
+        /// только «куда сохранять» и пунктир исходной кривой. Если «Сохранить»
+        /// этого окна уже клало что-то в отброшенный клон, оно пропало вместе с
+        /// ним, — окно снова помечается несохранённым, и «Сохранить» доступна.
+        /// </summary>
+        public void Rebind(DeviceConfigInfo device, EfficiencyConfigData config)
+        {
+            bool lost = this.savedIntoBound;
+            this.boundDevice = device;
+            this.boundConfig = config;
+            this.savedIntoBound = false;
+            this.referenceCurve = config != null && config.HasCurve ? config.Curve : null;
+            this.graph.SetData(this.referenceCurve,
+                               this.lastResult != null && this.lastResult.Ok ? this.lastResult : null);
+            if (lost)
+            {
+                this.dirty = true;
+            }
+
+            this.UpdateTitle();
+            if (!Busy())
+            {
+                this.UpdateSaveState();
+            }
         }
 
         /// <summary>
@@ -612,7 +797,13 @@ namespace BecquerelMonitor
                 return false;
             }
 
-            this.boundConfig.Geometry = this.geometryPanel.Model;
+            // (`AMBER201`, Р4, мелочь 8.8) КОПИЯ, а не модель панели. Прежде
+            // конфигурация и редактор держали один объект: панель правит свою
+            // модель на месте (выбор вида источника ставит `Scene` прямо в неё),
+            // и после первого «Сохранить» такая правка без второго «Сохранить»
+            // уже сидела в конфигурации прибора и уходила на диск с её
+            // сохранением.
+            this.boundConfig.Geometry = this.geometryPanel.Model.Clone();
             if (this.lastResult != null && this.lastResult.Ok)
             {
                 List<ROIEfficiencyData> curve = new List<ROIEfficiencyData>();
@@ -628,13 +819,29 @@ namespace BecquerelMonitor
                 this.boundConfig.Origin = EfficiencyOrigin.Simulation;
                 // Клеймо едет вместе с кривой (E12).
                 this.boundConfig.ComputeStamp = this.lastResult.ComputeStamp ?? "";
+                // (`AMBER185`) ...и отпечаток геометрии, ДЛЯ КОТОРОЙ она
+                // посчитана, — снятый в начале счёта, а не с полей сейчас.
+                this.boundConfig.GeometryFingerprint = this.lastResult.GeometryFingerprint ?? "";
+            }
+
+            // (`AMBER185`) Геометрию правили после счёта: сохраняется и она, и
+            // кривая (решение Amber «Отпечаток + предупреждение»), но молчать об
+            // этом нельзя — вкладка эффективности и окно отчёта FSA скажут то же.
+            if (this.boundConfig.CurveGeometryMismatch)
+            {
+                AppendLog(Resources.EfficiencyCurveOtherGeometry);
             }
 
             this.boundConfig.LastUpdated = DateTime.Now;
             this.referenceCurve = this.boundConfig.HasCurve ? this.boundConfig.Curve : null;
             this.dirty = false;
+            this.savedIntoBound = true;
             this.UpdateTitle();
             this.UpdateSaveState();
+            if (this.SavedIntoConfig != null)
+            {
+                this.SavedIntoConfig(this, EventArgs.Empty);
+            }
             return true;
         }
 
@@ -706,7 +913,12 @@ namespace BecquerelMonitor
             this.saveButton.Enabled = this.boundConfig != null
                 ? (this.dirty || haveCurve)
                 : haveCurve;
-            this.exportButton.Enabled = haveCurve;
+            // Выгружать есть что и без нового счёта: сохранённая кривая
+            // конфигурации (задача Amber 07.10.2026: «Хочу экспортировать
+            // готовую кривую для анализа. Но без нового расчета кнопка не
+            // активна»).
+            this.exportButton.Enabled = haveCurve
+                || (this.boundConfig != null && this.boundConfig.HasCurve);
         }
 
         /// <summary>
@@ -865,12 +1077,25 @@ namespace BecquerelMonitor
 
         void Finish(EfficiencyFitResult result)
         {
-            this.lastResult = result;
-            if (!string.IsNullOrEmpty(result.Error))
+            // ⛔ (`AMBER185`) ПОСЧИТАННАЯ КРИВАЯ МЕНЯЕТСЯ ТОЛЬКО УДАЧНЫМ СЧЁТОМ.
+            // Прежде `lastResult` присваивался ДО проверки ошибки: повторный
+            // счёт, прерванный «Стоп» (или упавший), стирал прежнюю
+            // несохранённую кривую — часы монте-карло пропадали молча, а
+            // «Сохранить» дальше писало одну геометрию.
+            if (result == null || !result.Ok)
             {
-                this.statusLabel.Text = result.Error;
-                AppendLog(result.Error);
-                this.graph.SetData(this.referenceCurve, null);
+                string error = result == null || string.IsNullOrEmpty(result.Error)
+                    ? Resources.EfficiencyMakerGeometryNoCurve
+                    : result.Error;
+                this.statusLabel.Text = error;
+                AppendLog(error);
+                bool kept = this.lastResult != null && this.lastResult.Ok;
+                if (kept)
+                {
+                    AppendLog(Resources.EfficiencyMakerPreviousCurveKept);
+                }
+
+                this.graph.SetData(this.referenceCurve, kept ? this.lastResult : null);
                 // Кнопки сохранения гасились на время прогона — вернуть их
                 // по фактическому состоянию, иначе правка геометрии остаётся
                 // без «Сохранить» до первого удачного счёта.
@@ -878,6 +1103,7 @@ namespace BecquerelMonitor
                 return;
             }
 
+            this.lastResult = result;
             this.graph.SetData(this.referenceCurve, result);
             // Пересчитанная кривая — тоже правка: она ещё нигде не сохранена.
             if (result.Ok)
@@ -923,17 +1149,27 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Выгрузить кривую в CSV. Свежий расчёт этого окна идёт первым — это
+        /// то, что человек только что посчитал и видит сплошной линией; без
+        /// него выгружается сохранённая кривая конфигурации (пунктир графика).
+        /// Какая из двух ушла в файл, говорит строка `source` шапки.
+        /// </summary>
         void exportButton_Click(object sender, EventArgs e)
         {
-            if (this.lastResult == null || !this.lastResult.Ok)
+            bool fresh = this.lastResult != null && this.lastResult.Ok;
+            bool saved = !fresh && this.boundConfig != null && this.boundConfig.HasCurve;
+            if (!fresh && !saved)
             {
                 return;
             }
 
+            List<ROIEfficiencyData> curve = fresh ? this.lastResult.Curve : this.boundConfig.Curve;
+
             using (SaveFileDialog dialog = new SaveFileDialog())
             {
                 dialog.Filter = Resources.EfficiencyMakerCsvFilter;
-                dialog.FileName = "efficiency.csv";
+                dialog.FileName = ExportFileName(this.boundConfig == null ? null : this.boundConfig.Name);
                 if (dialog.ShowDialog(this) != DialogResult.OK)
                 {
                     return;
@@ -941,7 +1177,8 @@ namespace BecquerelMonitor
 
                 try
                 {
-                    EfficiencyCurveIo.ExportCsv(dialog.FileName, this.lastResult);
+                    // Шапка — после диалога: время `exported` — время записи.
+                    EfficiencyCurveIo.ExportCsv(dialog.FileName, curve, this.ExportHeader(fresh, curve));
                     this.statusLabel.Text = string.Format(CultureInfo.InvariantCulture,
                                                           Resources.EfficiencyMakerSaved, dialog.FileName);
                 }
@@ -953,6 +1190,77 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// Шапка CSV: прибор, конфигурация, какая кривая (свежий расчёт или
+        /// сохранённая), клеймо счёта, даты. Ключи английские, как и столбцы
+        /// таблицы, — это формат файла, а не текст окна; даты и числа —
+        /// инвариантом.
+        /// </summary>
+        List<string> ExportHeader(bool fresh, List<ROIEfficiencyData> curve)
+        {
+            CultureInfo inv = CultureInfo.InvariantCulture;
+            List<string> header = new List<string> { "BecqMoni efficiency curve" };
+            if (this.boundDevice != null)
+            {
+                header.Add("device: " + this.boundDevice.Name);
+            }
+
+            if (this.boundConfig != null)
+            {
+                header.Add("configuration: " + this.boundConfig.Name);
+            }
+
+            if (fresh)
+            {
+                header.Add("source: computed in the curve designer, NOT saved into the configuration");
+                header.Add("origin: " + EfficiencyOrigin.Simulation);
+                header.Add("stamp: " + (this.lastResult.ComputeStamp ?? ""));
+            }
+            else
+            {
+                header.Add("source: saved curve of the configuration");
+                header.Add("origin: " + this.boundConfig.Origin);
+                header.Add("stamp: " + (this.boundConfig.ComputeStamp ?? ""));
+                header.Add("saved: " + this.boundConfig.LastUpdated.ToString("yyyy-MM-dd HH:mm:ss", inv));
+                if (this.boundConfig.CurveGeometryMismatch)
+                {
+                    header.Add("warning: the geometry of the configuration was edited after this curve was computed");
+                }
+            }
+
+            double eMin = double.MaxValue, eMax = double.MinValue;
+            foreach (ROIEfficiencyData point in curve)
+            {
+                eMin = Math.Min(eMin, point.Energy);
+                eMax = Math.Max(eMax, point.Energy);
+            }
+
+            header.Add(curve.Count > 0
+                ? string.Format(inv, "points: {0}, {1:G6}...{2:G6} keV", curve.Count, eMin, eMax)
+                : "points: 0");
+            header.Add("exported: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", inv));
+            header.Add("columns: E_keV = energy, keV; eps = full-energy peak efficiency; err_pct = relative error, %");
+            return header;
+        }
+
+        /// <summary>Имя файла по умолчанию — имя конфигурации без запрещённых знаков.</summary>
+        static string ExportFileName(string configName)
+        {
+            if (string.IsNullOrWhiteSpace(configName))
+            {
+                return "efficiency.csv";
+            }
+
+            char[] bad = System.IO.Path.GetInvalidFileNameChars();
+            System.Text.StringBuilder name = new System.Text.StringBuilder();
+            foreach (char c in configName.Trim())
+            {
+                name.Append(Array.IndexOf(bad, c) >= 0 ? '_' : c);
+            }
+
+            return name + ".csv";
+        }
+
+        /// <summary>
         /// Отмена проверяется между узлами кривой, и расчёт может идти ещё
         /// долго после закрытия окна. Держать окно до конца нельзя, поэтому
         /// оно закрывается сразу, счёт получает сигнал отмены, а запоздавшие
@@ -960,8 +1268,50 @@ namespace BecquerelMonitor
         /// </summary>
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            // (`AMBER201`, Р4, подозрение полосы 8) Крестик при несохранённой
+            // работе — вопрос. Прежде окно закрывалось молча, и посчитанная, но
+            // не положенная в конфигурацию кривая (минуты и часы счёта) или
+            // правка геометрии пропадали. Не спрашивается, когда закрытие решено
+            // снаружи (<see cref="CloseWithoutAsking"/>: вопрос о сохранении
+            // конфигурации прибора, удаление кривой), при закрытии владельца и
+            // без окон.
+            if (!this.closingDecided && e.CloseReason == CloseReason.UserClosing
+                && (this.dirty || Busy()) && AppUi.HasWindows)
+            {
+                DialogResult answer = MessageBox.Show(this,
+                    ResourceText("EfficiencyMakerCloseUnsaved",
+                        "The curve designer holds work that is not saved into the device configuration"
+                        + " (geometry edits, a computed curve or a running calculation)."
+                        + Environment.NewLine + Environment.NewLine + "Close it and discard this work?"),
+                    this.Text, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                if (answer != DialogResult.Yes)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+            }
+
             this.cancelRequested = true;
             base.OnFormClosing(e);
+        }
+
+        bool closingDecided;
+
+        /// <summary>
+        /// (`AMBER201`) Закрыть без вопроса о несохранённом — решение о нём уже
+        /// принято там, откуда зовут (форма прибора).
+        /// </summary>
+        public void CloseWithoutAsking()
+        {
+            this.closingDecided = true;
+            this.Close();
+        }
+
+        /// <summary>Строка ресурсов с запасным текстом (ключ заведён без перегенерации Designer).</summary>
+        static string ResourceText(string key, string fallback)
+        {
+            string text = Resources.ResourceManager.GetString(key, Resources.Culture);
+            return string.IsNullOrEmpty(text) ? fallback : text;
         }
 
         void AppendLog(string message)

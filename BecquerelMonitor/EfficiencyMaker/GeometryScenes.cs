@@ -110,6 +110,63 @@ namespace BecquerelMonitor.EfficiencyMaker
         public const double FieldRadiusMargin = 2.0;
 
         /// <summary>
+        /// ⛔ (`AMBER97`, П147 24.09.2026) НАИБОЛЬШИЙ радиус сферы поля, мм:
+        /// 100 м. До физики 24 верхняя граница была, но НЕВИДИМАЯ: предел пути
+        /// симулятора (`40·sphereR + 200` см) засчитывал подлёт от сферы к
+        /// прибору, и у RC-103 поле радиусом больше 257.7 см давало ноль во всех
+        /// узлах без единого слова (замер П147: A_пик 0.0721 см² на 50 см и
+        /// 0.0000 на 300 см). Предел пути теперь от габарита сцены
+        /// (`EfficiencySimulator.PathLimit`), и ответ от радиуса не зависит;
+        /// граница здесь — то, докуда это ПРОВЕРЕНО (`IsoFieldProbe`: RC-103
+        /// до 10 000 см в пределах 3σ), а не свойство физики. Больше — отказ
+        /// словами (`GeometryEditorErrorFieldRadiusLarge`), а не ноль.
+        /// </summary>
+        public const double MaxFieldRadiusMm = 100000.0;
+
+        /// <summary>
+        /// Толщины обвязки В СИСТЕМЕ СЦЕНЫ (`AMBER64`): <paramref name="toSample"/>
+        /// — слой между пробой и кристаллом, <paramref name="lateral"/> — слой
+        /// на боковых гранях.
+        ///
+        /// ⛔ ЧИТАТЬ `Front*`/`Side*` «КАК НАЗВАНО» НЕЛЬЗЯ. При боковой
+        /// постановке (<see cref="GeometryDetectorFacing.Side"/>) к пробе
+        /// обращена БОКОВАЯ грань, и `EfficiencySimulator.Build` (~~`E21`~~),
+        /// `DoseRateGeometry` и `GeometrySketch` меняют толщины местами ещё до
+        /// того, как строить сцену. Размеры бруска сюда приходят уже
+        /// развёрнутыми (<see cref="GeometryModel.CrystalBoxInScene"/>), а
+        /// обвязка приходила неразвёрнутой, и три функции ниже считали
+        /// полумеру: у RC-103 (куб 10 мм, зазор 3.5 мм у торца и 0 с бока)
+        /// поперечник выходил 19.799 мм против 29.698 в самой сцене, вынос
+        /// середины кристалла 10.5 против 7.0, наименьший радиус поля 25.773
+        /// против 32.419; колодец `Borehole` — Ø 39.799 вместо 49.698, просвет
+        /// до угла корпуса 5.05 мм вместо обещанных 10, и точки пробы ложились
+        /// бы ВНУТРЬ корпуса без единого отказа (замер П131 22.09.2026,
+        /// `SceneFacingProbe`).
+        ///
+        /// Перестановка ровно та же, что в `Build`, и живёт ЗДЕСЬ в
+        /// единственном месте: три функции ниже читают обвязку только отсюда.
+        /// </summary>
+        public static void WrappingInScene(GeometryModel g, out double toSample, out double lateral)
+        {
+            double front = Math.Max(0.0, g.FrontReflectorThickness)
+                           + Math.Max(0.0, g.FrontGapThickness)
+                           + Math.Max(0.0, g.FrontCladdingThickness);
+            double side = Math.Max(0.0, g.SideReflectorThickness)
+                          + Math.Max(0.0, g.SideGapThickness)
+                          + Math.Max(0.0, g.SideCladdingThickness);
+            if (g.Facing == GeometryDetectorFacing.Side)
+            {
+                toSample = side;
+                lateral = front;
+            }
+            else
+            {
+                toSample = front;
+                lateral = side;
+            }
+        }
+
+        /// <summary>
         /// Наименьший радиус сферы поля, мм: габарит детектора с обвязкой и
         /// оправой (половина диагонали описанного цилиндра) с запасом
         /// <see cref="FieldRadiusMargin"/>. Считается из тех же полей, что
@@ -119,9 +176,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         public static double MinFieldRadiusMm(GeometryModel g)
         {
             double halfWidth = 0.5 * DetectorOuterDiameterMm(g);
-            double front = Math.Max(0.0, g.FrontReflectorThickness)
-                           + Math.Max(0.0, g.FrontGapThickness)
-                           + Math.Max(0.0, g.FrontCladdingThickness);
+            // (`AMBER64`) Обвязка — РАЗВЁРНУТАЯ: к пробе обращён слой той
+            // стороны, которой прибор к ней повёрнут.
+            double front, lateral;
+            WrappingInScene(g, out front, out lateral);
             double depth;
             if (g.Shape == CrystalShape.Box)
             {
@@ -247,8 +305,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.BeakerEndWallThickness = 0.0;
             g.SourceHeight = GroundDepthMfp * mfp;
             g.BeakerDiameter = 2.0 * (GroundRadiusMfp * mfp + GroundRadiusPerHeight * height);
-            // Расчёт высоту сосуда не читает (у цилиндра сцену задаёт высота
-            // ПРОБЫ), но поле есть и уезжает в файл `.in`: пусть не врёт.
+            // Высота сосуда = высоте пробы: стенок нет, и сцена счёта с
+            // `AMBER205` (стенка на полную высоту сосуда) строится той же —
+            // побитово прежней, без `bmscene` в клейме. Поле уезжает в `.in`.
             g.BeakerHeight = g.SourceHeight;
             return substituted;
         }
@@ -274,8 +333,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.MarinelliHoleHeight = BoreholeDepthMfp * mfp;
             g.MarinelliSourceHeight = g.MarinelliHoleHeight + BoreholeBottomMfp * mfp;
             g.MarinelliBeakerDiameter = hole + 2.0 * BoreholeSideMfp * mfp;
-            // Как и у цилиндра: расчёт высоту сосуда не читает, но поле уезжает
-            // в файл, и стакан ниже своей пробы выглядел бы ошибкой.
+            // Как и у цилиндра: высота стакана = высоте пробы, стенок и донышка
+            // нет — сцена счёта `AMBER205` та же, побитово; стакан ниже своей
+            // пробы выглядел бы ошибкой.
             g.MarinelliBeakerHeight = g.MarinelliSourceHeight;
 
             // Сосуда нет: лунка — это дырка в грунте, а не стакан.
@@ -330,9 +390,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             // (`AMBER1`) Зазор между отражателем и корпусом ВХОДИТ В ВЫНОС:
             // расстояния сцены отсчитываются от переднего торца корпуса, и
             // зазор углубляет кристалл ровно на свою толщину.
-            double front = Math.Max(0.0, g.FrontReflectorThickness)
-                           + Math.Max(0.0, g.FrontGapThickness)
-                           + Math.Max(0.0, g.FrontCladdingThickness);
+            // (`AMBER64`) И берётся он у ТОЙ стороны, которой прибор повёрнут
+            // к пробе, — см. <see cref="WrappingInScene"/>.
+            double front, lateral;
+            WrappingInScene(g, out front, out lateral);
 
             double depth;
             if (g.Shape == CrystalShape.Box)
@@ -355,9 +416,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public static double DetectorOuterDiameterMm(GeometryModel g)
         {
-            double side = Math.Max(0.0, g.SideReflectorThickness)
-                          + Math.Max(0.0, g.SideGapThickness)
-                          + Math.Max(0.0, g.SideCladdingThickness);
+            // (`AMBER64`) Боковой слой — тот, что при этой постановке
+            // действительно лежит на боках, а не тот, что так назван в файле.
+            double toSample, side;
+            WrappingInScene(g, out toSample, out side);
 
             if (g.Shape == CrystalShape.Box)
             {
@@ -419,6 +481,39 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return issues;
             }
 
+            // (`AMBER98`, П150 24.09.2026) Длина не бывает отрицательной. Чертёж
+            // такие числа зажимал в ноль, а расчёт брал как есть: у RC-103
+            // расстояние −5 мм ставило точку в торцевой отражатель, и
+            // эффективность на 60 кэВ выходила ×3.2 при «на торце» на чертеже.
+            // Проверяются только поля, которые сцена ЧИТАЕТ: у точки минус в
+            // полях маринелли ни на что не влияет и сохранению не мешает.
+            foreach (KeyValuePair<string, double> length in Lengths(g))
+            {
+                // (`AMBER187`, G.4) Не число и бесконечность — тоже отказ:
+                // разбор поля «NaN» и «Infinity» принимает, а `< 0` их
+                // пропускал, и сцена строилась из NaN молча.
+                if (double.IsNaN(length.Value) || double.IsInfinity(length.Value))
+                {
+                    issues.Add(new Issue
+                    {
+                        Field = length.Key,
+                        Resource = "GeometryEditorErrorNotFiniteLength",
+                        Value = length.Value,
+                        Limit = 0.0,
+                    });
+                }
+                else if (length.Value < 0.0)
+                {
+                    issues.Add(new Issue
+                    {
+                        Field = length.Key,
+                        Resource = "GeometryEditorErrorNegativeLength",
+                        Value = length.Value,
+                        Limit = 0.0,
+                    });
+                }
+            }
+
             if (g.Scene == GeometrySceneKind.Iso)
             {
                 // (`AMBER13` (б)) Сфера поля обязана накрывать детектор с
@@ -433,6 +528,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                         Resource = "GeometryEditorErrorFieldRadiusSmall",
                         Value = g.FieldRadius,
                         Limit = floor,
+                    });
+                }
+                else if (g.FieldRadius > MaxFieldRadiusMm)
+                {
+                    // (`AMBER97`) Сверху — граница проверенного: отказ словами
+                    // вместо молчаливого нуля, каким он был до физики 24.
+                    issues.Add(new Issue
+                    {
+                        Field = "FieldRadius",
+                        Resource = "GeometryEditorErrorFieldRadiusLarge",
+                        Value = g.FieldRadius,
+                        Limit = MaxFieldRadiusMm,
                     });
                 }
 
@@ -540,6 +647,78 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return issues;
+        }
+
+        /// <summary>
+        /// Длины, которые читает сцена этого вида источника (`AMBER98`): обвязка
+        /// детектора всегда, размеры источника — только своего вида. Размеры
+        /// кристалла сюда не входят: их `GeometryEditorPanel.Validate` требует
+        /// строго положительными раньше. Ключ — имя поля редактора (оно же поле
+        /// модели), по нему поле подсвечивается.
+        /// </summary>
+        static IEnumerable<KeyValuePair<string, double>> Lengths(GeometryModel g)
+        {
+            var list = new List<KeyValuePair<string, double>>
+            {
+                Length("FrontReflectorThickness", g.FrontReflectorThickness),
+                Length("SideReflectorThickness", g.SideReflectorThickness),
+                Length("FrontGapThickness", g.FrontGapThickness),
+                Length("SideGapThickness", g.SideGapThickness),
+                Length("FrontCladdingThickness", g.FrontCladdingThickness),
+                Length("SideCladdingThickness", g.SideCladdingThickness),
+                Length("MountingThickness", g.MountingThickness),
+            };
+
+            switch (g.SourceType)
+            {
+                case GeometrySourceType.Point:
+                    // У поля ISO расстояние = радиус сферы, его стережёт
+                    // `GeometryEditorErrorFieldRadiusSmall`.
+                    if (g.Scene != GeometrySceneKind.Iso)
+                    {
+                        list.Add(Length("PointDistance", g.PointDistance));
+                    }
+
+                    break;
+
+                case GeometrySourceType.Cylinder:
+                    list.Add(Length("BeakerDiameter", g.BeakerDiameter));
+                    list.Add(Length("BeakerHeight", g.BeakerHeight));
+                    list.Add(Length("BeakerSideWallThickness", g.BeakerSideWallThickness));
+                    list.Add(Length("BeakerEndWallThickness", g.BeakerEndWallThickness));
+                    list.Add(Length("SourceHeight", g.SourceHeight));
+                    list.Add(Length("BeakerToDetectorDistance", g.BeakerToDetectorDistance));
+                    break;
+
+                case GeometrySourceType.Marinelli:
+                    list.Add(Length("MarinelliBeakerDiameter", g.MarinelliBeakerDiameter));
+                    list.Add(Length("MarinelliBeakerHeight", g.MarinelliBeakerHeight));
+                    list.Add(Length("MarinelliHoleDiameter", g.MarinelliHoleDiameter));
+                    list.Add(Length("MarinelliHoleHeight", g.MarinelliHoleHeight));
+                    list.Add(Length("MarinelliSideThickness", g.MarinelliSideThickness));
+                    list.Add(Length("MarinelliEndWallThickness", g.MarinelliEndWallThickness));
+                    list.Add(Length("MarinelliHoleSideThickness", g.MarinelliHoleSideThickness));
+                    list.Add(Length("MarinelliHoleEndWallThickness", g.MarinelliHoleEndWallThickness));
+                    list.Add(Length("MarinelliSourceHeight", g.MarinelliSourceHeight));
+                    list.Add(Length("MarinelliToDetectorDistance", g.MarinelliToDetectorDistance));
+                    break;
+
+                case GeometrySourceType.Box:
+                    list.Add(Length("BoxSourceX", g.BoxSourceX));
+                    list.Add(Length("BoxSourceY", g.BoxSourceY));
+                    list.Add(Length("BoxSourceHeight", g.BoxSourceHeight));
+                    list.Add(Length("BoxSideWallThickness", g.BoxSideWallThickness));
+                    list.Add(Length("BoxEndWallThickness", g.BoxEndWallThickness));
+                    list.Add(Length("BoxToDetectorDistance", g.BoxToDetectorDistance));
+                    break;
+            }
+
+            return list;
+        }
+
+        static KeyValuePair<string, double> Length(string field, double value)
+        {
+            return new KeyValuePair<string, double>(field, value);
         }
 
         /// <summary>

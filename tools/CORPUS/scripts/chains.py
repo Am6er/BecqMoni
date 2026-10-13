@@ -208,6 +208,71 @@ def _chain_level_clause(rule_path=None, lib_path=None):
 #: его упоминает, — `$n`, связывать словарём: ``{'n': nucid}``.
 CHAIN_LEVEL_CLAUSE = _chain_level_clause()
 
+
+def _chain_perc_column(rule_path=None):
+    """(`S190`, П158 24.09.2026) Столбец доли ветви `DecayParentRule.ChainPercColumn`.
+
+    `perc` канала «β⁺» (`dec_type` 15) — доля ПОЗИТРОНОВ, а не ветви ε+β⁺; ряд
+    через такого родителя терял дочь (`164TM` → 164ER 0.39 при истине 1.0).
+    Правило одно на проект и живёт в приложении — здесь его текст ЧИТАЕТСЯ, как
+    `CHAIN_LEVEL_CLAUSE`; своей копии нет, иначе питон и C# разойдутся молча.
+    """
+    rule_path = rule_path or os.environ.get('LFL_DECAY_RULE_CS') or _RULE_CS
+    if not os.path.isfile(rule_path):
+        raise RuntimeError('не найден источник правила ветвей: %s (S190).' % rule_path)
+    with io.open(rule_path, encoding='utf-8-sig') as handle:
+        body = re.search(r'const\s+string\s+ChainPercColumn\s*=(.*?);',
+                         handle.read(), re.S)
+    if not body:
+        raise RuntimeError('в %s нет объявления const string ChainPercColumn — '
+                           'правило ветвей читать нечем (S190).' % rule_path)
+    column = _sql_literals(body.group(1), 'ChainPercColumn')
+    for must in ('over ()', 'd.dec_type', 'd.perc', 'else d.perc end'):
+        if must not in column:
+            raise RuntimeError('ChainPercColumn разобран неправдоподобно (нет %r): %r'
+                               % (must, column))
+    for bad in ('?', ':', '@', '$'):
+        if bad in column:
+            raise RuntimeError('в ChainPercColumn появился параметр %r — связать нечем '
+                               '(S190): %r' % (bad, column))
+    return column
+
+
+#: Столбец выборки вместо голого `perc` в обходе `decay_chain` (внешняя таблица —
+#: алиас `d`, строки одного родителя): доля ветви, %.
+CHAIN_PERC_COLUMN = _chain_perc_column()
+
+
+def _chain_table(rule_path=None):
+    """(Остаток `S191`, П158 24.09.2026) Источник строк ряда `DecayParentRule.ChainTable`.
+
+    `decay_chain`, где доля строки иного уровня взята у своего уровня из
+    `l_decays`, плюс ветви из `l_decays` родителю без своих рёбер. Текст —
+    из .cs, как `CHAIN_LEVEL_CLAUSE`; своей копии нет. Ставится в `from`:
+    ``"from" + CHAIN_TABLE + " d"``.
+    """
+    rule_path = rule_path or os.environ.get('LFL_DECAY_RULE_CS') or _RULE_CS
+    if not os.path.isfile(rule_path):
+        raise RuntimeError('не найден источник правила ряда: %s (S191).' % rule_path)
+    with io.open(rule_path, encoding='utf-8-sig') as handle:
+        body = re.search(r'const\s+string\s+ChainTable\s*=(.*?);', handle.read(), re.S)
+    if not body:
+        raise RuntimeError('в %s нет объявления const string ChainTable — '
+                           'источник ряда читать нечем (S191).' % rule_path)
+    table = _sql_literals(body.group(1), 'ChainTable')
+    for must in ('from decay_chain c', 'l_decays', 'union all'):
+        if must not in ' '.join(table.split()):
+            raise RuntimeError('ChainTable разобран неправдоподобно (нет %r): %r' % (must, table))
+    for bad in ('?', ':', '@', '$'):
+        if bad in table:
+            raise RuntimeError('в ChainTable появился параметр %r — связать нечем (S191): %r'
+                               % (bad, table))
+    return table
+
+
+#: Источник строк ряда вместо голой `decay_chain`: ``"from" + CHAIN_TABLE + " d"``.
+CHAIN_TABLE = _chain_table()
+
 _FALLBACK_CACHE = []
 _FALLBACK_SAID = set()
 #: (`T93`) Родители, у которых запасная ветвь СРАБОТАЛА в этом процессе —
@@ -282,11 +347,28 @@ def pretty(nucid):
 
 
 def chain_branches(root, c, min_fraction=1e-6):
-    """{nucid: cumulative branching fraction from root}, ground levels only."""
-    frac = {root: 1.0}
+    """{nucid: cumulative branching fraction from root}, ground levels only.
+
+    ⛔ (П158 24.09.2026, попутно к `S190`) ТОТ ЖЕ СЧЁТ, ЧТО У ПРИЛОЖЕНИЯ —
+    `FsaSampleLibrary.ChainBranches` (`S62`): сначала рёбра обходом в ширину,
+    потом доли РЕЛАКСАЦИЕЙ до неподвижной точки, x = e_root + x·P. Здесь стоял
+    обход, раскрывающий узел один раз — значением, какое у того было в момент
+    раскрытия, — ровно дефект, снятый в приложении по `S62`: у `238U` и `226RA`
+    Pb-210 попадает в очередь раньше Po-214, и его дети 210BI / 210PO выходили
+    3.0·10⁻⁵ вместо 0.998 (линия Po-210 803 кэВ — 3·10⁻⁸ % вместо 1.03·10⁻³ %).
+    Питон с `ChainBranches` приложения расходился у 282 корней из 2535 (у 270 —
+    больше 10⁻⁹ относительно); после правки — у 6, и те в последнем знаке
+    (порядок строк выборки у двух сборок SQLite).
+
+    `min_fraction` отсекает члены с ИТОГОВОЙ долей ниже порога (корень остаётся
+    всегда); пределы — как у приложения: 128 узлов, 256 проходов, сходимость
+    1e-12.
+    """
+    edges = {}
     order = [root]
+    known = {root}
     i = 0
-    while i < len(order):
+    while i < len(order) and len(order) <= 128:
         cur = order[i]
         i += 1
         # l_seqno is the level index of the parent WITHIN its own level scheme;
@@ -296,28 +378,48 @@ def chain_branches(root, c, min_fraction=1e-6):
         # 67% at 5) and must not be followed.
         # ⛔ Само выражение зажима сюда НЕ переписано: оно одно на проект и
         # читается у приложения — `CHAIN_LEVEL_CLAUSE` (`T78`), см. выше.
+        # (`S190`) Доля ветви — столбцом `CHAIN_PERC_COLUMN`, а не голым `perc`.
         rows = c.execute(
-            "select daughter_nucid, perc from decay_chain d "
+            "select daughter_nucid," + CHAIN_PERC_COLUMN + " from" + CHAIN_TABLE + " d "
             "where nucid = $n and perc not null" + CHAIN_LEVEL_CLAUSE,
             {LEVEL_PARAM: cur}).fetchall()
+        step = []
         for daughter, perc in rows:
-            if daughter == cur:
+            if not daughter or daughter == cur:
                 continue                      # 238U l_seqno-119 self loop
             try:
                 p = float(perc)
             except (TypeError, ValueError):
                 continue
-            add = frac[cur] * p / 100.0
-            if add < min_fraction:
+            if not p > 0.0:
                 continue
-            if daughter in frac:
-                frac[daughter] += add
-            else:
-                frac[daughter] = add
+            step.append((daughter, p))
+            if daughter not in known:
+                known.add(daughter)
                 order.append(daughter)
-            if len(order) > 100:
-                return frac
-    return frac
+        edges[cur] = step
+
+    branch = {}
+    for _ in range(256):
+        nxt = {root: 1.0}
+        for parent in order:
+            have = branch.get(parent)
+            if not have or not have > 0.0 or parent not in edges:
+                continue
+            for daughter, p in edges[parent]:
+                nxt[daughter] = nxt.get(daughter, 0.0) + have * p / 100.0
+        drift = 0.0
+        for key, value in nxt.items():
+            gap = abs(value - branch.get(key, 0.0))
+            if gap > drift:
+                drift = gap
+        branch = nxt
+        if drift <= 1.0e-12:
+            break
+    else:
+        sys.stderr.write('  ⚠ ряд %s: доли не сошлись за 256 проходов, остаток %.2e\n'
+                         % (root, drift))
+    return {k: v for k, v in branch.items() if k == root or v >= min_fraction}
 
 
 def half_life_years(nucid, c):
@@ -326,6 +428,183 @@ def half_life_years(nucid, c):
     if not row or row[0] is None:
         return 0.0
     return float(row[0]) / 31536000.0
+
+
+#: (`AMBER151`, П202 01.10.2026) Генератор корпуса и его оснастка берут ТОЛЬКО строки
+#: ПОСТАВКИ `decay_radiations` (`dr_pk` < 100001): добор слабых гамм (`import_weak_gammas.py`,
+#: 100001…199999) и L-подлинии (`import_l_sublines.py`, от 200001) — библиотека РАЗБОРА, а не
+#: опоры калибровки. Замер П202 (журнал `handover/handover-2026-10-01-p202-l-sublines.md` §4):
+#: с ними пересборка сдвигает модели разрешения 16 групп (ASN3 3.54 → 7.27 %, AS80x80 7.22 →
+#: 8.13 %) и 97 энергокалибровок, часть — в явный брак (`RC103_K40` невязка опор 8.1 → 47.3
+#: кэВ, `G1S24_Zn65_P5` 0.7 → 13.8 кэВ): генератор неустойчив к сдвигу модели группы. С этим
+#: зажимом пересборка даёт корпус ПОБАЙТНО тем же по содержимому. Решение «пускать ли новые
+#: линии в генератор» — за Amber.
+SUPPLY_ONLY = " and dr_pk < 100001"
+
+
+def l_series_kind(tc):
+    u"""Вид строки L-серии по СТРУКТУРЕ имени `type_c` — правило `FsaSampleLibrary.DecayLines`
+    (`AMBER68`): 'L' — сводная, буква и цифра ('L1') — итог подоболочки, длиннее ('L3M5') —
+    линия; не L-серия — None."""
+    tc = (tc or '').strip()
+    if not tc or tc[0] != 'L':
+        return None
+    if len(tc) == 1:
+        return 'lumped'
+    if len(tc) == 2 and tc[1].isdigit():
+        return 'shell'
+    return 'detailed'
+
+
+def drop_superseded_l(rows, tc_of):
+    u"""(`AMBER151`, П202) Из строк ОДНОГО родителя убрать вытесненные строки L-серии.
+
+    С 01.10.2026 сводная строка `L` поставки разложена на подлинии (`L3M5`, `L2M4`…,
+    `tools/nucdb/import_l_sublines.py`), а сама строка оставлена в базе — её вытесняет
+    ЧИТАТЕЛЬ. Порядок тот же, что у приложения: линии, если есть, иначе итоги подоболочек,
+    иначе сводная. Без этого рентген образца складывал бы сводную С её же подлиниями —
+    выход L вдвое. `tc_of(row)` — `type_c` строки.
+    """
+    kinds = set(l_series_kind(tc_of(r)) for r in rows)
+    keep = 'detailed' if 'detailed' in kinds else ('shell' if 'shell' in kinds else 'lumped')
+    return [r for r in rows if l_series_kind(tc_of(r)) in (None, keep)]
+
+
+# ---------------------------------------------------------------------------
+# K-серия рентгена: ОДНО правило на проект, и живёт оно НЕ ЗДЕСЬ (`S209`)
+# ---------------------------------------------------------------------------
+# ⛔ `KB` в `decay_radiations` — это ИТОГ по всей Kβ, а рядом лежит её же
+# разложение `KpB1` + `KpB2` (`KSeriesRule.cs`, `D30`, `T50`). До 01.10.2026
+# генератор корпуса брал ВСЕ строки `type_a = 'X'` и складывал Kβ дважды: центр
+# группы K-рентгена, на которую садится опора низа (`B25`), уезжал вверх на
+# 1.7…2.2 % — Ba-133 32.29 кэВ вместо 31.70, Cs-137 33.45 вместо 32.92 (замер
+# П205, `handover/handover-2026-10-01-p205-s209-generator.md`). Приложение
+# (образы FSA и суммирователь совпадений) живёт по правилу `KSeriesRule`:
+#
+#   * разложение берётся, когда оно ПОЛНОЕ (две и более РАЗНЫХ строк `KpB*` либо
+#     одна, совпадающая с `KB` численно), иначе итог `KB`;
+#   * строка группы K-M (`KpB1`) стоит на ЦЕНТРЕ ТЯЖЕСТИ группы
+#     (`matdb.fluorescence_k.kb_ev`), а не на середине текстового диапазона
+#     (`AMBER120`), если лежит от него не дальше `GroupTolerance`; элемент
+#     узнаётся по Kα1 того же набора строк (`AlphaMatchKev`).
+#
+# Числа правила здесь не переписываются, а ЧИТАЮТСЯ из `KSeriesRule.cs` тем же
+# приёмом, что `LEVEL_CLAUSE`: следующая правка приложения доедет сюда сама,
+# а сменённая разметка роняет импорт вслух. Путь — `LFL_KSERIES_RULE_CS`.
+_KSERIES_CS = os.path.join(_SOLUTION, 'BecquerelMonitor', 'FullSpectrumAnalysis',
+                           'KSeriesRule.cs')
+
+
+def _kseries_constants(path=None):
+    u"""Константы `KSeriesRule` из исходника приложения: допуск совпадения
+    разложения с итогом (относительный), допуск группы K-M (относительный) и
+    допуск узнавания элемента по Kα1, кэВ."""
+    path = path or os.environ.get('LFL_KSERIES_RULE_CS') or _KSERIES_CS
+    if not os.path.isfile(path):
+        raise RuntimeError('не найден источник правила K-серии: %s. Правило одно на '
+                           'проект и живёт в KSeriesRule.cs (S209); путь переопределяется '
+                           'переменной LFL_KSERIES_RULE_CS.' % path)
+    with io.open(path, encoding='utf-8-sig') as handle:
+        text = re.sub(r'//[^\n]*', '', handle.read())
+    out = {}
+    for name in ('MatchTolerance', 'GroupTolerance', 'AlphaMatchKev'):
+        m = re.search(r'const\s+double\s+%s\s*=\s*([0-9.]+(?:[Ee][-+]?[0-9]+)?)\s*;' % name, text)
+        if not m:
+            raise RuntimeError('в %s нет const double %s — правило K-серии читать нечем '
+                               '(S209).' % (path, name))
+        out[name] = float(m.group(1))
+    m = re.search(r'BetaTotal\s*=\s*"([^"]+)"', text)
+    if not m or m.group(1) != 'KB':
+        raise RuntimeError('KSeriesRule.BetaTotal в %s не "KB" — правило сменилось, '
+                           'сверить генератор (S209).' % path)
+    if not 0.0 < out['GroupTolerance'] < 0.05 or not 0.0 < out['AlphaMatchKev'] < 1.0:
+        raise RuntimeError('константы KSeriesRule неправдоподобны: %r (S209)' % out)
+    return out
+
+
+#: Константы правила K-серии приложения (`KSeriesRule.cs`).
+KSERIES = _kseries_constants()
+
+#: Таблица групп K: [(Kα1, Kβ K-M центр тяжести), кэВ] из `matdb.fluorescence_k`.
+_KGROUPS = []
+
+
+def matdb_path():
+    u"""`matdb.sqlite` рядом с `nucdb.sqlite` (`LFL_MATDB` переопределяет)."""
+    return os.environ.get('LFL_MATDB') or os.path.join(os.path.dirname(DB), 'matdb.sqlite')
+
+
+def k_groups():
+    u"""Группы K из `matdb.fluorescence_k` (та же таблица, что у `KSeriesRule.Groups`).
+
+    ⚠ Приложение без таблицы оставляет строки как есть; генератор — ОТКАЗЫВАЕТ:
+    корпус, собранный то с центром тяжести, то с серединой диапазона, был бы
+    смесью двух соглашений без следа в клейме.
+    """
+    if not _KGROUPS:
+        path = matdb_path()
+        if not os.path.isfile(path):
+            raise RuntimeError('нет %s — группы K для правила Kβ читать неоткуда (S209)' % path)
+        c = sqlite3.connect('file:' + path.replace('\\', '/') + '?mode=ro', uri=True)
+        try:
+            rows = c.execute('select z, ka1_ev, kb_ev from fluorescence_k '
+                             'where ka1_ev not null and kb_ev not null order by z').fetchall()
+        finally:
+            c.close()
+        if not rows:
+            raise RuntimeError('matdb.fluorescence_k пуста — правило Kβ читать нечем (S209)')
+        _KGROUPS.extend((float(a) / 1000.0, float(b) / 1000.0) for _z, a, b in rows)
+    return _KGROUPS
+
+
+def k_series_rule(rows, tc_of, energy_of, intensity_of, with_energy):
+    u"""(`S209`) Строки ОДНОГО родителя (один набор «родитель + уровень») →
+    те же строки, где Kβ взята ОДИН раз и строка группы K-M — на центре тяжести.
+
+    Порт `KSeriesRule.Beta` и `KSeriesRule.BetaAtGroupEnergy`: не-K строки и Kα
+    проходят как есть; из `KB` и `KpB*` остаётся то, что выбирает правило;
+    у выбранного разложения энергия строки, лежащей у центра тяжести группы K-M
+    своего элемента (элемент — по Kα1 этого же набора), заменяется им.
+    `tc_of(row)` — `type_c` строки или None для не-рентгена; `with_energy(row, e)`
+    — копия строки с новой энергией. Порядок строк сохраняется.
+    """
+    total = [r for r in rows if (tc_of(r) or '').strip() == 'KB']
+    split = [r for r in rows if (tc_of(r) or '').strip().startswith('Kp')]
+    if not total and not split:
+        return list(rows)
+    if not total:
+        chosen = split
+    elif not split:
+        chosen = total
+    elif len(set((tc_of(r) or '').strip() for r in split)) > 1:
+        chosen = split
+    else:
+        s_split = sum(float(intensity_of(r)) for r in split)
+        s_total = sum(float(intensity_of(r)) for r in total)
+        same = abs(s_split - s_total) <= KSERIES['MatchTolerance'] * max(1.0, abs(s_total))
+        chosen = split if same else total
+    drop = set(id(r) for r in (total + split) if all(r is not c for c in chosen))
+    fix = {}
+    if chosen is split:
+        # Kα — как `kAlpha` приложения: строки K-серии, не итог и не разложение Kβ.
+        alphas = [float(energy_of(r)) for r in rows
+                  if (tc_of(r) or '').strip().startswith('K')
+                  and (tc_of(r) or '').strip() != 'KB'
+                  and not (tc_of(r) or '').strip().startswith('Kp')]
+        elements = [kb for ka1, kb in k_groups()
+                    if any(abs(a - ka1) <= KSERIES['AlphaMatchKev'] for a in alphas)]
+        for r in split:
+            e = float(energy_of(r))
+            for kb in elements:
+                if kb > 0.0 and abs(e - kb) <= KSERIES['GroupTolerance'] * kb:
+                    fix[id(r)] = kb
+                    break
+    out = []
+    for r in rows:
+        if id(r) in drop:
+            continue
+        out.append(with_energy(r, fix[id(r)]) if id(r) in fix else r)
+    return out
 
 
 def chain_lines(root, kinds=('G',), e_min=10.0, e_max=3200.0):
@@ -345,7 +624,13 @@ def chain_lines(root, kinds=('G',), e_min=10.0, e_max=3200.0):
             "select energy_num, intensity_num, type_a, type_c from decay_radiations "
             "where parent_nucid = $n and type_a in (%s) "
             "and energy_num not null and intensity_num not null" % placeholders
+            + SUPPLY_ONLY
             + LEVEL_CLAUSE, params).fetchall()
+        rows = drop_superseded_l(rows, lambda r: r[3] if r[2] == 'X' else None)
+        # (`S209`) Kβ один раз, группа K-M на центре тяжести — правило приложения.
+        rows = k_series_rule(rows, lambda r: r[3] if r[2] == 'X' else None,
+                             lambda r: r[0], lambda r: r[1],
+                             lambda r, e: (e,) + tuple(r[1:]))
         hl = half_life_years(nucid, c)
         for energy, inum, ta, tc in rows:
             if energy is None or inum is None or inum <= 0:

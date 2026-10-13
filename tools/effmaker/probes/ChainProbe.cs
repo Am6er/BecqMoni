@@ -80,6 +80,7 @@ namespace ChainProbe
                 new KeyValuePair<string, int>("ветвление от корня [база]", CheckBranches()),
                 new KeyValuePair<string, int>("два обхода ряда [база]", CheckTwoWalks()),
                 new KeyValuePair<string, int>("K-серия в редакторе [база]", CheckKSeriesEditor()),
+                new KeyValuePair<string, int>("L-серия в редакторе [база]", CheckLSeriesEditor()),
                 new KeyValuePair<string, int>("поиск по ряду [база]", CheckSearch()),
                 new KeyValuePair<string, int>("форма редактора", CheckForm()),
             };
@@ -320,7 +321,7 @@ namespace ChainProbe
 
         /// <summary>
         /// Поиск по ряду в самой форме базы: то, что видит пользователь и что
-        /// уходит во ввоз. Считать отдельно и надеяться, что форма считает так
+        /// уходит в импорт. Считать отдельно и надеяться, что форма считает так
         /// же, — это ровно тот разрыв, из-за которого заводилось поле цепочки.
         /// </summary>
         static int CheckSearch()
@@ -441,8 +442,55 @@ namespace ChainProbe
         }
 
         /// <summary>
+        /// (`AMBER151`, П202 01.10.2026) ТА ЖЕ ЛОВУШКА У L-СЕРИИ. Сводная строка
+        /// `L` поставки лежит в базе рядом со своими подлиниями (`L3M5`, `L2M4`…,
+        /// `tools/nucdb/import_l_sublines.py`); редактор обязан пометить
+        /// сводную, иначе импорт обеих удваивает L-рентген. Сверка не зависит от
+        /// того, какой базой собран каталог: сумма НЕПОМЕЧЕННЫХ L-строк Am-241
+        /// равна итогу поставки 36.64 % всегда, а помечено ровно столько строк,
+        /// сколько у родителя строк менее подробного вида (на базе без подлиний —
+        /// ноль). Положительный контроль печатается: наивная сумма всех L-строк.
+        /// </summary>
+        static int CheckLSeriesEditor()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== ловушка L-серии в редакторе ===");
+            int bad = 0;
+            BecquerelMonitor.NucBase.NucBaseFramework fw = new BecquerelMonitor.NucBase.NucBaseFramework();
+            List<BecquerelMonitor.NucBase.DecayRad> lines = fw.getDecayRad("241AM");
+            if (lines == null)
+            {
+                Console.WriteLine("  линий Am-241 не пришло — сверять нечем");
+                return 1;
+            }
+
+            double all = 0.0, kept = 0.0;
+            int marked = 0, rows = 0, detailed = 0;
+            foreach (BecquerelMonitor.NucBase.DecayRad line in lines)
+            {
+                int kind = BecquerelMonitor.FullSpectrumAnalysis.FsaSampleLibrary.LSeriesKind(line.XrayType);
+                if (line.DecayLine != "X"
+                    || kind == BecquerelMonitor.FullSpectrumAnalysis.FsaSampleLibrary.LSeriesNone)
+                {
+                    continue;
+                }
+
+                rows++;
+                all += line.Intensity;
+                if (kind == BecquerelMonitor.FullSpectrumAnalysis.FsaSampleLibrary.LSeriesDetailed) detailed++;
+                if (line.Redundant) marked++; else kept += line.Intensity;
+            }
+
+            Console.WriteLine("  Am-241: L-строк {0} (подлиний {1}), наивная сумма {2:F2} %, без помеченных {3:F2} %, помечено {4}",
+                              rows, detailed, all, kept, marked);
+            bad += Near("Am-241: сумма L без помеченных", 36.64, kept);
+            bad += Same("Am-241: помечено (сводная при подлиниях)", detailed > 0 ? rows - detailed : 0, marked);
+            return bad;
+        }
+
+        /// <summary>
         /// ДВА ОБХОДА РЯДА ОБЯЗАНЫ СОЙТИСЬ (`S62`). Обходов в дереве три:
-        /// `NucBase.NucBaseFramework.GetChainBranches` (форма базы и ввоз),
+        /// `NucBase.NucBaseFramework.GetChainBranches` (форма базы и импорт),
         /// `FullSpectrumAnalysis.FsaSampleLibrary.ChainBranches` (состав
         /// библиотеки разбора) и `tools/CORPUS/scripts/chains.py` (сборка
         /// корпуса). Сверять их было нечем, и они разошлись: до 23.08.2026

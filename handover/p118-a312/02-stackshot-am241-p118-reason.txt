@@ -1,0 +1,10 @@
+BecqMoni: main config: D:\BqMoni_Claude\p118\wd\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p118\wd\config\device: 9 loaded
+BecqMoni: nuclide library: D:\BqMoni_Claude\p118\wd\config\NuclideDefinition.xml: 33 entries
+SETUP	прибор: Atom Spectra 80x80
+SETUP	SNR=10	допуск=20	диапазон=15…2800 кэВ	мёртвое=1.357E-06 с
+SETUP	найдено пиков: 4
+состав: выведено из пиков: 1 из 4 подписаны, родителей 0 из 1, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; K-40 0 % (0/0, пиков 1) — ни одна линия не подтверждена пиком; оборванный ряд: подцепочка разобрана у 0 кандидатов
+LIB	Xray-NaI	Nuisance	3
+SETUP	против поставочного разбора изменено: AngularQk нет → BecquerelMonitor.EfficiencyMaker.AngularAttenuation; CoincidenceWindowSec 0 → 1.35714285714286E-06; MinEnergy 40 → 15; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → NaI:Tl
+разложение не получилось: LibraryEmptied — library 1 -> 0: crystal x-ray 1, crystal escape 0, SE/DE images 0, annihilation 0 (matrix on); lines below matrix grid 0

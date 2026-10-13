@@ -18,7 +18,7 @@ namespace FwhmReaderProbeF62
     ///
     /// ⛔ ЧТО МЕРИТСЯ И ЗАЧЕМ. `A235` завела причину отказа
     /// <c>FwhmCalibration.DefaultCalibration</c> словами и с тремя числами, а
-    /// `A240` — о том, что читателя у неё нет нигде, кроме дверей ввоза и (с
+    /// `A240` — о том, что читателя у неё нет нигде, кроме дверей импорта и (с
     /// полосы F54) открытия. Полоса F62 завела читателей ещё в четырёх местах,
     /// и эта проба меряет ИХ, а не наличие правки в исходнике:
     ///
@@ -106,8 +106,6 @@ namespace FwhmReaderProbeF62
             catch (Exception) { }
 
             // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`).
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             string asm = typeof(DocumentManager).Assembly.Location;
             Console.WriteLine("=== СБОРКА ===");
@@ -131,7 +129,6 @@ namespace FwhmReaderProbeF62
                     DeviceConfigManager.GetInstance();
                     NuclideDefinitionManager.GetInstance();
                     GlobalConfigManager.GetInstance();
-                    ROIConfigManager.GetInstance();
                 }
                 finally { Console.SetError(warmErr); }
             }

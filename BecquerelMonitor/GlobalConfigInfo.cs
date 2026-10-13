@@ -1,4 +1,5 @@
-﻿using System.Xml.Serialization;
+﻿using System;
+using System.Xml.Serialization;
 
 namespace BecquerelMonitor
 {
@@ -110,36 +111,6 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x170003E2 RID: 994
-        // (get) Token: 0x06000F23 RID: 3875 RVA: 0x00056C40 File Offset: 0x00054E40
-        // (set) Token: 0x06000F24 RID: 3876 RVA: 0x00056C48 File Offset: 0x00054E48
-        public int ROIConfigFormWidth
-        {
-            get
-            {
-                return this.roiConfigFormWidth;
-            }
-            set
-            {
-                this.roiConfigFormWidth = value;
-            }
-        }
-
-        // Token: 0x170003E3 RID: 995
-        // (get) Token: 0x06000F25 RID: 3877 RVA: 0x00056C54 File Offset: 0x00054E54
-        // (set) Token: 0x06000F26 RID: 3878 RVA: 0x00056C5C File Offset: 0x00054E5C
-        public int ROIConfigFormHeight
-        {
-            get
-            {
-                return this.roiConfigFormHeight;
-            }
-            set
-            {
-                this.roiConfigFormHeight = value;
-            }
-        }
-
         // Token: 0x170003E4 RID: 996
         // (get) Token: 0x06000F27 RID: 3879 RVA: 0x00056C68 File Offset: 0x00054E68
         // (set) Token: 0x06000F28 RID: 3880 RVA: 0x00056C70 File Offset: 0x00054E70
@@ -153,22 +124,6 @@ namespace BecquerelMonitor
             set
             {
                 this.deviceConfigListColumnSizes = value;
-            }
-        }
-
-        // Token: 0x170003E5 RID: 997
-        // (get) Token: 0x06000F29 RID: 3881 RVA: 0x00056C7C File Offset: 0x00054E7C
-        // (set) Token: 0x06000F2A RID: 3882 RVA: 0x00056C84 File Offset: 0x00054E84
-        [XmlArrayItem("ColumnSize")]
-        public int[] ROIConfigListColumnSizes
-        {
-            get
-            {
-                return this.roiConfigListColumnSizes;
-            }
-            set
-            {
-                this.roiConfigListColumnSizes = value;
             }
         }
 
@@ -322,21 +277,6 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x170003F0 RID: 1008
-        // (get) Token: 0x06000F3F RID: 3903 RVA: 0x00056D58 File Offset: 0x00054F58
-        // (set) Token: 0x06000F40 RID: 3904 RVA: 0x00056D60 File Offset: 0x00054F60
-        public EasyControlConfig EasyControlConfig
-        {
-            get
-            {
-                return this.easyControlConfig;
-            }
-            set
-            {
-                this.easyControlConfig = value;
-            }
-        }
-
         // Token: 0x170003F1 RID: 1009
         // (get) Token: 0x06000F41 RID: 3905 RVA: 0x00056D6C File Offset: 0x00054F6C
         // (set) Token: 0x06000F42 RID: 3906 RVA: 0x00056D74 File Offset: 0x00054F74
@@ -364,6 +304,91 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (`AMBER211`, П238 07.10.2026; решения Amber вопросником, дословно: «Не чаще раза
+        /// в 30 с и только для видимых», консоль: «30 секунд - вынеси в настройки») ПАУЗА
+        /// МЕЖДУ СЧЁТАМИ ПОЛНОСПЕКТРАЛЬНОГО РАЗБОРА, ПОКА СПЕКТР ПИШЕТСЯ, секунд: новый счёт
+        /// — не раньше этого срока после начала предыдущего. Нуль — без паузы (счёт за
+        /// счётом, как до П238). Читает <c>FsaAnalysisSession.EnsureUpToDate</c>; поле —
+        /// вкладка «System» общих настроек. Старые файлы настроек без элемента получают
+        /// умолчание поля.
+        /// </summary>
+        public int FsaAcquisitionIntervalSeconds
+        {
+            get
+            {
+                return this.fsaAcquisitionIntervalSeconds;
+            }
+            set
+            {
+                this.fsaAcquisitionIntervalSeconds = value;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER212`, П240 07.10.2026; поставлено Amber консолью, дословно: «Почему не
+        /// сохраняется последнее состояние Radio button "Composition source"?»; решения
+        /// вопросником того же дня, дословно: «Одно на приложение, плюс по умолчанию "From
+        /// Nucbase"», «Все семь одинаково») СЕМЬ РАСЧЁТНЫХ ПЕРЕКЛЮЧАТЕЛЕЙ ОКНА FSA REPORT —
+        /// одна настройка приложения. Прежде (`S70`, `A145`) они жили умолчанием ПРИБОРА и
+        /// копией спектра: у спектра, чей прибор не заведён в конфигурации, выбор сохранить
+        /// было некуда, и он молча возвращался к «From labels». Читает
+        /// <see cref="FullSpectrumAnalysis.FsaCalculationOptions.Of"/> через
+        /// <see cref="FullSpectrumAnalysis.FsaCalculationOptions.ApplicationSource"/>,
+        /// который ставит только <c>Program.Main</c>. Старые файлы без элемента получают
+        /// умолчания (<see cref="FsaCalculationSettings"/>).
+        /// </summary>
+        public FsaCalculationSettings FsaCalculation
+        {
+            get
+            {
+                return this.fsaCalculation;
+            }
+            set
+            {
+                this.fsaCalculation = value ?? new FsaCalculationSettings();
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER222`, П248 12.10.2026) Галка «Spectral data» группы показа окна FSA
+        /// Report — рисовать ли на графике FSA линию измеренного спектра. Постановка
+        /// Amber 12.10.2026, дословно: «Значение по умолчанию - включено. Настройка
+        /// запоминается так же, как и остальные настройки в окне FSA Report.»; решение
+        /// вопросником того же дня, дословно: «На диск: Spectral data + Model residual
+        /// (Рекомендую)». Настройка ПОКАЗА: в отпечаток разбора не входит, пересчёта не
+        /// заказывает. Старым файлам без элемента — умолчание поля, включено.
+        /// </summary>
+        public bool FsaShowSpectralData
+        {
+            get
+            {
+                return this.fsaShowSpectralData;
+            }
+            set
+            {
+                this.fsaShowSpectralData = value;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER222`) Галка «Model residual» (`A248`) — рисовать ли ленту невязки.
+        /// До `AMBER222` жила в окне только до закрытия программы; тем же решением
+        /// Amber пишется на диск рядом с <see cref="FsaShowSpectralData"/>. Умолчание —
+        /// включено, как было.
+        /// </summary>
+        public bool FsaShowResidual
+        {
+            get
+            {
+                return this.fsaShowResidual;
+            }
+            set
+            {
+                this.fsaShowResidual = value;
+            }
+        }
+
         public bool AutosaveDefaultPolicy
         {
             get
@@ -385,6 +410,61 @@ namespace BecquerelMonitor
             set
             {
                 this.importSpectrumWithEmptyConfig = value;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER202`, решение Amber 05.10.2026 «Настройка, умолчание ВКЛ
+        /// (Рекомендую)») Класть ли матрицу отклика выбранной кривой в файл
+        /// спектра (`ResultData.EmbeddedResponseMatrix`). Файлам конфигурации
+        /// без элемента остаётся умолчание поля — включено.
+        /// </summary>
+        public bool SaveResponseMatrixInSpectrum
+        {
+            get
+            {
+                return this.saveResponseMatrixInSpectrum;
+            }
+            set
+            {
+                this.saveResponseMatrixInSpectrum = value;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER219`, П245 07.10.2026) Галка «Use Nvidia GPU» окна матрицы отклика —
+        /// одна на приложение, запоминается при каждом переключении. Постановка Amber
+        /// 07.10.2026, дословно: «Значение галки по умолчанию - выключено. Текущая
+        /// настройка запоминается глобально в приложении.» Галка годна только там, где
+        /// <see cref="EfficiencyMaker.RmGpu.Probe"/> нашла устройство; сохранённое «вкл»
+        /// на машине без него окно показывает снятым и недоступным, значение не трогая.
+        /// </summary>
+        public bool UseGpuForResponseMatrix
+        {
+            get
+            {
+                return this.useGpuForResponseMatrix;
+            }
+            set
+            {
+                this.useGpuForResponseMatrix = value;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER202`) Нынешнее значение настройки для сериализации спектра.
+        /// Недоступная конфигурация (проба, отказ чтения) — умолчание «писать».
+        /// </summary>
+        public static bool SaveResponseMatrixInSpectrumNow()
+        {
+            try
+            {
+                GlobalConfigInfo config = GlobalConfigManager.GetInstance().GlobalConfig;
+                return config == null || config.SaveResponseMatrixInSpectrum;
+            }
+            catch (Exception)
+            {
+                return true;
             }
         }
 
@@ -421,25 +501,11 @@ namespace BecquerelMonitor
         // Token: 0x040008B5 RID: 2229
         int deviceConfigFormHeight = 655;
 
-        // Token: 0x040008B6 RID: 2230
-        int roiConfigFormWidth = 1080;
-
-        // Token: 0x040008B7 RID: 2231
-        int roiConfigFormHeight = 772;
-
         // Token: 0x040008B8 RID: 2232
         int[] deviceConfigListColumnSizes = new int[]
         {
             240,
             120
-        };
-
-        // Token: 0x040008B9 RID: 2233
-        int[] roiConfigListColumnSizes = new int[]
-        {
-            120,
-            120,
-            40
         };
 
         // Token: 0x040008BA RID: 2234
@@ -456,7 +522,23 @@ namespace BecquerelMonitor
 
         bool autosavedefaultpolicy = false;
 
+        // (`AMBER211`) секунд; решение Amber 07.10.2026 «Не чаще раза в 30 с»
+        int fsaAcquisitionIntervalSeconds = 30;
+
+        // (`AMBER212`) семь расчётных переключателей FSA — одна настройка приложения
+        FsaCalculationSettings fsaCalculation = new FsaCalculationSettings();
+
+        // (`AMBER222`) две галки показа окна FSA Report; умолчание ВКЛ (Amber 12.10.2026)
+        bool fsaShowSpectralData = true;
+
+        bool fsaShowResidual = true;
+
         bool importSpectrumWithEmptyConfig = false;
+
+        bool saveResponseMatrixInSpectrum = true;
+
+        // (`AMBER219`) галка «Use Nvidia GPU» окна матрицы отклика; умолчание ВЫКЛ (Amber 07.10.2026)
+        bool useGpuForResponseMatrix = false;
 
         // Token: 0x040008BD RID: 2237
         ResultTranslation resultTranslation = ResultTranslation.Becquerels;
@@ -479,12 +561,81 @@ namespace BecquerelMonitor
         // Token: 0x040008C3 RID: 2243
         MeasurementConfig measurementConfig = new MeasurementConfig();
 
-        // Token: 0x040008C4 RID: 2244
-        EasyControlConfig easyControlConfig = new EasyControlConfig();
-
         // Token: 0x040008C5 RID: 2245
         SoundConfig soundConfig = new SoundConfig();
 
         bool controlPanelisDateTimeFormat = false;
+    }
+    /// <summary>
+    /// (`AMBER212`) Семь расчётных переключателей окна FSA Report — элемент
+    /// <c>FsaCalculation</c> файла общих настроек. Имена и смысл — те же, что у полей
+    /// <see cref="FWHMPeakDetectionMethodConfig"/> (копия спектра держится в согласии с
+    /// этой настройкой окном отчёта). ⛔ Умолчание источника состава — «From NucBase»
+    /// (решение Amber 07.10.2026), остальные шесть — включены, как у полей прибора.
+    /// </summary>
+    public class FsaCalculationSettings
+    {
+        public bool DbLookupsForFsa { get; set; } = true;
+
+        public bool ChainEquilibrium { get; set; } = true;
+
+        public bool AtomicXrayForFsa { get; set; } = true;
+
+        public bool CascadeSummingForFsa { get; set; } = true;
+
+        public bool BackscatterForFsa { get; set; } = true;
+
+        public bool EscapeAndAnnihilationForFsa { get; set; } = true;
+
+        public bool PileUpForFsa { get; set; } = true;
+
+        /// <summary>Записать семь значений в копию конфигурации спектра.</summary>
+        public void CopyTo(FWHMPeakDetectionMethodConfig config)
+        {
+            if (config == null)
+            {
+                return;
+            }
+
+            config.DbLookupsForFsa = this.DbLookupsForFsa;
+            config.ChainEquilibrium = this.ChainEquilibrium;
+            config.AtomicXrayForFsa = this.AtomicXrayForFsa;
+            config.CascadeSummingForFsa = this.CascadeSummingForFsa;
+            config.BackscatterForFsa = this.BackscatterForFsa;
+            config.EscapeAndAnnihilationForFsa = this.EscapeAndAnnihilationForFsa;
+            config.PileUpForFsa = this.PileUpForFsa;
+        }
+
+        /// <summary>Снять семь значений с копии конфигурации спектра.</summary>
+        public void CopyFrom(FWHMPeakDetectionMethodConfig config)
+        {
+            if (config == null)
+            {
+                return;
+            }
+
+            this.DbLookupsForFsa = config.DbLookupsForFsa;
+            this.ChainEquilibrium = config.ChainEquilibrium;
+            this.AtomicXrayForFsa = config.AtomicXrayForFsa;
+            this.CascadeSummingForFsa = config.CascadeSummingForFsa;
+            this.BackscatterForFsa = config.BackscatterForFsa;
+            this.EscapeAndAnnihilationForFsa = config.EscapeAndAnnihilationForFsa;
+            this.PileUpForFsa = config.PileUpForFsa;
+        }
+
+        /// <summary>Снимок для разбора — те же семь полей, что снимает <see cref="FullSpectrumAnalysis.FsaCalculationOptions.FromConfig"/>.</summary>
+        public FullSpectrumAnalysis.FsaCalculationOptions ToOptions()
+        {
+            return new FullSpectrumAnalysis.FsaCalculationOptions
+            {
+                DbLookups = this.DbLookupsForFsa,
+                ChainEquilibrium = this.ChainEquilibrium,
+                AtomicXray = this.AtomicXrayForFsa,
+                CascadeSumming = this.CascadeSummingForFsa,
+                Backscatter = this.BackscatterForFsa,
+                EscapeAndAnnihilation = this.EscapeAndAnnihilationForFsa,
+                PileUp = this.PileUpForFsa,
+            };
+        }
     }
 }

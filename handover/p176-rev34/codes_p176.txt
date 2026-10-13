@@ -1,0 +1,10 @@
+=== сборка П176 2026-09-28 20:43:41 head=024b4e58 merge_head=546841ab ===
+Restore code=0
+Release app code=0 -> bin\Release_p176\
+probes build_all code=0 -> C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p176
+sha256 app  = 6ac92649381d5a87c435e53aec2bf05211ed7da9bd20216f7d24c7a93635629c
+sha256 probe= 6ac92649381d5a87c435e53aec2bf05211ed7da9bd20216f7d24c7a93635629c ; равны: True
+проб .exe в каталоге: 257
+Debug_Codex code=0
+probes build (штатный) code=0
+=== конец 20:50:33 ===

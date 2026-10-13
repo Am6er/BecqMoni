@@ -1,0 +1,7 @@
+BGO    bragg=534.1375142251362 table=534.1
+Lu2O3  bragg=587.1921869868511 table=None
+GSO    bragg=405.4532168557175 table=None
+NaI    bragg=452.00859601715445 table=452.0
+Water  bragg=75.31906809456218 table=75.0
+Al     bragg=187.58000000000004 table=166.0
+LaBr3  bragg=454.49438708306815 table=None

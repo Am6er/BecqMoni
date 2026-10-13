@@ -28,14 +28,12 @@ namespace BecquerelMonitor
             this.imageList1 = new System.Windows.Forms.ImageList(this.components);
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.attachBtn = new System.Windows.Forms.Button();
-            this.clearRoiBtn = new System.Windows.Forms.Button();
             this.clearBgBtn = new System.Windows.Forms.Button();
             this.spectrumSaveBtn = new System.Windows.Forms.Button();
             this.reloadFromConfigBtn = new System.Windows.Forms.Button();
             this.startBtn = new System.Windows.Forms.Button();
             this.stopBtn = new System.Windows.Forms.Button();
             this.clearBtn = new System.Windows.Forms.Button();
-            this.roiConfigComboBox = new System.Windows.Forms.ComboBox();
             this.efficiencyComboBox = new System.Windows.Forms.ComboBox();
             this.clearEfficiencyBtn = new System.Windows.Forms.Button();
             this.efficiencyLbl = new System.Windows.Forms.Label();
@@ -57,8 +55,6 @@ namespace BecquerelMonitor
             this.totalCntLbl = new System.Windows.Forms.Label();
             this.countRateLbl = new System.Windows.Forms.Label();
             this.countRateTextBox = new System.Windows.Forms.TextBox();
-            this.roiConfigEditBtn = new System.Windows.Forms.Button();
-            this.roiConfigLbl = new System.Windows.Forms.Label();
             this.selectBgBtn = new System.Windows.Forms.Button();
             this.bachgroundLbl = new System.Windows.Forms.Label();
             this.textBox1 = new System.Windows.Forms.TextBox();
@@ -92,15 +88,6 @@ namespace BecquerelMonitor
             this.toolTip1.SetToolTip(this.attachBtn, resources.GetString("attachBtn.ToolTip"));
             this.attachBtn.UseVisualStyleBackColor = true;
             this.attachBtn.Click += new System.EventHandler(this.button11_Click);
-            // 
-            // clearRoiBtn
-            // 
-            resources.ApplyResources(this.clearRoiBtn, "clearRoiBtn");
-            this.clearRoiBtn.ImageList = this.imageList1;
-            this.clearRoiBtn.Name = "clearRoiBtn";
-            this.toolTip1.SetToolTip(this.clearRoiBtn, resources.GetString("clearRoiBtn.ToolTip"));
-            this.clearRoiBtn.UseVisualStyleBackColor = true;
-            this.clearRoiBtn.Click += new System.EventHandler(this.button9_Click);
             //
             // clearEfficiencyBtn
             //
@@ -177,15 +164,6 @@ namespace BecquerelMonitor
             this.toolTip1.SetToolTip(this.clearBtn, resources.GetString("clearBtn.ToolTip"));
             this.clearBtn.UseVisualStyleBackColor = true;
             this.clearBtn.Click += new System.EventHandler(this.button7_Click);
-            // 
-            // roiConfigComboBox
-            // 
-            resources.ApplyResources(this.roiConfigComboBox, "roiConfigComboBox");
-            this.roiConfigComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.roiConfigComboBox.FormattingEnabled = true;
-            this.roiConfigComboBox.Name = "roiConfigComboBox";
-            this.toolTip1.SetToolTip(this.roiConfigComboBox, resources.GetString("roiConfigComboBox.ToolTip"));
-            this.roiConfigComboBox.SelectedIndexChanged += new System.EventHandler(this.comboBox2_SelectedIndexChanged);
             // 
             // devConfigComboBox
             // 
@@ -327,18 +305,6 @@ namespace BecquerelMonitor
             this.countRateTextBox.ReadOnly = true;
             this.countRateTextBox.TabStop = false;
             // 
-            // roiConfigEditBtn
-            // 
-            resources.ApplyResources(this.roiConfigEditBtn, "roiConfigEditBtn");
-            this.roiConfigEditBtn.Name = "roiConfigEditBtn";
-            this.roiConfigEditBtn.UseVisualStyleBackColor = true;
-            this.roiConfigEditBtn.Click += new System.EventHandler(this.button4_Click);
-            // 
-            // roiConfigLbl
-            // 
-            resources.ApplyResources(this.roiConfigLbl, "roiConfigLbl");
-            this.roiConfigLbl.Name = "roiConfigLbl";
-            // 
             // selectBgBtn
             // 
             resources.ApplyResources(this.selectBgBtn, "selectBgBtn");
@@ -385,15 +351,11 @@ namespace BecquerelMonitor
             // DCControlPanel
             // 
             resources.ApplyResources(this, "$this");
-            this.Controls.Add(this.clearRoiBtn);
             this.Controls.Add(this.clearBgBtn);
             this.Controls.Add(this.spectrumSaveBtn);
             this.Controls.Add(this.saveWhenFinishedCheckBox);
             this.Controls.Add(this.reloadFromConfigBtn);
             this.Controls.Add(this.groupBox1);
-            this.Controls.Add(this.roiConfigEditBtn);
-            this.Controls.Add(this.roiConfigComboBox);
-            this.Controls.Add(this.roiConfigLbl);
             this.Controls.Add(this.clearEfficiencyBtn);
             this.Controls.Add(this.efficiencyComboBox);
             this.Controls.Add(this.efficiencyLbl);
@@ -438,9 +400,6 @@ namespace BecquerelMonitor
 		System.Windows.Forms.TextBox textBox1;
 		System.Windows.Forms.Label bachgroundLbl;
 		System.Windows.Forms.Button selectBgBtn;
-		System.Windows.Forms.Label roiConfigLbl;
-		System.Windows.Forms.ComboBox roiConfigComboBox;
-		System.Windows.Forms.Button roiConfigEditBtn;
 		System.Windows.Forms.Label efficiencyLbl;
 		System.Windows.Forms.ComboBox efficiencyComboBox;
 		System.Windows.Forms.Button clearEfficiencyBtn;
@@ -453,7 +412,6 @@ namespace BecquerelMonitor
 		System.Windows.Forms.CheckBox saveWhenFinishedCheckBox;
 		System.Windows.Forms.Button spectrumSaveBtn;
 		System.Windows.Forms.Button clearBgBtn;
-		System.Windows.Forms.Button clearRoiBtn;
 		System.Windows.Forms.Button attachBtn;
         private System.Windows.Forms.TextBox deadTimetextBox;
         private System.Windows.Forms.Label deadTimeLbl;

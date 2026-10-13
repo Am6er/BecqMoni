@@ -156,11 +156,60 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public sealed class Branch
         {
             public string Nucid;
+
+            /// <summary>
+            /// (`AMBER134`, П166) Родитель ветви — ключ набора ENSDF «родитель →
+            /// дочь» для <see cref="Walk"/>.
+            /// </summary>
+            public string ParentNucid;
+
+            /// <summary>
+            /// (`AMBER134`, П166 28.09.2026) Схема уровней ветви ПО ОДНОЙ ENSDF —
+            /// набор «родитель → дочь», переходы с полным уходом (γ + конверсия) и
+            /// фотонной долей. Нужна выносу по исключающим ветвям питания
+            /// (<c>FsaCascadeSummer.SurviveAll</c>): условная «каким путём пришли
+            /// на уровень линии» считается внутри ОДНОЙ поставки, и выход линии
+            /// тогда тот же, что у её питателей (прежде обратная условная делила
+            /// совместную на выход линии из другой поставки). Null — набора нет
+            /// или развести наборы нечем; читается лениво, один раз на ветвь.
+            /// </summary>
+            public EnsdfWalk Walk
+            {
+                get
+                {
+                    lock (this.walkGate)
+                    {
+                        if (!this.walkLoaded)
+                        {
+                            // (`AMBER199`) отказ чтения — «не прочитано», а не «набора нет»
+                            int failuresBefore = FsaDatabaseFailures.ThreadCount;
+                            this.walk = EnsdfWalk.Load(this.ParentNucid, this.Nucid);
+                            this.walkLoaded = FsaDatabaseFailures.ThreadCount == failuresBefore;
+                        }
+
+                        return this.walk;
+                    }
+                }
+            }
+
+            readonly object walkGate = new object();
+            EnsdfWalk walk;
+            bool walkLoaded;
             public int Z;
             public int A;
 
-            /// <summary>Доля этой ветви, % (графа `perc` в `decay_chain`).</summary>
+            /// <summary>
+            /// Доля этой ветви, % — столбец <see cref="DecayParentRule.ChainPercColumn"/>
+            /// (`S190`): графа `perc` в `decay_chain`, а у канала «β⁺» — остаток
+            /// прочих ветвей, если он больше записанного.
+            /// </summary>
             public double Perc;
+
+            /// <summary>
+            /// (`S190`) Графа `perc` как записана в `decay_chain` — для слов о
+            /// расхождении поставок (`S187`): у канала «β⁺» это доля позитронов.
+            /// </summary>
+            public double SupplyPerc;
 
             /// <summary>
             /// Канал распада (`dec_type` в `decay_chain`). Держится потому, что
@@ -196,6 +245,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public double BetaPlusShare;
 
             /// <summary>
+            /// (`AMBER100`, П149 24.09.2026) Доля β⁺ ветви УПЁРЛАСЬ в долю самой
+            /// ветви: ΣI(β⁺) канала не меньше `perc` (в пределах округления
+            /// поставки, 0.5 %), и <see cref="BetaPlusShare"/> вышел равным
+            /// единице по построению, а не по данным. Такая доля о разделе
+            /// β⁺/захват ничего не говорит, и приводить к ней доли по уровням
+            /// (<see cref="BetaPlusOfGamma"/>) нельзя — у `119TE` (`perc` 2.06
+            /// при ΣB+ 2.05, ~~`AMBER81`~~) это умножило бы их в полсотни раз.
+            /// </summary>
+            public bool BetaPlusSaturated;
+
+            /// <summary>
             /// Доля β⁺ У КАЖДОЙ ГАММЫ ветви: ключ — энергия линии, значение —
             /// `P(β⁺ | эта гамма испущена)` (`S150`). Пусто — поставка связи
             /// «канал → уровень» для этой ветви не даёт, и потребитель обязан
@@ -213,6 +273,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// </summary>
             public Dictionary<double, double> BetaPlusOfGamma =
                 new Dictionary<double, double>();
+
+            /// <summary>
+            /// (`S188`, П152 24.09.2026) ОБРАТНАЯ сторона той же связи —
+            /// `P(эта гамма испущена | β⁺ этой ветви)` по одной ENSDF: поток
+            /// позитронного питания через уровень, с которого идёт линия, к
+            /// всему позитронному питанию набора, умноженный на долю ФОТОНА
+            /// (`ensdf_gammas.intensity`) в полном уходе с уровня (гамма плюс
+            /// конверсия). Ключ — энергия линии, как у <see cref="BetaPlusOfGamma"/>.
+            ///
+            /// ⛔ ЗАЧЕМ ОТДЕЛЬНО. Сумматор строил обратную условную как
+            /// P(511 | γ)·I(γ)/I(511), и три её сомножителя шли из ДВУХ поставок:
+            /// P(511 | γ) — по уровням ENSDF, выходы I(γ) и I(511) — из
+            /// `decay_radiations`. У 13 родителей базы она выходила больше
+            /// единицы (`44SC` 1.00013, `56CO` 1.0086, `200BI` 1.10, `88NB` 1.03 —
+            /// выход линии 103 % в `decay_radiations`), и работал зажим
+            /// ~~`D49`~~. По одной поставке сумма долей с уровня не больше его
+            /// потока, а поток уровня не больше всего питания — больше единицы
+            /// число не бывает по построению.
+            ///
+            /// ⚠ Ошибается в обе стороны (замер П152): у изомерного уровня, который
+            /// уходит своим распадом, а не переходом набора (`52FE` 377.7 кэВ),
+            /// доля фотона в уходе завышена до единицы, а где питания уровней
+            /// без чисел — поток занижен. Поэтому берётся ТОЛЬКО там, где прежнее
+            /// правило выходит за единицу (<see cref="AnnihilationReverseOfLine"/>).
+            /// NaN — ENSDF интенсивности линии не дала.
+            /// </summary>
+            public Dictionary<double, double> GammaGivenBetaPlus =
+                new Dictionary<double, double>();
+
+            /// <summary>
+            /// (`S188`) Доля β⁺ РОДИТЕЛЯ, приходящаяся на эту ветвь:
+            /// `BetaPlusShare·Perc / ΣI(β⁺)`. Вес ветви в обратной условной.
+            /// </summary>
+            public double BetaPlusOfParent;
 
             /// <summary>
             /// Уровни, достижимые СВЕРХУ ВНИЗ из каждого уровня схемы (`S158`).
@@ -296,8 +390,45 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `152EU`, `44SC`, `22NA`, `88Y`, `65ZN`, `40K` — получают долю по
         /// уровню. Из 123 неразведённых пар поставки позитроны есть у 31, и ни
         /// одной из них корпус не измеряет.
+        ///
+        /// ⛔ (`AMBER122`, П166 28.09.2026) У ПАРЫ ОДНА СОВМЕСТНАЯ ВЕРОЯТНОСТЬ.
+        /// Где обратная условная заменена потоком ENSDF (<c>ReverseOrFallback</c>:
+        /// прежнее правило вышло за единицу — поставки противоречат друг другу),
+        /// прямая берётся ИЗ ТОЙ ЖЕ совместной: P(511 | γ) = I(511)·P(γ | 511)/I(γ).
+        /// Прежде прямая оставалась прежней, и тождество
+        /// I(γ)·P(511 | γ) = I(511)·P(γ | 511) рвалось у всех заменённых линий:
+        /// `161ER` 211.15 −60.9 %, `100AG` 665.7 −30.7 %, `200BI` 462.3 −26.2 %,
+        /// `56CO` 1238.3 −1.0 % (15 линий, `FsaBetaPlusShareProbe --all --identity`).
+        /// Замена только УМЕНЬШАЕТ прямую (совместная не может превышать I(511)), у
+        /// незаменённых линий — побитово прежнее число.
         /// </summary>
         public double AnnihilationQuantaOfLine(GammaLine row)
+        {
+            double forward = this.AnnihilationQuantaSupply(row);
+            if (!(forward > 0.0) || !(this.AnnihilationQuanta > 0.0) || !(row.IntensityPct > 0.0))
+            {
+                return forward;
+            }
+
+            double supply = forward * row.IntensityPct / 100.0 / this.AnnihilationQuanta;
+            if (!(supply > 1.0 + ReverseRounding))
+            {
+                return forward;
+            }
+
+            double reverse = this.ReverseCore(row, false);
+            return reverse > 0.0 && reverse < supply
+                ? reverse * this.AnnihilationQuanta / (row.IntensityPct / 100.0)
+                : forward;
+        }
+
+        /// <summary>
+        /// Прямая по доле β⁺ уровня, как её даёт поставка, — без согласования с
+        /// обратной (`AMBER122`); читают <see cref="AnnihilationQuantaOfLine"/> и
+        /// <c>ReverseOrFallback</c> (прежнее правило двух поставок) и проба
+        /// `FsaBetaPlusShareProbe --formula=supply` (положительный контроль).
+        /// </summary>
+        public double AnnihilationQuantaSupply(GammaLine row)
         {
             if (row == null)
             {
@@ -337,6 +468,147 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             return 0.0;
         }
+
+        /// <summary>
+        /// (`S188`, П152 24.09.2026) ОБРАТНАЯ условная пары «гамма ↔ 511»:
+        /// `P(эта гамма испущена | позитрон родителя)` — то, что сумматор кладёт
+        /// партнёром линии 511 (<c>FsaCascadeSummer.Augment</c>). Прежнее правило
+        /// двух поставок, а где оно выходит за единицу — поток ENSDF
+        /// (<see cref="Branch.GammaGivenBetaPlus"/> с весом ветви
+        /// <see cref="Branch.BetaPlusOfParent"/>, см. <c>ReverseOrFallback</c>); ветвь ищется ТЕМ ЖЕ
+        /// путём, что у прямой <see cref="AnnihilationQuantaOfLine"/>, — у пары
+        /// две стороны, и принадлежать разным ветвям они не могут.
+        ///
+        /// Ноль — пары нет (прямая тоже ноль) либо ENSDF доли не дала.
+        /// </summary>
+        public double AnnihilationReverseOfLine(GammaLine row)
+        {
+            return this.ReverseCore(row, true);
+        }
+
+        /// <summary>
+        /// Тело <see cref="AnnihilationReverseOfLine"/>; <paramref name="count"/> —
+        /// вести ли счётчики замен (`AMBER122`: прямая спрашивает обратную ещё
+        /// раз, и считать замену дважды нельзя — проба печатает счётчик).
+        /// </summary>
+        double ReverseCore(GammaLine row, bool count)
+        {
+            if (row == null)
+            {
+                return 0.0;
+            }
+
+            double value;
+            Branch branch = this.BranchOfLine(row);
+            if (branch != null)
+            {
+                return NearestValue(branch.GammaGivenBetaPlus, row.EnergyKev, out value)
+                    ? this.ReverseOrFallback(row, branch.BetaPlusOfParent, value, count) : 0.0;
+            }
+
+            for (int index = 0; index < this.Branches.Count; index++)
+            {
+                Branch other = this.Branches[index];
+                if (!SameChannel(row.Channel, other.DecType))
+                {
+                    continue;
+                }
+
+                // Та же ветвь, что отдала бы прямую: первая своего канала, у
+                // которой доля по уровню для этой линии нашлась.
+                double share;
+                if (NearestShare(other, row.EnergyKev, out share))
+                {
+                    return NearestValue(other.GammaGivenBetaPlus, row.EnergyKev, out value)
+                        ? this.ReverseOrFallback(row, other.BetaPlusOfParent, value, count) : 0.0;
+                }
+            }
+
+            return 0.0;
+        }
+
+        /// <summary>
+        /// (`S188`, П152 24.09.2026) Обратная условная СТРОКИ: прежнее правило
+        /// P(511 | γ)·I(γ)/I(511) — а там, где оно выходит за единицу, то есть
+        /// поставки противоречат друг другу, — поток ENSDF (<paramref name="value"/>
+        /// с весом ветви <paramref name="weight"/>).
+        ///
+        /// ⛔ ПОЧЕМУ НЕ «ЦЕЛИКОМ ПО ENSDF», КАК ПРОСИЛА СТРОКА, И НЕ «ПОТОК КАК
+        /// ГРАНИЦА». Замер П152 по всем 708 β⁺-родителям базы (6745 линий):
+        ///
+        ///   * чистая ENSDF-обратная расходится с прежней больше чем на 0.05 у 125
+        ///     линий, и у части в десятки раз ВВЕРХ: `52FE` 377.7 кэВ — уровень
+        ///     377.7 есть изомер `52MNm` (21 мин), он уходит в основном СВОИМ
+        ///     β⁺, которого в наборе 52FE→52MN нет переходом, доля фотона в уходе
+        ///     с уровня выходит 1, и обратная — 0.960 против 0.0164 (выход линии
+        ///     1.643 % при β⁺ 56 %);
+        ///   * как ВЕРХНЯЯ граница поток тоже не годится: у 3841 линии он ниже
+        ///     прежнего числа, у 1780 — больше чем на 5 %, у 156 — вдвое и больше
+        ///     (`50MN` 2844 кэВ 0.00019 → 0.000002, `117I` 1302.9 0.0075 → 0.0012):
+        ///     питания уровней в `ensdf_feedings` местами без чисел, и поток
+        ///     через уровень занижен.
+        ///
+        /// То есть поток ENSDF ошибается в обе стороны, а прежнее правило берёт
+        /// оба выхода из той же поставки, что `I(511)`, и ломается только там,
+        /// где выходит за единицу — у 16 линий 13 родителей (`100AG` 1.21,
+        /// `161ER` 1.14, `200BI` 1.10, `44SC` 1.00013; с `AMBER121` П169
+        /// 28.09.2026 — 15 линий 12 родителей: у `161ER` 211.15 кэВ единицу
+        /// переходила ПОТЕРЯ питаний, импорт не читал TI, и после перезаливки
+        /// обратная 0.572 без замены). Там — и только там — оно
+        /// заменяется потоком ENSDF, которому больше единицы не бывать по
+        /// построению; прежде там стоял зажим ~~`D49`~~ ровно в единицу.
+        ///
+        /// ENSDF интенсивности линии не дала вовсе (NaN: `54NI` 937, `61GA` ×3,
+        /// `83Y` 259, `83ZR` 221) — прежнее правило как есть. Счётчики —
+        /// <see cref="ReverseFallbacks"/> и <see cref="ReverseReplaced"/>.
+        /// </summary>
+        double ReverseOrFallback(GammaLine row, double weight, double value, bool count)
+        {
+            // Прямая — ПОСТАВКИ, до согласования (`AMBER122`): согласованная
+            // сама спрашивает обратную, и круг замкнулся бы.
+            double supply = this.AnnihilationQuanta > 0.0
+                ? this.AnnihilationQuantaSupply(row) * row.IntensityPct / 100.0 / this.AnnihilationQuanta
+                : 0.0;
+            // Допуск — округление деления: у `208FR` 635.8 правило даёт
+            // 1.0000000000000002, и это не противоречие поставок.
+            if (!(supply > 1.0 + ReverseRounding))
+            {
+                return supply;
+            }
+
+            if (double.IsNaN(value))
+            {
+                if (count)
+                {
+                    System.Threading.Interlocked.Increment(ref ReverseFallbacks);
+                }
+
+                return supply;
+            }
+
+            if (count)
+            {
+                System.Threading.Interlocked.Increment(ref ReverseReplaced);
+            }
+
+            return weight * value;
+        }
+
+        /// <summary>
+        /// (`S188`) Прежнее правило вышло за единицу, а ENSDF интенсивности
+        /// линии не дала — осталось как есть, дальше зажим `D49` (за процесс,
+        /// для проб).
+        /// </summary>
+        public static int ReverseFallbacks;
+
+        /// <summary>
+        /// (`S188`) Прежнее правило вышло за единицу и заменено потоком ENSDF
+        /// (за процесс, для проб).
+        /// </summary>
+        public static int ReverseReplaced;
+
+        /// <summary>(`S188`) Допуск «за единицей» — тот же, что у пробы `FsaBetaPlusShareProbe`.</summary>
+        const double ReverseRounding = 1.0E-9;
 
         /// <summary>
         /// Ветвь СТРОКИ (`S157`): по её собственному переходу, а не по энергии.
@@ -388,14 +660,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static bool NearestShare(Branch branch, double energyKev, out double share)
         {
             share = 0.0;
-            if (branch == null || branch.BetaPlusOfGamma.Count == 0)
+            return branch != null && NearestValue(branch.BetaPlusOfGamma, energyKev, out share);
+        }
+
+        /// <summary>
+        /// Значение у ближайшей по энергии линии таблицы — допуск
+        /// <see cref="SameGammaKev"/>, как у <see cref="NearestShare"/>.
+        /// </summary>
+        static bool NearestValue(Dictionary<double, double> table, double energyKev, out double share)
+        {
+            share = 0.0;
+            if (table == null || table.Count == 0)
             {
                 return false;
             }
 
             bool found = false;
             double bestDelta = SameGammaKev;
-            foreach (KeyValuePair<double, double> entry in branch.BetaPlusOfGamma)
+            foreach (KeyValuePair<double, double> entry in table)
             {
                 double delta = Math.Abs(entry.Key - energyKev);
                 if (delta >= SameGammaKev || (found && delta >= bestDelta))
@@ -565,6 +847,97 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool Failed;
 
         /// <summary>
+        /// (`S187`, П152 24.09.2026) РАСХОЖДЕНИЯ ПОСТАВОК, КОТОРЫЕ ВИДНЫ В
+        /// ЧИСЛАХ, — для окна отчёта, а не для проб. Та же находка, что и в
+        /// <see cref="Note"/> (там она остаётся дословно, пробы читают её
+        /// оттуда), но СТРУКТУРОЙ: слова собирает окно ресурсами на языке
+        /// интерфейса, а не русская строка базы.
+        ///
+        /// ⛔ Кладётся только расхождение, которое ДВИГАЕТ ЧИСЛО больше
+        /// округления поставки (<see cref="SupplyRounding"/>, в абсолютных
+        /// единицах той величины, о которой речь): доля β⁺ ветви `40K`
+        /// расходится на +1.32 %, но это 1.2·10⁻⁶ распадов ветви, и строка
+        /// «поставки расходятся» у каждого спектра с калием стала бы шумом,
+        /// который перестают читать. Примечание в <see cref="Note"/> пишется,
+        /// как прежде, по относительному порогу.
+        /// </summary>
+        public List<SupplyDiscrepancy> Discrepancies = new List<SupplyDiscrepancy>();
+
+        /// <summary>(`S187`) Какое расхождение поставок сказано.</summary>
+        public enum SupplyDiscrepancyKind
+        {
+            /// <summary>
+            /// Канал «β⁺» (`dec_type` <see cref="BetaPlusModeDecType"/>): `perc` —
+            /// доля позитронов, а не ветви ε+β⁺; ветвь взята всем, что
+            /// оставляют прочие ветви (`S189`).
+            /// </summary>
+            BetaPlusModeWidened,
+
+            /// <summary>`perc` меньше ΣI(β⁺) — прочитан как доля другой моды, ветвь — их сумма (`AMBER81`).</summary>
+            OtherModeWidened,
+
+            /// <summary>ΣI(β⁺) больше, чем оставляют прочие ветви: избыток поставки (`AMBER81`).</summary>
+            BranchExcess,
+
+            /// <summary>ΣI(β⁺) больше доли ветвей — зажато долей ветвей (`S153`).</summary>
+            BetaPlusClamped,
+
+            /// <summary>Доля β⁺ ветви по `decay_radiations` и по ENSDF расходятся (`AMBER100`).</summary>
+            BetaPlusShareMismatch
+        }
+
+        /// <summary>(`S187`) Одно расхождение поставок: кто, в чём и что взято.</summary>
+        public sealed class SupplyDiscrepancy
+        {
+            public SupplyDiscrepancyKind Kind;
+
+            /// <summary>`nucid` родителя.</summary>
+            public string Parent;
+
+            /// <summary>`nucid` дочки (у ветвевых видов — первой ветви канала).</summary>
+            public string Daughter;
+
+            /// <summary>Канал распада (`dec_type`).</summary>
+            public string Channel;
+
+            /// <summary>
+            /// Что дала поставка: доля ветвей `decay_chain.perc`, % — либо
+            /// (<see cref="SupplyDiscrepancyKind.BetaPlusShareMismatch"/>) доля
+            /// β⁺ ветви по `decay_radiations`.
+            /// </summary>
+            public double Supply;
+
+            /// <summary>
+            /// Вторая сторона: ΣI(β⁺) канала, % — либо доля β⁺ ветви по ENSDF.
+            /// </summary>
+            public double Other;
+
+            /// <summary>
+            /// Что взято: доля ветви, % (у зажима — та, которой зажато); у
+            /// расхождения доли β⁺ — относительная разница, %.
+            /// </summary>
+            public double Taken;
+
+            /// <summary>
+            /// Только у <see cref="SupplyDiscrepancyKind.BetaPlusShareMismatch"/>:
+            /// доли по уровням оставлены по ENSDF (ветвь упёрлась в `perc`), а не
+            /// приведены к `decay_radiations`.
+            /// </summary>
+            public bool LevelsKept;
+        }
+
+        /// <summary>
+        /// (`S189`, П152 24.09.2026) Код канала «β⁺» в `decay_chain.dec_type`
+        /// (подпись в `l_decays.decay_label` — «β+»). ENSDF пишет у распада
+        /// ε+β⁺ ДВА числа — «%EC+%B+» и отдельно «%B+», — и поставка местами
+        /// сохранила только второе: у всех девяти строк этого кода в
+        /// `decay_chain` строки «ε+β⁺» (код 1) в ту же дочь своего уровня нет.
+        /// `perc` такой строки — доля ПОЗИТРОНОВ, а не ветви: у `119TE` 2.06 %
+        /// при ε+β⁺ 100 % (LiveChart), у `164TM` 39 при 100.
+        /// </summary>
+        const string BetaPlusModeDecType = DecayParentRule.BetaPlusChannel;
+
+        /// <summary>
         /// Полный выход K-рентгена, % на распад. ⚠ `KB` в
         /// `decay_radiations` — это ИТОГ по Kβ, а не третья линия рядом с
         /// `KpB1` и `KpB2` (`D30`); складывать всё подряд нельзя. Выбор между
@@ -668,6 +1041,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return data;
                 }
 
+                int failuresBefore = FsaDatabaseFailures.ThreadCount;
                 try
                 {
                     data = Build(nucid);
@@ -682,14 +1056,115 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         Failed = true,
                         Note = "отказ базы: " + error.Message
                     };
+                    FsaDatabaseFailures.Note("nucdb.sqlite", nucid, error);
                 }
 
-                Cache[nucid] = data;
+                // ⛔ (`AMBER199`, 05.10.2026) Отказ — исключение здесь, признак
+                // `Failed` (нет базы схем) или отказ вложенного читателя — В КЭШ
+                // НЕ КЛАДЁТСЯ: следующий разбор спросит базу снова.
+                if (data != null && data.Failed && FsaDatabaseFailures.ThreadCount == failuresBefore)
+                {
+                    FsaDatabaseFailures.Note("schemedb.sqlite", nucid, new IOException(data.Note));
+                }
+
+                if (data == null || (!data.Failed && FsaDatabaseFailures.ThreadCount == failuresBefore))
+                {
+                    Cache[nucid] = data;
+                }
+
+                return data;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER146`, П193 01.10.2026) Кэш ядерной части нуклидов, которым
+        /// <see cref="Of"/> отдаёт null («рентгена и β⁺ нет»). Отдельный от
+        /// <see cref="Cache"/> нарочно: у <see cref="Of"/> договор прежний.
+        /// </summary>
+        static readonly Dictionary<string, CascadeAtomicData> NuclearCache =
+            new Dictionary<string, CascadeAtomicData>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// (`AMBER146`, П193 01.10.2026) ЯДЕРНАЯ ЧАСТЬ КАСКАДА — ветви,
+        /// строки выходов и сопоставленные им переходы схемы — даже у нуклида,
+        /// у которого атомных участников нет вовсе. null — нуклид не
+        /// разбирается (нет массы в имени).
+        ///
+        /// ⛔ ЗАЧЕМ ОТДЕЛЬНЫЙ ВХОД. <see cref="Of"/> отдаёт null, когда нет ни
+        /// K-рентгена, ни β⁺: «поправлять нечего» — верно для рентгена, ради
+        /// которого класс заводился. Но угловая корреляция каскада
+        /// (<see cref="AngularCorrelation.ForPair"/>) берёт переходы линий из
+        /// того же объекта, и у Sc-46, Na-24, Mn-56 (в `decay_radiations` ни
+        /// одной строки `X` и `B+`) корреляция молча выключалась: Sc-46
+        /// 889 + 1120 (каскад 4⁺(E2)2⁺(E2)0⁺, как у Co-60) — «изотропно»,
+        /// сумм-пик у арбитра Geant4 на 11 % выше модели (журнал П191).
+        ///
+        /// ⚠ Договор <see cref="Of"/> НЕ меняется, и это не осторожность ради
+        /// осторожности: его читают `FsaCascadeSummer.Augment` (не-null = копия
+        /// данных с выходами `decay_radiations` и записки базы),
+        /// `SupplyDiscrepanciesOf` (расхождения в окне отчёта),
+        /// `FsaSampleLibrary.AnnihilationYieldPercent` (выход 511). Не-null там
+        /// сменил бы поведение у нуклидов, где поправлять по-прежнему нечего.
+        /// Здесь: есть у <see cref="Of"/> данные — отдаются они же (тот же
+        /// объект); нет — строится тот же объект без раннего выхода «рентгена
+        /// нет» и кладётся в свой кэш.
+        /// </summary>
+        public static CascadeAtomicData Nuclear(string nucid)
+        {
+            CascadeAtomicData data = Of(nucid);
+            if (data != null || string.IsNullOrEmpty(nucid))
+            {
+                return data;
+            }
+
+            lock (Gate)
+            {
+                if (NuclearCache.TryGetValue(nucid, out data))
+                {
+                    return data;
+                }
+
+                int failuresBefore = FsaDatabaseFailures.ThreadCount;
+                try
+                {
+                    data = Build(nucid, true);
+                }
+                catch (Exception error)
+                {
+                    data = new CascadeAtomicData
+                    {
+                        Failed = true,
+                        Note = "отказ базы: " + error.Message
+                    };
+                    FsaDatabaseFailures.Note("nucdb.sqlite", nucid, error);
+                }
+
+                // ⛔ (`AMBER199`) тот же запрет, что у `Of`: отказ — не в кэш
+                if (data != null && data.Failed && FsaDatabaseFailures.ThreadCount == failuresBefore)
+                {
+                    FsaDatabaseFailures.Note("schemedb.sqlite", nucid, new IOException(data.Note));
+                }
+
+                if (data == null || (!data.Failed && FsaDatabaseFailures.ThreadCount == failuresBefore))
+                {
+                    NuclearCache[nucid] = data;
+                }
+
                 return data;
             }
         }
 
         static CascadeAtomicData Build(string nucid)
+        {
+            return Build(nucid, false);
+        }
+
+        /// <param name="nuclearOnly">
+        /// (`AMBER146`) true — не выходить ранним null, когда атомных участников
+        /// нет: ядерная часть (ветви, переходы, задержки) нужна угловой
+        /// корреляции и без них. false — прежний ход <see cref="Of"/>, побитово.
+        /// </param>
+        static CascadeAtomicData Build(string nucid, bool nuclearOnly)
         {
             var data = new CascadeAtomicData();
             var notes = new StringBuilder();
@@ -810,9 +1285,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // обходу ряда они нужны как изомерный переход, — а нам они
                 // означали бы «атом сам себе дочерний». В выборку они попадают
                 // у 511 родителей из 2535 и у 123 из них побеждают по `perc`.
+                //
+                // (`S190`, П158 24.09.2026) Доля ветви — столбцом
+                // `DecayParentRule.ChainPercColumn`, общим со всеми читателями
+                // рядов; сырой `perc` держится рядом ради слов о расхождении.
                 command.Parameters.Clear();
                 command.CommandText =
-                    "select daughter_nucid, perc, dec_type from decay_chain d"
+                    "select daughter_nucid, perc, dec_type," + DecayParentRule.ChainPercColumn
+                    + " from" + DecayParentRule.ChainTable + " d"
                     + " where nucid = $n"
                     + DecayParentRule.ChainLevelClause;
                 command.Parameters.AddWithValue("$n", nucid);
@@ -827,11 +1307,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             continue;
                         }
 
-                        double perc;
+                        double supplyPerc;
                         if (string.IsNullOrEmpty(name)
                             || !double.TryParse(reader.IsDBNull(1) ? "" : reader.GetString(1),
                                                 NumberStyles.Float, CultureInfo.InvariantCulture,
-                                                out perc))
+                                                out supplyPerc))
+                        {
+                            supplyPerc = 0.0;
+                        }
+
+                        double perc;
+                        if (string.IsNullOrEmpty(name)
+                            || reader.IsDBNull(3)
+                            || !DecayParentRule.TryPercent(reader.GetValue(3), out perc))
                         {
                             perc = 0.0;
                         }
@@ -854,6 +1342,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 Z = branchZ,
                                 A = branchA,
                                 Perc = perc,
+                                SupplyPerc = supplyPerc,
                                 DecType = reader.IsDBNull(2) ? null : reader.GetString(2)
                             });
                         }
@@ -871,7 +1360,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             // K-серия: Kα целиком плюс ОДНО из двух представлений Kβ.
             data.KLines.AddRange(kAlpha);
-            data.KLines.AddRange(KSeriesRule.Beta(kBetaSplit, kBetaTotal, kBetaSplitSeries.Count));
+            // (`AMBER120`) Та же энергия группы K-M, что у библиотеки образов.
+            data.KLines.AddRange(KSeriesRule.BetaAtGroupEnergy(kBetaSplit, kBetaTotal, kBetaSplitSeries.Count, kAlpha));
             data.KLines.Sort((a, b) => a[0].CompareTo(b[0]));
             data.KIntensityPct = 0.0;
             foreach (double[] kLine in data.KLines)
@@ -895,7 +1385,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             data.AnnihilationQuanta = 2.0 * betaPlusRaw / 100.0;
             data.GammaIntensity = gammaIntensity;
 
-            if (data.KLines.Count == 0 && !(data.AnnihilationQuanta > 0.0))
+            // (`AMBER146`) «Поправлять нечего» — только для атомной части; ход
+            // ядерной (<see cref="Nuclear"/>) идёт дальше.
+            if (data.KLines.Count == 0 && !(data.AnnihilationQuanta > 0.0) && !nuclearOnly)
             {
                 return null;
             }
@@ -905,7 +1397,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 notes.Append("дочерний не определён; ");
                 data.Note = notes.ToString();
-                return data.KLines.Count > 0 || data.AnnihilationQuanta > 0.0 ? data : null;
+                return data.KLines.Count > 0 || data.AnnihilationQuanta > 0.0 || nuclearOnly ? data : null;
             }
 
             MaterialDatabase.Fluorescence fluorescence = MaterialDatabase.FluorescenceOf(z);
@@ -921,7 +1413,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 });
             }
 
-            BetaPlusByBranch(data, betaPlusOf, notes);
+            // (`AMBER134`, П166) Родитель ветви — для ленивой схемы ENSDF.
+            foreach (Branch owned in data.Branches)
+            {
+                owned.ParentNucid = nucid;
+            }
+
+            BetaPlusByBranch(nucid, data, betaPlusOf, notes);
             SplitKLines(data, notes);
 
             // ⛔ ПО ВЕТВЯМ, А НЕ ПО ОДНОЙ (`S145`). У каждой своя схема уровней,
@@ -993,7 +1491,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // (`S150`) Доля β⁺ у каждой гаммы ветви — по населённому
                 // уровню. Читается ПОСЛЕ раздачи гамм: годятся только те
                 // линии, которые этой ветви и достались.
-                LoadBetaPlusOfGamma(nucid, branch, gammaIntensity, notes);
+                LoadBetaPlusOfGamma(nucid, branch, gammaIntensity, notes, data.Discrepancies);
 
                 if (branch.OmegaK > 0.0)
                 {
@@ -1365,7 +1863,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// по зажатым числам: он остаётся маргинальным, потому что это и есть
         /// выход линии в спектре.
         /// </summary>
-        static void BetaPlusByBranch(CascadeAtomicData data,
+        static void BetaPlusByBranch(string nucid, CascadeAtomicData data,
                                      Dictionary<string, double> betaPlusOf,
                                      StringBuilder notes)
         {
@@ -1401,18 +1899,122 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                // ⛔ (`AMBER81`, П149 24.09.2026; решение Amber 24.09.2026
+                // вопросником: «Только код (Рекомендую)» — базу не трогаем)
+                // ДОЛЯ ВЕТВИ НЕ МОЖЕТ БЫТЬ МЕНЬШЕ ПОЗИТРОНОВ ЭТОЙ ВЕТВИ. У части
+                // распадов ε+β⁺ графа `decay_chain.perc` хранит долю ОДНОЙ моды
+                // вместо суммы (сверено с ENSDF: `119I` 49 = доля захвата при
+                // ε+β⁺ 100 и β⁺ 51–55), и тогда ΣB+ поставки выходит больше
+                // `perc`. Прежде такой канал просто зажимался долей ветви: β⁺ в
+                // ветви становилась 100 % (`BetaPlusShare` = 1 вместо 0.55),
+                // партнёр 511 в суммах завышался, а выход линии 511 падал ниже
+                // поставки (`119I` 109.78 → 98.0 %). Теперь `perc` < ΣB+ читается
+                // как доля другой моды: ветвь — их СУММА, но не больше того, что
+                // оставляют ей ПРОЧИЕ ветви родителя (у `152HO` α 12 % — ветви
+                // ε+β⁺ больше 88 % взять неоткуда, и там ΣB+ 89.8 % — избыток
+                // самой поставки, а не одна мода), и расхождение называется
+                // словами в обоих случаях.
+                //
+                // ⚠ Каналы, где ΣB+ > 100 % само по себе (`20NA`, `81Y`, `128LAm`
+                // — поставка даёт позитронов больше, чем распадов), этим правилом
+                // не лечатся и не должны: у них `perc` = 100, сумма упирается в
+                // потолок, и зажим ниже работает как прежде (`S153`, `AMBER69`).
+                // ⛔ (`S189`, П152 24.09.2026) КАНАЛ «β⁺» — ОСОБЫЙ: его `perc` —
+                // доля ПОЗИТРОНОВ, а не ветви ε+β⁺ (<see cref="BetaPlusModeDecType"/>).
+                // Правило `AMBER81` ниже («perc — доля ДРУГОЙ моды, ветвь — их
+                // сумма») здесь неверно по построению: мода та же самая, и
+                // сумма 39 + 41 = 80 у `164TM` — это позитроны, сложенные
+                // дважды, а не ветвь (LiveChart: ε+β⁺ 100 %, β⁺ 39 %). А у
+                // `119TE` (perc 2.06 при ΣB+ 2.05) правило не срабатывало вовсе,
+                // и доля β⁺ ветви выходила 0.995 вместо 0.02. Ветвь такого
+                // канала — всё, что оставляют ей прочие ветви родителя; строки
+                // «ε+β⁺» своего уровня в эту дочь у всех девяти строк кода нет.
+                //
+                // (`S190`, П158 24.09.2026) Остаток берёт уже ЗАПРОС — столбец
+                // `DecayParentRule.ChainPercColumn`, одно правило со всеми
+                // читателями рядов; здесь только слова о расхождении. Прежде
+                // остаток считался тут и лишь при β⁺-строках излучений, и у
+                // `143PM` (β⁺ 5.7·10⁻⁶ %, строк B+ нет) ветвь оставалась
+                // 5.7·10⁻⁶ %, а захватная вакансия при гамме зажималась в 1
+                // вместо 0.828.
+                double supplyBound = 0.0;
+                foreach (Branch branch in own)
+                {
+                    supplyBound += branch.SupplyPerc > 0.0 ? branch.SupplyPerc : 0.0;
+                }
+
+                if (AllOfChannel(own, BetaPlusModeDecType) && bound > supplyBound)
+                {
+                    notes.AppendFormat(CultureInfo.InvariantCulture,
+                        "β⁺ канала {0}: decay_chain.perc {1:F3} % — доля позитронов, а не ветви ε+β⁺;"
+                        + " ветвь взята остатком {2:F3} %; ",
+                        entry.Key, supplyBound, bound);
+                    AddDiscrepancy(data, SupplyDiscrepancyKind.BetaPlusModeWidened, nucid, own,
+                                   entry.Key, supplyBound, entry.Value, bound,
+                                   Math.Abs(bound - supplyBound) >= 100.0 * SupplyRounding);
+                }
+
+                if (entry.Value > bound && bound < 100.0)
+                {
+                    double others = 0.0;
+                    foreach (Branch branch in data.Branches)
+                    {
+                        if (!own.Contains(branch) && branch.Perc > 0.0)
+                        {
+                            others += branch.Perc;
+                        }
+                    }
+
+                    double room = Math.Max(bound, 100.0 - others);
+                    double widened = Math.Min(bound + entry.Value, room);
+                    if (widened > bound)
+                    {
+                        notes.AppendFormat(CultureInfo.InvariantCulture,
+                            "β⁺ канала {0}: доля ветвей decay_chain.perc {1:F3} % меньше ΣI(β⁺) {2:F3} % —"
+                            + " perc прочитан как доля другой моды, ветвь взята суммой {3:F3} %; ",
+                            entry.Key, bound, entry.Value, widened);
+                        AddDiscrepancy(data, SupplyDiscrepancyKind.OtherModeWidened, nucid, own,
+                                       entry.Key, bound, entry.Value, widened,
+                                       Math.Abs(widened - bound) >= 100.0 * SupplyRounding);
+                        foreach (Branch branch in own)
+                        {
+                            if (branch.Perc > 0.0)
+                            {
+                                branch.Perc *= widened / bound;
+                            }
+                        }
+
+                        bound = widened;
+                    }
+                    else
+                    {
+                        notes.AppendFormat(CultureInfo.InvariantCulture,
+                            "β⁺ канала {0}: доля ветвей decay_chain.perc {1:F3} % меньше ΣI(β⁺) {2:F3} %,"
+                            + " а прочие ветви оставляют ей не больше {3:F3} % — избыток поставки, зажато ниже; ",
+                            entry.Key, bound, entry.Value, room);
+                        AddDiscrepancy(data, SupplyDiscrepancyKind.BranchExcess, nucid, own,
+                                       entry.Key, bound, entry.Value, room,
+                                       entry.Value - room >= 100.0 * SupplyRounding);
+                    }
+                }
+
                 double kept = entry.Value;
                 if (kept > bound)
                 {
                     notes.AppendFormat(CultureInfo.InvariantCulture,
                         "β⁺ канала {0}: поставка даёт {1:F3} % при доле ветвей {2:F3} %, зажато; ",
                         entry.Key, kept, bound);
+                    AddDiscrepancy(data, SupplyDiscrepancyKind.BetaPlusClamped, nucid, own,
+                                   entry.Key, bound, kept, bound,
+                                   kept - bound >= 100.0 * SupplyRounding);
                     kept = bound;
                 }
 
                 double share = kept / bound;
+                bool saturated = kept >= bound * (1.0 - SupplyRounding);
                 foreach (Branch branch in own)
                 {
+                    branch.BetaPlusSaturated |= saturated;
                     branch.BetaPlusShare += share;
                     if (branch.BetaPlusShare > 1.0)
                     {
@@ -1429,6 +2031,63 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             data.AnnihilationQuanta = 2.0 * total / 100.0;
+
+            // (`S188`, П152) Доля β⁺ родителя, пришедшаяся на каждую ветвь: вес
+            // ветви в обратной условной P(γ | 511) = w·P(γ | β⁺ ветви).
+            // Знаменатель — ВЕСЬ β⁺ родителя, и непривязанный тоже: он входит в
+            // выход линии 511, а гамм, совпадающих с ним, мы не знаем.
+            foreach (Branch branch in data.Branches)
+            {
+                branch.BetaPlusOfParent = total > 0.0 && branch.Perc > 0.0
+                    ? branch.BetaPlusShare * branch.Perc / total
+                    : 0.0;
+            }
+        }
+
+        /// <summary>(`S189`) Все ли ветви списка — этого канала.</summary>
+        static bool AllOfChannel(List<Branch> own, string decType)
+        {
+            if (own == null || own.Count == 0)
+            {
+                return false;
+            }
+
+            foreach (Branch branch in own)
+            {
+                if (branch.DecType == null
+                    || !string.Equals(branch.DecType.Trim(), decType, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// (`S187`) Положить расхождение поставок для окна отчёта — только
+        /// если оно двигает число (<paramref name="material"/>); см.
+        /// <see cref="Discrepancies"/>.
+        /// </summary>
+        static void AddDiscrepancy(CascadeAtomicData data, SupplyDiscrepancyKind kind, string parent,
+                                   List<Branch> own, string channel, double supply, double other,
+                                   double taken, bool material)
+        {
+            if (!material)
+            {
+                return;
+            }
+
+            data.Discrepancies.Add(new SupplyDiscrepancy
+            {
+                Kind = kind,
+                Parent = parent,
+                Daughter = own != null && own.Count > 0 ? own[0].Nucid : null,
+                Channel = channel,
+                Supply = supply,
+                Other = other,
+                Taken = taken
+            });
         }
 
         /// <summary>
@@ -1547,9 +2206,124 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return (long)away[0][1];
         }
 
+        /// <summary>
+        /// Допуск «одно и то же число двух поставок» (`AMBER100`): расхождение
+        /// в пределах округления оценок — полпроцента, ровно та граница, за
+        /// которой ревизия П143 требует называть расхождение словами.
+        /// </summary>
+        const double SupplyRounding = 0.005;
+
+        /// <summary>
+        /// (`AMBER121`, остаток; П169 28.09.2026) Делить ли питание уровня,
+        /// данное только полным (TI), на β⁺ и захват теорией разрешённого
+        /// перехода (<see cref="AllowedCaptureRatio"/>). Решение Amber
+        /// вопросником, дословно: «Теорией ε/β⁺ по Q (Рекомендую)» — включено;
+        /// выключенное — поведение до П169 (такое питание не видно вовсе),
+        /// рычаг проб (`FsaBetaPlusShareProbe --ti-split=0`).
+        /// </summary>
+        public static bool SplitTotalFeedingByTheory = true;
+
+        /// <summary>Счётчик питаний, разделённых теорией (для проб).</summary>
+        public static int TotalFeedingSplits;
+
+        static bool HasColumn(SqliteCommand command, string table, string column)
+        {
+            string saved = command.CommandText;
+            command.CommandText = "select count(*) from pragma_table_info('" + table + "') where name = $col";
+            command.Parameters.AddWithValue("$col", column);
+            try
+            {
+                return Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture) > 0;
+            }
+            finally
+            {
+                command.Parameters.RemoveAt("$col");
+                command.CommandText = saved;
+            }
+        }
+
+        /// <summary>
+        /// Z и A дочери и энергии связи её атома для <see cref="AllowedCaptureRatio"/>:
+        /// Z — `nucdb.nuclides`, A — число в начале `nucid`, энергии связи —
+        /// `matdb.eadl_binding` (K, L1, M1). Нет чего-то — null, раздел не делается.
+        /// </summary>
+        sealed class TotalSplitContext
+        {
+            int z;
+            int mass;
+            readonly Dictionary<int, double> binding = new Dictionary<int, double>();
+
+            public static TotalSplitContext Load(string daughterNucid)
+            {
+                if (string.IsNullOrEmpty(daughterNucid))
+                {
+                    return null;
+                }
+
+                int digits = 0;
+                while (digits < daughterNucid.Length && char.IsDigit(daughterNucid[digits]))
+                {
+                    digits++;
+                }
+
+                int mass;
+                if (digits == 0 || !int.TryParse(daughterNucid.Substring(0, digits), NumberStyles.Integer,
+                                                 CultureInfo.InvariantCulture, out mass))
+                {
+                    return null;
+                }
+
+                var context = new TotalSplitContext { mass = mass };
+                string nuc = NuclideDatabasePath(), mat = MatterDatabasePath();
+                if (!File.Exists(nuc) || !File.Exists(mat))
+                {
+                    return null;
+                }
+
+                using (SqliteConnection connection = OpenRead(nuc))
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "select z from nuclides where upper(nucid) = $n limit 1";
+                    command.Parameters.AddWithValue("$n", daughterNucid.ToUpperInvariant());
+                    object z = command.ExecuteScalar();
+                    if (z == null || z == DBNull.Value)
+                    {
+                        return null;
+                    }
+
+                    context.z = Convert.ToInt32(z, CultureInfo.InvariantCulture);
+                }
+
+                using (SqliteConnection connection = OpenRead(mat))
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "select shell_id, binding_ev from eadl_binding where z = $z";
+                    command.Parameters.AddWithValue("$z", context.z);
+                    using (SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            if (!reader.IsDBNull(0) && !reader.IsDBNull(1))
+                            {
+                                context.binding[reader.GetInt32(0)] = reader.GetDouble(1) / 1000.0;
+                            }
+                        }
+                    }
+                }
+
+                return context.binding.Count > 0 ? context : null;
+            }
+
+            public double Share(double transitionKev)
+            {
+                return AllowedCaptureRatio.BetaPlusShare(z, mass, transitionKev, binding);
+            }
+        }
+
         static void LoadBetaPlusOfGamma(string parentNucid, Branch branch,
                                         List<GammaLine> gammaIntensity,
-                                        StringBuilder notes)
+                                        StringBuilder notes,
+                                        List<SupplyDiscrepancy> discrepancies)
         {
             if (branch == null || string.IsNullOrEmpty(branch.Nucid)
                 || !(branch.BetaPlusShare > 0.0))
@@ -1574,6 +2348,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var inBeta = new Dictionary<int, double>();
             var inTotal = new Dictionary<int, double>();
             var transitions = new List<double[]>();
+
+            // (`AMBER100`) Прямые питания канала `E` набора: сколько β⁺ и сколько
+            // всего (β⁺ + захват). Их отношение — доля β⁺ ветви ПО ENSDF.
+            double feedBeta = 0.0, feedAll = 0.0;
 
             using (SqliteConnection connection = OpenRead(path))
             using (SqliteCommand command = connection.CreateCommand())
@@ -1634,6 +2412,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 command.Parameters.Clear();
                 command.Parameters.AddWithValue("$s", chosen);
 
+                var levelEnergyKnown = new HashSet<int>();
                 command.CommandText =
                     "select seq, energy_kev from ensdf_levels where dataset_id = $s";
                 using (SqliteDataReader reader = command.ExecuteReader())
@@ -1642,11 +2421,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         levelEnergy[reader.GetInt32(0)] =
                             reader.IsDBNull(1) ? 0.0 : reader.GetDouble(1);
+                        if (!reader.IsDBNull(1))
+                        {
+                            levelEnergyKnown.Add(reader.GetInt32(0));
+                        }
                     }
                 }
 
+                // (`AMBER121`, остаток; П169) Питание, данное только ПОЛНЫМ (TI),
+                // делится на β⁺ и захват теорией разрешённого перехода
+                // (<see cref="AllowedCaptureRatio"/>). Энергия перехода — Q
+                // набора минус энергия уровня: родитель здесь всегда в основном
+                // состоянии (изомер отсечён `IsomerTail` выше), E(родителя) = 0.
+                // База без колонки `intensity_total` (до П169) — как прежде.
+                bool hasTotal = SplitTotalFeedingByTheory && HasColumn(command, "ensdf_feedings", "intensity_total");
+                double qValue = double.NaN;
+                if (hasTotal)
+                {
+                    command.CommandText = "select q_value_kev from ensdf_datasets where id = $s";
+                    object q = command.ExecuteScalar();
+                    if (q != null && q != DBNull.Value)
+                    {
+                        qValue = Convert.ToDouble(q, CultureInfo.InvariantCulture);
+                    }
+                }
+
+                TotalSplitContext split = null;
+                int splitDone = 0, splitSkipped = 0;
+
                 command.CommandText =
                     "select level_seq, kind, intensity, intensity_ec"
+                    + (hasTotal ? ", intensity_total" : "")
                     + " from ensdf_feedings where dataset_id = $s";
                 using (SqliteDataReader reader = command.ExecuteReader())
                 {
@@ -1662,6 +2467,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         double beta = reader.IsDBNull(2) ? 0.0 : reader.GetDouble(2);
                         double capture = reader.IsDBNull(3) ? 0.0 : reader.GetDouble(3);
 
+                        if (hasTotal && kind == "E" && reader.IsDBNull(2) && reader.IsDBNull(3)
+                            && !reader.IsDBNull(4))
+                        {
+                            double total = reader.GetDouble(4);
+                            if (split == null)
+                            {
+                                split = TotalSplitContext.Load(branch.Nucid);
+                            }
+
+                            double share = split != null && !double.IsNaN(qValue)
+                                           && levelEnergyKnown.Contains(seq)
+                                ? split.Share(qValue - levelEnergy[seq])
+                                : double.NaN;
+                            if (double.IsNaN(share))
+                            {
+                                splitSkipped++;
+                            }
+                            else
+                            {
+                                beta = total * share;
+                                capture = total - beta;
+                                splitDone++;
+                                System.Threading.Interlocked.Increment(ref TotalFeedingSplits);
+                            }
+                        }
+
                         double had;
                         inTotal.TryGetValue(seq, out had);
                         inTotal[seq] = had + beta + capture;
@@ -1673,8 +2504,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         {
                             inBeta.TryGetValue(seq, out had);
                             inBeta[seq] = had + beta;
+                            feedBeta += beta;
+                            feedAll += beta + capture;
                         }
                     }
+                }
+
+                if (splitDone > 0 || splitSkipped > 0)
+                {
+                    notes.AppendFormat(CultureInfo.InvariantCulture,
+                        "питаний {0}→{1} только полным (TI): разделено теорией ε/β⁺ {2}, без раздела {3}; ",
+                        parentNucid, branch.Nucid, splitDone, splitSkipped);
                 }
 
                 command.CommandText =
@@ -1704,10 +2544,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             weight = gamma * (1.0 + (alpha > 0.0 ? alpha : 0.0));
                         }
 
+                        // (`S188`) Фотон отдельно от полного ухода: обратной
+                        // условной нужна доля СПЕКТРАЛЬНОЙ линии, а не перехода.
+                        // Нет фотонной графы — полная за вычетом конверсии. Нет
+                        // НИ ТОЙ, НИ ДРУГОЙ (линия в наборе без интенсивности:
+                        // `54NI` 937.1, `61GA` 850.0 — замер П152) — NaN: ENSDF
+                        // обратной не знает, и читатель берёт прежнее правило.
+                        double photon;
+                        if (!reader.IsDBNull(3))
+                        {
+                            photon = reader.GetDouble(3);
+                        }
+                        else if (!reader.IsDBNull(4))
+                        {
+                            double alpha = reader.IsDBNull(5) ? 0.0 : reader.GetDouble(5);
+                            photon = weight / (1.0 + (alpha > 0.0 ? alpha : 0.0));
+                        }
+                        else
+                        {
+                            photon = double.NaN;
+                        }
+
                         transitions.Add(new[]
                         {
                             reader.GetInt32(0), reader.GetInt32(1),
-                            reader.GetDouble(2), weight > 0.0 ? weight : 0.0
+                            reader.GetDouble(2), weight > 0.0 ? weight : 0.0,
+                            double.IsNaN(photon) ? double.NaN : photon > 0.0 ? photon : 0.0
                         });
                     }
                 }
@@ -1795,7 +2657,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    shareOf.Add(new[] { transition[2], share, transition[3] });
+                    // (`S188`) P(γ | β⁺ ветви) по одной ENSDF: поток β⁺ через
+                    // уровень (уже с притоком сверху) × доля фотона в уходе / всё
+                    // позитронное питание набора.
+                    double gammaGivenBeta = double.IsNaN(transition[4])
+                        ? double.NaN
+                        : feedBeta > 0.0 && outTotal > 0.0
+                            ? beta * transition[4] / outTotal / feedBeta
+                            : 0.0;
+                    shareOf.Add(new[] { transition[2], share, transition[3],
+                                        gammaGivenBeta > 1.0 ? 1.0 : gammaGivenBeta });
                     if (!(outTotal > 0.0) || !(all > 0.0))
                     {
                         continue;
@@ -1811,6 +2682,77 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // ⛔ (`AMBER100`, П149 24.09.2026) ДОЛЯ β⁺ ВЕТВИ — ИЗ ОДНОЙ ПОСТАВКИ
+            // НА ОБЕ СТОРОНЫ. Выход линии 511 (<see cref="AnnihilationQuanta"/>)
+            // и доля β⁺ ветви (<see cref="Branch.BetaPlusShare"/>) идут из
+            // `decay_radiations`, а доли по уровням — из `ensdf_feedings`, и это
+            // РАЗНЫЕ оценки: у `22NA` 89.9 % против 90.554 % на 100.056 питания.
+            // Сумматор строит из них обратную условную P(γ | 511) = P(511 | γ) ·
+            // I(γ) / I(511), и у исправного натрия она выходила 1.0060 > 1 —
+            // срабатывал зажим ~~`D49`~~, а сумма 1274 + 511 была на 0.67 %
+            // выше, чем согласуется с выходом самой линии 511.
+            //
+            // ENSDF остаётся тем, что умеет только она, — РАСПРЕДЕЛЕНИЕМ β⁺ по
+            // уровням; ИТОГ ветви берётся у той же поставки, что выход 511:
+            // все доли по уровням умножаются на f_rad / f_ENSDF. У натрия это
+            // 0.899 / 0.90503 = 0.99334: P(511 | 1274) 1.80996 → 1.79789, и
+            // P(1274 | 511) 1.00605 → 0.99934 (замер `FsaBetaPlusShareProbe`); по
+            // одной ENSDF доля β⁺ через уровень 1274 — 90.498 / 90.554 = 0.99938,
+            // остаток — выход 1274 кэВ 99.94 % против питания уровня 100.
+            //
+            // ⚠ Обратная условная больше единицы этим не исчезает ВСЮДУ: у 13
+            // родителей базы из 708 (было 36) она выше 1 по второй причине —
+            // выход линии из `decay_radiations` против потока уровня по ENSDF
+            // (`44SC` 1.00013, `56CO` 1.0086); там работал зажим ~~`D49`~~ со
+            // счётчиком. С `S188` (П152) там, где обратная выходит за единицу,
+            // сумматор берёт поток ENSDF (<see cref="Branch.GammaGivenBetaPlus"/>),
+            // и это приведение его не касается: поток — по одной ENSDF.
+            //
+            // ⚠ Не приводится, когда доля ветви УПЁРЛАСЬ в `perc`
+            // (<see cref="Branch.BetaPlusSaturated"/>): тогда f_rad = 1 по
+            // построению, о разделе β⁺/захват не говорит, и приводить к ней
+            // значило бы перенести дефект `perc` (~~`AMBER81`~~) в доли по
+            // уровням, которые до того были верны. Расхождение поставок больше
+            // полупроцента называется словами в обоих случаях.
+            double scale = 1.0;
+            if (feedAll > 0.0 && feedBeta > 0.0 && branch.BetaPlusShare > 0.0)
+            {
+                double fromFeedings = feedBeta / feedAll;
+                double ratio = branch.BetaPlusShare / fromFeedings;
+                if (Math.Abs(ratio - 1.0) > SupplyRounding)
+                {
+                    notes.AppendFormat(CultureInfo.InvariantCulture,
+                        "доля β⁺ ветви {0}→{1}: decay_radiations {2:F5} против ENSDF {3:F5} ({4:+0.00;-0.00} %), {5}; ",
+                        parentNucid, branch.Nucid, branch.BetaPlusShare, fromFeedings,
+                        100.0 * (ratio - 1.0),
+                        branch.BetaPlusSaturated
+                            ? "доля ветви упёрлась в perc — доли по уровням оставлены по ENSDF"
+                            : "доли по уровням приведены к decay_radiations");
+                    // (`S187`) Человеку — только то, что двигает число: разница
+                    // долей в абсолютных единицах больше округления (у `40K`
+                    // +1.32 % — это 1.2·10⁻⁶ распадов ветви).
+                    if (Math.Abs(branch.BetaPlusShare - fromFeedings) >= SupplyRounding)
+                    {
+                        discrepancies.Add(new SupplyDiscrepancy
+                        {
+                            Kind = SupplyDiscrepancyKind.BetaPlusShareMismatch,
+                            Parent = parentNucid,
+                            Daughter = branch.Nucid,
+                            Channel = branch.DecType,
+                            Supply = branch.BetaPlusShare,
+                            Other = fromFeedings,
+                            Taken = 100.0 * (ratio - 1.0),
+                            LevelsKept = branch.BetaPlusSaturated
+                        });
+                    }
+                }
+
+                if (!branch.BetaPlusSaturated)
+                {
+                    scale = ratio;
+                }
+            }
+
             foreach (GammaLine row in gammaIntensity)
             {
                 if (!SameChannel(row.Channel, branch.DecType))
@@ -1823,6 +2765,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double bestFlux = -1.0;
                 bool found = false;
                 double share = 0.0;
+                double reverse = 0.0;
                 foreach (double[] candidate in shareOf)
                 {
                     double delta = Math.Abs(candidate[0] - energyKev);
@@ -1848,11 +2791,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     bestDelta = delta;
                     bestFlux = candidate[2];
                     share = candidate[1];
+                    reverse = candidate[3];
                 }
 
                 if (found)
                 {
-                    branch.BetaPlusOfGamma[energyKev] = share;
+                    share *= scale;
+                    branch.BetaPlusOfGamma[energyKev] = share > 1.0 ? 1.0 : share;
+                    // (`S188`) Обратная — БЕЗ приведения `scale`: она целиком по
+                    // ENSDF, и итог ветви из другой поставки в неё не входит.
+                    branch.GammaGivenBetaPlus[energyKev] = reverse;
                 }
             }
         }
@@ -2048,8 +2996,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         static SqliteConnection OpenRead(string path)
         {
+            // (`AMBER201`) Строка подключения — построителем, не склейкой:
+            // `;` в имени каталога программы разрезал строку, и база не открывалась.
             SqliteConnection connection = new SqliteConnection(
-                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;");
+                MaterialDatabase.ReadOnlyConnection(path, true));
             connection.Open();
             return connection;
         }
@@ -2312,11 +3262,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             }
                         }
                     }
-                    catch (Exception)
+                    catch (Exception error)
                     {
                         // Нет второй копии — нет и зажима; это не отказ разбора.
-                        energies.Clear();
-                        rows.Clear();
+                        // ⛔ (`AMBER199`) Но отказ ЧТЕНИЯ называется и не
+                        // запоминается: зажим вернётся на следующем разборе.
+                        FsaDatabaseFailures.Note("matdb.sqlite", "Z=" + z.ToString(CultureInfo.InvariantCulture), error);
+                        xs = new double[0];
+                        ys = new double[0][];
+                        return false;
                     }
 
                     xs = energies.ToArray();
@@ -2487,6 +3441,245 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// в <see cref="LoadScheme"/>: E0-переходы записаны в поставке α ≈ 1e20,
         /// и это «γ нет вовсе», а не число.
         /// </summary>
+        /// <summary>
+        /// (`AMBER134`, П166 28.09.2026) СХЕМА УРОВНЕЙ ОДНОГО НАБОРА ENSDF для
+        /// точного выноса из пика. Переход — полный уход с уровня
+        /// (<see cref="Step.Weight"/>: γ·(1 + α)) и его фотонная доля
+        /// (<see cref="Step.Alpha"/>); питание уровня — баланс
+        /// «уход − приход» ТОЙ ЖЕ поставки (гаммы набора), а не графа
+        /// `ensdf_feedings`: у части наборов интенсивности гамм относительные, и
+        /// сложить их с питаниями в процентах распада было бы нельзя, а баланс
+        /// одной графы от нормировки не зависит. У `133BA` баланс уровня 81 кэВ
+        /// даёт 2.4 (графа питаний — 3.0), у 437 и 384 — само питание.
+        /// </summary>
+        public sealed class EnsdfWalk
+        {
+            /// <summary>Переход набора.</summary>
+            public sealed class Step
+            {
+                public int From;
+                public int To;
+                public double EnergyKev;
+
+                /// <summary>Полный уход с уровня по этому переходу: γ·(1 + α).</summary>
+                public double Weight;
+
+                /// <summary>Полный коэффициент конверсии; фотонная доля — 1/(1 + α).</summary>
+                public double Alpha;
+            }
+
+            /// <summary>Переходы набора.</summary>
+            public readonly List<Step> Steps = new List<Step>();
+
+            /// <summary>Уровень → энергия, кэВ.</summary>
+            public readonly Dictionary<int, double> LevelEnergy = new Dictionary<int, double>();
+
+            /// <summary>Уровень → Σ ухода (Σ Weight по выходам).</summary>
+            public readonly Dictionary<int, double> Out = new Dictionary<int, double>();
+
+            /// <summary>Уровень → населённость (питание по балансу плюс приход сверху).</summary>
+            public readonly Dictionary<int, double> Population = new Dictionary<int, double>();
+
+            /// <summary>Уровни по убыванию энергии — порядок хода сверху.</summary>
+            public readonly List<int> Descending = new List<int>();
+
+            /// <summary>Сколько схем прочитано за процесс (для проб).</summary>
+            public static int Loaded;
+
+            /// <summary>
+            /// Переход линии <paramref name="energyKev"/> (допуск <see cref="MatchKev"/>;
+            /// из близких — с большим уходом); null — линии в наборе нет.
+            /// </summary>
+            public Step StepOf(double energyKev)
+            {
+                Step best = null;
+                double bestDelta = MatchKev;
+                foreach (Step step in this.Steps)
+                {
+                    double delta = Math.Abs(step.EnergyKev - energyKev);
+                    if (delta > bestDelta || (best != null && delta == bestDelta && step.Weight <= best.Weight))
+                    {
+                        continue;
+                    }
+
+                    best = step;
+                    bestDelta = delta;
+                }
+
+                return best;
+            }
+
+            /// <summary>
+            /// Набор «родитель → дочь»: один — он; несколько — разводятся
+            /// периодом родителя (то же правило, что у питаний β⁺, `S155`);
+            /// изомер родителя — null (набор уровня родителя не различает).
+            /// </summary>
+            public static EnsdfWalk Load(string parentNucid, string daughterNucid)
+            {
+                if (string.IsNullOrEmpty(parentNucid) || string.IsNullOrEmpty(daughterNucid)
+                    || IsomerTail(parentNucid))
+                {
+                    return null;
+                }
+
+                string path = SchemeDatabasePath();
+                if (!File.Exists(path))
+                {
+                    return null;
+                }
+
+                var walk = new EnsdfWalk();
+                try
+                {
+                    using (SqliteConnection connection = OpenRead(path))
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "select id from ensdf_datasets"
+                            + " where upper(parent_nucid) = $p and upper(nucid) = $d"
+                            + " order by id";
+                        command.Parameters.AddWithValue("$p", parentNucid.ToUpperInvariant());
+                        command.Parameters.AddWithValue("$d", daughterNucid.ToUpperInvariant());
+                        var sets = new List<long>();
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                sets.Add(reader.GetInt64(0));
+                            }
+                        }
+
+                        long chosen = sets.Count == 1 ? sets[0]
+                            : sets.Count > 1 ? ByParentHalfLife(command, parentNucid, sets, new StringBuilder())
+                            : -1L;
+                        if (chosen < 0L)
+                        {
+                            return null;
+                        }
+
+                        command.Parameters.Clear();
+                        command.Parameters.AddWithValue("$s", chosen);
+                        command.CommandText = "select seq, energy_kev from ensdf_levels where dataset_id = $s";
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                walk.LevelEnergy[reader.GetInt32(0)] = reader.IsDBNull(1) ? 0.0 : reader.GetDouble(1);
+                            }
+                        }
+
+                        command.CommandText =
+                            "select from_level_seq, to_level_seq, energy_kev, intensity, total_intensity, conv_coef"
+                            + " from ensdf_gammas where dataset_id = $s";
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                if (reader.IsDBNull(0) || reader.IsDBNull(1) || reader.IsDBNull(2))
+                                {
+                                    continue;
+                                }
+
+                                double alpha = reader.IsDBNull(5) ? 0.0 : Math.Max(0.0, reader.GetDouble(5));
+                                double weight;
+                                if (!reader.IsDBNull(4))
+                                {
+                                    weight = reader.GetDouble(4);
+                                }
+                                else
+                                {
+                                    double gamma = reader.IsDBNull(3) ? 0.0 : reader.GetDouble(3);
+                                    weight = gamma * (1.0 + alpha);
+                                }
+
+                                if (!(weight > 0.0))
+                                {
+                                    continue;
+                                }
+
+                                walk.Steps.Add(new Step
+                                {
+                                    From = reader.GetInt32(0),
+                                    To = reader.GetInt32(1),
+                                    EnergyKev = reader.GetDouble(2),
+                                    Weight = weight,
+                                    Alpha = alpha
+                                });
+                            }
+                        }
+                    }
+                }
+                catch (SqliteException error)
+                {
+                    // (`AMBER199`) отказ назван; ленивая ветвь (`Walk`) его не запомнит
+                    FsaDatabaseFailures.Note("schemedb.sqlite", parentNucid + "→" + daughterNucid, error);
+                    return null;
+                }
+
+                if (walk.Steps.Count == 0)
+                {
+                    return null;
+                }
+
+                walk.Build();
+                System.Threading.Interlocked.Increment(ref Loaded);
+                return walk;
+            }
+
+            /// <summary>
+            /// Уход и населённость уровней: сверху вниз, питание уровня — баланс
+            /// max(0, уход − приход), населённость — питание плюс приход.
+            /// </summary>
+            void Build()
+            {
+                var levels = new HashSet<int>();
+                foreach (Step step in this.Steps)
+                {
+                    levels.Add(step.From);
+                    levels.Add(step.To);
+                    double had;
+                    this.Out.TryGetValue(step.From, out had);
+                    this.Out[step.From] = had + step.Weight;
+                }
+
+                this.Descending.AddRange(levels);
+                this.Descending.Sort(delegate(int a, int b)
+                {
+                    double ea, eb;
+                    this.LevelEnergy.TryGetValue(a, out ea);
+                    this.LevelEnergy.TryGetValue(b, out eb);
+                    int by = eb.CompareTo(ea);
+                    return by != 0 ? by : b.CompareTo(a);
+                });
+
+                var inflow = new Dictionary<int, double>();
+                foreach (int level in this.Descending)
+                {
+                    double came, away;
+                    inflow.TryGetValue(level, out came);
+                    this.Out.TryGetValue(level, out away);
+                    double population = Math.Max(came, away);
+                    this.Population[level] = population;
+                    if (!(away > 0.0))
+                    {
+                        continue;
+                    }
+
+                    foreach (Step step in this.Steps)
+                    {
+                        if (step.From != level)
+                        {
+                            continue;
+                        }
+
+                        double had;
+                        inflow.TryGetValue(step.To, out had);
+                        inflow[step.To] = had + population * step.Weight / away;
+                    }
+                }
+            }
+        }
+
         public sealed class LevelScheme
         {
             /// <summary>Выход уровня: куда, с какой энергией, γ-интенсивность (относительная) и полный α.</summary>
@@ -2570,8 +3763,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         return scheme;
                     }
 
+                    // ⛔ (`AMBER199`) null — «базы нет» или отказ чтения — не
+                    // кэшируется: следующий разбор спросит базу снова.
                     scheme = Read(z, a);
-                    SchemeCache[key] = scheme;
+                    if (scheme != null)
+                    {
+                        SchemeCache[key] = scheme;
+                    }
+
                     return scheme;
                 }
             }
@@ -2629,10 +3828,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception error)
                 {
                     // Отказ чтения — «схемы нет»: потребитель остаётся при доле
                     // поставки и считает такие пары отдельно.
+                    FsaDatabaseFailures.Note("schemedb.sqlite",
+                        "Z=" + z.ToString(CultureInfo.InvariantCulture) + " A=" + a.ToString(CultureInfo.InvariantCulture), error);
                     return null;
                 }
 
@@ -2716,6 +3917,94 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 return best;
+            }
+
+            /// <summary>
+            /// (П197) Один уровень схемы с выходом нужной энергии: сам уровень,
+            /// ближайший выход (<see cref="NearestExit"/>) и его доля
+            /// <see cref="GammaShareOf"/> — посчитанная той же формулой.
+            /// </summary>
+            public struct NearExit
+            {
+                public int Level;
+                public Exit Exit;
+                public double Share;
+            }
+
+            /// <summary>
+            /// (П197) Все уровни схемы с выходом энергии ≈ E — в ПОРЯДКЕ
+            /// <see cref="Levels"/> (по убыванию номера), и указатель «уровень →
+            /// номер в <see cref="Items"/>».
+            /// </summary>
+            public sealed class NearSet
+            {
+                public NearExit[] Items;
+                public Dictionary<int, int> IndexOf;
+
+                /// <summary>Ближайший выход уровня — то же, что <see cref="NearestExit"/> с допуском набора; null — у уровня его нет.</summary>
+                public Exit At(int level, out double share)
+                {
+                    int index;
+                    if (this.IndexOf.TryGetValue(level, out index))
+                    {
+                        share = this.Items[index].Share;
+                        return this.Items[index].Exit;
+                    }
+
+                    share = 0.0;
+                    return null;
+                }
+            }
+
+            /// <summary>(П197) Кэш <see cref="ExitsNear"/>: допуск → энергия → набор.</summary>
+            readonly Dictionary<double, Dictionary<double, NearSet>> nearCache =
+                new Dictionary<double, Dictionary<double, NearSet>>();
+
+            /// <summary>
+            /// (П197, скорость) <see cref="NearestExit"/> ПО ВСЕМ УРОВНЯМ разом,
+            /// один раз на энергию. Ход по паре (`S177`: <c>SchemeThird</c>,
+            /// <c>AboveConditional</c>, <c>LowerCandidates</c>) звал
+            /// <see cref="NearestExit"/> на каждом уровне схемы для каждой тройки
+            /// «пара × третий × источник вакансии», и при доборе слабых линий это
+            /// съедало до 70 % разбора (профиль П196/П197). Набор держит ровно
+            /// то, что отдал бы цикл по <see cref="Levels"/> с пропуском
+            /// уровней без выхода, в том же порядке и с той же долей, — так что
+            /// суммы по нему побитово те же. Схема неизменяема, кэш под замком.
+            /// </summary>
+            public NearSet ExitsNear(double energyKev, double toleranceKev)
+            {
+                lock (this.nearCache)
+                {
+                    Dictionary<double, NearSet> byEnergy;
+                    if (!this.nearCache.TryGetValue(toleranceKev, out byEnergy))
+                    {
+                        this.nearCache[toleranceKev] = byEnergy = new Dictionary<double, NearSet>();
+                    }
+
+                    NearSet set;
+                    if (byEnergy.TryGetValue(energyKev, out set))
+                    {
+                        return set;
+                    }
+
+                    var items = new List<NearExit>();
+                    var index = new Dictionary<int, int>();
+                    foreach (int level in this.descending)
+                    {
+                        Exit exit = this.NearestExit(level, energyKev, toleranceKev);
+                        if (exit == null)
+                        {
+                            continue;
+                        }
+
+                        index[level] = items.Count;
+                        items.Add(new NearExit { Level = level, Exit = exit, Share = this.GammaShareOf(level, exit) });
+                    }
+
+                    set = new NearSet { Items = items.ToArray(), IndexOf = index };
+                    byEnergy[energyKev] = set;
+                    return set;
+                }
             }
 
             /// <summary>Выход уровня <paramref name="fromSeq"/> НА уровень <paramref name="toSeq"/>; null — такого перехода с γ в схеме нет. (`S177`)</summary>

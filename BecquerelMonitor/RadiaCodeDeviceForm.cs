@@ -225,11 +225,25 @@ namespace BecquerelMonitor
             RadiaCodeDeviceConfig radiaCodeInputDevice = (RadiaCodeDeviceConfig)inputConfig;
             this.config = radiaCodeInputDevice;
             this.DeviceSerial = radiaCodeInputDevice.DeviceSerial;
+            // ⛔ `AMBER165`, 05.10.2026. Список адресов и выбранный индекс — от
+            //    ПРОШЛОГО поиска, и форма одна на все конфигурации RadiaCode в
+            //    окне настроек. Без сброса здесь `SaveFormContents` писал в
+            //    конфигурацию B адрес прибора, выбранного поиском в конфигурации
+            //    A (`adressBLE.ElementAt(currentBLEindex)`): серийник свой, адрес
+            //    чужой — и набор шёл с чужого прибора. Сброс перенесён из
+            //    `ObsidianDeviceForm.LoadFormContents`, где он стоял давно.
+            this.adressBLE.Clear();
+            this.currentBLEindex = -1;
             if (this.DeviceSerial != null)
             {
                 comboBox1.Items.Clear();
                 comboBox1.Items.Add(this.DeviceSerial);
                 comboBox1.SelectedIndex = 0;
+                if (!string.IsNullOrWhiteSpace(radiaCodeInputDevice.AddressBLE))
+                {
+                    this.adressBLE.Add(radiaCodeInputDevice.AddressBLE);
+                    this.currentBLEindex = 0;
+                }
                 this.troubleShootbtn.Enabled = true;
             }
             TroubleshootText.Clear();

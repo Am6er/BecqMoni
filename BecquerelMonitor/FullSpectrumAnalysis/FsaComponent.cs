@@ -17,10 +17,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     public sealed class FsaLine
     {
         public FsaLine(string nuclide, double energy, double intensity)
+            : this(nuclide, energy, intensity, 0.0)
+        {
+        }
+
+        /// <summary>
+        /// (`AMBER54`, П127 22.09.2026) Линия с известной аннигиляционной
+        /// частью выхода — см. <see cref="AnnihilationIntensity"/>.
+        /// </summary>
+        public FsaLine(string nuclide, double energy, double intensity, double annihilationIntensity)
         {
             this.Nuclide = nuclide ?? "";
             this.Energy = energy;
             this.Intensity = intensity;
+            this.AnnihilationIntensity = annihilationIntensity > 0.0 ? annihilationIntensity : 0.0;
         }
 
         public string Nuclide { get; private set; }
@@ -28,6 +38,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double Energy { get; private set; }
 
         public double Intensity { get; private set; }
+
+        /// <summary>
+        /// (`AMBER54`, П127 22.09.2026) Часть выхода <see cref="Intensity"/>,
+        /// пришедшая АННИГИЛЯЦИЕЙ позитронов родителя (`2·ΣI(β⁺)`, % на распад;
+        /// библиотека кладёт её на 511 кэВ — <c>FsaSampleLibrary.DecayLines</c>);
+        /// 0 — линия целиком гамма или рентген. Гамма и аннигиляция одной
+        /// энергии лежат в ОДНОЙ линии (правило `S161`), и её гамма-часть —
+        /// разность <see cref="Intensity"/> − <see cref="AnnihilationIntensity"/>.
+        /// Читает гейт свободного образа `Ann-511`
+        /// (<c>FsaAnalyzer.AnnihilationGate</c>): столкновение с гаммой состава
+        /// и своя аннигиляционная линия нуклида — два разных случая, и по одной
+        /// энергии их не различить. Имени нуклида признак не несёт: кто β⁺ —
+        /// говорит база.
+        /// </summary>
+        public double AnnihilationIntensity { get; private set; }
     }
 
     /// <summary>
@@ -224,6 +249,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// самого себя.
         /// </summary>
         public double[] FixedTemplate { get; set; }
+
+        /// <summary>
+        /// (`AMBER123`, П166 28.09.2026) ВЕРХНЯЯ ГРАНИЦА АМПЛИТУДЫ колонки в её
+        /// собственных единицах; NaN — границы нет (умолчание: всякая колонка
+        /// прежняя, побитово). Ставится колонке наложений — число пар не может
+        /// превышать N·R·τ_d (окно наложения не длиннее мёртвого времени на
+        /// импульс, посылка `AMBER76`). Фит, получив амплитуду выше границы,
+        /// закрепляет её на границе и решает остальное заново
+        /// (<c>FsaAnalyzer.FitOnce</c>).
+        /// </summary>
+        public double AmplitudeCap { get; set; } = double.NaN;
 
         /// <summary>
         /// Суммарный выход ВСЕХ излучений нуклида (γ и X) на его СОБСТВЕННЫЙ

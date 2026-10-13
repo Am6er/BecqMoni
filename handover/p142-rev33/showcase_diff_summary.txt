@@ -1,0 +1,50 @@
+строк расхождений разобрано: 419
+
+спектр                   режим             строк медиана%   макс|%|
+ASN16_Cs137_house        infer_eq             57     1.19    114.83
+ASN16_Cs137_house        infer_eq_peak        47     1.47    112.96
+ASN16_Cs137_house        infer_eq_compt       48     1.47    112.96
+AS80_Th232_disk          infer_eq             56     2.91     75.53
+ASN16_Radon_filter2      chain_eq             60     1.84     58.49
+ASN16_Radon_filter2      chain_noeq           31     0.19      3.57
+G1S24_Rn222Coal_eq01     sample_eq            60     2.05     18.12
+G1S24_Rn222Coal_eq01     sample_noeq          60     1.83     62.01
+
+--- крупнейшие 20 по |Δ %| ---
+спектр                 режим          полоса         строка               эталон        стало      Δ %
+ASN16_Cs137_house      infer_eq       0-30 кэВ       pile-up              31.491       67.651 +114.83
+ASN16_Cs137_house      infer_eq       0-30 кэВ       continuum_raw     24196.125    51527.307 +112.96
+ASN16_Cs137_house      infer_eq_peak  0-30 кэВ       continuum_raw     24196.125    51527.307 +112.96
+ASN16_Cs137_house      infer_eq_compt 0-30 кэВ       continuum_raw     24196.125    51527.307 +112.96
+AS80_Th232_disk        infer_eq       30-100 кэВ     Xray-Th            9182.932    16119.200  +75.53
+ASN16_Cs137_house      infer_eq_compt 100-300 кэВ    Xray-Pb              18.757       30.994  +65.24
+G1S24_Rn222Coal_eq01   sample_noeq    30-100 кэВ     tail                  0.279        0.452  +62.01
+ASN16_Radon_filter2    chain_eq       300-700 кэВ    Pb-212               20.035        8.317  -58.49
+AS80_Th232_disk        infer_eq       100-300 кэВ    Xray-Th            4031.947     6319.632  +56.74
+ASN16_Radon_filter2    chain_eq       700-1500 кэВ   Bi-212               23.423       12.464  -46.79
+ASN16_Cs137_house      infer_eq_compt 0-30 кэВ       Xray-Pb           86245.597    45929.950  -46.75
+ASN16_Cs137_house      infer_eq       0-30 кэВ       Xray-Pb           86494.576    46432.238  -46.32
+ASN16_Radon_filter2    chain_eq       700-1500 кэВ   Ac-228              136.051       74.587  -45.18
+ASN16_Radon_filter2    chain_eq       300-700 кэВ    Rn-220                0.649        0.369  -43.14
+ASN16_Cs137_house      infer_eq       30-100 кэВ     missing_fit      748675.590   491172.193  -34.39
+ASN16_Cs137_house      infer_eq       30-100 кэВ     missing_net      748675.590   491172.193  -34.39
+ASN16_Cs137_house      infer_eq_peak  30-100 кэВ     missing_fit      748675.590   491172.193  -34.39
+ASN16_Cs137_house      infer_eq_peak  30-100 кэВ     missing_net      748675.590   491172.193  -34.39
+ASN16_Cs137_house      infer_eq_compt 30-100 кэВ     missing_fit      748675.590   491172.193  -34.39
+ASN16_Cs137_house      infer_eq_compt 30-100 кэВ     missing_net      748675.590   491172.193  -34.39
+
+--- по СТРОКЕ (какая величина ездит) ---
+   continuum_raw      строк   40  медиана |Δ|   1.83 %  макс  112.96 %
+   excess_fit         строк   40  медиана |Δ|   1.52 %  макс   24.97 %
+   excess_net         строк   40  медиана |Δ|   1.52 %  макс   32.57 %
+   missing_fit        строк   40  медиана |Δ|   1.57 %  макс   34.39 %
+   missing_net        строк   38  медиана |Δ|   1.57 %  макс   34.39 %
+   model              строк   38  медиана |Δ|   0.12 %  макс   11.83 %
+   Pb-212             строк   20  медиана |Δ|   0.97 %  макс   58.49 %
+   Tl-208             строк   19  медиана |Δ|   5.66 %  макс   16.52 %
+   tail               строк   15  медиана |Δ|   4.90 %  макс   62.01 %
+   Ra-224             строк   15  медиана |Δ|   0.79 %  макс   16.15 %
+   Cs-137             строк   14  медиана |Δ|   0.53 %  макс    9.50 %
+   Bi-212             строк   14  медиана |Δ|   3.92 %  макс   46.79 %
+   Xray-Pb            строк   12  медиана |Δ|  16.14 %  макс   65.24 %
+   Rn-220             строк   11  медиана |Δ|   1.62 %  макс   43.14 %

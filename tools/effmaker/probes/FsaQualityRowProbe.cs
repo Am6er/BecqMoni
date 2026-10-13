@@ -58,8 +58,6 @@ namespace FsaQualityRowProbe
             // ⛔ ОБЕ карты примитивов ROI — ДО ЛЮБОГО менеджера-одиночки
             // (`T60`): ресурсы и палитра менеджеров не трогают, но сеанс —
             // класс приложения, и дорога к одиночкам у него есть.
-            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             Text();
             Chain();

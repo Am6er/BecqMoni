@@ -105,8 +105,6 @@ static class RestCultureProbeF47
         }
 
         // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`).
-        ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
-        ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
         Header();
 

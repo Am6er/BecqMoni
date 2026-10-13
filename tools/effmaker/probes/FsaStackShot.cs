@@ -45,7 +45,7 @@ namespace FsaStackShot
     ///                [--rates=rates.csv] [--screen] [--shield=82,74] [--tie=0.9] [--tie-lines]
     ///                [--plant-tail] [--plant-spread] [--tail-as-residual] [--tail-to-continuum] [--plant-grey-floor]
     ///                [--no-limit] [--limit-z=1000] [--matrix-layer=All|Peak|Compton|EscapeAnnihilation|
-    ///                 EscapeXrayK|EscapeAnnihilationDouble|EscapeXrayL]
+    ///                 EscapeXrayK|EscapeAnnihilationDouble|EscapeXrayL|AnnihilationOutside]
     ///
     /// `--matrix-layer=` (`AMBER45`, П104 18.09.2026) — положение комбо «Matrix
     /// layer» окна отчёта: «All» (умолчание — стопка как есть, снимок побитово
@@ -777,13 +777,44 @@ namespace FsaStackShot
                 analyzer.UntiedTailAsResidual = true;
             }
 
+            // (`AMBER123`/`AMBER124`/`AMBER134`, П166 28.09.2026) Плечи стенда
+            // полосы — переменной окружения `BQ_FSA_LEVERS="Имя=0|1;…"` (булевы
+            // свойства анализатора, отражением): витрина зовёт пробу сторожем, и
+            // ключ командной строки до неё не доедет. Читатель — строка
+            // `FsaTuningReport.Print` («Имя True → False»); незнакомое имя — отказ.
+            string levers = Environment.GetEnvironmentVariable("BQ_FSA_LEVERS");
+            if (!string.IsNullOrEmpty(levers))
+            {
+                foreach (string item in levers.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    string[] kv = item.Split('=');
+                    System.Reflection.PropertyInfo lever = kv.Length == 2
+                        ? typeof(FsaAnalyzer).GetProperty(kv[0].Trim()) : null;
+                    if (lever == null || lever.PropertyType != typeof(bool) || !lever.CanWrite
+                        || (kv[1].Trim() != "0" && kv[1].Trim() != "1"))
+                    {
+                        Console.Error.WriteLine("BQ_FSA_LEVERS: не понято «{0}» (ждали Имя=0|1 булева свойства FsaAnalyzer)", item);
+                        return 2;
+                    }
+
+                    lever.SetValue(analyzer, kv[1].Trim() == "1", null);
+                    Console.WriteLine("SETUP\tBQ_FSA_LEVERS {0} = {1}", lever.Name, kv[1].Trim());
+                }
+            }
+
             FsaTuningReport.Print(analyzer);
             FsaResult result = analyzer.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
                                                 rd.FwhmCalibration,
                                                 library, FsaEfficiency.FromConfig(rd.Efficiency));
             if (result == null)
             {
-                Console.Error.WriteLine("разложение не получилось");
+                // (`A312`) Отказ называет причину и её числа — тем же признаком,
+                // что читает сеанс приложения (`FsaAnalyzer.Refusal`): до
+                // 21.09.2026 «разложение не получилось» стояло на семь разных
+                // бед, и какая из них сработала на `Am-241` Amber, было нечем
+                // измерить.
+                Console.Error.WriteLine("разложение не получилось: {0}{1}", analyzer.Refusal,
+                                        analyzer.RefusalNote != null ? " — " + analyzer.RefusalNote : "");
                 return 1;
             }
 
@@ -1566,9 +1597,9 @@ namespace FsaStackShot
                     // строки могли бы разойтись с картинкой.
                     foreach (XPTable.Models.Row row in report.ReportTable.TableModel.Rows)
                     {
-                        string name = row.Cells.Count > 1 && row.Cells[1] != null ? row.Cells[1].Text : "";
-                        string value = row.Cells.Count > 2 && row.Cells[2] != null ? row.Cells[2].Text : "";
-                        string hint = row.Cells.Count > 1 && row.Cells[1] != null ? row.Cells[1].ToolTipText : "";
+                        string name = row.Cells.Count > 0 && row.Cells[0] != null ? row.Cells[0].Text : "";
+                        string value = row.Cells.Count > 1 && row.Cells[1] != null ? row.Cells[1].Text : "";
+                        string hint = row.Cells.Count > 0 && row.Cells[0] != null ? row.Cells[0].ToolTipText : "";
                         Console.WriteLine("SCREEN\t{0}\t{1}\t{2}", name ?? "", value ?? "",
                                           string.Equals(hint, name, StringComparison.Ordinal) ? "" : (hint ?? ""));
                     }

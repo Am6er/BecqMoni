@@ -88,6 +88,22 @@ namespace BecquerelMonitor
             }
             set
             {
+                // AMBER177: (int)NaN = int.MinValue, и ProgressBar.Value бросал
+                // ArgumentOutOfRangeException; NaN != NaN — бросок на каждом
+                // обновлении панели. Не-конечное — в ноль, остальное — в пределы
+                // полосы, раз base.Value принимает только [Minimum, Maximum].
+                if (double.IsNaN(value) || double.IsInfinity(value))
+                {
+                    value = 0.0;
+                }
+                if (value < (double)base.Minimum)
+                {
+                    value = (double)base.Minimum;
+                }
+                if (value > (double)base.Maximum)
+                {
+                    value = (double)base.Maximum;
+                }
                 if (this.doubleValue != value)
                 {
                     this.doubleValue = value;

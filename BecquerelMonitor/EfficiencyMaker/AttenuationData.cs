@@ -36,6 +36,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// Массовый коэффициент ослабления элемента, см2/г, лог-лог
         /// интерполяцией. За краями таблицы держится крайнее значение.
+        ///
+        /// ⛔ (`AMBER74`, П132 22.09.2026) СУММОЙ КАНАЛОВ, а не прямой по сумме
+        /// в узлах: см. <see cref="PartialCrossSections.MassTotal"/> — там и
+        /// довод, и числа. Прежняя строка была
+        /// `MaterialDatabase.Interpolate(… element.Total, element.LogTotal …)`.
         /// </summary>
         public static double MassAttenuation(int z, double energyKev)
         {
@@ -53,8 +58,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             // С готовыми логарифмами (`T43`): значения в таблице не меняются,
             // а брать от них логарифм на каждый вызов — четыре из пяти вызовов
             // `Math.Log` в самой горячей точке счёта.
-            return MaterialDatabase.Interpolate(element.EnergyKev, element.LogEnergyKev,
-                                                element.Total, element.LogTotal, energyKev);
+            int lo, hi;
+            if (element.EnergyKev == null
+                || !MaterialDatabase.Bracket(element.EnergyKev, energyKev, out lo, out hi))
+            {
+                return 0.0;
+            }
+
+            return PartialCrossSections.MassTotal(element, lo, hi, energyKev,
+                                                  Math.Log(energyKev));
         }
     }
 }

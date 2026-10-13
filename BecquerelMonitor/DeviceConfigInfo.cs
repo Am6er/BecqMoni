@@ -327,18 +327,6 @@ namespace BecquerelMonitor
             }
         }
 
-        public string EfficencyROIGuid
-        {
-            get
-            {
-                return this.efficencyROIGuid;
-            }
-            set
-            {
-                this.efficencyROIGuid = value;
-            }
-        }
-
         /// <summary>
         /// ВЕЩЕСТВО КРИСТАЛЛА — ссылка на вещество библиотеки по его имени
         /// (`A276`, решение Amber 06.09.2026: «поле в конфигурации прибора,
@@ -381,12 +369,36 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// (`AMBER155` (в), П220 02.10.2026) КРИВИЗНА ТРАКТА ПРИБОРА, 1/МэВ:
+        /// насколько тракт (ФЭУ, АЦП) отходит от прямой «свет → канал» —
+        /// c = c₀ + v·(1 + κ·L/1000), L — свет в кэВ. Плюс — растягивает
+        /// большие амплитуды, минус — сжимает (насыщение ячеек кремниевого
+        /// ФЭУ). Нуль — тракт прямой; это и умолчание, и состояние старых
+        /// конфигураций, где элемента нет. Читает его только разбор FSA с
+        /// прямой картой и матрицей отклика (<c>FsaAnalyzer.AdcTractCurvature</c>).
+        /// Свойство ПРИБОРА, а не вещества: у двух NaI G1S растяжение
+        /// измерено сумм-пиками без модели света (≈ +0.0023…+0.0026 1/МэВ,
+        /// журнал П218 §3), у CsI оно разное у трёх приборов одного вещества.
+        /// </summary>
+        public double TractCurvature
+        {
+            get
+            {
+                return this.tractCurvature;
+            }
+            set
+            {
+                this.tractCurvature = value;
+            }
+        }
+
+        /// <summary>
         /// Кривые эффективности этого прибора. Их может быть много: один и тот
         /// же кристалл меряют и в маринелли, и точечным источником, и на пяти
         /// сантиметрах — это разные геометрии и разные кривые, а прибор один.
         ///
         /// Раньше кривая лежала секцией в ROI-конфиге, а прибор ссылался на неё
-        /// через <see cref="EfficencyROIGuid"/> — одной штукой на прибор и в
+        /// через <c>EfficencyROIGuid</c> (снято 07.10.2026) — одной штукой на прибор и в
         /// чужой сущности.
         /// </summary>
         public List<EfficiencyConfigData> EfficiencyConfigs
@@ -526,17 +538,13 @@ namespace BecquerelMonitor
                     //    заново может любой читатель, у которого человек есть, —
                     //    так и устроен `DocumentManager.WhyNoFwhmCalibration`.
                     //    Отсутствие кривой у копии — законное состояние
-                    //    (~~`A212`~~), о нём говорят двери открытия и ввоза
+                    //    (~~`A212`~~), о нём говорят двери открытия и импорта
                     //    (~~`A234`~~) и показывает вкладка ПШПВ
                     //    (`DCFwhmCalibrationView.ApplyFwhmRefusalHint`).
                     fwhmConfig.FwhmCalibration = FwhmCalibration.DefaultCalibration(fwhmConfig, energyCalibration);
                 }
             }
             this.backgroundSpectrumPathname = string.Copy(info.backgroundSpectrumPathname);
-            if (info.efficencyROIGuid != null)
-            {
-                this.efficencyROIGuid = string.Copy(info.efficencyROIGuid);
-            }
             // Копия ГЛУБОКАЯ, как и всё выше. Форма конфигураций правит не
             // объект менеджера, а его копию (ListupConfigFiles кладёт Clone() в
             // строку таблицы), и общий список означал бы, что правка кривой
@@ -556,6 +564,8 @@ namespace BecquerelMonitor
             // выше стоит у полей, которые декомпилятор так и оставил, и заводить
             // его у нового поля значило бы копировать привычку, а не смысл.
             this.crystalMaterialName = info.crystalMaterialName;
+            // (`AMBER155` (в), П220) кривизна тракта
+            this.tractCurvature = info.tractCurvature;
         }
 
         // Token: 0x06000C26 RID: 3110 RVA: 0x0004854C File Offset: 0x0004674C
@@ -682,8 +692,6 @@ namespace BecquerelMonitor
         // Token: 0x040007A2 RID: 1954
         string backgroundSpectrumPathname = "";
 
-        string efficencyROIGuid;
-
         List<EfficiencyConfigData> efficiencyConfigs = new List<EfficiencyConfigData>();
 
         string activeEfficiencyGuid;
@@ -693,5 +701,8 @@ namespace BecquerelMonitor
         // элемент не трогает вовсе, поле остаётся с инициализатором. Замерено
         // пробой `CrystalMaterialProbe` (плечо «старый конфиг»).
         string crystalMaterialName = "";
+
+        /// <summary>(`AMBER155` (в), П220) Кривизна тракта, 1/МэВ; 0 — прямой.</summary>
+        double tractCurvature;
     }
 }

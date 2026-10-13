@@ -137,7 +137,7 @@ namespace BecquerelMonitor
         /// ⛔ ПОЧЕМУ НЕ <c>AppUi.Report</c>. Голос о том, что у спектра нет
         /// модели разрешения, УЖЕ звучит — один раз на файл, у общей двери
         /// <c>DocumentManager.ReportMissingFwhmCalibration</c> (~~`A234`~~,
-        /// открытие, создание и оба ввоза). Этот же вид обновляется на КАЖДОЕ
+        /// открытие, создание и оба импорта). Этот же вид обновляется на КАЖДОЕ
         /// событие: смену документа, смену спектра, правку калибровки, выбор
         /// пика — <c>MainForm.UpdateFwhmCalibrationView</c> зовут девять мест.
         /// Модальное окно отсюда значило бы не «ещё один читатель», а второй,
@@ -378,7 +378,10 @@ namespace BecquerelMonitor
             }
             else
             {
-                selectedItemIndex = 0;
+                // (`AMBER201`, мелочь 4.10, 05.10.2026) Без выделенной строки НИЧЕГО
+                // не удаляется — как в панели энергии (полоса fixcal). Прежде здесь
+                // стоял 0, и «Удалить» молча снимало первую опору кривой.
+                selectedItemIndex = -1;
             }
             if (selectedItemIndex < 0 || selectedItemIndex >= fwhmCalibration.CalibrationPeaks.Count)
             {
@@ -410,29 +413,19 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.ERRDeviceConfigNotSelected, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
                 return;
             }
-            // ⛔ СНИМОК КАЛИБРОВКИ ДОКУМЕНТА (`A2`), и он не про запас.
-            // `PerformCalibration` ниже кладёт ответ решателя В ТОТ ЖЕ объект,
-            // на который смотрит документ: поле вида — ССЫЛКА на
-            // `ActiveResultData.FwhmCalibration` (`UpdateFwhmCalibration`, где
-            // оно присваивается без клона). То есть к моменту записи спектр уже
-            // пересчитан по новой кривой, и сорвись запись — человек остался бы
-            // с новой калибровкой в спектре при старой в приборе, ничем об этом
-            // не извещённый.
-            FwhmCalibration previousDocumentCalibration =
-                activeDocument.ActiveResultData.FwhmCalibration != null
-                    ? activeDocument.ActiveResultData.FwhmCalibration.Clone()
-                    : null;
-            if (!fwhmCalibration.PerformCalibration(activeDocument.ActiveResultData.EnergySpectrum.Spectrum.Length))
+            // ⛔ ПОДГОНЯЕТСЯ КОПИЯ (`AMBER189` (а), 05.10.2026; прежде — снимок `A2`).
+            // `PerformCalibration` кладёт ответ решателя в объект ДО проверки, а поле
+            // вида — ССЫЛКА на `ActiveResultData.FwhmCalibration`. Теперь решатель
+            // пишет в копию, документ и прибор получают её только после проверки и
+            // записи, — отказ и сорванная запись документа не касаются вовсе.
+            FwhmCalibration fitted = FitCopyOrRefuse(activeDocument.ActiveResultData);
+            if (fitted == null)
             {
-                // Подгонка не сошлась — вернуть документу прежнюю кривую:
-                // решатель успел записать в неё свой ответ ещё до проверки.
-                activeDocument.ActiveResultData.FwhmCalibration = previousDocumentCalibration;
-                MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
             FWHMPeakDetectionMethodConfig peakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig) deviceConfig.PeakDetectionMethodConfig;
             FwhmCalibration previousDeviceCalibration = peakDetectionMethodConfig.FwhmCalibration;
-            peakDetectionMethodConfig.FwhmCalibration = fwhmCalibration.Clone();
+            peakDetectionMethodConfig.FwhmCalibration = fitted.Clone();
             // ⛔ ОТВЕТ МЕНЕДЖЕРА ЧИТАЕТСЯ (`A2`). Прежде он выбрасывался, и
             // калибровка применялась ВСЕГДА: человек видел окно с ошибкой и тут
             // же — что калибровка встала, хотя на диск не легло ничего. При
@@ -443,13 +436,81 @@ namespace BecquerelMonitor
             if (!DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig))
             {
                 peakDetectionMethodConfig.FwhmCalibration = previousDeviceCalibration;
-                activeDocument.ActiveResultData.FwhmCalibration = previousDocumentCalibration;
                 MessageBox.Show(Resources.ERRCalibrationNotSavedToDevice, Resources.ErrorDialogTitle,
                                 MessageBoxButtons.OK, MessageBoxIcon.Hand);
                 return;
             }
-            activeDocument.ActiveResultData.FwhmCalibration = fwhmCalibration.Clone();
+            activeDocument.ActiveResultData.FwhmCalibration = fitted.Clone();
+            // Поле вида — снова ссылка на кривую документа (прежде оно и было ею,
+            // и подгонка шла прямо в него).
+            fwhmCalibration = activeDocument.ActiveResultData.FwhmCalibration;
+            UpdateData();
             mainForm.UpdateDeviceConfigForm();
+        }
+
+        /// <summary>
+        /// Подгонка кривой ПШПВ в КОПИЮ поля вида (`AMBER189` (а), 05.10.2026).
+        /// Возвращает подогнанную копию или <c>null</c> после окна отказа.
+        ///
+        /// Прежде «Рассчитать» звал <c>PerformCalibration</c> на самом поле, а поле —
+        /// ссылка на кривую документа: решатель писал коэффициенты ДО проверки, и
+        /// отказ оставлял их в документе. Замер ревизии: опоры (300; 30) и (600; 28)
+        /// → окно ошибки, в документе <c>[1016, −0.38667]</c>, ПШПВ = 0 выше канала
+        /// 2628, поиск пиков там слеп. Образец — «Рассчитать» панели энергии
+        /// (полоса fixcal, <c>DCEnergyCalibrationView.button7_Click</c>).
+        ///
+        /// Отказ «ширина ≤ 0 на нижних каналах» — с ПОДСКАЗКОЙ взять степенную
+        /// кривую (решение Amber 05.10.2026, вопросником, дословно: «Отвергать с
+        /// подсказкой (Рекомендую)»). Окно — через <c>AppUi.Report</c>: метод лежит
+        /// на пути, который пробы зовут отражением.
+        /// </summary>
+        FwhmCalibration FitCopyOrRefuse(ResultData resultData)
+        {
+            int channels = resultData.EnergySpectrum.Spectrum.Length;
+            FwhmCalibration fitted = fwhmCalibration.Clone();
+            bool ok;
+            try
+            {
+                ok = fitted.PerformCalibration(channels);
+            }
+            catch (ArgumentException)
+            {
+                // Решатель MathNet бросает на негодной системе (широкая, не
+                // положительно определённая) — это тот же отказ, а не падение.
+                ok = false;
+            }
+            if (ok)
+            {
+                return fitted;
+            }
+            if (fitted.LastCheck == FwhmCalibration.FwhmCheckResult.NonPositiveWidth)
+            {
+                // Неубывающая кривая с нулём внизу: нулевая полоса — каналы 0…last.
+                int last = -1;
+                while (last + 1 < channels && !(fitted.ChannelToFwhm(last + 1) > 0.0))
+                {
+                    last++;
+                }
+                last = Math.Max(last, 0);
+                EnergyCalibration energyCalibration = resultData.EnergySpectrum.EnergyCalibration;
+                string energy = energyCalibration != null
+                    ? energyCalibration.ChannelToEnergy((double)last).ToString("f1", CultureInfo.InvariantCulture)
+                    : "?";
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRFwhmNonPositiveWidth,
+                                           last.ToString(CultureInfo.InvariantCulture), energy),
+                             Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+            }
+            else if (fitted.LastCheck == FwhmCalibration.FwhmCheckResult.NotFinite)
+            {
+                // (`AMBER189` (б)) Вырожденный решатель — прежде такая кривая
+                // ПРИНИМАЛАСЬ, и ПШПВ = NaN уходила на все каналы и в файл.
+                AppUi.Report(Resources.ERRFwhmNotFinite, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+            }
+            else
+            {
+                AppUi.Report(Resources.CalibrationFunctionError, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+            }
+            return null;
         }
 
         private void AddPeakButton_Click(object sender, EventArgs e)
@@ -536,18 +597,19 @@ namespace BecquerelMonitor
 
         private void ExecuteCalibrationButton_Click(object sender, EventArgs e)
         {
-            if (!fwhmCalibration.PerformCalibration(mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum.Length))
+            // (`AMBER189` (а)) Решатель пишет в КОПИЮ; документ получает её только
+            // после проверки — отказ кривую документа не трогает.
+            FwhmCalibration fitted = FitCopyOrRefuse(mainForm.ActiveDocument.ActiveResultData);
+            if (fitted == null)
             {
-                // TODO нужно будет добавить обработку плохой калибровки
-                MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
-            if (HasPeakShapeComparisonData(fwhmCalibration.CalibrationPeaks))
+            if (HasPeakShapeComparisonData(fitted.CalibrationPeaks))
             {
-                SelectGlobalPeakShape(fwhmCalibration.CalibrationPeaks);
+                SelectGlobalPeakShape(fitted, fitted.CalibrationPeaks);
             }
 
-            mainForm.ActiveDocument.ActiveResultData.FwhmCalibration = fwhmCalibration.Clone();
+            mainForm.ActiveDocument.ActiveResultData.FwhmCalibration = fitted;
             mainForm.ActiveDocument.Dirty = true;
             calibrationDone = true;
             UpdateFwhmCalibration();
@@ -556,7 +618,7 @@ namespace BecquerelMonitor
             mainForm.ActiveDocument.UpdateEnergySpectrum();
         }
 
-        void SelectGlobalPeakShape(List<CalibrationPeak> peaks)
+        void SelectGlobalPeakShape(FwhmCalibration target, List<CalibrationPeak> peaks)
         {
             const int TailSteps = 50;
             int peakCount = peaks.Count;
@@ -668,27 +730,27 @@ namespace BecquerelMonitor
                 }
             }
 
-            fwhmCalibration.PeakType = peakType;
-            fwhmCalibration.ExpGaussExpLeftTail = 1.0;
-            fwhmCalibration.ExpGaussExpRightTail = 1.0;
-            fwhmCalibration.VoigtSigma = 1.0;
-            fwhmCalibration.VoigtGamma = 1.0;
-            fwhmCalibration.GaussianChi2Total = hasGaussian ? gaussianChi2 : -1.0;
-            fwhmCalibration.ExpGaussExpChi2Total = bestExpGaussExpCandidate >= 0 ? expGaussExpChi2 : -1.0;
-            fwhmCalibration.VoigtChi2Total = bestVoigtCandidate >= 0 ? voigtChi2 : -1.0;
-            fwhmCalibration.Chi2pNdp = selectedNdp > 0 && !Double.IsInfinity(selectedChi2)
+            target.PeakType = peakType;
+            target.ExpGaussExpLeftTail = 1.0;
+            target.ExpGaussExpRightTail = 1.0;
+            target.VoigtSigma = 1.0;
+            target.VoigtGamma = 1.0;
+            target.GaussianChi2Total = hasGaussian ? gaussianChi2 : -1.0;
+            target.ExpGaussExpChi2Total = bestExpGaussExpCandidate >= 0 ? expGaussExpChi2 : -1.0;
+            target.VoigtChi2Total = bestVoigtCandidate >= 0 ? voigtChi2 : -1.0;
+            target.Chi2pNdp = selectedNdp > 0 && !Double.IsInfinity(selectedChi2)
                 ? selectedChi2 / selectedNdp
                 : 0.0;
 
             if (peakType == FwhmCalibration.ExpGaussExpPeakType)
             {
-                fwhmCalibration.ExpGaussExpLeftTail = (bestExpGaussExpCandidate / TailSteps + 1) * 0.1;
-                fwhmCalibration.ExpGaussExpRightTail = (bestExpGaussExpCandidate % TailSteps + 1) * 0.1;
+                target.ExpGaussExpLeftTail = (bestExpGaussExpCandidate / TailSteps + 1) * 0.1;
+                target.ExpGaussExpRightTail = (bestExpGaussExpCandidate % TailSteps + 1) * 0.1;
             }
             else if (peakType == FwhmCalibration.VoigtPeakType)
             {
-                fwhmCalibration.VoigtSigma = (bestVoigtCandidate / TailSteps + 1) * 0.1;
-                fwhmCalibration.VoigtGamma = (bestVoigtCandidate % TailSteps + 1) * 0.1;
+                target.VoigtSigma = (bestVoigtCandidate / TailSteps + 1) * 0.1;
+                target.VoigtGamma = (bestVoigtCandidate % TailSteps + 1) * 0.1;
             }
 
             ShowGlobalPeakFitComparisonTable(
@@ -1043,7 +1105,12 @@ namespace BecquerelMonitor
                     else
                     {
                         peaksDict.Add(peak.Channel, peak.FWHM);
-                        activeResultData.FwhmCalibration.CalibrationPeaks.Add(peak);
+                        // (`AMBER201`, подозрение полосы 4, 05.10.2026) В документ —
+                        // КОПИЯ опоры. Прежде клался тот же объект, что у документа-
+                        // источника, и правка ПШПВ точки здесь молча меняла кривую
+                        // ДРУГОГО спектра (и наоборот).
+                        activeResultData.FwhmCalibration.CalibrationPeaks.Add(
+                            CalibrationPeak.ClonePeaks(new List<CalibrationPeak> { peak })[0]);
                         mainForm.ActiveDocument.Dirty = true;
                         calibrationDone = false;
                     }
@@ -1064,7 +1131,7 @@ namespace BecquerelMonitor
             // .EnergyCalibration.Clone()` первой же строкой, а спектр без шкалы
             // энергии приложение производит штатно (`A95`: `EnergySpectrum.Clone`
             // ради этого отказывает СЛОВАМИ, `CheckDocument` без поправок судит
-            // такой документ негодным, а ввозные двери при ответе «Нет» уходят
+            // такой документ негодным, а импортные двери при ответе «Нет» уходят
             // `return`-ом из void, оставляя документ ОТКРЫТЫМ). Измерено полосой
             // О22: при кривой ПШПВ на месте и пустой энергокалибровке дверь
             // доходила до `Init` и валила чужой класс —

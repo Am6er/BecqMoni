@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Reflection;
 
 namespace AmplitudaUsbTests
@@ -36,7 +37,7 @@ namespace AmplitudaUsbTests
             for (int i = 0; i < args.Length; i++)
             {
                 if (args[i] == "--dump" && i + 1 < args.Length) T.DumpPath = args[++i];
-                else if (args[i] == "--live" && i + 1 < args.Length) liveSeconds = int.Parse(args[++i]);
+                else if (args[i] == "--live" && i + 1 < args.Length) liveSeconds = int.Parse(args[++i], CultureInfo.InvariantCulture);
             }
             if (liveSeconds > 0) return RunLive(liveSeconds);
 

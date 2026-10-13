@@ -75,7 +75,7 @@ namespace BecquerelMonitor
         /// <summary>
         /// Путь портативной раскладки. Замыкающий разделитель СОХРАНЯЕТСЯ:
         /// половина потребителей склеивает имя файла простым сложением строк
-        /// (<c>ROIConfigManager</c>, <c>DeviceConfigManager</c>), и <c>ROI\</c>
+        /// (<c>DeviceConfigManager</c>), и <c>device\</c>
         /// без хвостового слэша дал бы им путь в соседний каталог.
         /// </summary>
         static string Local(string relative)
@@ -176,7 +176,7 @@ namespace BecquerelMonitor
         /// <summary>
         /// Библиотека веществ конструктора геометрий (E20). Лежит рядом с
         /// остальной конфигурацией, одним файлом: веществ десятки, а не сотни,
-        /// и разносить их по файлам, как ROI, незачем.
+        /// и разносить их по файлам, как приборы, незачем.
         /// </summary>
         public string GeometryMaterials
         {
@@ -208,30 +208,6 @@ namespace BecquerelMonitor
                     return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\GeometryTemplates.xml";
                 }
                 return Local("config\\GeometryTemplates.xml");
-            }
-        }
-
-        public string ROI
-        {
-            get
-            {
-                if (!IsStandAlone)
-                {
-                    return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\ROI\\";
-                }
-                return Local("config\\ROI\\");
-            }
-        }
-
-        public string ROIDir
-        {
-            get
-            {
-                if (!IsStandAlone)
-                {
-                    return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\ROI";
-                }
-                return Local("config\\ROI");
             }
         }
 

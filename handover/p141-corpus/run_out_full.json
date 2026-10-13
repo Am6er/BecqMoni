@@ -1,0 +1,20 @@
+{
+ "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
+ "corpus": "38bfb1a0d18517ce9763d322f907ab2e68b35fa0288ddb320c89f38be32b532b",
+ "corpus_dir": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\corpus",
+ "corpus_files": 215,
+ "dirty": [],
+ "fields": {
+  "app_sha": "67891a865fbdd3fb2a900fb644e4d2b8fece470dbc2968ed6ed8f10508d31a6b",
+  "bin": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\BecquerelMonitor\\bin\\Release_p141",
+  "keys": "",
+  "probe_sha": "117c763f8c9c8fe557dad988e1d15d0f3a001704d394f7824aed74fe8a018fd7",
+  "probes": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\effmaker\\probes\\build_p141",
+  "store": "",
+  "wd": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\scripts\\wd_p141"
+ },
+ "head": "b6f103df0cb2310ad41381840235ea3338e7c1b7",
+ "sources": "48c20fca0c23cb2c9f9b575f3439a9ba1d7fe5c2b4686051aca12d18d3046d0c",
+ "sources_files": 559,
+ "written": "2026-09-23 08:33:07"
+}
