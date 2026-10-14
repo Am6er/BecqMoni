@@ -205,7 +205,7 @@
     <value>Показать континуум с пиками</value>
   </data>
   <data name="ShowFsaToolStripMenuItem.Text" xml:space="preserve">
-    <value>Показать полноспектральное разложение</value>
+    <value>Показать FSA (полноспектральное разложение)</value>
   </data>
   <data name="NormByEffToolStripMenuItem.Text" xml:space="preserve">
     <value>Показать нормализованный по эффективности спектр</value>
