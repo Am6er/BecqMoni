@@ -61,10 +61,20 @@ namespace BecquerelMonitor
 
         /// <summary>
         /// (`A246`) Имя слоя состава, ВЫБРАННОГО в таблице отчёта; null —
-        /// выбора нет. Ставит окно отчёта (<see cref="FSAReportView"/>), читает
+        /// выбора нет. Ставит окно отчёта (<see cref="FSAReportView"/>), с
+        /// 06.10.2026 и окно результата (<see cref="DCResultView"/>), читает
         /// только отрисовка лент.
         /// </summary>
         string fsaHighlight;
+
+        /// <summary>
+        /// (П287) Зажигает ли <see cref="fsaHighlight"/> вместе со слоем своего имени
+        /// ВЕСЬ СВЯЗАННЫЙ РЯД (слои с <see cref="FsaStackLayer.ChainRoot"/> = имени).
+        /// Ставит окно результата (строка «Th-232 — ряд» — активность ряда целиком),
+        /// окно отчёта — нет: его строка — свой слой. Подробно — у
+        /// <see cref="SetFsaHighlight"/>.
+        /// </summary>
+        bool fsaHighlightWholeChain;
 
         /// <summary>
         /// (`A248`) Показывать ли ЛЕНТУ НЕВЯЗКИ поверх состава; ставит галочка
@@ -264,6 +274,9 @@ namespace BecquerelMonitor
         /// кривая и ни одно число от выделения не меняются — меняется ТОЛЬКО
         /// краска. Поэтому здесь не сбрасывается ни снимок представления, ни
         /// кадровые массивы, и пересчёт не заказывается: одна перерисовка.
+        ///
+        /// (П287) Сеттер — выбор строки ОКНА ОТЧЁТА: горит РОВНО слой этого имени,
+        /// ряд за ним не тянется (<see cref="SetFsaHighlight"/> с <c>false</c>).
         /// </summary>
         internal string FsaHighlight
         {
@@ -274,15 +287,50 @@ namespace BecquerelMonitor
 
             set
             {
-                string next = string.IsNullOrEmpty(value) ? null : value;
-                if (string.Equals(this.fsaHighlight, next, StringComparison.Ordinal))
-                {
-                    return;
-                }
-
-                this.fsaHighlight = next;
-                this.Invalidate();
+                this.SetFsaHighlight(value, false);
             }
+        }
+
+        /// <summary>
+        /// (П287) Горит ли с <see cref="FsaHighlight"/> весь связанный ряд — только
+        /// для чтения; ставится вместе с именем через <see cref="SetFsaHighlight"/>.
+        /// </summary>
+        internal bool FsaHighlightWholeChain
+        {
+            get
+            {
+                return this.fsaHighlightWholeChain;
+            }
+        }
+
+        /// <summary>
+        /// (П287) Выделить слой состава: <paramref name="layer"/> — имя слоя
+        /// (<see cref="FsaStackLayer.Name"/>), null — снять выделение;
+        /// <paramref name="wholeChain"/> — зажечь вместе с ним весь связанный ряд,
+        /// корнем которого он назван (слои с <see cref="FsaStackLayer.ChainRoot"/> =
+        /// <paramref name="layer"/>).
+        ///
+        /// Решение Amber 14.10.2026 вопросником, дословно: «В отчёте — только лента
+        /// корня: как до ночи — в отчёте строка ряда зажигает ленту Th-232, остальное
+        /// гаснет; окно результата — весь ряд.» Строка ОТЧЁТА — один слой стека, и
+        /// зажигает она ровно свою ленту (<c>false</c>, сеттер
+        /// <see cref="FsaHighlight"/>); строка ОКНА РЕЗУЛЬТАТА «Th-232 — ряд» —
+        /// активность ряда целиком, и горит весь ряд (<c>true</c>, П260). Различает их
+        /// только вызывающий: имя у строки ряда и у слоя корня одно.
+        /// </summary>
+        internal void SetFsaHighlight(string layer, bool wholeChain)
+        {
+            string next = string.IsNullOrEmpty(layer) ? null : layer;
+            bool chain = next != null && wholeChain;
+            if (string.Equals(this.fsaHighlight, next, StringComparison.Ordinal)
+                && this.fsaHighlightWholeChain == chain)
+            {
+                return;
+            }
+
+            this.fsaHighlight = next;
+            this.fsaHighlightWholeChain = chain;
+            this.Invalidate();
         }
 
         /// <summary>
@@ -861,16 +909,20 @@ namespace BecquerelMonitor
             // 99.89 % ряда гасло. `ChainRoot` стоит только у членов связанного
             // ряда (у одиночки и свободного члена — null), поэтому выбор
             // одиночки ряд не зацепит, а член по своему имени горит, как прежде.
-            // ⚠ Имя слоя корня совпадает с именем ряда: строка «Th-232 — ряд»
-            // окна отчёта (слой самого корня) тоже зажигает теперь весь ряд.
+            // (П287, решение Amber 14.10.2026 «В отчёте — только лента корня») Связка
+            // ряда — ТОЛЬКО когда о ней просили (`fsaHighlightWholeChain`, окно
+            // результата). Имя слоя корня совпадает с именем ряда, и строка
+            // «Th-232 — ряд» ОКНА ОТЧЁТА (слой самого корня) после П260 зажигала весь
+            // ряд; отчёт просит без связки — горит ровно своя лента, как до П260.
             string highlight = this.fsaHighlight;
+            string chainRoot = this.fsaHighlightWholeChain ? highlight : null;
             bool muting = false;
             if (highlight != null)
             {
                 for (int k = 0; k < stack.Count; k++)
                 {
                     if (string.Equals(stack[k].Name, highlight, StringComparison.Ordinal)
-                        || string.Equals(stack[k].ChainRoot, highlight, StringComparison.Ordinal))
+                        || (chainRoot != null && string.Equals(stack[k].ChainRoot, chainRoot, StringComparison.Ordinal)))
                     {
                         muting = true;
                         break;
@@ -886,7 +938,7 @@ namespace BecquerelMonitor
                     Color color = this.fsaPresentation.ColorOf(stack[k].Name);
                     bool muted = muting
                         && !string.Equals(stack[k].Name, highlight, StringComparison.Ordinal)
-                        && !string.Equals(stack[k].ChainRoot, highlight, StringComparison.Ordinal);
+                        && !(chainRoot != null && string.Equals(stack[k].ChainRoot, chainRoot, StringComparison.Ordinal));
                     Color painted = muted ? MuteFsaColor(color) : Color.FromArgb(230, color);
                     using (Brush brush = new SolidBrush(painted))
                     {

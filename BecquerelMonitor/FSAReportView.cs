@@ -2358,13 +2358,18 @@ namespace BecquerelMonitor
         /// Сказать графику, что выделено. ⛔ Ничего, кроме краски, это не
         /// меняет: ни расчёта, ни представления, ни группировки — поэтому
         /// заказа пересчёта здесь нет и не будет.
+        ///
+        /// (П287) Строка отчёта — один слой стека, и горит ровно его лента: решение
+        /// Amber 14.10.2026 «В отчёте — только лента корня» — строка «Th-232 — ряд»
+        /// зажигает ленту самого Th-232, остальной ряд гаснет. Весь ряд зажигает
+        /// окно результата (<see cref="DCResultView"/>), не отчёт.
         /// </summary>
         void PushHighlight()
         {
             if (this.document != null && !this.document.IsDisposed
                 && this.document.EnergySpectrumView != null)
             {
-                this.document.EnergySpectrumView.FsaHighlight = this.selectedLayer;
+                this.document.EnergySpectrumView.SetFsaHighlight(this.selectedLayer, false);
             }
         }
 
