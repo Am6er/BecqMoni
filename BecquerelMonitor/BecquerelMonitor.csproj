@@ -1049,6 +1049,9 @@
       <DependentUpon>EnergySpectrumView.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="EnergySpectrumView.ru.resx">
+      <DependentUpon>EnergySpectrumView.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="GlobalConfigForm.resx">
       <DependentUpon>GlobalConfigForm.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -1057,8 +1060,10 @@
       <DependentUpon>GlobalConfigForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="InputDeviceForm.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>InputDeviceForm.Designer.cs</LastGenOutput>
+      <DependentUpon>InputDeviceForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="InputDeviceForm.ru.resx">
       <DependentUpon>InputDeviceForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">

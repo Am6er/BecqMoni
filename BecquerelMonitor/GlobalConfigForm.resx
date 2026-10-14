@@ -8140,7 +8140,7 @@
     <value>label90</value>
   </data>
   <data name="autoSaveDefaultPolicyCheckBox.Text" xml:space="preserve">
-    <value>Enable AutoSave by default in opened or new spectrums</value>
+    <value>Enable AutoSave by default in opened or new spectra</value>
   </data>
   <data name="label8.Size" type="System.Drawing.Size, System.Drawing">
     <value>65, 13</value>
@@ -8284,7 +8284,7 @@
     <value>button4</value>
   </data>
   <data name="importSpectrumWithEmptyConfigCheckBox.Text" xml:space="preserve">
-    <value>Set empty configuration for imported spectrums</value>
+    <value>Set empty configuration for imported spectra</value>
   </data>
   <data name="saveResponseMatrixInSpectrumCheckBox.Text" xml:space="preserve">
     <value>Save response matrix into spectrum file</value>

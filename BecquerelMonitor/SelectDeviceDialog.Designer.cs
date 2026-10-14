@@ -69,6 +69,8 @@
             this.Controls.Add(this.ApplyBtn);
             this.Controls.Add(this.DeviceListcomboBox);
             this.Controls.Add(this.SelectDeviceLbl);
+            this.AcceptButton = this.ApplyBtn;
+            this.CancelButton = this.CancelBtn;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;

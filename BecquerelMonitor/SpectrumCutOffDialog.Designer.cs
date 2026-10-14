@@ -103,6 +103,9 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.energytextBox);
             this.Controls.Add(this.energyradioButton);
+            this.AcceptButton = this.button1;
+            this.CancelButton = this.button2;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "SpectrumCutOffDialog";

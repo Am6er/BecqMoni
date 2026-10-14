@@ -136,7 +136,7 @@
     <value>&amp;Файл CSV</value>
   </data>
   <data name="cSVFileToolStripMenuItem.Text" xml:space="preserve">
-    <value>CSV (Channel,Counts) Файл</value>
+    <value>Файл CSV (канал, отсчёты)</value>
   </data>
   <data name="expertLayoutToolStripMenuItem.Text" xml:space="preserve">
     <value>Экспертный режим</value>
@@ -298,10 +298,10 @@
     <value>С&amp;корость счёта</value>
   </data>
   <data name="cSVEnFileToolStripMenuItem.Text" xml:space="preserve">
-    <value>CSV (Energy,Counts) Файл</value>
+    <value>Файл CSV (энергия, отсчёты)</value>
   </data>
   <data name="SpecUtilsToolStripMenuItem.Text" xml:space="preserve">
-    <value>Импорт при помощи SpectUtils..</value>
+    <value>Импорт через SpecUtils...</value>
   </data>
   <data name="EffCalcMCFileToolStripMenuItem.Text" xml:space="preserve">
     <value>ЛСРМ EffCalcMC.txt → ROI</value>

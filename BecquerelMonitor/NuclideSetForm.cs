@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System.Globalization;
 using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using Windows.UI.Notifications;
 using XPTable.Models;
@@ -30,6 +31,11 @@ namespace BecquerelMonitor
 
             this.mainForm = mainForm;
             this.Icon = Resources.becqmoni;
+            // (П316, Н1) Подпись пустой таблицы изотопов — из ресурса формы
+            // («Выберите набор слева»); при выбранном наборе таблица пуста только
+            // от фильтра, и подпись меняется на свою (UpdateTableNuclides).
+            this.noSetSelectedText = this.tableNuclides.NoItemsText;
+            this.TakeOpeningSnapshot();
             this.UpdateTableNuclides();
             this.RenderTableSets();
         }
@@ -39,7 +45,13 @@ namespace BecquerelMonitor
             this.tableNuclides.SuspendLayout();
             this.tableModelNuclides.Rows.Clear();
             this.nuclideManager.NuclideDefinitions.Sort();
-            
+            if (this.noSetSelectedText != null)
+            {
+                this.tableNuclides.NoItemsText = this.selectedSet == null
+                    ? this.noSetSelectedText
+                    : Resources.NuclideSetNoMatchingNuclides;
+            }
+
             if (this.selectedSet != null)
             {
                 foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
@@ -87,10 +99,13 @@ namespace BecquerelMonitor
 
         private void buttonAddSet_Click(object sender, EventArgs e)
         {
+            // (П316, Н3) Имя нового набора — из ресурсов: в русском окне стояло
+            // английское «New set 6».
             NuclideSet set = new NuclideSet()
             {
                 Id = Guid.NewGuid(),
-                Name = "New set " + (this.tableModelSets.Rows.Count + 1).ToString(CultureInfo.InvariantCulture)
+                Name = string.Format(CultureInfo.InvariantCulture, Resources.NuclideSetNewName,
+                                     this.tableModelSets.Rows.Count + 1)
             };
 
             this.tableSets.SuspendLayout();
@@ -371,6 +386,14 @@ namespace BecquerelMonitor
                     e.Cancel = true;
                     return;
                 }
+                if (dialogResult == DialogResult.No)
+                {
+                    // (П316, Н2) «Нет» — правки этого окна снимаются. Прежде ветка
+                    // ничего не делала: правки уже жили в объектах менеджера
+                    // (подписи пиков и состав FSA их видели до перезапуска) и
+                    // молча уходили в файл при следующей записи определений.
+                    this.RollBackToOpening();
+                }
             }
 
             // Конструктор без MainForm существует (его зовёт дизайнер форм и
@@ -424,6 +447,14 @@ namespace BecquerelMonitor
 
             if (e.Cell.Index == SetNameColumnIndex)
             {
+                // (П316, Н4) Пустое или пробельное имя не принимается: в ячейку
+                // возвращается прежнее. Набор без имени уходил в выпадающий список
+                // «Набор:» панели поиска пиков пустой строкой и в файл.
+                if (string.IsNullOrWhiteSpace(e.Cell.Text))
+                {
+                    e.Cell.Text = set.Name;
+                    return;
+                }
                 set.Name = e.Cell.Text;
                 this.MarkAsDirty();
             }
@@ -471,5 +502,127 @@ namespace BecquerelMonitor
         {
             this.UpdateTableNuclides();
         }
+
+        /// <summary>
+        /// (П316, Н20) Esc закрывает окно, как «Закрыть». Не через
+        /// <see cref="Form.CancelButton"/>: Esc во время правки имени набора
+        /// обязан доехать до редактора ячейки XPTable (он отменяет правку по
+        /// символу Esc, `TextCellEditor.OnKeyPress`), а кнопка отмены формы
+        /// перехватила бы клавишу раньше — правка вместо отмены записалась бы
+        /// уходом фокуса и окно начало бы закрываться.
+        /// </summary>
+        protected override bool ProcessDialogKey(Keys keyData)
+        {
+            if (keyData == Keys.Escape && !this.tableSets.IsEditing && !this.tableNuclides.IsEditing)
+            {
+                this.Close();
+                return true;
+            }
+            return base.ProcessDialogKey(keyData);
+        }
+
+        /// <summary>
+        /// (П316, Н2) Состояние на открытии окна: всё, что окно умеет менять.
+        /// Наборы — сами объекты и их поля (на объекты по ссылке держатся
+        /// документы, <see cref="DocEnergySpectrum.SelectedNuclideSet"/>, и
+        /// выбор панели <see cref="NuclideDefinitionManager.ActiveSet"/>),
+        /// у линий — членство в наборах и цвет.
+        ///
+        /// ⚠ Откат — этим снимком, а НЕ перечитыванием файла, как у редактора
+        /// нуклидов (`AMBER196`), и это не вкус. Перечитывание подменяет ВСЕ
+        /// объекты менеджера: (1) документы и панель держат набор по ссылке
+        /// (`NuclideSets.IndexOf`), и выбор набора у каждого открытого спектра
+        /// молча слетел бы на «все нуклиды»; (2) немодальный редактор нуклидов,
+        /// открытый рядом со своими несохранёнными правками, потерял бы их, а его
+        /// строки остались бы на объектах, которых в менеджере больше нет.
+        /// «Нет» здесь значит «снять правки ЭТОГО окна», и снимок делает ровно это.
+        /// </summary>
+        void TakeOpeningSnapshot()
+        {
+            this.openedSets = new List<OpenedSet>();
+            foreach (NuclideSet set in this.nuclideManager.NuclideSets)
+            {
+                this.openedSets.Add(new OpenedSet
+                {
+                    Set = set,
+                    Name = set.Name,
+                    HideUnknownPeaks = set.HideUnknownPeaks,
+                    ShowIntensityLines = set.ShowIntensityLines,
+                });
+            }
+            this.openedLines = new List<OpenedLine>();
+            foreach (NuclideDefinition definition in this.nuclideManager.NuclideDefinitions)
+            {
+                this.openedLines.Add(new OpenedLine
+                {
+                    Definition = definition,
+                    Sets = definition.Sets != null ? new List<Guid>(definition.Sets) : null,
+                    HasColor = definition.NuclideColor != null,
+                    Color = definition.NuclideColor != null ? definition.NuclideColor.Color : System.Drawing.Color.Empty,
+                });
+            }
+            this.openedActiveSet = this.nuclideManager.ActiveSet;
+        }
+
+        /// <summary>
+        /// (П316, Н2) Вернуть состояние на открытии окна (<see cref="TakeOpeningSnapshot"/>):
+        /// удалённые наборы — те же объекты на прежних местах, добавленные —
+        /// прочь, имена и галки — прежние; членство линий и цвета — прежние;
+        /// выбор панели поиска пиков — прежний (удаление набора его снимало).
+        /// </summary>
+        void RollBackToOpening()
+        {
+            if (this.openedSets == null)
+            {
+                return;
+            }
+            List<NuclideSet> sets = this.nuclideManager.NuclideSets;
+            sets.Clear();
+            foreach (OpenedSet opened in this.openedSets)
+            {
+                opened.Set.Name = opened.Name;
+                opened.Set.HideUnknownPeaks = opened.HideUnknownPeaks;
+                opened.Set.ShowIntensityLines = opened.ShowIntensityLines;
+                sets.Add(opened.Set);
+            }
+            foreach (OpenedLine line in this.openedLines)
+            {
+                if (line.Sets != null && line.Definition.Sets != null)
+                {
+                    line.Definition.Sets.Clear();
+                    line.Definition.Sets.UnionWith(line.Sets);
+                }
+                if (line.HasColor && line.Definition.NuclideColor != null)
+                {
+                    line.Definition.NuclideColor.Color = line.Color;
+                }
+            }
+            this.nuclideManager.ActiveSet = this.openedActiveSet;
+            this.selectedSet = null;
+            this.RefreshActiveChart();
+        }
+
+        sealed class OpenedSet
+        {
+            public NuclideSet Set;
+            public string Name;
+            public bool HideUnknownPeaks;
+            public bool ShowIntensityLines;
+        }
+
+        sealed class OpenedLine
+        {
+            public NuclideDefinition Definition;
+            public List<Guid> Sets;
+            public bool HasColor;
+            public System.Drawing.Color Color;
+        }
+
+        List<OpenedSet> openedSets;
+        List<OpenedLine> openedLines;
+        NuclideSet openedActiveSet;
+
+        /// <summary>(П316, Н1) Подпись пустой таблицы изотопов из ресурса формы — «набор не выбран».</summary>
+        string noSetSelectedText;
     }
 }

@@ -234,6 +234,7 @@
             // button2
             // 
             resources.ApplyResources(this.button2, "button2");
+            this.button2.CausesValidation = false;
             this.button2.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.button2.Name = "button2";
             this.progressiveSmoothTooltip.SetToolTip(this.button2, resources.GetString("button2.ToolTip"));

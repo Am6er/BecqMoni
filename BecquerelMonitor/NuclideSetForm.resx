@@ -166,7 +166,7 @@
     <value>88, 23</value>
   </data>
   <data name="buttonSave.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
+    <value>1</value>
   </data>
   <data name="buttonSave.Text" xml:space="preserve">
     <value>Save</value>
@@ -193,7 +193,7 @@
     <value>667, 410</value>
   </data>
   <data name="groupBoxEdit.TabIndex" type="System.Int32, mscorlib">
-    <value>10</value>
+    <value>0</value>
   </data>
   <data name="&gt;&gt;groupBoxEdit.Name" xml:space="preserve">
     <value>groupBoxEdit</value>
@@ -4898,5 +4898,11 @@
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
     <value>System.Windows.Forms.Form, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="tableNuclides.NoItemsText" xml:space="preserve">
+    <value>Select a set on the left</value>
+  </data>
+  <data name="tableSets.NoItemsText" xml:space="preserve">
+    <value>There are no sets</value>
   </data>
 </root>

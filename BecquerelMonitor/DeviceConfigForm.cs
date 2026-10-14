@@ -626,7 +626,12 @@ namespace BecquerelMonitor
             }
             if (!this.SaveFormContents(this.activeDeviceConfig))
             {
-                MessageBox.Show(Resources.ERRInvalidInputForm);
+                // (П316, Н12) Отказ, уже названный словами, общим «Некорректная
+                // форма ввода» не дублируется.
+                if (!this.saveRefusalReported)
+                {
+                    MessageBox.Show(Resources.ERRInvalidInputForm);
+                }
                 return;
             }
             // `AMBER186`: кривые конфигурации на диске — снимок ДО записи.
@@ -1165,6 +1170,7 @@ namespace BecquerelMonitor
         // Token: 0x06000523 RID: 1315 RVA: 0x000212F0 File Offset: 0x0001F4F0
         bool SaveFormContents(DeviceConfigInfo config)
         {
+            this.saveRefusalReported = false;
             try
             {
                 // ⛔ Три числа с шапки окна разбираются ДО первой записи (`A6`):
@@ -1177,6 +1183,27 @@ namespace BecquerelMonitor
                 int defaultMeasurementTime = UserNumber.ParseInt(this.doubleTextBox5.Text);
                 int numberOfChannels = UserNumber.ParseInt(this.integerTextBox1.Text);
                 double channelPitch = UserNumber.ParseDouble(this.doubleTextBox6.Text);
+                // (П316, Н12) Границы — тоже до первой записи (`A6`). Число каналов
+                // ≤ 0 и отрицательный лимит времени прежде записывались в файл без
+                // слова: прибор с «−5» каналами дал бы спектр отрицательной длины.
+                // Лимит 0 не отклоняется — что он должен значить, решает Amber
+                // (сейчас 0 = «предел уже достигнут»: набор не стартует).
+                if (numberOfChannels <= 0)
+                {
+                    AppUi.Report(string.Format(CultureInfo.InvariantCulture,
+                                               Resources.ERRDeviceConfigChannelsNotPositive, this.integerTextBox1.Text),
+                                 Resources.InvalidValueDialogTitle, MessageBoxIcon.Exclamation);
+                    this.saveRefusalReported = true;
+                    return false;
+                }
+                if (defaultMeasurementTime < 0)
+                {
+                    AppUi.Report(string.Format(CultureInfo.InvariantCulture,
+                                               Resources.ERRDeviceConfigTimeLimitNegative, this.doubleTextBox5.Text),
+                                 Resources.InvalidValueDialogTitle, MessageBoxIcon.Exclamation);
+                    this.saveRefusalReported = true;
+                    return false;
+                }
                 // `AMBER155` (в): кривизна тракта разбирается ТУТ ЖЕ, до первой
                 // записи (`A6`) — нечисло не должно оставить конфигурацию смесью.
                 double tractCurvature = this.TractCurvatureFromForm();
@@ -1258,6 +1285,14 @@ namespace BecquerelMonitor
                     targetPeak.Nuclide = row.Cells[0].Text;
                     targetPeak.Energy = (decimal)row.Cells[1].Data;
                     targetPeak.Error = (decimal)row.Cells[2].Data;
+                    // (П316, Н19) Опора с энергией ≤ 0 не записывается: «New» кладёт
+                    // строку («», 0 кэВ), и стабилизатор (`PeakStabilizer`) нашёл бы
+                    // для неё пик в окне 0…0 кэВ и объявил найденный канал нулём
+                    // энергии (то, против чего `AMBER110`).
+                    if (targetPeak.Energy <= 0m)
+                    {
+                        continue;
+                    }
                     config.StabilizerConfig.TargetPeaks.Add(targetPeak);
                 }
                 // ⛔ `AMBER13`/`AMBER18`: точек калибровки дозы у конфигурации
@@ -1454,7 +1489,10 @@ namespace BecquerelMonitor
                     }
                     if (!this.SaveFormContents(this.activeDeviceConfig))
                     {
-                        MessageBox.Show(Resources.ERRInvalidInputForm);
+                        if (!this.saveRefusalReported)
+                        {
+                            MessageBox.Show(Resources.ERRInvalidInputForm);
+                        }
                         return false;
                     }
                     // `AMBER186`: снимок кривых на диске ДО записи — см. `button6_Click`.
@@ -3061,7 +3099,13 @@ namespace BecquerelMonitor
             Row row = cell.Row;
             try
             {
-                if (e.Column == 1)
+                if (e.Column == 0)
+                {
+                    // (П316, Н19) Правка имени нуклида тоже правка: прежде «Сохранить»
+                    // не загоралось, и изменённое имя при «Закрыть» терялось молча.
+                    this.SetActiveDeviceConfigDirty();
+                }
+                else if (e.Column == 1)
                 {
                     string text = ((NumberCellEditor)e.Editor).TextBox.Text;
                     this.SetActiveDeviceConfigDirty();
@@ -3097,6 +3141,12 @@ namespace BecquerelMonitor
 
         // Token: 0x040002BE RID: 702
         bool contentsLoading;
+
+        /// <summary>
+        /// (П316, Н12) <see cref="SaveFormContents"/> отказал И уже назвал причину
+        /// словами — вызывающий не добавляет общее «Некорректная форма ввода».
+        /// </summary>
+        bool saveRefusalReported;
 
         decimal expGaussExpLeftValue = 1.0m;
 

@@ -97,13 +97,16 @@ namespace BecquerelMonitor
         {
             this.Text = Resources.GeometryMaterialsTitle;
             this.Icon = Resources.becqmoni;
-            this.FormBorderStyle = FormBorderStyle.Sizable;
+            // (П316, Н11) Рамка неизменяемая, как у соседних окон, построенных
+            // кодом (`ResponseMatrixForm`, `PickOneForm`, диалоги вкладки
+            // эффективности): элементы стоят по Location/Size без Anchor, и
+            // растянутое окно давало только пустое поле справа и снизу.
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MinimizeBox = false;
             this.MaximizeBox = false;
             this.ShowInTaskbar = false;
             this.StartPosition = FormStartPosition.CenterParent;
             this.ClientSize = new Size(790, 560);
-            this.MinimumSize = new Size(806, 599);
 
             this.loadErrorLabel = new Label
             {

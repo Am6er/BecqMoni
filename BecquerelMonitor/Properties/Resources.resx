@@ -42007,7 +42007,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Open spectrum first, then select Combine menu to another spectrum file.</value>
   </data>
   <data name="CombineIncorrectChannels" xml:space="preserve">
-    <value>Different number of channels in combined spectrums! Select proper spectrum file.</value>
+    <value>Different number of channels in combined spectra! Select proper spectrum file.</value>
   </data>
   <data name="SUB" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\SUB.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -44052,5 +44052,29 @@ Close the window and discard it?</value>
 Bin: {3:F0} keV, histories per node: {4}
 Data: {5:F0} KB, file: not saved
 Computed: {7}, took {8:F0} s</value>
+  </data>
+  <data name="NuclideSetNewName" xml:space="preserve">
+    <value>New set {0}</value>
+  </data>
+  <data name="NuclideSetNoMatchingNuclides" xml:space="preserve">
+    <value>No nuclides match the filter</value>
+  </data>
+  <data name="ERRDeviceConfigChannelsNotPositive" xml:space="preserve">
+    <value>Number of channels must be a whole number greater than zero.
+Entered: {0}</value>
+  </data>
+  <data name="ERRDeviceConfigTimeLimitNegative" xml:space="preserve">
+    <value>Preset time cannot be negative.
+Entered: {0}</value>
+  </data>
+  <data name="ERRSoundFileNotFound" xml:space="preserve">
+    <value>Sound file not found:
+{0}</value>
+  </data>
+  <data name="ERRSoundFilePlay" xml:space="preserve">
+    <value>Cannot play the sound file:
+{0}
+
+{1}</value>
   </data>
 </root>

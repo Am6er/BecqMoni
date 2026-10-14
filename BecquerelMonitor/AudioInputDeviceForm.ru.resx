@@ -155,10 +155,10 @@
     <value>Аудио устройство</value>
   </data>
   <data name="label2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>101, 13</value>
+    <value>85, 13</value>
   </data>
   <data name="label2.Text" xml:space="preserve">
-    <value>Частота импульса</value>
+    <value>Частота дискр.</value>
   </data>
   <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
     <value>93, 13</value>
