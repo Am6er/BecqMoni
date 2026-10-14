@@ -7370,6 +7370,15 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to The Amplituda USB device with serial number {0} is already being measured in another document (another device configuration names the same serial number or took this device as "(first found)"). Stop that measurement first..
+        /// </summary>
+        public static string ERRAmplitudaUsbBlockBusy {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbBlockBusy", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to The spectrum in the device was not cleared: the device is {0}. Its counts will come back with the next Start. Start the measurement and clear it again..
         /// </summary>
         public static string ERRDeviceNotClearedNotConnected {

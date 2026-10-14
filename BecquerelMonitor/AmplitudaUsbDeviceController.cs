@@ -70,6 +70,12 @@ namespace BecquerelMonitor
                 }
                 return text;
             }
+            if (error == AmplitudaUsbReader.ErrorBlockBusy)
+            {
+                // P285 (Amber 14.10.2026, "Отказывать второму"): the unit named by its serial number is
+                // already measured by another document of this application.
+                return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbBlockBusy, serialNumber);
+            }
             return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbOpenFailed, error);
         }
 
