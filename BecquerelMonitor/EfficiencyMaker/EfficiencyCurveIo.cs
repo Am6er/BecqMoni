@@ -37,12 +37,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public static ResultData LoadResultData(string path, int resultIndex, string fallbackDeviceGuid)
         {
-            XmlSerializer serializer = new XmlSerializer(typeof(ResultDataFile));
-            ResultDataFile file;
-            using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                file = (ResultDataFile)serializer.Deserialize(stream);
-            }
+            // (П269, 14.10.2026) Файл читает та же дверь, что у «Открыть»
+            // (`DocumentManager.ReadResultDataFile`, П268): свой XmlSerializer здесь
+            // отказывал на файле с пустым <Time /> (чужой конвертер) целиком, хотя
+            // приложение такой файл открывает. Файл, который читался, читается тем же
+            // разбором до байта (первый разбор у двери — прежний); поток — только на
+            // чтение с FileShare.ReadWrite (`T266`), а не FileShare.Read: файл, который
+            // держит пишущая программа, больше не отказ.
+            ResultDataFile file = DocumentManager.ReadResultDataFile(path);
+            // (П263) Времён, которых в файле нет, — не «сейчас», по правилам открытия.
+            // Голоса `A207` здесь нет: это загрузчик оснастки, человека в этой точке
+            // нет, и времена набора его потребители не читают (поправки на распад нет).
+            DocumentManager.FillAbsentTimes(file);
 
             if (file.ResultDataList == null || file.ResultDataList.Count == 0)
             {
