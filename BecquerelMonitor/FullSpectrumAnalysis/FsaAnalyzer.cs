@@ -9349,6 +9349,41 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             if (!this.shareRefit)
             {
+                // (П304) банк — заново из реестра на каждый верхний разбор: выдача
+                // ставит метку, по которой подрезка отличает нужное от давнего
+                // (тот же банк, если форма пика та же — числа от этого не меняются)
+                this.kernelBank = null;
+            }
+
+            try
+            {
+                return this.AnalyzeGuarded(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+            }
+            finally
+            {
+                // (П304) банк ядер живёт процесс; между разборами реестр держит
+                // не больше предела — подрезка в конце верхнего разбора (перефит
+                // доли столбца зовёт Analyze рекурсивно и подрезку не трогает)
+                if (!this.shareRefit)
+                {
+                    ShapeKernelBank.TrimShared();
+                }
+            }
+        }
+
+        /// <summary>
+        /// (П304) Тело <see cref="Analyze"/>: разбор и страж нуля (`A320`). Вынесено,
+        /// чтобы подрезка реестра банков ядер стояла одна, в конце любого выхода.
+        /// </summary>
+        FsaResult AnalyzeGuarded(
+            EnergySpectrum spectrum,
+            EnergySpectrum backgroundSpectrum,
+            FwhmCalibration fwhmCalibration,
+            List<FsaComponent> originalLibrary,
+            FsaEfficiency efficiency)
+        {
+            if (!this.shareRefit)
+            {
                 this.AnchorZeroGuardFired = false;
                 this.AnchorZeroGuardTaken = false;
             }
@@ -9796,6 +9831,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (<see cref="ShapeKernelBank.Fits"/>), поэтому правка на месте его
             // не обманет, а проходы разбора (фон, нуль фона) ядра больше не
             // пересчитывают — до П241 каждый проход считал все ядра заново.
+            // (П304, решение Amber 14.10.2026 «Закрыть + банк ядер на процесс»)
+            // Банк живёт ПРОЦЕСС, а не разбор: анализатор берёт его из реестра
+            // <see cref="ShapeKernelBank.Shared"/> по форме пика и выборке.
             this.depositChannels = null;
             this.depositChannelsCalibration = null;
             this.splitWindows = null;
@@ -21243,9 +21281,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         ShapeKernelBank KernelsLocked(FwhmCalibration fwhmCalibration)
         {
+            // (П304) банк — из реестра процесса (<see cref="ShapeKernelBank.Shared"/>);
+            // своя ссылка анализатора — только чтобы не ходить в реестр на каждое
+            // уширение: реестр спрашивается, когда форма пика сменилась
             if (this.kernelBank == null || !this.kernelBank.Fits(fwhmCalibration, this.KernelChannelMean))
             {
-                this.kernelBank = new ShapeKernelBank(fwhmCalibration, this.KernelChannelMean);
+                this.kernelBank = ShapeKernelBank.Shared(fwhmCalibration, this.KernelChannelMean);
             }
 
             return this.kernelBank;
@@ -21330,6 +21371,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Ядро нормировано на единичную СУММУ по всему носителю, как это
         /// делалось при отдельной укладке пика, — иначе площадь образа поехала
         /// бы у краёв шкалы, где носитель обрезан окном фита.
+        ///
+        /// ⛔ (П304, решение Amber 14.10.2026 «Закрыть + банк ядер на процесс»;
+        /// прежнее 07.10.2026 «Нет, как сейчас» пересмотрено ею же) БАНК ЖИВЁТ
+        /// ПРОЦЕСС. Ключ — ВСЁ, что ядро читает: форма пика калибровки ширины
+        /// (тип и четыре числа побитово, <see cref="Fits"/>) и выборка в канале
+        /// (<see cref="FsaKernelSampling"/>); внутри банка — ступень ПШПВ и фаза.
+        /// Коэффициенты ширины, калибровка энергии, число каналов, усиление и
+        /// нуль дрейфа, матрица и физика переноса в ядро НЕ входят: ширина
+        /// приходит номером ступени (<see cref="Band"/>), а остальное ядро не
+        /// читает вовсе (<see cref="Compute"/>, <see cref="ComputeFine"/>,
+        /// <see cref="PeakShapeModel"/> — чистые функции этих чисел и констант
+        /// сборки). Поэтому ядро, взятое из банка, побитово то же, что
+        /// посчитанное заново, и результат разбора от банка не зависит.
+        ///
+        /// Потоки: горячий путь (<see cref="Get"/>, <see cref="GetFine"/>) — без
+        /// замков: словарь `Concurrent*`, ленивая ячейка на ключ, метка выдачи —
+        /// простая запись числа. Замок реестра берут только выдача банка
+        /// (<see cref="Shared"/> — раз на разбор и форму) и подрезка
+        /// (<see cref="TrimShared"/> — в конце разбора).
+        ///
+        /// Память: реестр держит между разборами не больше
+        /// <see cref="RetainLimitBytes"/>; лишнее снимается записями, давно
+        /// не бравшимися, — сначала самые старые по выдаче (довод числа —
+        /// у <see cref="DefaultRetainLimitBytes"/>). Снятая запись при нужде
+        /// считается заново теми же числами.
         /// </summary>
         sealed class ShapeKernelBank
         {
@@ -21346,10 +21412,52 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // считали одни и те же ядра, и уширение стоило втрое дороже
             // последовательного). Ядро — чистая функция ступени и фазы: кто бы
             // ни посчитал его, значения те же.
-            readonly System.Collections.Concurrent.ConcurrentDictionary<long, Lazy<double[]>> values =
-                new System.Collections.Concurrent.ConcurrentDictionary<long, Lazy<double[]>>();
+            // (П304) Ячейка несёт ещё метку выдачи, после которой её брали в
+            // последний раз (<see cref="KernelCell.Epoch"/>) — по ней подрезка
+            // снимает давно не нужное.
+            readonly System.Collections.Concurrent.ConcurrentDictionary<long, KernelCell> values =
+                new System.Collections.Concurrent.ConcurrentDictionary<long, KernelCell>();
             readonly System.Collections.Concurrent.ConcurrentDictionary<int, int> lefts =
                 new System.Collections.Concurrent.ConcurrentDictionary<int, int>();
+
+            /// <summary>
+            /// (П304) Ячейка банка: ленивое ядро (считается ровно раз, ждущий поток
+            /// не считает заново) и метка выдачи, после которой её брали.
+            /// </summary>
+            sealed class KernelCell
+            {
+                public readonly Lazy<double[]> Kernel;
+
+                /// <summary>
+                /// Номер выдачи банка (<see cref="ShapeKernelBank.epoch"/>), после
+                /// которой ячейку брали в последний раз. Пишется без замка: гонка двух
+                /// записей даёт одну из двух соседних меток, а метка решает только
+                /// очерёдность подрезки, но не числа.
+                /// </summary>
+                public int Epoch;
+
+                public KernelCell(Func<double[]> compute, int epoch)
+                {
+                    this.Kernel = new Lazy<double[]>(compute, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
+                    this.Epoch = epoch;
+                }
+
+                /// <summary>Сколько байт держит ячейка: ядро, если посчитано, и оценка обвязки.</summary>
+                public long Bytes()
+                {
+                    long bytes = EntryOverheadBytes;
+                    if (this.Kernel.IsValueCreated)
+                    {
+                        double[] kernel = this.Kernel.Value;
+                        if (kernel != null)
+                        {
+                            bytes += ArrayHeaderBytes + 8L * kernel.Length;
+                        }
+                    }
+
+                    return bytes;
+                }
+            }
 
             public ShapeKernelBank(FwhmCalibration calibration, FsaKernelSampling mode)
             {
@@ -21400,21 +21508,72 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// </summary>
             public double[] Get(int band, int phase)
             {
+                return this.Take(this.values, false, band, phase);
+            }
+
+            /// <summary>
+            /// (П304) Взять ячейку ступени и фазы из словаря банка (обычные ядра или
+            /// дробные), при промахе — завести; пометить выдачей; отдать ядро. Горячий
+            /// путь без замков. Ячейка, чей счёт бросил исключение, из словаря
+            /// снимается: ленивая ячейка запоминает исключение навсегда, и банк на
+            /// процесс отдавал бы его каждому следующему разбору.
+            /// </summary>
+            double[] Take(System.Collections.Concurrent.ConcurrentDictionary<long, KernelCell> map, bool fine,
+                          int band, int phase)
+            {
                 long key = (long)band * SourcePhases + phase;
-                Lazy<double[]> cell;
-                if (!this.values.TryGetValue(key, out cell))
+                KernelCell cell;
+                if (!map.TryGetValue(key, out cell))
                 {
-                    cell = this.values.GetOrAdd(key, new Lazy<double[]>(
-                        () => this.Compute(band, phase),
-                        System.Threading.LazyThreadSafetyMode.ExecutionAndPublication));
+                    cell = this.AddCell(map, fine, key, band, phase);
                 }
 
-                return cell.Value;
+                int now = this.epoch;
+                if (cell.Epoch != now)
+                {
+                    cell.Epoch = now;
+                }
+
+                try
+                {
+                    return cell.Kernel.Value;
+                }
+                catch
+                {
+                    RemoveCell(map, key, cell);
+                    throw;
+                }
+            }
+
+            /// <summary>(П304) Промах: завести ячейку (замыкание — только здесь, не на горячем пути).</summary>
+            KernelCell AddCell(System.Collections.Concurrent.ConcurrentDictionary<long, KernelCell> map, bool fine,
+                               long key, int band, int phase)
+            {
+                Func<double[]> compute;
+                if (fine)
+                {
+                    compute = () => this.ComputeFine(band, phase);
+                }
+                else
+                {
+                    compute = () => this.Compute(band, phase);
+                }
+
+                return map.GetOrAdd(key, new KernelCell(compute, this.epoch));
+            }
+
+            /// <summary>(П304) Снять ячейку, если в словаре всё ещё именно она.</summary>
+            static bool RemoveCell(System.Collections.Concurrent.ConcurrentDictionary<long, KernelCell> map, long key,
+                                   KernelCell cell)
+            {
+                return ((ICollection<KeyValuePair<long, KernelCell>>)map).Remove(
+                    new KeyValuePair<long, KernelCell>(key, cell));
             }
 
             /// <summary>Ядро ступени и фазы — счёт прежнего <see cref="Get"/> при промахе.</summary>
             double[] Compute(int band, int phase)
             {
+                System.Threading.Interlocked.Increment(ref computed);
                 double[] kernel = null;
                 double fwhm = Math.Exp(band * LogRatio);
                 double shift = (double)phase / SourcePhases;
@@ -21458,12 +21617,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // соседки той же ступени не бывает: носитель конечен у всех фаз
                 // разом, а площадь у профиля шириной от канала положительна при
                 // любом сдвиге центра внутри канала.
-                this.lefts[band] = leftSpan;
+                // (П304) Пишет его теперь ТОЛЬКО ненулевое ядро: начало читают лишь
+                // при ненулевом ядре (уширение и дробная сетка), а у всех ненулевых
+                // фаз ступени оно одно — `⌈левого носителя⌉`. Банк на процесс
+                // считает фазы ступени в разных разборах в разном порядке, и
+                // «последняя посчитанная» перестала быть свойством одного разбора;
+                // так начало — чистая функция ступени при любом порядке. Где null
+                // не бывает (довод выше), записи те же, что прежде.
+                if (kernel != null)
+                {
+                    this.lefts[band] = leftSpan;
+                }
+
                 return kernel;
             }
 
-            readonly System.Collections.Concurrent.ConcurrentDictionary<long, Lazy<double[]>> fineValues =
-                new System.Collections.Concurrent.ConcurrentDictionary<long, Lazy<double[]>>();
+            readonly System.Collections.Concurrent.ConcurrentDictionary<long, KernelCell> fineValues =
+                new System.Collections.Concurrent.ConcurrentDictionary<long, KernelCell>();
 
             /// <summary>
             /// (`S207`, П225) Ядро той же ступени и фазы на ДРОБНОЙ сетке: элемент
@@ -21474,21 +21644,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// </summary>
             public double[] GetFine(int band, int phase)
             {
-                long key = (long)band * SourcePhases + phase;
-                Lazy<double[]> cell;
-                if (!this.fineValues.TryGetValue(key, out cell))
-                {
-                    cell = this.fineValues.GetOrAdd(key, new Lazy<double[]>(
-                        () => this.ComputeFine(band, phase),
-                        System.Threading.LazyThreadSafetyMode.ExecutionAndPublication));
-                }
-
-                return cell.Value;
+                return this.Take(this.fineValues, true, band, phase);
             }
 
             /// <summary>Дробная сетка ступени и фазы — счёт прежнего <see cref="GetFine"/> при промахе.</summary>
             double[] ComputeFine(int band, int phase)
             {
+                System.Threading.Interlocked.Increment(ref computed);
                 double[] fine = null;
                 double[] kernel = this.Get(band, phase);
                 if (kernel != null)
@@ -21516,6 +21678,217 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 int left;
                 return this.lefts.TryGetValue(band, out left) ? left : 0;
+            }
+
+            // ── (П304) Реестр банков процесса ─────────────────────────────────
+
+            /// <summary>
+            /// (П304) Предел байт, которые реестр держит между разборами, — по
+            /// умолчанию. Довод числом (сколько занимает банк одного прибора и
+            /// одной формы пика, сколько приборов и форм у Amber, что даёт
+            /// предел выше и ниже) — в журнале полосы,
+            /// `handover-2026-10-14-p304-kernel-bank-per-process.md`; память
+            /// держится в цене, названной в решении Amber.
+            /// </summary>
+            internal const long DefaultRetainLimitBytes = 48L * 1024 * 1024;
+
+            /// <summary>(П304) Предел реестра, байт; пробы меняют его отражением.</summary>
+            internal static long RetainLimitBytes = DefaultRetainLimitBytes;
+
+            /// <summary>(П304) Оценка обвязки ячейки: узел словаря, ячейка, ленивая ячейка, байт.</summary>
+            const int EntryOverheadBytes = 120;
+
+            /// <summary>(П304) Заголовок массива double на 64 битах, байт.</summary>
+            const int ArrayHeaderBytes = 24;
+
+            /// <summary>(П304) Замок реестра — выдача и подрезка; горячего пути нет.</summary>
+            static readonly object RegistryGate = new object();
+
+            static readonly List<ShapeKernelBank> Registry = new List<ShapeKernelBank>();
+
+            /// <summary>(П304) Часы выдач: номер последней выдачи банка любому анализатору.</summary>
+            static int clock;
+
+            /// <summary>(П304) Ядер (обычных и дробных) посчитано процессом — пробам.</summary>
+            static long computed;
+
+            /// <summary>(П304) Ячеек снято подрезкой — пробам.</summary>
+            static long trimmed;
+
+            /// <summary>
+            /// (П304) Номер последней выдачи этого банка (общие часы <see cref="clock"/>):
+            /// им метятся ячейки, взятые после неё, поэтому метки разных банков
+            /// сравнимы и подрезка снимает давно не бравшееся во всём реестре сразу.
+            /// </summary>
+            int epoch;
+
+            /// <summary>
+            /// (П304) Банк процесса для формы пика <paramref name="calibration"/> и
+            /// выборки <paramref name="mode"/>: найденный в реестре по
+            /// <see cref="Fits"/> или новый. Зовётся раз на разбор и форму
+            /// (<see cref="FsaAnalyzer.KernelsLocked"/>), не на уширение.
+            /// </summary>
+            public static ShapeKernelBank Shared(FwhmCalibration calibration, FsaKernelSampling mode)
+            {
+                lock (RegistryGate)
+                {
+                    ShapeKernelBank bank = null;
+                    foreach (ShapeKernelBank kept in Registry)
+                    {
+                        if (kept.Fits(calibration, mode))
+                        {
+                            bank = kept;
+                            break;
+                        }
+                    }
+
+                    if (bank == null)
+                    {
+                        bank = new ShapeKernelBank(calibration, mode);
+                        Registry.Add(bank);
+                    }
+
+                    bank.epoch = ++clock;
+                    TrimLocked(bank);
+                    return bank;
+                }
+            }
+
+            /// <summary>
+            /// (П304) Подрезать реестр до <see cref="RetainLimitBytes"/> — зовёт
+            /// конец разбора (<see cref="FsaAnalyzer.Analyze"/>), чтобы между
+            /// разборами держалось не больше предела.
+            /// </summary>
+            public static void TrimShared()
+            {
+                lock (RegistryGate)
+                {
+                    TrimLocked(null);
+                }
+            }
+
+            /// <summary>
+            /// (П304) Подрезка под замком реестра: если байт больше предела — снимать
+            /// ячейки начиная с самых давних по метке выдачи, пока не уложится;
+            /// банки, оставшиеся пустыми, уходят из реестра (кроме
+            /// <paramref name="keep"/> — его только что выдали). Банк, который ещё
+            /// держит идущий разбор, живёт у него по ссылке: снятая ячейка будет
+            /// посчитана им заново теми же числами.
+            /// </summary>
+            static void TrimLocked(ShapeKernelBank keep)
+            {
+                long limit = RetainLimitBytes;
+                long total = 0;
+                foreach (ShapeKernelBank bank in Registry)
+                {
+                    total += bank.Bytes();
+                }
+
+                if (total <= limit)
+                {
+                    return;
+                }
+
+                var cells = new List<TrimCandidate>();
+                foreach (ShapeKernelBank bank in Registry)
+                {
+                    bank.Collect(bank.values, cells);
+                    bank.Collect(bank.fineValues, cells);
+                }
+
+                cells.Sort((a, b) => a.Epoch.CompareTo(b.Epoch));
+                foreach (TrimCandidate c in cells)
+                {
+                    if (total <= limit)
+                    {
+                        break;
+                    }
+
+                    if (RemoveCell(c.Map, c.Key, c.Cell))
+                    {
+                        total -= c.Bytes;
+                        trimmed++;
+                    }
+                }
+
+                Registry.RemoveAll(b => !object.ReferenceEquals(b, keep) && b.values.IsEmpty && b.fineValues.IsEmpty);
+            }
+
+            struct TrimCandidate
+            {
+                public System.Collections.Concurrent.ConcurrentDictionary<long, KernelCell> Map;
+                public long Key;
+                public KernelCell Cell;
+                public int Epoch;
+                public long Bytes;
+            }
+
+            void Collect(System.Collections.Concurrent.ConcurrentDictionary<long, KernelCell> map, List<TrimCandidate> into)
+            {
+                foreach (KeyValuePair<long, KernelCell> kv in map)
+                {
+                    into.Add(new TrimCandidate
+                    {
+                        Map = map, Key = kv.Key, Cell = kv.Value, Epoch = kv.Value.Epoch, Bytes = kv.Value.Bytes()
+                    });
+                }
+            }
+
+            /// <summary>(П304) Байт в банке: ядра, дробные сетки и оценка обвязки.</summary>
+            long Bytes()
+            {
+                long bytes = 0;
+                foreach (KeyValuePair<long, KernelCell> kv in this.values)
+                {
+                    bytes += kv.Value.Bytes();
+                }
+
+                foreach (KeyValuePair<long, KernelCell> kv in this.fineValues)
+                {
+                    bytes += kv.Value.Bytes();
+                }
+
+                return bytes;
+            }
+
+            /// <summary>(П304) Реестр словами — для проб (отражением).</summary>
+            internal static string Describe()
+            {
+                lock (RegistryGate)
+                {
+                    var sb = new System.Text.StringBuilder();
+                    long total = 0;
+                    foreach (ShapeKernelBank bank in Registry)
+                    {
+                        long bytes = bank.Bytes();
+                        total += bytes;
+                        int count = 0, fineCount = 0;
+                        foreach (KeyValuePair<long, KernelCell> kv in bank.values)
+                        {
+                            count++;
+                        }
+
+                        foreach (KeyValuePair<long, KernelCell> kv in bank.fineValues)
+                        {
+                            fineCount++;
+                        }
+
+                        sb.AppendFormat(CultureInfo.InvariantCulture,
+                            "; [тип {0}, хвосты {1}/{2}, Фойгт {3}/{4}, выборка {5}: ядер {6} + дробных {7}, {8:F1} МБ, выдача {9}]",
+                            bank.calibration.PeakType,
+                            bank.calibration.ExpGaussExpLeftTail.ToString("R", CultureInfo.InvariantCulture),
+                            bank.calibration.ExpGaussExpRightTail.ToString("R", CultureInfo.InvariantCulture),
+                            bank.calibration.VoigtSigma.ToString("R", CultureInfo.InvariantCulture),
+                            bank.calibration.VoigtGamma.ToString("R", CultureInfo.InvariantCulture),
+                            bank.mode, count, fineCount, bytes / 1048576.0, bank.epoch);
+                    }
+
+                    return string.Format(CultureInfo.InvariantCulture,
+                               "банков {0}, {1:F1} МБ при пределе {2:F1} МБ; ядер посчитано процессом {3}, ячеек снято подрезкой {4}",
+                               Registry.Count, total / 1048576.0, RetainLimitBytes / 1048576.0,
+                               System.Threading.Interlocked.Read(ref computed), trimmed)
+                           + sb;
+                }
             }
         }
 
