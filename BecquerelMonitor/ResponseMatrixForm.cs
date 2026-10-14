@@ -1,9 +1,11 @@
 ﻿using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.Properties;
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -768,12 +770,27 @@ namespace BecquerelMonitor
                             return ResponseMatrixBuilder.Build(geometry, options, progress, token);
                         }
 
-                        // (`AMBER219`) Устройство берётся на время счёта и отдаётся
-                        // в `finally`: контекст CUDA между счётами держать незачем,
-                        // а живым должен быть один `RmGpu` на процесс.
-                        using (var gpu = new RmGpu(RmGpu.DefaultPath, RmGpu.DefaultStackBytes))
+                        try
                         {
-                            return GpuBuild.Build(gpu, geometry, options, progress, token, null);
+                            // (`AMBER219`) Устройство берётся на время счёта и отдаётся
+                            // в `finally`: контекст CUDA между счётами держать незачем,
+                            // а живым должен быть один `RmGpu` на процесс.
+                            using (var gpu = new RmGpu(RmGpu.DefaultPath, RmGpu.DefaultStackBytes))
+                            {
+                                return GpuBuild.Build(gpu, geometry, options, progress, token, null);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // (П291, Н7) Разбор — ЗДЕСЬ, на месте отказа: стек исключения
+                            // полон от бросившего до этой рамки, и чтение его не зависит
+                            // от того, как `await` перебросит исключение дальше.
+                            if (ThrownByGpuPath(ex))
+                            {
+                                throw new GpuRunFailedException(ex);
+                            }
+
+                            throw;
                         }
                     },
                     token);
@@ -781,34 +798,60 @@ namespace BecquerelMonitor
                 this.computed = matrix;
                 this.progressBar.Value = this.progressBar.Maximum;
                 this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
-                    Resources.ResponseMatrixDone, Duration(matrix.BuildSeconds));
-
-                // Континуум набирается аналоговой веткой полной сферой, и на
-                // дальней геометрии до кристалла доходит доля телесного угла:
-                // пик остаётся точным, а континуум может оказаться шумом. Без
-                // этой строки различить нечем — оценка ошибки, что стоит выше,
-                // описывает пик (F23).
-                if (matrix.ContinuumWeightedError > ContinuumNoiseWarnPercent)
-                {
-                    this.progressLabel.Text += string.Format(CultureInfo.InvariantCulture,
-                        Resources.ResponseMatrixContinuumNoise,
-                        // `f1`, а не `n1` (`A244`): группировки разрядов нет.
-                        matrix.ContinuumWeightedError.ToString("f1", CultureInfo.InvariantCulture));
-                }
+                    Resources.ResponseMatrixDone, Duration(matrix.BuildSeconds))
+                    + ContinuumNoiseNote(matrix);
 
                 this.SetDetails(this.Describe(matrix));
                 this.stateLabel.Text = Resources.ResponseMatrixStateValid;
                 this.ShowVersions(ResponseMatrix.PhysicsVersion, ResponseMatrix.FormatVersion, false);
             }
+            // ⛔ (П291, Н6, находка П253; решение Amber 14.10.2026 вопросником,
+            // дословно: «Вернуть прежний результат» — «Прежний несохранённый результат
+            // возвращается вместе со своими подробностями, кнопка «Сохранить»
+            // остаётся.») Отменённый или отказавший пересчёт `computed` НЕ ТРОГАЕТ.
+            // Прежде здесь стояло `computed = null`, а подробности, состояние и строка
+            // версий не менялись (до удачного конца счёт их не трогает) — и окно
+            // описывало матрицу, которой больше нет («Computed: …, took 117 s»), при
+            // погашенной «Сохранить», тогда как на складе лежала другая. Теперь окно
+            // возвращается в состояние ДО пересчёта само: прежний несохранённый
+            // результат — с его подробностями и живой «Сохранить» (`SetBusy`); не было
+            // его — подробности те, что были, то есть склада, как при открытии.
             catch (OperationCanceledException)
             {
-                this.computed = null;
                 this.progressBar.Value = 0;
-                this.progressLabel.Text = Resources.ResponseMatrixCancelled;
+                // Шум континуума — свойство ВОЗВРАЩЁННОГО результата: стоял в строке
+                // хода после его счёта и уходит вместе с ней — повторяется здесь.
+                this.progressLabel.Text = Resources.ResponseMatrixCancelled
+                    + (this.HasUnsavedResult ? ContinuumNoiseNote(this.computed) : "");
+            }
+            catch (GpuRunFailedException ex)
+            {
+                // ⛔ (П291, Н7, находка П253; решение Amber 14.10.2026 вопросником,
+                // дословно: «Текст на языке окна + совет» — «Понятный текст на языке
+                // окна и совет «снимите галку Use Nvidia GPU — посчитается на
+                // процессоре». Один ключ en/ru.») Прежде здесь был общий отказ:
+                // «Could not compute the matrix: InvalidOperationException: GPU
+                // rm_run(ветвь 1): …» — внутренний русский текст в английском окне и
+                // ни слова о том, что делать.
+                //
+                // Внутренний текст — в ЖУРНАЛ приложения (`AppLog`, «Показать
+                // журнал»), а не в окно ни целиком, ни второй строкой: он из трёх
+                // рук — подпись `RmGpu.Ok` (русская), место в библиотеке (русское) и
+                // фраза рантайма CUDA (английская), так что на языке окна его нет НИ
+                // В ОДНОЙ культуре. Прочие отказы окна причину показывают
+                // (`ResponseMatrixFailed`, подсказки галки), но там она — либо слова
+                // для человека (геометрия, вещество), либо английская строка пробы в
+                // подсказке; здесь человеку причина ничего не даёт — совет один при
+                // TDR, нехватке памяти и ошибке библиотеки, — а разбирающему она
+                // нужна целиком, со стеком, и журнал её хранит.
+                this.progressBar.Value = 0;
+                this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
+                    Resources.ResponseMatrixGpuFailed, Resources.ResponseMatrixUseGpu);
+                Trace.WriteLine("Response matrix: GPU computation failed, the window advised unchecking the GPU box: "
+                                + ex.InnerException);
             }
             catch (Exception ex)
             {
-                this.computed = null;
                 this.progressBar.Value = 0;
                 // (`AMBER201`, Р4, мелочь G.6) Причина — цепочкой вложенных, а
                 // не `ex.Message`. Узлы считаются в `Parallel.ForEach`, и отказ
@@ -833,6 +876,130 @@ namespace BecquerelMonitor
 
         /// <summary>(`AMBER219`) Идущий счёт — на GPU; снимается с галки до `SetBusy`, читает строка хода.</summary>
         bool computingOnGpu;
+
+        /// <summary>
+        /// Строка о шуме континуума посчитанной матрицы — дописывается к строке хода;
+        /// пусто, когда шум в пределах <see cref="ContinuumNoiseWarnPercent"/>.
+        ///
+        /// Континуум набирается аналоговой веткой полной сферой, и на дальней
+        /// геометрии до кристалла доходит доля телесного угла: пик остаётся точным,
+        /// а континуум может оказаться шумом. Без этой строки различить нечем —
+        /// оценка ошибки, что стоит выше, описывает пик (F23).
+        /// </summary>
+        static string ContinuumNoiseNote(ResponseMatrix matrix)
+        {
+            if (matrix == null || !(matrix.ContinuumWeightedError > ContinuumNoiseWarnPercent))
+            {
+                return "";
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixContinuumNoise,
+                                 // `f1`, а не `n1` (`A244`): группировки разрядов нет.
+                                 matrix.ContinuumWeightedError.ToString("f1", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// В окне посчитанная и ещё НЕ сохранённая матрица: «Сохранить» доступна, а
+        /// закрытие спрашивает (<see cref="OnFormClosing"/>). Сохранённая остаётся в
+        /// <see cref="computed"/> (П291, Н6: отменённый пересчёт её не снимает), но
+        /// второй раз не предлагается.
+        /// </summary>
+        bool HasUnsavedResult
+        {
+            get { return this.computed != null && !object.ReferenceEquals(this.computed, this.savedComputed); }
+        }
+
+        /// <summary>
+        /// (П291, Н7) Отказ GPU-пути, который снимается галкой: ЦП посчитает. Носит
+        /// исходное исключение (<see cref="Exception.InnerException"/>) — для журнала.
+        /// </summary>
+        sealed class GpuRunFailedException : Exception
+        {
+            public GpuRunFailedException(Exception inner)
+                : base(inner.Message, inner)
+            {
+            }
+        }
+
+        /// <summary>
+        /// Типы GPU-пути: библиотека (<see cref="RmGpu"/>: загрузка, `rm_init`,
+        /// `rm_cfg_*`, `rm_load`, `rm_run` — TDR, нехватка памяти устройства, отказ
+        /// запуска ядра), узел на устройстве (<see cref="GpuNode"/>) и упаковка сцены
+        /// для устройства (<see cref="GpuPack"/> и его помощники).
+        ///
+        /// ⛔ <see cref="GpuBuild"/> сюда НЕ входит нарочно: сам он бросает только
+        /// отказы, ОБЩИЕ с ЦП-путём, — боковая постановка цилиндра, элемент вне таблиц
+        /// (те же проверки, что у <see cref="ResponseMatrixBuilder.Build"/>, `AMBER201`),
+        /// и κ пар, которая и на GPU-пути считается на ЦП (её отказ он перебрасывает
+        /// `throw e.InnerException`, то есть от своего имени). Совет «снимите галку —
+        /// посчитается на процессоре» там солгал бы: процессор откажет так же.
+        /// </summary>
+        static readonly Type[] GpuPathTypes =
+        {
+            typeof(RmGpu), typeof(GpuNode), typeof(GpuPack), typeof(GpuWriter),
+            typeof(GpuRegistry), typeof(GpuPackContext)
+        };
+
+        /// <summary>
+        /// (П291, Н7) Бросил ли исключение сам GPU-путь (<see cref="GpuPathTypes"/>).
+        ///
+        /// Бросивший — ПЕРВАЯ рамка стека из сборки приложения: рамки библиотеки .NET
+        /// пропускаются (`long.Parse` внутри `RmGpu.RunChunked` бросает из `System`, а
+        /// отказ — GPU-пути), вложенные типы (делегаты `RmGpu`, замыкания) сводятся к
+        /// внешнему. Бросивший вне GPU-пути — общий счёт (`ResponseMatrixBuilder`,
+        /// `EfficiencySimulator`, `GpuBuild`): отказал бы и ЦП, текст прежний.
+        ///
+        /// Отмена — не отказ: <see cref="OperationCanceledException"/> бросает
+        /// `ThrowIfCancellationRequested` из рамки `RmGpu.RunChunked`, и без этой
+        /// проверки отмена читалась бы отказом устройства.
+        /// </summary>
+        static bool ThrownByGpuPath(Exception ex)
+        {
+            if (ex == null || ex is OperationCanceledException)
+            {
+                return false;
+            }
+
+            var aggregate = ex as AggregateException;
+            if (aggregate != null)
+            {
+                foreach (Exception inner in aggregate.Flatten().InnerExceptions)
+                {
+                    if (ThrownByGpuPath(inner))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            StackFrame[] frames = new StackTrace(ex, false).GetFrames();
+            if (frames != null)
+            {
+                Assembly own = typeof(ResponseMatrixForm).Assembly;
+                foreach (StackFrame frame in frames)
+                {
+                    MethodBase method = frame.GetMethod();
+                    Type type = method != null ? method.DeclaringType : null;
+                    if (type == null || type.Assembly != own)
+                    {
+                        continue;
+                    }
+
+                    while (type.DeclaringType != null)
+                    {
+                        type = type.DeclaringType;
+                    }
+
+                    return Array.IndexOf(GpuPathTypes, type) >= 0;
+                }
+            }
+
+            // Ни одной своей рамки (исключение пришло обёрнутым из чужого кода) —
+            // решает вложенное.
+            return ThrownByGpuPath(ex.InnerException);
+        }
 
         /// <summary>
         /// Делений у полосы хода. Доля идёт по ДОСЧИТАННЫМ УЗЛАМ (`A46`):
@@ -926,7 +1093,9 @@ namespace BecquerelMonitor
             this.busy = value;
             this.computeButton.Enabled = !value && this.config != null && this.config.HasGeometry;
             this.cancelButton.Enabled = value;
-            this.saveButton.Enabled = !value && this.computed != null;
+            // (П291, Н6) Сохранённая матрица после отменённого пересчёта остаётся в
+            // `computed`, но «Сохранить» второй раз её не предлагает.
+            this.saveButton.Enabled = !value && this.HasUnsavedResult;
             this.closeButton.Enabled = !value;
             this.minEnergyBox.Enabled = !value;
             this.maxEnergyBox.Enabled = !value;
@@ -959,7 +1128,7 @@ namespace BecquerelMonitor
             // матрица — вопрос перед закрытием. Прежде окно закрывалось молча, и
             // часы счёта пропадали одним нажатием «Закрыть» или крестика.
             // Окно модальное: закрытие кнопкой приходит с `CloseReason.None`.
-            if (this.computed != null && !object.ReferenceEquals(this.computed, this.savedComputed)
+            if (this.HasUnsavedResult
                 && (e.CloseReason == CloseReason.UserClosing || e.CloseReason == CloseReason.None)
                 && AppUi.HasWindows)
             {
