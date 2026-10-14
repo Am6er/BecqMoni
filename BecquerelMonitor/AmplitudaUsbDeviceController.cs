@@ -39,6 +39,11 @@ namespace BecquerelMonitor
         int upperThreshold;
         double deadSeconds;
         bool disposed;
+        // P309 (15.10.2026): a session that brought no data leaves the end of a continued
+        // document as it was (see KeepsEndWithoutData). UI thread only.
+        DateTime endBeforeSession;
+        bool keepEndWithoutData;
+        bool sessionHadData;
 
         public AmplitudaUsbDeviceController()
         {
@@ -180,6 +185,7 @@ namespace BecquerelMonitor
             ResultDataStatus status = resultData.ResultDataStatus;
             elapsedMicros = status.TotalTime.Ticks / 10;        // continue a stopped measurement
             sessionDeviceMicros = 0;
+            RememberEndBeforeSession(resultData, spectrum);     // P309: before the start rules below
             if (spectrum.TotalPulseCount == 0 && elapsedMicros == 0)
             {
                 resultData.StartTime = DateTime.Now;
@@ -192,6 +198,28 @@ namespace BecquerelMonitor
             pollTimer.Start();
             status.Recording = true;
             return true;
+        }
+
+        // P309: what KeepsEndWithoutData needs, taken at Start BEFORE the start rules of StartCore:
+        // only a continued document whose start Start leaves alone (not empty, not the 1970 label of
+        // P298) keeps its end when no data comes. A method of its own so that the probe
+        // P309EndNoDataProbe runs this very code: a Start needs a HID device the probe does not have.
+        void RememberEndBeforeSession(ResultData resultData, EnergySpectrum spectrum)
+        {
+            keepEndWithoutData = !(spectrum.TotalPulseCount == 0 && elapsedMicros == 0)
+                && resultData.StartTime != ResultData.UnknownStartTime;
+            endBeforeSession = resultData.EndTime;
+            sessionHadData = false;
+        }
+
+        // P309 (15.10.2026): THE END OF A CONTINUED DOCUMENT MOVES ONLY WITH DATA - the rule and
+        // the measurement are at the twin, AmplitudaSerialDeviceController.KeepsEndWithoutData.
+        // Here a session without data is a device that opened but sent no frame (every frame
+        // carries real time, even one without events) until the reader gave up, or a Stop before
+        // the first poll tick: the end of the file was written "now" all the same.
+        bool KeepsEndWithoutData
+        {
+            get { return keepEndWithoutData && !sessionHadData; }
         }
 
         // P298 (14.10.2026): Start on a document whose start time is UNKNOWN - the 1970 label of
@@ -274,6 +302,10 @@ namespace BecquerelMonitor
             spectrum.ValidPulseCount += accepted;
             elapsedMicros += batch.RealMicros;
             sessionDeviceMicros += batch.RealMicros;
+            if (batch.Frames > 0 || batch.Count > 0 || batch.RealMicros > 0)
+            {
+                sessionHadData = true;      // P309: a frame of this session reached the document
+            }
 
             // Through ticks (100 ns): TimeSpan.FromSeconds rounds to a whole millisecond.
             TimeSpan elapsed = TimeSpan.FromTicks(elapsedMicros * 10);
@@ -301,7 +333,8 @@ namespace BecquerelMonitor
             // MeasurementController.OnTimer no longer ticks for a stopped spectrum: write the final values here.
             spectrum.MeasurementTime = elapsedMicros / 1.0E+06;
             spectrum.LiveTime = Utils.LiveTime.Calculate(spectrum.MeasurementTime, spectrum.TotalPulseCount, deadSeconds);
-            resultData.EndTime = DateTime.Now;
+            // P309: no data in this session - the end of the continued document stays.
+            resultData.EndTime = KeepsEndWithoutData ? endBeforeSession : DateTime.Now;
             resultData.ResultDataStatus.Recording = false;
             ReleaseReader();
         }
@@ -381,6 +414,7 @@ namespace BecquerelMonitor
                     reader.TakeBatch();         // drop what was collected before the clear
                     sessionClock.Restart();
                     resultData.StartTime = DateTime.Now;
+                    keepEndWithoutData = false;     // P309: the old end no longer belongs to the document
                 }
             }
             catch (Exception)
