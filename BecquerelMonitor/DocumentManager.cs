@@ -368,6 +368,7 @@ namespace BecquerelMonitor
             }
             DocEnergySpectrum docEnergySpectrum2 = new DocEnergySpectrum(filename);
             Cursor.Current = Cursors.WaitCursor;
+            int unknownStarts = 0;
             try
             {
                 // ⛔ `T266`: файл спектра — ТОЛЬКО НА ЧТЕНИЕ. Прежний голый
@@ -395,6 +396,11 @@ namespace BecquerelMonitor
                 if (legacy != null)
                 {
                     docEnergySpectrum2.ResultDataFile = legacy;
+                }
+                else
+                {
+                    // (П263) Времён, которых в файле нет, — не «сейчас».
+                    unknownStarts = FillAbsentTimes(docEnergySpectrum2.ResultDataFile);
                 }
 
                 // ⛔ НАСТРОЙКИ ПРИБОРА — ДО ПРОВЕРКИ (`A240`, восьмое место, G11,
@@ -505,7 +511,96 @@ namespace BecquerelMonitor
             //    (tools\CORPUS\corpus\spectra) открываются этой дверью с НУЛЁМ
             //    голосов — у всех кривая строится по конфигурации прибора.
             this.ReportMissingFwhmCalibration(docEnergySpectrum2, filename);
+            ReportUnknownStarts(unknownStarts);
             return docEnergySpectrum2;
+        }
+
+        /// <summary>
+        /// ⛔ (П263, 14.10.2026) ВРЕМЕНА, КОТОРЫХ В ФАЙЛЕ НЕТ, — НЕ «СЕЙЧАС».
+        /// Поля <see cref="ResultData.StartTime"/>, <see cref="ResultData.EndTime"/> и
+        /// <see cref="SampleInfoData.Time"/> по умолчанию — момент создания объекта, и
+        /// файл без этих элементов (их пишут чужие программы и конвертеры: замер
+        /// `SpectrumFilesProbeP263` — 149 из 683 файлов Amber без конца набора, 45 без
+        /// начала и времени пробы, 89 корпусных без конца) открывался с моментом
+        /// ОТКРЫТИЯ вместо времени набора. Цена — в поправке на распад
+        /// (<c>MeasurementResultManager.DecayToSamplingFactor</c>): поверочный файл
+        /// ЛСРМ 2024 года с началом и без конца давал «набор длиной два года» и
+        /// Бк Co-60 на +13 %; файл с началом, но без времени пробы — отрицательную
+        /// задержку. Правила — соглашения дверей импорта, своего не заводится:
+        /// <list type="bullet">
+        /// <item>конца нет — начало плюс ПОЛНОЕ время набора (`A177`);</item>
+        /// <item>времени пробы нет — время начала (так ставят все двери импорта:
+        /// у файла с одной датой проба и начало — одно мгновение);</item>
+        /// <item>начала нет, а время пробы есть — время пробы (задержка ноль, то
+        /// есть «без поправки», а не выдуманная);</item>
+        /// <item>нет ни начала, ни времени пробы — оба
+        /// <see cref="ResultData.UnknownStartTime"/> и голос один раз на файл
+        /// (`A207`, решение Amber 06.09.2026).</item>
+        /// </list>
+        /// Признаки присутствия — члены <c>…Specified</c> (см.
+        /// <see cref="ResultData.StartTimeSpecified"/>); формат записи не меняется.
+        /// Возвращает число спектров, у которых начало набора неизвестно.
+        /// </summary>
+        internal static int FillAbsentTimes(ResultDataFile file)
+        {
+            int unknown = 0;
+            if (file == null || file.ResultDataList == null)
+            {
+                return 0;
+            }
+            foreach (ResultData data in file.ResultDataList)
+            {
+                if (data == null)
+                {
+                    continue;
+                }
+                if (data.SampleInfo == null)
+                {
+                    data.SampleInfo = new SampleInfoData();
+                }
+                bool sampleKnown = data.SampleInfo.TimeInFile;
+                if (!data.StartTimeInFile)
+                {
+                    if (sampleKnown)
+                    {
+                        data.StartTime = data.SampleInfo.Time;
+                    }
+                    else
+                    {
+                        data.StartTime = ResultData.UnknownStartTime;
+                        data.SampleInfo.Time = ResultData.UnknownStartTime;
+                        unknown++;
+                    }
+                }
+                else if (!sampleKnown)
+                {
+                    data.SampleInfo.Time = data.StartTime;
+                }
+                if (!data.EndTimeInFile)
+                {
+                    double seconds = data.EnergySpectrum != null ? data.EnergySpectrum.MeasurementTime : 0.0;
+                    try
+                    {
+                        data.EndTime = data.StartTime.AddSeconds(seconds > 0.0 && !double.IsInfinity(seconds) ? seconds : 0.0);
+                    }
+                    catch (ArgumentOutOfRangeException)
+                    {
+                        // Время набора за пределами календаря — конец не выдумывается.
+                        data.EndTime = data.StartTime;
+                    }
+                }
+            }
+            return unknown;
+        }
+
+        /// <summary>(П263) Голос `A207` о неизвестном начале — один раз на файл.</summary>
+        static void ReportUnknownStarts(int unknownStarts)
+        {
+            if (unknownStarts > 0)
+            {
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRMissingStartDateTime, unknownStarts),
+                             "", MessageBoxIcon.None);
+            }
         }
 
         // Token: 0x0600026F RID: 623 RVA: 0x000099F4 File Offset: 0x00007BF4
@@ -513,6 +608,7 @@ namespace BecquerelMonitor
         {
             Cursor.Current = Cursors.WaitCursor;
             ResultDataFile resultDataFile;
+            int unknownStarts = 0;
             try
             {
                 // `T266`: только на чтение — довод в OpenDocument выше.
@@ -521,6 +617,8 @@ namespace BecquerelMonitor
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
                     resultDataFile = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
                 }
+                // (П263) Времён, которых в файле нет, — не «сейчас» (см. FillAbsentTimes).
+                unknownStarts = FillAbsentTimes(resultDataFile);
 
                 // Настройки прибора — ДО проверки, по той же причине, что в
                 // OpenDocument (`A240`, восьмое место, G11).
@@ -585,6 +683,7 @@ namespace BecquerelMonitor
             {
                 resultDataFile.ResultDataList[0].Selected = true;
             }
+            ReportUnknownStarts(unknownStarts);
             return resultDataFile;
         }
 
@@ -2557,13 +2656,48 @@ namespace BecquerelMonitor
             }
             Cursor.Current = Cursors.WaitCursor;
             string fileName = saveFileDialog.FileName;
+            try
+            {
+                this.WriteAtomSpectraFile(doc, fileName);
+            } catch (Exception ex)
+            {
+                // ОТКАЗ без окон: файла на диске НЕТ, а метод пустой — снаружи
+                // экспорт выглядит состоявшимся. Оснастка, которая потом читает
+                // этот файл, получит либо старый, либо ничего.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: экспорт Atom Spectra не записан (" + AppUi.Where(fileName)
+                        + "): " + ex.Message, ex);
+                }
+                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+            }
+            Cursor.Current = Cursors.Default;
+        }
 
+        /// <summary>
+        /// ⛔ (П263, 14.10.2026) ЗАПИСЬ ФАЙЛА ЭКСПОРТА — АТОМАРНАЯ, КАК У «СОХРАНИТЬ».
+        /// Прежде здесь стоял <c>new StreamWriter(имя)</c>: он ОБРЕЗАЕТ файл до нуля
+        /// при открытии, и отказ посреди записи (полный диск, отвалившаяся сетевая
+        /// папка, исключение на данных) оставлял на месте прежнего файла обрезок —
+        /// человек, экспортировавший поверх своего файла, терял его. Теперь — тот
+        /// же <see cref="Utils.AtomicFileWriter"/>, что у сохранения спектра и у
+        /// экспорта N42: прежний файл остаётся целым, пока новый не дописан.
+        /// Байты файла — прежние: UTF-8 без BOM, как у <c>StreamWriter(имя)</c>.
+        /// Метод без диалога нарочно: его зовёт и пункт меню (через
+        /// <see cref="ExportDocumentAtomSpectra"/>), и проба
+        /// (<c>SpectrumFilesProbeP263</c>), которой нажимать диалог некому.
+        /// Отказ — исключением.
+        /// </summary>
+        public void WriteAtomSpectraFile(DocEnergySpectrum doc, string fileName)
+        {
             EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
             SampleInfoData info = doc.ActiveResultData.SampleInfo;
             PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
-            try
+            Utils.AtomicFileWriter.Write(fileName, stream =>
             {
-                using (var writer = new System.IO.StreamWriter(fileName))
+                // leaveOpen: поток закрывает AtomicFileWriter — после Flush(true).
+                using (var writer = new System.IO.StreamWriter(stream, new UTF8Encoding(false), 4096, true))
                 {
                     //FORMAT: 3
                     writer.WriteLine("FORMAT: 3");
@@ -2641,21 +2775,7 @@ namespace BecquerelMonitor
                     }
                     writer.Flush();
                 }
-
-            } catch (Exception ex)
-            {
-                // ОТКАЗ без окон: файла на диске НЕТ, а метод пустой — снаружи
-                // экспорт выглядит состоявшимся. Оснастка, которая потом читает
-                // этот файл, получит либо старый, либо ничего.
-                if (!AppUi.HasWindows)
-                {
-                    throw new InvalidOperationException(
-                        "BecqMoni: экспорт Atom Spectra не записан (" + AppUi.Where(fileName)
-                        + "): " + ex.Message, ex);
-                }
-                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
-            }
-            Cursor.Current = Cursors.Default;
+            });
         }
 
         /// <summary>
@@ -2746,18 +2866,7 @@ namespace BecquerelMonitor
             string fileName = saveFileDialog.FileName;
             try
             {
-                Util util = new Util();
-                RadInstrumentData radN42Object = util.ExportToN42(doc);
-                XmlSerializer xmlSerializer = new XmlSerializer(typeof(RadInstrumentData));
-
-                Utils.AtomicFileWriter.Write(fileName, fileStream =>
-                {
-                    using (XmlWriter writer = XmlWriter.Create(fileStream, xmlSettings))
-                    {
-                        xmlSerializer.Serialize(writer, radN42Object);
-                        writer.Flush();
-                    }
-                });
+                this.WriteN42File(doc, fileName);
             }
             catch (Exception ex)
             {
@@ -2772,6 +2881,28 @@ namespace BecquerelMonitor
                 AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
             }
             Cursor.Current = Cursors.Default;
+        }
+
+        /// <summary>
+        /// (П263, 14.10.2026) Запись файла N42 без диалога — тело прежнего
+        /// <see cref="ExportDocumentN42"/>, вынесенное дословно, чтобы круг
+        /// «экспорт → импорт» мерился пробой (<c>SpectrumFilesProbeP263</c>)
+        /// ТЕМ ЖЕ путём, каким пишет пункт меню. Отказ — исключением.
+        /// </summary>
+        public void WriteN42File(DocEnergySpectrum doc, string fileName)
+        {
+            Util util = new Util();
+            RadInstrumentData radN42Object = util.ExportToN42(doc);
+            XmlSerializer xmlSerializer = new XmlSerializer(typeof(RadInstrumentData));
+
+            Utils.AtomicFileWriter.Write(fileName, fileStream =>
+            {
+                using (XmlWriter writer = XmlWriter.Create(fileStream, xmlSettings))
+                {
+                    xmlSerializer.Serialize(writer, radN42Object);
+                    writer.Flush();
+                }
+            });
         }
 
         // Token: 0x06000272 RID: 626 RVA: 0x00009FD4 File Offset: 0x000081D4
@@ -3046,17 +3177,9 @@ namespace BecquerelMonitor
                 return;
             }
             string fileName = saveFileDialog.FileName;
-            EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
             try
             {
-                using (StreamWriter streamWriter = new StreamWriter(fileName, false, Encoding.GetEncoding(65001)))
-                {
-                    streamWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "Channel,Counts (TotalTime={0:0.0}s)", energySpectrum.MeasurementTime));
-                    for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
-                    {
-                        streamWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "{0},{1}", i, energySpectrum.Spectrum[i]));
-                    }
-                }
+                this.WriteCsvFile(doc, fileName);
             }
             catch (Exception ex)
             {
@@ -3084,6 +3207,58 @@ namespace BecquerelMonitor
                 return;
             }
             string fileName = saveFileDialog.FileName;
+            try
+            {
+                this.WriteEnergyCsvFile(doc, fileName, bgMode, smoothMethod);
+            }
+            catch (Exception ex)
+            {
+                // ОТКАЗ без окон: CSV с энергиями не записан, метод пустой.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: экспорт CSV с энергиями не записан (" + AppUi.Where(fileName)
+                        + "): " + ex.Message, ex);
+                }
+                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+            }
+        }
+
+        /// <summary>
+        /// (П263, 14.10.2026) Запись CSV «канал, отсчёты» без диалога — атомарно
+        /// (<see cref="Utils.AtomicFileWriter"/>; довод — у <see cref="WriteAtomSpectraFile"/>:
+        /// прежний <c>StreamWriter(имя, false, …)</c> обрезал файл до нуля при
+        /// открытии). Байты прежние: UTF-8 С BOM (кодовая страница 65001), шапка
+        /// и строки — инвариантной культурой. Отказ — исключением.
+        /// </summary>
+        public void WriteCsvFile(DocEnergySpectrum doc, string fileName)
+        {
+            EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
+            Utils.AtomicFileWriter.Write(fileName, stream =>
+            {
+                using (StreamWriter streamWriter = new StreamWriter(stream, Encoding.GetEncoding(65001), 4096, true))
+                {
+                    // (П263) Время — до восьми знаков после точки, а не до одного: «0.0»
+                    //   округляло 3600.25 до 3600.3, и свой импорт CSV (он читает это
+                    //   число в знаменатель скорости счёта) получал другое время — у
+                    //   короткого набора до процентов (1.25 с → 1.3 с, +4 %). Вид прежний:
+                    //   один знак после точки остаётся всегда («3600.0»).
+                    streamWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "Channel,Counts (TotalTime={0:0.0#######}s)", energySpectrum.MeasurementTime));
+                    for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
+                    {
+                        streamWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "{0},{1}", i, energySpectrum.Spectrum[i]));
+                    }
+                }
+            });
+        }
+
+        /// <summary>
+        /// (П263, 14.10.2026) Запись CSV «канал, энергия, отсчёты» без диалога —
+        /// счёт прежнего <see cref="ExportDocumentToECSV"/> дословно, запись
+        /// атомарная (см. <see cref="WriteCsvFile"/>). Отказ — исключением.
+        /// </summary>
+        public void WriteEnergyCsvFile(DocEnergySpectrum doc, string fileName, BackgroundMode bgMode, SmoothingMethod smoothMethod)
+        {
             PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)doc.ActiveResultData.EnergySpectrum.EnergyCalibration;
 
             EnergySpectrum energySpectrum;
@@ -3117,30 +3292,22 @@ namespace BecquerelMonitor
 
             try
             {
-                using (StreamWriter streamWriter = new StreamWriter(fileName, false, Encoding.GetEncoding(65001)))
+                Utils.AtomicFileWriter.Write(fileName, stream =>
                 {
-                    streamWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "Channel,Energy,Counts (TotalTime={0:0.0}s)", energySpectrum.MeasurementTime));
-                    for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
+                    using (StreamWriter streamWriter = new StreamWriter(stream, Encoding.GetEncoding(65001), 4096, true))
                     {
-                        streamWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "{0},{1},{2}", i, cal.ChannelToEnergy(i), dSpectrum[i]));
+                        streamWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "Channel,Energy,Counts (TotalTime={0:0.0#######}s)", energySpectrum.MeasurementTime));
+                        for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
+                        {
+                            streamWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "{0},{1},{2}", i, cal.ChannelToEnergy(i), dSpectrum[i]));
+                        }
                     }
-                }
+                });
             }
-            catch (Exception ex)
+            finally
             {
-                // ОТКАЗ без окон: CSV с энергиями не записан, метод пустой.
-                // ⚠ `sa.Dispose()` ниже при броске не выполнится — как и при
-                // любом другом исключении этого метода сегодня; заворачивать
-                // его в `finally` здесь значит править не то, о чём речь.
-                if (!AppUi.HasWindows)
-                {
-                    throw new InvalidOperationException(
-                        "BecqMoni: экспорт CSV с энергиями не записан (" + AppUi.Where(fileName)
-                        + "): " + ex.Message, ex);
-                }
-                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+                sa.Dispose();
             }
-            sa.Dispose();
         }
 
         // Token: 0x06000279 RID: 633 RVA: 0x0000A5F0 File Offset: 0x000087F0
@@ -3255,6 +3422,7 @@ namespace BecquerelMonitor
             ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
             resultDataStatus.TotalTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
             resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
+            this.MarkCsvStartTimeUnknown(doc.ActiveResultData);
 
             // `A260`: ЧИТАТЕЛЬ у двери «CSV со счётом». Довод тот же, что у
             //   двери GBS строками выше: сброс настройки спектра теперь снимает
@@ -3262,6 +3430,38 @@ namespace BecquerelMonitor
             //   здесь зовётся только под галкой «импортировать с пустой
             //   конфигурацией»; без неё кривая цела, и метод молчит сам.
             this.ReportMissingFwhmCalibration(doc, fileName);
+            // (П263) `A207`: времени начала в CSV нет — один голос на файл.
+            ReportCsvStartTimeUnknown();
+        }
+
+        /// <summary>
+        /// ⛔ (П263, 14.10.2026) CSV НЕ НЕСЁТ ДАТЫ НАБОРА — У СПЕКТРА «ВРЕМЕНИ
+        /// НЕТ», А НЕ «СЕЙЧАС». Обе двери CSV (со счётом и с энергиями) оставляли
+        /// <c>StartTime</c>, <c>EndTime</c> и <c>SampleInfo.Time</c> умолчанием
+        /// <see cref="ResultData"/> — мгновением создания документа, то есть
+        /// ДНЁМ ИМПОРТА, молча: спектр двухлетней давности уезжал на вкладку пробы,
+        /// в отчёт и в N42 с сегодняшней датой, которую не отличить от измеренной.
+        /// Ровно это закрыто у остальных дверей соглашением `A207` (решение Amber
+        /// 06.09.2026 «говорить один раз на файл»; <see cref="ResultData.UnknownStartTime"/>
+        /// — единственное значение «времени нет»), а у дверей CSV осталось — и тот же
+        /// CSV, открытый дверью SpecUtils, уже давал 1970-01-01 с голосом
+        /// (`AMBER169`, замер `notime.csv`): два пункта меню, две даты. Поправка
+        /// на распад от этого не меняется: время пробы и начало набора по-прежнему
+        /// равны друг другу. Конец набора — начало плюс полное время, как у соседей
+        /// (`A177`).
+        /// </summary>
+        void MarkCsvStartTimeUnknown(ResultData data)
+        {
+            data.StartTime = ResultData.UnknownStartTime;
+            data.SampleInfo.Time = ResultData.UnknownStartTime;
+            data.EndTime = ResultData.UnknownStartTime.AddSeconds(data.EnergySpectrum.MeasurementTime);
+        }
+
+        /// <summary>(П263) Голос `A207` двери CSV — текст тот же, что у дверей N42, SpecUtils и Atom Spectra.</summary>
+        static void ReportCsvStartTimeUnknown()
+        {
+            AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRMissingStartDateTime, 1),
+                         "", MessageBoxIcon.None);
         }
 
         // csv format energy, channel
@@ -3414,6 +3614,7 @@ namespace BecquerelMonitor
 
             resultDataStatus.TotalTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
             resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
+            this.MarkCsvStartTimeUnknown(doc.ActiveResultData);
 
             // calibration part
             PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
@@ -3434,6 +3635,8 @@ namespace BecquerelMonitor
             //   `CheckDocument` строкой выше уже назвал причину себе в
             //   `fwhmRefusals`; здесь она звучит.
             this.ReportMissingFwhmCalibration(doc, fileName);
+            // (П263) `A207`: времени начала в CSV нет — один голос на файл.
+            ReportCsvStartTimeUnknown();
         }
 
         /// <summary>
