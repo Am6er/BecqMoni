@@ -1135,7 +1135,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>
         /// (`AMBER210`, П238) РЕВИЗИЯ ОТБОРА — серии, прошедшие пороги значимости, избытка и ширины,
         /// но НЕ попавшие в <see cref="UncoveredPeaks"/>: чем покрыты (линия состава, сумм-пик,
-        /// парный провал сдвига). Читают пробы (`FsaBqProbe --huber-cut`): без этого списка
+        /// парный провал сдвига, у разбора без матрицы — край комптона сильной линии состава, П281).
+        /// Читают пробы (`FsaBqProbe --huber-cut`): без этого списка
         /// пропуск настоящего чужого пика неотличим от его отсутствия. Окно отчёта не печатает.
         /// </summary>
         public List<FsaUncoveredRejection> UncoveredRejections { get; private set; } = new List<FsaUncoveredRejection>();
@@ -2747,7 +2748,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (обратное рассеяние, наложения, аннигиляция, суммы с рентгеном, уступ комптона) — не
         /// пик чужого нуклида, остаётся невязкой ленты.
         /// </summary>
-        NoCandidate
+        NoCandidate,
+        /// <summary>
+        /// (П281 14.10.2026; решение Amber 14.10.2026 вопросником, дословно: «Молчать у краёв
+        /// комптона (Рекомендую)») Разбор БЕЗ матрицы отклика, и центр серии лежит в окне края
+        /// комптона сильной линии состава (<see cref="FsaUncoveredRejection.ComptonEdgeKev"/>):
+        /// образ линии без матрицы — голый пик, уступ комптона описывает подложка сплайна, и
+        /// избыток у уступа — невязка формы, а не чужой нуклид, даже когда линия библиотеки
+        /// рядом есть. Правило и окно — у <c>FsaAnalyzer.FindUncoveredPeaks</c>. С матрицей не бывает.
+        /// </summary>
+        ComptonEdge
     }
 
     /// <summary>(`AMBER210`) Запись ревизии отбора — см. <see cref="FsaResult.UncoveredRejections"/>.</summary>
@@ -2762,6 +2772,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double NearestCoveredKev { get; set; } = double.NaN;
         /// <summary>Ближайший кандидат библиотеки вне состава в ±ПШПВ/2; null — нет.</summary>
         public FsaUncoveredCandidate NearestCandidate { get; set; }
+        /// <summary>
+        /// (П281) Край комптона, в окне которого лежит серия, кэВ — у причины
+        /// <see cref="FsaUncoveredRejectionReason.ComptonEdge"/>; NaN — у прочих причин.
+        /// </summary>
+        public double ComptonEdgeKev { get; set; } = double.NaN;
     }
 
     /// <summary>(`AMBER210`) Линия библиотеки приложения рядом с непокрытым пиком.</summary>
