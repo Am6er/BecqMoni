@@ -213,26 +213,7 @@ namespace BecquerelMonitor.Utils
                         }
                     }
 
-                    // A244 / П9: канал и ПШПВ уходили в string.Concat(object[]) —
-                    // ToString() звала сама склейка, по культуре потока.
-                    string labeltext = string.Concat(
-                            Resources.ChartHeaderChannel,
-                            " ",
-                            point.Channel.ToString(CultureInfo.InvariantCulture),
-                            "\n",
-                            Resources.ChartHeaderEnergy,
-                            " ",
-                            point.Energy.ToString("f2", CultureInfo.InvariantCulture),
-                            "\n",
-                            Resources.ChartHeaderFWHM,
-                            " ",
-                            point.FWHM.ToString(CultureInfo.InvariantCulture),
-                            " ch\n",
-                            Resources.Delta,
-                            Resources.ChartHeaderFWHM,
-                            " ",
-                            (point.FWHM - this.fwhmCalibration.ChannelToFwhm(point.Channel)).ToString("f1", CultureInfo.InvariantCulture)
-                         );
+                    string labeltext = PointLabelText(point, this.fwhmCalibration.ChannelToFwhm(point.Channel));
                     g.DrawString(labeltext, this.Font, textbrush, label);
                     continue;
                 }
@@ -241,6 +222,38 @@ namespace BecquerelMonitor.Utils
             brush.Dispose();
             glowbrush.Dispose();
             textbrush.Dispose();
+        }
+
+        /// <summary>
+        /// Подпись опоры под курсором.
+        ///
+        /// A244 / П9: канал и ПШПВ уходили в string.Concat(object[]) — ToString() звала
+        /// сама склейка, по культуре потока.
+        ///
+        /// (П314, 15.10.2026) ПШПВ — до тысячных, как в таблице опор вида. С `AMBER181`
+        /// (05.10.2026) ширина опоры дробная, и прежний <c>ToString()</c> печатал полный
+        /// double («23.4699808265793») в панель шириной 120 точек (замер `P314FwhmProbe`, плечо D).
+        /// </summary>
+        internal static string PointLabelText(CalibrationPeak point, double fittedFwhm)
+        {
+            return string.Concat(
+                    Resources.ChartHeaderChannel,
+                    " ",
+                    point.Channel.ToString(CultureInfo.InvariantCulture),
+                    "\n",
+                    Resources.ChartHeaderEnergy,
+                    " ",
+                    point.Energy.ToString("f2", CultureInfo.InvariantCulture),
+                    "\n",
+                    Resources.ChartHeaderFWHM,
+                    " ",
+                    point.FWHM.ToString("0.###", CultureInfo.InvariantCulture),
+                    " ch\n",
+                    Resources.Delta,
+                    Resources.ChartHeaderFWHM,
+                    " ",
+                    (point.FWHM - fittedFwhm).ToString("f1", CultureInfo.InvariantCulture)
+                 );
         }
 
         void DrawInfoPanel(Graphics g)

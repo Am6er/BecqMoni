@@ -62,6 +62,10 @@ namespace BecquerelMonitor
             // «350.546145162568» — пятнадцать знаков, из которых значащих два-три.
             energyColumn.Format = "0.###";
             fwhmColumn.Alignment = ColumnAlignment.Right;
+            // (П314, 15.10.2026) ПШПВ опоры — тоже до тысячных. С `AMBER181` (05.10.2026)
+            // ширина выделения дробная, а столбец остался в формате «G» и печатал её полным
+            // double: «23.4699808265793» (замер `P314FwhmProbe`, плечо D).
+            fwhmColumn.Format = "0.###";
             executeCalibrationButton.Enabled = false;
             expGaussExpLeftParameterLabelText = peakShapeFirstParameterLabel.Text;
             expGaussExpRightParameterLabelText = peakShapeSecondParameterLabel.Text;
@@ -312,6 +316,13 @@ namespace BecquerelMonitor
             }
 
             CopyPeakShapeSettings(previousCalibration, fwhmCalibration);
+            // (П314, 15.10.2026) Новая форма кривой ещё НЕ ПОСЧИТАНА: в поле вида — пустые
+            // коэффициенты. Без этой строки «Рассчитать» гасла сразу после выбора формы у
+            // посчитанной кривой: `UpdateSelectedCurveInfo` (с d659de20, 26.06.2026) ставит
+            // `lastSelectedIndex` на новую форму ДО `UpdateCalibrateButtonState`, и условие
+            // «форма та же и расчёт сделан» выполнялось. Новую форму нельзя было посчитать,
+            // не тронув опоры (замер `P314FwhmProbe`, плечо C).
+            calibrationDone = false;
             UpdateSelectedCurveInfo();
             UpdateCalibrateButtonState();
             lastSelectedIndex = selectCurveComboBox.SelectedIndex;
@@ -444,12 +455,110 @@ namespace BecquerelMonitor
                                 MessageBoxButtons.OK, MessageBoxIcon.Hand);
                 return;
             }
-            activeDocument.ActiveResultData.FwhmCalibration = fitted.Clone();
-            // Поле вида — снова ссылка на кривую документа (прежде оно и было ею,
-            // и подгонка шла прямо в него).
-            fwhmCalibration = activeDocument.ActiveResultData.FwhmCalibration;
-            UpdateData();
+            // (П314, 15.10.2026) В документ — тем же хвостом, что у «Рассчитать»
+            // (`CommitFittedCurve`). Прежде здесь кривая документа менялась, но документ
+            // не помечался изменённым, пики спектра не пересчитывались по новой ширине, а
+            // «Рассчитать» оставалась гореть (замер `P314FwhmProbe`, плечо G). Поле вида
+            // хвост снова делает ссылкой на кривую документа (`UpdateFwhmCalibration`).
+            CommitFittedCurve(activeDocument, fitted.Clone());
             mainForm.UpdateDeviceConfigForm();
+        }
+
+        /// <summary>
+        /// Подогнанная кривая — в документ: ОДИН хвост для «Рассчитать» и «Сохранить в
+        /// конфиг прибора» (П314, 15.10.2026). Документ помечается изменённым и пики
+        /// спектра пересчитываются по новой ширине, только если кривая документа
+        /// ДЕЙСТВИТЕЛЬНО сменилась (<see cref="SameCurve"/>): «Сохранить в прибор» на
+        /// только что открытом файле кладёт в документ ту же самую кривую, и звёздочка
+        /// «изменён» там была бы ложной. Кривая отмечается посчитанной в любом случае.
+        /// </summary>
+        void CommitFittedCurve(DocEnergySpectrum document, FwhmCalibration fitted)
+        {
+            ResultData resultData = document.ActiveResultData;
+            bool changed = !SameCurve(resultData.FwhmCalibration, fitted);
+            resultData.FwhmCalibration = fitted;
+            if (changed)
+            {
+                document.Dirty = true;
+            }
+            calibrationDone = true;
+            UpdateFwhmCalibration();
+            UpdateCalibrateButtonState();
+            if (changed)
+            {
+                mainForm.UpdateDetectedPeakView();
+                document.UpdateEnergySpectrum();
+            }
+        }
+
+        /// <summary>
+        /// Две кривые ПШПВ совпадают ВСЕМ, что пишется в файл: форма, коэффициенты
+        /// (побитово), опоры, форма пика и её параметры, суммы χ².
+        /// </summary>
+        static bool SameCurve(FwhmCalibration a, FwhmCalibration b)
+        {
+            if (a == null || b == null)
+            {
+                return a == null && b == null;
+            }
+            if (a.GetType() != b.GetType()
+                || !SameBits(a.Coefficients, b.Coefficients)
+                || a.PeakType != b.PeakType
+                || !SameBits(a.ExpGaussExpLeftTail, b.ExpGaussExpLeftTail)
+                || !SameBits(a.ExpGaussExpRightTail, b.ExpGaussExpRightTail)
+                || !SameBits(a.VoigtSigma, b.VoigtSigma)
+                || !SameBits(a.VoigtGamma, b.VoigtGamma)
+                || !SameBits(a.GaussianChi2Total, b.GaussianChi2Total)
+                || !SameBits(a.ExpGaussExpChi2Total, b.ExpGaussExpChi2Total)
+                || !SameBits(a.VoigtChi2Total, b.VoigtChi2Total)
+                || !SameBits(a.Chi2pNdp, b.Chi2pNdp))
+            {
+                return false;
+            }
+            List<CalibrationPeak> pa = a.CalibrationPeaks, pb = b.CalibrationPeaks;
+            if (pa == null || pb == null)
+            {
+                return pa == null && pb == null;
+            }
+            if (pa.Count != pb.Count)
+            {
+                return false;
+            }
+            for (int i = 0; i < pa.Count; i++)
+            {
+                if (pa[i].Channel != pb[i].Channel
+                    || !SameBits(pa[i].Energy, pb[i].Energy)
+                    || !SameBits(pa[i].FWHM, pb[i].FWHM))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        static bool SameBits(double x, double y)
+        {
+            return BitConverter.DoubleToInt64Bits(x) == BitConverter.DoubleToInt64Bits(y);
+        }
+
+        static bool SameBits(double[] x, double[] y)
+        {
+            if (x == null || y == null)
+            {
+                return x == null && y == null;
+            }
+            if (x.Length != y.Length)
+            {
+                return false;
+            }
+            for (int i = 0; i < x.Length; i++)
+            {
+                if (!SameBits(x[i], y[i]))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         /// <summary>
@@ -613,13 +722,7 @@ namespace BecquerelMonitor
                 SelectGlobalPeakShape(fitted, fitted.CalibrationPeaks);
             }
 
-            mainForm.ActiveDocument.ActiveResultData.FwhmCalibration = fitted;
-            mainForm.ActiveDocument.Dirty = true;
-            calibrationDone = true;
-            UpdateFwhmCalibration();
-            UpdateCalibrateButtonState();
-            mainForm.UpdateDetectedPeakView();
-            mainForm.ActiveDocument.UpdateEnergySpectrum();
+            CommitFittedCurve(mainForm.ActiveDocument, fitted);
         }
 
         void SelectGlobalPeakShape(FwhmCalibration target, List<CalibrationPeak> peaks)
@@ -1157,6 +1260,11 @@ namespace BecquerelMonitor
             if (result == DialogResult.Yes)
             {
                 calibrationDone = false;
+                // (П314, 15.10.2026) «Обновить опоры» графика переписала опоры ДОКУМЕНТА
+                // (`FWHMCalibrationGraph.updateCalibrationPointsToolStripMenuItem_Click`) —
+                // документ изменён, как при добавлении, снятии и правке опоры здесь же.
+                // Прежде звёздочки не было, и закрытие без вопроса теряло сдвинутые опоры.
+                mainForm.ActiveDocument.Dirty = true;
                 fwhmCalibration.CalibrationPeaks = CalibrationPeak.ClonePeaks(mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks);
                 UpdateTable();
                 UpdateCalibrateButtonState();

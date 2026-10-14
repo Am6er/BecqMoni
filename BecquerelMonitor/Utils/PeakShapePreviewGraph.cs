@@ -423,41 +423,63 @@ namespace BecquerelMonitor.Utils
 
             if (this.peakType == FwhmCalibration.VoigtPeakType)
             {
+                // (П314, 15.10.2026) Ширины В ФОРМУЛЕ — те, с которыми кривая нарисована:
+                // псевдо-Фойгт Томпсона — Кокса — Гастингса берёт ОБЕ составляющие с общей
+                // ПШПВ Γ (σ_V = Γ/2.355, γ_V = Γ/2, `PseudoVoigtProfile.TryCreate`), а σ и γ
+                // ниже (σ_rel·k, γ_rel·k) задают только долю η. Прежде формула стояла с σ и γ,
+                // и при σ_rel = γ_rel = 1 давала на x = Γ/2 высоту 0.22 вместо нарисованной
+                // 0.5 (замер `P314FwhmProbe`, плечо F).
                 return new[]
                 {
                     Row(
                         Txt("V(x) = "),
                         Fraction(
                             Row(
-                                Txt("ηL(x,γ) + (1 - η)"),
+                                Txt("ηL(x,"),
+                                Script(Txt("γ"), "V", null),
+                                Txt(") + (1 - η)"),
                                 Script(Txt("G"), "V", null),
-                                Txt("(x,σ)")),
+                                Txt("(x,"),
+                                Script(Txt("σ"), "V", null),
+                                Txt(")")),
                             Row(Txt("V(0)")))),
                     Row(
                         Script(Txt("G"), "V", null),
-                        Txt("(x,σ) = "),
+                        Txt("(x,"),
+                        Script(Txt("σ"), "V", null),
+                        Txt(") = "),
                         Fraction(
                             Row(
                                 Txt("exp("),
                                 Fraction(
                                     Row(Txt("-"), Sup(Txt("x"), "2")),
-                                    Row(Txt("2"), Sup(Txt("σ"), "2"))),
+                                    Row(Txt("2"), Script(Txt("σ"), "V", "2"))),
                                 Txt(")")),
                             Row(
-                                Txt("σ"),
+                                Script(Txt("σ"), "V", null),
                                 Txt("√(2π)")))),
                     Row(
-                        Txt("L(x,γ) = "),
+                        Txt("L(x,"),
+                        Script(Txt("γ"), "V", null),
+                        Txt(") = "),
                         Fraction(
-                            Row(Txt("γ")),
+                            Row(Script(Txt("γ"), "V", null)),
                             Row(
                                 Txt("π("),
                                 Sup(Txt("x"), "2"),
                                 Txt(" + "),
-                                Sup(Txt("γ"), "2"),
+                                Script(Txt("γ"), "V", "2"),
                                 Txt(")")))),
                     Row(
-                        Txt("k = "),
+                        Script(Txt("σ"), "V", null),
+                        Txt(" = Γ/2.355 = "),
+                        Txt(this.voigtParameters.ProfileSigma.ToString("0.###", CultureInfo.InvariantCulture)),
+                        Txt(",  "),
+                        Script(Txt("γ"), "V", null),
+                        Txt(" = Γ/2 = "),
+                        Txt(this.voigtParameters.ProfileGamma.ToString("0.###", CultureInfo.InvariantCulture))),
+                    Row(
+                        Txt("Γ = 1,  k = "),
                         Txt(this.voigtScaleFactor.ToString("0.####", CultureInfo.InvariantCulture))),
                     Row(
                         Txt("σ = "),
