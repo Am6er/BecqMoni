@@ -126,23 +126,10 @@ namespace BecquerelMonitor.NucBase
 
                 // (`AMBER197`) Коды — по `database/scheme.md` (`decay_chain` и
                 // `l_decays`): 7 — «ec» (прежде «IT»), 6 — «β- n» (прежде «β-»).
-                switch (this.dectype)
-                {
-                    case 0:
-                        return Resources.NucBase_Alpha_Label;
-                    case 1:
-                        return Resources.NucBase_EC + " " + Resources.NucBase_BettaPlus_Label;
-                    case 2:
-                        return Resources.NucBase_BettaMinus_Label;
-                    case 3:
-                        return Resources.NucBase_IT;
-                    case 6:
-                        return Resources.NucBase_BettaMinus_Label + " n";
-                    case 7:
-                        return Resources.NucBase_EC;
-                    default:
-                        return this.dectype.ToString(CultureInfo.InvariantCulture);
-                }
+                // (П266) Подпись — одна на карточку и таблицу линий:
+                // <see cref="Decay.ModeLabel"/>; здесь своей копии больше нет (у неё не
+                // было кода 10 «ec p», и 12 родителей печатали «10»).
+                return Decay.ModeLabel(this.dectype);
 
             }
         }
