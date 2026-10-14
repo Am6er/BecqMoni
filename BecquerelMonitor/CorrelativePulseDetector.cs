@@ -93,6 +93,24 @@ namespace BecquerelMonitor
                     {
                         this.ProcessPulse();
                     }
+                    else
+                    {
+                        // ⛔ П313 (15.10.2026). Импульс ВЫШЕ верхнего порога высоты (и
+                        //    зашкаливший: его высота свёртки за 100) в спектр не идёт, но
+                        //    детектор он занимал так же, как принятый, — значит, он
+                        //    обязан попасть в TotalPulseCount: живое время звукового
+                        //    входа — LiveTime.Calculate(T, TotalPulseCount, DeadTime()).
+                        //    Прежде такой импульс не считался вовсе, его мёртвое время
+                        //    терялось, живое время выходило больше настоящего, и
+                        //    скорость счёта и Бк — меньше: замер P313AudioPulseProbe,
+                        //    раздел U (порог 50, половина событий выше него) — линия
+                        //    −7 % при 300 имп/с, −21 % при 1000 имп/с. Соглашение то же,
+                        //    что у AmplitudaUSB («TotalPulseCount takes EVERY device
+                        //    event, including those cut by the thresholds») и AtomSpectra
+                        //    (sum + InvalidPulses): такой импульс виден на панели
+                        //    «Invalid», как и отбракованный по форме.
+                        this.energySpectrum.TotalPulseCount++;
+                    }
                     this.state = CorrelativePulseDetector.DetectionState.Ready;
                     break;
                 default:

@@ -138,8 +138,14 @@ namespace BecquerelMonitor
             this.doubleTextBox1.Text = prahomageMethodConfig.LowerThreshold.ToString(CultureInfo.InvariantCulture);
             this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString(CultureInfo.InvariantCulture);
             double pulseThreshold = prahomageMethodConfig.PulseThreshold;
-            this.trackBar2.Value = (int)(pulseThreshold * 100.0);
-            this.maskedTextBox2.Text = ((int)(pulseThreshold * 100.0)).ToString(CultureInfo.InvariantCulture);
+            // П313 (15.10.2026): ОКРУГЛЕНИЕ, а не отсечение. Порог хранится как n/100
+            // (SaveFormContents), и для n = 29, 57, 58 произведение n/100.0·100.0 выходит
+            // чуть меньше n (0.57·100 = 56.99999999999999): окно показывало 56, а первое же
+            // «Сохранить» записывало порог корреляции 0.56 вместо 0.57 — молча, на
+            // единицу за открытие. Проба P313PulseThresholdFormProbe.
+            int pulseThresholdPercent = (int)Math.Round(pulseThreshold * 100.0, MidpointRounding.AwayFromZero);
+            this.trackBar2.Value = pulseThresholdPercent;
+            this.maskedTextBox2.Text = pulseThresholdPercent.ToString(CultureInfo.InvariantCulture);
             this.numericUpDown1.Value = prahomageMethodConfig.PulseShapeSize;
             this.numericUpDown2.Value = prahomageMethodConfig.PeakIndex;
             this.doubleTextBox3.Text = prahomageMethodConfig.PulseLowerThreshold.ToString(CultureInfo.InvariantCulture);
