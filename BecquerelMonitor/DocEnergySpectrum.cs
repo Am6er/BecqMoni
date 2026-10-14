@@ -401,6 +401,12 @@ namespace BecquerelMonitor
             this.view.DrawingMode = globalConfig.ChartViewConfig.DefaultDrawingMode;
             this.view.PeakMode = globalConfig.ChartViewConfig.DefaultPeakMode;
             this.view.HorizontalMagnification = globalConfig.ChartViewConfig.DefaultHorizontalMagnification;
+            // (П259, 14.10.2026) Нижний предел поля масштаба — 0.01, а не 0.1 из
+            // конструктора формы: подгонка во всю ширину у длинного спектра в
+            // узком поле меньше 0.1 (8192 канала в окне 974 px — около 0.07), и
+            // поле, упёршись в 0.1, возвращало виду 0.1 — «Fit» показывал две
+            // трети спектра.
+            this.toolStripNumUpDownScale.Minimum = MinimumHorizontalScale;
             this.view.ActionEvent += View_ActionEvent;
             this.SetToolStripIcons();
             this.toolStripNumericUpdown.NumericUpDownControl.Value = (decimal)globalConfig.ChartViewConfig.PowNum;
@@ -443,17 +449,42 @@ namespace BecquerelMonitor
             this.toolStripSaveButton.Enabled = this.Dirty;
         }
 
+        /// <summary>(П259) Нижний предел поля масштаба по горизонтали.</summary>
+        const decimal MinimumHorizontalScale = 0.01M;
+
+        /// <summary>
+        /// (П259) Поле масштаба переставляет ВИД (подгонка, колесо, увеличение
+        /// выделения) — вид уже стоит на этом масштабе, и `ValueChanged` не должен
+        /// возвращать число обратно в <see cref="EnergySpectrumView.zoom"/>.
+        /// </summary>
+        bool scaleEchoFromView;
+
         private void View_ActionEvent(object sender, EnergySpectrumActionEventArgs e)
         {
             decimal value = e.NewScaleValue;
-            if (value > 10.0M) 
+            if (value > 10.0M)
             {
                 value = 10.0M;
-            } else if (value < 0.1M)
+            } else if (value < MinimumHorizontalScale)
             {
-                value = 0.1M;
+                value = MinimumHorizontalScale;
             }
-            if (e.NeedUpdateScale) this.toolStripNumUpDownScale.NumericUpDownControl.Value = value;
+            if (e.NeedUpdateScale)
+            {
+                // (П259, 14.10.2026) Эхо гасится: прежде установка поля звала
+                // `zoom` с числом, прошедшим double → decimal → double и предел
+                // поля, — масштаб вида после «Fit» тихо становился другим, и
+                // смена размера поля уже не узнавала в нём свою подгонку.
+                this.scaleEchoFromView = true;
+                try
+                {
+                    this.toolStripNumUpDownScale.NumericUpDownControl.Value = value;
+                }
+                finally
+                {
+                    this.scaleEchoFromView = false;
+                }
+            }
         }
 
         // Token: 0x06000320 RID: 800 RVA: 0x0000F9E4 File Offset: 0x0000DBE4
@@ -1932,6 +1963,10 @@ namespace BecquerelMonitor
 
         void toolStripNumUpDownScale_ValueChanged(object sender, EventArgs e)
         {
+            if (this.scaleEchoFromView)
+            {
+                return;
+            }
             this.view.zoom(this.toolStripNumUpDownScale.NumericUpDownControl.Value);
         }
 

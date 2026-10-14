@@ -981,8 +981,9 @@ namespace FsaReportViewProbe
                         new[] { Own("FSAReport_EfficiencyRow"), Own("FSAReport_EfficiencyNotUsed"), Bad },
                         new[] { Own("FSAReport_SummingRow"), Own("FSAReport_SummingUsed"), Good },
                         new[] { Own("FSAReport_DriftRow"), Own("FSAReport_DriftEdge"), Bad },
-                        // Имя пересилившего образа — данные результата, не надпись.
-                        new[] { Own("FSAReport_SuppressedRow"), "Backscatter", Bad }
+                        // Имя пересилившего образа — подписью слоя, как в строке состава
+                        // (П274 вслед за П275): по-русски «Обратное рассеяние», не служебное «Backscatter».
+                        new[] { Own("FSAReport_SuppressedRow"), BecquerelMonitor.Properties.Resources.FSABackscatterName, Bad }
                     };
                     // (`AMBER17`) Матрицы у сцены НЕТ — строки привязки шкалы
                     // нет тоже (синего канала, по которому ищут опоры, без

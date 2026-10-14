@@ -158,7 +158,7 @@
     <value>91, 13</value>
   </data>
   <data name="label21.Text" xml:space="preserve">
-    <value>1й коэффициент</value>
+    <value>1-й коэфф.</value>
   </data>
   <data name="label21.ToolTip" xml:space="preserve">
     <value />
@@ -179,7 +179,7 @@
     <value />
   </data>
   <data name="groupBox7.Text" xml:space="preserve">
-    <value>Ед.. инкремента калиб. энергии</value>
+    <value>Ед. инкремента калиб. энергии</value>
   </data>
   <data name="groupBox7.ToolTip" xml:space="preserve">
     <value />
@@ -257,7 +257,7 @@
     <value />
   </data>
   <data name="numericUpDown13.Location" type="System.Drawing.Point, System.Drawing">
-    <value>207, 48</value>
+    <value>436, 80</value>
   </data>
   <data name="numericUpDown13.ToolTip" xml:space="preserve">
     <value />
@@ -274,7 +274,7 @@
     <value />
   </data>
   <data name="label90.Location" type="System.Drawing.Point, System.Drawing">
-    <value>204, 30</value>
+    <value>301, 83</value>
   </data>
   <data name="label90.Size" type="System.Drawing.Size, System.Drawing">
     <value>71, 13</value>

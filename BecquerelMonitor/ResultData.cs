@@ -295,6 +295,70 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// ⛔ (П263, 14.10.2026) ПРИЗНАКИ «ВРЕМЯ БЫЛО В ФАЙЛЕ» — соглашение
+        /// <c>XmlSerializer</c> о членах <c>…Specified</c>: при чтении сериализатор ставит
+        /// их в true, только если элемент встретился; при записи геттер всегда true, и
+        /// оба элемента пишутся как прежде (формат файла не меняется).
+        ///
+        /// Зачем. Поля <see cref="StartTime"/>/<see cref="EndTime"/> по умолчанию —
+        /// <c>DateTime.Now</c>, и файл БЕЗ этих элементов открывался с моментом
+        /// открытия вместо времени набора, молча. Такие файлы есть в жизни, их пишут
+        /// чужие программы и конвертеры: замер `SpectrumFilesProbeP263` на спектрах
+        /// Amber — 149 из 683 без &lt;EndTime&gt; (104 поверочных ЛСРМ: начало есть,
+        /// конца нет), 45 без &lt;StartTime&gt; и времени пробы (выгрузки RadiaCode и
+        /// др.); в корпусе — 89 без &lt;EndTime&gt;. Конец набора «сейчас» при начале
+        /// двухлетней давности — это два года «набора» в поправке на распад
+        /// (<c>MeasurementResultManager.DecayToSamplingFactor</c>). Чинит
+        /// <c>DocumentManager.FillAbsentTimes</c> по этим признакам.
+        /// </summary>
+        [XmlIgnore]
+        public bool StartTimeSpecified
+        {
+            get
+            {
+                return true;
+            }
+            set
+            {
+                this.startTimeInFile = value;
+            }
+        }
+
+        /// <summary>(П263) См. <see cref="StartTimeSpecified"/>.</summary>
+        [XmlIgnore]
+        public bool EndTimeSpecified
+        {
+            get
+            {
+                return true;
+            }
+            set
+            {
+                this.endTimeInFile = value;
+            }
+        }
+
+        /// <summary>(П263) Время начала набора прочитано из файла.</summary>
+        [XmlIgnore]
+        public bool StartTimeInFile
+        {
+            get
+            {
+                return this.startTimeInFile;
+            }
+        }
+
+        /// <summary>(П263) Время конца набора прочитано из файла.</summary>
+        [XmlIgnore]
+        public bool EndTimeInFile
+        {
+            get
+            {
+                return this.endTimeInFile;
+            }
+        }
+
         public int PresetTime
         {
             get
@@ -635,6 +699,10 @@ namespace BecquerelMonitor
         DateTime startTime = DateTime.Now;
 
         DateTime endTime = DateTime.Now;
+
+        bool startTimeInFile;
+
+        bool endTimeInFile;
 
         int presetTime;
 

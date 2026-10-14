@@ -23,6 +23,17 @@ namespace BecquerelMonitor
         public int LiveSeconds;
         public int[] Channels;
         public long CompletedMs;        // port clock when the request finished
+        // Port clock at the command byte that asked for each data block (P280, 14.10.2026): Read
+        // only, the try that came through. A Read of a running block is not one moment - status,
+        // header, then page after page, 0.7 s each at 19200 baud - and what a block says
+        // describes it when it was asked: the live time at HeaderMs, the channels of page k at
+        // PageMs[k]. AmplitudaSerialAcquisition puts counts, live and real time on one moment
+        // from these. -1 / null when not read.
+        public long HeaderMs = -1;
+        public long[] PageMs;
+        // Control only: port clock at the command byte (the block's clock starts with the start
+        // command - checked on hardware 13.10.2026, see AmplitudaSerialSession). -1 otherwise.
+        public long SentMs = -1;
     }
 
     public sealed class AmplitudaSerialRequest
@@ -138,6 +149,17 @@ namespace BecquerelMonitor
                 registry.Add(settings.PortName, line);
                 line.worker.Start();
                 return line;
+            }
+        }
+
+        // The pause of the line open on this port, 0 if none is open: for the message after
+        // Acquire refused with ErrorSettingsDiffer (the registry is the only one who knows).
+        public static int OpenGapMs(string portName)
+        {
+            lock (registryLock)
+            {
+                AmplitudaSerialLine line;
+                return portName != null && registry.TryGetValue(portName, out line) ? line.settings.GapMs : 0;
             }
         }
 
@@ -371,6 +393,7 @@ namespace BecquerelMonitor
                 if (request.Kind == AmplitudaSerialRequestKind.Control)
                 {
                     SendFrame(request.Address, request.Command, true);
+                    reading.SentMs = lastActivityMs;
                     port.Sleep(ControlSettleMs);
                     reading.Ok = true;
                 }
@@ -528,11 +551,13 @@ namespace BecquerelMonitor
             return false;
         }
 
-        // One data block, verified: null after DataAttempts failures.
-        byte[] ReadBlock(byte address, byte command)
+        // One data block, verified: null after DataAttempts failures. askedMs = port clock at the
+        // command byte of the try that came through (the block answers about itself then).
+        byte[] ReadBlock(byte address, byte command, out long askedMs)
         {
             byte[] data = new byte[AmplitudaSerialProtocol.BlockBytes];
             byte[] sum = new byte[1];
+            askedMs = -1;
             for (int attempt = 0; attempt < DataAttempts; attempt++)
             {
                 if (attempt > 0)
@@ -540,6 +565,7 @@ namespace BecquerelMonitor
                     port.Sleep(RetryPauseMs);
                 }
                 SendFrame(address, command, true);
+                askedMs = lastActivityMs;
                 if (ReadFully(data, data.Length) != data.Length)
                 {
                     continue;
@@ -595,23 +621,28 @@ namespace BecquerelMonitor
                     }
                     else if (step == 1)
                     {
-                        byte[] header = line.ReadBlock(request.Address, AmplitudaSerialProtocol.CommandHeader);
+                        long askedMs;
+                        byte[] header = line.ReadBlock(request.Address, AmplitudaSerialProtocol.CommandHeader, out askedMs);
                         if (header == null)
                         {
                             return Finish(line, "header");
                         }
                         reading.LiveSeconds = AmplitudaSerialProtocol.LiveSeconds(header);
+                        reading.HeaderMs = askedMs;
                         reading.Channels = new int[request.Channels];
+                        reading.PageMs = new long[pages];
                     }
                     else
                     {
                         int page = step - 2;
-                        byte[] data = line.ReadBlock(request.Address, AmplitudaSerialProtocol.PageCommand(page));
+                        long askedMs;
+                        byte[] data = line.ReadBlock(request.Address, AmplitudaSerialProtocol.PageCommand(page), out askedMs);
                         if (data == null)
                         {
                             return Finish(line, "page " + page.ToString(CultureInfo.InvariantCulture));
                         }
                         AmplitudaSerialProtocol.DecodePage(data, reading.Channels, page);
+                        reading.PageMs[page] = askedMs;
                         if (page == pages - 1)
                         {
                             return Finish(line, null);

@@ -76,6 +76,17 @@ namespace BecquerelMonitor
         {
             if (deviceGuid != null)
             {
+                // ⛔ П267 (14.10.2026): прибор пишет ДРУГОЙ спектр — его накопитель
+                //    не наш. Контроллер остановленного спектра остаётся подписан на
+                //    общий экземпляр и слышит статус «Recording» ЧУЖОГО набора, и
+                //    «Очистить» здесь слал прибору «Reset» — сосед терял всё
+                //    набранное. Очищается только документ (`DCControlPanel`).
+                if (MeasurementController.IsDeviceLeasedByOther(deviceGuid, resultData.MeasurementController))
+                {
+                    Trace.WriteLine("RadiaCode: device " + deviceGuid + " is recording another spectrum - clear is local, no Reset");
+                    resultData.StartTime = DateTime.Now;
+                    return;
+                }
                 if (status == "Connected" || status == "Recording")
                 {
                     RadiaCodeIn.getInstance(deviceGuid).sendCommand("Reset");
@@ -92,7 +103,7 @@ namespace BecquerelMonitor
                             + "A headless run must not continue: the old counts come back with the next update "
                             + "and look like a fresh measurement.");
                     }
-                    AppUi.Report($"Device is {this.status}, connect device first!", "", MessageBoxIcon.None);
+                    AppUi.Report(string.Format(CultureInfo.InvariantCulture, Properties.Resources.ERRDeviceNotClearedNotConnected, this.status), "", MessageBoxIcon.None);
                 }
             }
         }
@@ -248,6 +259,10 @@ namespace BecquerelMonitor
                 {
                     resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(e.ElapsedTime);
                     resultData.ResultDataStatus.ElapsedTime = resultData.ResultDataStatus.TotalTime;
+                    // П267: время спектра — вместе с отсчётами ТОГО ЖЕ пакета, а не
+                    // следующим тактом окна (разбор у `MeasurementController.SetSpectrumTimes`).
+                    MeasurementController.SetSpectrumTimes(this.pulseDetector.EnergySpectrum,
+                        resultData.ResultDataStatus.ElapsedTime.TotalSeconds, resultData.DeviceConfig, false);
                 }
             }
         }

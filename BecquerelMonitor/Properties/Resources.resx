@@ -42041,7 +42041,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Busy</value>
   </data>
   <data name="Uncertain" xml:space="preserve">
-    <value>Uncertain</value>
+    <value>Uncertainty</value>
   </data>
   <data name="PlusMinus" xml:space="preserve">
     <value>±</value>
@@ -42201,6 +42201,12 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="DeadTimeLblText" xml:space="preserve">
     <value>Dead Time: {0} µs</value>
+  </data>
+  <data name="MSGDeadTimeCorrectionNotNeeded" xml:space="preserve">
+    <value>The dead time correction is not needed with the device configuration "{0}": its dead time is 0, and recomputing with it would only set the live time equal to the real time, erasing the live time the spectrum has. With dead time 0 the live time comes from the device itself (or the dead time of the device is not known). The live time of the spectrum is left unchanged ({1} s, real time {2} s).</value>
+  </data>
+  <data name="CountRateDeadTimeHint" xml:space="preserve">
+    <value>Dead time, %. With a device configuration whose dead time is above 0: over the time constant, from the counts rate and that dead time. With dead time 0 (the device reports live time itself, or its dead time is not known): over the whole spectrum, (real time - live time) / real time; 0 if the spectrum has no live time. With a device that reports live time itself, while it is measuring the value refers to the moment of its last read and is accurate to about 50/T percentage points (T — real time, s).</value>
   </data>
   <data name="RefreshBG" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\RefreshBG.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -43854,7 +43860,7 @@ Close the window and discard it?</value>
     <value>Amplituda Serial: cannot open {0}: {1} The port may be in use by another program (Progress, a terminal), or the USB adapter got another port number.</value>
   </data>
   <data name="ERRAmplitudaSerialSettingsDiffer" xml:space="preserve">
-    <value>Amplituda Serial: {0} is already open by another device configuration with a different pause setting. All blocks on one port must use the same pause.</value>
+    <value>Amplituda Serial: {0} is already in use by a running measurement with a pause of {1} ms. All blocks on one port must use the same pause: set {1} ms, or stop that measurement first.</value>
   </data>
   <data name="ERRAmplitudaSerialNoAnswer" xml:space="preserve">
     <value>The block at address {1} on {0} does not answer. Check its power (it answers a few seconds after power-up), the cable, the address and the common ground between the block's power supply and the PC.</value>
@@ -43947,7 +43953,7 @@ Close the window and discard it?</value>
     <value>START: for the first 3-4 seconds nothing is counted. The driver stops the block, clears it, checks that it is really empty and only then starts it. Whatever was in the block's memory is erased: the document is the master, the block only counts what is added to it. Continuing a stopped or a saved spectrum works the same way - nothing in the document is lost.</value>
   </data>
   <data name="AmplitudaSerialInstructionP03" xml:space="preserve">
-    <value>DURING THE MEASUREMENT: the spectrum is refreshed once per polling period (3 s by default; one full read of a 1024-channel block takes 2.5 s). The time on the screen runs smoothly in between. Live time comes from the block itself; real time is the PC clock.</value>
+    <value>DURING THE MEASUREMENT: the spectrum is refreshed once per polling period (3 s by default; one full read of a 1024-channel block takes 2.5 s). The counts, the live time and the real time on the screen all refer to one moment — when the last read took the counts — so the time also advances in steps, once per refresh. Live time comes from the block itself; real time is the PC clock. The preset time is checked against the PC clock, so the measurement ends on time.</value>
   </data>
   <data name="AmplitudaSerialInstructionP04" xml:space="preserve">
     <value>STOP: the window freezes for 3-4 seconds. This is the last read of the stopped block, done on purpose so that the final counts are in the document before it can be saved.</value>
@@ -43990,5 +43996,44 @@ Close the window and discard it?</value>
   </data>
   <data name="ERRAmplitudaSerialStopIncomplete" xml:space="preserve">
     <value>The block at address {1} on {0} did not deliver its final reading when the measurement was stopped. The spectrum holds the data up to the last successful poll; what the block counted after it (one polling period, or more if the polls were already failing) is missing.</value>
+  </data>
+  <data name="ResponseMatrixGpuSceneIso" xml:space="preserve">
+    <value>Not available for this geometry: the isotropic field (ISO) scene is not ported to the GPU. The matrix is computed on the CPU.</value>
+  </data>
+  <data name="ERRAmplitudaUsbAllInUse" xml:space="preserve">
+    <value>Every connected Amplituda USB device is already being measured in another document (a device configuration with "(first found)" skips such devices). Connect another device or stop one of those measurements first.</value>
+  </data>
+  <data name="ERRDeviceNotClearedNotConnected" xml:space="preserve">
+    <value>The spectrum in the device was not cleared: the device is {0}. Its counts will come back with the next Start. Start the measurement and clear it again.</value>
+  </data>
+  <data name="FSABackscatterName" xml:space="preserve">
+    <value>Backscatter</value>
+  </data>
+  <data name="NucBase_HalfLifeStable" xml:space="preserve">
+    <value>STABLE</value>
+  </data>
+  <data name="NucBase_UnitNs" xml:space="preserve">
+    <value>ns</value>
+  </data>
+  <data name="NucBase_UnitUs" xml:space="preserve">
+    <value>us</value>
+  </data>
+  <data name="NucBase_UnitMs" xml:space="preserve">
+    <value>ms</value>
+  </data>
+  <data name="NucBase_UnitS" xml:space="preserve">
+    <value>s</value>
+  </data>
+  <data name="NucBase_UnitMin" xml:space="preserve">
+    <value>m</value>
+  </data>
+  <data name="NucBase_UnitH" xml:space="preserve">
+    <value>h</value>
+  </data>
+  <data name="NucBase_UnitD" xml:space="preserve">
+    <value>d</value>
+  </data>
+  <data name="NucBase_UnitY" xml:space="preserve">
+    <value>Y</value>
   </data>
 </root>

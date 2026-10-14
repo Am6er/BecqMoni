@@ -253,7 +253,7 @@ namespace BecquerelMonitor
                         if (showValuesForNDResult || flag)
                         {
                             row.Cells.Add(cell);
-                            row.Cells.Add(new Cell(Resources.PlusMinus + num.ToString(format, CultureInfo.InvariantCulture) + " (" + epsilon.ToString(format, CultureInfo.InvariantCulture) + Resources.PercentCharacter + ")"));
+                            row.Cells.Add(new Cell(ErrorText(num, epsilon, measurementResult.ResultValue, format)));
                         }
                         else
                         {
@@ -277,9 +277,15 @@ namespace BecquerelMonitor
                         // строка состояния — текст, а не «не обнаружен»: значок ND
                         // рисовался бы поверх текста (замечание Amber 06.10.2026)
                         cell2.Tag = null;
+                        // (П261) Причина отказа разбора длиннее колонки чисел (около 100
+                        // точек): ячейка занимает все три колонки чисел и переносится по
+                        // ширине, текст — от левого края; целиком — и в подсказке.
+                        // `ColSpan` сам добавляет пустые ячейки под охваченные колонки.
+                        cell2.ToolTipText = cell2.Text;
+                        cell2.ColSpan = 3;
+                        cell2.WordWrap = true;
+                        cell2.CellStyle.Alignment = ColumnAlignment.Left;
                         row.Cells.Add(cell2);
-                        row.Cells.Add(new Cell(""));
-                        row.Cells.Add(new Cell(""));
                     }
                     row.Tag = i;
                     this.tableModel1.Rows.Add(row);
@@ -312,7 +318,7 @@ namespace BecquerelMonitor
                         {
                             row2.Cells[1].Text = measurementResult2.ResultValue.ToString(format, CultureInfo.InvariantCulture);
                             row2.Cells[1].Data = Math.Round(measurementResult2.ResultValue, format_int);
-                            row2.Cells[2].Text = Resources.PlusMinus + num2.ToString(format, CultureInfo.InvariantCulture) + " (" + epsilon.ToString(format, CultureInfo.InvariantCulture) + Resources.PercentCharacter + ")";
+                            row2.Cells[2].Text = ErrorText(num2, epsilon, measurementResult2.ResultValue, format);
                         }
                         else
                         {
@@ -334,6 +340,7 @@ namespace BecquerelMonitor
                     {
                         row2.Cells[1].Text = string.IsNullOrEmpty(measurementResult2.StatusText)
                             ? Resources.ErrorString : measurementResult2.StatusText;
+                        row2.Cells[1].ToolTipText = row2.Cells[1].Text;
                         row2.Cells[1].Tag = null;
                         row2.Cells[1].Data = null;
                         row2.Cells[2].Text = string.Empty;
@@ -344,6 +351,21 @@ namespace BecquerelMonitor
                 }
             }
             this.table1.EndUpdate();
+        }
+
+        /// <summary>
+        /// (П254) «±σ (ε %)»; у нулевого значения — только «±σ»: относительная погрешность нуля
+        /// не определена, а «(0.00%)» рядом с σ не обнаруженного нуклида (порог решения / k,
+        /// ISO 11929) читалось бы как «точно ноль».
+        /// </summary>
+        static string ErrorText(double error, double epsilon, double value, string format)
+        {
+            string text = Resources.PlusMinus + error.ToString(format, CultureInfo.InvariantCulture);
+            if (value != 0.0)
+            {
+                text += " (" + epsilon.ToString(format, CultureInfo.InvariantCulture) + Resources.PercentCharacter + ")";
+            }
+            return text;
         }
 
         static string NameText(MeasurementResult result)
@@ -457,6 +479,7 @@ namespace BecquerelMonitor
         const string KeyFsaMdaHeader = "DCResult_FsaMdaHeader";
         const string KeyFsaMdaTip = "DCResult_FsaMdaTip";
         const string KeyFsaStale = "DCResult_FsaStale";
+        const string KeyFsaError = "DCResult_FsaError";
 
         FullSpectrumAnalysis.FsaMeasurementResult.Texts FsaTexts()
         {
@@ -470,9 +493,14 @@ namespace BecquerelMonitor
                 ReasonCurveUnused = OwnText(KeyFsaReasonCurveUnused),
                 ReasonOrigin = OwnText(KeyFsaReasonOrigin),
                 ReasonNoResult = OwnText(KeyFsaReasonNoResult),
-                Details = OwnText(KeyFsaDetails)
+                Details = OwnText(KeyFsaDetails),
+                // (П254) происхождение кривой словами окна: ключи DCResult_FsaOrigin<член>
+                // (en + ru); нет ключа — имя члена перечисления, как прежде
+                OriginName = origin => OwnResources.GetString(KeyFsaOriginPrefix + origin)
             };
         }
+
+        const string KeyFsaOriginPrefix = "DCResult_FsaOrigin";
 
         void InitFsa()
         {
@@ -482,6 +510,10 @@ namespace BecquerelMonitor
             this.columnModel1.Columns[0].Width = Math.Max(this.columnModel1.Columns[0].Width, 170);
             this.columnModel1.Columns[3].Text = OwnText(KeyFsaMdaHeader);
             this.columnModel1.Columns[3].ToolTipText = OwnText(KeyFsaMdaTip);
+            // (П261) строка причины отказа переносится по ширине (`ShowResult`): высоту
+            // строки по переносу XPTable считает только под этим ключом; строки чисел
+            // переноса не просят и остаются прежней высоты
+            this.table1.EnableWordWrap = true;
             // Решение Amber 06.10.2026 вопросником «Подсвечивать образ нуклида в стеке»:
             // выбор строки подсвечивает образ в стеке FSA тем же механизмом, что у
             // окна отчёта (`EnergySpectrumView.FsaHighlight`); окон зон у разбора нет.
@@ -516,9 +548,51 @@ namespace BecquerelMonitor
 
         void SetFsaHeader(string text, string tip)
         {
-            this.columnModel1.Columns[0].Text = text;
-            this.columnModel1.Columns[0].ToolTipText = tip ?? "";
+            Column column = this.columnModel1.Columns[0];
+            column.Text = text;
+            column.ToolTipText = tip ?? "";
+            // (П254) Заголовок со шкалой и пометкой свежести («FSA: Bq by response matrix
+            // (recomputing…)», «FSA: Бк по матрице отклика (пересчёт…)») в 170 пикселей не
+            // влезал: XPTable переносил его на вторую строку и срезал обе — снимок
+            // `FsaResultWindowProbeP254 --shots=`. Колонка только РАСТЁТ до текста: ширину,
+            // которую человек выставил руками, она не отнимает.
+            System.Drawing.Font font = this.table1.HeaderFont ?? this.table1.Font;
+            int needed = System.Windows.Forms.TextRenderer.MeasureText(text ?? "", font).Width + 12;
+            // ⛔ (П274, 14.10.2026) …И ВОЗВРАЩАЕТСЯ, когда пометка ушла. Пометка «(пересчёт…)»
+            // теперь встаёт на каждый пересчёт (`FsaSessionStarted`), и колонка, выросшая под неё
+            // навсегда, выталкивала колонку MDA за край узкой панели (экран П274: после первой же
+            // смены настройки MDA срезана). Рост под текст остаётся (П254), а по уходу длинного
+            // текста колонка сжимается к ширине до роста — если её с тех пор не трогал человек.
+            if (this.fsaHeaderGrownFrom >= 0 && column.Width != this.fsaHeaderGrownTo)
+            {
+                this.fsaHeaderGrownFrom = -1;   // ширину выставил человек — она его
+            }
+            if (column.Width < needed)
+            {
+                if (this.fsaHeaderGrownFrom < 0)
+                {
+                    this.fsaHeaderGrownFrom = column.Width;
+                }
+                column.Width = needed;
+                this.fsaHeaderGrownTo = column.Width;
+            }
+            else if (this.fsaHeaderGrownFrom >= 0 && needed < column.Width)
+            {
+                int back = Math.Max(this.fsaHeaderGrownFrom, needed);
+                column.Width = back;
+                this.fsaHeaderGrownTo = column.Width;
+                if (back == this.fsaHeaderGrownFrom)
+                {
+                    this.fsaHeaderGrownFrom = -1;
+                }
+            }
         }
+
+        /// <summary>(П274) Ширина колонки заголовка до роста под длинный текст; −1 — не росла.</summary>
+        int fsaHeaderGrownFrom = -1;
+
+        /// <summary>(П274) Ширина, до которой колонку вырастил <see cref="SetFsaHeader"/>.</summary>
+        int fsaHeaderGrownTo = -1;
 
         MeasurementResultCollection FsaCollection()
         {
@@ -544,6 +618,7 @@ namespace BecquerelMonitor
                     if (this.fsaDocument.FsaSession != null)
                     {
                         this.fsaDocument.FsaSession.Completed -= this.FsaSessionCompleted;
+                        this.fsaDocument.FsaSession.Started -= this.FsaSessionStarted;
                     }
                 }
                 if (document != null)
@@ -552,6 +627,7 @@ namespace BecquerelMonitor
                     if (document.FsaSession != null)
                     {
                         document.FsaSession.Completed += this.FsaSessionCompleted;
+                        document.FsaSession.Started += this.FsaSessionStarted;
                     }
                 }
                 this.fsaDocument = document;
@@ -571,8 +647,36 @@ namespace BecquerelMonitor
             session.EnsureUpToDate(rd, rd.BackgroundEnergySpectrum != null, options);
             FullSpectrumAnalysis.FsaResult result = session.Result;
             bool running = session.IsRunning;
+            // ⛔ (П254, 14.10.2026) ПРИЗНАК СВЕЖЕСТИ И ПРИ ПАУЗЕ ЗАПИСИ. Требование `AMBER208` (3):
+            // строки по прежнему разбору обязаны это говорить. Пауза `AMBER211` («Не чаще раза в
+            // 30 с») держит при наборе прежний разбор до интервала БЕЗ счёта — и строки спектра
+            // 30-секундной давности стояли без пометки, как готовые: пометка зажигалась только на
+            // время самого счёта. Отпечаток считается тем же путём, что у сеанса.
+            if (!running && result != null && rd.ResultDataStatus != null && rd.ResultDataStatus.Recording
+                && !string.Equals(session.Stamp, FullSpectrumAnalysis.FsaAnalysisSession.BuildStamp(
+                    rd, rd.BackgroundEnergySpectrum != null, options), StringComparison.Ordinal))
+            {
+                running = true;
+            }
             if (result == null)
             {
+                // ⛔ (П261, 14.10.2026) ОТКАЗ РАЗБОРА — СЛОВАМИ, А НЕ ВЕЧНЫМ «ИДЁТ РАСЧЁТ». Здесь
+                // стояло одно «FSA: computing…» на любой пустой результат, и отказ (нет кривой и
+                // прибора у документа после «Normalize spectrum…», ноль пиков, исключение в
+                // счёте или в подготовке снимка, отказ при смене документа посреди счёта) висел
+                // в окне без конца: сеанс давно молчал, а окно ждало (П259, находка 7; проба
+                // `FsaSessionStatesProbeP261`). Причина — та же строка сеанса, что у отчёта FSA
+                // (его строка состояния «FSA error: …» и строка таблицы): заголовок — «FSA error»,
+                // ячейка — причина, подсказки ячейки и заголовка — она же целиком. «Идёт
+                // расчёт» — только пока сеанс занят (в том числе ждёт конца поиска пиков).
+                string refusal = session.Status;
+                if (!session.IsRunning && !string.IsNullOrEmpty(refusal))
+                {
+                    // свой ключ окна (`DCResult_FsaError`, в лад «FSA: …» прочих заголовков) —
+                    // когда заведён в оба resx; до того — строка состояния отчёта «FSA error»
+                    this.SetFsaHeader(OwnResources.GetString(KeyFsaError) ?? Resources.FSAStatusError, refusal);
+                    return StatusCollection(rd, refusal);
+                }
                 this.SetFsaHeader(OwnText(KeyFsaComputing), null);
                 return StatusCollection(rd, OwnText(KeyFsaComputing));
             }
@@ -614,21 +718,41 @@ namespace BecquerelMonitor
                 if (this.fsaDocument.FsaSession != null)
                 {
                     this.fsaDocument.FsaSession.Completed -= this.FsaSessionCompleted;
+                    this.fsaDocument.FsaSession.Started -= this.FsaSessionStarted;
                 }
                 this.fsaDocument = null;
             }
             base.OnFormClosed(e);
         }
 
+        /// <summary>
+        /// ⛔ (П254, 14.10.2026) ЗАКАЗЧИК СЧЁТА — ТОЛЬКО ВИДИМОЕ ОКНО (решение Amber 07.10.2026
+        /// вопросником, дословно: «Не чаще раза в 30 с и только для видимых», `AMBER211`).
+        /// Подписка на сеанс и вид документа живёт, пока окно не сменит документ, — и у
+        /// окна, ставшего невыбранной вкладкой, тоже: прежде оно на каждое обновление вида
+        /// (при наборе — каждый такт графика) и на каждый конец счёта звало
+        /// <see cref="ShowResult"/>, а тот — <c>EnsureUpToDate</c>, то есть заказывало
+        /// разбор, которого никто не видит (проба `FsaResultWindowProbeP254`: скрытое окно,
+        /// смена настройки, обновление вида — один запуск счёта). Таймер MainForm скрытые
+        /// окна и так пропускает; ставшее видимым окно перечитывается по <c>VisibleChanged</c>.
+        /// </summary>
+        bool IsFsaConsumer
+        {
+            get
+            {
+                return !this.IsDisposed && this.IsHandleCreated && this.Visible;
+            }
+        }
+
         void FsaDocumentViewRefreshed(object sender, EventArgs e)
         {
-            if (this.IsDisposed || !this.IsHandleCreated)
+            if (!this.IsFsaConsumer)
             {
                 return;
             }
             this.BeginInvoke((System.Windows.Forms.MethodInvoker)delegate
             {
-                if (!this.IsDisposed)
+                if (this.IsFsaConsumer)
                 {
                     this.previousCollection = null;
                     this.ShowResult(true);
@@ -638,6 +762,7 @@ namespace BecquerelMonitor
 
         void FsaSessionCompleted(object sender, EventArgs e)
         {
+            // с фонового потока: Visible здесь не читается, только ручка — решает делегат
             if (this.IsDisposed || !this.IsHandleCreated)
             {
                 return;
@@ -646,7 +771,7 @@ namespace BecquerelMonitor
             {
                 this.BeginInvoke((System.Windows.Forms.MethodInvoker)delegate
                 {
-                    if (!this.IsDisposed)
+                    if (this.IsFsaConsumer)
                     {
                         this.previousCollection = null;
                         this.ShowResult(true);
@@ -656,6 +781,39 @@ namespace BecquerelMonitor
             catch (InvalidOperationException)
             {
                 // окно закрылось между проверкой и вызовом — результат никому не нужен
+            }
+        }
+
+        /// <summary>
+        /// ⛔ (П274, 14.10.2026) ПЕРЕСЧЁТ НАЧАЛСЯ — СТРОКИ ПРЕЖНЕГО РАЗБОРА ПОМЕЧАЮТСЯ СРАЗУ. Окно
+        /// перечитывалось только по концу счёта и по обновлению вида документа, а смена настройки
+        /// расчёта в окне отчёта (галка «Равновесие ряда» и пр.) вид не обновляет: все 5–10 с
+        /// пересчёта Th232_29.07.2022 окно стояло с прежними числами (Th-232 1057.20) без пометки
+        /// «(пересчёт…)», хотя отчёт уже писал «идёт расчёт» (проверка экраном П273, находка 1;
+        /// требование `AMBER208` (3) — строки по прежнему разбору обязаны это говорить). Событие
+        /// приходит с потока, позвавшего счёт, и в том числе изнутри <see cref="ShowResult"/> —
+        /// поэтому только отложенно; скрытое окно счёта не заказывает и здесь (`AMBER211`).
+        /// </summary>
+        void FsaSessionStarted(object sender, EventArgs e)
+        {
+            if (this.IsDisposed || !this.IsHandleCreated)
+            {
+                return;
+            }
+            try
+            {
+                this.BeginInvoke((System.Windows.Forms.MethodInvoker)delegate
+                {
+                    if (this.IsFsaConsumer)
+                    {
+                        this.previousCollection = null;
+                        this.ShowResult(true);
+                    }
+                });
+            }
+            catch (InvalidOperationException)
+            {
+                // окно закрылось между проверкой и вызовом — помечать некому
             }
         }
 

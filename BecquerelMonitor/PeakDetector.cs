@@ -27,10 +27,17 @@ namespace BecquerelMonitor
             FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
             EnergySpectrum inferenceSpectrum;
             SpectrumAriphmetics sa = new SpectrumAriphmetics();
+            // ⛔ (П265, 14.10.2026) Шум вычтенного спектра — дисперсия РАЗНОСТИ
+            //    (спектр + k²·фон), а не её отсчёт: см.
+            //    `SpectrumAriphmetics.SubstractVarianceExcess`. Без добавки SNR
+            //    в режиме «фон вычтен» раздувался в 2–3 раза, и на спектре без
+            //    источника вставали фантомы выше порога.
+            double[] extraVariance = null;
             if (bgMode == BackgroundMode.Substract && resultData.BackgroundEnergySpectrum != null)
             {
                 sa = new SpectrumAriphmetics(resultData.EnergySpectrum);
                 inferenceSpectrum = sa.Substract(resultData.BackgroundEnergySpectrum);
+                extraVariance = sa.SubstractVarianceExcess(resultData.BackgroundEnergySpectrum);
             }
             else
             {
@@ -58,7 +65,7 @@ namespace BecquerelMonitor
                 return peaks;
             }
 
-            FWHMPeakDetector.PeakFinder finder = PeakFinder(searchSpectrum, fwhmPeakDetectionMethodConfig, resultData.FwhmCalibration);
+            FWHMPeakDetector.PeakFinder finder = PeakFinder(searchSpectrum, fwhmPeakDetectionMethodConfig, resultData.FwhmCalibration, extraVariance);
 
             peaks = CollectPeaks(finder, searchSpectrum, fwhmPeakDetectionMethodConfig.Tolerance, sa, nuclideSet, fwhmPeakDetectionMethodConfig);
             return peaks;
@@ -1298,7 +1305,7 @@ namespace BecquerelMonitor
             return text.ToString();
         }
 
-        FWHMPeakDetector.PeakFinder PeakFinder(EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig peakConfig, FwhmCalibration fwhmCalibration)
+        FWHMPeakDetector.PeakFinder PeakFinder(EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig peakConfig, FwhmCalibration fwhmCalibration, double[] extraVariance = null)
         {
             int min_range_ch, max_range_ch;
             SearchRangeChannels(energySpectrum, peakConfig, out min_range_ch, out max_range_ch);
@@ -1307,6 +1314,10 @@ namespace BecquerelMonitor
             double fwhm_tol_max = ((double)peakConfig.Max_FWHM_Tol) / 100;
 
             FWHMPeakDetector.Spectrum spec = new FWHMPeakDetector.Spectrum(energySpectrum);
+            if (extraVariance != null && extraVariance.Length == spec.counts.Length)
+            {
+                spec.extra_variance = extraVariance;
+            }
             int concat = Math.Max(1, peakConfig.Ch_Concat);
             int mul = energySpectrum.NumberOfChannels / concat;
             if (mul > 1)

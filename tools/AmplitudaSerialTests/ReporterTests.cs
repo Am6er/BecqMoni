@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using BecquerelMonitor;
 
 namespace AmplitudaSerialTests
@@ -116,6 +117,72 @@ namespace AmplitudaSerialTests
             rig.RunPosted();
             T.True(string.Join(",", rig.Shown) == "a,b,a", "shown again: " + string.Join(",", rig.Shown));
             T.Eq(1, rig.MaxDepth, "never nested");
+        }
+
+        // ---- Ported from A318 (NoticesTests) when merging PR #36 (P288, 14.10.2026) ----
+        // The two cases the tests above do not reach: a box that throws, and the application
+        // closing. The loop is the real one in miniature: a posted action runs from the main loop.
+
+        sealed class PostedLoop
+        {
+            public readonly Queue<Action> Posted = new Queue<Action>();
+            public readonly List<string> Shown = new List<string>();
+
+            public void Post(Action action)
+            {
+                Posted.Enqueue(action);
+            }
+
+            public void Run()
+            {
+                while (Posted.Count > 0) Posted.Dequeue()();
+            }
+        }
+
+        // A box that throws must neither escape from the posted callback into the message loop -
+        // in BecqMoni that is Application.ThreadException and its crash dialog - nor take the
+        // messages queued behind it with it, nor shut the reporter for good.
+        public static void TestFailedBoxIsContained()
+        {
+            PostedLoop loop = new PostedLoop();
+            int calls = 0;
+            AmplitudaSerialReporter reporter = new AmplitudaSerialReporter(delegate (string text)
+            {
+                calls++;
+                if (calls == 1) throw new InvalidOperationException("fake: the box failed");
+                loop.Shown.Add(text);
+            }, loop.Post);
+            reporter.Report("lost");
+            reporter.Report("queued behind it");
+            Exception escaped = null;
+            try { loop.Run(); } catch (Exception ex) { escaped = ex; }
+            T.True(escaped == null, "a failed box escaped into the message loop: " + (escaped == null ? "" : escaped.Message));
+            reporter.Report("after");
+            try { loop.Run(); } catch (Exception ex) { escaped = ex; }
+            T.True(string.Join(",", loop.Shown) == "queued behind it,after",
+                "shown after a failed box: " + string.Join(",", loop.Shown) + " (" + calls.ToString(CultureInfo.InvariantCulture) + " calls)");
+        }
+
+        // Review of 13.10.2026, item 4: while the application is closing no box opens at all -
+        // neither for a message raised during the close (the Stop of every document, its
+        // "Stop incomplete") nor for one posted just before the close began.
+        public static void TestNothingIsShownWhileTheApplicationCloses()
+        {
+            PostedLoop loop = new PostedLoop();
+            bool closing = false;
+            AmplitudaSerialReporter reporter = new AmplitudaSerialReporter(text => loop.Shown.Add(text), loop.Post, () => closing);
+            reporter.Report("posted before the close");
+            closing = true;
+            loop.Run();
+            reporter.Report("raised during the close");
+            loop.Run();
+            T.Eq(0, loop.Shown.Count, "boxes shown while closing");
+            T.Eq(0, loop.Posted.Count, "nothing left posted");
+            // Not jammed by what it dropped (a test of the gate only - an application does not reopen).
+            closing = false;
+            reporter.Report("after");
+            loop.Run();
+            T.True(string.Join(",", loop.Shown) == "after", "the reporter still works: " + string.Join(",", loop.Shown));
         }
     }
 }

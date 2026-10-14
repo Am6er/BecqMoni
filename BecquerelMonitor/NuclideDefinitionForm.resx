@@ -511,7 +511,7 @@
     <value>101, 101</value>
   </data>
   <data name="doubleTextBox2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>80, 20</value>
+    <value>140, 20</value>
   </data>
   <data name="doubleTextBox2.TabIndex" type="System.Int32, mscorlib">
     <value>23</value>
@@ -637,7 +637,7 @@
     <value>True</value>
   </data>
   <data name="label6.Location" type="System.Drawing.Point, System.Drawing">
-    <value>187, 104</value>
+    <value>247, 104</value>
   </data>
   <data name="label6.Size" type="System.Drawing.Size, System.Drawing">
     <value>32, 13</value>

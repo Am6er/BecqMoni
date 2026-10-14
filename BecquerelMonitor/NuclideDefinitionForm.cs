@@ -18,6 +18,17 @@ namespace BecquerelMonitor
             this.InitializeComponent();
             this.Icon = Resources.becqmoni;
             this.button6.Enabled = false;
+            // ⛔ (П266, 14.10.2026) ПРЕДЕЛЫ ЧИСЛОВЫХ КОЛОНОК ТАБЛИЦЫ. «Энергия» и «Период» —
+            // `NumberColumn` XPTable с умолчаниями Minimum 0 / Maximum 100, и редактор ячейки
+            // (`NumberCellEditor.SetEditValue`) зажимает значение в них ещё ДО ввода, а
+            // `table1_EditingStopped` переносит зажатое в определение: двойной щелчок по
+            // ячейке и Enter (или уход фокуса) без единого символа делали линию U-235
+            // 109.19 кэВ линией 100 кэВ, а период 7·10⁸ лет — 100 годами (замер
+            // `NuclideEditProbeP266`), в памяти сразу и в файле при сохранении. Пределы —
+            // во всю ширину `decimal` (7.9·10²⁸: самый длинный период базы ~10²⁴ лет), снизу
+            // ноль, как и было.
+            this.textColumn2.Maximum = decimal.MaxValue;
+            this.textColumn3.Maximum = decimal.MaxValue;
             this.DisableForm();
         }
 
@@ -287,15 +298,64 @@ namespace BecquerelMonitor
         void table1_EditingStopped(object sender, CellEditEventArgs e)
         {
             if (this.activeNuclide == null) return;
+            // ⛔ (П275, 14.10.2026) ИЗМЕНЁННЫМ ОПРЕДЕЛЕНИЕ СЧИТАЕТСЯ ТОЛЬКО ПРИ ИЗМЕНЁННОМ
+            // ЗНАЧЕНИИ. Прежде любое закрытие правки ячейки — Enter или уход фокуса без
+            // единого символа — взводило «есть несохранённое», и при уходе на другую строку
+            // или закрытии окна человек получал вопрос «Сохранить?» о правке, которой не
+            // делал (П273, снимок `11_…`). Значение при этом не менялось (П266), менялся
+            // только признак. Теперь значение ячейки сверяется с определением; совпало —
+            // определение не трогается вовсе (и период вида 5.808599695585997E-06 не
+            // проходит круг double → decimal → double, где теряет шестнадцатую цифру).
+            bool changed;
+            double number;
             switch (e.CellPos.Column)
             {
-                case 0: this.activeNuclide.Name = e.Cell.Text; break;
-                case 1: this.activeNuclide.Energy = (double)(decimal)e.Cell.Data; break;
-                case 2: this.activeNuclide.HalfLife = (double)(decimal)e.Cell.Data; break;
+                case 0:
+                    changed = !string.Equals(this.activeNuclide.Name, e.Cell.Text, StringComparison.Ordinal);
+                    if (changed) this.activeNuclide.Name = e.Cell.Text;
+                    break;
+                case 1:
+                    changed = NumberEdited(e.Cell.Data, this.activeNuclide.Energy, out number);
+                    if (changed) this.activeNuclide.Energy = number;
+                    break;
+                case 2:
+                    changed = NumberEdited(e.Cell.Data, this.activeNuclide.HalfLife, out number);
+                    if (changed) this.activeNuclide.HalfLife = number;
+                    break;
+                default:
+                    changed = false;
+                    break;
+            }
+            if (!changed)
+            {
+                return;
             }
             this.SetActiveNuclideDirty();
             this.definitionsDirty = true;
             this.LoadFormContents(this.activeNuclide);
+        }
+
+        /// <summary>
+        /// (П275) Отличается ли число, закрытое в ячейке, от числа определения — в той
+        /// мере, в какой его видел редактор ячейки. Редактор (`NumberCellEditor`) берёт
+        /// начальное значение как <c>Convert.ToDecimal(double)</c> и отдаёт
+        /// <c>decimal</c>; то же преобразование числа определения и сравнивается.
+        /// Статический и открытый пробе отражением: окна для проверки не нужно.
+        /// </summary>
+        static bool NumberEdited(object cellData, double current, out double edited)
+        {
+            decimal now = Convert.ToDecimal(cellData, CultureInfo.InvariantCulture);
+            edited = (double)now;
+            decimal before;
+            try
+            {
+                before = Convert.ToDecimal(current, CultureInfo.InvariantCulture);
+            }
+            catch (OverflowException)
+            {
+                return true;
+            }
+            return now != before;
         }
 
         // Token: 0x060000CB RID: 203 RVA: 0x00004130 File Offset: 0x00002330

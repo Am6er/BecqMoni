@@ -324,7 +324,7 @@
     <value>263, 22</value>
   </data>
   <data name="NormalizeSpectrumStripMenuItem.Text" xml:space="preserve">
-    <value>Normalize spectrum with ROI</value>
+    <value>Normalize spectrum by efficiency</value>
   </data>
   <data name="ApplyDeadTimeCorrectionStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>263, 22</value>

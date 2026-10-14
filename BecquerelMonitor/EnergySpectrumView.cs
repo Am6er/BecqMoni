@@ -1662,7 +1662,14 @@ namespace BecquerelMonitor
             int num2 = this.CalcMaximumXValue() + 5;
             int num3 = base.Height - this.bottom - this.hScrollBar1.Height;
             int num4 = base.Width - this.left - this.vScrollBar1.Width;
-            if (num2 - num4 > 0)
+            // ⛔ (П271, 14.10.2026) Правый край спектра левее нуля (масштаб ноль или
+            // отрицательный) — прокручивать нечего. Прежде ветка ставила `Minimum = 0`,
+            // затем `Maximum = num2 < 0`: полоса опускала `Minimum` и `Value` до `num2`,
+            // `ValueChanged` → `RefreshViewportData` → сюда же снова `Minimum = 0` …
+            // — `Value` металась между нулём и `num2` без конца, `StackOverflowException`
+            // (сворачивание окна в режиме «Fit», П270). При обычных размерах `num2` ≥ 5,
+            // и условие ничего не меняет.
+            if (num2 > 0 && num2 - num4 > 0)
             {
                 this.hScrollBar1.Enabled = true;
                 Size size = this.hScrollBar1.Size;
@@ -5084,7 +5091,65 @@ namespace BecquerelMonitor
             this.EnsureViewData();
             this.RefreshViewportData();
             this.RecalcScrollBar();
+            // (П259, 14.10.2026) Режим «Fit» держит спектр во всю ширину и при
+            // смене размера поля — окна, соседней панели дока, разворота. Прежде
+            // масштаб оставался прежним: сузили окно — правая часть спектра
+            // уходила под прокрутку (Th-232 в окне 974 px: видно до 1300 кэВ из
+            // 2800), расширили — справа пустое поле. Подгоняется ТОЛЬКО пока
+            // человек сам не менял масштаб и не прокручивал с последней подгонки:
+            // его увеличение смена размера не трогает.
+            // ⛔ (П271, 14.10.2026) И только пока поле графика ЕСТЬ. При
+            // сворачивании главного окна DockPanelSuite (`DockingMdi`) отдаёт
+            // документу размер 0×0: подгонка в поле отрицательной ширины давала
+            // ОТРИЦАТЕЛЬНЫЙ масштаб, `hScrollBar1.Maximum` < 0, и полоса с
+            // `RecalcScrollBar` перебрасывали `Value` друг другу без конца —
+            // `StackOverflowException`, процесс падал мгновенно, без окна, со
+            // всем несохранённым и с идущим набором. Масштаб прежней подгонки
+            // остаётся и совпадает с `lastFitHorizontalScale` — развернули окно,
+            // и эта же ветка впишет спектр в настоящее поле.
+            if (this.horizontalMagnification == HorizontalMagnification.Fit
+                && this.horizontalScale == this.lastFitHorizontalScale
+                && this.hScrollBar1.Value == 0
+                && this.FitFieldWidth() > 0)
+            {
+                this.FitHorizontalScale();
+                return;
+            }
             base.Invalidate();
+        }
+
+        /// <summary>
+        /// (П259) Масштаб, поставленный последней подгонкой во всю ширину
+        /// (<see cref="FitHorizontalScale"/>, <see cref="SetDefaultHorizontalScale"/>).
+        /// Совпадает с текущим — человек масштаб с тех пор не менял, и смена
+        /// размера поля вправе подогнать его заново. NaN — подгонки не было.
+        /// </summary>
+        double lastFitHorizontalScale = double.NaN;
+
+        /// <summary>
+        /// (П271) Ширина поля, в которую подгонка вписывает спектр, пикселей: окно без
+        /// левой шкалы, вертикальной полосы и зазора. Ноль и меньше — поля нет (окно
+        /// свёрнуто, панель сжата в нитку): подгонять некуда, масштаб из такой ширины
+        /// выходит отрицательным.
+        /// </summary>
+        int FitFieldWidth()
+        {
+            return base.Width - this.left - this.vScrollBar1.Width - 4;
+        }
+
+        /// <summary>
+        /// (П271) Подгонка заказана, а поля нет: масштаб не трогается, но помечается
+        /// подгонкой, и первая смена размера на настоящее поле
+        /// (<see cref="EnergySpectrumView_SizeChanged"/>) впишет спектр. Так приходит
+        /// документ, открытый при свёрнутом окне.
+        /// </summary>
+        void DeferFitUntilFieldExists()
+        {
+            this.lastFitHorizontalScale = this.horizontalScale;
+            if (this.hScrollBar1.Minimum <= 0 && this.hScrollBar1.Maximum >= 0)
+            {
+                this.hScrollBar1.Value = 0;
+            }
         }
 
         // Token: 0x060004C5 RID: 1221 RVA: 0x0001BD6C File Offset: 0x00019F6C
@@ -5381,6 +5446,11 @@ namespace BecquerelMonitor
                 return;
             }
             this.EnsureViewData();
+            if (this.width <= 0)
+            {
+                // (П271) Поля нет — масштаб из него вышел бы отрицательным (см. `FitHorizontalScale`).
+                return;
+            }
             int startRegion;
             int endRegion;
             if (this.selectionStart < this.selectionEnd)
@@ -5423,9 +5493,19 @@ namespace BecquerelMonitor
                 return;
             }
             this.EnsureViewData();
-            int num = base.Width - this.left - this.vScrollBar1.Width - 4;
+            int num = this.FitFieldWidth();
+            if (num <= 0)
+            {
+                // ⛔ (П271) Поля нет — отрицательный масштаб зацикливал полосу прокрутки
+                // (`StackOverflowException`, см. `EnergySpectrumView_SizeChanged`).
+                this.DeferFitUntilFieldExists();
+                return;
+            }
             this.horizontalScale = (double)num / (this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) * this.pixelPerEnergy + 20.0);
             if (ActionEvent != null) ActionEvent(this, new EnergySpectrumActionEventArgs(true, (decimal)this.horizontalScale));
+            // ПОСЛЕ уведомления: поле масштаба документа может вернуть число
+            // обратно в `zoom` (см. `DocEnergySpectrum.View_ActionEvent`).
+            this.lastFitHorizontalScale = this.horizontalScale;
             int maximum = this.CalcMaximumXValue() + 5;
             this.hScrollBar1.Maximum = maximum;
             this.hScrollBar1.Value = 0;
@@ -5464,7 +5544,15 @@ namespace BecquerelMonitor
                 return;
             }
             this.EnsureViewData();
-            int num = base.Width - this.left - this.vScrollBar1.Width - 4;
+            int num = this.FitFieldWidth();
+            if (num <= 0
+                && this.globalConfigManager.GlobalConfig.ChartViewConfig.DefaultHorizontalMagnification != HorizontalMagnification.Equal)
+            {
+                // ⛔ (П271) Подгонка без поля (документ открыт при свёрнутом окне) — как в
+                // `FitHorizontalScale`: масштаб не трогается, подгонка ждёт поля.
+                this.DeferFitUntilFieldExists();
+                return;
+            }
 
             if (this.globalConfigManager.GlobalConfig.ChartViewConfig.DefaultHorizontalMagnification == HorizontalMagnification.Equal)
             {
@@ -5478,6 +5566,12 @@ namespace BecquerelMonitor
                 this.hScrollBar1.Value = 0;
             }
             if (ActionEvent != null) ActionEvent(this, new EnergySpectrumActionEventArgs(true, (decimal)this.horizontalScale));
+            // (П259) Подгонка во всю ширину запоминается ПОСЛЕ уведомления — см.
+            // `FitHorizontalScale`; масштаб «Equal» подгонкой не считается.
+            this.lastFitHorizontalScale =
+                this.globalConfigManager.GlobalConfig.ChartViewConfig.DefaultHorizontalMagnification == HorizontalMagnification.Equal
+                    ? double.NaN
+                    : this.horizontalScale;
             this.RefreshViewportData();
             base.Invalidate();
         }

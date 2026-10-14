@@ -1328,6 +1328,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         internal FsaAnalyzer.AnchorWarm AnchorWarmOut { get; set; }
 
+        /// <summary>(`A320`, П258, внесён П277) Привязка этого прохода шла совместным шагом нуля света по съёмке и усиления.</summary>
+        internal bool AnchorZeroJoint { get; set; }
+
+        /// <summary>(`A320`, П258, внесён П277) Привязка этого прохода не сошлась: предел проходов, плато или возврат к лучшему проходу.</summary>
+        internal bool AnchorUnsettled { get; set; }
+
+        /// <summary>(`A320`, П258, внесён П277) Нуль света карты adc этого прохода, кэВ.</summary>
+        internal double AnchorZeroKevUsed { get; set; }
+
         /// <summary>
         /// (`AMBER154`, П194 01.10.2026) Относительное усиление хранимого фона
         /// против пробы, с которым фон вычтен: отсчёт фона, по объявленным
@@ -2340,7 +2349,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// Имя образа обратного рассеяния. Служебное и НЕ переводится — по нему
-        /// раздаётся цвет, его же ищут пробы.
+        /// раздаётся цвет, его же ищут пробы. Человеку показывается перевод —
+        /// см. <see cref="FsaPalette.DisplayName"/> (П275, 14.10.2026: прежде
+        /// строка состава русского отчёта писала имя как есть, «Backscatter»).
         ///
         /// ⛔ **Доля этого слоя в легенде НЕ ПЕЧАТАЕТСЯ ЧИСЛОМ** — решение Amber
         /// 24.08.2026 по `S85`, кандидат (в), и оно измерено, а не выбрано.

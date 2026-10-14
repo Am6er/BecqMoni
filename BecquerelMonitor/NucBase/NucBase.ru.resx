@@ -299,10 +299,16 @@
     <value />
   </data>
   <data name="label5.Size" type="System.Drawing.Size, System.Drawing">
-    <value>15, 13</value>
+    <value>24, 13</value>
+  </data>
+  <data name="IsotopeAbundance.Location" type="System.Drawing.Point, System.Drawing">
+    <value>437, 20</value>
+  </data>
+  <data name="IsotopeSpecActivity.Location" type="System.Drawing.Point, System.Drawing">
+    <value>286, 46</value>
   </data>
   <data name="label5.Text" xml:space="preserve">
-    <value>λ:</value>
+    <value>T½:</value>
   </data>
   <data name="label5.ToolTip" xml:space="preserve">
     <value />
@@ -4653,7 +4659,7 @@
     <value>кэВ</value>
   </data>
   <data name="label12.Text" xml:space="preserve">
-    <value>λ &gt;</value>
+    <value>T½ &gt;</value>
   </data>
   <data name="label13.Text" xml:space="preserve">
     <value>Удельная активность:</value>
@@ -4665,28 +4671,28 @@
     <value>N:</value>
   </data>
   <data name="HalfLifeUOMComboBox.Items" xml:space="preserve">
-    <value>ns</value>
+    <value>нс</value>
   </data>
   <data name="HalfLifeUOMComboBox.Items1" xml:space="preserve">
-    <value>us</value>
+    <value>мкс</value>
   </data>
   <data name="HalfLifeUOMComboBox.Items2" xml:space="preserve">
-    <value>ms</value>
+    <value>мс</value>
   </data>
   <data name="HalfLifeUOMComboBox.Items3" xml:space="preserve">
-    <value>s</value>
+    <value>с</value>
   </data>
   <data name="HalfLifeUOMComboBox.Items4" xml:space="preserve">
-    <value>m</value>
+    <value>мин</value>
   </data>
   <data name="HalfLifeUOMComboBox.Items5" xml:space="preserve">
-    <value>h</value>
+    <value>ч</value>
   </data>
   <data name="HalfLifeUOMComboBox.Items6" xml:space="preserve">
-    <value>d</value>
+    <value>сут</value>
   </data>
   <data name="HalfLifeUOMComboBox.Items7" xml:space="preserve">
-    <value>Y</value>
+    <value>лет</value>
   </data>
   <data name="comboBoxNameFormat.Items" xml:space="preserve">
     <value>137CS, 234PAm1</value>

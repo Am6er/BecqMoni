@@ -511,7 +511,16 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("CopyPostfix", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dead time, %. With a device configuration whose dead time is above 0: over the time constant, from the counts rate and that dead time. With dead time 0 (the device reports live time itself, or its dead time is not known): over the whole spectrum, (real time - live time) / real time; 0 if the spectrum has no live time. With a device that reports live time itself, while it is measuring the value refers to the moment of its last read and is accurate to about 50/T percentage points (T — real time, s)..
+        /// </summary>
+        public static string CountRateDeadTimeHint {
+            get {
+                return ResourceManager.GetString("CountRateDeadTimeHint", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
@@ -1796,7 +1805,16 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("MSGConfirmSaveConfig", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to The dead time correction is not needed with the device configuration &quot;{0}&quot;: its dead time is 0, and recomputing with it would only set the live time equal to the real time, erasing the live time the spectrum has. With dead time 0 the live time comes from the device itself (or the dead time of the device is not known). The live time of the spectrum is left unchanged ({1} s, real time {2} s)..
+        /// </summary>
+        public static string MSGDeadTimeCorrectionNotNeeded {
+            get {
+                return ResourceManager.GetString("MSGDeadTimeCorrectionNotNeeded", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Delete nuclide definition &quot;{0}&quot;?.
         /// </summary>
@@ -2756,7 +2774,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Uncertain.
+        ///   Looks up a localized string similar to Uncertainty.
         /// </summary>
         public static string Uncertain {
             get {
@@ -6915,7 +6933,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Amplituda Serial: {0} is already open by another device configuration with a different pause setting. All blocks on one port must use the same pause..
+        ///   Looks up a localized string similar to Amplituda Serial: {0} is already in use by a running measurement with a pause of {1} ms. All blocks on one port must use the same pause: set {1} ms, or stop that measurement first..
         /// </summary>
         public static string ERRAmplitudaSerialSettingsDiffer {
             get {
@@ -7194,7 +7212,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DURING THE MEASUREMENT: the spectrum is refreshed once per polling period (3 s by default; one full read of a 1024-channel block takes 2.5 s). The time on the screen runs smoothly in between. Live time comes from the block itself; real time is the PC clock..
+        ///   Looks up a localized string similar to DURING THE MEASUREMENT: the spectrum is refreshed once per polling period (3 s by default; one full read of a 1024-channel block takes 2.5 s). The counts, the live time and the real time on the screen all refer to one moment — when the last read took the counts — so the time also advances in steps, once per refresh. Live time comes from the block itself; real time is the PC clock. The preset time is checked against the PC clock, so the measurement ends on time..
         /// </summary>
         public static string AmplitudaSerialInstructionP03 {
             get {
@@ -7325,6 +7343,123 @@ namespace BecquerelMonitor.Properties {
         public static string ERRAmplitudaSerialStopIncomplete {
             get {
                 return ResourceManager.GetString("ERRAmplitudaSerialStopIncomplete", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Not available for this geometry: the isotropic field (ISO) scene is not ported to the GPU. The matrix is computed on the CPU..
+        /// </summary>
+        public static string ResponseMatrixGpuSceneIso {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuSceneIso", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Every connected Amplituda USB device is already being measured in another document (a device configuration with "(first found)" skips such devices). Connect another device or stop one of those measurements first..
+        /// </summary>
+        public static string ERRAmplitudaUsbAllInUse {
+            get {
+                return ResourceManager.GetString("ERRAmplitudaUsbAllInUse", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The spectrum in the device was not cleared: the device is {0}. Its counts will come back with the next Start. Start the measurement and clear it again..
+        /// </summary>
+        public static string ERRDeviceNotClearedNotConnected {
+            get {
+                return ResourceManager.GetString("ERRDeviceNotClearedNotConnected", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Backscatter.
+        /// </summary>
+        public static string FSABackscatterName {
+            get {
+                return ResourceManager.GetString("FSABackscatterName", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to STABLE.
+        /// </summary>
+        public static string NucBase_HalfLifeStable {
+            get {
+                return ResourceManager.GetString("NucBase_HalfLifeStable", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ns.
+        /// </summary>
+        public static string NucBase_UnitNs {
+            get {
+                return ResourceManager.GetString("NucBase_UnitNs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to us.
+        /// </summary>
+        public static string NucBase_UnitUs {
+            get {
+                return ResourceManager.GetString("NucBase_UnitUs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ms.
+        /// </summary>
+        public static string NucBase_UnitMs {
+            get {
+                return ResourceManager.GetString("NucBase_UnitMs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to s.
+        /// </summary>
+        public static string NucBase_UnitS {
+            get {
+                return ResourceManager.GetString("NucBase_UnitS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to m.
+        /// </summary>
+        public static string NucBase_UnitMin {
+            get {
+                return ResourceManager.GetString("NucBase_UnitMin", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to h.
+        /// </summary>
+        public static string NucBase_UnitH {
+            get {
+                return ResourceManager.GetString("NucBase_UnitH", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to d.
+        /// </summary>
+        public static string NucBase_UnitD {
+            get {
+                return ResourceManager.GetString("NucBase_UnitD", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Y.
+        /// </summary>
+        public static string NucBase_UnitY {
+            get {
+                return ResourceManager.GetString("NucBase_UnitY", resourceCulture);
             }
         }
     }

@@ -560,6 +560,69 @@ namespace BecquerelMonitor.Utils
         }
 
         /// <summary>
+        /// ⛔ (П265, 14.10.2026) ДИСПЕРСИЯ ВЫЧТЕННОГО СПЕКТРА — НЕ ЕГО ОТСЧЁТЫ.
+        /// Поиск пиков меряет шум суммой «отсчёт канала × вес²» (Пуассон:
+        /// дисперсия канала равна его отсчёту), и в режиме «фон вычтен» ему
+        /// подавался спектр <see cref="Substract"/> — разность, обрезанная
+        /// снизу нулём. Дисперсия же разности n_s − k·n_b — n_s + k²·n_b, а не
+        /// n_s − k·n_b: там, где спектр почти весь фон, шум занижался в разы,
+        /// SNR раздувался, и на спектре без источника вставали фантомы. Замер
+        /// П265 (`SpectrumPhysicsProbeP265 --arm=subtract`, 1024 канала, 20
+        /// зёрен): пик с SNR 10.8 без вычитания получал «фон вычтен» 26.1 (при
+        /// верной статистике ≈ 0.71·10.8; после правки 7.3); фантомов на
+        /// спектр без источника при пороге 4 — 9…21, после правки 0. Корпус
+        /// (`--arm=real`, 131 спектр с фоном): `G1S24_K40_Petri` 14 пиков → 2
+        /// (K-40 и слабый 1206), `G1S16_Cd109_P25` 10 → 1 (88 кэВ); поиск без
+        /// вычитания — побитово тот же (1488 пиков).
+        ///
+        /// Здесь — НЕДОСТАЮЩАЯ часть дисперсии в шкале спектра:
+        /// n_s + k²·n_b = (n_s − k·n_b) + k·(1 + k)·n_b, то есть к отсчёту
+        /// вычтенного спектра (его и читает финдер) прибавляется k·(1 + k)·n_b.
+        /// Нормировка k и перекладка фона в шкалу спектра — те же, что у
+        /// <see cref="Substract"/> (живые времена, <see cref="RebinByEnergy"/>
+        /// при другой калибровке), иначе разошлись бы вычитание и его шум.
+        /// <c>null</c> — вычитания не было (нет времени у спектра или фона):
+        /// тогда и добавки нет, поиск идёт по спектру как есть.
+        /// </summary>
+        public double[] SubstractVarianceExcess(EnergySpectrum bgenergySpectrum)
+        {
+            if (bgenergySpectrum == null || this.EnergySpectrum == null)
+            {
+                return null;
+            }
+            double fgTime = this.EnergySpectrum.EffectiveLiveTime;
+            double bgTime = bgenergySpectrum.EffectiveLiveTime;
+            if (fgTime == 0 || bgTime == 0)
+            {
+                return null;
+            }
+            double k = fgTime / bgTime;
+            int channels = this.EnergySpectrum.NumberOfChannels;
+            double[] bgInScale;
+            if (this.EnergySpectrum.EnergyCalibration.Equals(bgenergySpectrum.EnergyCalibration)
+                && bgenergySpectrum.Spectrum.Length >= channels)
+            {
+                bgInScale = new double[channels];
+                for (int i = 0; i < channels; i++)
+                {
+                    bgInScale[i] = bgenergySpectrum.Spectrum[i];
+                }
+            }
+            else
+            {
+                bgInScale = RebinByEnergy(bgenergySpectrum.Spectrum, bgenergySpectrum.EnergyCalibration,
+                    this.EnergySpectrum.EnergyCalibration, channels);
+            }
+            double factor = k * (1.0 + k);
+            double[] excess = new double[channels];
+            for (int i = 0; i < channels; i++)
+            {
+                excess[i] = bgInScale[i] > 0.0 ? factor * bgInScale[i] : 0.0;
+            }
+            return excess;
+        }
+
+        /// <summary>
         /// (`AMBER34`, П79 15.09.2026) ПОЧЕМУ спектр по этой кривой НЕ
         /// нормируется — словами; null — нормируется. ОДИН предикат на всех
         /// читателей режима «спектр, нормированный на эффективность»
@@ -2162,6 +2225,15 @@ namespace BecquerelMonitor.Utils
 
         private static int GetWindowSize(double channelValue, int countlimit, double pointsNum)
         {
+            // (П269, 14.10.2026) Предел счёта меньше 1 — только из файла настроек,
+            // правленного руками (поле формы теперь не пускает ниже 1): при 0 пустой
+            // канал давал 0/0 и Convert.ToInt32(NaN) ронял сглаживание
+            // OverflowException. Тот же нижний предел, что у поля; при 1 и выше —
+            // поведение прежнее.
+            if (countlimit < 1)
+            {
+                countlimit = 1;
+            }
             int window_size = 1;
             if (channelValue <= countlimit)
             {

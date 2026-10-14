@@ -20,10 +20,13 @@ namespace BecquerelMonitor
     // The port belongs to a shared AmplitudaSerialLine, not to the controller: several blocks
     // on one port measure at the same time in different documents.
     //
-    // Live time comes from the block (IDeviceLiveTimeSource), real time from the PC clock.
+    // Live time comes from the block (IDeviceLiveTimeSource), real time from the PC clock - both,
+    // while measuring, at the moment of the last reading's counts (P280, see Publish).
     //
     // No method lets an exception escape: MeasurementController reports any exception from
-    // StartMeasurement as "Bluetooth is not supported".
+    // StartMeasurement as "Bluetooth is not supported". The one exception is a refused Start
+    // WITHOUT windows (S100 remainder, as AmplitudaUsbDeviceController since A316): there
+    // StartMeasurement throws on purpose - see RefuseStart.
     public class AmplitudaSerialDeviceController : DeviceController, IDeviceLiveTimeSource, IDisposable
     {
         const int PumpIntervalMs = 200;
@@ -44,12 +47,19 @@ namespace BecquerelMonitor
         static readonly Dictionary<string, AmplitudaSerialDeviceController> activeBlocks =
             new Dictionary<string, AmplitudaSerialDeviceController>(StringComparer.Ordinal);
 
-        readonly System.Windows.Forms.Timer pumpTimer = new System.Windows.Forms.Timer();
         // Warnings and end-of-session reports: one box at a time, posted to the message queue
         // (headless: shown at once, AppUi.Report then prints its line). The refusals in
         // StartCore stay direct AppUi.Report calls: the user just pressed Start and must see
         // the refusal before anything else happens.
-        readonly AmplitudaSerialReporter reporter = new AmplitudaSerialReporter(
+        // Shared by ALL AmplitudaSerial documents (static; P288, kept from A318 when merging PR
+        // #36): a box of one document runs a modal loop that also dispatches the posted show of
+        // another, so a reporter per controller still let N documents with warnings stack N
+        // boxes one inside another. And no box at all while the application is closing
+        // (MainForm.ApplicationClosing; review of 13.10.2026, item 4): every message here is for
+        // information only, and a modal box in the middle of the close holds it up, and a Windows
+        // shutdown with it - the same rule as MainForm.SaveLayoutXml and
+        // AmplitudaUsbDeviceController.ReportLoss.
+        static readonly AmplitudaSerialReporter reporter = new AmplitudaSerialReporter(
             text => AppUi.Report(text, "", MessageBoxIcon.None),
             action =>
             {
@@ -61,7 +71,10 @@ namespace BecquerelMonitor
                 {
                     action();
                 }
-            });
+            },
+            () => MainForm.ApplicationClosing);
+
+        readonly System.Windows.Forms.Timer pumpTimer = new System.Windows.Forms.Timer();
         AmplitudaSerialLine line;
         AmplitudaSerialAcquisition acquisition;
         ResultData resultData;
@@ -83,11 +96,17 @@ namespace BecquerelMonitor
             return portName.ToUpperInvariant() + ":" + address.ToString(CultureInfo.InvariantCulture);
         }
 
+        // {1} of ERRAmplitudaSerialSettingsDiffer is the pause of the line already open: the
+        // config form's Test / Find blocks with an unsaved pause change meet the line of a
+        // measurement running with the SAME configuration, so the text must not say whose line it
+        // is, only what it is set to (review of 13.10.2026, item 12).
         public static string DescribeAcquireError(string portName, string error)
         {
             if (error == AmplitudaSerialLine.ErrorSettingsDiffer)
             {
-                return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialSettingsDiffer, portName);
+                int openGap = AmplitudaSerialLine.OpenGapMs(portName);     // 0: the line closed meanwhile
+                return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialSettingsDiffer, portName,
+                    openGap > 0 ? (object)openGap : "?");
             }
             return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialPort, portName, error);
         }
@@ -140,9 +159,32 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 ReleaseAll();
+                if (!AppUi.HasWindows)
+                {
+                    // RefuseStart's own throw, or any other failure: either way the measurement did
+                    // not start, and MeasurementController.StartRecording passes it on.
+                    throw;
+                }
                 AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialError, ex.Message), "", MessageBoxIcon.None);
                 return false;
             }
+        }
+
+        // A refused Start. With windows: the message, as before (direct, not through `reporter`:
+        // it answers the user's own click). Without windows: a throw (S100 remainder, as
+        // AmplitudaUsbDeviceController.RefuseStart; see MeasurementController.StartRecording) -
+        // false has no reader there, and a headless run would go on to present an empty spectrum
+        // as a measurement.
+        static bool RefuseStart(string message)
+        {
+            if (!AppUi.HasWindows)
+            {
+                throw new InvalidOperationException(
+                    "BecqMoni: the Amplituda Serial measurement cannot start: " + message
+                    + " A headless run must not continue: the spectrum would stay empty.");
+            }
+            AppUi.Report(message, "", MessageBoxIcon.None);
+            return false;
         }
 
         bool StartCore(ResultData resultData)
@@ -162,13 +204,11 @@ namespace BecquerelMonitor
             }
             if (config == null)
             {
-                AppUi.Report(Resources.ERRInvalidDeviceType, "", MessageBoxIcon.None);
-                return false;
+                return RefuseStart(Resources.ERRInvalidDeviceType);
             }
             if (string.IsNullOrEmpty(config.PortName))
             {
-                AppUi.Report(Resources.ERRAmplitudaSerialNoPort, "", MessageBoxIcon.None);
-                return false;
+                return RefuseStart(Resources.ERRAmplitudaSerialNoPort);
             }
 
             // Spectrum protection settle guard: refuse Start for a while after a detected block
@@ -195,9 +235,8 @@ namespace BecquerelMonitor
                     }
                     if (elapsed < config.HvSettleSeconds)
                     {
-                        AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialSettling, (int)elapsed, config.HvSettleSeconds,
-                            (int)Math.Ceiling(config.HvSettleSeconds - elapsed)), "", MessageBoxIcon.None);
-                        return false;
+                        return RefuseStart(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialSettling, (int)elapsed, config.HvSettleSeconds,
+                            (int)Math.Ceiling(config.HvSettleSeconds - elapsed)));
                     }
                 }
             }
@@ -208,8 +247,7 @@ namespace BecquerelMonitor
             if (spectrum.Spectrum == null || spectrum.Spectrum.Length != spectrum.NumberOfChannels ||
                 !AmplitudaSerialProtocol.IsValidChannelCount(spectrum.NumberOfChannels))
             {
-                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialChannels, spectrum.NumberOfChannels), "", MessageBoxIcon.None);
-                return false;
+                return RefuseStart(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialChannels, spectrum.NumberOfChannels));
             }
 
             ReleaseAll();       // also gives up this controller's own previous lease
@@ -228,17 +266,15 @@ namespace BecquerelMonitor
             if (busy)
             {
                 // Reported outside the lock: the box is modal and other ticks keep running.
-                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialBlockBusy,
-                    config.PortName, config.Address), "", MessageBoxIcon.None);
-                return false;
+                return RefuseStart(string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaSerialBlockBusy,
+                    config.PortName, config.Address));
             }
             string error;
             AmplitudaSerialLine acquired = AmplitudaSerialLine.Acquire(config.ToSettings(), out error);
             if (acquired == null)
             {
                 ReleaseLease();
-                AppUi.Report(DescribeAcquireError(config.PortName, error), "", MessageBoxIcon.None);
-                return false;
+                return RefuseStart(DescribeAcquireError(config.PortName, error));
             }
 
             line = acquired;
@@ -273,7 +309,7 @@ namespace BecquerelMonitor
                 return;
             }
             inTick = true;
-            // Declared above the try and reported in the finally so that every exit path -
+            // Declared above the try and handed over in the finally so that every exit path -
             // the early return on a channel mismatch and the catch alike - still reports what
             // this tick took out of the acquisition (N1). Reporting happens last, after every
             // state change below, and AFTER inTick is cleared. The reporter does not run a modal
@@ -342,7 +378,14 @@ namespace BecquerelMonitor
                 spectrum.LiveTime = acquisition.LiveSeconds;
             }
             // Through ticks (100 ns): TimeSpan.FromSeconds rounds to a whole millisecond.
-            TimeSpan elapsed = TimeSpan.FromTicks((long)(acquisition.RealSeconds * 1.0E+07));
+            // P280 (14.10.2026): the real time of the data in hand - the moment of the last
+            // reading's counts, the same as TotalPulseCount and LiveTime above - not the PC clock
+            // "now", which ran ahead of them by up to a poll period and a read and made the dead
+            // time on both panels too high while measuring. It therefore advances once per
+            // reading, like the counts and the live time. Except at the preset: once the clock
+            // reaches it, the clock is written, so OnTimer stops on the same tick as before
+            // (AmplitudaSerialAcquisition.ElapsedTicks).
+            TimeSpan elapsed = TimeSpan.FromTicks(acquisition.ElapsedTicks(resultData.ResultDataStatus.PresetTime));
             resultData.ResultDataStatus.ElapsedTime = elapsed;
             resultData.ResultDataStatus.TotalTime = elapsed;
             return true;
@@ -452,6 +495,9 @@ namespace BecquerelMonitor
                 // refuses "out of nowhere".
                 AmplitudaSerialFailure finishedFailure = acquisition.Failure;
                 FinishSession();
+                // Through `reporter`, not a modal box here: the core saves the document right
+                // after this returns (a Stop by preset time), and that save must not wait until
+                // somebody closes the box (A318, finding 3).
                 if (finishedFailure == AmplitudaSerialFailure.BlockReset)
                 {
                     reporter.Report(DescribeFailure(finishedFailure, portName, address, channels, 0));
