@@ -3030,6 +3030,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public const double UncoveredCoverShare = 0.05;
 
         /// <summary>
+        /// (П281 14.10.2026; решение Amber 14.10.2026 вопросником, дословно: «Молчать у краёв
+        /// комптона (Рекомендую)») СИЛЬНАЯ ЛИНИЯ СОСТАВА ДЛЯ КРАЯ КОМПТОНА — доля от сильнейшей
+        /// линии ВСЕГО состава по вкладу в спектр — по СОБСТВЕННОМУ фотопику линии в модели:
+        /// фотопики её компонента (кривая без сумм-пиков по полосе), разделённые между его линиями
+        /// по весу образа без матрицы (выход × эффективность). Не окно отсчётов вокруг линии: окно
+        /// приписывает линии соседок, и тесная группа слабых линий проходила бы за сильную (журнал
+        /// П281). Только у разбора без матрицы (<see cref="FindUncoveredPeaks"/>). Постоянная, не
+        /// ручка: порог назван в решении.
+        /// </summary>
+        public const double ComptonEdgeStrongShare = 0.2;
+
+        /// <summary>
+        /// (П281) ОКНО КРАЯ КОМПТОНА НИЖЕ КРАЯ, в ПШПВ на энергии края: серия избытка с центром
+        /// от `E_c − это·ПШПВ` до `E_c + <see cref="ComptonEdgeWindowAbove"/>·ПШПВ` у разбора без
+        /// матрицы пиком вне состава не называется (<see cref="FindUncoveredPeaks"/>). Окно
+        /// несимметрично нарочно: избыток у уступа лежит НИЖЕ края (сглаженный разрешением
+        /// максимум континуума Клейна — Нишины и меньший свет одиночного электрона у NaI/CsI),
+        /// выше края подложка сплайна переходит долину перед фотопиком сверху — там провал, а
+        /// не избыток. Дословное «±ПШПВ» решения не годится: сам повод (`G1S16_K40_Mar`) стоит
+        /// ниже края больше чем на ПШПВ. Замер по корпусу без матрицы — журнал П281.
+        /// Постоянная, не ручка.
+        /// </summary>
+        public const double ComptonEdgeWindowBelow = 1.5;
+
+        /// <summary>
+        /// (П281) Окно края комптона выше края, в ПШПВ; см. <see cref="ComptonEdgeWindowBelow"/>.
+        /// Окно не заходит выше края нарочно: однократного комптона выше края нет, избыток уступа
+        /// там не стоит ни на одном спектре замера, а настоящие линии над краем стоят (журнал П281).
+        /// </summary>
+        public const double ComptonEdgeWindowAbove = 0.0;
+
+        /// <summary>
         /// (`AMBER210`) ЛИНИИ БИБЛИОТЕКИ ПРИЛОЖЕНИЯ — имя определения и энергия, все определения,
         /// не только сет (решение Amber 07.10.2026 вопросником, дословно: «Библиотека приложения
         /// целиком»): ими называются непокрытые пики (<see cref="FsaUncoveredPeak.Candidates"/>).
@@ -3068,6 +3100,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int LastFitFirstChannel { get; private set; }
         /// <summary>См. <see cref="LastFitWeights"/>.</summary>
         public int LastFitLastChannel { get; private set; }
+
+        /// <summary>
+        /// (П281) СЛЕД КРАЁВ КОМПТОНА — ЧИТАЕТСЯ ТОЛЬКО ПРОБАМИ (`FsaComptonEdgeProbeP281`):
+        /// края сильных линий состава, которыми <see cref="FindUncoveredPeaks"/> судил последний
+        /// разбор без матрицы, по записи `[линия, кэВ; доля от сильнейшей линии состава; край
+        /// E_c, кэВ; ПШПВ на крае, кэВ]`. Пусто — сильных линий с краем в полосе нет; `null` —
+        /// разбор с матрицей (правило молчит), поиск выключен или разбора не было.
+        /// </summary>
+        public List<double[]> LastComptonEdges { get; private set; }
 
         /// <summary>
         /// (`A310`, полоса П47 13.09.2026) ВЕСА РЕШАТЕЛЯ — ПО МОДЕЛИ (Пирсон), а
@@ -14352,7 +14393,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// рентгеном — 307 + 55 у лютеция, уступы комптона) остаётся невязкой ленты; окно именно
         /// ±ПШПВ/2, потому что у бленда с перепредсказанной соседкой центр избытка уходит от линии
         /// (609 Bi-214 при 583 Tl-208 — на 9 кэВ). Вторая редакция П238 без правила имени говорила
-        /// на 25 спектрах корпуса из 92 при полных сетах — все приборные структуры. Рядом
+        /// на 25 спектрах корпуса из 92 при полных сетах — все приборные структуры.
+        /// (П281 14.10.2026; решение Amber 14.10.2026 вопросником, дословно: «Молчать у краёв
+        /// комптона (Рекомендую)») РАЗБОР БЕЗ МАТРИЦЫ: образ линии — голый пик, уступ комптона
+        /// описывает подложка сплайна, и избыток у уступа сильной линии получал имя случайной
+        /// линии библиотеки рядом (`G1S16_K40_Mar`: 1167.4 кэВ «Cs-134 1168.0, Co-60 1173.0» у
+        /// края K-40, П251). Поэтому серия, центр которой лежит в окне края комптона
+        /// `E_c = E·2x/(1 + 2x)` сильной линии состава (<see cref="ComptonEdgesOf"/>,
+        /// <see cref="ComptonEdgeNear"/>), пиком не называется даже с кандидатом рядом — идёт в
+        /// ревизию с причиной `ComptonEdge` и остаётся невязкой; судится после приборных образов,
+        /// до сдвига. С матрицей (`FitResult.FromResponseMatrix`) краёв нет, путь побитово прежний.
+        /// Рядом
         /// с энергией — до трёх ближайших линий библиотеки в ±ПШПВ/2, по одной на нуклид. Серии,
         /// прошедшие пороги, но не названные, — в <see cref="FsaResult.UncoveredRejections"/> с
         /// причиной (ревизия отбора для проб). Разбор, амплитуды и пределы от этого не зависят —
@@ -14372,6 +14423,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             result.UncoveredPeaks.Clear();
             result.UncoveredRejections.Clear();
+            this.LastComptonEdges = null;
             if (fit == null || fit.Residual == null || fit.Variance == null || fit.Model == null
                 || calibration == null || fwhmCalibration == null
                 || !(this.UncoveredPeakZ > 0.0) || !(this.UncoveredPeakExcess > 0.0))
@@ -14566,6 +14618,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // (П281) Края комптона сильных линий состава — только у разбора БЕЗ матрицы: с
+            // матрицей образ несёт свой комптон, и путь побитово прежний (довод — в описании).
+            List<double[]> edges = fit.FromResponseMatrix
+                ? null
+                : this.ComptonEdgesOf(result, library, detected, calibration, fwhmKev, lo, hi, channels);
+            this.LastComptonEdges = edges;
+
             List<int[]> plus = ResidualRuns(r, v, lo, hi, +1);
             List<int[]> minus = ResidualRuns(r, v, lo, hi, -1);
             var found = new List<FsaUncoveredPeak>();
@@ -14686,6 +14745,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                // (П281) Без матрицы: центр в окне края комптона сильной линии состава —
+                // невязка формы уступа, а не чужой нуклид (довод и окно — в описании метода).
+                double edgeKev = ComptonEdgeNear(edges, centre);
+                if (!double.IsNaN(edgeKev))
+                {
+                    reject(FsaUncoveredRejectionReason.ComptonEdge);
+                    result.UncoveredRejections[result.UncoveredRejections.Count - 1].ComptonEdgeKev = edgeKev;
+                    continue;
+                }
+
                 // Сдвинутый шкалой пик — парный провал рядом; судится только у серии БЕЗ
                 // кандидата библиотеки (довод — в описании метода).
                 if (near.Count == 0)
@@ -14765,6 +14834,161 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             int bracket = name.IndexOf('(');
             return (bracket > 0 ? name.Substring(0, bracket) : name).Trim();
+        }
+
+        /// <summary>
+        /// (П281) Края комптона сильных линий состава для <see cref="FindUncoveredPeaks"/> у разбора
+        /// без матрицы — записи `[линия, доля, край, ПШПВ края]` (как <see cref="LastComptonEdges"/>).
+        /// Вклад линии в спектр — её собственный фотопик в модели: отсчёты фотопиков компонента
+        /// (его строки результата — своя или члены ряда этой колонки; кривая без сумм-пиков) в
+        /// полосе `[lo, hi]`, разделённые между линиями компонента в полосе по весу образа без
+        /// матрицы (<c>BuildTemplate</c>: выход × ε, линия вне кривой не входит); сильная — не слабее
+        /// <see cref="ComptonEdgeStrongShare"/> от сильнейшей линии состава. Край `E_c = E·2x/(1 + 2x)`,
+        /// `x = E/m_e c²` (рассеяние назад, вся энергия электрону) — физика, не подгонка; ПШПВ края —
+        /// калибровкой ширины разбора. Край вне полосы не берётся. Энергии — в кэВ калибровки файла,
+        /// как у всего метода. Имён здесь нет — линии из состава.
+        /// </summary>
+        List<double[]> ComptonEdgesOf(FsaResult result, List<FsaComponent> library, HashSet<string> detected,
+                                      EnergyCalibration calibration, Func<double, double> fwhmKev,
+                                      int lo, int hi, int channels)
+        {
+            var edges = new List<double[]>();
+            if (library == null || result.Components == null)
+            {
+                return edges;
+            }
+
+            double eA = calibration.ChannelToEnergy(lo), eB = calibration.ChannelToEnergy(hi);
+            double eLo = Math.Min(eA, eB), eHi = Math.Max(eA, eB);
+            int top = Math.Min(hi, channels - 1);
+            FsaEfficiency efficiency = this.anchorEfficiency;
+            var energies = new List<double>();
+            var counts = new List<double>();
+            double strongest = 0.0;
+            foreach (FsaComponent c in library)
+            {
+                if (c == null || c.Lines == null || !detected.Contains(c.Name))
+                {
+                    continue;
+                }
+
+                // Фотопики компонента в модели: его строки результата (своя или члены ряда
+                // этой колонки), кривая без сумм-пиков, по полосе.
+                double model = 0.0;
+                foreach (FsaComponentResult row in result.Components)
+                {
+                    if (row == null || row.Curve == null || row.Kind == FsaComponentKind.Nuisance || !(row.CountRate > 0.0)
+                        || !(string.Equals(row.Name, c.Name, StringComparison.Ordinal)
+                             || string.Equals(row.ChainRoot, c.Name, StringComparison.Ordinal)))
+                    {
+                        continue;
+                    }
+
+                    for (int i = lo; i <= top && i < row.Curve.Length; i++)
+                    {
+                        double sum = row.SumPeakCurve != null && i < row.SumPeakCurve.Length ? row.SumPeakCurve[i] : 0.0;
+                        model += Math.Max(row.Curve[i] - sum, 0.0);
+                    }
+                }
+
+                if (!(model > 0.0))
+                {
+                    continue;
+                }
+
+                // Вес линии — как у образа без матрицы (`BuildTemplate`): выход × ε(E); линия вне
+                // кривой в образ не входит. Доля линии в фотопиках компонента — её вес к сумме.
+                var lineKev = new List<double>();
+                var lineWeight = new List<double>();
+                double total = 0.0;
+                foreach (FsaLine line in c.Lines)
+                {
+                    if (line == null || !(line.Intensity > 0.0) || !(line.Energy >= eLo) || !(line.Energy <= eHi))
+                    {
+                        continue;
+                    }
+
+                    double w = line.Intensity / 100.0;
+                    if (efficiency != null && !c.WeightsAreFinal)
+                    {
+                        double e, errorPercent;
+                        if (!efficiency.TryEval(line.Energy, out e, out errorPercent) || !(e > 0.0))
+                        {
+                            continue;
+                        }
+
+                        w *= e;
+                    }
+
+                    lineKev.Add(line.Energy);
+                    lineWeight.Add(w);
+                    total += w;
+                }
+
+                for (int k = 0; k < lineKev.Count && total > 0.0; k++)
+                {
+                    double own = model * lineWeight[k] / total;
+                    energies.Add(lineKev[k]);
+                    counts.Add(own);
+                    strongest = Math.Max(strongest, own);
+                }
+            }
+
+            if (!(strongest > 0.0))
+            {
+                return edges;
+            }
+
+            for (int k = 0; k < energies.Count; k++)
+            {
+                double share = counts[k] / strongest;
+                if (share < ComptonEdgeStrongShare)
+                {
+                    continue;
+                }
+
+                double x = energies[k] / DoseRateCoefficients.ElectronMassKev;
+                double edge = energies[k] * 2.0 * x / (1.0 + 2.0 * x);
+                if (edge < eLo || edge > eHi)
+                {
+                    continue;
+                }
+
+                double fwhmEdge = fwhmKev(edge);
+                if (fwhmEdge > 0.0)
+                {
+                    edges.Add(new[] { energies[k], share, edge, fwhmEdge });
+                }
+            }
+
+            return edges;
+        }
+
+        /// <summary>
+        /// (П281) Край комптона из <paramref name="edges"/>, в окне которого лежит
+        /// <paramref name="centre"/> (от <see cref="ComptonEdgeWindowBelow"/> ПШПВ ниже края до
+        /// <see cref="ComptonEdgeWindowAbove"/> ПШПВ выше), ближайший в ПШПВ; NaN — нет такого или
+        /// краёв нет (разбор с матрицей).
+        /// </summary>
+        static double ComptonEdgeNear(List<double[]> edges, double centre)
+        {
+            double best = double.NaN, bestGap = double.MaxValue;
+            if (edges == null)
+            {
+                return best;
+            }
+
+            foreach (double[] e in edges)
+            {
+                double d = (centre - e[2]) / e[3];
+                if (d >= -ComptonEdgeWindowBelow && d <= ComptonEdgeWindowAbove && Math.Abs(d) < bestGap)
+                {
+                    bestGap = Math.Abs(d);
+                    best = e[2];
+                }
+            }
+
+            return best;
         }
 
         /// <summary>

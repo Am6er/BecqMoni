@@ -26,6 +26,10 @@ namespace FsaInputCheckProbeP195
     ///     строка «кривая … вне: K-40 1460.8»; контроль — полная кривая.
     ///   * `AMBER156` (в) — разбор без матрицы: строка-предупреждение; контроль —
     ///     матричный разбор того же спектра.
+    ///   * П281 (решение Amber 14.10.2026 «Молчать у краёв комптона (Рекомендую)») —
+    ///     в сцене (2) без матрицы уступ комптона K-40 не назван «пиком вне состава»
+    ///     (до правки — «1167.4 кэВ … Cs-134 1168.0, Co-60 1173.0»), серия в ревизии
+    ///     с причиной `ComptonEdge` у края ≈1243 кэВ.
     ///
     ///     FsaInputCheckProbeP195 --spectrum=G1S16_K40_Mar.xml
     ///                            [--store=tools\CORPUS\corpus\geometries\response]
@@ -159,6 +163,14 @@ namespace FsaInputCheckProbeP195
                 Same("(2) строки «вне кривой» нет", false, Has(rows, Own("FSAReport_CurveOutsideValue"), true));
                 Same("(2) строки плотности нет", false, Has(rows, "g/cm", false) || Has(rows, "г/см", false));
                 Same("(2) привязка без матрицы: опоры есть", true, session.Result != null && session.Result.ScaleAnchorsUsed > 0);
+                // (П281, решение Amber 14.10.2026 «Молчать у краёв комптона (Рекомендую)») уступ
+                // комптона K-40 без матрицы — невязка, а не «пик вне состава» (до правки — строка
+                // «1167.4 кэВ: пик вне состава … Cs-134 1168.0, Co-60 1173.0», П251)
+                Same("(2) строки «пик вне состава» у края комптона нет", false, Has(rows, Own("FSAReport_UncoveredValue"), true));
+                // причина — строкой: проба собирается и сборкой до П281 (положительный контроль)
+                Same("(2) ревизия: серия под краем комптона K-40 (1100…1243 кэВ) отвергнута краем", true,
+                     session.Result != null && session.Result.UncoveredRejections.Exists(
+                         j => j.Reason.ToString() == "ComptonEdge" && j.EnergyKev > 1100.0 && j.EnergyKev < 1243.0));
 
                 // (3) без матрицы, кривая до 1250 кэВ: K-40 1460.8 исключён и назван
                 int before = rd.Efficiency.Curve.Count;
