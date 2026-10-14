@@ -151,16 +151,37 @@ static class SmallFixesProbeP269
         }
     }
 
+    static string SmoothNull()
+    {
+        var sa = new SpectrumAriphmetics();
+        try
+        {
+            sa.SMA2(null, 5, countlimit: 10, progressive: false);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            return Inner(ex);
+        }
+    }
+
     static int CountLimitMode()
     {
         GlobalConfigInfo baseCfg = CloneConfig(GlobalConfigManager.GetInstance().GlobalConfig);
         int bad = 0, control = 0;
         MethodInfo validate = typeof(UpDownBase).GetMethod("ValidateEditText", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        // Положительный контроль: механизм отказа сглаживания при пределе 0.
+        // (14.10.2026, после правки распорядителя в SpectrumAriphmetics.GetWindowSize) Предел 0
+        // из файла настроек, правленного руками, больше не роняет сглаживание — это теперь
+        // ожидание, а не контроль: отказ здесь — дефект. Падение на сборке ДО правки измерено
+        // П269 (журнал). Положительный контроль самого замера — заведомо испорченный вход
+        // (спектр null): Smooth обязан вернуть отказ, иначе ловушка исключений пуста.
         string zero = Smooth(0);
-        Console.WriteLine("контроль: сглаживание с пределом 0 — " + (zero != null ? "ОТКАЗ (механизм жив): " + Short(zero) : "прошло — контроль НЕ сработал"));
-        if (zero == null) control++;
+        Console.WriteLine("сглаживание с пределом 0 — " + (zero == null ? "прошло" : "ОТКАЗ: " + Short(zero)));
+        if (zero != null) bad++;
+        string spoiled = SmoothNull();
+        Console.WriteLine("контроль: сглаживание спектра null — " + (spoiled != null ? "ОТКАЗ (замер жив): " + Short(spoiled) : "прошло — контроль НЕ сработал"));
+        if (spoiled == null) control++;
         string big = Smooth(int.MaxValue);
         Console.WriteLine("сглаживание с пределом " + int.MaxValue.ToString(Inv) + " — " + (big == null ? "прошло" : "ОТКАЗ: " + Short(big)));
         if (big != null) bad++;
