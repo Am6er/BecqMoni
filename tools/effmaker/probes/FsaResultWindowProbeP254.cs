@@ -35,7 +35,9 @@ namespace BecquerelMonitor.Probes
     ///     ряда), а не первого члена.
     ///  2. ПОПРАВКА НА РАСПАД (`units`): период строки члена ряда — период корня
     ///     (решение Amber `AMBER195` «Ряд задан → период корня»), а не свой
-    ///     (Tl-208 3.05 мин давал множитель ×10⁷ на Th232_29.07.2022).
+    ///     (Tl-208 3.05 мин давал множитель ×10⁷ на Th232_29.07.2022). У строки
+    ///     СВОБОДНОГО члена (равновесие ВЫКЛ) — тоже корня: решение Amber 14.10.2026
+    ///     «Периодом корня (Рекомендую)» (П278); до П278 эти строки не судились.
     ///  3. ПРЕДЕЛ СТРОКИ РЯДА (`chainmda`): сцена без члена с именем корня.
     ///  4. ОКНО (`window`): настоящий <see cref="DCResultView"/> в форме-носителе
     ///     на документе пробы — текст ячеек против Build→Translate того же сеанса;
@@ -46,7 +48,8 @@ namespace BecquerelMonitor.Probes
     ///     нового документа, не прежнего.
     ///
     /// Ключи: --spectrum=&lt;файл&gt; (несколько; первый — для окна, второй — второй
-    /// документ гонки); --skip-window; --timeout=300.
+    /// документ гонки); --skip-window; --timeout=300; --dump=&lt;файл&gt; — строки окна
+    /// формой "R" для побитового сравнения плеч «до/после» (П278).
     /// Коды: 0 — всё сошлось; 1 — есть расхождение; 2 — ключи/файлы; 3 — разбор не дошёл.
     /// </summary>
     static class FsaResultWindowProbeP254
@@ -55,6 +58,7 @@ namespace BecquerelMonitor.Probes
         static int bad;
         static int timeoutS = 300;
         static string shots;
+        static string dump;
 
         [STAThread]
         static int Main(string[] args)
@@ -69,6 +73,7 @@ namespace BecquerelMonitor.Probes
                 else if (a == "--skip-window") skipWindow = true;
                 else if (a.StartsWith("--timeout=", StringComparison.Ordinal)) timeoutS = int.Parse(a.Substring(10), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--shots=", StringComparison.Ordinal)) shots = a.Substring(8);
+                else if (a.StartsWith("--dump=", StringComparison.Ordinal)) dump = a.Substring(7);
                 else if (a.StartsWith("--ui=", StringComparison.Ordinal)) Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(a.Substring(5));
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
@@ -200,6 +205,14 @@ namespace BecquerelMonitor.Probes
                     Dictionary<string, double> branches = FsaSampleLibrary.ChainBranches(rootNucid, report);
                     double b;
                     if (branches != null && branches.TryGetValue(nucid, out b) && b > 0.0) r = b;
+                    // (П278) и множитель переходного равновесия по Бейтману (`AMBER55`): образ члена
+                    // сложен с ним (`FsaSampleLibrary.Build`, ветвление × множитель). Без него проба
+                    // ждала у Pb-210 ряда Ra-226 долю 1 вместо 1.0141 и краснела на σ и a# строки,
+                    // где окно право (Cs-137 «в домике», П278).
+                    var factors = (Dictionary<string, double>)typeof(FsaSampleLibrary)
+                        .GetMethod("EquilibriumFactors", Any).Invoke(null, new object[] { rootNucid, report });
+                    double f;
+                    if (factors != null && factors.TryGetValue(nucid, out f) && f > 0.0) r *= f;
                 }
                 else if (byLabels && rootNucid != nucid)
                 {
@@ -214,32 +227,57 @@ namespace BecquerelMonitor.Probes
                 double expBq = rate * r;
                 double expErr = double.IsNaN(sigma) ? 0.0 : sigma * r;
                 double expMda = double.IsNaN(mda) ? 0.0 : mda * r;
-                // Период строки СВОБОДНОГО члена ряда (свой или корня) — вопрос Amber (П254);
-                // здесь судится только строка без ряда и строка самого ряда: период — свой.
+                // ⛔ (П278) Период строки СВОБОДНОГО члена ряда — период КОРНЯ: решение Amber
+                // 14.10.2026 вопросником, дословно «Периодом корня (Рекомендую)» (находка П254 №10;
+                // тот же приём, что `AMBER195` «Ряд задан → период корня»). Строка без ряда и строка
+                // самого ряда — свой период. Ожидание — период из базы по `nucid` корня, мимо кода окна.
                 bool member = rootNucid.Length > 0 && rootNucid != nucid;
-                double expHalf = BecquerelMonitor.NucBase.NucBaseFramework.HalfLifeYearsOf(nucid);
+                double expHalf = BecquerelMonitor.NucBase.NucBaseFramework.HalfLifeYearsOf(member ? rootNucid : nucid);
                 double expFactor = MeasurementResultManager.DecayToSamplingFactor(expHalf, rd.SampleInfo.Time, rd.StartTime, rd.EndTime);
                 double factor = row.ResultValue > 0.0 ? corr.ResultList[i].ResultValue / row.ResultValue
                     : (row.MDA > 0.0 ? corr.ResultList[i].MDA / row.MDA : 1.0);
                 bool okBq = Close(row.ResultValue, expBq, 1e-3);
                 bool okMda = Close(row.MDA, expMda, 1e-3);
-                bool okFactor = member || Close(factor, expFactor, 1e-6);
+                bool okFactor = Close(factor, expFactor, 1e-6);
                 bool okErr = Close(row.ResultError, expErr, 1e-3);
+                Dump(path, dbLookups, equilibrium, row, corr.ResultList[i], factor, member);
                 Console.WriteLine("  {0,-9} {1,11} {2,10} {3,10} | {4,11} {5,-12} {6,7} | {7,12} {8,12} {9,12}  {10}",
                                   name, F(row.ResultValue), F(row.ResultError), F(row.MDA), F(expBq), root ?? "—",
                                   r.ToString("0.####", CultureInfo.InvariantCulture),
                                   row.Line.HalfLifeYears.ToString("0.####E+0", CultureInfo.InvariantCulture),
                                   factor.ToString("0.####E+0", CultureInfo.InvariantCulture),
-                                  member ? "вопрос" : expFactor.ToString("0.####E+0", CultureInfo.InvariantCulture),
+                                  expFactor.ToString("0.####E+0", CultureInfo.InvariantCulture) + (member ? " корня" : ""),
                                   okBq && okMda && okFactor && okErr ? "ok" : "НЕТ (" + (okBq ? "" : "Бк ") + (okErr ? "" : "σ=" + F(expErr) + " ") + (okMda ? "" : "a# ") + (okFactor ? "" : "распад") + ")");
                 if (!(okBq && okMda && okFactor && okErr)) bad++;
             }
             return true;
         }
 
+        /// <summary>
+        /// (П278) Строка окна в файл `--dump=` — числа формой "R" (побитово), чтобы плечи
+        /// «до/после» правки сравнивались построчно: одиночки и строка ряда обязаны совпасть
+        /// до байта, у свободных членов ряда меняются только период и множитель распада.
+        /// </summary>
+        static void Dump(string path, bool dbLookups, bool equilibrium, MeasurementResult row, MeasurementResult corrected,
+                         double factor, bool member)
+        {
+            if (dump == null) return;
+            Func<double, string> r = v => v.ToString("R", CultureInfo.InvariantCulture);
+            File.AppendAllText(dump, string.Join("\t", new[]
+            {
+                Path.GetFileName(path), dbLookups ? "nucbase" : "labels", equilibrium ? "eq_on" : "eq_off",
+                row.Line.Name, member ? "member" : "own", r(row.Line.HalfLifeYears),
+                r(row.ResultValue), r(row.ResultError), r(row.MDA),
+                r(corrected.ResultValue), r(corrected.ResultError), r(corrected.MDA), r(factor)
+            }) + Environment.NewLine, new UTF8Encoding(false));
+        }
+
         static bool Close(double a, double b, double rel)
         {
             if (double.IsNaN(a) || double.IsNaN(b)) return double.IsNaN(a) && double.IsNaN(b);
+            // (П278) бесконечность равна только себе: прежде |∞ − 1| ≤ rel·∞ проходило, и множитель
+            // распада Tl-208 = ∞ (Cs-137 «в домике», до П278) печатался «ok»
+            if (double.IsInfinity(a) || double.IsInfinity(b)) return a == b;
             double scale = Math.Max(Math.Abs(a), Math.Abs(b));
             return scale == 0.0 || Math.Abs(a - b) <= rel * scale;
         }
