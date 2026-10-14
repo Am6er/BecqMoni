@@ -113,7 +113,12 @@ namespace BecquerelMonitor.N42
 
         public void SpectrumFromArray(int[] inputSpectra)
         {
-            this.valueField = "";
+            // (П311, 15.10.2026) Строка собирается StringBuilder'ом, а не склейкой в цикле:
+            // склейка копировала всю строку на каждом канале (квадрат по числу каналов), и
+            // экспорт документа «3 спектра + 3 фона × 16384 канала» занимал 0.8–0.9 с (замер
+            // P311SpectrumListN42Probe). Байты файла — прежние: то же число, тот же пробел
+            // после каждого, включая последний.
+            System.Text.StringBuilder text = new System.Text.StringBuilder(inputSpectra.Length * 6);
             for (int i = 0; i < inputSpectra.Length; i++)
             {
                 // `A146`: в файл пишем ИНВАРИАНТНОЙ культурой. ⚠ У целого «G» не
@@ -122,10 +127,9 @@ namespace BecquerelMonitor.N42
                 // неотрицательны. Правило всё равно применяется целиком: разбирать
                 // поштучно, у какого поля культура сегодня не видна, дороже, чем
                 // писать инвариантно везде.
-                this.valueField = this.valueField
-                    + inputSpectra[i].ToString(System.Globalization.CultureInfo.InvariantCulture) + " ";
-
+                text.Append(inputSpectra[i].ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(' ');
             }
+            this.valueField = text.ToString();
         }
 
         private bool isNotN42SpectrumValid(string str)

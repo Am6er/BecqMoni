@@ -28,6 +28,13 @@ namespace BecquerelMonitor
             int spectrumCount = doc.ResultDataFile.ResultDataList.Count;
 
             this.table1.BeginUpdate();
+            // ⛔ (П311, 15.10.2026) СНАЧАЛА СНЯТЬ ВЫДЕЛЕНИЕ, ПОТОМ СТРОКИ. `Rows.Clear()`
+            //    XPTable убирает строки из таблицы, но НЕ из списка выделенных
+            //    (`TableModel.OnRowRemoved` со строкой null выделение не трогает): старые
+            //    строки копились в `Selections` при каждом обновлении списка, и
+            //    `table1.SelectedItems` отдавал их вперемешку с новыми — со старыми
+            //    номерами. Внутри BeginUpdate событие выделения не поднимается.
+            this.tableModel1.Selections.Clear();
             this.tableModel1.Rows.Clear();
 
             for (int i = 0; i < spectrumCount; i++)
@@ -72,8 +79,43 @@ namespace BecquerelMonitor
             }
 
             this.table1.EndUpdate();
+            SyncSelectedFlags();
             this.button5.Enabled = (doc.ActiveResultDataIndex != 0);
             this.button6.Enabled = (doc.ActiveResultDataIndex != doc.ResultDataFile.ResultDataList.Count - 1);
+        }
+
+        /// <summary>
+        /// ⛔ (П311, 15.10.2026) «ЭКСПОРТ...» БЕРЁТ РОВНО ТЕ СПЕКТРЫ, ЧТО ВЫДЕЛЕНЫ В СПИСКЕ.
+        /// Кнопка «Экспорт...» (<see cref="button4_Click"/> → <c>MainForm.SaveSpectrumToFile</c>)
+        /// пишет спектры с <see cref="ResultData.Selected"/>, а признак ставился только в
+        /// <see cref="table1_SelectionChanged"/> — то есть щелчком человека. Выделение же
+        /// строки активного спектра <see cref="ShowSpectrumList"/> ставит внутри
+        /// BeginUpdate, без события, и признак расходился с тем, что видно: импорт N42
+        /// заменяет спектры новыми объектами без признака — экспорт писал файл без
+        /// единого спектра; «Новый» делал новый спектр активным и выделенным, а
+        /// экспорт писал прежний (признак с открытия); импорт файла в документ ставил
+        /// признак первому импортированному (<c>DocumentManager.LoadResultDataFile</c>),
+        /// и экспорт брал его вместе с выделенным. Теперь признак — то же выражение, что
+        /// у <see cref="table1_SelectionChanged"/> (<c>row.AnyCellsSelected</c>), после
+        /// каждого обновления списка; кнопка гаснет, когда не выделено ничего (иначе
+        /// «Экспорт...» записал бы файл без спектров, а такой файл не открывается).
+        /// </summary>
+        private void SyncSelectedFlags()
+        {
+            bool any = false;
+            foreach (Row row in this.tableModel1.Rows)
+            {
+                ResultData resultData = row.Tag as ResultData;
+                if (resultData == null)
+                {
+                    continue;
+                }
+
+                resultData.Selected = row.AnyCellsSelected;
+                any |= resultData.Selected;
+            }
+
+            this.button4.Enabled = any;
         }
 
         private void table1_SelectionChanged(object sender, SelectionEventArgs e)
@@ -105,6 +147,8 @@ namespace BecquerelMonitor
             }
 
             this.table1.Refresh();
+            // (П311) «Экспорт...» гаснет, когда не выделено ничего, — см. SyncSelectedFlags.
+            this.button4.Enabled = this.table1.SelectedItems.Length > 0;
             this.mainForm.ActiveResultDataChanged(num);
             this.button5.Enabled = (activeDocument.ActiveResultDataIndex != 0);
             this.button6.Enabled = (activeDocument.ActiveResultDataIndex != activeDocument.ResultDataFile.ResultDataList.Count - 1);
