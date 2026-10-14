@@ -295,10 +295,17 @@ namespace BecquerelMonitor
                     // ни на миг; ушедший с экрана снимается без поиска (`false`).
                     List<ResultData> queued = new List<ResultData>(this.queuedSearches);
                     this.queuedSearches.Clear();
+                    // ⛔ (П271, 14.10.2026) Спектр, который повтор ищет, снимается с `true`.
+                    // Повтор кончается и без await — нет калибровки ПШПВ, бросок до поиска, —
+                    // и тогда ПОСЛЕДНЕЙ отметкой спектра оказывалась эта, из очереди. С `false`
+                    // сеанс выбрасывал отложенный счёт молча (`PeakSearchEnded`), `Completed`
+                    // не приходил, и окно результата стояло на «FSA: computing…» (П270).
+                    // Повтор берёт активный спектр синхронно, до первого await, — тот же, что здесь.
+                    ResultData repeated = this.mainForm.ActiveDocument != null ? this.mainForm.ActiveDocument.ActiveResultData : null;
                     UpdatePeakDetectionResult();
                     foreach (ResultData spectrum in queued)
                     {
-                        FullSpectrumAnalysis.FsaAnalysisSession.PeakSearchFinished(spectrum, false);
+                        FullSpectrumAnalysis.FsaAnalysisSession.PeakSearchFinished(spectrum, ReferenceEquals(spectrum, repeated));
                     }
                 }
             }

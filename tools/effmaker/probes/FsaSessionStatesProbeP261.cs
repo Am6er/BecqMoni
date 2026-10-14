@@ -46,9 +46,18 @@ namespace BecquerelMonitor.Probes
     /// `activation` ловят ту же гонку только под нагрузкой (зависит от скорости поиска).
     /// `refusal` — ещё «отказ вылечен, идёт новый счёт»: под «идёт расчёт» нет причины прежнего отказа.
     ///
+    /// Сцена `requeue` (П271, 14.10.2026; находка ревизии П270) — порядок `busy`, но повторный поиск
+    /// новой вкладки кончается СРАЗУ, без await (`DCPeakDetectionView`, нет калибровки ПШПВ). Последней
+    /// отметкой конца поиска тогда оказывалась отметка очереди с `searched = false`, сеанс выбрасывал
+    /// отложенный счёт молча, `Completed` не приходил — окно результата стояло на «FSA: computing…».
+    /// Калибровка снимается ПОСЛЕ первого прохода разбора (он уже отложен до конца поиска): спектр
+    /// без калибровки с самого начала сеанс отказывает за миллисекунды, обычно раньше, чем спектр
+    /// встанет в очередь поиска, — отказ публикуется сразу, и порядок не воспроизводится (замер П271).
+    /// Суд: сеанс успокоился (разбор ИЛИ причина), и окно результата показывает его, а не «идёт расчёт».
+    ///
     /// Ключи: --spectrum=&lt;файл&gt; (несколько; сцены активации — по каждому, первый — для
     /// путей отказа, второй — прежняя вкладка сцены `busy`); --ui=en|ru; --timeout=300;
-    /// --only=activation,busy,refusal,failure.
+    /// --only=activation,busy,requeue,refusal,failure.
     /// Коды: 0 — всё сошлось; 1 — расхождение; 2 — ключи/файлы.
     /// </summary>
     static class FsaSessionStatesProbeP261
@@ -116,6 +125,13 @@ namespace BecquerelMonitor.Probes
                 ActivationScene(spectra[0], "поиск пиков прежней вкладки ещё идёт", mainForm, peaks, report, results,
                                 null, true, spectra[1]);
             }
+            if (Wanted("requeue") && spectra.Count > 1)
+            {
+                // (П271) то же, что `busy`, но повтор поиска кончается без await — калибровки ПШПВ нет
+                // к его началу (снята после первого прохода разбора, уже отложенного до конца поиска)
+                ActivationScene(spectra[0], "поиск прежней вкладки идёт, повтор поиска новой кончается без await (нет калибровки ПШПВ)",
+                                mainForm, peaks, report, results, null, null, spectra[1], rd => { rd.FwhmCalibration = null; });
+            }
             if (Wanted("refusal"))
             {
                 // положительный контроль и п. 7: настоящие отказы обязаны дойти до обоих окон
@@ -155,8 +171,8 @@ namespace BecquerelMonitor.Probes
         // ==================================================================
 
         static void ActivationScene(string path, string what, MainForm mainForm, DCPeakDetectionView peaks,
-                                    FSAReportView report, DCResultView results, Action<ResultData> tweak, bool expectResult,
-                                    string busyPath)
+                                    FSAReportView report, DCResultView results, Action<ResultData> tweak, bool? expectResult,
+                                    string busyPath, Action<ResultData> afterFirstPass = null)
         {
             Console.WriteLine();
             Console.WriteLine("=== АКТИВАЦИЯ: {0} — {1} ===", Path.GetFileName(path), what);
@@ -193,6 +209,14 @@ namespace BecquerelMonitor.Probes
                 Thread.Sleep(300);
                 Console.WriteLine("  поиск новой вкладки встал в очередь: {0}; поток окон занят {1:F1} с, первый проход — без пиков",
                                   queued, (DateTime.UtcNow - blockStart).TotalSeconds);
+                if (afterFirstPass != null)
+                {
+                    // (П271) первый проход кончился и отложен до конца поиска; поиск новой вкладки
+                    // ещё стоит в очереди — правка входа ДО него
+                    bool withheld = typeof(FsaAnalysisSession).GetField("withheldJob", Any).GetValue(doc.FsaSession) != null;
+                    afterFirstPass(rd);
+                    Console.WriteLine("  первый проход отложен до конца поиска: {0}; вход поиска изменён до повтора", withheld);
+                }
             }
 
             var reportRefusals = new List<string>();
@@ -252,7 +276,17 @@ namespace BecquerelMonitor.Probes
             Console.WriteLine("  окно результата в конце: заголовок «{0}», строк {1}: {2}", ResultHeader(results), finalRows.Count,
                               string.Join(" | ", finalRows.Take(4).Select(r => Short(string.Join(" ", r)))));
 
-            if (expectResult)
+            if (expectResult == null)
+            {
+                // (П271) исход любой — разбор или причина, — но окно обязано его ПОКАЗАТЬ
+                string reason = final.Status ?? "";
+                bool okSession = !final.IsRunning && (final.Result != null || reason.Length > 0);
+                bool okWindow = finalRows.Count > 0 && finalRows.All(r => r.Length > 1 && r[1] != computingText);
+                Console.WriteLine("  сеанс успокоился (разбор или причина): {0}; окно результата показывает исход, а не «{1}»: {2}",
+                                  Ok(okSession), computingText, Ok(okWindow));
+                if (!okSession || !okWindow) bad++;
+            }
+            else if (expectResult == true)
             {
                 bool okSession = final.Result != null;
                 // строки рода «состояние», которых нет в итоговой таблице, — чужие (прежнего прохода)
