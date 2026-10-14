@@ -295,6 +295,68 @@ namespace BecquerelMonitor
             {
                 this.dockPanel1.Theme = new VS2015BlueTheme();
             }
+
+            // (П315) Метод зовут оба конструктора и Load — подписка ровно одна.
+            this.dockPanel1.ContentRemoved -= this.DockPanel_ContentRemoved;
+            this.dockPanel1.ContentRemoved += this.DockPanel_ContentRemoved;
+        }
+
+        /// <summary>
+        /// (П315, 15.10.2026) Закрытое окно ушло из панели — забыть его меню у темы.
+        /// </summary>
+        void DockPanel_ContentRemoved(object sender, DockContentEventArgs e)
+        {
+            ForgetDisposedThemedStrips(this.dockPanel1 != null ? this.dockPanel1.Theme : null);
+        }
+
+        /// <summary>
+        /// (П315, 15.10.2026) ⛔ ЗАКРЫТЫЙ ДОКУМЕНТ ЖИЛ ДО КОНЦА ПРОГРАММЫ. Тема DockPanelSuite
+        /// (<c>ThemeBase.ApplyTo(ToolStrip)</c>) запоминает каждое меню, которое красит, —
+        /// контекстное меню документа (<c>DocEnergySpectrum.contextMenuStrip1</c>) и окна
+        /// «Peak detection» — в своём словаре <c>_stripBefore</c> (прежний отрисовщик, чтобы
+        /// вернуть его в <c>CleanUp</c>) и не отпускает. Меню держит обработчики
+        /// <c>Opening</c>/<c>Closed</c> и пункты, а они — документ: вид, спектр, фон, разбор FSA.
+        /// Мерено пробой <c>P315GdiLeakProbe --mode=docs</c> (8192 канала с фоном): после 10
+        /// открытий-закрытий живы все 10 документов, +1.3 МБ управляемой памяти, +4 GDI и
+        /// +2 USER на документ; путь удержания —
+        /// <c>dockPanel1 → VS2015BlueTheme._stripBefore → ContextMenuStrip.events → документ</c>.
+        /// Смена раскладки так же держала каждое прежнее окно «Peak detection».
+        ///
+        /// Открытого API «забыть одно меню» у темы нет (<c>CleanUp</c> снимает тему со ВСЕХ), поэтому
+        /// словарь чистится от УЖЕ ЗАКРЫТЫХ меню отражением: меню закрытого окна разобрано вместе с ним,
+        /// красить его больше некому. Нет поля (другая версия библиотеки) — ничего не делается.
+        /// </summary>
+        internal static int ForgetDisposedThemedStrips(ThemeBase theme)
+        {
+            if (theme == null)
+            {
+                return 0;
+            }
+
+            System.Reflection.FieldInfo field = typeof(ThemeBase).GetField(
+                "_stripBefore", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            System.Collections.IDictionary strips = field != null ? field.GetValue(theme) as System.Collections.IDictionary : null;
+            if (strips == null)
+            {
+                return 0;
+            }
+
+            List<object> closed = new List<object>();
+            foreach (object key in strips.Keys)
+            {
+                ToolStrip strip = key as ToolStrip;
+                if (strip != null && strip.IsDisposed)
+                {
+                    closed.Add(key);
+                }
+            }
+
+            foreach (object key in closed)
+            {
+                strips.Remove(key);
+            }
+
+            return closed.Count;
         }
 
         // Token: 0x06000A49 RID: 2633 RVA: 0x0003CA98 File Offset: 0x0003AC98

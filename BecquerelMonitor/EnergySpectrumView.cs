@@ -4521,7 +4521,8 @@ namespace BecquerelMonitor
         // Token: 0x060004C2 RID: 1218 RVA: 0x0001AFF8 File Offset: 0x000191F8
         void ShowCalibrationPeaks(Graphics g, EnergySpectrum spectrum, EnergyCalibration calibration)
         {
-            Pen pen = new Pen(Color.Red);
+            // (П315) Здесь создавалось и разбиралось перо `Color.Red`, которым ничего не
+            // рисовалось (всё — `Pens.Orange`/`Brushes.Orange`): лишний объект GDI+ на кадр — снято.
             foreach (Peak peak in this.activeResultData.CalibrationPeaks)
             {
                 int channel = peak.Channel;
@@ -4570,7 +4571,6 @@ namespace BecquerelMonitor
                 g.DrawLine(Pens.Orange, num7, 3, num7, 8);
                 g.DrawLine(Pens.Orange, num8, 3, num8, 8);
             }
-            pen.Dispose();
         }
 
         // Token: 0x060004C3 RID: 1219 RVA: 0x0001B334 File Offset: 0x00019534
