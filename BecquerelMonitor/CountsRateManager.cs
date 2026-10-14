@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace BecquerelMonitor
 {
@@ -7,9 +8,59 @@ namespace BecquerelMonitor
     {
         const int UpperWindow = 120;
 
+        /// <summary>
+        /// (П289) Часы ПК, мс, монотонные — ими меряется возраст последнего
+        /// прихода данных у прибора со ступенчатыми данными
+        /// (<see cref="StepwiseEnds"/>). Прочим приборам не читаются вовсе.
+        /// </summary>
+        readonly Func<double> clockMs;
+
+        public CountsRateManager() : this(null)
+        {
+        }
+
+        /// <summary>
+        /// (П289) <paramref name="clockMs"/> — часы ПК в мс; null — монотонные часы
+        /// <see cref="Stopwatch"/>. Подменные часы нужны безоконной пробе
+        /// (`tools/effmaker/probes/SilentBlockZeroProbeP289.cs`): она проигрывает
+        /// минуты набора за доли секунды.
+        /// </summary>
+        public CountsRateManager(Func<double> clockMs)
+        {
+            this.clockMs = clockMs ?? StopwatchMs;
+        }
+
+        static double StopwatchMs()
+        {
+            return Stopwatch.GetTimestamp() * 1000.0 / Stopwatch.Frequency;
+        }
+
+        /// <summary>
+        /// (П289) Снимок истории прибора со ступенчатыми данными: к числам — моменты
+        /// по часам ПК. <see cref="AddedPcMs"/> — когда снимок лёг в историю (такт
+        /// окна, на котором пришли новые данные); <see cref="SeenPcMs"/> — последний
+        /// такт набора, на котором этот снимок был последним в истории. Прочим
+        /// приборам в историю кладётся прежний <see cref="CountRate"/>.
+        /// </summary>
+        sealed class StampedCountRate : CountRate
+        {
+            public StampedCountRate(long counts, long invalidCounts, double elapsedMs, double pcMs)
+                : base(counts, invalidCounts, elapsedMs)
+            {
+                AddedPcMs = pcMs;
+                SeenPcMs = pcMs;
+            }
+
+            public readonly double AddedPcMs;
+            public double SeenPcMs;
+        }
+
         public void AppendResultData(ResultData resultData)
         {
             if (!resultData.ResultDataStatus.Recording) return;
+            // П289: прибору со ступенчатыми данными — момент такта по часам ПК.
+            bool stepwise = StepwiseData(resultData);
+            double pcNow = stepwise ? clockMs() : 0.0;
             long new_counts = resultData.EnergySpectrum.TotalPulseCount;
             double new_time = resultData.ResultDataStatus.ElapsedTime.TotalMilliseconds;
 
@@ -25,14 +76,24 @@ namespace BecquerelMonitor
             {
                 // data comes too fast, skip this counts
                 if (resultData.CountRates[resultData.CountRates.Count - 1].ElapsedTimeInMs == new_time ||
-                new_time - resultData.CountRates[resultData.CountRates.Count - 1].ElapsedTimeInMs < 1000.0) return;
+                new_time - resultData.CountRates[resultData.CountRates.Count - 1].ElapsedTimeInMs < 1000.0)
+                {
+                    // П289: время данных стоит (блок молчит или чтение ещё не пришло),
+                    // а набор идёт — такт отмечается на последнем снимке.
+                    StampedCountRate newest = resultData.CountRates[resultData.CountRates.Count - 1] as StampedCountRate;
+                    if (stepwise && newest != null) newest.SeenPcMs = pcNow;
+                    return;
+                }
             }
 
             if (resultData.CountRates.Count >= UpperWindow)
             {
                 resultData.CountRates.RemoveAt(0);
             }
-            resultData.CountRates.Add(new CountRate(new_counts, resultData.EnergySpectrum.TotalPulseCount - resultData.EnergySpectrum.ValidPulseCount, new_time));
+            long invalid = resultData.EnergySpectrum.TotalPulseCount - resultData.EnergySpectrum.ValidPulseCount;
+            resultData.CountRates.Add(stepwise
+                ? new StampedCountRate(new_counts, invalid, new_time, pcNow)
+                : new CountRate(new_counts, invalid, new_time));
         }
 
         /// <summary>
@@ -46,7 +107,9 @@ namespace BecquerelMonitor
         /// показывали 0, остальные — до 2.75 истинной скорости (после правки
         /// 0.83…1.23, при окне 30 с 0.97…1.03). Такому прибору концы окна ставятся на моменты, когда
         /// данные пришли (<see cref="StepwiseCPS"/>); прочим — прежний расчёт,
-        /// байт в байт.
+        /// байт в байт. (С П280 реальное время `AmplitudaSerial` тоже идёт шагами,
+        /// раз в чтение; признак «блок молчит» с тех пор меряется по часам ПК — П289,
+        /// <see cref="StepwiseEnds"/>.)
         /// </summary>
         public double GetCPS(ResultData resultData, double window)
         {
@@ -94,8 +157,8 @@ namespace BecquerelMonitor
         /// СПЕКТРА (<see cref="SpectrumDeadTimePercent"/>) — по всему спектру, а
         /// не на окне: история скорости счёта живого времени не хранит, а живое
         /// время такого прибора приходит ступенькой раз в цикл опроса (период
-        /// опроса 2–60 с плюс чтение блока) при непрерывном реальном — на окне в
-        /// 3 с (умолчание панели) доля прыгала бы между 0 и 100 %. Число то же,
+        /// опроса 2–60 с плюс чтение блока; до П280 — при непрерывном реальном) — на
+        /// окне в 3 с (умолчание панели) доля прыгала бы между 0 и 100 %. Число то же,
         /// что «Мёртвое время %» панели измерения (<c>DCControlPanel.ShowRecordingStatus</c>).
         /// Разбор — журнал `handover/handover-2026-10-14-p250-a319-deadtime-zero.md`.
         /// </summary>
@@ -130,23 +193,22 @@ namespace BecquerelMonitor
         /// живое не меньше реального (живое &gt; реального — порча данных, её
         /// здесь не прячут, но и долю из неё не выводят).
         ///
-        /// ⚠ ПОКА ИДЁТ НАБОР, число у прибора с собственным живым временем
-        /// ЗАВЫШЕНО. У `AmplitudaSerial` живое время берётся из заголовка блока,
-        /// который читается ПЕРВЫМ (статус → заголовок → страницы,
-        /// <c>AmplitudaSerialLine.ReadJob</c>), а на экран приходит после всех
-        /// страниц; реальное идёт по часам ПК непрерывно, а следующее чтение
-        /// начинается через период опроса Δ после конца прежнего
-        /// (<c>AmplitudaSerialAcquisition</c>). Реальное время обгоняет момент, к которому
-        /// относится живое, на t_чт … Δ + 2·t_чт (t_чт — чтение страниц), и ещё
-        /// на ±0.5 с — живое приходит целыми секундами. Отсюда завышение от
-        /// (1 − d)·(t_чт − 0.5)/T до (1 − d)·(Δ + 2·t_чт + 0.5)/T (d — истинная
-        /// доля, T — реальное время): при Δ = 3 с, t_чт = 2.5 с (1024 канала) и
-        /// d = 0.3 — до 9.9 пункта при T = 60 с, до 1.0 при T = 600 с; t_чт
-        /// растёт с числом страниц (512 каналов на страницу). Учесть это здесь
-        /// честно нельзя: момент чтения заголовка знает только
-        /// <c>AmplitudaSerialAcquisition</c>. То же завышение несёт «Мёртвое
-        /// время %» панели измерения. У остановленного и у загруженного спектра
-        /// число точное.
+        /// Пока идёт набор, у прибора с собственным живым временем число относится
+        /// к моменту ПОСЛЕДНЕГО ЧТЕНИЯ и верно примерно до 50/T пунктов (T —
+        /// реальное время, с). С П280 (14.10.2026) `AmplitudaSerial` пишет в спектр
+        /// отсчёты, живое и реальное время на один момент — когда последнее
+        /// удачное чтение взяло отсчёты (<c>AmplitudaSerialAcquisition</c>:
+        /// реальное — на этот момент, живое из заголовка доведено до него), и время
+        /// на экране идёт шагами, раз в чтение. Остаток — предел протокола: блок
+        /// даёт живое время целыми секундами и только в заголовке, ±0.5 с на
+        /// реальном времени заголовка T_h (на 1…6 с меньше T при 2…16 страницах),
+        /// то есть ±50/T_h пункта; допущение — доля не менялась за отрезок
+        /// «заголовок → отсчёты» (≈1 с у 2 страниц, ≈6 с у 16). Мерено тестами
+        /// П280 на фиктивном блоке: d = 0.3, Δ = 3 с, T = 50…70 с — отклонение
+        /// −0.61…+0.83 пункта (до П280 — завышение до +17.6). Журнал
+        /// `handover/handover-2026-10-14-p280-amplitudaserial-live-moment.md`,
+        /// «Точность». То же число и та же точность — у «Мёртвое время %» панели
+        /// измерения и после «Стопа»; у загруженного спектра — как он записан.
         /// </summary>
         public static double SpectrumDeadTimePercent(EnergySpectrum spectrum)
         {
@@ -265,6 +327,21 @@ namespace BecquerelMonitor
         /// последней смены прошло больше двух окон и двух самых длинных промежутков
         /// между приходами на охвате. Прежний расчёт в этом случае показывал 0 —
         /// признак «блок молчит» сохраняется.
+        ///
+        /// ⛔ П289 (решение Amber 14.10.2026 вопросником, дословно: «Взять, время
+        /// шагами (Рекомендую)»). С П280 время данных `AmplitudaSerial` идёт шагами —
+        /// раз в чтение, вместе с отсчётами; пока блок молчит, оно СТОИТ, история не
+        /// растёт, и возраст по времени данных всегда ≈ 0: панель держала последнюю
+        /// скорость до отказа набора по связи (30 с, `ConnectionLost`). Поэтому возраст
+        /// меряется ещё и по часам ПК — от такта, на котором пришла последняя смена
+        /// (<see cref="StampedCountRate.AddedPcMs"/>), до последнего такта набора
+        /// (<see cref="StampedCountRate.SeenPcMs"/>), тем же порогом. Порог П250 —
+        /// два окна и два самых длинных промежутка на охвате — П280 не задевает:
+        /// промежутки между моментами данных — те же циклы опроса. Последний такт, а
+        /// не «сейчас»: после «Стопа» или отказа такты кончаются, возраст замирает, и
+        /// панель показывает то же, что при П250 (после «Стопа» — последнюю скорость,
+        /// после отказа по связи при окне 3 с — 0). Снимки без моментов (история,
+        /// набранная не этим менеджером) меряются, как прежде, только временем данных.
         /// </summary>
         static bool StepwiseEnds(List<CountRate> rates, double window, out CountRate first, out CountRate last)
         {
@@ -297,8 +374,15 @@ namespace BecquerelMonitor
             }
             if (firstIdx < 0) return false;
 
+            double silentAfter = 2.0 * Math.Max(window * 1000.0, maxGap);
             double age = rates[rates.Count - 1].ElapsedTimeInMs - rates[lastIdx].ElapsedTimeInMs;
-            if (age > 2.0 * Math.Max(window * 1000.0, maxGap)) return false;
+            if (age > silentAfter) return false;
+
+            // П289: тот же порог по часам ПК — время данных у прибора, сообщающего
+            // живое время, пока он молчит, стоит.
+            StampedCountRate newest = rates[rates.Count - 1] as StampedCountRate;
+            StampedCountRate arrival = rates[lastIdx] as StampedCountRate;
+            if (newest != null && arrival != null && newest.SeenPcMs - arrival.AddedPcMs > silentAfter) return false;
 
             first = rates[firstIdx];
             last = rates[lastIdx];
