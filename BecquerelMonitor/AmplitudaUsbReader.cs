@@ -36,6 +36,8 @@ namespace BecquerelMonitor
     // counted the same events and unit No. 2 stood idle. The registry is the application's own
     // lock, as AmplitudaSerialDeviceController.activeBlocks is for the serial blocks.
     // Key: AmplitudaUsbReader.BlockKey. Owner: the reader. One owner holds at most one key.
+    // A unit named by an explicit serial number is refused while another reader holds it (P285,
+    // Amber 14.10.2026: "Отказывать второму") - one unit, one document, whatever the configuration.
     public sealed class AmplitudaUsbBlockLeases
     {
         // The registry of the measurements (AmplitudaUsbDeviceController). The Test button of the
@@ -62,8 +64,9 @@ namespace BecquerelMonitor
             return held;
         }
 
-        // Moves the owner's lease to this key. exclusive: refused while another owner holds the key
-        // ("first found"); otherwise taken regardless (an explicit serial number, see SelectCandidates).
+        // Moves the owner's lease to this key. exclusive: refused while another owner holds the key;
+        // otherwise taken regardless. The reader always asks exclusively: "first found" since P257,
+        // an explicit serial number since P285.
         public bool TryTake(string key, object owner, bool exclusive)
         {
             lock (gate)
@@ -124,6 +127,8 @@ namespace BecquerelMonitor
         const int ReadStopped = -4;
         // "(first found)": units were found, but every one is already measured by another document (P257).
         public const int ErrorAllInUse = -5;
+        // An explicit serial number: the unit is already measured by another document (P285).
+        public const int ErrorBlockBusy = -6;
 
         // Seams for the tests (tools/AmplitudaUsbTests): the device list and the opening of a path.
         // null in the application - FindDevices and CreateFile on the HID path.
@@ -169,7 +174,8 @@ namespace BecquerelMonitor
         }
 
         // A measurement: with an empty serial number the reader skips units other readers of the same
-        // registry hold, and holds the unit it opened until Stop / Dispose / the end of its thread (P257).
+        // registry hold, and holds the unit it opened until Stop / Dispose / the end of its thread (P257);
+        // with an explicit one it is refused while another reader of the registry holds that unit (P285).
         public AmplitudaUsbReader(int vendorId, int productId, string serialNumber, double deadMicrosPerEvent,
             AmplitudaUsbBlockLeases leases)
             : this(vendorId, productId, serialNumber, deadMicrosPerEvent, leases, null, null)
@@ -213,28 +219,41 @@ namespace BecquerelMonitor
         // without one - its HID device path.
         public static string BlockKey(AmplitudaUsbDeviceInfo device)
         {
-            return string.IsNullOrEmpty(device.SerialNumber) ? "path:" + (device.Path ?? "") : "sn:" + device.SerialNumber;
+            return string.IsNullOrEmpty(device.SerialNumber) ? "path:" + (device.Path ?? "") : SerialKey(device.SerialNumber);
+        }
+
+        static string SerialKey(string serialNumber)
+        {
+            return "sn:" + serialNumber;
         }
 
         // The units Open tries, in this order (P257).
-        // An explicit serial number: every unit with that number, held or not. Whether two documents may
-        // measure one unit named explicitly is Amber's decision, still open: the behaviour stays as it was.
+        // An explicit serial number: every unit with that number - unless that unit is held elsewhere:
+        // then nothing, and allHeld (P285, Amber 14.10.2026, "Отказывать второму": HID hands every handle
+        // its own copy of the frames, so two documents would both count the same unit). Refused found or
+        // not: the holder may be reconnecting to a unit that is unplugged for a moment.
         // Empty ("first found"): every unit except those held elsewhere - by other readers of the registry;
         // the reader's own unit is not in heldElsewhere, so its reconnect is never refused by its own lease.
-        // allHeld: units were found, and every one of them is held elsewhere.
+        // allHeld: "first found" - units were found, and every one of them is held elsewhere;
+        // an explicit serial number - its unit is held elsewhere.
         public static List<AmplitudaUsbDeviceInfo> SelectCandidates(IList<AmplitudaUsbDeviceInfo> found,
             string serialNumber, IEnumerable<string> heldElsewhere, out bool allHeld)
         {
             List<AmplitudaUsbDeviceInfo> result = new List<AmplitudaUsbDeviceInfo>();
             allHeld = false;
-            if (found == null)
-            {
-                return result;
-            }
             string wanted = serialNumber ?? "";
             HashSet<string> held = heldElsewhere == null
                 ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 : new HashSet<string>(heldElsewhere, StringComparer.OrdinalIgnoreCase);
+            if (wanted.Length != 0 && held.Contains(SerialKey(wanted)))
+            {
+                allHeld = true;
+                return result;
+            }
+            if (found == null)
+            {
+                return result;
+            }
             int skipped = 0;
             foreach (AmplitudaUsbDeviceInfo device in found)
             {
@@ -515,19 +534,21 @@ namespace BecquerelMonitor
         // last refusal is returned only when no unit opened at all.
         // Within a lease registry "first found" also skips the units other documents of this application
         // measure, and takes the lease of the unit it opened (P257); ErrorAllInUse when every unit found
-        // is held. An explicit serial number opens its unit held or not, as before, and takes the lease
-        // too - so that a "first found" reader skips that unit. A reconnect keeps the reader's own lease.
+        // is held. An explicit serial number takes the lease too - so that a "first found" reader skips
+        // that unit - and is refused with ErrorBlockBusy while another reader holds its unit (P285).
+        // A reconnect keeps the reader's own lease.
         SafeFileHandle Open(out int error)
         {
             error = ErrorDeviceNotFound;
             List<AmplitudaUsbDeviceInfo> found = findHook != null ? findHook() : FindDevices(vendorId, productId);
             bool firstFound = serialNumber.Length == 0;
+            int heldError = firstFound ? ErrorAllInUse : ErrorBlockBusy;
             bool allHeld;
             List<AmplitudaUsbDeviceInfo> candidates = SelectCandidates(found, serialNumber,
                 leases == null ? null : leases.HeldByOthers(this), out allHeld);
             if (allHeld)
             {
-                error = ErrorAllInUse;
+                error = heldError;
                 return null;
             }
             foreach (AmplitudaUsbDeviceInfo device in candidates)
@@ -545,10 +566,10 @@ namespace BecquerelMonitor
                 }
                 // Taken only with the handle in hand, and checked again: another document may have taken
                 // the unit since the list was made. A lost race closes the handle before any read.
-                if (!TakeLease(BlockKey(device), firstFound))
+                if (!TakeLease(BlockKey(device), true))
                 {
                     opened.Dispose();
-                    error = ErrorAllInUse;
+                    error = heldError;
                     continue;
                 }
                 // Best effort: a deeper queue survives a stalled PC, a flush drops frames from before Start.
