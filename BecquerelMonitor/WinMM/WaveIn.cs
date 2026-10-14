@@ -76,7 +76,12 @@ namespace WinMM
             }
             set
             {
-                if (this.bufferQueueSize <= 0)
+                // П313 (15.10.2026): проверялось ПРЕЖНЕЕ значение поля, а не новое —
+                // очередь 0 или отрицательная принималась молча (MaintainBuffers тогда
+                // не ставит драйверу ни одного буфера, и набор идёт без данных), а
+                // отказ прилетал бы только следующему присвоению. Близнец BufferSize
+                // выше проверяет value.
+                if (value <= 0)
                 {
                     throw new ArgumentOutOfRangeException("value", "The value you specified is too small");
                 }
