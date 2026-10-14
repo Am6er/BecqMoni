@@ -7363,5 +7363,14 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ERRAmplitudaUsbAllInUse", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The spectrum in the device was not cleared: the device is {0}. Its counts will come back with the next Start. Start the measurement and clear it again..
+        /// </summary>
+        public static string ERRDeviceNotClearedNotConnected {
+            get {
+                return ResourceManager.GetString("ERRDeviceNotClearedNotConnected", resourceCulture);
+            }
+        }
     }
 }

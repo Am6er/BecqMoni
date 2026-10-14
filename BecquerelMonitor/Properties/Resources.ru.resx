@@ -2768,4 +2768,7 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRAmplitudaUsbAllInUse" xml:space="preserve">
     <value>Все подключённые блоки Amplituda USB уже набираются в других документах (конфигурация с «(первый найденный)» такие блоки пропускает). Подключите ещё один блок или сначала остановите один из этих наборов.</value>
   </data>
+  <data name="ERRDeviceNotClearedNotConnected" xml:space="preserve">
+    <value>Спектр в приборе не очищен: прибор в состоянии {0}. Его отсчёты вернутся со следующим Пуском. Запустите набор и очистите ещё раз.</value>
+  </data>
 </root>
