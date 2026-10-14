@@ -6,11 +6,11 @@ using BecquerelMonitor;
 namespace AmplitudaSerialTests
 {
     // Real hardware: CLEARS and STARTS the block. Run only when the user said so.
-    //   --live <port> <address> <seconds> <pourThreshold or 0> [channels, 1024 by default]
+    //   --live <port> <address> <seconds> <pourThreshold or 0> [gapMs, 20 by default] [channels, 1024 by default]
     // Every 5 s one line: the real and live time of the data in hand, their dead fraction and
     // the count rate (P280: one moment for all of them - the dead % must stay level from line to
     // line, within 50/T points, instead of the saw-tooth of a clock that runs ahead of the data),
-    // and the PC clock.
+    // and the PC clock. After the Stop: how long it took against the line's Stop budget.
     public static class LiveSmoke
     {
         public static int Run(string[] args)
@@ -19,10 +19,11 @@ namespace AmplitudaSerialTests
             byte address = (byte)(args.Length > 2 ? int.Parse(args[2], CultureInfo.InvariantCulture) : 0);
             int seconds = args.Length > 3 ? int.Parse(args[3], CultureInfo.InvariantCulture) : 60;
             int pour = args.Length > 4 ? int.Parse(args[4], CultureInfo.InvariantCulture) : 0;
-            int channels = args.Length > 5 ? int.Parse(args[5], CultureInfo.InvariantCulture) : 1024;
+            int gap = args.Length > 5 ? int.Parse(args[5], CultureInfo.InvariantCulture) : 20;
+            int channels = args.Length > 6 ? int.Parse(args[6], CultureInfo.InvariantCulture) : 1024;
 
             string error;
-            AmplitudaSerialLine line = AmplitudaSerialLine.Acquire(new AmplitudaSerialSettings { PortName = port }, out error);
+            AmplitudaSerialLine line = AmplitudaSerialLine.Acquire(new AmplitudaSerialSettings { PortName = port, GapMs = gap }, out error);
             if (line == null) { Console.WriteLine("cannot open " + port + ": " + error); return 2; }
 
             AmplitudaSerialAcquisition acq = new AmplitudaSerialAcquisition(line, address, channels, 3000, new int[channels], 0, 0);
@@ -30,6 +31,7 @@ namespace AmplitudaSerialTests
             acq.Start();
             DateTime next = DateTime.UtcNow;
             bool stopping = false;
+            System.Diagnostics.Stopwatch stopClock = null;
             while (!acq.Finished)
             {
                 acq.Pump();
@@ -49,8 +51,13 @@ namespace AmplitudaSerialTests
                         acq.TotalCounts, max, at, TimeView.Clock(acq), acq.Running));
                 }
                 // By the clock, as the preset stop of the application (ElapsedTicks).
-                if (!stopping && TimeView.Clock(acq) >= seconds) { stopping = true; acq.RequestStop(); }
-                Thread.Sleep(100);
+                if (!stopping && TimeView.Clock(acq) >= seconds) { stopping = true; stopClock = System.Diagnostics.Stopwatch.StartNew(); acq.RequestStop(); }
+                Thread.Sleep(20);
+            }
+            if (stopClock != null)
+            {
+                Console.WriteLine("stop took " + stopClock.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture) + " ms (gap " +
+                    gap.ToString(CultureInfo.InvariantCulture) + " ms, budget " + line.StopBudgetMs(channels).ToString(CultureInfo.InvariantCulture) + " ms)");
             }
             line.Release();
             Console.WriteLine("finished: failure = " + acq.Failure + ", real " + acq.RealSeconds.ToString("F1", CultureInfo.InvariantCulture) +
