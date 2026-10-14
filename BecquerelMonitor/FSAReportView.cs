@@ -140,6 +140,14 @@ namespace BecquerelMonitor
         /// </summary>
         bool suspendSelection;
 
+        /// <summary>
+        /// (П290) Что окно САМО сказало графику в последний раз: вид и имя слоя
+        /// (признак ряда у окна отчёта всегда «нет»). По ним перестройка таблицы
+        /// узнаёт, чья подсветка сейчас на графике (<see cref="HighlightIsOwn"/>).
+        /// </summary>
+        EnergySpectrumView pushedView;
+        string pushedLayer;
+
         // ------------------------------------------------------------------
         // (`A248`) ПОКАЗ ЛЕНТЫ НЕВЯЗКИ
         // ------------------------------------------------------------------
@@ -553,6 +561,7 @@ namespace BecquerelMonitor
             this.SetToolTips();
             this.reportTable.Resize += this.ReportTable_Resize;
             this.reportTable.SelectionChanged += this.ReportTable_SelectionChanged;
+            this.reportTable.CellMouseDown += this.ReportTable_CellMouseDown;
             this.VisibleChanged += this.ConsumerStateChanged;
             this.DockStateChanged += this.ConsumerStateChanged;
             this.SetDocument(null);
@@ -573,7 +582,9 @@ namespace BecquerelMonitor
             // (`A246`) Приглушение снимается У ПРЕЖНЕГО документа, пока ссылка
             // на него ещё здесь: иначе его график остался бы с поблекшими
             // лентами навсегда — окно на него больше не смотрит и снять их
-            // будет некому.
+            // будет некому. (П290) Снимается БЕЗУСЛОВНО, чья бы ни была подсветка:
+            // прежний документ покидает и окно результата (оно читает активный
+            // документ), и снять поставленное им тоже будет некому.
             if (!ReferenceEquals(this.document, doc))
             {
                 this.selectedLayer = null;
@@ -2332,6 +2343,24 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// (П290) Щелчок по УЖЕ выбранной строке. XPTable выбор при этом не меняет и
+        /// события выбора не поднимает, а щелчок человека обязан вернуть графику
+        /// подсветку этого окна, если её с тех пор сменило окно результата: главнее
+        /// последний щелчок. Щелчок по невыбранной строке сюда тоже приходит — раньше
+        /// смены выбора, — и его обслужит <see cref="ReportTable_SelectionChanged"/>.
+        /// </summary>
+        void ReportTable_CellMouseDown(object sender, XPTable.Events.CellMouseEventArgs e)
+        {
+            if (this.suspendSelection || e.Row < 0 || e.Row >= this.tableModel.Rows.Count
+                || !this.tableModel.Rows[e.Row].AnyCellsSelected)
+            {
+                return;
+            }
+
+            this.PushHighlight();
+        }
+
+        /// <summary>
         /// Слой выбранной строки; null — выбора нет или выбрана строка без
         /// ленты (необнаруженный кандидат, невязка, качество, состояние).
         /// Такую выбрать можно, и приглушать по ней НЕЧЕГО: на графике её нет.
@@ -2369,14 +2398,56 @@ namespace BecquerelMonitor
             if (this.document != null && !this.document.IsDisposed
                 && this.document.EnergySpectrumView != null)
             {
-                this.document.EnergySpectrumView.SetFsaHighlight(this.selectedLayer, false);
+                EnergySpectrumView view = this.document.EnergySpectrumView;
+                view.SetFsaHighlight(this.selectedLayer, false);
+                this.pushedView = view;
+                this.pushedLayer = this.selectedLayer;
             }
+        }
+
+        /// <summary>
+        /// ⛔ (П290, 14.10.2026) ГЛАВНЕЕ ПОСЛЕДНИЙ ЩЕЛЧОК ЧЕЛОВЕКА. Подсветку графика
+        /// пишут два окна — это и окно результата (<see cref="DCResultView"/>, с
+        /// 06.10.2026). Перестройка таблицы (конец каждого счёта — при наборе раз в
+        /// 30 с, смена группировки, настройки, спектра) — не действие человека, и
+        /// прежде она заново слала графику выбор отчёта, чаще всего null: щелчок в окне
+        /// результата жил до первого пересчёта, а после П287 строка ряда «Th-232»
+        /// отчёта ещё и меняла «весь ряд» на «только корень» (находка П287, замер
+        /// `HighlightLastClickProbeP290`). Теперь перестройка возвращает подсветку,
+        /// только если последней её ставило само это окно; щелчок человека в любом
+        /// окне ставит своё, как прежде. Правило — умолчание распорядителя, не решение
+        /// Amber (журнал `handover-2026-10-14-p290-highlight-last-click.md`).
+        /// </summary>
+        void PushHighlightIfOwn()
+        {
+            if (this.document != null && !this.document.IsDisposed
+                && this.document.EnergySpectrumView != null
+                && this.HighlightIsOwn(this.document.EnergySpectrumView))
+            {
+                this.PushHighlight();
+            }
+        }
+
+        /// <summary>
+        /// (П290) На графике всё ещё то, что последним поставило это окно? Окно
+        /// результата пишет либо слой С признаком ряда, либо null — поэтому любой его
+        /// щелчок после щелчка отчёта виден здесь как расхождение. Совпасть с записью
+        /// отчёта может только его null при null отчёта — тогда и возвращать нечего.
+        /// Вид другого документа — не свой: этому окну он ничего не говорил.
+        /// </summary>
+        bool HighlightIsOwn(EnergySpectrumView view)
+        {
+            return ReferenceEquals(view, this.pushedView)
+                   && string.Equals(view.FsaHighlight, this.pushedLayer, StringComparison.Ordinal)
+                   && !view.FsaHighlightWholeChain;
         }
 
         /// <summary>
         /// Вернуть выбор на ту же строку состава после перестройки таблицы.
         /// Слоя может уже не быть (сменился спектр, группировка, состав) —
         /// тогда выбор снимается, и приглушение снимается вместе с ним.
+        /// (П290) Графику выбор уходит, только если подсветка на нём — этого окна
+        /// (<see cref="PushHighlightIfOwn"/>).
         /// </summary>
         void RestoreSelection(string layerName)
         {
@@ -2400,7 +2471,7 @@ namespace BecquerelMonitor
                 this.suspendSelection = false;
             }
 
-            this.PushHighlight();
+            this.PushHighlightIfOwn();
         }
 
         /// <summary>
@@ -2729,9 +2800,10 @@ namespace BecquerelMonitor
             if (disposing)
             {
                 // (`A246`) Окна не станет — приглушение снимается: график живёт
-                // дальше и остался бы поблекшим навсегда.
+                // дальше и остался бы поблекшим навсегда. (П290) Только СВОЁ:
+                // подсветку, поставленную окном результата, снимет оно само.
                 this.selectedLayer = null;
-                this.PushHighlight();
+                this.PushHighlightIfOwn();
 
                 // (`A248`) Тот же довод: окна не станет, а с ним и галочки, —
                 // спрятанная лента невязки осталась бы спрятанной навсегда, и

@@ -188,10 +188,14 @@ namespace BecquerelMonitor
         {
             // (`AMBER208`, решения Amber 06–07.10.2026) строки — из разбора FSA
             // активного документа; зон ROI у окна больше нет.
+            DocEnergySpectrum shownBefore = this.fsaDocument;
             MeasurementResultCollection resultCollection = this.FsaCollection();
+            // (П290) выбор строки переносится через перестройку только в том же документе
+            bool sameDocument = shownBefore != null && ReferenceEquals(shownBefore, this.fsaDocument);
             if (resultCollection == null || resultCollection.ResultList == null)
             {
                 this.table1.BeginUpdate();
+                this.SilentFsaSelection(() => this.tableModel1.Selections.Clear());
                 this.tableModel1.Rows.Clear();
                 this.table1.EndUpdate();
                 this.previousCollection = null;
@@ -230,6 +234,13 @@ namespace BecquerelMonitor
             int format_int = 2;
             if (refresh)
             {
+                // (П290) Строки создаются заново на каждый счёт и такт вида (при наборе —
+                // раз в секунду), и выбор человека прежде пропадал с экрана, а XPTable
+                // держал в выборе снятые строки (`SelectedIndicies` — их прежние номера).
+                // Выбор переносится на строку того же имени, МОЛЧА: перестройка — не
+                // щелчок, и подсветку графика она не трогает (главнее последний щелчок).
+                string keep = sameDocument ? this.VisibleFsaRowName() : null;
+                this.SilentFsaSelection(() => this.tableModel1.Selections.Clear());
                 this.tableModel1.Rows.Clear();
                 for (int i = 0; i < resultCollection.ResultList.Count; i++)
                 {
@@ -290,6 +301,7 @@ namespace BecquerelMonitor
                     row.Tag = i;
                     this.tableModel1.Rows.Add(row);
                 }
+                this.SilentFsaSelection(() => this.SelectFsaRow(keep));
             }
             else
             {
@@ -518,10 +530,76 @@ namespace BecquerelMonitor
             // выбор строки подсвечивает образ в стеке FSA тем же механизмом, что у
             // окна отчёта (`EnergySpectrumView.FsaHighlight`); окон зон у разбора нет.
             this.table1.SelectionChanged += (s, e) => this.PushFsaHighlight();
+            // (П290) Щелчок по УЖЕ выбранной строке: XPTable выбор не меняет и события
+            // выбора не поднимает, а щелчок человека обязан вернуть графику подсветку
+            // этого окна, если её с тех пор сменило окно отчёта (главнее последний
+            // щелчок). Невыбранную строку обслужит событие выбора.
+            this.table1.CellMouseDown += (s, e) =>
+            {
+                if (e.Row >= 0 && e.Row < this.tableModel1.Rows.Count && this.tableModel1.Rows[e.Row].AnyCellsSelected)
+                {
+                    this.PushFsaHighlight();
+                }
+            };
+        }
+
+        /// <summary>
+        /// (П290) Пока поднят, выбор строк меняет сама перестройка таблицы, а не
+        /// человек, и графику он не уходит (<see cref="SilentFsaSelection"/>).
+        /// </summary>
+        bool suspendFsaHighlight;
+
+        /// <summary>(П290) Поменять выбор строк, не трогая подсветку графика.</summary>
+        void SilentFsaSelection(System.Action change)
+        {
+            this.suspendFsaHighlight = true;
+            try
+            {
+                change();
+            }
+            finally
+            {
+                this.suspendFsaHighlight = false;
+            }
+        }
+
+        /// <summary>(П290) Имя выбранной НА ЭКРАНЕ строки (первая колонка); null — выбора нет.</summary>
+        string VisibleFsaRowName()
+        {
+            foreach (Row row in this.tableModel1.Rows)
+            {
+                if (row.AnyCellsSelected && row.Cells.Count > 0)
+                {
+                    return row.Cells[0].Text;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>(П290) Выбрать первую строку с этим именем; null или нет такой — ничего.</summary>
+        void SelectFsaRow(string name)
+        {
+            if (name == null)
+            {
+                return;
+            }
+            for (int i = 0; i < this.tableModel1.Rows.Count; i++)
+            {
+                Row row = this.tableModel1.Rows[i];
+                if (row.Cells.Count > 0 && string.Equals(row.Cells[0].Text, name, StringComparison.Ordinal))
+                {
+                    this.tableModel1.Selections.SelectCell(i, 0);
+                    return;
+                }
+            }
         }
 
         void PushFsaHighlight()
         {
+            if (this.suspendFsaHighlight)
+            {
+                return;
+            }
             DocEnergySpectrum document = this.mainForm != null ? this.mainForm.ActiveDocument : null;
             if (document == null || document.IsDisposed || document.EnergySpectrumView == null)
             {
