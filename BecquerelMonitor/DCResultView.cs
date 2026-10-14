@@ -194,10 +194,12 @@ namespace BecquerelMonitor
             bool sameDocument = shownBefore != null && ReferenceEquals(shownBefore, this.fsaDocument);
             if (resultCollection == null || resultCollection.ResultList == null)
             {
+                string gone = sameDocument ? this.VisibleFsaRowName() : null;
                 this.table1.BeginUpdate();
                 this.SilentFsaSelection(() => this.tableModel1.Selections.Clear());
                 this.tableModel1.Rows.Clear();
                 this.table1.EndUpdate();
+                this.DropOwnFsaHighlight(gone);
                 this.previousCollection = null;
                 this.ShowMomentHeader(null);
                 return;
@@ -302,6 +304,12 @@ namespace BecquerelMonitor
                     this.tableModel1.Rows.Add(row);
                 }
                 this.SilentFsaSelection(() => this.SelectFsaRow(keep));
+                // (П310) строки с этим именем больше нет — выбор пропал, и своя подсветка
+                // уходит вместе с ним (как у окна отчёта, `FSAReportView.RestoreSelection`)
+                if (keep != null && this.VisibleFsaRowName() == null)
+                {
+                    this.DropOwnFsaHighlight(keep);
+                }
             }
             else
             {
@@ -591,6 +599,34 @@ namespace BecquerelMonitor
                     this.tableModel1.Selections.SelectCell(i, 0);
                     return;
                 }
+            }
+        }
+
+        /// <summary>
+        /// ⛔ (П310, 15.10.2026, ревизия П290) СТРОКА УШЛА ПРИ ПЕРЕСТРОЙКЕ — УХОДИТ И СВОЯ
+        /// ПОДСВЕТКА. Перестройка переносит выбор на строку того же имени молча (П290), а
+        /// если такой строки больше нет (смена равновесия ряда, состава, спектра документа,
+        /// строка состояния вместо результата), выбор пропадал, а подсветка графика
+        /// оставалась: ленты приглушены, а выбранной строки нет ни в одном окне — то самое
+        /// состояние, которое П290 запретил окну отчёта (`FSAReportView.SetDocument`,
+        /// «остался бы приглушённым без видимого выбора где-либо»). До П290 её стирала
+        /// перестройка отчёта. Замер `P310HighlightRowGoneProbe`, шаг A (Th232_29.07.2022,
+        /// строка «Tl-208» при равновесии ВЫКЛ → ВКЛ): до правки — 140045 пикселей
+        /// приглушения при пустом выборе обоих окон. Снимается ТОЛЬКО своё — подсветка
+        /// этого имени с признаком ряда (окно отчёта пишет без него): поставленное с тех
+        /// пор щелчком в отчёте не трогается (правило П290 «главнее последний щелчок»).
+        /// </summary>
+        void DropOwnFsaHighlight(string layer)
+        {
+            DocEnergySpectrum document = this.fsaDocument;
+            if (layer == null || document == null || document.IsDisposed || document.EnergySpectrumView == null)
+            {
+                return;
+            }
+            EnergySpectrumView view = document.EnergySpectrumView;
+            if (view.FsaHighlightWholeChain && string.Equals(view.FsaHighlight, layer, StringComparison.Ordinal))
+            {
+                view.SetFsaHighlight(null, true);
             }
         }
 
