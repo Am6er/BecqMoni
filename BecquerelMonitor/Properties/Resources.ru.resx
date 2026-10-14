@@ -2804,4 +2804,10 @@ http://xptable.sourceforge.net/</value>
   <data name="ResponseMatrixGpuFailed" xml:space="preserve">
     <value>Видеокарта не досчитала матрицу. Снимите галку «{0}» — матрица посчитается на процессоре. Подробности — в журнале приложения.</value>
   </data>
+  <data name="ResponseMatrixDetailsNotSaved" xml:space="preserve">
+    <value>Узлов: {0} от {1:F0} до {2:F0} кэВ
+Бин: {3:F0} кэВ, историй на узел: {4}
+Данных: {5:F0} КБ, файл: не сохранён
+Посчитана: {7}, заняла {8:F0} с</value>
+  </data>
 </root>

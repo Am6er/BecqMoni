@@ -44039,4 +44039,10 @@ Close the window and discard it?</value>
   <data name="ResponseMatrixGpuFailed" xml:space="preserve">
     <value>The graphics card could not finish the matrix. Uncheck "{0}" — the matrix will then be computed on the CPU. Details are in the application log.</value>
   </data>
+  <data name="ResponseMatrixDetailsNotSaved" xml:space="preserve">
+    <value>Nodes: {0} from {1:F0} to {2:F0} keV
+Bin: {3:F0} keV, histories per node: {4}
+Data: {5:F0} KB, file: not saved
+Computed: {7}, took {8:F0} s</value>
+  </data>
 </root>

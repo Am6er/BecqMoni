@@ -7471,5 +7471,14 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ResponseMatrixGpuFailed", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixDetailsNotSaved.
+        /// </summary>
+        public static string ResponseMatrixDetailsNotSaved {
+            get {
+                return ResourceManager.GetString("ResponseMatrixDetailsNotSaved", resourceCulture);
+            }
+        }
     }
 }
