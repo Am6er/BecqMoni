@@ -84,6 +84,11 @@ namespace BecquerelMonitor
         string leaseKey;
         bool inTick;
         bool disposed;
+        // P309 (15.10.2026): a session that brought no reading leaves the end of a continued
+        // document as it was (see KeepsEndWithoutData). UI thread only, like the rest.
+        DateTime endBeforeSession;
+        bool keepEndWithoutData;
+        bool sessionHadData;
 
         public AmplitudaSerialDeviceController()
         {
@@ -291,11 +296,19 @@ namespace BecquerelMonitor
             if (spectrum.TotalPulseCount == 0 && baseReal == 0)
             {
                 resultData.StartTime = DateTime.Now;
+                keepEndWithoutData = false;
             }
             else if (resultData.StartTime == ResultData.UnknownStartTime)
             {
                 ResumeUnknownStart(resultData, baseReal, DateTime.Now);     // P298, see there
+                keepEndWithoutData = false;
             }
+            else
+            {
+                keepEndWithoutData = true;      // P309, see KeepsEndWithoutData
+            }
+            endBeforeSession = resultData.EndTime;
+            sessionHadData = false;
 
             acquisition = new AmplitudaSerialAcquisition(line, (byte)address, channels, config.PollSeconds * 1000,
                 spectrum.Spectrum, baseLive, baseReal);
@@ -337,6 +350,26 @@ namespace BecquerelMonitor
             {
                 resultData.SampleInfo.Time = start;
             }
+        }
+
+        // P309 (15.10.2026): THE END OF A CONTINUED DOCUMENT MOVES ONLY WITH DATA. Start on a
+        // loaded or stopped spectrum with a known start keeps the start (the document is the base),
+        // but the end was written "now" by every finish - a Stop before the first reading, the
+        // block that never answered (NoAnswer after 20 s), a failed clear or start - although
+        // the counts, the live and the real time stayed exactly those of the file. The decay
+        // correction (MeasurementResultManager.DecayToSamplingFactor) then averaged over
+        // [start of the file; now]: a 2024 file continued with the block switched off gave
+        // Cs-137 x1.03 and Co-60 x1.19 in the result window and in the saved file
+        // (P309EndNoDataProbe). The rule of Amber's decision for RadiaCode and Obsidian (P305,
+        // 14.10.2026, verbatim: «По первому пакету данных» - "при отказе до первого пакета файл
+        // не тронут") applied to this device: a session that brought no reading leaves the end as
+        // it was before Start. A session with data ends "now", as before. Not for an empty
+        // document and not for the 1970 label - there Start itself set the start (P298), and
+        // the end must not stay before it. A Clear while measuring changes the document, so the
+        // old end no longer belongs to it. The twin: AmplitudaUsbDeviceController.
+        bool KeepsEndWithoutData
+        {
+            get { return keepEndWithoutData && !sessionHadData; }
         }
 
         void PumpTimer_Tick(object sender, EventArgs e)
@@ -407,7 +440,12 @@ namespace BecquerelMonitor
             {
                 return false;
             }
-            if (acquisition.TakeDirty() || force)
+            bool fresh = acquisition.TakeDirty();
+            if (fresh)
+            {
+                sessionHadData = true;      // P309: a reading of this session reached the document
+            }
+            if (fresh || force)
             {
                 acquisition.Compose(spectrum.Spectrum);
                 long counts = acquisition.TotalCounts;
@@ -447,7 +485,8 @@ namespace BecquerelMonitor
             // MeasurementController.OnTimer no longer ticks for a stopped spectrum: write the final values here.
             spectrum.MeasurementTime = acquisition.RealSeconds;
             spectrum.LiveTime = acquisition.LiveSeconds;
-            resultData.EndTime = DateTime.Now;
+            // P309: no reading in this session - the end of the continued document stays.
+            resultData.EndTime = KeepsEndWithoutData ? endBeforeSession : DateTime.Now;
             resultData.ResultDataStatus.Recording = false;
             if (acquisition.BlockResetDetected)
             {
@@ -563,6 +602,7 @@ namespace BecquerelMonitor
                 {
                     acquisition.ClearAll();
                     resultData.StartTime = DateTime.Now;
+                    keepEndWithoutData = false;     // P309: the document is not the one the old end belongs to
                 }
             }
             catch (Exception)
