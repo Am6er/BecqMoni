@@ -8540,7 +8540,15 @@ namespace XPTable.Models
 
             int topRow = this.TopIndex;
             int bottom = this.CellDataRect.Bottom;
-            int bottomRow = this.RowIndexAt(0, bottom) + 1;
+            // (П275) Строки кончаются выше низа таблицы (-1 у RowIndexAt без переноса
+            // слов) — обходятся все до последней, как в GetWholeLineFlags.
+            int bottomIndex = this.RowIndexAt(0, bottom);
+            if (bottomIndex < 0 || bottomIndex > this.TableModel.Rows.Count - 1)
+            {
+                bottomIndex = this.TableModel.Rows.Count - 1;
+            }
+
+            int bottomRow = bottomIndex + 1;
 
             // Go through each row, and see if it has any colspans that mean we can't draw 
             // the vertical gridline as one long line
@@ -8593,14 +8601,21 @@ namespace XPTable.Models
             int bottomRow = this.RowIndexAt(0, this.CellDataRect.Bottom);
 
             var maxRowIndex = this.TableModel.Rows.Count - 1;
-            if (bottomRow > maxRowIndex)
+            // (П275, 14.10.2026) Строки кончаются выше низа таблицы — у RowIndexAt это -1
+            // (без переноса слов) или последняя строка (с переносом); и ПОСЛЕДНЯЯ видимая
+            // строка в обход входит. Прежде обход шёл `irow < bottomRow` и при -1 не шёл
+            // вовсе: охват колонок (ColSpan) у последней строки не учитывался, и линия
+            // сетки резала охватывающую ячейку насквозь — причина отказа FSA в окне
+            // Measurement Result (единственная строка) была перечёркнута двумя линиями
+            // колонок (П273, снимок `18_…`).
+            if (bottomRow < 0 || bottomRow > maxRowIndex)
             {
                 bottomRow = maxRowIndex;
             }
 
-            // Go through each row, and see if it has any colspans that mean we can't draw 
+            // Go through each row, and see if it has any colspans that mean we can't draw
             // the vertical gridline as one long line
-            for (int irow = topRow; irow < bottomRow; irow++)
+            for (int irow = topRow; irow <= bottomRow; irow++)
             {
                 Row row = this.TableModel.Rows[irow];
                 if (row == null)

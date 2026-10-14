@@ -44006,4 +44006,34 @@ Close the window and discard it?</value>
   <data name="ERRDeviceNotClearedNotConnected" xml:space="preserve">
     <value>The spectrum in the device was not cleared: the device is {0}. Its counts will come back with the next Start. Start the measurement and clear it again.</value>
   </data>
+  <data name="FSABackscatterName" xml:space="preserve">
+    <value>Backscatter</value>
+  </data>
+  <data name="NucBase_HalfLifeStable" xml:space="preserve">
+    <value>STABLE</value>
+  </data>
+  <data name="NucBase_UnitNs" xml:space="preserve">
+    <value>ns</value>
+  </data>
+  <data name="NucBase_UnitUs" xml:space="preserve">
+    <value>us</value>
+  </data>
+  <data name="NucBase_UnitMs" xml:space="preserve">
+    <value>ms</value>
+  </data>
+  <data name="NucBase_UnitS" xml:space="preserve">
+    <value>s</value>
+  </data>
+  <data name="NucBase_UnitMin" xml:space="preserve">
+    <value>m</value>
+  </data>
+  <data name="NucBase_UnitH" xml:space="preserve">
+    <value>h</value>
+  </data>
+  <data name="NucBase_UnitD" xml:space="preserve">
+    <value>d</value>
+  </data>
+  <data name="NucBase_UnitY" xml:space="preserve">
+    <value>Y</value>
+  </data>
 </root>

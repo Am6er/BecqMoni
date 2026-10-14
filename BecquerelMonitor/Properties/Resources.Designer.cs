@@ -7372,5 +7372,95 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ERRDeviceNotClearedNotConnected", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Backscatter.
+        /// </summary>
+        public static string FSABackscatterName {
+            get {
+                return ResourceManager.GetString("FSABackscatterName", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to STABLE.
+        /// </summary>
+        public static string NucBase_HalfLifeStable {
+            get {
+                return ResourceManager.GetString("NucBase_HalfLifeStable", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ns.
+        /// </summary>
+        public static string NucBase_UnitNs {
+            get {
+                return ResourceManager.GetString("NucBase_UnitNs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to us.
+        /// </summary>
+        public static string NucBase_UnitUs {
+            get {
+                return ResourceManager.GetString("NucBase_UnitUs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ms.
+        /// </summary>
+        public static string NucBase_UnitMs {
+            get {
+                return ResourceManager.GetString("NucBase_UnitMs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to s.
+        /// </summary>
+        public static string NucBase_UnitS {
+            get {
+                return ResourceManager.GetString("NucBase_UnitS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to m.
+        /// </summary>
+        public static string NucBase_UnitMin {
+            get {
+                return ResourceManager.GetString("NucBase_UnitMin", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to h.
+        /// </summary>
+        public static string NucBase_UnitH {
+            get {
+                return ResourceManager.GetString("NucBase_UnitH", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to d.
+        /// </summary>
+        public static string NucBase_UnitD {
+            get {
+                return ResourceManager.GetString("NucBase_UnitD", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Y.
+        /// </summary>
+        public static string NucBase_UnitY {
+            get {
+                return ResourceManager.GetString("NucBase_UnitY", resourceCulture);
+            }
+        }
     }
 }
