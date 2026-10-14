@@ -103,7 +103,7 @@ namespace BecquerelMonitor
                             + "A headless run must not continue: the old counts come back with the next update "
                             + "and look like a fresh measurement.");
                     }
-                    AppUi.Report($"Device is {this.status}, connect device first!", "", MessageBoxIcon.None);
+                    AppUi.Report(string.Format(CultureInfo.InvariantCulture, Properties.Resources.ERRDeviceNotClearedNotConnected, this.status), "", MessageBoxIcon.None);
                 }
             }
         }
