@@ -5938,6 +5938,42 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public string AnchorZero { get; set; }
 
         /// <summary>
+        /// (`A320`, прототип П258, внесён П277 по решению Amber 14.10.2026
+        /// вопросником, дословно: «Страж нуля П258 как есть (Рекомендую)»)
+        /// СТРАЖ НУЛЯ ПО СЪЁМКЕ.
+        /// Когда итоговая привязка шла совместным шагом нуля света и усиления
+        /// (нуль "adc" по съёмке) и НЕ СОШЛАСЬ — кончились проходы, встала на
+        /// плато или вернулась к лучшему проходу, — разбор повторяется целиком
+        /// с нулём каждого слова списка через запятую (<see cref="AnchorZero"/>:
+        /// "calib", "adc-fixed"), и берётся разбор с наименьшим χ²/ndf Пуассона
+        /// (<see cref="FsaResult.Chi2NdfPoisson"/>), если он меньше, чем у нуля
+        /// по съёмке, умноженного на <see cref="AnchorZeroGuardRatio"/>.
+        /// Отданный разбор пересчитывается последним, чтобы состояние
+        /// анализатора отвечало ему. "off" или пустое — стража нет, числа
+        /// прежние до бита; умолчание — в конструкторе.
+        ///
+        /// Довод (журнал П258): на Th232_29.07.2022 Amber кандидаты нуля
+        /// съёмки — две несогласные группы (рентген ниже 100 кэВ тянет нуль на
+        /// −31 кэВ, гаммы 238…586 кэВ — на +3), прямая через обе даёт −17.6,
+        /// совместный шаг на ней ходит по кругу, и Pb-212 238.6 стоит на
+        /// 26…30 кан. выше данных (χ²/ndf Пуассона 164).
+        /// </summary>
+        public string AnchorZeroGuard { get; set; }
+
+        /// <summary>
+        /// (`A320`, П258, внесён П277) ЗАПАС АРБИТРА стража нуля: запасной нуль
+        /// берётся, только когда его χ²/ndf Пуассона меньше χ²/ndf нуля по
+        /// съёмке, умноженного на это число (единица — «просто лучше»; меньше
+        /// единицы — «лучше в 1/число раз»). Довод запаса (журнал П258): на
+        /// корпусе страж срабатывает у десяти понятных спектров, и запасной нуль
+        /// там почти всюду хуже; у одного (`G1S16_Mix_Mar`) лучше на 1.6 % по
+        /// Пуассону при +18 % заглавного χ² и Am-241 0.931 → 0.890 паспорта —
+        /// это не разлад шкалы, а шум выбора; у Th232 Amber запасной лучше в 18
+        /// раз. Умолчание — в конструкторе.
+        /// </summary>
+        public double AnchorZeroGuardRatio { get; set; }
+
+        /// <summary>
         /// (`S169`) Свет в НУЛЕВОМ КАНАЛЕ, кэВ, НУЛЬ ПРИБОРА: у "adc-fixed" —
         /// нуль карты с начала разбора; у "adc" — ЗАПАСНОЙ ПУТЬ, когда нуля
         /// по съёмке нет (одна опора, нет плеча — <see cref="ZeroFromRun"/>).
@@ -9055,6 +9091,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // теряли Am-241). Обратные плечи — `--anchor-zero=calib` и
             // `--anchor-zero=adc-fixed` у `CorpusFsaProbe`.
             this.AnchorZero = "adc";
+            // (`A320`, П258, внесён П277 по решению Amber 14.10.2026) страж
+            // нуля по съёмке: несошедшаяся совместная привязка повторяется с
+            // нулём калибровки файла и нулём прибора, арбитр — χ² Пуассона с
+            // запасом ×2. Обратное плечо — "off" (числа прежние до бита)
+            this.AnchorZeroGuard = "calib,adc-fixed";
+            this.AnchorZeroGuardRatio = 0.5;
             this.AnchorZeroKev = 0.0;
             // (`S169`, П13) кандидат нуля съёмки — доля синего от половины
             // порога опоры (доводы у свойства); свет не выше границы П8 §3
@@ -9258,6 +9300,120 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// причина при этом названа в <see cref="Refusal"/> (`A312`).
         /// </summary>
         public FsaResult Analyze(
+            EnergySpectrum spectrum,
+            EnergySpectrum backgroundSpectrum,
+            FwhmCalibration fwhmCalibration,
+            List<FsaComponent> originalLibrary,
+            FsaEfficiency efficiency)
+        {
+            if (!this.shareRefit)
+            {
+                this.AnchorZeroGuardFired = false;
+                this.AnchorZeroGuardTaken = false;
+            }
+
+            FsaResult main = this.AnalyzeCore(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+            // (`A320`, П258) страж — только на верхнем уровне (перефит доли
+            // столбца зовёт Analyze рекурсивно) и только у несошедшейся
+            // совместной привязки нуля по съёмке
+            if (this.shareRefit || main == null || !main.AnchorZeroJoint || !main.AnchorUnsettled)
+            {
+                return main;
+            }
+
+            var words = new List<string>();
+            foreach (string part in (this.AnchorZeroGuard ?? "").Split(','))
+            {
+                string w = part.Trim().ToLowerInvariant();
+                if (w.Length > 0 && w != "off" && w != "adc" && !words.Contains(w))
+                {
+                    ParseAnchorZero(w);
+                    words.Add(w);
+                }
+            }
+
+            if (words.Count == 0)
+            {
+                return main;
+            }
+
+            this.AnchorZeroGuardFired = true;
+            double chiMain = main.Chi2NdfPoisson;
+            string savedZero = this.AnchorZero;
+            FsaResult best = null;
+            string bestWord = null, lastWord = null;
+            var tried = new List<string>();
+            foreach (string w in words)
+            {
+                FsaResult alt;
+                try
+                {
+                    this.AnchorZero = w;
+                    alt = this.AnalyzeCore(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+                }
+                finally
+                {
+                    this.AnchorZero = savedZero;
+                }
+
+                lastWord = w;
+                double chi = alt != null ? alt.Chi2NdfPoisson : double.NaN;
+                tried.Add(string.Format(CultureInfo.InvariantCulture, "«{0}» {1:F2}", w, chi));
+                if (alt != null && chi < this.AnchorZeroGuardRatio * chiMain && (best == null || chi < best.Chi2NdfPoisson))
+                {
+                    best = alt;
+                    bestWord = w;
+                }
+            }
+
+            if (best != null)
+            {
+                if (bestWord != lastWord)
+                {
+                    // состояние анализатора — от отданного разбора: победитель пересчитывается
+                    try
+                    {
+                        this.AnchorZero = bestWord;
+                        best = this.AnalyzeCore(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency) ?? best;
+                    }
+                    finally
+                    {
+                        this.AnchorZero = savedZero;
+                    }
+                }
+
+                this.AnchorZeroGuardTaken = true;
+                best.AnchorNote = (best.AnchorNote ?? "") + string.Format(CultureInfo.InvariantCulture,
+                    "; страж нуля (A320): совместная привязка нуля по съёмке не сошлась (нуль света {0:F2} кэВ, χ²/ndf Пуассона {1:F2}), запасные {2}: взят «{3}»",
+                    main.AnchorZeroKevUsed, chiMain, string.Join(", ", tried), bestWord);
+                return best;
+            }
+
+            FsaResult again = this.AnalyzeCore(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+            if (again == null)
+            {
+                return main;
+            }
+
+            again.AnchorNote = (again.AnchorNote ?? "") + string.Format(CultureInfo.InvariantCulture,
+                "; страж нуля (A320): совместная привязка не сошлась (χ²/ndf Пуассона {0:F2}), запасные {1} не лучше в {2:F2} раза — оставлен нуль по съёмке{3}",
+                chiMain, string.Join(", ", tried),
+                this.AnchorZeroGuardRatio > 0.0 ? 1.0 / this.AnchorZeroGuardRatio : double.PositiveInfinity,
+                again.Chi2NdfPoisson.Equals(chiMain) ? "" : string.Format(CultureInfo.InvariantCulture, "; ⚠ повтор разошёлся: {0:R}", again.Chi2NdfPoisson));
+            return again;
+        }
+
+        /// <summary>(`A320`, П258, внесён П277) Сработал ли страж нуля на последнем <see cref="Analyze"/> (пробам).</summary>
+        public bool AnchorZeroGuardFired { get; private set; }
+
+        /// <summary>(`A320`, П258, внесён П277) Взят ли запасной нуль стража на последнем <see cref="Analyze"/> (пробам).</summary>
+        public bool AnchorZeroGuardTaken { get; private set; }
+
+        /// <summary>
+        /// Тело <see cref="Analyze"/> до стража нуля (`A320`, П258) — прежний
+        /// разбор целиком: первый проход и фон в шкале пробы.
+        /// </summary>
+        FsaResult AnalyzeCore(
             EnergySpectrum spectrum,
             EnergySpectrum backgroundSpectrum,
             FwhmCalibration fwhmCalibration,
@@ -12055,6 +12211,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                bestGain, bestOffset, liveTime, efficiency,
                                gainSteps > 1 && (bestGainIndex == 0 || bestGainIndex == gainSteps - 1),
                                offsetSteps > 1 && (bestOffsetIndex == 0 || bestOffsetIndex == offsetSteps - 1));
+            // (`A320`, П258, внесён П277) признаки привязки ЭТОГО прохода — стражу нуля
+            result.AnchorZeroJoint = this.adcZeroMode == AdcZeroMode.Run && this.adcScale > 0.0
+                                     && this.anchorStatPasses > 0 && !this.anchorStatClassic;
+            result.AnchorUnsettled = this.anchorStatCapped || this.anchorStatPlateau || this.anchorStatRestored;
+            result.AnchorZeroKevUsed = this.adcZeroKev;
 
             // (`S103`) Поверка столбцов подпороговых линий — ПОСЛЕ отчётного
             // фита и только по заказу: при нулевом пороге сюда не заходят.
