@@ -2801,4 +2801,7 @@ http://xptable.sourceforge.net/</value>
   <data name="NucBase_UnitY" xml:space="preserve">
     <value>лет</value>
   </data>
+  <data name="ResponseMatrixGpuFailed" xml:space="preserve">
+    <value>Видеокарта не досчитала матрицу. Снимите галку «{0}» — матрица посчитается на процессоре. Подробности — в журнале приложения.</value>
+  </data>
 </root>
