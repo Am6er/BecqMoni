@@ -156,7 +156,7 @@
     <value>180, 22</value>
   </data>
   <data name="CombineSpectrasToolStripMenuItem.Text" xml:space="preserve">
-    <value>Co&amp;mbine Spectras</value>
+    <value>Co&amp;mbine Spectra</value>
   </data>
   <data name="CloseAllToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>180, 22</value>
@@ -207,7 +207,7 @@
     <value>297, 22</value>
   </data>
   <data name="SpecUtilsToolStripMenuItem.Text" xml:space="preserve">
-    <value>Import using SpectUtils..</value>
+    <value>Import using SpecUtils...</value>
   </data>
   <data name="legacyFormatV093bToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>297, 22</value>

@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Globalization;
+using System.IO;
 using System.Media;
 using System.Windows.Forms;
 
@@ -357,8 +358,60 @@ namespace BecquerelMonitor
             string text = this.textBox6.Text;
             if (text != null && text != "")
             {
-                SoundPlayer soundPlayer = new SoundPlayer(text);
-                soundPlayer.Play();
+                // (П316, Н21) Поле редактируемое: файла может не быть, а может быть
+                // не WAV. Прежде `SoundPlayer.Play` бросал прямо в обработчик
+                // кнопки — окно необработанного исключения .NET.
+                if (!File.Exists(text))
+                {
+                    AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRSoundFileNotFound, text),
+                                 Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
+                    return;
+                }
+                try
+                {
+                    SoundPlayer soundPlayer = new SoundPlayer(text);
+                    soundPlayer.Play();
+                }
+                catch (Exception ex)
+                {
+                    AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRSoundFilePlay, text, AppUi.Reason(ex)),
+                                 Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
+                }
+            }
+        }
+
+        /// <summary>
+        /// (П316, Н14) Закрыть окно — крестиком, Alt+F4, «Отмена» — можно и с
+        /// нечислом в поле. Немодальная форма (<c>MainForm</c> зовёт <c>Show</c>)
+        /// на WM_CLOSE проверяет активное поле (<c>Form.WmClose</c> →
+        /// <c>Validate(true)</c>), а поля <see cref="DoubleTextBox"/>/<see cref="IntegerTextBox"/>
+        /// на нечисле отменяют уход: окно не закрывалось ничем, кроме исправления
+        /// поля, которое «Отмена» всё равно выбросит. На время закрытия проверка
+        /// снимается (<see cref="AutoValidate.Disable"/>); закрытие — это отказ от
+        /// правок, «ОК» и «Применить» проверку проходят по-прежнему (их щелчок
+        /// проверяет поле до обработчика). Поведение поля при уходе фокуса внутри
+        /// окна не меняется.
+        /// </summary>
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_CLOSE = 0x0010;
+            if (m.Msg != WM_CLOSE)
+            {
+                base.WndProc(ref m);
+                return;
+            }
+            AutoValidate previous = this.AutoValidate;
+            this.AutoValidate = AutoValidate.Disable;
+            try
+            {
+                base.WndProc(ref m);
+            }
+            finally
+            {
+                if (!this.IsDisposed)
+                {
+                    this.AutoValidate = previous;
+                }
             }
         }
 

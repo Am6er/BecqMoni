@@ -7494,5 +7494,59 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ResponseMatrixDetailsNotSaved", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to New set {0}.
+        /// </summary>
+        public static string NuclideSetNewName {
+            get {
+                return ResourceManager.GetString("NuclideSetNewName", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No nuclides match the filter.
+        /// </summary>
+        public static string NuclideSetNoMatchingNuclides {
+            get {
+                return ResourceManager.GetString("NuclideSetNoMatchingNuclides", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Number of channels must be a whole number greater than zero. Entered: {0}.
+        /// </summary>
+        public static string ERRDeviceConfigChannelsNotPositive {
+            get {
+                return ResourceManager.GetString("ERRDeviceConfigChannelsNotPositive", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Preset time cannot be negative. Entered: {0}.
+        /// </summary>
+        public static string ERRDeviceConfigTimeLimitNegative {
+            get {
+                return ResourceManager.GetString("ERRDeviceConfigTimeLimitNegative", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sound file not found: {0}.
+        /// </summary>
+        public static string ERRSoundFileNotFound {
+            get {
+                return ResourceManager.GetString("ERRSoundFileNotFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot play the sound file: {0} {1}.
+        /// </summary>
+        public static string ERRSoundFilePlay {
+            get {
+                return ResourceManager.GetString("ERRSoundFilePlay", resourceCulture);
+            }
+        }
     }
 }

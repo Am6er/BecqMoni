@@ -142,7 +142,7 @@
     <value>0</value>
   </data>
   <data name="button2.ToolTip" xml:space="preserve">
-    <value>zoom out</value>
+    <value>Zoom out</value>
   </data>
   <data name="hScrollBar1.ToolTip" xml:space="preserve">
     <value />
@@ -172,7 +172,7 @@
     <value>$this</value>
   </data>
   <data name="button1.ToolTip" xml:space="preserve">
-    <value>zoom in</value>
+    <value>Zoom in</value>
   </data>
   <data name="&gt;&gt;button1.Parent" xml:space="preserve">
     <value>panel2</value>

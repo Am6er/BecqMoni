@@ -273,7 +273,7 @@
     <value>Сохранить параметры калибровки по энергии в текущей конфигурации устройства?</value>
   </data>
   <data name="ERRInputInteger" xml:space="preserve">
-    <value>Введённое число - целое.</value>
+    <value>Введите целое число.</value>
   </data>
   <data name="ERRIncompatibleChannelParameters" xml:space="preserve">
     <value>Несовместимые параметры каналов.</value>
@@ -540,7 +540,7 @@
     <value>MS Excell не установлен</value>
   </data>
   <data name="ERRInputNumber" xml:space="preserve">
-    <value>Введённый текст - число.</value>
+    <value>Введите число.</value>
   </data>
   <data name="NotificationDialogTitle" xml:space="preserve">
     <value>Сообщение</value>
@@ -2817,5 +2817,29 @@ http://xptable.sourceforge.net/</value>
 Бин: {3:F0} кэВ, историй на узел: {4}
 Данных: {5:F0} КБ, файл: не сохранён
 Посчитана: {7}, заняла {8:F0} с</value>
+  </data>
+  <data name="NuclideSetNewName" xml:space="preserve">
+    <value>Новый набор {0}</value>
+  </data>
+  <data name="NuclideSetNoMatchingNuclides" xml:space="preserve">
+    <value>Нет изотопов, подходящих под фильтр</value>
+  </data>
+  <data name="ERRDeviceConfigChannelsNotPositive" xml:space="preserve">
+    <value>Кол-во каналов должно быть целым числом больше нуля.
+Введено: {0}</value>
+  </data>
+  <data name="ERRDeviceConfigTimeLimitNegative" xml:space="preserve">
+    <value>Лимит времени не может быть отрицательным.
+Введено: {0}</value>
+  </data>
+  <data name="ERRSoundFileNotFound" xml:space="preserve">
+    <value>Звуковой файл не найден:
+{0}</value>
+  </data>
+  <data name="ERRSoundFilePlay" xml:space="preserve">
+    <value>Не удаётся воспроизвести звуковой файл:
+{0}
+
+{1}</value>
   </data>
 </root>

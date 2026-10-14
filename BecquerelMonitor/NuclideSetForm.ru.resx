@@ -173,4 +173,10 @@
   <data name="tableNuclides.Text" xml:space="preserve">
     <value>Нуклиды</value>
   </data>
+  <data name="tableNuclides.NoItemsText" xml:space="preserve">
+    <value>Выберите набор слева</value>
+  </data>
+  <data name="tableSets.NoItemsText" xml:space="preserve">
+    <value>Нет ни одного набора</value>
+  </data>
 </root>

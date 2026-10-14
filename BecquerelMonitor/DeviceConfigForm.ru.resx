@@ -245,7 +245,7 @@
     <value>Имя файла</value>
   </data>
   <data name="tabPage3.Text" xml:space="preserve">
-    <value>Особенности устройства</value>
+    <value>Устройство</value>
   </data>
   <data name="tabPage6.Text" xml:space="preserve">
     <value>Темп. компенсация</value>
@@ -407,16 +407,16 @@
     <value>Макс. поиск пика кэВ</value>
   </data>
   <data name="label50.Size" type="System.Drawing.Size, System.Drawing">
-    <value>95, 13</value>
-  </data>
-  <data name="label50.Text" xml:space="preserve">
-    <value>Макс. Δ FWHM %</value>
-  </data>
-  <data name="label51.Size" type="System.Drawing.Size, System.Drawing">
     <value>89, 13</value>
   </data>
-  <data name="label51.Text" xml:space="preserve">
+  <data name="label50.Text" xml:space="preserve">
     <value>Мин. Δ FWHM %</value>
+  </data>
+  <data name="label51.Size" type="System.Drawing.Size, System.Drawing">
+    <value>95, 13</value>
+  </data>
+  <data name="label51.Text" xml:space="preserve">
+    <value>Макс. Δ FWHM %</value>
   </data>
   <data name="label52.Size" type="System.Drawing.Size, System.Drawing">
     <value>108, 13</value>

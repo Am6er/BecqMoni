@@ -751,9 +751,34 @@ namespace BecquerelMonitor
                 string measurementCompletion = globalConfig.SoundConfig.MeasurementCompletion;
                 if (measurementCompletion != null && measurementCompletion != "")
                 {
-                    SoundPlayer soundPlayer = new SoundPlayer(measurementCompletion);
-                    soundPlayer.Play();
+                    MeasurementController.PlayCompletionSound(measurementCompletion);
                 }
+            }
+        }
+
+        /// <summary>
+        /// (П316, Н21) Звук конца набора. Файл, выбранный когда-то в настройках, мог
+        /// быть переименован, удалён или не быть WAV — тогда <c>SoundPlayer.Play</c>
+        /// бросал ровно в момент конца долгого набора (после остановки и записи
+        /// документа), и человек получал окно необработанного исключения. Звук — не
+        /// повод для окна: отказ уходит строкой в журнал (<see cref="AppLog"/>).
+        /// </summary>
+        internal static void PlayCompletionSound(string path)
+        {
+            try
+            {
+                if (!System.IO.File.Exists(path))
+                {
+                    System.Diagnostics.Trace.WriteLine("MeasurementController: completion sound file not found: " + path);
+                    return;
+                }
+                SoundPlayer soundPlayer = new SoundPlayer(path);
+                soundPlayer.Play();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.WriteLine("MeasurementController: completion sound not played: " + path
+                    + ": " + AppUi.Reason(ex));
             }
         }
 
