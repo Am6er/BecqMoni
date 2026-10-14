@@ -350,16 +350,16 @@
     <value>Не могу открыть WAV файл.</value>
   </data>
   <data name="FSAStatusCompleted" xml:space="preserve">
-    <value>ППР: расчёт завершён</value>
+    <value>FSA: расчёт завершён</value>
   </data>
   <data name="FSAStatusRunning" xml:space="preserve">
-    <value>ППР: идёт расчёт</value>
+    <value>FSA: идёт расчёт</value>
   </data>
   <data name="FSAStatusError" xml:space="preserve">
-    <value>ППР: ошибка</value>
+    <value>FSA: ошибка</value>
   </data>
   <data name="FSAStatusIdle" xml:space="preserve">
-    <value>ППР: расчёта не было</value>
+    <value>FSA: расчёта не было</value>
   </data>
   <data name="FSACalculating" xml:space="preserve">
     <value>Полноспектральное разложение: считается…</value>
