@@ -380,11 +380,8 @@ namespace BecquerelMonitor
                 //    5, у всех четырёх мест чтения этого файла одинаково.
                 //    Довод про `FileShare.ReadWrite` — в
                 //    `GlobalConfigManager.LoadConfigFile`.
-                using (FileStream fileStream = new FileStream(docEnergySpectrum2.Filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                {
-                    XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
-                    docEnergySpectrum2.ResultDataFile = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
-                }
+                //    (П268) Поток открывает ReadResultDataFile — тем же режимом.
+                docEnergySpectrum2.ResultDataFile = ReadResultDataFile(docEnergySpectrum2.Filename);
 
                 // (`AMBER201`, мелочь 2.11, 05.10.2026) ФОРМАТ 0.97b. Корень у него тот
                 // же («ResultDataFile»), а шкала энергий лежит двумя числами
@@ -593,6 +590,125 @@ namespace BecquerelMonitor
             return unknown;
         }
 
+        /// <summary>
+        /// ⛔ (П268, 14.10.2026) ЧТЕНИЕ ФАЙЛА СПЕКТРА (<see cref="ResultDataFile"/>):
+        /// ПУСТОЙ ЭЛЕМЕНТ ВРЕМЕНИ — ЭТО «ВРЕМЕНИ НЕТ», А НЕ ОТКАЗ ВСЕГО ФАЙЛА.
+        /// Чужие конвертеры пишут пустое поле пустым элементом: у Amber
+        /// `SpectraVibe\CZT TeCd\Смесь Am-Ce-Cs-Co-Y.xml` несёт <c>&lt;Time /&gt;</c> в
+        /// карточке пробы, и <c>XmlSerializer</c> отказывал целиком («Строка "" не
+        /// является допустимым значением AllXsd», замер П263) — ни спектра, ни
+        /// калибровки человек не видел. Элементы — те три, что разбирает
+        /// <see cref="FillAbsentTimes"/>: <c>ResultData/StartTime</c>,
+        /// <c>ResultData/EndTime</c>, <c>SampleInfo/Time</c>.
+        ///
+        /// Как. Первый разбор — прежний, дословно: тот же поток (`T266`: только на
+        /// чтение, <c>FileShare.ReadWrite</c>) и <c>Deserialize(Stream)</c>. Только если
+        /// он ОТКАЗАЛ, файл читается второй раз в документ, пустые элементы времени
+        /// из него убираются, и разбор повторяется по документу; признаки
+        /// <c>…Specified</c> у убранных не встают, и время доводит
+        /// <see cref="FillAbsentTimes"/> как у файла без элемента (при неизвестном
+        /// начале — эпоха и голос `A207`). Пустых элементов времени нет — отказ
+        /// прежний, тем же исключением.
+        ///
+        /// ⚠ Почему не правка разбора <c>DateTime</c> в классах (строковое свойство
+        /// вместо <c>DateTime</c>): она меняет набор членов сериализатора, то есть
+        /// ЗАПИСЬ каждого файла. Здесь же ни класс, ни запись не тронуты, а файл,
+        /// который открывался, открывается тем же путём до байта.
+        /// </summary>
+        internal static ResultDataFile ReadResultDataFile(string path)
+        {
+            XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
+            try
+            {
+                using (FileStream fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    return (ResultDataFile)xmlSerializer.Deserialize(fileStream);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                XmlDocument cleaned = WithoutEmptyTimeElements(path);
+                if (cleaned == null)
+                {
+                    throw;
+                }
+                using (XmlNodeReader reader = new XmlNodeReader(cleaned))
+                {
+                    return (ResultDataFile)xmlSerializer.Deserialize(reader);
+                }
+            }
+        }
+
+        /// <summary>
+        /// (П268) Файл спектра документом без пустых элементов времени — или null, если
+        /// таких элементов нет либо файл не читается как XML (тогда в силе прежний
+        /// отказ). Читатель настроен как у <c>XmlSerializer.Deserialize(Stream)</c>:
+        /// значимые пробелы, нормализация, без внешних ссылок.
+        /// </summary>
+        static XmlDocument WithoutEmptyTimeElements(string path)
+        {
+            XmlDocument doc = new XmlDocument();
+            doc.XmlResolver = null;
+            try
+            {
+                using (FileStream fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (XmlTextReader reader = new XmlTextReader(fileStream))
+                {
+                    reader.WhitespaceHandling = WhitespaceHandling.Significant;
+                    reader.Normalization = true;
+                    reader.XmlResolver = null;
+                    doc.Load(reader);
+                }
+            }
+            catch (XmlException)
+            {
+                return null;
+            }
+            catch (IOException)
+            {
+                return null;
+            }
+            List<XmlElement> empty = new List<XmlElement>();
+            foreach (XmlNode node in doc.GetElementsByTagName("*"))
+            {
+                XmlElement element = node as XmlElement;
+                XmlNode parent = element != null ? element.ParentNode : null;
+                if (parent == null || parent.NodeType != XmlNodeType.Element)
+                {
+                    continue;
+                }
+                string name = element.LocalName;
+                bool timeElement = ((name == "StartTime" || name == "EndTime") && parent.LocalName == "ResultData")
+                                   || (name == "Time" && parent.LocalName == "SampleInfo");
+                if (!timeElement || !string.IsNullOrWhiteSpace(element.InnerText))
+                {
+                    continue;
+                }
+                bool hasChildElement = false;
+                foreach (XmlNode child in element.ChildNodes)
+                {
+                    if (child.NodeType == XmlNodeType.Element)
+                    {
+                        hasChildElement = true;
+                        break;
+                    }
+                }
+                if (!hasChildElement)
+                {
+                    empty.Add(element);
+                }
+            }
+            if (empty.Count == 0)
+            {
+                return null;
+            }
+            foreach (XmlElement element in empty)
+            {
+                element.ParentNode.RemoveChild(element);
+            }
+            return doc;
+        }
+
         /// <summary>(П263) Голос `A207` о неизвестном начале — один раз на файл.</summary>
         static void ReportUnknownStarts(int unknownStarts)
         {
@@ -611,12 +727,9 @@ namespace BecquerelMonitor
             int unknownStarts = 0;
             try
             {
-                // `T266`: только на чтение — довод в OpenDocument выше.
-                using (FileStream fileStream = new FileStream(pathname, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                {
-                    XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
-                    resultDataFile = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
-                }
+                // `T266`: только на чтение — довод в OpenDocument выше (поток
+                // открывает ReadResultDataFile, П268).
+                resultDataFile = ReadResultDataFile(pathname);
                 // (П263) Времён, которых в файле нет, — не «сейчас» (см. FillAbsentTimes).
                 unknownStarts = FillAbsentTimes(resultDataFile);
 
@@ -3067,11 +3180,9 @@ namespace BecquerelMonitor
                     // `T266`: только на чтение — довод в OpenDocument выше. Фон
                     // особенно часто открыт в нескольких местах сразу: один файл
                     // фона у многих спектров и у второго экземпляра программы.
-                    using (FileStream fileStream = new FileStream(backgroundSpectrumPathname, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                    {
-                        XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
-                        resultDataFile = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
-                    }
+                    // (П268) Поток открывает ReadResultDataFile — тем же режимом;
+                    // от фона берётся только спектр, времена его не нужны.
+                    resultDataFile = ReadResultDataFile(backgroundSpectrumPathname);
 
                     // (`AMBER201`, мелочь 2.12, 05.10.2026) Файл без единого спектра
                     // (его пишет «Сохранить спектры в файл» без выбранных) проходит

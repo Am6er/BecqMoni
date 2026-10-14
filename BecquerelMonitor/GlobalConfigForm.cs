@@ -13,6 +13,7 @@ namespace BecquerelMonitor
         {
             this.InitializeComponent();
             this.InitializeProgressiveSmoothTooltip();
+            this.LimitAutosavePeriodField();
         }
 
         // Token: 0x06000AC4 RID: 2756 RVA: 0x0003FE50 File Offset: 0x0003E050
@@ -20,8 +21,25 @@ namespace BecquerelMonitor
         {
             this.InitializeComponent();
             this.InitializeProgressiveSmoothTooltip();
+            this.LimitAutosavePeriodField();
             this.mainForm = mainForm;
             base.Icon = Resources.becqmoni;
+        }
+
+        /// <summary>
+        /// (П268, 14.10.2026) Верхний предел поля «период автосохранения, мин» — предел
+        /// типа, в который оно пишется (<see cref="GlobalConfigInfo.AutosavePeriod"/>,
+        /// <c>int</c>). В разметке стоял <c>decimal.MaxValue</c>: набранное
+        /// «3000000000» поле принимало, и «ОК» падало на <c>(int)</c> в
+        /// <see cref="SaveFormContents"/> с <c>OverflowException</c>. Теперь набранное
+        /// больше предела поле само сводит к пределу (<c>Constrain</c>), как любое
+        /// число вне Minimum…Maximum. Сам порог таймера считается в <c>long</c>
+        /// (<c>MainForm.AutosavePeriodMilliseconds</c>), так что любой <c>int</c> минут
+        /// годен.
+        /// </summary>
+        void LimitAutosavePeriodField()
+        {
+            this.numericUpDown10.Maximum = int.MaxValue;
         }
 
         void InitializeProgressiveSmoothTooltip()
