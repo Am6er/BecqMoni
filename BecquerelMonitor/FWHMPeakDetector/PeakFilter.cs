@@ -282,9 +282,16 @@ namespace BecquerelMonitor.FWHMPeakDetector
         /// </summary>
         /// <param name="edges">kernel edges</param>
         /// <param name="data">array of data counts</param>
+        /// <param name="extraVariance">(П265) добавка к дисперсии канала сверх его
+        /// отсчёта (вычтенный фон: дисперсия разности — сумма); <c>null</c> —
+        /// дисперсия канала равна отсчёту, побитово как прежде</param>
         /// <returns></returns>
-        public (double[] peak_plus_bkg, double[] bkg, double[] signal, double[] noise, double[] snr) convolve(double[] edges, double[] data)
+        public (double[] peak_plus_bkg, double[] bkg, double[] signal, double[] noise, double[] snr) convolve(double[] edges, double[] data, double[] extraVariance = null)
         {
+            if (extraVariance != null && extraVariance.Length < edges.Length - 1)
+            {
+                extraVariance = null;
+            }
             int nChannels = edges.Length - 1;
             double[] peakPlusBkg = new double[nChannels];
             double[] bkg = new double[nChannels];
@@ -321,7 +328,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
                             }
 
                             sig += d * value;
-                            noiseSum += d * value * value;
+                            noiseSum += (extraVariance != null ? d + extraVariance[j] : d) * value * value;
                         }
                     }
 
