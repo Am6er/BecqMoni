@@ -139,7 +139,8 @@ namespace BecquerelMonitor.FWHMPeakDetector
 
             // calculate the convolution
             //Console.WriteLine(DateTime.Now.ToString("HH:mm:ss.ff") + " -> Start convolve.");
-            (this.peak_plus_bkg, this.bkg, this.signal, this.noise, this.snr) = this.kernel.convolve(this.spectrum.bin_edges_raw, this.spectrum.counts);
+            // (П265) Добавка к дисперсии вычтенного спектра — шум, а не сигнал.
+            (this.peak_plus_bkg, this.bkg, this.signal, this.noise, this.snr) = this.kernel.convolve(this.spectrum.bin_edges_raw, this.spectrum.counts, this.spectrum.extra_variance);
             this.reset();
         }
 

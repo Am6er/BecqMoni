@@ -10,6 +10,15 @@ namespace BecquerelMonitor.FWHMPeakDetector
         public double[] bin_widths_raw;
         public double[] bin_centers_raw;
 
+        /// <summary>
+        /// (П265) Добавка к дисперсии канала сверх его отсчёта; <c>null</c> — нет
+        /// (дисперсия канала = отсчёт, Пуассон). Нужна вычтенному спектру: его
+        /// отсчёт — разность, а дисперсия разности — сумма
+        /// (<c>SpectrumAriphmetics.SubstractVarianceExcess</c>). Пересыпка
+        /// (<see cref="combine_bins"/>) складывает её так же, как отсчёты.
+        /// </summary>
+        public double[] extra_variance;
+
         public Spectrum(EnergySpectrum energySpectrum)
         {
             this.counts = new double[energySpectrum.NumberOfChannels];
@@ -95,6 +104,23 @@ namespace BecquerelMonitor.FWHMPeakDetector
                 }
             }
             this.counts = _counts;
+
+            if (this.extra_variance != null)
+            {
+                double[] _extra = new double[new_size];
+                for (int i = 0; i < new_size; i++)
+                {
+                    for (int j = 0; j < mul; j++)
+                    {
+                        int src = mul * i + j;
+                        if (src < this.extra_variance.Length)
+                        {
+                            _extra[i] += this.extra_variance[src];
+                        }
+                    }
+                }
+                this.extra_variance = _extra;
+            }
 
             for (int i = 0; i < new_size + 1; i++)
             {
