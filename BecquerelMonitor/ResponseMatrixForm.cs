@@ -637,8 +637,26 @@ namespace BecquerelMonitor
 
         string Describe(ResponseMatrix matrix)
         {
-            long fileBytes = ResponseMatrixStore.FileSize(this.config.Guid, this.shownSource);
-            return string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixDetails,
+            // ⛔ (П292, находка П291; решение Amber 14.10.2026 вопросником, дословно:
+            // «“file: not saved” / “не сохранена”». Описание выбранного: «Пока матрица не
+            // сохранена — слова вместо числа; после «Сохранить» — размер нового файла.
+            // Один ключ en/ru.») Посчитанная в окне и ещё НЕ записанная матрица файла не
+            // имеет: `FileSize` отвечал размером файла ПРЕЖНЕЙ матрицы на складе (замер
+            // П291: склад 65 252 байта при 74 КБ данных новой) или нулём, если склада нет, —
+            // оба неправда о ЭТОЙ матрице. Теперь у неё формат `ResponseMatrixDetailsNotSaved`
+            // (те же четыре строки, в третьей вместо «файл: N КБ» — слова); «Сохранить»
+            // (`SaveClick`) ставит `savedComputed` ДО этого вызова, и тогда матрица
+            // перестаёт быть несохранённой — размер читается с только что записанного файла.
+            // Матрица со склада (`LoadExisting`) — не `computed`, прежний текст побайтно.
+            // ⚠ Новый формат — копия прежнего, отличается ТОЛЬКО третьей строкой: правя
+            // `ResponseMatrixDetails`, править и его (проба `MatrixWindowDetailsProbeP292`,
+            // раздел S0, сверяет строки 1, 2, 4 и начало третьей слово в слово).
+            bool unsaved = object.ReferenceEquals(matrix, this.computed) && this.HasUnsavedResult;
+            long fileBytes = unsaved
+                ? 0
+                : ResponseMatrixStore.FileSize(this.config.Guid, this.shownSource);
+            return string.Format(CultureInfo.InvariantCulture,
+                                 unsaved ? Resources.ResponseMatrixDetailsNotSaved : Resources.ResponseMatrixDetails,
                                  this.DescribeNodes(matrix),
                                  matrix.Energies[0],
                                  matrix.Energies[matrix.NodeCount - 1],
