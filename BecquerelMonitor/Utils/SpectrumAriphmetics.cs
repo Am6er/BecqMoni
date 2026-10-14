@@ -2225,6 +2225,15 @@ namespace BecquerelMonitor.Utils
 
         private static int GetWindowSize(double channelValue, int countlimit, double pointsNum)
         {
+            // (П269, 14.10.2026) Предел счёта меньше 1 — только из файла настроек,
+            // правленного руками (поле формы теперь не пускает ниже 1): при 0 пустой
+            // канал давал 0/0 и Convert.ToInt32(NaN) ронял сглаживание
+            // OverflowException. Тот же нижний предел, что у поля; при 1 и выше —
+            // поведение прежнее.
+            if (countlimit < 1)
+            {
+                countlimit = 1;
+            }
             int window_size = 1;
             if (channelValue <= countlimit)
             {
