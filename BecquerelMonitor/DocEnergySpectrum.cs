@@ -641,6 +641,13 @@ namespace BecquerelMonitor
         {
             this.saveSToolStripMenuItem.Enabled = this.Dirty;
             bool enabled = this.view.CursorX != -1 && this.view.CursorChannel > 0 && this.view.CursorChannel < this.ActiveResultData.EnergySpectrum.NumberOfChannels;
+            // (П293, 14.10.2026) Решение Amber вопросником: «Гасить пункт у таких
+            // приборов». У прибора без полей порога (страница настроек не отдаёт
+            // LowerThresholdTextBox/UpperThresholdTextBox) щелчок открывал настройки и
+            // молча ничего не ставил. Признак — у конфигурации прибора документа
+            // (InputDeviceConfig.HasThresholdFields), считается на каждом открытии меню.
+            InputDeviceConfig inputDeviceConfig = this.ActiveResultData.DeviceConfig?.InputDeviceConfig;
+            enabled = enabled && inputDeviceConfig != null && inputDeviceConfig.HasThresholdFields;
             this.setLowerThresholdLToolStripMenuItem.Enabled = enabled;
             this.setUpperThresholdHToolStripMenuItem.Enabled = enabled;
         }

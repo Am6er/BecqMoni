@@ -156,6 +156,17 @@ namespace BecquerelMonitor
             return (double)pRAHomageMethodConfig.PulseShapeSize / (double)this.samplesPerSecond;
         }
 
+        /// <summary>
+        /// (П293) Поля порога есть: <c>AudioInputDeviceForm.LowerThresholdTextBox</c> /
+        /// <c>UpperThresholdTextBox</c> (порог алгоритма PRA, <c>PRAHomageMethodConfig</c>).
+        /// Контракт — у <see cref="InputDeviceConfig.HasThresholdFields"/>.
+        /// </summary>
+        [XmlIgnore]
+        public override bool HasThresholdFields
+        {
+            get { return true; }
+        }
+
         // Token: 0x04000163 RID: 355
         WaveInDeviceCaps audioInputDevice;
 
