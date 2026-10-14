@@ -208,7 +208,9 @@ static class BleFirstPacketStartProbeP305
         rd.CountRates.Clear();
     }
 
-    // Такт окна — как MainForm.OnTimer у спектра, который пишется (`AMBER168`).
+    // Такт окна — как MainForm.OnTimer у спектра, который пишется (`AMBER168`), но БЕЗ правки П307:
+    // конец «сейчас» и тогда, когда начало ждёт первого пакета, — худший случай для возврата конца
+    // при отказе. Настоящий такт (с правкой П307) меряет `EndWaitsFirstPacketProbeP307`.
     static void Tick(ResultData rd)
     {
         if (!rd.ResultDataStatus.Recording) return;

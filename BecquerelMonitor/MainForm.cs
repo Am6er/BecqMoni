@@ -571,7 +571,16 @@ namespace BecquerelMonitor
                         // и выборе соседнего B затирался B, а после «отделить фон» (флаг
                         // оставался навсегда) — любой открытый файл. Остановку (уставка)
                         // OnTimer уже отработал, и EndTime поставил контроллер прибора.
-                        if (resultData.ResultDataStatus.Recording)
+                        // ⛔ П307 (14.10.2026): и не у спектра, чьё начало ЖДЁТ ПЕРВОГО ПАКЕТА
+                        // (П305, RadiaCode и Obsidian: «Пуск» нового документа, «Очистить»).
+                        // Начало и отсчёты в документе до пакета — прежние (у загруженного
+                        // файла — файла), и конец «сейчас» к ним давал окну результата
+                        // распад по [начало файла; сейчас] — Cs-137 ×1.03 вместо ×1.00001 у
+                        // файла 2.7-летней давности, — а автосохранение писало это в файл.
+                        // Первый пакет ставит начало и конец разом
+                        // (`MeasurementController.StartSetByFirstPacket`), дальше — как было.
+                        if (resultData.ResultDataStatus.Recording
+                            && !resultData.MeasurementController.StartAwaitsFirstPacket)
                         {
                             resultData.EndTime = DateTime.Now;
                         }
