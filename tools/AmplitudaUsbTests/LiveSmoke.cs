@@ -14,7 +14,7 @@ namespace AmplitudaUsbTests
         {
             const int Vid = 0x534B, Pid = 0x0874;
             List<AmplitudaUsbDeviceInfo> found = AmplitudaUsbReader.FindDevices(Vid, Pid);
-            Console.WriteLine("devices found: " + found.Count);
+            Console.WriteLine("devices found: " + found.Count.ToString(CultureInfo.InvariantCulture));
             foreach (AmplitudaUsbDeviceInfo d in found)
             {
                 Console.WriteLine("  " + d + "  [" + d.Manufacturer + "]");
@@ -25,7 +25,7 @@ namespace AmplitudaUsbTests
             using (AmplitudaUsbReader reader = new AmplitudaUsbReader(Vid, Pid, "", 14.0))
             {
                 int error;
-                T.True(reader.Start(out error), "reader starts (error " + error + ")");
+                T.True(reader.Start(out error), "reader starts (error " + error.ToString(CultureInfo.InvariantCulture) + ")");
                 if (reader.State != AmplitudaUsbReaderState.Running) return 1;
                 Console.WriteLine("opened s/n " + reader.SerialNumber);
 

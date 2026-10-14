@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -93,6 +94,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>Отпечаток снимка, который считается сейчас.</summary>
         string activeStamp;
+
+        // (П261) Счёт, досчитанный по спектру, чьи пики ещё ИЩУТСЯ, — отложен до конца
+        // поиска (<see cref="PeakSearchEnded"/>), см. <see cref="PeakSearchStarted"/>.
+        // Пока он здесь, сеанс занят (<see cref="IsRunning"/>), под <see cref="sync"/>.
+        Job withheldJob;
+        FsaResult withheldResult;
+        string withheldMessage;
 
         // (`A50`) Матрица отклика ЕСТЬ, но прежнего формата. Держится отдельно
         // от результата: решение «с матрицей или без» принимается ДО фонового
@@ -214,14 +222,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
-        /// <summary>Идёт расчёт (в том числе стоящий в очереди следующий снимок).</summary>
+        /// <summary>
+        /// Идёт расчёт (в том числе стоящий в очереди следующий снимок и счёт, отложенный
+        /// до конца поиска пиков спектра, — П261).
+        /// </summary>
         public bool IsRunning
         {
             get
             {
                 lock (this.sync)
                 {
-                    return this.running;
+                    return this.running || this.withheldJob != null;
                 }
             }
         }
@@ -367,6 +378,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 this.stamp = "";
                 this.pending = null;
                 this.status = null;
+                this.DropWithheld();
                 this.generation++;
             }
         }
@@ -400,7 +412,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             string currentStamp = BuildStamp(resultData, subtractBackground, FsaCalculationOptions.Of(resultData));
             lock (this.sync)
             {
-                return !this.running && currentStamp == this.stamp;
+                return !this.running && this.withheldJob == null && currentStamp == this.stamp;
             }
         }
 
@@ -466,6 +478,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             int myGeneration;
             lock (this.sync)
             {
+                // (П261) Счёт ЭТОГО ЖЕ снимка отложен до конца поиска пиков — второй не нужен:
+                // ответ даст конец поиска (`PeakSearchEnded`). Снимок сменился (пики пришли,
+                // настройки, спектр) — отложенный счёт больше никому не отвечает.
+                if (this.withheldJob != null)
+                {
+                    if (currentStamp == this.withheldJob.Stamp)
+                    {
+                        return;
+                    }
+
+                    this.DropWithheld();
+                }
+
                 if (this.running)
                 {
                     // Считается ровно это — очередь не нужна (и если там
@@ -504,6 +529,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 string said = FailureText(ex);
                 lock (this.sync)
                 {
+                    // ⛔ (П261, 14.10.2026) ОТКАЗ ПОДГОТОВКИ ПУБЛИКУЕТСЯ ТАК ЖЕ, КАК ОТКАЗ СЧЁТА:
+                    // с пустым результатом. Прежде здесь менялась одна строка состояния, а
+                    // разбор ПРЕЖНИХ входных данных оставался «готовым»: окно результата и
+                    // отчёт показывали его строки как свежие (зелёным «завершён»), а причина
+                    // не доходила ни до одного читателя, смотрящего на результат первым
+                    // (`FsaSessionStatesProbeP261`, путь «исключение в подготовке снимка при
+                    // прежнем результате»). Отпечаток сбрасывается: следующий заказ подготовит
+                    // снимок заново (как и прежде — каждый), и возврат входных данных к
+                    // прежним не упрётся в отпечаток разбора, которого больше нет.
+                    this.result = null;
+                    this.stamp = "";
                     this.status = said;
                 }
 
@@ -727,12 +763,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public FsaAnalyzer Analyzer;
             public FsaCalculationOptions Options;
             public Dictionary<int, double> CrystalFractions;
+
+            /// <summary>
+            /// (П261) ЖИВОЙ спектр, с которого снят снимок, — ключ поиска пиков
+            /// (<see cref="PeakSearchStarted"/>); фоновым счётом НЕ читается.
+            /// </summary>
+            public ResultData Source;
+
+            /// <summary>(П261) Довод «фон вычитается» снимка — для сверки отпечатка по концу поиска пиков.</summary>
+            public bool SubtractBackground;
+
+            /// <summary>(П261) Снимок снят во время записи спектра — такой счёт не откладывается.</summary>
+            public bool Recording;
         }
 
         Job Capture(ResultData resultData, bool subtractBackground, FsaCalculationOptions options,
                     string currentStamp, int myGeneration)
         {
-            Job job = new Job { Stamp = currentStamp, Generation = myGeneration, Options = options };
+            Job job = new Job
+            {
+                Stamp = currentStamp,
+                Generation = myGeneration,
+                Options = options,
+                Source = resultData,
+                SubtractBackground = subtractBackground,
+                Recording = resultData.ResultDataStatus != null && resultData.ResultDataStatus.Recording
+            };
 
             // Снимок самого измерения обязателен: во время набора UI
             // перезаписывает Spectrum[], а FSA ниже читает его в Task.Run.
@@ -986,10 +1042,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
                 else
                 {
+                    // (П254) Доли «свой распад на единицу амплитуды» у членов рядов —
+                    // по библиотеке ДО разбора: анализатор строит из неё свои копии.
+                    Dictionary<string, double> memberRatios = MemberActivityRatiosOf(library, job.Definitions);
                     computed = job.Analyzer.Analyze(job.Spectrum, job.Background, job.FwhmCalibration,
                                                     library, job.Efficiency);
                     if (computed != null)
                     {
+                        RememberMemberActivityRatios(computed, memberRatios);
+
                         // (`S187`) Расхождения поставок у нуклидов состава — здесь,
                         // в фоне: чтение базы не должно идти в окне отчёта.
                         computed.SupplyDiscrepancies = FsaCascadeSummer.SupplyDiscrepanciesOf(computed);
@@ -1043,6 +1104,233 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// ⛔ (П254, 14.10.2026) СВОИХ РАСПАДОВ ЧЛЕНА РЯДА НА ЕДИНИЦУ АМПЛИТУДЫ ЕГО КОЛОНКИ.
+        ///
+        /// Амплитуда разбора — в единицах того, на что даны выходы линий образа. У члена
+        /// ряда они даны на распад КОРНЯ: путь из баз кладёт линию с долей ветвления от
+        /// корня (<c>FsaSampleLibrary.Build</c>: выход × равновесное отношение члена к
+        /// корню — и при выключенном равновесии тоже), путь по подписям берёт выходы
+        /// библиотеки, а импорт с рядом пишет их так же (у Amber «Tl-208 (Th-232)» 2614 —
+        /// 35.85 % на распад Th-232, а не 99.75 % на свой). Строка свободного члена в окне
+        /// результата — это «активность каждого изотопа в отдельности» (решение Amber
+        /// 07.10.2026, `AMBER211`), и без этой доли окно печатало Tl-208 в беккерелях
+        /// Bi-212: на Th232_29.07.2022 при равновесии ВЫКЛ 648.5 Бк против своих 233.1.
+        ///
+        /// Доля = выход линии члена в образе / выход той же линии на его СОБСТВЕННЫЙ распад
+        /// по базе (<see cref="FsaSampleLibrary.DecayLines"/>, совпадение энергии 0.05 кэВ —
+        /// тот же допуск «та же линия», что у сборок), группой равных отношений
+        /// (<see cref="DominantRatio"/>). Считается только у членов
+        /// ряда — у колонки с происхождением в ряду (<see cref="FsaComponent.DecayChainRoot"/>,
+        /// путь из баз) либо у нуклида, чья строка библиотеки несёт ряд другого корня (путь
+        /// по подписям); у одиночного нуклида амплитуда — его собственные распады по
+        /// построению, и выходы библиотеки человека здесь не «поправляются» базой.
+        /// Корень ряда своей доли не получает: она единица. Ключ — нуклид линии
+        /// (<see cref="FsaLine.Nuclide"/>), то есть имя строки результата члена.
+        /// </summary>
+        static Dictionary<string, double> MemberActivityRatiosOf(List<FsaComponent> library,
+                                                                 List<NuclideDefinition> definitions)
+        {
+            var ratios = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            if (library == null)
+            {
+                return ratios;
+            }
+
+            try
+            {
+                var report = new FsaSampleLibrary.Report();
+                foreach (FsaComponent component in library)
+                {
+                    if (component == null || component.Kind == FsaComponentKind.Nuisance || component.Lines.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    var members = new Dictionary<string, List<FsaLine>>(StringComparer.OrdinalIgnoreCase);
+                    foreach (FsaLine line in component.Lines)
+                    {
+                        string member = string.IsNullOrEmpty(line.Nuclide) ? component.Name : line.Nuclide;
+                        List<FsaLine> lines;
+                        if (!members.TryGetValue(member, out lines))
+                        {
+                            lines = new List<FsaLine>();
+                            members[member] = lines;
+                        }
+
+                        lines.Add(line);
+                    }
+
+                    foreach (KeyValuePair<string, List<FsaLine>> member in members)
+                    {
+                        string nucid = FsaSampleLibrary.NucidOf(member.Key);
+                        if (nucid.Length == 0 || ratios.ContainsKey(member.Key)
+                            || !IsChainMember(component, nucid, definitions))
+                        {
+                            continue;
+                        }
+
+                        List<double[]> own = FsaSampleLibrary.DecayLines(nucid, report);
+                        if (own == null || own.Count == 0)
+                        {
+                            continue;
+                        }
+
+                        double ratio = DominantRatio(member.Value, own);
+                        if (ratio > 0.0 && !double.IsInfinity(ratio))
+                        {
+                            ratios[member.Key] = ratio;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Без доли строка члена остаётся в распадах корня — как до П254; молча нельзя.
+                Trace.WriteLine("FSA member activity ratios failed: " + ex);
+            }
+
+            return ratios;
+        }
+
+        /// <summary>
+        /// (П254) Доля по линиям: у каждой линии образа, нашедшей свою на собственный распад
+        /// (0.05 кэВ), — отношение выходов; берётся группа РАВНЫХ отношений (до 10⁻⁶) с
+        /// наибольшим суммарным выходом в образе. Сумма по всем линиям не годится: L-серию
+        /// рентгена сборка образа сводит иначе, чем строки базы лежат подряд (у Tl-208 на
+        /// 12.66 кэВ отношение 1.155 при 0.3594 у остальных 41 линии), и доля съезжала на
+        /// 0.2 %. Путь из баз даёт одну группу (доля ветвления × множитель равновесия), путь
+        /// по подписям — группу выходов, введённых одним правилом; рукописная строка
+        /// библиотеки с иным отношением уходит в свою группу и долю не решает.
+        /// </summary>
+        static double DominantRatio(List<FsaLine> lines, List<double[]> own)
+        {
+            var pairs = new List<KeyValuePair<double, double>>();
+            foreach (FsaLine line in lines)
+            {
+                if (!(line.Intensity > 0.0))
+                {
+                    continue;
+                }
+
+                for (int k = 0; k < own.Count; k++)
+                {
+                    if (Math.Abs(own[k][0] - line.Energy) < 0.05 && own[k][1] > 0.0)
+                    {
+                        pairs.Add(new KeyValuePair<double, double>(line.Intensity / own[k][1], line.Intensity));
+                        break;
+                    }
+                }
+            }
+
+            if (pairs.Count == 0)
+            {
+                return 0.0;
+            }
+
+            pairs.Sort((x, y) => x.Key.CompareTo(y.Key));
+            double bestWeight = -1.0, bestRatio = 0.0;
+            int start = 0;
+            while (start < pairs.Count)
+            {
+                int end = start;
+                double weight = 0.0, weighted = 0.0;
+                while (end < pairs.Count && Math.Abs(pairs[end].Key - pairs[start].Key) <= 1e-6 * pairs[start].Key)
+                {
+                    weight += pairs[end].Value;
+                    weighted += pairs[end].Value * pairs[end].Key;
+                    end++;
+                }
+
+                if (weight > bestWeight)
+                {
+                    bestWeight = weight;
+                    bestRatio = weighted / weight;
+                }
+
+                start = end;
+            }
+
+            return bestRatio;
+        }
+
+        /// <summary>
+        /// (П254) Член ряда, а не корень и не одиночка: у колонки есть происхождение в ряду
+        /// с другим корнем (путь из баз), либо строка библиотеки этого нуклида несёт ряд
+        /// другого корня (путь по подписям, импорт с рядом).
+        /// </summary>
+        static bool IsChainMember(FsaComponent component, string nucid, List<NuclideDefinition> definitions)
+        {
+            string root = FsaSampleLibrary.NucidOf(component.DecayChainRoot ?? "");
+            if (root.Length > 0)
+            {
+                return root != nucid;
+            }
+
+            if (definitions != null)
+            {
+                foreach (NuclideDefinition definition in definitions)
+                {
+                    if (definition == null || FsaSampleLibrary.NucidOf(definition.NuclideName ?? "") != nucid)
+                    {
+                        continue;
+                    }
+
+                    string chain = FsaSampleLibrary.NucidOf((definition.Chain ?? "").Trim());
+                    if (chain.Length > 0 && chain != nucid)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>(П254) Доли членов — при результате, которому они отвечают; живут, пока жив результат.</summary>
+        static readonly ConditionalWeakTable<FsaResult, Dictionary<string, double>> MemberRatios =
+            new ConditionalWeakTable<FsaResult, Dictionary<string, double>>();
+
+        static void RememberMemberActivityRatios(FsaResult result, Dictionary<string, double> ratios)
+        {
+            if (result == null || ratios == null)
+            {
+                return;
+            }
+
+            lock (MemberRatios)
+            {
+                MemberRatios.Remove(result);
+                MemberRatios.Add(result, ratios);
+            }
+        }
+
+        /// <summary>
+        /// (П254) Своих распадов члена ряда <paramref name="member"/> на единицу амплитуды
+        /// колонки в разборе <paramref name="result"/> (см. <see cref="MemberActivityRatiosOf"/>);
+        /// единица — у корня, одиночки, приборного образа и у результата, собранного не
+        /// сеансом (сцены проб).
+        /// </summary>
+        public static double MemberActivityRatio(FsaResult result, string member)
+        {
+            if (result == null || string.IsNullOrEmpty(member))
+            {
+                return 1.0;
+            }
+
+            Dictionary<string, double> ratios;
+            lock (MemberRatios)
+            {
+                if (!MemberRatios.TryGetValue(result, out ratios))
+                {
+                    return 1.0;
+                }
+            }
+
+            double ratio;
+            return ratios.TryGetValue(member, out ratio) && ratio > 0.0 && !double.IsInfinity(ratio) ? ratio : 1.0;
+        }
+
+        /// <summary>
         /// (`AMBER199`) Слова об отказе чтения баз: подпись (обе культуры) и
         /// первая строка отказа; остальные — числом. Строки отказа — имя файла,
         /// ключ и сообщение платформы, переводу не подлежат.
@@ -1079,12 +1367,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 this.activeStamp = null;
                 Job next = this.pending;
                 this.pending = null;
+                bool withheld = false;
 
                 if (next == null && job.Generation == this.generation)
                 {
-                    this.stamp = job.Stamp;
-                    this.result = computed;
-                    this.status = message;
+                    // ⛔ (П261) Снимок снят БЕЗ ПИКОВ, а пики этого спектра ещё ищутся — счёт
+                    // отвечает на вопрос, которого через секунду не будет. Публиковать его
+                    // нельзя: отказ «нет компонентов» / «в составе ничего не осталось» висел
+                    // в отчёте всё время второго, настоящего прохода (П259, находка 6).
+                    // Счёт откладывается до конца поиска (`PeakSearchEnded`): пики пришли —
+                    // он выбрасывается, и потребители считают с ними; не пришли — он и есть
+                    // ответ и публикуется.
+                    if (!job.Recording && job.Peaks != null && job.Peaks.Count == 0
+                        && this.WaitForPeakSearch(job.Source))
+                    {
+                        this.withheldJob = job;
+                        this.withheldResult = computed;
+                        this.withheldMessage = message;
+                        withheld = true;
+                    }
+                    else
+                    {
+                        this.stamp = job.Stamp;
+                        this.result = computed;
+                        this.status = message;
+                    }
                 }
                 // Иначе: сброс уже случился (считали прежний спектр) либо
                 // снимок вытеснен более поздним — публиковать нечего.
@@ -1096,7 +1403,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     this.Start(next);
                 }
 
-                idle = next == null;
+                // Отложенный счёт событием не кончается: сеанс по-прежнему занят, и
+                // потребители, перечитав его, увидели бы то же «идёт расчёт».
+                idle = next == null && !withheld;
             }
 
             if (idle)
@@ -1106,6 +1415,239 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     handler(this, EventArgs.Empty);
                 }
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // (П261) Поиск пиков спектра и первый проход сеанса
+        // ------------------------------------------------------------------
+
+        /// <summary>Поиск пиков одного спектра: сколько поисков начато и не кончено, кто ждёт конца.</summary>
+        sealed class PeakSearch
+        {
+            public int Pending;
+            public readonly List<WeakReference> Waiters = new List<WeakReference>();
+        }
+
+        static readonly ConditionalWeakTable<ResultData, PeakSearch> PeakSearches =
+            new ConditionalWeakTable<ResultData, PeakSearch>();
+
+        /// <summary>Замок реестра поисков. Порядок замков: <see cref="sync"/> сеанса → этот, не наоборот.</summary>
+        static readonly object PeakSearchSync = new object();
+
+        /// <summary>
+        /// ⛔ (П261, 14.10.2026) ПОИСК ПИКОВ СПЕКТРА НАЧАЛСЯ — первый проход сеанса без пиков
+        /// подождёт его конца.
+        ///
+        /// Найденные пики в файл спектра не пишутся (`[XmlIgnore]`), и у открытого документа их
+        /// НЕТ, пока вкладку не выберут: поиск идёт только у активного документа и только в фоне
+        /// (<c>DCPeakDetectionView.UpdatePeakDetectionResult</c>). А разбор заказывают раньше —
+        /// окно результата (<c>MainForm.ShowMeasurementResult</c> стоит в
+        /// <c>dockPanel1_ActiveDocumentChanged</c> ДО поиска), окно отчёта, график. Первый проход
+        /// сеанса поэтому шёл по спектру без пиков: из NucBase выводился пустой состав, анализатор
+        /// снимал последние приборные образы и отказывал `FSALibraryEmptied` («…добавьте нуклид в
+        /// состав»). Если поиск возвращался позже этого прохода (поток окон занят, поиск прежней
+        /// вкладки ещё идёт — `refreshPending`), отказ публиковался и стоял в таблице отчёта всё
+        /// время второго, настоящего прохода под жёлтым «идёт расчёт» — 20–40 с на ториевых
+        /// спектрах Amber (П259, находка 6). Отказа на самом деле не было: были ненайденные пики.
+        ///
+        /// Ключ — живой <see cref="ResultData"/> (не документ: у документа их список). Начало и
+        /// конец обязаны идти парой (<see cref="PeakSearchFinished"/>); звать с потока окон.
+        /// Пробам и корпусу звать не нужно: без отметки сеанс ведёт себя как прежде.
+        /// </summary>
+        public static void PeakSearchStarted(ResultData resultData)
+        {
+            if (resultData == null)
+            {
+                return;
+            }
+
+            lock (PeakSearchSync)
+            {
+                PeakSearches.GetOrCreateValue(resultData).Pending++;
+            }
+        }
+
+        /// <summary>
+        /// (П261) Поиск пиков спектра кончился. <paramref name="searched"/> — список пиков спектра
+        /// теперь ответ поиска (успех, отказ поиска, нет калибровки ПШПВ); <c>false</c> — отметка
+        /// снимается БЕЗ поиска (очередь поиска ушла к другой вкладке): отложенный счёт тогда
+        /// выбрасывается молча, и следующий заказ посчитает заново. Когда кончился последний
+        /// начатый поиск спектра, ждавшие сеансы решают: отпечаток не сменился — отложенный счёт
+        /// публикуется (ноль пиков — настоящий ответ), сменился — выбрасывается, и потребители
+        /// по <see cref="Completed"/> заказывают счёт с найденными пиками.
+        /// </summary>
+        public static void PeakSearchFinished(ResultData resultData, bool searched)
+        {
+            if (resultData == null)
+            {
+                return;
+            }
+
+            var wake = new List<FsaAnalysisSession>();
+            lock (PeakSearchSync)
+            {
+                PeakSearch search;
+                if (!PeakSearches.TryGetValue(resultData, out search))
+                {
+                    return;
+                }
+
+                if (search.Pending > 0)
+                {
+                    search.Pending--;
+                }
+
+                if (search.Pending > 0)
+                {
+                    return;
+                }
+
+                foreach (WeakReference waiter in search.Waiters)
+                {
+                    FsaAnalysisSession session = waiter.Target as FsaAnalysisSession;
+                    if (session != null)
+                    {
+                        wake.Add(session);
+                    }
+                }
+
+                search.Waiters.Clear();
+            }
+
+            // вне замка реестра: сеанс берёт свой замок (порядок замков — см. PeakSearchSync)
+            foreach (FsaAnalysisSession session in wake)
+            {
+                session.PeakSearchEnded(resultData, searched);
+            }
+        }
+
+        /// <summary>(П261) Ищутся ли сейчас пики этого спектра.</summary>
+        public static bool IsPeakSearchPending(ResultData resultData)
+        {
+            if (resultData == null)
+            {
+                return false;
+            }
+
+            lock (PeakSearchSync)
+            {
+                PeakSearch search;
+                return PeakSearches.TryGetValue(resultData, out search) && search.Pending > 0;
+            }
+        }
+
+        /// <summary>
+        /// (П261) Встать в ожидание конца поиска пиков спектра — ЕСЛИ он идёт. Проверка и запись
+        /// одним движением под замком реестра: иначе поиск, кончившийся между ними, не разбудил
+        /// бы сеанс никогда. Зовётся под <see cref="sync"/>.
+        /// </summary>
+        bool WaitForPeakSearch(ResultData resultData)
+        {
+            if (resultData == null)
+            {
+                return false;
+            }
+
+            lock (PeakSearchSync)
+            {
+                PeakSearch search;
+                if (!PeakSearches.TryGetValue(resultData, out search) || search.Pending == 0)
+                {
+                    return false;
+                }
+
+                foreach (WeakReference waiter in search.Waiters)
+                {
+                    if (ReferenceEquals(waiter.Target, this))
+                    {
+                        return true;
+                    }
+                }
+
+                search.Waiters.Add(new WeakReference(this));
+                return true;
+            }
+        }
+
+        /// <summary>(П261) Забыть отложенный счёт; под <see cref="sync"/>.</summary>
+        void DropWithheld()
+        {
+            this.withheldJob = null;
+            this.withheldResult = null;
+            this.withheldMessage = null;
+        }
+
+        /// <summary>
+        /// (П261) Поиск пиков, которого ждал отложенный счёт, кончился. Отпечаток считается
+        /// заново (поток окон — оттуда зовёт поиск): тот же — пиков у спектра так и нет, счёт и
+        /// есть ответ, публикуется; другой — выбрасывается. В обоих случаях —
+        /// <see cref="Completed"/>: потребители перечитывают сеанс и заказывают счёт, если он
+        /// нужен. Конец без поиска (<paramref name="searched"/> = false) выбрасывает молча.
+        /// </summary>
+        void PeakSearchEnded(ResultData resultData, bool searched)
+        {
+            Job job;
+            FsaResult computed;
+            string message;
+            lock (this.sync)
+            {
+                if (this.withheldJob == null || !ReferenceEquals(this.withheldJob.Source, resultData))
+                {
+                    return;
+                }
+
+                job = this.withheldJob;
+                computed = this.withheldResult;
+                message = this.withheldMessage;
+                this.DropWithheld();
+                if (!searched || job.Generation != this.generation)
+                {
+                    // счёт никому не отвечает; «считается…» прежнего снимка не оставлять
+                    if (!this.running && this.result == null)
+                    {
+                        this.status = null;
+                    }
+
+                    return;
+                }
+            }
+
+            bool same;
+            try
+            {
+                same = BuildStamp(resultData, job.SubtractBackground, FsaCalculationOptions.Of(resultData)) == job.Stamp;
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine("FSA: отпечаток по концу поиска пиков не снят: " + ex);
+                same = false;
+            }
+
+            lock (this.sync)
+            {
+                if (this.running || this.pending != null || this.withheldJob != null || job.Generation != this.generation)
+                {
+                    // за это время заказали новый счёт — он и ответит
+                    return;
+                }
+
+                if (same)
+                {
+                    this.stamp = job.Stamp;
+                    this.result = computed;
+                    this.status = message;
+                }
+                else if (this.result == null)
+                {
+                    this.status = null;
+                }
+            }
+
+            EventHandler handler = this.Completed;
+            if (handler != null)
+            {
+                handler(this, EventArgs.Empty);
             }
         }
 

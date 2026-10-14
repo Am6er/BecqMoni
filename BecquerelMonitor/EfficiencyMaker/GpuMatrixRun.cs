@@ -813,6 +813,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             string unknownElement = geometry.UnknownElementProblem();
             if (unknownElement != null) throw new InvalidOperationException(unknownElement);
 
+            // (П253) Сцена, которую порт не умеет, — отказ ДО счёта: прежде он приходил из
+            // упаковки первого узла, когда κ пар на ЦП уже была запущена.
+            string sceneProblem = GpuPack.SceneProblem(geometry, options);
+            if (sceneProblem != null) throw new NotSupportedException(sceneProblem);
+
             double[] grid = options.BuildGrid(geometry);
             double[] continuumError = new double[grid.Length];
             float[][][] channelRows = new float[EfficiencySimulator.ResponseChannelCount][][];
@@ -829,7 +834,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             // на GPU, во временную матрицу; поля переносятся после узлов. Потоков ЦП — на
             // один меньше обычного: один держит запуски GPU.
             int threads = options.Threads > 0 ? options.Threads : Math.Max(1, Environment.ProcessorCount - 2);
-            var parallel = new ParallelOptions { MaxDegreeOfParallelism = threads, CancellationToken = cancellation };
+            // ⛔ (П253, 14.10.2026) У κ СВОЙ жетон, связанный с отменой счёта. Прежде κ шла
+            // на жетоне отмены, и снимала её ТОЛЬКО отмена: отказ узла (устройство — TDR,
+            // нехватка памяти, сцена, которую порт не умеет) уходил наружу, а κ на всех
+            // ядрах ЦП продолжала считать в никуда и слать отчёты хода в окно, уже
+            // сказавшее «не удалось». Теперь любой выход из счёта узлов снимает κ и ждёт её.
+            var jointStop = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+            var parallel = new ParallelOptions { MaxDegreeOfParallelism = threads, CancellationToken = jointStop.Token };
             var jointMatrix = new ResponseMatrix();
             var jointWatch = Stopwatch.StartNew();
             double jointSeconds = 0.0;
@@ -878,7 +889,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 ResponseMatrixBuilder.BuildJoint(geometry, options, jointMatrix, grid, parallel, jointReport);
                 jointSeconds = jointWatch.Elapsed.TotalSeconds;
-            }, cancellation);
+            }, jointStop.Token);
 
             Action<int, double> report = (settled, energy) =>
             {
@@ -887,6 +898,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 publish(false);
             };
 
+            // ⛔ (П271, 14.10.2026) Под одной защитой — всё до ожидания κ: узлы И то, что
+            // идёт после них (отчёт хода, журнал, клеймо, нормировка, угловые моменты,
+            // итоги, пик разрешения). Прежде отчёт хода после узлов, `ComputeStamp`,
+            // `NormalizationOf` и `AngularAttenuation.FromMoments` стояли между двумя
+            // защитами: бросок любого из них уходил наружу, а κ на ЦП продолжала считать (П270).
+            ResponseMatrix matrix;
             try
             {
             for (int slot = 0; slot < grid.Length; slot++)
@@ -917,24 +934,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Store(channelRows, index, histograms);
                 if (log != null && (slot % 20 == 0 || slot == grid.Length - 1))
                 {
-                    log.WriteLine("   GPU узел {0}/{1}: {2:F1} кэВ, {3:F2} с, упаковка {4} КБ",
-                                  slot + 1, grid.Length, energyKev, nodeSeconds[index], gpu.LastBlobBytes / 1024);
+                    log.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                                  "   GPU узел {0}/{1}: {2:F1} кэВ, {3:F2} с, упаковка {4} КБ",
+                                  slot + 1, grid.Length, energyKev, nodeSeconds[index], gpu.LastBlobBytes / 1024));
                 }
-            }
-            }
-            catch (OperationCanceledException)
-            {
-                // Отменили узлы — κ пар на ЦП тоже снимается тем же жетоном; дождаться, чтобы
-                // наружу не ушла работающая задача.
-                try { jointTask.Wait(); } catch (AggregateException) { }
-                throw;
             }
 
             report(grid.Length, grid[0]);
             LastGpuSeconds = watch.Elapsed.TotalSeconds;
             if (log != null)
             {
-                log.WriteLine("   GPU      : из них ядра {0:F1} с, упаковка и настройки {1:F1} с", gpu.KernelSeconds, gpu.PackSeconds);
+                log.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                              "   GPU      : из них ядра {0:F1} с, упаковка и настройки {1:F1} с", gpu.KernelSeconds, gpu.PackSeconds));
             }
 
             gpu.KernelSeconds = 0.0;
@@ -950,7 +961,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             long spentTotal = 0, capNode = 0;
             foreach (long h in nodeHistories) { spentTotal += h; if (h > capNode) capNode = h; }
 
-            var matrix = new ResponseMatrix
+            matrix = new ResponseMatrix
             {
                 ContinuumRelativeError = worstContinuum,
                 ContinuumWeightedError = sumWeight > 0.0 ? sumInverse / sumWeight : 0.0,
@@ -972,6 +983,17 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             matrix.RebuildTotals();
             ResponseMatrixBuilder.FillResolutionPeak(geometry, matrix, nodeResolutionExtra);
+            }
+            catch
+            {
+                // Любой выход до ожидания κ — отмена, отказ устройства, отказ упаковки, отказ
+                // сборки матрицы после узлов — снимает κ пар на ЦП и ждёт её: наружу не уходит
+                // работающая задача, и после выхода построителя в окно не приходит ни одного
+                // отчёта хода (П253, П271).
+                StopJoint(jointStop, jointTask);
+                throw;
+            }
+
             try
             {
                 jointTask.Wait();
@@ -980,6 +1002,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 // `OperationCanceledException` κ пар — наружу той же природы, что у узлов.
                 throw e.InnerException ?? e;
+            }
+            finally
+            {
+                jointStop.Dispose();
             }
 
             // (`AMBER220`) κ досчитана — полоса на 100 % ровно здесь, когда матрица собрана.
@@ -1003,6 +1029,19 @@ namespace BecquerelMonitor.EfficiencyMaker
             watch.Stop();
             matrix.BuildSeconds = watch.Elapsed.TotalSeconds;
             return matrix;
+        }
+
+        /// <summary>
+        /// (П253) Снять κ пар и дождаться её — при любом выходе из счёта, кроме удачного.
+        /// Свой отказ κ здесь не нужен: наружу уходит причина, по которой вышли узлы.
+        /// Ожидание короткое — замер κ опрашивает отмену на каждой точке
+        /// (<see cref="EfficiencySimulator.JointPeakSums(double[], int, double[], int)"/>).
+        /// </summary>
+        static void StopJoint(CancellationTokenSource jointStop, Task jointTask)
+        {
+            jointStop.Cancel();
+            try { jointTask.Wait(); } catch (AggregateException) { }
+            jointStop.Dispose();
         }
 
         /// <summary>= `store` из `ResponseMatrixBuilder.Build` (:225–247).</summary>

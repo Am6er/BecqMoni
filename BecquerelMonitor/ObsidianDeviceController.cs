@@ -70,6 +70,14 @@ namespace BecquerelMonitor
         {
             if (deviceGuid != null)
             {
+                // ⛔ П267 (14.10.2026): прибор пишет ДРУГОЙ спектр — его накопитель
+                //    не наш; разбор у близнеца, `RadiaCodeDeviceController`.
+                if (MeasurementController.IsDeviceLeasedByOther(deviceGuid, resultData.MeasurementController))
+                {
+                    Trace.WriteLine("Obsidian: device " + deviceGuid + " is recording another spectrum - clear is local, no Reset");
+                    resultData.StartTime = DateTime.Now;
+                    return;
+                }
                 if (status == "Connected" || status == "Recording")
                 {
                     ObsidianIn.getInstance(deviceGuid).sendCommand("Reset");
@@ -88,7 +96,7 @@ namespace BecquerelMonitor
                             + "A headless run must not continue: the old counts come back with the next update "
                             + "and look like a fresh measurement.");
                     }
-                    AppUi.Report($"Device is {status}, connect device first!", "", MessageBoxIcon.None);
+                    AppUi.Report(string.Format(CultureInfo.InvariantCulture, Properties.Resources.ERRDeviceNotClearedNotConnected, status), "", MessageBoxIcon.None);
                 }
             }
         }
@@ -246,6 +254,10 @@ namespace BecquerelMonitor
                 {
                     resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(e.ElapsedTime);
                     resultData.ResultDataStatus.ElapsedTime = resultData.ResultDataStatus.TotalTime;
+                    // П267: время спектра — вместе с отсчётами ТОГО ЖЕ пакета, а не
+                    // следующим тактом окна (разбор у `MeasurementController.SetSpectrumTimes`).
+                    MeasurementController.SetSpectrumTimes(pulseDetector.EnergySpectrum,
+                        resultData.ResultDataStatus.ElapsedTime.TotalSeconds, resultData.DeviceConfig, false);
                 }
             }
         }

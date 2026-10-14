@@ -43,8 +43,15 @@ namespace FsaSelectionProbeF16
     ///      маска слоёв (та же `DrawFsaBand` в опознавательных цветах). Считается
     ///      доля изменившихся пикселей, средняя разница яркости у приглушённых
     ///      и НЕИЗМЕННОСТЬ области выбранного. Оба поля: чёрное и белое.
-    ///   3. ПОДПИСИ (`A247`): черта, заголовок, перечень пометок; ширина каждой
-    ///      подписи против ширины колонки в обеих культурах; снимки окна.
+    ///   3. ПОДПИСИ (`A247`): черта, заголовок, перечень пометок; каждая
+    ///      подпись видна в своей ячейке целиком — в одну строку или переносом
+    ///      по ширине колонки при высоте строки, вмещающей перенос (`AMBER214`;
+    ///      мерка переписана `T269` 14.10.2026 — прежняя «в одну строку уже
+    ///      колонки» отжила с длинными подписями `A300`/`AMBER156`) — в обеих
+    ///      культурах; снимки окна.
+    ///
+    /// Сторож: `tools/check_fsa_report_view.py` (с `T269`), спектр
+    /// `AS80_Th232Medal`.
     ///
     /// ⛔ У каждого раздела ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ — вход, на котором проверка
     /// обязана отказать.
@@ -590,41 +597,78 @@ namespace FsaSelectionProbeF16
                          model.Rows[header].Cells[0].Font != null && model.Rows[header].Cells[0].Font.Bold);
 
                     // Все подписи блока — от черты и до конца таблицы.
-                    int wide = 0, keys = 0, trimmed = 0, wrapped = 0;
+                    //
+                    // ⛔ (`T269`, П251 14.10.2026) Мерка — «подпись видна ЦЕЛИКОМ в
+                    // своей ячейке», а не «подпись в одну строку уже колонки». Второе
+                    // было верно 05.09.2026 (`A247`), пока подписи блока были
+                    // короткими; с тех пор длинные подписи заведены НАРОЧНО и
+                    // ПЕРЕНОСЯТСЯ по ширине колонки: строка невязки с подрезкой показа
+                    // (`A300`), происшествия с числами (`AMBER118`/`AMBER123`,
+                    // `MakeMarkRowText`), предупреждение «нет матрицы» (`AMBER156`,
+                    // 1400 px в одну строку), а высоту перенесённых строк окно
+                    // пересчитывает само (`AMBER214`, `FitColumns`). Однострочная
+                    // мерка на этом дереве отказывала на двух ВЕРНО перенесённых
+                    // подписях — отжила. Новая мерка судит то, что видит человек:
+                    // при той ширине и высоте ячейки, какие таблица ей дала, и тем
+                    // переносом, каким её рисует `TextCellRenderer`, весь текст
+                    // помещается целыми строками (`LineLimit`: срезанная снизу строка —
+                    // тоже обрезка). Не поместилась — либо нет переноса, либо строка
+                    // ниже перенесённого текста; это и есть дефект `AMBER214`.
+                    int clipped = 0, keys = 0, trimmed = 0, multi = 0;
                     double widest = 0.0;
                     string widestText = string.Empty;
+                    int widestRow = -1;
                     using (Graphics g = report.CreateGraphics())
                     {
                         for (int i = rule; i < model.Rows.Count; i++)
                         {
-                            string text = model.Rows[i].Cells[0].Text ?? string.Empty;
+                            Cell cell = model.Rows[i].Cells[0];
+                            string text = cell.Text ?? string.Empty;
                             if (text.Length == 0) continue;
                             if (text.StartsWith("FSAReport_", StringComparison.Ordinal)) keys++;
                             if (text.EndsWith("…", StringComparison.Ordinal)) trimmed++;
-                            if (model.Rows[i].Cells[0].WordWrap || i == header) wrapped++;
-                            Font font = model.Rows[i].Cells[0].Font ?? report.Font;
+                            Font font = cell.Font ?? report.Font;
                             double w = g.MeasureString(text, font).Width;
-                            if (w > widest) { widest = w; widestText = text; }
-                            if (w > column) wide++;
-                            Console.WriteLine("  {0}: «{1}» = {2} px | {3}", lang, text,
-                                              w.ToString("F0", CultureInfo.InvariantCulture),
+                            Size box = TextBox(column, model.Rows[i].Height, cell);
+                            int lines;
+                            bool whole = Whole(g, text, font, box, cell.WordWrap, out lines);
+                            if (!whole) clipped++;
+                            if (lines > 1) multi++;
+                            if (w > widest) { widest = w; widestText = text; widestRow = i; }
+                            Console.WriteLine("  {0}: «{1}» = {2} px, ячейка {3}×{4}, перенос {5}, строк {6}{7} | {8}",
+                                              lang, text, w.ToString("F0", CultureInfo.InvariantCulture),
+                                              box.Width, box.Height, cell.WordWrap ? "да" : "нет", lines,
+                                              whole ? string.Empty : "  ⛔ НЕ ЦЕЛИКОМ",
                                               model.Rows[i].Cells[1].Text);
                         }
                     }
 
-                    Console.WriteLine("  {0}: самая широкая подпись «{1}» {2} px против колонки {3} px",
-                                      lang, widestText, widest.ToString("F0", CultureInfo.InvariantCulture), column);
+                    Console.WriteLine("  {0}: самая широкая подпись «{1}» {2} px против колонки {3} px; в несколько строк {4}",
+                                      lang, widestText, widest.ToString("F0", CultureInfo.InvariantCulture), column, multi);
                     Same(lang + ": ни одной подписи-ключа (resx прочитан)", 0, keys);
                     Same(lang + ": ни одной подписи с многоточием", 0, trimmed);
-                    Same(lang + ": все подписи блока помещаются в колонку", 0, wide);
+                    Same(lang + ": все подписи блока видны целиком (в строку или переносом)", 0, clipped);
 
-                    // Положительный контроль той же мерки: заведомо длинная
-                    // подпись в ту же колонку НЕ помещается.
+                    // ⛔ Положительный контроль той же мерки (`Whole`) — два входа,
+                    // на которых она ОБЯЗАНА отказать: самая широкая подпись блока
+                    // (а) в своей ячейке, но БЕЗ переноса — как рисовалась бы до
+                    // `A247`; (б) с переносом, но в строке ОДНОЙ высоты, как до
+                    // `AMBER214`. Если самая широкая помещается в строку вовсе (переносить
+                    // нечего), контроль (а) — заведомо длинная подпись.
                     using (Graphics g = report.CreateGraphics())
                     {
-                        string huge = new string('W', 120);
-                        Denies(lang + ": заведомо длинная подпись мерку не проходит",
-                               g.MeasureString(huge, report.Font).Width <= column);
+                        int lines;
+                        Cell cell = widestRow >= 0 ? model.Rows[widestRow].Cells[0] : null;
+                        Font font = cell != null && cell.Font != null ? cell.Font : report.Font;
+                        string sample = widest > column ? widestText : new string('W', 120);
+                        Size own = cell != null ? TextBox(column, model.Rows[widestRow].Height, cell)
+                                                : TextBox(column, model.RowHeight, new Cell(sample));
+                        Denies(lang + ": та же подпись без переноса мерку не проходит",
+                               Whole(g, sample, font, own, false, out lines));
+                        Size single = cell != null ? TextBox(column, model.RowHeight, cell)
+                                                   : TextBox(column, model.RowHeight, new Cell(sample));
+                        Denies(lang + ": та же подпись в строке одной высоты мерку не проходит",
+                               Whole(g, sample, font, single, true, out lines));
                     }
 
                     using (var shot = new Bitmap(panel, host.ClientSize.Height))
@@ -659,6 +703,54 @@ namespace FsaSelectionProbeF16
         // ==================================================================
         // Оснастка
         // ==================================================================
+
+        /// <summary>
+        /// Поле текста ячейки — тем же счётом, что <c>CellRenderer.ClientRectangle</c>
+        /// XPTable (`T269`): ширина колонки и высота строки без рамки в 1 px и без
+        /// отступов ячейки, слева ещё 1 px. Отступ слева у подписи с образцом —
+        /// место образца (`AMBER217`, 18 px).
+        /// </summary>
+        static Size TextBox(int columnWidth, int rowHeight, Cell cell)
+        {
+            const int border = 1;
+            CellPadding pad = cell.Padding;
+            return new Size(columnWidth - border - pad.Left - pad.Right - 1,
+                            rowHeight - border - pad.Top - pad.Bottom);
+        }
+
+        /// <summary>
+        /// Весь ли текст виден в поле ячейки так, как его рисует
+        /// <c>TextCellRenderer</c> (`T269`): без переноса — помещаются ли все знаки
+        /// в одну строку (тот же опрос GDI+, каким XPTable судит обрезку для
+        /// подсказки, `Renderer.IsTextTrimmed`); с переносом — помещается ли
+        /// перенесённый текст по высоте целыми строками. Допуск по высоте — 2 px:
+        /// XPTable сама кладёт в строку <c>⌈высота текста⌉</c>, а рисует в поле
+        /// на рамку (1 px) ниже, и полпикселя округления; пропажа целой строки
+        /// (≥ 13 px у шрифта окна) этим допуском не прячется.
+        /// </summary>
+        static bool Whole(Graphics g, string text, Font font, Size box, bool wrap, out int lines)
+        {
+            using (var format = new StringFormat())
+            {
+                format.LineAlignment = StringAlignment.Center;
+                format.Alignment = StringAlignment.Near;
+                format.Trimming = StringTrimming.EllipsisCharacter;
+                if (!wrap)
+                {
+                    format.FormatFlags |= StringFormatFlags.NoWrap;
+                }
+
+                int chars;
+                SizeF need = g.MeasureString(text, font, new SizeF(Math.Max(1, box.Width), 100000f),
+                                             format, out chars, out lines);
+                if (chars < text.Length)
+                {
+                    return false;
+                }
+
+                return !wrap || need.Height <= box.Height + 2.0f;
+            }
+        }
 
         static void Language(string name)
         {

@@ -1211,7 +1211,13 @@ namespace BecquerelMonitor
 
             if (fresh)
             {
-                header.Add("source: computed in the curve designer, NOT saved into the configuration");
+                // (П256, 14.10.2026) «Сохранён ли» — по СОДЕРЖИМОМУ конфигурации, а
+                // не одной строкой на все случаи: свежий расчёт остаётся в окне и
+                // после «Сохранить», и шапка выгрузки уверяла «NOT saved» о кривой,
+                // которая уже лежит в конфигурации точка в точку.
+                header.Add(this.LastResultIsInConfig()
+                    ? "source: computed in the curve designer, saved into the configuration"
+                    : "source: computed in the curve designer, NOT saved into the configuration");
                 header.Add("origin: " + EfficiencyOrigin.Simulation);
                 header.Add("stamp: " + (this.lastResult.ComputeStamp ?? ""));
             }
@@ -1240,6 +1246,44 @@ namespace BecquerelMonitor
             header.Add("exported: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", inv));
             header.Add("columns: E_keV = energy, keV; eps = full-energy peak efficiency; err_pct = relative error, %");
             return header;
+        }
+
+        /// <summary>
+        /// (П256) Лежит ли свежий расчёт окна в привязанной конфигурации ТЕМИ ЖЕ
+        /// точками и тем же клеймом — то есть сохранён ли он «Сохранить» и не
+        /// отброшен с клоном (<see cref="Rebind"/>). Сравнение по содержимому, а
+        /// не по признакам окна: признаки живут каждый своей жизнью (`dirty`
+        /// взводит и правка геометрии, `savedIntoBound` снимает перепривязка), а
+        /// вопрос шапки — о кривой.
+        /// </summary>
+        bool LastResultIsInConfig()
+        {
+            if (this.lastResult == null || !this.lastResult.Ok || this.boundConfig == null
+                || !this.boundConfig.HasCurve || this.lastResult.Curve == null)
+            {
+                return false;
+            }
+
+            List<ROIEfficiencyData> mine = this.lastResult.Curve;
+            List<ROIEfficiencyData> saved = this.boundConfig.Curve;
+            if (mine.Count != saved.Count
+                || !string.Equals(this.lastResult.ComputeStamp ?? "", this.boundConfig.ComputeStamp ?? "", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            for (int i = 0; i < mine.Count; i++)
+            {
+                if (mine[i] == null || saved[i] == null
+                    || !mine[i].Energy.Equals(saved[i].Energy)
+                    || !mine[i].Efficiency.Equals(saved[i].Efficiency)
+                    || !mine[i].ErrorPercent.Equals(saved[i].ErrorPercent))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>Имя файла по умолчанию — имя конфигурации без запрещённых знаков.</summary>

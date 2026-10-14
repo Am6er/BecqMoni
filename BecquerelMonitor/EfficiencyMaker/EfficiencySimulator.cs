@@ -9320,6 +9320,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.source.Retune(this, lowest);
             for (int i = 0; i < n; i++)
             {
+                // (П253) Опрос отмены — НА КАЖДОЙ точке, а не раз в 4096 историй, как у
+                // `PollCancel`: точка κ — это 2·(число энергий)·perPoint историй, около
+                // десяти миллисекунд, и 4096 точек были бы полминутой. Случайных чисел не
+                // тянет — поток розыгрышей и суммы побитово прежние.
+                if (this.PollCancellation != null)
+                {
+                    this.PollCancellation();
+                }
+
                 double x, y, z;
                 // (`E29`) Вес точки — ОДИН на все кванты из неё: он входит в
                 // накопители ОДНИМ множителем (`Accumulate`), а не в каждую

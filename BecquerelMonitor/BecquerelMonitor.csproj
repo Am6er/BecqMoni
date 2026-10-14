@@ -36,7 +36,7 @@
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
     <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2026.10.12.01</ApplicationVersion>
+    <ApplicationVersion>2026.10.13.01</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -1157,6 +1157,9 @@
       <DependentUpon>CalibrationGraph.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Utils\FWHMCalibrationGraph.resx">
+      <DependentUpon>FWHMCalibrationGraph.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Utils\FWHMCalibrationGraph.ru.resx">
       <DependentUpon>FWHMCalibrationGraph.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="WinMM\Properties\Resources.resx">

@@ -30,6 +30,90 @@ namespace BecquerelMonitor
         }
     }
 
+    // Which physical units this application is measuring (P257). HID hands every open handle its own
+    // copy of the frames, so Windows never refuses a second reader of the same unit: without this
+    // registry two device configurations with "(first found)" both took unit No. 1, two documents
+    // counted the same events and unit No. 2 stood idle. The registry is the application's own
+    // lock, as AmplitudaSerialDeviceController.activeBlocks is for the serial blocks.
+    // Key: AmplitudaUsbReader.BlockKey. Owner: the reader. One owner holds at most one key.
+    public sealed class AmplitudaUsbBlockLeases
+    {
+        // The registry of the measurements (AmplitudaUsbDeviceController). The Test button of the
+        // device form stays out of it: a three-second look at the stream writes no document.
+        public static readonly AmplitudaUsbBlockLeases Measurements = new AmplitudaUsbBlockLeases();
+
+        readonly object gate = new object();
+        readonly Dictionary<object, string> keyByOwner = new Dictionary<object, string>();
+
+        // Keys held by any owner other than this one (a snapshot).
+        public HashSet<string> HeldByOthers(object owner)
+        {
+            HashSet<string> held = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            lock (gate)
+            {
+                foreach (KeyValuePair<object, string> lease in keyByOwner)
+                {
+                    if (!ReferenceEquals(lease.Key, owner))
+                    {
+                        held.Add(lease.Value);
+                    }
+                }
+            }
+            return held;
+        }
+
+        // Moves the owner's lease to this key. exclusive: refused while another owner holds the key
+        // ("first found"); otherwise taken regardless (an explicit serial number, see SelectCandidates).
+        public bool TryTake(string key, object owner, bool exclusive)
+        {
+            lock (gate)
+            {
+                if (exclusive)
+                {
+                    foreach (KeyValuePair<object, string> lease in keyByOwner)
+                    {
+                        if (!ReferenceEquals(lease.Key, owner) && string.Equals(lease.Value, key, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return false;
+                        }
+                    }
+                }
+                keyByOwner[owner] = key;
+                return true;
+            }
+        }
+
+        // Idempotent.
+        public void Release(object owner)
+        {
+            lock (gate)
+            {
+                keyByOwner.Remove(owner);
+            }
+        }
+
+        // The key the owner holds, null when none.
+        public string KeyOf(object owner)
+        {
+            lock (gate)
+            {
+                string key;
+                return keyByOwner.TryGetValue(owner, out key) ? key : null;
+            }
+        }
+
+        public int Count
+        {
+            get
+            {
+                lock (gate)
+                {
+                    return keyByOwner.Count;
+                }
+            }
+        }
+    }
+
     // Reads list-mode input reports from one Amplituda USB HID device on a background thread.
     // Owns no UI: state and data are polled by the owner (TakeBatch, State, LastError).
     public sealed class AmplitudaUsbReader : IDisposable
@@ -38,6 +122,13 @@ namespace BecquerelMonitor
         public const int ErrorUnexpected = -2;
         public const int ErrorSilence = -3;
         const int ReadStopped = -4;
+        // "(first found)": units were found, but every one is already measured by another document (P257).
+        public const int ErrorAllInUse = -5;
+
+        // Seams for the tests (tools/AmplitudaUsbTests): the device list and the opening of a path.
+        // null in the application - FindDevices and CreateFile on the HID path.
+        internal delegate List<AmplitudaUsbDeviceInfo> FindHook();
+        internal delegate SafeFileHandle OpenHook(string path, out int error);
 
         const int SilenceTimeoutMs = 3000;      // the device sends ~91 frames per second, always
         const int ReconnectWindowMs = 10000;
@@ -56,6 +147,10 @@ namespace BecquerelMonitor
         readonly AmplitudaUsbAccumulator accumulator = new AmplitudaUsbAccumulator();
         readonly ManualResetEvent stopEvent = new ManualResetEvent(false);
         readonly ManualResetEvent ioEvent = new ManualResetEvent(false);
+        readonly AmplitudaUsbBlockLeases leases;    // null: neither takes nor respects leases (the form's Test)
+        readonly FindHook findHook;
+        readonly OpenHook openHook;
+        readonly object leaseGate = new object();
 
         string serialNumber;
         SafeFileHandle handle;                  // touched by the reader thread only, once it runs
@@ -64,14 +159,33 @@ namespace BecquerelMonitor
         IntPtr overlappedPtr = IntPtr.Zero;
         volatile int state = (int)AmplitudaUsbReaderState.Stopped;
         volatile int lastError;
+        bool leaseClosed;                       // under leaseGate: Stop/Dispose came, no lease may be taken
         bool disposed;
 
+        // A reader outside any lease registry: the Test button of the device form, the live smoke test.
         public AmplitudaUsbReader(int vendorId, int productId, string serialNumber, double deadMicrosPerEvent)
+            : this(vendorId, productId, serialNumber, deadMicrosPerEvent, null, null, null)
+        {
+        }
+
+        // A measurement: with an empty serial number the reader skips units other readers of the same
+        // registry hold, and holds the unit it opened until Stop / Dispose / the end of its thread (P257).
+        public AmplitudaUsbReader(int vendorId, int productId, string serialNumber, double deadMicrosPerEvent,
+            AmplitudaUsbBlockLeases leases)
+            : this(vendorId, productId, serialNumber, deadMicrosPerEvent, leases, null, null)
+        {
+        }
+
+        internal AmplitudaUsbReader(int vendorId, int productId, string serialNumber, double deadMicrosPerEvent,
+            AmplitudaUsbBlockLeases leases, FindHook findHook, OpenHook openHook)
         {
             this.vendorId = vendorId;
             this.productId = productId;
             this.serialNumber = serialNumber ?? "";
             this.deadMicrosPerEvent = deadMicrosPerEvent;
+            this.leases = leases;
+            this.findHook = findHook;
+            this.openHook = openHook;
         }
 
         public AmplitudaUsbReaderState State
@@ -93,6 +207,64 @@ namespace BecquerelMonitor
         public static bool IsBusyError(int error)
         {
             return error == HidNative.ERROR_ACCESS_DENIED || error == HidNative.ERROR_SHARING_VIOLATION;
+        }
+
+        // The key of a physical unit in the lease registry (P257): its USB serial number; a unit
+        // without one - its HID device path.
+        public static string BlockKey(AmplitudaUsbDeviceInfo device)
+        {
+            return string.IsNullOrEmpty(device.SerialNumber) ? "path:" + (device.Path ?? "") : "sn:" + device.SerialNumber;
+        }
+
+        // The units Open tries, in this order (P257).
+        // An explicit serial number: every unit with that number, held or not. Whether two documents may
+        // measure one unit named explicitly is Amber's decision, still open: the behaviour stays as it was.
+        // Empty ("first found"): every unit except those held elsewhere - by other readers of the registry;
+        // the reader's own unit is not in heldElsewhere, so its reconnect is never refused by its own lease.
+        // allHeld: units were found, and every one of them is held elsewhere.
+        public static List<AmplitudaUsbDeviceInfo> SelectCandidates(IList<AmplitudaUsbDeviceInfo> found,
+            string serialNumber, IEnumerable<string> heldElsewhere, out bool allHeld)
+        {
+            List<AmplitudaUsbDeviceInfo> result = new List<AmplitudaUsbDeviceInfo>();
+            allHeld = false;
+            if (found == null)
+            {
+                return result;
+            }
+            string wanted = serialNumber ?? "";
+            HashSet<string> held = heldElsewhere == null
+                ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                : new HashSet<string>(heldElsewhere, StringComparer.OrdinalIgnoreCase);
+            int skipped = 0;
+            foreach (AmplitudaUsbDeviceInfo device in found)
+            {
+                if (device == null)
+                {
+                    continue;
+                }
+                if (wanted.Length != 0)
+                {
+                    if (string.Equals(device.SerialNumber, wanted, StringComparison.OrdinalIgnoreCase))
+                    {
+                        result.Add(device);
+                    }
+                    continue;
+                }
+                if (held.Contains(BlockKey(device)))
+                {
+                    skipped++;
+                    continue;
+                }
+                result.Add(device);
+            }
+            allHeld = skipped > 0 && result.Count == 0;
+            return result;
+        }
+
+        // The unit this reader holds in its registry (BlockKey), null when none or outside a registry.
+        public string LeaseKey
+        {
+            get { return leases == null ? null : leases.KeyOf(this); }
         }
 
         public AmplitudaUsbBatch TakeBatch()
@@ -303,12 +475,17 @@ namespace BecquerelMonitor
                 error = ErrorUnexpected;
                 return false;
             }
+            lock (leaseGate)
+            {
+                leaseClosed = false;
+            }
             try
             {
                 handle = Open(out error);
                 if (handle == null)
                 {
                     lastError = error;
+                    ReleaseLease();
                     return false;
                 }
                 bufferPtr = Marshal.AllocHGlobal(AmplitudaUsbProtocol.ReportLength);
@@ -327,6 +504,7 @@ namespace BecquerelMonitor
                 lastError = error;
                 CloseHandle();
                 FreeNative();
+                ReleaseLease();
                 state = (int)AmplitudaUsbReaderState.Stopped;
                 return false;
             }
@@ -335,22 +513,42 @@ namespace BecquerelMonitor
         // With an empty serial number ("first found") a unit that refuses to open - held by another
         // program - does not end the search: the next connected unit is tried (A316). The error of the
         // last refusal is returned only when no unit opened at all.
+        // Within a lease registry "first found" also skips the units other documents of this application
+        // measure, and takes the lease of the unit it opened (P257); ErrorAllInUse when every unit found
+        // is held. An explicit serial number opens its unit held or not, as before, and takes the lease
+        // too - so that a "first found" reader skips that unit. A reconnect keeps the reader's own lease.
         SafeFileHandle Open(out int error)
         {
             error = ErrorDeviceNotFound;
-            foreach (AmplitudaUsbDeviceInfo device in FindDevices(vendorId, productId))
+            List<AmplitudaUsbDeviceInfo> found = findHook != null ? findHook() : FindDevices(vendorId, productId);
+            bool firstFound = serialNumber.Length == 0;
+            bool allHeld;
+            List<AmplitudaUsbDeviceInfo> candidates = SelectCandidates(found, serialNumber,
+                leases == null ? null : leases.HeldByOthers(this), out allHeld);
+            if (allHeld)
             {
-                if (serialNumber.Length != 0 && !string.Equals(device.SerialNumber, serialNumber, StringComparison.OrdinalIgnoreCase))
+                error = ErrorAllInUse;
+                return null;
+            }
+            foreach (AmplitudaUsbDeviceInfo device in candidates)
+            {
+                int openError;
+                SafeFileHandle opened = openHook != null ? openHook(device.Path, out openError) : OpenPath(device.Path, out openError);
+                if (opened == null || opened.IsInvalid)
                 {
+                    error = openError;
+                    if (opened != null)
+                    {
+                        opened.Dispose();
+                    }
                     continue;
                 }
-                SafeFileHandle opened = HidNative.CreateFile(device.Path, HidNative.GENERIC_READ,
-                    HidNative.FILE_SHARE_READ | HidNative.FILE_SHARE_WRITE, IntPtr.Zero, HidNative.OPEN_EXISTING,
-                    HidNative.FILE_FLAG_OVERLAPPED, IntPtr.Zero);
-                if (opened.IsInvalid)
+                // Taken only with the handle in hand, and checked again: another document may have taken
+                // the unit since the list was made. A lost race closes the handle before any read.
+                if (!TakeLease(BlockKey(device), firstFound))
                 {
-                    error = Marshal.GetLastWin32Error();
                     opened.Dispose();
+                    error = ErrorAllInUse;
                     continue;
                 }
                 // Best effort: a deeper queue survives a stalled PC, a flush drops frames from before Start.
@@ -361,6 +559,55 @@ namespace BecquerelMonitor
                 return opened;
             }
             return null;
+        }
+
+        static SafeFileHandle OpenPath(string path, out int error)
+        {
+            SafeFileHandle opened = HidNative.CreateFile(path, HidNative.GENERIC_READ,
+                HidNative.FILE_SHARE_READ | HidNative.FILE_SHARE_WRITE, IntPtr.Zero, HidNative.OPEN_EXISTING,
+                HidNative.FILE_FLAG_OVERLAPPED, IntPtr.Zero);
+            error = opened.IsInvalid ? Marshal.GetLastWin32Error() : 0;
+            return opened;
+        }
+
+        // Moves this reader's lease to the unit (see AmplitudaUsbBlockLeases.TryTake). Refused once
+        // Stop / Dispose came: a thread still inside Open must not take the unit back.
+        bool TakeLease(string key, bool exclusive)
+        {
+            if (leases == null)
+            {
+                return true;
+            }
+            lock (leaseGate)
+            {
+                return !leaseClosed && leases.TryTake(key, this, exclusive);
+            }
+        }
+
+        // Idempotent: the end of the reader thread, a refused Start.
+        void ReleaseLease()
+        {
+            if (leases == null)
+            {
+                return;
+            }
+            lock (leaseGate)
+            {
+                leases.Release(this);
+            }
+        }
+
+        // Idempotent: Stop and Dispose. Also after a stuck thread - leak the buffers, never the unit.
+        void CloseLease()
+        {
+            lock (leaseGate)
+            {
+                leaseClosed = true;
+                if (leases != null)
+                {
+                    leases.Release(this);
+                }
+            }
         }
 
         void Run()
@@ -443,6 +690,7 @@ namespace BecquerelMonitor
             finally
             {
                 CloseHandle();
+                ReleaseLease();     // a failed reader reads nothing more: the unit is free for another document
             }
         }
 
@@ -502,10 +750,13 @@ namespace BecquerelMonitor
             Thread running = thread;
             if (running == null)
             {
+                CloseLease();
                 return;
             }
             stopEvent.Set();
-            if (!running.Join(JoinTimeoutMs))
+            bool joined = running.Join(JoinTimeoutMs);
+            CloseLease();
+            if (!joined)
             {
                 // Stuck thread: keep the reference (so Start refuses to run a second thread on the same
                 // buffers) and keep the native buffers - leak rather than corrupt.

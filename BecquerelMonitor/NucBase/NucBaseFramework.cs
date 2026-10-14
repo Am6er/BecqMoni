@@ -175,7 +175,9 @@ namespace BecquerelMonitor.NucBase
             }
 
             NucBaseFramework fw = new NucBaseFramework();
-            Nuclide nuc = fw.getNuclude(nucid);
+            // (П266) Только строка периода: дочерние и родители карточки (правило ряда,
+            // ~8 мс на нуклид) периоду не нужны.
+            Nuclide nuc = fw.ReadNuclide(nucid, false);
             if (nuc == null && fw.LastError != null)
             {
                 return 0.0;
@@ -202,6 +204,15 @@ namespace BecquerelMonitor.NucBase
         static readonly Dictionary<string, double> HalfLifeCache = new Dictionary<string, double>(StringComparer.Ordinal);
 
         public Nuclide getNuclude(string nucname)
+        {
+            return ReadNuclide(nucname, true);
+        }
+
+        /// <summary>
+        /// Строка нуклида; <paramref name="withChain"/> — с дочерними и родителями
+        /// карточки (<see cref="DaughtersByRule"/>, <see cref="ParentsByRule"/>).
+        /// </summary>
+        Nuclide ReadNuclide(string nucname, bool withChain)
         {
             this.LastError = null;
             // ⛔ СОЕДИНЕНИЕ СОЗДАЁТСЯ ВНУТРИ `try`, И ЭТО НЕ ОПРЯТНОСТЬ (`D46`).
@@ -232,9 +243,15 @@ namespace BecquerelMonitor.NucBase
                 // ничего. Признака нет — читается прежний запрос, показ
                 // прежний.
                 bool hasLimit = HasColumn(db, "nuclides", "half_life_is_limit");
+                // ⛔ (П266, 14.10.2026) Строка — НИЖНЕГО уровня (`order by l_seqno`), как у
+                // `FsaSampleLibrary.TryHalfLifeSeconds` и у запасного выбора `PickHalfLife`.
+                // `nucid` в `nuclides` не уникален (`144TBm` — уровни 4, 6, 7: 4.25 с, 2.8 мкс,
+                // 0.67 мкс), и без порядка карточка и период корня (`HalfLifeYearsOf`) брали
+                // строку, какую отдаст база: замер `DecayDataProbeP266` — у `144TBm` 0.67 мкс
+                // вместо 4.25 с. У остальных 4245 `nucid` строка одна, ответ побитово прежний.
                 SqliteDataReader reader = db.ReadData("select z, n, ifnull(half_life, '?'), ifnull(half_life_unit, ''), ifnull(half_life_sec, 0), ifnull(abundance, 0), "
                                                       + (hasLimit ? "ifnull(half_life_is_limit, 0)" : "0")
-                                                      + " from nuclides where nucid = $n and half_life not null",
+                                                      + " from nuclides where nucid = $n and half_life not null order by l_seqno",
                                                       DataBase.Param("$n", nucname));
                 if (!reader.Read())
                 {
@@ -260,27 +277,32 @@ namespace BecquerelMonitor.NucBase
                 // `GetInt32` на «1» строкой бросил бы. Читается значением.
                 nuc.HalfLifeIsLimit = !reader.IsDBNull(6)
                     && Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture) != 0;
+                reader.Close();
 
-                reader = db.ReadData("select daughter_nucid, ifnull(perc, '?'), dec_type from decay_chain where nucid = $n",
-                                     DataBase.Param("$n", nucname));
-                while (reader.Read())
+                // ⛔ (П266, 14.10.2026) ДОЧЕРНИЕ И РОДИТЕЛИ — ПО ПРАВИЛУ РЯДА ПРОЕКТА, а не
+                // «как есть». Здесь читалась голая `decay_chain` всех уровней сразу, без
+                // колонки уровня на экране, и карточка показывала ветвления ВОЗБУЖДЁННЫХ
+                // уровней и изомеров рядом с распадом самого нуклида: Bi-212 → Tl-208 35.94 %
+                // И 67 %, Po-212 64.06 % И 33 % И 25 %; Eu-152 → Gd-152 27.92 % И 73 % (это
+                // Eu-152m1, 9.3 ч), Eu-152 → Eu-152 IT 100 % (Eu-152m2); Co-60 → Co-60 IT
+                // 99.75 % (Co-60m); U-238 → U-238 IT 97.4 % (уровень 119). Строки — правилом,
+                // которым ряд строят обходы (`GetChainBranches`, `FsaSampleLibrary.ChainBranches`):
+                // источник `DecayParentRule.ChainTable`, зажим `ChainLevelClause`, доля
+                // `ChainPercColumn` (у канала «β⁺» — доля ветви, а не позитронов), петли
+                // `дочь = сам нуклид` сняты, как их снимают обходы. Второго правила «что такое
+                // распад этого нуклида» в проекте быть не должно (`A218`). Доля «?» — у строки
+                // без числа, как прежде.
+                if (withChain)
                 {
-                    Decay dec = new Decay();
-                    dec.NucName = reader.GetString(0);
-                    dec.DecayPercent = reader.GetString(1);
-                    dec.DecayType = Integer(reader.GetString(2));
-                    nuc.Daughters.Add(dec);
-                }
+                    foreach (Decay daughter in DaughtersByRule(db, nucname))
+                    {
+                        nuc.Daughters.Add(daughter);
+                    }
 
-                reader = db.ReadData("select nucid, ifnull(perc, '?'), dec_type from decay_chain where daughter_nucid = $n",
-                                     DataBase.Param("$n", nucname));
-                while (reader.Read())
-                {
-                    Decay dec = new Decay();
-                    dec.NucName = reader.GetString(0);
-                    dec.DecayPercent = reader.GetString(1);
-                    dec.DecayType = Integer(reader.GetString(2));
-                    nuc.Parents.Add(dec);
+                    foreach (Decay parent in ParentsByRule(db, nucname))
+                    {
+                        nuc.Parents.Add(parent);
+                    }
                 }
             }
             catch (Exception ex)
@@ -304,6 +326,103 @@ namespace BecquerelMonitor.NucBase
             }
 
             return nuc;
+        }
+
+        /// <summary>
+        /// (П266) Дочерние нуклида для карточки — правилом ряда проекта
+        /// (`DecayParentRule.ChainTable` + `ChainLevelClause` + `ChainPercColumn`), без
+        /// петель «дочь = сам нуклид». Довод — в <see cref="getNuclude"/>.
+        /// </summary>
+        static List<Decay> DaughtersByRule(DataBase db, string nucid)
+        {
+            var list = new List<Decay>();
+            SqliteDataReader reader = db.ReadData(
+                "select daughter_nucid," + DecayParentRule.ChainPercColumn + ", dec_type"
+                + " from" + DecayParentRule.ChainTable + " d where nucid = $n"
+                + DecayParentRule.ChainLevelClause,
+                DataBase.Param("$n", nucid));
+            while (reader.Read())
+            {
+                string daughter = Text(reader, 0);
+                if (daughter.Length == 0 || string.Equals(daughter, nucid, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                list.Add(new Decay
+                {
+                    NucName = daughter,
+                    DecayPercent = PercentText(reader.IsDBNull(1) ? null : reader.GetValue(1)),
+                    DecayType = Integer(reader.IsDBNull(2)
+                        ? "" : Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture))
+                });
+            }
+
+            reader.Close();
+            return list;
+        }
+
+        /// <summary>
+        /// (П266) Родители нуклида для карточки: кто распадается В него по тому же
+        /// правилу ряда. Доля берётся из дочерних КАЖДОГО родителя
+        /// (<see cref="DaughtersByRule"/>): у `ChainPercColumn` окно `over ()` — строки
+        /// одного родителя, и общим запросом по всем родителям её не посчитать.
+        /// </summary>
+        static List<Decay> ParentsByRule(DataBase db, string nucid)
+        {
+            var parents = new List<string>();
+            SqliteDataReader reader = db.ReadData(
+                "select distinct nucid from" + DecayParentRule.ChainTable + " d"
+                + " where daughter_nucid = $n and nucid <> daughter_nucid"
+                + DecayParentRule.ChainLevelClause,
+                DataBase.Param("$n", nucid));
+            while (reader.Read())
+            {
+                string parent = Text(reader, 0);
+                if (parent.Length > 0 && !parents.Contains(parent))
+                {
+                    parents.Add(parent);
+                }
+            }
+
+            reader.Close();
+            var list = new List<Decay>();
+            foreach (string parent in parents)
+            {
+                foreach (Decay edge in DaughtersByRule(db, parent))
+                {
+                    if (string.Equals(edge.NucName, nucid, StringComparison.OrdinalIgnoreCase))
+                    {
+                        list.Add(new Decay { NucName = parent, DecayPercent = edge.DecayPercent, DecayType = edge.DecayType });
+                    }
+                }
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// Доля ветви текстом для карточки: «?» — числа нет; текст поставки — как
+        /// записан («35.94», «1.9E-6»); число (строка, достроенная или пересчитанная
+        /// правилом) — инвариантной культурой, шесть значащих цифр.
+        /// </summary>
+        static string PercentText(object value)
+        {
+            if (value == null || value is DBNull)
+            {
+                return "?";
+            }
+
+            string text = value as string;
+            if (text != null)
+            {
+                return text.Trim().Length == 0 ? "?" : text;
+            }
+
+            double number;
+            return DecayParentRule.TryPercent(value, out number)
+                ? number.ToString("G6", CultureInfo.InvariantCulture)
+                : Convert.ToString(value, CultureInfo.InvariantCulture);
         }
 
         /// <summary>
@@ -558,8 +677,48 @@ namespace BecquerelMonitor.NucBase
                 return "";
             }
 
-            string text = (nuc.HalfLife ?? "") + " " + (nuc.HalfLifeUOM ?? "");
+            // (П275, 14.10.2026) Число — как в базе, единица и слово «STABLE» —
+            // на языке интерфейса (`HalfLifeUnitCaption`): по-русски карточка
+            // писала «60.55 m» латиницей (П273, снимок `22b_zoom.png`).
+            // По-английски подпись побайтно прежняя.
+            string value = nuc.HalfLife ?? "";
+            if (string.Equals(value, StableHalfLife, StringComparison.OrdinalIgnoreCase))
+            {
+                value = Resources.NucBase_HalfLifeStable;
+            }
+
+            string text = value + " " + HalfLifeUnitCaption(nuc.HalfLifeUOM ?? "");
             return nuc.HalfLifeIsLimit ? LimitMark + text : text;
+        }
+
+        /// <summary>Строка периода стабильного нуклида в `nuclides.half_life` (244 нуклида).</summary>
+        public const string StableHalfLife = "STABLE";
+
+        /// <summary>
+        /// (П275, 14.10.2026) Подпись единицы периода на языке интерфейса по коду
+        /// базы (`nuclides.half_life_unit`: ns, us, ms, s, m, h, d, Y — других в
+        /// поставке нет, счётом по базе 14.10.2026). По-английски — сам код, как
+        /// показывалось и прежде; по-русски — «нс … лет» (образец «лет» — поле
+        /// периода редактора нуклидов). Незнакомый код показывается как есть.
+        ///
+        /// ⚠ Только для ПОКАЗА. Разбор периода (<c>NucBase.HalfLifeYearsFromCell</c>,
+        /// <c>ConvertHalfLifeToSeconds</c>) понимает код базы, и переведённая подпись
+        /// туда попадать не должна.
+        /// </summary>
+        public static string HalfLifeUnitCaption(string unit)
+        {
+            switch (unit)
+            {
+                case "ns": return Resources.NucBase_UnitNs;
+                case "us": return Resources.NucBase_UnitUs;
+                case "ms": return Resources.NucBase_UnitMs;
+                case "s": return Resources.NucBase_UnitS;
+                case "m": return Resources.NucBase_UnitMin;
+                case "h": return Resources.NucBase_UnitH;
+                case "d": return Resources.NucBase_UnitD;
+                case "Y": return Resources.NucBase_UnitY;
+                default: return unit ?? "";
+            }
         }
 
         /// <summary>

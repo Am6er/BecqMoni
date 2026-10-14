@@ -8,7 +8,8 @@ namespace BecquerelMonitor
 {
     // Measurement life cycle for the Amplituda USB list-mode spectrometer.
     //
-    // The controller owns its HID reader (no per-GUID static registry), and it PULLS data:
+    // The controller owns its HID reader (no per-GUID static registry; the one static thing is the
+    // per-UNIT lease, AmplitudaUsbBlockLeases.Measurements, P257), and it PULLS data:
     // a UI-thread timer takes the batch accumulated by the reader thread. Existing controllers
     // receive transport events and Post them to the UI thread; that is harmless for them because
     // every event carries a complete histogram. Here data arrives as increments, and a Post
@@ -55,6 +56,19 @@ namespace BecquerelMonitor
             if (AmplitudaUsbReader.IsBusyError(error))
             {
                 return Resources.ERRAmplitudaUsbBusy;
+            }
+            if (error == AmplitudaUsbReader.ErrorAllInUse)
+            {
+                // P257. The key is added to Resources.resx / Resources.ru.resx by the coordinator (the
+                // shared resource files belong to no lane); until then - the English text.
+                string text = Resources.ResourceManager.GetString("ERRAmplitudaUsbAllInUse", Resources.Culture);
+                if (string.IsNullOrEmpty(text))
+                {
+                    text = "Every connected Amplituda USB device is already being measured in another document "
+                           + "(a device configuration with \"(first found)\" skips such devices). "
+                           + "Connect another device or stop one of those measurements first.";
+                }
+                return text;
             }
             return string.Format(CultureInfo.InvariantCulture, Resources.ERRAmplitudaUsbOpenFailed, error);
         }
@@ -138,8 +152,11 @@ namespace BecquerelMonitor
             }
 
             ReleaseReader();
+            // In the measurement registry (P257): with "(first found)" the reader skips units other
+            // documents measure. Its lease goes with the reader - every path here that ends a session
+            // ends in ReleaseReader (reader.Dispose), and a failed reader thread frees it itself.
             AmplitudaUsbReader newReader = new AmplitudaUsbReader(config.VendorId, config.ProductId,
-                config.SerialNumber, timing.DeadTimeMicroseconds);
+                config.SerialNumber, timing.DeadTimeMicroseconds, AmplitudaUsbBlockLeases.Measurements);
             int error;
             if (!newReader.Start(out error))
             {

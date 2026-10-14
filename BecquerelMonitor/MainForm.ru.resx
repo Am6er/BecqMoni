@@ -271,7 +271,7 @@
     <value>Автосохранение спектра</value>
   </data>
   <data name="NormalizeSpectrumStripMenuItem.Text" xml:space="preserve">
-    <value>Нормализовать спектр по ROI</value>
+    <value>Нормализовать спектр по эффективности</value>
   </data>
   <data name="exportBgToolStripMenuItem.Text" xml:space="preserve">
     <value>Экспортировать спектр фона в файл</value>

@@ -325,19 +325,26 @@ namespace BecquerelMonitor.Utils
             return null;
         }
 
+        /// <summary>
+        /// Средний квадрат невязки шкалы на опорах, кэВ².
+        ///
+        /// ⛔ (П265, 14.10.2026) Полином считается ПРЯМО по коэффициентам
+        /// (<see cref="Poly"/>), а не через <c>ChannelToEnergy</c> свежего
+        /// объекта: тот зажимает канал своим пределом <c>maxChannels</c>, а у
+        /// нового объекта он — умолчание 8192. На спектре больше 8192 каналов
+        /// опора выше 8192 читалась энергией канала 8192, и строка состояния
+        /// панели калибровки и график калибровки печатали СКО точной прямой
+        /// 193345 кэВ² вместо нуля (замер `SpectrumPhysicsProbeP265 --arm=cal`).
+        /// Опоры лежат внутри шкалы, зажим им не нужен.
+        /// </summary>
         public static double MSE(double[] coefficients, List<CalibrationPoint> points)
         {
             try
             {
-                PolynomialEnergyCalibration pol = new PolynomialEnergyCalibration
-                {
-                    Coefficients = coefficients,
-                    PolynomialOrder = coefficients.Length - 1
-                };
                 double retvalue = 0.0;
                 foreach (CalibrationPoint point in points)
                 {
-                    retvalue += Math.Pow(pol.ChannelToEnergy(point.Channel) - (double)point.Energy, 2);
+                    retvalue += Math.Pow(Poly(coefficients, point.Channel) - (double)point.Energy, 2);
                 }
                 retvalue /= points.Count;
                 return retvalue;
@@ -373,16 +380,12 @@ namespace BecquerelMonitor.Utils
                 double retvalue = 0.0;
                 double max_count = points.Max(point => point.Count);
                 double weight_sum = 0.0;
-                PolynomialEnergyCalibration pol = new PolynomialEnergyCalibration
-                {
-                    Coefficients = coefficients,
-                    PolynomialOrder = coefficients.Length - 1
-                };
                 for (int i = 0; i < points.Count; i++)
                 {
                     double weight = Math.Sqrt((double)points[i].Count / max_count);
                     weight_sum += weight;
-                    retvalue += weight * Math.Pow(pol.ChannelToEnergy(points[i].Channel) - (double)points[i].Energy, 2);
+                    // (П265) прямо по коэффициентам — см. MSE выше: без зажима 8192.
+                    retvalue += weight * Math.Pow(Poly(coefficients, points[i].Channel) - (double)points[i].Energy, 2);
                 }
                 // Weighted mean = sum(w*e^2) / sum(w). Dividing additionally by points.Count
                 // understated the value by a factor of N.

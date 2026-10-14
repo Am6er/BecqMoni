@@ -131,10 +131,29 @@ namespace BecquerelMonitor
         {
             get
             {
-                return this.gpuCheck != null && this.gpuCheck.Checked
-                       && this.gpuProbe != null && this.gpuProbe.Available;
+                return this.gpuCheck != null && this.gpuCheck.Checked && this.GpuUsable;
             }
         }
+
+        /// <summary>
+        /// GPU-путь годен для ЭТОГО окна: устройство и библиотека годны
+        /// (<see cref="RmGpu.Probe"/>) И порт умеет сцену геометрии
+        /// (<see cref="GpuPack.SceneProblem"/>, П253).
+        /// </summary>
+        bool GpuUsable
+        {
+            get
+            {
+                return this.gpuProbe != null && this.gpuProbe.Available && this.gpuSceneProblem == null;
+            }
+        }
+
+        /// <summary>
+        /// (П253) Чего GPU-порт не умеет в сцене этой геометрии; null — умеет. Снимается
+        /// при открытии вместе с годностью устройства: геометрия окна за его жизнь не
+        /// меняется (счёт берёт её клон из той же конфигурации).
+        /// </summary>
+        string gpuSceneProblem;
 
         /// <summary>
         /// (`AMBER219`) Годность GPU при открытии окна: негодная галка снята и
@@ -150,8 +169,28 @@ namespace BecquerelMonitor
         void ProbeGpu()
         {
             this.gpuProbe = RmGpu.Probe(RmGpu.DefaultPath);
+            // ⛔ (П253, 14.10.2026) Сцена, которую GPU-порт не умеет (изотропное поле ISO),
+            // — тот же «критерий расчёта не удовлетворён», что и негодное устройство
+            // (постановка `AMBER219`: «галка недоступна к выбору и ToolTip с объяснением
+            // причины»). Прежде галка оставалась годной, и счёт отказывал уже ПОСЛЕ
+            // нажатия «Посчитать» — внутренним русским текстом упаковщика в английском
+            // окне, а таблица κ пар на ЦП при этом продолжала считать в фоне (замер П253).
+            this.gpuSceneProblem = this.config != null && this.config.HasGeometry
+                ? GpuPack.SceneProblem(this.config.Geometry, this.CurrentOptions())
+                : null;
             string tip;
-            if (this.gpuProbe.Available)
+            if (this.gpuProbe.Available && this.gpuSceneProblem != null)
+            {
+                // Ключ ресурса заводит распорядитель (общий `Resources.resx` занят другой
+                // полосой); до того — английский текст, как у `ResponseMatrixCloseUnsaved`.
+                tip = Resources.ResourceManager.GetString("ResponseMatrixGpuSceneIso", Resources.Culture);
+                if (string.IsNullOrEmpty(tip))
+                {
+                    tip = "Not available for this geometry: the isotropic field (ISO) scene is not ported to the GPU. "
+                          + "The matrix is computed on the CPU.";
+                }
+            }
+            else if (this.gpuProbe.Available)
             {
                 tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuReady,
                                     this.gpuProbe.DeviceName,
@@ -197,8 +236,8 @@ namespace BecquerelMonitor
             this.gpuTip.SetToolTip(this.gpuCheck, tip);
             // Негодная галка остаётся живой для мыши (ради подсказки), но
             // рисуется выключенной и не переключается — `GpuCheckBox`.
-            this.gpuCheck.Unavailable = !this.gpuProbe.Available;
-            if (this.gpuProbe.Available)
+            this.gpuCheck.Unavailable = !this.GpuUsable;
+            if (this.GpuUsable)
             {
                 GlobalConfigManager manager = GlobalConfigManager.GetInstance();
                 this.gpuCheck.Checked = manager != null && manager.GlobalConfig != null
@@ -226,7 +265,7 @@ namespace BecquerelMonitor
         /// </summary>
         void GpuCheckChanged(object sender, EventArgs e)
         {
-            if (this.gpuProbe == null || !this.gpuProbe.Available)
+            if (!this.GpuUsable)
             {
                 return;
             }

@@ -50,6 +50,40 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (П263, 14.10.2026) Признак «элемент &lt;Time&gt; БЫЛ в прочитанном файле» —
+        /// по соглашению <c>XmlSerializer</c> о члене <c>…Specified</c>: при чтении
+        /// сериализатор ставит его в true, только если элемент встретился. Запись не
+        /// меняется — геттер всегда true, элемент пишется как прежде. Без признака
+        /// отсутствие времени неотличимо от «сейчас» (умолчание поля ниже), и
+        /// открытие документа принимало момент открытия за время пробы
+        /// (<c>DocumentManager.FillAbsentTimes</c>).
+        /// </summary>
+        [System.Xml.Serialization.XmlIgnore]
+        public bool TimeSpecified
+        {
+            get
+            {
+                return true;
+            }
+            set
+            {
+                this.timeInFile = value;
+            }
+        }
+
+        /// <summary>(П263) Время пробы прочитано из файла (см. <see cref="TimeSpecified"/>).</summary>
+        [System.Xml.Serialization.XmlIgnore]
+        public bool TimeInFile
+        {
+            get
+            {
+                return this.timeInFile;
+            }
+        }
+
+        bool timeInFile;
+
         // Token: 0x1700002A RID: 42
         // (get) Token: 0x06000071 RID: 113 RVA: 0x00002B08 File Offset: 0x00000D08
         // (set) Token: 0x06000072 RID: 114 RVA: 0x00002B10 File Offset: 0x00000D10

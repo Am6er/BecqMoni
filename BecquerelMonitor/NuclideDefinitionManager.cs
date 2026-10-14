@@ -312,26 +312,32 @@ namespace BecquerelMonitor
         // Token: 0x06000936 RID: 2358 RVA: 0x000358F4 File Offset: 0x00033AF4
         void InitializeNuclideDefinitionFile()
         {
+            // (П266, 14.10.2026) Энергии и периоды заготовки — из `nucdb` (NuDat 3), а не
+            // круглые числа исходной программы: линия Cs-134 стояла на 798.0 кэВ, где линии
+            // нет вовсе (сильные — 795.864 и 801.95, у германия поиск пиков с таким
+            // определением 796-й не подписывал), K-40 — 1.277·10⁹ лет против 1.248·10⁹.
+            // Годы — те же, что пишет импорт NucBase (`HalfLifeYearsFromCell`): у всех трёх
+            // нуклидов база держит период в годах, и число переносится как есть.
             this.nuclideDefinitionFile.NuclideDefinitions.Clear();
             NuclideDefinition nuclideDefinition = new NuclideDefinition();
             nuclideDefinition.Name = "Cs134";
-            nuclideDefinition.Energy = 605.0;
-            nuclideDefinition.HalfLife = 2.0648;
+            nuclideDefinition.Energy = 604.721;
+            nuclideDefinition.HalfLife = 2.0652;
             this.nuclideDefinitionFile.NuclideDefinitions.Add(nuclideDefinition);
             NuclideDefinition nuclideDefinition2 = new NuclideDefinition();
             nuclideDefinition2.Name = "Cs137";
-            nuclideDefinition2.Energy = 662.0;
-            nuclideDefinition2.HalfLife = 30.07;
+            nuclideDefinition2.Energy = 661.657;
+            nuclideDefinition2.HalfLife = 30.08;
             this.nuclideDefinitionFile.NuclideDefinitions.Add(nuclideDefinition2);
             NuclideDefinition nuclideDefinition3 = new NuclideDefinition();
             nuclideDefinition3.Name = "Cs134";
-            nuclideDefinition3.Energy = 798.0;
-            nuclideDefinition3.HalfLife = 2.0648;
+            nuclideDefinition3.Energy = 795.864;
+            nuclideDefinition3.HalfLife = 2.0652;
             this.nuclideDefinitionFile.NuclideDefinitions.Add(nuclideDefinition3);
             NuclideDefinition nuclideDefinition4 = new NuclideDefinition();
             nuclideDefinition4.Name = "K40";
-            nuclideDefinition4.Energy = 1460.0;
-            nuclideDefinition4.HalfLife = 1277000000.0;
+            nuclideDefinition4.Energy = 1460.82;
+            nuclideDefinition4.HalfLife = 1.248E+9;
             this.nuclideDefinitionFile.NuclideDefinitions.Add(nuclideDefinition4);
         }
 

@@ -81,6 +81,65 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Прибор с этим `guid` пишет ДРУГОЙ спектр — аренда у контроллера, а
+        /// не у <paramref name="self"/>.
+        ///
+        /// ⛔ П267 (14.10.2026). Экземпляр прибора (<c>AtomSpectraVCPIn</c>,
+        /// <c>RadiaCodeIn</c>, <c>ObsidianIn</c>) один на `guid` конфигурации, и
+        /// контроллер остановленного спектра остаётся на него подписан. «Очистить»
+        /// на таком спектре слал прибору сброс НАКОПИТЕЛЯ — того самого, который в
+        /// этот миг набирает другой спектр: AtomSpectra — всегда, RadiaCode и
+        /// Obsidian — по статусу «Recording», который остановленный слышит от
+        /// чужого набора. Идущий набор терял всё набранное, без слова. Читатель —
+        /// <c>ClearMeasurementResult</c> трёх контроллеров: при чужой аренде
+        /// очищается только документ, прибор не трогается.
+        ///
+        /// ⚠ Только чтение, как <see cref="IsDeviceBusy"/>.
+        /// </summary>
+        internal static bool IsDeviceLeasedByOther(string guid, MeasurementController self)
+        {
+            if (string.IsNullOrEmpty(guid))
+            {
+                return false;
+            }
+            lock (deviceLeaseLock)
+            {
+                MeasurementController owner;
+                return deviceLeases.TryGetValue(guid, out owner) && owner != self;
+            }
+        }
+
+        /// <summary>
+        /// Время спектра — полное и живое — из полного времени
+        /// <paramref name="measurementSeconds"/>. Одно правило на два места: такт
+        /// <see cref="OnTimer"/> и <c>update_hystogram</c> приборов, отдающих
+        /// накопленную гистограмму целиком (AtomSpectra, RadiaCode, Obsidian).
+        ///
+        /// ⛔ П267 (14.10.2026). Эти приборы кладут отсчёты в спектр из
+        /// <c>update_hystogram</c> (поток окон, через <c>Post</c>), а время
+        /// спектра ставил только такт (100 мс). «Стоп», нажатый между пакетом и
+        /// тактом, оставлял в файле отсчёты пакета N со временем пакета N−1:
+        /// скорость счёта и Бк завышены на долю одного пакета (раз в 1–2 с; набор
+        /// 60 с — до +2–3 %), а после «Стопа» такт спектр уже не обслуживает.
+        /// Теперь время пишется вместе с отсчётами того же пакета.
+        ///
+        /// <paramref name="liveFromDevice"/> — живое время меряет сам прибор
+        /// (<see cref="IDeviceLiveTimeSource"/>): его не трогать.
+        /// </summary>
+        internal static void SetSpectrumTimes(EnergySpectrum spectrum, double measurementSeconds,
+                                              DeviceConfigInfo deviceConfig, bool liveFromDevice)
+        {
+            spectrum.MeasurementTime = measurementSeconds;
+            if (!liveFromDevice)
+            {
+                // Без подстановки: конфигурация прибора у идущего набора есть
+                // всегда (её требует старт), и такт брал её так же, без сторожа.
+                spectrum.LiveTime = Utils.LiveTime.Calculate(spectrum.MeasurementTime, spectrum.TotalPulseCount,
+                                                             deviceConfig.InputDeviceConfig.DeadTime());
+            }
+        }
+
         // Idempotent lease release for teardown paths (document close / spectrum delete).
         // The lease used to be released only from StopRecording()/DetachFromDevice(), both
         // of which the close/delete callers skip once ResultDataStatus.Recording has been
@@ -513,14 +572,10 @@ namespace BecquerelMonitor
                 {
                     resultDataStatus.ElapsedTime = DateTime.Now - this.resultData.StartTime + resultDataStatus.TotalTime;
                 }
-                this.resultData.EnergySpectrum.MeasurementTime = resultDataStatus.ElapsedTime.TotalSeconds;
                 // A device that measures live time itself writes it from its controller.
-                if (!(this.resultData.MeasurementController.DeviceController is IDeviceLiveTimeSource))
-                {
-                    this.resultData.EnergySpectrum.LiveTime = Utils.LiveTime.Calculate(this.resultData.EnergySpectrum.MeasurementTime,
-                        this.resultData.EnergySpectrum.TotalPulseCount,
-                        this.resultData.DeviceConfig.InputDeviceConfig.DeadTime());
-                }
+                SetSpectrumTimes(this.resultData.EnergySpectrum, resultDataStatus.ElapsedTime.TotalSeconds,
+                                 this.resultData.DeviceConfig,
+                                 this.resultData.MeasurementController.DeviceController is IDeviceLiveTimeSource);
             }
             else
             {

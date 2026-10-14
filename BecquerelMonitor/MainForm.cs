@@ -664,7 +664,10 @@ namespace BecquerelMonitor
                     this.countChart = 0;
                 }
                 this.countAutoSave += 100;
-                if (this.countAutoSave >= this.globalConfigManager.GlobalConfig.AutosavePeriod * 60 * 1000)
+                // (П268) Порог — в long (см. AutosavePeriodMilliseconds): прежнее
+                //   `AutosavePeriod * 60 * 1000` в int при 35792…71582 мин уходило в минус,
+                //   и автосохранение шло на КАЖДОМ такте (100 мс) всё время набора.
+                if (this.countAutoSave >= AutosavePeriodMilliseconds(this.globalConfigManager.GlobalConfig.AutosavePeriod))
                 {
                     this.countAutoSave = 0;
                     foreach (DocEnergySpectrum docEnergySpectrum in documents)
@@ -3382,8 +3385,24 @@ namespace BecquerelMonitor
 
             if (deviceConfigInfo == null) return;
 
-            this.activeDocument.ActiveResultData.EnergySpectrum.LiveTime = Utils.LiveTime.Calculate(this.activeDocument.ActiveResultData.EnergySpectrum.MeasurementTime,
-                this.activeDocument.ActiveResultData.EnergySpectrum.TotalPulseCount, deviceConfigInfo.InputDeviceConfig.DeadTime());
+            // ⛔ `A319` (решение Amber 13.10.2026): у конфигурации с мёртвым временем 0
+            // живое время НЕ пересчитывается — пересчёт с нулём приравнял бы его
+            // реальному и стёр бы время, которое прибор намерил сам. Человеку
+            // говорится, что поправка не нужна; решение — в CountsRateManager,
+            // его мерит DeadTimeZeroProbeP250.
+            EnergySpectrum spectrum = this.activeDocument.ActiveResultData.EnergySpectrum;
+            if (!CountsRateManager.ApplyDeadTimeCorrection(spectrum, deviceConfigInfo.InputDeviceConfig))
+            {
+                MessageBox.Show(
+                    string.Format(CultureInfo.InvariantCulture, Resources.MSGDeadTimeCorrectionNotNeeded,
+                        deviceConfigInfo.Name,
+                        spectrum.LiveTime.ToString("f1", CultureInfo.InvariantCulture),
+                        spectrum.MeasurementTime.ToString("f1", CultureInfo.InvariantCulture)),
+                    Resources.NotificationDialogTitle,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
 
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
@@ -4066,7 +4085,28 @@ namespace BecquerelMonitor
         // Token: 0x040005EA RID: 1514
         int countChart;
 
-        int countAutoSave;
+        // (П268) long, как и порог: в int счётчик переполнился бы через 24.8 сут набора
+        //   и при периоде длиннее этого не дошёл бы до порога никогда.
+        long countAutoSave;
+
+        /// <summary>
+        /// ⛔ (П268, 14.10.2026) Период автосохранения в миллисекундах — В <c>long</c>.
+        /// Прежний порог <c>AutosavePeriod * 60 * 1000</c> считался в <c>int</c>: при
+        /// периоде 35792…71582 мин произведение уходило в минус (35792 →
+        /// −2147447296), счётчик такта (+100 мс) превышал его сразу, и документ с
+        /// включённым автосохранением сохранялся на КАЖДОМ такте таймера всё время
+        /// набора (замер П263 `autosave_overflow.cs`, проба `AutosaveEmptyTimeProbeP268`).
+        /// Выше 71582 мин произведение заворачивалось снова в плюс, но не туда: 71583 мин
+        /// давали сохранение каждые 12.8 с, 100000 мин — раз в 19.7 сут вместо 69.4.
+        /// Период меньше минуты (0 или минус из правленого руками файла настроек —
+        /// поле окна «Настройки» ниже 1 не пускает) считается одной минутой: порог 0
+        /// давал то же сохранение на каждом такте. При 1…35791 мин значение прежнее
+        /// до бита.
+        /// </summary>
+        internal static long AutosavePeriodMilliseconds(int minutes)
+        {
+            return Math.Max(1, minutes) * 60L * 1000L;
+        }
 
         int countTemp;
 
