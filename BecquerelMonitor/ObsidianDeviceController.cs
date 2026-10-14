@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace BecquerelMonitor
 {
-    class ObsidianDeviceController : DeviceController, IDisposable
+    class ObsidianDeviceController : DeviceController, IDisposable, IDeviceStartsOnFirstPacket
     {
         private PulseDetector pulseDetector = new PulseDetector();
         private ResultDataStatus resultDataStatus = null;
@@ -18,6 +18,44 @@ namespace BecquerelMonitor
         // остановлен ни человеком, ни прибором; только поток окон. Разбор — у
         // близнеца, `RadiaCodeDeviceController.measuring`.
         private bool measuring = false;
+
+        // ⛔ П305 (14.10.2026), решение Amber «По первому пакету данных (Рекомендую)»:
+        // начало набора ставит первый пакет данных этого набора, а не нажатие. Разбор —
+        // у близнеца, `RadiaCodeDeviceController`; момент и правило П300 —
+        // `MeasurementController.StartSetByFirstPacket`. Только поток окон.
+        private bool startAwaitsPacket = false;
+        private DateTime startAwaitedSince;
+        private DateTime setStartedAt;
+        private bool setHasData = false;
+        private DateTime endBeforeSet;
+
+        bool IDeviceStartsOnFirstPacket.StartAwaitsPacket
+        {
+            get { return startAwaitsPacket; }
+        }
+
+        // П305: начало поставит первый пакет, пришедший ПОСЛЕ этого мига (разбор у близнеца).
+        private void AwaitFirstPacket()
+        {
+            startAwaitsPacket = true;
+            startAwaitedSince = DateTime.Now;
+        }
+
+        // П305: пакет лёг в документ; первый после «Пуска» нового документа или «Очистить» ставит начало.
+        private void PacketTaken(DateTime received, int deviceSeconds)
+        {
+            if (received > setStartedAt)
+            {
+                setHasData = true;
+            }
+            if (!startAwaitsPacket || !(received > startAwaitedSince))
+            {
+                return;
+            }
+            startAwaitsPacket = false;
+            new_document_created = false;
+            MeasurementController.StartSetByFirstPacket(resultData, received, deviceSeconds);
+        }
 
         public ObsidianDeviceController()
         {
@@ -75,13 +113,13 @@ namespace BecquerelMonitor
                 if (MeasurementController.IsDeviceLeasedByOther(deviceGuid, resultData.MeasurementController))
                 {
                     Trace.WriteLine("Obsidian: device " + deviceGuid + " is recording another spectrum - clear is local, no Reset");
-                    resultData.StartTime = DateTime.Now;
+                    AwaitFirstPacket();   // П305: начало — по первому пакету следующего набора
                     return;
                 }
                 if (status == "Connected" || status == "Recording")
                 {
                     ObsidianIn.getInstance(deviceGuid).sendCommand("Reset");
-                    resultData.StartTime = DateTime.Now;
+                    AwaitFirstPacket();   // П305: начало — по первому пакету после сброса
                 }
                 else
                 {
@@ -127,10 +165,14 @@ namespace BecquerelMonitor
                 SubscribeToInstance(instance);
                 measuring = true;
                 currentResultDataStatus.Recording = true;
+                // П305: начало нового документа ставит первый пакет; набор без пакетов
+                // документ не меняет (разбор у близнеца, `RadiaCodeDeviceController`).
+                setStartedAt = DateTime.Now;
+                setHasData = false;
+                endBeforeSet = resultData.EndTime;
                 if (new_document_created)
                 {
-                    resultData.StartTime = DateTime.Now;
-                    new_document_created = false;
+                    AwaitFirstPacket();
                 }
                 resultData.DetectorFeature = "Starting";
                 instance.sendCommand("Start");
@@ -165,6 +207,11 @@ namespace BecquerelMonitor
                     case "Faulted":
                     case "Stopped":
                     case "Disconnected":
+                        // П305: набор без единого пакета — конец прежний (начало не тронуто).
+                        if (measuring && !setHasData)
+                        {
+                            resultData.EndTime = endBeforeSet;
+                        }
                         measuring = false;
                         // Hard stop on device-side termination. If a measurement was actually
                         // running (e.g. Troubleshoot stole the BLE link and disposed the recording
@@ -258,6 +305,8 @@ namespace BecquerelMonitor
                     // следующим тактом окна (разбор у `MeasurementController.SetSpectrumTimes`).
                     MeasurementController.SetSpectrumTimes(pulseDetector.EnergySpectrum,
                         resultData.ResultDataStatus.ElapsedTime.TotalSeconds, resultData.DeviceConfig, false);
+                    // П305: первый пакет набора ставит его начало.
+                    PacketTaken(e.Received, e.ElapsedTime);
                 }
             }
         }
@@ -265,11 +314,13 @@ namespace BecquerelMonitor
         public override void StopMeasurement(ResultData resultData)
         {
             ResultDataStatus currentResultDataStatus = resultData.ResultDataStatus;
+            bool setRunning = measuring;
             measuring = false;
             if (deviceGuid != null)
             {
                 ObsidianIn.getInstance(deviceGuid).sendCommand("Stop");
-                resultData.EndTime = DateTime.Now;
+                // П305: «Стоп» до первого пакета набора — документ тот, что был, конец прежний.
+                resultData.EndTime = setRunning && !setHasData ? endBeforeSet : DateTime.Now;
                 currentResultDataStatus.Recording = false;
             }
         }

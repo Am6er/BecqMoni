@@ -484,6 +484,23 @@ static class ClearStartUnknownSampleProbeP300
             Clear(rd);
         }
         Outcome o = Start(rd);
+        // П305 (14.10.2026): у RadiaCode и Obsidian начало нового документа ставит ПЕРВЫЙ ПАКЕТ
+        // данных, и правило П300 зовётся там. Пакет с нулём времени прибора (прибор только что
+        // сброшен) кладётся прямо в обработчик окна, как у П267: начало = его приход, в окне пуска.
+        // Сборка до П305 ставит начало на нажатии — пакет его уже не двигает.
+        Thread.Sleep(20);
+        object controller = rd.MeasurementController.DeviceController;
+        if (controller != null && o.Started)
+        {
+            object packet = controller.GetType().Name.StartsWith("RadiaCode", StringComparison.Ordinal)
+                ? (object)new RadiaCodeInDataReadyArgs(new int[1024], 0, 0)
+                : new ObsidianInDataReadyArgs(new int[1024], 0, 0);
+            controller.GetType().GetMethod("update_hystogram", F).Invoke(controller, new object[] { packet });
+        }
+        o.T1 = DateTime.Now;
+        o.Start = rd.StartTime;
+        o.Sample = rd.SampleInfo.Time;
+        o.End = rd.EndTime;
         // «Стоп» прибора рвёт связь BLE — здесь он не зовётся; набор снимается вручную.
         rd.ResultDataStatus.Recording = false;
         Leases().Remove(info.Guid);
@@ -537,11 +554,13 @@ static class ClearStartUnknownSampleProbeP300
             "C0: «Очистить» без контроллера тронул начало или пробу");
 
         // C1 — страховка в «Очистить»: контроллер прибора есть, начало ещё метка, а «Очистить»
-        // прибора ставит начало «сейчас» (RadiaCode, прибор пишет ДРУГОЙ спектр — П267).
-        RadiaCodeDeviceConfig cfg = new RadiaCodeDeviceConfig();
-        DeviceConfigInfo info = Register("RadiaCode", cfg);
+        // прибора ставит начало «сейчас» (AtomSpectra, прибор пишет ДРУГОЙ спектр — П267; порт не
+        // трогается). ⚠ До П305 здесь стоял RadiaCode; с П305 «Очистить» RadiaCode и Obsidian
+        // начало не ставит — его ставит первый пакет (проба `BleFirstPacketStartProbeP305`).
+        AtomSpectraDeviceConfig cfg = new AtomSpectraDeviceConfig();
+        DeviceConfigInfo info = Register("AtomSpectraVCP", cfg);
         ResultData d1 = NewDoc(info, Unknown, Unknown, HeldCounts, Held);
-        Type ct = App.GetType("BecquerelMonitor.RadiaCodeDeviceController", true);
+        Type ct = App.GetType("BecquerelMonitor.AtomSpectraDeviceController", true);
         object c = Activator.CreateInstance(ct);
         ct.GetField("deviceGuid", F).SetValue(c, info.Guid);
         d1.MeasurementController.DeviceController = (DeviceController)c;

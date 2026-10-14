@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace BecquerelMonitor
 {
-    class RadiaCodeDeviceController : DeviceController, IDisposable
+    class RadiaCodeDeviceController : DeviceController, IDisposable, IDeviceStartsOnFirstPacket
     {
         private PulseDetector pulseDetector = new PulseDetector();
         private ResultDataStatus resultDataStatus = null;
@@ -22,6 +22,57 @@ namespace BecquerelMonitor
         // Stop и доехавшее через `Post` позже, или прибор, который поток чтения
         // сам вернул в опрос), включал документу `Recording = true` без Start.
         private bool measuring = false;
+
+        // ⛔ П305 (14.10.2026), решение Amber вопросником, дословно: «По первому пакету
+        // данных (Рекомендую)». НАЧАЛО НАБОРА СТАВИТ ПЕРВЫЙ ПАКЕТ ДАННЫХ ЭТОГО НАБОРА, а
+        // не нажатие: «Пуск» у BLE принимается сразу, ответ прибора приходит потом
+        // статусом, и отказ до первого пакета («Faulted», «Стоп» по бесконечному
+        // переподключению) оставлял загруженному файлу его отсчёты при начале «Пуска» —
+        // Cs-137 при известной пробе ×1.0638 вместо ×1.00001 (находка П303). Момент и
+        // правило П300 — `MeasurementController.StartSetByFirstPacket`.
+        // ⚠ Поля читаются и пишутся только потоком окон.
+        private bool startAwaitsPacket = false;   // «Пуск» нового документа или «Очистить» ждёт пакет
+        private DateTime startAwaitedSince;       // пакет, пришедший не позже, — прежний (`AwaitFirstPacket`)
+        private DateTime setStartedAt;            // «Пуск» этого набора
+        private bool setHasData = false;          // пакет этого набора лёг в документ
+        private DateTime endBeforeSet;            // конец документа до «Пуска»
+
+        bool IDeviceStartsOnFirstPacket.StartAwaitsPacket
+        {
+            get { return startAwaitsPacket; }
+        }
+
+        /// <summary>
+        /// П305: начало поставит первый пакет, пришедший ПОСЛЕ этого мига. Зовётся
+        /// после команды прибору: пакет, прочитанный потоком чтения до «Reset», несёт
+        /// метку прихода раньше (`RadiaCodeIn.run` ставит её до чтения состояния) и
+        /// начала не ставит — его отсчёты сняты до сброса. Пакет, уже стоящий в
+        /// очереди окна, — тоже.
+        /// </summary>
+        private void AwaitFirstPacket()
+        {
+            startAwaitsPacket = true;
+            startAwaitedSince = DateTime.Now;
+        }
+
+        /// <summary>
+        /// П305: пакет лёг в документ (<c>update_hystogram</c>). Первый после
+        /// «Пуска» нового документа или «Очистить» ставит начало.
+        /// </summary>
+        private void PacketTaken(DateTime received, int deviceSeconds)
+        {
+            if (received > setStartedAt)
+            {
+                setHasData = true;
+            }
+            if (!startAwaitsPacket || !(received > startAwaitedSince))
+            {
+                return;
+            }
+            startAwaitsPacket = false;
+            new_document_created = false;
+            MeasurementController.StartSetByFirstPacket(resultData, received, deviceSeconds);
+        }
 
         public RadiaCodeDeviceController()
         {
@@ -84,13 +135,17 @@ namespace BecquerelMonitor
                 if (MeasurementController.IsDeviceLeasedByOther(deviceGuid, resultData.MeasurementController))
                 {
                     Trace.WriteLine("RadiaCode: device " + deviceGuid + " is recording another spectrum - clear is local, no Reset");
-                    resultData.StartTime = DateTime.Now;
+                    // П305: начало — по первому пакету следующего набора этого спектра;
+                    // прибор не сброшен, и пакет принесёт его накопитель со своим временем.
+                    AwaitFirstPacket();
                     return;
                 }
                 if (status == "Connected" || status == "Recording")
                 {
                     RadiaCodeIn.getInstance(deviceGuid).sendCommand("Reset");
-                    resultData.StartTime = DateTime.Now;
+                    // П305: начало — по первому пакету после сброса (миг сброса), а не
+                    // нажатие; сброс, потерянный при обрыве, начало тоже не сдвинет.
+                    AwaitFirstPacket();
                 } else
                 {
                     // Тот же разбор, что у Obsidian: сброс накопителя ПРИБОРА не
@@ -134,10 +189,16 @@ namespace BecquerelMonitor
                 SubscribeToInstance(instance);
                 measuring = true;
                 currentResultDataStatus.Recording = true;
+                // П305: начало нового документа ставит первый пакет (`PacketTaken`);
+                // набор, не принёсший ни одного, документ не меняет — и конец, который
+                // такт окна (`MainForm.OnTimer`) двигает «сейчас» в ожидании данных,
+                // возвращается прежним (`setStatus`, `StopMeasurement`).
+                setStartedAt = DateTime.Now;
+                setHasData = false;
+                endBeforeSet = resultData.EndTime;
                 if (new_document_created)
                 {
-                    resultData.StartTime = DateTime.Now;
-                    new_document_created = false;
+                    AwaitFirstPacket();
                 }
                 resultData.DetectorFeature = "Starting";
                 instance.sendCommand("Start");
@@ -172,6 +233,12 @@ namespace BecquerelMonitor
                     case "Faulted":
                     case "Stopped":
                     case "Disconnected":
+                        // П305: набор кончился, не дав ни одного пакета, — документ тот,
+                        // что был: начало не тронуто (его ставит пакет), конец — прежний.
+                        if (measuring && !setHasData)
+                        {
+                            resultData.EndTime = endBeforeSet;
+                        }
                         measuring = false;
                         // Hard stop on device-side termination. If a measurement was actually
                         // running (e.g. Troubleshoot stole the BLE link and disposed the recording
@@ -263,6 +330,8 @@ namespace BecquerelMonitor
                     // следующим тактом окна (разбор у `MeasurementController.SetSpectrumTimes`).
                     MeasurementController.SetSpectrumTimes(this.pulseDetector.EnergySpectrum,
                         resultData.ResultDataStatus.ElapsedTime.TotalSeconds, resultData.DeviceConfig, false);
+                    // П305: первый пакет набора ставит его начало.
+                    PacketTaken(e.Received, e.ElapsedTime);
                 }
             }
         }
@@ -270,11 +339,13 @@ namespace BecquerelMonitor
         public override void StopMeasurement(ResultData resultData)
         {
             ResultDataStatus currentResultDataStatus = resultData.ResultDataStatus;
+            bool setRunning = measuring;
             measuring = false;
             if (deviceGuid != null)
             {
                 RadiaCodeIn.getInstance(deviceGuid).sendCommand("Stop");
-                resultData.EndTime = DateTime.Now;
+                // П305: «Стоп» до первого пакета набора — документ тот, что был, конец прежний.
+                resultData.EndTime = setRunning && !setHasData ? endBeforeSet : DateTime.Now;
                 currentResultDataStatus.Recording = false;
             }
         }

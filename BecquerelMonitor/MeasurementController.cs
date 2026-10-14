@@ -177,7 +177,9 @@ namespace BecquerelMonitor
         /// а их зовут только <see cref="StartRecording"/>, <see cref="AttachToDevice"/>
         /// и <see cref="ClearMeasurementResult"/>. Правило — ПОСЛЕ прибора и в
         /// <c>finally</c>: AtomSpectra ставит начало «сейчас» и тогда, когда прибор
-        /// не ответил и пуск отказан.
+        /// не ответил и пуск отказан. ⚠ П305 (14.10.2026): у RadiaCode и Obsidian
+        /// начало ставит первый пакет данных — там и второй вызов правила
+        /// (<see cref="StartSetByFirstPacket"/>), а у двери оно в это время молчит.
         /// </summary>
         internal static void SampleTimeFollowsStart(ResultData resultData)
         {
@@ -191,6 +193,74 @@ namespace BecquerelMonitor
                 return;
             }
             resultData.SampleInfo.Time = resultData.StartTime;
+        }
+
+        /// <summary>
+        /// ⛔ П305 (14.10.2026). Правило П300 у двери — только если начало уже
+        /// поставлено: у RadiaCode и Obsidian «Пуск» нового документа и «Очистить»
+        /// начало больше не ставят, его ставит первый пакет данных
+        /// (<see cref="StartSetByFirstPacket"/>), и правило П300 зовётся там — с
+        /// ИТОГОВЫМ началом. Здесь, у двери, оно увидело бы прежнее начало, и проба
+        /// с меткой 1970 застыла бы на нём; а отказ до первого пакета оставил бы
+        /// документ уже не тем, что был.
+        /// </summary>
+        static bool StartAwaitsPacket(DeviceController deviceController)
+        {
+            IDeviceStartsOnFirstPacket device = deviceController as IDeviceStartsOnFirstPacket;
+            return device != null && device.StartAwaitsPacket;
+        }
+
+        /// <summary>
+        /// ⛔ П305 (14.10.2026), решение Amber вопросником, дословно: «По первому
+        /// пакету данных (Рекомендую)». НАЧАЛО НАБОРА RadiaCode И Obsidian СТАВИТ
+        /// ПЕРВЫЙ ПАКЕТ ДАННЫХ ЭТОГО НАБОРА, а не нажатие «Пуск»/«Очистить».
+        ///
+        /// Пуск у BLE принимается сразу, а прибор отвечает потом, статусом. Прежде
+        /// начало ставилось «сейчас» на нажатии, и отказ до первого пакета
+        /// («Faulted», «Стоп» по бесконечному переподключению) оставлял загруженному
+        /// файлу файловые отсчёты при начале «Пуска»: Cs-137 при известной пробе
+        /// ×1.0638 вместо ×1.00001 (находка П303).
+        ///
+        /// Момент — «приход пакета − время, которое прибор насчитал в нём»
+        /// (<paramref name="deviceSeconds"/>, поле времени пакета прибора). Пакет
+        /// несёт НАКОПИТЕЛЬ прибора целиком со дня его последнего сброса, а время
+        /// набора документа — его же время (<c>update_hystogram</c>): начало, у
+        /// которого «начало + время набора = миг пакета», — единственное, что
+        /// согласно с отсчётами в документе и с интервалом набора, по которому
+        /// <c>MeasurementResultManager.DecayToSamplingFactor</c> усредняет распад.
+        /// Сразу после «Очистить» (сброс прибора) это миг сброса; у прибора с
+        /// накопленным за сутки — сутки назад, и это правда о том, что лежит в
+        /// спектре. Время пакета не положительно — «приход».
+        ///
+        /// После начала — правило П300 (<see cref="SampleTimeFollowsStart(ResultData)"/>)
+        /// и вкладка пробы: <c>MainForm.SaveActiveDocument</c> пишет время пробы
+        /// ИЗ ПОЛЯ вкладки (<c>DCSampleInfoView.SaveFormContents</c>), и поле с
+        /// прежней меткой 1970 вернуло бы её в документ при первом «Сохранить».
+        /// Зовёт поток окон (<c>update_hystogram</c> приборов через <c>Post</c>).
+        /// </summary>
+        internal static void StartSetByFirstPacket(ResultData resultData, DateTime received, int deviceSeconds)
+        {
+            resultData.StartTime = deviceSeconds > 0 ? received.AddSeconds(-deviceSeconds) : received;
+            SampleTimeFollowsStart(resultData);
+            if (!AppUi.HasWindows)
+            {
+                return;
+            }
+            MainForm shown = null;
+            foreach (Form form in Application.OpenForms)
+            {
+                MainForm main = form as MainForm;
+                if (main != null && main.ActiveDocument != null
+                    && ReferenceEquals(main.ActiveDocument.ActiveResultData, resultData))
+                {
+                    shown = main;
+                    break;
+                }
+            }
+            if (shown != null)
+            {
+                shown.UpdateSampleInfo();
+            }
         }
 
         // Device-initiated termination: the device reported a terminal status
@@ -391,7 +461,11 @@ namespace BecquerelMonitor
             finally
             {
                 // П300: и на отказе — прибор мог сдвинуть начало до него.
-                SampleTimeFollowsStart(this.resultData);
+                // П305: начало, которое поставит первый пакет, правило увидит там.
+                if (!StartAwaitsPacket(this.deviceController))
+                {
+                    SampleTimeFollowsStart(this.resultData);
+                }
             }
 
             return true;
@@ -598,9 +672,13 @@ namespace BecquerelMonitor
             }
             finally
             {
-                // П300: «Очистить» у AtomSpectra, RadiaCode и Obsidian ставит начало
-                // «сейчас» и на остановленном наборе.
-                SampleTimeFollowsStart(this.resultData);
+                // П300: «Очистить» у AtomSpectra ставит начало «сейчас» и на
+                // остановленном наборе. П305: у RadiaCode и Obsidian начало после
+                // «Очистить» ставит первый пакет — правило зовётся там.
+                if (!StartAwaitsPacket(this.deviceController))
+                {
+                    SampleTimeFollowsStart(this.resultData);
+                }
             }
         }
 
@@ -679,5 +757,18 @@ namespace BecquerelMonitor
 
         // Token: 0x0400037D RID: 893
         bool saveOnMeasurementEnd;
+    }
+
+    /// <summary>
+    /// ⛔ П305 (14.10.2026). Прибор, у которого начало набора ставит ПЕРВЫЙ ПАКЕТ
+    /// ДАННЫХ, а не нажатие (RadiaCode, Obsidian; разбор у
+    /// <see cref="MeasurementController.StartSetByFirstPacket"/>). Читатель — двери
+    /// <see cref="MeasurementController"/>: пока начало ждёт пакета, правило П300
+    /// у двери не зовётся.
+    /// </summary>
+    internal interface IDeviceStartsOnFirstPacket
+    {
+        /// <summary>Начало ждёт первого пакета этого набора.</summary>
+        bool StartAwaitsPacket { get; }
     }
 }
