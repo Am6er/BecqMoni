@@ -291,11 +291,12 @@ namespace AmplitudaSerialTests
             // stop command before the reset was even noticed; without a roll-back that dead
             // stretch (no counts, no live time behind it) would stay in the document. This
             // assertion measured realBefore=8.019s/finalReal=8.139s BEFORE the fix (delta only
-            // ~0.12 s, the fake's near-instant Halt exchange) - it does not go red here because
-            // realBefore is captured via RealSeconds (which already extrapolates through the
-            // still-active segment up to "now"), not via the internal realAtLastGood (the last
-            // actually confirmed poll) that the fix rolls back to; the two coincide closely in
-            // this specific immediate-PowerCycle-then-RequestStop timing. The fix is still made
+            // ~0.12 s, the fake's near-instant Halt exchange) - it did not go red here because
+            // realBefore was captured via RealSeconds, which then ran through the still-active
+            // segment up to "now", not via the internal realAtLastGood (the last actually
+            // confirmed poll) that the fix rolls back to; the two coincided closely in this
+            // specific immediate-PowerCycle-then-RequestStop timing. (Since P280 RealSeconds IS
+            // realAtLastGood while measuring.) The fix is still made
             // (see AmplitudaSerialAcquisition.RequestStop) because a poll boundary further before
             // the reset - or a slower/longer Halt retry sequence - would make the gap between
             // realBefore and realAtLastGood, and thus the dead stretch this guards against, much
@@ -424,7 +425,9 @@ namespace AmplitudaSerialTests
             T.True(rig.Until(() => rig.Acq.RealSeconds >= 8), "ran 8 s");
             rig.Acq.ClearAll();
             T.Eq(0, rig.Acq.TotalCounts, "cleared at once");
-            T.True(rig.Until(() => rig.Acq.Running && rig.Acq.RealSeconds >= 4), "running again");
+            // The clock (P280): RealSeconds is the real time of the data in hand, and the first
+            // reading of the new segment may come just under 4 s.
+            T.True(rig.Until(() => rig.Acq.Running && TimeView.Clock(rig.Acq) >= 4), "running again");
             T.True(rig.Acq.RealSeconds < 8, "real time restarted");
             rig.Acq.RequestStop();
             T.True(rig.Until(() => rig.Acq.Finished), "finished");
@@ -565,7 +568,8 @@ namespace AmplitudaSerialTests
             rig.Acq.Start();
             T.True(rig.Until(() => rig.Acq.RealSeconds >= 8), "ran 8 s");
             rig.Block.Silent = true;
-            double realAtStop = rig.Acq.RealSeconds;
+            // The clock at the Stop (P280: RealSeconds already shows the last good reading).
+            double realAtStop = TimeView.Clock(rig.Acq);
             rig.Acq.RequestStop();
             T.True(rig.Until(() => rig.Acq.Finished), "gave up");
             rig.Line.Release();
@@ -585,7 +589,7 @@ namespace AmplitudaSerialTests
             T.True(rig.Until(() => rig.Acq.RealSeconds >= 8), "ran 8 s");
             rig.Block.Silent = true;
             int stopsBefore = Count(rig.Fake.WireSnapshot(), "C15");
-            double realAtStop = rig.Acq.RealSeconds;
+            double realAtStop = TimeView.Clock(rig.Acq);     // the clock at the Stop (P280)
             long tStop = rig.Fake.NowMs;
             rig.Acq.RequestStop();
             T.True(rig.Until(() => Count(rig.Fake.WireSnapshot(), "C15") > stopsBefore && rig.Fake.NowMs >= tStop + 1000),

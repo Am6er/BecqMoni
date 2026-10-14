@@ -37,6 +37,10 @@ namespace BecquerelMonitor
         int lastLive;
         int zeroLive;
         bool armed;
+        // Live seconds that take the open reading's live time (read in the header) on to the
+        // moment its counts were read (AdjustOpenLive, P280). Belongs to `last`: every change of
+        // it clears this.
+        double openAdjust;
 
         public AmplitudaSerialSession(int[] documentSpectrum, double documentLiveSeconds)
         {
@@ -57,7 +61,27 @@ namespace BecquerelMonitor
             lastSum = 0;
             lastLive = liveSeconds;
             zeroLive = liveSeconds;
+            openAdjust = 0;
             armed = true;
+        }
+
+        // Live time of the open (not yet poured) reading, credited like a closed segment; 0 when
+        // there is none. Part of LiveSeconds.
+        public double OpenLiveSeconds
+        {
+            get { return OpenSegmentLive(); }
+        }
+
+        // P280: the open reading's live time is the block's at the moment its HEADER was read; its
+        // counts were read later, page after page. The acquisition, which knows the clock, sets
+        // here how many live seconds lie between the two. Kept until the open reading changes,
+        // and folded by Pour() like the rest of it. 0 for a stopped block (its time stands still).
+        public void AdjustOpenLive(double seconds)
+        {
+            if (last != null)
+            {
+                openAdjust = seconds;
+            }
         }
 
         public AmplitudaSerialVerdict Apply(int[] block, int liveSeconds, bool running)
@@ -85,6 +109,7 @@ namespace BecquerelMonitor
             last = block;
             lastSum = sum;
             lastLive = liveSeconds;
+            openAdjust = 0;
 
             int max = 0;
             for (int i = 0; i < block.Length; i++)
@@ -116,14 +141,17 @@ namespace BecquerelMonitor
                     baseChannels[i] += last[i];
                 }
                 baseSum += lastSum;
-                int segment = lastLive - zeroLive;
-                // A segment shorter than one block second gets no correction (see the constant).
-                baseLive += segment + (segment >= 1 ? SegmentClockCorrectionSeconds : 0.0);
+                // The same live time LiveSeconds showed for it: the block seconds, the clock
+                // correction, and the adjustment to the moment of the counts (0 for the reading
+                // of a stopped block - the one every Stop and every planned pour folds - so their
+                // numbers are what they always were).
+                baseLive += OpenSegmentLive();
             }
             last = null;
             lastSum = 0;
             lastLive = 0;
             zeroLive = 0;
+            openAdjust = 0;
             armed = false;
         }
 
@@ -136,7 +164,22 @@ namespace BecquerelMonitor
             lastSum = 0;
             lastLive = 0;
             zeroLive = 0;
+            openAdjust = 0;
             armed = false;
+        }
+
+        // Live time of the open reading, credited exactly like a closed segment (P280, 14.10.2026):
+        // before, the open one got the bare block seconds and the half second only at the pour,
+        // so while measuring the live time was short by about 0.5 s against the real time.
+        double OpenSegmentLive()
+        {
+            if (last == null)
+            {
+                return 0.0;
+            }
+            int segment = lastLive - zeroLive;
+            // A segment shorter than one block second gets no correction (see the constant).
+            return segment + (segment >= 1 ? SegmentClockCorrectionSeconds : 0.0) + openAdjust;
         }
 
         public void Compose(int[] target)
@@ -149,7 +192,7 @@ namespace BecquerelMonitor
 
         public double LiveSeconds
         {
-            get { return baseLive + (lastLive - zeroLive); }
+            get { return baseLive + OpenSegmentLive(); }
         }
 
         public long TotalCounts

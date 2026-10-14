@@ -39,6 +39,18 @@ namespace BecquerelMonitor
     // the completion of the start command and the completion of the stop command. Pours and
     // restarts are therefore outside both real and live time.
     //
+    // One moment for counts, live and real time while measuring (P280, decision of Amber
+    // 14.10.2026 "Поправка в коде, проверка автору"). A Read of a running block takes seconds -
+    // status, header, then page after page - and comes once per poll period, while the PC clock
+    // runs on. What the document shows while measuring is therefore the state AT THE LAST GOOD
+    // READING: real time at the moment its counts were read (the pages, weighted by their count
+    // rates - CountsMomentMs), live time brought from its header to that same moment
+    // (AlignOpenLive) and credited with the block clock's half second like a closed segment.
+    // Before, real time ran to "now" and the live time stayed at the header: the dead time on
+    // screen was too high by up to (1 - d)(Δ + 2 t_read + 0.5)/T, the rates too high by the
+    // pages' lag over the header. RealSecondsNow is the old clock, for the preset stop only
+    // (ElapsedTicks). Once the acquisition has finished both are the same committed real time.
+    //
     // Spectrum protection (hardware fact, confirmed on a hardware spike): after its power
     // blinks, the block comes back within a few seconds with EMPTY memory and then spends about
     // a minute re-tuning its PMT high voltage by an internal LED. It keeps counting meanwhile,
@@ -102,6 +114,11 @@ namespace BecquerelMonitor
         double realCommitted;
         bool segmentActive;
         long segmentStartMs;
+        // Port clock at the start command byte of the running segment: the block's clock starts
+        // with it (AmplitudaSerialSession). The anchor of the real time shown while measuring;
+        // segmentStartMs (its completion, a settle pause later) stays the anchor of the committed
+        // time, so a closed segment is what it always was.
+        long segmentAnchorMs;
         double realAtSessionStart;
         double liveAtSessionStart;
         double realAtLastGood;
@@ -142,12 +159,43 @@ namespace BecquerelMonitor
         public double LiveSeconds { get { return Math.Min(session.LiveSeconds, RealSeconds); } }
         public long TotalCounts { get { return session.TotalCounts; } }
 
+        // Real time of the data in hand (P280): while measuring, the moment the counts of the last
+        // good reading were read (realAtLastGood - every path that changes the data moves it,
+        // and every roll-back returns to it); once finished, the committed real time, exactly as
+        // before. Same moment as TotalCounts and LiveSeconds.
         public double RealSeconds
+        {
+            get
+            {
+                return finished ? realCommitted : realAtLastGood;
+            }
+        }
+
+        // The PC clock: committed seconds plus the running segment up to now. What RealSeconds
+        // was before P280 - kept for the preset stop (ElapsedTicks) and the hardware smoke run.
+        public double RealSecondsNow
         {
             get
             {
                 return segmentActive ? realCommitted + (line.NowMs - segmentStartMs) / 1000.0 : realCommitted;
             }
+        }
+
+        // What the device controller writes as the measurement's elapsed time
+        // (ResultDataStatus.ElapsedTime, in 100-ns ticks; MeasurementController.OnTimer copies it
+        // to the spectrum's real time and stops the measurement once it reaches PresetTime).
+        // The real time of the data in hand - except once the CLOCK has reached the preset:
+        // then the clock, so the preset stop fires on the same tick it always did (the data's
+        // moment lags the clock by up to a poll period and a read; shown alone, it would stretch
+        // every measurement by that much). The stop then writes the final values at once.
+        public long ElapsedTicks(int presetSeconds)
+        {
+            long clock = (long)(RealSecondsNow * 1.0E+07);
+            if (TimeSpan.FromTicks(clock).TotalSeconds >= presetSeconds)
+            {
+                return clock;
+            }
+            return (long)(RealSeconds * 1.0E+07);
         }
 
         public void Compose(int[] target)
@@ -576,6 +624,7 @@ namespace BecquerelMonitor
                     return;
                 }
                 long startedMs = startedReading.CompletedMs;
+                long sentMs = startedReading.SentMs >= 0 ? startedReading.SentMs : startedMs;
                 Send(AmplitudaSerialRequestKind.Status, 0, delegate (AmplitudaSerialReading status)
                 {
                     if (!status.Ok)
@@ -599,6 +648,7 @@ namespace BecquerelMonitor
                         return;
                     }
                     segmentStartMs = startedMs;
+                    segmentAnchorMs = sentMs;
                     segmentActive = true;
                     lastReadDoneMs = status.CompletedMs;
                     running = true;
@@ -656,10 +706,60 @@ namespace BecquerelMonitor
             return verdict;
         }
 
+        // Port-clock moment the reading's total count belongs to (P280). The pages are read one
+        // after another, 0.7 s each at 19200 baud, and the channels of page k describe the block
+        // when it was asked for them (PageMs[k]); the moments are weighted by each page's count
+        // rate - its counts over the time the block had been counting then - which for steady
+        // rates is exactly the moment when the true total equals the sum read. A reading without
+        // counts: its header moment (only the live time is there to place).
+        double CountsMomentMs(AmplitudaSerialReading reading)
+        {
+            if (reading.HeaderMs < 0 || reading.PageMs == null || reading.Channels == null)
+            {
+                return reading.CompletedMs;     // not a full Read (never for a good poll)
+            }
+            double weight = 0.0;
+            double moment = 0.0;
+            for (int page = 0; page < reading.PageMs.Length; page++)
+            {
+                long sum = PageSum(reading.Channels, page);
+                if (sum <= 0)
+                {
+                    continue;
+                }
+                double rate = sum / Math.Max(1.0, reading.PageMs[page] - segmentAnchorMs);
+                weight += rate;
+                moment += rate * reading.PageMs[page];
+            }
+            return weight > 0.0 ? moment / weight : reading.HeaderMs;
+        }
+
+        // The block reports its live time in the header, read BEFORE the pages; the counts belong
+        // to a later moment (CountsMomentMs). The stretch in between gets the live fraction the
+        // block itself shows for the running segment up to its header - the open segment's live
+        // time (with the half second) over its real time on the PC clock. The fraction is that of
+        // the whole segment, so the block's whole seconds blur it by at most 0.5 s / T, and it
+        // assumes the dead fraction did not change in the last seconds. The protocol gives no
+        // live time nearer the counts (the header is read first, AmplitudaSerialLine.ReadJob).
+        void AlignOpenLive(AmplitudaSerialReading reading, double countsAtMs)
+        {
+            if (!segmentActive || reading.HeaderMs < 0)
+            {
+                return;
+            }
+            double headerReal = (reading.HeaderMs - segmentAnchorMs) / 1000.0;
+            double stretch = (countsAtMs - reading.HeaderMs) / 1000.0;
+            if (headerReal <= 0.0 || stretch <= 0.0)
+            {
+                return;
+            }
+            double fraction = Math.Max(0.0, Math.Min(1.0, session.OpenLiveSeconds / headerReal));
+            session.AdjustOpenLive(fraction * stretch);
+        }
+
         void Poll()
         {
             readOutstanding = true;
-            long issuedMs = line.NowMs;
             Send(AmplitudaSerialRequestKind.Read, 0, delegate (AmplitudaSerialReading reading)
             {
                 readOutstanding = false;
@@ -669,25 +769,26 @@ namespace BecquerelMonitor
                     Troubled();
                     return;
                 }
-                // A Read of a still-running block takes real time to transfer (header + every page):
-                // the reported header/page data is a live snapshot taken partway through that transfer,
-                // not at its completion. reading.CompletedMs alone would systematically overstate the real
-                // time behind the reported counts; the midpoint of issue and completion is a much closer
-                // stand-in for "when this reading's numbers were actually true" without needing a per-page
-                // timestamp (which the wire protocol/Reading type does not provide).
-                double sampledAtMs = (issuedMs + reading.CompletedMs) / 2.0;
-                double realAtReading = segmentActive ? realCommitted + (sampledAtMs - segmentStartMs) / 1000.0 : realCommitted;
+                // A Read of a still-running block takes seconds (status, header, every page), and
+                // its numbers are not of one moment: the live time is the block's when the header
+                // was asked for, the channels when their pages were. Real time is taken at the
+                // moment of the counts (P280; before, the midpoint of the whole read stood in for
+                // it, and RealSeconds then ran on to "now" anyway).
+                double countsAtMs = CountsMomentMs(reading);
+                double realAtReading = segmentActive ? realCommitted + (countsAtMs - segmentAnchorMs) / 1000.0 : realCommitted;
                 AmplitudaSerialVerdict verdict = session.Apply(reading.Channels, reading.LiveSeconds, reading.Running);
                 switch (verdict)
                 {
                     case AmplitudaSerialVerdict.Ok:
                         dirty = true;
+                        AlignOpenLive(reading, countsAtMs);
                         realAtLastGood = realAtReading;
                         liveAtLastGood = session.LiveSeconds;
                         break;
 
                     case AmplitudaSerialVerdict.PourNeeded:
                         dirty = true;
+                        AlignOpenLive(reading, countsAtMs);
                         realAtLastGood = realAtReading;
                         liveAtLastGood = session.LiveSeconds;
                         NewSequence();
