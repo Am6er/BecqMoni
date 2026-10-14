@@ -211,6 +211,17 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// ⛔ П307 (14.10.2026). Начало этого набора ждёт первого пакета данных
+        /// (П305: «Пуск» нового документа или «Очистить» у RadiaCode и Obsidian).
+        /// Читатель — такт окна <c>MainForm.OnTimer</c>: пока признак стоит, конец
+        /// набора за часами не идёт. У прочих приборов признака нет — ложь.
+        /// </summary>
+        internal bool StartAwaitsFirstPacket
+        {
+            get { return StartAwaitsPacket(this.deviceController); }
+        }
+
+        /// <summary>
         /// ⛔ П305 (14.10.2026), решение Amber вопросником, дословно: «По первому
         /// пакету данных (Рекомендую)». НАЧАЛО НАБОРА RadiaCode И Obsidian СТАВИТ
         /// ПЕРВЫЙ ПАКЕТ ДАННЫХ ЭТОГО НАБОРА, а не нажатие «Пуск»/«Очистить».
@@ -241,6 +252,12 @@ namespace BecquerelMonitor
         internal static void StartSetByFirstPacket(ResultData resultData, DateTime received, int deviceSeconds)
         {
             resultData.StartTime = deviceSeconds > 0 ? received.AddSeconds(-deviceSeconds) : received;
+            // П307: конец — тем же движением. Пока начало ждало пакета, такт окна конец
+            // не двигал (`MainForm.OnTimer`), и до следующего такта (до 100 мс) окно,
+            // перерисовка или копия спектра видели бы новое начало при прежнем конце —
+            // у загруженного файла конец 2024 года, то есть конец раньше начала. Миг
+            // пакета: начало + время прибора = конец; дальше конец идёт за часами.
+            resultData.EndTime = received;
             SampleTimeFollowsStart(resultData);
             if (!AppUi.HasWindows)
             {
@@ -764,7 +781,8 @@ namespace BecquerelMonitor
     /// ДАННЫХ, а не нажатие (RadiaCode, Obsidian; разбор у
     /// <see cref="MeasurementController.StartSetByFirstPacket"/>). Читатель — двери
     /// <see cref="MeasurementController"/>: пока начало ждёт пакета, правило П300
-    /// у двери не зовётся.
+    /// у двери не зовётся; и такт окна <c>MainForm.OnTimer</c> (П307) — конец
+    /// набора за часами не идёт (<see cref="MeasurementController.StartAwaitsFirstPacket"/>).
     /// </summary>
     internal interface IDeviceStartsOnFirstPacket
     {
