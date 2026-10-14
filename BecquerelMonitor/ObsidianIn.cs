@@ -1078,8 +1078,12 @@ namespace BecquerelMonitor
                             }
                             int[] spectrum = null;
                             int elapsedTime = 0;
+                            DateTime received = DateTime.MinValue;
                             lock (packetLock)
                             {
+                                // ⛔ П305 (14.10.2026): момент прихода — ДО чтения состояния;
+                                //    разбор у близнеца, `RadiaCodeIn.run`.
+                                received = DateTime.Now;
                                 State readyState;
                                 lock (stateLock)
                                 {
@@ -1118,7 +1122,7 @@ namespace BecquerelMonitor
                                 thread_alive = false;
                                 break;
                             }
-                            RaiseDataReady(new ObsidianInDataReadyArgs(hystogram_buffered, elapsedTime, (int)sum));
+                            RaiseDataReady(new ObsidianInDataReadyArgs(hystogram_buffered, elapsedTime, (int)sum, received));
                         }
                         catch (Exception ex)
                         {
@@ -1302,12 +1306,29 @@ namespace BecquerelMonitor
             get { return elapsed_time; }
         }
 
+        /// <summary>
+        /// П305 (14.10.2026): когда пакет пришёл — по часам ПК; разбор у близнеца,
+        /// <c>RadiaCodeInDataReadyArgs.Received</c>.
+        /// </summary>
+        public DateTime Received
+        {
+            get { return received; }
+        }
+
+        private readonly DateTime received;
+
         public ObsidianInDataReadyArgs(int[] hyst, int elapsedTime, long sum)
+            : this(hyst, elapsedTime, sum, DateTime.Now)
+        {
+        }
+
+        public ObsidianInDataReadyArgs(int[] hyst, int elapsedTime, long sum, DateTime received)
         {
             hystogram = new int[hyst.Length];
             hyst.CopyTo(hystogram, 0);
             elapsed_time = elapsedTime;
             this.sum = sum;
+            this.received = received;
         }
     }
 

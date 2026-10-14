@@ -1333,8 +1333,16 @@ namespace BecquerelMonitor
                             }
                             int[] spectrum = null;
                             int elapsedTime = 0;
+                            DateTime received = DateTime.MinValue;
                             lock (packetLock)
                             {
+                                // ⛔ П305 (14.10.2026): момент прихода пакета — ДО чтения
+                                //    состояния. «Очистить» ставит `Resetting` командой и
+                                //    после неё запоминает, с какого мига ждёт первый пакет
+                                //    (`RadiaCodeDeviceController.AwaitFirstPacket`): пакет,
+                                //    прочитанный ещё в `Recording`, получает метку раньше и
+                                //    начало набора не ставит — он снят до сброса прибора.
+                                received = DateTime.Now;
                                 State readyState;
                                 lock (stateLock)
                                 {
@@ -1375,7 +1383,7 @@ namespace BecquerelMonitor
                                 thread_alive = false;
                                 break;
                             }
-                            RaiseDataReady(new RadiaCodeInDataReadyArgs(hystogram_buffered, elapsedTime, sum));
+                            RaiseDataReady(new RadiaCodeInDataReadyArgs(hystogram_buffered, elapsedTime, sum, received));
                         }
                         catch (Exception ex)
                         {
@@ -1518,12 +1526,30 @@ namespace BecquerelMonitor
             get { return elapsed_time; }
         }
 
+        /// <summary>
+        /// П305 (14.10.2026): когда пакет пришёл — по часам ПК, у потока чтения
+        /// (разбор там, где он ставится). Начало набора ставит первый пакет:
+        /// <c>RadiaCodeDeviceController.update_hystogram</c>.
+        /// </summary>
+        public DateTime Received
+        {
+            get { return received; }
+        }
+
+        private readonly DateTime received;
+
         public RadiaCodeInDataReadyArgs(int[] hyst, int elapsed_time, long sum)
+            : this(hyst, elapsed_time, sum, DateTime.Now)
+        {
+        }
+
+        public RadiaCodeInDataReadyArgs(int[] hyst, int elapsed_time, long sum, DateTime received)
         {
             this.hystogram = new int[hyst.Length];
             hyst.CopyTo(this.hystogram, 0);
             this.elapsed_time = elapsed_time;
             this.sum = sum;
+            this.received = received;
         }
     }
 

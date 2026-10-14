@@ -443,7 +443,9 @@ static class RefusedStartProbeP303
 
             // R2 — СВЕДЕНИЕ, не дефект этой пробы: пуск у BLE принимается сразу, ответ прибора
             // приходит позже статусом. Прибор так и не дал данных и сообщил «Faulted» (нет адреса
-            // BLE) — набор остановлен, отсчёты файловые, начало — момент «Пуска».
+            // BLE) — набор остановлен, отсчёты файловые, начало — момент «Пуска». ⚠ С П305
+            // (14.10.2026) начало ставит первый пакет, и здесь печатается «прежнее», ×1.000009;
+            // меряет это `BleFirstPacketStartProbeP305`.
             ResultData r2d = NewDoc(info, KnownStart, KnownSample, HeldCounts, Held);
             Outcome r2 = Start(r2d);
             object controller = r2d.MeasurementController.DeviceController;

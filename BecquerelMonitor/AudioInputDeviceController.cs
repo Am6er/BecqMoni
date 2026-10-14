@@ -147,15 +147,73 @@ namespace BecquerelMonitor
                 waveIn.Dispose();
                 return false;
             }
-            resultData.StartTime = DateTime.Now;
-            if (resultData.EnergySpectrum.TotalPulseCount == 0)
-            {
-                resultData.StartTime = DateTime.Now;
-            }
+            return this.BeginRecording(resultData, waveIn, deviceId);
+        }
+
+        /// <summary>
+        /// ⛔ П305 (14.10.2026), решение Amber вопросником «По первому пакету данных
+        /// (Рекомендую)» — «заодно так же звуковой вход». НАЧАЛО — ТОЛЬКО ПОСЛЕ
+        /// ПРИНЯТОГО <c>waveIn.Start()</c>. Прежде «сейчас» ставилось до него, и
+        /// отказ старта (`waveInStart`, находка П303 к `A321` (в)) оставлял
+        /// загруженному файлу его отсчёты при начале «Пуска».
+        ///
+        /// Момент — сразу после <c>waveIn.Start()</c>, а не первый буфер: у звукового
+        /// входа начало — ещё и ОТСЧЁТ ВРЕМЕНИ набора (такт окна считает
+        /// <c>DateTime.Now − StartTime + TotalTime</c>, «Стоп» прибавляет
+        /// <c>Now − StartTime</c>), а первые отсчёты первого буфера взяты с мига
+        /// <c>waveInStart</c>; первый буфер пришёл бы на его длину позже (1/50 с) и
+        /// с потока буферов.
+        ///
+        /// ⚠ Отказ <c>Start()</c> обязан и снять набор: с прежним, файловым началом
+        /// такт окна счёл бы прошедшим всё время от начала файла (годы), уставка
+        /// остановила бы «набор», и «Стоп» прибавил бы эти годы ко времени спектра.
+        /// Снятие — тем же порядком, что у <see cref="StopMeasurement"/>, без
+        /// времени; отказ уходит двери (<c>MeasurementController.StartRecording</c>)
+        /// как был.
+        /// </summary>
+        bool BeginRecording(ResultData resultData, WaveIn waveIn, int deviceId)
+        {
+            ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
             resultDataStatus.TimeInSamples = resultData.EnergySpectrum.NumberOfSamples;
             resultDataStatus.Recording = true;
             waveIn.DataReady += this.waveIn_DataReady;
-            waveIn.Start();
+            try
+            {
+                waveIn.Start();
+            }
+            catch (Exception)
+            {
+                resultDataStatus.Recording = false;
+                try
+                {
+                    waveIn.Stop();
+                    waveIn.Close();
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine("WaveIn stop after a refused start failed: " + ex.Message);
+                }
+                waveIn.DataReady -= this.waveIn_DataReady;
+                try
+                {
+                    waveIn.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine("WaveIn dispose after a refused start failed: " + ex.Message);
+                }
+                if (resultDataStatus.AudioVolumeChanged)
+                {
+                    try
+                    {
+                        this.audioVolumeController.SetVolume(deviceId, resultDataStatus.PreviousVolume);
+                    }
+                    catch (Exception) { }
+                    resultDataStatus.AudioVolumeChanged = false;
+                }
+                throw;
+            }
+            resultData.StartTime = DateTime.Now;
             return true;
         }
 
