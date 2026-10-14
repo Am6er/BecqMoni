@@ -471,6 +471,11 @@ namespace BecquerelMonitor.N42
                     + "это был бы выдуманный спектр");
             }
 
+            // ⛔ (П311, 15.10.2026) НОЛЬ КАНАЛОВ — ОТКАЗ, А НЕ ПУСТОЙ ДОКУМЕНТ. Проверка выше
+            //    пропускала NumberOfChannels = 0, и документ выходил «импортированным» с нулём
+            //    каналов — тот же разряд, что `A176` (пустой документ не выдаётся за спектр).
+            ThrowIfNoChannels(NumberOfChanels, filename, "ChannelData/@NumberOfChannels");
+
             // ⛔ `A213` (06.09.2026): ЗАПИСАНО БОЛЬШЕ ОБЪЯВЛЕННОГО — ХВОСТ
             //    ОТБРАСЫВАЕТСЯ, И ТЕПЕРЬ ОБ ЭТОМ ГОВОРИТСЯ.
             //
@@ -572,6 +577,14 @@ namespace BecquerelMonitor.N42
             }
             string spectrumtype = rad.MeasurementGroup.Measurement.Spectrum.SpectrumType;
             AH_InstrumentInformation instrument = rad.MeasurementGroup.Measurement.Spectrum.InstrumentInformation;
+            // ⛔ (П311, 15.10.2026) ПРИМЕЧАНИЕ СЧИТАЕТСЯ ДО ПЕРЕЗАПИСИ И БЕЗ БРОСКА (`A217`).
+            //    Элемента InstrumentInformation в файле может не быть, и разыменование
+            //    его ниже черты перезаписи бросало NullReferenceException УЖЕ ПОСЛЕ того,
+            //    как отсчёты легли в документ: отказ «Object reference not set…», а в
+            //    документе — спектр отказавшего файла. Нет элемента — примечание пустое,
+            //    как у разбора 2012 года без RadInstrumentInformation.
+            string note = instrument == null ? ""
+                : $"Manufacturer = {instrument.Manufacturer}, Model = {instrument.Model}, SerialNumber = {instrument.SerialNumber}";
 
             // ⛔ `A217` (06.09.2026): ВСЁ, ЧТО МОЖЕТ ОТКАЗАТЬ, СЧИТАЕТСЯ В СВОЁ,
             //    И ТОЛЬКО ПОТОМ ДОКУМЕНТ ПЕРЕЗАПИСЫВАЕТСЯ.
@@ -710,7 +723,7 @@ namespace BecquerelMonitor.N42
             //    Начало неизвестно, поэтому и конец неизвестен вместе с ним, но
             //    ДЛИТЕЛЬНОСТЬ в паре полей сохраняется — она из файла честная.
             resultData.EndTime = resultData.StartTime.AddSeconds(energySpectrum.MeasurementTime);
-            resultData.SampleInfo.Note = $"Manufacturer = {instrument.Manufacturer}, Model = {instrument.Model}, SerialNumber = {instrument.SerialNumber}";
+            resultData.SampleInfo.Note = note;
 
             energySpectrum.EnergyCalibration = calibration.Clone();
 
@@ -740,7 +753,10 @@ namespace BecquerelMonitor.N42
 
             N42_2006_EnergyCalibration calibration = null;
 
-            for(int i = 0; i < rad.Calibration.Length; i++)
+            // (П311, 15.10.2026) Нет ни одного элемента Calibration — `rad.Calibration` null, и
+            // цикл бросал NullReferenceException без причины; теперь — тот же названный отказ,
+            // что у файла, где разделы Calibration есть, а энергетического среди них нет.
+            for (int i = 0; rad.Calibration != null && i < rad.Calibration.Length; i++)
             {
                 if (rad.Calibration[i].Type == "Energy")
                 {
@@ -828,6 +844,8 @@ namespace BecquerelMonitor.N42
             chanData = Array.FindAll(chanData, isNotN42SpectrumValid);
 
             int NumberOfChanels = chanData.Length;
+            // (П311) Ноль каналов — отказ до перезаписи документа (см. ThrowIfNoChannels).
+            ThrowIfNoChannels(NumberOfChanels, filename, "Measurement/Spectrum/ChannelData");
             // `A147`: тот же читатель длительности, что и у разбора 2012 года, —
             //   деление вместо TotalSeconds. Здесь дробная часть не терялась
             //   (приведения к int не было), но промах на единицу младшего разряда
@@ -837,6 +855,17 @@ namespace BecquerelMonitor.N42
             double realtime = N42Seconds(rad.Measurement.Spectrum.RealTime);
             string starttime = rad.Measurement.Spectrum.StartTime;
             N42_2006_InstrumentInformation instrument = rad.Measurement.InstrumentInformation;
+            // ⛔ (П311, 15.10.2026) ПРИМЕЧАНИЕ — ДО ПЕРЕЗАПИСИ И БЕЗ БРОСКА (`A217`): без
+            //    элемента InstrumentInformation разыменование ниже черты перезаписи бросало
+            //    NullReferenceException, когда спектр отказавшего файла уже лежал в документе
+            //    (замер П311: «кан 64, сумма 253» после отказа). Нет элемента — примечание
+            //    пустое.
+            string note = instrument == null ? ""
+                : $"InstrumentType = {instrument.InstrumentType}, " +
+                  $"Manufacturer = {instrument.Manufacturer}, " +
+                  $"InstrumentModel = {instrument.InstrumentModel}, " +
+                  $"InstrumentID = {instrument.InstrumentID}, " +
+                  $"ProbeType = {instrument.ProbeType}";
 
             string spectrumtype = rad.Measurement.Spectrum.Type;
 
@@ -994,11 +1023,7 @@ namespace BecquerelMonitor.N42
             //    «сейчас». Берётся полное время (realtime), а не живое: EndTime —
             //    момент по часам, а не сумма зачтённого времени.
             resultData.EndTime = startTime.AddSeconds(realtime);
-            resultData.SampleInfo.Note = $"InstrumentType = {instrument.InstrumentType}, " +
-                $"Manufacturer = {instrument.Manufacturer}, " +
-                $"InstrumentModel = {instrument.InstrumentModel}, " +
-                $"InstrumentID = {instrument.InstrumentID}, " +
-                $"ProbeType = {instrument.ProbeType}";
+            resultData.SampleInfo.Note = note;
 
 
 
@@ -1062,7 +1087,10 @@ namespace BecquerelMonitor.N42
                 AppUi.Report(Resources.ERRNoEnergyCalibrationN42, "", MessageBoxIcon.None);
             }
 
-            int SpectrumCount = rad.RadMeasurement.Length;
+            // (П311, 15.10.2026) Файл без единого RadMeasurement — RadMeasurement null, и
+            // `.Length` бросал NullReferenceException без причины; теперь цикл пуст, и отказ
+            // называет себя ниже (`A176`: «импортируемых измерений в файле нет»).
+            int SpectrumCount = rad.RadMeasurement == null ? 0 : rad.RadMeasurement.Length;
 
             // ⛔ `AMBER87` (П151, 24.09.2026): ФАЙЛ, ЗАПИСАННЫЙ AtomSpectra, —
             //    ЦЕНТРАМИ, без перекладки. Признак программы — свойство файла,
@@ -1307,6 +1335,10 @@ namespace BecquerelMonitor.N42
                 // spectrum for compressed files.
                 int[] n42Spectrum = radMeasurement.Spectrum[0].ChannelData.SpectrumToArray();
                 int NumberOfChanels = n42Spectrum.Length;
+                // (П311) Пустой ChannelData — отказ, а не спектр из нуля каналов (замер П311:
+                // файл с пустым ChannelData импортировался документом «каналов 0, сумма 0»).
+                ThrowIfNoChannels(NumberOfChanels, filename,
+                    "RadMeasurement «" + radMeasurement.id + "»/Spectrum/ChannelData");
                 resultData.EnergySpectrum.Spectrum = new int[NumberOfChanels];
                 resultData.EnergySpectrum.NumberOfChannels = NumberOfChanels;
                 resultData.EnergySpectrum.ChannelPitch = 1;
@@ -1626,6 +1658,28 @@ namespace BecquerelMonitor.N42
         /// исключение. Два разных условия об одном положении уже расходились в
         /// этом дереве молча.
         /// </summary>
+        /// <summary>
+        /// ⛔ (П311, 15.10.2026) СПЕКТР ИЗ НУЛЯ КАНАЛОВ — НЕ СПЕКТР. Все три разбора
+        /// пропускали пустой ChannelData (2012, 2006) и NumberOfChannels = 0 (Alpha Hound):
+        /// документ выходил «импортированным» с нулём каналов и нулём отсчётов, а голоса не
+        /// было. Это тот же разряд, что `A176` (пустой документ не выдаётся за
+        /// импортированный спектр) и недостача `A208` («читать нечего»), и дверь та же:
+        /// исключение с причиной, его ловит <c>DocumentManager.ImportDocumentN42</c> — без
+        /// окон отказ с кодом возврата, в окнах причина человеку. Своего голоса здесь нет.
+        /// </summary>
+        private static void ThrowIfNoChannels(int channels, string filename, string where)
+        {
+            if (channels > 0)
+            {
+                return;
+            }
+
+            throw new Exception(
+                "в файле N42 (" + AppUi.Where(filename) + ") спектр пуст: в " + where
+                + " нет ни одного канала — читать нечего, и документ из нуля каналов "
+                + "был бы выдан за импортированный спектр");
+        }
+
         private static bool HasEnergyBoundaryValues(EnergyCalibration radCalibration)
         {
             return radCalibration != null

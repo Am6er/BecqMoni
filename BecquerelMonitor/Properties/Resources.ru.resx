@@ -234,7 +234,7 @@
     <value>Изменить значения и нажать кнопку выполнить.</value>
   </data>
   <data name="ImportSpectraFromFileDialogTitle" xml:space="preserve">
-    <value>Импорт спектра из файла</value>
+    <value>Импорт спектров из файла</value>
   </data>
   <data name="ImportOldFormatFileDialogTitle" xml:space="preserve">
     <value>Импорт спектра старого формата BQMoni (0.93Beta и раньше)</value>
@@ -320,7 +320,7 @@
     <value>Выберите канал #1 из спектра.</value>
   </data>
   <data name="ExportSpectraToFileDialogTitle" xml:space="preserve">
-    <value>Экспорт выбранного спектра в файл</value>
+    <value>Экспорт выбранных спектров в файл</value>
   </data>
   <data name="NewFilePrefix" xml:space="preserve">
     <value>Новый файл</value>
