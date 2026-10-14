@@ -9009,11 +9009,12 @@ namespace XPTable.Models
                 client.Y += 10;
                 client.Height -= 10;
 
-                StringFormat format = new StringFormat();
-                format.Alignment = StringAlignment.Center;
-
+                // (П315) StringFormat — объект GDI+ на каждую отрисовку пустой таблицы;
+                // разбирается здесь же, а не финализатором.
+                using (StringFormat format = new StringFormat())
                 using (SolidBrush brush = new SolidBrush(this.ForeColor))
                 {
+                    format.Alignment = StringAlignment.Center;
                     if (this.DesignMode)
                     {
                         if (this.ColumnModel == null || this.TableModel == null)

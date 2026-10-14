@@ -144,8 +144,13 @@ namespace BecquerelMonitor
         /// (П290) Что окно САМО сказало графику в последний раз: вид и имя слоя
         /// (признак ряда у окна отчёта всегда «нет»). По ним перестройка таблицы
         /// узнаёт, чья подсветка сейчас на графике (<see cref="HighlightIsOwn"/>).
+        /// (П315, 15.10.2026) Вид — СЛАБОЙ ссылкой: нужен он только для сравнения «тот
+        /// же ли», а сильная держала ЗАКРЫТЫЙ документ (вид → его событие → документ со
+        /// спектром и разбором) до следующего щелчка в отчёте — мерено
+        /// `P315GdiLeakProbe --mode=docs`: после закрытия жив последний документ, путь
+        /// `dcFsaReportView.pushedView → EnergySpectrumView.ActionEvent → документ`.
         /// </summary>
-        EnergySpectrumView pushedView;
+        WeakReference<EnergySpectrumView> pushedView;
         string pushedLayer;
 
         // ------------------------------------------------------------------
@@ -2400,7 +2405,7 @@ namespace BecquerelMonitor
             {
                 EnergySpectrumView view = this.document.EnergySpectrumView;
                 view.SetFsaHighlight(this.selectedLayer, false);
-                this.pushedView = view;
+                this.pushedView = new WeakReference<EnergySpectrumView>(view);
                 this.pushedLayer = this.selectedLayer;
             }
         }
@@ -2437,7 +2442,9 @@ namespace BecquerelMonitor
         /// </summary>
         bool HighlightIsOwn(EnergySpectrumView view)
         {
-            return ReferenceEquals(view, this.pushedView)
+            EnergySpectrumView pushed;
+            return this.pushedView != null && this.pushedView.TryGetTarget(out pushed)
+                   && ReferenceEquals(view, pushed)
                    && string.Equals(view.FsaHighlight, this.pushedLayer, StringComparison.Ordinal)
                    && !view.FsaHighlightWholeChain;
         }

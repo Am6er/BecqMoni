@@ -45,6 +45,18 @@ namespace BecquerelMonitor
             this.attachBtn.Visible = false;
             this.UpdateDeviceConfigList();
             this.deviceConfigManager.DeviceConfigListChanged += this.manager_DeviceConfigChanged;
+            // (П315, 15.10.2026) Подписка на одиночку снимается вместе с панелью. Смена
+            // раскладки («User layout» / «Expert layout») закрывает панель и ставит новую
+            // (`MainForm.InitializeToolViews`), а событие `DeviceConfigManager` держало
+            // каждую прежнюю до конца программы и звало её обработчик на закрытых
+            // элементах. Мерено `P315GdiLeakProbe --mode=layout`: после 8 смен живы все
+            // 8 прежних панелей, подписчиков 9.
+            this.Disposed += this.DCControlPanel_Disposed;
+        }
+
+        void DCControlPanel_Disposed(object sender, EventArgs e)
+        {
+            this.deviceConfigManager.DeviceConfigListChanged -= this.manager_DeviceConfigChanged;
         }
 
         // Token: 0x0600028B RID: 651 RVA: 0x0000B468 File Offset: 0x00009668

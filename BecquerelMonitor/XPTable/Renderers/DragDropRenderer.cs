@@ -34,7 +34,11 @@ namespace XPTable.Renderers
         /// <param name="rowRect"></param>
         public void PaintDragDrop(Graphics g, Row row, Rectangle rowRect)
         {
-            g.DrawRectangle(new Pen(_forecolor), rowRect);
+            // (П315) Перо разбирается здесь же, а не финализатором: кадр перетаскивания частый.
+            using (Pen pen = new Pen(_forecolor))
+            {
+                g.DrawRectangle(pen, rowRect);
+            }
         }
 
         private Color _forecolor;
