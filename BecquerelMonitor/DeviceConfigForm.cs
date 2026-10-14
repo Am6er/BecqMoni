@@ -42,6 +42,13 @@ namespace BecquerelMonitor
         public DeviceConfigForm()
         {
             this.InitializeComponent();
+            // (П266, 14.10.2026) Колонка «Энергия» точек калибровки (table2) шла без
+            // Maximum, и XPTable брал своё умолчание 100: открыть ячейку и нажать Enter
+            // делало точку 661.66 кэВ точкой 100 кэВ, вписанное 1173.228 — тоже 100,
+            // молча. Предела по существу у энергии точки нет — тот же приём, что у
+            // редактора нуклидов (NuclideDefinitionForm). «Ошибка %» в table3 — процент,
+            // её умолчание 100 верно.
+            this.numberColumn1.Maximum = decimal.MaxValue;
             base.Icon = Resources.becqmoni;
             this.expGaussExpLeftLabelText = this.leftSkewlabel.Text;
             this.expGaussExpRightLabelText = this.rightSkewlabel.Text;
