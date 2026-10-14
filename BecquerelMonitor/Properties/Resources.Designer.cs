@@ -513,7 +513,7 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Dead time, %. With a device configuration whose dead time is above 0: over the time constant, from the counts rate and that dead time. With dead time 0 (the device reports live time itself, or its dead time is not known): over the whole spectrum, (real time - live time) / real time; 0 if the spectrum has no live time. While such a device is measuring, the value reads high, most in the first minutes: the live time arrives once per poll and refers to the start of the read, while the real time runs on..
+        ///   Looks up a localized string similar to Dead time, %. With a device configuration whose dead time is above 0: over the time constant, from the counts rate and that dead time. With dead time 0 (the device reports live time itself, or its dead time is not known): over the whole spectrum, (real time - live time) / real time; 0 if the spectrum has no live time. With a device that reports live time itself, while it is measuring the value refers to the moment of its last read and is accurate to about 50/T percentage points (T — real time, s)..
         /// </summary>
         public static string CountRateDeadTimeHint {
             get {
@@ -7212,7 +7212,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DURING THE MEASUREMENT: the spectrum is refreshed once per polling period (3 s by default; one full read of a 1024-channel block takes 2.5 s). The time on the screen runs smoothly in between. Live time comes from the block itself; real time is the PC clock..
+        ///   Looks up a localized string similar to DURING THE MEASUREMENT: the spectrum is refreshed once per polling period (3 s by default; one full read of a 1024-channel block takes 2.5 s). The counts, the live time and the real time on the screen all refer to one moment — when the last read took the counts — so the time also advances in steps, once per refresh. Live time comes from the block itself; real time is the PC clock. The preset time is checked against the PC clock, so the measurement ends on time..
         /// </summary>
         public static string AmplitudaSerialInstructionP03 {
             get {
