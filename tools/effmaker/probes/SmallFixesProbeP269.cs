@@ -525,7 +525,10 @@ static class SmallFixesProbeP269
         cases.Add(Tuple.Create("F3 начала нет, проба РАНЬШЕ набора (конец − 2T)",
             Patch(noStart, "SampleInfo", "Time", "<Time>" + Xs(before) + "</Time>"), (DateTime?)before, true));
         cases.Add(Tuple.Create("F4 начала и конца нет, проба есть", Patch(noStart, "ResultData", "EndTime", null), (DateTime?)null, true));
-        cases.Add(Tuple.Create("F6 начала и пробы нет, конец есть", Patch(noStart, "SampleInfo", "Time", null), (DateTime?)ResultData.UnknownStartTime, true));
+        // (П279, 14.10.2026) Решение Amber «Конец − полное время (Рекомендую)»: начала и пробы
+        // нет, конец есть — начало = конец − T (прежде `A207`: 1970 и голос, Co-60 ×7.12).
+        // Сборка до П279 здесь обязана показать дефект; подробный замер — StartFromEndProbeP279.
+        cases.Add(Tuple.Create("F6 начала и пробы нет, конец есть", Patch(noStart, "SampleInfo", "Time", null), (DateTime?)end.AddSeconds(-T), false));
 
         int defect = 0, control = 0, idx = 0;
         string f1Path = null, hostPath = null;

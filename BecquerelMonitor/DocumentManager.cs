@@ -531,7 +531,10 @@ namespace BecquerelMonitor
         /// <item>начала нет, а время пробы есть — время пробы (задержка ноль, то
         /// есть «без поправки», а не выдуманная); но не позже, чем «конец − полное
         /// время», когда конец в файле есть (П269, <see cref="StartNotAfterEnd"/>);</item>
-        /// <item>нет ни начала, ни времени пробы — оба
+        /// <item>нет ни начала, ни времени пробы, а конец и полное время набора есть —
+        /// начало = конец − полное время, проба = начало (П279,
+        /// <see cref="StartFromEnd"/>); голоса нет;</item>
+        /// <item>нет ни начала, ни времени пробы, ни (конца и полного времени) — оба
         /// <see cref="ResultData.UnknownStartTime"/> и голос один раз на файл
         /// (`A207`, решение Amber 06.09.2026).</item>
         /// </list>
@@ -570,9 +573,21 @@ namespace BecquerelMonitor
                     }
                     else
                     {
-                        data.StartTime = ResultData.UnknownStartTime;
-                        data.SampleInfo.Time = ResultData.UnknownStartTime;
-                        unknown++;
+                        DateTime? fromEnd = data.EndTimeInFile
+                            ? StartFromEnd(data.EndTime, data.EnergySpectrum != null ? data.EnergySpectrum.MeasurementTime : 0.0)
+                            : null;
+                        if (fromEnd.HasValue)
+                        {
+                            // (П279) Начала и пробы нет, конец и полное время есть.
+                            data.StartTime = fromEnd.Value;
+                            data.SampleInfo.Time = fromEnd.Value;
+                        }
+                        else
+                        {
+                            data.StartTime = ResultData.UnknownStartTime;
+                            data.SampleInfo.Time = ResultData.UnknownStartTime;
+                            unknown++;
+                        }
                     }
                 }
                 else if (!sampleKnown)
@@ -626,6 +641,37 @@ namespace BecquerelMonitor
                 }
             }
             return start > latest ? latest : start;
+        }
+
+        /// <summary>
+        /// ⛔ (П279, 14.10.2026) НАЧАЛА И ВРЕМЕНИ ПРОБЫ В ФАЙЛЕ НЕТ, А КОНЕЦ ЕСТЬ — НАЧАЛО
+        /// ВЫВОДИТСЯ ИЗ КОНЦА: <c>конец − полное время набора</c>. Решение Amber
+        /// 14.10.2026 вопросником, дословно: «Конец − полное время (Рекомендую)» —
+        /// «Начало выводится из конца и реального времени — множитель распада верный,
+        /// продолжение набора тоже. Голос A207 и метка 1970 для таких файлов пропадают.»
+        /// Прежде правило `A207` ставило начало = проба = 1970-01-01 при конце из файла:
+        /// «набор» 54 года, поправка на распад
+        /// (<c>MeasurementResultManager.DecayToSamplingFactor</c>) Co-60 ×7.12, Cs-137
+        /// ×1.75 (замер П269, F6), а продолжение набора такого файла шло от 1970.
+        /// Время пробы при этом — начало (правило П263 «времени пробы нет — время
+        /// начала»). Возвращает null, когда полного времени нет (ноль, отрицательное,
+        /// бесконечность, не число) или «конец − время» выходит за календарь, — тогда в
+        /// силе прежнее правило `A207` (эпоха и голос).
+        /// </summary>
+        static DateTime? StartFromEnd(DateTime end, double seconds)
+        {
+            if (!(seconds > 0.0) || double.IsInfinity(seconds) || double.IsNaN(seconds))
+            {
+                return null;
+            }
+            try
+            {
+                return end.AddSeconds(-seconds);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return null;
+            }
         }
 
         /// <summary>
