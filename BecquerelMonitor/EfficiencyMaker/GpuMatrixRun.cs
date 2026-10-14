@@ -898,6 +898,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 publish(false);
             };
 
+            // ⛔ (П271, 14.10.2026) Под одной защитой — всё до ожидания κ: узлы И то, что
+            // идёт после них (отчёт хода, журнал, клеймо, нормировка, угловые моменты,
+            // итоги, пик разрешения). Прежде отчёт хода после узлов, `ComputeStamp`,
+            // `NormalizationOf` и `AngularAttenuation.FromMoments` стояли между двумя
+            // защитами: бросок любого из них уходил наружу, а κ на ЦП продолжала считать (П270).
+            ResponseMatrix matrix;
             try
             {
             for (int slot = 0; slot < grid.Length; slot++)
@@ -933,15 +939,6 @@ namespace BecquerelMonitor.EfficiencyMaker
                                   slot + 1, grid.Length, energyKev, nodeSeconds[index], gpu.LastBlobBytes / 1024));
                 }
             }
-            }
-            catch
-            {
-                // Любой выход из счёта узлов — отмена, отказ устройства, отказ упаковки —
-                // снимает κ пар на ЦП и ждёт её: наружу не уходит работающая задача, и после
-                // выхода построителя в окно не приходит ни одного отчёта хода (П253).
-                StopJoint(jointStop, jointTask);
-                throw;
-            }
 
             report(grid.Length, grid[0]);
             LastGpuSeconds = watch.Elapsed.TotalSeconds;
@@ -964,7 +961,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             long spentTotal = 0, capNode = 0;
             foreach (long h in nodeHistories) { spentTotal += h; if (h > capNode) capNode = h; }
 
-            var matrix = new ResponseMatrix
+            matrix = new ResponseMatrix
             {
                 ContinuumRelativeError = worstContinuum,
                 ContinuumWeightedError = sumWeight > 0.0 ? sumInverse / sumWeight : 0.0,
@@ -984,13 +981,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                 AngularQk = AngularAttenuation.FromMoments(grid, nodeAngular)
             };
 
-            try
-            {
-                matrix.RebuildTotals();
-                ResponseMatrixBuilder.FillResolutionPeak(geometry, matrix, nodeResolutionExtra);
+            matrix.RebuildTotals();
+            ResponseMatrixBuilder.FillResolutionPeak(geometry, matrix, nodeResolutionExtra);
             }
             catch
             {
+                // Любой выход до ожидания κ — отмена, отказ устройства, отказ упаковки, отказ
+                // сборки матрицы после узлов — снимает κ пар на ЦП и ждёт её: наружу не уходит
+                // работающая задача, и после выхода построителя в окно не приходит ни одного
+                // отчёта хода (П253, П271).
                 StopJoint(jointStop, jointTask);
                 throw;
             }
