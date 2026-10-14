@@ -288,7 +288,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// те же, что отчёт печатает «&lt; доля») — строки «не обнаружен» с порогом и пределом
         /// (ISO 11929, `S9`), одна на имя (у ряда — имя корня). Период полураспада строки — по
         /// определению библиотеки с тем же именем (поправка на распад к отбору пробы,
-        /// <c>MeasurementResultManager.Correct</c>); нет определения — поправки нет.
+        /// <c>MeasurementResultManager.Correct</c>), без него — из базы по `nucid`; у строки
+        /// свободного члена ряда — период КОРНЯ (П278, <see cref="Line"/>).
         /// Коэффициент строки — единица при абсолютной шкале (матрица или кривая из геометрии /
         /// ЛСРМ, <see cref="AbsoluteScale"/>), иначе нуль — беккерели скрыты, причина в
         /// <see cref="Summary"/>.
@@ -365,7 +366,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // полосе. Ряд без линий корня (Ra-228: 13.5/16.2 кэВ) печатал MDA 0.
                     double limitRate = chain ? ChainLimitRate(result, component) : component.DetectionLimitRate;
                     double mda = limitRate > 0.0 && !double.IsNaN(limitRate) ? limitRate * own : 0.0;
-                    collection.ResultList.Add(new MeasurementResult(Line(name, absolute, definitions),
+                    // (П278) строка ряда — сам корень, её период свой; свободный член — период корня
+                    string root = chain ? null : MemberRootOf(component.DecayChainRoot, component.Name, definitions);
+                    collection.ResultList.Add(new MeasurementResult(Line(name, root, absolute, definitions),
                                                                     rate * countingTime, sigma * countingTime, mda * countingTime));
                     summary.Rows++;
                     if (chain)
@@ -391,7 +394,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     : rate;
                 double mda = !double.IsNaN(limit.DetectionLimitRate) && limit.DetectionLimitRate > 0.0
                     ? limit.DetectionLimitRate * own : 0.0;
-                collection.ResultList.Add(new MeasurementResult(Line(limit.Name, absolute, definitions),
+                string root = limit.Kind == FsaComponentKind.Chain ? null : MemberRootOf(limit.DecayChainRoot, limit.Name, definitions);
+                collection.ResultList.Add(new MeasurementResult(Line(limit.Name, root, absolute, definitions),
                                                                 rate * countingTime, sigma * countingTime, mda * countingTime));
                 summary.Rows++;
                 summary.Undetected++;
@@ -422,11 +426,68 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// ⛔ (П278, 14.10.2026) Корень ряда СВОБОДНОГО члена — для периода поправки на распад
+        /// (<see cref="Line"/>). Берётся из данных ряда, как признак члена у доли своих распадов
+        /// (<c>FsaAnalysisSession.IsChainMember</c>): происхождение колонки или строки предела
+        /// (<see cref="FsaComponentResult.DecayChainRoot"/>, путь из баз), а без него — ряд
+        /// (<see cref="NuclideDefinition.Chain"/>) строки библиотеки того же нуклида с ДРУГИМ
+        /// корнем (путь по подписям; у библиотеки Amber «Tl-208 (Th-232)»). null — корень сам,
+        /// одиночка, не нуклид: период строки свой, как до П278.
+        /// </summary>
+        static string MemberRootOf(string origin, string name, IList<NuclideDefinition> definitions)
+        {
+            string nucid = FsaSampleLibrary.NucidOf(name ?? "");
+            if (nucid.Length == 0)
+            {
+                return null;
+            }
+
+            string root = (origin ?? "").Trim();
+            string rootNucid = FsaSampleLibrary.NucidOf(root);
+            if (rootNucid.Length > 0)
+            {
+                return rootNucid != nucid ? root : null;
+            }
+
+            if (definitions != null)
+            {
+                foreach (NuclideDefinition d in definitions)
+                {
+                    if (d == null || FsaSampleLibrary.NucidOf(d.NuclideName ?? "") != nucid)
+                    {
+                        continue;
+                    }
+
+                    string chain = (d.Chain ?? "").Trim();
+                    string chainNucid = FsaSampleLibrary.NucidOf(chain);
+                    if (chainNucid.Length > 0 && chainNucid != nucid)
+                    {
+                        return chain;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Строка измерения по имени нуклида: коэффициент — единица при абсолютной шкале, период
         /// полураспада — по первому определению библиотеки с этим именем, а без него — из базы
         /// по `nucid` имени (нет и там — нуль, без поправки).
+        ///
+        /// ⛔ (П278) У строки СВОБОДНОГО члена ряда (<paramref name="root"/> задан — равновесие
+        /// ВЫКЛ, у колонки есть корень) период — КОРНЯ. Решение Amber 14.10.2026 вопросником,
+        /// дословно: «Периодом корня (Рекомендую)» (находка П254 №10). Прежде строка шла своим
+        /// периодом, и на Th232_29.07.2022 (отбор за 51 мин до начала, набор 9.7 ч) при
+        /// включённой поправке Tl-208 уезжал ×1.49·10⁷, Bi-212 ×12, Ac-228 ×1.81, а на Cs-137
+        /// «в домике» (отбор за 4 сут) предел Bi-214 — ×2.3·10⁹⁰, Tl-208 — бесконечность. Приём
+        /// тот же, что `AMBER195` «Ряд задан → период корня»: линия с рядом идёт через
+        /// <see cref="NuclideDefinition.DecayHalfLifeYears"/> (база, затем линия корня в
+        /// библиотеке, затем свой период). Следствие, названное в вопросе: торий и радий
+        /// приводятся верно, радон на фильтре (неподпитанные дочерние) остаётся средним за набор.
+        /// Одиночки и строка самого ряда (<paramref name="root"/> == null) — как прежде.
         /// </summary>
-        static MeasurementLine Line(string name, bool absolute, IList<NuclideDefinition> definitions)
+        static MeasurementLine Line(string name, string root, bool absolute, IList<NuclideDefinition> definitions)
         {
             NuclideDefinition def = null;
             if (definitions != null)
@@ -454,6 +515,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     halfLifeYears = NucBase.NucBaseFramework.HalfLifeYearsOf(nucid);
                 }
+            }
+
+            if (!string.IsNullOrEmpty(root))
+            {
+                // (П278) свободный член ряда — линией с рядом через правило `AMBER195`; не нашёлся
+                // корень ни в базе, ни в библиотеке — правило вернёт свой период, найденный выше
+                var member = new NuclideDefinition
+                {
+                    Name = name,
+                    Chain = root,
+                    HalfLife = halfLifeYears > 0.0 ? halfLifeYears : 0.0
+                };
+                halfLifeYears = NuclideDefinition.DecayHalfLifeYears(member, definitions);
             }
 
             return new MeasurementLine
