@@ -184,10 +184,48 @@ namespace BecquerelMonitor
             {
                 resultData.StartTime = DateTime.Now;
             }
+            else if (resultData.StartTime == ResultData.UnknownStartTime)
+            {
+                ResumeUnknownStart(resultData, elapsedMicros / 1.0E+06, DateTime.Now);    // P298, see there
+            }
             sessionClock.Restart();
             pollTimer.Start();
             status.Recording = true;
             return true;
+        }
+
+        // P298 (14.10.2026): Start on a document whose start time is UNKNOWN - the 1970 label of
+        // A207 (ResultData.UnknownStartTime), which a file without a start, a sample time and an end
+        // opens with (the RadiaCode-101 exports). The start becomes the moment of Start minus the
+        // real time the document already holds. Before, it stayed 1970 while Stop wrote the PC clock
+        // as the end, and the decay correction (MeasurementResultManager.DecayToSamplingFactor) saw a
+        // measurement 56 years long (Cs-137 x1.79). Amber's decision of 14.10.2026, verbatim:
+        // «Начало = сейчас − набранное время» - the P279 rule (start = end - real time,
+        // DocumentManager.FillAbsentTimes) with the moment of Start as the end. A sample time that is
+        // unknown too follows the start (P263: no sample time - the start time). A real time that
+        // cannot be subtracted (NaN, negative, infinite, beyond the calendar) leaves the label as it
+        // is. The same rule as AmplitudaSerialDeviceController.ResumeUnknownStart; the probe
+        // ResumeUnknownStartProbeP298 holds the two to one answer.
+        internal static void ResumeUnknownStart(ResultData resultData, double realSeconds, DateTime startPressed)
+        {
+            if (!(realSeconds >= 0.0) || double.IsInfinity(realSeconds))
+            {
+                return;
+            }
+            DateTime start;
+            try
+            {
+                start = startPressed.AddSeconds(-realSeconds);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return;
+            }
+            resultData.StartTime = start;
+            if (resultData.SampleInfo != null && resultData.SampleInfo.Time == ResultData.UnknownStartTime)
+            {
+                resultData.SampleInfo.Time = start;
+            }
         }
 
         void PollTimer_Tick(object sender, EventArgs e)
