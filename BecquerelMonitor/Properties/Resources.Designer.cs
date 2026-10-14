@@ -7462,5 +7462,14 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("NucBase_UnitY", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The graphics card could not finish the matrix. Uncheck "{0}" — the matrix will then be computed on the CPU. Details are in the application log..
+        /// </summary>
+        public static string ResponseMatrixGpuFailed {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuFailed", resourceCulture);
+            }
+        }
     }
 }
