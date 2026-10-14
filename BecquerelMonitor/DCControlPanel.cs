@@ -240,6 +240,11 @@ namespace BecquerelMonitor
             activeDocument.ClearSpectrum();
             activeDocument.Dirty = true;
             this.ShowDocumentStatus();
+            // П300: прибор мог сдвинуть начало, а с ним — время пробы с меткой 1970
+            // (`MeasurementController.SampleTimeFollowsStart`). Вкладка пробы обязана
+            // показать новые: иначе `MainForm.SaveActiveDocument` → `SaveFormContents`
+            // вернул бы в документ прежнюю дату из поля. Так же делает «Пуск» выше.
+            this.mainForm.UpdateSampleInfo();
         }
 
         // Token: 0x06000295 RID: 661 RVA: 0x0000B7CC File Offset: 0x000099CC

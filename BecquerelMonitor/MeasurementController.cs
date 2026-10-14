@@ -150,6 +150,49 @@ namespace BecquerelMonitor
             this.ReleaseDeviceLease();
         }
 
+        /// <summary>
+        /// ⛔ П300 (14.10.2026). ВРЕМЯ ПРОБЫ С МЕТКОЙ «НЕИЗВЕСТНО» СЛЕДУЕТ ЗА
+        /// НАЧАЛОМ НАБОРА — одно правило всем приборам.
+        ///
+        /// Документ, открытый из файла без начала, времени пробы и конца, несёт
+        /// метку <see cref="ResultData.UnknownStartTime"/> (1970, `A207`) в обоих
+        /// полях. Прибор ставил ему НАЧАЛО «сейчас» — чистый «Пуск» после
+        /// «Очистить» у всех шести, первый «Пуск» вообще у AtomSpectra, RadiaCode,
+        /// Obsidian и звукового входа, «Очистить» у трёх первых, — а время пробы
+        /// оставалось 1970, и поправка на распад к дате отбора
+        /// (<c>MeasurementResultManager.DecayToSamplingFactor</c>) считала задержку
+        /// пробы ≈ 56.8 года: Cs-137 ×3.70, Co-60 ×1758. Найдено полосой П298
+        /// (контроль S2 её пробы).
+        ///
+        /// Правило — умолчание распорядителя по уже принятым решениям, не новое
+        /// решение Amber: П263 «времени пробы нет — время начала»
+        /// (<c>DocumentManager.FillAbsentTimes</c>) и П298 (проба с меткой следует
+        /// за началом при продолжении, <c>AmplitudaSerialDeviceController.ResumeUnknownStart</c>).
+        /// Начало известно, проба — метка: проба = начало. ⛔ Известное время пробы
+        /// не трогается НИКОГДА; начало само с меткой — следовать не за чем, обе
+        /// метки остаются.
+        ///
+        /// Место одно — этот класс: прибор ставит начало только в своих
+        /// <c>StartMeasurement</c> / <c>AttachToDevice</c> / <c>ClearMeasurementResult</c>,
+        /// а их зовут только <see cref="StartRecording"/>, <see cref="AttachToDevice"/>
+        /// и <see cref="ClearMeasurementResult"/>. Правило — ПОСЛЕ прибора и в
+        /// <c>finally</c>: AtomSpectra ставит начало «сейчас» и тогда, когда прибор
+        /// не ответил и пуск отказан.
+        /// </summary>
+        internal static void SampleTimeFollowsStart(ResultData resultData)
+        {
+            if (resultData == null || resultData.SampleInfo == null)
+            {
+                return;
+            }
+            if (resultData.StartTime == ResultData.UnknownStartTime
+                || resultData.SampleInfo.Time != ResultData.UnknownStartTime)
+            {
+                return;
+            }
+            resultData.SampleInfo.Time = resultData.StartTime;
+        }
+
         // Device-initiated termination: the device reported a terminal status
         // (Stopped/Faulted/Disconnected) on its own — e.g. its BLE connection was taken over by
         // the Troubleshoot session while a measurement was running. The device side is already
@@ -345,6 +388,11 @@ namespace BecquerelMonitor
                 this.ReleaseDeviceLease();
                 return false;
             }
+            finally
+            {
+                // П300: и на отказе — прибор мог сдвинуть начало до него.
+                SampleTimeFollowsStart(this.resultData);
+            }
 
             return true;
         }
@@ -369,7 +417,15 @@ namespace BecquerelMonitor
                 this.ReleaseDeviceLease();
                 return false;
             }
-            bool attached = this.deviceController.AttachToDevice(this.resultData);
+            bool attached;
+            try
+            {
+                attached = this.deviceController.AttachToDevice(this.resultData);
+            }
+            finally
+            {
+                SampleTimeFollowsStart(this.resultData);    // П300, см. там
+            }
             if (!attached)
             {
                 this.ReleaseDeviceLease();
@@ -539,6 +595,12 @@ namespace BecquerelMonitor
                         + "with the next update and look like a fresh measurement.", ex);
                 }
                 AppUi.Report(Resources.ERRBTNotSupportedByOS, "", MessageBoxIcon.None);
+            }
+            finally
+            {
+                // П300: «Очистить» у AtomSpectra, RadiaCode и Obsidian ставит начало
+                // «сейчас» и на остановленном наборе.
+                SampleTimeFollowsStart(this.resultData);
             }
         }
 
