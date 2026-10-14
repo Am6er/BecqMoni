@@ -76,6 +76,17 @@ namespace BecquerelMonitor
         {
             if (deviceGuid != null)
             {
+                // ⛔ П267 (14.10.2026): прибор пишет ДРУГОЙ спектр — его накопитель
+                //    не наш. Контроллер остановленного спектра остаётся подписан на
+                //    общий экземпляр и слышит статус «Recording» ЧУЖОГО набора, и
+                //    «Очистить» здесь слал прибору «Reset» — сосед терял всё
+                //    набранное. Очищается только документ (`DCControlPanel`).
+                if (MeasurementController.IsDeviceLeasedByOther(deviceGuid, resultData.MeasurementController))
+                {
+                    Trace.WriteLine("RadiaCode: device " + deviceGuid + " is recording another spectrum - clear is local, no Reset");
+                    resultData.StartTime = DateTime.Now;
+                    return;
+                }
                 if (status == "Connected" || status == "Recording")
                 {
                     RadiaCodeIn.getInstance(deviceGuid).sendCommand("Reset");
@@ -248,6 +259,10 @@ namespace BecquerelMonitor
                 {
                     resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(e.ElapsedTime);
                     resultData.ResultDataStatus.ElapsedTime = resultData.ResultDataStatus.TotalTime;
+                    // П267: время спектра — вместе с отсчётами ТОГО ЖЕ пакета, а не
+                    // следующим тактом окна (разбор у `MeasurementController.SetSpectrumTimes`).
+                    MeasurementController.SetSpectrumTimes(this.pulseDetector.EnergySpectrum,
+                        resultData.ResultDataStatus.ElapsedTime.TotalSeconds, resultData.DeviceConfig, false);
                 }
             }
         }

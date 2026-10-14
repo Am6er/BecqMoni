@@ -125,6 +125,17 @@ namespace BecquerelMonitor
         {
             if (deviceGuid != null)
             {
+                // ⛔ П267 (14.10.2026): прибор пишет ДРУГОЙ спектр — его накопитель
+                //    не наш. Экземпляр прибора один на `guid`, и «Очистить» на
+                //    остановленном спектре сбрасывал «-rst» набор соседа: тот терял
+                //    всё набранное. Очищается только документ (`DCControlPanel`).
+                if (MeasurementController.IsDeviceLeasedByOther(deviceGuid, resultData.MeasurementController))
+                {
+                    System.Diagnostics.Trace.WriteLine("AtomSpectra: device " + deviceGuid
+                        + " is recording another spectrum - clear is local, no -rst");
+                    resultData.StartTime = DateTime.Now;
+                    return;
+                }
                 AtomSpectraVCPIn.getInstance(deviceGuid).sendCommand("-rst");
                 AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
                 resultData.StartTime = DateTime.Now;
@@ -366,10 +377,18 @@ namespace BecquerelMonitor
                     //       обработчика над ним нет, и исключение свалило бы
                     //       приложение вместе с несохранённым спектром;
                     //    3. читатель у беды уже есть и остаётся прежним — набор
-                    //       тут же останавливается двумя строками ниже.
-                    AppUi.Report(Resources.ERRIncompatibleChannelParameters, "", MessageBoxIcon.None);
+                    //       тут же останавливается.
+                    // ⛔ П267 (14.10.2026): СПЕРВА ОСТАНОВИТЬ, ПОТОМ СООБЩИТЬ. Окно
+                    //    стояло ДО остановки, а модальное окно крутит свой цикл
+                    //    сообщений: следующий пакет (раз в секунду), доехавший через
+                    //    `Post`, заставал `Recording` ещё поднятым и открывал второе
+                    //    окно поверх первого, затем третье — пока человек не нажмёт
+                    //    «ОК» на всех (замер `DeviceIngestProbeP267`, плечо 3: три
+                    //    пакета в очереди — три вложенных окна). Так же устроен
+                    //    `port_failure_stop` у RadiaCode и Obsidian.
                     resultData.MeasurementController.StopRecording();
                     resultData.ResultDataStatus.Recording = false;
+                    AppUi.Report(Resources.ERRIncompatibleChannelParameters, "", MessageBoxIcon.None);
                     return;
                 }
                 e.Hystogram.CopyTo(this.pulseDetector.EnergySpectrum.Spectrum, 0);
@@ -381,6 +400,10 @@ namespace BecquerelMonitor
                 {
                     resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(e.ElapsedTime);
                     resultData.ResultDataStatus.ElapsedTime = resultData.ResultDataStatus.TotalTime;
+                    // П267: время спектра — вместе с отсчётами ТОГО ЖЕ пакета, а не
+                    // следующим тактом окна (разбор у `MeasurementController.SetSpectrumTimes`).
+                    MeasurementController.SetSpectrumTimes(this.pulseDetector.EnergySpectrum,
+                        resultData.ResultDataStatus.ElapsedTime.TotalSeconds, resultData.DeviceConfig, false);
                 }
             }
         }
