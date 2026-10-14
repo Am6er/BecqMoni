@@ -514,13 +514,29 @@ namespace BecquerelMonitor.NucBase
             this.IsotopeSpecActivity.Text = NucBaseFramework.SpecificActivityCaption(nuc);
             this.IsotopeAbundance.Text = nuc.Abundance.ToString(CultureInfo.InvariantCulture) + " %";
 
+            // ⛔ (П296, 14.10.2026) СТРОКИ С ДОЛЕЙ РОВНО 0 НЕ ПОКАЗЫВАЮТСЯ — ни у дочерних, ни у
+            // родителей (то же ребро глазами дочери). Решение Amber 14.10.2026 вопросником, дословно:
+            // «Скрывать строки с долей 0 в карточке (Рекомендую)». Только показ: список
+            // `Nuclide.Daughters`/`Parents` и правило ряда не тронуты, база не менялась — у `130SN`,
+            // `52FE`, `85Y` нулевая строка держит ряд от двоения (журнал П294), у 25 строк поставки
+            // нуль — «доля неизвестна». Читателей списка в приложении один — этот метод.
             foreach (Decay parent in nuc.Parents)
             {
+                if (NucBaseFramework.IsZeroShare(parent.DecayPercent))
+                {
+                    continue;
+                }
+
                 this.ParentsDataGridView.Rows.Add(parent.NucName, parent.DecayTypeString, parent.DecayPercent);
             }
 
             foreach (Decay daughter in nuc.Daughters)
             {
+                if (NucBaseFramework.IsZeroShare(daughter.DecayPercent))
+                {
+                    continue;
+                }
+
                 this.DaughtersDataGridView.Rows.Add(daughter.NucName, daughter.DecayTypeString, daughter.DecayPercent);
             }
         }
