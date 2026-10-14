@@ -55,9 +55,20 @@ namespace BecquerelMonitor.Probes
     /// встанет в очередь поиска, — отказ публикуется сразу, и порядок не воспроизводится (замер П271).
     /// Суд: сеанс успокоился (разбор ИЛИ причина), и окно результата показывает его, а не «идёт расчёт».
     ///
+    /// Сцена `firsttoggle` (П274, 14.10.2026; находка 1 проверки экраном П273) — ПЕРВАЯ смена
+    /// настройки расчёта в свежем процессе: спектр открыт и разобран, затем снята (или поставлена)
+    /// галка «Равновесие ряда» окна отчёта — тем же обработчиком, что щелчок, — и НИ ОДНОЙ
+    /// перерисовки графика и ни одного движения мыши (документ вовсе не показан). Суд: за отведённое
+    /// время (60 с) сеанс публикует новый разбор, строка состояния отчёта — «завершён», окно
+    /// результата — новые строки, а на время пересчёта — прежние С ПОМЕТКОЙ «(пересчёт…)» (до правки
+    /// П274 окно по началу счёта не перечитывалось и пометки не было). Положительный контроль: обратная смена при закрытой задвижке
+    /// счёта (`probeGate`) обязана быть увидена сценой как «не опубликовано», а после открытия
+    /// задвижки — опубликоваться. Настройка ложится в копию спектра (источник приложения на время
+    /// сцены снят) — общая конфигурация рядом с пробой на диск не пишется.
+    ///
     /// Ключи: --spectrum=&lt;файл&gt; (несколько; сцены активации — по каждому, первый — для
-    /// путей отказа, второй — прежняя вкладка сцены `busy`); --ui=en|ru; --timeout=300;
-    /// --only=activation,busy,requeue,refusal,failure.
+    /// путей отказа и `firsttoggle`, второй — прежняя вкладка сцены `busy`); --ui=en|ru; --timeout=300;
+    /// --only=firsttoggle,activation,busy,requeue,refusal,failure.
     /// Коды: 0 — всё сошлось; 1 — расхождение; 2 — ключи/файлы.
     /// </summary>
     static class FsaSessionStatesProbeP261
@@ -110,6 +121,11 @@ namespace BecquerelMonitor.Probes
             Form hostReport = Host(report, 520, 600, -3400);
             Form hostResults = Host(results, 640, 300, -2800);
 
+            if (Wanted("firsttoggle"))
+            {
+                // (П274) первой сценой — процесс ещё свежий: первая смена настройки расчёта
+                FirstToggleScene(spectra[0], mainForm, peaks, report, results);
+            }
             if (Wanted("activation"))
             {
                 foreach (string path in spectra)
@@ -318,6 +334,164 @@ namespace BecquerelMonitor.Probes
             Pump(50);
             doc.Dispose();
             if (previous != null) previous.Dispose();
+        }
+
+        /// <summary>
+        /// (П274) Первая смена настройки расчёта в свежем процессе без единой перерисовки графика:
+        /// готовый счёт обязан дойти до отчёта и окна результата сам, без движения мыши.
+        /// </summary>
+        static void FirstToggleScene(string path, MainForm mainForm, DCPeakDetectionView peaks,
+                                     FSAReportView report, DCResultView results)
+        {
+            const int publishLimitS = 60;
+            Console.WriteLine();
+            Console.WriteLine("=== ПЕРВАЯ СМЕНА НАСТРОЙКИ РАСЧЁТА В СВЕЖЕМ ПРОЦЕССЕ: {0} ===", Path.GetFileName(path));
+            var strings = new System.Resources.ResourceManager("BecquerelMonitor.Properties.Resources", typeof(MainForm).Assembly);
+            string completedText = strings.GetString("FSAStatusCompleted");
+            string runningText = strings.GetString("FSAStatusRunning");
+            string staleText = new System.ComponentModel.ComponentResourceManager(typeof(DCResultView)).GetString("DCResult_FsaStale");
+            Func<FsaCalculationOptions> appSource = FsaCalculationOptions.ApplicationSource;
+            FsaCalculationOptions.ApplicationSource = null;   // настройка — в копию спектра, общая конфигурация не пишется
+            FieldInfo gateField = typeof(FsaAnalysisSession).GetField("probeGate", Any);
+            DocEnergySpectrum doc = Open(path);
+            // окно отчёта в приложении пристыковано и видно — потребитель счёта; здесь оно вне DockPanel
+            bool wasConsumer = report.ProbeConsumer;
+            report.ProbeConsumer = true;
+            try
+            {
+                ResultData rd = doc.ActiveResultData;
+                // настройки разбора — ОБЩИЕ, как у приложения, но в копии спектра (отпечаток тот же)
+                GlobalConfigManager.GetInstance().GlobalConfig.FsaCalculation.CopyTo((FWHMPeakDetectionMethodConfig)rd.PeakDetectionMethodConfig);
+                FsaAnalysisSession session = doc.FsaSession;
+                mainForm.ActiveDocument = doc;
+                results.ShowResult(true);
+                peaks.ShowPeakDetectionResult();
+                report.SetDocument(doc);
+                if (!Settle(session, peaks, report, results, 300))
+                {
+                    bad++;
+                    return;
+                }
+                CheckBox equilibrium = (CheckBox)Field(typeof(FSAReportView), "equilibriumCheckBox").GetValue(report);
+                bool was = equilibrium.Checked;
+                FsaResult before = session.Result;
+                int runs = session.RunCount;
+                string rowsBefore = RowsText(results);
+                int widthBefore = HeaderWidth(results);
+                Console.WriteLine("  разобран: «{0}», пиков {1}, равновесие {2}; окно: {3}", ReportLabel(report),
+                                  rd.DetectedPeaks.Count, was ? "ВКЛ" : "ВЫКЛ", Short(rowsBefore));
+
+                // 1. ПЕРВАЯ смена — без графика и мыши: только очередь сообщений потока окон
+                DateTime start = DateTime.UtcNow;
+                equilibrium.Checked = !was;
+                bool sawRunning = false, sawStale = false;
+                int widthMax = widthBefore;
+                double published = -1;
+                while ((DateTime.UtcNow - start).TotalSeconds < publishLimitS)
+                {
+                    Pump(20);
+                    if (ReportLabel(report) == runningText) sawRunning = true;
+                    // окно результата при идущем пересчёте: прежние строки с пометкой «(пересчёт…)»
+                    if (session.IsRunning && ResultHeader(results).Contains(staleText)) sawStale = true;
+                    widthMax = Math.Max(widthMax, HeaderWidth(results));
+                    if (Published(session, before, report, results, rowsBefore, completedText))
+                    {
+                        published = (DateTime.UtcNow - start).TotalSeconds;
+                        break;
+                    }
+                }
+                string rowsAfter = RowsText(results);
+                bool okFirst = published >= 0 && session.RunCount == runs + 1;
+                Console.WriteLine("  смена «равновесие {0}»: «идёт расчёт» показан {1}; опубликовано через {2}; запусков счёта +{3}; окно: {4}  {5}",
+                                  was ? "ВЫКЛ" : "ВКЛ", sawRunning, published >= 0 ? published.ToString("F1", CultureInfo.InvariantCulture) + " с" : "НЕТ за " + publishLimitS + " с",
+                                  session.RunCount - runs, Short(rowsAfter), Ok(okFirst));
+                Console.WriteLine("  окно результата при пересчёте пометило прежние строки «{0}»: {1}", staleText, Ok(sawStale));
+                // колонка заголовка росла под пометку — по её уходу вернулась (MDA не уходит за край)
+                Pump(300);
+                int widthAfter = HeaderWidth(results);
+                Console.WriteLine("  колонка заголовка окна: до {0}, под пометкой {1}, после {2} — вернулась {3}", widthBefore, widthMax, widthAfter, Ok(widthAfter == widthBefore));
+                if (!okFirst || !sawRunning || !sawStale || widthAfter != widthBefore) bad++;
+
+                // 2. Положительный контроль: счёт задержан задвижкой — сцена обязана увидеть «не опубликовано»
+                before = session.Result;
+                var gate = new ManualResetEvent(false);
+                gateField.SetValue(null, gate);
+                equilibrium.Checked = was;
+                Pump(3000);
+                bool seen = !Published(session, before, report, results, rowsAfter, completedText)
+                            && session.IsRunning && ReportLabel(report) == runningText && RowsText(results) == rowsAfter;
+                gateField.SetValue(null, null);
+                gate.Set();
+                start = DateTime.UtcNow;
+                published = -1;
+                while ((DateTime.UtcNow - start).TotalSeconds < publishLimitS)
+                {
+                    Pump(20);
+                    if (Published(session, before, report, results, rowsAfter, completedText))
+                    {
+                        published = (DateTime.UtcNow - start).TotalSeconds;
+                        break;
+                    }
+                }
+                Console.WriteLine("  контроль (счёт задержан 3 с): сцена видит «не опубликовано» {0}; задвижка открыта — опубликовано через {1}  {2}",
+                                  Ok(seen), published >= 0 ? published.ToString("F1", CultureInfo.InvariantCulture) + " с" : "НЕТ",
+                                  Ok(seen && published >= 0));
+                if (!seen || published < 0) bad++;
+            }
+            finally
+            {
+                gateField.SetValue(null, null);
+                report.SetDocument(null);
+                mainForm.ActiveDocument = null;
+                results.ShowResult(true);
+                Pump(50);
+                doc.Dispose();
+                report.ProbeConsumer = wasConsumer;
+                FsaCalculationOptions.ApplicationSource = appSource;
+            }
+        }
+
+        /// <summary>(П274) Новый разбор дошёл до сеанса, отчёта и окна результата.</summary>
+        static bool Published(FsaAnalysisSession session, FsaResult before, FSAReportView report, DCResultView results,
+                              string rowsBefore, string completedText)
+        {
+            return !session.IsRunning && session.Result != null && !ReferenceEquals(session.Result, before)
+                   && ReportLabel(report) == completedText && RowsText(results) != rowsBefore
+                   && !RowsText(results).Contains(computingText);
+        }
+
+        static int HeaderWidth(DCResultView view)
+        {
+            object model = Field(typeof(DCResultView), "columnModel1").GetValue(view);
+            IList columns = (IList)model.GetType().GetProperty("Columns").GetValue(model, null);
+            return (int)columns[0].GetType().GetProperty("Width").GetValue(columns[0], null);
+        }
+
+        static string RowsText(DCResultView results)
+        {
+            return string.Join(" | ", ResultRows(results).Select(r => string.Join(" ", r)));
+        }
+
+        /// <summary>(П274) Дождаться покоя после активации: поиск пиков кончился, разбор опубликован.</summary>
+        static bool Settle(FsaAnalysisSession session, DCPeakDetectionView peaks, FSAReportView report, DCResultView results, int limitS)
+        {
+            DateTime start = DateTime.UtcNow, stableSince = DateTime.UtcNow;
+            string last = null;
+            while ((DateTime.UtcNow - start).TotalSeconds < limitS)
+            {
+                Pump(20);
+                bool searching = (bool)Field(typeof(DCPeakDetectionView), "isProcessing").GetValue(peaks)
+                                 || (bool)Field(typeof(DCPeakDetectionView), "refreshPending").GetValue(peaks);
+                string state = (searching ? "S" : "-") + (session.IsRunning ? "R" : "-") + ReportLabel(report) + RowsText(results);
+                if (state != last) { last = state; stableSince = DateTime.UtcNow; }
+                if (!searching && !session.IsRunning && session.Result != null
+                    && (DateTime.UtcNow - stableSince).TotalMilliseconds > 1500)
+                {
+                    return true;
+                }
+            }
+            Console.WriteLine("  ⛔ активация не успокоилась за {0} с: {1}", limitS, last);
+            return false;
         }
 
         /// <summary>

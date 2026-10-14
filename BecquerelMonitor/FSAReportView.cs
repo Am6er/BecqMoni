@@ -1915,9 +1915,12 @@ namespace BecquerelMonitor
 
             if (result.CompositionSuppressed)
             {
-                // Имя пересилившего образа — не надпись, а данные результата,
-                // и переводу не подлежит (`Backscatter`, `Esc-I`, нуклид).
-                made.Add(this.MakeMarkRow(KeySuppressedRow, result.SuppressorName ?? string.Empty, false, true));
+                // Имя пересилившего образа — данные результата (`Backscatter`,
+                // `Esc-I`, нуклид), но человеку — подписью слоя, той же, что у
+                // строки состава (П274 по слову распорядителя, вслед за П275:
+                // по-русски здесь стояло служебное «Backscatter» рядом с
+                // «Обратное рассеяние» в составе). Нуклид подпись не меняет.
+                made.Add(this.MakeMarkRow(KeySuppressedRow, FsaPalette.DisplayName(result.SuppressorName ?? string.Empty), false, true));
             }
 
             // (`S187`, П152 24.09.2026) РАСХОЖДЕНИЯ ПОСТАВОК ДАННЫХ РАСПАДА —

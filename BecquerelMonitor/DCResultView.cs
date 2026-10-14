@@ -558,11 +558,41 @@ namespace BecquerelMonitor
             // которую человек выставил руками, она не отнимает.
             System.Drawing.Font font = this.table1.HeaderFont ?? this.table1.Font;
             int needed = System.Windows.Forms.TextRenderer.MeasureText(text ?? "", font).Width + 12;
+            // ⛔ (П274, 14.10.2026) …И ВОЗВРАЩАЕТСЯ, когда пометка ушла. Пометка «(пересчёт…)»
+            // теперь встаёт на каждый пересчёт (`FsaSessionStarted`), и колонка, выросшая под неё
+            // навсегда, выталкивала колонку MDA за край узкой панели (экран П274: после первой же
+            // смены настройки MDA срезана). Рост под текст остаётся (П254), а по уходу длинного
+            // текста колонка сжимается к ширине до роста — если её с тех пор не трогал человек.
+            if (this.fsaHeaderGrownFrom >= 0 && column.Width != this.fsaHeaderGrownTo)
+            {
+                this.fsaHeaderGrownFrom = -1;   // ширину выставил человек — она его
+            }
             if (column.Width < needed)
             {
+                if (this.fsaHeaderGrownFrom < 0)
+                {
+                    this.fsaHeaderGrownFrom = column.Width;
+                }
                 column.Width = needed;
+                this.fsaHeaderGrownTo = column.Width;
+            }
+            else if (this.fsaHeaderGrownFrom >= 0 && needed < column.Width)
+            {
+                int back = Math.Max(this.fsaHeaderGrownFrom, needed);
+                column.Width = back;
+                this.fsaHeaderGrownTo = column.Width;
+                if (back == this.fsaHeaderGrownFrom)
+                {
+                    this.fsaHeaderGrownFrom = -1;
+                }
             }
         }
+
+        /// <summary>(П274) Ширина колонки заголовка до роста под длинный текст; −1 — не росла.</summary>
+        int fsaHeaderGrownFrom = -1;
+
+        /// <summary>(П274) Ширина, до которой колонку вырастил <see cref="SetFsaHeader"/>.</summary>
+        int fsaHeaderGrownTo = -1;
 
         MeasurementResultCollection FsaCollection()
         {
@@ -588,6 +618,7 @@ namespace BecquerelMonitor
                     if (this.fsaDocument.FsaSession != null)
                     {
                         this.fsaDocument.FsaSession.Completed -= this.FsaSessionCompleted;
+                        this.fsaDocument.FsaSession.Started -= this.FsaSessionStarted;
                     }
                 }
                 if (document != null)
@@ -596,6 +627,7 @@ namespace BecquerelMonitor
                     if (document.FsaSession != null)
                     {
                         document.FsaSession.Completed += this.FsaSessionCompleted;
+                        document.FsaSession.Started += this.FsaSessionStarted;
                     }
                 }
                 this.fsaDocument = document;
@@ -686,6 +718,7 @@ namespace BecquerelMonitor
                 if (this.fsaDocument.FsaSession != null)
                 {
                     this.fsaDocument.FsaSession.Completed -= this.FsaSessionCompleted;
+                    this.fsaDocument.FsaSession.Started -= this.FsaSessionStarted;
                 }
                 this.fsaDocument = null;
             }
@@ -748,6 +781,39 @@ namespace BecquerelMonitor
             catch (InvalidOperationException)
             {
                 // окно закрылось между проверкой и вызовом — результат никому не нужен
+            }
+        }
+
+        /// <summary>
+        /// ⛔ (П274, 14.10.2026) ПЕРЕСЧЁТ НАЧАЛСЯ — СТРОКИ ПРЕЖНЕГО РАЗБОРА ПОМЕЧАЮТСЯ СРАЗУ. Окно
+        /// перечитывалось только по концу счёта и по обновлению вида документа, а смена настройки
+        /// расчёта в окне отчёта (галка «Равновесие ряда» и пр.) вид не обновляет: все 5–10 с
+        /// пересчёта Th232_29.07.2022 окно стояло с прежними числами (Th-232 1057.20) без пометки
+        /// «(пересчёт…)», хотя отчёт уже писал «идёт расчёт» (проверка экраном П273, находка 1;
+        /// требование `AMBER208` (3) — строки по прежнему разбору обязаны это говорить). Событие
+        /// приходит с потока, позвавшего счёт, и в том числе изнутри <see cref="ShowResult"/> —
+        /// поэтому только отложенно; скрытое окно счёта не заказывает и здесь (`AMBER211`).
+        /// </summary>
+        void FsaSessionStarted(object sender, EventArgs e)
+        {
+            if (this.IsDisposed || !this.IsHandleCreated)
+            {
+                return;
+            }
+            try
+            {
+                this.BeginInvoke((System.Windows.Forms.MethodInvoker)delegate
+                {
+                    if (this.IsFsaConsumer)
+                    {
+                        this.previousCollection = null;
+                        this.ShowResult(true);
+                    }
+                });
+            }
+            catch (InvalidOperationException)
+            {
+                // окно закрылось между проверкой и вызовом — помечать некому
             }
         }
 
