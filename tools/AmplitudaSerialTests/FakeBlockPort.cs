@@ -28,12 +28,42 @@ namespace AmplitudaSerialTests
         // block's own spectrum still answer 1024 bytes with a VALID checksum, but the payload is
         // foreign memory (other internal buffers), not spectrum - nonzero and untouched by clear.
         public bool ForeignMemoryBeyondSpectrum;
+        // P280: counts go over ALL pages instead of HotChannel, each page at the same steady rate
+        // (Rate / pages, its own carry; round-robin inside the page), so every page of a read
+        // carries counts and the moment of a reading's counts is spread over its pages. A single
+        // round-robin over the whole spectrum would not do: at 8192 channels its pointer takes
+        // 8 s to go round, and pages read 11 s apart would see bursts, not a rate.
+        public bool Spread;
+        double[] pageCarry;
+        int[] pageNext;
         double carry;
         bool flicker;
 
         public void Advance(long ms)
         {
             if (!Running || Silent) return;
+            if (Spread)
+            {
+                int pages = Channels.Length / 512;
+                if (pageCarry == null || pageCarry.Length != pages)
+                {
+                    pageCarry = new double[pages];
+                    pageNext = new int[pages];
+                }
+                for (int page = 0; page < pages; page++)
+                {
+                    pageCarry[page] += Rate / pages * ms / 1000.0;
+                    int share = (int)pageCarry[page];
+                    pageCarry[page] -= share;
+                    for (int i = 0; i < share; i++)
+                    {
+                        Channels[page * 512 + pageNext[page]]++;
+                        pageNext[page] = (pageNext[page] + 1) % 512;
+                    }
+                }
+                LiveMs += ms * LiveFraction;
+                return;
+            }
             carry += Rate * ms / 1000.0;
             int add = (int)carry;
             carry -= add;
@@ -106,6 +136,7 @@ namespace AmplitudaSerialTests
 
         public readonly Dictionary<int, FakeBlock> Blocks = new Dictionary<int, FakeBlock>();
         public readonly List<string> Wire = new List<string>();       // "A00", "C13", ...
+        public readonly List<long> WireMs = new List<long>();         // virtual time of each Wire entry (P280)
         public readonly ManualResetEvent Gate = new ManualResetEvent(true);  // closed = Write blocks
         public int GapMs = 20;
         public int GapViolations;
@@ -178,12 +209,14 @@ namespace AmplitudaSerialTests
                     pendingAddress = value;
                     expectAddress = false;
                     Wire.Add("A" + value.ToString("X2", CultureInfo.InvariantCulture));
+                    WireMs.Add(nowMs);
                 }
                 else
                 {
                     if (nowMs - lastByteMs < GapMs) GapViolations++;
                     expectAddress = true;
                     Wire.Add("C" + value.ToString("X2", CultureInfo.InvariantCulture));
+                    WireMs.Add(nowMs);
                     Execute(pendingAddress, value);
                 }
                 lastByteMs = nowMs;
@@ -286,6 +319,11 @@ namespace AmplitudaSerialTests
         public string[] WireSnapshot()
         {
             lock (sync) { return Wire.ToArray(); }
+        }
+
+        public long[] WireMsSnapshot()
+        {
+            lock (sync) { return WireMs.ToArray(); }
         }
 
         public void Dispose()

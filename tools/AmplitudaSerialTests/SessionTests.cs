@@ -21,7 +21,8 @@ namespace AmplitudaSerialTests
             int[] target = new int[1024];
             session.Compose(target);
             T.Eq(540, target[252], "document + block");
-            T.Near(107.0, session.LiveSeconds, 1e-9, "live = document + block");
+            // The open segment is credited like a closed one (P280): 7 block seconds + 0.5.
+            T.Near(107.5, session.LiveSeconds, 1e-9, "live = document + block");
             T.Eq(540, session.TotalCounts, "total counts");
             document[252] = 0;
             session.Compose(target);
@@ -45,7 +46,7 @@ namespace AmplitudaSerialTests
             AmplitudaSerialSession session = new AmplitudaSerialSession(new int[1024], 0.0);
             session.SetZero(5);
             session.Apply(Block(1, 10), 12, true);
-            T.Near(7.0, session.LiveSeconds, 1e-9, "live counted from the zero reading");
+            T.Near(7.5, session.LiveSeconds, 1e-9, "live counted from the zero reading (+0.5, P280)");
         }
 
         public static void TestPourThresholds()
@@ -70,8 +71,9 @@ namespace AmplitudaSerialTests
             int[] target = new int[1024];
             session.Compose(target);
             T.Eq(70000, target[3], "a channel beyond 16 bits");
-            // 600 + 450 block seconds, plus the clock correction for the one completed (poured) segment.
-            T.Near(1050.0 + AmplitudaSerialSession.SegmentClockCorrectionSeconds, session.LiveSeconds, 1e-9, "live across the pour");
+            // 600 + 450 block seconds, plus the clock correction for the poured segment AND for the
+            // open one (P280: the open segment is credited like a closed one).
+            T.Near(1050.0 + 2 * AmplitudaSerialSession.SegmentClockCorrectionSeconds, session.LiveSeconds, 1e-9, "live across the pour");
         }
 
         public static void TestBlockResetKeepsTheLastGoodReading()

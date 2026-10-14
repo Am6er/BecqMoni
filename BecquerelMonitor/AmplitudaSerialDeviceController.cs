@@ -20,7 +20,8 @@ namespace BecquerelMonitor
     // The port belongs to a shared AmplitudaSerialLine, not to the controller: several blocks
     // on one port measure at the same time in different documents.
     //
-    // Live time comes from the block (IDeviceLiveTimeSource), real time from the PC clock.
+    // Live time comes from the block (IDeviceLiveTimeSource), real time from the PC clock - both,
+    // while measuring, at the moment of the last reading's counts (P280, see Publish).
     //
     // No method lets an exception escape: MeasurementController reports any exception from
     // StartMeasurement as "Bluetooth is not supported". The one exception is a refused Start
@@ -385,7 +386,14 @@ namespace BecquerelMonitor
                 spectrum.LiveTime = acquisition.LiveSeconds;
             }
             // Through ticks (100 ns): TimeSpan.FromSeconds rounds to a whole millisecond.
-            TimeSpan elapsed = TimeSpan.FromTicks((long)(acquisition.RealSeconds * 1.0E+07));
+            // P280 (14.10.2026): the real time of the data in hand - the moment of the last
+            // reading's counts, the same as TotalPulseCount and LiveTime above - not the PC clock
+            // "now", which ran ahead of them by up to a poll period and a read and made the dead
+            // time on both panels too high while measuring. It therefore advances once per
+            // reading, like the counts and the live time. Except at the preset: once the clock
+            // reaches it, the clock is written, so OnTimer stops on the same tick as before
+            // (AmplitudaSerialAcquisition.ElapsedTicks).
+            TimeSpan elapsed = TimeSpan.FromTicks(acquisition.ElapsedTicks(resultData.ResultDataStatus.PresetTime));
             resultData.ResultDataStatus.ElapsedTime = elapsed;
             resultData.ResultDataStatus.TotalTime = elapsed;
             return true;

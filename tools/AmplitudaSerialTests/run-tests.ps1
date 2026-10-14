@@ -1,7 +1,7 @@
 ﻿# Builds the console test runner with Roslyn csc and runs it.
 # Usage:  run-tests.ps1                      - unit tests on a fake block
-#         run-tests.ps1 -Live COM2 -Address 0 -Seconds 60 [-Pour 2000]   - real hardware, CHANGES BLOCK STATE
-param([string]$Live = "", [int]$Address = 0, [int]$Seconds = 60, [int]$Pour = 0)
+#         run-tests.ps1 -Live COM2 -Address 0 -Seconds 60 [-Pour 2000] [-Channels 8192]   - real hardware, CHANGES BLOCK STATE
+param([string]$Live = "", [int]$Address = 0, [int]$Seconds = 60, [int]$Pour = 0, [int]$Channels = 1024)
 $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
 $src  = Join-Path $here '..\..\BecquerelMonitor'
@@ -21,6 +21,6 @@ $exe = Join-Path $here 'AmplitudaSerialTests.exe'
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $runArgs = @()
-if ($Live) { $runArgs += @('--live', $Live, "$Address", "$Seconds", "$Pour") }
+if ($Live) { $runArgs += @('--live', $Live, "$Address", "$Seconds", "$Pour", "$Channels") }
 & $exe @runArgs
 exit $LASTEXITCODE
