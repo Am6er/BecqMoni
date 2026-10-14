@@ -2085,7 +2085,12 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The N42 format does not carry the efficiency curve. The efficiency curve, the detector geometry and the link to the response matrix are NOT written to the file; spectra with a curve in this document: {0} of {1}. A file re-imported into a NEW document therefore gets no activity of the selection, no activity of the ROIs, no full-spectrum analysis (FSA) and no normalization by efficiency. The spectra themselves, the energy calibration and the measurement times are exported in full..
+        ///   Looks up a localized string similar to Not everything a spectrum file holds can be written to N42. NOT exported:
+        ///- the efficiency curve, the detector geometry and the link to the response matrix (spectra with a curve: {0} of {1});
+        ///- the resolution (FWHM) calibration;
+        ///- the link to the device configuration (only its name is written) and the instrument serial number;
+        ///- the sample information: name, location, sampling date, weight, volume, notes.
+        ///A file re-imported into a NEW document therefore has no activity of the selection, no full-spectrum analysis (FSA), no normalization by efficiency and no decay correction to the sampling date, and peak search does not run on it until a resolution calibration is set. Exported in full: the spectra and the background, the energy calibration, the start of acquisition, the live and real times..
         /// </summary>
         public static string MSGN42ExportLosesEfficiency {
             get {

@@ -27,8 +27,11 @@ namespace BecquerelMonitor.N42
             //RadInstrumentInformation
             rad.RadInstrumentInformation = new RadInstrumentInformation[1];
             rad.RadInstrumentInformation[0] = new RadInstrumentInformation();
-            rad.RadInstrumentInformation[0].RadInstrumentManufacturerName = "KB Radar";
-            rad.RadInstrumentInformation[0].RadInstrumentModelName = "ATOM Spectra";
+            // П284: производитель и модель — по типу прибора документа, а не
+            //   «KB Radar / ATOM Spectra» у всех (см. InstrumentMakerAndModel).
+            InstrumentMakerAndModel(doc.ActiveResultData, out string manufacturer, out string model);
+            rad.RadInstrumentInformation[0].RadInstrumentManufacturerName = manufacturer;
+            rad.RadInstrumentInformation[0].RadInstrumentModelName = model;
             rad.RadInstrumentInformation[0].RadInstrumentVersion = new RadInstrumentVersion[3];
             rad.RadInstrumentInformation[0].RadInstrumentVersion[0] = new RadInstrumentVersion();
             rad.RadInstrumentInformation[0].RadInstrumentVersion[0].RadInstrumentComponentName = "Hardware";
@@ -80,6 +83,72 @@ namespace BecquerelMonitor.N42
             }
 
             return rad;
+        }
+
+        /// <summary>
+        /// Производитель, который пишется в N42 за любой прибор, у которого точное
+        /// название изготовителя в дереве не установлено (П284).
+        /// </summary>
+        internal const string FallbackManufacturer = "BecqMoni";
+
+        /// <summary>
+        /// ⛔ П284 (14.10.2026): ПРОИЗВОДИТЕЛЬ И МОДЕЛЬ В N42 — ПО ТИПУ ПРИБОРА
+        /// ДОКУМЕНТА. Решение Amber 14.10.2026 вопросником, дословно:
+        /// «Производитель по прибору + назвать потери (Рекомендую)» — описание
+        /// выбранного: «Производитель/модель по типу прибора, иначе «BecqMoni /
+        /// имя конфигурации»». Прежде экспорт писал «KB Radar / ATOM Spectra» за
+        /// ЛЮБОЙ прибор (замер П263: 785 файлов из 785, в том числе RadiaCode,
+        /// Obsidian, Amplituda).
+        ///
+        /// ⛔ НАЗВАНИЯ НЕ ВЫДУМАНЫ — только те, что есть в дереве (таблица с
+        /// источниками — журнал `handover/handover-2026-10-14-p284-n42-maker-losses.md`):
+        /// * <c>AtomSpectraVCP</c> — «KB Radar» / «ATOM Spectra»: прежняя запись
+        ///   автора этого кода; так же («KB Radar») подписывает свои N42 сама
+        ///   программа AtomSpectra (журналы П137, П151);
+        /// * <c>AmplitudaUSB</c> — «Amplituda» / «Progress spectrometer»: так блок
+        ///   называет себя по USB (PR #34, шапки <c>AmplitudaUsbDeviceConfig</c> и
+        ///   <c>AmplitudaUsbProtocol</c>);
+        /// * прочие (<c>AmplitudaSerial</c> — «БДЭГ-3-2 НПП «Доза» и родственные», то
+        ///   есть изготовитель типом не определён; <c>RadiaCode</c>,
+        ///   <c>Obsidian</c> — изготовителя в дереве нет; звуковой вход — прибора
+        ///   нет вовсе) — «BecqMoni» / имя конфигурации прибора.
+        ///
+        /// ⚠ Прибор спектра не найден в конфигурации (<c>DeviceConfig</c> — пустая
+        /// заготовка без <c>Guid</c>: файл с чужой машины, сброс `A260`) — тип
+        /// неизвестен, и модель берётся из ссылки на прибор, сохранённой в файле
+        /// (<c>DeviceConfigReference.Name</c>, единственный след прибора). Нет и
+        /// её — «Unknown», умолчание схемы (<see cref="RadInstrumentInformation"/>).
+        ///
+        /// ⚠ Признак происхождения файла для импорта — НЕ изготовитель, а
+        /// «SoftwareName» = «BecqMoni» (<see cref="IsWrittenByAtomSpectra"/>,
+        /// `AMBER87`), поэтому смена изготовителя круг «мы → файл → мы» не трогает.
+        /// </summary>
+        internal static void InstrumentMakerAndModel(ResultData data, out string manufacturer, out string model)
+        {
+            DeviceConfigInfo config = data != null ? data.DeviceConfig : null;
+            bool resolved = config != null && !string.IsNullOrEmpty(config.Guid);
+            InputDeviceConfig input = resolved ? config.InputDeviceConfig : null;
+
+            if (input is AtomSpectraDeviceConfig)
+            {
+                manufacturer = "KB Radar";
+                model = "ATOM Spectra";
+                return;
+            }
+            if (input is AmplitudaUsbDeviceConfig)
+            {
+                manufacturer = "Amplituda";
+                model = "Progress spectrometer";
+                return;
+            }
+
+            manufacturer = FallbackManufacturer;
+            string name = resolved ? config.Name : null;
+            if (string.IsNullOrWhiteSpace(name) && data != null && data.DeviceConfigReference != null)
+            {
+                name = data.DeviceConfigReference.Name;
+            }
+            model = string.IsNullOrWhiteSpace(name) ? new RadInstrumentInformation().RadInstrumentModelName : name;
         }
 
         private RadMeasurement AddMeasurement(ResultData data, string idMeasurement, string measurementClassCode, string idSpectrum, string idEnergyCalibration, string idGrossCounts)
@@ -1676,7 +1745,8 @@ namespace BecquerelMonitor.N42
         ///
         /// ⛔ ПРИЗНАК — ИМЯ ПРОГРАММЫ, А НЕ ИЗГОТОВИТЕЛЬ. `KB Radar` / `ATOM
         /// Spectra` в <c>RadInstrumentManufacturerName</c>/<c>ModelName</c>
-        /// пишет и САМО ПРИЛОЖЕНИЕ при экспорте (<see cref="ExportToN42"/>), а
+        /// пишет и САМО ПРИЛОЖЕНИЕ при экспорте (<see cref="ExportToN42"/>; с П284 —
+        /// у спектра прибора AtomSpectraVCP, прежде — у любого), а
         /// его файл несёт полином КРАЯМИ (<see cref="ChannelCentrePolynomialToEdges"/>):
         /// судить по изготовителю значило бы развести круг «мы → файл → мы» на
         /// h/2 (замер П151 на файлах Amber: 26 из 48 — наш экспорт с «KB Radar»).
