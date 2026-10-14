@@ -542,8 +542,11 @@ namespace BecquerelMonitor
                     }
                 }
             }
-            // ⛔ только краска: ни расчёта, ни представления это не меняет (как у отчёта)
-            document.EnergySpectrumView.FsaHighlight = layer;
+            // ⛔ только краска: ни расчёта, ни представления это не меняет (как у отчёта).
+            // (П287, решение Amber 14.10.2026 «…окно результата — весь ряд») строка
+            // связанного ряда («Th-232», равновесие ВКЛ) — активность ряда целиком и
+            // зажигает в стеке дочерних ВСЕ его члены; строка отчёта — только свой слой.
+            document.EnergySpectrumView.SetFsaHighlight(layer, true);
         }
 
         void SetFsaHeader(string text, string tip)
