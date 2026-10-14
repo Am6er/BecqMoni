@@ -390,10 +390,13 @@ static class SpectrumFilesProbeP263
                     foreach (string line in Diff(Fields(raw), f1))
                     {
                         string fn = FieldName(line);
+                        // (П279) Вид (`.Kind`) отсутствующего времени — того же рода: у прямого
+                        // чтения «сейчас» (Local), у открытия — вид начала или конца файла.
+                        string tf = fn.EndsWith(".Kind", StringComparison.Ordinal) ? fn.Substring(0, fn.Length - 5) : fn;
                         if (OpenMayChange.Any(m => fn == m)) Count(openChanged, fn);
-                        else if ((fn == "EndTime" && !text.Contains("<EndTime>"))
-                                 || (fn == "StartTime" && !text.Contains("<StartTime>"))
-                                 || (fn == "SampleInfo.Time" && !Regex.IsMatch(text, @"<SampleInfo>(?:(?!</SampleInfo>)[\s\S])*?<Time>")))
+                        else if ((tf == "EndTime" && !text.Contains("<EndTime>"))
+                                 || (tf == "StartTime" && !text.Contains("<StartTime>"))
+                                 || (tf == "SampleInfo.Time" && !Regex.IsMatch(text, @"<SampleInfo>(?:(?!</SampleInfo>)[\s\S])*?<Time>")))
                         {
                             // Элемента в файле НЕТ: и прямое чтение, и открытие получают
                             // умолчание ResultData — «сейчас» в момент создания объекта.
