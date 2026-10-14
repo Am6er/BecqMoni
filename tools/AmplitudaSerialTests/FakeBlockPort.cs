@@ -143,6 +143,7 @@ namespace AmplitudaSerialTests
         public bool OpenFails;
         public bool WriteFails;
         public bool PortDead;               // DiscardInput also throws: the port is really gone
+        public Action<string> OnWire;       // called under the port lock right after a frame is recorded
         public int OpenCount;
         public bool Disposed;
         public int WireCountAtDispose = -1; // how much had reached the wire when the port was disposed
@@ -210,6 +211,7 @@ namespace AmplitudaSerialTests
                     expectAddress = false;
                     Wire.Add("A" + value.ToString("X2", CultureInfo.InvariantCulture));
                     WireMs.Add(nowMs);
+                    if (OnWire != null) OnWire(Wire[Wire.Count - 1]);
                 }
                 else
                 {
@@ -217,6 +219,7 @@ namespace AmplitudaSerialTests
                     expectAddress = true;
                     Wire.Add("C" + value.ToString("X2", CultureInfo.InvariantCulture));
                     WireMs.Add(nowMs);
+                    if (OnWire != null) OnWire(Wire[Wire.Count - 1]);
                     Execute(pendingAddress, value);
                 }
                 lastByteMs = nowMs;
