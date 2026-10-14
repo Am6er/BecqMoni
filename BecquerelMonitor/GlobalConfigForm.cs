@@ -14,6 +14,7 @@ namespace BecquerelMonitor
             this.InitializeComponent();
             this.InitializeProgressiveSmoothTooltip();
             this.LimitAutosavePeriodField();
+            this.LimitCountLimitField();
         }
 
         // Token: 0x06000AC4 RID: 2756 RVA: 0x0003FE50 File Offset: 0x0003E050
@@ -22,6 +23,7 @@ namespace BecquerelMonitor
             this.InitializeComponent();
             this.InitializeProgressiveSmoothTooltip();
             this.LimitAutosavePeriodField();
+            this.LimitCountLimitField();
             this.mainForm = mainForm;
             base.Icon = Resources.becqmoni;
         }
@@ -40,6 +42,26 @@ namespace BecquerelMonitor
         void LimitAutosavePeriodField()
         {
             this.numericUpDown10.Maximum = int.MaxValue;
+        }
+
+        /// <summary>
+        /// (П269, 14.10.2026) Пределы поля «предел счёта сглаживания»
+        /// (<see cref="ChartViewConfig.CountLimit"/>, <c>int</c>) — тот же дефект, что
+        /// П268 сняла у периода автосохранения: в разметке <c>Maximum</c> =
+        /// <c>decimal.MaxValue</c>, и набранное «3000000000» роняло «ОК» на
+        /// <c>(int)</c> в <see cref="SaveFormContents"/> (<c>OverflowException</c>).
+        /// Сверху — предел типа; набранное больше поле само сводит к пределу.
+        /// Снизу — единица: при пределе 0 у сглаживания (<c>SpectrumAriphmetics.GetWindowSize</c>)
+        /// канал с нулём отсчётов даёт окно 0/0 = NaN, и <c>Convert.ToInt32</c>
+        /// бросает <c>OverflowException</c> при каждом сглаживании — замер
+        /// `SmallFixesProbeP269 --mode=countlimit`. Разметка и <c>.resx</c> не тронуты;
+        /// значение из файла настроек вне пределов <c>LoadFormContents</c> сводит в
+        /// них (<c>SetClamped</c>), как у остальных полей.
+        /// </summary>
+        void LimitCountLimitField()
+        {
+            this.numericUpDown13.Minimum = 1;
+            this.numericUpDown13.Maximum = int.MaxValue;
         }
 
         void InitializeProgressiveSmoothTooltip()

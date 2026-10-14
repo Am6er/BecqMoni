@@ -529,7 +529,8 @@ namespace BecquerelMonitor
         /// <item>времени пробы нет — время начала (так ставят все двери импорта:
         /// у файла с одной датой проба и начало — одно мгновение);</item>
         /// <item>начала нет, а время пробы есть — время пробы (задержка ноль, то
-        /// есть «без поправки», а не выдуманная);</item>
+        /// есть «без поправки», а не выдуманная); но не позже, чем «конец − полное
+        /// время», когда конец в файле есть (П269, <see cref="StartNotAfterEnd"/>);</item>
         /// <item>нет ни начала, ни времени пробы — оба
         /// <see cref="ResultData.UnknownStartTime"/> и голос один раз на файл
         /// (`A207`, решение Amber 06.09.2026).</item>
@@ -561,6 +562,11 @@ namespace BecquerelMonitor
                     if (sampleKnown)
                     {
                         data.StartTime = data.SampleInfo.Time;
+                        if (data.EndTimeInFile)
+                        {
+                            data.StartTime = StartNotAfterEnd(data.StartTime, data.EndTime,
+                                data.EnergySpectrum != null ? data.EnergySpectrum.MeasurementTime : 0.0);
+                        }
                     }
                     else
                     {
@@ -588,6 +594,38 @@ namespace BecquerelMonitor
                 }
             }
             return unknown;
+        }
+
+        /// <summary>
+        /// (П269, 14.10.2026) Начало набора, взятое из времени пробы (начала в файле нет,
+        /// конец есть), не может лежать позже, чем «конец − полное время набора»: набор
+        /// длиной <paramref name="seconds"/> закончился в <paramref name="end"/>, значит
+        /// начался не позже <c>end − seconds</c>. Прежде проба позже конца (данные чужого
+        /// конвертера) давала начало ПОЗЖЕ конца, и поправка на распад
+        /// (<c>MeasurementResultManager.DecayToSamplingFactor</c>) молча становилась 1:
+        /// длительность набора выходила отрицательной. Правило П263 не меняется, пока
+        /// проба с данными согласна (проба ≤ конец − время — начало = проба, задержка
+        /// ноль); иначе начало = конец − полное время (оно в файле), а без времени
+        /// набора (ноль, бесконечность, не число) — сам конец. Голоса нет: время пробы
+        /// в файле есть, начало не «неизвестно» (`A207` — как у П263).
+        /// </summary>
+        static DateTime StartNotAfterEnd(DateTime start, DateTime end, double seconds)
+        {
+            bool timed = seconds > 0.0 && !double.IsInfinity(seconds) && !double.IsNaN(seconds);
+            DateTime latest = end;
+            if (timed)
+            {
+                try
+                {
+                    latest = end.AddSeconds(-seconds);
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    // Время набора длиннее календаря до конца — раньше конца не сдвигать.
+                    latest = end;
+                }
+            }
+            return start > latest ? latest : start;
         }
 
         /// <summary>
